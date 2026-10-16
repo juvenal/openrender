@@ -56,10 +56,12 @@ typedef enum {
 
 #include "common/global.h"
 #include "common/containers.h"
+#include "common/memory.h" // globalArena
 #include "shader.h"
 #include "common/diagnostics.h"
-#include "renderer.h"
 #include "dso.h"
+#include "dsoHandle.h"
+#include "serviceLookup.h"
 #include "ri_config.h"
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -335,7 +337,7 @@ static	TRSLObjectFunction		functions[]	=	{
 													cVariable->variable			=	newVariable;
 
 													// Is this a global variable ?
-													gVariable					=	CRenderer::retrieveVariable(name);
+													gVariable					=	libshader::lookupVariable(name);
 													if (gVariable != NULL)	{
 														if (gVariable->storage == STORAGE_GLOBAL) {
 															// If the variable is actually defined
@@ -495,7 +497,7 @@ static	TRSLObjectFunction		functions[]	=	{
 													}
 												}
 
-												var	=	CRenderer::retrieveVariable(name);
+												var	=	libshader::lookupVariable(name);
 
 												if (var != NULL) {
 													currentData.usedParameters										|=	var->usageMarker;
@@ -643,7 +645,7 @@ static	TRSLObjectFunction		functions[]	=	{
 														CDSO	*dso;
 
 														// See if this is a DSO function
-														if ((dso = CRenderer::getDSO(currentData.currentOpcode,currentData.currentPrototype)) != NULL) {
+														if ((dso = libshader::lookupDSO(currentData.currentOpcode,currentData.currentPrototype)) != NULL) {
 
 															// We have the DSO
 															if (currentData.currentPrototype[0] == 'o')		currentData.currentOpcodePlace->opcode	=	FUNCTION_DSO_VOID;
@@ -1860,7 +1862,7 @@ rsloDSO:			SCRL_DSO
 						// Set the opcode here
 						CDSO	*dso;
 
-						if ((dso = CRenderer::getDSO($2,$5)) != NULL) {
+						if ((dso = libshader::lookupDSO($2,$5)) != NULL) {
 							// Save the DSO opcode
 							if ($5[0] == 'o')	currentData.currentOpcodePlace->opcode		=	FUNCTION_DSO_VOID;
 							else				currentData.currentOpcodePlace->opcode		=	FUNCTION_DSO;

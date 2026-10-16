@@ -406,7 +406,7 @@ Record this, stage, and wait for approval.
 
 ### Implementation
 
-- [ ] T026 [US2] Move the DSO handle type and add the service (research R7, contracts/renderer-services.md).
+- [X] T026 [US2] Move the DSO handle type and add the service (research R7, contracts/renderer-services.md).
   - Create `src/libshader/shading/dsoHandle.h` with `class CDSO` moved **verbatim** from
     `src/ri/render/renderer.h`, including `shadeop.h` for the `dso*Function` typedefs.
   - In `renderer.h`, include `dsoHandle.h` and drop the class.
@@ -418,7 +418,7 @@ Record this, stage, and wait for approval.
     `return CRenderer::getDSO(name, prototype);`.
   - In `tests/shading_parity/recording_services.h`, the recording double forwards and counts
     `getDSO`, and the stub returns a static `CDSO` sentinel.
-- [ ] T027 [US2] Create `src/libshader/shading/serviceLookup.h` and `serviceLookup.cpp` in namespace
+- [X] T027 [US2] Create `src/libshader/shading/serviceLookup.h` and `serviceLookup.cpp` in namespace
   `libshader`, and add them to `src/libshader/shading/CMakeLists.txt`.
   - Five functions: `CDSO *lookupDSO(const char *, const char *)`,
     `RtFilterFunc lookupFilter(const char *)`, `RtStepFilterFunc lookupStepFilter(const char *)`,
@@ -428,21 +428,21 @@ Record this, stage, and wait for approval.
     `RiGaussianStepFilter`, `0` or `nullptr`. It reports **no diagnostic yet**; Phase 5 adds it,
     red first.
   - Remove `EXCLUDE_FROM_ALL` from `test_shading_service_lookup`.
-- [ ] T028 [US2] In `src/libshader/shading/rslo.y`:
+- [X] T028 [US2] In `src/libshader/shading/rslo.y`:
   - replace the two `CRenderer::retrieveVariable` calls with `libshader::lookupVariable`, and the
     two `CRenderer::getDSO` calls with `libshader::lookupDSO`;
   - include `serviceLookup.h` and `dsoHandle.h`;
   - remove `#include "renderer.h"`.
-- [ ] T029 [P] [US2] In `src/libshader/shading/shader.cpp`, replace `CRenderer::getGlobalID` with
+- [X] T029 [P] [US2] In `src/libshader/shading/shader.cpp`, replace `CRenderer::getGlobalID` with
   `libshader::lookupGlobalID`. Keep today's storing behaviour; Phase 5 changes it. Remove
   `#include "renderer.h"`. Add only the specific Shading, Graphics State or infrastructure headers
   the file then needs, never `renderer.h` again.
-- [ ] T030 [P] [US2] In `src/libshader/shading/shaderPl.cpp`, route the two `getFilter` calls, the
+- [X] T030 [P] [US2] In `src/libshader/shading/shaderPl.cpp`, route the two `getFilter` calls, the
   `getStepFilter` call and the `retrieveVariable` call through the helpers. Remove
   `#include "renderer.h"`, with the same header rule as T029.
-- [ ] T031 [P] [US2] In `src/libshader/shading/executeMisc.cpp`, remove `#include "renderer.h"`,
+- [X] T031 [P] [US2] In `src/libshader/shading/executeMisc.cpp`, remove `#include "renderer.h"`,
   which is unused. Same header rule as T029.
-- [ ] T032 [US2] [RUN] Build, then run:
+- [X] T032 [US2] [RUN] Build, then run:
   - `ctest -L architecture`: green, with no `STALE` and no `VIOLATION`, and the metric reporting
     Shading `0 0`. If it reports `NOTE metric … < baseline` for TOTAL distinct, lower that value in
     `metrics-baseline.txt` to the reported one and re-run. It may only go down;

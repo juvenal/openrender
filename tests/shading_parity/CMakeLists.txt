@@ -195,7 +195,7 @@ endif()
 # ribRender because libshader_shading still leaves some imports (the hiders and
 # the texturing code) unresolved; on Linux the load would fail without it, as
 # LibShader_McompConsistency does.
-add_executable(test_shading_service_lookup EXCLUDE_FROM_ALL test_service_lookup.cpp)
+add_executable(test_shading_service_lookup test_service_lookup.cpp)
 target_link_libraries(test_shading_service_lookup PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
 target_include_directories(test_shading_service_lookup PRIVATE
     ${CMAKE_SOURCE_DIR}/src

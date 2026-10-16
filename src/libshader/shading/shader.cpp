@@ -34,7 +34,7 @@
 #include "common/align.h"
 #include "common/diagnostics.h"
 #include "common/memory.h"
-#include "renderer.h"
+#include "serviceLookup.h"
 #include "shader.h"
 #include "shading.h"
 #include "common/stats.h"
@@ -262,7 +262,7 @@ void CShaderInstance::createCategories() {
         do {
             cCat = token(&tmp, ",\t ");
             if (*cCat != '\0')
-                categories[i++] = CRenderer::getGlobalID(cCat);
+                categories[i++] = libshader::lookupGlobalID(cCat);
         } while (tmp != NULL);
         categories[i++] = 0; // terminate the list
 

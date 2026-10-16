@@ -294,3 +294,40 @@ State when the work was paused (the machine was handed to another job):
 
   `dsoHandle.h` is the first include the compiler reaches; `serviceLookup.h` is missing too and is the
   next one it would stop on. The test also uses `CStubServices::dso()`, which T026 adds.
+
+### Implementation (T026 to T031) and verification (T032), 2026-10-16
+
+- **T026:** `class CDSO` moved verbatim from `renderer.h` to `src/libshader/shading/dsoHandle.h` (includes
+  `ri/render/shadeop.h` for the `dso*Function` typedefs); `renderer.h` includes it; `execute.cpp` includes it
+  explicitly. `CRendererServices::getDSO` added (`rendererServices.h`, forward declaration of `CDSO`), with
+  `CRendererServicesImpl::getDSO` forwarding to `CRenderer::getDSO`. In `recording_services.h` the recording
+  double counts `getDSO` and the stub returns the static `CStubServices::dso()` sentinel.
+- **T027:** `src/libshader/shading/serviceLookup.{h,cpp}` (namespace `libshader`: `lookupDSO`, `lookupFilter`,
+  `lookupStepFilter`, `lookupGlobalID`, `lookupVariable`), added to the library's `CMakeLists.txt`. With no
+  services they return `nullptr`, `RiGaussianFilter`, `RiGaussianStepFilter`, `0` and `nullptr`, with no
+  diagnostic yet (Phase 5). `EXCLUDE_FROM_ALL` removed from `test_shading_service_lookup`.
+- **T028 to T031:** `rslo.y` (two `lookupVariable`, two `lookupDSO`), `shader.cpp` (`lookupGlobalID`) and
+  `shaderPl.cpp` (two `lookupFilter`, one `lookupStepFilter`, one `lookupVariable`) go through the helpers;
+  `#include "renderer.h"` is gone from `rslo.y`, `shader.cpp`, `shaderPl.cpp` and `executeMisc.cpp`. The only
+  header `rslo.y` then needed was `common/memory.h` for `globalArena`.
+- **T032 results** (`nice -n 19`, `-j4`):
+  - Build: exit 0.
+  - `ShadingServices_Routing` (Cases A, B, C and D) and `ShadingServices_Lookup`: both pass.
+  - `ctest -L architecture`: 21/21. `archcheck`: `PASS violations=0 stale=0 badid=0 failing-cycles=0`, no `STALE`.
+    Metric: **Shading refs 0, distinct 0**; **TOTAL refs 740 (baseline 740)**; TOTAL distinct **113** against the
+    baseline 117, reported as `NOTE metric TOTAL distinct 113 < baseline 117`, so the baseline was lowered to 113
+    in `metrics-baseline.txt` with the reason stated there.
+  - **macOS import list (SC-001): 7 entries**, saved as `tools/libshader-dynlookup-after-macos.txt`: `CGatherBundle`
+    ctor, `CPhotonMap::lookup`, `CShadingContext::trace` and `traceEx`, `CTexture3d::resolve`, and the vtables of
+    `CTraceBundle` and `CTransmissionBundle`. The five `CRenderer::` symbols are gone (12 before).
+  - `grep -rn 'include "renderer.h"' src/libshader`: nothing (SC-002).
+  - `-R 'Visual_killeroo|Imager'`: 9/9. `-L determinism`: 6/6.
+  - **Full suite: 608/608** (607 plus `ShadingServices_Lookup`, which is now built), 109 s.
+- **Disk full during the first full run.** The first full run was 605/608: the disk had only about 210 MiB free,
+  so two tests failed with "No space left on device" / "Could not create temporary file"
+  (`ImageInput_TiffBakeByteIdentical`, `Visual_teapot-blue_marble-reyes-slo`), and `Visual_camera-dof-reyes`
+  reported one block at 20.28 against threshold 20 (a stochastic DOF scene, run while the disk was full). About
+  1.2 GB of `/tmp/shading_parity_*` and `/tmp/shading_services_routing_*` directories, left behind by the
+  `shading_parity` tests' `mkdtemp` calls (including the two new tests), were deleted, after which the full suite
+  passed 608/608 and `Visual_camera-dof-reyes` passed 10 of 10 repeats in isolation. These tests never remove
+  their temp directories; that is pre-existing, and the two new tests follow the same convention.

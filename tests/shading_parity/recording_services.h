@@ -7,7 +7,7 @@
  * CRecordingServices forwards every method to the services that were
  * installed when it was built and counts the lookups that spec 024 routes
  * through the interface (getFilter, getStepFilter, getGlobalID,
- * retrieveVariable; getDSO joins them when the interface gains it).
+ * retrieveVariable, getDSO).
  *
  * CStubServices stands alone: it answers the routed lookups with fixed
  * sentinel values and gives every other method a trivial default, so a test
@@ -21,6 +21,7 @@
 #define TESTS_SHADING_PARITY_RECORDING_SERVICES_H
 
 #include "common/variable.h"
+#include "libshader/shading/dsoHandle.h"
 #include "libshader/shading/rendererServices.h"
 #include "ri/parse/ri.h" // RiBoxFilter, RiBoxStepFilter
 
@@ -37,6 +38,7 @@ class CRecordingServices final : public CRendererServices {
         mutable int numGetStepFilter = 0;
         mutable int numGetGlobalID = 0;
         mutable int numRetrieveVariable = 0;
+        int numGetDSO = 0;
 
         CRendererServices *inner; // The services that were installed before this one
 
@@ -100,6 +102,10 @@ class CRecordingServices final : public CRendererServices {
             ++numRetrieveVariable;
             return inner->retrieveVariable(name);
         }
+        CDSO *getDSO(const char *name, const char *prototype) override {
+            ++numGetDSO;
+            return inner->getDSO(name, prototype);
+        }
 
         int xres() const override { return inner->xres(); }
         int yres() const override { return inner->yres(); }
@@ -139,6 +145,10 @@ class CStubServices final : public CRendererServices {
         static CVariable *variable() {
             static CVariable v = {};
             return &v;
+        }
+        static CDSO *dso() {
+            static CDSO d = {};
+            return &d;
         }
 
         int maxGridSize() const override { return 0; }
@@ -181,6 +191,7 @@ class CStubServices final : public CRendererServices {
         RtFilterFunc getFilter(const char *) const override { return RiBoxFilter; }
         RtStepFilterFunc getStepFilter(const char *) const override { return RiBoxStepFilter; }
         CVariable *retrieveVariable(const char *) const override { return variable(); }
+        CDSO *getDSO(const char *, const char *) override { return dso(); }
 
         int xres() const override { return 0; }
         int yres() const override { return 0; }

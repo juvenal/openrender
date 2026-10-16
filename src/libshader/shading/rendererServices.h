@@ -35,6 +35,7 @@ class CTextureInfoBase;
 class CEnvironment;
 class CPhotonMap;
 class CVariable;
+class CDSO;
 class CObject;
 class CMemPage; // defined as class in memory.h
 
@@ -131,6 +132,13 @@ class CRendererServices {
         virtual RtFilterFunc getFilter(const char *name) const = 0;
         virtual RtStepFilterFunc getStepFilter(const char *name) const = 0;
         virtual CVariable *retrieveVariable(const char *name) const = 0;
+
+        ///////////////////////////////////////////////////////////////
+        // DSO shadeops (the .rslo loader, single-threaded)
+        // Find (and load and cache on first use) the shadeop implementing `name`
+        // with the given RSL prototype; nullptr when none matches.
+        ///////////////////////////////////////////////////////////////
+        virtual CDSO *getDSO(const char *name, const char *prototype) = 0;
 
         ///////////////////////////////////////////////////////////////
         // Render option getters (shading.cpp CShadingContext::options())

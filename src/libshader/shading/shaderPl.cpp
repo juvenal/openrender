@@ -30,7 +30,7 @@
 #include "common/algebra.h"
 #include "common/os.h"
 #include "common/diagnostics.h"
-#include "renderer.h"
+#include "serviceLookup.h"
 #include "common/rendererc.h"
 #include "shading.h"
 #include "common/variable.h"
@@ -129,7 +129,7 @@ void CTextureLookup::bind(const char *name, int &opIndex, int step, void *data, 
     // Find the parameter and bind it
     if (strcmp(name, "filter") == 0) {
         expectUniform(name);
-        else filter = CRenderer::getFilter(((const char **)data)[0]);
+        else filter = libshader::lookupFilter(((const char **)data)[0]);
     }
     else if (strcmp(name, "blur") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, textureParams.blur));
@@ -285,7 +285,7 @@ void CEnvironmentLookup::bind(const char *name, int &opIndex, int step, void *da
     // Find the parameter and bind it
     if (strcmp(name, "filter") == 0) {
         expectUniform(name);
-        else filter = CRenderer::getFilter(((const char **)data)[0]);
+        else filter = libshader::lookupFilter(((const char **)data)[0]);
     }
     else if (strcmp(name, "blur") == 0) {
         add(name, opIndex, step, data, offsetof(CShadingScratch, textureParams.blur));
@@ -654,7 +654,7 @@ void CFilterLookup::bind(const char *name, int &opIndex, int step, void *data, C
     // Find the parameter and bind it
     if (strcmp(name, "filter") == 0) {
         expectUniform(name);
-        else filter = CRenderer::getStepFilter(((const char **)data)[0]);
+        else filter = libshader::lookupStepFilter(((const char **)data)[0]);
     }
     else if (strcmp(name, "width") == 0) {
         expectUniform(name);
@@ -800,7 +800,7 @@ CGatherLookup::~CGatherLookup() {
 // Comments				:
 void CGatherLookup::addOutput(const char *output, int destIndex, CShaderInstance *shader) {
     if (strncmp(output, "surface:", 8) == 0) {
-        CVariable *var = CRenderer::retrieveVariable(output + 8);
+        CVariable *var = libshader::lookupVariable(output + 8);
         if (var == NULL)
             error(CODE_BADTOKEN, "Variable \"%s\" is not found in shader %s\n", output, shader->getName());
         else if (var->storage != STORAGE_GLOBAL)

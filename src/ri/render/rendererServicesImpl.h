@@ -118,6 +118,7 @@ class CRendererServicesImpl final : public CRendererServices {
         RtFilterFunc getFilter(const char *name) const override { return CRenderer::getFilter(name); }
         RtStepFilterFunc getStepFilter(const char *name) const override { return CRenderer::getStepFilter(name); }
         CVariable *retrieveVariable(const char *name) const override { return CRenderer::retrieveVariable(name); }
+        CDSO *getDSO(const char *name, const char *prototype) override { return CRenderer::getDSO(name, prototype); }
 
         // Render option getters
         int xres() const override { return CRenderer::xres; }

@@ -15,7 +15,10 @@
 # and Hiders (581 -> 586) rows and the TOTAL are raised by the +7 references that #51
 # (ad0ee50, the reyes T-junction fix) added on master and that the baseline never
 # recorded; archcheck measured 749 against 742 before this spec. The TOTAL is the
-# measured value after this spec's edits: 749 - 9 = 740. TOTAL distinct stays 117.
+# measured value after this spec's edits: 749 - 9 = 740, as archcheck reported once the
+# edits were in. TOTAL distinct falls from 117 to 113, as archcheck reported: the members only the
+# shading library referenced (getFilter, getStepFilter, getGlobalID and getDSO among them) are no
+# longer counted, while retrieveVariable is still used by Geometry and the RIB parser.
 
 Geometry           78    19
 Hiders            586    87
@@ -23,4 +26,4 @@ Infra               0     0
 SceneInterface      6     6
 Shading             0     0
 Texturing          70    16
-TOTAL             740   117
+TOTAL             740   113
