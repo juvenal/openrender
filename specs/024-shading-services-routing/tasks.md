@@ -470,7 +470,7 @@ FR-013) is already covered by Phases 2 and 4.
 
 ### Tests first
 
-- [ ] T033 [US3] Write `tests/shading_parity/test_no_services.cpp`. The executable is
+- [X] T033 [US3] Write `tests/shading_parity/test_no_services.cpp`. The executable is
   `test_shading_no_services` and the test `ShadingServices_NoServices`, with label
   `shading_parity`. Add it with `EXCLUDE_FROM_ALL` until T034.
   - It runs in its own process: no `RiBegin`, and **no `CShadingContext` constructed** (#53).

@@ -331,3 +331,26 @@ State when the work was paused (the machine was handed to another job):
   `shading_parity` tests' `mkdtemp` calls (including the two new tests), were deleted, after which the full suite
   passed 608/608 and `Visual_camera-dof-reyes` passed 10 of 10 repeats in isolation. These tests never remove
   their temp directories; that is pre-existing, and the two new tests follow the same convention.
+
+## Phase 5: US3, shaders load and bind with or without a renderer
+
+### Tests first (T033), 2026-10-16
+
+- `tests/shading_parity/test_no_services.cpp` (test `ShadingServices_NoServices`, label `shading_parity`,
+  `EXCLUDE_FROM_ALL` until T034). It runs in its own process, with no `RiBegin()` and no `CShadingContext`
+  (#53), under a counting `CDiagnosticSink`:
+  - each of the five helpers is called twice and must return its not-found value every time
+    (`nullptr`, `RiGaussianFilter`, `RiGaussianStepFilter`, `0`, `nullptr`);
+  - exactly 5 diagnostics must be reported, all `CODE_NOTSTARTED` at warning severity (one per kind);
+  - `libshader::parseCategories("key,fill", out)` must return 0 with `out[0] == 0` (`out` is pre-filled with
+    -1), and must add no further warning.
+- Red: `cmake --build build-024 --target test_shading_no_services` fails to compile, and it is the only
+  error the compiler reports:
+
+  ```
+  test_no_services.cpp:78:31: error: no member named 'parseCategories' in namespace 'libshader'
+  ```
+
+  `ctest -R ShadingServices_NoServices` reports "Not Run" (executable not built). The "warning count is 0"
+  half of the red cannot be shown separately, because the file does not compile until `parseCategories`
+  exists; with the T034 helpers in place the count assertions are the ones that decide green.

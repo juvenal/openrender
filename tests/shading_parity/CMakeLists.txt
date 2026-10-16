@@ -207,3 +207,21 @@ set_tests_properties(ShadingServices_Lookup PROPERTIES
     TIMEOUT 30
     LABELS "shading_parity"
 )
+
+# Spec 024 (shading services routing), US3: with no services installed every
+# routed lookup returns its not-found value and warns once per kind, and an
+# unresolved light category is skipped. Runs in its own process with no
+# RiBegin() and no CShadingContext (GitHub #53). ribRender only resolves
+# libshader_shading's remaining imports; the test never calls into it.
+add_executable(test_shading_no_services EXCLUDE_FROM_ALL test_no_services.cpp)
+target_link_libraries(test_shading_no_services PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+target_include_directories(test_shading_no_services PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_BINARY_DIR}
+)
+target_compile_features(test_shading_no_services PRIVATE cxx_std_20)
+add_test(NAME ShadingServices_NoServices COMMAND test_shading_no_services)
+set_tests_properties(ShadingServices_NoServices PROPERTIES
+    TIMEOUT 30
+    LABELS "shading_parity"
+)
