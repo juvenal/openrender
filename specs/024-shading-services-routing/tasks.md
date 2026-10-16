@@ -176,14 +176,14 @@ scenes stay green.
 
 ### Tests first
 
-- [ ] T008 [P] [US1] Add the test shaders, which the shader build compiles automatically through its
+- [X] T008 [P] [US1] Add the test shaders, which the shader build compiles automatically through its
   glob:
   - `shaders/photonparity_view.sl`: copy `specs/024-shading-services-routing/tools/photonparity_view.sl`
     verbatim;
   - `shaders/solar0_light.sl`: copy `tools/solar0_probe.sl`, rename the shader to `solar0_light`,
     and change the header comment to "spec 024 FR-019: a light whose only construct is solar() with
     no arguments".
-- [ ] T009 [P] [US1] Add the scenes, keeping each tool file's header comment, with "research
+- [X] T009 [P] [US1] Add the scenes, keeping each tool file's header comment, with "research
   candidate" reworded to "parity test scene":
   - `examples/rib/tests/photon-parity.rib`, from `tools/photon-parity-rslo.rib`, with the map and
     display renamed to `photon-parity.gpm` and `photon-parity.tif`;
@@ -191,7 +191,7 @@ scenes stay green.
     `photon-parity-slo.gpm` and `photon-parity-slo.tif`;
   - `examples/rib/tests/solar0.rib` and `solar0-slo.rib`, from `tools/solar0-{rslo,slo}.rib`, with
     `LightSource "solar0_light"` and displays `solar0.tif` and `solar0-slo.tif`.
-- [ ] T010 [US1] [RUN] Render the two references with the unchanged interpreter path, using
+- [X] T010 [US1] [RUN] Render the two references with the unchanged interpreter path, using
   `VISUAL_ENV`'s variables (quickstart §0.3 shows the environment).
   - **Photon parity**: delete any `photon-parity.gpm`, then run
     `orender -t:1 examples/rib/tests/photon-parity.rib`. Copy the result to
@@ -205,7 +205,7 @@ scenes stay green.
     0.00 check compares against that run, not R4's original one.
   - **solar0**: `orender examples/rib/tests/solar0.rib`, copied to
     `examples/rib/tests/references/solar0.tif`.
-- [ ] T011 [US1] Register the scenes in `tests/visual/CMakeLists.txt`, next to the other `-slo`
+- [X] T011 [US1] Register the scenes in `tests/visual/CMakeLists.txt`, next to the other `-slo`
   scenes:
   - Add a comment citing research R4: D = 2.91 (Linux against macOS, 30/30 runs), macOS run-to-run
     0.00 at `-t:1`, threshold 6, empty-map margin 255.00, and 4/30 crashes at the default thread
@@ -220,7 +220,7 @@ scenes stay green.
     - The same for `-slo`, deleting `photon-parity-slo.gpm`, with `FIXTURES_SETUP photon_parity_slo_clean`.
     - Set `FIXTURES_REQUIRED` on `Visual_photon-parity` and `Visual_photon-parity-slo` to match.
   - The `-slo` suffix already puts the JIT scenes on the JIT-only list.
-- [ ] T012 [P] [US1] Write `tests/shading_parity/test_illumination_hook.cpp`
+- [X] T012 [P] [US1] Write `tests/shading_parity/test_illumination_hook.cpp`
   (`ShadingParity_IlluminationHook`), following research R2 and contracts/illumination-hook.md.
   - **Probe**: `class CHookProbeContext : public CShadingContext` overrides `renderingLoop()` with an
     empty body. It overrides `illuminateBegin`, `illuminateEnd`, `solarBegin` and `solarEnd` to log
@@ -247,7 +247,7 @@ scenes stay green.
     the `OSHADER_BIN` environment.
   - **Expected red**: every JIT hook-on row (no calls are logged), and the `solar()` hook-off row
     (`L` is not set).
-- [ ] T013 [P] [US1] Write `src/libshader/tests/test_illumination_emitter.cpp`
+- [X] T013 [P] [US1] Write `src/libshader/tests/test_illumination_emitter.cpp`
   (`LibShader_IlluminationOperands`, labels `libshader;compiler;unit`), modelled on
   `test_gate_hardening.cpp`. It drives `emitLLVMBitcode()` with hand-built `IRModule`s.
   - **Positive control**: `illuminate P #!L1` … `endilluminate` with a resolvable `P` compiles and

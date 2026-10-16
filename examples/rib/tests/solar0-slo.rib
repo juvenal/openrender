@@ -1,0 +1,28 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+
+# spec 024 (FR-019) parity test scene, variant "slo": a raytrace scene lit
+# only by solar0_light (solar() with no arguments). The interpreter sets
+# L = Ps for the light; today's JIT emits no begin call, so L is never set
+# for it. The light is pinned to "slo"; the surface is "rslo" in both.
+FrameBegin 1
+  Hider "raytrace"
+  PixelSamples 2 2
+  Display "solar0-slo.tif" "file" "rgba"
+  Projection "perspective" "fov" 40
+  Format 160 120 1
+  Translate 0 0 4
+
+  WorldBegin
+    Attribute "shade" "shaderformat" ["slo"]
+    LightSource "solar0_light" 1 "intensity" [1]
+    Attribute "shade" "shaderformat" ["rslo"]
+    Color [0.8 0.8 0.8]
+    Surface "matte"
+    TransformBegin
+      Translate 0.8 0.3 0
+      Sphere 1 -1 1 360
+    TransformEnd
+    Polygon "P" [-3 -1 -3  -3 -1 3  3 -1 3  3 -1 -3]
+  WorldEnd
+FrameEnd

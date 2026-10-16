@@ -138,3 +138,67 @@ Recorded 2026-10-15 on the unchanged tree, before any source edit (tasks T001, T
   (baseline 9), distinct 5, TOTAL distinct 117. The TOTAL refs warning (749 against 742, from #51) is
   unchanged by this phase.
 - `-L determinism`: 6/6. `-L shading_parity`: 8/8 (7 existing plus `ShadingServices_Routing`).
+
+## Phase 3: US1, JIT light shaders honour the illumination hook
+
+### Tests first (T008 to T013), red state recorded 2026-10-16 on `23dbe8b` plus the new test files
+
+- **Shaders and scenes (T008, T009):** `shaders/photonparity_view.sl`, `shaders/solar0_light.sl`;
+  `examples/rib/tests/{photon-parity,photon-parity-slo,solar0,solar0-slo}.rib`. The build compiled both
+  shaders to `.rslo` and `.slo`.
+- **References (T010)**, rendered with the unchanged interpreter path under `VISUAL_ENV`'s variables:
+  - `references/photon-parity.tif`: `orender -t:1`, 2 009 546-byte map, exit 0. The R4 reference
+    (`/tmp/024-pp-t1/work/ref.tif`) was gone, so it was regenerated on the post-Phase-2 tree with
+    `tools/measure-photon-parity.sh build-024 1 <scratch> -t:1` (output in the session scratchpad, not
+    `/tmp`). The regenerated run reproduces R4's numbers: `.gpm` 2 009 546 bytes, run-to-run diff
+    0.00. **The new reference against that regenerated one: MaxBlockAvgDiff 0.00 and byte-identical
+    (`cmp`).** This compares against a run on the post-Phase-2 tree, not R4's original one.
+  - `references/solar0.tif`: `orender`, exit 0. Both images were viewed and are not black (the parity
+    scene shows the lit room with the photon-map GI, solar0 a lit sphere on a floor).
+- **Registration (T011):** `tests/visual/CMakeLists.txt` gets `photon-parity`, `photon-parity-slo`
+  (threshold 6, `-t:1`), `solar0`, `solar0-slo` (default threshold), the two
+  `VisualSetup_photon-parity{,-slo}-clean` fixtures and their `FIXTURES_REQUIRED`, with a comment citing
+  R4. `tests/shading_parity/CMakeLists.txt` gets `ShadingParity_IlluminationHook`, only if
+  `OPENRENDER_HAVE_LLVM`. Its `ENVIRONMENT` points `SHADERS` at `${CMAKE_BINARY_DIR}/shaders` and
+  sets `DISPLAYS`, so that the default surface and light load at `RiWorldBegin` without noise.
+  `src/libshader/tests/CMakeLists.txt` gets `LibShader_IlluminationOperands` inside the existing
+  `if(OPENRENDER_HAVE_LLVM)` block.
+- **Hook test (T012)** `tests/shading_parity/test_illumination_hook.cpp`. A probe context
+  (`CHookProbeContext`, empty `renderingLoop()`, four logging hooks) runs `illuminate(P)`,
+  `illuminate(P, N, a)`, `solar(D, a)` and `solar()` as `.rslo` and `.slo` through `execute()`, with the
+  hook on (all points active, all inactive), off, and toggled on one loaded `.slo`.
+- **Emitter test (T013)** `src/libshader/tests/test_illumination_emitter.cpp`: hand-built `IRModule`s
+  through `emitLLVMBitcode()`.
+
+Command: `ctest --test-dir build-024 -R 'Visual_photon-parity|Visual_solar0|ShadingParity_IlluminationHook|LibShader_IlluminationOperands|VisualSetup_photon' --output-on-failure`
+(8 tests; 4 pass and 4 fail, every failure by assertion, exit code or diff, none by a harness error):
+
+| Test | Result | Evidence |
+|---|---|---|
+| `VisualSetup_photon-parity-clean`, `-slo-clean` | pass | |
+| `Visual_photon-parity` | **pass** (control) | diff 0.00 |
+| `Visual_solar0` | **pass** (control) | |
+| `Visual_photon-parity-slo` | **fail** | `orender failed with exit code 11`, no map written (the R4 crash in `jitIlluminateBegin`) |
+| `Visual_solar0-slo` | **fail** | `MaxBlockAvgDiff: 201.59 (threshold: 20)  FailBlocks: 175` (R1 measured 201.62) |
+| `ShadingParity_IlluminationHook` | **fail**, 75 passed and 15 failed | see below |
+| `LibShader_IlluminationOperands` | **fail**, 5 passed and 7 failed | see below |
+
+`ShadingParity_IlluminationHook` (no `.rslo` row fails; every failure is a `.slo` row):
+- hook on, for all four fixtures, both all-active and all-inactive: `.slo calls: 0 call(s)`, against the
+  contract table's two calls (8 failures);
+- hook on, all points active, `illuminate1`, `illuminate3` and `solar2`: the JIT modified tags/L
+  (`numActive=4 numPassive=0`), i.e. it ran its culling instead of delegating; and all-inactive
+  `solar0`: `numActive=0 numPassive=4`, because with no begin call the JIT's `jitSolarEnd` still runs
+  its tag-restore loop on points that were never incremented (4 failures in all);
+- hook off, `solar0`: state differs from the interpreter, with `.rslo` `L == Ps` and `.slo`
+  `L = (777 777 777)` (the sentinel, `L` never written), plus `L == Ps` failing for `.slo` and the
+  toggle comparison failing (3 failures);
+- hook off for `illuminate1`, `illuminate3` and `solar2` already matches across backends, and the
+  control rows (all `.rslo` rows) pass.
+
+`LibShader_IlluminationOperands`: the positive control (`illuminate P` compiles, writes a `.slo`, calls
+`op_illuminate_begin`) and the label-only `solar` compile pass; the five failures are the two the
+spec expects:
+- label-only `solar`: the bitcode has no `op_solar0_begin`;
+- both negative cases (`illuminate __no_such_var__`, `solar __no_such_var__ 0`): the emit returns
+  true, writes a `.slo`, and logs nothing.

@@ -165,3 +165,25 @@ set_tests_properties(ShadingServices_Routing PROPERTIES
     LABELS "shading_parity"
     ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};OSHADER_BIN=$<TARGET_FILE:oshader>"
 )
+
+# Spec 024 (shading services routing), US1: the illumination hook under both
+# shader backends. Runs four light shaders (illuminate(P), illuminate(P, N, a),
+# solar(D, a), solar()) as .rslo and as .slo through a probe context whose
+# hooks only log, with the hook on, off and toggled. Needs the JIT.
+if(OPENRENDER_HAVE_LLVM)
+    add_executable(test_shading_illumination_hook test_illumination_hook.cpp)
+    target_link_libraries(test_shading_illumination_hook PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+    target_include_directories(test_shading_illumination_hook PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_BINARY_DIR}
+    )
+    target_compile_features(test_shading_illumination_hook PRIVATE cxx_std_20)
+    add_test(NAME ShadingParity_IlluminationHook COMMAND test_shading_illumination_hook)
+    set_tests_properties(ShadingParity_IlluminationHook PROPERTIES
+        TIMEOUT 60
+        LABELS "shading_parity"
+        # The compiled shaders live in the build tree (the default surface and
+        # light load at RiWorldBegin); the fixtures themselves load from the cwd.
+        ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>;OSHADER_BIN=$<TARGET_FILE:oshader>"
+    )
+endif()

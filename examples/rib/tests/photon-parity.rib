@@ -1,0 +1,58 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+
+# spec 024 (FR-012) parity test scene, variant "rslo".
+# Frame 1: photon pass. The three light shaders are pinned to "rslo": point
+# (positional illuminate), spot (cone illuminate) and distant (solar with a
+# direction). The geometry and Frame 2 are pinned to "rslo" in both
+# variants, so the light backend is the only difference. The photon pass
+# shades hits with the built-in shading model, not surface shaders.
+# Frame 2: raytrace render of the map Frame 1 wrote
+# (photonparity_view.sl), so the image depends on the stored photons. An
+# empty map renders black. Each variant uses its own map name; the map is
+# deleted before every run, because when nothing is stored nothing is
+# written, and a leftover file would be read instead.
+FrameBegin 1
+  Hider "photon" "int emit" [20000]
+  Projection "perspective" "fov" 45
+  Format 160 120 1
+  Translate 0 -1 5
+
+  WorldBegin
+    Attribute "shade" "shaderformat" ["rslo"]
+    LightSource "pointlight" 1 "intensity" [4] "from" [0 2.2 0.5]
+    LightSource "spotlight" 2 "intensity" [10] "from" [-2 3 -1] "to" [0 0 0.5] "coneangle" [0.5]
+    LightSource "distantlight" 3 "intensity" [0.6] "from" [2 4 -2] "to" [0 0 0]
+    Attribute "shade" "shaderformat" ["rslo"]
+
+    Attribute "photon" "string globalmap" ["photon-parity.gpm"]
+    Color [0.8 0.8 0.8]
+    Surface "matte"
+    Polygon "P" [-3 0 -3  -3 0 3  3 0 3  3 0 -3]
+    Polygon "P" [-3 0 3  -3 3 3  3 3 3  3 0 3]
+    TransformBegin
+      Translate 0 0.6 0.5
+      Sphere 0.6 -0.6 0.6 360
+    TransformEnd
+  WorldEnd
+FrameEnd
+
+FrameBegin 2
+  Hider "raytrace"
+  PixelSamples 2 2
+  Display "photon-parity.tif" "file" "rgba"
+  Projection "perspective" "fov" 45
+  Format 160 120 1
+  Translate 0 -1 5
+
+  WorldBegin
+    Attribute "shade" "shaderformat" ["rslo"]
+    Surface "photonparity_view" "string mapname" ["photon-parity.gpm"] "float gain" [1]
+    Polygon "P" [-3 0 -3  -3 0 3  3 0 3  3 0 -3]
+    Polygon "P" [-3 0 3  -3 3 3  3 3 3  3 0 3]
+    TransformBegin
+      Translate 0 0.6 0.5
+      Sphere 0.6 -0.6 0.6 360
+    TransformEnd
+  WorldEnd
+FrameEnd
