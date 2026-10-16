@@ -1377,6 +1377,11 @@ add_parity_test(depthfilter-mid
 #     C_INFINITY (fails deterministically without the fix).
 #   DepthFilter_Determinism_*: six renders at the default thread count, jitter
 #     off; z bit-identical across runs.
+#
+# Spec 039: the `determinism-sweep` label is reserved for the sweep that runs
+# every non-GI scene under each sampler configuration (FR-030). No test is
+# registered yet; it will be added next to this macro in Phase 7, and whether
+# it joins the default run is decided by research M3.
 macro(add_depth_determinism_test NAME RIB OUTPUT RUNS)
     set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/determinism-${NAME})
     file(MAKE_DIRECTORY ${_scratch})

@@ -79,3 +79,31 @@ Observation for T005: the label `sampling` already exists on **`DiskSampling`** 
 - `build/src/oshader/oshader` mtime: 2026-10-16 08:43:35.
 - `build/shaders/`: **105 `.rslo` and 105 `.slo`** (matches the 105 `.sl` sources). `find build/shaders \( -name '*.rslo' -o -name '*.slo' \) ! -newer build/src/oshader/oshader` printed nothing: **no compiled shader is older than `oshader`**. Not stale.
 - `build/` is a fresh build from this tree, so this is the expected result. The deploy-tree `openrender/` was not used by any test.
+
+## Phase 1: setup (T005-T008)
+
+Run 2026-10-16 on top of the committed Phase 0 (`2f921b2`), same `build/` (vcpkg, Release), `nice -n 19`, `-j4`, one job at a time.
+
+### T005-T007: what was added
+
+- `tests/unit/sampling/CMakeLists.txt` and `test_sampling.cpp` (a `return 0` placeholder): `test_sampling`, C++20, links the **shared** `openrendercommon` (`otool -L` shows `@rpath/libRIBCommon.1.dylib`). **No test is registered.** Registering a vacuous `main` would add a green test that proves nothing, so the target exists but `add_test` waits for Phase 2.
+- `tests/convergence/CMakeLists.txt`, `test_convergence.cpp` (placeholder), `README.md` and `reference/.gitkeep`: `test_convergence`, links `TIFF::TIFF`. No test is registered, so nothing carries the `convergence` label yet and the default run cannot include it; `ctest -N -L convergence` reports 0 tests. The opt-in rule is recorded in the CMake comment for Phase 8.
+- `tests/CMakeLists.txt`: `add_subdirectory(unit/sampling)` and `add_subdirectory(convergence)`.
+- `tests/visual/CMakeLists.txt`: a comment reserving the `determinism-sweep` label, next to `add_depth_determinism_test`. No test is registered.
+
+### How `ctest -L sampling` behaves after T005
+
+The `sampling` label is **not empty** and stays as it was: it selects the one test `DiskSampling` (`tests/CMakeLists.txt`, labels `sampling;core`), which predates spec 039. `ctest -L sampling` therefore reports 1 test, passing. T005 added no test, so the count did not change (still **598** tests in total).
+
+From Phase 2 on, the new `Sampling_*` tests are registered with `LABELS "sampling;unit"`, so `-L sampling` selects them **and** `DiskSampling`. `DiskSampling` was not renamed or relabelled (tasks.md does not ask for it). Anything that needs only the new tests should select them by name: `-R '^Sampling_'`.
+
+The task text says "an empty `sampling` set"; that expectation is not literally true because of `DiskSampling`. "Green, with no new tests" is what was observed.
+
+### T008: build and run
+
+- `cmake -B build -S .` and `cmake --build build --config Release -j4`: both exit 0; 6 s together (incremental, only the two new executables compiled and linked), no compiler warnings.
+- `ctest -L sampling`: **1/1 passed** (`DiskSampling`).
+- `ctest -L "sampling|architecture"`: **22/22 passed** (21 architecture tests plus `DiskSampling`).
+- `ctest -N -L convergence`: 0 tests. `ctest -N` total: 598 (unchanged).
+- archcheck does **not** classify `tests/` paths: `domain-map.txt` has no `tests/` prefix (only `src/libshader/tests/`), and the archcheck run over the finished build reports `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0` with no mention of `test_sampling`, `test_convergence`, `unit/sampling` or `tests/convergence`.
+- archcheck also prints metric warnings (`Geometry refs 78 > baseline 76`, `Hiders refs 586 > 581`, `TOTAL refs 749 > 742`). They are **not caused by Phase 1**: the main checkout's `build/` at `c62334d` prints the identical lines and totals. They are warnings, not failures.

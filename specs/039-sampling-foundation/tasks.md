@@ -79,17 +79,17 @@ description: "Task list for spec 039: sampling foundation"
 
 ## Phase 1: Setup
 
-- [ ] T005 Create `tests/unit/sampling/CMakeLists.txt`.
+- [X] T005 Create `tests/unit/sampling/CMakeLists.txt`.
   - It builds an empty `test_sampling` executable linked to `openrendercommon` (the **shared** library; CLAUDE.md gotcha 22), registered with label `sampling`.
   - Add `add_subdirectory(unit/sampling)` to `tests/CMakeLists.txt`.
-- [ ] T006 [P] Create the `tests/convergence/` skeleton:
+- [X] T006 [P] Create the `tests/convergence/` skeleton:
   - `CMakeLists.txt` with an empty `test_convergence` target linked to libtiff and label `convergence`;
   - `README.md`;
   - `reference/.gitkeep`;
   - `add_subdirectory(convergence)` in `tests/CMakeLists.txt`.
   - The label is never included in the default run.
-- [ ] T007 [P] Add a `determinism-sweep` label placeholder comment to `tests/visual/CMakeLists.txt`, next to `add_depth_determinism_test`. No test is registered yet.
-- [ ] T008 [RUN] Build, then `ctest -L "sampling|architecture"`. Expected: green, with an empty `sampling` set. Confirm that archcheck does not classify `tests/` paths. If it does, stop and report.
+- [X] T007 [P] Add a `determinism-sweep` label placeholder comment to `tests/visual/CMakeLists.txt`, next to `add_depth_determinism_test`. No test is registered yet.
+- [X] T008 [RUN] Build, then `ctest -L "sampling|architecture"`. Expected: green, with an empty `sampling` set. Confirm that archcheck does not classify `tests/` paths. If it does, stop and report.
 
 **PAUSE 1**.
 
