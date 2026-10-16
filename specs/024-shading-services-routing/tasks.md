@@ -361,7 +361,7 @@ includes `renderer.h` directly (FR-001–FR-004, FR-015, FR-016).
 
 ### Tests first
 
-- [ ] T023 [US2] Edit `tests/architecture/allowlist.txt`.
+- [X] T023 [US2] Edit `tests/architecture/allowlist.txt`.
   - Delete exactly these 10 DB-001 lines:
     - the `include` lines from `@build/src/libshader/shading/rslo_generated.cpp`,
       `src/libshader/shading/executeMisc.cpp`, `shader.cpp` and `shaderPl.cpp` to
@@ -379,7 +379,7 @@ includes `renderer.h` directly (FR-001–FR-004, FR-015, FR-016).
       and the RIB parser.
     - T032 sets it to whatever `archcheck` reports.
   - **Expected red**: `ctest -L architecture` reports 10 `VIOLATION` lines.
-- [ ] T024 [US2] Add **Case D** to `tests/shading_parity/test_services_routing.cpp` (FR-013, FR-014).
+- [X] T024 [US2] Add **Case D** to `tests/shading_parity/test_services_routing.cpp` (FR-013, FR-014).
   - It goes at step 2 of T004's single session: with the `CRecordingServices` installed, after
     `RiBegin` and **before** `RiWorldBegin`.
   - Compile a fixture light with a `string __category = "key,fill"` parameter, and load it with
@@ -387,7 +387,7 @@ includes `renderer.h` directly (FR-001–FR-004, FR-015, FR-016).
   - Assert that the wrapper counted at least one `retrieveVariable` (from the `.rslo` load) and at
     least 2 `getGlobalID` calls (one per category).
   - **Expected red**: both counts are 0, because the call sites still go straight to `CRenderer::`.
-- [ ] T025 [P] [US2] Write `tests/shading_parity/test_service_lookup.cpp` (`ShadingServices_Lookup`,
+- [X] T025 [P] [US2] Write `tests/shading_parity/test_service_lookup.cpp` (`ShadingServices_Lookup`,
   label `shading_parity`). It is added with `EXCLUDE_FROM_ALL` because the header doesn't exist yet.
   - It links `openrender_common_flags ribRender libshader_shading openrendercommon`.
     `ribRender` is needed because `libshader_shading` still leaves 7 imports unresolved (on Linux

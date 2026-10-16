@@ -254,3 +254,43 @@ spec expects:
 - **T021:** `tests/visual/parity-thresholds.md` has a "Backend parity (spec 024)" section.
 - **T022:** `DEVNOTES_DETAILS/BUGS.md`: a spec 024 data point added to the Open `CPhotonHider` SIGSEGV
   entry.
+
+## Phase 4: US2, the shading library reaches the renderer only through its services
+
+### Tests first (T023 to T025), paused 2026-10-16 before TEST-APPROVAL 4a
+
+State when the work was paused (the machine was handed to another job):
+
+- **T023 done.** `tests/architecture/allowlist.txt` lost the 10 DB-001 lines named in the task and its
+  section comment now says (8). `tests/architecture/metrics-baseline.txt`: Shading `0 0`, TOTAL `740 117`;
+  the Geometry (76 to 78) and Hiders (581 to 586) rows were raised to the measured values too, so that the
+  rows add up to the TOTAL, with the reason stated in the file (#51's +7, never recorded; this spec's -9).
+  Red, as expected: `ctest -L architecture` reports `RESULT FAIL violations=10 stale=0`, with exactly the
+  10 `VIOLATION` lines (4 `include` of `renderer.h` from `rslo_generated.cpp`, `executeMisc.cpp`,
+  `shader.cpp`, `shaderPl.cpp`; 6 `link` lines: `retrieveVariable` and `getDSO` from
+  `rslo_generated.cpp`, `getGlobalID` from `shader.cpp`, `getStepFilter`, `retrieveVariable` and
+  `getFilter` from `shaderPl.cpp`). It also warns, as the sources are unchanged, `Shading refs 9 > baseline 0`,
+  `Shading distinct 5 > baseline 0` and `TOTAL refs 749 > baseline 740`.
+- **T024 done, red.** Case D is in `test_services_routing.cpp`, and the test's `ENVIRONMENT` now points
+  `SHADERS` at `${CMAKE_BINARY_DIR}/shaders` and sets `DISPLAYS`. `ctest -R ShadingServices_Routing
+  --output-on-failure` on the unchanged tree (the fixture compiled and loaded; Cases A, B and C still pass):
+
+  ```
+  FAIL: wrapper.numRetrieveVariable >= 1  (test_services_routing.cpp:110)
+  FAIL: wrapper.numGetGlobalID >= 2       (test_services_routing.cpp:111)
+  Case D: a light loaded before RiWorldBegin() resolves through the installed services
+    retrieveVariable x0, getGlobalID x0
+  Results: 10 passed, 2 failed
+  ```
+
+  Both counts are 0, because `rslo.y` and `shader.cpp` still call `CRenderer::` directly.
+- **T025 done, red.** `test_service_lookup.cpp` and its `EXCLUDE_FROM_ALL` registration are in place.
+  `ctest -R ShadingServices_Lookup` reports "Not Run" (executable not built), and
+  `cmake --build build-024 --target test_shading_service_lookup` fails to compile:
+
+  ```
+  test_service_lookup.cpp:19:10: fatal error: 'libshader/shading/dsoHandle.h' file not found
+  ```
+
+  `dsoHandle.h` is the first include the compiler reaches; `serviceLookup.h` is missing too and is the
+  next one it would stop on. The test also uses `CStubServices::dso()`, which T026 adds.

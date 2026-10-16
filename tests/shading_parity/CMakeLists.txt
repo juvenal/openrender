@@ -163,7 +163,9 @@ add_test(NAME ShadingServices_Routing COMMAND test_shading_services_routing)
 set_tests_properties(ShadingServices_Routing PROPERTIES
     TIMEOUT 30
     LABELS "shading_parity"
-    ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};OSHADER_BIN=$<TARGET_FILE:oshader>"
+    # The compiled shaders live in the build tree (the default surface and light
+    # load at RiWorldBegin); Case D's fixture loads from the cwd.
+    ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>;OSHADER_BIN=$<TARGET_FILE:oshader>"
 )
 
 # Spec 024 (shading services routing), US1: the illumination hook under both
@@ -187,3 +189,21 @@ if(OPENRENDER_HAVE_LLVM)
         ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>;OSHADER_BIN=$<TARGET_FILE:oshader>"
     )
 endif()
+
+# Spec 024 (shading services routing), US2: the libshader::lookup* helpers
+# (serviceLookup.h) return what the installed services return. Linked against
+# ribRender because libshader_shading still leaves some imports (the hiders and
+# the texturing code) unresolved; on Linux the load would fail without it, as
+# LibShader_McompConsistency does.
+add_executable(test_shading_service_lookup EXCLUDE_FROM_ALL test_service_lookup.cpp)
+target_link_libraries(test_shading_service_lookup PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+target_include_directories(test_shading_service_lookup PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_BINARY_DIR}
+)
+target_compile_features(test_shading_service_lookup PRIVATE cxx_std_20)
+add_test(NAME ShadingServices_Lookup COMMAND test_shading_service_lookup)
+set_tests_properties(ShadingServices_Lookup PROPERTIES
+    TIMEOUT 30
+    LABELS "shading_parity"
+)

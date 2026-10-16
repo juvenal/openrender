@@ -10,22 +10,12 @@
 #
 # Seeded by specs/022-domain-dependency-guardrails/tools/assign_registry.py.
 
-# --- DB-001: Shading depends on the renderer core and the hiders (18) ---
-DB-001  include  @build/src/libshader/shading/rslo_generated.cpp  ->  src/ri/render/renderer.h
-DB-001  include  src/libshader/shading/executeMisc.cpp  ->  src/ri/render/renderer.h
-DB-001  include  src/libshader/shading/shader.cpp  ->  src/ri/render/renderer.h
-DB-001  include  src/libshader/shading/shaderPl.cpp  ->  src/ri/render/renderer.h
-DB-001  link     @build/src/libshader/shading/rslo_generated.cpp  ->  _ZN9CRenderer16retrieveVariableEPKc   # CRenderer::retrieveVariable(char const*)
-DB-001  link     @build/src/libshader/shading/rslo_generated.cpp  ->  _ZN9CRenderer6getDSOEPKcS1_   # CRenderer::getDSO(char const*, char const*)
+# --- DB-001: Shading depends on the renderer core and the hiders (8) ---
 DB-001  link     src/libshader/shading/execute.cpp  ->  _ZN10CPhotonMap6lookupEPfPKfi   # CPhotonMap::lookup(float*, float const*, int)
 DB-001  link     src/libshader/shading/executeMisc.cpp  ->  _ZN15CShadingContext5traceEP4CRay   # CShadingContext::trace(CRay*)
 DB-001  link     src/libshader/shading/executeMisc.cpp  ->  _ZN15CShadingContext7traceExEP10CRayBundle   # CShadingContext::traceEx(CRayBundle*)
 DB-001  link     src/libshader/shading/executeMisc.cpp  ->  _ZTV12CTraceBundle   # vtable for CTraceBundle
 DB-001  link     src/libshader/shading/executeMisc.cpp  ->  _ZTV19CTransmissionBundle   # vtable for CTransmissionBundle
-DB-001  link     src/libshader/shading/shader.cpp  ->  _ZN9CRenderer11getGlobalIDEPKc   # CRenderer::getGlobalID(char const*)
-DB-001  link     src/libshader/shading/shaderPl.cpp  ->  _ZN9CRenderer13getStepFilterEPKc   # CRenderer::getStepFilter(char const*)
-DB-001  link     src/libshader/shading/shaderPl.cpp  ->  _ZN9CRenderer16retrieveVariableEPKc   # CRenderer::retrieveVariable(char const*)
-DB-001  link     src/libshader/shading/shaderPl.cpp  ->  _ZN9CRenderer9getFilterEPKc   # CRenderer::getFilter(char const*)
 DB-001  link     src/libshader/shading/shading.cpp  ->  _ZN10CPhotonMap6lookupEPfPKfi   # CPhotonMap::lookup(float*, float const*, int)
 DB-001  link     src/libshader/shading/shading.cpp  ->  _ZN13CGatherBundleC1Ev   # CGatherBundle::CGatherBundle()
 DB-001  link     src/libshader/shading/shading.cpp  ->  _ZN15CShadingContext7traceExEP10CRayBundle   # CShadingContext::traceEx(CRayBundle*)

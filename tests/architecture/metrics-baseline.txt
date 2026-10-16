@@ -9,11 +9,18 @@
 #
 # Seeded by spec 022 (T050) from the real tree on 2026-10-07 (macOS; the
 # metric reads source text, so it is platform-independent).
+#
+# Spec 024 (shading services routing): Shading falls from 9 references to 0, because the
+# shading library now reaches the renderer through its services. The Geometry (76 -> 78)
+# and Hiders (581 -> 586) rows and the TOTAL are raised by the +7 references that #51
+# (ad0ee50, the reyes T-junction fix) added on master and that the baseline never
+# recorded; archcheck measured 749 against 742 before this spec. The TOTAL is the
+# measured value after this spec's edits: 749 - 9 = 740. TOTAL distinct stays 117.
 
-Geometry           76    19
-Hiders            581    87
+Geometry           78    19
+Hiders            586    87
 Infra               0     0
 SceneInterface      6     6
-Shading             9     5
+Shading             0     0
 Texturing          70    16
-TOTAL             742   117
+TOTAL             740   117
