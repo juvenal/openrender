@@ -449,7 +449,7 @@ point.
      is created and `retrieveVariable` while the `.rslo` loads. Assert that the wrapper saw both.
      - The three `shaderPl.cpp` sites (`getFilter`, `getStepFilter`, and `retrieveVariable` for a
        `gather` `surface:` output) bind only when a shader executes (`execute.cpp:290`,
-       `shading.cpp:4105`), not when it loads.
+       `shading.cpp:4106`), not when it loads.
      - For those three, the evidence is: the helper-level checks below; the symbol list and
        metric (SC-001/SC-003), which prove no direct call remains; and the existing visual
        scenes that use named texture filters and `gather()`, which prove the behaviour is
@@ -496,7 +496,10 @@ libshader use, that is a write through an uninitialized pointer.
   Update the DB-001 header comment from 18 to 8. The new edges, Shading → `shadeop.h` (ShaderDSO)
   and Core → Shading's `dsoHandle.h`, are both allowed by the table.
 - **Metric (FR-016)**: `metrics-baseline.txt` changes Shading from `9 5` to `0 0`, and TOTAL
-  references from `742` to `733`.
+  references from `742` to the value measured after this spec's edits (expected about 740), with
+  the reason stated in the file: this spec removes 9 Shading references, net of the +7 that #51
+  (`ad0ee50`) added on master (Geometry 76 → 78, Hiders 581 → 586). The first measurement on the
+  rebased base (`c62334d`) was 749 against the committed 742.
   - TOTAL distinct members (117) is **not** the sum of the rows, which add up to 133. It counts each
     member once across all classes.
   - `retrieveVariable` stays in use by Geometry (DB-004) and the RIB parser, so TOTAL distinct

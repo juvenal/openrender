@@ -59,7 +59,7 @@ begin/end, not per point. The lookups run at load or bind time only.
 - byte-identical deterministic renders, except the two changes FR-018 allows;
 - no threshold widening;
 - no task depends on the merge;
-- builds and tests are serialized by the coordinator: `nice -n 19`, at most `-j4`.
+- builds and tests are serialized across the machine, one job at a time: `nice -n 19`, at most `-j4`.
 
 **Scale/Scope**: about 12 source files changed, 2 headers and 1 helper unit added, 4 test
 executables, 1 test helper header and 4 scenes added, plus the architecture data files and the registry.
@@ -215,7 +215,7 @@ The details are in [research.md](research.md). In brief:
    - Turn unresolved illuminate/solar operands into a hard emitter error (approved), with a
      negative test.
    - Remove `hiderFlags()` from the interface and its implementation (approved).
-5. **Guardrails and docs (R12)**: the allowlist (−10), the metric (Shading 0 0; TOTAL references 733; TOTAL distinct as `archcheck` reports, since it is
+5. **Guardrails and docs (R12)**: the allowlist (−10), the metric (Shading 0 0; TOTAL references as measured after the edits, expected about 740, with the reason stated in the file; TOTAL distinct as `archcheck` reports, since it is
    not a row sum),
    the registry (DB-001 reduced, DB-012 Resolved, DB-018's Direction line), `CLAUDE.md` and
    DEVNOTES.

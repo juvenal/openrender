@@ -34,9 +34,9 @@ The agent never commits. It stages with `git add` only.
 **Working directory**: `/Volumes/Projects/Development/CLI/openrender-worktrees/024-shading-services-routing`.
 The macOS build tree is `build-024`. Paths below are repo-relative.
 
-**Builds and tests are run by the coordinator.** Steps marked **[RUN]** are requests: the
-implementer hands the exact commands to the coordinator, one run at a time, and records the results
-it gets back. Never run them yourself. Every build is
+**The implementing agent runs builds and tests itself.** Steps marked **[RUN]** are builds or test
+runs the implementer executes and records, under the machine limits: one build or test job at a time
+across the machine, and no other build or test running when it starts. Every build is
 `nice -n 19 cmake --build build-024 --config Release -j4`, and every ctest run is
 `nice -n 19 ctest --test-dir build-024 … -j4`. Never use a higher `-j`, or `-j` with no number.
 A [RUN] line below that shows a bare `cmake --build`, `cmake -B` or `ctest` means this niced `-j4` form.
@@ -63,7 +63,7 @@ with `EXCLUDE_FROM_ALL`, so the main build stays green.
 
 - **[P]**: can run in parallel (different files, no dependency on unfinished tasks).
 - **[Story]**: US1–US3 from spec.md.
-- **[RUN]**: a build or test run done by the coordinator.
+- **[RUN]**: a build or test run done by the implementer, one job at a time.
 
 ---
 
@@ -110,7 +110,7 @@ before the first `beginFrame()`.
 
 ### Tests first
 
-- [ ] T003 Write a shared test double, `tests/shading_parity/recording_services.h`.
+- [X] T003 Write a shared test double, `tests/shading_parity/recording_services.h`.
   - `class CRecordingServices final : public CRendererServices` takes the previously installed
     services in its constructor and forwards **every** method to them. This includes the current
     `hiderFlags()`, which T019 removes from both.
@@ -119,7 +119,7 @@ before the first `beginFrame()`.
   - Also add `class CStubServices final : public CRendererServices`, which returns fixed sentinel
     values (the box filter, the box step filter, global ID 4242, a static `CVariable`, and later a
     static `CDSO`) and trivial defaults for everything else.
-- [ ] T004 Write `tests/shading_parity/test_services_routing.cpp`. The executable is
+- [X] T004 Write `tests/shading_parity/test_services_routing.cpp`. The executable is
   `test_shading_services_routing` and the test `ShadingServices_Routing`.
   - Register it in `tests/shading_parity/CMakeLists.txt` with label `shading_parity`, linking
     `openrender_common_flags ribRender libshader_shading openrendercommon`, with the same
@@ -146,15 +146,15 @@ and C red, record them in `validation.md`, stage, and wait for approval of the t
 
 ### Implementation
 
-- [ ] T005 In `src/ri/render/rendererShadingServices.cpp`, add `void rendererShadingServicesShutdown()`,
+- [X] T005 In `src/ri/render/rendererShadingServices.cpp`, add `void rendererShadingServicesShutdown()`,
   which calls `CShadingContext::setDefaultServices(nullptr)`, next to `rendererShadingServicesInit()`.
-- [ ] T006 Change `src/ri/render/renderer.cpp`:
+- [X] T006 Change `src/ri/render/renderer.cpp`:
   - in `CRenderer::beginRenderer()`, call `rendererShadingServicesInit()` right after
     `initDeclarations()`;
   - remove the call and its comment from `CRenderer::beginFrame()`, and move the forward
     declarations to the top of the file;
   - call `rendererShadingServicesShutdown()` as the **last** statement of `CRenderer::endRenderer()`.
-- [ ] T007 [RUN] Build, then run `ShadingServices_Routing` (must be green),
+- [X] T007 [RUN] Build, then run `ShadingServices_Routing` (must be green),
   `-R 'Visual_killeroo|Imager'` (Imager shaders load before `WorldBegin`), and the full suite.
   The results must equal T002's. Record them in `validation.md`.
 
@@ -369,8 +369,11 @@ includes `renderer.h` directly (FR-001–FR-004, FR-015, FR-016).
     - the `link` lines `rslo_generated.cpp` → `retrieveVariable` and `getDSO`, `shader.cpp` →
       `getGlobalID`, and `shaderPl.cpp` → `getStepFilter`, `retrieveVariable` and `getFilter`.
   - Change the DB-001 section comment from `(18)` to `(8)`.
-  - In `tests/architecture/metrics-baseline.txt`, set Shading `9 5` → `0 0`, and the TOTAL
-    references `742` → `733`.
+  - In `tests/architecture/metrics-baseline.txt`, set Shading `9 5` → `0 0`, and set the TOTAL
+    references to the value measured after this spec's edits (expected about 740), with the reason
+    stated in the file: this spec removes 9 Shading references, net of the +7 that #51 (`ad0ee50`)
+    added on master (Geometry 76 → 78, Hiders 581 → 586), which the committed baseline never
+    recorded (`archcheck` measured 749 against 742 on this base).
     - Leave the TOTAL distinct-members value (117) unchanged. It counts each member once across
       all classes rather than summing the rows, and `retrieveVariable` is still used by Geometry
       and the RIB parser.
@@ -569,7 +572,7 @@ fails to compile. Record this, stage, and wait for approval.
   Record the results. Linux green is required before the maintainer merges; this task itself
   doesn't depend on the merge.
 - [ ] T042 [RUN] Final macOS pass: `ctest -L architecture` and the full suite.
-  - `git diff 690dbfc -- tests/architecture/allowlist.txt` must show **only** the 10 deletions
+  - `git diff df77ded -- tests/architecture/allowlist.txt` must show **only** the 10 deletions
     (plus the comment change).
   - `metrics-baseline.txt` may only show decreases.
   - The `determinism`-labelled tests pass (SC-006).

@@ -148,3 +148,20 @@ set_tests_properties(ShadingParity_IrradianceEmptyString PROPERTIES
     LABELS "shading_parity"
     ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}"
 )
+
+# Spec 024 (shading services routing): the renderer services are registered
+# for the whole session (RiBegin .. RiEnd), and a substitute installed after
+# RiBegin survives beginFrame(). Later phases add the routing checks here.
+add_executable(test_shading_services_routing test_services_routing.cpp)
+target_link_libraries(test_shading_services_routing PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+target_include_directories(test_shading_services_routing PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_BINARY_DIR}
+)
+target_compile_features(test_shading_services_routing PRIVATE cxx_std_20)
+add_test(NAME ShadingServices_Routing COMMAND test_shading_services_routing)
+set_tests_properties(ShadingServices_Routing PROPERTIES
+    TIMEOUT 30
+    LABELS "shading_parity"
+    ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};OSHADER_BIN=$<TARGET_FILE:oshader>"
+)
