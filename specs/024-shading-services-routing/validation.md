@@ -373,3 +373,54 @@ State when the work was paused (the machine was handed to another job):
   - `ShadingServices_Routing` and `ShadingServices_Lookup`: pass.
   - `-L shading_parity`: 11/11.
   - **Full suite: 609/609** (608 plus `ShadingServices_NoServices`), 102 s.
+
+## Phase 6: Polish (documentation tasks), 2026-10-16
+
+- **T037:** `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`. DB-001 (still Open): the 7 remaining imports in Evidence, the
+  8 remaining edges and the gone `renderer.h` includes under "Measured by the architecture check", a spec 024
+  History item (12 → 7 imports, 18 → 8 edges), and the spec 024 items dropped from Direction. DB-012 moved to
+  Resolved (resolved by spec 024, 2026-10-16) with the fix summarised, and a note that its spec 026 and 029
+  couplings are not lost (026 now sits under DB-018's Direction, 029 is tracked under DB-005). DB-018: the
+  explicit ray type / hit mode in `ShaderGlobals` (spec 026, #32) added to Direction.
+- **T038:** `CLAUDE.md`. The shader count line says 107 `.rslo` (+ 107 `.slo`), the measured number: the task
+  predicted 106, but master already had 105 shaders before this spec's two, and the stale "138-object rebuild"
+  next to it is now 214 (107 x 2; the "~2s" timing was not re-measured). New Known-gotchas item 23 (services
+  registered at `RiBegin` and deregistered at `RiEnd`; Shading reaches the renderer only through
+  `serviceLookup`/`CRendererServices`; the one `rendererIlluminationHook()` query; the photon hider never sets
+  `costheta`). The Testing section lists `ctest -L shading_parity`. Active Technologies and Recent Changes were
+  not touched, as T038 does not ask for them.
+- **T039:** `DEVNOTES.md` has a status-table row for spec 024 (worded "pending Linux validation");
+  `DEVNOTES_DETAILS/OSHADER_UPDATES.md` has a section on `op_solar0_begin`, the hard emitter error and the
+  removed `rsl_*` wrappers.
+- **Stopped before T040** (a [RUN] build in `build-024-nojit`); T041 (the Linux package and its sha256 manifest,
+  which has to list the final changed files) and T042 (the final macOS pass) also come after it.
+
+### T040: the build without the JIT, 2026-10-16
+
+`nice -n 19 cmake -B build-024-nojit -S . -DOPENRENDER_ENABLE_JIT=OFF` (configure log: "JIT shader path disabled
+by OPENRENDER_ENABLE_JIT=OFF -- shaders run interpreted"), `nice -n 19 cmake --build build-024-nojit --config
+Release -j4` (exit 0, 1 min 30 s, no first-party warnings), then
+`nice -n 19 ctest --test-dir build-024-nojit -L "architecture|shading_parity|visual" -j4 --output-on-failure`.
+
+- **378 tests selected: 319 passed, 58 reported disabled ("Not Run (Disabled)"), 1 failed.**
+- The 58 disabled are the `-slo` scenes (53, among them `Visual_photon-parity-slo` and `Visual_solar0-slo`) and the
+  5 JIT-only `shading_parity` tests, as the configure log says.
+- **`ShadingParity_IlluminationHook` and `LibShader_IlluminationOperands` are not registered** (`ctest -N -R
+  'IlluminationHook|IlluminationOperands'` lists 0 tests), because they sit inside `if(OPENRENDER_HAVE_LLVM)`.
+- Passing: the architecture label, `ShadingServices_Routing`, `_Lookup` and `_NoServices`, `Visual_photon-parity`
+  and `Visual_solar0` (the interpreter scenes, which need no JIT).
+- **The one failure, `Visual_camera-dof-reyes`: MaxBlockAvgDiff 20.38 against threshold 20, 1 block** (block
+  (48,32), channel G). This is the same single block as the 20.28 seen once during Phase 4's disk-full run. It is
+  a stochastic depth-of-field scene: 10 isolated runs of it gave 15.34 to 18.48 in the no-JIT build and 15.28 to
+  18.52 in `build-024` (JIT on), i.e. the same noise band with or without the JIT, and a run under `-j4` load
+  lands above 20 now and then. It is not one of the four known-intermittent tests listed in this spec, it is not
+  related to Shading's services or the hook (the scene has no light shader constructs and no photon pass), and no
+  threshold was changed. Worth a note to the maintainer: its threshold of 20 sits only about 2 above its normal
+  worst case.
+- `build-024-nojit` was deleted afterwards.
+- **Shader rebuild timing** (for CLAUDE.md): in `build-024`, `touch shaders/includes/displacement.slh` then
+  `cmake --build build-024 --target openrender_shaders -j4` recompiled all 107 `.rslo` and 107 `.slo` (214
+  objects) in 1.36 s; two further runs recompiled only part of them (20 and 87 each, in 0.5 s and 1.1 s), because
+  repeated `touch` calls inside the same second race with the dependency check. CLAUDE.md now says ~1.4 s at
+  `-j4`. The comment in `shaders/CMakeLists.txt` still quotes "69 shaders / 138 objects / ~2s at -j8"; it was
+  not part of this task and was left alone.

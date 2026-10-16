@@ -95,10 +95,8 @@ request. Run `ctest -L architecture` locally before review.
   renderer-core rule (no domain may depend on the renderer core).
 - **Tracking**: [#24](https://github.com/juvenal/openrender/issues/24) (enhancement / design review)
 - **Evidence**: `libshader_shading` (Shading) links with `-undefined dynamic_lookup` (macOS) /
-  `--allow-shlib-undefined` (Linux) in `src/libshader/shading/CMakeLists.txt`, and binds 12
+  `--allow-shlib-undefined` (Linux) in `src/libshader/shading/CMakeLists.txt`, and binds 7
   distinct `libRIBRender` symbols flat-namespace (`nm -m`, "dynamically looked up"):
-  - renderer core: `CRenderer::getDSO`, `getFilter`, `getStepFilter`, `getGlobalID`,
-    `retrieveVariable`;
   - Hiders: `CShadingContext::trace`/`traceEx`, `CGatherBundle`, `CTraceBundle`/
     `CTransmissionBundle` vtables, `CPhotonMap::lookup`;
   - Texturing: `CTexture3d::resolve`.
@@ -107,15 +105,19 @@ request. Run `ctest -L architecture` locally before review.
   `stats`, `error`/`info`/`warning`, `parseVariable`, `sampleHemisphere`/
   `sampleCosineHemisphere`, ...) now resolve from `libRIBCommon` (DB-016, Resolved). The record
   is `specs/023-common-infrastructure-floor/tools/libshader-nm-m-{before,after}-macos.txt`.
-  `parseVariable` is defined in `libRIBCommon`, so spec 024 no longer needs a variable-parsing
-  service; it still needs `retrieveVariable` and the DSO, filter and global-ID services.
-- **Measured by the architecture check** (macOS): 18 edges allowlisted under DB-001 (30 before
-  spec 023).
-  - 14 link references from Shading sources: `CRenderer::getDSO`, `getFilter`, `getStepFilter`,
-    `getGlobalID` and `retrieveVariable`; `CShadingContext::trace`/`traceEx`, `CGatherBundle`,
+  `parseVariable` is defined in `libRIBCommon`, so spec 024 needed no variable-parsing service.
+  - Spec 024, 2026-10-16: the five renderer-core lookups (`CRenderer::getDSO`, `getFilter`,
+    `getStepFilter`, `getGlobalID`, `retrieveVariable`) go through `CRendererServices`
+    (`getDSO` added to it), reached by Shading through the helpers in `serviceLookup.h`;
+    12 → 7 imports, 18 → 8 edges. The record is
+    `specs/024-shading-services-routing/tools/libshader-dynlookup-{before,after}-macos.txt`.
+    `CDSO` moved to `src/libshader/shading/dsoHandle.h`, and no Shading source includes
+    `renderer.h` any more.
+- **Measured by the architecture check** (macOS): 8 edges allowlisted under DB-001 (18 before
+  spec 024, 30 before spec 023).
+  - 8 link references from Shading sources: `CShadingContext::trace`/`traceEx`, `CGatherBundle`,
     the `CTraceBundle`/`CTransmissionBundle` vtables and `CPhotonMap::lookup`.
-  - 4 includes of `src/ri/render/renderer.h` (`shader.cpp`, `shaderPl.cpp`, `executeMisc.cpp`,
-    the generated `rslo` parser).
+  - No includes: the 4 of `src/ri/render/renderer.h` are gone.
   - Not edges: `CTexture3d::resolve` is Shading → Texturing, which the table allows (a
     load-time binding problem only).
   - Shading's source-level coupling is registered separately: hider headers under DB-005,
@@ -123,11 +125,10 @@ request. Run `ctest -L architecture` locally before review.
 - **Consequences today**: `libshader_shading` cannot load without `libRIBRender` in the process; a
   static engine link must whole-archive `libRIBRender.a` (the `openRender::RIBRender_static`
   package target applies `-force_load` for this — remove that workaround once this is resolved).
-- **Direction**: generic infrastructure is already in `libRIBCommon` (spec 023); invert the
-  remaining Hiders/Texturing/
-  renderer-core calls through interfaces Shading owns (trace/gather, photon/texture3d lookup,
-  filter/variable/DSO services), implemented and registered by the higher layers. Options are
-  analysed in #24.
+- **Direction**: generic infrastructure is already in `libRIBCommon` (spec 023) and the
+  renderer-core lookups go through `CRendererServices` (spec 024); invert the remaining
+  Hiders/Texturing calls through interfaces Shading owns (trace/gather, photon/texture3d lookup),
+  implemented and registered by the higher layers. Options are analysed in #24.
 
 ### DB-003 — Plug-in ABI headers carry no interface version
 
@@ -303,21 +304,6 @@ request. Run `ctest -L architecture` locally before review.
 - **Direction**: inject immutable `FrameParams` and per-thread contexts; the mutable flags become
   capabilities on the injected interfaces. Each hider-side spec removes the statics it uses.
 
-### DB-012 — The JIT ignores the hiders' illumination hook
-
-- **Rules**: 3 (a shader behaves the same under every hider and backend).
-- **Tracking**: remediation specs 024 ([#30](https://github.com/juvenal/openrender/issues/30)), 026 ([#32](https://github.com/juvenal/openrender/issues/32)), 029 ([#35](https://github.com/juvenal/openrender/issues/35))
-- **Evidence**:
-  - The interpreter checks `HIDER_ILLUMINATIONHOOK` in every illuminate/solar opcode
-    (`src/libshader/shading/shaderOpcodes.h:214,267,319,376,413,464`).
-  - The JIT emits `op_illuminate_begin`/`op_illuminate3_begin`/`op_solar_begin`
-    (`llvmEmitter.cpp:1175,1186,1214`), which never check it.
-  - The hook-aware `rsl_illuminate_begin_*`/`rsl_solar_begin_*` wrappers
-    (`rslBuiltins.cpp:480,519,638,663`) have no callers.
-- **Size**: not a dependency edge; tracked by review.
-- **Direction**: the hook becomes an explicit capability on the shading services, honoured by
-  both backends; a `.slo` vs `.rslo` photon-pass parity test (024).
-
 ### DB-013 — No hider registry: `strcmp` chains in the renderer core
 
 - **Rules**: 3; adding a hider must not require core edits.
@@ -391,8 +377,9 @@ request. Run `ctest -L architecture` locally before review.
   `option()` and `attribute()` (`src/libshader/shading/shading.cpp:1291-1361,1490`) read fields of
   `currentShadingState->currentObject->attributes` themselves.
 - **Size**: not a dependency edge (Shading may depend on Graphics State); tracked by review.
-- **Direction**: `RendererServices::get_attribute`, used by both backends; `getmessage`/
-  `setmessage` across shader-group layers (034).
+- **Direction**: `RendererServices::get_attribute`, used by both backends; an explicit ray type /
+  hit mode in `ShaderGlobals` (spec 026, [#32](https://github.com/juvenal/openrender/issues/32)),
+  formerly listed under DB-012; `getmessage`/`setmessage` across shader-group layers (034).
 
 ### DB-019 — The shader compiler depends on Scene Interface and renderer-core headers
 
@@ -580,3 +567,36 @@ request. Run `ctest -L architecture` locally before review.
     29 to 12.
   - Follow-up: the shared `globalArena`/`stats` become injected per-context state in specs 029
     and 039 (constitution rule 1).
+
+### DB-012 — The JIT ignores the hiders' illumination hook
+
+- **Rules**: 3 (a shader behaves the same under every hider and backend).
+- **Tracking**: remediation spec 024 ([#30](https://github.com/juvenal/openrender/issues/30))
+- **Evidence**:
+  - The interpreter checked `HIDER_ILLUMINATIONHOOK` in every illuminate/solar opcode
+    (`src/libshader/shading/shaderOpcodes.h:214,267,319,376,413,464`).
+  - The JIT emitted `op_illuminate_begin`/`op_illuminate3_begin`/`op_solar_begin`
+    (`llvmEmitter.cpp:1175,1186,1214`), which never checked it; under the photon hider, which
+    leaves `costheta` unset, the photon pass crashed in `jitIlluminateBegin`.
+  - A no-argument `solar()` emitted no begin call at all, so `L` was never set.
+  - The hook-aware `rsl_illuminate_begin_*`/`rsl_solar_begin_*` wrappers
+    (`rslBuiltins.cpp:480,519,638,663`) had no callers.
+- **Size**: not a dependency edge; tracked by review.
+- **Direction**: the hook becomes an explicit capability on the shading services, honoured by
+  both backends; a `.slo` vs `.rslo` photon-pass parity test (024).
+- **Resolved** by spec 024 (`specs/024-shading-services-routing/`), 2026-10-16:
+  - one hook query for both backends, `CShadingContext::rendererIlluminationHook()` (backed by
+    `CRendererServices::hasIlluminationHook()`), evaluated at every begin and end and never cached;
+  - the JIT begin and end functions (`jitIlluminateBegin`, `jitIlluminate3Begin`, `jitSolarBegin`,
+    `jitIlluminateEnd`, `jitSolarEnd`) hand off to the hider's hooks and touch neither `Ns`,
+    `costheta`, the tags, the counts nor `L`;
+  - the new `op_solar0_begin` (`jitSolar0Begin`) for `solar()` with no arguments, and a hard
+    emitter error, naming the mnemonic, for `illuminate`/`solar` operands that resolve to none of
+    their forms;
+  - the six uncalled `rsl_illuminate_*`/`rsl_solar_*` wrappers and the unused
+    `CRendererServices::hiderFlags()` deleted;
+  - `Visual_photon-parity` (interpreter reference) and `Visual_photon-parity-slo`,
+    `Visual_solar0{,-slo}`, `ShadingParity_IlluminationHook` and `LibShader_IlluminationOperands`
+    guard it.
+  - The explicit ray type / hit mode (spec 026, #32) moved to DB-018's Direction, and spec 029
+    (#35) is already tracked under DB-005, so neither is lost by dropping them from this entry.

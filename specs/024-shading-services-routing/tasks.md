@@ -511,7 +511,7 @@ fails to compile. Record this, stage, and wait for approval.
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T037 [P] Update `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md` (FR-017, research R12):
+- [X] T037 [P] Update `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md` (FR-017, research R12):
   - **DB-001** (stays Open):
     - Evidence: the 7 remaining symbols.
     - "Measured by the architecture check": 8 edges; the 4 `renderer.h` includes are gone.
@@ -528,7 +528,7 @@ fails to compile. Record this, stage, and wait for approval.
     #32), formerly listed under DB-012.
 
   `<date>` is the date this task is done. Do not refer to the merge.
-- [ ] T038 [P] Update `CLAUDE.md`:
+- [X] T038 [P] Update `CLAUDE.md`:
   - shader counts: 104 → 106 `.rslo` (and `.slo` when the JIT is on), plus the object total quoted
     next to them;
   - a new Known-gotchas item covering:
@@ -537,11 +537,11 @@ fails to compile. Record this, stage, and wait for approval.
       photon hider never sets `costheta`;
     - Shading reaches the renderer only through `serviceLookup`/`CRendererServices`;
   - the Testing section: mention `ctest -L shading_parity`.
-- [ ] T039 [P] Update the documentation:
+- [X] T039 [P] Update the documentation:
   - `DEVNOTES.md`: add a status-table entry for spec 024;
   - `DEVNOTES_DETAILS/OSHADER_UPDATES.md`: `op_solar0_begin`, the hard emitter error for unresolved
     illuminate/solar operands, and the removal of the `rsl_*` wrappers.
-- [ ] T040 [RUN] Reduced-feature build in a scratch directory inside the worktree, deleted afterwards:
+- [X] T040 [RUN] Reduced-feature build in a scratch directory inside the worktree, deleted afterwards:
   - `nice -n 19 cmake -B build-024-nojit -S . -DOPENRENDER_ENABLE_JIT=OFF`;
   - `nice -n 19 cmake --build build-024-nojit --config Release -j4`;
   - `nice -n 19 ctest --test-dir build-024-nojit -L "architecture|shading_parity|visual" -j4 --output-on-failure`.

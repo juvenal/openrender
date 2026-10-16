@@ -294,6 +294,40 @@ silently discarding its category argument, and the JIT emitter never lowering th
 3-/4-operand `illuminance` forms at all. See
 `specs/012-jit-parity-followups/contracts/light-iteration.md` §4.
 
+### Illumination hook and `solar()` under the JIT (`specs/024-shading-services-routing`, US1)
+
+A hider that sets `HIDER_ILLUMINATIONHOOK` (the photon hider) wants every `illuminate()`/`solar()`
+construct handed to it through four virtual hooks on `CShadingContext` (`illuminateBegin`,
+`illuminateEnd`, `solarBegin`, `solarEnd`). The interpreter always did that; the JIT never read the
+flag, and the photon pass crashed in `jitIlluminateBegin` because it read `costheta`, which the photon
+hider never sets. Changes:
+
+- **One query for both backends.** `CShadingContext::rendererIlluminationHook()` (backed by
+  `CRendererServices::hasIlluminationHook()`) replaces `rendererHiderFlags() & HIDER_ILLUMINATIONHOOK`
+  in the six interpreter macros, and the JIT begin and end functions (`jitIlluminateBegin`,
+  `jitIlluminate3Begin`, `jitSolarBegin`, `jitIlluminateEnd`, `jitSolarEnd`) check it first. When it is
+  on, they only call the hook and touch neither `Ns`, `costheta`, the tags, the counts nor `L`. It is
+  evaluated at every begin and end and never cached in compiled code. The contract is
+  `specs/024-shading-services-routing/contracts/illumination-hook.md`.
+- **`op_solar0_begin`.** `solar()` with no arguments compiles to a `solar` instruction whose only
+  operand is its label. The emitter used to find no `Nf`/`thetaf` and silently skip the begin call, so
+  `L` was never set (red diff 201.62 on `solar0`). It now emits `op_solar0_begin(tags, n, numActive*,
+  numPassive*)` (`rslOps.h`, `CShadingContext::jitSolar0Begin`): with the hook on it calls
+  `solarBegin(NULL, NULL)`, otherwise it mirrors `SOLAR1EXPR_PRE` (`L = Ps` for active points, tags
+  incremented for tagged ones, no culling).
+- **A hard emitter error.** An `illuminate` with other than 2 or 4 operands, a `solar` with other than 1
+  or 3, or operands that do not resolve now fail `oshader --jit` with a diagnostic naming the mnemonic,
+  instead of being skipped; `LibShader_IlluminationOperands` drives it with hand-built `IRModule`s.
+- **Dead code removed.** The six `rsl_illuminate_begin_1`/`_3`/`rsl_illuminate_end`/
+  `rsl_solar_begin_1`/`_2`/`rsl_solar_end` wrappers in `rslBuiltins.{h,cpp}` had no callers (and so did
+  the `callIlluminate*`/`callSolar*` helpers they used); they and the unused
+  `CRendererServices::hiderFlags()` are gone.
+- **Tests.** `Visual_photon-parity` and `-slo` (a photon pass, then a raytrace of the map it wrote; the
+  JIT variant matches the interpreter at 0.00 with a 2 009 546-byte map; rendered at `-t:1` because the
+  photon hider has a known race, see BUGS.md), `Visual_solar0` and `-slo`, and
+  `ShadingParity_IlluminationHook`, which runs the four forms through a probe context with the hook on,
+  off and toggled.
+
 ---
 
 ## Imager Shader Support

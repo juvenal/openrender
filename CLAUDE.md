@@ -102,7 +102,7 @@ disposable, gitignored deploy tree only refreshed by `cmake --install`
 inside it.
 
 **Where the compiled shaders actually live:** `${CMAKE_BINARY_DIR}/shaders/` —
-104 `.rslo` (+ 104 `.slo` when the JIT is on), produced by `shaders/CMakeLists.txt`
+107 `.rslo` (+ 107 `.slo` when the JIT is on), produced by `shaders/CMakeLists.txt`
 as a **build** step. The tracked `shaders/` tree holds only `.sl` sources and
 `includes/`; compiled objects never land next to them. `cmake --install` copies
 the build-tree objects into the deploy tree — it no longer compiles anything.
@@ -115,7 +115,7 @@ renaming `openrender/` aside and running the suite: 191/191.
 editing a `.sl` recompiles it, editing any `.slh` recompiles the shaders, and
 **rebuilding `oshader` recompiles every shader**. A green `-slo` run after an
 emitter change is now genuine evidence. (`.slh` dependencies are deliberately
-coarse — all shaders depend on all headers; a full 138-object rebuild is ~2s.)
+coarse — all shaders depend on all headers; a full 214-object rebuild measured ~1.4s at `-j4`.)
 
 An ABI/signature mismatch between stale bitcode and current runtime C++
 (`op_*`/`rsl_*` functions) is still not caught at build or link time if you
@@ -218,6 +218,7 @@ ctest --test-dir build -L visual --output-on-failure   # 87+ scene visual regres
 ctest --test-dir build -L visual -E slow                # skip slow tests (motion-3-reyes, ~3 min)
 ctest --test-dir build -L libshader                     # compiler unit tests
 ctest --test-dir build -L common                        # libRIBCommon: sink, arena, vocabulary, state ownership
+ctest --test-dir build -L shading_parity                # JIT/interpreter parity, renderer-services routing, the illumination hook
 ```
 
 **REYES shading vs. sampling trap:** `ShadingRate` controls micropolygon grid
@@ -464,6 +465,29 @@ fixed violation: the "Architecture check" section of
    public header stays byte-identical, and
    `Common_VocabularyConsistency` fails if the two lists and
    `riTokens.cpp` drift apart. Add a token in all three.
+23. **Shading reaches the renderer only through its services (spec 024).**
+   `CRendererServices` (owned by Shading, implemented by
+   `CRendererServicesImpl` in the renderer core) is registered with
+   `CShadingContext::setDefaultServices()` in `CRenderer::beginRenderer()`
+   and deregistered last in `endRenderer()`: at `RiBegin`/`RiEnd`, never per
+   frame. Imager and default shaders load before the first `beginFrame()`,
+   so a per-frame registration would leave their lookups with no services.
+   A substitute installed after `RiBegin` therefore survives
+   `RiWorldBegin`. The shading library's DSO, filter, step-filter,
+   global-ID and variable lookups go through `libshader::lookup*`
+   (`serviceLookup.h`); never call `CRenderer::` or include `renderer.h`
+   from `src/libshader` (`ctest -L architecture` fails on it). With no
+   services installed each lookup returns not-found and warns once per kind,
+   and `parseCategories()` skips a category it could not resolve instead of
+   storing ID 0. The illumination hook is one query,
+   `rendererIlluminationHook()`, evaluated at every illuminate/solar begin
+   and end by both the interpreter macros and the JIT `jit*Begin`/`End`
+   functions; with it on, they only call the hider's hooks and touch no
+   tags, counts or `L`. The photon hider never sets `costheta`, so no code
+   reached from the hook path may read it. `solar()` with no arguments is
+   the label-only `solar` instruction and emits `op_solar0_begin`; the
+   emitter fails on `illuminate`/`solar` operands it cannot resolve rather
+   than skipping them.
 
 ## Active Technologies
 - C++20, CMake ≥3.19; `libtiff`/`libpng` (mandatory), OpenEXR (optional,
@@ -488,8 +512,21 @@ fixed violation: the "Architecture check" section of
   trimming (021-deferred-csg-evaluation)
 - Storage: N/A — memory only: a shared, immutable CSG definition per solid
   plus per-instance state built on first use (021-deferred-csg-evaluation)
+- C++20, CMake ≥3.19, `-Werror`; no new dependencies — Shading reaches the
+  renderer through `CRendererServices`, one new service (`getDSO`)
+  (024-shading-services-routing)
+- Storage: N/A — no new persistent state; services are process-wide,
+  registered for the length of a `RiBegin`/`RiEnd` session
+  (024-shading-services-routing)
 
 ## Recent Changes
+- 024-shading-services-routing: the shading library reaches the renderer
+  only through `CRendererServices` and the `libshader::lookup*` helpers
+  (`serviceLookup.h`), registered at `RiBegin` and deregistered at `RiEnd`
+  (flat-namespace imports 12 → 7, DB-001 18 → 8 edges); the JIT honours the
+  illumination hook like the interpreter (`rendererIlluminationHook()`,
+  `op_solar0_begin`, a hard emitter error for unresolved operands), so the
+  photon pass no longer crashes under `.slo` lights (see spec 024).
 - 020-runtime-tile-paging: runtime bake-on-load for non-TIFF sources —
   `CRenderer::textureLoad()` gains a fallback (reached only on
   `TIFFOpen()` failure) that decodes PNG/OpenEXR/RGBE directly via
