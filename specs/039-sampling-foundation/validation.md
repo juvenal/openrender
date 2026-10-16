@@ -165,3 +165,104 @@ Made without any build or ctest run (disk space); checked with `-fsyntax-only` a
    - Red state: a compile failure on the same missing header, `common/sampling.h`, once built (syntax-checked against the stub only; not built, so not re-demonstrated this turn).
    - `ctest -N` now lists **612** tests, and `-L sampling` lists 15 (`DiskSampling` plus 14 new). The earlier 13-tests-of-8-executables figures in the red evidence above are as of the first run and are not re-measured.
    - The red evidence above (8 of 8 compile failures, 13 Not Run) was gathered before this change; the new test adds a ninth executable and a 14th Not Run test by the same cause.
+
+### T018-T025: the sampler library, and the green run
+
+Implemented on top of the committed tests (`2eeca56`); `nice -n 19`, `-j4`, one job at a time.
+
+- `src/common/sampling.h` (T018, and the inline parts of T019-T022): `Backend`, `SampleId`, `SampleKey`, `SubstreamKey`, `Sample2D/3D/4D`, `CSamplingConfig`, the camera slots, hashing (`finalize64`, `mix`), the Owen machinery (`nestedUniformScramble`, a Laine-Karras permutation under bit reversal, after Burley 2020), Sobol dimensions 0 and 1, the Independent backend, `get1D/get2D/get3D/get4D`, `floorDiv/floorMod`, `cameraKey/cellKey/childKey/substream`, and `CKeyedStream`. All hot functions are `inline`; the header includes only `<bit>` and `<cstdint>`, and there is no mutable global state.
+- `src/common/sampling.cpp`: the four camera-slot accessors and `sobolUnscrambled`.
+- `src/common/samplingPmj02.cpp`: the PMJ02 tables (64 patterns x 4096 points, 2 MB), built under `std::call_once`, and `pmj02Get1D/2D`.
+- `src/common/CMakeLists.txt` (T023): both `.cpp` files go into `openrendercommon_obj`, so they are in both the shared and the static `libRIBCommon`. The common headers are not installed (the glob only feeds the target's sources), so there is nothing to install.
+- `tests/unit/sampling/CMakeLists.txt` (T024): `EXCLUDE_FROM_ALL` removed.
+
+#### How the net property is kept (G3, G4)
+
+- The sample index is scrambled per (sub-stream, dimension) with a nested uniform permutation, and the Sobol output is Owen-scrambled with another. A nested permutation of the index maps the first 2^m indices onto one aligned block of 2^m Sobol indices, and every aligned block of a (0,2)-sequence is a (0, m, 2)-net, so every prefix stays a net while the dimensions are decorrelated.
+- **Deviation to note: the PMJ02 patterns are Owen-scrambled Sobol (0,2)-sequences, not the output of Christensen et al.'s PMJ02 generator.** I could not reconstruct that generator reliably, and the tests (G4) and the spec's stated property are met without it. The practical consequence is that the PMJ02 and Sobol backends are statistically the same family at power-of-two prefixes (see the discrepancies below). The comment in `samplingPmj02.cpp` says so. Whether a true PMJ02 generator is wanted is the maintainer's call.
+- The camera accessors seed one sub-stream per pixel from the pixel's `path` and index it by the camera `sampleIndex`. The Morton ordering across pixels in research R2.1 is not applied.
+
+#### Results
+
+- Build: `cmake --build build --config Release -j4`, exit 0, no compiler warnings (13 s, incremental).
+- `ctest -L "sampling|common|architecture"`: **50/50 passed**, including all 14 new `Sampling_*` tests and `Common_StateOwnership`.
+- Full suite, `nice -n 19 ctest --test-dir build -j4 --output-on-failure`: **612/612 passed** (598 baseline tests + 14 new), 108 s. No failure, so no flaky re-run was needed. `Parity_transparency-matte-aov` (the one T003 flake) passed. Every one of the 598 T003 tests passes, so nothing changed under `Legacy`: no hider or shading code was touched.
+- The files were then reformatted with the repo's `.clang-format` (its neighbours were clean); the rebuild and `-L "sampling|common|architecture"` were re-run after that: 50/50 passed. The full suite was not repeated after the whitespace-only change.
+- Architecture: `ctest -L architecture` 21/21. `archcheck`: `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; the new `src/common` files classify as `Infra` (prefix `src/common/`) with `Infra refs 0`, and no allowlist line was added. The same three metric warnings as on master remain (Geometry +2, Hiders +5, TOTAL +7).
+
+#### Measured values for the PAUSE 2 report
+
+`Sampling_ConvergenceSmooth` (log-log RMSE slope of the smooth integrand, 32 keys, N = 2^2..2^12):
+
+| Backend | Slope | Required |
+|---|---|---|
+| Sobol | -1.336 | <= -0.9 |
+| PMJ02 | -1.303 | <= -0.9 |
+| Independent | -0.504 | <= -0.4 |
+
+`Sampling_Discrepancy` (exact 2D star discrepancy, mean of 8 keys):
+
+| N | Sobol | PMJ02 | Independent |
+|---|---|---|---|
+| 64 | 0.04244 | 0.04283 | 0.14885 |
+| 256 | 0.01325 | 0.01334 | 0.07969 |
+| 1024 | 0.00381 | 0.00389 | 0.04151 |
+
+`Sampling_Uniformity`: minimum p over the 16 dimensions is 1.0 for Sobol and PMJ02 (both are exactly stratified over 2^16 draws) and **0.0096 for Independent**. Per-check level 2.08e-4. The un-corrected p >= 0.01 would have failed the Independent backend here, which is the luck-of-the-key failure that the Bonferroni change removed.
+`Sampling_NetProperty` and `Sampling_PMJ02Property`: 512 (key, dimension) pairs each, 0 violations.
+
+### Amendment: true PMJ02 and Morton-ordered Sobol camera (tests first)
+
+The maintainer asked for the two deviations above to be fixed inside Phase 2. This section records step 1 (tests, shown red). No generator or Morton code exists yet.
+
+#### Tests written
+
+| Test | File | Folded into | What it checks |
+|---|---|---|---|
+| `Sampling_PMJ02Construction` | `test_pmj02_table.cpp` | T011 | the 64 PMJ02 patterns follow the construction strategy of Christensen et al. 2018 (see below), are distinct, deterministic and thread-safe on first touch; a negative control runs the same checker on Sobol points |
+| `Sampling_MortonIndex` | `test_morton.cpp` | T015 | `mortonIndex(px, py)` against 22 hand-computed values (zero, powers of two, 0x5555/0xAAAA patterns, negative pixels and the 65536 wrap), an independent bit-loop reference over a range crossing zero and the wrap, and the locality of aligned pixel groups (an aligned 2^s x 2^s group owns an aligned run of 4^s consecutive indices) |
+| `Sampling_CameraSobolBlocks` | `test_morton.cpp` | T015 | for six sample counts (1x1, 2x2, 3x3, 3x4, 8x8, 1x2) the Sobol camera index is `mortonIndex·2^k + sampleIndex` with 2^k the power-of-two ceiling of nx·ny; all (pixel, sample) indices are distinct over a 16x16 pixel window that includes negative pixels; each pixel stays in its own block; PMJ02 and Independent index by the sample alone; an aligned group of pixels (2x2 pixels at 2x2 spp, 2x2 at 4x4, 8x8... in four size combinations, at positive and negative offsets) draws a (0, m, 2)-net of film samples and of lens samples and fills 2^m strata of time and of importance; the sequence is pure and changes with frame and seed |
+
+New test-only API in `sampling.h`: `kPmj02Patterns`, `pmj02Point(pattern, j)` (the table point before the runtime shuffle and scramble), `mortonIndex`, `cameraSequenceIndex`. `pmj02Point` and `cameraSequenceIndex` (still returning the sample index, the current behaviour) are defined; `mortonIndex` is declared and deliberately not defined.
+
+#### The PMJ02 discriminator, and how sound it is
+
+- The net property does not separate PMJ02 from Owen-scrambled Sobol: every (0,2)-sequence has net prefixes, and a randomised Sobol sequence has the same joint distribution of pairwise interval structure as any other (0,m,2)-net. So the test does not rely on it (`Sampling_PMJ02Property` already checks it).
+- What separates them is the generation strategy. The paper describes "a simple, diagonally alternating strategy that progressively fills in holes in increasingly fine stratifications", and Pharr 2019 (§2.2, §3) describes the same procedure: select an empty elementary interval for the next sample (Christensen et al.'s choice of interval), then place the sample in the admissible part of that interval. The test checks the consequences on the table in sequence order, for N = 2^k:
+  - **locality**: sample N + i lies in the same floor(k/2)-digit cell (a cell of the sqrt(N) x sqrt(N) grid for even k) as sample i, for k = 0..11;
+  - **diagonal**: for even k, sample N + i lies in the half of that cell opposite sample i in both x and y.
+  A Sobol sequence breaks both (sample N + i has its first y digit flipped relative to sample i), and the test requires its checker to report violations on Sobol points, scrambled and unscrambled (4092 and 4082 locality violations per 4096 points; 1364 and 40 diagonal ones).
+- **Confidence.** High that the discriminator is sound and not weak: it fails on the current Owen-scrambled-Sobol tables (4092 locality and 1364 diagonal violations in every one of the 64 patterns), and a reference generator I wrote in the scratchpad passes it on all 64 patterns (0 violations, every prefix a (0,m,2)-net, about 5 ms per pattern). Medium-high that it matches the paper letter for letter: the diagonal rule for even steps is the paper's stated strategy (confirmed by its abstract and a search summary of the supplement), and locality at odd steps is consistent with Pharr's description, but I could not read the paper itself or its supplement (the Pixar library URLs redirect to a landing page), so the odd-step rule (new sample in the same cell, adjacent sub-quadrant) is the part I am least sure the paper states in these words. If the maintainer prefers a narrower claim, restricting the locality check to even k loses nothing against Sobol.
+- No pbrt-v4 or other code or tables were read or used. The scratch generator was written from the two papers' descriptions and my own search.
+
+#### Red evidence
+
+- Default build (`cmake --build build --config Release -j4`): exit 0. The two new targets are `EXCLUDE_FROM_ALL`.
+- `test_sampling_pmj02_table` builds. `ctest -R Sampling_PMJ02Construction`: **Failed**. All 64 patterns report `range 0, net 0, locality 4092, diagonal 1364 violation(s)`: the current tables are Owen-scrambled Sobol.
+- `test_sampling_morton` **fails to link**: `Undefined symbols ... "openrender::sampling::mortonIndex(int, int)"`. `ctest -R "Sampling_MortonIndex|Sampling_CameraSobolBlocks"`: both **Not Run**.
+- To show `Sampling_CameraSobolBlocks` fails for the right reason and not only on the link error, a scratch build linked the test against a correct `mortonIndex` and the current library: `Sampling_MortonIndex` then passes (hand values confirmed), and `camera_sobol_blocks` fails 25316 checks: the index is not `morton·2^k + sampleIndex` (23460), pixels share blocks (1530, 6 of them with repeated indices), and the aligned-group film, lens, time and importance checks all fail (80 groups each).
+- The tests were also run against a complete scratch implementation of both features (outside the repository, discarded): all three pass.
+- The 14 earlier `Sampling_*` tests are untouched.
+
+#### Revision after the test review (three changes)
+
+The edits were first syntax-checked only (`-fsyntax-only`), while the machine was with spec 024; the red run below was made afterwards, on a free machine.
+
+1. **Locality on even k only** (`Sampling_PMJ02Construction`). The locality check now covers only even k (N = 4^j), together with the diagonal rule. The odd-k locality count is kept as an informational print (`localityOdd`), with a comment that the odd step is unverified against the paper's text and may be enabled once someone confirms it from Christensen et al. 2018. The Sobol negative control still fails the narrower test, checked here with a Python mirror of the Sobol path (the C++ run is pending): unscrambled Sobol gives 1364 locality and 1364 diagonal violations over even k, and Owen-scrambled Sobol with three arbitrary seed triples gives 1352-1364 locality and 44-68 diagonal violations. Expected current-table result in the C++ run: every one of the 64 patterns fails with the even-k counts (locality 1364, diagonal 1364), since the tables are still scrambled Sobol.
+2. **64-bit camera sequence index.** `detail::cameraSequenceIndex` returns `uint64_t` (`(uint64_t(mortonIndex) << k) + sampleIndex`), so the Morton term no longer wraps at 32 bits. I kept `mortonIndex` at 16 bits per axis and returning `uint32_t`, and **65536 pixels per axis is the stated limit** (negative and larger coordinates wrap modulo 65536); an 8K frame is 7680 x 4320, so the limit is not reached. The Sobol draw functions must therefore take a 64-bit index on the camera path (implementation step). New cases in `Sampling_CameraSobolBlocks`, on an 8K frame at 256 spp (16x16) and 4096 spp (64x64):
+   - deliberate pixel pairs that collide under a 32-bit index (differing by 4096 px at 256 spp, 1024 px at 4096 spp, in x, in y, in both, and at the far corner), each asserted to be a genuine 32-bit collision (equal truncated index, different Morton index), whose 64-bit indices must differ and whose film samples must differ; the pairs were checked by hand-run arithmetic to be valid collisions inside the frame;
+   - a scan of the whole frame for every pixel that collides with (100, 200) under a 32-bit index (there must be at least one), each of which must have a different 64-bit index;
+   - a sparse lattice over the frame (every 11th pixel in x and 13th in y, two samples each), all indices distinct.
+   The existing cases now compare 64-bit indices, and the 16x16-window check that each pixel owns its own block is exact (the old comment about the 32-bit wrap is gone).
+3. **`detail` namespace.** Everything that is not the public API moved into `openrender::sampling::detail` in `sampling.h`: hashing (`finalize64`, `mix`, `toUnitFloat`), the Owen and Sobol machinery, the backend entry points (`sobolGet*`, `independentGet*`, `pmj02Get*`), `kPmj02Points`, `kPmj02Patterns`, `pmj02Point`, `mortonIndex`, `cameraSequenceIndex` and `sobolUnscrambled`. The public API is the contract's: `Backend`, the key and sample types, `CSamplingConfig`, `CameraSlot`, `cameraKey/cellKey/childKey/substream`, `get1D/2D/3D/4D`, `floorDiv/floorMod`, the camera accessors, and `CKeyedStream`. **I put `mortonIndex` in `detail` too**: only the camera accessors in `sampling.cpp` use it, the hiders compute a `SampleId` and call `cameraFilm` and the others. `floorDiv`/`floorMod` stay public because the hiders build `SampleId`s with them. The definitions in `sampling.cpp` and `samplingPmj02.cpp` moved with the declarations, and the tests that used these names now say `sp::detail::`. `contracts/sampler-api.md` notes where `sobolUnscrambled` lives.
+
+#### Red evidence for the revised tests
+
+`nice -n 19`, `-j4`, one job at a time, on the free machine.
+
+- Default build (`cmake --build build --config Release -j4`): exit 0. This rebuilt the 14 earlier `Sampling_*` test executables against the `detail` move without any edit to their logic. The two amended targets are still `EXCLUDE_FROM_ALL`.
+- `ctest -L sampling`: 18 tests, **15 passed, 3 failed**. The 14 earlier tests and `DiskSampling` pass (so the namespace move broke nothing). The three failures:
+  - `Sampling_PMJ02Construction`: **Failed.** All 64 patterns report `range 0, net 0, locality 1364, diagonal 1364` (even k only; the tables are still scrambled Sobol), 87296 locality and 87296 diagonal violations in total. The odd-k locality count (174592) is printed for information and is not checked. The Sobol negative control passes the narrower test as the Python mirror predicted: unscrambled Sobol 1364 locality and 1364 diagonal violations, scrambled Sobol (the C++ run) 1362 and 40, both with 0 net violations.
+  - `Sampling_MortonIndex` and `Sampling_CameraSobolBlocks`: **Not Run.** `test_sampling_morton` fails to link on `openrender::sampling::detail::mortonIndex(int, int)`.
+- To show `Sampling_CameraSobolBlocks` fails for a real reason, a scratch build (discarded) linked `test_morton.cpp` against a correct stand-in `mortonIndex` and the current library. `Sampling_MortonIndex` then passes (hand values confirmed). `camera_sobol_blocks` fails: the index is not `morton·2^k + sampleIndex` (23460 checks), pixels share blocks (1530), the aligned-group film, lens, time and importance checks fail (80 groups each), and the new 8K cases fail too: the deliberate 32-bit-collision pairs get equal indices (24 pair checks `ia != ib`, plus the formula checks), the 8K collision scan finds 3 pixels colliding with (100, 200) at 256 spp and 39 at 4096 spp and their indices are not distinct (42 failures), and the lattice indices are not distinct (2 failures, one per sample count).
+- The build and the tests left nothing running.

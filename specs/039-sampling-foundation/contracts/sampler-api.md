@@ -43,7 +43,7 @@ float    cameraImportance(const CSamplingConfig&, const SampleId&);
 // Non-sample local stream (clustering, getDisp, point hierarchy, radiance)
 class CKeyedStream { public: explicit CKeyedStream(uint64_t key); float next1D(); uint32_t nextU32(); };
 
-// Test-only
+// Test-only (declared in `openrender::sampling::detail`, with the rest of the implementation details)
 Sample2D sobolUnscrambled(uint32_t index);   // reference values (US2-1)
 }
 ```

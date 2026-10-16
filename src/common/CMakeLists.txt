@@ -30,6 +30,8 @@ add_library(openrendercommon_obj OBJECT
     fileResource.cpp
     memory.cpp        # CMemPage pages + CArena / globalArena
     random.cpp        # sampleHemisphere / sampleCosineHemisphere
+    sampling.cpp      # camera slots + unscrambled Sobol reference (spec 039)
+    samplingPmj02.cpp # PMJ02 pattern tables, built once on first use (spec 039)
     refCounter.cpp
     stats.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/variable_generated.cpp

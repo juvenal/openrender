@@ -16,10 +16,9 @@ target_link_libraries(test_sampling PRIVATE openrendercommon)
 
 # --- Phase 2 (US2): the sampler library tests -----------------------------------
 #
-# Written before src/common/sampling.h exists (contracts/sampler-api.md), so the
-# targets are EXCLUDE_FROM_ALL until the implementation lands (T024): the
-# default build stays green, and `ctest -L sampling` reports these tests as
-# "Not Run" until the executables are built. T024 removes EXCLUDE_FROM_ALL.
+# Written before src/common/sampling.h existed (contracts/sampler-api.md); the
+# sampler library (src/common/sampling.*) now builds into libRIBCommon, so the
+# targets are part of the default build.
 #
 # Each executable takes the case to run as its argument. They need no fixture
 # or reference file: every expected value is computed in the test itself.
@@ -28,7 +27,7 @@ find_package(Threads REQUIRED)
 # add_sampling_test_exe(<target> <source> [LIBS <libs>...])
 function(add_sampling_test_exe target source)
     cmake_parse_arguments(ARG "" "" "LIBS" ${ARGN})
-    add_executable(${target} EXCLUDE_FROM_ALL ${source})
+    add_executable(${target} ${source})
     target_compile_features(${target} PRIVATE cxx_std_20)
     target_include_directories(${target} PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR})
     target_link_libraries(${target} PRIVATE openrendercommon ${ARG_LIBS})
@@ -75,3 +74,17 @@ add_sampling_test(Sampling_Keys test_sampling_keys keys)
 
 add_sampling_test_exe(test_sampling_keyed_stream test_keyed_stream.cpp LIBS Threads::Threads)
 add_sampling_test(Sampling_KeyedStream test_sampling_keyed_stream keyed_stream)
+
+# --- Phase 2 amendment: true PMJ02 construction and Morton-ordered Sobol camera ------
+#
+# Written before the implementation (tests first), so the two targets are
+# EXCLUDE_FROM_ALL and `ctest` reports the three tests as "Not Run" or failing
+# until the amendment lands; the implementation step removes the property.
+add_sampling_test_exe(test_sampling_pmj02_table test_pmj02_table.cpp LIBS Threads::Threads)
+add_sampling_test(Sampling_PMJ02Construction test_sampling_pmj02_table construction)
+
+add_sampling_test_exe(test_sampling_morton test_morton.cpp)
+add_sampling_test(Sampling_MortonIndex test_sampling_morton morton)
+add_sampling_test(Sampling_CameraSobolBlocks test_sampling_morton camera_sobol_blocks)
+
+set_target_properties(test_sampling_pmj02_table test_sampling_morton PROPERTIES EXCLUDE_FROM_ALL TRUE)

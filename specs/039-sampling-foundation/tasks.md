@@ -111,6 +111,7 @@ description: "Task list for spec 039: sampling foundation"
 - [X] T011 [P] [US2] `tests/unit/sampling/test_stratification.cpp` (G3, G4).
   - `Sampling_NetProperty`: for 8 random keys and every 2D `dim` in 0..63, the first 2^m indices form a (0, m, 2)-net for every m ≤ 12. The check counts one point per elementary interval of every shape.
   - `Sampling_PMJ02Property`: the same check for PMJ02 prefixes up to 4096.
+  - `Sampling_PMJ02Construction` (`test_pmj02_table.cpp`, amendment): the 64 PMJ02 patterns follow Christensen et al.'s generation strategy, which a randomised Sobol sequence does not: for even k (N = 4^j, k = 0..10), sample N + i lies in the same j-digit cell as sample i and in the diagonally opposite half of it in both x and y; the odd-k locality count is printed for information only, until it is confirmed from the paper. The same checker is run on Sobol points as a negative control and must report violations. Also: all patterns distinct, deterministic, thread-safe on first touch.
 - [X] T012 [P] [US2] `tests/unit/sampling/test_uniformity.cpp` (G6).
   - `Sampling_Uniformity`: chi-square with 64 bins over 2¹⁶ draws in each of 16 dimensions, for every backend. The 48 checks are one family, Bonferroni-corrected: each must reach p ≥ 0.01/48, which holds the false-failure chance of the whole test near 1% (an uncorrected p ≥ 0.01 per check would fail a correct generator about 38% of the time over 48 checks).
   - `Sampling_Discrepancy`: the 2D star discrepancy of Sobol and PMJ02 must be below Independent's at N = 64, 256 and 1024.
@@ -124,6 +125,7 @@ description: "Task list for spec 039: sampling foundation"
 - [X] T015 [P] [US2] `tests/unit/sampling/test_camera_grid.cpp`, test `Sampling_CameraGridConsistency` (research §R3.1).
   - Run the reyes formula (`absSub = left + j`, with subpixel `left`) and the raytrace formula (`absSub = left·nx − xSampleOffset + col`, with pixel `left`) over a 3×3-bucket grid with margins, `nx = ny = 3`, `xSampleOffset = ySampleOffset = 2`, including negative coordinates at the border.
   - Both must give equal `SampleId`s. `floorDiv` and `floorMod` round toward −∞.
+  - Amendment (`test_morton.cpp`, research §R2.1): `Sampling_MortonIndex` checks `mortonIndex(px, py)` against hand-computed values (negative pixels wrap modulo 65536). `Sampling_CameraSobolBlocks` checks that the Sobol camera index is the 64-bit `mortonIndex·2^k + sampleIndex` (2^k the power-of-two ceiling of nx·ny; 65536 pixels per axis is the stated limit), including an 8K frame (7680×4320) at 256 and 4096 spp, where pixel pairs picked to collide under a 32-bit index keep distinct indices and draw different samples, that neighbouring pixels draw disjoint blocks, and that an aligned group of pixels draws a (0, m, 2)-net of film and lens samples and fills 2^m strata of time and importance.
 - [X] T016 [P] [US2] `tests/unit/sampling/test_keys.cpp`, test `Sampling_Keys` (data-model SampleKey):
   - `path` never changes when only the camera `sampleIndex` changes;
   - `full` does change;
@@ -135,28 +137,28 @@ description: "Task list for spec 039: sampling foundation"
 
 ### Implementation
 
-- [ ] T018 [US2] `src/common/sampling.h`: declare the API from contracts/sampler-api.md:
+- [X] T018 [US2] `src/common/sampling.h`: declare the API from contracts/sampler-api.md:
   - `Backend`, `SampleId`, `SampleKey {full, path, pixelSampleIndex, kind}`, `SubstreamKey`, `Sample2D`, `CSamplingConfig`;
   - `cameraKey`, `cellKey`, `childKey`, `substream`, `get1D`, `get2D`, the inline helpers `get3D`/`get4D` composed from consecutive slots of one sub-stream (FR-008; §4.3's `Sample3D`/`Sample4D`), the camera-slot accessors, `CKeyedStream`, `sobolUnscrambled`.
   - The hot functions are `inline`. There is no mutable global state (rule 1).
-- [ ] T019 [US2] `src/common/sampling.cpp`: hashing (SplitMix64/PCG-style `mix`), the float conversion `(bits >> 8)·0x1p-24f` (research §R2.4), and the Independent backend (§R2.3).
-- [ ] T020 [US2] `src/common/sampling.cpp`: Owen-scrambled Sobol (research §R2.1).
+- [X] T019 [US2] `src/common/sampling.cpp`: hashing (SplitMix64/PCG-style `mix`), the float conversion `(bits >> 8)·0x1p-24f` (research §R2.4), and the Independent backend (§R2.3).
+- [X] T020 [US2] `src/common/sampling.cpp`: Owen-scrambled Sobol (research §R2.1).
   - Morton index `morton(px, py)·2^k + sampleIndex`.
   - Base-4 digit permutation of the index, keyed by hash(dim, seed).
   - Dimensions 0 and 1 only, with Burley 2020 hash-based nested-uniform scrambling keyed by hash(dim, seed).
   - Dimensions beyond the native tables are padded by hashing (FR-006).
-- [ ] T021 [US2] `src/common/samplingPmj02.cpp`: deterministic PMJ02 generation (research §R2.2).
+- [X] T021 [US2] `src/common/samplingPmj02.cpp`: deterministic PMJ02 generation (research §R2.2).
   - 64 patterns × 4096 points, generated under `std::call_once` from a fixed internal seed.
   - Pattern chosen by hash(dim, seed); XOR shuffle within power-of-two blocks; Owen scramble.
   - Index ≥ 4096 falls back to scrambled Sobol for that draw.
-- [ ] T022 [US2] `src/common/sampling.cpp`: the camera slots.
+- [X] T022 [US2] `src/common/sampling.cpp`: the camera slots.
   - Film2D = 0, Lens2D = 1, Time1D = 2, Importance1D = 3 (data-model "Dimension cursor").
   - `floorDiv`/`floorMod` helpers.
   - `CKeyedStream` (key plus a local counter, never stored beyond its frame, research §R3.10).
   - The test-only `sobolUnscrambled`.
-- [ ] T023 [US2] Add `sampling.cpp` and `samplingPmj02.cpp` to both the shared and static `libRIBCommon` targets in `src/common/CMakeLists.txt`, and install `sampling.h` if the other common headers are installed.
-- [ ] T024 [US2] Remove `EXCLUDE_FROM_ALL` from T009–T016.
-- [ ] T025 [RUN] [US2] Build, then `ctest -L "sampling|common|architecture"`. All must be green, with no new allowlist line.
+- [X] T023 [US2] Add `sampling.cpp` and `samplingPmj02.cpp` to both the shared and static `libRIBCommon` targets in `src/common/CMakeLists.txt`, and install `sampling.h` if the other common headers are installed.
+- [X] T024 [US2] Remove `EXCLUDE_FROM_ALL` from T009–T016.
+- [X] T025 [RUN] [US2] Build, then `ctest -L "sampling|common|architecture"`. All must be green, with no new allowlist line.
 
 **PAUSE 2**: report the measured slopes and discrepancies from T012 and T014.
 
