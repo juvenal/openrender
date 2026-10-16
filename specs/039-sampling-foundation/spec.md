@@ -55,6 +55,10 @@ No two default-thread renders of that scene were pixel-identical (worst 8×8 blo
 - Q: Which spec deletes the per-context Mersenne Twister and `random2d/3d/4d` members? → A: 039 deletes the members it makes dead; 029 no longer does.
 - Q: How is `-P:N` bit-identity handled, given it was never measured? → A: Plan measures it early, with today's code and `jitter 0`. If the outputs differ, the maintainer decides at that point: either file a `fix/` prerequisite, or limit SC-001 to `-t` and record the `-P` gap.
 - Q: How is the DB-016 follow-up split between 039 and 029? → A: 039 removes randomness from per-context state. Arena and stats injection stay in 029.
+- Q (plan): Which call forms must be bit-identical between interpreter and JIT, given that the JIT ignores the optional parameters of the trace family? → A: Only the forms both backends implement: the plain `trace`/`transmission`/`visibility`/`occlusion`/`indirectdiffuse` calls, and `gather`. The JIT gap is GitHub #55. The maintainer has it fixed on its own `fix/` branch once 039 is complete; it is not part of 039.
+- Q (plan): Where does SC-003's "0.15 steeper than Independent" bar apply? → A: Where the backend owns the stratification: lens/DOF, area-light shadows, occlusion and glossy trace. For motion blur (and film position), which stay grid-stratified under the kept jitter mapping, the bar is "no worse than Independent".
+- Q (plan): Which scenes measure SC-010's 2% budget? → A: Six perf-only copies (larger `Format` only) of `camera-dof-reyes`, `camera-dof-raytrace`, `motion-3-reyes`, `quadlight`, `sphere-gather-reyes` and `sphere-trace-reyes`, in `tools/perf/`. They are timed at `-t:1` and at the default thread count, as the median of 5 interleaved repetitions. The baseline was measured on `c62334d` (research §M2).
+- Q (plan): Does the full determinism sweep run by default? → A: Only if it takes 10 minutes or less at `-j4`. Otherwise it is opt-in (`determinism-sweep`), and a representative subset stays in the default `determinism` label.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -124,7 +128,10 @@ A user raises `PixelSamples`, or a shader's sample count, to clean up depth-of-f
 
 1. **Given** the DOF, motion-blur, area-light-shadow, occlusion and glossy-trace convergence scenes, **When** the harness runs, **Then** it reports per scene and per backend the RMSE at each sample count and the fitted slope.
 2. **Given** a scene whose noise comes from shading-side integration (area-light shadows, occlusion, glossy trace), **When** the harness varies the sample count, **Then** it varies the knob that actually changes that integral's sample count: the shader's sample count, or the raytrace hider where `PixelSamples` supersamples shading. It never varies `PixelSamples` under reyes, where `PixelSamples` does not supersample shading.
-3. **Given** the default backend, **When** its slopes are compared with the independent backend's, **Then** it meets both bars of SC-003: a slope of −0.9 or steeper on the smooth analytic integrand, and on each render scene a slope at least 0.15 steeper than the independent backend's, with no higher RMSE at the highest sample count.
+3. **Given** the default backend, **When** its slopes are compared with the independent backend's, **Then** it meets the bars of SC-003:
+   - a slope of −0.9 or steeper on the smooth analytic integrand;
+   - on the DOF, area-light-shadow, occlusion and glossy-trace scenes, a slope at least 0.15 steeper than the independent backend's, with no higher RMSE at the highest sample count;
+   - on the motion-blur scene, a slope and a top-rung RMSE no worse than the independent backend's.
 
 ---
 
@@ -215,7 +222,9 @@ A contributor building the integrators (030), BSDF sampling (035) or the light s
 **Consumers converted**
 
 - **FR-017**: The reyes (stochastic) and raytrace hiders MUST take their camera samples from the sampler. The zbuffer hider draws none and is unchanged. `CRenderer::correlatedSampleTable` and the `OPENRENDER_CORRELATED_SAMPLE_TABLE` environment variable MUST be removed. Correlated camera samples become the default and only behaviour.
-- **FR-018**: Every sample drawn by `trace`, `transmission`, reflection or refraction via `trace`, `gather`, `occlusion` and `indirectdiffuse` MUST come from the sampler, and MUST be bit-identical on the interpreter (`.rslo`) and the JIT (`.slo`) for the same identity.
+- **FR-018**: Every sample drawn by `trace`, `transmission`, reflection or refraction via `trace`, `gather`, `occlusion` and `indirectdiffuse` MUST come from the sampler, on both backends.
+  - For the call forms both backends implement, the values MUST be bit-identical on the interpreter (`.rslo`) and the JIT (`.slo`) for the same identity. Those forms are plain `trace`/`transmission`/`visibility`/`occlusion`/`indirectdiffuse`, and `gather`.
+  - The JIT ignores these builtins' optional parameters (`samples`, `samplecone`, ...), so forms using them are outside the identity guarantee. That gap is GitHub #55, fixed separately on its own `fix/` branch.
 - **FR-019**: RSL `random()` and `urandom()`, in all their return types and in both uniform and varying forms, MUST derive from the shading point's identity, the call site and the enclosing loop iteration (the structural key of FR-007). They MUST NOT derive from a running per-point draw counter, which would depend on how inactive SIMD lanes are handled and could differ between interpreter and JIT. Successive calls at one point (different call sites or loop iterations) MUST return distinct values, and every value MUST be bit-identical on interpreter and JIT.
 - **FR-020**: Stochastic filter samples of texture, shadow and deep-shadow lookups MUST be keyed by the lookup's shading-point identity.
 - **FR-021**: Uniform-variable random values (one per shader invocation) MUST come from a key that does not depend on thread, scheduling or batch composition. Under reyes the key is the grid's object identity and parametric origin. Under raytrace it is keyed by the batch's deterministic contents: bucket, object identity and ray depth. The value does not depend on thread or process count. It MAY change when the bucket size changes, and that limitation MUST be documented (`RIB_GUIDE.md` and the shading documentation).
@@ -244,6 +253,7 @@ A contributor building the integrators (030), BSDF sampling (035) or the light s
   - It MUST compare colour, alpha, depth and every AOV bit for bit across configurations (`-t:1`, at least two other thread counts, `-P:N`), not only across repeated runs at one thread count.
   - It MUST cover every non-GI visual and parity scene.
   - The `determinism` label MUST stay separately selectable, and the full sweep MUST have a documented runtime.
+  - If the full sweep takes more than 10 minutes at `-j4`, it MUST be opt-in under its own label (`determinism-sweep`), and a representative subset (the existing tests plus one scene per primitive and effect family) stays in the default `determinism` label.
 - **FR-031**: A **GI scene** is a scene in which some lookup reads an order-dependent cache: the irradiance cache with a non-zero max error (the default is 0.6, so `occlusion()`/`indirectdiffuse()` scenes qualify by default), photon maps, or any other cache populated during the render. All other scenes are non-GI. GI scenes are outside SC-001's bit-identity guarantee and keep their thread pins, each with a pointer to spec 040. Their sample draws are still converted by this spec (FR-018, FR-023).
 - **FR-032**: Every thread pin MUST be inventoried with its reason and its fate. The pins are the `-t:1` test arguments in `tests/visual/CMakeLists.txt`, the `Option "limits" "numthreads" [1]` lines in `examples/rib/`, and the `-t:1` uses in `tests/unit/texture_tile/` and `tests/imager/`. A pin that exists only because of RNG scheduling on a non-GI scene MUST be removed. A GI-scene pin stays, with a pointer to 040. A pin that isolates something else stays, with its reason recorded. A test that currently compares a multithreaded render against a `-t:1` render with a tolerance MAY become an exact comparison. Its tolerance MUST NOT be widened.
 - **FR-033**: A convergence harness MUST measure RMSE against sample count for each backend. It covers at least a DOF scene, a motion-blur scene, an area-light-shadow scene, an occlusion scene and a glossy-trace scene, and fits the log-log slope per scene and backend.
@@ -264,7 +274,10 @@ A contributor building the integrators (030), BSDF sampling (035) or the light s
   - `RIB_GUIDE.md` (the new options);
   - `DOMAIN_BOUNDARIES.md` (the DB-016 follow-up that names 039: record which part this spec delivers);
   - `tests/visual/parity-thresholds.md`.
-- **FR-039**: Median render time MUST NOT rise by more than 2% on the existing performance scenes (the six `perf-manual` scenes used by spec 023). It is measured before and after this feature on the same machine, with the same Release build configuration and the default sampler. This is the same bar as spec 023.
+- **FR-039**: Median render time MUST NOT rise by more than 2% on the spec's six sampling-heavy performance scenes: the perf-only copies in `specs/039-sampling-foundation/tools/perf/` of `camera-dof-reyes`, `camera-dof-raytrace`, `motion-3-reyes`, `quadlight`, `sphere-gather-reyes` and `sphere-trace-reyes`.
+  - The bar is the same as spec 023's (2%).
+  - The time is measured at `-t:1` and at the default thread count, as the median of at least 5 interleaved repetitions, on the same machine and Release build configuration, with the default sampler.
+  - The baseline is `tools/perf/m2-baseline-c62334d.txt` (research §M2). The `perf-manual` scenes are too short to resolve 2%.
 
 ### Key Entities
 
@@ -289,14 +302,15 @@ A contributor building the integrators (030), BSDF sampling (035) or the light s
   - Purity holds across at least 8 concurrent threads and shuffled evaluation order.
 - **SC-003**: In the convergence harness, the default backend meets both of these bars:
   - For the smooth analytic control integrand in the sampler unit tests, its fitted log-log RMSE slope is −0.9 or steeper. The independent backend is ≈ −0.5.
-  - For each render scene (DOF, motion blur, area-light shadows, occlusion, glossy trace), its slope is at least 0.15 steeper than the independent backend's, and its RMSE at the highest sample count is no higher than the independent backend's.
+  - For each render scene where the backend owns the stratification (DOF lens, area-light shadows, occlusion, glossy trace), its slope is at least 0.15 steeper than the independent backend's, and its RMSE at the highest sample count is no higher than the independent backend's.
+  - For the motion-blur scene, its slope and its RMSE at the highest sample count are both no worse than the independent backend's. Time and film position stay grid-stratified under the kept jitter mapping (clarify Q4), whichever backend supplies `u`.
 - **SC-004**: Every parity test passes with correlated camera samples. No threshold is wider than before this spec. Every test whose re-measured worst-case diff leaves margin has a tightened threshold. The gate is "tightened where measured margin allows, never widened". The former `-correlated` variants' thresholds (8 for motion-patches-translate, 6 for motion-quadrics-translate) are targets, not gates. The measured values are recorded at implement.
 - **SC-005**: Stochastic references are re-rendered exactly once, and a recorded list gives each one's reason. After the re-render the full visual suite passes with no threshold widened.
 - **SC-006**: The architecture check passes. The allowlist only shrinks: at least the two DB-011 `correlatedSampleTable` lines are gone, and no line is added.
 - **SC-007**: An inventory search of render-time code finds zero uses of per-context or process-global random state, `std::random_device`, libc `rand()` or wall-clock seeding. Offline tools that never run inside a render are listed and excluded.
-- **SC-008**: A test shader that writes `random()`, `urandom()` and a `trace()`/`gather()` sample direction to AOVs produces bit-identical AOVs on the interpreter and the JIT. The test shader avoids the shape of GitHub #8, a uniform assignment gated by `if`, which the JIT executes unconditionally; that is a known defect this spec does not own.
+- **SC-008**: A test shader that writes `random()`, `urandom()` and sample directions from the plain call forms of `trace()`/`transmission()`/`visibility()`/`occlusion()`/`indirectdiffuse()`, and from `gather()`, to AOVs produces bit-identical AOVs on the interpreter and the JIT. Forms that use optional parameters are excluded (GitHub #55). The test shader avoids the shape of GitHub #8, a uniform assignment gated by `if`, which the JIT executes unconditionally; that is a known defect this spec does not own.
 - **SC-009**: Each of the three backends renders every non-GI scene deterministically, as in SC-001. Two seeds give different noise, and the same seed gives bit-identical output.
-- **SC-010**: On the six `perf-manual` performance scenes, median render time after this feature is at most 2% above the median before it, on the same machine and Release build configuration.
+- **SC-010**: On each of the six performance scenes in `tools/perf/`, at both `-t:1` and the default thread count, the median of at least 5 interleaved repetitions after this feature is at most 2% above the baseline median in research §M2 (master `c62334d`), on the same machine and Release build configuration. Single runs are never compared.
 
 ## Assumptions
 
