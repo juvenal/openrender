@@ -107,3 +107,61 @@ The task text says "an empty `sampling` set"; that expectation is not literally 
 - `ctest -N -L convergence`: 0 tests. `ctest -N` total: 598 (unchanged).
 - archcheck does **not** classify `tests/` paths: `domain-map.txt` has no `tests/` prefix (only `src/libshader/tests/`), and the archcheck run over the finished build reports `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0` with no mention of `test_sampling`, `test_convergence`, `unit/sampling` or `tests/convergence`.
 - archcheck also prints metric warnings (`Geometry refs 78 > baseline 76`, `Hiders refs 586 > 581`, `TOTAL refs 749 > 742`). They are **not caused by Phase 1**: the main checkout's `build/` at `c62334d` prints the identical lines and totals. They are warnings, not failures.
+
+## Phase 2: sampler library, tests first (T009-T017)
+
+Run 2026-10-16 on top of the committed Phase 1 (`eb39f76`), `nice -n 19`, `-j4`, one job at a time. No implementation file was written: `src/common/sampling.h` does not exist.
+
+### Tests written (14 ctest tests in 9 executables, `tests/unit/sampling/`)
+
+| Task | Source | Executable | ctest tests (case argument) |
+|---|---|---|---|
+| T009 | `test_reference.cpp` | `test_sampling_reference` | `Sampling_SobolReference` (`sobol_reference`) |
+| T010 | `test_range_purity.cpp` | `test_sampling_range_purity` | `Sampling_Range` (`range`), `Sampling_Purity` (`purity`) |
+| T011 | `test_stratification.cpp` | `test_sampling_stratification` | `Sampling_NetProperty` (`net`), `Sampling_PMJ02Property` (`pmj02`) |
+| T012 | `test_uniformity.cpp` | `test_sampling_uniformity` | `Sampling_Uniformity` (`uniformity`), `Sampling_Discrepancy` (`discrepancy`) |
+| T013 | `test_independence.cpp` | `test_sampling_independence` | `Sampling_DrawIndependence`, `Sampling_Padding`, `Sampling_Composite3D4D` |
+| T014 | `test_convergence_smooth.cpp` | `test_sampling_convergence_smooth` | `Sampling_ConvergenceSmooth` |
+| T015 | `test_camera_grid.cpp` | `test_sampling_camera_grid` | `Sampling_CameraGridConsistency` |
+| T016 | `test_keys.cpp` | `test_sampling_keys` | `Sampling_Keys` (`keys`) |
+| T016 (folded in) | `test_keyed_stream.cpp` | `test_sampling_keyed_stream` | `Sampling_KeyedStream` (`keyed_stream`) |
+
+- Shared helpers: `sampling_test_util.h` (check macro, `splitmix`, a chi-square p-value, case dispatch).
+- All eight targets are `EXCLUDE_FROM_ALL`; the 13 tests are registered with `LABELS "sampling;unit"`. They need no fixture or reference file (every expected value is computed inside the test), so there is nothing else to register.
+- The Phase 1 placeholder `test_sampling` is untouched.
+- The tests use only the contract's API plus `floorDiv(int32_t, int32_t)` and `floorMod(int32_t, int32_t)` (named in T022, not in the contract header) in namespace `openrender::sampling`, and include `"common/sampling.h"`.
+
+### T017: red evidence
+
+- Default build (`cmake --build build --config Release -j4`): exit 0, so the default build is still green.
+- `ctest -N`: **611** tests (598 + 13 new).
+- Each target built on its own (`cmake --build build --target test_sampling_<x>`): **8 of 8 fail to compile**, exit 2, each with the single error
+  `tests/unit/sampling/sampling_test_util.h:18:10: fatal error: 'common/sampling.h' file not found`.
+- `ctest -L sampling`: **14 tests, 1 passed (`DiskSampling`), 13 "Not Run"** (executables absent). `Sampling_SobolReference`, `_Range`, `_Purity`, `_NetProperty`, `_PMJ02Property`, `_Uniformity`, `_Discrepancy`, `_DrawIndependence`, `_Padding`, `_Composite3D4D`, `_ConvergenceSmooth`, `_CameraGridConsistency`, `_Keys` are all in the failed list.
+- `ctest -L architecture`: 21/21 passed.
+- Because the 13 tests are registered while their executables cannot be built, **a full `ctest` run is red (13 "Not Run") until T024**. This is by design.
+
+### Checks made without an implementation
+
+- All eight sources pass `clang++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only` against a declaration-only stub of `contracts/sampler-api.md` kept outside the repository, so the first compile error after T018 should be an implementation mismatch, not a typo.
+- The test-side helpers were run on their own: the closed-form Sobol dimension 1 reproduces the hand-written values 0, 1/2, 3/4, 1/4, 5/8, 1/8, 3/8, 7/8; van der Corput gives 1/2, 1/4, 3/4, 1/8; the net checker reports 0 violations for the first 4096 points of (van der Corput, Sobol dim 1) and violations for a diagonal; the star-discrepancy routine gives 0.75 for the single point (0.5, 0.5), and about 0.164, 0.082, 0.036 for 8-key random means at N = 64, 256, 1024; the chi-square p-value gives 0.01 at 92.01 with 63 dof.
+
+### Choices the tests make that T018-T022 must honour (for approval)
+
+1. **Sobol dimension 1 is in natural (index) order**, i.e. the Pascal generator matrix applied to the index bits, not in Gray-code order.
+2. `Sampling_ConvergenceSmooth` requires **PMJ02 as well as Sobol** to reach a slope of -0.9 or steeper, and Independent -0.4 or steeper. The task text names only "the default backend".
+3. `Sampling_Discrepancy` compares the **mean over 8 keys** of the exact 2D star discrepancy at each N, not each key against each key. The measured values are printed.
+4. `Sampling_Uniformity` uses one fixed key and 16 dimensions per backend. The pass is deterministic, but Independent has about a 15% chance of failing one of 16 tests at p = 0.01 by luck of its hash, as the test is specified.
+5. `Sampling_Purity` runs the 8-thread pass **before** the serial pass, with a start barrier, so that lazily built PMJ02 tables are first touched concurrently.
+6. `Sampling_Keys` does not assert `SampleKey::kind` (no enum names are fixed in the contract). It asserts that a child of a cell key keeps `pixelSampleIndex == -1` and `path == full`.
+7. Not covered by any listed test, and so not written at first: the camera-slot accessors (`cameraFilm`, `cameraLens`, `cameraTime`, `cameraImportance`). `CKeyedStream` was added afterwards as `Sampling_KeyedStream` (see the amendments below).
+
+### Amendments after the test review (maintainer's two changes)
+
+Made without any build or ctest run (disk space); checked with `-fsyntax-only` against the scratch stub, and a `cmake -B build -S .` configure to confirm the registration.
+
+1. **`Sampling_Uniformity` (item 4 of the list above is superseded).** The 48 chi-square checks (3 backends x 16 dimensions) are one family, Bonferroni-corrected: each must reach p >= 0.01 / 48 (about 2.1e-4) instead of p >= 0.01. A correct generator now fails the whole test about 1% of the time instead of about 38% (1 - 0.99^48), while a biased one (p near 0) still fails every dimension it affects. The reason is a comment in `test_uniformity.cpp`; the rule is the same for all backends. The printed per-backend minimum p now also shows the per-check level. The wording of T012 in `tasks.md` was updated to match.
+2. **New `Sampling_KeyedStream`** (`test_keyed_stream.cpp`, executable `test_sampling_keyed_stream`, `LABELS "sampling;unit"`, `EXCLUDE_FROM_ALL`), folded into T016's line in `tasks.md` (no renumbering). It covers `CKeyedStream`: the same key gives an identical sequence (mixed `next1D`/`nextU32` calls, and a short run is a prefix of a long one); `next1D` lies in [0, 1 - 2^-24] with mean within 5 sigma of 0.5; `nextU32` has every one of its 32 bits set about half the time (5 sigma, 2^16 draws); different keys (adjacent, and differing in one high bit) give no equal draw at the same position over 2^14 draws and a correlation below 5/sqrt(N); a stream shares no value with the next key's first 64; and 8 threads building streams concurrently match the serial sequences.
+   - Red state: a compile failure on the same missing header, `common/sampling.h`, once built (syntax-checked against the stub only; not built, so not re-demonstrated this turn).
+   - `ctest -N` now lists **612** tests, and `-L sampling` lists 15 (`DiskSampling` plus 14 new). The earlier 13-tests-of-8-executables figures in the red evidence above are as of the first run and are not re-measured.
+   - The red evidence above (8 of 8 compile failures, 13 Not Run) was gathered before this change; the new test adds a ninth executable and a 14th Not Run test by the same cause.

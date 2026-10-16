@@ -103,34 +103,35 @@ description: "Task list for spec 039: sampling foundation"
 
 ### Tests first
 
-- [ ] T009 [P] [US2] `tests/unit/sampling/test_reference.cpp`, test `Sampling_SobolReference` (G5).
+- [X] T009 [P] [US2] `tests/unit/sampling/test_reference.cpp`, test `Sampling_SobolReference` (G5).
   - `sobolUnscrambled(i)` for i = 0..63 must equal the van der Corput sequence (dimension 0) and the Sobol dimension-1 sequence (dimension 1), checked against closed-form expected values written in the test.
-- [ ] T010 [P] [US2] `tests/unit/sampling/test_range_purity.cpp`, tests `Sampling_Range` and `Sampling_Purity` (G1, G2). For every backend:
+- [X] T010 [P] [US2] `tests/unit/sampling/test_range_purity.cpp`, tests `Sampling_Range` and `Sampling_Purity` (G1, G2). For every backend:
   - every value is in [0, 1 − 2⁻²⁴] (`Sampling_Range`; spec FR-004: "MUST never equal 1.0");
   - 8 threads evaluate the same 2¹⁶ (key, dimension, index) triples in shuffled orders, and the results are bit-identical to a serial pass (`Sampling_Purity`).
-- [ ] T011 [P] [US2] `tests/unit/sampling/test_stratification.cpp` (G3, G4).
+- [X] T011 [P] [US2] `tests/unit/sampling/test_stratification.cpp` (G3, G4).
   - `Sampling_NetProperty`: for 8 random keys and every 2D `dim` in 0..63, the first 2^m indices form a (0, m, 2)-net for every m ≤ 12. The check counts one point per elementary interval of every shape.
   - `Sampling_PMJ02Property`: the same check for PMJ02 prefixes up to 4096.
-- [ ] T012 [P] [US2] `tests/unit/sampling/test_uniformity.cpp` (G6).
-  - `Sampling_Uniformity`: chi-square with 64 bins over 2¹⁶ draws must give p ≥ 0.01 in each of 16 dimensions, for every backend.
+- [X] T012 [P] [US2] `tests/unit/sampling/test_uniformity.cpp` (G6).
+  - `Sampling_Uniformity`: chi-square with 64 bins over 2¹⁶ draws in each of 16 dimensions, for every backend. The 48 checks are one family, Bonferroni-corrected: each must reach p ≥ 0.01/48, which holds the false-failure chance of the whole test near 1% (an uncorrected p ≥ 0.01 per check would fail a correct generator about 38% of the time over 48 checks).
   - `Sampling_Discrepancy`: the 2D star discrepancy of Sobol and PMJ02 must be below Independent's at N = 64, 256 and 1024.
-- [ ] T013 [P] [US2] `tests/unit/sampling/test_independence.cpp` (G7, G8).
+- [X] T013 [P] [US2] `tests/unit/sampling/test_independence.cpp` (G7, G8).
   - `Sampling_DrawIndependence`: values for (callSite A, occurrence n) stay unchanged when draws are added at other call sites or occurrences. Sub-streams with different call sites must have distinct `seedHash`.
   - `Sampling_Padding`: `dim` up to 2²⁰ and `index` up to 2²⁴ return valid values, with no error. No repeated 2D tuple appears across 1024 dimensions for a fixed key.
   - `Sampling_Composite3D4D` (FR-008): `get3D` = `get2D(d) ⧺ get1D(d+1)` and `get4D` = `get2D(d) ⧺ get2D(d+1)` on one sub-stream. These are deterministic, every component is in range, and the result equals the composition done by hand.
-- [ ] T014 [P] [US2] `tests/unit/sampling/test_convergence_smooth.cpp`, test `Sampling_ConvergenceSmooth` (G9; SC-003 part a).
+- [X] T014 [P] [US2] `tests/unit/sampling/test_convergence_smooth.cpp`, test `Sampling_ConvergenceSmooth` (G9; SC-003 part a).
   - Integrate f(x, y) = sin(πx)·sin(πy) over [0, 1]² with N = 2^k (k = 2..12), over 32 keys each.
   - Fit the log-log RMSE slope. The default backend must reach ≤ −0.9; Independent is expected near −0.5 and must reach ≤ −0.4.
-- [ ] T015 [P] [US2] `tests/unit/sampling/test_camera_grid.cpp`, test `Sampling_CameraGridConsistency` (research §R3.1).
+- [X] T015 [P] [US2] `tests/unit/sampling/test_camera_grid.cpp`, test `Sampling_CameraGridConsistency` (research §R3.1).
   - Run the reyes formula (`absSub = left + j`, with subpixel `left`) and the raytrace formula (`absSub = left·nx − xSampleOffset + col`, with pixel `left`) over a 3×3-bucket grid with margins, `nx = ny = 3`, `xSampleOffset = ySampleOffset = 2`, including negative coordinates at the border.
   - Both must give equal `SampleId`s. `floorDiv` and `floorMod` round toward −∞.
-- [ ] T016 [P] [US2] `tests/unit/sampling/test_keys.cpp`, test `Sampling_Keys` (data-model SampleKey):
+- [X] T016 [P] [US2] `tests/unit/sampling/test_keys.cpp`, test `Sampling_Keys` (data-model SampleKey):
   - `path` never changes when only the camera `sampleIndex` changes;
   - `full` does change;
   - `childKey` derives both;
   - for a cell key, `path == full`;
   - `substream` seeds from `path` when `pixelSampleIndex ≥ 0` and from `full` otherwise, with `indexBase = pixelSampleIndex·N`.
-- [ ] T017 [RUN] [US2] **TEST-APPROVAL**: every T009–T016 target fails to compile (`EXCLUDE_FROM_ALL`) or fails. Show it.
+  - `tests/unit/sampling/test_keyed_stream.cpp`, test `Sampling_KeyedStream` (research §R3.10): `CKeyedStream` gives an identical sequence for the same key, `next1D` stays in [0, 1 − 2⁻²⁴] and `nextU32` spans all 32 bits, different keys give different streams (no equal draw at the same position, no linear correlation), and concurrent streams match serial ones.
+- [X] T017 [RUN] [US2] **TEST-APPROVAL**: every T009–T016 target fails to compile (`EXCLUDE_FROM_ALL`) or fails. Show it.
 
 ### Implementation
 

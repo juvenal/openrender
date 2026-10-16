@@ -13,3 +13,65 @@ add_executable(test_sampling test_sampling.cpp)
 target_compile_features(test_sampling PRIVATE cxx_std_20)
 target_include_directories(test_sampling PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_sampling PRIVATE openrendercommon)
+
+# --- Phase 2 (US2): the sampler library tests -----------------------------------
+#
+# Written before src/common/sampling.h exists (contracts/sampler-api.md), so the
+# targets are EXCLUDE_FROM_ALL until the implementation lands (T024): the
+# default build stays green, and `ctest -L sampling` reports these tests as
+# "Not Run" until the executables are built. T024 removes EXCLUDE_FROM_ALL.
+#
+# Each executable takes the case to run as its argument. They need no fixture
+# or reference file: every expected value is computed in the test itself.
+find_package(Threads REQUIRED)
+
+# add_sampling_test_exe(<target> <source> [LIBS <libs>...])
+function(add_sampling_test_exe target source)
+    cmake_parse_arguments(ARG "" "" "LIBS" ${ARGN})
+    add_executable(${target} EXCLUDE_FROM_ALL ${source})
+    target_compile_features(${target} PRIVATE cxx_std_20)
+    target_include_directories(${target} PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(${target} PRIVATE openrendercommon ${ARG_LIBS})
+endfunction()
+
+# add_sampling_test(<ctest name> <target> <case> [TIMEOUT <s>])
+function(add_sampling_test name target case)
+    cmake_parse_arguments(ARG "" "TIMEOUT" "" ${ARGN})
+    if(NOT ARG_TIMEOUT)
+        set(ARG_TIMEOUT 120)
+    endif()
+    add_test(NAME ${name} COMMAND ${target} ${case})
+    set_tests_properties(${name} PROPERTIES TIMEOUT ${ARG_TIMEOUT} LABELS "sampling;unit")
+endfunction()
+
+add_sampling_test_exe(test_sampling_reference test_reference.cpp)
+add_sampling_test(Sampling_SobolReference test_sampling_reference sobol_reference)
+
+add_sampling_test_exe(test_sampling_range_purity test_range_purity.cpp LIBS Threads::Threads)
+add_sampling_test(Sampling_Range test_sampling_range_purity range)
+add_sampling_test(Sampling_Purity test_sampling_range_purity purity)
+
+add_sampling_test_exe(test_sampling_stratification test_stratification.cpp)
+add_sampling_test(Sampling_NetProperty test_sampling_stratification net TIMEOUT 300)
+add_sampling_test(Sampling_PMJ02Property test_sampling_stratification pmj02 TIMEOUT 300)
+
+add_sampling_test_exe(test_sampling_uniformity test_uniformity.cpp)
+add_sampling_test(Sampling_Uniformity test_sampling_uniformity uniformity)
+add_sampling_test(Sampling_Discrepancy test_sampling_uniformity discrepancy TIMEOUT 300)
+
+add_sampling_test_exe(test_sampling_independence test_independence.cpp)
+add_sampling_test(Sampling_DrawIndependence test_sampling_independence draw_independence)
+add_sampling_test(Sampling_Padding test_sampling_independence padding)
+add_sampling_test(Sampling_Composite3D4D test_sampling_independence composite)
+
+add_sampling_test_exe(test_sampling_convergence_smooth test_convergence_smooth.cpp)
+add_sampling_test(Sampling_ConvergenceSmooth test_sampling_convergence_smooth convergence_smooth)
+
+add_sampling_test_exe(test_sampling_camera_grid test_camera_grid.cpp)
+add_sampling_test(Sampling_CameraGridConsistency test_sampling_camera_grid camera_grid)
+
+add_sampling_test_exe(test_sampling_keys test_keys.cpp)
+add_sampling_test(Sampling_Keys test_sampling_keys keys)
+
+add_sampling_test_exe(test_sampling_keyed_stream test_keyed_stream.cpp LIBS Threads::Threads)
+add_sampling_test(Sampling_KeyedStream test_sampling_keyed_stream keyed_stream)
