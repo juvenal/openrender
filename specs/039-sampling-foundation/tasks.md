@@ -62,16 +62,16 @@ description: "Task list for spec 039: sampling foundation"
 
 **Purpose**: confirm the tree the measurements were taken against, and keep the results where implement can find them.
 
-- [ ] T001 [RUN] Confirm the baseline is pristine.
+- [X] T001 [RUN] Confirm the baseline is pristine.
   - `git diff --stat c62334d -- src tests CMake CMakeLists.txt shaders examples` must print nothing; only `specs/` may differ.
   - Configure `build/` if it is absent, then build. Record `git rev-parse HEAD` and the build type in a new `specs/039-sampling-foundation/validation.md`.
-- [ ] T002 Copy the M1 results (identical in every configuration) and the M2 baseline reference (`specs/039-sampling-foundation/tools/perf/m2-baseline-c62334d.txt`) into the "Baselines" section of `validation.md`.
+- [X] T002 Copy the M1 results (identical in every configuration) and the M2 baseline reference (`specs/039-sampling-foundation/tools/perf/m2-baseline-c62334d.txt`) into the "Baselines" section of `validation.md`.
   - Note that `-P` with `-t` disables threads in the children (research §M1, caveat a).
   - Note that SC-010 compares medians of 5 or more interleaved runs.
-- [ ] T003 [RUN] Run the full suite once on the baseline: `nice -n 19 ctest --test-dir build -j4 --output-on-failure`.
+- [X] T003 [RUN] Run the full suite once on the baseline: `nice -n 19 ctest --test-dir build -j4 --output-on-failure`.
   - Record pass/fail counts and any known-flaky failures in `validation.md` (memory: ImagerRegressionRender, Parity_transparency-matte-aov, Parity_depthdefault, ShadingParity_AmbientAccumulation; re-run each in isolation before writing it off).
   - This is the "unchanged under `Legacy`" reference for Phases 1–8.
-- [ ] T004 [RUN] Stat every compiled shader against `oshader` (memory: `.slo` staleness): `build/shaders/*.{rslo,slo}` must be newer than `build/src/oshader/oshader`. Record the result.
+- [X] T004 [RUN] Stat every compiled shader against `oshader` (memory: `.slo` staleness): `build/shaders/*.{rslo,slo}` must be newer than `build/src/oshader/oshader`. Record the result.
 
 **PAUSE 0**: report T001–T004.
 
