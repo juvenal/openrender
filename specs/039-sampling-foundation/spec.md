@@ -272,6 +272,7 @@ A contributor building the integrators (030), BSDF sampling (035) or the light s
   - `HIDER_PARITY.md` (the correlated-table section and the #48 note);
   - `BUGS.md` (the midpoint-probe stream-shift note);
   - `RIB_GUIDE.md` (the new options);
+  - the Hugo site (constitution VII): `docs/site/content/manual/reference/options.md`, `multithreading.md` and `network-parallel-rendering.md`;
   - `DOMAIN_BOUNDARIES.md` (the DB-016 follow-up that names 039: record which part this spec delivers);
   - `tests/visual/parity-thresholds.md`.
 - **FR-039**: Median render time MUST NOT rise by more than 2% on the spec's six sampling-heavy performance scenes: the perf-only copies in `specs/039-sampling-foundation/tools/perf/` of `camera-dof-reyes`, `camera-dof-raytrace`, `motion-3-reyes`, `quadlight`, `sphere-gather-reyes` and `sphere-trace-reyes`.

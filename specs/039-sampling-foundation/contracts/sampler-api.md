@@ -28,6 +28,10 @@ SubstreamKey substream(const SampleKey& point, uint64_t shaderKey, uint16_t call
 // Draws (pure: depend only on backend and arguments)
 float    get1D(Backend, const SubstreamKey&, uint32_t dim, uint32_t index);
 Sample2D get2D(Backend, const SubstreamKey&, uint32_t dim, uint32_t index);
+// FR-008 / §4.3: composed from consecutive slots of one sub-stream
+struct Sample3D { float u, v, w; };  struct Sample4D { float u, v, w, x; };
+Sample3D get3D(Backend, const SubstreamKey&, uint32_t dim, uint32_t index); // get2D(dim) + get1D(dim+1)
+Sample4D get4D(Backend, const SubstreamKey&, uint32_t dim, uint32_t index); // get2D(dim) + get2D(dim+1)
 
 // Camera slots (fixed layout, FR-009)
 enum CameraSlot : uint32_t { Film2D = 0, Lens2D = 1, Time1D = 2, Importance1D = 3 };

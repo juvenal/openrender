@@ -71,7 +71,7 @@ This plan replaces every render-time random source with a counter-based sampler 
 - **IV**: no new CLI flag. The behaviour is reachable through RIB `Option`, and the existing CLI options `-t` and `-P` are exercised.
 - **V**: no new dependency. Both PMJ02 tables and Sobol are generated in code.
 - **VI**: macOS and Linux. The GCC 13 `-Werror` validation follows the established rsync/Maestri path.
-- **VII**: the docs listed in FR-038 are updated. No site change is needed.
+- **VII**: the docs listed in FR-038 are updated, **including the Hugo site** (`docs/site/content/manual/reference/options.md`, `multithreading.md`, `network-parallel-rendering.md`). The new RIB option and the determinism change are user-facing (task T109).
 
 **Principle VIII — Domain Separation and Modular Boundaries**
 

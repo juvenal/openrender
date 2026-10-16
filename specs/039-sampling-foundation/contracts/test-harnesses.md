@@ -18,6 +18,8 @@ test_depth_determinism --configs "<opts>|<opts>|..." --outputs <a.tif>[,<b.tif>.
 - **Behaviour**:
   - The scene is rendered once per configuration. An empty `<opts>` string means the default thread count.
   - `--prepend` writes a temporary copy of the scene with the given line first, for example `Option "sampling" "string sampler" ["sobol"]`. orender has no option-injection flag, so this is how a backend is forced on unmodified scenes.
+  - The copy also drops `Option "limits" "numthreads"` lines, so pinned non-GI scenes really run multithreaded. `--keep-pins` disables this.
+  - `--no-dither` prepends `Quantize "rgba" 255 0 255 0`. The sweep uses it until the dither becomes a pixel hash (Phase 9), then runs with dither on.
   - Every listed output is decoded through libtiff, at any bit depth, `z` included.
   - Each configuration's outputs are compared bit for bit with the first configuration's. The first differing pixels are reported, at most 5 per output.
 - **Exit codes**:

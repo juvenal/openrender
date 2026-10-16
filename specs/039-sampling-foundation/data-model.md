@@ -101,6 +101,20 @@ A local, non-sample stream for clustering, `getDisp`, the point hierarchy and th
 |---|---|---|
 | `callSite` | `uint16` | Assigned by the compiler on the final IR, in IR order, for each stochastic builtin call. It is carried as a `.rslo` instruction operand and as a JIT `op_*` constant argument. It is identical on both backends (§R3.6). |
 
+## Forward mapping to specs 026 and 028 (FR-011)
+
+These are taken from the master-plan briefs. Neither spec is implemented yet; each must carry these fields unchanged.
+
+| This spec | 026 `ShaderGlobals` (batch/grid-shaped) | 028 `ICamera` |
+|---|---|---|
+| `CShadingState.pointKeys[i]` | per-point `sampleKey` field in the batch | — |
+| `CShadingState.batchKey` | per-batch `batchKey` | — |
+| `CRay.depth` | `pathDepth`, which 026 already lists | — |
+| `currentShaderKey`, `callSite`, `occurrence` | runtime-internal; not part of `ShaderGlobals` | — |
+| camera slots Film2D/Lens2D/Time1D | — | `generateRay(x, y, t, lensUV)`: `x, y` from the film slot through the jitter mapping, `t` from Time1D, `lensUV` from Lens2D |
+| Importance1D | `rayImportance` (`jimp`) | carried on the generated ray |
+| `SampleId` | the identity of camera-ray points | the input that `generateRay` is evaluated for |
+
 ## Relationships
 
 ```
