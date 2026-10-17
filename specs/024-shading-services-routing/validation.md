@@ -627,13 +627,14 @@ Converge only checked documents and code against each other. No build or test wa
   options of those two test executables.
 - **The macOS run came before `f795b0d`.** T042's 609/609 was measured before that commit. Its
   generator expression is empty on macOS, so the macOS result still holds.
-- **#57 is attributed by reasoning only.** Master has not been built and tested on Linux, and #57
-  says so. This branch's `shading.cpp` changes are limited to the illumination-hook and JIT
-  functions, and the occlusion paths are untouched. Of the three failures:
-  - `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes` checks coverage only, with no shader;
-  - `Visual_sphere-occlusion-reyes` fails identically under both backends.
+- **#57 is confirmed on master (measured 2026-10-16).** Master `c62334d` was built fresh on Linux
+  (same configuration as `build-024`, from a `git archive` checked against a sha256 manifest of
+  all 2637 files). The three tests fail exactly as they do on this branch:
+  - `Visual_sphere-occlusion-reyes` and `-slo`: MaxBlockAvgDiff 24.58 against 20, 3 failing
+    blocks, the same in 4 of 4 runs.
+  - `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes`: pixel (99, 46) is 0.875, expected 0.9375.
 
-  A Linux run of those three tests on master `c62334d` would confirm the attribution.
+  They are master's, not this spec's. The result is recorded on #57.
 - **FR-016 exception approved.** The maintainer approved it on 2026-10-16 (converge finding F1).
   `tests/architecture/metrics-baseline.txt` raises two rows: Geometry goes from 76 to 78 and
   Hiders from 581 to 586. The cause is 7 references that #51 (`ad0ee50`) added on master, which
