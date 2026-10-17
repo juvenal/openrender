@@ -64,6 +64,12 @@ add_executable(test_depth_determinism test_depth_determinism.cpp)
 target_link_libraries(test_depth_determinism PRIVATE TIFF::TIFF)
 target_compile_features(test_depth_determinism PRIVATE cxx_std_20)
 
+# Exact pixel read-back driver for probe shaders that encode a query result in
+# their colour (spec 039, SamplingOption_Rsl*).
+add_executable(test_pixel_probe test_pixel_probe.cpp)
+target_link_libraries(test_pixel_probe PRIVATE TIFF::TIFF)
+target_compile_features(test_pixel_probe PRIVATE cxx_std_20)
+
 add_executable(test_depth_analytic test_depth_analytic.cpp)
 target_link_libraries(test_depth_analytic PRIVATE TIFF::TIFF)
 target_compile_features(test_depth_analytic PRIVATE cxx_std_20)
@@ -3661,3 +3667,32 @@ if(OPENRENDER_SLO_VISUAL_TESTS)
     endif()
     unset(_n_slo_tests)
 endif()
+
+# --- Spec 039, Phase 3: RSL option("sampling:sampler") / option("sampling:seed") ---
+# A probe shader encodes the two query results in its colour (see
+# shaders/sampling_option_probe.sl) and test_pixel_probe reads the centre pixel
+# back exactly, under the interpreter (.rslo) and the LLVM JIT (.slo).
+#   pmj02, seed -7:  R 1 (found, "pmj02"), G 1 (found), B (-7 + 1000) / 2000
+#   no option:       R 0.5 (found, not "pmj02": the internal default), G 1, B 0.5
+foreach(_format rslo slo)
+    foreach(_case pmj02 default)
+        if(_case STREQUAL "pmj02")
+            set(_want "1" "1" "0.4965")
+        else()
+            set(_want "0.5" "1" "0.5")
+        endif()
+        set(_name sampling-option-${_case}-${_format})
+        set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/${_name})
+        file(MAKE_DIRECTORY ${_scratch})
+        add_test(NAME SamplingOption_RslQuery_${_case}_${_format}
+            COMMAND test_pixel_probe $<TARGET_FILE:orender>
+                ${CMAKE_SOURCE_DIR}/examples/rib/tests/${_name}.rib
+                ${_name}.tif 16 16 0.00001 ${_want}
+            WORKING_DIRECTORY ${_scratch})
+        set_tests_properties(SamplingOption_RslQuery_${_case}_${_format} PROPERTIES
+            TIMEOUT     120
+            LABELS      "visual;regression;sampling"
+            ENVIRONMENT "${VISUAL_ENV}"
+            DEPENDS     orender)
+    endforeach()
+endforeach()

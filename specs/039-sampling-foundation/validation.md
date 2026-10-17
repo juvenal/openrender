@@ -378,3 +378,29 @@ No token exists yet: `RI_SAMPLING`, `RI_SAMPLER` and `RI_SEED` are all absent fr
 #### Unexpected
 
 - **RSL `option()` is not reachable through `COptions::find()`.** T033 says the options are queryable through `COptions::find()` and RSL `option()`. `find()` is done and tested, but it has no callers outside the tests: RSL's `option()` (`CShadingContext::options()` in `shading.cpp`) answers a fixed list of RISpec names through `CRendererServices` virtuals, and a custom name such as `sampler` would need a new virtual on that Shading-to-Core interface. I did not widen that interface; whether to is the maintainer's call (it matters for specs 026/029).
+
+### T037a: RSL `option()` for the sampling options, tests first
+
+Added after Phase 3: the maintainer decided that RSL `option()` must reach the sampling options inside spec 039 (completing the RSL half of T033). No implementation yet.
+
+#### Naming convention
+
+RSL option names today are the RISpec names (`"Format"`, `"PixelSamples"`, `"Gamma"`, ...) matched in `CShadingContext::options()` (`shading.cpp`), plus the `user:` prefix, where the part after the colon is looked up in the user options. The new queries follow the prefix style: `"sampling:sampler"` and `"sampling:seed"`. They are answered through `CRendererServices`, the Shading-to-Core interface, so `src/libshader` gains no `CRenderer::` reference. The tree has no `recording_services.h` test double; `CRendererServicesImpl` (`src/ri/render/rendererServicesImpl.h`) is the only `CRendererServices` implementer.
+
+#### Tests written
+
+| Test | File | What it checks |
+|---|---|---|
+| `SamplingOption_RslQuery` | `tests/unit/rib_parse/test_sampling_option_rsl.cpp` (case `query`) | on a real shading context via `CShadingContext::queryOption()` (the call RSL `option()` makes under both the interpreter and the JIT): defaults give `"legacy"` and 0; a scene with `"sampler" ["pmj02"]` and `"seed" [-7]` gives `"pmj02"` and -7.0; `sampling:foo`, `sampling:` and a bare `sampler` are not found; `PixelSamples` still answers (control) |
+| `SamplingOption_RslQueryNoServices` | same file (case `no_services`) | with the shading state's services set to null every name, including `PixelSamples`, is "not found"; with the services restored the answers return |
+| `SamplingOption_RslQuery_{pmj02,default}_{rslo,slo}` | `tests/visual/CMakeLists.txt`, driver `tests/visual/test_pixel_probe.cpp`, shader `shaders/sampling_option_probe.sl`, scenes `examples/rib/tests/sampling-option-*.rib` | the probe shader encodes `option()`'s results in its colour (R 0 not found / 0.5 found, not `pmj02` / 1 found, `pmj02`; G 1 if the seed was found; B = (seed + 1000) / 2000) and the driver reads the centre pixel of a float TIFF back to 1e-5, under the interpreter (`.rslo`) and the LLVM JIT (`.slo`): pmj02 with seed -7 expects (1, 1, 0.4965), and no option expects (0.5, 1, 0.5) |
+
+The probe uses the varying-flag-in-`if` pattern the other probe shaders use for string comparison (GitHub issues #6 and #8). The driver and the four scenes are new; the shader adds a 106th compiled shader. `test_sampling_option_rsl` links `libshader_shading` as well, since it calls the shading context directly.
+
+#### Red evidence
+
+- The default build exits 0.
+- `ctest -R SamplingOption_Rsl`: **6 of 6 failed**, each for the intended reason:
+  - the four probe renders read back R 0, G 0 and B 6.6725 (`seed` stays at its default 12345 because the query found nothing), against the expected (1, 1, 0.4965) for pmj02 and (0.5, 1, 0.5) for the defaults, under both `.rslo` and `.slo`;
+  - `SamplingOption_RslQuery`: 4 checks fail (the sampler and seed, for the defaults and for the set values); the unknown-name checks and the `PixelSamples` control pass;
+  - `SamplingOption_RslQueryNoServices`: 2 checks fail (the query with services returns "not found"); the checks that the query is "not found" without services already hold, since the existing code returns false for a null `services`.

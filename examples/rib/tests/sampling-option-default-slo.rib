@@ -1,0 +1,20 @@
+##RenderMan RIB-Structure 1.0
+# Spec 039, Phase 3: RSL option("sampling:sampler") / option("sampling:seed")
+# under the slo shader format. One centre sample per pixel, float output, so
+# test_pixel_probe can read the shader's colour back exactly.
+version 3.03
+Hider "reyes" "jitter" [0]
+# No Option "sampling": the internal default (legacy, seed 0)
+Option "shaderformat" "default" ["slo"]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "sampling-option-default-slo.tif" "file" "rgba"
+Projection "perspective"
+Format 32 32 1
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Surface "sampling_option_probe"
+  Sphere 1 -1 1 360
+WorldEnd

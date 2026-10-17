@@ -40,3 +40,14 @@ target_link_libraries(test_sampling_option_roundtrip PRIVATE ribRender openrende
 add_test(NAME SamplingOption_RibRoundTrip COMMAND test_sampling_option_roundtrip)
 set_tests_properties(SamplingOption_RibRoundTrip PROPERTIES TIMEOUT 60
     LABELS "rib_parse;unit;sampling" ENVIRONMENT "${SAMPLING_OPTION_ENV}")
+
+# Spec 039, Phase 3 (T033, RSL half): option("sampling:sampler") and
+# option("sampling:seed") on a real shading context.
+add_executable(test_sampling_option_rsl test_sampling_option_rsl.cpp)
+target_compile_features(test_sampling_option_rsl PRIVATE cxx_std_20)
+target_include_directories(test_sampling_option_rsl PRIVATE ${SAMPLING_OPTION_INCLUDES})
+target_link_libraries(test_sampling_option_rsl PRIVATE ribRender libshader_shading openrendercommon)
+add_test(NAME SamplingOption_RslQuery COMMAND test_sampling_option_rsl query)
+add_test(NAME SamplingOption_RslQueryNoServices COMMAND test_sampling_option_rsl no_services)
+set_tests_properties(SamplingOption_RslQuery SamplingOption_RslQueryNoServices PROPERTIES TIMEOUT 60
+    LABELS "rib_parse;unit;sampling" ENVIRONMENT "${SAMPLING_OPTION_ENV}")
