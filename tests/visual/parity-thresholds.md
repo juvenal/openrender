@@ -164,6 +164,7 @@ renders black.
 - **`-t:1`.** At the default thread count the photon pass crashed in 4 of 30 runs on macOS (the
   `CPhotonHider` race, `DEVNOTES_DETAILS/BUGS.md`, Open), so these scenes render single-threaded.
 - **Measured with the fix:** `Visual_photon-parity-slo` against the interpreter reference gives
-  MaxBlockAvgDiff 0.00, and its map is 2 009 546 bytes, the same as the interpreter's.
+  MaxBlockAvgDiff 0.00 on macOS and 2.91 on Linux (the cross-platform D above, nothing added by the
+  JIT), and its map is 2 009 546 bytes on both, the same as the interpreter's.
 
 The numbers come from `specs/024-shading-services-routing/research.md` R4.

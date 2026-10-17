@@ -553,11 +553,11 @@ exit 0 with nothing to compile but the shader step):
   the reason in the file (maintainer-approved in Phase 4); the TOTAL is still below what it was.
 - **`-L determinism`: 6/6** (SC-006).
 - **Full suite: 608/609 on the first run, 609/609 counting the re-run.** `Parity_transparency-matte-aov`
-  (known-intermittent) failed once in the full run and passed 5 of 5 alone. `Visual_camera-dof-reyes`, the other
-  known flake, did not fail in this run.
+  (known-intermittent) failed once in the full run and passed 5 of 5 alone. `Visual_camera-dof-reyes`, which is not on
+  the known-intermittent list but has failed twice under load in this spec (Phase 4, T040), did not fail in this run.
 - The manifest `tools/024-linux-manifest.sha256` was regenerated after the edits to this file and to `tasks.md`
-  (both are manifest-covered; only these two entries changed) and verified with `shasum -a 256 -c`. T041 stays
-  unticked: the Linux run is still to be recorded.
+  (both are manifest-covered; only these two entries changed) and verified with `shasum -a 256 -c`. T041 was still
+  unticked at this point; the Linux results below completed it.
 
 ### T041 results: Linux, 2026-10-16 (run by the coordinator)
 
@@ -583,7 +583,8 @@ sides. The host has one CPU.
     `libRIBRender` was dropped from their NEEDED list (only `libshader_shading` and `libRIBCommon` remained), and
     `libshader_shading`'s 7 remaining DB-001 imports could not resolve. `test_shading_services_routing` keeps
     `libRIBRender` because it calls `RiBegin`. This is the same class of problem as #44. **Fixed** (see below).
-  - **Not this spec's (3), master/#51 Linux issues:** `Visual_sphere-occlusion-reyes` and `Visual_sphere-occlusion-reyes-slo`
+  - **Not this spec's (3), master/#51 Linux issues, filed as
+    [#57](https://github.com/juvenal/openrender/issues/57):** `Visual_sphere-occlusion-reyes` and `Visual_sphere-occlusion-reyes-slo`
     (24.58 against 20, the same in 5 of 5 runs, so deterministic) and
     `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes` (1 pixel off). They come from #51 (`1c06579` re-rendered the
     sphere-occlusion reference and added the T-junction tests), which was never validated on Linux; this branch changes
@@ -608,4 +609,36 @@ sides. The host has one CPU.
 **Linux final: 610 tests; 11 failures, all outside this spec.** The 8 known Linux failures of spec 023's T060 plus
 the 3 master/#51 failures listed above; no failure of this spec's own (the two `ShadingServices_*` failures are
 fixed). The 3 are `Visual_sphere-occlusion-reyes`, `Visual_sphere-occlusion-reyes-slo` and
-`CoverageAnalytic_alpha-sides2-tjunction-r4_reyes`, to be recorded as master/#51 Linux issues. T041 is complete.
+`CoverageAnalytic_alpha-sides2-tjunction-r4_reyes`, filed as [#57](https://github.com/juvenal/openrender/issues/57). T041 is
+complete.
+
+## Converge, 2026-10-16
+
+Converge only checked documents and code against each other. No build or test was run.
+
+- **Test counts.** Linux reports 610 tests and macOS 609. That fits `IPCDisplayTests`, which
+  `tests/framebuffer/CMakeLists.txt` registers only under `if(UNIX AND NOT APPLE)`.
+- **What the Linux result rests on.** The "11 failures" combine two runs:
+  - the full T041 run, which had 13 failures;
+  - a re-run of `-L shading_parity` after the `--no-as-needed` link fix (`f795b0d`), which fixed
+    the 2 failures that were this spec's own.
+
+  The full suite was not run again on Linux after `f795b0d`. That commit changes only the link
+  options of those two test executables.
+- **The macOS run came before `f795b0d`.** T042's 609/609 was measured before that commit. Its
+  generator expression is empty on macOS, so the macOS result still holds.
+- **#57 is attributed by reasoning only.** Master has not been built and tested on Linux, and #57
+  says so. This branch's `shading.cpp` changes are limited to the illumination-hook and JIT
+  functions, and the occlusion paths are untouched. Of the three failures:
+  - `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes` checks coverage only, with no shader;
+  - `Visual_sphere-occlusion-reyes` fails identically under both backends.
+
+  A Linux run of those three tests on master `c62334d` would confirm the attribution.
+- **FR-016 exception approved.** The maintainer approved it on 2026-10-16 (converge finding F1).
+  `tests/architecture/metrics-baseline.txt` raises two rows: Geometry goes from 76 to 78 and
+  Hiders from 581 to 586. The cause is 7 references that #51 (`ad0ee50`) added on master, which
+  the committed baseline never recorded. The TOTAL still falls, from 742/117 to 740/113.
+- **Manifest regenerated.** These converge edits touched only documentation: `DEVNOTES.md`,
+  `tests/visual/parity-thresholds.md` and this file. Afterwards `tools/024-linux-manifest.sha256`
+  was regenerated with the §3 command. Only those three entries changed. No code, CMake or test
+  file changed after the Linux run.
