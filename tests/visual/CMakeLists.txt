@@ -1028,6 +1028,57 @@ add_visual_test(spherelight-slo
     spherelight-slo.tif  spherelight.tif
     ${VISUAL_THRESHOLD}  "-t:1")
 
+# --- Backend parity of the illumination hook (spec 024-shading-services-
+# routing, US1, FR-012 and FR-019).
+#
+# photon-parity: a photon pass (point, spot and distant lights) followed by a
+# raytrace of the global map it wrote. The -slo variant pins the three Frame 1
+# lights to the JIT; everything else, including Frame 2, stays on the
+# interpreter, so the light backend is the only difference. Before the fix the
+# JIT variant crashed in jitIlluminateBegin (the photon hider leaves costheta
+# unset) and the image never existed.
+#
+# Threshold 6 and -t:1 come from research R4: the macOS run-to-run diff at
+# -t:1 is 0.00, the Linux render differs from the macOS one by a constant
+# D = 2.91 (30/30 runs), so the threshold is max(1, ceil(2 * D)) = 6, while an
+# empty map misses the reference by 255.00. At the default thread count the
+# photon pass crashed 4/30 times (the CPhotonHider race, BUGS.md), hence -t:1.
+# A photon map is only written when something is stored, so a stale one would
+# be read instead of the missing one: the setup tests delete it first.
+#
+# solar0: a light whose only construct is solar() with no arguments. The JIT
+# emitted no begin call for it, so L was never set (red diff 201.62 before the
+# fix). Default threshold.
+add_visual_test(photon-parity
+    examples/rib/tests/photon-parity.rib
+    photon-parity.tif  photon-parity.tif
+    6  "-t:1")
+
+add_visual_test(photon-parity-slo
+    examples/rib/tests/photon-parity-slo.rib
+    photon-parity-slo.tif  photon-parity.tif
+    6  "-t:1")
+
+add_visual_test(solar0
+    examples/rib/tests/solar0.rib
+    solar0.tif  solar0.tif)
+
+add_visual_test(solar0-slo
+    examples/rib/tests/solar0-slo.rib
+    solar0-slo.tif  solar0.tif)
+
+add_test(NAME VisualSetup_photon-parity-clean
+    COMMAND ${CMAKE_COMMAND} -E rm -f photon-parity.gpm
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tests/visual/photon-parity)
+set_tests_properties(VisualSetup_photon-parity-clean PROPERTIES FIXTURES_SETUP photon_parity_clean)
+set_tests_properties(Visual_photon-parity PROPERTIES FIXTURES_REQUIRED photon_parity_clean)
+
+add_test(NAME VisualSetup_photon-parity-slo-clean
+    COMMAND ${CMAKE_COMMAND} -E rm -f photon-parity-slo.gpm
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tests/visual/photon-parity-slo)
+set_tests_properties(VisualSetup_photon-parity-slo-clean PROPERTIES FIXTURES_SETUP photon_parity_slo_clean)
+set_tests_properties(Visual_photon-parity-slo PROPERTIES FIXTURES_REQUIRED photon_parity_slo_clean)
+
 # --- FR-006 discrimination coverage (spec 012-jit-parity-followups, T008b):
 # a uniform-classified instruction (`bias = bias + 1`) lexically nested inside
 # a varying conditional (`if (u > 0)`, `u > 0.05` until #51 diced a grid

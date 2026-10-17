@@ -52,7 +52,6 @@ class CRendererServicesImpl final : public CRendererServices {
         // Clipping / hider
         float clipMin() const override { return CRenderer::clipMin; }
         float clipMax() const override { return CRenderer::clipMax; }
-        unsigned int hiderFlags() const override { return CRenderer::hiderFlags; }
         bool hasIlluminationHook() const override { return (CRenderer::hiderFlags & HIDER_ILLUMINATIONHOOK) != 0; }
 
         // World bounds
@@ -119,6 +118,7 @@ class CRendererServicesImpl final : public CRendererServices {
         RtFilterFunc getFilter(const char *name) const override { return CRenderer::getFilter(name); }
         RtStepFilterFunc getStepFilter(const char *name) const override { return CRenderer::getStepFilter(name); }
         CVariable *retrieveVariable(const char *name) const override { return CRenderer::retrieveVariable(name); }
+        CDSO *getDSO(const char *name, const char *prototype) override { return CRenderer::getDSO(name, prototype); }
 
         // Render option getters
         int xres() const override { return CRenderer::xres; }

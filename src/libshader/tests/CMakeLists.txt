@@ -214,6 +214,44 @@ set_tests_properties(LibShader_GateHardening PROPERTIES
 message(STATUS "  - LibShader_GateHardening (hardened coverage-gate negative test)")
 
 # ---------------------------------------------------------------------------
+# test_illumination_emitter -- illuminate/solar operand forms in the JIT
+# emitter (spec 024-shading-services-routing, US1, T013).
+#
+# Same approach as test_gate_hardening: emitLLVMBitcode() is driven directly
+# with hand-built IRModules. A positive control (illuminate with a resolvable
+# P) comes first; then the no-argument solar() form must emit
+# op_solar0_begin, and operands that resolve to none of the four known forms
+# must fail the emit with a diagnostic naming the mnemonic instead of being
+# skipped silently.
+# ---------------------------------------------------------------------------
+add_executable(test_libshader_illumination_emitter test_illumination_emitter.cpp)
+
+target_compile_features(test_libshader_illumination_emitter PRIVATE cxx_std_20)
+
+target_include_directories(test_libshader_illumination_emitter PRIVATE
+    ${CMAKE_SOURCE_DIR}/src/libshader/compiler   # llvmEmitter.h, ir.h, rslo.h
+    ${CMAKE_BINARY_DIR}/src/libshader/compiler   # Flex/Bison generated headers
+    ${CMAKE_SOURCE_DIR}/src                      # common/, logging.h
+)
+
+target_link_libraries(test_libshader_illumination_emitter PRIVATE
+    libshader_compiler
+    openrendercommon
+)
+
+add_test(NAME LibShader_IlluminationOperands
+    COMMAND test_libshader_illumination_emitter
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+set_tests_properties(LibShader_IlluminationOperands PROPERTIES
+    TIMEOUT 30
+    LABELS  "libshader;compiler;unit"
+)
+
+message(STATUS "  - LibShader_IlluminationOperands (illuminate/solar operand forms in the JIT emitter)")
+
+# ---------------------------------------------------------------------------
 # test_used_parameters_table — tier-1 table-parity test (spec 014, T007).
 # Asserts the llvmEmitter.cpp X-macro re-expansion table matches the
 # interpreter's own shaderFunctions.h/shaderOpcodes.h/giFunctions.h/

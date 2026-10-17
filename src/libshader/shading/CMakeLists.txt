@@ -26,6 +26,7 @@ set(shading_sources
     RSLShading.cpp
     rslBuiltins.cpp
     rslOps.cpp
+    serviceLookup.cpp
     shader.cpp
     shaderPl.cpp
     shading.cpp

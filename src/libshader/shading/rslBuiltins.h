@@ -97,15 +97,6 @@ void rsl_illuminance_post_jit(int numVertices, int *tags);
 // Called once per illuminance loop iteration from JIT-compiled instruction-outer code.
 int rsl_illuminance_next_batch(int numVertices, int *tags);
 
-// --- Lighting (Light Shaders) ---
-// Returns numActive after updating L and tags (0 = skip body, non-zero = continue).
-int rsl_illuminate_begin_1(const float *Pl);
-int rsl_illuminate_begin_3(const float *Pl, const float *Nf, const float *theta);
-void rsl_illuminate_end(void);
-int rsl_solar_begin_1(void);
-int rsl_solar_begin_2(const float *Nf, const float *theta);
-void rsl_solar_end(void);
-
 #ifdef __cplusplus
 }
 #endif

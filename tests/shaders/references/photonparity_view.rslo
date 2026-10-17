@@ -1,0 +1,22 @@
+#!version 1.0.0
+#!name "photonparity_view"
+surface
+#!parameters:
+uniform	string	mapname	=	""
+uniform	float	gain	=	1
+#!variables:
+varying	vector	Nn
+varying	vector	c
+varying	vector	temporary_0
+uniform	vector	temporary_1
+#!Init:
+	return            
+#!Code:
+	normalize	("v=v")  Nn N
+	photonmap	("c=Spn")  c mapname P Nn
+	vfromf  temporary_1 gain
+	vuvector  temporary_0 temporary_1
+	mulvv  Ci temporary_0 c
+	vfromf  temporary_1 1
+	vuvector  Oi temporary_1
+	return

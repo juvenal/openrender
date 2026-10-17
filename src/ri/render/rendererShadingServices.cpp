@@ -25,8 +25,14 @@
 // One instance per process; CRendererServicesImpl is stateless.
 static CRendererServicesImpl g_rendererServicesImpl;
 
-// Called by CRenderer::init() (or the first beginFrame) to make the
-// renderer services available to all CShadingContext instances.
+// Called by CRenderer::beginRenderer() to make the renderer services
+// available to all CShadingContext instances for the whole session.
 void rendererShadingServicesInit() {
     CShadingContext::setDefaultServices(&g_rendererServicesImpl);
+}
+
+// Called last by CRenderer::endRenderer(): lookups after RiEnd() get the
+// no-services result.
+void rendererShadingServicesShutdown() {
+    CShadingContext::setDefaultServices(nullptr);
 }

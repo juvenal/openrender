@@ -399,12 +399,6 @@ class CShadingContext {
         int queryOption(void *dest, const char *name) { return options(dest, name, nullptr, nullptr); }
         int queryRendererInfo(void *dest, const char *name) { return rendererInfo(dest, name, nullptr, nullptr); }
 
-        // ---> Illuminate/solar hook dispatchers (called from JIT rslBuiltins)
-        void callIlluminateBegin(const float *P, const float *N, const float *theta) { illuminateBegin(P, N, theta); }
-        void callIlluminateEnd() { illuminateEnd(); }
-        void callSolarBegin(const float *N, const float *theta) { solarBegin(N, theta); }
-        void callSolarEnd() { solarEnd(); }
-
         // ---> Lighting batch operations for JIT path (same semantics as interpreter)
         void callAmbient(float *result);
         void callDiffuse(float *result, const float *Nf);
@@ -437,6 +431,9 @@ class CShadingContext {
         //   back-facing vertices (Ns·L > -costheta*|L|) as passive.
         //   Nf[sf*i] is the normalized direction; thetaf[st*i] is the cone angle.
         void jitSolarBegin(const float *Nf, int sf, const float *thetaf, int st, int *tags, int n, int *numActive, int *numPassive);
+        // jitSolar0Begin: solar() with no arguments. With the illumination hook active it
+        // calls solarBegin(NULL, NULL); otherwise L = Ps for each active vertex (no culling).
+        void jitSolar0Begin(int *tags, int n, int *numActive, int *numPassive);
         // jitSolarEnd: save (-normalize(L), Cl) into a CShadedLight, restore tags.
         void jitSolarEnd(int *tags, int n, int *numActive, int *numPassive);
 
@@ -757,7 +754,7 @@ class CShadingContext {
         // All delegate to currentShadingState->services (set from CRendererServicesImpl
         // in the renderer context, nullptr in standalone libshader use).
         // These methods are called from macro headers (B3) and from shading.cpp.
-        unsigned int rendererHiderFlags() const;
+        bool rendererIlluminationHook() const;
         const float *rendererWorldBmin() const;
         const float *rendererWorldBmax() const;
         float rendererClipMin() const;

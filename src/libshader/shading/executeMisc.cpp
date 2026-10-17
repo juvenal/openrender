@@ -31,7 +31,6 @@
 #include "bundles.h"
 #include "common/global.h"
 #include "common/memory.h"
-#include "renderer.h"
 #include "ri_config.h"
 #include "common/stats.h"
 #include "surface.h"

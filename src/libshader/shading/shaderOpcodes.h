@@ -211,7 +211,7 @@ DEFOPCODE(EndIlluminationExpr, "endilluminance", 0, ENDILLUMINATIONEXPR_PRE, NUL
                                                                 \
     operand(0, Pl, const float *);                              \
                                                                 \
-    if (this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK) {  \
+    if (this->rendererIlluminationHook()) {                     \
         illuminateBegin(Pl, NULL, NULL);                        \
     }                                                           \
     else {                                                      \
@@ -264,7 +264,7 @@ DEFOPCODE(Illuminate1, "illuminate", 2, ILLUMINATE1EXPR_PRE, NULL_EXPR, NULL_EXP
     operand(1, Nf, const float *);                                                                                           \
     operand(2, thetaf, const float *);                                                                                       \
                                                                                                                              \
-    if (this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK) {                                                               \
+    if (this->rendererIlluminationHook()) {                                                                                  \
         illuminateBegin(Pf, Nf, thetaf);                                                                                     \
     }                                                                                                                        \
     else {                                                                                                                   \
@@ -316,7 +316,7 @@ DEFOPCODE(Illuminate3, "illuminate", 4, ILLUMINATE3EXPR_PRE, NULL_EXPR, NULL_EXP
 #define ILLUMINATEEND_PRE
 #else
 #define ILLUMINATEEND_PRE                                                                                                      \
-    if (this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK) {                                                                 \
+    if (this->rendererIlluminationHook()) {                                                                                    \
         illuminateEnd();                                                                                                       \
     }                                                                                                                          \
     else {                                                                                                                     \
@@ -372,25 +372,25 @@ DEFOPCODE(EndIlluminate, "endilluminate", 0, ILLUMINATEEND_PRE, NULL_EXPR, NULL_
 #ifdef INIT_SHADING
 #define SOLAR1EXPR_PRE
 #else
-#define SOLAR1EXPR_PRE                                         \
-    if (this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK) { \
-        solarBegin(NULL, NULL);                                \
-    }                                                          \
-    else {                                                     \
-        const float *Ps = varying[VARIABLE_PS];                \
-        float *L = varying[VARIABLE_L];                        \
-                                                               \
-        for (int i = numVertices; i > 0; --i, ++tags) {        \
-            if (*tags) {                                       \
-                (*tags)++;                                     \
-            }                                                  \
-            else {                                             \
-                movvv(L, Ps);                                  \
-            }                                                  \
-                                                               \
-            L += 3;                                            \
-            Ps += 3;                                           \
-        }                                                      \
+#define SOLAR1EXPR_PRE                                  \
+    if (this->rendererIlluminationHook()) {             \
+        solarBegin(NULL, NULL);                         \
+    }                                                   \
+    else {                                              \
+        const float *Ps = varying[VARIABLE_PS];         \
+        float *L = varying[VARIABLE_L];                 \
+                                                        \
+        for (int i = numVertices; i > 0; --i, ++tags) { \
+            if (*tags) {                                \
+                (*tags)++;                              \
+            }                                           \
+            else {                                      \
+                movvv(L, Ps);                           \
+            }                                           \
+                                                        \
+            L += 3;                                     \
+            Ps += 3;                                    \
+        }                                               \
     }
 
 #endif
@@ -410,7 +410,7 @@ DEFOPCODE(Solar1, "solar", 1, SOLAR1EXPR_PRE, NULL_EXPR, NULL_EXPR, NULL_EXPR, P
     operand(0, Nf, const float *);                                      \
     operand(1, thetaf, const float *);                                  \
                                                                         \
-    if (this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK) {          \
+    if (this->rendererIlluminationHook()) {                             \
         solarBegin(Nf, thetaf);                                         \
     }                                                                   \
     else {                                                              \
@@ -460,30 +460,30 @@ DEFOPCODE(Solar2, "solar", 3, SOLAR2EXPR_PRE, NULL_EXPR, NULL_EXPR, SOLAR2EXPR_P
 #ifdef INIT_SHADING
 #define SOLAREND_PRE
 #else
-#define SOLAREND_PRE                                           \
-    if (this->rendererHiderFlags() & HIDER_ILLUMINATIONHOOK) { \
-        solarEnd();                                            \
-    }                                                          \
-    else {                                                     \
-        const float *L = varying[VARIABLE_L];                  \
-        float *Lsave = nullptr;                                \
-                                                               \
-        saveLighting(Lsave);                                   \
-        for (int i = 0; i < numVertices; ++i, ++tags) {        \
-            if (*tags) {                                       \
-                (*tags)--;                                     \
-                if (*tags == 0) {                              \
-                    ++numActive;                               \
-                    --numPassive;                              \
-                }                                              \
-            }                                                  \
-            else {                                             \
-                mulvf(Lsave, L, -1);                           \
-                normalizev(Lsave);                             \
-            }                                                  \
-            L += 3;                                            \
-            Lsave += 3;                                        \
-        }                                                      \
+#define SOLAREND_PRE                                    \
+    if (this->rendererIlluminationHook()) {             \
+        solarEnd();                                     \
+    }                                                   \
+    else {                                              \
+        const float *L = varying[VARIABLE_L];           \
+        float *Lsave = nullptr;                         \
+                                                        \
+        saveLighting(Lsave);                            \
+        for (int i = 0; i < numVertices; ++i, ++tags) { \
+            if (*tags) {                                \
+                (*tags)--;                              \
+                if (*tags == 0) {                       \
+                    ++numActive;                        \
+                    --numPassive;                       \
+                }                                       \
+            }                                           \
+            else {                                      \
+                mulvf(Lsave, L, -1);                    \
+                normalizev(Lsave);                      \
+            }                                           \
+            L += 3;                                     \
+            Lsave += 3;                                 \
+        }                                               \
     }
 
 #endif

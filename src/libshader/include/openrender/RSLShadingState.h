@@ -7,9 +7,10 @@
  *   Public shading state and callback stubs for the RSL shader library API.
  *
  *   Phase A: callback pointers are defined here but not yet active.
- *   When nullptr, the library falls back to CRenderer::* globals (existing
- *   behaviour).  Phase B will implement live callbacks and break the
- *   CRenderer dependency entirely.
+ *   When nullptr, the library uses the installed renderer services
+ *   (CRendererServices). With none installed, its lookups of DSO shadeops,
+ *   filters, step filters, light categories and variables return "not found"
+ *   and report one warning per kind. Phase B will implement live callbacks.
  */
 
 #pragma once
@@ -59,7 +60,7 @@ struct RSLShadingState {
 
         /**
          * Phase B callbacks — set to nullptr in Phase A; the library then
-         * falls back to CRenderer::* globals for lighting, texture, and tracing.
+         * uses the installed renderer services for lighting, texture, and tracing.
          */
         struct RSLLightingCallbacks *lighting; /**< nullptr until Phase B        */
         struct RSLTextureCallbacks *texture;   /**< nullptr until Phase B        */

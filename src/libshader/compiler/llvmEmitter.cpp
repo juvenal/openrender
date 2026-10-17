@@ -1161,31 +1161,48 @@ static bool emitFunction(const IRFunction &irFn,
             // op_illuminate_begin/end are in rslOps.h
             // ================================================================
             if (op == "illuminate") {
+                // The two forms: "illuminate from #!Label" and
+                // "illuminate from axis angle #!Label". Operands that resolve
+                // to neither are a hard error, never a silent skip: a skipped
+                // begin call is how the no-argument solar() gap went unnoticed
+                // (spec 024, research R1).
                 auto [from, sf] = getVar(ins, 0);
-                if (ins.operands.size() >= 4) {
+                if (ins.operands.size() == 4) {
                     // ILLUMINATE3: illuminate from axis angle #!Label
                     auto [axis, sa] = getVar(ins, 1);
                     auto [ang, st] = getVar(ins, 2);
-                    if (from && axis && ang) {
-                        // (from,sf, axis,sa, angle,st, tags, n, numActive*, numPassive*)
-                        auto *ty = llvm::FunctionType::get(voidTy,
-                                                           {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty,
-                                                            ptrTy, i32Ty, ptrTy, ptrTy},
-                                                           false);
-                        auto *fn = declareOp(mod, "op_illuminate3_begin", ty);
-                        B.CreateCall(fn, {from, B.getInt32(sf),
-                                          axis, B.getInt32(sa),
-                                          ang, B.getInt32(st),
-                                          tags, numVerts, numActivePtr, numPassivePtr});
+                    if (!(from && axis && ang)) {
+                        fprintf(stderr,
+                                "llvmEmitter: in '%s', the operands of 'illuminate' do not resolve "
+                                "(expected 'from axis angle label' with three resolvable values)\n",
+                                std::string(func->getName()).c_str());
+                        return false;
                     }
+                    // (from,sf, axis,sa, angle,st, tags, n, numActive*, numPassive*)
+                    auto *ty = llvm::FunctionType::get(voidTy,
+                                                       {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty,
+                                                        ptrTy, i32Ty, ptrTy, ptrTy},
+                                                       false);
+                    auto *fn = declareOp(mod, "op_illuminate3_begin", ty);
+                    B.CreateCall(fn, {from, B.getInt32(sf),
+                                      axis, B.getInt32(sa),
+                                      ang, B.getInt32(st),
+                                      tags, numVerts, numActivePtr, numPassivePtr});
                 }
-                else if (from) {
+                else if (ins.operands.size() == 2 && from) {
                     // ILLUMINATE1: illuminate from #!Label
                     auto *ty = llvm::FunctionType::get(voidTy,
                                                        {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, ptrTy}, false);
                     auto *fn = declareOp(mod, "op_illuminate_begin", ty);
                     B.CreateCall(fn, {from, B.getInt32(sf), tags, numVerts,
                                       numActivePtr, numPassivePtr});
+                }
+                else {
+                    fprintf(stderr,
+                            "llvmEmitter: in '%s', the operands of 'illuminate' do not resolve "
+                            "(expected 'from label' or 'from axis angle label')\n",
+                            std::string(func->getName()).c_str());
+                    return false;
                 }
                 ++conditionalDepth;
                 continue;
@@ -1204,10 +1221,26 @@ static bool emitFunction(const IRFunction &irFn,
             // solar Nf thetaf #!LabelExit
             // ================================================================
             if (op == "solar") {
-                // operand 0 = Nf (vector direction), 1 = thetaf (float), 2 = label (ignored)
-                auto [Nf, sf] = getVar(ins, 0);
-                auto [th, st] = getVar(ins, 1);
-                if (Nf && th) {
+                // The two forms: "solar #!Label" (solar() with no arguments)
+                // and "solar Nf thetaf #!Label". Anything else is a hard error.
+                if (ins.operands.size() == 1) {
+                    // solar(): the label is the only operand
+                    auto *ty = llvm::FunctionType::get(voidTy,
+                                                       {ptrTy, i32Ty, ptrTy, ptrTy}, false);
+                    auto *fn = declareOp(mod, "op_solar0_begin", ty);
+                    B.CreateCall(fn, {tags, numVerts, numActivePtr, numPassivePtr});
+                }
+                else {
+                    // operand 0 = Nf (vector direction), 1 = thetaf (float), 2 = label (ignored)
+                    auto [Nf, sf] = getVar(ins, 0);
+                    auto [th, st] = getVar(ins, 1);
+                    if (ins.operands.size() != 3 || !Nf || !th) {
+                        fprintf(stderr,
+                                "llvmEmitter: in '%s', the operands of 'solar' do not resolve "
+                                "(expected 'label' or 'direction angle label')\n",
+                                std::string(func->getName()).c_str());
+                        return false;
+                    }
                     // (Nf, sf, thetaf, st, tags, n, numActive*, numPassive*)
                     auto *ty = llvm::FunctionType::get(voidTy,
                                                        {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, ptrTy}, false);

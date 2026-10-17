@@ -429,3 +429,26 @@ The probe uses the varying-flag-in-`if` pattern the other probe shaders use for 
 - 024 adds `tests/.../recording_services.h`, a `CRendererServices` test double. It will need overrides of the two new pure virtuals, `samplingSampler()` and `samplingSeed()`; until it has them it will not compile against this change.
 - 024's comment in `shaders/CMakeLists.txt` says "107 shaders". The probe shader (`sampling_option_probe.sl`) adds one, so the count after the merge is 108 (this tree now compiles 106 shaders).
 - The new reference `tests/shaders/references/sampling_option_probe.rslo` is a file 024 does not touch, so it merges cleanly; if 024 adds its own shaders it will add its own references.
+
+## Branch upkeep: master (with spec 024) merged into 039, 2026-10-16
+
+This is branch upkeep, not a `tasks.md` task: spec 024 was merged into master (a fast-forward to `b6981b1`), and master
+was then merged into this branch, so Phases 4–9 build on the code they will ship with.
+
+- **Textual conflicts:** only `.specify/feature.json`, resolved to this spec's value (`specs/039-sampling-foundation`).
+  The seven files both branches touch (`rendererServices.h`, `shading.{h,cpp}`, `renderer.{h,cpp}`,
+  `rendererServicesImpl.h`, `tests/visual/CMakeLists.txt`) merged automatically.
+- **Semantic fix (the merge would not compile without it):** 024's two `CRendererServices` test doubles in
+  `tests/shading_parity/recording_services.h` gained the two pure virtuals added in T037b.
+  - `CRecordingServices` forwards `samplingSampler()` and `samplingSeed()` to `inner`, like every other lookup.
+  - `CStubServices` answers `"legacy"` and 0, the renderer's defaults.
+- **Shader count:** 024's two shaders plus this spec's probe make 108 (`shaders/*.sl`; the build prints "108 .rslo
+  shaders compiled" and "108 .slo shaders compiled"). Updated in `shaders/CMakeLists.txt` (108 shaders, 216 objects;
+  the ~1.4s timing was measured at 214 and is left as is) and in `CLAUDE.md`. 024's own validation records keep 107,
+  the number true when they were written.
+- **Build:** `nice -n 19 cmake --build build -j4`, exit 0, no compiler warnings (only the existing `ld` duplicate-library
+  and orender-wire deployment-target notes).
+- **Architecture:** `ctest -L architecture` 21/21; `archcheck` `RESULT PASS violations=0 stale=0 badid=0
+  failing-cycles=0 notbuilt=0`, `TOTAL refs 740 (baseline 740) distinct 113 (baseline 113)`.
+- **Full suite:** `nice -n 19 ctest -j4`, **635/635 passed** on the first run. That is 024's 609 plus 039's 26 new
+  tests (624 − 598 = 26).

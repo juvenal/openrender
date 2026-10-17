@@ -1,0 +1,91 @@
+log_enabled
+_log_init_done
+log_output
+orender_log_init()
+guard variable for orender_log_init()::file_out
+CPhotonMap::lookup(float*, float const*, int)
+CTexture3d::resolve(int, char const**, int*, int*)
+CGatherBundle::CGatherBundle()
+SLOShaderInfo::~SLOShaderInfo()
+CShadingContext::solarBegin(float const*, float const*)
+CShadingContext::illuminateEnd()
+CShadingContext::illuminateBegin(float const*, float const*, float const*)
+CShadingContext::trace(CRay*)
+CShadingContext::traceEx(CRayBundle*)
+CShadingContext::solarEnd()
+CIrradianceCache::store(float const*, float const*, float const*, float)
+CIrradianceCache::lookup(float*, float const*, float const*, float)
+CRenderer::getGlobalID(char const*)
+CRenderer::getStepFilter(char const*)
+CRenderer::retrieveVariable(char const*)
+CRenderer::getDSO(char const*, char const*)
+CRenderer::getFilter(char const*)
+std::basic_format_context<std::__format::_Sink_iter<char>, char>::iterator std::__format::__formatter_fp<char>::format<_Float128, std::__format::_Sink_iter<char> >(_Float128, std::basic_format_context<std::__format::_Sink_iter<char>, char>&) const
+std::basic_format_context<std::__format::_Sink_iter<char>, char>::iterator std::__format::__formatter_fp<char>::format<double, std::__format::_Sink_iter<char> >(double, std::basic_format_context<std::__format::_Sink_iter<char>, char>&) const
+std::basic_format_context<std::__format::_Sink_iter<char>, char>::iterator std::__format::__formatter_fp<char>::format<long double, std::__format::_Sink_iter<char> >(long double, std::basic_format_context<std::__format::_Sink_iter<char>, char>&) const
+std::basic_format_context<std::__format::_Sink_iter<char>, char>::iterator std::__format::__formatter_fp<char>::format<float, std::__format::_Sink_iter<char> >(float, std::basic_format_context<std::__format::_Sink_iter<char>, char>&) const
+std::basic_format_context<std::__format::_Sink_iter<char>, char>::iterator std::__format::__formatter_int<char>::_M_format_int<std::__format::_Sink_iter<char> >(std::basic_string_view<char, std::char_traits<char> >, unsigned long, std::basic_format_context<std::__format::_Sink_iter<char>, char>&) const
+std::basic_format_context<std::__format::_Sink_iter<char>, char>::iterator std::__format::__formatter_int<char>::format<unsigned char, std::__format::_Sink_iter<char> >(unsigned char, std::basic_format_context<std::__format::_Sink_iter<char>, char>&) const
+std::basic_format_context<std::__format::_Sink_iter<char>, char>::iterator std::__format::__formatter_int<char>::format<__int128, std::__format::_Sink_iter<char> >(__int128, std::basic_format_context<std::__format::_Sink_iter<char>, char>&) const
+std::basic_format_context<std::__format::_Sink_iter<char>, char>::iterator std::__format::__formatter_int<char>::format<unsigned __int128, std::__format::_Sink_iter<char> >(unsigned __int128, std::basic_format_context<std::__format::_Sink_iter<char>, char>&) const
+std::basic_format_context<std::__format::_Sink_iter<char>, char>::iterator std::__format::__formatter_int<char>::format<long long, std::__format::_Sink_iter<char> >(long long, std::basic_format_context<std::__format::_Sink_iter<char>, char>&) const
+std::basic_format_context<std::__format::_Sink_iter<char>, char>::iterator std::__format::__formatter_int<char>::format<unsigned long long, std::__format::_Sink_iter<char> >(unsigned long long, std::basic_format_context<std::__format::_Sink_iter<char>, char>&) const
+std::__format::_Sink_iter<char> std::__format::__formatter_str<char>::format<std::__format::_Sink_iter<char> >(std::basic_string_view<char, std::char_traits<char> >, std::basic_format_context<std::__format::_Sink_iter<char>, char>&) const
+std::format_error::~format_error()
+std::format_error::~format_error()
+decltype(auto) std::basic_format_arg<std::basic_format_context<std::__format::_Sink_iter<char>, char> >::_M_visit<std::__format::_Formatting_scanner<std::__format::_Sink_iter<char>, char>::_M_format_arg(unsigned long)::{lambda(auto:1&)#1}>(std::__format::_Formatting_scanner<std::__format::_Sink_iter<char>, char>::_M_format_arg(unsigned long)::{lambda(auto:1&)#1}&&, std::__format::_Arg_t)
+std::_Sp_counted_base<(__gnu_cxx::_Lock_policy)2>::_M_release()
+std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_dispose()
+std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::reserve(unsigned long)
+std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_mutate(unsigned long, unsigned long, char const*, unsigned long)
+std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::push_back(char)
+std::enable_if<std::__or_<std::__or_<std::is_same<std::remove_cv<unsigned int>::type, signed char>, std::is_same<std::remove_cv<unsigned int>::type, short>, std::is_same<std::remove_cv<unsigned int>::type, int>, std::is_same<std::remove_cv<unsigned int>::type, long>, std::is_same<std::remove_cv<unsigned int>::type, long long> >, std::__or_<std::is_same<std::remove_cv<unsigned int>::type, unsigned char>, std::is_same<std::remove_cv<unsigned int>::type, unsigned short>, std::is_same<std::remove_cv<unsigned int>::type, unsigned int>, std::is_same<std::remove_cv<unsigned int>::type, unsigned long>, std::is_same<std::remove_cv<unsigned int>::type, unsigned long long> >, std::is_same<unsigned int, __int128>, std::is_same<unsigned int, unsigned __int128>, std::is_same<char, std::remove_cv<unsigned int>::type> >::value, std::to_chars_result>::type std::__detail::__to_chars_8<unsigned int>(char*, char*, unsigned int)
+std::enable_if<std::__or_<std::__or_<std::is_same<std::remove_cv<unsigned int>::type, signed char>, std::is_same<std::remove_cv<unsigned int>::type, short>, std::is_same<std::remove_cv<unsigned int>::type, int>, std::is_same<std::remove_cv<unsigned int>::type, long>, std::is_same<std::remove_cv<unsigned int>::type, long long> >, std::__or_<std::is_same<std::remove_cv<unsigned int>::type, unsigned char>, std::is_same<std::remove_cv<unsigned int>::type, unsigned short>, std::is_same<std::remove_cv<unsigned int>::type, unsigned int>, std::is_same<std::remove_cv<unsigned int>::type, unsigned long>, std::is_same<std::remove_cv<unsigned int>::type, unsigned long long> >, std::is_same<unsigned int, __int128>, std::is_same<unsigned int, unsigned __int128>, std::is_same<char, std::remove_cv<unsigned int>::type> >::value, std::to_chars_result>::type std::__detail::__to_chars_10<unsigned int>(char*, char*, unsigned int)
+std::enable_if<std::__or_<std::__or_<std::is_same<std::remove_cv<unsigned int>::type, signed char>, std::is_same<std::remove_cv<unsigned int>::type, short>, std::is_same<std::remove_cv<unsigned int>::type, int>, std::is_same<std::remove_cv<unsigned int>::type, long>, std::is_same<std::remove_cv<unsigned int>::type, long long> >, std::__or_<std::is_same<std::remove_cv<unsigned int>::type, unsigned char>, std::is_same<std::remove_cv<unsigned int>::type, unsigned short>, std::is_same<std::remove_cv<unsigned int>::type, unsigned int>, std::is_same<std::remove_cv<unsigned int>::type, unsigned long>, std::is_same<std::remove_cv<unsigned int>::type, unsigned long long> >, std::is_same<unsigned int, __int128>, std::is_same<unsigned int, unsigned __int128>, std::is_same<char, std::remove_cv<unsigned int>::type> >::value, std::to_chars_result>::type std::__detail::__to_chars_16<unsigned int>(char*, char*, unsigned int)
+std::__detail::__from_chars_alnum_to_val_table<false>::value
+std::__format::_Iter_sink<char, std::__format::_Sink_iter<char> >::_M_overflow()
+std::__format::__formatter_fp<char>::parse(std::basic_format_parse_context<char>&)
+std::__format::_Sink_iter<char> std::__format::__write_padded<std::__format::_Sink_iter<char>, char>(std::__format::_Sink_iter<char>, std::basic_string_view<char, std::char_traits<char> >, std::__format::_Align, unsigned long, char)
+std::__format::__formatter_int<char>::_M_do_parse(std::basic_format_parse_context<char>&, std::__format::_Pres_type)
+std::__format::__formatter_str<char>::parse(std::basic_format_parse_context<char>&)
+std::__format::_Formatting_scanner<std::__format::_Sink_iter<char>, char>::_M_on_chars(char const*)
+std::__format::_Formatting_scanner<std::__format::_Sink_iter<char>, char>::_M_format_arg(unsigned long)
+std::__format::_Sink_iter<char> std::__format::__write_padded_as_spec<char, std::__format::_Sink_iter<char> >(std::basic_string_view<std::type_identity<char>::type, std::char_traits<std::type_identity<char>::type> >, unsigned long, std::basic_format_context<std::__format::_Sink_iter<char>, char>&, std::__format::_Spec<char> const&, std::__format::_Align)
+std::__format::__failed_to_parse_format_spec()
+std::__format::__invalid_arg_id_in_format_string()
+std::__format::__conflicting_indexing_in_format_string()
+std::__format::__unmatched_left_brace_in_format_string()
+std::__format::_Sink<char>::_M_write(std::basic_string_view<char, std::char_traits<char> >)
+std::__format::_Seq_sink<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >::_M_overflow()
+char* std::__add_grouping<char>(char*, char, char const*, unsigned long, char const*, char const*)
+std::piecewise_construct
+std::__throw_format_error(char const*)
+std::vformat[abi:cxx11](std::basic_string_view<char, std::char_traits<char> >, std::basic_format_args<std::basic_format_context<std::__format::_Sink_iter<char>, char> >)
+bool std::operator==<char, std::char_traits<char>, std::allocator<char> >(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const*)
+typeinfo for std::__format::_Iter_sink<char, std::__format::_Sink_iter<char> >
+typeinfo for std::__format::_Formatting_scanner<std::__format::_Sink_iter<char>, char>
+typeinfo for std::__format::_Sink<char>
+typeinfo for std::__format::_Scanner<char>
+typeinfo for std::__format::_Buf_sink<char>
+typeinfo for std::__format::_Seq_sink<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >
+typeinfo for std::_Mutex_base<(__gnu_cxx::_Lock_policy)2>
+typeinfo for std::format_error
+typeinfo for std::_Sp_counted_base<(__gnu_cxx::_Lock_policy)2>
+typeinfo name for std::__format::_Iter_sink<char, std::__format::_Sink_iter<char> >
+typeinfo name for std::__format::_Formatting_scanner<std::__format::_Sink_iter<char>, char>
+typeinfo name for std::__format::_Sink<char>
+typeinfo name for std::__format::_Scanner<char>
+typeinfo name for std::__format::_Buf_sink<char>
+typeinfo name for std::__format::_Seq_sink<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >
+typeinfo name for std::_Mutex_base<(__gnu_cxx::_Lock_policy)2>
+typeinfo name for std::format_error
+typeinfo name for std::_Sp_counted_base<(__gnu_cxx::_Lock_policy)2>
+typeinfo name for std::_Sp_make_shared_tag
+vtable for CTraceBundle
+vtable for CTransmissionBundle
+vtable for std::__format::_Iter_sink<char, std::__format::_Sink_iter<char> >
+vtable for std::__format::_Formatting_scanner<std::__format::_Sink_iter<char>, char>
+vtable for std::__format::_Seq_sink<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >
+vtable for std::format_error
+orender_log_init()::file_out
+std::_Sp_make_shared_tag::_S_ti()::__tag

@@ -69,6 +69,11 @@
 #include "xform.h"
 #include "zbuffer.h"
 
+// Defined in rendererShadingServices.cpp: register / deregister the renderer
+// services with the shading engine for the lifetime of the renderer
+void rendererShadingServicesInit();
+void rendererShadingServicesShutdown();
+
 // CRenderer's static data member definitions and the coordinate/color system
 // name constants live in rendererStatics.cpp -- see that file's header
 // comment for why this file (the actual render pipeline) is excluded from a
@@ -100,6 +105,11 @@ void CRenderer::beginRenderer(CRendererContext *c, const char *ribFile, const ch
 
     // Init the declarations
     initDeclarations();
+
+    // Register the renderer services before anything loads a shader: shader
+    // loading resolves its globals through them, and the Imager and default
+    // shaders load before the first frame
+    rendererShadingServicesInit();
 
     // Init the network (if applicable)
     initNetwork(ribFile, riNetString);
@@ -153,6 +163,9 @@ void CRenderer::endRenderer() {
 
     // Check the stats for memory leaks
     stats.check();
+
+    // Last: nothing above may look up a renderer service after this
+    rendererShadingServicesShutdown();
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -250,14 +263,8 @@ static void copyOptions(const COptions *o) {
 // Description			:	Begin a frame / compute misc data
 // Return Value			:	-
 // Comments				:
-// Forward declaration: defined in rendererShadingServices.cpp
-void rendererShadingServicesInit();
-
 void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     int i;
-
-    // Register renderer services with the shading engine (idempotent).
-    rendererShadingServicesInit();
 
     // Record the frame start time
     stats.frameStartTime = osCPUTime();

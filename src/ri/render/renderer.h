@@ -33,6 +33,7 @@
 #include "common/memory.h"
 #include "options.h"
 #include "shadeop.h"
+#include "libshader/shading/dsoHandle.h" // CDSO, now owned by the shading library
 
 // Compute the circle of confusion as a function of the depth.
 // cocSamples(z) is now CSampler::circleOfConfusion() (sampler.h, S1) --
@@ -641,21 +642,6 @@ class CNamedCoordinateSystem {
         ECoordinateSystem systemType; // If the system is one of the standard ones
         matrix from;                  // The transformation
         matrix to;
-};
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CDSO
-// Description			:	Holds a DSO shader info
-// Comments				:
-class CDSO {
-    public:
-        void *handle;               // The handle to the module that implements the DSO shader
-        dsoInitFunction init;       // Init function
-        dsoExecFunction exec;       // Execute function
-        dsoCleanupFunction cleanup; // Cleanup function
-        char *name;                 // Name of the DSO shader
-        char *prototype;            // Prototype of the DSO shader
-        CDSO *next;
 };
 
 #endif

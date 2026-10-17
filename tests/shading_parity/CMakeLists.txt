@@ -148,3 +148,86 @@ set_tests_properties(ShadingParity_IrradianceEmptyString PROPERTIES
     LABELS "shading_parity"
     ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}"
 )
+
+# Spec 024 (shading services routing): the renderer services are registered
+# for the whole session (RiBegin .. RiEnd), and a substitute installed after
+# RiBegin survives beginFrame(). Later phases add the routing checks here.
+add_executable(test_shading_services_routing test_services_routing.cpp)
+target_link_libraries(test_shading_services_routing PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+target_include_directories(test_shading_services_routing PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_BINARY_DIR}
+)
+target_compile_features(test_shading_services_routing PRIVATE cxx_std_20)
+add_test(NAME ShadingServices_Routing COMMAND test_shading_services_routing)
+set_tests_properties(ShadingServices_Routing PROPERTIES
+    TIMEOUT 30
+    LABELS "shading_parity"
+    # The compiled shaders live in the build tree (the default surface and light
+    # load at RiWorldBegin); Case D's fixture loads from the cwd.
+    ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>;OSHADER_BIN=$<TARGET_FILE:oshader>"
+)
+
+# Spec 024 (shading services routing), US1: the illumination hook under both
+# shader backends. Runs four light shaders (illuminate(P), illuminate(P, N, a),
+# solar(D, a), solar()) as .rslo and as .slo through a probe context whose
+# hooks only log, with the hook on, off and toggled. Needs the JIT.
+if(OPENRENDER_HAVE_LLVM)
+    add_executable(test_shading_illumination_hook test_illumination_hook.cpp)
+    target_link_libraries(test_shading_illumination_hook PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+    target_include_directories(test_shading_illumination_hook PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_BINARY_DIR}
+    )
+    target_compile_features(test_shading_illumination_hook PRIVATE cxx_std_20)
+    add_test(NAME ShadingParity_IlluminationHook COMMAND test_shading_illumination_hook)
+    set_tests_properties(ShadingParity_IlluminationHook PROPERTIES
+        TIMEOUT 60
+        LABELS "shading_parity"
+        # The compiled shaders live in the build tree (the default surface and
+        # light load at RiWorldBegin); the fixtures themselves load from the cwd.
+        ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>;OSHADER_BIN=$<TARGET_FILE:oshader>"
+    )
+endif()
+
+# Spec 024 (shading services routing), US2: the libshader::lookup* helpers
+# (serviceLookup.h) return what the installed services return. Linked against
+# ribRender because libshader_shading still leaves some imports (the hiders and
+# the texturing code) unresolved; on Linux the load would fail without it, as
+# LibShader_McompConsistency does.
+add_executable(test_shading_service_lookup test_service_lookup.cpp)
+target_link_libraries(test_shading_service_lookup PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+# These two tests reference no libRIBRender symbol, so Ubuntu's GCC (--as-needed by default)
+# drops libRIBRender from the executable's NEEDED list, and libshader_shading's remaining
+# imports (the 7 DB-001 symbols, GitHub #44) then fail to resolve at load time. Keep it.
+target_link_options(test_shading_service_lookup PRIVATE $<$<PLATFORM_ID:Linux>:LINKER:--no-as-needed>)
+target_include_directories(test_shading_service_lookup PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_BINARY_DIR}
+)
+target_compile_features(test_shading_service_lookup PRIVATE cxx_std_20)
+add_test(NAME ShadingServices_Lookup COMMAND test_shading_service_lookup)
+set_tests_properties(ShadingServices_Lookup PROPERTIES
+    TIMEOUT 30
+    LABELS "shading_parity"
+)
+
+# Spec 024 (shading services routing), US3: with no services installed every
+# routed lookup returns its not-found value and warns once per kind, and an
+# unresolved light category is skipped. Runs in its own process with no
+# RiBegin() and no CShadingContext (GitHub #53). ribRender only resolves
+# libshader_shading's remaining imports; the test never calls into it.
+add_executable(test_shading_no_services test_no_services.cpp)
+target_link_libraries(test_shading_no_services PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+# Same reason as test_shading_service_lookup: keep libRIBRender NEEDED on Linux (GitHub #44).
+target_link_options(test_shading_no_services PRIVATE $<$<PLATFORM_ID:Linux>:LINKER:--no-as-needed>)
+target_include_directories(test_shading_no_services PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_BINARY_DIR}
+)
+target_compile_features(test_shading_no_services PRIVATE cxx_std_20)
+add_test(NAME ShadingServices_NoServices COMMAND test_shading_no_services)
+set_tests_properties(ShadingServices_NoServices PROPERTIES
+    TIMEOUT 30
+    LABELS "shading_parity"
+)

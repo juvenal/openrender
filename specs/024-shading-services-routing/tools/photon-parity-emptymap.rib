@@ -1,0 +1,28 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+
+# spec 024 (FR-012) research: discrimination margin of the photon parity
+# reference. This is Frame 2 of photon-parity-rslo.rib alone, reading a map
+# that does not exist, so it renders what a photon pass that stored nothing
+# would produce. Its diff against the interpreter reference is the margin
+# the threshold must stay 3x below (research R4). The JIT red run crashes,
+# so it gives no image to measure this margin from.
+FrameBegin 1
+  Hider "raytrace"
+  PixelSamples 2 2
+  Display "photon-parity-emptymap.tif" "file" "rgba"
+  Projection "perspective" "fov" 45
+  Format 160 120 1
+  Translate 0 -1 5
+
+  WorldBegin
+    Attribute "shade" "shaderformat" ["rslo"]
+    Surface "photonparity_view" "string mapname" ["photon-parity-does-not-exist.gpm"] "float gain" [1]
+    Polygon "P" [-3 0 -3  -3 0 3  3 0 3  3 0 -3]
+    Polygon "P" [-3 0 3  -3 3 3  3 3 3  3 0 3]
+    TransformBegin
+      Translate 0 0.6 0.5
+      Sphere 0.6 -0.6 0.6 360
+    TransformEnd
+  WorldEnd
+FrameEnd

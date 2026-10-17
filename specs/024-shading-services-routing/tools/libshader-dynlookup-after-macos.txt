@@ -1,0 +1,7 @@
+CGatherBundle::CGatherBundle() (dynamically looked up)
+CPhotonMap::lookup(float*, float const*, int) (dynamically looked up)
+CShadingContext::trace(CRay*) (dynamically looked up)
+CShadingContext::traceEx(CRayBundle*) (dynamically looked up)
+CTexture3d::resolve(int, char const**, int*, int*) (dynamically looked up)
+vtable for CTraceBundle (dynamically looked up)
+vtable for CTransmissionBundle (dynamically looked up)
