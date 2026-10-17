@@ -179,7 +179,7 @@ Implemented on top of the committed tests (`2eeca56`); `nice -n 19`, `-j4`, one 
 #### How the net property is kept (G3, G4)
 
 - The sample index is scrambled per (sub-stream, dimension) with a nested uniform permutation, and the Sobol output is Owen-scrambled with another. A nested permutation of the index maps the first 2^m indices onto one aligned block of 2^m Sobol indices, and every aligned block of a (0,2)-sequence is a (0, m, 2)-net, so every prefix stays a net while the dimensions are decorrelated.
-- **Deviation to note: the PMJ02 patterns are Owen-scrambled Sobol (0,2)-sequences, not the output of Christensen et al.'s PMJ02 generator.** I could not reconstruct that generator reliably, and the tests (G4) and the spec's stated property are met without it. The practical consequence is that the PMJ02 and Sobol backends are statistically the same family at power-of-two prefixes (see the discrepancies below). The comment in `samplingPmj02.cpp` says so. Whether a true PMJ02 generator is wanted is the maintainer's call.
+- **Deviation to note (fixed in the amendment below; see "Step 2"): the PMJ02 patterns were Owen-scrambled Sobol (0,2)-sequences, not the output of Christensen et al.'s PMJ02 generator.** I could not reconstruct that generator reliably, and the tests (G4) and the spec's stated property are met without it. The practical consequence is that the PMJ02 and Sobol backends are statistically the same family at power-of-two prefixes (see the discrepancies below). The comment in `samplingPmj02.cpp` says so. Whether a true PMJ02 generator is wanted is the maintainer's call.
 - The camera accessors seed one sub-stream per pixel from the pixel's `path` and index it by the camera `sampleIndex`. The Morton ordering across pixels in research R2.1 is not applied.
 
 #### Results
@@ -266,3 +266,49 @@ The edits were first syntax-checked only (`-fsyntax-only`), while the machine wa
   - `Sampling_MortonIndex` and `Sampling_CameraSobolBlocks`: **Not Run.** `test_sampling_morton` fails to link on `openrender::sampling::detail::mortonIndex(int, int)`.
 - To show `Sampling_CameraSobolBlocks` fails for a real reason, a scratch build (discarded) linked `test_morton.cpp` against a correct stand-in `mortonIndex` and the current library. `Sampling_MortonIndex` then passes (hand values confirmed). `camera_sobol_blocks` fails: the index is not `morton·2^k + sampleIndex` (23460 checks), pixels share blocks (1530), the aligned-group film, lens, time and importance checks fail (80 groups each), and the new 8K cases fail too: the deliberate 32-bit-collision pairs get equal indices (24 pair checks `ia != ib`, plus the formula checks), the 8K collision scan finds 3 pixels colliding with (100, 200) at 256 spp and 39 at 4096 spp and their indices are not distinct (42 failures), and the lattice indices are not distinct (2 failures, one per sample count).
 - The build and the tests left nothing running.
+
+
+### Step 2 of the amendment: the implementation (T020, T021, T022 revised)
+
+Run after the maintainer committed the tests; `nice -n 19`, `-j4`, one job at a time.
+
+#### What was implemented
+
+- **PMJ02 generator** (`src/common/samplingPmj02.cpp`), written from Christensen, Kensler and Kilpatrick 2018 and Pharr 2019; no pbrt-v4 or other code or tables were read or used. Each of the 64 patterns is built by doubling 2^k points to 2^(k+1), for k = 0..11: for an even k the new point for existing point i goes in the same cell and the diagonally opposite sub-quadrant; for an odd k in the same cell, in whichever sub-quadrant stays admissible. The exact digits are found by a depth-first search over the occupancy of the elementary intervals (one boolean each: Pharr's occupancy, searched by digits rather than by his binary trees), which checks every interval whose shape is fixed so far. The randomness is a counter-based hash of the pattern number, so the tables are identical on every run. One `std::call_once` per pattern, so only the patterns a render uses are built. A step that could not be completed would fall back to an Owen-scrambled Sobol sequence for that pattern; this has not occurred: a fallback pattern would fail the locality check, and `Sampling_PMJ02Construction` passes on all 64 (restarts of a step were not counted).
+- **Runtime index shuffle for PMJ02 changed**, which the first run of the existing tests forced: with real PMJ02 patterns `Sampling_PMJ02Property` failed (14954 violations), because only the *prefixes* of a PMJ02 sequence are nets, and the Sobol-style shuffle moved the first 2^m draws onto another aligned block. The shuffle now permutes each dyadic block [2^t, 2^(t+1)) among itself (a nested uniform permutation of its t low bits), so every prefix maps onto itself. The approved test was not touched.
+- **Morton-ordered Sobol camera**: `detail::mortonIndex` (16 bits per axis), `detail::cameraSequenceIndex` returning `uint64_t` (`(uint64_t(morton) << k) + sampleIndex`), and a 64-bit Sobol draw (`sobolGet1D64`/`sobolGet2D64`): the 64-bit index is scrambled by a nested uniform permutation built from two 32-bit ones (the low half's seed also depends on the whole high half), the first 32 digits of Sobol dimensions 0 and 1 are taken, and the Owen scramble is applied as before. The Sobol camera accessors seed one sequence per frame from the frame and the seed only (no pixel), so a pixel is a block of it; the PMJ02 and Independent camera accessors keep one sub-stream per pixel.
+- `EXCLUDE_FROM_ALL` removed from `test_sampling_pmj02_table` and `test_sampling_morton`. The design stage's stated limit is 65536 pixels per axis (`mortonIndex` takes the low 16 bits of each coordinate).
+
+#### Results
+
+- Build: `cmake --build build --config Release -j4`, exit 0, no compiler warnings.
+- `ctest -L sampling`: **18/18 passed** (the 14 original `Sampling_*` tests, `Sampling_PMJ02Construction`, `Sampling_MortonIndex`, `Sampling_CameraSobolBlocks`, and `DiskSampling`). No approved test was edited, and no threshold or timeout was changed.
+- Full suite, `nice -n 19 ctest --test-dir build -j4 --output-on-failure`: **615/615 passed** (598 baseline + 14 + 3 new), 111 s real time. No failure, so no flaky re-run. `Visual_camera-dof-reyes` and `Parity_transparency-matte-aov` both passed. Nothing changed under `Legacy`: no hider or shading file is touched.
+- Architecture: `ctest -L architecture` 21/21; `archcheck` `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`, `Infra refs 0`, no allowlist line, and the same three metric warnings that master prints (Geometry +2, Hiders +5, TOTAL +7).
+- New files are clang-format clean.
+
+#### Numbers for the PAUSE 2 report (all three backends, PMJ02 now real)
+
+`Sampling_ConvergenceSmooth` (log-log RMSE slope of the smooth integrand, 32 keys, N = 2^2..2^12):
+
+| Backend | Slope | Required |
+|---|---|---|
+| Sobol | -1.336 | <= -0.9 |
+| PMJ02 | -1.325 | <= -0.9 |
+| Independent | -0.504 | <= -0.4 |
+
+`Sampling_Discrepancy` (exact 2D star discrepancy, mean of 8 keys):
+
+| N | Sobol | PMJ02 | Independent |
+|---|---|---|---|
+| 64 | 0.04244 | 0.04257 | 0.14885 |
+| 256 | 0.01325 | 0.01293 | 0.07969 |
+| 1024 | 0.00381 | 0.00378 | 0.04151 |
+
+(With the earlier Sobol-derived tables PMJ02 was 0.04283 / 0.01334 / 0.00389 and -1.303: the real generator is slightly better at N = 256 and 1024, as the paper reports for non-trivial prefixes, and the two remain within a few percent of each other.)
+
+- `Sampling_Uniformity`: minimum p over 16 dimensions is 1 for Sobol and PMJ02 and 0.0096 for Independent (per-check level 2.08e-4).
+- `Sampling_NetProperty` / `Sampling_PMJ02Property`: 512 (key, dimension) pairs each, 0 violations.
+- `Sampling_PMJ02Construction`: 64 patterns, 0 locality and 0 diagonal violations at even k, and 0 odd-k locality violations (informational, not checked). The Sobol control still fails the narrower test (1364 / 1364 unscrambled, 1362 / 40 scrambled).
+- `Sampling_CameraSobolBlocks` on the 8K frame: 3 pixels collide with (100, 200) under a 32-bit index at 256 spp and 39 at 4096 spp; every one keeps a distinct 64-bit index.
+- **PMJ02 table generation time**: 64 patterns built on first touch in 57-88 ms in total (three runs: 87.5, 57.4 and 57.0 ms; the first includes cold-start effects), about 0.9 ms per pattern (maximum 0.96 ms warm, 2.7 ms cold). Each pattern is built only if a render draws from it.

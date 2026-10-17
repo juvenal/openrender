@@ -143,13 +143,14 @@ description: "Task list for spec 039: sampling foundation"
   - The hot functions are `inline`. There is no mutable global state (rule 1).
 - [X] T019 [US2] `src/common/sampling.cpp`: hashing (SplitMix64/PCG-style `mix`), the float conversion `(bits >> 8)·0x1p-24f` (research §R2.4), and the Independent backend (§R2.3).
 - [X] T020 [US2] `src/common/sampling.cpp`: Owen-scrambled Sobol (research §R2.1).
-  - Morton index `morton(px, py)·2^k + sampleIndex`.
-  - Base-4 digit permutation of the index, keyed by hash(dim, seed).
+  - Camera sequence: 64-bit index `morton(px, py)·2^k + sampleIndex` (`detail::mortonIndex`, 16 bits per axis, so 65536 pixels per axis is the stated limit), with a 64-bit Sobol draw.
+  - Nested uniform (Owen) permutation of the index (bits, not base-4 digits), keyed by hash(dim, seed); it keeps aligned index blocks aligned.
   - Dimensions 0 and 1 only, with Burley 2020 hash-based nested-uniform scrambling keyed by hash(dim, seed).
   - Dimensions beyond the native tables are padded by hashing (FR-006).
 - [X] T021 [US2] `src/common/samplingPmj02.cpp`: deterministic PMJ02 generation (research §R2.2).
   - 64 patterns × 4096 points, generated under `std::call_once` from a fixed internal seed.
-  - Pattern chosen by hash(dim, seed); XOR shuffle within power-of-two blocks; Owen scramble.
+  - Each pattern is a genuine progressive multi-jittered (0,2) sequence, built by doubling with the diagonal strategy of Christensen et al. 2018 and the elementary-interval search of Pharr 2019; one `call_once` per pattern.
+  - Pattern chosen by hash(dim, seed); the index is shuffled within each dyadic block [2^t, 2^(t+1)) so that every prefix maps onto itself; Owen scramble.
   - Index ≥ 4096 falls back to scrambled Sobol for that draw.
 - [X] T022 [US2] `src/common/sampling.cpp`: the camera slots.
   - Film2D = 0, Lens2D = 1, Time1D = 2, Importance1D = 3 (data-model "Dimension cursor").

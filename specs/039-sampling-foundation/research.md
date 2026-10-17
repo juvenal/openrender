@@ -85,6 +85,7 @@ These functions are exported from the shared `libRIBCommon`. New overloads take 
 ### R2.2 PMJ02
 
 - **Decision**: generate progressive multi-jittered (0,2) sequences (Christensen, Kensler and Kilpatrick 2018).
+  - *Implemented (Phase 2, amendment)*: each pattern is built by doubling, as in the paper. For an even step the new sample for existing sample i goes in the same cell and the diagonally opposite sub-quadrant; the remaining digits are found by a depth-first search over the occupancy of the elementary intervals (one boolean each, after Pharr 2019). All 64 patterns take about 57 ms in total on the first-touch path (about 0.9 ms each, built on first use). Because only the *prefixes* of a PMJ02 sequence are (0,2)-nets, the runtime index shuffle permutes each dyadic block [2^t, 2^(t+1)) among itself rather than whole aligned blocks.
   - Generation is deterministic: a fixed internal PCG seed, once per process, lazily, under `std::call_once`.
   - Tables hold `NUM_PMJ_PATTERNS = 64` patterns of 4096 points each, about 2 MB as `float[2]`. Cycles uses the same layout.
   - A dimension pair picks a pattern by hash(dimension, seed). The point index is XOR-shuffled within power-of-two blocks (Cycles' scheme), and the values are Owen-scrambled by hash(pixel, dimension).

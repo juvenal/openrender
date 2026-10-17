@@ -192,6 +192,42 @@ namespace openrender::sampling {
                             toUnitFloat(nestedUniformScramble(sobolDim1(idx), s.y))};
         }
 
+        // 64-bit sample indices (the Morton-ordered camera sequence). The index is
+        // scrambled by a nested uniform permutation of 64 bits, built from two 32-bit
+        // ones: the high half is permuted by its own seed, the low half by a seed that
+        // also depends on the whole high half, so every bit still flips as a function
+        // of the bits above it only (aligned blocks of 2^m indices stay aligned blocks).
+        inline uint64_t nestedUniformScramble64(uint64_t x, uint64_t seed) {
+            const uint32_t hi = static_cast<uint32_t>(x >> 32), lo = static_cast<uint32_t>(x);
+            const uint32_t hiOut = nestedUniformScramble(hi, static_cast<uint32_t>(seed >> 32));
+            const uint32_t loOut = nestedUniformScramble(lo, static_cast<uint32_t>(seed) ^ static_cast<uint32_t>(finalize64(hi)));
+            return (static_cast<uint64_t>(hiOut) << 32) | loOut;
+        }
+
+        // The first 32 digits of Sobol dimensions 0 and 1 for a 64-bit index.
+        inline uint32_t sobolDim0Of64(uint64_t i) {
+            return reverseBits32(static_cast<uint32_t>(i)); // the top 32 digits of the 64-bit van der Corput value
+        }
+        inline uint32_t sobolDim1Of64(uint64_t i) {
+            uint64_t r = 0;
+            for (uint64_t v = 1ull << 63; i; i >>= 1, v ^= v >> 1)
+                if (i & 1ull)
+                    r ^= v;
+            return static_cast<uint32_t>(r >> 32);
+        }
+
+        inline float sobolGet1D64(uint64_t seedHash, uint32_t dim, uint64_t index) {
+            const DimSeeds s = dimSeeds(seedHash, dim, kSalt1D);
+            const uint64_t idx = nestedUniformScramble64(index, (static_cast<uint64_t>(s.x) << 32) | s.index);
+            return toUnitFloat(nestedUniformScramble(sobolDim0Of64(idx), s.x));
+        }
+        inline Sample2D sobolGet2D64(uint64_t seedHash, uint32_t dim, uint64_t index) {
+            const DimSeeds s = dimSeeds(seedHash, dim, kSalt2D);
+            const uint64_t idx = nestedUniformScramble64(index, (static_cast<uint64_t>(s.x) << 32) | s.index);
+            return Sample2D{toUnitFloat(nestedUniformScramble(sobolDim0Of64(idx), s.x)),
+                            toUnitFloat(nestedUniformScramble(sobolDim1Of64(idx), s.y))};
+        }
+
         ///////////////////////////////////////////////////////////////////////
         // Independent
         ///////////////////////////////////////////////////////////////////////

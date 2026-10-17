@@ -76,15 +76,9 @@ add_sampling_test_exe(test_sampling_keyed_stream test_keyed_stream.cpp LIBS Thre
 add_sampling_test(Sampling_KeyedStream test_sampling_keyed_stream keyed_stream)
 
 # --- Phase 2 amendment: true PMJ02 construction and Morton-ordered Sobol camera ------
-#
-# Written before the implementation (tests first), so the two targets are
-# EXCLUDE_FROM_ALL and `ctest` reports the three tests as "Not Run" or failing
-# until the amendment lands; the implementation step removes the property.
 add_sampling_test_exe(test_sampling_pmj02_table test_pmj02_table.cpp LIBS Threads::Threads)
 add_sampling_test(Sampling_PMJ02Construction test_sampling_pmj02_table construction)
 
 add_sampling_test_exe(test_sampling_morton test_morton.cpp)
 add_sampling_test(Sampling_MortonIndex test_sampling_morton morton)
 add_sampling_test(Sampling_CameraSobolBlocks test_sampling_morton camera_sobol_blocks)
-
-set_target_properties(test_sampling_pmj02_table test_sampling_morton PROPERTIES EXCLUDE_FROM_ALL TRUE)
