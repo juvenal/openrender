@@ -92,6 +92,7 @@ struct IRInstr {
         std::string proto;               // type signature e.g. "v=v", or ""
         std::string result;              // destination variable name, or ""
         std::vector<IROperand> operands; // remaining operand tokens
+        int callSite = -1;               // call-site ordinal of a stochastic call (spec 039), -1 otherwise
 
         bool hasResult() const { return !result.empty(); }
 };

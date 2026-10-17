@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 1.1.0
 #!name "cel"
 surface
 #!parameters:
@@ -68,7 +68,7 @@ varying	float	border
 	vuvector  C temporary_11
 	vufloat  temporary_13 1.570796327
 	vufloat  temporary_12 temporary_13
-	illuminance P Nf temporary_12 #!Label9 #!Label10
+	illuminance P Nf temporary_12 #!Label9 #!Label10 0
 #!Label9:
 	vufloat  nondiff 0
 	lightsource	("f=SF")  temporary_14 "__nondiffuse" nondiff
@@ -104,7 +104,7 @@ varying	float	border
 	vufloat  temporary_15 0.75
 	vufloat  temporary_13 1.570796327
 	vufloat  temporary_14 temporary_13
-	illuminance P Nf temporary_14 #!Label13 #!Label14
+	illuminance P Nf temporary_14 #!Label13 #!Label14 1
 #!Label13:
 	vufloat  nonspec 0
 	lightsource	("f=SF")  temporary_15 "__nonspecular" nonspec

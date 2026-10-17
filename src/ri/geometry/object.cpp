@@ -30,6 +30,7 @@
 #include "common/memory.h"
 #include "object.h"
 #include "common/random.h"
+#include "common/sampling.h"
 #include "renderer.h"
 #include "rendererContext.h"
 #include "common/riVocabulary.h"
@@ -57,6 +58,7 @@ CObject::CObject(CAttributes *a, CXform *x) {
     children = NULL;
     sibling = NULL;
     region = NULL;
+    stableId = 0;
 
     // An empty bound until the object computes its own (every primitive's
     // constructor does); queries can then tell "no bound" from a real one
@@ -132,7 +134,16 @@ static float getDisp(const float *mat, float) {
 // Description			:	Set the children objects
 // Return Value			:
 // Comments				:
-void CObject::setChildren(CShadingContext *, CObject *allChildren) {
+void CObject::setChildren(CShadingContext *, CObject *allChildren, bool inheritId) {
+
+    // Give the children their identities: they inherit ours (pieces of a split),
+    // or are numbered by their position in the chain
+    {
+        uint64_t k = 0;
+        for (CObject *cObject = allChildren; cObject != NULL; cObject = cObject->sibling, ++k)
+            if (cObject->stableId == 0)
+                cObject->stableId = inheritId ? stableId : openrender::sampling::detail::mix(stableId, k);
+    }
 
     // If raytraced, attach to the children
     if (raytraced()) {

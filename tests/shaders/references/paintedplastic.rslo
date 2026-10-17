@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 1.1.0
 #!name "paintedplastic"
 surface
 #!parameters:
@@ -27,7 +27,7 @@ uniform	vector	temporary_9
 	sneql  temporary_1 texturename ""
 	vufloat  temporary_0 temporary_1
 	if temporary_0 #!Label3
-	texture	("c=SFff")  temporary_2 texturename 0 s t
+	texture	("c=SFff")  temporary_2 texturename 0 s t 0
 	mulvv  Ci Ci temporary_2
 #!Label3:
 	endif

@@ -262,17 +262,17 @@ static void splits() {
     CHECK(patch.size() == 1);
     s.render();
 
-    std::set<const CSurface *> pieces;
+    // RiPatch adds a patch mesh whose only child is the surface that gets shaded,
+    // and dicing splits that surface into lightweight views of it: the pieces are
+    // seen as separate grids, not as separate surfaces.
     std::set<uint64_t> ids;
-    for (const Report &r : reports()) {
-        pieces.insert(r.surface);
+    for (const Report &r : reports())
         ids.insert(r.stableId);
-    }
-    std::fprintf(stderr, "  %zu shaded surface(s), %zu distinct identity(ies)\n", pieces.size(), ids.size());
-    CHECK(pieces.size() > 1); // the patch was split
-    CHECK(ids.size() == 1);   // and every piece kept the patch's identity
+    std::fprintf(stderr, "  %zu shaded grid(s), %zu distinct identity(ies)\n", reports().size(), ids.size());
+    CHECK(reports().size() > 1); // the patch was split
+    CHECK(ids.size() == 1);      // and every piece kept the same identity
     if (patch.size() == 1 && ids.size() == 1)
-        CHECK(*ids.begin() == patch[0]->stableId);
+        CHECK(*ids.begin() == mixChild(patch[0]->stableId, 0)); // that of the mesh's child
     s.close();
 }
 

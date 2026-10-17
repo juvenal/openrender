@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 1.1.0
 #!name "random_probe"
 surface
 #!parameters:
@@ -18,10 +18,10 @@ varying	vector	temporary_7
 #!Init:
 	return            
 #!Code:
-	random	("f=")  rf
-	random	("v=")  rv
-	urandom	("f=")  uf
-	urandom	("v=")  uv
+	random	("f=")  rf 0
+	random	("v=")  rv 1
+	urandom	("f=")  uf 2
+	urandom	("v=")  uv 3
 	vfromf  temporary_0 1
 	vuvector  Oi temporary_0
 	xcomp	("f=p")  temporary_3 rv

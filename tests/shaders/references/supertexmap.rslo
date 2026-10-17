@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 1.1.0
 #!name "supertexmap"
 surface
 #!parameters:
@@ -377,7 +377,7 @@ varying	vector	temporary_30
 	addff  temporary_10 tt dt
 	moveff  temporary_11 temporary_7
 	moveff  temporary_12 temporary_10
-	texture	("c=SFffffffffSf")  Ct_2 Csmapname 0 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 "blur" temporary_3
+	texture	("c=SFffffffffSf")  Ct_2 Csmapname 0 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 "blur" temporary_3 0
 	subff  temporary_5 ss ds
 	subff  temporary_6 tt dt
 	addff  temporary_7 ss ds
@@ -386,7 +386,7 @@ varying	vector	temporary_30
 	addff  temporary_10 tt dt
 	moveff  temporary_11 temporary_7
 	moveff  temporary_12 temporary_10
-	texture	("f=SFffffffffSfsf")  alpha_1 Csmapname temporary_4 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 "blur" temporary_3 "fill" 1
+	texture	("f=SFffffffffSfsf")  alpha_1 Csmapname temporary_4 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 "blur" temporary_3 "fill" 1 1
 	movevv  Ct_1 Ct_2
 	vufloat  temporary_5 1
 	subff  temporary_4 temporary_5 alpha_1
@@ -620,7 +620,7 @@ varying	vector	temporary_30
 	addff  temporary_10 tt dt
 	moveff  temporary_11 temporary_7
 	moveff  temporary_12 temporary_10
-	texture	("c=SFffffffffSf")  Ct_2 Osmapname 0 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 "blur" temporary_3
+	texture	("c=SFffffffffSf")  Ct_2 Osmapname 0 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 "blur" temporary_3 2
 	subff  temporary_5 ss ds
 	subff  temporary_6 tt dt
 	addff  temporary_7 ss ds
@@ -629,7 +629,7 @@ varying	vector	temporary_30
 	addff  temporary_10 tt dt
 	moveff  temporary_11 temporary_7
 	moveff  temporary_12 temporary_10
-	texture	("f=SFffffffffSfsf")  alpha_1 Osmapname temporary_4 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 "blur" temporary_3 "fill" 1
+	texture	("f=SFffffffffSfsf")  alpha_1 Osmapname temporary_4 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 "blur" temporary_3 "fill" 1 3
 	movevv  Ct_1 Ct_2
 	vufloat  temporary_5 1
 	subff  temporary_4 temporary_5 alpha_1
@@ -863,7 +863,7 @@ varying	vector	temporary_30
 	addff  temporary_10 tt_1 dt_1
 	moveff  temporary_11 temporary_7
 	moveff  temporary_12 temporary_10
-	texture	("f=SFffffffffSf")  val Ksmapname 0 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 "blur" temporary_4
+	texture	("f=SFffffffffSf")  val Ksmapname 0 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 "blur" temporary_4 4
 	subff  temporary_5 ss_1 ds_1
 	subff  temporary_6 tt_1 dt_1
 	addff  temporary_7 ss_1 ds_1
@@ -872,7 +872,7 @@ varying	vector	temporary_30
 	addff  temporary_10 tt_1 dt_1
 	moveff  temporary_11 temporary_7
 	moveff  temporary_12 temporary_10
-	texture	("f=SFffffffffSfsf")  alpha_2 Ksmapname 3 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 "blur" temporary_4 "fill" 1
+	texture	("f=SFffffffffSfsf")  alpha_2 Ksmapname 3 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 temporary_12 "blur" temporary_4 "fill" 1 5
 	moveff  x val
 	vufloat  temporary_7 1
 	subff  temporary_6 temporary_7 alpha_2
@@ -1104,7 +1104,7 @@ varying	vector	temporary_30
 	addff  temporary_9 tt_1 dt_1
 	moveff  temporary_10 temporary_6
 	moveff  temporary_11 temporary_9
-	texture	("f=SFffffffffSf")  val dispmapname 0 temporary_4 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 "blur" temporary_3
+	texture	("f=SFffffffffSf")  val dispmapname 0 temporary_4 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 "blur" temporary_3 6
 	subff  temporary_4 ss_1 ds_1
 	subff  temporary_5 tt_1 dt_1
 	addff  temporary_6 ss_1 ds_1
@@ -1113,7 +1113,7 @@ varying	vector	temporary_30
 	addff  temporary_9 tt_1 dt_1
 	moveff  temporary_10 temporary_6
 	moveff  temporary_11 temporary_9
-	texture	("f=SFffffffffSfsf")  alpha_2 dispmapname 3 temporary_4 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 "blur" temporary_3 "fill" 1
+	texture	("f=SFffffffffSfsf")  alpha_2 dispmapname 3 temporary_4 temporary_5 temporary_6 temporary_7 temporary_8 temporary_9 temporary_10 temporary_11 "blur" temporary_3 "fill" 1 7
 	moveff  x val
 	vufloat  temporary_6 1
 	subff  temporary_5 temporary_6 alpha_2

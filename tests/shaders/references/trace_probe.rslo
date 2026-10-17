@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 1.1.0
 #!name "trace_probe"
 surface
 #!parameters:
@@ -17,8 +17,8 @@ varying	vector	temporary_4
 	vfromf  temporary_1 0.2 0.15 1
 	normalize	("v=v")  temporary_0 temporary_1
 	vuvector  Vdir temporary_0
-	trace	("f=pv")  hitDist P Vdir
-	trace	("c=pv")  hitColor P Vdir
+	trace	("f=pv")  hitDist P Vdir 0
+	trace	("c=pv")  hitColor P Vdir 1
 	vfromf  temporary_3 hitDist hitDist hitDist
 	vfromf  temporary_0 0.001
 	vuvector  temporary_4 temporary_0

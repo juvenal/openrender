@@ -72,8 +72,7 @@ typedef struct {
         int opcode;                 // The opcode
         unsigned char uniform;      // TRUE if all the arguments are uniform
         unsigned char numArguments; // The number of stack arguments
-        unsigned char padding0;     // PADDING ... Not used ... PADDING
-        unsigned char padding1;     // PADDING ... Not used ... PADDING
+        unsigned short callSite;    // The call-site ordinal of a stochastic instruction (spec 039), 0 otherwise
         TArgument *arguments;       // The array of arguments
         CDSO *dso;                  // If this is a DSO, points to the DSO function
 } TCode;

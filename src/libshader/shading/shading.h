@@ -226,8 +226,27 @@ class CShadingState {
         // ---> Renderer services (libshader Phase B: decoupling from CRenderer globals)
         CRendererServices *services; // nullptr in standalone mode
 
+        // ---> Sample identity (spec 039, contracts/shading-runtime.md). Filled only
+        //      when the frame's sampler is not Legacy.
+        openrender::sampling::SampleKey *pointKeys; // Per-vertex identity, numVertices long (a derivative-offset tail vertex copies its real vertex's key)
+        uint64_t batchKey;                          // The invocation-level key, for uniform random()
+        int pointKeysFromRays;                      // TRUE while pointKeys were set by the hider (ray hits), not by the cell rule
+        uint32_t *callSiteOccurrence;               // Per-point call-site occurrence counters (allocated lazily by the runtime; null until a draw needs them)
+        uint64_t currentShaderKey;                  // mix(shader name, instance ordinal) of the shader being executed
+
         CShadingState *next; // The next in free state list
 };
+
+// A test hook (spec 039): called once per shaded grid, after the per-point keys
+// are filled, with the real vertices' keys and parametric coordinates. Null in
+// production. See CShadingContext::pointKeyObserver.
+struct CPointKeyReport {
+        const CSurface *surface;                     // The surface being shaded
+        int numVertices;                             // Real vertices (no derivative-offset tail)
+        const openrender::sampling::SampleKey *keys; // Their keys
+        const float *u, *v;                          // Their parametric coordinates
+};
+typedef void (*CPointKeyObserver)(const CPointKeyReport &);
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRayBundle
@@ -267,6 +286,9 @@ typedef struct TObjectHash {
 // Comments				:
 class CShadingContext {
     public:
+        // Test hook, null in production (see CPointKeyReport). Set only by tests.
+        static CPointKeyObserver pointKeyObserver;
+
         CShadingContext(int thread);
         virtual ~CShadingContext();
 
@@ -284,6 +306,7 @@ class CShadingContext {
 
         // Shade points on a surface
         void shade(CSurface *, int, int, EShadingDim, unsigned int, int displaceOnly = FALSE);
+        void fillPointKeys(CSurface *, EShadingDim); // Give the points about to be shaded their sample identities (spec 039)
         // Execute a compiled shader (public for RSLShading::shade() in libshader)
         void execute(CProgrammableShaderInstance *, float **);
         inline void displace(CSurface *surface, int u, int v, EShadingDim dim, unsigned int up) { shade(surface, u, v, dim, up, TRUE); }

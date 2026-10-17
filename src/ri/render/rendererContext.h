@@ -266,6 +266,7 @@ class CRendererContext : public CRiInterface, public CGeometryHost {
         int maxMotionParameters; // The maximum number of motion parameters that can be stored
         const char *lastCommand; // The text of the last motion command
         int riExecTag;           // The exec tag count for the RI interface
+        uint32_t idOrdinal;      // The next top-level object ordinal of this world block (stable ids, spec 039)
 
         void init(CProgrammableShaderInstance *); // Execute the init code of a shader
         int ifParse(const char *expr);            // Evaluate a condition

@@ -331,8 +331,8 @@ endif()
 
 # ---------------------------------------------------------------------------
 # Spec 039, Phase 4 (US6): call-site ordinals and stale-shader rejection.
-# Written before the implementation (tests first), so the targets are
-# EXCLUDE_FROM_ALL until T055. They read LLVM bitcode, so they need the JIT.
+# Written before the implementation (tests first). They read LLVM bitcode, so
+# they need the JIT.
 #   test_call_sites       T039 LibShader_CallSiteOrdinals (C1, C3)
 #                         T040 LibShader_RandomNotPure (C2)
 #   test_stale_shaders    T041 LibShader_StaleShaderRejected (research R3.6): the
@@ -342,7 +342,7 @@ endif()
 if(OPENRENDER_HAVE_LLVM)
     llvm_map_components_to_libnames(_call_sites_llvm_libs core bitreader bitwriter support)
 
-    add_executable(test_libshader_call_sites EXCLUDE_FROM_ALL test_call_sites.cpp)
+    add_executable(test_libshader_call_sites test_call_sites.cpp)
     target_compile_features(test_libshader_call_sites PRIVATE cxx_std_20)
     target_include_directories(test_libshader_call_sites PRIVATE
         ${CMAKE_SOURCE_DIR}/src/libshader/compiler
@@ -363,7 +363,7 @@ if(OPENRENDER_HAVE_LLVM)
             ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;SHADER_INCLUDES=${CMAKE_SOURCE_DIR}/shaders/includes")
     endforeach()
 
-    add_executable(test_libshader_stale_shaders EXCLUDE_FROM_ALL test_stale_shaders.cpp)
+    add_executable(test_libshader_stale_shaders test_stale_shaders.cpp)
     target_compile_features(test_libshader_stale_shaders PRIVATE cxx_std_20)
     target_include_directories(test_libshader_stale_shaders PRIVATE
         ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src/libshader/shading

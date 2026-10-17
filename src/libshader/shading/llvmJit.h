@@ -110,6 +110,12 @@ class CLLVMJitEngine {
         std::unordered_map<std::string, TShaderJitEntry> initCache_;
         std::unordered_map<std::string, SLOShaderInfo> metaCache_;
 
+        // Errors the JIT session reports on its own (the unresolved-symbol list of a
+        // module that cannot bind, for one) while a compile is in flight; compileShader()
+        // adds them to its diagnostic.
+        std::mutex sessionErrorMutex_;
+        std::string sessionErrors_;
+
         // Extract named metadata from an already-loaded module.
         static bool extractMetadataFromModule(const llvm::Module &mod, SLOShaderInfo &info);
 };

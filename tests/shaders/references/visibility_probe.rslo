@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 1.1.0
 #!name "visibility_probe"
 surface
 #!parameters:
@@ -13,6 +13,6 @@ uniform	vector	temporary_1
 	vfromf  temporary_1 0.3 0.2 0.1
 	vuvector  temporary_0 temporary_1
 	addvv  Psample P temporary_0
-	visibility	("f=pp")  vis P Psample
+	visibility	("f=pp")  vis P Psample 0
 	vfromf  Ci vis vis vis
 	return

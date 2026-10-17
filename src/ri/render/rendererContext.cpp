@@ -60,6 +60,7 @@
 #include "polygons.h"
 #include "quadrics.h"
 #include "common/random.h"
+#include "common/sampling.h"
 #include "ray.h"
 #include "raytracer.h"
 #include "rendererContext.h"
@@ -146,6 +147,7 @@ CRendererContext::CRendererContext(const char *ribFile, const char *riNetString)
     maxMotionParameters = 0;
     lastCommand = NULL;
     riExecTag = 0;
+    idOrdinal = 0;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -665,6 +667,13 @@ void CRendererContext::addObject(CObject *o) {
     // Make sure we don't delete the object
     o->attach();
 
+    // The object's stable identity: mix(scope, ordinal), the scope being the
+    // frame and the ordinal this object's position among the world block's
+    // top-level objects (spec 039, research R3.2). Never taken from the render-time
+    // creation order or from getGlobalID (FR-016).
+    o->stableId = openrender::sampling::detail::mix(
+        openrender::sampling::detail::mix(0x5C09E1Dull, static_cast<uint32_t>(currentOptions->frame)), idOrdinal++);
+
     // Are we in the world block ?
     if (CRenderer::world != NULL) {
 
@@ -910,6 +919,7 @@ void CRendererContext::RiFrameEnd(void) {
 // WorldBegin - End stuff
 void CRendererContext::RiWorldBegin(void) {
     inWorld = true;
+    idOrdinal = 0; // top-level objects are numbered from the start of each world block
     toleranceNoticeGiven = FALSE; // FR-023: one tessellation-tolerance notice per frame
     // If -d flag given, add framebuffer display on top of whatever the RIB defined.
     // Must run before optionBegin() snapshots currentOptions into a new copy.

@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 1.1.0
 #!name "rayarea"
 light
 #!parameters:
@@ -21,7 +21,7 @@ varying	vector	temporary_8
 	vufloat  temporary_1 1.570796327
 	vufloat  temporary_0 temporary_1
 	illuminate P N temporary_0 #!Label2
-	visibility	("f=pp")  temporary_6 P Ps
+	visibility	("f=pp")  temporary_6 P Ps 0
 	vufloat  temporary_7 intensity
 	mulff  temporary_5 temporary_6 temporary_7
 	vfromf  temporary_4 temporary_5

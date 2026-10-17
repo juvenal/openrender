@@ -488,3 +488,58 @@ Run 2026-10-17 on top of the merge (`988f9a9`), every build and test through the
   - `LibShader_StaleShaderRejectedJit`: Failed on the precondition: the emitted module has 0 versioned and 2 unversioned `random()` calls.
   - `LibShader_RandomNotPure`: **Passed today**, a characterization result, not contorted: two identical `random()` calls compile to two instructions, and a `random()` in a loop stays at position 6 of a loop spanning 2..8. A uniform destination for `random()` does not compile at all (the test skips that variant and says so). The test stays as a regression guard for T052's pass changes.
 - `ctest -L architecture`: 21/21.
+
+### Phase 4 implementation (T044-T056)
+
+Every build, ctest and render went through `cpujob.sh 039` at `-j4`. No approved test was edited.
+
+#### What was implemented
+
+- **Stable identity** (T044-T046): `CObject::stableId` (0 until assigned). A top-level object gets `mix(mix(0x5C09E1D, frame), ordinal)` in `CRendererContext::addObject`, the ordinal counting the world block's top-level objects from `RiWorldBegin`. Every other identity is assigned in one place, `CObject::setChildren`, to children that have none: `mix(parent, k)`, k being the position in the chain handed over (tessellation children, instance copies, procedural expansions, CSG leaves, patch-mesh patches), or the parent's own identity for split pieces (`inheritId`, used by `CTesselationPatch`). `cluster()` dummies get `mix(parent, 0|1)`. Children that already have an identity (top-level objects under the root) are untouched. This replaces the "ID-scope stack" of T045: because every expansion funnels through `setChildren`, no scope needs pushing, and nothing depends on creation order at render time or on `getGlobalID`.
+- **Points** (T047): the whole `CPoints` object is shaded in one call, so the vertex index is the point's identity. Instead of making `CPoints::sample()` write an `elementId`, `fillPointKeys()` uses the vertex index as `elementId` for every `SHADING_0D` call (and `u = v = 0`); same semantics, no change to the primitive.
+- **`CRay`** (T048): `key` and `depth` declared (Infra); set in Phase 5.
+- **`CShadingState`** (T049): `pointKeys` (capacity 3 x maxGridSize), `batchKey`, `pointKeysFromRays`, `callSiteOccurrence` (declared, null until Phase 6 draws from it), `currentShaderKey` (declared; `execute()` sets it in Phase 6).
+- **`shade()`** (T050): when the sampler is not `Legacy` and the call is a real shading pass, `PARAMETER_U|V` are requested, and after sampling `fillPointKeys()` fills `pointKeys` with `cellKey(object->stableId, u, v, elementId, frame, seed)`, sets `batchKey` from the grid's parametric origin, copies the real vertices' keys onto the derivative-offset tail vertices, and calls the test hook. Under `Legacy` none of this runs. `object->stableId` is an inline member read through the existing include.
+- **`trace.cpp`** (T051): before `object->shade()` the shading-group loop copies `ray->key` into `pointKeys`, sets `batchKey = mix(bucket, stableId, depth, chunkIndex)` and flags the keys as supplied by the hider so `shade()` does not recompute them. `CRay::key` is not yet initialised by the ray-spawning code, so raytraced keys are meaningless until Phase 5 (and unused: Legacy only).
+- **Compiler** (T052): `IRInstr::callSite` and a new last pass, `CCallSitePass`, number the stochastic calls of the final IR from 0 (Init section first): `random`, `urandom`, `trace`, `transmission`, `visibility`, `gatherHeader`, `occlusion`, `indirectdiffuse`, `illuminance`, `texture`, `environment`, `shadow`. `random`/`urandom` stay un-merged and un-hoisted (the pass never removes an instruction). `.rslo` format **1.0 -> 1.1** (`src/common/rsloFormat.h`): the version line, and the ordinal as the last operand of each such instruction.
+- **Loader** (T053): both lexers compare the file's major.minor with the format version and refuse an older file with `Version mismatch`, now naming the format. The shading loader strips the trailing ordinal before it resolves the opcode (so the optional parameter pairs of `trace()` and friends and fixed-arity opcodes see the arguments they always did) and keeps it in `TCode::callSite` (it reuses two padding bytes; the struct size is unchanged). Pass 2 stores the constant before it can know it is an ordinal, so the constant tables stay sized as pass 1 counted them and only the argument slot is dropped.
+- **JIT** (T054): the fifteen entries `op_random_{f,v}`, `op_texture_{f,c}`, `op_environment_{f,c}`, `op_shadow_f`, `op_visibility`, `op_transmission`, `op_trace_{f,c}`, `op_occlusion`, `op_indirectdiffuse`, `op_gatherHeader`, `op_illuminance_begin` are renamed `..._v2` and gain a trailing `uint32_t callSite`; the emitter passes the ordinal as an `i32` constant. The old names no longer exist, so a stale `.slo` fails at JIT bind (`Symbols not found: [ _op_random_f ]`). The new argument is ignored under `Legacy`. `solar` and `illuminate` carry no ordinal (contract J1a).
+- `EXCLUDE_FROM_ALL` removed from the Phase 4 tests (T055). Docs: `contracts/shading-runtime.md` (J1 now lists illuminance, J1a, I1, the test hook), `research.md` R3.3 (hook instead of AOV), `tasks.md` T042.
+
+#### Results (T056)
+
+- Build: exit 0, no compiler warnings; this rebuilt every shader (108 `.rslo`, 108 `.slo`). T004's stat check: no compiled shader is older than `oshader` (0 of 216).
+- Full suite: **651 tests, 649 passed, 2 failed**; no baseline test fails (the 635 tests of the merge baseline all pass, including the `-slo` suite, so the `_v2` symbols resolve at bind time and `addProcessSymbol()` is not needed). `ctest -L architecture` 21/21; `archcheck` `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`, TOTAL refs 740/113 (unchanged), no allowlist line. `Visual_camera-dof-reyes` failed once in an earlier full run and passes in isolation (16.97, threshold 20). The new tests: 14 of 16 pass (below).
+- Mid-way the first full run had 57 failures: a real crash I introduced (the loader wrote the ordinal constant into a constant table that pass 1 had not sized when the ordinal was a shader's only constant) plus the expected reference failures. Fixed as described under the loader; the interpreter crashed on every shader of that shape.
+
+#### The two failing new tests are defects in the approved tests (stopped, not edited)
+
+1. **`Sampling_ObjectIds_splits`** cannot pass as written, in two ways, and the implementation behaves correctly. Evidence from a temporary probe (reverted): the 4x4 bicubic patch with `gridsize 8` produced **16 grids**, all shaded through **one surface** whose identity is `mix(patch, 0)` (`ad573a70c46cd3fd`), the identity of the mesh's only child.
+   - `CHECK(pieces.size() > 1)` counts distinct `CSurface` pointers, but `CPatch::dice` splits into lightweight `CPatch` views and calls `drawGrid(object, ...)` with the one underlying surface, so every piece reports the same surface.
+   - `CHECK(*ids.begin() == patch[0]->stableId)` expects the shaded surface to be the object `RiPatch` added, but `RiPatch` adds a patch *mesh* whose child patch is what is shaded, so the identity is `mix(mesh, 0)`.
+   - Proposed fix (one test, your call): count grids instead (`reports().size() > 1`) and compare with `mixChild(patch[0]->stableId, 0)`.
+2. **`LibShader_StaleShaderRejectedJit`**: the behaviour holds (the stale module fails to bind, `compileShader` returns null, `JIT session error: Symbols not found: [ _op_random_f ]`), but the last check expects that text in a diagnostic captured through the diagnostic sink, and the JIT engine reports the failure through the logging layer / LLVM's session reporter, which the sink never sees. Proposed fix: capture the message from the logger or drop the text check and keep `entry == nullptr`.
+
+#### Reference regeneration (approved on one condition)
+
+Regenerated `tests/shaders/references/*.rslo` (the `ShaderCompilerImmutability` references; `somewood.rslo` is the `SloinfoGoldenOutput` fixture) from the new compiler's output. Compared with the previous checked-in files, over **all 108 references, 7617 lines**:
+
+| Kind of difference | Lines |
+|---|---|
+| `#!version 1.0.0` -> `#!version 1.1.0` | 108 (one per file) |
+| a stochastic instruction gained a trailing ordinal operand (and nothing else on the line changed) | 63 |
+| **anything else** (other changes, added or removed lines, a stochastic instruction without an ordinal) | **0** |
+
+The ordinals of every file are exactly 0..n-1 in file order. `git diff --stat` for the directory agrees: 108 files, 171 insertions, 171 deletions (108 + 63). `ShaderCompilerImmutability` and `SloinfoGoldenOutput` pass again.
+
+#### Notes
+
+- Keys are meaningless on rays until Phase 5 sets `CRay::key`; nothing reads them under `Legacy`.
+- 024 merge: unchanged (`recording_services.h` untouched by this phase).
+
+#### Phase 4 follow-up (maintainer decisions)
+
+- **`Sampling_ObjectIds_splits`**: amended as approved. It now asserts `reports().size() > 1` (the patch was split into several grids), that every grid reports the same id, and that this id is `mixChild(patch[0]->stableId, 0)`, the mesh's child. Only those assertions changed. Passes.
+- **`LibShader_StaleShaderRejectedJit`**: test unchanged; the code was fixed. `CLLVMJitEngine::compileShader` (`src/libshader/shading/llvmJit.cpp`) now reports a failed add/bind through the diagnostic sink with `error(CODE_BADFILE, ...)`, naming the shader and file, saying the `.slo` is stale or incompatible and must be recompiled with `oshader --jit`, and including LLVM's text. The unresolved-symbol list is not part of the lookup error (that says only `Failed to materialize symbols`); it arrives through the ORC session's error reporter, so the engine now installs one that still prints `JIT session error: ...` to stderr and keeps the text for the diagnostic. Captured diagnostic: `Cannot bind JIT shader "stale_probe" (...stale_probe.slo): the .slo is stale or incompatible with this renderer and must be recompiled with `oshader --jit`. Failed to materialize symbols: { (main, { _stale_probe }) } (Symbols not found: [ _op_random_f ])`. Passes.
+- Full suite: **651/651 pass**; `ctest -L architecture` 21/21.
+- The `.rslo` 2.0.0 / `.slo` semver change is on hold, not started; no references regenerated for it.

@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 1.1.0
 #!name "ray_self_hit_probe"
 surface
 #!parameters:
@@ -39,7 +39,7 @@ varying	float	temporary_7
 	vufloat  temporary_0 1.570796327
 	vufloat  temporary_4 temporary_0
 	vufloat  temporary_5 samples
-	gatherHeader	("o=spnffsc") temporary_3 P Nn temporary_4 temporary_5 "surface:Ci" Chit
+	gatherHeader	("o=spnffsc") temporary_3 P Nn temporary_4 temporary_5 "surface:Ci" Chit 0
 #!Label8:
 	gather #!Label9
 	vufloat  temporary_7 0
@@ -48,7 +48,7 @@ varying	float	temporary_7
 #!Label9:
 	gatherEnd #!Label8
 	vufloat  temporary_4 samples
-	occlusion	("f=pnf")  occ P Nn temporary_4
+	occlusion	("f=pnf")  occ P Nn temporary_4 1
 	moveff  temporary_5 temporary_4
 	mulff  temporary_4 occ temporary_5
 	vufloat  temporary_5 0

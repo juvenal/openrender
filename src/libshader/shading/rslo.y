@@ -55,6 +55,7 @@ typedef enum {
 #include <string.h>
 
 #include "common/global.h"
+#include "common/rsloFormat.h"
 #include "common/containers.h"
 #include "common/memory.h" // globalArena
 #include "shader.h"
@@ -533,6 +534,57 @@ static	TRSLObjectFunction		functions[]	=	{
 										// Description			:	Find/Set an opcode/function
 										// Return Value			:	-
 										// Comments				:
+									///////////////////////////////////////////////////////////////////////
+									// Function				:	takeCallSite
+									// Description			:	The stochastic instructions of format 1.1 end in
+									//							their call-site ordinal (spec 039). Remove it from
+									//							the argument list, so that the opcode lookup and the
+									//							optional parameter pairs of trace() and friends see
+									//							the arguments they always did, and keep its value.
+									// Return Value			:	The ordinal (0 for an instruction without one)
+									// Comments				:	Must run in both passes, before setOpcode(), so that
+									//							the pass-1 counts and the pass-2 layout agree
+		static	unsigned short			takeCallSite() {
+											static const char *stochastic[] = {"random","urandom","trace","transmission","visibility","gatherHeader","occlusion","indirectdiffuse","illuminance","texture","environment","shadow",NULL};
+											int	i;
+
+											for (i=0;stochastic[i]!=NULL;i++)
+												if (strcmp(stochastic[i],currentData.currentOpcode) == 0)
+													break;
+											if (stochastic[i] == NULL)	return 0;
+
+											switch(currentData.passNumber) {
+											case 1:
+												// The ordinal was counted as one float argument. Its constant stays
+												// reserved (pass 2 stores it before it can tell it is the call site),
+												// so that the constant tables are sized as pass 2 fills them.
+												currentData.numArgument		-=	1;
+												break;
+											case 2:
+												{
+													// The last argument is that float constant
+													TArgument	*last	=	currentData.currentArgumentPlace - 1;
+
+													if (currentData.currentArgument < 1 || last->accessor != SL_IMMEDIATE_OPERAND || last->bytesPerItem != sizeof(float)) {
+														rsloerror("Missing call-site operand");
+														return 0;
+													}
+
+													// The constant itself stays where pass 2 stored it, unreferenced
+													const float	*value	=	(const float *) currentData.constantEntries[last->index];
+													const unsigned short	ordinal	=	(unsigned short) *value;
+
+													currentData.currentArgumentPlace--;
+													currentData.currentArgument--;
+													return ordinal;
+												}
+											default:
+												break;
+											}
+
+											return 0;
+										}
+
 		static	void					setOpcode() {
 											switch(currentData.passNumber) {
 											case 1:
@@ -1872,6 +1924,7 @@ rsloDSO:			SCRL_DSO
 							currentData.currentOpcodePlace->numArguments	=	(unsigned char) (currentData.currentArgument);
 							currentData.currentOpcodePlace->uniform			=	(unsigned char) (currentData.opcodeUniform);
 							currentData.currentOpcodePlace->dso				=	dso;
+							currentData.currentOpcodePlace->callSite		=	0;
 							currentData.currentOpcodePlace++;
 						} else {
 							rsloerror("Failed to locate DSO function\n");
@@ -1889,6 +1942,7 @@ rsloOpcode:
 					switch(currentData.passNumber) {
 					case 1:
 						currentData.numCode++;		// opcode
+						strcpy(currentData.currentOpcode,$1);		// (pass 1 needs the name to recognise a call-site operand)
 						break;
 					case 2:
 						strcpy(currentData.currentOpcode,$1);
@@ -1907,6 +1961,7 @@ rsloOpcode:
 					switch(currentData.passNumber) {
 					case 1:
 						currentData.numCode++;		// opcode
+						strcpy(currentData.currentOpcode,"surface");
 						break;
 					case 2:
 						strcpy(currentData.currentOpcode,"surface");
@@ -1925,6 +1980,7 @@ rsloOpcode:
 					switch(currentData.passNumber) {
 					case 1:
 						currentData.numCode++;		// opcode
+						strcpy(currentData.currentOpcode,"displacement");
 						break;
 					case 2:
 						strcpy(currentData.currentOpcode,"displacement");
@@ -1953,7 +2009,13 @@ rsloStatement:
 				rsloOpcode
 				rsloOperandList
 				{
+					const unsigned short callSite	=	takeCallSite();
+
 					setOpcode();
+
+					// setOpcode() advanced currentOpcodePlace past the instruction it filled
+					if (currentData.passNumber == 2 && currentData.currentOpcodePlace > currentData.code)
+						currentData.currentOpcodePlace[-1].callSite	=	callSite;
 				}
 				;
 
@@ -2085,7 +2147,7 @@ int	rsloLineno	=	0;
 // Return Value			:
 // Comments				:
 void	rsloerror(const char *s) {
-	warning(CODE_BADFILE,"Error in shader \"%s\" (%d) (\"%s\") (v%d.%d.%d)\n",currentData.name,rsloLineno,s,VERSION_MAJOR,VERSION_MINOR,VERSION_PATCH);
+	warning(CODE_BADFILE,"Error in shader \"%s\" (%d) (\"%s\") (v%d.%d.%d, .rslo format %d.%d)\n",currentData.name,rsloLineno,s,VERSION_MAJOR,VERSION_MINOR,VERSION_PATCH,RSLO_FORMAT_MAJOR,RSLO_FORMAT_MINOR);
 	currentData.numErrors++;
 }
 

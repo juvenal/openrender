@@ -39,6 +39,7 @@ set(compiler_sources
     passes/passUniformLifting.cpp
     passes/passConstFold.cpp
     passes/passCSE.cpp
+    passes/passCallSites.cpp
 )
 
 if(OPENRENDER_HAVE_LLVM)

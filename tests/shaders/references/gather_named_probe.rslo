@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 1.1.0
 #!name "gather_named_probe"
 surface
 #!parameters:
@@ -34,7 +34,7 @@ varying	vector	temporary_6
 	vustring  temporary_1 "illuminance"
 	vufloat  temporary_3 1.570796327
 	vufloat  temporary_2 temporary_3
-	gatherHeader	("o=spnffsfsfsfssssscspsvsf") temporary_1 P Nn temporary_2 samples "bias" 0.01 "maxdist" 1000.0 "samplebase" 2 "distribution" "cosine" "label" "myGather" "surface:Ci" Csum "ray:origin" rOrigin "ray:direction" rDir "ray:length" rLen
+	gatherHeader	("o=spnffsfsfsfssssscspsvsf") temporary_1 P Nn temporary_2 samples "bias" 0.01 "maxdist" 1000.0 "samplebase" 2 "distribution" "cosine" "label" "myGather" "surface:Ci" Csum "ray:origin" rOrigin "ray:direction" rDir "ray:length" rLen 0
 #!Label4:
 	gather #!Label6
 	addvv  Ctotal Ctotal Csum

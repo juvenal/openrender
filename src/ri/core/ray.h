@@ -29,6 +29,7 @@
 
 #include "common/algebra.h"
 #include "common/global.h"
+#include "common/sampling.h"
 
 class CSurface;
 
@@ -46,6 +47,13 @@ class CRay {
         float t;          // The maximum intersection (if intersection, this is overwritten)
         float tmin;       // The intersection bias
         float da, db;     // The linear ray differential (r = da*t + db)
+
+        // Sample identity (spec 039). Phase 4 declares the fields; the hiders and
+        // the ray-spawning code set them in Phase 5 (a primary ray gets the camera
+        // key and depth 0, a secondary ray a child key and its parent's depth + 1).
+        // Nothing reads them while the sampler is Legacy.
+        openrender::sampling::SampleKey key; // The ray's identity
+        uint16_t depth;                      // 0 for a primary ray
 
         // ------------------> O U T P U T
         CSurface *object; // The intersection object (NULL if no intersection)

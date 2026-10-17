@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 1.1.0
 #!name "shinymetal"
 surface
 #!parameters:
@@ -91,8 +91,8 @@ varying	float	temporary_24
 	transform	("p=Sp")  Pndc "NDC" P
 	xcomp	("f=p")  x Pndc
 	ycomp	("f=p")  y Pndc
-	texture	("f=SFffSfsf")  alpha_1 envname 3 x y "blur" temporary_6 "fill" 1
-	texture	("c=SFffSf")  C envname 0 x y "blur" temporary_6
+	texture	("f=SFffSfsf")  alpha_1 envname 3 x y "blur" temporary_6 "fill" 1 0
+	texture	("c=SFffSf")  C envname 0 x y "blur" temporary_6 1
 #!Label22:
 	else #!Label21
 	transform	("p=Sp")  Psp envspace P
@@ -181,8 +181,8 @@ varying	float	temporary_24
 	addvv  Rsp Psp temporary_9
 #!Label25:
 	endif
-	environment	("f=SFvSfsf")  alpha_1 envname 3 Rsp "blur" temporary_6 "fill" 1
-	environment	("c=SFvSf")  C envname 0 Rsp "blur" temporary_6
+	environment	("f=SFvSfsf")  alpha_1 envname 3 Rsp "blur" temporary_6 "fill" 1 2
+	environment	("c=SFvSf")  C envname 0 Rsp "blur" temporary_6 3
 #!Label21:
 	endif
 #!Label19:

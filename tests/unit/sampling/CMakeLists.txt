@@ -85,9 +85,9 @@ add_sampling_test(Sampling_CameraSobolBlocks test_sampling_morton camera_sobol_b
 
 # --- Phase 4 (US6): identity plumbing, tests first ---------------------------------
 #
-# Written before CObject::stableId and CShadingContext::pointKeyObserver exist
-# (see scene_probe.h), so the targets are EXCLUDE_FROM_ALL: the default build stays
-# green, and the tests are "Not Run" until T055 removes the property. They run
+# Written before CObject::stableId and CShadingContext::pointKeyObserver existed
+# (see scene_probe.h); both are there now, so the targets are part of the default
+# build. They run
 # real Ri sessions, so they link the renderer, in a scratch directory (each render
 # writes scene_probe.tif) with ORENDERHOME at the source root (no .orenderrc, so a
 # Display there cannot make these sessions open a file display), and one case per
@@ -102,7 +102,7 @@ set(SCENE_PROBE_ENV "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOU
 
 # add_scene_probe_test(<target> <source> <ctest prefix> <case>...)
 function(add_scene_probe_test target source prefix)
-    add_executable(${target} EXCLUDE_FROM_ALL ${source})
+    add_executable(${target} ${source})
     target_compile_features(${target} PRIVATE cxx_std_20)
     target_include_directories(${target} PRIVATE ${SCENE_PROBE_INCLUDES})
     target_link_libraries(${target} PRIVATE ribRender libshader_shading openrendercommon)

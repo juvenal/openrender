@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 1.1.0
 #!name "spherelight"
 light
 #!parameters:
@@ -49,8 +49,8 @@ varying	vector	temporary_11
 	vufloat  temporary_5 numSamples
 	flt  temporary_4 i temporary_5
 	for temporary_4
-	random	("f=")  u1
-	random	("f=")  u2
+	random	("f=")  u1 0
+	random	("f=")  u2 1
 	vufloat  temporary_1 6.2831853080000002
 	vufloat  temporary_4 temporary_1
 	mulff  theta temporary_4 u1
@@ -74,7 +74,7 @@ varying	vector	temporary_11
 	mulvv  temporary_10 temporary_11 dir
 	addvv  Psample temporary_9 temporary_10
 	subvv  toSample Psample Ps
-	visibility	("f=pp")  temporary_5 Ps Psample
+	visibility	("f=pp")  temporary_5 Ps Psample 2
 	dot  temporary_6 toSample toSample
 	divff  temporary_4 temporary_5 temporary_6
 	addff  vis vis temporary_4

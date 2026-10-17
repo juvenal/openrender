@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 1.1.0
 #!name "glass"
 surface
 #!parameters:
@@ -59,7 +59,7 @@ varying	vector	temporary_8
 	fgt  temporary_2 Kr temporary_3
 	if temporary_2 #!Label13
 	vfromf  temporary_7 Kr
-	trace	("c=pv")  temporary_8 P R
+	trace	("c=pv")  temporary_8 P R 0
 	mulvv  temporary_0 temporary_7 temporary_8
 	addvv  Ci Ci temporary_0
 #!Label13:
@@ -69,7 +69,7 @@ varying	vector	temporary_8
 	if temporary_2 #!Label15
 	vfromf  temporary_8 Kt
 	mulvv  temporary_7 Cs temporary_8
-	trace	("c=pv")  temporary_8 P T
+	trace	("c=pv")  temporary_8 P T 1
 	mulvv  temporary_0 temporary_7 temporary_8
 	addvv  Ci Ci temporary_0
 #!Label15:

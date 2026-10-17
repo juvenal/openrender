@@ -197,5 +197,9 @@ void CRSLObjectEmitter::emitInstr(const IRInstr &instr, FILE *out) {
     for (const IROperand &op : instr.operands)
         fprintf(out, " %s", op.token.c_str());
 
+    // The call-site ordinal of a stochastic call, last (format 1.1).
+    if (instr.callSite >= 0)
+        fprintf(out, " %d", instr.callSite);
+
     fprintf(out, "\n");
 }

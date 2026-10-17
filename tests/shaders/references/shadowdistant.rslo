@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 1.1.0
 #!name "shadowdistant"
 light
 #!parameters:
@@ -39,7 +39,7 @@ varying	vector	temporary_6
 	else #!Label5
 	vfromf  temporary_0 1
 	vuvector  temporary_5 temporary_0
-	shadow	("c=SFp")  temporary_6 shadowname 0 Ps
+	shadow	("c=SFp")  temporary_6 shadowname 0 Ps 0
 	subvv  vis temporary_5 temporary_6
 #!Label5:
 	endif

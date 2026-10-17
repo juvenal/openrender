@@ -199,6 +199,8 @@ void CObject::cluster(CShadingContext *context) {
     // Cluster the rest of the objects
     front = new CDummyObject(attributes, xform);
     back = new CDummyObject(attributes, xform);
+    front->stableId = openrender::sampling::detail::mix(stableId, 0);
+    back->stableId = openrender::sampling::detail::mix(stableId, 1);
     initv(front->bmin, C_INFINITY);
     initv(front->bmax, -C_INFINITY);
     initv(back->bmin, C_INFINITY);

@@ -14,20 +14,25 @@ This covers the compiler, the `.rslo` format, the JIT runtime ABI and `CShadingS
 
 ## Interpreter (`.rslo`)
 
-- **I1**: stochastic instructions carry the `callSite` as an extra operand. This is a format change:
+- **I1**: stochastic instructions carry the `callSite` as an extra, **last** operand (`.rslo` format 1.1, `src/common/rsloFormat.h`); the loader strips it before it resolves the opcode and keeps it in `TCode::callSite`. This is a format change:
   - the `.rslo` format version is bumped, so the loader rejects an older file with a diagnostic and never misreads it;
   - every shipped `.rslo` is rebuilt by the build.
 - **I2**: `random()`/`urandom()` draws come from `get1D(substream(pointKeys[i], shaderKey, callSite, occurrence[callSite][i], depth), dim, …)`. The uniform form uses `batchKey` in place of `pointKeys[i]`.
 
 ## JIT runtime ABI (`rslOps.cpp`, `llvmEmitter.cpp`)
 
-- **J1**: `op_random_f`, `op_random_v` and the trace, transmission, gather, occlusion, indirectdiffuse and texture-family entries gain a `uint32_t callSite` argument. The emitter passes the compiler's ordinal as a constant. Every `.slo` is rebuilt.
+- **J1**: `op_random_f`, `op_random_v` and the trace, transmission, visibility, gather (`op_gatherHeader`), occlusion, indirectdiffuse, illuminance (`op_illuminance_begin`) and texture-family (texture, environment, shadow) entries gain a `uint32_t callSite` argument, always the **last** one. The emitter passes the compiler's ordinal as a constant. Every `.slo` is rebuilt.
   - Each changed entry is **renamed** with a version suffix, for example `op_random_f_v2`.
   - A stale `.slo` then fails at JIT bind time with an unresolved symbol instead of reading garbage arguments.
+- **J1a**: `solar` and `illuminate` carry no ordinal: they declare a light's own emission and draw nothing at that point. (C1 listed them; revisit if a light needs a stream of its own.)
 - **J2**: per point, the JIT increments `occurrence` for active lanes only, exactly as the interpreter does. The comparison tests in SC-008 check this.
 - **J3**: the changed symbols must still resolve at JIT bind time (CLAUDE.md gotcha 3). The `-slo` visual suite proves it.
 
 - **J4**: derivative-offset tail vertices (`numVertices = 3·numRealVertices`) copy their real vertex's key and occurrence, so `Du(random())` and `Dv(random())` are 0 (§R3.10a). This is the same on both backends.
+
+## Test hook (Phase 4)
+
+`CShadingContext::pointKeyObserver` (`shading.h`) is a null-in-production function pointer. When set, `shade()` calls it once per shaded grid, after the per-point keys are filled, with a `CPointKeyReport {surface, numVertices, keys, u, v}`. Keys are filled only when the frame's sampler is not `Legacy`. It exists for `Sampling_ObjectIds_*` and `Sampling_CellKeyUniqueness_*`; nothing else may use it.
 
 ## CShadingState additions (`src/libshader/shading/shading.h`)
 

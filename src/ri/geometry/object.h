@@ -111,8 +111,13 @@ class CObject : public CRefCounter {
         // Cluster the children
         void cluster(CShadingContext *);
 
-        // Set the children objects
-        void setChildren(CShadingContext *, CObject *);
+        // Set the children objects. Children that have no identity yet get one
+        // (spec 039, research R3.2): mix(this->stableId, k) for the k-th child of
+        // the chain (tessellation, instance copies, procedural expansions, CSG
+        // leaves), or this object's own identity when the children are pieces
+        // that dicing split it into (inheritId). Children that already have an
+        // identity (top-level objects, under the root) keep it.
+        void setChildren(CShadingContext *, CObject *, bool inheritId = false);
 
         // Create the children of an object that builds them lazily (meshes).
         // Idempotent. The default does nothing.
@@ -132,6 +137,7 @@ class CObject : public CRefCounter {
         void destroy(); // Delete the children/siblings
 
         int flags;                   // Holds object flags
+        uint64_t stableId;           // Stable identity (spec 039): same on every run, thread count and process; 0 until assigned
         CAttributes *attributes;     // Holds the object attributes
         CXform *xform;               // Holds the object xform to the object space
         CObject *children, *sibling; // The hierarchy

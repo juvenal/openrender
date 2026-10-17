@@ -30,6 +30,7 @@
 #include <string.h>
 
 #include "common/algebra.h"
+#include "common/rsloFormat.h"
 #include "common/os.h"
 #include "rslo.h"
 

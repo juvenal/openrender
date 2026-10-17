@@ -411,6 +411,8 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
 // Description			:	Ctor
 // Return Value			:	-
 // Comments				:
+CPointKeyObserver CShadingContext::pointKeyObserver = nullptr;
+
 CShadingContext::CShadingContext(int t) : thread(t) {
     // Initialize the shading state
     currentShadingState = NULL;
@@ -565,6 +567,59 @@ CVariable *CShadingContext::rendererRetrieveVariable(const char *n) const { retu
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CShadingContext
+// Method				:	fillPointKeys
+// Description			:	Give the points about to be shaded their sample
+//							identities (spec 039, research R3.3/R3.4/R3.7/R3.10a)
+// Return Value			:	-
+// Comments				:	Grid points get the cell key of (object, u, v): the
+//							object's stable identity and the parametric coordinates
+//							the sampler just wrote, so the same point has the same
+//							key whichever grid, bucket, thread or process shades it.
+//							A point set (shading dimension 0) has no (u, v): its key
+//							comes from the point's index in the object. Ray hits
+//							already carry the key of their ray (the hider set it);
+//							only their derivative-offset tail vertices are filled,
+//							from their real vertex.
+void CShadingContext::fillPointKeys(CSurface *object, EShadingDim dim) {
+    using openrender::sampling::cellKey;
+    CShadingState *state = currentShadingState;
+    const int numReal = state->numRealVertices;
+    const float *u = state->varying[VARIABLE_U];
+    const float *v = state->varying[VARIABLE_V];
+
+    if (!state->pointKeysFromRays) {
+        const uint64_t id = object->stableId;
+        if (dim == SHADING_0D) {
+            // The whole point set is shaded in one call: the index is the point's identity
+            for (int i = 0; i < numReal; i++)
+                state->pointKeys[i] = cellKey(id, 0.0f, 0.0f, (uint32_t)i, sampling.frame, sampling.seed);
+        }
+        else {
+            for (int i = 0; i < numReal; i++)
+                state->pointKeys[i] = cellKey(id, u[i], v[i], 0u, sampling.frame, sampling.seed);
+        }
+
+        // The invocation-level key (uniform random()): the grid's parametric origin
+        const float u0 = (dim == SHADING_0D || numReal == 0) ? 0.0f : u[0];
+        const float v0 = (dim == SHADING_0D || numReal == 0) ? 0.0f : v[0];
+        state->batchKey = openrender::sampling::detail::mix(cellKey(id, u0, v0, 0u, sampling.frame, sampling.seed).full, 0xBA7C4ull);
+    }
+
+    // Derivative-offset tail vertices copy their real vertex's key
+    if (state->numVertices > numReal)
+        for (int i = 0; i < numReal; i++) {
+            state->pointKeys[numReal + 2 * i] = state->pointKeys[i];
+            state->pointKeys[numReal + 2 * i + 1] = state->pointKeys[i];
+        }
+
+    if (pointKeyObserver != nullptr) {
+        const CPointKeyReport report{object, numReal, state->pointKeys, u, v};
+        pointKeyObserver(report);
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CShadingContext
 // Method				:	shade2D
 // Description			:	Sample/Shade bunch of points
 // Return Value			:	-
@@ -586,6 +641,10 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
 
     assert(uVertices > 0);
     assert(vVertices > 0);
+
+    // Does this call give its points sample identities (spec 039)? Only a real
+    // shading pass of a frame whose sampler is not Legacy does.
+    const bool wantKeys = (sampling.backend != openrender::sampling::Backend::Legacy) && (displaceOnly == FALSE);
 
     // This is the number of vertices we will be sampling/shading
     int numVertices = uVertices * vVertices;
@@ -661,6 +720,10 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
 
         // Prepare the used parameters by the shaders
         usedParameters |= currentAttributes->usedParameters | (currentShadingState->services ? currentShadingState->services->additionalParameters() : 0u);
+
+        // The cell key reads (u, v)
+        if (wantKeys)
+            usedParameters |= PARAMETER_U | PARAMETER_V;
 
         // Prepare the locals
         for (int a = 0; a < NUM_ACCESSORS; a++)
@@ -960,6 +1023,10 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
         }
     }
 
+    // Give the points their sample identities (spec 039)
+    if (wantKeys)
+        fillPointKeys(object, dim);
+
     // Clear the tags for shader execution
     memset(currentShadingState->tags, 0, numVertices * sizeof(int));
 
@@ -1124,6 +1191,12 @@ CShadingState *CShadingContext::newState() {
         newState->stats = &stats;
         newState->services = svc;
         newState->diffuseReady = FALSE;
+        newState->pointKeys = new openrender::sampling::SampleKey[mgs * 3];
+        vertexMemory += mgs * 3 * sizeof(openrender::sampling::SampleKey);
+        newState->batchKey = 0;
+        newState->pointKeysFromRays = FALSE;
+        newState->callSiteOccurrence = nullptr;
+        newState->currentShaderKey = 0;
 
         for (j = 0; j < numGlobalVariables; j++) {
             const CVariable *var = svc->globalVariable(j);
@@ -1215,6 +1288,8 @@ void CShadingContext::freeState(CShadingState *cState) {
     vertexMemory -= mgs * 3 * sizeof(int);
     delete[] cState->Ns;
     vertexMemory -= mgs * 9 * sizeof(float);
+    delete[] cState->pointKeys;
+    vertexMemory -= mgs * 3 * sizeof(openrender::sampling::SampleKey);
 
     delete cState;
 }
