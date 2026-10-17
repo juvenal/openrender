@@ -82,3 +82,43 @@ add_sampling_test(Sampling_PMJ02Construction test_sampling_pmj02_table construct
 add_sampling_test_exe(test_sampling_morton test_morton.cpp)
 add_sampling_test(Sampling_MortonIndex test_sampling_morton morton)
 add_sampling_test(Sampling_CameraSobolBlocks test_sampling_morton camera_sobol_blocks)
+
+# --- Phase 4 (US6): identity plumbing, tests first ---------------------------------
+#
+# Written before CObject::stableId and CShadingContext::pointKeyObserver exist
+# (see scene_probe.h), so the targets are EXCLUDE_FROM_ALL: the default build stays
+# green, and the tests are "Not Run" until T055 removes the property. They run
+# real Ri sessions, so they link the renderer, in a scratch directory (each render
+# writes scene_probe.tif) with ORENDERHOME at the source root (no .orenderrc, so a
+# Display there cannot make these sessions open a file display), and one case per
+# process (GitHub #2).
+set(SCENE_PROBE_INCLUDES
+    ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/parse
+    ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri/hiders
+    ${CMAKE_SOURCE_DIR}/src/ri/geometry ${CMAKE_SOURCE_DIR}/src/ri/texture ${CMAKE_SOURCE_DIR}/src/ri/output
+    ${CMAKE_SOURCE_DIR}/src/ri/core ${CMAKE_SOURCE_DIR}/src/ri/dataviewer ${CMAKE_SOURCE_DIR}/src/libshader/shading
+    ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_BINARY_DIR})
+set(SCENE_PROBE_ENV "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>")
+
+# add_scene_probe_test(<target> <source> <ctest prefix> <case>...)
+function(add_scene_probe_test target source prefix)
+    add_executable(${target} EXCLUDE_FROM_ALL ${source})
+    target_compile_features(${target} PRIVATE cxx_std_20)
+    target_include_directories(${target} PRIVATE ${SCENE_PROBE_INCLUDES})
+    target_link_libraries(${target} PRIVATE ribRender libshader_shading openrendercommon)
+    foreach(_case ${ARGN})
+        set(_scratch ${CMAKE_BINARY_DIR}/tests/unit/sampling/${prefix}_${_case})
+        file(MAKE_DIRECTORY ${_scratch})
+        add_test(NAME ${prefix}_${_case} COMMAND ${target} ${_case} WORKING_DIRECTORY ${_scratch})
+        set_tests_properties(${prefix}_${_case} PROPERTIES TIMEOUT 120 LABELS "sampling;unit"
+            ENVIRONMENT "${SCENE_PROBE_ENV}")
+    endforeach()
+endfunction()
+
+# T038: stable object identity
+add_scene_probe_test(test_sampling_object_ids test_object_ids.cpp Sampling_ObjectIds
+    scene_loads instances delayed tessellation splits)
+
+# T042: no two shading points of one object share a key, per primitive family
+add_scene_probe_test(test_sampling_cell_keys test_cell_keys.cpp Sampling_CellKeyUniqueness
+    patch mesh quadric nurbs subdivision points curves)
