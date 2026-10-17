@@ -1,0 +1,60 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+
+# GitHub #52 regression scene (solar0_light, then distantlight), backend "slo".
+# The photon hider's no-argument solar() form. solar0_light is blue and
+# distantlight red, so a photon's blue power is solar0_light's alone.
+# Frame 1: photon pass, the light shaders pinned to "slo"; the geometry and
+# Frame 2 stay on "rslo" in every variant. The photon pass shades hits with
+# the built-in shading model, not surface shaders.
+# Frame 2: raytrace render of the global map Frame 1 wrote
+# (photonparity_view.sl). An empty map renders black. Each scene writes its
+# own map, deleted before every run: when nothing is stored nothing is
+# written, and a leftover file would be read instead.
+# test_photon_solar0 reads the maps of the alone, after-distant and
+# before-distant scenes and checks that solar0_light's photons are present,
+# finite, the same whichever light precedes it, and arrive from both
+# hemispheres. Render at -t:1 (the CPhotonHider race, BUGS.md).
+FrameBegin 1
+  Hider "photon" "int emit" [20000]
+  Projection "perspective" "fov" 45
+  Format 160 120 1
+  Translate 0 -1 5
+
+  WorldBegin
+    Attribute "shade" "shaderformat" ["slo"]
+    LightSource "solar0_light" 1 "intensity" [0.15] "lightcolor" [0 0 1]
+    LightSource "distantlight" 2 "intensity" [0.6] "lightcolor" [1 0 0] "from" [2 4 -2] "to" [0 0 0]
+    Attribute "shade" "shaderformat" ["rslo"]
+
+    Attribute "photon" "string globalmap" ["photon-solar0-before-distant-slo.gpm"]
+    Color [0.8 0.8 0.8]
+    Surface "matte"
+    Polygon "P" [-3 0 -3  -3 0 3  3 0 3  3 0 -3]
+    Polygon "P" [-3 0 3  -3 3 3  3 3 3  3 0 3]
+    TransformBegin
+      Translate 0 0.6 0.5
+      Sphere 0.6 -0.6 0.6 360
+    TransformEnd
+  WorldEnd
+FrameEnd
+
+FrameBegin 2
+  Hider "raytrace"
+  PixelSamples 2 2
+  Display "photon-solar0-before-distant-slo.tif" "file" "rgba"
+  Projection "perspective" "fov" 45
+  Format 160 120 1
+  Translate 0 -1 5
+
+  WorldBegin
+    Attribute "shade" "shaderformat" ["rslo"]
+    Surface "photonparity_view" "string mapname" ["photon-solar0-before-distant-slo.gpm"] "float gain" [1]
+    Polygon "P" [-3 0 -3  -3 0 3  3 0 3  3 0 -3]
+    Polygon "P" [-3 0 3  -3 3 3  3 3 3  3 0 3]
+    TransformBegin
+      Translate 0 0.6 0.5
+      Sphere 0.6 -0.6 0.6 360
+    TransformEnd
+  WorldEnd
+FrameEnd

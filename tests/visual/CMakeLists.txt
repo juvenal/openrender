@@ -71,6 +71,13 @@ target_compile_features(test_depth_analytic PRIVATE cxx_std_20)
 # FR-011/SC-006 manual-only JIT-vs-interpreter performance comparison driver
 # (spec 011-jit-opcode-parity, research.md D4). No TIFF dependency — timing
 # only, no pixel comparison.
+# Photon-map driver for the photon hider's no-argument solar() form
+# (fix/photon-solar0-stale, GitHub #52): renders three light orders and checks
+# the global maps they write. No image comparison. Run by the PhotonSolar0_*
+# tests below.
+add_executable(test_photon_solar0 test_photon_solar0.cpp)
+target_compile_features(test_photon_solar0 PRIVATE cxx_std_20)
+
 add_executable(test_perf_compare test_perf_compare.cpp)
 target_compile_features(test_perf_compare PRIVATE cxx_std_20)
 
@@ -1072,6 +1079,46 @@ add_test(NAME VisualSetup_photon-parity-slo-clean
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tests/visual/photon-parity-slo)
 set_tests_properties(VisualSetup_photon-parity-slo-clean PROPERTIES FIXTURES_SETUP photon_parity_slo_clean)
 set_tests_properties(Visual_photon-parity-slo PROPERTIES FIXTURES_REQUIRED photon_parity_slo_clean)
+
+# --- The photon hider's no-argument solar() (fix/photon-solar0-stale, GitHub
+# #52). CPhotonHider::solarBegin() did nothing for solar() without a
+# direction, so solarEnd() traced from stale L, Ps and powerScale: zeros for
+# the first light (no photon stored, no map written), or the preceding solar
+# light's axis, disc and power (distantlight's photons traced a second time).
+# Both backends reach the same hooks (spec 024).
+#
+# PhotonSolar0_<backend>: test_photon_solar0 renders solar0_light alone,
+# after distantlight and before it, and checks the maps it writes. The photon
+# hider produces no image of its own, so the maps are checked directly;
+# there is no reference and no hider comparison. -t:1 for the CPhotonHider
+# race (BUGS.md). The driver deletes each map before rendering it.
+foreach(_variant rslo slo)
+    if(_variant STREQUAL "slo")
+        set(_sfx "-slo")
+    else()
+        set(_sfx "")
+    endif()
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/photon-solar0-maps${_sfx})
+    file(MAKE_DIRECTORY ${_scratch})
+    add_test(NAME PhotonSolar0_${_variant}
+        COMMAND test_photon_solar0 $<TARGET_FILE:orender> "-t:1"
+            ${CMAKE_SOURCE_DIR}/examples/rib/tests/photon-solar0-alone${_sfx}.rib
+            photon-solar0-alone${_sfx}.gpm
+            ${CMAKE_SOURCE_DIR}/examples/rib/tests/photon-solar0-after-distant${_sfx}.rib
+            photon-solar0-after-distant${_sfx}.gpm
+            ${CMAKE_SOURCE_DIR}/examples/rib/tests/photon-solar0-before-distant${_sfx}.rib
+            photon-solar0-before-distant${_sfx}.gpm
+        WORKING_DIRECTORY ${_scratch})
+    set_tests_properties(PhotonSolar0_${_variant} PROPERTIES
+        TIMEOUT     360
+        LABELS      "visual;regression;photon"
+        ENVIRONMENT "${VISUAL_ENV}"
+        DEPENDS     orender)
+endforeach()
+# Without the JIT the slo scenes fall back to .rslo and test nothing new.
+list(APPEND OPENRENDER_SLO_VISUAL_TESTS PhotonSolar0_slo)
+unset(_sfx)
+unset(_scratch)
 
 # --- FR-006 discrimination coverage (spec 012-jit-parity-followups, T008b):
 # a uniform-classified instruction (`bias = bias + 1`) lexically nested inside
