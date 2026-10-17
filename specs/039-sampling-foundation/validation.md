@@ -564,3 +564,15 @@ Fixture versions use patch 7 so a string cannot match by accident (the loader's 
 - **`.slo`**: `SLO_FORMAT` 2.0.0 (separate from the `.rslo` one); `oshader --jit` writes `openrender.slo.format` (three i32 operands); `CLLVMJitEngine::compileShader` reads it (`readFormat`, missing or unreadable = 1.0.0) and checks it before adding or linking the module, refusing with `error(CODE_BADFILE, ...)` that names shader, file, the module's format, the supported format and `oshader --jit`. `openrender.shader.version` is unchanged; its `std::stoi` is replaced by `parseFormatVersion` (the field keeps the major number; nothing else reads it). The `_v2` renaming and the link-failure diagnostic are the backstop (`LibShader_StaleShaderRejectedJit` passes unchanged).
 - **References**: the 108 `tests/shaders/references/*.rslo` regenerated. Against 659c770, over 108 files / 7617 lines: 108 lines changed, every one `#!version 1.1.0` to `#!version 2.0.0`; **any other difference: 0**. `git diff --stat`: 108 files, 108 insertions, 108 deletions. `ShaderCompilerImmutability` and `SloinfoGoldenOutput` fail against the old references (as they must) and pass against the regenerated ones.
 - **Tests**: full suite **660 tests: 659 passed, 1 skipped, 0 failed** (the 651 plus the nine `LibShader_Format_*`); the skip is `LibShader_Format_rslo_lower_minor` (supported minor is 0, so no lower minor exists; reported SKIPPED, not passed). `ctest -L architecture` 21/21. No stale shader (0 of 216 compiled shaders older than `oshader`).
+
+## Phase 5 (US3): correlated camera samples
+
+### Tests first (T057-T058), against the unchanged hiders
+
+New: `Sampling_CameraSlotsEqual` (unit, label `sampling`), `CameraSamples_JitterZeroUnchanged_{reyes,raytrace}` and `CameraSamples_SobolEngaged_{reyes,raytrace}` (visual, labels `visual;regression;sampling`; driver `test_render_compare`, scenes `examples/rib/tests/sampling-camera-jitter{0,1}-*.rib`). Full suite after adding them: 665 tests, 660 pass, 1 skipped (`LibShader_Format_rslo_lower_minor`, as before), **3 fail**, all new; `ctest -L architecture` 21/21. The temporary probe implementation used to check the unit test is satisfiable has been reverted (the seam bodies are stubs).
+
+| Test | Result now | Why |
+|---|---|---|
+| `Sampling_CameraSlotsEqual` | FAIL | the seam is a stub: `reyesAbsSub`/`raytraceAbsSub` return 0 (unit-conversion checks fail) and `cameraSample` returns zeros (the slot-defined values and camera key are not produced). Verified satisfiable: a temporary 25-line implementation passed it, then was reverted. |
+| `CameraSamples_SobolEngaged_reyes`, `_raytrace` | FAIL | `0 of 76800 value(s) differ`: with jitter 1 the sobol and legacy renders are identical, because the hiders ignore the sampler for camera samples |
+| `CameraSamples_JitterZeroUnchanged_reyes`, `_raytrace` | PASS | **a guard, not a red test**: with jitter 0 the sobol render equals the legacy one today because the option is ignored. It becomes meaningful once the hiders use the slots; it is the test T061-T063 must keep green. The engaged control above is what stops it passing for the wrong reason. |

@@ -122,3 +122,14 @@ add_scene_probe_test(test_sampling_object_ids test_object_ids.cpp Sampling_Objec
 # T042: no two shading points of one object share a key, per primitive family
 add_scene_probe_test(test_sampling_cell_keys test_cell_keys.cpp Sampling_CellKeyUniqueness
     patch mesh quadric nurbs subdivision points curves)
+
+# --- Phase 5 (US3): correlated camera samples, tests first ---------------------------
+#
+# Written before the shared absolute-subpixel function existed: CSampler's
+# reyesAbsSub / raytraceAbsSub / cameraSample are the test seam (src/ri/hiders/
+# sampler.h), stubs until T060. No Ri session is needed, but CSampler lives in the
+# renderer library.
+add_sampling_test_exe(test_sampling_camera_slots test_camera_slots.cpp
+    LIBS ribRender libshader_shading)
+target_include_directories(test_sampling_camera_slots PRIVATE ${CMAKE_SOURCE_DIR}/src/ri/hiders)
+add_sampling_test(Sampling_CameraSlotsEqual test_sampling_camera_slots camera_slots)

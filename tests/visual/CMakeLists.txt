@@ -70,6 +70,11 @@ add_executable(test_pixel_probe test_pixel_probe.cpp)
 target_link_libraries(test_pixel_probe PRIVATE TIFF::TIFF)
 target_compile_features(test_pixel_probe PRIVATE cxx_std_20)
 
+# Two-render comparison driver (spec 039, Phase 5): bit-identical or different.
+add_executable(test_render_compare test_render_compare.cpp)
+target_link_libraries(test_render_compare PRIVATE TIFF::TIFF)
+target_compile_features(test_render_compare PRIVATE cxx_std_20)
+
 add_executable(test_depth_analytic test_depth_analytic.cpp)
 target_link_libraries(test_depth_analytic PRIVATE TIFF::TIFF)
 target_compile_features(test_depth_analytic PRIVATE cxx_std_20)
@@ -3746,4 +3751,59 @@ foreach(_format rslo slo)
             ENVIRONMENT "${VISUAL_ENV}"
             DEPENDS     orender)
     endforeach()
+endforeach()
+
+# --- Camera samples (spec 039, Phase 5, US3) --------------------------------------
+# Written before the camera samples come from the sampler's slots.
+#   CameraSamples_JitterZeroUnchanged_*: with "jitter" [0] the film, time and
+#     importance positions do not depend on the sampler, so a render under sobol
+#     must equal today's (legacy) render bit for bit. The scenes have no motion
+#     blur and no depth of field. The sobol side is a hand-written copy of the
+#     scene with the option line (T079 adds --prepend, which replaces the copy).
+#   CameraSamples_SobolEngaged_*: the control for the test above. With
+#     "jitter" [1] the samples sit at the sampler's positions, so the sobol
+#     render must differ from the legacy one; a sobol option the hiders ignore
+#     would pass the "unchanged" test for the wrong reason.
+foreach(_hider reyes raytrace)
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/camera-samples-${_hider})
+    file(MAKE_DIRECTORY ${_scratch})
+endforeach()
+set(_camera_samples_cases
+    JitterZeroUnchanged_reyes same
+        color-determinism-opaque-reyes.rib color-determinism-opaque.tif
+        sampling-camera-jitter0-reyes-sobol.rib sampling-camera-jitter0-reyes-sobol.tif
+    JitterZeroUnchanged_raytrace same
+        depth-analytic-min-raytrace.rib depth-analytic-min-raytrace.tif
+        sampling-camera-jitter0-raytrace-sobol.rib sampling-camera-jitter0-raytrace-sobol.tif
+    SobolEngaged_reyes differ
+        sampling-camera-jitter1-reyes-legacy.rib sampling-camera-jitter1-reyes-legacy.tif
+        sampling-camera-jitter1-reyes-sobol.rib sampling-camera-jitter1-reyes-sobol.tif
+    SobolEngaged_raytrace differ
+        sampling-camera-jitter1-raytrace-legacy.rib sampling-camera-jitter1-raytrace-legacy.tif
+        sampling-camera-jitter1-raytrace-sobol.rib sampling-camera-jitter1-raytrace-sobol.tif)
+list(LENGTH _camera_samples_cases _n)
+math(EXPR _last "${_n} - 1")
+foreach(_i RANGE 0 ${_last} 6)
+    math(EXPR _i1 "${_i} + 1")
+    math(EXPR _i2 "${_i} + 2")
+    math(EXPR _i3 "${_i} + 3")
+    math(EXPR _i4 "${_i} + 4")
+    math(EXPR _i5 "${_i} + 5")
+    list(GET _camera_samples_cases ${_i} _name)
+    list(GET _camera_samples_cases ${_i1} _mode)
+    list(GET _camera_samples_cases ${_i2} _ribA)
+    list(GET _camera_samples_cases ${_i3} _tifA)
+    list(GET _camera_samples_cases ${_i4} _ribB)
+    list(GET _camera_samples_cases ${_i5} _tifB)
+    string(REGEX REPLACE ".*_" "" _hider ${_name})
+    add_test(NAME CameraSamples_${_name}
+        COMMAND test_render_compare $<TARGET_FILE:orender> ${_mode}
+            ${CMAKE_SOURCE_DIR}/examples/rib/tests/${_ribA} ${_tifA}
+            ${CMAKE_SOURCE_DIR}/examples/rib/tests/${_ribB} ${_tifB} -t:1
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tests/visual/camera-samples-${_hider})
+    set_tests_properties(CameraSamples_${_name} PROPERTIES
+        TIMEOUT     120
+        LABELS      "visual;regression;sampling"
+        ENVIRONMENT "${VISUAL_ENV}"
+        DEPENDS     orender)
 endforeach()

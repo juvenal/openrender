@@ -96,3 +96,16 @@ std::vector<CSampleValue> CSampler::generateBucketTable(int left, int top, int s
 float CSampler::circleOfConfusion(float z, float invFocaldistance, float cocFactorSamples) {
     return absf((1.0f / z) - invFocaldistance) * cocFactorSamples;
 }
+
+// Phase 5 test seam: stubs until T060 (the tests were written first).
+int CSampler::reyesAbsSub(int, int) {
+    return 0;
+}
+
+int CSampler::raytraceAbsSub(int, int, int, int) {
+    return 0;
+}
+
+CSampleValue CSampler::cameraSample(const openrender::sampling::CSamplingConfig &, int, int, bool) {
+    return CSampleValue{};
+}
