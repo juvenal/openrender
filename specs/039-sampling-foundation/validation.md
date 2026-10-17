@@ -543,3 +543,16 @@ The ordinals of every file are exactly 0..n-1 in file order. `git diff --stat` f
 - **`LibShader_StaleShaderRejectedJit`**: test unchanged; the code was fixed. `CLLVMJitEngine::compileShader` (`src/libshader/shading/llvmJit.cpp`) now reports a failed add/bind through the diagnostic sink with `error(CODE_BADFILE, ...)`, naming the shader and file, saying the `.slo` is stale or incompatible and must be recompiled with `oshader --jit`, and including LLVM's text. The unresolved-symbol list is not part of the lookup error (that says only `Failed to materialize symbols`); it arrives through the ORC session's error reporter, so the engine now installs one that still prints `JIT session error: ...` to stderr and keeps the text for the diagnostic. Captured diagnostic: `Cannot bind JIT shader "stale_probe" (...stale_probe.slo): the .slo is stale or incompatible with this renderer and must be recompiled with `oshader --jit`. Failed to materialize symbols: { (main, { _stale_probe }) } (Symbols not found: [ _op_random_f ])`. Passes.
 - Full suite: **651/651 pass**; `ctest -L architecture` 21/21.
 - The `.rslo` 2.0.0 / `.slo` semver change is on hold, not started; no references regenerated for it.
+
+### Phase 4 follow-up: format versioning, tests first (T056a)
+
+New tests `LibShader_Format_*` (`src/libshader/tests/test_format_versions.cpp`, nine ctest entries) written against the unchanged loaders. Against the current code: 2 pass (`rslo_current_loads`, `slo_current_loads`, the controls) and 7 fail for the intended reasons:
+
+| Test | Why it fails now |
+|---|---|
+| `rslo_old_refused`, `rslo_newer_refused` | the file is refused (exact major+minor match) but the message is `Error in shader ... ("Version mismatch") (v1.0.0, .rslo format 1.1)`: it names neither the file's version nor the supported one and does not say to recompile |
+| `rslo_lower_minor` | a same-major, lower-minor file (1.0 under 1.1) is refused: the check is equality. (After the bump to 2.0 no lower minor exists; the test then reports SKIPPED through `SKIP_RETURN_CODE 77`, it does not pass vacuously) |
+| `slo_emitted` | `oshader --jit` writes no `openrender.slo.format` node |
+| `slo_old_refused`, `slo_missing_refused`, `slo_newer_refused` | the module is a valid, linkable one whose format node says 1.0.7 / is absent / says a newer version, and it loads: there is no format check |
+
+Fixture versions use patch 7 so a string cannot match by accident (the loader's message already contains the renderer version `v1.0.0`). `test_stale_shaders.cpp` (the approved link-failure backstop) is untouched. `src/common/sloFormat.h` (2.0.0) exists only so the tests compile.

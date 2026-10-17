@@ -379,4 +379,29 @@ if(OPENRENDER_HAVE_LLVM)
     set_tests_properties(LibShader_StaleShaderRejected LibShader_StaleShaderRejectedJit PROPERTIES TIMEOUT 60
         LABELS "libshader;compiler;unit"
         ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;SHADER_INCLUDES=${CMAKE_SOURCE_DIR}/shaders/includes;SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}")
+
+    # Spec 039, Phase 4 follow-up: the .rslo and .slo format versions follow semver
+    # (same major, file minor <= supported minor; patch never checked). Written
+    # before the implementation. See the test's header comment for each case.
+    add_executable(test_libshader_format_versions test_format_versions.cpp)
+    target_compile_features(test_libshader_format_versions PRIVATE cxx_std_20)
+    target_include_directories(test_libshader_format_versions PRIVATE
+        ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src/libshader/shading
+        ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri
+        ${CMAKE_SOURCE_DIR}/src/ri/geometry ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/texture
+        ${CMAKE_SOURCE_DIR}/src/ri/core ${CMAKE_SOURCE_DIR}/src/ri/output ${CMAKE_SOURCE_DIR}/src/ri/dataviewer)
+    target_include_directories(test_libshader_format_versions SYSTEM PRIVATE ${LLVM_INCLUDE_DIRS})
+    target_compile_definitions(test_libshader_format_versions PRIVATE ${LLVM_DEFINITIONS})
+    target_link_libraries(test_libshader_format_versions PRIVATE ribRender libshader_shading openrendercommon ${_call_sites_llvm_libs})
+
+    set(_format_cases rslo_old_refused rslo_newer_refused rslo_lower_minor rslo_current_loads
+        slo_emitted slo_old_refused slo_missing_refused slo_newer_refused slo_current_loads)
+    foreach(_case IN LISTS _format_cases)
+        add_test(NAME LibShader_Format_${_case} COMMAND test_libshader_format_versions ${_case})
+        set_tests_properties(LibShader_Format_${_case} PROPERTIES TIMEOUT 60
+            LABELS "libshader;compiler;unit"
+            ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;SHADER_INCLUDES=${CMAKE_SOURCE_DIR}/shaders/includes;SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}")
+    endforeach()
+    # Nothing lower than minor 0 exists: report a skip, not a pass, while that holds.
+    set_tests_properties(LibShader_Format_rslo_lower_minor PROPERTIES SKIP_RETURN_CODE 77)
 endif()

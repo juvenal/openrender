@@ -265,6 +265,17 @@ All of it is inert under `Legacy` (research §R3, contracts/shading-runtime.md).
 
 **PAUSE 4**.
 
+### Phase 4 follow-up: format versioning (maintainer decision; Phase 4 is committed as 659c770)
+
+The call-site operand and the `_v2` ABI make Phase 4 a MAJOR change of both shader formats, so `.rslo` goes to 2.0.0 (not 1.1.0) and `.slo` gets its own version, 2.0.0. Rule (documented in `src/common/rsloFormat.h`, `contracts/shading-runtime.md`, `research.md`): MAJOR = an older or newer loader cannot read the file; MINOR = additive, a loader accepts `file.major == supported.major && file.minor <= supported.minor`; PATCH = never checked.
+
+- [X] T056a [P] [US6] `src/libshader/tests/test_format_versions.cpp` (ctest `LibShader_Format_*`, nine entries), `src/common/sloFormat.h` (the constants, so the test compiles): old/newer `.rslo` refused with a diagnostic naming the file's version, the supported version and `oshader`; a lower-minor `.rslo` loads (reported as skipped while the supported minor is 0); the current `.rslo` loads; `oshader --jit` writes the `openrender.slo.format` node (three i32 operands); a `.slo` with format 1.0.x, with no node (counts as 1.0.0), or with a newer major or minor is refused before linking with a diagnostic naming both versions and `oshader --jit`; the current `.slo` loads. `test_stale_shaders.cpp` is untouched.
+- [ ] T056b [RUN] [US6] **TEST-APPROVAL**.
+- [ ] T056c [US6] Implement the rule: `src/common/rsloFormat.h` (2.0.0, rule comment), both `rslo.l` (major equal, minor <=, message naming file and supported versions and saying to recompile with oshader), `src/common/sloFormat.h`, the `openrender.slo.format` node in `llvmEmitter.cpp`, the check in the JIT loader before add/link (a missing node is 1.0.0; `error(CODE_BADFILE, ...)` naming shader, file, both versions, `oshader --jit`), real parsing wherever `std::stoi` of the version string remains; docs (contract, research).
+- [ ] T056d [RUN] [US6] Regenerate the 108 `tests/shaders/references/*.rslo`; prove the only differences against 659c770 are the 108 `#!version` lines (1.1.0 to 2.0.0); full suite and `-L architecture`.
+
+**PAUSE 4b**.
+
 ---
 
 ## Phase 5: User Story 3 — correlated camera samples (Priority: P2)
