@@ -73,15 +73,6 @@ This file tracks known defects and implementation gaps in openRender. Open items
       count on macOS (exit code 5, no map written) and in 0 of 30 at `-t:1`; on Linux at `-t:1`
       it crashed in 0 of 30. The spec 024 parity tests therefore render at `-t:1`. The race
       remains open.
-- [ ] **The photon hider mishandles the no-argument `solar()` form**
-      ([#52](https://github.com/juvenal/openrender/issues/52)), under either backend.
-      `CPhotonHider::solarBegin` does nothing when it gets no direction (`L == NULL`, a `FIXME`
-      in `src/ri/hiders/photon.cpp`). It neither samples `Ps` nor sets `L` or `powerScale`, so
-      `solarEnd` then traces photons from whatever `L`, `Ps` and `powerScale` already held. No
-      shipped light shader uses this form. Found by code reading while specifying spec 024,
-      which only makes the JIT call the hooks the way the interpreter does and leaves this
-      handling unchanged (out of scope there). The fix is planned on its own `fix/` branch right
-      after spec 024 merges.
 - [ ] **Constructing a shading context with no renderer services writes through an uninitialized
       pointer** ([#53](https://github.com/juvenal/openrender/issues/53)).
       `CShadingContext::CShadingContext` (`src/libshader/shading/shading.cpp`, around line 434)
@@ -94,6 +85,24 @@ This file tracks known defects and implementation gaps in openRender. Open items
       right after spec 024 merges.
 
 ## Resolved Bugs
+
+- [x] Bug: the photon hider traced the no-argument `solar()` form from stale state (FIXED — GitHub #52,
+      branch `fix/photon-solar0-stale`, 2026-10-17), under either backend. `CPhotonHider::solarBegin`
+      did nothing for `L == NULL` (a `FIXME`), so `solarEnd` traced one photon per vertex from whatever
+      `L`, `Ps` and `powerScale` the shading state held. As the first light that was `L = Ps = 0` and
+      `powerScale = 0` (never initialized): nothing stored, no map written, and a Debug build would trip
+      `tracePhoton`'s unit-`L` assert. After a directional `solar` light it replayed that light's axis,
+      disc and `powerScale`, from a `Ps` that `solarEnd` pushed another `worldRadius` back on every batch.
+      `solarBegin` now gives each photon a direction uniform over the sphere and a start on the disc of
+      radius `worldRadius` through `worldCenter` perpendicular to it, with a per-photon basis, and sets
+      `powerScale = 4π·πR²`: `Cl` is radiance from every direction, and the scale is the inverse sampling
+      density, as for the other cases (4π point, 2π hemisphere, πR² directional disc). The constructor
+      now initializes `powerScale`, `photonPower`, `worldRadius` and `worldCenter`. Tests:
+      `PhotonSolar0_{rslo,slo}` (`tests/visual/test_photon_solar0.cpp`) read the global maps of
+      `solar0_light` alone, after and before `distantlight` (colour-separated) and check presence,
+      finite power, order-independent power (0.47% spread, tolerance 5%) and an upward-arriving share
+      (0.346 minimum, limit 0.15; 0.008 before the fix); `Visual_photon-solar0-{alone,after-distant}[-slo]`
+      lock the absolute power against references from the fixed code (before the fix: 255.00 and 239.45).
 
 - [x] Bug: reyes and zbuffer grids diced at different rates cracked at T-junctions (FIXED — GitHub #51,
       branch `fix/reyes-tjunction-cracks`, 2026-10-14). Each grid approximated a boundary it shares with

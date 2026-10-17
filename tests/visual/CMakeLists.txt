@@ -1120,6 +1120,31 @@ list(APPEND OPENRENDER_SLO_VISUAL_TESTS PhotonSolar0_slo)
 unset(_sfx)
 unset(_scratch)
 
+# Visual_photon-solar0-{alone,after-distant}[-slo]: the Frame 2 raytrace of
+# those maps against references rendered by the fixed code (the -slo variants
+# use the .rslo reference). They lock the absolute photon power, which the
+# map checks above compare only relatively. Default threshold, -t:1. On
+# macOS the run-to-run diff of both scenes is 0.00 and each -slo variant
+# matches the .rslo reference at 0.00; before the fix the alone scenes (empty
+# map) missed by 255.00 and the after-distant ones by 239.45. Each map is
+# deleted before the run, as for photon-parity.
+foreach(_scene alone alone-slo after-distant after-distant-slo)
+    string(REPLACE "-slo" "" _ref ${_scene})
+    add_visual_test(photon-solar0-${_scene}
+        examples/rib/tests/photon-solar0-${_scene}.rib
+        photon-solar0-${_scene}.tif  photon-solar0-${_ref}.tif
+        ${VISUAL_THRESHOLD}  "-t:1")
+    add_test(NAME VisualSetup_photon-solar0-${_scene}-clean
+        COMMAND ${CMAKE_COMMAND} -E rm -f photon-solar0-${_scene}.gpm
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tests/visual/photon-solar0-${_scene})
+    set_tests_properties(VisualSetup_photon-solar0-${_scene}-clean PROPERTIES
+        FIXTURES_SETUP photon_solar0_${_scene}_clean)
+    set_tests_properties(Visual_photon-solar0-${_scene} PROPERTIES
+        FIXTURES_REQUIRED photon_solar0_${_scene}_clean)
+endforeach()
+unset(_scene)
+unset(_ref)
+
 # --- FR-006 discrimination coverage (spec 012-jit-parity-followups, T008b):
 # a uniform-classified instruction (`bias = bias + 1`) lexically nested inside
 # a varying conditional (`if (u > 0)`, `u > 0.05` until #51 diced a grid

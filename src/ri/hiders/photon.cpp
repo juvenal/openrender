@@ -24,6 +24,7 @@
 //  Description			:
 //
 ////////////////////////////////////////////////////////////////////////
+#include <algorithm>
 #include <math.h>
 
 #include "common/diagnostics.h"
@@ -68,6 +69,12 @@ CPhotonHider::CPhotonHider(int thread, CAttributes *a) : CShadingContext(thread)
     phony->attach();
 
     numTracedPhotons = 0;
+
+    // Set by the solar/illuminate begin hooks and renderingLoop() before use
+    powerScale = 0;
+    photonPower = 0;
+    worldRadius = 0;
+    initv(worldCenter, 0, 0, 0);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -218,7 +225,56 @@ void CPhotonHider::renderingLoop() {
 // Comments				:
 void CPhotonHider::solarBegin(const float *L, const float *) {
     if (L == NULL) {
-        // FIXME: Don't know how to handle this
+        // solar() with no arguments: light arrives from every direction, with
+        // Cl the radiance from each. Every photon gets its own direction,
+        // uniform over the sphere, and starts on the disc of radius
+        // worldRadius through worldCenter perpendicular to it, as the
+        // directional case below does for its single axis (solarEnd() moves
+        // it back by worldRadius along L). The sampling density is
+        // 1 / (4 pi) over directions times 1 / (pi R^2) over the disc, so
+        // powerScale is its inverse, matching 4 pi for a point light, 2 pi
+        // for the hemisphere and pi R^2 for the directional disc. (GitHub #52:
+        // this branch used to do nothing, so solarEnd() traced from stale L,
+        // Ps and powerScale.)
+        float **varying = currentShadingState->varying;
+        float *shaderL = varying[VARIABLE_L];
+        float *shaderPs = varying[VARIABLE_PS];
+        int numVertices = currentShadingState->numVertices;
+        float r4[4];
+        vector X, Y, helper;
+
+        powerScale = (float)(4 * C_PI * C_PI * worldRadius * worldRadius);
+
+        for (; numVertices > 0; numVertices--, shaderL += 3, shaderPs += 3) {
+            gen4.get(r4);
+
+            // Uniform direction on the unit sphere
+            const float z = 1 - 2 * r4[0];
+            const float s = sqrtf(std::max(0.0f, 1 - z * z));
+            const float phi = (float)(r4[1] * 2 * C_PI);
+            initv(shaderL, s * cosf(phi), s * sinf(phi), z);
+
+            // An orthonormal basis perpendicular to it, from a coordinate
+            // axis at least 30 degrees from parallel to it (the fixed helper
+            // of the directional case degenerates near its own direction)
+            if (fabsf(shaderL[0]) < 0.5f) {
+                initv(helper, 1, 0, 0);
+            }
+            else {
+                initv(helper, 0, 1, 0);
+            }
+            crossvv(X, shaderL, helper);
+            normalizev(X);
+            crossvv(Y, X, shaderL);
+
+            // Uniform point on the disc
+            const float r = sqrtf(r4[2]) * worldRadius;
+            const float theta = (float)(r4[3] * 2 * C_PI);
+            mulvf(X, r * cosf(theta));
+            mulvf(Y, r * sinf(theta));
+            addvv(shaderPs, worldCenter, X);
+            addvv(shaderPs, Y);
+        }
     }
     else {
         float **varying = currentShadingState->varying;
