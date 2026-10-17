@@ -312,3 +312,42 @@ Run after the maintainer committed the tests; `nice -n 19`, `-j4`, one job at a 
 - `Sampling_PMJ02Construction`: 64 patterns, 0 locality and 0 diagonal violations at even k, and 0 odd-k locality violations (informational, not checked). The Sobol control still fails the narrower test (1364 / 1364 unscrambled, 1362 / 40 scrambled).
 - `Sampling_CameraSobolBlocks` on the 8K frame: 3 pixels collide with (100, 200) under a 32-bit index at 256 spp and 39 at 4096 spp; every one keeps a distinct 64-bit index.
 - **PMJ02 table generation time**: 64 patterns built on first touch in 57-88 ms in total (three runs: 87.5, 57.4 and 57.0 ms; the first includes cold-start effects), about 0.9 ms per pattern (maximum 0.96 ms warm, 2.7 ms cold). Each pattern is built only if a render draws from it.
+
+## Phase 3: scene option and config injection, tests first (T026-T030)
+
+Run 2026-10-16, `nice -n 19`, `-j4`, one job at a time. No implementation: no token, declaration, parse branch, RIB writer branch or `CSamplingConfig` injection exists yet.
+
+### Tests written
+
+| Task | Test | File | What it checks |
+|---|---|---|---|
+| T026 | `SamplingOption_Parse` | `tests/unit/rib_parse/test_sampling_option.cpp` (case `parse`) | default `Legacy`, seed 0; `"sampler"` set to `pmj02`, `independent`, `sobol` (and the internal `legacy`) sets the backend; `"seed" [-7]` is stored as `uint32` 4294967289; setting one leaves the other alone; both values read back through `COptions::find()` (the lookup RSL `option()` uses): the sampler as a string, the seed as an integer (-7) |
+| T027 | `SamplingOption_UnknownName` | same file (case `unknown_name`) | `["foo"]` produces exactly one diagnostic, with code `RIE_BADTOKEN` (the mapping of `CODE_BADTOKEN`; never `RIE_LOG`), severity error or warning, containing `Unknown sampler "foo"` and `sobol, pmj02, independent`; the backend stays at the default; a later valid name still works and adds no diagnostic |
+| T028 | `SamplingOption_RibRoundTrip` | `tests/unit/rib_parse/test_sampling_option_roundtrip.cpp` | in process, with three consecutive sessions in one process: (1) the parser reads a RIB with both tokens, spelled pre-declared (`"sampler"`, `"seed"`) and with inline declarations (`"string sampler"`, `"int seed"`), and stores equal options; (2) the same RIB is parsed straight into the RIB writer (`RiBegin("file")` then `ribParse()`), and the output contains `Option "sampling"`, `sampler`, `pmj02`, `seed` and `-7`; (3) the written file read back gives options equal to the original, and writing the written file again gives identical text. A `Option "limits" "bucketsize" [16 16]` control line travels the same path |
+| T029 | `Common_VocabularyConsistency` | existing, unchanged | see below |
+
+Both new executables link `ribRender` and `openrendercommon`, run with `ORENDERHOME` at the source root (no `.orenderrc`), and are registered with labels `rib_parse;unit;sampling`. They need no fixture files: the RIBs are written to a temporary directory by the test.
+
+Test-support change in `src/ri/state/options.{h,cpp}` (needed for the tests to compile, and the only source change in this step): `COptions` gains `samplingBackend` (default `Backend::Legacy`) and `samplingSeed` (default 0), and `options.h` includes `common/sampling.h` (Infra). Nothing reads or sets them yet.
+
+### T029: the vocabulary check
+
+No token exists yet: `RI_SAMPLING`, `RI_SAMPLER` and `RI_SEED` are all absent from the three files, so T031 adds all three. To show that `Common_VocabularyConsistency` (`vocabulary_consistency.cmake`) catches a token missing from any of the three lists, the script was run against copies of the three files in the scratchpad with `RI_SAMPLING` added, so the repository files were never touched and need no revert:
+
+| `RI_SAMPLING` added to | Result |
+|---|---|
+| none | agree on 235 tokens |
+| `riTokens.cpp` only | error: `in definitions but not public: RI_SAMPLING` |
+| `riVocabulary.h` only | error: `in vocabulary but not public: RI_SAMPLING` |
+| `ri.h` only | error: `in public but not vocabulary` and `in public but not definitions` |
+| `riTokens.cpp` + `riVocabulary.h` | error: `in vocabulary but not public`, `in definitions but not public` |
+| all three | agree on 236 tokens |
+
+### Red evidence
+
+- Default build (`cmake --build build --config Release -j4`): exit 0. The new `COptions` fields rebuilt the renderer, and the two new executables compile and link.
+- `ctest -R "SamplingOption_|Common_Vocab"`: 5 tests, **3 failed**, 2 passed (the two vocabulary tests, unchanged):
+  - `SamplingOption_Parse`: **Failed**, 11 checks. Every `RiOption("sampling", ...)` reports `Unknown option: "sampling"`, so the backend stays `Legacy` and the seed 0 (default-state checks pass).
+  - `SamplingOption_UnknownName`: **Failed**, 4 checks. The one diagnostic is `Unknown option: "sampling"` (code 41, severity error) rather than `Unknown sampler "foo" ...`, and the later valid name is not applied.
+  - `SamplingOption_RibRoundTrip`: **Failed**, 12 checks. The parser reports `Parameter "sampler" is not declared` and `Parameter "seed" is not declared` for the pre-declared spelling and `Unknown option: "sampling"` for the inline one. The RIB writer output contains only the control line (`Option "limits" "bucketsize" [16 16]`), which shows that the parser-to-writer path itself works and the failures are confined to the sampling tokens.
+- `ctest -L architecture`: 21/21 passed with the new `options.h` include.

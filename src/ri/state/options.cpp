@@ -366,6 +366,9 @@ COptions::COptions() {
 
     depthFilter = DEPTH_MIN;
 
+    samplingBackend = openrender::sampling::Backend::Legacy;
+    samplingSeed = 0;
+
     imager = nullptr;
 }
 

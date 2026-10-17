@@ -11,3 +11,32 @@ target_link_libraries(test_rib_parser_sessions PRIVATE ribRender openrendercommo
 add_test(NAME RibParse_SessionsReadArchives COMMAND test_rib_parser_sessions)
 set_tests_properties(RibParse_SessionsReadArchives PROPERTIES TIMEOUT 60 LABELS "rib_parse;unit"
     ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}")
+
+# Spec 039 (Phase 3, US5): Option "sampling". The options are read back through
+# the public interface, so these link the renderer library and need the
+# internal headers of the parser, the state and the renderer.
+set(SAMPLING_OPTION_INCLUDES
+    ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/parse
+    ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri/hiders
+    ${CMAKE_SOURCE_DIR}/src/ri/geometry ${CMAKE_SOURCE_DIR}/src/ri/texture ${CMAKE_SOURCE_DIR}/src/ri/output
+    ${CMAKE_SOURCE_DIR}/src/ri/core ${CMAKE_SOURCE_DIR}/src/ri/dataviewer ${CMAKE_SOURCE_DIR}/src/libshader/shading)
+# ORENDERHOME points at the source root, which has no .orenderrc, so a Display
+# in tests/visual's .orenderrc cannot make these sessions open a file display.
+set(SAMPLING_OPTION_ENV "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}")
+
+add_executable(test_sampling_option test_sampling_option.cpp)
+target_compile_features(test_sampling_option PRIVATE cxx_std_20)
+target_include_directories(test_sampling_option PRIVATE ${SAMPLING_OPTION_INCLUDES})
+target_link_libraries(test_sampling_option PRIVATE ribRender openrendercommon)
+add_test(NAME SamplingOption_Parse COMMAND test_sampling_option parse)
+add_test(NAME SamplingOption_UnknownName COMMAND test_sampling_option unknown_name)
+set_tests_properties(SamplingOption_Parse SamplingOption_UnknownName PROPERTIES TIMEOUT 60
+    LABELS "rib_parse;unit;sampling" ENVIRONMENT "${SAMPLING_OPTION_ENV}")
+
+add_executable(test_sampling_option_roundtrip test_sampling_option_roundtrip.cpp)
+target_compile_features(test_sampling_option_roundtrip PRIVATE cxx_std_20)
+target_include_directories(test_sampling_option_roundtrip PRIVATE ${SAMPLING_OPTION_INCLUDES})
+target_link_libraries(test_sampling_option_roundtrip PRIVATE ribRender openrendercommon)
+add_test(NAME SamplingOption_RibRoundTrip COMMAND test_sampling_option_roundtrip)
+set_tests_properties(SamplingOption_RibRoundTrip PROPERTIES TIMEOUT 60
+    LABELS "rib_parse;unit;sampling" ENVIRONMENT "${SAMPLING_OPTION_ENV}")

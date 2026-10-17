@@ -171,14 +171,14 @@ description: "Task list for spec 039: sampling foundation"
 
 ### Tests first
 
-- [ ] T026 [P] [US5] `tests/unit/rib_parse/` (extend the existing target), test `SamplingOption_Parse`:
+- [X] T026 [P] [US5] `tests/unit/rib_parse/test_sampling_option.cpp` (new executable beside the existing one), test `SamplingOption_Parse`:
   - `"sampler" ["pmj02"]`, `["independent"]` and `["sobol"]` set the backend;
   - `"seed" [-7]` is stored as uint32 4294967289;
   - with no option set, the internal default is `Legacy` (until Phase 9).
-- [ ] T027 [P] [US5] Same file, test `SamplingOption_UnknownName`: `["foo"]` prints a diagnostic containing `Unknown sampler "foo"` and `sobol, pmj02, independent`, at `CODE_BADTOKEN` (never `CODE_LOG`), and the render continues with the default.
-- [ ] T028 [P] [US5] `tests/unit/rib_parse/test_sampling_option_roundtrip.cpp` (in-process; gotcha 20: reset the lexer with `riblex_destroy()` between sessions), test `SamplingOption_RibRoundTrip`: a RIB with both tokens goes through RIB output (`libRIBOut`) and back. The re-parsed options are equal (FR-027).
-- [ ] T029 [P] [US5] `tests/unit/common/`, test `Common_VocabularyConsistency` (existing): no change to the test itself. It must fail if the new tokens appear in fewer than all three of `ri.h`, `riVocabulary.h` and `riTokens.cpp`. Show this by temporarily adding a token to one file only, then revert.
-- [ ] T030 [RUN] [US5] **TEST-APPROVAL**.
+- [X] T027 [P] [US5] Same file, test `SamplingOption_UnknownName`: `["foo"]` prints a diagnostic containing `Unknown sampler "foo"` and `sobol, pmj02, independent`, at `CODE_BADTOKEN` (never `CODE_LOG`), and the render continues with the default.
+- [X] T028 [P] [US5] `tests/unit/rib_parse/test_sampling_option_roundtrip.cpp` (in-process; gotcha 20: reset the lexer with `riblex_destroy()` between sessions), test `SamplingOption_RibRoundTrip`: a RIB with both tokens goes through RIB output (`libRIBOut`) and back. The re-parsed options are equal (FR-027).
+- [X] T029 [P] [US5] `tests/unit/common/`, test `Common_VocabularyConsistency` (existing): no change to the test itself. It must fail if the new tokens appear in fewer than all three of `ri.h`, `riVocabulary.h` and `riTokens.cpp`. Show this by temporarily adding a token to one file only, then revert.
+- [X] T030 [RUN] [US5] **TEST-APPROVAL**.
 
 ### Implementation
 
