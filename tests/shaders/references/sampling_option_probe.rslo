@@ -1,0 +1,44 @@
+#!version 1.0.0
+#!name "sampling_option_probe"
+surface
+#!parameters:
+#!variables:
+uniform	string	sampler
+uniform	float	seed
+varying	float	foundSampler
+varying	float	foundSeed
+varying	float	isPmj
+uniform	float	temporary_0
+varying	float	temporary_1
+varying	float	temporary_2
+varying	float	temporary_3
+varying	float	temporary_4
+varying	float	temporary_5
+uniform	float	temporary_6
+#!Init:
+	return            
+#!Code:
+	movess  sampler "none"
+	moveff  seed 12345
+	option	("f=SS")  temporary_0 "sampling:sampler" sampler
+	vufloat  foundSampler temporary_0
+	option	("f=SF")  temporary_0 "sampling:seed" seed
+	vufloat  foundSeed temporary_0
+	vufloat  isPmj 0
+	seql  temporary_0 sampler "pmj02"
+	vufloat  temporary_1 temporary_0
+	if temporary_1 #!Label3
+	vufloat  isPmj 1
+#!Label3:
+	endif
+	vufloat  temporary_3 0.5
+	moveff  temporary_5 temporary_3
+	mulff  temporary_4 temporary_5 isPmj
+	addff  temporary_2 temporary_3 temporary_4
+	mulff  temporary_1 foundSampler temporary_2
+	addff  temporary_6 seed 1000
+	divff  temporary_0 temporary_6 2000
+	vufloat  temporary_2 temporary_0
+	vfromf  Ci temporary_1 foundSeed temporary_2
+	movevv  Oi Os
+	return

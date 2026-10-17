@@ -404,3 +404,28 @@ The probe uses the varying-flag-in-`if` pattern the other probe shaders use for 
   - the four probe renders read back R 0, G 0 and B 6.6725 (`seed` stays at its default 12345 because the query found nothing), against the expected (1, 1, 0.4965) for pmj02 and (0.5, 1, 0.5) for the defaults, under both `.rslo` and `.slo`;
   - `SamplingOption_RslQuery`: 4 checks fail (the sampler and seed, for the defaults and for the set values); the unknown-name checks and the `PixelSamples` control pass;
   - `SamplingOption_RslQueryNoServices`: 2 checks fail (the query with services returns "not found"); the checks that the query is "not found" without services already hold, since the existing code returns false for a null `services`.
+
+### T037b and T037c: RSL `option()` implemented, and the run
+
+`nice -n 19`, `-j4`, one job at a time; no approved test changed.
+
+- **Interface** (`src/libshader/shading/rendererServices.h`): two new pure virtuals on `CRendererServices`, `const char *samplingSampler() const` (a name with static storage) and `int samplingSeed() const` (the signed integer the scene gave).
+- **Core** (`rendererServicesImpl.h`, the only implementer in this tree): both read two new `CRenderer` statics, `samplingBackend` and `samplingSeed`, which `copyOptions()` fills from the frame's options (definitions in `rendererStatics.cpp`). Core already reads `CRenderer::` there; the statics are not read by `src/libshader` or the hiders.
+- **Shading** (`shading.cpp`, `CShadingContext::options()`): `"sampling:sampler"` writes the name to a `char *` destination and `"sampling:seed"` writes the seed as a float. With no services installed the function already returned "not found" at its top, so the no-services case needed no code.
+- No `CRenderer::` token is added under `src/libshader` (`git diff HEAD -- src/libshader | grep -c "CRenderer::"` is 0).
+
+#### Results
+
+- Build: exit 0, no compiler warnings.
+- `SamplingOption_*` (9 tests): **9/9 passed**, including the six new ones. Under both the interpreter and the JIT the probe reads back (1, 1, 0.4965) for pmj02 with seed -7 and (0.5, 1, 0.5) for the defaults.
+- Full suite, `nice -n 19 ctest --test-dir build -j4 --output-on-failure`: **624 tests** (618 + the 6 new).
+  - First run: 622/624. `ShaderCompilerImmutability` failed with `1 missing reference(s)`: it compiles every shader in `shaders/` and diffs it against `tests/shaders/references/`, and the new probe shader had no reference. That was my omission when the shader was added with the T037a tests (the full suite was not run at that step). Fixed by adding `tests/shaders/references/sampling_option_probe.rslo`, the compiled output of the new shader (a new file; no existing reference or test was changed); the test and `SloinfoGoldenOutput` then pass.
+  - The other failure, `Parity_transparency-matte-aov` (known flake): `1 block(s) exceed threshold 25.00. Worst avg diff=25.52`; in isolation six runs gave MaxBlockAvgDiff 23.86, 23.88, 23.86, 23.91, 23.88 and 23.91 (threshold 25.00).
+  - Second full run: **624/624 passed**.
+- Architecture: `ctest -L architecture` 21/21; `archcheck` `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`, `Shading refs 9` (unchanged), no allowlist line, and the same three metric warnings as master.
+
+#### Merge interaction with spec 024 (not yet merged)
+
+- 024 adds `tests/.../recording_services.h`, a `CRendererServices` test double. It will need overrides of the two new pure virtuals, `samplingSampler()` and `samplingSeed()`; until it has them it will not compile against this change.
+- 024's comment in `shaders/CMakeLists.txt` says "107 shaders". The probe shader (`sampling_option_probe.sl`) adds one, so the count after the merge is 108 (this tree now compiles 106 shaders).
+- The new reference `tests/shaders/references/sampling_option_probe.rslo` is a file 024 does not touch, so it merges cleanly; if 024 adds its own shaders it will add its own references.

@@ -190,6 +190,8 @@ static void copyOptions(const COptions *o) {
     CRenderer::textureCacheDirectory = o->textureCacheDirectory;
     CRenderer::pixelXsamples = o->pixelXsamples;
     CRenderer::pixelYsamples = o->pixelYsamples;
+    CRenderer::samplingBackend = o->samplingBackend;
+    CRenderer::samplingSeed = o->samplingSeed;
     CRenderer::gamma = o->gamma;
     CRenderer::gain = o->gain;
     CRenderer::pixelFilterWidth = o->pixelFilterWidth;

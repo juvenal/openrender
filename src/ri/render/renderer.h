@@ -345,6 +345,8 @@ class CRenderer {
         static bool textureCacheEnabled;                               // Opt-in disk cache for unbaked texture sources (020-runtime-tile-paging)
         static const char *textureCacheDirectory;                      // Cache directory override, nullptr -> resolved default
         static int pixelXsamples, pixelYsamples;                       // Number of samples to take in X and Y
+        static openrender::sampling::Backend samplingBackend;          // Option "sampling" "sampler" (spec 039)
+        static uint32_t samplingSeed;                                  // Option "sampling" "seed"
         static float gamma, gain;                                      // Gamma correction stuff
         static float pixelFilterWidth, pixelFilterHeight;              // Pixel filter data
         static RtFilterFunc pixelFilter;

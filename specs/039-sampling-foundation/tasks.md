@@ -196,8 +196,8 @@ description: "Task list for spec 039: sampling foundation"
 - [X] T037a [US5] **Tests first, TEST-APPROVAL** for the RSL half of T033 (added after Phase 3): RSL `option("sampling:sampler", s)` (string) and `option("sampling:seed", n)` (the signed integer, as a float).
   - `tests/unit/rib_parse/test_sampling_option_rsl.cpp`: `SamplingOption_RslQuery` (defaults, set values, unknown names, an existing option as a control) and `SamplingOption_RslQueryNoServices` (no services installed on the shading state: every name is "not found"), on a real shading context through `CShadingContext::queryOption()`, the call both the interpreter and the JIT make.
   - `shaders/sampling_option_probe.sl`, `examples/rib/tests/sampling-option-{pmj02,default}-{rslo,slo}.rib` and the exact pixel read-back driver `tests/visual/test_pixel_probe.cpp`: `SamplingOption_RslQuery_{pmj02,default}_{rslo,slo}` render the probe under the interpreter and the JIT and check the centre pixel as numbers (R found/"pmj02", G found, B the shifted seed).
-- [ ] T037b [US5] Add `virtual samplingSampler()`/`samplingSeed()` (or one query) to `CRendererServices` (`libshader/shading/rendererServices.h`), implement it in `CRendererServicesImpl` from `COptions`/`CRenderer`'s frame copy, and answer `"sampling:sampler"` and `"sampling:seed"` in `CShadingContext::options()`. No new `CRenderer::` reference from `src/libshader` or the hiders.
-- [ ] T037c [RUN] [US5] Full suite against the 618 baseline plus the new tests; `ctest -L architecture` green with no new allowlist line. **PAUSE** before Phase 4.
+- [X] T037b [US5] Add `virtual samplingSampler()` and `samplingSeed()` to `CRendererServices` (`libshader/shading/rendererServices.h`), implement it in `CRendererServicesImpl` from `COptions`/`CRenderer`'s frame copy, and answer `"sampling:sampler"` and `"sampling:seed"` in `CShadingContext::options()`. No new `CRenderer::` reference from `src/libshader` or the hiders.
+- [X] T037c [RUN] [US5] Full suite against the 618 baseline plus the new tests; `ctest -L architecture` green with no new allowlist line. **PAUSE** before Phase 4.
 
 **PAUSE 3**.
 

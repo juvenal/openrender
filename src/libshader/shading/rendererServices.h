@@ -159,6 +159,11 @@ class CRendererServices {
         virtual float relativeDetail() const = 0;
         virtual int pixelXsamples() const = 0;
         virtual int pixelYsamples() const = 0;
+        // Option "sampling" (spec 039): the sampler's name ("sobol", "pmj02", ...) and the
+        // seed as the signed integer the scene gave. The name is a string with static
+        // storage.
+        virtual const char *samplingSampler() const = 0;
+        virtual int samplingSeed() const = 0;
         virtual bool lookupUserOption(const char *name, CVariable *&var) const = 0;
 };
 

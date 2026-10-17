@@ -147,6 +147,8 @@ TSearchpath *CRenderer::geometryPath;
 bool CRenderer::textureCacheEnabled;
 const char *CRenderer::textureCacheDirectory;
 int CRenderer::pixelXsamples, CRenderer::pixelYsamples;
+openrender::sampling::Backend CRenderer::samplingBackend = openrender::sampling::Backend::Legacy;
+uint32_t CRenderer::samplingSeed = 0;
 float CRenderer::gamma, CRenderer::gain;
 float CRenderer::pixelFilterWidth, CRenderer::pixelFilterHeight;
 RtFilterFunc CRenderer::pixelFilter;

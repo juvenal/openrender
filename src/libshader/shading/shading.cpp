@@ -68,6 +68,8 @@ const char *optionsGamma = "Gamma";
 const char *optionsMaxRayDepth = "MaxRayDepth";
 const char *optionsRelativeDetail = "RelativeDetail";
 const char *optionsPixelSamples = "PixelSamples";
+const char *optionsSamplingSampler = "sampling:sampler"; // spec 039
+const char *optionsSamplingSeed = "sampling:seed";
 
 // Attributes that are defined and responded
 const char *attributesShadingRate = "ShadingRate";
@@ -1452,6 +1454,14 @@ int CShadingContext::options(void *dest, const char *name, CVariable **, int *) 
         float *d = (float *)dest;
         d[0] = (float)svc->pixelXsamples();
         d[1] = (float)svc->pixelYsamples();
+        return TRUE;
+    }
+    else if (strcmp(name, optionsSamplingSampler) == 0) {
+        ((const char **)dest)[0] = svc->samplingSampler();
+        return TRUE;
+    }
+    else if (strcmp(name, optionsSamplingSeed) == 0) {
+        ((float *)dest)[0] = (float)svc->samplingSeed();
         return TRUE;
     }
     else if (strncmp(name, attributesUser, strlen(attributesUser)) == 0) {
