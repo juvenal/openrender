@@ -217,8 +217,8 @@ The ordinal is carried explicitly to both backends:
 - The `.rslo` instruction format and the JIT runtime ABI (`op_random_f/v` and the trace-family entries) change. Every `.rslo`/`.slo` is rebuilt by the existing dependency tracking ("rebuilding `oshader` recompiles every shader"), so the stale-bitcode trap is covered.
 - CLAUDE.md gotcha 3 (macOS dead-stripping): the changed `op_*` symbols must still resolve at bind time. Running the `-slo` suite proves it.
 - **Stale compiled shaders.** A hand-placed old shader would otherwise read garbage arguments silently (CLAUDE.md, "ABI/signature mismatch"). Two guards:
-  - The `.rslo` format version is bumped, so the loader rejects an old file with a diagnostic.
-  - Every changed `op_*` entry is **renamed** with a version suffix, for example `op_random_f_v2`, so a stale `.slo` fails at JIT bind time with an unresolved symbol instead of running.
+  - Both shader formats are versioned with semantic versioning (contract V1): MAJOR = an older or newer loader cannot read the file (operand layout, JIT ABI or `op_*` signature changes); MINOR = additive, a loader reads `file.major == supported.major && file.minor <= supported.minor`; PATCH is never checked. This change is a MAJOR one for both, so `.rslo` goes **1.0 to 2.0** and `.slo` (new, `openrender.slo.format` node, a missing node counting as 1.0.0) to **2.0**, and the loaders refuse an older file with a diagnostic that names both versions and the remedy.
+  - Every changed `op_*` entry is **renamed** with a version suffix, for example `op_random_f_v2`, so a stale `.slo` that got past the format check still fails at JIT bind time with an unresolved symbol instead of running.
   - This involves no language-level change, so D12's stamp is unaffected.
 - A compiler unit test compiles one shader both ways and compares the ordinal lists, which must be identical.
 

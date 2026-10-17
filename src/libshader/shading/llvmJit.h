@@ -18,6 +18,7 @@
 #ifndef RI_LLVMJIT_H
 #define RI_LLVMJIT_H
 
+#include "common/formatVersion.h"
 #include "common/global.h"
 #include "sloMetadata.h"
 #include <memory>
@@ -115,6 +116,10 @@ class CLLVMJitEngine {
         // adds them to its diagnostic.
         std::mutex sessionErrorMutex_;
         std::string sessionErrors_;
+
+        // Read the module's `openrender.slo.format` record (sloFormat.h). False when the
+        // module has none, or one that is not three integer operands.
+        static bool readFormat(const llvm::Module &mod, SFormatVersion &version);
 
         // Extract named metadata from an already-loaded module.
         static bool extractMetadataFromModule(const llvm::Module &mod, SLOShaderInfo &info);

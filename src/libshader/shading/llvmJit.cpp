@@ -17,6 +17,7 @@
 
 #include "llvmJit.h"
 #include "common/diagnostics.h"
+#include "common/sloFormat.h"
 #include "logging.hpp"
 
 #include <cstdio>
@@ -157,6 +158,23 @@ TShaderJitEntry CLLVMJitEngine::compileShader(const std::string &filename,
     }
 
     auto &module = *moduleOrErr;
+
+    // Check the format before anything is added or linked: a module of another
+    // major, or newer than this loader, may call entries that do not exist or mean
+    // something else. A module without a record predates the versioning: 1.0.0.
+    {
+        SFormatVersion format{1, 0, 0};
+        const bool recorded = readFormat(*module, format);
+        if (!formatVersionReadable(format.major, format.minor, SLO_FORMAT_MAJOR, SLO_FORMAT_MINOR)) {
+            error(CODE_BADFILE,
+                  "Cannot load JIT shader \"%s\" (%s): its .slo format is %d.%d.%d%s, this renderer reads %d.%d.%d "
+                  "(same major, minor up to %d). Recompile it with `oshader --jit`.\n",
+                  shaderName.c_str(), filename.c_str(), format.major, format.minor, format.patch,
+                  recorded ? "" : " (it has no readable format record, which counts as 1.0.0)", SLO_FORMAT_MAJOR,
+                  SLO_FORMAT_MINOR, SLO_FORMAT_PATCH, SLO_FORMAT_MINOR);
+            return nullptr;
+        }
+    }
 
     // Extract named metadata before transferring ownership to the JIT.
     SLOShaderInfo meta;

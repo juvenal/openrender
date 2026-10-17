@@ -2147,7 +2147,7 @@ int	rsloLineno	=	0;
 // Return Value			:
 // Comments				:
 void	rsloerror(const char *s) {
-	warning(CODE_BADFILE,"Error in shader \"%s\" (%d) (\"%s\") (v%d.%d.%d, .rslo format %d.%d)\n",currentData.name,rsloLineno,s,VERSION_MAJOR,VERSION_MINOR,VERSION_PATCH,RSLO_FORMAT_MAJOR,RSLO_FORMAT_MINOR);
+	warning(CODE_BADFILE,"Error in shader \"%s\" (%d) (\"%s\") (v%d.%d.%d, .rslo format %d.%d.%d)\n",currentData.name,rsloLineno,s,VERSION_MAJOR,VERSION_MINOR,VERSION_PATCH,RSLO_FORMAT_MAJOR,RSLO_FORMAT_MINOR,RSLO_FORMAT_PATCH);
 	currentData.numErrors++;
 }
 

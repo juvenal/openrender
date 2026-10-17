@@ -157,6 +157,7 @@ static bool currentBlockHasTerminator(llvm::IRBuilder<> &B) {
 // needed it.
 // =========================================================================
 #include "common/rendererc.h"
+#include "common/sloFormat.h"
 
 #define DEFOPCODE(name, text, nargs, expr_pre, expr, expr_update, expr_post, params) {text, static_cast<unsigned int>(params)},
 #define DEFSHORTOPCODE(name, text, nargs, expr_pre, expr, expr_update, expr_post, params) {text, static_cast<unsigned int>(params)},
@@ -468,6 +469,15 @@ static void embedMetadata(llvm::Module &mod,
         ->addOperand(mkMD(mkStr(ir.shaderType)));
     mod.getOrInsertNamedMetadata("openrender.shader.version")
         ->addOperand(mkMD(mkStr(ir.version)));
+
+    // The .slo format version (sloFormat.h): three integer operands, checked by the
+    // JIT loader before it links the module.
+    {
+        llvm::Type *i32 = llvm::Type::getInt32Ty(ctx);
+        auto mkInt = [&](int v) -> llvm::Metadata * { return llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(i32, v)); };
+        llvm::Metadata *format[3] = {mkInt(SLO_FORMAT_MAJOR), mkInt(SLO_FORMAT_MINOR), mkInt(SLO_FORMAT_PATCH)};
+        mod.getOrInsertNamedMetadata(SLO_FORMAT_KEY)->addOperand(llvm::MDNode::get(ctx, format));
+    }
 
     if (hasInit) {
         mod.getOrInsertNamedMetadata("openrender.shader.hasinit")

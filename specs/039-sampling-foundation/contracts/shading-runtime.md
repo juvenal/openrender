@@ -12,18 +12,30 @@ This covers the compiler, the `.rslo` format, the JIT runtime ABI and `CShadingS
 - **C2**: `random`/`urandom` are never pure. CSE, DCE-of-duplicates and `UniformLifting` must not merge two of these calls or hoist one out of a loop. This is tested.
 - **C3**: the same source gives the same ordinal list in `.rslo` and in `.slo`. Tested by compiling both ways and comparing (`LibShader_CallSiteOrdinals`).
 
+## Format versions (`.rslo` and `.slo`)
+
+- **V1**: the two shader formats are versioned separately, `RSLO_FORMAT_*` (`src/common/rsloFormat.h`) and `SLO_FORMAT_*` (`src/common/sloFormat.h`), both **2.0.0** after Phase 4. They follow semantic versioning:
+  - **MAJOR**: a loader of another major cannot read the file (operand layout, JIT ABI or `op_*` signature changed). Older loaders cannot read newer files and newer loaders cannot read older ones.
+  - **MINOR**: additive. A loader reads a file when `file.major == supported.major` and `file.minor <= supported.minor`.
+  - **PATCH**: no effect on the format; never checked.
+  - The rule lives in one place, `formatVersionReadable()` in `src/common/formatVersion.h`, used by both `.rslo` lexers (`runtime/rslo.l`, `shading/rslo.l`) and by the JIT loader.
+- **V2**: a `.rslo` refusal names the file's format, the supported one and the remedy: `Version mismatch: this file is .rslo format 1.0.0, this renderer reads format 2.0.0 (same major, minor up to 0); recompile the shader with oshader`.
+- **V3**: `oshader --jit` writes the `.slo` version as the named metadata node `openrender.slo.format`, one node of three `i32` operands (major, minor, patch). `openrender.shader.version` is unchanged (an informational string; parsed, not `stoi`d). The JIT loader (`CLLVMJitEngine::compileShader`) checks the node **before** it adds or links the module; a missing or unreadable node counts as 1.0.0. A refusal is `error(CODE_BADFILE, ...)` naming the shader, the file, the module's format, the supported one and `recompile it with oshader --jit`.
+- **V4**: the `_v2` renaming (J1) and the link-failure diagnostic stay as a backstop for a module of the current format whose calls no longer resolve (`LibShader_StaleShaderRejectedJit`). A failed bind reports through the diagnostic sink, naming the shader and including LLVM's unresolved-symbol text.
+- Tests: `LibShader_Format_*` (`test_format_versions.cpp`). `LibShader_Format_rslo_lower_minor` reports SKIPPED while the supported `.rslo` minor is 0.
+
 ## Interpreter (`.rslo`)
 
-- **I1**: stochastic instructions carry the `callSite` as an extra, **last** operand (`.rslo` format 1.1, `src/common/rsloFormat.h`); the loader strips it before it resolves the opcode and keeps it in `TCode::callSite`. This is a format change:
-  - the `.rslo` format version is bumped, so the loader rejects an older file with a diagnostic and never misreads it;
+- **I1**: stochastic instructions carry the `callSite` as an extra, **last** operand (`.rslo` format **2.0**, `src/common/rsloFormat.h`); the loader strips it before it resolves the opcode and keeps it in `TCode::callSite`. This is a MAJOR format change (V1):
+  - the `.rslo` major is bumped, so the loader rejects an older file with a diagnostic and never misreads it;
   - every shipped `.rslo` is rebuilt by the build.
 - **I2**: `random()`/`urandom()` draws come from `get1D(substream(pointKeys[i], shaderKey, callSite, occurrence[callSite][i], depth), dim, …)`. The uniform form uses `batchKey` in place of `pointKeys[i]`.
 
 ## JIT runtime ABI (`rslOps.cpp`, `llvmEmitter.cpp`)
 
-- **J1**: `op_random_f`, `op_random_v` and the trace, transmission, visibility, gather (`op_gatherHeader`), occlusion, indirectdiffuse, illuminance (`op_illuminance_begin`) and texture-family (texture, environment, shadow) entries gain a `uint32_t callSite` argument, always the **last** one. The emitter passes the compiler's ordinal as a constant. Every `.slo` is rebuilt.
+- **J1**: `op_random_f`, `op_random_v` and the trace, transmission, visibility, gather (`op_gatherHeader`), occlusion, indirectdiffuse, illuminance (`op_illuminance_begin`) and texture-family (texture, environment, shadow) entries gain a `uint32_t callSite` argument, always the **last** one. The emitter passes the compiler's ordinal as a constant. Every `.slo` is rebuilt, and the `.slo` format major is bumped (V1, V3).
   - Each changed entry is **renamed** with a version suffix, for example `op_random_f_v2`.
-  - A stale `.slo` then fails at JIT bind time with an unresolved symbol instead of reading garbage arguments.
+  - A stale `.slo` is refused by the format check (V3) before it is linked; if it somehow passes, it fails at JIT bind time with an unresolved symbol instead of reading garbage arguments.
 - **J1a**: `solar` and `illuminate` carry no ordinal: they declare a light's own emission and draw nothing at that point. (C1 listed them; revisit if a light needs a stream of its own.)
 - **J2**: per point, the JIT increments `occurrence` for active lanes only, exactly as the interpreter does. The comparison tests in SC-008 check this.
 - **J3**: the changed symbols must still resolve at JIT bind time (CLAUDE.md gotcha 3). The `-slo` visual suite proves it.
