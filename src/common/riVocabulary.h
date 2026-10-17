@@ -376,6 +376,9 @@ extern RtToken RI_ENDOFFRAME,
 extern RtToken RI_TEXTURECACHEENABLE,
     RI_TEXTURECACHEDIRECTORY;
 
+// Sampling options (spec 039)
+extern RtToken RI_SAMPLING, RI_SAMPLER, RI_SEED;
+
 // Irradiance options
 extern RtToken RI_HANDLE,
     RI_FILEMODE,

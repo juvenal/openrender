@@ -302,6 +302,17 @@ namespace openrender::sampling {
     }
 
     ///////////////////////////////////////////////////////////////////////
+    // Names (Option "sampling" "sampler")
+    ///////////////////////////////////////////////////////////////////////
+
+    // The option name of a backend: "sobol", "pmj02", "independent" or "legacy".
+    const char *samplerName(Backend b);
+
+    // Looks a name up; "legacy" is accepted until Phase 9 and is never documented.
+    // Returns false (leaving `out` alone) for an unknown name.
+    bool samplerFromName(const char *name, Backend &out);
+
+    ///////////////////////////////////////////////////////////////////////
     // Identity construction (pure)
     ///////////////////////////////////////////////////////////////////////
 

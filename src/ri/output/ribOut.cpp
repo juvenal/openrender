@@ -501,6 +501,27 @@ void CRibOut::RiOptionV(const char *name, int n, const char *tokens[], const voi
         }
         // Check for rib compression / output options
     }
+    else if (strcmp(name, RI_SAMPLING) == 0) {
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_SAMPLER) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                out("Option \"%s\" \"%s\" [\"%s\"]\n", name, tokens[i], val);
+            }
+            else if (strcmp(tokens[i], RI_SEED) == 0) {
+                const int *val = (const int *)params[i];
+                out("Option \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            }
+            else {
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
+                    RiOption(name, var.name, params[i], RI_NULL);
+                }
+                else {
+                    error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+                }
+            }
+        }
+    }
     else if (strcmp(name, RI_RIB) == 0) {
         for (i = 0; i < n; i++) {
             if (strcmp(tokens[i], RI_COMPRESSION) == 0) {

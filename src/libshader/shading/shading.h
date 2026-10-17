@@ -32,6 +32,7 @@
 #include "common/global.h"
 #include "libshader/shading/rendererServices.h"
 #include "common/random.h"
+#include "common/sampling.h"
 #include "shader.h"
 
 // Some forward definitions
@@ -274,6 +275,12 @@ class CShadingContext {
 
         // The current shading state
         CShadingState *currentShadingState;
+
+        // The sampling configuration of the frame (spec 039): immutable for the
+        // frame, set by the renderer core when it creates the context. Hiders and
+        // shading read this member and never a renderer symbol.
+        void setSamplingConfig(const openrender::sampling::CSamplingConfig &c) { sampling = c; }
+        const openrender::sampling::CSamplingConfig &samplingConfig() const { return sampling; }
 
         // Shade points on a surface
         void shade(CSurface *, int, int, EShadingDim, unsigned int, int displaceOnly = FALSE);
@@ -743,6 +750,9 @@ class CShadingContext {
         void jitDebug(int n, const int *tags);
 
     protected:
+        // See setSamplingConfig(). Legacy until the core sets it.
+        openrender::sampling::CSamplingConfig sampling{openrender::sampling::Backend::Legacy, 0u, 0u, 1, 1, 0.0f};
+
         // ---> Renderer service accessors (Phase B decoupling from CRenderer globals)
         // All delegate to currentShadingState->services (set from CRendererServicesImpl
         // in the renderer context, nullptr in standalone libshader use).

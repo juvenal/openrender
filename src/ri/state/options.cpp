@@ -893,6 +893,20 @@ int COptions::find(const char *name, const char *category, EVariableType &type, 
         }
     }
 
+    if ((category == NULL) || (strcmp(category, RI_SAMPLING) == 0)) {
+        if (strcmp(name, RI_SAMPLER) == 0) {
+            type = TYPE_STRING;
+            value = openrender::sampling::samplerName(samplingBackend);
+            return TRUE;
+        }
+        else if (strcmp(name, RI_SEED) == 0) {
+            type = TYPE_INTEGER;
+            value = NULL;
+            intValue = (int)samplingSeed;
+            return TRUE;
+        }
+    }
+
     if ((category == NULL) || (strcmp(category, RI_SHUTTER) == 0)) {
         if (strcmp(name, RI_OFFSET) == 0) {
             type = TYPE_FLOAT;

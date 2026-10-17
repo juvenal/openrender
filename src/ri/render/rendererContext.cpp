@@ -2025,6 +2025,34 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
             }
         }
     }
+    else if (strcmp(name, RI_SAMPLING) == 0) {
+        // Option "sampling" (spec 039): the sampler backend and the user seed.
+        // An unknown sampler name is reported through CODE_BADTOKEN and the
+        // default is kept.
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_SAMPLER) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                openrender::sampling::Backend backend;
+                if (openrender::sampling::samplerFromName(val, backend))
+                    options->samplingBackend = backend;
+                else
+                    error(CODE_BADTOKEN, "Unknown sampler \"%s\" (valid: sobol, pmj02, independent); using the default sampler\n", val);
+            }
+            else if (strcmp(tokens[i], RI_SEED) == 0) {
+                // Any integer is valid; it is reinterpreted as uint32.
+                options->samplingSeed = (uint32_t)((int *)params[i])[0];
+            }
+            else {
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
+                    RiOption(name, var.name, params[i], RI_NULL);
+                }
+                else {
+                    error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+                }
+            }
+        }
+    }
     else {
         error(CODE_BADTOKEN, "Unknown option: \"%s\"\n", name);
     }

@@ -313,6 +313,11 @@ RtToken RI_PROGRESS = "progress";
 RtToken RI_TEXTURECACHEENABLE = "enable";
 RtToken RI_TEXTURECACHEDIRECTORY = "directory";
 
+// Sampling options (spec 039)
+RtToken RI_SAMPLING = "sampling";
+RtToken RI_SAMPLER = "sampler";
+RtToken RI_SEED = "seed";
+
 // Irradiance options
 RtToken RI_HANDLE = "handle";
 RtToken RI_FILEMODE = "filemode";

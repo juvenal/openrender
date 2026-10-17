@@ -18,6 +18,9 @@
  */
 #include "sampling.h"
 
+#include <cstring>
+#include <initializer_list>
+
 namespace openrender::sampling {
 
     namespace {
@@ -71,6 +74,31 @@ namespace openrender::sampling {
             return sequence ? detail::sobolGet1D64(seed, slot, index)
                             : get1D(cfg.backend, SubstreamKey{seed, 0u}, slot, static_cast<uint32_t>(index));
         });
+    }
+
+    const char *samplerName(Backend b) {
+        switch (b) {
+            case Backend::Sobol:
+                return "sobol";
+            case Backend::PMJ02:
+                return "pmj02";
+            case Backend::Independent:
+                return "independent";
+            case Backend::Legacy:
+            default:
+                return "legacy";
+        }
+    }
+
+    bool samplerFromName(const char *name, Backend &out) {
+        if (name == nullptr)
+            return false;
+        for (Backend b : {Backend::Sobol, Backend::PMJ02, Backend::Independent, Backend::Legacy})
+            if (std::strcmp(name, samplerName(b)) == 0) {
+                out = b;
+                return true;
+            }
+        return false;
     }
 
     namespace detail {

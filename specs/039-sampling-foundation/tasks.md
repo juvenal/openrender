@@ -182,14 +182,14 @@ description: "Task list for spec 039: sampling foundation"
 
 ### Implementation
 
-- [ ] T031 [US5] Add the tokens `RI_SAMPLING`, `RI_SAMPLER` and `RI_SEED` (only those not already present) to `src/ri/parse/ri.h`, `src/common/riVocabulary.h` and `src/common/riTokens.cpp` (CLAUDE.md gotcha 22).
-- [ ] T032 [US5] Pre-declare `"sampler"` as `string` and `"seed"` as `int` under the `"sampling"` option in `initDeclarations()` (`src/ri/render/rendererDeclarations.cpp`).
-- [ ] T033 [US5] `src/ri/state/options.{h,cpp}`: add `samplingBackend` (enum, default `Legacy` for now) and `samplingSeed` (uint32, default 0). Make them queryable through `COptions::find()` and RSL `option()`.
-- [ ] T034 [US5] `RiOptionV()` in `src/ri/render/rendererContext.cpp`: parse both tokens. An unknown name gets the T027 diagnostic through `CODE_BADTOKEN`, and the default is kept.
-- [ ] T035 [US5] `src/ri/output/ribOut.cpp`: declare and emit both tokens (FR-027).
-- [ ] T036 [US5] Renderer core: build an immutable `CSamplingConfig {backend, seed, frame, nx, ny, jitter}` in `CRenderer::beginFrame` (`src/ri/render/renderer.cpp`), and pass it to every shading context the core creates. Add a `CShadingContext` member, set by the core (constructor argument or setter).
+- [X] T031 [US5] Add the tokens `RI_SAMPLING`, `RI_SAMPLER` and `RI_SEED` (only those not already present) to `src/ri/parse/ri.h`, `src/common/riVocabulary.h` and `src/common/riTokens.cpp` (CLAUDE.md gotcha 22).
+- [X] T032 [US5] Pre-declare `"sampler"` as `string` and `"seed"` as `int` under the `"sampling"` option in `initDeclarations()` (`src/ri/render/rendererDeclarations.cpp`).
+- [X] T033 [US5] `src/ri/state/options.{h,cpp}`: add `samplingBackend` (enum, default `Legacy` for now) and `samplingSeed` (uint32, default 0). Make them queryable through `COptions::find()` and RSL `option()`.
+- [X] T034 [US5] `RiOptionV()` in `src/ri/render/rendererContext.cpp`: parse both tokens. An unknown name gets the T027 diagnostic through `CODE_BADTOKEN`, and the default is kept.
+- [X] T035 [US5] `src/ri/output/ribOut.cpp`: declare and emit both tokens (FR-027).
+- [X] T036 [US5] Renderer core: build an immutable `CSamplingConfig {backend, seed, frame, nx, ny, jitter}` in `CRenderer::beginFrame` (`src/ri/render/renderer.cpp`), and pass it to every shading context the core creates. Add a `CShadingContext` member, set by the core (constructor argument or setter).
   - **No hider or shading file may read a new `CRenderer::` symbol** (gate).
-- [ ] T037 [RUN] [US5] Build, then:
+- [X] T037 [RUN] [US5] Build, then:
   - `ctest -L "common|architecture"` and the `SamplingOption_*` tests;
   - **the full visual suite, which must be unchanged against T003** (the default is still `Legacy`).
 

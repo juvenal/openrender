@@ -125,6 +125,10 @@ void CRenderer::initDeclarations() {
     declareVariable(RI_TEXTURECACHEENABLE, "int");
     declareVariable(RI_TEXTURECACHEDIRECTORY, "string");
 
+    // Option "sampling" (spec 039)
+    declareVariable(RI_SAMPLER, "string");
+    declareVariable(RI_SEED, "int");
+
     // File display variables
 
     declareVariable("quantize", "float[4]");

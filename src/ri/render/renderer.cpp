@@ -764,6 +764,11 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     // Set up displays
     beginDisplays();
 
+    // The sampling configuration of the frame (spec 039): immutable, built here
+    // from the frame's options and handed to every context below.
+    const openrender::sampling::CSamplingConfig samplingConfig{
+        o->samplingBackend, o->samplingSeed, (uint32_t)frame, pixelXsamples, pixelYsamples, jitter};
+
     // Start the contexts
     numActiveThreads = numThreads;
     contexts = new CShadingContext *[numThreads];
@@ -795,6 +800,7 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
 
         assert(contexts[i] != NULL);
 
+        contexts[i]->setSamplingConfig(samplingConfig);
         contexts[i]->updateState();
     }
 }

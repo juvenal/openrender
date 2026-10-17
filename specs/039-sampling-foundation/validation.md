@@ -351,3 +351,30 @@ No token exists yet: `RI_SAMPLING`, `RI_SAMPLER` and `RI_SEED` are all absent fr
   - `SamplingOption_UnknownName`: **Failed**, 4 checks. The one diagnostic is `Unknown option: "sampling"` (code 41, severity error) rather than `Unknown sampler "foo" ...`, and the later valid name is not applied.
   - `SamplingOption_RibRoundTrip`: **Failed**, 12 checks. The parser reports `Parameter "sampler" is not declared` and `Parameter "seed" is not declared` for the pre-declared spelling and `Unknown option: "sampling"` for the inline one. The RIB writer output contains only the control line (`Option "limits" "bucketsize" [16 16]`), which shows that the parser-to-writer path itself works and the failures are confined to the sampling tokens.
 - `ctest -L architecture`: 21/21 passed with the new `options.h` include.
+
+### T031-T037: implementation and the end-of-phase run
+
+`nice -n 19`, `-j4`, one job at a time. The approved tests were not touched.
+
+#### What was implemented
+
+- **Tokens** (T031): `RI_SAMPLING` ("sampling"), `RI_SAMPLER` ("sampler") and `RI_SEED` ("seed") in `src/ri/parse/ri.h`, `src/common/riVocabulary.h` and `src/common/riTokens.cpp`. None existed before. `Common_VocabularyConsistency` agrees on 238 tokens.
+- **Pre-declaration** (T032): `"sampler"` as `string` and `"seed"` as `int` in `initDeclarations()` (`rendererDeclarations.cpp`).
+- **Storage and query** (T033): `COptions::samplingBackend` (default `Legacy`) and `samplingSeed` (default 0; added with the tests), and `COptions::find()` answers category `sampling`: `sampler` as a string (`sobol`, `pmj02`, `independent`, `legacy`) and `seed` as an integer. Two small public helpers in the sampler library map names and backends: `samplerName(Backend)` and `samplerFromName(const char *, Backend &)` (not `backendName`: the approved test utilities already define `sptest::backendName`, which made the call ambiguous through `using namespace sptest`).
+- **Parsing** (T034): a `"sampling"` branch in `RiOptionV()`. An unknown sampler name raises `error(CODE_BADTOKEN, "Unknown sampler \"foo\" (valid: sobol, pmj02, independent); using the default sampler")` and keeps the default. The seed is any integer, reinterpreted as `uint32`. The message says "the default sampler" and not `"sobol"` because the internal default is still `Legacy` until Phase 9. A token declared inline (`"string sampler"`) is re-issued under its plain name, as the other option groups do.
+- **RIB output** (T035): `CRibOut::RiOptionV()` writes `Option "sampling" "sampler" ["name"]` and `Option "sampling" "seed" [n]`.
+- **Config injection** (T036): `CRenderer::beginFrame()` builds one immutable `CSamplingConfig {backend, seed, frame, pixelXsamples, pixelYsamples, jitter}` from the frame's options and calls `setSamplingConfig()` on every context it creates (raytrace, reyes, zbuffer, photon, and the default reyes), before `updateState()`. `CShadingContext` (`libshader/shading/shading.h`) has a protected `sampling` member, `Legacy` until set, with `setSamplingConfig()` and `samplingConfig()`. **Gate:** no hider or shading file reads a new `CRenderer::` symbol (the diff of `src/ri/hiders` and `src/libshader` contains no `CRenderer::` token); the core reads only what it already read. `shading.h` includes `common/sampling.h` (Infra).
+
+#### Results
+
+- Build: exit 0, no compiler warnings.
+- `SamplingOption_Parse`, `SamplingOption_UnknownName`, `SamplingOption_RibRoundTrip`, `Common_*` and `Sampling_*` (34 tests): **34/34 passed**.
+- Full suite, `nice -n 19 ctest --test-dir build -j4 --output-on-failure`: **618 tests** (615 + the 3 new), and the baseline holds:
+  - first run: **617/618**, one failure, `Visual_sphere-shader-parameter-reyes-slo`: `3 block(s) exceed threshold 20. Worst avg diff=77.23 on channel G at block (34,28)`, `MaxBlockAvgDiff 77.23`, `FailBlocks 3` (the unexplained flake that failed once on spec 024). Re-run in isolation: **60 of 60 passed** (`--repeat until-fail:60`) and five `-V` runs gave MaxBlockAvgDiff 6.06, 5.97, 6.81, 6.81 and 6.86 for the `-slo` variant (4.88, 6.83, 0.23, 5.97 and 6.78 for the plain one, so the scene's own run-to-run diff varies a lot, 0.23 to 6.8, which fits a source of nondeterminism in this tiny scene).
+  - second full run: **618/618 passed**, including that test.
+  - The change cannot reach a render: under `Legacy` nothing reads the config. The sampling-config injection changes no output.
+- Architecture: `ctest -L architecture` 21/21; `archcheck` `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`, `Infra refs 0`, `Shading refs 9` (unchanged), no allowlist line, and the same three metric warnings as master.
+
+#### Unexpected
+
+- **RSL `option()` is not reachable through `COptions::find()`.** T033 says the options are queryable through `COptions::find()` and RSL `option()`. `find()` is done and tested, but it has no callers outside the tests: RSL's `option()` (`CShadingContext::options()` in `shading.cpp`) answers a fixed list of RISpec names through `CRendererServices` virtuals, and a custom name such as `sampler` would need a new virtual on that Shading-to-Core interface. I did not widen that interface; whether to is the maintainer's call (it matters for specs 026/029).
