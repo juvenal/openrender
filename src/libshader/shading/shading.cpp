@@ -430,9 +430,9 @@ CShadingContext::CShadingContext(int t) : thread(t) {
     freeStates = NULL;
     inShadow = FALSE;
 
-    // (globalArena is checkpointed)
-    if (s_defaultServices && globalArena.top)
-        traceObjectHash = (TObjectHash *)ralloc(sizeof(TObjectHash) * SHADING_OBJECT_CACHE_SIZE, globalArena);
+    // The context owns its object hash: allocated whether or not renderer
+    // services are installed or globalArena is checkpointed (GitHub #53)
+    traceObjectHash = new TObjectHash[SHADING_OBJECT_CACHE_SIZE];
 
     // Fill the object pointers with impossible data
     for (int i = 0; i < SHADING_OBJECT_CACHE_SIZE; i++)
@@ -489,11 +489,19 @@ CShadingContext::~CShadingContext() {
         }
     }
 
-    // Ditch the shading states that have been allocated
-    assert(currentShadingState != NULL);
+    // Ditch the object hash (its overflow entries live in threadMemory)
+    delete[] traceObjectHash;
+    traceObjectHash = NULL;
+
+    // Ditch the shading states that have been allocated. A context that never
+    // received a state (updateState() was never called) has none to free and
+    // no stats to flush (GitHub #53)
     // Save stats pointer before freeing states (pointer lives in state, not context)
-    CStats *savedStats = currentShadingState->stats;
-    freeState(currentShadingState);
+    CStats *savedStats = NULL;
+    if (currentShadingState != NULL) {
+        savedStats = currentShadingState->stats;
+        freeState(currentShadingState);
+    }
     CShadingState *cState;
     while ((cState = freeStates) != NULL) {
         freeStates = cState->next;

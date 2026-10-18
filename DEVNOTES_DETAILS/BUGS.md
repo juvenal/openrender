@@ -73,18 +73,37 @@ This file tracks known defects and implementation gaps in openRender. Open items
       count on macOS (exit code 5, no map written) and in 0 of 30 at `-t:1`; on Linux at `-t:1`
       it crashed in 0 of 30. The spec 024 parity tests therefore render at `-t:1`. The race
       remains open.
-- [ ] **Constructing a shading context with no renderer services writes through an uninitialized
-      pointer** ([#53](https://github.com/juvenal/openrender/issues/53)).
-      `CShadingContext::CShadingContext` (`src/libshader/shading/shading.cpp`, around line 434)
-      allocates `traceObjectHash` only when default services are installed and `globalArena.top` is
-      set. It then fills `SHADING_OBJECT_CACHE_SIZE` entries through it unconditionally. The
-      renderer never reaches this, because it creates contexts in `beginFrame()` after the services
-      are registered. Any standalone use of the shading library that creates a context with no
-      services does reach it. Found by code reading while planning spec 024, which does not change
-      this (its no-services test constructs no context). The fix is planned on its own `fix/` branch
-      right after spec 024 merges.
+- [ ] **A shading context can't be given a state without real renderer services**
+      ([#59](https://github.com/juvenal/openrender/issues/59)). `CShadingContext::newState()` and
+      `freeState()` (`src/libshader/shading/shading.cpp`, around lines 1100 and 1200) call
+      `s_defaultServices->numGlobalVariables()`, `maxGridSize()` and `globalVariable(j)` without
+      checking that services exist, so `updateState()` with no services installed dereferences null.
+      With `CStubServices` installed (`tests/shading_parity/recording_services.h`, whose
+      `numGlobalVariables()` is 0) `newState()` allocates a zero-length `varying` array and then
+      writes fixed slots such as `varying[VARIABLE_E]` past its end. The renderer never reaches either,
+      because it creates states only after `beginRenderer()` registers the real services. Found while
+      fixing #53, which deliberately leaves this alone. Open design question: fail cleanly, fall back
+      to a built-in global-variable table, or make `CStubServices` consistent and document real
+      services as required.
 
 ## Resolved Bugs
+
+- [x] Bug: constructing a shading context with no renderer services wrote through an uninitialized
+      pointer (FIXED — GitHub #53, branch `fix/shading-context-trace-hash`, 2026-10-18).
+      `CShadingContext::CShadingContext` allocated `traceObjectHash` from `globalArena` only when
+      default services were installed and `globalArena.top` was set, then filled
+      `SHADING_OBJECT_CACHE_SIZE` entries through it unconditionally. The condition was left over from
+      Phase B4 (`6d12d02`), when the services were the only route to the page pool, and spec 023
+      (`9ab1967`) carried it forward unchanged; nothing required the hash to live in the arena. The
+      renderer never reached it (contexts are built in `beginFrame()`, after the services are
+      registered), but any standalone use of the shading library did. The context now owns the hash:
+      `new[]` in the constructor, `delete[]` in the destructor (`trace.cpp` is unchanged; its overflow
+      entries still come from `threadMemory`). The destructor also no longer asserts on, or in Release
+      dereferences, a null `currentShadingState`: a context that never received a state skips the
+      state free and the stats flush. Test: `ShadingServices_ContextNoServices`
+      (`tests/shading_parity/test_context_no_services.cpp`) builds contexts over storage whose every
+      pointer slot points at a sentinel, so a write through the unset pointer is counted
+      deterministically, then destroys them. Giving such a context a state still needs services (#59).
 
 - [x] Bug: the photon hider traced the no-argument `solar()` form from stale state (FIXED — GitHub #52,
       branch `fix/photon-solar0-stale`, 2026-10-17), under either backend. `CPhotonHider::solarBegin`
