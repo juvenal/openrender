@@ -231,3 +231,26 @@ set_tests_properties(ShadingServices_NoServices PROPERTIES
     TIMEOUT 30
     LABELS "shading_parity"
 )
+
+# GitHub #53: a CShadingContext built with no renderer services installed, or
+# with no globalArena checkpoint, must not write through an unset
+# traceObjectHash. The contexts are built over storage whose every pointer slot
+# points at a test-owned sentinel, so a write through the unset pointer is
+# counted deterministically instead of crashing (or not) by luck. Case C, the
+# renderer's own path inside RiBegin/RiWorldBegin, is the control and loads the
+# default shaders at RiWorldBegin.
+add_executable(test_shading_context_no_services test_context_no_services.cpp)
+target_link_libraries(test_shading_context_no_services PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+# Same reason as test_shading_service_lookup: keep libRIBRender NEEDED on Linux (GitHub #44).
+target_link_options(test_shading_context_no_services PRIVATE $<$<PLATFORM_ID:Linux>:LINKER:--no-as-needed>)
+target_include_directories(test_shading_context_no_services PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_BINARY_DIR}
+)
+target_compile_features(test_shading_context_no_services PRIVATE cxx_std_20)
+add_test(NAME ShadingServices_ContextNoServices COMMAND test_shading_context_no_services)
+set_tests_properties(ShadingServices_ContextNoServices PROPERTIES
+    TIMEOUT 30
+    LABELS "shading_parity"
+    ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>"
+)
