@@ -183,8 +183,16 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int /*nullBucket*/) {
     // seeded table verbatim instead of this hider's own live CSobol/urand
     // stream, so raytrace regenerates the identical values for the same
     // bucket (see CSampler::generateBucketTable).
+    //
+    // Under the Sobol, PMJ02 and Independent samplers (spec 039, R3.1) every camera
+    // value comes from the sampler's camera slots instead, indexed by the sample's
+    // absolute subpixel coordinates (`left`/`top` are already subpixels here), so
+    // raytrace and a neighbouring bucket compute the same values for the same
+    // subpixel.
+    const openrender::sampling::CSamplingConfig &samplingCfg = samplingConfig();
+    const bool cameraSlots = samplingCfg.backend != openrender::sampling::Backend::Legacy;
     std::vector<CSampleValue> correlatedTable;
-    if (CRenderer::correlatedSampleTable) {
+    if (!cameraSlots && CRenderer::correlatedSampleTable) {
         correlatedTable = sampler.generateBucketTable(
             left, top, sampleWidth, sampleHeight,
             CRenderer::xSampleOffset, CRenderer::ySampleOffset, wantLens);
@@ -207,7 +215,9 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int /*nullBucket*/) {
             }
             pixel->jtStratum = ((pxi * CRenderer::pixelXsamples + pxj) * rasterTimeStrata()) / (CRenderer::pixelXsamples * CRenderer::pixelYsamples);
 
-            const CSampleValue sample = CRenderer::correlatedSampleTable
+            const CSampleValue sample = cameraSlots
+                                            ? CSampler::cameraSample(samplingCfg, CSampler::reyesAbsSub(left, j), CSampler::reyesAbsSub(top, i), wantLens)
+                                        : CRenderer::correlatedSampleTable
                                             ? correlatedTable[(size_t)i * sampleWidth + j]
                                             : sampler.nextSample(
                                                   pxi * CRenderer::pixelXsamples + pxj,

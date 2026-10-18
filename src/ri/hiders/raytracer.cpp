@@ -525,8 +525,17 @@ void CRaytracer::sample(int left, int top, int xpixels, int ypixels) {
     // hiders' noise patterns correlate. wantLens mirrors stochastic's own
     // FOCALBLUR-gated condition rather than this loop's native `false`, so
     // the table's lens entries are populated whenever DOF is active.
+    //
+    // Under the Sobol, PMJ02 and Independent samplers (spec 039, R3.1) the camera
+    // values come from the sampler's camera slots instead, indexed by the absolute
+    // subpixel (left/top are pixels here, so the bucket's first subpixel is
+    // left * nx - xSampleOffset), exactly as reyes computes them. The primary ray keeps
+    // its camera importance and key.
+    const openrender::sampling::CSamplingConfig &samplingCfg = samplingConfig();
+    const bool cameraSlots = samplingCfg.backend != openrender::sampling::Backend::Legacy;
+    const bool wantLens = (CRenderer::flags & OPTIONS_FLAGS_FOCALBLUR) != 0;
     std::vector<CSampleValue> correlatedTable;
-    if (CRenderer::correlatedSampleTable) {
+    if (!cameraSlots && CRenderer::correlatedSampleTable) {
         const bool wantLensForTable = (CRenderer::flags & OPTIONS_FLAGS_FOCALBLUR) != 0;
         correlatedTable = sampler.generateBucketTable(
             left, top, xsamples, ysamples,
@@ -582,7 +591,10 @@ void CRaytracer::sample(int left, int top, int xpixels, int ypixels) {
                         // stochastic's `j`) -- exactly the position stochastic
                         // would have drawn this entry for, so no sub_x/sub_y
                         // modulo remapping is needed on this side.
-                        const CSampleValue jitterSample = CRenderer::correlatedSampleTable
+                        const CSampleValue jitterSample = cameraSlots
+                                                              ? CSampler::cameraSample(samplingCfg, CSampler::raytraceAbsSub(left, nx, CRenderer::xSampleOffset, i + x),
+                                                                                       CSampler::raytraceAbsSub(top, ny, CRenderer::ySampleOffset, j + y), wantLens)
+                                                          : CRenderer::correlatedSampleTable
                                                               ? correlatedTable[(size_t)(j + y) * xsamples + (i + x)]
                                                               : sampler.nextSample(sub_y * nx + sub_x, 0, false);
 
@@ -591,6 +603,12 @@ void CRaytracer::sample(int left, int top, int xpixels, int ypixels) {
                         cRay->time = sampleMotion ? jitterSample.timeStratum : 0.0f;
                         cRay->lensU = jitterSample.lensU;
                         cRay->lensV = jitterSample.lensV;
+                        if (cameraSlots) {
+                            cRay->jimp = jitterSample.importance;
+                            cRay->key = jitterSample.key;
+                            cRay->depth = 0;
+                        }
+                        cRay->cameraImportance = cameraSlots;
 
                         rayPointers[numShading++] = cRay;
                         cRay++;
@@ -682,7 +700,7 @@ void CRaytracer::computeSamples(CPrimaryRay *rays, int numShading) {
             // correlated bucket table, instead of drawing a second,
             // uncorrelated one here.
             float diskSample[2];
-            if (CRenderer::correlatedSampleTable) {
+            if (CRenderer::correlatedSampleTable || samplingConfig().backend != openrender::sampling::Backend::Legacy) {
                 diskSample[0] = cRay->lensU;
                 diskSample[1] = cRay->lensV;
             }

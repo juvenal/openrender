@@ -288,17 +288,17 @@ The call-site operand and the `_v2` ABI make Phase 4 a MAJOR change of both shad
   - The seam (declared in `src/ri/hiders/sampler.h`, stub bodies until T060): `CSampler::reyesAbsSub(origin, index)`, `CSampler::raytraceAbsSub(originPixels, samplesPerPixel, sampleOffset, index)` (the two unit conversions) and `CSampler::cameraSample(config, absSubX, absSubY, wantLens)`; `CSampleValue` gains a `key` (the camera key). T060-T062 make the hiders call them.
   - Besides path equality it checks the values against the slots computed independently from `common/sampling.h` (jitter mapping, time stratum `row*nx+col`, transposed importance stratum `col*ny+row`, camera key, lens), for Sobol, PMJ02 and Independent, jitter 0, 0.37 and 1, two grids, with and without lens.
 - [X] T058 [P] [US3] `tests/visual/CMakeLists.txt`, test `CameraSamples_JitterZeroUnchanged` (registered as `_reyes` and `_raytrace`; driver `tests/visual/test_render_compare.cpp`; plus the control `CameraSamples_SobolEngaged_{reyes,raytrace}`: with `jitter 1` the sobol render must differ from the legacy one, so the option cannot be silently ignored): under `sobol`, every `"jitter" [0]` scene's film, time and importance positions equal today's. The test renders `color-determinism-opaque-reyes.rib` and `depth-analytic-min-raytrace.rib` with `--prepend` (T079 adds that flag later), so for now it runs a hand-written copy with the option line, comparing bit for bit with the `Legacy` render.
-- [ ] T059 [RUN] [US3] **TEST-APPROVAL**.
+- [X] T059 [RUN] [US3] **TEST-APPROVAL** (approved with the concentric lens mapping; committed as cec5e0d).
 
 ### Implementation
 
-- [ ] T060 [US3] `src/ri/hiders/sampler.{h,cpp}`: add the shared absolute-subpixel `SampleId` function. Keep `jitter·(u−0.5)+0.5001011` for film, time and importance; only `u` comes from the camera slots. Lens comes from the lens slot through `sampleDisk()`.
+- [X] T060 [US3] `src/ri/hiders/sampler.{h,cpp}`: add the shared absolute-subpixel `SampleId` function. Keep `jitter·(u−0.5)+0.5001011` for film, time and importance; only `u` comes from the camera slots. Lens comes from the lens slot through `sampleDisk()`.
   - Under `Legacy`, behaviour is unchanged.
-- [ ] T061 [US3] `src/ri/hiders/stochastic.{h,cpp}`: under the new backends, compute `absSub = left + j / top + i`, and take every camera value from the slots. Do not use `apertureGenerator` on the new path.
-- [ ] T062 [US3] `src/ri/hiders/raytracer.cpp` `sample()` and `computeSamples()`: under the new backends, compute `absSub = left·nx − xSampleOffset + (i+x)` (and likewise for y), using the same stratum index and transposed importance index as reyes.
+- [X] T061 [US3] `src/ri/hiders/stochastic.{h,cpp}`: under the new backends, compute `absSub = left + j / top + i`, and take every camera value from the slots. Do not use `apertureGenerator` on the new path.
+- [X] T062 [US3] `src/ri/hiders/raytracer.cpp` `sample()` and `computeSamples()`: under the new backends, compute `absSub = left·nx − xSampleOffset + (i+x)` (and likewise for y), using the same stratum index and transposed importance index as reyes.
   - Put the camera importance slot in `cRay->jimp`, and the `SampleKey` and depth 0 in `cRay->key`.
-- [ ] T063 [US3] `src/ri/hiders/trace.cpp:304`: under the new backends, do not overwrite `jimp` for a ray that carries a camera importance. Secondary rays draw `jimp` from their child sub-stream.
-- [ ] T064 [RUN] [US3] Build, then:
+- [X] T063 [US3] `src/ri/hiders/trace.cpp:304`: under the new backends, do not overwrite `jimp` for a ray that carries a camera importance. Secondary rays draw `jimp` from their child sub-stream.
+- [X] T064 [RUN] [US3] Build, then:
   - T057/T058;
   - `ctest -L visual`, which must be unchanged under `Legacy`;
   - every parity test once, by hand, with `sobol` prepended: report the diffs (no threshold change yet).

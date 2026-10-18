@@ -133,7 +133,11 @@ sampleIndex    = floorMod(absSubY, ny)·nx + floorMod(absSubX, nx)
 
 `floorDiv` and `floorMod` round toward −∞, because margin samples have negative coordinates at the image border. A unit test (`Sampling_CameraGridConsistency`) runs both formulas over a bucket grid with margins and asserts that they give equal SampleIds. A margin sample therefore gets the same values in every bucket and in both hiders.
 
-The jitter mapping is unchanged (clarify Q4): `film = jitter·(u−0.5)+0.5001011` within the stratum, `time = (strataIndex + jitter·(u−0.5)+0.5001011)/N`, and `importance` likewise with reyes' transposed index. Only `u` comes from the sampler slots. Lens comes from the lens slot through `sampleDisk()`.
+The jitter mapping is unchanged (clarify Q4): `film = jitter·(u−0.5)+0.5001011` within the stratum, `time = (strataIndex + jitter·(u−0.5)+0.5001011)/N`, and `importance` likewise with reyes' transposed index. Only `u` comes from the sampler slots.
+
+**Lens mapping (decided at the Phase 5 test approval)**: the lens point is the lens slot's `(u, v)` through the **Shirley–Chiu concentric map** of the unit square onto the unit disk, not through `sampleDisk()`. Reason: `sampleDisk()` is a rejection loop that needs a fresh draw after every rejection, and a camera slot is a stateless function of the `SampleId`: a rejected first attempt would repeat forever (or need an invented retry index that collides with other samples). The concentric map is area preserving and continuous, needs no rejection, and keeps the (0,2) stratification of the Lens2D slot on the lens. Sobol, PMJ02 and Independent all use it; `Legacy` keeps its rejection `sampleDisk()` unchanged (deleted with it in Phase 9). Implemented in `CSampler::cameraSample()` and checked by `Sampling_CameraSlotsEqual` against an independent double-precision implementation.
+
+**Primary-ray importance**: raytrace puts the Importance1D slot value in `CPrimaryRay::jimp` and sets `CRay::cameraImportance`, so `trace()` keeps it (a continuation after transparency keeps it too) instead of drawing `urand()`. Secondary rays still draw `jimp` from `urand()` until Phase 6 gives them a child sub-stream.
 
 **Consequences**:
 - Raytrace's stratum indexing and its importance change on purpose (FR-009). Raytrace primary rays keep the camera importance slot: `trace()` no longer overwrites `jimp` for rays that already carry one.

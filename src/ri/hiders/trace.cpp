@@ -318,7 +318,10 @@ void CShadingContext::trace(CRay *ray) {
     // Compute the first entry in the heap
     heap[1].tmin = nearestBox(CRenderer::root->bmin, CRenderer::root->bmax, ray->from, ray->invDir, ray->tmin, ray->t);
     heap[1].object = CRenderer::root;
-    ray->jimp = urand();
+    // A primary ray under the new samplers already carries its camera importance;
+    // every other ray draws one.
+    if (!ray->cameraImportance)
+        ray->jimp = urand();
     ray->object = NULL;
 
     numTracedRays++;

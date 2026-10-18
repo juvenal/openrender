@@ -16,9 +16,11 @@
 //      (row * nx + column), the transposed importance stratum (column * ny + row),
 //      and the camera key of the absolute SampleId. The expected values are
 //      computed here from common/sampling.h alone, never through CSampler;
-//   3. the lens point is the lens slot through sampleDisk() (when the first
-//      attempt of the rejection loop falls in the disk it is that point, and the
-//      point is always inside the disk), and is exactly 0 when no lens is wanted.
+//   3. the lens point is the Shirley-Chiu concentric mapping of the lens slot's
+//      (u, v) (an area-preserving map of the unit square onto the disk, with no
+//      rejection, so a stratified slot stays stratified on the lens), computed
+//      here independently, and always strictly inside the disk; it is exactly 0
+//      when no lens is wanted. (Legacy keeps its rejection sampleDisk(), unchanged.)
 //
 // It also checks the unit conversions themselves, which are plain arithmetic.
 #include <map>
@@ -40,6 +42,22 @@ struct Grid {
 };
 constexpr Grid kGrids[] = {{3, 3, 2, 2}, {4, 2, 2, 1}};
 constexpr float kJitters[] = {0.0f, 0.37f, 1.0f};
+
+// Shirley-Chiu concentric square-to-disk map, in double precision.
+sp::Sample2D concentricDisk(float u, float v) {
+    const double a = 2.0 * u - 1.0, b = 2.0 * v - 1.0;
+    if (a == 0.0 && b == 0.0) return {0.0f, 0.0f};
+    constexpr double kPi = 3.14159265358979323846;
+    double r, phi;
+    if (std::fabs(a) > std::fabs(b)) {
+        r = a;
+        phi = (kPi / 4.0) * (b / a);
+    } else {
+        r = b;
+        phi = kPi / 2.0 - (kPi / 4.0) * (a / b);
+    }
+    return {static_cast<float>(r * std::cos(phi)), static_cast<float>(r * std::sin(phi))};
+}
 
 bool sameBits(float a, float b) { return bitsOf(a) == bitsOf(b); }
 bool close(float a, float b) { return std::fabs(a - b) <= 2e-6f; }
@@ -93,7 +111,7 @@ Expected expectedFor(const sp::CSamplingConfig &cfg, int absX, int absY) {
 void cameraSlotsEqual() {
     unitConversions();
 
-    int checked = 0, shared = 0, negative = 0, rejectedFirst = 0, acceptedFirst = 0;
+    int checked = 0, shared = 0, negative = 0;
     for (const sp::Backend backend : kBackends)
         for (const Grid &g : kGrids)
             for (const float jitter : kJitters)
@@ -144,13 +162,8 @@ void cameraSlotsEqual() {
                                         SP_CHECK(reyes.lensU == 0.0f && reyes.lensV == 0.0f);
                                     } else {
                                         SP_CHECK(reyes.lensU * reyes.lensU + reyes.lensV * reyes.lensV < 1.0f);
-                                        const float lu = 2.0f * e.lens.u - 1.0f, lv = 2.0f * e.lens.v - 1.0f;
-                                        if (lu * lu + lv * lv < 1.0f) {  // the first attempt of sampleDisk() is kept
-                                            ++acceptedFirst;
-                                            SP_CHECK(close(reyes.lensU, lu) && close(reyes.lensV, lv));
-                                        } else {
-                                            ++rejectedFirst;
-                                        }
+                                        const sp::Sample2D disk = concentricDisk(e.lens.u, e.lens.v);
+                                        SP_CHECK(std::fabs(reyes.lensU - disk.u) <= 5e-6f && std::fabs(reyes.lensV - disk.v) <= 5e-6f);
                                     }
 
                                     distinctFilm.insert(bitsOf(reyes.jitterX));
@@ -179,10 +192,8 @@ void cameraSlotsEqual() {
 
     SP_CHECK(negative > 0);       // the border margin reaches negative coordinates
     SP_CHECK(shared > 0);         // neighbouring buckets do overlap
-    SP_CHECK(acceptedFirst > 0);  // the lens check was exercised
-    std::printf("%d subpixel samples checked, %d margin samples shared between buckets, %d with negative coordinates, "
-                "lens: %d first attempts kept, %d rejected\n",
-                checked, shared, negative, acceptedFirst, rejectedFirst);
+    std::printf("%d subpixel samples checked, %d margin samples shared between buckets, %d with negative coordinates\n",
+                checked, shared, negative);
 }
 
 }  // namespace

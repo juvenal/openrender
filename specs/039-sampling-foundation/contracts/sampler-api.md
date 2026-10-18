@@ -36,7 +36,7 @@ Sample4D get4D(Backend, const SubstreamKey&, uint32_t dim, uint32_t index); // g
 // Camera slots (fixed layout, FR-009)
 enum CameraSlot : uint32_t { Film2D = 0, Lens2D = 1, Time1D = 2, Importance1D = 3 };
 Sample2D cameraFilm(const CSamplingConfig&, const SampleId&);   // u for jitter mapping
-Sample2D cameraLens(const CSamplingConfig&, const SampleId&);
+Sample2D cameraLens(const CSamplingConfig&, const SampleId&);    // the slot's (u, v); the hiders map it to the disk with the Shirley-Chiu concentric map (research R3.1), never a rejection loop
 float    cameraTime(const CSamplingConfig&, const SampleId&);
 float    cameraImportance(const CSamplingConfig&, const SampleId&);
 
@@ -63,6 +63,10 @@ Sample2D sobolUnscrambled(uint32_t index);   // reference values (US2-1)
 | G9 | The smooth analytic integrand's fitted slope is −0.9 or steeper (SC-003, part a). | `Sampling_ConvergenceSmooth` |
 
 The tests carry label `sampling` and live in `tests/unit/sampling/`.
+
+## Camera samples in the Hiders (`CSampler`, `src/ri/hiders/sampler.h`)
+
+Not part of the library, but the one consumer of the camera slots: both hiders call `CSampler::cameraSample(config, absSubX, absSubY, wantLens)` with the absolute subpixel coordinates (`reyesAbsSub` / `raytraceAbsSub` convert their own bucket units). Film, time and importance keep `jitter·(u−0.5)+0.5001011` with `u` from the slots; the time stratum is `row·nx+column`, the importance stratum the transposed `column·ny+row`; the lens point is the lens slot mapped by the Shirley–Chiu concentric map (no rejection), or 0 without depth of field; the camera key is `cameraKey(id)`. Verified by `Sampling_CameraSlotsEqual`.
 
 ## Deprecations removed in Phase 9
 
