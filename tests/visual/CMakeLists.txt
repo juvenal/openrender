@@ -3807,3 +3807,122 @@ foreach(_i RANGE 0 ${_last} 6)
         ENVIRONMENT "${VISUAL_ENV}"
         DEPENDS     orender)
 endforeach()
+
+# --- Consumers of the sampler: transport, shading draws, threads (spec 039, Phase 6) ---
+# Written before the shading draws come from the sampler (tests first). The
+# scenes under examples/rib/tests/sampling-*.rib.in are templates: the
+# generated copies live in the build tree.
+#
+#   SamplingJitParity_<function>: shaders/sampling_jit_probe.sl fills Ci with
+#     one stochastic value (random(), trace(), transmission(), visibility(),
+#     occlusion(), indirectdiffuse() or gather()). The same scene under the
+#     interpreter (.rslo) and the LLVM JIT (.slo), under sobol, must be
+#     bit-identical (SC-008). Today each backend draws from the context's
+#     stream in its own order, so they differ. visibility(P, Q) in its plain
+#     form does not depend on the draws in this scene: that test is a guard.
+#   SamplingJitDeterminism_<function>: the same scene rendered twice, bit-identical.
+#     Today the shading draws come from a per-context stream that two worker
+#     threads share out between them, so even a -t:1 render varies run to run;
+#     that noise is also what makes the Parity tests above fail today.
+#   SamplingJitEngaged_<function>: the control. The same rslo scene under sobol
+#     with seed 0 and with seed 1 must differ once the draws come from the
+#     sampler (today the seed does not reach the shading draws). A comparison
+#     with legacy would pass for the wrong reason: under sobol the camera no
+#     longer consumes the context's stream, so the shading draws already differ.
+#   SamplingJitParity_RandomProbe_<format>: sampling_random_probe.sl, read back
+#     exactly: Du() of a draw is 0, the draws at different call sites and loop
+#     iterations are distinct, and every draw is in [0, 1).
+#   Sampling_ShaderDrawIndependence_*: sampling_independence_probe.sl; adding
+#     iterations to the first trace loop leaves the second loop and the
+#     illuminance loop unchanged (US6-1).
+#   Sampling_ThreadSweep_*: under sobol, -t:1 against -t:4, bit for bit. The
+#     scenes are hand-written copies with the option line and without the
+#     scene's numthreads pin (T079's --prepend will replace the copies).
+#   Sampling_ProbeIndependence: the midpoint probe's draw shifts no other value.
+set(_phase6_dir ${CMAKE_BINARY_DIR}/tests/visual/sampling-phase6)
+file(MAKE_DIRECTORY ${_phase6_dir})
+set(_phase6_scenes ${CMAKE_SOURCE_DIR}/examples/rib/tests)
+
+set(_jit_functions random_loop random_urandom random_vector trace_transmission visibility occlusion indirectdiffuse gather)
+set(_channel 0)
+foreach(_function IN LISTS _jit_functions)
+    set(CHANNEL ${_channel})
+    foreach(_variant rslo:0 slo:0 rslo:1)
+        string(REPLACE ":" ";" _parts ${_variant})
+        list(GET _parts 0 FORMAT)
+        list(GET _parts 1 SEED)
+        set(OUTPUT jit-${_function}-${FORMAT}-seed${SEED}.tif)
+        configure_file(${_phase6_scenes}/sampling-jit-probe.rib.in
+            ${_phase6_dir}/jit-${_function}-${FORMAT}-seed${SEED}.rib @ONLY)
+    endforeach()
+    add_test(NAME SamplingJitParity_${_function}
+        COMMAND test_render_compare $<TARGET_FILE:orender> same
+            ${_phase6_dir}/jit-${_function}-rslo-seed0.rib jit-${_function}-rslo-seed0.tif
+            ${_phase6_dir}/jit-${_function}-slo-seed0.rib jit-${_function}-slo-seed0.tif
+        WORKING_DIRECTORY ${_phase6_dir})
+    add_test(NAME SamplingJitDeterminism_${_function}
+        COMMAND test_render_compare $<TARGET_FILE:orender> same
+            ${_phase6_dir}/jit-${_function}-rslo-seed0.rib jit-${_function}-rslo-seed0.tif
+            ${_phase6_dir}/jit-${_function}-rslo-seed0.rib jit-${_function}-rslo-seed0.tif
+        WORKING_DIRECTORY ${_phase6_dir})
+    set(_tests SamplingJitParity_${_function} SamplingJitDeterminism_${_function})
+    if(NOT _function STREQUAL "visibility")
+        add_test(NAME SamplingJitEngaged_${_function}
+            COMMAND test_render_compare $<TARGET_FILE:orender> differ
+                ${_phase6_dir}/jit-${_function}-rslo-seed0.rib jit-${_function}-rslo-seed0.tif
+                ${_phase6_dir}/jit-${_function}-rslo-seed1.rib jit-${_function}-rslo-seed1.tif
+            WORKING_DIRECTORY ${_phase6_dir})
+        list(APPEND _tests SamplingJitEngaged_${_function})
+    endif()
+    set_tests_properties(${_tests} PROPERTIES TIMEOUT 120 LABELS "visual;regression;sampling"
+        ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+    math(EXPR _channel "${_channel} + 1")
+endforeach()
+
+foreach(_format rslo slo)
+    set(FORMAT ${_format})
+    configure_file(${_phase6_scenes}/sampling-random-probe.rib.in ${_phase6_dir}/random-probe-${_format}.rib @ONLY)
+    add_test(NAME SamplingJitParity_RandomProbe_${_format}
+        COMMAND test_pixel_probe $<TARGET_FILE:orender> ${_phase6_dir}/random-probe-${_format}.rib
+            sampling-random-probe-${_format}.tif 16 16 0 0 1 1
+        WORKING_DIRECTORY ${_phase6_dir})
+    set_tests_properties(SamplingJitParity_RandomProbe_${_format} PROPERTIES TIMEOUT 120
+        LABELS "visual;regression;sampling" ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+endforeach()
+
+foreach(_n 2 3)
+    set(N1 ${_n})
+    configure_file(${_phase6_scenes}/sampling-independence.rib.in ${_phase6_dir}/independence-${_n}.rib @ONLY)
+endforeach()
+foreach(_case second_loop:1:same illuminance:2:same first_loop_changes:0:differ)
+    string(REPLACE ":" ";" _parts ${_case})
+    list(GET _parts 0 _name)
+    list(GET _parts 1 _channels)
+    list(GET _parts 2 _mode)
+    add_test(NAME Sampling_ShaderDrawIndependence_${_name}
+        COMMAND test_render_compare $<TARGET_FILE:orender> ${_mode}
+            ${_phase6_dir}/independence-2.rib sampling-independence-2.tif
+            ${_phase6_dir}/independence-3.rib sampling-independence-3.tif --channels=${_channels}
+        WORKING_DIRECTORY ${_phase6_dir})
+    set_tests_properties(Sampling_ShaderDrawIndependence_${_name} PROPERTIES TIMEOUT 120
+        LABELS "visual;regression;sampling" ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+endforeach()
+
+foreach(_scene quadlight sphere-random sphere-trace sphere-gather)
+    add_test(NAME Sampling_ThreadSweep_${_scene}
+        COMMAND test_render_compare $<TARGET_FILE:orender> same
+            ${_phase6_scenes}/sampling-threadsweep-${_scene}.rib sampling-threadsweep-${_scene}.tif
+            ${_phase6_scenes}/sampling-threadsweep-${_scene}.rib sampling-threadsweep-${_scene}.tif
+            --a:-t:1 --b:-t:4
+        WORKING_DIRECTORY ${_phase6_dir})
+    set_tests_properties(Sampling_ThreadSweep_${_scene} PROPERTIES TIMEOUT 300
+        LABELS "visual;regression;sampling" ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+endforeach()
+
+add_test(NAME Sampling_ProbeIndependence
+    COMMAND test_render_compare $<TARGET_FILE:orender> same
+        ${_phase6_scenes}/sampling-probe-independence-mid.rib sampling-probe-independence-mid.tif
+        ${_phase6_scenes}/sampling-probe-independence-min.rib sampling-probe-independence-min.tif -t:1
+    WORKING_DIRECTORY ${_phase6_dir})
+set_tests_properties(Sampling_ProbeIndependence PROPERTIES TIMEOUT 120
+    LABELS "visual;regression;sampling" ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)

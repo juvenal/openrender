@@ -1,0 +1,24 @@
+##RenderMan RIB-Structure 1.0
+# Spec 039, Phase 6 (Sampling_ThreadSweep): a hand-written copy of
+# sphere-trace-reyes.rib with the sampler option added and its `numthreads` pin removed,
+# so that -t:4 really runs on four threads.
+# Under the sobol sampler the render must not depend on the thread count
+# (-t:1 against -t:4, bit for bit); test_render_compare runs both. The Quantize
+# line makes the output 32-bit float, which the driver reads.
+# GitHub issue #3 (spec 017, US1) regression: trace() silently no-ops under
+# the JIT. numthreads 1 required: trace() is a raytraced, RNG-adjacent
+# lookup (trace-parameter sampleBase/bias defaults) -- same thread-
+# scheduling-sensitivity confirmed for random() during issue #1's fix.
+version 3.03
+Option "sampling" "sampler" ["sobol"]
+Quantize "rgba" 0 0 0 0
+Hider "reyes"
+Option "shaderformat" "default" ["rslo"]
+Display "sampling-threadsweep-sphere-trace.tif" "file" "rgba"
+Projection "perspective"
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Surface "trace_probe"
+  Sphere 1 -1 1 360
+WorldEnd

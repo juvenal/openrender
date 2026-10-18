@@ -1,0 +1,34 @@
+##RenderMan RIB-Structure 1.0
+# Spec 039, Phase 6 (Sampling_ProbeIndependence): a copy of
+# depth-analytic-mid-raytrace.rib with a random()-based surface shader, colour
+# output and the sobol sampler. This copy uses depthfilter "min"; its sibling
+# sampling-probe-independence-mid.rib uses "midpoint". The midpoint filter traces a depth-only
+# probe ray past each opaque hit; under the sobol sampler that ray draws nothing
+# any other value depends on, so the two colour outputs are bit-identical.
+version 3.03
+Hider "raytrace" "jitter" [0]
+Option "sampling" "sampler" ["sobol"]
+Option "hider" "depthfilter" "min"
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "sampling-probe-independence-min.tif" "file" "rgba"
+Projection "perspective" "fov" 45
+Format 80 60 1
+Translate 0 0 6
+
+WorldBegin
+  Sides 2
+  Surface "sampling_jit_probe" "channel" [0]
+  Sphere 1.5 -1.5 1.5 360
+
+  AttributeBegin
+    Translate 0.5 0.3 -3
+    Sphere 0.5 -0.5 0.5 360
+  AttributeEnd
+
+  AttributeBegin
+    Translate 1.9 -1 -1.5
+    Sphere 0.6 -0.6 0.6 360
+  AttributeEnd
+WorldEnd

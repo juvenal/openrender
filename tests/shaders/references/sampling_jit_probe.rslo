@@ -1,0 +1,232 @@
+#!version 2.0.0
+#!name "sampling_jit_probe"
+surface
+#!parameters:
+uniform	float	channel	=	0
+#!variables:
+varying	vector	Nn
+varying	vector	Nf
+uniform	float	i
+varying	float	v0
+varying	float	u0
+varying	vector	rv
+varying	float	v2
+varying	vector	dir
+varying	vector	tc
+varying	vector	q
+varying	vector	tr
+varying	float	v3
+varying	float	v4
+varying	float	v5
+varying	vector	id
+varying	float	v6
+varying	vector	Csum
+varying	vector	Ctotal
+varying	float	v7
+varying	float	value
+varying	float	temporary_0
+uniform	float	temporary_1
+varying	float	temporary_2
+varying	float	temporary_3
+varying	float	r
+varying	float	s_1
+varying	float	temporary_4
+varying	float	temporary_5
+varying	float	temporary_6
+uniform	vector	temporary_7
+uniform	vector	temporary_8
+varying	vector	temporary_9
+varying	float	temporary_10
+varying	float	temporary_11
+varying	string	temporary_12
+varying	float	temporary_13
+uniform	float	temporary_14
+uniform	float	temporary_15
+uniform	float	temporary_16
+varying	float	temporary_17
+#!Init:
+	return            
+#!Code:
+	normalize	("v=v")  Nn N
+	faceforward	("v=vv")  Nf Nn I
+	vufloat  v0 0
+	moveff  i 0
+	forbegin #!Label10 #!Label11 #!Label12
+#!Label10:
+	flt  temporary_1 i 3
+	vufloat  temporary_0 temporary_1
+	for temporary_0
+	random	("f=")  temporary_2 0
+	addff  temporary_1 i 1
+	vufloat  temporary_3 temporary_1
+	mulff  temporary_0 temporary_2 temporary_3
+	addff  v0 v0 temporary_0
+#!Label11:
+	addff  i i 1
+#!Label12:
+	forend
+	vufloat  u0 0
+	moveff  i 0
+	forbegin #!Label13 #!Label14 #!Label15
+#!Label13:
+	flt  temporary_1 i 3
+	vufloat  temporary_0 temporary_1
+	for temporary_0
+	random	("f=")  r 1
+	urandom	("f=")  s_1 2
+	addff  temporary_2 r s_1
+	addff  temporary_1 i 1
+	vufloat  temporary_3 temporary_1
+	mulff  temporary_0 temporary_2 temporary_3
+	addff  u0 u0 temporary_0
+#!Label14:
+	addff  i i 1
+#!Label15:
+	forend
+	random	("v=")  rv 3
+	xcomp	("f=p")  temporary_3 rv
+	ycomp	("f=p")  temporary_5 rv
+	vufloat  temporary_6 2
+	mulff  temporary_4 temporary_5 temporary_6
+	addff  temporary_2 temporary_3 temporary_4
+	zcomp	("f=p")  temporary_4 rv
+	vufloat  temporary_5 3
+	mulff  temporary_3 temporary_4 temporary_5
+	addff  temporary_0 temporary_2 temporary_3
+	vufloat  temporary_2 6
+	divff  v2 temporary_0 temporary_2
+	vfromf  temporary_8 0.2 0.15 1
+	normalize	("v=v")  temporary_7 temporary_8
+	vuvector  dir temporary_7
+	trace	("c=pv")  tc P dir 4
+	vfromf  temporary_7 0.3 0.2 0.1
+	vuvector  temporary_9 temporary_7
+	addvv  q P temporary_9
+	transmission	("c=pp")  tr P q 5
+	vufloat  temporary_10 0
+	comp	("f=cf")  temporary_6 tc temporary_10
+	vufloat  temporary_11 1
+	comp	("f=cf")  temporary_10 tc temporary_11
+	addff  temporary_5 temporary_6 temporary_10
+	vufloat  temporary_10 2
+	comp	("f=cf")  temporary_6 tc temporary_10
+	addff  temporary_4 temporary_5 temporary_6
+	vufloat  temporary_10 0
+	comp	("f=cf")  temporary_6 tr temporary_10
+	vufloat  temporary_10 2
+	mulff  temporary_5 temporary_6 temporary_10
+	addff  temporary_3 temporary_4 temporary_5
+	moveff  temporary_6 temporary_11
+	comp	("f=cf")  temporary_5 tr temporary_6
+	vufloat  temporary_6 3
+	mulff  temporary_4 temporary_5 temporary_6
+	addff  temporary_2 temporary_3 temporary_4
+	moveff  temporary_5 temporary_10
+	comp	("f=cf")  temporary_4 tr temporary_5
+	vufloat  temporary_5 4
+	mulff  temporary_3 temporary_4 temporary_5
+	addff  temporary_0 temporary_2 temporary_3
+	vufloat  temporary_2 6
+	divff  v3 temporary_0 temporary_2
+	visibility	("f=pp")  v4 P q 6
+	moveff  temporary_0 temporary_5
+	occlusion	("f=pnf")  v5 P Nf temporary_0 7
+	moveff  temporary_0 temporary_5
+	indirectdiffuse	("c=pnf")  id P Nf temporary_0 8
+	vufloat  temporary_4 0
+	comp	("f=cf")  temporary_3 id temporary_4
+	moveff  temporary_5 temporary_11
+	comp	("f=cf")  temporary_4 id temporary_5
+	addff  temporary_2 temporary_3 temporary_4
+	moveff  temporary_4 temporary_10
+	comp	("f=cf")  temporary_3 id temporary_4
+	addff  temporary_0 temporary_2 temporary_3
+	moveff  temporary_2 temporary_6
+	divff  v6 temporary_0 temporary_2
+	vfromf  temporary_7 0
+	vuvector  Csum temporary_7
+	vfromf  temporary_7 0
+	vuvector  Ctotal temporary_7
+	vustring  temporary_12 "illuminance"
+	vufloat  temporary_1 1.570796327
+	vufloat  temporary_0 temporary_1
+	vufloat  temporary_2 4
+	gatherHeader	("o=spnffsc") temporary_12 P Nf temporary_0 temporary_2 "surface:Ci" Csum 9
+#!Label16:
+	gather #!Label17
+	addvv  Ctotal Ctotal Csum
+#!Label17:
+	gatherEnd #!Label16
+	vufloat  temporary_4 0
+	comp	("f=cf")  temporary_3 Ctotal temporary_4
+	vufloat  temporary_5 1
+	comp	("f=cf")  temporary_4 Ctotal temporary_5
+	addff  temporary_2 temporary_3 temporary_4
+	vufloat  temporary_4 2
+	comp	("f=cf")  temporary_3 Ctotal temporary_4
+	addff  temporary_0 temporary_2 temporary_3
+	vufloat  temporary_2 12
+	divff  v7 temporary_0 temporary_2
+	vufloat  temporary_13 6
+	divff  temporary_11 v0 temporary_13
+	subff  temporary_16 channel 0
+	abs	("f=f")  temporary_15 temporary_16
+	min	("f=ff")  temporary_14 1 temporary_15
+	subff  temporary_1 1 temporary_14
+	vufloat  temporary_13 temporary_1
+	mulff  temporary_10 temporary_11 temporary_13
+	moveff  temporary_17 temporary_2
+	divff  temporary_13 u0 temporary_17
+	subff  temporary_16 channel 1
+	abs	("f=f")  temporary_15 temporary_16
+	min	("f=ff")  temporary_14 1 temporary_15
+	subff  temporary_1 1 temporary_14
+	vufloat  temporary_17 temporary_1
+	mulff  temporary_11 temporary_13 temporary_17
+	addff  temporary_6 temporary_10 temporary_11
+	subff  temporary_16 channel 2
+	abs	("f=f")  temporary_15 temporary_16
+	min	("f=ff")  temporary_14 1 temporary_15
+	subff  temporary_1 1 temporary_14
+	vufloat  temporary_11 temporary_1
+	mulff  temporary_10 v2 temporary_11
+	addff  temporary_5 temporary_6 temporary_10
+	subff  temporary_16 channel 3
+	abs	("f=f")  temporary_15 temporary_16
+	min	("f=ff")  temporary_14 1 temporary_15
+	subff  temporary_1 1 temporary_14
+	vufloat  temporary_10 temporary_1
+	mulff  temporary_6 v3 temporary_10
+	addff  temporary_4 temporary_5 temporary_6
+	subff  temporary_16 channel 4
+	abs	("f=f")  temporary_15 temporary_16
+	min	("f=ff")  temporary_14 1 temporary_15
+	subff  temporary_1 1 temporary_14
+	vufloat  temporary_6 temporary_1
+	mulff  temporary_5 v4 temporary_6
+	addff  temporary_3 temporary_4 temporary_5
+	subff  temporary_16 channel 5
+	abs	("f=f")  temporary_15 temporary_16
+	min	("f=ff")  temporary_14 1 temporary_15
+	subff  temporary_1 1 temporary_14
+	vufloat  temporary_5 temporary_1
+	mulff  temporary_4 v5 temporary_5
+	addff  temporary_2 temporary_3 temporary_4
+	subff  temporary_16 channel 6
+	abs	("f=f")  temporary_15 temporary_16
+	min	("f=ff")  temporary_14 1 temporary_15
+	subff  temporary_1 1 temporary_14
+	vufloat  temporary_4 temporary_1
+	mulff  temporary_3 v6 temporary_4
+	addff  temporary_0 temporary_2 temporary_3
+	subff  temporary_16 channel 7
+	abs	("f=f")  temporary_15 temporary_16
+	min	("f=ff")  temporary_14 1 temporary_15
+	subff  temporary_1 1 temporary_14
+	vufloat  temporary_3 temporary_1
+	mulff  temporary_2 v7 temporary_3
+	addff  value temporary_0 temporary_2
+	vfromf  Ci value value value
+	vfromf  temporary_7 1
+	vuvector  Oi temporary_7
+	return

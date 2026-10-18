@@ -313,19 +313,20 @@ The call-site operand and the `_v2` ABI make Phase 4 a MAJOR change of both shad
 
 ### Tests first
 
-- [ ] T065 [P] [US1] `tests/shading_parity/` (or `tests/visual/`), tests `SamplingJitParity_*` (SC-008). A probe shader writes to AOVs:
+- [X] T065 [P] [US1] `tests/shading_parity/` (or `tests/visual/`), tests `SamplingJitParity_*` (SC-008). A probe shader writes to AOVs:
   - `random()` and `urandom()`, uniform and varying, called in a loop;
   - the sample directions of the **plain** forms of `trace`, `transmission`, `visibility`, `occlusion` and `indirectdiffuse`, and of `gather`.
   - The `.rslo` and `.slo` renders under `sobol` must be bit-identical.
   - The shader contains no `if`-gated uniform assignment (GitHub #8) and no optional parameters (GitHub #55).
   - `Du(random())` must be 0 (research §R3.10a).
   - Successive `random()` calls at one point (two call sites, and two iterations of one loop) return distinct values (FR-019).
-- [ ] T066 [P] [US6] `tests/unit/sampling/`, test `Sampling_ShaderDrawIndependence` (US6-1): a shader with two `trace()` loops and an `illuminance()` loop. Adding a draw to the first loop leaves the AOVs of the second loop and of `illuminance` bit-identical.
-- [ ] T067 [P] [US1] Write the SC-007 scan, `tests/visual/check_no_global_randomness.sh`, implementing the grep from quickstart §9 (it excludes `src/precomp/` and comments). **Do not register it with ctest here.** It would fail until Phase 9 removes the legacy generators, and the maintainer decided it is registered only at T104. Run it by hand once to show it currently reports the legacy sites.
-- [ ] T068 [P] [US1] Using the existing `test_depth_determinism` with extra arguments, tests `Sampling_ThreadSweep_{quadlight,sphere-random,sphere-trace,sphere-gather}`: under `sobol`, `-t:1` against `-t:4` must be bit-identical. These fail under today's per-context streams.
+  - **As written** (validation.md "Phase 6 tests"): the probe output is the colour of the pixel, not AOVs (an AOV needs a declared display channel; one shader, `shaders/sampling_jit_probe.sl`, picks one value per scene with a uniform `channel`, generated from `examples/rib/tests/sampling-jit-probe.rib.in`); `Du(random())`, distinctness and range are in `shaders/sampling_random_probe.sl` (`SamplingJitParity_RandomProbe_{rslo,slo}`). `random()` cannot be assigned to a uniform variable (compile error), so there is no uniform draw to probe from source. Added: `SamplingJitDeterminism_*` (a scene rendered twice is bit-identical) and `SamplingJitEngaged_*` (seed 0 against seed 1 must differ).
+- [X] T066 [P] [US6] `tests/unit/sampling/`, test `Sampling_ShaderDrawIndependence` (US6-1): a shader with two `trace()` loops and an `illuminance()` loop. Adding a draw to the first loop leaves the AOVs of the second loop and of `illuminance` bit-identical.
+- [X] T067 [P] [US1] Write the SC-007 scan, `tests/visual/check_no_global_randomness.sh`, implementing the grep from quickstart §9 (it excludes `src/precomp/` and comments). **Do not register it with ctest here.** It would fail until Phase 9 removes the legacy generators, and the maintainer decided it is registered only at T104. Run it by hand once to show it currently reports the legacy sites.
+- [X] T068 [P] [US1] Using the existing `test_depth_determinism` with extra arguments, tests `Sampling_ThreadSweep_{quadlight,sphere-random,sphere-trace,sphere-gather}`: under `sobol`, `-t:1` against `-t:4` must be bit-identical. These fail under today's per-context streams.
   - Use a hand-written copy with the option line added **and the scene's `Option "limits" "numthreads" [1]` pin removed**. Otherwise `-t:4` would still render single-threaded and the test would pass vacuously.
   - Also add `Sampling_ProbeIndependence`, covering the midpoint-probe edge case. A raytrace scene with a shaded stochastic surface (a copy of `examples/rib/tests/depth-analytic-mid-raytrace.rib`, plus a `random()`-based surface shader), rendered under `sobol` once with `depthfilter midpoint` and once with `min`, gives a bit-identical colour output. The midpoint probe's draw no longer shifts any other value.
-- [ ] T069 [RUN] [US1] **TEST-APPROVAL**.
+- [ ] T069 [RUN] [US1] **TEST-APPROVAL** (tests written and shown red; awaiting approval).
 
 ### Implementation
 
