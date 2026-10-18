@@ -30,6 +30,7 @@ This covers the compiler, the `.rslo` format, the JIT runtime ABI and `CShadingS
   - the `.rslo` major is bumped, so the loader rejects an older file with a diagnostic and never misreads it;
   - every shipped `.rslo` is rebuilt by the build.
 - **I2**: `random()`/`urandom()` draws come from `get1D(substream(pointKeys[i], shaderKey, callSite, occurrence[callSite][i], depth), dim, …)`. The uniform form uses `batchKey` in place of `pointKeys[i]`.
+  - **No source-level test for the uniform form.** The RSL compiler rejects assigning `random()`/`urandom()` to a uniform variable (`Can not assign to uniform variable`; also as a uniform parameter default), so the `batchKey` branch of the draw cannot be reached from RSL source, and no shader-level test (`SamplingJitParity_*`) exercises it. It is implemented as specified and covered by review only, unless a hand-built instruction stream is added later. (Phase 6 tests found this; see research R3.7.)
 
 ## JIT runtime ABI (`rslOps.cpp`, `llvmEmitter.cpp`)
 

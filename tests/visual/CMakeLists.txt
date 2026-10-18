@@ -3926,3 +3926,13 @@ add_test(NAME Sampling_ProbeIndependence
     WORKING_DIRECTORY ${_phase6_dir})
 set_tests_properties(Sampling_ProbeIndependence PROPERTIES TIMEOUT 120
     LABELS "visual;regression;sampling" ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+
+# SC-007 (spec 039): no randomness outside the sampler library and CKeyedStream.
+# Registered at Phase 6 with an explicit allowlist (no_global_randomness_allowlist.txt)
+# that holds only the legacy generators Phase 9 deletes. It fails today: it lists
+# the call sites Phase 6 (T070-T077) converts, and it goes green when they are
+# gone. A stale allowlist line also fails it. At T104 the allowlist is empty.
+add_test(NAME Sampling_NoGlobalRandomness
+    COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/check_no_global_randomness.sh ${CMAKE_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/no_global_randomness_allowlist.txt)
+set_tests_properties(Sampling_NoGlobalRandomness PROPERTIES TIMEOUT 60 LABELS "sampling;unit")

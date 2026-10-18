@@ -85,11 +85,13 @@ nice -n 19 ctest --test-dir build -L architecture --output-on-failure
 ## 9. Inventory (SC-007)
 
 ```sh
-grep -rnE '_urand|_irand|random_device|\brand\(\)|mt19937|CSobol<|urand\(\)|irand\(\)' src \
+grep -rnE '_urand|_irand|random_device|\brand\(\)|mt19937|CSobol<|urand\(\)|irand\(\)|\brandom[234]d\b' src \
   | grep -v '^src/precomp/'
 ```
 
 **Expected**: no matches outside comments. `src/precomp/` is the excluded offline tool.
+
+`tests/visual/check_no_global_randomness.sh` (ctest `Sampling_NoGlobalRandomness`) runs this grep with comments filtered out, and checks it against `tests/visual/no_global_randomness_allowlist.txt`: while spec 039 is in progress the allowlist lists the legacy generators that Phase 9 deletes; it is empty at the end. The pattern includes the context members `random2d`, `random3d` and `random4d`, so a use of the shared per-context streams is a match.
 
 ## 10. Performance (SC-010)
 

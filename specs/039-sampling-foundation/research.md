@@ -239,6 +239,8 @@ The ordinal is carried explicitly to both backends:
 
 The value depends on bucket size, which clarify Q5 accepted; this limitation is documented.
 
+**Not reachable from RSL source (found while writing the Phase 6 tests)**: the compiler rejects assigning `random()`/`urandom()` to a uniform variable or using one as a uniform parameter default (`Can not assign to uniform variable`), so a uniform `random()` call cannot be written in a shader and the `batchKey` draw has no source-level test. The Phase 6 probes (`sampling_random_probe.sl`, `sampling_jit_probe.sl`) therefore draw only varying values, and `SamplingJitParity_*` says nothing about the uniform form.
+
 ### R3.8 Texture-filter samples
 
 **Decision**: the stochastic texture, shadow and deep-shadow lookups in `texture.cpp` take a `SubstreamKey` argument, built by Shading from (pointKey, callSite, occurrence), in place of reading `context->random2d/random4d`. Texturing draws from the Infra sampler, which is allowed (`* → Infra`). The `CShadingContext*` parameter itself is unchanged; it belongs to DB-010 and spec 027.

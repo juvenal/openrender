@@ -1,0 +1,28 @@
+# Allowlist for check_no_global_randomness.sh (spec 039, SC-007).
+#
+# One line per file: path | reason | owner
+# The owner is the task or spec that removes the match, after which the line
+# must go too. The scan fails on a match in a file listed nowhere, and on a
+# line here whose file no longer has a match (stale), as archcheck does.
+#
+# Only the legacy generators and the Legacy camera path are listed: code that
+# stays, unused under sobol/pmj02/independent, until Phase 9 deletes the Legacy
+# backend. Every call site that Phase 6 converts (T070-T077) is deliberately
+# NOT here, so the scan lists exactly what Phase 6 must remove:
+#   executeMisc.cpp, scriptFunctions.h, rslOps.cpp, shading.cpp (gather) -- T071, T072
+#   trace.cpp (the secondary-ray jimp draw)                              -- T071
+#   hcshader.cpp -- T074; photon.cpp -- T075; irradianceDispatch.cpp, radiance.cpp -- T076
+#   geometryDispatch.cpp, object.cpp, pointHierarchy.cpp, init.cpp      -- T077
+#   texture.cpp (random2d/random4d uses)                                 -- T073
+#   irradianceDispatch.cpp also uses random2d                            -- T076
+
+src/common/random.h | the CSobol<N> sampleHemisphere/sampleCosineHemisphere/sampleSphere overloads (T070 adds Sample2D/Sample3D ones and keeps these) and _urand/_irand | T092
+src/common/random.cpp | definitions of the CSobol<N> overloads | T092
+src/libshader/shading/shading.h | the per-context Mersenne Twister (urand(), irand()) and the definitions of the random2d/3d/4d members (their uses elsewhere are not allowlisted) | T091
+src/ri/hiders/stochastic.h | apertureGenerator (CSobol<2>), the Legacy lens source | T092
+src/ri/hiders/stochastic.cpp | the Legacy camera path: CSampler urand() lambda, unused under the new samplers | T090, T091
+src/ri/hiders/raytracer.cpp | the Legacy camera path: CSampler urand() lambdas in sample() and computeSamples() | T090, T091
+src/ri/hiders/sampler.cpp | generateBucketTable (std::mt19937 bucket seed), Option B | T093
+src/ri/hiders/photon.h | gen2/gen3/gen4 CSobol members, unused once T075 keys the photons | T092
+src/ri/hiders/radiance.h | generator (CSobol<4>), unused once T076 converts radiance.cpp | T092
+src/display/file/file_base.cpp | libc rand() for the 8-bit dither amplitude (a display driver, not a sampling consumer) | T095
