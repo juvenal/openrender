@@ -111,6 +111,7 @@ class CRendererContext : public CRiInterface, public CGeometryHost {
         void RiOpacity(float *Cs) override;
         void RiTextureCoordinates(float s1, float t1, float s2, float t2, float s3, float t3, float s4, float t4) override;
 
+        uint64_t takeInstanceKey(); // The identity the next shader instance takes (spec 039)
         void *RiLightSourceV(const char *name, int n, const char *tokens[], const void *params[]) override;
         void *RiAreaLightSourceV(const char *name, int n, const char *tokens[], const void *params[]) override;
 
@@ -267,6 +268,8 @@ class CRendererContext : public CRiInterface, public CGeometryHost {
         const char *lastCommand; // The text of the last motion command
         int riExecTag;           // The exec tag count for the RI interface
         uint32_t idOrdinal;      // The next top-level object ordinal of this world block (stable ids, spec 039)
+        uint32_t shaderOrdinal;  // The next shader instance ordinal, in the order the scene creates them (spec 039)
+        uint64_t pendingInstanceKey; // The handle key of the light being created, or 0 (spec 039)
 
         void init(CProgrammableShaderInstance *); // Execute the init code of a shader
         int ifParse(const char *expr);            // Evaluate a condition

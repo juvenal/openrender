@@ -24,6 +24,7 @@
 //  Description			:
 //
 ////////////////////////////////////////////////////////////////////////
+#include <alloca.h>
 #include <math.h>
 #include <string.h>
 #include <time.h>
@@ -579,7 +580,25 @@ void CRibOut::RiTextureCoordinates(float s1, float t1, float s2, float t2, float
     out("TextureCoordinates [%g %g %g %g %g %g %g %g]\n", s1, t1, s2, t2, s3, t3, s4, t4);
 }
 
+// The parser hands a light's RIB handle on as "__handleid" / "__handlename" (spec 039); the writer numbers the
+// lights itself and must not write them.
+static int withoutLightHandle(int n, const char *tokens[], const void *params[], const char **tokensOut, const void **paramsOut) {
+    int m = 0;
+    for (int i = 0; i < n; i++)
+        if (strcmp(tokens[i], "__handleid") != 0 && strcmp(tokens[i], "__handlename") != 0) {
+            tokensOut[m] = tokens[i];
+            paramsOut[m] = params[i];
+            m++;
+        }
+    return m;
+}
+
 void *CRibOut::RiLightSourceV(const char *name, int n, const char *tokens[], const void *params[]) {
+    const char **ownTokens = (const char **)alloca((n + 1) * sizeof(const char *));
+    const void **ownParams = (const void **)alloca((n + 1) * sizeof(const void *));
+    n = withoutLightHandle(n, tokens, params, ownTokens, ownParams);
+    tokens = ownTokens;
+    params = ownParams;
     out("LightSource \"%s\" %d ", name, numLightSources);
     writePL(n, tokens, params);
 
@@ -587,6 +606,11 @@ void *CRibOut::RiLightSourceV(const char *name, int n, const char *tokens[], con
 }
 
 void *CRibOut::RiAreaLightSourceV(const char *name, int n, const char *tokens[], const void *params[]) {
+    const char **ownTokens = (const char **)alloca((n + 1) * sizeof(const char *));
+    const void **ownParams = (const void **)alloca((n + 1) * sizeof(const void *));
+    n = withoutLightHandle(n, tokens, params, ownTokens, ownParams);
+    tokens = ownTokens;
+    params = ownParams;
     out("AreaLightSource \"%s\" %d ", name, numLightSources);
     writePL(n, tokens, params);
 

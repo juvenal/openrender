@@ -322,7 +322,7 @@ class CShadingContext {
 
         // Shade points on a surface
         void shade(CSurface *, int, int, EShadingDim, unsigned int, int displaceOnly = FALSE);
-        void fillPointKeys(CSurface *, EShadingDim); // Give the points about to be shaded their sample identities (spec 039)
+        void fillPointKeys(CSurface *, EShadingDim, bool report = true); // Give the points about to be shaded their sample identities (spec 039)
         // Execute a compiled shader (public for RSLShading::shade() in libshader)
         void execute(CProgrammableShaderInstance *, float **);
         inline void displace(CSurface *surface, int u, int v, EShadingDim dim, unsigned int up) { shade(surface, u, v, dim, up, TRUE); }

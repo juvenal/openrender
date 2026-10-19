@@ -230,6 +230,12 @@ The ordinal is carried explicitly to both backends:
 
 **Alternative considered**: number the call sites at load time, in instruction order, separately on each backend. Rejected, because it relies on `.rslo` serialization and the JIT walk visiting instructions in the same order, a property no test guarantees today.
 
+### R3.5a Shader instance identity (Phase 6 follow-up)
+
+The sub-stream key of a draw contains the shader's name and the **instance's own identity**, `CShaderInstance::instanceKey`. A light created with a RIB handle (`LightSource "name" 2`, or a string handle) takes a key from that handle: the RIB parser passes it on as the extra parameter `"__handleid"` (a number) or `"__handlename"` (a string), which `CRendererContext::RiLightSourceV`/`RiAreaLightSourceV` take out of the parameter list again (the RIB writer drops them as well). Every other shader instance (surface, displacement, atmosphere, imager, a light without a handle, the hardcoded lights) takes the ordinal in the order the scene creates shader instances. The occurrence counters are keyed by the same instance key and the call site, so what an instance draws does not depend on what any other instance drew, nor on whether another instance of the same shader is declared before or after it (`Sampling_InstanceIndependence_*`).
+
+**Known limit**: the ordinal of an instance that is created while rendering (a procedural or a delayed archive that declares shaders) is its place in the order the expansions run, which depends on which bucket first needs them. Handles are not subject to this; give such lights a handle.
+
 ### R3.7 Uniform `random()` (FR-021)
 
 **Decision**: an invocation-level `batchKey` in `CShadingState`.

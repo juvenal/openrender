@@ -625,7 +625,11 @@ uint32_t *CShadingContext::drawCounters(unsigned callSite) {
         state->callSiteOccurrence = new CDrawOccurrences;
     if (state->currentShaderInstance != shaderKeyInstance) {
         shaderKeyInstance = state->currentShaderInstance;
-        shaderKeyValue = shaderKeyInstance != nullptr ? shaderNameKey(const_cast<CShaderInstance *>(shaderKeyInstance)->getName()) : 0;
+        // The shader's name and the instance's own identity: two instances of one shader (two lights
+        // of one kind) keep separate streams and occurrence counters.
+        shaderKeyValue = shaderKeyInstance != nullptr
+                             ? openrender::sampling::detail::mix(shaderNameKey(const_cast<CShaderInstance *>(shaderKeyInstance)->getName()), shaderKeyInstance->instanceKey)
+                             : 0;
     }
     return state->callSiteOccurrence->get(shaderKeyValue, callSite, state->numRealVertices);
 }
@@ -715,7 +719,7 @@ void CShadingContext::bindLocationDraws(CTraceLocation *location, int vertex, ui
 //							already carry the key of their ray (the hider set it);
 //							only their derivative-offset tail vertices are filled,
 //							from their real vertex.
-void CShadingContext::fillPointKeys(CSurface *object, EShadingDim dim) {
+void CShadingContext::fillPointKeys(CSurface *object, EShadingDim dim, bool report) {
     using openrender::sampling::cellKey;
     CShadingState *state = currentShadingState;
     const int numReal = state->numRealVertices;
@@ -751,9 +755,10 @@ void CShadingContext::fillPointKeys(CSurface *object, EShadingDim dim) {
             state->pointKeys[numReal + 2 * i + 1] = state->pointKeys[i];
         }
 
-    if (pointKeyObserver != nullptr) {
-        const CPointKeyReport report{object, numReal, state->pointKeys, u, v};
-        pointKeyObserver(report);
+    // The hook reports the grids that are shaded, not the dicer's displacement-only probes
+    if (report && pointKeyObserver != nullptr) {
+        const CPointKeyReport keyReport{object, numReal, state->pointKeys, u, v};
+        pointKeyObserver(keyReport);
     }
 }
 
@@ -781,9 +786,11 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
     assert(uVertices > 0);
     assert(vVertices > 0);
 
-    // Does this call give its points sample identities (spec 039)? Only a real
-    // shading pass of a frame whose sampler is not Legacy does.
-    const bool wantKeys = (sampling.backend != openrender::sampling::Backend::Legacy) && (displaceOnly == FALSE);
+    // Does this call give its points sample identities (spec 039)? Every call of a frame whose
+    // sampler is not Legacy does, the displacement-only passes of the dicer (bounding and
+    // grid-size probes) included: a displacement shader's random() must draw the same for a
+    // point in a probe pass and in the full shading pass, whichever thread runs them.
+    const bool wantKeys = (sampling.backend != openrender::sampling::Backend::Legacy);
 
     // This is the number of vertices we will be sampling/shading
     int numVertices = uVertices * vVertices;
@@ -959,6 +966,10 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
         // Verify if we have to prepare other shaders, even though displacing
         // due to message passing this _has_ to be after the shaderStateMemory checkPoint
         usedParameters = displacement->requiredParameters() | PARAMETER_P | PARAMETER_N;
+
+        // The cell key reads (u, v), in the surface's own parametric space as the full pass has them
+        if (wantKeys)
+            usedParameters |= PARAMETER_U | PARAMETER_V;
 
         if (usedParameters & PARAMETER_MESSAGEPASSING) {
             // displacement shader uses messsage passing, must prepare but not execute
@@ -1164,7 +1175,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
 
     // Give the points their sample identities (spec 039)
     if (wantKeys)
-        fillPointKeys(object, dim);
+        fillPointKeys(object, dim, displaceOnly == FALSE);
 
     // Clear the tags for shader execution
     memset(currentShadingState->tags, 0, numVertices * sizeof(int));

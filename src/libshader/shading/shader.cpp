@@ -172,6 +172,7 @@ CShaderInstance::CShaderInstance(CAttributes *, CXform *x) {
 
     categories = NULL;
     parameters = NULL; // The children class may want to clone the parent's parameters here
+    instanceKey = 0;
 }
 
 ///////////////////////////////////////////////////////////////////////

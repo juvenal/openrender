@@ -113,6 +113,15 @@ static	CArray<const char*>	stringArgs;								// The array of string arguments
 
 static	int					numParameters				=	0;
 static	int					maxParameter				=	0;
+
+// The handle a light was given in the RIB (LightSource "name" 2, or a string handle) is passed on as the
+// parameter "__handleid" (a number) or "__handlename" (a string), after the light's own parameters, so the
+// renderer can give the light instance an identity that does not depend on the other lights (spec 039).
+// The renderer takes the parameter out of the list again; it is never a shader parameter.
+// The buffers grow in paramCheck() right after each parameter is counted, so there is always room for
+// one more entry here; the paramCheck() before the append states that and keeps it true if it changes.
+static	float				lightHandleNumber			=	0;
+static	const char			*lightHandleName[1]			=	{NULL};
 static	RtToken				*tokens						=	NULL;
 static	RtPointer			*vals						=	NULL;
 static	TParameter			*parameters					=	NULL;
@@ -1218,6 +1227,11 @@ ribComm:		RIB_STRUCTURE_COMMENT
 					TLight	*nLight	=	new TLight;
 					nLight->index	=	(int) $3;
 					nLight->name	=	NULL;
+					lightHandleNumber	=	(float) $3;
+					paramCheck();
+					tokens[numParameters]	=	(RtToken) "__handleid";
+					vals[numParameters]		=	(RtPointer) &lightHandleNumber;
+					numParameters++;
 					nLight->handle	=	RiLightSourceV($2,numParameters,tokens,vals);
 					nLight->next	=	lights;
 					lights			=	nLight;
@@ -1231,6 +1245,11 @@ ribComm:		RIB_STRUCTURE_COMMENT
 					TLight	*nLight	=	new TLight;
 					nLight->index	=	0;
 					nLight->name	=	strdup($3);
+					lightHandleName[0]	=	nLight->name;
+					paramCheck();
+					tokens[numParameters]	=	(RtToken) "__handlename";
+					vals[numParameters]		=	(RtPointer) lightHandleName;
+					numParameters++;
 					nLight->handle	=	RiLightSourceV($2,numParameters,tokens,vals);
 					nLight->next	=	lights;
 					lights			=	nLight;
@@ -1251,6 +1270,11 @@ ribComm:		RIB_STRUCTURE_COMMENT
 					TLight	*nLight	=	new TLight;
 					nLight->index	=	(int) $3;
 					nLight->name	=	NULL;
+					lightHandleNumber	=	(float) $3;
+					paramCheck();
+					tokens[numParameters]	=	(RtToken) "__handleid";
+					vals[numParameters]		=	(RtPointer) &lightHandleNumber;
+					numParameters++;
 					nLight->handle	=	RiAreaLightSourceV($2,numParameters,tokens,vals);
 					nLight->next	=	lights;
 					lights			=	nLight;
@@ -1264,6 +1288,11 @@ ribComm:		RIB_STRUCTURE_COMMENT
 					TLight	*nLight	=	new TLight;
 					nLight->index	=	0;
 					nLight->name	=	strdup($3);
+					lightHandleName[0]	=	nLight->name;
+					paramCheck();
+					tokens[numParameters]	=	(RtToken) "__handlename";
+					vals[numParameters]		=	(RtPointer) lightHandleName;
+					numParameters++;
 					nLight->handle	=	RiAreaLightSourceV($2,numParameters,tokens,vals);
 					nLight->next	=	lights;
 					lights			=	nLight;

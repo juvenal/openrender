@@ -24,6 +24,7 @@
 //  Description			:	Renderer implementation
 //
 ////////////////////////////////////////////////////////////////////////
+#include <alloca.h>
 #include <float.h>
 #include <math.h>
 #include <stdarg.h>
@@ -148,6 +149,8 @@ CRendererContext::CRendererContext(const char *ribFile, const char *riNetString)
     lastCommand = NULL;
     riExecTag = 0;
     idOrdinal = 0;
+    shaderOrdinal = 0;
+    pendingInstanceKey = 0;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -317,6 +320,7 @@ CShaderInstance *CRendererContext::getShader(const char *name, int type, int np,
         log_info("getShader: loading shader '{}', type '{}', in format '{}'", name, cShader->type, preference);
 
         instance = new CProgrammableShaderInstance(cShader, currentAttributes, currentXform);
+        instance->instanceKey = takeInstanceKey();
 
         if (type == SL_LIGHTSOURCE) {
             // fill in lighting category
@@ -340,12 +344,14 @@ CShaderInstance *CRendererContext::getShader(const char *name, int type, int np,
         // Look into the hardcoded shaders
         if (strcmp(name, "spherelight") == 0) {
             cInstance = new CSphereLight(currentAttributes, currentXform);
+            cInstance->instanceKey = takeInstanceKey();
 
             // Add the new light into the active lights list for the frame
             CRenderer::allLights->push(cInstance);
         }
         else if (strcmp(name, "quadlight") == 0) {
             cInstance = new CQuadLight(currentAttributes, currentXform);
+            cInstance->instanceKey = takeInstanceKey();
 
             // Add the new light into the active lights list for the frame
             CRenderer::allLights->push(cInstance);
@@ -2217,6 +2223,46 @@ void CRendererContext::RiTextureCoordinates(float s1, float t1, float s2, float 
     }
 }
 
+// The RIB parser passes the handle of a light it has been given (LightSource "name" 2, or a
+// string handle) as the extra parameters "__handleid" (a number) and "__handlename" (a string).
+// They are not shader parameters: this takes them out of the list, and turns them into the key
+// the light's instance carries. Without a handle the key is the instance's ordinal in the order
+// the scene created shader instances. (Instances made while rendering, by a procedural or a
+// delayed archive, are numbered in the order they are expanded.)
+uint64_t CRendererContext::takeInstanceKey() {
+    uint64_t key;
+    if (pendingInstanceKey != 0)
+        key = pendingInstanceKey;
+    else
+        key = openrender::sampling::detail::mix(0x0D1AC0ull, shaderOrdinal);
+    pendingInstanceKey = 0;
+    shaderOrdinal++;
+    return key;
+}
+
+static int extractLightHandle(int n, const char *tokens[], const void *params[], const char **tokensOut, const void **paramsOut, uint64_t &handleKey) {
+    int m = 0;
+    handleKey = 0;
+    for (int i = 0; i < n; i++) {
+        if (strcmp(tokens[i], "__handleid") == 0)
+            handleKey = openrender::sampling::detail::mix(0x4A11Dull, (uint64_t)(int64_t)((const float *)params[i])[0]);
+        else if (strcmp(tokens[i], "__handlename") == 0) {
+            uint64_t h = 0x4A11Eull;
+            for (const char *c = *(const char *const *)params[i]; *c != '\0'; ++c)
+                h = openrender::sampling::detail::mix(h, (uint64_t)(unsigned char)*c);
+            handleKey = h;
+        }
+        else {
+            tokensOut[m] = tokens[i];
+            paramsOut[m] = params[i];
+            m++;
+        }
+    }
+    if (handleKey == 0 && m != n)
+        handleKey = 1;
+    return m;
+}
+
 void *CRendererContext::RiLightSourceV(const char *name, int n, const char *tokens[], const void *params[]) {
     CAttributes *attributes;
     CShaderInstance *cShader;
@@ -2224,6 +2270,13 @@ void *CRendererContext::RiLightSourceV(const char *name, int n, const char *toke
     log_debug("RiLightSourceV: '{}'", name);
     if (CRenderer::netNumServers > 0)
         return NULL;
+
+    // Take the handle out of the parameter list
+    const char **shaderTokens = (const char **)alloca((n + 1) * sizeof(const char *));
+    const void **shaderParams = (const void **)alloca((n + 1) * sizeof(const void *));
+    n = extractLightHandle(n, tokens, params, shaderTokens, shaderParams, pendingInstanceKey);
+    tokens = shaderTokens;
+    params = shaderParams;
 
     attributes = getAttributes(TRUE);
     cShader = getShader(name, SL_LIGHTSOURCE, n, tokens, params);
@@ -2243,6 +2296,13 @@ void *CRendererContext::RiAreaLightSourceV(const char *name, int n, const char *
 
     if (CRenderer::netNumServers > 0)
         return NULL;
+
+    // Take the handle out of the parameter list
+    const char **shaderTokens = (const char **)alloca((n + 1) * sizeof(const char *));
+    const void **shaderParams = (const void **)alloca((n + 1) * sizeof(const void *));
+    n = extractLightHandle(n, tokens, params, shaderTokens, shaderParams, pendingInstanceKey);
+    tokens = shaderTokens;
+    params = shaderParams;
 
     attributes = getAttributes(TRUE);
     cShader = getShader(name, SL_LIGHTSOURCE, n, tokens, params);
