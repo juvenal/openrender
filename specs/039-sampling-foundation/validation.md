@@ -705,7 +705,7 @@ Full suite with these added: 714 tests, 8 new (7 red, 1 green guard); the other 
 
 ### Results (T084): the sweep is not clean
 
-- **Timing (M3)**: `ctest -L determinism-sweep -j4` runs 413 tests in **421.9 s (7.0 min)**, under the 10-minute limit of FR-030, so the whole sweep keeps the `determinism` label and no subset split is made. The full suite (1131 tests, `-j4`) takes 476.5 s.
+- **Timing (M3)**: `ctest -L determinism-sweep -j4` runs 413 tests in **421.9 s (7.0 min)**, under the 10-minute limit of FR-030, so the whole sweep kept the `determinism` label at that point. (Superseded: later sweeps took 10 to 12 minutes; see T084d for the split.) The full suite (1131 tests, `-j4`) takes 476.5 s.
 - **Result**: first run (the sweep alone) 394 pass, **19 fail**; second run (inside the full suite) **18 fail**. The sets differ: 24 distinct scenes failed at least once, 13 failed in both. Stop and report: no threshold was touched and no scene was removed from the list.
 - **Classification**, from repeating the failing scenes under controlled conditions (`-t:1` x4, `-t:2` x3, `-t:4` x5 or x6; each run compared with the first; 8-bit undithered output unless said):
 
@@ -939,3 +939,46 @@ Method: temporary instrumentation (per-sample dumps, hashes of the committed buc
   - `csg-hero-displaced-reyes`: still differs (1 render of 8 at `-t:4`, 11 pixels of about +-1e-3 on black pixels in the first column of a bucket, `x = 448`); it has no tie, the fill does not explain it, and the cause is not found. It stays red.
   - `blobby-blend-far-reyes`: green (0 of 31 under four fills, and in both sweeps).
   - `csg-offscreen-stats-reyes`, `csg-hero-partial-stats-reyes`: each failed once in the two sweeps, though the unfilled renders were identical 5 of 5; the only difference found is the 0xFF fill image (the grid derivative residual above). They stay red.
+
+### T084d: the label split, the timings and the Parity measurement
+
+**FR-030 compliance note.** The full sweep does not fit FR-030's 10-minute budget on this machine once the load is realistic, so it is opt-in, and a representative subset is in the default `determinism` label, as FR-030 and research M3 provide.
+- `determinism-sweep`: every swept scene (413 registered, 403 enabled, 10 disabled under #60, #61 and #63). **Run it before each merge and in the Linux validation (T105), explicitly**: `ctest -L '^determinism-sweep$' -j2`.
+- `determinism` (default): 148 tests, 154 s and 171 s at `-j2`.
+- Use the anchored label, `ctest -L '^determinism$' -j2`. `ctest -L determinism` is a regular expression and also selects every `determinism-sweep` test (448 tests in all, the whole sweep).
+
+**What `determinism` holds.**
+- 35 tests that are not sweep scenes: `DeterminismHarness_*` (8), `DeterminismTies_*` (2), `ColorDeterminism_*` (4), `DepthFilter_*` determinism tests (6), `ShadingParity_DerivativeInactiveLanes`, and, by label only, `Sampling_ThreadSweep_*` (4), `Sampling_DisplaceThreadSweep`, `Sampling_DisplaceRepeat` and `SamplingJitDeterminism_*` (8).
+- 113 sweep scenes (the list is `DETERMINISM_DEFAULT_SCENES` at the end of `tests/visual/determinism-scenes.cmake`):
+  - the **most demanding** scene of each family and hider that takes at most 10 s in the sweep (the family is the first word of the name, split further for `csg` and `teapot`, 107 family and hider groups); the cap keeps the set inside its budget, and within it the slowest scene is taken, not the fastest;
+  - every scene that has exposed a defect: the tie scenes of #62 (`blobby-spiral-reyes`, `blobby-spiral-zbuffer`, `blobby-dent-reyes`, `blobby-repeller-heights-reyes`, `blobby-blend-far-reyes`, `bunny-reyes`), the missed-lane scenes of #61 (`csg-secondary-rays-raytrace`, `csg-secondary-rays-reyes`, `csg-hero-plain-sphere-raytrace`, `csg-hero-translucent-raytrace`, `csg-procedural-operand-raytrace`, `csg-procedural-operand-inline-raytrace`), and `sphere-random`, `sphere-trace` and `sphere-gather` in both shader formats;
+  - no disabled entry.
+- Labels only: no test body, threshold or reference changed. `add_determinism_sweep` gives `visual;regression;determinism-sweep`; the default scenes get `determinism` added.
+
+**Timings at `-j2`** (through `cpujob.sh` with `nice -n 19`, one job at a time, nothing else of mine running):
+
+| Run | Tests | Result | Total time | Load average at start / end |
+|---|---|---|---|---|
+| `-L '^determinism$'`, run 1 | 148 | all pass | 153.9 s | 4.7 / 5.9 |
+| `-L '^determinism$'`, run 2 | 148 | all pass | 171.4 s | 5.9 / 6.0 |
+| `-L '^determinism-sweep$'`, first timing | 413, 403 enabled | all 403 pass | 606.7 s (10.1 min) | 15.7 (just after a build) / 7.3 |
+| `-L '^determinism-sweep$'`, second | 403 | all pass | 644.7 s (10.7 min) | 7.3 / 5.9 |
+| `-L '^determinism-sweep$'`, after the split | 403 | all pass | 727.0 s (12.1 min) | 6.0 / 7.9 |
+
+The summed test time of the sweep is 1213 s, so `-j2` cannot do better than about 607 s (the slowest single test is `teapot-motion-raytrace`, 130 s). The load average during a `-j2` sweep is 6 to 9 (each test runs up to 4 threads or 2 processes).
+
+**The earlier `-j4` figures.**
+- First sweep of the phase: 421.9 s on a quiet machine, but it took the load average to 40 to 57.
+- Full suite (1131 tests) at `-j4`: 476.5 s.
+- After T084b and T084c, the sweep at `-j4`: 620.5 s and 700.4 s, with a load average of 40 to 44; `teapot-motion-raytrace` went from 115 s to 297 s though no change touches it.
+- The full suite at `-j4`: 862 s with a load average of 57, 686 s with the sweep at `-j2`.
+- `-j4` is too much for this fanless M2, so the sweep runs at `-j2`.
+
+**`Parity_csg-secondary-rays-raytrace-reyes`, 10 runs each** (61826b3, before both fixes, against 09a2202, with them; one job at a time through `cpujob.sh`; load average 4.5 to 9.8; the builds were run in sequence):
+
+| Build | Mean | Std. dev. | Min | Max |
+|---|---|---|---|---|
+| 61826b3 | 9.12 | 1.00 | 8.12 | 10.67 |
+| 09a2202 | 9.05 | 1.53 | 7.55 | 12.00 |
+
+The difference of means is -0.07 with a standard error of 0.58 (t = -0.12), against a threshold of 20. **The shift is not real**: the earlier climb from 7.64 and 8.75 to 12.52 was Legacy noise, whose own spread is about 1.5.

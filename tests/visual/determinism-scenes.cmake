@@ -506,3 +506,61 @@ set_tests_properties(
 #   examples/rib/tests/csg-malformed-unmatched-solidend.rib  (expected to fail with a diagnostic, writes no image)
 #   examples/rib/tests/csg-procedural-missing-archive.rib  (expected to fail with a diagnostic, writes no image)
 #   examples/rib/teapot.rib  (no Display statement)
+
+# --- The default `determinism` set (FR-030, research M3) ---------------------------------------------
+# The full sweep (every scene above, five configurations each) is the opt-in `determinism-sweep` label:
+# it takes about 10 minutes at -j2, over the 10-minute budget of FR-030 once the machine is loaded.
+# Run it before every merge and in the Linux validation (T105). The default `determinism` label carries
+# the sweep scenes below, which were chosen as follows:
+#   - one scene per family and hider (the family is the first word of the scene's name, split further
+#     for csg and teapot): the most demanding one that takes at most 10 s in the sweep, not the fastest;
+#   - every scene that has exposed a defect: the tie scenes (GitHub #62: blobby-spiral, blobby-dent,
+#     blobby-repeller-heights, blobby-blend-far, bunny-reyes), the missed-lane scenes (GitHub #61:
+#     csg-secondary-rays-*, csg-hero-plain-sphere-raytrace, csg-hero-translucent-raytrace,
+#     csg-procedural-operand-*) and sphere-random, sphere-trace and sphere-gather.
+# A disabled entry is never listed. The set takes about 3 minutes at -j2 (validation.md, T084d).
+set(DETERMINISM_DEFAULT_SCENES
+    blobby-blend-far-reyes blobby-dent-reyes blobby-parse-smoke blobby-repeller-heights-reyes
+    blobby-spiral-raytrace blobby-spiral-reyes blobby-spiral-zbuffer
+    blobby-tolerance-tight-reyes bunny-raytrace bunny-reyes camera-dof-raytrace
+    camera-motion-small+dof-reyes color-determinism-transparent-reyes
+    coverage-alpha-sides2-raytrace coverage-alpha-sides2-tjunction-r0.25-reyes
+    csg-coincident-difference-raytrace csg-coincident-difference-reyes
+    csg-coincident-difference-zbuffer csg-hero-plain-sphere-raytrace
+    csg-hero-translucent-raytrace csg-hero-translucent-reyes csg-nested-tree-4-level-raytrace
+    csg-nurbs-rational-sphere-alone-raytrace csg-object-instance-reuse-raytrace
+    csg-offscreen-stats-raytrace csg-open-quadric-caps-raytrace
+    csg-polymesh-box-difference-raytrace csg-polymesh-box-difference-reyes
+    csg-procedural-open-cylinder-inline-raytrace csg-procedural-operand-inline-raytrace
+    csg-procedural-operand-raytrace csg-secondary-rays-raytrace csg-secondary-rays-reyes
+    csg-sphere-cube-difference-raytrace-800 csg-sphere-cube-difference-reyes
+    csg-sphere-cube-difference-zbuffer-800 csg-subdivision-sphere-union-raytrace
+    csg-tiny-solid-stats-reyes csg-tolerance-inert-raytrace cubes-raytrace cubes-reyes
+    depth-analytic-mid-reyes depth-analytic-mid-sides1-raytrace
+    depth-analytic-min-tjunction-r0.5-zbuffer depthfilter-determinism-avg-reyes killeroo-reyes
+    motion-1-reyes motion-3-raytrace nupatch-vase-trimmed-hole-raytrace
+    nupatch-vase-trimmed-scoping parity-aov-raytrace parity-aov-reyes
+    parity-depthdefault-raytrace parity-depthdefault-reyes parity-depthfilter-mid-raytrace
+    parity-depthfilter-min-reyes parity-displacement-raytrace parity-displacement-reyes
+    parity-dof-motion-reyes parity-dof-raytrace parity-env-raytrace parity-env-reyes
+    parity-flatshade-raytrace parity-flatshade-reyes parity-matte-raytrace parity-matte-reyes
+    parity-motion-quadrics-translate-reyes parity-motion-subdiv-rotate-raytrace
+    parity-shadow-raytrace parity-shadow-reyes parity-subdiv-hierarchical-override-raytrace
+    parity-subdiv-hierarchical-override-reyes parity-texture-exr-reyes
+    parity-texture-png-raytrace parity-transparency-matte-aov-raytrace
+    parity-transparency-matte-aov-reyes parity-unbaked-nonpot-raytrace
+    parity-unbaked-nonpot-reyes quadlight-slo sampling-camera-jitter1-raytrace-sobol
+    sampling-camera-jitter1-reyes-sobol sampling-option-pmj02-slo solar0-slo sphere-gather-reyes
+    sphere-gather-reyes-slo sphere-random-reyes sphere-random-reyes-slo sphere-trace-reyes
+    sphere-trace-reyes-slo spherelight-slo spotlight-raytrace spotlight-reyes
+    subdiv-facevarying-seam-reyes subdiv-hierarchical-tag-override-precedence-raytrace
+    teapot-blue_marble-raytrace-slo teapot-blue_marble-reyes-slo
+    teapot-brushedmetal-raytrace-slo teapot-brushedmetal-reyes-slo teapot-full-metal-raytrace
+    teapot-full-metal-reyes teapot-matte-raytrace teapot-matte-reyes teapot-motion-reyes
+    teapot-somewood-aliasing teapot-somewood-raytrace-slo teapot-somewood-reyes
+    teapot-wood-raytrace-slo teapot-wood-reyes-slo top-motion-2-reyes top-motion-3-raytrace
+    top-spherelight torus-raytrace torus-reyes
+)
+foreach(_scene IN LISTS DETERMINISM_DEFAULT_SCENES)
+    set_property(TEST DeterminismSweep_${_scene} APPEND PROPERTY LABELS determinism)
+endforeach()

@@ -1518,11 +1518,13 @@ endforeach()
 #   COPY       directories (relative to the source directory) copied to the scratch
 #              directory, for scenes that read relative archive paths
 #
-# The tests are DeterminismSweep_<name>, labelled `determinism;determinism-sweep`
+# The tests are DeterminismSweep_<name>, labelled `determinism-sweep` (the default set also gets `determinism`)
 # (see determinism-scenes.cmake for the scenes and for what the label set is, per research M3).
 set(DETERMINISM_SOBOL_LINE "Option \"sampling\" \"sampler\" [\"sobol\"]")
 set(DETERMINISM_DEFAULT_CONFIGS "-t:1||-t:2|-t:4|-P:2")
-set(DETERMINISM_SWEEP_LABELS "visual;regression;determinism;determinism-sweep")
+# `determinism-sweep` is the opt-in label of the full sweep; determinism-scenes.cmake adds `determinism` to
+# the scenes of the default set.
+set(DETERMINISM_SWEEP_LABELS "visual;regression;determinism-sweep")
 function(add_determinism_sweep NAME RIB)
     cmake_parse_arguments(ARG "" "CONFIGS" "COPY" ${ARGN})
     set(_outputs ${ARG_UNPARSED_ARGUMENTS})
@@ -4109,3 +4111,12 @@ foreach(_hider reyes zbuffer)
     set_tests_properties(DeterminismTies_${_hider} PROPERTIES TIMEOUT 120
         LABELS "visual;regression;determinism" ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
 endforeach()
+
+# --- Other determinism tests in the default `determinism` set ----------------------------------
+# These compare renders across thread counts or repeat a render; they only gain the label.
+set_property(TEST Sampling_ThreadSweep_quadlight Sampling_ThreadSweep_sphere-random Sampling_ThreadSweep_sphere-trace
+    Sampling_ThreadSweep_sphere-gather Sampling_DisplaceThreadSweep Sampling_DisplaceRepeat
+    SamplingJitDeterminism_random_loop SamplingJitDeterminism_random_urandom SamplingJitDeterminism_random_vector
+    SamplingJitDeterminism_trace_transmission SamplingJitDeterminism_visibility SamplingJitDeterminism_occlusion
+    SamplingJitDeterminism_indirectdiffuse SamplingJitDeterminism_gather
+    APPEND PROPERTY LABELS determinism)

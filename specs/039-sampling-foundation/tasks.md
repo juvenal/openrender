@@ -386,7 +386,7 @@ The call-site operand and the `_v2` ABI make Phase 4 a MAJOR change of both shad
 - [X] T083 [US1] Convert T058 and T068 to `--prepend`, and delete their hand-written copies.
   - **As built**: `test_render_compare` gained `--prepend-a:`/`--prepend-b:` for T058; T068 uses `test_depth_determinism --configs` with a two-line prepend (the sobol line and a float `Quantize`). See validation.md "Phase 7 implementation".
 - [ ] T084 [RUN] [US1] (run; **not met at the time**: 19 of 413 scenes differ, 18 in a second run, 24 distinct; after T084b/T084c 3 of 409 enabled scenes differ in each of two sweeps; 7.0 min; classification in validation.md) Build, then `ctest -L determinism-sweep -j4`. Every scene must be identical. Record the wall-clock time in `validation.md` (M3).
-  - Apply the 10-minute rule (FR-030): if it takes more than 10 minutes, the sweep keeps only the `determinism-sweep` label, and a representative subset (the existing tests plus one scene per primitive and effect family) also gets `determinism`.
+  - Apply the 10-minute rule (FR-030): if it takes more than 10 minutes, the sweep keeps only the `determinism-sweep` label, and a representative subset (the existing tests plus one scene per primitive and effect family) also gets `determinism`. **Compliance (T084d):** the sweep takes 10.1 to 12.1 minutes at `-j2` on a realistic load, so it is opt-in under `determinism-sweep` (run explicitly before each merge and in T105), and the default `determinism` set (148 tests) takes about 3 minutes at `-j2`. Use `-L '^determinism$'`: `-L determinism` also selects the sweep.
   - Any failing scene is a stop-and-report, classified by cause.
 - [X] T084a [RUN] [US1] Root-cause group C of T084 (diagnosis only; no fix). Group C: the sweep scenes that differ only with jitter on, a few values each, intermittent at one thread count.
   - Leading hypothesis to confirm or reject: fragments at equal depth, or straddling sample edges, resolved in thread or bucket order, as in #48.
@@ -412,6 +412,10 @@ The call-site operand and the `_v2` ABI make Phase 4 a MAJOR change of both shad
   - [X] T084c-measure [RUN]: measure and report which existing reference tests move at tie pixels, and by how much. No threshold or reference is touched without a separate approval.
   - [X] T084c-recheck [RUN] (`csg-hero-displaced-reyes` still red with an unexplained cause; `blobby-blend-far-reyes` green; the other two failed once each in two sweeps): re-check `csg-hero-displaced-reyes` and the three scenes that never reproduced (`blobby-blend-far-reyes`, `csg-offscreen-stats-reyes`, `csg-hero-partial-stats-reyes`). They stay registered and red.
 
+- [X] T084d [US1] Split the determinism labels and record the measurements (labels only; no test body, threshold or reference changed).
+  - Every swept scene keeps the opt-in `determinism-sweep` label; the full sweep runs before each merge and in the Linux validation (T105).
+  - The default `determinism` label holds the existing determinism tests, the most demanding scene per family and hider (at most 10 s), every scene that exposed a defect, and no disabled entry: 148 tests, 154 s and 171 s at `-j2`.
+  - Recorded in validation.md "T084d": the `Parity_csg-secondary-rays-raytrace-reyes` 10 x 10 measurement (no real shift), the `-j2` sweep timings (606.7 s, 644.7 s, 727.0 s; 1213 s summed), the load observations, and the earlier `-j4` figures.
 **PAUSE 7**.
 
 ---
@@ -479,7 +483,7 @@ The call-site operand and the `_v2` ABI make Phase 4 a MAJOR change of both shad
 - [ ] T100 [RUN] Re-measure every parity test: worst-case diff over 5 runs (M5). Record the values in `tests/visual/parity-thresholds.md`.
   - Tighten every threshold whose margin allows it. The targets are 8 for `motion-patches-translate` and 6 for `motion-quadrics-translate`; they are targets, not gates.
   - **Never widen.** If `Parity_dof` (threshold 60; 53.6 under the old correlated table) exceeds 60, stop and ask the maintainer.
-- [ ] T101 [RUN] Full suite: `nice -n 19 ctest --test-dir build -j4 --output-on-failure`. Everything must be green, including `determinism`, `determinism-sweep` (if opt-in, run it explicitly), `convergence` (explicitly), and `SamplingOption_*` against the new default.
+- [ ] T101 [RUN] Full suite: `nice -n 19 ctest --test-dir build -j4 --output-on-failure`. Everything must be green, including `determinism`, `determinism-sweep` (opt-in: run it explicitly, `ctest -L '^determinism-sweep$' -j2`), `convergence` (explicitly), and `SamplingOption_*` against the new default.
   - `git diff c4f1485 -- tests/visual/CMakeLists.txt tests/visual/parity-thresholds.md` must show no widened threshold.
 
 ### Verification of the success criteria
@@ -500,7 +504,7 @@ The call-site operand and the `_v2` ABI make Phase 4 a MAJOR change of both shad
   - **Crop** (edge case): a `CropWindow` render must be bit-identical to the same pixels of the full render. If filter margins at the crop edge make this impossible, stop and report with the differing-pixel map.
   - Register these checks as `Sampling_FrameReproducible` and `Sampling_CropConsistent` under `determinism`.
 - [ ] T104 `Sampling_NoGlobalRandomness` (registered in Phase 6, T067) must pass with an **empty** allowlist: delete the lines that remain (the legacy generators T090-T095 removed) and `[RUN]` it: zero matches outside `src/precomp/` and comments (SC-007).
-- [ ] T105 [RUN] Linux validation (memory: GCC 13 `-Werror`; rsync plus the Maestri path). Build and run `ctest -L "sampling|common|libshader|architecture|determinism"` on Ubuntu 24.04, plus `ctest -L architecture` with `--platform linux`. If the Linux path is unavailable, record "pending Linux validation" in `validation.md` and report it.
+- [ ] T105 [RUN] Linux validation (memory: GCC 13 `-Werror`; rsync plus the Maestri path). Build and run `ctest -L "sampling|common|libshader|architecture|determinism"` on Ubuntu 24.04 (this also selects the whole `determinism-sweep`, which is wanted here: run it at `-j2`), plus `ctest -L architecture` with `--platform linux`. If the Linux path is unavailable, record "pending Linux validation" in `validation.md` and report it.
 
 ### Documentation and registry
 
