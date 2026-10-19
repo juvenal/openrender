@@ -1,0 +1,23 @@
+##RenderMan RIB-Structure 1.0
+# Spec 039, Phase 6 follow-up (Sampling_DisplaceThreadSweep, Sampling_DisplaceRepeat): a lit
+# reyes sphere displaced by sampling_displace_probe (P += 0.05 * random() * N) under the sobol
+# sampler, with no thread pin. The render must not depend on the thread count nor repeat
+# differently from run to run (test_render_compare runs it twice).
+version 3.03
+Hider "reyes" "jitter" [0]
+Option "sampling" "sampler" ["sobol"]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "sampling-displace-sphere.tif" "file" "rgba"
+Projection "perspective"
+Format 160 120 1
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  LightSource "distantlight" 1 "intensity" [1] "from" [2 4 -2] "to" [0 0 0]
+  Surface "matte"
+  Attribute "displacementbound" "sphere" [0.2]
+  Displacement "sampling_displace_probe"
+  Sphere 1 -1 1 360
+WorldEnd

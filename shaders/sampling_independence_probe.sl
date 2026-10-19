@@ -7,6 +7,8 @@
  * Every iteration draws a random() and traces a ray. Raising n1 adds draws at
  * the first loop's call sites only, so under the sampler's keyed sub-streams
  * G and B must not change; under a stream shared by the whole context they do.
+ * At ray depth > 0 (a hit of one of these trace() loops on the probe sphere itself) Ci is a
+ * constant, so G and B do not pick up the first loop through the shader's own recursion.
  * No `if`-gated uniform assignment (GitHub #8), no optional parameters (#55).
  */
 surface sampling_independence_probe(uniform float n1 = 2)
@@ -33,6 +35,12 @@ surface sampling_independence_probe(uniform float n1 = 2)
         lit += random() * (comp(Cl, 0) + comp(Cl, 1) + comp(Cl, 2));
     }
 
-    Ci = color(first / (n1 * 2 + 1), second / 6, lit);
+    /* A ray of this shader's own trace() loops can hit the probe sphere again. At ray depth > 0
+     * the shader returns a constant, so what a traced hit hands back does not depend on the
+     * iteration counts of the shader at depth 0 (selected by arithmetic: no `if`, GitHub #8). */
+    uniform float rayDepth = 0;
+    uniform float depthFound = rayinfo("depth", rayDepth);
+    float nested = step(0.5, rayDepth);
+    Ci = (1 - nested) * color(first / (n1 * 2 + 1), second / 6, lit) + nested * color(0.25, 0.25, 0.25);
     Oi = 1;
 }

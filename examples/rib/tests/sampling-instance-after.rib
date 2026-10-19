@@ -1,0 +1,24 @@
+##RenderMan RIB-Structure 1.0
+# Spec 039, Phase 6 follow-up (Sampling_InstanceIndependence_*): a sphere shaded by
+# sampling_instance_probe, which reads the draw of the light with id 2 only. Variant "after":
+# another instance of the same light shader (id 1) is declared BEFORE it.
+# The id 2 light must draw the same values in all three variants. Sampler sobol, one thread,
+# one centre sample per pixel, float output.
+version 3.03
+Hider "reyes" "jitter" [0]
+Option "sampling" "sampler" ["sobol"]
+Option "limits" "numthreads" [1]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "sampling-instance-after.tif" "file" "rgba"
+Projection "perspective"
+Format 32 32 1
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  LightSource "sampling_instance_light" 1 "id" [1]
+  LightSource "sampling_instance_light" 2 "id" [2]
+  Surface "sampling_instance_probe"
+  Sphere 1 -1 1 360
+WorldEnd

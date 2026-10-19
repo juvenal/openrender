@@ -3839,6 +3839,8 @@ endforeach()
 #     scenes are hand-written copies with the option line and without the
 #     scene's numthreads pin (T079's --prepend will replace the copies).
 #   Sampling_ProbeIndependence: the midpoint probe's draw shifts no other value.
+# The tests below share one scratch directory and several write the same TIFF names, so
+# they hold a ctest resource lock and never run side by side (-j).
 set(_phase6_dir ${CMAKE_BINARY_DIR}/tests/visual/sampling-phase6)
 file(MAKE_DIRECTORY ${_phase6_dir})
 set(_phase6_scenes ${CMAKE_SOURCE_DIR}/examples/rib/tests)
@@ -3874,20 +3876,35 @@ foreach(_function IN LISTS _jit_functions)
             WORKING_DIRECTORY ${_phase6_dir})
         list(APPEND _tests SamplingJitEngaged_${_function})
     endif()
-    set_tests_properties(${_tests} PROPERTIES TIMEOUT 120 LABELS "visual;regression;sampling"
+    set_tests_properties(${_tests} PROPERTIES TIMEOUT 120 LABELS "visual;regression;sampling" RESOURCE_LOCK sampling_phase6_scratch
         ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
     math(EXPR _channel "${_channel} + 1")
 endforeach()
 
+# sampling_random_probe.sl on a sphere, read back exactly. R: Du()/Dv() of a draw is 0, which holds for
+# ray-hit shading only (the derivative-offset vertices mirror their real vertex); G: four draws are
+# distinct; B: urandom draws distinct and every draw in [0, 1).
+#   RandomProbe_<format>       the raytrace hider: all three channels
+#   RandomProbeReyes_<format>  the reyes hider: G and B only (on a reyes grid Du() is a difference
+#                              between neighbouring vertices, which draw independent values)
 foreach(_format rslo slo)
     set(FORMAT ${_format})
+    set(HIDER reyes)
+    configure_file(${_phase6_scenes}/sampling-random-probe.rib.in ${_phase6_dir}/random-probe-reyes-${_format}.rib @ONLY)
+    add_test(NAME SamplingJitParity_RandomProbeReyes_${_format}
+        COMMAND test_pixel_probe $<TARGET_FILE:orender> ${_phase6_dir}/random-probe-reyes-${_format}.rib
+            sampling-random-probe-reyes-${_format}.tif 16 16 0 --channels=1,2 1 1
+        WORKING_DIRECTORY ${_phase6_dir})
+    set_tests_properties(SamplingJitParity_RandomProbeReyes_${_format} PROPERTIES TIMEOUT 120
+        LABELS "visual;regression;sampling" RESOURCE_LOCK sampling_phase6_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+    set(HIDER raytrace)
     configure_file(${_phase6_scenes}/sampling-random-probe.rib.in ${_phase6_dir}/random-probe-${_format}.rib @ONLY)
     add_test(NAME SamplingJitParity_RandomProbe_${_format}
         COMMAND test_pixel_probe $<TARGET_FILE:orender> ${_phase6_dir}/random-probe-${_format}.rib
-            sampling-random-probe-${_format}.tif 16 16 0 0 1 1
+            sampling-random-probe-raytrace-${_format}.tif 16 16 0 0 1 1
         WORKING_DIRECTORY ${_phase6_dir})
     set_tests_properties(SamplingJitParity_RandomProbe_${_format} PROPERTIES TIMEOUT 120
-        LABELS "visual;regression;sampling" ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+        LABELS "visual;regression;sampling" RESOURCE_LOCK sampling_phase6_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
 endforeach()
 
 foreach(_n 2 3)
@@ -3905,7 +3922,7 @@ foreach(_case second_loop:1:same illuminance:2:same first_loop_changes:0:differ)
             ${_phase6_dir}/independence-3.rib sampling-independence-3.tif --channels=${_channels}
         WORKING_DIRECTORY ${_phase6_dir})
     set_tests_properties(Sampling_ShaderDrawIndependence_${_name} PROPERTIES TIMEOUT 120
-        LABELS "visual;regression;sampling" ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+        LABELS "visual;regression;sampling" RESOURCE_LOCK sampling_phase6_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
 endforeach()
 
 foreach(_scene quadlight sphere-random sphere-trace sphere-gather)
@@ -3916,7 +3933,7 @@ foreach(_scene quadlight sphere-random sphere-trace sphere-gather)
             --a:-t:1 --b:-t:4
         WORKING_DIRECTORY ${_phase6_dir})
     set_tests_properties(Sampling_ThreadSweep_${_scene} PROPERTIES TIMEOUT 300
-        LABELS "visual;regression;sampling" ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+        LABELS "visual;regression;sampling" RESOURCE_LOCK sampling_phase6_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
 endforeach()
 
 add_test(NAME Sampling_ProbeIndependence
@@ -3925,7 +3942,7 @@ add_test(NAME Sampling_ProbeIndependence
         ${_phase6_scenes}/sampling-probe-independence-min.rib sampling-probe-independence-min.tif -t:1
     WORKING_DIRECTORY ${_phase6_dir})
 set_tests_properties(Sampling_ProbeIndependence PROPERTIES TIMEOUT 120
-    LABELS "visual;regression;sampling" ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+    LABELS "visual;regression;sampling" RESOURCE_LOCK sampling_phase6_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
 
 # SC-007 (spec 039): no randomness outside the sampler library and CKeyedStream.
 # Registered at Phase 6 with an explicit allowlist (no_global_randomness_allowlist.txt)
@@ -3936,3 +3953,36 @@ add_test(NAME Sampling_NoGlobalRandomness
     COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/check_no_global_randomness.sh ${CMAKE_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/no_global_randomness_allowlist.txt)
 set_tests_properties(Sampling_NoGlobalRandomness PROPERTIES TIMEOUT 60 LABELS "sampling;unit")
+
+# Two instances of one light shader at one point (spec 039, Phase 6 follow-up). The sampler's
+# sub-stream key must tell the instances apart: what the light with id 2 draws at a point must
+# not depend on whether another instance of the same shader is declared before or after it.
+foreach(_order after before)
+    add_test(NAME Sampling_InstanceIndependence_${_order}
+        COMMAND test_render_compare $<TARGET_FILE:orender> same
+            ${_phase6_scenes}/sampling-instance-alone.rib sampling-instance-alone.tif
+            ${_phase6_scenes}/sampling-instance-${_order}.rib sampling-instance-${_order}.tif --channels=0
+        WORKING_DIRECTORY ${_phase6_dir})
+    set_tests_properties(Sampling_InstanceIndependence_${_order} PROPERTIES TIMEOUT 120
+        LABELS "visual;regression;sampling" RESOURCE_LOCK sampling_phase6_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+endforeach()
+
+# The displacement-only passes (spec 039, Phase 6 follow-up). A displacement shader's random() must
+# not depend on which thread dices the surface: the dicer's bounding and grid-size probes run the
+# displacement shader in displacement-only passes that gave no points a sample identity, so they drew
+# from whatever the thread's state held from its previous grid.
+#   Sampling_DisplaceThreadSweep: -t:1 against -t:4, bit for bit.
+#   Sampling_DisplaceRepeat:      -t:4 against -t:4.
+# (Sampling_DisplacePassConsistency, tests/unit/sampling, checks the two passes against each other.)
+add_test(NAME Sampling_DisplaceThreadSweep
+    COMMAND test_render_compare $<TARGET_FILE:orender> same
+        ${_phase6_scenes}/sampling-displace-sphere.rib sampling-displace-sphere.tif
+        ${_phase6_scenes}/sampling-displace-sphere.rib sampling-displace-sphere.tif --a:-t:1 --b:-t:4
+    WORKING_DIRECTORY ${_phase6_dir})
+add_test(NAME Sampling_DisplaceRepeat
+    COMMAND test_render_compare $<TARGET_FILE:orender> same
+        ${_phase6_scenes}/sampling-displace-sphere.rib sampling-displace-sphere.tif
+        ${_phase6_scenes}/sampling-displace-sphere.rib sampling-displace-sphere.tif -t:4
+    WORKING_DIRECTORY ${_phase6_dir})
+set_tests_properties(Sampling_DisplaceThreadSweep Sampling_DisplaceRepeat PROPERTIES TIMEOUT 120
+    LABELS "visual;regression;sampling" RESOURCE_LOCK sampling_phase6_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)

@@ -133,3 +133,8 @@ add_sampling_test_exe(test_sampling_camera_slots test_camera_slots.cpp
     LIBS ribRender libshader_shading)
 target_include_directories(test_sampling_camera_slots PRIVATE ${CMAKE_SOURCE_DIR}/src/ri/hiders)
 add_sampling_test(Sampling_CameraSlotsEqual test_sampling_camera_slots camera_slots)
+
+# Phase 6 follow-up: the displacement-only passes. Written before the fix (tests first); needs the
+# displaced-position hook (CShadingContext::pointDisplacedObserver).
+add_scene_probe_test(test_sampling_displace_consistency test_displace_consistency.cpp
+    Sampling_DisplacePassConsistency sphere)

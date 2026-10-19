@@ -1,0 +1,22 @@
+#!version 2.0.0
+#!name "sampling_displace_probe"
+displacement
+#!parameters:
+#!variables:
+varying	vector	temporary_0
+varying	vector	temporary_1
+varying	vector	temporary_2
+uniform	vector	temporary_3
+varying	vector	temporary_4
+#!Init:
+	return            
+#!Code:
+	vfromf  temporary_3 0.05
+	vuvector  temporary_2 temporary_3
+	random	("v=")  temporary_4 0
+	mulvv  temporary_1 temporary_2 temporary_4
+	normalize	("v=v")  temporary_2 N
+	mulvv  temporary_0 temporary_1 temporary_2
+	addvv  P P temporary_0
+	calculatenormal	("p=p")  N P
+	return

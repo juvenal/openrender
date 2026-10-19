@@ -11,6 +11,9 @@ varying	vector	dir
 varying	float	first
 varying	float	second
 varying	float	lit
+uniform	float	rayDepth
+uniform	float	depthFound
+varying	float	nested
 uniform	vector	temporary_0
 uniform	vector	temporary_1
 varying	float	temporary_2
@@ -24,7 +27,11 @@ varying	float	temporary_8
 varying	vector	c_1
 varying	float	temporary_9
 varying	float	temporary_10
-uniform	float	temporary_11
+varying	vector	temporary_11
+varying	vector	temporary_12
+varying	vector	temporary_13
+uniform	float	temporary_14
+varying	vector	temporary_15
 #!Init:
 	return            
 #!Code:
@@ -96,13 +103,26 @@ uniform	float	temporary_11
 	addff  lit lit temporary_4
 #!Label16:
 	endilluminance
-	mulff  temporary_11 n1 2
-	addff  temporary_3 temporary_11 1
+	moveff  rayDepth 0
+	rayinfo	("f=sf")  depthFound "depth" rayDepth
+	step	("f=ff")  temporary_3 0.5 rayDepth
+	vufloat  nested temporary_3
+	vufloat  temporary_4 1
+	subff  temporary_2 temporary_4 nested
+	vfromf  temporary_12 temporary_2
+	mulff  temporary_14 n1 2
+	addff  temporary_3 temporary_14 1
 	vufloat  temporary_4 temporary_3
 	divff  temporary_2 first temporary_4
 	vufloat  temporary_5 6
 	divff  temporary_4 second temporary_5
-	vfromf  Ci temporary_2 temporary_4 lit
+	vfromf  temporary_13 temporary_2 temporary_4 lit
+	mulvv  temporary_11 temporary_12 temporary_13
+	vfromf  temporary_13 nested
+	vfromf  temporary_0 0.25 0.25 0.25
+	vuvector  temporary_15 temporary_0
+	mulvv  temporary_12 temporary_13 temporary_15
+	addvv  Ci temporary_11 temporary_12
 	vfromf  temporary_0 1
 	vuvector  Oi temporary_0
 	return

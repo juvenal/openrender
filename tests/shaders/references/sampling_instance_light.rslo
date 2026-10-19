@@ -1,0 +1,26 @@
+#!version 2.0.0
+#!name "sampling_instance_light"
+light
+#!parameters:
+uniform	float	id	=	1
+#!variables:
+varying	vector	temporary_0
+uniform	vector	temporary_1
+uniform	float	temporary_2
+varying	float	temporary_3
+varying	float	temporary_4
+varying	float	temporary_5
+#!Init:
+	return            
+#!Code:
+	vufloat  temporary_2 -4
+	vfromf  temporary_1 0 0 temporary_2
+	vuvector  temporary_0 temporary_1
+	illuminate temporary_0 #!Label2
+	random	("f=")  temporary_3 0
+	vufloat  temporary_4 id
+	vufloat  temporary_5 0
+	vfromf  Cl temporary_3 temporary_4 temporary_5
+#!Label2:
+	endilluminate
+	return
