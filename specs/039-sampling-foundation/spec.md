@@ -74,7 +74,7 @@ A user renders a scene once with one thread, once with eight threads and once sp
 
 **Acceptance Scenarios**:
 
-1. **Given** any non-GI visual or parity scene, **When** it is rendered at `-t:1`, `-t:2`, the default thread count and `-P:2` on the same build and platform, **Then** all outputs are bit-identical in every channel and AOV, including depth (except the scenes disabled under GitHub #60 and #61; see Assumptions).
+1. **Given** any non-GI visual or parity scene, **When** it is rendered at `-t:1`, `-t:2`, the default thread count and `-P:2` on the same build and platform, **Then** all outputs are bit-identical in every channel and AOV, including depth (except the scenes disabled under GitHub #60, #61 and #63; see Assumptions).
 2. **Given** the same scene rendered twelve times at the default thread count, **When** the outputs are compared, **Then** all twelve are bit-identical.
 3. **Given** a scene that used to need `Option "limits" "numthreads" [1]` or a `-t:1` test argument only because of RNG scheduling, **When** the pin is removed, **Then** the scene's visual test passes at the default thread count against its reference.
 4. **Given** a scene whose lookups read an order-dependent GI cache (see FR-031), **When** it is rendered multithreaded, **Then** it is documented as outside this guarantee, keeps its pin and points to spec 040.
@@ -294,7 +294,7 @@ A contributor building the integrators (030), BSDF sampling (035) or the light s
 
 ### Measurable Outcomes
 
-- **SC-001**: 100% of non-GI visual and parity scenes produce bit-identical output in every channel (colour, alpha, depth, every AOV) at `-t:1`, at two or more other thread counts and at `-P:2`, on the same build and platform, **except the four scenes disabled under GitHub #60 and #61** (see Assumptions: defects that predate 039 and are independent of the sampler). Zero thread pins remain on non-GI scenes.
+- **SC-001**: 100% of non-GI visual and parity scenes produce bit-identical output in every channel (colour, alpha, depth, every AOV) at `-t:1`, at two or more other thread counts and at `-P:2`, on the same build and platform, **except the ten scenes disabled under GitHub #60, #61 and #63** (named in Assumptions) (see Assumptions: defects that predate 039 and are independent of the sampler). Zero thread pins remain on non-GI scenes.
 - **SC-002**: The sampler unit tests all pass:
   - Sobol reference values match exactly.
   - The net property (scrambled Sobol) and the (0,2) property (PMJ02) hold, per `get2D` tuple, for every power-of-two prefix up to at least 4096 samples.
@@ -316,7 +316,10 @@ A contributor building the integrators (030), BSDF sampling (035) or the light s
 ## Assumptions
 
 - "Bit-identical" means on one platform and build configuration. Cross-platform (macOS vs Linux) or cross-compiler identity is not required.
-- Excluded from every "bit-identical at any thread count" claim in this spec (the user story above, acceptance scenario 1, FR-030 and FR-031, SC-001 and SC-009): the four scenes disabled in the determinism sweep under two defects that predate 039 and are independent of the sampler. GitHub #60 is a thread race in `sphere-shader-parameter-reyes` and `sphere-shader-parameter-reyes-slo` (a deterministic shader whose output differs at `-t:4`, also with `jitter 0` and the Legacy sampler). GitHub #61 (an uninitialised derivative lane in shading that makes `transmission()` renders nondeterministic) is fixed for ray-hit shading by T084b; `csg-hero-zbuffer-1600` and `csg-hero-stats-1600-reyes` stay disabled for its grid-shading part. Those four scenes stay in the sweep list, registered and disabled; they become subject to the claim again when #60 and #61 are fixed.
+- Excluded from every "bit-identical at any thread count" claim in this spec (the user story above, acceptance scenario 1, FR-030 and FR-031, SC-001 and SC-009): the ten scenes disabled in the determinism sweep (`tests/visual/determinism-scenes.cmake`) under three defects that predate 039 and are independent of the sampler. They stay in the sweep list, registered and disabled, and become subject to the claim again when their issue is fixed.
+  - **GitHub #60**, a thread race in a deterministic shader (output differs at `-t:4`, also with `jitter 0` and the Legacy sampler): `sphere-shader-parameter-reyes`, `sphere-shader-parameter-reyes-slo`.
+  - **GitHub #61**, an uninitialised derivative lane in shading that makes `transmission()` renders nondeterministic. T084b fixed the ray-hit part; the grid-shading part (the derivative of a grid lane next to an inactive lane, at the terminator of a `raydistant` light) is not fixed: `csg-hero-zbuffer-1600`, `csg-hero-stats-1600-reyes`, `csg-hero-reyes-1600`, `csg-hero-zbuffer-800`, `csg-offscreen-stats-reyes`, `csg-hero-partial-stats-reyes`, `csg-hero-two-shaders-reyes`.
+  - **GitHub #63**, intermittent differences of about +-1e-3 on black pixels in the first column of a bucket, cause unknown: `csg-hero-displaced-reyes`.
 - `-P:N` (local multi-process) rendering splits work by bucket. With pixel-keyed identity it should need no special handling, but its bit-identity has never been measured.
   - Plan MUST measure it early, with today's code and `jitter 0`, before relying on it.
   - If outputs differ for reasons unrelated to random numbers (such as bucket merging or filter splats at bucket edges), the maintainer decides at that point: either file a `fix/` prerequisite, or limit SC-001 and FR-030 to `-t` and record the `-P` gap.

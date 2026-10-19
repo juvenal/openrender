@@ -718,9 +718,17 @@ Full suite with these added: 714 tests, 8 new (7 red, 1 green guard); the other 
 The repetitions behind the table are small (3 to 6 runs per cell) and these failures are intermittent, so a clean cell is weak evidence and the assignment of the unexamined scenes is a guess. No code was changed to chase any of them.
 
 - `Parity_transparency-matte-aov` failed once in the full run (worst block 27.89 against 25). It is on the known intermittent list and not related to this phase.
-### Scope of the bit-identical claim (maintainer decision after T084; updated after T084b)
+### Scope of the bit-identical claim (maintainer decision after T084; updated after the T084b and T084c sweeps)
 
-The claim "bit-identical at any thread count" (SC-001, SC-009, FR-030, FR-031) **excludes the four scenes disabled in the determinism sweep under GitHub #60 and #61. Both defects predate 039 and are independent of the sampler.** #60: a thread race in `sphere-shader-parameter-reyes` and `sphere-shader-parameter-reyes-slo` (class A above). #61 ("Uninitialised derivative lane in ray-hit shading makes transmission() renders nondeterministic"): fixed for the ray-hit part by T084b, which enabled `csg-hero-translucent-raytrace`, `csg-hero-two-shaders-raytrace`, `csg-secondary-rays-reyes`, `csg-procedural-operand-raytrace` and `csg-procedural-operand-inline-raytrace` again; `csg-hero-zbuffer-1600` and `csg-hero-stats-1600-reyes` stay disabled under #61 for the grid-shading part of the same defect (T084b results below). The four `DeterminismSweep_*` tests stay registered with ctest `DISABLED` (`tests/visual/determinism-scenes.cmake`), with no threshold changed, and the claim applies to them again when #60 and #61 are fixed. `Visual_sphere-shader-parameter-reyes-slo` is unchanged. Group C is not excluded: its reyes part is fixed by T084c (cause: GitHub #62), its raytrace part by T084b, and what is left of it is listed under "Sweep, twice, and the re-checks".
+The claim "bit-identical at any thread count" (SC-001, SC-009, FR-030, FR-031) **excludes the ten scenes disabled in the determinism sweep under GitHub #60, #61 and #63. All three defects predate 039 and are independent of the sampler.** The `DeterminismSweep_*` tests of these scenes stay registered with ctest `DISABLED` (`tests/visual/determinism-scenes.cmake`), with no threshold changed, and the claim applies to a scene again when its issue is fixed.
+
+| Issue | Defect | Disabled scenes |
+|---|---|---|
+| #60 | A thread race in a deterministic shader: the output differs at `-t:4`, also with `jitter 0` and the Legacy sampler (class A above). | `sphere-shader-parameter-reyes`, `sphere-shader-parameter-reyes-slo` |
+| #61 | An uninitialised derivative lane in shading makes `transmission()` renders nondeterministic. T084b fixed the ray-hit part (it enabled `csg-hero-translucent-raytrace`, `csg-hero-two-shaders-raytrace`, `csg-secondary-rays-reyes`, `csg-procedural-operand-raytrace` and `csg-procedural-operand-inline-raytrace` again). The grid-shading part is not fixed: the derivative of a grid lane next to an inactive lane (the terminator of a `raydistant` light) reads the unwritten lane. | `csg-hero-zbuffer-1600`, `csg-hero-stats-1600-reyes`, `csg-hero-reyes-1600`, `csg-hero-zbuffer-800`, `csg-offscreen-stats-reyes`, `csg-hero-partial-stats-reyes`, `csg-hero-two-shaders-reyes` |
+| #63 | Intermittent differences of about +-1e-3 on black pixels in the first column of a bucket; no tie, a `ralloc` fill does not explain it, cause unknown. | `csg-hero-displaced-reyes` |
+
+`Visual_sphere-shader-parameter-reyes-slo` is unchanged. Group C is not excluded as such: its reyes part is fixed by T084c (cause: GitHub #62), its raytrace part by T084b, and what is left of it is the #61 and #63 scenes above.
 
 ### T084a: root cause of group C (diagnosis only, nothing fixed)
 
