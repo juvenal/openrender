@@ -21,15 +21,26 @@
  * Options (orender options are passed to both renders unless said otherwise):
  *   --a:<opt>        an orender option for render A only (for example --a:-t:1)
  *   --b:<opt>        an orender option for render B only
+ *   --prepend-a:<line>  render a temporary copy of <ribA> with this line first (and without its
+ *   --prepend-b:<line>  `numthreads` pins), written to the working directory; likewise for B.
+ *                       This forces a sampler on an unmodified scene, for example
+ *                       --prepend-b:'Option "sampling" "sampler" ["sobol"]'.
  *   --channels=i,j   compare only these channels (0-based); the default is all
  *   --threshold=N    for "differ": require at least N differing values (default 1)
  */
 
 #include "depth_tiff.h"
+#include "scene_copy.h"
 
 #include <set>
 
-static bool render(const char *orender, const char *rib, const char *tif, const std::string &options, DepthImage &img) {
+static bool render(const char *orender, const std::string &ribPath, const char *tif, const std::string &options, const SceneEdit &edit, const char *side, DepthImage &img) {
+    std::string rib = ribPath;
+    if (edit.needsCopy()) {
+        rib = std::string("render-compare-") + side + "-" + sceneBaseName(ribPath);
+        if (!writeSceneCopy(ribPath, edit, rib))
+            return false;
+    }
     std::string command = std::string("\"") + orender + "\"" + options + " \"" + rib + "\"";
     printf("Running: %s\n", command.c_str());
     return renderScene(command, tif) && readFloatTiff(tif, img);
@@ -46,6 +57,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     std::string common, onlyA, onlyB;
+    SceneEdit editA, editB;
     std::set<unsigned> channels;
     size_t minDiffering = 1;
     for (int i = 7; i < argc; i++) {
@@ -54,6 +66,14 @@ int main(int argc, char *argv[]) {
             onlyA += " " + arg.substr(4);
         else if (arg.rfind("--b:", 0) == 0)
             onlyB += " " + arg.substr(4);
+        else if (arg.rfind("--prepend-a:", 0) == 0) {
+            editA.havePrepend = true;
+            editA.prepend = arg.substr(12);
+        }
+        else if (arg.rfind("--prepend-b:", 0) == 0) {
+            editB.havePrepend = true;
+            editB.prepend = arg.substr(12);
+        }
         else if (arg.rfind("--channels=", 0) == 0) {
             for (size_t at = 11; at < arg.size();) {
                 channels.insert((unsigned)atoi(arg.c_str() + at));
@@ -68,7 +88,8 @@ int main(int argc, char *argv[]) {
     }
 
     DepthImage a, b;
-    if (!render(argv[1], argv[3], argv[4], common + onlyA, a) || !render(argv[1], argv[5], argv[6], common + onlyB, b))
+    if (!render(argv[1], argv[3], argv[4], common + onlyA, editA, "a", a) ||
+        !render(argv[1], argv[5], argv[6], common + onlyB, editB, "b", b))
         return 1;
     if (a.width != b.width || a.height != b.height || a.channels != b.channels) {
         fprintf(stderr, "  FAIL: size %ux%ux%u against %ux%ux%u\n", a.width, a.height, a.channels, b.width, b.height, b.channels);

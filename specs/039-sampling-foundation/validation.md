@@ -694,3 +694,84 @@ A reported overflow: the two LightSource rules of `rib.y` append `"__handleid"` 
 `DeterminismHarness_*` (8 tests, `tests/visual/check_determinism_harness.sh`) exercise `test_depth_determinism`'s new cross-configuration mode through the interface of `contracts/test-harnesses.md`: `--configs "<opts>|..."`, `--outputs a.tif,b.tif`, `--prepend "<RIB line>"`, `--keep-pins`, `--no-dither`, plus one flag the contract does not name, `--print-scene` (print the prepared copy of the scene and exit 0 without rendering). Against the current driver 7 fail (it prints its usage and exits 1: the flags do not exist) and `usage_unchanged` passes (a guard: the original usage is untouched). The premises of the cases were checked with the existing comparison driver: `determinism-harness-noisy.rib` (Legacy `random()` shading, no pin) differs between `-t:1` and `-t:4` (20196 of 307200 values); `determinism-harness-two-outputs.rib` under sobol is identical across thread counts for both its colour and depth outputs; and 8-bit `sphere-random-reyes` under sobol with `Quantize "rgba" 255 0 255 0` (no dither) is byte-identical across `-t:1`, the default and `-t:4`.
 
 Full suite with these added: 714 tests, 8 new (7 red, 1 green guard); the other 706 pass (705, plus the skipped LibShader_Format_rslo_lower_minor); `ctest -L architecture` 21/21.
+
+### Implementation (T079-T083)
+
+- **Driver** (`tests/visual/test_depth_determinism.cpp`): `--configs`, `--outputs`, `--prepend`, `--keep-pins`, `--no-dither` and `--print-scene`, as approved. The original usage is untouched (`DeterminismHarness_usage_unchanged`, `DepthFilter_*`, `ColorDeterminism_*` pass). Outputs are decoded by libtiff at any depth (`readRawTiff` in `depth_tiff.h`: 8/16/32/64-bit, interleaved or separate planes, kept as the decoded bytes and compared bit for bit); a difference prints at most 5 `pixel (x, y) channel c = ..., <first> had ...` lines per output. The prepared copy of the scene is written to the working directory under the name `determinism-<scene>.rib` (so relative archive paths resolve as for the original), removed on success and kept on a difference. The line-editing code is shared with `test_render_compare` in `tests/visual/scene_copy.h`. A line that mentions `numthreads` is dropped whole, comments included (the approved case `print_prepend` requires that no `numthreads` text is left).
+- **Registration** (`tests/visual/CMakeLists.txt`): `add_determinism_sweep(<name> <rib> <outputs...> [CONFIGS <list>] [COPY <dir>...])` registers `DeterminismSweep_<name>` with the default configurations `-t:1||-t:2|-t:4|-P:2`, `--no-dither`, and the labels `visual;regression;determinism;determinism-sweep`. The prepended line is `Option "sampling" "sampler" ["sobol"]` (the spelling the approved harness cases use; tasks.md's `"string sampler"` form is the same option with an inline declaration).
+- **Scene list** (`tests/visual/determinism-scenes.cmake`, T081): 413 scenes, every output of each. They are the scenes under `examples/rib` that a visual, parity or csg test renders (the ctest command lines, plus the scenes the csg metric tests name inside their config files). Not swept, as comments in the file: 18 GI scenes (shaders that call `occlusion()`/`indirectdiffuse()`/`photonmap()`, and `Hider "photon"` scenes), the 2 `*-legacy.rib` controls (they select the Legacy sampler themselves), the 3 `csg-malformed-*` scenes and `csg-procedural-missing-archive` (expected to fail), and `teapot.rib` (no Display). No scene sets its own non-zero-dither `Quantize`.
+- **T082**: `DepthFilter_DeterminismThreads_{avg,mid}` and `ColorDeterminism_Threads_{transparent,opaque}`, `-t:1|-t:2|-t:4`, no prepended option (the scenes are jitter 0 and unpinned). The existing registrations are unchanged.
+- **T083**: `CameraSamples_JitterZeroUnchanged_*` now render the original scene against the same scene with the sobol line prepended (`test_render_compare` gained `--prepend-a:`/`--prepend-b:`); `Sampling_ThreadSweep_*` run `test_depth_determinism --configs "-t:1|-t:4"` on the original scenes (`quadlight.rib`, `sphere-{random,trace,gather}-reyes.rib`) with a two-line prepend, the sobol line and `Quantize "rgba" 0 0 0 0`, so they still compare 32-bit float output as the hand-written copies did. The 6 hand-written copies (`sampling-threadsweep-*.rib`, `sampling-camera-jitter0-*-sobol.rib`) are deleted. The converted thread sweeps are not vacuous: with the sobol line replaced by `Option "sampling" "sampler" ["legacy"]` the same driver reports 24122, 4940 and 99222 differing values for `sphere-random`, `sphere-trace` and `sphere-gather` (`-t:1` against `-t:4`).
+
+### Results (T084): the sweep is not clean
+
+- **Timing (M3)**: `ctest -L determinism-sweep -j4` runs 413 tests in **421.9 s (7.0 min)**, under the 10-minute limit of FR-030, so the whole sweep keeps the `determinism` label and no subset split is made. The full suite (1131 tests, `-j4`) takes 476.5 s.
+- **Result**: first run (the sweep alone) 394 pass, **19 fail**; second run (inside the full suite) **18 fail**. The sets differ: 24 distinct scenes failed at least once, 13 failed in both. Stop and report: no threshold was touched and no scene was removed from the list.
+- **Classification**, from repeating the failing scenes under controlled conditions (`-t:1` x4, `-t:2` x3, `-t:4` x5 or x6; each run compared with the first; 8-bit undithered output unless said):
+
+| Class | Scenes | Evidence |
+|---|---|---|
+| A. Thread race that does not involve the sampler | `sphere-shader-parameter-reyes-slo`, `sphere-shader-parameter-reyes` | Deterministic shader (no `random()`), `-t:1` x4 identical, `-t:4` x5 differ (694 to 1057 values), still 694 values with `jitter 0` and the Legacy sampler; in float output 0.776 against 0.750, a shader value, not a rounding step. The `.rslo` twin failed in the second run (`-t:2` against `-t:1`). Cause not found. |
+| B. Differs from run to run at **one** thread, or with `jitter 0` | `csg-hero-translucent-raytrace`, `csg-hero-two-shaders-raytrace`, `csg-secondary-rays-reyes`, `csg-hero-zbuffer-1600`, `csg-hero-stats-1600-reyes`, `csg-procedural-operand-raytrace`, `csg-procedural-operand-inline-raytrace` | Under Legacy, `-t:1` x4: translucent 1762 values, two-shaders 2243, secondary-rays-reyes 3558. With Legacy and `jitter 0`: `csg-hero-zbuffer-1600` differs at `-t:1` x4 (13 values) and `-t:4` x5 (1); `csg-hero-stats-1600-reyes` at `-t:4` x5 (3 values), and with sobol and `jitter 0` at `-t:1` x4 (17) and `-t:4` (7); `csg-secondary-rays-reyes` with sobol and `jitter 0` at `-t:1` (3) and `-t:4` (74). The two procedural-operand scenes are clean at Legacy `-t:1` x4 and at sobol with `jitter 0`, but differ at sobol `-t:1` x3 (7 values, the same pixel `(378, 128)` each time). These are not thread-count dependent, so no sampler change fixes them. Cause not found (all are CSG scenes). |
+| C. Few values, intermittent, seen only with jitter on | examined: `blobby-dent-reyes`, `blobby-repeller-heights-reyes`, `csg-hero-plain-sphere-raytrace`, `csg-hero-displaced-raytrace`, `csg-tolerance-inert-raytrace`, `csg-hero-raytrace-800`. Not examined, put here for the shape of their differences: `blobby-blend-far-reyes`, `blobby-spiral-reyes`, `bunny-reyes`, `csg-hero-partial-stats-reyes`, `csg-hero-reyes-1600`, `csg-hero-displaced-reyes`, `csg-offscreen-stats-reyes`, `csg-secondary-rays-raytrace`, `csg-hero-zbuffer-800` | 1 to 35 values, mostly one 8-bit level, at isolated pixels. The same scene passes one run and fails the next, at the same thread count (`-t:4` against `-t:4`). For the six examined scenes, `jitter 0` with Legacy was clean over 4 runs at `-t:1` and 5 at `-t:4`, and so was sobol with `jitter 0`. In float output, `blobby-dent-reyes` and `csg-hero-plain-sphere-raytrace` were identical over 6 runs at `-t:4` (both fail the 8-bit sweep about every other run). Cause not found. |
+
+The repetitions behind the table are small (3 to 6 runs per cell) and these failures are intermittent, so a clean cell is weak evidence and the assignment of the unexamined scenes is a guess. No code was changed to chase any of them.
+
+- `Parity_transparency-matte-aov` failed once in the full run (worst block 27.89 against 25). It is on the known intermittent list and not related to this phase.
+### Scope of the bit-identical claim (maintainer decision after T084)
+
+The claim "bit-identical at any thread count" (SC-001, SC-009, FR-030, FR-031) **excludes the nine scenes disabled in the determinism sweep under GitHub #60 and #61. Both defects predate 039 and are independent of the sampler.** #60: a thread race in `sphere-shader-parameter-reyes` and `sphere-shader-parameter-reyes-slo` (class A above). #61: run-to-run nondeterminism at a single thread in seven CSG scenes (class B above: `csg-hero-translucent-raytrace`, `csg-hero-two-shaders-raytrace`, `csg-secondary-rays-reyes`, `csg-hero-zbuffer-1600`, `csg-hero-stats-1600-reyes`, `csg-procedural-operand-raytrace`, `csg-procedural-operand-inline-raytrace`). The nine `DeterminismSweep_*` tests stay registered with ctest `DISABLED` (`tests/visual/determinism-scenes.cmake`), with no threshold changed, and the claim applies to them again when #60 and #61 are fixed. `Visual_sphere-shader-parameter-reyes-slo` is unchanged. Class C (below, T084a) is not excluded: it stays red until its cause is found.
+
+### T084a: root cause of group C (diagnosis only, nothing fixed)
+
+Method: temporary instrumentation (per-sample dumps, hashes of the committed buckets, a `ralloc` fill byte, `MallocPreScribble`), all reverted; `git diff -- src` is empty. Runs are float or 8-bit undithered sobol renders at the thread count named, compared with the first run; "x of n" counts runs that differ from run 1.
+
+**Cause 1 (raytrace scenes): uninitialised `ralloc` memory in the `transmission()` target derivative.**
+
+- *Where the difference starts.* In `csg-hero-plain-sphere-raytrace` (`-t:4`), every sample splatted into the bucket is identical between a good and a bad run except 4 neighbouring samples, which are black (`rgba = 0 0 0 1`) in one run and lit in the other. Alpha, position and key are identical.
+- *The shadow ray.* The `raydistant` light calls `transmission(Ps, Ps - dir)`. For the one lane that was followed (same shading point P = (1.45087528, -0.089255929, 8.62987328), same sample key `61786eabe36b8fe1`, same sub-stream, same four jitter values), `dPdu`, `dPdv` and `dDdu` are bit-identical in every run, but `dDdv`, the v-derivative of the target, is:
+  - `(-8.45, -7.91, -2.63)`, which is `-D`, in 5 of 10 runs (the neighbour lane read as zero);
+  - `9.4e22`, `-6.5e28`, `201`, `-4.2e33`, and similar, in the others (garbage).
+  - In `traceTransmission()` the direction is built from `L = D + jitter * dDdv - from`. With a garbage `dDdv` it becomes inf or NaN, `dot(dir, dir) > C_EPSILON` fails, no ray is traced, and the transmission stays 0: a black sample. Otherwise the ray points somewhere arbitrary.
+- *The derivative lanes.* Raytrace shading appends offset lanes after the real ones for `du`/`dv`. At a silhouette the offset ray can miss the object, so nobody writes that lane's `Ps - dir`, and `dvVector()` differences it against whatever the allocator handed out.
+- *Proof.* `ralloc` memory filled with a fixed byte (0, 85 or 255):
+
+| Scene | Threads | No fill | Filled |
+|---|---|---|---|
+| csg-hero-plain-sphere-raytrace | -t:4 | 12 of 15 | 0 of 15, for every fill byte |
+| csg-hero-displaced-raytrace | -t:4 | 6 of 11 | 0 of 11 |
+| csg-tolerance-inert-raytrace | -t:4 | 2 of 11 | 0 of 11 |
+| csg-hero-translucent-raytrace | -t:1 | 9 of 11 | 0 of 11 |
+| csg-hero-two-shaders-raytrace | -t:1 | 3 of 11 | 0 of 11 |
+| csg-procedural-operand-inline-raytrace | -t:1 | 2 of 11 | 0 of 11 |
+| csg-secondary-rays-reyes | -t:4 | 11 of 11 | 0 of 11 |
+| csg-hero-zbuffer-1600 | -t:1 | 2 of 9 | 0 of 9 |
+| csg-hero-reyes-1600 | -t:4 | 1 of 11 | 0 of 11 |
+
+  - The fill also changes the image: with 255, `csg-hero-plain-sphere-raytrace` differs from the unfilled render in 2914 pixels. So the output depends on the content of that memory.
+  - `csg-procedural-operand-raytrace` did not differ in the unfilled runs, so the fill says nothing about it.
+- *Consequence for #61.* Four of the seven scenes disabled under #61 (`csg-hero-translucent-raytrace`, `csg-hero-two-shaders-raytrace`, `csg-secondary-rays-reyes`, `csg-hero-zbuffer-1600`), and `csg-procedural-operand-inline-raytrace`, are this same defect: it is why they differ at one thread. `csg-hero-stats-1600-reyes` was not tested. So #61 and the raytrace part of group C are one bug. It also affects every scene with a `raydistant`/`transmission()` light, whichever the sampler.
+
+**Cause 2 (reyes scenes): equal-depth fragments, first arrival wins.**
+
+- *Hypothesis tested.* "Fragments at equal depth, composited in thread or bucket order" is confirmed, in a narrower form than #48: it is the opaque test `if (z < pixel->z)` in `drawPixel()` (`stochasticQuad.h`), not the compositing.
+- *Where the difference starts.* In `blobby-dent-reyes` the committed bucket differs in exactly one 32x32 bucket, in exactly one sample, `(236.3516, 327.3817)`: alpha 1 and z = 31.6432686 in every run, colour 0.3397 or 0.105 (the ambient term alone). The pre-composite fragment list of that sample holds no competing fragment (`last` alone).
+- *The tie.* Instrumenting the opaque test shows that sample receives two opaque fragments with *exactly equal* z. The first one to arrive had colour 0.3397 in 9 of 12 runs, and 0.105 in the 3 runs whose image differs, matching run by run. The scene has 3 such ties per run, the same 3 each time.
+- *Not memory.* Every grid shaded in both a good and a bad run has identical `P`, `N`, `Ng`, `Ci` and `Oi` hashes; only the *set* of shaded grids differs slightly (hidden-grid culling), as it does between two good runs. The `ralloc` fill and `MallocPreScribble` do not change the result (`blobby-dent` 8 to 10 of 15 differ in every variant).
+- *More scenes.* The runs that differ each contain a tie whose winner differs from run 1 in: `blobby-repeller-heights-reyes` (4 of 4 differing runs), `blobby-spiral-reyes` (2 of 2, with 118 ties per run), `bunny-reyes` (6 of 6).
+- *Not explained.* Why the two fragments have exactly equal z (a sample on a shared edge or vertex between two grids, or coincident surfaces) is not established.
+
+**Not explained**
+
+- `csg-hero-displaced-reyes`: differs with and without the fill (2 to 5 of 11) and shows no tie, so it has some third cause.
+- `blobby-blend-far-reyes`, `csg-offscreen-stats-reyes`, `csg-hero-partial-stats-reyes`, `csg-hero-stats-1600-reyes`: did not differ in 10 to 14 repetitions of this phase, so there was nothing to attribute.
+- Class A (#60, `sphere-shader-parameter-reyes`): the fill does not remove it (1 of 11), consistent with a separate defect.
+
+**Verdict on the hypothesis**: confirmed for the reyes scenes (arrival order of equal-depth opaque fragments), rejected for the raytrace scenes, where a nondeterministic shading input is the cause. Neither is a sampler defect: the sample positions and keys are identical in good and bad runs.
+
+**Proposed fixes** (test-first, each through TEST-APPROVAL, not started):
+
+1. Cause 1: make the offset lane's `Ps - dir`, and any other derivative operand of a lane that did not hit, defined (mirror the real lane, so the derivative is 0), instead of left unwritten. The test is a shading-level check with `threadMemory` pre-filled with two different bytes that must give identical lighting; plus `ctest -L determinism-sweep` on the scenes above.
+2. Cause 2: break equal-z ties by a deterministic key (for example the grid's `stableId`, then the micropolygon index) instead of by arrival order. The test is a scene with two coplanar opaque triangles of different colour that overlap, rendered at `-t:1` and `-t:4`.
+
+- Next decision for the maintainer: which of A, B and C are fixed before Phase 8 (and where: they are not sampler defects as far as these runs show, except that class C only shows with jitter on), and whether the red scenes stay registered meanwhile. They are registered, red, and unmodified.

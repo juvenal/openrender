@@ -1440,16 +1440,31 @@ add_parity_test(depthfilter-mid
 #   DepthFilter_Determinism_*: six renders at the default thread count, jitter
 #     off; z bit-identical across runs.
 #
-# Spec 039: the `determinism-sweep` label is reserved for the sweep that runs
-# every non-GI scene under each sampler configuration (FR-030). No test is
-# registered yet; it will be added next to this macro in Phase 7, and whether
-# it joins the default run is decided by research M3.
+# Spec 039: add_determinism_sweep() below runs every non-GI scene under each
+# orender configuration (FR-030); the scenes are listed in determinism-scenes.cmake.
 macro(add_depth_determinism_test NAME RIB OUTPUT RUNS)
     set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/determinism-${NAME})
     file(MAKE_DIRECTORY ${_scratch})
     add_test(NAME ${NAME}
         COMMAND test_depth_determinism $<TARGET_FILE:orender>
             ${CMAKE_SOURCE_DIR}/${RIB} ${OUTPUT} ${RUNS} ${ARGN}
+        WORKING_DIRECTORY ${_scratch})
+    set_tests_properties(${NAME} PROPERTIES
+        TIMEOUT     360
+        LABELS      "visual;regression;determinism"
+        ENVIRONMENT "${VISUAL_ENV}"
+        DEPENDS     orender)
+endmacro()
+
+# Spec 039 (T082): each of these scenes is also run once per thread count, -t:1 against -t:2
+# against -t:4, bit for bit (the cross-configuration mode of test_depth_determinism). The
+# scenes are jitter 0 and unpinned, so the sampler is not involved: no prepended option.
+macro(add_thread_configs_test NAME RIB OUTPUT)
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/determinism-${NAME})
+    file(MAKE_DIRECTORY ${_scratch})
+    add_test(NAME ${NAME}
+        COMMAND test_depth_determinism --configs "-t:1|-t:2|-t:4" --outputs ${OUTPUT}
+            $<TARGET_FILE:orender> ${CMAKE_SOURCE_DIR}/${RIB}
         WORKING_DIRECTORY ${_scratch})
     set_tests_properties(${NAME} PROPERTIES
         TIMEOUT     360
@@ -1465,6 +1480,9 @@ foreach(_mode avg mid)
     add_depth_determinism_test(DepthFilter_Determinism_${_mode}
         examples/rib/tests/depthfilter-determinism-${_mode}-reyes.rib
         depthfilter-determinism-${_mode}.tif 6)
+    add_thread_configs_test(DepthFilter_DeterminismThreads_${_mode}
+        examples/rib/tests/depthfilter-determinism-${_mode}-reyes.rib
+        depthfilter-determinism-${_mode}.tif)
 endforeach()
 
 # --- Colour determinism (fix/reyes-ulp-determinism, GitHub #48): the same
@@ -1477,7 +1495,62 @@ foreach(_variant transparent opaque)
     add_depth_determinism_test(ColorDeterminism_${_variant}
         examples/rib/tests/color-determinism-${_variant}-reyes.rib
         color-determinism-${_variant}.tif 12)
+    add_thread_configs_test(ColorDeterminism_Threads_${_variant}
+        examples/rib/tests/color-determinism-${_variant}-reyes.rib
+        color-determinism-${_variant}.tif)
 endforeach()
+
+# --- Determinism sweep (spec 039, FR-030, FR-031) -------------------------------------------
+# add_determinism_sweep(<name> <rib> <outputs...> [CONFIGS <list>] [COPY <dir>...])
+#
+# Renders the scene once per orender configuration and requires every listed output to be
+# bit-identical across them. The scene is rendered with the sobol sampler forced on (a
+# prepended option line; Legacy is still the default until Phase 9) and without its
+# numthreads pin, so that a pinned scene really runs multithreaded. `--no-dither` keeps the
+# 8-bit outputs comparable until the dither stops being libc rand() (T095; T103 removes the
+# flag). The default configurations are one thread, the default thread count, two threads,
+# four threads, and two processes; the `-P` entry never carries `-t`, because orender then
+# turns threads off in the children (research M1, caveat a).
+#
+#   <rib>      relative to the source directory
+#   <outputs>  every file the scene's Displays write (a "z" display included)
+#   CONFIGS    a '|'-separated list overriding the default
+#   COPY       directories (relative to the source directory) copied to the scratch
+#              directory, for scenes that read relative archive paths
+#
+# The tests are DeterminismSweep_<name>, labelled `determinism;determinism-sweep`
+# (see determinism-scenes.cmake for the scenes and for what the label set is, per research M3).
+set(DETERMINISM_SOBOL_LINE "Option \"sampling\" \"sampler\" [\"sobol\"]")
+set(DETERMINISM_DEFAULT_CONFIGS "-t:1||-t:2|-t:4|-P:2")
+set(DETERMINISM_SWEEP_LABELS "visual;regression;determinism;determinism-sweep")
+function(add_determinism_sweep NAME RIB)
+    cmake_parse_arguments(ARG "" "CONFIGS" "COPY" ${ARGN})
+    set(_outputs ${ARG_UNPARSED_ARGUMENTS})
+    if(NOT _outputs)
+        message(FATAL_ERROR "add_determinism_sweep(${NAME}): no outputs listed")
+    endif()
+    list(JOIN _outputs "," _outputs_arg)
+    if(ARG_CONFIGS)
+        set(_configs "${ARG_CONFIGS}")
+    else()
+        set(_configs "${DETERMINISM_DEFAULT_CONFIGS}")
+    endif()
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/determinism-sweep/${NAME})
+    file(MAKE_DIRECTORY ${_scratch})
+    foreach(_dir IN LISTS ARG_COPY)
+        file(COPY ${CMAKE_SOURCE_DIR}/${_dir} DESTINATION ${_scratch})
+    endforeach()
+    add_test(NAME DeterminismSweep_${NAME}
+        COMMAND test_depth_determinism --configs "${_configs}" --outputs ${_outputs_arg}
+            --prepend "${DETERMINISM_SOBOL_LINE}" --no-dither
+            $<TARGET_FILE:orender> ${CMAKE_SOURCE_DIR}/${RIB}
+        WORKING_DIRECTORY ${_scratch})
+    set_tests_properties(DeterminismSweep_${NAME} PROPERTIES
+        TIMEOUT     1800
+        LABELS      "${DETERMINISM_SWEEP_LABELS}"
+        ENVIRONMENT "${VISUAL_ENV}"
+        DEPENDS     orender)
+endfunction()
 
 # --- Depth accuracy (fix/raytrace-midpoint-depth, GitHub #47 and #49). Three
 # opaque spheres, one sample at each pixel centre; test_depth_analytic checks
@@ -3758,8 +3831,8 @@ endforeach()
 #   CameraSamples_JitterZeroUnchanged_*: with "jitter" [0] the film, time and
 #     importance positions do not depend on the sampler, so a render under sobol
 #     must equal today's (legacy) render bit for bit. The scenes have no motion
-#     blur and no depth of field. The sobol side is a hand-written copy of the
-#     scene with the option line (T079 adds --prepend, which replaces the copy).
+#     blur and no depth of field. The sobol side renders the original scene with
+#     the option line prepended (test_render_compare --prepend-b).
 #   CameraSamples_SobolEngaged_*: the control for the test above. With
 #     "jitter" [1] the samples sit at the sampler's positions, so the sobol
 #     render must differ from the legacy one; a sobol option the hiders ignore
@@ -3771,10 +3844,10 @@ endforeach()
 set(_camera_samples_cases
     JitterZeroUnchanged_reyes same
         color-determinism-opaque-reyes.rib color-determinism-opaque.tif
-        sampling-camera-jitter0-reyes-sobol.rib sampling-camera-jitter0-reyes-sobol.tif
+        color-determinism-opaque-reyes.rib color-determinism-opaque.tif
     JitterZeroUnchanged_raytrace same
         depth-analytic-min-raytrace.rib depth-analytic-min-raytrace.tif
-        sampling-camera-jitter0-raytrace-sobol.rib sampling-camera-jitter0-raytrace-sobol.tif
+        depth-analytic-min-raytrace.rib depth-analytic-min-raytrace.tif
     SobolEngaged_reyes differ
         sampling-camera-jitter1-reyes-legacy.rib sampling-camera-jitter1-reyes-legacy.tif
         sampling-camera-jitter1-reyes-sobol.rib sampling-camera-jitter1-reyes-sobol.tif
@@ -3796,10 +3869,14 @@ foreach(_i RANGE 0 ${_last} 6)
     list(GET _camera_samples_cases ${_i4} _ribB)
     list(GET _camera_samples_cases ${_i5} _tifB)
     string(REGEX REPLACE ".*_" "" _hider ${_name})
+    set(_prepend_b "")
+    if(_name MATCHES "^JitterZeroUnchanged_")
+        set(_prepend_b "--prepend-b:${DETERMINISM_SOBOL_LINE}")
+    endif()
     add_test(NAME CameraSamples_${_name}
         COMMAND test_render_compare $<TARGET_FILE:orender> ${_mode}
             ${CMAKE_SOURCE_DIR}/examples/rib/tests/${_ribA} ${_tifA}
-            ${CMAKE_SOURCE_DIR}/examples/rib/tests/${_ribB} ${_tifB} -t:1
+            ${CMAKE_SOURCE_DIR}/examples/rib/tests/${_ribB} ${_tifB} -t:1 ${_prepend_b}
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tests/visual/camera-samples-${_hider})
     set_tests_properties(CameraSamples_${_name} PROPERTIES
         TIMEOUT     120
@@ -3836,8 +3913,8 @@ endforeach()
 #     iterations to the first trace loop leaves the second loop and the
 #     illuminance loop unchanged (US6-1).
 #   Sampling_ThreadSweep_*: under sobol, -t:1 against -t:4, bit for bit. The
-#     scenes are hand-written copies with the option line and without the
-#     scene's numthreads pin (T079's --prepend will replace the copies).
+#     scenes are the originals with the option line prepended and without the
+#     scene's numthreads pin (test_depth_determinism --prepend).
 #   Sampling_ProbeIndependence: the midpoint probe's draw shifts no other value.
 # The tests below share one scratch directory and several write the same TIFF names, so
 # they hold a ctest resource lock and never run side by side (-j).
@@ -3925,12 +4002,19 @@ foreach(_case second_loop:1:same illuminance:2:same first_loop_changes:0:differ)
         LABELS "visual;regression;sampling" RESOURCE_LOCK sampling_phase6_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
 endforeach()
 
+# Each runs the original scene with the sobol option and a float Quantize line prepended, and
+# without the scene's numthreads pin (--prepend), so that -t:4 really runs on four threads.
+set(_threadsweep_quadlight       ${CMAKE_SOURCE_DIR}/examples/rib/quadlight.rib quadlight.tif)
+set(_threadsweep_sphere-random   ${_phase6_scenes}/sphere-random-reyes.rib sphere-random-reyes.tif)
+set(_threadsweep_sphere-trace    ${_phase6_scenes}/sphere-trace-reyes.rib sphere-trace-reyes.tif)
+set(_threadsweep_sphere-gather   ${_phase6_scenes}/sphere-gather-reyes.rib sphere-gather-reyes.tif)
 foreach(_scene quadlight sphere-random sphere-trace sphere-gather)
+    list(GET _threadsweep_${_scene} 0 _sweep_rib)
+    list(GET _threadsweep_${_scene} 1 _sweep_tif)
     add_test(NAME Sampling_ThreadSweep_${_scene}
-        COMMAND test_render_compare $<TARGET_FILE:orender> same
-            ${_phase6_scenes}/sampling-threadsweep-${_scene}.rib sampling-threadsweep-${_scene}.tif
-            ${_phase6_scenes}/sampling-threadsweep-${_scene}.rib sampling-threadsweep-${_scene}.tif
-            --a:-t:1 --b:-t:4
+        COMMAND test_depth_determinism --configs "-t:1|-t:4" --outputs ${_sweep_tif}
+            --prepend "${DETERMINISM_SOBOL_LINE}\nQuantize \"rgba\" 0 0 0 0"
+            $<TARGET_FILE:orender> ${_sweep_rib}
         WORKING_DIRECTORY ${_phase6_dir})
     set_tests_properties(Sampling_ThreadSweep_${_scene} PROPERTIES TIMEOUT 300
         LABELS "visual;regression;sampling" RESOURCE_LOCK sampling_phase6_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
@@ -4002,3 +4086,7 @@ foreach(_case identical detects render_failure multiple_outputs print_prepend pr
         LABELS "visual;regression;sampling;determinism" RESOURCE_LOCK determinism_harness_scratch
         ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
 endforeach()
+
+# --- Determinism sweep scenes (spec 039, Phase 7, T081) ---------------------------------------
+# Every non-GI visual and parity scene under each orender configuration (FR-031).
+include(${CMAKE_CURRENT_SOURCE_DIR}/determinism-scenes.cmake)

@@ -368,25 +368,32 @@ The call-site operand and the `_v2` ABI make Phase 4 a MAJOR change of both shad
 ### Tests first
 
 - [X] T078a [US1] Self-tests of the harness, `DeterminismHarness_*` (label `determinism`; `tests/visual/check_determinism_harness.sh`, scenes `determinism-harness-noisy.rib` and `determinism-harness-two-outputs.rib`), written against the interface T079 must provide: `identical` (a thread independent scene under sobol with `--no-dither` gives exit 0), `detects` (a Legacy random scene without a pin gives exit 1 and lists between 1 and 5 `pixel (x, y)` lines per output), `render_failure` (exit 2), `multiple_outputs` (two displays, each named in the report), `print_prepend`, `print_keep_pins`, `print_no_dither` (a new `--print-scene` flag prints the prepared copy and exits 0 without rendering, so the prepend, the pin removal and the Quantize line can be checked), `usage_unchanged` (the original usage still works; green today).
-- [ ] T078b [RUN] [US1] **TEST-APPROVAL**.
+- [X] T078b [RUN] [US1] **TEST-APPROVAL** (approved with `--print-scene` and the `pixel (x, y)` report format; committed as 46e5c76).
 
 ### Implementation
 
-- [ ] T079 [US1] `tests/visual/test_depth_determinism.cpp`: add `--configs "<opts>|…"` (an empty entry means the default thread count), `--outputs a.tif,…` (every display decoded through libtiff, at any depth, `z` included) and `--prepend "<RIB line>"` (writes a temporary copy of the scene, keeping its archive paths valid).
+- [X] T079 [US1] `tests/visual/test_depth_determinism.cpp`: add `--configs "<opts>|…"` (an empty entry means the default thread count), `--outputs a.tif,…` (every display decoded through libtiff, at any depth, `z` included) and `--prepend "<RIB line>"` (writes a temporary copy of the scene, keeping its archive paths valid).
   - The `--prepend` copy also **drops every `Option "limits" "numthreads"` line**, so pinned non-GI scenes really run multithreaded (`--keep-pins` disables this, for GI scenes only).
   - Add `--no-dither`, which prepends `Quantize "rgba" 255 0 255 0` (dither amplitude 0). Until T095 replaces libc `rand()`, 8-bit dithered outputs differ between configurations for a reason this phase does not fix. A scene that sets its own non-zero-dither `Quantize` is listed for the Phase 9 run (T103) only.
   - Compare bit for bit with the first configuration's outputs, and report up to 5 differing pixels per output.
   - Exit codes: 0 identical, 1 different, 2 render or decode failure.
   - The existing usage stays unchanged.
-- [ ] T080 [US1] `tests/visual/CMakeLists.txt`: add `add_determinism_sweep(<name> <rib> <outputs…>)`, with default configurations `-t:1||-t:2|-t:4|-P:2`. The `-P` entry never carries `-t` (research §M1, caveat a). The function prepends `Option "sampling" "string sampler" ["sobol"]`, and passes `--no-dither` until Phase 9 (T103 removes it).
-- [ ] T081 [US1] Create `tests/visual/determinism-scenes.cmake`, listing every non-GI visual and parity scene with all of its outputs (FR-031).
+- [X] T080 [US1] `tests/visual/CMakeLists.txt`: add `add_determinism_sweep(<name> <rib> <outputs…>)`, with default configurations `-t:1||-t:2|-t:4|-P:2`. The `-P` entry never carries `-t` (research §M1, caveat a). The function prepends `Option "sampling" "string sampler" ["sobol"]`, and passes `--no-dither` until Phase 9 (T103 removes it).
+- [X] T081 [US1] Create `tests/visual/determinism-scenes.cmake`, listing every non-GI visual and parity scene with all of its outputs (FR-031).
   - GI scenes (the `occlusion()`/`indirectdiffuse()` scenes under the default `maxerror`, and photon-map scenes) appear only as comments pointing to spec 040.
   - Include it from `tests/visual/CMakeLists.txt`.
-- [ ] T082 [US1] Give `DepthFilter_Determinism_*` and `ColorDeterminism_*` an added `-t:1|-t:2|-t:4` cross-configuration registration. Keep the existing registrations.
-- [ ] T083 [US1] Convert T058 and T068 to `--prepend`, and delete their hand-written copies.
-- [ ] T084 [RUN] [US1] Build, then `ctest -L determinism-sweep -j4`. Every scene must be identical. Record the wall-clock time in `validation.md` (M3).
+- [X] T082 [US1] Give `DepthFilter_Determinism_*` and `ColorDeterminism_*` an added `-t:1|-t:2|-t:4` cross-configuration registration. Keep the existing registrations.
+- [X] T083 [US1] Convert T058 and T068 to `--prepend`, and delete their hand-written copies.
+  - **As built**: `test_render_compare` gained `--prepend-a:`/`--prepend-b:` for T058; T068 uses `test_depth_determinism --configs` with a two-line prepend (the sobol line and a float `Quantize`). See validation.md "Phase 7 implementation".
+- [ ] T084 [RUN] [US1] (run; **not met**: 19 of 413 scenes differ, 18 in a second run, 24 distinct; 7.0 min; classification in validation.md) Build, then `ctest -L determinism-sweep -j4`. Every scene must be identical. Record the wall-clock time in `validation.md` (M3).
   - Apply the 10-minute rule (FR-030): if it takes more than 10 minutes, the sweep keeps only the `determinism-sweep` label, and a representative subset (the existing tests plus one scene per primitive and effect family) also gets `determinism`.
   - Any failing scene is a stop-and-report, classified by cause.
+- [X] T084a [RUN] [US1] Root-cause group C of T084 (diagnosis only; no fix). Group C: the sweep scenes that differ only with jitter on, a few values each, intermittent at one thread count.
+  - Leading hypothesis to confirm or reject: fragments at equal depth, or straddling sample edges, resolved in thread or bucket order, as in #48.
+  - **Result** (evidence in validation.md "T084a"): two causes, neither in the sampler.
+    - **Reyes scenes** (`blobby-*`, `bunny-reyes`): the hypothesis is confirmed in its arrival-order form. Two opaque fragments of different colour reach one sample at *exactly* equal depth, and `drawPixel()` keeps the first (`z < pixel->z`), so the grid that is rasterized first wins.
+    - **Raytrace scenes** (`csg-hero-*-raytrace` and related): the hypothesis is rejected. The cause is a read of uninitialised `ralloc` memory in the derivative of the `transmission()` target, which makes the shadow ray garbage for some silhouette samples. Filling `ralloc` memory with any byte removes the nondeterminism. The same defect also explains most of the scenes disabled under #61.
+  - If a fix is needed it is test-first: write the tests, show them failing, and wait for TEST-APPROVAL before any implementation. The C scenes stay registered and red.
 
 **PAUSE 7**.
 
