@@ -1,0 +1,18 @@
+##RenderMan RIB-Structure 1.1
+# declare-global-in-world.rib -- GitHub #59, end to end.
+# A global variable declared inside WorldBegin grows the renderer's global
+# table while every shading context holds a live state. makeGlobalVariable()
+# then rebuilds each state through updateState(), and freeState() must free
+# the old state by the shape it was built with, not by the grown table.
+version 3.03
+Display "declare-global-in-world.tif" "file" "rgba"
+Projection "perspective" "fov" 45
+Format 64 48 1
+Translate 0 0 5
+WorldBegin
+    Declare "t59a" "global varying float"
+    Declare "t59b" "global varying color"
+    Declare "t59c" "global varying point"
+    Declare "t59d" "global varying float"
+    Sphere 1 -1 1 360
+WorldEnd

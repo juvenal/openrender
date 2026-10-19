@@ -254,3 +254,46 @@ set_tests_properties(ShadingServices_ContextNoServices PROPERTIES
     LABELS "shading_parity"
     ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>"
 )
+
+# GitHub #59: shading states and the renderer services they are built from.
+# newState() must fail cleanly (a diagnostic, no state) without services or
+# with an inconsistent table, and freeState() must free a state by the shape it
+# was built with, never by the services' current table. One executable, one
+# process per case (argv[1]), so a crash in one case cannot hide another.
+add_executable(test_shading_state_services test_state_services.cpp)
+target_link_libraries(test_shading_state_services PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+# Same reason as test_shading_service_lookup: keep libRIBRender NEEDED on Linux (GitHub #44).
+target_link_options(test_shading_state_services PRIVATE $<$<PLATFORM_ID:Linux>:LINKER:--no-as-needed>)
+target_include_directories(test_shading_state_services PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_BINARY_DIR}
+)
+target_compile_features(test_shading_state_services PRIVATE cxx_std_20)
+foreach(_case IN ITEMS
+        "StateNoServices;no-services"
+        "StateStubServices;stub"
+        "StateTableGrowth;table-growth"
+        "StateFullServices;full"
+        "StateStringGlobal;string-global"
+        "StateConsistentTable;consistent-table")
+    list(GET _case 0 _name)
+    list(GET _case 1 _arg)
+    add_test(NAME ShadingServices_${_name} COMMAND test_shading_state_services ${_arg})
+    set_tests_properties(ShadingServices_${_name} PROPERTIES
+        TIMEOUT 30
+        LABELS "shading_parity"
+        # The RiBegin cases load the default surface and light at RiWorldBegin
+        ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>"
+    )
+endforeach()
+
+# GitHub #59, end to end: the same table growth from a RIB file, through the
+# real orender CLI. Passes when the render exits cleanly.
+add_test(NAME ShadingServices_DeclareGlobalInWorld
+    COMMAND $<TARGET_FILE:orender> ${CMAKE_CURRENT_SOURCE_DIR}/declare-global-in-world.rib
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_tests_properties(ShadingServices_DeclareGlobalInWorld PROPERTIES
+    TIMEOUT 60
+    LABELS "shading_parity"
+    ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>"
+)
