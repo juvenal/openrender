@@ -394,6 +394,23 @@ The call-site operand and the `_v2` ABI make Phase 4 a MAJOR change of both shad
     - **Reyes scenes** (`blobby-*`, `bunny-reyes`): the hypothesis is confirmed in its arrival-order form. Two opaque fragments of different colour reach one sample at *exactly* equal depth, and `drawPixel()` keeps the first (`z < pixel->z`), so the grid that is rasterized first wins.
     - **Raytrace scenes** (`csg-hero-*-raytrace` and related): the hypothesis is rejected. The cause is a read of uninitialised `ralloc` memory in the derivative of the `transmission()` target, which makes the shadow ray garbage for some silhouette samples. Filling `ralloc` memory with any byte removes the nondeterminism. The same defect also explains most of the scenes disabled under #61.
   - If a fix is needed it is test-first: write the tests, show them failing, and wait for TEST-APPROVAL before any implementation. The C scenes stay registered and red.
+- [ ] T084b [US1] Cause 1 of T084a: a missed derivative lane (GitHub #61). **Tests written and red; waiting for TEST-APPROVAL (T084b-approve).**
+  - [X] T084b-tests: `tests/shading_parity/test_derivative_inactive_lanes.cpp`, test `ShadingParity_DerivativeInactiveLanes`. It fills the inactive offset lanes of a ralloc'd source array with two different bytes (0x00, 0x5A) and requires, for `duFloat`/`dvFloat`/`duVector`/`dvVector` (through the public `jitDu*`/`jitDv*` entry points the interpreter shares):
+    - the whole result array is bit-identical between the two fills;
+    - a real lane whose offset lane is inactive has derivative 0;
+    - lanes with an active offset lane keep the plain difference quotient (the control).
+    Red today: 8 of 18 checks fail, the control passes.
+  - [ ] T084b-approve [RUN] **TEST-APPROVAL**.
+  - [ ] T084b-fix: in `src/libshader/shading/executeMisc.cpp`, give a tail lane that the lane tags mark inactive the value of its real lane (derivative 0) in `duFloat`/`dvFloat`/`duVector`/`dvVector` and their capital-letter forms.
+  - [ ] T084b-rerun [RUN]: repeat runs as in T084a on the cause 1 scenes, with a temporary `ralloc` fill byte as the proof, and the sweep entries.
+  - [ ] T084b-reenable: re-enable each #61-disabled sweep entry the fix makes reliably green. Check `csg-hero-stats-1600-reyes` and `csg-procedural-operand-raytrace` too, and keep them disabled unless they are shown fixed. Update the exclusion lists in spec.md and validation.md to match.
+- [ ] T084c [US1] Cause 2 of T084a: equal-depth fragments resolved by arrival order. **Investigation done, tests written and red; waiting for TEST-APPROVAL (T084c-approve).**
+  - [X] T084c-why: why the two z values are exactly equal. Result in validation.md "T084b and T084c": not duplicate or overlapping geometry; a degenerate micropolygon (a triangle corner, v0 == v2) gets the depth of its apex vertex, so two such cells at the same mesh vertex tie exactly. Reported for a decision before the fix.
+  - [X] T084c-tests: `examples/rib/tests/ties-coincident-{reyes,zbuffer}.rib`, tests `DeterminismTies_{reyes,zbuffer}`: two coincident opaque triangles of different colour, 8x8 buckets, `-t:1` against eight `-t:4` renders, bit-identical. Red today under both hiders (about 7000 of 65536 values differ in every comparison).
+  - [ ] T084c-approve [RUN] **TEST-APPROVAL**.
+  - [ ] T084c-fix: break equal-z ties by a deterministic key (stableId, then micropolygon index) instead of arrival order, in the shared path so reyes and zbuffer use the same code (the #50 rule).
+  - [ ] T084c-measure [RUN]: measure and report which existing reference tests move at tie pixels, and by how much. No threshold or reference is touched without a separate approval.
+  - [ ] T084c-recheck [RUN]: re-check `csg-hero-displaced-reyes` and the three scenes that never reproduced (`blobby-blend-far-reyes`, `csg-offscreen-stats-reyes`, `csg-hero-partial-stats-reyes`). They stay registered and red.
 
 **PAUSE 7**.
 

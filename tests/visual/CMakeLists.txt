@@ -4090,3 +4090,22 @@ endforeach()
 # --- Determinism sweep scenes (spec 039, Phase 7, T081) ---------------------------------------
 # Every non-GI visual and parity scene under each orender configuration (FR-031).
 include(${CMAKE_CURRENT_SOURCE_DIR}/determinism-scenes.cmake)
+
+# --- Equal-depth ties (spec 039, Phase 7, T084c) ---------------------------------------------
+# Two coincident opaque triangles of different colour: every sample of the overlap receives two
+# fragments at exactly the same depth. The hiders keep the fragment that arrives first
+# (`z < pixel->z`), and the order in which the two grids reach a bucket depends on thread
+# scheduling, so the image varies with the thread count. A tie must be broken by a
+# deterministic key, in the reyes and the zbuffer hider alike. The scenes have 8x8 buckets of
+# 16x16 pixels; the first configuration is the reference, the others run eight times at -t:4.
+foreach(_hider reyes zbuffer)
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/determinism-ties-${_hider})
+    file(MAKE_DIRECTORY ${_scratch})
+    add_test(NAME DeterminismTies_${_hider}
+        COMMAND test_depth_determinism --configs "-t:1|-t:4|-t:4|-t:4|-t:4|-t:4|-t:4|-t:4|-t:4"
+            --outputs ties-coincident-${_hider}.tif
+            $<TARGET_FILE:orender> ${CMAKE_SOURCE_DIR}/examples/rib/tests/ties-coincident-${_hider}.rib
+        WORKING_DIRECTORY ${_scratch})
+    set_tests_properties(DeterminismTies_${_hider} PROPERTIES TIMEOUT 120
+        LABELS "visual;regression;determinism" ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+endforeach()

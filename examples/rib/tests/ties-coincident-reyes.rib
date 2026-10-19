@@ -1,0 +1,28 @@
+##RenderMan RIB-Structure 1.0
+# Spec 039, Phase 7 (T084c): two coincident opaque triangles of different colour, so every sample
+# in the overlap receives two fragments at exactly the same depth. Which colour wins must not
+# depend on the order in which the two grids reach a bucket, so the image must be the same at any
+# thread count (and the same colour must win everywhere). Hider "reyes", sobol sampler, float output.
+version 3.03
+Option "sampling" "sampler" ["sobol"]
+Option "limits" "bucketsize" [16 16]
+Hider "reyes"
+PixelSamples 2 2
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "ties-coincident-reyes.tif" "file" "rgba"
+Format 128 128 1
+Projection "perspective" "fov" 40
+Translate 0 0 3
+WorldBegin
+    Sides 2
+    Surface "constant"
+    AttributeBegin
+        Color [1 0 0]
+        Polygon "P" [-1 -1 0  1 -1 0  0 1 0]
+    AttributeEnd
+    AttributeBegin
+        Color [0 0 1]
+        Polygon "P" [-1 -1 0  1 -1 0  0 1 0]
+    AttributeEnd
+WorldEnd

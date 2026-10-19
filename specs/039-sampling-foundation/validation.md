@@ -774,4 +774,27 @@ Method: temporary instrumentation (per-sample dumps, hashes of the committed buc
 1. Cause 1: make the offset lane's `Ps - dir`, and any other derivative operand of a lane that did not hit, defined (mirror the real lane, so the derivative is 0), instead of left unwritten. The test is a shading-level check with `threadMemory` pre-filled with two different bytes that must give identical lighting; plus `ctest -L determinism-sweep` on the scenes above.
 2. Cause 2: break equal-z ties by a deterministic key (for example the grid's `stableId`, then the micropolygon index) instead of by arrival order. The test is a scene with two coplanar opaque triangles of different colour that overlap, rendered at `-t:1` and `-t:4`.
 
+### T084b and T084c: investigation and tests first (nothing fixed)
+
+**T084b: the missed derivative lane, confirmed at the lane tags.** Instrumenting `transmission()` showed, for the real lanes with a huge `dTdv`, `tags[real] = 0` (active) and `tags[numRealVertices + 2i + 1] = 1` (inactive): the dv offset lane is deactivated inside the `solar()` block of `raydistant.sl`, so `Ps - dir` is never written for it, and `dvVector()` differences against unwritten memory. (In a fresh process that memory is zero and the derivative is `-D / dv`, about -1000, a wrong value even when it is repeatable.) The same four-line pattern is in the eight `duFloat/DuFloat/dvFloat/DvFloat/duVector/DuVector/dvVector/DvVector` functions.
+- Test: `ShadingParity_DerivativeInactiveLanes` (`tests/shading_parity/test_derivative_inactive_lanes.cpp`, label `shading_parity;determinism`). It builds a `SHADING_2D` state with 4 real vertices, fills the inactive offset lanes with 0x00 and with 0x5A, and for `jitDuFloat`, `jitDvFloat`, `jitDuVector` and `jitDvVector` requires: identical results between the fills, derivative 0 on the real lanes with an inactive offset lane, and the plain difference quotient on the others (control).
+- Red today: 10 checks pass (the controls and the active lanes) and 8 fail (the bit-identity and the zero-derivative check, once per function). The failure is for the right reason: the poison content reaches the result.
+- Design note for the approval: the test fixes the value of a missed lane to a derivative of 0 (the lane mirrors the real lane), as agreed.
+
+**T084c: why the two z values are exactly equal.** Instrumenting the opaque test of the stochastic hider (`drawPixel()`) for every equal-z rejection at `-t:1`:
+
+| Scene | Equal-z rejections | On a degenerate micropolygon (two coincident corners, `u = +-0`) |
+|---|---|---|
+| blobby-dent-reyes | 3 | 3 |
+| blobby-repeller-heights-reyes | 3 | 3 |
+| blobby-spiral-reyes | 118 | 118 |
+| bunny-reyes | 15 | 15 |
+| blobby-blend-far-reyes | 5 | 5 |
+| csg-hero-displaced-reyes | 0 | none: not a tie (third cause) |
+
+- *Mechanism.* A triangle is diced as a quad grid whose apex cell has `v2 == v0`. `checkPixel()` computes `u = aleft / (aleft + aright)` with `aleft` the area of the zero-length edge `v2 -> v0`, which is exactly 0, so `u = 0` for every sample in the cell, and `z = (v0.z (1-u) + v1.z u)(1-v) + (v2.z (1-u) + v3.z u) v` collapses to `v0.z` (and the colour to `v0`'s colour). The cells of two triangles that meet at one mesh vertex therefore have the bit-identical z of that vertex wherever they overlap on screen. In `blobby-dent-reyes` the tie sample `(236.3516, 327.3817)` lies in two slivers of two different objects that share the vertex `(236.18037, 327.67706, 31.64327)`; both report `u = +-0` and z = 31.6432686 exactly.
+- *Verdict.* Not a shared edge, not duplicate or overlapping geometry. It is a depth (and colour) interpolation defect on degenerate micropolygons, present in the reyes and the zbuffer hider alike (`zbufferQuad.h` has the same `checkPixel()`). **A decision is needed**: the approved tie-break removes the nondeterminism whatever the cause; fixing the interpolation (barycentric weights for a degenerate cell) would in addition remove these ties and give the apex cells a real depth and colour, but it changes every triangle mesh image a little. I have not touched it.
+- *Cost of the tie-break.* It needs the winner's key per sample (about 8 bytes in `CPixel`, written on every accepted fragment); the compare itself runs only on `z == pixel->z`.
+- Tests: `DeterminismTies_reyes` and `DeterminismTies_zbuffer` (`examples/rib/tests/ties-coincident-{reyes,zbuffer}.rib`): two coincident opaque triangles (red and blue), identical vertices, hence a tie at every sample of the overlap; 128x128, 16x16 buckets, `Option "sampling" "sampler" ["sobol"]`, float RGBA; `-t:1` against eight `-t:4` renders must be bit-identical. Red today: every comparison differs, 6654 to 9048 of 65536 values (both hiders), while `-t:1` against `-t:1` is identical.
+
 - Next decision for the maintainer: which of A, B and C are fixed before Phase 8 (and where: they are not sampler defects as far as these runs show, except that class C only shows with jitter on), and whether the red scenes stay registered meanwhile. They are registered, red, and unmodified.
