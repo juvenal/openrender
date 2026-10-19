@@ -225,19 +225,20 @@ const float importance = grid->object->attributes->lodImportance;
 
 #endif
 
-#define drawPixel()                                      \
-    if (z < pixel->z) {                                  \
-        const float jt = pixel->jt;                      \
-        (void)jt; /* Suppress unused variable warning */ \
-        updateOpaque();                                  \
-        nSample = &pixel->last;                          \
-        nSample->z = z;                                  \
-        colorOpacityUpdate();                            \
-        drawExtraSamples();                              \
-        depthFilterIf();                                 \
-        pixel->z = z;                                    \
-        depthFilterTouchNode();                          \
-    }                                                    \
+#define drawPixel()                                                                            \
+    if (z < pixel->z || (z == pixel->z && tieKeyLess(RASTER_TIE_KEY(vertices), pixel->tie))) { \
+        const float jt = pixel->jt;                                                            \
+        (void)jt; /* Suppress unused variable warning */                                       \
+        updateOpaque();                                                                        \
+        nSample = &pixel->last;                                                                \
+        nSample->z = z;                                                                        \
+        colorOpacityUpdate();                                                                  \
+        drawExtraSamples();                                                                    \
+        depthFilterIf();                                                                       \
+        pixel->z = z;                                                                          \
+        pixel->tie = RASTER_TIE_KEY(vertices);                                                 \
+        depthFilterTouchNode();                                                                \
+    }                                                                                          \
     depthFilterElse();
 
 #endif
@@ -311,17 +312,18 @@ const float importance = grid->object->attributes->lodImportance;
 
 #endif
 
-#define drawPixel()             \
-    if (z < pixel->z) {         \
-        updateOpaque();         \
-        nSample = &pixel->last; \
-        nSample->z = z;         \
-        colorOpacityUpdate();   \
-        drawExtraSamples();     \
-        depthFilterIf();        \
-        pixel->z = z;           \
-        depthFilterTouchNode(); \
-    }                           \
+#define drawPixel()                                                                            \
+    if (z < pixel->z || (z == pixel->z && tieKeyLess(RASTER_TIE_KEY(vertices), pixel->tie))) { \
+        updateOpaque();                                                                        \
+        nSample = &pixel->last;                                                                \
+        nSample->z = z;                                                                        \
+        colorOpacityUpdate();                                                                  \
+        drawExtraSamples();                                                                    \
+        depthFilterIf();                                                                       \
+        pixel->z = z;                                                                          \
+        pixel->tie = RASTER_TIE_KEY(vertices);                                                 \
+        depthFilterTouchNode();                                                                \
+    }                                                                                          \
     depthFilterElse();
 
 #endif
@@ -343,20 +345,20 @@ const float importance = grid->object->attributes->lodImportance;
 #ifdef STOCHASTIC_UNSHADED
 // We're not shaded yet, so if we pass the depth test, we need to back and shade the grid
 #ifdef STOCHASTIC_UNDERCULL
-#define drawPixelCheck()                                 \
-    if (z < pixel->z || (flags & RASTER_SHADE_HIDDEN)) { \
-        shadeGrid(grid, FALSE);                          \
-        rasterDrawPrimitives(grid);                      \
-        return;                                          \
-    }                                                    \
+#define drawPixelCheck()                                                                                                        \
+    if (z < pixel->z || (z == pixel->z && tieKeyLess(RASTER_TIE_KEY(vertices), pixel->tie)) || (flags & RASTER_SHADE_HIDDEN)) { \
+        shadeGrid(grid, FALSE);                                                                                                 \
+        rasterDrawPrimitives(grid);                                                                                             \
+        return;                                                                                                                 \
+    }                                                                                                                           \
     depthFilterElse();
 #else
-#define drawPixelCheck()            \
-    if (z < pixel->z) {             \
-        shadeGrid(grid, FALSE);     \
-        rasterDrawPrimitives(grid); \
-        return;                     \
-    }                               \
+#define drawPixelCheck()                                                                       \
+    if (z < pixel->z || (z == pixel->z && tieKeyLess(RASTER_TIE_KEY(vertices), pixel->tie))) { \
+        shadeGrid(grid, FALSE);                                                                \
+        rasterDrawPrimitives(grid);                                                            \
+        return;                                                                                \
+    }                                                                                          \
     depthFilterElse();
 
 #endif // undercull

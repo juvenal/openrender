@@ -265,6 +265,7 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int /*nullBucket*/) {
             }
 
             pixel->z = CRenderer::clipMax;
+            pixel->tie = CTieKey{0, 0}; // nothing wins a tie against an empty sample
             pixel->zold = zoldStart;
             pixel->numSplats = 0;
             pixel->node = getNode(j, i);

@@ -102,9 +102,14 @@ void CShadingContext::duFloat(float *dest, const float *src) {
 
             for (int i = numRealVertices; i > 0; --i) {
 
+                // A tail lane the lane tags mark inactive was not written by the expression (it was
+                // evaluated in a block that switched the lane off), so it holds stale memory: the
+                // real lane's derivative then ignores it and is 0 (the lane mirrors the real lane)
+                const bool inactive = currentShadingState->tags[numRealVertices + 2 * (numRealVertices - i) + 0] != 0;
+
                 assert(*du != 0);
 
-                const float val = (float)(((double)dsrc[0] - (double)src[0]) / ((double)*du++));
+                const float val = (float)(((double)(inactive ? src[0] : dsrc[0]) - (double)src[0]) / ((double)*du++));
 
                 ddest[0] = val;
                 ddest[1] = val;
@@ -173,7 +178,12 @@ void CShadingContext::DuFloat(float *dest, const float *src) {
 
             for (int i = numRealVertices; i > 0; --i) {
 
-                const float val = (float)((double)dsrc[0] - (double)src[0]);
+                // A tail lane the lane tags mark inactive was not written by the expression (it was
+                // evaluated in a block that switched the lane off), so it holds stale memory: the
+                // real lane's derivative then ignores it and is 0 (the lane mirrors the real lane)
+                const bool inactive = currentShadingState->tags[numRealVertices + 2 * (numRealVertices - i) + 0] != 0;
+
+                const float val = (float)((double)(inactive ? src[0] : dsrc[0]) - (double)src[0]);
 
                 ddest[0] = val;
                 ddest[1] = val;
@@ -254,9 +264,14 @@ void CShadingContext::dvFloat(float *dest, const float *src) {
 
             for (int i = numRealVertices; i > 0; --i) {
 
+                // A tail lane the lane tags mark inactive was not written by the expression (it was
+                // evaluated in a block that switched the lane off), so it holds stale memory: the
+                // real lane's derivative then ignores it and is 0 (the lane mirrors the real lane)
+                const bool inactive = currentShadingState->tags[numRealVertices + 2 * (numRealVertices - i) + 1] != 0;
+
                 assert(*dv != 0);
 
-                const float val = (float)(((double)dsrc[1] - (double)src[0]) / ((double)*dv++));
+                const float val = (float)(((double)(inactive ? src[0] : dsrc[1]) - (double)src[0]) / ((double)*dv++));
 
                 ddest[0] = val;
                 ddest[1] = val;
@@ -331,7 +346,12 @@ void CShadingContext::DvFloat(float *dest, const float *src) {
 
             for (int i = numRealVertices; i > 0; --i) {
 
-                const float val = (float)((double)dsrc[1] - (double)src[0]);
+                // A tail lane the lane tags mark inactive was not written by the expression (it was
+                // evaluated in a block that switched the lane off), so it holds stale memory: the
+                // real lane's derivative then ignores it and is 0 (the lane mirrors the real lane)
+                const bool inactive = currentShadingState->tags[numRealVertices + 2 * (numRealVertices - i) + 1] != 0;
+
+                const float val = (float)((double)(inactive ? src[0] : dsrc[1]) - (double)src[0]);
 
                 ddest[0] = val;
                 ddest[1] = val;
@@ -412,12 +432,17 @@ void CShadingContext::duVector(float *dest, const float *src) {
 
             for (int i = numRealVertices; i > 0; --i) {
 
+                // A tail lane the lane tags mark inactive was not written by the expression (it was
+                // evaluated in a block that switched the lane off), so it holds stale memory: the
+                // real lane's derivative then ignores it and is 0 (the lane mirrors the real lane)
+                const bool inactive = currentShadingState->tags[numRealVertices + 2 * (numRealVertices - i) + 0] != 0;
+
                 assert(*du != 0);
 
                 const double invDu = 1 / ((double)*du++);
-                const float val0 = (float)(((double)dsrc[0] - (double)src[0]) * invDu);
-                const float val1 = (float)(((double)dsrc[1] - (double)src[1]) * invDu);
-                const float val2 = (float)(((double)dsrc[2] - (double)src[2]) * invDu);
+                const float val0 = (float)(((double)(inactive ? src[0] : dsrc[0]) - (double)src[0]) * invDu);
+                const float val1 = (float)(((double)(inactive ? src[1] : dsrc[1]) - (double)src[1]) * invDu);
+                const float val2 = (float)(((double)(inactive ? src[2] : dsrc[2]) - (double)src[2]) * invDu);
 
                 ddest[0] = val0;
                 ddest[1] = val1;
@@ -500,9 +525,14 @@ void CShadingContext::DuVector(float *dest, const float *src) {
 
             for (int i = numRealVertices; i > 0; --i) {
 
-                const float val0 = (float)((double)dsrc[0] - (double)src[0]);
-                const float val1 = (float)((double)dsrc[1] - (double)src[1]);
-                const float val2 = (float)((double)dsrc[2] - (double)src[2]);
+                // A tail lane the lane tags mark inactive was not written by the expression (it was
+                // evaluated in a block that switched the lane off), so it holds stale memory: the
+                // real lane's derivative then ignores it and is 0 (the lane mirrors the real lane)
+                const bool inactive = currentShadingState->tags[numRealVertices + 2 * (numRealVertices - i) + 0] != 0;
+
+                const float val0 = (float)((double)(inactive ? src[0] : dsrc[0]) - (double)src[0]);
+                const float val1 = (float)((double)(inactive ? src[1] : dsrc[1]) - (double)src[1]);
+                const float val2 = (float)((double)(inactive ? src[2] : dsrc[2]) - (double)src[2]);
 
                 ddest[0] = val0;
                 ddest[1] = val1;
@@ -596,12 +626,17 @@ void CShadingContext::dvVector(float *dest, const float *src) {
 
             for (int i = numRealVertices; i > 0; --i) {
 
+                // A tail lane the lane tags mark inactive was not written by the expression (it was
+                // evaluated in a block that switched the lane off), so it holds stale memory: the
+                // real lane's derivative then ignores it and is 0 (the lane mirrors the real lane)
+                const bool inactive = currentShadingState->tags[numRealVertices + 2 * (numRealVertices - i) + 1] != 0;
+
                 assert(*dv > 0);
 
                 const double invDv = 1 / ((double)*dv++);
-                const float val0 = (float)(((double)dsrc[3] - (double)src[0]) * invDv);
-                const float val1 = (float)(((double)dsrc[4] - (double)src[1]) * invDv);
-                const float val2 = (float)(((double)dsrc[5] - (double)src[2]) * invDv);
+                const float val0 = (float)(((double)(inactive ? src[0] : dsrc[3]) - (double)src[0]) * invDv);
+                const float val1 = (float)(((double)(inactive ? src[1] : dsrc[4]) - (double)src[1]) * invDv);
+                const float val2 = (float)(((double)(inactive ? src[2] : dsrc[5]) - (double)src[2]) * invDv);
 
                 ddest[0] = val0;
                 ddest[1] = val1;
@@ -687,9 +722,14 @@ void CShadingContext::DvVector(float *dest, const float *src) {
 
             for (int i = numRealVertices; i > 0; --i) {
 
-                const float val0 = (float)((double)dsrc[3] - (double)src[0]);
-                const float val1 = (float)((double)dsrc[4] - (double)src[1]);
-                const float val2 = (float)((double)dsrc[5] - (double)src[2]);
+                // A tail lane the lane tags mark inactive was not written by the expression (it was
+                // evaluated in a block that switched the lane off), so it holds stale memory: the
+                // real lane's derivative then ignores it and is 0 (the lane mirrors the real lane)
+                const bool inactive = currentShadingState->tags[numRealVertices + 2 * (numRealVertices - i) + 1] != 0;
+
+                const float val0 = (float)((double)(inactive ? src[0] : dsrc[3]) - (double)src[0]);
+                const float val1 = (float)((double)(inactive ? src[1] : dsrc[4]) - (double)src[1]);
+                const float val2 = (float)((double)(inactive ? src[2] : dsrc[5]) - (double)src[2]);
 
                 ddest[0] = val0;
                 ddest[1] = val1;

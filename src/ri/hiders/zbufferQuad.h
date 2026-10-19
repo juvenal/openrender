@@ -95,30 +95,31 @@ for (j = 0; j < vdiv; j++) {
     const float v = atop / (atop + abottom);                                                  \
     const float z = (v0[COMP_Z] * (1 - u) + v1[COMP_Z] * u) * (1 - v) + (v2[COMP_Z] * (1 - u) + v3[COMP_Z] * u) * v;
 
-#define recordPixel()                                                                                    \
-    float *sample = &fb[y][x * SAMPLES_PER_PIXEL];                                                       \
-    if (z < sample[0] || (flags & RASTER_SHADE_HIDDEN)) {                                                \
-        if (z > CRenderer::clipMin) {                                                                    \
-            if (flags & RASTER_UNSHADED) {                                                               \
-                shadeGrid(grid, FALSE);                                                                  \
-                rasterDrawPrimitives(grid);                                                              \
-                return;                                                                                  \
-            }                                                                                            \
-                                                                                                         \
-            sample[0] = z;                                                                               \
-            if (flags & RASTER_MATTE) {                                                                  \
-                initv(sample, 0);                                                                        \
-            }                                                                                            \
-            else {                                                                                       \
-                sample[1] = (v0[3] * (1 - u) + v1[3] * u) * (1 - v) + (v2[3] * (1 - u) + v3[3] * u) * v; \
-                sample[2] = (v0[4] * (1 - u) + v1[4] * u) * (1 - v) + (v2[4] * (1 - u) + v3[4] * u) * v; \
-                sample[3] = (v0[5] * (1 - u) + v1[5] * u) * (1 - v) + (v2[5] * (1 - u) + v3[5] * u) * v; \
-            }                                                                                            \
-                                                                                                         \
-            COcclusionNode *cNode = getNode(x, y);                                                       \
-                                                                                                         \
-            touchNode(cNode, z);                                                                         \
-        }                                                                                                \
+#define recordPixel()                                                                                                                         \
+    float *sample = &fb[y][x * SAMPLES_PER_PIXEL];                                                                                            \
+    if (z < sample[0] || (z == sample[0] && tieKeyLess(RASTER_TIE_KEY(vertices), loadTieKey(sample + 4))) || (flags & RASTER_SHADE_HIDDEN)) { \
+        if (z > CRenderer::clipMin) {                                                                                                         \
+            if (flags & RASTER_UNSHADED) {                                                                                                    \
+                shadeGrid(grid, FALSE);                                                                                                       \
+                rasterDrawPrimitives(grid);                                                                                                   \
+                return;                                                                                                                       \
+            }                                                                                                                                 \
+                                                                                                                                              \
+            sample[0] = z;                                                                                                                    \
+            storeTieKey(sample + 4, RASTER_TIE_KEY(vertices));                                                                                \
+            if (flags & RASTER_MATTE) {                                                                                                       \
+                initv(sample, 0);                                                                                                             \
+            }                                                                                                                                 \
+            else {                                                                                                                            \
+                sample[1] = (v0[3] * (1 - u) + v1[3] * u) * (1 - v) + (v2[3] * (1 - u) + v3[3] * u) * v;                                      \
+                sample[2] = (v0[4] * (1 - u) + v1[4] * u) * (1 - v) + (v2[4] * (1 - u) + v3[4] * u) * v;                                      \
+                sample[3] = (v0[5] * (1 - u) + v1[5] * u) * (1 - v) + (v2[5] * (1 - u) + v3[5] * u) * v;                                      \
+            }                                                                                                                                 \
+                                                                                                                                              \
+            COcclusionNode *cNode = getNode(x, y);                                                                                            \
+                                                                                                                                              \
+            touchNode(cNode, z);                                                                                                              \
+        }                                                                                                                                     \
     }
 
         const float dx01 = v1[COMP_X] - v0[COMP_X];

@@ -70,7 +70,7 @@ for (i = grid->numVertices; i > 0; i--, vertices += numVertexSamples, bounds += 
                 float *sample = &fb[y][x * SAMPLES_PER_PIXEL];
                 const float z = vertices[2];
 
-                if (z < sample[0] || (CRenderer::flags & RASTER_SHADE_HIDDEN)) {
+                if (z < sample[0] || (z == sample[0] && tieKeyLess(RASTER_TIE_KEY(vertices), loadTieKey(sample + 4))) || (CRenderer::flags & RASTER_SHADE_HIDDEN)) {
                     if (z > CRenderer::clipMin) {
                         if (CRenderer::flags & RASTER_UNSHADED) {
                             shadeGrid(grid, FALSE);
@@ -79,6 +79,7 @@ for (i = grid->numVertices; i > 0; i--, vertices += numVertexSamples, bounds += 
                         }
 
                         sample[0] = z;
+                        storeTieKey(sample + 4, RASTER_TIE_KEY(vertices));
                         if (CRenderer::flags & RASTER_MATTE) {
                             initv(sample, 0);
                         }

@@ -152,10 +152,8 @@ add_determinism_sweep(csg-hero-single-operand-stats-800-reyes examples/rib/tests
 # Disabled, see GitHub #61 below.
 add_determinism_sweep(csg-hero-stats-1600-reyes examples/rib/tests/csg-hero-stats-1600-reyes.rib csg-hero-stats-1600-reyes.tif)
 add_determinism_sweep(csg-hero-stats-800-reyes examples/rib/tests/csg-hero-stats-800-reyes.rib csg-hero-stats-800-reyes.tif)
-# Disabled, see GitHub #61 below.
 add_determinism_sweep(csg-hero-translucent-raytrace examples/rib/tests/csg-hero-translucent-raytrace.rib csg-hero-translucent-raytrace.tif)
 add_determinism_sweep(csg-hero-translucent-reyes examples/rib/tests/csg-hero-translucent-reyes.rib csg-hero-translucent-reyes.tif)
-# Disabled, see GitHub #61 below.
 add_determinism_sweep(csg-hero-two-shaders-raytrace examples/rib/tests/csg-hero-two-shaders-raytrace.rib csg-hero-two-shaders-raytrace.tif)
 add_determinism_sweep(csg-hero-two-shaders-reyes examples/rib/tests/csg-hero-two-shaders-reyes.rib csg-hero-two-shaders-reyes.tif)
 # Disabled, see GitHub #61 below.
@@ -179,12 +177,9 @@ add_determinism_sweep(csg-polymesh-box-difference-reyes examples/rib/tests/csg-p
 add_determinism_sweep(csg-polymesh-open-raytrace examples/rib/tests/csg-polymesh-open-raytrace.rib csg-polymesh-open-raytrace.tif)
 add_determinism_sweep(csg-procedural-open-cylinder-inline-raytrace examples/rib/tests/csg-procedural-open-cylinder-inline-raytrace.rib csg-procedural-open-cylinder-inline-raytrace.tif)
 add_determinism_sweep(csg-procedural-open-cylinder-raytrace examples/rib/tests/csg-procedural-open-cylinder-raytrace.rib csg-procedural-open-cylinder-raytrace.tif COPY examples/rib/tests/archives)
-# Disabled, see GitHub #61 below.
 add_determinism_sweep(csg-procedural-operand-inline-raytrace examples/rib/tests/csg-procedural-operand-inline-raytrace.rib csg-procedural-operand-inline-raytrace.tif)
-# Disabled, see GitHub #61 below.
 add_determinism_sweep(csg-procedural-operand-raytrace examples/rib/tests/csg-procedural-operand-raytrace.rib csg-procedural-operand-raytrace.tif COPY examples/rib/tests/archives)
 add_determinism_sweep(csg-secondary-rays-raytrace examples/rib/tests/csg-secondary-rays-raytrace.rib csg-secondary-rays-raytrace.tif)
-# Disabled, see GitHub #61 below.
 add_determinism_sweep(csg-secondary-rays-reyes examples/rib/tests/csg-secondary-rays-reyes.rib csg-secondary-rays-reyes.tif)
 add_determinism_sweep(csg-sphere-cube-difference-raytrace-1600 examples/rib/tests/csg-sphere-cube-difference-raytrace-1600.rib csg-sphere-cube-difference-raytrace-1600.tif)
 add_determinism_sweep(csg-sphere-cube-difference-raytrace-800 examples/rib/tests/csg-sphere-cube-difference-raytrace-800.rib csg-sphere-cube-difference-raytrace-800.tif)
@@ -450,16 +445,15 @@ set_tests_properties(
     DeterminismSweep_sphere-shader-parameter-reyes-slo
     PROPERTIES DISABLED TRUE)
 #
-# GitHub #61: CSG scenes that differ from run to run at ONE thread (or with jitter 0), so no thread
-# count or sampler change decides them.
+# GitHub #61 (retitled "Uninitialised derivative lane in ray-hit shading makes transmission() renders
+# nondeterministic"): the offset-lane part is fixed (T084b; the five scenes that only had it are
+# enabled again). These two keep a second use of the same defect, in grid shading: the derivative
+# of a lane next to an inactive grid lane (the terminator of a raydistant light) reads the
+# unwritten lane. Filling ralloc memory with 0xFF (NaN) changes their image, any other fill does
+# not; csg-hero-zbuffer-1600 also differs run to run without a fill.
 set_tests_properties(
-    DeterminismSweep_csg-hero-translucent-raytrace
-    DeterminismSweep_csg-hero-two-shaders-raytrace
-    DeterminismSweep_csg-secondary-rays-reyes
     DeterminismSweep_csg-hero-zbuffer-1600
     DeterminismSweep_csg-hero-stats-1600-reyes
-    DeterminismSweep_csg-procedural-operand-raytrace
-    DeterminismSweep_csg-procedural-operand-inline-raytrace
     PROPERTIES DISABLED TRUE)
 
 # --- GI scenes: not swept (spec 040) --------------------------------------------------------------

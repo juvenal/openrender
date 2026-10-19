@@ -718,9 +718,9 @@ Full suite with these added: 714 tests, 8 new (7 red, 1 green guard); the other 
 The repetitions behind the table are small (3 to 6 runs per cell) and these failures are intermittent, so a clean cell is weak evidence and the assignment of the unexamined scenes is a guess. No code was changed to chase any of them.
 
 - `Parity_transparency-matte-aov` failed once in the full run (worst block 27.89 against 25). It is on the known intermittent list and not related to this phase.
-### Scope of the bit-identical claim (maintainer decision after T084)
+### Scope of the bit-identical claim (maintainer decision after T084; updated after T084b)
 
-The claim "bit-identical at any thread count" (SC-001, SC-009, FR-030, FR-031) **excludes the nine scenes disabled in the determinism sweep under GitHub #60 and #61. Both defects predate 039 and are independent of the sampler.** #60: a thread race in `sphere-shader-parameter-reyes` and `sphere-shader-parameter-reyes-slo` (class A above). #61: run-to-run nondeterminism at a single thread in seven CSG scenes (class B above: `csg-hero-translucent-raytrace`, `csg-hero-two-shaders-raytrace`, `csg-secondary-rays-reyes`, `csg-hero-zbuffer-1600`, `csg-hero-stats-1600-reyes`, `csg-procedural-operand-raytrace`, `csg-procedural-operand-inline-raytrace`). The nine `DeterminismSweep_*` tests stay registered with ctest `DISABLED` (`tests/visual/determinism-scenes.cmake`), with no threshold changed, and the claim applies to them again when #60 and #61 are fixed. `Visual_sphere-shader-parameter-reyes-slo` is unchanged. Class C (below, T084a) is not excluded: it stays red until its cause is found.
+The claim "bit-identical at any thread count" (SC-001, SC-009, FR-030, FR-031) **excludes the four scenes disabled in the determinism sweep under GitHub #60 and #61. Both defects predate 039 and are independent of the sampler.** #60: a thread race in `sphere-shader-parameter-reyes` and `sphere-shader-parameter-reyes-slo` (class A above). #61 ("Uninitialised derivative lane in ray-hit shading makes transmission() renders nondeterministic"): fixed for the ray-hit part by T084b, which enabled `csg-hero-translucent-raytrace`, `csg-hero-two-shaders-raytrace`, `csg-secondary-rays-reyes`, `csg-procedural-operand-raytrace` and `csg-procedural-operand-inline-raytrace` again; `csg-hero-zbuffer-1600` and `csg-hero-stats-1600-reyes` stay disabled under #61 for the grid-shading part of the same defect (T084b results below). The four `DeterminismSweep_*` tests stay registered with ctest `DISABLED` (`tests/visual/determinism-scenes.cmake`), with no threshold changed, and the claim applies to them again when #60 and #61 are fixed. `Visual_sphere-shader-parameter-reyes-slo` is unchanged. Group C is not excluded: its reyes part is fixed by T084c (cause: GitHub #62), its raytrace part by T084b, and what is left of it is listed under "Sweep, twice, and the re-checks".
 
 ### T084a: root cause of group C (diagnosis only, nothing fixed)
 
@@ -793,8 +793,141 @@ Method: temporary instrumentation (per-sample dumps, hashes of the committed buc
 | csg-hero-displaced-reyes | 0 | none: not a tie (third cause) |
 
 - *Mechanism.* A triangle is diced as a quad grid whose apex cell has `v2 == v0`. `checkPixel()` computes `u = aleft / (aleft + aright)` with `aleft` the area of the zero-length edge `v2 -> v0`, which is exactly 0, so `u = 0` for every sample in the cell, and `z = (v0.z (1-u) + v1.z u)(1-v) + (v2.z (1-u) + v3.z u) v` collapses to `v0.z` (and the colour to `v0`'s colour). The cells of two triangles that meet at one mesh vertex therefore have the bit-identical z of that vertex wherever they overlap on screen. In `blobby-dent-reyes` the tie sample `(236.3516, 327.3817)` lies in two slivers of two different objects that share the vertex `(236.18037, 327.67706, 31.64327)`; both report `u = +-0` and z = 31.6432686 exactly.
-- *Verdict.* Not a shared edge, not duplicate or overlapping geometry. It is a depth (and colour) interpolation defect on degenerate micropolygons, present in the reyes and the zbuffer hider alike (`zbufferQuad.h` has the same `checkPixel()`). **A decision is needed**: the approved tie-break removes the nondeterminism whatever the cause; fixing the interpolation (barycentric weights for a degenerate cell) would in addition remove these ties and give the apex cells a real depth and colour, but it changes every triangle mesh image a little. I have not touched it.
+- *Verdict.* Not a shared edge, not duplicate or overlapping geometry. It is a depth (and colour) interpolation defect on degenerate micropolygons, present in the reyes and the zbuffer hider alike (`zbufferQuad.h` has the same `checkPixel()`). **It is GitHub #62** and gets its own `fix/` branch; the tie-break below is independent of it.
 - *Cost of the tie-break.* It needs the winner's key per sample (about 8 bytes in `CPixel`, written on every accepted fragment); the compare itself runs only on `z == pixel->z`.
 - Tests: `DeterminismTies_reyes` and `DeterminismTies_zbuffer` (`examples/rib/tests/ties-coincident-{reyes,zbuffer}.rib`): two coincident opaque triangles (red and blue), identical vertices, hence a tie at every sample of the overlap; 128x128, 16x16 buckets, `Option "sampling" "sampler" ["sobol"]`, float RGBA; `-t:1` against eight `-t:4` renders must be bit-identical. Red today: every comparison differs, 6654 to 9048 of 65536 values (both hiders), while `-t:1` against `-t:1` is identical.
 
 - Next decision for the maintainer: which of A, B and C are fixed before Phase 8 (and where: they are not sampler defects as far as these runs show, except that class C only shows with jitter on), and whether the red scenes stay registered meanwhile. They are registered, red, and unmodified.
+
+### T084b and T084c: results
+
+**Rule used for "moves".** The default (Legacy) sampler is random, so two renders of the *unchanged* code already differ: in two identical baseline runs of the 400 reference, parity and visual tests that report a block difference, 348 report a different value (typically by 0.1 to 5, up to 12.9 for `Visual_spotlight-reyes` and 15625 of 500000 for `Parity_depthdefault`). A reference test therefore cannot show a movement smaller than that. To get an exact measure, every one of the 413 swept scenes plus the two tie scenes was also rendered at `-t:1` under the sobol sampler (deterministic) before and after each fix, and the outputs compared bit for bit (`tiffdiff`); the reference tests that render a scene which moved are then listed with their old and new values. All 718 tests of the reference/visual/parity/csg set (the full suite without the sweep and the new tests) passed after each fix; no threshold or reference was touched.
+
+#### T084b (the missed derivative lane)
+
+- **Fix.** In `src/libshader/shading/executeMisc.cpp`, the `SHADING_2D` branch of all eight functions (`duFloat`, `DuFloat`, `dvFloat`, `DvFloat`, `duVector`, `DuVector`, `dvVector`, `DvVector`) reads the offset lane through `inactive ? real lane : offset lane`, with `inactive` the lane tag of the offset lane (`tags[numRealVertices + 2i]` for the du lane, `+ 1` for the dv lane). An inactive offset lane thus gives a derivative of exactly 0. `ShadingParity_DerivativeInactiveLanes` is green (18 of 18 checks).
+- **Proof (temporary `ralloc` fill, reverted).** Each scene rendered 6 times at the thread count shown for each of four fills (none, 0x00, 0x55, 0xFF), 24 renders, compared with the first: **0 differ** for `csg-hero-plain-sphere-raytrace`, `csg-hero-displaced-raytrace`, `csg-tolerance-inert-raytrace`, `csg-hero-raytrace-800` (all `-t:4`); `csg-hero-translucent-raytrace` and `csg-hero-two-shaders-raytrace` (`-t:1` and `-t:4`); `csg-procedural-operand-raytrace` (`-t:1`, `-t:4`); `csg-procedural-operand-inline-raytrace` (`-t:1`); `csg-secondary-rays-reyes` and `csg-secondary-rays-raytrace` (`-t:4`). Before the fix the same test gave 12 of 15 (`csg-hero-plain-sphere-raytrace`), 11 of 11 (`csg-secondary-rays-reyes`) and similar.
+- **Not fixed by it**, and why. `csg-hero-zbuffer-1600`, `csg-hero-stats-1600-reyes` and `csg-hero-reyes-1600`, `csg-hero-zbuffer-800`, `csg-offscreen-stats-reyes`, `csg-hero-partial-stats-reyes` still change their image when `ralloc` memory is filled with 0xFF (NaN), and only then (0x00 and 0x55 give the unfilled image). The cause is the same defect in grid shading: the derivative of a grid lane next to an inactive grid lane (the terminator of the `raydistant` light) reads the unwritten lane. Confirmed with a throw-away prototype that let an inactive grid lane take an active neighbour's value: with it the image under the 0xFF fill equals the unfilled image for `csg-offscreen-stats-reyes` and `csg-hero-zbuffer-800`. It was not kept: the grid rule is not covered by the approval (a lane inactive in an `if` block often still holds a valid value that existing shaders may rely on), so it needs its own decision.
+- **Sweep entries.** Re-enabled: `csg-hero-translucent-raytrace`, `csg-hero-two-shaders-raytrace`, `csg-secondary-rays-reyes`, `csg-procedural-operand-raytrace`, `csg-procedural-operand-inline-raytrace` (all five green in both sweeps below). Kept disabled under #61: `csg-hero-zbuffer-1600` (10 of 31 renders differ from the first at `-t:1` and 31 of 31 at `-t:4`, so it is unstable beyond the 0xFF group) and `csg-hero-stats-1600-reyes` (fill-sensitive, above). `csg-procedural-operand-raytrace` had not differed in the unfilled runs; the fill shows it is fixed (0 of 23 at `-t:1`, 0 of 23 and 0 of 31 at `-t:4`).
+- **What moved at `-t:1` under sobol:** 6 of 415 outputs, a few pixels each: csg-hero-raytrace-800 (3 pixels differ), csg-hero-reyes-1600 (4 pixels differ), csg-hero-two-shaders-raytrace (3 pixels differ), csg-offscreen-stats-reyes (1 pixels differ), csg-secondary-rays-raytrace (30 pixels differ), csg-secondary-rays-reyes (29 pixels differ).
+- **Reference and parity tests that render a moved scene** (value = block-average difference, threshold in the last column; "old" is two runs of the unchanged code, which differ from each other by Legacy noise):
+
+| Test | old run 1 | old run 2 | new | Threshold |
+|---|---|---|---|---|
+| Csg_Seam_hero_raytrace_800 | Passed | Passed | Passed | (pass/fail) |
+| Csg_ToleranceInert | 2.0 | 2.31 | 2.83 | 20.0 |
+| Csg_UntouchedRegion_hero | 2.16 | 1.53 | 1.42 | 20.0 |
+| Parity_csg-hero-800-raytrace-reyes | 7.47 | 8.2 | 9.05 | 20.0 |
+| Parity_csg-hero-800-raytrace-zbuffer | 7.45 | 7.3 | 7.34 | 20.0 |
+| Csg_Seam_hero_reyes_1600 | Passed | Passed | Passed | (pass/fail) |
+| Parity_csg-hero-1600-raytrace-reyes | 4.11 | 4.0 | 3.42 | 20.0 |
+| Csg_PerOperandShader_hero_raytrace | Passed | Passed | Passed | (pass/fail) |
+| Parity_csg-hero-two-shaders-raytrace-reyes | 8.66 | 8.56 | 6.8 | 20.0 |
+| Csg_OffscreenStats_reyes | Passed | Passed | Passed | (pass/fail) |
+| Csg_SecondaryRays_raytrace | Passed | Passed | Passed | (pass/fail) |
+| Parity_csg-secondary-rays-raytrace-reyes | 7.64 | 8.75 | 10.23 | 20.0 |
+| Csg_SecondaryRays_reyes | Passed | Passed | Passed | (pass/fail) |
+
+#### T084c (the equal-depth tie)
+
+- **Cause of the ties: GitHub #62** (depth and colour interpolation collapses on a degenerate micropolygon; see "T084b and T084c: investigation" above). It is not touched here; it gets its own `fix/` branch. The tie-break below removes the nondeterminism whatever the cause, so the ties of #62 and genuine ties (coincident surfaces) are handled alike.
+- **Fix.** New shared header `src/ri/hiders/rasterTie.h` (`CTieKey` = the object's `stableId`, then the micropolygon or point index; `tieKeyLess`; `RASTER_TIE_KEY`). The reyes hider (`stochasticQuad.h`, `stochasticPoint.h`, `CPixel::tie` in `stochastic.h`) and the zbuffer hider (`zbufferQuad.h`, `zbufferPoint.h`; three more floats per sample, `SAMPLES_PER_PIXEL` 4 to 7) use the same functions: a fragment of exactly equal depth wins when its key is smaller, and the winner's key is stored with the sample. The check in the unshaded pre-pass (`drawPixelCheck`) uses the same condition, so a grid that would win a tie is shaded. Two things beyond the macros were needed for the test to pass: the bucket loop in `reyes.cpp` culled an object whose nearest depth equals the bucket's maximum opaque depth (`zmin < maxDepth`), so the second of two tied objects never reached the sample; it is now `<=`. Equal keys keep the first arrival, as before.
+- **Not covered.** The transparent paths (a fragment list ordered by depth) keep their arrival order for equal depths; no scene in the suite showed it.
+- **Tests.** `DeterminismTies_reyes` and `DeterminismTies_zbuffer` are green (3 consecutive runs each); they were red with 6654 to 9048 of 65536 values differing.
+- **Proof.** Fills as above, 8 renders per fill (32 per scene) at `-t:4`: 0 differ for `blobby-dent-reyes`, `blobby-repeller-heights-reyes`, `blobby-spiral-reyes`, `bunny-reyes`, `blobby-blend-far-reyes`, and still 0 for `csg-secondary-rays-reyes`, `csg-hero-translucent-raytrace`, `csg-procedural-operand-raytrace`, `csg-hero-plain-sphere-raytrace`.
+- **What moved at `-t:1` under sobol (after T084b):** 42 of 415 outputs; the winner at tie samples changes, so a handful of pixels per scene, 181 and 185 for `blobby-spiral-reyes` and `-zbuffer`: blobby-blend-far-reyes:7, blobby-blend-far-zbuffer:4, blobby-blend-influencing-zbuffer:5, blobby-blend-merged-reyes:7, blobby-blend-merged-zbuffer:4, blobby-carved-colour-zbuffer:4, blobby-coloured-octahedron-apart-reyes:3, blobby-coloured-octahedron-reyes:2, blobby-coloured-octahedron-zbuffer:16, blobby-dent-reyes:7, blobby-hand-maxed-reyes:13, blobby-hand-maxed-zbuffer:17, blobby-hand-selective-reyes:15, blobby-hand-selective-zbuffer:12, blobby-hand-summed-reyes:8, blobby-hand-summed-zbuffer:3, blobby-max-union-zbuffer:3, blobby-mixed-fields-reyes:3, blobby-mixed-fields-zbuffer:4, blobby-motion-grow-reyes:2, blobby-motion-grow-zbuffer:11, blobby-motion-still-zbuffer:4, blobby-motion-translate-reyes:6, blobby-motion-translate-zbuffer:4, blobby-object-instance-reyes:25, blobby-object-instance-zbuffer:4, blobby-parse-smoke:4, blobby-repeller-heights-reyes:12, blobby-repeller-shaping-reyes:7, blobby-repeller-shaping-zbuffer:4, blobby-solid-texture-bent-reyes:8, blobby-solid-texture-bent-zbuffer:4, blobby-solid-texture-straight-reyes:4, blobby-spiral-reyes:181, blobby-spiral-zbuffer:185, blobby-tolerance-default-reyes:8, blobby-tolerance-inherited-reyes:6, blobby-tube-reyes:32, blobby-tube-zbuffer:6, bunny-reyes:35, ties-coincident-reyes:3792, ties-coincident-zbuffer:3748. The two tie scenes (3792 and 3748 pixels) are the new tests.
+- **Reference and parity tests that render a moved scene** (old = after T084b, new = after T084c; same noise caveat; the Legacy `Visual_*-zbuffer` and `Visual_blobby-*` tests move by up to 0.5, the parity tests by up to 3.7):
+
+| Test | old | new | Threshold |
+|---|---|---|---|
+| Parity_blobby-blend-far-reyes-raytrace | 3.05 | 2.3 | 20.0 |
+| Parity_blobby-blend-far-reyes-zbuffer | 1.3 | 2.69 | 20.0 |
+| Visual_blobby-blend-far-reyes | 2.45 | 2.5 | 20.0 |
+| Visual_blobby-blend-far-zbuffer | 0.2 | 0.25 | 20.0 |
+| Parity_blobby-blend-influencing-reyes-zbuffer | 1.89 | 1.53 | 20.0 |
+| Visual_blobby-blend-influencing-zbuffer | 0.23 | 0.38 | 20.0 |
+| Parity_blobby-blend-merged-reyes-raytrace | 1.95 | 2.55 | 20.0 |
+| Parity_blobby-blend-merged-reyes-zbuffer | 1.31 | 1.06 | 20.0 |
+| Visual_blobby-blend-merged-reyes | 1.72 | 0.34 | 20.0 |
+| Visual_blobby-blend-merged-zbuffer | 0.23 | 0.22 | 20.0 |
+| Parity_blobby-carved-colour-reyes-zbuffer | 2.36 | 3.12 | 20.0 |
+| Visual_blobby-carved-colour-zbuffer | 0.19 | 0.28 | 20.0 |
+| Parity_blobby-coloured-octahedron-apart-reyes-raytrace | 3.78 | 4.45 | 20.0 |
+| Parity_blobby-coloured-octahedron-apart-reyes-zbuffer | 3.64 | 3.55 | 20.0 |
+| Visual_blobby-coloured-octahedron-apart-reyes | 0.0 | 0.66 | 20.0 |
+| Parity_blobby-coloured-octahedron-reyes-raytrace | 5.05 | 5.86 | 20.0 |
+| Parity_blobby-coloured-octahedron-reyes-zbuffer | 6.03 | 2.86 | 20.0 |
+| Visual_blobby-coloured-octahedron-reyes | 0.14 | 4.16 | 20.0 |
+| Visual_blobby-coloured-octahedron-zbuffer | 0.19 | 0.61 | 20.0 |
+| Parity_blobby-dent-reyes-raytrace | 2.95 | 3.42 | 20.0 |
+| Parity_blobby-dent-reyes-zbuffer | 2.98 | 2.98 | 20.0 |
+| Visual_blobby-dent-reyes | 2.17 | 0.95 | 20.0 |
+| Parity_blobby-hand-maxed-reyes-raytrace | 3.72 | 3.86 | 20.0 |
+| Parity_blobby-hand-maxed-reyes-zbuffer | 3.48 | 2.83 | 20.0 |
+| Visual_blobby-hand-maxed-reyes | 0.2 | 3.72 | 20.0 |
+| Visual_blobby-hand-maxed-zbuffer | 0.2 | 0.5 | 20.0 |
+| Parity_blobby-hand-selective-reyes-raytrace | 3.69 | 3.5 | 20.0 |
+| Parity_blobby-hand-selective-reyes-zbuffer | 2.66 | 3.14 | 20.0 |
+| Visual_blobby-hand-selective-reyes | 3.33 | 0.47 | 20.0 |
+| Visual_blobby-hand-selective-zbuffer | 0.19 | 0.48 | 20.0 |
+| Parity_blobby-hand-summed-reyes-raytrace | 3.58 | 3.7 | 20.0 |
+| Parity_blobby-hand-summed-reyes-zbuffer | 2.55 | 2.36 | 20.0 |
+| Visual_blobby-hand-summed-reyes | 0.17 | 0.45 | 20.0 |
+| Visual_blobby-hand-summed-zbuffer | 0.22 | 0.22 | 20.0 |
+| Parity_blobby-max-union-reyes-zbuffer | 2.05 | 1.67 | 20.0 |
+| Visual_blobby-max-union-zbuffer | 0.2 | 0.25 | 20.0 |
+| Parity_blobby-mixed-fields-reyes-raytrace | 3.77 | 3.67 | 20.0 |
+| Parity_blobby-mixed-fields-reyes-zbuffer | 4.44 | 4.11 | 20.0 |
+| Visual_blobby-mixed-fields-reyes | 0.27 | 3.38 | 20.0 |
+| Visual_blobby-mixed-fields-zbuffer | 0.27 | 0.47 | 20.0 |
+| Parity_blobby-motion-grow-reyes-raytrace | 3.16 | 2.95 | 20.0 |
+| Visual_blobby-motion-grow-reyes | 0.05 | 0.08 | 20.0 |
+| Visual_blobby-motion-grow-zbuffer | 0.12 | 0.16 | 20.0 |
+| Parity_blobby-motion-still-reyes-zbuffer | 0.5 | 0.56 | 20.0 |
+| Visual_blobby-motion-still-zbuffer | 1.17 | 1.17 | 20.0 |
+| Parity_blobby-motion-translate-reyes-raytrace | 6.23 | 6.69 | 20.0 |
+| Visual_blobby-motion-translate-reyes | 1.0 | 1.03 | 20.0 |
+| Visual_blobby-motion-translate-zbuffer | 1.31 | 1.34 | 20.0 |
+| Parity_blobby-object-instance-reyes-raytrace | 2.75 | 2.98 | 20.0 |
+| Parity_blobby-object-instance-reyes-zbuffer | 2.72 | 2.2 | 20.0 |
+| Visual_blobby-object-instance-reyes | 4.36 | 0.2 | 20.0 |
+| Visual_blobby-object-instance-zbuffer | 0.19 | 0.2 | 20.0 |
+| Visual_blobby-parse-smoke | Passed | Passed | (pass/fail) |
+| Parity_blobby-repeller-heights-reyes-raytrace | 4.27 | 4.28 | 20.0 |
+| Parity_blobby-repeller-heights-reyes-zbuffer | 1.86 | 2.08 | 20.0 |
+| Visual_blobby-repeller-heights-reyes | 0.33 | 2.92 | 20.0 |
+| Parity_blobby-repeller-shaping-reyes-raytrace | 4.19 | 4.14 | 20.0 |
+| Parity_blobby-repeller-shaping-reyes-zbuffer | 2.09 | 2.03 | 20.0 |
+| Visual_blobby-repeller-shaping-reyes | 3.33 | 0.66 | 20.0 |
+| Visual_blobby-repeller-shaping-zbuffer | 0.27 | 0.53 | 20.0 |
+| Parity_blobby-solid-texture-bent-reyes-raytrace | 3.23 | 3.44 | 20.0 |
+| Parity_blobby-solid-texture-bent-reyes-zbuffer | 2.61 | 1.95 | 20.0 |
+| Visual_blobby-solid-texture-bent-reyes | 1.33 | 2.14 | 20.0 |
+| Visual_blobby-solid-texture-bent-zbuffer | 0.2 | 0.34 | 20.0 |
+| Parity_blobby-solid-texture-straight-reyes-raytrace | 3.78 | 4.03 | 20.0 |
+| Parity_blobby-solid-texture-straight-reyes-zbuffer | 2.7 | 1.75 | 20.0 |
+| Visual_blobby-solid-texture-straight-reyes | 0.22 | 0.84 | 20.0 |
+| Parity_blobby-spiral-reyes-raytrace | 6.12 | 5.88 | 20.0 |
+| Parity_blobby-spiral-reyes-zbuffer | 4.47 | 4.41 | 20.0 |
+| Visual_blobby-spiral-reyes | 0.22 | 1.12 | 20.0 |
+| Visual_blobby-spiral-zbuffer | 0.23 | 1.23 | 20.0 |
+| Parity_blobby-tolerance-default-reyes-raytrace | 2.97 | 2.64 | 20.0 |
+| Parity_blobby-tolerance-default-reyes-zbuffer | 3.2 | 2.89 | 20.0 |
+| Visual_blobby-tolerance-default-reyes | 2.66 | 2.19 | 20.0 |
+| Parity_blobby-tolerance-inherited-reyes-raytrace | 4.95 | 2.98 | 20.0 |
+| Parity_blobby-tolerance-inherited-reyes-zbuffer | 2.69 | 2.67 | 20.0 |
+| Visual_blobby-tolerance-inherited-reyes | 0.2 | 0.73 | 20.0 |
+| Parity_blobby-tube-reyes-raytrace | 3.69 | 3.58 | 20.0 |
+| Parity_blobby-tube-reyes-zbuffer | 5.22 | 5.22 | 20.0 |
+| Visual_blobby-tube-reyes | 2.92 | 3.45 | 20.0 |
+| Visual_blobby-tube-zbuffer | 0.16 | 0.59 | 20.0 |
+| Visual_bunny-reyes | 5.22 | 5.02 | 20.0 |
+
+#### Sweep, twice, and the re-checks
+
+- **Sweep** (`ctest -L determinism-sweep -j4`, 409 enabled tests; the four disabled entries are the two of #60 and the two left under #61): run 1 **406 pass, 3 fail** (`csg-hero-displaced-reyes`, `csg-hero-reyes-1600`, `csg-hero-two-shaders-reyes`); run 2 **406 pass, 3 fail** (`csg-hero-partial-stats-reyes`, `csg-hero-reyes-1600`, `csg-offscreen-stats-reyes`). Before T084b and T084c: 19 and 18 failing of 413. Every blobby and bunny scene and all the raytrace scenes are green in both runs; the failures are all in the CSG hero reyes family.
+- **Time.** 620 s and 700 s, against 422 s for the first sweep of this phase. The machine was loaded (load average 40 to 44 throughout): `teapot-motion-raytrace`, which none of the changes touches, went from 115 s to 297 s. The 10-minute limit of FR-030 therefore needs a measurement on an idle machine before it is decided whether the sweep keeps its `determinism` label.
+- **Re-check of the four scenes.**
+  - `csg-hero-displaced-reyes`: still differs (1 render of 8 at `-t:4`, 11 pixels of about +-1e-3 on black pixels in the first column of a bucket, `x = 448`); it has no tie, the fill does not explain it, and the cause is not found. It stays red.
+  - `blobby-blend-far-reyes`: green (0 of 31 under four fills, and in both sweeps).
+  - `csg-offscreen-stats-reyes`, `csg-hero-partial-stats-reyes`: each failed once in the two sweeps, though the unfilled renders were identical 5 of 5; the only difference found is the 0xFF fill image (the grid derivative residual above). They stay red.
