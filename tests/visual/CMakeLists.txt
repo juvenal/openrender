@@ -3986,3 +3986,19 @@ add_test(NAME Sampling_DisplaceRepeat
     WORKING_DIRECTORY ${_phase6_dir})
 set_tests_properties(Sampling_DisplaceThreadSweep Sampling_DisplaceRepeat PROPERTIES TIMEOUT 120
     LABELS "visual;regression;sampling" RESOURCE_LOCK sampling_phase6_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+
+# --- Determinism harness self-tests (spec 039, Phase 7, T079) ----------------------------------
+# test_depth_determinism's cross-configuration mode (--configs, --outputs, --prepend,
+# --keep-pins, --no-dither, --print-scene). Written before the flags exist; see
+# check_determinism_harness.sh for what each case checks.
+set(_harness_dir ${CMAKE_BINARY_DIR}/tests/visual/determinism-harness)
+file(MAKE_DIRECTORY ${_harness_dir})
+foreach(_case identical detects render_failure multiple_outputs print_prepend print_keep_pins print_no_dither usage_unchanged)
+    add_test(NAME DeterminismHarness_${_case}
+        COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/check_determinism_harness.sh
+            $<TARGET_FILE:test_depth_determinism> $<TARGET_FILE:orender> ${CMAKE_SOURCE_DIR}/examples/rib/tests ${_case}
+        WORKING_DIRECTORY ${_harness_dir})
+    set_tests_properties(DeterminismHarness_${_case} PROPERTIES TIMEOUT 300
+        LABELS "visual;regression;sampling;determinism" RESOURCE_LOCK determinism_harness_scratch
+        ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+endforeach()

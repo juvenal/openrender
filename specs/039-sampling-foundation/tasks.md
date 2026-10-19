@@ -365,6 +365,13 @@ The call-site operand and the `_v2` ABI make Phase 4 a MAJOR change of both shad
 
 **Goal**: cross-configuration bit-identity over every non-GI scene (FR-030, contracts/test-harnesses.md).
 
+### Tests first
+
+- [X] T078a [US1] Self-tests of the harness, `DeterminismHarness_*` (label `determinism`; `tests/visual/check_determinism_harness.sh`, scenes `determinism-harness-noisy.rib` and `determinism-harness-two-outputs.rib`), written against the interface T079 must provide: `identical` (a thread independent scene under sobol with `--no-dither` gives exit 0), `detects` (a Legacy random scene without a pin gives exit 1 and lists between 1 and 5 `pixel (x, y)` lines per output), `render_failure` (exit 2), `multiple_outputs` (two displays, each named in the report), `print_prepend`, `print_keep_pins`, `print_no_dither` (a new `--print-scene` flag prints the prepared copy and exits 0 without rendering, so the prepend, the pin removal and the Quantize line can be checked), `usage_unchanged` (the original usage still works; green today).
+- [ ] T078b [RUN] [US1] **TEST-APPROVAL**.
+
+### Implementation
+
 - [ ] T079 [US1] `tests/visual/test_depth_determinism.cpp`: add `--configs "<opts>|…"` (an empty entry means the default thread count), `--outputs a.tif,…` (every display decoded through libtiff, at any depth, `z` included) and `--prepend "<RIB line>"` (writes a temporary copy of the scene, keeping its archive paths valid).
   - The `--prepend` copy also **drops every `Option "limits" "numthreads"` line**, so pinned non-GI scenes really run multithreaded (`--keep-pins` disables this, for GI scenes only).
   - Add `--no-dither`, which prepends `Quantize "rgba" 255 0 255 0` (dither amplitude 0). Until T095 replaces libc `rand()`, 8-bit dithered outputs differ between configurations for a reason this phase does not fix. A scene that sets its own non-zero-dither `Quantize` is listed for the Phase 9 run (T103) only.
