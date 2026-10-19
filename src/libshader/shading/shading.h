@@ -43,6 +43,7 @@ class CXform;
 class CShaderInstance;
 class CRay;
 class CGatherBundle;
+class CDrawOccurrences;
 class CGatherLookup;
 class CGatherRay;
 class CObject;
@@ -231,7 +232,7 @@ class CShadingState {
         openrender::sampling::SampleKey *pointKeys; // Per-vertex identity, numVertices long (a derivative-offset tail vertex copies its real vertex's key)
         uint64_t batchKey;                          // The invocation-level key, for uniform random()
         int pointKeysFromRays;                      // TRUE while pointKeys were set by the hider (ray hits), not by the cell rule
-        uint32_t *callSiteOccurrence;               // Per-point call-site occurrence counters (allocated lazily by the runtime; null until a draw needs them)
+        CDrawOccurrences *callSiteOccurrence;       // Per-point call-site occurrence counters (allocated lazily by the runtime; null until a draw needs them)
         uint64_t currentShaderKey;                  // mix(shader name, instance ordinal) of the shader being executed
 
         CShadingState *next; // The next in free state list
@@ -247,6 +248,20 @@ struct CPointKeyReport {
         const float *u, *v;                          // Their parametric coordinates
 };
 typedef void (*CPointKeyObserver)(const CPointKeyReport &);
+
+// A second test hook (spec 039): called once per shading call that runs a displacement
+// shader, right after it, with the real vertices' parametric coordinates and displaced
+// positions. `displaceOnly` is 0 for a full shading pass and non-zero for a displacement-only
+// pass (the dicer's bounding and grid-size probes). Null in production. See
+// CShadingContext::pointDisplacedObserver; it exists for Sampling_DisplacePassConsistency.
+struct CPointDisplacedReport {
+        const CSurface *surface;
+        int displaceOnly;
+        int numVertices;     // Real vertices
+        const float *u, *v;  // Their parametric coordinates
+        const float *P;      // Their displaced positions, 3 floats each
+};
+typedef void (*CPointDisplacedObserver)(const CPointDisplacedReport &);
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRayBundle
@@ -288,6 +303,7 @@ class CShadingContext {
     public:
         // Test hook, null in production (see CPointKeyReport). Set only by tests.
         static CPointKeyObserver pointKeyObserver;
+        static CPointDisplacedObserver pointDisplacedObserver; // Test hook, null in production
 
         CShadingContext(int thread);
         virtual ~CShadingContext();
@@ -337,7 +353,115 @@ class CShadingContext {
         // (giFunctions.h GATHERHEADEREXPR) and the LLVM JIT op_gatherHeader
         // wrapper. Byte-faithful transcription of the EXPR macro body,
         // excluding plReady() (PL-cache/bytecode-specific, stays in the caller).
-        void gatherHeaderRay(CGatherRay *ray, const float *P, const float *D, float sampleConeVal, float *dPdu, float *dPdv, float duVal, float dvVal);
+        void gatherHeaderRay(CGatherRay *ray, const float *P, const float *D, float sampleConeVal, float *dPdu, float *dPdv, float duVal, float dvVal, int vertex = 0, uint32_t *counts = nullptr, unsigned callSite = 0, uint32_t samplesPerCall = 1);
+
+        // ---------------------------------------------------------------------
+        // Spec 039: where the random numbers of a stochastic call come from.
+        //
+        // Under the Legacy sampler they come from the context's own generators
+        // (below, in this header: these inline members are the only place the
+        // shading code names them). Under every other sampler they are draws
+        // from the sampler's sub-stream of (point, shader, call site, occurrence,
+        // ray depth), so a call's values do not depend on what other calls drew,
+        // on the thread, or on the shading backend (contracts/shading-runtime.md,
+        // research R3.5-R3.10).
+        // ---------------------------------------------------------------------
+        bool keyedDraws() const { return sampling.backend != openrender::sampling::Backend::Legacy; }
+
+        // The sub-stream of the stochastic call at `callSite` for the shading point
+        // `vertex` (-1: the invocation-level key, for a uniform call), consuming one
+        // occurrence. Only the real, active vertices of a call count: a derivative-
+        // offset tail vertex shares its real vertex's occurrence, so Du() of a draw
+        // is 0. `counts` is drawCounters(callSite).
+        // `pointOut` and `occurrenceOut`, when given, receive the point's key and the
+        // occurrence, for the child keys of the rays the call spawns.
+        openrender::sampling::SubstreamKey drawSubstream(int vertex, uint32_t *counts, unsigned callSite, uint32_t samplesPerCall,
+                                                         openrender::sampling::SampleKey *pointOut = nullptr, uint32_t *occurrenceOut = nullptr);
+        // The occurrence counters of the current shader's call site (one per real
+        // vertex, and one for the uniform key). Null when the sampler is Legacy.
+        uint32_t *drawCounters(unsigned callSite);
+
+        // random()/urandom(): n values (1 or 3) for one shading point.
+        inline void drawRandom(int vertex, uint32_t *counts, unsigned callSite, float *res, int n) {
+            if (keyedDraws())
+                keyedRandom(vertex, counts, callSite, res, n);
+            else
+                for (int k = 0; k < n; k++)
+                    res[k] = urand();
+        }
+
+        // Start a new batch of draws on the current shading state: every call site is back
+        // at occurrence 0. fillPointKeys() does it for a shading call; a hider that fills
+        // pointKeys itself (the photon hider) calls it for each batch.
+        void resetDrawOccurrences();
+
+        // A cursor for code that has no way to carry a sub-stream (the irradiance
+        // and radiance caches): bindDraws() points it at a stochastic call's
+        // sub-stream, drawNext() takes the next dimension of it.
+        void bindDraws(int vertex, uint32_t *counts, unsigned callSite, uint32_t samplesPerCall);
+        inline float drawNext() { return keyedDraws() ? keyedNext() : urand(); }
+        // Two and four values at once, for the stratified filter samples of the texture lookups
+        inline void drawNext2(float *r) {
+            if (keyedDraws()) {
+                r[0] = keyedNext();
+                r[1] = keyedNext();
+            }
+            else
+                random2d.get(r);
+        }
+        inline void drawNext4(float *r) {
+            if (keyedDraws()) {
+                for (int k = 0; k < 4; k++)
+                    r[k] = keyedNext();
+            }
+            else
+                random4d.get(r);
+        }
+
+        // The draws of a ray sample: four jitter values (origin, then direction),
+        // a direction in a cone, and a time. `sub` is null under Legacy.
+        inline void drawJitter4(const openrender::sampling::SubstreamKey *sub, int sample, float *out) {
+            if (sub != nullptr && keyedDraws()) {
+                const openrender::sampling::Sample2D a = openrender::sampling::get2D(sampling.backend, *sub, 0, (uint32_t)sample);
+                const openrender::sampling::Sample2D b = openrender::sampling::get2D(sampling.backend, *sub, 1, (uint32_t)sample);
+                out[0] = a.u;
+                out[1] = a.v;
+                out[2] = b.u;
+                out[3] = b.v;
+            }
+            else {
+                out[0] = urand();
+                out[1] = urand();
+                out[2] = urand();
+                out[3] = urand();
+            }
+        }
+        inline void drawCone(const openrender::sampling::SubstreamKey *sub, int sample, float *R, const float *Z, float theta, bool cosine) {
+            if (sub != nullptr && keyedDraws()) {
+                const openrender::sampling::Sample2D xi = openrender::sampling::get2D(sampling.backend, *sub, 2, (uint32_t)sample);
+                if (cosine)
+                    sampleCosineHemisphere(R, Z, theta, xi);
+                else
+                    sampleHemisphere(R, Z, theta, xi);
+            }
+            else if (cosine)
+                sampleCosineHemisphere(R, Z, theta, random4d);
+            else
+                sampleHemisphere(R, Z, theta, random4d);
+        }
+        // The camera-importance stand-in of a ray that has none (every ray but a primary one
+        // under the new samplers): drawn from the ray's own key, so it does not depend on
+        // what else was traced.
+        inline float rayImportance(const openrender::sampling::SampleKey &key, uint16_t depth) {
+            if (keyedDraws())
+                return openrender::sampling::get1D(sampling.backend, openrender::sampling::substream(key, 0x1A9Full, 0, 0, depth, 1), 0, 0);
+            return urand();
+        }
+        inline float drawTime(const openrender::sampling::SubstreamKey *sub, int sample) {
+            if (sub != nullptr && keyedDraws())
+                return openrender::sampling::get1D(sampling.backend, *sub, 3, (uint32_t)sample);
+            return urand();
+        }
 
         // Shading state management functions
         void updateState();                // Add a variable into the shading state
@@ -510,7 +634,7 @@ class CShadingContext {
         // promote a literal sampleCone expression to a single-element uniform
         // slot). A blind fixed advance here would walk a uniform source's
         // pointer past its one-element allocation.
-        void jitGatherHeaderBegin(const char *const *names, void *const *valuePtrs, const int *steps, const int *isVarying, int numPairs, const float *P, int strideP, const float *D, int strideD, const float *sampleCone, int strideSampleCone, float samplesCount);
+        void jitGatherHeaderBegin(const char *const *names, void *const *valuePtrs, const int *steps, const int *isVarying, int numPairs, const float *P, int strideP, const float *D, int strideD, const float *sampleCone, int strideSampleCone, float samplesCount, uint32_t callSite = 0);
 
         // ---> JIT wrappers for derivative and geometric built-ins (Layer G)
         // These call CShadingContext::duFloat/dvFloat/duVector/dvVector which
@@ -522,11 +646,11 @@ class CShadingContext {
         void jitArea(float *dst, int sd, const float *P, int n, const int *tags);
         void jitCalculateNormal(float *dst, int sd, const float *P, int n, const int *tags);
         void jitDepth(float *dst, int sd, const float *P, int sp, int n, const int *tags);
-        void jitTextureF(float *dst, int sd, const char *name, int channel, const float *s, int ss, const float *t, int st, int n, const int *tags);
-        void jitTextureC(float *dst, int sd, const char *name, const float *s, int ss, const float *t, int st, int n, const int *tags);
-        void jitEnvironmentF(float *dst, int sd, const char *name, int channel, const float *D, int sD, int n, const int *tags);
-        void jitEnvironmentC(float *dst, int sd, const char *name, const float *D, int sD, int n, const int *tags);
-        void jitShadowF(float *dst, int sd, const char *name, const float *Ps, int sPs, int n, const int *tags);
+        void jitTextureF(float *dst, int sd, const char *name, int channel, const float *s, int ss, const float *t, int st, int n, const int *tags, uint32_t callSite);
+        void jitTextureC(float *dst, int sd, const char *name, const float *s, int ss, const float *t, int st, int n, const int *tags, uint32_t callSite);
+        void jitEnvironmentF(float *dst, int sd, const char *name, int channel, const float *D, int sD, int n, const int *tags, uint32_t callSite);
+        void jitEnvironmentC(float *dst, int sd, const char *name, const float *D, int sD, int n, const int *tags, uint32_t callSite);
+        void jitShadowF(float *dst, int sd, const char *name, const float *Ps, int sPs, int n, const int *tags, uint32_t callSite);
         void jitFindCoordinateSystem(const char *name, const float *&from, const float *&to, ECoordinateSystem &type);
 
         // visibility()/transmission()/trace() (spec 017-jit-builtin-function-coverage,
@@ -541,16 +665,16 @@ class CShadingContext {
         // CTraceLookup::init() does for the interpreter's own PL-cache-free case.
         void jitVisibility(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                            const float *du, const float *dv, const float *N, const float *time,
-                           int n, const int *tags);
+                           int n, const int *tags, uint32_t callSite);
         void jitTransmission(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                              const float *du, const float *dv, const float *N, const float *time,
-                             int n, const int *tags);
+                             int n, const int *tags, uint32_t callSite);
         void jitTraceF(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                        const float *du, const float *dv, const float *N, const float *time,
-                       int n, const int *tags);
+                       int n, const int *tags, uint32_t callSite);
         void jitTraceC(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                        const float *du, const float *dv, const float *N, const float *time,
-                       int n, const int *tags);
+                       int n, const int *tags, uint32_t callSite);
 
         // occlusion()/indirectdiffuse() (spec 017-jit-builtin-function-coverage,
         // US1): byte-faithful transcriptions of IDEXPR_PRE/IDEXPR/_UPDATE/_POST
@@ -560,10 +684,10 @@ class CShadingContext {
         // call form (no "!"-suffixed channel-binding extension).
         void jitOcclusion(float *dst, int sd, const float *P, int sP, const float *N, int sN,
                           const float *samples, int sSamples, const float *du, const float *dv,
-                          int n, const int *tags);
+                          int n, const int *tags, uint32_t callSite);
         void jitIndirectDiffuse(float *dst, int sd, const float *P, int sP, const float *N, int sN,
                                 const float *samples, int sSamples, const float *du, const float *dv,
-                                int n, const int *tags);
+                                int n, const int *tags, uint32_t callSite);
 
         // texture3d()/bake3d() (spec 017-jit-builtin-function-coverage,
         // US5): reuse US1's occlusion/indirectdiffuse point-cloud-lookup
@@ -770,6 +894,10 @@ class CShadingContext {
         void jitDebug(int n, const int *tags);
 
     protected:
+        // The keyed halves of the draw members above (shading.cpp)
+        void keyedRandom(int vertex, uint32_t *counts, unsigned callSite, float *res, int n);
+        float keyedNext() { return openrender::sampling::get1D(sampling.backend, drawCursor, drawCursorDim++, 0); }
+
         // See setSamplingConfig(). Legacy until the core sets it.
         openrender::sampling::CSamplingConfig sampling{openrender::sampling::Backend::Legacy, 0u, 0u, 1, 1, 0.0f};
 
@@ -849,7 +977,16 @@ class CShadingContext {
                 float bias;           // The shadow bias
                 float sampleBase;     // The sample base
                 float maxDist;        // The maximum intersection distance
+                // Spec 039: the sampler sub-stream of this call (valid when `keyed`)
+                openrender::sampling::SubstreamKey sub;
+                bool keyed;
+                openrender::sampling::SampleKey key; // The shading point's key, parent of the rays it spawns
+                uint32_t occurrence;
+                unsigned callSite;
         };
+
+        // Give a ray location the sub-stream of its call (counts is null under the Legacy sampler)
+        void bindLocationDraws(CTraceLocation *location, int vertex, uint32_t *counts, unsigned callSite);
 
         void traceTransmission(int numRays, CTraceLocation *rays, int probeOnly);
         void traceReflection(int numRays, CTraceLocation *rays, int probeOnly);
@@ -865,7 +1002,7 @@ class CShadingContext {
         // trace() float result (spec 017 T012 fix).
         void jitTraceBatch(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                            const float *du, const float *dv, const float *N, const float *time,
-                           int n, const int *tags, int probeOnly, bool isReflection, bool wantBoolean);
+                           int n, const int *tags, int probeOnly, bool isReflection, bool wantBoolean, uint32_t callSite);
 
         // Shared finishing logic for the parameter-query family (spec 017,
         // US5) -- given a `found`/`cVar` pair already resolved by ONE call to
@@ -880,7 +1017,7 @@ class CShadingContext {
         // builtin-function-coverage, US1) -- see shading.cpp.
         void jitOcclusionBatch(float *dst, int sd, const float *P, int sP, const float *N, int sN,
                                const float *samples, int sSamples, const float *du, const float *dv,
-                               int n, const int *tags, bool wantOcclusion);
+                               int n, const int *tags, bool wantOcclusion, uint32_t callSite);
 
         // The following functions are used in the shaders
         int surfaceParameter(void *dest, const char *name, CVariable **, int *);
@@ -922,6 +1059,12 @@ class CShadingContext {
         uint32_t state[624];
         uint32_t *next;
 
+        // The draw cursor (bindDraws/drawNext) and the shader-key cache
+        openrender::sampling::SubstreamKey drawCursor{0, 0};
+        uint32_t drawCursorDim = 0;
+        const CShaderInstance *shaderKeyInstance = nullptr;
+        uint64_t shaderKeyValue = 0;
+
         CPLLookup *plHash[PL_HASH_SIZE];
 
         void next_state();
@@ -936,5 +1079,16 @@ class CShadingContext {
         // Default renderer services injected by src/ri/ at startup via setDefaultServices()
         static CRendererServices *s_defaultServices;
 };
+
+
+// Spec 039: the vertex bookkeeping of the stochastic builtin macros. DRAW_BEGIN opens the
+// occurrence counters of the instruction's call site, DRAW_STEP follows the macro's loop,
+// DRAW_BIND points the draw cursor at the current vertex's sub-stream for code (the texture
+// and cache lookups) that has no way to be handed one.
+#define DRAW_BEGIN                                       \
+    uint32_t *drawCounts = drawCounters(code->callSite); \
+    int drawVertex = 0;
+#define DRAW_STEP ++drawVertex;
+#define DRAW_BIND(__samples) bindDraws(drawVertex, drawCounts, code->callSite, (uint32_t)(__samples));
 
 #endif

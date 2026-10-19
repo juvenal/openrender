@@ -32,6 +32,7 @@
 #include "algebra.h"
 #include "global.h" // The global header file
 #include "os.h"
+#include "sampling.h" // Sample2D, Sample3D
 #include "sobolTables.h" // SOBOL_MAX_DIMENSION, Sobol sequence tables
 
 ////////////////////////////////////////////////////////////////////////////
@@ -157,6 +158,16 @@ class CSobol {
 void sampleHemisphere(float *R, const float *Z, const float theta, CSobol<4> &generator);
 void sampleCosineHemisphere(float *R, const float *Z, const float theta, CSobol<4> &generator);
 void sampleSphere(float *P, CSobol<3> &generator);
+
+// The same distributions from sampler values (spec 039): no generator, no
+// rejection loop, so one sample is one point set value. The first two are
+// parameterised by the cone half-angle theta around the unit vector Z exactly as
+// the CSobol overloads are: cos(angle) is uniform for sampleHemisphere and
+// cosine-weighted for sampleCosineHemisphere, and the azimuth is uniform.
+void sampleHemisphere(float *R, const float *Z, const float theta, const openrender::sampling::Sample2D &xi);
+void sampleCosineHemisphere(float *R, const float *Z, const float theta, const openrender::sampling::Sample2D &xi);
+// A point uniformly distributed in the unit ball.
+void sampleSphere(float *P, const openrender::sampling::Sample3D &xi);
 
 ///////////////////////////////////////////////////////////////////////
 // Function             :   sampleDisk

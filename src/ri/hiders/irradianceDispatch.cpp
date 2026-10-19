@@ -24,7 +24,7 @@
  *     itself calls while walking the cache's octree -- lookup() IS needed
  *     by the data-viewer, so this couldn't be handled by excluding the
  *     whole method; it needed pulling out just the one line that calls
- *     context->urand() (an inline wrapper around next_state()). See
+ *     context->drawNext() (an inline wrapper around next_state()). See
  *     irradiance.h's declaration and irradianceDispatchStub.cpp's stub
  *     for why the stub's answer is exact, not an approximation, for
  *     every case ribVector can actually reach.
@@ -316,10 +316,10 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
         for (i = 0; i < nt; i++) {
             for (j = 0; j < np; j++, hemisphere++) {
                 float rv[2];
-                context->random2d.get(rv);
+                context->drawNext2(rv);
 
-                float tmp = sqrtf((i + context->urand()) / (float)nt);
-                const float phi = (float)(2 * C_PI * (j + context->urand()) / (float)np);
+                float tmp = sqrtf((i + context->drawNext()) / (float)nt);
+                const float phi = (float)(2 * C_PI * (j + context->drawNext()) / (float)np);
                 const float cosPhi = (cosf(phi) * tmp);
                 const float sinPhi = (sinf(phi) * tmp);
 
@@ -417,10 +417,10 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
         for (i = 0; i < nt; i++) {
             for (j = 0; j < np; j++, hemisphere++) {
                 float rv[2];
-                context->random2d.get(rv);
+                context->drawNext2(rv);
 
-                float tmp = sqrtf((i + context->urand()) / (float)nt);
-                const float phi = (float)(2 * C_PI * (j + context->urand()) / (float)np);
+                float tmp = sqrtf((i + context->drawNext()) / (float)nt);
+                const float phi = (float)(2 * C_PI * (j + context->drawNext()) / (float)np);
                 const float cosPhi = (cosf(phi) * tmp);
                 const float sinPhi = (sinf(phi) * tmp);
 
@@ -653,5 +653,5 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
 // Return Value			:	TRUE if the sample should be accepted
 // Comments				:
 bool irradianceSampleAccept(float w, float smallSampleWeight, CShadingContext *context) {
-    return w > context->urand() * smallSampleWeight;
+    return w > context->drawNext() * smallSampleWeight;
 }

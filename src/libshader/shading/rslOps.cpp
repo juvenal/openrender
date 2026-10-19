@@ -819,32 +819,31 @@ void op_phong_batch(float *result, const float *Nf, const float *V, const float 
 }
 
 // =========================================================================
-// random() / urandom() — stateful RNG (mirrors RANDOMFEXP/RANDOMVEXP in
-// scriptFunctions.h: same CShadingContext::urand() calls, same x/y/z draw
-// order, same DEFFUNC numVertices loop bound).
+// random() / urandom() -- (mirrors RANDOMFEXP/RANDOMVEXP in scriptFunctions.h:
+// the same CShadingContext::drawRandom() call per vertex, same x/y/z draw order,
+// same DEFFUNC numVertices loop bound). Under the Legacy sampler the values come
+// from the context's generator, otherwise from the sampler's sub-stream of
+// (point, shader, call site, occurrence) -- the same in both backends.
 // =========================================================================
 
-void op_random_f_v2(float *dst, int sd, int n, const int *tags, uint32_t /*callSite*/) {
+void op_random_f_v2(float *dst, int sd, int n, const int *tags, uint32_t callSite) {
     CShadingContext *ctx = libshader::activeContext();
     if (!ctx)
         return;
+    uint32_t *counts = ctx->drawCounters(callSite);
     for (int i = 0; i < n; i++)
         if (ACTIVE(tags, i))
-            IDX(dst, sd, i)
-            [0] = ctx->urand();
+            ctx->drawRandom(i, counts, callSite, IDX(dst, sd, i), 1);
 }
 
-void op_random_v_v2(float *dst, int sd, int n, const int *tags, uint32_t /*callSite*/) {
+void op_random_v_v2(float *dst, int sd, int n, const int *tags, uint32_t callSite) {
     CShadingContext *ctx = libshader::activeContext();
     if (!ctx)
         return;
+    uint32_t *counts = ctx->drawCounters(callSite);
     for (int i = 0; i < n; i++)
-        if (ACTIVE(tags, i)) {
-            float *p = IDX(dst, sd, i);
-            p[0] = ctx->urand();
-            p[1] = ctx->urand();
-            p[2] = ctx->urand();
-        }
+        if (ACTIVE(tags, i))
+            ctx->drawRandom(i, counts, callSite, IDX(dst, sd, i), 3);
 }
 
 // =========================================================================
@@ -1510,13 +1509,13 @@ int op_gather_end(int *numActive, int *numPassive) {
     return ctx->jitGatherEnd(numActive, numPassive);
 }
 
-void op_gatherHeader_v2(const char *const *names, void *const *valuePtrs, const int *steps, const int *isVarying, int numPairs, const float *P, int strideP, const float *D, int strideD, const float *sampleCone, int strideSampleCone, float samples, uint32_t /*callSite*/) {
+void op_gatherHeader_v2(const char *const *names, void *const *valuePtrs, const int *steps, const int *isVarying, int numPairs, const float *P, int strideP, const float *D, int strideD, const float *sampleCone, int strideSampleCone, float samples, uint32_t callSite) {
     CShadingContext *ctx = libshader::activeContext();
     if (!ctx)
         return;
     ctx->jitGatherHeaderBegin(names, valuePtrs, steps, isVarying, numPairs,
                               P, strideP, D, strideD, sampleCone, strideSampleCone,
-                              samples);
+                              samples, callSite);
 }
 
 // =========================================================================
@@ -1887,73 +1886,73 @@ void op_depth(float *dst, int sd, const float *P, int sp, int n, const int *tags
 // namepp is a char** (locals[idx] → char* string); namepp[0] = the string.
 // =========================================================================
 
-void op_texture_f_v2(float *dst, int sd, const char *const *namepp, const float *chan, const float *s, int ss, const float *t, int st, int n, const int *tags, uint32_t /*callSite*/) {
+void op_texture_f_v2(float *dst, int sd, const char *const *namepp, const float *chan, const float *s, int ss, const float *t, int st, int n, const int *tags, uint32_t callSite) {
     CShadingContext *ctx = libshader::activeContext();
     if (!ctx || !namepp || !namepp[0])
         return;
     int channel = chan ? (int)chan[0] : 0;
-    ctx->jitTextureF(dst, sd, namepp[0], channel, s, ss, t, st, n, tags);
+    ctx->jitTextureF(dst, sd, namepp[0], channel, s, ss, t, st, n, tags, callSite);
 }
 
-void op_texture_c_v2(float *dst, int sd, const char *const *namepp, const float *s, int ss, const float *t, int st, int n, const int *tags, uint32_t /*callSite*/) {
+void op_texture_c_v2(float *dst, int sd, const char *const *namepp, const float *s, int ss, const float *t, int st, int n, const int *tags, uint32_t callSite) {
     CShadingContext *ctx = libshader::activeContext();
     if (!ctx || !namepp || !namepp[0])
         return;
-    ctx->jitTextureC(dst, sd, namepp[0], s, ss, t, st, n, tags);
+    ctx->jitTextureC(dst, sd, namepp[0], s, ss, t, st, n, tags, callSite);
 }
 
-void op_environment_f_v2(float *dst, int sd, const char *const *namepp, const float *chan, const float *D, int sD, int n, const int *tags, uint32_t /*callSite*/) {
+void op_environment_f_v2(float *dst, int sd, const char *const *namepp, const float *chan, const float *D, int sD, int n, const int *tags, uint32_t callSite) {
     CShadingContext *ctx = libshader::activeContext();
     if (!ctx || !namepp || !namepp[0])
         return;
     int channel = chan ? (int)chan[0] : 0;
-    ctx->jitEnvironmentF(dst, sd, namepp[0], channel, D, sD, n, tags);
+    ctx->jitEnvironmentF(dst, sd, namepp[0], channel, D, sD, n, tags, callSite);
 }
 
-void op_environment_c_v2(float *dst, int sd, const char *const *namepp, const float *D, int sD, int n, const int *tags, uint32_t /*callSite*/) {
+void op_environment_c_v2(float *dst, int sd, const char *const *namepp, const float *D, int sD, int n, const int *tags, uint32_t callSite) {
     CShadingContext *ctx = libshader::activeContext();
     if (!ctx || !namepp || !namepp[0])
         return;
-    ctx->jitEnvironmentC(dst, sd, namepp[0], D, sD, n, tags);
+    ctx->jitEnvironmentC(dst, sd, namepp[0], D, sD, n, tags, callSite);
 }
 
-void op_shadow_f_v2(float *dst, int sd, const char *const *namepp, const float *Ps, int sPs, int n, const int *tags, uint32_t /*callSite*/) {
+void op_shadow_f_v2(float *dst, int sd, const char *const *namepp, const float *Ps, int sPs, int n, const int *tags, uint32_t callSite) {
     CShadingContext *ctx = libshader::activeContext();
     if (!ctx || !namepp || !namepp[0])
         return;
-    ctx->jitShadowF(dst, sd, namepp[0], Ps, sPs, n, tags);
+    ctx->jitShadowF(dst, sd, namepp[0], Ps, sPs, n, tags, callSite);
 }
 
 void op_visibility_v2(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                    const float *du, const float *dv, const float *N, const float *time,
-                   int n, const int *tags, uint32_t /*callSite*/) {
+                   int n, const int *tags, uint32_t callSite) {
     CShadingContext *ctx = libshader::activeContext();
     if (ctx)
-        ctx->jitVisibility(dst, sd, P, sP, D, sD, du, dv, N, time, n, tags);
+        ctx->jitVisibility(dst, sd, P, sP, D, sD, du, dv, N, time, n, tags, callSite);
 }
 
 void op_transmission_v2(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                      const float *du, const float *dv, const float *N, const float *time,
-                     int n, const int *tags, uint32_t /*callSite*/) {
+                     int n, const int *tags, uint32_t callSite) {
     CShadingContext *ctx = libshader::activeContext();
     if (ctx)
-        ctx->jitTransmission(dst, sd, P, sP, D, sD, du, dv, N, time, n, tags);
+        ctx->jitTransmission(dst, sd, P, sP, D, sD, du, dv, N, time, n, tags, callSite);
 }
 
 void op_trace_f_v2(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                 const float *du, const float *dv, const float *N, const float *time,
-                int n, const int *tags, uint32_t /*callSite*/) {
+                int n, const int *tags, uint32_t callSite) {
     CShadingContext *ctx = libshader::activeContext();
     if (ctx)
-        ctx->jitTraceF(dst, sd, P, sP, D, sD, du, dv, N, time, n, tags);
+        ctx->jitTraceF(dst, sd, P, sP, D, sD, du, dv, N, time, n, tags, callSite);
 }
 
 void op_trace_c_v2(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                 const float *du, const float *dv, const float *N, const float *time,
-                int n, const int *tags, uint32_t /*callSite*/) {
+                int n, const int *tags, uint32_t callSite) {
     CShadingContext *ctx = libshader::activeContext();
     if (ctx)
-        ctx->jitTraceC(dst, sd, P, sP, D, sD, du, dv, N, time, n, tags);
+        ctx->jitTraceC(dst, sd, P, sP, D, sD, du, dv, N, time, n, tags, callSite);
 }
 
 // comp()/MComp() (spec 017-jit-builtin-function-coverage, US1): pure
@@ -2043,18 +2042,18 @@ void op_rotate(float *dst, int sd, const float *m, int sm, const float *angle, i
 
 void op_occlusion_v2(float *dst, int sd, const float *P, int sP, const float *N, int sN,
                   const float *samples, int sSamples, const float *du, const float *dv,
-                  int n, const int *tags, uint32_t /*callSite*/) {
+                  int n, const int *tags, uint32_t callSite) {
     CShadingContext *ctx = libshader::activeContext();
     if (ctx)
-        ctx->jitOcclusion(dst, sd, P, sP, N, sN, samples, sSamples, du, dv, n, tags);
+        ctx->jitOcclusion(dst, sd, P, sP, N, sN, samples, sSamples, du, dv, n, tags, callSite);
 }
 
 void op_indirectdiffuse_v2(float *dst, int sd, const float *P, int sP, const float *N, int sN,
                         const float *samples, int sSamples, const float *du, const float *dv,
-                        int n, const int *tags, uint32_t /*callSite*/) {
+                        int n, const int *tags, uint32_t callSite) {
     CShadingContext *ctx = libshader::activeContext();
     if (ctx)
-        ctx->jitIndirectDiffuse(dst, sd, P, sP, N, sN, samples, sSamples, du, dv, n, tags);
+        ctx->jitIndirectDiffuse(dst, sd, P, sP, N, sN, samples, sSamples, du, dv, n, tags, callSite);
 }
 
 void op_texture3d(float *dst, int sd, const char *const *name,

@@ -41,7 +41,7 @@ This covers the compiler, the `.rslo` format, the JIT runtime ABI and `CShadingS
 - **J2**: per point, the JIT increments `occurrence` for active lanes only, exactly as the interpreter does. The comparison tests in SC-008 check this.
 - **J3**: the changed symbols must still resolve at JIT bind time (CLAUDE.md gotcha 3). The `-slo` visual suite proves it.
 
-- **J4**: derivative-offset tail vertices (`numVertices = 3·numRealVertices`) copy their real vertex's key and occurrence, so `Du(random())` and `Dv(random())` are 0 (§R3.10a). This is the same on both backends.
+- **J4**: derivative-offset tail vertices (`numVertices = 3·numRealVertices`) copy their real vertex's key and occurrence, so `Du(random())` and `Dv(random())` are 0 (§R3.10a). This is the same on both backends. It holds for **ray-hit shading only** (the raytrace hider, and secondary-ray hits): a reyes grid takes `Du()`/`Dv()` from its neighbouring grid vertices, which draw independent values, so `Du(random())` is not 0 there. `SamplingJitParity_RandomProbe_*` checks all three channels under the raytrace hider and `_RandomProbeReyes_*` only the distinctness and range channels.
 
 ## Test hook (Phase 4)
 
@@ -60,7 +60,16 @@ This covers the compiler, the `.rslo` format, the JIT runtime ABI and `CShadingS
 
 ## Texturing entry points (`src/ri/texture/texture.cpp`)
 
-- **T1**: the stochastic `lookup`/`shadow` paths that read `context->random2d/random4d` today take a `SubstreamKey` parameter instead. The caller (Shading) builds it. The direction is Shading → Texturing, which is allowed. Texturing then draws from Infra.
+- **T1**: the stochastic `lookup`/`shadow` paths that read `context->random2d/random4d` today draw from the context's **draw cursor** instead (`context->drawNext2()`/`drawNext4()`). Shading binds the cursor to the sub-stream of the lookup's point, shader, call site and occurrence (`bindDraws()`, the `DRAW_BIND` macro and the JIT `jitTexture*`/`jitEnvironment*`/`jitShadow*` entries) before every lookup, so no signature of Texturing changes. (As written, a `SubstreamKey` parameter on each `lookup` was planned; the cursor reaches the same sub-stream without touching the `CTexture`, `CEnvironment` and `CShadow` interfaces and the cache lookups that share the mechanism. Recorded as a deviation in tasks.md T073.)
+
+## Draws in Shading (Phase 6)
+
+- **D1**: `CShadingContext` offers one set of draw members (`shading.h`): under the Legacy sampler they forward to the context's own generators, otherwise they are `get1D`/`get2D` draws from `substream(point, shaderKey, callSite, occurrence, depth, samplesPerCall)`. The shader key is a hash of the shader's name, the same for `.rslo` and `.slo`. Nothing outside `shading.h` names the Legacy generators.
+  - `drawRandom()` is `random()`/`urandom()`; `drawJitter4()`, `drawCone()` and `drawTime()` are the ray-sample draws (slot 0 and 1 the origin and direction jitter, 2 the cone direction, 3 the time; the sample index is the index in the sub-stream); `bindDraws()` plus `drawNext()` serve the code that cannot carry a sub-stream (the texture lookups, the irradiance cache, the hardcoded lights and the photons).
+- **D2**: occurrence counters are per (shader, call site), one per real vertex, reset at the start of every shading invocation (`fillPointKeys()`) and, for the photon hider, every photon batch. A tail vertex takes its real vertex's occurrence.
+- **D3**: a ray spawned by `trace()`/`transmission()`/`visibility()`/`gather()` and by `environment()`/`shadow()` in raytrace mode gets `childKey(point key, depth + 1, callSite, occurrence, sample index)` as its key; `trace(CRay*)` draws the importance of every ray that has no camera importance from the ray's own key.
+- **D4**: a shader's init section (`init.cpp`) has no shading point: its `random()` draws from `CKeyedStream(shader name, call site, number of draws so far in this init run)`.
+- **D5**: the radiance cache, the point hierarchy, `getDisp` and the BVH clustering draw from `CKeyedStream`s whatever the sampler (they are layout and cache choices, not sample points).
 
 ## Known limits (research §R10)
 

@@ -55,6 +55,12 @@ class CPhonySurface : public CSurface {
         void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
 };
 
+// Spec 039: a photon draws from the sampler sub-stream of its own identity,
+// hash(seed, frame, light, index in the frame's sequence), so it does not matter
+// which thread traces it. The sites stand in for the call-site ordinal.
+static const unsigned kPhotonEmitSite = 0xFF11;  // Where the photon leaves the light
+static const unsigned kPhotonTraceSite = 0xFF12; // Its bounces
+
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CPhotonHider
 // Method				:	CPhotonHider
@@ -189,6 +195,16 @@ void CPhotonHider::renderingLoop() {
                             Clsave += 3;
                         }
 
+                        // Give the photons of this chunk their identities (spec 039)
+                        if (keyedDraws()) {
+                            resetDrawOccurrences();
+                            const int firstOfChunk = job.firstPhoton + (job.numPhotons - emit);
+                            for (j = 0; j < numVertices; j++)
+                                currentShadingState->pointKeys[j] = openrender::sampling::cellKey(openrender::sampling::detail::mix(0xF07011ull, (uint64_t)i), 0.0f, 0.0f,
+                                                                                                  (uint32_t)(firstOfChunk + j), sampling.frame, sampling.seed);
+                            currentShadingState->batchKey = openrender::sampling::detail::mix(0xBA7C4F0ull, (uint64_t)i, (uint64_t)firstOfChunk);
+                        }
+
                         // Prepare the lightsource parameters
                         currentShadingState->locals[ACCESSOR_LIGHTSOURCE] = cLight->prepare(threadMemory, currentShadingState->varying, numVertices);
 
@@ -240,8 +256,16 @@ void CPhotonHider::solarBegin(const float *L, const float *) {
         mulvf(Y, worldRadius);
 
         // Generate the solar samples
+        const int totalVertices = numVertices;
+        uint32_t *emitCounts = drawCounters(kPhotonEmitSite);
         for (; numVertices > 0; numVertices--, shaderL += 3, shaderPs += 3) {
-            gen2.get(xy);
+            if (keyedDraws()) {
+                bindDraws(totalVertices - numVertices, emitCounts, kPhotonEmitSite, 1);
+                xy[0] = drawNext();
+                xy[1] = drawNext();
+            }
+            else
+                gen2.get(xy);
 
             const float r = sqrtf(xy[0]);
             const float theta = (float)(xy[1] * 2 * C_PI);
@@ -279,9 +303,11 @@ void CPhotonHider::solarEnd() {
         const int step = 1;
         const int n = (numPoints - 4) / step + 1;
 
+        uint32_t *emitCounts = drawCounters(kPhotonEmitSite);
+        uint32_t *traceCounts = drawCounters(kPhotonTraceSite);
         for (i = numVertices; i > 0; i--, Ps += 3, L += 3, Cl += 3) {
-
-            float wavelen = urand();
+            bindDraws(numVertices - i, emitCounts, kPhotonEmitSite, 1);
+            float wavelen = drawNext();
             int piece = (int)floor(wavelen * n);
             int pieceid = piece * step;
             float u = wavelen * n - piece;
@@ -316,16 +342,19 @@ void CPhotonHider::solarEnd() {
             mulvf(T, L, worldRadius);
             subvv(Ps, T);
             mulvf(Cc, powerScale * photonPower);
+            bindDraws(numVertices - i, traceCounts, kPhotonTraceSite, 1);
             tracePhoton(Ps, L, Cc, wavelen);
         }
     }
     else {
+        uint32_t *traceCounts = drawCounters(kPhotonTraceSite);
         for (i = numVertices; i > 0; i--, Ps += 3, L += 3, Cl += 3) {
             vector T;
 
             mulvf(T, L, worldRadius);
             subvv(Ps, T);
             mulvf(Cl, powerScale * photonPower);
+            bindDraws(numVertices - i, traceCounts, kPhotonTraceSite, 1);
             tracePhoton(Ps, L, Cl, 0.5);
         }
     }
@@ -350,10 +379,20 @@ void CPhotonHider::illuminateBegin(const float *P, const float *N, const float *
         // Save the tangent of the angle for the ray differential
         varying[VARIABLE_PW][0] = DEFAULT_RAY_DA;
 
+        const int totalVertices = numVertices;
+        uint32_t *emitCounts = drawCounters(kPhotonEmitSite);
         for (; numVertices > 0; numVertices--, shaderPs += 3, shaderL += 3) {
+            if (keyedDraws())
+                bindDraws(totalVertices - numVertices, emitCounts, kPhotonEmitSite, 1);
             // Sample a direction in the unit sphere
             do {
-                gen3.get(shaderL);
+                if (keyedDraws()) {
+                    shaderL[0] = drawNext();
+                    shaderL[1] = drawNext();
+                    shaderL[2] = drawNext();
+                }
+                else
+                    gen3.get(shaderL);
 
                 shaderL[0] = 2 * shaderL[0] - 1;
                 shaderL[1] = 2 * shaderL[1] - 1;
@@ -382,10 +421,18 @@ void CPhotonHider::illuminateBegin(const float *P, const float *N, const float *
         }
         varying[VARIABLE_PW][0] = minDa;
 
+        const int totalVertices = numVertices;
+        uint32_t *emitCounts = drawCounters(kPhotonEmitSite);
         for (; numVertices > 0; numVertices--, shaderPs += 3, shaderL += 3) {
 
             // Sample a direction in the unit sphere
-            sampleHemisphere(shaderL, N, theta[0], gen4);
+            if (keyedDraws()) {
+                bindDraws(totalVertices - numVertices, emitCounts, kPhotonEmitSite, 1);
+                const float u = drawNext(), v = drawNext();
+                sampleHemisphere(shaderL, N, theta[0], openrender::sampling::Sample2D{u, v});
+            }
+            else
+                sampleHemisphere(shaderL, N, theta[0], gen4);
 
             // Compute the point being shaded
             normalizev(shaderL);
@@ -415,8 +462,11 @@ void CPhotonHider::illuminateEnd() {
         const int step = 1;
         const int n = (numPoints - 4) / step + 1;
 
+        uint32_t *emitCounts = drawCounters(kPhotonEmitSite);
+        uint32_t *traceCounts = drawCounters(kPhotonTraceSite);
         for (i = numVertices; i > 0; i--, Ps += 3, L += 3, Cl += 3) {
-            float wavelen = urand();
+            bindDraws(numVertices - i, emitCounts, kPhotonEmitSite, 1);
+            float wavelen = drawNext();
             int piece = (int)floor(wavelen * n);
             int pieceid = piece * step;
             float u = wavelen * n - piece;
@@ -450,13 +500,16 @@ void CPhotonHider::illuminateEnd() {
 
             subvv(Ps, L);
             mulvf(Cc, powerScale * photonPower);
+            bindDraws(numVertices - i, traceCounts, kPhotonTraceSite, 1);
             tracePhoton(Ps, L, Cc, wavelen);
         }
     }
     else {
+        uint32_t *traceCounts = drawCounters(kPhotonTraceSite);
         for (i = numVertices; i > 0; i--, Ps += 3, L += 3, Cl += 3) {
             subvv(Ps, L);
             mulvf(Cl, powerScale * photonPower);
+            bindDraws(numVertices - i, traceCounts, kPhotonTraceSite, 1);
             tracePhoton(Ps, L, Cl, 0.5);
         }
     }
@@ -496,7 +549,7 @@ processBounce:;
 
     // Set misc variables
     ray.t = C_INFINITY;
-    ray.time = urand();
+    ray.time = drawNext();
 
     // Trace the ray in the scene
     numTracedPhotons++;
@@ -565,7 +618,12 @@ processBounce:;
                 numDiffuseBounces++;
 
                 // Sample the reflection direction
-                sampleCosineHemisphere(ray.dir, Nl, (float)(C_PI / 2.0), gen4);
+                if (keyedDraws()) {
+                    const float u = drawNext(), v = drawNext();
+                    sampleCosineHemisphere(ray.dir, Nl, (float)(C_PI / 2.0), openrender::sampling::Sample2D{u, v});
+                }
+                else
+                    sampleCosineHemisphere(ray.dir, Nl, (float)(C_PI / 2.0), gen4);
                 assert(dotvv(Nl, ray.dir) > 0);
                 normalizev(ray.dir);
 
@@ -642,7 +700,7 @@ processBounce:;
                 fresnel(ray.dir, Nl, eta, Kr, Kt, R, T);
 
                 // Decide on reflection or refraction
-                if (urand() <= Kr) {
+                if (drawNext() <= Kr) {
                     assert(dotvv(R, R) > 0);
                     normalizev(ray.dir, R);
                 }
@@ -688,7 +746,7 @@ processBounce:;
                 fresnel(ray.dir, Nl, eta, Kr, Kt, R, T);
 
                 // Decide on reflection or refraction
-                if (urand() <= Kr) {
+                if (drawNext() <= Kr) {
                     assert(dotvv(R, R) > 0);
                     normalizev(ray.dir, R);
                 }
@@ -738,7 +796,7 @@ processBounce:;
                 fresnel(ray.dir, Nl, eta, Kr, Kt, R, T);
 
                 // Decide on reflection or refraction
-                if (urand() <= Kr) {
+                if (drawNext() <= Kr) {
                     assert(dotvv(R, R) > 0);
                     normalizev(ray.dir, R);
                 }

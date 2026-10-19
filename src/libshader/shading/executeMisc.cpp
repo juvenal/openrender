@@ -729,16 +729,21 @@ void CShadingContext::DvVector(float *dest, const float *src) {
     const float	db	=	(lengthv(rays->dPdu) + lengthv(rays->dPdv))*0.5f;
 */
 
-#define sampleRay(__from, __dir)                                  \
-    vector tmp0, tmp1;                                            \
-    mulvf(tmp0, rays->dPdu, (urand() - 0.5f) * rays->sampleBase); \
-    mulvf(tmp1, rays->dPdv, (urand() - 0.5f) * rays->sampleBase); \
-    addvv(__from, tmp0, tmp1);                                    \
-    mulvf(tmp0, rays->dDdu, urand() - 0.5f);                      \
-    mulvf(tmp1, rays->dDdv, urand() - 0.5f);                      \
-    addvv(__dir, tmp0, tmp1);                                     \
-    addvv(__dir, rays->D);                                        \
-    keepOriginAbove(__from, rays->N, __dir);                      \
+// Spec 039: the four jitter values (origin, then direction) come from the call's
+// sub-stream (`keyedSub`, null under the Legacy sampler, whose context stream they
+// keep drawing from in the same order as before).
+#define sampleRay(__from, __dir)                                          \
+    vector tmp0, tmp1;                                                    \
+    float jitter4[4];                                                     \
+    drawJitter4(keyedSub, sampleIndex, jitter4);                          \
+    mulvf(tmp0, rays->dPdu, (jitter4[0] - 0.5f) * rays->sampleBase);      \
+    mulvf(tmp1, rays->dPdv, (jitter4[1] - 0.5f) * rays->sampleBase);      \
+    addvv(__from, tmp0, tmp1);                                            \
+    mulvf(tmp0, rays->dDdu, jitter4[2] - 0.5f);                           \
+    mulvf(tmp1, rays->dDdv, jitter4[3] - 0.5f);                           \
+    addvv(__dir, tmp0, tmp1);                                             \
+    addvv(__dir, rays->D);                                                \
+    keepOriginAbove(__from, rays->N, __dir);                              \
     addvv(__from, rays->P);
 
 ///////////////////////////////////////////////////////////////////////
@@ -795,7 +800,9 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
         rays->t = 0;
 
         // Sample
+        const openrender::sampling::SubstreamKey *keyedSub = rays->keyed ? &rays->sub : nullptr;
         for (int currentSample = numSamples; currentSample > 0; --currentSample) {
+            const int sampleIndex = numSamples - currentSample;
             vector from, L, dir;
 
             // Sample the ray
@@ -805,10 +812,20 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
             mulvf(dir, L, 1 / d);
 
             // Sample a point in the cone
-            sampleHemisphere(cRay->dir, dir, coneAngle, random4d);
+            drawCone(keyedSub, sampleIndex, cRay->dir, dir, coneAngle, false);
             if (dotvv(cRay->dir, cRay->dir) > C_EPSILON) {
 
                 movvv(cRay->from, from);
+                // These rays come from raw memory: set every field trace() reads
+                cRay->cameraImportance = false;
+                if (rays->keyed) {
+                    cRay->depth = (uint16_t)(currentRayDepth + 1);
+                    cRay->key = openrender::sampling::childKey(rays->key, cRay->depth, (uint16_t)rays->callSite, rays->occurrence, (uint32_t)sampleIndex);
+                }
+                else {
+                    cRay->depth = 0;
+                    cRay->key = openrender::sampling::SampleKey{};
+                }
                 float minDist;
                 if (d < rays->maxDist) {
                     minDist = d;
@@ -819,7 +836,7 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
                 cRay->t = minDist - rays->bias;
                 cRay->tmin = rays->bias;
                 if (sampleMotion)
-                    cRay->time = (urand() + currentSample - 1) * multiplier;
+                    cRay->time = (drawTime(keyedSub, sampleIndex) + currentSample - 1) * multiplier;
                 else
                     cRay->time = rays->time;
                 cRay->flags = ATTRIBUTES_FLAGS_TRANSMISSION_VISIBLE;
@@ -933,14 +950,16 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
         rays->t = 0;
 
         // Sample
+        const openrender::sampling::SubstreamKey *keyedSub = rays->keyed ? &rays->sub : nullptr;
         for (int currentSample = numSamples; currentSample > 0; --currentSample) {
+            const int sampleIndex = numSamples - currentSample;
             vector from, D, dir;
 
             sampleRay(from, D);
 
             normalizev(D);
 
-            sampleHemisphere(dir, D, coneAngle, random4d);
+            drawCone(keyedSub, sampleIndex, dir, D, coneAngle, false);
             if (dotvv(dir, dir) > C_EPSILON) {
                 CTraceRay *cRay;
                 int isExterior = (dotvv(dir, rays->N) > 0) || (interiorShader == exteriorShader);
@@ -952,8 +971,18 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
 
                 movvv(cRay->dir, dir);
                 movvv(cRay->from, from);
+                // These rays come from raw memory: set every field trace() reads
+                cRay->cameraImportance = false;
+                if (rays->keyed) {
+                    cRay->depth = (uint16_t)(currentRayDepth + 1);
+                    cRay->key = openrender::sampling::childKey(rays->key, cRay->depth, (uint16_t)rays->callSite, rays->occurrence, (uint32_t)sampleIndex);
+                }
+                else {
+                    cRay->depth = 0;
+                    cRay->key = openrender::sampling::SampleKey{};
+                }
                 if (sampleMotion)
-                    cRay->time = (urand() + currentSample - 1) * multiplier;
+                    cRay->time = (drawTime(keyedSub, sampleIndex) + currentSample - 1) * multiplier;
                 else
                     cRay->time = rays->time;
                 cRay->t = C_INFINITY;

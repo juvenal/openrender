@@ -53,7 +53,8 @@
     const float *dv = varying[VARIABLE_DV];                                                              \
     const float *N = varying[VARIABLE_N];                                                                \
     const float *time = varying[VARIABLE_TIME];                                                          \
-    int numRays = 0;
+    int numRays = 0;                                                                                     \
+    DRAW_BEGIN
 
 #define TRANSMISSIONEXPR                                  \
     plReady();                                            \
@@ -71,6 +72,7 @@
     rays->sampleBase = scratch->traceParams.sampleBase;   \
     rays->maxDist = scratch->traceParams.maxDist;         \
     rays->time = *time;                                   \
+    bindLocationDraws(rays, drawVertex, drawCounts, code->callSite); \
     rays++;                                               \
     numRays++;
 
@@ -86,6 +88,7 @@
     du++;                            \
     dv++;                            \
     ++time;                          \
+    DRAW_STEP                        \
     plStep();
 
 // Actually compule the transmission color
@@ -220,13 +223,15 @@ DEFSHORTFUNC(TraceV, "trace", "c=pv!", TRACEEXPR_PRE, TRACEEXPR, TRACEEXPR_UPDAT
         operand(lookup->channelIndex[channel], channelValues[channel], float *);                                                              \
     }                                                                                                                                         \
     const float savedSamples = scratch->traceParams.samples;                                                                                  \
-    scratch->occlusionParams.occlusion = __occlusion;
+    scratch->occlusionParams.occlusion = __occlusion;                                                                                         \
+    DRAW_BEGIN
 
 #define IDEXPR(__occlusion)                                                                            \
     plReady();                                                                                         \
     mulvf(dPdu, *du);                                                                                  \
     mulvf(dPdv, *dv);                                                                                  \
     scratch->traceParams.samples = *op3;                                                               \
+    DRAW_BIND(*op3)                                                                                    \
     cache->lookup(C, op1, dPdu, dPdv, op2, this);                                                      \
     texture3Dunpack(C, lookup->numChannels, channelValues, lookup->channelEntry, lookup->channelSize); \
     if (__occlusion)                                                                                   \
@@ -237,6 +242,7 @@ DEFSHORTFUNC(TraceV, "trace", "c=pv!", TRACEEXPR_PRE, TRACEEXPR, TRACEEXPR_UPDAT
 #define IDEXPR_UPDATE(__n)                                            \
     FUN4EXPR_UPDATE(__n, 3, 3, 1)                                     \
     plStep();                                                         \
+    DRAW_STEP                                                         \
     dPdu += 3;                                                        \
     dPdv += 3;                                                        \
     du++;                                                             \
@@ -394,11 +400,12 @@ DEFSHORTFUNC(Photonmap2, "photonmap", "c=Sp!", PHOTONMAP2EXPR_PRE, PHOTONMAP2EXP
                                                                                                 \
     const float *du = varying[VARIABLE_DU];                                                     \
     const float *dv = varying[VARIABLE_DV];                                                     \
-    CGatherRay *rays = lastGather->raysBase;
+    CGatherRay *rays = lastGather->raysBase;                                                    \
+    DRAW_BEGIN
 
 #define GATHERHEADEREXPR \
     plReady();           \
-    gatherHeaderRay(rays, P, D, *sampleCone, dPdu, dPdv, *du, *dv);
+    gatherHeaderRay(rays, P, D, *sampleCone, dPdu, dPdv, *du, *dv, drawVertex, drawCounts, code->callSite, (uint32_t)*samples);
 
 #define GATHERHEADEREXPR_UPDATE \
     dPdu += 3;                  \
@@ -409,6 +416,7 @@ DEFSHORTFUNC(Photonmap2, "photonmap", "c=Sp!", PHOTONMAP2EXPR_PRE, PHOTONMAP2EXP
     dv++;                       \
     sampleCone++;               \
     rays++;                     \
+    DRAW_STEP                   \
     plStep();
 
 #define GATHERHEADEREXPR_POST plEnd();

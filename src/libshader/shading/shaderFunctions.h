@@ -1611,7 +1611,8 @@ DEFFUNC(ShaderNames, "shadername", "s=S", SHADERNAMESEXPR_PRE, SHADERNAMESEXPR, 
     dvFloat(dtdv, t);                                                                                                        \
                                                                                                                              \
     i = 0;                                                                                                                   \
-    (void)op2;
+    (void)op2;                                                                                                               \
+    DRAW_BEGIN
 
 #define TEXTUREFEXPR                                             \
     plReady();                                                   \
@@ -1624,11 +1625,13 @@ DEFFUNC(ShaderNames, "shadername", "s=S", SHADERNAMESEXPR_PRE, SHADERNAMESEXPR, 
     ct[2] = t[i] + dtdv[i] * dv[i] * twidth;                     \
     ct[3] = t[i] + (dtdu[i] * du[i] + dtdv[i] * dv[i]) * twidth; \
     vector tmp;                                                  \
+    DRAW_BIND(1)                                                 \
     tex->lookup4(tmp, cs, ct, this);                             \
     res[i] = tmp[int(*op2) & 3];
 
 #define TEXTUREFEXPR_UPDATE \
     ++i;                    \
+    DRAW_STEP               \
     plStep();
 
 #define TEXTUREFEXPR_POST plEnd();
@@ -1655,10 +1658,12 @@ DEFFUNC(TextureFloat, "texture", "f=SFff!", TEXTUREFEXPR_PRE, TEXTUREFEXPR, TEXT
     ct[1] = t[i] + dtdu[i] * du[i] * twidth;                     \
     ct[2] = t[i] + dtdv[i] * dv[i] * twidth;                     \
     ct[3] = t[i] + (dtdu[i] * du[i] + dtdv[i] * dv[i]) * twidth; \
+    DRAW_BIND(1)                                                 \
     tex->lookup4(res, cs, ct, this);
 
 #define TEXTURECEXPR_UPDATE \
     ++i;                    \
+    DRAW_STEP               \
     res += 3;               \
     plStep();
 
@@ -1709,7 +1714,8 @@ DEFFUNC(TextureColor, "texture", "c=SFff!", TEXTUREFEXPR_PRE, TEXTURECEXPR, TEXT
         lookup->map = tex = this->rendererGetTexture(*op1);            \
     }                                                                  \
     scratch->textureParams.filter = lookup->filter;                    \
-    (void)op2;
+    (void)op2;                                                         \
+    DRAW_BEGIN
 
 #define TEXTUREFFULLEXPR             \
     plReady();                       \
@@ -1722,10 +1728,12 @@ DEFFUNC(TextureColor, "texture", "c=SFff!", TEXTUREFEXPR_PRE, TEXTURECEXPR, TEXT
     ct[2] = *op8;                    \
     ct[3] = *op10;                   \
     vector tmp;                      \
+    DRAW_BIND(1)                     \
     tex->lookup4(tmp, cs, ct, this); \
     *res = tmp[0];
 
 #define TEXTUREFFULLEXPR_UPDATE \
+    DRAW_STEP                   \
     ++res;                      \
     ++op3;                      \
     ++op4;                      \
@@ -1761,9 +1769,11 @@ DEFFUNC(TextureFloatFull, "texture", "f=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
     ct[1] = *op6;        \
     ct[2] = *op8;        \
     ct[3] = *op10;       \
+    DRAW_BIND(1)         \
     tex->lookup4(res, cs, ct, this);
 
 #define TEXTURECFULLEXPR_UPDATE \
+    DRAW_STEP                   \
     res += 3;                   \
     ++op3;                      \
     ++op4;                      \
@@ -1849,7 +1859,8 @@ DEFFUNC(TextureColorFull, "texture", "c=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
     dvVector(dDdv, D);                                                                                                       \
     (void)op2;                                                                                                               \
     (void)N;                                                                                                                 \
-    (void)P;
+    (void)P;                                                                                                                 \
+    DRAW_BEGIN
 
 #define ENVIRONMENTEXPR(__float)                                            \
     plReady();                                                              \
@@ -1875,6 +1886,7 @@ DEFFUNC(TextureColorFull, "texture", "c=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
         rays->sampleBase = scratch->traceParams.sampleBase;                 \
         rays->maxDist = scratch->traceParams.maxDist;                       \
         rays->time = *time;                                                 \
+        bindLocationDraws(rays, drawVertex, drawCounts, code->callSite);    \
         ++rays;                                                             \
         ++numRays;                                                          \
     }                                                                       \
@@ -1890,6 +1902,7 @@ DEFFUNC(TextureColorFull, "texture", "c=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
         addvv(D2, dDdv);                                                    \
         addvv(D3, D, dDdu);                                                 \
         addvv(D3, dDdv);                                                    \
+        DRAW_BIND(1)                                                        \
         if (__float) {                                                      \
             vector color;                                                   \
             tex->lookup(color, D0, D1, D2, D3, this);                       \
@@ -1908,6 +1921,7 @@ DEFFUNC(TextureColorFull, "texture", "c=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
     ++du;                           \
     ++dv;                           \
     ++time;                         \
+    DRAW_STEP                       \
     if (tex == NULL) {              \
         P += 3;                     \
         N += 3;                     \
@@ -1990,6 +2004,7 @@ DEFSHORTFUNC(EnvironmentColor, "environment", "c=SFv!", ENVIRONMENTEXPR_PRE("ref
         rays->bias = scratch->traceParams.bias;                             \
         rays->maxDist = scratch->traceParams.maxDist;                       \
         rays->time = *time;                                                 \
+        bindLocationDraws(rays, drawVertex, drawCounts, code->callSite);    \
         ++rays;                                                             \
         ++numRays;                                                          \
     }                                                                       \
@@ -2005,6 +2020,7 @@ DEFSHORTFUNC(EnvironmentColor, "environment", "c=SFv!", ENVIRONMENTEXPR_PRE("ref
         addvv(D2, dDdv);                                                    \
         addvv(D3, D, dDdu);                                                 \
         addvv(D3, dDdv);                                                    \
+        DRAW_BIND(1)                                                        \
         if (__float) {                                                      \
             vector color;                                                   \
             tex->lookup(color, D0, D1, D2, D3, this);                       \
@@ -2023,6 +2039,7 @@ DEFSHORTFUNC(EnvironmentColor, "environment", "c=SFv!", ENVIRONMENTEXPR_PRE("ref
     ++du;                      \
     ++dv;                      \
     ++time;                    \
+    DRAW_STEP                  \
     L += 3;                    \
     if (tex == NULL) {         \
         dPdu += 3;             \

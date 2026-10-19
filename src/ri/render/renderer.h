@@ -227,6 +227,7 @@ class CRenderer {
 
                 int xBucket, yBucket; // For a bucket job, the bucket to render
                 int numPhotons;       // For a photon job, the number of photons to emit
+                int firstPhoton;      // For a photon job, the index of its first photon in the frame's sequence
         };
 
         static void (*dispatchJob)(int thread, CJob &job); // This function is used by the hiders to ask for a job

@@ -172,6 +172,8 @@ The jitter mapping is unchanged (clarify Q4): `film = jitter·(u−0.5)+0.500101
 
 Shading reads `object->stableId` as an inline data-member access through `shading.cpp`'s existing include of `object.h`, which is registered under DB-006. It creates **no new include edge and no link symbol**, so archcheck sees no change. Spec 029's `ShaderGlobals` later carries the key and removes the read.
 
+**Known limit (Phase 6 follow-up): a one-ULP edge risk for non-dyadic splits.** The key contains the bit patterns of `u` and `v`, so two grids of one surface that share an edge give that edge's vertices the same value only if both compute bit-identical `u`/`v` for it. The dicer fills them with a double accumulation, `u = umin; u += ustep` cast to `float` (`surface.cpp`, for example around lines 295, 1698 and 2310), not by snapping the last vertex to `umax`, so an edge vertex could in principle differ from its twin in the last bit when the split position is not exactly representable. Measured with `pointKeyObserver` on split surfaces, counting vertices of different grids whose `(u, v)` agree to 1e-5: a bicubic patch in 16 grids gave 234 such pairs and one in 256 grids 4770, and a sphere in 80 grids 1753; in every case 0 pairs differed in the bit pattern of `(u, v)` or in the key, and no vertex had `u` or `v` equal to -0.0. Those splits are dyadic (the midpoints are exactly representable), which is why they cannot show the effect. A non-dyadic split, such as a NURBS patch cut at its knot spans, is not tested: the scene needs a patch with irregular knots and a way to tell shared-edge vertices from near coincidences, and the measurement only becomes meaningful once `random()` displacement across grids is in use. If it ever shows up (a crack in a displaced NURBS), the fix is to snap the last vertex of a row to `umax` / `vmax` in the dicer, not to quantise the key. Two separate objects that touch (the patches of a mesh, separate polygons) have different `stableId`s, so their shared edges draw different values by design.
+
 ### R3.4 Ray-hit identity
 
 **Decision**:
@@ -260,6 +262,7 @@ Under ray-hit shading, `numVertices` can be 3 × `numRealVertices`: real vertice
 
 **Decision**: tail vertex `numRealVertices·b + i` (b = 1, 2) **copies** the `pointKey` and `callSiteOccurrence` of real vertex `i`. Consequences:
 - `random()` gives a tail vertex the same value as its real vertex, so `Du(random())` and `Dv(random())` are 0.
+  - This is a statement about **ray-hit shading** only. A reyes grid has no tail vertices: its `Du()`/`Dv()` are finite differences between neighbouring grid vertices, each with its own key and so its own draw, and are not 0.
 - This matches the JIT's existing tail replication for the trace builtins.
 - Both backends apply the same rule.
 

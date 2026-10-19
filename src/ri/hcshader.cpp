@@ -62,6 +62,12 @@ CSphereLight::CSphereLight(CAttributes *a, CXform *x) : CShaderInstance(a, x) {
 CSphereLight::~CSphereLight() {
 }
 
+// Spec 039: the hardcoded lights draw their samples from the sampler sub-stream of
+// (shading point, light kind, occurrence), as a shader's stochastic call does: the
+// kinds below stand in for the call-site ordinal.
+static const unsigned kSphereLightSite = 0xFF01;
+static const unsigned kQuadLightSite = 0xFF02;
+
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CSphereLight
 // Method				:	illuminate
@@ -73,9 +79,9 @@ void CSphereLight::illuminate(CShadingContext *context, float **) {
 
 #define sampleSphere(cP)                       \
     while (TRUE) {                             \
-        cP[COMP_X] = 2 * context->urand() - 1; \
-        cP[COMP_Y] = 2 * context->urand() - 1; \
-        cP[COMP_Z] = 2 * context->urand() - 1; \
+        cP[COMP_X] = 2 * context->drawNext() - 1; \
+        cP[COMP_Y] = 2 * context->drawNext() - 1; \
+        cP[COMP_Z] = 2 * context->drawNext() - 1; \
                                                \
         if (dotvv(cP, cP) < 1)                 \
             break;                             \
@@ -99,7 +105,9 @@ void CSphereLight::illuminate(CShadingContext *context, float **) {
         float *CL;
 
         // Generate points on the surface
+        uint32_t *drawCounts = context->drawCounters(kSphereLightSite);
         for (i = numVertices; i > 0; i--, cP += 3, cN += 3, cTheta++) {
+            context->bindDraws(numVertices - i, drawCounts, kSphereLightSite, 1);
             sampleSphere(cP);
             normalizev(cP);
             movvv(cN, cP);
@@ -152,11 +160,13 @@ void CSphereLight::illuminate(CShadingContext *context, float **) {
         float *Cl = cLight->savedState[1];
         const float *time = currentShadingState->varying[VARIABLE_TIME];
 
+        uint32_t *drawCounts = context->drawCounters(kSphereLightSite);
         for (int i = numVertices; i > 0; i--, Ps += 3, time++) {
             if (*tags++ == 0) {
                 vector P;
                 float visibility = 0;
 
+                context->bindDraws(numVertices - i, drawCounts, kSphereLightSite, (uint32_t)numSamples);
                 for (j = numSamples; j > 0; j--) {
                     sampleSphere(P);
                     normalizev(P);
@@ -405,10 +415,12 @@ void CQuadLight::illuminate(CShadingContext *context, float **) {
         float *CL;
 
         // Generate points on the surface
+        uint32_t *drawCounts = context->drawCounters(kQuadLightSite);
         for (i = numVertices; i > 0; i--, cP += 3, cN += 3) {
             vector P0, P1;
-            const float u = context->urand();
-            const float v = context->urand();
+            context->bindDraws(numVertices - i, drawCounts, kQuadLightSite, 1);
+            const float u = context->drawNext();
+            const float v = context->drawNext();
 
             interpolatev(P0, corners[0], corners[1], u);
             interpolatev(P1, corners[2], corners[3], u);
@@ -468,6 +480,7 @@ void CQuadLight::illuminate(CShadingContext *context, float **) {
         // GSHTODO: do something to check Ps vs N angle before allocating light
 
         lightTags = cLight->lightTags;
+        uint32_t *drawCounts = context->drawCounters(kQuadLightSite);
         for (int i = currentShadingState->numRealVertices; i > 0; i--, Ps += 3, time++) {
             if (*lightTags == 0) {
                 subvv(D, Ps, center);
@@ -475,12 +488,13 @@ void CQuadLight::illuminate(CShadingContext *context, float **) {
                     vector P, P0, P1;
                     float visibility = 0;
 
+                    context->bindDraws(currentShadingState->numRealVertices - i, drawCounts, kQuadLightSite, (uint32_t)numSamples);
                     for (j = numSamples; j > 0; j--) {
-                        const float u = context->urand();
+                        const float u = context->drawNext();
 
                         interpolatev(P0, corners[0], corners[1], u);
                         interpolatev(P1, corners[2], corners[3], u);
-                        interpolatev(P, P0, P1, context->urand());
+                        interpolatev(P, P0, P1, context->drawNext());
 
                         // Evaluate visibility between P and Ps
                         movvv(ray.from, Ps);

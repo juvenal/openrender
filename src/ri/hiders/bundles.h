@@ -94,6 +94,13 @@ class CGatherRay : public CRay {
         vector gatherDir;    // The direction of the gather
         vector gatherP;      // The gather position
         vector dPdu, dPdv;   // At the ray origin
+        // Spec 039: the sampler sub-stream of the gather() call for this shading point
+        // (valid when `keyed`; the sample index inside it is the gather sample number)
+        openrender::sampling::SubstreamKey sub;
+        bool keyed;
+        openrender::sampling::SampleKey parentKey; // The shading point's key
+        uint32_t occurrence;
+        unsigned callSite;
 };
 
 ///////////////////////////////////////////////////////////////////////

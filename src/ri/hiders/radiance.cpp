@@ -33,6 +33,7 @@
 //
 ////////////////////////////////////////////////////////////////////////
 #include <math.h>
+#include <string.h>
 
 #include "common/algebra.h"
 #include "common/global.h"
@@ -43,8 +44,19 @@
 #include "photonMap.h"
 #include "radiance.h"
 #include "common/random.h"
+#include "common/sampling.h"
 #include "common/stats.h"
 #include "texture.h"
+
+// Spec 039 (research R3.10): the radiance cache's random choices (which shading point a ray
+// starts from, the cluster centres, the ray directions) come from keyed streams, never from
+// a generator shared by the threads. A cluster's identity is its size and the position of its
+// first shading point. The cache stays order-dependent (spec 040).
+static uint64_t clusterKey(uint64_t salt, int numPoints, const float *firstPosition) {
+    uint32_t bits[3];
+    memcpy(bits, firstPosition, sizeof(bits));
+    return openrender::sampling::detail::mix(salt, (uint64_t)numPoints, ((uint64_t)bits[0] << 32) | bits[1], bits[2]);
+}
 
 #define SINTABLE_SIZE 1000    // The size of the alpha / sin(alpha) table
 #define LOCAL_LOOKUP 10       // The number of nearby local samples to look at
@@ -1064,13 +1076,15 @@ void CRadianceCache::compute(int numSamples, CShadingPoint **points, CTextureLoo
         }
 
         // Collect the samples
+        openrender::sampling::CKeyedStream draws(clusterKey(0x7AD1C0ull, numSamples, points[0]->P));
         for (numRays = 0; numRays < numRaysPerCluster; numRays++) {
 
             // Pick a random shading point
-            cSample = points[_irand() % numSamples];
+            cSample = points[draws.nextU32() % numSamples];
 
             // Sample this shading point
-            sampleHemisphere(D, cSample->N, (float)(C_PI / 2.0), generator);
+            const float u = draws.next1D(), v = draws.next1D();
+            sampleHemisphere(D, cSample->N, (float)(C_PI / 2.0), openrender::sampling::Sample2D{u, v});
 
             normalizev(D);
 
@@ -1082,7 +1096,7 @@ void CRadianceCache::compute(int numSamples, CShadingPoint **points, CTextureLoo
             ray.invDir[COMP_Y] = 1 / ray.dir[COMP_Y];
             ray.invDir[COMP_Z] = 1 / ray.dir[COMP_Z];
             ray.t = C_INFINITY;
-            ray.time = _urand();
+            ray.time = draws.next1D();
             ray.jimp = -1.0f;
             ray.flags = ATTRIBUTES_FLAGS_TRACE_VISIBLE;
             ray.tmin = bias;
@@ -1219,7 +1233,7 @@ void CRadianceCache::compute(int numSamples, CShadingPoint **points, CTextureLoo
                 vector C;
                 int i;
 
-                initv(C, _urand(), _urand(), _urand());
+                initv(C, draws.next1D(), draws.next1D(), draws.next1D());
                 normalizev(C);
 
                 fprintf(out, "%f %f %f - %f %f %f\n", P[0], P[1], P[2], C[0], C[1], C[2]);
@@ -1280,9 +1294,10 @@ int CRadianceCache::partition(int numRays, CShadingPoint **rays) {
     }
 
     // Select two random cluster centers that are not the same
-    s1 = rays[_irand() % numRays];
+    openrender::sampling::CKeyedStream draws(clusterKey(0x7AD1D0ull, numRays, rays[0]->P));
+    s1 = rays[draws.nextU32() % numRays];
     do {
-        s2 = rays[_irand() % numRays];
+        s2 = rays[draws.nextU32() % numRays];
 
         subvv(D, s1->P, s2->P);
     } while (dotvv(D, D) == 0);

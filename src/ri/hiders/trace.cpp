@@ -321,7 +321,7 @@ void CShadingContext::trace(CRay *ray) {
     // A primary ray under the new samplers already carries its camera importance;
     // every other ray draws one.
     if (!ray->cameraImportance)
-        ray->jimp = urand();
+        ray->jimp = rayImportance(ray->key, ray->depth);
     ray->object = NULL;
 
     numTracedRays++;

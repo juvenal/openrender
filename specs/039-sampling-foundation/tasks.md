@@ -326,32 +326,33 @@ The call-site operand and the `_v2` ABI make Phase 4 a MAJOR change of both shad
 - [X] T068 [P] [US1] Using the existing `test_depth_determinism` with extra arguments, tests `Sampling_ThreadSweep_{quadlight,sphere-random,sphere-trace,sphere-gather}`: under `sobol`, `-t:1` against `-t:4` must be bit-identical. These fail under today's per-context streams.
   - Use a hand-written copy with the option line added **and the scene's `Option "limits" "numthreads" [1]` pin removed**. Otherwise `-t:4` would still render single-threaded and the test would pass vacuously.
   - Also add `Sampling_ProbeIndependence`, covering the midpoint-probe edge case. A raytrace scene with a shaded stochastic surface (a copy of `examples/rib/tests/depth-analytic-mid-raytrace.rib`, plus a `random()`-based surface shader), rendered under `sobol` once with `depthfilter midpoint` and once with `min`, gives a bit-identical colour output. The midpoint probe's draw no longer shifts any other value.
-- [ ] T069 [RUN] [US1] **TEST-APPROVAL** (tests written and shown red; awaiting approval).
+- [X] T069 [RUN] [US1] **TEST-APPROVAL** (approved and committed as 059c975, with the SC-007 scan and its allowlist as 37f3f75).
 
 ### Implementation
 
-- [ ] T070 [US6] `src/common/random.{h,cpp}`: add `sampleHemisphere`, `sampleCosineHemisphere` and `sampleSphere` overloads that take `Sample2D`/`Sample3D` values. Keep the `CSobol&` overloads until Phase 9.
-- [ ] T071 [US6] `src/libshader/shading/executeMisc.cpp` (the `sampleRay` macro, transmission and cone sampling, motion time), `shading.cpp` (gather ray setup, `jitTraceBatch`, `jitOcclusionBatch`) and `shaderPl.cpp`:
+- [X] T070 [US6] `src/common/random.{h,cpp}`: add `sampleHemisphere`, `sampleCosineHemisphere` and `sampleSphere` overloads that take `Sample2D`/`Sample3D` values. Keep the `CSobol&` overloads until Phase 9.
+- [X] T071 [US6] `src/libshader/shading/executeMisc.cpp` (the `sampleRay` macro, transmission and cone sampling, motion time), `shading.cpp` (gather ray setup, `jitTraceBatch`, `jitOcclusionBatch`) and `shaderPl.cpp`:
   - under the new backends, draw from `substream(pointKey, shaderKey, callSite, occurrence, depth, N)` with the slot layout `0 = origin jitter`, `1 = direction`, `2 = time`;
   - spawned rays get `childKey`, and a secondary ray's `jimp` is drawn from its child sub-stream (`trace.cpp`, the `urand()` that T063 left for non-camera rays; `Sampling_NoGlobalRandomness` lists it).
-- [ ] T072 [US6] `src/libshader/shading/scriptFunctions.h` (`RANDOMFEXP` and the like) and `rslOps.cpp` (`op_random_f_v2`/`op_random_v_v2`):
+- [X] T072 [US6] `src/libshader/shading/scriptFunctions.h` (`RANDOMFEXP` and the like) and `rslOps.cpp` (`op_random_f_v2`/`op_random_v_v2`):
   - varying draws use `pointKeys[i]`, and uniform draws use `batchKey`;
   - `occurrence` is incremented for active real lanes only;
   - tail vertices mirror their real vertex.
-- [ ] T073 [US6] `src/ri/texture/texture.cpp`: the stochastic `lookup` and `shadow` paths at lines ~1403, 1563, 1578, 1673, 1853 and 2141 take a `SubstreamKey` from Shading instead of reading `context->random2d`/`random4d` (contract T1). Update the callers in Shading.
-- [ ] T074 [P] [US6] `src/ri/hcshader.cpp`: draw light samples from transport sub-streams keyed by (pointKey, light ordinal, sample index).
-- [ ] T075 [P] [US6] Photons:
+- [X] T073 [US6] `src/ri/texture/texture.cpp`: the stochastic `lookup` and `shadow` paths at lines ~1403, 1563, 1578, 1673, 1853 and 2141 take a `SubstreamKey` from Shading instead of reading `context->random2d`/`random4d` (contract T1). Update the callers in Shading.
+  - **As built**: the lookups draw from the context's draw cursor (`drawNext2()`/`drawNext4()`), which Shading binds to the lookup's sub-stream (`DRAW_BIND`, `bindDraws()`) before every lookup, in the interpreter macros and in the JIT entries. No `CTexture`/`CEnvironment` signature changes. See contract T1.
+- [X] T074 [P] [US6] `src/ri/hcshader.cpp`: draw light samples from transport sub-streams keyed by (pointKey, light ordinal, sample index).
+- [X] T075 [P] [US6] Photons (as built: `CJob::firstPhoton` is stamped by `dispatchPhoton`; each chunk gives its photons keys `cellKey(hash(light ordinal), index)` and resets the occurrence counters; emission and every bounce draw from the photon's sub-stream through the draw cursor, dimension by dimension in event order, instead of `childKey(key, bounce)`; `gen2`/`gen3`/`gen4` remain only on the Legacy path):
   - the core's job dispatcher stamps `firstPhotonIndex` on every `PHOTON_BUNDLE` (`src/ri/render/renderer.cpp` or wherever `dispatchJob` lives);
   - `src/ri/hiders/photon.{h,cpp}` keys emission by `hash(seed, frame, lightOrdinal, firstPhotonIndex + k)`, and bounce decisions by `childKey(key, bounce)`;
   - `gen2`/`gen3`/`gen4` are unused on the new path.
-- [ ] T076 [P] [US6] `src/ri/hiders/irradianceDispatch.cpp` (lines ~319–322, 420–423, 656) and `src/ri/hiders/radiance.{h,cpp}` (lines ~1070–1285, plus the `generator` member): use transport sub-streams and `CKeyedStream`. The caches stay order-dependent (spec 040).
-- [ ] T077 [P] [US1] `CKeyedStream` sites:
+- [X] T076 [P] [US6] `src/ri/hiders/irradianceDispatch.cpp` (lines ~319–322, 420–423, 656) and `src/ri/hiders/radiance.{h,cpp}` (lines ~1070–1285, plus the `generator` member): use transport sub-streams and `CKeyedStream`. The caches stay order-dependent (spec 040).
+- [X] T077 [P] [US1] `CKeyedStream` sites:
   - `src/ri/render/geometryDispatch.cpp` `cluster()` (keyed by `stableId` and iteration), and lines ~640–645 (keyed by `stableId`);
   - `src/ri/geometry/object.cpp` `getDisp` (constant key);
   - `src/ri/texture/pointHierarchy.cpp` (node index);
   - `src/ri/render/init.cpp` (`#define urand()`, keyed by shader and call site).
   - These do not depend on the backend: the keyed path is used under `Legacy` too **only if** T003's suite stays unchanged. Otherwise gate it on the backend and record why.
-- [ ] T078 [RUN] [US1] Build, then:
+- [X] T078 [RUN] [US1] Build, then:
   - T065, T066 and T068 (T067 is not registered yet);
   - `ctest -L "visual|libshader|sampling|architecture"`, which must be unchanged under `Legacy`;
   - stat the shaders again (T004).

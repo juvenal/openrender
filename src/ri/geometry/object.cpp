@@ -87,10 +87,13 @@ static float getDisp(const float *mat, float) {
     int i;
     float alpha;
 
-    tmp[0] = _urand();
-    tmp[1] = _urand();
-    tmp[2] = _urand();
-    tmp[3] = _urand();
+    // A fixed probe point set: the displacement bound must not depend on the thread
+    // or on what was drawn before (spec 039, research R3.10)
+    openrender::sampling::CKeyedStream stream(0x6E7D15Bull);
+    tmp[0] = stream.next1D();
+    tmp[1] = stream.next1D();
+    tmp[2] = stream.next1D();
+    tmp[3] = stream.next1D();
 
     for (i = 0; i < 10; i++) {
         mulmp4(tmp2, mat, tmp);
