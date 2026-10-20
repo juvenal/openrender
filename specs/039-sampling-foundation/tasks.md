@@ -346,6 +346,13 @@ The call-site operand and the `_v2` ABI make Phase 4 a MAJOR change of both shad
   - `src/ri/hiders/photon.{h,cpp}` keys emission by `hash(seed, frame, lightOrdinal, firstPhotonIndex + k)`, and bounce decisions by `childKey(key, bounce)`;
   - `gen2`/`gen3`/`gen4` are unused on the new path.
 - [X] T076 [P] [US6] `src/ri/hiders/irradianceDispatch.cpp` (lines ~319–322, 420–423, 656) and `src/ri/hiders/radiance.{h,cpp}` (lines ~1070–1285, plus the `generator` member): use transport sub-streams and `CKeyedStream`. The caches stay order-dependent (spec 040).
+- **T076a-T076d widen T076** (maintainer decision after T089: `Convergence_occlusion-raytrace` failed because `occlusion()` builds its own jittered `nt x np` hemisphere grid, so no backend can stratify it and the ray count is `nt * np` (3, 3, 12, 80, 252 for samples 1, 4, 16, 64, 256), not `samples`; see validation.md "Phase 8" and "T076a"). The `trace()`/`transmission()` pattern applies to `occlusion()`: direction `k` of `samples` comes from the sampler by sample index.
+  - [X] T076a [P] [US6] Tests first (written, red as expected; evidence in validation.md "T076a"):
+    - `OcclusionSampler_NetCount_{sobol,pmj02}_{4,16,64}_{rslo,slo}` (12 tests; `examples/rib/tests/sampling-occlusion-cap.rib.in`, `shaders/sampling_occlusion_probe.sl`, read by `test_pixel_probe`): a disc blocks exactly the quarter of the cosine-weighted hemisphere that is the strip `u < 1/4`; a (0,2) net of n points has exactly n/4 in it, so the centre pixel reads exactly 0.25 only when the directions come from the sampler and the ray count is n. 12 fail today (0.333, 0.333, 0.2125/0.275 ...).
+    - `OcclusionGolden_{legacy,legacy_cache,sobol_cache}` (`examples/rib/tests/sampling-occlusion-golden.rib.in`, goldens in `tests/visual/golden/`, driver `tests/visual/test_golden_compare.cpp`): bit-for-bit against renders made before the change. Under Legacy, and under any sampler with the irradiance cache on (`maxerror > 0`), the `nt x np` grid and its output stay. Pass today (twice, identical) and must keep passing.
+  - [X] T076b [RUN] **TEST-APPROVAL** (approved: all 15 tests and the four decisions; (4) is recorded as a known gap in validation.md "T076c and T076d", since spec 040's files are not in this worktree). Decisions the implementation depends on, for the maintainer to confirm: (1) the sampler path uses exactly `samples` rays (`max(1, (int)samples)`), as `trace()` does, and the grid path keeps `nt * np`; (2) pair 0 of the call's sub-stream is the direction (the existing cosine map `sin^2 theta = u`, `phi = 2 pi v`), pair 1 the origin jitter over the point's footprint; (3) with the cache on (`maxerror > 0`) the grid stays, because `posGradient`/`rotGradient` assume it (spec 040 owns the cache); (4) the `indirectdiffuse` branch of `CIrradianceCache::sample` is a copy of the occlusion branch and is left on the grid unless the maintainer widens this further.
+  - [X] T076c [US6] `src/ri/hiders/irradianceDispatch.cpp` (the occlusion branch of `CIrradianceCache::sample`) and `src/libshader/shading/shading.h` (an accessor for the bound call's `get2D(dim, sample)`): for a non-Legacy sampler with `maxError == 0`, draw direction `k` from the call's sub-stream by sample index. Legacy and the cached path are untouched.
+  - [X] T076d [RUN] [US6] (results in validation.md "T076c and T076d") Build, then: the 12 `OcclusionSampler_*` green and the 3 `OcclusionGolden_*` still green; `ctest -L architecture`; `ctest -L '^determinism$' -j2` (148); the visual and parity tests that render `occlusion()` scenes; `ctest -L convergence` (`Convergence_occlusion-raytrace` must meet its bar, which re-runs T089 for that scene). Record the numbers in validation.md.
 - [X] T077 [P] [US1] `CKeyedStream` sites:
   - `src/ri/render/geometryDispatch.cpp` `cluster()` (keyed by `stableId` and iteration), and lines ~640–645 (keyed by `stableId`);
   - `src/ri/geometry/object.cpp` `getDisp` (constant key);
@@ -424,23 +431,27 @@ The call-site operand and the `_v2` ABI make Phase 4 a MAJOR change of both shad
 
 **Goal**: RMSE against sample count, and the SC-003 part b bars (FR-033, contracts/test-harnesses.md).
 
-- [ ] T085 [US4] `tests/convergence/test_convergence.cpp`.
+- [X] T085 [US4] `tests/convergence/test_convergence.cpp`.
   - It substitutes `@SAMPLER@`, `@SPP@` and `@SAMPLES@`, and renders the ladder 1, 4, 16, 64, 256.
   - It computes RMSE against the reference over all channels, and fits the log-log slope by least squares.
   - It prints the scene × sampler × rung table. `--bar render` checks for 0.15 steeper than Independent with top-rung RMSE no higher; `--bar nonworse` checks for slope and top-rung RMSE no worse.
-- [ ] T086 [P] [US4] Scene templates in `tests/convergence/scenes/`, each 64×64 with float output:
+- [X] T086 [P] [US4] Scene templates in `tests/convergence/scenes/`, each 64×64 with float output:
   - `dof-reyes.rib.in` and `dof-raytrace.rib.in` (`@SPP@`, lens);
   - `motion-reyes.rib.in` (`@SPP@`, time; bar `nonworse`);
   - `arealight-raytrace.rib.in` (quadlight-style, `@SAMPLES@`);
   - `occlusion-raytrace.rib.in` (`Attribute "irradiance" "maxerror" [0]`, so no cache; `@SAMPLES@`);
   - `glossy-raytrace.rib.in` (`trace` with `samples`/`samplecone`, interpreter only because of GitHub #55; `@SAMPLES@`).
   - Never vary `PixelSamples` for shading-side integrals under reyes.
-- [ ] T087 [US4] `tests/convergence/CMakeLists.txt`:
+- [X] T087 [US4] `tests/convergence/CMakeLists.txt`:
   - one `Convergence_<scene>` test per template, label `convergence`, with bar `render` except `motion-reyes`, which uses `nonworse`;
   - a `convergence-reference` custom target that is **not** in ctest, rendering each scene with `independent` at 4096 spp or more into `tests/convergence/reference/`.
-- [ ] T088 [RUN] [US4] Build `convergence-reference`, serially under `nice -n 19`. Record each scene's time in `validation.md` (M4). Any scene over 30 minutes drops to 32×32, not to fewer samples.
+- [X] T088 [RUN] [US4] Build `convergence-reference`, serially under `nice -n 19`. Record each scene's time in `validation.md` (M4). Any scene over 30 minutes drops to 32×32, not to fewer samples.
   - Check in the references and record the exact generation command in `tests/convergence/README.md`.
-- [ ] T089 [RUN] [US4] `ctest -L convergence`. Record the table and slopes in `validation.md`. A failed bar is a stop-and-report; never loosen the bar.
+- [X] T089 [RUN] [US4] (**run; 3 of 6 bars met, 3 failed: arealight, glossy and occlusion; stop-and-report, see validation.md "Phase 8"; the maintainer chose: occlusion is fixed in the code by T076a-T076d, arealight and glossy get both options of validation.md "Phase 8 follow-up" (T089a, T089b); after T076c-T089b, 8 of 8 met (T089c)**) `ctest -L convergence`. Record the table and slopes in `validation.md`. A failed bar is a stop-and-report; never loosen the bar.
+- **T089a-T089c** (maintainer decision after the investigation in validation.md "Phase 8 follow-up": both options). arealight-raytrace and glossy-raytrace fail the `render` bar because their integrals couple two independently padded dimension pairs (footprint and cone), whose cross term no backend stratifies: a known property of the sampler design, not a defect of a call. A joint 4D sample is possible future work.
+  - [X] T089a [US4] Option A: `test_convergence --bar gain [--gain 1.5]` (slope no worse than the baseline, top-rung RMSE at most the baseline's / 1.5); arealight-raytrace and glossy-raytrace move to it, their scenes unchanged. DOF and motion keep their bars.
+  - [X] T089b [US4] Option B: two new scenes under the full `render` bar, `arealight-cone-raytrace` (`"samplebase" [0]`, a new `convergence_arealight.sl` parameter passed as transmission()'s `"sampleBase"`, default 1) and `glossy-mirror-raytrace` (a flat mirror disc under an orthographic camera), with references made the same way; README documents why both pairs of scenes exist.
+  - [X] T089c [RUN] [US4] Regenerate the references (`convergence-reference`) and run `ctest -L convergence`: 8 of 8 (validation.md "T089a-T089c").
 
 **PAUSE 8**.
 

@@ -983,3 +983,143 @@ The summed test time of the sweep is 1213 s, so `-j2` cannot do better than abou
 | 09a2202 | 9.05 | 1.53 | 7.55 | 12.00 |
 
 The difference of means is -0.07 with a standard error of 0.58 (t = -0.12), against a threshold of 20. **The shift is not real**: the earlier climb from 7.64 and 8.75 to 12.52 was Legacy noise, whose own spread is about 1.5.
+
+## Phase 8 (US4): the convergence harness
+
+### Implementation (T085-T088)
+
+- `tests/convergence/test_convergence.cpp`: renders a template at the ladder 1, 4, 16, 64, 256 with `sobol`, `pmj02` and `independent` (8 seeds per rung, seeds 1 to 8), RMSE against the reference over all four channels (the RMSE of a rung is the root of the mean of the per-seed mean squared errors), least-squares slope of log RMSE against log n, the table, and the bar of `sobol` against `independent` (`--bar render`: slope at least 0.15 steeper and top-rung RMSE no higher; `--bar nonworse`: slope and top-rung RMSE no worse; the bars are strict, no tolerance). `--make-reference` renders a reference. Placeholders: `@SAMPLER@`, `@SEED@`, `@SPP@` (the `PixelSamples` of the rung, `nx ny` with `nx * ny` = the rung, so 16 is `4 4`), `@SAMPLES@`. Exit codes 0 pass, 1 bar failed, 2 failure.
+- Six scenes in `tests/convergence/scenes/` (64x64, float RGBA, `Option "limits" "bucketsize" [16 16]`): `dof-reyes`, `dof-raytrace`, `motion-reyes` (knob `spp`) and `arealight-raytrace`, `occlusion-raytrace`, `glossy-raytrace` (knob `samples`; they use jitter 0 and one pixel sample, so the film does not contribute, and never vary `PixelSamples`). Two new shaders, `shaders/convergence_arealight.sl` and `shaders/convergence_glossy.sl`.
+- `tests/convergence/CMakeLists.txt`: `Convergence_<scene>` tests (label `convergence` only) and the `convergence-reference` custom target (not in `all`, not a test; `cmake -E time` around each scene). `README.md` has the exact generation command.
+- Things the scenes needed that were not obvious (each was a wrong first image or a hang):
+  - a ray type only sees an object whose `visibility` attribute allows it: `diffuse` for `occlusion()`, `specular` for `trace()`, `transmission` for the shadow rays of `transmission()` (without it the soft shadow did not exist and every rung rendered the same image);
+  - the glossy sphere must be invisible to specular rays: a reflected ray that hits it spawns `samples` rays again, depth after depth, and one render ran for 22 minutes before I killed it;
+  - `quadlight.sl` draws its light samples with `random()` per loop iteration, and every `random()` call opens its own sub-stream, so no backend can stratify them (the first area-light scene showed slopes of -0.50 for all three samplers); the new `convergence_arealight.sl` takes its samples through `transmission()`'s sample index, which is what the sampler stratifies.
+
+### References (M4)
+
+The reference is the mean of 256 renders at 256 samples with `independent` and seeds 100000 and up, 65536 independent samples per pixel. A first reference of 4096 samples (16 renders) put a floor under the stratified sampler (its top-rung RMSE is of the order of the reference's own noise): `dof-reyes` read slope -0.659 against -0.693 with the large reference. Cost of the six references, serially under nice (nothing else of mine running): `dof-reyes` 80.1 s, `dof-raytrace` 33.5 s, `motion-reyes` 42.5 s, `arealight-raytrace` 11.4 s, `occlusion-raytrace` 11.9 s, `glossy-raytrace` 7.7 s, 187 s in all. No scene is anywhere near 30 minutes, so none drops to 32x32. The references are checked in under `tests/convergence/reference/` (65 KB each).
+
+### Result (T089): three bars met, three failed
+
+`ctest -L convergence` (6 tests, 4 to 14 s each):
+
+| Scene | Sampler | n=1 | n=4 | n=16 | n=64 | n=256 | Slope |
+|---|---|---|---|---|---|---|---|
+| dof-reyes | sobol | 0.167617 | 0.0550316 | 0.0207099 | 0.00829886 | 0.00352957 | -0.693 |
+| dof-reyes | pmj02 | 0.167843 | 0.0557958 | 0.0207052 | 0.00840326 | 0.00354769 | -0.693 |
+| dof-reyes | independent | 0.168336 | 0.0836653 | 0.0417852 | 0.0210411 | 0.0106057 | -0.498 |
+| dof-raytrace | sobol | 0.155762 | 0.0494811 | 0.018711 | 0.00758221 | 0.00335934 | -0.689 |
+| dof-raytrace | pmj02 | 0.15555 | 0.0494259 | 0.0182845 | 0.00760713 | 0.0033537 | -0.689 |
+| dof-raytrace | independent | 0.1574 | 0.0757187 | 0.0379098 | 0.019145 | 0.00957547 | -0.503 |
+| motion-reyes | sobol | 0.192807 | 0.059011 | 0.0155785 | 0.00597194 | 0.000917003 | -0.937 |
+| motion-reyes | pmj02 | 0.19436 | 0.0591916 | 0.0160089 | 0.00601749 | 0.000918704 | -0.937 |
+| motion-reyes | independent | 0.192709 | 0.0571691 | 0.0156923 | 0.00606336 | 0.00100847 | -0.920 |
+| arealight-raytrace | sobol | 0.0885829 | 0.0321409 | 0.0120584 | 0.00509991 | 0.00252461 | -0.646 |
+| arealight-raytrace | pmj02 | 0.0876184 | 0.0317476 | 0.0120704 | 0.00515697 | 0.0024342 | -0.648 |
+| arealight-raytrace | independent | 0.0857666 | 0.0446896 | 0.0214517 | 0.0110338 | 0.00545114 | -0.498 |
+| occlusion-raytrace | sobol | 0.0869392 | 0.0869392 | 0.0335427 | 0.00889014 | 0.00405966 | -0.607 |
+| occlusion-raytrace | pmj02 | 0.085983 | 0.085983 | 0.0339979 | 0.0089759 | 0.00403319 | -0.604 |
+| occlusion-raytrace | independent | 0.0845269 | 0.0845269 | 0.0341638 | 0.00893967 | 0.00402659 | -0.601 |
+| glossy-raytrace | sobol | 0.0548957 | 0.0199791 | 0.007962 | 0.00345359 | 0.00165408 | -0.632 |
+| glossy-raytrace | pmj02 | 0.0559319 | 0.0204746 | 0.00820824 | 0.00358009 | 0.0017629 | -0.625 |
+| glossy-raytrace | independent | 0.0549811 | 0.0269593 | 0.013838 | 0.00663131 | 0.00345913 | -0.500 |
+
+| Scene | Bar | Slope sobol / independent | Needed | Top-rung RMSE sobol / independent | Result |
+|---|---|---|---|---|---|
+| dof-reyes | render | -0.693 / -0.498 | -0.648 or steeper | 0.00353 / 0.01061 | PASS |
+| dof-raytrace | render | -0.689 / -0.503 | -0.653 | 0.00336 / 0.00958 | PASS |
+| motion-reyes | nonworse | -0.937 / -0.920 | -0.920 | 0.000917 / 0.001008 | PASS |
+| arealight-raytrace | render | -0.646 / -0.498 | -0.648 | 0.00252 / 0.00545 | **FAIL by 0.002** |
+| glossy-raytrace | render | -0.632 / -0.500 | -0.650 | 0.00165 / 0.00346 | **FAIL by 0.018** |
+| occlusion-raytrace | render | -0.607 / -0.601 | -0.751 | 0.00406 / 0.00403 | **FAIL** (no gain at all) |
+
+The three failures are stable: with 32 seeds per rung (`--seeds 32`, run by hand) sobol is 0.149 steeper than independent for arealight, 0.130 for glossy and 0.002 for occlusion. Neither bar was loosened and no scene was bent to pass: the stop-and-report rule applies.
+
+**Why they fail** (the cause of each, from the code and the table):
+- **occlusion**: `occlusion()` (`irradianceDispatch.cpp`) builds its own stratified hemisphere grid of `nt x np` cells and only jitters inside a cell with the sampler's draws, so every backend gets the same stratification, `independent` included. That is why the three rows are identical to three digits, and why the rungs 1 and 4 read the same (both are one grid size). The premise of the bar, that the backend owns the stratification of the occlusion integral, is false for this code. Meeting it needs `occlusion()` to take its hemisphere points from the sampler by sample index, as `trace()` and `transmission()` already do (a change to Phase 6's T076 scope), or the bar to be dropped for occlusion.
+- **arealight and glossy**: the stratified samplers are clearly better (RMSE at the top rung 2.2 and 2.1 times lower, slope 0.15 and 0.13 steeper), but the slope is not 0.15 steeper over the whole ladder. The slope falls with the rung: for `arealight`, sobol reads -0.73, -0.71, -0.62, -0.51 between consecutive rungs, against -0.47 to -0.53 for `independent` all the way. The integrands are discontinuous (a shadow edge, a reflected edge) and use several dimensions per sample (origin jitter, direction jitter, cone: three `get2D` pairs), so the stratified rate decays towards -0.5 at the higher rungs. The DOF scenes, with one lens pair per sample, hold -0.69.
+- `pmj02` behaves like `sobol` in every scene.
+
+Decision needed from the maintainer, per scene: change the code (occlusion), change the scene (a smoother integrand or fewer dimensions for the area light and the glossy mirror; I did not tune any scene toward the bar), or change the bar for that scene.
+
+### Phase 8 follow-up: re-run and the dimensions of arealight and glossy
+
+**Re-run** (`ctest -L convergence` on the build made after the clang-format pass over `test_convergence.cpp`): the same six results to every printed digit (3 passed, 3 failed; 13.8, 7.8, 9.5, 4.6, 4.4 and 3.8 s, 44 s in all). The renders are deterministic.
+
+**Which call draws which dimension.** `trace()` and `transmission()` (`executeMisc.cpp`, `sampleRay` and `drawCone`; `shading.h`, `drawJitter4`) draw, for sample `k` of a call, from the call's sub-stream by `get2D(backend, sub, dim, k)`:
+
+| Dimension | Drawn by | Scales | Used when |
+|---|---|---|---|
+| pair 0 | `sampleRay`, origin jitter | `dPdu`, `dPdv` times `sampleBase` (default 1) | always: the point is spread over its footprint |
+| pair 1 | `sampleRay`, direction jitter | `dDdu`, `dDdv` of the direction argument | always drawn; has an effect only if the direction has a derivative |
+| pair 2 | `drawCone` | `samplecone` | `samplecone` > 0 |
+| 1D dim 3 | `drawTime` | the shutter | only if the object samples motion |
+
+Each pair has its own index shuffle and scramble (padding, as in Burley 2020), so a pair is stratified by itself and not jointly with the others.
+
+**Ablation** (a temporary, env-var-controlled patch in `executeMisc.cpp` that sets a pair to its midpoint; reverted, `git diff -- src` is empty and the build is back to the committed source; each row has its own 256 x 256 independent reference; 8 seeds; slope sobol / independent, top-rung RMSE sobol / independent):
+
+| Scene | All pairs | Pair 0 off | Pair 1 off | Pairs 0 and 1 off | Pair 2 (cone) off |
+|---|---|---|---|---|---|
+| arealight | -0.646 / -0.498 (0.00252 / 0.00545) | -0.785 / -0.499 (0.00106 / 0.00503) | identical to all pairs | identical to pair 0 off | -0.781 / -0.510 (0.000699 / 0.00327) |
+| glossy | -0.632 / -0.500 (0.00165 / 0.00346) | -0.633 / -0.500 (0.00165 / 0.00344) | -0.757 / -0.502 (0.000805 / 0.00339) | -0.762 / -0.501 (0.000788 / 0.00338) | -0.717 / -0.507 (0.000511 / 0.00173) |
+
+Reading it:
+- **No dimension-allocation bug.** A pair that has no effect costs nothing: arealight's pair 1 is drawn and does nothing, because `transmission(Ps, from, ...)` passes the light position, a uniform parameter, as the direction argument, so `dDdu` = 0 (removing it changes no printed digit). Glossy's pair 0 is nearly inert (the reflected objects are far compared with a pixel footprint). The pairs that matter are active in the code on purpose: pair 0 is the footprint filter, pair 1 the direction's footprint, pair 2 the cone.
+- **The failure is the coupling of two active, independently shuffled pairs.** In arealight the footprint (pair 0) and the cone (pair 2) both move the shadow edge; in glossy the direction's footprint (pair 1) and the cone both move the reflected edge. Each pair is stratified alone, the cross term is not, and it takes over at higher rungs: arealight sobol reads -0.73, -0.71, -0.62, -0.51 between consecutive rungs. With one active pair the 2D edge integral reaches -0.75 to -0.79.
+- A joint 4D point for the footprint and the cone would stratify the cross term; that is a sampler API addition (`get4D` with a real 4D net), not a fix to a call.
+
+**Confirmed on real scene variants** (no instrumentation; scratch copies, not in the repository; 8 seeds):
+- arealight with `"sampleBase" 0` in the light's `transmission()` call: sobol -0.775 / independent -0.497 (0.278 steeper), top-rung RMSE 0.00110 / 0.00497.
+- glossy as an orthographic view of a flat mirror disc (35 degrees about y; its reflected direction has no derivative along the plane): sobol -0.747 / independent -0.499 (0.248 steeper), top-rung RMSE 0.00329 / 0.01252.
+
+**The two options, with numbers** (not applied; the maintainer chooses):
+- **A: a per-scene check for arealight and glossy**: slope sobol no worse than independent (`--bar nonworse` slope part) and top-rung RMSE sobol at most independent / F. Measured ratios independent / sobol: arealight 2.16 (8 seeds), 2.23 (32); glossy 2.09 (8), 2.07 (32); for comparison dof-reyes 3.0, dof-raytrace 2.85. Proposed F = 1.5 (headroom 38 to 49 percent on the measured scenes; a ratio of 1.0 still fails occlusion if its code were not fixed). The slope margin of 0.15 stays for the DOF scenes. It records the padding limit as a known property and keeps the scenes as they are; the cost is that the bar no longer checks for the steeper slope on these two.
+- **B: simplify the two scenes deliberately**: arealight with `sampleBase` 0, glossy as the flat mirror under an orthographic camera. Both then integrate a single active pair (the cone) and clear the 0.15 bar by 0.25 to 0.28. The reason to record: the bar tests whether the backend stratifies the integral it is given, and these scenes would otherwise test the coupling of two padded pairs, which this sampler design does not claim to stratify. Cost: two new references (11 s and 8 s) and README text; the scenes no longer cover the footprint filter.
+
+### T076a: tests for occlusion() drawing its directions from the sampler (written first, red)
+
+`occlusion()` (`CIrradianceCache::sample`, `irradianceDispatch.cpp`) builds a grid of `nt = round(sqrt(samples / pi))` by `np = round(pi * nt)` cells and draws only the point inside each cell, so every sampler, Independent included, stratifies the hemisphere the same way, and the ray count is `nt * np` (3, 3, 12, 80, 252 for samples 1, 4, 16, 64, 256). That is why `Convergence_occlusion-raytrace` reads the same slope for all three samplers and why its rungs 1 and 4 are identical.
+
+Tests, all in `tests/visual/CMakeLists.txt` (labels `visual;regression;sampling`, resource lock `sampling_occlusion_scratch`):
+- `OcclusionSampler_NetCount_{sobol,pmj02}_{4,16,64}_{rslo,slo}` (12): `examples/rib/tests/sampling-occlusion-cap.rib.in`, `shaders/sampling_occlusion_probe.sl`. A disc 100 units above the shaded point blocks the directions within 30 degrees of the normal, which is the strip `u < 1/4` of the unit square under the existing cosine map (`sin^2 theta = u`). A (0,2) net of n points (n = 4, 16, 64) has exactly n/4 in a strip of width 1/4, so the occluded fraction is exactly 0.25, but only when the directions come from the sampler and there are exactly n rays. Seed 1, chosen because with seeds 0, 2, 4 and 5 one of the combinations reads 0.25 today by coincidence (a pmj02 or sobol count that happens to be 3 of 12 or 20 of 80). Orthographic camera over a 0.1 x 0.1 window, so the origin jitter (0.003) is negligible against the 100 units.
+  Today: sobol 0.3333, 0.3333, 0.2125; pmj02 0.3333, 0.3333, 0.2750 for n = 4, 16, 64, identical under rslo and slo. All 12 fail.
+- `OcclusionGolden_{legacy,legacy_cache,sobol_cache}` (3): `examples/rib/tests/sampling-occlusion-golden.rib.in`, a 48 x 48 floor and a sphere resting on it, single-threaded, compared bit for bit by `test_golden_compare` with goldens made from the build before the change (`tests/visual/golden/occlusion-*.tif`; mean occlusion 0.094, 0.081 and 0.084). They pin Legacy (cache off and on) and the sobol cached path. All 3 pass today, twice in a row with identical results.
+
+### T076c and T076d: occlusion() draws its directions from the sampler
+
+T076b approved all 15 tests and the four decisions. The change (`src/ri/hiders/irradianceDispatch.cpp`, the occlusion branch of `CIrradianceCache::sample`; `src/libshader/shading/shading.h`, a new `drawBound2D(pair, sample)` accessor on the sub-stream `bindDraws()` bound): under a keyed sampler with the cache off (`maxError == 0`), `occlusion()` traces exactly `samples` rays, direction `k` from pair 0 by sample index (the existing cosine map, `sin^2 theta = u`, `phi = 2 pi v`) and origin jitter from pair 1. Under Legacy, and with the cache on, the grid loop is the old one, the draws in the same order (the two nested loops became one loop over `k = i * np + j`).
+
+**Known gap (decision 4):** `indirectdiffuse()` is the other branch of the same function, a copy of the occlusion one, and stays on the `nt x np` grid: no backend stratifies it and its ray count is `nt * np`, not `samples`. Spec 040 (deterministic GI, which owns the irradiance cache) is the natural place to move it; spec 040's files are not in this worktree, so the gap is recorded here only.
+
+T076d, on the build with the change:
+- `ctest -R '^Occlusion(Sampler|Golden)_'`: 15 of 15 (the 12 `NetCount` read exactly 0.25 under sobol and pmj02, rslo and slo; the 3 goldens are bit-identical to the pre-change renders).
+- `ctest -L '^determinism$' -j2`: 148 of 148 (146.9 s).
+- `ctest -L architecture`: 21 of 21.
+- `ctest -L shading_parity -j4`: 12 of 12.
+- `ctest -L visual -j4`: 424 of 424 (the 409 before plus the 15 new; it includes the occlusion scenes).
+- `Convergence_occlusion-raytrace`: met, see below.
+
+### T089a-T089c: both options for arealight and glossy, and the convergence re-run
+
+- **A** (T089a): `test_convergence --bar gain` (default `--gain 1.5`): slope of the default sampler no worse than the baseline's and top-rung RMSE at most the baseline's / 1.5. arealight-raytrace and glossy-raytrace use it, scenes unchanged. The padded-pair coupling (footprint and cone both moving one edge; each pair stratified alone, the cross term by no backend) is a known property of the sampler design; a joint 4D sample of the footprint and the cone is possible future work (README).
+- **B** (T089b): `arealight-cone-raytrace` (the arealight scene with `"samplebase" [0]`, a new `convergence_arealight.sl` parameter passed as transmission()'s `"sampleBase"`, default 1) and `glossy-mirror-raytrace` (a flat mirror disc turned 35 degrees about y under an orthographic camera), both under the full `render` bar.
+- DOF and motion keep their bars.
+
+References (T089c, `convergence-reference`, serially under nice): dof-reyes 78.7 s, dof-raytrace 32.7 s, motion-reyes 41.2 s, arealight-raytrace 11.1 s, arealight-cone-raytrace 9.8 s, occlusion-raytrace 11.1 s, glossy-raytrace 7.5 s, glossy-mirror-raytrace 25.0 s (about 3.6 minutes). Five references came out byte-identical to the checked-in ones (dof-reyes, dof-raytrace, motion-reyes, arealight-raytrace, glossy-raytrace), which also shows the new `samplebase` parameter at its default leaves arealight-raytrace unchanged; occlusion-raytrace's changed, as it must (its integral is now sampled by the new code; the old reference was made with the grid).
+
+`ctest -L convergence`: **8 of 8** (53.6 s).
+
+| Scene | Bar | Slope sobol / independent | Top-rung RMSE sobol / independent | Result |
+|---|---|---|---|---|
+| dof-reyes | render | -0.693 / -0.498 | 0.00353 / 0.01061 | PASS |
+| dof-raytrace | render | -0.689 / -0.503 | 0.00336 / 0.00958 | PASS |
+| motion-reyes | nonworse | -0.937 / -0.920 | 0.000917 / 0.001008 | PASS |
+| arealight-raytrace | gain 1.5 | -0.646 / -0.498 | 0.00252 / 0.00545 (2.16x) | PASS |
+| arealight-cone-raytrace | render | -0.785 / -0.499 | 0.00106 / 0.00503 | PASS |
+| occlusion-raytrace | render | -0.699 / -0.501 | 0.00352 / 0.01065 | PASS |
+| glossy-raytrace | gain 1.5 | -0.632 / -0.500 | 0.00165 / 0.00346 (2.09x) | PASS |
+| glossy-mirror-raytrace | render | -0.747 / -0.499 | 0.00329 / 0.01252 | PASS |
+
+pmj02 tracks sobol in every scene (within 0.007 of slope). Before the reference was regenerated, occlusion-raytrace read -0.702 / -0.501 against the old grid-made reference: the result does not hinge on it.

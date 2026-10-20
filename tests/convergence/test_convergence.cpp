@@ -10,8 +10,9 @@
  *
  *   test_convergence --orender <path> --template <rib.in> --reference <ref.tif>
  *                    --knob spp|samples [--ladder 1,4,16,64,256] [--samplers sobol,pmj02,independent]
- *                    [--bar render|nonworse|none] [--seeds 8] [--output convergence-out.tif]
+ *                    [--bar render|nonworse|gain|none] [--seeds 8] [--output convergence-out.tif]
  *                    [--default sobol] [--baseline independent] [--scratch <dir>] [--margin 0.15]
+ *                    [--gain 1.5]
  *
  *   test_convergence --make-reference --orender <path> --template <rib.in> --reference <out.tif>
  *                    --knob spp|samples --ref-knob 256 --ref-renders 16 [--ref-sampler independent]
@@ -31,6 +32,9 @@
  * Bars (SC-003). "Slope" is the fitted exponent of RMSE against the rung, so steeper is more negative.
  *   render:   slope(default) <= slope(baseline) - margin  AND  rmse_top(default) <= rmse_top(baseline)
  *   nonworse: slope(default) <= slope(baseline)           AND  rmse_top(default) <= rmse_top(baseline)
+ *   gain:     slope(default) <= slope(baseline)           AND  rmse_top(default) <= rmse_top(baseline) / gain
+ *             (for scenes whose integral couples two independently padded dimension pairs, whose
+ *             cross term no backend stratifies; see tests/convergence/README.md)
  * Exit codes: 0 every bar met, 1 a bar failed, 2 a render, decode or usage failure.
  */
 
@@ -59,6 +63,7 @@ namespace {
             std::vector<std::string> samplers = {"sobol", "pmj02", "independent"};
             int seeds = 8, refKnob = 256, refRenders = 16;
             double margin = 0.15;
+            double gain = 1.5;
             bool makeReference = false;
     };
 
@@ -112,6 +117,8 @@ namespace {
                 a.refRenders = atoi(v);
             else if (k == "--margin")
                 a.margin = atof(v);
+            else if (k == "--gain")
+                a.gain = atof(v);
             else if (k == "--samplers")
                 a.samplers = split(v, ',');
             else if (k == "--ladder") {
@@ -125,7 +132,8 @@ namespace {
             }
         }
         if (a.orender.empty() || a.tmpl.empty() || a.reference.empty() || (a.knob != "spp" && a.knob != "samples") || a.ladder.empty() ||
-            a.seeds < 1 || a.refKnob < 1 || a.refRenders < 1 || (a.bar != "render" && a.bar != "nonworse" && a.bar != "none")) {
+            a.seeds < 1 || a.refKnob < 1 || a.refRenders < 1 || (a.bar != "render" && a.bar != "nonworse" && a.bar != "gain" && a.bar != "none") ||
+            a.gain <= 0) {
             fprintf(stderr, "Usage: %s --orender <path> --template <rib.in> --reference <ref.tif> --knob spp|samples [options]\n", argv[0]);
             return false;
         }
@@ -340,10 +348,11 @@ int main(int argc, char **argv) {
     const Row &d = rows[a.defaultSampler], &b = rows[a.baseline];
     const double need = a.bar == "render" ? a.margin : 0.0;
     const bool slopeOk = d.slope <= b.slope - need;
-    const bool topOk = d.rmse.back() <= b.rmse.back();
-    printf("Bar %s: slope %s %.3f against %s %.3f (needs to be at least %.2f steeper: %s); top-rung RMSE %.6g against %.6g (%s)\n", a.bar.c_str(),
-           a.defaultSampler.c_str(), d.slope, a.baseline.c_str(), b.slope, need, slopeOk ? "ok" : "FAIL", d.rmse.back(), b.rmse.back(),
-           topOk ? "ok" : "FAIL");
+    const double divisor = a.bar == "gain" ? a.gain : 1.0;
+    const bool topOk = d.rmse.back() <= b.rmse.back() / divisor;
+    printf("Bar %s: slope %s %.3f against %s %.3f (needs to be at least %.2f steeper: %s); top-rung RMSE %.6g against %.6g / %.2f (%s)\n",
+           a.bar.c_str(), a.defaultSampler.c_str(), d.slope, a.baseline.c_str(), b.slope, need, slopeOk ? "ok" : "FAIL", d.rmse.back(), b.rmse.back(),
+           divisor, topOk ? "ok" : "FAIL");
     if (slopeOk && topOk) {
         printf("  PASS\n");
         return 0;

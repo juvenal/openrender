@@ -417,6 +417,12 @@ class CShadingContext {
             else
                 random4d.get(r);
         }
+        // Point `sample` of the pair `pair` of the sub-stream bindDraws() bound: the
+        // hemisphere of the irradiance cache, drawn by sample index as trace() draws its
+        // rays (spec 039, T076c). Only under a keyed sampler.
+        inline openrender::sampling::Sample2D drawBound2D(uint32_t pair, uint32_t sample) const {
+            return openrender::sampling::get2D(sampling.backend, drawCursor, pair, sample);
+        }
 
         // The draws of a ray sample: four jitter values (origin, then direction),
         // a direction in a cone, and a time. `sub` is null under Legacy.

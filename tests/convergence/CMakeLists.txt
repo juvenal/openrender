@@ -30,15 +30,20 @@ set(CONVERGENCE_ENV
 # <scene> <knob> <bar> <reference knob> <reference renders>
 #   The reference is the mean of <reference renders> independent-sampler renders at <reference knob>,
 #   so its noise is that of knob * renders independent samples. The bar is `render` where the backend
-#   owns the stratification (lens, area light, occlusion, glossy trace) and `nonworse` for motion blur,
-#   whose time and film position stay grid-stratified under the kept jitter mapping.
+#   owns the stratification of a single integral (lens, occlusion, the area light's and the glossy
+#   mirror's cone), `nonworse` for motion blur, whose time and film position stay grid-stratified under
+#   the kept jitter mapping, and `gain` (slope no worse, top-rung RMSE at most independent / 1.5) for
+#   arealight-raytrace and glossy-raytrace, whose integrals couple two independently padded dimension
+#   pairs (footprint and cone): a known property of the sampler design (README.md, spec 039 T089b).
 set(CONVERGENCE_SCENES
-    dof-reyes          spp     render    256 256
-    dof-raytrace       spp     render    256 256
-    motion-reyes       spp     nonworse  256 256
-    arealight-raytrace samples render    256 256
-    occlusion-raytrace samples render    256 256
-    glossy-raytrace    samples render    256 256)
+    dof-reyes              spp     render    256 256
+    dof-raytrace           spp     render    256 256
+    motion-reyes           spp     nonworse  256 256
+    arealight-raytrace     samples gain      256 256
+    arealight-cone-raytrace samples render   256 256
+    occlusion-raytrace     samples render    256 256
+    glossy-raytrace        samples gain      256 256
+    glossy-mirror-raytrace samples render    256 256)
 
 set(_reference_commands "")
 list(LENGTH CONVERGENCE_SCENES _n)

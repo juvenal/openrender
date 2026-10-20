@@ -1,0 +1,43 @@
+##RenderMan RIB-Structure 1.0
+# Spec 039, T089b (option B): a glossy mirror whose reflection is a cone of trace() rays
+# (convergence_glossy.sl, @SAMPLES@ rays per shaded point), seen by an orthographic camera on a flat
+# mirror disc turned 35 degrees about y. I and N are the same at every point, so the mirror direction
+# has no derivative and its footprint jitter does nothing: the cone is the only integral, one active
+# pair of dimensions. glossy-raytrace, a curved mirror under a perspective camera, couples the
+# direction footprint with the cone and is checked by the weaker `gain` bar; see
+# tests/convergence/README.md. Interpreter only (GitHub #55); jitter 0, one sample per pixel. The
+# mirror is invisible to specular rays, so a reflected ray never spawns rays again.
+version 3.03
+Option "sampling" "sampler" ["@SAMPLER@"]
+Option "sampling" "seed" [@SEED@]
+Option "shaderformat" "default" ["rslo"]
+Option "limits" "bucketsize" [16 16]
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "convergence-out.tif" "file" "rgba"
+Format 64 64 1
+Hider "raytrace" "jitter" [0]
+PixelSamples 1 1
+Projection "orthographic"
+ScreenWindow -5 5 -5 5
+Clipping 0.1 1000
+Translate 0 0 12
+WorldBegin
+    AttributeBegin
+        Attribute "visibility" "int specular" [0]
+        Surface "convergence_glossy" "samples" [@SAMPLES@] "samplecone" [0.5]
+        Translate 0 0 2
+        Rotate 35 0 1 0
+        Disk 0 9 360
+    AttributeEnd
+    AttributeBegin
+        Attribute "visibility" "int specular" [1]
+        Surface "constant"
+        Color [0.9 0.2 0.1]
+        Translate -7 1.2 0
+        Sphere 2 -2 2 360
+        Color [0.1 0.4 0.9]
+        Translate 0 -3.5 1
+        Sphere 2 -2 2 360
+    AttributeEnd
+WorldEnd

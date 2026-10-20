@@ -4031,6 +4031,68 @@ add_test(NAME Sampling_ProbeIndependence
 set_tests_properties(Sampling_ProbeIndependence PROPERTIES TIMEOUT 120
     LABELS "visual;regression;sampling" RESOURCE_LOCK sampling_phase6_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
 
+# --- occlusion() takes its hemisphere directions from the sampler (spec 039, T076a) -------------
+# Written before the change. occlusion() builds an nt x np grid of cells and draws only the point
+# inside each cell from the backend, so every backend, Independent included, stratifies the
+# hemisphere the same way, and the ray count (3, 3, 12, 80, 252 for samples 1, 4, 16, 64, 256) is
+# not the number asked for.
+#   OcclusionSampler_NetCount_<sampler>_<n>_<format>: examples/rib/tests/sampling-occlusion-cap.rib.in.
+#     A disc over the shaded point blocks a quarter of the cosine-weighted hemisphere (the strip
+#     u < 1/4 of the unit square). A (0,2) net of n points, n a power of 4, has exactly n/4 points
+#     in the strip, so under sobol and pmj02 the centre pixel reads exactly 0.25 for n = 4, 16, 64
+#     (and only if the ray count is n). Seed 1: with seed 0, 2, 4 or 5 one of these combinations
+#     reads 0.25 today by coincidence. The same scene gives 1/3, 5/12 or 21/80 now.
+#   OcclusionGolden_<case>: examples/rib/tests/sampling-occlusion-golden.rib.in against a golden
+#     render made before the change, bit for bit (test_golden_compare). legacy, legacy_cache: the
+#     Legacy sampler keeps the grid, with the cache off and on. sobol_cache: with the irradiance
+#     cache on (maxerror > 0) the grid stays too, because the cache's gradients are computed on
+#     it. All three pass today and must keep passing.
+add_executable(test_golden_compare test_golden_compare.cpp)
+target_link_libraries(test_golden_compare PRIVATE TIFF::TIFF)
+target_compile_features(test_golden_compare PRIVATE cxx_std_20)
+
+set(_occlusion_dir ${CMAKE_BINARY_DIR}/tests/visual/sampling-occlusion)
+file(MAKE_DIRECTORY ${_occlusion_dir})
+set(_occlusion_tests "")
+foreach(_format rslo slo)
+    foreach(_sampler sobol pmj02)
+        foreach(_n 4 16 64)
+            set(SAMPLER ${_sampler})
+            set(FORMAT ${_format})
+            set(SAMPLES ${_n})
+            set(SEED 1)
+            set(OUTPUT occlusion-cap-${_sampler}-${_n}-${_format}.tif)
+            configure_file(${_phase6_scenes}/sampling-occlusion-cap.rib.in
+                ${_occlusion_dir}/occlusion-cap-${_sampler}-${_n}-${_format}.rib @ONLY)
+            add_test(NAME OcclusionSampler_NetCount_${_sampler}_${_n}_${_format}
+                COMMAND test_pixel_probe $<TARGET_FILE:orender>
+                    ${_occlusion_dir}/occlusion-cap-${_sampler}-${_n}-${_format}.rib
+                    ${OUTPUT} 16 16 0.000001 0.25 0.25 0.25
+                WORKING_DIRECTORY ${_occlusion_dir})
+            list(APPEND _occlusion_tests OcclusionSampler_NetCount_${_sampler}_${_n}_${_format})
+            if(_format STREQUAL "slo" AND NOT OPENRENDER_HAVE_LLVM)
+                set_tests_properties(OcclusionSampler_NetCount_${_sampler}_${_n}_${_format} PROPERTIES DISABLED TRUE)
+            endif()
+        endforeach()
+    endforeach()
+endforeach()
+foreach(_case legacy:legacy:0 legacy_cache:legacy:0.4 sobol_cache:sobol:0.4)
+    string(REPLACE ":" ";" _parts ${_case})
+    list(GET _parts 0 _name)
+    list(GET _parts 1 SAMPLER)
+    list(GET _parts 2 MAXERROR)
+    set(OUTPUT occlusion-golden-${_name}.tif)
+    configure_file(${_phase6_scenes}/sampling-occlusion-golden.rib.in ${_occlusion_dir}/occlusion-golden-${_name}.rib @ONLY)
+    add_test(NAME OcclusionGolden_${_name}
+        COMMAND test_golden_compare $<TARGET_FILE:orender>
+            ${_occlusion_dir}/occlusion-golden-${_name}.rib ${OUTPUT}
+            ${CMAKE_CURRENT_SOURCE_DIR}/golden/occlusion-${_name}.tif
+        WORKING_DIRECTORY ${_occlusion_dir})
+    list(APPEND _occlusion_tests OcclusionGolden_${_name})
+endforeach()
+set_tests_properties(${_occlusion_tests} PROPERTIES TIMEOUT 120
+    LABELS "visual;regression;sampling" RESOURCE_LOCK sampling_occlusion_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+
 # SC-007 (spec 039): no randomness outside the sampler library and CKeyedStream.
 # Registered at Phase 6 with an explicit allowlist (no_global_randomness_allowlist.txt)
 # that holds only the legacy generators Phase 9 deletes. It fails today: it lists
