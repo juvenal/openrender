@@ -282,6 +282,7 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
 
     // This is the memory we allocate our junk from (only permenant stuff for the entire frame)
     frameFiles = new CTrie<CFileResource *>;
+    framePhotonMaps = new CArray<CPhotonMap *>;
     frameTemporaryFiles = NULL;
 
     // Save the world xform
@@ -845,6 +846,22 @@ void CRenderer::endFrame() {
     delete declaredRemoteChannels;
     remoteChannels = NULL;
     declaredRemoteChannels = NULL;
+
+    // Release the photon maps. Each holds a counted reference for the cache
+    // (the CPhotonMap ctor attaches it), and any CAttributes render() gave the
+    // map to holds another: the world-level attributes let go only in
+    // RiWorldEnd's attributeEnd(), after this, and an object definition's not
+    // before RiEnd. So take each map out of the cache and drop the cache's
+    // reference; the last holder frees it (GitHub #64). The photon hider has
+    // already written its maps, in ~CPhotonHider above.
+    CPhotonMap *cMap;
+    while ((cMap = framePhotonMaps->pop()) != NULL) {
+        CFileResource *cached;
+        frameFiles->erase(cMap->name, cached);
+        cMap->detach();
+    }
+    delete framePhotonMaps;
+    framePhotonMaps = NULL;
 
     // Unload the files
     frameFiles->destroy();

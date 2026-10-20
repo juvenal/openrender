@@ -392,6 +392,7 @@ class CRenderer {
         static TMemCheckpoint frameCheckpoint;                  // A checkpoint in the global memory
         static CTrie<CFileResource *> *frameFiles;              // Files that have been loaded (they stick around only during the frame)
         static CArray<const char *> *frameTemporaryFiles;       // This hold the name of temporary files
+        static CArray<CPhotonMap *> *framePhotonMaps;           // The photon maps in frameFiles: each holds a counted reference for the cache (GitHub #64)
         static CShadingContext **contexts;                      // The array of shading contexts
         static int numActiveThreads;                            // The number of threads currently active
         static CTrie<CRemoteChannel *> *declaredRemoteChannels; // Known remote channel lookup
