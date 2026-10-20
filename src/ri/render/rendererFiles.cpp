@@ -60,9 +60,13 @@ CShader *parseShader(const char *, const char *);
 #include "rslo_code.h" // SL_VARYING_OPERAND
 #include "shader.h"    // CShader, SL_SURFACE, SL_LIGHTSOURCE, …
 #include "common/variable.h"  // CVariable, EVariableType, EVariableStorage
+#include "common/global.h"    // allocate_untyped
+#include "common/os.h"        // osProcessEscapes
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string>
+#include <vector>
 
 // Map SLOShaderInfo typeName to SL_* constant.
 //
@@ -127,6 +131,40 @@ static EVariableType sloVarType(const std::string &t) {
     return TYPE_FLOAT;
 }
 
+// Sets a 4x4 matrix to diag(d, d, d, 1): what rslo.y gives "matrix m = d" (and,
+// with d = 1, a matrix parameter with no constant default).
+static void setSloMatrixDiagonal(float *m, float d) {
+    for (int j = 0; j < 16; j++)
+        m[j] = 0.0f;
+    m[0] = m[5] = m[10] = d;
+    m[15] = 1.0f;
+}
+
+// Parses a string parameter's default from the .slo metadata into `slots`
+// (GitHub #66). The text is what the .rslo file carries: one quoted string
+// ("hello", "") or a bracketed list ([ "a" "b c" ]). RSL strings cannot hold a
+// double quote, so each value runs to the next quote; it is decoded with
+// osProcessEscapes() exactly as rslo.l decodes SCRL_TEXT_VALUE, then strdup'd
+// and recorded in `owned`. An empty `text` (no constant default; the init
+// section computes the value) and slots past the parsed values stay NULL.
+static void parseSloStringDefaults(const std::string &text, char **slots, int numSlots, std::vector<char *> &owned) {
+    const char *cp = text.c_str();
+    for (int j = 0; j < numSlots; j++) {
+        cp = strchr(cp, '"');
+        if (cp == nullptr)
+            break;
+        const char *end = strchr(cp + 1, '"');
+        if (end == nullptr)
+            break;
+        std::string value(cp + 1, end);
+        char *s = strdup(value.c_str());
+        osProcessEscapes(s);
+        slots[j] = s;
+        owned.push_back(s);
+        cp = end + 1;
+    }
+}
+
 static CShader *parseSloShader(const char *shaderName, const char *sloPath) {
     SLOShaderInfo info;
     if (!CLLVMJitEngine::extractMetadataFromFile(sloPath, info) || !info.valid())
@@ -179,8 +217,10 @@ static CShader *parseSloShader(const char *shaderName, const char *sloPath) {
     // Local temporaries are accessed exclusively by slot index through locals[] at execute time.
     // The list is built in reverse source order (matching rslo.y's prepend convention),
     // so the final order mirrors what the interpreter expects.
-    // defaultValue MUST be allocated with new float[] to match CShader::~CShader()'s delete[].
+    // defaultValue MUST be allocated with new[] as the type ~CShader() frees it with:
+    // char *[] for a string, float[] otherwise.
     CVariable *paramHead = nullptr;
+    std::vector<char *> defaultStrings; // strdup'd string defaults, handed to sh->strings below
     for (int i = numParams - 1; i >= 0; --i) {
         const SLOParamInfo &p = info.params[i];
         int totalFloats = p.arraySize * sloFloatCount(p.typeName);
@@ -197,11 +237,31 @@ static CShader *parseSloShader(const char *shaderName, const char *sloPath) {
         v->accessor = SL_VARYING_OPERAND;
         v->usageMarker = 0;
 
+        // A string default holds one char * per slot (GitHub #66): the instance
+        // constructor, setParameter() and prepare() all read it as char **, and
+        // a float-sized buffer made the constructor copy 8 bytes out of 4. The
+        // strings are owned by the shader (sh->strings, freed by ~CShader).
+        if (v->type == TYPE_STRING) {
+            const int numSlots = totalFloats > 0 ? totalFloats : 1;
+            char **slots = new char *[numSlots];
+            for (int j = 0; j < numSlots; j++)
+                slots[j] = nullptr;
+            parseSloStringDefaults(p.defaultStr, slots, totalFloats, defaultStrings);
+            v->defaultValue = slots;
+            v->next = paramHead;
+            paramHead = v;
+            continue;
+        }
+
         // Allocate and populate default value using new[] (matched by delete[] in CShader dtor).
         v->defaultValue = new float[totalFloats > 0 ? totalFloats : 1];
         float *buf = (float *)v->defaultValue;
         for (int j = 0; j < totalFloats; j++)
             buf[j] = 0.0f;
+        // A scalar matrix with no constant default is the identity, as rslo.y makes it.
+        const bool scalarMatrix = (v->type == TYPE_MATRIX && p.arraySize == 1);
+        if (scalarMatrix && p.defaultStr.empty())
+            setSloMatrixDiagonal(buf, 1.0f);
         if (!p.defaultStr.empty()) {
             // Reuse parseDefaultStr's logic inline to avoid malloc/new mismatch.
             const char *cp = p.defaultStr.c_str();
@@ -219,7 +279,11 @@ static CShader *parseSloShader(const char *shaderName, const char *sloPath) {
                     ++cp;
             }
             // RSL scalar-to-tuple broadcast: "color = 1" means {1,1,1}, "vector = 0" means {0,0,0}.
-            if (numParsed == 1 && totalFloats > 1) {
+            // A matrix is the exception: "matrix = v" means diag(v, v, v, 1), as in rslo.y.
+            if (numParsed == 1 && scalarMatrix) {
+                setSloMatrixDiagonal(buf, buf[0]);
+            }
+            else if (numParsed == 1 && totalFloats > 1) {
                 for (int j = 1; j < totalFloats; j++)
                     buf[j] = buf[0];
             }
@@ -231,12 +295,20 @@ static CShader *parseSloShader(const char *shaderName, const char *sloPath) {
     sh->parameters = paramHead;
     sh->numGlobals = 0;
 
-    // Interpreter fields null — JIT is the only execution path for .slo-based shaders.
+    // Interpreter fields null — JIT is the only execution path for .slo-based shaders
+    // (codeArea == nullptr is what marks one). The default strings live in sh->strings,
+    // as in rslo.y: ~CShader frees each string and, through `memory`, the array.
     sh->memory = nullptr;
     sh->codeArea = nullptr;
     sh->constantEntries = nullptr;
     sh->strings = nullptr;
-    sh->numStrings = 0;
+    sh->numStrings = (int)defaultStrings.size();
+    if (sh->numStrings > 0) {
+        sh->memory = (char *)allocate_untyped(sh->numStrings * sizeof(char *));
+        sh->strings = (char **)sh->memory;
+        for (int j = 0; j < sh->numStrings; j++)
+            sh->strings[j] = defaultStrings[j];
+    }
     sh->codeEntryPoint = 0;
     sh->initEntryPoint = 0;
     sh->usedParameters = info.usedParameters;

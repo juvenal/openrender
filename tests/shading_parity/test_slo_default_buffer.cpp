@@ -223,13 +223,15 @@ static const CVariable *findParameter(const CVariable *list, const char *name) {
     return nullptr;
 }
 
+// A slot read past a float-sized buffer ends in sizeof(float) canary bytes (its
+// upper half). A single 0xA5 byte proves nothing: real pointers contain one.
 static bool hasCanary(const void *slot) {
     unsigned char bytes[sizeof(char *)];
     memcpy(bytes, slot, sizeof(bytes));
-    for (unsigned char b : bytes)
-        if (b == kCanary)
-            return true;
-    return false;
+    for (size_t b = sizeof(float); b < sizeof(bytes); b++)
+        if (bytes[b] != kCanary)
+            return false;
+    return true;
 }
 
 // The parameters the fixture declares, with their expected slot counts.

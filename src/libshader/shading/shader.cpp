@@ -79,9 +79,14 @@ CShader::~CShader() {
     while ((cParameter = parameters) != NULL) {
         parameters = parameters->next;
 
-        // Delete the default values
-        if (cParameter->defaultValue != NULL)
-            delete[] (float *)cParameter->defaultValue;
+        // Delete the default values, as the type they were allocated with: both
+        // loaders give a string a char *[] (the strings themselves are in strings[])
+        if (cParameter->defaultValue != NULL) {
+            if (cParameter->type == TYPE_STRING)
+                delete[] (char **)cParameter->defaultValue;
+            else
+                delete[] (float *)cParameter->defaultValue;
+        }
 
         // Delete the parameter
         delete cParameter;
