@@ -1522,9 +1522,10 @@ endforeach()
 # (see determinism-scenes.cmake for the scenes and for what the label set is, per research M3).
 set(DETERMINISM_SOBOL_LINE "Option \"sampling\" \"sampler\" [\"sobol\"]")
 set(DETERMINISM_DEFAULT_CONFIGS "-t:1||-t:2|-t:4|-P:2")
-# `determinism-sweep` is the opt-in label of the full sweep; determinism-scenes.cmake adds `determinism` to
-# the scenes of the default set.
-set(DETERMINISM_SWEEP_LABELS "visual;regression;determinism-sweep")
+# `determinism-sweep` is the opt-in label of the full sweep: the tests carry no `visual` or `regression`
+# label, so `-L visual` and `-L regression` do not select them. determinism-scenes.cmake adds `determinism`
+# to the scenes of the default set. A full run without the sweep is `ctest -LE determinism-sweep`.
+set(DETERMINISM_SWEEP_LABELS "determinism-sweep")
 function(add_determinism_sweep NAME RIB)
     cmake_parse_arguments(ARG "" "CONFIGS" "COPY" ${ARGN})
     set(_outputs ${ARG_UNPARSED_ARGUMENTS})

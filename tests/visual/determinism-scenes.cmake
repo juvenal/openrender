@@ -508,9 +508,10 @@ set_tests_properties(
 #   examples/rib/teapot.rib  (no Display statement)
 
 # --- The default `determinism` set (FR-030, research M3) ---------------------------------------------
-# The full sweep (every scene above, five configurations each) is the opt-in `determinism-sweep` label:
-# it takes about 10 minutes at -j2, over the 10-minute budget of FR-030 once the machine is loaded.
-# Run it before every merge and in the Linux validation (T105). The default `determinism` label carries
+# The full sweep (every scene above, five configurations each) is the opt-in `determinism-sweep` label,
+# without `visual` or `regression`: it takes 10 to 12 minutes at -j2, over the 10-minute budget of FR-030
+# once the machine is loaded. Run it before every merge and in the Linux validation (T105):
+# `ctest -L '^determinism-sweep$' -j2`. The everyday full run leaves it out: `ctest -LE determinism-sweep`. The default `determinism` label carries
 # the sweep scenes below, which were chosen as follows:
 #   - one scene per family and hider (the family is the first word of the scene's name, split further
 #     for csg and teapot): the most demanding one that takes at most 10 s in the sweep, not the fastest;

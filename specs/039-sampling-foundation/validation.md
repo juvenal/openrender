@@ -943,7 +943,7 @@ Method: temporary instrumentation (per-sample dumps, hashes of the committed buc
 ### T084d: the label split, the timings and the Parity measurement
 
 **FR-030 compliance note.** The full sweep does not fit FR-030's 10-minute budget on this machine once the load is realistic, so it is opt-in, and a representative subset is in the default `determinism` label, as FR-030 and research M3 provide.
-- `determinism-sweep`: every swept scene (413 registered, 403 enabled, 10 disabled under #60, #61 and #63). **Run it before each merge and in the Linux validation (T105), explicitly**: `ctest -L '^determinism-sweep$' -j2`.
+- `determinism-sweep`: every swept scene (413 registered, 403 enabled, 10 disabled under #60, #61 and #63), with no `visual` or `regression` label. **Run it before each merge and in the Linux validation (T105), explicitly**: `ctest -L '^determinism-sweep$' -j2`. A full run without it is `ctest -LE determinism-sweep`.
 - `determinism` (default): 148 tests, 154 s and 171 s at `-j2`.
 - Use the anchored label, `ctest -L '^determinism$' -j2`. `ctest -L determinism` is a regular expression and also selects every `determinism-sweep` test (448 tests in all, the whole sweep).
 
@@ -953,7 +953,8 @@ Method: temporary instrumentation (per-sample dumps, hashes of the committed buc
   - the **most demanding** scene of each family and hider that takes at most 10 s in the sweep (the family is the first word of the name, split further for `csg` and `teapot`, 107 family and hider groups); the cap keeps the set inside its budget, and within it the slowest scene is taken, not the fastest;
   - every scene that has exposed a defect: the tie scenes of #62 (`blobby-spiral-reyes`, `blobby-spiral-zbuffer`, `blobby-dent-reyes`, `blobby-repeller-heights-reyes`, `blobby-blend-far-reyes`, `bunny-reyes`), the missed-lane scenes of #61 (`csg-secondary-rays-raytrace`, `csg-secondary-rays-reyes`, `csg-hero-plain-sphere-raytrace`, `csg-hero-translucent-raytrace`, `csg-procedural-operand-raytrace`, `csg-procedural-operand-inline-raytrace`), and `sphere-random`, `sphere-trace` and `sphere-gather` in both shader formats;
   - no disabled entry.
-- Labels only: no test body, threshold or reference changed. `add_determinism_sweep` gives `visual;regression;determinism-sweep`; the default scenes get `determinism` added.
+- Labels only: no test body, threshold or reference changed. `add_determinism_sweep` gives `determinism-sweep` only (no `visual` or `regression`), so `-L visual` and `-L regression` no longer select the sweep; the default scenes get `determinism` added.
+- **How to run what** (counts checked with `ctest -N`): the everyday full run is `ctest -LE determinism-sweep` (721 tests); the default determinism set is `ctest -L '^determinism$' -j2` (148); the opt-in full sweep is `ctest -L '^determinism-sweep$' -j2` (413, 403 enabled). `-L visual` went from 822 to 409 tests and `-L regression` from 888 to 475 (the 413 sweep tests are gone from both).
 
 **Timings at `-j2`** (through `cpujob.sh` with `nice -n 19`, one job at a time, nothing else of mine running):
 

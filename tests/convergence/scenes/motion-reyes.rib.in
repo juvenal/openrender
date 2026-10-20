@@ -1,0 +1,38 @@
+##RenderMan RIB-Structure 1.0
+# Spec 039, Phase 8 (T086): motion blur under the reyes hider. The time sample and the film position are
+# the integral (they stay grid-stratified under the kept jitter mapping, so the bar is "no worse than
+# independent"); the knob is the number of samples per pixel (@SPP@). A constant-colour sphere and a
+# cube-ish cone sweep across the frame during the shutter.
+version 3.03
+Option "sampling" "sampler" ["@SAMPLER@"]
+Option "sampling" "seed" [@SEED@]
+Option "shaderformat" "default" ["rslo"]
+Option "limits" "bucketsize" [16 16]
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "convergence-out.tif" "file" "rgba"
+Format 64 64 1
+Hider "reyes"
+PixelSamples @SPP@
+Shutter 0 1
+Projection "perspective" "fov" 45
+Translate 0 0 5
+WorldBegin
+  Surface "constant"
+  AttributeBegin
+    Color 0.9 0.8 0.2
+    MotionBegin [0 1]
+      Translate -1.2 0 0
+      Translate  1.2 0 0
+    MotionEnd
+    Sphere 0.7 -0.7 0.7 360
+  AttributeEnd
+  AttributeBegin
+    Color 0.2 0.4 0.9
+    MotionBegin [0 1]
+      Translate 0.8 -0.9 0.5
+      Translate -0.8 0.9 0.5
+    MotionEnd
+    Sphere 0.5 -0.5 0.5 360
+  AttributeEnd
+WorldEnd
