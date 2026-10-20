@@ -149,6 +149,35 @@ set_tests_properties(ShadingParity_IrradianceEmptyString PROPERTIES
     ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}"
 )
 
+# GitHub #66: every parameter's default buffer in a loaded CShader must hold
+# what CProgrammableShaderInstance's constructor copies out of it (a char * per
+# string slot). A .slo string parameter got a float-sized buffer, an 8-byte read
+# from a 4-byte allocation. Deterministic without a sanitizer: the test replaces
+# operator new[] with a size tracker and puts a canary past each allocation.
+# Checks the .rslo load as the control and the .slo load, so it needs the JIT.
+if(OPENRENDER_HAVE_LLVM)
+    add_executable(test_shading_slo_default_buffer test_slo_default_buffer.cpp)
+    target_link_libraries(test_shading_slo_default_buffer PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+    target_include_directories(test_shading_slo_default_buffer PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_BINARY_DIR}
+    )
+    target_compile_features(test_shading_slo_default_buffer PRIVATE cxx_std_20)
+    # SloDefaultBuffer: the buffer sizes and the canary. SloStringDefaults: the
+    # .slo instance holds the same defaults as the .rslo one (string defaults were
+    # lost under .slo, since the loader never parsed them).
+    foreach(_case IN ITEMS "SloDefaultBuffer;buffer" "SloStringDefaults;parity")
+        list(GET _case 0 _name)
+        list(GET _case 1 _arg)
+        add_test(NAME ShadingParity_${_name} COMMAND test_shading_slo_default_buffer ${_arg})
+        set_tests_properties(ShadingParity_${_name} PROPERTIES
+            TIMEOUT 30
+            LABELS "shading_parity"
+            ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};OSHADER_BIN=$<TARGET_FILE:oshader>"
+        )
+    endforeach()
+endif()
+
 # Spec 024 (shading services routing): the renderer services are registered
 # for the whole session (RiBegin .. RiEnd), and a substitute installed after
 # RiBegin survives beginFrame(). Later phases add the routing checks here.
