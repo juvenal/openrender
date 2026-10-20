@@ -230,10 +230,11 @@ static void runGuarded() {
 
     // Call side: a parameter list ending in a name with no value. The
     // matcher stepped over the name and its (missing) value, past the
-    // call's terminator. Binding it like the compiler does (rslo.cpp's
-    // matcher accepts it) is the proposed semantic.
-    guardCase("call-side '!' dangling name", "f=ff!", "f=ffS", true);
-    guardCase("call-side '!' dangling name after a pair", "f=ff!", "f=ffSfs", true);
+    // call's terminator. It is rejected: plBegin() (execute.cpp) reads a
+    // value operand for every name, which here lies past the instruction's
+    // arguments. The compiler still accepts such a call (BUGS.md).
+    guardCase("call-side '!' dangling name", "f=ff!", "f=ffS", false);
+    guardCase("call-side '!' dangling name after a pair", "f=ff!", "f=ffSfs", false);
 
     // Sweep: every table prototype against every call prototype used above,
     // all guarded. Catches any other read past either terminator.

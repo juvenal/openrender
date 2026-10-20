@@ -15,7 +15,8 @@
  *     - "x+" matches one or more x, "x*" zero or more x (x may be '.');
  *       nothing may follow the repeated element in the call;
  *     - '!' matches a parameter list: zero or more (name, value) pairs,
- *       each name being 's' or 'S', the value any one parameter.
+ *       each name being 's' or 'S', the value any one parameter; a name
+ *       with no value does not match.
  *   The return types must be identical.
  *
  * Authors:
@@ -62,6 +63,13 @@ namespace libshader {
             }
             else if (table[k] == '!') {
                 if ((call[j] == 's') || (call[j] == 'S')) {
+                    // A name with no value after it: reject (GitHub #67).
+                    // Stepping over the missing value would read past the
+                    // call's terminator, and plBegin() (execute.cpp) reads a
+                    // value operand for every name, one past the
+                    // instruction's arguments here.
+                    if (call[j + 1] == '\0')
+                        return false;
                     j++;
                     k--;
                 }
@@ -74,8 +82,11 @@ namespace libshader {
             }
         }
 
+        // table[k + 1] is read only when table[k] is not the terminator
+        // (GitHub #67): a table prototype that ends before the call does
+        // not match.
         return ((table[k] == '\0') && (call[j] == '\0')) || ((table[k] == '+') || (table[k] == '*')) ||
-               (table[k] == '!') || (table[k + 1] == '*');
+               (table[k] == '!') || ((table[k] != '\0') && (table[k + 1] == '*'));
     }
 
 } // namespace libshader

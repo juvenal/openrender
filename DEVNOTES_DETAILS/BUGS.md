@@ -73,8 +73,39 @@ This file tracks known defects and implementation gaps in openRender. Open items
       count on macOS (exit code 5, no map written) and in 0 of 30 at `-t:1`; on Linux at `-t:1`
       it crashed in 0 of 30. The spec 024 parity tests therefore render at `-t:1`. The race
       remains open.
+- [ ] The compiler accepts a parameter list that ends in a name with no value; the `.rslo` loader
+      rejects it. `CFunctionPrototype::match` (`src/libshader/compiler/rslo.cpp:600` and `:708`) consumes
+      a `'!'` list one argument at a time ("we will not do a strict check"), so a call such as
+      `texture("map", s, t, "blur")` can compile to a call prototype like `f=SFffS` against the
+      table entry `f=SFff!` (`shaderFunctions.h`).
+      Since GitHub #67 the loader's matcher (`rsloPrototypeMatch.h`) refuses it with "Unknown function",
+      because the interpreter's `plBegin()` (`src/libshader/shading/execute.cpp:276`-`291`) reads a value
+      operand for every name: for a trailing name it reads `code->arguments[num]`, the next instruction's
+      first argument in the shared argument pool (`rslo.y`, `currentArgumentPlace`), or one past the
+      pool after the last instruction. Before #67 the loader's answer depended on stale bytes in
+      `currentPrototype`. The compiler should reject an odd-length parameter list.
 
 ## Resolved Bugs
+
+- [x] Bug: the `.rslo` loader's built-in function matcher read past a prototype's terminator (FIXED —
+      GitHub #67, branch `fix/setopcode-prototype-overread`, 2026-10-20). `setOpcode()`
+      (`src/libshader/shading/rslo.y`) accepted a pattern match when `prototype[k+1] == '*'`, and read
+      that byte even when `prototype[k]` was already the `'\0'`, i.e. whenever a table prototype ended
+      before the call's. ASan found it in `Visual_sphere-shadername-reyes`: `shadername("surface")`
+      (call `s=S`) is tried against the zero-argument entry `s=` first, and `"s="[3]` was read. A byte
+      equal to `'*'` there would have bound the shorter overload; in the macOS build checked the next
+      literal is `s=S`, so no wrong binding was observed, but literal layout is up to the toolchain.
+      A second overread was on the call side: in a `'!'` parameter list a name was consumed together
+      with the value after it, so a call ending in a name stepped `j` past the call's terminator into
+      stale bytes of the 64-byte `currentPrototype`, giving a match or "Unknown function" by chance.
+      The matcher is now a pure function, `libshader::rsloPrototypeMatches()`
+      (`src/libshader/shading/rsloPrototypeMatch.h`), with both reads guarded: a table prototype that
+      ends first does not match, and a trailing name with no value is rejected, because `plBegin()`
+      reads a value for every name (the compiler still accepts it; see Open Issues). All other
+      matching (`'.'`, `x*`, `x+`, `'!'`, exact letters, return type) is unchanged. Test:
+      `LibShader_RsloPrototypeMatch` (`src/libshader/tests/test_rslo_prototype_match.cpp`) pins the
+      semantics and runs every case with both strings ending at a `PROT_NONE` page, one forked child
+      per case, so any read past a terminator faults.
 
 - [x] Bug: shading states were built and freed from whatever the renderer services reported at the
       time, with no check (FIXED — GitHub #59, branch `fix/shading-state-no-services`, 2026-10-19).
