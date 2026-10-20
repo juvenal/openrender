@@ -2543,9 +2543,25 @@ void CIlluminateSolar::getCode(FILE *out, CVariable *dest) {
     // Allocate end label
     rslo->newLabel(endLabel);
 
-    lock(op1, P);
-    lock(op2, N);
-    lock(op3, angle);
+    // Each operand keeps its own uniformity. The construct itself is varying,
+    // and lock() would broadcast a uniform operand into a varying temporary
+    // with a tag-masked "vu*" move, leaving the inactive points of that
+    // temporary unwritten. With the illumination hook on, the hider is handed
+    // the operand itself, so a uniform parameter must reach it unbroadcast
+    // (GitHub #68); the opcodes step each operand by its own varyingStep.
+    CVariable *op1Var = nullptr, *op2Var = nullptr, *op3Var = nullptr;
+    auto lockOwn = [&](CExpression *e, CVariable *&reg) -> const char * {
+        if (e == nullptr)
+            return nullptr;
+        CVariable *v = e->getVariable();
+        if (v != nullptr)
+            return v->codeName();
+        getContainer(out, e->type, reg, e);
+        return reg->codeName();
+    };
+    const char *op1 = lockOwn(P, op1Var);
+    const char *op2 = lockOwn(N, op2Var);
+    const char *op3 = lockOwn(angle, op3Var);
 
     out_printf(out, "%s\t", beginOpcode);
 
@@ -2570,12 +2586,12 @@ void CIlluminateSolar::getCode(FILE *out, CVariable *dest) {
 
     out_printf(out, "%s\n", endOpcode);
 
-    if (op3 != nullptr)
-        release(op3);
-    if (op2 != nullptr)
-        release(op2);
-    if (op1 != nullptr)
-        release(op1);
+    if (op3Var != nullptr)
+        rslo->releaseRegister(op3Var);
+    if (op2Var != nullptr)
+        rslo->releaseRegister(op2Var);
+    if (op1Var != nullptr)
+        rslo->releaseRegister(op1Var);
 }
 
 ///////////////////////////////////////////////////////////////////////

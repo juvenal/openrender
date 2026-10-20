@@ -1986,7 +1986,7 @@ void CShadingContext::jitIlluminateBegin(const float *from, int sf, int *tags, i
         return;
 
     if (rendererIlluminationHook()) {
-        illuminateBegin(from, nullptr, nullptr);
+        illuminateBegin(hookOperand(from, sf, tags, n), nullptr, nullptr);
         return;
     }
 
@@ -2029,7 +2029,7 @@ void CShadingContext::jitIlluminate3Begin(
         return;
 
     if (rendererIlluminationHook()) {
-        illuminateBegin(from, axis, angle);
+        illuminateBegin(hookOperand(from, sf, tags, n), hookOperand(axis, sa, tags, n), hookOperand(angle, st, tags, n));
         return;
     }
     log_debug("[JIT-DBG] jitIlluminate3Begin: n={} numActive={} numPassive={}", n, *numActive, *numPassive);
@@ -2140,13 +2140,13 @@ void CShadingContext::jitIlluminateEnd(int *tags, int n, int *numActive, int *nu
 // Mirrors SOLAR2EXPR_PRE for the JIT directional-light path.
 // Sets L = Nf * worldRadius for each active vertex, then gates vertices
 // where Ns·L > -costheta*|L| (back-facing relative to the light direction).
-void CShadingContext::jitSolarBegin(const float *Nf, int sf, const float *thetaf, int /*st*/, int *tags, int n, int *numActive, int *numPassive) {
+void CShadingContext::jitSolarBegin(const float *Nf, int sf, const float *thetaf, int st, int *tags, int n, int *numActive, int *numPassive) {
     CShadingState *ss = currentShadingState;
     if (!ss)
         return;
 
     if (rendererIlluminationHook()) {
-        solarBegin(Nf, thetaf);
+        solarBegin(hookOperand(Nf, sf, tags, n), hookOperand(thetaf, st, tags, n));
         return;
     }
 

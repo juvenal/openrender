@@ -206,44 +206,45 @@ DEFOPCODE(EndIlluminationExpr, "endilluminance", 0, ENDILLUMINATIONEXPR_PRE, NUL
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // illuminate <P> <end>
 // always execute (no shadow checking)
-#define ILLUMINATE1EXPR_PRE                                     \
-    const float *Pl;                                            \
-                                                                \
-    operand(0, Pl, const float *);                              \
-                                                                \
-    if (this->rendererIlluminationHook()) {                     \
-        illuminateBegin(Pl, NULL, NULL);                        \
-    }                                                           \
-    else {                                                      \
-        float *Ps = varying[VARIABLE_PS];                       \
-        float *L = varying[VARIABLE_L];                         \
-        const float *Ns = currentShadingState->Ns;              \
-        const float *costheta = currentShadingState->costheta;  \
-                                                                \
-        for (int i = numVertices; i > 0; --i, ++tags) {         \
-            if (*tags) {                                        \
-                (*tags)++;                                      \
-            }                                                   \
-            else {                                              \
-                subvv(L, Ps, Pl);                               \
-                                                                \
-                if (dotvv(Ns, L) > -(*costheta) * lengthv(L)) { \
-                    (*tags)++;                                  \
-                    --numActive;                                \
-                    ++numPassive;                               \
-                }                                               \
-            }                                                   \
-                                                                \
-            Pl += 3;                                            \
-            L += 3;                                             \
-            Ps += 3;                                            \
-            Ns += 3;                                            \
-            ++costheta;                                         \
-        }                                                       \
-                                                                \
-        if (numActive == 0) {                                   \
-            jmp(argument(1));                                   \
-        }                                                       \
+#define ILLUMINATE1EXPR_PRE                                                     \
+    const float *Pl;                                                            \
+                                                                                \
+    operand(0, Pl, const float *);                                              \
+    const int stepP = operandVaryingStep(0);                                    \
+                                                                                \
+    if (this->rendererIlluminationHook()) {                                     \
+        illuminateBegin(hookOperand(Pl, stepP, tags, numVertices), NULL, NULL); \
+    }                                                                           \
+    else {                                                                      \
+        float *Ps = varying[VARIABLE_PS];                                       \
+        float *L = varying[VARIABLE_L];                                         \
+        const float *Ns = currentShadingState->Ns;                              \
+        const float *costheta = currentShadingState->costheta;                  \
+                                                                                \
+        for (int i = numVertices; i > 0; --i, ++tags) {                         \
+            if (*tags) {                                                        \
+                (*tags)++;                                                      \
+            }                                                                   \
+            else {                                                              \
+                subvv(L, Ps, Pl);                                               \
+                                                                                \
+                if (dotvv(Ns, L) > -(*costheta) * lengthv(L)) {                 \
+                    (*tags)++;                                                  \
+                    --numActive;                                                \
+                    ++numPassive;                                               \
+                }                                                               \
+            }                                                                   \
+                                                                                \
+            Pl += stepP;                                                        \
+            L += 3;                                                             \
+            Ps += 3;                                                            \
+            Ns += 3;                                                            \
+            ++costheta;                                                         \
+        }                                                                       \
+                                                                                \
+        if (numActive == 0) {                                                   \
+            jmp(argument(1));                                                   \
+        }                                                                       \
     }
 
 #endif
@@ -263,9 +264,13 @@ DEFOPCODE(Illuminate1, "illuminate", 2, ILLUMINATE1EXPR_PRE, NULL_EXPR, NULL_EXP
     operand(0, Pf, const float *);                                                                                           \
     operand(1, Nf, const float *);                                                                                           \
     operand(2, thetaf, const float *);                                                                                       \
+    const int stepP = operandVaryingStep(0);                                                                                 \
+    const int stepN = operandVaryingStep(1);                                                                                 \
+    const int stepTheta = operandVaryingStep(2);                                                                             \
                                                                                                                              \
     if (this->rendererIlluminationHook()) {                                                                                  \
-        illuminateBegin(Pf, Nf, thetaf);                                                                                     \
+        illuminateBegin(hookOperand(Pf, stepP, tags, numVertices), hookOperand(Nf, stepN, tags, numVertices),                \
+                        hookOperand(thetaf, stepTheta, tags, numVertices));                                                  \
     }                                                                                                                        \
     else {                                                                                                                   \
         float *Ps = varying[VARIABLE_PS];                                                                                    \
@@ -288,9 +293,9 @@ DEFOPCODE(Illuminate1, "illuminate", 2, ILLUMINATE1EXPR_PRE, NULL_EXPR, NULL_EXP
                 }                                                                                                            \
             }                                                                                                                \
                                                                                                                              \
-            Pf += 3;                                                                                                         \
-            Nf += 3;                                                                                                         \
-            ++thetaf;                                                                                                        \
+            Pf += stepP;                                                                                                     \
+            Nf += stepN;                                                                                                     \
+            thetaf += stepTheta;                                                                                             \
             L += 3;                                                                                                          \
             Ps += 3;                                                                                                         \
             Ns += 3;                                                                                                         \
@@ -409,9 +414,12 @@ DEFOPCODE(Solar1, "solar", 1, SOLAR1EXPR_PRE, NULL_EXPR, NULL_EXPR, NULL_EXPR, P
                                                                         \
     operand(0, Nf, const float *);                                      \
     operand(1, thetaf, const float *);                                  \
+    const int stepN = operandVaryingStep(0);                            \
+    const int stepTheta = operandVaryingStep(1);                        \
                                                                         \
     if (this->rendererIlluminationHook()) {                             \
-        solarBegin(Nf, thetaf);                                         \
+        solarBegin(hookOperand(Nf, stepN, tags, numVertices),           \
+                   hookOperand(thetaf, stepTheta, tags, numVertices));  \
     }                                                                   \
     else {                                                              \
         vector R;                                                       \
@@ -436,7 +444,7 @@ DEFOPCODE(Solar1, "solar", 1, SOLAR1EXPR_PRE, NULL_EXPR, NULL_EXPR, NULL_EXPR, P
                     ++numPassive;                                       \
                 }                                                       \
             }                                                           \
-            Nf += 3;                                                    \
+            Nf += stepN;                                                \
             L += 3;                                                     \
             Ns += 3;                                                    \
             ++costheta;                                                 \
