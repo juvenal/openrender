@@ -136,3 +136,13 @@ target_link_libraries(test_variable_lookup PRIVATE ribRender openrendercommon)
 add_test(NAME Common_VariableLookupHook COMMAND test_variable_lookup)
 set_tests_properties(Common_VariableLookupHook PROPERTIES
     TIMEOUT 60 LABELS "common;unit" ENVIRONMENT "${_crosslib_env}")
+
+# --- GitHub #65: osProcessEscapes stays inside its string ----------------------
+# Each case runs in a forked child with the terminator on the last byte before
+# a PROT_NONE guard page, so an access past the terminator faults.
+add_executable(test_common_process_escapes test_common_process_escapes.cpp)
+target_compile_features(test_common_process_escapes PRIVATE cxx_std_20)
+target_include_directories(test_common_process_escapes PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_common_process_escapes PRIVATE openrendercommon)
+add_test(NAME Common_ProcessEscapes COMMAND test_common_process_escapes)
+set_tests_properties(Common_ProcessEscapes PROPERTIES TIMEOUT 60 LABELS "common;unit")
