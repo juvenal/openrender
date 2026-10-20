@@ -440,7 +440,11 @@ CPhotonMap *CRenderer::getPhotonMap(const char *name) {
         }
 
         // Read it
-        map = new CPhotonMap(name, in);
+        // The map's ctor counts the cache's reference; endFrame() releases
+        // it through framePhotonMaps rather than deleting the map
+        CPhotonMap *photonMap = new CPhotonMap(name, in);
+        framePhotonMaps->push(photonMap);
+        map = photonMap;
         frameFiles->insert(map->name, map);
     }
 

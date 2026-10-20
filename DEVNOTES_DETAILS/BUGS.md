@@ -76,6 +76,32 @@ This file tracks known defects and implementation gaps in openRender. Open items
 
 ## Resolved Bugs
 
+- [x] Bug: the frame-file cache freed photon maps that `CAttributes` still held (FIXED — GitHub #64,
+      branch `fix/photon-map-uaf`, 2026-10-20). A use-after-free at `RiWorldEnd` in every photon
+      scene (34 of 36 ASan reports on master `6545634`). `CPhotonMap` is the only frame-file resource
+      that is also a `CRefCounter`. Its constructor counts the cache's reference (`attach()`), and
+      `CRenderer::render()` hands each primitive's `CAttributes` another for its `globalMap` and
+      `causticMap`. `CRenderer::endFrame()` then freed the map through `frameFiles->destroy()`
+      (`CTrie::destroyNode`'s unconditional `delete`), whatever its count. The world-level attributes
+      released theirs afterwards, in `RiWorldEnd`'s `attributeEnd()`, so `~CAttributes`' `detach()`
+      decremented a counter in freed memory. The stray decrement lands in whatever the allocator has
+      handed that memory to since, which is the probable cause of a one-off Release SIGSEGV in
+      `TIFFClose` at `RiWorldEnd` (inferred, not shown). An object definition made inside the world
+      shares those attributes and keeps them until `RiEnd`, which moved the stray write later still.
+      `getPhotonMap()` now also records each map in `CRenderer::framePhotonMaps`, and `endFrame()`
+      erases each from the cache and `detach()`es it before `frameFiles->destroy()`, so the last
+      holder frees the map. The map file is written by `~CPhotonHider`, before either step, and
+      `~CPhotonMap` does no I/O, so nothing moves in the frame. Textures, environments, 3D textures
+      and irradiance caches are not reference-counted; the only lasting pointers to them are the
+      shading contexts' lookups and the remote channels, which `endFrame()` deletes first. Tests
+      (`tests/unit/photon_map/`, label `photon`): `photonmap_FrameCacheRelease` (one photon frame,
+      global and caustic maps on the world attributes), `photonmap_TwoFrameSession` (a photon pass
+      that writes the map, then a raytrace frame that reads it, in one session) and
+      `photonmap_ObjectDefinitionRelease` (the map must outlive `RiWorldEnd` and go at `RiEnd`). They
+      replace `operator delete`: for a watched map it records the count at free, poisons the object
+      and keeps the memory, so all three fail deterministically before the fix with no sanitizer
+      (each map freed with 2 references left, and its `refCount` written after the free).
+
 - [x] Bug: `osProcessEscapes()` accessed memory past the string's terminator and skipped escapes
       (FIXED — GitHub #65, branch `fix/process-escapes-overread`, 2026-10-20).
       The function (`src/common/os.cpp`) decodes `\n`/`\t`/`\r`/`\\` in place for the JIT's string

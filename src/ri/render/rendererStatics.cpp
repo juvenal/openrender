@@ -191,6 +191,7 @@ EDepthFilter CRenderer::depthFilter;
 TMemCheckpoint CRenderer::frameCheckpoint;                               // initialized in beginFrame
 CTrie<CFileResource *> *CRenderer::frameFiles = NULL;                    // initialized in beginFrame, destroyed in endFrame
 CArray<const char *> *CRenderer::frameTemporaryFiles = NULL;             // initialized in beginFrame, destroyed in endFrame
+CArray<CPhotonMap *> *CRenderer::framePhotonMaps = NULL;                 // initialized in beginFrame, released in endFrame
 CShadingContext **CRenderer::contexts = NULL;                            // initialized in beginFrame, destroyed in endFrame
 int CRenderer::numActiveThreads = 0;                                     // initialized in beginFrame
 CTrie<CRemoteChannel *> *CRenderer::declaredRemoteChannels = NULL;       // initialized in beginFrame, destroyed in endFrame
