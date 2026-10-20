@@ -87,6 +87,43 @@ This file tracks known defects and implementation gaps in openRender. Open items
 
 ## Resolved Bugs
 
+- [x] Bug: with the illumination hook on, `illuminate()`/`solar()` handed the hider operand values
+      the shader never wrote (FIXED — GitHub #68, branch `fix/illumination-hook-uninit`, 2026-10-20).
+      `ShadingParity_IlluminationHook` failed every time under ASan and now and then in Release, on
+      its "all points **inactive**" `.rslo` rows. The issue named the active rows because ctest
+      buffers stdout while the FAIL lines go to stderr, so the log pairs each failure with the
+      wrong label.
+      `CIlluminateSolar` (`src/libshader/compiler/expression.cpp`) is a varying expression, so
+      `lock()` broadcast every operand into a varying temporary (`vuvector temporary_0 from`), even
+      a uniform parameter. The broadcast is tag-masked (`execute.cpp`'s `DEFOPCODE` loop), the
+      hook branches in `shaderOpcodes.h` passed the temporary's point 0 whatever its tag, and
+      `prepare()` fills only parameters. So whenever point 0 was inactive, the hider read scratch
+      memory the shader never wrote, or a stale value from an earlier use of a reused register.
+      The JIT usually got it right only because UniformLifting makes a temporary that is written
+      once uniform. The `.rslo` `#!variables` table is written before the passes run, so the
+      interpreter keeps that temporary varying. A reused register (the `angle` of
+      `illuminate(from, axis, angle)` inside an `if`) stays varying under both backends and was
+      stale in both. Release passed by luck: the inactive run reused the page the active run had
+      just freed, which still held `from`.
+      Normal (hook-off) shading was never affected. A photon pass was, for a light whose construct
+      sits inside a varying conditional that turns point 0 off; no shipped light does.
+      Fixed in two parts:
+      - `CIlluminateSolar::getCode` locks each operand with its own uniformity, so a uniform
+        operand reaches the opcode unbroadcast, and `ILLUMINATE1`/`ILLUMINATE3`/`SOLAR2` step each
+        operand by its `operandVaryingStep()`. The `.rslo` loader matches these opcodes by text
+        and argument count only (`rslo.y`), so uniform operands load unchanged.
+      - A varying operand is handed to the hook from its first active point
+        (`CShadingContext::hookOperand()`), in the interpreter macros and in
+        `jitIlluminateBegin`/`jitIlluminate3Begin`/`jitSolarBegin`.
+      Tests: `ShadingParity_IlluminationHookOperands` and `ShadingParity_IlluminationHookConditions`
+      (`tests/shading_parity/test_illumination_hook_{operands,conditions}.cpp`) fill the light's
+      scratch page with ASan's 0xbe before `prepare()`, so an unwritten lane reads -0.372549
+      deterministically.
+      Still open, filed as GitHub #71: under the JIT a construct inside an `if` that is false for every
+      point still runs and calls the hook, where the interpreter jumps over the block.
+      `ShadingParity_IlluminationHookAllFalse` covers it and is registered disabled until that is
+      fixed.
+
 - [x] Bug: a `.slo` string parameter's default buffer was float-sized, and `.slo` string and matrix
       defaults differed from the `.rslo` ones (FIXED — GitHub #66, branch `fix/slo-default-buffer`,
       2026-10-20). `parseSloShader()` (`src/ri/render/rendererFiles.cpp`) allocated every parameter's

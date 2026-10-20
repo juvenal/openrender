@@ -31,11 +31,10 @@ uniform	vector	temporary_5
 varying	float	temporary_6
 varying	vector	temporary_7
 varying	float	temporary_8
-varying	float	temporary_9
+varying	vector	temporary_9
 varying	vector	temporary_10
 varying	vector	temporary_11
-varying	vector	temporary_12
-varying	float	temporary_13
+varying	float	temporary_12
 #!Init:
 	vufloat  temporary_1 -1
 	moveff  temporary_2 temporary_1
@@ -81,54 +80,53 @@ varying	float	temporary_13
 #!Label11:
 	endif
 	vufloat  temporary_1 1.570796327
-	vufloat  temporary_6 temporary_1
-	illuminate center N temporary_6 #!Label13
+	illuminate center N temporary_1 #!Label13
 	vufloat  vis 0
 	moveff  i vis
 	forbegin #!Label14 #!Label15 #!Label16
 #!Label14:
-	vufloat  temporary_9 numSamples
-	flt  temporary_8 i temporary_9
-	for temporary_8
+	vufloat  temporary_8 numSamples
+	flt  temporary_6 i temporary_8
+	for temporary_6
 	random	("f=")  u_1
 	random	("f=")  v_1
 	vuvector  temporary_7 P0
-	vfromf  temporary_11 u_1
+	vfromf  temporary_10 u_1
 	subvv  temporary_0 P1 P0
-	vuvector  temporary_12 temporary_0
-	mulvv  temporary_10 temporary_11 temporary_12
-	addvv  edge0 temporary_7 temporary_10
+	vuvector  temporary_11 temporary_0
+	mulvv  temporary_9 temporary_10 temporary_11
+	addvv  edge0 temporary_7 temporary_9
 	vuvector  temporary_7 P2
-	vfromf  temporary_11 u_1
+	vfromf  temporary_10 u_1
 	subvv  temporary_0 P3 P2
-	vuvector  temporary_12 temporary_0
-	mulvv  temporary_10 temporary_11 temporary_12
-	addvv  edge1 temporary_7 temporary_10
-	vfromf  temporary_10 v_1
-	subvv  temporary_11 edge1 edge0
-	mulvv  temporary_7 temporary_10 temporary_11
+	vuvector  temporary_11 temporary_0
+	mulvv  temporary_9 temporary_10 temporary_11
+	addvv  edge1 temporary_7 temporary_9
+	vfromf  temporary_9 v_1
+	subvv  temporary_10 edge1 edge0
+	mulvv  temporary_7 temporary_9 temporary_10
 	addvv  Psample edge0 temporary_7
 	subvv  toSample Psample Ps
-	visibility	("f=pp")  temporary_9 Ps Psample
-	dot  temporary_13 toSample toSample
-	divff  temporary_8 temporary_9 temporary_13
-	addff  vis vis temporary_8
+	visibility	("f=pp")  temporary_8 Ps Psample
+	dot  temporary_12 toSample toSample
+	divff  temporary_6 temporary_8 temporary_12
+	addff  vis vis temporary_6
 #!Label15:
-	vufloat  temporary_8 1
-	addff  i i temporary_8
+	vufloat  temporary_6 1
+	addff  i i temporary_6
 #!Label16:
 	forend
-	vufloat  temporary_8 numSamples
-	divff  vis vis temporary_8
-	vufloat  temporary_9 intensity
-	mulff  temporary_8 vis temporary_9
-	vfromf  temporary_10 temporary_8
-	vuvector  temporary_11 lightcolor
-	mulvv  temporary_7 temporary_10 temporary_11
-	normalize	("v=v")  temporary_11 L
-	dot  temporary_8 N temporary_11
-	vfromf  temporary_10 temporary_8
-	mulvv  Cl temporary_7 temporary_10
+	vufloat  temporary_6 numSamples
+	divff  vis vis temporary_6
+	vufloat  temporary_8 intensity
+	mulff  temporary_6 vis temporary_8
+	vfromf  temporary_9 temporary_6
+	vuvector  temporary_10 lightcolor
+	mulvv  temporary_7 temporary_9 temporary_10
+	normalize	("v=v")  temporary_10 L
+	dot  temporary_6 N temporary_10
+	vfromf  temporary_9 temporary_6
+	mulvv  Cl temporary_7 temporary_9
 #!Label13:
 	endilluminate
 	return

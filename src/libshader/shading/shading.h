@@ -780,6 +780,20 @@ class CShadingContext {
         RtStepFilterFunc rendererGetStepFilter(const char *name) const;
         CVariable *rendererRetrieveVariable(const char *name) const;
 
+        // The pointer a hook is handed for one illuminate()/solar() operand
+        // (GitHub #68). Hooks read only the first element, so a varying
+        // operand (step != 0, in floats) is read from its first active point:
+        // an inactive point's lanes were never written by the shader. A
+        // uniform operand, or one with no active point, is handed as is.
+        static const float *hookOperand(const float *base, int step, const int *tags, int n) {
+            if (base == nullptr || step == 0 || tags == nullptr)
+                return base;
+            for (int i = 0; i < n; ++i)
+                if (tags[i] == 0)
+                    return base + step * i;
+            return base;
+        }
+
         // Hiders can hook into the following functions
         virtual void solarBegin(const float *, const float *) {}
         virtual void solarEnd() {}
