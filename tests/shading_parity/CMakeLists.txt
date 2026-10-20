@@ -188,6 +188,25 @@ if(OPENRENDER_HAVE_LLVM)
         # light load at RiWorldBegin); the fixtures themselves load from the cwd.
         ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>;OSHADER_BIN=$<TARGET_FILE:oshader>"
     )
+
+    # GitHub #68: the values the illumination hook is handed when lane 0 is
+    # inactive (entered pre-tagged, or inside a varying conditional), with the
+    # light's scratch memory filled with ASan's 0xbe so that an operand lane the
+    # shader never wrote is read deterministically. Needs the JIT for the .slo
+    # control rows.
+    add_executable(test_shading_illumination_hook_operands test_illumination_hook_operands.cpp)
+    target_link_libraries(test_shading_illumination_hook_operands PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+    target_include_directories(test_shading_illumination_hook_operands PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_BINARY_DIR}
+    )
+    target_compile_features(test_shading_illumination_hook_operands PRIVATE cxx_std_20)
+    add_test(NAME ShadingParity_IlluminationHookOperands COMMAND test_shading_illumination_hook_operands)
+    set_tests_properties(ShadingParity_IlluminationHookOperands PROPERTIES
+        TIMEOUT 60
+        LABELS "shading_parity"
+        ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>;OSHADER_BIN=$<TARGET_FILE:oshader>"
+    )
 endif()
 
 # Spec 024 (shading services routing), US2: the libshader::lookup* helpers
