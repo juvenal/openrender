@@ -62,6 +62,7 @@ typedef enum {
 #include "dso.h"
 #include "dsoHandle.h"
 #include "serviceLookup.h"
+#include "rsloPrototypeMatch.h"
 #include "ri_config.h"
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -570,63 +571,11 @@ static	TRSLObjectFunction		functions[]	=	{
 
 													for(i=0;functions[i].name != NULL;i++) {
 														if (strcmp(functions[i].name,currentData.currentOpcode) == 0) {
-															if (strcmp(functions[i].prototype,currentData.currentPrototype) == 0) {
+															// Exact or pattern match (see rsloPrototypeMatch.h)
+															if (libshader::rsloPrototypeMatches(functions[i].prototype,currentData.currentPrototype)) {
 																currentData.usedParameters	|=	functions[i].usedParameters;
 																opcode						=	functions[i].entryPoint;
 																break;
-															} else {
-																// Do a pattern match
-
-
-																// The return types must match exactly
-																if (functions[i].prototype[0] != currentData.currentPrototype[0]) continue;
-
-																{
-																	int		j,k,t;
-
-																	t	=	FALSE;
-
-																	for (j=2,k=2;(currentData.currentPrototype[j] != '\0') && (functions[i].prototype[k] != '\0');j++,k++) {
-																		// Do the current parameters match
-																		if (currentData.currentPrototype[j] == functions[i].prototype[k]) continue;
-																		// Does the function match any parameter ?
-																		else if (functions[i].prototype[k] == '.') continue;
-																		// Is the current parameter a * or + ?
-																		else if ((functions[i].prototype[k] == '+') || (functions[i].prototype[k] == '*')) {
-																			k-=2;
-																			j--;
-																			continue;
-																		// Is the current parameter a parameter list ?
-																		} else if (functions[i].prototype[k] == '!') {
-																			if ((currentData.currentPrototype[j] == 's') || (currentData.currentPrototype[j] == 'S')) {
-																				j++;
-																				k--;
-																			} else {
-																				t	=	TRUE;
-																				break;
-																			}
-																		} else {
-																			t	=	TRUE;
-																			break;
-																		}
-																	}
-
-
-																	if (t == FALSE) {
-																		if (
-																				((functions[i].prototype[k] == '\0') && (currentData.currentPrototype[j] == '\0')) ||
-																				((functions[i].prototype[k] == '+') || (functions[i].prototype[k] == '*')) ||
-																				(functions[i].prototype[k] == '!') ||
-																				(functions[i].prototype[k+1] == '*')) {
-																			// We found our function/opcode
-																			currentData.usedParameters	|=	functions[i].usedParameters;
-																			opcode	=	functions[i].entryPoint;
-																			break;
-																		} else {
-																			continue;
-																		}
-																	}
-																}
 															}
 														}
 													}
