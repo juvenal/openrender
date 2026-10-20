@@ -471,40 +471,42 @@ void osDeleteSemaphore(TSemaphore &sem) {
 // Function				:	osProcessEscapes
 // Description			:	Process the escape characters in a string
 // Return Value			:
-// Comments				:
+// Comments				:	Decodes \n, \t, \r and \\ in place, in one pass that
+//							never reads or writes past the terminator (GitHub #65).
+//							Any other backslash, including a trailing one, is
+//							kept as written together with the character after it.
 void osProcessEscapes(char *str) {
-    int i, n, j;
+    const char *r = str;
+    char *w = str;
 
-    n = (int)strlen(str);
-    for (i = 0; i < n; i++) {
-        if (str[i] == '\\') {
-            switch (str[i + 1]) {
+    while (*r != '\0') {
+        if (r[0] == '\\' && r[1] != '\0') {
+            char decoded = '\0';
+            switch (r[1]) {
                 case 'n':
-                    str[i] = '\n';
+                    decoded = '\n';
                     break;
                 case 't':
-                    str[i] = '\t';
+                    decoded = '\t';
                     break;
                 case 'r':
-                    str[i] = '\r';
+                    decoded = '\r';
                     break;
                 case '\\':
-                    str[i] = '\\';
+                    decoded = '\\';
                     break;
                 default:
                     break;
             }
-
-            j = i + 2;
-            do {
-                str[j - 1] = str[j];
-                j++;
-            } while (str[j] != '\0');
-            n--;
-            i++;
+            if (decoded != '\0') {
+                *w++ = decoded;
+                r += 2;
+                continue;
+            }
         }
+        *w++ = *r++;
     }
-    str[i] = '\0';
+    *w = '\0';
 }
 
 ///////////////////////////////////////////////////////////////////////

@@ -76,6 +76,32 @@ This file tracks known defects and implementation gaps in openRender. Open items
 
 ## Resolved Bugs
 
+- [x] Bug: `osProcessEscapes()` accessed memory past the string's terminator and skipped escapes
+      (FIXED — GitHub #65, branch `fix/process-escapes-overread`, 2026-10-20).
+      The function (`src/common/os.cpp`) decodes `\n`/`\t`/`\r`/`\\` in place for the JIT's string
+      literals (`llvmEmitter.cpp`), the `.rslo` loaders (`libshader/runtime/rslo.l`,
+      `libshader/shading/rslo.l`) and RIB `IfBegin` expressions (`ri/parse/ifexpr.l`). After each
+      escape it shifted the rest of the string down with
+      `do { str[j - 1] = str[j]; j++; } while (str[j] != '\0');`, which went wrong in four ways:
+      - **Trailing escape** (`"...\n"`, found by ASan in `oshader --jit` on `show_xyz.sl`): the
+        first iteration copied the terminator down and the `while` test read one byte past it; a
+        non-zero byte there kept the loop shifting, and writing, past the end.
+      - **Trailing lone backslash** (`"abc\"`, which the lexers' `"[^"]*"` rules can produce): the
+        loop copied the byte after the terminator over it before testing anything, a write as well
+        as a read past the end.
+      - **Consecutive escapes:** an extra `i++` skipped the character after every escape, so an
+        escape that directly followed another was never decoded (`\n\t` came out as newline, `\`,
+        `t`; `\\\n` as `\\n`).
+      - **Unknown escapes** kept the backslash but dropped the character after it (`a\qb` → `a\b`).
+      It is now one read/write pass that stops at the terminator: the four escapes decode, and any
+      other backslash, a trailing one included, is kept as written with the character after it
+      (`a\qb` stays `a\qb`). The 214 compiled shader objects (107 `.slo`, 107 `.rslo`) are
+      byte-identical before and after the fix; the only shipped literal with an escape is
+      `show_xyz.sl`'s trailing `\n`, which decoded the same way before. Test: `Common_ProcessEscapes`
+      (`tests/unit/common/test_common_process_escapes.cpp`), which places each input's terminator
+      on the last byte before a `PROT_NONE` guard page and runs every case in a forked child, so an
+      access past the end faults deterministically without ASan.
+
 - [x] Bug: shading states were built and freed from whatever the renderer services reported at the
       time, with no check (FIXED — GitHub #59, branch `fix/shading-state-no-services`, 2026-10-19).
       `CShadingContext::newState()` and `freeState()` (`src/libshader/shading/shading.cpp`) called

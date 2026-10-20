@@ -35,10 +35,10 @@ const Case kCases[] = {
     {"consecutive_backslash_then_newline", "x\\\\\\ny", "x\\\ny"},
     {"escaped_backslash_then_letter", "\\\\n", "\\n"},
     {"trailing_lone_backslash", "abc\\", "abc\\"},
-    // An unknown escape keeps its backslash and drops the escaped character:
-    // the behavior since d121092, pinned here so this fix does not change it.
-    {"unknown_escape_middle", "a\\qb", "a\\b"},
-    {"unknown_escape_trailing", "ab\\q", "ab\\"},
+    // An unknown escape is kept as written, backslash and character both
+    // (before #65 the character after the backslash was dropped).
+    {"unknown_escape_middle", "a\\qb", "a\\qb"},
+    {"unknown_escape_trailing", "ab\\q", "ab\\q"},
     {"empty", "", ""},
     {"no_escapes", "plain text", "plain text"},
 };
