@@ -258,6 +258,32 @@ and on stale allowlist lines. How to read it, classify a new file and retire a
 fixed violation: the "Architecture check" section of
 `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`.
 
+## Spec-kit agent rules
+
+The per-stage spec-kit agents (`speckit-<stage>-agent`, defined in the
+maintainer's `~/.claude/agents/`) are project-neutral and read this section
+explicitly before running a stage. Keep openRender-specific agent rules here,
+not in the agent definitions.
+
+- Work only inside the spec's worktree under
+  `/Volumes/Projects/Development/CLI/openrender-worktrees/`, never in the main
+  checkout.
+- Before designing, read this file, `DEVNOTES.md`, the relevant
+  `DEVNOTES_DETAILS/*.md` and `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`; respect
+  constitution Principle VIII and never add an include or link edge its
+  allowed-dependency table forbids.
+- Builds and tests: one build or test run at a time across the machine, and
+  only once the coordinator clears it. Use
+  `nice -n 19 cmake --build build --config Release -j4` and
+  `nice -n 19 ctest --test-dir build -j4`; never `-j8` or a bare `-j`.
+- Implement: run `ctest --test-dir build -L architecture` before reporting a
+  phase. Run clang-format with the repo's `.clang-format` on an edited file
+  only if it was clang-format clean before.
+- Never write a task that depends on the merge (no post-merge steps, no
+  merge-commit hashes). Registry entries move to Resolved with the spec number
+  and the date; issues close through a `Closes #NN` line the maintainer writes
+  in the merge commit.
+
 ## Known gotchas (hard-won, not written elsewhere)
 
 1. **`C_EPSILON`** (`common/algebra.h`) = `1e-6`. `normalFix()` has two
