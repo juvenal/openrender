@@ -87,6 +87,33 @@ This file tracks known defects and implementation gaps in openRender. Open items
 
 ## Resolved Bugs
 
+- [x] Bug: a `.slo` string parameter's default buffer was float-sized, and `.slo` string and matrix
+      defaults differed from the `.rslo` ones (FIXED — GitHub #66, branch `fix/slo-default-buffer`,
+      2026-10-20). `parseSloShader()` (`src/ri/render/rendererFiles.cpp`) allocated every parameter's
+      default as `new float[numFloats]`. A string slot holds a `char *`, and the
+      `CProgrammableShaderInstance` constructor (`shader.cpp`) copies `numFloats * sizeof(char *)`
+      bytes, so it read 8 bytes from 4 for `string texturename = ""` (ASan, in
+      `ShadingParity_UsedParametersOracle`'s `derivative` fixture) and 24 from 12 for a
+      `string[3]`. The `.rslo` loader (`rslo.y` `newVariable()`) already allocated `char *[]`.
+      Two things followed:
+      - **Scalar string defaults never reached a `.slo` shader.** The compiler emits no init code for
+        a constant scalar string default (`getAssignment()`, `expression.cpp`), so the value lives only
+        in the metadata, and the loader's `strtof` loop could not read a quoted token. The instance
+        then held 4 zero bytes plus 4 bytes from past the allocation: `string label = "hello"` printed
+        `(null)` under `.slo` and `hello` under `.rslo`. Shipped shaders affected: `mirror.sl`
+        (`texname = "raytrace"`), `uberlight.sl` (`lighttype = "spot"`) and three probes. String
+        arrays were right, because their init code rewrites the instance's buffer at bind time.
+      - **Matrix defaults:** `matrix m = 1` broadcast to sixteen 1.0s under `.slo`; `rslo.y` builds
+        `diag(v, v, v, 1)`, and the identity for a matrix parameter with no constant default.
+      The loader now gives a string a zeroed `char *[]`, parses the quoted metadata (`"..."` or
+      `[ "a" "b c" ]`), decodes each value with `osProcessEscapes()` as `rslo.l` does and keeps the
+      `strdup`'d copies in `sh->strings` (the array in `sh->memory`, which `~CShader` already frees);
+      no constant default stays NULL. Matrices follow `rslo.y`. `~CShader` now frees a string default
+      as `char **` instead of `float *`. The decoding shares `osProcessEscapes()` with `rslo.l`, so
+      the GitHub #65 fix (consecutive escapes, a trailing backslash) covers both backends alike. Tests: `ShadingParity_SloDefaultBuffer` and `ShadingParity_SloStringDefaults`
+      (`tests/shading_parity/test_slo_default_buffer.cpp`), deterministic without a sanitizer: the
+      binary replaces `operator new[]` with a size tracker that puts a canary past each allocation.
+
 - [x] Bug: the `.rslo` loader's built-in function matcher read past a prototype's terminator (FIXED —
       GitHub #67, branch `fix/setopcode-prototype-overread`, 2026-10-20). `setOpcode()`
       (`src/libshader/shading/rslo.y`) accepted a pattern match when `prototype[k+1] == '*'`, and read
