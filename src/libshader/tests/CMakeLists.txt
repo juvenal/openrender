@@ -122,6 +122,32 @@ set_tests_properties(LibShader_McompConsistency PROPERTIES
 message(STATUS "  - LibShader_McompConsistency (GitHub #9 comp()/setcomp() matrix-index regression)")
 
 # ---------------------------------------------------------------------------
+# test_rslo_prototype_match -- GitHub #67: setOpcode() in rslo.y read past
+# a built-in function prototype's terminator while binding a shader's call.
+# The matcher is header-only (rsloPrototypeMatch.h), so this links nothing:
+# it guard-pages each prototype so that any read past a terminator faults,
+# one forked child per case, and pins the matcher's '+', '*', '.', '!'
+# semantics.
+# ---------------------------------------------------------------------------
+add_executable(test_libshader_rslo_prototype_match test_rslo_prototype_match.cpp)
+
+target_compile_features(test_libshader_rslo_prototype_match PRIVATE cxx_std_20)
+
+target_include_directories(test_libshader_rslo_prototype_match PRIVATE
+    ${CMAKE_SOURCE_DIR}/src/libshader/shading   # rsloPrototypeMatch.h
+)
+
+add_test(NAME LibShader_RsloPrototypeMatch
+    COMMAND test_libshader_rslo_prototype_match)
+
+set_tests_properties(LibShader_RsloPrototypeMatch PROPERTIES
+    TIMEOUT 60
+    LABELS  "libshader;shading;unit"
+)
+
+message(STATUS "  - LibShader_RsloPrototypeMatch (GitHub #67 setOpcode() prototype overread)")
+
+# ---------------------------------------------------------------------------
 # The three tests below all reach into llvmEmitter.cpp -- kHandledOpcodes,
 # kOpcodeParamTable and computeUsedParameters() are defined there, and that
 # translation unit is only compiled when OPENRENDER_HAVE_LLVM is set (see
