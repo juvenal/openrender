@@ -223,7 +223,13 @@ class CShadingState {
         int diffuseReady; // TRUE after prepareDiffuse() has run lights for this grid
 
         // ---> Renderer services (libshader Phase B: decoupling from CRenderer globals)
-        CRendererServices *services; // nullptr in standalone mode
+        CRendererServices *services; // The services the state was built from (never nullptr)
+
+        // ---> Allocation shape, recorded by newState() so freeState() frees the
+        //      state as it was built, whatever the services' table is by then (GitHub #59)
+        int numVaryings;          // Entries in varying[]
+        unsigned char *isString;  // Per entry: TRUE if varying[j] was allocated as char *[]
+        int allocatedBytes;       // What this state added to the context's vertexMemory
 
         CShadingState *next; // The next in free state list
 };
@@ -311,7 +317,7 @@ class CShadingContext {
 
         // Shading state management functions
         void updateState();                // Add a variable into the shading state
-        CShadingState *newState();         // Allocate a new shading state
+        CShadingState *newState();         // Allocate a new shading state (nullptr without usable services)
         void freeState(CShadingState *);   // Destroy a shading state
         void deleteState(CShadingState *); // Delete a shading state
         void *saveState();                 // Save the shading state
@@ -372,8 +378,19 @@ class CShadingContext {
         int numOcclusionSamples;
         int numIndirectDiffusePhotonmapLookups;
 
-        // Inject renderer services used by newState(). Call once at renderer startup
-        // (before any shading context is constructed). nullptr disables all service calls.
+        // Install the process-wide renderer services (nullptr uninstalls them). The
+        // renderer installs its own in CRenderer::beginRenderer() and removes them in
+        // endRenderer(), i.e. for one RiBegin/RiEnd session.
+        //
+        // A context can be constructed and destroyed with no services installed, and
+        // the routed lookups (serviceLookup.h) then return not-found. A shading state
+        // cannot: newState() needs services whose global-variable table holds at
+        // least the built-in globals (VARIABLE_P .. VARIABLE_CONSTANTWIDTH) and whose
+        // maxGridSize() is positive, because the interpreter and the JIT index those
+        // slots with no bounds check. Without them newState() reports a diagnostic
+        // (CODE_NOTSTARTED once with no services, CODE_CONSISTENCY for an
+        // inconsistent table) and returns nullptr, and updateState() leaves
+        // currentShadingState NULL (GitHub #59).
         static void setDefaultServices(CRendererServices *svc) { s_defaultServices = svc; }
 
         // Returns the process-wide default services (for callers without an active context).

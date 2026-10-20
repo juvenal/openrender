@@ -24,6 +24,7 @@
 //  Description			:
 //
 ////////////////////////////////////////////////////////////////////////
+#include <atomic>
 #include <math.h>
 #include <new>
 #include <stdarg.h>
@@ -1108,21 +1109,40 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
 CShadingState *CShadingContext::newState() {
 
     if (freeStates == NULL) {
+        // A state needs services with at least the built-in globals and a positive
+        // grid size: the interpreter and the JIT index varying[VARIABLE_*] with no
+        // bounds check (GitHub #59)
+        CRendererServices *svc = s_defaultServices;
+        if (svc == NULL) {
+            static std::atomic<bool> s_warnedNoServices{false};
+            if (!s_warnedNoServices.exchange(true))
+                warning(CODE_NOTSTARTED, "renderer services are not installed: no shading state can be created\n");
+            return NULL;
+        }
+
+        const int numGlobalVariables = svc->numGlobalVariables();
+        const int mgs = svc->maxGridSize();
+        if (numGlobalVariables <= (int)VARIABLE_CONSTANTWIDTH || mgs <= 0) {
+            error(CODE_CONSISTENCY, "renderer services report %d global variables (at least %d needed) and a grid size of %d: no shading state can be created\n",
+                  numGlobalVariables, (int)VARIABLE_CONSTANTWIDTH + 1, mgs);
+            return NULL;
+        }
+
         CShadingState *newState = new CShadingState;
         int j;
         float *E;
-        CRendererServices *svc = s_defaultServices;
-        const int numGlobalVariables = svc->numGlobalVariables();
-        const int mgs = svc->maxGridSize();
+        int bytes = 0;
 
         newState->varying = new float *[numGlobalVariables];
-        vertexMemory += numGlobalVariables * sizeof(float *);
+        bytes += numGlobalVariables * sizeof(float *);
+        newState->isString = new unsigned char[numGlobalVariables];
+        newState->numVaryings = numGlobalVariables;
         newState->tags = new int[mgs * 3];
-        vertexMemory += mgs * 3 * sizeof(int);
+        bytes += mgs * 3 * sizeof(int);
         newState->lightingTags = new int[mgs * 3];
-        vertexMemory += mgs * 3 * sizeof(int);
+        bytes += mgs * 3 * sizeof(int);
         newState->Ns = new float[mgs * 9];
-        vertexMemory += mgs * 9 * sizeof(float);
+        bytes += mgs * 9 * sizeof(float);
         newState->alights = NULL;
         newState->freeLights = NULL;
         newState->postShader = NULL;
@@ -1136,25 +1156,17 @@ CShadingState *CShadingContext::newState() {
 
             assert(var != NULL);
 
-            if ((var->container == CONTAINER_UNIFORM) || (var->container == CONTAINER_CONSTANT)) {
-                if (var->type == TYPE_STRING) {
-                    newState->varying[j] = (float *)new char *[var->numFloats];
-                    vertexMemory += var->numFloats * sizeof(char *);
-                }
-                else {
-                    newState->varying[j] = new float[var->numFloats];
-                    vertexMemory += var->numFloats * sizeof(float);
-                }
+            const int count = ((var->container == CONTAINER_UNIFORM) || (var->container == CONTAINER_CONSTANT)) ? var->numFloats : var->numFloats * mgs * 3;
+
+            if (var->type == TYPE_STRING) {
+                newState->varying[j] = (float *)new char *[count];
+                newState->isString[j] = TRUE;
+                bytes += count * sizeof(char *);
             }
             else {
-                if (var->type == TYPE_STRING) {
-                    newState->varying[j] = (float *)new char *[var->numFloats * mgs * 3];
-                    vertexMemory += var->numFloats * mgs * 3 * sizeof(char *);
-                }
-                else {
-                    newState->varying[j] = new float[var->numFloats * mgs * 3];
-                    vertexMemory += var->numFloats * mgs * 3 * sizeof(float);
-                }
+                newState->varying[j] = new float[count];
+                newState->isString[j] = FALSE;
+                bytes += count * sizeof(float);
             }
         }
 
@@ -1163,6 +1175,8 @@ CShadingState *CShadingContext::newState() {
         for (j = mgs * 3; j > 0; j--, E += 3)
             initv(E, 0, 0, 0);
 
+        newState->allocatedBytes = bytes;
+        vertexMemory += bytes;
         if (vertexMemory > peakVertexMemory)
             peakVertexMemory = vertexMemory;
 
@@ -1195,32 +1209,22 @@ void CShadingContext::deleteState(CShadingState *cState) {
 // Return Value			:	-
 // Comments				:
 void CShadingContext::freeState(CShadingState *cState) {
-    int j;
-    CRendererServices *svc = s_defaultServices;
-    const int numGlobalVariables = svc->numGlobalVariables();
-    const int mgs = svc->maxGridSize();
-
-    for (j = 0; j < numGlobalVariables; j++) {
-        const CVariable *var = svc->globalVariable(j);
-
-        if ((var->container == CONTAINER_UNIFORM) || (var->container == CONTAINER_CONSTANT)) {
+    // Freed by the shape recorded at newState(), never by the services' current
+    // table: a global declared while the state is live (makeGlobalVariable())
+    // grows that table before the state is rebuilt (GitHub #59)
+    for (int j = 0; j < cState->numVaryings; j++) {
+        if (cState->isString[j])
+            delete[] (char **)cState->varying[j];
+        else
             delete[] cState->varying[j];
-            vertexMemory -= var->numFloats * sizeof(float);
-        }
-        else {
-            delete[] cState->varying[j];
-            vertexMemory -= var->numFloats * mgs * 3 * sizeof(float);
-        }
     }
 
     delete[] cState->varying;
-    vertexMemory -= numGlobalVariables * sizeof(float *);
+    delete[] cState->isString;
     delete[] cState->tags;
-    vertexMemory -= mgs * 3 * sizeof(int);
     delete[] cState->lightingTags;
-    vertexMemory -= mgs * 3 * sizeof(int);
     delete[] cState->Ns;
-    vertexMemory -= mgs * 9 * sizeof(float);
+    vertexMemory -= cState->allocatedBytes;
 
     delete cState;
 }
@@ -1245,7 +1249,7 @@ void CShadingContext::updateState() {
     if (currentShadingState != NULL)
         freeState(currentShadingState);
 
-    currentShadingState = NULL;
+    // NULL when no usable services are installed (newState() has reported why)
     currentShadingState = newState();
 }
 
@@ -1260,6 +1264,7 @@ void *CShadingContext::saveState() {
     CShadingState *savedState = currentShadingState;
     if (freeStates == NULL)
         freeStates = newState();
+    assert(freeStates != NULL); // Only reached while rendering, with the renderer's services
 
     currentShadingState = freeStates;
     freeStates = currentShadingState->next;

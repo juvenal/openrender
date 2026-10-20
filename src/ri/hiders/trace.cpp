@@ -247,6 +247,7 @@ void CShadingContext::traceEx(CRayBundle *bundle) {
 
         if (freeStates == NULL)
             freeStates = newState();
+        assert(freeStates != NULL); // Rendering always has the renderer's services
 
         currentShadingState = freeStates;
         freeStates = currentShadingState->next;

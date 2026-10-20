@@ -41,6 +41,7 @@ static void executeChunk(CShaderInstance &shader,
                          int sampleStride) noexcept {
 
     CShadingState *state = ctx->newState();
+    assert(state != NULL); // Rendering always has the renderer's services
     CShadingState *savedState = ctx->currentShadingState;
 
     const float shutterOpen = CRenderer::shutterOpen;

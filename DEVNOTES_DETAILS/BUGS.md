@@ -73,20 +73,40 @@ This file tracks known defects and implementation gaps in openRender. Open items
       count on macOS (exit code 5, no map written) and in 0 of 30 at `-t:1`; on Linux at `-t:1`
       it crashed in 0 of 30. The spec 024 parity tests therefore render at `-t:1`. The race
       remains open.
-- [ ] **A shading context can't be given a state without real renderer services**
-      ([#59](https://github.com/juvenal/openrender/issues/59)). `CShadingContext::newState()` and
-      `freeState()` (`src/libshader/shading/shading.cpp`, around lines 1100 and 1200) call
-      `s_defaultServices->numGlobalVariables()`, `maxGridSize()` and `globalVariable(j)` without
-      checking that services exist, so `updateState()` with no services installed dereferences null.
-      With `CStubServices` installed (`tests/shading_parity/recording_services.h`, whose
-      `numGlobalVariables()` is 0) `newState()` allocates a zero-length `varying` array and then
-      writes fixed slots such as `varying[VARIABLE_E]` past its end. The renderer never reaches either,
-      because it creates states only after `beginRenderer()` registers the real services. Found while
-      fixing #53, which deliberately leaves this alone. Open design question: fail cleanly, fall back
-      to a built-in global-variable table, or make `CStubServices` consistent and document real
-      services as required.
 
 ## Resolved Bugs
+
+- [x] Bug: shading states were built and freed from whatever the renderer services reported at the
+      time, with no check (FIXED — GitHub #59, branch `fix/shading-state-no-services`, 2026-10-19).
+      `CShadingContext::newState()` and `freeState()` (`src/libshader/shading/shading.cpp`) called
+      `s_defaultServices->numGlobalVariables()`, `maxGridSize()` and `globalVariable(j)` unchecked.
+      Three ways in:
+      - **No services:** `updateState()` dereferenced a null `s_defaultServices`.
+      - **An inconsistent table:** with `CStubServices` (`numGlobalVariables() == 0`, grid size 0)
+        `newState()` allocated a zero-length `varying` array and then *read* `varying[VARIABLE_E]` past
+        its end (the `E` loop runs zero times at grid size 0, so `newState()` itself wrote nothing;
+        any later user of the state would).
+      - **The table growing under live states, reachable from RIB:** `Declare "x" "global varying
+        float"` inside `WorldBegin` goes `RiDeclare` → `declareVariable` → `makeGlobalVariable()`,
+        which pushes the variable and then calls `updateState()` on every live context.
+        `freeState()` then freed each state by the *grown* table: it read `varying[N]` past an
+        `N`-entry array and `delete[]`d that value, so `orender` aborted with malloc's "pointer being
+        freed was not allocated" (25 of 25 runs; the same scene without the `Declare` rendered).
+        It also subtracted vertex memory it never added.
+      Separately, string globals were counted as `sizeof(char *)` per entry when allocated and
+      `sizeof(float)` when freed, so `vertexMemory` drifted (and the `char *[]` storage was released
+      through a `float *`).
+      `newState()` now returns `nullptr` with no services (one `CODE_NOTSTARTED` warning per process)
+      or with fewer than the built-in globals (`VARIABLE_P` .. `VARIABLE_CONSTANTWIDTH`) or a grid
+      size ≤ 0 (`CODE_CONSISTENCY`); `updateState()` then leaves `currentShadingState` NULL, and the
+      renderer-only callers (`saveState`, `traceEx`, the imager) assert. Each state records its own
+      shape (`numVaryings`, a per-entry string flag, `allocatedBytes`), so `freeState()` reads no
+      services and frees exactly what was allocated. `shading.h` documents that states need services;
+      spec 024's contract is unchanged. Tests: `ShadingServices_State{NoServices,StubServices,
+      TableGrowth,FullServices,StringGlobal,ConsistentTable}` (`tests/shading_parity/
+      test_state_services.cpp`, with the `table_services.h` doubles) and
+      `ShadingServices_DeclareGlobalInWorld` (`tests/shading_parity/declare-global-in-world.rib`
+      through `orender`).
 
 - [x] Bug: constructing a shading context with no renderer services wrote through an uninitialized
       pointer (FIXED — GitHub #53, branch `fix/shading-context-trace-hash`, 2026-10-18).
