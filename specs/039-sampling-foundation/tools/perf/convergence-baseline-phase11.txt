@@ -1,0 +1,53 @@
+# Spec 039, Phase 12 (T128): convergence baseline before option (ii), 2026-10-21.
+# Build: the staged Phase 11 tree. ctest -L convergence -V: 8/8 passed.
+# Per scene: RMSE against the reference at n = 1, 4, 16, 64, 256 per sampler (8 seeds per rung),
+# the fitted slope, and the harness's bar line.
+
+== dof-reyes
+sampler               n=1          n=4         n=16         n=64        n=256    slope
+sobol            0.167615    0.0550173    0.0207053    0.0083088   0.00355314   -0.692
+pmj02            0.167847    0.0557894    0.0206916   0.00839579   0.00355346   -0.693
+independent      0.170423    0.0834996    0.0416593    0.0207682    0.0102732   -0.506
+Bar render: slope sobol -0.692 against independent -0.506 (needs to be at least 0.15 steeper: ok); top-rung RMSE 0.00355314 against 0.0102732 / 1.00 (ok)
+== dof-raytrace
+sampler               n=1          n=4         n=16         n=64        n=256    slope
+sobol            0.155773    0.0494789    0.0187239   0.00756687   0.00336502   -0.689
+pmj02            0.155559     0.049428     0.018282   0.00761433   0.00335587   -0.688
+independent      0.155842    0.0759894    0.0385085    0.0188259   0.00946121   -0.505
+Bar render: slope sobol -0.689 against independent -0.505 (needs to be at least 0.15 steeper: ok); top-rung RMSE 0.00336502 against 0.00946121 / 1.00 (ok)
+== motion-reyes
+sampler               n=1          n=4         n=16         n=64        n=256    slope
+sobol            0.192806    0.0590094    0.0155779   0.00597135  0.000919225   -0.936
+pmj02            0.194359     0.059192    0.0160102   0.00601611  0.000919137   -0.937
+independent      0.193144    0.0570134    0.0155091   0.00601227  0.000999749   -0.922
+Bar nonworse: slope sobol -0.936 against independent -0.922 (needs to be at least 0.00 steeper: ok); top-rung RMSE 0.000919225 against 0.000999749 / 1.00 (ok)
+== arealight-raytrace
+sampler               n=1          n=4         n=16         n=64        n=256    slope
+sobol           0.0898381    0.0317804    0.0118458   0.00497063    0.0025022   -0.650
+pmj02           0.0891526    0.0313414    0.0116919    0.0052965   0.00276494   -0.629
+independent     0.0878299    0.0432748    0.0218751    0.0109863   0.00553924   -0.498
+Bar gain: slope sobol -0.650 against independent -0.498 (needs to be at least 0.00 steeper: ok); top-rung RMSE 0.0025022 against 0.00553924 / 1.50 (ok)
+== arealight-cone-raytrace
+sampler               n=1          n=4         n=16         n=64        n=256    slope
+sobol           0.0793945    0.0283788   0.00884873   0.00306343   0.00111932   -0.775
+pmj02            0.080692     0.027606   0.00880707   0.00309872   0.00111242   -0.776
+independent     0.0811047    0.0403693    0.0200782   0.00974666   0.00502277   -0.504
+Bar render: slope sobol -0.775 against independent -0.504 (needs to be at least 0.15 steeper: ok); top-rung RMSE 0.00111932 against 0.00502277 / 1.00 (ok)
+== occlusion-raytrace
+sampler               n=1          n=4         n=16         n=64        n=256    slope
+sobol            0.172446    0.0659686     0.024913   0.00934076   0.00357823   -0.700
+pmj02            0.170013    0.0653342    0.0248293   0.00938521   0.00354992   -0.698
+independent      0.171423    0.0849716    0.0430965    0.0214765    0.0107722   -0.498
+Bar render: slope sobol -0.700 against independent -0.498 (needs to be at least 0.15 steeper: ok); top-rung RMSE 0.00357823 against 0.0107722 / 1.00 (ok)
+== glossy-raytrace
+sampler               n=1          n=4         n=16         n=64        n=256    slope
+sobol           0.0556471    0.0197924   0.00787425   0.00355595   0.00164593   -0.632
+pmj02           0.0562173     0.020383   0.00778277   0.00344399   0.00172321   -0.631
+independent     0.0544723    0.0271993    0.0139715    0.0067403    0.0034515   -0.499
+Bar gain: slope sobol -0.632 against independent -0.499 (needs to be at least 0.00 steeper: ok); top-rung RMSE 0.00164593 against 0.0034515 / 1.50 (ok)
+== glossy-mirror-raytrace
+sampler               n=1          n=4         n=16         n=64        n=256    slope
+sobol            0.198529    0.0752476    0.0252699   0.00891299   0.00328605   -0.746
+pmj02            0.200819    0.0749836    0.0255373   0.00887149   0.00331536   -0.746
+independent      0.200617    0.0999163     0.049863    0.0249712    0.0125564   -0.500
+Bar render: slope sobol -0.746 against independent -0.500 (needs to be at least 0.15 steeper: ok); top-rung RMSE 0.00328605 against 0.0125564 / 1.00 (ok)

@@ -4115,32 +4115,41 @@ set_tests_properties(Sampling_FrameReproducible Sampling_FrameReproducible_contr
 #     GitHub #70, not fixed in spec 039. There is no reyes case: under a crop reyes dices its
 #     grids differently, so its point keys (object, u, v) and its P differ (GitHub #72, a
 #     recorded limitation of spec 039).
+#   Sampling_CropConsistent_raytrace_position: the same scene, jitter on, with
+#     shaders/sampling_position_probe.sl (Ci = P): each pixel's rays must start from the same
+#     raster position in a crop as in the full frame, to the last bit (T124).
 add_executable(test_crop_compare test_crop_compare.cpp)
 target_link_libraries(test_crop_compare PRIVATE TIFF::TIFF)
 target_compile_features(test_crop_compare PRIVATE cxx_std_20)
 set(_crop_dir ${CMAKE_BINARY_DIR}/tests/visual/sampling-crop)
 file(MAKE_DIRECTORY ${_crop_dir})
-foreach(_case raytrace:box)
+foreach(_case raytrace:box:random_probe: raytrace:box:sampling_position_probe:_position)
     string(REPLACE ":" ";" _parts ${_case})
     list(GET _parts 0 HIDER)
     list(GET _parts 1 _filter)
+    list(GET _parts 2 SURFACE)
+    list(LENGTH _parts _nparts)
+    set(_suffix "")
+    if(_nparts GREATER 3)
+        list(GET _parts 3 _suffix)
+    endif()
     if(_filter STREQUAL "box")
         set(FILTER "PixelFilter \"box\" 1 1")
     else()
         set(FILTER "")
     endif()
     set(CROP "")
-    set(OUTPUT crop-${HIDER}-full.tif)
-    configure_file(${_phase6_scenes}/sampling-crop.rib.in ${_crop_dir}/crop-${HIDER}-full.rib @ONLY)
+    set(OUTPUT crop-${HIDER}${_suffix}-full.tif)
+    configure_file(${_phase6_scenes}/sampling-crop.rib.in ${_crop_dir}/crop-${HIDER}${_suffix}-full.rib @ONLY)
     set(CROP "CropWindow 0.25 0.75 0.25 0.75")
-    set(OUTPUT crop-${HIDER}-crop.tif)
-    configure_file(${_phase6_scenes}/sampling-crop.rib.in ${_crop_dir}/crop-${HIDER}-crop.rib @ONLY)
-    add_test(NAME Sampling_CropConsistent_${HIDER}
+    set(OUTPUT crop-${HIDER}${_suffix}-crop.tif)
+    configure_file(${_phase6_scenes}/sampling-crop.rib.in ${_crop_dir}/crop-${HIDER}${_suffix}-crop.rib @ONLY)
+    add_test(NAME Sampling_CropConsistent_${HIDER}${_suffix}
         COMMAND test_crop_compare $<TARGET_FILE:orender>
-            ${_crop_dir}/crop-${HIDER}-full.rib crop-${HIDER}-full.tif
-            ${_crop_dir}/crop-${HIDER}-crop.rib crop-${HIDER}-crop.tif 16 47 12 35
+            ${_crop_dir}/crop-${HIDER}${_suffix}-full.rib crop-${HIDER}${_suffix}-full.tif
+            ${_crop_dir}/crop-${HIDER}${_suffix}-crop.rib crop-${HIDER}${_suffix}-crop.tif 16 47 12 35
         WORKING_DIRECTORY ${_crop_dir})
-    set_tests_properties(Sampling_CropConsistent_${HIDER} PROPERTIES TIMEOUT 300
+    set_tests_properties(Sampling_CropConsistent_${HIDER}${_suffix} PROPERTIES TIMEOUT 300
         LABELS "visual;regression;sampling;determinism" ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
 endforeach()
 

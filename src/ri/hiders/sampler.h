@@ -82,6 +82,10 @@ class CSampler {
         // rejection loop to run out of stateless draws, and a stratified slot stays
         // stratified on the lens.
         static CSampleValue cameraSample(const openrender::sampling::CSamplingConfig &config, int absSubX, int absSubY, bool wantLens);
+        // The same, with the frame's camera seeds computed once (cameraSeeds(config); the shading
+        // context keeps them, spec 039 T122): what the hiders call per subpixel.
+        static CSampleValue cameraSample(const openrender::sampling::CSamplingConfig &config, const openrender::sampling::CameraSeeds &seeds, int absSubX,
+                                         int absSubY, bool wantLens);
 
         // S1: canonical circle-of-confusion formula (reyes's cocSamples(z)
         // macro, renderer.h:39), reyes's sole consumer -- raytrace's DOF model

@@ -1228,3 +1228,35 @@ So bit-identical crops are reachable for raytrace draws with a small key fix, bu
 **Sweep (T119):** `DeterminismSweep_csg-hero-stats-800-reyes` disabled under #61, like its 1600 sibling.
 
 **T120:** `ctest -LE determinism-sweep -j4`: **744/744** (197 s). Sweeps (`-j2`, 415 registered, 404 enabled): sobol **404/404** (748 s), pmj02 **404/404** (527 s), independent **404/404** (470 s). `ctest -L architecture`: 21/21. T105 (Linux) stays pending.
+
+## Phase 11 (maintainer decisions, 2026-10-20; D-P11-1 revised)
+
+**T121**: PBRT-v4's default for its Sobol samplers is `"fastowen"`, a Laine-Karras-style hash; spec 039's scramble is already that kind (research.md §M2, "Phase 11 design reference check"). Reported; the maintainer revised D-P11-1 to option (i).
+
+**T122 (D-P11-1 revised, same images).** Test first: `Sampling_BitReverse` and `Sampling_CameraSeedsPerFrame` (`tests/unit/sampling/test_fast_paths.cpp`) failed to compile before the API existed, then passed. `reverseBits32()` uses `__builtin_bitreverse32` under `__has_builtin` (Clang, the build here: "hardware"), the portable `reverseBits32Portable()` otherwise (GCC 13: still to be exercised on Linux, T105); the test compares the two over 1,196,704 inputs. The camera's per-dimension seeds are computed once per frame (`cameraSeeds()`, kept by the shading context in `setSamplingConfig()`; `cameraDraws(cfg, seeds, id, lens)`), equal to the per-slot functions bit for bit for all three backends. The six perf scenes' outputs: byte-identical.
+
+**T123 (D-P11-2, one hash per call).** The shading sub-stream key is one finalizer round per call (`detail::mixFast(partial, call site, depth and occurrence)`), the seeds of each draw one round (`dimSeedsFast`), an independent draw one round; the camera keeps its per-frame seeds. Determinism: the default `determinism` set and the three sweeps pass (below). The camera-only perf scenes stay byte-identical; quadlight and sphere-gather-reyes change, as approved.
+
+**T124 (D-P11-3).** `Sampling_CropConsistent_raytrace_position` (new; `shaders/sampling_position_probe.sl`, Ci = P, jitter 1) was red (612 of 3072 values), then green once raytrace sums the full image's raster position from the sample's own pixel (`floorDiv`/`floorMod` of its absolute subpixel) instead of the bucket's origin plus the offset. `Sampling_CropConsistent_raytrace` stays green.
+
+**T125 (SC-010): not met** (research.md §M2, "Phase 11: measured"). End of Phase 11, spec 039 over master (`-t:1` / default threads): camera-dof-reyes +17% / +17%, camera-dof-raytrace +29% / +28%, motion-3-reyes +5% / +4%, quadlight +100% / +96%, sphere-gather-reyes +59% / +54%, sphere-trace-reyes +43% / +45%. Bound for option (ii), measured with the per-dimension index scramble removed altogether (a temporary build, reverted; more than (ii) removes): +11% / +12%, +14% / +13%, +3% / +1%, +39% / +39%, +15% / +14%, +13% / +13%. (ii) would save about 10 to 60 points per scene and still leave every scene but motion-3-reyes over the 2% budget.
+
+**T126 (re-renders, rerendered-references.md).** `sphere-occlusion-reyes` (diff 30.55; its seed-to-seed variance on this build 23.84 to 45.83) and `photon-parity` (43.31; seed-to-seed 43.00 to 46.92) re-rendered once; the `OcclusionGolden_sobol_cache` golden rewritten; the eight convergence references regenerated (75.7, 28.6, 41.2, 10.7, 9.9, 11.1, 7.4, 23.4 s), and `ctest -L convergence` 8/8 against them; the compiler reference of the new probe shader added. No threshold changed.
+
+**T127.** `ctest -LE determinism-sweep -j4`: **747/747** (150 s). Sweeps (`-j2`, 404 enabled): sobol **404/404** (472 s), pmj02 **404/404** (541 s), independent **404/404** (462 s). `ctest -L architecture`: **21/21**. T105 (Linux) pending.
+
+## Phase 12 (maintainer decisions, 2026-10-21; D-P12-7)
+
+**T128.** Convergence baseline before any change: `tools/perf/convergence-baseline-phase11.txt` (8 scenes, 3 samplers).
+
+**T129 (stop-and-report).** Option (ii), ZSobol-style padding, checked against PBRT-v4 before any code: one 64-bit hash per base-4 digit of the index, more expensive than the current index scramble (research.md §M2, "Phase 12 design check"). Dropped by the maintainer (D-P12-7).
+
+**T130 ((a), test first).** `Sampling_IndexScrambleCache` and `Sampling_CameraSeedsHighIndex` (`tests/unit/sampling/test_fast_paths.cpp`) failed to compile before the API existed, then passed: 3,072,000 scrambled indices equal to `nestedUniformScramble64()`, 2,304,000 of them with a high half other than the cached one (recomputed, not served from the cache); 24,192 camera samples, all three backends, equal to the per-slot functions bit for bit, 6,352 of them at pixels whose camera index has high bits set. The cache (`CameraSeeds::{film,lens,time,importance}Prefix`) is filled once per frame in `cameraSeeds()` and only read afterwards.
+
+**T131 ((a) gate): passed.** The six perf scenes re-rendered from the staged Phase 11 tree first, then after (a): byte-identical at `-t:1` and at the default thread count. `ctest -L convergence -V`: 8/8, the 40 table and bar lines identical to `convergence-baseline-phase11.txt`.
+
+**T132 (SC-010 after (a)): not met; no measurable gain from (a).** Three sessions of 5 repetitions interleaved with master `eda9eb0` (raw times `tools/perf/m2-phase12-a{1,2,3}.txt`), pooled, spec 039 over master (`-t:1` / default threads): camera-dof-reyes +17.0% / +17.7%, camera-dof-raytrace +28.6% / +26.5%, motion-3-reyes +5.4% / +4.7%, quadlight +96.8% / +97.0%, sphere-gather-reyes +59.1% / +53.7%, sphere-trace-reyes +39.9% / +41.1%. All within noise of the end of Phase 11. Run-to-run noise per scene, the largest of three measures (research.md §M2, "Phase 12"): 1.7 to 6.8 points.
+
+**T133 (SC-010 per-scene budgets): DRAFT, awaiting the maintainer's approval.** Rule (research.md §M2, "Phase 12"): pooled overhead plus noise, rounded up to a whole percent; a scene at 2% or less keeps 2%; the larger of `t1` and `tdef`. Draft budgets: camera-dof-reyes **22%**, camera-dof-raytrace **32%**, motion-3-reyes **9%**, quadlight **101%**, sphere-gather-reyes **66%**, sphere-trace-reyes **47%**. No scene meets 2%. The draft text and the old text are in spec.md (SC-010). Until it is approved, SC-010 remains unmet under the old text.
+
+**T134.** `ctest -LE determinism-sweep -j4`: **749/749** (155 s; the two new unit tests added to Phase 11's 747). Sweeps (`-j2`, 404 enabled): sobol **404/404** (542 s), pmj02 **404/404** (564 s), independent **404/404** (475 s); the build reconfigured back to sobol. `ctest -L architecture`: **21/21**. T105 (Linux) pending.

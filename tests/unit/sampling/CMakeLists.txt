@@ -83,6 +83,13 @@ add_sampling_test_exe(test_sampling_morton test_morton.cpp)
 add_sampling_test(Sampling_MortonIndex test_sampling_morton morton)
 add_sampling_test(Sampling_CameraSobolBlocks test_sampling_morton camera_sobol_blocks)
 
+# --- Phase 11 (T122): the fast paths give the same bits as the plain forms ---------------
+add_sampling_test_exe(test_sampling_fast_paths test_fast_paths.cpp)
+add_sampling_test(Sampling_BitReverse test_sampling_fast_paths bit_reverse)
+add_sampling_test(Sampling_CameraSeedsPerFrame test_sampling_fast_paths camera_seeds TIMEOUT 300)
+add_sampling_test(Sampling_IndexScrambleCache test_sampling_fast_paths index_scramble_cache TIMEOUT 300)
+add_sampling_test(Sampling_CameraSeedsHighIndex test_sampling_fast_paths camera_seeds_high_index TIMEOUT 300)
+
 # --- Phase 4 (US6): identity plumbing, tests first ---------------------------------
 #
 # Written before CObject::stableId and CShadingContext::pointKeyObserver existed

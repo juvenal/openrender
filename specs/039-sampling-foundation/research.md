@@ -608,6 +608,54 @@ The remaining cost is the Owen scrambling itself (Laine-Karras permutations of t
 - `OwenScrambler::operator()`: the full Owen scramble, a loop over 31 bits with one `MixBits` hash per bit.
 - **Finding: spec 039 already uses the hash-based form.** `detail::nestedUniformScramble()` is `reverseBits32(laineKarras(reverseBits32(x), seed))`, and `laineKarras()` is Burley 2020's Laine-Karras hash (`x += seed` and four `x ^= x * c` rounds): the same family and cost as PBRT-v4's FastOwen (one add, one seed-dependent odd multiply and three multiply-xors), not PBRT's per-bit `OwenScrambler`. Replacing it with PBRT's FastOwen would not make the draws cheaper. Reported before any change (Phase 11, D-P11-1).
 
+**Phase 11 (2026-10-20/21): measured.** Same method as Phase 10 (m2 scenes, 5 repetitions rep-major, master `eda9eb0`'s Release build interleaved run by run; spec 039 over master, median). Raw times: `tools/perf/m2-phase11-{a,b,c,x}.txt`.
+
+| Scene | cfg | Phase 10 end | after T122 (seeds, rbit) | after T123 (one hash per call) | end of Phase 11 | experiment: no index scramble (bound for (ii)) |
+|---|---|---|---|---|---|---|
+| camera-dof-reyes | t1 | +20.9% | +17.8% | +17.0% | +16.9% | +10.9% |
+| camera-dof-reyes | tdef | +22.5% | +17.4% | +18.5% | +16.7% | +11.6% |
+| camera-dof-raytrace | t1 | +44.4% | +30.2% | +29.5% | +28.5% | +14.2% |
+| camera-dof-raytrace | tdef | +42.0% | +28.5% | +28.9% | +28.1% | +13.1% |
+| motion-3-reyes | t1 | +4.0% | +5.8% | +4.9% | +4.5% | +3.2% |
+| motion-3-reyes | tdef | +6.3% | +4.4% | +4.3% | +4.1% | +1.4% |
+| quadlight | t1 | +111.0% | +114.9% | +98.8% | +100.1% | +39.0% |
+| quadlight | tdef | +114.9% | +128.1% | +97.2% | +96.3% | +38.7% |
+| sphere-gather-reyes | t1 | +76.6% | +70.1% | +60.5% | +58.9% | +14.9% |
+| sphere-gather-reyes | tdef | +58.1% | +67.4% | +54.4% | +54.1% | +13.9% |
+| sphere-trace-reyes | t1 | +73.2% | +43.9% | +43.8% | +42.6% | +13.1% |
+| sphere-trace-reyes | tdef | +64.6% | +46.1% | +43.4% | +44.5% | +13.1% |
+
+- T122 (the camera's per-dimension seeds once per frame; `__builtin_bitreverse32` where available, the portable form otherwise, `Sampling_BitReverse` comparing the two over 1.2 million inputs): images byte-identical; the camera-bound scenes gain most (sphere-trace-reyes +73% to +44%).
+- T123 (one finalizer round per call for the shading sub-stream key and per draw for its seeds, `mixFast`/`dimSeedsFast`; the camera keeps its per-frame seeds): quadlight +115% to +99%, sphere-gather-reyes +70% to +60%.
+- T124 (the raytrace raster position summed from the pixel): no measurable cost.
+- **SC-010 at the end of Phase 11: not met** (+4% to +100% over master).
+- **What option (ii) could save, measured as a bound** (temporary build, reverted): removing the per-dimension index scramble altogether, which is more than (ii) removes (ZSobol replaces it with a hashed permutation of the Morton digits, which costs a little), gives the last column: +1% to +39%. Even that bound leaves every scene but motion-3-reyes above the 2% budget (quadlight +39%, camera-dof-raytrace +13-14%, sphere-trace and sphere-gather +13-15%, camera-dof-reyes +11-12%). So (ii) would save roughly 10 to 60 points per scene but could not reach SC-010 alone; the rest is the output scrambles and the per-call keyed draws themselves, against master's single `urand()` per value.
+
+**Phase 12 design check (2026-10-21): PBRT-v4's ZSobol index padding.** Source: PBRT-v4 `src/pbrt/samplers.h`, `ZSobolSampler::GetSampleIndex()`, `Get1D()`, `Get2D()` (github.com/mmp/pbrt-v4, master, read 2026-10-21). `GetSampleIndex()` walks the base-4 digits of the pixel's Morton index from the most significant down, and for each digit picks one of the 24 permutations of {0, 1, 2, 3} with `MixBits(higherDigits ^ (0x55555555u * dimension)) >> 24) % 24` (a 64-bit hash per digit), then remaps the digit; with an odd power of two samples the last bit is XORed with a hashed parity bit. `Get1D`/`Get2D` then hash (dimension, seed) and apply the chosen randomizer (FastOwen by default) to the Sobol point. **Cost against ours**: one 64-bit hash per base-4 digit of the index, 12 to 16 digits for our 64-bit camera index (a 3840 x 2880 frame at 16 samples already has a 28-bit index), against our per-dimension `nestedUniformScramble64()` (two Laine-Karras rounds, one `finalize64` and hardware bit reversals) and, for the shading draws, one Laine-Karras round. ZSobol-style padding is a better-distributed padding, not a cheaper one; Phase 11's bound for removing the index scramble entirely does not carry over to it. Reported before any change (Phase 12, T129). **Decision (maintainer, 2026-10-21, D-P12-7): option (ii) is dropped** for that reason; Phase 12 does (a), a per-frame cache of the camera index scramble's high half (same images), then (c), per-scene SC-010 budgets.
+
+**Phase 12 (2026-10-21): (a) measured, and SC-010 as per-scene budgets (draft).** (a), the per-frame cache of the camera index scramble's high half (T130): `CameraSeeds` keeps, per camera slot, the permuted high half and the low half's seed for a high half of 0; an index with any other high half is scrambled in full. Images byte-identical to Phase 11 at `-t:1` and default threads, convergence identical to the baseline (T131). Same method as Phase 11 (master `eda9eb0`'s Release build interleaved run by run, 5 repetitions rep-major), run as **three independent sessions** back to back so the noise could be measured (raw times `tools/perf/m2-phase12-a{1,2,3}.txt`; load average 3.4 to 5.9 during the runs, the same for both builds since they alternate).
+
+| Scene | cfg | end of Phase 11 | after (a), sessions 1 / 2 / 3 | after (a), pooled | noise A / B / C | budget |
+|---|---|---|---|---|---|---|
+| camera-dof-reyes | t1 | +16.9% | +19.8 / +19.1 / +16.6 | +17.0% | 2.8 / 1.1 / 3.9 | 21% |
+| camera-dof-reyes | tdef | +16.7% | +18.5 / +19.0 / +17.0 | +17.7% | 1.3 / 0.9 / 3.7 | 22% |
+| camera-dof-raytrace | t1 | +28.5% | +27.9 / +30.0 / +28.8 | +28.6% | 1.4 / 0.7 / 1.7 | 31% |
+| camera-dof-raytrace | tdef | +28.1% | +27.0 / +25.6 / +28.3 | +26.5% | 1.8 / 0.6 / 5.1 | 32% |
+| motion-3-reyes | t1 | +4.5% | +6.4 / +4.3 / +3.7 | +5.4% | 1.7 / 2.1 / 2.2 | 8% |
+| motion-3-reyes | tdef | +4.1% | +7.7 / +3.2 / +4.2 | +4.7% | 3.0 / 1.1 / 3.3 | 9% |
+| quadlight | t1 | +100.1% | +96.4 / +98.0 / +95.7 | +96.8% | 1.2 / 1.8 / 4.1 | 101% |
+| quadlight | tdef | +96.3% | +96.7 / +98.4 / +96.0 | +97.0% | 1.4 / 1.1 / 3.3 | 101% |
+| sphere-gather-reyes | t1 | +58.9% | +58.1 / +53.4 / +62.8 | +59.1% | 5.7 / 3.6 / 6.8 | 66% |
+| sphere-gather-reyes | tdef | +54.1% | +53.3 / +54.4 / +54.2 | +53.7% | 0.7 / 0.7 / 1.9 | 56% |
+| sphere-trace-reyes | t1 | +42.6% | +41.0 / +39.2 / +39.5 | +39.9% | 1.1 / 2.0 / 5.3 | 46% |
+| sphere-trace-reyes | tdef | +44.5% | +37.0 / +42.1 / +42.0 | +41.1% | 4.1 / 3.9 / 5.5 | 47% |
+
+- **(a) gives no measurable gain**: every scene is within its noise of the end of Phase 11. The cached part (one Laine-Karras round on the high half and one `finalize64`) is small next to what remains per draw: the low half's index scramble, the Sobol digits and the output scrambles.
+- **Noise, three measures, in percentage points of overhead**: A, the largest distance of one session's overhead (median over median) from the pooled one; B, master's own session-to-session spread (largest over smallest master median, minus 1), an A/A measure of the machine; C, twice the median absolute deviation of the per-repetition paired ratios (spec 039 over master in the same repetition) across all 15 repetitions. The noise is the largest of the three.
+- **Rule (D-P12-5)**: per scene and configuration, the budget is the pooled overhead over the 15 interleaved repetitions plus the noise, rounded up to a whole percent; a scene whose result is 2% or less keeps 2%. A scene's budget is the larger of its `t1` and `tdef` values. Pass: a later measurement by the same method (3 sessions of 5 interleaved repetitions, pooled median against master) at or under the budget in both configurations.
+- **Result**: no scene meets 2%. Draft budgets: camera-dof-reyes 22%, camera-dof-raytrace 32%, motion-3-reyes 9%, quadlight 101%, sphere-gather-reyes 66%, sphere-trace-reyes 47% (spec.md SC-010, draft; validation.md T133).
+- The comparison is against master `eda9eb0` interleaved in the same session, as every measurement since Phase 9, not against the `c62334d` baseline of §M2 that the old SC-010 names: the same-session control removes the machine's day-to-day drift (measured against the §M2 baseline instead, the same spec 039 times read 2 to 9 points higher, the `vs-baseline` column of the session tables).
+
 ### M3. Determinism-sweep runtime — PENDING MEASUREMENT (at implement, Phase 7); rule decided
 
 The sweep covers roughly 230 non-GI scenes × 5 configurations. Its runtime decides whether `determinism-sweep` stays in the default `ctest` run or sits beside `convergence` as an opt-in label.

@@ -55,3 +55,21 @@ image reference to re-render: it is checked by `PartialVisibilityStats` (a CSG s
 seam splits at most 3/4 of the full frame's, which does not read pixels) and by its determinism-sweep
 entry (disabled under #61). Nothing was re-rendered.
 
+**Phase 11 (2026-10-20/21).** T122 (camera seeds once per frame, hardware bit reverse) changes no
+value: the six perf scenes were byte-identical before and after, and no reference moved. T123 (one
+hash per call for the shading draws: `mixFast` for the call key and the per-draw seeds,
+`dimSeedsFast`, one round per independent draw) re-keys every shading-side draw, and T124 (the
+raytrace projection summed from the sample's pixel) moves raytrace camera positions by float
+rounding. The full suite then failed only on the references below; each was re-rendered once,
+with its test's own command and environment, as in T098.
+
+| Reference | Test | Reason |
+|---|---|---|
+| `examples/rib/tests/references/sphere-occlusion-reyes.tif` | `Visual_sphere-occlusion-reyes`, `-slo` | one hash per call (occlusion's in-cell draws). Diff against the old reference 30.55; the scene's own seed-to-seed variance on the same build: 23.84, 45.83, 38.50 |
+| `examples/rib/tests/references/photon-parity.tif` | `Visual_photon-parity`, `-slo` | one hash per call (photon emission and bounces). Diff 43.31; seed-to-seed: 43.00, 46.92, 45.77 |
+| `tests/visual/golden/occlusion-sobol_cache.tif` | `OcclusionGolden_sobol_cache` | one hash per call: the golden pins the cached occlusion path under sobol, whose in-cell draws are re-keyed (3291 of 9216 values moved); it still pins that path's code against later change |
+| `tests/convergence/reference/*.tif` | `Convergence_*` | the independent sampler's per-draw hash (`mixFast`): the references are means of independent renders, now a different realization; regenerated with `convergence-reference` (see validation.md) |
+
+Not a render: `tests/shaders/references/sampling_position_probe.rslo`, the compiler reference
+of T124's new probe shader (`ShaderCompilerImmutability`'s documented procedure).
+

@@ -63,6 +63,11 @@ namespace {
 } // namespace
 
 CSampleValue CSampler::cameraSample(const openrender::sampling::CSamplingConfig &config, int absSubX, int absSubY, bool wantLens) {
+    return cameraSample(config, openrender::sampling::cameraSeeds(config), absSubX, absSubY, wantLens);
+}
+
+CSampleValue CSampler::cameraSample(const openrender::sampling::CSamplingConfig &config, const openrender::sampling::CameraSeeds &seeds, int absSubX,
+                                    int absSubY, bool wantLens) {
     using namespace openrender::sampling;
 
     // The subpixel's identity: the pixel it is in (floor division, because the
@@ -82,7 +87,7 @@ CSampleValue CSampler::cameraSample(const openrender::sampling::CSamplingConfig 
     const float totalSamples = static_cast<float>(config.nx * config.ny);
 
     CSampleValue sample;
-    const CameraDraws draws = cameraDraws(config, id, wantLens);
+    const CameraDraws draws = cameraDraws(config, seeds, id, wantLens);
     sample.jitterX = offset(draws.film.u);
     sample.jitterY = offset(draws.film.v);
     sample.timeStratum = (static_cast<float>(row * config.nx + column) + offset(draws.time)) / totalSamples;

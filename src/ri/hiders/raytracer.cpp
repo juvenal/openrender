@@ -558,16 +558,24 @@ void CRaytracer::sample(int left, int top, int xpixels, int ypixels) {
                         const int ny = CRenderer::pixelYsamples;
                         // `left`/`top` count from the rendered window; adding the crop's origin
                         // makes the subpixel absolute in the full image (spec 039, T116)
-                        const CSampleValue jitterSample = CSampler::cameraSample(samplingCfg, CSampler::raytraceAbsSub(left + samplingCfg.originX, nx, CRenderer::xSampleOffset, i + x),
+                        const CSampleValue jitterSample = CSampler::cameraSample(samplingCfg, cameraSeeds(), CSampler::raytraceAbsSub(left + samplingCfg.originX, nx, CRenderer::xSampleOffset, i + x),
                                                                                  CSampler::raytraceAbsSub(top + samplingCfg.originY, ny, CRenderer::ySampleOffset, j + y), wantLens);
 
-                        // The location from the window's origin (x, y) and from the full image's (xAbs,
-                        // yAbs, T117), each in one expression, which the compiler may fuse into a
-                        // multiply-add: the full frame and a crop then round xAbs alike
+                        // The location from the window's origin, for the splat (x, y), and in the full
+                        // image, for the projection (xAbs, yAbs): the full image's position is summed
+                        // from the sample's own pixel (T124), not from its bucket's origin, so the same
+                        // subpixel gets the same bits in every window (a crop splits the bucket grid
+                        // differently from the full frame)
                         cRay->x = (float)left + (float)(i + x - xSampleOffset + jitterSample.jitterX) * invXsamples; // Center the sample location in the pixel
                         cRay->y = (float)top + (float)(j + y - ySampleOffset + jitterSample.jitterY) * invYsamples;
-                        cRay->xAbs = (float)(left + samplingCfg.originX) + (float)(i + x - xSampleOffset + jitterSample.jitterX) * invXsamples;
-                        cRay->yAbs = (float)(top + samplingCfg.originY) + (float)(j + y - ySampleOffset + jitterSample.jitterY) * invYsamples;
+                        {
+                            const int absSubX = CSampler::raytraceAbsSub(left + samplingCfg.originX, nx, xSampleOffset, i + x);
+                            const int absSubY = CSampler::raytraceAbsSub(top + samplingCfg.originY, ny, ySampleOffset, j + y);
+                            cRay->xAbs = (float)openrender::sampling::floorDiv(absSubX, nx) +
+                                         (float)(openrender::sampling::floorMod(absSubX, nx) + jitterSample.jitterX) * invXsamples;
+                            cRay->yAbs = (float)openrender::sampling::floorDiv(absSubY, ny) +
+                                         (float)(openrender::sampling::floorMod(absSubY, ny) + jitterSample.jitterY) * invYsamples;
+                        }
                         cRay->time = sampleMotion ? jitterSample.timeStratum : 0.0f;
                         cRay->lensU = jitterSample.lensU;
                         cRay->lensV = jitterSample.lensV;

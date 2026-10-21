@@ -319,8 +319,13 @@ class CShadingContext {
         // The sampling configuration of the frame (spec 039): immutable for the
         // frame, set by the renderer core when it creates the context. Hiders and
         // shading read this member and never a renderer symbol.
-        void setSamplingConfig(const openrender::sampling::CSamplingConfig &c) { sampling = c; }
+        void setSamplingConfig(const openrender::sampling::CSamplingConfig &c) {
+            sampling = c;
+            camera = openrender::sampling::cameraSeeds(c);
+        }
         const openrender::sampling::CSamplingConfig &samplingConfig() const { return sampling; }
+        // The frame's camera seeds, computed once per frame (spec 039, T122)
+        const openrender::sampling::CameraSeeds &cameraSeeds() const { return camera; }
 
         // Shade points on a surface
         void shade(CSurface *, int, int, EShadingDim, unsigned int, int displaceOnly = FALSE);
@@ -423,7 +428,7 @@ class CShadingContext {
             RaySeedEntry &e = raySeedCache[dim];
             if (!e.valid || e.seedHash != k.seedHash) {
                 e.seedHash = k.seedHash;
-                e.seeds = openrender::sampling::detail::dimSeeds(k.seedHash, dim, salt);
+                e.seeds = openrender::sampling::detail::dimSeedsFast(k.seedHash, dim, salt);
                 e.valid = true;
             }
             return e.seeds;
@@ -858,6 +863,7 @@ class CShadingContext {
 
         // See setSamplingConfig(). Sobol, seed 0, until the core sets it.
         openrender::sampling::CSamplingConfig sampling{openrender::sampling::Backend::Sobol, 0u, 0u, 1, 1, 0.0f};
+        openrender::sampling::CameraSeeds camera = openrender::sampling::cameraSeeds(sampling);
 
         // ---> Renderer service accessors (Phase B decoupling from CRenderer globals)
         // All delegate to currentShadingState->services (set from CRendererServicesImpl

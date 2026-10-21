@@ -1,0 +1,19 @@
+#!version 2.0.0
+#!name "sampling_position_probe"
+surface
+#!parameters:
+#!variables:
+uniform	vector	temporary_0
+varying	float	temporary_1
+varying	float	temporary_2
+varying	float	temporary_3
+#!Init:
+	return            
+#!Code:
+	vfromf  temporary_0 1
+	vuvector  Oi temporary_0
+	xcomp	("f=p")  temporary_1 P
+	ycomp	("f=p")  temporary_2 P
+	zcomp	("f=p")  temporary_3 P
+	vfromf  Ci temporary_1 temporary_2 temporary_3
+	return

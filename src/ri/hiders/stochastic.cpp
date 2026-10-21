@@ -196,7 +196,7 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int /*nullBucket*/) {
 
             // `left`/`top` count from the rendered window; the crop's origin makes them absolute
             // in the full image, so a crop draws the same samples (spec 039, T116)
-            const CSampleValue sample = CSampler::cameraSample(samplingCfg, CSampler::reyesAbsSub(left + samplingCfg.originX * samplingCfg.nx, j),
+            const CSampleValue sample = CSampler::cameraSample(samplingCfg, cameraSeeds(), CSampler::reyesAbsSub(left + samplingCfg.originX * samplingCfg.nx, j),
                                                                CSampler::reyesAbsSub(top + samplingCfg.originY * samplingCfg.ny, i), wantLens);
 
             pixel->jx = sample.jitterX;
