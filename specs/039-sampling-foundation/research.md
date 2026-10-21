@@ -601,6 +601,13 @@ Final state (`d2`), seconds:
 - camera-dof-raytrace: `trace` 547, `sobolGet2D64` 390.
 The remaining cost is the Owen scrambling itself (Laine-Karras permutations of the index and of each coordinate) and the per-call sub-stream hash: what the design computes, not overhead around it. Closing the budget would need a cheaper scramble (for example a per-pixel precomputed index permutation, or a hash-based shuffle instead of the nested uniform one), which changes the sequence and so every image: a design decision, not a remedy.
 
+**Phase 11 design reference check (2026-10-20): PBRT-v4's scrambles.** Source: PBRT-v4, `src/pbrt/util/lowdiscrepancy.h` and `src/pbrt/samplers.cpp` (github.com/mmp/pbrt-v4, master, read 2026-10-20).
+- `enum class RandomizeStrategy { None, PermuteDigits, FastOwen, Owen };`
+- `SobolSampler::Create`, `PaddedSobolSampler::Create` and `ZSobolSampler::Create` all read `parameters.GetOneString("randomization", "fastowen")`: **FastOwen is the default** for all three.
+- `FastOwenScrambler::operator()`: `v = ReverseBits32(v); v ^= v * 0x3d20adea; v += seed; v *= (seed >> 16) | 1; v ^= v * 0x05526c56; v ^= v * 0x53a22864; return ReverseBits32(v);` (a Laine-Karras-style hash between two bit reversals).
+- `OwenScrambler::operator()`: the full Owen scramble, a loop over 31 bits with one `MixBits` hash per bit.
+- **Finding: spec 039 already uses the hash-based form.** `detail::nestedUniformScramble()` is `reverseBits32(laineKarras(reverseBits32(x), seed))`, and `laineKarras()` is Burley 2020's Laine-Karras hash (`x += seed` and four `x ^= x * c` rounds): the same family and cost as PBRT-v4's FastOwen (one add, one seed-dependent odd multiply and three multiply-xors), not PBRT's per-bit `OwenScrambler`. Replacing it with PBRT's FastOwen would not make the draws cheaper. Reported before any change (Phase 11, D-P11-1).
+
 ### M3. Determinism-sweep runtime — PENDING MEASUREMENT (at implement, Phase 7); rule decided
 
 The sweep covers roughly 230 non-GI scenes × 5 configurations. Its runtime decides whether `determinism-sweep` stays in the default `ctest` run or sits beside `convergence` as an opt-in label.

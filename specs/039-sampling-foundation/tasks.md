@@ -560,6 +560,27 @@ The call-site operand and the `_v2` ABI make Phase 4 a MAJOR change of both shad
 
 ---
 
+## Phase 11: Sampler cost and the raytrace crop with jitter (maintainer decisions, 2026-10-20)
+
+**Purpose**: a design change for SC-010 and the remaining crop case. Decisions (maintainer, 2026-10-20):
+- **D-P11-1, cheaper scramble**: verify PBRT-v4's `RandomizeStrategy` options and its default, record the citation, then replace the full Owen scramble with the cheap hash-based one (per-dimension seeds stay independent; no index shared across camera dimensions), test first (a unit test pinning each 2D pair's stratification at power-of-two counts; `-L convergence` and the sampler unit tests green; no bar loosened). If PBRT-v4 does not do that, report before changing anything.
+- **D-P11-2, stream hash**: each sample's sub-stream comes from one hash per call (call key plus sample index), not one hash per draw; target: quadlight's 16 `drawSubstream` calls per point. Determinism bit-identical across thread counts.
+- **D-P11-3, raytrace crop with jitter on**: add the jitter-1, `P`-reading case to `Sampling_CropConsistent_raytrace` (red first), then sum the raster position from the pixel instead of the bucket origin plus offset (green).
+- **D-P11-4**: measure SC-010 as before after D-P11-1 and D-P11-2 and at the end; the 2% budget stays.
+- **D-P11-5**: re-rendering the references these change is approved; list each with its reason; check noisy GI scenes against their seed-to-seed variance; change no threshold.
+
+- [X] T121 Verify the design reference (D-P11-1). **Result: stop-and-report.** PBRT-v4's default for `SobolSampler`, `PaddedSobolSampler` and `ZSobolSampler` is `"fastowen"`, a Laine-Karras-style hash between bit reversals (research.md §M2, "Phase 11 design reference check"). Spec 039's `nestedUniformScramble()` is already that kind of hash (Burley 2020's Laine-Karras), not a per-bit full Owen scramble, so the planned replacement would not be cheaper. Nothing changed; T122-T127 wait on the maintainer.
+- [ ] T122 (D-P11-1, pending the decision above) Cheaper scramble, test first.
+- [ ] T123 (D-P11-2) One hash per call for the sub-streams; `drawSubstream` once per call.
+- [ ] T124 (D-P11-3) `Sampling_CropConsistent_raytrace` with a jitter-1 `P` case (red), then the raster position summed from the pixel (green).
+- [ ] T125 [RUN] (D-P11-4) SC-010 after T122+T123, and at the end.
+- [ ] T126 (D-P11-5) Re-render the affected references once; rerendered-references.md; GI seed-to-seed checks.
+- [ ] T127 [RUN] Full suite, the three sampler sweeps, `-L architecture`. T105 (Linux) stays pending.
+
+**PAUSE 11**.
+
+---
+
 ## Dependencies & execution order
 
 ### Phase dependencies
