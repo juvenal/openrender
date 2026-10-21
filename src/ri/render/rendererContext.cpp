@@ -912,6 +912,11 @@ void CRendererContext::RiFrameBegin(int number) {
     options = getOptions(TRUE);
     options->frame = number;
 
+    // Shader instances are numbered from the start of each frame (spec 039, T103): a frame's
+    // instance keys, and with them its draws, do not depend on the frames rendered before it,
+    // so `orender -f 2` renders frame 2 exactly as the full sequence does
+    shaderOrdinal = 0;
+
     stats.sequenceNumber++;
 }
 
@@ -926,6 +931,9 @@ void CRendererContext::RiFrameEnd(void) {
 void CRendererContext::RiWorldBegin(void) {
     inWorld = true;
     idOrdinal = 0; // top-level objects are numbered from the start of each world block
+    // A RIB without frames numbers its shader instances per world block (RiFrameBegin does it per frame)
+    if (currentOptions->frame < 0)
+        shaderOrdinal = 0;
     toleranceNoticeGiven = FALSE; // FR-023: one tessellation-tolerance notice per frame
     // If -d flag given, add framebuffer display on top of whatever the RIB defined.
     // Must run before optionBegin() snapshots currentOptions into a new copy.

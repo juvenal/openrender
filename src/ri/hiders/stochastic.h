@@ -107,8 +107,6 @@ class CStochastic : public CReyes, public COcclusionCuller {
         int top, left, right, bottom;
         int sampleWidth, sampleHeight;
 
-        CSobol<2> apertureGenerator;
-
         // Define prototypes for the rasterization functions
 
 #define DEFINE_STOCHASTIC_FUNPROTOS

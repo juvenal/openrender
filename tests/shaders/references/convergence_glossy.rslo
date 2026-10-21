@@ -1,0 +1,21 @@
+#!version 2.0.0
+#!name "convergence_glossy"
+surface
+#!parameters:
+uniform	float	samples	=	16
+uniform	float	samplecone	=	0.35
+#!variables:
+varying	vector	Nf
+varying	vector	R
+varying	vector	temporary_0
+#!Init:
+	return            
+#!Code:
+	normalize	("v=v")  temporary_0 N
+	faceforward	("v=vv")  Nf temporary_0 I
+	normalize	("v=v")  temporary_0 I
+	reflect	("v=vv")  R temporary_0 Nf
+	movevv  Oi Os
+	trace	("c=pvSfsf")  temporary_0 P R "samples" samples "samplecone" samplecone 0
+	mulvv  Ci Os temporary_0
+	return

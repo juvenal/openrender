@@ -12,8 +12,8 @@
  *   are virtual overrides, so a geometry class's vtable includes them
  *   whether or not a given consumer ever calls them; CObject::cluster() is
  *   a non-virtual exception, included here because its own body (not a
- *   vtable slot) references CShadingContext::urand() -- an inline wrapper
- *   in shading.h around the real CShadingContext::next_state() --
+ *   vtable slot) draws from the shading context (originally
+ *   CShadingContext::urand(), a CKeyedStream since spec 039) --
  *   discovered only by an `nm -u` sweep over the built object files, not by
  *   reading the source, since it reads exactly like the memory-pool-only
  *   pattern every other safe method here follows. A consumer that must not
@@ -107,10 +107,9 @@ void CCSGSolid::dice(CReyes *rasterizer) {
 // Method				:	cluster
 // Description			:	Cluster the objects
 // Return Value			:
-// Comments				:	Reaches into shading via CShadingContext::urand()
-//							(an inline wrapper in shading.h around the real
-//							CShadingContext::next_state()), not merely
-//							threadMemory as it first appears.
+// Comments				:	Reaches into shading (its draws, originally
+//							CShadingContext::urand(), now a CKeyedStream),
+//							not merely threadMemory as it first appears.
 void CObject::cluster(CShadingContext *context) {
     int numChildren;
     CObject *cObject;

@@ -27,6 +27,8 @@
 #ifndef SHADING_H
 #define SHADING_H
 
+#include <vector>
+
 #include "common/algebra.h"
 #include "common/containers.h"
 #include "common/global.h"
@@ -228,7 +230,7 @@ class CShadingState {
         CRendererServices *services; // nullptr in standalone mode
 
         // ---> Sample identity (spec 039, contracts/shading-runtime.md). Filled only
-        //      when the frame's sampler is not Legacy.
+        //      for every shading call.
         openrender::sampling::SampleKey *pointKeys; // Per-vertex identity, numVertices long (a derivative-offset tail vertex copies its real vertex's key)
         uint64_t batchKey;                          // The invocation-level key, for uniform random()
         int pointKeysFromRays;                      // TRUE while pointKeys were set by the hider (ray hits), not by the cell rule
@@ -358,15 +360,13 @@ class CShadingContext {
         // ---------------------------------------------------------------------
         // Spec 039: where the random numbers of a stochastic call come from.
         //
-        // Under the Legacy sampler they come from the context's own generators
-        // (below, in this header: these inline members are the only place the
-        // shading code names them). Under every other sampler they are draws
-        // from the sampler's sub-stream of (point, shader, call site, occurrence,
-        // ray depth), so a call's values do not depend on what other calls drew,
-        // on the thread, or on the shading backend (contracts/shading-runtime.md,
-        // research R3.5-R3.10).
+        // Every draw comes from the sampler's sub-stream of (point, shader, call
+        // site, occurrence, ray depth), so a call's values do not depend on what
+        // other calls drew, on the thread, or on the shading backend
+        // (contracts/shading-runtime.md, research R3.5-R3.10). The context has no
+        // generator of its own (Phase 9 deleted the Mersenne Twister and the
+        // CSobol members).
         // ---------------------------------------------------------------------
-        bool keyedDraws() const { return sampling.backend != openrender::sampling::Backend::Legacy; }
 
         // The sub-stream of the stochastic call at `callSite` for the shading point
         // `vertex` (-1: the invocation-level key, for a uniform call), consuming one
@@ -378,17 +378,11 @@ class CShadingContext {
         openrender::sampling::SubstreamKey drawSubstream(int vertex, uint32_t *counts, unsigned callSite, uint32_t samplesPerCall,
                                                          openrender::sampling::SampleKey *pointOut = nullptr, uint32_t *occurrenceOut = nullptr);
         // The occurrence counters of the current shader's call site (one per real
-        // vertex, and one for the uniform key). Null when the sampler is Legacy.
+        // vertex, and one for the uniform key).
         uint32_t *drawCounters(unsigned callSite);
 
         // random()/urandom(): n values (1 or 3) for one shading point.
-        inline void drawRandom(int vertex, uint32_t *counts, unsigned callSite, float *res, int n) {
-            if (keyedDraws())
-                keyedRandom(vertex, counts, callSite, res, n);
-            else
-                for (int k = 0; k < n; k++)
-                    res[k] = urand();
-        }
+        inline void drawRandom(int vertex, uint32_t *counts, unsigned callSite, float *res, int n) { keyedRandom(vertex, counts, callSite, res, n); }
 
         // Start a new batch of draws on the current shading state: every call site is back
         // at occurrence 0. fillPointKeys() does it for a shading call; a hider that fills
@@ -399,74 +393,73 @@ class CShadingContext {
         // and radiance caches): bindDraws() points it at a stochastic call's
         // sub-stream, drawNext() takes the next dimension of it.
         void bindDraws(int vertex, uint32_t *counts, unsigned callSite, uint32_t samplesPerCall);
-        inline float drawNext() { return keyedDraws() ? keyedNext() : urand(); }
+        inline float drawNext() { return keyedNext(); }
         // Two and four values at once, for the stratified filter samples of the texture lookups
         inline void drawNext2(float *r) {
-            if (keyedDraws()) {
-                r[0] = keyedNext();
-                r[1] = keyedNext();
-            }
-            else
-                random2d.get(r);
+            r[0] = keyedNext();
+            r[1] = keyedNext();
         }
         inline void drawNext4(float *r) {
-            if (keyedDraws()) {
-                for (int k = 0; k < 4; k++)
-                    r[k] = keyedNext();
-            }
-            else
-                random4d.get(r);
+            for (int k = 0; k < 4; k++)
+                r[k] = keyedNext();
         }
         // Point `sample` of the pair `pair` of the sub-stream bindDraws() bound: the
         // hemisphere of the irradiance cache, drawn by sample index as trace() draws its
-        // rays (spec 039, T076c). Only under a keyed sampler.
+        // rays (spec 039, T076c).
         inline openrender::sampling::Sample2D drawBound2D(uint32_t pair, uint32_t sample) const {
             return openrender::sampling::get2D(sampling.backend, drawCursor, pair, sample);
         }
 
         // The draws of a ray sample: four jitter values (origin, then direction),
-        // a direction in a cone, and a time. `sub` is null under Legacy.
+        // a direction in a cone, and a time. A location that no call bound (`sub`
+        // null) draws from a fixed sub-stream, as an unbound draw cursor does.
+        static const openrender::sampling::SubstreamKey &raySub(const openrender::sampling::SubstreamKey *sub) {
+            static const openrender::sampling::SubstreamKey unbound{0, 0};
+            return sub != nullptr ? *sub : unbound;
+        }
+        // A ray call's draw of dimension `dim` at `sample`: get2D()/get1D(), with the Sobol seeds
+        // of (sub-stream, dimension) kept across the call's samples (spec 039, T114).
+        inline const openrender::sampling::detail::DimSeeds &raySeeds(const openrender::sampling::SubstreamKey &k, uint32_t dim, uint32_t salt) {
+            RaySeedEntry &e = raySeedCache[dim];
+            if (!e.valid || e.seedHash != k.seedHash) {
+                e.seedHash = k.seedHash;
+                e.seeds = openrender::sampling::detail::dimSeeds(k.seedHash, dim, salt);
+                e.valid = true;
+            }
+            return e.seeds;
+        }
+        inline openrender::sampling::Sample2D rayDraw2D(const openrender::sampling::SubstreamKey &k, uint32_t dim, uint32_t sample) {
+            if (sampling.backend == openrender::sampling::Backend::Sobol)
+                return openrender::sampling::detail::sobolGet2DSeeded(raySeeds(k, dim, openrender::sampling::detail::kSalt2D), sample);
+            return openrender::sampling::get2D(sampling.backend, k, dim, sample);
+        }
+        inline float rayDraw1D(const openrender::sampling::SubstreamKey &k, uint32_t dim, uint32_t sample) {
+            if (sampling.backend == openrender::sampling::Backend::Sobol)
+                return openrender::sampling::detail::sobolGet1DSeeded(raySeeds(k, dim, openrender::sampling::detail::kSalt1D), sample);
+            return openrender::sampling::get1D(sampling.backend, k, dim, sample);
+        }
         inline void drawJitter4(const openrender::sampling::SubstreamKey *sub, int sample, float *out) {
-            if (sub != nullptr && keyedDraws()) {
-                const openrender::sampling::Sample2D a = openrender::sampling::get2D(sampling.backend, *sub, 0, (uint32_t)sample);
-                const openrender::sampling::Sample2D b = openrender::sampling::get2D(sampling.backend, *sub, 1, (uint32_t)sample);
-                out[0] = a.u;
-                out[1] = a.v;
-                out[2] = b.u;
-                out[3] = b.v;
-            }
-            else {
-                out[0] = urand();
-                out[1] = urand();
-                out[2] = urand();
-                out[3] = urand();
-            }
+            const openrender::sampling::Sample2D a = rayDraw2D(raySub(sub), 0, (uint32_t)sample);
+            const openrender::sampling::Sample2D b = rayDraw2D(raySub(sub), 1, (uint32_t)sample);
+            out[0] = a.u;
+            out[1] = a.v;
+            out[2] = b.u;
+            out[3] = b.v;
         }
         inline void drawCone(const openrender::sampling::SubstreamKey *sub, int sample, float *R, const float *Z, float theta, bool cosine) {
-            if (sub != nullptr && keyedDraws()) {
-                const openrender::sampling::Sample2D xi = openrender::sampling::get2D(sampling.backend, *sub, 2, (uint32_t)sample);
-                if (cosine)
-                    sampleCosineHemisphere(R, Z, theta, xi);
-                else
-                    sampleHemisphere(R, Z, theta, xi);
-            }
-            else if (cosine)
-                sampleCosineHemisphere(R, Z, theta, random4d);
+            const openrender::sampling::Sample2D xi = rayDraw2D(raySub(sub), 2, (uint32_t)sample);
+            if (cosine)
+                sampleCosineHemisphere(R, Z, theta, xi);
             else
-                sampleHemisphere(R, Z, theta, random4d);
+                sampleHemisphere(R, Z, theta, xi);
         }
-        // The camera-importance stand-in of a ray that has none (every ray but a primary one
-        // under the new samplers): drawn from the ray's own key, so it does not depend on
-        // what else was traced.
+        // The camera-importance stand-in of a ray that has none (every ray but a primary one):
+        // drawn from the ray's own key, so it does not depend on what else was traced.
         inline float rayImportance(const openrender::sampling::SampleKey &key, uint16_t depth) {
-            if (keyedDraws())
-                return openrender::sampling::get1D(sampling.backend, openrender::sampling::substream(key, 0x1A9Full, 0, 0, depth, 1), 0, 0);
-            return urand();
+            return openrender::sampling::get1D(sampling.backend, openrender::sampling::substream(key, 0x1A9Full, 0, 0, depth, 1), 0, 0);
         }
         inline float drawTime(const openrender::sampling::SubstreamKey *sub, int sample) {
-            if (sub != nullptr && keyedDraws())
-                return openrender::sampling::get1D(sampling.backend, *sub, 3, (uint32_t)sample);
-            return urand();
+            return rayDraw1D(raySub(sub), 3, (uint32_t)sample);
         }
 
         // Shading state management functions
@@ -483,48 +476,7 @@ class CShadingContext {
         // The current bucket we're processing in this thread
         int currentXBucket, currentYBucket;
 
-        // Thread safe random number generator for integers
-        inline uint32_t irand() {
-            uint32_t y;
-
-            if (state == next)
-                next_state();
-
-            y = *(--next);
-
-            // Tempering
-            y ^= (y >> 11);
-            y ^= (y << 7) & 0x9d2c5680UL;
-            y ^= (y << 15) & 0xefc60000UL;
-            y ^= (y >> 18);
-
-            return y;
-        }
-
-        // Thread safe random number generator for floats
-        inline float urand() {
-            uint32_t y;
-
-            if (state == next)
-                next_state();
-
-            y = *(--next);
-
-            // Tempering
-            y ^= (y >> 11);
-            y ^= (y << 7) & 0x9d2c5680UL;
-            y ^= (y << 15) & 0xefc60000UL;
-            y ^= (y >> 18);
-
-            y &= 0x3FFFFFFF;
-            return float(y) * (float(1.0) / float(0x3FFFFFFF));
-        }
-
         const int thread; // The thread number for this context
-
-        CSobol<2> random2d; // 2D random number generator
-        CSobol<3> random3d; // 3D random number generator
-        CSobol<4> random4d; // 4D random number generator
 
         int numIndirectDiffuseRays;
         int numIndirectDiffuseSamples;
@@ -904,8 +856,8 @@ class CShadingContext {
         void keyedRandom(int vertex, uint32_t *counts, unsigned callSite, float *res, int n);
         float keyedNext() { return openrender::sampling::get1D(sampling.backend, drawCursor, drawCursorDim++, 0); }
 
-        // See setSamplingConfig(). Legacy until the core sets it.
-        openrender::sampling::CSamplingConfig sampling{openrender::sampling::Backend::Legacy, 0u, 0u, 1, 1, 0.0f};
+        // See setSamplingConfig(). Sobol, seed 0, until the core sets it.
+        openrender::sampling::CSamplingConfig sampling{openrender::sampling::Backend::Sobol, 0u, 0u, 1, 1, 0.0f};
 
         // ---> Renderer service accessors (Phase B decoupling from CRenderer globals)
         // All delegate to currentShadingState->services (set from CRendererServicesImpl
@@ -991,7 +943,7 @@ class CShadingContext {
                 unsigned callSite;
         };
 
-        // Give a ray location the sub-stream of its call (counts is null under the Legacy sampler)
+        // Give a ray location the sub-stream of its call
         void bindLocationDraws(CTraceLocation *location, int vertex, uint32_t *counts, unsigned callSite);
 
         void traceTransmission(int numRays, CTraceLocation *rays, int probeOnly);
@@ -1046,24 +998,27 @@ class CShadingContext {
         void findCoordinateSystem(const char *, const float *&, const float *&);
         void findCoordinateSystem(const char *, const float *&, const float *&, ECoordinateSystem &);
 
-        // Some data structures for urand()
-        //
-        // implementation of  Takuji Nishimura and Makoto Matsumoto's
-        // MT19937 (Mersenne Twister pseudorandom number generator)
-        // with optimizations by Shawn Cokus, Matthe Bellew.
-        // This generator is not cryptoraphically secure.
-        //
-        // M. Matsumoto and T. Nishimura,
-        // "Mersenne Twister: A 623-Dimensionally Equidistributed Uniform
-        // Pseudo-Random Number Generator",
-        // ACM Transactions on Modeling and Computer Simulation,
-        // Vol. 8, No. 1, January 1998, pp 3--30.
-        //
-        // C++ interface and further optimization by Mayur Patel
-        //
-
-        uint32_t state[624];
-        uint32_t *next;
+        // Per-context caches of the keyed draws (spec 039, T114). Each thread has its own
+        // context, so none is shared. They change no value, only how often it is hashed:
+        // the shader key of the last instances seen, the point-and-shader part of each
+        // vertex's sub-stream key, and the per-dimension seeds of the ray call being sampled.
+        struct ShaderKeyCacheEntry {
+                const CShaderInstance *instance = nullptr;
+                uint64_t instanceKey = 0, key = 0;
+        };
+        static constexpr int kShaderKeyCacheSize = 16;
+        ShaderKeyCacheEntry shaderKeyCache[kShaderKeyCacheSize];
+        struct PartialKeyEntry {
+                uint64_t base = 0, shaderKey = 0, partial = 0;
+                bool valid = false;
+        };
+        std::vector<PartialKeyEntry> partialKeyCache;
+        struct RaySeedEntry {
+                uint64_t seedHash = 0;
+                bool valid = false;
+                openrender::sampling::detail::DimSeeds seeds{};
+        };
+        RaySeedEntry raySeedCache[4]; // dimensions 0-2 (2D: origin, direction, cone), 3 (1D: time)
 
         // The draw cursor (bindDraws/drawNext) and the shader-key cache
         openrender::sampling::SubstreamKey drawCursor{0, 0};
@@ -1073,9 +1028,6 @@ class CShadingContext {
 
         CPLLookup *plHash[PL_HASH_SIZE];
 
-        void next_state();
-        void randomInit(uint32_t u = 5489UL);
-        void randomShutdown();
 
         friend class CPhotonHider;
         friend class CProgrammableShaderInstance;

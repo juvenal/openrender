@@ -268,7 +268,7 @@ class CRendererContext : public CRiInterface, public CGeometryHost {
         const char *lastCommand; // The text of the last motion command
         int riExecTag;           // The exec tag count for the RI interface
         uint32_t idOrdinal;      // The next top-level object ordinal of this world block (stable ids, spec 039)
-        uint32_t shaderOrdinal;  // The next shader instance ordinal, in the order the scene creates them (spec 039)
+        uint32_t shaderOrdinal;  // The next shader instance ordinal of this frame (or world block), in creation order (spec 039)
         uint64_t pendingInstanceKey; // The handle key of the light being created, or 0 (spec 039)
 
         void init(CProgrammableShaderInstance *); // Execute the init code of a shader

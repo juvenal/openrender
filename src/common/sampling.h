@@ -38,8 +38,7 @@ namespace openrender::sampling {
     enum class Backend : uint8_t {
         Sobol,
         PMJ02,
-        Independent,
-        Legacy // internal: the pre-039 generators; deleted in Phase 9
+        Independent
     };
 
     // One camera sample. px/py are the absolute raster pixel of the subpixel
@@ -77,12 +76,19 @@ namespace openrender::sampling {
             float u, v, w, x;
     };
 
-    // Immutable per frame; built by the renderer core.
+    // Immutable per frame; built by the renderer core. originX/originY are the rendered
+    // window's top-left pixel in the full image (the crop window's origin, 0 without a
+    // crop): the hiders count their buckets from the window, and add it to make a
+    // subpixel absolute (spec 039, T116). screenLeft/screenTop are the full image's
+    // screen-window origin, from which the raytrace hider projects an absolute raster
+    // position, so a crop projects its pixels exactly as the full frame does (T117).
     struct CSamplingConfig {
             Backend backend;
             uint32_t seed, frame;
             int nx, ny;
             float jitter;
+            int originX = 0, originY = 0;
+            float screenLeft = 0.0f, screenTop = 0.0f;
     };
 
     // Camera slots: the fixed dimension layout shared by every hider (FR-009).
@@ -180,16 +186,20 @@ namespace openrender::sampling {
         inline constexpr uint32_t kSalt1D = 0x1D1D1D1Du;
         inline constexpr uint32_t kSalt2D = 0x2D2D2D2Du;
 
-        inline float sobolGet1D(uint64_t seedHash, uint32_t dim, uint32_t index) {
-            const DimSeeds s = dimSeeds(seedHash, dim, kSalt1D);
+        // A draw from seeds already computed: a caller drawing many samples of one
+        // (sub-stream, dimension) keeps the seeds (spec 039, T114).
+        inline float sobolGet1DSeeded(const DimSeeds &s, uint32_t index) {
             const uint32_t idx = nestedUniformScramble(index, s.index);
             return toUnitFloat(nestedUniformScramble(sobolDim0(idx), s.x));
         }
-        inline Sample2D sobolGet2D(uint64_t seedHash, uint32_t dim, uint32_t index) {
-            const DimSeeds s = dimSeeds(seedHash, dim, kSalt2D);
+        inline Sample2D sobolGet2DSeeded(const DimSeeds &s, uint32_t index) {
             const uint32_t idx = nestedUniformScramble(index, s.index);
             return Sample2D{toUnitFloat(nestedUniformScramble(sobolDim0(idx), s.x)),
                             toUnitFloat(nestedUniformScramble(sobolDim1(idx), s.y))};
+        }
+        inline float sobolGet1D(uint64_t seedHash, uint32_t dim, uint32_t index) { return sobolGet1DSeeded(dimSeeds(seedHash, dim, kSalt1D), index); }
+        inline Sample2D sobolGet2D(uint64_t seedHash, uint32_t dim, uint32_t index) {
+            return sobolGet2DSeeded(dimSeeds(seedHash, dim, kSalt2D), index);
         }
 
         // 64-bit sample indices (the Morton-ordered camera sequence). The index is
@@ -208,12 +218,36 @@ namespace openrender::sampling {
         inline uint32_t sobolDim0Of64(uint64_t i) {
             return reverseBits32(static_cast<uint32_t>(i)); // the top 32 digits of the 64-bit van der Corput value
         }
+        // Dimension 1's generator matrix applied to a 64-bit index a byte at a time: entry
+        // [b][x] is the XOR of the columns of the bits set in byte value x at byte b (the
+        // top 32 digits of each column). The same bits as the bit-at-a-time loop
+        // (v = 2^63, v ^= v >> 1 per bit), in 8 lookups instead of up to 64 iterations:
+        // the camera index is a Morton code shifted up, so it has many bits (spec 039, T112).
+        struct SobolDim1Of64Table {
+                uint32_t entry[8][256];
+        };
+        constexpr SobolDim1Of64Table makeSobolDim1Of64Table() {
+            SobolDim1Of64Table t{};
+            uint64_t column[64] = {};
+            uint64_t v = 1ull << 63;
+            for (int k = 0; k < 64; k++, v ^= v >> 1)
+                column[k] = v;
+            for (int b = 0; b < 8; b++)
+                for (int x = 0; x < 256; x++) {
+                    uint64_t r = 0;
+                    for (int j = 0; j < 8; j++)
+                        if (x & (1 << j))
+                            r ^= column[8 * b + j];
+                    t.entry[b][x] = static_cast<uint32_t>(r >> 32);
+                }
+            return t;
+        }
+        inline constexpr SobolDim1Of64Table kSobolDim1Of64 = makeSobolDim1Of64Table();
         inline uint32_t sobolDim1Of64(uint64_t i) {
-            uint64_t r = 0;
-            for (uint64_t v = 1ull << 63; i; i >>= 1, v ^= v >> 1)
-                if (i & 1ull)
-                    r ^= v;
-            return static_cast<uint32_t>(r >> 32);
+            uint32_t r = 0;
+            for (int b = 0; i; b++, i >>= 8)
+                r ^= kSobolDim1Of64.entry[b][i & 0xFFu];
+            return r;
         }
 
         inline float sobolGet1D64(uint64_t seedHash, uint32_t dim, uint64_t index) {
@@ -271,7 +305,6 @@ namespace openrender::sampling {
             case Backend::PMJ02:
                 return detail::pmj02Get1D(k.seedHash, dim, index);
             case Backend::Independent:
-            case Backend::Legacy: // never drawn from under Legacy; treated as Independent
             default:
                 return detail::independentGet1D(k.seedHash, dim, index);
         }
@@ -284,7 +317,6 @@ namespace openrender::sampling {
             case Backend::PMJ02:
                 return detail::pmj02Get2D(k.seedHash, dim, index);
             case Backend::Independent:
-            case Backend::Legacy:
             default:
                 return detail::independentGet2D(k.seedHash, dim, index);
         }
@@ -305,10 +337,10 @@ namespace openrender::sampling {
     // Names (Option "sampling" "sampler")
     ///////////////////////////////////////////////////////////////////////
 
-    // The option name of a backend: "sobol", "pmj02", "independent" or "legacy".
+    // The option name of a backend: "sobol", "pmj02" or "independent".
     const char *samplerName(Backend b);
 
-    // Looks a name up; "legacy" is accepted until Phase 9 and is never documented.
+    // Looks a name up among those three ("legacy", internal before Phase 9, is unknown).
     // Returns false (leaving `out` alone) for an unknown name.
     bool samplerFromName(const char *name, Backend &out);
 
@@ -366,13 +398,22 @@ namespace openrender::sampling {
     // Pixel-sample points seed from `path` and offset the index by
     // pixelSampleIndex * samplesPerCall, so one pixel's draws at a call site form a
     // single stratified set across its camera samples. Cell points seed from `full`.
-    inline SubstreamKey substream(const SampleKey &point, uint64_t shaderKey, uint16_t callSite, uint32_t occurrence, uint16_t depth, uint32_t samplesPerCall) {
+    // substream() in two steps, the same value: the part that depends only on the point and
+    // the shader, which a caller can keep for every call of one shader at one point, and the
+    // rest (spec 039, T114).
+    inline uint64_t substreamPartial(const SampleKey &point, uint64_t shaderKey) {
+        return detail::mix(point.pixelSampleIndex >= 0 ? point.path : point.full, shaderKey);
+    }
+    inline SubstreamKey substreamFromPartial(uint64_t partial, const SampleKey &point, uint16_t callSite, uint32_t occurrence, uint16_t depth,
+                                             uint32_t samplesPerCall) {
         const bool pixelSample = point.pixelSampleIndex >= 0;
         SubstreamKey s;
-        s.seedHash = detail::mix(pixelSample ? point.path : point.full, shaderKey, (static_cast<uint64_t>(depth) << 16) | callSite,
-                                 occurrence);
+        s.seedHash = detail::mix(partial, (static_cast<uint64_t>(depth) << 16) | callSite, occurrence);
         s.indexBase = pixelSample ? static_cast<uint32_t>(point.pixelSampleIndex) * samplesPerCall : 0u;
         return s;
+    }
+    inline SubstreamKey substream(const SampleKey &point, uint64_t shaderKey, uint16_t callSite, uint32_t occurrence, uint16_t depth, uint32_t samplesPerCall) {
+        return substreamFromPartial(substreamPartial(point, shaderKey), point, callSite, occurrence, depth, samplesPerCall);
     }
 
     ///////////////////////////////////////////////////////////////////////
@@ -385,6 +426,15 @@ namespace openrender::sampling {
     Sample2D cameraLens(const CSamplingConfig &cfg, const SampleId &id);
     float cameraTime(const CSamplingConfig &cfg, const SampleId &id);
     float cameraImportance(const CSamplingConfig &cfg, const SampleId &id);
+
+    // All the camera slots of one sample at once, the same values as the four functions
+    // above: the sequence seed and index are computed once per sample instead of once per
+    // slot (spec 039, T112). `lens` is drawn only when wantLens (else 0, 0). cameraDraws()
+    // is defined inline after the detail helpers below.
+    struct CameraDraws {
+            Sample2D film, lens;
+            float time, importance;
+    };
 
     ///////////////////////////////////////////////////////////////////////
     // Class				:	CKeyedStream
@@ -409,18 +459,72 @@ namespace openrender::sampling {
         // positions). The camera sequence supports 65536 pixels per axis: beyond that,
         // and for negative coordinates, pixels wrap modulo 65536 (the sequence index is
         // 64 bits, so this is the only wrap).
-        uint32_t mortonIndex(int32_t px, int32_t py);
+        inline uint32_t mortonIndex(int32_t px, int32_t py) {
+            // Spreads the low 16 bits of v to the even bit positions.
+            auto spread = [](uint32_t v) {
+                v &= 0xFFFFu;
+                v = (v | (v << 8)) & 0x00FF00FFu;
+                v = (v | (v << 4)) & 0x0F0F0F0Fu;
+                v = (v | (v << 2)) & 0x33333333u;
+                v = (v | (v << 1)) & 0x55555555u;
+                return v;
+            };
+            return spread(static_cast<uint32_t>(px)) | (spread(static_cast<uint32_t>(py)) << 1);
+        }
+
+        // Smallest k with 2^k >= n.
+        inline unsigned ceilLog2(int n) {
+            unsigned k = 0;
+            while ((1ll << k) < n)
+                ++k;
+            return k;
+        }
+
+        // The Sobol camera sequence is one sequence for the whole frame, seeded by the
+        // frame and the seed only: a pixel is a block of the sequence, not a sequence
+        // of its own (research R2.1). The other backends keep one sub-stream per pixel,
+        // seeded by the pixel's path and indexed by the sample's position in the pixel.
+        inline constexpr uint64_t kCameraSequenceSalt = 0xCA3E5ull;
 
         // The index of this camera sample in its sequence. Sobol: the pixel's Morton
         // index times 2^k plus the sampleIndex, 2^k being the power-of-two ceiling of
         // nx * ny, so neighbouring pixels draw disjoint blocks of one 64-bit sequence.
         // Other backends: the sampleIndex.
-        uint64_t cameraSequenceIndex(const CSamplingConfig &cfg, const SampleId &id);
+        inline uint64_t cameraSequenceIndex(const CSamplingConfig &cfg, const SampleId &id) {
+            if (cfg.backend != Backend::Sobol)
+                return id.sampleIndex;
+            return (static_cast<uint64_t>(mortonIndex(id.px, id.py)) << ceilLog2(cfg.nx * cfg.ny)) + id.sampleIndex;
+        }
 
         // Test-only: dimensions 0 and 1 of the Sobol sequence with scrambling off.
         Sample2D sobolUnscrambled(uint32_t index);
 
     } // namespace detail
+
+    // All the camera slots of one sample (CameraDraws, above). Header-inline, so the
+    // hiders draw their camera samples without a call into libRIBCommon (spec 039, T113).
+    inline CameraDraws cameraDraws(const CSamplingConfig &cfg, const SampleId &id, bool wantLens) {
+        CameraDraws d;
+        d.lens = Sample2D{0.0f, 0.0f};
+        if (cfg.backend == Backend::Sobol) {
+            const uint64_t seed = detail::mix(detail::kCameraSequenceSalt, id.frame, id.seed);
+            const uint64_t index = detail::cameraSequenceIndex(cfg, id);
+            d.film = detail::sobolGet2D64(seed, Film2D, index);
+            if (wantLens)
+                d.lens = detail::sobolGet2D64(seed, Lens2D, index);
+            d.time = detail::sobolGet1D64(seed, Time1D, index);
+            d.importance = detail::sobolGet1D64(seed, Importance1D, index);
+        }
+        else {
+            const SubstreamKey sub{cameraKey(id).path, 0u};
+            d.film = get2D(cfg.backend, sub, Film2D, id.sampleIndex);
+            if (wantLens)
+                d.lens = get2D(cfg.backend, sub, Lens2D, id.sampleIndex);
+            d.time = get1D(cfg.backend, sub, Time1D, id.sampleIndex);
+            d.importance = get1D(cfg.backend, sub, Importance1D, id.sampleIndex);
+        }
+        return d;
+    }
 
 } // namespace openrender::sampling
 

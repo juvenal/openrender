@@ -66,12 +66,12 @@ static bool queryFloat(const char *name, float &out) {
 }
 
 static void query() {
-    // The defaults: the internal default sampler (legacy, until Phase 9) and seed 0.
+    // The defaults: the sobol sampler and seed 0.
     RiBegin(RI_NULL);
     RiWorldBegin();
     std::string name;
     float number = -1;
-    CHECK(queryString("sampling:sampler", name) && name == "legacy");
+    CHECK(queryString("sampling:sampler", name) && name == "sobol");
     CHECK(queryFloat("sampling:seed", number) && number == 0.0f);
     RiWorldEnd();
     RiEnd();

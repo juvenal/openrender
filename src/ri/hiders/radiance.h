@@ -111,7 +111,6 @@ class CRadianceCache : public CCache {
         CRadianceNode *root; // The hierarchy that is used to find nearby samples / harmonics
         int maxDepth;        // The depth of the octree
 
-        CSobol<4> generator; // Random number generator for the ray-casting
 
         CArray<CTriangle *> *tris; // The triangles in the scene
 

@@ -196,7 +196,7 @@ void CPhotonHider::renderingLoop() {
                         }
 
                         // Give the photons of this chunk their identities (spec 039)
-                        if (keyedDraws()) {
+                        {
                             resetDrawOccurrences();
                             const int firstOfChunk = job.firstPhoton + (job.numPhotons - emit);
                             for (j = 0; j < numVertices; j++)
@@ -259,13 +259,9 @@ void CPhotonHider::solarBegin(const float *L, const float *) {
         const int totalVertices = numVertices;
         uint32_t *emitCounts = drawCounters(kPhotonEmitSite);
         for (; numVertices > 0; numVertices--, shaderL += 3, shaderPs += 3) {
-            if (keyedDraws()) {
-                bindDraws(totalVertices - numVertices, emitCounts, kPhotonEmitSite, 1);
-                xy[0] = drawNext();
-                xy[1] = drawNext();
-            }
-            else
-                gen2.get(xy);
+            bindDraws(totalVertices - numVertices, emitCounts, kPhotonEmitSite, 1);
+            xy[0] = drawNext();
+            xy[1] = drawNext();
 
             const float r = sqrtf(xy[0]);
             const float theta = (float)(xy[1] * 2 * C_PI);
@@ -382,17 +378,12 @@ void CPhotonHider::illuminateBegin(const float *P, const float *N, const float *
         const int totalVertices = numVertices;
         uint32_t *emitCounts = drawCounters(kPhotonEmitSite);
         for (; numVertices > 0; numVertices--, shaderPs += 3, shaderL += 3) {
-            if (keyedDraws())
-                bindDraws(totalVertices - numVertices, emitCounts, kPhotonEmitSite, 1);
+            bindDraws(totalVertices - numVertices, emitCounts, kPhotonEmitSite, 1);
             // Sample a direction in the unit sphere
             do {
-                if (keyedDraws()) {
-                    shaderL[0] = drawNext();
-                    shaderL[1] = drawNext();
-                    shaderL[2] = drawNext();
-                }
-                else
-                    gen3.get(shaderL);
+                shaderL[0] = drawNext();
+                shaderL[1] = drawNext();
+                shaderL[2] = drawNext();
 
                 shaderL[0] = 2 * shaderL[0] - 1;
                 shaderL[1] = 2 * shaderL[1] - 1;
@@ -426,13 +417,11 @@ void CPhotonHider::illuminateBegin(const float *P, const float *N, const float *
         for (; numVertices > 0; numVertices--, shaderPs += 3, shaderL += 3) {
 
             // Sample a direction in the unit sphere
-            if (keyedDraws()) {
+            {
                 bindDraws(totalVertices - numVertices, emitCounts, kPhotonEmitSite, 1);
                 const float u = drawNext(), v = drawNext();
                 sampleHemisphere(shaderL, N, theta[0], openrender::sampling::Sample2D{u, v});
             }
-            else
-                sampleHemisphere(shaderL, N, theta[0], gen4);
 
             // Compute the point being shaded
             normalizev(shaderL);
@@ -618,12 +607,10 @@ processBounce:;
                 numDiffuseBounces++;
 
                 // Sample the reflection direction
-                if (keyedDraws()) {
+                {
                     const float u = drawNext(), v = drawNext();
                     sampleCosineHemisphere(ray.dir, Nl, (float)(C_PI / 2.0), openrender::sampling::Sample2D{u, v});
                 }
-                else
-                    sampleCosineHemisphere(ray.dir, Nl, (float)(C_PI / 2.0), gen4);
                 assert(dotvv(Nl, ray.dir) > 0);
                 normalizev(ray.dir);
 

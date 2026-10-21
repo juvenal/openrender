@@ -411,7 +411,6 @@ class CRenderer {
         static vector relTrans;                                 // Translation part of relMotion (cam_t0 -> cam_t1)
         static bool cameraHasRotation;                          // True when relMotion contains a non-trivial rotation
         static bool cameraRotationOnly;                         // True when relMotion is a pure rotation (relTrans ~ 0); enables the inverse-sample fast path
-        static bool correlatedSampleTable;                      // Internal/gated (FR-027, no RIB token): OPENRENDER_CORRELATED_SAMPLE_TABLE env var set; both hiders consume CSampler::generateBucketTable() verbatim instead of their own live RNG streams (spec 008-hider-parity-convergence, R2/US9)
         static matrix fromNDC, toNDC;
         static matrix fromRaster, toRaster;
         static matrix fromScreen, toScreen;
@@ -613,6 +612,27 @@ inline void pixels2distance(float &a, float &b, float d) {
 // Description			:	Back project from sample space into the camera space
 // Return Value			:
 // Comments				:	(inline for speed)
+// pixels2camera() for a position in the full image's pixels (spec 039, T117), given the screen
+// window's own origin (screenLeft, screenTop) instead of the rendered window's (pixelLeft =
+// screenLeft + renderLeft * dxdPixel): a crop then projects each pixel through the same
+// arithmetic as the full frame. Without a crop the two give the same values (renderLeft is 0,
+// so pixelLeft == screenLeft). The raytrace hider takes the origin from its CSamplingConfig.
+inline void fullImagePixels2camera(float *P, float x, float y, float z, float screenLeft, float screenTop) {
+    x = x * CRenderer::dxdPixel + screenLeft;
+    y = y * CRenderer::dydPixel + screenTop;
+
+    if (CRenderer::projection == OPTIONS_PROJECTION_PERSPECTIVE) {
+        P[COMP_X] = x * z * CRenderer::invImagePlane;
+        P[COMP_Y] = y * z * CRenderer::invImagePlane;
+        P[COMP_Z] = z;
+    }
+    else {
+        P[COMP_X] = x;
+        P[COMP_Y] = y;
+        P[COMP_Z] = z;
+    }
+}
+
 inline void pixels2camera(float *P, float x, float y, float z) {
     x = x * CRenderer::dxdPixel + CRenderer::pixelLeft;
     y = y * CRenderer::dydPixel + CRenderer::pixelTop;

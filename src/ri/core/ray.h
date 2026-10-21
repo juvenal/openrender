@@ -48,10 +48,9 @@ class CRay {
         float tmin;       // The intersection bias
         float da, db;     // The linear ray differential (r = da*t + db)
 
-        // Sample identity (spec 039). Under the new samplers the raytrace hider gives a
-        // primary ray the camera key and depth 0 (Phase 5); a secondary ray gets a child
-        // key and its parent's depth + 1 (Phase 6). Nothing reads them while the
-        // sampler is Legacy.
+        // Sample identity (spec 039). The raytrace hider gives a primary ray the camera
+        // key and depth 0 (Phase 5); a secondary ray gets a child key and its parent's
+        // depth + 1 (Phase 6).
         openrender::sampling::SampleKey key{}; // The ray's identity
         uint16_t depth = 0;                    // 0 for a primary ray
         // True for a ray whose jimp is its camera importance slot (a primary ray under

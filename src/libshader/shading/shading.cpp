@@ -448,9 +448,6 @@ CShadingContext::CShadingContext(int t) : thread(t) {
     for (int i = 0; i < PL_HASH_SIZE; i++)
         plHash[i] = NULL;
 
-    // Init the random number generator
-    randomInit(5489 * (thread + 1));
-
     // Init the stats
     numIndirectDiffuseRays = 0;
     numIndirectDiffuseSamples = 0;
@@ -482,9 +479,6 @@ CShadingContext::~CShadingContext() {
         conditionals = conditionals->next;
         delete cConditional;
     }
-
-    // Shutdown the random number generator
-    randomShutdown();
 
     // Ditch the PL hash
     for (int i = 0; i < PL_HASH_SIZE; i++) {
@@ -614,12 +608,10 @@ static uint64_t shaderNameKey(const char *name) {
 // Description			:	The occurrence counters of a call site of the shader
 //							that is executing (spec 039)
 // Return Value			:	-
-// Comments				:	Null under the Legacy sampler. The shader's key is its
+// Comments				:	The shader's key is its
 //							name: the same for the interpreter and the JIT, so a
 //							shader draws the same values in both.
 uint32_t *CShadingContext::drawCounters(unsigned callSite) {
-    if (!keyedDraws())
-        return nullptr;
     CShadingState *state = currentShadingState;
     if (state->callSiteOccurrence == nullptr)
         state->callSiteOccurrence = new CDrawOccurrences;
@@ -627,9 +619,20 @@ uint32_t *CShadingContext::drawCounters(unsigned callSite) {
         shaderKeyInstance = state->currentShaderInstance;
         // The shader's name and the instance's own identity: two instances of one shader (two lights
         // of one kind) keep separate streams and occurrence counters.
-        shaderKeyValue = shaderKeyInstance != nullptr
-                             ? openrender::sampling::detail::mix(shaderNameKey(const_cast<CShaderInstance *>(shaderKeyInstance)->getName()), shaderKeyInstance->instanceKey)
-                             : 0;
+        // The name hash is kept per context (each thread has its own) for the last instances
+        // seen: under an illuminance loop the context switches between the surface and its
+        // lights at every iteration (spec 039, T114).
+        if (shaderKeyInstance == nullptr)
+            shaderKeyValue = 0;
+        else {
+            ShaderKeyCacheEntry &e = shaderKeyCache[((uintptr_t)shaderKeyInstance >> 4) & (kShaderKeyCacheSize - 1)];
+            if (e.instance != shaderKeyInstance || e.instanceKey != shaderKeyInstance->instanceKey) {
+                e.instance = shaderKeyInstance;
+                e.instanceKey = shaderKeyInstance->instanceKey;
+                e.key = openrender::sampling::detail::mix(shaderNameKey(const_cast<CShaderInstance *>(shaderKeyInstance)->getName()), shaderKeyInstance->instanceKey);
+            }
+            shaderKeyValue = e.key;
+        }
     }
     return state->callSiteOccurrence->get(shaderKeyValue, callSite, state->numRealVertices);
 }
@@ -673,7 +676,26 @@ openrender::sampling::SubstreamKey CShadingContext::drawSubstream(int vertex, ui
         *pointOut = point;
     if (occurrenceOut != nullptr)
         *occurrenceOut = occurrence;
-    return substream(point, shaderKeyValue, (uint16_t)callSite, occurrence, (uint16_t)currentRayDepth, samplesPerCall);
+    // The point-and-shader part of the key is kept per vertex for every call of this shader
+    // at this point (spec 039, T114); it is recomputed when the point's key or the shader
+    // changes, so the value is always substream()'s.
+    uint64_t partial;
+    if (vertex >= 0) {
+        if ((size_t)vertex >= partialKeyCache.size())
+            partialKeyCache.resize((size_t)vertex + 1);
+        PartialKeyEntry &e = partialKeyCache[vertex];
+        const uint64_t base = point.pixelSampleIndex >= 0 ? point.path : point.full;
+        if (!e.valid || e.base != base || e.shaderKey != shaderKeyValue) {
+            e.base = base;
+            e.shaderKey = shaderKeyValue;
+            e.partial = openrender::sampling::substreamPartial(point, shaderKeyValue);
+            e.valid = true;
+        }
+        partial = e.partial;
+    }
+    else
+        partial = openrender::sampling::substreamPartial(point, shaderKeyValue);
+    return openrender::sampling::substreamFromPartial(partial, point, (uint16_t)callSite, occurrence, (uint16_t)currentRayDepth, samplesPerCall);
 }
 
 void CShadingContext::keyedRandom(int vertex, uint32_t *counts, unsigned callSite, float *res, int n) {
@@ -786,11 +808,10 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
     assert(uVertices > 0);
     assert(vVertices > 0);
 
-    // Does this call give its points sample identities (spec 039)? Every call of a frame whose
-    // sampler is not Legacy does, the displacement-only passes of the dicer (bounding and
-    // grid-size probes) included: a displacement shader's random() must draw the same for a
-    // point in a probe pass and in the full shading pass, whichever thread runs them.
-    const bool wantKeys = (sampling.backend != openrender::sampling::Backend::Legacy);
+    // Every call gives its points sample identities (spec 039), the displacement-only passes of
+    // the dicer (bounding and grid-size probes) included: a displacement shader's random() must
+    // draw the same for a point in a probe pass and in the full shading pass, whichever thread
+    // runs them.
 
     // This is the number of vertices we will be sampling/shading
     int numVertices = uVertices * vVertices;
@@ -868,8 +889,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
         usedParameters |= currentAttributes->usedParameters | (currentShadingState->services ? currentShadingState->services->additionalParameters() : 0u);
 
         // The cell key reads (u, v)
-        if (wantKeys)
-            usedParameters |= PARAMETER_U | PARAMETER_V;
+        usedParameters |= PARAMETER_U | PARAMETER_V;
 
         // Prepare the locals
         for (int a = 0; a < NUM_ACCESSORS; a++)
@@ -968,8 +988,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
         usedParameters = displacement->requiredParameters() | PARAMETER_P | PARAMETER_N;
 
         // The cell key reads (u, v), in the surface's own parametric space as the full pass has them
-        if (wantKeys)
-            usedParameters |= PARAMETER_U | PARAMETER_V;
+        usedParameters |= PARAMETER_U | PARAMETER_V;
 
         if (usedParameters & PARAMETER_MESSAGEPASSING) {
             // displacement shader uses messsage passing, must prepare but not execute
@@ -1174,8 +1193,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
     }
 
     // Give the points their sample identities (spec 039)
-    if (wantKeys)
-        fillPointKeys(object, dim, displaceOnly == FALSE);
+    fillPointKeys(object, dim, displaceOnly == FALSE);
 
     // Clear the tags for shader execution
     memset(currentShadingState->tags, 0, numVertices * sizeof(int));
@@ -2826,106 +2844,6 @@ void CShadingContext::findCoordinateSystem(const char *name, const float *&from,
     }
 }
 
-// Period parameters
-#define N 624
-#define M 397
-#define MATRIX_A 0x9908b0dfUL // constant vector a
-#define UMASK 0x80000000UL    // most significant w-r bits
-#define LMASK 0x7fffffffUL    // least significant r bits
-#define MIXBITS(u, v) (((u) & UMASK) | ((v) & LMASK))
-#define TWIST(u, v) ((MIXBITS(u, v) >> 1) ^ (_uTable[v & 1UL]))
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CShadingContext
-// Method				:	randomInit
-// Description			:	Init the random number generator
-// Return Value			:	-
-// Comments				:
-void CShadingContext::randomInit(uint32_t s) {
-    int j;
-    state[0] = s & 0xffffffffUL;
-    for (j = 1; j < N; j++) {
-        state[j] = (1812433253UL * (state[j - 1] ^ (state[j - 1] >> 30)) + j);
-        state[j] &= 0xffffffffUL; /* for >32 bit machines */
-    }
-    next = state;
-    return;
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CShadingContext
-// Method				:	randomShutdown
-// Description			:	Shutdown the random number generator
-// Return Value			:	-
-// Comments				:
-void CShadingContext::randomShutdown() {
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CShadingContext
-// Method				:	next_state
-// Description			:	Get the next stage for the random number generator
-// Return Value			:	-
-// Comments				:
-void CShadingContext::next_state() {
-    static const uint32_t _uTable[2] = {0UL, MATRIX_A};
-    signed int j;
-
-    uint32_t *p0;
-    uint32_t *p1;
-
-    j = (N - M) >> 1;
-    p0 = state;
-    p1 = p0 + 1;
-    while (j) {
-        --j;
-        *p0 = TWIST(*p0, *p1);
-        *p0 ^= p0[M];
-        ++p1;
-        ++p0;
-
-        *p0 = TWIST(*p0, *p1);
-        *p0 ^= p0[M];
-        ++p1;
-        ++p0;
-    }
-
-    *p0 = TWIST(*p0, *p1);
-    *p0 ^= p0[M];
-    ++p1;
-    ++p0;
-
-    j = (M - 1) >> 1;
-    while (j) {
-        --j;
-        *p0 = TWIST(*p0, *p1);
-        *p0 ^= p0[M - N];
-        ++p1;
-        ++p0;
-
-        *p0 = TWIST(*p0, *p1);
-        *p0 ^= p0[M - N];
-        ++p1;
-        ++p0;
-    }
-    *p0 = TWIST(*p0, *state);
-    *p0 ^= p0[M - N];
-
-    next = state + N;
-    return;
-}
-
-// The Mersenne Twister macros above collide with the RSL "N" (normal) and
-// "M" (matrix) identifiers used pervasively below -- undef once the
-// generator's own code (which is done with them) has been compiled.
-#undef N
-#undef M
-#undef MATRIX_A
-#undef UMASK
-#undef LMASK
-#undef MIXBITS
-#undef TWIST
-
 // =========================================================================
 // Layer G — JIT wrappers for derivative / geometric / texture built-ins
 // =========================================================================
@@ -4386,7 +4304,7 @@ void CShadingContext::gatherHeaderRay(CGatherRay *ray, const float *P, const flo
     movvv(ray->dPdu, dPdu);
     movvv(ray->dPdv, dPdv);
 
-    // Spec 039: the sub-stream of this gather() call for this point (counts is null under Legacy)
+    // Spec 039: the sub-stream of this gather() call for this point (counts is null only when the caller passes none)
     ray->keyed = counts != nullptr;
     if (ray->keyed) {
         ray->sub = drawSubstream(vertex, counts, callSite, samplesPerCall, &ray->parentKey, &ray->occurrence);

@@ -334,11 +334,6 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
         cameraRotationOnly = false;
     }
 
-    // Internal/gated (FR-027, no RIB token): both hiders consume
-    // CSampler::generateBucketTable() verbatim instead of their own live RNG
-    // streams when set (spec 008-hider-parity-convergence, R2/US9).
-    correlatedSampleTable = (osEnvironment("OPENRENDER_CORRELATED_SAMPLE_TABLE") != NULL);
-
     assert(pixelXsamples > 0);
     assert(pixelYsamples > 0);
 
@@ -776,7 +771,7 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     // The sampling configuration of the frame (spec 039): immutable, built here
     // from the frame's options and handed to every context below.
     const openrender::sampling::CSamplingConfig samplingConfig{
-        o->samplingBackend, o->samplingSeed, (uint32_t)frame, pixelXsamples, pixelYsamples, jitter};
+        o->samplingBackend, o->samplingSeed, (uint32_t)frame, pixelXsamples, pixelYsamples, jitter, renderLeft, renderTop, screenLeft, screenTop};
 
     // Start the contexts
     numActiveThreads = numThreads;

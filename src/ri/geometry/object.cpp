@@ -127,9 +127,9 @@ static float getDisp(const float *mat, float) {
 }
 
 // CObject::cluster() lives in geometryDispatch.cpp (real body) /
-// geometryDispatchStub.cpp (ribVector stub) -- it calls CShadingContext::urand(),
-// an inline wrapper (shading.h) around the real CShadingContext::next_state(),
-// which is not the memory-pool-only dependency it first appears to be.
+// geometryDispatchStub.cpp (ribVector stub) -- it draws from the shading
+// context (originally CShadingContext::urand()), which is not the
+// memory-pool-only dependency it first appears to be.
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CObject

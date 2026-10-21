@@ -80,7 +80,7 @@ class CFileOutputBase {
         virtual void flushRow(int row) = 0;
 
     private:
-        void applyColorPipeline(float *data, int n) const;
+        void applyColorPipeline(int x, int y, int w, float *data, int n) const; // the block's origin and width, for the dither hash
 };
 
 #endif // FILE_BASE_H

@@ -463,27 +463,30 @@ The call-site operand and the `_v2` ABI make Phase 4 a MAJOR change of both shad
 
 ### Flip and deletion
 
-- [ ] T090 Change the default backend to `Sobol` (`src/ri/state/options.cpp`, `CSamplingConfig`). Remove `Legacy` from the `Backend` enum and from `RiOptionV`: `"legacy"` becomes an unknown name, which gets the T027 diagnostic.
-- [ ] T091 Delete the per-context Mersenne Twister and `random2d/3d/4d` from `CShadingContext` (FR-024a): `urand()`/`irand()`, `next_state()`, `state[]`, `next`, `randomInit()`, the `MATRIX_A`/`TWIST` macros, and the members in `src/libshader/shading/shading.{h,cpp}`.
+**Unblocked**: T090-T094 broke approved tests that pinned Legacy "until Phase 9" (one a compile break). The maintainer approved the proposed change for each (validation.md "Phase 9: blocked before T090"), with one change: `DeterminismHarness_detects` proves the detector with two configurations that differ by a deterministic seed (`test_depth_determinism --config-prepends`), not with the irradiance cache's nondeterminism.
+
+- [X] T090 Change the default backend to `Sobol` (`src/ri/state/options.cpp`, `CSamplingConfig`). Remove `Legacy` from the `Backend` enum and from `RiOptionV`: `"legacy"` becomes an unknown name, which gets the T027 diagnostic.
+- [X] T091 Delete the per-context Mersenne Twister and `random2d/3d/4d` from `CShadingContext` (FR-024a): `urand()`/`irand()`, `next_state()`, `state[]`, `next`, `randomInit()`, the `MATRIX_A`/`TWIST` macros, and the members in `src/libshader/shading/shading.{h,cpp}`.
   - Also delete every `Legacy` branch added in Phases 4–6.
-- [ ] T092 [P] Delete `CSobol` and its `sampleHemisphere`/`sampleCosineHemisphere`/`sampleSphere` overloads (`src/common/random.{h,cpp}`), `_urand`/`_irand`, `apertureGenerator` (`stochastic.h:108`, and the `CRenderer::frame` use at `stochastic.cpp:71`), `photon.h` `gen2`/`gen3`/`gen4`, and `radiance.h` `generator`.
+- [X] T092 [P] Delete `CSobol` and its `sampleHemisphere`/`sampleCosineHemisphere`/`sampleSphere` overloads (`src/common/random.{h,cpp}`), `_urand`/`_irand`, `apertureGenerator` (`stochastic.h:108`, and the `CRenderer::frame` use at `stochastic.cpp:71`), `photon.h` `gen2`/`gen3`/`gen4`, and `radiance.h` `generator`.
   - Delete `src/common/sobolTables.h` if nothing else includes it.
   - Check the installed package headers so that nothing exported still names a removed symbol.
-- [ ] T093 [P] Delete `CRenderer::correlatedSampleTable` (`renderer.h:410`, `rendererStatics.cpp:208`, `renderer.cpp:331`), the `OPENRENDER_CORRELATED_SAMPLE_TABLE` read, `CSampler::generateBucketTable` with `bucketSeed`, and both table branches in `stochastic.cpp`/`raytracer.cpp`.
+- [X] T093 [P] Delete `CRenderer::correlatedSampleTable` (`renderer.h:410`, `rendererStatics.cpp:208`, `renderer.cpp:331`), the `OPENRENDER_CORRELATED_SAMPLE_TABLE` read, `CSampler::generateBucketTable` with `bucketSeed`, and both table branches in `stochastic.cpp`/`raytracer.cpp`.
   - Add `SamplingEnv_CorrelatedTableIgnored` (US3-3): one parity scene rendered with and without `OPENRENDER_CORRELATED_SAMPLE_TABLE=1` gives bit-identical output.
-- [ ] T094 [P] `tests/visual/CMakeLists.txt`: delete `VISUAL_ENV_CORRELATED` and the `Parity_motion-patches-translate-correlated` and `Parity_motion-quadrics-translate-correlated` registrations.
-- [ ] T095 [P] `src/display/file/file_base.cpp:67`: replace the libc `rand()` dither with an inline 32-bit hash `h(x, y, channel)`, giving `d = qamp·(2·h − 1)`.
+  - [X] Test written first (red: 28212 values differ with the variable, a no-variable control is identical; validation.md "Phase 9: blocked before T090").
+- [X] T094 [P] `tests/visual/CMakeLists.txt`: delete `VISUAL_ENV_CORRELATED` and the `Parity_motion-patches-translate-correlated` and `Parity_motion-quadrics-translate-correlated` registrations.
+- [X] T095 [P] `src/display/file/file_base.cpp:67`: replace the libc `rand()` dither with an inline 32-bit hash `h(x, y, channel)`, giving `d = qamp·(2·h − 1)`.
   - The hash is written in that file. There is no `libRIBCommon` link, no ABI change and no semver bump (FR-025).
-- [ ] T096 [RUN] Build, then `ctest -L "sampling|libshader|common|architecture"`.
+- [X] T096 [RUN] Build, then `ctest -L "sampling|libshader|common|architecture"`.
   - Run archcheck and delete exactly the STALE lines it reports: expected at least the two DB-011 `correlatedSampleTable` lines, probably DB-011 `stochastic.cpp → CRenderer::frame`.
   - Grep the hiders for each remaining `CRenderer::jitter`/`pixelXsamples`/`pixelYsamples` reference.
   - Lower `tests/architecture/metrics-baseline.txt` only if a NOTE asks for it. Any new VIOLATION is a stop-and-report.
 
 ### Re-render, pins, thresholds
 
-- [ ] T097 [RUN] Run the **full** suite (every label, not only `visual`), and list every failing test whose failure is a sampling-only or dither-only change. This includes byte-exact comparisons against checked-in references outside `visual`: `tests/unit/texture_tile/test_render_byte_identical.sh` against `tests/unit/texture_tile/fixtures/references/`, the tile-concurrency references, and imager references. A structural failure, as opposed to new noise, is a stop-and-report.
-- [ ] T098 [RUN] Re-render those references **once**, in every reference directory T097 found, using each test's own command and environment. A byte-exact reference is regenerated with the exact command its test documents (for example `-t:1` where the test pins it). Write `specs/039-sampling-foundation/rerendered-references.md` with one row per reference: path, test, and reason ("camera sampler", "8-bit dither hash", "RSL random() keyed", "transport sub-streams").
-- [ ] T099 Write `specs/039-sampling-foundation/thread-pins.md` from research §R8, with one row per pin: file, reason, fate.
+- [X] T097 [RUN] Run the **full** suite (every label, not only `visual`), and list every failing test whose failure is a sampling-only or dither-only change. This includes byte-exact comparisons against checked-in references outside `visual`: `tests/unit/texture_tile/test_render_byte_identical.sh` against `tests/unit/texture_tile/fixtures/references/`, the tile-concurrency references, and imager references. A structural failure, as opposed to new noise, is a stop-and-report.
+- [X] T098 [RUN] Re-render those references **once**, in every reference directory T097 found, using each test's own command and environment. A byte-exact reference is regenerated with the exact command its test documents (for example `-t:1` where the test pins it). Write `specs/039-sampling-foundation/rerendered-references.md` with one row per reference: path, test, and reason ("camera sampler", "8-bit dither hash", "RSL random() keyed", "transport sub-streams").
+- [X] T099 Write `specs/039-sampling-foundation/thread-pins.md` from research §R8, with one row per pin: file, reason, fate.
   - **Remove** the non-GI pins:
     - the 4 `-t:1` arguments for `quadlight`, `quadlight-slo`, `spherelight` and `spherelight-slo` (`tests/visual/CMakeLists.txt:1008–1023`);
     - `numthreads 1` in `sphere-{random,trace,transmission,visibility}-reyes{,-slo}.rib` (8 files);
@@ -491,15 +494,15 @@ The call-site operand and the `_v2` ABI make Phase 4 a MAJOR change of both shad
   - **Keep**, with a pointer to spec 040: the 4 `sphere-{occlusion,indirectdiffuse}-reyes{,-slo}.rib` pins.
   - Review each `tests/unit/texture_tile/*` pin. Keep a pin that isolates cache behaviour, and record why. A `test_tile_source{,_synthesized}_concurrency.sh` tolerance MAY become exact, and is **never** widened.
   - Leave `tools/perf/sphere-trace-reyes.rib`'s pin unchanged, so the SC-010 baseline stays comparable.
-- [ ] T100 [RUN] Re-measure every parity test: worst-case diff over 5 runs (M5). Record the values in `tests/visual/parity-thresholds.md`.
+- [X] T100 [RUN] Re-measure every parity test: worst-case diff over 5 runs (M5). Record the values in `tests/visual/parity-thresholds.md`.
   - Tighten every threshold whose margin allows it. The targets are 8 for `motion-patches-translate` and 6 for `motion-quadrics-translate`; they are targets, not gates.
   - **Never widen.** If `Parity_dof` (threshold 60; 53.6 under the old correlated table) exceeds 60, stop and ask the maintainer.
-- [ ] T101 [RUN] Full suite: `nice -n 19 ctest --test-dir build -LE determinism-sweep -j4 --output-on-failure` (the sweep has no `visual` or `regression` label and is opt-in). Everything must be green, including `determinism`, `determinism-sweep` (opt-in: run it explicitly after the full run, `ctest -L '^determinism-sweep$' -j2`), `convergence` (explicitly), and `SamplingOption_*` against the new default.
+- [X] T101 [RUN] (743/745 in Phase 9; green in Phase 10, T120: 744/744) Full suite: `nice -n 19 ctest --test-dir build -LE determinism-sweep -j4 --output-on-failure` (the sweep has no `visual` or `regression` label and is opt-in). Everything must be green, including `determinism`, `determinism-sweep` (opt-in: run it explicitly after the full run, `ctest -L '^determinism-sweep$' -j2`), `convergence` (explicitly), and `SamplingOption_*` against the new default.
   - `git diff c4f1485 -- tests/visual/CMakeLists.txt tests/visual/parity-thresholds.md` must show no widened threshold.
 
 ### Verification of the success criteria
 
-- [ ] T102 [RUN] **SC-010 performance check (manual, not ctest)**, following contracts/test-harnesses.md "Performance" and quickstart §10:
+- [ ] T102 [RUN] (**not met, stop-and-report**: 11% to 200% slower than the baseline; research.md §M2 "After") **SC-010 performance check (manual, not ctest)**, following contracts/test-harnesses.md "Performance" and quickstart §10:
   - bash, ctest's visual environment, a scratch copy of `specs/039-sampling-foundation/tools/perf/`;
   - `nice -n 19 build/src/orender/orender -t:1 <rib>` and `… <rib>` (default threads);
   - Perl `Time::HiRes`;
@@ -507,32 +510,53 @@ The call-site operand and the `_v2` ABI make Phase 4 a MAJOR change of both shad
   - Record the medians, min/max, spread and MAD in the same columns as `tools/perf/m2-baseline-c62334d.txt`, both in a new `specs/039-sampling-foundation/tools/perf/m2-after-<HEAD>.txt` and in research.md §M2 "After".
   - **Pass**: every scene's median, at both `t1` and `tdef`, is at most 2% above the baseline median. Compare medians only, never single runs.
   - A failure is a stop-and-report, with a profile of the hot draw path.
-- [ ] T103 [RUN] SC-001 and SC-009:
+- [X] T103 [RUN] SC-001 and SC-009 (frames fixed; sweeps per backend and the seed pair run; crop resolved in Phase 10, T116-T118, with the reyes limitation #72):
   - Remove `--no-dither` from `add_determinism_sweep` (T080), now that T095 hashes the dither. Run `ctest -L determinism-sweep` with dither on, covering US1-5 and the scenes deferred by T079.
   - Run it once per backend, using the sweep with `--prepend` set to `pmj02` and to `independent`.
   - Run one seed pair (`seed 0` against `seed 1`): different noise, the same within each seed.
   - **Frames** (edge case): a 2-frame RIB rendered in full, then frame 2 alone with `-f 2`. Frame 2 must be bit-identical between the two.
   - **Crop** (edge case): a `CropWindow` render must be bit-identical to the same pixels of the full render. If filter margins at the crop edge make this impossible, stop and report with the differing-pixel map.
   - Register these checks as `Sampling_FrameReproducible` and `Sampling_CropConsistent` under `determinism`.
-- [ ] T104 `Sampling_NoGlobalRandomness` (registered in Phase 6, T067) must pass with an **empty** allowlist: delete the lines that remain (the legacy generators T090-T095 removed) and `[RUN]` it: zero matches outside `src/precomp/` and comments (SC-007).
-- [ ] T105 [RUN] Linux validation (memory: GCC 13 `-Werror`; rsync plus the Maestri path). Build and run `ctest -L "sampling|common|libshader|architecture|determinism"` on Ubuntu 24.04 (the regular expression also selects the whole `determinism-sweep`, which is wanted here: run it at `-j2`; use `-L '^determinism$'` for the default set alone), plus `ctest -L architecture` with `--platform linux`. If the Linux path is unavailable, record "pending Linux validation" in `validation.md` and report it.
+- [X] T104 `Sampling_NoGlobalRandomness` (registered in Phase 6, T067) must pass with an **empty** allowlist: delete the lines that remain (the legacy generators T090-T095 removed) and `[RUN]` it: zero matches outside `src/precomp/` and comments (SC-007).
+- [ ] T105 [RUN] (pending Linux validation; what it needs is in validation.md) Linux validation (memory: GCC 13 `-Werror`; rsync plus the Maestri path). Build and run `ctest -L "sampling|common|libshader|architecture|determinism"` on Ubuntu 24.04 (the regular expression also selects the whole `determinism-sweep`, which is wanted here: run it at `-j2`; use `-L '^determinism$'` for the default set alone), plus `ctest -L architecture` with `--platform linux`. If the Linux path is unavailable, record "pending Linux validation" in `validation.md` and report it.
 
 ### Documentation and registry
 
-- [ ] T106 [P] `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`:
+- [X] T106 [P] `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`:
   - DB-011 history: the deleted lines, "spec 039, <date>";
   - DB-005 history: the per-context RNG state is gone, "the RNG part of V1";
   - DB-016's follow-up records the split: 039 removed randomness from per-context state, and arena/stats injection stays with 029;
   - DB-017's "injected RNG" direction is noted as done for `cluster()`.
-- [ ] T107 [P] `DEVNOTES_DETAILS/HIDER_PARITY.md`: replace the correlated-table section (Option B, T084) with a correlated-by-default note. Update the #48 paragraph, since the per-thread jitter streams and the dither are now gone.
-- [ ] T108 [P] `DEVNOTES_DETAILS/BUGS.md`: the midpoint-probe stream-shift note (`probeDepth`) is resolved by its own sub-stream.
-- [ ] T109 [P] Document `Option "sampling"` (values, default, seed, diagnostic, and the limitation that uniform `random()` under raytrace depends on bucket size, FR-021):
+- [X] T107 [P] `DEVNOTES_DETAILS/HIDER_PARITY.md`: replace the correlated-table section (Option B, T084) with a correlated-by-default note. Update the #48 paragraph, since the per-thread jitter streams and the dither are now gone.
+- [X] T108 [P] `DEVNOTES_DETAILS/BUGS.md`: the midpoint-probe stream-shift note (`probeDepth`) is resolved by its own sub-stream.
+- [X] T109 [P] Document `Option "sampling"` (values, default, seed, diagnostic, and the limitation that uniform `random()` under raytrace depends on bucket size, FR-021):
   - in `DEVNOTES_DETAILS/RIB_GUIDE.md`;
   - in the Hugo site, as constitution VII requires: `docs/site/content/manual/reference/options.md` (the option), `multithreading.md` and `network-parallel-rendering.md` (non-GI renders are now bit-identical at any `-t`/`-P`; GI caches wait for spec 040), and `raytraced-shadows-and-reflections.md` or `sl-functions.md` where `random()` semantics are described.
-- [ ] T110 [P] `DEVNOTES.md`: add a 039 status row. Point to `tests/visual/parity-thresholds.md`, `rerendered-references.md` and `thread-pins.md`.
-- [ ] T111 [RUN] Final quickstart pass, §1–§10. Record every result in `validation.md`. Stage everything with `git add`.
+- [X] T110 [P] `DEVNOTES.md`: add a 039 status row. Point to `tests/visual/parity-thresholds.md`, `rerendered-references.md` and `thread-pins.md`.
+- [X] T111 [RUN] Final quickstart pass, §1–§10. Record every result in `validation.md`. Stage everything with `git add`.
 
 **PAUSE 9 (final)**: report SC-001–SC-010 one by one against the evidence in `validation.md`.
+
+---
+
+## Phase 10: Performance, crop and the remaining sweep failure (maintainer decisions, 2026-10-20)
+
+**Purpose**: close the three items Phase 9 stopped on. Decisions (maintainer, 2026-10-20):
+- **D-P10-1, performance**: SC-010's 2% budget stays. Apply the four remedies of research.md §M2 "After" one at a time, re-measuring after each (Release build directory, interleaved against master `eda9eb0`), with determinism and convergence green after each step (labels; full sweeps only at the end). If still over budget, report where the time goes.
+- **D-P10-2, crop**: apply the crop-offset key fix, test first (raytrace crop test red, then green). Re-rendering `csg-hero-partial-stats-reyes`'s reference is approved. Then compute the raytrace projection from the full image's origin; if `Sampling_CropConsistent_raytrace` (box filter) becomes bit-identical, keep it. Drop `Sampling_CropConsistent_reyes` and record the limitation (GitHub #72: reyes crop dicing and P rounding) in spec.md and validation.md. If raytrace is still not exact, stop and report.
+- **D-P10-3, sweep**: disable `csg-hero-stats-800-reyes` in the determinism sweep like its 1600 sibling, citing #61.
+
+- [X] T112 [US2] (done; outputs unchanged; the four slots keep their own scrambles, see research.md) Remedy (a): one scramble per subpixel instead of four (the camera slots of a subpixel share one scrambled index). [RUN] perf (m2, Release, interleaved with `eda9eb0`), `-L "sampling|determinism"` minus the sweep, `-L convergence`.
+- [X] T113 [US2] Remedy (b): the camera-sample functions header-inline (no cross-library call). [RUN] as T112.
+- [X] T114 [US2] Remedy (c): cache the per-point stream key across the samples of one call. [RUN] as T112.
+- [X] T115 [US2] (done; **SC-010 still not met**: +4% to +115% over master, research.md §M2 "Phase 10") Remedy (d): hash the dither once per pixel. [RUN] as T112.
+- [X] T116 [US3] (no reference to re-render: csg-hero-partial-stats-reyes has none) Crop key fix: the hiders' absolute subpixels count from the full image (`renderLeft`/`renderTop`). `Sampling_CropConsistent_raytrace` red before, green after. Re-render `csg-hero-partial-stats-reyes`'s reference once; list it in rerendered-references.md.
+- [X] T117 [US3] (kept: the raytrace crop test is bit-identical; P-dependent shading with jitter on still differs, reported) The raytrace projection from the full image's origin (not the crop's), so `P` does not depend on the crop. Keep it only if `Sampling_CropConsistent_raytrace` is bit-identical; otherwise stop and report.
+- [X] T118 [US3] Drop `Sampling_CropConsistent_reyes`; record the reyes limitation (#72) in spec.md and validation.md.
+- [X] T119 [US1] Disable `DeterminismSweep_csg-hero-stats-800-reyes` (#61), as `csg-hero-stats-1600-reyes`.
+- [X] T120 [RUN] (744/744; sweeps 404/404 under each backend; architecture 21/21) Full suite (`ctest -LE determinism-sweep -j4`), the three sampler sweeps once (`-j2`), `-L architecture`; record in validation.md. T105 (Linux) stays pending.
+
+**PAUSE 10**: report the perf numbers per remedy and the final state.
 
 ---
 

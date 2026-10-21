@@ -7,8 +7,10 @@
 #
 # Cases (the exit code of the driver, and what it prints, are the contract):
 #   identical         a scene that is thread independent under sobol: exit 0
-#   detects           a scene that is not (Legacy, random shading, no pin): exit 1, and at most 5
-#                     differing pixels are listed per output, at least one
+#   detects           two configurations that differ by a deterministic seed (--config-prepends,
+#                     random shading, single-threaded): exit 1, and at most 5 differing pixels
+#                     are listed per output, at least one. Until Phase 9 the difference came
+#                     from the Legacy sampler's thread-dependent draws, which no longer exist.
 #   render_failure    a scene that does not exist: exit 2
 #   multiple_outputs  two displays, both compared: exit 0, and each output is named in the report
 #   print_prepend     --print-scene prints the prepared copy and exits 0 without rendering: the
@@ -28,8 +30,10 @@ identical)
     expect_rc $? 0 "a thread independent scene"
     ;;
 detects)
-    out=$("$driver" --configs "-t:1|-t:4" --outputs determinism-harness-noisy.tif "$orender" "$scenes/determinism-harness-noisy.rib" 2>&1)
-    expect_rc $? 1 "a thread dependent scene"
+    out=$("$driver" --configs "-t:1|-t:1" --outputs determinism-harness-noisy.tif \
+        --config-prepends 'Option "sampling" "seed" [0]|Option "sampling" "seed" [1]' \
+        "$orender" "$scenes/determinism-harness-noisy.rib" 2>&1)
+    expect_rc $? 1 "two configurations with different seeds"
     echo "$out"
     lines=$(echo "$out" | grep -c 'pixel (')
     [ "$lines" -ge 1 ] || fail "no differing pixel was listed"

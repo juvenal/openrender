@@ -507,40 +507,15 @@ void CRaytracer::sample(int left, int top, int xpixels, int ypixels) {
     const float invXsamples = 1 / (float)CRenderer::pixelXsamples;
     const float invYsamples = 1 / (float)CRenderer::pixelYsamples;
 
-    // Shared per-sample generator (spec 008-hider-parity-convergence, R2):
-    // single home for the jitter/time constants previously duplicated (and
-    // drifted, D2) here and in CStochastic. Lens sampling is intentionally
-    // NOT requested here (wantLens=false) -- this hider's DOF disk sample is
-    // generated later, in computeSamples(), once primary rays are already
-    // batched, via CSampler::lensSample().
-    CSampler sampler(
-        CRenderer::jitter, CRenderer::pixelXsamples, CRenderer::pixelYsamples,
-        [this]() { return urand(); },
-        [this](float *s) { s[0] = urand(); s[1] = urand(); });
     const bool sampleMotion = (CRenderer::flags & OPTIONS_FLAGS_SAMPLEMOTION) != 0;
 
-    // Option B (US9, gated -- FR-027): consume the same deterministic,
-    // bucket-seeded table stochastic would generate for this bucket
-    // (CSampler::generateBucketTable), including its lens field, so both
-    // hiders' noise patterns correlate. wantLens mirrors stochastic's own
-    // FOCALBLUR-gated condition rather than this loop's native `false`, so
-    // the table's lens entries are populated whenever DOF is active.
-    //
-    // Under the Sobol, PMJ02 and Independent samplers (spec 039, R3.1) the camera
-    // values come from the sampler's camera slots instead, indexed by the absolute
-    // subpixel (left/top are pixels here, so the bucket's first subpixel is
+    // The camera values come from the sampler's camera slots (spec 039, R3.1), indexed by
+    // the absolute subpixel (left/top are pixels here, so the bucket's first subpixel is
     // left * nx - xSampleOffset), exactly as reyes computes them. The primary ray keeps
     // its camera importance and key.
     const openrender::sampling::CSamplingConfig &samplingCfg = samplingConfig();
-    const bool cameraSlots = samplingCfg.backend != openrender::sampling::Backend::Legacy;
     const bool wantLens = (CRenderer::flags & OPTIONS_FLAGS_FOCALBLUR) != 0;
-    std::vector<CSampleValue> correlatedTable;
-    if (!cameraSlots && CRenderer::correlatedSampleTable) {
-        const bool wantLensForTable = (CRenderer::flags & OPTIONS_FLAGS_FOCALBLUR) != 0;
-        correlatedTable = sampler.generateBucketTable(
-            left, top, xsamples, ysamples,
-            CRenderer::xSampleOffset, CRenderer::ySampleOffset, wantLensForTable);
-    }
+    const int xSampleOffset = CRenderer::xSampleOffset, ySampleOffset = CRenderer::ySampleOffset;
 
     // Clear the framebuffer
     for (i = 0; i < (xpixels * ypixels); i++) {
@@ -577,38 +552,29 @@ void CRaytracer::sample(int left, int top, int xpixels, int ypixels) {
                 }
                 for (y = 0; y < my; y++) {
                     for (x = 0; x < mx; x++) {
-                        // Stratified time sampling — assign each ray to a time stratum based on
-                        // its sub-pixel position, matching the stochastic hider's formula exactly
-                        // (both traverse via the same sub_y*nx+sub_x linear index).
+                        // The time stratum is the sample's index in its pixel, as in the
+                        // stochastic hider (CSampler::cameraSample).
                         const int nx = CRenderer::pixelXsamples;
                         const int ny = CRenderer::pixelYsamples;
-                        const int sub_x = (i + x) % nx;
-                        const int sub_y = (j + y) % ny;
+                        // `left`/`top` count from the rendered window; adding the crop's origin
+                        // makes the subpixel absolute in the full image (spec 039, T116)
+                        const CSampleValue jitterSample = CSampler::cameraSample(samplingCfg, CSampler::raytraceAbsSub(left + samplingCfg.originX, nx, CRenderer::xSampleOffset, i + x),
+                                                                                 CSampler::raytraceAbsSub(top + samplingCfg.originY, ny, CRenderer::ySampleOffset, j + y), wantLens);
 
-                        // Option B (US9, gated): the table is indexed by
-                        // bucket-local (row, col) -- row = j+y (Y direction,
-                        // stochastic's `i`), col = i+x (X direction,
-                        // stochastic's `j`) -- exactly the position stochastic
-                        // would have drawn this entry for, so no sub_x/sub_y
-                        // modulo remapping is needed on this side.
-                        const CSampleValue jitterSample = cameraSlots
-                                                              ? CSampler::cameraSample(samplingCfg, CSampler::raytraceAbsSub(left, nx, CRenderer::xSampleOffset, i + x),
-                                                                                       CSampler::raytraceAbsSub(top, ny, CRenderer::ySampleOffset, j + y), wantLens)
-                                                          : CRenderer::correlatedSampleTable
-                                                              ? correlatedTable[(size_t)(j + y) * xsamples + (i + x)]
-                                                              : sampler.nextSample(sub_y * nx + sub_x, 0, false);
-
-                        cRay->x = (float)left + (float)(i + x - CRenderer::xSampleOffset + jitterSample.jitterX) * invXsamples; // Center the sample location in the pixel
-                        cRay->y = (float)top + (float)(j + y - CRenderer::ySampleOffset + jitterSample.jitterY) * invYsamples;
+                        // The location from the window's origin (x, y) and from the full image's (xAbs,
+                        // yAbs, T117), each in one expression, which the compiler may fuse into a
+                        // multiply-add: the full frame and a crop then round xAbs alike
+                        cRay->x = (float)left + (float)(i + x - xSampleOffset + jitterSample.jitterX) * invXsamples; // Center the sample location in the pixel
+                        cRay->y = (float)top + (float)(j + y - ySampleOffset + jitterSample.jitterY) * invYsamples;
+                        cRay->xAbs = (float)(left + samplingCfg.originX) + (float)(i + x - xSampleOffset + jitterSample.jitterX) * invXsamples;
+                        cRay->yAbs = (float)(top + samplingCfg.originY) + (float)(j + y - ySampleOffset + jitterSample.jitterY) * invYsamples;
                         cRay->time = sampleMotion ? jitterSample.timeStratum : 0.0f;
                         cRay->lensU = jitterSample.lensU;
                         cRay->lensV = jitterSample.lensV;
-                        if (cameraSlots) {
-                            cRay->jimp = jitterSample.importance;
-                            cRay->key = jitterSample.key;
-                            cRay->depth = 0;
-                        }
-                        cRay->cameraImportance = cameraSlots;
+                        cRay->jimp = jitterSample.importance;
+                        cRay->key = jitterSample.key;
+                        cRay->depth = 0;
+                        cRay->cameraImportance = true;
 
                         rayPointers[numShading++] = cRay;
                         cRay++;
@@ -647,27 +613,19 @@ void CRaytracer::computeSamples(CPrimaryRay *rays, int numShading) {
     int i;
     float x, y;
     CPrimaryRay *cRay = rays;
-
-    // Shared per-sample generator (R2), used here only for its lens/aperture
-    // point: the DOF disk sample is generated at this later pipeline stage
-    // (after primary rays are batched in sample()), not bundled with the
-    // jitter/time sample computed earlier -- see CSampler::lensSample().
-    CSampler lensSampler(
-        CRenderer::jitter, CRenderer::pixelXsamples, CRenderer::pixelYsamples,
-        [this]() { return urand(); },
-        [this](float *s) { s[0] = urand(); s[1] = urand(); });
+    const openrender::sampling::CSamplingConfig &cfg = samplingConfig();
 
     if (CRenderer::aperture == 0) {
         // No Depth of field effect
 
         for (i = numShading; i > 0; i--, cRay++) {
-            // First two numbers in the samples list are the x/y coordinates in pixels of the sample location
-            x = cRay->x;
-            y = cRay->y;
+            // The sample's location in the full image's pixels (T117)
+            x = cRay->xAbs;
+            y = cRay->yAbs;
 
             vector from, to;
-            pixels2camera(from, x, y, 0);
-            pixels2camera(to, x, y, CRenderer::imagePlane);
+            fullImagePixels2camera(from, x, y, 0, cfg.screenLeft, cfg.screenTop);
+            fullImagePixels2camera(to, x, y, CRenderer::imagePlane, cfg.screenLeft, cfg.screenTop);
 
             movvv(cRay->from, from);
             subvv(cRay->dir, to, from);
@@ -682,33 +640,19 @@ void CRaytracer::computeSamples(CPrimaryRay *rays, int numShading) {
     }
     else {
         for (i = numShading; i > 0; i--, cRay++) {
-            // First two numbers in the samples list are the x/y coordinates in pixels of the sample location
-            x = cRay->x;
-            y = cRay->y;
+            // The sample's location in the full image's pixels (T117)
+            x = cRay->xAbs;
+            y = cRay->yAbs;
 
             vector from, to;
-            pixels2camera(from, x, y, 0);
-            pixels2camera(to, x, y, CRenderer::focaldistance);
+            fullImagePixels2camera(from, x, y, 0, cfg.screenLeft, cfg.screenTop);
+            fullImagePixels2camera(to, x, y, CRenderer::focaldistance, cfg.screenLeft, cfg.screenTop);
 
-            // Area-uniform disk sample via the shared CSampler::lensSample()
-            // (S1) — the previous polar-coordinate scheme (theta uniform, r
-            // uniform) biased samples toward the aperture center instead of
-            // uniformly covering its area.
-            //
-            // Option B (US9, gated): reuse the lens sample already drawn
-            // alongside this ray's jitter/time in sample() from the
-            // correlated bucket table, instead of drawing a second,
-            // uncorrelated one here.
-            float diskSample[2];
-            if (CRenderer::correlatedSampleTable || samplingConfig().backend != openrender::sampling::Backend::Legacy) {
-                diskSample[0] = cRay->lensU;
-                diskSample[1] = cRay->lensV;
-            }
-            else {
-                lensSampler.lensSample(diskSample);
-            }
-            from[COMP_X] += diskSample[0] * CRenderer::aperture;
-            from[COMP_Y] += diskSample[1] * CRenderer::aperture;
+            // The lens point drawn with this ray's jitter and time in sample(): the
+            // camera lens slot through the concentric disk map (CSampler::cameraSample),
+            // area-uniform over the aperture.
+            from[COMP_X] += cRay->lensU * CRenderer::aperture;
+            from[COMP_Y] += cRay->lensV * CRenderer::aperture;
 
             movvv(cRay->from, from);
             subvv(cRay->dir, to, from);

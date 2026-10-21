@@ -527,6 +527,80 @@ The copies are checked in under `specs/039-sampling-foundation/tools/perf/`:
 | arrayops | 0.0547 (12%) | 0.0719 (16%) |
 | gather | 0.2200 (8%) | 0.2333 (46%) |
 
+**After (Phase 9, T102) — MEASURED 2026-10-20: SC-010 NOT MET (stop-and-report).** Same procedure: bash, the visual-test environment, a scratch copy of `tools/perf/`, `nice -n 19 orender [-t:1]`, Perl `Time::HiRes`, 5 repetitions interleaved rep-major, the default sampler (`sobol`). Build: a Release build directory of the worktree (`build-release`, `CMAKE_BUILD_TYPE=Release`, vcpkg toolchain, like the baseline's; the worktree's `build` has an empty build type, and measured the same within noise). Raw times: `tools/perf/m2-after-b9dde7e-phase9.txt` (the commit plus the staged Phase 9 changes).
+
+| Scene | t1 median | min | max | spread % | MAD % | vs baseline | tdef median | min | max | spread % | MAD % | vs baseline |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| camera-dof-reyes | 5.872 | 5.817 | 7.461 | 28.0 | 0.5 | +50.0% | 3.039 | 2.986 | 3.653 | 21.9 | 0.7 | +50.5% |
+| camera-dof-raytrace | 5.575 | 5.523 | 6.200 | 12.1 | 0.9 | +118.8% | 2.868 | 2.854 | 3.386 | 18.6 | 0.5 | +116.7% |
+| motion-3-reyes | 4.993 | 4.971 | 5.594 | 12.5 | 0.4 | +11.3% | 2.726 | 2.666 | 3.253 | 21.5 | 2.2 | +18.2% |
+| quadlight | 5.613 | 5.539 | 5.669 | 2.3 | 0.7 | +141.0% | 2.896 | 2.825 | 3.191 | 12.6 | 2.2 | +142.4% |
+| sphere-gather-reyes | 5.827 | 5.793 | 5.845 | 0.9 | 0.2 | +105.4% | 3.151 | 3.031 | 3.276 | 7.8 | 3.7 | +103.7% |
+| sphere-trace-reyes | 6.475 | 6.443 | 6.574 | 2.0 | 0.5 | +198.4% | 6.508 | 6.460 | 6.845 | 5.9 | 0.5 | +200.2% |
+
+Every scene and configuration is far above the 2% budget (+11% to +200%). **Control** (same machine and session, interleaved, `-t:1`, 3 repetitions): master's current Release build (`eda9eb0`, without spec 039) reproduces the baseline, so the slowdown is spec 039's, not the machine's:
+
+| Scene | master `eda9eb0` | spec 039 | ratio |
+|---|---|---|---|
+| camera-dof-reyes | 4.157 | 6.003 | 1.44 |
+| camera-dof-raytrace | 2.623 | 5.539 | 2.11 |
+| motion-3-reyes | 4.508 | 4.994 | 1.11 |
+| quadlight | 2.318 | 5.580 | 2.41 |
+| sphere-gather-reyes | 2.881 | 5.781 | 2.01 |
+| sphere-trace-reyes | 2.223 | 6.513 | 2.93 |
+
+Start-up is not it: an empty scene takes 0.02 s in both builds. By backend (`-t:1`, one run each): sphere-trace-reyes sobol 6.55 s, pmj02 5.23 s, independent 4.27 s; quadlight 5.54 / 4.63 / 3.66; camera-dof-raytrace 5.53 / 4.62 / 3.83. So the keyed-draw machinery costs even under `independent`, and the Owen-scrambled Sobol points add about 50% on top.
+
+**Profile of the hot draw path** (macOS `sample`, 4 s of a `-t:1` render under sobol; counts are samples at the top of the stack, idle `__ulock_wait` threads excluded):
+- `sphere-trace-reyes` (3840 x 2880, reyes, camera-dominated): `sampling::detail::sobolGet2D64` 1272, `CSampler::cameraSample` 278, `cameraImportance` 193, `cameraTime` 184, `cameraFilm` 50 (plus DYLD stubs for the three, ~33) — about 2000 of about 2900 busy samples are the camera slots: every subpixel draws film, time, lens and importance as separate 64-bit nested-uniform scrambles (`nestedUniformScramble64`), through cross-library calls. `CFileOutputBase::write` 295 (the per-value dither hash on a large frame), `sobolGet2D` 97, `traceReflection` 60.
+- `quadlight` (raytrace, 16-sample area light, shading-dominated): `sobolGet2D` 650, `CShadingContext::drawSubstream` 632 (the sub-stream hash and the per-point occurrence counters, once per call per point), `traceTransmission` 480, `execute` 257, `trace` 241, `get1D` 158 + 34, `keyedRandom` 41.
+Candidate remedies, none applied: compute a subpixel's four camera slots from one scramble of the index (one `nestedUniformScramble64` per subpixel instead of four), inline the camera slot functions into the hiders' library, cache the per-point `drawSubstream` key across the samples of one call, and hash the dither once per pixel rather than per value.
+
+**Phase 10 (2026-10-20): the four remedies, one at a time.** Each step was measured the m2 way (5 repetitions, rep-major, `-t:1` and default threads, Perl `Time::HiRes`), with **master's Release build `eda9eb0` interleaved run by run**, so each row compares spec 039 with master under the same machine load (the load average was 7 to 16 during these runs, from other jobs, so absolute times move and the baseline file is not a fair comparison; the ratio to master is). Raw times: `tools/perf/m2-phase10-{a,b,c,d,d2}.txt`. After every step the six perf scenes' outputs were byte-identical to Phase 9's (every remedy changes how values are computed, not what they are), `ctest -L "sampling|determinism" -LE determinism-sweep` passed but for the two crop tests (fixed later in Phase 10), and `ctest -L convergence` passed 8/8.
+
+Remedy (a) is not literally "one scramble per subpixel": giving the four camera slots one shared index scramble would make film, lens, time and importance draws from one permutation of one point set, correlated by construction, which the padded design must not do. What it does instead: one `cameraDraws()` per subpixel (the sequence seed and the Morton index once, not four times) and a byte-table form of Sobol dimension 1 for 64-bit indices (8 lookups instead of a loop over up to 64 index bits), the same bits.
+
+Spec 039 against master, median, per step:
+
+| Scene | cfg | Phase 9 (t1 only) | after a | after b | after c | after d | after d2 |
+|---|---|---|---|---|---|---|---|
+| camera-dof-reyes | t1 | +44% | +20.7% | +18.6% | +16.4% | +28.8% | +20.9% |
+| camera-dof-reyes | tdef | — | +20.0% | +20.1% | +20.2% | +15.1% | +22.5% |
+| camera-dof-raytrace | t1 | +111% | +43.6% | +35.4% | +41.1% | +24.2% | +44.4% |
+| camera-dof-raytrace | tdef | — | +37.0% | +38.5% | +37.8% | +33.7% | +42.0% |
+| motion-3-reyes | t1 | +11% | +4.0% | +5.5% | +11.7% | +0.2% | +4.0% |
+| motion-3-reyes | tdef | — | +9.3% | +7.8% | +7.3% | +17.4% | +6.3% |
+| quadlight | t1 | +141% | +122.8% | +138.3% | +118.0% | +105.2% | +111.0% |
+| quadlight | tdef | — | +131.0% | +133.1% | +125.2% | +137.4% | +114.9% |
+| sphere-gather-reyes | t1 | +101% | +80.3% | +81.8% | +79.5% | +26.5% | +76.6% |
+| sphere-gather-reyes | tdef | — | +72.1% | +71.9% | +78.3% | +43.6% | +58.1% |
+| sphere-trace-reyes | t1 | +193% | +73.9% | +73.5% | +72.9% | +54.5% | +73.2% |
+| sphere-trace-reyes | tdef | — | +76.2% | +81.5% | +76.3% | +65.4% | +64.6% |
+
+Final state (`d2`), seconds:
+
+| Scene | cfg | master `eda9eb0` | spec 039 | vs master |
+|---|---|---|---|---|
+| camera-dof-reyes | t1 | 4.155 | 5.026 | +20.9% |
+| camera-dof-reyes | tdef | 2.117 | 2.593 | +22.5% |
+| camera-dof-raytrace | t1 | 2.667 | 3.851 | +44.4% |
+| camera-dof-raytrace | tdef | 1.430 | 2.031 | +42.0% |
+| motion-3-reyes | t1 | 4.787 | 4.979 | +4.0% |
+| motion-3-reyes | tdef | 2.411 | 2.563 | +6.3% |
+| quadlight | t1 | 2.505 | 5.285 | +111.0% |
+| quadlight | tdef | 1.353 | 2.908 | +114.9% |
+| sphere-gather-reyes | t1 | 3.012 | 5.319 | +76.6% |
+| sphere-gather-reyes | tdef | 1.816 | 2.872 | +58.1% |
+| sphere-trace-reyes | t1 | 2.257 | 3.909 | +73.2% |
+| sphere-trace-reyes | tdef | 2.282 | 3.757 | +64.6% |
+
+**SC-010 is still not met** (budget: 2%). Remedy (a) gave almost all of the gain (the camera-bound scenes: sphere-trace-reyes from +193% to about +70%, camera-dof-raytrace from +111% to about +40%); (b), (c) and (d) are within noise. **Where the time goes now** (macOS `sample`, 3 s at `-t:1`, busy samples at the top of the stack):
+- sphere-trace-reyes (camera-bound): `cameraDraws` 614 and `sobolGet2D64` 523 (the nested uniform scrambles of four slots per subpixel: one 64-bit index scramble and one or two output scrambles each), `CSampler::cameraSample` 241, `CFileOutputBase::write` 322 (8-bit conversion and dither of a 3840 x 2880 frame).
+- sphere-gather-reyes: `rayDraw2D` 1119 (the per-sample Owen-scrambled Sobol 2D draws of `gather()`'s directions), `trace` 340.
+- quadlight: `traceTransmission` 842 (its inlined per-sample draws), `drawSubstream` 498 (16 `visibility()` calls per point, each a sub-stream hash), `get1D` 168.
+- camera-dof-raytrace: `trace` 547, `sobolGet2D64` 390.
+The remaining cost is the Owen scrambling itself (Laine-Karras permutations of the index and of each coordinate) and the per-call sub-stream hash: what the design computes, not overhead around it. Closing the budget would need a cheaper scramble (for example a per-pixel precomputed index permutation, or a hash-based shuffle instead of the nested uniform one), which changes the sequence and so every image: a design decision, not a remedy.
+
 ### M3. Determinism-sweep runtime — PENDING MEASUREMENT (at implement, Phase 7); rule decided
 
 The sweep covers roughly 230 non-GI scenes × 5 configurations. Its runtime decides whether `determinism-sweep` stays in the default `ctest` run or sits beside `convergence` as an opt-in label.

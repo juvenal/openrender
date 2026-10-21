@@ -95,8 +95,8 @@ static bool findInt(const char *name, int &out) {
 static void parse() {
     RiBegin(RI_NULL);
 
-    // With no option set the internal default is Legacy (until Phase 9), seed 0.
-    CHECK(options()->samplingBackend == sp::Backend::Legacy);
+    // With no option set the default is Sobol, seed 0.
+    CHECK(options()->samplingBackend == sp::Backend::Sobol);
     CHECK(options()->samplingSeed == 0u);
 
     setSampler("pmj02");
@@ -112,9 +112,17 @@ static void parse() {
     CHECK(options()->samplingBackend == sp::Backend::Sobol);
     CHECK(findString("sampler", name) && name == "sobol");
 
-    // "legacy" is accepted internally until Phase 9 (never documented).
+    // "legacy" is not a sampler (it was internal, and Phase 9 deleted it): it gets the
+    // unknown-name diagnostic and the backend is left as it was.
+    RiErrorHandler(capture);
+    diagnostics.clear();
     setSampler("legacy");
-    CHECK(options()->samplingBackend == sp::Backend::Legacy);
+    CHECK(diagnostics.size() == 1);
+    if (!diagnostics.empty())
+        CHECK(diagnostics.front().message.find("Unknown sampler \"legacy\"") != std::string::npos);
+    CHECK(options()->samplingBackend == sp::Backend::Sobol);
+    RiErrorHandler(RiErrorPrint);
+    diagnostics.clear();
 
     // The seed is any integer; negative values are reinterpreted as uint32.
     setSeed(-7);
@@ -137,7 +145,7 @@ static void unknownName() {
     RiBegin(RI_NULL);
     RiErrorHandler(capture);
 
-    CHECK(options()->samplingBackend == sp::Backend::Legacy);
+    CHECK(options()->samplingBackend == sp::Backend::Sobol);
     setSampler("foo");
 
     // One visible diagnostic, through CODE_BADTOKEN (never CODE_LOG) ...
@@ -153,7 +161,7 @@ static void unknownName() {
     }
 
     // ... and the render continues with the default.
-    CHECK(options()->samplingBackend == sp::Backend::Legacy);
+    CHECK(options()->samplingBackend == sp::Backend::Sobol);
 
     // A later valid name still works.
     setSampler("pmj02");

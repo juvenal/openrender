@@ -167,8 +167,11 @@ This file tracks known defects and implementation gaps in openRender. Open items
       (`tests/visual/test_depth_analytic.cpp`, exact ray-sphere depths). `Parity_depthfilter-mid` could not
       detect #47: its three transparent spheres never reach the opaque threshold, so both hiders write
       `clipMax`-collapsed depth everywhere and its diff is 0 before and after. In midpoint mode the probe
-      draws one `urand()` per probed ray (`trace()` sets `ray->jimp`), shifting the per-thread random
-      stream for later shading until spec 039 replaces it.
+      drew one `urand()` per probed ray (`trace()` sets `ray->jimp`), shifting the per-thread random
+      stream for later shading. Resolved by spec 039 (2026-10-20): the probe's importance draw comes
+      from its own sub-stream, `rayImportance(ray->key, ray->depth)` (`trace.cpp`), keyed by the ray's
+      identity, so it shifts no other value; `Sampling_ProbeIndependence` guards it, and the per-thread
+      stream itself no longer exists.
 - [x] Bug: multithreaded reyes renders with `depthfilter` `average` or `midpoint` wrote different `z` in
       empty background buckets from run to run (FIXED, branch `fix/stochastic-depthfilter-race`). A bucket
       with nothing queued takes `CStochastic::rasterEnd`'s `noObjects` early-out and writes `C_INFINITY`

@@ -31,7 +31,8 @@
  * configuration's, at any bit depth.
  *
  *   test_depth_determinism --configs "<opts>|<opts>|..." --outputs <a.tif>[,<b.tif>...]
- *       [--prepend "<RIB line>"] [--no-dither] [--keep-pins] <orender> <rib>
+ *       [--prepend "<RIB line>"] [--config-prepends "<RIB line>|<RIB line>|..."]
+ *       [--no-dither] [--keep-pins] <orender> <rib>
  *   test_depth_determinism --print-scene [--prepend ...] [--no-dither] [--keep-pins] <orender> <rib>
  *
  *   --configs      orender options per configuration, separated by '|'. An empty entry is the
@@ -40,6 +41,11 @@
  *                  directory, so relative archive paths resolve as they do for the original).
  *                  The copy drops every line that mentions `numthreads`, so a pinned scene
  *                  really runs multithreaded, unless --keep-pins is given.
+ *   --config-prepends  one RIB line per configuration, in --configs order, put after the
+ *                  --prepend line in that configuration's own copy of the scene. The
+ *                  configurations then differ by scene content as well as by options (for
+ *                  example by `Option "sampling" "seed"`), which is how the harness is shown to
+ *                  catch a real, deterministic difference.
  *   --no-dither    puts `Quantize "rgba" 255 0 255 0` after the --prepend line (a scene's own
  *                  later Quantize still wins).
  *   --print-scene  prints the scene that would be rendered and exits 0 without rendering.
@@ -143,6 +149,7 @@ namespace {
     struct SweepOptions {
             std::vector<std::string> configs;
             std::vector<std::string> outputs;
+            std::vector<std::string> configPrepends;
             SceneEdit edit;
             bool printScene = false;
             std::string orender;
@@ -265,7 +272,7 @@ namespace {
                 }
                 return argv[++i];
             };
-            if (arg == "--configs" || arg == "--outputs" || arg == "--prepend") {
+            if (arg == "--configs" || arg == "--outputs" || arg == "--prepend" || arg == "--config-prepends") {
                 const char *v = value(arg.c_str());
                 if (!v)
                     return kExitFailure;
@@ -273,6 +280,8 @@ namespace {
                     o.configs = splitOn(v, '|');
                 else if (arg == "--outputs")
                     o.outputs = splitOn(v, ',');
+                else if (arg == "--config-prepends")
+                    o.configPrepends = splitOn(v, '|');
                 else {
                     o.edit.prepend = v;
                     o.edit.havePrepend = true;
@@ -298,7 +307,7 @@ namespace {
         if (positional.size() != 2) {
             fprintf(stderr,
                     "Usage: %s --configs \"<opts>|<opts>...\" --outputs <a.tif>[,<b.tif>...] [--prepend \"<RIB line>\"]\n"
-                    "          [--no-dither] [--keep-pins] <orender> <rib>\n"
+                    "          [--config-prepends \"<RIB line>|...\"] [--no-dither] [--keep-pins] <orender> <rib>\n"
                     "       %s --print-scene [--prepend ...] [--no-dither] [--keep-pins] <orender> <rib>\n",
                     argv[0], argv[0]);
             return kExitFailure;
@@ -318,9 +327,14 @@ namespace {
             return kExitFailure;
         }
 
+        if (!o.configPrepends.empty() && o.configPrepends.size() != o.configs.size()) {
+            fprintf(stderr, "  --config-prepends has %zu line(s) for %zu configuration(s)\n", o.configPrepends.size(), o.configs.size());
+            return kExitFailure;
+        }
+
         std::string ribToRender = o.rib;
         std::string copyPath;
-        if (o.edit.needsCopy()) {
+        if (o.edit.needsCopy() && o.configPrepends.empty()) {
             copyPath = "determinism-" + sceneBaseName(o.rib);
             if (!writeSceneCopy(o.rib, o.edit, copyPath))
                 return kExitFailure;
@@ -331,6 +345,16 @@ namespace {
         std::vector<int> budget(o.outputs.size(), kMaxPixelsPerOutput);
         bool different = false;
         for (size_t c = 0; c < o.configs.size(); c++) {
+            if (!o.configPrepends.empty()) {
+                // This configuration's own copy: the --prepend line, then its line
+                SceneEdit edit = o.edit;
+                edit.prepend = (o.edit.havePrepend ? o.edit.prepend + "\n" : std::string()) + o.configPrepends[c];
+                edit.havePrepend = true;
+                copyPath = "determinism-" + std::to_string(c + 1) + "-" + sceneBaseName(o.rib);
+                if (!writeSceneCopy(o.rib, edit, copyPath))
+                    return kExitFailure;
+                ribToRender = copyPath;
+            }
             std::string command = "\"" + o.orender + "\"";
             if (!o.configs[c].empty())
                 command += " " + o.configs[c];
@@ -390,6 +414,8 @@ namespace {
                    o.outputs[k].c_str(), r.width, r.height, r.spp, r.bitsPerSample, o.configs.size());
         }
         printf("  PASS: %zu output(s), %zu configuration(s)\n", o.outputs.size(), o.configs.size());
+        for (size_t c = 0; c < o.configPrepends.size(); c++)
+            remove(("determinism-" + std::to_string(c + 1) + "-" + sceneBaseName(o.rib)).c_str());
         if (!copyPath.empty())
             remove(copyPath.c_str());
         return 0;

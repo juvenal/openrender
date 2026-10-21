@@ -10,8 +10,8 @@ catch a real regression (verified via T013 — see below).
 | Scene         | Threshold | Measured worst-case | Known residual driving the gap |
 |---------------|-----------|----------------------|---------------------------------|
 | flatshade     | 20        | ~5.67                | Shading-interpolation model (D3/D4: REYES grid-interpolated shading vs. raytrace per-hit shading) — algorithmic, not closable by refactor per the audit. |
-| dof           | 60        | ~42.5-44.7 (noise band, post-T021) | D9 DOF occlusion model (screen-space scatter vs. true lens rays) + D3/D4 shading-interpolation residual, both bounded/documented, non-closable by refactor. D2 pixel-jitter-constant drift was closed in Phase 4 (shared `CSampler`, T017/T018) but its contribution could not be isolated from run-to-run RNG noise — see T021 note below. |
-| aov           | 25        | ~10.08                | Same shading-interpolation residual as flatshade, carried through the "N" AOV channel. |
+| dof           | 60        | ~42.5-44.7 (noise band, post-T021); 40.45 under the sampler, 5 of 5 runs (T100) | D9 DOF occlusion model (screen-space scatter vs. true lens rays) + D3/D4 shading-interpolation residual, both bounded/documented, non-closable by refactor. D2 pixel-jitter-constant drift was closed in Phase 4 (shared `CSampler`, T017/T018) but its contribution could not be isolated from run-to-run RNG noise — see T021 note below. |
+| aov           | 20 (25 before spec 039) | ~10.08; 7.25 under the sampler (T100) | Same shading-interpolation residual as flatshade, carried through the "N" AOV channel. |
 | depthdefault  | 500000    | 437495.8125           | D7: raytrace has no depth-filter modes / `zvisibilityThreshold` yet, so silhouette-edge pixels blend the ~1e30 background sentinel into an averaged z sample. Reyes cleanly separates real hits from background. Closes in Phase 6/S3; threshold re-measured/tightened in T045. |
 
 ## Spec 021: solid (CSG) scenes (T058)
@@ -113,10 +113,12 @@ dependent, and the deciding factor is *what kind* of residual dominates:
     correlated (3 runs). New `Parity_motion-patches-translate-correlated`
     test added, threshold 8.
 
-  These are registered as **additional** tests (`VISUAL_ENV_CORRELATED` in
+  These were registered as **additional** tests (`VISUAL_ENV_CORRELATED` in
   `tests/visual/CMakeLists.txt`), not replacements for the uncorrelated
-  ones — Option B is opt-in, not the hiders' default sampling path, so the
-  uncorrelated tests still validate the shipping behavior.
+  ones. Spec 039 (Phase 9, T093/T094) deleted the table, the variable and the
+  two `-correlated` tests: both hiders now take every camera value from the
+  same sampler slots, which correlates them by construction, and the plain
+  tests now carry the tightened thresholds 8 and 6 (see "Spec 039" below).
 
 - **Different-model/same-input residuals don't close, and can get worse.**
   `dof` got measurably *worse* under correlation: 53.62/53.70/53.62
@@ -168,3 +170,136 @@ renders black.
   JIT), and its map is 2 009 546 bytes on both, the same as the interpreter's.
 
 The numbers come from `specs/024-shading-services-routing/research.md` R4.
+
+## Spec 039: re-measured under the sampler (T100)
+
+Every parity test was run 5 times (`ctest -R '^Parity_' -j4`, macOS, the build with the Phase 9
+flip). The renders are deterministic: each test read the same worst 8x8 block-average diff in
+all 5 runs (spread 0.00), where the old per-thread streams moved `dof` by ~2.2 between runs.
+
+Tightening rule: new threshold = max(floor, ceil(1.5 x worst)), applied only where that is lower
+than the current one; the floor is the suite default 20, except for the two scenes whose targets
+the task names (8 and 6). No threshold went below 20 otherwise: the margin also has to hold on
+Linux, whose renders differ from macOS by a small constant (2.91 on `photon-parity`), and that
+validation is pending. **No threshold was widened.** `Parity_dof` (60) reads 40.45, under 60.
+
+Tightened: `motion-patches-translate` 20 -> **8** (0.77; the target), `motion-quadrics-translate`
+20 -> **6** (1.75; the target), `aov` 25 -> 20 (7.25), `motion-patches-deform` 25 -> 20 (11.11),
+`dof-motion` 40 -> 35 (22.72). Kept: `dof` 60 (40.45: 1.5 x is 61), `motion-subdiv-rotate` 45
+(38.05), `transparency-matte-aov` 25 (23.83), `displacement` 6 (2.34; already below the floor),
+the depth tests' 500000 (a z-unit metric, not 0-255), and every test at the default 20.
+
+| Test | Threshold | Worst of 5 runs |
+|---|---|---|
+| `Parity_aov` | 20 (was 25) | 7.25 |
+| `Parity_blobby-blend-far-reyes-raytrace` | 20 | 0.78 |
+| `Parity_blobby-blend-far-reyes-zbuffer` | 20 | 2.20 |
+| `Parity_blobby-blend-influencing-reyes-raytrace` | 20 | 0.67 |
+| `Parity_blobby-blend-influencing-reyes-zbuffer` | 20 | 1.09 |
+| `Parity_blobby-blend-merged-reyes-raytrace` | 20 | 0.66 |
+| `Parity_blobby-blend-merged-reyes-zbuffer` | 20 | 1.33 |
+| `Parity_blobby-carved-colour-reyes-raytrace` | 20 | 1.58 |
+| `Parity_blobby-carved-colour-reyes-zbuffer` | 20 | 3.00 |
+| `Parity_blobby-coloured-octahedron-apart-reyes-raytrace` | 20 | 2.09 |
+| `Parity_blobby-coloured-octahedron-apart-reyes-zbuffer` | 20 | 3.30 |
+| `Parity_blobby-coloured-octahedron-reyes-raytrace` | 20 | 1.53 |
+| `Parity_blobby-coloured-octahedron-reyes-zbuffer` | 20 | 2.70 |
+| `Parity_blobby-csg-difference-reyes-raytrace` | 20 | 5.75 |
+| `Parity_blobby-csg-difference-reyes-zbuffer` | 20 | 3.88 |
+| `Parity_blobby-dent-reyes-raytrace` | 20 | 1.39 |
+| `Parity_blobby-dent-reyes-zbuffer` | 20 | 2.38 |
+| `Parity_blobby-hand-maxed-reyes-raytrace` | 20 | 3.52 |
+| `Parity_blobby-hand-maxed-reyes-zbuffer` | 20 | 4.31 |
+| `Parity_blobby-hand-selective-reyes-raytrace` | 20 | 2.75 |
+| `Parity_blobby-hand-selective-reyes-zbuffer` | 20 | 2.39 |
+| `Parity_blobby-hand-summed-reyes-raytrace` | 20 | 2.75 |
+| `Parity_blobby-hand-summed-reyes-zbuffer` | 20 | 2.92 |
+| `Parity_blobby-max-union-reyes-raytrace` | 20 | 2.97 |
+| `Parity_blobby-max-union-reyes-zbuffer` | 20 | 1.53 |
+| `Parity_blobby-mixed-fields-reyes-raytrace` | 20 | 1.00 |
+| `Parity_blobby-mixed-fields-reyes-zbuffer` | 20 | 3.25 |
+| `Parity_blobby-motion-grow-reyes-raytrace` | 20 | 1.89 |
+| `Parity_blobby-motion-still-reyes-raytrace` | 20 | 1.78 |
+| `Parity_blobby-motion-still-reyes-zbuffer` | 20 | 0.66 |
+| `Parity_blobby-motion-translate-reyes-raytrace` | 20 | 4.64 |
+| `Parity_blobby-object-instance-reyes-raytrace` | 20 | 1.42 |
+| `Parity_blobby-object-instance-reyes-zbuffer` | 20 | 2.52 |
+| `Parity_blobby-repeller-heights-reyes-raytrace` | 20 | 4.20 |
+| `Parity_blobby-repeller-heights-reyes-zbuffer` | 20 | 2.70 |
+| `Parity_blobby-repeller-shaping-reyes-raytrace` | 20 | 4.20 |
+| `Parity_blobby-repeller-shaping-reyes-zbuffer` | 20 | 2.80 |
+| `Parity_blobby-roundtrip-vs-direct` | 20 | 0.00 |
+| `Parity_blobby-solid-texture-bent-reyes-raytrace` | 20 | 3.77 |
+| `Parity_blobby-solid-texture-bent-reyes-zbuffer` | 20 | 1.50 |
+| `Parity_blobby-solid-texture-straight-reyes-raytrace` | 20 | 3.77 |
+| `Parity_blobby-solid-texture-straight-reyes-zbuffer` | 20 | 1.78 |
+| `Parity_blobby-spiral-reyes-raytrace` | 20 | 3.70 |
+| `Parity_blobby-spiral-reyes-zbuffer` | 20 | 3.48 |
+| `Parity_blobby-tolerance-default-reyes-raytrace` | 20 | 0.56 |
+| `Parity_blobby-tolerance-default-reyes-zbuffer` | 20 | 2.45 |
+| `Parity_blobby-tolerance-inherited-reyes-raytrace` | 20 | 0.88 |
+| `Parity_blobby-tolerance-inherited-reyes-zbuffer` | 20 | 5.16 |
+| `Parity_blobby-tolerance-tight-reyes-raytrace` | 20 | 1.03 |
+| `Parity_blobby-tolerance-tight-reyes-zbuffer` | 20 | 4.92 |
+| `Parity_blobby-tube-reyes-raytrace` | 20 | 1.98 |
+| `Parity_blobby-tube-reyes-zbuffer` | 20 | 2.88 |
+| `Parity_csg-coincident-difference-raytrace-reyes` | 20 | 7.86 |
+| `Parity_csg-coincident-difference-raytrace-zbuffer` | 20 | 8.98 |
+| `Parity_csg-coincident-union-raytrace-reyes` | 20 | 0.95 |
+| `Parity_csg-coincident-union-raytrace-zbuffer` | 20 | 1.02 |
+| `Parity_csg-hero-1600-raytrace-reyes` | 20 | 4.20 |
+| `Parity_csg-hero-1600-raytrace-zbuffer` | 20 | 3.98 |
+| `Parity_csg-hero-800-raytrace-reyes` | 20 | 7.20 |
+| `Parity_csg-hero-800-raytrace-zbuffer` | 20 | 7.50 |
+| `Parity_csg-hero-displaced-raytrace-reyes` | 20 | 8.86 |
+| `Parity_csg-hero-translucent-raytrace-reyes` | 20 | 4.84 |
+| `Parity_csg-hero-two-shaders-raytrace-reyes` | 20 | 7.55 |
+| `Parity_csg-nurbs-rational-sphere-union-raytrace-reyes` | 20 | 0.31 |
+| `Parity_csg-open-quadric-caps-raytrace-reyes` | 20 | 4.12 |
+| `Parity_csg-open-quadric-caps-raytrace-zbuffer` | 20 | 3.67 |
+| `Parity_csg-polymesh-box-difference-raytrace-reyes` | 20 | 0.61 |
+| `Parity_csg-secondary-rays-raytrace-reyes` | 20 | 9.88 |
+| `Parity_csg-sphere-cube-difference-1600-raytrace-reyes` | 20 | 3.67 |
+| `Parity_csg-sphere-cube-difference-1600-raytrace-zbuffer` | 20 | 4.02 |
+| `Parity_csg-sphere-cube-difference-800-raytrace-reyes` | 20 | 3.44 |
+| `Parity_csg-sphere-cube-difference-800-raytrace-zbuffer` | 20 | 2.92 |
+| `Parity_csg-sphere-cube-difference-raytrace-reyes` | 20 | 3.92 |
+| `Parity_csg-sphere-cube-difference-raytrace-zbuffer` | 20 | 4.34 |
+| `Parity_csg-sphere-cube-intersection-raytrace-reyes` | 20 | 4.48 |
+| `Parity_csg-sphere-cube-intersection-raytrace-zbuffer` | 20 | 2.53 |
+| `Parity_csg-sphere-cube-union-raytrace-reyes` | 20 | 0.62 |
+| `Parity_csg-sphere-cube-union-raytrace-zbuffer` | 20 | 1.53 |
+| `Parity_csg-subdivision-sphere-union-raytrace-reyes` | 20 | 0.39 |
+| `Parity_depthdefault` | 500000 | 421870.88 |
+| `Parity_depthfilter-avg` | 500000 | 234373.72 |
+| `Parity_depthfilter-max` | 500000 | 234373.72 |
+| `Parity_depthfilter-mid` | 500000 | 0.00 |
+| `Parity_depthfilter-min` | 500000 | 374997.94 |
+| `Parity_displacement` | 6 | 2.34 |
+| `Parity_dof` | 60 | 40.45 |
+| `Parity_dof-motion` | 35 (was 40) | 22.72 |
+| `Parity_env` | 20 | 5.97 |
+| `Parity_flatshade` | 20 | 2.20 |
+| `Parity_matte` | 20 | 1.44 |
+| `Parity_motion-patches-deform` | 20 (was 25) | 11.11 |
+| `Parity_motion-patches-translate` | 8 (was 20) | 0.77 |
+| `Parity_motion-polygons-deform` | 20 | 0.62 |
+| `Parity_motion-polygons-translate` | 20 | 1.11 |
+| `Parity_motion-quadrics-deform` | 20 | 1.81 |
+| `Parity_motion-quadrics-translate` | 6 (was 20) | 1.75 |
+| `Parity_motion-subdiv-rotate` | 45 | 38.05 |
+| `Parity_motion-subdiv-translate` | 20 | 1.05 |
+| `Parity_shadow` | 20 | 0.00 |
+| `Parity_subdiv-facevarying-seam` | 20 | 2.92 |
+| `Parity_subdiv-hierarchical-override` | 20 | 0.47 |
+| `Parity_texture-exr` | 20 | 0.81 |
+| `Parity_texture-png` | 20 | 0.14 |
+| `Parity_texture-rgbe` | 20 | 0.95 |
+| `Parity_torus` | 20 | 2.66 |
+| `Parity_torus-partial` | 20 | 1.20 |
+| `Parity_transparency` | 20 | 0.84 |
+| `Parity_transparency-matte-aov` | 25 | 23.83 |
+| `Parity_unbaked-exr` | 20 | 1.36 |
+| `Parity_unbaked-nonpot` | 20 | 3.78 |
+| `Parity_unbaked-png` | 20 | 3.81 |
+| `Parity_unbaked-rgbe` | 20 | 1.36 |

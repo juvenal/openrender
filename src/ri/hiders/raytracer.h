@@ -106,13 +106,12 @@ class CPrimaryRay : public CRay {
         bool nonCompLatched;
         bool depthProbe;
         float *samples;     // The extra samples that need to be saved
-        float x, y;         // The x,y location of the ray on the screen
-        float lensU, lensV; // Correlated-table lens sample (US9), carried from
-                            // sample() to computeSamples() so a DOF ray reads
-                            // the same table entry its jitter/time came from
-                            // instead of drawing a second, uncorrelated lens
-                            // sample -- only populated/consumed when
-                            // CRenderer::correlatedSampleTable is set.
+        float x, y;         // The x,y location of the ray on the screen (pixels, from the rendered window)
+        float xAbs, yAbs;   // The same location in the full image's pixels (spec 039, T117): the
+                            // projection uses it, so a crop projects as the full frame does
+        float lensU, lensV; // The camera lens point (spec 039, the lens slot), carried
+                            // from sample() to computeSamples(), which offsets the
+                            // ray origin by it when depth of field is on.
 };
 
 ///////////////////////////////////////////////////////////////////////

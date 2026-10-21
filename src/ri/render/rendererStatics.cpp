@@ -147,7 +147,7 @@ TSearchpath *CRenderer::geometryPath;
 bool CRenderer::textureCacheEnabled;
 const char *CRenderer::textureCacheDirectory;
 int CRenderer::pixelXsamples, CRenderer::pixelYsamples;
-openrender::sampling::Backend CRenderer::samplingBackend = openrender::sampling::Backend::Legacy;
+openrender::sampling::Backend CRenderer::samplingBackend = openrender::sampling::Backend::Sobol;
 uint32_t CRenderer::samplingSeed = 0;
 float CRenderer::gamma, CRenderer::gain;
 float CRenderer::pixelFilterWidth, CRenderer::pixelFilterHeight;
@@ -207,7 +207,6 @@ quaternion CRenderer::relRotQ = {0, 0, 0, 1};                            // init
 vector CRenderer::relTrans = {0, 0, 0};                                  // initialized in beginFrame
 bool CRenderer::cameraHasRotation = false;                               // initialized in beginFrame
 bool CRenderer::cameraRotationOnly = false;                              // initialized in beginFrame
-bool CRenderer::correlatedSampleTable = false;                           // initialized in beginFrame
 vector CRenderer::worldBmin, CRenderer::worldBmax;                       // initialized in beginFrame
 CXform *CRenderer::world = NULL;                                         // initialized in beginFrame, destroyed in endFrame
 matrix CRenderer::fromNDC, CRenderer::toNDC;                             // initialized in beginFrame

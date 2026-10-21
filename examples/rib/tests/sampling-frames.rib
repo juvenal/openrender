@@ -1,0 +1,30 @@
+##RenderMan RIB-Structure 1.0
+# Spec 039, T103 (Sampling_FrameReproducible): two frames of a jittered, depth-of-field render
+# with random() shading (shaders/random_probe.sl), each writing its own float image.
+# The camera and shading draws are keyed by the frame number, so frame 2 rendered alone
+# (orender -f 2) must be bit-identical to frame 2 of the full render: nothing in frame 2 may
+# depend on frame 1 having been rendered first.
+version 3.03
+Hider "raytrace" "jitter" [1]
+PixelSamples 3 3
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Format 80 60 1
+Projection "perspective" "fov" 40
+DepthOfField 2.8 0.5 5
+FrameBegin 1
+  Display "sampling-frames-1.tif" "file" "rgba"
+  Translate 0 0 5
+  WorldBegin
+    Surface "random_probe"
+    Sphere 1.5 -1.5 1.5 360
+  WorldEnd
+FrameEnd
+FrameBegin 2
+  Display "sampling-frames-2.tif" "file" "rgba"
+  Translate 0.3 0 5
+  WorldBegin
+    Surface "random_probe"
+    Sphere 1.5 -1.5 1.5 360
+  WorldEnd
+FrameEnd

@@ -1,8 +1,9 @@
 ##RenderMan RIB-Structure 1.0
-# Spec 039, Phase 7 (DeterminismHarness_detects_difference): a scene that is NOT thread
-# independent under the Legacy sampler on purpose: random() shading, no sampler option and no
-# numthreads pin, so the render varies with the thread count. The harness must report it as
-# different (exit code 1).
+# Spec 039 (DeterminismHarness_detects): random() shading, so a change of seed changes the
+# image. The harness self-test renders it twice single-threaded with seed 0 and seed 1
+# (test_depth_determinism --config-prepends) and must report the two as different (exit code 1):
+# a real, deterministic difference. Until Phase 9 the difference was the Legacy sampler's
+# thread-dependent draws (no sampler option, no pin), which no longer exist.
 version 3.03
 Hider "reyes" "jitter" [0]
 PixelSamples 1 1

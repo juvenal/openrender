@@ -21,7 +21,6 @@ add_library(openrendercommon_obj OBJECT
     algebra.cpp
     rslConstants.cpp  # RiBSplineBasis, filter functions (moved from ri.cpp for libshader)
     riTokens.cpp      # the RI_* token definitions (spec 023, from parse/ri.cpp)
-    sobolTables.cpp   # Sobol sequence tables (moved from random.cpp for libshader)
     colorSpace.cpp    # convertColorFrom/convertColorTo (moved from ri/init.cpp for libshader)
     diagnostics.cpp   # error/warning/fatal/info + the installable sink (spec 023, from parse/error.cpp)
     logging.cpp       # the one current_log_level (spec 023)

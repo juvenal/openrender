@@ -154,6 +154,7 @@ add_determinism_sweep(csg-hero-reyes-800 examples/rib/tests/csg-hero-reyes-800.r
 add_determinism_sweep(csg-hero-single-operand-stats-800-reyes examples/rib/tests/csg-hero-single-operand-stats-800-reyes.rib csg-hero-single-operand-stats-800-reyes.tif)
 # Disabled, see GitHub #61 below.
 add_determinism_sweep(csg-hero-stats-1600-reyes examples/rib/tests/csg-hero-stats-1600-reyes.rib csg-hero-stats-1600-reyes.tif)
+# Disabled, see GitHub #61 below.
 add_determinism_sweep(csg-hero-stats-800-reyes examples/rib/tests/csg-hero-stats-800-reyes.rib csg-hero-stats-800-reyes.tif)
 add_determinism_sweep(csg-hero-translucent-raytrace examples/rib/tests/csg-hero-translucent-raytrace.rib csg-hero-translucent-raytrace.tif)
 add_determinism_sweep(csg-hero-translucent-reyes examples/rib/tests/csg-hero-translucent-reyes.rib csg-hero-translucent-reyes.tif)
@@ -303,7 +304,9 @@ add_determinism_sweep(parity-unbaked-png-reyes examples/rib/tests/parity/unbaked
 add_determinism_sweep(parity-unbaked-rgbe-raytrace examples/rib/tests/parity/unbaked-rgbe-raytrace.rib unbaked-rgbe-raytrace.tif)
 add_determinism_sweep(parity-unbaked-rgbe-reyes examples/rib/tests/parity/unbaked-rgbe-reyes.rib unbaked-rgbe-reyes.tif)
 add_determinism_sweep(quadlight-slo examples/rib/tests/quadlight-slo.rib quadlight-slo.tif)
+add_determinism_sweep(sampling-camera-jitter1-raytrace-independent examples/rib/tests/sampling-camera-jitter1-raytrace-independent.rib sampling-camera-jitter1-raytrace-independent.tif)
 add_determinism_sweep(sampling-camera-jitter1-raytrace-sobol examples/rib/tests/sampling-camera-jitter1-raytrace-sobol.rib sampling-camera-jitter1-raytrace-sobol.tif)
+add_determinism_sweep(sampling-camera-jitter1-reyes-independent examples/rib/tests/sampling-camera-jitter1-reyes-independent.rib sampling-camera-jitter1-reyes-independent.tif)
 add_determinism_sweep(sampling-camera-jitter1-reyes-sobol examples/rib/tests/sampling-camera-jitter1-reyes-sobol.rib sampling-camera-jitter1-reyes-sobol.tif)
 add_determinism_sweep(sampling-displace-sphere examples/rib/tests/sampling-displace-sphere.rib sampling-displace-sphere.tif)
 add_determinism_sweep(sampling-instance-after examples/rib/tests/sampling-instance-after.rib sampling-instance-after.tif)
@@ -465,12 +468,15 @@ set_tests_properties(
     DeterminismSweep_csg-offscreen-stats-reyes
     DeterminismSweep_csg-hero-partial-stats-reyes
     DeterminismSweep_csg-hero-two-shaders-reyes
+    DeterminismSweep_csg-hero-stats-800-reyes
     PROPERTIES DISABLED TRUE)
 # The last five were found by the two sweeps that followed T084b and T084c: they fail intermittently.
 # The image of csg-hero-reyes-1600, csg-hero-zbuffer-800, csg-offscreen-stats-reyes and
 # csg-hero-partial-stats-reyes (like the first two) changes when ralloc memory is filled with 0xFF;
 # csg-hero-two-shaders-reyes was not filled. The grid-shading fix is not made; it needs its own
-# decision (GitHub #61).
+# decision (GitHub #61). csg-hero-stats-800-reyes was added in Phase 10 (maintainer decision,
+# 2026-10-20), like its 1600 sibling: under the independent sampler it failed once in three runs,
+# one 8-bit value off by one at one pixel between -t:4 and -t:1 (validation.md, Phase 9).
 #
 # GitHub #63: csg-hero-displaced-reyes differs intermittently by about +-1e-3 on black pixels in the
 # first column of a bucket. No tie, and a ralloc fill does not explain it; the cause is unknown.
@@ -499,8 +505,6 @@ set_tests_properties(
 #   examples/rib/tests/subdiv-new-tags-photon.rib  (Hider "photon", Attribute "photon")
 
 # --- Scenes that cannot be swept as they are ---------------------------------------------------
-#   examples/rib/tests/sampling-camera-jitter1-raytrace-legacy.rib  (selects the Legacy sampler itself)
-#   examples/rib/tests/sampling-camera-jitter1-reyes-legacy.rib  (selects the Legacy sampler itself)
 #   examples/rib/tests/csg-malformed-bogus-operation.rib  (expected to fail with a diagnostic, writes no image)
 #   examples/rib/tests/csg-malformed-nested-in-primitive.rib  (expected to fail with a diagnostic, writes no image)
 #   examples/rib/tests/csg-malformed-unmatched-solidend.rib  (expected to fail with a diagnostic, writes no image)

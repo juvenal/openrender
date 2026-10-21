@@ -5,7 +5,7 @@
  *
  * Description:
  *   Real (rendering-time) bodies of the two pieces of the irradiance-cache
- *   code that reach into the shading engine (CShadingContext::next_state/
+ *   code that reach into the shading engine (the CShadingContext draw cursor/
  *   trace, CTextureLookup::staticInit) -- found via an `nm -u` sweep over
  *   ribVector_obj's built object files after adding hiders/irradiance.cpp
  *   back to its source list (needed for CIrradianceCache's constructor/
@@ -24,7 +24,7 @@
  *     itself calls while walking the cache's octree -- lookup() IS needed
  *     by the data-viewer, so this couldn't be handled by excluding the
  *     whole method; it needed pulling out just the one line that calls
- *     context->drawNext() (an inline wrapper around next_state()). See
+ *     context->drawNext() (an inline read of the context's draw cursor). See
  *     irradiance.h's declaration and irradianceDispatchStub.cpp's stub
  *     for why the stub's answer is exact, not an approximation, for
  *     every case ribVector can actually reach.
@@ -265,12 +265,12 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
     const CShadingScratch *scratch = &(context->currentShadingState->scratch);
     const int nt = (int)(sqrtf(scratch->traceParams.samples / (float)C_PI) + 0.5);
     const int np = (int)(C_PI * nt + 0.5);
-    // Spec 039 (T076c): under a keyed sampler, with no cache to fill, occlusion() takes
-    // `samples` directions from the sampler by sample index, as trace() takes its rays: pair 0
-    // of the bound call's sub-stream is the direction, pair 1 the origin jitter. Under Legacy,
-    // and whenever the cache is on (posGradient/rotGradient need the grid), it keeps the
-    // nt x np grid of jittered cells. indirectdiffuse() stays on the grid (a known gap).
-    const bool fromSampler = context->keyedDraws() && scratch->occlusionParams.occlusion == TRUE && scratch->occlusionParams.maxError == 0;
+    // Spec 039 (T076c): with no cache to fill, occlusion() takes `samples` directions from
+    // the sampler by sample index, as trace() takes its rays: pair 0 of the bound call's
+    // sub-stream is the direction, pair 1 the origin jitter. Whenever the cache is on
+    // (posGradient/rotGradient need the grid) it keeps the nt x np grid of jittered cells.
+    // indirectdiffuse() stays on the grid (a known gap, for spec 040).
+    const bool fromSampler = scratch->occlusionParams.occlusion == TRUE && scratch->occlusionParams.maxError == 0;
     const int numSamples = fromSampler ? ((int)scratch->traceParams.samples > 1 ? (int)scratch->traceParams.samples : 1) : nt * np;
     CHemisphereSample *hemisphere = (CHemisphereSample *)alloca(numSamples * sizeof(CHemisphereSample));
 

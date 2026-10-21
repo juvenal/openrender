@@ -770,8 +770,7 @@ void CShadingContext::DvVector(float *dest, const float *src) {
 */
 
 // Spec 039: the four jitter values (origin, then direction) come from the call's
-// sub-stream (`keyedSub`, null under the Legacy sampler, whose context stream they
-// keep drawing from in the same order as before).
+// sub-stream (`keyedSub`; a location no call bound draws from a fixed sub-stream).
 #define sampleRay(__from, __dir)                                          \
     vector tmp0, tmp1;                                                    \
     float jitter4[4];                                                     \

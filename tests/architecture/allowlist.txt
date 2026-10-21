@@ -237,22 +237,18 @@ DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer17pixelFilterKern
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer19nonCompChannelOrderE   # CRenderer::nonCompChannelOrder
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer20numExtraCompChannelsE   # CRenderer::numExtraCompChannels
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer20zvisibilityThresholdE   # CRenderer::zvisibilityThreshold
-DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer21correlatedSampleTableE   # CRenderer::correlatedSampleTable
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer22sendBucketDataChannelsEii   # CRenderer::sendBucketDataChannels(int, int)
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer23numExtraNonCompChannelsE   # CRenderer::numExtraNonCompChannels
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer5flagsE   # CRenderer::flags
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer6commitEiiiiPf   # CRenderer::commit(int, int, int, int, float*)
-DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer6jitterE   # CRenderer::jitter
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer7clipMaxE   # CRenderer::clipMax
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer7xPixelsE   # CRenderer::xPixels
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer7yPixelsE   # CRenderer::yPixels
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer8apertureE   # CRenderer::aperture
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer8dxdPixelE   # CRenderer::dxdPixel
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer8dydPixelE   # CRenderer::dydPixel
-DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer8pixelTopE   # CRenderer::pixelTop
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer8xBucketsE   # CRenderer::xBuckets
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer9netClientE   # CRenderer::netClient
-DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer9pixelLeftE   # CRenderer::pixelLeft
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer9shootStepE   # CRenderer::shootStep
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZTWN9CRenderer13activeContextE  macos   # thread-local wrapper routine for CRenderer::activeContext
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer10imagePlaneE   # CRenderer::imagePlane
@@ -330,11 +326,8 @@ DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer17pixelFilterKer
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer18cameraRotationOnlyE   # CRenderer::cameraRotationOnly
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer19nonCompChannelOrderE   # CRenderer::nonCompChannelOrder
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer20zvisibilityThresholdE   # CRenderer::zvisibilityThreshold
-DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer21correlatedSampleTableE   # CRenderer::correlatedSampleTable
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer23numExtraNonCompChannelsE   # CRenderer::numExtraNonCompChannels
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer5flagsE   # CRenderer::flags
-DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer5frameE   # CRenderer::frame
-DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer6jitterE   # CRenderer::jitter
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer7clipMaxE   # CRenderer::clipMax
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer7clipMinE   # CRenderer::clipMin
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer7relRotQE   # CRenderer::relRotQ

@@ -821,9 +821,8 @@ void op_phong_batch(float *result, const float *Nf, const float *V, const float 
 // =========================================================================
 // random() / urandom() -- (mirrors RANDOMFEXP/RANDOMVEXP in scriptFunctions.h:
 // the same CShadingContext::drawRandom() call per vertex, same x/y/z draw order,
-// same DEFFUNC numVertices loop bound). Under the Legacy sampler the values come
-// from the context's generator, otherwise from the sampler's sub-stream of
-// (point, shader, call site, occurrence) -- the same in both backends.
+// same DEFFUNC numVertices loop bound). The values come from the sampler's
+// sub-stream of (point, shader, call site, occurrence) -- the same in both backends.
 // =========================================================================
 
 void op_random_f_v2(float *dst, int sd, int n, const int *tags, uint32_t callSite) {

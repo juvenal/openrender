@@ -2061,8 +2061,8 @@ static bool emitFunction(const IRFunction &irFn,
             }
 
             // ================================================================
-            // Layer G — random / urandom (stateful RNG via
-            // libshader::activeContext()->urand()). Variant selected by
+            // Layer G — random / urandom (keyed draws via
+            // libshader::activeContext()->drawRandom()). Variant selected by
             // dstDesc.stride exactly like the noise/snoise case below.
             // ================================================================
             else if (op == "random" || op == "urandom") {

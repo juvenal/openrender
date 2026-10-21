@@ -218,7 +218,7 @@ class CStubServices final : public CRendererServices {
         float relativeDetail() const override { return 1; }
         int pixelXsamples() const override { return 1; }
         int pixelYsamples() const override { return 1; }
-        const char *samplingSampler() const override { return "legacy"; }
+        const char *samplingSampler() const override { return "sobol"; }
         int samplingSeed() const override { return 0; }
         bool lookupUserOption(const char *, CVariable *&) const override { return false; }
 };

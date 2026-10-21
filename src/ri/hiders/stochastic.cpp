@@ -68,7 +68,7 @@
 // Description			:	Ctor
 // Return Value			:	-
 // Comments				:
-CStochastic::CStochastic(int thread) : CReyes(thread), COcclusionCuller(), apertureGenerator(CRenderer::frame) {
+CStochastic::CStochastic(int thread) : CReyes(thread), COcclusionCuller() {
     int i, j;
     float *cExtraSample;
     CPixel *cPixel;
@@ -170,33 +170,12 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int /*nullBucket*/) {
     }
     static const quaternion identQ = {0.0f, 0.0f, 0.0f, 1.0f};
 
-    // Shared per-sample generator (spec 008-hider-parity-convergence, R2):
-    // single home for the jitter/time/lens constants previously duplicated
-    // (and drifted) here and in CRaytracer.
-    CSampler sampler(
-        CRenderer::jitter, CRenderer::pixelXsamples, CRenderer::pixelYsamples,
-        [this]() { return urand(); },
-        [this](float *s) { apertureGenerator.get(s); });
-    const bool wantLens = (CRenderer::flags & OPTIONS_FLAGS_FOCALBLUR) != 0;
-
-    // Option B (US9, gated -- FR-027): consume the deterministic, bucket-
-    // seeded table verbatim instead of this hider's own live CSobol/urand
-    // stream, so raytrace regenerates the identical values for the same
-    // bucket (see CSampler::generateBucketTable).
-    //
-    // Under the Sobol, PMJ02 and Independent samplers (spec 039, R3.1) every camera
-    // value comes from the sampler's camera slots instead, indexed by the sample's
-    // absolute subpixel coordinates (`left`/`top` are already subpixels here), so
-    // raytrace and a neighbouring bucket compute the same values for the same
-    // subpixel.
+    // Every camera value comes from the sampler's camera slots (spec 039, R3.1),
+    // indexed by the sample's absolute subpixel coordinates (`left`/`top` are already
+    // subpixels here), so raytrace and a neighbouring bucket compute the same values
+    // for the same subpixel.
     const openrender::sampling::CSamplingConfig &samplingCfg = samplingConfig();
-    const bool cameraSlots = samplingCfg.backend != openrender::sampling::Backend::Legacy;
-    std::vector<CSampleValue> correlatedTable;
-    if (!cameraSlots && CRenderer::correlatedSampleTable) {
-        correlatedTable = sampler.generateBucketTable(
-            left, top, sampleWidth, sampleHeight,
-            CRenderer::xSampleOffset, CRenderer::ySampleOffset, wantLens);
-    }
+    const bool wantLens = (CRenderer::flags & OPTIONS_FLAGS_FOCALBLUR) != 0;
 
     // Init the occlusion culler to zero
     initToZero();
@@ -215,14 +194,10 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int /*nullBucket*/) {
             }
             pixel->jtStratum = ((pxi * CRenderer::pixelXsamples + pxj) * rasterTimeStrata()) / (CRenderer::pixelXsamples * CRenderer::pixelYsamples);
 
-            const CSampleValue sample = cameraSlots
-                                            ? CSampler::cameraSample(samplingCfg, CSampler::reyesAbsSub(left, j), CSampler::reyesAbsSub(top, i), wantLens)
-                                        : CRenderer::correlatedSampleTable
-                                            ? correlatedTable[(size_t)i * sampleWidth + j]
-                                            : sampler.nextSample(
-                                                  pxi * CRenderer::pixelXsamples + pxj,
-                                                  pxj * CRenderer::pixelYsamples + pxi,
-                                                  wantLens);
+            // `left`/`top` count from the rendered window; the crop's origin makes them absolute
+            // in the full image, so a crop draws the same samples (spec 039, T116)
+            const CSampleValue sample = CSampler::cameraSample(samplingCfg, CSampler::reyesAbsSub(left + samplingCfg.originX * samplingCfg.nx, j),
+                                                               CSampler::reyesAbsSub(top + samplingCfg.originY * samplingCfg.ny, i), wantLens);
 
             pixel->jx = sample.jitterX;
             pixel->jy = sample.jitterY;

@@ -50,7 +50,7 @@ class CShadingContext;
 // Description			:	Weighted-discard test used by CIrradianceCache::
 //							lookup() while accumulating cached samples. Real
 //							body lives in irradianceDispatch.cpp (needs
-//							CShadingContext::next_state via context->urand());
+//							the context's draw cursor via context->drawNext());
 //							a non-shading stub lives in
 //							vector/irradianceDispatchStub.cpp for consumers
 //							that must not link libshader_shading.

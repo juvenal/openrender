@@ -207,6 +207,11 @@ request. Run `ctest -L architecture` locally before review.
 - **Direction**: composition. Shading's `ShadingContext` keeps state and execution with no hider
   knowledge, and is owned by Hiders' `CHider`; the hiders implement a Shading-owned `ITracer`.
   Strangler steps with byte-identical renders at each step.
+- **History**: the per-context RNG state is gone, the RNG part of V1 (spec 039, 2026-10-20):
+  `CShadingContext` no longer holds a generator (the Mersenne Twister, `urand()`/`irand()` and the
+  `random2d/3d/4d` CSobol members were deleted); every draw comes from the sampler's sub-stream
+  of the sample's identity, so the shared class no longer carries random state between the
+  hider and the shader it runs. The class sharing itself (this entry) is unchanged.
 
 ### DB-006 — Geometry is coupled to Shading and to the hiders
 
@@ -303,6 +308,13 @@ request. Run `ctest -L architecture` locally before review.
   2 edges are listed once per platform, tagged (182 allowlist lines).
 - **Direction**: inject immutable `FrameParams` and per-thread contexts; the mutable flags become
   capabilities on the injected interfaces. Each hider-side spec removes the statics it uses.
+- **History**: spec 039, 2026-10-20: the hiders take every camera value from the sampler's
+  camera slots through an immutable per-frame `CSamplingConfig`, so the Legacy camera path's
+  reads went with it. Deleted allowlist lines: `raytracer.cpp` and `stochastic.cpp ->
+  CRenderer::correlatedSampleTable` (the correlated table, deleted), `stochastic.cpp ->
+  CRenderer::frame` (the seed of the deleted `apertureGenerator`), and `raytracer.cpp` and
+  `stochastic.cpp -> CRenderer::jitter`. The Hiders `CRenderer::` metric fell from 586 to 567
+  references and 87 to 84 members.
 
 ### DB-013 — No hider registry: `strcmp` chains in the renderer core
 
@@ -367,7 +379,9 @@ request. Run `ctest -L architecture` locally before review.
   wrong assumption only fails at run time.
 - **Direction**: delete each pair once its consumer is interface-based (Geometry's `IDicer`/
   `IRayContext`, injected RNG and state notifications); `ribVector` must still link without the
-  stubs.
+  stubs. The "injected RNG" part is done for `CObject::cluster()` (spec 039, 2026-10-20): its draws
+  come from a `CKeyedStream` keyed by the object's `stableId` and the iteration, not from the
+  shading context's generator; the pair itself remains for the other reasons above.
 
 ### DB-018 — Message passing reads `CAttributes` directly
 
@@ -566,7 +580,9 @@ request. Run `ctest -L architecture` locally before review.
     the Infra `CRenderer::` metric is 0. `libshader_shading`'s flat-namespace imports fell from
     29 to 12.
   - Follow-up: the shared `globalArena`/`stats` become injected per-context state in specs 029
-    and 039 (constitution rule 1).
+    and 039 (constitution rule 1). Split as done: spec 039 (2026-10-20) removed randomness from
+    per-context state (draws are keyed by sample identity, no generator remains in a context);
+    the arena and stats injection stays with spec 029.
 
 ### DB-012 — The JIT ignores the hiders' illumination hook
 
