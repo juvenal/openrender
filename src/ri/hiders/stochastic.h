@@ -27,6 +27,7 @@
 #ifndef STOCHASTIC_H
 #define STOCHASTIC_H
 
+#include "rasterTie.h"
 #include "common/global.h"
 #include "occlusion.h"
 #include "common/random.h"
@@ -83,6 +84,7 @@ class CStochastic : public CReyes, public COcclusionCuller {
                 float xcentRot, ycentRot; // Sample center inverse-rotated to the t=0 camera frame (camera pure-rotation fast path)
                 float zScale;             // Depth scale mapping a t=0 interpolated z to the sample's time (fast path)
                 float z;                  // The farthest opaque z value
+                CTieKey tie;              // The owner of z (an exact depth tie is broken by this key, not by arrival order)
                 float zold;               // This is the old Z value (for depth filtering)
                 int numSplats;            // The number of splats to this pixel (used by the avg. depth filter);
                 float xcent, ycent;       // The center of the sampling window
@@ -104,8 +106,6 @@ class CStochastic : public CReyes, public COcclusionCuller {
         int width, height;
         int top, left, right, bottom;
         int sampleWidth, sampleHeight;
-
-        CSobol<2> apertureGenerator;
 
         // Define prototypes for the rasterization functions
 

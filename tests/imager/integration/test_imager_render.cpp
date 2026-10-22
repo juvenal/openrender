@@ -82,8 +82,8 @@ static std::string patchRib(const char *ribPath, const char *outTif, const char 
 }
 
 // Run orender on a RIB file. Returns exit code. extraArgs (e.g. "-t:1") is
-// inserted before the RIB path, verbatim -- see runRender's one caller that
-// passes it (test11) for why.
+// inserted before the RIB path, verbatim. No caller passes it since spec 039
+// removed test11's thread pin (T099).
 static int runRender(const char *orenderPath, const std::string &ribPath, const char *extraArgs = "") {
     std::string cmd = std::string(orenderPath);
     if (extraArgs[0] != '\0') {
@@ -172,19 +172,14 @@ static void test11_regression_render(const char *orenderPath,
     if (fileExists(outTif2.c_str()))
         remove(outTif2.c_str());
 
-    // -t:1 (single-threaded) on both runs: this codebase's default
-    // multi-threaded reyes rendering is NOT byte-reproducible run to run on
-    // the same scene, even with correct, race-free code (bucket-scheduling
-    // order between threads legitimately varies, shifting antialiasing
-    // sample-jitter/compositing order at shared boundaries) -- confirmed
-    // empirically during spec 019 (019-tilesource-extraction) planning.
-    // Without pinning, this "bit-identical across two runs" check
-    // intermittently and correctly detects that real, expected variance as
-    // a failure. -t:1 is this project's own established mechanism for
-    // exactly this situation (see tests/visual/CMakeLists.txt's existing
-    // "-t:1" extra-arg usage for other byte-identical-sensitive scenes).
-    int rc1 = runRender(orenderPath, r1, "-t:1");
-    int rc2 = runRender(orenderPath, r2, "-t:1");
+    // Both runs at the default thread count. Until spec 039 they were pinned
+    // -t:1, because multi-threaded rendering was not byte-reproducible run to
+    // run (bucket-scheduling order shifted the sample jitter); since spec 039
+    // every draw is keyed by the sample's identity, so the render is
+    // bit-identical at any thread count and the pin was removed (spec 039,
+    // T099, thread-pins.md).
+    int rc1 = runRender(orenderPath, r1);
+    int rc2 = runRender(orenderPath, r2);
     remove(r1.c_str());
     remove(r2.c_str());
 

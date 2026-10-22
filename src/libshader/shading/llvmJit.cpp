@@ -17,6 +17,7 @@
 
 #include "llvmJit.h"
 #include "common/diagnostics.h"
+#include "common/sloFormat.h"
 #include "logging.hpp"
 
 #include <cstdio>
@@ -35,6 +36,7 @@
 #include <llvm/Support/Error.h>
 #include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/raw_ostream.h>
 #pragma GCC diagnostic pop
 
 // CLLVMJitEngine::extractMetadataFromModule / extractMetadataFromFile now live in
@@ -64,6 +66,17 @@ CLLVMJitEngine::CLLVMJitEngine() {
         return;
     }
     jit = std::move(*jitOrErr);
+
+    // Keep the default reporting (stderr) and also remember the text, so a failed bind
+    // can name the unresolved symbols in the diagnostic.
+    jit->getExecutionSession().setErrorReporter([this](llvm::Error err) {
+        const std::string text = llvm::toString(std::move(err));
+        llvm::errs() << "JIT session error: " << text << "\n";
+        std::lock_guard<std::mutex> lock(sessionErrorMutex_);
+        if (!sessionErrors_.empty())
+            sessionErrors_ += " ";
+        sessionErrors_ += text;
+    });
 
     // IR dump transform — intercept the IR right before code generation.
     // Active only when OPENRENDER_DUMP_JIT_IR is set. Used to verify no
@@ -146,6 +159,23 @@ TShaderJitEntry CLLVMJitEngine::compileShader(const std::string &filename,
 
     auto &module = *moduleOrErr;
 
+    // Check the format before anything is added or linked: a module of another
+    // major, or newer than this loader, may call entries that do not exist or mean
+    // something else. A module without a record predates the versioning: 1.0.0.
+    {
+        SFormatVersion format{1, 0, 0};
+        const bool recorded = readFormat(*module, format);
+        if (!formatVersionReadable(format.major, format.minor, SLO_FORMAT_MAJOR, SLO_FORMAT_MINOR)) {
+            error(CODE_BADFILE,
+                  "Cannot load JIT shader \"%s\" (%s): its .slo format is %d.%d.%d%s, this renderer reads %d.%d.%d "
+                  "(same major, minor up to %d). Recompile it with `oshader --jit`.\n",
+                  shaderName.c_str(), filename.c_str(), format.major, format.minor, format.patch,
+                  recorded ? "" : " (it has no readable format record, which counts as 1.0.0)", SLO_FORMAT_MAJOR,
+                  SLO_FORMAT_MINOR, SLO_FORMAT_PATCH, SLO_FORMAT_MINOR);
+            return nullptr;
+        }
+    }
+
     // Extract named metadata before transferring ownership to the JIT.
     SLOShaderInfo meta;
     bool hasInit = false;
@@ -156,18 +186,36 @@ TShaderJitEntry CLLVMJitEngine::compileShader(const std::string &filename,
         hasInit = (initMD && initMD->getNumOperands() > 0);
     }
 
+    {
+        std::lock_guard<std::mutex> errLock(sessionErrorMutex_);
+        sessionErrors_.clear();
+    }
+
     // Add the module to the JIT (transfers ownership).
     if (auto err = jit->addIRModule(
             llvm::orc::ThreadSafeModule(std::move(module), std::move(ctx)))) {
-        log_error("Failed to add IR module to JIT: {}", llvm::toString(std::move(err)));
+        const std::string text = llvm::toString(std::move(err));
+        log_error("Failed to add IR module to JIT: {}", text);
+        error(CODE_BADFILE, "Cannot load JIT shader \"%s\" (%s): %s\n", shaderName.c_str(), filename.c_str(), text.c_str());
         return nullptr;
     }
 
     // Look up the main entry point.
     auto symOrErr = jit->lookup(shaderName);
     if (!symOrErr) {
-        log_error("Failed to find shader entry '{}' in JIT: {}", shaderName,
-                  llvm::toString(symOrErr.takeError()));
+        std::string text = llvm::toString(symOrErr.takeError());
+        {
+            std::lock_guard<std::mutex> errLock(sessionErrorMutex_);
+            if (!sessionErrors_.empty())
+                text += " (" + sessionErrors_ + ")";
+        }
+        log_error("Failed to find shader entry '{}' in JIT: {}", shaderName, text);
+        // Binding fails when the module calls a runtime entry that no longer exists
+        // (an older ABI), so say what to do about it, in the diagnostic sink the
+        // .rslo loader reports through.
+        error(CODE_BADFILE,
+              "Cannot bind JIT shader \"%s\" (%s): the .slo is stale or incompatible with this renderer and must be recompiled with `oshader --jit`. %s\n",
+              shaderName.c_str(), filename.c_str(), text.c_str());
         return nullptr;
     }
 

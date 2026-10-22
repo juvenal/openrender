@@ -18,6 +18,7 @@
 #ifndef RI_LLVMJIT_H
 #define RI_LLVMJIT_H
 
+#include "common/formatVersion.h"
 #include "common/global.h"
 #include "sloMetadata.h"
 #include <memory>
@@ -109,6 +110,16 @@ class CLLVMJitEngine {
         std::unordered_map<std::string, TShaderJitEntry> cache_;
         std::unordered_map<std::string, TShaderJitEntry> initCache_;
         std::unordered_map<std::string, SLOShaderInfo> metaCache_;
+
+        // Errors the JIT session reports on its own (the unresolved-symbol list of a
+        // module that cannot bind, for one) while a compile is in flight; compileShader()
+        // adds them to its diagnostic.
+        std::mutex sessionErrorMutex_;
+        std::string sessionErrors_;
+
+        // Read the module's `openrender.slo.format` record (sloFormat.h). False when the
+        // module has none, or one that is not three integer operands.
+        static bool readFormat(const llvm::Module &mod, SFormatVersion &version);
 
         // Extract named metadata from an already-loaded module.
         static bool extractMetadataFromModule(const llvm::Module &mod, SLOShaderInfo &info);

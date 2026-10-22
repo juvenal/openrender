@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 2.0.0
 #!name "shadowpoint"
 light
 #!parameters:
@@ -57,7 +57,7 @@ varying	float	temporary_18
 	if temporary_1 #!Label18
 	illuminate from #!Label19
 	vufloat  temporary_9 1
-	shadow	("f=SFp")  temporary_10 "raytrace" 0 Ps
+	shadow	("f=SFp")  temporary_10 "raytrace" 0 Ps 0
 	subff  vis temporary_9 temporary_10
 	vufloat  temporary_10 intensity
 	mulff  temporary_9 vis temporary_10
@@ -92,10 +92,10 @@ varying	float	temporary_18
 	vufloat  temporary_16 0.0
 	fgt  temporary_10 temporary_15 temporary_16
 	if temporary_10 #!Label24
-	shadow	("f=SFp")  atten shadowname_px 0 Ps
+	shadow	("f=SFp")  atten shadowname_px 0 Ps 1
 #!Label24:
 	else #!Label23
-	shadow	("f=SFp")  atten shadowname_nx 0 Ps
+	shadow	("f=SFp")  atten shadowname_nx 0 Ps 2
 #!Label23:
 	endif
 #!Label22:
@@ -108,10 +108,10 @@ varying	float	temporary_18
 	vufloat  temporary_17 0.0
 	fgt  temporary_15 temporary_16 temporary_17
 	if temporary_15 #!Label28
-	shadow	("f=SFp")  atten shadowname_py 0 Ps
+	shadow	("f=SFp")  atten shadowname_py 0 Ps 3
 #!Label28:
 	else #!Label27
-	shadow	("f=SFp")  atten shadowname_ny 0 Ps
+	shadow	("f=SFp")  atten shadowname_ny 0 Ps 4
 #!Label27:
 	endif
 #!Label26:
@@ -124,10 +124,10 @@ varying	float	temporary_18
 	vufloat  temporary_18 0.0
 	fgt  temporary_16 temporary_17 temporary_18
 	if temporary_16 #!Label32
-	shadow	("f=SFp")  atten shadowname_pz 0 Ps
+	shadow	("f=SFp")  atten shadowname_pz 0 Ps 5
 #!Label32:
 	else #!Label31
-	shadow	("f=SFp")  atten shadowname_nz 0 Ps
+	shadow	("f=SFp")  atten shadowname_nz 0 Ps 6
 #!Label31:
 	endif
 #!Label29:

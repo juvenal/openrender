@@ -5,7 +5,7 @@
  *
  * Description:
  *   Real (rendering-time) bodies of the two pieces of the irradiance-cache
- *   code that reach into the shading engine (CShadingContext::next_state/
+ *   code that reach into the shading engine (the CShadingContext draw cursor/
  *   trace, CTextureLookup::staticInit) -- found via an `nm -u` sweep over
  *   ribVector_obj's built object files after adding hiders/irradiance.cpp
  *   back to its source list (needed for CIrradianceCache's constructor/
@@ -24,7 +24,7 @@
  *     itself calls while walking the cache's octree -- lookup() IS needed
  *     by the data-viewer, so this couldn't be handled by excluding the
  *     whole method; it needed pulling out just the one line that calls
- *     context->urand() (an inline wrapper around next_state()). See
+ *     context->drawNext() (an inline read of the context's draw cursor). See
  *     irradiance.h's declaration and irradianceDispatchStub.cpp's stub
  *     for why the stub's answer is exact, not an approximation, for
  *     every case ribVector can actually reach.
@@ -265,7 +265,13 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
     const CShadingScratch *scratch = &(context->currentShadingState->scratch);
     const int nt = (int)(sqrtf(scratch->traceParams.samples / (float)C_PI) + 0.5);
     const int np = (int)(C_PI * nt + 0.5);
-    const int numSamples = nt * np;
+    // Spec 039 (T076c): with no cache to fill, occlusion() takes `samples` directions from
+    // the sampler by sample index, as trace() takes its rays: pair 0 of the bound call's
+    // sub-stream is the direction, pair 1 the origin jitter. Whenever the cache is on
+    // (posGradient/rotGradient need the grid) it keeps the nt x np grid of jittered cells.
+    // indirectdiffuse() stays on the grid (a known gap, for spec 040).
+    const bool fromSampler = scratch->occlusionParams.occlusion == TRUE && scratch->occlusionParams.maxError == 0;
+    const int numSamples = fromSampler ? ((int)scratch->traceParams.samples > 1 ? (int)scratch->traceParams.samples : 1) : nt * np;
     CHemisphereSample *hemisphere = (CHemisphereSample *)alloca(numSamples * sizeof(CHemisphereSample));
 
     // initialize texture lookups if needed
@@ -313,99 +319,111 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
         context->numOcclusionRays += numSamples;
         context->numOcclusionSamples++;
 
-        for (i = 0; i < nt; i++) {
-            for (j = 0; j < np; j++, hemisphere++) {
-                float rv[2];
-                context->random2d.get(rv);
+        for (int k = 0; k < numSamples; k++, hemisphere++) {
+            float rv[2];
+            float tmp;
+            float phi;
+            if (fromSampler) {
+                const openrender::sampling::Sample2D dir = context->drawBound2D(0, (uint32_t)k);
+                const openrender::sampling::Sample2D origin = context->drawBound2D(1, (uint32_t)k);
+                rv[0] = origin.u;
+                rv[1] = origin.v;
+                tmp = sqrtf(dir.u);
+                phi = (float)(2 * C_PI * dir.v);
+            }
+            else {
+                i = k / np;
+                j = k % np;
+                context->drawNext2(rv);
 
-                float tmp = sqrtf((i + context->urand()) / (float)nt);
-                const float phi = (float)(2 * C_PI * (j + context->urand()) / (float)np);
-                const float cosPhi = (cosf(phi) * tmp);
-                const float sinPhi = (sinf(phi) * tmp);
+                tmp = sqrtf((i + context->drawNext()) / (float)nt);
+                phi = (float)(2 * C_PI * (j + context->drawNext()) / (float)np);
+            }
+            const float cosPhi = (cosf(phi) * tmp);
+            const float sinPhi = (sinf(phi) * tmp);
 
-                tmp = sqrtf(1 - tmp * tmp);
+            tmp = sqrtf(1 - tmp * tmp);
 
-                ray.dir[0] = X[0] * cosPhi + Y[0] * sinPhi + N[0] * tmp;
-                ray.dir[1] = X[1] * cosPhi + Y[1] * sinPhi + N[1] * tmp;
-                ray.dir[2] = X[2] * cosPhi + Y[2] * sinPhi + N[2] * tmp;
+            ray.dir[0] = X[0] * cosPhi + Y[0] * sinPhi + N[0] * tmp;
+            ray.dir[1] = X[1] * cosPhi + Y[1] * sinPhi + N[1] * tmp;
+            ray.dir[2] = X[2] * cosPhi + Y[2] * sinPhi + N[2] * tmp;
 
-                const float originJitterX = (rv[0] - 0.5f) * scratch->traceParams.sampleBase;
-                const float originJitterY = (rv[1] - 0.5f) * scratch->traceParams.sampleBase;
+            const float originJitterX = (rv[0] - 0.5f) * scratch->traceParams.sampleBase;
+            const float originJitterY = (rv[1] - 0.5f) * scratch->traceParams.sampleBase;
 
-                ray.from[COMP_X] = originJitterX * dPdu[0] + originJitterY * dPdv[0];
-                ray.from[COMP_Y] = originJitterX * dPdu[1] + originJitterY * dPdv[1];
-                ray.from[COMP_Z] = originJitterX * dPdu[2] + originJitterY * dPdv[2];
-                keepOriginAbove(ray.from, N, ray.dir);
-                addvv(ray.from, P);
+            ray.from[COMP_X] = originJitterX * dPdu[0] + originJitterY * dPdv[0];
+            ray.from[COMP_Y] = originJitterX * dPdu[1] + originJitterY * dPdv[1];
+            ray.from[COMP_Z] = originJitterX * dPdu[2] + originJitterY * dPdv[2];
+            keepOriginAbove(ray.from, N, ray.dir);
+            addvv(ray.from, P);
 
-                ray.flags = ATTRIBUTES_FLAGS_DIFFUSE_VISIBLE;
-                ray.tmin = scratch->traceParams.bias;
-                ray.t = scratch->traceParams.maxDist;
-                ray.time = 0;
-                ray.da = da;
-                ray.db = db;
+            ray.flags = ATTRIBUTES_FLAGS_DIFFUSE_VISIBLE;
+            ray.tmin = scratch->traceParams.bias;
+            ray.t = scratch->traceParams.maxDist;
+            ray.time = 0;
+            ray.da = da;
+            ray.db = db;
 
-                // Transform the ray into the right coordinate system
-                mulmp(ray.from, from, ray.from);
-                mulmv(ray.dir, from, ray.dir);
+            // Transform the ray into the right coordinate system
+            mulmp(ray.from, from, ray.from);
+            mulmv(ray.dir, from, ray.dir);
 
-                context->trace(&ray);
+            context->trace(&ray);
 
-                // Do we have an intersection ?
-                if (ray.object != NULL) {
-                    const float *color = ray.object->attributes->surfaceColor;
+            // Do we have an intersection ?
+            if (ray.object != NULL) {
+                const float *color = ray.object->attributes->surfaceColor;
 
-                    // Yes
-                    coverage++;
+                // Yes
+                coverage++;
+                addvv(irradiance, color);
+
+                hemisphere->coverage = 1;
+                initv(hemisphere->envdir, 0);
+                movvv(hemisphere->irradiance, color);
+            }
+            else {
+                // No
+                hemisphere->coverage = 0;
+                addvv(envdir, ray.dir);
+                movvv(hemisphere->envdir, ray.dir);
+
+                // GSH : Texture lookup for misses
+                if (scratch->occlusionParams.environment != NULL) {
+                    CEnvironment *tex = scratch->occlusionParams.environment;
+                    vector D0, D1, D2, D3;
+                    vector color;
+
+                    // GSHTODO: Add in the dCosPhi and dSinPhi
+                    movvv(D0, ray.dir);
+                    movvv(D1, ray.dir);
+                    movvv(D2, ray.dir);
+                    movvv(D3, ray.dir);
+
+                    float savedSamples = scratch->traceParams.samples;
+                    context->currentShadingState->scratch.traceParams.samples = 1;
+                    tex->lookup(color, D0, D1, D2, D3, context);
+                    context->currentShadingState->scratch.traceParams.samples = savedSamples;
+
                     addvv(irradiance, color);
-
-                    hemisphere->coverage = 1;
-                    initv(hemisphere->envdir, 0);
                     movvv(hemisphere->irradiance, color);
                 }
                 else {
-                    // No
-                    hemisphere->coverage = 0;
-                    addvv(envdir, ray.dir);
-                    movvv(hemisphere->envdir, ray.dir);
+                    initv(hemisphere->irradiance, 0);
+                }
+            }
 
-                    // GSH : Texture lookup for misses
-                    if (scratch->occlusionParams.environment != NULL) {
-                        CEnvironment *tex = scratch->occlusionParams.environment;
-                        vector D0, D1, D2, D3;
-                        vector color;
+            hemisphere->depth = ray.t;
+            hemisphere->invDepth = 1 / ray.t;
 
-                        // GSHTODO: Add in the dCosPhi and dSinPhi
-                        movvv(D0, ray.dir);
-                        movvv(D1, ray.dir);
-                        movvv(D2, ray.dir);
-                        movvv(D3, ray.dir);
-
-                        float savedSamples = scratch->traceParams.samples;
-                        context->currentShadingState->scratch.traceParams.samples = 1;
-                        tex->lookup(color, D0, D1, D2, D3, context);
-                        context->currentShadingState->scratch.traceParams.samples = savedSamples;
-
-                        addvv(irradiance, color);
-                        movvv(hemisphere->irradiance, color);
-                    }
-                    else {
-                        initv(hemisphere->irradiance, 0);
-                    }
+            if (tmp > horizonCutoff)
+                if (ray.t < rMean) {
+                    rMean = ray.t;
                 }
 
-                hemisphere->depth = ray.t;
-                hemisphere->invDepth = 1 / ray.t;
+            movvv(hemisphere->dir, ray.dir);
 
-                if (tmp > horizonCutoff)
-                    if (ray.t < rMean) {
-                        rMean = ray.t;
-                    }
-
-                movvv(hemisphere->dir, ray.dir);
-
-                assert(hemisphere->invDepth > 0);
-            }
+            assert(hemisphere->invDepth > 0);
         }
     }
     else {
@@ -417,10 +435,10 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
         for (i = 0; i < nt; i++) {
             for (j = 0; j < np; j++, hemisphere++) {
                 float rv[2];
-                context->random2d.get(rv);
+                context->drawNext2(rv);
 
-                float tmp = sqrtf((i + context->urand()) / (float)nt);
-                const float phi = (float)(2 * C_PI * (j + context->urand()) / (float)np);
+                float tmp = sqrtf((i + context->drawNext()) / (float)nt);
+                const float phi = (float)(2 * C_PI * (j + context->drawNext()) / (float)np);
                 const float cosPhi = (cosf(phi) * tmp);
                 const float sinPhi = (sinf(phi) * tmp);
 
@@ -548,7 +566,7 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
             }
         }
     }
-    hemisphere -= np * nt;
+    hemisphere -= numSamples;
 
     // Normalize
     const float tmp = 1 / (float)numSamples;
@@ -653,5 +671,5 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
 // Return Value			:	TRUE if the sample should be accepted
 // Comments				:
 bool irradianceSampleAccept(float w, float smallSampleWeight, CShadingContext *context) {
-    return w > context->urand() * smallSampleWeight;
+    return w > context->drawNext() * smallSampleWeight;
 }

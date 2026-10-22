@@ -24,6 +24,7 @@
 //  Description			:
 //
 ////////////////////////////////////////////////////////////////////////
+#include "common/sampling.h"
 #include "pointHierarchy.h"
 #include "common/portable_io.h"
 #include "common/diagnostics.h"
@@ -299,19 +300,26 @@ int CPointHierarchy::cluster(int numItems, int *indices) {
         vector C0, C1; // The cluster centers
         vector N0, N1; // The cluster normals
 
+        // The random choices below come from a keyed stream of this node (its item count
+        // and first item): the same hierarchy whichever thread builds it (spec 039, R3.10)
+        openrender::sampling::CKeyedStream draws(openrender::sampling::detail::mix(0x9017C1ull, (uint64_t)numItems, (uint64_t)indices[0]));
+        auto randomCenter = [&](float *C) {
+            const float x = draws.next1D(), y = draws.next1D(), z = draws.next1D();
+            initv(C, x * (bmax[0] - bmin[0]) + bmin[0], y * (bmax[1] - bmin[1]) + bmin[1], z * (bmax[2] - bmin[2]) + bmin[2]);
+        };
+        auto randomNormal = [&](float *N) {
+            const float x = draws.next1D(), y = draws.next1D(), z = draws.next1D();
+            initv(N, x * 2 - 1, y * 2 - 1, z * 2 - 1);
+            normalizevf(N);
+        };
+
         // Create random cluster centers
-        initv(C0, _urand() * (bmax[0] - bmin[0]) + bmin[0],
-              _urand() * (bmax[1] - bmin[1]) + bmin[1],
-              _urand() * (bmax[2] - bmin[2]) + bmin[2]);
-        initv(C1, _urand() * (bmax[0] - bmin[0]) + bmin[0],
-              _urand() * (bmax[1] - bmin[1]) + bmin[1],
-              _urand() * (bmax[2] - bmin[2]) + bmin[2]);
+        randomCenter(C0);
+        randomCenter(C1);
 
         // Create random cluster normals
-        initv(N0, _urand() * 2 - 1, _urand() * 2 - 1, _urand() * 2 - 1);
-        initv(N1, _urand() * 2 - 1, _urand() * 2 - 1, _urand() * 2 - 1);
-        normalizevf(N0);
-        normalizevf(N1);
+        randomNormal(N0);
+        randomNormal(N1);
 
         // Perform the clustering iterations
         int num0, num1;
@@ -382,17 +390,11 @@ int CPointHierarchy::cluster(int numItems, int *indices) {
 
             // Check for degenerate cases
             if ((num0 == 0) || (num1 == 0)) {
-                initv(C0, _urand() * (bmax[0] - bmin[0]) + bmin[0],
-                      _urand() * (bmax[1] - bmin[1]) + bmin[1],
-                      _urand() * (bmax[2] - bmin[2]) + bmin[2]);
-                initv(C1, _urand() * (bmax[0] - bmin[0]) + bmin[0],
-                      _urand() * (bmax[1] - bmin[1]) + bmin[1],
-                      _urand() * (bmax[2] - bmin[2]) + bmin[2]);
+                randomCenter(C0);
+                randomCenter(C1);
 
-                initv(N0, _urand() * 2 - 1, _urand() * 2 - 1, _urand() * 2 - 1);
-                initv(N1, _urand() * 2 - 1, _urand() * 2 - 1, _urand() * 2 - 1);
-                normalizevf(N0);
-                normalizevf(N1);
+                randomNormal(N0);
+                randomNormal(N1);
             }
             else {
                 if (changed == FALSE)

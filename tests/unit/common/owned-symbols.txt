@@ -27,8 +27,6 @@ _Z10memoryInitRP8CMemPage                       # memoryInit(CMemPage*&)
 _Z10memoryTiniRP8CMemPage                       # memoryTini(CMemPage*&)
 _Z13memoryNewPagei                              # memoryNewPage(int)
 _Z16memoryDeletePageP8CMemPage                  # memoryDeletePage(CMemPage*)
-_Z16sampleHemispherePfPKffR6CSobolILi4EE        # sampleHemisphere(...)
-_Z22sampleCosineHemispherePfPKffR6CSobolILi4EE  # sampleCosineHemisphere(...)
 _ZN11CRefCounterC2Ev                            # CRefCounter::CRefCounter()
 _ZN11CRefCounterD2Ev                            # CRefCounter::~CRefCounter()
 _ZTV11CRefCounter                               # vtable for CRefCounter

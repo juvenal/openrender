@@ -1,0 +1,37 @@
+##RenderMan RIB-Structure 1.0
+# Spec 039, Phase 5 (CameraSamples_SobolEngaged): three opaque spheres with
+# jitter 1, reyes hider, sampler "independent". The independent and sobol copies differ only in
+# the option line; once the camera samples come from the sampler's slots the two
+# renders must differ (jitter 1 puts the samples at the sampler's positions),
+# which shows the new path is the one in use. (Until Phase 9 this copy selected the Legacy sampler.)
+version 3.03
+Hider "reyes" "jitter" [1]
+Option "sampling" "sampler" ["independent"]
+PixelSamples 4 4
+Display "sampling-camera-jitter1-reyes-independent.tif" "file" "rgba" "quantize" [0 0 0 0]
+Format 160 120 1
+Projection "perspective" "fov" 45
+Translate 0 0 6
+
+WorldBegin
+  AttributeBegin
+    Color 1 0.2 0.2
+    Opacity 1 1 1
+    Translate 0.5 0.3 1.5
+    Sphere 1.1 -1.1 1.1 360
+  AttributeEnd
+
+  AttributeBegin
+    Color 0.2 1 0.2
+    Opacity 1 1 1
+    Translate -0.4 -0.2 0
+    Sphere 1.1 -1.1 1.1 360
+  AttributeEnd
+
+  AttributeBegin
+    Color 0.2 0.2 1
+    Opacity 1 1 1
+    Translate -0.1 0.1 -1.5
+    Sphere 1.1 -1.1 1.1 360
+  AttributeEnd
+WorldEnd

@@ -1,0 +1,37 @@
+##RenderMan RIB-Structure 1.0
+# Spec 039, Phase 8 (T086): an area light's soft shadow under the raytrace hider. The integral is the
+# shadow ray's cone in convergence_arealight.sl (@SAMPLES@ rays per shaded point, drawn through
+# transmission()'s sample index; quadlight.sl's `random()` per iteration cannot be stratified); the pixel
+# positions are fixed (jitter 0, one sample per pixel) so the film does not contribute. The geometry is
+# quadlight.rib's.
+version 3.03
+Option "sampling" "sampler" ["@SAMPLER@"]
+Option "sampling" "seed" [@SEED@]
+Option "shaderformat" "default" ["rslo"]
+Option "limits" "bucketsize" [16 16]
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "convergence-out.tif" "file" "rgba"
+Format 64 64 1
+Hider "raytrace" "jitter" [0]
+PixelSamples 1 1
+Projection "perspective" "fov" 40
+Clipping 0.1 1000
+Translate 0 0 12
+WorldBegin
+    Attribute "visibility" "int transmission" [1]
+    LightSource "convergence_arealight" 1 "from" [4 6 -2] "intensity" [2.5] "samples" [@SAMPLES@] "samplecone" [0.12]
+    AttributeBegin
+        Color [0.8 0.8 0.8]
+        Surface "matte"
+        Translate 0 0 3
+        Sphere 1.5 -1.5 1.5 360
+    AttributeEnd
+    AttributeBegin
+        Color [0.7 0.7 0.7]
+        Surface "matte"
+        Translate 0 -3 0
+        Rotate -90 1 0 0
+        Disk 0 20 360
+    AttributeEnd
+WorldEnd

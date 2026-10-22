@@ -1,0 +1,31 @@
+##RenderMan RIB-Structure 1.0
+# Spec 039, Phase 8 (T086): depth of field under the raytrace hider. The lens samples of the sampler, and
+# the film position, are the integral; the knob is the number of samples per pixel (@SPP@). Three
+# constant-colour cones at different depths, camera-dof-reyes.rib's geometry at 64x64.
+version 3.03
+Option "sampling" "sampler" ["@SAMPLER@"]
+Option "sampling" "seed" [@SEED@]
+Option "shaderformat" "default" ["rslo"]
+Option "limits" "bucketsize" [16 16]
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "convergence-out.tif" "file" "rgba"
+Format 64 64 1
+Hider "raytrace"
+PixelSamples @SPP@
+Projection "perspective" "fov" 45
+DepthOfField 2 1 5
+Translate 0 0 5
+Rotate -110 1 0 0
+Rotate 70 0 0 1
+WorldBegin
+  Surface "constant"
+  Color 0 1 0
+  Cone 1.5 0.75 360
+  Color 1 0 0
+  Translate -4 0 0
+  Cone 1.5 1 360
+  Color 0 0 1
+  Translate 7 1 0
+  Cone 1.5 0.25 360
+WorldEnd

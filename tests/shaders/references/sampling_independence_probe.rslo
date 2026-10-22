@@ -1,0 +1,128 @@
+#!version 2.0.0
+#!name "sampling_independence_probe"
+surface
+#!parameters:
+uniform	float	n1	=	2
+#!variables:
+varying	vector	Nn
+varying	vector	Nf
+uniform	float	i
+varying	vector	dir
+varying	float	first
+varying	float	second
+varying	float	lit
+uniform	float	rayDepth
+uniform	float	depthFound
+varying	float	nested
+uniform	vector	temporary_0
+uniform	vector	temporary_1
+varying	float	temporary_2
+uniform	float	temporary_3
+varying	vector	c
+varying	float	temporary_4
+varying	float	temporary_5
+varying	float	temporary_6
+varying	float	temporary_7
+varying	float	temporary_8
+varying	vector	c_1
+varying	float	temporary_9
+varying	float	temporary_10
+varying	vector	temporary_11
+varying	vector	temporary_12
+varying	vector	temporary_13
+uniform	float	temporary_14
+varying	vector	temporary_15
+#!Init:
+	return            
+#!Code:
+	normalize	("v=v")  Nn N
+	faceforward	("v=vv")  Nf Nn I
+	vfromf  temporary_1 0.2 0.15 1
+	normalize	("v=v")  temporary_0 temporary_1
+	vuvector  dir temporary_0
+	vufloat  first 0
+	moveff  i 0
+	forbegin #!Label9 #!Label10 #!Label11
+#!Label9:
+	flt  temporary_3 i n1
+	vufloat  temporary_2 temporary_3
+	for temporary_2
+	trace	("c=pv")  c P dir 0
+	random	("f=")  temporary_6 1
+	vufloat  temporary_8 0
+	comp	("f=cf")  temporary_7 c temporary_8
+	addff  temporary_5 temporary_6 temporary_7
+	vufloat  temporary_7 1
+	comp	("f=cf")  temporary_6 c temporary_7
+	addff  temporary_4 temporary_5 temporary_6
+	vufloat  temporary_6 2
+	comp	("f=cf")  temporary_5 c temporary_6
+	addff  temporary_2 temporary_4 temporary_5
+	addff  first first temporary_2
+#!Label10:
+	addff  i i 1
+#!Label11:
+	forend
+	vufloat  second 0
+	moveff  i 0
+	forbegin #!Label12 #!Label13 #!Label14
+#!Label12:
+	flt  temporary_3 i 2
+	vufloat  temporary_2 temporary_3
+	for temporary_2
+	trace	("c=pv")  c_1 P dir 2
+	random	("f=")  temporary_6 3
+	vufloat  temporary_8 0
+	comp	("f=cf")  temporary_7 c_1 temporary_8
+	addff  temporary_5 temporary_6 temporary_7
+	vufloat  temporary_7 1
+	comp	("f=cf")  temporary_6 c_1 temporary_7
+	addff  temporary_4 temporary_5 temporary_6
+	vufloat  temporary_6 2
+	comp	("f=cf")  temporary_5 c_1 temporary_6
+	addff  temporary_2 temporary_4 temporary_5
+	addff  second second temporary_2
+#!Label13:
+	addff  i i 1
+#!Label14:
+	forend
+	vufloat  lit 0
+	vufloat  temporary_2 3.141592654
+	illuminance P Nf temporary_2 #!Label15 #!Label16 4
+#!Label15:
+	random	("f=")  temporary_5 5
+	vufloat  temporary_9 0
+	comp	("f=cf")  temporary_8 Cl temporary_9
+	vufloat  temporary_10 1
+	comp	("f=cf")  temporary_9 Cl temporary_10
+	addff  temporary_7 temporary_8 temporary_9
+	vufloat  temporary_9 2
+	comp	("f=cf")  temporary_8 Cl temporary_9
+	addff  temporary_6 temporary_7 temporary_8
+	mulff  temporary_4 temporary_5 temporary_6
+	addff  lit lit temporary_4
+#!Label16:
+	endilluminance
+	moveff  rayDepth 0
+	rayinfo	("f=sf")  depthFound "depth" rayDepth
+	step	("f=ff")  temporary_3 0.5 rayDepth
+	vufloat  nested temporary_3
+	vufloat  temporary_4 1
+	subff  temporary_2 temporary_4 nested
+	vfromf  temporary_12 temporary_2
+	mulff  temporary_14 n1 2
+	addff  temporary_3 temporary_14 1
+	vufloat  temporary_4 temporary_3
+	divff  temporary_2 first temporary_4
+	vufloat  temporary_5 6
+	divff  temporary_4 second temporary_5
+	vfromf  temporary_13 temporary_2 temporary_4 lit
+	mulvv  temporary_11 temporary_12 temporary_13
+	vfromf  temporary_13 nested
+	vfromf  temporary_0 0.25 0.25 0.25
+	vuvector  temporary_15 temporary_0
+	mulvv  temporary_12 temporary_13 temporary_15
+	addvv  Ci temporary_11 temporary_12
+	vfromf  temporary_0 1
+	vuvector  Oi temporary_0
+	return

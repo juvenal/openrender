@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 2.0.0
 #!name "brushedmetal"
 surface
 #!parameters:
@@ -79,7 +79,7 @@ varying	float	temporary_23
 	vuvector  C temporary_5
 	vufloat  temporary_14 1.570796327
 	vufloat  temporary_10 temporary_14
-	illuminance P Nf temporary_10 #!Label7 #!Label8
+	illuminance P Nf temporary_10 #!Label7 #!Label8 0
 #!Label7:
 	vufloat  nonspec 0
 	lightsource	("f=SF")  temporary_11 "__nonspecular" nonspec

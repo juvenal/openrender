@@ -2,7 +2,8 @@
 # See sphere-visibility-reyes.rib for why numthreads 1 is required.
 version 3.03
 Hider "reyes"
-Option "limits" "numthreads" [1]
+# Spec 039 (T099): the one-thread pin described above was removed. Every draw is keyed by
+# the sample's identity, so the render is bit-identical at any thread count.
 Display "sphere-visibility-reyes-slo.tif" "file" "rgba"
 Projection "perspective"
 Clipping 0.1 100

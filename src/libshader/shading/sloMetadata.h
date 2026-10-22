@@ -3,11 +3,13 @@
 // .slo files embed all shader metadata as LLVM named metadata nodes so they are
 // fully self-contained without a companion .rslo file.
 //
-// Named metadata layout (all string-valued for portability):
+// Named metadata layout (string-valued for portability, except openrender.slo.format):
 //
 //   !openrender.shader.name           = !{!"plastic"}
 //   !openrender.shader.type           = !{!"surface"}   ; surface|light|displacement|volume|imager
-//   !openrender.shader.version        = !{!"1"}
+//   !openrender.shader.version        = !{!"2.0.0"}    ; the .rslo format string of the IR (informational)
+//   !openrender.slo.format            = !{i32 2, i32 0, i32 0} ; .slo format major, minor, patch
+//                                       (common/sloFormat.h); checked before the module is linked
 //   !openrender.shader.usedparameters = !{!"131072"}    ; decimal PARAMETER_* bitmask
 //   !openrender.shader.params         = !{!p0, !p1, ...}
 //   !openrender.shader.vars           = !{!v0, ...}     ; local temporaries

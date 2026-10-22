@@ -157,6 +157,7 @@ static bool currentBlockHasTerminator(llvm::IRBuilder<> &B) {
 // needed it.
 // =========================================================================
 #include "common/rendererc.h"
+#include "common/sloFormat.h"
 
 #define DEFOPCODE(name, text, nargs, expr_pre, expr, expr_update, expr_post, params) {text, static_cast<unsigned int>(params)},
 #define DEFSHORTOPCODE(name, text, nargs, expr_pre, expr, expr_update, expr_post, params) {text, static_cast<unsigned int>(params)},
@@ -469,6 +470,15 @@ static void embedMetadata(llvm::Module &mod,
     mod.getOrInsertNamedMetadata("openrender.shader.version")
         ->addOperand(mkMD(mkStr(ir.version)));
 
+    // The .slo format version (sloFormat.h): three integer operands, checked by the
+    // JIT loader before it links the module.
+    {
+        llvm::Type *i32 = llvm::Type::getInt32Ty(ctx);
+        auto mkInt = [&](int v) -> llvm::Metadata * { return llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(i32, v)); };
+        llvm::Metadata *format[3] = {mkInt(SLO_FORMAT_MAJOR), mkInt(SLO_FORMAT_MINOR), mkInt(SLO_FORMAT_PATCH)};
+        mod.getOrInsertNamedMetadata(SLO_FORMAT_KEY)->addOperand(llvm::MDNode::get(ctx, format));
+    }
+
     if (hasInit) {
         mod.getOrInsertNamedMetadata("openrender.shader.hasinit")
             ->addOperand(mkMD(mkStr("1")));
@@ -517,6 +527,13 @@ static void embedMetadata(llvm::Module &mod,
 // =========================================================================
 // External function declaration helper
 // =========================================================================
+// The call-site ordinal of a stochastic call (spec 039, contract J1): the last
+// argument of every versioned (_v2) runtime entry, a constant the compiler's
+// CCallSitePass assigned.
+static llvm::Value *callSiteArg(llvm::IRBuilderBase &B, const IRInstr &ins) {
+    return B.getInt32(static_cast<uint32_t>(ins.callSite < 0 ? 0 : ins.callSite));
+}
+
 static llvm::Function *declareOp(llvm::Module &mod, const std::string &name, llvm::FunctionType *ty) {
     if (auto *existing = mod.getFunction(name))
         return existing;
@@ -1101,12 +1118,12 @@ static bool emitFunction(const IRFunction &irFn,
                 // CUniformLiftingPass) past its single-element allocation.
                 auto *ghTy = llvm::FunctionType::get(voidTy,
                                                      {ptrTy, ptrTy, ptrTy, ptrTy, i32Ty,
-                                                      ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty, f32Ty},
+                                                      ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty, f32Ty, i32Ty},
                                                      false);
-                auto *fn = declareOp(mod, "op_gatherHeader", ghTy);
+                auto *fn = declareOp(mod, "op_gatherHeader_v2", ghTy);
                 B.CreateCall(fn, {namesArr, valuePtrsArr, stepsArr, isVaryingArr, B.getInt32(numPairs),
                                   P, B.getInt32(sP), D, B.getInt32(sD), sampleCone, B.getInt32(ssc),
-                                  samplesVal});
+                                  samplesVal, callSiteArg(B, ins)});
                 continue;
             }
 
@@ -1282,9 +1299,9 @@ static bool emitFunction(const IRFunction &irFn,
                 // Function type: (ptr,i32, ptr,i32, ptr,i32, ptr, i32, ptr*, ptr*) → i32
                 auto *beginTy = llvm::FunctionType::get(i32Ty,
                                                         {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty,
-                                                         ptrTy, i32Ty, ptrTy, ptrTy},
+                                                         ptrTy, i32Ty, ptrTy, ptrTy, i32Ty},
                                                         false);
-                auto *beginFn = declareOp(mod, "op_illuminance_begin", beginTy);
+                auto *beginFn = declareOp(mod, "op_illuminance_begin_v2", beginTy);
 
                 llvm::BasicBlock *bodyBB = nullptr;
                 llvm::BasicBlock *latchBB = nullptr;
@@ -1303,7 +1320,7 @@ static bool emitFunction(const IRFunction &irFn,
                                          {P, B.getInt32(sp),
                                           N, B.getInt32(sn),
                                           ang, B.getInt32(sa),
-                                          tags, numVerts, numActivePtr, numPassivePtr});
+                                          tags, numVerts, numActivePtr, numPassivePtr, callSiteArg(B, ins)});
                 auto *ok = B.CreateICmpNE(has, B.getInt32(0));
                 B.CreateCondBr(ok, bodyBB, exitBB);
 
@@ -2044,19 +2061,19 @@ static bool emitFunction(const IRFunction &irFn,
             }
 
             // ================================================================
-            // Layer G — random / urandom (stateful RNG via
-            // libshader::activeContext()->urand()). Variant selected by
+            // Layer G — random / urandom (keyed draws via
+            // libshader::activeContext()->drawRandom()). Variant selected by
             // dstDesc.stride exactly like the noise/snoise case below.
             // ================================================================
             else if (op == "random" || op == "urandom") {
                 if (!dst)
                     continue;
                 bool dstIsVec = (dstDesc.stride == 3);
-                const char *fnName = dstIsVec ? "op_random_v" : "op_random_f";
+                const char *fnName = dstIsVec ? "op_random_v_v2" : "op_random_f_v2";
                 auto *ty = llvm::FunctionType::get(voidTy,
-                                                   {ptrTy, i32Ty, i32Ty, ptrTy}, false);
+                                                   {ptrTy, i32Ty, i32Ty, ptrTy, i32Ty}, false);
                 auto *fn = declareOp(mod, fnName, ty);
-                B.CreateCall(fn, {dst, dstStride, numVerts, tags});
+                B.CreateCall(fn, {dst, dstStride, numVerts, tags, callSiteArg(B, ins)});
             }
 
             // ================================================================
@@ -2633,11 +2650,11 @@ static bool emitFunction(const IRFunction &irFn,
                         continue;
                     // (dst,sd, namepp, chan, s,ss, t,st, n, tags)
                     auto *ty = llvm::FunctionType::get(voidTy,
-                                                       {ptrTy, i32Ty, ptrTy, ptrTy, ptrTy, i32Ty, ptrTy, i32Ty, i32Ty, ptrTy}, false);
-                    auto *fn = declareOp(mod, "op_texture_f", ty);
+                                                       {ptrTy, i32Ty, ptrTy, ptrTy, ptrTy, i32Ty, ptrTy, i32Ty, i32Ty, ptrTy, i32Ty}, false);
+                    auto *fn = declareOp(mod, "op_texture_f_v2", ty);
                     auto [n, tg] = collapseArgs(dstStrideVal, {ss, st});
                     B.CreateCall(fn, {dst, dstStride, namePP, chan,
-                                      s, B.getInt32(ss), t, B.getInt32(st), n, tg});
+                                      s, B.getInt32(ss), t, B.getInt32(st), n, tg, callSiteArg(B, ins)});
                 }
                 else {
                     // Color form: texture name s t
@@ -2647,11 +2664,11 @@ static bool emitFunction(const IRFunction &irFn,
                         continue;
                     // (dst,sd, namepp, s,ss, t,st, n, tags)
                     auto *ty = llvm::FunctionType::get(voidTy,
-                                                       {ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, ptrTy, i32Ty, i32Ty, ptrTy}, false);
-                    auto *fn = declareOp(mod, "op_texture_c", ty);
+                                                       {ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, ptrTy, i32Ty, i32Ty, ptrTy, i32Ty}, false);
+                    auto *fn = declareOp(mod, "op_texture_c_v2", ty);
                     auto [n, tg] = collapseArgs(dstStrideVal, {ss, st});
                     B.CreateCall(fn, {dst, dstStride, namePP,
-                                      s, B.getInt32(ss), t, B.getInt32(st), n, tg});
+                                      s, B.getInt32(ss), t, B.getInt32(st), n, tg, callSiteArg(B, ins)});
                 }
             }
 
@@ -2684,11 +2701,11 @@ static bool emitFunction(const IRFunction &irFn,
                     if (!chan || !D)
                         continue;
                     auto *ty = llvm::FunctionType::get(voidTy,
-                                                       {ptrTy, i32Ty, ptrTy, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy}, false);
-                    auto *fn = declareOp(mod, "op_environment_f", ty);
+                                                       {ptrTy, i32Ty, ptrTy, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy, i32Ty}, false);
+                    auto *fn = declareOp(mod, "op_environment_f_v2", ty);
                     auto [n, tg] = collapseArgs(dstStrideVal, {sD});
                     B.CreateCall(fn, {dst, dstStride, namePP, chan,
-                                      D, B.getInt32(sD), n, tg});
+                                      D, B.getInt32(sD), n, tg, callSiteArg(B, ins)});
                 }
                 else {
                     // Color form: environment name D
@@ -2696,11 +2713,11 @@ static bool emitFunction(const IRFunction &irFn,
                     if (!D)
                         continue;
                     auto *ty = llvm::FunctionType::get(voidTy,
-                                                       {ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy}, false);
-                    auto *fn = declareOp(mod, "op_environment_c", ty);
+                                                       {ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy, i32Ty}, false);
+                    auto *fn = declareOp(mod, "op_environment_c_v2", ty);
                     auto [n, tg] = collapseArgs(dstStrideVal, {sD});
                     B.CreateCall(fn, {dst, dstStride, namePP,
-                                      D, B.getInt32(sD), n, tg});
+                                      D, B.getInt32(sD), n, tg, callSiteArg(B, ins)});
                 }
             }
             else if (op == "shadow") {
@@ -2726,11 +2743,11 @@ static bool emitFunction(const IRFunction &irFn,
                     continue;
                 // (dst,sd, namepp, Ps,sPs, n, tags)
                 auto *ty = llvm::FunctionType::get(voidTy,
-                                                   {ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy}, false);
-                auto *fn = declareOp(mod, "op_shadow_f", ty);
+                                                   {ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy, i32Ty}, false);
+                auto *fn = declareOp(mod, "op_shadow_f_v2", ty);
                 auto [n, tg] = collapseArgs(dstStrideVal, {sPs});
                 B.CreateCall(fn, {dst, dstStride, namePP,
-                                  Ps, B.getInt32(sPs), n, tg});
+                                  Ps, B.getInt32(sPs), n, tg, callSiteArg(B, ins)});
             }
 
             // ================================================================
@@ -2761,18 +2778,18 @@ static bool emitFunction(const IRFunction &irFn,
                 llvm::Value *timePtr = loadVarPtr(timeDesc);
                 auto *ty = llvm::FunctionType::get(voidTy,
                                                    {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty,
-                                                    ptrTy, ptrTy, ptrTy, ptrTy, i32Ty, ptrTy},
+                                                    ptrTy, ptrTy, ptrTy, ptrTy, i32Ty, ptrTy, i32Ty},
                                                    false);
                 const char *fnName;
                 if (op == "visibility")
-                    fnName = "op_visibility";
+                    fnName = "op_visibility_v2";
                 else if (op == "transmission")
-                    fnName = "op_transmission";
+                    fnName = "op_transmission_v2";
                 else
-                    fnName = (dstStrideVal == 3) ? "op_trace_c" : "op_trace_f";
+                    fnName = (dstStrideVal == 3) ? "op_trace_c_v2" : "op_trace_f_v2";
                 auto *fn = declareOp(mod, fnName, ty);
                 B.CreateCall(fn, {dst, dstStride, P, B.getInt32(sP), D, B.getInt32(sD),
-                                  duPtr, dvPtr, nPtr, timePtr, numVerts, tags});
+                                  duPtr, dvPtr, nPtr, timePtr, numVerts, tags, callSiteArg(B, ins)});
             }
 
             // occlusion()/indirectdiffuse() (spec 017-jit-builtin-function-
@@ -2794,12 +2811,12 @@ static bool emitFunction(const IRFunction &irFn,
                 llvm::Value *dvPtr = loadVarPtr(dvDesc);
                 auto *ty = llvm::FunctionType::get(voidTy,
                                                    {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty,
-                                                    ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, ptrTy},
+                                                    ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, ptrTy, i32Ty},
                                                    false);
-                const char *fnName = (op == "occlusion") ? "op_occlusion" : "op_indirectdiffuse";
+                const char *fnName = (op == "occlusion") ? "op_occlusion_v2" : "op_indirectdiffuse_v2";
                 auto *fn = declareOp(mod, fnName, ty);
                 B.CreateCall(fn, {dst, dstStride, P, B.getInt32(sP), N, B.getInt32(sN),
-                                  samples, B.getInt32(sSamples), duPtr, dvPtr, numVerts, tags});
+                                  samples, B.getInt32(sSamples), duPtr, dvPtr, numVerts, tags, callSiteArg(B, ins)});
             }
 
             // texture3d()/bake3d() (spec 017-jit-builtin-function-coverage,

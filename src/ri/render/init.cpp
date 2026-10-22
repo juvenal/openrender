@@ -31,6 +31,7 @@
 #include "common/memory.h"
 #include "noise.h"
 #include "common/random.h"
+#include "common/sampling.h"
 #include "renderer.h"
 #include "rendererContext.h"
 #include "ri_config.h"
@@ -61,7 +62,22 @@
 // outside any shading context, so here they allocate from the process-wide
 // scratch arena instead (spec 023: globalArena, formerly CRenderer::globalMemory).
 #define threadMemory globalArena.top
-#define urand() _urand()
+
+// random()/urandom() in init code (spec 039, research R3.10): no shading context and
+// no shading point, so the draws come from a local keyed stream of (shader, call site,
+// the number of draws this init run made so far) instead of a process-wide generator.
+// The same shader instance therefore draws the same values in every run and thread.
+static void initDraw(CProgrammableShaderInstance *instance, uint32_t drawNumber, unsigned callSite, float *res, int n) {
+    uint64_t nameKey = 0x1417ull;
+    for (const char *c = instance->getName(); c != nullptr && *c != '\0'; ++c)
+        nameKey = openrender::sampling::detail::mix(nameKey, (uint64_t)(unsigned char)*c);
+    openrender::sampling::CKeyedStream stream(openrender::sampling::detail::mix(nameKey, callSite, drawNumber));
+    for (int k = 0; k < n; k++)
+        res[k] = stream.next1D();
+}
+#define drawCounters(__callSite) ((uint32_t *)nullptr)
+#define drawRandom(__vertex, __counts, __callSite, __res, __n) \
+    ((void)(__vertex), (void)(__counts), initDraw(currentShaderInstance, initDrawCounter++, (__callSite), (__res), (__n)))
 
 ///////////////////////////////////////////////////////////////////////
 // Function				:	sfInit
@@ -69,6 +85,7 @@
 // Return Value			:	-
 // Comments				:
 void CRendererContext::init(CProgrammableShaderInstance *currentShaderInstance) {
+    uint32_t initDrawCounter = 0; // The number of random() draws this init run has made
     // At this point, the shader sends us the arrays for parameters/constants/variables/uniforms for the shader
 
 #define scripterror(mes)                                    \

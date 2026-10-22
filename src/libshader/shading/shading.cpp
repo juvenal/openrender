@@ -29,6 +29,7 @@
 #include <new>
 #include <stdarg.h>
 #include <string.h>
+#include <vector>
 
 #include "bundles.h"
 #include "common/diagnostics.h"
@@ -69,6 +70,8 @@ const char *optionsGamma = "Gamma";
 const char *optionsMaxRayDepth = "MaxRayDepth";
 const char *optionsRelativeDetail = "RelativeDetail";
 const char *optionsPixelSamples = "PixelSamples";
+const char *optionsSamplingSampler = "sampling:sampler"; // spec 039
+const char *optionsSamplingSeed = "sampling:seed";
 
 // Attributes that are defined and responded
 const char *attributesShadingRate = "ShadingRate";
@@ -410,6 +413,9 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
 // Description			:	Ctor
 // Return Value			:	-
 // Comments				:
+CPointKeyObserver CShadingContext::pointKeyObserver = nullptr;
+CPointDisplacedObserver CShadingContext::pointDisplacedObserver = nullptr;
+
 CShadingContext::CShadingContext(int t) : thread(t) {
     // Initialize the shading state
     currentShadingState = NULL;
@@ -443,9 +449,6 @@ CShadingContext::CShadingContext(int t) : thread(t) {
     for (int i = 0; i < PL_HASH_SIZE; i++)
         plHash[i] = NULL;
 
-    // Init the random number generator
-    randomInit(5489 * (thread + 1));
-
     // Init the stats
     numIndirectDiffuseRays = 0;
     numIndirectDiffuseSamples = 0;
@@ -477,9 +480,6 @@ CShadingContext::~CShadingContext() {
         conditionals = conditionals->next;
         delete cConditional;
     }
-
-    // Shutdown the random number generator
-    randomShutdown();
 
     // Ditch the PL hash
     for (int i = 0; i < PL_HASH_SIZE; i++) {
@@ -571,6 +571,229 @@ CVariable *CShadingContext::rendererRetrieveVariable(const char *n) const { retu
 #undef SVC
 
 ///////////////////////////////////////////////////////////////////////
+// Class				:	CDrawOccurrences
+// Description			:	The occurrence counters of the stochastic call sites
+//							of one shading invocation (spec 039, research R3.5)
+// Comments				:	One array of counters per (shader, call site) that drew
+//							so far, one counter per real vertex plus one for the
+//							invocation-level (uniform) key. A counter is the number
+//							of times its call site has drawn for that vertex, so the
+//							n-th execution of a call site in a loop always opens the
+//							same sub-stream, whatever other call sites drew.
+class CDrawOccurrences {
+    public:
+        struct Site {
+                uint64_t shaderKey;
+                unsigned callSite;
+                std::vector<uint32_t> counts;
+        };
+
+        void reset() { sites.clear(); }
+
+        uint32_t *get(uint64_t shaderKey, unsigned callSite, int numReal) {
+            for (Site &site : sites)
+                if (site.callSite == callSite && site.shaderKey == shaderKey)
+                    return site.counts.data();
+            sites.push_back(Site{shaderKey, callSite, std::vector<uint32_t>((size_t)numReal + 1, 0u)});
+            return sites.back().counts.data();
+        }
+
+    private:
+        // A deque would keep the counters in place when a site is added; a vector of
+        // vectors moves only the inner vectors' handles, never their storage.
+        std::vector<Site> sites;
+};
+
+static uint64_t shaderNameKey(const char *name) {
+    uint64_t h = 0x5AD3Eull;
+    for (; name != nullptr && *name != '\0'; ++name)
+        h = openrender::sampling::detail::mix(h, (uint64_t)(unsigned char)*name);
+    return h;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CShadingContext
+// Method				:	drawCounters
+// Description			:	The occurrence counters of a call site of the shader
+//							that is executing (spec 039)
+// Return Value			:	-
+// Comments				:	The shader's key is its
+//							name: the same for the interpreter and the JIT, so a
+//							shader draws the same values in both.
+uint32_t *CShadingContext::drawCounters(unsigned callSite) {
+    CShadingState *state = currentShadingState;
+    if (state->callSiteOccurrence == nullptr)
+        state->callSiteOccurrence = new CDrawOccurrences;
+    if (state->currentShaderInstance != shaderKeyInstance) {
+        shaderKeyInstance = state->currentShaderInstance;
+        // The shader's name and the instance's own identity: two instances of one shader (two lights
+        // of one kind) keep separate streams and occurrence counters.
+        // The name hash is kept per context (each thread has its own) for the last instances
+        // seen: under an illuminance loop the context switches between the surface and its
+        // lights at every iteration (spec 039, T114).
+        if (shaderKeyInstance == nullptr)
+            shaderKeyValue = 0;
+        else {
+            ShaderKeyCacheEntry &e = shaderKeyCache[((uintptr_t)shaderKeyInstance >> 4) & (kShaderKeyCacheSize - 1)];
+            if (e.instance != shaderKeyInstance || e.instanceKey != shaderKeyInstance->instanceKey) {
+                e.instance = shaderKeyInstance;
+                e.instanceKey = shaderKeyInstance->instanceKey;
+                e.key = openrender::sampling::detail::mix(shaderNameKey(const_cast<CShaderInstance *>(shaderKeyInstance)->getName()), shaderKeyInstance->instanceKey);
+            }
+            shaderKeyValue = e.key;
+        }
+    }
+    return state->callSiteOccurrence->get(shaderKeyValue, callSite, state->numRealVertices);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CShadingContext
+// Method				:	drawSubstream
+// Description			:	Open the sub-stream of one execution of a stochastic call
+// Return Value			:	-
+// Comments				:	vertex < 0: the invocation-level key, for a uniform call
+//							(there is none in RSL source today: random() cannot be
+//							assigned to a uniform). A real vertex consumes an
+//							occurrence; a derivative-offset tail vertex (index >=
+//							numRealVertices, interleaved pairs after the real
+//							ones) takes its real vertex's current one, so the
+//							draws, and with them Du()/Dv() of a draw, are the same.
+openrender::sampling::SubstreamKey CShadingContext::drawSubstream(int vertex, uint32_t *counts, unsigned callSite, uint32_t samplesPerCall,
+                                                                    openrender::sampling::SampleKey *pointOut, uint32_t *occurrenceOut) {
+    using namespace openrender::sampling;
+    CShadingState *state = currentShadingState;
+    const int numReal = state->numRealVertices;
+    SampleKey point;
+    uint32_t occurrence;
+
+    if (vertex < 0) {
+        point.full = point.path = state->batchKey;
+        point.pixelSampleIndex = -1;
+        point.kind = static_cast<uint8_t>(SampleKind::Cell);
+        occurrence = counts[numReal]++;
+    }
+    else {
+        point = state->pointKeys[vertex];
+        if (vertex < numReal)
+            occurrence = counts[vertex]++;
+        else {
+            const uint32_t used = counts[(vertex - numReal) / 2];
+            occurrence = used > 0 ? used - 1 : 0;
+        }
+    }
+    if (pointOut != nullptr)
+        *pointOut = point;
+    if (occurrenceOut != nullptr)
+        *occurrenceOut = occurrence;
+    // The point-and-shader part of the key is kept per vertex for every call of this shader
+    // at this point (spec 039, T114); it is recomputed when the point's key or the shader
+    // changes, so the value is always substream()'s.
+    uint64_t partial;
+    if (vertex >= 0) {
+        if ((size_t)vertex >= partialKeyCache.size())
+            partialKeyCache.resize((size_t)vertex + 1);
+        PartialKeyEntry &e = partialKeyCache[vertex];
+        const uint64_t base = point.pixelSampleIndex >= 0 ? point.path : point.full;
+        if (!e.valid || e.base != base || e.shaderKey != shaderKeyValue) {
+            e.base = base;
+            e.shaderKey = shaderKeyValue;
+            e.partial = openrender::sampling::substreamPartial(point, shaderKeyValue);
+            e.valid = true;
+        }
+        partial = e.partial;
+    }
+    else
+        partial = openrender::sampling::substreamPartial(point, shaderKeyValue);
+    return openrender::sampling::substreamFromPartial(partial, point, (uint16_t)callSite, occurrence, (uint16_t)currentRayDepth, samplesPerCall);
+}
+
+void CShadingContext::keyedRandom(int vertex, uint32_t *counts, unsigned callSite, float *res, int n) {
+    const openrender::sampling::SubstreamKey sub = drawSubstream(vertex, counts, callSite, 1);
+    for (int k = 0; k < n; k++)
+        res[k] = openrender::sampling::get1D(sampling.backend, sub, (uint32_t)k, 0);
+}
+
+void CShadingContext::resetDrawOccurrences() {
+    if (currentShadingState->callSiteOccurrence != nullptr)
+        currentShadingState->callSiteOccurrence->reset();
+    drawCursor = openrender::sampling::SubstreamKey{0, 0};
+    drawCursorDim = 0;
+}
+
+void CShadingContext::bindDraws(int vertex, uint32_t *counts, unsigned callSite, uint32_t samplesPerCall) {
+    if (counts == nullptr)
+        return;
+    drawCursor = drawSubstream(vertex, counts, callSite, samplesPerCall);
+    drawCursorDim = 0;
+}
+
+void CShadingContext::bindLocationDraws(CTraceLocation *location, int vertex, uint32_t *counts, unsigned callSite) {
+    location->keyed = counts != nullptr;
+    if (location->keyed) {
+        location->sub = drawSubstream(vertex, counts, callSite, (uint32_t)location->numSamples, &location->key, &location->occurrence);
+        location->callSite = callSite;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CShadingContext
+// Method				:	fillPointKeys
+// Description			:	Give the points about to be shaded their sample
+//							identities (spec 039, research R3.3/R3.4/R3.7/R3.10a)
+// Return Value			:	-
+// Comments				:	Grid points get the cell key of (object, u, v): the
+//							object's stable identity and the parametric coordinates
+//							the sampler just wrote, so the same point has the same
+//							key whichever grid, bucket, thread or process shades it.
+//							A point set (shading dimension 0) has no (u, v): its key
+//							comes from the point's index in the object. Ray hits
+//							already carry the key of their ray (the hider set it);
+//							only their derivative-offset tail vertices are filled,
+//							from their real vertex.
+void CShadingContext::fillPointKeys(CSurface *object, EShadingDim dim, bool report) {
+    using openrender::sampling::cellKey;
+    CShadingState *state = currentShadingState;
+    const int numReal = state->numRealVertices;
+    if (state->callSiteOccurrence != nullptr)
+        state->callSiteOccurrence->reset(); // a new shading invocation: every call site starts at occurrence 0
+    drawCursor = openrender::sampling::SubstreamKey{0, 0}; // a lookup that nobody bound draws from a fixed sub-stream
+    drawCursorDim = 0;
+    const float *u = state->varying[VARIABLE_U];
+    const float *v = state->varying[VARIABLE_V];
+
+    if (!state->pointKeysFromRays) {
+        const uint64_t id = object->stableId;
+        if (dim == SHADING_0D) {
+            // The whole point set is shaded in one call: the index is the point's identity
+            for (int i = 0; i < numReal; i++)
+                state->pointKeys[i] = cellKey(id, 0.0f, 0.0f, (uint32_t)i, sampling.frame, sampling.seed);
+        }
+        else {
+            for (int i = 0; i < numReal; i++)
+                state->pointKeys[i] = cellKey(id, u[i], v[i], 0u, sampling.frame, sampling.seed);
+        }
+
+        // The invocation-level key (uniform random()): the grid's parametric origin
+        const float u0 = (dim == SHADING_0D || numReal == 0) ? 0.0f : u[0];
+        const float v0 = (dim == SHADING_0D || numReal == 0) ? 0.0f : v[0];
+        state->batchKey = openrender::sampling::detail::mix(cellKey(id, u0, v0, 0u, sampling.frame, sampling.seed).full, 0xBA7C4ull);
+    }
+
+    // Derivative-offset tail vertices copy their real vertex's key
+    if (state->numVertices > numReal)
+        for (int i = 0; i < numReal; i++) {
+            state->pointKeys[numReal + 2 * i] = state->pointKeys[i];
+            state->pointKeys[numReal + 2 * i + 1] = state->pointKeys[i];
+        }
+
+    // The hook reports the grids that are shaded, not the dicer's displacement-only probes
+    if (report && pointKeyObserver != nullptr) {
+        const CPointKeyReport keyReport{object, numReal, state->pointKeys, u, v};
+        pointKeyObserver(keyReport);
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
 // Class				:	CShadingContext
 // Method				:	shade2D
 // Description			:	Sample/Shade bunch of points
@@ -593,6 +816,11 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
 
     assert(uVertices > 0);
     assert(vVertices > 0);
+
+    // Every call gives its points sample identities (spec 039), the displacement-only passes of
+    // the dicer (bounding and grid-size probes) included: a displacement shader's random() must
+    // draw the same for a point in a probe pass and in the full shading pass, whichever thread
+    // runs them.
 
     // This is the number of vertices we will be sampling/shading
     int numVertices = uVertices * vVertices;
@@ -668,6 +896,9 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
 
         // Prepare the used parameters by the shaders
         usedParameters |= currentAttributes->usedParameters | (currentShadingState->services ? currentShadingState->services->additionalParameters() : 0u);
+
+        // The cell key reads (u, v)
+        usedParameters |= PARAMETER_U | PARAMETER_V;
 
         // Prepare the locals
         for (int a = 0; a < NUM_ACCESSORS; a++)
@@ -764,6 +995,9 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
         // Verify if we have to prepare other shaders, even though displacing
         // due to message passing this _has_ to be after the shaderStateMemory checkPoint
         usedParameters = displacement->requiredParameters() | PARAMETER_P | PARAMETER_N;
+
+        // The cell key reads (u, v), in the surface's own parametric space as the full pass has them
+        usedParameters |= PARAMETER_U | PARAMETER_V;
 
         if (usedParameters & PARAMETER_MESSAGEPASSING) {
             // displacement shader uses messsage passing, must prepare but not execute
@@ -967,6 +1201,9 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
         }
     }
 
+    // Give the points their sample identities (spec 039)
+    fillPointKeys(object, dim, displaceOnly == FALSE);
+
     // Clear the tags for shader execution
     memset(currentShadingState->tags, 0, numVertices * sizeof(int));
 
@@ -999,6 +1236,12 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
     // Run the displacement shader here
     if (displacement != NULL) {
         displacement->execute(this, locals[ACCESSOR_DISPLACEMENT]);
+
+        if (pointDisplacedObserver != nullptr) {
+            const CPointDisplacedReport report{object, displaceOnly, currentShadingState->numRealVertices, varying[VARIABLE_U],
+                                               varying[VARIABLE_V], varying[VARIABLE_P]};
+            pointDisplacedObserver(report);
+        }
     }
 
     // Do we need to run the surface shader?
@@ -1150,6 +1393,12 @@ CShadingState *CShadingContext::newState() {
         newState->stats = &stats;
         newState->services = svc;
         newState->diffuseReady = FALSE;
+        newState->pointKeys = new openrender::sampling::SampleKey[mgs * 3]();
+        bytes += mgs * 3 * sizeof(openrender::sampling::SampleKey);
+        newState->batchKey = 0;
+        newState->pointKeysFromRays = FALSE;
+        newState->callSiteOccurrence = nullptr;
+        newState->currentShaderKey = 0;
 
         for (j = 0; j < numGlobalVariables; j++) {
             const CVariable *var = svc->globalVariable(j);
@@ -1224,6 +1473,8 @@ void CShadingContext::freeState(CShadingState *cState) {
     delete[] cState->tags;
     delete[] cState->lightingTags;
     delete[] cState->Ns;
+    delete[] cState->pointKeys;
+    delete cState->callSiteOccurrence;
     vertexMemory -= cState->allocatedBytes;
 
     delete cState;
@@ -1465,6 +1716,14 @@ int CShadingContext::options(void *dest, const char *name, CVariable **, int *) 
         float *d = (float *)dest;
         d[0] = (float)svc->pixelXsamples();
         d[1] = (float)svc->pixelYsamples();
+        return TRUE;
+    }
+    else if (strcmp(name, optionsSamplingSampler) == 0) {
+        ((const char **)dest)[0] = svc->samplingSampler();
+        return TRUE;
+    }
+    else if (strcmp(name, optionsSamplingSeed) == 0) {
+        ((float *)dest)[0] = (float)svc->samplingSeed();
         return TRUE;
     }
     else if (strncmp(name, attributesUser, strlen(attributesUser)) == 0) {
@@ -2597,106 +2856,6 @@ void CShadingContext::findCoordinateSystem(const char *name, const float *&from,
     }
 }
 
-// Period parameters
-#define N 624
-#define M 397
-#define MATRIX_A 0x9908b0dfUL // constant vector a
-#define UMASK 0x80000000UL    // most significant w-r bits
-#define LMASK 0x7fffffffUL    // least significant r bits
-#define MIXBITS(u, v) (((u) & UMASK) | ((v) & LMASK))
-#define TWIST(u, v) ((MIXBITS(u, v) >> 1) ^ (_uTable[v & 1UL]))
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CShadingContext
-// Method				:	randomInit
-// Description			:	Init the random number generator
-// Return Value			:	-
-// Comments				:
-void CShadingContext::randomInit(uint32_t s) {
-    int j;
-    state[0] = s & 0xffffffffUL;
-    for (j = 1; j < N; j++) {
-        state[j] = (1812433253UL * (state[j - 1] ^ (state[j - 1] >> 30)) + j);
-        state[j] &= 0xffffffffUL; /* for >32 bit machines */
-    }
-    next = state;
-    return;
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CShadingContext
-// Method				:	randomShutdown
-// Description			:	Shutdown the random number generator
-// Return Value			:	-
-// Comments				:
-void CShadingContext::randomShutdown() {
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CShadingContext
-// Method				:	next_state
-// Description			:	Get the next stage for the random number generator
-// Return Value			:	-
-// Comments				:
-void CShadingContext::next_state() {
-    static const uint32_t _uTable[2] = {0UL, MATRIX_A};
-    signed int j;
-
-    uint32_t *p0;
-    uint32_t *p1;
-
-    j = (N - M) >> 1;
-    p0 = state;
-    p1 = p0 + 1;
-    while (j) {
-        --j;
-        *p0 = TWIST(*p0, *p1);
-        *p0 ^= p0[M];
-        ++p1;
-        ++p0;
-
-        *p0 = TWIST(*p0, *p1);
-        *p0 ^= p0[M];
-        ++p1;
-        ++p0;
-    }
-
-    *p0 = TWIST(*p0, *p1);
-    *p0 ^= p0[M];
-    ++p1;
-    ++p0;
-
-    j = (M - 1) >> 1;
-    while (j) {
-        --j;
-        *p0 = TWIST(*p0, *p1);
-        *p0 ^= p0[M - N];
-        ++p1;
-        ++p0;
-
-        *p0 = TWIST(*p0, *p1);
-        *p0 ^= p0[M - N];
-        ++p1;
-        ++p0;
-    }
-    *p0 = TWIST(*p0, *state);
-    *p0 ^= p0[M - N];
-
-    next = state + N;
-    return;
-}
-
-// The Mersenne Twister macros above collide with the RSL "N" (normal) and
-// "M" (matrix) identifiers used pervasively below -- undef once the
-// generator's own code (which is done with them) has been compiled.
-#undef N
-#undef M
-#undef MATRIX_A
-#undef UMASK
-#undef LMASK
-#undef MIXBITS
-#undef TWIST
-
 // =========================================================================
 // Layer G — JIT wrappers for derivative / geometric / texture built-ins
 // =========================================================================
@@ -2774,7 +2933,8 @@ void CShadingContext::jitDepth(float *dst, int sd, const float *P, int sp, int n
     }
 }
 
-void CShadingContext::jitTextureF(float *dst, int sd, const char *name, int channel, const float *s, int ss, const float *t, int st, int n, const int *tags) {
+void CShadingContext::jitTextureF(float *dst, int sd, const char *name, int channel, const float *s, int ss, const float *t, int st, int n, const int *tags, uint32_t callSite) {
+    uint32_t *drawCounts = drawCounters(callSite);
     if (!name || !name[0])
         return;
     CTexture *tex = rendererGetTexture(name);
@@ -2783,6 +2943,7 @@ void CShadingContext::jitTextureF(float *dst, int sd, const char *name, int chan
     vector tmp;
     for (int i = 0; i < n; ++i) {
         if (!tags || !tags[i]) {
+            bindDraws(i, drawCounts, callSite, 1);
             tex->lookup(tmp, JIT_IDX(s, ss, i)[0], JIT_IDX(t, st, i)[0], this);
             JIT_IDX(dst, sd, i)
             [0] = tmp[channel & 3];
@@ -2790,7 +2951,8 @@ void CShadingContext::jitTextureF(float *dst, int sd, const char *name, int chan
     }
 }
 
-void CShadingContext::jitTextureC(float *dst, int sd, const char *name, const float *s, int ss, const float *t, int st, int n, const int *tags) {
+void CShadingContext::jitTextureC(float *dst, int sd, const char *name, const float *s, int ss, const float *t, int st, int n, const int *tags, uint32_t callSite) {
+    uint32_t *drawCounts = drawCounters(callSite);
     if (!name || !name[0])
         return;
     CTexture *tex = rendererGetTexture(name);
@@ -2798,12 +2960,14 @@ void CShadingContext::jitTextureC(float *dst, int sd, const char *name, const fl
         return;
     for (int i = 0; i < n; ++i) {
         if (!tags || !tags[i]) {
+            bindDraws(i, drawCounts, callSite, 1);
             tex->lookup(JIT_IDX(dst, sd, i), JIT_IDX(s, ss, i)[0], JIT_IDX(t, st, i)[0], this);
         }
     }
 }
 
-void CShadingContext::jitEnvironmentF(float *dst, int sd, const char *name, int channel, const float *D, int sD, int n, const int *tags) {
+void CShadingContext::jitEnvironmentF(float *dst, int sd, const char *name, int channel, const float *D, int sD, int n, const int *tags, uint32_t callSite) {
+    uint32_t *drawCounts = drawCounters(callSite);
     if (!name || !name[0])
         return;
     CEnvironment *env = rendererGetEnvironment(name);
@@ -2813,6 +2977,7 @@ void CShadingContext::jitEnvironmentF(float *dst, int sd, const char *name, int 
     for (int i = 0; i < n; ++i) {
         if (!tags || !tags[i]) {
             const float *d = JIT_IDX(D, sD, i);
+            bindDraws(i, drawCounts, callSite, 1);
             env->lookup(tmp, d, d, d, d, this);
             JIT_IDX(dst, sd, i)
             [0] = tmp[channel & 3];
@@ -2820,7 +2985,8 @@ void CShadingContext::jitEnvironmentF(float *dst, int sd, const char *name, int 
     }
 }
 
-void CShadingContext::jitEnvironmentC(float *dst, int sd, const char *name, const float *D, int sD, int n, const int *tags) {
+void CShadingContext::jitEnvironmentC(float *dst, int sd, const char *name, const float *D, int sD, int n, const int *tags, uint32_t callSite) {
+    uint32_t *drawCounts = drawCounters(callSite);
     if (!name || !name[0])
         return;
     CEnvironment *env = rendererGetEnvironment(name);
@@ -2829,12 +2995,14 @@ void CShadingContext::jitEnvironmentC(float *dst, int sd, const char *name, cons
     for (int i = 0; i < n; ++i) {
         if (!tags || !tags[i]) {
             const float *d = JIT_IDX(D, sD, i);
+            bindDraws(i, drawCounts, callSite, 1);
             env->lookup(JIT_IDX(dst, sd, i), d, d, d, d, this);
         }
     }
 }
 
-void CShadingContext::jitShadowF(float *dst, int sd, const char *name, const float *Ps, int sPs, int n, const int *tags) {
+void CShadingContext::jitShadowF(float *dst, int sd, const char *name, const float *Ps, int sPs, int n, const int *tags, uint32_t callSite) {
+    uint32_t *drawCounts = drawCounters(callSite);
     if (!name || !name[0])
         return;
     CEnvironment *env = rendererGetEnvironment(name);
@@ -2844,6 +3012,7 @@ void CShadingContext::jitShadowF(float *dst, int sd, const char *name, const flo
     for (int i = 0; i < n; ++i) {
         if (!tags || !tags[i]) {
             const float *p = JIT_IDX(Ps, sPs, i);
+            bindDraws(i, drawCounts, callSite, 1);
             env->lookup(tmp, p, p, p, p, this);
             JIT_IDX(dst, sd, i)
             [0] = (tmp[0] + tmp[1] + tmp[2]) / 3.f;
@@ -2879,7 +3048,7 @@ void CShadingContext::jitFindCoordinateSystem(const char *name, const float *&fr
 void CShadingContext::jitTraceBatch(float *dst, int sd, const float *P, int sP,
                                     const float *D, int sD, const float *du, const float *dv,
                                     const float *Nrm, const float *time, int n, const int *tags,
-                                    int probeOnly, bool isReflection, bool wantBoolean) {
+                                    int probeOnly, bool isReflection, bool wantBoolean, uint32_t callSite) {
     const int numRealVertices = currentShadingState->numRealVertices;
     if (numRealVertices <= 0)
         return;
@@ -2925,6 +3094,7 @@ void CShadingContext::jitTraceBatch(float *dst, int sd, const float *P, int sP,
     CTraceLocation *raysBase = (CTraceLocation *)ralloc(numRealVertices * sizeof(CTraceLocation), threadMemory);
     CTraceLocation *rays = raysBase;
     int numRays = 0;
+    uint32_t *drawCounts = drawCounters(callSite);
 
     for (int i = 0; i < numRealVertices; ++i) {
         if (tags && tags[i])
@@ -2943,6 +3113,7 @@ void CShadingContext::jitTraceBatch(float *dst, int sd, const float *P, int sP,
         rays->sampleBase = 1.0f;
         rays->maxDist = C_INFINITY;
         rays->time = time[i];
+        bindLocationDraws(rays, i, drawCounts, callSite);
         rays++;
         numRays++;
     }
@@ -2990,26 +3161,26 @@ void CShadingContext::jitTraceBatch(float *dst, int sd, const float *P, int sP,
 
 void CShadingContext::jitVisibility(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                                     const float *du, const float *dv, const float *Nrm, const float *time,
-                                    int n, const int *tags) {
-    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, /*probeOnly=*/TRUE, /*isReflection=*/false, /*wantBoolean=*/true);
+                                    int n, const int *tags, uint32_t callSite) {
+    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, /*probeOnly=*/TRUE, /*isReflection=*/false, /*wantBoolean=*/true, callSite);
 }
 
 void CShadingContext::jitTransmission(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                                       const float *du, const float *dv, const float *Nrm, const float *time,
-                                      int n, const int *tags) {
-    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, /*probeOnly=*/FALSE, /*isReflection=*/false, /*wantBoolean=*/false);
+                                      int n, const int *tags, uint32_t callSite) {
+    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, /*probeOnly=*/FALSE, /*isReflection=*/false, /*wantBoolean=*/false, callSite);
 }
 
 void CShadingContext::jitTraceF(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                                 const float *du, const float *dv, const float *Nrm, const float *time,
-                                int n, const int *tags) {
-    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, /*probeOnly=*/TRUE, /*isReflection=*/true, /*wantBoolean=*/false);
+                                int n, const int *tags, uint32_t callSite) {
+    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, /*probeOnly=*/TRUE, /*isReflection=*/true, /*wantBoolean=*/false, callSite);
 }
 
 void CShadingContext::jitTraceC(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                                 const float *du, const float *dv, const float *Nrm, const float *time,
-                                int n, const int *tags) {
-    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, /*probeOnly=*/FALSE, /*isReflection=*/true, /*wantBoolean=*/false);
+                                int n, const int *tags, uint32_t callSite) {
+    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, /*probeOnly=*/FALSE, /*isReflection=*/true, /*wantBoolean=*/false, callSite);
 }
 
 // =========================================================================
@@ -3037,7 +3208,7 @@ void CShadingContext::jitTraceC(float *dst, int sd, const float *P, int sP, cons
 void CShadingContext::jitOcclusionBatch(float *dst, int sd, const float *P, int sP,
                                         const float *N, int sN, const float *samples, int sSamples,
                                         const float *du, const float *dv, int n, const int *tags,
-                                        bool wantOcclusion) {
+                                        bool wantOcclusion, uint32_t callSite) {
     const int numRealVertices = currentShadingState->numRealVertices;
     if (numRealVertices <= 0)
         return;
@@ -3100,6 +3271,7 @@ void CShadingContext::jitOcclusionBatch(float *dst, int sd, const float *P, int 
         memset(dPdv, 0, n * 3 * sizeof(float));
     }
 
+    uint32_t *drawCounts = drawCounters(callSite);
     for (int i = 0; i < numRealVertices; ++i) {
         if (tags && tags[i])
             continue;
@@ -3107,6 +3279,7 @@ void CShadingContext::jitOcclusionBatch(float *dst, int sd, const float *P, int 
         mulvf(PduScaled, JIT_IDX(dPdu, 3, i), du[i]);
         mulvf(PdvScaled, JIT_IDX(dPdv, 3, i), dv[i]);
         scratch->traceParams.samples = JIT_IDX(samples, sSamples, i)[0];
+        bindDraws(i, drawCounts, callSite, (uint32_t)scratch->traceParams.samples);
 
         float C[7];
         cache->lookup(C, JIT_IDX(P, sP, i), PduScaled, PdvScaled, JIT_IDX(N, sN, i), this);
@@ -3134,14 +3307,14 @@ void CShadingContext::jitOcclusionBatch(float *dst, int sd, const float *P, int 
 
 void CShadingContext::jitOcclusion(float *dst, int sd, const float *P, int sP, const float *N, int sN,
                                    const float *samples, int sSamples, const float *du, const float *dv,
-                                   int n, const int *tags) {
-    jitOcclusionBatch(dst, sd, P, sP, N, sN, samples, sSamples, du, dv, n, tags, /*wantOcclusion=*/true);
+                                   int n, const int *tags, uint32_t callSite) {
+    jitOcclusionBatch(dst, sd, P, sP, N, sN, samples, sSamples, du, dv, n, tags, /*wantOcclusion=*/true, callSite);
 }
 
 void CShadingContext::jitIndirectDiffuse(float *dst, int sd, const float *P, int sP, const float *N, int sN,
                                          const float *samples, int sSamples, const float *du, const float *dv,
-                                         int n, const int *tags) {
-    jitOcclusionBatch(dst, sd, P, sP, N, sN, samples, sSamples, du, dv, n, tags, /*wantOcclusion=*/false);
+                                         int n, const int *tags, uint32_t callSite) {
+    jitOcclusionBatch(dst, sd, P, sP, N, sN, samples, sSamples, du, dv, n, tags, /*wantOcclusion=*/false, callSite);
 }
 
 // texture3d()/bake3d() (spec 017-jit-builtin-function-coverage, US5).
@@ -3941,23 +4114,32 @@ bool CShadingContext::gatherSample(CGatherBundle *lastGather, int *tags, int &nu
         }
         else {
             vector tmp0, tmp1;
-            mulvf(tmp0, raysBase->dPdu, raysBase->sampleBase * (urand() - 0.5f));
-            mulvf(tmp1, raysBase->dPdv, raysBase->sampleBase * (urand() - 0.5f));
+            const openrender::sampling::SubstreamKey *sub = raysBase->keyed ? &raysBase->sub : nullptr;
+            const int sample = lastGather->numSamples - lastGather->remainingSamples;
+            float jitter4[4];
+            drawJitter4(sub, sample, jitter4);
+            mulvf(tmp0, raysBase->dPdu, raysBase->sampleBase * (jitter4[0] - 0.5f));
+            mulvf(tmp1, raysBase->dPdv, raysBase->sampleBase * (jitter4[1] - 0.5f));
             addvv(raysBase->from, tmp0, tmp1);
 
-            if (lastGather->uniformDist) {
-                sampleHemisphere(raysBase->dir, raysBase->gatherDir, raysBase->sampleCone, random4d);
-            }
-            else {
-                sampleCosineHemisphere(raysBase->dir, raysBase->gatherDir, raysBase->sampleCone, random4d);
-            }
+            drawCone(sub, sample, raysBase->dir, raysBase->gatherDir, raysBase->sampleCone, !lastGather->uniformDist);
             keepOriginAbove(raysBase->from, normalN, raysBase->dir);
             addvv(raysBase->from, raysBase->gatherP);
+            raysBase->cameraImportance = false; // the rays come from raw memory
+            if (raysBase->keyed) {
+                const uint16_t childDepth = (uint16_t)(currentRayDepth + 1);
+                raysBase->key = openrender::sampling::childKey(raysBase->parentKey, childDepth, (uint16_t)raysBase->callSite, raysBase->occurrence, (uint32_t)sample);
+                raysBase->depth = childDepth;
+            }
+            else {
+                raysBase->depth = 0;
+                raysBase->key = openrender::sampling::SampleKey{};
+            }
             raysBase->index = i;
             raysBase->tmin = raysBase->bias;
             raysBase->t = raysBase->maxDist;
             if (sampleMotion)
-                raysBase->time = (urand() + lastGather->remainingSamples - 1) * temp;
+                raysBase->time = (drawTime(sub, sample) + lastGather->remainingSamples - 1) * temp;
             else
                 raysBase->time = time[0];
             raysBase->flags = ATTRIBUTES_FLAGS_DIFFUSE_VISIBLE | ATTRIBUTES_FLAGS_SPECULAR_VISIBLE;
@@ -4103,7 +4285,7 @@ CGatherBundle *CShadingContext::gatherHeaderBegin(const CGatherLookup *lookup, c
 // output-variable rebind, meaningless outside the interpreter -- the caller
 // invokes plReady() itself, independently, since it has no effect on the ray
 // math computed here).
-void CShadingContext::gatherHeaderRay(CGatherRay *ray, const float *P, const float *D, float sampleConeVal, float *dPdu, float *dPdv, float duVal, float dvVal) {
+void CShadingContext::gatherHeaderRay(CGatherRay *ray, const float *P, const float *D, float sampleConeVal, float *dPdu, float *dPdv, float duVal, float dvVal, int vertex, uint32_t *counts, unsigned callSite, uint32_t samplesPerCall) {
     CShadingScratch *scratch = &(currentShadingState->scratch);
 
     mulvf(dPdu, duVal);
@@ -4133,6 +4315,13 @@ void CShadingContext::gatherHeaderRay(CGatherRay *ray, const float *P, const flo
     movvv(ray->gatherP, P);
     movvv(ray->dPdu, dPdu);
     movvv(ray->dPdv, dPdv);
+
+    // Spec 039: the sub-stream of this gather() call for this point (counts is null only when the caller passes none)
+    ray->keyed = counts != nullptr;
+    if (ray->keyed) {
+        ray->sub = drawSubstream(vertex, counts, callSite, samplesPerCall, &ray->parentKey, &ray->occurrence);
+        ray->callSite = callSite;
+    }
 }
 
 // JIT equivalent of GATHERHEADEREXPR_PRE + the per-vertex GATHERHEADEREXPR/
@@ -4143,7 +4332,7 @@ void CShadingContext::gatherHeaderRay(CGatherRay *ray, const float *P, const flo
 // gatherHeaderBegin()/gatherHeaderRay() the interpreter uses; the bind-loop ->
 // init() -> apply-uniform-overrides ordering below mirrors plBegin() exactly
 // (execute.cpp).
-void CShadingContext::jitGatherHeaderBegin(const char *const *names, void *const *valuePtrs, const int *steps, const int *isVarying, int numPairs, const float *P, int strideP, const float *D, int strideD, const float *sampleCone, int strideSampleCone, float samplesCount) {
+void CShadingContext::jitGatherHeaderBegin(const char *const *names, void *const *valuePtrs, const int *steps, const int *isVarying, int numPairs, const float *P, int strideP, const float *D, int strideD, const float *sampleCone, int strideSampleCone, float samplesCount, uint32_t callSite) {
     CShadingState *ss = currentShadingState;
     CShaderInstance *shader = ss->currentShaderInstance;
     CShadingScratch *scratch = &(ss->scratch);
@@ -4213,13 +4402,15 @@ void CShadingContext::jitGatherHeaderBegin(const char *const *names, void *const
     CGatherRay *rays = lastGather->raysBase;
 
     const int numVertices = ss->numVertices;
+    uint32_t *drawCounts = drawCounters(callSite);
     for (int i = 0; i < numVertices; i++) {
         for (int k = 0; k < numOverrides; k++) {
             const COverride &o = overrides[k];
             const void *src = o.varying ? (const char *)o.valuePtr + (size_t)i * o.step : o.valuePtr;
             memcpy((char *)scratch + o.dest, src, o.step);
         }
-        gatherHeaderRay(rays, P, D, *sampleCone, dPdu, dPdv, *du, *dv);
+        // Only the active vertices open a sub-stream (the interpreter's header skips the passive ones)
+        gatherHeaderRay(rays, P, D, *sampleCone, dPdu, dPdv, *du, *dv, i, ss->tags[i] == 0 ? drawCounts : nullptr, callSite, (uint32_t)samplesCount);
         dPdu += 3;
         dPdv += 3;
         D += strideD;

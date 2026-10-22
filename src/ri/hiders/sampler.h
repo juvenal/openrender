@@ -21,11 +21,7 @@
 #ifndef SAMPLER_H
 #define SAMPLER_H
 
-#include <functional>
-#include <utility>
-#include <vector>
-
-#include "common/random.h" // sampleDisk()
+#include "common/sampling.h"
 
 ///////////////////////////////////////////////////////////////////////
 // CSampleValue - one pixel-sample's worth of jitter/time/lens/importance.
@@ -33,30 +29,20 @@
 struct CSampleValue {
         float jitterX, jitterY; // Sub-pixel offset, single canonical constant
         float timeStratum;      // Motion-blur time sample, stratified in [0,1)
-        float lensU, lensV;     // Lens/aperture point, from sampleDisk()
+        float lensU, lensV;     // Lens/aperture point (the lens slot, concentric disk map)
         float importance;       // Sample weight
+        // Camera identity of the sample (cameraKey). Filled by cameraSample() only.
+        openrender::sampling::SampleKey key;
 };
 
 ///////////////////////////////////////////////////////////////////////
 // CSampler
 //
-// Deviation from contracts/sampler-contract.md's zero-arg `nextSample()`:
-// CStochastic and CRaytracer visit their sample grids in different loop
-// orders (stochastic: nested pxi/pxj with xSampleOffset wraparound;
-// raytracer: tiled 8x8 sub_x/sub_y), and jt/jimp use different linear-index
-// orderings even within stochastic itself. The stratum position is
-// therefore a loop-carried value owned by each hider's own loop, not
-// CSampler state -- nextSample() takes it as an argument instead of
-// deriving it from an internal counter, which would desync the two hiders'
-// existing (intentionally different) traversal order.
-//
-// Similarly takes two separate generator callables (matching what each
-// hider already has) rather than the contract's single "Rng &rng": jitter
-// draws come from a scalar urand()-like source, while the lens point comes
-// from a distinct 2D generator (reyes: a per-pixel CSobol<2> sequence;
-// raytrace: a pair of urand() calls) -- collapsing these into one type
-// would force a needless RNG-type unification the contract explicitly
-// calls a non-goal.
+// The camera samples of both hiders (spec 039, R3.1). Every value comes from
+// the sampler's camera slots, so the class has no state: its own generators
+// (the per-hider jitter/lens callables of spec 008, R2) and the bucket-seeded
+// correlated table (Option B, US9) were deleted with the Legacy sampler in
+// spec 039, Phase 9.
 ///////////////////////////////////////////////////////////////////////
 class CSampler {
     public:
@@ -67,54 +53,39 @@ class CSampler {
         // divergent `0.5001017f` typo in stochastic.cpp's jy (D2).
         static constexpr float kJitterConstant = 0.5001011f;
 
-        // jitterAmount: CRenderer::jitter. samplesX/samplesY: CRenderer::
-        // pixelXsamples/pixelYsamples (the stratification grid both jt/jimp
-        // normalize against). urandFn: () -> float in [0,1). lensFn: the
-        // sampleDisk()-compatible callable writing a float[2] pair of
-        // independent U(0,1) values.
-        template <typename UrandFn, typename LensFn>
-        CSampler(float jitterAmount, int samplesX, int samplesY, UrandFn &&urandFn, LensFn &&lensFn)
-            : jitterAmount(jitterAmount), samplesX(samplesX), samplesY(samplesY),
-              urandFn(std::forward<UrandFn>(urandFn)), lensFn(std::forward<LensFn>(lensFn)) {}
-
-        // timeLinearIndex / importanceLinearIndex: the caller's own linear
-        // stratum index (stochastic's jt uses pxi*samplesX+pxj; its jimp uses
-        // pxj*samplesY+pxi -- preserve each ordering verbatim at the call
-        // site, do not unify them). wantLens: skip the disk sample entirely
-        // when CRenderer::aperture == 0 / OPTIONS_FLAGS_FOCALBLUR is unset.
-        CSampleValue nextSample(int timeLinearIndex, int importanceLinearIndex, bool wantLens);
-
-        // Lens/aperture point only, via sampleDisk() (S1). For callers whose
-        // architecture generates the lens sample at a different pipeline stage
-        // than jitter/time -- raytrace's DOF disk sample happens in
-        // computeSamples(), once primary rays are already batched, well after
-        // sample()'s per-ray jitter/time generation -- so paying for a full
-        // nextSample() call (3 unused jitteredOffset() draws) just to reach the
-        // lens fields would be wasteful.
-        void lensSample(float *result) { sampleDisk(result, lensFn); }
-
-        // Option B (gated via CRenderer::correlatedSampleTable, internal-only --
-        // FR-027): both hiders regenerate -- not share memory for, since the
-        // parity harness runs each hider as a separate OS process -- the
-        // identical table for a given bucket by seeding a deterministic RNG
-        // from the bucket's own raster-space origin (left, top) instead of
-        // drawing from this instance's own live, per-hider urandFn/lensFn
-        // (reyes: CSobol<2>; raytrace: urand()). std::mt19937's output sequence
-        // is exactly specified by the C++ standard, so the same seed reproduces
-        // bit-identical floats in both processes; jitterAmount/samplesX/
-        // samplesY are already identical between hiders (both read the same
-        // CRenderer statics), so only the *source* of randomness needs pinning
-        // here, not the formula.
+        // ---- Spec 039, Phase 5 (R3.1): camera samples from the sampler's slots ----
         //
-        // Deviation from contracts/sampler-contract.md's `(bucketId,
-        // sampleCount)` signature: a flat sample count can't reproduce
-        // stochastic's phase-shifted pxi/pxj wraparound (stochastic.cpp's
-        // rasterBegin), so the table spans the bucket's full (sampleWidth x
-        // sampleHeight) grid, indexed by bucket-local (row, col) -- the same
-        // domain both hiders already iterate for a shared bucket dispatch
-        // (stochastic: outer i / inner j; raytrace: tiled i+x / j+y) -- rather
-        // than a linear sample index.
-        std::vector<CSampleValue> generateBucketTable(int left, int top, int sampleWidth, int sampleHeight, int xSampleOffset, int ySampleOffset, bool wantLens);
+        // Under the Sobol, PMJ02 and Independent backends both hiders take every
+        // camera value from the camera slots, indexed by the sample's absolute
+        // subpixel coordinates. The two hiders count their bucket origin in
+        // different units, so each converts its own loop index here, and then both
+        // call cameraSample() with the result: a margin sample regenerated by a
+        // neighbouring bucket, or by the other hider, gets the same values.
+        //
+        // These are also the test seam of Sampling_CameraSlotsEqual.
+
+        // Reyes: `origin` (left or top) is already in subpixels, `index` is the
+        // column or row inside the bucket (margin included).
+        static int reyesAbsSub(int origin, int index);
+
+        // Raytrace: `originPixels` (left or top) is in pixels, so the bucket's first
+        // subpixel is originPixels * samplesPerPixel - sampleOffset.
+        static int raytraceAbsSub(int originPixels, int samplesPerPixel, int sampleOffset, int index);
+
+        // The jitter, time stratum, lens point and importance of the subpixel
+        // (absSubX, absSubY), and its camera key. film/time/importance keep the
+        // jitter * (u - 0.5) + kJitterConstant mapping, with u from the slots; the
+        // time stratum is the sample's index in its pixel (row * nx + column), the
+        // importance stratum the transposed one (column * ny + row). The lens point
+        // is the lens slot's (u, v) through the Shirley-Chiu concentric disk map
+        // when wantLens, else 0: one slot sample gives one lens point, so there is no
+        // rejection loop to run out of stateless draws, and a stratified slot stays
+        // stratified on the lens.
+        static CSampleValue cameraSample(const openrender::sampling::CSamplingConfig &config, int absSubX, int absSubY, bool wantLens);
+        // The same, with the frame's camera seeds computed once (cameraSeeds(config); the shading
+        // context keeps them, spec 039 T122): what the hiders call per subpixel.
+        static CSampleValue cameraSample(const openrender::sampling::CSamplingConfig &config, const openrender::sampling::CameraSeeds &seeds, int absSubX,
+                                         int absSubY, bool wantLens);
 
         // S1: canonical circle-of-confusion formula (reyes's cocSamples(z)
         // macro, renderer.h:39), reyes's sole consumer -- raytrace's DOF model
@@ -123,13 +94,6 @@ class CSampler {
         // residual), so it has no use for this formula.
         static float circleOfConfusion(float z, float invFocaldistance, float cocFactorSamples);
 
-    private:
-        float jitterAmount;
-        int samplesX, samplesY;
-        std::function<float()> urandFn;
-        std::function<void(float *)> lensFn;
-
-        float jitteredOffset() { return jitterAmount * (urandFn() - 0.5f) + kJitterConstant; }
 };
 
 #endif

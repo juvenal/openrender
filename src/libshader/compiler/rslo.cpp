@@ -28,9 +28,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "common/rsloFormat.h"
 #include "irBuilder.h"
 #include "opcodes.h" // This file holds the constant strings
 #include "passes/passCSE.h"
+#include "passes/passCallSites.h"
 #include "passes/passConstFold.h"
 #include "passes/passDCE.h"
 #include "passes/passManager.h"
@@ -1544,7 +1546,7 @@ void CScriptContext::generateCode(const char *o) {
         }
     }
 
-    fprintf(out, "#!version %d.%d.%d\n", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+    fprintf(out, "#!version %d.%d.%d\n", RSLO_FORMAT_MAJOR, RSLO_FORMAT_MINOR, RSLO_FORMAT_PATCH);
     fprintf(out, "#!name \"%s\"\n", shaderName);
 
     switch (shaderType) {
@@ -1676,6 +1678,7 @@ void CScriptContext::generateCode(const char *o) {
         pm.addPass(std::make_unique<CUniformLiftingPass>());
         pm.addPass(std::make_unique<CCSEPass>());
         pm.addPass(std::make_unique<CDCEPass>());
+        pm.addPass(std::make_unique<CCallSitePass>()); // last: the ordinals are of the final IR
         pm.run(*mod, dumpIR);
 
         if (emitJIT) {

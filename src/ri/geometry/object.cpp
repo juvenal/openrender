@@ -30,6 +30,7 @@
 #include "common/memory.h"
 #include "object.h"
 #include "common/random.h"
+#include "common/sampling.h"
 #include "renderer.h"
 #include "rendererContext.h"
 #include "common/riVocabulary.h"
@@ -57,6 +58,7 @@ CObject::CObject(CAttributes *a, CXform *x) {
     children = NULL;
     sibling = NULL;
     region = NULL;
+    stableId = 0;
 
     // An empty bound until the object computes its own (every primitive's
     // constructor does); queries can then tell "no bound" from a real one
@@ -85,10 +87,13 @@ static float getDisp(const float *mat, float) {
     int i;
     float alpha;
 
-    tmp[0] = _urand();
-    tmp[1] = _urand();
-    tmp[2] = _urand();
-    tmp[3] = _urand();
+    // A fixed probe point set: the displacement bound must not depend on the thread
+    // or on what was drawn before (spec 039, research R3.10)
+    openrender::sampling::CKeyedStream stream(0x6E7D15Bull);
+    tmp[0] = stream.next1D();
+    tmp[1] = stream.next1D();
+    tmp[2] = stream.next1D();
+    tmp[3] = stream.next1D();
 
     for (i = 0; i < 10; i++) {
         mulmp4(tmp2, mat, tmp);
@@ -122,9 +127,9 @@ static float getDisp(const float *mat, float) {
 }
 
 // CObject::cluster() lives in geometryDispatch.cpp (real body) /
-// geometryDispatchStub.cpp (ribVector stub) -- it calls CShadingContext::urand(),
-// an inline wrapper (shading.h) around the real CShadingContext::next_state(),
-// which is not the memory-pool-only dependency it first appears to be.
+// geometryDispatchStub.cpp (ribVector stub) -- it draws from the shading
+// context (originally CShadingContext::urand()), which is not the
+// memory-pool-only dependency it first appears to be.
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CObject
@@ -132,7 +137,16 @@ static float getDisp(const float *mat, float) {
 // Description			:	Set the children objects
 // Return Value			:
 // Comments				:
-void CObject::setChildren(CShadingContext *, CObject *allChildren) {
+void CObject::setChildren(CShadingContext *, CObject *allChildren, bool inheritId) {
+
+    // Give the children their identities: they inherit ours (pieces of a split),
+    // or are numbered by their position in the chain
+    {
+        uint64_t k = 0;
+        for (CObject *cObject = allChildren; cObject != NULL; cObject = cObject->sibling, ++k)
+            if (cObject->stableId == 0)
+                cObject->stableId = inheritId ? stableId : openrender::sampling::detail::mix(stableId, k);
+    }
 
     // If raytraced, attach to the children
     if (raytraced()) {

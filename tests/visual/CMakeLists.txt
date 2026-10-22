@@ -64,6 +64,17 @@ add_executable(test_depth_determinism test_depth_determinism.cpp)
 target_link_libraries(test_depth_determinism PRIVATE TIFF::TIFF)
 target_compile_features(test_depth_determinism PRIVATE cxx_std_20)
 
+# Exact pixel read-back driver for probe shaders that encode a query result in
+# their colour (spec 039, SamplingOption_Rsl*).
+add_executable(test_pixel_probe test_pixel_probe.cpp)
+target_link_libraries(test_pixel_probe PRIVATE TIFF::TIFF)
+target_compile_features(test_pixel_probe PRIVATE cxx_std_20)
+
+# Two-render comparison driver (spec 039, Phase 5): bit-identical or different.
+add_executable(test_render_compare test_render_compare.cpp)
+target_link_libraries(test_render_compare PRIVATE TIFF::TIFF)
+target_compile_features(test_render_compare PRIVATE cxx_std_20)
+
 add_executable(test_depth_analytic test_depth_analytic.cpp)
 target_link_libraries(test_depth_analytic PRIVATE TIFF::TIFF)
 target_compile_features(test_depth_analytic PRIVATE cxx_std_20)
@@ -141,23 +152,6 @@ set(VISUAL_ENV
     "TEXTURES=${CMAKE_SOURCE_DIR}/examples/rib/tests:${CMAKE_SOURCE_DIR}/tests/unit/image_input/fixtures:${CMAKE_SOURCE_DIR}/tests/unit/texture_tile/fixtures"
 )
 
-# Same as VISUAL_ENV, plus Option B's unified per-bucket sample table (spec
-# 008 Phase 11/US9). Only worth enabling on a parity test where correlating
-# the two hiders' random draws demonstrably tightens the diff -- T084
-# measured this per-scene rather than assuming it universally helps (see
-# motion-*-translate-correlated below): dof's diff got *worse* under
-# correlation (D9 is a different-model-same-input structural residual, not
-# RNG noise, so forcing an identical draw through two different DOF formulas
-# just makes the error spatially coherent instead of letting independent
-# noise partially cancel), and motion-polygons-translate was flat within
-# run-to-run noise. motion-quadrics-translate and motion-patches-translate,
-# by contrast, are same-model/different-RNG-stream residuals that the
-# correlated table genuinely closes.
-set(VISUAL_ENV_CORRELATED
-    ${VISUAL_ENV}
-    "OPENRENDER_CORRELATED_SAMPLE_TABLE=1"
-)
-
 # ---------------------------------------------------------------------------
 # Helper macro: register one visual regression test
 #
@@ -233,10 +227,10 @@ endmacro()
 #   RIB_B        — path to the second hider's .rib scene (relative to CMAKE_SOURCE_DIR)
 #   OUTPUT_B     — filename RIB_B's Display statement writes (relative to CWD)
 #   THRESHOLD    — (optional) per-scene threshold override; defaults to VISUAL_THRESHOLD
-#   ENV_LIST     — (optional) environment override; defaults to VISUAL_ENV. Pass
-#                  VISUAL_ENV_CORRELATED to exercise Option B's unified sample
-#                  table (spec 008 Phase 11/US9) instead of each hider drawing
-#                  its own independent stream.
+#   ENV_LIST     — (optional) environment override; defaults to VISUAL_ENV.
+#                  (VISUAL_ENV_CORRELATED, Option B's correlated table, was
+#                  deleted in spec 039 Phase 9: both hiders take their camera
+#                  samples from the same sampler slots.)
 # ---------------------------------------------------------------------------
 macro(add_parity_test SCENE_NAME RIB_A OUTPUT_A RIB_B OUTPUT_B)
     if(${ARGC} GREATER 5)
@@ -1009,25 +1003,27 @@ add_visual_test(sphere-format-reyes-slo
 # the unchanged original -- so "-t:1" is passed as an extra orender CLI arg
 # instead (confirmed needed: two default-multithreaded interpreter renders
 # of quadlight.rib differed by a full 255 before pinning to one thread).
+# Spec 039 (T099) removed that pin: every area-light sample is keyed by the
+# sample's identity, so the render is bit-identical at any thread count.
 add_visual_test(quadlight
     examples/rib/quadlight.rib
     quadlight.tif  quadlight.tif
-    ${VISUAL_THRESHOLD}  "-t:1")
+    ${VISUAL_THRESHOLD})
 
 add_visual_test(quadlight-slo
     examples/rib/tests/quadlight-slo.rib
     quadlight-slo.tif  quadlight.tif
-    ${VISUAL_THRESHOLD}  "-t:1")
+    ${VISUAL_THRESHOLD})
 
 add_visual_test(spherelight
     examples/rib/spherelight.rib
     spherelight.tif  spherelight.tif
-    ${VISUAL_THRESHOLD}  "-t:1")
+    ${VISUAL_THRESHOLD})
 
 add_visual_test(spherelight-slo
     examples/rib/tests/spherelight-slo.rib
     spherelight-slo.tif  spherelight.tif
-    ${VISUAL_THRESHOLD}  "-t:1")
+    ${VISUAL_THRESHOLD})
 
 # --- Backend parity of the illumination hook (spec 024-shading-services-
 # routing, US1, FR-012 and FR-019).
@@ -1127,7 +1123,10 @@ unset(_scratch)
 # macOS the run-to-run diff of both scenes is 0.00 and each -slo variant
 # matches the .rslo reference at 0.00; before the fix the alone scenes (empty
 # map) missed by 255.00 and the after-distant ones by 239.45. Each map is
-# deleted before the run, as for photon-parity.
+# deleted before the run, as for photon-parity. The references were re-rendered
+# when spec 039 merged, because the photon pass now draws from the sampler: the
+# images are dominated by photon noise (two sampling seeds differ by 57-60 and
+# 76-80), so any change of random stream needs new references, not a threshold.
 foreach(_scene alone alone-slo after-distant after-distant-slo)
     string(REPLACE "-slo" "" _ref ${_scene})
     add_visual_test(photon-solar0-${_scene}
@@ -1405,7 +1404,7 @@ add_parity_test(aov
     examples/rib/tests/parity/aov-reyes.rib
     aov-reyes.tif
     examples/rib/tests/parity/aov-raytrace.rib
-    aov-raytrace.tif  25)
+    aov-raytrace.tif  20)
 
 # --- Depth-filter default mode: raw float32 "z" AOV, teapot scene ---
 # Threshold is dominated by a known raytrace gap (D7): raytrace has no
@@ -1500,12 +1499,32 @@ add_parity_test(depthfilter-mid
 #     C_INFINITY (fails deterministically without the fix).
 #   DepthFilter_Determinism_*: six renders at the default thread count, jitter
 #     off; z bit-identical across runs.
+#
+# Spec 039: add_determinism_sweep() below runs every non-GI scene under each
+# orender configuration (FR-030); the scenes are listed in determinism-scenes.cmake.
 macro(add_depth_determinism_test NAME RIB OUTPUT RUNS)
     set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/determinism-${NAME})
     file(MAKE_DIRECTORY ${_scratch})
     add_test(NAME ${NAME}
         COMMAND test_depth_determinism $<TARGET_FILE:orender>
             ${CMAKE_SOURCE_DIR}/${RIB} ${OUTPUT} ${RUNS} ${ARGN}
+        WORKING_DIRECTORY ${_scratch})
+    set_tests_properties(${NAME} PROPERTIES
+        TIMEOUT     360
+        LABELS      "visual;regression;determinism"
+        ENVIRONMENT "${VISUAL_ENV}"
+        DEPENDS     orender)
+endmacro()
+
+# Spec 039 (T082): each of these scenes is also run once per thread count, -t:1 against -t:2
+# against -t:4, bit for bit (the cross-configuration mode of test_depth_determinism). The
+# scenes are jitter 0 and unpinned, so the sampler is not involved: no prepended option.
+macro(add_thread_configs_test NAME RIB OUTPUT)
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/determinism-${NAME})
+    file(MAKE_DIRECTORY ${_scratch})
+    add_test(NAME ${NAME}
+        COMMAND test_depth_determinism --configs "-t:1|-t:2|-t:4" --outputs ${OUTPUT}
+            $<TARGET_FILE:orender> ${CMAKE_SOURCE_DIR}/${RIB}
         WORKING_DIRECTORY ${_scratch})
     set_tests_properties(${NAME} PROPERTIES
         TIMEOUT     360
@@ -1521,6 +1540,9 @@ foreach(_mode avg mid)
     add_depth_determinism_test(DepthFilter_Determinism_${_mode}
         examples/rib/tests/depthfilter-determinism-${_mode}-reyes.rib
         depthfilter-determinism-${_mode}.tif 6)
+    add_thread_configs_test(DepthFilter_DeterminismThreads_${_mode}
+        examples/rib/tests/depthfilter-determinism-${_mode}-reyes.rib
+        depthfilter-determinism-${_mode}.tif)
 endforeach()
 
 # --- Colour determinism (fix/reyes-ulp-determinism, GitHub #48): the same
@@ -1533,7 +1555,68 @@ foreach(_variant transparent opaque)
     add_depth_determinism_test(ColorDeterminism_${_variant}
         examples/rib/tests/color-determinism-${_variant}-reyes.rib
         color-determinism-${_variant}.tif 12)
+    add_thread_configs_test(ColorDeterminism_Threads_${_variant}
+        examples/rib/tests/color-determinism-${_variant}-reyes.rib
+        color-determinism-${_variant}.tif)
 endforeach()
+
+# --- Determinism sweep (spec 039, FR-030, FR-031) -------------------------------------------
+# add_determinism_sweep(<name> <rib> <outputs...> [CONFIGS <list>] [COPY <dir>...])
+#
+# Renders the scene once per orender configuration and requires every listed output to be
+# bit-identical across them. The scene is rendered with a sampler forced on (a prepended
+# option line: DETERMINISM_SWEEP_SAMPLER, sobol by default, so that T103 can run the sweep once
+# per backend with -DDETERMINISM_SWEEP_SAMPLER=pmj02 or independent) and without its
+# numthreads pin, so that a pinned scene really runs multithreaded. 8-bit outputs are compared
+# with their dither on: since T095 the dither is a hash of pixel and channel (until then
+# `--no-dither` turned it off). The default configurations are one thread, the default
+# thread count, two threads, four threads, and two processes; the `-P` entry never carries
+# `-t`, because orender then turns threads off in the children (research M1, caveat a).
+#
+#   <rib>      relative to the source directory
+#   <outputs>  every file the scene's Displays write (a "z" display included)
+#   CONFIGS    a '|'-separated list overriding the default
+#   COPY       directories (relative to the source directory) copied to the scratch
+#              directory, for scenes that read relative archive paths
+#
+# The tests are DeterminismSweep_<name>, labelled `determinism-sweep` (the default set also gets `determinism`)
+# (see determinism-scenes.cmake for the scenes and for what the label set is, per research M3).
+set(DETERMINISM_SOBOL_LINE "Option \"sampling\" \"sampler\" [\"sobol\"]")
+set(DETERMINISM_SWEEP_SAMPLER "sobol" CACHE STRING "Sampler the determinism sweep forces on (sobol, pmj02 or independent)")
+set(DETERMINISM_SWEEP_LINE "Option \"sampling\" \"sampler\" [\"${DETERMINISM_SWEEP_SAMPLER}\"]")
+set(DETERMINISM_DEFAULT_CONFIGS "-t:1||-t:2|-t:4|-P:2")
+# `determinism-sweep` is the opt-in label of the full sweep: the tests carry no `visual` or `regression`
+# label, so `-L visual` and `-L regression` do not select them. determinism-scenes.cmake adds `determinism`
+# to the scenes of the default set. A full run without the sweep is `ctest -LE determinism-sweep`.
+set(DETERMINISM_SWEEP_LABELS "determinism-sweep")
+function(add_determinism_sweep NAME RIB)
+    cmake_parse_arguments(ARG "" "CONFIGS" "COPY" ${ARGN})
+    set(_outputs ${ARG_UNPARSED_ARGUMENTS})
+    if(NOT _outputs)
+        message(FATAL_ERROR "add_determinism_sweep(${NAME}): no outputs listed")
+    endif()
+    list(JOIN _outputs "," _outputs_arg)
+    if(ARG_CONFIGS)
+        set(_configs "${ARG_CONFIGS}")
+    else()
+        set(_configs "${DETERMINISM_DEFAULT_CONFIGS}")
+    endif()
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/determinism-sweep/${NAME})
+    file(MAKE_DIRECTORY ${_scratch})
+    foreach(_dir IN LISTS ARG_COPY)
+        file(COPY ${CMAKE_SOURCE_DIR}/${_dir} DESTINATION ${_scratch})
+    endforeach()
+    add_test(NAME DeterminismSweep_${NAME}
+        COMMAND test_depth_determinism --configs "${_configs}" --outputs ${_outputs_arg}
+            --prepend "${DETERMINISM_SWEEP_LINE}"
+            $<TARGET_FILE:orender> ${CMAKE_SOURCE_DIR}/${RIB}
+        WORKING_DIRECTORY ${_scratch})
+    set_tests_properties(DeterminismSweep_${NAME} PROPERTIES
+        TIMEOUT     1800
+        LABELS      "${DETERMINISM_SWEEP_LABELS}"
+        ENVIRONMENT "${VISUAL_ENV}"
+        DEPENDS     orender)
+endfunction()
 
 # --- Depth accuracy (fix/raytrace-midpoint-depth, GitHub #47 and #49). Three
 # opaque spheres, one sample at each pixel centre; test_depth_analytic checks
@@ -1680,30 +1763,21 @@ add_parity_test(displacement
 # flatshade/transparency/matte, except motion-patches-deform (measured
 # ~16.8-17.1 across repeated runs, a curved bicubic patch flattening over
 # the shutter interval produces more silhouette-edge shading gradient than
-# the other five) which gets a slightly looser 25 for run-to-run margin.
+# the other five) which got a slightly looser 25 for run-to-run margin.
+# Spec 039 (T100): with the sampler the renders are deterministic; the
+# worst diffs over 5 runs (parity-thresholds.md) are 0.77 (patches-translate,
+# now 8), 1.75 (quadrics-translate, now 6) and 11.11 (patches-deform, now 20).
 add_parity_test(motion-patches-translate
     examples/rib/tests/parity/motion-patches-translate-reyes.rib
     motion-patches-translate-reyes.tif
     examples/rib/tests/parity/motion-patches-translate-raytrace.rib
-    motion-patches-translate-raytrace.tif  20)
-
-# Correlated-table variant (spec 008 Phase 11/US9, T084): same scene, same
-# RIB pair, run with Option B's unified per-bucket sample table instead of
-# each hider drawing independently. Measured 2.95/3.12/3.00 across 3 runs
-# (vs. ~5.81 uncorrelated) -- a genuine, stable improvement, so this variant
-# gets its own tightened threshold rather than loosening the uncorrelated
-# test above (which stays as-is; Option B is opt-in, not the default path).
-add_parity_test(motion-patches-translate-correlated
-    examples/rib/tests/parity/motion-patches-translate-reyes.rib
-    motion-patches-translate-reyes.tif
-    examples/rib/tests/parity/motion-patches-translate-raytrace.rib
-    motion-patches-translate-raytrace.tif  8  "${VISUAL_ENV_CORRELATED}")
+    motion-patches-translate-raytrace.tif  8)
 
 add_parity_test(motion-patches-deform
     examples/rib/tests/parity/motion-patches-deform-reyes.rib
     motion-patches-deform-reyes.tif
     examples/rib/tests/parity/motion-patches-deform-raytrace.rib
-    motion-patches-deform-raytrace.tif  25)
+    motion-patches-deform-raytrace.tif  20)
 
 add_parity_test(motion-polygons-translate
     examples/rib/tests/parity/motion-polygons-translate-reyes.rib
@@ -1721,18 +1795,7 @@ add_parity_test(motion-quadrics-translate
     examples/rib/tests/parity/motion-quadrics-translate-reyes.rib
     motion-quadrics-translate-reyes.tif
     examples/rib/tests/parity/motion-quadrics-translate-raytrace.rib
-    motion-quadrics-translate-raytrace.tif  20)
-
-# Correlated-table variant (spec 008 Phase 11/US9, T084): measured
-# 2.16/2.19/2.20/2.31 across 4 runs (vs. ~4.05 uncorrelated) -- the largest,
-# most stable improvement of any candidate scene re-measured for T084. See
-# motion-patches-translate-correlated above for why this is a new variant
-# rather than a change to the uncorrelated test's threshold.
-add_parity_test(motion-quadrics-translate-correlated
-    examples/rib/tests/parity/motion-quadrics-translate-reyes.rib
-    motion-quadrics-translate-reyes.tif
-    examples/rib/tests/parity/motion-quadrics-translate-raytrace.rib
-    motion-quadrics-translate-raytrace.tif  6  "${VISUAL_ENV_CORRELATED}")
+    motion-quadrics-translate-raytrace.tif  6)
 
 add_parity_test(motion-quadrics-deform
     examples/rib/tests/parity/motion-quadrics-deform-reyes.rib
@@ -1750,12 +1813,13 @@ add_parity_test(motion-quadrics-deform
 # as a bounded, not-closable-by-refactor residual, not this story's motion
 # blur — motion alone converges to ~5-17 per the six scenes above).
 # Threshold set at 40 (~1.5x measured, matching the margin convention used
-# elsewhere in this file).
+# elsewhere in this file). Spec 039 (T100): 22.72 in 5 of 5 deterministic
+# runs under the sampler, so the same convention gives ceil(1.5 x 22.72) = 35.
 add_parity_test(dof-motion
     examples/rib/tests/parity/dof-motion-reyes.rib
     dof-motion-reyes.tif
     examples/rib/tests/parity/dof-motion-raytrace.rib
-    dof-motion-raytrace.tif  40)
+    dof-motion-raytrace.tif  35)
 
 # --- Subdivision surfaces (spec 010-full-subdivision-support, US1) — same
 # generic tessellation-path mechanism as the six patches/polygons/quadrics
@@ -3779,3 +3843,485 @@ if(OPENRENDER_SLO_VISUAL_TESTS)
     endif()
     unset(_n_slo_tests)
 endif()
+
+# --- Spec 039, Phase 3: RSL option("sampling:sampler") / option("sampling:seed") ---
+# A probe shader encodes the two query results in its colour (see
+# shaders/sampling_option_probe.sl) and test_pixel_probe reads the centre pixel
+# back exactly, under the interpreter (.rslo) and the LLVM JIT (.slo).
+#   pmj02, seed -7:  R 1 (found, "pmj02"), G 1 (found), B (-7 + 1000) / 2000
+#   no option:       R 0.5 (found, not "pmj02": the internal default), G 1, B 0.5
+foreach(_format rslo slo)
+    foreach(_case pmj02 default)
+        if(_case STREQUAL "pmj02")
+            set(_want "1" "1" "0.4965")
+        else()
+            set(_want "0.5" "1" "0.5")
+        endif()
+        set(_name sampling-option-${_case}-${_format})
+        set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/${_name})
+        file(MAKE_DIRECTORY ${_scratch})
+        add_test(NAME SamplingOption_RslQuery_${_case}_${_format}
+            COMMAND test_pixel_probe $<TARGET_FILE:orender>
+                ${CMAKE_SOURCE_DIR}/examples/rib/tests/${_name}.rib
+                ${_name}.tif 16 16 0.00001 ${_want}
+            WORKING_DIRECTORY ${_scratch})
+        set_tests_properties(SamplingOption_RslQuery_${_case}_${_format} PROPERTIES
+            TIMEOUT     120
+            LABELS      "visual;regression;sampling"
+            ENVIRONMENT "${VISUAL_ENV}"
+            DEPENDS     orender)
+    endforeach()
+endforeach()
+
+# --- Camera samples (spec 039, Phase 5, US3) --------------------------------------
+# Written before the camera samples come from the sampler's slots.
+#   CameraSamples_JitterZeroUnchanged_*: with "jitter" [0] the film, time and
+#     importance positions do not depend on the sampler, so a render under sobol
+#     must equal one under independent bit for bit. The scenes have no motion
+#     blur and no depth of field. Each side renders the original scene with its
+#     option line prepended (test_render_compare --prepend-a/--prepend-b). Until
+#     Phase 9 side A was the Legacy default, which no longer exists.
+#   CameraSamples_SobolEngaged_*: the control for the test above. With
+#     "jitter" [1] the samples sit at the sampler's positions, so the sobol
+#     render must differ from the independent one; a sobol option the hiders ignore
+#     would pass the "unchanged" test for the wrong reason.
+foreach(_hider reyes raytrace)
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/camera-samples-${_hider})
+    file(MAKE_DIRECTORY ${_scratch})
+endforeach()
+set(_camera_samples_cases
+    JitterZeroUnchanged_reyes same
+        color-determinism-opaque-reyes.rib color-determinism-opaque.tif
+        color-determinism-opaque-reyes.rib color-determinism-opaque.tif
+    JitterZeroUnchanged_raytrace same
+        depth-analytic-min-raytrace.rib depth-analytic-min-raytrace.tif
+        depth-analytic-min-raytrace.rib depth-analytic-min-raytrace.tif
+    SobolEngaged_reyes differ
+        sampling-camera-jitter1-reyes-independent.rib sampling-camera-jitter1-reyes-independent.tif
+        sampling-camera-jitter1-reyes-sobol.rib sampling-camera-jitter1-reyes-sobol.tif
+    SobolEngaged_raytrace differ
+        sampling-camera-jitter1-raytrace-independent.rib sampling-camera-jitter1-raytrace-independent.tif
+        sampling-camera-jitter1-raytrace-sobol.rib sampling-camera-jitter1-raytrace-sobol.tif)
+list(LENGTH _camera_samples_cases _n)
+math(EXPR _last "${_n} - 1")
+foreach(_i RANGE 0 ${_last} 6)
+    math(EXPR _i1 "${_i} + 1")
+    math(EXPR _i2 "${_i} + 2")
+    math(EXPR _i3 "${_i} + 3")
+    math(EXPR _i4 "${_i} + 4")
+    math(EXPR _i5 "${_i} + 5")
+    list(GET _camera_samples_cases ${_i} _name)
+    list(GET _camera_samples_cases ${_i1} _mode)
+    list(GET _camera_samples_cases ${_i2} _ribA)
+    list(GET _camera_samples_cases ${_i3} _tifA)
+    list(GET _camera_samples_cases ${_i4} _ribB)
+    list(GET _camera_samples_cases ${_i5} _tifB)
+    string(REGEX REPLACE ".*_" "" _hider ${_name})
+    set(_prepend "")
+    if(_name MATCHES "^JitterZeroUnchanged_")
+        set(_prepend "--prepend-a:Option \"sampling\" \"sampler\" [\"independent\"]" "--prepend-b:${DETERMINISM_SOBOL_LINE}")
+    endif()
+    add_test(NAME CameraSamples_${_name}
+        COMMAND test_render_compare $<TARGET_FILE:orender> ${_mode}
+            ${CMAKE_SOURCE_DIR}/examples/rib/tests/${_ribA} ${_tifA}
+            ${CMAKE_SOURCE_DIR}/examples/rib/tests/${_ribB} ${_tifB} -t:1 ${_prepend}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tests/visual/camera-samples-${_hider})
+    set_tests_properties(CameraSamples_${_name} PROPERTIES
+        TIMEOUT     120
+        LABELS      "visual;regression;sampling"
+        ENVIRONMENT "${VISUAL_ENV}"
+        DEPENDS     orender)
+endforeach()
+
+# --- Consumers of the sampler: transport, shading draws, threads (spec 039, Phase 6) ---
+# Written before the shading draws come from the sampler (tests first). The
+# scenes under examples/rib/tests/sampling-*.rib.in are templates: the
+# generated copies live in the build tree.
+#
+#   SamplingJitParity_<function>: shaders/sampling_jit_probe.sl fills Ci with
+#     one stochastic value (random(), trace(), transmission(), visibility(),
+#     occlusion(), indirectdiffuse() or gather()). The same scene under the
+#     interpreter (.rslo) and the LLVM JIT (.slo), under sobol, must be
+#     bit-identical (SC-008). Today each backend draws from the context's
+#     stream in its own order, so they differ. visibility(P, Q) in its plain
+#     form does not depend on the draws in this scene: that test is a guard.
+#   SamplingJitDeterminism_<function>: the same scene rendered twice, bit-identical.
+#     Today the shading draws come from a per-context stream that two worker
+#     threads share out between them, so even a -t:1 render varies run to run;
+#     that noise is also what makes the Parity tests above fail today.
+#   SamplingJitEngaged_<function>: the control. The same rslo scene under sobol
+#     with seed 0 and with seed 1 must differ once the draws come from the
+#     sampler (today the seed does not reach the shading draws). A comparison
+#     with legacy would pass for the wrong reason: under sobol the camera no
+#     longer consumes the context's stream, so the shading draws already differ.
+#   SamplingJitParity_RandomProbe_<format>: sampling_random_probe.sl, read back
+#     exactly: Du() of a draw is 0, the draws at different call sites and loop
+#     iterations are distinct, and every draw is in [0, 1).
+#   Sampling_ShaderDrawIndependence_*: sampling_independence_probe.sl; adding
+#     iterations to the first trace loop leaves the second loop and the
+#     illuminance loop unchanged (US6-1).
+#   Sampling_ThreadSweep_*: under sobol, -t:1 against -t:4, bit for bit. The
+#     scenes are the originals with the option line prepended and without the
+#     scene's numthreads pin (test_depth_determinism --prepend).
+#   Sampling_ProbeIndependence: the midpoint probe's draw shifts no other value.
+# The tests below share one scratch directory and several write the same TIFF names, so
+# they hold a ctest resource lock and never run side by side (-j).
+set(_phase6_dir ${CMAKE_BINARY_DIR}/tests/visual/sampling-phase6)
+file(MAKE_DIRECTORY ${_phase6_dir})
+set(_phase6_scenes ${CMAKE_SOURCE_DIR}/examples/rib/tests)
+
+set(_jit_functions random_loop random_urandom random_vector trace_transmission visibility occlusion indirectdiffuse gather)
+set(_channel 0)
+foreach(_function IN LISTS _jit_functions)
+    set(CHANNEL ${_channel})
+    foreach(_variant rslo:0 slo:0 rslo:1)
+        string(REPLACE ":" ";" _parts ${_variant})
+        list(GET _parts 0 FORMAT)
+        list(GET _parts 1 SEED)
+        set(OUTPUT jit-${_function}-${FORMAT}-seed${SEED}.tif)
+        configure_file(${_phase6_scenes}/sampling-jit-probe.rib.in
+            ${_phase6_dir}/jit-${_function}-${FORMAT}-seed${SEED}.rib @ONLY)
+    endforeach()
+    add_test(NAME SamplingJitParity_${_function}
+        COMMAND test_render_compare $<TARGET_FILE:orender> same
+            ${_phase6_dir}/jit-${_function}-rslo-seed0.rib jit-${_function}-rslo-seed0.tif
+            ${_phase6_dir}/jit-${_function}-slo-seed0.rib jit-${_function}-slo-seed0.tif
+        WORKING_DIRECTORY ${_phase6_dir})
+    add_test(NAME SamplingJitDeterminism_${_function}
+        COMMAND test_render_compare $<TARGET_FILE:orender> same
+            ${_phase6_dir}/jit-${_function}-rslo-seed0.rib jit-${_function}-rslo-seed0.tif
+            ${_phase6_dir}/jit-${_function}-rslo-seed0.rib jit-${_function}-rslo-seed0.tif
+        WORKING_DIRECTORY ${_phase6_dir})
+    set(_tests SamplingJitParity_${_function} SamplingJitDeterminism_${_function})
+    if(NOT _function STREQUAL "visibility")
+        add_test(NAME SamplingJitEngaged_${_function}
+            COMMAND test_render_compare $<TARGET_FILE:orender> differ
+                ${_phase6_dir}/jit-${_function}-rslo-seed0.rib jit-${_function}-rslo-seed0.tif
+                ${_phase6_dir}/jit-${_function}-rslo-seed1.rib jit-${_function}-rslo-seed1.tif
+            WORKING_DIRECTORY ${_phase6_dir})
+        list(APPEND _tests SamplingJitEngaged_${_function})
+    endif()
+    set_tests_properties(${_tests} PROPERTIES TIMEOUT 120 LABELS "visual;regression;sampling" RESOURCE_LOCK sampling_phase6_scratch
+        ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+    math(EXPR _channel "${_channel} + 1")
+endforeach()
+
+# sampling_random_probe.sl on a sphere, read back exactly. R: Du()/Dv() of a draw is 0, which holds for
+# ray-hit shading only (the derivative-offset vertices mirror their real vertex); G: four draws are
+# distinct; B: urandom draws distinct and every draw in [0, 1).
+#   RandomProbe_<format>       the raytrace hider: all three channels
+#   RandomProbeReyes_<format>  the reyes hider: G and B only (on a reyes grid Du() is a difference
+#                              between neighbouring vertices, which draw independent values)
+foreach(_format rslo slo)
+    set(FORMAT ${_format})
+    set(HIDER reyes)
+    configure_file(${_phase6_scenes}/sampling-random-probe.rib.in ${_phase6_dir}/random-probe-reyes-${_format}.rib @ONLY)
+    add_test(NAME SamplingJitParity_RandomProbeReyes_${_format}
+        COMMAND test_pixel_probe $<TARGET_FILE:orender> ${_phase6_dir}/random-probe-reyes-${_format}.rib
+            sampling-random-probe-reyes-${_format}.tif 16 16 0 --channels=1,2 1 1
+        WORKING_DIRECTORY ${_phase6_dir})
+    set_tests_properties(SamplingJitParity_RandomProbeReyes_${_format} PROPERTIES TIMEOUT 120
+        LABELS "visual;regression;sampling" RESOURCE_LOCK sampling_phase6_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+    set(HIDER raytrace)
+    configure_file(${_phase6_scenes}/sampling-random-probe.rib.in ${_phase6_dir}/random-probe-${_format}.rib @ONLY)
+    add_test(NAME SamplingJitParity_RandomProbe_${_format}
+        COMMAND test_pixel_probe $<TARGET_FILE:orender> ${_phase6_dir}/random-probe-${_format}.rib
+            sampling-random-probe-raytrace-${_format}.tif 16 16 0 0 1 1
+        WORKING_DIRECTORY ${_phase6_dir})
+    set_tests_properties(SamplingJitParity_RandomProbe_${_format} PROPERTIES TIMEOUT 120
+        LABELS "visual;regression;sampling" RESOURCE_LOCK sampling_phase6_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+endforeach()
+
+foreach(_n 2 3)
+    set(N1 ${_n})
+    configure_file(${_phase6_scenes}/sampling-independence.rib.in ${_phase6_dir}/independence-${_n}.rib @ONLY)
+endforeach()
+foreach(_case second_loop:1:same illuminance:2:same first_loop_changes:0:differ)
+    string(REPLACE ":" ";" _parts ${_case})
+    list(GET _parts 0 _name)
+    list(GET _parts 1 _channels)
+    list(GET _parts 2 _mode)
+    add_test(NAME Sampling_ShaderDrawIndependence_${_name}
+        COMMAND test_render_compare $<TARGET_FILE:orender> ${_mode}
+            ${_phase6_dir}/independence-2.rib sampling-independence-2.tif
+            ${_phase6_dir}/independence-3.rib sampling-independence-3.tif --channels=${_channels}
+        WORKING_DIRECTORY ${_phase6_dir})
+    set_tests_properties(Sampling_ShaderDrawIndependence_${_name} PROPERTIES TIMEOUT 120
+        LABELS "visual;regression;sampling" RESOURCE_LOCK sampling_phase6_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+endforeach()
+
+# Each runs the original scene with the sobol option and a float Quantize line prepended, and
+# without the scene's numthreads pin (--prepend), so that -t:4 really runs on four threads.
+set(_threadsweep_quadlight       ${CMAKE_SOURCE_DIR}/examples/rib/quadlight.rib quadlight.tif)
+set(_threadsweep_sphere-random   ${_phase6_scenes}/sphere-random-reyes.rib sphere-random-reyes.tif)
+set(_threadsweep_sphere-trace    ${_phase6_scenes}/sphere-trace-reyes.rib sphere-trace-reyes.tif)
+set(_threadsweep_sphere-gather   ${_phase6_scenes}/sphere-gather-reyes.rib sphere-gather-reyes.tif)
+foreach(_scene quadlight sphere-random sphere-trace sphere-gather)
+    list(GET _threadsweep_${_scene} 0 _sweep_rib)
+    list(GET _threadsweep_${_scene} 1 _sweep_tif)
+    add_test(NAME Sampling_ThreadSweep_${_scene}
+        COMMAND test_depth_determinism --configs "-t:1|-t:4" --outputs ${_sweep_tif}
+            --prepend "${DETERMINISM_SOBOL_LINE}\nQuantize \"rgba\" 0 0 0 0"
+            $<TARGET_FILE:orender> ${_sweep_rib}
+        WORKING_DIRECTORY ${_phase6_dir})
+    set_tests_properties(Sampling_ThreadSweep_${_scene} PROPERTIES TIMEOUT 300
+        LABELS "visual;regression;sampling" RESOURCE_LOCK sampling_phase6_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+endforeach()
+
+add_test(NAME Sampling_ProbeIndependence
+    COMMAND test_render_compare $<TARGET_FILE:orender> same
+        ${_phase6_scenes}/sampling-probe-independence-mid.rib sampling-probe-independence-mid.tif
+        ${_phase6_scenes}/sampling-probe-independence-min.rib sampling-probe-independence-min.tif -t:1
+    WORKING_DIRECTORY ${_phase6_dir})
+set_tests_properties(Sampling_ProbeIndependence PROPERTIES TIMEOUT 120
+    LABELS "visual;regression;sampling" RESOURCE_LOCK sampling_phase6_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+
+# --- occlusion() takes its hemisphere directions from the sampler (spec 039, T076a) -------------
+# Written before the change. occlusion() builds an nt x np grid of cells and draws only the point
+# inside each cell from the backend, so every backend, Independent included, stratifies the
+# hemisphere the same way, and the ray count (3, 3, 12, 80, 252 for samples 1, 4, 16, 64, 256) is
+# not the number asked for.
+#   OcclusionSampler_NetCount_<sampler>_<n>_<format>: examples/rib/tests/sampling-occlusion-cap.rib.in.
+#     A disc over the shaded point blocks a quarter of the cosine-weighted hemisphere (the strip
+#     u < 1/4 of the unit square). A (0,2) net of n points, n a power of 4, has exactly n/4 points
+#     in the strip, so under sobol and pmj02 the centre pixel reads exactly 0.25 for n = 4, 16, 64
+#     (and only if the ray count is n). Seed 1: with seed 0, 2, 4 or 5 one of these combinations
+#     reads 0.25 today by coincidence. The same scene gives 1/3, 5/12 or 21/80 now.
+#   OcclusionGolden_<case>: examples/rib/tests/sampling-occlusion-golden.rib.in against a golden
+#     render made before the change, bit for bit (test_golden_compare). sobol_cache: with the
+#     irradiance cache on (maxerror > 0) the grid stays, because the cache's gradients are
+#     computed on it. (The legacy and legacy_cache cases pinned the Legacy sampler and were
+#     retired with it in Phase 9.) The golden is bit-exact per platform: Linux reads its own,
+#     golden/linux/ (rendered on Ubuntu 24.04 with GCC 13, spec 039 T141; provenance next to it),
+#     since cross-platform renders differ by about one ulp (spec.md, Assumptions). No tolerance.
+add_executable(test_golden_compare test_golden_compare.cpp)
+target_link_libraries(test_golden_compare PRIVATE TIFF::TIFF)
+target_compile_features(test_golden_compare PRIVATE cxx_std_20)
+
+set(_occlusion_dir ${CMAKE_BINARY_DIR}/tests/visual/sampling-occlusion)
+file(MAKE_DIRECTORY ${_occlusion_dir})
+set(_occlusion_tests "")
+foreach(_format rslo slo)
+    foreach(_sampler sobol pmj02)
+        foreach(_n 4 16 64)
+            set(SAMPLER ${_sampler})
+            set(FORMAT ${_format})
+            set(SAMPLES ${_n})
+            set(SEED 1)
+            set(OUTPUT occlusion-cap-${_sampler}-${_n}-${_format}.tif)
+            configure_file(${_phase6_scenes}/sampling-occlusion-cap.rib.in
+                ${_occlusion_dir}/occlusion-cap-${_sampler}-${_n}-${_format}.rib @ONLY)
+            add_test(NAME OcclusionSampler_NetCount_${_sampler}_${_n}_${_format}
+                COMMAND test_pixel_probe $<TARGET_FILE:orender>
+                    ${_occlusion_dir}/occlusion-cap-${_sampler}-${_n}-${_format}.rib
+                    ${OUTPUT} 16 16 0.000001 0.25 0.25 0.25
+                WORKING_DIRECTORY ${_occlusion_dir})
+            list(APPEND _occlusion_tests OcclusionSampler_NetCount_${_sampler}_${_n}_${_format})
+            if(_format STREQUAL "slo" AND NOT OPENRENDER_HAVE_LLVM)
+                set_tests_properties(OcclusionSampler_NetCount_${_sampler}_${_n}_${_format} PROPERTIES DISABLED TRUE)
+            endif()
+        endforeach()
+    endforeach()
+endforeach()
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(_occlusion_golden_dir ${CMAKE_CURRENT_SOURCE_DIR}/golden/linux)
+else()
+    set(_occlusion_golden_dir ${CMAKE_CURRENT_SOURCE_DIR}/golden)
+endif()
+foreach(_case sobol_cache:sobol:0.4)
+    string(REPLACE ":" ";" _parts ${_case})
+    list(GET _parts 0 _name)
+    list(GET _parts 1 SAMPLER)
+    list(GET _parts 2 MAXERROR)
+    set(OUTPUT occlusion-golden-${_name}.tif)
+    configure_file(${_phase6_scenes}/sampling-occlusion-golden.rib.in ${_occlusion_dir}/occlusion-golden-${_name}.rib @ONLY)
+    add_test(NAME OcclusionGolden_${_name}
+        COMMAND test_golden_compare $<TARGET_FILE:orender>
+            ${_occlusion_dir}/occlusion-golden-${_name}.rib ${OUTPUT}
+            ${_occlusion_golden_dir}/occlusion-${_name}.tif
+        WORKING_DIRECTORY ${_occlusion_dir})
+    list(APPEND _occlusion_tests OcclusionGolden_${_name})
+endforeach()
+set_tests_properties(${_occlusion_tests} PROPERTIES TIMEOUT 120
+    LABELS "visual;regression;sampling" RESOURCE_LOCK sampling_occlusion_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+
+# --- The correlated sample table is gone (spec 039, T093, US3-3) ---------------------------------
+#   SamplingEnv_CorrelatedTableIgnored: one parity scene (motion-quadrics-translate-raytrace, with
+#   the default sampler) rendered without and with OPENRENDER_CORRELATED_SAMPLE_TABLE=1 must be bit
+#   identical: once the table is deleted the variable is read by nobody. The copy renders float and
+#   single-threaded, so the variable is the only difference between the two renders. Written before
+#   T090/T093: today the default sampler is Legacy, whose camera consumes the table, so it fails.
+set(_correlated_dir ${CMAKE_BINARY_DIR}/tests/visual/sampling-correlated)
+file(MAKE_DIRECTORY ${_correlated_dir})
+file(READ ${CMAKE_SOURCE_DIR}/examples/rib/tests/parity/motion-quadrics-translate-raytrace.rib _correlated_scene)
+file(WRITE ${_correlated_dir}/correlated-table.rib
+    "Quantize \"rgba\" 0 0 0 0\nOption \"limits\" \"numthreads\" [1]\n${_correlated_scene}")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    ${CMAKE_SOURCE_DIR}/examples/rib/tests/parity/motion-quadrics-translate-raytrace.rib)
+add_test(NAME SamplingEnv_CorrelatedTableIgnored
+    COMMAND sh -c "\"$0\" \"$1\" correlated-table.rib motion-quadrics-translate-raytrace.tif without-table.tif --write && OPENRENDER_CORRELATED_SAMPLE_TABLE=1 \"$0\" \"$1\" correlated-table.rib motion-quadrics-translate-raytrace.tif without-table.tif"
+        $<TARGET_FILE:test_golden_compare> $<TARGET_FILE:orender>
+    WORKING_DIRECTORY ${_correlated_dir})
+set_tests_properties(SamplingEnv_CorrelatedTableIgnored PROPERTIES TIMEOUT 300
+    LABELS "visual;regression;sampling" ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+
+# --- Frames (spec 039, T103, SC-001 edge case) ------------------------------------------------
+#   Sampling_FrameReproducible: examples/rib/tests/sampling-frames.rib has two frames, jittered,
+#     with depth of field and random() shading. Frame 2 rendered alone (orender -f 2) must be
+#     bit-identical to frame 2 of the full render: the draws are keyed by the frame number, not
+#     by what was rendered before.
+#   Sampling_FrameReproducible_control: frames 1 and 2 of the full render differ, so the test
+#     above is not comparing a frame that ignores its number.
+set(_frames_dir ${CMAKE_BINARY_DIR}/tests/visual/sampling-frames)
+file(MAKE_DIRECTORY ${_frames_dir})
+add_test(NAME Sampling_FrameReproducible
+    COMMAND test_render_compare $<TARGET_FILE:orender> same
+        ${CMAKE_SOURCE_DIR}/examples/rib/tests/sampling-frames.rib sampling-frames-2.tif
+        ${CMAKE_SOURCE_DIR}/examples/rib/tests/sampling-frames.rib sampling-frames-2.tif "--b:-f 2"
+    WORKING_DIRECTORY ${_frames_dir})
+add_test(NAME Sampling_FrameReproducible_control
+    COMMAND test_render_compare $<TARGET_FILE:orender> differ
+        ${CMAKE_SOURCE_DIR}/examples/rib/tests/sampling-frames.rib sampling-frames-1.tif
+        ${CMAKE_SOURCE_DIR}/examples/rib/tests/sampling-frames.rib sampling-frames-2.tif
+    WORKING_DIRECTORY ${_frames_dir})
+set_tests_properties(Sampling_FrameReproducible Sampling_FrameReproducible_control PROPERTIES TIMEOUT 300
+    LABELS "visual;regression;sampling;determinism" RESOURCE_LOCK sampling_frames_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+
+# --- Crop (spec 039, T103, SC-001 edge case) --------------------------------------------------
+#   Sampling_CropConsistent_raytrace: examples/rib/tests/sampling-crop.rib.in rendered in full and
+#     with CropWindow 0.25 0.75 0.25 0.75; the crop rectangle's pixels (x 16..47, y 12..35) must be
+#     bit-identical (test_crop_compare). The hiders key a subpixel by its position in the full
+#     image (T116), and raytrace projects from the full image's origin (T117). It uses a 1 x 1
+#     box filter, because with the default filter the raytrace hider's four crop-corner pixels
+#     differ from the full render through its filter weighting, independently of the sampler:
+#     GitHub #70, not fixed in spec 039. There is no reyes case: under a crop reyes dices its
+#     grids differently, so its point keys (object, u, v) and its P differ (GitHub #72, a
+#     recorded limitation of spec 039).
+#   Sampling_CropConsistent_raytrace_position: the same scene, jitter on, with
+#     shaders/sampling_position_probe.sl (Ci = P): each pixel's rays must start from the same
+#     raster position in a crop as in the full frame, to the last bit (T124).
+add_executable(test_crop_compare test_crop_compare.cpp)
+target_link_libraries(test_crop_compare PRIVATE TIFF::TIFF)
+target_compile_features(test_crop_compare PRIVATE cxx_std_20)
+set(_crop_dir ${CMAKE_BINARY_DIR}/tests/visual/sampling-crop)
+file(MAKE_DIRECTORY ${_crop_dir})
+foreach(_case raytrace:box:random_probe: raytrace:box:sampling_position_probe:_position)
+    string(REPLACE ":" ";" _parts ${_case})
+    list(GET _parts 0 HIDER)
+    list(GET _parts 1 _filter)
+    list(GET _parts 2 SURFACE)
+    list(LENGTH _parts _nparts)
+    set(_suffix "")
+    if(_nparts GREATER 3)
+        list(GET _parts 3 _suffix)
+    endif()
+    if(_filter STREQUAL "box")
+        set(FILTER "PixelFilter \"box\" 1 1")
+    else()
+        set(FILTER "")
+    endif()
+    set(CROP "")
+    set(OUTPUT crop-${HIDER}${_suffix}-full.tif)
+    configure_file(${_phase6_scenes}/sampling-crop.rib.in ${_crop_dir}/crop-${HIDER}${_suffix}-full.rib @ONLY)
+    set(CROP "CropWindow 0.25 0.75 0.25 0.75")
+    set(OUTPUT crop-${HIDER}${_suffix}-crop.tif)
+    configure_file(${_phase6_scenes}/sampling-crop.rib.in ${_crop_dir}/crop-${HIDER}${_suffix}-crop.rib @ONLY)
+    add_test(NAME Sampling_CropConsistent_${HIDER}${_suffix}
+        COMMAND test_crop_compare $<TARGET_FILE:orender>
+            ${_crop_dir}/crop-${HIDER}${_suffix}-full.rib crop-${HIDER}${_suffix}-full.tif
+            ${_crop_dir}/crop-${HIDER}${_suffix}-crop.rib crop-${HIDER}${_suffix}-crop.tif 16 47 12 35
+        WORKING_DIRECTORY ${_crop_dir})
+    set_tests_properties(Sampling_CropConsistent_${HIDER}${_suffix} PROPERTIES TIMEOUT 300
+        LABELS "visual;regression;sampling;determinism" ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+endforeach()
+
+# SC-007 (spec 039): no randomness outside the sampler library and CKeyedStream.
+# Registered at Phase 6 with an explicit allowlist (no_global_randomness_allowlist.txt)
+# that holds only the legacy generators Phase 9 deletes. It fails today: it lists
+# the call sites Phase 6 (T070-T077) converts, and it goes green when they are
+# gone. A stale allowlist line also fails it. At T104 the allowlist is empty.
+add_test(NAME Sampling_NoGlobalRandomness
+    COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/check_no_global_randomness.sh ${CMAKE_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/no_global_randomness_allowlist.txt)
+set_tests_properties(Sampling_NoGlobalRandomness PROPERTIES TIMEOUT 60 LABELS "sampling;unit")
+
+# Two instances of one light shader at one point (spec 039, Phase 6 follow-up). The sampler's
+# sub-stream key must tell the instances apart: what the light with id 2 draws at a point must
+# not depend on whether another instance of the same shader is declared before or after it.
+foreach(_order after before)
+    add_test(NAME Sampling_InstanceIndependence_${_order}
+        COMMAND test_render_compare $<TARGET_FILE:orender> same
+            ${_phase6_scenes}/sampling-instance-alone.rib sampling-instance-alone.tif
+            ${_phase6_scenes}/sampling-instance-${_order}.rib sampling-instance-${_order}.tif --channels=0
+        WORKING_DIRECTORY ${_phase6_dir})
+    set_tests_properties(Sampling_InstanceIndependence_${_order} PROPERTIES TIMEOUT 120
+        LABELS "visual;regression;sampling" RESOURCE_LOCK sampling_phase6_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+endforeach()
+
+# The displacement-only passes (spec 039, Phase 6 follow-up). A displacement shader's random() must
+# not depend on which thread dices the surface: the dicer's bounding and grid-size probes run the
+# displacement shader in displacement-only passes that gave no points a sample identity, so they drew
+# from whatever the thread's state held from its previous grid.
+#   Sampling_DisplaceThreadSweep: -t:1 against -t:4, bit for bit.
+#   Sampling_DisplaceRepeat:      -t:4 against -t:4.
+# (Sampling_DisplacePassConsistency, tests/unit/sampling, checks the two passes against each other.)
+add_test(NAME Sampling_DisplaceThreadSweep
+    COMMAND test_render_compare $<TARGET_FILE:orender> same
+        ${_phase6_scenes}/sampling-displace-sphere.rib sampling-displace-sphere.tif
+        ${_phase6_scenes}/sampling-displace-sphere.rib sampling-displace-sphere.tif --a:-t:1 --b:-t:4
+    WORKING_DIRECTORY ${_phase6_dir})
+add_test(NAME Sampling_DisplaceRepeat
+    COMMAND test_render_compare $<TARGET_FILE:orender> same
+        ${_phase6_scenes}/sampling-displace-sphere.rib sampling-displace-sphere.tif
+        ${_phase6_scenes}/sampling-displace-sphere.rib sampling-displace-sphere.tif -t:4
+    WORKING_DIRECTORY ${_phase6_dir})
+set_tests_properties(Sampling_DisplaceThreadSweep Sampling_DisplaceRepeat PROPERTIES TIMEOUT 120
+    LABELS "visual;regression;sampling" RESOURCE_LOCK sampling_phase6_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+
+# --- Determinism harness self-tests (spec 039, Phase 7, T079) ----------------------------------
+# test_depth_determinism's cross-configuration mode (--configs, --outputs, --prepend,
+# --keep-pins, --no-dither, --print-scene). Written before the flags exist; see
+# check_determinism_harness.sh for what each case checks.
+set(_harness_dir ${CMAKE_BINARY_DIR}/tests/visual/determinism-harness)
+file(MAKE_DIRECTORY ${_harness_dir})
+foreach(_case identical detects render_failure multiple_outputs print_prepend print_keep_pins print_no_dither usage_unchanged)
+    add_test(NAME DeterminismHarness_${_case}
+        COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/check_determinism_harness.sh
+            $<TARGET_FILE:test_depth_determinism> $<TARGET_FILE:orender> ${CMAKE_SOURCE_DIR}/examples/rib/tests ${_case}
+        WORKING_DIRECTORY ${_harness_dir})
+    set_tests_properties(DeterminismHarness_${_case} PROPERTIES TIMEOUT 300
+        LABELS "visual;regression;sampling;determinism" RESOURCE_LOCK determinism_harness_scratch
+        ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+endforeach()
+
+# --- Determinism sweep scenes (spec 039, Phase 7, T081) ---------------------------------------
+# Every non-GI visual and parity scene under each orender configuration (FR-031).
+include(${CMAKE_CURRENT_SOURCE_DIR}/determinism-scenes.cmake)
+
+# --- Equal-depth ties (spec 039, Phase 7, T084c) ---------------------------------------------
+# Two coincident opaque triangles of different colour: every sample of the overlap receives two
+# fragments at exactly the same depth. The hiders keep the fragment that arrives first
+# (`z < pixel->z`), and the order in which the two grids reach a bucket depends on thread
+# scheduling, so the image varies with the thread count. A tie must be broken by a
+# deterministic key, in the reyes and the zbuffer hider alike. The scenes have 8x8 buckets of
+# 16x16 pixels; the first configuration is the reference, the others run eight times at -t:4.
+foreach(_hider reyes zbuffer)
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/determinism-ties-${_hider})
+    file(MAKE_DIRECTORY ${_scratch})
+    add_test(NAME DeterminismTies_${_hider}
+        COMMAND test_depth_determinism --configs "-t:1|-t:4|-t:4|-t:4|-t:4|-t:4|-t:4|-t:4|-t:4"
+            --outputs ties-coincident-${_hider}.tif
+            $<TARGET_FILE:orender> ${CMAKE_SOURCE_DIR}/examples/rib/tests/ties-coincident-${_hider}.rib
+        WORKING_DIRECTORY ${_scratch})
+    set_tests_properties(DeterminismTies_${_hider} PROPERTIES TIMEOUT 120
+        LABELS "visual;regression;determinism" ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+endforeach()
+
+# --- Other determinism tests in the default `determinism` set ----------------------------------
+# These compare renders across thread counts or repeat a render; they only gain the label.
+set_property(TEST Sampling_ThreadSweep_quadlight Sampling_ThreadSweep_sphere-random Sampling_ThreadSweep_sphere-trace
+    Sampling_ThreadSweep_sphere-gather Sampling_DisplaceThreadSweep Sampling_DisplaceRepeat
+    SamplingJitDeterminism_random_loop SamplingJitDeterminism_random_urandom SamplingJitDeterminism_random_vector
+    SamplingJitDeterminism_trace_transmission SamplingJitDeterminism_visibility SamplingJitDeterminism_occlusion
+    SamplingJitDeterminism_indirectdiffuse SamplingJitDeterminism_gather
+    APPEND PROPERTY LABELS determinism)

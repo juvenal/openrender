@@ -328,8 +328,9 @@ void CReyes::render() {
     // Process the objects and patches
     while ((cObject = objectQueue.get(bucketMutex)) != NULL) {
 
-        // Is the object behind the maximum opaque depth ?
-        if (cObject->zmin < maxDepth) {
+        // Is the object behind the maximum opaque depth ? An object whose nearest depth equals
+        // it exactly can still win a tie (rasterTie.h), so only a strictly farther one is culled
+        if (cObject->zmin <= maxDepth) {
 
             __logObjectRasterizeDice(cObject, currentXBucket, currentYBucket);
 

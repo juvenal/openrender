@@ -20,11 +20,11 @@
 #      kept (B).
 #   cmp A and B byte-for-byte.
 #
-# All renders "-t:1" (single-threaded): this codebase's default
-# multi-threaded reyes/raytrace rendering is not byte-reproducible run to
-# run (bucket-scheduling nondeterminism, established during spec 019's own
-# planning) -- see tests/visual/CMakeLists.txt's existing "-t:1" usage for
-# other byte-identical-sensitive scenes.
+# All renders run at the default thread count. They were pinned "-t:1" until
+# spec 039, because multi-threaded rendering was not byte-reproducible run to
+# run; since spec 039 a non-GI render is bit-identical at any thread count, so
+# the pin, which only stood in for determinism, was removed (spec 039, T099,
+# thread-pins.md).
 #
 # Usage: test_texture_cache_byte_identical.sh <orender> <scene-template> <source-png>
 set -euo pipefail
@@ -47,7 +47,7 @@ render() {
         -e "s|@TEXTURE_PATH@|${SOURCE_PNG}|" \
         "$TEMPLATE" > "$WORKDIR/scene.rib"
 
-    (cd "$WORKDIR" && "$ORENDER" -t:1 scene.rib >/dev/null 2>&1) || true
+    (cd "$WORKDIR" && "$ORENDER" scene.rib >/dev/null 2>&1) || true
 
     if [ ! -f "$WORKDIR/cache-scene.tif" ]; then
         echo "FAIL: render did not produce an output file (option: $cache_option)"

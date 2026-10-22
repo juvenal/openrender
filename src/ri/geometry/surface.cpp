@@ -2335,8 +2335,8 @@ void CTesselationPatch::splitToChildren(CShadingContext *context) {
         }
     }
 
-    // attach them
-    setChildren(context, subPatches);
+    // attach them (the pieces of a split keep the patch's identity)
+    setChildren(context, subPatches, true);
 }
 
 ///////////////////////////////////////////////////////////////////////

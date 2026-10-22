@@ -19,11 +19,17 @@
 # edits were in. TOTAL distinct falls from 117 to 113, as archcheck reported: the members only the
 # shading library referenced (getFilter, getStepFilter, getGlobalID and getDSO among them) are no
 # longer counted, while retrieveVariable is still used by Geometry and the RIB parser.
+#
+# Spec 039 (Phase 9, T096): the hiders take every camera value from the sampler's camera
+# slots, so the Legacy camera path's CRenderer::jitter (raytracer.cpp, stochastic.cpp),
+# CRenderer::frame (stochastic.cpp, apertureGenerator's seed) and the correlated table's
+# CRenderer::correlatedSampleTable reads are gone: Hiders 586 -> 567 references and
+# 87 -> 84 members, TOTAL 740 -> 721 and 113 -> 110, as archcheck reported.
 
 Geometry           78    19
-Hiders            586    87
+Hiders            567    84
 Infra               0     0
 SceneInterface      6     6
 Shading             0     0
 Texturing          70    16
-TOTAL             740   113
+TOTAL             721   110

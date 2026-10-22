@@ -471,7 +471,7 @@ void CIrradianceCache::lookup(float *C, const float *cP, const float *cdPdu, con
 // Description			:	Sample the occlusion
 // Return Value			:
 // Comments				:	Real body lives in irradianceDispatch.cpp (needs
-//							CShadingContext::next_state/trace and
+//							CShadingContext draw cursor/trace and
 //							CTextureLookup::staticInit); a non-shading stub
 //							lives in vector/irradianceDispatchStub.cpp for
 //							consumers that must not link libshader_shading.

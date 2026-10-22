@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 2.0.0
 #!name "raypoint"
 light
 #!parameters:
@@ -22,7 +22,7 @@ varying	float	temporary_6
 #!Code:
 	illuminate from #!Label2
 	vuvector  temporary_5 from
-	visibility	("f=pp")  temporary_4 Ps temporary_5
+	visibility	("f=pp")  temporary_4 Ps temporary_5 0
 	vufloat  temporary_6 intensity
 	mulff  temporary_3 temporary_4 temporary_6
 	vfromf  temporary_2 temporary_3

@@ -29,6 +29,7 @@
 
 #include "common/global.h"
 #include "occlusion.h"
+#include "rasterTie.h"
 #include "reyes.h"
 
 ///////////////////////////////////////////////////////////////////////

@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 2.0.0
 #!name "emboss"
 displacement
 #!parameters:
@@ -42,7 +42,7 @@ varying	float	temporary_10
 	subff  temporary_2 t temporary_3
 	vufloat  temporary_3 tscale
 	divff  tt temporary_2 temporary_3
-	texture	("f=SFffSf")  amp texturename 0 ss tt "blur" blur
+	texture	("f=SFffSf")  amp texturename 0 ss tt "blur" blur 0
 	normalize	("v=v")  temporary_4 N
 	vufloat  temporary_5 Km
 	mulff  temporary_3 temporary_5 amp

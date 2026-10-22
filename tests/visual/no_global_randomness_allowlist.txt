@@ -1,0 +1,11 @@
+# Allowlist for check_no_global_randomness.sh (spec 039, SC-007).
+#
+# One line per file: path | reason | owner
+# The owner is the task or spec that removes the match, after which the line
+# must go too. The scan fails on a match in a file listed nowhere, and on a
+# line here whose file no longer has a match (stale), as archcheck does.
+#
+# Empty since spec 039, Phase 9 (T104, SC-007): T090-T095 deleted the legacy
+# generators, the Legacy camera path, the correlated table's bucket seed and the
+# libc rand() dither that were listed here; nothing outside src/precomp/ draws
+# randomness except through the sampler library and CKeyedStream.

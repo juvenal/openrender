@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 2.0.0
 #!name "mirror"
 surface
 #!parameters:
@@ -51,7 +51,7 @@ varying	vector	temporary_10
 	mulvv  temporary_3 Cs temporary_4
 	vfromf  temporary_7 Kr
 	vuvector  temporary_5 temporary_7
-	environment	("c=SFvSfsf")  temporary_6 texname 0 R "samples" samples "blur" blur
+	environment	("c=SFvSfsf")  temporary_6 texname 0 R "samples" samples "blur" blur 0
 	mulvv  temporary_4 temporary_5 temporary_6
 	addvv  temporary_2 temporary_3 temporary_4
 	mulvv  Ci Os temporary_2

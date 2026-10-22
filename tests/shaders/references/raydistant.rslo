@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 2.0.0
 #!name "raydistant"
 light
 #!parameters:
@@ -25,7 +25,7 @@ uniform	vector	temporary_4
 	vfromf  temporary_0 0
 	solar dir temporary_0 #!Label2
 	subvv  temporary_3 Ps dir
-	transmission	("c=pp")  temporary_2 Ps temporary_3
+	transmission	("c=pp")  temporary_2 Ps temporary_3 0
 	vfromf  temporary_4 intensity
 	vuvector  temporary_3 temporary_4
 	mulvv  temporary_1 temporary_2 temporary_3

@@ -1,0 +1,20 @@
+##RenderMan RIB-Structure 1.0
+# Spec 039 (DeterminismHarness_detects): random() shading, so a change of seed changes the
+# image. The harness self-test renders it twice single-threaded with seed 0 and seed 1
+# (test_depth_determinism --config-prepends) and must report the two as different (exit code 1):
+# a real, deterministic difference. Until Phase 9 the difference was the Legacy sampler's
+# thread-dependent draws (no sampler option, no pin), which no longer exist.
+version 3.03
+Hider "reyes" "jitter" [0]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "determinism-harness-noisy.tif" "file" "rgba"
+Projection "perspective"
+Format 320 240 1
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Surface "random_probe"
+  Sphere 1.8 -1.8 1.8 360
+WorldEnd

@@ -29,6 +29,7 @@
 
 #include "common/algebra.h"
 #include "common/global.h"
+#include "common/sampling.h"
 
 class CSurface;
 
@@ -46,6 +47,15 @@ class CRay {
         float t;          // The maximum intersection (if intersection, this is overwritten)
         float tmin;       // The intersection bias
         float da, db;     // The linear ray differential (r = da*t + db)
+
+        // Sample identity (spec 039). The raytrace hider gives a primary ray the camera
+        // key and depth 0 (Phase 5); a secondary ray gets a child key and its parent's
+        // depth + 1 (Phase 6).
+        openrender::sampling::SampleKey key{}; // The ray's identity
+        uint16_t depth = 0;                    // 0 for a primary ray
+        // True for a ray whose jimp is its camera importance slot (a primary ray under
+        // the new samplers): trace() keeps it instead of drawing a new one.
+        bool cameraImportance = false;
 
         // ------------------> O U T P U T
         CSurface *object; // The intersection object (NULL if no intersection)

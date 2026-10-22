@@ -372,3 +372,20 @@ set_tests_properties(ShadingServices_DeclareGlobalInWorld PROPERTIES
     LABELS "shading_parity"
     ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>"
 )
+
+# Derivative lanes (spec 039, Phase 7, T084b): an inactive offset lane of a ray-hit shading
+# batch must not change the derivative of its real lane (GitHub #61). Fills the inactive lanes
+# with two different bytes and requires identical results, and a derivative of 0.
+add_executable(test_shading_parity_derivative_inactive_lanes test_derivative_inactive_lanes.cpp)
+target_link_libraries(test_shading_parity_derivative_inactive_lanes PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+target_include_directories(test_shading_parity_derivative_inactive_lanes PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_BINARY_DIR}
+)
+target_compile_features(test_shading_parity_derivative_inactive_lanes PRIVATE cxx_std_20)
+add_test(NAME ShadingParity_DerivativeInactiveLanes COMMAND test_shading_parity_derivative_inactive_lanes)
+set_tests_properties(ShadingParity_DerivativeInactiveLanes PROPERTIES
+    TIMEOUT 30
+    LABELS "shading_parity;determinism"
+    ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}"
+)

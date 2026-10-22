@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 2.0.0
 #!name "transmission_probe"
 surface
 #!parameters:
@@ -12,5 +12,5 @@ uniform	vector	temporary_1
 	vfromf  temporary_1 0.3 0.2 0.1
 	vuvector  temporary_0 temporary_1
 	addvv  Psample P temporary_0
-	transmission	("c=pp")  Ci P Psample
+	transmission	("c=pp")  Ci P Psample 0
 	return

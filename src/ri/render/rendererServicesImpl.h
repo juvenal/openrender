@@ -144,6 +144,8 @@ class CRendererServicesImpl final : public CRendererServices {
         float relativeDetail() const override { return CRenderer::relativeDetail; }
         int pixelXsamples() const override { return CRenderer::pixelXsamples; }
         int pixelYsamples() const override { return CRenderer::pixelYsamples; }
+        const char *samplingSampler() const override { return openrender::sampling::samplerName(CRenderer::samplingBackend); }
+        int samplingSeed() const override { return (int)CRenderer::samplingSeed; }
         bool lookupUserOption(const char *name, CVariable *&var) const override {
             return CRenderer::userOptions ? CRenderer::userOptions->lookup(name, var) != FALSE : false;
         }

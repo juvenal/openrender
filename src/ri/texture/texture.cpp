@@ -1400,7 +1400,7 @@ class CMadeTexture : public CTexture {
                 float r[2];
                 float s, t;
 
-                context->random2d.get(r);
+                context->drawNext2(r);
 
                 // stratify the sample so that with low sample counts we don't jitter too much
                 const float x = (r[0] - 0.5f) * jitter + 0.5f;
@@ -1560,7 +1560,7 @@ class CRegularTexture : public CTexture {
                 float s, t;
                 float r[2];
 
-                context->random2d.get(r);
+                context->drawNext2(r);
 
                 // stratify the sample so that with low sample counts we don't jitter too much
                 const float x = (r[0] - 0.5f) * jitter + 0.5f;
@@ -1575,7 +1575,7 @@ class CRegularTexture : public CTexture {
                 totalContribution += contribution;
 
                 if (scratch->textureParams.blur > 0) {
-                    context->random2d.get(r);
+                    context->drawNext2(r);
 
                     s += scratch->textureParams.blur * (x - 0.5f);
                     t += scratch->textureParams.blur * (y - 0.5f);
@@ -1670,7 +1670,7 @@ class CShadow : public CEnvironment {
                 float tmp[4], cP[4];
                 float r[4];
 
-                context->random4d.get(r);
+                context->drawNext4(r);
 
                 // stratify the sample so that with low sample counts we don't jitter too much
                 const float x = (r[0] - 0.5f) * jitter + 0.5f;
@@ -1850,7 +1850,7 @@ class CDeepShadow : public CEnvironment {
                 float *cPixel;
                 float r[4];
 
-                context->random4d.get(r);
+                context->drawNext4(r);
 
                 // stratify the sample so that with low sample counts we don't jitter too much
                 const float x = (r[0] - 0.5f) * jitter + 0.5f;
@@ -2138,7 +2138,7 @@ class CCubicEnvironment : public CEnvironment {
                 float t;
                 float r[2];
 
-                context->random2d.get(r);
+                context->drawNext2(r);
 
                 // stratify the sample so that with low sample counts we don't jitter too much
                 const float x = (r[0] - 0.5f) + 0.5f;

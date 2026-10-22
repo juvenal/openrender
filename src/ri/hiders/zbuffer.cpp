@@ -36,8 +36,9 @@
 //	Sample	1	->	r
 //	Sample	2	->	g
 //	Sample	3	->	b
+//	Samples	4-6	->	the key of the fragment that owns the sample (CTieKey, rasterTie.h)
 
-#define SAMPLES_PER_PIXEL 4
+#define SAMPLES_PER_PIXEL 7 // Four, then the tie key (rasterTie.h) in three more floats
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CZbuffer
@@ -124,10 +125,11 @@ void CZbuffer::rasterBegin(int w, int h, int l, int t, int /*nullBucket*/) {
         for (j = 0; j < sampleWidth; j++) {
             COcclusionNode *cNode;
 
-            cLine[0] = CRenderer::clipMax; // z
-            cLine[1] = 0;                  // r
-            cLine[2] = 0;                  // g
-            cLine[3] = 0;                  // b
+            cLine[0] = CRenderer::clipMax;         // z
+            cLine[1] = 0;                          // r
+            cLine[2] = 0;                          // g
+            cLine[3] = 0;                          // b
+            storeTieKey(cLine + 4, CTieKey{0, 0}); // tie key: nothing wins a tie against an empty sample
             cLine += SAMPLES_PER_PIXEL;
 
             // Set the occlusion cache entry

@@ -38,3 +38,43 @@ branched on per evaluation point.
 
 See [Blobby Implicit Surfaces](../blobby-implicit-surfaces/) for the
 primitive itself.
+
+## Sampling options
+
+```
+Option "sampling" "string sampler" [ "sobol" ]          # default
+Option "sampling" "string sampler" [ "pmj02" ]
+Option "sampling" "string sampler" [ "independent" ]
+Option "sampling" "int seed" [ 0 ]                       # default
+```
+
+Selects where every random number of a render comes from: the camera samples (film position,
+time, lens point and importance) and every stochastic shading call (`random()`, `trace()`,
+`transmission()`, `occlusion()`, texture filter samples, area-light and photon samples).
+
+- **`sobol`** (the default): Owen-scrambled Sobol points. Each sample's values are a function of
+  its identity (pixel, subpixel, frame, the object and point being shaded, the call and its
+  occurrence), not of the order in which samples are drawn.
+- **`pmj02`**: progressive multi-jittered (0,2) points, with the same identity keying; converges
+  like `sobol`.
+- **`independent`**: independent uniform values with the same keying, unstratified. It is the
+  baseline the other two are measured against.
+
+**`seed`** is any integer (negative values are taken modulo 2^32). Two renders with the same
+sampler and seed are bit-identical; changing the seed gives a different, equally valid noise
+pattern.
+
+**Deterministic output.** Because every value is keyed by the sample's identity, a render is
+bit-identical whatever the thread count (`-t:n`), the process count (`-P:n`), the bucket order,
+and, for a multi-frame RIB, whether the frame is rendered alone (`-f n`) or after the others. The
+8-bit display dither is a hash of pixel and channel, so it is deterministic too. Two exceptions:
+the irradiance cache (`occlusion()`/`indirectdiffuse()` with `maxerror` > 0) and the photon map
+are still filled in shading order, so global-illumination renders can vary with the thread count
+(spec 040 makes them deterministic); and a uniform `random()` value (one per shader invocation)
+under the raytrace hider is keyed by the shading batch, which depends on the bucket, so it may
+change when the bucket size changes.
+
+An unknown sampler name is reported as an error (`Unknown sampler "<name>" (valid: sobol, pmj02,
+independent)`) and the current sampler is kept. Shaders can read both values with
+`option("sampling:sampler", s)` and `option("sampling:seed", n)`.
+

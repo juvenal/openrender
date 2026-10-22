@@ -433,6 +433,10 @@ EXTERN(RtToken)
 RI_TEXTURECACHEENABLE,
     RI_TEXTURECACHEDIRECTORY;
 
+// Sampling options (spec 039)
+EXTERN(RtToken)
+RI_SAMPLING, RI_SAMPLER, RI_SEED;
+
 // Irradiance options
 EXTERN(RtToken)
 RI_HANDLE,

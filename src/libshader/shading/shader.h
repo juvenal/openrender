@@ -72,8 +72,7 @@ typedef struct {
         int opcode;                 // The opcode
         unsigned char uniform;      // TRUE if all the arguments are uniform
         unsigned char numArguments; // The number of stack arguments
-        unsigned char padding0;     // PADDING ... Not used ... PADDING
-        unsigned char padding1;     // PADDING ... Not used ... PADDING
+        unsigned short callSite;    // The call-site ordinal of a stochastic instruction (spec 039), 0 otherwise
         TArgument *arguments;       // The array of arguments
         CDSO *dso;                  // If this is a DSO, points to the DSO function
 } TCode;
@@ -187,6 +186,13 @@ class CShaderInstance : public CRefCounter {
         unsigned int flags;
         CShaderData *data; // Extra non-instance data
                            // simply referenced here (not owned)
+
+        // The instance's own identity for the sampler (spec 039): the RIB light handle when the
+        // instance has one, otherwise its number in the order the scene created shader instances.
+        // It is part of the shader key of its draws, so two instances of one shader draw from
+        // streams of their own and neither depends on the other's draws or on whether the
+        // other exists. 0 until the renderer core sets it.
+        uint64_t instanceKey;
 };
 
 ///////////////////////////////////////////////////////////////////////

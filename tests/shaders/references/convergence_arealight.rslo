@@ -1,0 +1,28 @@
+#!version 2.0.0
+#!name "convergence_arealight"
+light
+#!parameters:
+uniform	point	from	=	"shader"  [ 0 0 0 ]
+uniform	float	intensity	=	1
+uniform	float	samples	=	16
+uniform	float	samplecone	=	0.1
+uniform	float	samplebase	=	1
+#!variables:
+uniform	vector	temporary_0
+varying	vector	temporary_1
+varying	vector	temporary_2
+varying	vector	temporary_3
+#!Init:
+	vfromf  temporary_0 0 0 0
+	pfrom  from "shader" temporary_0
+	return            
+#!Code:
+	illuminate from #!Label2
+	vfromf  temporary_0 intensity
+	vuvector  temporary_1 temporary_0
+	vuvector  temporary_3 from
+	transmission	("c=ppSfsfsf")  temporary_2 Ps temporary_3 "samples" samples "samplecone" samplecone "sampleBase" samplebase 0
+	mulvv  Cl temporary_1 temporary_2
+#!Label2:
+	endilluminate
+	return

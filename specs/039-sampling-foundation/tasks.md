@@ -1,0 +1,720 @@
+---
+
+description: "Task list for spec 039: sampling foundation"
+---
+
+# Tasks: Sampling Foundation
+
+**Input**: design documents in `specs/039-sampling-foundation/`:
+- plan.md (Phases 0–9, gate, risks, plan decisions 1–4)
+- spec.md (FR-001–FR-039, FR-024a, SC-001–SC-010, 13 clarifications)
+- research.md (R1–R10, M1–M5)
+- data-model.md
+- contracts/sampler-api.md, rib-options.md, shading-runtime.md, test-harnesses.md
+- quickstart.md
+- tools/perf/
+
+**Tests**: REQUIRED (constitution III). Each phase writes its tests first and shows them failing at a **TEST-APPROVAL** pause before any implementation task in that phase.
+
+**Exceptions**: the harness phases (7, 8) and the flip (9) build verification tooling or apply decisions. They are reviewed at their phase PAUSE.
+
+**Organization**:
+- Phases follow plan.md's sequence, not strict story order. The sampler library (US2) is the foundation for every other story, and the flip has to come last (research §R5).
+- Story labels:
+  - **US1**: determinism;
+  - **US2**: the sampler library;
+  - **US3**: correlated camera samples;
+  - **US4**: convergence;
+  - **US5**: options;
+  - **US6**: transport sub-streams.
+- Every phase ends in a **review PAUSE**. Results are reported, changes are staged with `git add`, and the maintainer reviews and commits.
+- **The agent never commits, merges, pushes or rebases. It declines every spec-kit auto-commit hook.**
+
+**Working directory**: `/Volumes/Projects/Development/CLI/openrender-worktrees/039-sampling-foundation`. Build tree: `build/`. Paths are repo-relative. `$S` is the session scratchpad.
+
+**[RUN]** marks a step that builds, runs ctest, renders or times. The implementing agent runs it, and only after the coordinator confirms that no other build, test or render job is running on the machine.
+- Build: `nice -n 19 cmake --build build --config Release -j4`.
+- Test: `nice -n 19 ctest --test-dir build … -j4`.
+- Renders and timings: `nice -n 19`, run serially.
+- Never use a higher `-j`, or a bare `-j`.
+
+**Hard rules**:
+- **Never widen a test threshold.** A threshold that would have to be widened is a stop-and-report.
+- **Allowlist hygiene**: after each phase, `[RUN] ctest -L architecture`.
+  - Delete only lines the check reports as **STALE**, and record each one in DB-011's or DB-005's history.
+  - A **new** VIOLATION is a design error: stop and report it. Never allowlist it.
+- **No task depends on the merge.** Registry entries record "spec 039, <date>". Issue closure is the maintainer's `Closes #NN` line in the merge commit.
+- **Legacy default**: through Phase 8, `CSamplingConfig.backend` defaults to the internal `Legacy` value (today's streams). New-path tests opt in with `Option "sampling" "string sampler" ["sobol"]`, or with `pmj02`/`independent`.
+  - Every phase must leave the existing visual, parity and `-slo` suites green **unchanged**: under `Legacy`, no render may change.
+- **Red tests that do not compile yet**: add them as `EXCLUDE_FROM_ALL`, and show the red state at TEST-APPROVAL. The implementing task removes the exclusion.
+- **Out of scope**: GitHub #55 (JIT optional trace parameters; fixed on its own branch after 039) and spec 040 (GI caches).
+  - Interpreter/JIT identity tests use only the plain forms of `trace`/`transmission`/`visibility`/`occlusion`/`indirectdiffuse`, and `gather`.
+  - Arena and stats injection (DB-016 follow-up) stays in spec 029.
+
+## Format: `[ID] [P?] [Story] Description`
+
+- **[P]**: can run in parallel (different files, no dependency on unfinished tasks).
+- **[Story]**: US1–US6 from spec.md.
+
+---
+
+## Phase 0: Baseline confirmation (measurements M1 and M2 already done)
+
+**Purpose**: confirm the tree the measurements were taken against, and keep the results where implement can find them.
+
+- [X] T001 [RUN] Confirm the baseline is pristine.
+  - `git diff --stat c62334d -- src tests CMake CMakeLists.txt shaders examples` must print nothing; only `specs/` may differ.
+  - Configure `build/` if it is absent, then build. Record `git rev-parse HEAD` and the build type in a new `specs/039-sampling-foundation/validation.md`.
+- [X] T002 Copy the M1 results (identical in every configuration) and the M2 baseline reference (`specs/039-sampling-foundation/tools/perf/m2-baseline-c62334d.txt`) into the "Baselines" section of `validation.md`.
+  - Note that `-P` with `-t` disables threads in the children (research §M1, caveat a).
+  - Note that SC-010 compares medians of 5 or more interleaved runs.
+- [X] T003 [RUN] Run the full suite once on the baseline: `nice -n 19 ctest --test-dir build -j4 --output-on-failure`.
+  - Record pass/fail counts and any known-flaky failures in `validation.md` (memory: ImagerRegressionRender, Parity_transparency-matte-aov, Parity_depthdefault, ShadingParity_AmbientAccumulation; re-run each in isolation before writing it off).
+  - This is the "unchanged under `Legacy`" reference for Phases 1–8.
+- [X] T004 [RUN] Stat every compiled shader against `oshader` (memory: `.slo` staleness): `build/shaders/*.{rslo,slo}` must be newer than `build/src/oshader/oshader`. Record the result.
+
+**PAUSE 0**: report T001–T004.
+
+---
+
+## Phase 1: Setup
+
+- [X] T005 Create `tests/unit/sampling/CMakeLists.txt`.
+  - It builds an empty `test_sampling` executable linked to `openrendercommon` (the **shared** library; CLAUDE.md gotcha 22), registered with label `sampling`.
+  - Add `add_subdirectory(unit/sampling)` to `tests/CMakeLists.txt`.
+- [X] T006 [P] Create the `tests/convergence/` skeleton:
+  - `CMakeLists.txt` with an empty `test_convergence` target linked to libtiff and label `convergence`;
+  - `README.md`;
+  - `reference/.gitkeep`;
+  - `add_subdirectory(convergence)` in `tests/CMakeLists.txt`.
+  - The label is never included in the default run.
+- [X] T007 [P] Add a `determinism-sweep` label placeholder comment to `tests/visual/CMakeLists.txt`, next to `add_depth_determinism_test`. No test is registered yet.
+- [X] T008 [RUN] Build, then `ctest -L "sampling|architecture"`. Expected: green, with an empty `sampling` set. Confirm that archcheck does not classify `tests/` paths. If it does, stop and report.
+
+**PAUSE 1**.
+
+---
+
+## Phase 2: User Story 2 — the sampler library (Priority: P1, foundational)
+
+**Goal**: pure 1D/2D draws for three backends, keys, camera slots and `CKeyedStream` in `libRIBCommon` (contracts/sampler-api.md, research §R2–§R3).
+
+**Independent test**: `ctest -L sampling` passes with no renderer involved.
+
+### Tests first
+
+- [X] T009 [P] [US2] `tests/unit/sampling/test_reference.cpp`, test `Sampling_SobolReference` (G5).
+  - `sobolUnscrambled(i)` for i = 0..63 must equal the van der Corput sequence (dimension 0) and the Sobol dimension-1 sequence (dimension 1), checked against closed-form expected values written in the test.
+- [X] T010 [P] [US2] `tests/unit/sampling/test_range_purity.cpp`, tests `Sampling_Range` and `Sampling_Purity` (G1, G2). For every backend:
+  - every value is in [0, 1 − 2⁻²⁴] (`Sampling_Range`; spec FR-004: "MUST never equal 1.0");
+  - 8 threads evaluate the same 2¹⁶ (key, dimension, index) triples in shuffled orders, and the results are bit-identical to a serial pass (`Sampling_Purity`).
+- [X] T011 [P] [US2] `tests/unit/sampling/test_stratification.cpp` (G3, G4).
+  - `Sampling_NetProperty`: for 8 random keys and every 2D `dim` in 0..63, the first 2^m indices form a (0, m, 2)-net for every m ≤ 12. The check counts one point per elementary interval of every shape.
+  - `Sampling_PMJ02Property`: the same check for PMJ02 prefixes up to 4096.
+  - `Sampling_PMJ02Construction` (`test_pmj02_table.cpp`, amendment): the 64 PMJ02 patterns follow Christensen et al.'s generation strategy, which a randomised Sobol sequence does not: for even k (N = 4^j, k = 0..10), sample N + i lies in the same j-digit cell as sample i and in the diagonally opposite half of it in both x and y; the odd-k locality count is printed for information only, until it is confirmed from the paper. The same checker is run on Sobol points as a negative control and must report violations. Also: all patterns distinct, deterministic, thread-safe on first touch.
+- [X] T012 [P] [US2] `tests/unit/sampling/test_uniformity.cpp` (G6).
+  - `Sampling_Uniformity`: chi-square with 64 bins over 2¹⁶ draws in each of 16 dimensions, for every backend. The 48 checks are one family, Bonferroni-corrected: each must reach p ≥ 0.01/48, which holds the false-failure chance of the whole test near 1% (an uncorrected p ≥ 0.01 per check would fail a correct generator about 38% of the time over 48 checks).
+  - `Sampling_Discrepancy`: the 2D star discrepancy of Sobol and PMJ02 must be below Independent's at N = 64, 256 and 1024.
+- [X] T013 [P] [US2] `tests/unit/sampling/test_independence.cpp` (G7, G8).
+  - `Sampling_DrawIndependence`: values for (callSite A, occurrence n) stay unchanged when draws are added at other call sites or occurrences. Sub-streams with different call sites must have distinct `seedHash`.
+  - `Sampling_Padding`: `dim` up to 2²⁰ and `index` up to 2²⁴ return valid values, with no error. No repeated 2D tuple appears across 1024 dimensions for a fixed key.
+  - `Sampling_Composite3D4D` (FR-008): `get3D` = `get2D(d) ⧺ get1D(d+1)` and `get4D` = `get2D(d) ⧺ get2D(d+1)` on one sub-stream. These are deterministic, every component is in range, and the result equals the composition done by hand.
+- [X] T014 [P] [US2] `tests/unit/sampling/test_convergence_smooth.cpp`, test `Sampling_ConvergenceSmooth` (G9; SC-003 part a).
+  - Integrate f(x, y) = sin(πx)·sin(πy) over [0, 1]² with N = 2^k (k = 2..12), over 32 keys each.
+  - Fit the log-log RMSE slope. The default backend must reach ≤ −0.9; Independent is expected near −0.5 and must reach ≤ −0.4.
+- [X] T015 [P] [US2] `tests/unit/sampling/test_camera_grid.cpp`, test `Sampling_CameraGridConsistency` (research §R3.1).
+  - Run the reyes formula (`absSub = left + j`, with subpixel `left`) and the raytrace formula (`absSub = left·nx − xSampleOffset + col`, with pixel `left`) over a 3×3-bucket grid with margins, `nx = ny = 3`, `xSampleOffset = ySampleOffset = 2`, including negative coordinates at the border.
+  - Both must give equal `SampleId`s. `floorDiv` and `floorMod` round toward −∞.
+  - Amendment (`test_morton.cpp`, research §R2.1): `Sampling_MortonIndex` checks `mortonIndex(px, py)` against hand-computed values (negative pixels wrap modulo 65536). `Sampling_CameraSobolBlocks` checks that the Sobol camera index is the 64-bit `mortonIndex·2^k + sampleIndex` (2^k the power-of-two ceiling of nx·ny; 65536 pixels per axis is the stated limit), including an 8K frame (7680×4320) at 256 and 4096 spp, where pixel pairs picked to collide under a 32-bit index keep distinct indices and draw different samples, that neighbouring pixels draw disjoint blocks, and that an aligned group of pixels draws a (0, m, 2)-net of film and lens samples and fills 2^m strata of time and importance.
+- [X] T016 [P] [US2] `tests/unit/sampling/test_keys.cpp`, test `Sampling_Keys` (data-model SampleKey):
+  - `path` never changes when only the camera `sampleIndex` changes;
+  - `full` does change;
+  - `childKey` derives both;
+  - for a cell key, `path == full`;
+  - `substream` seeds from `path` when `pixelSampleIndex ≥ 0` and from `full` otherwise, with `indexBase = pixelSampleIndex·N`.
+  - `tests/unit/sampling/test_keyed_stream.cpp`, test `Sampling_KeyedStream` (research §R3.10): `CKeyedStream` gives an identical sequence for the same key, `next1D` stays in [0, 1 − 2⁻²⁴] and `nextU32` spans all 32 bits, different keys give different streams (no equal draw at the same position, no linear correlation), and concurrent streams match serial ones.
+- [X] T017 [RUN] [US2] **TEST-APPROVAL**: every T009–T016 target fails to compile (`EXCLUDE_FROM_ALL`) or fails. Show it.
+
+### Implementation
+
+- [X] T018 [US2] `src/common/sampling.h`: declare the API from contracts/sampler-api.md:
+  - `Backend`, `SampleId`, `SampleKey {full, path, pixelSampleIndex, kind}`, `SubstreamKey`, `Sample2D`, `CSamplingConfig`;
+  - `cameraKey`, `cellKey`, `childKey`, `substream`, `get1D`, `get2D`, the inline helpers `get3D`/`get4D` composed from consecutive slots of one sub-stream (FR-008; §4.3's `Sample3D`/`Sample4D`), the camera-slot accessors, `CKeyedStream`, `sobolUnscrambled`.
+  - The hot functions are `inline`. There is no mutable global state (rule 1).
+- [X] T019 [US2] `src/common/sampling.cpp`: hashing (SplitMix64/PCG-style `mix`), the float conversion `(bits >> 8)·0x1p-24f` (research §R2.4), and the Independent backend (§R2.3).
+- [X] T020 [US2] `src/common/sampling.cpp`: Owen-scrambled Sobol (research §R2.1).
+  - Camera sequence: 64-bit index `morton(px, py)·2^k + sampleIndex` (`detail::mortonIndex`, 16 bits per axis, so 65536 pixels per axis is the stated limit), with a 64-bit Sobol draw.
+  - Nested uniform (Owen) permutation of the index (bits, not base-4 digits), keyed by hash(dim, seed); it keeps aligned index blocks aligned.
+  - Dimensions 0 and 1 only, with Burley 2020 hash-based nested-uniform scrambling keyed by hash(dim, seed).
+  - Dimensions beyond the native tables are padded by hashing (FR-006).
+- [X] T021 [US2] `src/common/samplingPmj02.cpp`: deterministic PMJ02 generation (research §R2.2).
+  - 64 patterns × 4096 points, generated under `std::call_once` from a fixed internal seed.
+  - Each pattern is a genuine progressive multi-jittered (0,2) sequence, built by doubling with the diagonal strategy of Christensen et al. 2018 and the elementary-interval search of Pharr 2019; one `call_once` per pattern.
+  - Pattern chosen by hash(dim, seed); the index is shuffled within each dyadic block [2^t, 2^(t+1)) so that every prefix maps onto itself; Owen scramble.
+  - Index ≥ 4096 falls back to scrambled Sobol for that draw.
+- [X] T022 [US2] `src/common/sampling.cpp`: the camera slots.
+  - Film2D = 0, Lens2D = 1, Time1D = 2, Importance1D = 3 (data-model "Dimension cursor").
+  - `floorDiv`/`floorMod` helpers.
+  - `CKeyedStream` (key plus a local counter, never stored beyond its frame, research §R3.10).
+  - The test-only `sobolUnscrambled`.
+- [X] T023 [US2] Add `sampling.cpp` and `samplingPmj02.cpp` to both the shared and static `libRIBCommon` targets in `src/common/CMakeLists.txt`, and install `sampling.h` if the other common headers are installed.
+- [X] T024 [US2] Remove `EXCLUDE_FROM_ALL` from T009–T016.
+- [X] T025 [RUN] [US2] Build, then `ctest -L "sampling|common|architecture"`. All must be green, with no new allowlist line.
+
+**PAUSE 2**: report the measured slopes and discrepancies from T012 and T014.
+
+---
+
+## Phase 3: User Story 5 — scene options and config injection (Priority: P3, needed early)
+
+**Goal**: `Option "sampling"` through all layers, and `CSamplingConfig` reaching every shading context, while the default stays `Legacy` (contracts/rib-options.md, research §R4).
+
+### Tests first
+
+- [X] T026 [P] [US5] `tests/unit/rib_parse/test_sampling_option.cpp` (new executable beside the existing one), test `SamplingOption_Parse`:
+  - `"sampler" ["pmj02"]`, `["independent"]` and `["sobol"]` set the backend;
+  - `"seed" [-7]` is stored as uint32 4294967289;
+  - with no option set, the internal default is `Legacy` (until Phase 9).
+- [X] T027 [P] [US5] Same file, test `SamplingOption_UnknownName`: `["foo"]` prints a diagnostic containing `Unknown sampler "foo"` and `sobol, pmj02, independent`, at `CODE_BADTOKEN` (never `CODE_LOG`), and the render continues with the default.
+- [X] T028 [P] [US5] `tests/unit/rib_parse/test_sampling_option_roundtrip.cpp` (in-process; gotcha 20: reset the lexer with `riblex_destroy()` between sessions), test `SamplingOption_RibRoundTrip`: a RIB with both tokens goes through RIB output (`libRIBOut`) and back. The re-parsed options are equal (FR-027).
+- [X] T029 [P] [US5] `tests/unit/common/`, test `Common_VocabularyConsistency` (existing): no change to the test itself. It must fail if the new tokens appear in fewer than all three of `ri.h`, `riVocabulary.h` and `riTokens.cpp`. Show this by temporarily adding a token to one file only, then revert.
+- [X] T030 [RUN] [US5] **TEST-APPROVAL**.
+
+### Implementation
+
+- [X] T031 [US5] Add the tokens `RI_SAMPLING`, `RI_SAMPLER` and `RI_SEED` (only those not already present) to `src/ri/parse/ri.h`, `src/common/riVocabulary.h` and `src/common/riTokens.cpp` (CLAUDE.md gotcha 22).
+- [X] T032 [US5] Pre-declare `"sampler"` as `string` and `"seed"` as `int` under the `"sampling"` option in `initDeclarations()` (`src/ri/render/rendererDeclarations.cpp`).
+- [X] T033 [US5] `src/ri/state/options.{h,cpp}`: add `samplingBackend` (enum, default `Legacy` for now) and `samplingSeed` (uint32, default 0). Make them queryable through `COptions::find()` and RSL `option()`.
+- [X] T034 [US5] `RiOptionV()` in `src/ri/render/rendererContext.cpp`: parse both tokens. An unknown name gets the T027 diagnostic through `CODE_BADTOKEN`, and the default is kept.
+- [X] T035 [US5] `src/ri/output/ribOut.cpp`: declare and emit both tokens (FR-027).
+- [X] T036 [US5] Renderer core: build an immutable `CSamplingConfig {backend, seed, frame, nx, ny, jitter}` in `CRenderer::beginFrame` (`src/ri/render/renderer.cpp`), and pass it to every shading context the core creates. Add a `CShadingContext` member, set by the core (constructor argument or setter).
+  - **No hider or shading file may read a new `CRenderer::` symbol** (gate).
+- [X] T037 [RUN] [US5] Build, then:
+  - `ctest -L "common|architecture"` and the `SamplingOption_*` tests;
+  - **the full visual suite, which must be unchanged against T003** (the default is still `Legacy`).
+
+- [X] T037a [US5] **Tests first, TEST-APPROVAL** for the RSL half of T033 (added after Phase 3): RSL `option("sampling:sampler", s)` (string) and `option("sampling:seed", n)` (the signed integer, as a float).
+  - `tests/unit/rib_parse/test_sampling_option_rsl.cpp`: `SamplingOption_RslQuery` (defaults, set values, unknown names, an existing option as a control) and `SamplingOption_RslQueryNoServices` (no services installed on the shading state: every name is "not found"), on a real shading context through `CShadingContext::queryOption()`, the call both the interpreter and the JIT make.
+  - `shaders/sampling_option_probe.sl`, `examples/rib/tests/sampling-option-{pmj02,default}-{rslo,slo}.rib` and the exact pixel read-back driver `tests/visual/test_pixel_probe.cpp`: `SamplingOption_RslQuery_{pmj02,default}_{rslo,slo}` render the probe under the interpreter and the JIT and check the centre pixel as numbers (R found/"pmj02", G found, B the shifted seed).
+- [X] T037b [US5] Add `virtual samplingSampler()` and `samplingSeed()` to `CRendererServices` (`libshader/shading/rendererServices.h`), implement it in `CRendererServicesImpl` from `COptions`/`CRenderer`'s frame copy, and answer `"sampling:sampler"` and `"sampling:seed"` in `CShadingContext::options()`. No new `CRenderer::` reference from `src/libshader` or the hiders.
+- [X] T037c [RUN] [US5] Full suite against the 618 baseline plus the new tests; `ctest -L architecture` green with no new allowlist line. **PAUSE** before Phase 4.
+
+**PAUSE 3**.
+
+---
+
+## Phase 4: User Story 6 — identity plumbing (Priority: P3, foundational for US1/US3)
+
+**Goal**:
+- stable object identity;
+- `CRay` key and depth;
+- per-point keys, batch keys and occurrence counters in `CShadingState`;
+- compiler call-site ordinals on both backends;
+- `.rslo` version bump and `op_*` renames.
+
+All of it is inert under `Legacy` (research §R3, contracts/shading-runtime.md).
+
+### Tests first
+
+- [X] T038 [P] [US6] `tests/unit/sampling/test_object_ids.cpp` (with `scene_probe.h`), test `Sampling_ObjectIds` (registered as five cases, `Sampling_ObjectIds_{scene_loads,instances,delayed,tessellation,splits}`, one Ri session per process). Through `RiBegin(RI_NULL)` in-process (gotcha 20: reset the lexer with `riblex_destroy()` between sessions):
+  - two scene loads give identical `stableId`s;
+  - two `ObjectInstance`s of one master differ;
+  - `DelayedReadArchive` children equal `mix(parent, k)`;
+  - tessellation children equal `mix(parent, childIndex)`;
+  - split pieces inherit their parent's ID.
+- [X] T039 [P] [US6] `src/libshader/tests/test_call_sites.cpp`, test `LibShader_CallSiteOrdinals` (C1, C3): compile one shader with two `random()` calls in a loop, a `trace`, a `gather` and an `illuminance` both to `.rslo` and with `--jit` to `.slo`. The call-site ordinal lists must be identical.
+- [X] T040 [P] [US6] Same file, test `LibShader_RandomNotPure` (C2): after the IR passes, two textually identical `random()` calls are still two calls, and a `random()` inside a loop is not hoisted by `UniformLifting`.
+- [X] T041 [P] [US6] `src/libshader/tests/test_stale_shaders.cpp` (a second source file and executable: it needs the renderer and the JIT, which the compiler-only T039/T040 executable must not link), test `LibShader_StaleShaderRejected` (the `.rslo` half) and `LibShader_StaleShaderRejectedJit` (the `.slo` half) (research §R3.6):
+  - a `.rslo` with the previous format version is rejected with a diagnostic;
+  - a `.slo` referencing the old `op_random_f` name fails at bind time with an unresolved-symbol diagnostic. The fixtures are generated by the test, not checked in.
+- [X] T042 [P] [US6] `tests/unit/sampling/test_cell_keys.cpp`, test `Sampling_CellKeyUniqueness` (registered per family, `Sampling_CellKeyUniqueness_{patch,mesh,quadric,nurbs,subdivision,points,curves}`) (research §R3.3, V2). The probe is the in-process test hook `CShadingContext::pointKeyObserver` rather than an AOV (see validation.md). For each grid-shaded primitive family (patch, polygon mesh, quadric, NURBS, subdivision, points, curves), render a small scene under `sobol`, and read the keys through the test hook `CShadingContext::pointKeyObserver` (null in production). (The wording "a probe shader that writes its point key to an AOV" is superseded: see validation.md.) No two shading points of one object may share a key.
+- [X] T043 [RUN] [US6] **TEST-APPROVAL**.
+
+### Implementation
+
+- [X] T044 [US6] `src/ri/geometry/object.h`: add `uint64_t stableId` to `CObject`, with a default constructed from the parent where one is given.
+- [X] T045 [US6] `src/ri/render/rendererContext.cpp`: an ID-scope stack. The root scope is `hash(frame)`, and `addObject` assigns `mix(scope, ordinal++)`.
+  - `processDelayedObject`/`processDelayedInstance` push `(parent.stableId, 0)`. They are serialized by `delayedMutex`, which was verified in research §R3.2.
+  - Each instancing call gets its own ordinal, and its copies get `mix(instanceId, k)`.
+  - Never derive an ID from `CRenderer::getGlobalID` or from render-time creation order (FR-016).
+- [X] T046 [US6] Geometry child IDs:
+  - `setChildren` and mesh tessellation children: `mix(parent, childIndex)`;
+  - split pieces inherit;
+  - CSG leaves captured through `CGeometryHost`: `mix(parent, k)`.
+  - Files: `src/ri/geometry/*.cpp` and `src/ri/render/geometryDispatch.cpp`. For `cluster()` dummy nodes, use `mix(parent, 0 | 1)`.
+- [X] T047 [US6] `src/ri/geometry/points.cpp`: `CPoints::sample()` writes the per-vertex `elementId = start + i` (research §R3.3). The cell key reads it where it is present.
+- [X] T048 [US6] `src/ri/core/ray.h`: add `SampleKey key` and `uint16_t depth` to `CRay` (Infra).
+- [X] T049 [US6] `src/libshader/shading/shading.h`: add to `CShadingState` the members `pointKeys[numVertices]`, `batchKey`, `callSiteOccurrence` (lazily allocated in `threadMemory` and reset per invocation) and `currentShaderKey` (data-model "Per-point shading identity").
+- [X] T050 [US6] `src/libshader/shading/shading.cpp` `shade()`: for grid points, fill `pointKeys` with `cellKey(object->stableId, u, v, elementId, frame, seed)` after `object->sample()`, and set `batchKey` from the grid origin (research §R3.7).
+  - Read `object->stableId` inline only: it is an existing include, and no new symbol may appear (gate).
+  - Derivative-offset tail vertices copy their real vertex's key (research §R3.10a).
+- [X] T051 [US6] `src/ri/hiders/trace.cpp` shading-group loop: copy `ray->key` into `pointKeys` before `object->shade()`, and set `batchKey = hash(bucketX, bucketY, stableId, depth, chunkIndex)`. Nested shading derives from the parent `batchKey` (research §R3.7).
+- [X] T052 [US6] Compiler (`src/libshader/compiler/`): assign `callSite` ordinals on the final IR (C1) and keep `random`/`urandom` non-pure (C2).
+  - Emit the ordinal as an extra `.rslo` operand, and **bump the `.rslo` format version** (I1).
+- [X] T053 [US6] Runtime loader (`src/libshader/runtime/`): read the new operand, and reject older-version `.rslo` files with a diagnostic (T041).
+- [X] T054 [US6] JIT ABI (`src/libshader/shading/rslOps.{h,cpp}`, `src/libshader/compiler/llvmEmitter.cpp`):
+  - add a `uint32_t callSite` argument to `op_random_f/v` and to the trace-family, gather, occlusion, indirectdiffuse and texture-family entries;
+  - **rename each changed entry with a `_v2` suffix** (J1);
+  - the emitter passes the ordinal as a constant.
+  - Under `Legacy`, the new argument is ignored and the values stay unchanged.
+- [X] T055 [US6] Remove `EXCLUDE_FROM_ALL` from T038–T042.
+- [X] T056 [RUN] [US6] Build, which rebuilds every shader. Then:
+  - T004's stat check;
+  - `ctest -L "sampling|libshader|common|architecture"`;
+  - **the full visual and `-slo` suites, which must be unchanged against T003**. This also proves the `_v2` symbols resolve at bind time (gotcha 3). If one does not resolve, wire `addProcessSymbol()` and report it.
+
+**PAUSE 4**.
+
+### Phase 4 follow-up: format versioning (maintainer decision; Phase 4 is committed as 659c770)
+
+The call-site operand and the `_v2` ABI make Phase 4 a MAJOR change of both shader formats, so `.rslo` goes to 2.0.0 (not 1.1.0) and `.slo` gets its own version, 2.0.0. Rule (documented in `src/common/rsloFormat.h`, `contracts/shading-runtime.md`, `research.md`): MAJOR = an older or newer loader cannot read the file; MINOR = additive, a loader accepts `file.major == supported.major && file.minor <= supported.minor`; PATCH = never checked.
+
+- [X] T056a [P] [US6] `src/libshader/tests/test_format_versions.cpp` (ctest `LibShader_Format_*`, nine entries), `src/common/sloFormat.h` (the constants, so the test compiles): old/newer `.rslo` refused with a diagnostic naming the file's version, the supported version and `oshader`; a lower-minor `.rslo` loads (reported as skipped while the supported minor is 0); the current `.rslo` loads; `oshader --jit` writes the `openrender.slo.format` node (three i32 operands); a `.slo` with format 1.0.x, with no node (counts as 1.0.0), or with a newer major or minor is refused before linking with a diagnostic naming both versions and `oshader --jit`; the current `.slo` loads. `test_stale_shaders.cpp` is untouched.
+- [X] T056b [RUN] [US6] **TEST-APPROVAL** (approved, committed as adc32fd).
+- [X] T056c [US6] Implement the rule: `src/common/rsloFormat.h` (2.0.0, rule comment), both `rslo.l` (major equal, minor <=, message naming file and supported versions and saying to recompile with oshader), `src/common/sloFormat.h`, the `openrender.slo.format` node in `llvmEmitter.cpp`, the check in the JIT loader before add/link (a missing node is 1.0.0; `error(CODE_BADFILE, ...)` naming shader, file, both versions, `oshader --jit`), real parsing wherever `std::stoi` of the version string remains; docs (contract, research).
+- [X] T056d [RUN] [US6] Regenerate the 108 `tests/shaders/references/*.rslo`; prove the only differences against 659c770 are the 108 `#!version` lines (1.1.0 to 2.0.0); full suite and `-L architecture`.
+
+**PAUSE 4b**.
+
+---
+
+## Phase 5: User Story 3 — correlated camera samples (Priority: P2)
+
+**Goal**: both hiders draw film, lens, time and importance from the same absolute-grid `SampleId` under the new backends. The zbuffer hider is unchanged (FR-009, FR-017, research §R3.1).
+
+### Tests first
+
+- [X] T057 [P] [US3] `tests/unit/sampling/test_camera_slots.cpp`, test `Sampling_CameraSlotsEqual`: the reyes and raytrace `CSampler` paths (driven through a test seam on `CSampler`) produce bit-identical film, lens, time and importance values for every subpixel of a bucket, margins included, for each new backend.
+  - The seam (declared in `src/ri/hiders/sampler.h`, stub bodies until T060): `CSampler::reyesAbsSub(origin, index)`, `CSampler::raytraceAbsSub(originPixels, samplesPerPixel, sampleOffset, index)` (the two unit conversions) and `CSampler::cameraSample(config, absSubX, absSubY, wantLens)`; `CSampleValue` gains a `key` (the camera key). T060-T062 make the hiders call them.
+  - Besides path equality it checks the values against the slots computed independently from `common/sampling.h` (jitter mapping, time stratum `row*nx+col`, transposed importance stratum `col*ny+row`, camera key, lens), for Sobol, PMJ02 and Independent, jitter 0, 0.37 and 1, two grids, with and without lens.
+- [X] T058 [P] [US3] `tests/visual/CMakeLists.txt`, test `CameraSamples_JitterZeroUnchanged` (registered as `_reyes` and `_raytrace`; driver `tests/visual/test_render_compare.cpp`; plus the control `CameraSamples_SobolEngaged_{reyes,raytrace}`: with `jitter 1` the sobol render must differ from the legacy one, so the option cannot be silently ignored): under `sobol`, every `"jitter" [0]` scene's film, time and importance positions equal today's. The test renders `color-determinism-opaque-reyes.rib` and `depth-analytic-min-raytrace.rib` with `--prepend` (T079 adds that flag later), so for now it runs a hand-written copy with the option line, comparing bit for bit with the `Legacy` render.
+- [X] T059 [RUN] [US3] **TEST-APPROVAL** (approved with the concentric lens mapping; committed as cec5e0d).
+
+### Implementation
+
+- [X] T060 [US3] `src/ri/hiders/sampler.{h,cpp}`: add the shared absolute-subpixel `SampleId` function. Keep `jitter·(u−0.5)+0.5001011` for film, time and importance; only `u` comes from the camera slots. Lens comes from the lens slot through `sampleDisk()`.
+  - Under `Legacy`, behaviour is unchanged.
+- [X] T061 [US3] `src/ri/hiders/stochastic.{h,cpp}`: under the new backends, compute `absSub = left + j / top + i`, and take every camera value from the slots. Do not use `apertureGenerator` on the new path.
+- [X] T062 [US3] `src/ri/hiders/raytracer.cpp` `sample()` and `computeSamples()`: under the new backends, compute `absSub = left·nx − xSampleOffset + (i+x)` (and likewise for y), using the same stratum index and transposed importance index as reyes.
+  - Put the camera importance slot in `cRay->jimp`, and the `SampleKey` and depth 0 in `cRay->key`.
+- [X] T063 [US3] `src/ri/hiders/trace.cpp:304`: under the new backends, do not overwrite `jimp` for a ray that carries a camera importance. Secondary rays draw `jimp` from their child sub-stream.
+- [X] T064 [RUN] [US3] Build, then:
+  - T057/T058;
+  - `ctest -L visual`, which must be unchanged under `Legacy`;
+  - every parity test once, by hand, with `sobol` prepended: report the diffs (no threshold change yet).
+
+**PAUSE 5**.
+
+---
+
+## Phase 6: User Story 1/6 — transport and other consumers (Priority: P1)
+
+**Goal**: every randomness site in research §R1 draws from the sampler or a `CKeyedStream` under the new backends (FR-010, FR-018–FR-024).
+
+### Tests first
+
+- [X] T065 [P] [US1] `tests/shading_parity/` (or `tests/visual/`), tests `SamplingJitParity_*` (SC-008). A probe shader writes to AOVs:
+  - `random()` and `urandom()`, uniform and varying, called in a loop;
+  - the sample directions of the **plain** forms of `trace`, `transmission`, `visibility`, `occlusion` and `indirectdiffuse`, and of `gather`.
+  - The `.rslo` and `.slo` renders under `sobol` must be bit-identical.
+  - The shader contains no `if`-gated uniform assignment (GitHub #8) and no optional parameters (GitHub #55).
+  - `Du(random())` must be 0 (research §R3.10a).
+  - Successive `random()` calls at one point (two call sites, and two iterations of one loop) return distinct values (FR-019).
+  - **As written** (validation.md "Phase 6 tests"): the probe output is the colour of the pixel, not AOVs (an AOV needs a declared display channel; one shader, `shaders/sampling_jit_probe.sl`, picks one value per scene with a uniform `channel`, generated from `examples/rib/tests/sampling-jit-probe.rib.in`); `Du(random())`, distinctness and range are in `shaders/sampling_random_probe.sl` (`SamplingJitParity_RandomProbe_{rslo,slo}`). `random()` cannot be assigned to a uniform variable (compile error), so there is no uniform draw to probe from source. Added: `SamplingJitDeterminism_*` (a scene rendered twice is bit-identical) and `SamplingJitEngaged_*` (seed 0 against seed 1 must differ).
+- [X] T066 [P] [US6] `tests/unit/sampling/`, test `Sampling_ShaderDrawIndependence` (US6-1): a shader with two `trace()` loops and an `illuminance()` loop. Adding a draw to the first loop leaves the AOVs of the second loop and of `illuminance` bit-identical.
+- [X] T067 [P] [US1] Write the SC-007 scan, `tests/visual/check_no_global_randomness.sh`, implementing the grep from quickstart §9 (it excludes `src/precomp/` and comments; the pattern also matches uses of the context members `random2d`/`random3d`/`random4d`), with an explicit allowlist `tests/visual/no_global_randomness_allowlist.txt` (one `path | reason | owner` line per file). The scan fails on a match in a file that is not on the allowlist and on a stale allowlist line (a file with no match any more), as archcheck does. **Registered now** as `Sampling_NoGlobalRandomness` (label `sampling`), and red today: it lists the call sites Phase 6 converts. The allowlist holds only the legacy generators that Phase 9 deletes (T090-T093, T095); nothing Phase 6 converts is on it. It goes green when T070-T077 are done and the allowlist is shrunk to match, and T104 empties it.
+- [X] T068 [P] [US1] Using the existing `test_depth_determinism` with extra arguments, tests `Sampling_ThreadSweep_{quadlight,sphere-random,sphere-trace,sphere-gather}`: under `sobol`, `-t:1` against `-t:4` must be bit-identical. These fail under today's per-context streams.
+  - Use a hand-written copy with the option line added **and the scene's `Option "limits" "numthreads" [1]` pin removed**. Otherwise `-t:4` would still render single-threaded and the test would pass vacuously.
+  - Also add `Sampling_ProbeIndependence`, covering the midpoint-probe edge case. A raytrace scene with a shaded stochastic surface (a copy of `examples/rib/tests/depth-analytic-mid-raytrace.rib`, plus a `random()`-based surface shader), rendered under `sobol` once with `depthfilter midpoint` and once with `min`, gives a bit-identical colour output. The midpoint probe's draw no longer shifts any other value.
+- [X] T069 [RUN] [US1] **TEST-APPROVAL** (approved and committed as 059c975, with the SC-007 scan and its allowlist as 37f3f75).
+
+### Implementation
+
+- [X] T070 [US6] `src/common/random.{h,cpp}`: add `sampleHemisphere`, `sampleCosineHemisphere` and `sampleSphere` overloads that take `Sample2D`/`Sample3D` values. Keep the `CSobol&` overloads until Phase 9.
+- [X] T071 [US6] `src/libshader/shading/executeMisc.cpp` (the `sampleRay` macro, transmission and cone sampling, motion time), `shading.cpp` (gather ray setup, `jitTraceBatch`, `jitOcclusionBatch`) and `shaderPl.cpp`:
+  - under the new backends, draw from `substream(pointKey, shaderKey, callSite, occurrence, depth, N)` with the slot layout `0 = origin jitter`, `1 = direction`, `2 = time`;
+  - spawned rays get `childKey`, and a secondary ray's `jimp` is drawn from its child sub-stream (`trace.cpp`, the `urand()` that T063 left for non-camera rays; `Sampling_NoGlobalRandomness` lists it).
+- [X] T072 [US6] `src/libshader/shading/scriptFunctions.h` (`RANDOMFEXP` and the like) and `rslOps.cpp` (`op_random_f_v2`/`op_random_v_v2`):
+  - varying draws use `pointKeys[i]`, and uniform draws use `batchKey`;
+  - `occurrence` is incremented for active real lanes only;
+  - tail vertices mirror their real vertex.
+- [X] T073 [US6] `src/ri/texture/texture.cpp`: the stochastic `lookup` and `shadow` paths at lines ~1403, 1563, 1578, 1673, 1853 and 2141 take a `SubstreamKey` from Shading instead of reading `context->random2d`/`random4d` (contract T1). Update the callers in Shading.
+  - **As built**: the lookups draw from the context's draw cursor (`drawNext2()`/`drawNext4()`), which Shading binds to the lookup's sub-stream (`DRAW_BIND`, `bindDraws()`) before every lookup, in the interpreter macros and in the JIT entries. No `CTexture`/`CEnvironment` signature changes. See contract T1.
+- [X] T074 [P] [US6] `src/ri/hcshader.cpp`: draw light samples from transport sub-streams keyed by (pointKey, light ordinal, sample index).
+- [X] T075 [P] [US6] Photons (as built: `CJob::firstPhoton` is stamped by `dispatchPhoton`; each chunk gives its photons keys `cellKey(hash(light ordinal), index)` and resets the occurrence counters; emission and every bounce draw from the photon's sub-stream through the draw cursor, dimension by dimension in event order, instead of `childKey(key, bounce)`; `gen2`/`gen3`/`gen4` remain only on the Legacy path):
+  - the core's job dispatcher stamps `firstPhotonIndex` on every `PHOTON_BUNDLE` (`src/ri/render/renderer.cpp` or wherever `dispatchJob` lives);
+  - `src/ri/hiders/photon.{h,cpp}` keys emission by `hash(seed, frame, lightOrdinal, firstPhotonIndex + k)`, and bounce decisions by `childKey(key, bounce)`;
+  - `gen2`/`gen3`/`gen4` are unused on the new path.
+- [X] T076 [P] [US6] `src/ri/hiders/irradianceDispatch.cpp` (lines ~319–322, 420–423, 656) and `src/ri/hiders/radiance.{h,cpp}` (lines ~1070–1285, plus the `generator` member): use transport sub-streams and `CKeyedStream`. The caches stay order-dependent (spec 040).
+- **T076a-T076d widen T076** (maintainer decision after T089: `Convergence_occlusion-raytrace` failed because `occlusion()` builds its own jittered `nt x np` hemisphere grid, so no backend can stratify it and the ray count is `nt * np` (3, 3, 12, 80, 252 for samples 1, 4, 16, 64, 256), not `samples`; see validation.md "Phase 8" and "T076a"). The `trace()`/`transmission()` pattern applies to `occlusion()`: direction `k` of `samples` comes from the sampler by sample index.
+  - [X] T076a [P] [US6] Tests first (written, red as expected; evidence in validation.md "T076a"):
+    - `OcclusionSampler_NetCount_{sobol,pmj02}_{4,16,64}_{rslo,slo}` (12 tests; `examples/rib/tests/sampling-occlusion-cap.rib.in`, `shaders/sampling_occlusion_probe.sl`, read by `test_pixel_probe`): a disc blocks exactly the quarter of the cosine-weighted hemisphere that is the strip `u < 1/4`; a (0,2) net of n points has exactly n/4 in it, so the centre pixel reads exactly 0.25 only when the directions come from the sampler and the ray count is n. 12 fail today (0.333, 0.333, 0.2125/0.275 ...).
+    - `OcclusionGolden_{legacy,legacy_cache,sobol_cache}` (`examples/rib/tests/sampling-occlusion-golden.rib.in`, goldens in `tests/visual/golden/`, driver `tests/visual/test_golden_compare.cpp`): bit-for-bit against renders made before the change. Under Legacy, and under any sampler with the irradiance cache on (`maxerror > 0`), the `nt x np` grid and its output stay. Pass today (twice, identical) and must keep passing.
+  - [X] T076b [RUN] **TEST-APPROVAL** (approved: all 15 tests and the four decisions; (4) is recorded as a known gap in validation.md "T076c and T076d", since spec 040's files are not in this worktree). Decisions the implementation depends on, for the maintainer to confirm: (1) the sampler path uses exactly `samples` rays (`max(1, (int)samples)`), as `trace()` does, and the grid path keeps `nt * np`; (2) pair 0 of the call's sub-stream is the direction (the existing cosine map `sin^2 theta = u`, `phi = 2 pi v`), pair 1 the origin jitter over the point's footprint; (3) with the cache on (`maxerror > 0`) the grid stays, because `posGradient`/`rotGradient` assume it (spec 040 owns the cache); (4) the `indirectdiffuse` branch of `CIrradianceCache::sample` is a copy of the occlusion branch and is left on the grid unless the maintainer widens this further.
+  - [X] T076c [US6] `src/ri/hiders/irradianceDispatch.cpp` (the occlusion branch of `CIrradianceCache::sample`) and `src/libshader/shading/shading.h` (an accessor for the bound call's `get2D(dim, sample)`): for a non-Legacy sampler with `maxError == 0`, draw direction `k` from the call's sub-stream by sample index. Legacy and the cached path are untouched.
+  - [X] T076d [RUN] [US6] (results in validation.md "T076c and T076d") Build, then: the 12 `OcclusionSampler_*` green and the 3 `OcclusionGolden_*` still green; `ctest -L architecture`; `ctest -L '^determinism$' -j2` (148); the visual and parity tests that render `occlusion()` scenes; `ctest -L convergence` (`Convergence_occlusion-raytrace` must meet its bar, which re-runs T089 for that scene). Record the numbers in validation.md.
+- [X] T077 [P] [US1] `CKeyedStream` sites:
+  - `src/ri/render/geometryDispatch.cpp` `cluster()` (keyed by `stableId` and iteration), and lines ~640–645 (keyed by `stableId`);
+  - `src/ri/geometry/object.cpp` `getDisp` (constant key);
+  - `src/ri/texture/pointHierarchy.cpp` (node index);
+  - `src/ri/render/init.cpp` (`#define urand()`, keyed by shader and call site).
+  - These do not depend on the backend: the keyed path is used under `Legacy` too **only if** T003's suite stays unchanged. Otherwise gate it on the backend and record why.
+- [X] T078 [RUN] [US1] Build, then:
+  - T065, T066 and T068 (T067 is not registered yet);
+  - `ctest -L "visual|libshader|sampling|architecture"`, which must be unchanged under `Legacy`;
+  - stat the shaders again (T004).
+
+**PAUSE 6**.
+
+---
+
+## Phase 7: User Story 1 — determinism harness (Priority: P1)
+
+**Goal**: cross-configuration bit-identity over every non-GI scene (FR-030, contracts/test-harnesses.md).
+
+### Tests first
+
+- [X] T078a [US1] Self-tests of the harness, `DeterminismHarness_*` (label `determinism`; `tests/visual/check_determinism_harness.sh`, scenes `determinism-harness-noisy.rib` and `determinism-harness-two-outputs.rib`), written against the interface T079 must provide: `identical` (a thread independent scene under sobol with `--no-dither` gives exit 0), `detects` (a Legacy random scene without a pin gives exit 1 and lists between 1 and 5 `pixel (x, y)` lines per output), `render_failure` (exit 2), `multiple_outputs` (two displays, each named in the report), `print_prepend`, `print_keep_pins`, `print_no_dither` (a new `--print-scene` flag prints the prepared copy and exits 0 without rendering, so the prepend, the pin removal and the Quantize line can be checked), `usage_unchanged` (the original usage still works; green today).
+- [X] T078b [RUN] [US1] **TEST-APPROVAL** (approved with `--print-scene` and the `pixel (x, y)` report format; committed as 46e5c76).
+
+### Implementation
+
+- [X] T079 [US1] `tests/visual/test_depth_determinism.cpp`: add `--configs "<opts>|…"` (an empty entry means the default thread count), `--outputs a.tif,…` (every display decoded through libtiff, at any depth, `z` included) and `--prepend "<RIB line>"` (writes a temporary copy of the scene, keeping its archive paths valid).
+  - The `--prepend` copy also **drops every `Option "limits" "numthreads"` line**, so pinned non-GI scenes really run multithreaded (`--keep-pins` disables this, for GI scenes only).
+  - Add `--no-dither`, which prepends `Quantize "rgba" 255 0 255 0` (dither amplitude 0). Until T095 replaces libc `rand()`, 8-bit dithered outputs differ between configurations for a reason this phase does not fix. A scene that sets its own non-zero-dither `Quantize` is listed for the Phase 9 run (T103) only.
+  - Compare bit for bit with the first configuration's outputs, and report up to 5 differing pixels per output.
+  - Exit codes: 0 identical, 1 different, 2 render or decode failure.
+  - The existing usage stays unchanged.
+- [X] T080 [US1] `tests/visual/CMakeLists.txt`: add `add_determinism_sweep(<name> <rib> <outputs…>)`, with default configurations `-t:1||-t:2|-t:4|-P:2`. The `-P` entry never carries `-t` (research §M1, caveat a). The function prepends `Option "sampling" "string sampler" ["sobol"]`, and passes `--no-dither` until Phase 9 (T103 removes it).
+- [X] T081 [US1] Create `tests/visual/determinism-scenes.cmake`, listing every non-GI visual and parity scene with all of its outputs (FR-031).
+  - GI scenes (the `occlusion()`/`indirectdiffuse()` scenes under the default `maxerror`, and photon-map scenes) appear only as comments pointing to spec 040.
+  - Include it from `tests/visual/CMakeLists.txt`.
+- [X] T082 [US1] Give `DepthFilter_Determinism_*` and `ColorDeterminism_*` an added `-t:1|-t:2|-t:4` cross-configuration registration. Keep the existing registrations.
+- [X] T083 [US1] Convert T058 and T068 to `--prepend`, and delete their hand-written copies.
+  - **As built**: `test_render_compare` gained `--prepend-a:`/`--prepend-b:` for T058; T068 uses `test_depth_determinism --configs` with a two-line prepend (the sobol line and a float `Quantize`). See validation.md "Phase 7 implementation".
+- [X] T084 [RUN] [US1] (**closed 2026-10-22, D-P13-3: superseded by T084b, T084c, T084d and T119**, which fixed or disabled every difference it found; the sweep is 404/404 under each sampler since) (run; **not met at the time**: 19 of 413 scenes differ, 18 in a second run, 24 distinct; after T084b/T084c 3 of 409 enabled scenes differ in each of two sweeps; 7.0 min; classification in validation.md) Build, then `ctest -L determinism-sweep -j4`. Every scene must be identical. Record the wall-clock time in `validation.md` (M3).
+  - Apply the 10-minute rule (FR-030): if it takes more than 10 minutes, the sweep keeps only the `determinism-sweep` label, and a representative subset (the existing tests plus one scene per primitive and effect family) also gets `determinism`. **Compliance (T084d):** the sweep takes 10.1 to 12.1 minutes at `-j2` on a realistic load, so it is opt-in under `determinism-sweep` (run explicitly before each merge and in T105), and the default `determinism` set (148 tests) takes about 3 minutes at `-j2`. Use `-L '^determinism$'`: `-L determinism` also selects the sweep.
+  - Any failing scene is a stop-and-report, classified by cause.
+- [X] T084a [RUN] [US1] Root-cause group C of T084 (diagnosis only; no fix). Group C: the sweep scenes that differ only with jitter on, a few values each, intermittent at one thread count.
+  - Leading hypothesis to confirm or reject: fragments at equal depth, or straddling sample edges, resolved in thread or bucket order, as in #48.
+  - **Result** (evidence in validation.md "T084a"): two causes, neither in the sampler.
+    - **Reyes scenes** (`blobby-*`, `bunny-reyes`): the hypothesis is confirmed in its arrival-order form. Two opaque fragments of different colour reach one sample at *exactly* equal depth, and `drawPixel()` keeps the first (`z < pixel->z`), so the grid that is rasterized first wins.
+    - **Raytrace scenes** (`csg-hero-*-raytrace` and related): the hypothesis is rejected. The cause is a read of uninitialised `ralloc` memory in the derivative of the `transmission()` target, which makes the shadow ray garbage for some silhouette samples. Filling `ralloc` memory with any byte removes the nondeterminism. The same defect also explains most of the scenes disabled under #61.
+  - If a fix is needed it is test-first: write the tests, show them failing, and wait for TEST-APPROVAL before any implementation. The C scenes stay registered and red.
+- [X] T084b [US1] Cause 1 of T084a: a missed derivative lane (GitHub #61). Done for ray-hit shading; the grid-shading part is left (see validation.md "T084b and T084c: results").
+  - [X] T084b-tests: `tests/shading_parity/test_derivative_inactive_lanes.cpp`, test `ShadingParity_DerivativeInactiveLanes`. It fills the inactive offset lanes of a ralloc'd source array with two different bytes (0x00, 0x5A) and requires, for `duFloat`/`dvFloat`/`duVector`/`dvVector` (through the public `jitDu*`/`jitDv*` entry points the interpreter shares):
+    - the whole result array is bit-identical between the two fills;
+    - a real lane whose offset lane is inactive has derivative 0;
+    - lanes with an active offset lane keep the plain difference quotient (the control).
+    Red today: 8 of 18 checks fail, the control passes.
+  - [X] T084b-approve [RUN] **TEST-APPROVAL** (approved; committed as 61826b3).
+  - [X] T084b-fix: in `src/libshader/shading/executeMisc.cpp`, give a tail lane that the lane tags mark inactive the value of its real lane (derivative 0) in `duFloat`/`dvFloat`/`duVector`/`dvVector` and their capital-letter forms.
+  - [X] T084b-rerun [RUN]: repeat runs as in T084a on the cause 1 scenes, with a temporary `ralloc` fill byte as the proof, and the sweep entries.
+  - [X] T084b-reenable (five re-enabled; `csg-hero-zbuffer-1600` and `csg-hero-stats-1600-reyes` kept disabled; `csg-procedural-operand-raytrace` is shown fixed): re-enable each #61-disabled sweep entry the fix makes reliably green. Check `csg-hero-stats-1600-reyes` and `csg-procedural-operand-raytrace` too, and keep them disabled unless they are shown fixed. Update the exclusion lists in spec.md and validation.md to match.
+- [X] T084c [US1] Cause 2 of T084a: equal-depth fragments resolved by arrival order (cause of the ties: GitHub #62).
+  - [X] T084c-why: why the two z values are exactly equal. Result in validation.md "T084b and T084c": not duplicate or overlapping geometry; a degenerate micropolygon (a triangle corner, v0 == v2) gets the depth of its apex vertex, so two such cells at the same mesh vertex tie exactly. Reported for a decision before the fix.
+  - [X] T084c-tests: `examples/rib/tests/ties-coincident-{reyes,zbuffer}.rib`, tests `DeterminismTies_{reyes,zbuffer}`: two coincident opaque triangles of different colour, 8x8 buckets, `-t:1` against eight `-t:4` renders, bit-identical. Red today under both hiders (about 7000 of 65536 values differ in every comparison).
+  - [X] T084c-approve [RUN] **TEST-APPROVAL** (approved; committed as 61826b3).
+  - [X] T084c-fix (`src/ri/hiders/rasterTie.h`, plus the `zmin <= maxDepth` culling in `reyes.cpp` the test showed to be needed): break equal-z ties by a deterministic key (stableId, then micropolygon index) instead of arrival order, in the shared path so reyes and zbuffer use the same code (the #50 rule).
+  - [X] T084c-measure [RUN]: measure and report which existing reference tests move at tie pixels, and by how much. No threshold or reference is touched without a separate approval.
+  - [X] T084c-recheck [RUN] (`csg-hero-displaced-reyes` still red with an unexplained cause; `blobby-blend-far-reyes` green; the other two failed once each in two sweeps): re-check `csg-hero-displaced-reyes` and the three scenes that never reproduced (`blobby-blend-far-reyes`, `csg-offscreen-stats-reyes`, `csg-hero-partial-stats-reyes`). They stay registered and red.
+
+- [X] T084d [US1] Split the determinism labels and record the measurements (labels only; no test body, threshold or reference changed).
+  - Every swept scene keeps the opt-in `determinism-sweep` label, and no `visual` or `regression` label; the full sweep runs before each merge and in the Linux validation (T105). The everyday full run is `ctest -LE determinism-sweep`; the two sets are `-L '^determinism$'` (148) and `-L '^determinism-sweep$'` (413).
+  - The default `determinism` label holds the existing determinism tests, the most demanding scene per family and hider (at most 10 s), every scene that exposed a defect, and no disabled entry: 148 tests, 154 s and 171 s at `-j2`.
+  - Recorded in validation.md "T084d": the `Parity_csg-secondary-rays-raytrace-reyes` 10 x 10 measurement (no real shift), the `-j2` sweep timings (606.7 s, 644.7 s, 727.0 s; 1213 s summed), the load observations, and the earlier `-j4` figures.
+**PAUSE 7**.
+
+---
+
+## Phase 8: User Story 4 — convergence harness (Priority: P2)
+
+**Goal**: RMSE against sample count, and the SC-003 part b bars (FR-033, contracts/test-harnesses.md).
+
+- [X] T085 [US4] `tests/convergence/test_convergence.cpp`.
+  - It substitutes `@SAMPLER@`, `@SPP@` and `@SAMPLES@`, and renders the ladder 1, 4, 16, 64, 256.
+  - It computes RMSE against the reference over all channels, and fits the log-log slope by least squares.
+  - It prints the scene × sampler × rung table. `--bar render` checks for 0.15 steeper than Independent with top-rung RMSE no higher; `--bar nonworse` checks for slope and top-rung RMSE no worse.
+- [X] T086 [P] [US4] Scene templates in `tests/convergence/scenes/`, each 64×64 with float output:
+  - `dof-reyes.rib.in` and `dof-raytrace.rib.in` (`@SPP@`, lens);
+  - `motion-reyes.rib.in` (`@SPP@`, time; bar `nonworse`);
+  - `arealight-raytrace.rib.in` (quadlight-style, `@SAMPLES@`);
+  - `occlusion-raytrace.rib.in` (`Attribute "irradiance" "maxerror" [0]`, so no cache; `@SAMPLES@`);
+  - `glossy-raytrace.rib.in` (`trace` with `samples`/`samplecone`, interpreter only because of GitHub #55; `@SAMPLES@`).
+  - Never vary `PixelSamples` for shading-side integrals under reyes.
+- [X] T087 [US4] `tests/convergence/CMakeLists.txt`:
+  - one `Convergence_<scene>` test per template, label `convergence`, with bar `render` except `motion-reyes`, which uses `nonworse`;
+  - a `convergence-reference` custom target that is **not** in ctest, rendering each scene with `independent` at 4096 spp or more into `tests/convergence/reference/`.
+- [X] T088 [RUN] [US4] Build `convergence-reference`, serially under `nice -n 19`. Record each scene's time in `validation.md` (M4). Any scene over 30 minutes drops to 32×32, not to fewer samples.
+  - Check in the references and record the exact generation command in `tests/convergence/README.md`.
+- [X] T089 [RUN] [US4] (**run; 3 of 6 bars met, 3 failed: arealight, glossy and occlusion; stop-and-report, see validation.md "Phase 8"; the maintainer chose: occlusion is fixed in the code by T076a-T076d, arealight and glossy get both options of validation.md "Phase 8 follow-up" (T089a, T089b); after T076c-T089b, 8 of 8 met (T089c)**) `ctest -L convergence`. Record the table and slopes in `validation.md`. A failed bar is a stop-and-report; never loosen the bar.
+- **T089a-T089c** (maintainer decision after the investigation in validation.md "Phase 8 follow-up": both options). arealight-raytrace and glossy-raytrace fail the `render` bar because their integrals couple two independently padded dimension pairs (footprint and cone), whose cross term no backend stratifies: a known property of the sampler design, not a defect of a call. A joint 4D sample is possible future work.
+  - [X] T089a [US4] Option A: `test_convergence --bar gain [--gain 1.5]` (slope no worse than the baseline, top-rung RMSE at most the baseline's / 1.5); arealight-raytrace and glossy-raytrace move to it, their scenes unchanged. DOF and motion keep their bars.
+  - [X] T089b [US4] Option B: two new scenes under the full `render` bar, `arealight-cone-raytrace` (`"samplebase" [0]`, a new `convergence_arealight.sl` parameter passed as transmission()'s `"sampleBase"`, default 1) and `glossy-mirror-raytrace` (a flat mirror disc under an orthographic camera), with references made the same way; README documents why both pairs of scenes exist.
+  - [X] T089c [RUN] [US4] Regenerate the references (`convergence-reference`) and run `ctest -L convergence`: 8 of 8 (validation.md "T089a-T089c").
+
+**PAUSE 8**.
+
+---
+
+## Phase 9: Flip, cleanup and verification (cross-cutting; US1, US3, US5)
+
+**Purpose**: make the new path the default, delete the legacy machinery, re-render the references once, remove the pins, tighten the thresholds, and verify SC-001–SC-010.
+
+### Flip and deletion
+
+**Unblocked**: T090-T094 broke approved tests that pinned Legacy "until Phase 9" (one a compile break). The maintainer approved the proposed change for each (validation.md "Phase 9: blocked before T090"), with one change: `DeterminismHarness_detects` proves the detector with two configurations that differ by a deterministic seed (`test_depth_determinism --config-prepends`), not with the irradiance cache's nondeterminism.
+
+- [X] T090 Change the default backend to `Sobol` (`src/ri/state/options.cpp`, `CSamplingConfig`). Remove `Legacy` from the `Backend` enum and from `RiOptionV`: `"legacy"` becomes an unknown name, which gets the T027 diagnostic.
+- [X] T091 Delete the per-context Mersenne Twister and `random2d/3d/4d` from `CShadingContext` (FR-024a): `urand()`/`irand()`, `next_state()`, `state[]`, `next`, `randomInit()`, the `MATRIX_A`/`TWIST` macros, and the members in `src/libshader/shading/shading.{h,cpp}`.
+  - Also delete every `Legacy` branch added in Phases 4–6.
+- [X] T092 [P] Delete `CSobol` and its `sampleHemisphere`/`sampleCosineHemisphere`/`sampleSphere` overloads (`src/common/random.{h,cpp}`), `_urand`/`_irand`, `apertureGenerator` (`stochastic.h:108`, and the `CRenderer::frame` use at `stochastic.cpp:71`), `photon.h` `gen2`/`gen3`/`gen4`, and `radiance.h` `generator`.
+  - Delete `src/common/sobolTables.h` if nothing else includes it.
+  - Check the installed package headers so that nothing exported still names a removed symbol.
+- [X] T093 [P] Delete `CRenderer::correlatedSampleTable` (`renderer.h:410`, `rendererStatics.cpp:208`, `renderer.cpp:331`), the `OPENRENDER_CORRELATED_SAMPLE_TABLE` read, `CSampler::generateBucketTable` with `bucketSeed`, and both table branches in `stochastic.cpp`/`raytracer.cpp`.
+  - Add `SamplingEnv_CorrelatedTableIgnored` (US3-3): one parity scene rendered with and without `OPENRENDER_CORRELATED_SAMPLE_TABLE=1` gives bit-identical output.
+  - [X] Test written first (red: 28212 values differ with the variable, a no-variable control is identical; validation.md "Phase 9: blocked before T090").
+- [X] T094 [P] `tests/visual/CMakeLists.txt`: delete `VISUAL_ENV_CORRELATED` and the `Parity_motion-patches-translate-correlated` and `Parity_motion-quadrics-translate-correlated` registrations.
+- [X] T095 [P] `src/display/file/file_base.cpp:67`: replace the libc `rand()` dither with an inline 32-bit hash `h(x, y, channel)`, giving `d = qamp·(2·h − 1)`.
+  - The hash is written in that file. There is no `libRIBCommon` link, no ABI change and no semver bump (FR-025).
+- [X] T096 [RUN] Build, then `ctest -L "sampling|libshader|common|architecture"`.
+  - Run archcheck and delete exactly the STALE lines it reports: expected at least the two DB-011 `correlatedSampleTable` lines, probably DB-011 `stochastic.cpp → CRenderer::frame`.
+  - Grep the hiders for each remaining `CRenderer::jitter`/`pixelXsamples`/`pixelYsamples` reference.
+  - Lower `tests/architecture/metrics-baseline.txt` only if a NOTE asks for it. Any new VIOLATION is a stop-and-report.
+
+### Re-render, pins, thresholds
+
+- [X] T097 [RUN] Run the **full** suite (every label, not only `visual`), and list every failing test whose failure is a sampling-only or dither-only change. This includes byte-exact comparisons against checked-in references outside `visual`: `tests/unit/texture_tile/test_render_byte_identical.sh` against `tests/unit/texture_tile/fixtures/references/`, the tile-concurrency references, and imager references. A structural failure, as opposed to new noise, is a stop-and-report.
+- [X] T098 [RUN] Re-render those references **once**, in every reference directory T097 found, using each test's own command and environment. A byte-exact reference is regenerated with the exact command its test documents (for example `-t:1` where the test pins it). Write `specs/039-sampling-foundation/rerendered-references.md` with one row per reference: path, test, and reason ("camera sampler", "8-bit dither hash", "RSL random() keyed", "transport sub-streams").
+- [X] T099 Write `specs/039-sampling-foundation/thread-pins.md` from research §R8, with one row per pin: file, reason, fate.
+  - **Remove** the non-GI pins:
+    - the 4 `-t:1` arguments for `quadlight`, `quadlight-slo`, `spherelight` and `spherelight-slo` (`tests/visual/CMakeLists.txt:1008–1023`);
+    - `numthreads 1` in `sphere-{random,trace,transmission,visibility}-reyes{,-slo}.rib` (8 files);
+    - the `-t:1` arguments in `tests/imager/integration/test_imager_render.cpp:186–187`.
+  - **Keep**, with a pointer to spec 040: the 4 `sphere-{occlusion,indirectdiffuse}-reyes{,-slo}.rib` pins.
+  - Review each `tests/unit/texture_tile/*` pin. Keep a pin that isolates cache behaviour, and record why. A `test_tile_source{,_synthesized}_concurrency.sh` tolerance MAY become exact, and is **never** widened.
+  - Leave `tools/perf/sphere-trace-reyes.rib`'s pin unchanged, so the SC-010 baseline stays comparable.
+- [X] T100 [RUN] Re-measure every parity test: worst-case diff over 5 runs (M5). Record the values in `tests/visual/parity-thresholds.md`.
+  - Tighten every threshold whose margin allows it. The targets are 8 for `motion-patches-translate` and 6 for `motion-quadrics-translate`; they are targets, not gates.
+  - **Never widen.** If `Parity_dof` (threshold 60; 53.6 under the old correlated table) exceeds 60, stop and ask the maintainer.
+- [X] T101 [RUN] (743/745 in Phase 9; green in Phase 10, T120: 744/744) Full suite: `nice -n 19 ctest --test-dir build -LE determinism-sweep -j4 --output-on-failure` (the sweep has no `visual` or `regression` label and is opt-in). Everything must be green, including `determinism`, `determinism-sweep` (opt-in: run it explicitly after the full run, `ctest -L '^determinism-sweep$' -j2`), `convergence` (explicitly), and `SamplingOption_*` against the new default.
+  - `git diff c4f1485 -- tests/visual/CMakeLists.txt tests/visual/parity-thresholds.md` must show no widened threshold.
+
+### Verification of the success criteria
+
+- [X] T102 [RUN] (**closed 2026-10-22, D-P13-3: superseded by Phases 10-12 and D-P12-8**: the remedies of Phases 10 and 11, the Phase 12 measurement and SC-010's per-scene budgets, which replaced this task's 2% criterion) (**not met, stop-and-report**: 11% to 200% slower than the baseline; research.md §M2 "After") **SC-010 performance check (manual, not ctest)**, following contracts/test-harnesses.md "Performance" and quickstart §10:
+  - bash, ctest's visual environment, a scratch copy of `specs/039-sampling-foundation/tools/perf/`;
+  - `nice -n 19 build/src/orender/orender -t:1 <rib>` and `… <rib>` (default threads);
+  - Perl `Time::HiRes`;
+  - **5 or more interleaved repetitions (rep-major)**.
+  - Record the medians, min/max, spread and MAD in the same columns as `tools/perf/m2-baseline-c62334d.txt`, both in a new `specs/039-sampling-foundation/tools/perf/m2-after-<HEAD>.txt` and in research.md §M2 "After".
+  - **Pass**: every scene's median, at both `t1` and `tdef`, is at most 2% above the baseline median. Compare medians only, never single runs.
+  - A failure is a stop-and-report, with a profile of the hot draw path.
+- [X] T103 [RUN] SC-001 and SC-009 (frames fixed; sweeps per backend and the seed pair run; crop resolved in Phase 10, T116-T118, with the reyes limitation #72):
+  - Remove `--no-dither` from `add_determinism_sweep` (T080), now that T095 hashes the dither. Run `ctest -L determinism-sweep` with dither on, covering US1-5 and the scenes deferred by T079.
+  - Run it once per backend, using the sweep with `--prepend` set to `pmj02` and to `independent`.
+  - Run one seed pair (`seed 0` against `seed 1`): different noise, the same within each seed.
+  - **Frames** (edge case): a 2-frame RIB rendered in full, then frame 2 alone with `-f 2`. Frame 2 must be bit-identical between the two.
+  - **Crop** (edge case): a `CropWindow` render must be bit-identical to the same pixels of the full render. If filter margins at the crop edge make this impossible, stop and report with the differing-pixel map.
+  - Register these checks as `Sampling_FrameReproducible` and `Sampling_CropConsistent` under `determinism`.
+- [X] T104 `Sampling_NoGlobalRandomness` (registered in Phase 6, T067) must pass with an **empty** allowlist: delete the lines that remain (the legacy generators T090-T095 removed) and `[RUN]` it: zero matches outside `src/precomp/` and comments (SC-007).
+- [X] T105 [RUN] (done 2026-10-21 after D-P12-13..15; validation.md "T105 rerun"; what it needs is in validation.md) Linux validation (memory: GCC 13 `-Werror`; rsync plus the Maestri path). Build and run `ctest -L "sampling|common|libshader|architecture|determinism"` on Ubuntu 24.04 (the regular expression also selects the whole `determinism-sweep`, which is wanted here: run it at `-j2`; use `-L '^determinism$'` for the default set alone), plus `ctest -L architecture` with `--platform linux`. If the Linux path is unavailable, record "pending Linux validation" in `validation.md` and report it.
+
+### Documentation and registry
+
+- [X] T106 [P] `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`:
+  - DB-011 history: the deleted lines, "spec 039, <date>";
+  - DB-005 history: the per-context RNG state is gone, "the RNG part of V1";
+  - DB-016's follow-up records the split: 039 removed randomness from per-context state, and arena/stats injection stays with 029;
+  - DB-017's "injected RNG" direction is noted as done for `cluster()`.
+- [X] T107 [P] `DEVNOTES_DETAILS/HIDER_PARITY.md`: replace the correlated-table section (Option B, T084) with a correlated-by-default note. Update the #48 paragraph, since the per-thread jitter streams and the dither are now gone.
+- [X] T108 [P] `DEVNOTES_DETAILS/BUGS.md`: the midpoint-probe stream-shift note (`probeDepth`) is resolved by its own sub-stream.
+- [X] T109 [P] Document `Option "sampling"` (values, default, seed, diagnostic, and the limitation that uniform `random()` under raytrace depends on bucket size, FR-021):
+  - in `DEVNOTES_DETAILS/RIB_GUIDE.md`;
+  - in the Hugo site, as constitution VII requires: `docs/site/content/manual/reference/options.md` (the option), `multithreading.md` and `network-parallel-rendering.md` (non-GI renders are now bit-identical at any `-t`/`-P`; GI caches wait for spec 040), and `raytraced-shadows-and-reflections.md` or `sl-functions.md` where `random()` semantics are described.
+- [X] T110 [P] `DEVNOTES.md`: add a 039 status row. Point to `tests/visual/parity-thresholds.md`, `rerendered-references.md` and `thread-pins.md`.
+- [X] T111 [RUN] Final quickstart pass, §1–§10. Record every result in `validation.md`. Stage everything with `git add`.
+
+**PAUSE 9 (final)**: report SC-001–SC-010 one by one against the evidence in `validation.md`.
+
+---
+
+## Phase 10: Performance, crop and the remaining sweep failure (maintainer decisions, 2026-10-20)
+
+**Purpose**: close the three items Phase 9 stopped on. Decisions (maintainer, 2026-10-20):
+- **D-P10-1, performance**: SC-010's 2% budget stays. Apply the four remedies of research.md §M2 "After" one at a time, re-measuring after each (Release build directory, interleaved against master `eda9eb0`), with determinism and convergence green after each step (labels; full sweeps only at the end). If still over budget, report where the time goes.
+- **D-P10-2, crop**: apply the crop-offset key fix, test first (raytrace crop test red, then green). Re-rendering `csg-hero-partial-stats-reyes`'s reference is approved. Then compute the raytrace projection from the full image's origin; if `Sampling_CropConsistent_raytrace` (box filter) becomes bit-identical, keep it. Drop `Sampling_CropConsistent_reyes` and record the limitation (GitHub #72: reyes crop dicing and P rounding) in spec.md and validation.md. If raytrace is still not exact, stop and report.
+- **D-P10-3, sweep**: disable `csg-hero-stats-800-reyes` in the determinism sweep like its 1600 sibling, citing #61.
+
+- [X] T112 [US2] (done; outputs unchanged; the four slots keep their own scrambles, see research.md) Remedy (a): one scramble per subpixel instead of four (the camera slots of a subpixel share one scrambled index). [RUN] perf (m2, Release, interleaved with `eda9eb0`), `-L "sampling|determinism"` minus the sweep, `-L convergence`.
+- [X] T113 [US2] Remedy (b): the camera-sample functions header-inline (no cross-library call). [RUN] as T112.
+- [X] T114 [US2] Remedy (c): cache the per-point stream key across the samples of one call. [RUN] as T112.
+- [X] T115 [US2] (done; **SC-010 still not met**: +4% to +115% over master, research.md §M2 "Phase 10") Remedy (d): hash the dither once per pixel. [RUN] as T112.
+- [X] T116 [US3] (no reference to re-render: csg-hero-partial-stats-reyes has none) Crop key fix: the hiders' absolute subpixels count from the full image (`renderLeft`/`renderTop`). `Sampling_CropConsistent_raytrace` red before, green after. Re-render `csg-hero-partial-stats-reyes`'s reference once; list it in rerendered-references.md.
+- [X] T117 [US3] (kept: the raytrace crop test is bit-identical; P-dependent shading with jitter on still differs, reported) The raytrace projection from the full image's origin (not the crop's), so `P` does not depend on the crop. Keep it only if `Sampling_CropConsistent_raytrace` is bit-identical; otherwise stop and report.
+- [X] T118 [US3] Drop `Sampling_CropConsistent_reyes`; record the reyes limitation (#72) in spec.md and validation.md.
+- [X] T119 [US1] Disable `DeterminismSweep_csg-hero-stats-800-reyes` (#61), as `csg-hero-stats-1600-reyes`.
+- [X] T120 [RUN] (744/744; sweeps 404/404 under each backend; architecture 21/21) Full suite (`ctest -LE determinism-sweep -j4`), the three sampler sweeps once (`-j2`), `-L architecture`; record in validation.md. T105 (Linux) stays pending.
+
+**PAUSE 10**: report the perf numbers per remedy and the final state.
+
+---
+
+## Phase 11: Sampler cost and the raytrace crop with jitter (maintainer decisions, 2026-10-20)
+
+**Purpose**: a design change for SC-010 and the remaining crop case. Decisions (maintainer, 2026-10-20):
+- **D-P11-1, cheaper scramble**: verify PBRT-v4's `RandomizeStrategy` options and its default, record the citation, then replace the full Owen scramble with the cheap hash-based one (per-dimension seeds stay independent; no index shared across camera dimensions), test first (a unit test pinning each 2D pair's stratification at power-of-two counts; `-L convergence` and the sampler unit tests green; no bar loosened). If PBRT-v4 does not do that, report before changing anything.
+- **D-P11-2, stream hash**: each sample's sub-stream comes from one hash per call (call key plus sample index), not one hash per draw; target: quadlight's 16 `drawSubstream` calls per point. Determinism bit-identical across thread counts.
+- **D-P11-3, raytrace crop with jitter on**: add the jitter-1, `P`-reading case to `Sampling_CropConsistent_raytrace` (red first), then sum the raster position from the pixel instead of the bucket origin plus offset (green).
+- **D-P11-4**: measure SC-010 as before after D-P11-1 and D-P11-2 and at the end; the 2% budget stays.
+- **D-P11-5**: re-rendering the references these change is approved; list each with its reason; check noisy GI scenes against their seed-to-seed variance; change no threshold.
+- **D-P11-1 (revised, maintainer, 2026-10-20)**, after T121: option (i), same images. The camera's per-dimension seeds are computed once per frame instead of once per subpixel, and the bit reversal uses the hardware instruction where the compiler has `__builtin_bitreverse32` (Clang; guarded with `__has_builtin`, the portable `reverseBits32` stays as the fallback for GCC 13, and a unit test compares the two). Output byte-identical, shown on the perf scenes. Option (ii), ZSobol-style index padding, is **not** approved: if SC-010 is still over budget at the end, report the gap per scene and what (ii) would be expected to save, and stop.
+
+- [X] T121 Verify the design reference (D-P11-1). **Result: stop-and-report.** PBRT-v4's default for `SobolSampler`, `PaddedSobolSampler` and `ZSobolSampler` is `"fastowen"`, a Laine-Karras-style hash between bit reversals (research.md §M2, "Phase 11 design reference check"). Spec 039's `nestedUniformScramble()` is already that kind of hash (Burley 2020's Laine-Karras), not a per-bit full Owen scramble, so the planned replacement would not be cheaper. Nothing changed; T122-T127 wait on the maintainer.
+- [X] T122 (D-P11-1 revised) Camera seeds once per frame; hardware bit reverse with the portable fallback and a unit test comparing the two (test first). Perf outputs byte-identical. [RUN] SC-010 measurement.
+- [X] T123 (D-P11-2) One hash per call for the sub-streams (the call's key plus the sample index), not one per draw; quadlight is the target. May change images. Determinism bit-identical across thread counts. [RUN] SC-010 measurement.
+- [X] T124 (D-P11-3) `Sampling_CropConsistent_raytrace` with a jitter-1 `P` case (red), then the raster position summed from the pixel (green).
+- [X] T125 [RUN] (D-P11-4) (**SC-010 not met**: +4% to +100% over master; (ii)'s bound +1% to +39%, validation.md Phase 11) SC-010 at the end; if over budget, the gap per scene and option (ii)'s expected saving.
+- [X] T126 (D-P11-5) Re-render the affected references once; rerendered-references.md; GI seed-to-seed checks.
+- [X] T127 [RUN] (747/747; sweeps 404/404 each; architecture 21/21) Full suite, the three sampler sweeps, `-L architecture`. T105 (Linux) stays pending.
+
+**PAUSE 11**.
+
+---
+
+## Phase 12: Option (ii) gated on convergence, then per-scene SC-010 budgets (maintainer decisions, 2026-10-21)
+
+**Purpose**: try a cheaper per-dimension index scramble behind a convergence gate, then amend SC-010. Decisions (maintainer, 2026-10-21):
+- **D-P12-1, gate first**: before (ii), record the convergence baseline (slope of RMSE against spp and the error at the highest spp, per scene and sampler) where before and after can be compared.
+- **D-P12-2, option (ii)**: ZSobol-style index padding, test first where a unit property can be pinned; determinism across thread counts and T122's per-frame camera seeds kept. The goal is a cheaper per-dimension index scramble, not its removal.
+- **D-P12-3, the gate**: `ctest -L convergence` 8/8 against the existing references, and per scene and sampler the slope and the top-rung error no worse than the baseline beyond the harness's own measured run-to-run noise. A failure or a quality regression reverts (ii) completely to the Phase 11 state, reports and stops; no variant without approval. Re-renders follow Phase 11's rules; the convergence references may be regenerated only after the gate passed against the old ones.
+- **D-P12-4**: SC-010 measured as before (Release, interleaved with master `eda9eb0`, `-t:1` and default threads, six scenes).
+- **D-P12-5**: a draft of SC-010 as one budget per scene, by a rule written in research.md (for example measured overhead plus measured run-to-run noise, rounded up), keeping 2% where a scene meets it; the old text, the new text and the rule; marked as a draft in validation.md.
+- **D-P12-6**: then the full suite, the three sweeps at `-j2` and `-L architecture`. T105 stays pending.
+- **D-P12-7 (maintainer, 2026-10-21, after T129)**: option (ii), ZSobol-style padding, is **dropped**: PBRT-v4's ZSobol permutes the Morton index one base-4 digit at a time with one 64-bit hash per digit, more expensive than the current per-dimension scramble (T129, research.md §M2 "Phase 12 design check"). Instead: **(a)** a per-frame cache of the camera index scramble's high half, same images (test first; thread-safe; gate: the six perf scenes byte-identical to Phase 11 and convergence identical to `convergence-baseline-phase11.txt`, else revert and report), then SC-010 measured as before; then **(c)** SC-010 as per-scene budgets from the post-(a) numbers (each scene's timing noise measured; the rule in research.md; a scene meeting 2% keeps it; old and new text in spec.md; the values a draft in validation.md).
+
+- [X] T128 (D-P12-1) Convergence baseline recorded before any change: `tools/perf/convergence-baseline-phase11.txt` (the harness's table, slopes and bars for the 8 scenes and 3 samplers).
+- [X] T129 Design check of (ii) against PBRT-v4's ZSobol before writing code. **Result: stop-and-report.** PBRT-v4's `ZSobolSampler::GetSampleIndex()` permutes the Morton index one base-4 digit at a time, with one `MixBits` 64-bit hash per digit choosing among 24 permutations (research.md §M2, "Phase 12 design check"). For our 64-bit camera index that is 12 to 16 hashes per draw, against the current nested uniform index scramble's two to three short hashes: ZSobol-style padding would be more expensive, not cheaper. Nothing implemented; T130-T134 wait on the maintainer.
+- [X] T130 (D-P12-7 (a); **reverted by T135, D-P12-10**) Tests first: the cached camera index scramble gives the same bits as the uncached one for all three samplers, including indices whose high 32 bits are not the cached ones (recomputed, never stale). Then the cache: computed per frame with the camera seeds, read-only afterwards. **Done**: `Sampling_IndexScrambleCache` (3,072,000 indices, 2,304,000 of them with a high half other than the cached one) and `Sampling_CameraSeedsHighIndex` (24,192 camera samples, all three backends, 6,352 of them with a 64-bit index) in `tests/unit/sampling/test_fast_paths.cpp`, red first (compile failure: no `IndexScramble64Prefix`). In `sampling.h`: `detail::IndexScramble64Prefix`/`indexScramble64Prefix()` (the permuted high half and the low half's seed), `nestedUniformScramble64Cached()` (falls back to `nestedUniformScramble64()` when the index's high half is not the cached one), `sobolGet{1,2}D64Cached()`; `CameraSeeds` keeps one prefix per slot for a high half of 0, filled in `cameraSeeds()` once per frame and read-only after that (shared across threads without synchronisation); `cameraDraws(cfg, seeds, ...)` uses it.
+- [X] T131 [RUN] (D-P12-7 (a)) Gate: the six perf scenes byte-identical to Phase 11; `ctest -L convergence -V` identical to `convergence-baseline-phase11.txt`. If not, revert and report. **Passed**: the Phase 11 outputs re-rendered first from the staged Phase 11 tree (Release; camera-dof-raytrace, quadlight and sphere-gather-reyes differ from the older copies made before T123/T124, which changed the shading draws and the raytraced pixel position); after (a), all six scenes byte-identical to them at `-t:1` and at the default thread count; `ctest -L convergence -V` 8/8, the 40 table and bar lines identical to the baseline.
+- [X] T132 [RUN] (D-P12-4) SC-010 after (a): Release, interleaved with master `eda9eb0`, `-t:1` and default threads, six scenes; and each scene's run-to-run timing noise. **Done**: three sessions of 5 interleaved repetitions (`tools/perf/m2-phase12-a{1,2,3}.txt`); not met, +4.7% to +97.0%, no measurable gain from (a); noise 1.7 to 6.8 points (research.md §M2, "Phase 12").
+- [X] T133 (D-P12-5, D-P12-7 (c)) The per-scene SC-010 draft: the rule in research.md, the old and new text in spec.md, the values marked as a draft in validation.md. **Done (draft)**: camera-dof-reyes 22%, camera-dof-raytrace 32%, motion-3-reyes 9%, quadlight 101%, sphere-gather-reyes 66%, sphere-trace-reyes 47%; none meets 2%.
+- [X] T134 [RUN] (D-P12-6) Full suite, the three sweeps at `-j2`, `-L architecture`. T105 pending. **Done**: `-LE determinism-sweep -j4` 749/749 (155 s); sweeps at `-j2` sobol 404/404 (542 s), pmj02 404/404 (564 s), independent 404/404 (475 s), reconfigured back to sobol; architecture 21/21.
+
+**PAUSE 12**.
+
+**Maintainer decisions at PAUSE 12 (confirmed 2026-10-21):**
+- **D-P12-8, SC-010 amended**: the per-scene budgets are approved as drafted (quadlight 101%, sphere-gather-reyes 66%, sphere-trace-reyes 47%, camera-dof-raytrace 32%, camera-dof-reyes 22%, motion-3-reyes 9%). spec.md carries the amended SC-010, dated 2026-10-21, with each budget next to its measured overhead and noise so a later spec can tighten them; the old 2% text moves to a dated amendment note. validation.md drops the draft marks and records SC-010 as met under the amended text.
+- **D-P12-9, the SC-010 baseline** is master `eda9eb0` measured interleaved in the same session (as since Phase 9); `c62334d` leaves the SC-010 text, with a one-line note that it reads 2 to 9 points higher.
+- **D-P12-10, (a) reverted**: it gave no measurable speed-up (T132), so it is removed for simplicity: `sampling.h` back to its Phase 11 content (an empty diff against it), the two T130 tests and their registration removed, `test_fast_paths.cpp` back to Phase 11. The record stays (here and in research.md), and `tools/perf/m2-phase12-a{1,2,3}.txt` are kept.
+- **D-P12-11, checks after the revert**: the six perf scenes byte-identical to the Phase 11 renders (`-t:1` and default threads), `ctest -L convergence` identical to `convergence-baseline-phase11.txt`, then the full suite (back to 747), the three sweeps at `-j2` (back to sobol afterwards) and `-L architecture`. T105 stays pending.
+
+- [X] T135 (D-P12-10) Revert (a): `src/common/sampling.h` and `tests/unit/sampling/test_fast_paths.cpp` restored to their Phase 11 content (diff against it empty), `Sampling_IndexScrambleCache` and `Sampling_CameraSeedsHighIndex` unregistered from `tests/unit/sampling/CMakeLists.txt`; T130's record kept, marked reverted. **Done**: both files restored from their Phase 11 blobs; `diff` against the Phase 11 content is empty for both, and no (a) symbol remains under `src/` or `tests/`.
+- [X] T136 (D-P12-8, D-P12-9) SC-010 amended in spec.md (dated 2026-10-21, budgets with overhead and noise, baseline `eda9eb0` interleaved, the old 2% text in a dated amendment note, the `c62334d` note); validation.md: draft marks dropped, SC-010 met under the amended text; research.md: the rule approved, (a) reverted. **Done**; FR-039 (which carried the same 2% bar and `c62334d` baseline) and the two clarification answers amended alongside, and the DEVNOTES.md row updated.
+- [X] T137 [RUN] (D-P12-11) After the revert: the six perf scenes byte-identical to the Phase 11 renders at `-t:1` and default threads; `ctest -L convergence -V` identical to `convergence-baseline-phase11.txt`. **Passed**: 12/12 renders byte-identical; convergence 8/8, the 40 lines identical.
+- [X] T138 [RUN] (D-P12-11) Full suite `-LE determinism-sweep -j4` (747), the three sweeps at `-j2` (reconfigured back to sobol), `-L architecture`. T105 pending. **Done**: 747/747 (254 s); sweeps sobol 404/404 (629 s), pmj02 404/404 (778 s), independent 404/404 (662 s), back to sobol; architecture 21/21.
+
+**PAUSE 12b**.
+
+- **D-P12-12 (maintainer, 2026-10-21, after PAUSE 12b)**: the FR-039 amendment and the "Amended 2026-10-21" markers on the two clarification answers (T136, beyond D-P12-8's scope) are approved. T105 (Linux validation) is approved to start: host `ubuntu-2404-desktop` (GCC 13.3.0, cmake 3.28.3, 2 cores), a new remote directory `openrender-039` with the tracked files only, a SHA-256 manifest matched before configuring, Release, `-DINSTALL_SELFCONTAINED=OFF`, `-j2`; a failure is reported with a diagnosis and proposed fix, not fixed, and no threshold widened.
+- **D-P12-13 (maintainer, 2026-10-21, on the T105 failures)**:
+  - Item 1, `LibShader_McompConsistency`: out of 039's scope; the same test and root cause as the open GitHub #44 (after spec 023 moved `CFileResource` to libRIBCommon, the next unresolved symbol is the `CTransmissionBundle` vtable, DB-001). Recorded as pre-existing and tracked by #44; the test is not touched.
+  - Item 2, the `rendererNetwork.cpp:391` `strcpy` overflow: fixed inside 039 with `memcpy(buffer, inName, strlen(inName) + 1)` once the `alloca` size is confirmed to cover it; the Linux `-P:2` failure of `DeterminismSweep_sphere-textureinfo-reyes{,-slo}` is the red test (its log kept); every other `&buffer[0].character` (`T32` union) instance audited and fixed the same way; a Resolved entry in `DEVNOTES_DETAILS/BUGS.md`.
+  - Item 3, `OcclusionGolden_sobol_cache`: a separate bit-exact Linux golden rendered on the Linux host with the current tree, selected by `CMAKE_SYSTEM_NAME`, no tolerance, the macOS golden byte-identical, its provenance (host, GCC, date) recorded next to it.
+  - Items 4 and 5 (`DeterminismTies_{reyes,zbuffer}`, `DeterminismSweep_blobby-spiral-reyes`): diagnosis only. Step 1, an ASan+UBSan build (RelWithDebInfo, `-fsanitize=address,undefined -fno-omit-frame-pointer`) in its own build directory in `openrender-039`, the three tests run at `-t:2` and `-t:4` several times; step 2, only if step 1 reports nothing, a temporary instrumented build in another build directory, applied in the remote copy only (the staged tree shown unchanged), logging the winning tie key and the candidates at the differing pixels. Then stop and report; no fix without approval. The full T105 rerun waits for 4 and 5.
+
+- [X] T139 (D-P12-13 item 1) validation.md: `LibShader_McompConsistency` recorded as pre-existing, tracked by GitHub #44 (DB-001).
+- [X] T140 (D-P12-13 item 2) Red: the Linux `-P:2` log of `DeterminismSweep_sphere-textureinfo-reyes{,-slo}` kept. Fix `CRenderer::getFile()`'s name copy and every other `T32`-union `character` copy found by the audit; BUGS.md Resolved entry; Mac build and the affected tests through cpujob; synced to the remote, the two tests green there under `-P:2`.
+- [X] T141 (D-P12-13 item 3) The Linux golden `tests/visual/golden/linux/occlusion-sobol_cache.tif` rendered on the Linux host, selected by `CMAKE_SYSTEM_NAME`, provenance recorded; the macOS golden byte-identical; `OcclusionGolden_sobol_cache` green on both.
+- [X] T142 [RUN] (D-P12-13 items 4, 5) Diagnosis step 1: ASan+UBSan build in `openrender-039/build-asan`; the three tests at `-t:2` and `-t:4` several times.
+- [X] T143 [RUN] (D-P12-13 items 4, 5) Diagnosis step 2, only if T142 reports nothing: instrumented build in its own build directory, remote copy only; the staged tree shown unchanged. Report the cause, the evidence and a proposed fix; no fix without approval.
+  - Result (validation.md T142, T143): ASan+UBSan found nothing on the ties (pre-existing findings reported: `osProcessEscapes()` heap over-read, `_log_enabled` ODR violation, `.rslo` loader misalignment). Item 4's cause: `CReyes::render()`'s opacity cull compares a grid's vertex `zmin` (3.0) with an interpolated `maxDepth` one ulp below it and drops the rest of the bucket, so the grid that would win the tie is lost when the other surface arrives first. Item 5: cause not found (no cull, no same-object tie). Fixes await the maintainer.
+- **D-P12-14 (maintainer, 2026-10-21, on T142/T143)**:
+  - Item 4: the clamp is approved. Each interpolated sample depth is clamped to its quad's vertex-depth range (min/max of the corners) in the quad and point raster paths reyes and zbuffer share: one implementation, never a per-hider copy. Test first (`DeterminismTies_{reyes,zbuffer}` fail on Linux without it; plus a unit-level property if one can be pinned: an interpolated depth never outside the vertex range). Before any reference changes, measure which visual and parity tests move on macOS and by how much; a reference or golden that must change stops at a pause with the list and the diffs; no threshold widened. Then synced to Linux and `DeterminismTies_*` run at `-t:1`, `-t:2`, `-t:4` several times, bit-identical.
+  - Item 5: the next diagnostic step is approved: in `instr-src`/`build-instr` only, each grid's identity and a hash of its vertex depths for bucket (0, 3) of `blobby-spiral-reyes` at `-t:1` and `-t:2`, compared to tell geometry from visibility; the Mac manifest shown unchanged; cause and proposed fix reported, not applied.
+  - The sanitizer findings are filed by the maintainer as GitHub issues: the `_log_enabled` ODR violation, the misaligned constant-pool stores in the `rslo.y` loader, the `oshader` leaks. The `osProcessEscapes()` over-read is #65, fixed on master in `dc54501` after 039 branched: not fixed in 039.
+- [X] T144 (D-P12-14 item 4) Tests first: a unit test pinning that the shared depth interpolation never leaves the quad's vertex-depth range (red where it can be made red), and `DeterminismTies_{reyes,zbuffer}` as the Linux red tests (logs kept).
+- [X] T145 (D-P12-14 item 4) The clamp, one shared implementation for the quad and point paths of reyes and zbuffer.
+- [X] T146 [RUN] (D-P12-14 item 4) macOS: which visual and parity tests move, by how much (no reference changed; a needed change stops at a pause).
+- [X] T147 [RUN] (D-P12-14 item 4) Linux: sync, manifest, rebuild; `DeterminismTies_*` at `-t:1`, `-t:2`, `-t:4` several times, bit-identical.
+- [X] T148 [RUN] (D-P12-14 item 5) Blobby bucket (0, 3): grid identities and vertex-depth hashes at `-t:1` and `-t:2`, instrumentation copy only; cause and proposed fix reported.
+- [X] T149 validation.md: the sanitizer findings tracked by the maintainer's GitHub issues; the `osProcessEscapes()` over-read is #65 (fixed on master in `dc54501`).
+- **D-P12-15 (maintainer, 2026-10-21, after T147)**: start the full T105 rerun. Sync the tracked files (manifest matched; the remote `specs/` docs brought up to date), list any tracked-file leftovers in the remote main tree that the staged tree no longer has (ask before deleting), rebuild `openrender-039/build` (0 warnings), and run everything T105 lists plus the Linux occlusion golden, `DeterminismTies_*`, `DeterminismSweep_blobby-spiral-reyes` and `sphere-textureinfo-reyes{,-slo}` under `-P:2`. The only accepted failure is `LibShader_McompConsistency` (#44) with the same `CTransmissionBundle` symbol. All green: T105 ticked, validation.md and the DEVNOTES.md row updated; otherwise report, do not fix. `build-asan`, `instr-src` and `build-instr` stay for the maintainer to decide.
+- [X] T105 rerun (D-P12-15): green on Ubuntu 24.04, GCC 13.3.0, `-Werror`, 0 warnings; `ctest -L "sampling|common|libshader|architecture|determinism"` 588/589, the one failure the accepted `LibShader_McompConsistency` (#44, same `CTransmissionBundle` symbol); archcheck `--platform linux` PASS; every targeted check green (validation.md "T105 rerun").
+- **D-P12-16 (maintainer, 2026-10-22)**: a final macOS check of the staged tree, then stop and report: no unstaged or untracked change; through cpujob, a full rebuild at `-j4` (warning count reported, expected 0), `ctest -LE determinism-sweep -j4` (748), the three sampler sweeps at `-j2` (back to sobol afterwards), `-L architecture`; the six perf scenes byte-identical to the Phase 11 renders and convergence identical to `convergence-baseline-phase11.txt`. A failure is kept, rerun alone and reported, not fixed. The Linux host is not touched; the worktree is left as it is for the converge stage.
+- [X] T150 [RUN] (D-P12-16) Final macOS verification of the staged tree: 0 compiler warnings; 748/748; sweeps 404/404 each (back to sobol); architecture 21/21; convergence identical to the baseline; perf scenes byte-identical (validation.md T150).
+
+---
+
+## Dependencies & execution order
+
+### Phase dependencies
+
+- Phase 0 → 1 → 2 (the sampler library blocks everything else).
+- Phase 3 depends on 2: `CSamplingConfig` and the `Backend` enum.
+- Phase 4 depends on 2 and 3: keys need the config; ordinals need nothing else.
+- Phase 5 depends on 4: `CRay` key, depth and `SampleId`.
+- Phase 6 depends on 4: `pointKeys`, ordinals and `childKey`. It can overlap Phase 5 file-wise, but run them in order so each PAUSE has one subject.
+- Phase 7 depends on 5 and 6: the sweep is only meaningful once every consumer is converted. The harness code (T079) can be written earlier.
+- Phase 8 depends on 5 and 6.
+- Phase 9 depends on everything. The flip comes last because FR-034 requires a single re-render (research §R5).
+
+### Within each phase
+
+Tests first → TEST-APPROVAL → implementation → [RUN] verification → PAUSE.
+
+### Parallel opportunities
+
+- Phase 2: T009–T016 are all [P] (separate test files). T020 and T021 touch separate files.
+- Phase 4: T038–T042 [P]; T044–T048 (Geometry, core, Infra) are independent of T052–T054 (compiler and JIT).
+- Phase 6: T074–T077 [P] (separate domains and files).
+- Phase 8: the T086 templates [P].
+- Phase 9: T092–T095 [P]; T106–T110 [P].
+
+## Parallel example: Phase 6
+
+```text
+T074 [US6] hcshader.cpp light sub-streams
+T075 [US6] photon job firstPhotonIndex + photon.cpp keys
+T076 [US6] irradianceDispatch.cpp / radiance.cpp
+T077 [US1] CKeyedStream sites (cluster, getDisp, pointHierarchy, init.cpp)
+```
+
+## Implementation strategy
+
+- **MVP**: Phases 0–2. The tested sampler library (US2) stands alone and changes no render.
+- **Incremental**: Phases 3–6 add the option, identity and consumers behind `Legacy`, so each PAUSE leaves the suite unchanged and green.
+- Phases 7 and 8 prove determinism and convergence on the new path before it becomes the default.
+- **Flip** (Phase 9): one default change, one deletion sweep and one re-render, with the success criteria verified in `validation.md`.
+- The agent stages; the maintainer commits at each PAUSE.
+
+---
+
+## Phase 13: Convergence
+
+**Purpose**: converge stage, 2026-10-22. Three gaps between the artifacts and the staged tree; no source file is missing. T151 is a measurement the coordinator must schedule; T152 and T153 are documentation edits. No task depends on the merge.
+
+**Maintainer decisions on the converge report (2026-10-22), applied in this order:**
+- **D-P13-1**: T153 and T152 first: `quickstart.md:102` and `contracts/test-harnesses.md:59` point at the amended per-scene SC-010 budgets; in spec.md (SC-001, Assumptions) and validation.md the SC-001 exclusions match `tests/visual/determinism-scenes.cmake` (11 disabled: 8 under #61 including `csg-hero-stats-800-reyes`, 2 under #60, 1 under #63; 415 registered, 404 enabled), every #61 scene listed.
+- **D-P13-2**: plan.md brought up to date in one task (T154): the amended SC-010 and the `eda9eb0` baseline where it still carries 2% and `c62334d`, the phase table through Phase 13, the clarification count matching spec.md.
+- **D-P13-3**: T084 and T102 ticked, each with a note naming its replacements (T155): T084b-d and T119 for T084; Phases 10-12 and D-P12-8 for T102.
+- **D-P13-4**: spec.md `Status: Draft` becomes `Status: Implemented` (T156).
+- **D-P13-5**: the unknown-sampler message in `rendererContext.cpp` reworded to "...; keeping the current sampler", and the comment above the `RI_SAMPLING` branch to say the same; behaviour unchanged; GitHub #76 tracks whether it should reset to the default instead, noted in validation.md; a test that checks the old text is reported before it is changed (T157).
+- **D-P13-6**: T151 last, after the edits are built: the six perf scenes re-timed against master `eda9eb0` by T132's method (Release, 3 sessions of 5 interleaved runs, `-t:1` and default threads, pooled medians and the noise analysis), through cpujob with nothing else running; each scene against its approved budget; one over budget is reported with the numbers, no budget or code changed.
+- **D-P13-7**: then the short check (T158): rebuild with 0 warnings, the full suite, `-L architecture`; the sweeps only if T157 touched more than the message and the comment.
+
+- **D-P13-8 (maintainer, 2026-10-22, after T151)**: the six SC-010 budgets are re-derived from the final T151 timings (`tools/perf/m2-final-cb6923f-{1,2,3}.txt`) by the rule already approved (D-P12-8, research.md §M2): pooled overhead plus the largest of the three noise measures, rounded up to a whole percent; the larger of `-t:1` and the default thread count; a scene at 2% or less keeps 2%. No new timing, no rule change, no code. Every place that states the budgets is updated to agree; the dated amendment note in spec.md is kept and the re-derivation date added.
+- [X] T159 (D-P13-8) Re-derive the six budgets from the T151 numbers and update spec.md SC-010, validation.md, research.md §M2, plan.md, quickstart.md §10, contracts/test-harnesses.md and the DEVNOTES.md row; grep for the old values afterwards.
+
+- [X] T154 (D-P13-2) plan.md: amended SC-010 and the `eda9eb0` baseline, the phase table through Phase 13, the clarification count.
+- [X] T155 (D-P13-3) T084 and T102 ticked with notes naming their replacements.
+- [X] T156 (D-P13-4) spec.md status `Implemented`.
+- [X] T157 (D-P13-5) The unknown-sampler message and its comment reworded; #76 noted in validation.md.
+- [X] T158 [RUN] (D-P13-7) Rebuild (0 warnings), full suite, `-L architecture`.
+
+- [X] T151 [RUN] [US1] (HIGH) (**done 2026-10-22: met**; every scene within its budget at `-t:1` and default threads; camera-dof-raytrace +31.7% against 32% at `t1`, 0.3 points margin (the budget is 34% since T159's re-derivation, D-P13-8); raw times `tools/perf/m2-final-cb6923f-{1,2,3}.txt`, table in research.md §M2 "Phase 13" and validation.md T151) Re-time SC-010 on the final staged tree per SC-010 / FR-039 (partial). The budgets in spec.md SC-010 were set from the T132 timings (`tools/perf/m2-phase12-a{1,2,3}.txt`), taken with remedy (a) in place. T135 then reverted (a), and T145 added `rasterQuadDepth()` (`src/ri/hiders/rasterEdge.h:77-83`: a four-corner min/max clamp on every per-sample depth), called at `src/ri/hiders/stochasticQuad.h:405` and `:439` and `src/ri/hiders/zbufferQuad.h:96`. T137 and T150 proved only byte-identity and convergence; no task timed the tree as it now is, so "SC-010 met under the amended text" (validation.md "Phase 12", T136) rests on a tree that no longer exists.
+  - Method as in SC-010: Release build, the six `tools/perf/` scenes, `-t:1` and the default thread count, 3 sessions of 5 repetitions interleaved with master `eda9eb0` in the same session, pooled median, with `nice -n 19` and only after the coordinator confirms the machine is idle.
+  - Record the raw times as `tools/perf/m2-final-<HEAD>.txt`, the table in research.md §M2 and validation.md, and compare each scene with its budget (camera-dof-reyes 22%, camera-dof-raytrace 32%, motion-3-reyes 9%, quadlight 101%, sphere-gather-reyes 66%, sphere-trace-reyes 47%). A scene over budget is a stop-and-report; never widen a budget.
+- [X] T152 [US1] (MEDIUM) Make the SC-001 exclusion list match the code per SC-001 / FR-030 / FR-031 (contradicts). `tests/visual/determinism-scenes.cmake:462-472` disables 8 scenes under #61 (the seven named in spec.md plus `csg-hero-stats-800-reyes`, added by T119) and 1 under #63 and 2 under #60: eleven, with 415 registered and 404 enabled (validation.md T120-T150). `DEVNOTES.md:23` already says 11. spec.md says "ten" at `spec.md:298` (SC-001) and `spec.md:332` (Assumptions) and lists seven scenes under #61 at `spec.md:334`; validation.md:723 says "ten".
+  - Add `csg-hero-stats-800-reyes` to the #61 bullet in spec.md Assumptions, change "ten" to "eleven" at the three places, and check the `US1/AC1` parenthetical in spec.md.
+- [X] T153 (LOW) Replace the stale 2% pass criterion in the verification documents with SC-010's per-scene budgets measured against master `eda9eb0` interleaved (contradicts). `quickstart.md:102` ("at most 2% above the baseline median in research §M2") and `contracts/test-harnesses.md:59` ("at most 2% above the baseline median") still carry the criterion that D-P12-8 replaced, so quickstart §10 as written would record a failure on a tree that meets SC-010.

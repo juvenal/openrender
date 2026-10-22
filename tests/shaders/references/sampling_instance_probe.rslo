@@ -1,0 +1,50 @@
+#!version 2.0.0
+#!name "sampling_instance_probe"
+surface
+#!parameters:
+#!variables:
+varying	vector	Nf
+varying	float	r2
+varying	vector	temporary_0
+varying	float	temporary_1
+varying	float	temporary_2
+varying	float	temporary_3
+varying	float	temporary_4
+varying	float	temporary_5
+varying	float	temporary_6
+varying	float	temporary_7
+varying	float	temporary_8
+varying	float	temporary_9
+uniform	vector	temporary_10
+#!Init:
+	return            
+#!Code:
+	normalize	("v=v")  temporary_0 N
+	faceforward	("v=vv")  Nf temporary_0 I
+	vufloat  r2 0
+	vufloat  temporary_1 3.141592654
+	illuminance P Nf temporary_1 #!Label3 #!Label4 0
+#!Label3:
+	vufloat  temporary_5 0
+	comp	("f=cf")  temporary_4 Cl temporary_5
+	vufloat  temporary_6 1.5
+	vufloat  temporary_8 1
+	comp	("f=cf")  temporary_7 Cl temporary_8
+	step	("f=ff")  temporary_5 temporary_6 temporary_7
+	mulff  temporary_3 temporary_4 temporary_5
+	moveff  temporary_5 temporary_8
+	vufloat  temporary_7 2.5
+	moveff  temporary_9 temporary_8
+	comp	("f=cf")  temporary_8 Cl temporary_9
+	step	("f=ff")  temporary_6 temporary_7 temporary_8
+	subff  temporary_4 temporary_5 temporary_6
+	mulff  temporary_2 temporary_3 temporary_4
+	addff  r2 r2 temporary_2
+#!Label4:
+	endilluminance
+	vufloat  temporary_1 0
+	moveff  temporary_2 temporary_1
+	vfromf  Ci r2 temporary_1 temporary_2
+	vfromf  temporary_10 1
+	vuvector  Oi temporary_10
+	return

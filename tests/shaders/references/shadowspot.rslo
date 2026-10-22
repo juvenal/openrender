@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 2.0.0
 #!name "shadowspot"
 light
 #!parameters:
@@ -55,7 +55,7 @@ varying	vector	temporary_7
 	vufloat  temporary_2 temporary_1
 	if temporary_2 #!Label5
 	vufloat  temporary_5 1
-	shadow	("f=SFp")  temporary_6 shadowname 0 Ps
+	shadow	("f=SFp")  temporary_6 shadowname 0 Ps 0
 	subff  temporary_4 temporary_5 temporary_6
 	mulff  atten atten temporary_4
 #!Label5:

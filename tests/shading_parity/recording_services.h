@@ -130,6 +130,8 @@ class CRecordingServices final : public CRendererServices {
         float relativeDetail() const override { return inner->relativeDetail(); }
         int pixelXsamples() const override { return inner->pixelXsamples(); }
         int pixelYsamples() const override { return inner->pixelYsamples(); }
+        const char *samplingSampler() const override { return inner->samplingSampler(); }
+        int samplingSeed() const override { return inner->samplingSeed(); }
         bool lookupUserOption(const char *name, CVariable *&var) const override { return inner->lookupUserOption(name, var); }
 };
 
@@ -216,6 +218,8 @@ class CStubServices final : public CRendererServices {
         float relativeDetail() const override { return 1; }
         int pixelXsamples() const override { return 1; }
         int pixelYsamples() const override { return 1; }
+        const char *samplingSampler() const override { return "sobol"; }
+        int samplingSeed() const override { return 0; }
         bool lookupUserOption(const char *, CVariable *&) const override { return false; }
 };
 

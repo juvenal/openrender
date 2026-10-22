@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 2.0.0
 #!name "uberlight"
 light
 #!parameters:
@@ -354,7 +354,7 @@ varying	vector	Pplane
 	mulff  temporary_11 temporary_12 temporary_13
 	divff  temporary_10 temporary_11 zslide
 	subff  yslide temporary_9 temporary_10
-	texture	("c=SFff")  temporary_31 slidename 0 xslide yslide
+	texture	("c=SFff")  temporary_31 slidename 0 xslide yslide 0
 	mulvv  lcol lcol temporary_31
 #!Label69:
 	endif
@@ -390,7 +390,7 @@ varying	vector	Pplane
 	vufloat  temporary_9 temporary_4
 	if temporary_9 #!Label75
 	moveff  temporary_11 unoccluded
-	shadow	("f=SFpSfsfsf")  temporary_12 shadowname 0 Ps "blur" shadowblur "samples" shadowsamples "bias" shadowbias
+	shadow	("f=SFpSfsfsf")  temporary_12 shadowname 0 Ps "blur" shadowblur "samples" shadowsamples "bias" shadowbias 1
 	subff  temporary_10 temporary_11 temporary_12
 	mulff  unoccluded unoccluded temporary_10
 #!Label75:

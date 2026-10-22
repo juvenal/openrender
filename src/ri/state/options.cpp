@@ -366,6 +366,9 @@ COptions::COptions() {
 
     depthFilter = DEPTH_MIN;
 
+    samplingBackend = openrender::sampling::Backend::Sobol;
+    samplingSeed = 0;
+
     imager = nullptr;
 }
 
@@ -886,6 +889,20 @@ int COptions::find(const char *name, const char *category, EVariableType &type, 
             type = TYPE_INTEGER;
             value = NULL;
             intValue = (flags & OPTIONS_FLAGS_PROGRESS) != 0;
+            return TRUE;
+        }
+    }
+
+    if ((category == NULL) || (strcmp(category, RI_SAMPLING) == 0)) {
+        if (strcmp(name, RI_SAMPLER) == 0) {
+            type = TYPE_STRING;
+            value = openrender::sampling::samplerName(samplingBackend);
+            return TRUE;
+        }
+        else if (strcmp(name, RI_SEED) == 0) {
+            type = TYPE_INTEGER;
+            value = NULL;
+            intValue = (int)samplingSeed;
             return TRUE;
         }
     }

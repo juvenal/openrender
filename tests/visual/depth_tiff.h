@@ -69,6 +69,64 @@ static inline bool readFloatTiff(const char *path, DepthImage &img) {
     return true;
 }
 
+// A TIFF at any bit depth, kept as the bytes libtiff decoded. The determinism sweep compares
+// outputs bit for bit, so it never converts a sample: 8 and 16-bit integer, 32-bit float and
+// the other layouts all compare as raw bytes. data holds planes * height rows of rowBytes
+// bytes, plane-major (one plane for interleaved channels, spp planes for separate ones).
+struct RawTiff {
+    uint32_t width = 0;
+    uint32_t height = 0;
+    uint16_t spp = 1;
+    uint16_t bitsPerSample = 0;
+    uint16_t sampleFormat = SAMPLEFORMAT_UINT;
+    uint16_t planar = PLANARCONFIG_CONTIG;
+    size_t rowBytes = 0;
+    std::vector<uint8_t> data;
+
+    size_t planes() const { return planar == PLANARCONFIG_SEPARATE ? spp : 1; }
+};
+
+// Reads a strip-based TIFF of any bit depth into img. Tiled files are refused.
+static inline bool readRawTiff(const char *path, RawTiff &img) {
+    TIFF *tif = TIFFOpen(path, "r");
+    if (!tif) {
+        fprintf(stderr, "  Cannot open TIFF: %s\n", path);
+        return false;
+    }
+    if (TIFFIsTiled(tif)) {
+        fprintf(stderr, "  %s is tiled; only strip-based TIFFs are compared\n", path);
+        TIFFClose(tif);
+        return false;
+    }
+    TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &img.width);
+    TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &img.height);
+    TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL, &img.spp);
+    TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE, &img.bitsPerSample);
+    TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLEFORMAT, &img.sampleFormat);
+    TIFFGetFieldDefaulted(tif, TIFFTAG_PLANARCONFIG, &img.planar);
+    if (img.width == 0 || img.height == 0 || img.spp < 1 || img.bitsPerSample < 1) {
+        fprintf(stderr, "  %s has no usable image (%ux%u, spp %u, bits %u)\n", path, img.width, img.height, img.spp,
+                img.bitsPerSample);
+        TIFFClose(tif);
+        return false;
+    }
+
+    img.rowBytes = (size_t)TIFFScanlineSize64(tif);
+    img.data.assign(img.planes() * img.height * img.rowBytes, 0);
+    for (size_t plane = 0; plane < img.planes(); ++plane) {
+        for (uint32_t row = 0; row < img.height; ++row) {
+            uint8_t *dst = &img.data[(plane * img.height + row) * img.rowBytes];
+            if (TIFFReadScanline(tif, dst, row, (uint16_t)plane) < 0) {
+                fprintf(stderr, "  TIFFReadScanline failed at row %u of %s\n", row, path);
+                TIFFClose(tif);
+                return false;
+            }
+        }
+    }
+    TIFFClose(tif);
+    return true;
+}
+
 // Reads a one-channel 32-bit float "z" TIFF.
 static inline bool readDepthTiff(const char *path, DepthImage &img) {
     if (!readFloatTiff(path, img))

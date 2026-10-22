@@ -1,0 +1,148 @@
+#!version 2.0.0
+#!name "sampling_random_probe"
+surface
+#!parameters:
+#!variables:
+varying	float	a
+varying	float	b
+varying	float	l0
+varying	float	l1
+uniform	float	i
+varying	float	u0
+varying	float	u1
+varying	float	derivative
+varying	float	distinct
+varying	float	urandomOk
+varying	float	rangeOk
+varying	float	temporary_0
+uniform	float	temporary_1
+varying	float	d
+varying	float	temporary_2
+varying	float	temporary_3
+varying	float	temporary_4
+varying	float	temporary_5
+varying	float	temporary_6
+varying	float	temporary_7
+varying	float	temporary_8
+varying	float	temporary_9
+uniform	vector	temporary_10
+#!Init:
+	return            
+#!Code:
+	random	("f=")  a 0
+	random	("f=")  b 1
+	vufloat  l0 0
+	moveff  l1 l0
+	moveff  i 0
+	forbegin #!Label4 #!Label5 #!Label6
+#!Label4:
+	flt  temporary_1 i 2
+	vufloat  temporary_0 temporary_1
+	for temporary_0
+	random	("f=")  d 2
+	moveff  l0 l1
+	moveff  l1 d
+#!Label5:
+	addff  i i 1
+#!Label6:
+	forend
+	urandom	("f=")  u0 3
+	urandom	("f=")  u1 4
+	vufloat  temporary_0 1e-9
+	Du	("f=f")  temporary_6 a
+	abs	("f=f")  temporary_5 temporary_6
+	Dv	("f=f")  temporary_7 a
+	abs	("f=f")  temporary_6 temporary_7
+	addff  temporary_4 temporary_5 temporary_6
+	Du	("f=f")  temporary_6 l1
+	abs	("f=f")  temporary_5 temporary_6
+	addff  temporary_3 temporary_4 temporary_5
+	Dv	("f=f")  temporary_5 l1
+	abs	("f=f")  temporary_4 temporary_5
+	addff  temporary_2 temporary_3 temporary_4
+	step	("f=ff")  derivative temporary_0 temporary_2
+	vufloat  temporary_6 1e-7
+	subff  temporary_8 a b
+	abs	("f=f")  temporary_7 temporary_8
+	step	("f=ff")  temporary_5 temporary_6 temporary_7
+	moveff  temporary_7 temporary_6
+	subff  temporary_9 a l0
+	abs	("f=f")  temporary_8 temporary_9
+	step	("f=ff")  temporary_6 temporary_7 temporary_8
+	mulff  temporary_4 temporary_5 temporary_6
+	vufloat  temporary_6 1e-7
+	subff  temporary_8 a l1
+	abs	("f=f")  temporary_7 temporary_8
+	step	("f=ff")  temporary_5 temporary_6 temporary_7
+	mulff  temporary_3 temporary_4 temporary_5
+	moveff  temporary_5 temporary_6
+	subff  temporary_7 b l0
+	abs	("f=f")  temporary_6 temporary_7
+	step	("f=ff")  temporary_4 temporary_5 temporary_6
+	mulff  temporary_2 temporary_3 temporary_4
+	vufloat  temporary_4 1e-7
+	subff  temporary_6 b l1
+	abs	("f=f")  temporary_5 temporary_6
+	step	("f=ff")  temporary_3 temporary_4 temporary_5
+	mulff  temporary_0 temporary_2 temporary_3
+	moveff  temporary_3 temporary_4
+	subff  temporary_5 l0 l1
+	abs	("f=f")  temporary_4 temporary_5
+	step	("f=ff")  temporary_2 temporary_3 temporary_4
+	mulff  distinct temporary_0 temporary_2
+	vufloat  temporary_3 1e-7
+	subff  temporary_5 u0 u1
+	abs	("f=f")  temporary_4 temporary_5
+	step	("f=ff")  temporary_2 temporary_3 temporary_4
+	vufloat  temporary_5 0
+	step	("f=ff")  temporary_4 temporary_5 u0
+	vufloat  temporary_6 1
+	moveff  temporary_8 temporary_6
+	step	("f=ff")  temporary_7 temporary_8 u0
+	subff  temporary_5 temporary_6 temporary_7
+	mulff  temporary_3 temporary_4 temporary_5
+	mulff  temporary_0 temporary_2 temporary_3
+	vufloat  temporary_4 0
+	step	("f=ff")  temporary_3 temporary_4 u1
+	moveff  temporary_5 temporary_6
+	moveff  temporary_7 temporary_6
+	step	("f=ff")  temporary_6 temporary_7 u1
+	subff  temporary_4 temporary_5 temporary_6
+	mulff  temporary_2 temporary_3 temporary_4
+	mulff  urandomOk temporary_0 temporary_2
+	vufloat  temporary_5 0
+	step	("f=ff")  temporary_4 temporary_5 a
+	vufloat  temporary_6 1
+	moveff  temporary_8 temporary_6
+	step	("f=ff")  temporary_7 temporary_8 a
+	subff  temporary_5 temporary_6 temporary_7
+	mulff  temporary_3 temporary_4 temporary_5
+	vufloat  temporary_6 0
+	step	("f=ff")  temporary_5 temporary_6 b
+	vufloat  temporary_7 1
+	moveff  temporary_9 temporary_7
+	step	("f=ff")  temporary_8 temporary_9 b
+	subff  temporary_6 temporary_7 temporary_8
+	mulff  temporary_4 temporary_5 temporary_6
+	mulff  temporary_2 temporary_3 temporary_4
+	vufloat  temporary_5 0
+	step	("f=ff")  temporary_4 temporary_5 l0
+	moveff  temporary_6 temporary_7
+	moveff  temporary_8 temporary_7
+	step	("f=ff")  temporary_7 temporary_8 l0
+	subff  temporary_5 temporary_6 temporary_7
+	mulff  temporary_3 temporary_4 temporary_5
+	mulff  temporary_0 temporary_2 temporary_3
+	vufloat  temporary_4 0
+	step	("f=ff")  temporary_3 temporary_4 l1
+	vufloat  temporary_5 1
+	moveff  temporary_7 temporary_5
+	step	("f=ff")  temporary_6 temporary_7 l1
+	subff  temporary_4 temporary_5 temporary_6
+	mulff  temporary_2 temporary_3 temporary_4
+	mulff  rangeOk temporary_0 temporary_2
+	mulff  temporary_0 urandomOk rangeOk
+	vfromf  Ci derivative distinct temporary_0
+	vfromf  temporary_10 1
+	vuvector  Oi temporary_10
+	return

@@ -11,17 +11,18 @@
 # coarse to catch a subtle tile-indexing or mip-level-selection
 # regression in the CTileSource extraction this spec performs.
 #
-# Every render uses "-t:1" (single-threaded): this codebase's default
-# multi-threaded reyes rendering is NOT byte-identical across repeated
-# runs of the same unmodified binary on the same scene (bucket-scheduling
-# nondeterminism, confirmed empirically during this spec's task planning).
-# "-t:1" is this project's own established mechanism for exactly this
-# situation (see tests/visual/CMakeLists.txt's existing "-t:1" extra-arg
-# usage for other byte-identical-sensitive scenes).
+# Every render runs at the default thread count. Until spec 039 each render
+# was pinned "-t:1", because multi-threaded rendering was not byte-identical
+# run to run (bucket-scheduling nondeterminism); since spec 039 every camera
+# and shading draw is keyed by the sample's identity, so a non-GI render is
+# bit-identical at any thread count, and the pin was removed (spec 039, T099,
+# thread-pins.md).
 #
 # The references were captured once, before any CTileSource code existed,
 # with the pre-refactor orender binary -- a permanent CI-runnable
-# regression test, not a one-time manual check.
+# regression test, not a one-time manual check -- and re-rendered once by
+# spec 039 (T098, rerendered-references.md), whose sampler changed every
+# camera and shading draw.
 #
 # Usage: test_render_byte_identical.sh <orender> <rib-parity-dir> <references-dir> <have-openexr:0|1>
 set -euo pipefail
@@ -46,7 +47,7 @@ render_and_compare() {
         return
     fi
 
-    (cd "$WORKDIR" && "$ORENDER" -t:1 "$RIBDIR/${scene}.rib" >/dev/null 2>&1) || true
+    (cd "$WORKDIR" && "$ORENDER" "$RIBDIR/${scene}.rib" >/dev/null 2>&1) || true
 
     local out="$WORKDIR/${scene}.tif"
     if [ ! -f "$out" ]; then

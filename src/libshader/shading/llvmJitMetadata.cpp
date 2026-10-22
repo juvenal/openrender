@@ -19,6 +19,7 @@
  *
  */
 
+#include "common/sloFormat.h"
 #include "llvmJit.h"
 
 // LLVM headers generate warnings under our strict flags; suppress them for this block only.
@@ -27,6 +28,7 @@
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wpedantic"
 #include <llvm/Bitcode/BitcodeReader.h>
+#include <llvm/IR/Constants.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Metadata.h>
 #include <llvm/IR/Module.h>
@@ -65,6 +67,29 @@ static SLOParamInfo parseParamNode(const llvm::MDNode *node) {
 }
 
 // =========================================================================
+// CLLVMJitEngine::readFormat  (static, private)
+// =========================================================================
+bool CLLVMJitEngine::readFormat(const llvm::Module &mod, SFormatVersion &version) {
+    const llvm::NamedMDNode *nmd = mod.getNamedMetadata(SLO_FORMAT_KEY);
+    if (!nmd || nmd->getNumOperands() != 1)
+        return false;
+    const llvm::MDNode *node = nmd->getOperand(0);
+    if (node->getNumOperands() != 3)
+        return false;
+    int part[3];
+    for (unsigned i = 0; i < 3; ++i) {
+        const auto *value = llvm::mdconst::dyn_extract<llvm::ConstantInt>(node->getOperand(i));
+        if (!value || value->getSExtValue() < 0 || value->getSExtValue() > 1000000)
+            return false;
+        part[i] = static_cast<int>(value->getSExtValue());
+    }
+    version.major = part[0];
+    version.minor = part[1];
+    version.patch = part[2];
+    return true;
+}
+
+// =========================================================================
 // CLLVMJitEngine::extractMetadataFromModule  (static, private)
 // =========================================================================
 bool CLLVMJitEngine::extractMetadataFromModule(const llvm::Module &mod, SLOShaderInfo &info) {
@@ -89,11 +114,13 @@ bool CLLVMJitEngine::extractMetadataFromModule(const llvm::Module &mod, SLOShade
 
     // Version
     const llvm::MDNode *verNode = getFirst("openrender.shader.version");
+    // The record holds a "major.minor.patch" string; the field keeps the major number
+    // (1 when there is no record or it does not parse).
     info.version = 1;
     if (verNode) {
-        const std::string vs = mdStr(verNode, 0);
-        if (!vs.empty())
-            info.version = std::stoi(vs);
+        SFormatVersion parsed;
+        if (parseFormatVersion(mdStr(verNode, 0).c_str(), parsed))
+            info.version = parsed.major;
     }
 
     // Parameters

@@ -27,6 +27,8 @@
 #ifndef RI_RSLOPS_H
 #define RI_RSLOPS_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -212,7 +214,7 @@ void op_for_break(const int *execCount, int *tags, int n, int *numActive, int *n
  * ----------------------------------------------------------------------- */
 /* op_illuminance_begin: run all lights for (P,N,angle), enter first light's
  * conditional (load L/Cl, apply lightTags).  Returns 1 if iterating, 0 if done. */
-int op_illuminance_begin(const float *P, int sp, const float *N, int sn, const float *angle, int sa, int *tags, int n, int *numActive, int *numPassive);
+int op_illuminance_begin_v2(const float *P, int sp, const float *N, int sn, const float *angle, int sa, int *tags, int n, int *numActive, int *numPassive, uint32_t callSite);
 /* op_illuminance_next: exit current light, advance to next, enter it.
  * Returns 1 if more iterations needed, 0 if done. */
 int op_illuminance_next(int *tags, int n, int *numActive, int *numPassive);
@@ -247,7 +249,7 @@ int op_gather_end(int *numActive, int *numPassive);
  * CUniformLiftingPass can promote it to a single-element uniform slot, so
  * the per-vertex walk below must not blindly advance a uniform source's
  * pointer the way the raw P/D/sampleCone signature previously did. */
-void op_gatherHeader(const char *const *names, void *const *valuePtrs, const int *steps, const int *isVarying, int numPairs, const float *P, int strideP, const float *D, int strideD, const float *sampleCone, int strideSampleCone, float samples);
+void op_gatherHeader_v2(const char *const *names, void *const *valuePtrs, const int *steps, const int *isVarying, int numPairs, const float *P, int strideP, const float *D, int strideD, const float *sampleCone, int strideSampleCone, float samples, uint32_t callSite);
 
 /* -----------------------------------------------------------------------
  * illuminate / endilluminate (light shader construct, JIT path)
@@ -377,9 +379,9 @@ void op_cellnoise_fff(float *dst, int sd, const float *x, int sx, const float *y
 void op_cellnoise_fpf(float *dst, int sd, const float *p, int sp, const float *f, int sf, int n, const int *tags);
 void op_cellnoise_vff(float *dst, int sd, const float *x, int sx, const float *y, int sy, int n, const int *tags);
 void op_cellnoise_vpf(float *dst, int sd, const float *p, int sp, const float *f, int sf, int n, const int *tags);
-/* random / urandom (stateful RNG via the current thread's CShadingContext::urand()) */
-void op_random_f(float *dst, int sd, int n, const int *tags);
-void op_random_v(float *dst, int sd, int n, const int *tags);
+/* random / urandom (keyed draws via the current thread's CShadingContext::drawRandom()) */
+void op_random_f_v2(float *dst, int sd, int n, const int *tags, uint32_t callSite);
+void op_random_v_v2(float *dst, int sd, int n, const int *tags, uint32_t callSite);
 
 // pnoise() (spec 017-jit-builtin-function-coverage, US5): periodic noise,
 // 4 argument shapes (1D/2D/3D/4D) x 2 result kinds (float/vector), each
@@ -413,11 +415,11 @@ void op_depth(float *dst, int sd, const float *P, int sp, int n, const int *tags
  * Layer G — texture / environment / shadow (call via activeContext())
  * The "name" is a C string; channel is 0=R 1=G 2=B 3=A.
  * ----------------------------------------------------------------------- */
-void op_texture_f(float *dst, int sd, const char *const *namepp, const float *chan, const float *s, int ss, const float *t, int st, int n, const int *tags);
-void op_texture_c(float *dst, int sd, const char *const *namepp, const float *s, int ss, const float *t, int st, int n, const int *tags);
-void op_environment_f(float *dst, int sd, const char *const *namepp, const float *chan, const float *D, int sD, int n, const int *tags);
-void op_environment_c(float *dst, int sd, const char *const *namepp, const float *D, int sD, int n, const int *tags);
-void op_shadow_f(float *dst, int sd, const char *const *namepp, const float *Ps, int sPs, int n, const int *tags);
+void op_texture_f_v2(float *dst, int sd, const char *const *namepp, const float *chan, const float *s, int ss, const float *t, int st, int n, const int *tags, uint32_t callSite);
+void op_texture_c_v2(float *dst, int sd, const char *const *namepp, const float *s, int ss, const float *t, int st, int n, const int *tags, uint32_t callSite);
+void op_environment_f_v2(float *dst, int sd, const char *const *namepp, const float *chan, const float *D, int sD, int n, const int *tags, uint32_t callSite);
+void op_environment_c_v2(float *dst, int sd, const char *const *namepp, const float *D, int sD, int n, const int *tags, uint32_t callSite);
+void op_shadow_f_v2(float *dst, int sd, const char *const *namepp, const float *Ps, int sPs, int n, const int *tags, uint32_t callSite);
 
 /* -----------------------------------------------------------------------
  * visibility()/transmission()/trace() (spec 017-jit-builtin-function-coverage,
@@ -425,18 +427,18 @@ void op_shadow_f(float *dst, int sd, const char *const *namepp, const float *Ps,
  * loaded by resolveVar("du"/"dv"/"N"/"time",...) in llvmEmitter.cpp; see
  * contracts/op-wrapper-abi.md.
  * ----------------------------------------------------------------------- */
-void op_visibility(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+void op_visibility_v2(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                    const float *du, const float *dv, const float *N, const float *time,
-                   int n, const int *tags);
-void op_transmission(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                   int n, const int *tags, uint32_t callSite);
+void op_transmission_v2(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                      const float *du, const float *dv, const float *N, const float *time,
-                     int n, const int *tags);
-void op_trace_f(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                     int n, const int *tags, uint32_t callSite);
+void op_trace_f_v2(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                 const float *du, const float *dv, const float *N, const float *time,
-                int n, const int *tags);
-void op_trace_c(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                int n, const int *tags, uint32_t callSite);
+void op_trace_c_v2(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                 const float *du, const float *dv, const float *N, const float *time,
-                int n, const int *tags);
+                int n, const int *tags, uint32_t callSite);
 
 // comp()/MComp() (spec 017-jit-builtin-function-coverage, US1): pure indexed
 // reads, no CShadingContext state needed. op_comp = vector form (Comp,
@@ -474,12 +476,12 @@ void op_rotate(float *dst, int sd, const float *m, int sm, const float *angle, i
 
 // occlusion()/indirectdiffuse() (spec 017-jit-builtin-function-coverage,
 // US1): point-cloud/irradiance-cache lookup trampolines.
-void op_occlusion(float *dst, int sd, const float *P, int sP, const float *N, int sN,
+void op_occlusion_v2(float *dst, int sd, const float *P, int sP, const float *N, int sN,
                   const float *samples, int sSamples, const float *du, const float *dv,
-                  int n, const int *tags);
-void op_indirectdiffuse(float *dst, int sd, const float *P, int sP, const float *N, int sN,
+                  int n, const int *tags, uint32_t callSite);
+void op_indirectdiffuse_v2(float *dst, int sd, const float *P, int sP, const float *N, int sN,
                         const float *samples, int sSamples, const float *du, const float *dv,
-                        int n, const int *tags);
+                        int n, const int *tags, uint32_t callSite);
 
 // texture3d()/bake3d() (spec 017-jit-builtin-function-coverage, US5):
 // point-cloud read/write trampolines. See shading.h for scoping notes.

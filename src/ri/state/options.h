@@ -33,6 +33,7 @@
 #include "common/global.h"
 #include "dsply.h"
 #include "common/rendererc.h"
+#include "common/sampling.h"
 #include "common/riVocabulary.h"
 #include "ri_config.h"
 #include "shader.h"
@@ -263,6 +264,10 @@ class COptions {
         int shootStep; // The number of rays to shoot at a time
 
         EDepthFilter depthFilter; // Holds the depth filter type
+
+        // Option "sampling" (spec 039)
+        openrender::sampling::Backend samplingBackend; // "sampler"; Sobol by default
+        uint32_t samplingSeed;                         // "seed", any integer reinterpreted as uint32
 
         CUserAttributeDictionary userOptions; // User options
 

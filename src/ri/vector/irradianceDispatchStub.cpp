@@ -25,9 +25,9 @@
  *   because dataLoad.cpp's CDataDocument::open() only ever opens a
  *   cache with CACHE_READ | CACHE_RDONLY, never CACHE_SAMPLE (see
  *   irradiance.cpp: smallSampleWeight is 0 unless CACHE_SAMPLE is set),
- *   and the real body's `w > context->urand() * smallSampleWeight` is
+ *   and the real body's `w > context->drawNext() * smallSampleWeight` is
  *   `w > 0` whenever smallSampleWeight is exactly 0, regardless of
- *   urand()'s value -- so skipping the RNG call changes nothing this
+ *   the draw's value -- so skipping the RNG call changes nothing this
  *   build can ever observe. The assert documents (and would catch) that
  *   invariant being violated, rather than silently computing the wrong
  *   answer if it ever is.

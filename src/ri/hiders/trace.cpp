@@ -184,6 +184,7 @@ void CShadingContext::trace(CRayBundle *bundle) {
             // Shade the shading groups
             for (varying = currentShadingState->varying; shadingGroups != NULL; shadingGroups = shadingGroups->next) {
                 int numShading;
+                int chunkIndex = 0; // The index of the maxGridSize chunk within this object's rays in this pass
 
                 while ((numShading = shadingGroups->numRays) > 0) {
                     if (numShading > CRenderer::maxGridSize)
@@ -195,7 +196,19 @@ void CShadingContext::trace(CRayBundle *bundle) {
                     }
 
                     if (shadingGroups->object != NULL) {
+                        // Ray hits carry their rays' identities (spec 039, R3.4/R3.7): hand
+                        // the keys to the shading state before the surface samples itself
+                        for (i = 0; i < numShading; i++)
+                            currentShadingState->pointKeys[i] = shadingGroups->rays[i]->key;
+                        currentShadingState->batchKey = openrender::sampling::detail::mix(
+                            (uint64_t)currentXBucket << 32 | (uint32_t)currentYBucket,
+                            shadingGroups->object->stableId, (uint64_t)currentRayDepth, (uint64_t)chunkIndex);
+                        currentShadingState->pointKeysFromRays = TRUE;
+
                         shadingGroups->object->shade(this, numShading, shadingGroups->rays);
+
+                        currentShadingState->pointKeysFromRays = FALSE;
+                        chunkIndex++;
                         bundle->postShade(numShading, shadingGroups->rays, varying);
                     }
                     else {
@@ -302,7 +315,10 @@ void CShadingContext::trace(CRay *ray) {
     // Compute the first entry in the heap
     heap[1].tmin = nearestBox(CRenderer::root->bmin, CRenderer::root->bmax, ray->from, ray->invDir, ray->tmin, ray->t);
     heap[1].object = CRenderer::root;
-    ray->jimp = urand();
+    // A primary ray under the new samplers already carries its camera importance;
+    // every other ray draws one.
+    if (!ray->cameraImportance)
+        ray->jimp = rayImportance(ray->key, ray->depth);
     ray->object = NULL;
 
     numTracedRays++;

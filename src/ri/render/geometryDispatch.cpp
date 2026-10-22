@@ -12,8 +12,8 @@
  *   are virtual overrides, so a geometry class's vtable includes them
  *   whether or not a given consumer ever calls them; CObject::cluster() is
  *   a non-virtual exception, included here because its own body (not a
- *   vtable slot) references CShadingContext::urand() -- an inline wrapper
- *   in shading.h around the real CShadingContext::next_state() --
+ *   vtable slot) draws from the shading context (originally
+ *   CShadingContext::urand(), a CKeyedStream since spec 039) --
  *   discovered only by an `nm -u` sweep over the built object files, not by
  *   reading the source, since it reads exactly like the memory-pool-only
  *   pattern every other safe method here follows. A consumer that must not
@@ -60,6 +60,7 @@
 #include "object.h"
 #include "points.h"
 #include "common/random.h"
+#include "common/sampling.h"
 #include "renderer.h"
 #include "rendererContext.h"
 #include "reyes.h"
@@ -106,10 +107,9 @@ void CCSGSolid::dice(CReyes *rasterizer) {
 // Method				:	cluster
 // Description			:	Cluster the objects
 // Return Value			:
-// Comments				:	Reaches into shading via CShadingContext::urand()
-//							(an inline wrapper in shading.h around the real
-//							CShadingContext::next_state()), not merely
-//							threadMemory as it first appears.
+// Comments				:	Reaches into shading (its draws, originally
+//							CShadingContext::urand(), now a CKeyedStream),
+//							not merely threadMemory as it first appears.
 void CObject::cluster(CShadingContext *context) {
     int numChildren;
     CObject *cObject;
@@ -136,16 +136,25 @@ void CObject::cluster(CShadingContext *context) {
     // For 5 iterations
     for (int iteration = 0; iteration < 15; iteration++) {
 
+        // The jitter of this iteration is a keyed stream of (object, iteration): the same
+        // clustering whichever thread builds the hierarchy (spec 039, research R3.10)
+        openrender::sampling::CKeyedStream jitter(openrender::sampling::detail::mix(0xC1A57E4ull, stableId, (uint64_t)iteration));
+
         // Compute a slightly jittered center position for the object
         for (numChildren = 0, cObject = children; cObject != NULL; cObject = cObject->sibling, numChildren++) {
-            initv(P + numChildren * 3, (cObject->bmax[0] - cObject->bmin[0]) * (context->urand() * 0.2f + 0.4f) + cObject->bmin[0], (cObject->bmax[1] - cObject->bmin[1]) * (context->urand() * 0.2f + 0.4f) + cObject->bmin[1], (cObject->bmax[2] - cObject->bmin[2]) * (context->urand() * 0.2f + 0.4f) + cObject->bmin[2]);
+            const float jx = jitter.next1D(), jy = jitter.next1D(), jz = jitter.next1D();
+            initv(P + numChildren * 3, (cObject->bmax[0] - cObject->bmin[0]) * (jx * 0.2f + 0.4f) + cObject->bmin[0], (cObject->bmax[1] - cObject->bmin[1]) * (jy * 0.2f + 0.4f) + cObject->bmin[1], (cObject->bmax[2] - cObject->bmin[2]) * (jz * 0.2f + 0.4f) + cObject->bmin[2]);
             indices[numChildren] = -1;
         }
 
         // The random cluster centers
         vector P1, P2;
-        initv(P1, (bmax[0] - bmin[0]) * context->urand() + bmin[0], (bmax[1] - bmin[1]) * context->urand() + bmin[1], (bmax[2] - bmin[2]) * context->urand() + bmin[2]);
-        initv(P2, (bmax[0] - bmin[0]) * context->urand() + bmin[0], (bmax[1] - bmin[1]) * context->urand() + bmin[1], (bmax[2] - bmin[2]) * context->urand() + bmin[2]);
+        {
+            const float x1 = jitter.next1D(), y1 = jitter.next1D(), z1 = jitter.next1D();
+            const float x2 = jitter.next1D(), y2 = jitter.next1D(), z2 = jitter.next1D();
+            initv(P1, (bmax[0] - bmin[0]) * x1 + bmin[0], (bmax[1] - bmin[1]) * y1 + bmin[1], (bmax[2] - bmin[2]) * z1 + bmin[2]);
+            initv(P2, (bmax[0] - bmin[0]) * x2 + bmin[0], (bmax[1] - bmin[1]) * y2 + bmin[1], (bmax[2] - bmin[2]) * z2 + bmin[2]);
+        }
 
         // The main clustering loop
         int done;
@@ -199,6 +208,8 @@ void CObject::cluster(CShadingContext *context) {
     // Cluster the rest of the objects
     front = new CDummyObject(attributes, xform);
     back = new CDummyObject(attributes, xform);
+    front->stableId = openrender::sampling::detail::mix(stableId, 0);
+    back->stableId = openrender::sampling::detail::mix(stableId, 1);
     initv(front->bmin, C_INFINITY);
     initv(front->bmax, -C_INFINITY);
     initv(back->bmin, C_INFINITY);
@@ -594,7 +605,9 @@ void CPoints::dice(CReyes *rasterizer) {
         movvv(P0, points[0]);
         movvv(P1, points[1]);
 
+        // An empty cluster is re-seeded from a keyed stream of (object, number of points, iteration)
         for (j = 0; j < 10; j++) {
+            openrender::sampling::CKeyedStream reseed(openrender::sampling::detail::mix(0xC1A57E5ull, stableId, (uint64_t)numPoints, (uint64_t)j));
 
             initv(nP0, 0);
             initv(nP1, 0);
@@ -637,12 +650,12 @@ void CPoints::dice(CReyes *rasterizer) {
             if (num0 > 0)
                 mulvf(P0, nP0, 1 / (float)num0);
             else
-                movvv(P0, points[rasterizer->irand() % numPoints]);
+                movvv(P0, points[reseed.nextU32() % numPoints]);
 
             if (num1 > 0)
                 mulvf(P1, nP1, 1 / (float)num1);
             else
-                movvv(P1, points[rasterizer->irand() % numPoints]);
+                movvv(P1, points[reseed.nextU32() % numPoints]);
         }
 
         // Partition

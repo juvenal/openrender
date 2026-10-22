@@ -177,32 +177,34 @@ const float importance = grid->object->attributes->lodImportance;
 //    Non Transparent
 #ifndef STOCHASTIC_MOVING
 //	  Non Moving
-#define drawPixel()             \
-    if (z < pixel->z) {         \
-        updateOpaque();         \
-        nSample = &pixel->last; \
-        nSample->z = z;         \
-        colorOpacityUpdate();   \
-        drawExtraSamples();     \
-        depthFilterIf();        \
-        pixel->z = z;           \
-        depthFilterTouchNode(); \
-    }                           \
+#define drawPixel()                                                                            \
+    if (z < pixel->z || (z == pixel->z && tieKeyLess(RASTER_TIE_KEY(vertices), pixel->tie))) { \
+        updateOpaque();                                                                        \
+        nSample = &pixel->last;                                                                \
+        nSample->z = z;                                                                        \
+        colorOpacityUpdate();                                                                  \
+        drawExtraSamples();                                                                    \
+        depthFilterIf();                                                                       \
+        pixel->z = z;                                                                          \
+        pixel->tie = RASTER_TIE_KEY(vertices);                                                 \
+        depthFilterTouchNode();                                                                \
+    }                                                                                          \
     depthFilterElse();
 
 #else
 //	  Moving
-#define drawPixel()             \
-    if (z < pixel->z) {         \
-        updateOpaque();         \
-        nSample = &pixel->last; \
-        nSample->z = z;         \
-        colorOpacityUpdate();   \
-        drawExtraSamples();     \
-        depthFilterIf();        \
-        pixel->z = z;           \
-        depthFilterTouchNode(); \
-    }                           \
+#define drawPixel()                                                                            \
+    if (z < pixel->z || (z == pixel->z && tieKeyLess(RASTER_TIE_KEY(vertices), pixel->tie))) { \
+        updateOpaque();                                                                        \
+        nSample = &pixel->last;                                                                \
+        nSample->z = z;                                                                        \
+        colorOpacityUpdate();                                                                  \
+        drawExtraSamples();                                                                    \
+        depthFilterIf();                                                                       \
+        pixel->z = z;                                                                          \
+        pixel->tie = RASTER_TIE_KEY(vertices);                                                 \
+        depthFilterTouchNode();                                                                \
+    }                                                                                          \
     depthFilterElse();
 
 #endif
@@ -240,12 +242,12 @@ const float importance = grid->object->attributes->lodImportance;
 #ifdef STOCHASTIC_UNSHADED
 // We're not shaded yet, so if we pass the depth test, we need to back and shade the grid
 // Note: we dealt with RASTER_SHADE_HIDDEN very early, no need to do so here
-#define drawPixelCheck()            \
-    if (z < pixel->z) {             \
-        shadeGrid(grid, FALSE);     \
-        rasterDrawPrimitives(grid); \
-        return;                     \
-    }                               \
+#define drawPixelCheck()                                                                       \
+    if (z < pixel->z || (z == pixel->z && tieKeyLess(RASTER_TIE_KEY(vertices), pixel->tie))) { \
+        shadeGrid(grid, FALSE);                                                                \
+        rasterDrawPrimitives(grid);                                                            \
+        return;                                                                                \
+    }                                                                                          \
     depthFilterElse();
 #else
 #define drawPixelCheck() \

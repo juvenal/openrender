@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 2.0.0
 #!name "ambientocclusion"
 light
 #!parameters:
@@ -18,7 +18,7 @@ uniform	vector	temporary_5
 	faceforward	("v=vv")  Nf temporary_0 I
 	vufloat  temporary_2 1
 	vufloat  temporary_4 numSamples
-	occlusion	("f=pnf")  temporary_3 P Nf temporary_4
+	occlusion	("f=pnf")  temporary_3 P Nf temporary_4 0
 	subff  temporary_1 temporary_2 temporary_3
 	vfromf  Cl temporary_1
 	vfromf  temporary_5 0

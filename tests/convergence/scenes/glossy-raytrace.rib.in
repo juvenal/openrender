@@ -1,0 +1,47 @@
+##RenderMan RIB-Structure 1.0
+# Spec 039, Phase 8 (T086): a glossy reflection under the raytrace hider. The integral is the cone of
+# trace() in convergence_glossy.sl (@SAMPLES@ rays per shaded point). The interpreter only
+# (shaderformat rslo): the JIT ignores trace()'s optional parameters (GitHub #55). The pixel positions
+# are fixed (jitter 0, one sample per pixel). A glossy sphere reflects two flat-coloured spheres and a
+# floor; the glossy sphere itself is invisible to specular rays, or a reflected ray would hit it and
+# spawn @SAMPLES@ rays again, depth after depth.
+version 3.03
+Option "sampling" "sampler" ["@SAMPLER@"]
+Option "sampling" "seed" [@SEED@]
+Option "shaderformat" "default" ["rslo"]
+Option "limits" "bucketsize" [16 16]
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "convergence-out.tif" "file" "rgba"
+Format 64 64 1
+Hider "raytrace" "jitter" [0]
+PixelSamples 1 1
+Projection "perspective" "fov" 40
+Clipping 0.1 1000
+Translate 0 0 12
+WorldBegin
+    AttributeBegin
+        Attribute "visibility" "int specular" [0]
+        Surface "convergence_glossy" "samples" [@SAMPLES@] "samplecone" [0.5]
+        Translate 0 0 2
+        Sphere 1.8 -1.8 1.8 360
+    AttributeEnd
+    AttributeBegin
+        Attribute "visibility" "int specular" [1]
+        Surface "constant"
+        Color [0.9 0.2 0.1]
+        Translate -4 1 -2
+        Sphere 2 -2 2 360
+        Color [0.1 0.4 0.9]
+        Translate 8 0 0
+        Sphere 2 -2 2 360
+    AttributeEnd
+    AttributeBegin
+        Attribute "visibility" "int specular" [1]
+        Surface "constant"
+        Color [0.9 0.9 0.2]
+        Translate 0 -2.5 0
+        Rotate -90 1 0 0
+        Disk 0 30 360
+    AttributeEnd
+WorldEnd

@@ -17,6 +17,7 @@
  */
 
 #include "irBuilder.h"
+#include "common/rsloFormat.h"
 #include "ir.h"
 #include "rslo.h"
 
@@ -62,7 +63,7 @@ std::unique_ptr<IRModule> CIRBuilder::build() {
 
     // Version and shader type strings come from ctx_ (caller sets them via
     // the version constants; we reconstruct them from the shader type flag).
-    mod->version = "1.0.0"; // matches version constants in the build
+    mod->version = std::to_string(RSLO_FORMAT_MAJOR) + "." + std::to_string(RSLO_FORMAT_MINOR) + "." + std::to_string(RSLO_FORMAT_PATCH);
 
     switch (ctx_.shaderType) {
         case SLC_SURFACE:

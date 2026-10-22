@@ -164,6 +164,7 @@ void CRenderer::dispatchPhoton(int, CJob &job) {
             numPhotons = photonsRemaining;
         }
         job.numPhotons = numPhotons; // Shoot 1000 photons at a time
+        job.firstPhoton = currentPhoton; // The bundle's place in the sequence, whichever thread takes it (spec 039)
         currentPhoton += job.numPhotons;
 
         if (CRenderer::flags & OPTIONS_FLAGS_PROGRESS) {

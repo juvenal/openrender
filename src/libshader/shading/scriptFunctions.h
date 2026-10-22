@@ -269,24 +269,36 @@ DEFFUNC(Stepf, "step", "f=ff", FUN3EXPR_PRE, STEPEXP, FUN3EXPR_UPDATE(1, 1, 1), 
 
 DEFFUNC(SmoothStepf, "smoothstep", "f=fff", FUN4EXPR_PRE, SMOOTHSTEPEXP, FUN4EXPR_UPDATE(1, 1, 1, 1), NULL_EXPR, 0)
 
-#define RANDOMFEXP *res = urand();
+// random()/urandom() (spec 039): the draw of a shading point comes from the sampler's
+// sub-stream of (point, shader, call site, occurrence) instead of the context's
+// generator. drawVertex is the loop's vertex index; the derivative-offset tail
+// vertices share their real vertex's draw (drawSubstream).
+#define RANDOM_PRE                                       \
+    float *res;                                          \
+    operand(0, res, float *);                            \
+    (void)res;                                           \
+    uint32_t *drawCounts = drawCounters(code->callSite); \
+    int drawVertex = 0;
 
-#define RANDOMVEXP    \
-    res[0] = urand(); \
-    res[1] = urand(); \
-    res[2] = urand();
+#define RANDOM_UPDATE(__rs) \
+    res += __rs;            \
+    drawVertex++;
 
-DEFFUNC(Randomf, "random", "f=", FUN1EXPR_PRE, RANDOMFEXP, FUN1EXPR_UPDATE(1), NULL_EXPR, 0)
+#define RANDOMFEXP drawRandom(code->uniform ? -1 : drawVertex, drawCounts, code->callSite, res, 1);
+
+#define RANDOMVEXP drawRandom(code->uniform ? -1 : drawVertex, drawCounts, code->callSite, res, 3);
+
+DEFFUNC(Randomf, "random", "f=", RANDOM_PRE, RANDOMFEXP, RANDOM_UPDATE(1), NULL_EXPR, 0)
 DEFLINKFUNC(Random1, "random", "c=", 0)
 DEFLINKFUNC(Random2, "random", "p=", 0)
 DEFLINKFUNC(Random3, "random", "n=", 0)
-DEFFUNC(Randomv, "random", "v=", FUN1EXPR_PRE, RANDOMVEXP, FUN1EXPR_UPDATE(3), NULL_EXPR, 0)
+DEFFUNC(Randomv, "random", "v=", RANDOM_PRE, RANDOMVEXP, RANDOM_UPDATE(3), NULL_EXPR, 0)
 
-DEFFUNC(URandomf, "urandom", "f=", FUN1EXPR_PRE, RANDOMFEXP, FUN1EXPR_UPDATE(1), NULL_EXPR, 0)
+DEFFUNC(URandomf, "urandom", "f=", RANDOM_PRE, RANDOMFEXP, RANDOM_UPDATE(1), NULL_EXPR, 0)
 DEFLINKFUNC(URandom1, "urandom", "c=", 0)
 DEFLINKFUNC(URandom2, "urandom", "p=", 0)
 DEFLINKFUNC(URandom3, "urandom", "n=", 0)
-DEFFUNC(URandomv, "urandom", "v=", FUN1EXPR_PRE, RANDOMVEXP, FUN1EXPR_UPDATE(3), NULL_EXPR, 0)
+DEFFUNC(URandomv, "urandom", "v=", RANDOM_PRE, RANDOMVEXP, RANDOM_UPDATE(3), NULL_EXPR, 0)
 
 #define XCOMPEXP *res = op[0];
 DEFLINKFUNC(Xcomp1, "xcomp", "f=p", 0)

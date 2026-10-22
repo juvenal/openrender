@@ -66,10 +66,6 @@ class CPhotonHider : public CShadingContext {
 
         float photonPower; // The scale factor for the current batch
 
-        CSobol<4> gen4; // 4D random number generator
-        CSobol<3> gen3; // 3D random number generator
-        CSobol<2> gen2; // 3D random number generator
-
         float worldRadius;  // The radius of the world
         vector worldCenter; // The center of the world
 

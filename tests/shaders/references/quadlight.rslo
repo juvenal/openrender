@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 2.0.0
 #!name "quadlight"
 light
 #!parameters:
@@ -88,8 +88,8 @@ varying	float	temporary_12
 	vufloat  temporary_8 numSamples
 	flt  temporary_6 i temporary_8
 	for temporary_6
-	random	("f=")  u_1
-	random	("f=")  v_1
+	random	("f=")  u_1 0
+	random	("f=")  v_1 1
 	vuvector  temporary_7 P0
 	vfromf  temporary_10 u_1
 	subvv  temporary_0 P1 P0
@@ -107,7 +107,7 @@ varying	float	temporary_12
 	mulvv  temporary_7 temporary_9 temporary_10
 	addvv  Psample edge0 temporary_7
 	subvv  toSample Psample Ps
-	visibility	("f=pp")  temporary_8 Ps Psample
+	visibility	("f=pp")  temporary_8 Ps Psample 2
 	dot  temporary_12 toSample toSample
 	divff  temporary_6 temporary_8 temporary_12
 	addff  vis vis temporary_6

@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 2.0.0
 #!name "mtorDirectionalLight"
 light
 #!parameters:
@@ -38,7 +38,7 @@ varying	float	temporary_7
 	vfromf  temporary_4 intensity
 	mulvv  temporary_3 temporary_4 lightcolor
 	vuvector  temporary_6 temporary_3
-	shadow	("f=SFp")  temporary_7 shadowname 0 Ps
+	shadow	("f=SFp")  temporary_7 shadowname 0 Ps 0
 	mix	("v=vvf")  Cl temporary_5 temporary_6 temporary_7
 #!Label8:
 	endsolar

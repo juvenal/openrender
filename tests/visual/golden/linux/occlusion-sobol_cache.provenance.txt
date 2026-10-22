@@ -1,0 +1,15 @@
+occlusion-sobol_cache.tif (Linux golden for OcclusionGolden_sobol_cache, spec 039 T141)
+
+Rendered 2026-10-21 by the test itself (ctest -R '^OcclusionGolden_sobol_cache$', the scene
+build/tests/visual/sampling-occlusion/occlusion-golden-sobol_cache.rib, configured from
+examples/rib/tests/sampling-occlusion-golden.rib.in), three times, byte-identical
+(SHA-256 0bdd98ed3e5a3d76...).
+
+Host:      ubuntu-2404-desktop (Ubuntu 24.04.5 LTS, kernel 7.0.0-38-generic, x86_64)
+Compiler:  gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, Release (-O3), system toolchain
+Tree:      the spec 039 worktree as staged on 2026-10-21 (tracked files only, SHA-256 manifest
+           matched against the Mac before configuring)
+
+Compared bit for bit, like the macOS golden one directory up, which is unchanged. The two
+differ by about one ulp in 2,601 of 9,216 values (cross-platform floating point; spec.md,
+Assumptions). Re-render it only under the rules of rerendered-references.md.

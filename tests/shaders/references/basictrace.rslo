@@ -1,4 +1,4 @@
-#!version 1.0.0
+#!version 2.0.0
 #!name "basictrace"
 surface
 #!parameters:
@@ -19,7 +19,7 @@ varying	vector	temporary_1
 	reflect	("v=vv")  R In Nn
 	vfromf  temporary_0 facingRatio
 	mulvv  Ci Cs temporary_0
-	trace	("c=pv")  temporary_1 P R
+	trace	("c=pv")  temporary_1 P R 0
 	mulvv  temporary_0 Cs temporary_1
 	addvv  Ci Ci temporary_0
 	return

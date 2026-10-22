@@ -59,23 +59,53 @@ CFileOutputBase::~CFileOutputBase() {
     osDeleteMutex(fileMutex);
 }
 
-void CFileOutputBase::applyColorPipeline(float *data, int n) const {
+namespace {
+    // The dither of one value (spec 039, T095): a hash of its pixel and channel, so
+    // the same pixel gets the same dither whatever the bucket order, the thread count
+    // or the process (libc rand() was one stream shared by every bucket). A 32-bit
+    // integer mix (lowbias32, Chris Wellons); written here so the display driver
+    // needs no new link (FR-025).
+    // The hash of (x, y, channel) is ditherFinish(ditherPixel(x, y) ^ channel * 0xC2B2AE3D):
+    // the pixel's part is computed once per pixel (spec 039, T115), the same values as one
+    // hash per value.
+    inline uint32_t ditherPixel(uint32_t x, uint32_t y) { return x * 0x9E3779B1u ^ y * 0x85EBCA77u; }
+    inline uint32_t ditherFinish(uint32_t h) {
+        h ^= h >> 16;
+        h *= 0x7FEB352Du;
+        h ^= h >> 15;
+        h *= 0x846CA68Bu;
+        h ^= h >> 16;
+        return h;
+    }
+} // namespace
+
+void CFileOutputBase::applyColorPipeline(int x, int y, int w, float *data, int n) const {
     // Exposure (gain/gamma) is applied upstream in CRenderer::dispatch() per the
     // RenderMan spec pipeline (Exposure → Imager → Quantize).  Only quantize here.
     if (qmax > 0.0f) {
-        for (int i = 0; i < n; i++) {
-            const float d = qamp * (2.0f * (rand() / (float)RAND_MAX) - 1.0f);
-            data[i] = qzero + (qone - qzero) * data[i] + d;
-            if (data[i] < qmin)
-                data[i] = qmin;
-            else if (data[i] > qmax)
-                data[i] = qmax;
+        const int pixels = n / numSamples;
+        for (int p = 0, px = x, py = y; p < pixels; p++, data += numSamples) {
+            const uint32_t pixelHash = ditherPixel((uint32_t)px, (uint32_t)py);
+            for (int c = 0; c < numSamples; c++) {
+                // h in [0, 1]: the top 24 bits, so the float is exact
+                const float h = (float)(ditherFinish(pixelHash ^ (uint32_t)c * 0xC2B2AE3Du) >> 8) * (1.0f / 16777215.0f);
+                const float d = qamp * (2.0f * h - 1.0f);
+                data[c] = qzero + (qone - qzero) * data[c] + d;
+                if (data[c] < qmin)
+                    data[c] = qmin;
+                else if (data[c] > qmax)
+                    data[c] = qmax;
+            }
+            if (++px == x + w) {
+                px = x;
+                py++;
+            }
         }
     }
 }
 
 void CFileOutputBase::write(int x, int y, int w, int h, float *data) {
-    applyColorPipeline(data, w * h * numSamples);
+    applyColorPipeline(x, y, w, data, w * h * numSamples);
 
     osLock(fileMutex);
 

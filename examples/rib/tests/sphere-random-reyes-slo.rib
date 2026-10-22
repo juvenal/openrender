@@ -4,7 +4,8 @@
 # unlike the other spec-011/012 -slo probes).
 version 3.03
 Hider "reyes"
-Option "limits" "numthreads" [1]
+# Spec 039 (T099): the one-thread pin described above was removed. Every draw is keyed by
+# the sample's identity, so the render is bit-identical at any thread count.
 Display "sphere-random-reyes-slo.tif" "file" "rgba"
 Projection "perspective"
 Clipping 0.1 100

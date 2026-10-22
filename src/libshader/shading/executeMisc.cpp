@@ -102,9 +102,14 @@ void CShadingContext::duFloat(float *dest, const float *src) {
 
             for (int i = numRealVertices; i > 0; --i) {
 
+                // A tail lane the lane tags mark inactive was not written by the expression (it was
+                // evaluated in a block that switched the lane off), so it holds stale memory: the
+                // real lane's derivative then ignores it and is 0 (the lane mirrors the real lane)
+                const bool inactive = currentShadingState->tags[numRealVertices + 2 * (numRealVertices - i) + 0] != 0;
+
                 assert(*du != 0);
 
-                const float val = (float)(((double)dsrc[0] - (double)src[0]) / ((double)*du++));
+                const float val = (float)(((double)(inactive ? src[0] : dsrc[0]) - (double)src[0]) / ((double)*du++));
 
                 ddest[0] = val;
                 ddest[1] = val;
@@ -173,7 +178,12 @@ void CShadingContext::DuFloat(float *dest, const float *src) {
 
             for (int i = numRealVertices; i > 0; --i) {
 
-                const float val = (float)((double)dsrc[0] - (double)src[0]);
+                // A tail lane the lane tags mark inactive was not written by the expression (it was
+                // evaluated in a block that switched the lane off), so it holds stale memory: the
+                // real lane's derivative then ignores it and is 0 (the lane mirrors the real lane)
+                const bool inactive = currentShadingState->tags[numRealVertices + 2 * (numRealVertices - i) + 0] != 0;
+
+                const float val = (float)((double)(inactive ? src[0] : dsrc[0]) - (double)src[0]);
 
                 ddest[0] = val;
                 ddest[1] = val;
@@ -254,9 +264,14 @@ void CShadingContext::dvFloat(float *dest, const float *src) {
 
             for (int i = numRealVertices; i > 0; --i) {
 
+                // A tail lane the lane tags mark inactive was not written by the expression (it was
+                // evaluated in a block that switched the lane off), so it holds stale memory: the
+                // real lane's derivative then ignores it and is 0 (the lane mirrors the real lane)
+                const bool inactive = currentShadingState->tags[numRealVertices + 2 * (numRealVertices - i) + 1] != 0;
+
                 assert(*dv != 0);
 
-                const float val = (float)(((double)dsrc[1] - (double)src[0]) / ((double)*dv++));
+                const float val = (float)(((double)(inactive ? src[0] : dsrc[1]) - (double)src[0]) / ((double)*dv++));
 
                 ddest[0] = val;
                 ddest[1] = val;
@@ -331,7 +346,12 @@ void CShadingContext::DvFloat(float *dest, const float *src) {
 
             for (int i = numRealVertices; i > 0; --i) {
 
-                const float val = (float)((double)dsrc[1] - (double)src[0]);
+                // A tail lane the lane tags mark inactive was not written by the expression (it was
+                // evaluated in a block that switched the lane off), so it holds stale memory: the
+                // real lane's derivative then ignores it and is 0 (the lane mirrors the real lane)
+                const bool inactive = currentShadingState->tags[numRealVertices + 2 * (numRealVertices - i) + 1] != 0;
+
+                const float val = (float)((double)(inactive ? src[0] : dsrc[1]) - (double)src[0]);
 
                 ddest[0] = val;
                 ddest[1] = val;
@@ -412,12 +432,17 @@ void CShadingContext::duVector(float *dest, const float *src) {
 
             for (int i = numRealVertices; i > 0; --i) {
 
+                // A tail lane the lane tags mark inactive was not written by the expression (it was
+                // evaluated in a block that switched the lane off), so it holds stale memory: the
+                // real lane's derivative then ignores it and is 0 (the lane mirrors the real lane)
+                const bool inactive = currentShadingState->tags[numRealVertices + 2 * (numRealVertices - i) + 0] != 0;
+
                 assert(*du != 0);
 
                 const double invDu = 1 / ((double)*du++);
-                const float val0 = (float)(((double)dsrc[0] - (double)src[0]) * invDu);
-                const float val1 = (float)(((double)dsrc[1] - (double)src[1]) * invDu);
-                const float val2 = (float)(((double)dsrc[2] - (double)src[2]) * invDu);
+                const float val0 = (float)(((double)(inactive ? src[0] : dsrc[0]) - (double)src[0]) * invDu);
+                const float val1 = (float)(((double)(inactive ? src[1] : dsrc[1]) - (double)src[1]) * invDu);
+                const float val2 = (float)(((double)(inactive ? src[2] : dsrc[2]) - (double)src[2]) * invDu);
 
                 ddest[0] = val0;
                 ddest[1] = val1;
@@ -500,9 +525,14 @@ void CShadingContext::DuVector(float *dest, const float *src) {
 
             for (int i = numRealVertices; i > 0; --i) {
 
-                const float val0 = (float)((double)dsrc[0] - (double)src[0]);
-                const float val1 = (float)((double)dsrc[1] - (double)src[1]);
-                const float val2 = (float)((double)dsrc[2] - (double)src[2]);
+                // A tail lane the lane tags mark inactive was not written by the expression (it was
+                // evaluated in a block that switched the lane off), so it holds stale memory: the
+                // real lane's derivative then ignores it and is 0 (the lane mirrors the real lane)
+                const bool inactive = currentShadingState->tags[numRealVertices + 2 * (numRealVertices - i) + 0] != 0;
+
+                const float val0 = (float)((double)(inactive ? src[0] : dsrc[0]) - (double)src[0]);
+                const float val1 = (float)((double)(inactive ? src[1] : dsrc[1]) - (double)src[1]);
+                const float val2 = (float)((double)(inactive ? src[2] : dsrc[2]) - (double)src[2]);
 
                 ddest[0] = val0;
                 ddest[1] = val1;
@@ -596,12 +626,17 @@ void CShadingContext::dvVector(float *dest, const float *src) {
 
             for (int i = numRealVertices; i > 0; --i) {
 
+                // A tail lane the lane tags mark inactive was not written by the expression (it was
+                // evaluated in a block that switched the lane off), so it holds stale memory: the
+                // real lane's derivative then ignores it and is 0 (the lane mirrors the real lane)
+                const bool inactive = currentShadingState->tags[numRealVertices + 2 * (numRealVertices - i) + 1] != 0;
+
                 assert(*dv > 0);
 
                 const double invDv = 1 / ((double)*dv++);
-                const float val0 = (float)(((double)dsrc[3] - (double)src[0]) * invDv);
-                const float val1 = (float)(((double)dsrc[4] - (double)src[1]) * invDv);
-                const float val2 = (float)(((double)dsrc[5] - (double)src[2]) * invDv);
+                const float val0 = (float)(((double)(inactive ? src[0] : dsrc[3]) - (double)src[0]) * invDv);
+                const float val1 = (float)(((double)(inactive ? src[1] : dsrc[4]) - (double)src[1]) * invDv);
+                const float val2 = (float)(((double)(inactive ? src[2] : dsrc[5]) - (double)src[2]) * invDv);
 
                 ddest[0] = val0;
                 ddest[1] = val1;
@@ -687,9 +722,14 @@ void CShadingContext::DvVector(float *dest, const float *src) {
 
             for (int i = numRealVertices; i > 0; --i) {
 
-                const float val0 = (float)((double)dsrc[3] - (double)src[0]);
-                const float val1 = (float)((double)dsrc[4] - (double)src[1]);
-                const float val2 = (float)((double)dsrc[5] - (double)src[2]);
+                // A tail lane the lane tags mark inactive was not written by the expression (it was
+                // evaluated in a block that switched the lane off), so it holds stale memory: the
+                // real lane's derivative then ignores it and is 0 (the lane mirrors the real lane)
+                const bool inactive = currentShadingState->tags[numRealVertices + 2 * (numRealVertices - i) + 1] != 0;
+
+                const float val0 = (float)((double)(inactive ? src[0] : dsrc[3]) - (double)src[0]);
+                const float val1 = (float)((double)(inactive ? src[1] : dsrc[4]) - (double)src[1]);
+                const float val2 = (float)((double)(inactive ? src[2] : dsrc[5]) - (double)src[2]);
 
                 ddest[0] = val0;
                 ddest[1] = val1;
@@ -729,16 +769,20 @@ void CShadingContext::DvVector(float *dest, const float *src) {
     const float	db	=	(lengthv(rays->dPdu) + lengthv(rays->dPdv))*0.5f;
 */
 
-#define sampleRay(__from, __dir)                                  \
-    vector tmp0, tmp1;                                            \
-    mulvf(tmp0, rays->dPdu, (urand() - 0.5f) * rays->sampleBase); \
-    mulvf(tmp1, rays->dPdv, (urand() - 0.5f) * rays->sampleBase); \
-    addvv(__from, tmp0, tmp1);                                    \
-    mulvf(tmp0, rays->dDdu, urand() - 0.5f);                      \
-    mulvf(tmp1, rays->dDdv, urand() - 0.5f);                      \
-    addvv(__dir, tmp0, tmp1);                                     \
-    addvv(__dir, rays->D);                                        \
-    keepOriginAbove(__from, rays->N, __dir);                      \
+// Spec 039: the four jitter values (origin, then direction) come from the call's
+// sub-stream (`keyedSub`; a location no call bound draws from a fixed sub-stream).
+#define sampleRay(__from, __dir)                                          \
+    vector tmp0, tmp1;                                                    \
+    float jitter4[4];                                                     \
+    drawJitter4(keyedSub, sampleIndex, jitter4);                          \
+    mulvf(tmp0, rays->dPdu, (jitter4[0] - 0.5f) * rays->sampleBase);      \
+    mulvf(tmp1, rays->dPdv, (jitter4[1] - 0.5f) * rays->sampleBase);      \
+    addvv(__from, tmp0, tmp1);                                            \
+    mulvf(tmp0, rays->dDdu, jitter4[2] - 0.5f);                           \
+    mulvf(tmp1, rays->dDdv, jitter4[3] - 0.5f);                           \
+    addvv(__dir, tmp0, tmp1);                                             \
+    addvv(__dir, rays->D);                                                \
+    keepOriginAbove(__from, rays->N, __dir);                              \
     addvv(__from, rays->P);
 
 ///////////////////////////////////////////////////////////////////////
@@ -795,7 +839,9 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
         rays->t = 0;
 
         // Sample
+        const openrender::sampling::SubstreamKey *keyedSub = rays->keyed ? &rays->sub : nullptr;
         for (int currentSample = numSamples; currentSample > 0; --currentSample) {
+            const int sampleIndex = numSamples - currentSample;
             vector from, L, dir;
 
             // Sample the ray
@@ -805,10 +851,20 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
             mulvf(dir, L, 1 / d);
 
             // Sample a point in the cone
-            sampleHemisphere(cRay->dir, dir, coneAngle, random4d);
+            drawCone(keyedSub, sampleIndex, cRay->dir, dir, coneAngle, false);
             if (dotvv(cRay->dir, cRay->dir) > C_EPSILON) {
 
                 movvv(cRay->from, from);
+                // These rays come from raw memory: set every field trace() reads
+                cRay->cameraImportance = false;
+                if (rays->keyed) {
+                    cRay->depth = (uint16_t)(currentRayDepth + 1);
+                    cRay->key = openrender::sampling::childKey(rays->key, cRay->depth, (uint16_t)rays->callSite, rays->occurrence, (uint32_t)sampleIndex);
+                }
+                else {
+                    cRay->depth = 0;
+                    cRay->key = openrender::sampling::SampleKey{};
+                }
                 float minDist;
                 if (d < rays->maxDist) {
                     minDist = d;
@@ -819,7 +875,7 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
                 cRay->t = minDist - rays->bias;
                 cRay->tmin = rays->bias;
                 if (sampleMotion)
-                    cRay->time = (urand() + currentSample - 1) * multiplier;
+                    cRay->time = (drawTime(keyedSub, sampleIndex) + currentSample - 1) * multiplier;
                 else
                     cRay->time = rays->time;
                 cRay->flags = ATTRIBUTES_FLAGS_TRANSMISSION_VISIBLE;
@@ -933,14 +989,16 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
         rays->t = 0;
 
         // Sample
+        const openrender::sampling::SubstreamKey *keyedSub = rays->keyed ? &rays->sub : nullptr;
         for (int currentSample = numSamples; currentSample > 0; --currentSample) {
+            const int sampleIndex = numSamples - currentSample;
             vector from, D, dir;
 
             sampleRay(from, D);
 
             normalizev(D);
 
-            sampleHemisphere(dir, D, coneAngle, random4d);
+            drawCone(keyedSub, sampleIndex, dir, D, coneAngle, false);
             if (dotvv(dir, dir) > C_EPSILON) {
                 CTraceRay *cRay;
                 int isExterior = (dotvv(dir, rays->N) > 0) || (interiorShader == exteriorShader);
@@ -952,8 +1010,18 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
 
                 movvv(cRay->dir, dir);
                 movvv(cRay->from, from);
+                // These rays come from raw memory: set every field trace() reads
+                cRay->cameraImportance = false;
+                if (rays->keyed) {
+                    cRay->depth = (uint16_t)(currentRayDepth + 1);
+                    cRay->key = openrender::sampling::childKey(rays->key, cRay->depth, (uint16_t)rays->callSite, rays->occurrence, (uint32_t)sampleIndex);
+                }
+                else {
+                    cRay->depth = 0;
+                    cRay->key = openrender::sampling::SampleKey{};
+                }
                 if (sampleMotion)
-                    cRay->time = (urand() + currentSample - 1) * multiplier;
+                    cRay->time = (drawTime(keyedSub, sampleIndex) + currentSample - 1) * multiplier;
                 else
                     cRay->time = rays->time;
                 cRay->t = C_INFINITY;

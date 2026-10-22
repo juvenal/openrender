@@ -20,153 +20,36 @@
 ///////////////////////////////////////////////////////////////////////
 //
 //  File				:	random.h
-//  Classes				:	CSobol, CSphereSampler, CCosineSampler
-//  Description			:	Several random generators
+//  Description			:	Distributions from sampler values and the disk sampler
 //
 ////////////////////////////////////////////////////////////////////////
 #ifndef RANDOM_H
 #define RANDOM_H
 
-#include <random>
-
 #include "algebra.h"
 #include "global.h" // The global header file
 #include "os.h"
-#include "sobolTables.h" // SOBOL_MAX_DIMENSION, Sobol sequence tables
+#include "sampling.h" // Sample2D, Sample3D
 
-////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-//	Random number generators
-//
-//
-//
-////////////////////////////////////////////////////////////////////////////
-
-// bit count; assumes sizeof(int) >= 32-bit
-#define SOBOL_BIT_COUNT 30
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CSobol
-// Description			:	Sobol quasi random generator
-// Comments				:
-template <int dimension>
-class CSobol {
-    public:
-        CSobol(int seq = 1) {
-            init(seq);
-        }
-
-        void init(int seq = 1) {
-            unsigned int i_dim;
-            int j, k;
-            int ell;
-
-            assert(dimension < SOBOL_MAX_DIMENSION);
-
-            // Initialize direction table in dimension 0.
-            for (k = 0; k < SOBOL_BIT_COUNT; k++)
-                v_direction[k][0] = 1;
-
-            // Initialize in remaining dimensions.
-            for (i_dim = 1; i_dim < dimension; i_dim++) {
-                const int poly_index = i_dim;
-                const int degree_i = degree_table[poly_index];
-                int includ[8];
-
-                // Expand the polynomial bit pattern to separate
-                // components of the logical array includ[].
-                int p_i = primitive_polynomials[poly_index];
-                for (k = degree_i - 1; k >= 0; k--) {
-                    includ[k] = ((p_i % 2) == 1);
-                    p_i >>= 1;
-                }
-
-                // Leading elements for dimension i come from v_init[][].
-                for (j = 0; j < degree_i; j++)
-                    v_direction[j][i_dim] = v_init[j][i_dim];
-
-                // Calculate remaining elements for this dimension,
-                // as explained in Bratley+Fox, section 2.
-                for (j = degree_i; j < SOBOL_BIT_COUNT; j++) {
-                    int newv = v_direction[j - degree_i][i_dim];
-                    ell = 1;
-                    for (k = 0; k < degree_i; k++) {
-                        ell *= 2;
-                        if (includ[k])
-                            newv ^= (ell * v_direction[j - k - 1][i_dim]);
-                    }
-                    v_direction[j][i_dim] = newv;
-                }
-            }
-
-            // Multiply columns of v by appropriate power of 2.
-            ell = 1;
-            for (j = SOBOL_BIT_COUNT - 1 - 1; j >= 0; j--) {
-                ell *= 2;
-                for (i_dim = 0; i_dim < dimension; i_dim++) {
-                    v_direction[j][i_dim] *= ell;
-                }
-            }
-
-            // 1/(common denominator of the elements in v_direction)
-            last_denominator_inv = (float)(1.0 / (2.0 * ell));
-
-            // final setup
-            sequence_count = seq;
-            for (i_dim = 0; i_dim < dimension; i_dim++)
-                last_numerator_vec[i_dim] = 0;
-        }
-
-        void get(float *v) {
-            unsigned int i_dimension;
-
-            // Find the position of the least-significant zero in count.
-            int ell = 0;
-            int c = sequence_count;
-            while (1) {
-                ++ell;
-                if ((c % 2) == 1)
-                    c >>= 1;
-                else
-                    break;
-            }
-
-            for (i_dimension = 0; i_dimension < dimension; i_dimension++) {
-                const int direction_i = v_direction[ell - 1][i_dimension];
-                const int old_numerator_i = last_numerator_vec[i_dimension];
-                const int new_numerator_i = old_numerator_i ^ direction_i;
-                last_numerator_vec[i_dimension] = new_numerator_i;
-                v[i_dimension] = new_numerator_i * last_denominator_inv;
-            }
-
-            sequence_count++;
-            if (sequence_count >= (1 << SOBOL_BIT_COUNT)) {
-                sequence_count = 0;
-            }
-        }
-
-        unsigned int sequence_count;
-        float last_denominator_inv;
-        int last_numerator_vec[SOBOL_MAX_DIMENSION];
-        int v_direction[SOBOL_BIT_COUNT][SOBOL_MAX_DIMENSION];
-};
-
-// Different sampling functions
-void sampleHemisphere(float *R, const float *Z, const float theta, CSobol<4> &generator);
-void sampleCosineHemisphere(float *R, const float *Z, const float theta, CSobol<4> &generator);
-void sampleSphere(float *P, CSobol<3> &generator);
+// Distributions from sampler values (spec 039): no generator, no rejection loop,
+// so one sample is one point set value. The first two are parameterised by the
+// cone half-angle theta around the unit vector Z: cos(angle) is uniform for
+// sampleHemisphere and cosine-weighted for sampleCosineHemisphere, and the
+// azimuth is uniform. (Phase 9 deleted the CSobol generator overloads.)
+void sampleHemisphere(float *R, const float *Z, const float theta, const openrender::sampling::Sample2D &xi);
+void sampleCosineHemisphere(float *R, const float *Z, const float theta, const openrender::sampling::Sample2D &xi);
+// A point uniformly distributed in the unit ball.
+void sampleSphere(float *P, const openrender::sampling::Sample3D &xi);
 
 ///////////////////////////////////////////////////////////////////////
 // Function             :   sampleDisk
 // Description          :   Area-uniform sample on the unit disk, via
 //                          square-to-disk rejection sampling. Sampler is any
 //                          callable taking a float[2] out-param and writing
-//                          two independent U(0,1) values (e.g. a CSobol<2>
-//                          sequence or a pair of urand() calls) — this lets
-//                          both hiders share exactly one disk-sampling
-//                          algorithm while keeping their own RNG sources.
+//                          two independent U(0,1) values. The hiders no longer
+//                          use it (their lens point is the camera lens slot
+//                          through the concentric map, spec 039); it stays
+//                          for its unit test and any caller with a callable.
 // Comments             :
 template <typename Sampler>
 inline void sampleDisk(float *R, Sampler &&sampler) {
@@ -197,25 +80,6 @@ inline void keepOriginAbove(float *offset, const float *N, const float *dir) {
         offset[1] -= k * N[1];
         offset[2] -= k * N[2];
     }
-}
-
-///////////////////////////////////////////////////////////////////////
-// Thread-safe random number generators (replaces non-thread-safe rand()/random())
-// Uses a per-thread Mersenne Twister so concurrent shading threads never share state.
-///////////////////////////////////////////////////////////////////////
-
-// Variants of urand and irand that work without a shading context.
-// Each calling thread gets its own mt19937 instance seeded from std::random_device.
-
-static inline float _urand() {
-    thread_local std::mt19937 rng{std::random_device{}()};
-    return static_cast<float>(rng()) / static_cast<float>(std::mt19937::max());
-}
-
-static inline long int _irand() {
-    thread_local std::mt19937 rng{std::random_device{}()};
-    // Shift right by 1 to guarantee a non-negative value (max 0x7fffffff)
-    return static_cast<long int>(rng() >> 1);
 }
 
 #endif

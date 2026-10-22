@@ -120,6 +120,8 @@ class CForwardingServices : public CRendererServices {
         int pixelXsamples() const override { return inner->pixelXsamples(); }
         int pixelYsamples() const override { return inner->pixelYsamples(); }
         bool lookupUserOption(const char *name, CVariable *&var) const override { return inner->lookupUserOption(name, var); }
+        const char *samplingSampler() const override { return inner->samplingSampler(); }
+        int samplingSeed() const override { return inner->samplingSeed(); }
 };
 
 ///////////////////////////////////////////////////////////////////////

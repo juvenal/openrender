@@ -6,7 +6,8 @@ The goal is for the `stochastic` and `raytrace` hiders to produce pixel-identica
 
 - [x] **Unified Pixel Filtering (closed, 2026-08, R4):** All three rasterizing hiders read the same global `CRenderer::pixelFilterKernel` precomputed in `beginFrame`, and now also share the accumulate/normalize arithmetic through `CPixelFilterAccumulator` (`src/ri/pixelFilter.h`) — `CStochastic::rasterEnd`, `CRaytracer`'s per-ray-hit splat, and `CZbuffer::rasterEnd` each call the same `splat()`/`normalizeByWeight()` static helpers instead of hand-rolling the weighted multiply-add loop. Channel-order marshalling and any derived/computed channel (e.g. zbuffer's coverage test) stays at each call site; each hider's existing normalize policy (zbuffer never, stochastic only in continuous mode, raytrace always) is preserved exactly as a caller-side choice. Pure code-motion refactor — FR-021 verified byte-identical (MD5) across precomputed, continuous, and motion+DOF scenes for all three hiders (spec 008 Phase 9/US7, T063-T069); full 44-scene visual suite passes 100%.
 - [x] **Sampling Distribution:** Both hiders respect `Option "hider" "float jitter"` for sample positions.
-- [x] **Depth-of-Field Lens Sampling:** Both hiders sample the lens aperture disk through the single shared `sampleDisk()` in `src/ri/random.h` (square-to-disk rejection sampling), templated on the caller's RNG source — `CStochastic` via its `CSobol<2> apertureGenerator` (`stochastic.cpp`), `CRaytracer` via its per-instance `urand()` (`raytracer.cpp`). Fixes a prior raytracer defect where `r = urand() * aperture` biased samples toward the aperture center instead of sampling its area uniformly.
+- [x] **Depth-of-Field Lens Sampling:** Both hiders take the lens point from the sampler's camera lens slot through the Shirley-Chiu concentric disk map (`CSampler::cameraSample`, spec 039), area-uniform over the aperture, so the two hiders get the same lens point for the same subpixel. Before spec 039 both used the shared rejection sampler `sampleDisk()` (`src/common/random.h`) on their own streams (`CStochastic`'s `CSobol<2> apertureGenerator`, `CRaytracer`'s `urand()`), which fixed an earlier raytracer defect (`r = urand() * aperture` biased samples toward the centre).
+- [x] **Correlated sampling by default (spec 039, 2026-10):** both hiders take every camera value (film jitter, time, lens, importance) from the same sampler slots, indexed by the sample's absolute subpixel, and every shading draw from a sub-stream of the sample's identity. The two hiders are therefore correlated by construction: the same subpixel gets the same values in reyes and raytrace. This replaces spec 008's Option B (T080-T086), the opt-in `OPENRENDER_CORRELATED_SAMPLE_TABLE` bucket table, which spec 039 deleted with the variable and the two `Parity_*-correlated` tests; the plain `Parity_motion-{patches,quadrics}-translate` tests now carry the tighter thresholds 8 and 6 (`tests/visual/parity-thresholds.md`, "Spec 039"). Every parity test now reads the same diff run after run.
 - [x] **Object/Surface Motion Blur (verified, 2026-08, closes D10):** `CRaytracer`'s tessellation-path intersection kernels (`patches.cpp`, `polygons.cpp`, `quadrics.cpp`) already interpolate geometry on the ray's shutter time (`cRay->time` in patches/polygons, `rv->time` in quadrics); this item tracks verification against the stochastic hider, not a missing feature. Confirmed via 7 new cross-hider parity scenes (spec 008 Phase 8/US6, `tests/visual/CMakeLists.txt`): `Parity_motion-{patches,polygons,quadrics}-{translate,deform}` (transform-motion via `MotionBegin`-wrapped `Translate`, and deform-motion via `MotionBegin`-wrapped geometry-snapshot/parameter interpolation, e.g. quadrics' radius) plus `Parity_dof-motion` (combined DOF+motion). All 7 pass; measured divergence 3.6-17.1/255 (standard threshold 20, one scene at 25 for margin) — residual is ordinary silhouette antialiasing on a curved/interpolated edge, not a correctness bug. No code changes were required in the intersection kernels.
   - Scope note: this covers **object/surface** motion (geometry moving within camera space over the shutter). It does **not** cover **camera** motion blur (interpolating the camera-to-world transform itself over the shutter) — that is a separate mechanism, not assessed by this work. (Note: camera motion blur scenes such as `Visual_camera-motion-small-dof-raytrace` already pass in the existing visual suite and HIDER_PARITY.md's own optimization notes below describe a working camera-motion lerp path in the raytracer — this scope note is not a claim that camera motion blur is missing or broken, only that it was not part of this verification pass.)
 - [x] **Shading Interpolation & Derivatives (documented residual, 2026-08, D3/D4):** Reyes shades at micropolygon-grid vertices and interpolates across the grid; raytrace shades once per ray-hit at the exact intersection point. Shading derivatives (`Du`/`Dv`) and interpolated variables (`s`/`t`/`u`/`v`) are therefore never bit-identical between the two hiders — this is the algorithmic/physical divergence the audit (`hider-parity-audity-and-roadmap.md`) explicitly flags as **not closable by refactor**: converging the two would mean giving raytrace reyes's grid-interpolation model (or vice versa), which is Option C's shared-grid/hybrid-hider territory (`PATH-TRACING_HIDER.md`), out of scope for this spec. It is a bounded, permanent residual, not a bug: `Parity_flatshade`/`Parity_aov` gate it at thresholds (20/25) sized to its measured worst-case (~5.67/~10.08) so a *regression* beyond that residual still fails the suite, even though the residual itself is not eliminated (spec 008 Phase 3/US1, `tests/visual/parity-thresholds.md`).
@@ -74,7 +75,12 @@ Total vs. the original 235.6 s: **29× wall, 100× CPU**. The residual wall time
 is dominated by serial phases (parse, dice/insertGrid, bucket sync), not the
 raster inner loop.
 
-### Visual-test determinism caveat (measured, 2026-07)
+### Visual-test determinism caveat (measured, 2026-07; resolved by spec 039)
+
+**Resolved by spec 039 (2026-10):** the per-thread jitter streams are gone; every camera and
+shading draw is keyed by the sample's identity, so non-GI renders are bit-identical at any thread
+or process count (the determinism sweep, `ctest -L '^determinism-sweep$'`). The irradiance cache
+and the photon map still fill in shading order until spec 040. The original measurement:
 
 The stochastic hider is **not run-to-run deterministic**: bucket→thread
 assignment shifts the per-thread jitter streams, so extreme-blur speckle is a
@@ -113,9 +119,14 @@ Measured at the same time (2026-10-13), and filed separately:
   order; see BUGS.md). Original measurement:
   With jitter off and float output (no dither), 1–2 pixels per frame take one of two values one
   float ULP apart, opaque or transparent, mostly on a bucket-boundary row; `-t:1` is bit-identical.
-  Cause not yet known (bucket queue order, first-touch dicing/shading, or alignment-dependent
-  arithmetic are the candidates). It is the last known obstacle to bit-identical multi-threaded
-  reyes output once spec 039 replaces the per-thread jitter streams and the display dither.
+  Cause not yet known at the time (bucket queue order, first-touch dicing/shading, or
+  alignment-dependent arithmetic were the candidates). It was the last known obstacle to
+  bit-identical multi-threaded reyes output, after the per-thread jitter streams and the display
+  dither: spec 039 removed both (camera samples from the sampler's slots; the 8-bit dither is a
+  hash of pixel and channel), and the #50 fix removed the duplicate fragments. The sweep's
+  multi-threaded reyes renders are bit-identical under sobol and pmj02 (405/405 each, 2026-10-20);
+  under independent one scene (`csg-hero-stats-800-reyes`) showed a one-LSB difference at one pixel
+  in one of three runs, the open grid-shading part of #61; it is disabled in the sweep like its 1600 sibling (Phase 10), after which all 404 enabled scenes pass under each sampler.
 
 Measured on `fix/raytrace-midpoint-depth` (2026-10-13) with `test_depth_analytic`, which checks each
 hider's `z` against exact ray-sphere depths at pixel centres instead of comparing the hiders:
