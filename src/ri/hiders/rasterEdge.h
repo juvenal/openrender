@@ -56,4 +56,30 @@ inline float rasterEdge(float px, float py, float ax, float ay, float bx, float 
     return e;
 }
 
+///////////////////////////////////////////////////////////////////////
+// Function				:	rasterQuadDepth
+// Description			:	The depth of a sample inside a micropolygon quad,
+//							bilinear in the (u, v) the edge areas give, clamped
+//							to the quad's vertex-depth range.
+// Return Value			:	The depth, within [min, max] of z0..z3
+// Comments				:	The bilinear form can round one ulp outside the
+//							corners' range (x86-64 without fused multiply-adds:
+//							a constant-depth quad at 3.0 reads 2.9999998). The
+//							reyes opacity cull compares a grid's vertex zmin with
+//							the bucket's sampled maxDepth, and the occlusion probe
+//							an object's bound zmin with sampled node depths, so a
+//							depth below its own vertices made both drop a surface
+//							that would win an exact tie, or one that is in front,
+//							depending on which arrived first (spec 039, T145;
+//							validation.md T143). The one implementation for the
+//							quad paths of both hiders; a point's depth is its
+//							vertex depth and needs no clamp.
+inline float rasterQuadDepth(float z0, float z1, float z2, float z3, float u, float v) {
+    const float z = (z0 * (1 - u) + z1 * u) * (1 - v) + (z2 * (1 - u) + z3 * u) * v;
+    const float lo01 = (z0 < z1) ? z0 : z1, lo23 = (z2 < z3) ? z2 : z3;
+    const float hi01 = (z0 > z1) ? z0 : z1, hi23 = (z2 > z3) ? z2 : z3;
+    const float lo = (lo01 < lo23) ? lo01 : lo23, hi = (hi01 > hi23) ? hi01 : hi23;
+    return (z < lo) ? lo : ((z > hi) ? hi : z);
+}
+
 #endif

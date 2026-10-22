@@ -2052,7 +2052,8 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
     else if (strcmp(name, RI_SAMPLING) == 0) {
         // Option "sampling" (spec 039): the sampler backend and the user seed.
         // An unknown sampler name is reported through CODE_BADTOKEN and the
-        // default is kept.
+        // current sampler is kept (GitHub #76: whether it should reset to the
+        // default instead).
         for (i = 0; i < n; i++) {
             if (strcmp(tokens[i], RI_SAMPLER) == 0) {
                 const char *val = ((const char **)params[i])[0];
@@ -2060,7 +2061,7 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                 if (openrender::sampling::samplerFromName(val, backend))
                     options->samplingBackend = backend;
                 else
-                    error(CODE_BADTOKEN, "Unknown sampler \"%s\" (valid: sobol, pmj02, independent); using the default sampler\n", val);
+                    error(CODE_BADTOKEN, "Unknown sampler \"%s\" (valid: sobol, pmj02, independent); keeping the current sampler\n", val);
             }
             else if (strcmp(tokens[i], RI_SEED) == 0) {
                 // Any integer is valid; it is reinterpreted as uint32.

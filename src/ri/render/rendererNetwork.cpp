@@ -387,8 +387,11 @@ int CRenderer::getFile(FILE *file, const char *inName, int start, int size) {
     // Send the file request
     rcSend(netClient, buffer, 4 * sizeof(T32));
 
-    // Send the file name
-    strcpy(&buffer[0].character, inName);
+    // Send the file name. Copied to the start of the buffer as bytes: the buffer holds
+    // (strlen / 4 + 6) * 4 >= strlen + 1 bytes. strcpy() into `&buffer[0].character` wrote
+    // through a one-char union member, which _FORTIFY_SOURCE (Ubuntu's default) aborts on
+    // (spec 039, T140).
+    memcpy(buffer, inName, strlen(inName) + 1);
     rcSend(netClient, buffer, i * sizeof(T32), FALSE);
 
     rcRecv(netClient, buffer, 1 * sizeof(T32));

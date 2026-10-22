@@ -633,7 +633,7 @@ The remaining cost is the Owen scrambling itself (Laine-Karras permutations of t
 
 **Phase 12 design check (2026-10-21): PBRT-v4's ZSobol index padding.** Source: PBRT-v4 `src/pbrt/samplers.h`, `ZSobolSampler::GetSampleIndex()`, `Get1D()`, `Get2D()` (github.com/mmp/pbrt-v4, master, read 2026-10-21). `GetSampleIndex()` walks the base-4 digits of the pixel's Morton index from the most significant down, and for each digit picks one of the 24 permutations of {0, 1, 2, 3} with `MixBits(higherDigits ^ (0x55555555u * dimension)) >> 24) % 24` (a 64-bit hash per digit), then remaps the digit; with an odd power of two samples the last bit is XORed with a hashed parity bit. `Get1D`/`Get2D` then hash (dimension, seed) and apply the chosen randomizer (FastOwen by default) to the Sobol point. **Cost against ours**: one 64-bit hash per base-4 digit of the index, 12 to 16 digits for our 64-bit camera index (a 3840 x 2880 frame at 16 samples already has a 28-bit index), against our per-dimension `nestedUniformScramble64()` (two Laine-Karras rounds, one `finalize64` and hardware bit reversals) and, for the shading draws, one Laine-Karras round. ZSobol-style padding is a better-distributed padding, not a cheaper one; Phase 11's bound for removing the index scramble entirely does not carry over to it. Reported before any change (Phase 12, T129). **Decision (maintainer, 2026-10-21, D-P12-7): option (ii) is dropped** for that reason; Phase 12 does (a), a per-frame cache of the camera index scramble's high half (same images), then (c), per-scene SC-010 budgets.
 
-**Phase 12 (2026-10-21): (a) measured, and SC-010 as per-scene budgets (draft).** (a), the per-frame cache of the camera index scramble's high half (T130): `CameraSeeds` keeps, per camera slot, the permuted high half and the low half's seed for a high half of 0; an index with any other high half is scrambled in full. Images byte-identical to Phase 11 at `-t:1` and default threads, convergence identical to the baseline (T131). Same method as Phase 11 (master `eda9eb0`'s Release build interleaved run by run, 5 repetitions rep-major), run as **three independent sessions** back to back so the noise could be measured (raw times `tools/perf/m2-phase12-a{1,2,3}.txt`; load average 3.4 to 5.9 during the runs, the same for both builds since they alternate).
+**Phase 12 (2026-10-21): (a) measured, and SC-010 as per-scene budgets (approved at PAUSE 12; (a) reverted).** (a), the per-frame cache of the camera index scramble's high half (T130): `CameraSeeds` keeps, per camera slot, the permuted high half and the low half's seed for a high half of 0; an index with any other high half is scrambled in full. Images byte-identical to Phase 11 at `-t:1` and default threads, convergence identical to the baseline (T131). Same method as Phase 11 (master `eda9eb0`'s Release build interleaved run by run, 5 repetitions rep-major), run as **three independent sessions** back to back so the noise could be measured (raw times `tools/perf/m2-phase12-a{1,2,3}.txt`; load average 3.4 to 5.9 during the runs, the same for both builds since they alternate).
 
 | Scene | cfg | end of Phase 11 | after (a), sessions 1 / 2 / 3 | after (a), pooled | noise A / B / C | budget |
 |---|---|---|---|---|---|---|
@@ -650,11 +650,44 @@ The remaining cost is the Owen scrambling itself (Laine-Karras permutations of t
 | sphere-trace-reyes | t1 | +42.6% | +41.0 / +39.2 / +39.5 | +39.9% | 1.1 / 2.0 / 5.3 | 46% |
 | sphere-trace-reyes | tdef | +44.5% | +37.0 / +42.1 / +42.0 | +41.1% | 4.1 / 3.9 / 5.5 | 47% |
 
-- **(a) gives no measurable gain**: every scene is within its noise of the end of Phase 11. The cached part (one Laine-Karras round on the high half and one `finalize64`) is small next to what remains per draw: the low half's index scramble, the Sobol digits and the output scrambles.
+- **(a) gives no measurable gain**: every scene is within its noise of the end of Phase 11. **Reverted for simplicity** (maintainer, D-P12-10, 2026-10-21; T135): `sampling.h` and the tests are back to their Phase 11 content; the raw times stay as the record. The cached part (one Laine-Karras round on the high half and one `finalize64`) is small next to what remains per draw: the low half's index scramble, the Sobol digits and the output scrambles.
 - **Noise, three measures, in percentage points of overhead**: A, the largest distance of one session's overhead (median over median) from the pooled one; B, master's own session-to-session spread (largest over smallest master median, minus 1), an A/A measure of the machine; C, twice the median absolute deviation of the per-repetition paired ratios (spec 039 over master in the same repetition) across all 15 repetitions. The noise is the largest of the three.
-- **Rule (D-P12-5)**: per scene and configuration, the budget is the pooled overhead over the 15 interleaved repetitions plus the noise, rounded up to a whole percent; a scene whose result is 2% or less keeps 2%. A scene's budget is the larger of its `t1` and `tdef` values. Pass: a later measurement by the same method (3 sessions of 5 interleaved repetitions, pooled median against master) at or under the budget in both configurations.
-- **Result**: no scene meets 2%. Draft budgets: camera-dof-reyes 22%, camera-dof-raytrace 32%, motion-3-reyes 9%, quadlight 101%, sphere-gather-reyes 66%, sphere-trace-reyes 47% (spec.md SC-010, draft; validation.md T133).
-- The comparison is against master `eda9eb0` interleaved in the same session, as every measurement since Phase 9, not against the `c62334d` baseline of §M2 that the old SC-010 names: the same-session control removes the machine's day-to-day drift (measured against the §M2 baseline instead, the same spec 039 times read 2 to 9 points higher, the `vs-baseline` column of the session tables).
+- **Rule (D-P12-5; approved with the budgets, D-P12-8)**: per scene and configuration, the budget is the pooled overhead over the 15 interleaved repetitions plus the noise, rounded up to a whole percent; a scene whose result is 2% or less keeps 2%. A scene's budget is the larger of its `t1` and `tdef` values. Pass: a later measurement by the same method (3 sessions of 5 interleaved repetitions, pooled median against master) at or under the budget in both configurations.
+- **Result**: no scene meets 2%. Budgets, approved by the maintainer at PAUSE 12 (D-P12-8, 2026-10-21; **superseded on 2026-10-22 by the re-derivation from the final timing, "Phase 13" below, D-P13-8**): camera-dof-reyes 22%, camera-dof-raytrace 32%, motion-3-reyes 9%, quadlight 101%, sphere-gather-reyes 66%, sphere-trace-reyes 47% (spec.md SC-010, amended; validation.md T133).
+- The comparison is against master `eda9eb0` interleaved in the same session, as every measurement since Phase 9, now SC-010's baseline (D-P12-9), not against the `c62334d` baseline of §M2 that the old SC-010 named: the same-session control removes the machine's day-to-day drift (measured against the §M2 baseline instead, the same spec 039 times read 2 to 9 points higher, the `vs-baseline` column of the session tables).
+
+**Phase 13 (2026-10-22): SC-010 re-timed on the final tree (T151): met.** Same method as Phase 12 (T132): Release, the six scenes, `-t:1` and the default thread count, 3 sessions of 5 repetitions interleaved run by run with master `eda9eb0`'s Release build, pooled medians and the three noise measures. The tree: the staged tree after T135 (remedy (a) reverted), T145 (`rasterQuadDepth()`) and the Phase 13 edits. Raw times: `tools/perf/m2-final-cb6923f-{1,2,3}.txt`. Load average 2.7 to 4.3, except a spike to about 19 at the end of session 2 from work outside these jobs; interleaving keeps both builds under it, and session 1 (load under 3.4) agrees with the other two.
+
+| Scene | cfg | pooled overhead (sessions 1 / 2 / 3) | noise (pts) | budget: Phase 12 → re-derived (D-P13-8) | |
+|---|---|---|---|---|---|
+| camera-dof-reyes | t1 | +18.2% (+17.8 / +17.6 / +18.2) | 2.9 | 22% (unchanged) | met |
+| camera-dof-reyes | tdef | +18.5% (+21.7 / +18.5 / +17.7) | 3.1 | 22% (unchanged) | met |
+| camera-dof-raytrace | t1 | +31.7% (+31.2 / +30.3 / +32.7) | 2.1 | 32% → **34%** | met |
+| camera-dof-raytrace | tdef | +30.5% (+30.6 / +30.6 / +30.1) | 1.8 | 32% → **34%** | met |
+| motion-3-reyes | t1 | +4.2% (+4.2 / +4.4 / +4.6) | 1.5 | 9% → **6%** | met |
+| motion-3-reyes | tdef | +4.1% (+4.5 / +4.2 / +4.6) | 1.9 | 9% → **6%** | met |
+| quadlight | t1 | +99.0% (+98.7 / +98.2 / +99.4) | 1.9 | 101% (unchanged) | met |
+| quadlight | tdef | +97.6% (+99.5 / +96.0 / +97.4) | 3.1 | 101% (unchanged) | met |
+| sphere-gather-reyes | t1 | +60.4% (+60.1 / +61.2 / +62.4) | 2.0 | 66% → **63%** | met |
+| sphere-gather-reyes | tdef | +55.9% (+56.7 / +54.3 / +56.3) | 2.1 | 66% → **63%** | met |
+| sphere-trace-reyes | t1 | +43.7% (+43.0 / +45.4 / +44.3) | 2.8 | 47% → **51%** | met |
+| sphere-trace-reyes | tdef | +45.0% (+45.7 / +46.5 / +41.6) | 5.0 | 47% → **51%** | met |
+
+- Every scene is within its Phase 12 budget in both configurations, and within the budget re-derived from these numbers (D-P13-8, 2026-10-22: pooled overhead plus the largest noise measure, rounded up, the larger configuration). No code was changed.
+- camera-dof-raytrace moved from +28.6% / +26.5% (T132) to +31.7% / +30.5%, about 3 points, more than its measured noise, and is now 0.3 points under its budget at `t1`. The clamp is not on its path (the raytrace hider does not rasterize quads), and master's own median fell (2.665 s to 2.606 s at `t1`) while spec 039's stayed level (3.428 s to 3.433 s): a shift on master's side of the ratio, not a cost spec 039 added. The margin against the Phase 12 budget was thin (0.3 points); with the re-derived budget (34%, D-P13-8) it is 2.3 points.
+
+**Phase 13 (2026-10-22): the budgets re-derived from the final timing (D-P13-8, T159).** The rule of Phase 12, unchanged, applied to the T151 numbers above: per scene and configuration, pooled overhead plus the largest of the three noise measures, rounded up to a whole percent; the larger of `t1` and `tdef`; 2% kept by a scene at 2% or less (none is). No new timing.
+
+| Scene | Phase 12 budget | `t1`: overhead + noise | `tdef`: overhead + noise | Re-derived budget |
+|---|---|---|---|---|
+| camera-dof-reyes | 22% | 18.16 + 2.92 = 21.08 | 18.52 + 3.13 = 21.65 | **22%** |
+| camera-dof-raytrace | 32% | 31.73 + 2.14 = 33.87 | 30.49 + 1.82 = 32.30 | **34%** |
+| motion-3-reyes | 9% | 4.21 + 1.50 = 5.71 | 4.11 + 1.88 = 5.99 | **6%** |
+| quadlight | 101% | 99.00 + 1.92 = 100.92 | 97.56 + 3.13 = 100.69 | **101%** |
+| sphere-gather-reyes | 66% | 60.42 + 1.99 = 62.41 | 55.93 + 2.13 = 58.05 | **63%** |
+| sphere-trace-reyes | 47% | 43.65 + 2.76 = 46.41 | 45.02 + 5.00 = 50.02 | **51%** |
+
+These are SC-010's budgets (spec.md, amended 2026-10-22). Two values sit close to a boundary: motion-3-reyes `tdef` at 5.99 (budget 6%) and sphere-trace-reyes `tdef` at 50.02 (budget 51%).
 
 ### M3. Determinism-sweep runtime — PENDING MEASUREMENT (at implement, Phase 7); rule decided
 

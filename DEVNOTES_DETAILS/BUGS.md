@@ -95,6 +95,17 @@ This file tracks known defects and implementation gaps in openRender. Open items
 
 ## Resolved Bugs
 
+- [x] Bug: a network render (`-P`) aborted on Linux with `*** buffer overflow detected ***` when a
+      server asked the client for a file it could not find locally (FIXED — spec 039, T140, 2026-10-21).
+      `CRenderer::getFile(FILE *, ...)` (`src/ri/render/rendererNetwork.cpp`) copied the requested name
+      into its `alloca` buffer with `strcpy(&buffer[0].character, inName)`: the destination is the one
+      `char` member of the `T32` union, so glibc's `_FORTIFY_SOURCE` (level 3 by default on Ubuntu 24.04)
+      sized it as 1 byte and aborted the server process for any non-empty name. macOS's build never
+      fortified it. The name is now copied as bytes to the start of the buffer, `memcpy(buffer, inName,
+      strlen(inName) + 1)`; the buffer holds `(strlen / 4 + 6) * 4` bytes, at least `strlen + 21`. The
+      audit found no other write through `T32::character` (the client side receives the name into its
+      own `alloca(nameLength)`). Found by spec 039's determinism sweep, the first run of `-P:2` on Linux:
+      `DeterminismSweep_sphere-textureinfo-reyes{,-slo}`, whose probe queries a missing texture, guard it.
 - [x] Bug: reyes and zbuffer grids diced at different rates cracked at T-junctions (FIXED — GitHub #51,
       branch `fix/reyes-tjunction-cracks`, 2026-10-14). Each grid approximated a boundary it shares with
       a neighbour by its own polyline; with different segment counts the polylines differed, leaving

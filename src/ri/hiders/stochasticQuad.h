@@ -377,68 +377,68 @@ const float importance = grid->object->attributes->lodImportance;
 // Camera pure-rotation fast path: the quad stays at its static t=0 position and
 // the sample center is the pre-rotated one from rasterBegin; the interpolated
 // static depth is scaled to the sample's time by zScale
-#define checkPixel(__op)                                                                                       \
-    const int camRotFast = CRenderer::cameraRotationOnly;                                                      \
-    const float xcent = camRotFast ? pixel->xcentRot : pixel->xcent;                                           \
-    const float ycent = camRotFast ? pixel->ycentRot : pixel->ycent;                                           \
-    float aleft, atop, aright, abottom, side;                                                                  \
-                                                                                                               \
-    atop = rasterEdge(xcent, ycent, v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y], side);                     \
-    if (side __op 0) {                                                                                         \
-        continue;                                                                                              \
-    }                                                                                                          \
-    aright = rasterEdge(xcent, ycent, v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y], side);                   \
-    if (side __op 0) {                                                                                         \
-        continue;                                                                                              \
-    }                                                                                                          \
-    abottom = rasterEdge(xcent, ycent, v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y], side);                  \
-    if (side __op 0) {                                                                                         \
-        continue;                                                                                              \
-    }                                                                                                          \
-    aleft = rasterEdge(xcent, ycent, v2[COMP_X], v2[COMP_Y], v0[COMP_X], v0[COMP_Y], side);                    \
-    if (side __op 0) {                                                                                         \
-        continue;                                                                                              \
-    }                                                                                                          \
-                                                                                                               \
-    const float u = aleft / (aleft + aright);                                                                  \
-    const float v = atop / (atop + abottom);                                                                   \
-    float z = (v0[COMP_Z] * (1 - u) + v1[COMP_Z] * u) * (1 - v) + (v2[COMP_Z] * (1 - u) + v3[COMP_Z] * u) * v; \
-    if (camRotFast) {                                                                                          \
-        z *= pixel->zScale;                                                                                    \
-    }                                                                                                          \
-    if (z < CRenderer::clipMin) {                                                                              \
-        continue;                                                                                              \
+#define checkPixel(__op)                                                                      \
+    const int camRotFast = CRenderer::cameraRotationOnly;                                     \
+    const float xcent = camRotFast ? pixel->xcentRot : pixel->xcent;                          \
+    const float ycent = camRotFast ? pixel->ycentRot : pixel->ycent;                          \
+    float aleft, atop, aright, abottom, side;                                                 \
+                                                                                              \
+    atop = rasterEdge(xcent, ycent, v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y], side);    \
+    if (side __op 0) {                                                                        \
+        continue;                                                                             \
+    }                                                                                         \
+    aright = rasterEdge(xcent, ycent, v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y], side);  \
+    if (side __op 0) {                                                                        \
+        continue;                                                                             \
+    }                                                                                         \
+    abottom = rasterEdge(xcent, ycent, v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y], side); \
+    if (side __op 0) {                                                                        \
+        continue;                                                                             \
+    }                                                                                         \
+    aleft = rasterEdge(xcent, ycent, v2[COMP_X], v2[COMP_Y], v0[COMP_X], v0[COMP_Y], side);   \
+    if (side __op 0) {                                                                        \
+        continue;                                                                             \
+    }                                                                                         \
+                                                                                              \
+    const float u = aleft / (aleft + aright);                                                 \
+    const float v = atop / (atop + abottom);                                                  \
+    float z = rasterQuadDepth(v0[COMP_Z], v1[COMP_Z], v2[COMP_Z], v3[COMP_Z], u, v);          \
+    if (camRotFast) {                                                                         \
+        z *= pixel->zScale;                                                                   \
+    }                                                                                         \
+    if (z < CRenderer::clipMin) {                                                             \
+        continue;                                                                             \
     }
 
 #else
 
-#define checkPixel(__op)                                                                                             \
-    const float xcent = pixel->xcent;                                                                                \
-    const float ycent = pixel->ycent;                                                                                \
-    float aleft, atop, aright, abottom, side;                                                                        \
-                                                                                                                     \
-    atop = rasterEdge(xcent, ycent, v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y], side);                           \
-    if (side __op 0) {                                                                                               \
-        continue;                                                                                                    \
-    }                                                                                                                \
-    aright = rasterEdge(xcent, ycent, v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y], side);                         \
-    if (side __op 0) {                                                                                               \
-        continue;                                                                                                    \
-    }                                                                                                                \
-    abottom = rasterEdge(xcent, ycent, v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y], side);                        \
-    if (side __op 0) {                                                                                               \
-        continue;                                                                                                    \
-    }                                                                                                                \
-    aleft = rasterEdge(xcent, ycent, v2[COMP_X], v2[COMP_Y], v0[COMP_X], v0[COMP_Y], side);                          \
-    if (side __op 0) {                                                                                               \
-        continue;                                                                                                    \
-    }                                                                                                                \
-                                                                                                                     \
-    const float u = aleft / (aleft + aright);                                                                        \
-    const float v = atop / (atop + abottom);                                                                         \
-    const float z = (v0[COMP_Z] * (1 - u) + v1[COMP_Z] * u) * (1 - v) + (v2[COMP_Z] * (1 - u) + v3[COMP_Z] * u) * v; \
-    if (z < CRenderer::clipMin) {                                                                                    \
-        continue;                                                                                                    \
+#define checkPixel(__op)                                                                      \
+    const float xcent = pixel->xcent;                                                         \
+    const float ycent = pixel->ycent;                                                         \
+    float aleft, atop, aright, abottom, side;                                                 \
+                                                                                              \
+    atop = rasterEdge(xcent, ycent, v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y], side);    \
+    if (side __op 0) {                                                                        \
+        continue;                                                                             \
+    }                                                                                         \
+    aright = rasterEdge(xcent, ycent, v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y], side);  \
+    if (side __op 0) {                                                                        \
+        continue;                                                                             \
+    }                                                                                         \
+    abottom = rasterEdge(xcent, ycent, v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y], side); \
+    if (side __op 0) {                                                                        \
+        continue;                                                                             \
+    }                                                                                         \
+    aleft = rasterEdge(xcent, ycent, v2[COMP_X], v2[COMP_Y], v0[COMP_X], v0[COMP_Y], side);   \
+    if (side __op 0) {                                                                        \
+        continue;                                                                             \
+    }                                                                                         \
+                                                                                              \
+    const float u = aleft / (aleft + aright);                                                 \
+    const float v = atop / (atop + abottom);                                                  \
+    const float z = rasterQuadDepth(v0[COMP_Z], v1[COMP_Z], v2[COMP_Z], v3[COMP_Z], u, v);    \
+    if (z < CRenderer::clipMin) {                                                             \
+        continue;                                                                             \
     }
 
 #endif

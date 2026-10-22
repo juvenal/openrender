@@ -245,24 +245,6 @@ namespace openrender::sampling {
             return (static_cast<uint64_t>(hiOut) << 32) | loOut;
         }
 
-        // The part of nestedUniformScramble64() that depends only on the index's high half and
-        // the seed (spec 039, Phase 12 T130): the permuted high half and the low half's seed.
-        // The camera keeps it per frame for a high half of 0, the case of every index below
-        // 2^32; an index with any other high half is scrambled in full, never from the cache.
-        struct IndexScramble64Prefix {
-                uint32_t hi = 0, hiOut = 0, loSeed = 0;
-        };
-        inline IndexScramble64Prefix indexScramble64Prefix(uint32_t hi, uint64_t seed) {
-            return IndexScramble64Prefix{hi, nestedUniformScramble(hi, static_cast<uint32_t>(seed >> 32)),
-                                         static_cast<uint32_t>(seed) ^ static_cast<uint32_t>(finalize64(hi))};
-        }
-        // nestedUniformScramble64(x, seed), bit for bit, given the prefix of seed for some high half.
-        inline uint64_t nestedUniformScramble64Cached(uint64_t x, uint64_t seed, const IndexScramble64Prefix &prefix) {
-            if (static_cast<uint32_t>(x >> 32) != prefix.hi)
-                return nestedUniformScramble64(x, seed);
-            return (static_cast<uint64_t>(prefix.hiOut) << 32) | nestedUniformScramble(static_cast<uint32_t>(x), prefix.loSeed);
-        }
-
         // The first 32 digits of Sobol dimensions 0 and 1 for a 64-bit index.
         inline uint32_t sobolDim0Of64(uint64_t i) {
             return reverseBits32(static_cast<uint32_t>(i)); // the top 32 digits of the 64-bit van der Corput value
@@ -306,18 +288,6 @@ namespace openrender::sampling {
         }
         inline Sample2D sobolGet2D64Seeded(const DimSeeds &s, uint64_t index) {
             const uint64_t idx = nestedUniformScramble64(index, (static_cast<uint64_t>(s.x) << 32) | s.index);
-            return Sample2D{toUnitFloat(nestedUniformScramble(sobolDim0Of64(idx), s.x)),
-                            toUnitFloat(nestedUniformScramble(sobolDim1Of64(idx), s.y))};
-        }
-        // From seeds and the index scramble's prefix already computed (the camera keeps both per
-        // frame, spec 039 Phase 12 T130). The prefix must be indexScramble64Prefix(hi, indexSeed64(s)).
-        inline uint64_t indexSeed64(const DimSeeds &s) { return (static_cast<uint64_t>(s.x) << 32) | s.index; }
-        inline float sobolGet1D64Cached(const DimSeeds &s, const IndexScramble64Prefix &p, uint64_t index) {
-            const uint64_t idx = nestedUniformScramble64Cached(index, indexSeed64(s), p);
-            return toUnitFloat(nestedUniformScramble(sobolDim0Of64(idx), s.x));
-        }
-        inline Sample2D sobolGet2D64Cached(const DimSeeds &s, const IndexScramble64Prefix &p, uint64_t index) {
-            const uint64_t idx = nestedUniformScramble64Cached(index, indexSeed64(s), p);
             return Sample2D{toUnitFloat(nestedUniformScramble(sobolDim0Of64(idx), s.x)),
                             toUnitFloat(nestedUniformScramble(sobolDim1Of64(idx), s.y))};
         }
@@ -574,12 +544,9 @@ namespace openrender::sampling {
     // computed once per frame (the shading context keeps them) instead of once per subpixel.
     // The other backends seed per pixel and keep nothing here. Valid for the samples whose
     // SampleId carries cfg.frame and cfg.seed (every camera sample of the frame).
-    // Each slot also keeps its index scramble's prefix for a high half of 0 (Phase 12, T130):
-    // read-only once the frame is set up, so the threads share it without synchronisation.
     struct CameraSeeds {
             bool sequence = false;
             detail::DimSeeds film{}, lens{}, time{}, importance{};
-            detail::IndexScramble64Prefix filmPrefix{}, lensPrefix{}, timePrefix{}, importancePrefix{};
     };
     inline CameraSeeds cameraSeeds(const CSamplingConfig &cfg) {
         CameraSeeds s;
@@ -590,10 +557,6 @@ namespace openrender::sampling {
             s.lens = detail::dimSeeds(seed, Lens2D, detail::kSalt2D);
             s.time = detail::dimSeeds(seed, Time1D, detail::kSalt1D);
             s.importance = detail::dimSeeds(seed, Importance1D, detail::kSalt1D);
-            s.filmPrefix = detail::indexScramble64Prefix(0u, detail::indexSeed64(s.film));
-            s.lensPrefix = detail::indexScramble64Prefix(0u, detail::indexSeed64(s.lens));
-            s.timePrefix = detail::indexScramble64Prefix(0u, detail::indexSeed64(s.time));
-            s.importancePrefix = detail::indexScramble64Prefix(0u, detail::indexSeed64(s.importance));
         }
         return s;
     }
@@ -605,11 +568,11 @@ namespace openrender::sampling {
         d.lens = Sample2D{0.0f, 0.0f};
         if (seeds.sequence) {
             const uint64_t index = detail::cameraSequenceIndex(cfg, id);
-            d.film = detail::sobolGet2D64Cached(seeds.film, seeds.filmPrefix, index);
+            d.film = detail::sobolGet2D64Seeded(seeds.film, index);
             if (wantLens)
-                d.lens = detail::sobolGet2D64Cached(seeds.lens, seeds.lensPrefix, index);
-            d.time = detail::sobolGet1D64Cached(seeds.time, seeds.timePrefix, index);
-            d.importance = detail::sobolGet1D64Cached(seeds.importance, seeds.importancePrefix, index);
+                d.lens = detail::sobolGet2D64Seeded(seeds.lens, index);
+            d.time = detail::sobolGet1D64Seeded(seeds.time, index);
+            d.importance = detail::sobolGet1D64Seeded(seeds.importance, index);
         }
         else {
             const SubstreamKey sub{cameraKey(id).path, 0u};

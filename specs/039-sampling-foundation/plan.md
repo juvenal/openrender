@@ -2,7 +2,7 @@
 
 **Branch**: `039-sampling-foundation` | **Date**: 2026-10-15 | **Spec**: [spec.md](spec.md)
 
-**Input**: Feature specification from `specs/039-sampling-foundation/spec.md`. Clarified on 2026-10-15 (10 answers).
+**Input**: Feature specification from `specs/039-sampling-foundation/spec.md`. Clarified on 2026-10-15 (10 answers), plus 4 answers at the plan stage: 14 in the spec's Clarifications.
 
 ## Summary
 
@@ -43,7 +43,7 @@ This plan replaces every render-time random source with a counter-based sampler 
 
 **Project Type**: renderer (libraries + CLI).
 
-**Performance Goals**: median render time on each of the six `tools/perf/` scenes, at `-t:1` and at the default thread count, at most 2% above the master baseline (SC-010, research §M2).
+**Performance Goals**: SC-010 as amended on 2026-10-21 (D-P12-8, D-P12-9), budgets re-derived on 2026-10-22 from the final timing (D-P13-8): on each of the six `tools/perf/` scenes, at `-t:1` and at the default thread count, the pooled median of 3 sessions of 5 repetitions is at most the scene's budget above master `eda9eb0`'s, timed interleaved in the same session: camera-dof-reyes 22%, camera-dof-raytrace 34%, motion-3-reyes 6%, quadlight 101%, sphere-gather-reyes 63%, sphere-trace-reyes 51% (research §M2, "Phase 12"). The original goal, 2% over the `c62334d` baseline, was not met and was replaced.
 
 **Constraints**:
 - No new `CRenderer::` reference from any domain file (the gate below).
@@ -134,7 +134,7 @@ specs/039-sampling-foundation/
 │   ├── shading-runtime.md
 │   └── test-harnesses.md
 ├── quickstart.md
-├── tools/perf/                # SC-010 perf-only scenes + m2-baseline-c62334d.txt
+├── tools/perf/                # SC-010 perf-only scenes, raw times per phase (m2-*.txt; m2-baseline-c62334d.txt is the original baseline, kept as history)
 ├── thread-pins.md             # Phase 9
 ├── rerendered-references.md   # Phase 9
 └── tasks.md                   # /speckit-tasks (not created here)
@@ -194,6 +194,10 @@ Each phase ends green on `ctest -L "visual|common|libshader|architecture|samplin
 | 7 | Determinism harness | `--configs`/`--outputs`/`--prepend` mode; `determinism-scenes.cmake`, run with `sobol` forced; the 10-minute rule (M3) sets default vs opt-in | FR-030, SC-001 (opt-in) |
 | 8 | Convergence harness | `test_convergence`; scene templates; `convergence-reference` target; references checked in (M4) | FR-033, SC-003b |
 | 9 | **Flip** | Default → `sobol`. Delete `legacy`, the per-context Mersenne Twister and `random2d/3d/4d` (FR-024a), `CSobol`, `_urand`/`_irand`, `correlatedSampleTable` and its env var, `VISUAL_ENV_CORRELATED` and the `-correlated` variants. Dither → pixel hash. Re-render the references once (`rerendered-references.md`). Remove the non-GI pins (`thread-pins.md`). Re-measure parity (M5) and tighten. Performance check against M2. Archcheck STALE deletions plus the registry history (DB-011, DB-005, DB-016 split). Docs (FR-038). Linux GCC 13 validation. | FR-017, FR-024a, FR-025, FR-032, FR-034–039, SC-001, SC-004–010 |
+| 10 | Performance, crop, sweep (maintainer decisions) | Camera fast paths, per-context caches; the crop key; `csg-hero-stats-800-reyes` disabled under #61 | SC-010, FR-030 |
+| 11 | Sampler cost, raytrace crop | Per-frame camera seeds, hardware bit reverse, one hash per call; the raytrace position crop test | SC-010 |
+| 12 | Budgets and Linux validation | Option (ii) dropped, (a) measured and reverted; SC-010 amended to per-scene budgets; T105 on Linux (network-render overflow fix, Linux occlusion golden, `rasterQuadDepth()` clamp) | SC-010, SC-001, FR-030 |
+| 13 | Convergence | Documentation brought in line with the code and the amended SC-010; the final SC-010 re-timing | SC-001, SC-010 |
 
 **Why the flip is last**: the spec requires a single re-render (FR-034). The suite must also be green at each phase, so every render-changing conversion has to exist (opt-in) before the default changes. This is the same pattern as spec 054 (D20).
 
@@ -204,7 +208,7 @@ The full procedures and the plan change each outcome triggers are in research §
 | ID | What | When | Blocks |
 |---|---|---|---|
 | **M1** | `-P:N` against `-t:1` bit-identity, today's code, `jitter 0`, float output | **DONE**: all 7 scenes are identical in every configuration. `-P` stays in SC-001 (research §M1 results). | — |
-| **M2** | performance baseline | **DONE**: six perf-only scenes in `tools/perf/`, at `t1` and `tdef`, median of 5 interleaved repetitions; MAD ≤ 0.5% (research §M2, `tools/perf/m2-baseline-c62334d.txt`). The `perf-manual` set was invalid and is kept only as history. | — |
+| **M2** | performance baseline | **DONE**: six perf-only scenes in `tools/perf/`, at `t1` and `tdef`, median of 5 interleaved repetitions; MAD ≤ 0.5% (research §M2, `tools/perf/m2-baseline-c62334d.txt`). The `perf-manual` set was invalid and is kept only as history. | — | *(Amended 2026-10-21: SC-010's baseline is master `eda9eb0` timed interleaved in the same session, and its budgets are per scene; `c62334d` is history.)*
 | M3 | Determinism-sweep runtime | Phase 7 | whether the sweep is default or opt-in |
 | M4 | Convergence ground-truth cost | Phase 8 | reference resolution |
 | M5 | Parity worst-case diffs under the new default | Phase 9 | SC-004 thresholds |
@@ -222,9 +226,9 @@ The full procedures and the plan change each outcome triggers are in research §
 | **`op_*` symbols dead-stripped on macOS** (gotcha 3) | The `-slo` suite at Phase 6. If a symbol does not resolve, wire up `addProcessSymbol()`. |
 | **`Parity_dof` margin.** Under correlation it measured 53.6 against a threshold of 60 (T084, D9 model difference), and the new sampler could move it. | M5. The threshold is never widened. If it exceeds 60, stop and ask the maintainer; the D9 residual belongs to spec 028. |
 | SC-003's bar on motion blur (time stays grid-stratified) | Resolved: "no worse than Independent" there (Plan decisions 2) |
-| **Performance (2%)** | Inline hot paths, no tables on the default path; Phase 9 measures against M2 |
+| **Performance** (the original 2%, replaced on 2026-10-21 by per-scene budgets, SC-010) | Inline hot paths, no tables on the default path; Phases 9-12 measured against master `eda9eb0` interleaved; Phases 10-11 remedies, Phase 12 the budgets |
 | `-P` with an explicit `-t` runs single-threaded children | The harness writes the `-P` entry without `-t` (research §M1, caveat a) |
-| Performance noise (single runs reach about 3%) | SC-010 compares medians of 5 or more interleaved repetitions, never single runs (research §M2) |
+| Performance noise (single runs reach about 3%) | SC-010 compares pooled medians of 3 sessions of 5 interleaved repetitions, never single runs; each budget includes the measured noise (research §M2, "Phase 12") |
 | **Large reference churn** (every stochastic scene, plus every 8-bit dithered output) | One documented re-render; `rerendered-references.md`; no threshold widened |
 
 ## Plan decisions (maintainer, 2026-10-15)
@@ -235,7 +239,7 @@ These are recorded in the spec's Clarifications section.
 2. **SC-003 bars**: the 0.15-steeper bar applies to lens/DOF, area-light shadows, occlusion and glossy trace. For motion blur (and film position), the bar is "no worse than Independent".
 3. **Determinism sweep**: the research §M3 rule applies. If it takes more than 10 minutes at `-j4`, it is opt-in, and a representative subset stays under `determinism` (FR-030).
 
-4. **Performance set (Q4, decided)**: the six perf-only copies in `tools/perf/` (research §M2), timed at `-t:1` and at the default thread count, as the median of 5 interleaved repetitions. The baseline was measured on `c62334d`.
+4. **Performance set (Q4, decided)**: the six perf-only copies in `tools/perf/` (research §M2), timed at `-t:1` and at the default thread count. *(Amended 2026-10-21: the pooled median of 3 sessions of 5 repetitions interleaved with master `eda9eb0`, against per-scene budgets; SC-010.)*
 
 ## Open questions for the maintainer
 

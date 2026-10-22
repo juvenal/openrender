@@ -93,7 +93,7 @@ for (j = 0; j < vdiv; j++) {
                                                                                               \
     const float u = aleft / (aleft + aright);                                                 \
     const float v = atop / (atop + abottom);                                                  \
-    const float z = (v0[COMP_Z] * (1 - u) + v1[COMP_Z] * u) * (1 - v) + (v2[COMP_Z] * (1 - u) + v3[COMP_Z] * u) * v;
+    const float z = rasterQuadDepth(v0[COMP_Z], v1[COMP_Z], v2[COMP_Z], v3[COMP_Z], u, v);
 
 #define recordPixel()                                                                                                                         \
     float *sample = &fb[y][x * SAMPLES_PER_PIXEL];                                                                                            \

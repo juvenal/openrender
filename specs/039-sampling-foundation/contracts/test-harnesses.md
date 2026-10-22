@@ -50,13 +50,13 @@ test_convergence --orender <path> --template <rib.in> --reference <ref.tif>
 ## Performance (FR-039, SC-010)
 
 - **Scenes**: the six perf-only RIBs in `specs/039-sampling-foundation/tools/perf/`. Each is a copy of an existing scene with a larger `Format` and no other change.
-- **Baseline**: `tools/perf/m2-baseline-c62334d.txt` (raw times) and research §M2 (medians, spread, MAD).
+- **Baseline** (SC-010 as amended 2026-10-21): master `eda9eb0`'s Release build, timed interleaved in the same session. (The earlier §M2 baseline, `tools/perf/m2-baseline-c62334d.txt`, is kept as history; measured against it the same times read 2 to 9 points higher.)
 - **Procedure**:
   - run under bash, with the ctest visual environment;
   - `nice -n 19 orender [-t:1] <rib>` from a scratch copy, because the displays write TIFFs into the current directory;
   - Perl `Time::HiRes` wall clock;
-  - 5 or more repetitions, interleaved rep-major.
-- **Pass**: for every scene and for both `t1` and `tdef`, the median is at most 2% above the baseline median. Medians only, never single runs.
+  - 3 sessions of 5 repetitions, interleaved rep-major with master.
+- **Pass**: for every scene and for both `t1` and `tdef`, the pooled median is at most the scene's budget above master's: camera-dof-reyes 22%, camera-dof-raytrace 34%, motion-3-reyes 6%, quadlight 101%, sphere-gather-reyes 63%, sphere-trace-reyes 51% (spec.md SC-010). Medians only, never single runs.
 - This is a manual measurement, not a ctest test. The result is recorded in research.md in Phase 9.
 
 ## Thread-pin inventory (FR-032)

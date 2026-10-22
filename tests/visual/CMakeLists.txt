@@ -4016,7 +4016,9 @@ set_tests_properties(Sampling_ProbeIndependence PROPERTIES TIMEOUT 120
 #     render made before the change, bit for bit (test_golden_compare). sobol_cache: with the
 #     irradiance cache on (maxerror > 0) the grid stays, because the cache's gradients are
 #     computed on it. (The legacy and legacy_cache cases pinned the Legacy sampler and were
-#     retired with it in Phase 9.)
+#     retired with it in Phase 9.) The golden is bit-exact per platform: Linux reads its own,
+#     golden/linux/ (rendered on Ubuntu 24.04 with GCC 13, spec 039 T141; provenance next to it),
+#     since cross-platform renders differ by about one ulp (spec.md, Assumptions). No tolerance.
 add_executable(test_golden_compare test_golden_compare.cpp)
 target_link_libraries(test_golden_compare PRIVATE TIFF::TIFF)
 target_compile_features(test_golden_compare PRIVATE cxx_std_20)
@@ -4046,6 +4048,11 @@ foreach(_format rslo slo)
         endforeach()
     endforeach()
 endforeach()
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(_occlusion_golden_dir ${CMAKE_CURRENT_SOURCE_DIR}/golden/linux)
+else()
+    set(_occlusion_golden_dir ${CMAKE_CURRENT_SOURCE_DIR}/golden)
+endif()
 foreach(_case sobol_cache:sobol:0.4)
     string(REPLACE ":" ";" _parts ${_case})
     list(GET _parts 0 _name)
@@ -4056,7 +4063,7 @@ foreach(_case sobol_cache:sobol:0.4)
     add_test(NAME OcclusionGolden_${_name}
         COMMAND test_golden_compare $<TARGET_FILE:orender>
             ${_occlusion_dir}/occlusion-golden-${_name}.rib ${OUTPUT}
-            ${CMAKE_CURRENT_SOURCE_DIR}/golden/occlusion-${_name}.tif
+            ${_occlusion_golden_dir}/occlusion-${_name}.tif
         WORKING_DIRECTORY ${_occlusion_dir})
     list(APPEND _occlusion_tests OcclusionGolden_${_name})
 endforeach()

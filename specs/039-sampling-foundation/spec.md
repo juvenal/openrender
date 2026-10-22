@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-15
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: Replace every per-thread, per-context and process-global random source in the renderer with a counter-based, per-sample sampler that lives in `libRIBCommon`. A sample identity (pixel x/y, sample index, frame, global seed) plus a per-path dimension cursor gives `get1D()`/`get2D()` values that are pure functions of (identity, dimension). Three backends are provided: Owen-scrambled Sobol (default; hash-based Burley 2020 scrambling, Morton-ordered per-pixel indexing as in PBRT-v4 ZSobol and Cycles Sobol-Burley), PMJ02 (progressive multi-jittered (0,2), deterministic table generation, padded/shuffled higher dimensions), and an independent PCG-style hash as reference and debug. The backend and seed are chosen with `Option "sampling"`. Hiders own the camera dimensions; the transport side owns every other dimension through decorrelated sub-streams. The goal is bit-identical non-GI renders at any thread or process count, with thread pins removed, correlated camera samples across hiders by default, and a measured convergence improvement. Full brief: the maintainer's master plan, entry 039 (summarised in **Context** below).
 
@@ -47,7 +47,7 @@ No two default-thread renders of that scene were pixel-identical (worst 8×8 blo
 
 - Q: Is "a scene where some lookup reads an order-dependent cache" the right boundary for the bit-identity guarantee, with GI scenes keeping their thread pins until spec 040 while their sample draws are still converted here? → A: Yes. A GI scene is any scene in which some lookup reads an order-dependent cache: the irradiance cache with max error > 0, photon maps, or any cache filled during the render. Default `occlusion()`/`indirectdiffuse()` scenes count as GI and keep their pins until 040. Their sample draws are still converted in 039.
 - Q: What convergence result counts as a pass for the default sampler? → A: For a smooth analytic integrand, a fitted log-log RMSE slope of −0.9 or steeper (independent ≈ −0.5). For each render scene, a slope at least 0.15 steeper than the independent sampler's, and RMSE at the highest sample count no worse than the independent sampler's.
-- Q: How much render-time slowdown is acceptable from the new sampler? → A: At most 2% slower median render time on the performance scenes, the same bar as spec 023.
+- Q: How much render-time slowdown is acceptable from the new sampler? → A: At most 2% slower median render time on the performance scenes, the same bar as spec 023. *(Amended 2026-10-21: per-scene budgets, SC-010.)*
 - Q: What does the `jitter` option do under the new sampler? → A: The formula `jitter·(u−0.5)+0.5001011` stays; only the source of `u` changes. `jitter 0` keeps today's fixed film, time and importance positions. Lens samples draw from the sampler.
 - Q: How is uniform `random()` keyed under raytrace? → A: By the batch's deterministic contents: bucket, object identity and ray depth. It does not depend on thread or process count, but it may change with bucket size, and that is documented.
 - Q: Are the option spellings accepted? → A: Yes. `Option "sampling" "string sampler"` takes `"sobol"` (default), `"pmj02"` or `"independent"`, and `"int seed"` defaults to 0. An unknown name gets a visible diagnostic, and the default sampler is used.
@@ -57,7 +57,7 @@ No two default-thread renders of that scene were pixel-identical (worst 8×8 blo
 - Q: How is the DB-016 follow-up split between 039 and 029? → A: 039 removes randomness from per-context state. Arena and stats injection stay in 029.
 - Q (plan): Which call forms must be bit-identical between interpreter and JIT, given that the JIT ignores the optional parameters of the trace family? → A: Only the forms both backends implement: the plain `trace`/`transmission`/`visibility`/`occlusion`/`indirectdiffuse` calls, and `gather`. The JIT gap is GitHub #55. The maintainer has it fixed on its own `fix/` branch once 039 is complete; it is not part of 039.
 - Q (plan): Where does SC-003's "0.15 steeper than Independent" bar apply? → A: Where the backend owns the stratification: lens/DOF, area-light shadows, occlusion and glossy trace. For motion blur (and film position), which stay grid-stratified under the kept jitter mapping, the bar is "no worse than Independent".
-- Q (plan): Which scenes measure SC-010's 2% budget? → A: Six perf-only copies (larger `Format` only) of `camera-dof-reyes`, `camera-dof-raytrace`, `motion-3-reyes`, `quadlight`, `sphere-gather-reyes` and `sphere-trace-reyes`, in `tools/perf/`. They are timed at `-t:1` and at the default thread count, as the median of 5 interleaved repetitions. The baseline was measured on `c62334d` (research §M2).
+- Q (plan): Which scenes measure SC-010's 2% budget? → A: Six perf-only copies (larger `Format` only) of `camera-dof-reyes`, `camera-dof-raytrace`, `motion-3-reyes`, `quadlight`, `sphere-gather-reyes` and `sphere-trace-reyes`, in `tools/perf/`. They are timed at `-t:1` and at the default thread count, as the median of 5 interleaved repetitions. *(Amended 2026-10-21: per-scene budgets against master `eda9eb0` interleaved, 3 sessions of 5; SC-010.)*
 - Q (plan): Does the full determinism sweep run by default? → A: Only if it takes 10 minutes or less at `-j4`. Otherwise it is opt-in (`determinism-sweep`), and a representative subset stays in the default `determinism` label.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -276,10 +276,10 @@ A contributor building the integrators (030), BSDF sampling (035) or the light s
   - the Hugo site (constitution VII): `docs/site/content/manual/reference/options.md`, `multithreading.md` and `network-parallel-rendering.md`;
   - `DOMAIN_BOUNDARIES.md` (the DB-016 follow-up that names 039: record which part this spec delivers);
   - `tests/visual/parity-thresholds.md`.
-- **FR-039**: Median render time MUST NOT rise by more than 2% on the spec's six sampling-heavy performance scenes: the perf-only copies in `specs/039-sampling-foundation/tools/perf/` of `camera-dof-reyes`, `camera-dof-raytrace`, `motion-3-reyes`, `quadlight`, `sphere-gather-reyes` and `sphere-trace-reyes`.
-  - The bar is the same as spec 023's (2%).
-  - The time is measured at `-t:1` and at the default thread count, as the median of at least 5 interleaved repetitions, on the same machine and Release build configuration, with the default sampler.
-  - The baseline is `tools/perf/m2-baseline-c62334d.txt` (research §M2). The `perf-manual` scenes are too short to resolve 2%.
+- **FR-039** (amended 2026-10-21 with SC-010, D-P12-8): Median render time MUST NOT rise by more than each scene's SC-010 budget on the spec's six sampling-heavy performance scenes: the perf-only copies in `specs/039-sampling-foundation/tools/perf/` of `camera-dof-reyes`, `camera-dof-raytrace`, `motion-3-reyes`, `quadlight`, `sphere-gather-reyes` and `sphere-trace-reyes`.
+  - The budgets are per scene (SC-010); they replace the earlier 2% bar, spec 023's, which this feature did not meet (amendment note under SC-010).
+  - The time is measured at `-t:1` and at the default thread count, as the pooled median of 3 sessions of 5 repetitions interleaved with master `eda9eb0`, on the same machine and Release build configuration, with the default sampler.
+  - The `perf-manual` scenes are too short to resolve these differences.
 
 ### Key Entities
 
@@ -295,7 +295,7 @@ A contributor building the integrators (030), BSDF sampling (035) or the light s
 
 ### Measurable Outcomes
 
-- **SC-001**: 100% of non-GI visual and parity scenes produce bit-identical output in every channel (colour, alpha, depth, every AOV) at `-t:1`, at two or more other thread counts and at `-P:2`, on the same build and platform, **except the ten scenes disabled under GitHub #60, #61 and #63** (named in Assumptions) (see Assumptions: defects that predate 039 and are independent of the sampler). Zero thread pins remain on non-GI scenes.
+- **SC-001**: 100% of non-GI visual and parity scenes produce bit-identical output in every channel (colour, alpha, depth, every AOV) at `-t:1`, at two or more other thread counts and at `-P:2`, on the same build and platform, **except the eleven scenes disabled under GitHub #60, #61 and #63** (named in Assumptions; 415 registered in the determinism sweep, 404 enabled) (see Assumptions: defects that predate 039 and are independent of the sampler). Zero thread pins remain on non-GI scenes.
 - **SC-002**: The sampler unit tests all pass:
   - Sobol reference values match exactly.
   - The net property (scrambled Sobol) and the (0,2) property (PMJ02) hold, per `get2D` tuple, for every power-of-two prefix up to at least 4096 samples.
@@ -312,15 +312,27 @@ A contributor building the integrators (030), BSDF sampling (035) or the light s
 - **SC-007**: An inventory search of render-time code finds zero uses of per-context or process-global random state, `std::random_device`, libc `rand()` or wall-clock seeding. Offline tools that never run inside a render are listed and excluded.
 - **SC-008**: A test shader that writes `random()`, `urandom()` and sample directions from the plain call forms of `trace()`/`transmission()`/`visibility()`/`occlusion()`/`indirectdiffuse()`, and from `gather()`, to AOVs produces bit-identical AOVs on the interpreter and the JIT. Forms that use optional parameters are excluded (GitHub #55). The test shader avoids the shape of GitHub #8, a uniform assignment gated by `if`, which the JIT executes unconditionally; that is a known defect this spec does not own.
 - **SC-009**: Each of the three backends renders every non-GI scene deterministically, as in SC-001. Two seeds give different noise, and the same seed gives bit-identical output.
-- **SC-010** (**DRAFT, Phase 12, T133, awaiting the maintainer's approval**; the rule and the measurements are in research §M2, "Phase 12"): On each of the six performance scenes in `tools/perf/`, at both `-t:1` and the default thread count, the pooled median of 3 sessions of 5 repetitions, interleaved run by run with master `eda9eb0`'s Release build on the same machine, is at most the scene's budget above master's: camera-dof-reyes 22%, camera-dof-raytrace 32%, motion-3-reyes 9%, quadlight 101%, sphere-gather-reyes 66%, sphere-trace-reyes 47%. Each budget is the measured overhead after Phase 12 (a) plus the measured run-to-run noise, rounded up to a whole percent; a scene meeting 2% keeps 2% (none does). Single runs are never compared.
-  - *Previous text (until Phase 12):* On each of the six performance scenes in `tools/perf/`, at both `-t:1` and the default thread count, the median of at least 5 interleaved repetitions after this feature is at most 2% above the baseline median in research §M2 (master `c62334d`), on the same machine and Release build configuration. Single runs are never compared.
+- **SC-010** (amended 2026-10-21, Phase 12, D-P12-8/D-P12-9; budgets re-derived 2026-10-22, Phase 13, D-P13-8; see the amendment notes below): On each of the six performance scenes in `tools/perf/`, at both `-t:1` and the default thread count, spec 039's render time is at most the scene's budget above master `eda9eb0`'s, both Release builds on the same machine. Each time is the pooled median of 3 sessions of 5 repetitions, interleaved run by run with master in the same session. Single runs are never compared. The budgets, with the measurements they were set from (the final timing of the staged tree, T151, research §M2 "Phase 13"; the overhead is the pooled median over master at `-t:1` / default threads; the noise is the largest of the three run-to-run measures, in points):
+
+  | Scene | Budget | Measured overhead | Noise |
+  |---|---|---|---|
+  | camera-dof-reyes | 22% | +18.2% / +18.5% | 2.9 / 3.1 |
+  | camera-dof-raytrace | 34% | +31.7% / +30.5% | 2.1 / 1.8 |
+  | motion-3-reyes | 6% | +4.2% / +4.1% | 1.5 / 1.9 |
+  | quadlight | 101% | +99.0% / +97.6% | 1.9 / 3.1 |
+  | sphere-gather-reyes | 63% | +60.4% / +55.9% | 2.0 / 2.1 |
+  | sphere-trace-reyes | 51% | +43.7% / +45.0% | 2.8 / 5.0 |
+
+  Each budget is the measured overhead plus the noise, rounded up to a whole percent, taking the larger of the two configurations; a scene at 2% or less would have kept 2% (none did). A later spec can tighten a budget by the same method.
+  - *Amendment note (2026-10-21, Phase 12):* SC-010 previously read: "On each of the six performance scenes in `tools/perf/`, at both `-t:1` and the default thread count, the median of at least 5 interleaved repetitions after this feature is at most 2% above the baseline median in research §M2, on the same machine and Release build configuration. Single runs are never compared." The 2% bar was not met at Phases 9 to 12 (research §M2); the maintainer replaced it with the per-scene budgets above (D-P12-8) and made master `eda9eb0` interleaved in the same session the baseline (D-P12-9), as every measurement since Phase 9 was. Measured against the earlier §M2 baseline commit instead, the same spec 039 times read 2 to 9 points higher.
+  - *Amendment note (2026-10-22, Phase 13, D-P13-8):* the budgets were re-derived by the same rule from the final timing of the staged tree (T151, `tools/perf/m2-final-cb6923f-{1,2,3}.txt`), which no longer carries Phase 12's remedy (a) and does carry the `rasterQuadDepth()` clamp. The Phase 12 budgets, set from the T132 timing (`tools/perf/m2-phase12-a{1,2,3}.txt`), were: camera-dof-reyes 22%, camera-dof-raytrace 32%, motion-3-reyes 9%, quadlight 101%, sphere-gather-reyes 66%, sphere-trace-reyes 47%.
 
 ## Assumptions
 
 - "Bit-identical" means on one platform and build configuration. Cross-platform (macOS vs Linux) or cross-compiler identity is not required.
-- Excluded from every "bit-identical at any thread count" claim in this spec (the user story above, acceptance scenario 1, FR-030 and FR-031, SC-001 and SC-009): the ten scenes disabled in the determinism sweep (`tests/visual/determinism-scenes.cmake`) under three defects that predate 039 and are independent of the sampler. They stay in the sweep list, registered and disabled, and become subject to the claim again when their issue is fixed.
+- Excluded from every "bit-identical at any thread count" claim in this spec (the user story above, acceptance scenario 1, FR-030 and FR-031, SC-001 and SC-009): the eleven scenes disabled in the determinism sweep (`tests/visual/determinism-scenes.cmake`: 415 registered, 404 enabled; 2 under #60, 8 under #61, 1 under #63) under three defects that predate 039 and are independent of the sampler. They stay in the sweep list, registered and disabled, and become subject to the claim again when their issue is fixed.
   - **GitHub #60**, a thread race in a deterministic shader (output differs at `-t:4`, also with `jitter 0` and the Legacy sampler): `sphere-shader-parameter-reyes`, `sphere-shader-parameter-reyes-slo`.
-  - **GitHub #61**, an uninitialised derivative lane in shading that makes `transmission()` renders nondeterministic. T084b fixed the ray-hit part; the grid-shading part (the derivative of a grid lane next to an inactive lane, at the terminator of a `raydistant` light) is not fixed: `csg-hero-zbuffer-1600`, `csg-hero-stats-1600-reyes`, `csg-hero-reyes-1600`, `csg-hero-zbuffer-800`, `csg-offscreen-stats-reyes`, `csg-hero-partial-stats-reyes`, `csg-hero-two-shaders-reyes`.
+  - **GitHub #61**, an uninitialised derivative lane in shading that makes `transmission()` renders nondeterministic. T084b fixed the ray-hit part; the grid-shading part (the derivative of a grid lane next to an inactive lane, at the terminator of a `raydistant` light) is not fixed: `csg-hero-zbuffer-1600`, `csg-hero-stats-1600-reyes`, `csg-hero-reyes-1600`, `csg-hero-zbuffer-800`, `csg-offscreen-stats-reyes`, `csg-hero-partial-stats-reyes`, `csg-hero-two-shaders-reyes`, `csg-hero-stats-800-reyes` (added in Phase 10, T119).
   - **GitHub #63**, intermittent differences of about +-1e-3 on black pixels in the first column of a bucket, cause unknown: `csg-hero-displaced-reyes`.
 - `-P:N` (local multi-process) rendering splits work by bucket. With pixel-keyed identity it should need no special handling, but its bit-identity has never been measured.
   - Plan MUST measure it early, with today's code and `jitter 0`, before relying on it.
