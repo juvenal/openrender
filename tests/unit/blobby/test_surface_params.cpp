@@ -29,6 +29,21 @@
  *   013 established, so the assertions are made on what addObject()
  *   actually receives rather than on an internal call.
  *
+ *   The capture context still forwards every object to the renderer, so
+ *   each world block would really render at RiWorldEnd -- through the
+ *   default orthographic camera at z = 0, with the blobs spanning z in
+ *   [-1, 1] across the eye plane, where CSurface::dice eye-splits every
+ *   patch down to maxEyeSplits and prints "Too many eye splits" about a
+ *   million times: the test hangs. Whether it rendered used to depend on
+ *   whether the default "file" driver happened to be on the display path
+ *   (".:%DISPLAYS%:" OPENRENDER_DISPLAYS, or the cwd). Each session
+ *   therefore declares a custom display whose start function refuses to
+ *   open (noFrame()), so there is never an active display and the frame
+ *   is abandoned (HIDER_BREAK) wherever the test runs. Moving the camera
+ *   instead would not do: the bounds asserted below are camera-space
+ *   (CPolygonMesh runs them through its xform, which carries the camera
+ *   transform), so any camera translation off the blobs would move them.
+ *
  * Authors:
  *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
  *
@@ -99,6 +114,17 @@ class CCaptureContext : public CRendererContext {
 
 static CCaptureContext *g_context = NULL;
 
+// A display whose start function refuses to open, so no frame of these
+// sessions ever renders, whatever display drivers are installed (see the
+// header comment)
+static void *refuseDisplayStart(const char *, int, int, int, const char *, RtDisplayParameterFunction) { return NULL; }
+static int unusedDisplayData(void *, int, int, int, int, float *) { return RI_FALSE; }
+static void unusedDisplayFinish(void *) {}
+
+static void noFrame() {
+    RiCustomDisplay("blobby-no-frame", RI_RGBA, refuseDisplayStart, unusedDisplayData, unusedDisplayFinish, RI_NULL);
+}
+
 static CRiInterface *makeCaptureContext() {
     g_context = new CCaptureContext();
     return g_context;
@@ -118,6 +144,7 @@ static void emitBlendedPair() {
 TEST(blobby_reaches_addObject_as_a_polygon_mesh) {
     RiSetContextFactory(makeCaptureContext);
     RiBegin(RI_NULL);
+    noFrame();
     RiWorldBegin();
 
     emitBlendedPair();
@@ -144,6 +171,7 @@ TEST(blobby_reaches_addObject_as_a_polygon_mesh) {
 TEST(mesh_bound_encloses_the_field_extent_and_nothing_more) {
     RiSetContextFactory(makeCaptureContext);
     RiBegin(RI_NULL);
+    noFrame();
     RiWorldBegin();
 
     emitBlendedPair();
@@ -177,6 +205,7 @@ TEST(mesh_bound_encloses_the_field_extent_and_nothing_more) {
 TEST(a_field_that_never_reaches_the_threshold_emits_no_object) {
     RiSetContextFactory(makeCaptureContext);
     RiBegin(RI_NULL);
+    noFrame();
     RiWorldBegin();
 
     // A lone blob multiplied by a small constant never crosses the
@@ -202,6 +231,7 @@ TEST(a_field_that_never_reaches_the_threshold_emits_no_object) {
 TEST(a_blobby_outside_the_frustum_is_not_an_error) {
     RiSetContextFactory(makeCaptureContext);
     RiBegin(RI_NULL);
+    noFrame();
     RiWorldBegin();
 
     // Far off to one side. The mesh is still built and handed over -- it is

@@ -11,6 +11,13 @@
  *   riblex). Found by spec 021's procedural-operand unit test, which reads an
  *   archive in each of several sessions.
  *
+ *   Each session declares a display whose start function refuses to open,
+ *   so the frame never renders: the unit sphere sits across the default
+ *   camera's eye plane at z = 0, and rendering it -- which happened
+ *   whenever the default "file" driver was on the display path -- printed
+ *   "Too many eye splits" about 1.5 million times and wrote ri.tif into
+ *   the working directory. Only the parse is under test.
+ *
  * Authors:
  *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
  *
@@ -39,6 +46,11 @@ static void onComment(RtToken format, ...) {
     received += text;
 }
 
+// A display that never opens, so no session renders (see the header comment)
+static void *refuseDisplayStart(const char *, int, int, int, const char *, RtDisplayParameterFunction) { return NULL; }
+static int unusedDisplayData(void *, int, int, int, int, float *) { return RI_FALSE; }
+static void unusedDisplayFinish(void *) {}
+
 // One session that reads an archive holding a structure comment and a
 // primitive; returns what the parser reported
 static std::string session(const std::string &dir, int n) {
@@ -49,6 +61,7 @@ static std::string session(const std::string &dir, int n) {
 
     received.clear();
     RiBegin(RI_NULL);
+    RiCustomDisplay("parser-sessions-no-frame", RI_RGBA, refuseDisplayStart, unusedDisplayData, unusedDisplayFinish, RI_NULL);
     RiWorldBegin();
     RiReadArchive((RtToken)path.c_str(), onComment, RI_NULL);
     RiWorldEnd();
