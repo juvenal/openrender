@@ -87,6 +87,26 @@ This file tracks known defects and implementation gaps in openRender. Open items
 
 ## Resolved Bugs
 
+- [x] Bug: `Blobby_SurfaceParams` hung whenever the default `file` display driver was findable
+      (FIXED — branch `fix/blobby-test-eye-plane`, 2026-10-22). The test
+      (`tests/unit/blobby/test_surface_params.cpp`) opens `RiBegin(RI_NULL)` sessions with no
+      Display, Projection or camera transform, and its capture context forwards every object to
+      `CRendererContext::addObject()`. With no Display the renderer adds the default `ri.tif`
+      `file` display; on a build whose display path (`.:%DISPLAYS%:` `OPENRENDER_DISPLAYS`) holds
+      no driver, `numActiveDisplays` stays 0, `HIDER_BREAK` is set and nothing renders, which is
+      the only reason the test passed. With the driver found, `RiWorldEnd` really renders: the
+      default orthographic camera sits at z = 0, the blobs span z in [-1, 1] across the eye plane,
+      and `CSurface::dice` eye-splits each patch to `maxEyeSplits`, printing "Too many eye splits"
+      about a million times per patch. Each session now declares an `RiCustomDisplay` whose start
+      function returns NULL, so there is never an active display and the frame is abandoned
+      wherever the test runs. A camera transform was ruled out: the asserted `bmin`/`bmax` are
+      camera-space (`CPolygonMesh` runs them through its xform, which carries the camera
+      transform), so moving the eye off the blobs would move the bounds too. No assertion or
+      geometry changed. `RibParse_SessionsReadArchives`
+      (`tests/unit/rib_parse/test_parser_sessions.cpp`) had the same pattern (a unit `Sphere` at
+      the origin, no Display): with the driver found it still passed but printed ~1.5M eye-split
+      lines and wrote `ri.tif` into the cwd. It gets the same refusing display.
+
 - [x] Bug: a network render (`-P`) aborted on Linux with `*** buffer overflow detected ***` when a
       server asked the client for a file it could not find locally (FIXED — spec 039, T140, 2026-10-21).
       `CRenderer::getFile(FILE *, ...)` (`src/ri/render/rendererNetwork.cpp`) copied the requested name
