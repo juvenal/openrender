@@ -389,3 +389,43 @@ set_tests_properties(ShadingParity_DerivativeInactiveLanes PROPERTIES
     LABELS "shading_parity;determinism"
     ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}"
 )
+
+# Grid derivative lanes (GitHub #61, grid half): the twin of ShadingParity_DerivativeInactiveLanes
+# for REYES grids. A lane the lane tags mark inactive is never read: its active neighbours take
+# the one-sided difference, or 0 with no active neighbour. Fills the inactive lanes with 0x00 and
+# 0xFF (NaN) and requires identical results, exact one-sided values, and unchanged other lanes.
+add_executable(test_shading_parity_derivative_inactive_grid_lanes test_derivative_inactive_grid_lanes.cpp)
+target_link_libraries(test_shading_parity_derivative_inactive_grid_lanes PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+target_include_directories(test_shading_parity_derivative_inactive_grid_lanes PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_BINARY_DIR}
+)
+target_compile_features(test_shading_parity_derivative_inactive_grid_lanes PRIVATE cxx_std_20)
+add_test(NAME ShadingParity_DerivativeInactiveGridLanes COMMAND test_shading_parity_derivative_inactive_grid_lanes)
+set_tests_properties(ShadingParity_DerivativeInactiveGridLanes PROPERTIES
+    TIMEOUT 30
+    LABELS "shading_parity;determinism"
+    ENVIRONMENT "SHADERS=${CMAKE_SOURCE_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}"
+)
+
+# Derivative builtin destinations (found during the GitHub #61 investigation): Du()/Dv() leave
+# the inactive lanes of their destination untouched (DerivativeDestinationMask), and `x = Du(x)`,
+# which compiles in place, gives the same values as with a separate destination
+# (DerivativeInPlace). Renders one fixture through the real orender CLI on both backends and
+# checks the printed values; Deriv(), area() and calculatenormal() are checked alongside. Needs
+# the JIT.
+if(OPENRENDER_HAVE_LLVM)
+    add_executable(test_shading_parity_derivative_destination test_derivative_destination.cpp)
+    target_link_libraries(test_shading_parity_derivative_destination PRIVATE openrender_common_flags)
+    target_compile_features(test_shading_parity_derivative_destination PRIVATE cxx_std_20)
+    foreach(_case IN ITEMS "DerivativeDestinationMask;mask" "DerivativeInPlace;alias")
+        list(GET _case 0 _name)
+        list(GET _case 1 _arg)
+        add_test(NAME ShadingParity_${_name} COMMAND test_shading_parity_derivative_destination ${_arg})
+        set_tests_properties(ShadingParity_${_name} PROPERTIES
+            TIMEOUT 60
+            LABELS "shading_parity"
+            ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;ORENDER_BIN=$<TARGET_FILE:orender>;TEST_DISPLAYS_DIR=$<TARGET_FILE_DIR:file>"
+        )
+    endforeach()
+endif()
