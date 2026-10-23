@@ -19,6 +19,7 @@
 #include "rslOps.h"
 #include "activeContext.h"
 #include "common/colorSpace.h"
+#include "common/memory.h"
 #include "includes/logging.hpp"
 #include "noise.h"
 #include "shading.h"
@@ -1786,6 +1787,24 @@ void op_cellnoise_vpf(float *dst, int sd, const float *p, int sp, const float *f
 // Layer G — context-dependent geometric built-ins
 // =========================================================================
 
+// Du()/Dv() take the derivative of the whole operand into scratch memory, then copy it to the
+// active lanes of the destination only (found during the GitHub #61 investigation; the interpreter
+// does the same, shaderFunctions.h). Handing the destination to the derivative helper directly
+// overwrote the lanes an enclosing varying `if` switched off, and `x = Du(x)` (destination ==
+// source) read lane i as the neighbour of lane i + 1 after overwriting it.
+static void maskedDerivative(CShadingContext *ctx, void (CShadingContext::*derivative)(float *, const float *, int),
+                             float *dst, int sd, const float *src, int n, const int *tags, int comps) {
+    // The helpers write every lane of the shading state, whatever n is
+    const int lanes = (ctx->currentShadingState && ctx->currentShadingState->numVertices > n) ? ctx->currentShadingState->numVertices : n;
+    float *tmp = (float *)ralloc(lanes * comps * (int)sizeof(float), ctx->threadMemory);
+    (ctx->*derivative)(tmp, src, n);
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i))
+            for (int c = 0; c < comps; c++)
+                IDX(dst, sd, i)
+                [c] = tmp[i * comps + c];
+}
+
 void op_Du_ff(float *dst, int sd, const float *src, int ss, int n, const int *tags) {
     CShadingContext *ctx = libshader::activeContext();
     if (!ctx)
@@ -1797,7 +1816,7 @@ void op_Du_ff(float *dst, int sd, const float *src, int ss, int n, const int *ta
                 [0] = 0.f;
         return;
     }
-    ctx->jitDuFloat(dst, src, n);
+    maskedDerivative(ctx, &CShadingContext::jitDuFloat, dst, sd, src, n, tags, 1);
 }
 
 void op_Dv_ff(float *dst, int sd, const float *src, int ss, int n, const int *tags) {
@@ -1811,7 +1830,7 @@ void op_Dv_ff(float *dst, int sd, const float *src, int ss, int n, const int *ta
                 [0] = 0.f;
         return;
     }
-    ctx->jitDvFloat(dst, src, n);
+    maskedDerivative(ctx, &CShadingContext::jitDvFloat, dst, sd, src, n, tags, 1);
 }
 
 void op_Du_vv(float *dst, int sd, const float *src, int ss, int n, const int *tags) {
@@ -1830,7 +1849,7 @@ void op_Du_vv(float *dst, int sd, const float *src, int ss, int n, const int *ta
             }
         return;
     }
-    ctx->jitDuVector(dst, src, n);
+    maskedDerivative(ctx, &CShadingContext::jitDuVector, dst, sd, src, n, tags, 3);
 }
 
 void op_Dv_vv(float *dst, int sd, const float *src, int ss, int n, const int *tags) {
@@ -1849,7 +1868,7 @@ void op_Dv_vv(float *dst, int sd, const float *src, int ss, int n, const int *ta
             }
         return;
     }
-    ctx->jitDvVector(dst, src, n);
+    maskedDerivative(ctx, &CShadingContext::jitDvVector, dst, sd, src, n, tags, 3);
 }
 
 void op_area(float *dst, int sd, const float *P, int /*sp*/, int n, const int *tags) {

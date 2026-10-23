@@ -143,27 +143,20 @@ add_determinism_sweep(csg-hero-displaced-raytrace examples/rib/tests/csg-hero-di
 # Disabled, see GitHub #63 below.
 add_determinism_sweep(csg-hero-displaced-reyes examples/rib/tests/csg-hero-displaced-reyes.rib csg-hero-displaced-reyes.tif)
 add_determinism_sweep(csg-hero-instanced-outside-world-reyes examples/rib/tests/csg-hero-instanced-outside-world-reyes.rib csg-hero-instanced-outside-world-reyes.tif)
-# Disabled, see GitHub #61 below.
 add_determinism_sweep(csg-hero-partial-stats-reyes examples/rib/tests/csg-hero-partial-stats-reyes.rib csg-hero-partial-stats-reyes.tif)
 add_determinism_sweep(csg-hero-plain-sphere-raytrace examples/rib/tests/csg-hero-plain-sphere-raytrace.rib csg-hero-plain-sphere-raytrace.tif)
 add_determinism_sweep(csg-hero-raytrace-1600 examples/rib/tests/csg-hero-raytrace-1600.rib csg-hero-raytrace-1600.tif)
 add_determinism_sweep(csg-hero-raytrace-800 examples/rib/tests/csg-hero-raytrace-800.rib csg-hero-raytrace-800.tif)
-# Disabled, see GitHub #61 below.
 add_determinism_sweep(csg-hero-reyes-1600 examples/rib/tests/csg-hero-reyes-1600.rib csg-hero-reyes-1600.tif)
 add_determinism_sweep(csg-hero-reyes-800 examples/rib/tests/csg-hero-reyes-800.rib csg-hero-reyes-800.tif)
 add_determinism_sweep(csg-hero-single-operand-stats-800-reyes examples/rib/tests/csg-hero-single-operand-stats-800-reyes.rib csg-hero-single-operand-stats-800-reyes.tif)
-# Disabled, see GitHub #61 below.
 add_determinism_sweep(csg-hero-stats-1600-reyes examples/rib/tests/csg-hero-stats-1600-reyes.rib csg-hero-stats-1600-reyes.tif)
-# Disabled, see GitHub #61 below.
 add_determinism_sweep(csg-hero-stats-800-reyes examples/rib/tests/csg-hero-stats-800-reyes.rib csg-hero-stats-800-reyes.tif)
 add_determinism_sweep(csg-hero-translucent-raytrace examples/rib/tests/csg-hero-translucent-raytrace.rib csg-hero-translucent-raytrace.tif)
 add_determinism_sweep(csg-hero-translucent-reyes examples/rib/tests/csg-hero-translucent-reyes.rib csg-hero-translucent-reyes.tif)
 add_determinism_sweep(csg-hero-two-shaders-raytrace examples/rib/tests/csg-hero-two-shaders-raytrace.rib csg-hero-two-shaders-raytrace.tif)
-# Disabled, see GitHub #61 below.
 add_determinism_sweep(csg-hero-two-shaders-reyes examples/rib/tests/csg-hero-two-shaders-reyes.rib csg-hero-two-shaders-reyes.tif)
-# Disabled, see GitHub #61 below.
 add_determinism_sweep(csg-hero-zbuffer-1600 examples/rib/tests/csg-hero-zbuffer-1600.rib csg-hero-zbuffer-1600.tif)
-# Disabled, see GitHub #61 below.
 add_determinism_sweep(csg-hero-zbuffer-800 examples/rib/tests/csg-hero-zbuffer-800.rib csg-hero-zbuffer-800.tif)
 add_determinism_sweep(csg-nested-tree-4-level-raytrace examples/rib/tests/csg-nested-tree-4-level-raytrace.rib csg-nested-tree-4-level-raytrace.tif)
 add_determinism_sweep(csg-nurbs-rational-sphere-alone-raytrace examples/rib/tests/csg-nurbs-rational-sphere-alone-raytrace.rib csg-nurbs-rational-sphere-alone-raytrace.tif)
@@ -174,7 +167,6 @@ add_determinism_sweep(csg-nurbs-sheet-instanced-raytrace examples/rib/tests/csg-
 add_determinism_sweep(csg-nurbs-sphere-union-raytrace examples/rib/tests/csg-nurbs-sphere-union-raytrace.rib csg-nurbs-sphere-union-raytrace.tif)
 add_determinism_sweep(csg-object-instance-reuse-raytrace examples/rib/tests/csg-object-instance-reuse-raytrace.rib csg-object-instance-reuse-raytrace.tif)
 add_determinism_sweep(csg-offscreen-stats-raytrace examples/rib/tests/csg-offscreen-stats-raytrace.rib csg-offscreen-stats-raytrace.tif COPY examples/rib/tests/archives)
-# Disabled, see GitHub #61 below.
 add_determinism_sweep(csg-offscreen-stats-reyes examples/rib/tests/csg-offscreen-stats-reyes.rib csg-offscreen-stats-reyes.tif COPY examples/rib/tests/archives)
 add_determinism_sweep(csg-open-quadric-caps-raytrace examples/rib/tests/csg-open-quadric-caps-raytrace.rib csg-open-quadric-caps-raytrace.tif)
 add_determinism_sweep(csg-open-quadric-caps-reyes examples/rib/tests/csg-open-quadric-caps-reyes.rib csg-open-quadric-caps-reyes.tif)
@@ -454,29 +446,14 @@ set_tests_properties(
     DeterminismSweep_sphere-shader-parameter-reyes-slo
     PROPERTIES DISABLED TRUE)
 #
-# GitHub #61 (retitled "Uninitialised derivative lane in ray-hit shading makes transmission() renders
-# nondeterministic"): the offset-lane part is fixed (T084b; the five scenes that only had it are
-# enabled again). These two keep a second use of the same defect, in grid shading: the derivative
-# of a lane next to an inactive grid lane (the terminator of a raydistant light) reads the
-# unwritten lane. Filling ralloc memory with 0xFF (NaN) changes their image, any other fill does
-# not; csg-hero-zbuffer-1600 also differs run to run without a fill.
-set_tests_properties(
-    DeterminismSweep_csg-hero-zbuffer-1600
-    DeterminismSweep_csg-hero-stats-1600-reyes
-    DeterminismSweep_csg-hero-reyes-1600
-    DeterminismSweep_csg-hero-zbuffer-800
-    DeterminismSweep_csg-offscreen-stats-reyes
-    DeterminismSweep_csg-hero-partial-stats-reyes
-    DeterminismSweep_csg-hero-two-shaders-reyes
-    DeterminismSweep_csg-hero-stats-800-reyes
-    PROPERTIES DISABLED TRUE)
-# The last five were found by the two sweeps that followed T084b and T084c: they fail intermittently.
-# The image of csg-hero-reyes-1600, csg-hero-zbuffer-800, csg-offscreen-stats-reyes and
-# csg-hero-partial-stats-reyes (like the first two) changes when ralloc memory is filled with 0xFF;
-# csg-hero-two-shaders-reyes was not filled. The grid-shading fix is not made; it needs its own
-# decision (GitHub #61). csg-hero-stats-800-reyes was added in Phase 10 (maintainer decision,
-# 2026-10-20), like its 1600 sibling: under the independent sampler it failed once in three runs,
-# one 8-bit value off by one at one pixel between -t:4 and -t:1 (validation.md, Phase 9).
+# GitHub #61 is fixed in both halves and its scenes are swept again: an inactive lane next to a
+# derivative read memory that nothing had written. The ray-hit half (an inactive derivative-offset
+# lane) was fixed by T084b, the grid half (an inactive grid neighbour, the terminator of a
+# raydistant light) by differencing an active lane towards its active neighbours only
+# (DEVNOTES_DETAILS/BUGS.md). Its eight scenes, csg-hero-zbuffer-1600, csg-hero-stats-1600-reyes,
+# csg-hero-reyes-1600, csg-hero-zbuffer-800, csg-offscreen-stats-reyes,
+# csg-hero-partial-stats-reyes, csg-hero-two-shaders-reyes and csg-hero-stats-800-reyes, render the
+# same under any ralloc fill (none, 0x00, 0x55, 0xFF) and are no longer disabled.
 #
 # GitHub #63: csg-hero-displaced-reyes differs intermittently by about +-1e-3 on black pixels in the
 # first column of a bucket. No tie, and a ralloc fill does not explain it; the cause is unknown.

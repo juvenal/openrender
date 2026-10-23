@@ -86,72 +86,63 @@ DEFFUNC(FaceForward, "faceforward", "v=vv", FACEFORWARDEXPR_PRE, FACEFORWARDEXPR
 DEFFUNC(FaceForward3, "faceforward", "v=vvv", FUN4EXPR_PRE, FACEFORWARD2EXPR, FUN4EXPR_UPDATE(3, 3, 3, 3), NULL_EXPR, 0)
 
 // The following macros are used to evaluate u and v derivatives using central differencing
+//
+// Du() and Dv() take the derivative of the whole operand into scratch memory, then copy it to the
+// destination lane by lane under the lane tags (found during the GitHub #61 investigation). Writing
+// the derivative straight into the destination had two effects: an assignment inside a varying
+// `if` overwrote the lanes the `if` switched off, and `x = Du(x)`, which compiles in place
+// (`Du x x`), read lane i as the neighbour of lane i + 1 after overwriting it. A uniform operand
+// has no derivative: 0, as under the JIT (op_Du_ff and friends).
+#ifndef INIT_SHADING
+#define DUDVEXPR_PRE(__derivative, __n)                                               \
+    FUN2EXPR_PRE                                                                      \
+    float *dres = (float *)ralloc(numVertices * (__n) * sizeof(float), threadMemory); \
+    if (code->uniform) {                                                              \
+        for (int c = 0; c < (__n); ++c)                                               \
+            dres[c] = 0;                                                              \
+    }                                                                                 \
+    else {                                                                            \
+        __derivative(dres, op);                                                       \
+    }
+
+#define DUDVEXPR(__n)               \
+    for (int c = 0; c < (__n); ++c) \
+        res[c] = dres[c];
+
+#define DUDVEXPR_UPDATE(__n) \
+    res += (__n);            \
+    dres += (__n);
+#else
+#define DUDVEXPR_PRE(__derivative, __n)
+#define DUDVEXPR(__n)
+#define DUDVEXPR_UPDATE(__n)
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // du "f=f"
-#ifndef INIT_SHADING
-#define DUFEXPR_PRE \
-    FUN2EXPR_PRE    \
-    duFloat(res, op);
-#else
-#undef DUFEXPR_PRE
-#define DUFEXPR_PRE
-#endif
+DEFFUNC(Duf, "Du", "f=f", DUDVEXPR_PRE(duFloat, 1), DUDVEXPR(1), DUDVEXPR_UPDATE(1), NULL_EXPR, PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_DU | PARAMETER_DV | PARAMETER_DERIVATIVE)
 
-DEFFUNC(Duf, "Du", "f=f", DUFEXPR_PRE, NULL_EXPR, NULL_EXPR, NULL_EXPR, PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_DU | PARAMETER_DV | PARAMETER_DERIVATIVE)
-
-#undef DUVEXPR_PRE
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // du "v=v"
-#ifndef INIT_SHADING
-#define DUVEXPR_PRE \
-    FUN2EXPR_PRE    \
-    duVector(res, op);
-
-#else
-#undef DUVEXPR_PRE
-#define DUVEXPR_PRE
-#endif
-
 DEFLINKFUNC(Duv1, "Du", "v=c", PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_DU | PARAMETER_DV | PARAMETER_DERIVATIVE)
 DEFLINKFUNC(Duv2, "Du", "v=p", PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_DU | PARAMETER_DV | PARAMETER_DERIVATIVE)
 DEFLINKFUNC(Duv3, "Du", "v=n", PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_DU | PARAMETER_DV | PARAMETER_DERIVATIVE)
-DEFFUNC(Duv, "Du", "v=v", DUVEXPR_PRE, NULL_EXPR, NULL_EXPR, NULL_EXPR, PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_DU | PARAMETER_DV | PARAMETER_DERIVATIVE)
-
-#undef DUVEXPR_PRE
+DEFFUNC(Duv, "Du", "v=v", DUDVEXPR_PRE(duVector, 3), DUDVEXPR(3), DUDVEXPR_UPDATE(3), NULL_EXPR, PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_DU | PARAMETER_DV | PARAMETER_DERIVATIVE)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // dv "f=f"
-#ifndef INIT_SHADING
-#define DVFEXPR_PRE \
-    FUN2EXPR_PRE    \
-    dvFloat(res, op);
-#else
-#undef DVFEXPR_PRE
-#define DVFEXPR_PRE
-#endif
-
-DEFFUNC(Dvf, "Dv", "f=f", DVFEXPR_PRE, NULL_EXPR, NULL_EXPR, NULL_EXPR, PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_DU | PARAMETER_DV | PARAMETER_DERIVATIVE)
-
-#undef DVFEXPR_PRE
+DEFFUNC(Dvf, "Dv", "f=f", DUDVEXPR_PRE(dvFloat, 1), DUDVEXPR(1), DUDVEXPR_UPDATE(1), NULL_EXPR, PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_DU | PARAMETER_DV | PARAMETER_DERIVATIVE)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // dv "v=v"
-#ifndef INIT_SHADING
-#define DVVEXPR_PRE \
-    FUN2EXPR_PRE    \
-    dvVector(res, op);
-#else
-#undef DVVEXPR_PRE
-#define DVVEXPR_PRE
-#endif
-
 DEFLINKFUNC(Dvv1, "Dv", "v=c", PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_DU | PARAMETER_DV | PARAMETER_DERIVATIVE)
 DEFLINKFUNC(Dvv2, "Dv", "v=p", PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_DU | PARAMETER_DV | PARAMETER_DERIVATIVE)
 DEFLINKFUNC(Dvv3, "Dv", "v=n", PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_DU | PARAMETER_DV | PARAMETER_DERIVATIVE)
-DEFFUNC(Dvv, "Dv", "v=v", DVVEXPR_PRE, NULL_EXPR, NULL_EXPR, NULL_EXPR, PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_DU | PARAMETER_DV | PARAMETER_DERIVATIVE)
+DEFFUNC(Dvv, "Dv", "v=v", DUDVEXPR_PRE(dvVector, 3), DUDVEXPR(3), DUDVEXPR_UPDATE(3), NULL_EXPR, PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_DU | PARAMETER_DV | PARAMETER_DERIVATIVE)
 
-#undef DVVEXPR_PRE
+#undef DUDVEXPR_PRE
+#undef DUDVEXPR
+#undef DUDVEXPR_UPDATE
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // deriv "f=ff"

@@ -87,6 +87,70 @@ This file tracks known defects and implementation gaps in openRender. Open items
 
 ## Resolved Bugs
 
+- [x] Bug: a REYES or zbuffer grid derivative next to a lane a varying block had switched off read memory
+      nothing had written (FIXED — GitHub #61, grid half, branch `fix/grid-derivative-inactive-lanes`,
+      2026-10-23). Symptom: scenes lit by `raydistant` (`transmission(Ps, Ps - dir)` inside `solar()`)
+      rendered differently from run to run, and differently again when `ralloc` memory was filled with
+      0xFF (NaN), along the light's terminator: `csg-hero-zbuffer-1600`, `csg-hero-stats-1600-reyes`,
+      `csg-hero-reyes-1600`, `csg-hero-zbuffer-800`, `csg-offscreen-stats-reyes`,
+      `csg-hero-partial-stats-reyes`, `csg-hero-two-shaders-reyes` and `csg-hero-stats-800-reyes`, whose
+      determinism-sweep entries were disabled. Mechanism: `solar()` switches off the lanes facing away
+      from the light (`shaderOpcodes.h:434-446`), so `subvv temporary_3 Ps dir` writes only the active
+      lanes of a compiler temporary that lives in the shader's locals block, allocated by
+      `CProgrammableShaderInstance::prepare()` (`shader.cpp:627`) with no initial value (only parameters
+      get defaults). `transmission()` takes `dvVector()`/`duVector()` of it (`giFunctions.h:50-51`, and
+      `jitTraceBatch` at `shading.cpp:3086` under the JIT), and the `SHADING_2D_GRID` branch of the eight
+      `du/Du/dv/Dv` Float/Vector functions (`executeMisc.cpp`) central-differenced an active lane against
+      that unwritten neighbour; the garbage became the ray differential of the shadow ray. Found by
+      filling only the `prepare()` block with 0xFF, which gives exactly the image of a global `ralloc`
+      fill, under `.rslo` and `.slo` alike. Fix: the grid branches call one helper, `gridDifference()`
+      (`executeMisc.cpp:59`), that never reads a lane the tags mark inactive: an active lane takes the
+      central difference with two active neighbours, the one-sided difference with one (as at the grid
+      edges, and the same rule T084b gave ray-hit lanes), and 0 with none; an inactive lane's own result
+      is 0. A lane with no inactive neighbour gets the arithmetic of the unmasked code bit for bit. Every
+      one of the 415 sweep scenes renders bit-identically to before at `-t:1` under sobol, and the eight
+      scenes are deterministic under any fill (none, 0x00, 0x55, 0xFF); their sweep entries are enabled
+      again. Note that a derivative of an operand that is valid on both sides of the mask (`Ps`, for one)
+      is now one-sided at the seam instead of central: an O(du) change, which moved no output. Guarded by
+      `ShadingParity_DerivativeInactiveGridLanes` (`tests/shading_parity/test_derivative_inactive_grid_lanes.cpp`):
+      a grid with a mask seam and its inactive lanes filled with 0x00 and 0xFF must give bit-identical
+      results, the exact one-sided values, 0 with no active neighbour, and unchanged other lanes.
+
+- [x] Bug: `Du()`/`Dv()` wrote every lane of their destination, ignoring the lane tags (FIXED — found during
+      the GitHub #61 investigation, no issue of its own, branch `fix/grid-derivative-inactive-lanes`,
+      2026-10-23). Symptom: `float y = 1; if (s > 0.5) y = Du(f);` left `y` overwritten on the lanes the
+      `if` switched off (0.0, 5.81, ... instead of 1), on both backends. Mechanism: the derivative
+      builtins compile to a direct write of the named destination (`Du ("f=f") y temporary_1`), and the
+      interpreter's `DUFEXPR_PRE`/`DUVEXPR_PRE`/`DVFEXPR_PRE`/`DVVEXPR_PRE` called `duFloat(res, op)`
+      and friends on it from the unconditional `_PRE` part of `DEFFUNC` (`shaderFunctions.h`, formerly
+      lines 93-143), while the JIT's `op_Du_ff`/`op_Dv_ff`/`op_Du_vv`/`op_Dv_vv` (`rslOps.cpp`) handed it
+      straight to the same helpers, which fill all `numVertices` lanes. Found by the investigation's
+      probe (iii). Fix: both backends take the derivative into `ralloc` scratch and copy only the active
+      lanes: `DUDVEXPR_PRE`/`DUDVEXPR` in `shaderFunctions.h:97` (through `DEFFUNC`'s tag loop), and
+      `maskedDerivative()` in `rslOps.cpp:1795`. A uniform operand now gives 0 in the interpreter, as it
+      already did under the JIT (the old code ran the grid helper over the single value and wrote
+      `numVertices` lanes into a uniform destination). Audit: the rest of the derivative family already
+      takes its derivatives into scratch and writes the destination per lane under the tags, so it was
+      not affected: `Deriv()`, `area()`, `calculatenormal()`, `texture()`/`environment()`/`shadow()`,
+      `filterstep()`, `bake3d()`/`texture3d()`, `transmission()`/`trace()`/`occlusion()` and their
+      `jit*` twins (`jitDerivF/V`, `jitArea`, `jitCalculateNormal`, ...). Guarded by
+      `ShadingParity_DerivativeDestinationMask` (`tests/shading_parity/test_derivative_destination.cpp`),
+      which renders one fixture as `.rslo` and `.slo` and checks `Du`/`Dv` (float and vector) with
+      `Deriv`, `area` and `calculatenormal` alongside.
+
+- [x] Bug: `x = Du(x)` and `x = Dv(x)` returned garbage (FIXED — found during the GitHub #61 investigation, no
+      issue of its own, branch `fix/grid-derivative-inactive-lanes`, 2026-10-23). Symptom: a derivative
+      assigned back to its own operand came out wrong on every grid lane past the first, on both backends.
+      Mechanism: the assignment compiles in place (`Du ("f=f") x x`), the derivative was written straight
+      into the destination (see the previous entry), and the grid loop wrote lane i before reading it as
+      the left neighbour of lane i + 1. Found while compiling the investigation's temporary-reuse probe.
+      Fix: the scratch buffer of the previous entry, so the source is read whole before the destination is
+      written; it needs no compiler change, so shaders already compiled to `.rslo`/`.slo` are fixed too.
+      Audit: only `Du`/`Dv` aliased; `Deriv(x, s)` in place, `calculatenormal()` and `area()` already
+      read their operand into scratch first. Guarded by `ShadingParity_DerivativeInPlace`
+      (`tests/shading_parity/test_derivative_destination.cpp`), which checks `x = Du(x)`, `x = Dv(x)`,
+      their vector forms and `x = Deriv(x, s)` on both backends against the analytic derivatives.
+
 - [x] Bug: `Blobby_SurfaceParams` hung whenever the default `file` display driver was findable
       (FIXED — branch `fix/blobby-test-eye-plane`, 2026-10-22). The test
       (`tests/unit/blobby/test_surface_params.cpp`) opens `RiBegin(RI_NULL)` sessions with no

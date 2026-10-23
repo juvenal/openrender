@@ -42,6 +42,58 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////
+// Function				:	gridDifference
+// Description			:	The u or v difference of a grid, skipping inactive lanes
+// Return Value			:	-
+// Comments				:	GitHub #61, grid half. A lane the lane tags mark inactive was not
+//							written by the expression (it was evaluated in a block that switched
+//							the lane off: the solar() block of raydistant.sl switches off the
+//							lanes facing away from the light), so it holds stale memory. It is
+//							never read: an active lane differences towards its active neighbours
+//							only, central with two, one-sided with one (as at the grid edges),
+//							and 0 with none; an inactive lane's own result is 0. A lane with no
+//							inactive neighbour gets exactly the arithmetic of the unmasked code.
+//							inv1 scales a one-sided difference and inv2 a central one (1 and 0.5
+//							for the Du()/Dv() differences, 1/d and 1/(2d) for the derivatives).
+template <int C>
+static void gridDifference(float *dest, const float *src, const int *tags, int uVertices, int vVertices, bool alongU, double inv1, double inv2) {
+    const int len = alongU ? uVertices : vVertices;
+    const int lines = alongU ? vVertices : uVertices;
+    const int step = alongU ? 1 : uVertices;
+    const int lineStep = alongU ? uVertices : 1;
+
+    for (int j = 0; j < lines; ++j) {
+        for (int i = 0; i < len; ++i) {
+            const int l = j * lineStep + i * step;
+            float *res = dest + l * C;
+            const float *cur = src + l * C;
+
+            if (tags[l] != 0) {
+                for (int c = 0; c < C; ++c)
+                    res[c] = 0;
+                continue;
+            }
+
+            const bool hasL = (i > 0) && (tags[l - step] == 0);
+            const bool hasR = (i < len - 1) && (tags[l + step] == 0);
+            const float *lo = cur - step * C;
+            const float *hi = cur + step * C;
+
+            for (int c = 0; c < C; ++c) {
+                if (hasL && hasR)
+                    res[c] = (float)(((double)hi[c] - (double)lo[c]) * inv2); // Central differencing
+                else if (hasR)
+                    res[c] = (float)(((double)hi[c] - (double)cur[c]) * inv1); // Forward differencing
+                else if (hasL)
+                    res[c] = (float)(((double)cur[c] - (double)lo[c]) * inv1); // Backward differencing
+                else
+                    res[c] = 0;
+            }
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
 // Class				:	CShadingContext
 // Method				:	duFloat
 // Description			:	Compute the u derivative
@@ -73,23 +125,8 @@ void CShadingContext::duFloat(float *dest, const float *src) {
             const double invDu1 = 1.0 / ((double)u[1] - (double)u[0]);
             const double invDu2 = 1.0 / (2.0 * ((double)u[1] - (double)u[0]));
 
-            // Compute the Du
-            for (int j = vVertices; j > 0; --j) {
-
-                // Forward differencing
-                *dest++ = (float)(((double)src[1] - (double)src[0]) * invDu1);
-                ++src;
-
-                // Central differencing
-                for (int i = uVertices - 2; i > 0; --i) {
-                    *dest++ = (float)(((double)src[1] - (double)src[-1]) * invDu2);
-                    ++src;
-                }
-
-                // Backward differencing
-                *dest++ = (float)(((double)src[0] - (double)src[-1]) * invDu1);
-                ++src;
-            }
+            // Inactive lanes are never read (GitHub #61, see gridDifference)
+            gridDifference<1>(dest, src, currentShadingState->tags, uVertices, vVertices, true, invDu1, invDu2);
         } break;
 
         // Du executing on a 2D raytraced surface
@@ -150,23 +187,8 @@ void CShadingContext::DuFloat(float *dest, const float *src) {
             assert(uVertices >= 2);
             assert(vVertices >= 2);
 
-            // Compute the Du
-            for (int j = vVertices; j > 0; --j) {
-
-                // Forward differencing
-                *dest++ = (float)((double)src[1] - (double)src[0]);
-                src++;
-
-                // Central differencing
-                for (int i = uVertices - 2; i > 0; --i) {
-                    *dest++ = (float)(((double)src[1] - (double)src[-1]) * 0.5);
-                    src++;
-                }
-
-                // Backward differencing
-                *dest++ = (float)((double)src[0] - (double)src[-1]);
-                src++;
-            }
+            // Inactive lanes are never read (GitHub #61, see gridDifference)
+            gridDifference<1>(dest, src, currentShadingState->tags, uVertices, vVertices, true, 1.0, 0.5);
         } break;
 
         // Du executing on a 2D raytraced surface
@@ -230,26 +252,8 @@ void CShadingContext::dvFloat(float *dest, const float *src) {
             const double invDv1 = 1.0 / ((double)v[uVertices] - (double)v[0]);
             const double invDv2 = 1.0 / (2.0 * ((double)v[uVertices] - (double)v[0]));
 
-            // Compute the DV
-            for (int j = 0; j < uVertices; ++j) {
-                float *cRes = dest + j;
-                const float *cOp = src + j;
-
-                // Forward differencing
-                cRes[0] = (float)((double)(cOp[uVertices] - (double)cOp[0]) * invDv1);
-                cRes += uVertices;
-                cOp += uVertices;
-
-                // Central differencing
-                for (int i = vVertices - 2; i > 0; --i) {
-                    cRes[0] = (float)(((double)cOp[uVertices] - (double)cOp[-uVertices]) * invDv2);
-                    cRes += uVertices;
-                    cOp += uVertices;
-                }
-
-                // Backward differencing
-                cRes[0] = (float)(((double)cOp[0] - (double)cOp[-uVertices]) * invDv1);
-            }
+            // Inactive lanes are never read (GitHub #61, see gridDifference)
+            gridDifference<1>(dest, src, currentShadingState->tags, uVertices, vVertices, false, invDv1, invDv2);
         } break;
 
         // Dv executing on a 2D raytraced surface
@@ -313,26 +317,8 @@ void CShadingContext::DvFloat(float *dest, const float *src) {
             assert(uVertices >= 2);
             assert(vVertices >= 2);
 
-            // Compute the DV
-            for (int j = 0; j < uVertices; ++j) {
-                float *cRes = dest + j;
-                const float *cOp = src + j;
-
-                // Forward differencing
-                cRes[0] = (float)((double)cOp[uVertices] - (double)cOp[0]);
-                cRes += uVertices;
-                cOp += uVertices;
-
-                // Central differencing
-                for (int i = vVertices - 2; i > 0; --i) {
-                    cRes[0] = (float)(((double)cOp[uVertices] - (double)cOp[-uVertices]) * 0.5);
-                    cRes += uVertices;
-                    cOp += uVertices;
-                }
-
-                // Backward differencing
-                cRes[0] = (float)((double)cOp[0] - (double)cOp[-uVertices]);
-            }
+            // Inactive lanes are never read (GitHub #61, see gridDifference)
+            gridDifference<1>(dest, src, currentShadingState->tags, uVertices, vVertices, false, 1.0, 0.5);
         } break;
 
         // Dv executing on a 2D raytraced surface
@@ -395,31 +381,12 @@ void CShadingContext::duVector(float *dest, const float *src) {
             assert(vVertices >= 2);
             assert(u[1] > u[0]);
 
+            // These values are constant accross a grid
             const double invDu1 = 1.0 / ((double)u[1] - (double)u[0]);
             const double invDu2 = 1.0 / (2.0 * ((double)u[1] - (double)u[0]));
 
-            for (int j = vVertices; j > 0; --j) {
-
-                // Use forward difference
-                *dest++ = (float)(((double)src[3] - (double)src[0]) * invDu1);
-                *dest++ = (float)(((double)src[4] - (double)src[1]) * invDu1);
-                *dest++ = (float)(((double)src[5] - (double)src[2]) * invDu1);
-                src += 3;
-
-                // Use central difference
-                for (int i = uVertices - 2; i > 0; --i) {
-                    *dest++ = (float)(((double)src[3] - (double)src[-3]) * invDu2);
-                    *dest++ = (float)(((double)src[4] - (double)src[-2]) * invDu2);
-                    *dest++ = (float)(((double)src[5] - (double)src[-1]) * invDu2);
-                    src += 3;
-                }
-
-                // Use backward difference
-                *dest++ = (float)(((double)src[0] - (double)src[-3]) * invDu1);
-                *dest++ = (float)(((double)src[1] - (double)src[-2]) * invDu1);
-                *dest++ = (float)(((double)src[2] - (double)src[-1]) * invDu1);
-                src += 3;
-            }
+            // Inactive lanes are never read (GitHub #61, see gridDifference)
+            gridDifference<3>(dest, src, currentShadingState->tags, uVertices, vVertices, true, invDu1, invDu2);
         } break;
 
         // Du executing on a 2D raytraced surface
@@ -492,28 +459,8 @@ void CShadingContext::DuVector(float *dest, const float *src) {
             assert(uVertices >= 2);
             assert(vVertices >= 2);
 
-            for (int j = vVertices; j > 0; --j) {
-
-                // Use forward difference
-                *dest++ = (float)((double)src[3] - (double)src[0]);
-                *dest++ = (float)((double)src[4] - (double)src[1]);
-                *dest++ = (float)((double)src[5] - (double)src[2]);
-                src += 3;
-
-                // Use central difference
-                for (int i = uVertices - 2; i > 0; --i) {
-                    *dest++ = (float)(((double)src[3] - (double)src[-3]) * 0.5);
-                    *dest++ = (float)(((double)src[4] - (double)src[-2]) * 0.5);
-                    *dest++ = (float)(((double)src[5] - (double)src[-1]) * 0.5);
-                    src += 3;
-                }
-
-                // Use backward difference
-                *dest++ = (float)((double)src[0] - (double)src[-3]);
-                *dest++ = (float)((double)src[1] - (double)src[-2]);
-                *dest++ = (float)((double)src[2] - (double)src[-1]);
-                src += 3;
-            }
+            // Inactive lanes are never read (GitHub #61, see gridDifference)
+            gridDifference<3>(dest, src, currentShadingState->tags, uVertices, vVertices, true, 1.0, 0.5);
         } break;
 
         // Du executing on a 2D raytraced surface
@@ -587,31 +534,8 @@ void CShadingContext::dvVector(float *dest, const float *src) {
             const double invDv1 = 1.0 / ((double)v[uVertices] - (double)v[0]);
             const double invDv2 = 1.0 / (2.0 * ((double)v[uVertices] - (double)v[0]));
 
-            for (int j = 0; j < uVertices; ++j) {
-                float *cRes = dest + j * 3;
-                const float *cOp = src + j * 3;
-
-                // Forward differencing
-                cRes[0] = (float)(((double)cOp[uVertices * 3 + 0] - (double)cOp[0]) * invDv1);
-                cRes[1] = (float)(((double)cOp[uVertices * 3 + 1] - (double)cOp[1]) * invDv1);
-                cRes[2] = (float)(((double)cOp[uVertices * 3 + 2] - (double)cOp[2]) * invDv1);
-                cRes += uVertices * 3;
-                cOp += uVertices * 3;
-
-                // Central differencing
-                for (int i = vVertices - 2; i > 0; --i) {
-                    cRes[0] = (float)(((double)cOp[uVertices * 3 + 0] - (double)cOp[-uVertices * 3 + 0]) * invDv2);
-                    cRes[1] = (float)(((double)cOp[uVertices * 3 + 1] - (double)cOp[-uVertices * 3 + 1]) * invDv2);
-                    cRes[2] = (float)(((double)cOp[uVertices * 3 + 2] - (double)cOp[-uVertices * 3 + 2]) * invDv2);
-                    cRes += uVertices * 3;
-                    cOp += uVertices * 3;
-                }
-
-                // Backward differencing
-                cRes[0] = (float)(((double)cOp[0] - (double)cOp[-uVertices * 3 + 0]) * invDv1);
-                cRes[1] = (float)(((double)cOp[1] - (double)cOp[-uVertices * 3 + 1]) * invDv1);
-                cRes[2] = (float)(((double)cOp[2] - (double)cOp[-uVertices * 3 + 2]) * invDv1);
-            }
+            // Inactive lanes are never read (GitHub #61, see gridDifference)
+            gridDifference<3>(dest, src, currentShadingState->tags, uVertices, vVertices, false, invDv1, invDv2);
         } break;
 
         // Dv executing on a 2D raytraced surface
@@ -684,31 +608,8 @@ void CShadingContext::DvVector(float *dest, const float *src) {
             assert(uVertices >= 2);
             assert(vVertices >= 2);
 
-            for (int j = 0; j < uVertices; ++j) {
-                float *cRes = dest + j * 3;
-                const float *cOp = src + j * 3;
-
-                // Forward differencing
-                cRes[0] = (float)((double)cOp[uVertices * 3 + 0] - (double)cOp[0]);
-                cRes[1] = (float)((double)cOp[uVertices * 3 + 1] - (double)cOp[1]);
-                cRes[2] = (float)((double)cOp[uVertices * 3 + 2] - (double)cOp[2]);
-                cRes += uVertices * 3;
-                cOp += uVertices * 3;
-
-                // Central differencing
-                for (int i = vVertices - 2; i > 0; --i) {
-                    cRes[0] = (float)(((double)cOp[uVertices * 3 + 0] - (double)cOp[-uVertices * 3 + 0]) * 0.5);
-                    cRes[1] = (float)(((double)cOp[uVertices * 3 + 1] - (double)cOp[-uVertices * 3 + 1]) * 0.5);
-                    cRes[2] = (float)(((double)cOp[uVertices * 3 + 2] - (double)cOp[-uVertices * 3 + 2]) * 0.5);
-                    cRes += uVertices * 3;
-                    cOp += uVertices * 3;
-                }
-
-                // Backward differencing
-                cRes[0] = (float)((double)cOp[0] - (double)cOp[-uVertices * 3 + 0]);
-                cRes[1] = (float)((double)cOp[1] - (double)cOp[-uVertices * 3 + 1]);
-                cRes[2] = (float)((double)cOp[2] - (double)cOp[-uVertices * 3 + 2]);
-            }
+            // Inactive lanes are never read (GitHub #61, see gridDifference)
+            gridDifference<3>(dest, src, currentShadingState->tags, uVertices, vVertices, false, 1.0, 0.5);
         } break;
 
         // Dv executing on a 2D raytraced surface
