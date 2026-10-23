@@ -278,10 +278,15 @@ not in the agent definitions.
   `DEVNOTES_DETAILS/*.md` and `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`; respect
   constitution Principle VIII and never add an include or link edge its
   allowed-dependency table forbids.
-- Builds and tests: one build or test run at a time across the machine, and
-  only once the coordinator clears it. Use
-  `nice -n 19 cmake --build build --config Release -j4` and
-  `nice -n 19 ctest --test-dir build -j4`; never `-j8` or a bare `-j`.
+- Builds and tests: every build, test run and render sweep goes through
+  `~/.claude/bin/cpujob <label> <command>`, which holds one machine-wide
+  lock, runs the job under `nice -n 19` and kills it after `CPUJOB_TIMEOUT`
+  seconds (default 2700, exit 124). Use
+  `cpujob <label> cmake --build build --config Release -j4` and
+  `cpujob <label> ctest --test-dir build -j4 --output-on-failure`; the
+  determinism sweep and other long runs use `-j2`. `cpujob` refuses `-j8`,
+  a bare `-j` or any count above 4. Never run a test binary directly: a
+  hung one has no timeout.
 - Implement: run `ctest --test-dir build -L architecture` before reporting a
   phase. Run clang-format with the repo's `.clang-format` on an edited file
   only if it was clang-format clean before.
