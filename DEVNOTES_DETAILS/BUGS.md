@@ -94,6 +94,15 @@ This file tracks known defects and implementation gaps in openRender. Open items
 
 ## Resolved Bugs
 
+- [x] Bug: the irradiance cache's horizon test silently changed meaning in `b6dacb9` (RECORDED — branch
+      `fix/csg-hero-displaced-determinism`, 2026-10-24; found by the `-Wshadow` audit that followed GitHub
+      #63). In `CIrradianceCache::sample` (`src/ri/hiders/irradianceDispatch.cpp`), indirectdiffuse with a
+      global photon map, the "avoid too bright spots" block used to store the photon lookup's brightest
+      channel in `tmp`, the variable that holds the ray's cosine, so the later `if (tmp > horizonCutoff)`
+      validity-radius test compared a brightness against cos 80°. `b6dacb9` (max/min macro cleanup, "no
+      functional changes") declared a new local `tmp` there, so since 2025-12-27 the test reads the
+      cosine, as it already did for occlusion and for misses. That is the intended behaviour, and it is
+      kept: the local is now `maxChannel`, so nothing can shadow `tmp` again. No output changes.
 - [x] Bug: the occlusion culler reported a maximum opaque depth nearer than the farthest opaque sample, so
       the reyes and zbuffer opacity cull dropped grids that were still visible (FIXED — GitHub #63, branch
       `fix/csg-hero-displaced-determinism`, 2026-10-24). Symptom: `csg-hero-displaced-reyes` rendered
