@@ -27,16 +27,20 @@
 
 #include "common/algebra.h"
 
-// This macro is used to fix the degenerate normal vectors
+// This macro is used to fix the degenerate normal vectors. It expands inside a
+// sample(int start, int numVertices, float **varying, ...) and works on the
+// points that call wrote, [start, start + numVertices): a degenerate Ng takes the
+// Ng of the nearest point (in u, v) of that range whose Ng is non-zero. The
+// raytracer samples its derivative points with start > 0.
 #define normalFix()                                                     \
     {                                                                   \
-        float *Ng = varying[VARIABLE_NG];                               \
+        float *Ng = varying[VARIABLE_NG] + start * 3;                   \
                                                                         \
         for (int i = numVertices; i > 0; i--, Ng += 3) {                \
             if (dotvv(Ng, Ng) < C_EPSILON * C_EPSILON) {                \
-                const float *u = varying[VARIABLE_U];                   \
-                const float *v = varying[VARIABLE_V];                   \
-                const float *cNg = varying[VARIABLE_NG];                \
+                const float *u = varying[VARIABLE_U] + start;           \
+                const float *v = varying[VARIABLE_V] + start;           \
+                const float *cNg = varying[VARIABLE_NG] + start * 3;    \
                 const float cu = u[numVertices - i];                    \
                 const float cv = v[numVertices - i];                    \
                 float cd = C_INFINITY;                                  \
@@ -65,16 +69,17 @@
 // This macro fixes degenerate dPdu/dPdv tangent vectors (e.g., at patch poles
 // where the analytical derivative is zero). When dPdu=(0,0,0), normalize(dPdu)
 // returns (0,0,0) and anisotropic shading models produce maximum specular.
-// Mirrors normalFix() exactly but for VARIABLE_DPDU and VARIABLE_DPDV.
+// Mirrors normalFix() exactly (same range, same thresholds) but for
+// VARIABLE_DPDU and VARIABLE_DPDV.
 #define tangentFix()                                                    \
     {                                                                   \
-        float *dPdu = varying[VARIABLE_DPDU];                           \
+        float *dPdu = varying[VARIABLE_DPDU] + start * 3;               \
                                                                         \
         for (int i = numVertices; i > 0; i--, dPdu += 3) {              \
             if (dotvv(dPdu, dPdu) < C_EPSILON * C_EPSILON) {            \
-                const float *u = varying[VARIABLE_U];                   \
-                const float *v = varying[VARIABLE_V];                   \
-                const float *cDu = varying[VARIABLE_DPDU];              \
+                const float *u = varying[VARIABLE_U] + start;           \
+                const float *v = varying[VARIABLE_V] + start;           \
+                const float *cDu = varying[VARIABLE_DPDU] + start * 3;  \
                 const float cu = u[numVertices - i];                    \
                 const float cv = v[numVertices - i];                    \
                 float cd = C_INFINITY;                                  \
@@ -97,13 +102,13 @@
             }                                                           \
         }                                                               \
                                                                         \
-        float *dPdv = varying[VARIABLE_DPDV];                           \
+        float *dPdv = varying[VARIABLE_DPDV] + start * 3;               \
                                                                         \
         for (int i = numVertices; i > 0; i--, dPdv += 3) {              \
             if (dotvv(dPdv, dPdv) < C_EPSILON * C_EPSILON) {            \
-                const float *u = varying[VARIABLE_U];                   \
-                const float *v = varying[VARIABLE_V];                   \
-                const float *cDv = varying[VARIABLE_DPDV];              \
+                const float *u = varying[VARIABLE_U] + start;           \
+                const float *v = varying[VARIABLE_V] + start;           \
+                const float *cDv = varying[VARIABLE_DPDV] + start * 3;  \
                 const float cu = u[numVertices - i];                    \
                 const float cv = v[numVertices - i];                    \
                 float cd = C_INFINITY;                                  \

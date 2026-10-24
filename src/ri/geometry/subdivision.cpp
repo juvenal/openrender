@@ -225,15 +225,11 @@ void CSubdivision::sample(int start, int numVertices, float **varying, float ***
                 n = /*10*/ 24;
             }
             else {
-                float logCu = -log(cu);
-                float logCv = -log(cv);
-                float minLog;
-                if (logCv < logCu) {
-                    minLog = logCv;
-                }
-                else {
-                    minLog = logCu;
-                }
+                // double, as cu and cv are: a float rounding of -log(2^-k) can fall
+                // below k * log(2), and floor() then picks one level too few
+                const double logCu = -log(cu);
+                const double logCv = -log(cv);
+                const double minLog = (logCu < logCv) ? logCu : logCv;
                 n = (int)floor(minLog / log(2.0)) + 1;
                 if (n <= 0)
                     n = 1; // Need at least one subdivision

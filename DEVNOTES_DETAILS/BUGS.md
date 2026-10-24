@@ -94,6 +94,49 @@ This file tracks known defects and implementation gaps in openRender. Open items
 
 ## Resolved Bugs
 
+- [x] Bug: `normalFix()` and `tangentFix()` ignored the `start` of the `sample()` they run in, so the raytracer's
+      derivative points were repaired over the wrong range (FIXED — no GitHub issue, branch
+      `fix/normalfix-derivative-offset`, 2026-10-24). Symptom: none seen in a render; found by an audit. The
+      raytrace hider samples its derivative points with `sample(numRealVertices, 2 * numRealVertices, ...)`
+      (`shading.cpp:1103`), and there a degenerate Ng, dPdu or dPdv (a collapsed patch edge, a pole) at a
+      `(u, v + dv)` point stayed zero, while one at a `(u + du, v)` point could take a main point's vector.
+      Mechanism: both macros (`geometry/patchUtils.h:35`, `:74`) walked `varying[VARIABLE_NG]`,
+      `varying[VARIABLE_DPDU]`/`DPDV` and read `u`/`v` from base 0 over `numVertices` points, although every
+      one of their twelve call sites (`bsplinePatchgrid.cpp:385-386`, `patches.cpp:492-493`, `:804-805`,
+      `:1328-1329`, `quadrics.cpp:3276-3277` (`CToroid`), `subdivision.cpp:340-341`) writes its points at
+      `+ start` and none passes pointers already offset. With `start = N` and `numVertices = 2N` the repair
+      scanned `[0, 2N)` instead of `[N, 3N)`: the `(u, v + dv)` points were never inspected, and the
+      neighbour pool held the main points and lacked half the call's own. Every other `sample()` call passes
+      `start = 0` and is unaffected. `normalFix` has been like this since the initial import (`5399a1b`);
+      `tangentFix` copied it in `43b60f8`. Fix: both macros offset `Ng`/`dPdu`/`dPdv` and their candidate
+      pointers by `start * 3` and `u`/`v` by `start`; both thresholds (`< C_EPSILON * C_EPSILON` to detect,
+      `> 0` to accept a neighbour; known gotcha 1) are unchanged. A derivative point's neighbour pool is now
+      the derivative points of the same call, no longer the main points. Every one of the 419 sweep tests'
+      outputs renders bit-identically to before at `-t:1` under sobol (no sweep scene puts a derivative point
+      exactly on a degenerate spot; spheres and the other quadrics but `CToroid` never call the macros).
+      Guarded by `Geometry_DegenerateFixOffset` (`tests/unit/geometry/test_degenerate_fix_offset.cpp`): a
+      bilinear patch with P2 == P3 (dPdu and Ng zero along v = 1) and one with P1 == P3 (dPdv and Ng zero
+      along u = 1), sampled with `sample(1, 2, ...)` over a regular point and a degenerate one in both orders,
+      with a sentinel point in slot 0. The degenerate point must take exactly the regular point's vector,
+      and slot 0 must stay untouched. Before the fix 4/4 cases failed (the vector left at 0 when the
+      degenerate point is last, the sentinel copied in when it is first, for Ng, dPdu and dPdv alike); after
+      it, 4/4 pass.
+
+- [x] Bug: `CSubdivision::sample()` computed its subdivision level from `float` logarithms, one level too few at
+      some dyadic parameters (FIXED — no GitHub issue, branch `fix/normalfix-derivative-offset`, 2026-10-24).
+      Symptom: none seen in a render; found by an audit. Mechanism: `b6dacb9` (a max/min macro cleanup that
+      claimed no functional change) rewrote `n = floor(min(-log(cu), -log(cv)) / log(2.0)) + 1` with `float
+      logCu`/`logCv`/`minLog` where `cu`, `cv` and the `min()` macro's result were `double`. Rounding
+      `-log(2^-k)` to float can land below `k * log(2)`, and `floor()` then gives `k` instead of `k + 1`.
+      Measured with both coordinates at `2^-k` (the level follows the larger coordinate): the float form gives
+      one level too few for k = 13, 15, 17, 19, 21 and 23, the double form none for k = 0..24; over 1.2 million
+      evenly spaced float parameters with `cu == cv`, 2 differ. At those points both levels describe the same
+      limit point, so the difference is a rounding step in the evaluated P, derivatives and Ng. Fix:
+      `subdivision.cpp:230-233` is `double` again and takes the minimum as the old macro did, `(a) < (b) ?
+      (a) : (b)`. Every one of the 419 sweep tests' outputs renders bit-identically to before at `-t:1`. No
+      unit test: `n` is a local of the per-point loop, and the only observable effect is that rounding step
+      at isolated parameters, which a test could only pin against the implementation's own output.
+
 - [x] Bug: `Oi` (and `Ci`) kept a stale value from the thread's varying buffer when a shader referenced it but
       the surface shader never wrote it (FIXED — GitHub #60, branch `fix/shader-parameter-thread-race`,
       2026-10-23). Symptom: `sphere-shader-parameter-reyes` and its `-slo` twin rendered differently at `-t:4`
