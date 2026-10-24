@@ -140,7 +140,6 @@ add_determinism_sweep(csg-coincident-union-raytrace examples/rib/tests/csg-coinc
 add_determinism_sweep(csg-coincident-union-reyes examples/rib/tests/csg-coincident-union-reyes.rib csg-coincident-union-reyes.tif)
 add_determinism_sweep(csg-coincident-union-zbuffer examples/rib/tests/csg-coincident-union-zbuffer.rib csg-coincident-union-zbuffer.tif)
 add_determinism_sweep(csg-hero-displaced-raytrace examples/rib/tests/csg-hero-displaced-raytrace.rib csg-hero-displaced-raytrace.tif)
-# Disabled, see GitHub #63 below.
 add_determinism_sweep(csg-hero-displaced-reyes examples/rib/tests/csg-hero-displaced-reyes.rib csg-hero-displaced-reyes.tif)
 add_determinism_sweep(csg-hero-instanced-outside-world-reyes examples/rib/tests/csg-hero-instanced-outside-world-reyes.rib csg-hero-instanced-outside-world-reyes.tif)
 add_determinism_sweep(csg-hero-partial-stats-reyes examples/rib/tests/csg-hero-partial-stats-reyes.rib csg-hero-partial-stats-reyes.tif)
@@ -455,11 +454,10 @@ add_determinism_sweep(torus-reyes examples/rib/tests/torus-reyes.rib torus-reyes
 # csg-hero-partial-stats-reyes, csg-hero-two-shaders-reyes and csg-hero-stats-800-reyes, render the
 # same under any ralloc fill (none, 0x00, 0x55, 0xFF) and are no longer disabled.
 #
-# GitHub #63: csg-hero-displaced-reyes differs intermittently by about +-1e-3 on black pixels in the
-# first column of a bucket. No tie, and a ralloc fill does not explain it; the cause is unknown.
-set_tests_properties(
-    DeterminismSweep_csg-hero-displaced-reyes
-    PROPERTIES DISABLED TRUE)
+# GitHub #63 is fixed and csg-hero-displaced-reyes is swept again. The occlusion culler's
+# maximum opaque depth fell below the farthest opaque sample (a parent took the touched leaf's
+# depth, not its children's maximum), so the opacity cull dropped grids still visible in a
+# bucket's left filter margin, unless thread timing had drawn them first (DEVNOTES_DETAILS/BUGS.md).
 
 # --- GI scenes: not swept (spec 040) --------------------------------------------------------------
 #   examples/rib/tests/parity/motion-subdiv-translate-photon.rib  (Hider "photon", Attribute "photon")

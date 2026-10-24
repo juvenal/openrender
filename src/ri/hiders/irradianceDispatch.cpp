@@ -494,15 +494,17 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
                         else {
                             maxC01 = C[0];
                         }
-                        float tmp;
+                        // Its own name: the horizon test below reads tmp, the ray's cosine,
+                        // which a brightness stored there (as before b6dacb9) would replace
+                        float maxChannel;
                         if (C[2] > maxC01) {
-                            tmp = C[2];
+                            maxChannel = C[2];
                         }
                         else {
-                            tmp = maxC01;
+                            maxChannel = maxC01;
                         }
-                        if (tmp > scratch->occlusionParams.maxBrightness)
-                            mulvf(C, scratch->occlusionParams.maxBrightness / tmp);
+                        if (maxChannel > scratch->occlusionParams.maxBrightness)
+                            mulvf(C, scratch->occlusionParams.maxBrightness / maxChannel);
 
                         mulvv(C, attributes->surfaceColor);
                         addvv(irradiance, C);

@@ -137,6 +137,47 @@ This file tracks known defects and implementation gaps in openRender. Open items
       unit test: `n` is a local of the per-point loop, and the only observable effect is that rounding step
       at isolated parameters, which a test could only pin against the implementation's own output.
 
+- [x] Bug: the irradiance cache's horizon test silently changed meaning in `b6dacb9` (RECORDED — branch
+      `fix/csg-hero-displaced-determinism`, 2026-10-24; found by the `-Wshadow` audit that followed GitHub
+      #63). In `CIrradianceCache::sample` (`src/ri/hiders/irradianceDispatch.cpp`), indirectdiffuse with a
+      global photon map, the "avoid too bright spots" block used to store the photon lookup's brightest
+      channel in `tmp`, the variable that holds the ray's cosine, so the later `if (tmp > horizonCutoff)`
+      validity-radius test compared a brightness against cos 80°. `b6dacb9` (max/min macro cleanup, "no
+      functional changes") declared a new local `tmp` there, so since 2025-12-27 the test reads the
+      cosine, as it already did for occlusion and for misses. That is the intended behaviour, and it is
+      kept: the local is now `maxChannel`, so nothing can shadow `tmp` again. No output changes.
+
+- [x] Bug: the occlusion culler reported a maximum opaque depth nearer than the farthest opaque sample, so
+      the reyes and zbuffer opacity cull dropped grids that were still visible (FIXED — GitHub #63, branch
+      `fix/csg-hero-displaced-determinism`, 2026-10-24). Symptom: `csg-hero-displaced-reyes` rendered
+      differently in about 1 of 8 `-t:4` runs (7/40 in float output, and 14/40 with `distantlight` in place
+      of `raydistant`): 11 pixels at `x = 448`, the first column of bucket (14, 7), rows 244-254, by up to
+      4.4e-3 in the light's colour, signed by the Catmull-Rom filter; its determinism-sweep entry was
+      disabled. It was not shading: every grid's P, Ci and Oi hashed the same in good and bad runs, filling
+      the `newState()` varying buffers and the nested `saveState()` states with 0x00, 0x55, 0x7F or 0xFF at
+      `-t:1` moved nothing, and the light's `transmission()` and traced displacement were not involved
+      (removing either left it failing). Mechanism: `COcclusionCuller::touchNode()` (`occlusion.h`) is
+      called when a sample's opaque depth moves nearer; when the touched node was its parent's farthest
+      child it recomputes the children's maximum and, if that is nearer, climbs and stores it in the parent.
+      Commit b6dacb9 (replacing `max()` macros) declared that maximum as a new local `float z`, so the climb
+      stored the touched sample's own depth in every parent instead: whenever a group's last leaf to move
+      nearer was not its farthest, `maxOpaqueDepth` fell below a live sample. `CReyes::render()` culls every
+      object whose `zmin` lies beyond it. In bucket (14, 7) it reported 10.288 at the cull while sample
+      (1790, 1000), in the bucket's left filter margin, ended at 10.346, and a far grid of the hole wall
+      (`zmin` 10.2966, samples 1786-1795) was culled though it wins those margin samples at about 10.306.
+      The grid reaches the bucket either pushed right from bucket 13 (then queued by `zmin`, after the
+      cull, as at `-t:1`) or inserted by another thread's dicing while the bucket is being drawn (sometimes
+      before the cull): so `-t:1` was deterministic but wrong, and the "differing" `-t:4` runs were the right
+      image. Fix: the maximum is assigned to `z` again, as before b6dacb9 (`occlusion.h:89`). The scene's
+      `-t:1` image is now bit-identical to those runs, and 0/40 `-t:4` runs differ (0/40 with
+      `distantlight`). Of the 419 sweep outputs, rendered at `-t:1` before and after under the sweep's own
+      prepared scenes, only `csg-hero-displaced-reyes.tif` moved (one 8-bit value at (448, 249), 1/255);
+      the other 418 are bit-identical. Its sweep entry is enabled again. Guarded by
+      `Raster_OcclusionCullerMaxDepth` (`tests/unit/raster/test_occlusion_culler.cpp`): a 4x4 culler whose
+      group's leaves move to 4, 2, 3 and 1, in that order, must report 4 (it reported 1), and random
+      nearer-only updates on a 16x16 culler must keep every node at its children's maximum and the reported
+      depth at the farthest leaf; 20/20 runs failed before the fix and 20/20 pass after it.
+
 - [x] Bug: `Oi` (and `Ci`) kept a stale value from the thread's varying buffer when a shader referenced it but
       the surface shader never wrote it (FIXED — GitHub #60, branch `fix/shader-parameter-thread-race`,
       2026-10-23). Symptom: `sphere-shader-parameter-reyes` and its `-slo` twin rendered differently at `-t:4`

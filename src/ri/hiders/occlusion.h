@@ -86,7 +86,9 @@ class COcclusionCuller {
                         else {
                             maxZ23_h = pNode->children[2]->zmax;
                         }
-                        float z;
+                        // The parent takes its children's maximum: z carries it up to the
+                        // next level (a local z here once left every parent at the touched
+                        // leaf's depth, below its farthest child; GitHub #63)
                         if (maxZ23_h > maxZ01_h) {
                             z = maxZ23_h;
                         }
