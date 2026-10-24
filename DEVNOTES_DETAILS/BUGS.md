@@ -84,8 +84,63 @@ This file tracks known defects and implementation gaps in openRender. Open items
       first argument in the shared argument pool (`rslo.y`, `currentArgumentPlace`), or one past the
       pool after the last instruction. Before #67 the loader's answer depended on stale bytes in
       `currentPrototype`. The compiler should reject an odd-length parameter list.
+- [ ] `orender` crashed once (exit 11, SIGSEGV, after 0.02 s) on
+      `examples/rib/tests/subdiv-hierarchical-override-photon.rib` (`Visual_subdiv-hierarchical-override-photon`)
+      during a full `ctest -LE determinism-sweep -j4` run on branch `fix/shader-parameter-thread-race`
+      (2026-10-23). Not reproduced since: 0 crashes in 30 isolated `ctest` runs, 200 sequential renders, and
+      400 renders four at a time with the GitHub #60 fix, nor in 400 four at a time without it; two later full
+      suite runs passed. Cause unknown; a normal render of the scene takes about 0.11 s, so the crash came
+      early. Noted so that a recurrence is recognised.
 
 ## Resolved Bugs
+
+- [x] Bug: `Oi` (and `Ci`) kept a stale value from the thread's varying buffer when a shader referenced it but
+      the surface shader never wrote it (FIXED — GitHub #60, branch `fix/shader-parameter-thread-race`,
+      2026-10-23). Symptom: `sphere-shader-parameter-reyes` and its `-slo` twin rendered differently at `-t:4`
+      than at `-t:1` (694–1057 values in the 8-bit output; 0.776 against 0.750 in float output), also with
+      `jitter 0` and under the Legacy sampler, and `Visual_sphere-shader-parameter-reyes-slo` failed
+      intermittently; their determinism-sweep entries were disabled. It was not a race in the
+      `surface()`/`displacement()`/`incident()`/`opposite()` queries the scene exercises, which read only
+      per-thread state. Mechanism: `complete()` filled `Ci`/`Oi` with `Cs`/`Os` only when no bound shader
+      referenced them (formerly `shading.cpp:228`/`:241` in the motion overload and `:372`/`:382` in the
+      static one), assuming that a shader which references them writes them. `CAttributes` ORs the Interior
+      and Exterior shaders' `requiredParameters()` into `usedParameters` (`attributes.cpp:409-411`), and
+      `param_query_volume`, bound as both, does `Oi = Oi`, so `PARAMETER_OI` was set; it runs after the
+      surface shader as the post shader (`shading.cpp:1271`, `:1327`), and `shader_parameter_probe` writes
+      `Ci` only. Nobody wrote `Oi`: it held whatever the thread's `varying[VARIABLE_OI]` last held. That is
+      `Os` where a displacement-only dicing pass (whose own `usedParameters` lacks `PARAMETER_OI`, so
+      `complete()` did fill it) had covered at least as many vertices on that thread, and uninitialized
+      beyond, in memory no pass had reached (`new float[]` in `CShadingContext::newState()`; 0 on the machine
+      it was found on). Which grids a thread shades, in which order, depends on scheduling, so at `-t:4` a
+      front grid of the sphere sometimes got `Oi` 0: the hider kept it as a transparent fragment in front of
+      the back hemisphere and added the two colours (1.5, 1.4, 2 instead of 0.75, 0.7, 1, alpha still 1 from
+      the back). Filtered with the neighbouring subsamples that would give 0.776 (about 3.5% of a pixel's
+      filter weight on doubled subsamples; inferred, not measured). Shared by both backends, since
+      `complete()` runs before either. Found by bisecting the scene (a constant surface, or no
+      Interior/Exterior, or a probe that also writes `Oi = Os` with the queries intact: 0/40 differing `-t:4`
+      runs each, against 4/40 for the scene) and dumping the fragment list of a doubled subsample (`z 4.48 o
+      0` in front of `z 5.17 o 1`). The same holds for any Atmosphere, Interior, Exterior or displacement
+      shader that references `Ci` or `Oi` over a surface shader that does not write it, and for a surface
+      shader that reads either before writing it. Fix: `complete()` always fills `Ci` and `Oi` with `Cs` and
+      `Os` (`shading.cpp:227`, `:376`); a shader that writes them overwrites the defaults, so nothing that
+      wrote them changes: every one of the 415 sweep scenes (417 outputs) renders bit-identically to before at
+      `-t:1`, each under its own sampler. The GI scenes were not compared; none binds a volume shader. The two
+      sweep entries are enabled again. Guarded by `ShaderDefaults_VolumeOi_rslo` and `_slo`
+      (`tests/visual/CMakeLists.txt`, scenes
+      `examples/rib/tests/sphere-volume-oi-default-reyes-{rslo,slo}.rib`, also in the sweep): `min_probe`,
+      which writes `Ci` from constants and never `Oi`, under `param_query_volume` as Interior and Exterior,
+      with no displacement shader, so no pass ever refills the buffer and the stale `Oi` shows at any thread
+      count; `test_pixel_probe` requires RGBA = 0.3 0.3 0.5 1 at one pixel. Before the fix it read 0.6 0.6 1 0
+      (the front transparent, the back added) in 20/20 runs per format; after it, 20/20 pass. The `Ci` half is
+      guarded by `ShaderDefaults_VolumeCi_rslo` and `_slo` (scenes
+      `examples/rib/tests/sphere-volume-ci-default-reyes-{rslo,slo}.rib`, also in the sweep): the new
+      `shaders/empty_surface_probe.sl` (reference `tests/shaders/references/empty_surface_probe.rslo`) writes
+      neither `Ci` nor `Oi` (`Surface "null"` binds no shader at all), with `Color` 0.2 0.4 0.6, `Opacity` 1,
+      the same Interior/Exterior shader, which references `Ci` (without a referencing shader the `Cs` default
+      was always filled), and no displacement shader; `test_pixel_probe` requires RGBA = 0.2 0.4 0.6 1. With
+      only the `Ci` gate put back it read 0 0 0 1 in 20/20 runs per format, while the `Oi` tests stayed green;
+      with the fix, 20/20 pass. The original scene had failed 4/40 (float output, box filter), 1/8 and 2/30
+      `-t:4` runs; after the fix 0/40, and 10/10 harness runs per format at `-t:1|-t:4`.
 
 - [x] Bug: a REYES or zbuffer grid derivative next to a lane a varying block had switched off read memory
       nothing had written (FIXED — GitHub #61, grid half, branch `fix/grid-derivative-inactive-lanes`,

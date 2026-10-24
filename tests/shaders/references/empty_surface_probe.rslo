@@ -1,0 +1,9 @@
+#!version 2.0.0
+#!name "empty_surface_probe"
+surface
+#!parameters:
+#!variables:
+#!Init:
+	return            
+#!Code:
+	return
