@@ -224,8 +224,13 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
         }
     }
 
-    // ensure Oi and Ci are always filled in
-    if (!(usedParameters & PARAMETER_CI)) {
+    // Ensure Oi and Ci are always filled in, with Cs and Os, whatever the shaders reference
+    // (GitHub #60). They used to be filled only when no bound shader referenced them, on the
+    // assumption that a shader that does writes them. An Interior/Exterior or atmosphere
+    // shader that reads Oi (`Oi = Oi`) over a surface shader that never writes it then saw
+    // whatever the thread's varying buffer last held, which depends on which grids that
+    // thread shaded before. A shader that writes Ci or Oi overwrites these defaults.
+    {
         float *dest = varying[VARIABLE_CI];
         const float *time = varying[VARIABLE_TIME];
         const float *c1 = attributes1->surfaceColor;
@@ -238,7 +243,7 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
         }
     }
 
-    if (!(usedParameters & PARAMETER_OI)) {
+    {
         float *dest = varying[VARIABLE_OI];
         const float *time = varying[VARIABLE_TIME];
         const float *c1 = attributes1->surfaceOpacity;
@@ -368,8 +373,9 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
         }
     }
 
-    // ensure Oi and Ci are always filled in
-    if (!(usedParameters & PARAMETER_CI)) {
+    // Ensure Oi and Ci are always filled in, with Cs and Os (GitHub #60: see the motion
+    // overload above)
+    {
         float *dest = varying[VARIABLE_CI];
         const float *src = attributes->surfaceColor;
 
@@ -379,7 +385,7 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
         }
     }
 
-    if (!(usedParameters & PARAMETER_OI)) {
+    {
         float *dest = varying[VARIABLE_OI];
         const float *src = attributes->surfaceOpacity;
 

@@ -1717,6 +1717,56 @@ foreach(_rate -r0.5 -r2)
         DEPENDS     orender)
 endforeach()
 
+# --- Oi default (fix/shader-parameter-thread-race, GitHub #60). The surface
+# shader writes Ci only and the Interior/Exterior shader references Oi, which
+# used to make shade() skip the Os default: Oi kept whatever the thread's
+# varying buffer last held, so the sphere's front went transparent. Without a
+# displacement shader no displacement-only pass refills that buffer, so the
+# stale Oi shows at any thread count. The probe reads one pixel back exactly,
+# RGBA = 0.3 0.3 0.5 (min_probe's Ci) and Os = 1, under the interpreter and the
+# JIT. The scenes are also in the determinism sweep.
+foreach(_format rslo slo)
+    set(_name sphere-volume-oi-default-reyes-${_format})
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/${_name})
+    file(MAKE_DIRECTORY ${_scratch})
+    add_test(NAME ShaderDefaults_VolumeOi_${_format}
+        COMMAND test_pixel_probe $<TARGET_FILE:orender>
+            ${CMAKE_SOURCE_DIR}/examples/rib/tests/${_name}.rib
+            ${_name}.tif 16 16 0.00001 0.3 0.3 0.5 1
+        WORKING_DIRECTORY ${_scratch})
+    set_tests_properties(ShaderDefaults_VolumeOi_${_format} PROPERTIES
+        TIMEOUT     120
+        LABELS      "visual;regression"
+        ENVIRONMENT "${VISUAL_ENV}"
+        DEPENDS     orender)
+    if(_format STREQUAL "slo" AND NOT OPENRENDER_HAVE_LLVM)
+        set_tests_properties(ShaderDefaults_VolumeOi_${_format} PROPERTIES DISABLED TRUE)
+    endif()
+endforeach()
+
+# --- Ci default (GitHub #60), the twin of the Oi test above: empty_surface_probe
+# writes neither Ci nor Oi, so the pixel must be Cs and Os exactly (0.2 0.4 0.6
+# with opacity 1). The Interior/Exterior shader references Ci; without a shader
+# that does, the Cs default was always filled and the test could not fail.
+foreach(_format rslo slo)
+    set(_name sphere-volume-ci-default-reyes-${_format})
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/${_name})
+    file(MAKE_DIRECTORY ${_scratch})
+    add_test(NAME ShaderDefaults_VolumeCi_${_format}
+        COMMAND test_pixel_probe $<TARGET_FILE:orender>
+            ${CMAKE_SOURCE_DIR}/examples/rib/tests/${_name}.rib
+            ${_name}.tif 16 16 0.00001 0.2 0.4 0.6 1
+        WORKING_DIRECTORY ${_scratch})
+    set_tests_properties(ShaderDefaults_VolumeCi_${_format} PROPERTIES
+        TIMEOUT     120
+        LABELS      "visual;regression"
+        ENVIRONMENT "${VISUAL_ENV}"
+        DEPENDS     orender)
+    if(_format STREQUAL "slo" AND NOT OPENRENDER_HAVE_LLVM)
+        set_tests_properties(ShaderDefaults_VolumeCi_${_format} PROPERTIES DISABLED TRUE)
+    endif()
+endforeach()
+
 # --- Displacement parity: a single sphere with the "bump_lowfreq"
 # displacement shader bound (no "trace"/"displacements" attribute set on
 # the raytrace side). This is the TDD Red gate for T047/T048-T051 (spec

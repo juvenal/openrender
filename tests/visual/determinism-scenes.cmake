@@ -364,9 +364,7 @@ add_determinism_sweep(sphere-scene-state-reyes-slo examples/rib/tests/sphere-sce
 add_determinism_sweep(sphere-scene-state-reyes examples/rib/tests/sphere-scene-state-reyes.rib sphere-scene-state-reyes.tif)
 add_determinism_sweep(sphere-setcomp-reyes-slo examples/rib/tests/sphere-setcomp-reyes-slo.rib sphere-setcomp-reyes-slo.tif)
 add_determinism_sweep(sphere-setcomp-reyes examples/rib/tests/sphere-setcomp-reyes.rib sphere-setcomp-reyes.tif)
-# Disabled, see GitHub #60 below.
 add_determinism_sweep(sphere-shader-parameter-reyes-slo examples/rib/tests/sphere-shader-parameter-reyes-slo.rib sphere-shader-parameter-reyes-slo.tif)
-# Disabled, see GitHub #60 below.
 add_determinism_sweep(sphere-shader-parameter-reyes examples/rib/tests/sphere-shader-parameter-reyes.rib sphere-shader-parameter-reyes.tif)
 add_determinism_sweep(sphere-shadername-reyes-slo examples/rib/tests/sphere-shadername-reyes-slo.rib sphere-shadername-reyes-slo.tif)
 add_determinism_sweep(sphere-shadername-reyes examples/rib/tests/sphere-shadername-reyes.rib sphere-shadername-reyes.tif)
@@ -386,6 +384,10 @@ add_determinism_sweep(sphere-usfroma-reyes-slo examples/rib/tests/sphere-usfroma
 add_determinism_sweep(sphere-usfroma-reyes examples/rib/tests/sphere-usfroma-reyes.rib sphere-usfroma-reyes.tif)
 add_determinism_sweep(sphere-visibility-reyes-slo examples/rib/tests/sphere-visibility-reyes-slo.rib sphere-visibility-reyes-slo.tif)
 add_determinism_sweep(sphere-visibility-reyes examples/rib/tests/sphere-visibility-reyes.rib sphere-visibility-reyes.tif)
+add_determinism_sweep(sphere-volume-ci-default-reyes-rslo examples/rib/tests/sphere-volume-ci-default-reyes-rslo.rib sphere-volume-ci-default-reyes-rslo.tif)
+add_determinism_sweep(sphere-volume-ci-default-reyes-slo examples/rib/tests/sphere-volume-ci-default-reyes-slo.rib sphere-volume-ci-default-reyes-slo.tif)
+add_determinism_sweep(sphere-volume-oi-default-reyes-rslo examples/rib/tests/sphere-volume-oi-default-reyes-rslo.rib sphere-volume-oi-default-reyes-rslo.tif)
+add_determinism_sweep(sphere-volume-oi-default-reyes-slo examples/rib/tests/sphere-volume-oi-default-reyes-slo.rib sphere-volume-oi-default-reyes-slo.tif)
 add_determinism_sweep(spherelight-slo examples/rib/tests/spherelight-slo.rib spherelight-slo.tif)
 add_determinism_sweep(spotlight-raytrace examples/rib/tests/spotlight-raytrace.rib spotlight-raytrace.tif)
 add_determinism_sweep(spotlight-reyes examples/rib/tests/spotlight-reyes.rib spotlight-reyes.tif)
@@ -439,12 +441,10 @@ add_determinism_sweep(torus-reyes examples/rib/tests/torus-reyes.rib torus-reyes
 # These stay registered and in the list above; ctest skips them. The defects predate spec 039 and are
 # independent of the sampler (validation.md, "Results (T084)").
 #
-# GitHub #60: a thread race in the sphere-shader-parameter scenes. The shader is deterministic;
-# -t:1 is stable and -t:4 differs, also with jitter 0 and the Legacy sampler, in both shader formats.
-set_tests_properties(
-    DeterminismSweep_sphere-shader-parameter-reyes
-    DeterminismSweep_sphere-shader-parameter-reyes-slo
-    PROPERTIES DISABLED TRUE)
+# GitHub #60 is fixed and the two sphere-shader-parameter scenes are swept again. It was no race
+# in the parameter queries: their Interior/Exterior shader references Oi and the surface shader
+# never writes it, so shade() skipped the Os default and Oi kept whatever the thread's varying
+# buffer last held (DEVNOTES_DETAILS/BUGS.md). Ci and Oi now always start at Cs and Os.
 #
 # GitHub #61 is fixed in both halves and its scenes are swept again: an inactive lane next to a
 # derivative read memory that nothing had written. The ray-hit half (an inactive derivative-offset

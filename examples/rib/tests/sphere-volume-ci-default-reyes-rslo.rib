@@ -1,0 +1,30 @@
+##RenderMan RIB-Structure 1.0
+# GitHub #60 regression: Ci gets its Cs default when the surface shader does
+# not write it, even when another bound shader references it.
+# empty_surface_probe writes neither Ci nor Oi; param_query_volume, bound as
+# Interior and Exterior, reads and writes both (Ci = Ci; Oi = Oi), which used
+# to make shade() skip both defaults, so they kept whatever the thread's
+# varying buffer last held. A referencing shader is needed: with none, the
+# defaults were always filled. With no displacement shader no
+# displacement-only pass ever fills that buffer, so the bug shows at any
+# thread count. Opacity is 1, so nothing behind the front surface shows:
+# test_pixel_probe reads one pixel, RGBA = Cs, Os = 0.2 0.4 0.6 1.
+version 3.03
+Hider "reyes" "jitter" [0]
+Option "shaderformat" "default" ["rslo"]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "sphere-volume-ci-default-reyes-rslo.tif" "file" "rgba"
+Projection "perspective"
+Format 32 32 1
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Color [0.2 0.4 0.6]
+  Opacity [1 1 1]
+  Interior "param_query_volume"
+  Exterior "param_query_volume"
+  Surface "empty_surface_probe"
+  Sphere 1 -1 1 360
+WorldEnd
