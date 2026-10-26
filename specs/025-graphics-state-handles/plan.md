@@ -70,7 +70,8 @@ Afterwards the guardrails are updated:
   `State_ChannelRegistry`, `State_LightOrderRestore`, `State_VocabularyConsistency` and
   `State_LightOrder`.
 - `shading_parity`: `ShadingParity_ShaderParameterEquivalence` (part A) and
-  `ShadingParity_ShaderParameterEquivalenceDirect` (part B, a separate test).
+  `ShadingParity_ShaderParameterEquivalenceDirect` (part B, a separate test) and
+  `ShadingParity_ShaderParameterBxdfIgnored` (FR-005: a bound `bxdf` changes neither answer).
 - `RibOut_ShaderStatementOrder`, under `tests/unit/rib_parse`.
 - Also `architecture`, `visual`, `^determinism$`, the full suite, and the sweep once before merge.
 
@@ -109,14 +110,14 @@ set stays a stored field.
 - 7 State files added: `stateHandles.h`, `stateVocabulary.h`, `patternTable.h`,
   `shaderParameterHooks.{h,cpp}` and `channelRegistry.{h,cpp}`;
 - 1 Shading header (`shaderRefs.h`) and 1 Shading unit (`shaderParameters.{h,cpp}`) added;
-- 9 test executables (7 `state`, the Direct equivalence test and `RibOut_ShaderStatementOrder`) and their fixture shaders added;
+- 11 new test executables (9 added in phase 2: the 6 `state` tests other than `State_LightOrder`, the Direct equivalence test, the bxdf-ignored test and `RibOut_ShaderStatementOrder`; 2 written at the plan stage: `State_LightOrder` and equivalence part A) and their fixture shaders added;
 - the architecture data files and the registry updated.
 
 **Measurements** (macOS, `build-025` at `dfffba0` plus the new test files, 2026-10-26; details
 in [validation.md](validation.md)):
 - **Architecture check**: PASS, with `ALLOWED DB-008 x 7`, the TOTAL metric at 721/110 (baseline
   721/110), and no NOTE or WARNING.
-- **Full suite** (`-LE determinism-sweep -j4`): **784/784 passed**.
+- **Full suite** (`-LE determinism-sweep -j4`): **784/784 passed** for the suite as it stood before the red `State_LightOrder` was in the build; the tasks stage re-takes the baseline total (T003).
 - **Part A**: 64/64 green. The precedence-swap mutation gives 4 failures.
 - **`State_LightOrder`**: red, with 4 of 9 checks failing. With the FR-025 fix applied in a
   scratch copy it is 9/9 green.
@@ -252,7 +253,7 @@ src/ri/render/
 ├── rendererStatics.cpp         # - the two channel statics
 ├── rendererDeclarations.cpp    # begin/endChannelRegistry, declaration hook, out-of-line retrieveDisplayChannel forwarder
 ├── rendererShadingServices.cpp # install/uninstall the shader-parameter hooks
-├── rendererContext.cpp         # Ri*V binders, WorldBegin defaults, RiImagerV, RiIlluminate, RiDisplayChannelV, display-param types
+├── rendererContext.cpp         # Ri*V shader binders, WorldBegin defaults, RiImagerV, RiDisplayChannelV, display-param types (RiLightSourceV/RiIlluminate need no edit)
 ├── rendererDisplay.cpp         # registry calls; ParameterType conversion
 ├── renderer.cpp                # lazy MapRef binding; imagerShader = shaderInstanceOf(o->imager)
 └── geometryDispatch.cpp        # attributes->displacement() presence check
@@ -264,7 +265,7 @@ tests/unit/state/               # NEW: test_light_order.cpp + CMakeLists.txt (wr
 tests/CMakeLists.txt            # + add_subdirectory(unit/state) (plan stage)
 tests/unit/rib_parse/test_ribout_shader_order.cpp   # NEW
 tests/shading_parity/test_shader_parameter_equivalence.cpp + CMake entry  # NEW, written at the plan stage (part A)
-tests/shading_parity/shader_parameter_fixtures.h, test_shader_parameter_equivalence_direct.cpp  # phase 2: fixtures shared with part A; part B as a separate test
+tests/shading_parity/shader_parameter_fixtures.h, test_shader_parameter_equivalence_direct.cpp, test_shader_parameter_bxdf_ignored.cpp  # phase 2: fixtures shared with part A; part B as a separate test
 tests/unit/csg/test_interior_exterior_selection.cpp, tests/imager/*.cpp      # reach the object through the handle
 tests/architecture/allowlist.txt                     # - 7 DB-008 lines
 DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md, DEVNOTES.md, CLAUDE.md
@@ -274,8 +275,11 @@ DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md, DEVNOTES.md, CLAUDE.md
 - New State code goes in `src/ri/state/` and new Shading code in `src/libshader/shading/`. Both
   directories are already classified in `domain-map.txt`, so no domain-map change is needed.
 - `tests/unit/state/` is under `tests/`, which archcheck does not analyse as a domain.
-- The State-only test compiles the State sources a second time with a narrow include path. This
-  follows the `tests/framebuffer` precedent; see research R11.
+- The State-only tests compile the State sources a second time with a narrow include path. This
+  follows the `tests/framebuffer` precedent; see research R11. Because archcheck exits 2 on any
+  missing in-scope object (including those of `EXCLUDE_FROM_ALL` targets), the State-only library
+  and executables are defined only behind the CMake option `OPENRENDER_STATE_ONLY_TESTS`, off by
+  default until the handles phase switches it on.
 
 ## Design
 
@@ -363,6 +367,7 @@ red test is a regression.
 | T-S1 | the State-only tests (label `state`): `State_Isolation` (handles and counts, US1), `State_LastBound` (US3), `State_PatternTable` (US4), `State_ChannelRegistry` (US5) and `State_LightOrderRestore` (FR-025, disabled until phase 7). They compile the State sources with counting doubles, on a narrow include path, and link only `openrendercommon` | build failure: `shader.h`, `dsply.h`, `blobbyField.h` and `photonMap.h` do not resolve; the new headers do not exist | US1.3, US3.1–3.4, US4.1–4.4, US5.1–5.3, FR-001, FR-004, FR-010–FR-017, SC-006, the empty-bind record, and FR-025's direct `restore()` order check (which the Ri-level save/restore round trip cannot isolate) |
 | T-S2 | `State_VocabularyConsistency` (label `state`) | build failure (the header is missing); then a value mutation is shown red | FR-008, SC-007 |
 | T-P1 | `ShadingParity_ShaderParameterEquivalenceDirect` (part B, a separate test sharing part A's fixtures header) | build failure (the `libshader::` API is missing) | FR-005–FR-007 |
+| T-P2 | `ShadingParity_ShaderParameterBxdfIgnored` (a bound `bxdf` changes neither `usedShaderParameters` nor `findShaderParameter`) | build failure (`CAttributes::bindBxdf` is missing); enabled with the `bxdf` slot in phase 5 | FR-005, clarification 2026-10-26 |
 | T-P1a | the same test, part A (API-neutral oracle, `tests/shading_parity/test_shader_parameter_equivalence.cpp`, already written) | **green by design** on both trees: 64/64 on `dfffba0`. The precedence-swap mutation gives 4 failures (measured) | FR-007 ("fails on a build where the answer differs"), US2.2 |
 | T-L1 | `State_LightOrder` (`tests/unit/state/test_light_order.cpp`, links ribRender, already written): lights in the world block, a single and a double `AttributeBegin`, a copy-on-write clone, `RiIlluminate` off/on, a save/restore round trip, pointer identity against the `RiLightSource` handles | **measured red by assertion**: 4 of 9 checks fail on `dfffba0` (single push, copy-on-write clone, and the two that follow). Green with the fix (9/9, scratch copy) | FR-004, FR-025, SC-010, US2.3, R3, R5 |
 | T-R1 | `RibOut_ShaderStatementOrder`: the seven shader statements in several orders among other attribute statements, written by ribOut and compared line by line | **characterization, green on both trees** (clarification Q3) | US3.5, FR-023 |
@@ -371,10 +376,10 @@ red test is a regression.
 Existing guards whose assertions do not change (US2.4, FR-022):
 - `test_interior_exterior_selection` (it binds counting doubles instead of the `0x1`/`0x2`
   sentinels, which a retaining handle would dereference);
-- the photon-map frame-release and session tests;
-- the imager tests;
-- the visual, shading-parity and determinism suites;
-- `Parity_transparency-matte-aov` and the AOV scenes.
+- the photon-map frame-release and session tests (`photonmap_FrameCacheRelease`, `photonmap_TwoFrameSession`, `photonmap_ObjectDefinitionRelease`) pin frame-end release and session reuse of the maps now held by `MapRef`;
+- the imager tests (`ImagerOptionTests`, `ImagerGuardTests`, `ImagerExecutionTests`) pin the `imager` slot's binding and use;
+- the visual, shading-parity and determinism suites pin rendered output and bit-identity;
+- `Parity_transparency-matte-aov` and the AOV scenes pin the channel registry's behaviour.
 
 ## Risks
 
@@ -394,8 +399,10 @@ Existing guards whose assertions do not change (US2.4, FR-022):
   would store `usedParameters = 0`. `CRendererContext`'s constructor calls `beginRenderer()`
   before `new CAttributes` (`rendererContext.cpp:109,139`), and T-P1a checks a fresh `RiBegin`
   block.
-- **archcheck and doubly compiled State units** (research R11): verified on the first finished run.
-  If it mishandles them, implementation stops and reports it.
+- **archcheck and doubly compiled State units** (research R11): the State-only targets are behind
+  `OPENRENDER_STATE_ONLY_TESTS`, off until the handles phase, because archcheck needs every in-scope
+  object built. The first run with the option on verifies the duplicate edges. If archcheck
+  mishandles them, implementation stops and reports it.
 - **Known flaky tests** (memory: `reference_ctest_flaky_tests.md`). A red one is re-run in
   isolation before it is written off. `ShadingParity_AmbientAccumulation` is a real heap bug, not
   noise.
@@ -412,7 +419,7 @@ Recorded as clarifications in spec.md (session 2026-10-26):
    State sources itself (research R11). If archcheck mishandles that, implementation stops and
    reports it.
 4. **The bxdf slot** stays out of the parameter answers until spec 035 (FR-005).
-5. **FR-001**: light-list entries hold a non-owning handle, as today.
+5. **FR-001**: light-list entries hold a non-owning pointer to the State-owned target type, as today.
 
 ## FR-025 affected scenes and references
 

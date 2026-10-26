@@ -35,7 +35,7 @@ has no metric row.
 
 ### §0.3 Full suite
 
-`ctest -LE determinism-sweep -j4`: **784/784 passed**, in 154 s.
+`ctest -LE determinism-sweep -j4`: **784/784 passed**, in 154 s (before the red `State_LightOrder` was in the build; the tasks stage re-takes the baseline total).
 
 Graphics State has no `CRenderer::` metric row, which confirms the spec's "no link edges from State
 sources".

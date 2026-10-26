@@ -62,7 +62,7 @@ static CActiveLight *copyLightList(const CActiveLight *source);
 - `addLight`/`removeLight` are unchanged in behaviour.
 - **What it fixes**: on `dfffba0`, a single `AttributeBegin` and a copy-on-write clone reverse the
   list. A double push and a save/restore round trip reverse twice, so they come out in order.
-- **Guarded by** `State_LightOrder` (Ri level) and by `State_Isolation`'s direct `restore()` check.
+- **Guarded by** `State_LightOrder` (Ri level) and by `State_LightOrderRestore`'s direct `restore()` check.
 
 ## Pattern-node table
 

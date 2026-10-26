@@ -229,7 +229,7 @@ Measured with `State_LightOrder` on `dfffba0` (`validation.md` §0.5):
     copy-on-write clone", and the two checks that follow them).
   - The double push and the round trip are kept as guards, because they are green on both trees.
 - **State-level check.** `restore()` on its own, without the save that cancels it, is checked in
-  `State_Isolation` by calling `restore()` directly on two blocks.
+  `State_LightOrderRestore` by calling `restore()` directly on two blocks.
 
 **Measured impact on `dfffba0`.** The measurement used a probe build in a scratch copy, never the
 worktree:
@@ -352,8 +352,11 @@ Today (`rendererDeclarations.cpp:73-74,286-304,352-355,534-633`; `rendererStatic
     `installVariableDeclaration(TVariableDeclaration)`, with
     `TVariableDeclaration = CVariable*(*)(const char *name, const char *decl)`, and
     `declareVariableThroughHook()`;
-  - `initDeclarations()` installs `&CRenderer::declareVariable`, and `shutdownDeclarations()`
-    uninstalls it, next to the existing `installVariableLookup` calls;
+  - `&CRenderer::declareVariable` does not convert to the hook type, because it takes a defaulted
+    third parameter (`int um = 0`). `initDeclarations()` therefore installs a captureless static
+    adapter in `rendererDeclarations.cpp`, `declareVariableAdapter(name, decl)`, which calls
+    `CRenderer::declareVariable(name, decl, 0)`; `shutdownDeclarations()` uninstalls it, next to the
+    existing `installVariableLookup` calls;
   - with no hook, `declare(const char*)` produces today's "ill formed" error and returns
     `nullptr`, a defined result.
 - **Error strings and codes** stay byte-identical.
@@ -416,9 +419,9 @@ cannot detect an enumerator *added* to `dsply.h`. Since `dsply.h` must not chang
 
 | Test | Red on `dfffba0` because | Notes |
 |---|---|---|
-| `State_Isolation` | **build failure**: `attributes.h`/`options.h` include `shader.h`, `dsply.h` and `blobbyField.h`, which do not resolve on the narrow include path (R11), and the new headers do not exist | Covers handles, counts, the record, the pattern table and the registry (SC-006) |
+| The State-only tests: `State_Isolation` (handles and counts), `State_LastBound`, `State_PatternTable`, `State_ChannelRegistry`, `State_LightOrderRestore` | **build failure**: `attributes.h`/`options.h` include `shader.h`, `dsply.h` and `blobbyField.h`, which do not resolve on the narrow include path (R11), and the new headers do not exist. The red evidence is taken in a scratch build directory with `OPENRENDER_STATE_ONLY_TESTS=ON` (R11) | Together they cover handles, counts, the record, the pattern table and the registry (SC-006). `State_LightOrderRestore` stays disabled until the FR-025 phase |
 | `State_VocabularyConsistency` | build failure: `stateVocabulary.h` does not exist | A mutation of one value is shown red (SC-007) |
-| `ShadingParity_ShaderParameterEquivalence` part B | build failure: the `libshader::` API does not exist | Part A runs **green on the starting tree**: it compares an API-neutral oracle (bound shaders loaded with `CRenderer::getShader`, distinct defaults per slot for the shared parameter name) against `CAttributes::findParameter`/`usedParameters`. That proves the oracle captures today's answers. A precedence-swap mutation is shown red (FR-007) |
+| `ShadingParity_ShaderParameterEquivalenceDirect` (part B, a separate test) and `ShadingParity_ShaderParameterBxdfIgnored` | build failure: the `libshader::` API does not exist | Part A runs **green on the starting tree**: it compares an API-neutral oracle (bound shaders loaded with `CRenderer::getShader`, distinct defaults per slot for the shared parameter name) against `CAttributes::findParameter`/`usedParameters`. That proves the oracle captures today's answers. A precedence-swap mutation is shown red (FR-007) |
 | `State_LightOrder` (FR-025) | **red by assertion**, measured: 4 of 9 checks fail on `dfffba0` (a single `AttributeBegin` and a copy-on-write clone reverse the list) | Written now, API-neutral. It stays red through the behaviour-preserving phases and turns green in the FR-025 phase. It also checks R3's pointer identity. The double push and the save/restore round trip are guards, green on both trees |
 | `RibOut_ShaderStatementOrder` | **not red: a characterization test**, green on both trees | Clarification Q3 of 2026-10-25; FR-023 says "record … as an automated test", and FR-021's red list does not include it |
 | `ctest -L architecture` after the 7 DB-008 lines are deleted | 7 `VIOLATION` lines until the code lands | Any other violation means the design is wrong |
@@ -454,8 +457,17 @@ expected but **not yet verified**:
 - whether a repeated edge is reported once or twice;
 - that the header copy in the build tree, which maps to no source class, is ignored.
 
-Quickstart §2 checks both the first time the check runs on the finished tree. If either fails,
-implementation stops and reports it to the maintainer.
+**Why the State-only targets are behind a CMake option.** archcheck's `loadMakefiles`
+(`includes.cpp:185`) walks every `DependInfo.cmake` in the build tree, `EXCLUDE_FROM_ALL` targets
+included, and exits 2 "incomplete build tree" when an in-scope object (a source under `src/`) is
+missing. The State-only library compiles `src/ri/state/*.cpp`, so it must either be built or not
+exist. It is defined only when `OPENRENDER_STATE_ONLY_TESTS` is on, **off by default** while the
+sources cannot compile on the narrow path (the red phases). Red evidence is taken in a scratch build
+directory with the option on. The handles phase (tasks T050) switches it on, with the library in
+`all`, and the architecture check then runs with the State units present.
+
+Quickstart §2 checks both open points the first time the check runs with the option on. If either
+fails, implementation stops and reports it to the maintainer.
 
 **Alternative, rejected by the maintainer (2026-10-26)**: a production `ribState_obj` OBJECT
 library with the narrow include path, linked into ribRender, ribVector and the test. It would

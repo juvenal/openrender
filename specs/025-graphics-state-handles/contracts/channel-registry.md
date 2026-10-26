@@ -53,7 +53,7 @@ void installVariableDeclaration(TVariableDeclaration);           // nullptr unin
 CVariable *declareVariableThroughHook(const char *name, const char *declaration); // nullptr if none
 ```
 
-It is installed in `initDeclarations()` as `&CRenderer::declareVariable` and uninstalled at the
+It is installed in `initDeclarations()` as a captureless static adapter, `declareVariableAdapter(name, declaration)` calling `CRenderer::declareVariable(name, declaration, 0)` (the core function has a third, defaulted `int um` parameter, so its address does not convert to `TVariableDeclaration`), and uninstalled at the
 top of `shutdownDeclarations()`, beside `installVariableLookup`. The declared-variable table stays
 in the renderer core (spec assumption).
 
@@ -77,7 +77,7 @@ which would make DB-010's link line STALE and add a Texturing → State VIOLATIO
 - DB-010: `link texture3d.cpp -> CRenderer::retrieveDisplayChannel`;
 - DB-021: `include texture3d.cpp -> displayChannel.h`.
 
-## Tests (in `State_Isolation`)
+## Tests (`State_ChannelRegistry`)
 
 - Fresh registry: the five built-ins have their samples and offsets, and an unknown name gives
   `nullptr` (US5.1).

@@ -52,7 +52,7 @@ The `bxdf` slot is ignored by both functions in 025 (FR-005, confirmed 2026-10-2
 **Precondition**: while the hook is installed, every slot target and every light target is a
 `CShaderInstance`. The hook `static_cast`s them, as the code before 025 did implicitly.
 - **Spec 034** must revisit this when non-instance group targets reach the slots.
-- **Tests that bind State-only doubles** (`State_Isolation`, `test_interior_exterior_selection`)
+- **Tests that bind State-only doubles** (the `State_*` State-only tests, `test_interior_exterior_selection`)
   must do so with no `RiBegin` session open, so that no hook is installed. In
   `test_interior_exterior_selection`, the double-binding cases already run before the CSG case
   that opens a session; keep that order or give them their own process.

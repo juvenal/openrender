@@ -87,9 +87,10 @@ Record libshader_shading's imports bound to libRIBRender (expected: 7) with spec
 
 | Test | Expected red on the starting tree |
 |---|---|
-| `State_Isolation` | compile error: `shader.h`, `dsply.h` and `blobbyField.h` not found on the narrow path; the new headers missing |
+| `State_Isolation`, `State_LastBound`, `State_PatternTable`, `State_ChannelRegistry`, `State_LightOrderRestore` | compile error: `shader.h`, `dsply.h` and `blobbyField.h` not found on the narrow path; the new headers missing. Taken in a scratch build directory configured with `-DOPENRENDER_STATE_ONLY_TESTS=ON` (the option is off in `build-025` until the handles phase; research R11) |
 | `State_VocabularyConsistency` | compile error: `stateVocabulary.h` missing; then a mutation red once the header exists |
-| `ShadingParity_ShaderParameterEquivalence` part B | compile error: `shaderParameters.h` missing |
+| `ShadingParity_ShaderParameterEquivalenceDirect` (part B) | compile error: `shaderParameters.h` missing |
+| `ShadingParity_ShaderParameterBxdfIgnored` | compile error: `CAttributes::bindBxdf` missing |
 | `State_LightOrder` | already red by assertion (§0.5); it stays the one expected-red test until the FR-025 phase |
 | `ctest -L architecture` after deleting the 7 DB-008 lines at the start of the handles phase (plan step 4, *after* the parameter hook) | exactly 7 `VIOLATION` lines, all under Graphics State, until that phase ends |
 

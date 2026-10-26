@@ -134,7 +134,7 @@ on State's own headers. The interfaces themselves are in [contracts/](contracts/
 | Hook | Signature | Installed in, removed in | Implemented by |
 |---|---|---|---|
 | variable lookup (exists) | `CVariable *(*)(const char *)` | `initDeclarations` / `shutdownDeclarations` | `CRenderer::retrieveVariable` |
-| variable declaration (new) | `CVariable *(*)(const char *name, const char *decl)` | `initDeclarations` / `shutdownDeclarations` | `CRenderer::declareVariable` |
+| variable declaration (new) | `CVariable *(*)(const char *name, const char *decl)` | `initDeclarations` / `shutdownDeclarations` | a static adapter in `rendererDeclarations.cpp` calling `CRenderer::declareVariable(name, decl, 0)` (the core function has a third, defaulted parameter) |
 | shader parameters (new) | `SShaderParameterHooks { usedParameters, findParameter }` | `rendererShadingServicesInit` / `rendererShadingServicesShutdown` | `libshader::shaderParameterHooks()` (Shading) |
 
 ## Ownership mapping (today's calls next to their handle replacements)
