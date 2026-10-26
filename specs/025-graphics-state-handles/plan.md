@@ -3,7 +3,8 @@
 **Branch**: `025-graphics-state-handles` | **Date**: 2026-10-25 | **Spec**: [spec.md](spec.md)
 
 **Input**: Feature specification from `specs/025-graphics-state-handles/spec.md`. Clarifications
-from session 2026-10-25 are applied as decided.
+from the 2026-10-25 session and from the maintainer's answers to the plan questions (session
+2026-10-26) are applied as decided. Revised 2026-10-26 for FR-025 and the measured baselines.
 
 ## Summary
 
@@ -15,8 +16,9 @@ the registry part of DB-021. The work, in the order the brief (plan step V5) giv
    - A header-only RAII handle, `ShaderGroupRef`/`MapRef`.
    - `CShaderInstance` and `CPhotonMap` derive from the new bases, which the dependency table
      allows (Shading → State and Hiders → State).
-   - The five shader slots, a new `bxdf` slot and `COptions::imager` hold `ShaderGroupRef`; the
-     photon maps hold `MapRef`; light-list entries stay non-owning.
+   - The five shader slots and `COptions::imager` hold `ShaderGroupRef` (phase 4); the new `bxdf`
+     slot follows with the last-bound record in phase 5. The photon maps hold `MapRef`; light-list
+     entries stay non-owning.
    - Each resolving domain gets its object back through its own inline `static_cast` accessor:
      `shaderInstanceOf`/`lightInstanceOf` in Shading, `photonMapOf` in Hiders.
 2. **Parameter logic.** `checkParameters()`'s union and `findParameter()`'s precedence move
@@ -33,6 +35,12 @@ the registry part of DB-021. The work, in the order the brief (plan step V5) giv
      `variableLookup.h`.
    - `CRenderer::retrieveDisplayChannel` remains an out-of-line forwarder, so `texture3d.cpp` has
      no diff.
+6. **Light order (FR-025, maintainer decision 2026-10-26).**
+   - The copy constructor and `restore(shading)` copy the active-light list in order through one
+     helper. Today they prepend, so every `AttributeBegin` and copy-on-write clone reverses the
+     list.
+   - This is the only output-changing step, so it lands in its own phase after every
+     behaviour-preserving phase.
 
 Tests are written first:
 - a State-only test that compiles `src/ri/state` with a narrow include path and links only
@@ -40,7 +48,8 @@ Tests are written first:
 - a vocabulary consistency test;
 - a parameter-equivalence test, whose part A is an API-neutral oracle that is green on the
   starting tree;
-- two characterization tests, green on both trees: light order and ribOut statement order.
+- `State_LightOrder`, written and measured red on `dfffba0` (4 of 9 checks fail);
+- a ribOut statement-order characterization test, green on both trees.
 
 Afterwards the guardrails are updated:
 - the allowlist loses its 7 DB-008 lines and gains none;
@@ -57,9 +66,11 @@ Afterwards the guardrails are updated:
 **Storage**: N/A. In-memory state only.
 
 **Testing**: ctest.
-- New label `state`: `State_Isolation`, `State_VocabularyConsistency` and
-  `State_LightOrderCharacterization`.
-- `shading_parity`: `ShadingParity_ShaderParameterEquivalence`.
+- New label `state`: `State_Isolation`, `State_LastBound`, `State_PatternTable`,
+  `State_ChannelRegistry`, `State_LightOrderRestore`, `State_VocabularyConsistency` and
+  `State_LightOrder`.
+- `shading_parity`: `ShadingParity_ShaderParameterEquivalence` (part A) and
+  `ShadingParity_ShaderParameterEquivalenceDirect` (part B, a separate test).
 - `RibOut_ShaderStatementOrder`, under `tests/unit/rib_parse`.
 - Also `architecture`, `visual`, `^determinism$`, the full suite, and the sweep once before merge.
 
@@ -87,7 +98,8 @@ resolution is an inline `static_cast`, and the hot loops touch no reference coun
 set stays a stored field.
 
 **Constraints**:
-- byte-identical renders (FR-022), including today's light order (research R5);
+- byte-identical renders in every phase except the FR-025 light-order phase (FR-022);
+- a reference re-render only with the maintainer's explicit approval at that time (FR-025);
 - no threshold widening;
 - no task depends on the merge;
 - `cpujob` for every build and test: one job at a time machine-wide, `nice -n 19`, at most `-j4`.
@@ -97,17 +109,29 @@ set stays a stored field.
 - 7 State files added: `stateHandles.h`, `stateVocabulary.h`, `patternTable.h`,
   `shaderParameterHooks.{h,cpp}` and `channelRegistry.{h,cpp}`;
 - 1 Shading header (`shaderRefs.h`) and 1 Shading unit (`shaderParameters.{h,cpp}`) added;
-- 5 test executables and their fixture shaders added;
+- 9 test executables (7 `state`, the Direct equivalence test and `RibOut_ShaderStatementOrder`) and their fixture shaders added;
 - the architecture data files and the registry updated.
 
-**Measurements**: the builds needed for the baselines have not run. Quickstart §0 lists them, and
-none blocks the design:
-- the architecture report on `dfffba0`;
-- the suite baseline;
-- the part A oracle and its mutation;
-- the characterization tests;
-- the timings of the slowest three scenes;
-- the spec 024 import count.
+**Measurements** (macOS, `build-025` at `dfffba0` plus the new test files, 2026-10-26; details
+in [validation.md](validation.md)):
+- **Architecture check**: PASS, with `ALLOWED DB-008 x 7`, the TOTAL metric at 721/110 (baseline
+  721/110), and no NOTE or WARNING.
+- **Full suite** (`-LE determinism-sweep -j4`): **784/784 passed**.
+- **Part A**: 64/64 green. The precedence-swap mutation gives 4 failures.
+- **`State_LightOrder`**: red, with 4 of 9 checks failing. With the FR-025 fix applied in a
+  scratch copy it is 9/9 green.
+- **FR-025 impact**:
+  - **Scenes**: 82 of the 489 `examples/rib` scenes change light order for at least one object,
+    and 76 of them are rendered by tests.
+  - **Tests concerned**: 66 visual and parity tests and 71 determinism-sweep tests.
+  - **Visual and parity results**: with the fix, all 66 pass at unchanged thresholds, and every
+    `MaxBlockAvgDiff` equals the starting tree's.
+  - **Output images**: all 95 that could be compared are **bit-identical** to the starting tree's,
+    so **no reference re-render is needed**.
+  - Research R5 and the FR-025 section below have the detail.
+- **libshader_shading flat-namespace imports**: 7 (spec 024's value).
+- **Slowest three visual scenes**: timed for SC-005 (validation.md §0.6).
+- **Linux**: not yet measured (quickstart §4).
 
 ## Constitution Check
 
@@ -171,7 +195,7 @@ none blocks the design:
     parameter hook is installed from `rendererShadingServices.cpp`, not from
     `rendererDeclarationsDispatch.cpp`.
   - **DB-023** is not extended. The State-only test proves State builds on a narrow include path;
-    see Q3 for doing the same in production.
+    a production State target is not part of 025 (maintainer, 2026-10-26).
   - **DB-018** is touched but not extended. The message-passing functions it names (on `dfffba0`
     at `shading.cpp:1556-1613,2753-2770`; the registry's own line numbers are older) change form from `attributes->surface` to
     `shaderInstanceOf(attributes->surface())`. Shading still reads the same fields directly; no
@@ -187,7 +211,8 @@ allowed ones listed above.
 
 ```text
 specs/025-graphics-state-handles/
-├── spec.md, plan.md, research.md, data-model.md, quickstart.md
+├── spec.md, plan.md, research.md, data-model.md, quickstart.md, validation.md
+├── tools/                      # FR-025 probe/scan scripts, probe and fix-sketch diffs, measured data
 ├── contracts/state-handles.md, attribute-scope.md, shader-parameter-hooks.md,
 │             channel-registry.md, state-vocabulary.md
 ├── checklists/requirements.md
@@ -218,7 +243,11 @@ src/ri/hiders/
 ├── photonMap.h                 # CPhotonMap : … public CMapRefTarget; + photonMapOf
 └── photon.cpp, radiance.cpp, irradianceDispatch.cpp   # photonMapOf(attributes->globalMap)
 src/ri/geometry/surface.cpp     # attributes->displacement() presence check
+src/ri/CMakeLists.txt           # + state/channelRegistry.cpp in ri_sources AND ribOut_sources (ribOut compiles
+│                               #   rendererDeclarations.cpp); + state/shaderParameterHooks.cpp in ri_sources
+│                               #   (ribVector inherits ri_sources; ribOut has no attributes.cpp)
 src/ri/render/
+├── stateConversions.h          # NEW, core-private: ParameterType <-> EDisplayParameterType helper + static_asserts
 ├── renderer.h                  # - declaredChannels, displayChannels, declareDisplayChannel x2, resetDisplayChannelUsage
 ├── rendererStatics.cpp         # - the two channel statics
 ├── rendererDeclarations.cpp    # begin/endChannelRegistry, declaration hook, out-of-line retrieveDisplayChannel forwarder
@@ -228,10 +257,14 @@ src/ri/render/
 ├── renderer.cpp                # lazy MapRef binding; imagerShader = shaderInstanceOf(o->imager)
 └── geometryDispatch.cpp        # attributes->displacement() presence check
 src/ri/hcshader.{h,cpp}         # only if the CShaderInstance base change needs it (expected: none)
-tests/unit/state/               # NEW: test_state_isolation.cpp, test_state_vocabulary.cpp,
-│                               #      test_light_order.cpp, counting test doubles, CMakeLists.txt
+tests/unit/state/               # NEW: test_light_order.cpp + CMakeLists.txt (written at the plan stage);
+│                               #      phase 2: test_state_isolation.cpp, test_state_last_bound.cpp,
+│                               #      test_state_pattern_table.cpp, test_state_channel_registry.cpp,
+│                               #      test_state_light_restore.cpp, test_state_vocabulary.cpp, state_test_doubles.h
+tests/CMakeLists.txt            # + add_subdirectory(unit/state) (plan stage)
 tests/unit/rib_parse/test_ribout_shader_order.cpp   # NEW
-tests/shading_parity/test_shader_parameter_equivalence.cpp (+ fixture .sl)  # NEW
+tests/shading_parity/test_shader_parameter_equivalence.cpp + CMake entry  # NEW, written at the plan stage (part A)
+tests/shading_parity/shader_parameter_fixtures.h, test_shader_parameter_equivalence_direct.cpp  # phase 2: fixtures shared with part A; part B as a separate test
 tests/unit/csg/test_interior_exterior_selection.cpp, tests/imager/*.cpp      # reach the object through the handle
 tests/architecture/allowlist.txt                     # - 7 DB-008 lines
 DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md, DEVNOTES.md, CLAUDE.md
@@ -242,7 +275,7 @@ DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md, DEVNOTES.md, CLAUDE.md
   directories are already classified in `domain-map.txt`, so no domain-map change is needed.
 - `tests/unit/state/` is under `tests/`, which archcheck does not analyse as a domain.
 - The State-only test compiles the State sources a second time with a narrow include path. This
-  follows the `tests/framebuffer` precedent; see research R11 and Q3.
+  follows the `tests/framebuffer` precedent; see research R11.
 
 ## Design
 
@@ -272,8 +305,11 @@ The details are in [research.md](research.md). In brief:
    - `setDefaultSurface` (`RiWorldBegin` only) leaves the record untouched (FR-024).
    - The pattern table is copy-on-write, so it is O(1) per clone, and value semantics give FR-013's
      scoping.
-5. **Light order (R5)**: today's reversal on clone and on restore is preserved and pinned by a
-   characterization test, as a finding (see Q1).
+5. **Light order (R5, FR-025)**:
+   - One `copyLightList()` helper, used by the copy constructor and by `restore(shading)`, copies
+     the list in order.
+   - The behaviour-preserving phases keep today's prepend loops, now over handle types.
+   - The fix lands in its own phase, the only one allowed to change output.
 6. **Vocabulary (R9)**: scoped enums, with explicit core conversions and `static_assert`s, plus a
    runtime consistency test.
 7. **Registry (R8)**:
@@ -301,22 +337,34 @@ The details are in [research.md](research.md). In brief:
    - the `CShaderInstance`/`CPhotonMap` bases;
    - every slot site;
    - `ctest -L architecture` goes green with all 7 State edges gone.
-5. **The record and the pattern table.**
+5. **The `bxdf` slot, the record and the pattern table.**
 6. **The registry.**
-7. **Registry text and docs, then Linux.**
+7. **Light order (FR-025): the only output-changing phase.**
+   - `copyLightList()` replaces the two prepend loops, and `State_LightOrder` turns green.
+   - Re-run the FR-025 affected tests and compare them with the baselines in validation.md §0.5
+     (diff values and the bitwise image comparison). Then run the full suite and the determinism
+     set.
+   - **If any reference result changes**, list the scene, the old and new diff, and the reason
+     (light order), then **stop and ask the maintainer**. No re-render without that approval, and
+     no threshold change. The plan-stage measurement predicts no change.
+8. **Registry text and docs, then Linux.**
 
-Each phase ends with `ctest -L architecture` and the suite labels its changes touch. Phases 3 and 5
-to 7 keep the check green throughout.
+Each phase ends with `ctest -L architecture` and the suite labels its changes touch. The check stays
+green throughout phases 3 and 5 to 8.
+
+**Expected red through phases 3 to 6**: `State_LightOrder` is the one test written red at the start
+(phase 2) that stays red until phase 7. Every phase report lists it as the known red test. Any other
+red test is a regression.
 
 ## Test design (red first)
 
 | Id | Test | Red on `dfffba0` because | Covers |
 |---|---|---|---|
-| T-S1 | `State_Isolation` (label `state`): State sources and counting doubles, narrow include path, links only `openrendercommon` | build failure: `shader.h`, `dsply.h`, `blobbyField.h` and `photonMap.h` do not resolve; the new headers do not exist | US1.3, US3.1–3.4, US4.1–4.4, US5.1–5.3, FR-001, FR-004, FR-010–FR-017, SC-006, the empty-bind record |
+| T-S1 | the State-only tests (label `state`): `State_Isolation` (handles and counts, US1), `State_LastBound` (US3), `State_PatternTable` (US4), `State_ChannelRegistry` (US5) and `State_LightOrderRestore` (FR-025, disabled until phase 7). They compile the State sources with counting doubles, on a narrow include path, and link only `openrendercommon` | build failure: `shader.h`, `dsply.h`, `blobbyField.h` and `photonMap.h` do not resolve; the new headers do not exist | US1.3, US3.1–3.4, US4.1–4.4, US5.1–5.3, FR-001, FR-004, FR-010–FR-017, SC-006, the empty-bind record, and FR-025's direct `restore()` order check (which the Ri-level save/restore round trip cannot isolate) |
 | T-S2 | `State_VocabularyConsistency` (label `state`) | build failure (the header is missing); then a value mutation is shown red | FR-008, SC-007 |
-| T-P1 | `ShadingParity_ShaderParameterEquivalence` part B | build failure (the `libshader::` API is missing) | FR-005–FR-007 |
-| T-P1a | the same test, part A (API-neutral oracle) | **green by design** on both trees; a precedence-swap mutation is shown red | FR-007 ("fails on a build where the answer differs"), US2.2 |
-| T-L1 | `State_LightOrderCharacterization` (links ribRender): lights in world and nested blocks, `RiIlluminate` off/on, a duplicate add, pointer identity against `RiLightSource` handles | **characterization, green on both trees** | FR-004, US2.3, R3, R5 |
+| T-P1 | `ShadingParity_ShaderParameterEquivalenceDirect` (part B, a separate test sharing part A's fixtures header) | build failure (the `libshader::` API is missing) | FR-005–FR-007 |
+| T-P1a | the same test, part A (API-neutral oracle, `tests/shading_parity/test_shader_parameter_equivalence.cpp`, already written) | **green by design** on both trees: 64/64 on `dfffba0`. The precedence-swap mutation gives 4 failures (measured) | FR-007 ("fails on a build where the answer differs"), US2.2 |
+| T-L1 | `State_LightOrder` (`tests/unit/state/test_light_order.cpp`, links ribRender, already written): lights in the world block, a single and a double `AttributeBegin`, a copy-on-write clone, `RiIlluminate` off/on, a save/restore round trip, pointer identity against the `RiLightSource` handles | **measured red by assertion**: 4 of 9 checks fail on `dfffba0` (single push, copy-on-write clone, and the two that follow). Green with the fix (9/9, scratch copy) | FR-004, FR-025, SC-010, US2.3, R3, R5 |
 | T-R1 | `RibOut_ShaderStatementOrder`: the seven shader statements in several orders among other attribute statements, written by ribOut and compared line by line | **characterization, green on both trees** (clarification Q3) | US3.5, FR-023 |
 | T-A1 | `ctest -L architecture` after deleting the 7 DB-008 lines at the start of the handles phase (step 4) | 7 `VIOLATION` lines until that phase ends; any other violation means the design is wrong | FR-019, SC-001, SC-002, SC-009 |
 
@@ -333,8 +381,12 @@ Existing guards whose assertions do not change (US2.4, FR-022):
 - **Reference-count drift** (a double attach from leftover manual lines, or a leak from a retain
   where an adopt belongs). Mitigated by the mapping table and by T-S1's step-by-step counts. The
   photon tests and a leak-free `stats.numAttributes` balance at `RiEnd` are a second line.
-- **Light order.** A change from "tidying" the prepend loops would alter float summation order and
-  the `ColorDeterminism_*` bits. T-L1 fails first.
+- **Light order.**
+  - Changing the prepend loops before phase 7 would mix an output change into a
+    behaviour-preserving phase.
+  - In phase 7 the fix changes float summation order in 82 scenes. The plan-stage measurement saw
+    no 8-bit output change, but a reference *could* still differ on Linux or after other changes.
+    Any such case is listed and brought to the maintainer, never absorbed by a threshold.
 - **Transitive includes** surfacing a real foreign need in Geometry, Texturing or Scene Interface.
   The spec measured none. If one appears, the work stops and is reported; it is never worked
   around with a forbidden include.
@@ -343,45 +395,74 @@ Existing guards whose assertions do not change (US2.4, FR-022):
   before `new CAttributes` (`rendererContext.cpp:109,139`), and T-P1a checks a fresh `RiBegin`
   block.
 - **archcheck and doubly compiled State units** (research R11): verified on the first finished run.
-  The fallback is Q3.
+  If it mishandles them, implementation stops and reports it.
 - **Known flaky tests** (memory: `reference_ctest_flaky_tests.md`). A red one is re-run in
   isolation before it is written off. `ShadingParity_AmbientAccumulation` is a real heap bug, not
   noise.
 
-## Open questions for the maintainer
+## Decisions on the plan questions (maintainer, 2026-10-26)
 
-1. **Light order versus spec wording (US2.3).**
-   - **The finding**: the copy constructor and `restore(shading)` reverse the active-light list,
-     so inside every `AttributeBegin` or copy-on-write clone lights run in reverse RIB order
-     (research R5). The spec says "lights run in RIB order".
-   - **Recommendation**: preserve today's order exactly (FR-004 "as today", FR-022), pin it with
-     T-L1, and amend US2.3 to read "in the same order as the starting tree". File a GitHub issue
-     for the reversal; a fix changes output and belongs to its own `fix/` branch.
-2. **FR-003's "MUST NOT call back into them"** versus the parameter hook.
-   - **The issue**: State calls Shading's logic through a State-owned function pointer, exactly
-     as `pl.cpp` already calls `CRenderer::retrieveVariable` through `variableLookup.h`. This adds
-     no edge.
-   - **Recommendation**: confirm that FR-003 means no direct reference, and that FR-006 leaves the
-     mechanism to the plan, as written.
-3. **Production State target (DB-023).**
-   - **The issue**: the State-only test compiles the State sources a second time.
-   - **The alternative**: a production `ribState_obj` OBJECT library with the same narrow include
-     path, linked into ribRender, ribVector and the test. It would compile each State source once,
-     and DB-023's tracking line ("every remediation spec narrows include paths for its domain")
-     asks for it.
-   - **Recommendation**: keep 025 to the test-only target, and take `ribState_obj` up only if
-     quickstart §2 shows archcheck mishandling the doubly compiled units. It touches the
-     shared/static library composition, which this spec does not otherwise need. The maintainer
-     may prefer doing it now.
-4. **The bxdf slot in the parameter answers.** Excluded in 025 (research R4). Recommendation:
-   confirm it, and leave the decision to spec 035, which binds the first Bxdf.
-5. **FR-001's wording on light entries.**
-   - **The issue**: FR-001 lists "each entry of the active-light list" among the handles, and says
-     a handle "is retained when an attribute block is copied or restored". Today light entries are
-     never attached; `CRenderer::allLights` owns them (research R1). The plan follows FR-001's
-     overriding "MUST match today's" and keeps them non-owning.
-   - **Recommendation**: amend FR-001 to say light-list entries hold a State-owned non-owning
-     handle, as today. The analyze stage would otherwise flag the contradiction.
+Recorded as clarifications in spec.md (session 2026-10-26):
+
+1. **Light order**: fixed in 025 as FR-025 / SC-010, in its own phase (phase 7). See research R5
+   and the FR-025 section below.
+2. **FR-003** "MUST NOT call back" means no direct reference. The State-owned hooks
+   (`shaderParameterHooks.h`, `variableLookup.h`) are fine.
+3. **No production State build target** (`ribState_obj`) in 025. The State-only test compiles the
+   State sources itself (research R11). If archcheck mishandles that, implementation stops and
+   reports it.
+4. **The bxdf slot** stays out of the parameter answers until spec 035 (FR-005).
+5. **FR-001**: light-list entries hold a non-owning handle, as today.
+
+## FR-025 affected scenes and references
+
+Measured on `dfffba0` at the plan stage, macOS. Raw data is in `validation.md` §0.5.
+
+- **82 scenes** change the light order of at least one object; 76 of them are rendered by a test.
+  The cause in every case is the same: each `AttributeBegin` or copy-on-write clone reverses the
+  list of a block that holds two or more lights.
+- **Tests that compare against a stored reference image** (`Visual_*`, `Sampling_ThreadSweep_*`):
+  - with the fix, every one passes at its unchanged threshold;
+  - each `MaxBlockAvgDiff` is identical to the starting tree's;
+  - every compared output image is bit-identical (95 images).
+  - **No reference needs re-rendering.** The float-level summation-order change does not survive
+    the 8-bit output in these scenes.
+- **Parity tests** (hider against hider, in the same tree) pass with identical diffs.
+- **The 71 `DeterminismSweep_*` tests** compare configurations within one tree, so a light-order
+  change cannot fail them. They are re-run with the fix (validation.md §0.5).
+- **Not observed by the probe**:
+  - light order inside procedurals expanded at render time. Of the 7 procedural scenes, 2 have
+    two or more lights; one of them is already in the list;
+  - the second frame of photon scenes where the known `CPhotonHider` race killed it in one of the
+    runs.
+
+  Both are covered by running the full suite in phase 7.
+- **If phase 7 (or the Linux run) shows a reference change after all**: the plan lists it with the
+  scene, its old and new diffs and the reason, and stops for the maintainer's approval. It never
+  re-renders on its own and never touches a threshold.
+
+The affected scenes:
+- **Lights, scene files and gather**: `bowl`, `gumbo`, `quadlight`, `quadlight-slo`,
+  `quadrics-a`, `quadrics-b`, `spherelight`, `spherelight-slo`, `spotlight`, `spotlight-reyes`,
+  `spotlight-raytrace`, `sphere-gather-reyes`, `sphere-gather-reyes-slo`, `vasegallery`.
+- **Blobby**: `blobby-parse-smoke`, `blobby-repeller-{heights,shaping}-{reyes,raytrace,zbuffer}`,
+  `blobby-tolerance-inherited-{reyes,raytrace,zbuffer}`.
+- **CSG**:
+  - `csg-hero-{reyes,raytrace,zbuffer}-{800,1600}`, `csg-hero-two-shaders-{reyes,raytrace}`;
+  - `csg-open-quadric-caps-{reyes,raytrace,zbuffer}`;
+  - `csg-procedural-open-cylinder{,-inline}-raytrace`;
+  - `csg-secondary-rays-{reyes,raytrace}`;
+  - `csg-sphere-cube-difference-{reyes,raytrace,zbuffer}-{800,1600}`;
+  - `csg-sphere-sphere-{loose,tight}-tolerance-raytrace`, `csg-tolerance-inert-raytrace`.
+- **Trimmed NURBS**: `nupatch-vase-trimmed-{hole,hole-raytrace,multiloop}`,
+  `nupatch-vase-trimmed-malformed-{badweight,instanced,unclosed}`.
+- **Parity scenes**:
+  - `parity/displacement-{reyes,raytrace}`, `parity/dof-motion-{reyes,raytrace}`;
+  - `parity/motion-{patches,polygons,quadrics}-{deform,translate}-{reyes,raytrace}`;
+  - `parity/motion-subdiv-rotate-{reyes,raytrace}`,
+    `parity/motion-subdiv-translate-{reyes,raytrace,photon,wire}`.
+- **Subdivision photon scenes**: `subdiv-{facevarying-seam,hierarchical-override,loop,new-tags}-photon`.
+- **Torus**: `torus-{reyes,raytrace}`.
 
 None of these changes a reference-doc decision (D1–D30). D5 is implemented as written: the later of
 Surface and Bxdf, saved and restored with the attribute stack, and ribOut statement order checked.

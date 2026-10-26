@@ -47,7 +47,7 @@ const SShaderParameterHooks &shaderParameterHooks();      // { &usedShaderParame
 }
 ```
 
-The `bxdf` slot is ignored by both functions in 025.
+The `bxdf` slot is ignored by both functions in 025 (FR-005, confirmed 2026-10-26).
 
 **Precondition**: while the hook is installed, every slot target and every light target is a
 `CShaderInstance`. The hook `static_cast`s them, as the code before 025 did implicitly.
@@ -107,6 +107,8 @@ The `bxdf` slot is ignored by both functions in 025.
     `defaultsurface` when the case binds no surface, and `defaultlight` when no `LightSource`
     preceded `RiWorldBegin`.
   - The fixture file states which defaults each case sees.
+
+**Part A was run on `dfffba0` on 2026-10-26**: 64/64 checks green; the precedence-swap mutation gave 4 failures (validation.md §0.4).
 
 **Part B** is red until the code lands (a build failure): the same assertions made directly
 against `libshader::usedShaderParameters`/`findShaderParameter`.

@@ -1,0 +1,7 @@
+                 (undefined) external CPhotonMap::lookup(float*, float const*, int) (dynamically looked up)
+                 (undefined) external CTexture3d::resolve(int, char const**, int*, int*) (dynamically looked up)
+                 (undefined) external CGatherBundle::CGatherBundle() (dynamically looked up)
+                 (undefined) external CShadingContext::trace(CRay*) (dynamically looked up)
+                 (undefined) external CShadingContext::traceEx(CRayBundle*) (dynamically looked up)
+                 (undefined) external vtable for CTraceBundle (dynamically looked up)
+                 (undefined) external vtable for CTransmissionBundle (dynamically looked up)

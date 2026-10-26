@@ -14,19 +14,34 @@
 - Q: Does this spec add a ribOut test for statement order? -> A: Yes, a small ribOut test of the existing shader statements' order; the `Bxdf` round-trip is left to spec 035.
 - Assumptions accepted as decided: a pattern handle redefined in the same scope replaces the earlier one, and a nested definition shadows an outer one until the nested scope ends; the declared-variable table stays in the renderer core; the unchecked `CShaderInstance*` to `CProgrammableShaderInstance*` cast in `addLight()` is preserved as-is, not fixed.
 
+### Session 2026-10-26 (plan questions)
+
+- Q: Today the attribute copy constructor and the shading `restore()` prepend each light, so every `AttributeBegin`, every copy-on-write clone and every `ResourceRestore` reverses the active-light list. Preserve or fix? -> A: Fix it in 025. Lights run in RIB order in every block, and copies and restores keep the order (FR-025, SC-010). It lands in its own phase, after the behaviour-preserving phases, so their byte-identical checks still hold. The plan measures and lists which scenes and references it affects. Any reference re-render needs the maintainer's explicit approval at that time. Thresholds are never widened.
+- Q: Does FR-003's "MUST NOT call back into them" forbid an installed hook? -> A: No. It means no direct reference, that is, no include or link edge. A State-owned hook that another domain implements and the renderer core installs, as `variableLookup.h` does, is allowed.
+- Q: FR-001 lists the light entries among the retained handles, but today they are never attached. Which applies? -> A: Light-list entries hold a non-owning handle, as today. The renderer core owns the lights.
+- Q: Is the `bxdf` slot part of the used-parameter set and of `findParameter`? -> A: No. It stays out of both answers until spec 035.
+- Q: Should 025 add a production Graphics State build target (`ribState_obj`)? -> A: No. The State-only test target is enough.
+
+### Session 2026-10-26 (tasks stage)
+
+- Q: May the plan's single `State_Isolation` test be split into `State_Isolation`, `State_LastBound`, `State_PatternTable`, `State_ChannelRegistry` and `State_LightOrderRestore`? -> A: Yes. Each State-only test turns green in the phase that provides its API, and the direct `restore()` order check (`State_LightOrderRestore`) stays disabled until the FR-025 phase, so `State_LightOrder` remains the only red test before phase 7. `ctest -L state` selects all of them.
+- Q: May FR-007's part B be a separate test? -> A: Yes. It is `ShadingParity_ShaderParameterEquivalenceDirect`, with the fixtures shared with part A through `tests/shading_parity/shader_parameter_fixtures.h`, because the missing `libshader::` API would otherwise break part A and the main build.
+- Q: Where does the explicit `ParameterType` to `EDisplayParameterType` conversion helper live? -> A: In a new core-private header, `src/ri/render/stateConversions.h`, with one `static_assert` per enumerator pair beside it.
+
 ## User Scenarios & Testing *(mandatory)*
 
-The "users" of this feature are the people who build, maintain and extend openRender: contributors working in Graphics State, maintainers reviewing remediation specs, authors of the later specs that need these seams (026 shading contract, 034 shader networks, 035 material interface, 037 plug-in ABI), and anyone rendering scenes, whose output must not change.
+The "users" of this feature are the people who build, maintain and extend openRender: contributors working in Graphics State, maintainers reviewing remediation specs, authors of the later specs that need these seams (026 shading contract, 034 shader networks, 035 material interface, 037 plug-in ABI), and anyone rendering scenes, whose output must not change except for the light-order fix (FR-025).
 
 ### Measured starting point (2026-10-25, master `dfffba0`)
 
 - Graphics State is `src/ri/state/` (12 files). The architecture check allowlists **7 include edges** from it under DB-008: `attributes.h` and `options.h` each include Shading's `shader.h` (directly or through the `src/ri/core/shader.h` shim, which the check classifies as Shading; 3 lines), `options.h` includes `src/display/dsply.h` and `src/ri/geometry/blobbyField.h`, and `attributes.cpp` includes `src/ri/hiders/photonMap.h`. There are no link edges from State sources.
 - `CAttributes` holds five fixed `CShaderInstance *` slots (`surface`, `displacement`, `atmosphere`, `interior`, `exterior`), an active-light list (`CActiveLight`, holding `CProgrammableShaderInstance *`), and two `CPhotonMap *` (`globalMap`, `causticMap`) that the renderer core fills lazily from the map names at render time. `COptions` holds the `imager` `CShaderInstance *`. All are reference counted through `attach()`/`detach()`; the attribute copy constructor and `restore()` re-attach them.
 - Outside State, the five slots are read or written at about 60 sites: Shading (`shading.cpp`, `executeMisc.cpp`), the renderer core (`rendererContext.cpp`: the `Surface`/`Atmosphere`/`Interior`/`Exterior`/`Displacement` handlers and the default-surface binding at `WorldBegin`), and Geometry (`surface.cpp:605`, `geometryDispatch.cpp:281`, which only test the displacement slot for presence). Four Shading sites walk `lightSources`; five Hider sites read the photon-map pointers; the renderer core reads `options->imager`.
-- Shader-parameter logic lives in `CAttributes`: `checkParameters()` unions the bound shaders' `requiredParameters()` into `usedParameters` (read once outside State, `shading.cpp:904`), and `findParameter()` walks the `parameters` lists of displacement, surface and atmosphere. `findParameter()` is called by State's own parameter-list parser (`pl.cpp`, 9 lines), by Geometry (`blobby.cpp:304`) and by the renderer core (`renderer.cpp`). So a plain move to Shading would give State and Geometry a forbidden dependency on Shading.
+- Shader-parameter logic lives in `CAttributes`: `checkParameters()` unions the bound shaders' `requiredParameters()` into `usedParameters` (read once outside State, `shading.cpp:904`), and `findParameter()` walks the `parameters` lists of displacement, surface and atmosphere. `findParameter()` is called by State's own parameter-list parser (`pl.cpp`, 9 lines) and by Geometry (`blobby.cpp:304`); the call in Scene Interface's `rib.y:235` sits in an `if (FALSE)` branch, and `renderer.cpp:635` only mentions the display plug-in's own `findParameter` in a comment (research R4). So a plain move to Shading would give State and Geometry a forbidden dependency on Shading.
 - The vocabulary State still takes from other domains is small. `RtDisplay*Function` typedefs and `rendererc.h` are already infrastructure (spec 023). What remains is `ParameterType` from the display plug-in ABI header (`dsply.h`, used by `COptions::CDisplay::TDisplayParameter`) and `BLOBBY_ORDER_RISPEC` from `blobbyField.h` (default of `blobbyOpcodeOrder`).
 - The AOV/channel registry is two renderer-core statics (`CRenderer::declaredChannels`, `displayChannels`) with `declareDisplayChannel` (two forms), `retrieveDisplayChannel` and `resetDisplayChannelUsage`, five default channels (`rgb`, `rgba`, `a`, `z`, `rgbaz`) registered by `initDeclarations()` and freed by `shutdownDeclarations()`. The channel *class* (`CDisplayChannel`, `displayChannel.h`) is already in `src/ri/state/`. Callers: `RiDisplayChannel` and the display setup in the renderer core, and `CTexture3d::defineChannels` (Texturing, `texture3d.cpp:119`). The allowlist holds one DB-021 include edge (`texture3d.cpp -> displayChannel.h`) and one DB-010 link edge for `CRenderer::retrieveDisplayChannel` from the same file.
 - Files in Geometry, Texturing and Scene Interface that name `CShaderInstance`, `CProgrammableShaderInstance`, `CPhotonMap`, `ParameterType` or `BLOBBY_ORDER_*`: **none** (grep, 2026-10-25). Files that do use them are in Shading, Hiders, the renderer core and consumers (preview, data viewer), all of which may include those headers. So removing State's includes should not force a new forbidden include elsewhere; this is verified by the architecture check, not assumed.
+- `addLight()` appends lights in RIB order. But the attribute copy constructor and `restore(shading)` rebuild the list by prepending (`attributes.cpp:259-264,500-505`), so every attribute push, copy-on-write clone and `ResourceRestore` reverses it. The lights of such a block run in reverse order. That is fixed here (FR-025).
 - No `ShaderGroupRef`, `MapRef`, `bxdf` slot or pattern-node table exists in the tree. There is no single "RIB round-trip suite": the round-trip tests are `SamplingOption_RibRoundTrip`, `Blobby_RibOutRoundTrip` and the preview debug-dump test, and none of them covers shader statements.
 
 ### User Story 1 - Graphics State depends on no other domain (Priority: P1)
@@ -48,7 +63,7 @@ A developer building or testing Graphics State on its own, or a reviewer checkin
 
 ### User Story 2 - Every scene renders exactly as before (Priority: P1)
 
-A user renders any existing scene: surface, displacement, atmosphere and volume shaders, lights (including the default light and the built-in sphere and quad lights), an imager shader, photon maps, `ResourceBegin`/`ResourceRestore`, and shader parameters supplied as primitive variables. Nothing about the result changes. Binding a primitive variable to a shader parameter, the used-parameter set a grid shades with, and the light order all come out as today.
+A user renders any existing scene: surface, displacement, atmosphere and volume shaders, lights (including the default light and the built-in sphere and quad lights), an imager shader, photon maps, `ResourceBegin`/`ResourceRestore`, and shader parameters supplied as primitive variables. Nothing about the result changes, with one exception: the light-order fix (FR-025). Binding a primitive variable to a shader parameter and the used-parameter set a grid shades with come out as today. Lights run in RIB order in every block.
 
 **Why this priority**: The change touches the path every shaded point takes. Behaviour preservation is the contract of a remediation spec.
 
@@ -58,7 +73,7 @@ A user renders any existing scene: surface, displacement, atmosphere and volume 
 
 1. **Given** the full test suite, **When** it runs on the finished tree on macOS and on Linux (GCC 13, warnings as errors), **Then** every test that passed on the starting tree passes, and the bit-identity checks (`DepthDeterminism_*`, `ColorDeterminism_*`) stay green.
 2. **Given** a primitive whose parameter list names a shader parameter (inline-declared or pre-declared), **When** the list is parsed, **Then** the variable binds to the same shader parameter, or is skipped on a type or size mismatch, exactly as on the starting tree.
-3. **Given** a scene with several `LightSource` statements, light switching and a nested `AttributeBegin`, **When** it renders, **Then** lights run in RIB order and the used-parameter set equals the starting tree's at every grid.
+3. **Given** a scene with several `LightSource` statements, light switching and a nested `AttributeBegin`, **When** it renders, **Then** lights run in RIB order and the used-parameter set equals the starting tree's at every grid. On the starting tree the lights of a cloned block run reversed; that difference is the FR-025 fix.
 4. **Given** the existing unit tests that reach these fields (`selectVolumeShader` interior/exterior selection, photon-map frame release and sessions, the imager tests), **When** they run, **Then** their assertions are unchanged; only how they reach the object may change.
 5. **Given** the slowest visual scenes, **When** they render on both trees, **Then** render time is within the starting tree's run-to-run variance.
 
@@ -124,6 +139,7 @@ A developer working on display channels, AOVs or 3D-texture channels finds the r
 - **Copy-on-write clones**: `getAttributes(modify)` clones a shared block. The clone must carry the bxdf handle, the record, the pattern table and the map handles.
 - **Lazy photon-map binding**: `CRenderer::render()` fills `globalMap`/`causticMap` from the names the first time an object is rendered. The handle form must keep that laziness and must not let two objects sharing a name end up with different maps.
 - **Photon-map lifetime**: `test_photon_map_frame_release` and `test_photon_map_sessions` pin frame-end release and session reuse; their results must not change.
+- **Light order in cloned blocks**: an attribute push, a copy-on-write clone and a `ResourceRestore` all copy the light list. Each copy must keep the source's order (FR-025). A light switched off and on again with `Illuminate` moves to the end of the list, as `addLight` already does today.
 - **Unchecked light cast**: `addLight()` stores a `CShaderInstance *` as `CProgrammableShaderInstance *` without checking, and the built-in sphere and quad lights (DB-013) are not programmable instances. The handle form must preserve today's behaviour for them, and must not "fix" the cast here.
 - **Hot paths**: Shading's per-grid and per-light loops (`execute.cpp`, four sites in `shading.cpp`) resolve handles on every shade. This must not add allocation, locking or a measurable cost.
 - **No services / no resolver installed**: a State-only program (the test double, or a consumer that links only State) must get a defined result, not a crash, when a handle has no resolver.
@@ -137,15 +153,15 @@ A developer working on display channels, AOVs or 3D-texture channels finds the r
 
 **Handles and slots**
 
-- **FR-001**: Graphics State MUST hold, for each of the slots `surface`, `displacement`, `atmosphere`, `interior`, `exterior`, the new `bxdf`, the `imager` (in `COptions`), and for each entry of the active-light list, only a handle type that Graphics State owns and that exposes no Shading type. Reference-counting and lifetime MUST match today's: a handle is retained when an attribute block is copied or restored, released when a slot is replaced or the block is destroyed, and an empty slot is still distinguishable from a bound one.
+- **FR-001**: Graphics State MUST hold, for each of the slots `surface`, `displacement`, `atmosphere`, `interior`, `exterior`, the new `bxdf`, the `imager` (in `COptions`), and for each entry of the active-light list, only a handle type that Graphics State owns and that exposes no Shading type. Reference-counting and lifetime MUST match today's. A slot handle is retained when an attribute block is copied or restored, and released when the slot is replaced or the block is destroyed. An empty slot is still distinguishable from a bound one. Light-list entries hold a non-owning handle, as today: the renderer core owns the lights, and copying or restoring a block does not retain them (clarification 2026-10-26).
 - **FR-002**: `globalMap` and `causticMap` MUST be held the same way (a map handle). Graphics State MUST NOT include the photon-map header. The lazy, name-driven binding at render time and the frame-end release MUST behave as today.
-- **FR-003**: Shading, Hiders and the renderer core MUST obtain the concrete object from a handle through an interface owned by the resolving side, in a direction the allowed-dependency table permits. Graphics State MUST NOT call back into them. Geometry's two presence checks on the displacement slot MUST work without Geometry depending on Shading.
-- **FR-004**: The light list MUST keep RIB order, duplicate suppression and removal as today, with handles in place of `CProgrammableShaderInstance *`.
+- **FR-003**: Shading, Hiders and the renderer core MUST obtain the concrete object from a handle through an interface owned by the resolving side, in a direction the allowed-dependency table permits. Graphics State MUST NOT call back into them. "Call back" means a direct reference, that is, an include or link edge. A State-owned hook that another domain implements and the renderer core installs, as `variableLookup.h` does, is allowed (clarification 2026-10-26). Geometry's two presence checks on the displacement slot MUST work without Geometry depending on Shading.
+- **FR-004**: The light list MUST keep duplicate suppression and removal as today, with handles in place of `CProgrammableShaderInstance *`. It MUST keep RIB order in every block (FR-025).
 
 **Shader-parameter logic**
 
-- **FR-005**: Computing the used-parameter set from the bound shaders and finding a shader parameter by name MUST be provided by Shading. The set MUST be recomputed at every point where it is recomputed today (any slot bind, light add or remove, shading restore, the default-surface and default-light bindings). `findParameter` MUST keep its precedence: displacement, then surface, then atmosphere.
-- **FR-006**: Callers of those two operations in Graphics State (the parameter-list parser), Geometry (`blobby.cpp`) and the renderer core MUST still obtain the same answers, and none of them MAY gain a dependency on Shading. How the answer reaches them is the plan's decision; the requirement is the absence of a new edge.
+- **FR-005**: Computing the used-parameter set from the bound shaders and finding a shader parameter by name MUST be provided by Shading. The set MUST be recomputed at every point where it is recomputed today (any slot bind, light add or remove, shading restore, the default-surface and default-light bindings). `findParameter` MUST keep its precedence: displacement, then surface, then atmosphere. The `bxdf` slot MUST NOT be part of either answer until spec 035 (clarification 2026-10-26).
+- **FR-006**: Callers of those two operations in Graphics State (the parameter-list parser, `pl.cpp`) and Geometry (`blobby.cpp`) MUST still obtain the same answers, and none of them MAY gain a dependency on Shading. How the answer reaches them is the plan's decision; the requirement is the absence of a new edge.
 - **FR-007**: A test MUST show that, for a set of bound shaders, the used-parameter set and the parameter lookups (found, not found, shadowed by an earlier slot) equal the values the starting tree computes. The test MUST fail on a build where the answer differs.
 
 **Vocabulary**
@@ -175,10 +191,19 @@ A developer working on display channels, AOVs or 3D-texture channels finds the r
 
 - **FR-019**: The architecture check MUST pass on macOS and Linux. The 7 DB-008 allowlist lines MUST be deleted. Any other line the change makes stale MUST be deleted. No line MAY be added or swapped. `metrics-baseline.txt` MUST be lowered to what the check reports and MUST NOT rise for any class.
 - **FR-020**: The registry MUST be updated: DB-008 moves to Resolved with this spec's number and the date. DB-021 stays Open: its evidence loses "the registry itself is renderer-core state" and keeps what remains (Texturing's include of `displayChannel.h` and its call through the `CRenderer` forwarder), with the tracking line left to spec 037; no text MAY call DB-021 Resolved. DB-010's evidence and the allowlist header counts are updated to match, and DB-010's link line for `retrieveDisplayChannel` stays since the forwarder remains. No registry text MAY refer to anything that exists only after the merge. GitHub #31 closes through the maintainer's merge message.
-- **FR-021**: New tests MUST be written first and shown failing on the starting tree, per constitution Principle III: a State-only test that links no other domain's library (rule 5), the vocabulary consistency test, the handle-lifetime test, the last-bound and pattern-table scoping tests, the registry tests and the parameter-equivalence test (FR-007).
-- **FR-022**: Rendering output MUST NOT change. The full suite MUST stay green on macOS and on Linux (GCC 13, warnings as errors), including the determinism bit-identity checks. Existing unit tests keep their assertions.
+- **FR-021**: New tests MUST be written first and shown failing on the starting tree, per constitution Principle III: a State-only test that links no other domain's library (rule 5), the vocabulary consistency test, the handle-lifetime test, the last-bound and pattern-table scoping tests, the registry tests, the parameter-equivalence test (FR-007) and the light-order test (FR-025).
+- **FR-022**: Rendering output MUST NOT change, except through the light-order fix of FR-025 in its own phase. Every other phase MUST be byte-identical to the starting tree. The full suite MUST stay green on macOS and on Linux (GCC 13, warnings as errors), including the determinism bit-identity checks. Existing unit tests keep their assertions.
 - **FR-023**: Record the shader-statement ordering check for ribOut (User Story 3, scenario 5) as an automated test of the existing statements. No `Bxdf` round-trip is added here.
 - **FR-024**: `RiWorldBegin` MUST bind `defaultsurface` to the surface slot exactly as today and MUST NOT change the last-bound record.
+
+**Light order**
+
+- **FR-025**: Every attribute block's active-light list MUST hold its lights in the order they became active in the RIB stream. An attribute push (`AttributeBegin`), a copy-on-write clone and a shading restore (`ResourceRestore`) MUST copy the source block's list in order, not reversed as the starting tree does.
+  - Light switching (`Illuminate` off then on), duplicate suppression and removal behave as today.
+  - The fix MUST land in its own phase, after the behaviour-preserving phases.
+  - The scenes and references whose output it changes MUST be measured on the starting tree and listed in the plan.
+  - A reference image MAY be re-rendered only with the maintainer's explicit approval, given at that time, for a listed scene and reason. No threshold is widened.
+  - A test MUST show the order inside a nested `AttributeBegin`, after a copy-on-write clone and after a `ResourceRestore`. It MUST fail on the starting tree.
 
 ### Key Entities
 
@@ -198,12 +223,13 @@ A developer working on display channels, AOVs or 3D-texture channels finds the r
 - **SC-001**: The architecture check reports 0 include edges and 0 link edges whose source is Graphics State, on macOS and Linux (7 before).
 - **SC-002**: All 7 DB-008 allowlist lines are deleted, no allowlist line is added or swapped, and DB-008 is under Resolved with this spec's number and date.
 - **SC-003**: `src/ri/state` includes none of `shader.h`, `photonMap.h`, `dsply.h`, `blobbyField.h`, directly or through a shim.
-- **SC-004**: The full suite passes on macOS and Linux with the same results as before apart from the new tests; `DepthDeterminism_*` and `ColorDeterminism_*` stay bit-identical; existing unit tests keep their assertions.
+- **SC-004**: The full suite passes on macOS and Linux with the same results as before, apart from the new tests and the FR-025 changes the plan lists. `DepthDeterminism_*` and `ColorDeterminism_*` stay bit-identical. Existing unit tests keep their assertions. Every phase before FR-025's renders byte-identically to the starting tree.
 - **SC-005**: The slowest three visual scenes render within the starting tree's measured run-to-run variance.
 - **SC-006**: A State-only test, linking no Shading, Hiders, Geometry or Display library, builds and passes and covers handles, last-bound, pattern scoping, vocabulary and registry.
 - **SC-007**: The vocabulary consistency test passes and fails when a value in either list is changed.
 - **SC-008**: No channel table is left among `CRenderer`'s statics (only the forwarder remains), `texture3d.cpp` is unchanged, DB-021 is still Open, and the AOV visual tests give the same results.
 - **SC-009**: The registry and allowlist header counts agree with the check's report, and `metrics-baseline.txt` is lowered only to values the check reports.
+- **SC-010**: The light-order test fails on the starting tree and passes on the finished tree. Every scene the plan lists as affected by FR-025 passes its visual or parity test at its unchanged threshold, or has a reference re-render the maintainer approved. No unlisted scene changes output.
 
 ## Assumptions
 
@@ -217,4 +243,6 @@ A developer working on display channels, AOVs or 3D-texture channels finds the r
 - The display plug-in ABI (`dsply.h`) and the published blobby header do not change; their versioning is DB-003/DB-014.
 - The photon hider's, built-in light's (DB-013) and hider-sharing (DB-005) couplings are out of scope.
 - The unchecked light-pointer cast is preserved as-is, as a finding, not fixed here (decided in clarification).
+- The light-order reversal on copy and restore is fixed here (FR-025, decided 2026-10-26). It is the only intended output change.
+- There is no production Graphics State build target in 025 (decided 2026-10-26).
 - Verification that this spec adds to the stage report: the architecture check run before and after, `ctest -L visual`, `-L shading_parity`, `-L '^determinism$'`, the photon-map and imager unit tests, and the new State-only tests. The determinism sweep (`-L '^determinism-sweep$'`) runs once before the merge, not per phase.

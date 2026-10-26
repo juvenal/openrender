@@ -1,0 +1,34 @@
+--- src/ri/state/attributes.cpp	2026-10-25 02:43:14
++++ src/ri/state/attributes.cpp	2026-10-26 00:22:51
+@@ -256,11 +256,13 @@
+ 
+     lightSources = NULL;
+ 
++    CActiveLight **tail = &lightSources;
+     for (cLight = a->lightSources; cLight != NULL; cLight = cLight->next) {
+         nLight = new CActiveLight;
+         nLight->light = cLight->light;
+-        nLight->next = lightSources;
+-        lightSources = nLight;
++        nLight->next = NULL;
++        *tail = nLight;
++        tail = &nLight->next;
+     }
+ 
+     name = (a->name != NULL ? strdup(a->name) : NULL);
+@@ -497,11 +499,13 @@
+         }
+ 
+         // Copy the light sources
++        CActiveLight **tail = &lightSources;
+         for (cLight = other->lightSources; cLight != NULL; cLight = cLight->next) {
+             CActiveLight *nLight = new CActiveLight;
+             nLight->light = cLight->light;
+-            nLight->next = lightSources;
+-            lightSources = nLight;
++            nLight->next = NULL;
++            *tail = nLight;
++            tail = &nLight->next;
+         }
+ 
+         checkParameters();

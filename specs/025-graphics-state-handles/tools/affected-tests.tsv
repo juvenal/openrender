@@ -1,0 +1,139 @@
+Visual_quadlight	regression,visual	quadlight.rib
+Visual_quadlight-slo	regression,visual	quadlight-slo.rib
+Visual_spherelight	regression,visual	spherelight.rib
+Visual_spherelight-slo	regression,visual	spherelight-slo.rib
+Visual_sphere-gather-reyes	regression,visual	sphere-gather-reyes.rib
+Visual_sphere-gather-reyes-slo	regression,visual	sphere-gather-reyes-slo.rib
+Visual_spotlight-reyes	regression,visual	spotlight-reyes.rib
+Visual_spotlight-raytrace	regression,visual	spotlight-raytrace.rib
+Visual_nupatch-vase-trimmed-hole	regression,visual	nupatch-vase-trimmed-hole.rib
+Visual_nupatch-vase-trimmed-hole-raytrace	regression,visual	nupatch-vase-trimmed-hole-raytrace.rib
+Visual_nupatch-vase-trimmed-multiloop	regression,visual	nupatch-vase-trimmed-multiloop.rib
+Visual_nupatch-vase-trimmed-malformed-unclosed	regression,visual	nupatch-vase-trimmed-malformed-unclosed.rib
+Visual_nupatch-vase-trimmed-malformed-badweight	regression,visual	nupatch-vase-trimmed-malformed-badweight.rib
+Visual_nupatch-vase-trimmed-malformed-instanced	regression,visual	nupatch-vase-trimmed-malformed-instanced.rib
+Parity_displacement	parity,regression	displacement-raytrace.rib displacement-reyes.rib
+Parity_motion-patches-translate	parity,regression	motion-patches-translate-raytrace.rib motion-patches-translate-reyes.rib
+Parity_motion-patches-deform	parity,regression	motion-patches-deform-raytrace.rib motion-patches-deform-reyes.rib
+Parity_motion-polygons-translate	parity,regression	motion-polygons-translate-raytrace.rib motion-polygons-translate-reyes.rib
+Parity_motion-polygons-deform	parity,regression	motion-polygons-deform-raytrace.rib motion-polygons-deform-reyes.rib
+Parity_motion-quadrics-translate	parity,regression	motion-quadrics-translate-raytrace.rib motion-quadrics-translate-reyes.rib
+Parity_motion-quadrics-deform	parity,regression	motion-quadrics-deform-raytrace.rib motion-quadrics-deform-reyes.rib
+Parity_dof-motion	parity,regression	dof-motion-raytrace.rib dof-motion-reyes.rib
+Parity_motion-subdiv-translate	parity,regression	motion-subdiv-translate-raytrace.rib motion-subdiv-translate-reyes.rib
+Parity_motion-subdiv-rotate	parity,regression	motion-subdiv-rotate-raytrace.rib motion-subdiv-rotate-reyes.rib
+Visual_subdiv-facevarying-seam-photon	regression,visual	subdiv-facevarying-seam-photon.rib
+Visual_subdiv-new-tags-photon	regression,visual	subdiv-new-tags-photon.rib
+Visual_subdiv-hierarchical-override-photon	regression,visual	subdiv-hierarchical-override-photon.rib
+Visual_subdiv-loop-photon	regression,visual	subdiv-loop-photon.rib
+NotRequired_motion-subdiv-translate-photon	not-required	motion-subdiv-translate-photon.rib
+Perf_sphere-gather	perf-manual	sphere-gather-reyes-slo.rib sphere-gather-reyes.rib
+Visual_csg-open-quadric-caps-raytrace	regression,visual	csg-open-quadric-caps-raytrace.rib
+Visual_csg-open-quadric-caps-reyes	regression,visual	csg-open-quadric-caps-reyes.rib
+Visual_csg-open-quadric-caps-zbuffer	regression,visual	csg-open-quadric-caps-zbuffer.rib
+Visual_csg-sphere-sphere-tight-tolerance-raytrace	regression,visual	csg-sphere-sphere-tight-tolerance-raytrace.rib
+Visual_csg-sphere-sphere-loose-tolerance-raytrace	regression,visual	csg-sphere-sphere-loose-tolerance-raytrace.rib
+Parity_csg-sphere-cube-difference-800-raytrace-reyes	parity,regression	csg-sphere-cube-difference-raytrace-800.rib csg-sphere-cube-difference-reyes-800.rib
+Parity_csg-sphere-cube-difference-800-raytrace-zbuffer	parity,regression	csg-sphere-cube-difference-raytrace-800.rib csg-sphere-cube-difference-zbuffer-800.rib
+Parity_csg-hero-800-raytrace-reyes	parity,regression	csg-hero-raytrace-800.rib csg-hero-reyes-800.rib
+Parity_csg-hero-800-raytrace-zbuffer	parity,regression	csg-hero-raytrace-800.rib csg-hero-zbuffer-800.rib
+Parity_csg-sphere-cube-difference-1600-raytrace-reyes	parity,regression	csg-sphere-cube-difference-raytrace-1600.rib csg-sphere-cube-difference-reyes-1600.rib
+Parity_csg-sphere-cube-difference-1600-raytrace-zbuffer	parity,regression	csg-sphere-cube-difference-raytrace-1600.rib csg-sphere-cube-difference-zbuffer-1600.rib
+Parity_csg-hero-1600-raytrace-reyes	parity,regression	csg-hero-raytrace-1600.rib csg-hero-reyes-1600.rib
+Parity_csg-hero-1600-raytrace-zbuffer	parity,regression	csg-hero-raytrace-1600.rib csg-hero-zbuffer-1600.rib
+Parity_csg-open-quadric-caps-raytrace-reyes	parity,regression	csg-open-quadric-caps-raytrace.rib csg-open-quadric-caps-reyes.rib
+Parity_csg-open-quadric-caps-raytrace-zbuffer	parity,regression	csg-open-quadric-caps-raytrace.rib csg-open-quadric-caps-zbuffer.rib
+Parity_csg-hero-two-shaders-raytrace-reyes	parity,regression	csg-hero-two-shaders-raytrace.rib csg-hero-two-shaders-reyes.rib
+Parity_csg-secondary-rays-raytrace-reyes	parity,regression	csg-secondary-rays-raytrace.rib csg-secondary-rays-reyes.rib
+Visual_blobby-parse-smoke	blobby,regression	blobby-parse-smoke.rib
+Visual_blobby-tolerance-inherited-reyes	regression,visual	blobby-tolerance-inherited-reyes.rib
+Visual_blobby-tolerance-inherited-raytrace	regression,visual	blobby-tolerance-inherited-raytrace.rib
+Visual_blobby-tolerance-inherited-zbuffer	regression,visual	blobby-tolerance-inherited-zbuffer.rib
+Parity_blobby-tolerance-inherited-reyes-raytrace	parity,regression	blobby-tolerance-inherited-raytrace.rib blobby-tolerance-inherited-reyes.rib
+Parity_blobby-tolerance-inherited-reyes-zbuffer	parity,regression	blobby-tolerance-inherited-reyes.rib blobby-tolerance-inherited-zbuffer.rib
+Visual_blobby-repeller-heights-reyes	regression,visual	blobby-repeller-heights-reyes.rib
+Visual_blobby-repeller-heights-raytrace	regression,visual	blobby-repeller-heights-raytrace.rib
+Visual_blobby-repeller-heights-zbuffer	regression,visual	blobby-repeller-heights-zbuffer.rib
+Parity_blobby-repeller-heights-reyes-raytrace	parity,regression	blobby-repeller-heights-raytrace.rib blobby-repeller-heights-reyes.rib
+Parity_blobby-repeller-heights-reyes-zbuffer	parity,regression	blobby-repeller-heights-reyes.rib blobby-repeller-heights-zbuffer.rib
+Visual_blobby-repeller-shaping-reyes	regression,visual	blobby-repeller-shaping-reyes.rib
+Visual_blobby-repeller-shaping-raytrace	regression,visual	blobby-repeller-shaping-raytrace.rib
+Visual_blobby-repeller-shaping-zbuffer	regression,visual	blobby-repeller-shaping-zbuffer.rib
+Parity_blobby-repeller-shaping-reyes-raytrace	parity,regression	blobby-repeller-shaping-raytrace.rib blobby-repeller-shaping-reyes.rib
+Parity_blobby-repeller-shaping-reyes-zbuffer	parity,regression	blobby-repeller-shaping-reyes.rib blobby-repeller-shaping-zbuffer.rib
+Visual_torus-reyes	regression,visual	torus-reyes.rib
+Visual_torus-raytrace	regression,visual	torus-raytrace.rib
+Parity_torus	parity,regression	torus-raytrace.rib torus-reyes.rib
+Sampling_ThreadSweep_quadlight	determinism,regression,sampling,visual	quadlight.rib
+Sampling_ThreadSweep_sphere-gather	determinism,regression,sampling,visual	sphere-gather-reyes.rib
+DeterminismSweep_top-quadlight	determinism-sweep	quadlight.rib
+DeterminismSweep_top-spherelight	determinism,determinism-sweep	spherelight.rib
+DeterminismSweep_top-spotlight	determinism-sweep	spotlight.rib
+DeterminismSweep_blobby-parse-smoke	determinism,determinism-sweep	blobby-parse-smoke.rib
+DeterminismSweep_blobby-repeller-heights-raytrace	determinism-sweep	blobby-repeller-heights-raytrace.rib
+DeterminismSweep_blobby-repeller-heights-reyes	determinism,determinism-sweep	blobby-repeller-heights-reyes.rib
+DeterminismSweep_blobby-repeller-heights-zbuffer	determinism-sweep	blobby-repeller-heights-zbuffer.rib
+DeterminismSweep_blobby-repeller-shaping-raytrace	determinism-sweep	blobby-repeller-shaping-raytrace.rib
+DeterminismSweep_blobby-repeller-shaping-reyes	determinism-sweep	blobby-repeller-shaping-reyes.rib
+DeterminismSweep_blobby-repeller-shaping-zbuffer	determinism-sweep	blobby-repeller-shaping-zbuffer.rib
+DeterminismSweep_blobby-tolerance-inherited-raytrace	determinism-sweep	blobby-tolerance-inherited-raytrace.rib
+DeterminismSweep_blobby-tolerance-inherited-reyes	determinism-sweep	blobby-tolerance-inherited-reyes.rib
+DeterminismSweep_blobby-tolerance-inherited-zbuffer	determinism-sweep	blobby-tolerance-inherited-zbuffer.rib
+DeterminismSweep_csg-hero-raytrace-1600	determinism-sweep	csg-hero-raytrace-1600.rib
+DeterminismSweep_csg-hero-raytrace-800	determinism-sweep	csg-hero-raytrace-800.rib
+DeterminismSweep_csg-hero-reyes-1600	determinism-sweep	csg-hero-reyes-1600.rib
+DeterminismSweep_csg-hero-reyes-800	determinism-sweep	csg-hero-reyes-800.rib
+DeterminismSweep_csg-hero-two-shaders-raytrace	determinism-sweep	csg-hero-two-shaders-raytrace.rib
+DeterminismSweep_csg-hero-two-shaders-reyes	determinism-sweep	csg-hero-two-shaders-reyes.rib
+DeterminismSweep_csg-hero-zbuffer-1600	determinism-sweep	csg-hero-zbuffer-1600.rib
+DeterminismSweep_csg-hero-zbuffer-800	determinism-sweep	csg-hero-zbuffer-800.rib
+DeterminismSweep_csg-open-quadric-caps-raytrace	determinism,determinism-sweep	csg-open-quadric-caps-raytrace.rib
+DeterminismSweep_csg-open-quadric-caps-reyes	determinism-sweep	csg-open-quadric-caps-reyes.rib
+DeterminismSweep_csg-open-quadric-caps-zbuffer	determinism-sweep	csg-open-quadric-caps-zbuffer.rib
+DeterminismSweep_csg-procedural-open-cylinder-inline-raytrace	determinism,determinism-sweep	csg-procedural-open-cylinder-inline-raytrace.rib
+DeterminismSweep_csg-procedural-open-cylinder-raytrace	determinism-sweep	csg-procedural-open-cylinder-raytrace.rib
+DeterminismSweep_csg-secondary-rays-raytrace	determinism,determinism-sweep	csg-secondary-rays-raytrace.rib
+DeterminismSweep_csg-secondary-rays-reyes	determinism,determinism-sweep	csg-secondary-rays-reyes.rib
+DeterminismSweep_csg-sphere-cube-difference-raytrace-1600	determinism-sweep	csg-sphere-cube-difference-raytrace-1600.rib
+DeterminismSweep_csg-sphere-cube-difference-raytrace-800	determinism,determinism-sweep	csg-sphere-cube-difference-raytrace-800.rib
+DeterminismSweep_csg-sphere-cube-difference-reyes-1600	determinism-sweep	csg-sphere-cube-difference-reyes-1600.rib
+DeterminismSweep_csg-sphere-cube-difference-reyes-800	determinism-sweep	csg-sphere-cube-difference-reyes-800.rib
+DeterminismSweep_csg-sphere-cube-difference-zbuffer-1600	determinism-sweep	csg-sphere-cube-difference-zbuffer-1600.rib
+DeterminismSweep_csg-sphere-cube-difference-zbuffer-800	determinism,determinism-sweep	csg-sphere-cube-difference-zbuffer-800.rib
+DeterminismSweep_csg-sphere-sphere-loose-tolerance-raytrace	determinism-sweep	csg-sphere-sphere-loose-tolerance-raytrace.rib
+DeterminismSweep_csg-sphere-sphere-tight-tolerance-raytrace	determinism-sweep	csg-sphere-sphere-tight-tolerance-raytrace.rib
+DeterminismSweep_csg-tolerance-inert-raytrace	determinism,determinism-sweep	csg-tolerance-inert-raytrace.rib
+DeterminismSweep_nupatch-vase-trimmed-hole-raytrace	determinism,determinism-sweep	nupatch-vase-trimmed-hole-raytrace.rib
+DeterminismSweep_nupatch-vase-trimmed-hole	determinism-sweep	nupatch-vase-trimmed-hole.rib
+DeterminismSweep_nupatch-vase-trimmed-malformed-badweight	determinism-sweep	nupatch-vase-trimmed-malformed-badweight.rib
+DeterminismSweep_nupatch-vase-trimmed-malformed-instanced	determinism-sweep	nupatch-vase-trimmed-malformed-instanced.rib
+DeterminismSweep_nupatch-vase-trimmed-malformed-unclosed	determinism-sweep	nupatch-vase-trimmed-malformed-unclosed.rib
+DeterminismSweep_nupatch-vase-trimmed-multiloop	determinism-sweep	nupatch-vase-trimmed-multiloop.rib
+DeterminismSweep_parity-displacement-raytrace	determinism,determinism-sweep	displacement-raytrace.rib
+DeterminismSweep_parity-displacement-reyes	determinism,determinism-sweep	displacement-reyes.rib
+DeterminismSweep_parity-dof-motion-raytrace	determinism-sweep	dof-motion-raytrace.rib
+DeterminismSweep_parity-dof-motion-reyes	determinism,determinism-sweep	dof-motion-reyes.rib
+DeterminismSweep_parity-motion-patches-deform-raytrace	determinism-sweep	motion-patches-deform-raytrace.rib
+DeterminismSweep_parity-motion-patches-deform-reyes	determinism-sweep	motion-patches-deform-reyes.rib
+DeterminismSweep_parity-motion-patches-translate-raytrace	determinism-sweep	motion-patches-translate-raytrace.rib
+DeterminismSweep_parity-motion-patches-translate-reyes	determinism-sweep	motion-patches-translate-reyes.rib
+DeterminismSweep_parity-motion-polygons-deform-raytrace	determinism-sweep	motion-polygons-deform-raytrace.rib
+DeterminismSweep_parity-motion-polygons-deform-reyes	determinism-sweep	motion-polygons-deform-reyes.rib
+DeterminismSweep_parity-motion-polygons-translate-raytrace	determinism-sweep	motion-polygons-translate-raytrace.rib
+DeterminismSweep_parity-motion-polygons-translate-reyes	determinism-sweep	motion-polygons-translate-reyes.rib
+DeterminismSweep_parity-motion-quadrics-deform-raytrace	determinism-sweep	motion-quadrics-deform-raytrace.rib
+DeterminismSweep_parity-motion-quadrics-deform-reyes	determinism-sweep	motion-quadrics-deform-reyes.rib
+DeterminismSweep_parity-motion-quadrics-translate-raytrace	determinism-sweep	motion-quadrics-translate-raytrace.rib
+DeterminismSweep_parity-motion-quadrics-translate-reyes	determinism,determinism-sweep	motion-quadrics-translate-reyes.rib
+DeterminismSweep_parity-motion-subdiv-rotate-raytrace	determinism,determinism-sweep	motion-subdiv-rotate-raytrace.rib
+DeterminismSweep_parity-motion-subdiv-rotate-reyes	determinism-sweep	motion-subdiv-rotate-reyes.rib
+DeterminismSweep_parity-motion-subdiv-translate-raytrace	determinism-sweep	motion-subdiv-translate-raytrace.rib
+DeterminismSweep_parity-motion-subdiv-translate-reyes	determinism-sweep	motion-subdiv-translate-reyes.rib
+DeterminismSweep_quadlight-slo	determinism,determinism-sweep	quadlight-slo.rib
+DeterminismSweep_sphere-gather-reyes-slo	determinism,determinism-sweep	sphere-gather-reyes-slo.rib
+DeterminismSweep_sphere-gather-reyes	determinism,determinism-sweep	sphere-gather-reyes.rib
+DeterminismSweep_spherelight-slo	determinism,determinism-sweep	spherelight-slo.rib
+DeterminismSweep_spotlight-raytrace	determinism,determinism-sweep	spotlight-raytrace.rib
+DeterminismSweep_spotlight-reyes	determinism,determinism-sweep	spotlight-reyes.rib
+DeterminismSweep_torus-raytrace	determinism,determinism-sweep	torus-raytrace.rib
+DeterminismSweep_torus-reyes	determinism,determinism-sweep	torus-reyes.rib

@@ -38,10 +38,14 @@ on State's own headers. The interfaces themselves are in [contracts/](contracts/
 - `CShaderGroupRefTarget *light`: **non-owning**, as today. The renderer core's `allLights` owns
   the light.
 - `CActiveLight *next`.
-- The list keeps today's order rules (research R5):
-  - `addLight` appends and suppresses duplicates by pointer equality;
-  - `removeLight` unlinks the first match;
-  - the copy constructor and `restore(shading)` prepend, which reverses the order.
+- Order rules (research R5, FR-025):
+  - `addLight` appends and suppresses duplicates by pointer equality, as today;
+  - `removeLight` unlinks the first match, as today;
+  - the copy constructor and `restore(shading)` copy the list **in order** through
+    `copyLightList()`. This is the FR-025 change, made in its own phase. Until that phase they keep
+    today's prepend, which reverses the list.
+- Invariant after FR-025: in every block, the list order equals the order in which the lights
+  became active in the RIB stream.
 
 ### `EMaterialBinding` and the last-bound record (Graphics State)
 - `enum class EMaterialBinding : unsigned char { None, Surface, Bxdf }`.
@@ -145,6 +149,6 @@ on State's own headers. The interfaces themselves are in [contracts/](contracts/
 | `restore(shading)` | detach 5 + attach 5 | assignment of 5 slots + `bxdf`; the record and the pattern table are copied; maps are untouched, as today |
 | `CRenderer::render()` lazy map | `map = getPhotonMap(n); map->attach();` | `cAttributes->globalMap = MapRef::retain(getPhotonMap(n))` |
 | `COptions` copy constructor and destructor | `imager->attach()` / `imager->detach()` | handle copy / destructor; the manual lines are deleted |
-| `addLight`, `removeLight`, light copies | no counts | no counts |
+| `addLight`, `removeLight`, light copies | no counts | no counts (non-owning, FR-001 as clarified 2026-10-26); copies keep order after FR-025 |
 
 The State-only test asserts each of these against a counting test double (US1.3).

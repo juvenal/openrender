@@ -113,9 +113,9 @@ The four Shading consumers read only members `CShaderInstance` declares (`flags`
 - A comment at the helper names DB-013, and DB-013's History records where the cast now lives.
 - No `dynamic_cast`, no assert, no fix (as decided in clarification).
 
-**Test**: the light-order characterization test (R10, T-L1) also compares the pointers it reads
-back against the handles `RiLightSource` returned. That comparison runs on the starting tree and
-on the finished tree.
+**Test**: `State_LightOrder` (R5, R10) compares the pointers it reads back against the handles
+`RiLightSource` returned. That comparison compiles and runs on the starting tree and on the
+finished tree.
 
 ## R4. Shader-parameter logic moves to Shading behind a State-owned hook
 
@@ -158,8 +158,9 @@ The callers are:
   `endRenderer()`. That file is ribRender-only.
   - **Not** `rendererDeclarations.cpp`: ribVector compiles that file and does not link
     `libshader_shading`, so ribVector would fail to link.
-- **The bxdf slot** is excluded from both answers in 025. Nothing binds it yet, so including it
-  would change no answer today. Whether and how a Bxdf contributes is spec 035's call.
+- **The bxdf slot** is excluded from both answers in 025 (FR-005; confirmed by the maintainer
+  2026-10-26). Nothing binds it yet, so including it would change no answer today. Whether and
+  how a Bxdf contributes is spec 035's call.
 - **With no hook installed** the results are `usedParameters = 0` and `findParameter = nullptr`.
   These are defined results for State-only programs, ribVector (the preview) and ribOut.
   - The preview never binds shaders, so today's `findParameter` already returns `NULL` there.
@@ -180,28 +181,79 @@ The callers are:
 - **Installing in `initDeclarations()`.** It breaks the ribVector link, as noted above.
 
 **FR-003 wording**: the hook is State calling through a State-owned function-pointer interface,
-like `lookupVariable()`. It adds no include or link edge. The plan reads FR-003's "MUST NOT call
-back into them" as "no direct reference" (see the plan's Open questions, Q2).
+like `lookupVariable()`. It adds no include or link edge. The maintainer confirmed on 2026-10-26
+that FR-003's "MUST NOT call back into them" means no direct reference (spec clarification).
 
-## R5. Light order today is not RIB order inside a cloned block
+## R5. Light order: today's reversal and the FR-025 fix
 
-`addLight` appends at the tail (`attributes.cpp:353-359`). But the copy constructor (`:259-264`)
-and `restore(shading)` (`:500-505`) **prepend**, so both reverse the list. Two kinds of clone
-trigger this:
-- every `attributeBegin()`, which is `new CAttributes(currentAttributes)`
-  (`rendererContext.cpp:874-877`);
-- every copy-on-write clone in `getAttributes(TRUE)` (`:258-265`).
+**Today** (`dfffba0`):
+- `addLight` appends at the tail (`attributes.cpp:353-359`).
+- But the copy constructor (`:259-264`) and `restore(shading)` (`:500-505`) **prepend**, so each
+  copy reverses the list.
+- Three operations copy:
+  - every `attributeBegin()`, which is `new CAttributes(currentAttributes)`
+    (`rendererContext.cpp:874-877`);
+  - every copy-on-write clone in `getAttributes(TRUE)` (`:258-265`);
+  - a `ResourceBegin` save (`CResource` copy-constructs the block, `resource.cpp:37`), followed by
+    `restore(shading)` on `ResourceRestore`.
+- So a block cloned an odd number of times runs its lights in reverse RIB order. A save/restore
+  round trip reverses twice, so it comes out in order.
 
-So the lights of a block nested at odd depth run in reverse RIB order. Light accumulation order
-reaches the bits of `Ci`, which the `ColorDeterminism_*` checks compare.
+Measured with `State_LightOrder` on `dfffba0` (`validation.md` §0.5):
+- a single `AttributeBegin` reverses;
+- a copy-on-write clone reverses;
+- a double `AttributeBegin` and a save/restore round trip come out in order.
 
-**Decision**:
-- Preserve the reversal exactly: the copy constructor and `restore` keep prepending.
-- Pin it with a characterization test that runs green on the starting tree and on the finished
-  tree (T-L1).
-- Record it as a finding in research and in the report, like the cast.
-- Spec US2.3's "lights run in RIB order" is a wording question for the maintainer (plan Q1).
-- No fix in 025: a fix would change rendered output, against FR-022.
+**Decision (FR-025, maintainer 2026-10-26)**: fix it in 025.
+- **One helper.** `copyLightList(const CActiveLight *source)` returns a new list in the source's
+  order. It builds the list with a tail pointer, so each copy is O(n) with no reversal.
+- **Both copies use it.** The copy constructor and `restore(shading)` both call it, replacing the
+  prepend loops.
+- **Unchanged**:
+  - `addLight` still appends and suppresses duplicates;
+  - `removeLight` still unlinks the first match;
+  - entries stay non-owning (FR-001).
+- **`restore(shading)` keeps order.** It frees its own entries and then installs
+  `copyLightList(other->lightSources)`. It copies `other`'s list exactly, so a save/restore round
+  trip still reproduces the saved block's order. Since the save no longer reverses either, the
+  saved order is the true RIB order.
+- **Phase.** The fix is the **only output-changing step** in 025, and it gets its own phase,
+  after every behaviour-preserving phase:
+  - the earlier phases keep today's prepend loops, now over handle types, so their results stay
+    identical to `dfffba0`;
+  - `State_LightOrder` is the one expected-red test through those phases.
+- **Test.** `State_LightOrder` (`tests/unit/state/test_light_order.cpp`, written now, label
+  `state`):
+  - It drives the Ri calls and compares pointer identities, so it compiles on both trees.
+  - On `dfffba0` it is **red**: 4 of its 9 checks fail ("inside AttributeBegin" and "after a
+    copy-on-write clone", and the two checks that follow them).
+  - The double push and the round trip are kept as guards, because they are green on both trees.
+- **State-level check.** `restore()` on its own, without the save that cancels it, is checked in
+  `State_Isolation` by calling `restore()` directly on two blocks.
+
+**Measured impact on `dfffba0`.** The measurement used a probe build in a scratch copy, never the
+worktree:
+- **The probe** hashed every object's active-light sequence at `addObject` and exited at
+  `RiWorldEnd`.
+- **The comparison**: the probe build with today's copies against the same build with the fix.
+- **Scope**: all 489 `examples/rib/**/*.rib`.
+- **Result**: **82 scenes** change light order for at least one object.
+- **Coverage gaps**:
+  - Multi-frame scenes (16) were re-run frame by frame. They added no affected scene beyond the
+    first-frame list. Some photon scenes lost their second frame in one of the runs to the known
+    `CPhotonHider` race (BUGS.md), so their second frame is compared only where both runs
+    produced it.
+  - Light order inside procedurals expanded at render time is not observed. Of the 7 procedural
+    scenes, 2 have two or more light statements, and one of them is already in the list.
+- **The tests concerned and the reference results** are in "FR-025 affected tests" below, filled
+  from `validation.md` §0.5.
+
+**Alternatives rejected**:
+- **Reverse after prepending.** Twice the work for the same result.
+- **Store lights in a vector.** A larger change to a structure Shading walks in four hot loops,
+  and not needed for the fix.
+- **Fix it in the handles phase.** That would mix an output change into a behaviour-preserving
+  phase, against FR-022 and the maintainer's instruction.
 
 ## R6. Slot API, the last-bound record and FR-024
 
@@ -367,13 +419,14 @@ cannot detect an enumerator *added* to `dsply.h`. Since `dsply.h` must not chang
 | `State_Isolation` | **build failure**: `attributes.h`/`options.h` include `shader.h`, `dsply.h` and `blobbyField.h`, which do not resolve on the narrow include path (R11), and the new headers do not exist | Covers handles, counts, the record, the pattern table and the registry (SC-006) |
 | `State_VocabularyConsistency` | build failure: `stateVocabulary.h` does not exist | A mutation of one value is shown red (SC-007) |
 | `ShadingParity_ShaderParameterEquivalence` part B | build failure: the `libshader::` API does not exist | Part A runs **green on the starting tree**: it compares an API-neutral oracle (bound shaders loaded with `CRenderer::getShader`, distinct defaults per slot for the shared parameter name) against `CAttributes::findParameter`/`usedParameters`. That proves the oracle captures today's answers. A precedence-swap mutation is shown red (FR-007) |
-| `State_LightOrderCharacterization` | **not red: a characterization test**, green on both trees | Pins R5's reversal and R3's pointer identity through pointer-value comparisons that compile on both trees |
-| `RibOut_ShaderStatementOrder` | **not red: a characterization test**, green on both trees | Clarification Q3; FR-023 says "record … as an automated test", and FR-021's red list does not include it |
+| `State_LightOrder` (FR-025) | **red by assertion**, measured: 4 of 9 checks fail on `dfffba0` (a single `AttributeBegin` and a copy-on-write clone reverse the list) | Written now, API-neutral. It stays red through the behaviour-preserving phases and turns green in the FR-025 phase. It also checks R3's pointer identity. The double push and the save/restore round trip are guards, green on both trees |
+| `RibOut_ShaderStatementOrder` | **not red: a characterization test**, green on both trees | Clarification Q3 of 2026-10-25; FR-023 says "record … as an automated test", and FR-021's red list does not include it |
 | `ctest -L architecture` after the 7 DB-008 lines are deleted | 7 `VIOLATION` lines until the code lands | Any other violation means the design is wrong |
 
-The red evidence goes into `validation.md` during implement, as in specs 023 and 024. The two
-characterization tests are named as such in the plan, so nobody mistakes a green first run for a
-broken test.
+The red evidence goes into `validation.md`, as in specs 023 and 024. Part A of the equivalence
+test and `State_LightOrder` were already run on `dfffba0` at the plan stage (quickstart §0). The
+ribOut test is named as a characterization test in the plan, so nobody mistakes a green first run
+for a broken test.
 
 ## R11. Building the State-only test
 
@@ -402,12 +455,11 @@ expected but **not yet verified**:
 - that the header copy in the build tree, which maps to no source class, is ignored.
 
 Quickstart §2 checks both the first time the check runs on the finished tree. If either fails,
-the fallback is Q3's production OBJECT target, which compiles each State source once.
+implementation stops and reports it to the maintainer.
 
-**Alternative**: a production `ribState_obj` OBJECT library with the narrow include path, linked
-into ribRender, ribVector and the test. It would advance DB-023 ("per-domain include visibility
-first, then per-domain OBJECT targets"). It is not required by the spec, so it is plan question Q3
-with a recommendation.
+**Alternative, rejected by the maintainer (2026-10-26)**: a production `ribState_obj` OBJECT
+library with the narrow include path, linked into ribRender, ribVector and the test. It would
+compile each State source once and advance DB-023, but 025 adds no production State build target.
 
 ## R12. Transitive includes
 

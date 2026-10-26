@@ -1,7 +1,7 @@
 # Contract: Attribute slots, the last-bound record and the pattern-node table
 
 **Owner**: Graphics State (`attributes.h`, `patternTable.h`).
-**Requirements**: FR-001, FR-004, FR-010 to FR-015, FR-024; User Stories 3 and 4; the "Default
+**Requirements**: FR-001, FR-004, FR-010 to FR-015, FR-024, FR-025; User Stories 3 and 4; the "Default
 surface", "Shading restore", "Copy-on-write clones" and "Motion-blur attribute chains" edge cases.
 
 ## Slots
@@ -23,6 +23,7 @@ public:
     EMaterialBinding governingMaterial() const;  // the single query (FR-011)
 
     void addLight(CShaderGroupRefTarget *);      // non-owning, append, no duplicates, recompute
+                                                 // (lights stay in RIB order in every block, FR-025)
     void removeLight(CShaderGroupRefTarget *);   // recompute
     CActiveLight *lightSources;                  // read by Shading through lightInstanceOf()
 
@@ -40,13 +41,28 @@ Behaviour:
 - **`RiWorldBegin`** calls `setDefaultSurface()` only when `!currentAttributes->surface()`, exactly
   as today. The record stays as it was, so `classic` output is byte-identical (clarification Q2).
 - **The copy constructor** copies every slot and map with a retain, the record by value, and the
-  pattern table by sharing. It **prepends** each light entry, so the order reverses as today
-  (research R5). The motion chain (`next`) is copied recursively, and each block keeps its own
+  pattern table by sharing. It copies the light entries **in order** (`copyLightList()`, FR-025;
+  before the FR-025 phase it still prepends, as today). The motion chain (`next`) is copied recursively, and each block keeps its own
   handles.
 - **`restore(other, shading = true, …)`** assigns the six slots, copies the record and the pattern
-  table, prepends the lights (reversing them), recomputes the parameters, and copies the map
+  table, replaces its light list with an in-order copy of `other`'s (FR-025), recomputes the parameters, and copies the map
   *names* only, as today. The other subsets are unchanged.
 - **The bxdf slot** is ignored by `usedParameters` and `findParameter` in 025 (research R4).
+
+## Light list (FR-004, FR-025)
+
+```cpp
+// attributes.cpp, file-local. Returns a new list holding the same (non-owning) entries in the
+// same order, built with a tail pointer: O(n), no reversal.
+static CActiveLight *copyLightList(const CActiveLight *source);
+```
+
+- Used by the copy constructor and by `restore(shading)`, which first frees its own entries. It is
+  introduced in the FR-025 phase, the only phase in 025 that may change rendered output.
+- `addLight`/`removeLight` are unchanged in behaviour.
+- **What it fixes**: on `dfffba0`, a single `AttributeBegin` and a copy-on-write clone reverse the
+  list. A double push and a save/restore round trip reverse twice, so they come out in order.
+- **Guarded by** `State_LightOrder` (Ri level) and by `State_Isolation`'s direct `restore()` check.
 
 ## Pattern-node table
 

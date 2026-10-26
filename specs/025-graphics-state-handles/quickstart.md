@@ -15,9 +15,10 @@ Every build, test and render goes through `~/.claude/bin/cpujob <label> …`:
 
 Never run a test binary directly. Ask the coordinator before each build or test.
 
-## §0 Baselines on the starting tree (`dfffba0`) — PENDING, need builds
+## §0 Baselines on the starting tree (`dfffba0`) — DONE on macOS, 2026-10-26
 
-Run these before the first source edit. Record each result in `validation.md`.
+These were run at the plan stage, and the results are in [validation.md](validation.md). The
+commands are kept here so the Linux baseline (§4) and any re-measurement use the same steps.
 
 **§0.1 Configure and build**
 
@@ -54,11 +55,22 @@ run it.
 - Then make the precedence-swap mutation in a scratch edit of `attributes.cpp:427-452` and show
   it **red**. Revert the edit.
 
-**§0.5 Characterization tests**
+**§0.5 Light order (FR-025)**
 
-Write `State_LightOrderCharacterization` and `RibOut_ShaderStatementOrder`, then run both.
+- **`State_LightOrder`** (`tests/unit/state/test_light_order.cpp`, already written): expected
+  **red** on `dfffba0`. Measured: 4 of 9 checks fail.
+- **Impact measurement**, done in a scratch copy, never in the worktree:
+  - a probe build hashes each object's active-light sequence at `addObject` and exits at
+    `RiWorldEnd`;
+  - every `examples/rib` scene is run with today's copies and with the fix, and the scenes whose
+    hash differs are listed;
+  - multi-frame scenes are re-run frame by frame;
+  - the tests that render a listed scene are run on both builds: diff values plus a bitwise
+    output-image comparison.
 
-- Expected: **green**. They pin today's behaviour (research R5, clarification Q3).
+  Results are in validation.md §0.5 and plan.md "FR-025 affected scenes and references".
+- **`RibOut_ShaderStatementOrder`** (characterization, green on both trees) is written in the
+  red-test phase.
 
 **§0.6 Timing of the three slowest visual scenes (SC-005)**
 
@@ -78,6 +90,7 @@ Record libshader_shading's imports bound to libRIBRender (expected: 7) with spec
 | `State_Isolation` | compile error: `shader.h`, `dsply.h` and `blobbyField.h` not found on the narrow path; the new headers missing |
 | `State_VocabularyConsistency` | compile error: `stateVocabulary.h` missing; then a mutation red once the header exists |
 | `ShadingParity_ShaderParameterEquivalence` part B | compile error: `shaderParameters.h` missing |
+| `State_LightOrder` | already red by assertion (§0.5); it stays the one expected-red test until the FR-025 phase |
 | `ctest -L architecture` after deleting the 7 DB-008 lines at the start of the handles phase (plan step 4, *after* the parameter hook) | exactly 7 `VIOLATION` lines, all under Graphics State, until that phase ends |
 
 **Per-phase expectations for the architecture check:**
@@ -113,6 +126,21 @@ Expected:
 - **Determinism**: `DepthDeterminism_*` and `ColorDeterminism_*` bit-identical.
 - **SC-005**: re-time the §0.6 scenes; each median falls within the §0.6 min/max band.
 - **§0.7 count**: unchanged.
+
+**FR-025 phase (plan step 7), the only phase allowed to change output:**
+
+```bash
+cpujob 025-lo    ctest --test-dir $W/build-025 -R '^State_LightOrder$' --output-on-failure     # now green
+cpujob 025-aff   ctest --test-dir $W/build-025 -R "$(cat $W/specs/025-graphics-state-handles/tools/affected-regex.txt)" -j4 -V
+```
+
+- Compare every `MaxBlockAvgDiff` and every output image with the baselines in validation.md §0.5.
+- Expected, from the plan-stage measurement: identical diffs and bit-identical images.
+- **Any changed reference result**: list the scene, the old and new values and the reason, then
+  stop for the maintainer. Never re-render a reference, and never touch a threshold, without that
+  approval.
+- Every phase *before* this one must reproduce the §0.3 results and the §0.5 diffs and images
+  unchanged.
 
 Before merge only, run the opt-in sweep once:
 

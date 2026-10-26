@@ -429,3 +429,22 @@ if(OPENRENDER_HAVE_LLVM)
         )
     endforeach()
 endif()
+
+# Spec 025 (graphics-state-handles), FR-007 part A: the used-parameter set and
+# findParameter() of an attribute block equal an independent oracle computed
+# from the bound shaders. API-neutral: green before and after the parameter
+# logic moves to Shading; a swapped slot precedence fails it. SHADERS points at
+# the compiled build tree so RiWorldBegin's defaultsurface/defaultlight load.
+add_executable(test_shading_parity_shader_parameter_equivalence test_shader_parameter_equivalence.cpp)
+target_link_libraries(test_shading_parity_shader_parameter_equivalence PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+target_include_directories(test_shading_parity_shader_parameter_equivalence PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_BINARY_DIR}
+)
+target_compile_features(test_shading_parity_shader_parameter_equivalence PRIVATE cxx_std_20)
+add_test(NAME ShadingParity_ShaderParameterEquivalence COMMAND test_shading_parity_shader_parameter_equivalence)
+set_tests_properties(ShadingParity_ShaderParameterEquivalence PROPERTIES
+    TIMEOUT 60
+    LABELS "shading_parity"
+    ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};OSHADER_BIN=$<TARGET_FILE:oshader>"
+)
