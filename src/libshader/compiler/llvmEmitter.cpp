@@ -637,6 +637,21 @@ static bool emitFunction(const IRFunction &irFn,
     std::vector<ForScope> forStack;
 
     // -----------------------------------------------------------------------
+    // Layer C: if/else skip targets (GitHub #71).
+    // The interpreter's if and else jump to their label operand when no
+    // point is left active (IF2EXPR_POST/ELSEIFEXPR_POST, scriptOpcodes.h),
+    // so nothing in a block that no point enters runs. The flat batch model
+    // below masks per-vertex writes but would still run every construct with
+    // side effects at block entry: the illumination hook of illuminate/solar,
+    // the light shaders of illuminance, gather's bundle and its sample loop
+    // (which read operands the masked block never wrote). if/else therefore
+    // branch to the block of their label when numActive is 0; that block
+    // starts with the matching else/endif, which still updates the tags.
+    // Keyed by label ("#!LabelN"), created on first use.
+    // -----------------------------------------------------------------------
+    std::unordered_map<std::string, llvm::BasicBlock *> skipTargets;
+
+    // -----------------------------------------------------------------------
     // Layer G: gather() loop scope tracking.
     // Unlike illuminance/for, gatherEnd's backward jump targets the label
     // right after `gather` itself (GATHERENDEXPR_PRE's jmp(argument(0))),
@@ -656,9 +671,11 @@ static bool emitFunction(const IRFunction &irFn,
     // below. if/else, illuminate/endilluminate, solar/endsolar, and the
     // illuminance/gather loop BODIES (not their outer loop-continuation
     // branch, which is real LLVM control flow) are all implemented via the
-    // SAME "flat batch" model: every instruction always executes, and only
-    // per-vertex `tags` mutation (op_if_update, op_illuminate_begin, etc.)
-    // decides whether a given vertex's write actually applies. A uniform-
+    // SAME "flat batch" model: every instruction of a block that at least
+    // one vertex enters executes (if/else branch over a block no vertex
+    // enters, GitHub #71), and only per-vertex `tags` mutation
+    // (op_if_update, op_illuminate_begin, etc.) decides whether a given
+    // vertex's write actually applies. A uniform-
     // classified instruction (destination and every operand stride 0)
     // lexically nested inside any of these scopes must still respect that
     // masking -- collapseArgs's "n=1, tags=null" fast path is only valid at
@@ -920,6 +937,20 @@ static bool emitFunction(const IRFunction &irFn,
         return {n, llvm::ConstantPointerNull::get(ptrTy)};
     };
 
+    // Layer C (GitHub #71): after an if/else tag update, branch to the block
+    // of `label` when no point is left active, as the interpreter's jump does.
+    // That block is placed when the instruction loop reaches it.
+    auto branchOverIfNoneActive = [&](const std::string &label) {
+        llvm::BasicBlock *&target = skipTargets[label];
+        if (!target)
+            target = llvm::BasicBlock::Create(ctx, "if.skip", func);
+        auto *bodyBB = llvm::BasicBlock::Create(ctx, "if.body", func);
+        auto *na = B.CreateLoad(i32Ty, numActivePtr);
+        auto *none = B.CreateICmpEQ(na, B.getInt32(0));
+        B.CreateCondBr(none, target, bodyBB);
+        B.SetInsertPoint(bodyBB);
+    };
+
     auto emitBin = [&](const IRInstr &ins, const char *name,
                        llvm::Value *dst, llvm::Value *dstStride, int dstStrideVal) {
         auto [a, sa] = getVar(ins, 0);
@@ -956,10 +987,25 @@ static bool emitFunction(const IRFunction &irFn,
 
     // -----------------------------------------------------------------------
     // Main instruction loop.
-    // if/else/endif  — handled by tag-update calls (no LLVM branches).
+    // if/else/endif  — tag-update calls, plus a branch over a block no point
+    //                  enters (Layer C skip targets).
     // illuminance    — generates real LLVM loop structure (Layer E).
     // -----------------------------------------------------------------------
     for (const IRBlock &blk : irFn.blocks) {
+
+        // -----------------------------------------------------------------
+        // Layer C: an if/else skip target starts here. The code before it
+        // falls through into it.
+        // -----------------------------------------------------------------
+        if (!blk.label.empty()) {
+            auto it = skipTargets.find(blk.label);
+            if (it != skipTargets.end()) {
+                if (!currentBlockHasTerminator(B))
+                    B.CreateBr(it->second);
+                B.SetInsertPoint(it->second);
+                skipTargets.erase(it);
+            }
+        }
 
         // -----------------------------------------------------------------
         // Layer F: block-boundary checks for for/while loop.
@@ -1027,12 +1073,19 @@ static bool emitFunction(const IRFunction &irFn,
             if (op == "return") {
                 if (!currentBlockHasTerminator(B))
                     B.CreateRetVoid();
+                // Emission stops here, so a skip target whose label has not
+                // come yet would be left without a terminator
+                for (auto &[label, bb] : skipTargets) {
+                    B.SetInsertPoint(bb);
+                    B.CreateRetVoid();
+                }
                 return true;
             }
 
             // ----------------------------------------------------------------
             // Labels / jumps — no-ops in the flat batch model.
-            // Tags control per-vertex activity; we never skip instructions.
+            // Tags control per-vertex activity. The only skips are the
+            // if/else branches over a block no vertex enters (Layer C).
             // ----------------------------------------------------------------
             if (op == "jmp")
                 continue;
@@ -1075,6 +1128,9 @@ static bool emitFunction(const IRFunction &irFn,
                     auto *fn = declareOp(mod, "op_if_update", ifUpdTy);
                     B.CreateCall(fn, {cond, B.getInt32(sc), tags, numVerts,
                                       numActivePtr, numPassivePtr});
+                    // if <cond> <else-or-endif label>
+                    if (ins.operands.size() >= 2)
+                        branchOverIfNoneActive(ins.operands[1].token);
                 }
                 ++conditionalDepth;
                 continue;
@@ -1082,6 +1138,9 @@ static bool emitFunction(const IRFunction &irFn,
             if (op == "else") {
                 auto *fn = declareOp(mod, "op_else_update", elseUpdTy);
                 B.CreateCall(fn, {tags, numVerts, numActivePtr, numPassivePtr});
+                // else <endif label>
+                if (!ins.operands.empty())
+                    branchOverIfNoneActive(ins.operands[0].token);
                 continue;
             }
             if (op == "endif") {
