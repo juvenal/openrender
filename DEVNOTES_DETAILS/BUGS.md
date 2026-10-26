@@ -94,6 +94,48 @@ This file tracks known defects and implementation gaps in openRender. Open items
 
 ## Resolved Bugs
 
+- [x] Bug: under the LLVM JIT, a block that an `if`/`else` left with no active point still ran every
+      construct with a side effect at block entry (FIXED — GitHub #71, branch
+      `fix/jit-illumination-hook-false-if`, 2026-10-26). Symptoms: with the illumination hook on (the photon
+      hider), an `illuminate()`/`solar()` inside an `if` false for every point called the hider's begin and
+      end hooks, handing it operands the block never wrote (`solar2` got the poison -0.372549); an
+      `illuminance()` in such a block ran every light shader and rewrote the lighting cache; a `gather()`
+      built its bundle and ran its sample loop. The interpreter (`.rslo`) runs none of it: `IF2EXPR_POST` and
+      `ELSEIFEXPR_POST` (`scriptOpcodes.h`) jump to the else/endif when `numActive` reaches 0. Mechanism: the
+      emitter's flat batch model (`llvmEmitter.cpp`) made `jmp` a no-op and `if`/`else` only tag updates
+      (`op_if_update`/`op_else_update`), so every instruction ran. A masked write does nothing there, but a
+      call that ignores the tags still ran: the hook branches of `jit*Begin`/`End`, `iterateLights`, and
+      `jitGatherHeaderBegin`, which reads `samples` from lane 0. Fix, in two parts:
+      - After each `if`/`else` tag update the emitter branches to the block of the instruction's label when
+        `numActive` is 0 (`branchOverIfNoneActive()`, `skipTargets` keyed by label). That block starts with
+        the matching `else`/`endif`, so its tag update still runs, as in the interpreter; the code before a
+        skip target falls through into it by an explicit branch.
+      - The hook branches of `jitIlluminateBegin`/`jitIlluminate3Begin`/`jitIlluminateEnd`/`jitSolarBegin`/
+        `jitSolar0Begin`/`jitSolarEnd` (`shading.cpp`) call the hider only while the JIT's active count is
+        nonzero, a second line of defence for the same rule. They read the count, not the tags: a light
+        entered with every point already passive and no enclosing `if` still calls the hook under the
+        interpreter, whose hook path makes no check of its own (the "inactive" rows of
+        `ShadingParity_IlluminationHook` and `ShadingParity_IlluminationHookOperands` assert it, and a tag
+        scan broke them).
+      Tests: `ShadingParity_IlluminationHookAllFalse` (registered disabled until this fix), two else-side
+      cases (`illuminate1_elsefalse`, `solar2_elsefalse`) and an `illuminate1_elsetrue` control in
+      `test_illumination_hook_conditions.cpp`; `ShadingParity_FalseIfIlluminance` (no light shader runs, with
+      an all-true control) and `ShadingParity_FalseIfGather` (no gather bundle is built), in
+      `tests/shading_parity/test_false_if_constructs.cpp`.
+
+- [x] Bug: a `.slo` render sometimes never finished when a `gather()` inside an `if` that is false for
+      every point came before a `gather()` that runs (FIXED — GitHub #96, branch
+      `fix/jit-illumination-hook-false-if`, 2026-10-26, by the #71 fix above). The false block's
+      `gatherHeader` still ran under the JIT and read its sample count from lane 0 of a temporary the block
+      never wrote (`vufloat temporary_6 8`; the register is reused by the later gather, so it stays varying
+      and its write is masked). Most likely (inferred from the bytecode, the stale count itself was not
+      observed), a large stale value made `remainingSamples` effectively unbounded and the `gatherEnd`
+      back-edge spun at 100% CPU, intermittently because the value depends on what the scratch page held.
+      Measured with #96's repro (`g3_probe`/`g4_probe`, channel 1, sobol seed 0, `-t:1`,
+      48x48, 25 s timeout): 6/20 and 2/20 runs hung before the fix, 0/20 and 0/20 after.
+      `ShadingParity_FalseIfGather` checks deterministically that a gather in such a block builds no
+      bundle, the precondition of the hang.
+
 - [x] Bug: under the LLVM JIT, `trace()`/`transmission()`/`occlusion()`/`indirectdiffuse()` ignored their optional
       parameter lists (FIXED — GitHub #55, branch `fix/jit-trace-optional-params`, 2026-10-25). Symptom: a call
       that passed any parameter rendered differently as `.slo` than as `.rslo`, with no diagnostic: a
@@ -397,8 +439,7 @@ This file tracks known defects and implementation gaps in openRender. Open items
       deterministically.
       Still open, filed as GitHub #71: under the JIT a construct inside an `if` that is false for every
       point still runs and calls the hook, where the interpreter jumps over the block.
-      `ShadingParity_IlluminationHookAllFalse` covers it and is registered disabled until that is
-      fixed.
+      `ShadingParity_IlluminationHookAllFalse` covers it (fixed since, see the #71 entry above).
 
 - [x] Bug: a `.slo` string parameter's default buffer was float-sized, and `.slo` string and matrix
       defaults differed from the `.rslo` ones (FIXED — GitHub #66, branch `fix/slo-default-buffer`,

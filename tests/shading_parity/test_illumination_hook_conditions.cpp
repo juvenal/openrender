@@ -12,8 +12,9 @@
  *     first active point (point 2, xcomp(Ps) = 0.5), not from point 0, which
  *     the shader never wrote.
  *   - An enclosing if that is false for every point
- *     ("if (xcomp(Ps) > 10)"): the construct does not run, so the hook must
- *     not be called at all.
+ *     ("if (xcomp(Ps) > 10)"), or the else of one that is true for every
+ *     point: the construct does not run, so the hook must not be called at
+ *     all (GitHub #71). The else of an all-false if is the control.
  *
  * The two cases run as separate ctest entries (argument "varying" or
  * "allfalse").
@@ -339,6 +340,18 @@ int main(int argc, char **argv) {
     allFalseFixtures.push_back({"illuminate3_allfalse", "if (xcomp(Ps) > 10) { illuminate(from, axis, angle) { Cl = color(1, 1, 1); } }", false, none});
     allFalseFixtures.push_back({"solar2_allfalse", "if (xcomp(Ps) > 10) { solar(axis, angle) { Cl = color(1, 1, 1); } }", false, none});
     allFalseFixtures.push_back({"solar0_allfalse", "if (xcomp(Ps) > 10) { solar() { Cl = color(1, 1, 1); } }", false, none});
+    // GitHub #71: no point enters the else of an if that is true for every
+    // point either (the interpreter's else jumps to the endif)
+    allFalseFixtures.push_back({"illuminate1_elsefalse",
+                                "if (xcomp(Ps) < 10) { Cl = color(0, 0, 0); } else { illuminate(from) { Cl = color(1, 1, 1); } }", false, none});
+    allFalseFixtures.push_back({"solar2_elsefalse",
+                                "if (xcomp(Ps) < 10) { Cl = color(0, 0, 0); } else { solar(axis, angle) { Cl = color(1, 1, 1); } }", false, none});
+    // Control: every point enters the else of an if that is false for every
+    // point, so the hook is called once, with point 0's operand
+    const float fromU[3] = {0.5f, 1.5f, 2.5f};
+    const std::vector<SHookCall> ill1U = {callOf(HOOK_ILLUMINATE_BEGIN, fromU), callOf(HOOK_ILLUMINATE_END)};
+    varyingFixtures.push_back({"illuminate1_elsetrue",
+                               "if (xcomp(Ps) > 10) { Cl = color(0, 0, 0); } else { illuminate(from) { Cl = color(1, 1, 1); } }", false, ill1U});
 
     if (mode != "varying" && mode != "allfalse") {
         fprintf(stderr, "usage: %s [varying|allfalse]\n", argv[0]);

@@ -269,14 +269,28 @@ if(OPENRENDER_HAVE_LLVM)
         LABELS "shading_parity"
         ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>;OSHADER_BIN=$<TARGET_FILE:oshader>"
     )
-    # Disabled: the JIT runs a construct inside an if that is false for every
-    # point and calls the hook, where the interpreter jumps over the block
-    # (GitHub #71, found under #68). Enable it with the #71 fix.
     add_test(NAME ShadingParity_IlluminationHookAllFalse COMMAND test_shading_illumination_hook_conditions allfalse)
     set_tests_properties(ShadingParity_IlluminationHookAllFalse PROPERTIES
         TIMEOUT 60
         LABELS "shading_parity"
-        DISABLED TRUE
+        ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>;OSHADER_BIN=$<TARGET_FILE:oshader>"
+    )
+
+    # GitHub #71/#96: illuminance() and gather() inside an if that is false for
+    # every point run nothing (no light shader, no gather bundle), as the
+    # interpreter's jump over the block does
+    add_executable(test_shading_false_if_constructs test_false_if_constructs.cpp)
+    target_link_libraries(test_shading_false_if_constructs PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+    target_include_directories(test_shading_false_if_constructs PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_BINARY_DIR}
+    )
+    target_compile_features(test_shading_false_if_constructs PRIVATE cxx_std_20)
+    add_test(NAME ShadingParity_FalseIfIlluminance COMMAND test_shading_false_if_constructs illuminance)
+    add_test(NAME ShadingParity_FalseIfGather COMMAND test_shading_false_if_constructs gather)
+    set_tests_properties(ShadingParity_FalseIfIlluminance ShadingParity_FalseIfGather PROPERTIES
+        TIMEOUT 60
+        LABELS "shading_parity"
         ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>;OSHADER_BIN=$<TARGET_FILE:oshader>"
     )
 endif()

@@ -2252,13 +2252,27 @@ void CShadingContext::setupIlluminance(float *P, float *N, float angle, int numV
 // outside the illumination cone (gating them passive for the body).
 // With the illumination hook active the hider does all of it: only the hook is
 // called, and Ns, costheta, the tags, the counts and L are left alone.
+//
+// The hook branches of the six jit*Begin/End functions call the hider only
+// while the JIT's active count is nonzero (GitHub #71). The interpreter never
+// reaches a construct inside a block that an if/else left with no active
+// point, because it jumps over the block; the emitter branches over such a
+// block too, so this is a second line of defence for the same rule. It reads
+// the count, not the tags: a light entered with every point already passive,
+// outside any if, still calls the hook under the interpreter, whose hook path
+// makes no check of its own. That case matches only because the JIT starts its
+// count at numVertices, not at currentShadingState->numActive: a change to that
+// starting count must keep the hook called for such an entry (the "inactive"
+// rows of ShadingParity_IlluminationHook{,Operands}). The hook path changes no
+// tags or counts, so the begin and the end of one construct see the same count.
 void CShadingContext::jitIlluminateBegin(const float *from, int sf, int *tags, int n, int *numActive, int *numPassive) {
     CShadingState *ss = currentShadingState;
     if (!ss)
         return;
 
     if (rendererIlluminationHook()) {
-        illuminateBegin(hookOperand(from, sf, tags, n), nullptr, nullptr);
+        if (*numActive != 0)
+            illuminateBegin(hookOperand(from, sf, tags, n), nullptr, nullptr);
         return;
     }
 
@@ -2301,7 +2315,8 @@ void CShadingContext::jitIlluminate3Begin(
         return;
 
     if (rendererIlluminationHook()) {
-        illuminateBegin(hookOperand(from, sf, tags, n), hookOperand(axis, sa, tags, n), hookOperand(angle, st, tags, n));
+        if (*numActive != 0)
+            illuminateBegin(hookOperand(from, sf, tags, n), hookOperand(axis, sa, tags, n), hookOperand(angle, st, tags, n));
         return;
     }
     log_debug("[JIT-DBG] jitIlluminate3Begin: n={} numActive={} numPassive={}", n, *numActive, *numPassive);
@@ -2348,7 +2363,8 @@ void CShadingContext::jitIlluminateEnd(int *tags, int n, int *numActive, int *nu
         return;
 
     if (rendererIlluminationHook()) {
-        illuminateEnd();
+        if (*numActive != 0)
+            illuminateEnd();
         return;
     }
     log_debug("[JIT-DBG] jitIlluminateEnd: n={} numActive={} numPassive={}", n, *numActive, *numPassive);
@@ -2418,7 +2434,8 @@ void CShadingContext::jitSolarBegin(const float *Nf, int sf, const float *thetaf
         return;
 
     if (rendererIlluminationHook()) {
-        solarBegin(hookOperand(Nf, sf, tags, n), hookOperand(thetaf, st, tags, n));
+        if (*numActive != 0)
+            solarBegin(hookOperand(Nf, sf, tags, n), hookOperand(thetaf, st, tags, n));
         return;
     }
 
@@ -2460,13 +2477,14 @@ void CShadingContext::jitSolarBegin(const float *Nf, int sf, const float *thetaf
 // With the illumination hook active only solarBegin(NULL, NULL) is called.
 // Otherwise a tagged vertex gets its tag incremented and an active one gets
 // L = Ps; there is no culling and the counts do not change.
-void CShadingContext::jitSolar0Begin(int *tags, int n, int * /*numActive*/, int * /*numPassive*/) {
+void CShadingContext::jitSolar0Begin(int *tags, int n, int *numActive, int * /*numPassive*/) {
     CShadingState *ss = currentShadingState;
     if (!ss)
         return;
 
     if (rendererIlluminationHook()) {
-        solarBegin(nullptr, nullptr);
+        if (*numActive != 0)
+            solarBegin(nullptr, nullptr);
         return;
     }
 
@@ -2495,7 +2513,8 @@ void CShadingContext::jitSolarEnd(int *tags, int n, int *numActive, int *numPass
         return;
 
     if (rendererIlluminationHook()) {
-        solarEnd();
+        if (*numActive != 0)
+            solarEnd();
         return;
     }
 
