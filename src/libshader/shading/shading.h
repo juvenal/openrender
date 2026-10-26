@@ -309,6 +309,18 @@ typedef struct TObjectHash {
 // Comments				:
 class CShadingContext {
     public:
+        // An optional parameter list as a JIT call site passes it (GitHub #55):
+        // pair i is names[i] with its value at values[i], steps[i] bytes per
+        // item, varying when isVarying[i] is set (then values[i] holds one item
+        // per vertex). The arrays may be null when numPairs is 0.
+        struct TJitParamList {
+                const char *const *names;
+                void *const *values;
+                const int *steps;
+                const int *isVarying;
+                int numPairs;
+        };
+
         // Test hook, null in production (see CPointKeyReport). Set only by tests.
         static CPointKeyObserver pointKeyObserver;
         static CPointDisplacedObserver pointDisplacedObserver; // Test hook, null in production
@@ -594,15 +606,15 @@ class CShadingContext {
         // per-vertex GATHERHEADEREXPR/_UPDATE loop (giFunctions.h), using a
         // compile-time-fixed set of named-parameter/output pairs instead of
         // interpreter bytecode operands. names[i]/valuePtrs[i]/steps[i]/
-        // isVarying[i] describe pair i (i in [0, numPairs)):
-        //   - the 5 named overrides (bias/maxdist/samplebase/distribution/label)
-        //     are resolved via the real CGatherLookup::bind(), then applied to
-        //     the shading scratch the same way plBegin does -- once, right after
-        //     lookup->init(), and again per-vertex if isVarying[i] is set;
+        // isVarying[i] describe pair i (i in [0, numPairs)), bound through
+        // jitParameterList() (GitHub #55) like every JIT parameter list:
+        //   - the named overrides (bias/maxdist/samplebase/distribution/label)
+        //     go through the real CGatherLookup::bind() and reach the shading
+        //     scratch the way plBegin()/plReady() put them there;
         //   - "surface:<var>"/"ray:origin"/"ray:direction"/"ray:length" tokens
         //     are resolved via the real CGatherLookup::addOutput(); valuePtrs[i]
         //     for these must already be the resolved destination variable
-        //     pointer (steps[i]/isVarying[i] are unused for output pairs).
+        //     pointer.
         // Loops currentShadingState->numVertices (not a JIT-supplied count) to
         // match gatherHeaderBegin()'s own array sizing -- numVerts as seen by
         // the JIT caller can exceed numVertices in raytrace-derivative shading.
@@ -639,35 +651,35 @@ class CShadingContext {
         // construct and consume a real CTraceLocation ray batch. Loop bound is
         // currentShadingState->numRealVertices (not n), with results replicated into
         // the derivative-offset tail per expandVector/expandFloat's discipline.
-        // Supports only the plain 2-positional-argument call form (no "!"-suffixed
-        // named-argument extension -- confirmed unused by every shipped caller);
-        // trace params default from the current attribute state exactly as
-        // CTraceLookup::init() does for the interpreter's own PL-cache-free case.
+        // The optional parameter list (pl) is bound through CTraceLookup exactly
+        // as the interpreter binds it (GitHub #55, jitParameterList() below).
         void jitVisibility(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                            const float *du, const float *dv, const float *N, const float *time,
-                           int n, const int *tags, uint32_t callSite);
+                           int n, const int *tags, const TJitParamList &pl, uint32_t callSite);
         void jitTransmission(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                              const float *du, const float *dv, const float *N, const float *time,
-                             int n, const int *tags, uint32_t callSite);
+                             int n, const int *tags, const TJitParamList &pl, uint32_t callSite);
         void jitTraceF(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                        const float *du, const float *dv, const float *N, const float *time,
-                       int n, const int *tags, uint32_t callSite);
+                       int n, const int *tags, const TJitParamList &pl, uint32_t callSite);
         void jitTraceC(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                        const float *du, const float *dv, const float *N, const float *time,
-                       int n, const int *tags, uint32_t callSite);
+                       int n, const int *tags, const TJitParamList &pl, uint32_t callSite);
 
         // occlusion()/indirectdiffuse() (spec 017-jit-builtin-function-coverage,
         // US1): byte-faithful transcriptions of IDEXPR_PRE/IDEXPR/_UPDATE/_POST
         // (giFunctions.h) -- a point-cloud/irradiance-cache lookup, not a
         // CTraceLocation ray batch. Same loop-bound/tail-replication discipline
-        // as jitTraceBatch (D1). Supports only the plain 3-positional-argument
-        // call form (no "!"-suffixed channel-binding extension).
+        // as jitTraceBatch (D1). The optional parameter list (pl), including its
+        // channel bindings (any other varying name is an output channel of the
+        // irradiance cache), is bound through COcclusionLookup exactly as the
+        // interpreter binds it (GitHub #55).
         void jitOcclusion(float *dst, int sd, const float *P, int sP, const float *N, int sN,
                           const float *samples, int sSamples, const float *du, const float *dv,
-                          int n, const int *tags, uint32_t callSite);
+                          int n, const int *tags, const TJitParamList &pl, uint32_t callSite);
         void jitIndirectDiffuse(float *dst, int sd, const float *P, int sP, const float *N, int sN,
                                 const float *samples, int sSamples, const float *du, const float *dv,
-                                int n, const int *tags, uint32_t callSite);
+                                int n, const int *tags, const TJitParamList &pl, uint32_t callSite);
 
         // texture3d()/bake3d() (spec 017-jit-builtin-function-coverage,
         // US5): reuse US1's occlusion/indirectdiffuse point-cloud-lookup
@@ -997,7 +1009,22 @@ class CShadingContext {
         // trace() float result (spec 017 T012 fix).
         void jitTraceBatch(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                            const float *du, const float *dv, const float *N, const float *time,
-                           int n, const int *tags, int probeOnly, bool isReflection, bool wantBoolean, uint32_t callSite);
+                           int n, const int *tags, const TJitParamList &pl, int probeOnly, bool isReflection, bool wantBoolean, uint32_t callSite);
+
+        // The JIT form of plBegin()/plReady() (execute.cpp, GitHub #55). A JIT
+        // call site passes its parameter list as arrays (TJitParamList) instead
+        // of bytecode operands; everything else is the interpreter's own code:
+        // the lookup's bind() decides what each name means (and reports an
+        // unknown one), init() sets the defaults, the uniform values are copied
+        // over them, and postBind() runs last. The bound lookup is cached per
+        // (shader instance, call site) in jitPlHash, as plBegin() caches its
+        // own per (instance, instruction) in plHash, so a lookup's one-time work
+        // (its diagnostics, the irradiance cache it resolves) happens once.
+        // jitParameterListReady() copies the varying values of one vertex into
+        // the scratch, as plReady() does at the current vertex.
+        template <class T>
+        T *jitParameterList(const TJitParamList &pl, uint32_t callSite);
+        void jitParameterListReady(const CPLLookup *lookup, const TJitParamList &pl, int vertex);
 
         // Shared finishing logic for the parameter-query family (spec 017,
         // US5) -- given a `found`/`cVar` pair already resolved by ONE call to
@@ -1012,7 +1039,7 @@ class CShadingContext {
         // builtin-function-coverage, US1) -- see shading.cpp.
         void jitOcclusionBatch(float *dst, int sd, const float *P, int sP, const float *N, int sN,
                                const float *samples, int sSamples, const float *du, const float *dv,
-                               int n, const int *tags, bool wantOcclusion, uint32_t callSite);
+                               int n, const int *tags, const TJitParamList &pl, bool wantOcclusion, uint32_t callSite);
 
         // The following functions are used in the shaders
         int surfaceParameter(void *dest, const char *name, CVariable **, int *);
@@ -1064,6 +1091,7 @@ class CShadingContext {
         uint64_t shaderKeyValue = 0;
 
         CPLLookup *plHash[PL_HASH_SIZE];
+        CPLLookup *jitPlHash[PL_HASH_SIZE]; // jitParameterList()'s lookups, keyed by (instance, call site)
 
 
         friend class CPhotonHider;

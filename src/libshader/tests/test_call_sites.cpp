@@ -152,7 +152,7 @@ static const char *kindOfCallee(const std::string &name) {
 }
 
 // The call-site ordinals in .slo bitcode: the last argument (an i32 constant) of every
-// call to a versioned `_v2` entry.
+// call to a versioned `_v2` (or, since GitHub #55, `_v3`) entry.
 static bool sloSites(const std::string &path, std::vector<Site> &out, std::vector<std::string> *calleesWithoutV2 = nullptr) {
     llvm::LLVMContext context;
     auto buffer = llvm::MemoryBuffer::getFile(path);
@@ -170,7 +170,10 @@ static bool sloSites(const std::string &path, std::vector<Site> &out, std::vecto
                 const std::string name = call->getCalledFunction()->getName().str();
                 if (name.rfind("op_", 0) != 0 && name.rfind("rsl_", 0) != 0)
                     continue;
-                const bool versioned = name.size() > 3 && name.compare(name.size() - 3, 3, "_v2") == 0;
+                // _v2 since spec 039; trace/transmission/visibility/occlusion/indirectdiffuse
+                // are _v3 since GitHub #55 (their optional parameter list), still last-argument callSite
+                const bool versioned = name.size() > 3 && (name.compare(name.size() - 3, 3, "_v2") == 0 ||
+                                                           name.compare(name.size() - 3, 3, "_v3") == 0);
                 if (!versioned) {
                     if (calleesWithoutV2)
                         calleesWithoutV2->push_back(name);

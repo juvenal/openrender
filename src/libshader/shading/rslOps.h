@@ -425,20 +425,23 @@ void op_shadow_f_v2(float *dst, int sd, const char *const *namepp, const float *
  * visibility()/transmission()/trace() (spec 017-jit-builtin-function-coverage,
  * US1) -- raytracing-tier trampolines. du/dv/N/time are the grid pointers
  * loaded by resolveVar("du"/"dv"/"N"/"time",...) in llvmEmitter.cpp; see
- * contracts/op-wrapper-abi.md.
+ * contracts/op-wrapper-abi.md. _v3 (GitHub #55) adds the call's optional
+ * parameter list: pair i is names[i] with its value at values[i], steps[i]
+ * bytes per item, varying when isVarying[i] is set. The _v2 entries are gone,
+ * so a .slo compiled before #55 fails to bind instead of losing its list.
  * ----------------------------------------------------------------------- */
-void op_visibility_v2(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+void op_visibility_v3(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                      const float *du, const float *dv, const float *N, const float *time,
+                      int n, const int *tags, const char *const *names, void *const *values, const int *steps, const int *isVarying, int numPairs, uint32_t callSite);
+void op_transmission_v3(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                        const float *du, const float *dv, const float *N, const float *time,
+                        int n, const int *tags, const char *const *names, void *const *values, const int *steps, const int *isVarying, int numPairs, uint32_t callSite);
+void op_trace_f_v3(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                    const float *du, const float *dv, const float *N, const float *time,
-                   int n, const int *tags, uint32_t callSite);
-void op_transmission_v2(float *dst, int sd, const float *P, int sP, const float *D, int sD,
-                     const float *du, const float *dv, const float *N, const float *time,
-                     int n, const int *tags, uint32_t callSite);
-void op_trace_f_v2(float *dst, int sd, const float *P, int sP, const float *D, int sD,
-                const float *du, const float *dv, const float *N, const float *time,
-                int n, const int *tags, uint32_t callSite);
-void op_trace_c_v2(float *dst, int sd, const float *P, int sP, const float *D, int sD,
-                const float *du, const float *dv, const float *N, const float *time,
-                int n, const int *tags, uint32_t callSite);
+                   int n, const int *tags, const char *const *names, void *const *values, const int *steps, const int *isVarying, int numPairs, uint32_t callSite);
+void op_trace_c_v3(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                   const float *du, const float *dv, const float *N, const float *time,
+                   int n, const int *tags, const char *const *names, void *const *values, const int *steps, const int *isVarying, int numPairs, uint32_t callSite);
 
 // comp()/MComp() (spec 017-jit-builtin-function-coverage, US1): pure indexed
 // reads, no CShadingContext state needed. op_comp = vector form (Comp,
@@ -475,13 +478,14 @@ void op_rotate(float *dst, int sd, const float *m, int sm, const float *angle, i
                const float *axis, int sax, int n, const int *tags);
 
 // occlusion()/indirectdiffuse() (spec 017-jit-builtin-function-coverage,
-// US1): point-cloud/irradiance-cache lookup trampolines.
-void op_occlusion_v2(float *dst, int sd, const float *P, int sP, const float *N, int sN,
-                  const float *samples, int sSamples, const float *du, const float *dv,
-                  int n, const int *tags, uint32_t callSite);
-void op_indirectdiffuse_v2(float *dst, int sd, const float *P, int sP, const float *N, int sN,
-                        const float *samples, int sSamples, const float *du, const float *dv,
-                        int n, const int *tags, uint32_t callSite);
+// US1): point-cloud/irradiance-cache lookup trampolines. _v3 (GitHub #55)
+// adds the optional parameter list, as for trace() above.
+void op_occlusion_v3(float *dst, int sd, const float *P, int sP, const float *N, int sN,
+                     const float *samples, int sSamples, const float *du, const float *dv,
+                     int n, const int *tags, const char *const *names, void *const *values, const int *steps, const int *isVarying, int numPairs, uint32_t callSite);
+void op_indirectdiffuse_v3(float *dst, int sd, const float *P, int sP, const float *N, int sN,
+                           const float *samples, int sSamples, const float *du, const float *dv,
+                           int n, const int *tags, const char *const *names, void *const *values, const int *steps, const int *isVarying, int numPairs, uint32_t callSite);
 
 // texture3d()/bake3d() (spec 017-jit-builtin-function-coverage, US5):
 // point-cloud read/write trampolines. See shading.h for scoping notes.

@@ -1,0 +1,63 @@
+#!version 2.0.0
+#!name "jit_pl_occlusion_probe"
+surface
+#!parameters:
+uniform	float	maxdist	=	1e30
+uniform	float	bias	=	0.01
+uniform	float	samplebase	=	1
+uniform	float	maxerror	=	0.6
+uniform	string	coordsys	=	"world"
+uniform	color	envcolor	=	0
+uniform	float	maxbrightness	=	1
+uniform	string	ohandle	=	"pl55occlusion"
+uniform	string	ihandle	=	"pl55indirect"
+#!variables:
+varying	vector	Nn
+varying	vector	Nf
+varying	vector	ed
+varying	float	occ
+varying	vector	id
+varying	float	g
+uniform	vector	temporary_0
+varying	float	temporary_1
+varying	float	temporary_2
+varying	float	temporary_3
+varying	float	temporary_4
+varying	float	temporary_5
+varying	vector	temporary_6
+varying	vector	temporary_7
+varying	vector	temporary_8
+#!Init:
+	return            
+#!Code:
+	normalize	("v=v")  Nn N
+	faceforward	("v=vv")  Nf Nn I
+	vfromf  temporary_0 0
+	vuvector  ed temporary_0
+	vufloat  temporary_1 16
+	occlusion	("f=pnfSfsfsfsfsssssssv")  occ P Nf temporary_1 "maxdist" maxdist "bias" bias "samplebase" samplebase "maxerror" maxerror "coordsystem" coordsys "handle" ohandle "filemode" "" "environmentdir" ed 0
+	vufloat  temporary_1 16
+	indirectdiffuse	("c=pnfSfsfsfsfssscsfssss")  id P Nf temporary_1 "maxdist" maxdist "bias" bias "samplebase" samplebase "maxerror" maxerror "coordsystem" coordsys "environmentcolor" envcolor "maxBrightness" maxbrightness "handle" ihandle "filemode" "" 1
+	vufloat  temporary_4 0
+	comp	("f=cf")  temporary_3 id temporary_4
+	vufloat  temporary_5 1
+	comp	("f=cf")  temporary_4 id temporary_5
+	addff  temporary_2 temporary_3 temporary_4
+	vufloat  temporary_4 2
+	comp	("f=cf")  temporary_3 id temporary_4
+	addff  temporary_1 temporary_2 temporary_3
+	vufloat  temporary_2 3
+	divff  g temporary_1 temporary_2
+	vufloat  temporary_2 0.5
+	moveff  temporary_4 temporary_2
+	vfromf  temporary_0 0 0 1e-6
+	vuvector  temporary_8 temporary_0
+	addvv  temporary_7 ed temporary_8
+	normalize	("v=v")  temporary_6 temporary_7
+	ycomp	("f=p")  temporary_5 temporary_6
+	mulff  temporary_3 temporary_4 temporary_5
+	addff  temporary_1 temporary_2 temporary_3
+	vfromf  Ci occ g temporary_1
+	vfromf  temporary_0 1
+	vuvector  Oi temporary_0
+	return

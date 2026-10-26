@@ -376,7 +376,22 @@ struct VarDesc {
         // DEFFUNC overloads do. Defaults false (matrix/vector/float/globals
         // all leave it unset); safe to ignore everywhere else.
         bool isString = false;
+        // Bytes of one vertex's value (all its array items), whether the
+        // variable is uniform or varying: what the interpreter's plBegin()
+        // calls a parameter's step (operandBytesPerItem * operandNumItems).
+        // `stride` cannot give it, as it is 0 for every uniform. Passed as the
+        // step of an optional parameter list's value (GitHub #55).
+        int itemBytes = 0;
 };
+
+// Bytes of one item of a variable of this SLC type (VarDesc::itemBytes)
+static int slcItemBytes(int slcType, int numItems) {
+    const int n = numItems > 0 ? numItems : 1;
+    if (slcType & SLC_STRING)
+        return (int)sizeof(const char *) * n;
+    const int elemSize = (slcType & SLC_MATRIX) ? 16 : (slcType & SLC_VECTOR) ? 3 : 1;
+    return (int)sizeof(float) * elemSize * n;
+}
 
 // =========================================================================
 // Build variable table from IRModule.
@@ -401,8 +416,8 @@ buildVarTable(const IRModule &mod) {
                                                   : 1;
         int stride = (v.slcType & SLC_UNIFORM) ? 0 : elemSize * v.numItems;
 
-        tbl[v.cName] = {2, slot2Idx, stride, v.isString()};
-        tbl[v.symbolName] = {2, slot2Idx, stride, v.isString()};
+        tbl[v.cName] = {2, slot2Idx, stride, v.isString(), slcItemBytes(v.slcType, v.numItems)};
+        tbl[v.symbolName] = {2, slot2Idx, stride, v.isString(), slcItemBytes(v.slcType, v.numItems)};
         ++slot2Idx;
     }
 
@@ -418,8 +433,8 @@ buildVarTable(const IRModule &mod) {
                                                   : 1;
         int stride = (v.slcType & SLC_UNIFORM) ? 0 : elemSize * v.numItems;
 
-        tbl[v.cName] = {2, slot2Idx, stride, v.isString()};
-        tbl[v.symbolName] = {2, slot2Idx, stride, v.isString()};
+        tbl[v.cName] = {2, slot2Idx, stride, v.isString(), slcItemBytes(v.slcType, v.numItems)};
+        tbl[v.symbolName] = {2, slot2Idx, stride, v.isString(), slcItemBytes(v.slcType, v.numItems)};
         ++slot2Idx;
     }
 
@@ -430,6 +445,7 @@ buildVarTable(const IRModule &mod) {
     // SLC_* type flags into IRVarInfo verbatim (research.md D7a) -- no
     // separate hand-maintained stride table needed.
     std::unordered_map<std::string, int> globalStrides;
+    std::unordered_map<std::string, int> globalItemBytes;
     for (const IRVarInfo &v : mod.vars) {
         if (!(v.slcType & SLC_GLOBAL))
             continue;
@@ -439,12 +455,15 @@ buildVarTable(const IRModule &mod) {
                                                   : 1;
         int stride = (v.slcType & SLC_UNIFORM) ? 0 : elemSize * v.numItems;
         globalStrides[v.symbolName] = stride;
+        globalItemBytes[v.symbolName] = slcItemBytes(v.slcType, v.numItems);
     }
 
     for (const auto &[name, idx] : s_rslGlobals) {
         auto strideIt = globalStrides.find(name);
         int stride = (strideIt != globalStrides.end()) ? strideIt->second : 3;
-        tbl[name] = {1, idx, stride};
+        auto bytesIt = globalItemBytes.find(name);
+        int itemBytes = (bytesIt != globalItemBytes.end()) ? bytesIt->second : (int)sizeof(float) * (stride > 0 ? stride : 3);
+        tbl[name] = {1, idx, stride, false, itemBytes};
     }
 
     return tbl;
@@ -753,6 +772,81 @@ static bool emitFunction(const IRFunction &irFn,
     };
 
     // -----------------------------------------------------------------------
+    // emitParamList: the optional parameter list of a builtin (GitHub #55),
+    // the (name, value) pairs from operand `first` on, materialized as the
+    // four arrays a TJitParamList (shading.h) is made of: names, value
+    // pointers, steps (VarDesc::itemBytes: the bytes of one vertex's value,
+    // what plBegin() reads from the operand) and isVarying. What each name
+    // means is decided at run time, by the same CPLLookup::bind() the
+    // interpreter uses; nothing here knows any parameter by name. A list the
+    // JIT cannot pass (an odd number of operands, a name that is not a string
+    // literal, a value that resolves to nothing) fails the emit with a
+    // diagnostic naming the mnemonic: dropping it silently is the bug #55 was.
+    // -----------------------------------------------------------------------
+    struct ParamListArgs {
+            llvm::Value *names, *values, *steps, *isVarying;
+            int numPairs;
+    };
+    auto emitParamList = [&](const IRInstr &ins, size_t first, ParamListArgs &out) -> bool {
+        const std::string fnName = std::string(func->getName());
+        const size_t numOperands = ins.operands.size() > first ? ins.operands.size() - first : 0;
+        if (numOperands % 2 != 0) {
+            fprintf(stderr,
+                    "llvmEmitter: in '%s', the parameter list of '%s' ends in a name with no value\n",
+                    fnName.c_str(), ins.opcode.c_str());
+            return false;
+        }
+        out.numPairs = (int)(numOperands / 2);
+        if (out.numPairs == 0) {
+            llvm::Value *nullPtr = llvm::ConstantPointerNull::get(llvm::PointerType::getUnqual(ctx));
+            out.names = out.values = out.steps = out.isVarying = nullPtr;
+            return true;
+        }
+        auto *arrPtrTy = llvm::ArrayType::get(ptrTy, out.numPairs);
+        auto *arrI32Ty = llvm::ArrayType::get(i32Ty, out.numPairs);
+        out.names = B.CreateAlloca(arrPtrTy, nullptr, "pl_names");
+        out.values = B.CreateAlloca(arrPtrTy, nullptr, "pl_values");
+        out.steps = B.CreateAlloca(arrI32Ty, nullptr, "pl_steps");
+        out.isVarying = B.CreateAlloca(arrI32Ty, nullptr, "pl_varying");
+        for (int k = 0; k < out.numPairs; k++) {
+            const std::string &nameTok = ins.operands[first + 2 * k].token;
+            if (nameTok.size() < 2 || nameTok.front() != '"' || nameTok.back() != '"') {
+                fprintf(stderr,
+                        "llvmEmitter: in '%s', parameter %d of the parameter list of '%s' is not a string literal ('%s')\n",
+                        fnName.c_str(), k, ins.opcode.c_str(), nameTok.c_str());
+                return false;
+            }
+            const std::string &valTok = ins.operands[first + 2 * k + 1].token;
+            llvm::Value *valPtr = nullptr;
+            int stepBytes = 0;
+            bool isVarying = false;
+            VarDesc valDesc;
+            if (resolveVar(valTok, valDesc)) {
+                valPtr = loadVarPtr(valDesc);
+                stepBytes = valDesc.itemBytes;
+                isVarying = valDesc.stride != 0;
+            }
+            else if (auto lit = allocLiteral(valTok); lit.first) {
+                valPtr = lit.first;
+                stepBytes = (valTok.front() == '"') ? (int)sizeof(const char *) : (int)sizeof(float);
+            }
+            else {
+                fprintf(stderr,
+                        "llvmEmitter: in '%s', the value of parameter %s of '%s' does not resolve ('%s')\n",
+                        fnName.c_str(), nameTok.c_str(), ins.opcode.c_str(), valTok.c_str());
+                return false;
+            }
+            const std::string nameStr = nameTok.substr(1, nameTok.size() - 2);
+            llvm::Value *namePtr = B.CreateGlobalString(nameStr, "pl_name");
+            B.CreateStore(namePtr, B.CreateGEP(arrPtrTy, out.names, {B.getInt32(0), B.getInt32(k)}));
+            B.CreateStore(valPtr, B.CreateGEP(arrPtrTy, out.values, {B.getInt32(0), B.getInt32(k)}));
+            B.CreateStore(B.getInt32(stepBytes), B.CreateGEP(arrI32Ty, out.steps, {B.getInt32(0), B.getInt32(k)}));
+            B.CreateStore(B.getInt32(isVarying ? 1 : 0), B.CreateGEP(arrI32Ty, out.isVarying, {B.getInt32(0), B.getInt32(k)}));
+        }
+        return true;
+    };
+
+    // -----------------------------------------------------------------------
     // Pre-declare common function types.
     // -----------------------------------------------------------------------
     // Binary: (dst,sd, a,sa, b,sb, n, tags)
@@ -1006,11 +1100,10 @@ static bool emitFunction(const IRFunction &irFn,
             // GATHEREXPR_PRE — gather() category filtering isn't implemented
             // there, so the JIT must match by ignoring it too, not add
             // filtering the interpreter lacks), [1]=P, [2]=D, [3]=sampleCone,
-            // [4]=samples, [5..]=alternating name/value pairs (the 5 named
+            // [4]=samples, [5..]=alternating name/value pairs (the named
             // overrides bias/maxdist/samplebase/distribution/label, and any
-            // surface:/ray: output bindings). Marshals those pairs into the
-            // names/valuePtrs/steps/isVarying arrays op_gatherHeader expects
-            // (rslOps.h) and delegates everything else to
+            // surface:/ray: output bindings). Marshals those pairs with
+            // emitParamList() (GitHub #55) and delegates everything else to
             // CShadingContext::jitGatherHeaderBegin via that trampoline —
             // per-name dispatch (override vs. output) happens at runtime
             // inside the real CGatherLookup::bind()/addOutput(), not here.
@@ -1026,90 +1119,9 @@ static bool emitFunction(const IRFunction &irFn,
                     continue;
                 llvm::Value *samplesVal = B.CreateLoad(f32Ty, samplesPtr);
 
-                const size_t numPairOperands = ins.operands.size() - 5;
-                if (numPairOperands % 2 != 0)
-                    continue;
-                const int numPairs = (int)(numPairOperands / 2);
-
-                llvm::Value *namesArr, *valuePtrsArr, *stepsArr, *isVaryingArr;
-                bool ok = true;
-                if (numPairs > 0) {
-                    auto *arrPtrTy = llvm::ArrayType::get(ptrTy, numPairs);
-                    auto *arrI32Ty = llvm::ArrayType::get(i32Ty, numPairs);
-                    namesArr = B.CreateAlloca(arrPtrTy, nullptr, "gh_names");
-                    valuePtrsArr = B.CreateAlloca(arrPtrTy, nullptr, "gh_values");
-                    stepsArr = B.CreateAlloca(arrI32Ty, nullptr, "gh_steps");
-                    isVaryingArr = B.CreateAlloca(arrI32Ty, nullptr, "gh_varying");
-
-                    for (int k = 0; k < numPairs && ok; k++) {
-                        const std::string &nameTok = ins.operands[5 + 2 * k].token;
-                        if (nameTok.size() < 2 || nameTok.front() != '"') {
-                            ok = false;
-                            break;
-                        }
-                        std::string nameStr = nameTok.substr(1, nameTok.size() - 2);
-
-                        // Element size for the 5 fixed CShadingScratch override
-                        // fields (shading.h: bias/sampleBase/maxDist are float,
-                        // distribution/label are const char*) — known statically
-                        // from the name, not derived from the RSL value's own
-                        // type. Output-token pairs (anything else) leave these
-                        // unused: jitGatherHeaderBegin only consults step/
-                        // isVarying for pairs that actually grew CGatherLookup's
-                        // uniforms/varyings arrays via bind(), which addOutput()
-                        // never does.
-                        llvm::Value *valPtr = nullptr;
-                        int stepBytes = 0;
-                        bool isVarying = false;
-                        if (nameStr == "distribution" || nameStr == "label") {
-                            // String-valued override: the value token is a
-                            // quoted string literal (or, rarely, a string
-                            // variable) — getVar() only resolves numeric
-                            // literals/variables, so mirror the texture/
-                            // environment name-resolution pattern instead.
-                            const std::string &valTok = ins.operands[5 + 2 * k + 1].token;
-                            VarDesc valDesc;
-                            if (resolveVar(valTok, valDesc)) {
-                                valPtr = loadVarPtr(valDesc);
-                            }
-                            else {
-                                std::string s = valTok;
-                                if (s.size() >= 2 && s.front() == '"')
-                                    s = s.substr(1, s.size() - 2);
-                                llvm::Value *sptr = B.CreateGlobalString(s, "gh_strval");
-                                llvm::Value *alloc = B.CreateAlloca(ptrTy, nullptr, "gh_strval_pp");
-                                B.CreateStore(sptr, alloc);
-                                valPtr = alloc;
-                            }
-                            stepBytes = (int)sizeof(const char *);
-                            isVarying = false; // RSL strings are always uniform
-                        }
-                        else {
-                            auto [vp, valStride] = getVar(ins, 5 + 2 * k + 1);
-                            if (!vp) {
-                                ok = false;
-                                break;
-                            }
-                            valPtr = vp;
-                            if (nameStr == "bias" || nameStr == "maxdist" || nameStr == "samplebase") {
-                                stepBytes = (int)sizeof(float);
-                                isVarying = (valStride != 0);
-                            }
-                        }
-
-                        llvm::Value *namePtr = B.CreateGlobalString(nameStr, "gh_name");
-                        B.CreateStore(namePtr, B.CreateGEP(arrPtrTy, namesArr, {B.getInt32(0), B.getInt32(k)}));
-                        B.CreateStore(valPtr, B.CreateGEP(arrPtrTy, valuePtrsArr, {B.getInt32(0), B.getInt32(k)}));
-                        B.CreateStore(B.getInt32(stepBytes), B.CreateGEP(arrI32Ty, stepsArr, {B.getInt32(0), B.getInt32(k)}));
-                        B.CreateStore(B.getInt32(isVarying ? 1 : 0), B.CreateGEP(arrI32Ty, isVaryingArr, {B.getInt32(0), B.getInt32(k)}));
-                    }
-                }
-                else {
-                    llvm::Value *nullPtr = llvm::ConstantPointerNull::get(llvm::PointerType::getUnqual(ctx));
-                    namesArr = valuePtrsArr = stepsArr = isVaryingArr = nullPtr;
-                }
-                if (!ok)
-                    continue;
+                ParamListArgs pl;
+                if (!emitParamList(ins, 5, pl))
+                    return false;
 
                 // strideP/sD/ssc come from getVar() above (0=uniform, 1=float,
                 // 3=vector) -- must be threaded through, not discarded, so
@@ -1121,7 +1133,7 @@ static bool emitFunction(const IRFunction &irFn,
                                                       ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty, f32Ty, i32Ty},
                                                      false);
                 auto *fn = declareOp(mod, "op_gatherHeader_v2", ghTy);
-                B.CreateCall(fn, {namesArr, valuePtrsArr, stepsArr, isVaryingArr, B.getInt32(numPairs),
+                B.CreateCall(fn, {pl.names, pl.values, pl.steps, pl.isVarying, B.getInt32(pl.numPairs),
                                   P, B.getInt32(sP), D, B.getInt32(sD), sampleCone, B.getInt32(ssc),
                                   samplesVal, callSiteArg(B, ins)});
                 continue;
@@ -2776,20 +2788,27 @@ static bool emitFunction(const IRFunction &irFn,
                 llvm::Value *dvPtr = loadVarPtr(dvDesc);
                 llvm::Value *nPtr = loadVarPtr(nDesc);
                 llvm::Value *timePtr = loadVarPtr(timeDesc);
+                // The optional parameter list from operand 2 on (GitHub #55)
+                ParamListArgs pl;
+                if (!emitParamList(ins, 2, pl))
+                    return false;
                 auto *ty = llvm::FunctionType::get(voidTy,
                                                    {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty,
-                                                    ptrTy, ptrTy, ptrTy, ptrTy, i32Ty, ptrTy, i32Ty},
+                                                    ptrTy, ptrTy, ptrTy, ptrTy, i32Ty, ptrTy,
+                                                    ptrTy, ptrTy, ptrTy, ptrTy, i32Ty, i32Ty},
                                                    false);
                 const char *fnName;
                 if (op == "visibility")
-                    fnName = "op_visibility_v2";
+                    fnName = "op_visibility_v3";
                 else if (op == "transmission")
-                    fnName = "op_transmission_v2";
+                    fnName = "op_transmission_v3";
                 else
-                    fnName = (dstStrideVal == 3) ? "op_trace_c_v2" : "op_trace_f_v2";
+                    fnName = (dstStrideVal == 3) ? "op_trace_c_v3" : "op_trace_f_v3";
                 auto *fn = declareOp(mod, fnName, ty);
                 B.CreateCall(fn, {dst, dstStride, P, B.getInt32(sP), D, B.getInt32(sD),
-                                  duPtr, dvPtr, nPtr, timePtr, numVerts, tags, callSiteArg(B, ins)});
+                                  duPtr, dvPtr, nPtr, timePtr, numVerts, tags,
+                                  pl.names, pl.values, pl.steps, pl.isVarying, B.getInt32(pl.numPairs),
+                                  callSiteArg(B, ins)});
             }
 
             // occlusion()/indirectdiffuse() (spec 017-jit-builtin-function-
@@ -2809,14 +2828,22 @@ static bool emitFunction(const IRFunction &irFn,
                     continue;
                 llvm::Value *duPtr = loadVarPtr(duDesc);
                 llvm::Value *dvPtr = loadVarPtr(dvDesc);
+                // The optional parameter list from operand 3 on, channel
+                // bindings included (GitHub #55)
+                ParamListArgs pl;
+                if (!emitParamList(ins, 3, pl))
+                    return false;
                 auto *ty = llvm::FunctionType::get(voidTy,
                                                    {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty,
-                                                    ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, ptrTy, i32Ty},
+                                                    ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, ptrTy,
+                                                    ptrTy, ptrTy, ptrTy, ptrTy, i32Ty, i32Ty},
                                                    false);
-                const char *fnName = (op == "occlusion") ? "op_occlusion_v2" : "op_indirectdiffuse_v2";
+                const char *fnName = (op == "occlusion") ? "op_occlusion_v3" : "op_indirectdiffuse_v3";
                 auto *fn = declareOp(mod, fnName, ty);
                 B.CreateCall(fn, {dst, dstStride, P, B.getInt32(sP), N, B.getInt32(sN),
-                                  samples, B.getInt32(sSamples), duPtr, dvPtr, numVerts, tags, callSiteArg(B, ins)});
+                                  samples, B.getInt32(sSamples), duPtr, dvPtr, numVerts, tags,
+                                  pl.names, pl.values, pl.steps, pl.isVarying, B.getInt32(pl.numPairs),
+                                  callSiteArg(B, ins)});
             }
 
             // texture3d()/bake3d() (spec 017-jit-builtin-function-coverage,

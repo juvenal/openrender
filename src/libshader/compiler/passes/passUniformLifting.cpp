@@ -68,11 +68,24 @@ void CUniformLiftingPass::collectGatherOutputs(const IRFunction &fn,
                                                std::unordered_set<std::string> &out) {
     for (const IRBlock &blk : fn.blocks) {
         for (const IRInstr &instr : blk.instrs) {
-            if (instr.opcode != "gatherHeader")
+            // The first value of the (name, value) list: operands =
+            //   gatherHeader:              [category, P, N, sampleCone, samples, name0, value0, ...]
+            //   occlusion/indirectdiffuse: [P, N, samples, name0, value0, ...]
+            // occlusion()/indirectdiffuse() write a channel output (any name
+            // that is not one of their parameters, e.g. "environmentdir") the
+            // same way: never as an IRInstr result. The values that are
+            // parameters are only read, so exempting them too costs nothing
+            // but a lifted uniform. Without this a channel output initialized
+            // from a constant was promoted to uniform, and the JIT then bound
+            // it as a uniform value rather than as a channel (GitHub #55).
+            size_t first;
+            if (instr.opcode == "gatherHeader")
+                first = 6;
+            else if (instr.opcode == "occlusion" || instr.opcode == "indirectdiffuse")
+                first = 4;
+            else
                 continue;
-            // operands = [category, P, N, sampleCone, samples,
-            //             name0, value0, name1, value1, ...]
-            for (size_t i = 6; i < instr.operands.size(); i += 2) {
+            for (size_t i = first; i < instr.operands.size(); i += 2) {
                 out.insert(instr.operands[i].token);
             }
         }
@@ -108,7 +121,8 @@ bool CUniformLiftingPass::liftFn(IRFunction &fn, IRModule &mod, std::unordered_s
             }
 
             // gather() writes into its output-bound variables per loop
-            // iteration without that write appearing as an IRInstr result,
+            // iteration, and occlusion()/indirectdiffuse() into their bound
+            // channels, without that write appearing as an IRInstr result,
             // so writeCounts below can't see it. Never promote these.
             if (gatherOutputs.find(instr.result) != gatherOutputs.end())
                 continue;
