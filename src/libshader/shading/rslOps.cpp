@@ -1941,36 +1941,44 @@ void op_shadow_f_v2(float *dst, int sd, const char *const *namepp, const float *
     ctx->jitShadowF(dst, sd, namepp[0], Ps, sPs, n, tags, callSite);
 }
 
-void op_visibility_v2(float *dst, int sd, const float *P, int sP, const float *D, int sD,
-                   const float *du, const float *dv, const float *N, const float *time,
-                   int n, const int *tags, uint32_t callSite) {
-    CShadingContext *ctx = libshader::activeContext();
-    if (ctx)
-        ctx->jitVisibility(dst, sd, P, sP, D, sD, du, dv, N, time, n, tags, callSite);
-}
-
-void op_transmission_v2(float *dst, int sd, const float *P, int sP, const float *D, int sD,
-                     const float *du, const float *dv, const float *N, const float *time,
-                     int n, const int *tags, uint32_t callSite) {
-    CShadingContext *ctx = libshader::activeContext();
-    if (ctx)
-        ctx->jitTransmission(dst, sd, P, sP, D, sD, du, dv, N, time, n, tags, callSite);
-}
-
-void op_trace_f_v2(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+void op_visibility_v3(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                 const float *du, const float *dv, const float *N, const float *time,
-                int n, const int *tags, uint32_t callSite) {
+                int n, const int *tags, const char *const *names, void *const *values, const int *steps, const int *isVarying, int numPairs, uint32_t callSite) {
     CShadingContext *ctx = libshader::activeContext();
-    if (ctx)
-        ctx->jitTraceF(dst, sd, P, sP, D, sD, du, dv, N, time, n, tags, callSite);
+    if (ctx) {
+        const CShadingContext::TJitParamList pl = {names, values, steps, isVarying, numPairs};
+        ctx->jitVisibility(dst, sd, P, sP, D, sD, du, dv, N, time, n, tags, pl, callSite);
+    }
 }
 
-void op_trace_c_v2(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+void op_transmission_v3(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                 const float *du, const float *dv, const float *N, const float *time,
-                int n, const int *tags, uint32_t callSite) {
+                int n, const int *tags, const char *const *names, void *const *values, const int *steps, const int *isVarying, int numPairs, uint32_t callSite) {
     CShadingContext *ctx = libshader::activeContext();
-    if (ctx)
-        ctx->jitTraceC(dst, sd, P, sP, D, sD, du, dv, N, time, n, tags, callSite);
+    if (ctx) {
+        const CShadingContext::TJitParamList pl = {names, values, steps, isVarying, numPairs};
+        ctx->jitTransmission(dst, sd, P, sP, D, sD, du, dv, N, time, n, tags, pl, callSite);
+    }
+}
+
+void op_trace_f_v3(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                const float *du, const float *dv, const float *N, const float *time,
+                int n, const int *tags, const char *const *names, void *const *values, const int *steps, const int *isVarying, int numPairs, uint32_t callSite) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx) {
+        const CShadingContext::TJitParamList pl = {names, values, steps, isVarying, numPairs};
+        ctx->jitTraceF(dst, sd, P, sP, D, sD, du, dv, N, time, n, tags, pl, callSite);
+    }
+}
+
+void op_trace_c_v3(float *dst, int sd, const float *P, int sP, const float *D, int sD,
+                const float *du, const float *dv, const float *N, const float *time,
+                int n, const int *tags, const char *const *names, void *const *values, const int *steps, const int *isVarying, int numPairs, uint32_t callSite) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx) {
+        const CShadingContext::TJitParamList pl = {names, values, steps, isVarying, numPairs};
+        ctx->jitTraceC(dst, sd, P, sP, D, sD, du, dv, N, time, n, tags, pl, callSite);
+    }
 }
 
 // comp()/MComp() (spec 017-jit-builtin-function-coverage, US1): pure
@@ -2058,20 +2066,24 @@ void op_rotate(float *dst, int sd, const float *m, int sm, const float *angle, i
         }
 }
 
-void op_occlusion_v2(float *dst, int sd, const float *P, int sP, const float *N, int sN,
-                  const float *samples, int sSamples, const float *du, const float *dv,
-                  int n, const int *tags, uint32_t callSite) {
+void op_occlusion_v3(float *dst, int sd, const float *P, int sP, const float *N, int sN,
+                const float *samples, int sSamples, const float *du, const float *dv,
+                int n, const int *tags, const char *const *names, void *const *values, const int *steps, const int *isVarying, int numPairs, uint32_t callSite) {
     CShadingContext *ctx = libshader::activeContext();
-    if (ctx)
-        ctx->jitOcclusion(dst, sd, P, sP, N, sN, samples, sSamples, du, dv, n, tags, callSite);
+    if (ctx) {
+        const CShadingContext::TJitParamList pl = {names, values, steps, isVarying, numPairs};
+        ctx->jitOcclusion(dst, sd, P, sP, N, sN, samples, sSamples, du, dv, n, tags, pl, callSite);
+    }
 }
 
-void op_indirectdiffuse_v2(float *dst, int sd, const float *P, int sP, const float *N, int sN,
-                        const float *samples, int sSamples, const float *du, const float *dv,
-                        int n, const int *tags, uint32_t callSite) {
+void op_indirectdiffuse_v3(float *dst, int sd, const float *P, int sP, const float *N, int sN,
+                const float *samples, int sSamples, const float *du, const float *dv,
+                int n, const int *tags, const char *const *names, void *const *values, const int *steps, const int *isVarying, int numPairs, uint32_t callSite) {
     CShadingContext *ctx = libshader::activeContext();
-    if (ctx)
-        ctx->jitIndirectDiffuse(dst, sd, P, sP, N, sN, samples, sSamples, du, dv, n, tags, callSite);
+    if (ctx) {
+        const CShadingContext::TJitParamList pl = {names, values, steps, isVarying, numPairs};
+        ctx->jitIndirectDiffuse(dst, sd, P, sP, N, sN, samples, sSamples, du, dv, n, tags, pl, callSite);
+    }
 }
 
 void op_texture3d(float *dst, int sd, const char *const *name,

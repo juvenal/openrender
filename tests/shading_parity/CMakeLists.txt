@@ -112,8 +112,23 @@ set_tests_properties(ShadingParity_MatrixTransformJit PROPERTIES
     ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;ORENDER_BIN=$<TARGET_FILE:orender>;TEST_DISPLAYS_DIR=$<TARGET_FILE_DIR:file>"
 )
 
-# The 5 tests above (UsedParametersOracle, OlWiring, PrintfJit,
-# UniformConditionalJit, MatrixTransformJit) all compare/exercise an actual
+# GitHub #55: an optional parameter list's diagnostics ("Unknown parameter",
+# the uniform-channel warning) are printed once per call site by both
+# backends; the JIT used to drop the list unread. Renders a real fixture
+# through the actual orender CLI on both backends. The image parity of the
+# lists themselves is tested in tests/visual (ShadingParity_JitPL*).
+add_executable(test_shading_parity_jit_paramlist_diagnostics test_jit_paramlist_diagnostics.cpp)
+target_link_libraries(test_shading_parity_jit_paramlist_diagnostics PRIVATE openrender_common_flags)
+target_compile_features(test_shading_parity_jit_paramlist_diagnostics PRIVATE cxx_std_20)
+add_test(NAME ShadingParity_JitPLDiagnostics COMMAND test_shading_parity_jit_paramlist_diagnostics)
+set_tests_properties(ShadingParity_JitPLDiagnostics PROPERTIES
+    TIMEOUT 60
+    LABELS "shading_parity"
+    ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;ORENDER_BIN=$<TARGET_FILE:orender>;TEST_DISPLAYS_DIR=$<TARGET_FILE_DIR:file>"
+)
+
+# The 6 tests above (UsedParametersOracle, OlWiring, PrintfJit,
+# UniformConditionalJit, MatrixTransformJit, JitPLDiagnostics) all compare/exercise an actual
 # .slo (LLVM JIT bitcode) load or JIT-compiled render -- there is no
 # meaningful "JIT vs. interpreter parity" to check without a JIT. Registered
 # either way, so the suite's total never quietly shrinks, but marked
@@ -128,8 +143,9 @@ if(NOT OPENRENDER_HAVE_LLVM)
         ShadingParity_PrintfJit
         ShadingParity_UniformConditionalJit
         ShadingParity_MatrixTransformJit
+        ShadingParity_JitPLDiagnostics
         PROPERTIES DISABLED TRUE)
-    message(STATUS "  - ShadingParity_{UsedParametersOracle,OlWiring,PrintfJit,UniformConditionalJit,MatrixTransformJit}: DISABLED (no LLVM JIT in this build)")
+    message(STATUS "  - ShadingParity_{UsedParametersOracle,OlWiring,PrintfJit,UniformConditionalJit,MatrixTransformJit,JitPLDiagnostics}: DISABLED (no LLVM JIT in this build)")
 endif()
 
 # GitHub #4: Attribute "irradiance" "handle"/"filemode" [""] must not

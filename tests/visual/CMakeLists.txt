@@ -4375,3 +4375,101 @@ set_property(TEST Sampling_ThreadSweep_quadlight Sampling_ThreadSweep_sphere-ran
     SamplingJitDeterminism_trace_transmission SamplingJitDeterminism_visibility SamplingJitDeterminism_occlusion
     SamplingJitDeterminism_indirectdiffuse SamplingJitDeterminism_gather
     APPEND PROPERTY LABELS determinism)
+
+# --- Optional parameter lists under the LLVM JIT (GitHub #55) ------------------------------------
+# trace(), transmission(), occlusion() and indirectdiffuse() used to ignore their optional
+# parameter lists under the JIT (.slo): jitTraceBatch hardcoded one coneless sample and
+# jitOcclusionBatch applied COcclusionLookup::init()'s defaults, so a call that passed any
+# parameter rendered differently from the interpreter (.rslo), with no diagnostic. The scenes are
+# generated from examples/rib/tests/jit-paramlist-probe.rib.in; the probes are
+# shaders/jit_pl_trace_probe.sl (red trace, green transmission, blue gather + a plain trace) and
+# shaders/jit_pl_occlusion_probe.sl (red occlusion, green indirectdiffuse, blue the
+# "environmentdir" channel). Every value of a parameter list is a shader parameter set in the
+# RIB, so a case changes a value without moving a call site.
+#   ShadingParity_JitPL_<probe>_<case>: the case under .rslo and .slo, bit-identical.
+#   ShadingParity_JitPLLabel_explicit: trace(..., "label", "pl55"), seen by the hit shader
+#     (shaders/jit_pl_label_probe.sl shades a hit by its ray's label).
+#   ShadingParity_JitPLLabel_stale: the base scene. The plain trace() after the gather() must
+#     carry the default label "", not the "gather" label the gather() left in the shading scratch.
+#   ShadingParity_JitPLEngaged_<probe>_<case>_<format>: the control. The base scene against the
+#     case, same format, on the channels the case affects, must differ: a "same" test above
+#     passes for the wrong reason when both backends ignore the parameter. Not registered for
+#     the parameters the interpreter itself ignores (trace() "maxdist": traceReflection never
+#     reads it; occlusion() "coneangle"), nor for "coordsystem" and "handle", which change where
+#     the irradiance cache lives but not what it returns, nor for "maxBrightness", which does
+#     not change this scene under the interpreter either.
+set(_jitpl_dir ${CMAKE_BINARY_DIR}/tests/visual/jit-paramlist)
+file(MAKE_DIRECTORY ${_jitpl_dir})
+# <probe>|<case>|<RIB parameter list>|<engaged channels, or - for none>
+set(_jitpl_cases
+    "trace|base||-"
+    "trace|samples_cone|\"samples\" [8] \"samplecone\" [0.3]|0,1"
+    "trace|bias|\"bias\" [0.6]|0,1"
+    "trace|samplebase|\"sampleBase\" [3]|0"
+    "trace|maxdist|\"maxdist\" [0.3]|1"
+    "trace|label|\"label\" [\"pl55\"]|0"
+    "trace|gather|\"gmaxdist\" [0.5] \"gbias\" [0.3] \"gsamplebase\" [0.5] \"gdistribution\" [\"uniform\"] \"glabel\" [\"pl55\"]|2"
+    "occlusion|base||-"
+    "occlusion|maxdist|\"maxdist\" [0.3]|0,1"
+    "occlusion|bias|\"bias\" [0.4]|0"
+    "occlusion|samplebase|\"samplebase\" [3]|0"
+    "occlusion|maxerror|\"maxerror\" [0]|0"
+    "occlusion|coordsystem|\"coordsys\" [\"camera\"]|-"
+    "occlusion|handle|\"ohandle\" [\"pl55other\"] \"ihandle\" [\"pl55other2\"]|-"
+    "occlusion|envcolor|\"envcolor\" [1 0.5 0.25]|1"
+    "occlusion|maxbrightness|\"maxbrightness\" [0.05]|-")
+foreach(_entry IN LISTS _jitpl_cases)
+    string(REPLACE "|" ";" _parts "${_entry}")
+    list(GET _parts 0 _probe)
+    list(GET _parts 1 _case)
+    list(GET _parts 2 PARAMS)
+    list(GET _parts 3 _channels)
+    set(PROBE jit_pl_${_probe}_probe)
+    if(_probe STREQUAL "trace")
+        set(HITSURFACE jit_pl_label_probe)
+    else()
+        set(HITSURFACE matte)
+    endif()
+    foreach(FORMAT rslo slo)
+        set(OUTPUT jitpl-${_probe}-${_case}-${FORMAT}.tif)
+        configure_file(${CMAKE_SOURCE_DIR}/examples/rib/tests/jit-paramlist-probe.rib.in
+            ${_jitpl_dir}/jitpl-${_probe}-${_case}-${FORMAT}.rib @ONLY)
+    endforeach()
+
+    if(_probe STREQUAL "trace" AND _case STREQUAL "base")
+        set(_parity ShadingParity_JitPLLabel_stale)
+    elseif(_probe STREQUAL "trace" AND _case STREQUAL "label")
+        set(_parity ShadingParity_JitPLLabel_explicit)
+    else()
+        set(_parity ShadingParity_JitPL_${_probe}_${_case})
+    endif()
+    add_test(NAME ${_parity}
+        COMMAND test_render_compare $<TARGET_FILE:orender> same
+            ${_jitpl_dir}/jitpl-${_probe}-${_case}-rslo.rib jitpl-${_probe}-${_case}-rslo.tif
+            ${_jitpl_dir}/jitpl-${_probe}-${_case}-slo.rib jitpl-${_probe}-${_case}-slo.tif
+        WORKING_DIRECTORY ${_jitpl_dir})
+    set(_tests ${_parity})
+    set(_slo_tests ${_parity})
+
+    if(NOT _channels STREQUAL "-")
+        foreach(_format rslo slo)
+            set(_engaged ShadingParity_JitPLEngaged_${_probe}_${_case}_${_format})
+            add_test(NAME ${_engaged}
+                COMMAND test_render_compare $<TARGET_FILE:orender> differ
+                    ${_jitpl_dir}/jitpl-${_probe}-base-${_format}.rib jitpl-${_probe}-base-${_format}.tif
+                    ${_jitpl_dir}/jitpl-${_probe}-${_case}-${_format}.rib jitpl-${_probe}-${_case}-${_format}.tif
+                    --channels=${_channels}
+                WORKING_DIRECTORY ${_jitpl_dir})
+            list(APPEND _tests ${_engaged})
+            if(_format STREQUAL "slo")
+                list(APPEND _slo_tests ${_engaged})
+            endif()
+        endforeach()
+    endif()
+
+    set_tests_properties(${_tests} PROPERTIES TIMEOUT 120 LABELS "shading_parity;visual;regression"
+        RESOURCE_LOCK jit_paramlist_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+    if(NOT OPENRENDER_HAVE_LLVM)
+        set_tests_properties(${_slo_tests} PROPERTIES DISABLED TRUE)
+    endif()
+endforeach()

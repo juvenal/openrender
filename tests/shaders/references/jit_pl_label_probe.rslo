@@ -1,0 +1,43 @@
+#!version 2.0.0
+#!name "jit_pl_label_probe"
+surface
+#!parameters:
+#!variables:
+uniform	string	l
+varying	float	v_1
+varying	float	temporary_0
+uniform	float	temporary_1
+uniform	vector	temporary_2
+#!Init:
+	return            
+#!Code:
+	raylabel	("s=")  l
+	vufloat  v_1 0.75
+	seql  temporary_1 l "pl55"
+	vufloat  temporary_0 temporary_1
+	if temporary_0 #!Label9
+	vufloat  v_1 0.9
+#!Label9:
+	endif
+	seql  temporary_1 l ""
+	vufloat  temporary_0 temporary_1
+	if temporary_0 #!Label11
+	vufloat  v_1 0.3
+#!Label11:
+	endif
+	seql  temporary_1 l "gather"
+	vufloat  temporary_0 temporary_1
+	if temporary_0 #!Label13
+	vufloat  v_1 0.6
+#!Label13:
+	endif
+	seql  temporary_1 l "camera"
+	vufloat  temporary_0 temporary_1
+	if temporary_0 #!Label15
+	vufloat  v_1 0.1
+#!Label15:
+	endif
+	vfromf  Ci v_1 v_1 v_1
+	vfromf  temporary_2 1
+	vuvector  Oi temporary_2
+	return

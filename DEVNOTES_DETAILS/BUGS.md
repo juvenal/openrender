@@ -94,6 +94,47 @@ This file tracks known defects and implementation gaps in openRender. Open items
 
 ## Resolved Bugs
 
+- [x] Bug: under the LLVM JIT, `trace()`/`transmission()`/`occlusion()`/`indirectdiffuse()` ignored their optional
+      parameter lists (FIXED — GitHub #55, branch `fix/jit-trace-optional-params`, 2026-10-25). Symptom: a call
+      that passed any parameter rendered differently as `.slo` than as `.rslo`, with no diagnostic: a
+      `"samples"`/`"samplecone"` trace was one sharp sample, `"bias"`, `"sampleBase"`, `"maxdist"` and `"label"`
+      did nothing, and occlusion's `"maxdist"`, `"maxerror"`, `"environmentcolor"`, `"handle"`, ... and its
+      channel bindings (`occlusion(P, N, n, "environmentdir", d)`) were dropped. Mechanism: the emitter
+      (`llvmEmitter.cpp`) passed only the positional operands, `CShadingContext::jitTraceBatch` hardcoded
+      `coneAngle = 0`, `numSamples = 1`, `sampleBase = 1`, `maxDist = ∞` and never initialized
+      `scratch->traceParams`, so a JIT trace also carried whatever ray label the previous lookup had left
+      there (`"gather"` after a `gather()`, even for a plain `trace(P, R)`), and `jitOcclusionBatch` copied
+      `COcclusionLookup::init()` by hand and then forced coordsys to `"world"`. Fix: one JIT form of
+      `plBegin()`/`plReady()`, `CShadingContext::jitParameterList<T>()`/`jitParameterListReady()`
+      (`shading.cpp`), drives the interpreter's own `CTraceLookup`/`COcclusionLookup`/`CGatherLookup` `bind()`,
+      `init()` and `postBind()` from a `TJitParamList` (names, value pointers, steps, isVarying) and caches the
+      bound lookup per (shader instance, call site) in `jitPlHash`, as `plHash` caches the interpreter's, so
+      the diagnostics ("Unknown parameter", the uniform-channel warning) and the one-time cache, environment
+      and point-hierarchy resolution happen once. `jitTraceBatch` fills each ray from the scratch;
+      `jitOcclusionBatch` mirrors `IDEXPR_PRE`/`IDEXPR`/`IDEXPR_POST`, channels (`texture3Dunpack`) and the
+      samples restore included; `jitGatherHeaderBegin` moved onto the same helper (its `overrides[5]` array,
+      which a repeated name overflowed, is gone). The emitter marshals every list with one `emitParamList()`
+      whose steps come from the value's type (`VarDesc::itemBytes`, not the parameter's name), and refuses an
+      odd-length list, a non-string name or an unresolvable value with a diagnostic naming the mnemonic. The
+      trampolines are `op_{visibility,transmission,trace_f,trace_c,occlusion,indirectdiffuse}_v3`, and the
+      `_v2` names are gone, so a `.slo` compiled before the fix fails to bind instead of losing its list.
+      `CUniformLiftingPass` no longer promotes the values of an `occlusion()`/`indirectdiffuse()` list (as it
+      already spared gather outputs): a channel output initialized from a constant was promoted to uniform,
+      so the JIT bound it as a uniform parameter, not a channel. The interpreter's behaviour is kept exactly,
+      including what it ignores: `trace()` `"maxdist"` (`traceReflection` never reads `maxDist`), occlusion's
+      `"coneangle"` (bound, never read) and `CTraceLookup`'s spelling `"sampleBase"` (`"samplebase"` is an
+      unknown parameter for `trace()`/`transmission()`, as it is for the interpreter). `visibility()` and
+      float `trace()` still take no parameter list at all (the compiler registers them as `"f=pp"`/`"f=pv"`).
+      Guarded by `ShadingParity_JitPL_*` (each case under `.rslo` and `.slo`, bit-identical; probes
+      `shaders/jit_pl_{trace,occlusion}_probe.sl`, scenes from `examples/rib/tests/jit-paramlist-probe.rib.in`),
+      `ShadingParity_JitPLEngaged_*` (the same call site with two values must differ, so a parity test cannot
+      pass with both backends ignoring the parameter), `ShadingParity_JitPLLabel_{explicit,stale}` (the hit
+      shader `shaders/jit_pl_label_probe.sl` shades by ray label), `ShadingParity_JitPLDiagnostics` and
+      `LibShader_ParamListOperands`. Before the fix 28 of these 40 tests failed (every
+      parity, `.slo` Engaged, Label, Diagnostics and emitter case) and the 12 controls passed (the 11 `.rslo`
+      Engaged tests, and `ShadingParity_JitPLEngaged_trace_gather_slo`, as gather already honoured its list);
+      after it, all 40 pass.
+
 - [x] Bug: `normalFix()` and `tangentFix()` ignored the `start` of the `sample()` they run in, so the raytracer's
       derivative points were repaired over the wrong range (FIXED — no GitHub issue, branch
       `fix/normalfix-derivative-offset`, 2026-10-24). Symptom: none seen in a render; found by an audit. The

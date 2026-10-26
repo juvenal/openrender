@@ -60,7 +60,9 @@ class CUniformLiftingPass : public CIRPass {
 
         // Collects the value-half variable names of every gather() "name:X",
         // value output binding in fn (see gatherHeader's operand layout:
-        // [category, P, N, sampleCone, samples, name0, value0, name1, value1, ...]).
+        // [category, P, N, sampleCone, samples, name0, value0, name1, value1, ...]),
+        // and every value of an occlusion()/indirectdiffuse() parameter list,
+        // whose channel bindings are outputs too (GitHub #55).
         static void collectGatherOutputs(const IRFunction &fn,
                                          std::unordered_set<std::string> &out);
 };

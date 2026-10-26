@@ -29,6 +29,7 @@
 #include <new>
 #include <stdarg.h>
 #include <string.h>
+#include <typeinfo>
 #include <vector>
 
 #include "bundles.h"
@@ -451,9 +452,11 @@ CShadingContext::CShadingContext(int t) : thread(t) {
     for (int i = 0; i < SHADING_OBJECT_CACHE_SIZE; i++)
         traceObjectHash[i].object = (CSurface *)this;
 
-    // Init the PL hash
-    for (int i = 0; i < PL_HASH_SIZE; i++)
+    // Init the PL hashes
+    for (int i = 0; i < PL_HASH_SIZE; i++) {
         plHash[i] = NULL;
+        jitPlHash[i] = NULL;
+    }
 
     // Init the stats
     numIndirectDiffuseRays = 0;
@@ -487,11 +490,15 @@ CShadingContext::~CShadingContext() {
         delete cConditional;
     }
 
-    // Ditch the PL hash
+    // Ditch the PL hashes
     for (int i = 0; i < PL_HASH_SIZE; i++) {
         CPLLookup *cLookup;
         while ((cLookup = plHash[i]) != NULL) {
             plHash[i] = cLookup->next;
+            delete cLookup;
+        }
+        while ((cLookup = jitPlHash[i]) != NULL) {
+            jitPlHash[i] = cLookup->next;
             delete cLookup;
         }
     }
@@ -3033,6 +3040,83 @@ void CShadingContext::jitFindCoordinateSystem(const char *name, const float *&fr
 }
 
 // =========================================================================
+// Optional parameter lists under the JIT (GitHub #55): plBegin()/plReady()
+// (execute.cpp) with the bytecode operand fetch replaced by the call site's
+// TJitParamList. The pair index stands in for the operand index: bind() stores
+// it in the binding (or in a channel's channelIndex[]), and it indexes
+// pl.values[] here.
+// =========================================================================
+template <class T>
+T *CShadingContext::jitParameterList(const TJitParamList &pl, uint32_t callSite) {
+    CShaderInstance *instance = currentShadingState->currentShaderInstance;
+    // A JIT call site has no TCode: the key is the call-site ordinal, offset
+    // so that it is never null, and the lookup's own type (two lookups of
+    // different builtins never share a call site, but the type check keeps a
+    // cast from ever going wrong)
+    const void *code = (const void *)((uintptr_t)callSite + 1);
+    const uintptr_t hashKey = ((uintptr_t)instance / sizeof(void *) + callSite) & (PL_HASH_SIZE - 1);
+
+    T *lookup = nullptr;
+    CPLLookup *prev = nullptr;
+    for (CPLLookup *current = jitPlHash[hashKey]; current != nullptr; prev = current, current = current->next) {
+        if (current->instance == instance && current->code == code && typeid(*current) == typeid(T)) {
+            lookup = static_cast<T *>(current);
+            if (prev != nullptr) {
+                prev->next = current->next;
+                current->next = jitPlHash[hashKey];
+                jitPlHash[hashKey] = current;
+            }
+            break;
+        }
+    }
+
+    if (lookup == nullptr) {
+        const int num = pl.numPairs > 0 ? pl.numPairs : 1;
+        CPLLookup::TParamBinding *uniforms = (CPLLookup::TParamBinding *)ralloc(num * 2 * sizeof(CPLLookup::TParamBinding), threadMemory);
+        CPLLookup::TParamBinding *varyings = uniforms + num;
+
+        lookup = new T;
+        lookup->instance = instance;
+        lookup->code = code;
+        lookup->uniforms = uniforms;
+        lookup->varyings = varyings;
+        lookup->next = jitPlHash[hashKey];
+        jitPlHash[hashKey] = lookup;
+
+        // Ask the lookup to find each variable. As in plBegin(), data is the
+        // value of a uniform parameter and NULL for a varying one.
+        for (int i = 0; i < pl.numPairs; ++i) {
+            int opIndex = i;
+            void *data = pl.isVarying[i] ? NULL : pl.values[i];
+            lookup->bind(pl.names[i], opIndex, pl.steps[i], data, instance);
+        }
+
+        // The final memory for the bound variables
+        lookup->uniforms = new CPLLookup::TParamBinding[lookup->numUniforms + lookup->numVaryings];
+        lookup->varyings = lookup->uniforms + lookup->numUniforms;
+        memcpy(lookup->uniforms, uniforms, lookup->numUniforms * sizeof(CPLLookup::TParamBinding));
+        memcpy(lookup->varyings, varyings, lookup->numVaryings * sizeof(CPLLookup::TParamBinding));
+    }
+
+    CShadingScratch *scratch = &(currentShadingState->scratch);
+    lookup->init(scratch, currentShadingState->currentObject->attributes);
+
+    const CPLLookup::TParamBinding *cBinding = lookup->uniforms;
+    for (int var = 0; var < lookup->numUniforms; ++var, ++cBinding)
+        memcpy((char *)scratch + cBinding->dest, pl.values[cBinding->opIndex], cBinding->step);
+
+    lookup->postBind(scratch);
+    return lookup;
+}
+
+void CShadingContext::jitParameterListReady(const CPLLookup *lookup, const TJitParamList &pl, int vertex) {
+    CShadingScratch *scratch = &(currentShadingState->scratch);
+    const CPLLookup::TParamBinding *cBinding = lookup->varyings;
+    for (int var = 0; var < lookup->numVaryings; ++var, ++cBinding)
+        memcpy((char *)scratch + cBinding->dest, (const char *)pl.values[cBinding->opIndex] + (size_t)vertex * cBinding->step, cBinding->step);
+}
+
+// =========================================================================
 // visibility()/transmission()/trace() (spec 017-jit-builtin-function-coverage,
 // US1) -- byte-faithful transcription of TRANSMISSIONEXPR_PRE/TRANSMISSIONEXPR/
 // TRANSMISSIONEXPR_UPDATE (giFunctions.h), the first JIT code to construct and
@@ -3040,11 +3124,12 @@ void CShadingContext::jitFindCoordinateSystem(const char *name, const float *&fr
 // below via jitTraceBatch(); only the *_POST unpacking (VISIBILITYEXPR_POST/
 // TRANSMISSIONEXPR_POST/TRACE2EXPR_POST/TRACEEXPR_POST) differs per call form.
 //
-// Trace params default exactly as CTraceLookup::init() does for the
-// PL-cache-free case (shaderPl.cpp) -- this feature supports only the plain
-// 2-positional-argument call form; the "!"-suffixed optional named-argument
-// extension is unsupported under the JIT (confirmed unused by every shipped
-// caller, spec.md Edge Cases).
+// The optional parameter list goes through CTraceLookup exactly as
+// TRANSMISSIONEXPR_PRE's plBegin() takes it (jitParameterList(), GitHub #55):
+// "samples", "samplecone", "bias", "sampleBase" (CTraceLookup's spelling),
+// "maxdist" and "label", over CTraceLookup::init()'s defaults. Before #55 the
+// JIT ignored the list and hardcoded one coneless sample, and left the
+// scratch's ray label as the previous lookup had set it.
 //
 // Loop bound is currentShadingState->numRealVertices, not n: these are
 // stochastic (RNG-jittered sampleBase, BVH traversal) operations, so the
@@ -3054,15 +3139,16 @@ void CShadingContext::jitFindCoordinateSystem(const char *name, const float *&fr
 void CShadingContext::jitTraceBatch(float *dst, int sd, const float *P, int sP,
                                     const float *D, int sD, const float *du, const float *dv,
                                     const float *Nrm, const float *time, int n, const int *tags,
-                                    int probeOnly, bool isReflection, bool wantBoolean, uint32_t callSite) {
+                                    const TJitParamList &pl, int probeOnly, bool isReflection, bool wantBoolean, uint32_t callSite) {
     const int numRealVertices = currentShadingState->numRealVertices;
     if (numRealVertices <= 0)
         return;
 
-    const CAttributes *cAttributes = currentShadingState->currentObject
-                                          ? currentShadingState->currentObject->attributes
-                                          : nullptr;
-    const float bias = cAttributes ? cAttributes->bias : 0.0f;
+    // TRANSMISSIONEXPR_PRE's plBegin(CTraceLookup, 3): the defaults, the
+    // parameter list over them, and the ray label traceTransmission()/
+    // traceReflection() read from the scratch (GitHub #55)
+    const CTraceLookup *lookup = jitParameterList<CTraceLookup>(pl, callSite);
+    const CShadingScratch *scratch = &(currentShadingState->scratch);
 
     // duVector/dvVector operate over the full currentShadingState->numVertices
     // (== n here), matching TRANSMISSIONEXPR_PRE's own ralloc(numVertices*12*...)
@@ -3105,6 +3191,7 @@ void CShadingContext::jitTraceBatch(float *dst, int sd, const float *P, int sP,
     for (int i = 0; i < numRealVertices; ++i) {
         if (tags && tags[i])
             continue;
+        jitParameterListReady(lookup, pl, i);
         rays->res = JIT_IDX(dst, sd, i);
         movvv(rays->P, JIT_IDX(P, sP, i));
         mulvf(rays->dPdu, dFdu + i * 3, du[i]);
@@ -3113,11 +3200,11 @@ void CShadingContext::jitTraceBatch(float *dst, int sd, const float *P, int sP,
         mulvf(rays->dDdu, dTdu + i * 3, du[i]);
         mulvf(rays->dDdv, dTdv + i * 3, dv[i]);
         movvv(rays->N, JIT_IDX(Nrm, 3, i));
-        rays->coneAngle = 0.0f;
-        rays->numSamples = 1;
-        rays->bias = bias;
-        rays->sampleBase = 1.0f;
-        rays->maxDist = C_INFINITY;
+        rays->coneAngle = scratch->traceParams.coneAngle;
+        rays->numSamples = (int)scratch->traceParams.samples;
+        rays->bias = scratch->traceParams.bias;
+        rays->sampleBase = scratch->traceParams.sampleBase;
+        rays->maxDist = scratch->traceParams.maxDist;
         rays->time = time[i];
         bindLocationDraws(rays, i, drawCounts, callSite);
         rays++;
@@ -3167,26 +3254,26 @@ void CShadingContext::jitTraceBatch(float *dst, int sd, const float *P, int sP,
 
 void CShadingContext::jitVisibility(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                                     const float *du, const float *dv, const float *Nrm, const float *time,
-                                    int n, const int *tags, uint32_t callSite) {
-    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, /*probeOnly=*/TRUE, /*isReflection=*/false, /*wantBoolean=*/true, callSite);
+                                    int n, const int *tags, const TJitParamList &pl, uint32_t callSite) {
+    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, pl, /*probeOnly=*/TRUE, /*isReflection=*/false, /*wantBoolean=*/true, callSite);
 }
 
 void CShadingContext::jitTransmission(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                                       const float *du, const float *dv, const float *Nrm, const float *time,
-                                      int n, const int *tags, uint32_t callSite) {
-    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, /*probeOnly=*/FALSE, /*isReflection=*/false, /*wantBoolean=*/false, callSite);
+                                      int n, const int *tags, const TJitParamList &pl, uint32_t callSite) {
+    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, pl, /*probeOnly=*/FALSE, /*isReflection=*/false, /*wantBoolean=*/false, callSite);
 }
 
 void CShadingContext::jitTraceF(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                                 const float *du, const float *dv, const float *Nrm, const float *time,
-                                int n, const int *tags, uint32_t callSite) {
-    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, /*probeOnly=*/TRUE, /*isReflection=*/true, /*wantBoolean=*/false, callSite);
+                                int n, const int *tags, const TJitParamList &pl, uint32_t callSite) {
+    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, pl, /*probeOnly=*/TRUE, /*isReflection=*/true, /*wantBoolean=*/false, callSite);
 }
 
 void CShadingContext::jitTraceC(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                                 const float *du, const float *dv, const float *Nrm, const float *time,
-                                int n, const int *tags, uint32_t callSite) {
-    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, /*probeOnly=*/FALSE, /*isReflection=*/true, /*wantBoolean=*/false, callSite);
+                                int n, const int *tags, const TJitParamList &pl, uint32_t callSite) {
+    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, pl, /*probeOnly=*/FALSE, /*isReflection=*/true, /*wantBoolean=*/false, callSite);
 }
 
 // =========================================================================
@@ -3194,15 +3281,16 @@ void CShadingContext::jitTraceC(float *dst, int sd, const float *P, int sP, cons
 // US1) -- byte-faithful transcription of IDEXPR_PRE/IDEXPR/_UPDATE/_POST
 // (giFunctions.h). Unlike visibility/transmission/trace, this is a
 // point-cloud/irradiance-cache lookup (CTexture3d::lookup), not a
-// CTraceLocation ray batch -- no PL-cache in the JIT path, so
-// COcclusionLookup::init()'s defaults (shaderPl.cpp) are applied directly
-// instead of going through plBegin's cross-call caching. The "!"-suffixed
-// optional channel-binding extension is unsupported (same scoping as
-// visibility/transmission/trace) -- with no extra channels bound,
-// lookup->numChannels is always 0 for the plain 3-argument call form, so
-// IDEXPR_PRE's cache->resolve()/channelValues/texture3Dunpack machinery
-// (entirely about binding those extra channels) is a no-op and is skipped
-// here; C[] is read directly instead.
+// CTraceLocation ray batch. The optional parameter list goes through
+// COcclusionLookup exactly as IDEXPR_PRE's plBegin() takes it
+// (jitParameterList(), GitHub #55): the named parameters over
+// COcclusionLookup::init()'s defaults, then postBind() (coordsys "world"
+// when none is given), and any other varying name as an output channel of
+// the cache, resolved once and unpacked per point with texture3Dunpack().
+// As in IDEXPR_PRE, the cache, the environment map and the point hierarchy
+// are resolved on the lookup's first use, and the parameter list's samples
+// override is restored at the end. Before #55 the JIT applied init()'s
+// defaults by hand and ignored the list.
 //
 // Loop bound is currentShadingState->numRealVertices, not n (D1): this is
 // a stochastic, RNG-jittered hemisphere lookup exactly like the
@@ -3210,57 +3298,51 @@ void CShadingContext::jitTraceC(float *dst, int sd, const float *P, int sP, cons
 // only, then replicates that single result into the derivative-offset
 // tail (see jitTraceBatch's tail-replication comment for the confirmed
 // block-contiguous [real, +du, +dv] layout, verified by direct numeric
-// simulation of expandVector/expandFloat).
+// simulation of expandVector/expandFloat). As in IDEXPR_POST, only the
+// result is replicated, never a bound channel.
 void CShadingContext::jitOcclusionBatch(float *dst, int sd, const float *P, int sP,
                                         const float *N, int sN, const float *samples, int sSamples,
                                         const float *du, const float *dv, int n, const int *tags,
-                                        bool wantOcclusion, uint32_t callSite) {
+                                        const TJitParamList &pl, bool wantOcclusion, uint32_t callSite) {
     const int numRealVertices = currentShadingState->numRealVertices;
     if (numRealVertices <= 0)
         return;
 
+    COcclusionLookup *lookup = jitParameterList<COcclusionLookup>(pl, callSite);
     CShadingScratch *scratch = &(currentShadingState->scratch);
-    const CAttributes *cAttributes = currentShadingState->currentObject
-                                          ? currentShadingState->currentObject->attributes
-                                          : nullptr;
 
-    // COcclusionLookup::init() defaults (shaderPl.cpp:590-613).
-    scratch->occlusionParams.environmentMapName = nullptr;
-    scratch->texture3dParams.coordsys = "";
-    scratch->occlusionParams.maxError = cAttributes ? cAttributes->irradianceMaxError : 0.4f;
-    scratch->occlusionParams.pointbased = 0;
-    scratch->occlusionParams.maxBrightness = 1.0f;
-    scratch->occlusionParams.pointHierarchyName = nullptr;
-    scratch->occlusionParams.maxPixelDist = cAttributes ? cAttributes->irradianceMaxPixelDistance : 0.0f;
-    scratch->occlusionParams.maxSolidAngle = 0.05f;
+    CTexture3d *cache;
+    if ((cache = lookup->map) == NULL) {
+        const float *from, *to;
+        findCoordinateSystem(scratch->texture3dParams.coordsys, from, to);
+        const char *mode = scratch->occlusionParams.cacheMode;
+        if (scratch->occlusionParams.pointHierarchyName != NULL)
+            mode = ""; // prevent writes
+        cache = this->rendererGetCache(scratch->occlusionParams.cacheHandle, mode, from, to);
+        if (!cache)
+            return;
+        lookup->map = cache;
+        if (scratch->occlusionParams.environmentMapName != NULL &&
+            scratch->occlusionParams.environmentMapName[0] != 0)
+            lookup->environment = this->rendererGetEnvironment(scratch->occlusionParams.environmentMapName);
+        if (scratch->occlusionParams.pointHierarchyName != NULL &&
+            scratch->occlusionParams.pointHierarchyName[0] != 0)
+            lookup->pointHierarchy = this->rendererGetTexture3d(scratch->occlusionParams.pointHierarchyName, FALSE, "_area", from, to, TRUE);
+        cache->resolve(lookup->numChannels, lookup->channelName, lookup->channelEntry, lookup->channelSize);
+    }
+    assert(cache->dataSize == 7);
+
+    scratch->occlusionParams.environment = lookup->environment;
+    scratch->occlusionParams.pointHierarchy = lookup->pointHierarchy;
+
+    // The bound channels: their base pointers, and the current point's
+    float **channelBase = (float **)ralloc(2 * (lookup->numChannels + 1) * sizeof(float *), threadMemory);
+    float **channelValues = channelBase + lookup->numChannels + 1;
+    for (int channel = 0; channel < lookup->numChannels; ++channel)
+        channelBase[channel] = (float *)pl.values[lookup->channelIndex[channel]];
+
+    const float savedSamples = scratch->traceParams.samples;
     scratch->occlusionParams.occlusion = wantOcclusion;
-    initv(scratch->occlusionParams.environmentColor, 0.0f);
-    scratch->occlusionParams.pointHierarchy = nullptr;
-    scratch->occlusionParams.environment = nullptr;
-    scratch->occlusionParams.cacheHandle = cAttributes ? cAttributes->irradianceHandle : "";
-    scratch->occlusionParams.cacheMode = cAttributes ? cAttributes->irradianceHandleMode : "w";
-
-    // COcclusionLookup::postBind() (shaderPl.cpp:621-624) -- init() leaves
-    // coordsys empty; postBind() defaults it to "world" before the first
-    // findCoordinateSystem() call. Skipping this produces an "Unknown
-    // coordinate system" warning and an identity from/to fallback instead
-    // of world's real transform -- harmless for a scene whose camera
-    // transform happens to be identity (confirmed bit-exact against the
-    // reference either way), but wrong in general.
-    scratch->texture3dParams.coordsys = "world";
-
-    scratch->traceParams.maxDist = C_INFINITY;
-    scratch->traceParams.coneAngle = 0;
-    scratch->traceParams.sampleBase = 1;
-    scratch->traceParams.label = "";
-    scratch->traceParams.bias = cAttributes ? cAttributes->bias : 0.0f;
-
-    const float *from, *to;
-    findCoordinateSystem(scratch->texture3dParams.coordsys, from, to);
-    CTexture3d *cache = this->rendererGetCache(scratch->occlusionParams.cacheHandle,
-                                               scratch->occlusionParams.cacheMode, from, to);
-    if (!cache)
-        return;
 
     // duVector/dvVector operate over the full currentShadingState->numVertices
     // (== n here) -- same uniform-stride guard as jitTraceBatch (a uniform P
@@ -3281,6 +3363,7 @@ void CShadingContext::jitOcclusionBatch(float *dst, int sd, const float *P, int 
     for (int i = 0; i < numRealVertices; ++i) {
         if (tags && tags[i])
             continue;
+        jitParameterListReady(lookup, pl, i);
         vector PduScaled, PdvScaled;
         mulvf(PduScaled, JIT_IDX(dPdu, 3, i), du[i]);
         mulvf(PdvScaled, JIT_IDX(dPdv, 3, i), dv[i]);
@@ -3289,6 +3372,9 @@ void CShadingContext::jitOcclusionBatch(float *dst, int sd, const float *P, int 
 
         float C[7];
         cache->lookup(C, JIT_IDX(P, sP, i), PduScaled, PdvScaled, JIT_IDX(N, sN, i), this);
+        for (int channel = 0; channel < lookup->numChannels; ++channel)
+            channelValues[channel] = channelBase[channel] + (size_t)i * lookup->channelSize[channel];
+        texture3Dunpack(C, lookup->numChannels, channelValues, lookup->channelEntry, lookup->channelSize);
 
         float *out = JIT_IDX(dst, sd, i);
         if (sd == 1)
@@ -3309,18 +3395,20 @@ void CShadingContext::jitOcclusionBatch(float *dst, int sd, const float *P, int 
             }
         }
     }
+
+    scratch->traceParams.samples = savedSamples;
 }
 
 void CShadingContext::jitOcclusion(float *dst, int sd, const float *P, int sP, const float *N, int sN,
                                    const float *samples, int sSamples, const float *du, const float *dv,
-                                   int n, const int *tags, uint32_t callSite) {
-    jitOcclusionBatch(dst, sd, P, sP, N, sN, samples, sSamples, du, dv, n, tags, /*wantOcclusion=*/true, callSite);
+                                   int n, const int *tags, const TJitParamList &pl, uint32_t callSite) {
+    jitOcclusionBatch(dst, sd, P, sP, N, sN, samples, sSamples, du, dv, n, tags, pl, /*wantOcclusion=*/true, callSite);
 }
 
 void CShadingContext::jitIndirectDiffuse(float *dst, int sd, const float *P, int sP, const float *N, int sN,
                                          const float *samples, int sSamples, const float *du, const float *dv,
-                                         int n, const int *tags, uint32_t callSite) {
-    jitOcclusionBatch(dst, sd, P, sP, N, sN, samples, sSamples, du, dv, n, tags, /*wantOcclusion=*/false, callSite);
+                                         int n, const int *tags, const TJitParamList &pl, uint32_t callSite) {
+    jitOcclusionBatch(dst, sd, P, sP, N, sN, samples, sSamples, du, dv, n, tags, pl, /*wantOcclusion=*/false, callSite);
 }
 
 // texture3d()/bake3d() (spec 017-jit-builtin-function-coverage, US5).
@@ -4340,54 +4428,15 @@ void CShadingContext::gatherHeaderRay(CGatherRay *ray, const float *P, const flo
 // (execute.cpp).
 void CShadingContext::jitGatherHeaderBegin(const char *const *names, void *const *valuePtrs, const int *steps, const int *isVarying, int numPairs, const float *P, int strideP, const float *D, int strideD, const float *sampleCone, int strideSampleCone, float samplesCount, uint32_t callSite) {
     CShadingState *ss = currentShadingState;
-    CShaderInstance *shader = ss->currentShaderInstance;
-    CShadingScratch *scratch = &(ss->scratch);
 
-    // Arena-allocated (not `new`): unlike the interpreter's CGatherLookup, which
-    // is cached in plHash forever, this one only needs to survive until
-    // jitGatherEnd() frees lastGather (same shading batch) -- ralloc's bulk
-    // reset at the next shading-batch boundary reclaims it, avoiding a true
-    // per-dispatch process-lifetime leak.
-    CGatherLookup *lookup = new (ralloc(sizeof(CGatherLookup), threadMemory)) CGatherLookup;
-    lookup->uniforms = (CPLLookup::TParamBinding *)ralloc(2 * numPairs * sizeof(CPLLookup::TParamBinding), threadMemory);
-    lookup->varyings = lookup->uniforms + numPairs;
-
-    struct COverride {
-            size_t dest;
-            const void *valuePtr;
-            int step;
-            bool varying;
-    };
-    COverride overrides[5];
-    int numOverrides = 0;
-
-    for (int i = 0; i < numPairs; i++) {
-        const int beforeU = lookup->numUniforms;
-        const int beforeV = lookup->numVaryings;
-        int opIndex = i;
-        // data != NULL is CPLLookup::add()'s sole uniform/varying discriminator;
-        // any stable non-null pointer works as the sentinel when isVarying[i] is
-        // false (the interpreter's own "data" is never dereferenced downstream).
-        void *data = isVarying[i] ? NULL : (void *)names[i];
-        lookup->bind(names[i], opIndex, steps[i], data, shader);
-
-        const bool grewU = lookup->numUniforms > beforeU;
-        const bool grewV = lookup->numVaryings > beforeV;
-        if (grewU || grewV) {
-            const CPLLookup::TParamBinding &b = grewU ? lookup->uniforms[lookup->numUniforms - 1]
-                                                      : lookup->varyings[lookup->numVaryings - 1];
-            overrides[numOverrides].dest = b.dest;
-            overrides[numOverrides].valuePtr = valuePtrs[i];
-            overrides[numOverrides].step = steps[i];
-            overrides[numOverrides].varying = isVarying[i] != 0;
-            numOverrides++;
-        }
-    }
-
-    lookup->init(scratch, ss->currentObject->attributes);
-    for (int i = 0; i < numOverrides; i++) {
-        memcpy((char *)scratch + overrides[i].dest, overrides[i].valuePtr, overrides[i].step);
-    }
+    // GATHERHEADEREXPR_PRE's plBegin(CGatherLookup, 5): the overrides go
+    // through CGatherLookup::bind(), the outputs through addOutput() (their
+    // destIndex is the pair index), cached per call site like every JIT
+    // parameter list (GitHub #55). The cached lookup outlives lastGather,
+    // whose outputVars/nonShadeOutputVars alias its CGatherVariable lists, as
+    // the interpreter's plHash entry does.
+    const TJitParamList pl = {names, valuePtrs, steps, isVarying, numPairs};
+    CGatherLookup *lookup = jitParameterList<CGatherLookup>(pl, callSite);
 
     float *dPdu, *dPdv;
     CGatherBundle *lastGather = gatherHeaderBegin(lookup, P, samplesCount, dPdu, dPdv);
@@ -4410,11 +4459,7 @@ void CShadingContext::jitGatherHeaderBegin(const char *const *names, void *const
     const int numVertices = ss->numVertices;
     uint32_t *drawCounts = drawCounters(callSite);
     for (int i = 0; i < numVertices; i++) {
-        for (int k = 0; k < numOverrides; k++) {
-            const COverride &o = overrides[k];
-            const void *src = o.varying ? (const char *)o.valuePtr + (size_t)i * o.step : o.valuePtr;
-            memcpy((char *)scratch + o.dest, src, o.step);
-        }
+        jitParameterListReady(lookup, pl, i);
         // Only the active vertices open a sub-stream (the interpreter's header skips the passive ones)
         gatherHeaderRay(rays, P, D, *sampleCone, dPdu, dPdv, *du, *dv, i, ss->tags[i] == 0 ? drawCounts : nullptr, callSite, (uint32_t)samplesCount);
         dPdu += 3;
@@ -4427,10 +4472,6 @@ void CShadingContext::jitGatherHeaderBegin(const char *const *names, void *const
         rays++;
     }
 
-    // lookup is intentionally not deleted: lastGather->outputVars/nonShadeOutputVars
-    // alias lookup's CGatherVariable lists, which live until jitGatherEnd frees
-    // lastGather. This mirrors the interpreter's own lifetime model, where the
-    // equivalent CGatherLookup is cached in plHash and never freed during a render.
     ss->currentGather = lastGather;
 }
 

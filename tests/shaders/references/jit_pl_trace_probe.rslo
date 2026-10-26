@@ -1,0 +1,112 @@
+#!version 2.0.0
+#!name "jit_pl_trace_probe"
+surface
+#!parameters:
+uniform	float	samples	=	1
+uniform	float	samplecone	=	0
+uniform	float	bias	=	0.01
+uniform	float	sampleBase	=	1
+uniform	float	maxdist	=	1e30
+uniform	string	label	=	""
+varying	float	gmaxdist	=	1e30
+varying	float	gbias	=	0.01
+varying	float	gsamplebase	=	1
+varying	string	gdistribution	=	"cosine"
+varying	string	glabel	=	"gather"
+#!variables:
+varying	vector	Nn
+varying	vector	Nf
+varying	vector	R
+varying	vector	q
+varying	vector	tc
+varying	vector	tr
+varying	vector	Cs_1
+varying	vector	Ct
+varying	vector	pt
+varying	float	r
+varying	float	g
+varying	float	b
+varying	vector	temporary_0
+uniform	vector	temporary_1
+uniform	float	temporary_2
+varying	string	temporary_3
+varying	float	temporary_4
+varying	float	temporary_5
+varying	float	temporary_6
+varying	float	temporary_7
+varying	float	temporary_8
+varying	float	temporary_9
+varying	float	temporary_10
+#!Init:
+	return            
+#!Code:
+	normalize	("v=v")  Nn N
+	faceforward	("v=vv")  Nf Nn I
+	normalize	("v=v")  temporary_0 I
+	reflect	("v=vv")  R temporary_0 Nf
+	vufloat  temporary_2 -1.6000000000000001
+	vfromf  temporary_1 1.5 temporary_2 0.2
+	vuvector  temporary_0 temporary_1
+	addvv  q P temporary_0
+	trace	("c=pvSfsfsfsfsfss")  tc P R "samples" samples "samplecone" samplecone "bias" bias "sampleBase" sampleBase "maxdist" maxdist "label" label 0
+	transmission	("c=ppSfsfsfsfsfss")  tr P q "samples" samples "samplecone" samplecone "bias" bias "sampleBase" sampleBase "maxdist" maxdist "label" label 1
+	vfromf  temporary_1 0
+	vuvector  Cs_1 temporary_1
+	vfromf  temporary_1 0
+	vuvector  Ct temporary_1
+	vustring  temporary_3 "illuminance"
+	vufloat  temporary_2 1.2566370616000002
+	vufloat  temporary_4 temporary_2
+	vufloat  temporary_5 4
+	gatherHeader	("o=spnffsfsfsfsssssc") temporary_3 P Nf temporary_4 temporary_5 "maxdist" gmaxdist "bias" gbias "samplebase" gsamplebase "distribution" gdistribution "label" glabel "surface:Ci" Cs_1 2
+#!Label4:
+	gather #!Label5
+	addvv  Ct Ct Cs_1
+#!Label5:
+	gatherEnd #!Label4
+	trace	("c=pv")  pt P R 3
+	vufloat  temporary_7 0
+	comp	("f=cf")  temporary_6 tc temporary_7
+	vufloat  temporary_8 1
+	comp	("f=cf")  temporary_7 tc temporary_8
+	addff  temporary_5 temporary_6 temporary_7
+	vufloat  temporary_7 2
+	comp	("f=cf")  temporary_6 tc temporary_7
+	addff  temporary_4 temporary_5 temporary_6
+	vufloat  temporary_5 3
+	divff  r temporary_4 temporary_5
+	vufloat  temporary_7 0
+	comp	("f=cf")  temporary_6 tr temporary_7
+	vufloat  temporary_8 1
+	comp	("f=cf")  temporary_7 tr temporary_8
+	addff  temporary_5 temporary_6 temporary_7
+	vufloat  temporary_7 2
+	comp	("f=cf")  temporary_6 tr temporary_7
+	addff  temporary_4 temporary_5 temporary_6
+	vufloat  temporary_5 3
+	divff  g temporary_4 temporary_5
+	vufloat  temporary_8 0
+	comp	("f=cf")  temporary_7 Ct temporary_8
+	vufloat  temporary_9 1
+	comp	("f=cf")  temporary_8 Ct temporary_9
+	addff  temporary_6 temporary_7 temporary_8
+	vufloat  temporary_8 2
+	comp	("f=cf")  temporary_7 Ct temporary_8
+	addff  temporary_5 temporary_6 temporary_7
+	vufloat  temporary_6 24
+	divff  temporary_4 temporary_5 temporary_6
+	vufloat  temporary_9 0
+	comp	("f=cf")  temporary_8 pt temporary_9
+	vufloat  temporary_10 1
+	comp	("f=cf")  temporary_9 pt temporary_10
+	addff  temporary_7 temporary_8 temporary_9
+	vufloat  temporary_9 2
+	comp	("f=cf")  temporary_8 pt temporary_9
+	addff  temporary_6 temporary_7 temporary_8
+	vufloat  temporary_7 6
+	divff  temporary_5 temporary_6 temporary_7
+	addff  b temporary_4 temporary_5
+	vfromf  Ci r g b
+	vfromf  temporary_1 1
+	vuvector  Oi temporary_1
+	return
