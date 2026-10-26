@@ -142,6 +142,164 @@ tree:
 
 This is spec 024's value. After 025 the count must still be 7.
 
+## §1 Implementation log (macOS, `build-025`)
+
+**Base commit**: `dfffba0` (master when the branch was cut). **Worktree HEAD at Phase 1**: `a684aa7532bf27fe2355d8be57dce49dcfdd5092`. **Build tree**: `build-025` (Release, Unix Makefiles, vcpkg `arm64-osx-openrender`, Homebrew bison, `OPENRENDER_ENABLE_JIT=ON`).
+
+**Expected-red rule**: `State_LightOrder` (4 of 9 checks failing on `dfffba0`) is the only allowed red test from Phase 2 until Phase 7. A red test from the known-flaky set is re-run alone before it is written off.
+
+**Per-phase checkpoint results** (CP-a build, CP-b suite, CP-c architecture, CP-d image diff):
+
+| Phase | CP-a build | CP-b suite (`-LE determinism-sweep -j4`) | CP-c architecture | CP-d image diff |
+|---|---|---|---|---|
+| 1 (baseline, §1.1, §1.4) | clean, exit 0 | 787 registered: 784 passed, 1 failed (`State_LightOrder`), 1 skipped, 1 disabled | 21/21; `ALLOWED DB-008 x 7`; PASS | baseline recorded: 729 images (§1.4); noise check empty |
+| 2 | | | | n/a (no source change) |
+| 3 | | | | |
+| 4 | | | | |
+| 5 | | | | |
+| 6 | | | | |
+| 7 | | | | n/a (output may change) |
+| 8 | | | | |
+
+**How to take CP-b/CP-d evidence** (learned in Phase 1):
+- `ctest --output-on-failure` prints `MaxBlockAvgDiff` only for failing tests. The per-test output of every test is in `build-025/Testing/Temporary/LastTest.log`, which **the next `ctest` run overwrites** (CP-c and T005 included). Copy it right after the suite: `cp build-025/Testing/Temporary/LastTest.log build-025/logs/<label>.LastTest.log`.
+- Then `tools/image_manifest.sh diffs build-025/logs/<label>.LastTest.log | diff - tools/baseline-diffs.txt` must print nothing (CP-d's `MaxBlockAvgDiff` check).
+- Stamp (`image_manifest.sh stamp build-025`) before the suite; run `image_manifest.sh diff ... baseline-image-noise.txt` straight after it and before any other ctest run.
+
+### §1.1 Baseline on the unchanged tree (T003, T004)
+
+- Tree: HEAD `a684aa7`, no `src/` change. The tree holds the two new test files (`State_LightOrder` and the equivalence test), nothing else new.
+- **CP-a**: `cpujob 025-base-build cmake --build build-025 --config Release -j4`: clean (exit 0, nothing to rebuild).
+- **CP-b**: `cpujob 025-base-suite ctest --test-dir build-025 -LE determinism-sweep -j4 --output-on-failure`, real time 155 s.
+  - **787 tests registered**: 784 passed, **1 failed**, 1 skipped, 1 disabled. ctest reports "99% tests passed, 1 tests failed out of 786" (the disabled test is not counted) and exits 8, because of the failure.
+  - **Failed**: `State_LightOrder` (5 passed, 4 failed: "inside AttributeBegin", "after a copy-on-write clone", "Illuminate off then on moves the light to the end", "after a ResourceRestore round trip"). This is the expected red.
+  - **Not run, both present before this spec**:
+    - `ShadingParity_IlluminationHookAllFalse` (Disabled): disabled in `tests/shading_parity/CMakeLists.txt` until the fix for GitHub #71 lands.
+    - `LibShader_Format_rslo_lower_minor` (Skipped by the test itself).
+  - No known-flaky test was red. `ShadingParity_ShaderParameterEquivalence` passed; `ShadingParity_AmbientAccumulation` passed.
+  - The total is not comparable with §0.3's 784: this run includes `State_LightOrder`, the disabled test and the skipped one (784 + 3 = 787 registered).
+  - `MaxBlockAvgDiff` lines saved as `tools/baseline-diffs.txt` (389 tests, 397 values, `name<TAB>value`, sorted), taken from `LastTest.log`.
+- **CP-c**: `ctest -L architecture`: 21/21 passed. `archcheck --source-dir . --build-dir build-025 --config tests/architecture` (through `cpujob`):
+  - `ALLOWED DB-001 x 8 DB-004 x 65 DB-005 x 8 DB-006 x 33 DB-008 x 7 DB-010 x 35 DB-011 x 173 DB-015 x 10 DB-017 x 78 DB-019 x 3 DB-021 x 1 DB-025 x 12 DB-026 x 3`
+  - `METRIC TOTAL refs 721 (baseline 721) distinct 110 (baseline 110)`; Shading 0/0, Infra 0/0
+  - `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`
+- **T004**: `tools/image_manifest.sh record build-025 > tools/baseline-images.sha256`: **724 images**, all `*.tif` under `build-025/tests`. (Superseded by §1.4: the baseline was re-recorded after T006a, with 729 images.)
+- **Coverage gap of the manifest** (it scanned `<build-dir>/tests` only, as specified): four `imager_*_test.tif` files that `ImagerBackgroundRender`, `ImagerDualDisplayRender`, `ImagerParamOverrideRender` and `ImagerRegressionRender` write at the root of `build-025` were not hashed. No `*.png` or `*.exr` is produced. Closed by T006a (§1.4).
+
+### §1.2 Tool check
+
+`image_manifest.sh` was exercised on a scratch directory first (stale file ignored, a changed file reported `DIFFERS`, a deleted one `MISSING`, a new one `INFO`, noise list honoured, exit 1/0), then on the real data (§1.3). A `diffs <LastTest.log>` sub-command was added to produce `MaxBlockAvgDiff` tables; it reproduces `baseline-diffs.txt` byte for byte from the T003 log.
+
+### §1.3 Run-to-run noise on the unchanged tree (T005)
+
+Stamp, CP-b a second time (169 s, same result: only `State_LightOrder` red, same skipped/disabled), then `image_manifest.sh diff tools/baseline-images.sha256 build-025`.
+
+- **`MaxBlockAvgDiff`**: all 389 tests print identical values in both runs.
+- **Images**: 723 of 724 identical. **1 differs: `tests/imager/ri.tif`** (not empty, unlike the plan stage's 95/95; that number covered only the 95 images of the affected scenes). Cause, measured:
+  - `ImagerExecutionTests` (sha256 starting `df0fe4d3`) and `ImagerGuardTests` (starting `b60bae7e`) both render with the default display name `ri.tif` in the same working directory, `build-025/tests/imager`. Under `-j4` the last writer wins.
+  - Each, run alone, is deterministic: 7 of 7 runs identical for `ImagerExecutionTests`; `ImagerGuardTests` was run once alone and gave `b60bae7e`.
+  - So it is a shared scratch file, not a test product with run-to-run variance.
+- At the time `tools/baseline-image-noise.txt` listed `tests/imager/ri.tif`; T006a (§1.4) removed the cause and the line.
+
+### §1.4 T006a: the `ri.tif` race fixed, the manifest widened, the baseline re-recorded
+
+Maintainer decision 2026-10-26 after Checkpoint 1.
+
+- **Fix** (`tests/imager/CMakeLists.txt` only; no test source, no assertion changes): `ImagerGuardTests` runs in its own working directory, `build-025/tests/imager/guard` (created at configure time with `file(MAKE_DIRECTORY ...)`). Its default `ri.tif` now lands in `tests/imager/guard/ri.tif`; `ImagerExecutionTests` keeps `tests/imager/ri.tif`. The two tests no longer share an output file.
+- **Manifest**: `image_manifest.sh record` also hashes `<build-dir>/imager_*_test.tif` (the four `Imager*Render` outputs at the build root), when newer than the stamp.
+- **Re-recorded on the fixed tree** (reconfigure and rebuild, clean; then stamp, CP-b, `record`): **729 images** = the earlier 724, the 4 build-root `imager_*_test.tif`, and `tests/imager/guard/ri.tif`. Suite: same result as §1.1 (787 registered, only `State_LightOrder` failed, one skipped, one disabled), 145 s.
+- **`MaxBlockAvgDiff`**: byte-identical to the earlier `baseline-diffs.txt` (389 tests), so that file is unchanged.
+- **Noise check** (stamp, CP-b again, then `image_manifest.sh diff tools/baseline-images.sha256 build-025`): `manifest 729 images, fresh 729, noise-listed 0; 0 differing, 0 missing, 0 not in manifest`, exit 0. The `MaxBlockAvgDiff` table of the second run equals the first. **The noise list is empty** (`tools/baseline-image-noise.txt` holds only a comment).
+
+## §2 Phase 2: tests first (T007–T021), macOS
+
+No file under `src/` changed in this phase (`git diff --stat -- src` is empty; T020's scratch edit was reverted). Tests and CMake only.
+
+### §2.1 The tests written
+
+| Test | Kind | State at the end of Phase 2 |
+|---|---|---|
+| `State_Isolation` | State-only | red by **build failure**, `DISABLED`, defined only with `OPENRENDER_STATE_ONLY_TESTS=ON` |
+| `State_LastBound` | State-only | red by build failure, same |
+| `State_PatternTable` | State-only | red by build failure, same |
+| `State_ChannelRegistry` | State-only | red by build failure, same |
+| `State_LightOrderRestore` | State-only | red by build failure (and by assertion once it builds), same; enabled in Phase 7 (T071) |
+| `State_VocabularyConsistency` | Consumer | red by build failure, `EXCLUDE_FROM_ALL` + `DISABLED` |
+| `ShadingParity_ShaderParameterEquivalenceDirect` | Consumer | red by build failure, `EXCLUDE_FROM_ALL` + `DISABLED` |
+| `ShadingParity_ShaderParameterBxdfIgnored` | Consumer | red by build failure, `EXCLUDE_FROM_ALL` + `DISABLED` |
+| `ShadingParity_ShaderParameterEquivalence` (part A) | refactor (T015) | **green, 64 passed, 0 failed** |
+| `RibOut_ShaderStatementOrder` | characterization | **green**: statement order preserved in 3 interleavings |
+| `State_LightOrder` | written earlier | **red, 5 passed / 4 failed** (the only red in the default build) |
+
+The fixtures of part A moved into `tests/shading_parity/shader_parameter_fixtures.h` (T015); part A's cases and assertions are unchanged, and the oracle's answers are read through a small access struct (`SParameterAccess`) that part A points at `CAttributes` and part B at the `libshader::` functions.
+
+### §2.2 Red evidence, State-only tests (scratch build `build-025-red`, option ON)
+
+`build-025-red` was configured like `build-025` (generator, `CMAKE_BUILD_TYPE`, toolchain, `VCPKG_*`, bison, deployment target) plus `-DOPENRENDER_STATE_ONLY_TESTS=ON`, and deleted afterwards.
+
+`cmake --build build-025-red --target state_only_sources` **fails to compile** the State sources on the narrow include path:
+```
+src/ri/state/attributes.h:33:10: fatal error: 'shader.h' file not found
+src/ri/state/options.h:30:10: fatal error: 'blobbyField.h' file not found
+```
+(`attributes.cpp` and `pl.cpp` stop at `shader.h`; `options.cpp` stops at `blobbyField.h`. A fatal error ends a translation unit, so `dsply.h` (`options.h:34`) and `photonMap.h` are shown by a one-line probe with the same include path:)
+```
+#include "shader.h"       -> fatal error: 'shader.h' file not found
+#include "photonMap.h"    -> fatal error: 'photonMap.h' file not found
+#include "dsply.h"        -> fatal error: 'dsply.h' file not found
+#include "blobbyField.h"  -> fatal error: 'blobbyField.h' file not found
+#include "stateHandles.h" -> fatal error: 'stateHandles.h' file not found
+```
+The five test executables depend on that library, so their own objects were compiled one by one (`make test_state_*.o` in the test directory):
+```
+test_state_isolation      attributes.h:33:10: fatal error: 'shader.h' file not found
+test_state_last_bound     attributes.h:33:10: fatal error: 'shader.h' file not found
+test_state_pattern_table  attributes.h:33:10: fatal error: 'shader.h' file not found
+test_state_light_restore  attributes.h:33:10: fatal error: 'shader.h' file not found
+test_state_channel_registry  tests/unit/state/test_state_channel_registry.cpp:37:10: fatal error: 'channelRegistry.h' file not found
+```
+(`attributes.h` is the first include of four of them, so `shader.h` is the first error; `stateHandles.h`, `patternTable.h`, `bindBxdf` and the rest are absent too, as the probe above shows for `stateHandles.h`.)
+
+Archcheck was **not** run in the scratch tree.
+
+### §2.3 Red evidence, Consumer tests (`build-025`)
+
+```
+test_state_vocabulary
+  tests/unit/state/test_state_vocabulary.cpp:38:10: fatal error: 'stateVocabulary.h' file not found
+test_shading_parity_shader_parameter_equivalence_direct
+  tests/shading_parity/test_shader_parameter_equivalence_direct.cpp:33:10: fatal error: 'libshader/shading/shaderParameters.h' file not found
+test_shading_parity_shader_parameter_bxdf_ignored
+  tests/shading_parity/test_shader_parameter_bxdf_ignored.cpp:33:10: fatal error: 'libshader/shading/shaderParameters.h' file not found
+```
+The bxdf test stops at the missing header first. With a throwaway stub of that header (scratchpad, not in the tree) the same file reports the next errors, and nothing else:
+```
+test_shader_parameter_bxdf_ignored.cpp:75:16: error: no member named 'bindBxdf' in 'CAttributes'
+test_shader_parameter_bxdf_ignored.cpp:75:25: error: use of undeclared identifier 'ShaderGroupRef'
+test_shader_parameter_bxdf_ignored.cpp:76:28: error: no member named 'bxdf' in 'CAttributes'
+```
+The Direct test and the vocabulary test, compiled against stubs of the missing headers, are clean under `-Wall -Wextra` (the vocabulary test also under `-Werror`), so the only thing missing is the API.
+
+### §2.4 Green by design and the one red
+
+- `ShadingParity_ShaderParameterEquivalence`: **64 passed, 0 failed** after the T015 refactor.
+- `RibOut_ShaderStatementOrder`: passed. Three RIB inputs (different orders of the seven shader statements, interleaved with `Color`, `Opacity`, `ShadingRate`, `Attribute`, and in one input inside an `AttributeBegin` block, one rebinding a slot twice) are written by the RIB writer, and the statement sequence (keyword plus shader name) of each equals the input's; writing the output again gives the same sequence. It is a characterization test: green on the starting tree by design.
+- `State_LightOrder`: **red, 5 passed / 4 failed**, the same four checks as in §1.1.
+
+### §2.5 `DISABLED` tests and ctest's exit status
+
+`ctest -L 'state|shading_parity'` in `build-025` lists, under "The following tests did not run": `ShadingParity_IlluminationHookAllFalse` (Disabled, before this spec; GitHub #71), `ShadingParity_ShaderParameterEquivalenceDirect`, `ShadingParity_ShaderParameterBxdfIgnored` and `State_VocabularyConsistency` (all Disabled). With `State_LightOrder` excluded (`-E '^State_LightOrder$'`) the exit status is **0**: ctest does not count disabled tests as failures. The only failure of the full run is `State_LightOrder`.
+
+### §2.6 Mutation check (T020)
+
+In a scratch edit of `src/ri/state/attributes.cpp` (`findParameter`: surface searched before displacement), after a rebuild, `ShadingParity_ShaderParameterEquivalence` gives **60 passed, 4 failed** (all four are `foundDefault("shared") == shared` in the cases that bind both slots), as at the plan stage (§0.4). The edit was reverted with `git checkout -- src/ri/state/attributes.cpp`; `git diff --stat -- src` is empty.
+
+### §2.7 Checkpoint 2 (CP-a to CP-c; CP-d not needed, no source changed)
+
+- **CP-a**: `cmake --build build-025 --config Release -j4`: clean under `-Werror` (the new tests included). The `ld` duplicate-library warnings are the linker's, as before.
+- **CP-b**: `ctest -LE determinism-sweep -j4`, 150 s: **791 registered: 785 passed, 1 failed (`State_LightOrder`), 4 disabled, 1 skipped.** The 785 are the 784 of §1.1 plus `RibOut_ShaderStatementOrder`. No known-flaky test was red. The `MaxBlockAvgDiff` table (`image_manifest.sh diffs` of the saved `LastTest.log`) equals `tools/baseline-diffs.txt`.
+- **CP-c**: `ctest -L architecture`: 21/21. `archcheck` report: `ALLOWED DB-001 x 8 DB-004 x 65 DB-005 x 8 DB-006 x 33 DB-008 x 7 DB-010 x 35 DB-011 x 173 DB-015 x 10 DB-017 x 78 DB-019 x 3 DB-021 x 1 DB-025 x 12 DB-026 x 3`, `METRIC TOTAL refs 721 (baseline 721) distinct 110 (baseline 110)`, `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`. With the option off no State-only object is required.
+
 ### Not yet measured
 
 Linux (GCC 13, `-Werror`) needs the maintainer's rsync + Maestri path; see quickstart §4.

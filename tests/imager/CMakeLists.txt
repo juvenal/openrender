@@ -30,8 +30,13 @@ target_include_directories(test_imager_guard PRIVATE
     ${CMAKE_BINARY_DIR}
 )
 target_compile_features(test_imager_guard PRIVATE cxx_std_20)
+# Test 5b renders with no Display statement, so the default display writes "ri.tif" into the
+# working directory. ImagerExecutionTests does the same; under ctest -j both used to write
+# build/tests/imager/ri.tif and the last writer won. Give this test its own directory.
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/guard)
 add_test(NAME ImagerGuardTests COMMAND test_imager_guard)
 set_tests_properties(ImagerGuardTests PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/guard
     TIMEOUT 30
     LABELS "imager;unit;guard"
     ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=${IMAGER_DISPLAY_PATH}"

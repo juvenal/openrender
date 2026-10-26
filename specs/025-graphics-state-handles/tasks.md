@@ -111,25 +111,29 @@ A new test that needs an API that does not exist yet is added with `EXCLUDE_FROM
 "byte-identical output" for Phases 3–6. The macOS baselines of the plan stage are in validation.md §0.
 These tasks re-take the ones the checkpoints need, on the tree as it stands (the two new test files are in it).
 
-- [ ] T001 Append an "Implementation log" section (§1 onward) to `specs/025-graphics-state-handles/validation.md`.
+- [X] T001 Append an "Implementation log" section (§1 onward) to `specs/025-graphics-state-handles/validation.md`.
   - Record the base commit `dfffba0`, the worktree HEAD (`git rev-parse HEAD`), and `build-025`.
   - Add one table row per phase for the checkpoint results (build, suite totals, architecture report, image diff).
   - State the expected-red rule: `State_LightOrder` only, until Phase 7.
-- [ ] T002 [P] Write `specs/025-graphics-state-handles/tools/image_manifest.sh` (bash, `shasum -a 256`; must also run with `sha256sum` on Linux). It discovers outputs generically, so it needs no list of test directories and does not depend on a first run:
+- [X] T002 [P] Write `specs/025-graphics-state-handles/tools/image_manifest.sh` (bash, `shasum -a 256`; must also run with `sha256sum` on Linux). It discovers outputs generically, so it needs no list of test directories and does not depend on a first run:
   - `stamp <build-dir>` touches `<build-dir>/.image_stamp`;
   - `record <build-dir>` prints `sha256  relative-path` for every `*.tif`, `*.png` and `*.exr` under `<build-dir>/tests` that is **newer than the stamp** (so a stale file from an earlier run, or a copied fixture, is never hashed);
   - `diff <manifest> <build-dir> [noise-list]` reports every image that differs or is missing (in the manifest but not fresh), and lists fresh images that are not in the manifest as information only; paths in the noise list are ignored; exit 1 on any difference or missing image.
-- [ ] T003 [RUN] Baseline on the unchanged tree (the new test files are in it): `image_manifest.sh stamp build-025`, then
+- [X] T003 [RUN] Baseline on the unchanged tree (the new test files are in it): `image_manifest.sh stamp build-025`, then
   CP-a, CP-b (`cpujob 025-base-suite …`) and CP-c.
   - Record the totals, every failing test, and which of them are known-flaky.
   - Expected: `State_LightOrder` red (4 of 9) is the only failure; `ALLOWED DB-008 x 7`; architecture PASS.
   - validation.md §0.3 and plan.md report 784/784 passed for the suite as it stood before `State_LightOrder` (which is red) was in the build. Take the new total from this run and state in the log which tests it includes; do not compare it with 784.
   - Save the `MaxBlockAvgDiff` lines of the log as `specs/025-graphics-state-handles/tools/baseline-diffs.txt` (CP-d compares them).
-- [ ] T004 [RUN] Directly after T003: `image_manifest.sh record build-025 > specs/025-graphics-state-handles/tools/baseline-images.sha256`.
-- [ ] T005 [RUN] Run-to-run noise on the unchanged tree: `image_manifest.sh stamp build-025`, run CP-b a second time, `record` again, and list every
+- [X] T004 [RUN] Directly after T003: `image_manifest.sh record build-025 > specs/025-graphics-state-handles/tools/baseline-images.sha256`.
+- [X] T005 [RUN] Run-to-run noise on the unchanged tree: `image_manifest.sh stamp build-025`, run CP-b a second time, `record` again, and list every
   path whose hash differs from T004 in `specs/025-graphics-state-handles/tools/baseline-image-noise.txt` (expected: empty, since the plan stage saw 95/95 identical).
   Note any listed image in validation.md. A file in the noise list is excluded from CP-d, but its `MaxBlockAvgDiff` must still match.
-- [ ] T006 **Checkpoint 1 (PAUSE 1)**: the baselines are recorded. Stage `validation.md` and the four new `tools/` files (`image_manifest.sh`, `baseline-images.sha256`, `baseline-image-noise.txt`, `baseline-diffs.txt`); summarize; wait for review.
+- [X] T006 **Checkpoint 1 (PAUSE 1)**: the baselines are recorded. Stage `validation.md` and the four new `tools/` files (`image_manifest.sh`, `baseline-images.sha256`, `baseline-image-noise.txt`, `baseline-diffs.txt`); summarize; wait for review.
+- [X] T006a Maintainer decision 2026-10-26, after Checkpoint 1: fix the `tests/imager/ri.tif` race found by T005, and widen the manifest.
+  - **Race fix** (`tests/imager/CMakeLists.txt` only; no test source and no assertion changes): `ImagerGuardTests` (its Test 5b renders with no `Display`) now runs in its own working directory `tests/imager/guard`, so its default `ri.tif` no longer lands on the one `ImagerExecutionTests` writes at `tests/imager/ri.tif`. `ImagerExecutionTests` keeps its output name and directory. This edit to an approved test is authorized by the maintainer for exactly this purpose.
+  - **Manifest**: `image_manifest.sh record` also hashes `<build-dir>/imager_*_test.tif` (the four `Imager*Render` outputs at the build root).
+  - Re-record `baseline-images.sha256` and `baseline-diffs.txt` with the fixed test, re-run the noise check (stamp, CP-b, `diff`; it is now empty), and empty `baseline-image-noise.txt` of its `ri.tif` line. Record it in validation.md §1.4.
 
 ---
 
@@ -142,7 +146,7 @@ red ones are shown red. **No file under `src/` changes in this phase**, apart fr
 
 ### State-only test scaffolding
 
-- [ ] T007 [US1] In `tests/unit/state/CMakeLists.txt`, add the State-only scaffolding (research R11; precedent `tests/framebuffer/CMakeLists.txt`), **behind `option(OPENRENDER_STATE_ONLY_TESTS "Build the State-only isolation tests" OFF)`**. When the option is off, none of the following is defined at all (no `DependInfo.cmake` for archcheck to find):
+- [X] T007 [US1] In `tests/unit/state/CMakeLists.txt`, add the State-only scaffolding (research R11; precedent `tests/framebuffer/CMakeLists.txt`), **behind `option(OPENRENDER_STATE_ONLY_TESTS "Build the State-only isolation tests" OFF)`**. When the option is off, none of the following is defined at all (no `DependInfo.cmake` for archcheck to find):
   - a `STATIC` library `state_only_sources`, `EXCLUDE_FROM_ALL`, built from an explicit list of State sources:
     `src/ri/state/{attributes,options,pl,xform,displayChannel,variableLookup}.cpp` (later phases append `shaderParameterHooks.cpp` and `channelRegistry.cpp`);
   - it links `openrender_common_flags openrendercommon` and nothing else, `cxx_std_20`;
@@ -154,14 +158,14 @@ red ones are shown red. **No file under `src/` changes in this phase**, apart fr
   - Comment: a bare `#include "shader.h"`, `"photonMap.h"`, `"dsply.h"` or `"blobbyField.h"` in State must fail to compile here; a domain-qualified spelling such as
     `"display/dsply.h"` still resolves through `src/` and is caught by the architecture check and the SC-003 grep, not by this test.
   - Comment the real reason for the option: archcheck's `loadMakefiles` walks every `DependInfo.cmake` (`EXCLUDE_FROM_ALL` targets included) and exits 2 "incomplete build tree" when an in-scope object is missing; the option is off until the library compiles (T050).
-- [ ] T008 [US1] Write `tests/unit/state/state_test_doubles.h` (header-only, includes `stateHandles.h` and `common/refCounter.h` only).
+- [X] T008 [US1] Write `tests/unit/state/state_test_doubles.h` (header-only, includes `stateHandles.h` and `common/refCounter.h` only).
   - `CCountingShader : public CShaderGroupRefTarget` and `CCountingMap : public CMapRefTarget`, each with a static live-instance counter (constructor/destructor) and a
     helper `int refs(const CRefCounter &)` that reads the public `refCount`.
   - A fixture helper that mimics `CShaderInstance`'s constructor: `new CCountingShader` then `attach()` once (refCount 1), so `adopt()` can be tested against today's "constructor attaches, handler stores without attaching" behaviour (research R1).
 
 ### Tests (all [P]: different files)
 
-- [ ] T009 [P] [US1] Write `tests/unit/state/test_state_isolation.cpp` (`State_Isolation`): the handle and lifetime test. Every row of data-model.md "Ownership mapping" is asserted as a reference-count delta on a counting double:
+- [X] T009 [P] [US1] Write `tests/unit/state/test_state_isolation.cpp` (`State_Isolation`): the handle and lifetime test. Every row of data-model.md "Ownership mapping" is asserted as a reference-count delta on a counting double:
   - **adopt** into each of `surface`, `displacement`, `atmosphere`, `interior`, `exterior` (`bindX(ShaderGroupRef::adopt(p))`): count unchanged by the bind;
   - **replace** a bound slot with another handle: the old object loses exactly one reference, and a destroyed object is freed;
   - **copy constructor** (`new CAttributes(src)`): each of the five slots and each of `globalMap`/`causticMap` gains exactly +1 (a copy that changes any count by anything other than +1 is the doubled-`attach` bug), and the clone's destruction gives exactly -1;
@@ -173,7 +177,7 @@ red ones are shown red. **No file under `src/` changes in this phase**, apart fr
   - **no hook installed** (all of these tests run with no `RiBegin` session): after any `bindX`, `usedParameters == 0`, and `findParameter("x") == nullptr`;
   - `selectVolumeShader(&attr, solid, exterior)` returns the interior or exterior slot's `get()` (or `nullptr`);
   - Binding doubles that are not `CShaderInstance` is only legal because no hook is installed (contracts/shader-parameter-hooks.md "Precondition"): say so in a comment.
-- [ ] T010 [P] [US3] Write `tests/unit/state/test_state_last_bound.cpp` (`State_LastBound`): data-model.md's transition table, one assertion per row.
+- [X] T010 [P] [US3] Write `tests/unit/state/test_state_last_bound.cpp` (`State_LastBound`): data-model.md's transition table, one assertion per row.
   - A fresh block: `governingMaterial() == EMaterialBinding::None`.
   - Surface then bxdf gives `Bxdf`; bxdf then surface gives `Surface`; **both handles stay bound** in either order.
   - `bindSurface(ShaderGroupRef())` and `bindBxdf(ShaderGroupRef())` (empty handles) **set the record** and leave the slot empty.
@@ -181,7 +185,7 @@ red ones are shown red. **No file under `src/` changes in this phase**, apart fr
   - Push/pop: a clone made with `new CAttributes(outer)`, `bindBxdf` on the clone over an outer surface, destroy the clone: the outer block still answers `Surface`, and the inner bxdf is gone with the scope.
   - The clone carries the source's answer; `restore(other, shading=true, …)` takes `other`'s value and also replaces the `bxdf` slot; `restore(…, shading=false)` leaves the record unchanged.
   - The `bxdf` slot's counts: adopt +0, copy +1, restore, destruction -1.
-- [ ] T011 [P] [US4] Write `tests/unit/state/test_state_pattern_table.cpp` (`State_PatternTable`): US4.1–4.4 and FR-013/014/015.
+- [X] T011 [P] [US4] Write `tests/unit/state/test_state_pattern_table.cpp` (`State_PatternTable`): US4.1–4.4 and FR-013/014/015.
   - A node defined with `patterns.define("h", ref)` is found by `lookup("h")` in the same block and in a block cloned from it afterwards.
   - Define inside a clone, destroy the clone: the outer block does not find a handle that was defined only inside; an outer definition of the same handle is found again.
   - A new definition of an existing handle in the same scope **replaces** it in place (position kept); a nested definition shadows the outer one until the nested block is destroyed.
@@ -190,7 +194,7 @@ red ones are shown red. **No file under `src/` changes in this phase**, apart fr
   - Copy-on-write: after cloning, `define` in the clone does not change the source, and a later `define` in the source does not change the clone.
   - `restore(…, shading=true)` replaces the table with the other block's; `shading=false` leaves it.
   - **US4.4**: a node bound into a slot with `bindSurface(node)` stays alive (counting double still live, count as expected) after the defining block is destroyed.
-- [ ] T012 [P] [US5] Write `tests/unit/state/test_state_channel_registry.cpp` (`State_ChannelRegistry`), following contracts/channel-registry.md "Tests":
+- [X] T012 [P] [US5] Write `tests/unit/state/test_state_channel_registry.cpp` (`State_ChannelRegistry`), following contracts/channel-registry.md "Tests":
   - a fresh `CChannelRegistry`: `rgb` (3 samples, offset 0), `rgba` (4, 0), `a` (1, 3), `z` (1, 4), `rgbaz` (5, 0), in that declaration order via `forEach`; an unknown name gives `nullptr`;
   - `declare("float myaov")` through a **test-double declaration hook** (`installVariableDeclaration`, a captureless static function with the two-argument signature `CVariable *(const char *name, const char *declaration)`, like the core's adapter in T065) twice gives the same pointer;
   - the same name with a different shape gives `nullptr` and exactly one diagnostic `Channel "…" was previously defined differently` (code `CODE_SYSTEM`), captured with an installed `CDiagnosticSink`;
@@ -199,29 +203,30 @@ red ones are shown red. **No file under `src/` changes in this phase**, apart fr
   - declare out of order across two simulated frames, then `resetUsage()`: every variable-backed channel's `sampleStart == -1` and the `forEach` order is unchanged (US5.3);
   - `beginChannelRegistry()` / `endChannelRegistry()` / `beginChannelRegistry()` gives a fresh instance with only the five built-ins; `channelRegistry()` is `nullptr` outside a session;
   - **session balance** (an exactly-once-deletion probe is not possible: the registry creates its `CDisplayChannel`s itself): run three `beginChannelRegistry()` / declare several channels / `endChannelRegistry()` cycles; each `begin` yields exactly the five built-ins, each `end` leaves `channelRegistry() == nullptr`, and the process completes without a crash or allocator error (a double delete would abort).
-- [ ] T013 [P] [US1] Write `tests/unit/state/test_state_vocabulary.cpp` (`State_VocabularyConsistency`, modelled on `Common_VocabularyConsistency`). It is a Consumer, so it uses the normal include path
+    A double delete need not abort in a Release build, so run this test once more with the allocator debug aids on macOS (`MallocScribble=1 MallocGuardEdges=1 ctest -R '^State_ChannelRegistry$' --output-on-failure`, through `cpujob`) and require it to pass there too.
+- [X] T013 [P] [US1] Write `tests/unit/state/test_state_vocabulary.cpp` (`State_VocabularyConsistency`, modelled on `Common_VocabularyConsistency`). It is a Consumer, so it uses the normal include path
   (`src/`, `src/ri/state`, `src/display`, `src/ri/geometry`) and includes `stateVocabulary.h`, `dsply.h` and `blobbyField.h`.
   - Compare, at run time, all seven pairs and print the **first drifted pair by name**:
     `EDisplayParameterType::Float/Vector/Matrix/String/Integer == 0/1/2/3/4` against `FLOAT_PARAMETER`, `VECTOR_PARAMETER`, `MATRIX_PARAMETER`, `STRING_PARAMETER`, `INTEGER_PARAMETER`;
     `EBlobbyOrder::RiSpec = 0` and `EBlobbyOrder::AppNote = 1` against `BLOBBY_ORDER_RISPEC` and `BLOBBY_ORDER_APPNOTE`.
   - Comment the limitation from research R9: neither C enum has a count sentinel, so an enumerator *added* to `dsply.h` is not detected. `dsply.h` is frozen in 025.
-- [ ] T014 [P] [US2] Write `tests/unit/state/test_state_light_restore.cpp` (`State_LightOrderRestore`, State-only): the direct `restore()` and copy-constructor order check that the Ri-level `State_LightOrder` cannot isolate (its save/restore round trip reverses twice).
+- [X] T014 [P] [US2] Write `tests/unit/state/test_state_light_restore.cpp` (`State_LightOrderRestore`, State-only): the direct `restore()` and copy-constructor order check that the Ri-level `State_LightOrder` cannot isolate (its save/restore round trip reverses twice).
   - Build block A with light doubles L1, L2, L3 via `addLight` in that order; `new CAttributes(A)` must list L1, L2, L3; `restore` of A into a block B with a different list gives L1, L2, L3; a clone of a clone keeps the order; light switching (`removeLight` L2 then `addLight` L2) moves L2 to the end; no light's count changes anywhere.
   - Expected to be **red by assertion** until Phase 7 (the copy and restore prepend today), so it stays `DISABLED` until T071.
-- [ ] T015 [US2] Refactor the shared fixtures out of `tests/shading_parity/test_shader_parameter_equivalence.cpp` into a new header `tests/shading_parity/shader_parameter_fixtures.h` (`writeFile`, `compileRslo`, the four shader sources, `shaderBits`, `shaderLoads`, the oracle helpers `foundDefault`, `expectLookups`, `expectUsed`), as `static inline`.
+- [X] T015 [US2] Refactor the shared fixtures out of `tests/shading_parity/test_shader_parameter_equivalence.cpp` into a new header `tests/shading_parity/shader_parameter_fixtures.h` (`writeFile`, `compileRslo`, the four shader sources, `shaderBits`, `shaderLoads`, the oracle helpers `foundDefault`, `expectLookups`, `expectUsed`), as `static inline`.
   Part A keeps every case and every assertion. Do not change what it checks.
-- [ ] T016 [P] [US2] Write `tests/shading_parity/test_shader_parameter_equivalence_direct.cpp` (part B, `ShadingParity_ShaderParameterEquivalenceDirect`), using the same fixtures and the same binding sets as part A (none before `RiWorldBegin`, the world defaults, surface only, atmosphere over the default surface, all three, all three plus a light, the light switched off, displacement plus surface, the surface cleared, after `ResourceRestore`).
+- [X] T016 [P] [US2] Write `tests/shading_parity/test_shader_parameter_equivalence_direct.cpp` (part B, `ShadingParity_ShaderParameterEquivalenceDirect`), using the same fixtures and the same binding sets as part A (none before `RiWorldBegin`, the world defaults, surface only, atmosphere over the default surface, all three, all three plus a light, the light switched off, displacement plus surface, the surface cleared, after `ResourceRestore`).
   - It asserts the same answers directly against `libshader::usedShaderParameters(const CAttributes &)` and `libshader::findShaderParameter(const CAttributes &, const char *)`, and that `libshader::shaderParameterHooks()` is `{ &usedShaderParameters, &findShaderParameter }`.
   - Includes `libshader/shading/shaderParameters.h`, which does not exist yet: it is **red by build failure** and stays `EXCLUDE_FROM_ALL` + `DISABLED` until T026.
   - Part A also checks, as it already does, that a fresh `RiBegin` block gets the hook (the "installation order" risk in plan.md).
-- [ ] T016a [P] [US2] Write `tests/shading_parity/test_shader_parameter_bxdf_ignored.cpp` (`ShadingParity_ShaderParameterBxdfIgnored`), using `shader_parameter_fixtures.h`. FR-005 / clarification 2026-10-26: binding a `bxdf` changes neither `libshader::usedShaderParameters` nor `libshader::findShaderParameter`.
+- [X] T016a [P] [US2] Write `tests/shading_parity/test_shader_parameter_bxdf_ignored.cpp` (`ShadingParity_ShaderParameterBxdfIgnored`), using `shader_parameter_fixtures.h`. FR-005 / clarification 2026-10-26: binding a `bxdf` changes neither `libshader::usedShaderParameters` nor `libshader::findShaderParameter`.
   - Inside an `RiBegin` session, load the fixture shaders with `CRenderer::getShader`; for each binding set of part A (none, surface only, all three, all three plus a light) record both answers, then `bindBxdf(ShaderGroupRef::retain(shader))` with a real shader that declares a parameter name found nowhere else and bits no other slot sets, and assert both answers are **unchanged** (the bxdf's unique parameter is not found; the used-parameter set does not gain its bits).
   - Uses `CAttributes::bindBxdf`, which does not exist yet: it is **red by build failure**, `EXCLUDE_FROM_ALL` + `DISABLED` until T056.
-- [ ] T017 [P] [US3] Write `tests/unit/rib_parse/test_ribout_shader_order.cpp` (`RibOut_ShaderStatementOrder`, labels `rib_parse;unit`; spec 025 FR-023, US3.5), modelled on `test_sampling_option_roundtrip.cpp` (in-process, `riblex_destroy()` between sessions, libRIBOut writer).
+- [X] T017 [P] [US3] Write `tests/unit/rib_parse/test_ribout_shader_order.cpp` (`RibOut_ShaderStatementOrder`, labels `rib_parse;unit`; spec 025 FR-023, US3.5), modelled on `test_sampling_option_roundtrip.cpp` (in-process, `riblex_destroy()` between sessions, libRIBOut writer).
   - Feed RIB text that holds `Surface`, `Displacement`, `Atmosphere`, `Interior`, `Exterior`, `LightSource` and `Imager` in at least three different orders, each interleaved with other attribute statements (`Color`, `Opacity`, `ShadingRate`, an `Attribute`).
   - Compare the written statements line by line with the input order.
   - **This is a characterization test: it is green on the starting tree and must stay green** (clarification Q3). Say so in the file header so nobody reads a green first run as a broken test. No `Bxdf` round-trip is added.
-- [ ] T018 Register the new tests (three CMake files):
+- [X] T018 Register the new tests (three CMake files):
   - `tests/unit/state/CMakeLists.txt`: `State_Isolation`, `State_LastBound`, `State_PatternTable`, `State_ChannelRegistry`, `State_LightOrderRestore` through `add_state_only_test` (all inside the `OPENRENDER_STATE_ONLY_TESTS` block of T007); `State_VocabularyConsistency` as a normal Consumer executable (`EXCLUDE_FROM_ALL`, `DISABLED`, normal include path, label `state`).
   - `tests/shading_parity/CMakeLists.txt`: the Direct test and the bxdf-ignored test (`EXCLUDE_FROM_ALL`, `DISABLED`, label `shading_parity`, same links and `ENVIRONMENT` as part A); part A's entry keeps working with the fixtures header.
   - `tests/unit/rib_parse/CMakeLists.txt`: `RibOut_ShaderStatementOrder`, a normal target (it builds now), links `ribRender openrendercommon`, same `ENVIRONMENT` as `SamplingOption_RibRoundTrip`.
@@ -229,16 +234,16 @@ red ones are shown red. **No file under `src/` changes in this phase**, apart fr
 
 ### Red evidence
 
-- [ ] T019 [RUN] CP-a in `build-025` (option off: the State-only targets do not exist there). Then:
-  - **Red evidence in a scratch build directory** (inside the worktree, deleted afterwards): configure it like `build-025` (same cache variables) plus `-DOPENRENDER_STATE_ONLY_TESTS=ON`, e.g. `cpujob 025-red-cfg cmake -B build-025-red -S . <build-025's cache options> -DOPENRENDER_STATE_ONLY_TESTS=ON`. In it run `cmake --build build-025-red --target state_only_sources` and `--target` for each of the five State-only executables. Each must **fail to compile**; record the error: `stateHandles.h` not found, and `shader.h`, `dsply.h`, `blobbyField.h` not found on the narrow path. Do not run archcheck there.
+- [X] T019 [RUN] CP-a in `build-025` (option off: the State-only targets do not exist there). Then:
+  - **Red evidence in a scratch build directory** (inside the worktree, deleted afterwards): configure it like `build-025` plus `-DOPENRENDER_STATE_ONLY_TESTS=ON`. Copy these cache variables from `build-025/CMakeCache.txt`: the generator (`CMAKE_GENERATOR`, Unix Makefiles), `CMAKE_BUILD_TYPE`, `CMAKE_TOOLCHAIN_FILE` and the `VCPKG_*` settings (`VCPKG_INSTALLED_DIR`, `VCPKG_TARGET_TRIPLET`, `VCPKG_OVERLAY_TRIPLETS`, `VCPKG_MANIFEST_*`), `BISON_EXECUTABLE`, `LLVM_DIR`, `CMAKE_OSX_DEPLOYMENT_TARGET`. Only `openrendercommon` and the State objects need building in the scratch tree, never the whole project. E.g. `cpujob 025-red-cfg cmake -B build-025-red -S . <build-025's cache options> -DOPENRENDER_STATE_ONLY_TESTS=ON`. In it run `cmake --build build-025-red --target state_only_sources` and `--target` for each of the five State-only executables. Each must **fail to compile**; record the error: `stateHandles.h` not found, and `shader.h`, `dsply.h`, `blobbyField.h` not found on the narrow path. Do not run archcheck there.
   - In `build-025`: `cmake --build build-025 --target <t>` for the vocabulary test, the Direct test and the bxdf-ignored test must each fail to compile (`stateVocabulary.h`, `shaderParameters.h`, `bindBxdf` missing). Record the errors.
   - `ctest -R 'ShadingParity_ShaderParameterEquivalence$'`: part A **64/64 green** after the T015 refactor.
-  - `ctest -R 'RibOut_ShaderStatementOrder'`: green.
+  - `ctest -R 'RibOut_ShaderStatementOrder'`: green (the test is written by T017 and registered by T018, both before this task; it does not exist before Phase 2).
   - `ctest -R '^State_LightOrder$'`: red, 4 of 9 checks failing, as before.
   - `ctest -L 'state|shading_parity' --output-on-failure` in `build-025`: confirm the `DISABLED` tests report "Not Run (Disabled)" and that ctest's exit status does not count them as failures. If it does, stop and report instead of changing the convention.
   - Delete `build-025-red`. Record all of this in validation.md §2.
-- [ ] T020 [US2] [RUN] Re-prove part A's oracle after the refactor (quickstart §0.4, validation.md §0.4): in a scratch edit of `src/ri/state/attributes.cpp` (`findParameter`, around lines 427–452) search surface before displacement, rebuild, run `ShadingParity_ShaderParameterEquivalence`. Expected: **60 passed, 4 failed**. **Revert the edit** and confirm `git diff --stat -- src` is empty. Record the numbers.
-- [ ] T021 **Checkpoint 2 (TEST-APPROVAL, PAUSE 2)**: CP-a to CP-c (no source changed, so CP-d is not needed). Expected: all green except `State_LightOrder`; `ALLOWED DB-008 x 7`; archcheck passes with the option off (no State-only object is required). Stage the tests and CMake changes; summarize which tests are red, which are green by design, and why; wait for the maintainer's approval of the tests before Phase 3.
+- [X] T020 [US2] [RUN] Re-prove part A's oracle after the refactor (quickstart §0.4, validation.md §0.4): in a scratch edit of `src/ri/state/attributes.cpp` (`findParameter`, around lines 427–452) search surface before displacement, rebuild, run `ShadingParity_ShaderParameterEquivalence`. Expected: **60 passed, 4 failed**. **Revert the edit** and confirm `git diff --stat -- src` is empty. Record the numbers.
+- [X] T021 **Checkpoint 2 (TEST-APPROVAL, PAUSE 2)**: CP-a to CP-c (no source changed, so CP-d is not needed). Expected: all green except `State_LightOrder`; `ALLOWED DB-008 x 7`; archcheck passes with the option off (no State-only object is required). Stage the tests and CMake changes; summarize which tests are red, which are green by design, and why; wait for the maintainer's approval of the tests before Phase 3.
 
 ---
 
@@ -390,6 +395,7 @@ red ones are shown red. **No file under `src/` changes in this phase**, apart fr
   - `void define(const char *handle, ShaderGroupRef node)`: if the storage is shared, copy it first; then replace the entry with the same handle **in place** (position kept) or append;
   - `const ShaderGroupRef *lookup(const char *handle) const`: `nullptr` when the handle is not found; **State writes no diagnostic** (FR-015);
   - `template <class F> void forEach(F &&) const` in definition order; `int size() const`;
+    - the callback shape the approved `State_PatternTable` uses is `fn(handle, node)`: `handle` converts to `const std::string &` and `node` to `const ShaderGroupRef &`;
   - copying the table shares the storage (O(1)); State never interprets a node's content (FR-015). Document that attribute blocks are modified only on the single RIB-stream thread, which the copy-on-write check relies on.
 - [ ] T060 [US4] `src/ri/state/attributes.h` / `attributes.cpp`: add the member `CPatternTable patterns;`. The copy constructor shares it through the memberwise assignment; `restore(shading=true)` assigns it; `restore(…, shading=false)` leaves it. Scoping needs nothing more: `AttributeBegin` clones the block, so an inner definition lives in the inner copy (value semantics, research R7). Nothing in 025 consumes the table.
 - [ ] T061 [US4] Enable `State_PatternTable` (remove `EXCLUDE_FROM_ALL` and `DISABLED`); [RUN] build and `ctest -R State_PatternTable --output-on-failure`: green.
@@ -413,6 +419,7 @@ red ones are shown red. **No file under `src/` changes in this phase**, apart fr
   - `declare(const char *)` is today's `CRenderer::declareDisplayChannel(const char *)` (`rendererDeclarations.cpp:534-570`) moved unchanged: `parseVariable` failure returns `nullptr` with no message; an existing name returns it when `numSamples` matches and either the declaration is not global storage or `outType` matches, otherwise `error(CODE_SYSTEM, "Channel \"%s\" was previously defined differently\n", name)`; a new name goes through `declareVariableThroughHook(NULL, declaration)`, and `nullptr` (including when no hook is installed) gives `error(CODE_SYSTEM, "Channel definition \"%s\" is ill formed\n", declaration)`; otherwise create `CDisplayChannel(var->name, var, var->numFloats, -1, global ? var->entry : -1)`. **Error strings, codes, order and ownership stay byte-identical**;
   - `declare(CVariable *)` is today's overload (`:579-600`): an existing name returns the channel when its variable is the same one, else `nullptr` with no message;
   - `retrieve(const char *) const`, `resetUsage()` (`sampleStart = -1` for variable-backed channels, in declaration order), `forEach(F &&)`;
+    - the callback shape the approved `State_ChannelRegistry` uses is `fn(channel)` with `channel` converting to `const CDisplayChannel *`; `retrieve()` returns a non-const `CDisplayChannel *` (the test sets `sampleStart` through it);
   - the destructor deletes each channel once and frees both containers (today's `destroy()` plus `delete`);
   - `beginChannelRegistry()`, `endChannelRegistry()`, `channelRegistry()` (`nullptr` outside a session);
   - **no include of any other domain's header**. Add the file to `ri_sources` **and to `ribOut_sources`** in `src/ri/CMakeLists.txt` (ribOut compiles `rendererDeclarations.cpp`, which will call `beginChannelRegistry()`; plan.md's source list omits this), and append it to `state_only_sources` in `tests/unit/state/CMakeLists.txt`.
@@ -491,7 +498,10 @@ red ones are shown red. **No file under `src/` changes in this phase**, apart fr
   - libshader_shading imports still **7**;
   - quickstart §3 greps: `git diff dfffba0 -- src/ri/texture/texture3d.cpp src/display/dsply.h src/ri/geometry/blobbyField.h` empty, no `shader.h`/`photonMap.h`/`dsply.h`/`blobbyField.h` include in `src/ri/state`;
   - the architecture report: no `DB-008`, DB-021 still present, no `STALE`;
-  - `ctest -N -L 'state|shading_parity|rib_parse'` and the run show **zero** "Not Run (Disabled)" tests: every `DISABLED` marker added in Phase 2 has been removed by its phase;
+  - `ctest -N -L 'state|shading_parity|rib_parse'` and the run show **zero** "Not Run (Disabled)" tests attributable to this spec: every `DISABLED` marker added in Phase 2 has been removed by its phase. Confirm this from the actual output of the `ctest -L ...` run (its "Not Run (Disabled)" lines and summary), not from `ctest -N` alone.
+    - **The one test disabled before this spec**: `ShadingParity_IlluminationHookAllFalse` (label `shading_parity`) is `DISABLED` on master until GitHub #71 (`fix/jit-illumination-hook-false-if`, in progress) lands.
+    - If #71 is merged into master before Phase 8, run this task on the 025 tree **merged with master** (a scratch merge in a scratch worktree or build, never on the 025 branch), where that test is enabled, and require zero disabled.
+    - Otherwise list `ShadingParity_IlluminationHookAllFalse` as the **single known exception**, tied to #71, and require that it is the only "Not Run (Disabled)" line.
   - tick the checkboxes in this file.
 - [ ] T087 Linux validation package (quickstart §4). The agent has **no Linux access**: write it into validation.md §9 and hand it to the maintainer.
   - **Sync**: an rsync block from the worktree to the Linux checkout excluding `build*/` (quote hosts as `${H}:path`; memory `feedback_gcc13_werror_linux_validation.md`, `reference_zsh_host_colon_modifier.md`), plus a `sha256sum` manifest of every changed file at `specs/025-graphics-state-handles/tools/025-linux-manifest.sha256`.

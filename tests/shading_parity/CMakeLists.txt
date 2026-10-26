@@ -448,3 +448,32 @@ set_tests_properties(ShadingParity_ShaderParameterEquivalence PROPERTIES
     LABELS "shading_parity"
     ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};OSHADER_BIN=$<TARGET_FILE:oshader>"
 )
+
+# Spec 025 (graphics-state-handles), FR-007 part B and FR-005: the same oracle and binding sets
+# as part A, read directly from libshader::usedShaderParameters / findShaderParameter, and the
+# bxdf slot being ignored by both answers. Both include headers that do not exist yet
+# (libshader/shading/shaderParameters.h, CAttributes::bindBxdf), so they are red by build failure
+# and stay EXCLUDE_FROM_ALL + DISABLED until their phases enable them:
+#   ShadingParity_ShaderParameterEquivalenceDirect  task T026
+#   ShadingParity_ShaderParameterBxdfIgnored        task T056
+function(add_shader_parameter_test NAME EXE SOURCE)
+    add_executable(${EXE} EXCLUDE_FROM_ALL ${SOURCE})
+    target_link_libraries(${EXE} PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+    target_include_directories(${EXE} PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_BINARY_DIR}
+    )
+    target_compile_features(${EXE} PRIVATE cxx_std_20)
+    add_test(NAME ${NAME} COMMAND ${EXE})
+    set_tests_properties(${NAME} PROPERTIES
+        DISABLED TRUE
+        TIMEOUT 60
+        LABELS "shading_parity"
+        ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};OSHADER_BIN=$<TARGET_FILE:oshader>"
+    )
+endfunction()
+
+add_shader_parameter_test(ShadingParity_ShaderParameterEquivalenceDirect
+    test_shading_parity_shader_parameter_equivalence_direct test_shader_parameter_equivalence_direct.cpp)
+add_shader_parameter_test(ShadingParity_ShaderParameterBxdfIgnored
+    test_shading_parity_shader_parameter_bxdf_ignored test_shader_parameter_bxdf_ignored.cpp)
