@@ -253,30 +253,30 @@ red ones are shown red. **No file under `src/` changes in this phase**, apart fr
 
 **Independent test**: `ShadingParity_ShaderParameterEquivalence` (part A) and `…Direct` (part B) are green; every render is byte-identical.
 
-- [ ] T022 [US1] Create `src/ri/state/shaderParameterHooks.h` and `shaderParameterHooks.cpp` per contracts/shader-parameter-hooks.md:
+- [X] T022 [US1] Create `src/ri/state/shaderParameterHooks.h` and `shaderParameterHooks.cpp` per contracts/shader-parameter-hooks.md:
   - `struct SShaderParameterHooks { unsigned int (*usedParameters)(const CAttributes &); CVariable *(*findParameter)(const CAttributes &, const char *name); };`
   - `void installShaderParameterHooks(const SShaderParameterHooks *hooks);` (`nullptr` uninstalls) and `const SShaderParameterHooks *shaderParameterHooks();`
   - Forward declarations of `CAttributes` and `CVariable` only; no other include beyond `common/`. Installed and removed on one thread, with the renderer's lifetime.
   - Add `state/shaderParameterHooks.cpp` to `ri_sources` in `src/ri/CMakeLists.txt` (ribVector inherits it from `ri_sources`; ribOut does not compile `attributes.cpp`, so it does not need it), and append it to `state_only_sources` in `tests/unit/state/CMakeLists.txt`.
-- [ ] T023 [US2] Create `src/libshader/shading/shaderParameters.h` and `shaderParameters.cpp` (namespace `libshader`), moving the logic **verbatim** from `src/ri/state/attributes.cpp:397-452`:
+- [X] T023 [US2] Create `src/libshader/shading/shaderParameters.h` and `shaderParameters.cpp` (namespace `libshader`), moving the logic **verbatim** from `src/ri/state/attributes.cpp:397-452`:
   - `unsigned int usedShaderParameters(const CAttributes &)`: the OR of `requiredParameters()` over displacement, surface, atmosphere, interior, exterior and every light, `| PARAMETER_N` when no surface is bound;
   - `CVariable *findShaderParameter(const CAttributes &, const char *name)`: the first match in displacement, then surface, then atmosphere; `nullptr` otherwise;
   - `const SShaderParameterHooks &shaderParameterHooks()` returning `{ &usedShaderParameters, &findShaderParameter }`;
   - **the `bxdf` slot is not part of either answer** (FR-005); add a comment naming spec 035.
   - In this phase the slots are still raw pointers, so the code reads `attrs.surface` etc. directly (T039 converts it to accessors). Add the file to `src/libshader/shading/CMakeLists.txt`.
-- [ ] T024 [US1] In `src/ri/state/attributes.h` and `attributes.cpp`, make `checkParameters()` store `hooks ? hooks->usedParameters(*this) : 0` and `findParameter(name)` return `hooks ? hooks->findParameter(*this, name) : nullptr`, and delete the old bodies. Keep both as members so `pl.cpp`, `blobby.cpp` and `rib.y` are **not edited**. `usedParameters` stays a stored field. The recompute points stay exactly where they are (constructor, `addLight`, `removeLight`, `restore(shading)`, and the core's calls).
-- [ ] T025 [US1] In `src/ri/render/rendererShadingServices.cpp` call `installShaderParameterHooks(&libshader::shaderParameterHooks())` from `rendererShadingServicesInit()`, and `installShaderParameterHooks(nullptr)` from `rendererShadingServicesShutdown()`.
+- [X] T024 [US1] In `src/ri/state/attributes.h` and `attributes.cpp`, make `checkParameters()` store `hooks ? hooks->usedParameters(*this) : 0` and `findParameter(name)` return `hooks ? hooks->findParameter(*this, name) : nullptr`, and delete the old bodies. Keep both as members so `pl.cpp`, `blobby.cpp` and `rib.y` are **not edited**. `usedParameters` stays a stored field. The recompute points stay exactly where they are (constructor, `addLight`, `removeLight`, `restore(shading)`, and the core's calls).
+- [X] T025 [US1] In `src/ri/render/rendererShadingServices.cpp` call `installShaderParameterHooks(&libshader::shaderParameterHooks())` from `rendererShadingServicesInit()`, and `installShaderParameterHooks(nullptr)` from `rendererShadingServicesShutdown()`.
   - **Not** from `rendererDeclarations.cpp`: ribVector compiles that file and does not link `libshader_shading`.
   - Confirm the order: `rendererShadingServicesInit()` runs in `beginRenderer()` right after `initDeclarations()`, before `CRendererContext` creates its first `CAttributes` (`rendererContext.cpp:109,139`).
-- [ ] T026 [US2] Enable part B: remove `EXCLUDE_FROM_ALL` and `DISABLED` from the Direct test in `tests/shading_parity/CMakeLists.txt`.
-- [ ] T027 [US2] [RUN] CP-a. Then run `ShadingParity_ShaderParameterEquivalence` and `…Direct` (both green, 64 checks each).
+- [X] T026 [US2] Enable part B: remove `EXCLUDE_FROM_ALL` and `DISABLED` from the Direct test in `tests/shading_parity/CMakeLists.txt`.
+- [X] T027 [US2] [RUN] CP-a. Then run `ShadingParity_ShaderParameterEquivalence` and `…Direct` (both green, 64 checks each).
   - Mutation: in a scratch edit of `src/libshader/shading/shaderParameters.cpp` swap displacement/surface precedence, rebuild, and show **both** tests red (4 failures each). Revert and confirm `git diff` shows no residue.
   - Record in validation.md §3.
-- [ ] T028 [US1] [RUN] Guards that this phase must not move:
+- [X] T028 [US1] [RUN] Guards that this phase must not move:
   - libshader_shading flat-namespace imports still **7** (validation.md §0.7 command: `nm -m <libshader_shading dylib> | grep 'dynamically looked up'`);
   - `ctest -L architecture` unchanged: `ALLOWED DB-008 x 7`, no new line (the hook adds no include or link edge, and the Shading file includes only State headers);
   - `ribVector` and `ribOut` still build and link (they are part of CP-a).
-- [ ] T029 **Checkpoint 3 (PAUSE 3)**: CP-a, CP-b, CP-c and **CP-d** (byte-identical output). `State_LightOrder` still 4 of 9. Record in validation.md; stage; summarize; wait for review.
+- [X] T029 **Checkpoint 3 (PAUSE 3)**: CP-a, CP-b, CP-c and **CP-d** (byte-identical output). `State_LightOrder` still 4 of 9. Record in validation.md; stage; summarize; wait for review.
 
 ---
 

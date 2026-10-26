@@ -16,13 +16,17 @@ public:
     CDisplayChannel *declare(CVariable *variable);    // from an already-declared variable
     CDisplayChannel *retrieve(const char *name) const;// nullptr if not found
     void resetUsage();                                // sampleStart = -1 for every variable-backed channel
-    template <class F> void forEach(F &&) const;      // declaration order
+    template <class F> void forEach(F &&) const;      // declaration order; calls fn(channel)
 };
 
 void beginChannelRegistry();          // creates the session instance (initDeclarations)
 void endChannelRegistry();            // destroys it (shutdownDeclarations)
 CChannelRegistry *channelRegistry();  // nullptr outside a session
 ```
+
+**Shapes fixed by the approved `State_ChannelRegistry` (2026-10-26)**:
+- `retrieve()` returns a non-const `CDisplayChannel *`, although the method is const (the test sets `sampleStart` through it);
+- `forEach` calls `fn(channel)` once per channel in declaration order, where `channel` converts to `const CDisplayChannel *`.
 
 ### `declare(const char *)` is today's `CRenderer::declareDisplayChannel(const char *)` (`rendererDeclarations.cpp:534-570`), unchanged in behaviour
 

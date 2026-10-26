@@ -300,6 +300,30 @@ In a scratch edit of `src/ri/state/attributes.cpp` (`findParameter`: surface sea
 - **CP-b**: `ctest -LE determinism-sweep -j4`, 150 s: **791 registered: 785 passed, 1 failed (`State_LightOrder`), 4 disabled, 1 skipped.** The 785 are the 784 of §1.1 plus `RibOut_ShaderStatementOrder`. No known-flaky test was red. The `MaxBlockAvgDiff` table (`image_manifest.sh diffs` of the saved `LastTest.log`) equals `tools/baseline-diffs.txt`.
 - **CP-c**: `ctest -L architecture`: 21/21. `archcheck` report: `ALLOWED DB-001 x 8 DB-004 x 65 DB-005 x 8 DB-006 x 33 DB-008 x 7 DB-010 x 35 DB-011 x 173 DB-015 x 10 DB-017 x 78 DB-019 x 3 DB-021 x 1 DB-025 x 12 DB-026 x 3`, `METRIC TOTAL refs 721 (baseline 721) distinct 110 (baseline 110)`, `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`. With the option off no State-only object is required.
 
+## §3 Phase 3: the parameter hook (T022–T029), macOS
+
+**Change**: `CAttributes::checkParameters()` and `findParameter()` now forward to the hook State owns (`src/ri/state/shaderParameterHooks.{h,cpp}`); the logic moved verbatim to `libshader::usedShaderParameters` / `findShaderParameter` in `src/libshader/shading/shaderParameters.{h,cpp}`; `rendererShadingServicesInit()` installs `&libshader::shaderParameterHooks()` and `rendererShadingServicesShutdown()` removes it. `pl.cpp`, `blobby.cpp` and `rib.y` are not edited. The slots are still raw `CShaderInstance *`. The Direct test (part B) is enabled.
+
+### §3.1 Tests that turned green
+
+- `ShadingParity_ShaderParameterEquivalence` (part A): **64 passed, 0 failed**, unchanged.
+- `ShadingParity_ShaderParameterEquivalenceDirect` (part B): **69 passed, 0 failed** (part A's 64 cases, plus 5 checks on the published and the installed hook pointers).
+- **Mutation (T027)**: in a scratch edit of `src/libshader/shading/shaderParameters.cpp` (`findShaderParameter` searching surface before displacement), after a rebuild: part A **60 passed, 4 failed** and part B **65 passed, 4 failed**. Both go red on the same four cases. The edit was reverted by restoring the saved copy (`diff` empty).
+- Part A's "installation order" case (the fresh `RiBegin` block, before `RiWorldBegin`, answers `PARAMETER_N`) passes, so the hook is installed before the first `CAttributes` is built.
+
+### §3.2 Guards (T028)
+
+- **libshader_shading flat-namespace imports**: `nm -m libshader_shading.1.dylib | grep 'dynamically looked up'`: **7**, the same seven symbols as `tools/libshader-dynlookup-before-macos.txt` (`CPhotonMap::lookup`, `CTexture3d::resolve`, `CGatherBundle::CGatherBundle()`, `CShadingContext::trace` and `traceEx`, the `CTraceBundle` and `CTransmissionBundle` vtables).
+- **Architecture**: unchanged (§3.3). The hook adds no include or link edge from State; `shaderParameters.cpp` includes only State and Shading headers.
+- **ribVector and ribOut** build and link (part of CP-a).
+
+### §3.3 Checkpoint 3 (CP-a to CP-d)
+
+- **CP-a**: `cmake --build build-025 --config Release -j4`: clean under `-Werror`.
+- **CP-b**: `ctest -LE determinism-sweep -j4`: **791 registered**: 786 passed, 1 failed (`State_LightOrder`, 5 passed / 4 failed), 3 disabled (`ShadingParity_IlluminationHookAllFalse` before this spec, `ShadingParity_ShaderParameterBxdfIgnored`, `State_VocabularyConsistency`), 1 skipped (`LibShader_Format_rslo_lower_minor`, before this spec). The 786 are Phase 2's 785 plus `ShadingParity_ShaderParameterEquivalenceDirect`. No known-flaky test was red.
+- **CP-c**: `ctest -L architecture`: 21/21. Report: `ALLOWED DB-001 x 8 DB-004 x 65 DB-005 x 8 DB-006 x 33 DB-008 x 7 DB-010 x 35 DB-011 x 173 DB-015 x 10 DB-017 x 78 DB-019 x 3 DB-021 x 1 DB-025 x 12 DB-026 x 3`, `METRIC TOTAL refs 721 (baseline 721) distinct 110 (baseline 110)`, `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`, no `STALE` line.
+- **CP-d**: stamp, CP-b, then `image_manifest.sh diff tools/baseline-images.sha256 build-025 tools/baseline-image-noise.txt`: `manifest 729 images, fresh 729, noise-listed 0; 0 differing, 0 missing, 0 not in manifest`. The `MaxBlockAvgDiff` table (`image_manifest.sh diffs` of the saved `LastTest.log`) equals `tools/baseline-diffs.txt` for all 389 tests.
+
 ### Not yet measured
 
 Linux (GCC 13, `-Werror`) needs the maintainer's rsync + Maestri path; see quickstart §4.

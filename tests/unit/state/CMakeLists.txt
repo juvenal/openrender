@@ -48,7 +48,7 @@ if(OPENRENDER_STATE_ONLY_TESTS)
     configure_file(${CMAKE_SOURCE_DIR}/src/ri/core/ri_config.h
                    ${STATE_ONLY_INCLUDE_DIR}/ri_config.h COPYONLY)
 
-    # Later phases append shaderParameterHooks.cpp and channelRegistry.cpp.
+    # A later phase appends channelRegistry.cpp.
     add_library(state_only_sources STATIC EXCLUDE_FROM_ALL
         ${CMAKE_SOURCE_DIR}/src/ri/state/attributes.cpp
         ${CMAKE_SOURCE_DIR}/src/ri/state/options.cpp
@@ -56,6 +56,7 @@ if(OPENRENDER_STATE_ONLY_TESTS)
         ${CMAKE_SOURCE_DIR}/src/ri/state/xform.cpp
         ${CMAKE_SOURCE_DIR}/src/ri/state/displayChannel.cpp
         ${CMAKE_SOURCE_DIR}/src/ri/state/variableLookup.cpp
+        ${CMAKE_SOURCE_DIR}/src/ri/state/shaderParameterHooks.cpp
     )
     target_link_libraries(state_only_sources PUBLIC openrender_common_flags openrendercommon)
     target_compile_features(state_only_sources PUBLIC cxx_std_20)

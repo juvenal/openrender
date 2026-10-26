@@ -33,6 +33,7 @@
 #include "photonMap.h"
 #include "common/riVocabulary.h"
 #include "ri_config.h"
+#include "shaderParameterHooks.h"
 #include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////
@@ -391,31 +392,13 @@ void CAttributes::removeLight(CShaderInstance *light) {
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CAttributes
 // Method				:	lightParameterCheck
-// Description			:	Check the light parameters
+// Description			:	Re-compute the set of required shader parameters (through the installed hook)
 // Return Value			:	-
 // Comments				:
 void CAttributes::checkParameters() {
-    CActiveLight *cLight;
+    const SShaderParameterHooks *hooks = shaderParameterHooks();
 
-    usedParameters = 0;
-
-    if (displacement != NULL)
-        usedParameters |= displacement->requiredParameters();
-    if (surface != NULL)
-        usedParameters |= surface->requiredParameters();
-    if (atmosphere != NULL)
-        usedParameters |= atmosphere->requiredParameters();
-    if (interior != NULL)
-        usedParameters |= interior->requiredParameters();
-    if (exterior != NULL)
-        usedParameters |= exterior->requiredParameters();
-
-    if (surface == NULL)
-        usedParameters |= PARAMETER_N;
-
-    for (cLight = lightSources; cLight != NULL; cLight = cLight->next) {
-        usedParameters |= cLight->light->requiredParameters();
-    }
+    usedParameters = hooks != NULL ? hooks->usedParameters(*this) : 0;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -425,30 +408,9 @@ void CAttributes::checkParameters() {
 // Return Value			:	-
 // Comments				:
 CVariable *CAttributes::findParameter(const char *name) {
-    CVariable *cParameter;
+    const SShaderParameterHooks *hooks = shaderParameterHooks();
 
-    if (displacement) {
-        for (cParameter = displacement->parameters; cParameter != NULL; cParameter = cParameter->next) {
-            if (strcmp(cParameter->name, name) == 0)
-                return cParameter;
-        }
-    }
-
-    if (surface) {
-        for (cParameter = surface->parameters; cParameter != NULL; cParameter = cParameter->next) {
-            if (strcmp(cParameter->name, name) == 0)
-                return cParameter;
-        }
-    }
-
-    if (atmosphere) {
-        for (cParameter = atmosphere->parameters; cParameter != NULL; cParameter = cParameter->next) {
-            if (strcmp(cParameter->name, name) == 0)
-                return cParameter;
-        }
-    }
-
-    return NULL;
+    return hooks != NULL ? hooks->findParameter(*this, name) : NULL;
 }
 
 ///////////////////////////////////////////////////////////////////////

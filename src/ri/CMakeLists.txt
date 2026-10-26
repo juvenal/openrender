@@ -107,6 +107,7 @@ set(ri_sources
 	geometry/patches.cpp
 	geometry/patchgrid.cpp
 	state/pl.cpp
+	state/shaderParameterHooks.cpp
 	geometry/points.cpp
 	texture/pointCloud.cpp
 	texture/pointHierarchy.cpp

@@ -71,7 +71,7 @@ class CPatternTable {
 public:
     void define(const char *handle, ShaderGroupRef node); // replace in place or append
     const ShaderGroupRef *lookup(const char *handle) const;  // nullptr if not found; no diagnostic
-    template <class F> void forEach(F &&) const;             // definition order
+    template <class F> void forEach(F &&) const;             // definition order; calls fn(handle, node)
     int size() const;
 };
 ```
@@ -85,6 +85,7 @@ Behaviour:
 - **Not found (US4.3)**: an undefined handle gives `nullptr`, and State writes nothing.
 - **Lifetime (US4.4)**: a node bound into a slot stays alive through the slot's reference after
   its defining scope ends.
+- **Callback shape** (fixed by the approved `State_PatternTable`, 2026-10-26): `forEach` calls `fn(handle, node)` once per entry, where `handle` converts to `const std::string &` and `node` to `const ShaderGroupRef &`.
 - **Cost**: cloning a block shares the table (O(1)). Only `define` on shared storage copies it.
 
 ## Not in 025 (FR-012)
