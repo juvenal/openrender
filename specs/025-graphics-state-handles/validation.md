@@ -525,6 +525,8 @@ The third median is outside the §0.6 band, so SC-005 as worded is not met by a 
 
 At the same time and temperature the two are indistinguishable (the difference is within the spread), so the excess against the §0.6 band is machine drift, not a slowdown from this spec. The maintainer decides whether SC-005 needs a literal re-measurement on a cold machine.
 
+**Decision (maintainer, 2026-10-27): SC-005 is accepted as met.** The interleaved A/B above is the evidence: `Csg_Seam_spherecube_reyes_1600` at 4.27 s against the §0.6 band of 4.17–4.24 s is machine drift, because the same test measured back to back on this tree and on the master-equivalent build gives 4.31 s against 4.28 s. No cold-machine re-measurement is required.
+
 ### §8.4 Final macOS pass (T086)
 
 **On the 025 tree** (Phase 7's results, nothing changed in `src/` or the tests since): see §7.4 and §7.6: CP-a clean; full suite 796 registered, 794 passed, 0 failed, 1 disabled (`ShadingParity_IlluminationHookAllFalse`, disabled on this branch's base until #71 landed) and 1 skipped (`LibShader_Format_rslo_lower_minor`, before this spec); architecture 21/21; `^determinism$` 155/155; sweep 419/419; the manifest and the `MaxBlockAvgDiff` table equal the baseline.
@@ -607,4 +609,49 @@ Run the same commands in `${RB}` (a `build-base` directory, same configure optio
 
 ### §9.6 Results
 
-_Pending the maintainer's Linux run._
+**Run 2026-10-27** (maintainer-approved), over ssh on `ubuntu-2404-desktop` (Ubuntu 24.04, 2 cores, GCC 13.3, cmake 3.28, LLVM 18.1.3, JIT on). Every job ran through the remote `cpujob` at `-j2`; the two trees ran one after the other.
+
+**Trees.** Two fresh directories, never the existing checkout: `~/Projects/Development/CLI/openrender-025` (this worktree's tracked files, staged Phase 8 included; `git status` showed only the staged `validation.md`, no unstaged or untracked files) and `~/Projects/Development/CLI/openrender-025-base` (`git archive dfffba0`).
+- `sha256sum -c tools/025-linux-manifest.sha256`: 96 lines, 0 non-OK.
+- SHA-256 over every tracked file, Mac against Linux: 2927/2927 identical for the 025 tree (this file included: the staged version was synced), 2869/2869 for the base tree.
+
+**Build** (`-DCMAKE_BUILD_TYPE=Release -DINSTALL_SELFCONTAINED=OFF`, fresh `build-025`/`build-base`): both clean under `-Werror`, **0 warnings, 0 errors**. Nothing on the §9.5 watch list fired.
+
+| Run | 025 tree | Base tree (`dfffba0`) |
+|---|---|---|
+| `-L architecture` | 21/21 | 21/21 |
+| `-L state` | 7/7 | no tests (label new in 025) |
+| `-L shading_parity` | 30/30 | 27/27 |
+| `-LE determinism-sweep` | 796: 788 passed, 7 failed, 1 disabled, 1 skipped | 785: 777 passed, 7 failed, 1 disabled, 1 skipped |
+| `-L '^determinism$'` | 155/155 | 155/155 |
+| `-L '^determinism-sweep$'` | 419/419 | 419/419 |
+| affected (`-R affected-regex`) | 66/66 | 66/66 |
+
+Disabled: `ShadingParity_IlluminationHookAllFalse` (#71, as on macOS). Skipped: `LibShader_Format_rslo_lower_minor`.
+
+**Architecture (SC-001 on Linux).** The real-tree report is `RESULT PASS violations=0 stale=0` in both trees. The 025 tree's `ALLOWED` line has **no `DB-008`** (the base has `DB-008 x 7`), and `DB-021 x 1` is present. The other STALE/VIOLATION lines come from the archcheck fixtures, and they are the same in both trees.
+
+**Pass lists.** For `-LE determinism-sweep`, the 025 tree is the base plus exactly 11 tests: `State_ChannelRegistry`, `State_Isolation`, `State_LastBound`, `State_LightOrder`, `State_LightOrderRestore`, `State_PatternTable`, `State_VocabularyConsistency`, `ShadingParity_ShaderParameterEquivalence`, `ShadingParity_ShaderParameterEquivalenceDirect`, `ShadingParity_ShaderParameterBxdfIgnored` and `RibOut_ShaderStatementOrder`. No test passes on the base and not on 025. **`State_LightOrder` is green.** The sweep and `^determinism$` pass lists are identical.
+
+**Failures, all pre-existing on Linux.** The same 7 fail in both trees with identical signatures:
+- `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes` (pixel (99, 46) 0.875 against 0.9375)
+- `TextureTile_RenderByteIdentical`
+- `TextureTile_CacheByteIdentical`
+- `TextureTile_CacheDefaultDirectory`
+- `TextureTile_CacheStaleDetection`
+- `TextureTile_CacheConcurrentWrite` (all five TextureTile tests: orender aborts, or the output differs from the reference)
+- `LibShader_McompConsistency` (undefined `_ZTV19CTransmissionBundle` in `libshader_shading.so.1`)
+
+**No failure appears only in the 025 tree.**
+
+**FR-025 on Linux.** `image_manifest.sh diffs` over the affected run's `LastTest.log` gives 63 entries, **identical between the two trees** (`diff` empty). The full suite's 389 entries are identical too. Within each tree, the affected run and the full run agree for every affected test. `affected_diff_check.sh` against the macOS starting-tree column reports 6 platform differences, the same in both Linux trees, so they are not from this spec:
+- `Parity_blobby-tolerance-inherited-reyes-raytrace` 0.88 → 0.91
+- `Visual_blobby-repeller-shaping-raytrace` 2.25 → 2.27
+- `Visual_csg-open-quadric-caps-reyes` 5.17 → 5.34
+- `Visual_csg-open-quadric-caps-zbuffer` 4.08 → 4.16
+- `Visual_nupatch-vase-trimmed-multiloop` 3.17 → 3.19
+- `Visual_spotlight-raytrace` 6.70 → 19.92 (passes)
+
+**Imports.** `nm -u -D libshader_shading.so.1.0.0`: 466 undefined symbols in each tree, and the sets are identical.
+
+**Result: Linux is green for spec 025.** The only failures are the 7 pre-existing Linux ones, present identically on `dfffba0`. Logs: `build-025/logs/` and `build-base/logs/` in each remote tree (224M and 221M, kept).
