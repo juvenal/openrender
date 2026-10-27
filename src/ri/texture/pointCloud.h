@@ -30,8 +30,8 @@
 #include "common/containers.h"
 #include "common/global.h"
 #include "map.h"
-#include "options.h"
 #include "texture3d.h"
+#include "textureResolver.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CPointCloudPoint
@@ -144,7 +144,7 @@ class CPointCloud : public CTexture3d, public CMap<CPointCloudPoint> {
         static int drawDiscs;   // Which type to draw
         static int drawChannel; // Which channel to draw
 
-        friend void makeBrickMap(int n, const char **, const char *, TSearchpath *, int, const char **, const void **);
+        friend void makeBrickMap(int n, const char **, const char *, const CTextureFileResolver *, int, const char **, const void **);
 
         friend class CRemotePtCloudChannel;
 };

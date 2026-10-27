@@ -2827,11 +2827,11 @@ static bool computeTextureCacheFilePath(const char *sourcePath, std::string &cac
 //							-- the caller has already proceeded via the
 //							in-memory CSynthesizedTileSource path
 //							regardless.
-static void writeTextureCacheEntry(const char *sourcePath, const std::string &finalCachePath) {
+static void writeTextureCacheEntry(const char *sourcePath, const std::string &finalCachePath, const CTextureFileResolver *resolver) {
     char tempPath[OS_MAX_PATH_LENGTH];
     snprintf(tempPath, sizeof(tempPath), "%s.tmp%d", finalCachePath.c_str(), (int)getpid());
 
-    makeTexture(sourcePath, tempPath, CRenderer::texturePath, RI_PERIODIC, RI_PERIODIC, RiCatmullRomFilter, 3.0f, 3.0f, 0, NULL, NULL);
+    makeTexture(sourcePath, tempPath, resolver, RI_PERIODIC, RI_PERIODIC, RiCatmullRomFilter, 3.0f, 3.0f, 0, NULL, NULL);
 
     if (osFileExists(tempPath)) {
         rename(tempPath, finalCachePath.c_str());
@@ -2843,10 +2843,10 @@ static void writeTextureCacheEntry(const char *sourcePath, const std::string &fi
 // Description			:	Load a texture from disk
 // Return Value			:	Pointer to the new texture
 // Comments				:
-CTexture *CRenderer::textureLoad(const char *name, TSearchpath *path) {
+CTexture *CRenderer::textureLoad(const char *name, const CTextureFileResolver *resolver) {
     char fn[OS_MAX_PATH_LENGTH];
 
-    if (CRenderer::locateFile(fn, name, path) == FALSE) {
+    if (textureLocate(resolver, fn, name) == FALSE) {
         return NULL;
     }
 
@@ -2942,7 +2942,7 @@ CTexture *CRenderer::textureLoad(const char *name, TSearchpath *path) {
                     // Best-effort disk-cache write (T018) -- never fails
                     // or alters this render either way (FR-007); the
                     // in-memory path below proceeds regardless.
-                    writeTextureCacheEntry(fn, cachePath);
+                    writeTextureCacheEntry(fn, cachePath, resolver);
                 }
 
                 if (pyramid->bitsPerSample == 8) {
@@ -2970,10 +2970,10 @@ CTexture *CRenderer::textureLoad(const char *name, TSearchpath *path) {
 // Description			:	Load an environment from disk
 // Return Value			:	Pointer to the new environment
 // Comments				:
-CEnvironment *CRenderer::environmentLoad(const char *name, TSearchpath *path, float *toWorld) {
+CEnvironment *CRenderer::environmentLoad(const char *name, const CTextureFileResolver *resolver, float *toWorld) {
     char fileName[OS_MAX_PATH_LENGTH];
 
-    if (CRenderer::locateFile(fileName, name, path) == FALSE) {
+    if (textureLocate(resolver, fileName, name) == FALSE) {
         return NULL;
     }
 

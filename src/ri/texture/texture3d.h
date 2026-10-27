@@ -27,12 +27,12 @@
 #ifndef TEXTURE3D_H
 #define TEXTURE3D_H
 
+#include "common/algebra.h"
 #include "common/global.h"
 #include "common/os.h"
 #include "dataView.h"
 #include "common/fileResource.h"
 #include "common/rendererc.h"
-#include "xform.h"
 
 class CShadingContext;
 

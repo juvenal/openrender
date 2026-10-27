@@ -40,6 +40,7 @@
 #include "remoteChannel.h"
 #include "renderer.h"
 #include "rendererContext.h"
+#include "searchPathResolver.h"
 #include "shadeop.h"
 #include "texture.h"
 #include "texture3d.h"
@@ -442,7 +443,8 @@ CTexture *CRenderer::getTexture(const char *name) {
     if (frameFiles->find(name, tex) == FALSE) {
 
         // Load the texture
-        tex = textureLoad(name, texturePath);
+        CSearchPathResolver resolver(texturePath);
+        tex = textureLoad(name, &resolver);
 
         if (tex == NULL) {
             // Not found, substitude with a dummy one
@@ -471,7 +473,8 @@ CEnvironment *CRenderer::getEnvironment(const char *name) {
 
     if (frameFiles->find(name, tex) == FALSE) {
 
-        tex = environmentLoad(name, texturePath, toWorld);
+        CSearchPathResolver resolver(texturePath);
+        tex = environmentLoad(name, &resolver, toWorld);
 
         if (tex == NULL) {
             // Not found, substitude with a dummy one
@@ -643,11 +646,12 @@ CTextureInfoBase *CRenderer::getTextureInfo(const char *name) {
 
     if (frameFiles->find(name, tex) == FALSE) {
         // try environments first
-        tex = environmentLoad(name, texturePath, toWorld);
+        CSearchPathResolver resolver(texturePath);
+        tex = environmentLoad(name, &resolver, toWorld);
 
         if (tex == NULL) {
             // else try as textures
-            tex = textureLoad(name, texturePath);
+            tex = textureLoad(name, &resolver);
         }
 
         if (tex != NULL) {

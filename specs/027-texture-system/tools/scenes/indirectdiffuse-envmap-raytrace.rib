@@ -1,0 +1,23 @@
+##RenderMan RIB-Structure 1.0
+# Spec 027 (T030a, characterization): indirectdiffuse() with "environmentmap" (see
+# occlusion-envmap-raytrace.rib). numthreads 1.
+version 3.03
+Hider "raytrace"
+Option "shaderformat" "default" ["rslo"]
+Option "limits" "numthreads" [1]
+Display "indirectdiffuse-envmap-raytrace.tif" "file" "rgba"
+Format 48 48 1
+Projection "perspective"
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  LightSource "distantlight" 1 "intensity" [1] "from" [2 4 -2] "to" [0 0 0]
+  Surface "char_indirectdiffuse_probe" "envmap" ["env-source.tex"]
+  Sphere 1 -1 1 360
+  AttributeBegin
+    Attribute "visibility" "diffuse" [1]
+    Surface "matte"
+    Translate 1.2 0 -0.5
+    Sphere 0.9 -0.9 0.9 360
+  AttributeEnd
+WorldEnd

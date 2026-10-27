@@ -132,7 +132,7 @@ CTextureSystem *createTextureSystem(const CTextureSystemSettings &settings);
   Dimensions consumed are data-model §5's.
 - **No shading context**: no declaration in `textureSystem.h`, `textureResolver.h`, `texture.h` or `texture.cpp`
   names `CShadingContext`. The six-argument `CTexture3d::lookup` and its overrides keep it (FR-014, SC-005).
-- **Null resolver and `Info` misses**: a `nullptr` resolver given to a `make*` function or a loader means "no search path" (a name with a directory separator is used as given when the file exists; a bare name is not found). An `Info` request for a missing file returns `nullptr`, caches nothing (the next request locates again) and reports nothing.
+- **Null resolver and `Info` misses**: a `nullptr` resolver given to a `make*` function or a loader means "no search path": the name is used as given (a path, or relative to the working directory) when the file exists, and nothing else is searched (the core's `locateFile` also tries its temporary directory, which Texturing cannot know; `tests/preview/test_data_keys.cpp` passes a bare name and a null path and is found through the empty temporary path, i.e. the working directory, so the null branch keeps that). An `Info` request for a missing file returns `nullptr`, caches nothing (the next request locates again) and reports nothing.
 - **Lifetime**: constructed in `CRenderer::beginFrame()` where `initTextures()` ran, destroyed in `endFrame()`
   where `shutdownTextures()` ran. Destroying it frees every handle, texture, block and per-thread block.
 - **Not covered**: 3D textures, point clouds, brick maps, irradiance caches and photon maps (spec 032). Their

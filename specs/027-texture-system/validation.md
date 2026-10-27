@@ -230,7 +230,224 @@ JIT divergence (`jit_texture_divergence.sh`): **identical, line by line, to `too
 
 ## §2 Red evidence (phase 2)
 
-## §3–§9 Phase checkpoints
+No file under `src/` changed in this phase (`git diff --stat 4eb683b -- src` is empty). What changed: tests, test
+doubles, shaders (5 new), a RIB template, the characterization scenes and their scripts, CMake registrations,
+5 new shader references (below), one reference file (`rgbe-display.hdr`, T029). Every job ran through `cpujob`.
+
+### §2.1 Guard against a test that is red for the wrong reason (build failures)
+
+The red state of every `EXCLUDE_FROM_ALL` test is a build failure, which looks the same for a typo and for a
+missing API. So each new source was also compiled with `-fsyntax-only` and the project's `-Wall -Wextra
+-Wpedantic -Werror` against **stub headers written from the contracts** (`textureSystem.h`, `textureResolver.h`
+from contracts/texture-system.md; `rendererServices.h` with `textureSystem()` and the three 3D forwarders and
+without the three removed getters; `texmake.h`/`brickmap.h`/`pointCloud.h` taking `const CTextureFileResolver *`;
+a `textureCalls.h` declaring `texture3dAvailable`), in a scratch directory outside the worktree. All eight sources
+(T020, T022/T022a, T022b x2, T023, T026, T027) compile clean, with and without `-DNDEBUG` and
+`TEXTURE_SUBSTITUTE_HAVE_JIT`. So the first error of each real build below is the missing API, nothing else.
+
+### §2.2 T033: the six `EXCLUDE_FROM_ALL` executables fail to compile
+
+`cmake --build build-027 --target <t>` (CP-a with the option off is green: the main build is clean, exit 0):
+
+| Target | First error |
+|---|---|
+| `test_texture_system_concurrent_first_load` | `texture_system_test_doubles.h:13:10: fatal error: 'ri/texture/textureResolver.h' file not found` |
+| `test_texture_system_stream_cursor` | same header |
+| `test_texture_system_info_miss` | same header |
+| `test_texture_system_null_resolver` | `test_texture_system_null_resolver.cpp:24:10: fatal error: 'ri/texture/textureResolver.h' file not found` |
+| `test_texture_substitute` | `recording_texture_system.h:35:10: fatal error: 'ri/texture/textureSystem.h' file not found` |
+| `test_texture_substitute_3d` | same header |
+
+### §2.3 T034: `TextureOnly_Standalone` in a scratch build
+
+`build-027-red` (configured like `build-027` from its `CMakeCache.txt` plus `-DOPENRENDER_TEXTURE_ONLY_TESTS=ON`;
+deleted afterwards; no archcheck there). `make -k` of `texturing_only_sources` and the executable:
+- `texture.cpp`: `src/ri/texture/texture.h:30:10: fatal error: 'attributes.h' file not found`;
+- `texmake.cpp`: `src/ri/texture/texmake.h:32:10: fatal error: 'options.h' file not found`
+  (the two Graphics State headers Phase 4 takes out; `imageInput*.cpp` compile);
+- `test_texture_only_standalone.cpp:28:10: fatal error: 'ri/texture/textureResolver.h' file not found`.
+The library is named `texturing_only_sources` (as `state_only_sources`); tasks.md and research R15 now say so.
+
+### §2.4 T035: the T-J tests (the known-red set)
+
+`ctest -R 'ShadingParity_JitPL(_texture|_envshadow|Engaged_texture|Engaged_envshadow|DiagnosticsTexture)'`, run **three
+times** (`027-p2-tjb1..3`): identical result every time, **46 tests: 32 failed, 14 passed**. The 32 failing names
+are the known-red set, `tools/known-red-p2.txt`:
+- all **17 parity cases** `ShadingParity_JitPL_{texture_{base,blur,width,swidth_twidth,samples,filter},envshadow_{base,blur,width,samples,bias,filter,raytrace_{base,samples_cone,bias,maxdist,blur}}}`
+  (image difference: the JIT ignores the lists and requests a point lookup; even the two `base` scenes, which have
+  no list, differ);
+- **14 `_slo` engaged controls** (the JIT ignores the parameter, so base and case are identical);
+- `ShadingParity_JitPLDiagnosticsTexture` (the JIT reports none of the three "Unknown parameter" lines).
+The **14 `_rslo` engaged controls are green** (the interpreter honours the parameters): texture `blur`, `width`,
+`swidth_twidth`, `samples`, `filter`; envshadow `blur`, `width`, `samples`, `bias`, `filter` and the raytrace
+`samples_cone`, `bias`, `maxdist`, `blur` (five + five + four). No parity case passes on the starting tree, so there is
+no characterization case. `ShadingParity_JitPLDiagnostics` and every #55 `ShadingParity_JitPL*` case stay green
+(the `-L shading_parity` run's only failures are the known-red set).
+- **`fill` dropped** (both builtins): the only image-level way to see `fill` is a missing map; a failed open is a
+  CODE_NOFILE error that makes `orender` exit 65280 in both backends, so `test_render_compare` can never go green on
+  it, before or after Phase 9. A black-wrap texture does not help (the interpreter's `lookup4` returns 0, not
+  `fill`, outside [0,1]; only the point lookup, which the JIT uses, returns `fill`). Reason recorded in the table's
+  comment in `tests/visual/CMakeLists.txt`; `fill` is covered at the services boundary (T026's no-system cases and
+  the JIT's sentinel scratch). **Needs the maintainer's sign-off.**
+
+### §2.5 T036: how T-C1's red is shown
+
+(1) The build failure of T033 on the `BASE` tree (above); (2) at Phase 5's adapter step (T064) the assertion
+failure (more than one `locate()`, unequal handles), before the system's own lock lands. A test through the
+services on the starting tree would be green: the services' `shaderMutex` wrapper masks #20.
+
+### §2.6 Characterization tests (green on the starting tree by design)
+
+- `Display_RgbeBytes` (T028/T029): `tests/unit/image_input/rgbe-display.rib` (24x16, `-t:1`, 243 distinct pixel values, 9 exponents) rendered twice with the starting tree's `rgbe` driver gave identical bytes (1579 bytes);
+  saved as `tests/unit/image_input/fixtures/references/rgbe-display.hdr`; the test passes (**needs the maintainer's approval of the reference**).
+- The characterization scenes (T030a, `tools/scenes/`, `tools/characterization_scenes.sh`): `occlusion-` and
+  `indirectdiffuse-envmap-{reyes,raytrace}` and the point-hierarchy pair, each as `.rslo` and `.slo` (14 renders). Proven
+  to check something: with `"environmentmap" ""` instead of the map the four envmap images differ; the two
+  point-hierarchy scenes (`maxsolidangle` 0.05 against 1.5) render different images. Rendering twice gave identical
+  bytes (T035a noise re-check). Three new probe shaders were added for them (`char_*`).
+
+### §2.7 T035a: the re-recorded baseline
+
+No `src/` change since T010. The Phase 1 files are kept as `tools/baseline-images-p1.sha256`,
+`baseline-diffs-p1.txt`, `baseline-image-noise-p1.txt`. Order: stamp, the suite, `texture_tile`, the 18 JIT probes, the
+characterization scenes, `record`.
+- `tools/baseline-images.sha256`: **833 images** (779 before: + the T-J scene outputs `tests/visual/jit-texture/`, the characterization
+  scenes, `tests/shading_parity/cwd/*` outputs and the new tests' images); `tools/baseline-diffs.txt`: 389 tests with a `MaxBlockAvgDiff`
+  (unchanged count: the new image tests are `test_render_compare`, which prints none).
+- Suite: 885 registered; first run 33 failed (the 32 known-red and `ShaderCompilerImmutability`, see §2.8); `texture_tile` 9/9.
+- **Noise re-check** (stamp, suite, tile, probes, scenes a second time): the `MaxBlockAvgDiff` list is identical; the
+  only differing images are the JIT raytrace probes of §1.5 (3 of the 7 this time). **`tests/shading_parity/{ri,test}.tif` are stable
+  since T032a**, and the T-J `.slo` scene images and the characterization scenes are stable. `tools/baseline-image-noise.txt` now lists
+  **only the seven `.slo` raytrace probe images**; with it the diff is 833 images, 0 differing, 0 missing.
+- The Phase 1 manifest would list the two old `tests/shading_parity/{ri,test}.tif` paths as MISSING: expected, replaced by this baseline.
+
+### §2.8 T032a and the new shader references
+
+- `tests/shading_parity/CMakeLists.txt` gives every test of that directory its own `cwd/<test name>` working directory (nothing a test asserts changes:
+  the sources use absolute paths and `chdir` to their own `mkdtemp` directories). `ctest -L shading_parity`: the only failures are the known-red set.
+- **`ShaderCompilerImmutability` requires a reference `.rslo` for every shader in `shaders/`.** The five shaders this phase adds
+  (`jit_pl_texture_probe`, `jit_pl_envshadow_probe`, `char_occlusion_probe`, `char_indirectdiffuse_probe`, `char_bake_area`) had none, so it failed
+  ("MISS [no reference]"). Their references were established the way the test says (copied from its scratch output): five **new** files in
+  `tests/shaders/references/`; no existing reference changed. Needs the maintainer's approval like any reference.
+
+### §2.9 T037: DISABLED tests
+
+`ctest -R 'TextureSystem_|TextureOnly|ShadingParity_TextureSubstitute'` (only the nine disabled tests): all print `Not Run (Disabled)`, exit status 0.
+In the label run `-L 'texture_tile|shading_parity|image_input|texture_only'` ctest lists them as "(Disabled)" but counts 32 failures out of 134,
+and the failing set equals the known-red set; `Display_RgbeBytes` passes. (`TextureOnly_Standalone` does not exist with the option off.)
+
+### §2.10 Checkpoint 2 results (CP-a, CP-b, CP-c)
+
+- CP-a: `cmake --build build-027 --config Release -j4`: clean (exit 0).
+- CP-b (final run after the references were added): `ctest -LE determinism-sweep -j4`: **885 registered, 32 failed = exactly `known-red-p2.txt`**, 9 DISABLED not run;
+  `texture_tile` 9/9. A red test from the known-flaky set: none.
+- CP-c: `ctest -L architecture` 21/21; `ALLOWED DB-001 x 8 DB-004 x 65 DB-005 x 8 DB-006 x 33 DB-010 x 35 DB-011 x 173 DB-015 x 10 DB-017 x 78 DB-019 x 3 DB-021 x 1 DB-025 x 12 DB-026 x 3`;
+  `METRIC Texturing refs 70 distinct 16`, `TOTAL refs 721 distinct 110`; `RESULT PASS` (`tools/archcheck-p2-macos.txt`).
+
+### §2.12 Checkpoint 2 approval (maintainer, 2026-10-27)
+
+Approved: all Phase 2 tests, doubles and registrations, **including T032a's per-test working directories**; the known-red set of 32
+(`tools/known-red-p2.txt`); **the drop of the JIT `fill` cases** (decision recorded: `fill` stays covered by T026's no-system cases and the
+JIT sentinel scratch; reason in §2.4); and **the six new reference files**: the five shader compile references (`jit_pl_texture_probe`,
+`jit_pl_envshadow_probe`, `char_occlusion_probe`, `char_indirectdiffuse_probe`, `char_bake_area`) and
+`tests/unit/image_input/fixtures/references/rgbe-display.hdr`. The code-derived JIT pins of T026/T027 stand until T082, where any mismatch
+goes back to the maintainer (no pin is edited to match).
+
+### §2.11 Mutation plan (each at its green point, reverted, `git diff` clean)
+
+| Test | Green at | Mutation |
+|---|---|---|
+| `TextureSystem_NullResolver` | T050a | drop the null check in the resolver wrapper |
+| `TextureSystem_InfoMiss` | T063a | cache the `nullptr` of an Info miss |
+| `TextureSystem_ConcurrentFirstLoad` (+ ExternalMutex) | T064 / T071a | remove the lock (the earlier assertion failure is the proof); the re-entry death subtest runs once in a scratch Debug build (T071a b2) |
+| `TextureSystem_StreamCursor` | T081 | one extra `opt.stream.next()` in `CMadeTexture::lookup4` |
+| `ShadingParity_TextureSubstitute` | T082 | drop one field (`blur`) from `textureOptions()` |
+| `ShadingParity_TextureSubstituteHiderNoSystem` | T082 | make `lookupEnvironment()` call a null handle (no fill return) |
+| `ShadingParity_TextureSubstitute3D` | T089 | `texture3dResolve` path ignoring the returned size, or dropping `radius` |
+| `TextureOnly_Standalone` | T094 | perturb one lookup |
+| `Display_RgbeBytes` | T043 | change one codec byte |
+| `Common_StateOwnership` | T043 | keep `rgbe.cpp` in `ri_sources` |
+| T-J tests | red at T035 | two scratch mutations at Phase 9 (T106) |
+| characterization scenes | T080a / T088a | skip `commitTextureDraws()` (fallback: negate `D0`/return `fill`); wrong `maxSolidAngle` accessor |
+
+## §3 Phase 3: the RGBE codec (US4, FR-017, DB-026)
+
+**T039.** The 5 DB-026 lines and their section header (7 lines with the blank) are deleted from `tests/architecture/allowlist.txt`; nothing added.
+`ctest -L architecture`: **red, exactly 3 `VIOLATION`s on macOS**, all from `imageInputRgbe.cpp`:
+`RGBE_ReadHeader(__sFILE*, ...)` and `RGBE_ReadPixels(__sFILE*, ...)` links, and the `src/display/rgbe/rgbe.h` include (`Texturing -> Display`); `stale=0`.
+
+**T040.** The section `# --- Spec 027: the RGBE codec ---` with the six `RGBE_*` names was added to `tests/unit/common/owned-symbols.txt` before the move:
+`Common_StateOwnership` **red**: `NOT DEFINED RGBE_WriteHeader ... RGBE_ReadPixels_RLE (expected exactly one definer: libRIBCommon)`, "6 of 270 symbols are not defined once"
+(the names were still C++-mangled, and `ribRender`, `ribVector` and `rgbe` each defined the codec).
+
+**T041.** `git mv src/display/rgbe/rgbe.{h,cpp} src/common/` (body unchanged); the six declarations are wrapped in `extern "C"`; `rgbe.cpp` joined `openrendercommon_obj`;
+`../display/rgbe/rgbe.cpp` left `ri_sources`; `file.cpp`, `imageInputRgbe.cpp` and `rgbe.cpp` include `common/rgbe.h`; the stale comments in `imageInputRgbe.h`,
+`test_image_input_rgbe.cpp`, `FIXTURES.md` and `DEVNOTES.md` (the spec 018 note) now name the new location. `grep -rn 'display/rgbe/rgbe' src tests DEVNOTES.md CLAUDE.md` finds only
+the DB-026 evidence text in `DOMAIN_BOUNDARIES.md`. `dsply.h` and `src/display/rgbe/CMakeLists.txt` are untouched. The build is clean (`-Werror`).
+
+**T042.** `Common_StateOwnership`, `Display_RgbeBytes` (**same bytes as the starting tree's reference**), `ImageInput_Rgbe`, `Parity_{texture,unbaked}-rgbe` and the four
+`DeterminismSweep_parity-*-rgbe-*`: 9/9 green. `nm -gU`: the six `RGBE_*` names are defined in `libRIBCommon` only; `libRIBRender`, `libRIBVector` and `rgbe.dsply` define none.
+
+**T043 mutations** (each reverted; `git diff` of those files is clean):
+(a) `rgbe[3] = (unsigned char)(e + 129)` in `float2rgbe` (one byte the codec writes): `Display_RgbeBytes` **red** ("differ: char 47");
+(b) `../common/rgbe.cpp` put back into `ri_sources`: `Common_StateOwnership` **red** (4 definers: `libRIBRender`, `libRIBVector`, `test_common_crosslib_static`, `libRIBCommon`).
+
+**T044.** DB-026 moved to Resolved ("Resolved by spec 027 (`specs/027-texture-system/`), 2026-10-27"), tracking line `#33` only; evidence kept, where the codec lives now added. The file quotes no registry-wide allowlist total.
+
+**Checkpoint 3 (T045), macOS.**
+- CP-a: `cmake --build build-027 --config Release -j4`: clean.
+- CP-b: `ctest -LE determinism-sweep -j4`: 885 registered, **32 failed = exactly `tools/known-red-p2.txt`**; `texture_tile` 9/9.
+- CP-c: `ctest -L architecture` 21/21; `ALLOWED DB-001 x 8 DB-004 x 65 DB-005 x 8 DB-006 x 33 DB-010 x 35 DB-011 x 173 DB-015 x 10 DB-017 x 78 DB-019 x 3 DB-021 x 1 DB-025 x 12` (**no `DB-026`**, nothing added); Texturing 70/16, TOTAL 721/110; `RESULT PASS`, no `STALE`, no `VIOLATION`.
+- CP-d: after the suite, the probes and the characterization scenes, `image_manifest.sh diff` against the T035a baseline with the noise list (the seven `.slo` raytrace probes): **833 images, 0 differing, 0 missing**;
+  every `MaxBlockAvgDiff` equals `baseline-diffs.txt`; `jit_texture_divergence.sh`: 17 of the 18 rows equal `jit-texture-divergence-base-macos.tsv`, all seven `.slo` raytrace rows included except one
+  one-off: `unbaked-rgbe-raytrace` read 84.94 in the checkpoint run (baseline 74.11) and **74.11 in each of four immediate re-runs**. That probe is one of the unstable `.slo` raytrace renders
+  of §1.5 (the divergence is `.slo` against `.rslo`; the `.slo` side moves), and its `.rslo` side and every other RGBE row (`texture-rgbe` both hiders, `unbaked-rgbe-reyes`) are unchanged, so it is the known
+  noise, not an effect of the codec move.
+  The maintainer approved this reading at Checkpoint 3 (2026-10-27): the one-off 84.94 is the known `.slo` raytrace noise.
+
+## §4 Phase 4: file search through a resolver, State includes dropped (US1, FR-007, FR-019)
+
+**T046.** The 13 DB-010 lines of the contract's phase-4 table were deleted by key (22 DB-010 lines left, nothing else touched).
+`ctest -L architecture`: **red, exactly 13 `VIOLATION`s**, all under `src/ri/texture`: includes `brickmap.cpp` and `texmake.cpp` -> `renderer.h`,
+`texmake.h` -> `renderer.h` and `options.h`, `brickmap.h`, `pointCloud.h`, `pointHierarchy.h` -> `options.h`, `texture.h` -> `attributes.h`,
+`texture3d.h` -> `xform.h`; links `brickmap.cpp`, `texmake.cpp`, `texture.cpp` -> `CRenderer::locateFile`, `texture.cpp` -> `CRenderer::texturePath`
+(`stale=0`; `failing-cycles=1` is the consequence).
+
+**T047-T053.**
+- `src/ri/texture/textureResolver.h`: `CTextureFileResolver` (includes only `common/`), plus the inline `textureLocate(resolver, result, name)`, which
+  calls the resolver, or, for a `nullptr` resolver, uses the name as given when the file exists (below).
+- `src/ri/render/searchPathResolver.h` and `CSearchPathResolver::locate()` in `rendererFileSearch.cpp` (compiled into `ribRender` and `ribVector`): `CRenderer::locateFile(result, name, path)`.
+- `makeTexture`, `makeSideEnvironment`, `makeCubicEnvironment`, `makeSphericalEnvironment`, `makeCylindericalEnvironment`, `makeBrickMap` (and `pointCloud.h`'s friend declaration) take `const CTextureFileResolver *`;
+  `CRenderer::textureLoad`/`environmentLoad` and `writeTextureCacheEntry` take it too (the disk-cache writer passes it to `makeTexture`).
+- `rendererFiles.cpp` (`getTexture`, `getEnvironment`, `getTextureInfo`) and the six `RiMake*V` functions in `rendererContext.cpp` build a `CSearchPathResolver` on the stack over the texture path.
+  No other caller of the `make*` functions exists in `src` (the preview test calls `makeBrickMap` with `NULL`).
+- Dropped: `attributes.h` from `texture.h`, `xform.h` from `texture3d.h`, `options.h` from `pointHierarchy.h`, `brickmap.h`, `pointCloud.h`, `texmake.h`; `renderer.h` from `texmake.{h,cpp}` and `brickmap.cpp`.
+
+**T054 sweep.** The only includes the tree needed were infrastructure: `common/algebra.h` added to `texture3d.h` and `texmake.cpp` (the dropped State headers had pulled in `matrix` and the vector macros).
+No Shading, Hiders, Graphics State or core header was needed. Clean build under `-Werror` (`ribVector`, `ribOut`, the preview and the tests included).
+
+**T050a: null resolver; two corrections to the plan.**
+- The plan said no caller relies on the core's temporary-directory fallback and that `tests/preview/test_data_keys.cpp` passes a path with a separator. **Wrong**: it passes the bare name
+  `test_data_keys_scratch.ptc` with a NULL path, and `locateFile` finds it through `temporaryPath` (empty in that process, i.e. the working directory). The first version of the null branch
+  ("a bare name is not found") turned `test_data_keys` red. The null branch now uses the name **as given** when the file exists (a path, or relative to the working directory); nothing else is searched.
+  contracts/texture-system.md and T050a say so. `test_data_keys` passes unchanged.
+- `TextureSystem_NullResolver` enabled (`ENABLED` keyword of `add_texture_system_test`) and green with `test_data_keys`, `PointCloud` and `data` tests. **Two setup fixes to the approved test** (no assertion changed):
+  (1) `globalArena.init()`/`tini()` around the calls: `makeTexture` reads its source into the process-wide arena (`arenaBegin(globalArena)`), which crashed with no `RiBegin` (the same line was added to
+  `TextureSystem_StreamCursor`, which builds maps through the `make*` functions); (2) one throwaway `makeTexture` before the two compared bakes: **the first `makeTexture` of a process writes a different, smaller file
+  than every later one** (1878 against 2142 bytes for `tiny_rgb8.png`), independent of the resolver (process state, present on the starting tree); the comparison needs both bakes in the steady state.
+  The difference is reported, not fixed (behaviour-preserving phase).
+- **Mutation**: `textureLocate` dereferencing the resolver without the null check: `TextureSystem_NullResolver` **and** `test_data_keys` red (segfault). Reverted.
+
+**T055.** `grep '#include ".*\(renderer\|options\|attributes\|xform\)\.h"' src/ri/texture` finds only `texture.cpp` (until Phase 5) and `texture3d.cpp` (FR-015).
+
+**Checkpoint 4 (T056), macOS.**
+- CP-a: clean build. CP-b: 886 registered, **32 failed = exactly `tools/known-red-p2.txt`**; `texture_tile` 10/10 (the nine plus `TextureSystem_NullResolver`).
+- CP-c: `ctest -L architecture` 21/21, `RESULT PASS`, no `STALE`, no `VIOLATION`; `ALLOWED DB-010 x 22` (13 gone, nothing added), the other IDs unchanged;
+  `METRIC Texturing refs 60 distinct 14` (baseline 70/16: `locateFile` 9 and `texturePath` 1 left), `TOTAL 711 / 110` (the baseline file is lowered by T114).
+- CP-d: 833 images, 0 differing, 0 missing against the T035a baseline (noise list: the seven `.slo` raytrace probes); every `MaxBlockAvgDiff` equals `baseline-diffs.txt`;
+  `jit_texture_divergence.sh` (absolute output path): **all 18 rows equal** `jit-texture-divergence-base-macos.tsv`, the seven `.slo` raytrace rows included.
+
+## §5–§9 Phase checkpoints
 
 ## §10 Linux
 

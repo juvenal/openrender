@@ -188,3 +188,66 @@ set_tests_properties(TextureTile_CacheConcurrentWrite PROPERTIES
     LABELS "texture_tile;unit"
     ENVIRONMENT "${TEXTURE_TILE_ENV}"
     DEPENDS orender)
+
+# ---------------------------------------------------------------------------
+# Texture system tests (spec 027, Phase 2: written first, red until their API exists)
+# ---------------------------------------------------------------------------
+# Every test below needs an API that does not exist yet (ri/texture/textureSystem.h from Phase 5,
+# ri/texture/textureResolver.h from Phase 4), so each executable is EXCLUDE_FROM_ALL and each test
+# DISABLED: the main build and every checkpoint stay green, and the red state is the executable's
+# build failure (`cmake --build build-027 --target <exe>`, recorded by T033 in validation.md).
+# The task that provides the API removes both markers and builds the test green:
+#   TextureSystem_NullResolver                      T050a (Phase 4)
+#   TextureSystem_InfoMiss                          T063a (Phase 5)
+#   TextureSystem_ConcurrentFirstLoad               T064  (Phase 5, red by assertion first)
+#   TextureSystem_ConcurrentFirstLoadExternalMutex  T071a (Phase 6)
+#   TextureSystem_StreamCursor                      T081  (Phase 6)
+# The tests do not use a renderer: no RiBegin, no frame; they link ribRender like TileSource_TiffInfo.
+# ENABLED: the API exists, so the executable is part of `all` and the test runs (the enabling task passes it).
+function(add_texture_system_test NAME EXE SOURCE)
+    cmake_parse_arguments(ARG "ENABLED" "" "" ${ARGN})
+    if(ARG_ENABLED)
+        add_executable(${EXE} ${SOURCE})
+    else()
+        add_executable(${EXE} EXCLUDE_FROM_ALL ${SOURCE})
+    endif()
+    target_compile_features(${EXE} PRIVATE cxx_std_20)
+    target_include_directories(${EXE} PRIVATE ${TEXTURE_TILE_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(${EXE} PRIVATE ribRender openrendercommon TIFF::TIFF PNG::PNG)
+    add_test(NAME ${NAME} COMMAND ${EXE} ${ARG_UNPARSED_ARGUMENTS})
+    set_tests_properties(${NAME} PROPERTIES
+        TIMEOUT 120
+        LABELS "texture_tile;unit"
+        ENVIRONMENT "TEXTURE_TILE_FIXTURES_DIR=${TEXTURE_TILE_FIXTURES_DIR};IMAGE_INPUT_FIXTURES_DIR=${CMAKE_SOURCE_DIR}/tests/unit/image_input/fixtures")
+    if(NOT ARG_ENABLED)
+        set_tests_properties(${NAME} PROPERTIES DISABLED TRUE)
+    endif()
+endfunction()
+
+# T-C1 (T022, T022a): one executable, two entries selected by the argument. Run at -j2 (4 threads x 200 repeats).
+add_texture_system_test(TextureSystem_ConcurrentFirstLoad test_texture_system_concurrent_first_load
+    test_texture_system_concurrent_first_load.cpp)
+add_test(NAME TextureSystem_ConcurrentFirstLoadExternalMutex
+    COMMAND test_texture_system_concurrent_first_load external-mutex)
+set_tests_properties(TextureSystem_ConcurrentFirstLoadExternalMutex PROPERTIES
+    TIMEOUT 120
+    LABELS "texture_tile;unit"
+    DISABLED TRUE
+    ENVIRONMENT "TEXTURE_TILE_FIXTURES_DIR=${TEXTURE_TILE_FIXTURES_DIR}")
+
+# T022b: two small executables (NullResolver needs textureResolver.h only; InfoMiss needs textureSystem.h)
+add_texture_system_test(TextureSystem_NullResolver test_texture_system_null_resolver
+    test_texture_system_null_resolver.cpp ENABLED) # enabled by T050a (Phase 4): textureResolver.h exists
+add_texture_system_test(TextureSystem_InfoMiss test_texture_system_info_miss
+    test_texture_system_info_miss.cpp)
+
+# T-K1 (T023): dimensions consumed per lookup class; renders the deep shadow fixture with orender
+add_texture_system_test(TextureSystem_StreamCursor test_texture_system_stream_cursor
+    test_texture_system_stream_cursor.cpp
+    ${TEXTURE_TILE_FIXTURES_DIR}
+    ${CMAKE_SOURCE_DIR}/tests/unit/image_input/fixtures
+    ${CMAKE_SOURCE_DIR}/examples/rib/tests
+    ${CMAKE_CURRENT_SOURCE_DIR}/deep-shadow-fixture.rib)
+add_dependencies(test_texture_system_stream_cursor orender)
+set_tests_properties(TextureSystem_StreamCursor PROPERTIES
+    ENVIRONMENT "${TEXTURE_TILE_ENV};ORENDER_BIN=$<TARGET_FILE:orender>")

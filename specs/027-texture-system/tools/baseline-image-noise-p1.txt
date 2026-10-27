@@ -1,0 +1,22 @@
+# Images excluded from the CP-d byte comparison (image_manifest.sh diff), one path per line.
+# Written by T011 from run-to-run differences on the unchanged tree (BASE). A path listed
+# here still needs its MaxBlockAvgDiff to match baseline-diffs.txt (the suite images), and
+# is still compared by eye / statistically where a task says so.
+#
+# 1. The JIT texture probes of the raytrace hider (jit_texture_probes.sh): on BASE the
+#    .slo + raytrace renders of the texture/unbaked scenes are NOT run-to-run stable at -t:1
+#    (4 runs: 4, 6 and 0..7 of these 7 images differ; each of the 7 differed at least once).
+#    The .slo + reyes renders and env/shadow in both hiders are stable. Cause not investigated
+#    here (likely the JIT's texture options are read from scratch the JIT never fills in, the
+#    defect Phase 9 removes); listed so CP-d does not report a difference that has no meaning.
+tests/jit-texture-probes/texture-png-raytrace/texture-png-raytrace.tif
+tests/jit-texture-probes/texture-exr-raytrace/texture-exr-raytrace.tif
+tests/jit-texture-probes/texture-rgbe-raytrace/texture-rgbe-raytrace.tif
+tests/jit-texture-probes/unbaked-png-raytrace/unbaked-png-raytrace.tif
+tests/jit-texture-probes/unbaked-nonpot-raytrace/unbaked-nonpot-raytrace.tif
+tests/jit-texture-probes/unbaked-exr-raytrace/unbaked-exr-raytrace.tif
+tests/jit-texture-probes/unbaked-rgbe-raytrace/unbaked-rgbe-raytrace.tif
+#
+# 2. Written by more than one test into one working directory, last writer wins under -j4.
+tests/shading_parity/ri.tif
+tests/shading_parity/test.tif

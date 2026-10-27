@@ -1,0 +1,28 @@
+#!version 2.0.0
+#!name "char_bake_area"
+surface
+#!parameters:
+uniform	string	filename	=	""
+#!variables:
+varying	vector	Nn
+varying	float	a
+varying	float	ok
+varying	vector	temporary_0
+varying	vector	temporary_1
+varying	float	temporary_2
+varying	float	temporary_3
+varying	vector	temporary_4
+#!Init:
+	return            
+#!Code:
+	normalize	("v=v")  Nn N
+	area	("f=pS")  a P "dicing"
+	bake3d	("f=SSpnSfsf")  ok filename "_area" P Nn "interpolate" 1 "_area" a
+	mulvv  temporary_0 Cs Os
+	normalize	("v=v")  temporary_4 I
+	dot  temporary_3 temporary_4 Nn
+	abs	("f=f")  temporary_2 temporary_3
+	vfromf  temporary_1 temporary_2
+	mulvv  Ci temporary_0 temporary_1
+	movevv  Oi Os
+	return

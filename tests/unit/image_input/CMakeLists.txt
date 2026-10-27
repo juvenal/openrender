@@ -77,3 +77,17 @@ add_test(NAME ImageInput_Errors COMMAND test_image_input_errors)
 set_tests_properties(ImageInput_Errors PROPERTIES TIMEOUT 30 LABELS "image_input;unit"
     ENVIRONMENT "IMAGE_INPUT_FIXTURES_DIR=${IMAGE_INPUT_FIXTURES_DIR}")
 
+
+# Display_RgbeBytes (spec 027, T-D1, T028, FR-017, SC-009): the bytes the `rgbe` display driver writes
+# for a small deterministic scene, against a reference recorded from the STARTING tree's driver
+# (T029). A characterization test: green on the starting tree by design; Phase 3 (one RGBE codec)
+# must not change a byte.
+add_test(NAME Display_RgbeBytes
+    COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/test_rgbe_display_bytes.sh
+        $<TARGET_FILE:orender>
+        ${CMAKE_CURRENT_SOURCE_DIR}/rgbe-display.rib
+        ${IMAGE_INPUT_FIXTURES_DIR}/references/rgbe-display.hdr)
+set_tests_properties(Display_RgbeBytes PROPERTIES
+    TIMEOUT 60
+    LABELS "image_input;unit"
+    ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_BINARY_DIR}/tests/visual/_home;DISPLAYS=$<TARGET_FILE_DIR:rgbe>")

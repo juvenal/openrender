@@ -48,11 +48,12 @@
   unconditionally, even one with an otherwise-valid single usable part)
   with RGB/RGBA/luminance channels only (`HALF` promoted to float on
   decode); PNG sources reject indexed/palette. `CRgbeImageInput` revives
-  `RGBE_ReadHeader`/`RGBE_ReadPixels` (`src/display/rgbe/rgbe.cpp`),
+  `RGBE_ReadHeader`/`RGBE_ReadPixels` (`src/common/rgbe.cpp`),
   previously fully implemented but dead code with zero call sites.
-  `display/rgbe/rgbe.cpp` is now also compiled directly into
-  `ribRender`/`ribVector` (previously only the `rgbe.dsply` display
-  module linked it). `HAVE_OPENEXR` is threaded into `src/ri` for the
+  The codec was first compiled directly into `ribRender`/`ribVector`
+  (previously only the `rgbe.dsply` display module linked it); spec 027
+  moved it to `src/common/rgbe.{h,cpp}` (`extern "C"`, one definer in
+  `libRIBCommon`). `HAVE_OPENEXR` is threaded into `src/ri` for the
   first time, gated per-target so `ribVector` (orender-wire's
   lightweight preview library) gains no new OpenEXR dependency even
   though it compiles `texmake.cpp` too. TIFF-source bakes verified

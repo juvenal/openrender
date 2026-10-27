@@ -1,11 +1,13 @@
 # Images excluded from the CP-d byte comparison (image_manifest.sh diff), one path per line.
-# Written by T011 from run-to-run differences on the unchanged tree (BASE). A path listed
+# Written by T011 from run-to-run differences on the unchanged tree (BASE), re-checked by T035a on the
+# re-recorded baseline: the two tests/shading_parity files that used to be listed here are stable since T032a
+# gave each shading_parity test its own working directory, so what is left is the seven probes below. A path listed
 # here still needs its MaxBlockAvgDiff to match baseline-diffs.txt (the suite images), and
 # is still compared by eye / statistically where a task says so.
 #
 # 1. The JIT texture probes of the raytrace hider (jit_texture_probes.sh): on BASE the
 #    .slo + raytrace renders of the texture/unbaked scenes are NOT run-to-run stable at -t:1
-#    (4 runs: 4, 6 and 0..7 of these 7 images differ; each of the 7 differed at least once).
+#    (4 runs: 4, 6 and 0..7 of these 7 images differ; each of the 7 differed at least once; the T035a re-check saw 3).
 #    The .slo + reyes renders and env/shadow in both hiders are stable. Cause not investigated
 #    here (likely the JIT's texture options are read from scratch the JIT never fills in, the
 #    defect Phase 9 removes); listed so CP-d does not report a difference that has no meaning.
@@ -17,6 +19,6 @@ tests/jit-texture-probes/unbaked-nonpot-raytrace/unbaked-nonpot-raytrace.tif
 tests/jit-texture-probes/unbaked-exr-raytrace/unbaked-exr-raytrace.tif
 tests/jit-texture-probes/unbaked-rgbe-raytrace/unbaked-rgbe-raytrace.tif
 #
-# 2. Written by more than one test into one working directory, last writer wins under -j4.
-tests/shading_parity/ri.tif
-tests/shading_parity/test.tif
+# Phase 9 (T107a, maintainer 2026-10-27) must make these seven run-to-run bit-stable and equal to their .rslo
+# renders; they then leave this list. Until then they are compared by MaxBlockAvgDiff (CP-d runs
+# jit_texture_divergence.sh against jit-texture-divergence-base-macos.tsv).

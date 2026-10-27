@@ -51,6 +51,10 @@ typedef struct {
 
 /* read or write headers */
 /* you may set rgbe_header_info to null if you want to */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int RGBE_WriteHeader(FILE *fp, int width, int height, rgbe_header_info *info);
 int RGBE_ReadHeader(FILE *fp, int *width, int *height, rgbe_header_info *info);
 
@@ -63,5 +67,9 @@ int RGBE_ReadPixels(FILE *fp, float *data, int numpixels);
 /* must be called to read or write whole scanlines */
 int RGBE_WritePixels_RLE(FILE *fp, float *data, int scanline_width, int num_scanlines);
 int RGBE_ReadPixels_RLE(FILE *fp, float *data, int scanline_width, int num_scanlines);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _H_RGBE */

@@ -21,7 +21,7 @@
  * WHILE THE AUTHORS HAVE TRIED TO ENSURE THE PROGRAM WORKS CORRECTLY,
  * IT IS STRICTLY USE AT YOUR OWN RISK.  */
 
-#include "rgbe.h"
+#include "common/rgbe.h"
 #include "common/global.h"
 #include "common/os.h"
 

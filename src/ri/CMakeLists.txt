@@ -64,7 +64,6 @@ set(ri_sources
 	texture/imageInputPng.cpp
 	texture/imageInputRgbe.cpp
 	texture/imageInputTiff.cpp
-	../display/rgbe/rgbe.cpp
 	hiders/bundles.cpp
 	hiders/compositor.cpp
 	geometry/curves.cpp

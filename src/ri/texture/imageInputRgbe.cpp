@@ -25,7 +25,7 @@
 #include "imageInputRgbe.h"
 #include "common/diagnostics.h"
 
-#include "display/rgbe/rgbe.h"
+#include "common/rgbe.h"
 
 #include <string.h>
 

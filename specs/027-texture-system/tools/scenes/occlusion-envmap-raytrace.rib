@@ -1,0 +1,25 @@
+##RenderMan RIB-Structure 1.0
+# Spec 027 (T030a, characterization): occlusion() with "environmentmap", so the hider's
+# lookupEnvironment() call (irradianceDispatch.cpp, the two tex->lookup(..., context) sites) and
+# occlusionParams.environment are exercised: rays that escape read the environment. numthreads 1.
+# Modelled on examples/rib/tests/sphere-occlusion-reyes.rib. The reference is the starting tree's
+# hash (T035a); this is not a committed reference image.
+version 3.03
+Hider "raytrace"
+Option "shaderformat" "default" ["rslo"]
+Option "limits" "numthreads" [1]
+Display "occlusion-envmap-raytrace.tif" "file" "rgba"
+Format 48 48 1
+Projection "perspective"
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Surface "char_occlusion_probe" "envmap" ["env-source.tex"]
+  Sphere 1 -1 1 360
+  AttributeBegin
+    Attribute "visibility" "diffuse" [1]
+    Surface "matte"
+    Translate 1.2 0 -0.5
+    Sphere 0.9 -0.9 0.9 360
+  AttributeEnd
+WorldEnd

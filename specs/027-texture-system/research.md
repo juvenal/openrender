@@ -359,7 +359,7 @@ inline `next()`, `next2()`, `next4()` that call `openrender::sampling::get1D(bac
   `texture3d.h` derives `CTexture3d` from the data viewer's `CDataView` (DB-025, 032's) and `texture3d.cpp`
   reaches the channel registry through `CRenderer::retrieveDisplayChannel` (DB-021, FR-015). US1 AS4 already
   excepts those edges; the program covers the 2D family.
-- **Target**: `texturing_only` (static library of those sources compiled a second time with a narrow include
+- **Target**: `texturing_only_sources` (static library of those sources compiled a second time with a narrow include
   path: `src`, `src/ri/texture`, `src/common`, a staged copy of `src/ri/core/ri_config.h`, the build's
   `config.h`; never `src/ri/state`, `src/ri/render`, `src/ri/core` or `src/libshader`), linking only
   `openrendercommon`, libtiff, libpng, zlib and OpenEXR when present. Executable `TextureOnly_Standalone` (label

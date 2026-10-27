@@ -90,6 +90,7 @@ class CTriangle;
 class CMovingTriangle;
 class CTexture;
 class CEnvironment;
+class CTextureFileResolver;
 class CSurface;
 class CPhotonMap;
 class CNamedCoordinateSystem;
@@ -281,8 +282,8 @@ class CRenderer {
         static int locateFile(char *, const char *, TSearchpath *search = NULL, int tryNormalize = FALSE);
 
         static void initTextures(int);                                                                                         // Set the maximum texture memory and init texturing
-        static CTexture *textureLoad(const char *, TSearchpath *);                                                             // Load a new texture map
-        static CEnvironment *environmentLoad(const char *, TSearchpath *, float *);                                            // Load a new environment map
+        static CTexture *textureLoad(const char *, const CTextureFileResolver *);                                                             // Load a new texture map
+        static CEnvironment *environmentLoad(const char *, const CTextureFileResolver *, float *);                                            // Load a new environment map
         static CTexture *getTexture(const char *);                                                                             // Load a texture
         static CEnvironment *getEnvironment(const char *);                                                                     // Load an environment
         static CPhotonMap *getPhotonMap(const char *);                                                                         // Load a photon map

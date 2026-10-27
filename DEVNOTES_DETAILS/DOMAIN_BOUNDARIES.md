@@ -478,18 +478,6 @@ request. Run `ctest -L architecture` locally before review.
 - **Direction**: the data viewer reads the GI and texture data through adapters it owns
   (spec 032's `CDataView` adapters), so the domains no longer know it exists.
 
-### DB-026 — Texturing uses the RGBE codec in Display Outputs
-
-- **Rules**: the allowed-dependency table (Texturing depends on nothing).
-- **Tracking**: remediation spec 027 ([#33](https://github.com/juvenal/openrender/issues/33))
-- **Evidence**: spec 018's RGBE decoder, `src/ri/texture/imageInputRgbe.cpp`, includes
-  `src/display/rgbe/rgbe.h` and calls `RGBE_ReadHeader`/`RGBE_ReadPixels`, which are defined in
-  the Display Outputs domain. Found by the check; not one of the audit's V1–V21.
-- **Size**: 3 edges per platform (1 include, 2 link). `FILE*` mangles as `__sFILE` on macOS and
-  `_IO_FILE` on glibc, so the 2 link edges are listed once per platform, tagged (5 allowlist lines).
-- **Direction**: move the RGBE codec into infrastructure (`src/common`), shared by the display
-  driver and the texture decoder.
-
 ## Resolved
 
 ### DB-002 — No automated domain-dependency check in CI
@@ -652,3 +640,26 @@ request. Run `ctest -L architecture` locally before review.
     them); no 8-bit image and no `MaxBlockAvgDiff` changed;
   - `State_Isolation`, `State_LastBound`, `State_PatternTable`, `State_ChannelRegistry`,
     `State_LightOrder`, `State_LightOrderRestore` and `State_VocabularyConsistency` guard it.
+
+### DB-026 — Texturing uses the RGBE codec in Display Outputs
+
+- **Rules**: the allowed-dependency table (Texturing depends on nothing).
+- **Tracking**: [#33](https://github.com/juvenal/openrender/issues/33)
+- **Evidence**: spec 018's RGBE decoder, `src/ri/texture/imageInputRgbe.cpp`, includes
+  `src/display/rgbe/rgbe.h` and calls `RGBE_ReadHeader`/`RGBE_ReadPixels`, which are defined in
+  the Display Outputs domain. Found by the check; not one of the audit's V1–V21.
+- **Size**: 3 edges per platform (1 include, 2 link). `FILE*` mangles as `__sFILE` on macOS and
+  `_IO_FILE` on glibc, so the 2 link edges are listed once per platform, tagged (5 allowlist lines).
+- **Direction**: move the RGBE codec into infrastructure (`src/common`), shared by the display
+  driver and the texture decoder.
+- **Resolved** by spec 027 (`specs/027-texture-system/`), 2026-10-27:
+  - 3 edges per platform to 0, with the 5 allowlist lines (and their section header) deleted and
+    nothing added or swapped;
+  - the codec moved with `git mv` to `src/common/rgbe.{h,cpp}` (body unchanged) and its six
+    functions are declared `extern "C"`, so the names read the same on macOS and glibc; it is
+    compiled into `libRIBCommon` (`openrendercommon_obj`), the one definer, and no longer into
+    `ribRender`, `ribVector` or the `rgbe` display module, which link it through the shared
+    `openrendercommon`; `dsply.h` is untouched;
+  - `Common_StateOwnership` checks the six `RGBE_*` names have exactly one definer;
+    `Display_RgbeBytes` (a characterization test, byte-identical to the starting tree's driver
+    output) and `ImageInput_Rgbe` guard the behaviour.

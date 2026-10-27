@@ -30,7 +30,6 @@
 #include "common/containers.h"
 #include "common/global.h"
 #include "map.h"
-#include "options.h"
 #include "pointCloud.h"
 #include "texture3d.h"
 

@@ -1,0 +1,53 @@
+#!version 2.0.0
+#!name "jit_pl_envshadow_probe"
+surface
+#!parameters:
+uniform	string	envmap	=	"env-source.tex"
+uniform	string	shadowmap	=	"shadow-source.tex"
+uniform	float	blur	=	0
+uniform	float	width	=	1
+uniform	float	fill	=	0
+uniform	float	samples	=	1
+uniform	float	bias	=	0.01
+uniform	float	samplecone	=	0
+uniform	float	maxdist	=	1e30
+uniform	string	filter	=	"box"
+#!variables:
+varying	vector	Nn
+varying	vector	Nf
+varying	vector	R
+varying	vector	e
+varying	float	ef
+varying	float	sh
+varying	vector	temporary_0
+varying	float	temporary_1
+varying	float	temporary_2
+varying	float	temporary_3
+varying	float	temporary_4
+varying	float	temporary_5
+varying	float	temporary_6
+uniform	vector	temporary_7
+#!Init:
+	return            
+#!Code:
+	normalize	("v=v")  Nn N
+	faceforward	("v=vv")  Nf Nn I
+	normalize	("v=v")  temporary_0 I
+	reflect	("v=vv")  R temporary_0 Nf
+	environment	("c=SFvSfsfsfsfsfsfsfss")  e envmap 0 R "blur" blur "width" width "fill" fill "samples" samples "bias" bias "samplecone" samplecone "maxdist" maxdist "filter" filter 0
+	environment	("f=SFvSfsfsfsfsfsfsfss")  ef envmap 0 R "blur" blur "width" width "fill" fill "samples" samples "bias" bias "samplecone" samplecone "maxdist" maxdist "filter" filter 1
+	shadow	("f=SFpSfsfsfsfsfsfsfss")  sh shadowmap 0 P "blur" blur "width" width "fill" fill "samples" samples "bias" bias "samplecone" samplecone "maxdist" maxdist "filter" filter 2
+	vufloat  temporary_5 0
+	comp	("f=cf")  temporary_4 e temporary_5
+	vufloat  temporary_6 1
+	comp	("f=cf")  temporary_5 e temporary_6
+	addff  temporary_3 temporary_4 temporary_5
+	vufloat  temporary_5 2
+	comp	("f=cf")  temporary_4 e temporary_5
+	addff  temporary_2 temporary_3 temporary_4
+	vufloat  temporary_3 3
+	divff  temporary_1 temporary_2 temporary_3
+	vfromf  Ci temporary_1 ef sh
+	vfromf  temporary_7 1
+	vuvector  Oi temporary_7
+	return

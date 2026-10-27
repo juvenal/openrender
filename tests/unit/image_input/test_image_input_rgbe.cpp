@@ -5,8 +5,7 @@
  * decodes the tiny/large RGBE (.hdr) fixtures to their expected pixel
  * values (within RGBE's lossy shared-exponent encoding tolerance), per the
  * formulas in tests/unit/image_input/fixtures/FIXTURES.md. A correct
- * round-trip proves RGBE_ReadHeader()/RGBE_ReadPixels() (display/rgbe/
- * rgbe.h) are genuinely being invoked, not stubbed.
+ * round-trip proves RGBE_ReadHeader()/RGBE_ReadPixels() (common/rgbe.h) are genuinely being invoked, not stubbed.
  */
 
 #include "imageInputRgbe.h"

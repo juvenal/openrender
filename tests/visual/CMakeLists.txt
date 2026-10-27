@@ -4473,3 +4473,104 @@ foreach(_entry IN LISTS _jitpl_cases)
         set_tests_properties(${_slo_tests} PROPERTIES DISABLED TRUE)
     endif()
 endforeach()
+
+# --- texture(), environment() and shadow() under the LLVM JIT (spec 027, FR-022) -------------------
+# Written first, RED until Phase 9: the JIT's texture(), environment() and shadow() take no optional
+# parameter list (the emitter passes only the positional operands), request a point or zero-width
+# lookup and leave the options to whatever an earlier call put in the scratch (research R10, R22).
+# The same mechanism as the #55 table above: scenes generated from examples/rib/tests/
+# jit-texture-probe.rib.in, probes shaders/jit_pl_texture_probe.sl (red texture() color, green
+# texture()[1] float, blue the eight-coordinate form) and shaders/jit_pl_envshadow_probe.sl (red
+# environment() color, green environment() float, blue shadow()); every value of a parameter list is a
+# shader parameter set in the RIB, and the map names are parameters too.
+#   ShadingParity_JitPL_<probe>_<case>: the case under .rslo and .slo, bit-identical.
+#   ShadingParity_JitPL_envshadow_raytrace_<case>: the same with the map names "raytrace" (the traced
+#     forms of environment() and shadow(), clarification Q7).
+#   ShadingParity_JitPLEngaged_<probe>_<case>_<format>: the control. The base scene (for the raytrace
+#     cases: raytrace_base) against the case, same format, on the channels the case affects, must
+#     differ: a "same" test passes for the wrong reason when both backends ignore the parameter.
+# No control is registered for a parameter the interpreter itself ignores for that builtin
+# (decided from shaderFunctions.h and recorded here):
+#   width, swidth, twidth on the eight-coordinate texture() (blue channel): its footprint is the eight
+#     given coordinates, no derivative scaling, so the channels listed for those cases exclude blue;
+#   bias outside shadow(): only the shadow channel is listed for the bias case;
+#   maxdist on the reflection trace of environment("raytrace"): traceReflection never reads it, only
+#     the shadow channel is listed (as #55 does for trace());
+#   "samples" cannot be isolated from "blur" in a base-against-case control, so the samples cases
+#     carry a blur as well and their control shows only that the case differs from the base.
+# The T035 run decided which cases and _rslo controls are green on the starting tree; the ones dropped
+# are recorded here with the reason:
+#   fill (texture and envshadow): DROPPED. The only way the interpreter ever returns "fill" is a missing
+#     map (the dummy texture or environment), and a failed open is a CODE_NOFILE error that makes orender
+#     exit non-zero (65280) in BOTH backends, before and after Phase 9, so test_render_compare, which
+#     requires a clean exit, can never go green on it. (A texture baked with the "black" wrap mode does
+#     not help: the interpreter's lookup4 returns 0 outside [0,1], only the point lookup the JIT uses
+#     returns "fill".) "fill" is covered at the services boundary instead: T026's no-system cases and
+#     the JIT's sentinel scratch (a missing system returns the fill value of each backend), and by
+#     T-K1's substitute lookups. Needs the maintainer's sign-off (it was listed in the plan's table).
+# <probe>|<case>|<RIB parameter list>|<engaged channels, or - for none>|<base case the control uses>
+set(_jittex_dir ${CMAKE_BINARY_DIR}/tests/visual/jit-texture)
+file(MAKE_DIRECTORY ${_jittex_dir})
+set(_jittex_cases
+    "texture|base||-|base"
+    "texture|blur|\"blur\" [0.05]|0,1,2|base"
+    "texture|width|\"width\" [4]|0,1|base"
+    "texture|swidth_twidth|\"width\" [0] \"swidth\" [4] \"twidth\" [1]|0,1|base"
+    "texture|samples|\"blur\" [0.05] \"samples\" [8]|0,1,2|base"
+    "texture|filter|\"blur\" [0.05] \"filter\" [\"gaussian\"]|0,1,2|base"
+    "envshadow|base||-|base"
+    "envshadow|blur|\"blur\" [0.05]|0,1,2|base"
+    "envshadow|width|\"width\" [4]|0,1,2|base"
+    "envshadow|samples|\"blur\" [0.05] \"samples\" [8]|0,1,2|base"
+    "envshadow|bias|\"bias\" [0.3]|2|base"
+    "envshadow|filter|\"blur\" [0.05] \"filter\" [\"gaussian\"]|0,1,2|base"
+    "envshadow|raytrace_base|\"envmap\" [\"raytrace\"] \"shadowmap\" [\"raytrace\"]|-|raytrace_base"
+    "envshadow|raytrace_samples_cone|\"envmap\" [\"raytrace\"] \"shadowmap\" [\"raytrace\"] \"samples\" [8] \"samplecone\" [0.3]|0,1,2|raytrace_base"
+    "envshadow|raytrace_bias|\"envmap\" [\"raytrace\"] \"shadowmap\" [\"raytrace\"] \"bias\" [0.6]|0,1,2|raytrace_base"
+    "envshadow|raytrace_maxdist|\"envmap\" [\"raytrace\"] \"shadowmap\" [\"raytrace\"] \"maxdist\" [0.3]|2|raytrace_base"
+    "envshadow|raytrace_blur|\"envmap\" [\"raytrace\"] \"shadowmap\" [\"raytrace\"] \"blur\" [0.3]|0,1,2|raytrace_base")
+foreach(_entry IN LISTS _jittex_cases)
+    string(REPLACE "|" ";" _parts "${_entry}")
+    list(GET _parts 0 _probe)
+    list(GET _parts 1 _case)
+    list(GET _parts 2 PARAMS)
+    list(GET _parts 3 _channels)
+    list(GET _parts 4 _basecase)
+    set(PROBE jit_pl_${_probe}_probe)
+    foreach(FORMAT rslo slo)
+        set(OUTPUT jittex-${_probe}-${_case}-${FORMAT}.tif)
+        configure_file(${CMAKE_SOURCE_DIR}/examples/rib/tests/jit-texture-probe.rib.in
+            ${_jittex_dir}/jittex-${_probe}-${_case}-${FORMAT}.rib @ONLY)
+    endforeach()
+
+    set(_parity ShadingParity_JitPL_${_probe}_${_case}) # raytrace cases: ..._envshadow_raytrace_<case>
+    add_test(NAME ${_parity}
+        COMMAND test_render_compare $<TARGET_FILE:orender> same
+            ${_jittex_dir}/jittex-${_probe}-${_case}-rslo.rib jittex-${_probe}-${_case}-rslo.tif
+            ${_jittex_dir}/jittex-${_probe}-${_case}-slo.rib jittex-${_probe}-${_case}-slo.tif
+        WORKING_DIRECTORY ${_jittex_dir})
+    set(_tests ${_parity})
+    set(_slo_tests ${_parity})
+
+    if(NOT _channels STREQUAL "-")
+        foreach(_format rslo slo)
+            set(_engaged ShadingParity_JitPLEngaged_${_probe}_${_case}_${_format})
+            add_test(NAME ${_engaged}
+                COMMAND test_render_compare $<TARGET_FILE:orender> differ
+                    ${_jittex_dir}/jittex-${_probe}-${_basecase}-${_format}.rib jittex-${_probe}-${_basecase}-${_format}.tif
+                    ${_jittex_dir}/jittex-${_probe}-${_case}-${_format}.rib jittex-${_probe}-${_case}-${_format}.tif
+                    --channels=${_channels}
+                WORKING_DIRECTORY ${_jittex_dir})
+            list(APPEND _tests ${_engaged})
+            if(_format STREQUAL "slo")
+                list(APPEND _slo_tests ${_engaged})
+            endif()
+        endforeach()
+    endif()
+
+    set_tests_properties(${_tests} PROPERTIES TIMEOUT 120 LABELS "shading_parity;visual;regression"
+        RESOURCE_LOCK jit_paramlist_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+    if(NOT OPENRENDER_HAVE_LLVM)
+        set_tests_properties(${_slo_tests} PROPERTIES DISABLED TRUE)
+    endif()
+endforeach()

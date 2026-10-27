@@ -27,7 +27,6 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
 
-#include "attributes.h"
 #include "common/algebra.h"
 #include "common/containers.h"
 #include "common/global.h"

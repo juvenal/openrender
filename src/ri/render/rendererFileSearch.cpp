@@ -40,6 +40,7 @@
 #include "netFileMapping.h"
 #include "options.h"
 #include "renderer.h"
+#include "searchPathResolver.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRenderer
@@ -142,4 +143,14 @@ int CRenderer::locateFile(char *result, const char *name, TSearchpath *searchpat
     info(CODE_RESOLUTION, "\"%s\" -> ???\n", name);
 
     return FALSE;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CSearchPathResolver
+// Method				:	locate
+// Description			:	Locate a texture-related file for Texturing (spec 027)
+// Return Value			:	TRUE if found
+// Comments				:	Exactly what a direct CRenderer::locateFile(result, name, path) call does
+int CSearchPathResolver::locate(char *result, const char *name) const {
+    return CRenderer::locateFile(result, name, path);
 }
