@@ -125,8 +125,127 @@ decision 4). Linux: not measured (no access); quickstart §5.
   `rendererDeclarations.cpp:515` defines it); `texture3d.cpp:119` is its only Texturing caller.
 - The `ALLOWED` line, the TOTAL metric and the end figures need a built tree: T007 completes them.
 
+### §1.1 Implementation log (T001)
+
+- **Code base**: `BASE` = master `4eb683b` (spec 025 merged). Plan base `bc261b1`. Worktree HEAD at the start of
+  the baselines: `d75ead8` (the maintainer's merge commit). Build tree `build-027`, logs `build-027-logs/` (gitignored).
+- **Expected-red rule**: the only allowed failures from Phase 2 to Phase 8 are the known-red T-J tests listed in
+  tasks.md; **Phase 9 is the only output-changing phase** (`.slo` only).
+- Every job ran through `~/.claude/bin/cpujob`, at `-j4` (`-j2` for `texture_tile`, the determinism sets and #20's
+  later test). Spec 028's plan agent shared the lock.
+
+| Phase | Build | Suite totals | Architecture | Image diff |
+|---|---|---|---|---|
+| 1 (baseline, §1.2-§1.9) | clean, exit 0 | 838 registered: 837 passed, 1 skipped, 0 failed; `texture_tile` 9/9; determinism 155/155; sweep 419/419 | 21/21; `ALLOWED` without DB-008; PASS | baseline recorded: 779 images; noise list = 7 JIT raytrace probes + 2 `shading_parity` files (§1.5) |
+| 2-10 | | | | |
+
+### §1.2 T006: build on the unchanged tree
+
+`git diff --stat 4eb683b -- src tests shaders examples CMakeLists.txt CMake` is empty (the merged tree is master's).
+`cpujob 027-base-build cmake --build build-027 --config Release -j4` reconfigured by itself (CMake files changed
+with 025) and built clean, exit 0, no compiler warning. The log has only linker notes that predate this spec:
+"ignoring duplicate libraries" (Imath, LLVM component archives) and the Swift package `orender-wire-macos` `ld: warning`.
+
+### §1.3 T007: architecture, members, imports (on `BASE`)
+
+```text
+archcheck: platform=macos objects=270 sources=185 edges=2419 (include=1506 link=913)      [plan stage: 256 / 182 / 2363]
+ALLOWED   DB-001 x 8 DB-004 x 65 DB-005 x 8 DB-006 x 33 DB-010 x 35 DB-011 x 173 DB-015 x 10 DB-017 x 78 DB-019 x 3 DB-021 x 1 DB-025 x 12 DB-026 x 3
+METRIC    Texturing refs 70 (baseline 70)  distinct 16 (baseline 16)
+METRIC    TOTAL refs 721 (baseline 721)  distinct 110 (baseline 110)
+RESULT    PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0
+```
+
+- `ctest -L architecture`: 21/21. The only change against §0.1 is that `DB-008 x 7` is gone (spec 025).
+- **TOTAL is unchanged by 025** (721 / 110), so the end figures stay **652 / 98**; contracts/allowlist-end-state.md,
+  research R17 and T114 now say so.
+- `core_usage.py`: refs 70, distinct 16, byte-identical to `tools/core-usage-texturing-bc261b1.txt`.
+- Shading's flat-namespace imports: **7**, identical to `tools/libshader-dynlookup-before-macos.txt`.
+- Files written: `tools/archcheck-base-macos.txt` (the full report), `tools/core-usage-texturing-base.txt`,
+  `tools/libshader-dynlookup-base-macos.txt`. The `tools/*bc261b1*` files are untouched (historical).
+
+### §1.4 T008-T010: the suite, the probes, the baseline
+
+- `ctest -LE determinism-sweep -j4` (log `build-027-logs/027-base-suite.log`): **838 registered, 837 passed, 1 skipped
+  (`LibShader_Format_rslo_lower_minor`), 0 failed**, 286 s. No known-flaky test went red.
+  The sorted name/status list is `tools/baseline-pass-list.txt` (CP-b's reference). A second run (T011) gave the same list.
+- `ctest -L texture_tile -j2`: 9/9 passed (4.1 s).
+- JIT probes (`jit_texture_probes.sh`): 18/18 scenes rendered.
+- `tools/baseline-images.sha256`: **779 images** (the suite's plus the 18 JIT probe images, the four
+  `imager_*_test.tif` and `tests/imager/guard/ri.tif`); `tools/baseline-diffs.txt`: **389 tests** with a `MaxBlockAvgDiff`.
+- Order used: stamp, suite, copy `LastTest.log`, `texture_tile`, probes, `record`.
+
+### §1.5 T011: run-to-run noise on the unchanged tree
+
+Same sequence a second time (stamp, suite, `texture_tile`, probes), `image_manifest.sh diff` against the baseline
+with an empty noise list: 779 images, **6 differing, 0 missing**. The `MaxBlockAvgDiff` list of the second run is
+identical to `baseline-diffs.txt`.
+- `tests/imager/ri.tif` does **not** differ: 025's race fix (`tests/imager/guard`) arrived with the merge, as expected.
+- **Surprise: the JIT raytrace probes are not stable.** `tests/jit-texture-probes/{texture-png,texture-exr,unbaked-nonpot,
+  unbaked-png}-raytrace` differed in run 2; two further probe runs differed from each other in six images
+  (texture-png, texture-exr, texture-rgbe, unbaked-exr, unbaked-png, unbaked-rgbe). Over four runs all seven
+  `texture-*`/`unbaked-*` raytrace probes differed at least once. The `.slo` + reyes probes and `env`/`shadow` in both hiders were
+  identical every time. The divergence of §1.9 (JIT against interpreter) is stable to two decimals. Cause not
+  investigated (likely the JIT reads texture options from scratch it does not fill in; Phase 9 removes that). **All
+  seven are in `tools/baseline-image-noise.txt`**, so CP-d cannot byte-check them; their Phase 9 comparison needs
+  `MaxBlockAvgDiff` against the interpreter, as T016's script does.
+- `tests/shading_parity/ri.tif` and `tests/shading_parity/test.tif` (several parity tests write the same name into one
+  directory) are also in the noise list. With the list, `diff` reports **0 differing, 0 missing**
+  (113 fresh determinism images are "not in manifest", information only).
+
+### §1.6 T012: determinism set
+
+`ctest -L '^determinism$' -j2`: **155/155 passed** (161.5 s). CLAUDE.md says 148; that figure dates from `2df9e4c`
+(2026-10-19) and the label has grown since (no determinism-labelled test comes from specs 024/025's test changes). The pass
+list is in `build-027-logs/027-base-det.log`.
+
+### §1.7 T013: the opt-in sweep
+
+`ctest -L '^determinism-sweep$' -j2`: **419/419 passed**, 718.6 s (about 12 minutes). Log `build-027-logs/027-base-sweep.log`.
+
+### §1.8 T014: values for the Texturing-only program (SC-003)
+
+`tools/lookupprobe.sl` compiled with `build-027/src/oshader/oshader`; `tools/lookup-probe.rib` rendered with `-t:1`
+twice: byte-identical raw output (60 lines = 4 shading points x 15 values). `tools/master-lookup-values.txt` holds the
+15 distinct lines (3 fixtures x footprints A-E), one value per key, none zero, and no "Failed open texture" on stderr.
+The probe was cut down to what a caller-built `TextureOpt` can reproduce: eight-coordinate `texture()`, box filter,
+`"samples" 1`; no blur, width, per-channel or other filter. (A first run with a wrong `TEXTURES` path printed zeros
+and "Failed open texture"; it was discarded.)
+
+### §1.9 T015, T016: timing and JIT divergence
+
+SC-010 baseline (`tools/timing-base-macos.tsv`, 10 runs per scene, seconds):
+
+| Scene | Threads | min | median | max |
+|---|---|---|---|---|
+| `concurrency-scene` | default | 0.418 | 0.460 | 0.698 |
+| `concurrency-scene` | 1 | 0.636 | 0.702 | 0.780 |
+| `texture-png-raytrace` | default | 0.124 | 0.140 | 0.184 |
+| `texture-png-raytrace` | 1 | 0.191 | 0.197 | 0.243 |
+
+Both scenes are short (0.1-0.8 s), so the spread is a large fraction of the value (up to 50% for `concurrency-scene` at
+default threads): the noise bar for T121 is the max/min above.
+JIT divergence (`jit_texture_divergence.sh`): **identical, line by line, to `tools/jit-texture-divergence-bc261b1-macos.tsv`**
+(16 of 18 scenes differ, MaxBlockAvgDiff 34.55-252.52; `shadow` identical in both hiders).
+
 ## §2 Red evidence (phase 2)
 
 ## §3–§9 Phase checkpoints
 
 ## §10 Linux
+
+### Baseline hand-off (T017, non-blocking)
+
+For the maintainer's rsync + Maestri path (quickstart §5, first run). The tree to test is **`BASE`** (master `4eb683b`,
+spec 025 merged), i.e. this worktree at `d75ead8` or master itself: nothing under `src/` differs.
+1. rsync the tree to the Linux checkout excluding `build*/` (quote hosts as `${H}:path`), verify a `sha256sum` manifest remotely.
+2. Fresh `build-027`, Release, GCC 13, `-Werror`: `nice -n 19 cmake --build build-027 -j4`.
+3. Suite: `ctest --test-dir build-027 -LE determinism-sweep -j4`. Expected failures on Linux (known): `TextureTile_RenderByteIdentical`
+   (#45) and `TextureTile_CacheByteIdentical`, `TextureTile_CacheDefaultDirectory`, `TextureTile_CacheStaleDetection`,
+   `TextureTile_CacheConcurrentWrite` (#46). Then `ctest -L texture_tile -j2`.
+4. `ctest -L architecture` (the two `linux` DB-026 lines are evaluated only there).
+5. The Linux flat-import count by spec 024's method (`comm -12` of strong `U` symbols of `libshader_shading.so.1` and
+   `LD_DEBUG=bindings` bindings to `libRIBRender.so.1`); macOS reads 7.
+6. `ctest -L '^determinism$' -j2` (155 tests on macOS) and the sweep `ctest -L '^determinism-sweep$' -j2` (419 tests on macOS).
+Report the numbers; they are appended here.
+

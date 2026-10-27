@@ -89,7 +89,7 @@ first: 025 deletes the 7 DB-008 lines and changes no Texturing line).
 | Row | Before | After | Note |
 |---|---|---|---|
 | Texturing | 70 / 16 | 1 / 1 | `CRenderer::retrieveDisplayChannel` in `texture3d.cpp` |
-| TOTAL refs | 721 (at `bc261b1`; the figure re-measured after spec 025 is merged in, task T005a, is the one that counts) | 652 expected (721 − 69), or the re-measured TOTAL − 69 | written as archcheck reports it |
+| TOTAL refs | 721 (at `bc261b1` and, re-measured by T007 after the 025 merge, on `BASE`: spec 025 changed no metric row) | 652 expected (721 − 69; the `BASE` figure − 69) | written as archcheck reports it |
 | TOTAL distinct | 110 | 98 expected | 12 members leave: `environmentLoad`, `initTextures`, `shutdownTextures`, `synthesizeMutex`, `textureCacheDirectory`, `textureCacheEnabled`, `textureLoad`, `textureMaxMemory`, `textureMutex`, `textureRefNumber`, `textureUsedBlocks`, `textureUsedMemory`; `locateFile`, `numThreads`, `texturePath` stay (Geometry, Hiders) and `retrieveDisplayChannel` (Texturing). Not a row sum; written as archcheck reports it |
 
 The header comment gains a spec-027 paragraph with the reason, as spec 024's does.

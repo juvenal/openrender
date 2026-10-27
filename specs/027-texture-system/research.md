@@ -430,7 +430,7 @@ inline `next()`, `next2()`, `next4()` that call `openrender::sampling::get1D(bac
   symbol mangles differently on glibc (no `FILE *` parameter), so each is one untagged line covering both
   platforms. The Linux run (R20) confirms archcheck reports no Linux-only variant; if one appeared it is
   re-tagged the same way.
-- **Metric**: Texturing 70/16 → 1/1 (`retrieveDisplayChannel`). TOTAL refs 721 → 652 (−69), at `bc261b1`; after spec 025 is merged in (T005a) the same −69 / −12 are applied to the re-measured TOTAL. TOTAL distinct is
+- **Metric**: Texturing 70/16 → 1/1 (`retrieveDisplayChannel`). TOTAL refs 721 → 652 (−69), at `bc261b1`; re-measured on `BASE` (T007, after spec 025 is merged in) TOTAL is still 721 refs / 110 distinct, so the figures stay 652 / 98 (the same −69 / −12 are applied to the re-measured TOTAL). TOTAL distinct is
   not a row sum (spec 024's note): of the 16 members, `locateFile`, `numThreads` and `texturePath` are still
   referenced from Geometry and `numThreads` from Hiders, and `retrieveDisplayChannel` from Texturing, so 12
   members leave TOTAL: 110 → 98 expected, written as archcheck reports it.
