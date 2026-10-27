@@ -150,8 +150,6 @@ class CRenderer {
         static int numKnownGlobalIds;                                     // The current free global ID
         static CVariable *variables;                                      // List of all defined variables
         static CArray<CVariable *> *globalVariables;                      // Array of global variables only
-        static CTrie<CDisplayChannel *> *declaredChannels;                // The declared display channels
-        static CArray<CDisplayChannel *> *displayChannels;                // The list of all desclared display channels
         static CDSO *dsos;                                                // The list of DSO's that have been loaded
         static SOCKET netClient;                                          // The client that we're serving (-1 if client)
         static int netNumServers;                                         // The number of servers (0 if server)
@@ -269,10 +267,7 @@ class CRenderer {
         static CVariable *declareVariable(const char *, const char *, int um = 0);
         static void makeGlobalVariable(CVariable *);
         static CVariable *retrieveVariable(const char *);
-        static CDisplayChannel *declareDisplayChannel(const char *); // Display channel management
-        static CDisplayChannel *declareDisplayChannel(CVariable *);
-        static CDisplayChannel *retrieveDisplayChannel(const char *);
-        static void resetDisplayChannelUsage();
+        static CDisplayChannel *retrieveDisplayChannel(const char *); // Forwards to the Graphics State channel registry (defined out of line: Texturing calls it)
         static void registerFrameTemporary(const char *, int); // Register file for end-of-frame deletion
         static int getGlobalID(const char *);                  // Global ID management
         static void shutdownDeclarations();

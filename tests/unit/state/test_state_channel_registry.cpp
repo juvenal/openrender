@@ -98,7 +98,7 @@ namespace {
             return;
         STATE_CHECK(strcmp(channel->name, name) == 0);
         STATE_CHECK_EQ(channel->numSamples, samples);
-        STATE_CHECK_EQ(channel->outType, offset);
+        STATE_CHECK_EQ(channel->sampleStart, offset); // a built-in's offset is its sample start (the constructor's fourth argument)
         STATE_CHECK(channel->variable == nullptr);
     }
 

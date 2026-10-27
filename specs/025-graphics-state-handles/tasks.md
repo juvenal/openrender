@@ -410,10 +410,10 @@ red ones are shown red. **No file under `src/` changes in this phase**, apart fr
 
 **Independent test**: `State_ChannelRegistry` green; the AOV visual tests and `Parity_transparency-matte-aov` unchanged.
 
-- [ ] T063 [US5] `src/ri/state/variableLookup.h` / `variableLookup.cpp`: add the second hook beside the lookup:
+- [X] T063 [US5] `src/ri/state/variableLookup.h` / `variableLookup.cpp`: add the second hook beside the lookup:
   - `using TVariableDeclaration = CVariable *(*)(const char *name, const char *declaration);`
   - `void installVariableDeclaration(TVariableDeclaration);` (`nullptr` uninstalls) and `CVariable *declareVariableThroughHook(const char *name, const char *declaration);` (returns `nullptr` when no hook is installed).
-- [ ] T064 [US5] Create `src/ri/state/channelRegistry.h` and `channelRegistry.cpp` per contracts/channel-registry.md:
+- [X] T064 [US5] Create `src/ri/state/channelRegistry.h` and `channelRegistry.cpp` per contracts/channel-registry.md:
   - `class CChannelRegistry` with fields `CTrie<CDisplayChannel*> byName` and `CArray<CDisplayChannel*> inOrder`; "The registry owns each channel exactly once";
   - the constructor registers, in this order: `rgb` (3 samples, offset 0), `rgba` (4, 0), `a` (1, 3), `z` (1, 4), `rgbaz` (5, 0);
   - `declare(const char *)` is today's `CRenderer::declareDisplayChannel(const char *)` (`rendererDeclarations.cpp:534-570`) moved unchanged: `parseVariable` failure returns `nullptr` with no message; an existing name returns it when `numSamples` matches and either the declaration is not global storage or `outType` matches, otherwise `error(CODE_SYSTEM, "Channel \"%s\" was previously defined differently\n", name)`; a new name goes through `declareVariableThroughHook(NULL, declaration)`, and `nullptr` (including when no hook is installed) gives `error(CODE_SYSTEM, "Channel definition \"%s\" is ill formed\n", declaration)`; otherwise create `CDisplayChannel(var->name, var, var->numFloats, -1, global ? var->entry : -1)`. **Error strings, codes, order and ownership stay byte-identical**;
@@ -423,21 +423,21 @@ red ones are shown red. **No file under `src/` changes in this phase**, apart fr
   - the destructor deletes each channel once and frees both containers (today's `destroy()` plus `delete`);
   - `beginChannelRegistry()`, `endChannelRegistry()`, `channelRegistry()` (`nullptr` outside a session);
   - **no include of any other domain's header**. Add the file to `ri_sources` **and to `ribOut_sources`** in `src/ri/CMakeLists.txt` (ribOut compiles `rendererDeclarations.cpp`, which will call `beginChannelRegistry()`; plan.md's source list omits this), and append it to `state_only_sources` in `tests/unit/state/CMakeLists.txt`.
-- [ ] T065 [US5] `src/ri/render/rendererDeclarations.cpp`:
+- [X] T065 [US5] `src/ri/render/rendererDeclarations.cpp`:
   - `initDeclarations()` (~286–304 and the registrations): replace the two `new`s and the five built-in registrations with `beginChannelRegistry()`, and install a small adapter with `installVariableDeclaration`, next to the existing `installVariableLookup` call. `&CRenderer::declareVariable` does **not** convert to the hook type, because `declareVariable(const char *, const char *, int um = 0)` takes a third parameter. Define a captureless static function in this file, `static CVariable *declareVariableAdapter(const char *name, const char *declaration) { return CRenderer::declareVariable(name, declaration, 0); }`, and install `&declareVariableAdapter`;
   - `shutdownDeclarations()` (~352–355): uninstall the declaration hook at the top beside `installVariableLookup(nullptr)`, and call `endChannelRegistry()` at **today's position**, before the declared variables are destroyed;
   - delete `declareDisplayChannel` (both overloads) and `resetDisplayChannelUsage` (~534–633);
   - define `CDisplayChannel *CRenderer::retrieveDisplayChannel(const char *name)` **out of line** here as `{ return channelRegistry() ? channelRegistry()->retrieve(name) : nullptr; }`. It must not be inline: an inline forwarder would make `texture3d.o` reference State symbols, which would make DB-010's link line STALE and add a Texturing → State VIOLATION.
-- [ ] T066 [US5] `src/ri/render/renderer.h` and `src/ri/render/rendererStatics.cpp`: delete `declaredChannels`, `displayChannels` (renderer.h:151-152; statics.cpp:118-119), both `declareDisplayChannel` declarations and `resetDisplayChannelUsage` (renderer.h:270-273). **Keep** the `retrieveDisplayChannel` declaration.
-- [ ] T067 [US5] Callers use the State registry directly (the core may depend on State): `src/ri/render/rendererContext.cpp:1483` (`RiDisplayChannelV`) → `channelRegistry()->declare(channel)`; `src/ri/render/rendererDisplay.cpp:563` → `channelRegistry()->resetUsage()`, `:618` → `channelRegistry()->retrieve(sampleName)`, `:671` → `channelRegistry()->declare(cVar)`. Include `channelRegistry.h`. Behaviour (including a failed declaration) is unchanged.
-- [ ] T068 [US5] Enable `State_ChannelRegistry` (remove `EXCLUDE_FROM_ALL` and `DISABLED`); [RUN] build (all targets, including `ribOut` and `ribVector`) and `ctest -R State_ChannelRegistry --output-on-failure`: green.
+- [X] T066 [US5] `src/ri/render/renderer.h` and `src/ri/render/rendererStatics.cpp`: delete `declaredChannels`, `displayChannels` (renderer.h:151-152; statics.cpp:118-119), both `declareDisplayChannel` declarations and `resetDisplayChannelUsage` (renderer.h:270-273). **Keep** the `retrieveDisplayChannel` declaration.
+- [X] T067 [US5] Callers use the State registry directly (the core may depend on State): `src/ri/render/rendererContext.cpp:1483` (`RiDisplayChannelV`) → `channelRegistry()->declare(channel)`; `src/ri/render/rendererDisplay.cpp:563` → `channelRegistry()->resetUsage()`, `:618` → `channelRegistry()->retrieve(sampleName)`, `:671` → `channelRegistry()->declare(cVar)`. Include `channelRegistry.h`. Behaviour (including a failed declaration) is unchanged.
+- [X] T068 [US5] Enable `State_ChannelRegistry` (remove `EXCLUDE_FROM_ALL` and `DISABLED`); [RUN] build (all targets, including `ribOut` and `ribVector`) and `ctest -R State_ChannelRegistry --output-on-failure`: green.
   - **Mutation (C1)**: in a scratch edit make `resetUsage()` skip the last channel (or reorder the built-ins); rebuild; `State_ChannelRegistry` goes **red**. Revert and confirm `git diff` clean.
-- [ ] T069 [US5] Greps and object check (quickstart §3, US5.4/US5.5, SC-008), results into validation.md §6:
+- [X] T069 [US5] Greps and object check (quickstart §3, US5.4/US5.5, SC-008), results into validation.md §6:
   - `grep -nE 'declaredChannels|displayChannels|declareDisplayChannel|resetDisplayChannelUsage' src/ri/render/*` returns nothing;
   - `retrieveDisplayChannel` appears only in `renderer.h` (declaration) and `rendererDeclarations.cpp` (out-of-line definition);
   - `git diff --stat dfffba0 -- src/ri/texture/texture3d.cpp` is empty;
   - `nm` on `texture3d.o` shows an undefined `CRenderer::retrieveDisplayChannel` and **no** `channelRegistry`/`CChannelRegistry` symbol.
-- [ ] T070 **Checkpoint 6 (PAUSE 6)**: CP-a, CP-b, CP-c, **CP-d**. Name explicitly: every AOV visual test, `Parity_transparency-matte-aov`, `State_ChannelRegistry`. The architecture report keeps DB-010's link line and DB-021's include line for `texture3d.cpp`, with no `STALE` and no new line. `State_LightOrder` still 4 of 9. Stage; summarize; wait for review.
+- [X] T070 **Checkpoint 6 (PAUSE 6)**: CP-a, CP-b, CP-c, **CP-d**. Name explicitly: every AOV visual test, `Parity_transparency-matte-aov`, `State_ChannelRegistry`. The architecture report keeps DB-010's link line and DB-021's include line for `texture3d.cpp`, with no `STALE` and no new line. `State_LightOrder` still 4 of 9. Stage; summarize; wait for review.
 
 ---
 

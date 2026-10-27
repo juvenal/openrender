@@ -27,3 +27,14 @@ void installVariableLookup(TVariableLookup lookup) {
 CVariable *lookupVariable(const char *name) {
     return installedLookup != nullptr ? installedLookup(name) : nullptr;
 }
+
+// Installed and removed on one thread, with the same declaration lifecycle.
+static TVariableDeclaration installedDeclaration = nullptr;
+
+void installVariableDeclaration(TVariableDeclaration declaration) {
+    installedDeclaration = declaration;
+}
+
+CVariable *declareVariableThroughHook(const char *name, const char *declaration) {
+    return installedDeclaration != nullptr ? installedDeclaration(name, declaration) : nullptr;
+}

@@ -34,6 +34,7 @@
 
 #include "blobby.h"
 #include "blobbyField.h"
+#include "channelRegistry.h"
 #include "brickmap.h"
 #include "bundles.h"
 #include "common/algebra.h"
@@ -1478,7 +1479,7 @@ void CRendererContext::RiCustomDisplayV(const char *name, RtToken mode, RtDispla
 void CRendererContext::RiDisplayChannelV(const char *channel, int n, const char *tokens[], const void *params[]) {
     int i;
 
-    CDisplayChannel *nChannel = CRenderer::declareDisplayChannel(channel);
+    CDisplayChannel *nChannel = channelRegistry()->declare(channel);
 
     if (nChannel != NULL) {
         for (i = 0; i < n; i++) {

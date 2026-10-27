@@ -386,6 +386,8 @@ The tree did not compile from T036 to T049, as documented. The first sweep (`-k`
 
 **Change**: `CAttributes` gains the private `bxdf` slot (`bxdf()`, `bindBxdf()`), the record `EMaterialBinding { None, Surface, Bxdf }` with the single query `governingMaterial()`, and the public `CPatternTable patterns` (`src/ri/state/patternTable.h`, header-only, copy-on-write over a shared vector). `bindSurface` and `bindBxdf` set the record even for an empty handle; `bindDisplacement/Atmosphere/Interior/Exterior` and `setDefaultSurface` leave it alone (FR-024). The copy constructor carries the record and shares the table through the memberwise copy; `restore(shading=true)` assigns the `bxdf` slot, the record and the table; `restore(shading=false)` leaves them. The `bxdf` slot is not read by `usedShaderParameters` or `findShaderParameter`. No RIB statement was added.
 
+**Approval**: the maintainer approved Checkpoint 5 on 2026-10-27, including the fixture correction in `ShadingParity_ShaderParameterBxdfIgnored` (`dPdv` to `time`/`dtime`; no assertion changed).
+
 ### §5.1 Tests enabled and their results
 
 - `State_LastBound`: **45 passed, 0 failed.**
@@ -412,6 +414,34 @@ The tree did not compile from T036 to T049, as documented. The first sweep (`-k`
 - **CP-a**: clean under `-Werror`.
 - **CP-b**: `ctest -LE determinism-sweep -j4`: **796 registered**: 791 passed, 1 failed (`State_LightOrder`, 5 passed / 4 failed), 3 disabled, 1 skipped. Not run: `ShadingParity_IlluminationHookAllFalse`, `State_ChannelRegistry`, `State_LightOrderRestore` (disabled) and `LibShader_Format_rslo_lower_minor` (skipped). The 791 are Phase 4's 788 plus `State_LastBound`, `State_PatternTable` and `ShadingParity_ShaderParameterBxdfIgnored`. No known-flaky test was red.
 - **CP-c**: `ctest -L architecture` 21/21. The `ALLOWED`, `METRIC`, `RESULT` and `CONSUMER` lines are identical to Phase 4's: no new line, no `STALE`, `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`.
+- **CP-d**: `image_manifest.sh diff`: `manifest 729 images, fresh 729, noise-listed 0; 0 differing, 0 missing, 0 not in manifest`; the `MaxBlockAvgDiff` table equals `tools/baseline-diffs.txt` for all 389 tests.
+- libshader_shading flat-namespace imports: 7.
+
+## §6 Phase 6: the channel registry moves to Graphics State (T063–T070), macOS
+
+**Change**: `CChannelRegistry` (`src/ri/state/channelRegistry.{h,cpp}`) owns the display channels with the old storage and order: the five built-ins (`rgb` 3/0, `rgba` 4/0, `a` 1/3, `z` 1/4, `rgbaz` 5/0), then declared channels. `declare(const char *)` is `CRenderer::declareDisplayChannel(const char *)` moved unchanged (same error strings, `CODE_SYSTEM`, order, ownership); `declare(CVariable *)`, `retrieve()` (non-const result), `resetUsage()` and `forEach(fn(channel))` follow the contract; the destructor deletes each channel once through the ordered list. `beginChannelRegistry()` / `endChannelRegistry()` / `channelRegistry()` hold the session instance. `variableLookup.{h,cpp}` gained the declaration hook (`TVariableDeclaration`, `installVariableDeclaration`, `declareVariableThroughHook`). In the core, `initDeclarations()` calls `beginChannelRegistry()` and installs the captureless `declareVariableAdapter`; `shutdownDeclarations()` uninstalls the hook at the top and calls `endChannelRegistry()` at the old position (after the global ids, before the declared variables). `declareDisplayChannel` (both), `resetDisplayChannelUsage` and the two statics are gone; the three callers use `channelRegistry()` directly. `CRenderer::retrieveDisplayChannel` stays declared in `renderer.h` and is defined **out of line** in `rendererDeclarations.cpp`. `channelRegistry.cpp` is in `ri_sources` and in `ribOut_sources`. `texture3d.cpp` is untouched.
+
+### §6.1 State_ChannelRegistry (T068)
+
+- **First run: 98 passed, 5 failed**, all five `channel->outType == offset` on the built-in channels. That was a defect in my Phase 2 test, not in the registry: the "offset" of a built-in (0, 0, 3, 4, 0) is the constructor's fourth argument, which `CDisplayChannel` stores in `sampleStart`; `outType` (the fifth argument) is `-1` for the built-ins, as before the move. The check now reads `sampleStart` (`tests/unit/state/test_state_channel_registry.cpp`, one line; nothing else in the test changed).
+- **Now: 103 passed, 0 failed.** `State_ChannelRegistry` is enabled (the library's `channelRegistry.cpp` is part of `state_only_sources`).
+- **Allocator debug run (T012)**: `MallocScribble=1 MallocGuardEdges=1 ctest -R '^State_ChannelRegistry$'` through `cpujob`: **103 passed, 0 failed, exit 0**.
+- **Mutation (C1)**: `resetUsage()` skipping the last channel: `channel->sampleStart == -1: got 7, expected -1`; 102 passed, 1 failed. Reverted (saved copy restored, `diff` empty).
+- **Mutation, double delete** (to show the balance check bites): a second `delete` of a channel in the destructor. On this macOS allocator the plain run already aborts (`SIGTRAP`), and the run with `MallocScribble=1 MallocGuardEdges=1` aborts (`Subprocess aborted`). Reverted.
+- The stale incremental build seen in Phase 5 did not recur: each mutation rebuild recompiled `channelRegistry.cpp.o` (a `.cpp` change), and the green results afterwards show no mutation left behind.
+
+### §6.2 Greps and object check (T069)
+
+- `grep -nE 'declaredChannels|displayChannels|declareDisplayChannel|resetDisplayChannelUsage' src/ri/render/*`: nothing.
+- `retrieveDisplayChannel` appears in `renderer.h` (declaration), `rendererDeclarations.cpp` (the out-of-line definition) and `texture3d.cpp:119` (the unchanged caller).
+- `git diff --stat dfffba0 -- src/ri/texture/texture3d.cpp`: empty.
+- `nm -C` on a `texture3d.cpp.o`: `U CRenderer::retrieveDisplayChannel(char const*)`, and no `channelRegistry` or `CChannelRegistry` symbol.
+
+### §6.3 Checkpoint 6 (CP-a to CP-d)
+
+- **CP-a**: clean under `-Werror` (ribOut and ribVector included).
+- **CP-b**: `ctest -LE determinism-sweep -j4`: **796 registered**: 792 passed, 1 failed (`State_LightOrder`, 5 passed / 4 failed), 3 not run (`ShadingParity_IlluminationHookAllFalse` disabled before this spec for #71; `State_LightOrderRestore` disabled until Phase 7; `LibShader_Format_rslo_lower_minor` skipped before this spec). The 792 are Phase 5's 791 plus `State_ChannelRegistry`. `Parity_aov` and `Parity_transparency-matte-aov` passed, as did every other test; no known-flaky test was red.
+- **CP-c**: `ctest -L architecture` 21/21. The `ALLOWED`, `METRIC`, `RESULT` and `CONSUMER` lines are identical to Phase 5's: no new line, no `STALE`. The allowlist keeps `DB-010 link src/ri/texture/texture3d.cpp -> CRenderer::retrieveDisplayChannel` and `DB-021 include src/ri/texture/texture3d.cpp -> src/ri/state/displayChannel.h`, neither reported stale, and no Texturing to Graphics State link appears.
 - **CP-d**: `image_manifest.sh diff`: `manifest 729 images, fresh 729, noise-listed 0; 0 differing, 0 missing, 0 not in manifest`; the `MaxBlockAvgDiff` table equals `tools/baseline-diffs.txt` for all 389 tests.
 - libshader_shading flat-namespace imports: 7.
 
