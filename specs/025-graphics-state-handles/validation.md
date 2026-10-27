@@ -421,6 +421,8 @@ The tree did not compile from T036 to T049, as documented. The first sweep (`-k`
 
 **Change**: `CChannelRegistry` (`src/ri/state/channelRegistry.{h,cpp}`) owns the display channels with the old storage and order: the five built-ins (`rgb` 3/0, `rgba` 4/0, `a` 1/3, `z` 1/4, `rgbaz` 5/0), then declared channels. `declare(const char *)` is `CRenderer::declareDisplayChannel(const char *)` moved unchanged (same error strings, `CODE_SYSTEM`, order, ownership); `declare(CVariable *)`, `retrieve()` (non-const result), `resetUsage()` and `forEach(fn(channel))` follow the contract; the destructor deletes each channel once through the ordered list. `beginChannelRegistry()` / `endChannelRegistry()` / `channelRegistry()` hold the session instance. `variableLookup.{h,cpp}` gained the declaration hook (`TVariableDeclaration`, `installVariableDeclaration`, `declareVariableThroughHook`). In the core, `initDeclarations()` calls `beginChannelRegistry()` and installs the captureless `declareVariableAdapter`; `shutdownDeclarations()` uninstalls the hook at the top and calls `endChannelRegistry()` at the old position (after the global ids, before the declared variables). `declareDisplayChannel` (both), `resetDisplayChannelUsage` and the two statics are gone; the three callers use `channelRegistry()` directly. `CRenderer::retrieveDisplayChannel` stays declared in `renderer.h` and is defined **out of line** in `rendererDeclarations.cpp`. `channelRegistry.cpp` is in `ri_sources` and in `ribOut_sources`. `texture3d.cpp` is untouched.
 
+**Approval**: the maintainer approved Checkpoint 6 on 2026-10-27, including the one-check correction in `State_ChannelRegistry` (the built-ins' offset is compared against `sampleStart`, not `outType`).
+
 ### §6.1 State_ChannelRegistry (T068)
 
 - **First run: 98 passed, 5 failed**, all five `channel->outType == offset` on the built-in channels. That was a defect in my Phase 2 test, not in the registry: the "offset" of a built-in (0, 0, 3, 4, 0) is the constructor's fourth argument, which `CDisplayChannel` stores in `sampleStart`; `outType` (the fifth argument) is `-1` for the built-ins, as before the move. The check now reads `sampleStart` (`tests/unit/state/test_state_channel_registry.cpp`, one line; nothing else in the test changed).
@@ -444,6 +446,44 @@ The tree did not compile from T036 to T049, as documented. The first sweep (`-k`
 - **CP-c**: `ctest -L architecture` 21/21. The `ALLOWED`, `METRIC`, `RESULT` and `CONSUMER` lines are identical to Phase 5's: no new line, no `STALE`. The allowlist keeps `DB-010 link src/ri/texture/texture3d.cpp -> CRenderer::retrieveDisplayChannel` and `DB-021 include src/ri/texture/texture3d.cpp -> src/ri/state/displayChannel.h`, neither reported stale, and no Texturing to Graphics State link appears.
 - **CP-d**: `image_manifest.sh diff`: `manifest 729 images, fresh 729, noise-listed 0; 0 differing, 0 missing, 0 not in manifest`; the `MaxBlockAvgDiff` table equals `tools/baseline-diffs.txt` for all 389 tests.
 - libshader_shading flat-namespace imports: 7.
+
+## §7 Phase 7: light order (T071–T078), macOS
+
+**Change**: `src/ri/state/attributes.cpp` gains the file-local `copyLightList()`: a new list of the same (non-owning) entries in the source's order, built with a tail pointer (O(n), no reversal). The copy constructor (attribute push, copy-on-write clone) and `restore(shading)` (which first frees its own entries) use it in place of the two prepend loops. `addLight` (append, duplicate suppression) and `removeLight` are unchanged. `State_LightOrderRestore` is enabled.
+
+### §7.1 Red evidence before the fix (T071)
+
+On the tree with Phase 6 only (the prepend loops still in place):
+- `State_LightOrder`: **5 passed, 4 failed**: "inside AttributeBegin", "after a copy-on-write clone", "Illuminate off then on moves the light to the end", "after a ResourceRestore round trip".
+- `State_LightOrderRestore`: **13 passed, 3 failed**: "copy constructor", "restore(shading = true)", "copy after the switch". ("clone of a clone" passes, because two reversals cancel; that is why the direct test exists.)
+
+### §7.2 After the fix (T073)
+
+- `State_LightOrder`: **9 passed, 0 failed.**
+- `State_LightOrderRestore`: **16 passed, 0 failed.**
+
+### §7.3 The affected tests (T074)
+
+`ctest -R "$(cat tools/affected-regex.txt)" -j4 -V`: **66/66 passed** at unchanged thresholds. `tools/affected_diff_check.sh build-025/logs/025-p7-affected.log` compares every `MaxBlockAvgDiff` with the starting-tree column of `tools/affected-diff-compare.tsv`: `66 tests compared with the starting tree; 0 differing or missing` (63 print a diff, all identical; the other 3 print none, as before).
+
+### §7.4 Images, full suite, determinism (T075, T076)
+
+- **Full suite** (`ctest -LE determinism-sweep -j4`): **796 registered: 794 passed, 0 failed, 1 disabled, 1 skipped.** The disabled and the skipped test are the two present before this spec (`ShadingParity_IlluminationHookAllFalse`, #71; `LibShader_Format_rslo_lower_minor`). **Nothing is red**: `State_LightOrder` is now 9/9. The `MaxBlockAvgDiff` table (`image_manifest.sh diffs` of the saved `LastTest.log`) equals `tools/baseline-diffs.txt` for all 389 tests.
+- **Images**: `image_manifest.sh diff tools/baseline-images.sha256 build-025 tools/baseline-image-noise.txt`: `manifest 729 images, fresh 729, noise-listed 0; 0 differing, 0 missing, 0 not in manifest`. That includes the 95 images of `tools/affected-bitwise.tsv`.
+- **`ctest -L '^determinism$' -j2`**: 155/155 passed.
+- **`ctest -L '^determinism-sweep$' -j2`** (once): 419/419 passed, 555 s.
+- `DepthDeterminism_*` and `ColorDeterminism_*` (in the `^determinism$` set) passed, bit-identical.
+- The procedurals expanded at render time (`csg-procedural-open-cylinder{,-inline}-raytrace`, `csg-procedural-missing-archive`), whose light order the plan-stage probe could not observe, passed: `Csg_Procedural_open_cylinder`, `Csg_Procedural_sphere`, `CSG_ProceduralOperand` and `Csg_procedural-missing-archive` in the full suite, and the `DeterminismSweep_csg-procedural-*` tests in the sweep, all with their diffs unchanged.
+
+### §7.5 T077 outcome
+
+**No reference changed.** Every `MaxBlockAvgDiff`, every image of the 729 and every test result equals the baseline; no reference was regenerated and no threshold touched. The plan-stage scan predicted this (82 scenes whose light-order hash changes, none with a changed 8-bit image). The check against the 82-scene list is by output: nothing observable changed anywhere in the suite, so nothing outside the 82 changed in a way the tests can see. The plan-stage probe itself (which hashes the order inside the renderer) was not re-run on the fixed tree.
+
+### §7.6 Checkpoint 7 (CP-a to CP-c; CP-d is replaced by T075)
+
+- **CP-a**: clean under `-Werror`.
+- **CP-b**: see §7.4: everything green, no allowed exception.
+- **CP-c**: `ctest -L architecture` 21/21; the `ALLOWED`, `METRIC`, `RESULT` and `CONSUMER` lines are identical to Phase 6's, no `STALE`.
 
 ### Not yet measured
 

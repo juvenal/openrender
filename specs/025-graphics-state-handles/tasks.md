@@ -447,23 +447,23 @@ red ones are shown red. **No file under `src/` changes in this phase**, apart fr
 
 **Independent test**: `State_LightOrder` 9/9 and `State_LightOrderRestore` pass; the 66 affected visual and parity tests give identical diffs and bit-identical images; the determinism set and sweep pass.
 
-- [ ] T071 [US2] Enable `State_LightOrderRestore` (remove `EXCLUDE_FROM_ALL` and `DISABLED`). [RUN] build and run `State_LightOrder` and `State_LightOrderRestore` on the tree **before** the fix: both **red by assertion** (`State_LightOrder` 4 of 9). Record the failing checks in validation.md §7. This is the red evidence for FR-025.
-- [ ] T072 [US2] `src/ri/state/attributes.cpp`: add the file-local `static CActiveLight *copyLightList(const CActiveLight *source)`, which returns a new list holding the same (non-owning) entries **in the source's order**, built with a tail pointer: O(n), no reversal. Use it in both the copy constructor and `restore(shading)` (which first frees its own entries), replacing the two prepend loops. `addLight` (append, duplicate suppression) and `removeLight` (unlink the first match) do not change. Fix the stale comments. Compare with `tools/lightorder-fix-sketch.diff`.
-- [ ] T073 [US2] [RUN] Build, then `State_LightOrder` (**9/9**) and `State_LightOrderRestore` (green) pass. Record. (Their red evidence in T071 is the mutation proof; no further scratch edit.)
-- [ ] T074 [US2] [RUN] The affected tests: `ctest -R "$(cat specs/025-graphics-state-handles/tools/affected-regex.txt)" -j4 -V` (log to `build-025/logs/025-p7-affected.log`).
+- [X] T071 [US2] Enable `State_LightOrderRestore` (remove `EXCLUDE_FROM_ALL` and `DISABLED`). [RUN] build and run `State_LightOrder` and `State_LightOrderRestore` on the tree **before** the fix: both **red by assertion** (`State_LightOrder` 4 of 9). Record the failing checks in validation.md §7. This is the red evidence for FR-025.
+- [X] T072 [US2] `src/ri/state/attributes.cpp`: add the file-local `static CActiveLight *copyLightList(const CActiveLight *source)`, which returns a new list holding the same (non-owning) entries **in the source's order**, built with a tail pointer: O(n), no reversal. Use it in both the copy constructor and `restore(shading)` (which first frees its own entries), replacing the two prepend loops. `addLight` (append, duplicate suppression) and `removeLight` (unlink the first match) do not change. Fix the stale comments. Compare with `tools/lightorder-fix-sketch.diff`.
+- [X] T073 [US2] [RUN] Build, then `State_LightOrder` (**9/9**) and `State_LightOrderRestore` (green) pass. Record. (Their red evidence in T071 is the mutation proof; no further scratch edit.)
+- [X] T074 [US2] [RUN] The affected tests: `ctest -R "$(cat specs/025-graphics-state-handles/tools/affected-regex.txt)" -j4 -V` (log to `build-025/logs/025-p7-affected.log`).
   - Write `specs/025-graphics-state-handles/tools/affected_diff_check.sh`, which extracts every `MaxBlockAvgDiff` from the log and compares it with the starting-tree column of `tools/affected-diff-compare.tsv`.
   - Expected: 66/66 pass at **unchanged thresholds**; all 63 printed diffs **identical**.
-- [ ] T075 [US2] [RUN] Images: `image_manifest.sh diff tools/baseline-images.sha256 build-025 tools/baseline-image-noise.txt` after a clean full-suite run (CP-b): expected 0 differing. The 95 images of `tools/affected-bitwise.tsv` are the ones the plan predicts as bit-identical.
-- [ ] T076 [US2] [RUN] Determinism and the sweep:
+- [X] T075 [US2] [RUN] Images: `image_manifest.sh diff tools/baseline-images.sha256 build-025 tools/baseline-image-noise.txt` after a clean full-suite run (CP-b): expected 0 differing. The 95 images of `tools/affected-bitwise.tsv` are the ones the plan predicts as bit-identical.
+- [X] T076 [US2] [RUN] Determinism and the sweep:
   - `cpujob 025-p7-det ctest --test-dir build-025 -L '^determinism$' -j2 --output-on-failure`;
   - the full suite (CP-b);
   - the opt-in sweep, once: `cpujob 025-p7-sweep ctest --test-dir build-025 -L '^determinism-sweep$' -j2 --output-on-failure` (about 10–12 minutes);
   - `DepthDeterminism_*` and `ColorDeterminism_*` stay bit-identical.
   - The probe did not observe light order inside procedurals expanded at render time (`csg-procedural-open-cylinder{,-inline}-raytrace`, `csg-procedural-missing-archive`); the full suite covers them. Record that they passed.
-- [ ] T077 [US2] **Decision task — STOP condition.** Evaluate T074–T076 and write validation.md §7:
+- [X] T077 [US2] **Decision task — STOP condition.** Evaluate T074–T076 and write validation.md §7:
   - If every diff, image and test result equals the baseline: write "no reference changed" and continue.
   - **If any reference result changed** (a different `MaxBlockAvgDiff`, a different image, a red test at its unchanged threshold): do **not** regenerate a reference, do **not** touch a threshold. List each affected scene with its old and new diff and the reason (light order), **stop, and ask the maintainer** for approval. A reference may be re-rendered only with the maintainer's explicit approval, given at that time, for a listed scene and reason (FR-025).
-- [ ] T078 **Checkpoint 7 (PAUSE 7)**: CP-a, CP-b, CP-c. **Everything is green, with no allowed exception** (`State_LightOrder` is now 9/9). CP-d is replaced by T075. Stage; summarize with the T077 outcome; wait for review.
+- [X] T078 **Checkpoint 7 (PAUSE 7)**: CP-a, CP-b, CP-c. **Everything is green, with no allowed exception** (`State_LightOrder` is now 9/9). CP-d is replaced by T075. Stage; summarize with the T077 outcome; wait for review.
 
 ---
 

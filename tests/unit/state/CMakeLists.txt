@@ -96,7 +96,7 @@ if(OPENRENDER_STATE_ONLY_TESTS)
     add_state_only_test(State_LastBound test_state_last_bound test_state_last_bound.cpp ENABLED)
     add_state_only_test(State_PatternTable test_state_pattern_table test_state_pattern_table.cpp ENABLED)
     add_state_only_test(State_ChannelRegistry test_state_channel_registry test_state_channel_registry.cpp ENABLED)
-    add_state_only_test(State_LightOrderRestore test_state_light_restore test_state_light_restore.cpp)
+    add_state_only_test(State_LightOrderRestore test_state_light_restore test_state_light_restore.cpp ENABLED)
 endif()
 
 # State_VocabularyConsistency (FR-008/FR-009, SC-007) is a Consumer: it includes

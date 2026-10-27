@@ -36,6 +36,29 @@
 #include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////
+// Function				:	copyLightList
+// Description			:	Copy an active-light list, entry for entry, in the source's order
+// Return Value			:	The new list (NULL if the source is empty)
+// Comments				:	The entries are non-owning, so the lights themselves are shared. The list
+//							is built with a tail pointer: O(n), and it is never reversed (spec 025,
+//							FR-025). An attribute push, a copy-on-write clone and a shading restore
+//							all copy through here, so every block lists its lights in RIB order.
+static CActiveLight *copyLightList(const CActiveLight *source) {
+    CActiveLight *head = NULL;
+    CActiveLight **tail = &head;
+
+    for (const CActiveLight *cLight = source; cLight != NULL; cLight = cLight->next) {
+        CActiveLight *nLight = new CActiveLight;
+        nLight->light = cLight->light;
+        nLight->next = NULL;
+        *tail = nLight;
+        tail = &nLight->next;
+    }
+
+    return head;
+}
+
+///////////////////////////////////////////////////////////////////////
 // Class				:	CAttributes
 // Method				:	CAttributes
 // Description			:	The constructor, the default values for
@@ -208,8 +231,6 @@ static void freeTrimLoops(CTrimLoop *loops, int numLoops) {
 // Return Value			:	-
 // Comments				:
 CAttributes::CAttributes(const CAttributes *a) {
-    CActiveLight *cLight, *nLight;
-
     atomicIncrement(stats.numAttributes);
 
     this[0] = a[0];
@@ -232,14 +253,8 @@ CAttributes::CAttributes(const CAttributes *a) {
     if (a->maxDisplacementSpace != NULL)
         maxDisplacementSpace = strdup(a->maxDisplacementSpace);
 
-    lightSources = NULL;
-
-    for (cLight = a->lightSources; cLight != NULL; cLight = cLight->next) {
-        nLight = new CActiveLight;
-        nLight->light = cLight->light;
-        nLight->next = lightSources;
-        lightSources = nLight;
-    }
+    // Copy the light sources, in order
+    lightSources = copyLightList(a->lightSources);
 
     name = (a->name != NULL ? strdup(a->name) : NULL);
 
@@ -450,13 +465,8 @@ void CAttributes::restore(const CAttributes *other, int shading, int geometrymod
             delete cLight;
         }
 
-        // Copy the light sources
-        for (cLight = other->lightSources; cLight != NULL; cLight = cLight->next) {
-            CActiveLight *nLight = new CActiveLight;
-            nLight->light = cLight->light;
-            nLight->next = lightSources;
-            lightSources = nLight;
-        }
+        // Copy the light sources, in order
+        lightSources = copyLightList(other->lightSources);
 
         checkParameters();
 
