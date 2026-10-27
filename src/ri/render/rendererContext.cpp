@@ -72,6 +72,8 @@
 #include "ribOut.h"
 #include "shadeop.h"
 #include "shader.h"
+#include "shaderRefs.h"
+#include "stateConversions.h"
 #include "common/stats.h"
 #include "stochastic.h"
 #include "subdivisionCreator.h"
@@ -987,12 +989,11 @@ void CRendererContext::RiWorldBegin(void) {
     CRenderer::defineCoordinateSystem(coordinateWorldSystem, currentXform->from, currentXform->to, COORDINATE_WORLD);
 
     // Auto-bind defaultsurface when no Surface statement was given (PRMan/BMRT compatible)
-    if (currentAttributes->surface == NULL) {
+    if (!currentAttributes->surface()) {
         CShaderInstance *cShader = getShader(RI_DEFAULTSURFACE, SL_SURFACE, 0, NULL, NULL);
         if (cShader != NULL) {
             CAttributes *attrs = getAttributes(TRUE);
-            attrs->surface = cShader;
-            attrs->checkParameters();
+            attrs->setDefaultSurface(ShaderGroupRef::adopt(cShader));
         }
     }
 
@@ -1289,10 +1290,7 @@ void CRendererContext::RiImagerV(const char *name, int n, const char *tokens[], 
         return;
     }
 
-    if (options->imager != nullptr)
-        options->imager->detach();
-
-    options->imager = s;
+    options->imager = ShaderGroupRef::adopt(s);
     log_debug("RiImager: shader '{}' stored in options", name);
 }
 
@@ -1414,7 +1412,7 @@ void CRendererContext::RiDisplayV(const char *name, const char *type, const char
                 cDisplay->parameters[j].numItems = cVar->numItems;
                 switch (cVar->type) {
                     case TYPE_FLOAT:
-                        cDisplay->parameters[j].type = FLOAT_PARAMETER;
+                        cDisplay->parameters[j].type = EDisplayParameterType::Float;
                         cDisplay->parameters[j].data = new float[cVar->numItems];
                         memcpy(cDisplay->parameters[j].data, params[i], cVar->numItems * sizeof(float));
                         break;
@@ -1422,12 +1420,12 @@ void CRendererContext::RiDisplayV(const char *name, const char *type, const char
                     case TYPE_VECTOR:
                     case TYPE_NORMAL:
                     case TYPE_POINT:
-                        cDisplay->parameters[j].type = VECTOR_PARAMETER;
+                        cDisplay->parameters[j].type = EDisplayParameterType::Vector;
                         cDisplay->parameters[j].data = new float[cVar->numItems * 3];
                         memcpy(cDisplay->parameters[j].data, params[i], cVar->numItems * sizeof(float) * 3);
                         break;
                     case TYPE_MATRIX:
-                        cDisplay->parameters[j].type = MATRIX_PARAMETER;
+                        cDisplay->parameters[j].type = EDisplayParameterType::Matrix;
                         cDisplay->parameters[j].data = new float[cVar->numItems * 16];
                         memcpy(cDisplay->parameters[j].data, params[i], cVar->numItems * sizeof(float) * 16);
                         break;
@@ -1437,7 +1435,7 @@ void CRendererContext::RiDisplayV(const char *name, const char *type, const char
                         // No display driver consumes any of these.
                         break;
                     case TYPE_STRING:
-                        cDisplay->parameters[j].type = STRING_PARAMETER;
+                        cDisplay->parameters[j].type = EDisplayParameterType::String;
                         cDisplay->parameters[j].data = strdup(((char **)params[i])[0]);
                         break;
                     case TYPE_INTEGER:
@@ -1445,7 +1443,7 @@ void CRendererContext::RiDisplayV(const char *name, const char *type, const char
                         int k;
                         float *src;
                         int *dst;
-                        cDisplay->parameters[j].type = INTEGER_PARAMETER;
+                        cDisplay->parameters[j].type = EDisplayParameterType::Integer;
                         cDisplay->parameters[j].data = new int[cVar->numItems];
                         dst = (int *)cDisplay->parameters[j].data;
                         src = (float *)params[i];
@@ -2351,11 +2349,7 @@ void CRendererContext::RiSurfaceV(const char *name, int n, const char *tokens[],
     attributes = getAttributes(TRUE);
     cShader = getShader(name, SL_SURFACE, n, tokens, params);
 
-    if (attributes->surface != NULL)
-        attributes->surface->detach();
-
-    attributes->surface = cShader;
-    attributes->checkParameters();
+    attributes->bindSurface(ShaderGroupRef::adopt(cShader));
 }
 
 void CRendererContext::RiAtmosphereV(const char *name, int n, const char *tokens[], const void *params[]) {
@@ -2368,11 +2362,7 @@ void CRendererContext::RiAtmosphereV(const char *name, int n, const char *tokens
     attributes = getAttributes(TRUE);
     cShader = getShader(name, SL_ATMOSPHERE, n, tokens, params);
 
-    if (attributes->atmosphere != NULL)
-        attributes->atmosphere->detach();
-
-    attributes->atmosphere = cShader;
-    attributes->checkParameters();
+    attributes->bindAtmosphere(ShaderGroupRef::adopt(cShader));
 }
 
 void CRendererContext::RiInteriorV(const char *name, int n, const char *tokens[], const void *params[]) {
@@ -2385,11 +2375,7 @@ void CRendererContext::RiInteriorV(const char *name, int n, const char *tokens[]
     attributes = getAttributes(TRUE);
     cShader = getShader(name, SL_ATMOSPHERE, n, tokens, params);
 
-    if (attributes->interior != NULL)
-        attributes->interior->detach();
-
-    attributes->interior = cShader;
-    attributes->checkParameters();
+    attributes->bindInterior(ShaderGroupRef::adopt(cShader));
 }
 
 void CRendererContext::RiExteriorV(const char *name, int n, const char *tokens[], const void *params[]) {
@@ -2402,11 +2388,7 @@ void CRendererContext::RiExteriorV(const char *name, int n, const char *tokens[]
     attributes = getAttributes(TRUE);
     cShader = getShader(name, SL_ATMOSPHERE, n, tokens, params);
 
-    if (attributes->exterior != NULL)
-        attributes->exterior->detach();
-
-    attributes->exterior = cShader;
-    attributes->checkParameters();
+    attributes->bindExterior(ShaderGroupRef::adopt(cShader));
 }
 
 void CRendererContext::RiShadingRate(float size) {
@@ -3299,11 +3281,7 @@ void CRendererContext::RiDisplacementV(const char *name, int n, const char *toke
     attributes = getAttributes(TRUE);
     cShader = getShader(name, SL_DISPLACEMENT, n, tokens, params);
 
-    if (attributes->displacement != NULL)
-        attributes->displacement->detach();
-
-    attributes->displacement = cShader;
-    attributes->checkParameters();
+    attributes->bindDisplacement(ShaderGroupRef::adopt(cShader));
 }
 
 void CRendererContext::RiCoordinateSystem(const char *space) {

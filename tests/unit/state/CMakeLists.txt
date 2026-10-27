@@ -31,15 +31,15 @@ set_tests_properties(State_LightOrder PROPERTIES
 #     src/, so it is caught by the architecture check and the SC-003 grep, not by
 #     this test.
 #
-# Why this is behind an option, OFF until the State sources can be built this way
-# (task T050): archcheck's loadMakefiles walks every DependInfo.cmake in the build
+# Why this is behind an option (OFF while the State sources could not be built this way,
+# ON since task T050): archcheck's loadMakefiles walks every DependInfo.cmake in the build
 # tree, EXCLUDE_FROM_ALL targets included, and exits 2 "incomplete build tree" when
 # an in-scope object (any source under src/) is missing. The library below compiles
-# src/ri/state/*.cpp, so it must either be built or not exist. With the option off,
-# none of it is defined, so `ctest -L architecture` sees only the production units.
-# Red evidence is taken in a scratch build directory configured with the option ON.
+# src/ri/state/*.cpp, so it must either be built or not exist. It is part of `all` now
+# that it compiles, so archcheck finds every object; with the option OFF none of it is
+# defined and `ctest -L architecture` sees only the production units.
 # ---------------------------------------------------------------------------
-option(OPENRENDER_STATE_ONLY_TESTS "Build the State-only isolation tests" OFF)
+option(OPENRENDER_STATE_ONLY_TESTS "Build the State-only isolation tests" ON)
 
 if(OPENRENDER_STATE_ONLY_TESTS)
     # A test-only staging directory holding a copy of ri_config.h. src/ri/core itself
@@ -49,7 +49,7 @@ if(OPENRENDER_STATE_ONLY_TESTS)
                    ${STATE_ONLY_INCLUDE_DIR}/ri_config.h COPYONLY)
 
     # A later phase appends channelRegistry.cpp.
-    add_library(state_only_sources STATIC EXCLUDE_FROM_ALL
+    add_library(state_only_sources STATIC
         ${CMAKE_SOURCE_DIR}/src/ri/state/attributes.cpp
         ${CMAKE_SOURCE_DIR}/src/ri/state/options.cpp
         ${CMAKE_SOURCE_DIR}/src/ri/state/pl.cpp
@@ -67,15 +67,23 @@ if(OPENRENDER_STATE_ONLY_TESTS)
         ${STATE_ONLY_INCLUDE_DIR}
     )
 
-    # add_state_only_test(NAME EXE SOURCES...): an EXCLUDE_FROM_ALL executable linking
-    # state_only_sources. The test is DISABLED until the phase that provides its API
-    # removes the marker; its red state is a build failure of the executable.
+    # add_state_only_test(NAME EXE SOURCES... [ENABLED]): an executable linking state_only_sources.
+    # Until the phase that provides its API enables it, the executable is EXCLUDE_FROM_ALL and
+    # the test DISABLED; its red state is a build failure of the executable.
     function(add_state_only_test NAME EXE)
-        add_executable(${EXE} EXCLUDE_FROM_ALL ${ARGN})
+        cmake_parse_arguments(ARG "ENABLED" "" "" ${ARGN})
+        if(ARG_ENABLED)
+            add_executable(${EXE} ${ARG_UNPARSED_ARGUMENTS})
+        else()
+            add_executable(${EXE} EXCLUDE_FROM_ALL ${ARG_UNPARSED_ARGUMENTS})
+        endif()
         target_link_libraries(${EXE} PRIVATE state_only_sources)
         target_compile_features(${EXE} PRIVATE cxx_std_20)
         add_test(NAME ${NAME} COMMAND ${EXE})
-        set_tests_properties(${NAME} PROPERTIES DISABLED TRUE LABELS "state" TIMEOUT 60)
+        set_tests_properties(${NAME} PROPERTIES LABELS "state" TIMEOUT 60)
+        if(NOT ARG_ENABLED)
+            set_tests_properties(${NAME} PROPERTIES DISABLED TRUE)
+        endif()
     endfunction()
 
     # The tests (spec 025, tasks T009-T012 and T014). Each phase enables its own:
@@ -84,18 +92,17 @@ if(OPENRENDER_STATE_ONLY_TESTS)
     #   State_PatternTable       the scoped pattern-node table (US4)
     #   State_ChannelRegistry    the AOV/channel registry (US5)
     #   State_LightOrderRestore  direct restore()/copy order (FR-025), enabled in Phase 7
-    add_state_only_test(State_Isolation test_state_isolation test_state_isolation.cpp)
-    add_state_only_test(State_LastBound test_state_last_bound test_state_last_bound.cpp)
-    add_state_only_test(State_PatternTable test_state_pattern_table test_state_pattern_table.cpp)
+    add_state_only_test(State_Isolation test_state_isolation test_state_isolation.cpp ENABLED)
+    add_state_only_test(State_LastBound test_state_last_bound test_state_last_bound.cpp ENABLED)
+    add_state_only_test(State_PatternTable test_state_pattern_table test_state_pattern_table.cpp ENABLED)
     add_state_only_test(State_ChannelRegistry test_state_channel_registry test_state_channel_registry.cpp)
     add_state_only_test(State_LightOrderRestore test_state_light_restore test_state_light_restore.cpp)
 endif()
 
 # State_VocabularyConsistency (FR-008/FR-009, SC-007) is a Consumer: it includes
 # stateVocabulary.h, dsply.h and blobbyField.h, so it uses the normal include path and
-# is always defined. Red by build failure (stateVocabulary.h does not exist): EXCLUDE_FROM_ALL
-# and DISABLED until the vocabulary phase (T036) creates the header.
-add_executable(test_state_vocabulary EXCLUDE_FROM_ALL test_state_vocabulary.cpp)
+# is always defined. Enabled since the vocabulary phase (task T050) created the header.
+add_executable(test_state_vocabulary test_state_vocabulary.cpp)
 target_link_libraries(test_state_vocabulary PRIVATE openrender_common_flags openrendercommon)
 target_include_directories(test_state_vocabulary PRIVATE
     ${CMAKE_SOURCE_DIR}/src
@@ -106,4 +113,4 @@ target_include_directories(test_state_vocabulary PRIVATE
 )
 target_compile_features(test_state_vocabulary PRIVATE cxx_std_20)
 add_test(NAME State_VocabularyConsistency COMMAND test_state_vocabulary)
-set_tests_properties(State_VocabularyConsistency PROPERTIES DISABLED TRUE LABELS "state" TIMEOUT 60)
+set_tests_properties(State_VocabularyConsistency PROPERTIES LABELS "state" TIMEOUT 60)

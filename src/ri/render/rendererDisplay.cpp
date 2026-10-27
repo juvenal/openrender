@@ -36,6 +36,7 @@
 #include "remoteChannel.h"
 #include "renderer.h"
 #include "rendererContext.h"
+#include "stateConversions.h"
 #include "common/stats.h"
 
 static COptions::CDisplay *currentDisplay = NULL;
@@ -53,7 +54,7 @@ void *findParameter(const char *name, ParameterType type, int numItems) {
         for (i = 0; i < currentDisplay->numParameters; i++) {
             if (strcmp(name, currentDisplay->parameters[i].name) == 0) {
                 if (numItems == currentDisplay->parameters[i].numItems) {
-                    if (type == currentDisplay->parameters[i].type) {
+                    if (toStateType(type) == currentDisplay->parameters[i].type) {
                         return currentDisplay->parameters[i].data;
                     }
                 }

@@ -30,11 +30,10 @@
 #include "common/algebra.h"    // Matrix - vector stuff
 #include "common/containers.h" // Misc data structures
 #include "common/global.h"     // The global header file
-#include "shader.h"            // Shader stuff
+#include "patternTable.h"       // Scoped pattern-node table
+#include "stateHandles.h"       // Opaque shader and map handles
 #include "userAttributes.h"    // Attribute dictionary stuff
 #include "xform.h"             // Transformations
-
-class CPhotonMap;
 
 // Constant definitions for the flag field of the attributes
 const unsigned int ATTRIBUTES_FLAGS_INSIDE = 1;                      // Flip the orientation
@@ -68,8 +67,16 @@ const float ATTRIBUTES_MIN_SHADINGRATE = C_EPSILON;
 // Comments				:
 class CActiveLight {
     public:
-        CProgrammableShaderInstance *light;
+        CShaderGroupRefTarget *light; // Non-owning: the renderer core's allLights owns the light
         CActiveLight *next;
+};
+
+// Which of Surface and Bxdf was bound last in an attribute block (spec 025, FR-010/FR-011). The record
+// answers "which one governs the material": no consumer may infer it from which slot is empty.
+enum class EMaterialBinding : unsigned char {
+    None,   // neither was bound in this block or the blocks it was cloned from
+    Surface,
+    Bxdf
 };
 
 // The shading model
@@ -118,8 +125,8 @@ class CAttributes : public CRefCounter {
         CAttributes(const CAttributes *);
         virtual ~CAttributes();
 
-        void addLight(CShaderInstance *); // Add or remove a lightsource from the environment
-        void removeLight(CShaderInstance *);
+        void addLight(CShaderGroupRefTarget *); // Add or remove a lightsource from the environment (non-owning)
+        void removeLight(CShaderGroupRefTarget *);
         void checkParameters();                 // Re-compute the required shader parameters
         CVariable *findParameter(const char *); // Find a shader parameter
         void restore(const CAttributes *other, int shading, int geometrymodification, int geometrydefinition, int /*hiding*/);
@@ -127,11 +134,27 @@ class CAttributes : public CRefCounter {
 
         CAttributes *next; // points to the next attribute if there's motion blur
 
-        CShaderInstance *surface; // Shaders attached to the primitive
-        CShaderInstance *displacement;
-        CShaderInstance *atmosphere;
-        CShaderInstance *interior;
-        CShaderInstance *exterior;
+        // The shaders attached to the primitive are held through handles and are written only through
+        // the bind functions below, each of which recomputes usedParameters.
+        const ShaderGroupRef &surface() const { return surfaceSlot; }
+        const ShaderGroupRef &displacement() const { return displacementSlot; }
+        const ShaderGroupRef &atmosphere() const { return atmosphereSlot; }
+        const ShaderGroupRef &interior() const { return interiorSlot; }
+        const ShaderGroupRef &exterior() const { return exteriorSlot; }
+        const ShaderGroupRef &bxdf() const { return bxdfSlot; } // Ignored by the shader-parameter answers until spec 035
+        void bindSurface(ShaderGroupRef shader); // Also sets the last-bound record to Surface, even when shader is empty
+        void bindBxdf(ShaderGroupRef shader);    // Sets the last-bound record to Bxdf, even when shader is empty
+        void bindDisplacement(ShaderGroupRef shader);
+        void bindAtmosphere(ShaderGroupRef shader);
+        void bindInterior(ShaderGroupRef shader);
+        void bindExterior(ShaderGroupRef shader);
+        void setDefaultSurface(ShaderGroupRef shader); // RiWorldBegin only; leaves the last-bound record unchanged (FR-024)
+
+        // The single query for which of Surface and Bxdf was bound last (FR-011).
+        EMaterialBinding governingMaterial() const { return lastMaterialBinding; }
+
+        CPatternTable patterns; // Scoped pattern-node table (shared copy-on-write between clones)
+
         unsigned int usedParameters; // The set of used parameters that the shaders need
 
         vector surfaceColor; // Default surface color and opacity
@@ -187,8 +210,8 @@ class CAttributes : public CRefCounter {
 
         char *globalMapName;              // The name of the global photon map
         char *causticMapName;             // The name of the caustic photon map
-        CPhotonMap *globalMap;            // The global photon map
-        CPhotonMap *causticMap;           // The caustic photon map
+        MapRef globalMap;                 // The global photon map
+        MapRef causticMap;                // The caustic photon map
         char *irradianceHandle;           // The irradiance cache
         char *irradianceHandleMode;       // The irradiance cache mode
         float irradianceMaxError;         // The error threshold for the irradiance cache
@@ -214,6 +237,15 @@ class CAttributes : public CRefCounter {
         static EShadingModel findShadingModel(const char *name);
         static const char *findShadingModel(EShadingModel model);
         static char *setShaderFormat(const char *format);
+
+    private:
+        ShaderGroupRef surfaceSlot; // Shaders attached to the primitive
+        ShaderGroupRef displacementSlot;
+        ShaderGroupRef atmosphereSlot;
+        ShaderGroupRef interiorSlot;
+        ShaderGroupRef exteriorSlot;
+        ShaderGroupRef bxdfSlot;
+        EMaterialBinding lastMaterialBinding = EMaterialBinding::None;
 };
 
 // Interior/Exterior shader selection for a primary camera-ray hit (spec
@@ -223,11 +255,11 @@ class CAttributes : public CRefCounter {
 // side -- in which case ordinary surface/atmosphere shading proceeds
 // untouched (FR-012). Inline: called from both the `ri` and
 // `libshader_shading` link targets.
-inline CShaderInstance *selectVolumeShader(const CAttributes *attr, bool isSolidFragment, bool isExterior) {
+inline CShaderGroupRefTarget *selectVolumeShader(const CAttributes *attr, bool isSolidFragment, bool isExterior) {
     if (!isSolidFragment)
         return NULL;
 
-    return isExterior ? attr->exterior : attr->interior;
+    return isExterior ? attr->exterior().get() : attr->interior().get();
 }
 
 #endif

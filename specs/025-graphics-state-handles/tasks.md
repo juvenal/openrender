@@ -288,80 +288,80 @@ red ones are shown red. **No file under `src/` changes in this phase**, apart fr
 
 **Warning**: from T036 until T049 the tree does not compile (the slot fields become private). Do not build in between except to compile one object while fixing a site; the compiler is the work list (R12).
 
-- [ ] T030 [US1] Delete the 7 DB-008 lines and their section header (`# --- DB-008: …`) from `tests/architecture/allowlist.txt` (lines 135–142). Add and swap nothing. [RUN] `ctest -L architecture` (the option is still off, so the State-only library does not exist and cannot add a duplicate edge): expected **red, exactly 7 `VIOLATION` lines, all with source under `src/ri/state`** (T-A1). Any other violation means the design is wrong: stop. Record the 7 lines in validation.md §4.
-- [ ] T031 [US1] Create `src/ri/state/stateHandles.h` (header-only; includes `common/refCounter.h` only) per contracts/state-handles.md:
+- [X] T030 [US1] Delete the 7 DB-008 lines and their section header (`# --- DB-008: …`) from `tests/architecture/allowlist.txt` (lines 135–142). Add and swap nothing. [RUN] `ctest -L architecture` (the option is still off, so the State-only library does not exist and cannot add a duplicate edge): expected **red, exactly 7 `VIOLATION` lines, all with source under `src/ri/state`** (T-A1). Any other violation means the design is wrong: stop. Record the 7 lines in validation.md §4.
+- [X] T031 [US1] Create `src/ri/state/stateHandles.h` (header-only; includes `common/refCounter.h` only) per contracts/state-handles.md:
   - `class CShaderGroupRefTarget : public CRefCounter` and `class CMapRefTarget : public CRefCounter`, each with no data members and a `protected` defaulted constructor;
   - `template <class T> class TStateRef` with `adopt(T*)` (takes over the caller's reference, no count), `retain(T*)` (attaches a non-null object), copy (+1), move (no count change), copy assignment (retain the new object, then release the old), move assignment, destructor (`detach()`), `reset()`, `get()`, `explicit operator bool`, and `==`/`!=` against a handle and a raw `T*`;
   - the invariant "a non-empty handle owns exactly one reference to `object`"; "Empty means no object"; a null `T*` passed to `adopt`/`retain` gives an empty handle;
   - `using ShaderGroupRef = TStateRef<CShaderGroupRefTarget>;` and `using MapRef = TStateRef<CMapRefTarget>;` — distinct types that do not convert to each other;
   - every operation inline, so no out-of-line State symbol is added for Shading or Hiders to import.
-- [ ] T032 [P] [US1] Create `src/ri/state/stateVocabulary.h` (contracts/state-vocabulary.md): `enum class EDisplayParameterType : int { Float = 0, Vector = 1, Matrix = 2, String = 3, Integer = 4 };` and `enum class EBlobbyOrder : int { RiSpec = 0, AppNote = 1 };`. No include of `dsply.h` or `blobbyField.h`.
-- [ ] T033 [US1] In `src/libshader/shading/shader.h` change `CShaderInstance`'s base from `CRefCounter` to `public CShaderGroupRefTarget` and include `stateHandles.h` (Shading → State, allowed). The new base has no data members, so the layout is unchanged. Confirm `CProgrammableShaderInstance`, `CSphereLight` and `CQuadLight` (`src/ri/hcshader.h`) still reach it through single inheritance with the reference-counted base first; the shim `src/ri/core/shader.h` needs no change.
-- [ ] T034 [P] [US1] Create `src/libshader/shading/shaderRefs.h` (inline only), per contracts/state-handles.md:
+- [X] T032 [P] [US1] Create `src/ri/state/stateVocabulary.h` (contracts/state-vocabulary.md): `enum class EDisplayParameterType : int { Float = 0, Vector = 1, Matrix = 2, String = 3, Integer = 4 };` and `enum class EBlobbyOrder : int { RiSpec = 0, AppNote = 1 };`. No include of `dsply.h` or `blobbyField.h`.
+- [X] T033 [US1] In `src/libshader/shading/shader.h` change `CShaderInstance`'s base from `CRefCounter` to `public CShaderGroupRefTarget` and include `stateHandles.h` (Shading → State, allowed). The new base has no data members, so the layout is unchanged. Confirm `CProgrammableShaderInstance`, `CSphereLight` and `CQuadLight` (`src/ri/hcshader.h`) still reach it through single inheritance with the reference-counted base first; the shim `src/ri/core/shader.h` needs no change.
+- [X] T034 [P] [US1] Create `src/libshader/shading/shaderRefs.h` (inline only), per contracts/state-handles.md:
   - `shaderInstanceOf(const CShaderGroupRefTarget *)` and `shaderInstanceOf(const ShaderGroupRef &)`, each a `static_cast` (const_cast on the argument);
   - `lightInstanceOf(const CActiveLight &)` returning `static_cast<CProgrammableShaderInstance *>(shaderInstanceOf(e.light))`: **unchecked, as before** — add the comment naming DB-013 (the built-in sphere and quad lights are not programmable instances; the consumers read only `CShaderInstance` members). No `reinterpret_cast`, `void *`, `dynamic_cast` or assert.
-- [ ] T035 [P] [US1] In `src/ri/hiders/photonMap.h` change `CPhotonMap`'s base list (line ~74) so `public CRefCounter` becomes `public CMapRefTarget`; include `stateHandles.h` (Hiders → State, allowed); add the inline `CPhotonMap *photonMapOf(const MapRef &r) { return static_cast<CPhotonMap *>(r.get()); }`.
-- [ ] T036 [US1] `src/ri/state/attributes.h`:
+- [X] T035 [P] [US1] In `src/ri/hiders/photonMap.h` change `CPhotonMap`'s base list (line ~74) so `public CRefCounter` becomes `public CMapRefTarget`; include `stateHandles.h` (Hiders → State, allowed); add the inline `CPhotonMap *photonMapOf(const MapRef &r) { return static_cast<CPhotonMap *>(r.get()); }`.
+- [X] T036 [US1] `src/ri/state/attributes.h`:
   - remove `#include "shader.h"` and the `class CPhotonMap;` forward declaration; include `stateHandles.h`;
   - `CActiveLight::light` becomes `CShaderGroupRefTarget *` (non-owning); `addLight`/`removeLight` take `CShaderGroupRefTarget *`;
   - the five slots become **private** `ShaderGroupRef` members read through inline `const ShaderGroupRef &surface() const` (and `displacement()`, `atmosphere()`, `interior()`, `exterior()`) and written only through `bindSurface`, `bindDisplacement`, `bindAtmosphere`, `bindInterior`, `bindExterior` (each stores and calls `checkParameters()`) and `setDefaultSurface` (stores and recomputes; used by `RiWorldBegin` only);
   - `globalMap`, `causticMap` become public `MapRef`;
   - `selectVolumeShader(...)` returns `CShaderGroupRefTarget *`.
-- [ ] T037 [US1] `src/ri/state/attributes.cpp`:
+- [X] T037 [US1] `src/ri/state/attributes.cpp`:
   - remove `#include "photonMap.h"` and any shader include;
   - **delete** the copy constructor's 5 slot and 2 map `attach()` lines and the destructor's matching `detach()` lines (the handle members do this now; keeping them would double every count);
   - `restore(shading)` assigns the five slots (the old `detach`/`attach` pairs go) and still copies map *names* only, never the map handles;
   - keep the two **prepend** loops over `lightSources` exactly as they are (Phase 7 changes them);
   - `addLight` stores the `CShaderGroupRefTarget *` with **no cast** (the cast is now in `lightInstanceOf`), still appends and suppresses duplicates; `removeLight` unchanged.
-- [ ] T038 [US1] `src/ri/state/options.h` and `options.cpp`: remove `#include "shader.h"`, `"dsply.h"` and `"blobbyField.h"`; include `stateHandles.h` and `stateVocabulary.h`.
+- [X] T038 [US1] `src/ri/state/options.h` and `options.cpp`: remove `#include "shader.h"`, `"dsply.h"` and `"blobbyField.h"`; include `stateHandles.h` and `stateVocabulary.h`.
   - `imager` becomes a public `ShaderGroupRef`; delete its manual `attach`/`detach` in the copy constructor and destructor (`options.cpp` ~454 and ~519);
   - `COptions::CDisplay::TDisplayParameter::type` becomes `EDisplayParameterType`, and the copy constructor's `switch` (~136–148) uses the State names;
   - `blobbyOpcodeOrder` stays `int` with the default `static_cast<int>(EBlobbyOrder::RiSpec)`.
-- [ ] T039 [US2] Convert `src/libshader/shading/shaderParameters.cpp` to read the slots through the accessors and `shaderInstanceOf`/`lightInstanceOf` (the logic is unchanged; the `bxdf` slot is still absent).
-- [ ] T040 [US2] `src/libshader/shading/shading.cpp`: include `shaderRefs.h` and read every slot and light through `shaderInstanceOf(currentAttributes->X())` / `lightInstanceOf(*cLight)`. The sites are:
+- [X] T039 [US2] Convert `src/libshader/shading/shaderParameters.cpp` to read the slots through the accessors and `shaderInstanceOf`/`lightInstanceOf` (the logic is unchanged; the `bxdf` slot is still absent).
+- [X] T040 [US2] `src/libshader/shading/shading.cpp`: include `shaderRefs.h` and read every slot and light through `shaderInstanceOf(currentAttributes->X())` / `lightInstanceOf(*cLight)`. The sites are:
   - ~865–921 and ~975 (shader selection per grid), ~1011–1014 (`prepare`);
   - ~1271 (`selectVolumeShader` result), ~1556–1613 (`getParameter` of surface/displacement/atmosphere/interior/exterior);
   - ~1907, ~1970, ~2200 (light loops);
   - ~2753–2770 (`getName`), ~4172 and ~4183 (`postShader` from interior/exterior).
   The hot loops must not touch a reference count: slot accessors return `const &`, and `shaderInstanceOf` is an inline `static_cast`.
-- [ ] T041 [P] [US2] `src/libshader/shading/executeMisc.cpp:846-847` (interior/exterior) and `src/libshader/shading/execute.cpp:409` (the `illuminance` light loop macro): same conversion with `shaderInstanceOf`/`lightInstanceOf`.
-- [ ] T042 [P] [US1] Hiders read the photon maps through `photonMapOf(attributes->globalMap)` / `photonMapOf(attributes->causticMap)`: `src/ri/hiders/photon.cpp:628-660`, `src/ri/hiders/radiance.cpp:315-321` and `:1119-1134`, `src/ri/hiders/irradianceDispatch.cpp:477-487`. Include `photonMap.h` (Hiders may). Same pointer, same null checks.
-- [ ] T043 [P] [US1] `src/ri/geometry/surface.cpp:605`: the presence check becomes `attributes->displacement()` (an `explicit operator bool` in an `if`/`&&`). Geometry reads State only; it must not include `shaderRefs.h` or `photonMap.h`.
-- [ ] T044 [US1] `src/ri/render/rendererContext.cpp` shader binders: replace the `detach(); slot = cShader;` pairs and the separate `checkParameters()` calls with the setters.
+- [X] T041 [P] [US2] `src/libshader/shading/executeMisc.cpp:846-847` (interior/exterior) and `src/libshader/shading/execute.cpp:409` (the `illuminance` light loop macro): same conversion with `shaderInstanceOf`/`lightInstanceOf`.
+- [X] T042 [P] [US1] Hiders read the photon maps through `photonMapOf(attributes->globalMap)` / `photonMapOf(attributes->causticMap)`: `src/ri/hiders/photon.cpp:628-660`, `src/ri/hiders/radiance.cpp:315-321` and `:1119-1134`, `src/ri/hiders/irradianceDispatch.cpp:477-487`. Include `photonMap.h` (Hiders may). Same pointer, same null checks.
+- [X] T043 [P] [US1] `src/ri/geometry/surface.cpp:605`: the presence check becomes `attributes->displacement()` (an `explicit operator bool` in an `if`/`&&`). Geometry reads State only; it must not include `shaderRefs.h` or `photonMap.h`.
+- [X] T044 [US1] `src/ri/render/rendererContext.cpp` shader binders: replace the `detach(); slot = cShader;` pairs and the separate `checkParameters()` calls with the setters.
   - `RiSurfaceV`, `RiAtmosphereV`, `RiInteriorV`, `RiExteriorV` (~2354–2409) and `RiDisplacementV` (~3302): `attributes->bindX(ShaderGroupRef::adopt(cShader))`. The setter recomputes, so the old `checkParameters()` calls (lines ~2358, 2375, 2392, 2409, 3306) go, one-for-one.
   - `RiWorldBegin` (~990–997): `if (!currentAttributes->surface())`, then `attrs->setDefaultSurface(ShaderGroupRef::adopt(cShader))`; the `checkParameters()` at ~995 goes.
   - `RiImagerV` (~1292): `options->imager = ShaderGroupRef::adopt(s)`; delete the manual `detach`.
   - `getShader()` returning `NULL` for `"null"` or a load failure still leaves the slot empty (an empty handle).
   - `RiLightSourceV`, `RiAreaLightSourceV`, `RiIlluminate` and the default-light binding need **no edit**: they pass a `CShaderInstance *` to `addLight`/`removeLight`, which now take its State base `CShaderGroupRefTarget *` (an implicit upcast).
-- [ ] T045 [US1] Display-parameter and blobby-order conversions in the renderer core.
+- [X] T045 [US1] Display-parameter and blobby-order conversions in the renderer core.
   - Create `src/ri/render/stateConversions.h` (core-private; location decided in spec clarification 2026-10-26): one inline helper converting the plug-in's `ParameterType` to `EDisplayParameterType` (and back), with a `static_assert` per enumerator pair beside it.
   - `src/ri/render/rendererContext.cpp:1417-1448`: the five writes use `EDisplayParameterType::…`. The `BLOBBY_ORDER_*` assignments at ~1978–1985 stay `int` assignments (add `#include "dsply.h"` where needed; `blobbyField.h` is already included at line 36).
   - `src/ri/render/rendererDisplay.cpp:48-57`: the comparison of `findParameter`'s `ParameterType` against the stored type goes through the helper (mixed-enum comparison is an error under `-Werror`). Add `#include "dsply.h"`.
-- [ ] T046 [P] [US1] `src/ri/render/renderer.cpp`: line ~279 `imagerShader = shaderInstanceOf(o->imager)`; lines ~953–965 the lazy map binding becomes `cAttributes->globalMap = MapRef::retain(getPhotonMap(name))` (and the same for `causticMap`), keeping the `if (… == NULL)` laziness so two objects sharing a name still get the same map; add `photonMap.h` and `shaderRefs.h` includes.
-- [ ] T047 [P] [US1] `src/ri/render/geometryDispatch.cpp:281`: `attributes->displacement() && (attributes->flags & ATTRIBUTES_FLAGS_DISPLACEMENTS)`.
-- [ ] T048 [P] [US2] Adapt the consumers; **assertions do not change**, only how the object is reached:
+- [X] T046 [P] [US1] `src/ri/render/renderer.cpp`: line ~279 `imagerShader = shaderInstanceOf(o->imager)`; lines ~953–965 the lazy map binding becomes `cAttributes->globalMap = MapRef::retain(getPhotonMap(name))` (and the same for `causticMap`), keeping the `if (… == NULL)` laziness so two objects sharing a name still get the same map; add `photonMap.h` and `shaderRefs.h` includes.
+- [X] T047 [P] [US1] `src/ri/render/geometryDispatch.cpp:281`: `attributes->displacement() && (attributes->flags & ATTRIBUTES_FLAGS_DISPLACEMENTS)`.
+- [X] T048 [P] [US2] Adapt the consumers; **assertions do not change**, only how the object is reached:
   - `tests/unit/csg/test_interior_exterior_selection.cpp`: replace the `0x1`/`0x2` sentinel pointers with counting doubles (a retaining handle would dereference a sentinel) bound with `bindInterior`/`bindExterior`, compare with `selectVolumeShader(...)` against the doubles' `get()`, and `leaf->attributes->exterior().get()`. **Bind the doubles with no `RiBegin` session open** (contracts/shader-parameter-hooks.md "Precondition"): the double-binding cases already run before the CSG case that opens a session; keep that order, or give them their own process. The doubles are bound only in blocks that never see `restore()` or a shading call, which would reach the hook;
   - `tests/imager/test_imager_guard.cpp` (~70, ~80) and `tests/imager/test_imager_options.cpp` (~63–124): `opts->imager` is a handle; use `.get()`/`shaderInstanceOf`, keep every `EXPECT_*`;
   - `tests/shading_parity/test_ambient_accumulation.cpp` and `tests/unit/state/test_light_order.cpp`: adjust only if the compiler requires it.
-- [ ] T049 [US1] [RUN] Compiler-guided sweep (research R12): `cmake --build build-025 --config Release -j4` until clean, including `hcshader.{h,cpp}`, `rendererContext.h`, `renderer.h`, the preview, Python and Lua consumers if they are in this build.
+- [X] T049 [US1] [RUN] Compiler-guided sweep (research R12): `cmake --build build-025 --config Release -j4` until clean, including `hcshader.{h,cpp}`, `rendererContext.h`, `renderer.h`, the preview, Python and Lua consumers if they are in this build.
   - A unit that lost a transitive include is fixed **only** with an infrastructure header (`common/…`, `ri_config.h`), its own domain's header, or — in the renderer core and in consumers — any header.
   - **STOP and report** if a Geometry, Texturing or Scene Interface unit would need a Shading, Hiders or Display header. Never work around it with a forbidden include.
   - Record the list of added includes in validation.md §4.
-- [ ] T050 [US1] Enable the State-only tests.
+- [X] T050 [US1] Enable the State-only tests.
   - In `tests/unit/state/CMakeLists.txt` change the option's default to **ON**, and in `build-025` reconfigure with `-DOPENRENDER_STATE_ONLY_TESTS=ON` (the cached value is OFF and a changed default does not override a cache entry).
   - Remove `EXCLUDE_FROM_ALL` from `state_only_sources` (so it is part of `all` and archcheck finds its objects) and from `State_Isolation`'s target, and remove `State_Isolation`'s `DISABLED` marker; do the same for `State_VocabularyConsistency` (its headers exist now). Keep `State_LastBound`, `State_PatternTable`, `State_ChannelRegistry` and `State_LightOrderRestore` `EXCLUDE_FROM_ALL` + `DISABLED` until their phases (their own compile-only dependencies are test sources, not `src/` objects).
   - [RUN] build, then `ctest -R 'State_Isolation|State_VocabularyConsistency' --output-on-failure`: both green. Record that T019's compile errors are gone.
   - **Mutation (C1)**: in a scratch edit make the copy constructor retain one slot twice (or keep one of the deleted manual `attach()` lines), rebuild, show `State_Isolation` **red** on the count check; revert and confirm `git diff` clean for that file.
-- [ ] T051 [US1] [RUN] Mutation (SC-007): in a scratch edit of `src/ri/state/stateVocabulary.h` change one value (e.g. `EBlobbyOrder::AppNote = 2`), rebuild, show `State_VocabularyConsistency` **red and naming the drifted pair**; revert, confirm `git diff` clean for that file.
-- [ ] T052 [US1] Greps and diffs (quickstart §3), results into validation.md §4:
+- [X] T051 [US1] [RUN] Mutation (SC-007): in a scratch edit of `src/ri/state/stateVocabulary.h` change one value (e.g. `EBlobbyOrder::AppNote = 2`), rebuild, show `State_VocabularyConsistency` **red and naming the drifted pair**; revert, confirm `git diff` clean for that file.
+- [X] T052 [US1] Greps and diffs (quickstart §3), results into validation.md §4:
   - SC-003: `grep -nE '#include *"(.*/)?(shader|photonMap|dsply|blobbyField|shading)\.h"' src/ri/state/*` returns nothing, directly or through a shim;
   - `git diff --stat dfffba0 -- src/display/dsply.h src/ri/geometry/blobbyField.h` is empty (FR-008);
   - `git diff --stat dfffba0 -- src/ri/parse/rib.y src/ri/output src/ri/texture/texture3d.cpp src/ri/geometry/blobby.cpp src/ri/state/pl.cpp` is empty (callers not edited).
-- [ ] T053 [US1] [RUN] Architecture and import checks:
+- [X] T053 [US1] [RUN] Architecture and import checks:
   - `ctest -L architecture`: **PASS with no `DB-008` in `ALLOWED`**, no `STALE`, no `VIOLATION`, no Graphics State source in any edge (SC-001). Delete any line reported `STALE` (deletions only); lower `tests/architecture/metrics-baseline.txt` only if `NOTE metric … < baseline` is printed.
   - **Research R11**: this is the first run with the State-only library in the build tree (option on since T050). It had to wait: archcheck's `loadMakefiles` walks every `DependInfo.cmake`, `EXCLUDE_FROM_ALL` targets included, and exits 2 "incomplete build tree" when an in-scope object is missing, so the library could not exist unbuilt earlier. The State sources compiled a second time must only repeat the production edges, not double-count them in a way that breaks the counts, and the staged `ri_config.h` copy must not be reported as unclassified. If either fails, **stop and report**.
   - libshader_shading flat-namespace imports still **7**.
-- [ ] T054 **Checkpoint 4 (PAUSE 4)**: CP-a, CP-b, CP-c, **CP-d**. Name these explicitly in the report: `photonmap_*` frame-release and session tests, the imager tests, `CSG_InteriorExteriorSelection`, `State_Isolation`, `State_VocabularyConsistency`, `ShadingParity_ShaderParameterEquivalence{,Direct}`. `State_LightOrder` still 4 of 9. Stage; summarize (including the list of added includes); wait for review.
+- [X] T054 **Checkpoint 4 (PAUSE 4)**: CP-a, CP-b, CP-c, **CP-d**. Name these explicitly in the report: `photonmap_*` frame-release and session tests, the imager tests, `CSG_InteriorExteriorSelection`, `State_Isolation`, `State_VocabularyConsistency`, `ShadingParity_ShaderParameterEquivalence{,Direct}`. `State_LightOrder` still 4 of 9. Stage; summarize (including the list of added includes); wait for review.
 
 ---
 
@@ -373,7 +373,7 @@ red ones are shown red. **No file under `src/` changes in this phase**, apart fr
 
 **Independent test**: `State_LastBound` green; `RibOut_ShaderStatementOrder` still green; renders unchanged.
 
-- [ ] T055 [US3] `src/ri/state/attributes.h` / `attributes.cpp`:
+- [X] T055 [US3] `src/ri/state/attributes.h` / `attributes.cpp`:
   - add `enum class EMaterialBinding : unsigned char { None, Surface, Bxdf };` and the field `lastMaterialBinding`, starting `None`;
   - add the private `ShaderGroupRef bxdf` with the inline `const ShaderGroupRef &bxdf() const`, and `void bindBxdf(ShaderGroupRef)` (stores, sets the record to `Bxdf` **even when the handle is empty**, recomputes);
   - `bindSurface` also sets the record to `Surface` **even when the handle is empty** (today's `Surface "null"` or failed-load behaviour, plus the record);
@@ -381,26 +381,26 @@ red ones are shown red. **No file under `src/` changes in this phase**, apart fr
   - `EMaterialBinding governingMaterial() const` is the single query (FR-011); no consumer may infer the answer from which slot is empty;
   - the copy constructor carries the record by value (memberwise) and the `bxdf` handle with a retain; `restore(shading=true)` assigns the `bxdf` slot and copies the record explicitly; `restore(…, shading=false)` leaves both unchanged;
   - the `bxdf` slot stays out of `usedShaderParameters` and `findShaderParameter` (FR-005, comment already in place from T023).
-- [ ] T056 [US3] Enable `State_LastBound` (remove `EXCLUDE_FROM_ALL` and `DISABLED`) **and `ShadingParity_ShaderParameterBxdfIgnored`** (same two markers); [RUN] build and `ctest -R 'State_LastBound|ShadingParity_ShaderParameterBxdfIgnored' --output-on-failure`: both green.
+- [X] T056 [US3] Enable `State_LastBound` (remove `EXCLUDE_FROM_ALL` and `DISABLED`) **and `ShadingParity_ShaderParameterBxdfIgnored`** (same two markers); [RUN] build and `ctest -R 'State_LastBound|ShadingParity_ShaderParameterBxdfIgnored' --output-on-failure`: both green.
   - **Mutation (C1)**: in a scratch edit make `setDefaultSurface` set the record to `Surface`; rebuild; `State_LastBound` goes **red** on the FR-024 check. Revert and confirm `git diff` clean. Second scratch edit: include the `bxdf` slot in `libshader::usedShaderParameters`; `ShadingParity_ShaderParameterBxdfIgnored` goes red. Revert.
-- [ ] T057 [US2] [RUN] Confirm `ShadingParity_ShaderParameterBxdfIgnored` is green (the bxdf slot is ignored by both answers until spec 035) together with `…EquivalenceDirect`; record in validation.md §5. No new test code in this task.
-- [ ] T058 [US3] Confirm FR-012 and FR-023: `git diff --stat dfffba0 -- src/ri/parse src/ri/output` is empty (no grammar, no `Bxdf` or `Pattern` statement, ribOut unchanged), and `RibOut_ShaderStatementOrder` still passes.
+- [X] T057 [US2] [RUN] Confirm `ShadingParity_ShaderParameterBxdfIgnored` is green (the bxdf slot is ignored by both answers until spec 035) together with `…EquivalenceDirect`; record in validation.md §5. No new test code in this task.
+- [X] T058 [US3] Confirm FR-012 and FR-023: `git diff --stat dfffba0 -- src/ri/parse src/ri/output` is empty (no grammar, no `Bxdf` or `Pattern` statement, ribOut unchanged), and `RibOut_ShaderStatementOrder` still passes.
 
 ### User Story 4 — a scoped pattern-node table (P2)
 
 **Independent test**: `State_PatternTable` green.
 
-- [ ] T059 [US4] Create `src/ri/state/patternTable.h` (header-only), `CPatternTable`, per data-model.md and contracts/attribute-scope.md:
+- [X] T059 [US4] Create `src/ri/state/patternTable.h` (header-only), `CPatternTable`, per data-model.md and contracts/attribute-scope.md:
   - storage: a reference-counted, copy-on-write block holding a `std::vector` of entries `{ std::string handle; ShaderGroupRef node; }`; "Entries are kept in first-definition order, with unique handles";
   - `void define(const char *handle, ShaderGroupRef node)`: if the storage is shared, copy it first; then replace the entry with the same handle **in place** (position kept) or append;
   - `const ShaderGroupRef *lookup(const char *handle) const`: `nullptr` when the handle is not found; **State writes no diagnostic** (FR-015);
   - `template <class F> void forEach(F &&) const` in definition order; `int size() const`;
     - the callback shape the approved `State_PatternTable` uses is `fn(handle, node)`: `handle` converts to `const std::string &` and `node` to `const ShaderGroupRef &`;
   - copying the table shares the storage (O(1)); State never interprets a node's content (FR-015). Document that attribute blocks are modified only on the single RIB-stream thread, which the copy-on-write check relies on.
-- [ ] T060 [US4] `src/ri/state/attributes.h` / `attributes.cpp`: add the member `CPatternTable patterns;`. The copy constructor shares it through the memberwise assignment; `restore(shading=true)` assigns it; `restore(…, shading=false)` leaves it. Scoping needs nothing more: `AttributeBegin` clones the block, so an inner definition lives in the inner copy (value semantics, research R7). Nothing in 025 consumes the table.
-- [ ] T061 [US4] Enable `State_PatternTable` (remove `EXCLUDE_FROM_ALL` and `DISABLED`); [RUN] build and `ctest -R State_PatternTable --output-on-failure`: green.
+- [X] T060 [US4] `src/ri/state/attributes.h` / `attributes.cpp`: add the member `CPatternTable patterns;`. The copy constructor shares it through the memberwise assignment; `restore(shading=true)` assigns it; `restore(…, shading=false)` leaves it. Scoping needs nothing more: `AttributeBegin` clones the block, so an inner definition lives in the inner copy (value semantics, research R7). Nothing in 025 consumes the table.
+- [X] T061 [US4] Enable `State_PatternTable` (remove `EXCLUDE_FROM_ALL` and `DISABLED`); [RUN] build and `ctest -R State_PatternTable --output-on-failure`: green.
   - **Mutation (C1)**: in a scratch edit make `define` append instead of replacing an existing handle (or skip the copy-on-write copy); rebuild; `State_PatternTable` goes **red**. Revert and confirm `git diff` clean.
-- [ ] T062 **Checkpoint 5 (PAUSE 5)**: CP-a, CP-b, CP-c, **CP-d**. `State_LastBound`, `State_PatternTable`, `…EquivalenceDirect` and `RibOut_ShaderStatementOrder` green; `State_LightOrder` still 4 of 9; the architecture report has no new line. Stage; summarize; wait for review.
+- [X] T062 **Checkpoint 5 (PAUSE 5)**: CP-a, CP-b, CP-c, **CP-d**. `State_LastBound`, `State_PatternTable`, `…EquivalenceDirect` and `RibOut_ShaderStatementOrder` green; `State_LightOrder` still 4 of 9; the architecture report has no new line. Stage; summarize; wait for review.
 
 ---
 

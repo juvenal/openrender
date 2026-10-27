@@ -61,6 +61,7 @@
 #include "ri_config.h"
 #include "rib.h"
 #include "shader.h"
+#include "shaderRefs.h"
 #include "common/stats.h"
 #include "stochastic.h"
 #include "subdivisionCreator.h"
@@ -276,7 +277,7 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     copyOptions(o);
 
     // Capture active imager shader for this frame
-    imagerShader = o->imager;
+    imagerShader = shaderInstanceOf(o->imager);
     if (imagerShader)
         log_info("beginFrame: imager shader active");
     else
@@ -951,16 +952,14 @@ void CRenderer::render(CObject *cObject) {
 
     // Assign the photon map is necessary
     if (cAttributes->globalMapName != NULL) {
-        if (cAttributes->globalMap == NULL) {
-            cAttributes->globalMap = getPhotonMap(cAttributes->globalMapName);
-            cAttributes->globalMap->attach();
+        if (!cAttributes->globalMap) {
+            cAttributes->globalMap = MapRef::retain(getPhotonMap(cAttributes->globalMapName));
         }
     }
 
     if (cAttributes->causticMapName != NULL) {
-        if (cAttributes->causticMap == NULL) {
-            cAttributes->causticMap = getPhotonMap(cAttributes->causticMapName);
-            cAttributes->causticMap->attach();
+        if (!cAttributes->causticMap) {
+            cAttributes->causticMap = MapRef::retain(getPhotonMap(cAttributes->causticMapName));
         }
     }
 

@@ -31,8 +31,10 @@
 #include "common/global.h"
 #include "common/os.h"
 #include "common/memory.h"
+#include "dsply.h" // spec 025: options.h no longer pulls in the display plug-in ABI
 #include "options.h"
 #include "shadeop.h"
+#include "shader.h" // spec 025: attributes.h and options.h no longer pull in Shading
 #include "libshader/shading/dsoHandle.h" // CDSO, now owned by the shading library
 
 // Compute the circle of confusion as a function of the depth.

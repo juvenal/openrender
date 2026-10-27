@@ -635,7 +635,7 @@ processBounce:;
                 }
 
                 // Save the photon
-                if ((globalMap = attributes->globalMap) != NULL) {
+                if ((globalMap = photonMapOf(attributes->globalMap)) != NULL) {
                     if (globalMap->modifying == FALSE) {
                         // Note: this isn't strictly thread safe, more than one
                         // thread may end up with the map in the balance list
@@ -648,7 +648,7 @@ processBounce:;
                     globalMap->store(Pl, Nl, ray.dir, Cl);
                 }
 
-                if ((causticMap = attributes->causticMap) != NULL) {
+                if ((causticMap = photonMapOf(attributes->causticMap)) != NULL) {
                     if (lastBounceSpecular) {
                         if (causticMap->modifying == FALSE) {
                             // Note: this isn't strictly thread safe, see above

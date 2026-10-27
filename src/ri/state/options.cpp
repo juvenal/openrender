@@ -31,6 +31,7 @@
 
 #include "options.h"
 #include "ri_config.h"
+#include "common/os.h"
 #include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////
@@ -133,25 +134,25 @@ COptions::CDisplay::CDisplay(const CDisplay *other) {
             parameters[i] = other->parameters[i];
             parameters[i].name = strdup(other->parameters[i].name);
             switch (parameters[i].type) {
-                case FLOAT_PARAMETER:
+                case EDisplayParameterType::Float:
                     parameters[i].data = new float[parameters[i].numItems];
                     memcpy(parameters[i].data, other->parameters[i].data, parameters[i].numItems * sizeof(float));
                     break;
-                case VECTOR_PARAMETER:
+                case EDisplayParameterType::Vector:
                     parameters[i].data = new float[parameters[i].numItems * 3];
                     memcpy(parameters[i].data, other->parameters[i].data, parameters[i].numItems * sizeof(float) * 3);
                     break;
-                case MATRIX_PARAMETER:
+                case EDisplayParameterType::Matrix:
                     parameters[i].data = new float[parameters[i].numItems * 16];
                     memcpy(parameters[i].data, other->parameters[i].data, parameters[i].numItems * sizeof(float) * 16);
                     break;
-                case STRING_PARAMETER:
+                case EDisplayParameterType::String:
                     char *str;
 
                     str = strdup((char *)other->parameters[i].data);
                     parameters[i].data = str;
                     break;
-                case INTEGER_PARAMETER:
+                case EDisplayParameterType::Integer:
                     parameters[i].data = new int[parameters[i].numItems];
                     memcpy(parameters[i].data, other->parameters[i].data, parameters[i].numItems * sizeof(int));
                     break;
@@ -185,15 +186,15 @@ COptions::CDisplay::~CDisplay() {
 
         for (i = 0; i < numParameters; i++) {
             switch (parameters[i].type) {
-                case FLOAT_PARAMETER:
-                case VECTOR_PARAMETER:
-                case MATRIX_PARAMETER:
+                case EDisplayParameterType::Float:
+                case EDisplayParameterType::Vector:
+                case EDisplayParameterType::Matrix:
                     delete[] (float *)parameters[i].data;
                     break;
-                case STRING_PARAMETER:
+                case EDisplayParameterType::String:
                     free((char *)parameters[i].data);
                     break;
-                case INTEGER_PARAMETER:
+                case EDisplayParameterType::Integer:
                     delete[] (int *)parameters[i].data;
                     break;
             }
@@ -263,7 +264,7 @@ COptions::COptions() {
     defaultShaderFormat = nullptr;
     textureCacheEnabled = false;
     textureCacheDirectory = nullptr;
-    blobbyOpcodeOrder = BLOBBY_ORDER_RISPEC;
+    blobbyOpcodeOrder = static_cast<int>(EBlobbyOrder::RiSpec);
 
     // Unified search paths across all platforms. Environment expansion is handled
     // by optionsGetSearchPath using %RIBS%, %SHADERS%, %TEXTURES%, %DISPLAYS%, etc.
@@ -369,7 +370,6 @@ COptions::COptions() {
     samplingBackend = openrender::sampling::Backend::Sobol;
     samplingSeed = 0;
 
-    imager = nullptr;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -450,9 +450,6 @@ COptions::COptions(const COptions *o) {
     textureCacheEnabled = o->textureCacheEnabled;
     textureCacheDirectory = (o->textureCacheDirectory != nullptr ? strdup(o->textureCacheDirectory) : nullptr);
     blobbyOpcodeOrder = o->blobbyOpcodeOrder;
-
-    if (imager != nullptr)
-        imager->attach();
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -515,9 +512,6 @@ COptions::~COptions() {
         free((void *)defaultShaderFormat);
     if (textureCacheDirectory != nullptr)
         free((void *)textureCacheDirectory);
-
-    if (imager != nullptr)
-        imager->detach();
 }
 
 ///////////////////////////////////////////////////////////////////////

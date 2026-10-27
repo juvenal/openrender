@@ -24,28 +24,29 @@
 #include "common/rendererc.h"
 #include "common/variable.h"
 #include "shader.h"
+#include "shaderRefs.h"
 
 namespace libshader {
 
     unsigned int usedShaderParameters(const CAttributes &attributes) {
         unsigned int used = 0;
 
-        if (attributes.displacement != NULL)
-            used |= attributes.displacement->requiredParameters();
-        if (attributes.surface != NULL)
-            used |= attributes.surface->requiredParameters();
-        if (attributes.atmosphere != NULL)
-            used |= attributes.atmosphere->requiredParameters();
-        if (attributes.interior != NULL)
-            used |= attributes.interior->requiredParameters();
-        if (attributes.exterior != NULL)
-            used |= attributes.exterior->requiredParameters();
+        if (attributes.displacement())
+            used |= shaderInstanceOf(attributes.displacement())->requiredParameters();
+        if (attributes.surface())
+            used |= shaderInstanceOf(attributes.surface())->requiredParameters();
+        if (attributes.atmosphere())
+            used |= shaderInstanceOf(attributes.atmosphere())->requiredParameters();
+        if (attributes.interior())
+            used |= shaderInstanceOf(attributes.interior())->requiredParameters();
+        if (attributes.exterior())
+            used |= shaderInstanceOf(attributes.exterior())->requiredParameters();
 
-        if (attributes.surface == NULL)
+        if (!attributes.surface())
             used |= PARAMETER_N;
 
         for (const CActiveLight *cLight = attributes.lightSources; cLight != NULL; cLight = cLight->next) {
-            used |= cLight->light->requiredParameters();
+            used |= lightInstanceOf(*cLight)->requiredParameters();
         }
 
         // The bxdf slot is not part of this answer (spec 025, FR-005): a bxdf is ignored here
@@ -56,22 +57,22 @@ namespace libshader {
     CVariable *findShaderParameter(const CAttributes &attributes, const char *name) {
         CVariable *cParameter;
 
-        if (attributes.displacement) {
-            for (cParameter = attributes.displacement->parameters; cParameter != NULL; cParameter = cParameter->next) {
+        if (attributes.displacement()) {
+            for (cParameter = shaderInstanceOf(attributes.displacement())->parameters; cParameter != NULL; cParameter = cParameter->next) {
                 if (strcmp(cParameter->name, name) == 0)
                     return cParameter;
             }
         }
 
-        if (attributes.surface) {
-            for (cParameter = attributes.surface->parameters; cParameter != NULL; cParameter = cParameter->next) {
+        if (attributes.surface()) {
+            for (cParameter = shaderInstanceOf(attributes.surface())->parameters; cParameter != NULL; cParameter = cParameter->next) {
                 if (strcmp(cParameter->name, name) == 0)
                     return cParameter;
             }
         }
 
-        if (attributes.atmosphere) {
-            for (cParameter = attributes.atmosphere->parameters; cParameter != NULL; cParameter = cParameter->next) {
+        if (attributes.atmosphere()) {
+            for (cParameter = shaderInstanceOf(attributes.atmosphere())->parameters; cParameter != NULL; cParameter = cParameter->next) {
                 if (strcmp(cParameter->name, name) == 0)
                     return cParameter;
             }

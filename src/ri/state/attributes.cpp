@@ -30,7 +30,6 @@
 #include "common/atomic.h"
 #include "attributes.h"
 #include "common/diagnostics.h"
-#include "photonMap.h"
 #include "common/riVocabulary.h"
 #include "ri_config.h"
 #include "shaderParameterHooks.h"
@@ -48,11 +47,6 @@ CAttributes::CAttributes() {
 
     atomicIncrement(stats.numAttributes);
 
-    surface = NULL;
-    displacement = NULL;
-    atmosphere = NULL;
-    interior = NULL;
-    exterior = NULL;
     usedParameters = 0;
 
     initv(surfaceColor, 1, 1, 1);
@@ -125,8 +119,6 @@ CAttributes::CAttributes() {
 
     globalMapName = NULL;
     causticMapName = NULL;
-    globalMap = NULL;
-    causticMap = NULL;
     irradianceHandle = strdup("");
     irradianceHandleMode = strdup("w");
     irradianceMaxError = 0.6f;
@@ -229,25 +221,10 @@ CAttributes::CAttributes(const CAttributes *a) {
 
     refCount = 0;
 
-    if (surface != NULL)
-        surface->attach();
-    if (displacement != NULL)
-        displacement->attach();
-    if (atmosphere != NULL)
-        atmosphere->attach();
-    if (interior != NULL)
-        interior->attach();
-    if (exterior != NULL)
-        exterior->attach();
-
     if (globalMapName != NULL)
         globalMapName = strdup(a->globalMapName);
     if (causticMapName != NULL)
         causticMapName = strdup(a->causticMapName);
-    if (globalMap != NULL)
-        globalMap->attach();
-    if (causticMap != NULL)
-        causticMap->attach();
 
     irradianceHandle = (a->irradianceHandle == NULL ? NULL : strdup(a->irradianceHandle));
     irradianceHandleMode = (a->irradianceHandleMode == NULL ? NULL : strdup(a->irradianceHandleMode));
@@ -290,25 +267,10 @@ CAttributes::~CAttributes() {
 
     atomicDecrement(stats.numAttributes);
 
-    if (surface != NULL)
-        surface->detach();
-    if (displacement != NULL)
-        displacement->detach();
-    if (atmosphere != NULL)
-        atmosphere->detach();
-    if (interior != NULL)
-        interior->detach();
-    if (exterior != NULL)
-        exterior->detach();
-
     if (globalMapName != NULL)
         free(globalMapName);
     if (causticMapName != NULL)
         free(causticMapName);
-    if (globalMap != NULL)
-        globalMap->detach();
-    if (causticMap != NULL)
-        causticMap->detach();
     if (irradianceHandle != NULL)
         free(irradianceHandle);
     if (irradianceHandleMode != NULL)
@@ -337,11 +299,59 @@ CAttributes::~CAttributes() {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CAttributes
+// Method				:	bindSurface, bindDisplacement, bindAtmosphere, bindInterior,
+//							bindExterior, setDefaultSurface
+// Description			:	Store a shader handle in a slot (releasing the old one) and
+//							recompute the used parameters. Binding an empty handle empties the slot.
+// Return Value			:	-
+// Comments				:	The caller passes a handle that already owns its reference
+//							(ShaderGroupRef::adopt of the freshly created instance), so a bind adds no count.
+void CAttributes::bindSurface(ShaderGroupRef shader) {
+    surfaceSlot = std::move(shader);
+    lastMaterialBinding = EMaterialBinding::Surface; // even when the handle is empty (Surface "null")
+    checkParameters();
+}
+
+void CAttributes::bindBxdf(ShaderGroupRef shader) {
+    bxdfSlot = std::move(shader);
+    lastMaterialBinding = EMaterialBinding::Bxdf; // even when the handle is empty
+    checkParameters();
+}
+
+void CAttributes::bindDisplacement(ShaderGroupRef shader) {
+    displacementSlot = std::move(shader);
+    checkParameters();
+}
+
+void CAttributes::bindAtmosphere(ShaderGroupRef shader) {
+    atmosphereSlot = std::move(shader);
+    checkParameters();
+}
+
+void CAttributes::bindInterior(ShaderGroupRef shader) {
+    interiorSlot = std::move(shader);
+    checkParameters();
+}
+
+void CAttributes::bindExterior(ShaderGroupRef shader) {
+    exteriorSlot = std::move(shader);
+    checkParameters();
+}
+
+// RiWorldBegin only: the default surface bound when the scene gave none. The last-bound record is
+// left as it was (FR-024), so output stays byte-identical to the classic behaviour.
+void CAttributes::setDefaultSurface(ShaderGroupRef shader) {
+    surfaceSlot = std::move(shader);
+    checkParameters();
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CAttributes
 // Method				:	addLight
 // Description			:	Obvious !
 // Return Value			:	-
 // Comments				:
-void CAttributes::addLight(CShaderInstance *cLight) {
+void CAttributes::addLight(CShaderGroupRefTarget *cLight) {
     CActiveLight *nLight, *pLight;
 
     // Make sure we're not duplicating the light source
@@ -359,7 +369,7 @@ void CAttributes::addLight(CShaderInstance *cLight) {
         nLight = pLight->next = new CActiveLight;
     }
 
-    nLight->light = (CProgrammableShaderInstance *)cLight;
+    nLight->light = cLight;
     nLight->next = NULL;
     checkParameters();
 }
@@ -371,7 +381,7 @@ void CAttributes::addLight(CShaderInstance *cLight) {
 //							source from the active light source list
 // Return Value			:	-
 // Comments				:
-void CAttributes::removeLight(CShaderInstance *light) {
+void CAttributes::removeLight(CShaderGroupRefTarget *light) {
     CActiveLight *cLight, *pLight;
 
     for (pLight = NULL, cLight = lightSources; cLight != NULL; pLight = cLight, cLight = cLight->next) {
@@ -421,32 +431,14 @@ CVariable *CAttributes::findParameter(const char *name) {
 // Comments				:
 void CAttributes::restore(const CAttributes *other, int shading, int geometrymodification, int geometrydefinition, int /*hiding*/) {
     if (shading) {
-        if (surface != NULL)
-            surface->detach();
-        if (displacement != NULL)
-            displacement->detach();
-        if (atmosphere != NULL)
-            atmosphere->detach();
-        if (interior != NULL)
-            interior->detach();
-        if (exterior != NULL)
-            exterior->detach();
-
-        surface = other->surface;
-        if (surface != NULL)
-            surface->attach();
-        displacement = other->displacement;
-        if (displacement != NULL)
-            displacement->attach();
-        atmosphere = other->atmosphere;
-        if (atmosphere != NULL)
-            atmosphere->attach();
-        interior = other->interior;
-        if (interior != NULL)
-            interior->attach();
-        exterior = other->exterior;
-        if (exterior != NULL)
-            exterior->attach();
+        surfaceSlot = other->surfaceSlot;
+        displacementSlot = other->displacementSlot;
+        atmosphereSlot = other->atmosphereSlot;
+        interiorSlot = other->interiorSlot;
+        exteriorSlot = other->exteriorSlot;
+        bxdfSlot = other->bxdfSlot;
+        lastMaterialBinding = other->lastMaterialBinding;
+        patterns = other->patterns;
 
         movvv(surfaceColor, other->surfaceColor);
         movvv(surfaceOpacity, other->surfaceOpacity);

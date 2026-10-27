@@ -324,6 +324,97 @@ In a scratch edit of `src/ri/state/attributes.cpp` (`findParameter`: surface sea
 - **CP-c**: `ctest -L architecture`: 21/21. Report: `ALLOWED DB-001 x 8 DB-004 x 65 DB-005 x 8 DB-006 x 33 DB-008 x 7 DB-010 x 35 DB-011 x 173 DB-015 x 10 DB-017 x 78 DB-019 x 3 DB-021 x 1 DB-025 x 12 DB-026 x 3`, `METRIC TOTAL refs 721 (baseline 721) distinct 110 (baseline 110)`, `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`, no `STALE` line.
 - **CP-d**: stamp, CP-b, then `image_manifest.sh diff tools/baseline-images.sha256 build-025 tools/baseline-image-noise.txt`: `manifest 729 images, fresh 729, noise-listed 0; 0 differing, 0 missing, 0 not in manifest`. The `MaxBlockAvgDiff` table (`image_manifest.sh diffs` of the saved `LastTest.log`) equals `tools/baseline-diffs.txt` for all 389 tests.
 
+## §4 Phase 4: handles, maps and the vocabulary (T030–T054), macOS
+
+**Change**: Graphics State holds opaque handles (`src/ri/state/stateHandles.h`: `CShaderGroupRefTarget`, `CMapRefTarget`, `TStateRef`, `ShaderGroupRef`, `MapRef`) and its own vocabulary (`stateVocabulary.h`). `CShaderInstance` derives from `CShaderGroupRefTarget`, `CPhotonMap` from `CMapRefTarget`. The five shader slots of `CAttributes` are private handles read through accessors and written through `bindSurface/Displacement/Atmosphere/Interior/Exterior` and `setDefaultSurface`; `globalMap`/`causticMap` are public `MapRef`; `COptions::imager` is a `ShaderGroupRef`; `CActiveLight::light` is a non-owning `CShaderGroupRefTarget *`. `attributes.{h,cpp}` and `options.{h,cpp}` no longer include `shader.h`, `photonMap.h`, `dsply.h` or `blobbyField.h`. Shading reads through the inline `shaderRefs.h` (`shaderInstanceOf`, `lightInstanceOf`), Hiders through `photonMapOf`. The prepend loops of the copy constructor and `restore()` are unchanged (Phase 7).
+
+### §4.1 The seven DB-008 violations (T030)
+
+With the 7 `DB-008` lines (and their header) deleted from `tests/architecture/allowlist.txt` and nothing else changed, `ctest -L architecture` failed with exactly these 7 `VIOLATION` lines, all sourced in `src/ri/state`:
+```
+VIOLATION include src/ri/state/attributes.cpp:33 -> src/ri/hiders/photonMap.h  [GraphicsState -> Hiders]
+VIOLATION include src/ri/state/attributes.h:33 -> src/libshader/shading/shader.h  [GraphicsState -> Shading]
+VIOLATION include src/ri/state/attributes.h:33 -> src/ri/core/shader.h  [GraphicsState -> Shading]
+VIOLATION include src/ri/state/options.h:34 -> src/display/dsply.h  [GraphicsState -> Display]
+VIOLATION include src/ri/state/options.h:39 -> src/libshader/shading/shader.h  [GraphicsState -> Shading]
+VIOLATION include src/ri/state/options.h:39 -> src/ri/core/shader.h  [GraphicsState -> Shading]
+VIOLATION include src/ri/state/options.h:30 -> src/ri/geometry/blobbyField.h  [GraphicsState -> Geometry]
+```
+No other violation appeared. After the code change the same check passes (§4.5).
+
+### §4.2 Compiler-guided sweep and the includes it needed (T049)
+
+The tree did not compile from T036 to T049, as documented. The first sweep (`-k`) showed only lost transitive includes; one more build was clean. Added, and only these:
+
+| File | Added include | Why |
+|---|---|---|
+| `src/ri/state/pl.h` | `common/memory.h`, `common/riVocabulary.h` | State's own file; infrastructure (`CMemPage`, `RI_S`/`RI_T`) that `shader.h` used to bring in |
+| `src/ri/state/options.cpp` | `common/os.h` | State's own file; infrastructure (`osAvailableCPUs`, `OS_MAX_PATH_LENGTH`, `osModuleExtension`) |
+| `src/ri/render/renderer.h` | `dsply.h`, `shader.h` | renderer core: `options.h` and `attributes.h` no longer pull in the display ABI and Shading |
+| `src/ri/render/renderer.cpp`, `rendererContext.cpp` | `shaderRefs.h` | renderer core |
+| `src/ri/render/rendererContext.cpp`, `rendererDisplay.cpp` | `stateConversions.h` (new, core-private) | the `ParameterType` / `EDisplayParameterType` and `BLOBBY_ORDER_*` / `EBlobbyOrder` conversions, with a `static_assert` per pair |
+| `src/libshader/shading/shading.cpp`, `execute.cpp`, `executeMisc.cpp`, `shaderParameters.cpp` | `shaderRefs.h` | Shading |
+| `tests/imager/test_imager_guard.cpp`, `test_imager_options.cpp` | `libshader/shading/shaderRefs.h` | consumers |
+
+**No Geometry, Texturing or Scene Interface unit needed a Shading, Hiders or Display header.** `pl.cpp` is untouched (the include went into `pl.h`), so the T052 "callers not edited" check holds. Hiders (`photon.cpp`, `radiance.cpp`, `irradianceDispatch.cpp`) already included `photonMap.h`.
+
+**Approval**: the maintainer approved Checkpoint 4 on 2026-10-26, including the adaptations of `CSG_InteriorExteriorSelection` and of the imager guard and options tests (bound and read through the new accessors; no assertion changed).
+
+### §4.3 State-only tests enabled (T050, T051)
+
+- `OPENRENDER_STATE_ONLY_TESTS` is ON by default and was set explicitly on the `build-025` reconfigure; `state_only_sources` is part of `all`. The State sources now **compile on the narrow include path** (T019's errors are gone) and link against `openrendercommon` only.
+- `State_Isolation`: **198 passed, 0 failed.** `State_VocabularyConsistency`: all 7 pairs agree. Both enabled; `State_LastBound`, `State_PatternTable`, `State_ChannelRegistry`, `State_LightOrderRestore` stay `EXCLUDE_FROM_ALL` + `DISABLED`.
+- **Mutation C1** (scratch edit): a deleted manual `attach()` kept in the copy constructor (`if (surfaceSlot) surfaceSlot.get()->attach();`). `State_Isolation` goes red on the count checks, for example `refs(*shaders[i]) == 3: got 4, expected 3` and `CCountingShader::live == 0: got 1`. Reverted (saved copy restored, `diff` empty).
+- **Mutation SC-007**: `EBlobbyOrder::AppNote = 2` in `stateVocabulary.h`. `State_VocabularyConsistency` goes red and names the pair: `FIRST DRIFTED PAIR: EBlobbyOrder::AppNote = 2, but BLOBBY_ORDER_APPNOTE = 1`. Reverted (`diff` empty).
+
+### §4.4 Greps and diffs (T052)
+
+- SC-003: `grep -nE '#include *"(.*/)?(shader|photonMap|dsply|blobbyField|shading)\.h"' src/ri/state/*` returns nothing.
+- `git diff --stat dfffba0 -- src/display/dsply.h src/ri/geometry/blobbyField.h`: empty (FR-008).
+- `git diff --stat dfffba0 -- src/ri/parse/rib.y src/ri/output src/ri/texture/texture3d.cpp src/ri/geometry/blobby.cpp src/ri/state/pl.cpp`: empty.
+
+### §4.5 Checkpoint 4 (CP-a to CP-d)
+
+- **CP-a**: clean under `-Werror`.
+- **CP-b**: `ctest -LE determinism-sweep -j4`: **796 registered**: 788 passed, 1 failed (`State_LightOrder`, 5 passed / 4 failed), 6 disabled/skipped by design: `ShadingParity_IlluminationHookAllFalse` (before this spec, #71), `ShadingParity_ShaderParameterBxdfIgnored`, `State_LastBound`, `State_PatternTable`, `State_ChannelRegistry`, `State_LightOrderRestore` (disabled), `LibShader_Format_rslo_lower_minor` (skipped, before this spec). The 788 are Phase 3's 786 plus `State_Isolation` and `State_VocabularyConsistency`. Named in the checkpoint: `photonmap_FrameCacheRelease`, `photonmap_TwoFrameSession`, `photonmap_ObjectDefinitionRelease`, the six `Imager*` tests, `CSG_InteriorExteriorSelection`, `State_Isolation`, `State_VocabularyConsistency`, `ShadingParity_ShaderParameterEquivalence` and `…Direct` all passed. No known-flaky test was red.
+- **CP-c**: `ctest -L architecture` 21/21. `archcheck` report: `ALLOWED DB-001 x 8 DB-004 x 65 DB-005 x 8 DB-006 x 33 DB-010 x 35 DB-011 x 173 DB-015 x 10 DB-017 x 78 DB-019 x 3 DB-021 x 1 DB-025 x 12 DB-026 x 3` (**no `DB-008`**), `METRIC TOTAL refs 721 (baseline 721) distinct 110 (baseline 110)`, `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`, no `STALE`, no Graphics State source in any edge. The `CONSUMER` lines are identical to Phase 3's; the `CYCLE` lines that went through the DB-008 edges are gone (three representative cycle paths changed, all `[allowlisted]`, `failing-cycles=0`).
+- **Research R11 (first run with the State-only objects in the tree)**: archcheck did **not** mishandle the double-compiled State units. `loadMakefiles` found every object (no exit 2, `notbuilt=0`; `objects` rose from 258 to 265, the seven State-only objects). The raw edge totals rose (`edges` 2368 to 2392; `include` 1472 to 1491, `link` 896 to 901) because the second compile repeats production edges, but every deduplicated number the check reports (`ALLOWED` counts, `METRIC`, `CONSUMER`) is unchanged apart from the seven removed DB-008 lines. The staged `ri_config.h` copy in the build tree is not reported (no `UNRESOLVED` line for it; the 10 `UNRESOLVED` lines are the same 10 as before).
+- **CP-d**: stamp, CP-b, `image_manifest.sh diff`: `manifest 729 images, fresh 729, noise-listed 0; 0 differing, 0 missing, 0 not in manifest`. The `MaxBlockAvgDiff` table equals `tools/baseline-diffs.txt` for all 389 tests.
+- **libshader_shading flat-namespace imports**: still **7**.
+
+## §5 Phase 5: the last-bound record and the pattern table (T055–T062), macOS
+
+**Change**: `CAttributes` gains the private `bxdf` slot (`bxdf()`, `bindBxdf()`), the record `EMaterialBinding { None, Surface, Bxdf }` with the single query `governingMaterial()`, and the public `CPatternTable patterns` (`src/ri/state/patternTable.h`, header-only, copy-on-write over a shared vector). `bindSurface` and `bindBxdf` set the record even for an empty handle; `bindDisplacement/Atmosphere/Interior/Exterior` and `setDefaultSurface` leave it alone (FR-024). The copy constructor carries the record and shares the table through the memberwise copy; `restore(shading=true)` assigns the `bxdf` slot, the record and the table; `restore(shading=false)` leaves them. The `bxdf` slot is not read by `usedShaderParameters` or `findShaderParameter`. No RIB statement was added.
+
+### §5.1 Tests enabled and their results
+
+- `State_LastBound`: **45 passed, 0 failed.**
+- `State_PatternTable`: **52 passed, 0 failed.**
+- `ShadingParity_ShaderParameterBxdfIgnored`: **97 passed, 0 failed** (after the fixture correction below).
+- Still green: `ShadingParity_ShaderParameterEquivalence` (64), `ShadingParity_ShaderParameterEquivalenceDirect` (69), `RibOut_ShaderStatementOrder`.
+
+**Fixture correction in the bxdf test (surprise)**: the test's own self-check `bxdfUniqueBits != 0` failed on its first run, because the bxdf fixture read `dPdv`, and another fixture (the displacement shader's `calculatenormal(P)`) already sets that bit; the bxdf's bits were `0x00cc2000`, all present in the others' union `0x46df7437`. The fixture now reads `time` and `dtime`, which no other fixture or default shader sets. Only that string and the comment in `test_shader_parameter_bxdf_ignored.cpp` changed; no assertion, no threshold. The self-check did its job: without it the mutation below would have gone unnoticed.
+
+### §5.2 Mutations
+
+- **FR-024**: in a scratch edit `setDefaultSurface` also set the record to `Surface`. `State_LastBound` went red on the FR-024 checks (`attributes.governingMaterial() == EMaterialBinding::None`, and `over.governingMaterial() == EMaterialBinding::Bxdf`; 43 passed, 2 failed). Reverted.
+- **bxdf leak**: in a scratch edit `usedShaderParameters` also ORed in the bxdf slot's `requiredParameters()`. `ShadingParity_ShaderParameterBxdfIgnored` went red on `after.directUsed == before.directUsed`, `after.storedUsed == before.storedUsed` and `(after.directUsed & bxdfUniqueBits) == 0` in every case that binds a shader. Reverted.
+- **Pattern table, append**: `define` appended instead of replacing. `State_PatternTable` red (`table.size() == 3: got 4`, position and shadowing checks). Reverted.
+- **Pattern table, copy-on-write**: `define` skipped the copy of shared storage. `State_PatternTable` red (an inner definition leaked into the outer block and the source: `found(outer, "only-inside") == nullptr`, `source.patterns.size() == 2: got 3`). Reverted.
+- All reverts restored saved copies (`diff` empty). Note on tooling: after one revert, the incremental build did not recompile the header-only test object, so the second pattern-table mutation first reproduced the first one's failures; I deleted that object and re-ran, which gave the genuine copy-on-write failures above. Every checkpoint build below ran after the reverts, and the green results show no mutation left in the binaries.
+
+### §5.3 FR-012 and FR-023 (T058)
+
+`git diff --stat dfffba0 -- src/ri/parse src/ri/output` is empty (no grammar change, no `Bxdf` or `Pattern` statement, ribOut unchanged), and `RibOut_ShaderStatementOrder` passes.
+
+### §5.4 Checkpoint 5 (CP-a to CP-d)
+
+- **CP-a**: clean under `-Werror`.
+- **CP-b**: `ctest -LE determinism-sweep -j4`: **796 registered**: 791 passed, 1 failed (`State_LightOrder`, 5 passed / 4 failed), 3 disabled, 1 skipped. Not run: `ShadingParity_IlluminationHookAllFalse`, `State_ChannelRegistry`, `State_LightOrderRestore` (disabled) and `LibShader_Format_rslo_lower_minor` (skipped). The 791 are Phase 4's 788 plus `State_LastBound`, `State_PatternTable` and `ShadingParity_ShaderParameterBxdfIgnored`. No known-flaky test was red.
+- **CP-c**: `ctest -L architecture` 21/21. The `ALLOWED`, `METRIC`, `RESULT` and `CONSUMER` lines are identical to Phase 4's: no new line, no `STALE`, `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`.
+- **CP-d**: `image_manifest.sh diff`: `manifest 729 images, fresh 729, noise-listed 0; 0 differing, 0 missing, 0 not in manifest`; the `MaxBlockAvgDiff` table equals `tools/baseline-diffs.txt` for all 389 tests.
+- libshader_shading flat-namespace imports: 7.
+
 ### Not yet measured
 
 Linux (GCC 13, `-Werror`) needs the maintainer's rsync + Maestri path; see quickstart §4.

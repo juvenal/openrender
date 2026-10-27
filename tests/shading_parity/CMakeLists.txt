@@ -482,4 +482,4 @@ endfunction()
 add_shader_parameter_test(ShadingParity_ShaderParameterEquivalenceDirect
     test_shading_parity_shader_parameter_equivalence_direct test_shader_parameter_equivalence_direct.cpp ENABLED)
 add_shader_parameter_test(ShadingParity_ShaderParameterBxdfIgnored
-    test_shading_parity_shader_parameter_bxdf_ignored test_shader_parameter_bxdf_ignored.cpp)
+    test_shading_parity_shader_parameter_bxdf_ignored test_shader_parameter_bxdf_ignored.cpp ENABLED)

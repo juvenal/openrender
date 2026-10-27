@@ -13,8 +13,8 @@
  *   For each binding set of part A (none, surface only, all three, all three
  *   plus a light) the test records both answers, binds a real shader into the
  *   bxdf slot, and asserts both answers are unchanged. The bxdf fixture
- *   declares a parameter name found nowhere else (bxdfOnly) and reads a global
- *   (dPdv) that no other fixture or default shader reads, so a bxdf that leaked
+ *   declares a parameter name found nowhere else (bxdfOnly) and reads the globals
+ *   time and dtime, which no other fixture or default shader reads, so a bxdf that leaked
  *   into either answer would show. The test checks that uniqueness itself.
  *
  *   Uses CAttributes::bindBxdf(), which does not exist yet: red by build
@@ -36,7 +36,7 @@
 // The bxdf fixture: a parameter name and a global used by no other fixture.
 static const char *const kBxdf =
     "surface eqbxdf(float bxdfOnly = 50;) {\n"
-    "    Ci = Cs * bxdfOnly * length(dPdv);\n"
+    "    Ci = Cs * bxdfOnly * (time + dtime);\n"
     "    Oi = Os;\n"
     "}\n";
 

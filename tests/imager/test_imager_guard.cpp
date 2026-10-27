@@ -21,6 +21,7 @@
 #include "ri/parse/ri.h"
 #include "ri/render/renderer.h"
 #include "ri/render/rendererContext.h"
+#include "libshader/shading/shaderRefs.h"
 #include "ri/state/options.h"
 
 // ---------------------------------------------------------------------------
@@ -67,7 +68,7 @@ static void test4_imager_after_worldbegin_ignored() {
     // Set an imager before WorldBegin (valid)
     RiImager("background", RI_NULL);
     COptions *opts = CRenderer::context->getOptions();
-    CShaderInstance *beforeWorld = opts->imager;
+    CShaderInstance *beforeWorld = shaderInstanceOf(opts->imager);
 
     // Enter world scope — must call WorldEnd before RiEnd
     RiWorldBegin();
@@ -77,7 +78,7 @@ static void test4_imager_after_worldbegin_ignored() {
     CRenderer::context->RiImagerV("background", 0, nullptr, nullptr);
 
     // The imager in options should be unchanged (still the pre-WorldBegin value)
-    EXPECT_EQ(opts->imager, beforeWorld);
+    EXPECT_EQ(shaderInstanceOf(opts->imager), beforeWorld);
 
     // The log should contain a warning about WorldBegin or world scope
     std::string logStr = logCapture.str();

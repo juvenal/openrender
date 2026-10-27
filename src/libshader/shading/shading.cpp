@@ -41,6 +41,7 @@
 #include "common/random.h"
 #include "ri_config.h"
 #include "shaderPl.h"
+#include "shaderRefs.h"
 #include "shading.h"
 #include "common/stats.h"
 #include "texture.h"
@@ -863,7 +864,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
 
             // We need to execute the shaders
             displacement = NULL; // currentAttributes->displacement;	// We probably don't need to execute the displacement shader
-            surface = currentAttributes->surface;
+            surface = shaderInstanceOf(currentAttributes->surface());
             atmosphere = NULL;
         }
         else {
@@ -889,14 +890,14 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
 
             // We need to execute the shaders
             if (currentAttributes->flags & ATTRIBUTES_FLAGS_MATTE) {
-                displacement = currentAttributes->displacement;
-                surface = currentAttributes->surface; // execute the surface shader for the output opacity
+                displacement = shaderInstanceOf(currentAttributes->displacement());
+                surface = shaderInstanceOf(currentAttributes->surface()); // execute the surface shader for the output opacity
                 atmosphere = NULL;
             }
             else {
-                displacement = currentAttributes->displacement;
-                surface = currentAttributes->surface;
-                atmosphere = currentAttributes->atmosphere;
+                displacement = shaderInstanceOf(currentAttributes->displacement());
+                surface = shaderInstanceOf(currentAttributes->surface());
+                atmosphere = shaderInstanceOf(currentAttributes->atmosphere());
             }
         }
 
@@ -914,11 +915,11 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
 
         // We are only interested in the surface position, not the color
 #ifdef IGNORE_DISPLACEMENTS_FOR_DICING
-        if ((currentAttributes->displacement == NULL) ||
+        if ((!currentAttributes->displacement()) ||
             ((usedParameters & PARAMETER_RAYTRACE) && (!(currentAttributes->flags & ATTRIBUTES_FLAGS_DISPLACEMENTS))) ||
             (displaceOnly & 2)) {
 #else
-        if ((currentAttributes->displacement == NULL) ||
+        if ((!currentAttributes->displacement()) ||
             ((usedParameters & PARAMETER_RAYTRACE) && (!(currentAttributes->flags & ATTRIBUTES_FLAGS_DISPLACEMENTS)))) {
 #endif
             [[maybe_unused]] const int savedParameters = usedParameters;
@@ -972,7 +973,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
             locals[a] = NULL;
 
         // We need to execute the displacement shader, so get ready
-        displacement = currentAttributes->displacement;
+        displacement = shaderInstanceOf(currentAttributes->displacement());
         surface = NULL;
         atmosphere = NULL;
 
@@ -1008,10 +1009,10 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
         if (usedParameters & PARAMETER_MESSAGEPASSING) {
             // displacement shader uses messsage passing, must prepare but not execute
             // the surface and atmosphere shaders
-            if (currentAttributes->surface != NULL)
-                locals[ACCESSOR_SURFACE] = currentAttributes->surface->prepare(shaderStateMemory, varying, numVertices);
-            if (currentAttributes->atmosphere != NULL)
-                locals[ACCESSOR_ATMOSPHERE] = currentAttributes->atmosphere->prepare(shaderStateMemory, varying, numVertices);
+            if (currentAttributes->surface())
+                locals[ACCESSOR_SURFACE] = shaderInstanceOf(currentAttributes->surface())->prepare(shaderStateMemory, varying, numVertices);
+            if (currentAttributes->atmosphere())
+                locals[ACCESSOR_ATMOSPHERE] = shaderInstanceOf(currentAttributes->atmosphere())->prepare(shaderStateMemory, varying, numVertices);
         }
     }
 
@@ -1268,7 +1269,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
         {
             const bool isSolidFragment = (currentAttributes->flags & ATTRIBUTES_FLAGS_SOLID_FRAGMENT) != 0;
             const bool isExterior = dotvv(varying[VARIABLE_I], varying[VARIABLE_N]) < 0;
-            currentShadingState->postShader = selectVolumeShader(currentAttributes, isSolidFragment, isExterior);
+            currentShadingState->postShader = shaderInstanceOf(selectVolumeShader(currentAttributes, isSolidFragment, isExterior));
         }
 
         // Is there a surface shader ?
@@ -1553,8 +1554,8 @@ void CShadingContext::restoreState(void *state) {
 int CShadingContext::surfaceParameter(void *dest, const char *name, CVariable **var, int *globalIndex) {
     const CAttributes *currentAttributes = currentShadingState->currentObject->attributes;
 
-    if (currentAttributes->surface != NULL)
-        return currentAttributes->surface->getParameter(name, dest, var, globalIndex);
+    if (currentAttributes->surface())
+        return shaderInstanceOf(currentAttributes->surface())->getParameter(name, dest, var, globalIndex);
     return FALSE;
 }
 
@@ -1567,8 +1568,8 @@ int CShadingContext::surfaceParameter(void *dest, const char *name, CVariable **
 int CShadingContext::displacementParameter(void *dest, const char *name, CVariable **var, int *globalIndex) {
     const CAttributes *currentAttributes = currentShadingState->currentObject->attributes;
 
-    if (currentAttributes->displacement != NULL)
-        return currentAttributes->displacement->getParameter(name, dest, var, globalIndex);
+    if (currentAttributes->displacement())
+        return shaderInstanceOf(currentAttributes->displacement())->getParameter(name, dest, var, globalIndex);
     return FALSE;
 }
 
@@ -1581,8 +1582,8 @@ int CShadingContext::displacementParameter(void *dest, const char *name, CVariab
 int CShadingContext::atmosphereParameter(void *dest, const char *name, CVariable **var, int *globalIndex) {
     const CAttributes *currentAttributes = currentShadingState->currentObject->attributes;
 
-    if (currentAttributes->atmosphere != NULL)
-        return currentAttributes->atmosphere->getParameter(name, dest, var, globalIndex);
+    if (currentAttributes->atmosphere())
+        return shaderInstanceOf(currentAttributes->atmosphere())->getParameter(name, dest, var, globalIndex);
     return FALSE;
 }
 
@@ -1595,8 +1596,8 @@ int CShadingContext::atmosphereParameter(void *dest, const char *name, CVariable
 int CShadingContext::incidentParameter(void *dest, const char *name, CVariable **, int *) {
     const CAttributes *currentAttributes = currentShadingState->currentObject->attributes;
 
-    if (currentAttributes->interior != NULL)
-        return currentAttributes->interior->getParameter(name, dest, NULL, NULL); // skip mutable parameters
+    if (currentAttributes->interior())
+        return shaderInstanceOf(currentAttributes->interior())->getParameter(name, dest, NULL, NULL); // skip mutable parameters
     return FALSE;
 }
 
@@ -1609,8 +1610,8 @@ int CShadingContext::incidentParameter(void *dest, const char *name, CVariable *
 int CShadingContext::oppositeParameter(void *dest, const char *name, CVariable **, int *) {
     const CAttributes *currentAttributes = currentShadingState->currentObject->attributes;
 
-    if (currentAttributes->exterior != NULL)
-        return currentAttributes->exterior->getParameter(name, dest, NULL, NULL); // skip mutable parameters
+    if (currentAttributes->exterior())
+        return shaderInstanceOf(currentAttributes->exterior())->getParameter(name, dest, NULL, NULL); // skip mutable parameters
     return FALSE;
 }
 
@@ -1905,7 +1906,7 @@ void CShadingContext::iterateLights(const float *lP, const float *lN, const floa
 
         if (inShadow == FALSE) {
             for (CActiveLight *cLight = currentAttributes->lightSources; cLight != NULL; cLight = cLight->next) {
-                CProgrammableShaderInstance *light = cLight->light;
+                CProgrammableShaderInstance *light = lightInstanceOf(*cLight);
 
                 int validLight = (saveCat == 0);
                 if (!validLight) {
@@ -1968,7 +1969,7 @@ void CShadingContext::callAmbient(float *result) {
         }
         if (!inShadow) {
             for (CActiveLight *cLight = attr->lightSources; cLight; cLight = cLight->next) {
-                CProgrammableShaderInstance *light = cLight->light;
+                CProgrammableShaderInstance *light = lightInstanceOf(*cLight);
                 if (!(light->flags & SHADERFLAGS_NONAMBIENT)) {
                     memBegin(shaderStateMemory);
                     ss->currentLightInstance = light;
@@ -2198,7 +2199,7 @@ void CShadingContext::prepareAmbient() {
         if (!inShadow) {
             CShaderInstance *cInst = ss->currentShaderInstance;
             for (CActiveLight *cLight = attr->lightSources; cLight; cLight = cLight->next) {
-                CProgrammableShaderInstance *light = cLight->light;
+                CProgrammableShaderInstance *light = lightInstanceOf(*cLight);
                 if (!(light->flags & SHADERFLAGS_NONAMBIENT)) {
                     memBegin(shaderStateMemory);
                     ss->currentLightInstance = light;
@@ -2750,24 +2751,24 @@ const char *CShadingContext::shaderName(const char *type) {
     CAttributes *currentAttributes = currentShadingState->currentObject->attributes;
 
     if (strcmp(type, "surface") == 0) {
-        if (currentAttributes->surface != NULL)
-            return currentAttributes->surface->getName();
+        if (currentAttributes->surface())
+            return shaderInstanceOf(currentAttributes->surface())->getName();
     }
     else if (strcmp(type, "displacement") == 0) {
-        if (currentAttributes->displacement != NULL)
-            return currentAttributes->displacement->getName();
+        if (currentAttributes->displacement())
+            return shaderInstanceOf(currentAttributes->displacement())->getName();
     }
     else if (strcmp(type, "atmosphere") == 0) {
-        if (currentAttributes->atmosphere != NULL)
-            return currentAttributes->atmosphere->getName();
+        if (currentAttributes->atmosphere())
+            return shaderInstanceOf(currentAttributes->atmosphere())->getName();
     }
     else if (strcmp(type, "interior") == 0) {
-        if (currentAttributes->interior != NULL)
-            return currentAttributes->interior->getName();
+        if (currentAttributes->interior())
+            return shaderInstanceOf(currentAttributes->interior())->getName();
     }
     else if (strcmp(type, "exterior") == 0) {
-        if (currentAttributes->exterior != NULL)
-            return currentAttributes->exterior->getName();
+        if (currentAttributes->exterior())
+            return shaderInstanceOf(currentAttributes->exterior())->getName();
     }
     else if (strcmp(type, "lightsource") == 0) {
         if (currentShadingState->currentLight != NULL)
@@ -4169,7 +4170,7 @@ bool CShadingContext::gatherSample(CGatherBundle *lastGather, int *tags, int &nu
             lastGather->rays = (CRay **)rays + numRealVertices - numIntRays;
             lastGather->last = 0;
             lastGather->depth = 0;
-            lastGather->postShader = cAttributes->interior;
+            lastGather->postShader = shaderInstanceOf(cAttributes->interior());
             lastGather->numMisses = 0;
             traceEx(lastGather);
             numActive -= lastGather->numMisses;
@@ -4180,7 +4181,7 @@ bool CShadingContext::gatherSample(CGatherBundle *lastGather, int *tags, int &nu
             lastGather->rays = (CRay **)rays;
             lastGather->last = 0;
             lastGather->depth = 0;
-            lastGather->postShader = cAttributes->exterior;
+            lastGather->postShader = shaderInstanceOf(cAttributes->exterior());
             lastGather->numMisses = 0;
             traceEx(lastGather);
             numActive -= lastGather->numMisses;

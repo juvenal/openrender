@@ -315,7 +315,7 @@ class CTriangleHash : public CMap<CTriTon> {
                     CPhotonMap *globalMap;
 
                     // No, perform a photonmap lookup
-                    if ((globalMap = cTriangle->attributes->globalMap) != NULL) {
+                    if ((globalMap = photonMapOf(cTriangle->attributes->globalMap)) != NULL) {
                         stats.numIndirectDiffusePhotonmapLookups++;
 
                         globalMap->lookup(cTriangle->C, cTriangle->P, cTriangle->N, cTriangle->attributes->photonEstimator);
@@ -1118,7 +1118,7 @@ void CRadianceCache::compute(int numSamples, CShadingPoint **points, CTextureLoo
                 CAttributes *attributes = ray.object->attributes;
                 CPhotonMap *globalMap;
 
-                if ((globalMap = attributes->globalMap) == NULL) {
+                if ((globalMap = photonMapOf(attributes->globalMap)) == NULL) {
                     initv(C, 1, 1, 1);
                 }
                 else {
