@@ -305,7 +305,7 @@ private:
 
 | File | Change | LoC |
 |---|---|---|
-| `src/ri/attributes.h` | Add `CShaderInstance *bxdf;` field | 3 |
+| `src/ri/attributes.h` | Add `CShaderInstance *bxdf;` field (spec 025 added the `bxdf` slot as a `ShaderGroupRef`, `CAttributes::bxdf()` / `bindBxdf()`, with a Surface/Bxdf last-bound record; no RIB statement yet) | 3 |
 | `src/ri/attributes.cpp` | Init/copy/destroy `bxdf` in constructor/destructor/restore() | 15 |
 
 ### 5.4 Renderer Core

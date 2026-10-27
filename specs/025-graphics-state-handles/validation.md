@@ -451,6 +451,8 @@ The tree did not compile from T036 to T049, as documented. The first sweep (`-k`
 
 **Change**: `src/ri/state/attributes.cpp` gains the file-local `copyLightList()`: a new list of the same (non-owning) entries in the source's order, built with a tail pointer (O(n), no reversal). The copy constructor (attribute push, copy-on-write clone) and `restore(shading)` (which first frees its own entries) use it in place of the two prepend loops. `addLight` (append, duplicate suppression) and `removeLight` are unchanged. `State_LightOrderRestore` is enabled.
 
+**Approval**: the maintainer approved Checkpoint 7 on 2026-10-27.
+
 ### §7.1 Red evidence before the fix (T071)
 
 On the tree with Phase 6 only (the prepend loops still in place):
@@ -485,6 +487,124 @@ On the tree with Phase 6 only (the prepend loops still in place):
 - **CP-b**: see §7.4: everything green, no allowed exception.
 - **CP-c**: `ctest -L architecture` 21/21; the `ALLOWED`, `METRIC`, `RESULT` and `CONSUMER` lines are identical to Phase 6's, no `STALE`.
 
-### Not yet measured
+## §8 Phase 8: documentation and the final macOS pass (T079–T086)
 
-Linux (GCC 13, `-Werror`) needs the maintainer's rsync + Maestri path; see quickstart §4.
+### §8.1 Documentation and registry (T079–T083)
+
+- **`DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`**:
+  - DB-008 moved from Open to Resolved ("Resolved by spec 025", 2026-10-27), with the summary of what moved; its tracking line names #31 only.
+  - DB-021 stays **Open**: tracking is spec 037 (#26) only, the evidence no longer says the registry is renderer-core state and now names the out-of-line forwarder to the State-owned registry, and a History bullet records what 025 did and did not touch.
+  - DB-010's evidence notes that the forwarder forwards to the State registry (35 edges, unchanged).
+  - DB-013 gained a History bullet: the unchecked light cast now lives in `lightInstanceOf()`.
+  - DB-018 quotes no slot field read (it lists RSL function names), so it needed no wording change. No count in the Architecture-check section quotes the allowlist total.
+- **Allowlist (T080)**: `git diff dfffba0 -- tests/architecture/allowlist.txt | grep -c '^+[A-Z]'` is **0**; the change is 9 deleted lines (the 7 DB-008 lines, their header and the blank line). `metrics-baseline.txt` is unchanged (no `NOTE metric … < baseline` was printed). The section-header counts in the allowlist were not changed by this spec and agree with the report's `ALLOWED` line (the platform-tagged DB-011 lines account for its 182 lines against 173 edges).
+- **`DEVNOTES.md`**: a status-table entry for spec 025; macOS validation dated 2026-10-27, Linux pending until §9 is filled in.
+- **`CLAUDE.md`** (edit authorized by the maintainer, 2026-10-26): Known gotchas item 24, the Recent Changes and Active Technologies entries, an Architecture paragraph ("Graphics State handles") and the `-L state` line in Testing. The "Spec-kit agent rules" section is byte-identical to `HEAD`.
+- **Other docs (T083)**: no text in `docs/` describes the old slots or channel statics. `DEVNOTES_DETAILS/OSHADER_UPDATES.md` (the imager field) and `PATH-TRACING_HIDER.md` (the planned `bxdf` field) got one-line notes. No user-facing page changed.
+
+### §8.2 No-JIT build (T084)
+
+In a scratch directory inside the worktree (deleted afterwards): `cmake -B build-025-nojit -S . -DOPENRENDER_ENABLE_JIT=OFF` plus the same vcpkg/bison/deployment cache options as `build-025`; the full build is clean (`-Werror`); `ctest -L "architecture|state|shading_parity" -j4`: **46/46 passed**. Five JIT-only shading-parity tests (`UsedParametersOracle`, `OlWiring`, `PrintfJit`, `UniformConditionalJit`, `MatrixTransformJit`) report "Not Run (Disabled)": the existing "no LLVM JIT in this build" marker, not this spec's.
+
+### §8.3 SC-005 timing (T085)
+
+Each test 5 times alone through `cpujob`, on the finished tree:
+
+| Test | Runs (s) | Min | Median | Max | Band of §0.6 (min–max) |
+|---|---|---|---|---|---|
+| `Visual_teapot-motion-raytrace` | 20.13, 19.68, 19.52, 20.76, 19.64 | 19.52 | 19.68 | 20.76 | 19.41–20.62: median inside |
+| `Csg_Seam_freeform_nurbs` | 4.21, 4.13, 4.13, 4.20, 4.15 | 4.13 | 4.15 | 4.21 | 4.10–4.17: median inside |
+| `Csg_Seam_spherecube_reyes_1600` | 4.26, 4.21, 4.32, 4.28, 4.27 | 4.21 | **4.27** | 4.32 | 4.17–4.24: **median 0.03 s (0.7%) above the band** |
+
+The third median is outside the §0.6 band, so SC-005 as worded is not met by a hair. The machine ran slower later in the session than at the baseline (ten further runs of the same test gave 4.30–4.87 s, drifting with temperature), so I measured it differently as well: **interleaved A/B**, alternating this tree and a build of master's equivalent code (the `fix/jit-illumination-hook-false-if` build, which has none of this spec) five times each, back to back through `cpujob`:
+
+| Test | This tree (s) | Master-equivalent build (s) |
+|---|---|---|
+| `Csg_Seam_spherecube_reyes_1600` | 4.35, 4.23, 4.41, 4.26, 4.31 (median 4.31) | 4.39, 4.27, 4.28, 4.32, 4.28 (median 4.28) |
+| `Csg_Seam_freeform_nurbs` | 4.15, 4.13, 4.20, 4.13, 4.15 (median 4.15) | 4.19, 4.13, 4.18, 4.13, 4.16 (median 4.16) |
+
+At the same time and temperature the two are indistinguishable (the difference is within the spread), so the excess against the §0.6 band is machine drift, not a slowdown from this spec. The maintainer decides whether SC-005 needs a literal re-measurement on a cold machine.
+
+### §8.4 Final macOS pass (T086)
+
+**On the 025 tree** (Phase 7's results, nothing changed in `src/` or the tests since): see §7.4 and §7.6: CP-a clean; full suite 796 registered, 794 passed, 0 failed, 1 disabled (`ShadingParity_IlluminationHookAllFalse`, disabled on this branch's base until #71 landed) and 1 skipped (`LibShader_Format_rslo_lower_minor`, before this spec); architecture 21/21; `^determinism$` 155/155; sweep 419/419; the manifest and the `MaxBlockAvgDiff` table equal the baseline.
+
+**On a scratch merge with master `bc261b1`** (which contains #71, `ShadingParity_IlluminationHookAllFalse` enabled). The merge was made in a throwaway detached worktree outside the 025 worktree (`git worktree add --detach … HEAD`, `git merge --no-commit --no-ff master`), never on the 025 branch; it had **no conflicts** (git auto-merged `shading.cpp` and `tests/shading_parity/CMakeLists.txt`). A fresh configure and build there:
+- CP-a: clean under `-Werror`.
+- CP-b: `ctest -LE determinism-sweep -j4`: **838 registered, 837 passed, 0 failed, 1 skipped** (`LibShader_Format_rslo_lower_minor`, before this spec). **Zero "Not Run (Disabled)"**; `ShadingParity_IlluminationHookAllFalse` ran and passed; `State_LightOrder` passed.
+- `ctest -L 'state|shading_parity|rib_parse'`: 86/86 passed, **zero** "Not Run (Disabled)" lines (read from the run's output, not from `ctest -N`).
+- CP-c: `ctest -L architecture` 21/21; the report has no `DB-008`, DB-021 present (`DB-021 x 1`), no `STALE`, `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`.
+- `ctest -L '^determinism$' -j2`: 155/155.
+- libshader_shading flat-namespace imports: 7.
+- The scratch worktree was removed afterwards (`git worktree remove --force`, `git worktree prune`); `git worktree list` shows no `025-scratch-merge`, and the 025 branch is untouched at `d1a4cd3` plus the staged Phase 8 files.
+
+Quickstart §3 greps (both trees): `git diff dfffba0 -- src/ri/texture/texture3d.cpp src/display/dsply.h src/ri/geometry/blobbyField.h` is empty; no `shader.h`, `photonMap.h`, `dsply.h`, `blobbyField.h` or `shading.h` include in `src/ri/state`.
+
+## §9 Linux validation package (T087) — to be run by the maintainer
+
+The agent has no Linux access. Linux green is required before the maintainer merges. When you report the results, append them under "§9.6 Results" and finalize the DEVNOTES entry.
+
+### §9.1 What is on the Mac side
+
+- Worktree: `/Volumes/Projects/Development/CLI/openrender-worktrees/025-graphics-state-handles` (branch `025-graphics-state-handles`, base `dfffba0`).
+- `tools/025-linux-manifest.sha256`: a `sha256sum -c` manifest of **every file the spec changes** against `dfffba0` (96 files; added and modified, none deleted), except `validation.md` and the manifest itself, which change as results are recorded.
+- No file is deleted or renamed, so nothing has to be removed on Linux.
+
+### §9.2 Sync (zsh on the Mac; brace the variable, see memory `reference_zsh_host_colon_modifier.md`)
+
+```bash
+W=/Volumes/Projects/Development/CLI/openrender-worktrees/025-graphics-state-handles
+H=juvenal@ubuntu-2404-desktop.v2-labs.io
+R=/home/juvenal/Projects/Development/CLI/openrender            # the Linux checkout for the 025 tree
+RB=/home/juvenal/Projects/Development/CLI/openrender-025-base  # a second tree: dfffba0, for the baseline
+
+# The 025 tree: tracked files only, checksum compare, no -t (mtime trap, memory feedback_gcc13_werror_linux_validation.md)
+git -C $W ls-files -z | rsync -rlpc --from0 --files-from=- "$W/" "${H}:${R}/"
+
+# The baseline tree, from the base commit
+git -C $W archive --format=tar dfffba0 | ssh "${H}" "mkdir -p ${RB} && tar -x -C ${RB}"
+
+# Verify on the remote side; never trust the exit code of rsync
+ssh "${H}" "cd ${R} && sha256sum -c specs/025-graphics-state-handles/tools/025-linux-manifest.sha256 | grep -vc ': OK$'"   # expect 0
+```
+
+Because `rsync -c` stamps only the changed files with the current time, an existing `build-025` would rebuild exactly those; use a **fresh** `build-025` anyway.
+
+### §9.3 Build and run, 025 tree (Ubuntu 24.04, GCC 13, `-Werror`)
+
+Through the Maestri "openRender Linux" agent (its classifier blocks building synced code until you run the command with `!`), or over ssh with the remote `~/.claude/bin/cpujob` at `-j2`:
+
+```bash
+cd ${R}
+cpujob 025-cfg    cmake -B build-025 -S . -DCMAKE_BUILD_TYPE=Release -DINSTALL_SELFCONTAINED=OFF
+cpujob 025-build  cmake --build build-025 -j4            # use nice -n 19 if not under cpujob
+cpujob 025-arch   ctest --test-dir build-025 -L architecture --output-on-failure
+cpujob 025-state  ctest --test-dir build-025 -L state --output-on-failure
+cpujob 025-par    ctest --test-dir build-025 -L shading_parity -j4 --output-on-failure
+cpujob 025-full   ctest --test-dir build-025 -LE determinism-sweep -j4 --output-on-failure
+cpujob 025-det    ctest --test-dir build-025 -L '^determinism$' -j2 --output-on-failure
+cpujob 025-sweep  ctest --test-dir build-025 -L '^determinism-sweep$' -j2 --output-on-failure   # once, ~10-12 min
+cpujob 025-aff    ctest --test-dir build-025 -R "$(cat specs/025-graphics-state-handles/tools/affected-regex.txt)" -j4 -V > build-025/affected.log
+specs/025-graphics-state-handles/tools/affected_diff_check.sh build-025/affected.log     # compare with the Linux baseline, see §9.4
+```
+
+Imports: `nm -u` on `libshader_shading` (the Linux counterpart of the macOS `nm -m` count): the set must equal spec 024's Linux value. Run it on the base tree too and diff the two.
+
+### §9.4 The Linux baseline, on `dfffba0`, at the same time
+
+Run the same commands in `${RB}` (a `build-base` directory, same configure options). Keep its `LastTest.log` copies (`cp build-base/Testing/Temporary/LastTest.log …` right after each run, because the next `ctest` overwrites it) and compare:
+
+- the pass lists of `-LE determinism-sweep` and of the sweep: the 025 tree's must equal the base's, plus the new tests (`State_*`, `ShadingParity_ShaderParameterEquivalence{,Direct}`, `ShadingParity_ShaderParameterBxdfIgnored`, `RibOut_ShaderStatementOrder`) and `State_LightOrder` green (on the base tree it is not in the build; the new test files are in this tree only, so a base-tree run will not list them);
+- **FR-025 on Linux**: every `MaxBlockAvgDiff` of the affected tests against the Linux base run (`affected_diff_check.sh` compares with the macOS starting-tree column; for Linux compare the two Linux logs with `diff <(tools/image_manifest.sh diffs A.LastTest.log) <(tools/image_manifest.sh diffs B.LastTest.log)`). **Any difference: list the scene, the old and new diffs and the reason (light order), and stop for the maintainer.** Never re-render and never touch a threshold.
+
+### §9.5 Watch list for GCC 13 `-Werror`
+
+- `-Wdeprecated-enum-enum-conversion` at the vocabulary conversion sites (`src/ri/render/stateConversions.h`, `rendererDisplay.cpp`, `rendererContext.cpp`); the code converts through `static_cast<int>`, so none is expected.
+- `-Wnull-dereference` and `-Warray-bounds` around the pattern-table container (`patternTable.h`, a `std::shared_ptr<std::vector<…>>`) and the channel registry's `CArray`/`CTrie` use.
+- `-Wsign-compare`/`-Wunused` in the new tests (`state_test_doubles.h`, `STATE_CHECK_EQ` casts through `long long`).
+- `ctest -L architecture` passing with the platform-tagged allowlist lines unchanged (SC-001 on Linux): no `STALE`, no `VIOLATION`, no `DB-008` in `ALLOWED`.
+- The `-L state` tests link only `openrendercommon`: a missing symbol there is a real State dependency.
+
+### §9.6 Results
+
+_Pending the maintainer's Linux run._

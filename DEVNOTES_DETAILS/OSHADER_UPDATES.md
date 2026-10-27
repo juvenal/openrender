@@ -334,7 +334,7 @@ hider never sets. Changes:
 
 Full implementation of `RiImager` per RI Spec 3.2. The imager executes per pixel tile in `CRenderer::dispatch()`, after exposure (gain/gamma) has been applied to Ci and Oi and before quantization — exactly matching the RenderMan spec pipeline (Render → Exposure → Imager → Quantize). No display driver or shader compiler changes were required for the core implementation.
 
-- [x] **Option storage** (`src/ri/options.h`): `CShaderInstance *imager` field on `COptions`; destructor and copy-constructor follow the `attach()`/`detach()` pattern used by atmosphere shaders.
+- [x] **Option storage** (`src/ri/options.h`): `CShaderInstance *imager` field on `COptions`; destructor and copy-constructor follow the `attach()`/`detach()` pattern used by atmosphere shaders. (Since spec 025 the field is a `ShaderGroupRef` in `src/ri/state/options.h`; the handle does the counting and `RiImagerV` adopts the new instance.)
 - [x] **Frame capture** (`src/ri/rendererContext.cpp` `beginFrame()`): `CRenderer::imagerShader` is populated from `options->imager` at WorldBegin; logged at info level.
 - [x] **WorldBegin guard** (`src/ri/rendererContext.cpp` `RiImagerV()`): `RiImager` called after WorldBegin emits a warning and is ignored; uses a dedicated `bool inWorld` flag on `CRendererContext` (stack depth is ambiguous across FrameBegin/WorldBegin scopes).
 - [x] **Executor** (`src/ri/imager.h` / `imager.cpp`): `CImagerExecutor::execute()` — copies pixel data into the shading context's `CShadingState::varying` arrays (copy-in), runs `prepare()` + `execute()` via the standard shader VM, copies results back (copy-out). Processes in chunks of `maxGridSize`.

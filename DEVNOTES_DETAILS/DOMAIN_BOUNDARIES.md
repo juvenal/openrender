@@ -245,22 +245,6 @@ request. Run `ctest -L architecture` locally before review.
   RSL JIT, later OSL). Loading, caching and format selection move into Shading; the core passes
   only a preference.
 
-### DB-008 — Graphics State owns other domains' objects
-
-- **Rules**: the allowed-dependency table (Graphics State depends on nothing).
-- **Tracking**: remediation spec 025 ([#31](https://github.com/juvenal/openrender/issues/31))
-- **Evidence**:
-  - `attributes.h` and `options.h` include Shading's `shader.h` (directly and through the
-    `src/ri/core/shader.h` shim) to hold `CShaderInstance*` slots.
-  - `options.h` includes `src/display/dsply.h` (display function pointers) and
-    `src/ri/geometry/blobbyField.h`.
-  - `attributes.cpp` includes `src/ri/hiders/photonMap.h` (photon-map attach/detach).
-- **Size**: 7 include edges. Graphics State's diagnostics and RI-token edges were under DB-016
-  (81 edges, resolved by spec 023). `options.cpp` → `texture.h` and `attributes.cpp` → `irradiance.h` were unused and are removed (DB-022, Resolved).
-- **Direction**: state stores opaque handles only (`ShaderGroupRef` with a `bxdf` slot, `MapRef`)
-  plus a scoped pattern-node table; shader-parameter logic moves to Shading; a state-owned
-  vocabulary header.
-
 ### DB-009 — Motion blur and depth of field are implemented more than once
 
 - **Rules**: 3 (an effect is implemented once, generically, for every hider).
@@ -289,6 +273,9 @@ request. Run `ctest -L architecture` locally before review.
   - Texturing includes `options.h`, `attributes.h` and `xform.h` from Graphics State.
   - The hiders' GI caches use Texturing: `irradiance`/`photon` code includes `texture.h`,
     `texture3d.h` and `pointHierarchy.h` and constructs `CTexture3d`.
+  - Since spec 025 (2026-10-27), `CRenderer::retrieveDisplayChannel`, which `texture3d.cpp` calls,
+    forwards to the Graphics State-owned channel registry. It is still defined out of line in the
+    renderer core, so the link edge is unchanged.
 - **Size**: 35 edges (18 include, 17 link).
 - **Direction**: a Texturing-owned `TextureSystem` (opaque handles, `TextureOpt`, per-thread
   data, cache and paging) that Shading reaches only through services (027); GI-cache storage
@@ -328,6 +315,11 @@ request. Run `ctest -L architecture` locally before review.
 - **Size**: not a dependency edge; tracked by review.
 - **Direction**: a self-registering hider factory (name, aliases, capabilities); retire
   `hcshader` now that the RSL `spherelight`/`quadlight` ship.
+- **History**: spec 025 (2026-10-27): an attribute block's active-light list holds non-owning
+  `CShaderGroupRefTarget *` entries. The unchecked cast of an entry to a
+  `CProgrammableShaderInstance *` (the built-in `CSphereLight`/`CQuadLight` are not programmable
+  instances; the consumers read only `CShaderInstance` members) now lives in `lightInstanceOf()`
+  (`src/libshader/shading/shaderRefs.h`), preserved as it was.
 
 ### DB-014 — Plug-in ABIs are unsafe beyond versioning
 
@@ -429,12 +421,20 @@ request. Run `ctest -L architecture` locally before review.
 ### DB-021 — Texturing reads the AOV/channel registry
 
 - **Rules**: the allowed-dependency table (Texturing depends on nothing).
-- **Tracking**: remediation specs 025 ([#31](https://github.com/juvenal/openrender/issues/31)), 037 ([#26](https://github.com/juvenal/openrender/issues/26))
+- **Tracking**: remediation spec 037 ([#26](https://github.com/juvenal/openrender/issues/26))
 - **Evidence**: `src/ri/texture/texture3d.cpp:29` includes `src/ri/state/displayChannel.h` and
-  builds its channel list from the registry; the registry itself is renderer-core state.
+  builds its channel list by calling `CRenderer::retrieveDisplayChannel`, an out-of-line forwarder
+  in the renderer core that, since spec 025 (2026-10-27), forwards to the Graphics State-owned
+  `CChannelRegistry` (`src/ri/state/channelRegistry.{h,cpp}`). Texturing itself still reads the
+  registry through the renderer core (the DB-010 link edge) and still includes the channel type.
 - **Size**: 1 include edge.
-- **Direction**: the registry is owned by Graphics State (025) and passed to its consumers as
-  channel descriptors (037).
+- **Direction**: the registry is owned by Graphics State (done in 025) and passed to its consumers
+  as channel descriptors (037), so that Texturing no longer names `displayChannel.h` or calls into
+  the renderer core for it.
+- **History**: spec 025 moved the registry out of the renderer core's statics into Graphics State.
+  `texture3d.cpp` was deliberately left untouched, and the forwarder was kept out of line so that
+  `texture3d.o` references no Graphics State symbol: that edge and the DB-010 link line are
+  unchanged.
 
 ### DB-023 — Domains are not build targets
 
@@ -616,3 +616,39 @@ request. Run `ctest -L architecture` locally before review.
     guard it.
   - The explicit ray type / hit mode (spec 026, #32) moved to DB-018's Direction, and spec 029
     (#35) is already tracked under DB-005, so neither is lost by dropping them from this entry.
+
+### DB-008 — Graphics State owns other domains' objects
+
+- **Rules**: the allowed-dependency table (Graphics State depends on nothing).
+- **Tracking**: remediation spec 025 ([#31](https://github.com/juvenal/openrender/issues/31))
+- **Evidence**:
+  - `attributes.h` and `options.h` include Shading's `shader.h` (directly and through the
+    `src/ri/core/shader.h` shim) to hold `CShaderInstance*` slots.
+  - `options.h` includes `src/display/dsply.h` (display function pointers) and
+    `src/ri/geometry/blobbyField.h`.
+  - `attributes.cpp` includes `src/ri/hiders/photonMap.h` (photon-map attach/detach).
+- **Size**: 7 include edges. Graphics State's diagnostics and RI-token edges were under DB-016
+  (81 edges, resolved by spec 023). `options.cpp` → `texture.h` and `attributes.cpp` → `irradiance.h` were unused and are removed (DB-022, Resolved).
+- **Direction**: state stores opaque handles only (`ShaderGroupRef` with a `bxdf` slot, `MapRef`)
+  plus a scoped pattern-node table; shader-parameter logic moves to Shading; a state-owned
+  vocabulary header.
+- **Resolved** by spec 025 (`specs/025-graphics-state-handles/`), 2026-10-27:
+  - 7 include edges to 0, with the 7 allowlist lines deleted and nothing added or swapped;
+  - `ShaderGroupRef` and `MapRef` (`src/ri/state/stateHandles.h`): reference-counted handles to
+    `CShaderGroupRefTarget` (the base of `CShaderInstance`) and `CMapRefTarget` (a base of
+    `CPhotonMap`), resolved only by the owning domain's inline `static_cast` (`shaderInstanceOf`,
+    `lightInstanceOf` in `shaderRefs.h`; `photonMapOf` in `photonMap.h`); the shader slots are
+    private, bound through `bind*()`, and a `bxdf` slot with the Surface/Bxdf last-bound record
+    exists (no RIB statement); a scoped, copy-on-write pattern-node table (`patternTable.h`);
+  - the used-parameter union and the parameter lookup moved to Shading
+    (`libshader::usedShaderParameters` / `findShaderParameter`, `shaderParameters.cpp`) behind the
+    State-owned function-pointer hook `shaderParameterHooks.h`, installed in
+    `rendererShadingServicesInit()`;
+  - `stateVocabulary.h` (`EDisplayParameterType`, `EBlobbyOrder`), kept equal to `dsply.h` and
+    `blobbyField.h` by `State_VocabularyConsistency`; neither header changed;
+  - the AOV/channel registry moved from the renderer core's statics into State
+    (`CChannelRegistry`); DB-021 stays Open;
+  - `CAttributes` copies and `restore()` keep the active lights in RIB order (they used to reverse
+    them); no 8-bit image and no `MaxBlockAvgDiff` changed;
+  - `State_Isolation`, `State_LastBound`, `State_PatternTable`, `State_ChannelRegistry`,
+    `State_LightOrder`, `State_LightOrderRestore` and `State_VocabularyConsistency` guard it.

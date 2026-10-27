@@ -205,6 +205,16 @@ sites), `src/ri/shaderFunctions.h` (built-ins), `src/ri/zbufferQuad.h`.
 3. Storage/query — `CAttributes` in `src/ri/attributes.h/cpp` (`find()`)
 4. Pre-declaration — `initDeclarations()` in `src/ri/rendererDeclarations.cpp` (required, or RIB parser rejects the attribute with "Parameter not declared" before it ever reaches step 2)
 
+### Graphics State handles (spec 025)
+`CAttributes` and `COptions` hold other domains' objects only as opaque,
+reference-counted handles (`ShaderGroupRef`, `MapRef`, `src/ri/state/stateHandles.h`):
+`CShaderInstance` derives from `CShaderGroupRefTarget`, `CPhotonMap` from
+`CMapRefTarget`, and the owning domain turns a handle back into its own type with
+an inline accessor (`shaderInstanceOf`, `lightInstanceOf`, `photonMapOf`). The
+shader slots are private and written through `bind*()`; a `bxdf` slot, a
+Surface/Bxdf last-bound record (`governingMaterial()`) and a scoped pattern-node
+table (`patterns`) exist for later specs. See gotcha 24.
+
 ### Coordinate / matrix conventions
 Column-major matrices, `element(row,col) = row + 4*col`. `from` = local→world,
 `to` = world→local = `from^-1`. The REYES vertex buffer stores **sample
@@ -219,6 +229,7 @@ ctest --test-dir build -L visual -E slow                # skip slow tests (motio
 ctest --test-dir build -L libshader                     # compiler unit tests
 ctest --test-dir build -L common                        # libRIBCommon: sink, arena, vocabulary, state ownership
 ctest --test-dir build -L shading_parity                # JIT/interpreter parity, renderer-services routing, the illumination hook
+ctest --test-dir build -L state                         # Graphics State: handles and counts, last-bound record, pattern table, channel registry, light order, vocabulary
 ctest --test-dir build -LE determinism-sweep -j4        # the everyday full run: everything except the opt-in determinism sweep
 ctest --test-dir build -L '^determinism$' -j2           # default determinism set (148): harness, tie and derivative tests, one demanding scene per family
 ctest --test-dir build -L '^determinism-sweep$' -j2     # opt-in full sweep (413 scenes x 5 configurations, ~10-12 min at -j2): before each merge, and for the Linux validation
@@ -525,6 +536,30 @@ not in the agent definitions.
    the label-only `solar` instruction and emits `op_solar0_begin`; the
    emitter fails on `illuminate`/`solar` operands it cannot resolve rather
    than skipping them.
+24. **Graphics State holds handles, not other domains' objects (spec 025).**
+   `CAttributes`/`COptions` store `ShaderGroupRef`/`MapRef` and resolve them
+   only through the resolving domain's inline `static_cast` accessors
+   (`shaderInstanceOf`, `lightInstanceOf` in `libshader/shading/shaderRefs.h`;
+   `photonMapOf` in `photonMap.h`). `src/ri/state` never includes `shader.h`,
+   `photonMap.h`, `dsply.h` or `blobbyField.h` (`ctest -L architecture` fails
+   on it); its display-parameter and blobby-order values are
+   `stateVocabulary.h`'s, kept equal to the plug-in ABI by
+   `State_VocabularyConsistency`. The five slots are private: every bind goes
+   through `bind*()`, which recomputes `usedParameters`; `RiWorldBegin` uses
+   `setDefaultSurface()`, which leaves the Surface/Bxdf record alone (FR-024,
+   or `classic` output would change). `usedParameters` and `findParameter`
+   are computed in Shading (`shaderParameters.cpp`) behind
+   `shaderParameterHooks.h`, installed in `rendererShadingServicesInit()` and
+   **never** from `rendererDeclarations.cpp` (ribVector compiles that file and
+   does not link libshader_shading); with no hook installed `usedParameters`
+   is 0 and `findParameter` is `nullptr`, so a State-only test that binds
+   doubles must run with no `RiBegin` session open. The AOV/channel registry
+   is a Graphics State `CChannelRegistry`; `CRenderer::retrieveDisplayChannel`
+   is only an **out-of-line** forwarder to it (inline, it would put State
+   symbols into `texture3d.o` and break the DB-010 allowlist). `CAttributes`
+   copies and `restore()` now keep the active lights in RIB order; they used
+   to reverse them on every push. The unchecked cast of a light entry to
+   `CProgrammableShaderInstance` (DB-013) lives in `lightInstanceOf()`.
 
 ## Active Technologies
 - C++20, CMake ≥3.19; `libtiff`/`libpng` (mandatory), OpenEXR (optional,
@@ -555,8 +590,23 @@ not in the agent definitions.
 - Storage: N/A — no new persistent state; services are process-wide,
   registered for the length of a `RiBegin`/`RiEnd` session
   (024-shading-services-routing)
+- C++20, CMake ≥3.19, `-Werror`; no new dependencies — Graphics State holds
+  opaque `ShaderGroupRef`/`MapRef` handles, the parameter logic moves to
+  Shading behind a hook, the channel registry moves to State
+  (025-graphics-state-handles)
+- Storage: N/A — memory only; no new persistent state
+  (025-graphics-state-handles)
 
 ## Recent Changes
+- 025-graphics-state-handles: Graphics State holds `ShaderGroupRef`/`MapRef`
+  handles instead of `CShaderInstance*`/`CPhotonMap*` (DB-008: 7 include
+  edges → 0), with a `bxdf` slot, a Surface/Bxdf last-bound record and a
+  scoped pattern-node table; the used-parameter union and lookup moved to
+  Shading (`shaderParameters.cpp`) behind `shaderParameterHooks.h`;
+  `stateVocabulary.h` replaces its `dsply.h`/`blobbyField.h` includes; the
+  AOV/channel registry moved into State (`CChannelRegistry`); active lights
+  keep RIB order across pushes, clones and `ResourceRestore`, with no image
+  change (see spec 025).
 - 024-shading-services-routing: the shading library reaches the renderer
   only through `CRendererServices` and the `libshader::lookup*` helpers
   (`serviceLookup.h`), registered at `RiBegin` and deregistered at `RiEnd`

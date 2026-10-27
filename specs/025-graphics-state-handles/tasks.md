@@ -471,16 +471,16 @@ red ones are shown red. **No file under `src/` changes in this phase**, apart fr
 
 **Purpose**: the guardrails, the docs and the validation package. Do not refer to the merge in any text.
 
-- [ ] T079 [P] Update `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md` (FR-020, research R13). `<date>` is the date this task is done.
+- [X] T079 [P] Update `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md` (FR-020, research R13). `<date>` is the date this task is done.
   - **DB-008**: move it from `## Open` to `## Resolved` as "Resolved by spec 025 (`specs/025-graphics-state-handles/`), <date>". Summarize: 7 include edges to 0; `ShaderGroupRef`/`MapRef` handles with a `bxdf` slot; the used-parameter logic in Shading behind a State-owned hook; the state vocabulary header; the channel registry in State; light order. Its tracking line names #31 only.
   - **DB-021**: stays **Open**. Evidence: drop "the registry itself is renderer-core state"; keep Texturing's include of `displayChannel.h` and its call through the `CRenderer::retrieveDisplayChannel` forwarder, which now forwards to the State-owned registry. Tracking: spec 037 ([#26]). Direction: the registry is owned by Graphics State; passed to consumers as channel descriptors (037). No text may call DB-021 Resolved.
   - **DB-010**: the evidence notes that the forwarder now forwards to the State-owned registry; its edge count stays 35.
   - **DB-013**: add a History bullet (the entry has none yet; use DB-001's History format): the unchecked `CShaderInstance *` to `CProgrammableShaderInstance *` cast now lives in `lightInstanceOf()` (`src/libshader/shading/shaderRefs.h`), preserved as-is.
   - **DB-018**: if its evidence quotes `attributes->surface`-style reads, update the wording to `shaderInstanceOf(attributes->surface())`; it is touched, not extended.
   - Update any count in the file's Architecture-check section that quotes the allowlist total.
-- [ ] T080 [P] Allowlist and metric: `git diff dfffba0 -- tests/architecture/allowlist.txt | grep -c '^+[A-Z]'` is **0**; the header counts agree with the archcheck report (SC-009); `tests/architecture/metrics-baseline.txt` is unchanged unless the check printed `NOTE metric … < baseline`, in which case lower it to exactly the reported value and never raise any class (FR-019).
-- [ ] T081 [P] `DEVNOTES.md`: add a status-table entry for spec 025 (handles, parameter hook, vocabulary, registry, light order; DB-008 resolved; macOS validation date; Linux validation pending until T087's results are in). Link `DOMAIN_BOUNDARIES.md` and `specs/025-graphics-state-handles/`.
-- [ ] T082 [P] `CLAUDE.md` — the maintainer explicitly authorized this edit (maintainer, 2026-10-26): Known gotchas item 24, Recent Changes, Active Technologies, Architecture and Testing only. **Do not touch the "Spec-kit agent rules" section.**
+- [X] T080 [P] Allowlist and metric: `git diff dfffba0 -- tests/architecture/allowlist.txt | grep -c '^+[A-Z]'` is **0**; the header counts agree with the archcheck report (SC-009); `tests/architecture/metrics-baseline.txt` is unchanged unless the check printed `NOTE metric … < baseline`, in which case lower it to exactly the reported value and never raise any class (FR-019).
+- [X] T081 [P] `DEVNOTES.md`: add a status-table entry for spec 025 (handles, parameter hook, vocabulary, registry, light order; DB-008 resolved; macOS validation date; Linux validation pending until T087's results are in). Link `DOMAIN_BOUNDARIES.md` and `specs/025-graphics-state-handles/`.
+- [X] T082 [P] `CLAUDE.md` — the maintainer explicitly authorized this edit (maintainer, 2026-10-26): Known gotchas item 24, Recent Changes, Active Technologies, Architecture and Testing only. **Do not touch the "Spec-kit agent rules" section.**
   - **Known gotchas**: add item 24 covering:
     - Graphics State stores `ShaderGroupRef`/`MapRef` handles and resolves them only through the resolving domain's inline `static_cast` accessors (`shaderInstanceOf`, `lightInstanceOf`, `photonMapOf`); State never includes `shader.h`, `photonMap.h`, `dsply.h` or `blobbyField.h`;
     - the slots are private; every bind goes through `bind*()`, which recomputes `usedParameters`; `RiWorldBegin` uses `setDefaultSurface()`, which leaves the Surface/Bxdf record alone (FR-024);
@@ -490,10 +490,10 @@ red ones are shown red. **No file under `src/` changes in this phase**, apart fr
     - a State-only test that binds doubles must run with no `RiBegin` session open.
   - **Recent Changes** and **Active Technologies**: add a 025 entry each (as 024 has).
   - **Architecture**: one short paragraph on Graphics State's handle model; **Testing**: mention `ctest --test-dir build -L state`.
-- [ ] T083 [P] Grep `DEVNOTES_DETAILS/*.md` and `docs/` for the old slot names and the CRenderer channel statics (`CRenderer::declaredChannels`, `declareDisplayChannel`, public `attributes->surface`) and update any text that describes them; no user-facing site page changes (rendering does not change).
-- [ ] T084 [RUN] No-JIT build (spec edge case "Build options"), in a scratch directory inside the worktree, deleted afterwards: `cpujob 025-nojit-cfg cmake -B build-025-nojit -S . -DOPENRENDER_ENABLE_JIT=OFF`, then `cpujob 025-nojit-build cmake --build build-025-nojit --config Release -j4`, then `cpujob 025-nojit-test ctest --test-dir build-025-nojit -L "architecture|state|shading_parity" -j4 --output-on-failure`. Record the result.
-- [ ] T085 [RUN] SC-005: re-time `Visual_teapot-motion-raytrace`, `Csg_Seam_freeform_nurbs` and `Csg_Seam_spherecube_reyes_1600`, each 5 times alone through `cpujob` (quickstart §0.6). Each median must fall within the validation.md §0.6 min–max band. Record min/median/max.
-- [ ] T086 [RUN] Final macOS pass, with results in validation.md §8:
+- [X] T083 [P] Grep `DEVNOTES_DETAILS/*.md` and `docs/` for the old slot names and the CRenderer channel statics (`CRenderer::declaredChannels`, `declareDisplayChannel`, public `attributes->surface`) and update any text that describes them; no user-facing site page changes (rendering does not change).
+- [X] T084 [RUN] No-JIT build (spec edge case "Build options"), in a scratch directory inside the worktree, deleted afterwards: `cpujob 025-nojit-cfg cmake -B build-025-nojit -S . -DOPENRENDER_ENABLE_JIT=OFF`, then `cpujob 025-nojit-build cmake --build build-025-nojit --config Release -j4`, then `cpujob 025-nojit-test ctest --test-dir build-025-nojit -L "architecture|state|shading_parity" -j4 --output-on-failure`. Record the result.
+- [X] T085 [RUN] SC-005: re-time `Visual_teapot-motion-raytrace`, `Csg_Seam_freeform_nurbs` and `Csg_Seam_spherecube_reyes_1600`, each 5 times alone through `cpujob` (quickstart §0.6). Each median must fall within the validation.md §0.6 min–max band. Record min/median/max.
+- [X] T086 [RUN] Final macOS pass, with results in validation.md §8:
   - CP-a, CP-b, CP-c; `ctest -L state`, `-L shading_parity`, `-L visual -j4`, `-L '^determinism$' -j2`;
   - libshader_shading imports still **7**;
   - quickstart §3 greps: `git diff dfffba0 -- src/ri/texture/texture3d.cpp src/display/dsply.h src/ri/geometry/blobbyField.h` empty, no `shader.h`/`photonMap.h`/`dsply.h`/`blobbyField.h` include in `src/ri/state`;
@@ -503,7 +503,7 @@ red ones are shown red. **No file under `src/` changes in this phase**, apart fr
     - If #71 is merged into master before Phase 8, run this task on the 025 tree **merged with master** (a scratch merge in a scratch worktree or build, never on the 025 branch), where that test is enabled, and require zero disabled.
     - Otherwise list `ShadingParity_IlluminationHookAllFalse` as the **single known exception**, tied to #71, and require that it is the only "Not Run (Disabled)" line.
   - tick the checkboxes in this file.
-- [ ] T087 Linux validation package (quickstart §4). The agent has **no Linux access**: write it into validation.md §9 and hand it to the maintainer.
+- [X] T087 Linux validation package (quickstart §4). The agent has **no Linux access**: write it into validation.md §9 and hand it to the maintainer.
   - **Sync**: an rsync block from the worktree to the Linux checkout excluding `build*/` (quote hosts as `${H}:path`; memory `feedback_gcc13_werror_linux_validation.md`, `reference_zsh_host_colon_modifier.md`), plus a `sha256sum` manifest of every changed file at `specs/025-graphics-state-handles/tools/025-linux-manifest.sha256`.
   - **Maestri steps**: a fresh `build-025` (Release, GCC 13, `-Werror`) built with `nice -n 19 cmake --build build-025 -j4`; then the quickstart §2 commands.
   - **Watch for**: `-Wdeprecated-enum-enum-conversion` at the vocabulary conversion sites; `-Wnull-dereference`/`-Warray-bounds` around the pattern-table container; `ctest -L architecture` passing with the platform-tagged lines unchanged (SC-001 on Linux).
@@ -512,7 +512,7 @@ red ones are shown red. **No file under `src/` changes in this phase**, apart fr
   - **Determinism sweep**: also `ctest -L '^determinism-sweep$' -j2 --output-on-failure` on Linux, compared with the same sweep on the Linux `dfffba0` baseline.
   - **Imports**: the `nm -u` intersection for libshader_shading is unchanged (spec 024's Linux value).
   - When the maintainer reports the results, append them to validation.md §9 and finalize the DEVNOTES entry (T081). Linux green is required before the maintainer merges; this task does not depend on the merge.
-- [ ] T088 **Final checkpoint (PAUSE 8)**: stage every changed file with `git add` (never commit), confirm `git status` shows no unstaged change and no build artefact, summarize against the success criteria below, and wait for review. Then run `/speckit-converge`. #31 is closed by the maintainer's `Closes #31` in the merge commit.
+- [X] T088 **Final checkpoint (PAUSE 8)**: stage every changed file with `git add` (never commit), confirm `git status` shows no unstaged change and no build artefact, summarize against the success criteria below, and wait for review. Then run `/speckit-converge`. #31 is closed by the maintainer's `Closes #31` in the merge commit.
 
 ---
 
