@@ -1,0 +1,4 @@
+# Images excluded from the CP-d byte comparison (image_manifest.sh diff), one path per line.
+# Empty: since T006a (the imager tests no longer share tests/imager/ri.tif) the noise check
+# reports no run-to-run difference on the unchanged tree. A path added here still needs its
+# MaxBlockAvgDiff to match baseline-diffs.txt.

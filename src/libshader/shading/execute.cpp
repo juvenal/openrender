@@ -42,6 +42,7 @@
 #include "ri_config.h"
 #include "rslo_code.h"
 #include "shader.h"
+#include "shaderRefs.h"
 #include "shaderPl.h"
 #include "shading.h"
 #include "surface.h"
@@ -407,7 +408,7 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
         if (inShadow == FALSE) {                                                                                                 \
                                                                                                                                  \
             for (CActiveLight *cLight = currentAttributes->lightSources; cLight != NULL; cLight = cLight->next) {                \
-                CProgrammableShaderInstance *light = cLight->light;                                                              \
+                CProgrammableShaderInstance *light = lightInstanceOf(*cLight);                                                              \
                 if (!(light->flags & SHADERFLAGS_NONAMBIENT)) {                                                                  \
                     memBegin(shaderStateMemory);                                                                                 \
                     currentShadingState->currentLightInstance = light;                                                           \

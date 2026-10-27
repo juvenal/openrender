@@ -29,4 +29,16 @@ void installVariableLookup(TVariableLookup lookup);
 // Returns lookup(name), or nullptr when no lookup is installed.
 CVariable *lookupVariable(const char *name);
 
+// The declaration hook (spec 025, FR-016): declares a variable from a declaration string. The channel
+// registry reaches the renderer core's declared-variable table through it. The renderer core installs a
+// captureless adapter while declarations exist. name may be nullptr (the name is then parsed from the
+// declaration).
+using TVariableDeclaration = CVariable *(*)(const char *name, const char *declaration);
+
+// Installs the declaration hook (nullptr uninstalls).
+void installVariableDeclaration(TVariableDeclaration declaration);
+
+// Returns declaration(name, decl), or nullptr when no hook is installed.
+CVariable *declareVariableThroughHook(const char *name, const char *declaration);
+
 #endif

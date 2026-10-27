@@ -29,8 +29,10 @@
 
 #include "attributes.h"
 #include "common/global.h"
+#include "common/memory.h"
 #include "common/refCounter.h"
 #include "common/rendererc.h"
+#include "common/riVocabulary.h"
 #include "common/variable.h"
 #include "xform.h"
 

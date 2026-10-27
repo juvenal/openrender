@@ -23,13 +23,18 @@
  *   the template leaves' own attributes -- while selectVolumeShader() and the
  *   shading-side selection keyed on that flag are unchanged.
  *
- *   selectVolumeShader() never dereferences the CShaderInstance pointers it
- *   is given -- it only compares/returns them -- so these tests use opaque
- *   non-null sentinel addresses in place of real CShaderInstance objects.
- *   CAttributes::~CAttributes() does dereference (detach()) any non-NULL
- *   interior/exterior it still holds at destruction time, so every test
- *   resets both fields to NULL before its local CAttributes goes out of
- *   scope.
+ *   selectVolumeShader() never dereferences the shader objects it is given --
+ *   it only compares/returns them -- so these tests bind counting stand-ins
+ *   (CStandIn, a bare CShaderGroupRefTarget) through bindInterior() /
+ *   bindExterior() instead of real shader instances. Since spec 025 a slot is a
+ *   reference-counted handle, so a stand-in must be a real object (the old opaque
+ *   sentinel addresses 0x1 and 0x2 would be dereferenced by the handle).
+ *
+ *   The stand-ins are only legal because the cases that bind them run with no
+ *   RiBegin session open, so no shader-parameter hook is installed and nothing
+ *   casts the target to a CShaderInstance (contracts/shader-parameter-hooks.md,
+ *   "Precondition"). The one case that opens a session runs last and never
+ *   binds a stand-in.
  *
  * Authors:
  *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
@@ -48,57 +53,56 @@
 
 using namespace csgtest;
 
-// Opaque, never-dereferenced sentinel "shader instance" addresses.
-static CShaderInstance *const kInterior = reinterpret_cast<CShaderInstance *>(0x1);
-static CShaderInstance *const kExterior = reinterpret_cast<CShaderInstance *>(0x2);
+// A stand-in for a shader instance: just a counted object. newStandIn() returns one holding the
+// single reference a handle then adopts.
+class CStandIn : public CShaderGroupRefTarget {};
+
+static CStandIn *newStandIn() {
+    CStandIn *standIn = new CStandIn;
+    standIn->attach();
+    return standIn;
+}
 
 TEST(non_fragment_hit_always_returns_null) {
     CAttributes attr;
-    attr.interior = kInterior;
-    attr.exterior = kExterior;
+    attr.bindInterior(ShaderGroupRef::adopt(newStandIn()));
+    attr.bindExterior(ShaderGroupRef::adopt(newStandIn()));
     // attr.flags does NOT have ATTRIBUTES_FLAGS_SOLID_FRAGMENT set.
 
     ASSERT(selectVolumeShader(&attr, /*isSolidFragment=*/false, /*isExterior=*/false) == NULL);
     ASSERT(selectVolumeShader(&attr, /*isSolidFragment=*/false, /*isExterior=*/true) == NULL);
 
-    attr.interior = NULL;
-    attr.exterior = NULL;
 }
 
 TEST(fragment_hit_interior_side_returns_interior_shader) {
     CAttributes attr;
     attr.flags |= ATTRIBUTES_FLAGS_SOLID_FRAGMENT;
-    attr.interior = kInterior;
-    attr.exterior = kExterior;
+    CStandIn *const interior = newStandIn();
+    attr.bindInterior(ShaderGroupRef::adopt(interior));
+    attr.bindExterior(ShaderGroupRef::adopt(newStandIn()));
 
-    ASSERT(selectVolumeShader(&attr, /*isSolidFragment=*/true, /*isExterior=*/false) == kInterior);
-
-    attr.interior = NULL;
-    attr.exterior = NULL;
+    ASSERT(selectVolumeShader(&attr, /*isSolidFragment=*/true, /*isExterior=*/false) == interior);
 }
 
 TEST(fragment_hit_exterior_side_returns_exterior_shader) {
     CAttributes attr;
     attr.flags |= ATTRIBUTES_FLAGS_SOLID_FRAGMENT;
-    attr.interior = kInterior;
-    attr.exterior = kExterior;
+    attr.bindInterior(ShaderGroupRef::adopt(newStandIn()));
+    CStandIn *const exterior = newStandIn();
+    attr.bindExterior(ShaderGroupRef::adopt(exterior));
 
-    ASSERT(selectVolumeShader(&attr, /*isSolidFragment=*/true, /*isExterior=*/true) == kExterior);
-
-    attr.interior = NULL;
-    attr.exterior = NULL;
+    ASSERT(selectVolumeShader(&attr, /*isSolidFragment=*/true, /*isExterior=*/true) == exterior);
 }
 
 TEST(fragment_hit_falls_back_to_null_when_side_unset) {
     CAttributes attr;
     attr.flags |= ATTRIBUTES_FLAGS_SOLID_FRAGMENT;
-    attr.interior = kInterior;
-    attr.exterior = NULL; // No exterior shader assigned (FR-012 fallback case)
+    CStandIn *const interior = newStandIn();
+    attr.bindInterior(ShaderGroupRef::adopt(interior));
+    // No exterior shader assigned (FR-012 fallback case)
 
-    ASSERT(selectVolumeShader(&attr, /*isSolidFragment=*/true, /*isExterior=*/false) == kInterior);
+    ASSERT(selectVolumeShader(&attr, /*isSolidFragment=*/true, /*isExterior=*/false) == interior);
     ASSERT(selectVolumeShader(&attr, /*isSolidFragment=*/true, /*isExterior=*/true) == NULL);
-
-    attr.interior = NULL;
 }
 
 TEST(fragment_hit_returns_null_when_neither_shader_assigned) {
@@ -145,8 +149,8 @@ TEST(instance_leaves_carry_the_fragment_flag_and_the_flip) {
     // The selection the shading side makes from a leaf's attributes is the
     // spec 013 one: a fragment with no Interior/Exterior shader runs its surface shader
     const CObject *leaf = state->operands[0]->members[0];
-    ASSERT(selectVolumeShader(leaf->attributes, true, true) == leaf->attributes->exterior);
-    ASSERT(selectVolumeShader(leaf->attributes, true, false) == leaf->attributes->interior);
+    ASSERT(selectVolumeShader(leaf->attributes, true, true) == leaf->attributes->exterior().get());
+    ASSERT(selectVolumeShader(leaf->attributes, true, false) == leaf->attributes->interior().get());
 }
 
 int main() {

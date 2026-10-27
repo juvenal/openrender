@@ -132,15 +132,6 @@ DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN15CShadingContext9saveState
 DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN6CReyes10drawObjectEP7CObject   # CReyes::drawObject(CObject*)
 DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN6CReyes8drawGridEP8CSurfaceiiffffPK9CGridSnap   # CReyes::drawGrid(CSurface*, int, int, float, float, float, float, CGridSnap const*)
 
-# --- DB-008: Graphics State owns other domains' objects (7) ---
-DB-008  include  src/ri/state/attributes.cpp  ->  src/ri/hiders/photonMap.h
-DB-008  include  src/ri/state/attributes.h  ->  src/libshader/shading/shader.h
-DB-008  include  src/ri/state/attributes.h  ->  src/ri/core/shader.h
-DB-008  include  src/ri/state/options.h  ->  src/display/dsply.h
-DB-008  include  src/ri/state/options.h  ->  src/libshader/shading/shader.h
-DB-008  include  src/ri/state/options.h  ->  src/ri/core/shader.h
-DB-008  include  src/ri/state/options.h  ->  src/ri/geometry/blobbyField.h
-
 # --- DB-010: Texturing depends on Shading, the renderer core and Graphics State (35) ---
 DB-010  include  src/ri/hiders/irradiance.cpp  ->  src/ri/texture/pointHierarchy.h
 DB-010  include  src/ri/hiders/irradiance.cpp  ->  src/ri/texture/texture.h

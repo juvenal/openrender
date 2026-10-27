@@ -32,6 +32,7 @@
 #include "common/global.h"
 #include "common/memory.h"
 #include "ri_config.h"
+#include "shaderRefs.h"
 #include "common/stats.h"
 #include "surface.h"
 
@@ -843,8 +844,8 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
 
     // Verify atmosphere shaders
     CAttributes *cAttr = currentShadingState->currentObject->attributes;
-    CShaderInstance *interiorShader = cAttr->interior;
-    CShaderInstance *exteriorShader = cAttr->exterior;
+    CShaderInstance *interiorShader = shaderInstanceOf(cAttr->interior());
+    CShaderInstance *exteriorShader = shaderInstanceOf(cAttr->exterior());
 
     // Set the ray label
     if (scratch->traceParams.label == NULL) {

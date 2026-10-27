@@ -27,16 +27,15 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H
 
-#include "blobbyField.h"
 #include "common/algebra.h"
 #include "common/containers.h"
 #include "common/global.h"
-#include "dsply.h"
 #include "common/rendererc.h"
 #include "common/sampling.h"
 #include "common/riVocabulary.h"
 #include "ri_config.h"
-#include "shader.h"
+#include "stateHandles.h"
+#include "stateVocabulary.h"
 #include "userAttributes.h"
 #include "xform.h"
 
@@ -93,7 +92,7 @@ class COptions {
                 // Comments				:
                 typedef struct {
                         char *name;
-                        ParameterType type;
+                        EDisplayParameterType type;
                         int numItems;
                         void *data;
                 } TDisplayParameter;
@@ -271,7 +270,7 @@ class COptions {
 
         CUserAttributeDictionary userOptions; // User options
 
-        CShaderInstance *imager; // Active imager shader (null if none)
+        ShaderGroupRef imager; // Active imager shader (empty if none)
 };
 
 TSearchpath *optionsGetSearchPath(const char *, TSearchpath *); // Compute the search path

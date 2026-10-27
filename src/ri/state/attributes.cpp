@@ -30,10 +30,33 @@
 #include "common/atomic.h"
 #include "attributes.h"
 #include "common/diagnostics.h"
-#include "photonMap.h"
 #include "common/riVocabulary.h"
 #include "ri_config.h"
+#include "shaderParameterHooks.h"
 #include "common/stats.h"
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	copyLightList
+// Description			:	Copy an active-light list, entry for entry, in the source's order
+// Return Value			:	The new list (NULL if the source is empty)
+// Comments				:	The entries are non-owning, so the lights themselves are shared. The list
+//							is built with a tail pointer: O(n), and it is never reversed (spec 025,
+//							FR-025). An attribute push, a copy-on-write clone and a shading restore
+//							all copy through here, so every block lists its lights in RIB order.
+static CActiveLight *copyLightList(const CActiveLight *source) {
+    CActiveLight *head = NULL;
+    CActiveLight **tail = &head;
+
+    for (const CActiveLight *cLight = source; cLight != NULL; cLight = cLight->next) {
+        CActiveLight *nLight = new CActiveLight;
+        nLight->light = cLight->light;
+        nLight->next = NULL;
+        *tail = nLight;
+        tail = &nLight->next;
+    }
+
+    return head;
+}
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CAttributes
@@ -47,11 +70,6 @@ CAttributes::CAttributes() {
 
     atomicIncrement(stats.numAttributes);
 
-    surface = NULL;
-    displacement = NULL;
-    atmosphere = NULL;
-    interior = NULL;
-    exterior = NULL;
     usedParameters = 0;
 
     initv(surfaceColor, 1, 1, 1);
@@ -124,8 +142,6 @@ CAttributes::CAttributes() {
 
     globalMapName = NULL;
     causticMapName = NULL;
-    globalMap = NULL;
-    causticMap = NULL;
     irradianceHandle = strdup("");
     irradianceHandleMode = strdup("w");
     irradianceMaxError = 0.6f;
@@ -215,8 +231,6 @@ static void freeTrimLoops(CTrimLoop *loops, int numLoops) {
 // Return Value			:	-
 // Comments				:
 CAttributes::CAttributes(const CAttributes *a) {
-    CActiveLight *cLight, *nLight;
-
     atomicIncrement(stats.numAttributes);
 
     this[0] = a[0];
@@ -228,25 +242,10 @@ CAttributes::CAttributes(const CAttributes *a) {
 
     refCount = 0;
 
-    if (surface != NULL)
-        surface->attach();
-    if (displacement != NULL)
-        displacement->attach();
-    if (atmosphere != NULL)
-        atmosphere->attach();
-    if (interior != NULL)
-        interior->attach();
-    if (exterior != NULL)
-        exterior->attach();
-
     if (globalMapName != NULL)
         globalMapName = strdup(a->globalMapName);
     if (causticMapName != NULL)
         causticMapName = strdup(a->causticMapName);
-    if (globalMap != NULL)
-        globalMap->attach();
-    if (causticMap != NULL)
-        causticMap->attach();
 
     irradianceHandle = (a->irradianceHandle == NULL ? NULL : strdup(a->irradianceHandle));
     irradianceHandleMode = (a->irradianceHandleMode == NULL ? NULL : strdup(a->irradianceHandleMode));
@@ -254,14 +253,8 @@ CAttributes::CAttributes(const CAttributes *a) {
     if (a->maxDisplacementSpace != NULL)
         maxDisplacementSpace = strdup(a->maxDisplacementSpace);
 
-    lightSources = NULL;
-
-    for (cLight = a->lightSources; cLight != NULL; cLight = cLight->next) {
-        nLight = new CActiveLight;
-        nLight->light = cLight->light;
-        nLight->next = lightSources;
-        lightSources = nLight;
-    }
+    // Copy the light sources, in order
+    lightSources = copyLightList(a->lightSources);
 
     name = (a->name != NULL ? strdup(a->name) : NULL);
 
@@ -289,25 +282,10 @@ CAttributes::~CAttributes() {
 
     atomicDecrement(stats.numAttributes);
 
-    if (surface != NULL)
-        surface->detach();
-    if (displacement != NULL)
-        displacement->detach();
-    if (atmosphere != NULL)
-        atmosphere->detach();
-    if (interior != NULL)
-        interior->detach();
-    if (exterior != NULL)
-        exterior->detach();
-
     if (globalMapName != NULL)
         free(globalMapName);
     if (causticMapName != NULL)
         free(causticMapName);
-    if (globalMap != NULL)
-        globalMap->detach();
-    if (causticMap != NULL)
-        causticMap->detach();
     if (irradianceHandle != NULL)
         free(irradianceHandle);
     if (irradianceHandleMode != NULL)
@@ -336,11 +314,59 @@ CAttributes::~CAttributes() {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CAttributes
+// Method				:	bindSurface, bindDisplacement, bindAtmosphere, bindInterior,
+//							bindExterior, setDefaultSurface
+// Description			:	Store a shader handle in a slot (releasing the old one) and
+//							recompute the used parameters. Binding an empty handle empties the slot.
+// Return Value			:	-
+// Comments				:	The caller passes a handle that already owns its reference
+//							(ShaderGroupRef::adopt of the freshly created instance), so a bind adds no count.
+void CAttributes::bindSurface(ShaderGroupRef shader) {
+    surfaceSlot = std::move(shader);
+    lastMaterialBinding = EMaterialBinding::Surface; // even when the handle is empty (Surface "null")
+    checkParameters();
+}
+
+void CAttributes::bindBxdf(ShaderGroupRef shader) {
+    bxdfSlot = std::move(shader);
+    lastMaterialBinding = EMaterialBinding::Bxdf; // even when the handle is empty
+    checkParameters();
+}
+
+void CAttributes::bindDisplacement(ShaderGroupRef shader) {
+    displacementSlot = std::move(shader);
+    checkParameters();
+}
+
+void CAttributes::bindAtmosphere(ShaderGroupRef shader) {
+    atmosphereSlot = std::move(shader);
+    checkParameters();
+}
+
+void CAttributes::bindInterior(ShaderGroupRef shader) {
+    interiorSlot = std::move(shader);
+    checkParameters();
+}
+
+void CAttributes::bindExterior(ShaderGroupRef shader) {
+    exteriorSlot = std::move(shader);
+    checkParameters();
+}
+
+// RiWorldBegin only: the default surface bound when the scene gave none. The last-bound record is
+// left as it was (FR-024), so output stays byte-identical to the classic behaviour.
+void CAttributes::setDefaultSurface(ShaderGroupRef shader) {
+    surfaceSlot = std::move(shader);
+    checkParameters();
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CAttributes
 // Method				:	addLight
 // Description			:	Obvious !
 // Return Value			:	-
 // Comments				:
-void CAttributes::addLight(CShaderInstance *cLight) {
+void CAttributes::addLight(CShaderGroupRefTarget *cLight) {
     CActiveLight *nLight, *pLight;
 
     // Make sure we're not duplicating the light source
@@ -358,7 +384,7 @@ void CAttributes::addLight(CShaderInstance *cLight) {
         nLight = pLight->next = new CActiveLight;
     }
 
-    nLight->light = (CProgrammableShaderInstance *)cLight;
+    nLight->light = cLight;
     nLight->next = NULL;
     checkParameters();
 }
@@ -370,7 +396,7 @@ void CAttributes::addLight(CShaderInstance *cLight) {
 //							source from the active light source list
 // Return Value			:	-
 // Comments				:
-void CAttributes::removeLight(CShaderInstance *light) {
+void CAttributes::removeLight(CShaderGroupRefTarget *light) {
     CActiveLight *cLight, *pLight;
 
     for (pLight = NULL, cLight = lightSources; cLight != NULL; pLight = cLight, cLight = cLight->next) {
@@ -391,31 +417,13 @@ void CAttributes::removeLight(CShaderInstance *light) {
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CAttributes
 // Method				:	lightParameterCheck
-// Description			:	Check the light parameters
+// Description			:	Re-compute the set of required shader parameters (through the installed hook)
 // Return Value			:	-
 // Comments				:
 void CAttributes::checkParameters() {
-    CActiveLight *cLight;
+    const SShaderParameterHooks *hooks = shaderParameterHooks();
 
-    usedParameters = 0;
-
-    if (displacement != NULL)
-        usedParameters |= displacement->requiredParameters();
-    if (surface != NULL)
-        usedParameters |= surface->requiredParameters();
-    if (atmosphere != NULL)
-        usedParameters |= atmosphere->requiredParameters();
-    if (interior != NULL)
-        usedParameters |= interior->requiredParameters();
-    if (exterior != NULL)
-        usedParameters |= exterior->requiredParameters();
-
-    if (surface == NULL)
-        usedParameters |= PARAMETER_N;
-
-    for (cLight = lightSources; cLight != NULL; cLight = cLight->next) {
-        usedParameters |= cLight->light->requiredParameters();
-    }
+    usedParameters = hooks != NULL ? hooks->usedParameters(*this) : 0;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -425,30 +433,9 @@ void CAttributes::checkParameters() {
 // Return Value			:	-
 // Comments				:
 CVariable *CAttributes::findParameter(const char *name) {
-    CVariable *cParameter;
+    const SShaderParameterHooks *hooks = shaderParameterHooks();
 
-    if (displacement) {
-        for (cParameter = displacement->parameters; cParameter != NULL; cParameter = cParameter->next) {
-            if (strcmp(cParameter->name, name) == 0)
-                return cParameter;
-        }
-    }
-
-    if (surface) {
-        for (cParameter = surface->parameters; cParameter != NULL; cParameter = cParameter->next) {
-            if (strcmp(cParameter->name, name) == 0)
-                return cParameter;
-        }
-    }
-
-    if (atmosphere) {
-        for (cParameter = atmosphere->parameters; cParameter != NULL; cParameter = cParameter->next) {
-            if (strcmp(cParameter->name, name) == 0)
-                return cParameter;
-        }
-    }
-
-    return NULL;
+    return hooks != NULL ? hooks->findParameter(*this, name) : NULL;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -459,32 +446,14 @@ CVariable *CAttributes::findParameter(const char *name) {
 // Comments				:
 void CAttributes::restore(const CAttributes *other, int shading, int geometrymodification, int geometrydefinition, int /*hiding*/) {
     if (shading) {
-        if (surface != NULL)
-            surface->detach();
-        if (displacement != NULL)
-            displacement->detach();
-        if (atmosphere != NULL)
-            atmosphere->detach();
-        if (interior != NULL)
-            interior->detach();
-        if (exterior != NULL)
-            exterior->detach();
-
-        surface = other->surface;
-        if (surface != NULL)
-            surface->attach();
-        displacement = other->displacement;
-        if (displacement != NULL)
-            displacement->attach();
-        atmosphere = other->atmosphere;
-        if (atmosphere != NULL)
-            atmosphere->attach();
-        interior = other->interior;
-        if (interior != NULL)
-            interior->attach();
-        exterior = other->exterior;
-        if (exterior != NULL)
-            exterior->attach();
+        surfaceSlot = other->surfaceSlot;
+        displacementSlot = other->displacementSlot;
+        atmosphereSlot = other->atmosphereSlot;
+        interiorSlot = other->interiorSlot;
+        exteriorSlot = other->exteriorSlot;
+        bxdfSlot = other->bxdfSlot;
+        lastMaterialBinding = other->lastMaterialBinding;
+        patterns = other->patterns;
 
         movvv(surfaceColor, other->surfaceColor);
         movvv(surfaceOpacity, other->surfaceOpacity);
@@ -496,13 +465,8 @@ void CAttributes::restore(const CAttributes *other, int shading, int geometrymod
             delete cLight;
         }
 
-        // Copy the light sources
-        for (cLight = other->lightSources; cLight != NULL; cLight = cLight->next) {
-            CActiveLight *nLight = new CActiveLight;
-            nLight->light = cLight->light;
-            nLight->next = lightSources;
-            lightSources = nLight;
-        }
+        // Copy the light sources, in order
+        lightSources = copyLightList(other->lightSources);
 
         checkParameters();
 

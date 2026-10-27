@@ -27,12 +27,19 @@
 #include <math.h>
 #include <string.h>
 
+#include "channelRegistry.h"
 #include "displayChannel.h"
 #include "common/diagnostics.h"
 #include "renderer.h"
 #include "rendererContext.h"
 #include "shading.h"
 #include "variableLookup.h"
+
+// The channel registry's declaration hook. &CRenderer::declareVariable does not convert to a
+// TVariableDeclaration (it takes a third, defaulted parameter), so a captureless adapter is installed.
+static CVariable *declareVariableAdapter(const char *name, const char *declaration) {
+    return CRenderer::declareVariable(name, declaration, 0);
+}
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CGlobalIdentifier
@@ -69,9 +76,9 @@ void CRenderer::initDeclarations() {
     // This is the list of all variables
     variables = NULL;
 
-    // Allocate the space for default display channels
-    declaredChannels = new CTrie<CDisplayChannel *>;
-    displayChannels = new CArray<CDisplayChannel *>;
+    // The display channels live in Graphics State's channel registry, which registers the five
+    // built-ins (rgb, rgba, a, z, rgbaz) itself
+    beginChannelRegistry();
 
     // Zero is reserved as an invalid value
     numKnownGlobalIds = 1;
@@ -277,35 +284,6 @@ void CRenderer::initDeclarations() {
     ////////////////////////////////////////////////////////////////////////////////////////////
     //
     //
-    //			R E G I S T E R    D E F A U L T   D I S P L A Y    C H A N N E L S
-    //
-    //
-    ////////////////////////////////////////////////////////////////////////////////////////////
-    CDisplayChannel *tmp2;
-
-    tmp2 = new CDisplayChannel("rgb", NULL, 3, 0);
-    displayChannels->push(tmp2);
-    declaredChannels->insert(tmp2->name, tmp2);
-
-    tmp2 = new CDisplayChannel("rgba", NULL, 4, 0);
-    displayChannels->push(tmp2);
-    declaredChannels->insert(tmp2->name, tmp2);
-
-    tmp2 = new CDisplayChannel("a", NULL, 1, 3);
-    displayChannels->push(tmp2);
-    declaredChannels->insert(tmp2->name, tmp2);
-
-    tmp2 = new CDisplayChannel("z", NULL, 1, 4);
-    displayChannels->push(tmp2);
-    declaredChannels->insert(tmp2->name, tmp2);
-
-    tmp2 = new CDisplayChannel("rgbaz", NULL, 5, 0);
-    displayChannels->push(tmp2);
-    declaredChannels->insert(tmp2->name, tmp2);
-
-    ////////////////////////////////////////////////////////////////////////////////////////////
-    //
-    //
     //			R E G I S T E R    D E F A U L T   C O O R D I N A T E    S Y S T E M S
     //
     //
@@ -332,6 +310,9 @@ void CRenderer::initDeclarations() {
 
     // Parameter lists (state/pl.cpp) resolve declared names through this hook
     installVariableLookup(&CRenderer::retrieveVariable);
+
+    // The channel registry declares new channels' variables through the declared-variable table
+    installVariableDeclaration(&declareVariableAdapter);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -343,16 +324,14 @@ void CRenderer::initDeclarations() {
 void CRenderer::shutdownDeclarations() {
     // The declarations are going away: stop resolving names through them
     installVariableLookup(nullptr);
+    installVariableDeclaration(nullptr);
 
     // Ditch the global IDs
     assert(globalIdHash != NULL);
     globalIdHash->destroy();
 
     // Ditch the display channels
-    assert(declaredChannels != NULL);
-    assert(displayChannels != NULL);
-    declaredChannels->destroy();
-    delete displayChannels;
+    endChannelRegistry();
 
     // First the variables
     assert(declaredVariables != NULL);
@@ -527,110 +506,14 @@ int CRenderer::getGlobalID(const char *name) {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRenderer
-// Method				:	declareDisplayChannel
-// Description			:	Define a new displayChannel
-// Return Value			:	The new display channel, NULL otherwise
-// Comments				:
-CDisplayChannel *CRenderer::declareDisplayChannel(const char *type) {
-    CDisplayChannel *oChannel;
-    CVariable cVariable, *oVariable;
-
-    assert(declaredChannels != NULL);
-
-    if (parseVariable(&cVariable, NULL, type) == FALSE) {
-        return NULL;
-    }
-
-    if (declaredChannels->find(cVariable.name, oChannel) == TRUE) {
-        if ((oChannel->numSamples == cVariable.numFloats) &&
-            ((cVariable.storage != STORAGE_GLOBAL) || oChannel->outType == cVariable.entry)) {
-            return oChannel;
-        }
-        else {
-            error(CODE_SYSTEM, "Channel \"%s\" was previously defined differently\n", cVariable.name);
-            return NULL;
-        }
-    }
-    else {
-        oVariable = declareVariable(NULL, type);
-
-        if (oVariable == NULL) {
-            error(CODE_SYSTEM, "Channel definition \"%s\" is ill formed\n", type);
-        }
-        else {
-            const int samples = oVariable->numFloats;
-            const int outType = (oVariable->storage == STORAGE_GLOBAL) ? oVariable->entry : -1;
-            oChannel = new CDisplayChannel(oVariable->name, oVariable, samples, -1, outType);
-            declaredChannels->insert(oChannel->name, oChannel);
-            displayChannels->push(oChannel);
-
-            return oChannel;
-        }
-    }
-    return NULL;
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CRenderer
-// Method				:	declareDisplayChannel
-// Description			:	Define a new displayChannel
-// Return Value			:	The new display channel, NULL otherwise
-// Comments				:
-CDisplayChannel *CRenderer::declareDisplayChannel(CVariable *var) {
-    CDisplayChannel *oChannel;
-
-    assert(declaredChannels != NULL);
-
-    if (declaredChannels->find(var->name, oChannel) == TRUE) {
-        if (oChannel->variable == var) {
-            return oChannel;
-        }
-        else {
-            return NULL;
-        }
-    }
-    else {
-        oChannel = new CDisplayChannel(var->name, var, var->numFloats, -1, var->entry);
-        declaredChannels->insert(oChannel->name, oChannel);
-        displayChannels->push(oChannel);
-
-        return oChannel;
-    }
-
-    return NULL;
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CRenderer
 // Method				:	retrieveDisplayChannel
-// Description			:	Define a new displayChannel
+// Description			:	Find a display channel by name
 // Return Value			:	The found display channel, NULL otherwise
-// Comments				:
+// Comments				:	Forwards to the Graphics State channel registry. Defined out of line on
+//							purpose: Texturing (texture3d.cpp) calls it, and an inline body would make
+//							texture3d.o reference State symbols.
 CDisplayChannel *CRenderer::retrieveDisplayChannel(const char *name) {
-    CDisplayChannel *oChannel;
-    if (declaredChannels->find(name, oChannel) == TRUE) {
-        return oChannel;
-    }
-    else {
-        return NULL;
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CRenderer
-// Method				:	resetDisplayChannelUsage
-// Description			:	Mark all AOV channels as unused
-// Return Value			:
-// Comments				:
-void CRenderer::resetDisplayChannelUsage() {
-    int i, n = displayChannels->numItems;
-    CDisplayChannel **dsp = displayChannels->array;
-
-    for (i = 0; i < n; i++, dsp++) {
-        if ((*dsp)->variable != NULL) {
-            (*dsp)->sampleStart = -1;
-        }
-    }
+    return channelRegistry() != nullptr ? channelRegistry()->retrieve(name) : nullptr;
 }
 
 ///////////////////////////////////////////////////////////////////////
