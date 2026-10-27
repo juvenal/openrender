@@ -15,6 +15,12 @@
 - Q: Who defines the texture part of the services interface? → A: This spec defines it; spec 026 adopts it (confirmed assumption).
 - Q: What is the texture system's lifetime? → A: Per frame (`beginFrame`/`endFrame`), preserving cache and unload timing (confirmed assumption).
 - Note: the `brickmap.cpp` format-string defect near lines 1706/1710 is filed as GitHub #103 and is out of scope for this spec.
+- Maintainer decisions for the plan (2026-10-27):
+  - Q: Which allowlist lines does FR-015's re-tag cover? → A: Every platform variant of the two `texture3d.cpp` lines (the `retrieveDisplayChannel` link and the `renderer.h` include), Linux-only counterparts included, is re-tagged DB-010 → DB-021 the same way.
+  - Q: What does a lookup do with no texture system installed? → A: The services return a null handle and the builtin returns its fill value, with one warning per kind of lookup (FR-002, FR-012).
+  - Q: Where does the RGBE codec land? → A: In `libRIBCommon`. The `rgbe` display driver links the shared copy (gotcha 22: one definer of process-wide state). The plan settles what the `Common_StateOwnership` check lists for it.
+  - Q: Are the starting numbers trusted as measured? → A: No. The plan's first measurement task re-measures them on a fresh macOS build, and lists the Linux run for the maintainer's rsync + Maestri path.
+  - Q: How is #20's concurrent first-load test run? → A: 4 threads, 200 repeats, plain build (no ThreadSanitizer, which stays with #19), registered like the `texture_tile` tests and run only through `cpujob` (nice 19), at `-j2` for that label.
 
 ## User Scenarios & Testing *(mandatory)*
 
