@@ -106,7 +106,9 @@ set(ri_sources
 	state/variableLookup.cpp
 	geometry/patches.cpp
 	geometry/patchgrid.cpp
+	state/channelRegistry.cpp
 	state/pl.cpp
+	state/shaderParameterHooks.cpp
 	geometry/points.cpp
 	texture/pointCloud.cpp
 	texture/pointHierarchy.cpp
@@ -506,6 +508,7 @@ set(ribOut_sources
     render/rendererMutexes.cpp
     render/rendererNetwork.cpp
     render/rendererStatics.cpp
+    state/channelRegistry.cpp
     state/displayChannel.cpp
     state/variableLookup.cpp
     vector/rendererDeclarationsDispatchStub.cpp

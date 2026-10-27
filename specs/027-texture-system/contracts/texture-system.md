@@ -123,7 +123,7 @@ CTextureSystem *createTextureSystem(const CTextureSystemSettings &settings);
   `Texture` and `Environment` never return `nullptr`: a missing or unreadable file yields a substitute (the
   existing `CDummyTexture`/`CDummyEnvironment`) after one `CODE_NOFILE` error with today's text. `Info` returns
   `nullptr` for a missing file and caches nothing (today's `getTextureInfo`).
-- **Locking**: `handle()` holds `loadMutex` (or the system's own mutex) across find → load → insert. The block
+- **Locking**: `handle()` holds `loadMutex` (or the system's own mutex) across find → load → insert. **Core-lock coupling**: the core passes `&CRenderer::shaderMutex`, a plain non-recursive mutex, so no code that already holds it may call `handle()` (a debug assertion catches a re-entry); the services getters that hold it (`getCache`, `getTexture3d`, `getPhotonMap`) never reach a texture handle. The block
   registry and eviction take the tile cache's own mutex, and the per-block mutexes are unchanged. Unbaked-source
   synthesis takes the process-wide synthesis lock (research R13).
 - **Lookups**: identical arithmetic, sample order and memory accounting to today's `lookup4`/`lookup`/`lookupz`
@@ -132,6 +132,7 @@ CTextureSystem *createTextureSystem(const CTextureSystemSettings &settings);
   Dimensions consumed are data-model §5's.
 - **No shading context**: no declaration in `textureSystem.h`, `textureResolver.h`, `texture.h` or `texture.cpp`
   names `CShadingContext`. The six-argument `CTexture3d::lookup` and its overrides keep it (FR-014, SC-005).
+- **Null resolver and `Info` misses**: a `nullptr` resolver given to a `make*` function or a loader means "no search path" (a name with a directory separator is used as given when the file exists; a bare name is not found). An `Info` request for a missing file returns `nullptr`, caches nothing (the next request locates again) and reports nothing.
 - **Lifetime**: constructed in `CRenderer::beginFrame()` where `initTextures()` ran, destroyed in `endFrame()`
   where `shutdownTextures()` ran. Destroying it frees every handle, texture, block and per-thread block.
 - **Not covered**: 3D textures, point clouds, brick maps, irradiance caches and photon maps (spec 032). Their

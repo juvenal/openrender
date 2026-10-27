@@ -459,3 +459,57 @@ if(OPENRENDER_HAVE_LLVM)
         )
     endforeach()
 endif()
+
+# Spec 025 (graphics-state-handles), FR-007 part A: the used-parameter set and
+# findParameter() of an attribute block equal an independent oracle computed
+# from the bound shaders. API-neutral: green before and after the parameter
+# logic moves to Shading; a swapped slot precedence fails it. SHADERS points at
+# the compiled build tree so RiWorldBegin's defaultsurface/defaultlight load.
+add_executable(test_shading_parity_shader_parameter_equivalence test_shader_parameter_equivalence.cpp)
+target_link_libraries(test_shading_parity_shader_parameter_equivalence PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+target_include_directories(test_shading_parity_shader_parameter_equivalence PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_BINARY_DIR}
+)
+target_compile_features(test_shading_parity_shader_parameter_equivalence PRIVATE cxx_std_20)
+add_test(NAME ShadingParity_ShaderParameterEquivalence COMMAND test_shading_parity_shader_parameter_equivalence)
+set_tests_properties(ShadingParity_ShaderParameterEquivalence PROPERTIES
+    TIMEOUT 60
+    LABELS "shading_parity"
+    ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};OSHADER_BIN=$<TARGET_FILE:oshader>"
+)
+
+# Spec 025 (graphics-state-handles), FR-007 part B and FR-005: the same oracle and binding sets
+# as part A, read directly from libshader::usedShaderParameters / findShaderParameter, and the
+# bxdf slot being ignored by both answers. A test whose API does not exist yet is red by build
+# failure and is registered EXCLUDE_FROM_ALL + DISABLED until its phase enables it (pass ENABLED):
+#   ShadingParity_ShaderParameterEquivalenceDirect  enabled in task T026
+#   ShadingParity_ShaderParameterBxdfIgnored        enabled in task T056
+function(add_shader_parameter_test NAME EXE SOURCE)
+    cmake_parse_arguments(ARG "ENABLED" "" "" ${ARGN})
+    if(ARG_ENABLED)
+        add_executable(${EXE} ${SOURCE})
+    else()
+        add_executable(${EXE} EXCLUDE_FROM_ALL ${SOURCE})
+    endif()
+    target_link_libraries(${EXE} PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+    target_include_directories(${EXE} PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_BINARY_DIR}
+    )
+    target_compile_features(${EXE} PRIVATE cxx_std_20)
+    add_test(NAME ${NAME} COMMAND ${EXE})
+    set_tests_properties(${NAME} PROPERTIES
+        TIMEOUT 60
+        LABELS "shading_parity"
+        ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};OSHADER_BIN=$<TARGET_FILE:oshader>"
+    )
+    if(NOT ARG_ENABLED)
+        set_tests_properties(${NAME} PROPERTIES DISABLED TRUE)
+    endif()
+endfunction()
+
+add_shader_parameter_test(ShadingParity_ShaderParameterEquivalenceDirect
+    test_shading_parity_shader_parameter_equivalence_direct test_shader_parameter_equivalence_direct.cpp ENABLED)
+add_shader_parameter_test(ShadingParity_ShaderParameterBxdfIgnored
+    test_shading_parity_shader_parameter_bxdf_ignored test_shader_parameter_bxdf_ignored.cpp ENABLED)

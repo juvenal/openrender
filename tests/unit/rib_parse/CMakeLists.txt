@@ -51,3 +51,14 @@ add_test(NAME SamplingOption_RslQuery COMMAND test_sampling_option_rsl query)
 add_test(NAME SamplingOption_RslQueryNoServices COMMAND test_sampling_option_rsl no_services)
 set_tests_properties(SamplingOption_RslQuery SamplingOption_RslQueryNoServices PROPERTIES TIMEOUT 60
     LABELS "rib_parse;unit;sampling" ENVIRONMENT "${SAMPLING_OPTION_ENV}")
+
+# Spec 025 (graphics-state-handles), FR-023 / US3.5: the RIB writer keeps the order of
+# Surface/Displacement/Atmosphere/Interior/Exterior/LightSource/Imager. A characterization
+# test: green on the starting tree, and it must stay green.
+add_executable(test_ribout_shader_order test_ribout_shader_order.cpp)
+target_compile_features(test_ribout_shader_order PRIVATE cxx_std_20)
+target_include_directories(test_ribout_shader_order PRIVATE ${SAMPLING_OPTION_INCLUDES})
+target_link_libraries(test_ribout_shader_order PRIVATE ribRender openrendercommon)
+add_test(NAME RibOut_ShaderStatementOrder COMMAND test_ribout_shader_order)
+set_tests_properties(RibOut_ShaderStatementOrder PROPERTIES TIMEOUT 60
+    LABELS "rib_parse;unit" ENVIRONMENT "${SAMPLING_OPTION_ENV}")

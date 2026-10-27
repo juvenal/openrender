@@ -278,7 +278,7 @@ bool CSurface::checkRayGuard(CRay *rv, CShadingContext *context) {
         }
     }
 
-    if ((attributes->displacement != NULL) && (attributes->flags & ATTRIBUTES_FLAGS_DISPLACEMENTS)) {
+    if ((attributes->displacement()) && (attributes->flags & ATTRIBUTES_FLAGS_DISPLACEMENTS)) {
         // Do we have a grid ?
         if (children == NULL) {
             osLock(CRenderer::tesselateMutex);

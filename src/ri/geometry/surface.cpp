@@ -602,7 +602,7 @@ int CPatch::probe(CReyes *r) {
 //							boundaries move with the displacement, which the
 //							snaps do not follow.
 void CPatch::buildLayout(CReyes *r, int wrapU, int wrapV) {
-    if (attributes->displacement != NULL)
+    if (attributes->displacement())
         return;
 
     layout = new CPatchLayout(wrapU, wrapV);

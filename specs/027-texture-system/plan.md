@@ -2,9 +2,10 @@
 
 **Branch**: `027-texture-system` | **Date**: 2026-10-27 | **Spec**: [spec.md](spec.md)
 
-**Input**: Feature specification from `specs/027-texture-system/spec.md`. The Clarifications of session 2026-10-27
-and the maintainer's five plan decisions of the same day (recorded there) are applied as decided. Six questions
-for the maintainer are at the end (Q1–Q6); the plan is written with each recommendation applied.
+**Input**: Feature specification from `specs/027-texture-system/spec.md`. The Clarifications of session 2026-10-27,
+the maintainer's five plan decisions and the answers to the six plan questions of the same day (all recorded there)
+are applied as decided. Revised 2026-10-27 for the answers: the JIT parity fix (FR-022) is phase 9. Q7 (the ray-traced
+forms under the JIT) is answered, option A (spec.md Clarifications), and the plan applies it; its text is kept at the end.
 
 ## Summary
 
@@ -29,13 +30,20 @@ for its 2D, environment and shadow work. It resolves DB-026 and the Texturing pa
    kind. The `texture3d()`/`bake3d()` channel operations go through three services forwarders, which removes the
    `CTexture3d::resolve` import (7 → 6). The point hierarchy reads its solid-angle limit through an accessor the
    core gives it.
-6. **Guardrails**: 25 DB-010 and 5 DB-026 allowlist lines deleted, the two `texture3d.cpp` lines re-tagged to DB-021,
+6. **JIT parity of the texture builtins** (FR-022, answer to Q1): under the JIT, `texture()`, `environment()` and
+   `shadow()` honour their optional parameter lists and make the interpreter's request, through #55's
+   `jitParameterList<T>()`/`jitParameterListReady()` and `emitParamList()`. It is the last code phase and the only
+   one allowed to change output, `.slo` only. Measured today: 16 of 18 texture/environment parity scenes differ
+   under `.slo` (MaxBlockAvgDiff 34.55–252.52); no existing test or reference renders these builtins through the
+   JIT, so none is expected to change.
+7. **Guardrails**: 25 DB-010 and 5 DB-026 allowlist lines deleted, the two `texture3d.cpp` lines re-tagged to DB-021,
    none added; Texturing's renderer-core metric 70/16 → 1/1; registry updated.
 
 Tests are written first: a Texturing-only program (no renderer-core, hider or shading object in the link), a
 substitute texture system under both backends, #20's concurrent first-load test (4 threads, 200 repeats), a
 sample-stream test, and an RGBE display-driver byte test. Every phase keeps the architecture check green and every
-image byte-identical, the JIT texture paths included.
+image byte-identical on macOS, except phase 9, which may change `.slo` renders of shaders that call `texture()`,
+`environment()` or `shadow()` and nothing else (the JIT texture paths are byte-identical in every other phase).
 
 ## Technical Context
 
@@ -47,10 +55,16 @@ image byte-identical, the JIT texture paths included.
 **Storage**: N/A. Memory only; the opt-in disk cache (spec 020) keeps its files and format.
 
 **Testing**: ctest.
-- `texture_tile` (run at `-j2`): `TextureSystem_ConcurrentFirstLoad`, `TextureSystem_StreamCursor` join the nine
-  existing tests.
+- `texture_tile` (run at `-j2`): `TextureSystem_ConcurrentFirstLoad`, `TextureSystem_ConcurrentFirstLoadExternalMutex`,
+  `TextureSystem_StreamCursor`, `TextureSystem_InfoMiss` and `TextureSystem_NullResolver` join the nine existing tests.
 - `texture_only` (new, behind `OPENRENDER_TEXTURE_ONLY_TESTS`): `TextureOnly_Standalone`.
-- `shading_parity`: `ShadingParity_TextureSubstitute` (JIT builds only).
+- `shading_parity`: `ShadingParity_TextureSubstitute` (registered always; its interpreter half runs with the JIT off, the `.slo` half and the cross-backend checks only with it; 2D, `textureinfo()` and no-system parts, green
+  in phase 6), `ShadingParity_TextureSubstitute3D` (the `texture3d()`/`bake3d()` forwarders, green in phase 7; a separate
+  executable because the forwarders exist in the interface only from phase 7), `ShadingParity_JitPLDiagnosticsTexture`
+  (new, T-J3; JIT builds only).
+- `visual` (JIT builds only; registered in phase 2, red until phase 9): `ShadingParity_JitPL_{texture,envshadow}_<case>` and
+  `ShadingParity_JitPLEngaged_{texture,envshadow}_<case>_{rslo,slo}`, extending #55's table, with the ray-traced
+  cases `ShadingParity_JitPL_envshadow_raytrace_*` (Q7).
 - `image_input`: `Display_RgbeBytes`.
 - `common`: `Common_StateOwnership` with the RGBE symbols.
 - Also `architecture`, `visual`, `^determinism$`, the full suite every phase, and the sweep once at the end.
@@ -65,7 +79,7 @@ maintainer's rsync + Maestri path).
 | Domain | What changes |
 |---|---|
 | Texturing | the main subject: `textureSystem.{h,cpp}`, `textureResolver.h`, `textureInternal.h` (new); `texture.{h,cpp}`, `texmake.{h,cpp}`, `brickmap.{h,cpp}`, `pointCloud.h`, `pointHierarchy.{h,cpp}`, `texture3d.h` (one include), `imageInputRgbe.cpp` |
-| Shading | `rendererServices.h`, `textureCalls.{h,cpp}` (new), `shading.{h,cpp}`, `shaderFunctions.h`, `giFunctions.h`, `shaderPl.{h,cpp}`, `rslBuiltins.cpp`, `execute.cpp` (includes) |
+| Shading | phase 9: `llvmEmitter.cpp` (compiler), `rslOps.{h,cpp}` (the `_v3` entry points); `rendererServices.h`, `textureCalls.{h,cpp}` (new), `shading.{h,cpp}`, `shaderFunctions.h`, `giFunctions.h`, `shaderPl.{h,cpp}`, `rslBuiltins.cpp`, `execute.cpp` (includes) |
 | Hiders | `irradianceDispatch.cpp`: two environment lookups through `CShadingContext::lookupEnvironment()` |
 | Display Outputs | `src/display/rgbe/`: the codec leaves; `file.cpp` includes `common/rgbe.h` |
 | Infrastructure | `src/common/rgbe.{h,cpp}` (moved in) |
@@ -78,7 +92,9 @@ Graphics State, Geometry and Scene Interface are not edited. `texture3d.cpp` is 
 lookup arithmetic is unchanged.
 
 **Constraints**:
-- byte-identical renders in every phase, on macOS, including the JIT texture paths (FR-020, SC-006);
+- byte-identical renders in every phase but phase 9, on macOS, including the JIT texture paths (FR-020, SC-006);
+  phase 9 may change `.slo` renders of `texture()`/`environment()`/`shadow()` only, and any change to an existing
+  test result or reference stops it for the maintainer (FR-022);
 - no allowlist line added or re-keyed except the two approved re-tags (FR-019); the metric baseline only goes down;
 - no threshold widened, no test disabled to get a green result; no reference re-rendered;
 - no task depends on the merge (FR-021);
@@ -105,11 +121,11 @@ registry updated.
 |---|---|---|
 | I. Clean code | PASS | One owner for the texture state instead of ten `CRenderer` statics mutated from `texture.cpp`; one Shading unit for every texture request instead of ~15 hand-written call sites; three duplicated getters deleted. |
 | II. C++20 / C17 | PASS | Scoped enum, aggregates, `std::mutex` for the process-wide synthesis lock, `std::atomic<bool>` warn-once flags; `extern "C"` for the C codec. No extension. |
-| III. TDD (non-negotiable) | PASS (by plan order) | Phase 2 writes the tests and records their red before any production change (see "Test design"). Four are red by build failure, as in 024's T-P5 and 025's T-S1; #20's test is also red by assertion at phase 5's adapter step; one test is a characterization test, green on both trees by design and labelled so. |
+| III. TDD (non-negotiable) | PASS (by plan order) | Phase 2 writes the tests and records their red before any production change (see "Test design"). Four are red by build failure, as in 024's T-P5 and 025's T-S1; #20's test is also red by assertion at phase 5's adapter step; the T-J tests are red by image difference until phase 9 (measured, R22); one test is a characterization test, green on both trees by design and labelled so. |
 | IV. CLI | N/A | No CLI change. |
 | V. Minimal dependencies | PASS | None added. |
 | VI. Linux and macOS | PASS | Both platforms measured before and after (quickstart §0, §5); GCC 13 `-Werror`; platform-tagged allowlist lines handled per platform. |
-| VII. Docs | PASS | `DOMAIN_BOUNDARIES.md`, the allowlist and metric headers, DEVNOTES, `CLAUDE.md` (Architecture and a Known gotcha on the texture system's lifetime and the services' texture part). No user-facing page changes: rendering does not change. |
+| VII. Docs | PASS | `DOMAIN_BOUNDARIES.md`, the allowlist and metric headers, DEVNOTES, `CLAUDE.md` (Architecture, a Known gotcha on the texture system's lifetime, the services' texture part and the core-lock coupling, and the shipped shader counts, which grow by the two T-J probe shaders as 024's did; **pending the maintainer's explicit authorization at implementation time, never touching "Spec-kit agent rules"**), NEWS.md and ChangeLog.md (one line for phase 9's visible JIT change). No user-facing page changes: rendering does not change. |
 | VIII. Domain separation | PASS | See below. |
 
 **Principle VIII — Domain Separation and Modular Boundaries** (every plan):
@@ -161,12 +177,18 @@ specs/027-texture-system/
 ├── checklists/requirements.md
 ├── tools/                      # measurement scripts and data
 │   ├── core_usage.py, core-usage-texturing-bc261b1.txt          # plan stage
-│   ├── archcheck-bc261b1-macos.txt, libshader-dynlookup-{before,bc261b1}-macos.txt
-│   ├── image_manifest.sh       # phase 1: spec 025's tool, copied (025 is not merged)
+│   ├── archcheck-bc261b1-macos.txt, libshader-dynlookup-{before,bc261b1}-macos.txt   # plan stage, kept as history
+│   ├── archcheck-base-macos.txt, libshader-dynlookup-base-macos.txt, core-usage-texturing-base.txt, timing-base-macos.tsv   # phase 1, on BASE
+│   ├── image_manifest.sh       # phase 1: spec 025's tool, copied into this spec's tools/
 │   ├── jit_texture_probes.sh   # phase 1: renders the texture/env/shadow/unbaked parity scenes as .slo
 │   ├── lookup-probe.rib, lookupprobe.sl, master-lookup-values.txt     # phase 1: SC-003 values
-│   ├── time_texture_scenes.sh, timing-*.tsv                           # phase 1 and 9: SC-010
-│   └── baseline-images.sha256, baseline-image-noise.txt, baseline-diffs.txt
+│   ├── time_texture_scenes.sh, timing-*.tsv                           # phase 1 and 10: SC-010
+│   ├── jit_texture_divergence.sh, jit-texture-divergence-*.tsv        # plan stage, phase 1 and 9: the JIT/interpreter divergence
+│   ├── characterization_scenes.sh, scenes/                            # phase 2: occlusion/indirectdiffuse with "environmentmap", point hierarchy
+│   ├── baseline-images.sha256, baseline-image-noise.txt, baseline-diffs.txt   # re-recorded after phase 2 (the *-p1 files are phase 1's)
+│   ├── baseline-images-p1.sha256, baseline-diffs-p1.txt, baseline-image-noise-p1.txt
+│   ├── baseline-images-p9.sha256, baseline-diffs-p9.txt               # phase 9: phase 10's CP-d reference
+│   └── 027-linux-manifest.sha256                                      # phase 10: the Linux sync manifest
 └── tasks.md                    # /speckit-tasks (not created here)
 ```
 
@@ -210,13 +232,18 @@ src/libshader/shading/
 ├── rslBuiltins.cpp              # rsl_texture_c_scalar through textureCalls
 ├── execute.cpp                  # includes only
 └── CMakeLists.txt               # + textureCalls.cpp
+src/libshader/compiler/llvmEmitter.cpp # phase 9: texture/environment/shadow forms by prototype, emitParamList()
+src/libshader/shading/rslOps.{h,cpp}   # phase 9: op_texture_{f,c}_v3, op_texture_full_{f,c}_v3, op_environment_{f,c}_v3, op_shadow_{f,c}_v3; - the _v2 names
+shaders/jit_pl_texture_probe.sl, shaders/jit_pl_envshadow_probe.sl   # phase 2 (test shaders, built with the others; CLAUDE.md shader counts)
+examples/rib/tests/jit-texture-probe.rib.in   # phase 2: template of the T-J scenes
 src/ri/hiders/irradianceDispatch.cpp   # two environment lookups through lookupEnvironment()
 tests/
 ├── unit/texture_tile/           # + test_texture_system_concurrent_first_load.cpp, test_texture_system_stream_cursor.cpp
 ├── unit/texture_only/           # NEW: CMakeLists.txt (behind OPENRENDER_TEXTURE_ONLY_TESTS), test_texture_only_standalone.cpp
 ├── unit/image_input/            # + Display_RgbeBytes (script, rgbe-display.rib, references/rgbe-display.hdr)
 ├── unit/common/owned-symbols.txt  # + the six RGBE names
-├── shading_parity/              # + test_texture_substitute.cpp, texture probe shaders; table_services.h, recording_services.h
+├── visual/CMakeLists.txt        # + the T-J cases in #55's table
+├── shading_parity/              # + test_texture_substitute.cpp, test_texture_substitute_3d.cpp, test_jit_paramlist_diagnostics_texture.cpp (T-J3), texture probe shaders; table_services.h, recording_services.h
 ├── architecture/allowlist.txt, metrics-baseline.txt
 └── CMakeLists.txt               # + add_subdirectory(unit/texture_only)
 DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md, DEVNOTES.md, CLAUDE.md
@@ -244,7 +271,10 @@ Details in [research.md](research.md). In brief:
    `textureinfo()` miss uncached. Only names shared across families change behaviour (they no longer collide).
 4. **#20** (R6): the handle lookup holds a load lock across find → load → insert; from phase 6, when the services'
    wrapper is gone, the core passes `shaderMutex`, so texture loads stay serialized with the other resource loads
-   exactly as the wrapper does today (passing it while the wrapper still holds it would self-deadlock).
+   exactly as the wrapper does today (passing it while the wrapper still holds it would self-deadlock). The coupling is
+   documented (registry note, CLAUDE.md gotcha): `loadMutex` is the core's non-recursive `shaderMutex`, so nothing that holds it
+   may call `handle()`; `handle()` carries a debug re-entry assertion and `TextureSystem_ConcurrentFirstLoadExternalMutex` runs
+   the production configuration.
 5. **Lifetime** (R7): per frame, at `initTextures`/`shutdownTextures`'s positions; the services return the frame's
    system or `nullptr`.
 6. **Resolver** (R8): Texturing-owned interface, core implementation over `locateFile`; `RiMake*` and the system
@@ -258,7 +288,9 @@ Details in [research.md](research.md). In brief:
    `CTexture3d` changes.
 10. **Synthesis lock** (R13): process-wide, Texturing-owned (Q4).
 11. **RGBE** (R14): moved, `extern "C"`, one definer checked by `Common_StateOwnership`; a new driver byte test.
-12. **Guardrails** (R17): line by line in [contracts/allowlist-end-state.md](contracts/allowlist-end-state.md).
+12. **JIT parity** (R22): form from the prototype, #55's parameter-list machinery, one footprint helper for both
+    backends, new `_v3` entry points; tests in #55's style; the only output-changing phase.
+13. **Guardrails** (R17): line by line in [contracts/allowlist-end-state.md](contracts/allowlist-end-state.md).
 
 ## Phases
 
@@ -269,34 +301,53 @@ lands (spec 025's practice). A phase may change no image.
 **Checkpoint (CP-a … CP-d)**, quickstart §2:
 - **CP-a** build clean under `-Werror`;
 - **CP-b** the full suite against phase 1's pass list plus the tests enabled so far (`texture_tile` also alone at
-  `-j2`); a red test from the known-flaky set is re-run alone before it is written off;
+  `-j2`). The T-J parity cases, the `_slo` engaged controls and `ShadingParity_JitPLDiagnosticsTexture` are the known-red
+  tests from phase 2 to phase 8 (as spec 025's `State_LightOrder` was); any other red test is a regression. A red test from the known-flaky set is re-run
+  alone before it is written off;
 - **CP-c** `ctest -L architecture` green; `ALLOWED`, `METRIC`, `RESULT` recorded in validation.md;
-- **CP-d** `image_manifest.sh diff`: 0 differing and 0 missing images against phase 1's manifest (the suite's
-  images and the JIT texture probes), every `MaxBlockAvgDiff` equal to the baseline's.
+- **CP-d** `image_manifest.sh diff`: 0 differing and 0 missing images against the manifest **re-recorded after phase 2**
+  (task T035a: the suite's images, the JIT texture probes, the T-J scene outputs and the characterization scenes; `diff`
+  lists unrecorded images only as information, so nothing can be compared unless it was recorded), every
+  `MaxBlockAvgDiff` equal to the baseline's. Phase 10 compares with phase 9's re-recorded manifest.
 
 | # | Phase | Content | Lines deleted at start | Expected red until done |
 |---|---|---|---|---|
-| 1 | Baselines | Re-measure on a fresh macOS build (decision 4): archcheck, members, imports, full suite, manifest and noise, JIT probes, `master-lookup-values.txt`, timing. Copy `image_manifest.sh`; write `jit_texture_probes.sh`, the lookup probe, the timing script. List the Linux baseline run for the maintainer | — | — |
-| 2 | Tests first | Write T-T1…T-D1 (table below); record each red; write `Display_RgbeBytes` and its reference from the starting tree | — | the red tests (build failures) |
+| 1 | Baselines | **First bring in spec 025** (merged first by decision; T005a: master merged into this branch with `--no-ff --no-commit`, never a rebase), then re-measure on a fresh macOS build (decision 4): archcheck, members, imports, full suite, manifest and noise, JIT probes, `master-lookup-values.txt`, timing. Copy `image_manifest.sh`; write `jit_texture_probes.sh`, the lookup probe, the timing script. List the Linux baseline run for the maintainer | — | — |
+| 2 | Tests first | Write T-T1…T-D1 and the characterization scenes (table below); record each red; write `Display_RgbeBytes` and its reference from the starting tree; **re-record the image baseline** so it contains the T-J scenes and the characterization scenes (T035a) | — | the red tests (build failures) |
 | 3 | RGBE codec (US4) | Move the codec, `extern "C"`, CMake, `owned-symbols.txt`; DB-026 → Resolved | 5 DB-026 | 3 `VIOLATION` (macOS) |
 | 4 | Resolver and State includes | `CTextureFileResolver`, `CSearchPathResolver`; `texmake`/`brickmap`/loaders/`RiMake*` use it; drop the unused `attributes.h`, `xform.h`, `options.h` includes | 13 DB-010 | 13 `VIOLATION` |
 | 5 | The system owns the state | `CTextureSystem` with `CTextureCache`, `TexturePerthread`, settings, the family cache split from `frameFiles`; loaders and init/shutdown move; core constructs/destroys per frame; the services' texture getters forward to it for now; lookups still take the context and reach their per-thread state through their cache. **#20**: the find-load-insert first moves verbatim (enable `TextureSystem_ConcurrentFirstLoad`: red by assertion), then the system's own load lock lands (green). `loadMutex` stays `nullptr` in this phase: the services' getters still hold `shaderMutex` around their forward, and it is a plain, non-recursive pthread mutex (`os.cpp:419-425`) | 10 DB-010 | 10 `VIOLATION`; #20's test between the two steps |
-| 6 | Option block and services | `TextureOpt`/`TexturePerthread`/handles in the lookups; `textureSystem()` in the services, three getters removed; `textureCalls`; every 2D/environment/shadow/textureinfo call site of both backends, `rslBuiltins.cpp`, the hider; no-system rule; in the step that deletes the getters and their `shaderMutex` wrapper, the core starts passing `&CRenderer::shaderMutex` as `loadMutex`; enable `TextureSystem_StreamCursor` and the 2D part of `ShadingParity_TextureSubstitute` | 1 DB-010 | 1 `VIOLATION` |
-| 7 | 3D through the services, point hierarchy | The three 3D forwarders and the `texture3d()`/`bake3d()` call sites; `CPointHierarchy::Options`; imports 7 → 6; the 3D part of the substitute test | 1 DB-010 | 1 `VIOLATION` |
+| 6 | Option block and services | `TextureOpt`/`TexturePerthread`/handles in the lookups; `textureSystem()` in the services, three getters removed; `textureCalls`; every 2D/environment/shadow/textureinfo call site of both backends, `rslBuiltins.cpp`, the hider; no-system rule; in the step that deletes the getters and their `shaderMutex` wrapper, the core starts passing `&CRenderer::shaderMutex` as `loadMutex`; enable `TextureSystem_StreamCursor` and `ShadingParity_TextureSubstitute` (2D, info, no-system) | 1 DB-010 | 1 `VIOLATION` |
+| 7 | 3D through the services, point hierarchy | The three 3D forwarders and the `texture3d()`/`bake3d()` call sites; `CPointHierarchy::Options`; imports 7 → 6; enable `ShadingParity_TextureSubstitute3D` | 1 DB-010 | 1 `VIOLATION` |
 | 8 | Texturing stands alone | `OPENRENDER_TEXTURE_ONLY_TESTS` default ON; `TextureOnly_Standalone` green against `master-lookup-values.txt`; first archcheck run with the doubly compiled units | — | — |
-| 9 | Registry, docs, Linux | Re-tag the 2 `texture3d.cpp` lines to DB-021; DB-010/DB-021/DB-001 text (DB-026 was moved to Resolved in phase 3); metric baseline 1/1 and the TOTAL row as reported; DEVNOTES, CLAUDE.md; timing against the baseline; the determinism sweep; the maintainer's Linux run (quickstart §5) | — | — |
+| 9 | JIT parity of `texture()`/`environment()`/`shadow()` (FR-022) — **the only output-changing phase, `.slo` only** | Emitter: form from the prototype, positional operands per prototype, the rest through `emitParamList()`; `op_texture_{f,c}_v3`, `op_texture_full_{f,c}_v3`, `op_environment_{f,c}_v3`, `op_shadow_{f,c}_v3` (the `_v2` names deleted, #55's rule); run time through `jitParameterList<CTextureLookup>()`/`<CEnvironmentLookup>()` + `jitParameterListReady()` and one footprint helper shared with the interpreter; the traced names per Q7. The T-J tests turn green; the substitute test's JIT expectations switch to "equal to the interpreter's" | — | the T-J parity and `_slo` engaged tests (red since phase 2) |
+| 10 | Registry, docs, Linux | Re-tag the 2 `texture3d.cpp` lines to DB-021; DB-010/DB-021/DB-001 text (DB-026 was moved to Resolved in phase 3); metric baseline 1/1 and the TOTAL row as reported; DEVNOTES, CLAUDE.md; timing against the baseline; the determinism sweep; the maintainer's Linux run (quickstart §5) | — | — |
 
-Phase 3 can ship alone (spec US4). Phases 4–8 depend in order. The two test-only `EXCLUDE_FROM_ALL` targets are
-switched into `all` in the phase that makes them build.
+Phase 3 can ship alone (spec US4). Phases 4–8 depend in order; phase 9 needs phase 6's `textureCalls` sequence. Phase 10 edits no rendering code (allowlist data, registry, docs, measurements and the Linux run), so phase 9 is the last phase that changes code and the only one that changes output; phase 10's checkpoint is CP-d against phase 9's images.
+
+**Phase 9's checkpoint** replaces CP-d with CP-d9:
+- every `.rslo` image and every image of a scene that does not call these builtins is bit-identical to the baseline
+  (expected: every image of the suite, R22);
+- the JIT texture probes change and are now bit-identical to their `.rslo` renders;
+- every `ShadingParity_JitPL_*` case added here passes, every new `_slo` engaged control passes, every existing
+  `MaxBlockAvgDiff` equals the baseline's.
+- **STOP task**: if any existing test result, `MaxBlockAvgDiff` or reference changes, list the scene, the old and new
+  value and the reason, and stop for the maintainer. No re-render without the maintainer's explicit approval at that
+  time; no threshold is widened.
 
 ## Test design (red first)
 
 | Id | Test | Red on the starting tree because | Covers |
 |---|---|---|---|
-| T-T1 | `TextureOnly_Standalone` (`tests/unit/texture_only`, label `texture_only;unit`, behind `OPENRENDER_TEXTURE_ONLY_TESTS`): links `texturing_only` + libRIBCommon + image libraries only; a test resolver; opens a baked and an unbaked fixture; lookups with a caller-built `TextureOpt` (`samples` 1, box filter, the probe's footprints) and `TexturePerthread`; results formatted with `%f` must equal `tools/master-lookup-values.txt` (recorded by the starting tree's renderer, research R15) | build failure in a scratch tree with the option on: `textureSystem.h` missing; `shading.h`, `renderer.h`, `options.h`, `attributes.h` not found on the narrow path | US1 AS1/AS4, FR-007, FR-018(a), SC-003 |
-| T-C1 | `TextureSystem_ConcurrentFirstLoad` (`tests/unit/texture_tile`, labels `texture_tile;unit`, links `ribRender`, run at `-j2` through `cpujob`): 4 threads behind a barrier, 200 repeats, a fresh system each; a counting resolver with a 1 ms delay; asserts one handle, one locate, one `CODE_NOFILE` for a missing name. Plain build, no ThreadSanitizer | build failure (API missing); then **by assertion** at phase 5's adapter step, before the lock | FR-016, FR-018(c), Edge Cases (first-use races), #20 |
+| T-T1 | `TextureOnly_Standalone` (`tests/unit/texture_only`, label `texture_only;unit`, behind `OPENRENDER_TEXTURE_ONLY_TESTS`): links `texturing_only` + libRIBCommon + image libraries only; a test resolver; opens a baked and an unbaked fixture; eight-coordinate `texture()` lookups only (environment and shadow take one direction/point and Shading derives their footprint; T-K1 and the renders cover them) with a caller-built `TextureOpt` (`samples` 1, box filter, the probe's footprints) and `TexturePerthread`; results formatted with `%f` must equal `tools/master-lookup-values.txt` (recorded by the starting tree's renderer, research R15) | build failure in a scratch tree with the option on: `textureSystem.h` missing; `shading.h`, `renderer.h`, `options.h`, `attributes.h` not found on the narrow path | US1 AS1/AS4, FR-007, FR-018(a), SC-003 |
+| T-C1 | `TextureSystem_ConcurrentFirstLoad` (`tests/unit/texture_tile`, labels `texture_tile;unit`, links `ribRender`, run at `-j2` through `cpujob`): 4 threads behind a barrier, 200 repeats, a fresh system each; a counting resolver with a 1 ms delay; asserts one handle, one locate, one `CODE_NOFILE` for a missing name. Plain build, no ThreadSanitizer. A second entry, `TextureSystem_ConcurrentFirstLoadExternalMutex`, passes a caller-owned non-recursive mutex as `loadMutex` (the production `&shaderMutex` configuration) and checks the mutex is free afterwards; `handle()` carries a debug re-entry assertion | build failure (API missing); then **by assertion** at phase 5's adapter step, before the lock | FR-016, FR-018(c), Edge Cases (first-use races), #20 |
+| T-I1 | `TextureSystem_InfoMiss` and `TextureSystem_NullResolver` (`tests/unit/texture_tile`, one executable): an `Info` request for a missing file returns a null handle, caches nothing (a second request locates again: locate count 2) and reports nothing; the make*/loader functions tolerate a null resolver (`tests/preview/test_data_keys.cpp:54` passes a NULL search path) | build failure (API missing) | FR-002, plan Q2, US2 AS3 |
+| T-X1 | characterization scenes (`tools/scenes/`, hashed by the manifest, not ctest entries): `occlusion()`/`indirectdiffuse()` with `"environmentmap"` under reyes and raytrace, `-slo` variants, and a point-hierarchy occlusion with a non-default `maxsolidangle`; each gets a scratch mutation at its green point | green on both trees by design (characterization; the hash of the starting tree is the reference) | SC-006, FR-013, FR-014 |
 | T-K1 | `TextureSystem_StreamCursor` (`tests/unit/texture_tile`, links `ribRender`): dimensions consumed per lookup class (data-model §5), the side texture drawing from its environment's stream, the advanced `stream.dim` visible to the caller | build failure (API missing) | FR-005, FR-018(d), US2 AS4 |
-| T-S1 | `ShadingParity_TextureSubstitute` (`tests/shading_parity`, JIT builds only): substitute services whose texture system records every call; one probe shader per builtin as `.rslo` and `.slo`; each backend's log equals its expected request (research R16); handle requests, `textureinfo()` and 3D requests equal across backends; canned values returned; then no system: fill values and one warning per kind | build failure (`CRendererServices::textureSystem` missing) | US3 AS1–AS4, FR-009–FR-012, FR-018(b), SC-005, SC-008 |
+| T-S1 | `ShadingParity_TextureSubstitute` and `ShadingParity_TextureSubstitute3D` (`tests/shading_parity`, JIT builds only; two executables, the second needs the phase 7 forwarders): substitute services whose texture system records every call; one probe shader per builtin as `.rslo` and `.slo`, none using a `"raytrace"` name; each backend's log equals its expected request (research R16); handle requests, `textureinfo()` and 3D requests equal across backends; canned values returned; then no system: fill values and one warning per kind | build failure (`CRendererServices::textureSystem` missing) | US3 AS1–AS4, FR-009–FR-012, FR-018(b), SC-005, SC-008 |
+| T-J1 | `ShadingParity_JitPL_texture_<case>`, `ShadingParity_JitPL_envshadow_<case>` (`tests/visual`, #55's table, JIT builds only; probes `jit_pl_texture_probe.sl`, `jit_pl_envshadow_probe.sl`; scenes from `jit-texture-probe.rib.in`): each case under `.rslo` and `.slo`, bit-identical. Cases per research R22 (`base`, `blur`, `width`, `swidth_twidth`, `fill`, `samples`, `filter`; and `bias` for shadow), plus the ray-traced cases of Q7 (`raytrace_base`, `raytrace_samples_cone`, `raytrace_bias`, `raytrace_maxdist`, `raytrace_blur`, registered as `ShadingParity_JitPL_envshadow_raytrace_*`) | **by image difference**: the JIT drops the list, picks the float form for a color result and makes a point or zero-width request (measured, R22); written and registered in phase 2 and red until phase 9: the known red tests of every checkpoint in between | FR-010, FR-022, FR-018(e), SC-012 |
+| T-J2 | `ShadingParity_JitPLEngaged_{texture,envshadow}_<case>_{rslo,slo}`: base against case, same format, on the channels the case affects, must differ | the `_slo` controls fail (the JIT ignores the parameter); the `_rslo` ones pass on both trees | FR-022, FR-018(e) (a parity test cannot pass for the wrong reason) |
+| T-J3 | `ShadingParity_JitPLDiagnosticsTexture`, a **new** test (not an extension of `ShadingParity_JitPLDiagnostics`, which is green today and must stay so): an unknown parameter of `texture()`, `environment()` and `shadow()` is reported once under both backends | the JIT reports nothing (the list is dropped) | FR-022 |
 | T-D1 | `Display_RgbeBytes` (`tests/unit/image_input`): the `rgbe` driver's output bytes against a reference written by the starting tree's driver | **characterization**: green on both trees by design | US4 AS2, FR-017, SC-009 |
 | T-A1 | `ctest -L architecture` after each phase's deletions | `VIOLATION` for each deleted line until its phase lands; any other violation means the design is wrong — stop and report | FR-019, SC-001, SC-002 |
 
@@ -331,16 +382,40 @@ sweep's texture scenes; `Common_StateOwnership`.
   and must not spread.
 - **Known flaky tests** (memory `reference_ctest_flaky_tests.md`): a red one is re-run alone before it is written off;
   `ShadingParity_AmbientAccumulation` is a real heap bug.
-- **Merge order with spec 025** (in implementation on its own branch): both edit `renderer.{h,cpp}`,
-  `rendererServicesImpl.h`, `irradianceDispatch.cpp` and `shading.{h,cpp}`; whichever merges second rebases and
-  re-runs its checkpoint. 025 changes no Texturing allowlist line and keeps the `retrieveDisplayChannel` forwarder
+- **Merge order with spec 025** (decided by the maintainer 2026-10-27: **025 merges first**): both edit `renderer.{h,cpp}`,
+  `rendererServicesImpl.h`, `irradianceDispatch.cpp` and `shading.{h,cpp}`. Task T005a waits for 025 on master, then merges
+  master into this branch with `--no-ff --no-commit` for the maintainer to commit (never a rebase), and re-measures the
+  starting numbers (the allowlist without the 7 DB-008 lines, the metric, the touched files) before any baseline is taken;
+  the end figures (`652 / 98`) become "the re-measured TOTAL minus 69 / 12". 025 changes no Texturing allowlist line and keeps the `retrieveDisplayChannel` forwarder
   out of line, which FR-015's re-tag relies on.
 
-## Questions for the maintainer
+## Maintainer answers (2026-10-27), applied
 
-Each is written into the plan with its recommendation applied; a different answer changes the named phase.
+Q1 fix in 027, as phase 9 (FR-022); Q2 three getters replaced, `getCache`/`getTexture3d` stay for 032, the two
+irradiance-cache lookups under SC-005's 3D exception, `textureinfo()` on a missing file returns a null handle; Q3
+#20's red is the build failure plus the phase-5 adapter assertion, `Closes #20` kept; Q4 the synthesis lock is a
+process-wide Texturing mutex (FR-001 reworded); Q5 `radiance.cpp` untouched, dropped from FR-013; Q6 FR-018(d)
+checks the dimension table, the renders prove the sequence. The same-name `texture()`/`environment()` behaviour is
+GitHub #104 (out of scope). GitHub #97 is narrowed to `texture3d`/`bake3d`/`photonmap`/`filterstep`, so the merge
+message cannot carry `Closes #97`; it carries `Closes #20` and `Closes #33`, both written by the maintainer.
 
-**Q1 — FR-010 against FR-020: the JIT does not request the same texture lookup as the interpreter today** (phase 6).
+The original questions are kept below for the record.
+
+## Question 7 (answered 2026-10-27: option A, recorded in spec.md Clarifications)
+
+**Q7 — `environment("raytrace")` and `shadow("raytrace")` under the JIT** (phase 9). The interpreter ray-traces when
+the map name is `"raytrace"` (or the builtin's own name, `"reflection"`/`"shadow"`), using `samples`, `bias`,
+`samplecone`, `maxdist` and `blur` from the same parameter list. The JIT looks the name up as a file, gets the
+substitute and prints `"Failed open environment \"raytrace\""`. FR-022, FR-018(e) and SC-012 now name it (clarification 2026-10-27, Q7), and FR-010's "same result" and the parameter
+lists phase 9 adds reach it.
+- **Chosen (A), maintainer 2026-10-27**: include it in phase 9. The traced branch builds the interpreter's `CTraceLocation` batch from the
+  same bound `CEnvironmentLookup` and reuses the trace machinery `jitTraceBatch` already drives for #55; add
+  `JitPL_envshadow_raytrace_*` cases. No existing test renders it, so no output changes beyond the probes.
+- (B, not chosen) Leave it out of 027 and file it as its own issue; T-J1 then has no traced case and FR-010 gets a named exception.
+
+## Questions for the maintainer (answered above)
+
+**Q1 — FR-010 against FR-020: the JIT does not request the same texture lookup as the interpreter today** (phase 6). **Answered 2026-10-27: option B, fix it in 027 as phase 9 (FR-022).** The text below is the question as asked, kept for the record.
 The JIT's `texture()`, `environment()` and `shadow()` take no optional parameter list (the emitter passes only the
 positional operands), use the unfiltered point lookup or a zero-width footprint, and read whatever options an earlier
 call left in the scratch (research R10; the #55 class of defect, not yet filed for these builtins). FR-010 and US3
@@ -358,7 +433,7 @@ renders to stay byte-identical. Both cannot hold.
 3D-texture entries in the core, the plan replaces `getTexture`, `getEnvironment` and `getTextureInfo` with
 `textureSystem()` and keeps `getCache` and `getTexture3d` until 032, adding three services forwarders for the
 `texture3d()`/`bake3d()` channel operations. Shading's two irradiance-cache lookups with its context
-(`giFunctions.h:235`, `shading.cpp:3393`) are calls of `CTexture3d`'s six-argument lookup and stay as SC-005's "apart
+(`giFunctions.h:235`, `shading.cpp:3394`) are calls of `CTexture3d`'s six-argument lookup and stay as SC-005's "apart
 from the 3D lookup" exception. A related reading: FR-002 says an unknown file yields a handle to a substitute; for
 the `textureinfo()` kind the plan returns a null handle and caches nothing, which is today's behaviour and what US2 AS3
 requires ("exactly as today, including the `textureinfo()` probe of a nonexistent file"). **Recommended**: confirm both
@@ -391,8 +466,8 @@ asserts the dimensions each lookup consumes against a table derived from the sta
 and the byte-identical stochastic renders and determinism tests prove the sequence end to end. **Recommended**:
 accept that as FR-018(d)'s "equals master's".
 
-Recorded, not questions: the within-family name collision (one name used with `texture()` and `environment()`) keeps
-today's undefined behaviour; the maintainer may want an issue for it (research R5). `rsl_texture_c_scalar` has no
+Recorded, not questions (historical; resolved since): the within-family name collision (one name used with `texture()` and
+`environment()`) keeps today's undefined behaviour and is filed as GitHub #104, out of scope (research R5). `rsl_texture_c_scalar` has no
 caller; it is routed, not deleted (research R21).
 
 ## Complexity Tracking

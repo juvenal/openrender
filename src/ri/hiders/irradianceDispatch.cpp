@@ -476,7 +476,7 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
                     CAttributes *attributes = ray.object->attributes;
                     CPhotonMap *globalMap;
 
-                    if ((globalMap = attributes->globalMap) != NULL) {
+                    if ((globalMap = photonMapOf(attributes->globalMap)) != NULL) {
                         normalizev(N, ray.N);
                         mulvf(P, ray.dir, ray.t);
                         addvv(P, ray.from);

@@ -34,6 +34,7 @@
 #include "config.h" // OPENRENDER_HAVE_LLVM
 #include "common/fileResource.h"
 #include "common/refCounter.h"
+#include "stateHandles.h" // CShaderGroupRefTarget: the base of CShaderInstance (Shading -> Graphics State)
 #ifdef OPENRENDER_HAVE_LLVM
 #include "llvmJit.h"
 #endif
@@ -165,7 +166,7 @@ class CShader : public CFileResource {
 // Class				:	CShaderInstance
 // Description			:	This class encapsulates an instance of a shader
 // Comments				:
-class CShaderInstance : public CRefCounter {
+class CShaderInstance : public CShaderGroupRefTarget {
     public:
         CShaderInstance(CAttributes *, CXform *);
         virtual ~CShaderInstance();

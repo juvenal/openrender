@@ -15,12 +15,17 @@ Every build, test and render goes through `~/.claude/bin/cpujob <label> …` (on
 background with output redirected to `$LOG/<label>.log`. Never run a test binary directly. Ask the coordinator
 before each build or test. Spec 025's implement agent shares the lock.
 
-## §0 Baselines on the starting tree (`bc261b1`)
+## §0 Baselines on the starting tree (`BASE`: master with spec 025 merged)
 
 The plan stage measured §0.1–§0.3 on macOS (validation.md §0). The first measurement task re-takes all of §0 on a
 fresh macOS build (maintainer decision 4) before any code changes, and the maintainer runs §5's Linux baseline.
-§0.4–§0.7 use scripts phase 1 writes (`image_manifest.sh`, copied from spec 025; `jit_texture_probes.sh`;
-`lookup-probe.rib` + `lookupprobe.sl`; `time_texture_scenes.sh`).
+§0.4–§0.6 use scripts phase 1 writes (`image_manifest.sh`, copied from spec 025; `jit_texture_probes.sh`;
+`lookup-probe.rib` + `lookupprobe.sl`; `time_texture_scenes.sh`); §0.7 is phase 2's. **Spec 025 merges first** (maintainer
+decision 2026-10-27): task T005a merges master into this branch (`--no-ff --no-commit`, never a rebase) before §0 is run,
+so every §0 number is 025's; the figures that differ from validation.md §0 (no `DB-008`, the TOTAL metric) are recorded.
+**The image baseline is re-recorded after phase 2 (T035a)**: `image_manifest.sh diff` lists images that are not in the
+manifest only as information, so the T-J scene outputs and the characterization scenes (`tools/characterization_scenes.sh`)
+must be in the manifest to be compared; phase 1's files are kept as `*-p1`.
 
 **§0.1 Configure and build** (fresh tree)
 
@@ -44,8 +49,8 @@ Expect `RESULT PASS`, `ALLOWED … DB-010 x 35 … DB-021 x 1 … DB-025 x 12 DB
 
 ```bash
 nm -um $B/src/libshader/shading/libshader_shading.dylib | grep 'dynamically looked up' | c++filt \
-  | sed 's/ *(undefined) external //' | sort -u > $T/libshader-dynlookup-bc261b1-macos.txt
-wc -l < $T/libshader-dynlookup-bc261b1-macos.txt     # expect 7, the set of libshader-dynlookup-before-macos.txt
+  | sed 's/ *(undefined) external //' | sort -u > $T/libshader-dynlookup-base-macos.txt
+wc -l < $T/libshader-dynlookup-base-macos.txt     # expect 7, the set of libshader-dynlookup-before-macos.txt
 ```
 
 **§0.4 Full suite, images and their noise**
@@ -77,23 +82,26 @@ cpujob 027-base-oshader $B/src/oshader/oshader -o $LOG/lookupprobe.rslo $T/looku
     cpujob 027-base-lookup-probe $B/src/orender/orender -t:1 $T/lookup-probe.rib ) | sort -u > $T/master-lookup-values.txt
 ```
 
-**§0.6 RGBE driver reference** (phase 2, `Display_RgbeBytes`): render `tests/unit/image_input/rgbe-display.rib`
-with the starting tree's `rgbe.dsply` and keep the `.hdr` as
-`tests/unit/image_input/fixtures/references/rgbe-display.hdr`.
-
-**§0.7 Timing** (SC-010, research R19)
+**§0.6 Timing** (SC-010, research R19). The finished tree is compared with this file, not with a second `orender`
+build interleaved with it: a copied binary still links the build tree's shared libraries, so it would not stay the
+starting code.
 
 ```bash
-cpujob 027-base-time $T/time_texture_scenes.sh $B 10 > $T/timing-bc261b1-macos.tsv   # 10 runs, default threads and -t:1
+cpujob 027-base-time $T/time_texture_scenes.sh $B 10 > $T/timing-base-macos.tsv   # 10 runs, default threads and -t:1
 ```
+
+**§0.7 RGBE driver reference** (phase 2, `Display_RgbeBytes`): render `tests/unit/image_input/rgbe-display.rib`
+with the starting tree's `rgbe.dsply` and keep the `.hdr` as
+`tests/unit/image_input/fixtures/references/rgbe-display.hdr`.
 
 ## §1 Red evidence (write the tests, build, record the failure)
 
 | Test | Expected red | How |
 |---|---|---|
 | `TextureOnly_Standalone` | build failure: `textureSystem.h` missing; on the narrow path `shading.h`, `renderer.h`, `options.h`, `attributes.h` not found | a scratch tree `build-027-red` configured like `build-027` (generator, build type, toolchain, `VCPKG_*`, bison, deployment target from `build-027/CMakeCache.txt`) plus `-DOPENRENDER_TEXTURE_ONLY_TESTS=ON`, building only `texturing_only_sources` and the executable; deleted afterwards; no archcheck there (spec 025's method) |
-| `TextureSystem_ConcurrentFirstLoad`, `TextureSystem_StreamCursor` | build failure on `bc261b1` (`textureSystem.h` missing); the first also by **assertion** in phase 5 at the adapter step (more than one locate, unequal handles) | both link `ribRender` like `TileSource_TiffInfo` and are `EXCLUDE_FROM_ALL` until phase 5 / phase 6 enables them: `cpujob 027-red-c1 cmake --build $B --target test_texture_system_concurrent_first_load`; in phase 5 `cpujob 027-p5-c1 ctest --test-dir $B -R ConcurrentFirstLoad -j2 --output-on-failure` |
-| `ShadingParity_TextureSubstitute` | build failure (`CRendererServices::textureSystem` missing) | `cpujob 027-red-subst cmake --build $B --target test_shading_texture_substitute` |
+| `TextureSystem_ConcurrentFirstLoad`, `TextureSystem_StreamCursor` | build failure on `BASE` (`textureSystem.h` missing); the first also by **assertion** in phase 5 at the adapter step (more than one locate, unequal handles) | both link `ribRender` like `TileSource_TiffInfo` and are `EXCLUDE_FROM_ALL` until phase 5 / phase 6 enables them: `cpujob 027-red-c1 cmake --build $B --target test_texture_system_concurrent_first_load`; in phase 5 `cpujob 027-p5-c1 ctest --test-dir $B -R ConcurrentFirstLoad -j2 --output-on-failure` |
+| `ShadingParity_TextureSubstitute`, `ShadingParity_TextureSubstitute3D` | build failure (`CRendererServices::textureSystem` and the 3D forwarders missing) | `cpujob 027-red-subst cmake --build $B --target test_texture_substitute test_texture_substitute_3d` |
+| `TextureSystem_ConcurrentFirstLoadExternalMutex`, `TextureSystem_InfoMiss`, `TextureSystem_NullResolver` | build failure (API missing); the external-mutex variant also red with the lock removed | `cpujob 027-red-misc cmake --build $B --target test_texture_system_concurrent_first_load test_texture_system_info_miss test_texture_system_null_resolver` (three executables; the third and second are enabled at T050a and T063a) |
 | `Display_RgbeBytes` | none: characterization, green on both trees | `cpujob 027-p2-rgbe ctest --test-dir $B -R Display_RgbeBytes` |
 | `Architecture_DomainBoundaries` | `VIOLATION` for each line deleted at a phase's start, until the phase's code lands | `cpujob 027-pN-arch ctest --test-dir $B -L architecture --output-on-failure` |
 
@@ -105,12 +113,31 @@ $T/image_manifest.sh stamp $B
 cpujob 027-pN-suite ctest --test-dir $B -LE determinism-sweep -j4 --output-on-failure > $LOG/027-pN-suite.log 2>&1   # CP-b
 cpujob 027-pN-tile ctest --test-dir $B -L texture_tile -j2 --output-on-failure              # the texture_tile label at -j2
 cpujob 027-pN-probes $T/jit_texture_probes.sh $B
+cpujob 027-pN-scenes $T/characterization_scenes.sh $B                                    # phase 2 on: occlusion/indirectdiffuse envmap, point hierarchy
 cpujob 027-pN-arch ctest --test-dir $B -L architecture --output-on-failure                  # CP-c
-$T/image_manifest.sh diff $T/baseline-images.sha256 $B $T/baseline-image-noise.txt          # CP-d: 0 differing, 0 missing
+$T/image_manifest.sh diff $T/baseline-images.sha256 $B $T/baseline-image-noise.txt          # CP-d: 0 differing, 0 missing (the T035a baseline; phase 10: baseline-images-p9.sha256)
 ```
 
-CP-b expects phase 1's pass list plus the new tests enabled so far. CP-d also checks that every `MaxBlockAvgDiff`
-equals `baseline-diffs.txt`. Any image difference stops the phase.
+CP-b expects phase 1's pass list plus the new tests enabled so far (the known-red T-J tests fail until phase 9). CP-d
+also checks that every `MaxBlockAvgDiff` equals `baseline-diffs.txt` (the T035a file; phase 10: `baseline-diffs-p9.txt`). Any image difference stops the phase.
+
+## §2a Phase 9 (the JIT parity phase, FR-022)
+
+```bash
+cpujob 027-p9-build cmake --build $B --config Release -j4
+$T/image_manifest.sh stamp $B
+cpujob 027-p9-suite ctest --test-dir $B -LE determinism-sweep -j4 --output-on-failure > $LOG/027-p9-suite.log 2>&1
+cpujob 027-p9-jitpl ctest --test-dir $B -R 'ShadingParity_JitPL' -j4 --output-on-failure   # #55's and the new T-J cases
+cpujob 027-p9-probes $T/jit_texture_probes.sh $B
+cpujob 027-p9-scenes $T/characterization_scenes.sh $B
+$T/image_manifest.sh diff $T/baseline-images.sha256 $B $T/baseline-image-noise.txt          # only the JIT probe images and the T-J scenes' .slo renders may differ
+cpujob 027-p9-div $T/jit_texture_divergence.sh $B $LOG/jitdiv-p9 > $T/jit-texture-divergence-phase9-macos.tsv
+```
+
+Expected: every `ShadingParity_JitPL_*` case and every engaged control passes; the image diff lists only the JIT
+probe images and the T-J scenes' `.slo` renders (then `baseline-images-p9.sha256` and `baseline-diffs-p9.txt` are recorded for phase 10); `jit-texture-divergence-phase9-macos.tsv` shows every scene `identical` (MaxBlockAvgDiff 0.00, against
+the starting tree's 34.55–252.52 on 16 of 18 scenes); every existing `MaxBlockAvgDiff` equals `baseline-diffs.txt`.
+Anything else is the phase's STOP case: list it and wait for the maintainer.
 
 ## §3 Finished tree (macOS)
 
@@ -138,7 +165,7 @@ cd $W
 grep -rnE '\b(CTexture|CEnvironment|CTextureInfoBase)\b' src/libshader          # expect none
 grep -rnE '(->|\.)(lookup4|lookupz)\(' src/libshader                             # expect none
 grep -rn 'CShadingContext' src/ri/texture/texture.h src/ri/texture/texture.cpp src/ri/texture/textureSystem.*   # expect none
-grep -rn 'CShadingContext' src/ri/texture/                                       # only the 3D lookup (texture3d.h, pointHierarchy.*) and CPointHierarchy::Options
+grep -rn 'CShadingContext' src/ri/texture/                                       # only the 3D lookup: texture3d.h, pointHierarchy.*, CPointHierarchy::Options, and the six-argument assertion overrides brickmap.h:~206, pointCloud.h:~65
 grep -rnE 'CRenderer::(texture|initTextures|shutdownTextures|environmentLoad|synthesizeMutex)' src | grep -v '^src/ri/render/.*textureSystem'   # expect none outside the core's construction
 grep -rn 'display/rgbe/rgbe.h\|rgbe/rgbe.cpp' src                                # expect none
 ```
@@ -148,14 +175,14 @@ spec 032 (`giFunctions.h`, `shading.cpp`, `cache->lookup(…, this)`).
 
 ## §5 Linux (Ubuntu 24.04, GCC 13, `-Werror`) — the maintainer's rsync + Maestri path
 
-The plan agent has no Linux access. Twice: once on `bc261b1` (the starting numbers, decision 4) and once on the
+The plan agent has no Linux access. Twice: once on a tree at `BASE` (master with spec 025 merged: the starting numbers, decision 4) and once on the
 finished tree.
 
 - **Sync**: rsync the worktree to the Linux checkout, excluding `build*/`; quote hosts as `${H}:path` (memory
   `reference_zsh_host_colon_modifier.md`, `feedback_gcc13_werror_linux_validation.md`); keep a `sha256sum`
   manifest of the changed files (`$T/027-linux-manifest.sha256`) and verify it remotely.
 - **Build**: fresh `build-027`, Release, `nice -n 19 cmake --build build-027 -j4`, clean under GCC 13 `-Werror`.
-- **Suite**: `ctest -LE determinism-sweep -j4`, compared with the Linux `bc261b1` run. Expected to fail on both:
+- **Suite**: `ctest -LE determinism-sweep -j4`, compared with the Linux `BASE` run. Expected to fail on both:
   `TextureTile_RenderByteIdentical` (#45) and `TextureTile_CacheByteIdentical`, `…CacheDefaultDirectory`,
   `…CacheStaleDetection`, `…CacheConcurrentWrite` (#46); no other test may change. `texture_tile` at `-j2`.
 - **Architecture**: `ctest -L architecture` passes with no `VIOLATION` and no `STALE` (the two `linux` DB-026 lines
@@ -163,7 +190,7 @@ finished tree.
   `texture3d.cpp` lines (if one exists, it is re-tagged to DB-021 like the others, decision 1).
 - **Imports**: spec 024's Linux method (its quickstart §0.4): the `comm -12` intersection of strong `U` symbols and
   `LD_DEBUG=bindings` bindings from `libshader_shading.so.1` to `libRIBRender.so.1`. Starting value as measured on
-  `bc261b1`; finished value must not grow and should lose `CTexture3d::resolve`.
+  `BASE`; finished value must not grow and should lose `CTexture3d::resolve`.
 - **Ownership**: `Common_StateOwnership` passes with the `extern "C"` RGBE names (no `R_*_COPY` relocation of them).
 - **Determinism**: `ctest -L '^determinism$' -j2` and, once at the end, the sweep at `-j2`.
 - Results go to validation.md (Linux section) when the maintainer reports them.

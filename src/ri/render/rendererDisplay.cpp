@@ -27,6 +27,7 @@
 #include <math.h>
 #include <string.h>
 
+#include "channelRegistry.h"
 #include "displayChannel.h"
 #include "common/diagnostics.h"
 #include "imager.h"
@@ -36,6 +37,7 @@
 #include "remoteChannel.h"
 #include "renderer.h"
 #include "rendererContext.h"
+#include "stateConversions.h"
 #include "common/stats.h"
 
 static COptions::CDisplay *currentDisplay = NULL;
@@ -53,7 +55,7 @@ void *findParameter(const char *name, ParameterType type, int numItems) {
         for (i = 0; i < currentDisplay->numParameters; i++) {
             if (strcmp(name, currentDisplay->parameters[i].name) == 0) {
                 if (numItems == currentDisplay->parameters[i].numItems) {
-                    if (type == currentDisplay->parameters[i].type) {
+                    if (toStateType(type) == currentDisplay->parameters[i].type) {
                         return currentDisplay->parameters[i].data;
                     }
                 }
@@ -560,7 +562,7 @@ void CRenderer::computeDisplayData() {
     int hasZOutput = FALSE;
 
     // mark all channels as unallocated
-    resetDisplayChannelUsage();
+    channelRegistry()->resetUsage();
 
     for (i = 0, cDisplay = displays; cDisplay != NULL; i++, cDisplay = cDisplay->next)
         ;
@@ -615,7 +617,7 @@ void CRenderer::computeDisplayData() {
                 sampleName++;
 
             // is the sample name a channel we know about?
-            oChannel = retrieveDisplayChannel(sampleName);
+            oChannel = channelRegistry()->retrieve(sampleName);
             if (oChannel != NULL) {
                 // it's a predefined / already seen channel
 
@@ -668,7 +670,7 @@ void CRenderer::computeDisplayData() {
                     }
 
                     // now create a channel for the variable
-                    oChannel = declareDisplayChannel(cVar);
+                    oChannel = channelRegistry()->declare(cVar);
 
                     if (oChannel == NULL) {
                         error(CODE_BADTOKEN, "Variable \"%s\" clashes with a display channel\n", cVar->name);

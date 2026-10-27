@@ -66,6 +66,31 @@ int*, int*)`.
   manifest.
 - `src/ri/hiders/radiance.cpp` is not compiled (R21, plan Q5).
 
+### §0.7 JIT against interpreter on the texture parity scenes (2026-10-27, after the maintainer's answer to Q1)
+
+`tools/jit_texture_divergence.sh build-027` through `cpujob` (`-t:1`; each scene rendered with the default `.rslo`
+shaders and with `Option "shaderformat" "default" ["slo"]`; MaxBlockAvgDiff of `.slo` against `.rslo` by
+`test_visual_render`). Raw: `tools/jit-texture-divergence-bc261b1-macos.tsv`.
+
+| Scene | reyes | raytrace |
+|---|---|---|
+| `texture-png` | 34.55 | 86.20 |
+| `texture-exr` | 133.03 | 120.31 |
+| `texture-rgbe` | 252.52 | 249.00 |
+| `unbaked-png` | 147.34 | 144.81 |
+| `unbaked-nonpot` | 156.39 | 153.62 |
+| `unbaked-exr` | 73.78 | 74.38 |
+| `unbaked-rgbe` | 73.45 | 74.11 |
+| `env` | 244.11 | 244.14 |
+| `shadow` | 0.00 (identical bytes) | 0.00 (identical bytes) |
+
+A probe shader with all five forms compiled with the fresh `oshader --jit` references only `op_texture_f_v2`,
+`op_environment_f_v2` and `op_shadow_f_v2`: color results take the float-channel entry point (R22).
+
+Scan for existing `.slo` outputs the fix could change: 60 scenes in `examples/rib` select `.slo`; none binds a shader
+that calls `texture()`, `environment()` or `shadow()`, and no `.sl` under `tests/`, `src/` or `examples/` calls them.
+Expected changed existing outputs and references: **none**.
+
 ### §0.6 Not measured at the plan stage
 
 The full suite pass list, the image manifest and its noise, the JIT probes, the lookup values for SC-003, the
@@ -73,6 +98,32 @@ RGBE driver reference and the timing: the first measurement task takes them on a
 decision 4). Linux: not measured (no access); quickstart §5.
 
 ## §1 Baselines (phase 1)
+
+### §1.0 T005a: spec 025 brought in (2026-10-27)
+
+- **`BASE`** = master `4eb683b9ad57d61ea0ce049206c10773c9ae640a` (spec 025 merged; 11 commits after `bc261b1`).
+  Every `git diff $BASE` guard of tasks.md reads this value.
+- **Master check**: `git show master:tests/architecture/allowlist.txt | grep -c DB-008` = `0` (`bc261b1`: 8 lines).
+- **Merge**: `git merge --no-ff --no-commit master` in the 027 worktree; not committed (the maintainer commits it).
+  - The first attempt was refused ("local changes ... would be overwritten") because the index held the staged
+    spec-stage edits. They were saved as a binary patch, `git stash push`ed, the merge was run on the clean tree,
+    and the patch was re-applied with `git apply --index` (verified byte-identical to the saved patch; the stash
+    was dropped). Result: 97 non-spec files staged (58 added, 39 modified), the spec files exactly as before,
+    nothing unstaged, nothing unmerged.
+  - One conflict, the expected one: `.specify/feature.json` (this branch `specs/027-texture-system`, master
+    `specs/025-graphics-state-handles`). Resolved to keep `specs/027-texture-system`; the file now equals `HEAD`'s.
+- **Allowlist**: `git diff bc261b1 master -- tests/architecture/allowlist.txt` is 9 deletions and nothing else: the
+  DB-008 block (its header comment, the 7 DB-008 lines, one blank line). The merged `allowlist.txt` equals master's.
+- **Lines 025 moved** (re-read; shading.h, rendererServicesImpl.h, giFunctions.h, shaderFunctions.h, rendererFiles.cpp,
+  rendererMutexes.cpp, rendererServices.h and irradianceDispatch.cpp's `:405`/`:545` are unchanged):
+  `shading.cpp` +1 (`3393`->`3394`, `3346`->`3347`, `736-741`->`737-742`, `2970-3053`->`2971-3054`);
+  `renderer.cpp` +1 (`749`->`750`, `779-806`->`780-807`, `731-738`->`732-739`, `826-831`->`827-832`, `851-866`->`852-867`,
+  `873`->`874`); `renderer.h` (`396`->`393`, `286-301`->`283-298`); `rendererStatics.cpp` (`272-275`->`270-273`,
+  `147-148`->`145-146`); `rendererContext.cpp` (`6155-6206`->`6134-6185`). Corrected in research.md, plan.md,
+  data-model.md and tasks.md.
+- **FR-015**: `CRenderer::retrieveDisplayChannel` is still an out-of-line forwarder (`renderer.h:270` declares it,
+  `rendererDeclarations.cpp:515` defines it); `texture3d.cpp:119` is its only Texturing caller.
+- The `ALLOWED` line, the TOTAL metric and the end figures need a built tree: T007 completes them.
 
 ## §2 Red evidence (phase 2)
 

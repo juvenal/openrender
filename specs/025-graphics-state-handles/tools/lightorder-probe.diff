@@ -1,0 +1,57 @@
+--- a/src/ri/render/rendererContext.cpp	2026-10-25 02:43:14
++++ b/src/ri/render/rendererContext.cpp	2026-10-26 00:16:53
+@@ -630,7 +630,39 @@
+ // Description			:	Add an object into the scene
+ // Return Value			:
+ // Comments				:
++
++// ---- spec 025 measurement probe (scratch copy only, never in the tree) ----
++#include <cinttypes>
++#include <unistd.h>
++static bool lightOrderProbeOn() {
++    static const int on = getenv("OR_LIGHTORDER_PROBE") != NULL ? 1 : 0;
++    return on != 0;
++}
++static uint64_t loHash = 1469598103934665603ULL;
++static int loObjects = 0, loMulti = 0, loUnsorted = 0;
++static void lightOrderProbeRecord(const CAttributes *a) {
++    int n = 0;
++    uint64_t prev = 0;
++    bool unsorted = false;
++    for (const CActiveLight *l = a->lightSources; l != NULL; l = l->next) {
++        const uint64_t k = l->light->instanceKey;
++        loHash = (loHash ^ k) * 1099511628211ULL;
++        if (n > 0 && k < prev)
++            unsorted = true;
++        prev = k;
++        n++;
++    }
++    loHash = (loHash ^ 0xA5A5ULL) * 1099511628211ULL;
++    loObjects++;
++    if (n >= 2)
++        loMulti++;
++    if (unsorted)
++        loUnsorted++;
++}
++// ---- end probe ----
+ void CRendererContext::addObject(CObject *o) {
++    if (lightOrderProbeOn())
++        lightOrderProbeRecord(o->attributes);
+     assert(currentAttributes != NULL);
+     assert(o != NULL);
+ 
+@@ -1024,6 +1056,14 @@
+ }
+ 
+ void CRendererContext::RiWorldEnd(void) {
++    if (lightOrderProbeOn()) {
++        fprintf(stderr, "LIGHTORDER hash=%016" PRIx64 " objects=%d multi=%d unsorted=%d\n", loHash, loObjects, loMulti, loUnsorted);
++        fflush(stderr);
++        if (strcmp(getenv("OR_LIGHTORDER_PROBE"), "frames") != 0)
++            _exit(0);
++        loHash = 1469598103934665603ULL;
++        loObjects = loMulti = loUnsorted = 0;
++    }
+     inWorld = false;
+     ////////////////////////////////////////////////////////////////////////////////////////////////////////
+     //

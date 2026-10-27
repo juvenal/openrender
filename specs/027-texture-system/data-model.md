@@ -24,10 +24,10 @@ The entities of the texture system, who owns each, and how they move through a f
 | `textureCalls` helpers | Shading | `src/libshader/shading/textureCalls.{h,cpp}` (new) | — | stateless but for the warn-once flags (process) |
 
 `CTextureSystem` replaces, in the renderer core: `textureRefNumber`, `textureUsedBlocks`, `textureUsedMemory`,
-`textureMaxMemory` (`rendererStatics.cpp:272-275`), `textureMutex`, `synthesizeMutex` (`rendererMutexes.cpp`),
-`textureCacheEnabled`, `textureCacheDirectory` (`rendererStatics.cpp:147-148`), the members `textureLoad`,
+`textureMaxMemory` (`rendererStatics.cpp:270-273`), `textureMutex`, `synthesizeMutex` (`rendererMutexes.cpp`),
+`textureCacheEnabled`, `textureCacheDirectory` (`rendererStatics.cpp:145-146`), the members `textureLoad`,
 `environmentLoad`, `getTexture`, `getEnvironment`, `getTextureInfo`, `initTextures`, `shutdownTextures`
-(`renderer.h:286-301`), and the texture-family entries of `frameFiles`. `CRenderer::texturePath`,
+(`renderer.h:283-298`), and the texture-family entries of `frameFiles`. `CRenderer::texturePath`,
 `maxTextureSize` and `numThreads` stay: they are option values the core passes in.
 
 ## 2. `CTextureSystemSettings`
@@ -96,9 +96,9 @@ Per builtin (the interpreter's and the JIT's sources are the same scratch, read 
 | Builtin | Handle kind | Coordinates handed to the system | Notes |
 |---|---|---|---|
 | `texture()` interpreter | `Texture` | four `(s, t)` corners from the derivative footprint, or the eight given | `texture(…)` method (today `lookup4`) |
-| `texture()` JIT | `Texture` | one `(s, t)` | `texturePoint(…)` (today point `lookup`), see plan Q1 |
+| `texture()` JIT | `Texture` | phases 6–8: one `(s, t)` through `texturePoint(…)` (today's point `lookup`); from phase 9: the interpreter's request (FR-022) | |
 | `environment()` interpreter | `Environment` | `D0..D3` from the footprint | not called for `"raytrace"` or the shader's own name |
-| `environment()` JIT | `Environment` | `D, D, D, D` | plan Q1 |
+| `environment()` JIT | `Environment` | phases 6–8: `D, D, D, D`; from phase 9: the interpreter's footprint (FR-022) | |
 | `shadow()` interpreter / JIT | `Environment` | `P0..P3` / `P, P, P, P` | each backend reduces the three channels to its float result as it does today |
 | occlusion/indirectdiffuse environment (hider) | `Environment` (handle stored in `occlusionParams.environment`) | `ray.dir` ×4 | built by `lookupEnvironment()`, `traceSamples` = 1 as the hider sets it |
 | `textureinfo()` | `Info` | — | `describe()` |

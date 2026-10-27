@@ -19,10 +19,11 @@
 #include "ri/parse/ri.h"
 #include "ri/render/renderer.h"
 #include "ri/render/rendererContext.h"
+#include "libshader/shading/shaderRefs.h"
 #include "ri/state/options.h"
 
-static int imagerShaderType(CShaderInstance *s) {
-    auto *prog = dynamic_cast<CProgrammableShaderInstance *>(s);
+static int imagerShaderType(const ShaderGroupRef &s) {
+    auto *prog = dynamic_cast<CProgrammableShaderInstance *>(shaderInstanceOf(s));
     return prog ? prog->parent->type : -1;
 }
 

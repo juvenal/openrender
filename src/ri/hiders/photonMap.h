@@ -35,6 +35,7 @@
 #include "map.h"
 #include "ray.h"
 #include "common/refCounter.h"
+#include "stateHandles.h" // CMapRefTarget: a base of CPhotonMap (Hiders -> Graphics State)
 #include "xform.h"
 
 #define PHOTON_LOOKUP_CACHE
@@ -71,7 +72,7 @@ class CPhotonRay : public CRay {
 // Class				:	CPhotonMap
 // Description			:	A Photon map
 // Comments				:
-class CPhotonMap : public CMap<CPhoton>, public CFileResource, public CDataView, public CRefCounter {
+class CPhotonMap : public CMap<CPhoton>, public CFileResource, public CDataView, public CMapRefTarget {
 
 #ifdef PHOTON_LOOKUP_CACHE
         class CPhotonSample {
@@ -121,5 +122,12 @@ class CPhotonMap : public CMap<CPhoton>, public CFileResource, public CDataView,
         float searchRadius;
         TMutex mutex; // For synchronization during writing
 };
+
+// Resolves a Graphics State map handle back to the photon map it holds (spec 025). The only
+// conversion allowed is this static_cast; the compiler applies CMapRefTarget's offset in
+// CPhotonMap. A map slot only ever holds a CPhotonMap.
+inline CPhotonMap *photonMapOf(const MapRef &r) {
+    return static_cast<CPhotonMap *>(r.get());
+}
 
 #endif

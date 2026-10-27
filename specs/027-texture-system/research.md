@@ -73,7 +73,7 @@ inline `next()`, `next2()`, `next4()` that call `openrender::sampling::get1D(bac
   `CDeepShadow` 4 per trace sample; `CCubicEnvironment` 2 per trace sample; spherical and cylindrical as their
   side texture's `lookup4`; point lookups, `lookupz`, the dummies 0.
 - Where the advance is observable today: `bindDraws()` resets `drawCursorDim` to 0 at every bound point, but
-  only when the call site has draw counters (`shading.cpp:736-741`). An unkeyed call (`counts == nullptr`) and
+  only when the call site has draw counters (`shading.cpp:737-742`). An unkeyed call (`counts == nullptr`) and
   the hiders' cursor (`irradianceDispatch.cpp` draws through `drawNext()` around its environment lookup)
   continue from where the last draw stopped. Writing the cursor back keeps those sequences identical.
 - **Alternatives rejected**: (a) `TextureOpt` by const value with the stream returned separately — two
@@ -84,9 +84,9 @@ inline `next()`, `next2()`, `next4()` that call `openrender::sampling::get1D(bac
 
 ## R4. Per-thread data (FR-004)
 
-- **Range**: contexts are created for `i` in `[0, CRenderer::numThreads)` (`renderer.cpp:779-806`), after the
-  network client forces `numThreads = 1` (`renderer.cpp:731-738`) and after `initTextures` reads it
-  (`renderer.cpp:749`). The imager executor runs in `CRenderer::activeContext` or `contexts[0]`
+- **Range**: contexts are created for `i` in `[0, CRenderer::numThreads)` (`renderer.cpp:780-807`), after the
+  network client forces `numThreads = 1` (`renderer.cpp:732-739`) and after `initTextures` reads it
+  (`renderer.cpp:750`). The imager executor runs in `CRenderer::activeContext` or `contexts[0]`
   (`imager.cpp:127-134`), i.e. inside the pool. `rslBuiltins.cpp` uses `libshader::activeContext()`, a pool
   context. No context outside `[0, numThreads)` exists, so the system allocates exactly `numThreads` blocks,
   as `initTextures` does today.
@@ -105,12 +105,12 @@ inline `next()`, `next2()`, `next4()` that call `openrender::sampling::get1D(bac
 
 ## R5. Handles and the texture-family cache (FR-002, FR-014, Edge Cases)
 
-- Today one `CTrie<CFileResource*> *frameFiles` holds every kind (`renderer.h:396`); the getters do
+- Today one `CTrie<CFileResource*> *frameFiles` holds every kind (`renderer.h:393`); the getters do
   find → load → insert with no lock of their own (`rendererFiles.cpp:436-490, 638-660`).
 - **Decision**: the system owns a second `CTrie<CFileResource*>` for the texture family (2D textures,
   environments, shadow and deep-shadow maps, texture-info results). `frameFiles` keeps photon maps, irradiance
   caches and 3D textures (spec 032), with `framePhotonMaps` and #64's release loop in `endFrame()` untouched
-  (`renderer.cpp:851-866`).
+  (`renderer.cpp:852-867`).
 - **Keys stay what they are today**: one entry per name. `textureHandle(name)` reproduces `getTexture`
   (load as a 2D texture, else `CDummyTexture` plus `error(CODE_NOFILE, "Failed open texture \"%s\"\n")` unless
   the name is empty); `environmentHandle(name)` reproduces `getEnvironment` (else `CDummyEnvironment` plus
@@ -129,7 +129,7 @@ inline `next()`, `next2()`, `next4()` that call `openrender::sampling::get1D(bac
 - Handles never outlive the system: the interpreter caches them in `CTextureLookup::map`,
   `CEnvironmentLookup::map`, `CMapInfoLookup::map` and `COcclusionLookup::environment`, which live in the
   context's `plHash`/`jitPlHash` (`shading.h`), and the contexts are deleted at the top of `endFrame()`
-  (`renderer.cpp:826-831`), before the system.
+  (`renderer.cpp:827-832`), before the system.
 
 ## R6. GitHub #20: the find-load-insert race (FR-016)
 
@@ -150,7 +150,9 @@ inline `next()`, `next2()`, `next4()` that call `openrender::sampling::get1D(bac
   it is a plain pthread mutex (`os.cpp:419-425`, `pthread_mutex_init(&mutex, NULL)`), so passing it while the
   wrapper still holds it around a forwarding getter (phase 5) would deadlock on the first texture. In phase 5 the
   system uses its own mutex. The other `shaderMutex` holders (`getCache`, `getTexture3d`, `getPhotonMap`, all in
-  `rendererServicesImpl.h`) never reach a texture handle while holding it.
+  `rendererServicesImpl.h`) never reach a texture handle while holding it. **Core-lock coupling** (documented in the registry note and the
+  CLAUDE.md gotcha): the system's lock is the core's non-recursive `shaderMutex`, so `handle()` carries a debug re-entry assertion
+  and `TextureSystem_ConcurrentFirstLoadExternalMutex` tests the configuration.
 - **Eviction is untouched**: `textureMemFlush`'s scan, LRU order and the per-block locks are moved, not changed
   (#19 stays out).
 - **Test** (`TextureSystem_ConcurrentFirstLoad`, maintainer decision 5): 4 threads behind a start barrier call
@@ -168,9 +170,9 @@ inline `next()`, `next2()`, `next4()` that call `openrender::sampling::get1D(bac
 ## R7. Lifetime: per frame (clarification) against services per session
 
 - **Decision**: `CRenderer::beginFrame()` constructs the system where `initTextures()` runs today
-  (`renderer.cpp:749`: after the thread count is final, after `toWorld` is set, before the hiders' display
+  (`renderer.cpp:750`: after the thread count is final, after `toWorld` is set, before the hiders' display
   setup and the contexts); `endFrame()` destroys it where `shutdownTextures()` runs today
-  (`renderer.cpp:873`: after `frameFiles->destroy()`, after `endDisplays()`). `CRenderer::textureSystem` (a core
+  (`renderer.cpp:874`: after `frameFiles->destroy()`, after `endDisplays()`). `CRenderer::textureSystem` (a core
   static) holds it in between; `CRendererServicesImpl::textureSystem()` returns it, `nullptr` between frames.
 - Destruction order changes only in where the texture objects die: today they are deleted inside
   `frameFiles->destroy()`, interleaved with the 3D objects in trie order; after, the 3D objects die first, then
@@ -198,7 +200,7 @@ inline `next()`, `next2()`, `next4()` that call `openrender::sampling::get1D(bac
 - The core implements it once (`CSearchPathResolver` in `src/ri/render/`, over a `TSearchpath *`, calling
   `CRenderer::locateFile(result, name, path)`). The frame's texture system gets one over
   `CRenderer::texturePath`; `RiMakeTexture`/`RiMakeShadow`/`RiMake*Environment`/`RiMakeBrickMap`
-  (`rendererContext.cpp:6155-6206`) build one on the stack over `options->texturePath`. Messages
+  (`rendererContext.cpp:6134-6185`) build one on the stack over `options->texturePath`. Messages
   (`CODE_RESOLUTION`) and results are therefore the same.
 - `makeTexture`, `makeSideEnvironment`, `makeCubicEnvironment`, `makeSphericalEnvironment`,
   `makeCylindericalEnvironment` (`texmake.h:40-44`) and `makeBrickMap` (`brickmap.h:257`, and its friend
@@ -237,7 +239,7 @@ inline `next()`, `next2()`, `next4()` that call `openrender::sampling::get1D(bac
 - **Reading of FR-009** ("replacing the five resource getters"): with FR-014 keeping the cache and 3D entries
   in the core, the plan replaces the three texture-family getters and keeps `getCache`/`getTexture3d` until
   032; see plan Q2. The two irradiance-cache lookups Shading makes with its context
-  (`giFunctions.h:235`, `shading.cpp:3393`, `cache->lookup(C, P, dPdu, dPdv, N, this)`) are calls of
+  (`giFunctions.h:235`, `shading.cpp:3394`, `cache->lookup(C, P, dPdu, dPdv, N, this)`) are calls of
   `CTexture3d`'s six-argument lookup, which FR-014 leaves to 032; they stay, as SC-005's "apart from the 3D
   lookup" exception.
 
@@ -250,7 +252,7 @@ inline `next()`, `next2()`, `next4()` that call `openrender::sampling::get1D(bac
 | `shadow()` | `SHADOWEXPR`, footprint (`~2000-2030`) | `jitShadowF`: `lookup(p, p, p, p)` (`3036-3053`) |
 | `textureinfo()` | `TEXTUREINFO_PRE` (`1393-1510`) | `jitTextureInfo` (`3690-3750`) |
 | `texture3d()`, `bake3d()` | `resolve`, `dataSize`, `lookup`/`store` (`2160-2326`) | `jitTexture3d`, `jitBake3d` (`3441-3520`) |
-| occlusion/indirectdiffuse environment | `giFunctions.h:202`, stored in `occlusionParams.environment` for the hider | `shading.cpp:3346` |
+| occlusion/indirectdiffuse environment | `giFunctions.h:202`, stored in `occlusionParams.environment` for the hider | `shading.cpp:3347` |
 | scalar helper | `rsl_texture_c_scalar` (`rslBuiltins.cpp:178-191`), no caller | — |
 | hider | `irradianceDispatch.cpp:405,545` (`tex->lookup(…, context)`) | — |
 
@@ -268,9 +270,9 @@ inline `next()`, `next2()`, `next4()` that call `openrender::sampling::get1D(bac
   the point lookup or a zero-width footprint, and its options are whatever an earlier call left in the scratch.
   This is the #55 class of defect for the texture builtins. FR-010 ("both backends hand the services the same
   handle request, option block and coordinates, and produce the same result") cannot hold while FR-020 keeps
-  `.slo` renders byte-identical. **The plan preserves each backend's request exactly** (the JIT builds its
-  `TextureOpt` from the same scratch it reads today) and the substitute test pins what each backend sends; see
-  plan Q1.
+  `.slo` renders byte-identical. The behaviour-preserving phases keep each backend's request exactly (the JIT
+  builds its `TextureOpt` from the same scratch it reads today) and the substitute test pins what each sends; the
+  maintainer's answer to Q1 (2026-10-27) fixes the JIT in a final, output-changing phase (R22).
 - The JIT `op_*` entry points keep their signatures, so `.slo` bitcode does not change and no shader rebuild is
   needed beyond the normal dependency tracking.
 
@@ -313,8 +315,7 @@ inline `next()`, `next2()`, `next4()` that call `openrender::sampling::get1D(bac
   no init or teardown and holds no data); the system uses it. A per-system mutex would not protect a direct
   `createSynthesizedTileSource` call, and the resource it guards is process-wide. The block-registry and
   eviction mutex (today `CRenderer::textureMutex`) does become the system's own (`CTextureCache`), since the
-  block list is per system. This departs from FR-001's list ("the mutexes that serialize … in-memory pyramid
-  synthesis" owned by the system); see plan Q4.
+  block list is per system. FR-001 is worded accordingly (maintainer, 2026-10-27, Q4).
 - **Alternative**: a `globalArena` lock in libRIBCommon itself (most principled, since that is the shared
   resource), at the cost of a libRIBCommon change and of deciding which other `globalArena` users must take it.
 - `texture.cpp` is compiled into both `ribRender` and `ribVector` (`ribVector_sources` is `ri_sources` minus a
@@ -375,15 +376,17 @@ inline `next()`, `next2()`, `next4()` that call `openrender::sampling::get1D(bac
   compiled units leave every deduplicated number unchanged and a staged `ri_config.h` is not reported.
 - **"Values recorded from master"**: the starting tree cannot run a lookup without a shading context, so the
   values are recorded through the renderer. A probe scene (`tools/lookup-probe.rib` + `tools/lookupprobe.sl`)
-  calls the eight-coordinate `texture()`, the four-direction `environment()` and four-point `shadow()` at fixed
-  footprints with `"samples" 1` (jitter 0, so the stream does not affect the value) and a box filter, and
+  calls the **eight-coordinate `texture()` only** on a baked and an unbaked fixture, at fixed footprints with
+  `"samples" 1` (jitter 0, so the stream does not affect the value) and a box filter (`environment()` and `shadow()` take
+  one direction/point and Shading derives their footprint, which the Texturing-only program would have to invent; T-K1,
+  the substitute test and the renders cover them), and
   `printf`s each result; RSL `printf` formats with `%f` (`scriptFunctions.h:709-733`). The values are saved as
   `tools/master-lookup-values.txt`; the standalone program formats its own results with `%f` and compares the
   strings.
 
 ## R16. Test design details
 
-- **Substitute texture system** (`ShadingParity_TextureSubstitute`, FR-012, FR-018b, US3, SC-008): the
+- **Substitute texture system** (`ShadingParity_TextureSubstitute` for the 2D, info and no-system parts and `ShadingParity_TextureSubstitute3D` for the `texture3d()`/`bake3d()` forwarders, a separate executable because the forwarders enter the interface only in phase 7; FR-012, FR-018b, US3, SC-008): the
   `shading_parity` in-process pattern of `test_services_routing.cpp`. After `RiBegin` the test installs a
   `CForwardingServices` (`tests/shading_parity/table_services.h`) whose `textureSystem()` returns a recording
   substitute (canned values, every call logged with handle request, kind, `TextureOpt` fields and
@@ -418,7 +421,7 @@ inline `next()`, `next2()`, `next4()` that call `openrender::sampling::get1D(bac
 | 5 (system ownership) | 10 DB-010: include `texture.cpp → renderer.h`; links `numThreads`, `textureMutex`, `synthesizeMutex`, `textureMaxMemory`, `textureRefNumber`, `textureUsedBlocks`, `textureUsedMemory`, `textureCacheEnabled`, `textureCacheDirectory` |
 | 6 (lookups) | 1 DB-010: include `texture.cpp → core/shading.h` |
 | 7 (3D through services) | 1 DB-010: include `pointHierarchy.cpp → core/shading.h` |
-| 9 (registry) | re-tag `texture3d.cpp → renderer.h` and `texture3d.cpp → _ZN9CRenderer22retrieveDisplayChannelEPKc` DB-010 → DB-021 |
+| 10 (registry) | re-tag `texture3d.cpp → renderer.h` and `texture3d.cpp → _ZN9CRenderer22retrieveDisplayChannelEPKc` DB-010 → DB-021 |
 
 - Total: 25 DB-010 lines and 5 DB-026 lines deleted, 2 re-tagged, none added. DB-010 35 → 8 (the Hiders-origin
   lines, whose keys the plan never changes: `texture.h`, `texture3d.h`, `pointHierarchy.h` keep their paths and
@@ -427,7 +430,7 @@ inline `next()`, `next2()`, `next4()` that call `openrender::sampling::get1D(bac
   symbol mangles differently on glibc (no `FILE *` parameter), so each is one untagged line covering both
   platforms. The Linux run (R20) confirms archcheck reports no Linux-only variant; if one appeared it is
   re-tagged the same way.
-- **Metric**: Texturing 70/16 → 1/1 (`retrieveDisplayChannel`). TOTAL refs 721 → 652 (−69). TOTAL distinct is
+- **Metric**: Texturing 70/16 → 1/1 (`retrieveDisplayChannel`). TOTAL refs 721 → 652 (−69), at `bc261b1`; after spec 025 is merged in (T005a) the same −69 / −12 are applied to the re-measured TOTAL. TOTAL distinct is
   not a row sum (spec 024's note): of the 16 members, `locateFile`, `numThreads` and `texturePath` are still
   referenced from Geometry and `numThreads` from Hiders, and `retrieveDisplayChannel` from Texturing, so 12
   members leave TOTAL: 110 → 98 expected, written as archcheck reports it.
@@ -452,14 +455,20 @@ Why this order:
    phase 5, through `TexturePerthread` from phase 6.
 4. The 3D forwarders and the point hierarchy after the 2D lookups: they touch 032-adjacent code and the flat
    imports, and nothing earlier depends on them.
-5. The Texturing-only option after every Texturing edge is gone, then the registry and the Linux run.
+5. The Texturing-only option after every Texturing edge is gone.
+6. The JIT parity fix (R22) last among the code phases: it is the only phase allowed to change output (`.slo` only),
+   so it follows every behaviour-preserving phase and its image changes cannot hide a regression from them.
+7. The registry, docs and the Linux run.
 
 ## R19. Performance (SC-010)
 
-Method (phase 1 and phase 9): `concurrency-scene.rib` (the `texture_tile` concurrency scene, heaviest texture
-load in the suite) and `parity/texture-png-raytrace.rib`, 10 interleaved runs each of the starting and finished
-`orender` (two build trees), default thread count and `-t:1`, wall time through `cpujob`. The run-to-run spread
-of the starting tree is the noise bar; a finished-tree median outside it is a defect to report, not a budget to
+Method (phase 1 and phase 10): `concurrency-scene.rib` (the `texture_tile` concurrency scene, heaviest texture
+load in the suite) and `parity/texture-png-raytrace.rib`, 10 runs each at the default thread count and `-t:1`, wall
+time through `cpujob`, on the same machine. Phase 1 records them, on `BASE`, as `tools/timing-base-macos.tsv`; phase 10 runs
+the same script on the finished tree and compares with that file (quickstart §0.7 and §3). Interleaving a starting
+and a finished `orender` is not used: a copied `orender` binary still links the build tree's own shared libraries
+(`libRIBRender`, `libRIBCommon`), so it would not stay the starting code. The run-to-run spread of the baseline file
+is the noise bar; a finished-tree median outside it is a defect to report, not a budget to
 widen. The added work per lookup is building one struct and one virtual call per builtin call.
 
 ## R20. Linux
@@ -475,11 +484,72 @@ decision 4) and once at the end.
 
 - `src/ri/hiders/radiance.cpp` is **not compiled** (absent from `src/ri/CMakeLists.txt`), and its environment
   call (`radiance.cpp:1150`) already does not match today's signature (it passes a `CTextureLookup *` where a
-  `CShadingContext *` is expected). FR-013 names it; an edit cannot be verified by any build. See plan Q5.
+  `CShadingContext *` is expected). Left untouched and dropped from FR-013 (maintainer, 2026-10-27, Q5).
 - `rsl_texture_c_scalar` (`rslBuiltins.cpp:178`) has no caller and the emitter never names it. It is routed
   through `textureCalls` like the others (FR-009 names `rslBuiltins.cpp`); deleting it would be a separate
   decision.
 - The GI getters (`getPhotonMap`, `getCache`, `getTexture3d`) keep their unlocked find-load-insert on
   `frameFiles`, still serialized only by the services' `shaderMutex` wrapper; that is 032's cache.
-- The within-family name collision (R5).
+- The within-family name collision (R5): GitHub #104, out of scope.
 - `remoteChannel.cpp:184` calls `getTexture3d` directly; untouched (3D, network).
+
+## R22. The JIT parity phase (FR-022, maintainer answer to Q1)
+
+**What is wrong today** (read from `llvmEmitter.cpp:2690-2819` and `shading.cpp:2971-3054`, confirmed on a probe
+shader compiled with the fresh `oshader`):
+
+| Defect | Evidence |
+|---|---|
+| The optional parameter list is dropped | the emitter passes only the positional operands; `jitTexture*`/`jitEnvironment*`/`jitShadowF` never bind a `CTextureLookup`/`CEnvironmentLookup`, so `blur`, `width`, `swidth`, `twidth`, `fill`, `samples`, `filter`, `bias` are ignored and the options are whatever an earlier call left in the scratch |
+| The form is chosen by operand count, and the IR always carries the channel operand | the `.rslo` instruction is `texture ("c=SFff") a tn 0 s t …`: the color form also has the channel (`0`). The emitter takes the float-channel branch whenever there are ≥ 4 (`texture`) or ≥ 3 (`environment`) operands, so a **color** `texture()`/`environment()` calls `op_texture_f_v2`/`op_environment_f_v2` and writes one channel (a probe's `.slo` references `op_texture_f_v2` and `op_environment_f_v2` and never the `_c_v2` entry points); `shadow()` has one float entry point for both forms |
+| No filter footprint | `texture()` calls the point `lookup(s, t)`, `environment()`/`shadow()` pass `D, D, D, D`/`P, P, P, P`; the interpreter builds the four corners from the coordinates' grid derivatives, `du`/`dv` and `swidth`/`twidth` |
+| The eight-coordinate `texture()` uses only the first corner | `s`, `t` are operands 2 and 3; the other six are dropped (and with a parameter list after them, the name tokens are misread as values) |
+| `environment("raytrace")`/`shadow("raytrace")` are looked up as files | the interpreter traces (`ENVIRONMENTEXPR_PRE`, `shaderFunctions.h:1819`); the JIT asks for an environment map named `"raytrace"`, gets the substitute and the `"Failed open environment"` error (plan Q7) |
+
+**Measured divergence** (`tools/jit_texture_divergence.sh`, `-t:1`, each parity scene rendered with the default
+`.rslo` shaders and with `Option "shaderformat" "default" ["slo"]`; `tools/jit-texture-divergence-bc261b1-macos.tsv`):
+16 of 18 scenes differ — `texture-{png,exr,rgbe}` 34.55–252.52 MaxBlockAvgDiff, `unbaked-*` 73.45–156.39,
+`env` 244.11/244.14; `shadow-{reyes,raytrace}` are identical (`shadowspot` passes no parameter, samples 1, blur 0).
+
+**Which existing outputs change: none.** Of the 60 scenes that select `.slo` (`Attribute "shade" "shaderformat"
+["slo"]` or `Option "shaderformat" "default" ["slo"]`) none binds a shader that calls `texture()`,
+`environment()` or `shadow()`, and no test shader in `tests/`, `src/` or `examples/` calls them. So no `Visual_*`,
+`Parity_*`, `ShadingParity_*` or `DeterminismSweep_*` result and no stored reference is expected to change; the only
+images that change are this spec's own JIT texture probes (`tools/jit_texture_probes.sh`, not references), which
+must then equal their `.rslo` renders. Any other change found in that phase stops it (a STOP task for the
+maintainer), with the scene, old and new diff and reason listed; no re-render without approval, no threshold change.
+
+**Design** (#55's mechanism, nothing new):
+- **Emitter**: the form comes from the instruction's prototype (`"c=SFff…"`, `"f=SFffffffff…"`, `"c=SFv…"`,
+  `"f=SFp…"`), not the operand count; the positional operands are those of the prototype; the rest is the
+  parameter list, marshalled by `emitParamList()` (odd lists, non-literal names and unresolvable values fail the
+  emit with a diagnostic, as for #55). `du`, `dv` (and for the footprint, nothing else: the derivatives of the
+  coordinates are taken on the grid at run time, as `jitTexture3d` does with `duVector`) are passed as grid pointers
+  like `op_trace_*_v3`.
+- **Entry points**: `op_texture_{f,c}_v3`, `op_texture_full_{f,c}_v3` (eight coordinates), `op_environment_{f,c}_v3`,
+  `op_shadow_{f,c}_v3`, each with `names, values, steps, isVarying, numPairs` and the call site; the `_v2` names are
+  deleted, so a `.slo` compiled before the fix fails to bind instead of silently making the old request (#55's
+  rule). `rslOps.h` and the JIT ABI contract list them.
+- **Run time**: `jitParameterList<CTextureLookup>()` (`texture()`) or `<CEnvironmentLookup>()` (`environment()`,
+  `shadow()`) binds the list once per (instance, call site) through the interpreter's own `bind()`/`init()`/
+  `postBind()`; per vertex `jitParameterListReady()` copies the varying values into the scratch; then the same
+  footprint arithmetic as `TEXTURE*EXPR`/`ENVIRONMENTEXPR`/`SHADOWEXPR` (moved into one helper both backends call,
+  so they cannot drift), `textureOptions()`, the texture system, `commitTextureDraws()`. The traced names follow
+  plan Q7.
+- **Tests, red first** (`tests/visual/CMakeLists.txt`, extending #55's table; probes
+  `shaders/jit_pl_texture_probe.sl` — red `texture()` color, green `texture()[1]` float, blue the eight-coordinate
+  form — and `shaders/jit_pl_envshadow_probe.sl` — red `environment()` color, green `environment()` float, blue
+  `shadow()`; scenes generated from `examples/rib/tests/jit-texture-probe.rib.in`, every parameter value a shader
+  parameter set in the RIB):
+  - `ShadingParity_JitPL_texture_<case>` and `ShadingParity_JitPL_envshadow_<case>`: the case under `.rslo` and
+    `.slo`, bit-identical. Cases: `base`, `blur`, `width`, `swidth_twidth`, `fill` (a missing map), `samples`,
+    `filter` (texture); `base`, `blur`, `width`, `fill`, `samples`, `bias`, `filter` (environment and shadow).
+  - `ShadingParity_JitPLEngaged_<probe>_<case>_{rslo,slo}`: the base scene against the case, same format, on the
+    channels the case affects, must differ; not registered for a parameter the interpreter itself ignores for that
+    builtin (decided from the code when the table is written, as #55 did).
+  - Red: before the fix every `JitPL_texture_*`/`JitPL_envshadow_*` parity case fails (each probe has a texture or
+    environment channel, which differs even with no parameter: the measured divergence), and every `_slo` engaged
+    control fails (the JIT ignores the parameter).
+  - `ShadingParity_JitPLDiagnosticsTexture`, a new test (the existing `ShadingParity_JitPLDiagnostics` stays as it is,
+    green until and after phase 9), covers the three builtins (an unknown parameter is reported once, as by the
+    interpreter).
