@@ -1,0 +1,10 @@
+# Images excluded from the CP-d byte comparison (image_manifest.sh diff), one path per line.
+# Measured on the starting tree (master 4eb683b), macOS, 2026-10-27: two full-suite runs gave
+# 761 images, 759 identical. Both entries below are shared scratch outputs written by several
+# shading_parity tests into the same working directory (build-028/tests/shading_parity) under
+# -j4, so the last writer wins; they are not test products:
+#   test.tif: test_matrix_transform_jit, test_printf_jit, test_uniform_conditional_jit
+#   ri.tif:   the shading_parity tests rendering with the default display name
+# Every MaxBlockAvgDiff was identical in both runs. A path listed here still needs its tests green.
+tests/shading_parity/ri.tif
+tests/shading_parity/test.tif
