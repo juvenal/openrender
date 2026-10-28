@@ -226,13 +226,13 @@ endfunction()
 
 # T-C1 (T022, T022a): one executable, two entries selected by the argument. Run at -j2 (4 threads x 200 repeats).
 add_texture_system_test(TextureSystem_ConcurrentFirstLoad test_texture_system_concurrent_first_load
-    test_texture_system_concurrent_first_load.cpp ENABLED) # enabled by T064 (Phase 5); the external-mutex entry below stays DISABLED until T071a
+    test_texture_system_concurrent_first_load.cpp ENABLED) # enabled by T064 (Phase 5)
+# enabled by T071a (Phase 6)
 add_test(NAME TextureSystem_ConcurrentFirstLoadExternalMutex
     COMMAND test_texture_system_concurrent_first_load external-mutex)
 set_tests_properties(TextureSystem_ConcurrentFirstLoadExternalMutex PROPERTIES
     TIMEOUT 120
     LABELS "texture_tile;unit"
-    DISABLED TRUE
     ENVIRONMENT "TEXTURE_TILE_FIXTURES_DIR=${TEXTURE_TILE_FIXTURES_DIR}")
 
 # T022b: two small executables (NullResolver needs textureResolver.h only; InfoMiss needs textureSystem.h)
@@ -243,7 +243,7 @@ add_texture_system_test(TextureSystem_InfoMiss test_texture_system_info_miss
 
 # T-K1 (T023): dimensions consumed per lookup class; renders the deep shadow fixture with orender
 add_texture_system_test(TextureSystem_StreamCursor test_texture_system_stream_cursor
-    test_texture_system_stream_cursor.cpp
+    test_texture_system_stream_cursor.cpp ENABLED # enabled by T081 (Phase 6)
     ${TEXTURE_TILE_FIXTURES_DIR}
     ${CMAKE_SOURCE_DIR}/tests/unit/image_input/fixtures
     ${CMAKE_SOURCE_DIR}/examples/rib/tests

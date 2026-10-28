@@ -60,19 +60,6 @@ class CRendererServicesImpl final : public CRendererServices {
         const float *worldBmax() const override { return CRenderer::worldBmax; }
 
         // Resource loaders (with mutex)
-        CTexture *getTexture(const char *name) override {
-            osLock(CRenderer::shaderMutex);
-            // Phase 5 adapter (spec 027): the texture system hands out the handle; Phase 6 replaces these getters
-            CTexture *t = static_cast<CTexture *>(reinterpret_cast<CTextureInfoBase *>(CRenderer::textureSystem->handle(name, ETextureKind::Texture)));
-            osUnlock(CRenderer::shaderMutex);
-            return t;
-        }
-        CEnvironment *getEnvironment(const char *name) override {
-            osLock(CRenderer::shaderMutex);
-            CEnvironment *e = static_cast<CEnvironment *>(reinterpret_cast<CTextureInfoBase *>(CRenderer::textureSystem->handle(name, ETextureKind::Environment)));
-            osUnlock(CRenderer::shaderMutex);
-            return e;
-        }
         CPhotonMap *getPhotonMap(const char *name) override {
             osLock(CRenderer::shaderMutex);
             CPhotonMap *p = CRenderer::getPhotonMap(name);
@@ -85,18 +72,23 @@ class CRendererServicesImpl final : public CRendererServices {
             osUnlock(CRenderer::shaderMutex);
             return c;
         }
-        CTextureInfoBase *getTextureInfo(const char *name) override {
-            osLock(CRenderer::shaderMutex);
-            CTextureInfoBase *t = reinterpret_cast<CTextureInfoBase *>(CRenderer::textureSystem->handle(name, ETextureKind::Info));
-            osUnlock(CRenderer::shaderMutex);
-            return t;
-        }
+        // The texture system takes its own load lock (the core passes &CRenderer::shaderMutex as loadMutex, so texture
+        // loads stay serialized with the other resource loads): no wrapper here
+        CTextureSystem *textureSystem() override { return CRenderer::textureSystem; }
         CTexture3d *getTexture3d(const char *name, int write, const char *channels, const float *from, const float *to, int hierarchy = FALSE) override {
             osLock(CRenderer::shaderMutex);
             CTexture3d *t = CRenderer::getTexture3d(name, write, channels, from, to, hierarchy);
             osUnlock(CRenderer::shaderMutex);
             return t;
         }
+
+        // The 3D texture operations: unlocked, as Shading called the class itself
+        int texture3dResolve(CTexture3d *t, int n, const char **names, int *entry, int *size) override {
+            t->resolve(n, names, entry, size);
+            return t->dataSize;
+        }
+        void texture3dLookup(CTexture3d *t, float *dest, const float *P, const float *N, float radius) override { t->lookup(dest, P, N, radius); }
+        void texture3dStore(CTexture3d *t, const float *data, const float *P, const float *N, float radius) override { t->store(data, P, N, radius); }
 
         // Global string IDs
         int getGlobalID(const char *name) override { return CRenderer::getGlobalID(name); }

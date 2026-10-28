@@ -47,6 +47,7 @@
 #include "common/stats.h"
 #include "texture.h"
 #include "texture3d.h"
+#include "textureCalls.h"
 
 // Default services pointer injected by src/ri/ at renderer startup.
 // nullptr until setDefaultServices() is called (standalone libshader mode).
@@ -566,16 +567,48 @@ const float *CShadingContext::rendererWorldBmin() const { return SVC ? SVC->worl
 const float *CShadingContext::rendererWorldBmax() const { return SVC ? SVC->worldBmax() : nullptr; }
 float CShadingContext::rendererClipMin() const { return SVC ? SVC->clipMin() : 0.f; }
 float CShadingContext::rendererClipMax() const { return SVC ? SVC->clipMax() : 1.f; }
-CTexture *CShadingContext::rendererGetTexture(const char *n) { return SVC ? SVC->getTexture(n) : nullptr; }
-CEnvironment *CShadingContext::rendererGetEnvironment(const char *n) { return SVC ? SVC->getEnvironment(n) : nullptr; }
 CPhotonMap *CShadingContext::rendererGetPhotonMap(const char *n) { return SVC ? SVC->getPhotonMap(n) : nullptr; }
 CTexture3d *CShadingContext::rendererGetCache(const char *h, const char *m, const float *f, const float *t) { return SVC ? SVC->getCache(h, m, f, t) : nullptr; }
-CTextureInfoBase *CShadingContext::rendererGetTextureInfo(const char *n) { return SVC ? SVC->getTextureInfo(n) : nullptr; }
 CTexture3d *CShadingContext::rendererGetTexture3d(const char *n, int w, const char *ch, const float *f, const float *t, int hier) { return SVC ? SVC->getTexture3d(n, w, ch, f, t, hier) : nullptr; }
+int CShadingContext::rendererTexture3dResolve(CTexture3d *t, int n, const char **names, int *entry, int *size) { return (SVC && t) ? SVC->texture3dResolve(t, n, names, entry, size) : 0; }
+void CShadingContext::rendererTexture3dLookup(CTexture3d *t, float *dest, const float *P, const float *N, float radius) {
+    if (SVC && t)
+        SVC->texture3dLookup(t, dest, P, N, radius);
+}
+void CShadingContext::rendererTexture3dStore(CTexture3d *t, const float *data, const float *P, const float *N, float radius) {
+    if (SVC && t)
+        SVC->texture3dStore(t, data, P, N, radius);
+}
 void CShadingContext::rendererSetOffendingObject(CObject *obj) {
     if (SVC)
         SVC->setOffendingObject(obj);
 }
+TextureOpt CShadingContext::textureOptions() const {
+    const CShadingScratch &sc = currentShadingState->scratch;
+    TextureOpt opt;
+    opt.filter = sc.textureParams.filter;
+    opt.blur = sc.textureParams.blur;
+    opt.width = sc.textureParams.width;
+    opt.swidth = sc.textureParams.swidth;
+    opt.twidth = sc.textureParams.twidth;
+    opt.fill = sc.textureParams.fill;
+    opt.samples = sc.textureParams.samples;
+    opt.traceSamples = sc.traceParams.samples;
+    opt.bias = sc.traceParams.bias;
+    opt.stream = {sampling.backend, drawCursor, drawCursorDim};
+    return opt;
+}
+
+void CShadingContext::lookupEnvironment(TextureHandle *environment, float *result, const float *D0, const float *D1, const float *D2, const float *D3) {
+    TextureOpt opt = textureOptions();
+    CTextureSystem *system = libshader::textureSystemOf(this);
+    if (environment && system)
+        system->environment(environment, opt, system->perthread(thread), D0, D1, D2, D3, result);
+    else
+        initv(result, opt.fill);
+    commitTextureDraws(opt);
+}
+
 int CShadingContext::rendererGetGlobalID(const char *n) { return SVC ? SVC->getGlobalID(n) : 0; }
 int CShadingContext::rendererShootStep() const { return SVC ? SVC->shootStep() : 1; }
 RtFilterFunc CShadingContext::rendererGetFilter(const char *n) const { return SVC ? SVC->getFilter(n) : nullptr; }
@@ -2970,14 +3003,19 @@ void CShadingContext::jitTextureF(float *dst, int sd, const char *name, int chan
     uint32_t *drawCounts = drawCounters(callSite);
     if (!name || !name[0])
         return;
-    CTexture *tex = rendererGetTexture(name);
-    if (!tex)
-        return;
+    TextureHandle *tex = libshader::textureHandle(this, name, ETextureKind::Texture, "texture");
+    CTextureSystem *system = libshader::textureSystemOf(this);
+    TexturePerthread *pt = system ? system->perthread(thread) : nullptr;
     vector tmp;
     for (int i = 0; i < n; ++i) {
         if (!tags || !tags[i]) {
             bindDraws(i, drawCounts, callSite, 1);
-            tex->lookup(tmp, JIT_IDX(s, ss, i)[0], JIT_IDX(t, st, i)[0], this);
+            TextureOpt opt = textureOptions();
+            if (tex)
+                system->texturePoint(tex, opt, pt, JIT_IDX(s, ss, i)[0], JIT_IDX(t, st, i)[0], tmp);
+            else
+                initv(tmp, opt.fill);
+            commitTextureDraws(opt);
             JIT_IDX(dst, sd, i)
             [0] = tmp[channel & 3];
         }
@@ -2988,13 +3026,18 @@ void CShadingContext::jitTextureC(float *dst, int sd, const char *name, const fl
     uint32_t *drawCounts = drawCounters(callSite);
     if (!name || !name[0])
         return;
-    CTexture *tex = rendererGetTexture(name);
-    if (!tex)
-        return;
+    TextureHandle *tex = libshader::textureHandle(this, name, ETextureKind::Texture, "texture");
+    CTextureSystem *system = libshader::textureSystemOf(this);
+    TexturePerthread *pt = system ? system->perthread(thread) : nullptr;
     for (int i = 0; i < n; ++i) {
         if (!tags || !tags[i]) {
             bindDraws(i, drawCounts, callSite, 1);
-            tex->lookup(JIT_IDX(dst, sd, i), JIT_IDX(s, ss, i)[0], JIT_IDX(t, st, i)[0], this);
+            TextureOpt opt = textureOptions();
+            if (tex)
+                system->texturePoint(tex, opt, pt, JIT_IDX(s, ss, i)[0], JIT_IDX(t, st, i)[0], JIT_IDX(dst, sd, i));
+            else
+                initv(JIT_IDX(dst, sd, i), opt.fill);
+            commitTextureDraws(opt);
         }
     }
 }
@@ -3003,15 +3046,20 @@ void CShadingContext::jitEnvironmentF(float *dst, int sd, const char *name, int 
     uint32_t *drawCounts = drawCounters(callSite);
     if (!name || !name[0])
         return;
-    CEnvironment *env = rendererGetEnvironment(name);
-    if (!env)
-        return;
+    TextureHandle *env = libshader::textureHandle(this, name, ETextureKind::Environment, "environment");
+    CTextureSystem *system = libshader::textureSystemOf(this);
+    TexturePerthread *pt = system ? system->perthread(thread) : nullptr;
     vector tmp;
     for (int i = 0; i < n; ++i) {
         if (!tags || !tags[i]) {
             const float *d = JIT_IDX(D, sD, i);
             bindDraws(i, drawCounts, callSite, 1);
-            env->lookup(tmp, d, d, d, d, this);
+            TextureOpt opt = textureOptions();
+            if (env)
+                system->environment(env, opt, pt, d, d, d, d, tmp);
+            else
+                initv(tmp, opt.fill);
+            commitTextureDraws(opt);
             JIT_IDX(dst, sd, i)
             [0] = tmp[channel & 3];
         }
@@ -3022,14 +3070,19 @@ void CShadingContext::jitEnvironmentC(float *dst, int sd, const char *name, cons
     uint32_t *drawCounts = drawCounters(callSite);
     if (!name || !name[0])
         return;
-    CEnvironment *env = rendererGetEnvironment(name);
-    if (!env)
-        return;
+    TextureHandle *env = libshader::textureHandle(this, name, ETextureKind::Environment, "environment");
+    CTextureSystem *system = libshader::textureSystemOf(this);
+    TexturePerthread *pt = system ? system->perthread(thread) : nullptr;
     for (int i = 0; i < n; ++i) {
         if (!tags || !tags[i]) {
             const float *d = JIT_IDX(D, sD, i);
             bindDraws(i, drawCounts, callSite, 1);
-            env->lookup(JIT_IDX(dst, sd, i), d, d, d, d, this);
+            TextureOpt opt = textureOptions();
+            if (env)
+                system->environment(env, opt, pt, d, d, d, d, JIT_IDX(dst, sd, i));
+            else
+                initv(JIT_IDX(dst, sd, i), opt.fill);
+            commitTextureDraws(opt);
         }
     }
 }
@@ -3038,15 +3091,20 @@ void CShadingContext::jitShadowF(float *dst, int sd, const char *name, const flo
     uint32_t *drawCounts = drawCounters(callSite);
     if (!name || !name[0])
         return;
-    CEnvironment *env = rendererGetEnvironment(name);
-    if (!env)
-        return;
+    TextureHandle *env = libshader::textureHandle(this, name, ETextureKind::Environment, "shadow");
+    CTextureSystem *system = libshader::textureSystemOf(this);
+    TexturePerthread *pt = system ? system->perthread(thread) : nullptr;
     vector tmp;
     for (int i = 0; i < n; ++i) {
         if (!tags || !tags[i]) {
             const float *p = JIT_IDX(Ps, sPs, i);
             bindDraws(i, drawCounts, callSite, 1);
-            env->lookup(tmp, p, p, p, p, this);
+            TextureOpt opt = textureOptions();
+            if (env)
+                system->environment(env, opt, pt, p, p, p, p, tmp);
+            else
+                initv(tmp, opt.fill);
+            commitTextureDraws(opt);
             JIT_IDX(dst, sd, i)
             [0] = (tmp[0] + tmp[1] + tmp[2]) / 3.f;
         }
@@ -3344,11 +3402,11 @@ void CShadingContext::jitOcclusionBatch(float *dst, int sd, const float *P, int 
         lookup->map = cache;
         if (scratch->occlusionParams.environmentMapName != NULL &&
             scratch->occlusionParams.environmentMapName[0] != 0)
-            lookup->environment = this->rendererGetEnvironment(scratch->occlusionParams.environmentMapName);
+            lookup->environment = libshader::textureHandle(this, scratch->occlusionParams.environmentMapName, ETextureKind::Environment, "environment");
         if (scratch->occlusionParams.pointHierarchyName != NULL &&
             scratch->occlusionParams.pointHierarchyName[0] != 0)
             lookup->pointHierarchy = this->rendererGetTexture3d(scratch->occlusionParams.pointHierarchyName, FALSE, "_area", from, to, TRUE);
-        cache->resolve(lookup->numChannels, lookup->channelName, lookup->channelEntry, lookup->channelSize);
+        this->rendererTexture3dResolve(cache, lookup->numChannels, lookup->channelName, lookup->channelEntry, lookup->channelSize);
     }
     assert(cache->dataSize == 7);
 
@@ -3447,10 +3505,12 @@ void CShadingContext::jitTexture3d(float *dst, int sd, const char *const *name,
 
     const float *from, *to;
     findCoordinateSystem("world", from, to);
+    if (!libshader::texture3dAvailable(this, "texture3d"))
+        return;
     CTexture3d *tex = this->rendererGetTexture3d(name[0], FALSE, nullptr, from, to);
     if (!tex)
         return;
-    tex->resolve(0, nullptr, nullptr, nullptr);
+    this->rendererTexture3dResolve(tex, 0, nullptr, nullptr, nullptr);
 
     float *dest = (float *)ralloc(tex->dataSize * sizeof(float), threadMemory);
     float *dPdu = (float *)ralloc(n * 6 * sizeof(float), threadMemory);
@@ -3471,7 +3531,7 @@ void CShadingContext::jitTexture3d(float *dst, int sd, const char *const *name,
         mulvf(PduScaled, JIT_IDX(dPdu, 3, i), du[i]);
         mulvf(PdvScaled, JIT_IDX(dPdv, 3, i), dv[i]);
         const float radius = (lengthv(PduScaled) + lengthv(PdvScaled)) * 0.5f;
-        tex->lookup(dest, JIT_IDX(P, sP, i), JIT_IDX(N, sN, i), radius);
+        this->rendererTexture3dLookup(tex, dest, JIT_IDX(P, sP, i), JIT_IDX(N, sN, i), radius);
         JIT_IDX(dst, sd, i)[0] = 1.0f;
     }
 }
@@ -3485,10 +3545,12 @@ void CShadingContext::jitBake3d(float *dst, int sd, const char *const *name, con
 
     const float *from, *to;
     findCoordinateSystem("world", from, to);
+    if (!libshader::texture3dAvailable(this, "bake3d"))
+        return;
     CTexture3d *tex = this->rendererGetTexture3d(name[0], TRUE, channels ? channels[0] : nullptr, from, to);
     if (!tex)
         return;
-    tex->resolve(0, nullptr, nullptr, nullptr);
+    this->rendererTexture3dResolve(tex, 0, nullptr, nullptr, nullptr);
 
     float *dest = (float *)ralloc(tex->dataSize * sizeof(float), threadMemory);
     float *dPdu = (float *)ralloc(n * 6 * sizeof(float), threadMemory);
@@ -3509,7 +3571,7 @@ void CShadingContext::jitBake3d(float *dst, int sd, const char *const *name, con
         mulvf(PduScaled, JIT_IDX(dPdu, 3, i), du[i]);
         mulvf(PdvScaled, JIT_IDX(dPdv, 3, i), dv[i]);
         const float radius = (lengthv(PduScaled) + lengthv(PdvScaled)) * 0.5f;
-        tex->store(dest, JIT_IDX(P, sP, i), JIT_IDX(N, sN, i), radius);
+        this->rendererTexture3dStore(tex, dest, JIT_IDX(P, sP, i), JIT_IDX(N, sN, i), radius);
         JIT_IDX(dst, sd, i)[0] = 1.0f;
     }
 
@@ -3693,7 +3755,10 @@ void CShadingContext::jitTextureInfo(float *dst, int sd, const char *const *name
     if (n <= 0)
         return;
 
-    CTextureInfoBase *textureInfo = this->rendererGetTextureInfo(name[0]);
+    TextureHandle *textureInfo = libshader::textureHandle(this, name[0], ETextureKind::Info, "textureinfo");
+    TextureInfo info;
+    if (textureInfo)
+        libshader::textureSystemOf(this)->describe(textureInfo, info);
 
     float found = 0.0f;
     float out[16];
@@ -3710,20 +3775,23 @@ void CShadingContext::jitTextureInfo(float *dst, int sd, const char *const *name
         found = 1.0f;
         const char *q = query[0];
         if (strcmp(q, "resolution") == 0) {
-            textureInfo->getResolution(out);
+            out[0] = info.resolution[0];
+            out[1] = info.resolution[1];
         }
         else if (strcmp(q, "type") == 0) {
-            outS = textureInfo->getTextureType();
+            outS = info.type;
             isString = true;
         }
         else if (strcmp(q, "channels") == 0) {
-            out[0] = (float)textureInfo->getNumChannels();
+            out[0] = (float)info.numChannels;
         }
         else if (strcmp(q, "viewingmatrix") == 0) {
-            found = (float)textureInfo->getViewMatrix(out);
+            memcpy(out, info.viewMatrix, sizeof(info.viewMatrix));
+            found = (float)info.hasViewMatrix;
         }
         else if (strcmp(q, "projectionmatrix") == 0) {
-            found = (float)textureInfo->getProjectionMatrix(out);
+            memcpy(out, info.projectionMatrix, sizeof(info.projectionMatrix));
+            found = (float)info.hasProjectionMatrix;
         }
         else if (strcmp(q, "exists") == 0) {
             writeDest = false;

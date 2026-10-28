@@ -756,7 +756,10 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     textureSettings.diskCacheEnabled = o->textureCacheEnabled;
     textureSettings.diskCacheDirectory = o->textureCacheDirectory;
     movmm(textureSettings.toWorld, toWorld);
-    textureSettings.loadMutex = NULL; // the system's own lock (the services' getters still hold shaderMutex)
+    // The texture loads stay serialized with the other resource loads (getCache, getTexture3d, getPhotonMap hold
+    // shaderMutex but never reach a texture handle): a plain, non-recursive mutex, so handle() must never be called
+    // by code that already holds it
+    textureSettings.loadMutex = &shaderMutex;
     textureSystem = createTextureSystem(textureSettings);
     assert(textureSystem != NULL);
 

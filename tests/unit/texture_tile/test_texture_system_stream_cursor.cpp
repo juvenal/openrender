@@ -12,15 +12,17 @@
  * No renderer, no frame, no RiBegin: a texture system over a directory resolver and a TextureOpt
  * with a known stream starting at a non-zero dimension. Fixtures:
  *   baked 2D            tests/unit/texture_tile/fixtures/concurrency_rgb.tex
- *   unbaked 2D          tests/unit/image_input/fixtures/tiny_rgb8.png
+ *   unbaked 2D          tests/unit/image_input/fixtures/tiny_rgb8.png (synthesized into a pyramid)
+ *   regular 2D          tests/unit/image_input/fixtures/tiny_rgb.tif (a plain TIFF)
  *   shadow              examples/rib/tests/shadow-source.tex (a baked shadow map)
- *   cubic environment   six sides baked here with makeCubicEnvironment from env-source.tex
+ *   cubic environment   six sides baked here with makeCubicEnvironment from medium_rgb.tif
  *   spherical, cylindrical  baked here with makeSphericalEnvironment / makeCylindericalEnvironment
  *   deep shadow         generated at test time: orender renders deep-shadow-fixture.rib through
  *                       the "tsm" display driver into the working directory
  * Expected dimensions, with S = opt.samples and T = opt.traceSamples:
  *   baked 2D                 2 S
- *   unbaked 2D               2 S, and 4 S when blur > 0
+ *   unbaked 2D (PNG)         2 S, blur or not
+ *   regular 2D (plain TIFF)  2 S, and 4 S when blur > 0
  *   shadow, deep shadow      4 T
  *   cubic environment        2 T
  *   spherical, cylindrical   2 S (the side texture draws from the same stream)
@@ -111,7 +113,7 @@ int main(int argc, char **argv) {
 
     // --- fixtures that are built here
     CDirectoryResolver sources({argv[3], argv[1], argv[2]});
-    const std::string envSource = "env-source.tex";
+    const std::string envSource = "medium_rgb.tif"; // a plain source: env-source.tex is itself baked, which the make* functions refuse
     const std::string cubic = work + "/cubic.env";
     const std::string spherical = work + "/spherical.env";
     const std::string cylindrical = work + "/cylindrical.env";
@@ -148,9 +150,20 @@ int main(int argc, char **argv) {
         textures->texture(unbaked, opt, pt, kS4, kT4, result);
         EXPECT_EQ_DIMS("unbaked 2D lookup4", opt.stream.dim - kStartDim, 2u * 3u);
 
+        // A PNG is synthesized into a pyramid like a baked texture: blur only picks the level, it draws nothing
         opt = makeOpt(3, 1, 0.02f);
         textures->texture(unbaked, opt, pt, kS4, kT4, result);
-        EXPECT_EQ_DIMS("unbaked 2D lookup4 with blur", opt.stream.dim - kStartDim, 4u * 3u);
+        EXPECT_EQ_DIMS("unbaked 2D (PNG) lookup4 with blur", opt.stream.dim - kStartDim, 2u * 3u);
+
+        // A plain TIFF is a regular texture (CRegularTexture), the one class whose blur draws a second pair per sample
+        TextureHandle *regular = textures->handle("tiny_rgb.tif", ETextureKind::Texture);
+        opt = makeOpt(3, 1, 0);
+        textures->texture(regular, opt, pt, kS4, kT4, result);
+        EXPECT_EQ_DIMS("regular 2D lookup4", opt.stream.dim - kStartDim, 2u * 3u);
+
+        opt = makeOpt(3, 1, 0.02f);
+        textures->texture(regular, opt, pt, kS4, kT4, result);
+        EXPECT_EQ_DIMS("regular 2D lookup4 with blur", opt.stream.dim - kStartDim, 4u * 3u);
 
         opt = makeOpt(3, 1, 0);
         textures->texturePoint(baked, opt, pt, 0.3f, 0.4f, result);

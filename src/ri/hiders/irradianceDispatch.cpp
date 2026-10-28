@@ -390,7 +390,7 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
 
                 // GSH : Texture lookup for misses
                 if (scratch->occlusionParams.environment != NULL) {
-                    CEnvironment *tex = scratch->occlusionParams.environment;
+                    TextureHandle *tex = scratch->occlusionParams.environment;
                     vector D0, D1, D2, D3;
                     vector color;
 
@@ -402,7 +402,7 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
 
                     float savedSamples = scratch->traceParams.samples;
                     context->currentShadingState->scratch.traceParams.samples = 1;
-                    tex->lookup(color, D0, D1, D2, D3, context);
+                    context->lookupEnvironment(tex, color, D0, D1, D2, D3);
                     context->currentShadingState->scratch.traceParams.samples = savedSamples;
 
                     addvv(irradiance, color);
@@ -530,7 +530,7 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
 
                     // GSH : Texture lookup for misses
                     if (scratch->occlusionParams.environment != NULL) {
-                        CEnvironment *tex = scratch->occlusionParams.environment;
+                        TextureHandle *tex = scratch->occlusionParams.environment;
                         vector D0, D1, D2, D3;
                         vector color;
 
@@ -542,7 +542,7 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
 
                         float savedSamples = scratch->traceParams.samples;
                         context->currentShadingState->scratch.traceParams.samples = 1;
-                        tex->lookup(color, D0, D1, D2, D3, context);
+                        context->lookupEnvironment(tex, color, D0, D1, D2, D3);
                         context->currentShadingState->scratch.traceParams.samples = savedSamples;
 
                         addvv(irradiance, color);

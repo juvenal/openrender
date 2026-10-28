@@ -19,6 +19,7 @@
 
 #include "textureSystem.h"
 
+#include <assert.h>
 #include <string.h>
 #include <string>
 
@@ -39,6 +40,13 @@ namespace {
     inline CTextureInfoBase *fromHandle(TextureHandle *handle) {
         return reinterpret_cast<CTextureInfoBase *>(handle);
     }
+
+    // How many handle() calls this thread is inside, across all systems. The load lock is a plain
+    // (non-recursive) mutex and the core passes the one that guards the services' getters, so a
+    // load that reached back into handle() would self-deadlock; debug builds assert instead (T071a).
+#ifndef NDEBUG
+    thread_local int t_handleDepth = 0;
+#endif
 
     // Holds a mutex for the length of a scope
     class CScopedLock {
@@ -76,6 +84,14 @@ namespace {
 
             TextureHandle *handle(const char *name, ETextureKind kind) override {
                 CFileResource *tex;
+
+#ifndef NDEBUG
+                assert(t_handleDepth == 0 && "CTextureSystem::handle() re-entered: the load lock is not recursive");
+                struct CDepth {
+                        CDepth() { ++t_handleDepth; }
+                        ~CDepth() { --t_handleDepth; }
+                } depth;
+#endif
 
                 // One lock across find -> load -> insert, so a name is located and loaded once and a missing
                 // name is reported once, however many threads ask for it first (FR-016, GitHub #20)
@@ -130,6 +146,19 @@ namespace {
 
             TexturePerthread *perthread(int thread) override {
                 return &cache.perthread[thread];
+            }
+
+            void texture(TextureHandle *handle, TextureOpt &opt, TexturePerthread *pt, const float *s4, const float *t4, float *result) override {
+                static_cast<CTexture *>(fromHandle(handle))->lookup4(result, s4, t4, opt, pt);
+            }
+
+            void texturePoint(TextureHandle *handle, TextureOpt &opt, TexturePerthread *pt, float s, float t, float *result) override {
+                static_cast<CTexture *>(fromHandle(handle))->lookup(result, s, t, opt, pt);
+            }
+
+            void environment(TextureHandle *handle, TextureOpt &opt, TexturePerthread *pt, const float *D0, const float *D1, const float *D2,
+                             const float *D3, float *result) override {
+                static_cast<CEnvironment *>(fromHandle(handle))->lookup(result, D0, D1, D2, D3, opt, pt);
             }
 
             void describe(TextureHandle *handle, TextureInfo &out) override {

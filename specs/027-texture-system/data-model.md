@@ -108,7 +108,8 @@ Per builtin (the interpreter's and the JIT's sources are the same scratch, read 
 | Lookup | Dimensions | Condition |
 |---|---|---|
 | 2D baked (`CMadeTexture::lookup4`) | 2 × `samples` | — |
-| 2D unbaked or regular (`CRegularTexture::lookup4`) | 2 × `samples`, + 2 × `samples` | the second term when `blur > 0` |
+| 2D unbaked from PNG, EXR or RGBE (synthesized pyramid, `CMadeTexture::lookup4`) | 2 × `samples` | blur only picks the level |
+| 2D regular, a plain TIFF (`CRegularTexture::lookup4`) | 2 × `samples`, + 2 × `samples` | the second term when `blur > 0` |
 | 2D point (`lookup`), `lookupz`, substitutes | 0 | — |
 | shadow (`CShadow`), deep shadow (`CDeepShadow`) | 4 × `traceSamples` | — |
 | cubic environment | 2 × `traceSamples` | — |

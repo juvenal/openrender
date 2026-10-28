@@ -493,7 +493,99 @@ accepted as the uninitialized-scratch noise Phase 9 removes (no comparison tree 
   These are the `.slo` renders of §1.5, whose options are uninitialized scratch memory (research R10): the deviating values come back as the same few numbers (84.94 first appeared at Checkpoint 3, before this phase), and the noise shows more often after this phase's allocation changes. Not an interpreter change.
   Reported for the maintainer; Phase 9 removes the cause (T107a).
 
-## §6–§9 Phase checkpoints
+## §6 Phase 6: the option block and the services (US1, US2, US3; FR-003, FR-005, FR-009, FR-010, FR-012, FR-013)
+
+**Checkpoint 5 approvals** are recorded in §5. This phase is the compile-broken span T069 to T080: the compiler was the work list, and one `-k` build after the edits was clean.
+
+**T067.** The DB-010 line `texture.cpp -> core/shading.h` was deleted by key (11 DB-010 lines left). `ctest -L architecture`: **red, exactly 1 `VIOLATION`** (`texture.cpp:33`).
+
+**T068-T070.** `textureSystem.h` gained `texture()`, `texturePoint()` and `environment()`; `CTextureSystemImpl` dispatches to the handle's object. `CTexture::lookupz/lookup/lookup4` and `CEnvironment::lookup` take `(..., TextureOpt &opt, TexturePerthread *pt)`; the layer-level
+functions (`lookupPixel`, `textureLoadBlock`, `textureAllocateBlock`, `textureMemFlush`, `CDeepShadow::loadTile`) take the `TexturePerthread *`. Options come from `opt.{filter,blur,fill,samples,traceSamples,bias}`, draws from `opt.stream.next2/next4` (same dimensions in the same order),
+`pt->thread` and `pt->scratch` replace the context reads; the nested side lookups of the spherical and cylindrical environments and of `CShadow` share the caller's `opt`. `texture.h`/`texture.cpp` no longer include `shading.h` (T083 below).
+
+**T071.** `rendererServices.h`: `getTexture`, `getEnvironment`, `getTextureInfo` and the forward declarations of `CTexture`, `CEnvironment`, `CTextureInfoBase` are gone; `CTextureSystem *textureSystem()` is in. `rendererServicesImpl.h` returns `CRenderer::textureSystem` and the three getters
+and their `shaderMutex` wrapper are deleted. **In the same step** `beginFrame()` passes `&shaderMutex` as `CTextureSystemSettings::loadMutex`. Reading every remaining `shaderMutex` holder: only `getPhotonMap`, `getCache` and `getTexture3d` (`rendererServicesImpl.h:64-81`)
+hold it, and none reaches a texture handle: no code that holds the mutex calls `handle()`.
+
+**T071a.** (a) `CTextureSystemImpl::handle()` has a per-thread depth counter (`thread_local`, compiled only where `NDEBUG` is undefined) and an `assert` that a thread already inside `handle()` does not enter it again. (b) `TextureSystem_ConcurrentFirstLoadExternalMutex` is enabled:
+`ctest -R ConcurrentFirstLoad -j2`, **three runs, both entries green every time** (the re-entry subtest reports "skipped (NDEBUG)" in this Release build). (b2) **Debug run, once**: a scratch tree `build-027-dbg` configured like `build-027` (same generator, toolchain, `VCPKG_*`, bison and deployment target)
+with `-DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_CXX_FLAGS_RELWITHDEBINFO="-O0 -g"` (no `NDEBUG`; vcpkg's libraries are release-only, so a `Debug` configuration has nothing to map to) and `-DOPENRENDER_ENABLE_JIT=OFF` (at `-O0` the test executable, which links no LLVM, otherwise failed to load: `symbol not found in flat namespace '__ZTIN4llvm13ErrorInfoBaseE'`;
+the subtest has nothing to do with the JIT). Built only `test_texture_system_concurrent_first_load` through `cpujob 027-p6-dbg2`, then `cpujob 027-p6-dbg-run ctest --test-dir build-027-dbg -R ConcurrentFirstLoadExternalMutex -j2 -V`:
+`Assertion failed: (t_handleDepth == 0 && "CTextureSystem::handle() re-entered: the load lock is not recursive"), function handle, file textureSystem.cpp, line 89.` then `re-entry assertion fired (child ended with SIGABRT)` and the 200-repeat, 4-thread assertions: **Passed**. `build-027-dbg` deleted (not staged).
+(c) **Core-lock coupling** (for T115 and T117 to copy): *the core passes `&CRenderer::shaderMutex` as `loadMutex`; it is a plain non-recursive mutex; `handle()` must never be called by code that already holds it; the services getters that hold it (`getCache`, `getTexture3d`, `getPhotonMap`) never reach a texture handle; a new caller that does is a self-deadlock*.
+
+**T072.** `CForwardingServices`, `CRecordingServices` and `CStubServices` follow the interface (`textureSystem()`, `CStubServices` returns `nullptr`; the three getters dropped). No other implementation of `CRendererServices` exists besides `CRendererServicesImpl` and the test double `CTextureServices`. No assertion changed.
+
+**T073-T079.**
+- New `src/libshader/shading/textureCalls.{h,cpp}` (namespace `libshader`): `textureSystemOf()`, `textureHandle(context, name, kind, builtin)` (null with no services or no system; one `CODE_NOTSTARTED` warning per builtin per process, a `std::atomic<bool>` each for `texture`, `environment`, `shadow`, `textureinfo`, the messages name the builtin) and `texture3dAvailable()` (Phase 7).
+- `shading.h`/`shading.cpp`: `CShadingContext::textureOptions()` (the scratch's texture and trace parameters and `{sampling.backend, drawCursor, drawCursorDim}`), `commitTextureDraws()` (`drawCursorDim = opt.stream.dim`), `lookupEnvironment()` (fill when the handle or the system is null); `rendererGetTexture/Environment/TextureInfo` removed.
+- `shaderPl.h`: `CTextureLookup::map`, `CEnvironmentLookup::map`, `CMapInfoLookup::map`, `COcclusionLookup::environment` and `occlusionParams.environment` are `TextureHandle *`.
+- `shaderFunctions.h`: the four `texture()` forms use `TEXTURE_LOOKUP` (options per point, `texture()`, commit; fill with no handle); `environment()`/`shadow()` decide ray tracing **by name** (`traced`: `"raytrace"` or the shader's own name) and take the handle otherwise (`ENVIRONMENT_LOOKUP`); `textureinfo()` goes through `ETextureKind::Info` and `describe()`
+  (`found = hasViewMatrix/hasProjectionMatrix`, a null handle writes nothing). `giFunctions.h`: the occlusion/`indirectdiffuse` environment handle through `textureHandle`.
+- `shading.cpp`: `jitTextureF/C` (point `texturePoint`), `jitEnvironmentF/C` (`d,d,d,d`), `jitShadowF` (`p,p,p,p`), `jitTextureInfo` and the occlusion environment keep today's requests; options from `textureOptions()`; a null handle writes `opt.fill` (textureinfo: nothing, found 0).
+- `rslBuiltins.cpp` `rsl_texture_c_scalar` (no caller) routes through `textureCalls`; `execute.cpp` includes only; `irradianceDispatch.cpp` calls `context->lookupEnvironment(...)` at both sites around its unchanged `traceParams.samples = 1` trick, with no new include.
+
+**T080.** The sweep: one `-k` build after the edits found five `-Wunused-parameter` errors in `texture.cpp` (parameters that no longer have a use: the two `lookupz` overrides and the three dummies), fixed by dropping the names; then clean under `-Werror`. Includes added: `textureSystem.h` in `shading.h` and `texture.h`; `textureCalls.h` in `shading.cpp`, `execute.cpp` and
+`rslBuiltins.cpp` (replacing `texture.h` in the last two). `shading.cpp` still includes `texture.h` and `texture3d.h` (3D, Phase 7). No Texturing unit needed a forbidden header.
+
+**T080a.** `jit_texture_probes.sh` and `characterization_scenes.sh` rendered (14 characterization scenes, 18 probe images): `image_manifest.sh diff` over the 32 fresh images: **0 differing** (7 noise-listed). **Mutation**: `commitTextureDraws()` skipped in `lookupEnvironment()`: **8 differing**, all the `occlusion-envmap-*` and `indirectdiffuse-envmap-*` scenes (`reyes` and `raytrace`, `.rslo` and `.slo`). The first mutation sufficed (the scenes do draw after the environment lookup); the fallback was not needed. Reverted (byte-identical to the saved copy).
+
+**T081.** `TextureSystem_StreamCursor` enabled; **green** (baked 2D 6, unbaked 2D 6, point 0, `CShadow` 16, `CDeepShadow` 16, cubic 8, spherical 6, cylindrical 6, substitutes 0, the counts in the test). **Mutation**: one extra `opt.stream.next()` in `CMadeTexture::lookup4`: **red** (`baked 2D lookup4: consumed 9 dimensions, expected 6`, and the unbaked, spherical and cylindrical rows). Reverted.
+**Two fixes to the approved test, approved by the maintainer at Checkpoint 6** (neither touches an assertion's meaning; both found when the test first ran):
+1. The test baked its cubic, spherical and cylindrical environments from `examples/rib/tests/env-source.tex`, which is itself a **baked** environment texture; `makeTexture`-family functions refuse a baked source (`Unsupported or unrecognized source image format`, a 69-byte unusable cubic file, `Failed open environment`). `otexmake -envlatl` on `tests/unit/image_input/fixtures/medium_rgb.tif`
+   is how `env-source.tex` was made (the same 31178 bytes), so the source is now `medium_rgb.tif`, found through the same resolver.
+2. The "unbaked 2D with blur: 4 S" row did not hold: a PNG is synthesized into a pyramid (`CMadeTexture`, where blur only picks the level), and the class that draws a second pair per sample with `blur > 0` is `CRegularTexture`, which a **plain TIFF** reaches (data-model.md section 5 and tasks.md T-K1 named the PNG). The test now pins both: the PNG with blur draws 2 S, and
+   `tiny_rgb.tif` (a plain TIFF, already in the image-input fixtures) draws 2 S without and 4 S with blur. data-model.md section 5 states the two classes.
+
+**T082 (green after the maintainer's Checkpoint 6 decision, 2026-10-28).** `ShadingParity_TextureSubstituteHiderNoSystem` is green (the first point at which the null-handle `lookupEnvironment()` fallback exists). The first run of `ShadingParity_TextureSubstitute` had **92 failed assertions of 1020, every one in the `.slo` half's result pins**; the interpreter half (handle requests, the four corners,
+every option of every probe including the parameter-list probes, the canned colors, the textureinfo result) and the JIT's *requests* (handle, point lookups, the repeated direction of `environment()`, the scratch options) passed. The causes, from a debug print in a scratch copy of the test:
+- `tex_c` and `env_c` `.slo`: the JIT writes **one** channel (`ci = 0.125 -1 -1`; the harness pre-fills `-1`): research R22's second row (color forms take the float-channel entry point).
+- `shadow_f` `.slo`: the recorded points `P0..P3` are garbage (`0, 8.4e-39, 1.4e-45`): **new**, the `shadow` emitter branch (`getVar(ins, 1)`) passes operand 1, the channel, as `Ps` (operand 2). Added to research R22.
+- `textureinfo` `.slo`: `found` right, resolution values garbage (`3.2e-35, 1.4e-45`); cause to be traced in Phase 9. Added to research R22.
+None comes from this phase (the `jit*` bodies make the same requests as before; the emitter and the `op_*` entry points are untouched). **Decision (maintainer):** these JIT result pins move to Phase 9 with T104's switch. The test now guards exactly them with `kJitResultPins` (compiled, skipped, with a printed note) unless `TEXTURE_SUBSTITUTE_JIT_RESULTS` is defined, which T104 does:
+the `.slo` color results of `tex_c`/`env_c`, `shadow_f`'s recorded `P` (its options stay pinned), the `textureinfo` resolution values, the cross-backend color equality of `tex_c`/`env_c`/`textureinfo`, and the no-system fill of the JIT color forms. No other assertion changed. Result: both tests **Passed**. The `textureOptions()` mutation (no `blur`) was red before the restructure (92 to 124 failed assertions, all the `_pl` blur option checks of the interpreter half), and those checks are untouched.
+R22, the T105 list, T104 and the plan name the two new findings.
+
+**T083.** `grep -rnE '\b(CTexture|CEnvironment|CTextureInfoBase)\b' src/libshader`: nothing. `grep -rnE '(->|\.)(lookup4|lookupz)\(' src/libshader`: nothing. `grep -rn CShadingContext` over `texture.h`, `texture.cpp`, `textureSystem.*`, `textureInternal.h`: nothing. The Shading -> Texturing calls that still carry a context are the two
+irradiance-cache lookups (`giFunctions.h:235`, `shading.cpp:3443`, `cache->lookup(..., this)`), SC-005's 3D exception, plus the 3D texture and point-cloud calls of Phase 7.
+
+**Checkpoint 6 (T084), macOS** (`cpujob 027-p6-*`, logs in `build-027-logs/`).
+- CP-a: clean build, `-Werror`. CP-b: 892 registered (2 disabled: `ShadingParity_TextureSubstitute3D{,NoServices}`, 1 skipped), **33 failed = `tools/known-red-p2.txt` (32) + `ShadingParity_TextureSubstitute`** (T082 above). `texture_tile` at `-j2`: 14/14 (the nine, `NullResolver`, `InfoMiss`, `ConcurrentFirstLoad` and its external-mutex entry, `StreamCursor`).
+- CP-c: `ctest -L architecture` 21/21, `RESULT PASS`, no `STALE`, no `VIOLATION`; `ALLOWED DB-010 x 11` (the 8 hider-origin lines and 3 Texturing lines), nothing added. `METRIC Texturing refs 1 distinct 1`, `TOTAL refs 652 distinct 98`. Shading's flat-namespace imports: **7**, the same seven symbols as `libshader-dynlookup-before-macos.txt`
+  (`CTexture3d::resolve` leaves in Phase 7).
+- CP-d: 833 images, **0 differing, 0 missing** (noise list: the seven `.slo` raytrace probes); all 389 `MaxBlockAvgDiff` equal `baseline-diffs.txt`. In that comparison and unchanged: `TextureSystem_StreamCursor`, the determinism tests, the occlusion and indirectdiffuse `ShadingParity_JitPL*` tests, `Visual_sphere-{occlusion,texture3d-bake3d,textureinfo}-reyes{,-slo}`, the `Parity_{texture,unbaked}-*`, `Parity_env`, `Parity_shadow` scenes.
+- **Divergence rows** (`jit_texture_divergence.sh`, absolute output path): 17 of 18 equal to §0.7; `texture-png-raytrace` read 91.55 (86.20), the known noise value of §5 (the `.slo` raytrace renders read uninitialized scratch; Phase 9, T107a).
+
+## §7 Phase 7: 3D channel operations through the services, the point hierarchy's accessor (US1, US3; FR-009, FR-011, FR-014)
+
+**Checkpoint 6 decisions applied first** (maintainer, 2026-10-28): the JIT result pins moved to Phase 9 behind `kJitResultPins` / `TEXTURE_SUBSTITUTE_JIT_RESULTS` (§6 T082; no other assertion changed; both substitute tests Passed); R22, T104, T105 and the plan name the `shadow` operand and `textureinfo` findings; T-K1's wording is fixed in tasks.md; the `TextureSystem_StreamCursor` source change, its blur rows and the `TEXTURE_SUBSTITUTE_3D` guard were approved (the guard is removed again below).
+
+**T085.** The DB-010 line `pointHierarchy.cpp -> core/shading.h` was deleted (10 left). `ctest -L architecture`/`archcheck`: **red, exactly 1 `VIOLATION`** (`pointHierarchy.cpp:32 -> core/shading.h`).
+
+**T086.** `rendererServices.h`: `texture3dResolve` (returns the data size), `texture3dLookup`, `texture3dStore`. `rendererServicesImpl.h` calls `t->resolve(...)` then returns `t->dataSize`, `t->lookup(...)`, `t->store(...)`, unlocked. `CForwardingServices` and `CRecordingServices` forward to the wrapped services, `CStubServices` returns 0 / nothing.
+`CShadingContext::rendererTexture3dResolve/Lookup/Store` (null-safe: nothing without services or a handle) are the one place Shading calls them.
+
+**T087.** `texture3d()` and `bake3d()` (interpreter macros) and `jitTexture3d`/`jitBake3d` call `texture3dAvailable` before `getTexture3d` (no services: result 0, nothing written, one `CODE_NOTSTARTED` warning per kind) and the forwarders for resolve, lookup and store. A null handle writes result 0 (it used to crash in `tex->resolve`). The occlusion and `indirectdiffuse` paths
+(`giFunctions.h`, `jitOcclusionBatch`) resolve their irradiance cache through `rendererTexture3dResolve` as well: every call of `CTexture3d::resolve` in Shading had to move, or the import would stay. `getTexture3d`, `getCache` and the two six-argument irradiance-cache `lookup(..., this)` calls are unchanged.
+
+**T088.** `CPointHierarchy(name, from, to, in, const Options &)` with `Options { float (*maxSolidAngle)(const CShadingContext *) }`; `lookup()` reads the limit through it; `pointHierarchy.cpp` no longer includes `shading.h` (it now includes `ri_config.h` for `ALLOCA_MAX_ITEMS` and `POINTHIERARCHY_STACK_SIZE`, which came in through `shading.h`). `rendererFiles.cpp` defines `pointHierarchyMaxSolidAngle()` (reads `scratch.occlusionParams.maxSolidAngle`) and passes it; it includes `shading.h` for the complete type. No hider code changed.
+
+**T088a.** `characterization_scenes.sh` + `image_manifest.sh diff`: the 32 fresh images (14 characterization scenes, 18 probes): **0 differing**. **Mutation**: the accessor returns 0: **3 differing** (`pointhier-occlusion-default-reyes`, `pointhier-occlusion-wide-reyes` and its `-slo`), and the script's own `maxsolidangle` proof fails as it should. Reverted (byte-identical to the saved copy).
+
+**T089.** `ShadingParity_TextureSubstitute3D` and `...3DNoServices` enabled (`ENABLED` in `tests/shading_parity/CMakeLists.txt`; the `TEXTURE_SUBSTITUTE_3D` define and the header guard are gone). `ctest -R TextureSubstitute`: **4/4 Passed**.
+**Setup change for approval**: with the forwarders on the services, the `getCache` handle that an `occlusion()` call resolves is routed through them too, and `CTextureServices` recorded it (`ShadingParity_TextureSubstituteHiderNoSystem` went red on `noSystem.calls3d.empty()`) and would have answered it with canned values instead of the cache's. `CTextureServices` now records and answers only calls made with
+its own token (`token3d()`, what `getTexture3d` returns, now a member) and forwards every other handle to the wrapped services. No assertion changed; the hider test is green again.
+**Mutation**: `rendererTexture3dLookup` passes `N` and `P` swapped: `ShadingParity_TextureSubstitute3D` **red** (48 failed assertions). Reverted. (The suggested "ignore the returned size" does not apply: Shading reads `dataSize` from the handle as before; the swap is the mutation.)
+
+**T090.** Flat-namespace imports of `libshader_shading.dylib`: **6**, a subset of `libshader-dynlookup-before-macos.txt`: `CPhotonMap::lookup`, `CGatherBundle::CGatherBundle`, `CShadingContext::trace`, `CShadingContext::traceEx`, the vtables of `CTraceBundle` and `CTransmissionBundle`; `CTexture3d::resolve` is gone. `ALLOWED DB-001 x 8` unchanged.
+
+**Checkpoint 7 (T091), macOS** (`cpujob 027-p7-*`, logs in `build-027-logs/`).
+- CP-a: clean build, `-Werror`. CP-b: 894 registered (1 skipped), **32 failed = exactly `tools/known-red-p2.txt`**; `texture_tile` at `-j2`: 14/14.
+- CP-c: `ctest -L architecture` 21/21, `RESULT PASS`, no `STALE`, no `VIOLATION`; **`ALLOWED DB-010 x 10`**, nothing added; `METRIC Texturing refs 1 distinct 1`, `TOTAL refs 652 distinct 98`; Shading's imports **6**.
+- CP-d: 833 images, **0 differing, 0 missing** (noise list: the seven `.slo` raytrace probes); all 389 `MaxBlockAvgDiff` equal `baseline-diffs.txt`. Named and unchanged: `TextureSystem_StreamCursor`, `ShadingParity_TextureSubstitute{,HiderNoSystem,3D,3DNoServices}`, the determinism tests, the occlusion `ShadingParity_JitPL*` tests, `Visual_sphere-{occlusion,texture3d-bake3d,textureinfo}-reyes{,-slo}`.
+- Divergence rows: all 18 equal §0.7 in this run (no noise deviation).
+
+## §8–§9 Phase checkpoints
 
 ## §10 Linux
 

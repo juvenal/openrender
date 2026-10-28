@@ -138,8 +138,6 @@ DB-010  include  src/ri/hiders/irradiance.cpp  ->  src/ri/texture/texture.h
 DB-010  include  src/ri/hiders/irradiance.h  ->  src/ri/texture/texture3d.h
 DB-010  include  src/ri/hiders/irradianceDispatch.cpp  ->  src/ri/texture/pointHierarchy.h
 DB-010  include  src/ri/hiders/irradianceDispatch.cpp  ->  src/ri/texture/texture.h
-DB-010  include  src/ri/texture/pointHierarchy.cpp  ->  src/ri/core/shading.h
-DB-010  include  src/ri/texture/texture.cpp  ->  src/ri/core/shading.h
 DB-010  include  src/ri/texture/texture3d.cpp  ->  src/ri/render/renderer.h
 DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZN10CTexture3dC2EPKcPKfS3_S3_iPNS_8CChannelE   # CTexture3d::CTexture3d(char const*, float const*, float const*, float const*, int, CTexture3d::CChannel*)
 DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZN10CTexture3dD2Ev   # CTexture3d::~CTexture3d()

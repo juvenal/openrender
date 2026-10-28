@@ -13,8 +13,8 @@
  *   Texturing depends on infrastructure alone: this header includes common/ headers and nothing else,
  *   and its aggregates are header-only, so Shading imports no Texturing symbol.
  *
- *   Phase 5 of spec 027 declares the handles, the settings and the system's identity (handle(),
- *   perthread(), describe()); the lookups join the interface in Phase 6.
+ *   A lookup takes a caller-built TextureOpt (the options, and the position in the sample stream,
+ *   which the lookup advances) and the thread's TexturePerthread; it never sees a shading context.
  *
  * Authors:
  *   Juvenal A. Silva Jr. <juvenal.silva@v2-labs.press>
@@ -109,6 +109,15 @@ class CTextureSystem {
 
         // Per-thread data (FR-004), 0 <= thread < numThreads.
         virtual TexturePerthread *perthread(int thread) = 0;
+
+        // Lookups. `handle` is never null here (the caller handles the no-system case); `result` receives 3 floats.
+        // Each lookup advances opt.stream by the dimensions data-model.md section 5 lists.
+        virtual void texture(TextureHandle *handle, TextureOpt &opt, TexturePerthread *pt, const float *s4, const float *t4,
+                             float *result) = 0; // filtered, four corners
+        virtual void texturePoint(TextureHandle *handle, TextureOpt &opt, TexturePerthread *pt, float s, float t,
+                                  float *result) = 0; // unfiltered point
+        virtual void environment(TextureHandle *handle, TextureOpt &opt, TexturePerthread *pt, const float *D0, const float *D1, const float *D2,
+                                 const float *D3, float *result) = 0; // environment, shadow and deep shadow
 
         // textureinfo(): zeroes `out`, then fills it from what the handle describes
         virtual void describe(TextureHandle *handle, TextureInfo &out) = 0;

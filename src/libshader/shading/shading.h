@@ -35,6 +35,7 @@
 #include "libshader/shading/rendererServices.h"
 #include "common/random.h"
 #include "common/sampling.h"
+#include "ri/texture/textureSystem.h"
 #include "shader.h"
 
 // Some forward definitions
@@ -55,9 +56,7 @@ class CTracable;
 class CQuadVertex;
 class CQuadTriangle;
 class CQuad;
-class CTexture;
 class CTexture3d;
-class CTextureInfoBase;
 class CPhotonMap;
 class CVertex;
 class CMovingVertex;
@@ -75,7 +74,6 @@ class CSphereLight;
 struct TObjectHash;
 class CPLLookup;
 class CPointHierarchy;
-class CEnvironment;
 
 typedef enum {
     SHADING_0D,      // Shading points
@@ -170,7 +168,7 @@ struct CShadingScratch {
                 const char *cacheMode;
                 vector environmentColor;
                 CTexture3d *pointHierarchy;
-                CEnvironment *environment;
+                TextureHandle *environment;
         } occlusionParams;
 
         // Gather parameters
@@ -432,6 +430,17 @@ class CShadingContext {
         inline openrender::sampling::Sample2D drawBound2D(uint32_t pair, uint32_t sample) const {
             return openrender::sampling::get2D(sampling.backend, drawCursor, pair, sample);
         }
+
+        // The option block of a texture lookup (spec 027, FR-003): the scratch's texture and
+        // trace parameters and the position in the sub-stream bindDraws() bound. The caller
+        // passes it to the texture system by reference and hands it back to commitTextureDraws()
+        // so the draws the lookup made advance the shader's stream (FR-005).
+        TextureOpt textureOptions() const;
+        void commitTextureDraws(const TextureOpt &opt) { drawCursorDim = opt.stream.dim; }
+
+        // An environment lookup in the way the irradiance integration makes it: four directions,
+        // a colour result, the "fill" value when there is no handle or no texture system.
+        void lookupEnvironment(TextureHandle *environment, float *result, const float *D0, const float *D1, const float *D2, const float *D3);
 
         // The draws of a ray sample: four jitter values (origin, then direction),
         // a direction in a cone, and a time. A location that no call bound (`sub`
@@ -903,12 +912,13 @@ class CShadingContext {
         const float *rendererWorldBmax() const;
         float rendererClipMin() const;
         float rendererClipMax() const;
-        CTexture *rendererGetTexture(const char *name);
-        CEnvironment *rendererGetEnvironment(const char *name);
         CPhotonMap *rendererGetPhotonMap(const char *name);
         CTexture3d *rendererGetCache(const char *handle, const char *mode, const float *from, const float *to);
-        CTextureInfoBase *rendererGetTextureInfo(const char *name);
         CTexture3d *rendererGetTexture3d(const char *name, int write, const char *channels, const float *from, const float *to, int hierarchy = FALSE);
+        // The operations on a handle those two return, through the services (no-ops without services or a handle)
+        int rendererTexture3dResolve(CTexture3d *t, int n, const char **names, int *entry, int *size);
+        void rendererTexture3dLookup(CTexture3d *t, float *dest, const float *P, const float *N, float radius);
+        void rendererTexture3dStore(CTexture3d *t, const float *data, const float *P, const float *N, float radius);
         // Additional renderer-service accessors for execute.cpp / executeMisc.cpp / shaderPl.cpp
         void rendererSetOffendingObject(CObject *obj);
         int rendererGetGlobalID(const char *name);

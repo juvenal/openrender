@@ -42,6 +42,7 @@
 #include "rendererContext.h"
 #include "searchPathResolver.h"
 #include "shadeop.h"
+#include "shading.h"
 #include "texture.h"
 #include "texture3d.h"
 
@@ -572,6 +573,11 @@ CTexture3d *CRenderer::getCache(const char *name, const char *mode, const float 
     return (CTexture3d *)cache;
 }
 
+// The point hierarchy's solid-angle limit: the occlusion() "maxsolidangle" of the lookup in progress (spec 027)
+static float pointHierarchyMaxSolidAngle(const CShadingContext *context) {
+    return context->currentShadingState->scratch.occlusionParams.maxSolidAngle;
+}
+
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRenderer
 // Method				:	getTexture3d
@@ -616,7 +622,9 @@ CTexture3d *CRenderer::getTexture3d(const char *name, int write, const char *cha
                 // Try to open the file
                 if ((in = ropen(fileName, "rb", filePointCloud, TRUE)) != NULL) {
                     if (hierarchy == TRUE) {
-                        texture3d = new CPointHierarchy(name, from, to, in);
+                        CPointHierarchy::Options options;
+                        options.maxSolidAngle = pointHierarchyMaxSolidAngle;
+                        texture3d = new CPointHierarchy(name, from, to, in, options);
                     }
                     else {
                         texture3d = new CPointCloud(name, from, to, in);

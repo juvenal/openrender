@@ -30,7 +30,6 @@
 #include "imageInput.h"
 #include "common/memory.h"
 #include "ri_config.h"
-#include "shading.h"
 #include "common/stats.h"
 #include "texmake.h"
 #include "textureInternal.h"
@@ -138,7 +137,7 @@ static void textureQuickSort(CTextureBlock **activeBlocks, int start, int end, i
 // Description			:	Try to deallocate some textures from memory
 // Return Value			:
 // Comments				:
-static inline void textureMemFlush(CTextureBlock *entry, CShadingContext *context, int all) {
+static inline void textureMemFlush(CTextureBlock *entry, TexturePerthread *pt, int all) {
 
     CTextureCache *const cache = entry->cache;
 
@@ -150,10 +149,9 @@ static inline void textureMemFlush(CTextureBlock *entry, CShadingContext *contex
     osLock(cache->mutex);
 #endif
 
-    const int thread = context->thread;
-    TexturePerthread &pt = cache->perthread[thread];
+    const int thread = pt->thread;
 
-    memBegin(pt.scratch);
+    memBegin(pt->scratch);
 
     // Figure out how many blocks we have in memory
     int i, j;
@@ -166,7 +164,7 @@ static inline void textureMemFlush(CTextureBlock *entry, CShadingContext *contex
     }
 
     // Collect those blocks into an array
-    activeBlocks = (CTextureBlock **)ralloc(i * sizeof(CTextureBlock *), pt.scratch);
+    activeBlocks = (CTextureBlock **)ralloc(i * sizeof(CTextureBlock *), pt->scratch);
     for (cBlock = cache->usedBlocks, i = 0; cBlock != NULL; cBlock = cBlock->next) {
         if (cBlock->threadData[thread].data != NULL) {
             if (cBlock != entry) {
@@ -181,11 +179,11 @@ static inline void textureMemFlush(CTextureBlock *entry, CShadingContext *contex
 
     // Free the memory
     if (all)
-        pt.maxMemory = 0;
-    for (j = 0; (j < i) && (pt.usedMemory > (pt.maxMemory / 2)); j++) {
+        pt->maxMemory = 0;
+    for (j = 0; (j < i) && (pt->usedMemory > (pt->maxMemory / 2)); j++) {
         cBlock = activeBlocks[j];
 
-        pt.usedMemory -= cBlock->size;
+        pt->usedMemory -= cBlock->size;
         cBlock->threadData[thread].data = NULL;
 
 #ifdef TEXTURE_PERBLOCK_LOCK
@@ -205,7 +203,7 @@ static inline void textureMemFlush(CTextureBlock *entry, CShadingContext *contex
 #endif
     }
 
-    memEnd(pt.scratch);
+    memEnd(pt->scratch);
 
 #ifdef TEXTURE_PERBLOCK_LOCK
     osUnlock(cache->mutex);
@@ -217,7 +215,7 @@ static inline void textureMemFlush(CTextureBlock *entry, CShadingContext *contex
 // Description			:	Read a block of texture from disk
 // Return Value			:	Pointer to the new texture
 // Comments				:
-static inline unsigned char *textureAllocateBlock(CTextureBlock *entry, CShadingContext *context) {
+static inline unsigned char *textureAllocateBlock(CTextureBlock *entry, TexturePerthread *pt) {
     stats.textureSize += entry->size;
     if (stats.peakTextureSize < stats.textureSize) {
         stats.peakTextureSize = stats.textureSize;
@@ -225,15 +223,13 @@ static inline unsigned char *textureAllocateBlock(CTextureBlock *entry, CShading
     stats.textureMemory += entry->size;
     stats.transferredTextureData += entry->size;
 
-    TexturePerthread &pt = entry->cache->perthread[context->thread];
-
-    pt.usedMemory += entry->size;
+    pt->usedMemory += entry->size;
 
     unsigned char *data = new unsigned char[entry->size];
 
     // If we exceeded the maximum texture memory, phase out the last texture
-    if (pt.usedMemory > pt.maxMemory)
-        textureMemFlush(entry, context, FALSE);
+    if (pt->usedMemory > pt->maxMemory)
+        textureMemFlush(entry, pt, FALSE);
 
     return data;
 }
@@ -393,8 +389,8 @@ class CTiffTileSource : public CTileSource {
                     // FR-005, with one deliberate adaptation: the scratch
                     // buffer below used to come from the calling shading
                     // context's per-thread arena (memBegin/ralloc/memEnd
-                    // against context->threadMemory); fetchTile()
-                    // deliberately takes no CShadingContext* (so future
+                    // against the shading context's threadMemory); fetchTile()
+                    // deliberately takes no shading context (so future
                     // non-TIFF backends aren't coupled to shading-context
                     // internals), so a plain heap buffer replaces it here
                     // -- the read/copy logic itself is unchanged.
@@ -855,13 +851,13 @@ CTileSource *createSynthesizedTileSource(const char *filename, int level) {
 // Description			:	Read a block of texture from disk
 // Return Value			:	Pointer to the new texture
 // Comments				:
-static inline void textureLoadBlock(CTextureBlock *entry, CTileSource *source, int tileX, int tileY, CShadingContext *context) {
+static inline void textureLoadBlock(CTextureBlock *entry, CTileSource *source, int tileX, int tileY, TexturePerthread *pt) {
 
     osLock(entry->mutex);
 
     // if we already have the data, use that and increment the reference count
     if (entry->data != NULL) {
-        entry->threadData[context->thread].data = entry->data;
+        entry->threadData[pt->thread].data = entry->data;
         entry->refCount++;
 
         osUnlock(entry->mutex);
@@ -873,7 +869,7 @@ static inline void textureLoadBlock(CTextureBlock *entry, CTileSource *source, i
 
     // Allocate space for the texture
     assert(entry->data == NULL);
-    void *data = textureAllocateBlock(entry, context);
+    void *data = textureAllocateBlock(entry, pt);
 
     if (!source->fetchTile(tileX, tileY, data)) {
         // FIXME: Is this an error ?
@@ -897,7 +893,7 @@ static inline void textureLoadBlock(CTextureBlock *entry, CTileSource *source, i
 
     entry->refCount = 1;
     entry->data = data;
-    entry->threadData[context->thread].data = data;
+    entry->threadData[pt->thread].data = data;
 
     osUnlock(entry->mutex);
 }
@@ -1003,7 +999,7 @@ class CTextureLayer {
             delete tileSource;
         }
 
-        void lookup(float *r, float s, float t, CShadingContext *context) {
+        void lookup(float *r, float s, float t, TexturePerthread *pt) {
             s *= width; // To the pixel space
             t *= height;
             s -= 0.5; // Pixel centers
@@ -1019,7 +1015,7 @@ class CTextureLayer {
                 ti = (tMode == TEXTURE_PERIODIC) ? (ti - height) : (height - 1);
 
             float res[4 * 3];
-            lookupPixel(res, si, ti, context);
+            lookupPixel(res, si, ti, pt);
 
             float tmp;
 
@@ -1044,7 +1040,7 @@ class CTextureLayer {
             r[2] += res[11] * tmp;
         }
 
-        float lookupz(float s, float t, float z, CShadingContext *context) {
+        float lookupz(float s, float t, float z, TexturePerthread *pt) {
             s *= width; // To the pixel space
             t *= height;
             s -= 0.5; // Pixel centers
@@ -1060,7 +1056,7 @@ class CTextureLayer {
                 ti = (tMode == TEXTURE_PERIODIC) ? (ti - height) : (height - 1);
 
             float res[4 * 3];
-            lookupPixel(res, si, ti, context);
+            lookupPixel(res, si, ti, pt);
 
             float r = 0;
 
@@ -1091,7 +1087,7 @@ class CTextureLayer {
         TTextureMode sMode, tMode; // The wrap modes
     protected:
         // This function must be overriden by the child class
-        virtual void lookupPixel(float *, int, int, CShadingContext *context) = 0; // Lookup 4 pixel values
+        virtual void lookupPixel(float *, int, int, TexturePerthread *pt) = 0; // Lookup 4 pixel values
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -1124,13 +1120,13 @@ class CBasicTexture : public CTextureLayer {
 
     protected:
         // The pixel lookup
-        void lookupPixel(float *res, int x, int y, CShadingContext *context) {
+        void lookupPixel(float *res, int x, int y, TexturePerthread *pt) {
 
-            const int thread = context->thread;
+            const int thread = pt->thread;
 
             if (dataBlock.threadData[thread].data == NULL) {
                 // The data is cached out
-                textureLoadBlock(&dataBlock, tileSource, 0, 0, context);
+                textureLoadBlock(&dataBlock, tileSource, 0, 0, pt);
             }
 
             // Texture cache management
@@ -1228,7 +1224,7 @@ class CTiledTexture : public CTextureLayer {
 
     protected:
         // Pixel lookup
-        void lookupPixel(float *res, int x, int y, CShadingContext *context) {
+        void lookupPixel(float *res, int x, int y, TexturePerthread *pt) {
             int xTile;
             int yTile;
             CTextureBlock *block;
@@ -1250,7 +1246,7 @@ class CTiledTexture : public CTextureLayer {
             if (yi >= height)
                 yi = (tMode == TEXTURE_PERIODIC) ? (yi - height) : (height - 1);
 
-            const int thread = context->thread;
+            const int thread = pt->thread;
 
 #define access(__x, __y)                                                                                                             \
     xTile = __x >> tileWidthShift;                                                                                                   \
@@ -1258,7 +1254,7 @@ class CTiledTexture : public CTextureLayer {
     block = dataBlocks[yTile] + xTile;                                                                                               \
                                                                                                                                      \
     if (block->threadData[thread].data == NULL) {                                                                                    \
-        textureLoadBlock(block, tileSource, xTile, yTile, context);                                                                  \
+        textureLoadBlock(block, tileSource, xTile, yTile, pt);                                                                  \
     }                                                                                                                                \
     assert(block->data != NULL);                                                                                                     \
     (*cache->perthread[thread].refNumber)++;                                                                                         \
@@ -1303,13 +1299,13 @@ class CMadeTexture : public CTexture {
             }
         }
 
-        float lookupz(float s, float t, float z, CShadingContext *context) {
+        float lookupz(float s, float t, float z, TextureOpt &, TexturePerthread *pt) {
             assert(numLayers > 0);
-            return layers[0]->lookupz(s, t, z, context);
+            return layers[0]->lookupz(s, t, z, pt);
         }
 
-        void lookup(float *result, float s, float t, CShadingContext *context) {
-            const float fill = context->currentShadingState->scratch.textureParams.fill;
+        void lookup(float *result, float s, float t, TextureOpt &opt, TexturePerthread *pt) {
+            const float fill = opt.fill;
 
             // Do the s mode
             switch (layers[0]->sMode) {
@@ -1353,10 +1349,10 @@ class CMadeTexture : public CTexture {
                     break;
             }
 
-            layers[0]->lookup(result, s, t, context);
+            layers[0]->lookup(result, s, t, pt);
         }
 
-        void lookup4(float *result, const float *u, const float *v, CShadingContext *context) {
+        void lookup4(float *result, const float *u, const float *v, TextureOpt &opt, TexturePerthread *pt) {
             int i;
             float totalContribution = 0;
             CTextureLayer *layer0, *layer1;
@@ -1366,7 +1362,6 @@ class CMadeTexture : public CTexture {
             const float cs = ((u[0] + u[1] + u[2] + u[3]) * 0.25f);
             const float ct = ((v[0] + v[1] + v[2] + v[3]) * 0.25f);
             float ds, dt, d;
-            const CShadingScratch *scratch = &(context->currentShadingState->scratch);
 
             const int width = layers[0]->width;
             const int height = layers[0]->height;
@@ -1397,7 +1392,7 @@ class CMadeTexture : public CTexture {
                 diag = d;
             }
 
-            diag += scratch->textureParams.blur * scratch->textureParams.blur * width * height;
+            diag += opt.blur * opt.blur * width * height;
 
             // Find the layer that we want to probe
             l = (logf(diag) * 0.5f * (1 / logf(2.0f)));
@@ -1416,14 +1411,14 @@ class CMadeTexture : public CTexture {
                 offset = 1;
             }
 
-            const float jitter = 1.0f - 1.0f / (float)scratch->textureParams.samples;
+            const float jitter = 1.0f - 1.0f / (float)opt.samples;
 
             initv(result, 0, 0, 0); // Result is black
-            for (i = (int)scratch->textureParams.samples; i > 0; i--) {
+            for (i = (int)opt.samples; i > 0; i--) {
                 float r[2];
                 float s, t;
 
-                context->drawNext2(r);
+                opt.stream.next2(r);
 
                 // stratify the sample so that with low sample counts we don't jitter too much
                 const float x = (r[0] - 0.5f) * jitter + 0.5f;
@@ -1434,7 +1429,7 @@ class CMadeTexture : public CTexture {
                 t = (v[0] * (1 - x) + v[1] * x) * (1 - y) +
                     (v[2] * (1 - x) + v[3] * x) * y;
 
-                const float contribution = scratch->textureParams.filter(x - 0.5f, y - 0.5f, 1, 1);
+                const float contribution = opt.filter(x - 0.5f, y - 0.5f, 1, 1);
                 totalContribution += contribution;
 
                 // Do the s mode
@@ -1479,8 +1474,8 @@ class CMadeTexture : public CTexture {
 
                 // lookup (s,t) and add it to the result
                 vector C, CC0, CC1;
-                layer0->lookup(CC0, s, t, context);
-                layer1->lookup(CC1, s, t, context);
+                layer0->lookup(CC0, s, t, pt);
+                layer1->lookup(CC1, s, t, pt);
                 interpolatev(C, CC0, CC1, offset);
 
                 result[0] += C[0] * contribution;
@@ -1518,13 +1513,13 @@ class CRegularTexture : public CTexture {
                 delete layer;
         }
 
-        float lookupz(float s, float t, float z, CShadingContext *context) {
+        float lookupz(float s, float t, float z, TextureOpt &, TexturePerthread *pt) {
             assert(layer != NULL);
-            return layer->lookupz(s, t, z, context);
+            return layer->lookupz(s, t, z, pt);
         }
 
-        void lookup(float *result, float s, float t, CShadingContext *context) {
-            const float fill = context->currentShadingState->scratch.textureParams.fill;
+        void lookup(float *result, float s, float t, TextureOpt &opt, TexturePerthread *pt) {
+            const float fill = opt.fill;
 
             // Do the s mode
             switch (layer->sMode) {
@@ -1568,22 +1563,21 @@ class CRegularTexture : public CTexture {
                     break;
             }
 
-            layer->lookup(result, s, t, context);
+            layer->lookup(result, s, t, pt);
         }
 
-        void lookup4(float *result, const float *u, const float *v, CShadingContext *context) {
+        void lookup4(float *result, const float *u, const float *v, TextureOpt &opt, TexturePerthread *pt) {
             int i;
             float totalContribution = 0;
-            const CShadingScratch *scratch = &(context->currentShadingState->scratch);
 
-            const float jitter = 1.0f - 1.0f / (float)scratch->textureParams.samples;
+            const float jitter = 1.0f - 1.0f / (float)opt.samples;
 
             initv(result, 0, 0, 0); // Result is black
-            for (i = (int)scratch->textureParams.samples; i > 0; i--) {
+            for (i = (int)opt.samples; i > 0; i--) {
                 float s, t;
                 float r[2];
 
-                context->drawNext2(r);
+                opt.stream.next2(r);
 
                 // stratify the sample so that with low sample counts we don't jitter too much
                 const float x = (r[0] - 0.5f) * jitter + 0.5f;
@@ -1594,14 +1588,14 @@ class CRegularTexture : public CTexture {
                 t = (v[0] * (1 - x) + v[1] * x) * (1 - y) +
                     (v[2] * (1 - x) + v[3] * x) * y;
 
-                const float contribution = scratch->textureParams.filter(x - 0.5f, y - 0.5f, 1, 1);
+                const float contribution = opt.filter(x - 0.5f, y - 0.5f, 1, 1);
                 totalContribution += contribution;
 
-                if (scratch->textureParams.blur > 0) {
-                    context->drawNext2(r);
+                if (opt.blur > 0) {
+                    opt.stream.next2(r);
 
-                    s += scratch->textureParams.blur * (x - 0.5f);
-                    t += scratch->textureParams.blur * (y - 0.5f);
+                    s += opt.blur * (x - 0.5f);
+                    t += opt.blur * (y - 0.5f);
                 }
 
                 // Do the s mode
@@ -1645,7 +1639,7 @@ class CRegularTexture : public CTexture {
                 }
                 // lookup (s,t) and add it to the result
                 vector C;
-                layer->lookup(C, s, t, context);
+                layer->lookup(C, s, t, pt);
 
                 result[0] += C[0] * contribution;
                 result[1] += C[1] * contribution;
@@ -1683,22 +1677,21 @@ class CShadow : public CEnvironment {
                 delete side;
         }
 
-        void lookup(float *result, const float *D0, const float *D1, const float *D2, const float *D3, CShadingContext *context) {
+        void lookup(float *result, const float *D0, const float *D1, const float *D2, const float *D3, TextureOpt &opt, TexturePerthread *pt) {
             float totalContribution = 0;
-            const CShadingScratch *scratch = &(context->currentShadingState->scratch);
-            const float jitter = 1.0f - 1.0f / (float)scratch->traceParams.samples;
+            const float jitter = 1.0f - 1.0f / (float)opt.traceSamples;
 
             result[0] = 0;
-            for (int i = (int)scratch->traceParams.samples; i > 0; --i) {
+            for (int i = (int)opt.traceSamples; i > 0; --i) {
                 float tmp[4], cP[4];
                 float r[4];
 
-                context->drawNext4(r);
+                opt.stream.next4(r);
 
                 // stratify the sample so that with low sample counts we don't jitter too much
                 const float x = (r[0] - 0.5f) * jitter + 0.5f;
                 const float y = (r[1] - 0.5f) * jitter + 0.5f;
-                const float contribution = scratch->textureParams.filter(x - 0.5f, y - 0.5f, 1, 1);
+                const float contribution = opt.filter(x - 0.5f, y - 0.5f, 1, 1);
 
                 totalContribution += contribution;
 
@@ -1711,16 +1704,16 @@ class CShadow : public CEnvironment {
                 float s = tmp[0] / tmp[3];
                 float t = tmp[1] / tmp[3];
 
-                if (scratch->textureParams.blur > 0) {
-                    s += scratch->textureParams.blur * (r[2] - 0.5f);
-                    t += scratch->textureParams.blur * (r[3] - 0.5f);
+                if (opt.blur > 0) {
+                    s += opt.blur * (r[2] - 0.5f);
+                    t += opt.blur * (r[3] - 0.5f);
                 }
 
                 if ((s < 0) || (s > 1) || (t < 0) || (t > 1)) {
                     continue;
                 }
 
-                result[0] += contribution * side->lookupz(s, t, tmp[2] - scratch->traceParams.bias, context);
+                result[0] += contribution * side->lookupz(s, t, tmp[2] - opt.bias, opt, pt);
             }
 
             result[0] /= totalContribution;
@@ -1856,15 +1849,14 @@ class CDeepShadow : public CEnvironment {
             free(fileName);
         }
 
-        void lookup(float *result, const float *D0, const float *D1, const float *D2, const float *D3, CShadingContext *context) {
+        void lookup(float *result, const float *D0, const float *D1, const float *D2, const float *D3, TextureOpt &opt, TexturePerthread *pt) {
             float totalContribution = 0;
-            const CShadingScratch *scratch = &(context->currentShadingState->scratch);
-            const float jitter = 1.0f - 1.0f / (float)scratch->traceParams.samples;
+            const float jitter = 1.0f - 1.0f / (float)opt.traceSamples;
 
             result[0] = 0;
             result[1] = 0;
             result[2] = 0;
-            for (int i = (int)scratch->traceParams.samples; i > 0; --i) {
+            for (int i = (int)opt.traceSamples; i > 0; --i) {
                 float s, t, w;
                 float tmp[4], cP[4];
                 int px, py;
@@ -1873,12 +1865,12 @@ class CDeepShadow : public CEnvironment {
                 float *cPixel;
                 float r[4];
 
-                context->drawNext4(r);
+                opt.stream.next4(r);
 
                 // stratify the sample so that with low sample counts we don't jitter too much
                 const float x = (r[0] - 0.5f) * jitter + 0.5f;
                 const float y = (r[1] - 0.5f) * jitter + 0.5f;
-                const float contribution = scratch->textureParams.filter(x - 0.5f, y - 0.5f, 1, 1);
+                const float contribution = opt.filter(x - 0.5f, y - 0.5f, 1, 1);
 
                 totalContribution += contribution;
 
@@ -1891,9 +1883,9 @@ class CDeepShadow : public CEnvironment {
                 s = tmp[0] / tmp[3];
                 t = tmp[1] / tmp[3];
 
-                if (scratch->textureParams.blur > 0) {
-                    s += scratch->textureParams.blur * (r[2] - 0.5f);
-                    t += scratch->textureParams.blur * (r[3] - 0.5f);
+                if (opt.blur > 0) {
+                    s += opt.blur * (r[2] - 0.5f);
+                    t += opt.blur * (r[3] - 0.5f);
                 }
 
                 if ((s < 0) || (s >= 1) || (t < 0) || (t >= 1)) {
@@ -1902,7 +1894,7 @@ class CDeepShadow : public CEnvironment {
 
                 s *= header.xres;
                 t *= header.yres;
-                w = tmp[2] - scratch->traceParams.bias;
+                w = tmp[2] - opt.bias;
 
                 px = (int)floor(s);
                 py = (int)floor(t);
@@ -1913,14 +1905,14 @@ class CDeepShadow : public CEnvironment {
 
                 cTile = tiles[by] + bx;
 
-                const int thread = context->thread;
+                const int thread = pt->thread;
 
                 int *const refNumber = cTile->block.cache->perthread[thread].refNumber;
                 (*refNumber)++;
                 cTile->block.threadData[thread].lastRefNumber = *refNumber;
 
                 if (cTile->block.threadData[thread].data == NULL) {
-                    loadTile(bx, by, context);
+                    loadTile(bx, by, pt);
                 }
 
                 cPixel = cTile->lastData[py * header.tileSize + px];
@@ -1976,7 +1968,7 @@ class CDeepShadow : public CEnvironment {
         }
 
     private:
-        void loadTile(int x, int y, CShadingContext *context) {
+        void loadTile(int x, int y, TexturePerthread *pt) {
 
             CDeepTile *cTile = tiles[y] + x;
 
@@ -1986,7 +1978,7 @@ class CDeepShadow : public CEnvironment {
             osLock(cTile->block.mutex);
 #endif
             if (cTile->block.data != NULL) {
-                cTile->block.threadData[context->thread].data = cTile->block.data;
+                cTile->block.threadData[pt->thread].data = cTile->block.data;
                 cTile->block.refCount++;
 #ifndef TEXTURE_PERBLOCK_LOCK
                 osUnlock(cTile->block.cache->mutex);
@@ -2007,7 +1999,7 @@ class CDeepShadow : public CEnvironment {
 
             startIndex = tileIndices[index];
 
-            dataStart = data = (float *)textureAllocateBlock(&(cTile->block), context);
+            dataStart = data = (float *)textureAllocateBlock(&(cTile->block), pt);
             fseek(in, startIndex, SEEK_SET);
             if (fread(data, sizeof(unsigned char), cTile->block.size, in) < (size_t)cTile->block.size) {
                 // short read — proceed with whatever data was loaded into the tile
@@ -2041,7 +2033,7 @@ class CDeepShadow : public CEnvironment {
 
             cTile->block.refCount = 1;
             cTile->block.data = dataStart;
-            cTile->block.threadData[context->thread].data = dataStart;
+            cTile->block.threadData[pt->thread].data = dataStart;
 
 #ifndef TEXTURE_PERBLOCK_LOCK
             osUnlock(cTile->block.cache->mutex);
@@ -2105,14 +2097,13 @@ class CCubicEnvironment : public CEnvironment {
             ZYX
         } EOrder;
 
-        void lookup(float *result, const float *D0, const float *D1, const float *D2, const float *D3, CShadingContext *context) {
+        void lookup(float *result, const float *D0, const float *D1, const float *D2, const float *D3, TextureOpt &opt, TexturePerthread *pt) {
             EOrder order;
             CTexture *side;
             float u, v;
             vector D;
             float totalContribution = 0;
             vector C;
-            const CShadingScratch *scratch = &(context->currentShadingState->scratch);
 
             result[0] = 0;
             result[1] = 0;
@@ -2123,7 +2114,7 @@ class CCubicEnvironment : public CEnvironment {
 
             // Blur the directions if needed
             vector tmp[4];
-            if (scratch->textureParams.blur > 0) {
+            if (opt.blur > 0) {
                 vector middle;
 
                 // First, compute the mid point
@@ -2135,39 +2126,39 @@ class CCubicEnvironment : public CEnvironment {
                 // Scale the directions along the mid point with the blur
                 subvv(tmp[0], D0, middle);
                 normalizevf(tmp[0]);
-                mulvf(tmp[0], scratch->textureParams.blur * lengthv(D0) * 2);
+                mulvf(tmp[0], opt.blur * lengthv(D0) * 2);
                 addvv(tmp[0], D0);
                 D0 = tmp[0];
 
                 subvv(tmp[1], D1, middle);
                 normalizevf(tmp[1]);
-                mulvf(tmp[1], scratch->textureParams.blur * lengthv(D1) * 2);
+                mulvf(tmp[1], opt.blur * lengthv(D1) * 2);
                 addvv(tmp[1], D1);
                 D1 = tmp[1];
 
                 subvv(tmp[2], D2, middle);
                 normalizevf(tmp[2]);
-                mulvf(tmp[2], scratch->textureParams.blur * lengthv(D2) * 2);
+                mulvf(tmp[2], opt.blur * lengthv(D2) * 2);
                 addvv(tmp[2], D2);
                 D2 = tmp[2];
 
                 subvv(tmp[3], D3, middle);
                 normalizevf(tmp[3]);
-                mulvf(tmp[3], scratch->textureParams.blur * lengthv(D3) * 2);
+                mulvf(tmp[3], opt.blur * lengthv(D3) * 2);
                 addvv(tmp[3], D3);
                 D3 = tmp[3];
             }
 
-            for (int i = (int)scratch->traceParams.samples; i > 0; --i) {
+            for (int i = (int)opt.traceSamples; i > 0; --i) {
                 float t;
                 float r[2];
 
-                context->drawNext2(r);
+                opt.stream.next2(r);
 
                 // stratify the sample so that with low sample counts we don't jitter too much
                 const float x = (r[0] - 0.5f) + 0.5f;
                 const float y = (r[1] - 0.5f) + 0.5f;
-                const float contribution = scratch->textureParams.filter(x - 0.5f, y - 0.5f, 1, 1);
+                const float contribution = opt.filter(x - 0.5f, y - 0.5f, 1, 1);
 
                 totalContribution += contribution;
 
@@ -2246,7 +2237,7 @@ class CCubicEnvironment : public CEnvironment {
                         break;
                 }
 
-                side->lookup(C, u, v, context);
+                side->lookup(C, u, v, opt, pt);
 
                 result[0] += C[0] * contribution;
                 result[1] += C[1] * contribution;
@@ -2280,7 +2271,7 @@ class CSphericalEnvironment : public CEnvironment {
             delete side;
         }
 
-        void lookup(float *result, const float *D0, const float *D1, const float *D2, const float *D3, CShadingContext *context) {
+        void lookup(float *result, const float *D0, const float *D1, const float *D2, const float *D3, TextureOpt &opt, TexturePerthread *pt) {
             float u[4], v[4];
             float m;
 
@@ -2300,7 +2291,7 @@ class CSphericalEnvironment : public CEnvironment {
             u[3] = D3[COMP_X] / m + 0.5f;
             v[3] = D3[COMP_Y] / m + 0.5f;
 
-            side->lookup4(result, u, v, context);
+            side->lookup4(result, u, v, opt, pt);
         }
 
         // textureinfo support
@@ -2327,7 +2318,7 @@ class CCylindericalEnvironment : public CEnvironment {
             delete side;
         }
 
-        void lookup(float *result, const float *D0, const float *D1, const float *D2, const float *D3, CShadingContext *context) {
+        void lookup(float *result, const float *D0, const float *D1, const float *D2, const float *D3, TextureOpt &opt, TexturePerthread *pt) {
             float u[4], v[4];
             double a, b, c;
             vector D, Dsamp;
@@ -2361,7 +2352,7 @@ class CCylindericalEnvironment : public CEnvironment {
                 u[3] = u[0] + (float)(a * D[COMP_X] + b * D[COMP_Y]);
                 v[3] = v[0] + (float)(c * D[COMP_Z]);
 
-                side->lookup4(result, u, v, context);
+                side->lookup4(result, u, v, opt, pt);
             }
             else {
                 initv(result, 0, 0, 0);
@@ -2384,7 +2375,7 @@ class CCylindericalEnvironment : public CEnvironment {
 // Description			:	Dummy
 // Return Value			:
 // Comments				:
-float CDummyTexture::lookupz(float, float, float, CShadingContext *) {
+float CDummyTexture::lookupz(float, float, float, TextureOpt &, TexturePerthread *) {
     return 0;
 }
 
@@ -2394,8 +2385,8 @@ float CDummyTexture::lookupz(float, float, float, CShadingContext *) {
 // Description			:	Dummy
 // Return Value			:
 // Comments				:
-void CDummyTexture::lookup(float *dest, float, float, CShadingContext *context) {
-    initv(dest, context->currentShadingState->scratch.textureParams.fill);
+void CDummyTexture::lookup(float *dest, float, float, TextureOpt &opt, TexturePerthread *) {
+    initv(dest, opt.fill);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -2404,8 +2395,8 @@ void CDummyTexture::lookup(float *dest, float, float, CShadingContext *context) 
 // Description			:	Dummy
 // Return Value			:
 // Comments				:
-void CDummyTexture::lookup4(float *dest, const float *, const float *, CShadingContext *context) {
-    initv(dest, context->currentShadingState->scratch.textureParams.fill);
+void CDummyTexture::lookup4(float *dest, const float *, const float *, TextureOpt &opt, TexturePerthread *) {
+    initv(dest, opt.fill);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -2414,8 +2405,8 @@ void CDummyTexture::lookup4(float *dest, const float *, const float *, CShadingC
 // Description			:	Dummy
 // Return Value			:
 // Comments				:
-void CDummyEnvironment::lookup(float *dest, const float *, const float *, const float *, const float *, CShadingContext *context) {
-    initv(dest, context->currentShadingState->scratch.textureParams.fill);
+void CDummyEnvironment::lookup(float *dest, const float *, const float *, const float *, const float *, TextureOpt &opt, TexturePerthread *) {
+    initv(dest, opt.fill);
 }
 
 ///////////////////////////////////////////////////////////////////////

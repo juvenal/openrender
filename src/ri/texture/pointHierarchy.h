@@ -52,7 +52,13 @@ class CPointHierarchy : public CTexture3d, public CMap<CPointCloudPoint> {
         };
 
     public:
-        CPointHierarchy(const char *, const float *from, const float *to, FILE *);
+        // What the hierarchy needs from the renderer core (spec 027): the solid-angle limit of the lookup in
+        // progress. `context` is the shading context the lookup receives, opaque here.
+        struct Options {
+                float (*maxSolidAngle)(const CShadingContext *context);
+        };
+
+        CPointHierarchy(const char *, const float *from, const float *to, FILE *, const Options &options);
         ~CPointHierarchy();
 
         void lookup(float *, const float *, const float *, const float *, const float *, CShadingContext *);
@@ -60,6 +66,7 @@ class CPointHierarchy : public CTexture3d, public CMap<CPointCloudPoint> {
         void lookup(float *, const float *, const float *, float) { assert(FALSE); }
 
     protected:
+        Options options;        // The core's accessors
         CArray<CMapNode> nodes; // This is where we keep the internal nodes
         CArray<float> data;     // This is where we actually keep the data
         int areaIndex;          // Index of the area variable

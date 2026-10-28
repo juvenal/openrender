@@ -170,9 +170,18 @@ class CTextureServices : public CRendererServices {
         };
         std::vector<S3DCall> calls3d;
         int resolveSize = 4;
+        char tokenByte = 0;
 
         CTextureSystem *textureSystem() override { return system; }
-        int texture3dResolve(CTexture3d *t, int n, const char **, int *entry, int *size) override {
+
+        // The token getTexture3d() hands out. Only calls made with it are recorded and answered; a handle
+        // from getCache() (the irradiance cache an occlusion() call resolves through the same forwarders)
+        // goes to the wrapped services.
+        CTexture3d *token3d() { return reinterpret_cast<CTexture3d *>(&tokenByte); }
+
+        int texture3dResolve(CTexture3d *t, int n, const char **names, int *entry, int *size) override {
+            if (t != token3d())
+                return inner->texture3dResolve(t, n, names, entry, size);
             S3DCall c = {"resolve", t, {0, 0, 0}, {0, 0, 0}, 0, n};
             calls3d.push_back(c);
             for (int i = 0; i < n; i++) {
@@ -182,12 +191,20 @@ class CTextureServices : public CRendererServices {
             return resolveSize;
         }
         void texture3dLookup(CTexture3d *t, float *dest, const float *P, const float *N, float radius) override {
+            if (t != token3d()) {
+                inner->texture3dLookup(t, dest, P, N, radius);
+                return;
+            }
             S3DCall c = {"lookup", t, {P[0], P[1], P[2]}, {N[0], N[1], N[2]}, radius, 0};
             calls3d.push_back(c);
             for (int i = 0; i < resolveSize; i++)
                 dest[i] = 0.5f + (float)i;
         }
-        void texture3dStore(CTexture3d *t, const float *, const float *P, const float *N, float radius) override {
+        void texture3dStore(CTexture3d *t, const float *data, const float *P, const float *N, float radius) override {
+            if (t != token3d()) {
+                inner->texture3dStore(t, data, P, N, radius);
+                return;
+            }
             S3DCall c = {"store", t, {P[0], P[1], P[2]}, {N[0], N[1], N[2]}, radius, 0};
             calls3d.push_back(c);
         }
@@ -220,8 +237,7 @@ class CTextureServices : public CRendererServices {
         }
         // The 3D getter hands out a distinct non-null token per name: Shading must pass it to the forwarders unchanged
         CTexture3d *getTexture3d(const char *, int, const char *, const float *, const float *, int = FALSE) override {
-            static char token;
-            return reinterpret_cast<CTexture3d *>(&token);
+            return token3d();
         }
 
         int getGlobalID(const char *name) override { return inner->getGlobalID(name); }

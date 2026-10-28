@@ -63,16 +63,17 @@ class CRecordingServices final : public CRendererServices {
         const float *worldBmin() const override { return inner->worldBmin(); }
         const float *worldBmax() const override { return inner->worldBmax(); }
 
-        CTexture *getTexture(const char *name) override { return inner->getTexture(name); }
-        CEnvironment *getEnvironment(const char *name) override { return inner->getEnvironment(name); }
+        CTextureSystem *textureSystem() override { return inner->textureSystem(); }
         CPhotonMap *getPhotonMap(const char *name) override { return inner->getPhotonMap(name); }
         CTexture3d *getCache(const char *handle, const char *mode, const float *from, const float *to) override {
             return inner->getCache(handle, mode, from, to);
         }
-        CTextureInfoBase *getTextureInfo(const char *name) override { return inner->getTextureInfo(name); }
         CTexture3d *getTexture3d(const char *name, int write, const char *channels, const float *from, const float *to, int hierarchy = FALSE) override {
             return inner->getTexture3d(name, write, channels, from, to, hierarchy);
         }
+        int texture3dResolve(CTexture3d *t, int n, const char **names, int *entry, int *size) override { return inner->texture3dResolve(t, n, names, entry, size); }
+        void texture3dLookup(CTexture3d *t, float *dest, const float *P, const float *N, float radius) override { inner->texture3dLookup(t, dest, P, N, radius); }
+        void texture3dStore(CTexture3d *t, const float *data, const float *P, const float *N, float radius) override { inner->texture3dStore(t, data, P, N, radius); }
 
         int getGlobalID(const char *name) override {
             ++numGetGlobalID;
@@ -174,12 +175,13 @@ class CStubServices final : public CRendererServices {
         const float *worldBmin() const override { return nullptr; }
         const float *worldBmax() const override { return nullptr; }
 
-        CTexture *getTexture(const char *) override { return nullptr; }
-        CEnvironment *getEnvironment(const char *) override { return nullptr; }
+        CTextureSystem *textureSystem() override { return nullptr; }
         CPhotonMap *getPhotonMap(const char *) override { return nullptr; }
         CTexture3d *getCache(const char *, const char *, const float *, const float *) override { return nullptr; }
-        CTextureInfoBase *getTextureInfo(const char *) override { return nullptr; }
         CTexture3d *getTexture3d(const char *, int, const char *, const float *, const float *, int = FALSE) override { return nullptr; }
+        int texture3dResolve(CTexture3d *, int, const char **, int *, int *) override { return 0; }
+        void texture3dLookup(CTexture3d *, float *, const float *, const float *, float) override {}
+        void texture3dStore(CTexture3d *, const float *, const float *, const float *, float) override {}
 
         int getGlobalID(const char *) override { return kGlobalID; }
 

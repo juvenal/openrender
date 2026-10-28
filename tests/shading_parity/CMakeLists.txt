@@ -540,7 +540,12 @@ endif()
 # executable is EXCLUDE_FROM_ALL and each test DISABLED until T082 / T089 enable them. The .rslo half
 # runs with the JIT off; the .slo half is compiled in only with LLVM (TEXTURE_SUBSTITUTE_HAVE_JIT).
 function(add_texture_substitute_test EXE SOURCE)
-    add_executable(${EXE} EXCLUDE_FROM_ALL ${SOURCE})
+    cmake_parse_arguments(ARG "ENABLED" "" "" ${ARGN})
+    if(ARG_ENABLED)
+        add_executable(${EXE} ${SOURCE})
+    else()
+        add_executable(${EXE} EXCLUDE_FROM_ALL ${SOURCE})
+    endif()
     target_link_libraries(${EXE} PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
     target_include_directories(${EXE} PRIVATE
         ${CMAKE_SOURCE_DIR}/src
@@ -554,22 +559,27 @@ function(add_texture_substitute_test EXE SOURCE)
 endfunction()
 
 function(add_texture_substitute_case NAME EXE)
-    add_test(NAME ${NAME} COMMAND ${EXE} ${ARGN})
+    cmake_parse_arguments(ARG "ENABLED" "" "" ${ARGN})
+    add_test(NAME ${NAME} COMMAND ${EXE} ${ARG_UNPARSED_ARGUMENTS})
     set_tests_properties(${NAME} PROPERTIES
         TIMEOUT 120
         LABELS "shading_parity"
-        DISABLED TRUE
         ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>;OSHADER_BIN=$<TARGET_FILE:oshader>;SUBSTITUTE_SHADER_DIR=${CMAKE_CURRENT_SOURCE_DIR}"
     )
+    if(NOT ARG_ENABLED)
+        set_tests_properties(${NAME} PROPERTIES DISABLED TRUE)
+    endif()
 endfunction()
 
-add_texture_substitute_test(test_texture_substitute test_texture_substitute.cpp)
-add_texture_substitute_case(ShadingParity_TextureSubstitute test_texture_substitute builtins)
-add_texture_substitute_case(ShadingParity_TextureSubstituteHiderNoSystem test_texture_substitute hider)
+# enabled by T082 (Phase 6); the 3D pair below stays EXCLUDE_FROM_ALL and DISABLED until T089 (Phase 7)
+add_texture_substitute_test(test_texture_substitute test_texture_substitute.cpp ENABLED)
+add_texture_substitute_case(ShadingParity_TextureSubstitute test_texture_substitute builtins ENABLED)
+add_texture_substitute_case(ShadingParity_TextureSubstituteHiderNoSystem test_texture_substitute hider ENABLED)
 
-add_texture_substitute_test(test_texture_substitute_3d test_texture_substitute_3d.cpp)
-add_texture_substitute_case(ShadingParity_TextureSubstitute3D test_texture_substitute_3d builtins)
-add_texture_substitute_case(ShadingParity_TextureSubstitute3DNoServices test_texture_substitute_3d noservices)
+# enabled by T089 (Phase 7)
+add_texture_substitute_test(test_texture_substitute_3d test_texture_substitute_3d.cpp ENABLED)
+add_texture_substitute_case(ShadingParity_TextureSubstitute3D test_texture_substitute_3d builtins ENABLED)
+add_texture_substitute_case(ShadingParity_TextureSubstitute3DNoServices test_texture_substitute_3d noservices ENABLED)
 
 # ---------------------------------------------------------------------------
 # One working directory per test (spec 027, T032a)
