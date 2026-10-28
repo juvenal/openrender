@@ -442,12 +442,12 @@ is taken on the approved tree, and phase 3 does not start until its files are in
 
 **Independent test**: `Motion_Replay_raytransform` and `Motion_TransformRayEquivalence` green; the 6 camera-state DB-004 lines are gone.
 
-- [ ] T058 [US4] [RUN] Delete the 6 DB-004 lines ("Phase 5 (ray transform)"), keyed by `src/ri/geometry/dlobject.cpp` and `src/ri/geometry/quadrics.cpp -> ` `_ZN9CRenderer17cameraHasRotationE`, `_ZN9CRenderer7relRotQE`, `_ZN9CRenderer7toWorldE`. `ctest -L architecture`: **exactly 6 `VIOLATION` lines**, all in those two files. Record them in validation.md §5.
-- [ ] T059 [US2] Replace the 8 call sites of the ray `transform(oFrom, oDir, xform, <ray>)` with `motion::transformRay(oFrom, oDir, xform, <ray>)`: `dlobject.cpp:99` and the seven quadrics in `quadrics.cpp` (`:197, 687, 1057, 1500, 1956, 2402, 2957`; re-read the lines, the file is large); include `motion.h`. Then delete the ray `transform()` (`objectMisc.h:178-232` only) from `objectMisc.h`
+- [X] T058 [US4] [RUN] Delete the 6 DB-004 lines ("Phase 5 (ray transform)"), keyed by `src/ri/geometry/dlobject.cpp` and `src/ri/geometry/quadrics.cpp -> ` `_ZN9CRenderer17cameraHasRotationE`, `_ZN9CRenderer7relRotQE`, `_ZN9CRenderer7toWorldE`. `ctest -L architecture`: **exactly 6 `VIOLATION` lines**, all in those two files. Record them in validation.md §5.
+- [X] T059 [US2] Replace the 8 call sites of the ray `transform(oFrom, oDir, xform, <ray>)` with `motion::transformRay(oFrom, oDir, xform, <ray>)`: `dlobject.cpp:99` and the seven quadrics in `quadrics.cpp` (`:197, 687, 1057, 1500, 1956, 2402, 2957`; re-read the lines, the file is large); include `motion.h`. Then delete the ray `transform()` (`objectMisc.h:178-232` only) from `objectMisc.h`
   after `grep -n 'transform(oFrom' src` shows no remaining caller. **Leave the grid `transform/vtransform/ntransform` overloads (`objectMisc.h:66-139`) alone**: Phase 6 owns them.
-- [ ] T060 [US2] [RUN] CP-a, CP-b, CP-c, **CP-d**, CP-m (`Motion_Replay_*` all 8 green, including the quadrics scenes under object transform motion). Expected: the 6 lines gone, **no `STALE`, no `VIOLATION`**, `ALLOWED DB-004 x 59`, `DB-011 x 166`.
+- [X] T060 [US2] [RUN] CP-a, CP-b, CP-c, **CP-d**, CP-m (`Motion_Replay_*` all 8 green, including the quadrics scenes under object transform motion). Expected: the 6 lines gone, **no `STALE`, no `VIOLATION`**, `ALLOWED DB-004 x 59`, `DB-011 x 166`.
   `grep -n 'cameraHasRotation\|relRotQ\|toWorld' src/ri/geometry/*.h src/ri/geometry/*.cpp` prints only `motion.h` (reading `frameParams().camera`); any other hit is listed in validation.md with its file and why it is not one of the 6 edges.
-- [ ] T061 **Checkpoint 5 (PAUSE 5)**: stage; summarize; wait for review.
+- [X] T061 **Checkpoint 5 (PAUSE 5)**: stage; summarize; wait for review.
 
 ---
 

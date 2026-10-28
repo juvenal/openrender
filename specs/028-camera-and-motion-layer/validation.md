@@ -108,7 +108,7 @@ every image of the suite is byte-identical to the starting tree's from phase 3 o
 | 2 | clean (`-Werror`); `build-028` has the option OFF | 847/847 passed (the 11 new tests are not run: 10 do not exist with the option OFF, `Frame_ParamsEqualCore` reports "Not Run (Disabled)" and does not fail the run), 183 s | `DB-004 x 65`, `DB-011 x 173`; Geometry 78/19, Hiders 567/84, TOTAL 721/110; `RESULT PASS`; 21/21 `architecture` tests | n/a (no `src/` change) | 8 replay tests green, `Frame_ParamsEqualCore` Not Run (Disabled) |
 | 3 | clean (`-Werror`) | 858/858 passed (847 + the 11 new tests, all enabled), 206 s | `DB-004 x 65`, `DB-011 x 173`; Geometry 78/19, Hiders 567/84, TOTAL 721/110 (equal to the baseline); `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | 761 images: **0 differing, 0 missing, 0 not in the manifest**; `MaxBlockAvgDiff` table identical (empty diff) | 19/19 (11 new + 8 replay) |
 | 4 | clean (`-Werror`) | 858/858 passed, 180 s | `DB-004 x 65`, **`DB-011 x 166`** (173 - 7); nothing added; Hiders 558/82 (was 567/84), TOTAL 712/108 (was 721/110), Geometry 78/19; `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | 761 images: **0 differing, 0 missing, 0 not in the manifest**; `MaxBlockAvgDiff` table identical | 19/19 |
-| 5 | | | | | |
+| 5 | clean (`-Werror`) | 858/858 passed, 209 s | **`DB-004 x 59`** (65 - 6), `DB-011 x 166`; Geometry 72/16 (was 78/19), Hiders 558/82, TOTAL 706/108; `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | 761 images: **0 differing, 0 missing, 0 not in the manifest**; `MaxBlockAvgDiff` table identical | 19/19 |
 | 6 | | | | | |
 | 7 | | | | | |
 | 8 | | | | | |
@@ -344,6 +344,8 @@ Both were artifacts of the mutation script, not of the code: the script now wait
 
 ### Phase 4 (camera, T052 to T057)
 
+**Checkpoint 4 approved by the maintainer (2026-10-28).**
+
 **T052.** The 7 DB-011 lines of `src/ri/hiders/raytracer.cpp` (`imagePlane`, `projection`, `focaldistance`, `invImagePlane`, `aperture`, `dxdPixel`, `dydPixel`) were deleted from `tests/architecture/allowlist.txt` (7 deletions, 0 additions), and the architecture check, run on the unchanged code, reported exactly these 7 and nothing else (`ALLOWED ... DB-011 x 166`, `RESULT FAIL violations=7 stale=0`; `failing-cycles=1` is reported alongside the 7 edges and is gone with them):
 
 ```text
@@ -370,6 +372,24 @@ Both were artifacts of the mutation script, not of the code: the script now wait
 | `Visual_blobby-motion-grow-raytrace` | 2.35, 2.62, 2.38, 2.36, 2.38 | 2.38, 2.93, 2.37, 2.39, 2.36 | 2.38 | 2.38 | 2.35-2.62 (0.27) | +0.00 |
 
 The current tree's median does not exceed the starting tree's by more than the starting tree's own spread in any of the three scenes (the largest delta, +0.35 s on the teapot, is under a quarter of its 1.64 s spread). **SC-008 holds at phase 4.**
+
+### Phase 5 (ray transform, T058 to T061)
+
+**T058.** The 6 DB-004 lines (`cameraHasRotation`, `relRotQ`, `toWorld` for `dlobject.cpp` and for `quadrics.cpp`) were deleted from `tests/architecture/allowlist.txt` (6 deletions, 0 additions); the architecture check, run on the unchanged code, reported exactly these 6 and nothing else (`DB-004 x 59`, `RESULT FAIL violations=6`, `failing-cycles=1`, which clears with the fix):
+
+```text
+  VIOLATION link    src/ri/geometry/dlobject.cpp -> _ZN9CRenderer17cameraHasRotationE (CRenderer::cameraHasRotation)  [Geometry -> Core]
+  VIOLATION link    src/ri/geometry/dlobject.cpp -> _ZN9CRenderer7relRotQE (CRenderer::relRotQ)  [Geometry -> Core]
+  VIOLATION link    src/ri/geometry/dlobject.cpp -> _ZN9CRenderer7toWorldE (CRenderer::toWorld)  [Geometry -> Core]
+  VIOLATION link    src/ri/geometry/quadrics.cpp -> _ZN9CRenderer17cameraHasRotationE (CRenderer::cameraHasRotation)  [Geometry -> Core]
+  VIOLATION link    src/ri/geometry/quadrics.cpp -> _ZN9CRenderer7relRotQE (CRenderer::relRotQ)  [Geometry -> Core]
+  VIOLATION link    src/ri/geometry/quadrics.cpp -> _ZN9CRenderer7toWorldE (CRenderer::toWorld)  [Geometry -> Core]
+```
+
+**T059.** The 8 ray `transform(oFrom, oDir, xform, <ray>)` calls (`dlobject.cpp:99` and the seven quadrics in `quadrics.cpp`, at `:197, 687, 1057, 1500, 1956, 2402, 2957`) are `openrender::motion::transformRay(...)` and both files include `motion.h`; `objectMisc.h`'s ray `transform()` is deleted (the grid `transform/vtransform/ntransform` overloads with a time argument stay for phase 6).
+
+**T060.** CP-a clean; CP-b 858/858; CP-c: the 6 lines are gone with no `STALE` and no `VIOLATION`, `DB-004 x 59`, `DB-011 x 166`, and `src/ri/geometry/motion.h` is no longer `UNRESOLVED`; CP-d: 761 images byte-identical and the `MaxBlockAvgDiff` table identical (the quadrics scenes under object transform motion and the camera-motion scenes are in the suite); `Motion_Replay_*` 8/8 and the 11 new tests green (19/19).
+`grep -n 'cameraHasRotation|relRotQ|toWorld' src/ri/geometry/*.h src/ri/geometry/*.cpp` finds only `motion.h` (reading `frameParams().camera`) and unrelated parameter names (`toWorld` in `blobbyRepeller.{h,cpp}` and `blobbyField.{h,cpp}`, the primitive's own local-to-world matrix): none is one of the 6 edges.
 
 ## §6 Final macOS pass (phase 12, T109, T110)
 

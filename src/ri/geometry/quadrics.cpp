@@ -36,6 +36,7 @@
 #include "common/polynomial.h"
 #include "common/memory.h"
 #include "object.h"
+#include "motion.h"
 #include "objectMisc.h"
 #include "patchUtils.h"
 #include "quadrics.h"
@@ -194,7 +195,7 @@ void CSphere::intersect(CShadingContext *context, CRay *rv) {
         return;
 
     vector oFrom, oDir;
-    transform(oFrom, oDir, xform, rv);
+    openrender::motion::transformRay(oFrom, oDir, xform, rv);
 
     if (nextData != NULL) {
         r = (float)(this->r * (1.0 - rv->time) + nextData[0] * (double)rv->time);
@@ -684,7 +685,7 @@ void CDisk::intersect(CShadingContext *context, CRay *rv) {
         return;
 
     vector oFrom, oDir;
-    transform(oFrom, oDir, xform, rv);
+    openrender::motion::transformRay(oFrom, oDir, xform, rv);
 
     // Convert to the object coordinate system
     if (nextData != NULL) {
@@ -1054,7 +1055,7 @@ void CCone::intersect(CShadingContext *context, CRay *rv) {
         return;
 
     vector oFrom, oDir;
-    transform(oFrom, oDir, xform, rv);
+    openrender::motion::transformRay(oFrom, oDir, xform, rv);
 
     from = oFrom;
     dir = oDir;
@@ -1497,7 +1498,7 @@ void CParaboloid::intersect(CShadingContext *context, CRay *rv) {
         return;
 
     vector oFrom, oDir;
-    transform(oFrom, oDir, xform, rv);
+    openrender::motion::transformRay(oFrom, oDir, xform, rv);
 
     float *from = oFrom;
     float *dir = oDir;
@@ -1953,7 +1954,7 @@ void CCylinder::intersect(CShadingContext *context, CRay *rv) {
         return;
 
     vector oFrom, oDir;
-    transform(oFrom, oDir, xform, rv);
+    openrender::motion::transformRay(oFrom, oDir, xform, rv);
 
     float *from = oFrom;
     float *dir = oDir;
@@ -2399,7 +2400,7 @@ void CHyperboloid::intersect(CShadingContext *context, CRay *rv) {
         return;
 
     vector oFrom, oDir;
-    transform(oFrom, oDir, xform, rv);
+    openrender::motion::transformRay(oFrom, oDir, xform, rv);
 
     float *from = oFrom;
     float *dir = oDir;
@@ -2954,7 +2955,7 @@ void CToroid::intersect(CShadingContext *context, CRay *rv) {
         return;
 
     vector oFrom, oDir;
-    transform(oFrom, oDir, xform, rv);
+    openrender::motion::transformRay(oFrom, oDir, xform, rv);
 
     // nextData holds {rmin, rmax, vmin, vmax, umax}, as the constructor and
     // sample() lay it out
