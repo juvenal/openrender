@@ -95,11 +95,10 @@ request. Run `ctest -L architecture` locally before review.
   renderer-core rule (no domain may depend on the renderer core).
 - **Tracking**: [#24](https://github.com/juvenal/openrender/issues/24) (enhancement / design review)
 - **Evidence**: `libshader_shading` (Shading) links with `-undefined dynamic_lookup` (macOS) /
-  `--allow-shlib-undefined` (Linux) in `src/libshader/shading/CMakeLists.txt`, and binds 7
-  distinct `libRIBRender` symbols flat-namespace (`nm -m`, "dynamically looked up"):
-  - Hiders: `CShadingContext::trace`/`traceEx`, `CGatherBundle`, `CTraceBundle`/
-    `CTransmissionBundle` vtables, `CPhotonMap::lookup`;
-  - Texturing: `CTexture3d::resolve`.
+  `--allow-shlib-undefined` (Linux) in `src/libshader/shading/CMakeLists.txt`, and binds 6
+  distinct `libRIBRender` symbols flat-namespace (`nm -m`, "dynamically looked up"), all in Hiders:
+  `CShadingContext::trace`/`traceEx`, `CGatherBundle`, `CTraceBundle`/`CTransmissionBundle`
+  vtables, `CPhotonMap::lookup`.
 - **History**: before spec 023 it bound 29 symbols. The 17 infrastructure ones (`CRenderer::
   globalMemory`, `CRefCounter`, `CFileResource`, `memoryInit`/`memoryTini`/`memoryNewPage`,
   `stats`, `error`/`info`/`warning`, `parseVariable`, `sampleHemisphere`/
@@ -113,13 +112,15 @@ request. Run `ctest -L architecture` locally before review.
     `specs/024-shading-services-routing/tools/libshader-dynlookup-{before,after}-macos.txt`.
     `CDSO` moved to `src/libshader/shading/dsoHandle.h`, and no Shading source includes
     `renderer.h` any more.
+  - Spec 027, 2026-10-28: the 3D channel operations of `texture3d()`/`bake3d()` and the irradiance
+    cache's `resolve` go through `CRendererServices` (`texture3dResolve`/`Lookup`/`Store`), so
+    `CTexture3d::resolve` is no longer imported; 7 → 6 imports, edge count unchanged. The record is
+    `specs/027-texture-system/tools/libshader-dynlookup-{before,after}-macos.txt`.
 - **Measured by the architecture check** (macOS): 8 edges allowlisted under DB-001 (18 before
   spec 024, 30 before spec 023).
   - 8 link references from Shading sources: `CShadingContext::trace`/`traceEx`, `CGatherBundle`,
     the `CTraceBundle`/`CTransmissionBundle` vtables and `CPhotonMap::lookup`.
   - No includes: the 4 of `src/ri/render/renderer.h` are gone.
-  - Not edges: `CTexture3d::resolve` is Shading → Texturing, which the table allows (a
-    load-time binding problem only).
   - Shading's source-level coupling is registered separately: hider headers under DB-005,
     Geometry headers under DB-006, and `dso.h` under DB-019.
 - **Consequences today**: `libshader_shading` cannot load without `libRIBRender` in the process; a
@@ -260,26 +261,29 @@ request. Run `ctest -L architecture` locally before review.
 - **Direction**: one camera layer (`ICamera::generateRay`, `FrameParams`) and one Geometry-owned
   motion evaluator used by dicing and intersection alike.
 
-### DB-010 — Texturing depends on Shading, the renderer core and Graphics State
+### DB-010 — The hiders' GI caches use Texturing
 
-- **Rules**: the allowed-dependency table (Texturing depends on nothing; Hiders may not depend on
-  Texturing).
-- **Tracking**: remediation specs 027 ([#33](https://github.com/juvenal/openrender/issues/33)), 032 ([#38](https://github.com/juvenal/openrender/issues/38))
-- **Evidence**:
-  - Lookups take `CShadingContext*` (`src/ri/core/shading.h` included by 2 Texturing files).
-  - Texturing reads renderer-core state: `CRenderer::locateFile`, `texturePath`, `textureMutex`,
-    `synthesizeMutex`, `textureMaxMemory`, `textureRefNumber`, `numThreads` (14 link edges), and
-    includes `renderer.h`.
-  - Texturing includes `options.h`, `attributes.h` and `xform.h` from Graphics State.
-  - The hiders' GI caches use Texturing: `irradiance`/`photon` code includes `texture.h`,
-    `texture3d.h` and `pointHierarchy.h` and constructs `CTexture3d`.
-  - Since spec 025 (2026-10-27), `CRenderer::retrieveDisplayChannel`, which `texture3d.cpp` calls,
-    forwards to the Graphics State-owned channel registry. It is still defined out of line in the
-    renderer core, so the link edge is unchanged.
-- **Size**: 35 edges (18 include, 17 link).
-- **Direction**: a Texturing-owned `TextureSystem` (opaque handles, `TextureOpt`, per-thread
-  data, cache and paging) that Shading reaches only through services (027); GI-cache storage
-  moves to Texturing with sampling left in Hiders (032).
+- **Rules**: the allowed-dependency table (Hiders may not depend on Texturing).
+- **Tracking**: remediation spec 032 ([#38](https://github.com/juvenal/openrender/issues/38)); spec 027 ([#33](https://github.com/juvenal/openrender/issues/33)) removed the rest
+- **Evidence**: the hiders' GI caches use Texturing: `irradiance.cpp`, `irradiance.h` and
+  `irradianceDispatch.cpp` include `texture.h`, `texture3d.h` and `pointHierarchy.h`, and
+  `irradiance.cpp` constructs and destroys `CTexture3d` (its constructor, destructor and type
+  information).
+- **Size**: 8 edges (5 include, 3 link).
+- **Direction**: GI-cache storage moves to Texturing with sampling left in Hiders (032).
+- **History**: spec 027 (2026-10-28), 35 → 8 edges: 25 allowlist lines deleted (Texturing's reads
+  of the renderer core, Graphics State and Shading: the texture state, the file search, the option
+  block and the shading-context reads moved into the texture system, the file resolver and
+  `TextureOpt`) and 2 re-tagged to DB-021. Texturing now includes nothing from another domain
+  except `texture3d.cpp`'s `renderer.h` and `displayChannel.h`.
+- **Texture system notes** (spec 027, not registry entries):
+  - The core passes `&CRenderer::shaderMutex` as the texture system's `loadMutex`. It is a plain,
+    non-recursive mutex, so no code that holds it may call `CTextureSystem::handle()`; the services
+    getters that hold it (`getCache`, `getTexture3d`, `getPhotonMap`) never reach a texture handle,
+    and a new caller that does is a self-deadlock. A debug build asserts a re-entry of `handle()`.
+  - A consumer of the texture system outside a renderer must initialize libRIBCommon's arena
+    (`globalArena.init()`; `RiBegin` does it in a renderer): synthesizing an unbaked source decodes
+    into it.
 
 ### DB-011 — Hiders read renderer-core state (`CRenderer`)
 
@@ -422,19 +426,21 @@ request. Run `ctest -L architecture` locally before review.
 
 - **Rules**: the allowed-dependency table (Texturing depends on nothing).
 - **Tracking**: remediation spec 037 ([#26](https://github.com/juvenal/openrender/issues/26))
-- **Evidence**: `src/ri/texture/texture3d.cpp:29` includes `src/ri/state/displayChannel.h` and
-  builds its channel list by calling `CRenderer::retrieveDisplayChannel`, an out-of-line forwarder
-  in the renderer core that, since spec 025 (2026-10-27), forwards to the Graphics State-owned
-  `CChannelRegistry` (`src/ri/state/channelRegistry.{h,cpp}`). Texturing itself still reads the
-  registry through the renderer core (the DB-010 link edge) and still includes the channel type.
-- **Size**: 1 include edge.
+- **Evidence**: `src/ri/texture/texture3d.cpp` includes `src/ri/state/displayChannel.h` and
+  `src/ri/render/renderer.h`, and builds its channel list by calling `CRenderer::retrieveDisplayChannel`,
+  an out-of-line forwarder in the renderer core that, since spec 025 (2026-10-27), forwards to the
+  Graphics State-owned `CChannelRegistry` (`src/ri/state/channelRegistry.{h,cpp}`). Texturing itself still
+  reads the registry through the renderer core (the link edge) and still includes the channel type.
+- **Size**: 3 edges (2 include, 1 link).
 - **Direction**: the registry is owned by Graphics State (done in 025) and passed to its consumers
   as channel descriptors (037), so that Texturing no longer names `displayChannel.h` or calls into
   the renderer core for it.
 - **History**: spec 025 moved the registry out of the renderer core's statics into Graphics State.
   `texture3d.cpp` was deliberately left untouched, and the forwarder was kept out of line so that
-  `texture3d.o` references no Graphics State symbol: that edge and the DB-010 link line are
-  unchanged.
+  `texture3d.o` references no Graphics State symbol: that edge and the link line are
+  unchanged. Spec 027 (2026-10-28) re-tagged the `renderer.h` include and the
+  `retrieveDisplayChannel` link of `texture3d.cpp` here from DB-010 (they are the same dependency);
+  `texture3d.cpp` itself was not edited.
 
 ### DB-023 — Domains are not build targets
 

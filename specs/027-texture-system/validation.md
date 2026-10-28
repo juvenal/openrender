@@ -659,7 +659,129 @@ removed: every pin that was moved is unconditional now, so `TEXTURE_SUBSTITUTE_J
 - CP-d9: (1) every `.rslo` image, every characterization scene and every image of a scene that does not call these builtins is bit-identical to the baseline; (2) the JIT texture probes changed and are bit-identical to their `.rslo` renders, and the seven raytrace ones are bit-stable over four runs; (3) every `ShadingParity_JitPL_*` case and `_slo` control passes; (4) every `MaxBlockAvgDiff` equals the baseline; (5) the known-red set is empty.
 
 
-## §10 Linux
+**Approved by the maintainer at Checkpoint 9 (2026-10-28)**, including the `buildVarTable` fix, which is outside the spec's texture scope: **a shader's own parameter or local now shadows a same-named RSL global under the JIT** (`.slo`). This is a JIT behaviour change for any shader that declares such a name (none of the shipped shaders does, which is why no existing image moved); it is carried into NEWS.md and ChangeLog.md (T118a).
+
+## §10 Phase 10: registry, docs, measurements (macOS), then Linux
+
+**Rebuild first.** The staged clang-format touch-up of `textureCalls.h` (Phase 9) was compiled by a clean `-Werror` build before this phase's work (`cpujob 027-p10-build`, 0 errors; only the linker's duplicate-library notes).
+
+**T112, T113.** `tests/architecture/allowlist.txt`: the two `texture3d.cpp` lines re-tagged DB-010 -> DB-021 (keys unchanged, no line added): the `renderer.h` include and the `retrieveDisplayChannel` link (`_ZN9CRenderer22retrieveDisplayChannelEPKc`; no `FILE *`, so one line covers both platforms); headers now `DB-010: The hiders' GI caches use Texturing (8)` and `DB-021: ... (3)`.
+`git diff 4eb683b -- tests/architecture/allowlist.txt | grep -c '^+[A-Z]'` shows only the two re-tagged lines. `ctest -L architecture` 21/21 and `archcheck`: `RESULT PASS violations=0 stale=0 badid=0`, `ALLOWED DB-001 x 8 DB-004 x 65 DB-005 x 8 DB-006 x 33 DB-010 x 8 DB-011 x 173 DB-015 x 10 DB-017 x 78 DB-019 x 3 DB-021 x 3 DB-025 x 12`, no `DB-026`.
+
+**T114.** `tests/architecture/metrics-baseline.txt`: Texturing `1 1`, TOTAL `652 98` (as reported), with a spec-027 paragraph in the header; no class raised. `METRIC` now reads `(baseline 1)` and `(baseline 652)`.
+
+**T115, T116, T118, T118a.** `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`: DB-010 retitled "The hiders' GI caches use Texturing" (evidence reduced, 8 edges: 5 include, 3 link, direction spec 032, History 35 -> 8), DB-021 (3 edges: 2 include, 1 link, spec 037, History), DB-001 (7 -> 6 imports, `CTexture3d::resolve` gone; `tools/libshader-dynlookup-after-macos.txt` is the new list), and the texture-system notes (the core-lock coupling and the arena note) under DB-010. `DEVNOTES.md`: a status row for spec 027 (Linux validation marked pending) and the
+`textureLoad` mention updated. `DEVNOTES_DETAILS/OSHADER_UPDATES.md`: a JIT ABI note for the `_v3` texture entry points. `NEWS.md` and `ChangeLog.md` (Changed and Fixed): the user-visible `.slo` change, including that a shader's own parameter or local now shadows a same-named RSL global under the JIT and that a `.slo` compiled before must be rebuilt. Grep of `DEVNOTES_DETAILS/`, `docs/` and the root docs for the old names
+(`CRenderer::textureLoad`, `getTexture`, `getEnvironment`, `getTextureInfo`, `initTextures`, `synthesizeMutex`, `textureMutex`, `op_*_v2`, `rgbe/rgbe`): only the DB-026 Resolved history and the spec-020 status row (updated) mention them.
+
+**T117 (not applied).** `CLAUDE.md` was not edited: the task needs the maintainer's authorization, which was not given. The proposed text is below, under "T117: proposed CLAUDE.md text (not applied)", and in the Phase 10 report.
+
+**T119.** Guards against `BASE` (`4eb683b`): `git diff --stat` of `src/ri/texture/texture3d.cpp`, `src/ri/hiders/radiance.cpp` and `src/display/dsply.h` is empty; the two `test_tile_source_*_info.cpp` tests are unchanged (not even an include path); no `shading.h`/`renderer.h`/`options.h`/`attributes.h` include in `src/ri/texture` outside `texture3d.cpp`.
+
+**T120.** No-JIT build (`-DOPENRENDER_ENABLE_JIT=OFF`, scratch `build-027-nojit`, deleted afterwards): builds clean under `-Werror`; `ctest -L "architecture|texture_tile|texture_only|shading_parity|image_input|common"`: **105 run, 105 passed, 65 `Not Run (Disabled)`**. All 65 are the `.slo`-dependent tests that were already registered `DISABLED TRUE` without LLVM: #55's and spec 017's JIT tests (`ShadingParity_JitPL*`, `...Engaged_*_slo`, `PrintfJit`,
+`UniformConditionalJit`, `MatrixTransformJit`, `OlWiring`, `UsedParametersOracle`, `JitPLLabel_*`) plus this spec's T-J cases (`JitPL_{texture,envshadow}_*`, their `_slo` engaged controls, `ShadingParity_JitPLDiagnosticsTexture`). The interpreter halves of `ShadingParity_TextureSubstitute{,HiderNoSystem,3D,3DNoServices}`, the `_rslo` engaged controls, `TextureOnly_Standalone` and the rest ran and passed.
+
+**T121.** SC-010: `tools/timing-final-macos.tsv` against `tools/timing-base-macos.tsv` (10 runs each, same script and machine, medians in seconds, [min, max]): `concurrency-scene` default 0.460 [0.418, 0.698] -> 0.393 [0.377, 1.762]; `-t:1` 0.702 [0.636, 0.780] -> 0.716 [0.608, 1.624]; `texture-png-raytrace` default 0.140 [0.124, 0.184] -> 0.117 [0.115, 0.126]; `-t:1` 0.197 [0.191, 0.243] -> 0.209 [0.194, 0.246]. No median is slower than the baseline's spread; the two default-thread medians are
+faster, below the baseline minimum. One run of `concurrency-scene` in each thread setting of the finished tree was an outlier (1.6-1.8 s, the max column only; the medians are unaffected and the cause was not investigated).
+
+**T122.** Final macOS pass (`cpujob 027-p10-*`): CP-a clean build; CP-b **895/895** (1 skipped, `LibShader_Format_rslo_lower_minor`, as before this spec), `texture_tile` 14/14, `^determinism$` 155/155, `texture_only`, `shading_parity`, `image_input`, `common` and `visual` inside the suite; **zero** `Not Run (Disabled)` lines in the run (and none at all before the no-JIT build); CP-c `ALLOWED` as above; CP-d against `baseline-images-p9.sha256` / `baseline-diffs-p9.txt`: **833 images, 0 differing, 0 missing, noise-listed 0**, `diffs` equal;
+imports **6**; the T097 greps unchanged; `nm -gU` shows the six `RGBE_*` functions defined only in `libRIBCommon` (and its copies in the `orender-wire` bundle).
+
+**T123.** The opt-in sweep on the finished tree: `cpujob 027-fin-sweep ctest -L '^determinism-sweep$' -j2`: **419/419 passed**, equal to T013's pass set.
+
+### T124: Linux validation (Ubuntu 24.04, GCC 13.3, `-j2`)
+
+Host `juvenal@ubuntu-2404-desktop.v2-labs.io`, own tree `~/openrender-027` (no other tree there was touched).
+- Sync (bash, `${H}:path`): `git ls-files -z | rsync -a --from0 --files-from=- ./ "${H}:openrender-027/"` from the worktree (the staged tree, no build artefacts), then `sha256sum -c specs/027-texture-system/tools/027-linux-manifest.sha256` on the host (156 changed files against `BASE`): **156 OK, 0 not OK**.
+- Build: `cmake -S . -B build-027 -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release` and `nice -n 19 cmake --build build-027 -j2` (GCC 13.3, LLVM 18, `-Werror`).
+
+**Linux results** (2026-10-28; logs in `~/openrender-027` on the host: `build-027.log`, `suite.log`, `tile.log`, `arch*.txt`, `jitpl.log`, `det.log`, `sweep.log`, `jit-divergence-linux.tsv`):
+- **Build**: clean under GCC 13.3 `-Werror`, 0 warnings (the watch list of T124 raised nothing: `-Wmissing-field-initializers`, `-Wstringop-overflow`/`-Warray-bounds`, `-Wnull-dereference`, `-Wdeprecated-enum-enum-conversion`; the RGBE functions are `extern "C"`, no `_IO_FILE`-mangled symbol is left).
+- **Suite** (`-LE determinism-sweep -j2`): 896 registered, **889 passed, 7 failed, 0 disabled, 1 skipped** (`LibShader_Format_rslo_lower_minor`). The 7 failures are the pre-existing Linux ones recorded in `specs/025-graphics-state-handles/validation.md` section 9.6 with the same signatures, and **nothing else fails**: the five `TextureTile_*` of #45/#46 (`RenderByteIdentical`: byte 5 of the
+  reyes renders differs from the macOS reference; the four `Cache*`: `orender` aborts), `LibShader_McompConsistency` (#44: the test executable cannot load `libshader_shading.so.1` because of `_ZTV19CTransmissionBundle` and the other Hiders vtables and symbols) and `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes` (pixel (99, 46) 0.875 against 0.9375, #57). No Linux BASE run of this spec's tests exists; the comparison is with spec 025's Linux record of the same host and the same 7.
+  `Common_StateOwnership`, `Common_VocabularyConsistency`, `TextureSystem_*` (all five, the external-mutex entry included), `TextureOnly_Standalone`, `ImageInput_*`, `Display_RgbeBytes` and the 4 substitute tests passed.
+- `texture_tile -j2`: 9 passed, 5 failed (the same five). `^determinism$` -j2: **155/155**. The sweep `-j2`: **419/419** (1388 s).
+- **Architecture**: `ctest -L architecture` 21/21; `archcheck` `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`, `ALLOWED` identical to macOS (`DB-010 x 8`, `DB-021 x 3`, no `DB-026`), `METRIC Texturing refs 1 distinct 1`, TOTAL 652/98. **No Linux-only variant** of the re-tagged `texture3d.cpp` lines appeared (nothing to re-tag, nothing added).
+- **Imports** (spec 024's method, `nm -D --undefined-only` intersected with `LD_DEBUG=bindings` to `libRIBRender.so.1`): **6**, all Hiders (`CPhotonMap::lookup`, `CGatherBundle::CGatherBundle`, `CShadingContext::trace`/`traceEx`, the vtables of `CTraceBundle` and `CTransmissionBundle`); `CTexture3d::resolve` is gone (SC-004). The undefined-symbol list of `libshader_shading.so.1` has 459 entries (spec 025's tree: 466).
+- **Phase 9 on Linux**: `ctest -R 'ShadingParity_(JitPL|TextureSubstitute)' -j2`: **89/89**. `jit_texture_divergence.sh` (absolute paths): 15 of 18 scenes `identical` (0.00); `texture-exr-reyes`, `texture-rgbe-raytrace` and `unbaked-nonpot-reyes` read **MaxBlockAvgDiff 0.02** between `.slo` and `.rslo` (macOS: 0.00 in all 18). The difference is platform floating point between the LLVM-compiled and the interpreted arithmetic
+  (the two render the same filtered footprint); it is far below any test threshold, but it means the bit-identity of SC-012 is a macOS statement: on Linux the JIT probes are equal to a tolerance of 0.02 block-average. Reported for the maintainer; no test depends on it.
+- No existing result differs from spec 025's Linux record other than by the new tests, so there is no STOP.
+
+### T117: proposed `CLAUDE.md` text (not applied)
+
+```
+(1) Architecture: insert after "### Graphics State handles (spec 025)", before "### Coordinate / matrix conventions":
+
+### Texture system (spec 027)
+`CTextureSystem` (`src/ri/texture/textureSystem.h`) owns Texturing's state for one
+frame: the tile cache and the per-thread budgets (`TexturePerthread`), the file
+families, and the load lock. The core creates it in `beginFrame()`
+(`CRenderer::textureSystem`, with a `CSearchPathResolver` over `texturePath` as its
+`CTextureFileResolver`) and deletes it in `endFrame()`. Handles are opaque
+(`TextureHandle`); a lookup takes a caller-built `TextureOpt` (the options and the
+position in the sample stream, which the caller writes back with
+`commitTextureDraws()`) and the thread's `TexturePerthread`, never a shading context.
+Shading reaches textures only through `CRendererServices::textureSystem()` and
+`libshader/shading/textureCalls.{h,cpp}`; the 3D channel operations go through
+`texture3dResolve/Lookup/Store` on the services. The RGBE codec lives in
+`libRIBCommon` (`src/common/rgbe.{h,cpp}`). See gotcha 25.
+
+(2) Known gotchas: append after gotcha 24:
+
+25. **The texture system is per frame, and its load lock is the core's
+   `shaderMutex` (spec 027).** `CRenderer::textureSystem` exists from
+   `beginFrame()` to `endFrame()`; `textureSystem()` of the services is `nullptr`
+   between frames, and with none installed a lookup returns the `fill` value and
+   warns once per builtin. The core passes `&CRenderer::shaderMutex` as the system's
+   `loadMutex`. It is a plain, non-recursive mutex, so **nothing that holds it may
+   call `handle()`**: the services getters that hold it (`getCache`, `getTexture3d`,
+   `getPhotonMap`) never reach a texture handle, a new caller that does is a
+   self-deadlock, and a debug build asserts a re-entry of `handle()`. A consumer
+   outside a renderer must call `globalArena.init()` first (`RiBegin` does it):
+   synthesizing an unbaked PNG/EXR/RGBE source decodes into it, behind a
+   process-wide function-local mutex in `texture.cpp`. `environment()` and `shadow()`
+   trace **by name** (`"raytrace"` or the shader's own `"reflection"`/`"shadow"`),
+   never because a handle is missing. Under the JIT, `texture()`, `environment()` and
+   `shadow()` bind their optional parameter lists with
+   `jitParameterList<CTextureLookup/CEnvironmentLookup>` and build their footprint
+   with the helpers the interpreter's macros call (`libshader::textureCorners`,
+   `environmentCorners`); the entry points are `op_*_v3`, so a `.slo` compiled before
+   spec 027 must be rebuilt. A shader's own parameter or local now shadows an RSL
+   global of the same name in the JIT's variable table (it used to lose to the
+   global). The only `CShadingContext` left in `src/ri/texture` is the 3D family
+   (`texture3d.h`, `pointHierarchy`, the `brickmap`/`pointCloud` assertion
+   overrides), for spec 032.
+
+(3) Where the compiled shaders live: "108 `.rslo` (+ 108 `.slo` when the JIT is on)" -> "127 `.rslo` (+ 127 `.slo` when the JIT is on)" (recounted in build-027; the 108 was already stale before this spec, and this spec adds two probe shaders, `jit_pl_texture_probe` and `jit_pl_envshadow_probe`).
+
+(4) Testing block: add two lines after the `shading_parity` line:
+ctest --test-dir build -L texture_tile -j2           # texture system: cache, resolver, concurrency, sample-stream cursor (opt-in disk-cache scripts included)
+ctest --test-dir build -L texture_only               # Texturing-only program: links libRIBCommon alone and reproduces the starting tree's lookups
+
+(5) Active Technologies: append
+- C++20, CMake ≥3.19, `-Werror`; no new dependencies — Texturing owns its cache
+  in a per-frame `CTextureSystem`, Shading reaches it through `CRendererServices`,
+  the RGBE codec moves to `libRIBCommon` (027-texture-system)
+- Storage: N/A — memory only; no new persistent state (027-texture-system)
+
+(6) Recent Changes: insert at the top of the list:
+- 027-texture-system: Texturing's state (tile cache, per-thread budgets, file
+  families) lives in a per-frame `CTextureSystem` behind opaque handles and a
+  caller-built `TextureOpt`; the core supplies a file resolver; Shading reaches it
+  through `CRendererServices::textureSystem()` and `textureCalls` (flat-namespace
+  imports 7 → 6, DB-010 35 → 8 edges, DB-026 resolved); the RGBE codec moved to
+  `libRIBCommon`; under `.slo`, `texture()`/`environment()`/`shadow()` now honour
+  their parameter lists and match the interpreter (the only output change; `.rslo`
+  renders are byte-identical), and a JIT shader's own parameter or local shadows a
+  same-named RSL global (see spec 027).
+
+The "Spec-kit agent rules" section is not touched.
+```
+
+### Success criteria (macOS unless stated)
+SC-001 met (macOS and Linux: PASS, DB-026 gone, DB-010 35 -> 8, DB-021 3). SC-002 met (1 reference, 1 member; Shading 0/0). SC-003 met (`TextureOnly_Standalone`, 15 lookups). SC-004 met (6 imports on macOS and on Linux, a subset of the starting set). SC-005 met (T083, T097). SC-006 met (833 images unchanged apart from the JIT images of Phase 9; the determinism sweep 419/419). SC-007 met (macOS 895/895 and the sweep; Linux the same 7 as spec 025's record, the five of #45/#46
+among them). SC-008 met (`ShadingParity_TextureSubstitute{,3D}` pass under both backends with equal recorded calls; red before Phase 6). SC-009 met (`Common_StateOwnership`, `Display_RgbeBytes`, `ImageInput_Rgbe`). SC-010 met (T121). SC-011 met (DOMAIN_BOUNDARIES). SC-012 met on macOS (bit-stable over four runs and equal to `.rslo`, 18 of 18 identical); on Linux three scenes read 0.02 as above.
+
 
 ### Baseline hand-off (T017, non-blocking)
 

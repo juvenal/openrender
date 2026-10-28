@@ -132,17 +132,15 @@ DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN15CShadingContext9saveState
 DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN6CReyes10drawObjectEP7CObject   # CReyes::drawObject(CObject*)
 DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN6CReyes8drawGridEP8CSurfaceiiffffPK9CGridSnap   # CReyes::drawGrid(CSurface*, int, int, float, float, float, float, CGridSnap const*)
 
-# --- DB-010: Texturing depends on Shading, the renderer core and Graphics State (35) ---
+# --- DB-010: The hiders' GI caches use Texturing (8) ---
 DB-010  include  src/ri/hiders/irradiance.cpp  ->  src/ri/texture/pointHierarchy.h
 DB-010  include  src/ri/hiders/irradiance.cpp  ->  src/ri/texture/texture.h
 DB-010  include  src/ri/hiders/irradiance.h  ->  src/ri/texture/texture3d.h
 DB-010  include  src/ri/hiders/irradianceDispatch.cpp  ->  src/ri/texture/pointHierarchy.h
 DB-010  include  src/ri/hiders/irradianceDispatch.cpp  ->  src/ri/texture/texture.h
-DB-010  include  src/ri/texture/texture3d.cpp  ->  src/ri/render/renderer.h
 DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZN10CTexture3dC2EPKcPKfS3_S3_iPNS_8CChannelE   # CTexture3d::CTexture3d(char const*, float const*, float const*, float const*, int, CTexture3d::CChannel*)
 DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZN10CTexture3dD2Ev   # CTexture3d::~CTexture3d()
 DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZTI10CTexture3d   # typeinfo for CTexture3d
-DB-010  link     src/ri/texture/texture3d.cpp  ->  _ZN9CRenderer22retrieveDisplayChannelEPKc   # CRenderer::retrieveDisplayChannel(char const*)
 
 # --- DB-011: Hiders read renderer-core state (CRenderer) (182) ---
 DB-011  include  src/ri/hiders/compositor.cpp  ->  src/ri/render/renderer.h
@@ -418,8 +416,10 @@ DB-019  include  @build/src/libshader/compiler/dso_generated.cpp  ->  src/ri/par
 DB-019  include  @build/src/libshader/shading/rslo_generated.cpp  ->  src/ri/parse/dso.h
 DB-019  include  src/libshader/compiler/rslo.cpp  ->  src/ri/parse/dso.h
 
-# --- DB-021: Texturing reads the AOV/channel registry (1) ---
+# --- DB-021: Texturing reads the AOV/channel registry (3) ---
+DB-021  include  src/ri/texture/texture3d.cpp  ->  src/ri/render/renderer.h
 DB-021  include  src/ri/texture/texture3d.cpp  ->  src/ri/state/displayChannel.h
+DB-021  link     src/ri/texture/texture3d.cpp  ->  _ZN9CRenderer22retrieveDisplayChannelEPKc   # CRenderer::retrieveDisplayChannel(char const*)
 
 # --- DB-025: Domains call into the data viewer (a consumer) (12) ---
 DB-025  include  src/ri/geometry/surface.cpp  ->  src/ri/dataviewer/debug.h

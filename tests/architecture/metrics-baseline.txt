@@ -25,11 +25,19 @@
 # CRenderer::frame (stochastic.cpp, apertureGenerator's seed) and the correlated table's
 # CRenderer::correlatedSampleTable reads are gone: Hiders 586 -> 567 references and
 # 87 -> 84 members, TOTAL 740 -> 721 and 113 -> 110, as archcheck reported.
+#
+# Spec 027 (texture system, T114): Texturing no longer reads the renderer core except
+# CRenderer::retrieveDisplayChannel (texture3d.cpp, registered as DB-021): 70 -> 1 references
+# and 16 -> 1 members, because the texture state (the tile cache, its mutexes and memory
+# limits, the file families), the file search and the shading-context reads moved into the
+# texture system, the file resolver and the option block. The TOTAL falls from 721 to 652
+# references and from 110 to 98 distinct members, as archcheck reported (a member that another
+# class also references stays in the total).
 
 Geometry           78    19
 Hiders            567    84
 Infra               0     0
 SceneInterface      6     6
 Shading             0     0
-Texturing          70    16
-TOTAL             721   110
+Texturing           1     1
+TOTAL             652    98
