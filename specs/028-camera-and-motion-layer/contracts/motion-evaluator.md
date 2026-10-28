@@ -110,7 +110,8 @@ motion has `cameraMotion == false` and gets no camera rotation (GitHub #106 pres
 | 6 | `quadrics.cpp:48-80` | `transform/vtransform/ntransform(..., time)` | `*transformAtTime` (deleted from `objectMisc.h`) |
 | 6 | `quadrics.cpp` dPdtime (14 reads) | `mulvf(dest, CRenderer::invShutterTime)` | `toShutterRate(dest)` |
 | 7 | `patches.cpp:228-234` | `interpolatev(t0, P00, P00 + 4 * vertexSize, time)` | `atTimeV` |
-| 7 | `patches.cpp:372-374, 692-695, 1022-1024` | key lerp | `atTimeD` |
+| 7 | `patches.cpp:372-374, 692-695` | key lerp, `float` keys | `atTimeD` |
+| 7 | `patches.cpp:1022-1024` | key lerp, **`double` keys** into a `double *` | `(float)atTime<double>(...)` |
 | 7 | `patches.cpp:481, 793, 1311` | dPdtime scale | `toShutterRate` |
 | 8 | `polygons.cpp:183-187, 730-736` | `interpolatev` | `atTimeV` |
 | 8 | `polygons.cpp:309-372, 879-922` | fused double lerps, `interpolatev(normal)` | `atTime<double>`, `atTimeV` |

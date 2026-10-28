@@ -33,6 +33,7 @@
 #include "crossingMath.h"
 #include "common/diagnostics.h"
 #include "common/memory.h"
+#include "motion.h"
 #include "patchUtils.h"
 #include "patches.h"
 
@@ -225,13 +226,13 @@ void CBilinearPatch::intersect(CShadingContext *context, CRay *cRay) {
     vector t0, t1, t2, t3;
 
     if (variables->moving) {
-        interpolatev(t0, P00, P00 + vertexSize * 4, cRay->time);
+        openrender::motion::atTimeV(t0, P00, P00 + vertexSize * 4, cRay->time);
         P00 = t0;
-        interpolatev(t1, P10, P10 + vertexSize * 4, cRay->time);
+        openrender::motion::atTimeV(t1, P10, P10 + vertexSize * 4, cRay->time);
         P10 = t1;
-        interpolatev(t2, P01, P01 + vertexSize * 4, cRay->time);
+        openrender::motion::atTimeV(t2, P01, P01 + vertexSize * 4, cRay->time);
         P01 = t2;
-        interpolatev(t3, P11, P11 + vertexSize * 4, cRay->time);
+        openrender::motion::atTimeV(t3, P11, P11 + vertexSize * 4, cRay->time);
         P11 = t3;
     }
 
@@ -371,7 +372,7 @@ void CBilinearPatch::sample(int start, int numVertices, float **varying, float *
             for (int i = numVertices; i > 0; --i) {
                 const double ctime = *time++;
                 for (int j = 0; j < vertexSize * 4; ++j) {
-                    *interpolate++ = (float)(vertex0[j] * (1.0 - ctime) + vertex1[j] * ctime);
+                    *interpolate++ = openrender::motion::atTimeD(vertex0[j], vertex1[j], (float)ctime);
                 }
             }
         }
@@ -474,11 +475,13 @@ void CBilinearPatch::sample(int start, int numVertices, float **varying, float *
                 // Sum over the components
                 for (int j = 0; j < 3; ++j) {
                     const int k = 4 * vertexSize + j;
+                    // GitHub #108: the precedence of this expression (the minus applies to the first half of the
+                    // shutter-open position only) is preserved bit for bit; do not add parentheses
                     dest[j] = (float)((((v0[k] * (1.0 - cu) + v1[k] * cu) * (1.0 - cv) + (v2[k] * (1.0 - cu) + v3[k] * cu) * cv - (v0[j] * (1.0 - cu) + v1[j] * cu) * (1.0 - cv) + (v2[j] * (1.0 - cu) + v3[j] * cu) * cv)));
                 }
 
                 // Scale the dPdtime
-                mulvf(dest, CRenderer::invShutterTime);
+                openrender::motion::toShutterRate(dest);
             }
         }
         else {
@@ -692,7 +695,7 @@ void CBicubicPatch::sample(int start, int numVertices, float **varying, float **
                 const double ctime = *time++;
 
                 for (int j = 0; j < vertexDataStep; ++j) {
-                    *interpolate++ = (float)(vertex0[j] * (1.0 - ctime) + vertex1[j] * ctime);
+                    *interpolate++ = openrender::motion::atTimeD(vertex0[j], vertex1[j], (float)ctime);
                 }
             }
         }
@@ -790,7 +793,7 @@ void CBicubicPatch::sample(int start, int numVertices, float **varying, float **
                 }
 
                 // Scale the dPdtime
-                mulvf(dest, CRenderer::invShutterTime);
+                openrender::motion::toShutterRate(dest);
             }
         }
         else {
@@ -1021,7 +1024,7 @@ void CNURBSPatch::sample(int start, int numVertices, float **varying, float ***l
             for (int i = numVertices; i > 0; --i) {
                 const double ctime = *time++;
                 for (int j = 0; j < vertexDataStep; ++j) {
-                    *interpolate++ = (float)(vertex0[j] * (1.0 - ctime) + vertex1[j] * ctime);
+                    *interpolate++ = (float)openrender::motion::atTime<double>(vertex0[j], vertex1[j], ctime); // double keys: not atTimeD, whose float keys would round them
                 }
             }
         }
@@ -1308,7 +1311,7 @@ void CNURBSPatch::sample(int start, int numVertices, float **varying, float ***l
             dest[0] = (float)(Pend[0] - Pstart[0]);                                     \
             dest[1] = (float)(Pend[1] - Pstart[1]);                                     \
             dest[2] = (float)(Pend[2] - Pstart[2]);                                     \
-            mulvf(dest, CRenderer::invShutterTime);                                     \
+            openrender::motion::toShutterRate(dest);                                    \
         }                                                                               \
     }
 

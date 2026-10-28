@@ -481,12 +481,12 @@ is taken on the approved tree, and phase 3 does not start until its files are in
 
 **Independent test**: `Motion_Replay_bilinear` and `Motion_Replay_tessellation` (sample side) green; `patches.cpp` reads no `CRenderer::invShutterTime`.
 
-- [ ] T074 [US4] [RUN] Delete the 1 DB-004 line `src/ri/geometry/patches.cpp -> _ZN9CRenderer14invShutterTimeE`. `ctest -L architecture`: **exactly 1 `VIOLATION`**. Record it.
-- [ ] T075 [US2] `CBilinearPatch::intersect` (`patches.cpp:228-234`): `interpolatev(t0, P00, P00 + 4 * vertexSize, time)` and the three sibling calls become `motion::atTimeV` (same key addresses, same order).
-- [ ] T076 [US2] The three `sample()` key lerps (`patches.cpp:372-374`, `692-695`, `1022-1024`; the bilinear, bicubic and NURBS patches) become `motion::atTimeD`, keeping each family's own `moving` test and its key selection (`sampleKey` only where the site selects begin or end).
-- [ ] T077 [US2] The three `dPdtime` scales (`patches.cpp:481, 793, 1311`) become `motion::toShutterRate(dest)`. **`CBilinearPatch::sample()`'s precedence defect (`patches.cpp:477`: `a - b * (1 - cv) + c * cv` where `a - (b * (1 - cv) + c * cv)` is meant, GitHub #108) is preserved bit for bit: do not add parentheses.** Add a one-line comment citing #108 beside the expression and change no other character of it.
-- [ ] T078 [US2] [RUN] CP-a, CP-b, CP-c, **CP-d**, CP-m. Expected: **no `STALE`, no `VIOLATION`**, `ALLOWED DB-004 x 57`; `grep -c 'CRenderer::invShutterTime' src/ri/geometry/patches.cpp` prints 0; `Motion_Replay_bilinear` and `_tessellation` green (the `S` records of the bicubic and NURBS scenes pin the three sample paths and the #108 expression).
-- [ ] T079 **Checkpoint 7 (PAUSE 7)**: stage; summarize; wait for review.
+- [X] T074 [US4] [RUN] Delete the 1 DB-004 line `src/ri/geometry/patches.cpp -> _ZN9CRenderer14invShutterTimeE`. `ctest -L architecture`: **exactly 1 `VIOLATION`**. Record it.
+- [X] T075 [US2] `CBilinearPatch::intersect` (`patches.cpp:228-234`): `interpolatev(t0, P00, P00 + 4 * vertexSize, time)` and the three sibling calls become `motion::atTimeV` (same key addresses, same order).
+- [X] T076 [US2] The three `sample()` key lerps (`patches.cpp:372-374`, `692-695`, `1022-1024`; the bilinear, bicubic and NURBS patches) become `motion::atTimeD`, keeping each family's own `moving` test and its key selection (`sampleKey` only where the site selects begin or end). **The NURBS patch's lerp (`:1022`) has `double` keys and stores into a `double *`: it calls `(float)motion::atTime<double>(...)` instead of `atTimeD`, whose `float` parameters would round the keys (found by `Motion_Replay_tessellation`).**
+- [X] T077 [US2] The three `dPdtime` scales (`patches.cpp:481, 793, 1311`) become `motion::toShutterRate(dest)`. **`CBilinearPatch::sample()`'s precedence defect (`patches.cpp:477`: `a - b * (1 - cv) + c * cv` where `a - (b * (1 - cv) + c * cv)` is meant, GitHub #108) is preserved bit for bit: do not add parentheses.** Add a one-line comment citing #108 beside the expression and change no other character of it.
+- [X] T078 [US2] [RUN] CP-a, CP-b, CP-c, **CP-d**, CP-m. Expected: **no `STALE`, no `VIOLATION`**, `ALLOWED DB-004 x 57`; `grep -c 'CRenderer::invShutterTime' src/ri/geometry/patches.cpp` prints 0; `Motion_Replay_bilinear` and `_tessellation` green (the `S` records of the bicubic and NURBS scenes pin the three sample paths and the #108 expression).
+- [X] T079 **Checkpoint 7 (PAUSE 7)**: stage; summarize; wait for review.
 
 ---
 

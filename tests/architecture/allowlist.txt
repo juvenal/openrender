@@ -61,7 +61,6 @@ DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer8dPixeldxE   # CRe
 DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer8dPixeldyE   # CRenderer::dPixeldy
 DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer8pixelTopE   # CRenderer::pixelTop
 DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer9pixelLeftE   # CRenderer::pixelLeft
-DB-004  link     src/ri/geometry/patches.cpp  ->  _ZN9CRenderer14invShutterTimeE   # CRenderer::invShutterTime
 DB-004  link     src/ri/geometry/patchgrid.cpp  ->  _ZN9CRenderer14invShutterTimeE   # CRenderer::invShutterTime
 DB-004  link     src/ri/geometry/points.cpp  ->  _ZN9CRenderer14invShutterTimeE   # CRenderer::invShutterTime
 DB-004  link     src/ri/geometry/polygons.cpp  ->  _ZN9CRenderer14invShutterTimeE   # CRenderer::invShutterTime
