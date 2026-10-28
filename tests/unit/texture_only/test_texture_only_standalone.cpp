@@ -17,8 +17,8 @@
  * one point and Shading derives their footprint (covered by TextureSystem_StreamCursor, the
  * substitute test and the byte-identical renders).
  *
- * Red until Phase 5 (textureSystem.h does not exist) and until Phases 4-8 take the renderer-core
- * headers out of the Texturing sources; T094 enables it. The input is
+ * Red until Phase 5 (textureSystem.h did not exist) and until Phases 4-8 took the renderer-core
+ * headers out of the Texturing sources; enabled by T092 (Phase 8). The input is
  *   argv[1] the expected-values file
  *   argv[2] tests/unit/texture_tile/fixtures      (concurrency_rgb.tex)
  *   argv[3] tests/unit/image_input/fixtures       (tiny_rgb8.png)
@@ -28,6 +28,7 @@
 #include "ri/texture/textureResolver.h"
 #include "ri/texture/textureSystem.h"
 
+#include "common/memory.h"
 #include "common/os.h"
 
 #include <algorithm>
@@ -112,6 +113,10 @@ int main(int argc, char **argv) {
         CHECK(!expected.empty());
     }
 
+    // Synthesizing an unbaked source decodes into the process-wide arena, which RiBegin initializes in a
+    // renderer and nothing else does (libRIBCommon owns the arena; there is no frame here)
+    globalArena.init();
+
     CDirectoryResolver resolver({argv[2], argv[3]});
 
     CTextureSystemSettings settings = {};
@@ -168,6 +173,7 @@ int main(int argc, char **argv) {
     }
 
     delete system;
+    globalArena.tini();
     if (failures == 0)
         printf("TextureOnly_Standalone: %zu lookups equal the starting tree's values\n", actual.size());
     return failures == 0 ? 0 : 1;

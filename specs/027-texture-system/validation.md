@@ -585,7 +585,33 @@ its own token (`token3d()`, what `getTexture3d` returns, now a member) and forwa
 - CP-d: 833 images, **0 differing, 0 missing** (noise list: the seven `.slo` raytrace probes); all 389 `MaxBlockAvgDiff` equal `baseline-diffs.txt`. Named and unchanged: `TextureSystem_StreamCursor`, `ShadingParity_TextureSubstitute{,HiderNoSystem,3D,3DNoServices}`, the determinism tests, the occlusion `ShadingParity_JitPL*` tests, `Visual_sphere-{occlusion,texture3d-bake3d,textureinfo}-reyes{,-slo}`.
 - Divergence rows: all 18 equal §0.7 in this run (no noise deviation).
 
-## §8–§9 Phase checkpoints
+**Approved by the maintainer at Checkpoint 7 (2026-10-28):** the `recording_texture_system.h` change (`CTextureServices` records and answers 3D forwarder calls only for its own token and forwards every other handle to the wrapped services; no assertion changed) and the `shaderFunctions.h` reformat.
+
+## §8 Phase 8: Texturing stands alone (US1; FR-007, FR-018(a), SC-002, SC-003)
+
+**T092.** `tests/unit/texture_only/CMakeLists.txt`: `textureSystem.cpp` appended to `texturing_only_sources`; `OPENRENDER_TEXTURE_ONLY_TESTS` defaults to **ON**; `EXCLUDE_FROM_ALL` dropped from the library and from `test_texture_only_standalone`; `DISABLED` dropped from `TextureOnly_Standalone`. `build-027` reconfigured with the explicit `-DOPENRENDER_TEXTURE_ONLY_TESTS=ON`
+(a cached OFF does not follow a changed default). The build, with the Texturing sources compiled a second time on the narrow include path, was clean under `-Werror` at the first try.
+
+**T093.** First run: **SEGFAULT** in `buildSynthesizedPyramid` (lldb: a null write through the process-wide arena). Synthesizing an unbaked source decodes into `globalArena`, which `RiBegin` initializes in a renderer and nothing else does; `TextureSystem_StreamCursor` already calls `globalArena.init()` for the same reason. **Test setup fix, for approval**: `test_texture_only_standalone.cpp` calls
+`globalArena.init()` before the system is made and `globalArena.tini()` after it is deleted (and includes `common/memory.h`); no expectation changed. (This is a requirement of the Texturing-only program that the production code leaves to the renderer: a consumer of the texture system must initialize libRIBCommon's arena. A note for the registry/docs task.) Then
+`TextureOnly_Standalone`: **Passed**, all 15 lookups equal `tools/master-lookup-values.txt`. Link check: `otool -L` shows only `libRIBCommon.1.dylib`, `libSystem` and `libc++`; the 266 undefined symbols are libc/libc++ and libRIBCommon's (RGBE codec, RI tokens, memory, os, sampling, `error`, `ropen`, `CFileResource`, `RiBoxFilter`); none matches `CRenderer`, `CShadingContext`, `CAttributes`, `COptions`, a hider or `libshader`. T034's compile errors are gone.
+
+**T094.** Mutation (T-T1): `CMadeTexture::lookup4` returns `1 - value` in channel 0 (the footprint lookup the test uses; `lookup` is the point form): `TextureOnly_Standalone` **red** (`baked A (0.135373,...)` against `(0.864627,...)`, every baked and the non-power-of-two rows). Reverted (byte-identical; the file touched after a pause, since `make` 3.81 compares whole-second mtimes).
+
+**T095.** The first `archcheck` run with the option ON: `ctest -L architecture` 21/21, **no exit 2, `notbuilt=0`**, `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0`; the staged `ri_config.h` copy is not reported; `ALLOWED` and `METRIC` are **identical** to Checkpoint 7 (`DB-010 x 10`, `Texturing refs 1 distinct 1`, `TOTAL refs 652 distinct 98`): the second compile of the Texturing units adds nothing.
+
+**T096.** `python3 -I tools/core_usage.py . src/ri/texture`: `refs 1 distinct 1`, `CRenderer::retrieveDisplayChannel` (file `texture3d.cpp`: 1). `METRIC Texturing refs 1 distinct 1`; Shading `refs 0 distinct 0`.
+
+**T097.** `grep -rn CShadingContext src/ri/texture/`: `texture3d.h` (forward declaration and the pure virtual six-argument `lookup`), `pointHierarchy.h/.cpp` (the `Options` accessor and the override), and the assertion overrides of `pointCloud.h:65` and `brickmap.h:206`: nothing else.
+`grep -rnE 'CRenderer::(texture|initTextures|shutdownTextures|environmentLoad|synthesizeMutex)' src` has **no live reference to a removed member**. The literal "returns nothing" does not hold because the pattern's `texture` prefix also matches what stays: `CRenderer::texturePath` (the core's option and its definition, `blobbyRepeller.cpp`'s `locateFile` call, a DB-004 allowlisted edge),
+`CRenderer::textureResolver` (the core, Phase 4) and comments that say "was `CRenderer::textureMutex`/`initTextures`/`shutdownTextures`/`textureLoad`" (history in `textureInternal.h`, `texture.cpp`, `tileSource.h`, `rendererContext.cpp`, `blobbyRepeller.h`). `grep -rn 'display/rgbe/rgbe.h\|rgbe/rgbe.cpp' src`: nothing.
+
+**Checkpoint 8 (T098), macOS** (`cpujob 027-p8-*`, logs in `build-027-logs/`).
+- CP-a: clean build, `-Werror`, option ON. CP-b: 895 registered (`TextureOnly_Standalone` included, label `texture_only`: 1/1), **32 failed = exactly `tools/known-red-p2.txt`**; `texture_tile` at `-j2`: 14/14.
+- CP-c (option ON): `ctest -L architecture` 21/21, `RESULT PASS`, no `STALE`, no `VIOLATION`; `ALLOWED DB-010 x 10`, nothing added; Shading's imports 6 (unchanged).
+- CP-d: 833 images, **0 differing, 0 missing** (noise list: the seven `.slo` raytrace probes); all 389 `MaxBlockAvgDiff` equal `baseline-diffs.txt`. Divergence rows: all 18 equal §0.7 (no noise deviation in this run).
+
+## §9 Phase checkpoints
 
 ## §10 Linux
 

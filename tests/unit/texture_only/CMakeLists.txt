@@ -6,13 +6,14 @@
 # source fails to compile here, and an undefined reference into the renderer core, Shading or
 # the hiders fails to link. Precedent: tests/unit/state/CMakeLists.txt (spec 025).
 #
-# Why this is behind an option, OFF until task T092: archcheck's loadMakefiles walks every
-# DependInfo.cmake in the build tree, EXCLUDE_FROM_ALL targets included, and exits 2 "incomplete
-# build tree" when an in-scope object (any source under src/) is missing. The library below
-# compiles src/ri/texture sources, so it must either be built or not exist. With the option OFF
-# none of it is defined and `ctest -L architecture` sees only the production units. The red
-# evidence of T-T1 is taken in a scratch build directory with the option ON (T034).
-option(OPENRENDER_TEXTURE_ONLY_TESTS "Build the Texturing-only isolation test" OFF)
+# Why this is behind an option: archcheck's loadMakefiles walks every DependInfo.cmake in the
+# build tree, EXCLUDE_FROM_ALL targets included, and exits 2 "incomplete build tree" when an
+# in-scope object (any source under src/) is missing. The library below compiles src/ri/texture
+# sources, so it must either be built or not exist. The option is ON since task T092 (the
+# library and the test are part of `all`, so archcheck finds the objects); turning it OFF
+# leaves `ctest -L architecture` with only the production units. The red evidence of T-T1 was
+# taken in a scratch build directory (T034).
+option(OPENRENDER_TEXTURE_ONLY_TESTS "Build the Texturing-only isolation test" ON)
 
 if(OPENRENDER_TEXTURE_ONLY_TESTS)
     # A staging directory holding a copy of ri_config.h. src/ri/core itself is NOT on the
@@ -21,8 +22,7 @@ if(OPENRENDER_TEXTURE_ONLY_TESTS)
     configure_file(${CMAKE_SOURCE_DIR}/src/ri/core/ri_config.h
                    ${TEXTURE_ONLY_INCLUDE_DIR}/ri_config.h COPYONLY)
 
-    # textureSystem.cpp is appended in T092 (it does not exist yet).
-    add_library(texturing_only_sources STATIC EXCLUDE_FROM_ALL
+    add_library(texturing_only_sources STATIC
         ${CMAKE_SOURCE_DIR}/src/ri/texture/texture.cpp
         ${CMAKE_SOURCE_DIR}/src/ri/texture/texmake.cpp
         ${CMAKE_SOURCE_DIR}/src/ri/texture/imageInput.cpp
@@ -30,6 +30,7 @@ if(OPENRENDER_TEXTURE_ONLY_TESTS)
         ${CMAKE_SOURCE_DIR}/src/ri/texture/imageInputPng.cpp
         ${CMAKE_SOURCE_DIR}/src/ri/texture/imageInputRgbe.cpp
         ${CMAKE_SOURCE_DIR}/src/ri/texture/imageInputTiff.cpp
+        ${CMAKE_SOURCE_DIR}/src/ri/texture/textureSystem.cpp
     )
     target_link_libraries(texturing_only_sources PUBLIC
         openrender_common_flags openrendercommon TIFF::TIFF PNG::PNG ZLIB::ZLIB)
@@ -45,10 +46,7 @@ if(OPENRENDER_TEXTURE_ONLY_TESTS)
         ${TEXTURE_ONLY_INCLUDE_DIR}
     )
 
-    # Red until the phase that provides textureSystem.h (Phase 5) and the narrow include path
-    # (Phase 4/8): the executable fails to compile, so it and its test are EXCLUDE_FROM_ALL and
-    # DISABLED. T094 enables them.
-    add_executable(test_texture_only_standalone EXCLUDE_FROM_ALL test_texture_only_standalone.cpp)
+    add_executable(test_texture_only_standalone test_texture_only_standalone.cpp)
     target_link_libraries(test_texture_only_standalone PRIVATE texturing_only_sources)
     add_test(NAME TextureOnly_Standalone
         COMMAND test_texture_only_standalone
@@ -57,6 +55,5 @@ if(OPENRENDER_TEXTURE_ONLY_TESTS)
             ${CMAKE_SOURCE_DIR}/tests/unit/image_input/fixtures)
     set_tests_properties(TextureOnly_Standalone PROPERTIES
         TIMEOUT 60
-        LABELS "texture_only;unit"
-        DISABLED TRUE)
+        LABELS "texture_only;unit")
 endif()
