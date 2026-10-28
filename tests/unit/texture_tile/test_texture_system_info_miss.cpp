@@ -8,7 +8,8 @@
  * later texture() of the same name still gets the substitute and its one diagnostic. The new
  * system keeps exactly that:
  *   - handle("nosuchfile.tex", ETextureKind::Info) returns nullptr;
- *   - nothing is cached: a second call with the counting resolver locates again (locate count 2);
+ *   - nothing is cached: a second call with the counting resolver locates again (twice the locates of
+ *     the first; a probe is an environment attempt and a texture attempt, each of which locates);
  *   - there are zero diagnostics;
  *   - a following ETextureKind::Texture request for the same name still yields a substitute
  *     (non-null) with exactly one CODE_NOFILE.
@@ -45,10 +46,14 @@ int main() {
     const char *missing = "nosuchfile_027_info.tex";
 
     // A miss: nullptr, nothing cached (the second request locates again), no diagnostic
+    // One probe locates the name once as an environment and once as a texture (today's getTextureInfo tries
+    // both, and each loader locates), so a probe is `perProbe` locates; what matters is that the second
+    // probe locates again by the same amount, i.e. nothing was cached.
     CHECK(system->handle(missing, ETextureKind::Info) == nullptr);
-    CHECK(counting.count(missing) == 1);
+    const int perProbe = counting.count(missing);
+    CHECK(perProbe >= 1);
     CHECK(system->handle(missing, ETextureKind::Info) == nullptr);
-    CHECK(counting.count(missing) == 2);
+    CHECK(counting.count(missing) == 2 * perProbe);
     CHECK(diagnostics.total() == 0);
 
     // The same name as a texture is still a substitute with exactly one CODE_NOFILE

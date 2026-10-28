@@ -140,20 +140,10 @@ DB-010  include  src/ri/hiders/irradianceDispatch.cpp  ->  src/ri/texture/pointH
 DB-010  include  src/ri/hiders/irradianceDispatch.cpp  ->  src/ri/texture/texture.h
 DB-010  include  src/ri/texture/pointHierarchy.cpp  ->  src/ri/core/shading.h
 DB-010  include  src/ri/texture/texture.cpp  ->  src/ri/core/shading.h
-DB-010  include  src/ri/texture/texture.cpp  ->  src/ri/render/renderer.h
 DB-010  include  src/ri/texture/texture3d.cpp  ->  src/ri/render/renderer.h
 DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZN10CTexture3dC2EPKcPKfS3_S3_iPNS_8CChannelE   # CTexture3d::CTexture3d(char const*, float const*, float const*, float const*, int, CTexture3d::CChannel*)
 DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZN10CTexture3dD2Ev   # CTexture3d::~CTexture3d()
 DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZTI10CTexture3d   # typeinfo for CTexture3d
-DB-010  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer10numThreadsE   # CRenderer::numThreads
-DB-010  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer12textureMutexE   # CRenderer::textureMutex
-DB-010  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer15synthesizeMutexE   # CRenderer::synthesizeMutex
-DB-010  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer16textureMaxMemoryE   # CRenderer::textureMaxMemory
-DB-010  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer16textureRefNumberE   # CRenderer::textureRefNumber
-DB-010  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer17textureUsedBlocksE   # CRenderer::textureUsedBlocks
-DB-010  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer17textureUsedMemoryE   # CRenderer::textureUsedMemory
-DB-010  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer19textureCacheEnabledE   # CRenderer::textureCacheEnabled
-DB-010  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer21textureCacheDirectoryE   # CRenderer::textureCacheDirectory
 DB-010  link     src/ri/texture/texture3d.cpp  ->  _ZN9CRenderer22retrieveDisplayChannelEPKc   # CRenderer::retrieveDisplayChannel(char const*)
 
 # --- DB-011: Hiders read renderer-core state (CRenderer) (182) ---

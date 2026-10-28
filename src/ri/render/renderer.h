@@ -100,7 +100,8 @@ class CDSO;
 class CRendererContext;
 class CNetFileMapping;
 class CRay;
-class CTextureBlock;
+class CTextureSystem;
+class CSearchPathResolver;
 class CTextureInfoBase;
 class CTexture3d;
 
@@ -157,10 +158,6 @@ class CRenderer {
         static SOCKET *netServers;                                        // The array of servers that are serving us
         static int numRenderedBuckets;                                    // The number of rendered buckets
         static char temporaryPath[OS_MAX_PATH_LENGTH];                    // Where tmp files are stored
-        static int **textureRefNumber;                                    // The last reference number for each thread's textures
-        static CTextureBlock *textureUsedBlocks;                          // All texture blocks currently in use
-        static int *textureUsedMemory;                                    // The amount of texture memory in use for each thread
-        static int *textureMaxMemory;                                     // The maximum texture memory for each thread
 
         ////////////////////////////////////////////////////////////////////
         //
@@ -175,13 +172,11 @@ class CRenderer {
         static TMutex displayKillMutex; // To serialize the killing of a thread
         static TMutex networkMutex;     // To serialize the network communication
         static TMutex tesselateMutex;   // To serialize the tesselation
-        static TMutex textureMutex;     // To serialize texture fetches
         static TMutex shaderMutex;      // To serialize shader parameter list access
         static TMutex delayedMutex;     // To serialize rib parsing/delayed objects
         static TMutex deepShadowMutex;  // To serialize deep shadow _writes_
         static TMutex hierarchyMutex;   // To serialize lazy construction of bounding volume hierarchy
         static TMutex atomicMutex;      // To serialize atomic operations on unsupported platforms
-        static TMutex synthesizeMutex;  // To serialize in-memory pyramid synthesis for unbaked texture sources (020-runtime-tile-paging)
 
         ////////////////////////////////////////////////////////////////////
         //
@@ -281,14 +276,8 @@ class CRenderer {
         static int locateFileEx(char *, const char *, const char *extension = NULL, TSearchpath *search = NULL);
         static int locateFile(char *, const char *, TSearchpath *search = NULL, int tryNormalize = FALSE);
 
-        static void initTextures(int);                                                                                         // Set the maximum texture memory and init texturing
-        static CTexture *textureLoad(const char *, const CTextureFileResolver *);                                                             // Load a new texture map
-        static CEnvironment *environmentLoad(const char *, const CTextureFileResolver *, float *);                                            // Load a new environment map
-        static CTexture *getTexture(const char *);                                                                             // Load a texture
-        static CEnvironment *getEnvironment(const char *);                                                                     // Load an environment
         static CPhotonMap *getPhotonMap(const char *);                                                                         // Load a photon map
         static CTexture3d *getCache(const char *, const char *, const float *, const float *);                                 // Load a cache
-        static CTextureInfoBase *getTextureInfo(const char *);                                                                 // Load a textureinfo
         static CTexture3d *getTexture3d(const char *, int, const char *, const float *, const float *, int hierarchy = FALSE); // Load a point cloud or brickmap
         static CShader *getShader(const char *, TSearchpath *search = NULL);                                                   // Load a shader
         static CShader *getShader(const char *, TSearchpath *search, const char *preferredType);                               // Load shader with type preference
@@ -296,7 +285,6 @@ class CRenderer {
         static const char *getFilter(RtFilterFunc);                                                                            // The other way around
         static CDSO *getDSO(const char *, const char *);                                                                       // Find a DSO function
         static void shutdownFiles();
-        static void shutdownTextures(); // clean up texturing
 
         ////////////////////////////////////////////////////////////////////
         // Functions that deal with network (implemented in rendererNetwork.cpp)
@@ -342,8 +330,6 @@ class CRenderer {
         static TSearchpath *displayPath;                               // Display search path
         static TSearchpath *modulePath;                                // Search path for openRender modules
         static TSearchpath *geometryPath;                              // Geometry search path
-        static bool textureCacheEnabled;                               // Opt-in disk cache for unbaked texture sources (020-runtime-tile-paging)
-        static const char *textureCacheDirectory;                      // Cache directory override, nullptr -> resolved default
         static int pixelXsamples, pixelYsamples;                       // Number of samples to take in X and Y
         static openrender::sampling::Backend samplingBackend;          // Option "sampling" "sampler" (spec 039)
         static uint32_t samplingSeed;                                  // Option "sampling" "seed"
@@ -369,6 +355,8 @@ class CRenderer {
         static char *filelog;                           // The name of the log file
         static int numThreads;                          // The number of threads working
         static int maxTextureSize;                      // Maximum amount of texture data to keep in memory (in bytes)
+        static CSearchPathResolver *textureResolver;    // Finds the texture files (spec 027); owned here, outlives the system
+        static CTextureSystem *textureSystem;           // The frame's texture system (spec 027): created in beginFrame(), deleted in endFrame()
         static int maxBrickSize;                        // Maximum amount of brick data to keep in memory (in bytes)
         static int maxGridSize;                         // Maximum number of points to shade at a time
         static int maxRayDepth;                         // Maximum raytracing recursion depth

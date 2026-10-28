@@ -119,7 +119,7 @@ int main() {
 
     // Warm-up: the first makeTexture() of a process writes a different (smaller) file than every later one
     // (1878 against 2142 bytes for this source on the starting tree: process state, unrelated to the
-    // resolver), so the two outputs compared below must both be made after one throwaway bake.
+    // resolver; GitHub #109), so the two outputs compared below must both be made after one throwaway bake.
     {
         const std::string warm = work + "/warm.tex";
         makeTexture(source.c_str(), warm.c_str(), &emptyPath, "clamp", "clamp", RiBoxFilter, 1, 1, 0, nullptr, nullptr);

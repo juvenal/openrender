@@ -81,22 +81,6 @@ TMutex CRenderer::networkMutex;
 TMutex CRenderer::tesselateMutex;
 
 /////////////////////////////////////////////////////////////
-//	Used to ensure we serialize purging of texture blocks
-//  The serial creation of blocks is handled by the fact that
-//	textures are loaded on request from shader PL references
-//  shader PL unpacking is serialized.
-//
-//	Also used to ensure we only have one thread loading a block if
-//	PERBLOCK_LOCK is not enabled (but it is by default)
-//
-//	Note: if we change shaderMutex usage, we will need to ensure
-//	creation of texture blocks is serialized
-//
-//	VERIFIED
-/////////////////////////////////////////////////////////////
-TMutex CRenderer::textureMutex;
-
-/////////////////////////////////////////////////////////////
 //	Used to ensure that each shader PL gets unpacked by one
 //	thread only
 //	Note: if we change this, we'll need to mutex other
@@ -143,22 +127,6 @@ TMutex CRenderer::hierarchyMutex;
 /////////////////////////////////////////////////////////////
 TMutex CRenderer::atomicMutex;
 
-/////////////////////////////////////////////////////////////
-//	Used to serialize in-memory mip pyramid synthesis for unbaked
-//	(non-TIFF) texture sources (020-runtime-tile-paging). Held for
-//	the whole decode/resize/pyramid-reduction body inside
-//	CRenderer::textureLoad()'s fallback in texture.cpp, since
-//	adjustSize<T>/filterScaleImage<T>/filterImage<T> share
-//	globalArena, an unsynchronized bump allocator, and
-//	textureLoad() is reachable from multiple shading threads
-//	concurrently. Deliberately separate from textureMutex, whose
-//	current role (under TEXTURE_PERBLOCK_LOCK) is narrowly
-//	textureMemFlush()'s eviction scan, not synthesis.
-//
-//	VERIFIED
-/////////////////////////////////////////////////////////////
-TMutex CRenderer::synthesizeMutex;
-
 // TODO: Comment on
 // Per block mutexes for textures, tesselations, grid objects
 
@@ -174,12 +142,10 @@ void CRenderer::initMutexes() {
     osCreateMutex(displayKillMutex);
     osCreateMutex(networkMutex);
     osCreateMutex(tesselateMutex);
-    osCreateMutex(textureMutex);
     osCreateMutex(shaderMutex);
     osCreateMutex(delayedMutex);
     osCreateMutex(deepShadowMutex);
     osCreateMutex(hierarchyMutex);
-    osCreateMutex(synthesizeMutex);
 
 #ifdef ATOMIC_UNSUPPORTED
     warning(CODE_SYSTEM, "Atomic operations are not supported on this system, consider leaving a note in Sourceforge about your platform");
@@ -199,12 +165,10 @@ void CRenderer::shutdownMutexes() {
     osDeleteMutex(displayKillMutex);
     osDeleteMutex(networkMutex);
     osDeleteMutex(tesselateMutex);
-    osDeleteMutex(textureMutex);
     osDeleteMutex(shaderMutex);
     osDeleteMutex(delayedMutex);
     osDeleteMutex(deepShadowMutex);
     osDeleteMutex(hierarchyMutex);
-    osDeleteMutex(synthesizeMutex);
 
 #ifdef ATOMIC_UNSUPPORTED
     osDeleteMutex(atomicMutex);

@@ -27,6 +27,7 @@
 #include "renderer.h"
 #include "texture.h"        // CTexture, CTextureInfoBase, CEnvironment
 #include "texture3d.h"      // CTexture3d
+#include "textureSystem.h"  // CTextureSystem, ETextureKind
 #include "userAttributes.h" // CUserAttributeDictionary
 
 class CRendererServicesImpl final : public CRendererServices {
@@ -61,13 +62,14 @@ class CRendererServicesImpl final : public CRendererServices {
         // Resource loaders (with mutex)
         CTexture *getTexture(const char *name) override {
             osLock(CRenderer::shaderMutex);
-            CTexture *t = CRenderer::getTexture(name);
+            // Phase 5 adapter (spec 027): the texture system hands out the handle; Phase 6 replaces these getters
+            CTexture *t = static_cast<CTexture *>(reinterpret_cast<CTextureInfoBase *>(CRenderer::textureSystem->handle(name, ETextureKind::Texture)));
             osUnlock(CRenderer::shaderMutex);
             return t;
         }
         CEnvironment *getEnvironment(const char *name) override {
             osLock(CRenderer::shaderMutex);
-            CEnvironment *e = CRenderer::getEnvironment(name);
+            CEnvironment *e = static_cast<CEnvironment *>(reinterpret_cast<CTextureInfoBase *>(CRenderer::textureSystem->handle(name, ETextureKind::Environment)));
             osUnlock(CRenderer::shaderMutex);
             return e;
         }
@@ -85,7 +87,7 @@ class CRendererServicesImpl final : public CRendererServices {
         }
         CTextureInfoBase *getTextureInfo(const char *name) override {
             osLock(CRenderer::shaderMutex);
-            CTextureInfoBase *t = CRenderer::getTextureInfo(name);
+            CTextureInfoBase *t = reinterpret_cast<CTextureInfoBase *>(CRenderer::textureSystem->handle(name, ETextureKind::Info));
             osUnlock(CRenderer::shaderMutex);
             return t;
         }

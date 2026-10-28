@@ -60,6 +60,7 @@
 #include "ri.h"
 #include "ri_config.h"
 #include "rib.h"
+#include "searchPathResolver.h"
 #include "shader.h"
 #include "shaderRefs.h"
 #include "common/stats.h"
@@ -67,6 +68,7 @@
 #include "subdivisionCreator.h"
 #include "texmake.h"
 #include "texture.h"
+#include "textureSystem.h"
 #include "xform.h"
 #include "zbuffer.h"
 
@@ -200,8 +202,6 @@ static void copyOptions(const COptions *o) {
     CRenderer::displayPath = o->displayPath;
     CRenderer::modulePath = o->modulePath;
     CRenderer::geometryPath = o->geometryPath;
-    CRenderer::textureCacheEnabled = o->textureCacheEnabled;
-    CRenderer::textureCacheDirectory = o->textureCacheDirectory;
     CRenderer::pixelXsamples = o->pixelXsamples;
     CRenderer::pixelYsamples = o->pixelYsamples;
     CRenderer::samplingBackend = o->samplingBackend;
@@ -747,7 +747,18 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     CBrickMap::initBrickMap(maxBrickSize);
 
     // Initialize the texturing (after we worked out how many threads)
-    initTextures(maxTextureSize);
+    textureResolver = new CSearchPathResolver(texturePath);
+
+    CTextureSystemSettings textureSettings = {};
+    textureSettings.numThreads = numThreads;
+    textureSettings.maxMemory = maxTextureSize;
+    textureSettings.resolver = textureResolver;
+    textureSettings.diskCacheEnabled = o->textureCacheEnabled;
+    textureSettings.diskCacheDirectory = o->textureCacheDirectory;
+    movmm(textureSettings.toWorld, toWorld);
+    textureSettings.loadMutex = NULL; // the system's own lock (the services' getters still hold shaderMutex)
+    textureSystem = createTextureSystem(textureSettings);
+    assert(textureSystem != NULL);
 
     // Allow the hider to control display setup
     if (strcmp(hider, "raytrace") == 0) {
@@ -871,7 +882,10 @@ void CRenderer::endFrame() {
     frameFiles->destroy();
 
     // terminate the texturing  (must be after we kill the files)
-    shutdownTextures();
+    delete textureSystem;
+    textureSystem = NULL;
+    delete textureResolver;
+    textureResolver = NULL;
 
     // Shutdown the texturing system
     CBrickMap::shutdownBrickMap();

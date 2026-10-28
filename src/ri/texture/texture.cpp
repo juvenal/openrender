@@ -29,11 +29,11 @@
 #include "common/diagnostics.h"
 #include "imageInput.h"
 #include "common/memory.h"
-#include "renderer.h"
 #include "ri_config.h"
 #include "shading.h"
 #include "common/stats.h"
 #include "texmake.h"
+#include "textureInternal.h"
 #include "tiff.h"
 #include "tileSource.h"
 
@@ -42,6 +42,7 @@
 #include <functional> // std::hash
 #include <math.h>
 #include <memory>
+#include <mutex>
 #include <stddef.h> // Ensure NULL is defined before libtiff
 #include <string.h>
 #include <string>
@@ -71,6 +72,7 @@ class CTextureBlock {
     public:
         void *data; // Where the block data is stored (NULL if the block has been paged out)
         CTexBlockThreadData *threadData;
+        CTextureCache *cache; // the cache this block is registered with
 
 #ifdef TEXTURE_PERBLOCK_LOCK
         TMutex mutex;
@@ -138,31 +140,34 @@ static void textureQuickSort(CTextureBlock **activeBlocks, int start, int end, i
 // Comments				:
 static inline void textureMemFlush(CTextureBlock *entry, CShadingContext *context, int all) {
 
+    CTextureCache *const cache = entry->cache;
+
     // Do we have stuff to free ?
-    if (CRenderer::textureUsedBlocks == NULL)
+    if (cache->usedBlocks == NULL)
         return;
 
 #ifdef TEXTURE_PERBLOCK_LOCK
-    osLock(CRenderer::textureMutex);
+    osLock(cache->mutex);
 #endif
 
-    memBegin(context->threadMemory);
-
     const int thread = context->thread;
+    TexturePerthread &pt = cache->perthread[thread];
+
+    memBegin(pt.scratch);
 
     // Figure out how many blocks we have in memory
     int i, j;
     CTextureBlock **activeBlocks;
     CTextureBlock *cBlock;
-    for (cBlock = CRenderer::textureUsedBlocks, i = 0; cBlock != NULL; cBlock = cBlock->next) {
+    for (cBlock = cache->usedBlocks, i = 0; cBlock != NULL; cBlock = cBlock->next) {
         if (cBlock->threadData[thread].data != NULL) {
             i++;
         }
     }
 
     // Collect those blocks into an array
-    activeBlocks = (CTextureBlock **)ralloc(i * sizeof(CTextureBlock *), context->threadMemory);
-    for (cBlock = CRenderer::textureUsedBlocks, i = 0; cBlock != NULL; cBlock = cBlock->next) {
+    activeBlocks = (CTextureBlock **)ralloc(i * sizeof(CTextureBlock *), pt.scratch);
+    for (cBlock = cache->usedBlocks, i = 0; cBlock != NULL; cBlock = cBlock->next) {
         if (cBlock->threadData[thread].data != NULL) {
             if (cBlock != entry) {
                 activeBlocks[i++] = cBlock;
@@ -176,11 +181,11 @@ static inline void textureMemFlush(CTextureBlock *entry, CShadingContext *contex
 
     // Free the memory
     if (all)
-        CRenderer::textureMaxMemory[thread] = 0;
-    for (j = 0; (j < i) && (CRenderer::textureUsedMemory[thread] > (CRenderer::textureMaxMemory[thread] / 2)); j++) {
+        pt.maxMemory = 0;
+    for (j = 0; (j < i) && (pt.usedMemory > (pt.maxMemory / 2)); j++) {
         cBlock = activeBlocks[j];
 
-        CRenderer::textureUsedMemory[thread] -= cBlock->size;
+        pt.usedMemory -= cBlock->size;
         cBlock->threadData[thread].data = NULL;
 
 #ifdef TEXTURE_PERBLOCK_LOCK
@@ -200,10 +205,10 @@ static inline void textureMemFlush(CTextureBlock *entry, CShadingContext *contex
 #endif
     }
 
-    memEnd(context->threadMemory);
+    memEnd(pt.scratch);
 
 #ifdef TEXTURE_PERBLOCK_LOCK
-    osUnlock(CRenderer::textureMutex);
+    osUnlock(cache->mutex);
 #endif
 }
 
@@ -220,14 +225,14 @@ static inline unsigned char *textureAllocateBlock(CTextureBlock *entry, CShading
     stats.textureMemory += entry->size;
     stats.transferredTextureData += entry->size;
 
-    const int thread = context->thread;
+    TexturePerthread &pt = entry->cache->perthread[context->thread];
 
-    CRenderer::textureUsedMemory[thread] += entry->size;
+    pt.usedMemory += entry->size;
 
     unsigned char *data = new unsigned char[entry->size];
 
     // If we exceeded the maximum texture memory, phase out the last texture
-    if (CRenderer::textureUsedMemory[thread] > CRenderer::textureMaxMemory[thread])
+    if (pt.usedMemory > pt.maxMemory)
         textureMemFlush(entry, context, FALSE);
 
     return data;
@@ -534,6 +539,20 @@ class CSynthesizedPyramid {
 };
 
 ///////////////////////////////////////////////////////////////////////
+// Function				:	synthesisMutex
+// Description			:	The process-wide lock the pyramid synthesis holds (spec 027, research R13):
+//							synthesis decodes into globalArena, which is shared by every thread, so two
+//							syntheses must not overlap whatever texture system asked for them. It holds no
+//							data and is a function-local static, so it needs no init or teardown and works
+//							with no texture system.
+// Return Value			:	The mutex
+// Comments				:
+static std::mutex &synthesisMutex() {
+    static std::mutex mutex;
+    return mutex;
+}
+
+///////////////////////////////////////////////////////////////////////
 // Function				:	reduceSynthesizedPyramidLevel
 // Description			:	Reduces one pyramid level into the next,
 //							in-place over the arena-allocated buffer
@@ -543,7 +562,7 @@ class CSynthesizedPyramid {
 //							2x2-block-average math (texmake.cpp:200-273)
 //							without writing to a TIFF file.
 // Return Value			:	-
-// Comments				:	Must be called with CRenderer::synthesizeMutex
+// Comments				:	Must be called with the synthesis lock
 //							held and inside the same memBegin/memEnd
 //							bracket as the caller's arena allocations
 //							(research.md SS4a) -- "fnextLevel" is itself
@@ -596,7 +615,7 @@ static void reduceSynthesizedPyramidLevel(T *data, int currentWidth, int numSamp
 //							out of the shared arena into the pyramid's own
 //							heap-owned buffers.
 // Return Value			:	-
-// Comments				:	Must be called with CRenderer::synthesizeMutex
+// Comments				:	Must be called with the synthesis lock
 //							held and inside the caller's memBegin/memEnd
 //							bracket (research.md SS4a) -- "decodedData" is
 //							itself arena-allocated by the caller.
@@ -664,13 +683,13 @@ static void buildSynthesizedPyramidTyped(const CImageInfo &info, void *decodedDa
 // Return Value			:	std::shared_ptr<CSynthesizedPyramid>, or an
 //							empty shared_ptr on failure
 // Comments				:	Serializes its entire decode+resize+reduction
-//							body behind CRenderer::synthesizeMutex, because
+//							body behind the synthesis lock, because
 //							adjustSize<T>/filterScaleImage<T>/filterImage<T>
 //							(and this function's own reduction step) share
 //							globalArena, an unsynchronized bump
 //							allocator, and this function is reachable from
 //							multiple shading threads concurrently via
-//							CRenderer::textureLoad() (research.md SS4a).
+//							textureLoadTexture() (research.md SS4a).
 //							Not on the hot per-tile fetchTile() path -- this
 //							runs once per distinct unbaked source per
 //							render.
@@ -696,7 +715,7 @@ static std::shared_ptr<CSynthesizedPyramid> buildSynthesizedPyramid(const char *
     // must be read only after that scope closes.
     bool readOk;
 
-    osLock(CRenderer::synthesizeMutex);
+    synthesisMutex().lock();
     arenaBegin(globalArena);
 
     int bytesPerSample = (info.bitsPerSample == 8) ? (int)sizeof(unsigned char) : (info.bitsPerSample == 16) ? (int)sizeof(unsigned short)
@@ -720,7 +739,7 @@ static std::shared_ptr<CSynthesizedPyramid> buildSynthesizedPyramid(const char *
     }
 
     arenaEnd(globalArena);
-    osUnlock(CRenderer::synthesizeMutex);
+    synthesisMutex().unlock();
 
     input->close();
 
@@ -745,7 +764,7 @@ static std::shared_ptr<CSynthesizedPyramid> buildSynthesizedPyramid(const char *
 //							different instances: the pyramid it reads from
 //							is built once, single-threaded (behind
 //							buildSynthesizedPyramid()'s
-//							CRenderer::synthesizeMutex), before any
+//							the synthesis lock), before any
 //							concurrent fetchTile() call can happen, and
 //							never mutated afterward. Uses
 //							DEFAULT_TILE_SIZE-square tiles, matching
@@ -888,29 +907,30 @@ static inline void textureLoadBlock(CTextureBlock *entry, CTileSource *source, i
 // Description			:	Add a block into the list of used blocks
 // Return Value			:	Pointer to the new block
 // Comments				:
-static inline void textureRegisterBlock(CTextureBlock *cEntry, int size) {
+static inline void textureRegisterBlock(CTextureBlock *cEntry, int size, CTextureCache *cache) {
 
     // Fully construct the cEntry before placing it on the list
     cEntry->data = NULL;
     cEntry->refCount = 0;
-    cEntry->threadData = new CTexBlockThreadData[CRenderer::numThreads];
+    cEntry->cache = cache;
+    cEntry->threadData = new CTexBlockThreadData[cache->numThreads];
     cEntry->size = size;
 
 #ifdef TEXTURE_PERBLOCK_LOCK
     osCreateMutex(cEntry->mutex);
 #endif
-    for (int i = 0; i < CRenderer::numThreads; ++i) {
+    for (int i = 0; i < cache->numThreads; ++i) {
         cEntry->threadData[i].data = NULL;
         cEntry->threadData[i].lastRefNumber = 0; // FIXME: is this right?
-                                                 // should be CRenderer::textureRefNumber ???
+                                                 // should be the thread's refNumber ???
     }
 
     // Place cEntry on list
     cEntry->prev = NULL;
-    cEntry->next = CRenderer::textureUsedBlocks;
-    if (CRenderer::textureUsedBlocks != NULL)
-        CRenderer::textureUsedBlocks->prev = cEntry;
-    CRenderer::textureUsedBlocks = cEntry;
+    cEntry->next = cache->usedBlocks;
+    if (cache->usedBlocks != NULL)
+        cache->usedBlocks->prev = cEntry;
+    cache->usedBlocks = cEntry;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -925,7 +945,7 @@ static inline void textureUnregisterBlock(CTextureBlock *cEntry) {
     if (cEntry->prev != NULL)
         cEntry->prev->next = cEntry->next;
     else
-        CRenderer::textureUsedBlocks = cEntry->next;
+        cEntry->cache->usedBlocks = cEntry->next;
 
     // assert(cEntry->refCount == 0);//? bad idea?
 
@@ -933,9 +953,9 @@ static inline void textureUnregisterBlock(CTextureBlock *cEntry) {
         stats.textureSize -= cEntry->size;
         stats.textureMemory -= cEntry->size;
         // how to deal with this??
-        for (int i = 0; i < CRenderer::numThreads; ++i) {
+        for (int i = 0; i < cEntry->cache->numThreads; ++i) {
             if (cEntry->threadData[i].data != NULL) {
-                CRenderer::textureUsedMemory[i] -= cEntry->size;
+                cEntry->cache->perthread[i].usedMemory -= cEntry->size;
             }
         }
         delete[] (unsigned char *)cEntry->data;
@@ -967,7 +987,8 @@ typedef enum {
 // Comments				:
 class CTextureLayer {
     public:
-        CTextureLayer(CTileSource *tileSource, int width, int height, short numSamples, int fileWidth, int fileHeight, TTextureMode sMode, TTextureMode tMode) {
+        CTextureLayer(CTextureCache *cache, CTileSource *tileSource, int width, int height, short numSamples, int fileWidth, int fileHeight, TTextureMode sMode, TTextureMode tMode) {
+            this->cache = cache;
             this->tileSource = tileSource;
             this->width = width;
             this->height = height;
@@ -1062,6 +1083,7 @@ class CTextureLayer {
             return r;
         }
 
+        CTextureCache *cache;      // Not owned; the cache this layer's blocks are registered with
         CTileSource *tileSource;   // Owned; fetches this layer's pixel data
         short numSamples;          // The number of samples in the texture
         int width, height;         // The image info
@@ -1085,8 +1107,8 @@ class CBasicTexture : public CTextureLayer {
         // Description			:	Ctor
         // Return Value			:	-
         // Comments				:
-        CBasicTexture(CTileSource *tileSource, int width, int height, short numSamples, int fileWidth, int fileHeight, TTextureMode sMode, TTextureMode tMode, double Mult) : CTextureLayer(tileSource, width, height, numSamples, fileWidth, fileHeight, sMode, tMode) {
-            textureRegisterBlock(&dataBlock, width * height * numSamples * sizeof(T));
+        CBasicTexture(CTextureCache *cache, CTileSource *tileSource, int width, int height, short numSamples, int fileWidth, int fileHeight, TTextureMode sMode, TTextureMode tMode, double Mult) : CTextureLayer(cache, tileSource, width, height, numSamples, fileWidth, fileHeight, sMode, tMode) {
+            textureRegisterBlock(&dataBlock, width * height * numSamples * sizeof(T), cache);
             M = Mult;
         }
 
@@ -1112,8 +1134,9 @@ class CBasicTexture : public CTextureLayer {
             }
 
             // Texture cache management
-            (*CRenderer::textureRefNumber[thread])++;
-            dataBlock.threadData[thread].lastRefNumber = *CRenderer::textureRefNumber[thread];
+            int *const refNumber = cache->perthread[thread].refNumber;
+            (*refNumber)++;
+            dataBlock.threadData[thread].lastRefNumber = *refNumber;
 
             int xi = x + 1;
             int yi = y + 1;
@@ -1162,7 +1185,7 @@ class CTiledTexture : public CTextureLayer {
         // Description			:	Ctor
         // Return Value			:	-
         // Comments				:
-        CTiledTexture(CTileSource *tileSource, int width, int height, short numSamples, int fileWidth, int fileHeight, TTextureMode sMode, TTextureMode tMode, int tileWidth, int tileWidthShift, int tileHeight, int tileHeightShift, double Mult) : CTextureLayer(tileSource, width, height, numSamples, fileWidth, fileHeight, sMode, tMode) {
+        CTiledTexture(CTextureCache *cache, CTileSource *tileSource, int width, int height, short numSamples, int fileWidth, int fileHeight, TTextureMode sMode, TTextureMode tMode, int tileWidth, int tileWidthShift, int tileHeight, int tileHeightShift, double Mult) : CTextureLayer(cache, tileSource, width, height, numSamples, fileWidth, fileHeight, sMode, tMode) {
             this->tileWidth = tileWidth;
             this->tileWidthShift = tileWidthShift;
             this->tileHeight = tileHeight;
@@ -1178,7 +1201,7 @@ class CTiledTexture : public CTextureLayer {
                 dataBlocks[i] = new CTextureBlock[xTiles];
 
                 for (int j = 0; j < xTiles; ++j) {
-                    textureRegisterBlock(dataBlocks[i] + j, tileLength);
+                    textureRegisterBlock(dataBlocks[i] + j, tileLength, cache);
                 }
             }
 
@@ -1238,8 +1261,8 @@ class CTiledTexture : public CTextureLayer {
         textureLoadBlock(block, tileSource, xTile, yTile, context);                                                                  \
     }                                                                                                                                \
     assert(block->data != NULL);                                                                                                     \
-    (*CRenderer::textureRefNumber[thread])++;                                                                                        \
-    block->threadData[thread].lastRefNumber = *CRenderer::textureRefNumber[thread];                                                  \
+    (*cache->perthread[thread].refNumber)++;                                                                                         \
+    block->threadData[thread].lastRefNumber = *cache->perthread[thread].refNumber;                                                   \
                                                                                                                                      \
     data = (T *)block->data + (((__y & yt)) * tileWidth + (__x & xt)) * numSamples;                                                  \
     res[0] = (float)(data[0] * M);                                                                                                   \
@@ -1739,7 +1762,7 @@ class CDeepShadow : public CEnvironment {
         };
 
     public:
-        CDeepShadow(const char *name, const char *fn, const float *toWorld, FILE *in) : CEnvironment(name) {
+        CDeepShadow(const char *name, const char *fn, const float *toWorld, FILE *in, CTextureCache *cache) : CEnvironment(name) {
             matrix mtmp;
             int *tileSizes;
 
@@ -1806,7 +1829,7 @@ class CDeepShadow : public CEnvironment {
 
                     size = tileSizes[k];
 
-                    textureRegisterBlock(&(cTile->block), size);
+                    textureRegisterBlock(&(cTile->block), size, cache);
                     cTile->data = new float *[header.tileSize * header.tileSize];
                     cTile->lastData = new float *[header.tileSize * header.tileSize];
                 }
@@ -1892,8 +1915,9 @@ class CDeepShadow : public CEnvironment {
 
                 const int thread = context->thread;
 
-                (*CRenderer::textureRefNumber[thread])++;
-                cTile->block.threadData[thread].lastRefNumber = *CRenderer::textureRefNumber[thread];
+                int *const refNumber = cTile->block.cache->perthread[thread].refNumber;
+                (*refNumber)++;
+                cTile->block.threadData[thread].lastRefNumber = *refNumber;
 
                 if (cTile->block.threadData[thread].data == NULL) {
                     loadTile(bx, by, context);
@@ -1957,7 +1981,7 @@ class CDeepShadow : public CEnvironment {
             CDeepTile *cTile = tiles[y] + x;
 
 #ifndef TEXTURE_PERBLOCK_LOCK
-            osLock(CRenderer::textureMutex);
+            osLock(cTile->block.cache->mutex);
 #else
             osLock(cTile->block.mutex);
 #endif
@@ -1965,7 +1989,7 @@ class CDeepShadow : public CEnvironment {
                 cTile->block.threadData[context->thread].data = cTile->block.data;
                 cTile->block.refCount++;
 #ifndef TEXTURE_PERBLOCK_LOCK
-                osUnlock(CRenderer::textureMutex);
+                osUnlock(cTile->block.cache->mutex);
 #else
                 osUnlock(cTile->block.mutex);
 #endif
@@ -2020,7 +2044,7 @@ class CDeepShadow : public CEnvironment {
             cTile->block.threadData[context->thread].data = dataStart;
 
 #ifndef TEXTURE_PERBLOCK_LOCK
-            osUnlock(CRenderer::textureMutex);
+            osUnlock(cTile->block.cache->mutex);
 #else
             osUnlock(cTile->block.mutex);
 #endif
@@ -2400,7 +2424,7 @@ void CDummyEnvironment::lookup(float *dest, const float *, const float *, const 
 // Return Value			:	TRUE on success
 // Comments				:
 template <class T>
-static CTexture *readMadeTexture(const char *name, const char *aname, TIFF *in, int &dstart, int width, int height, const char *smode, const char *tmode, T) {
+static CTexture *readMadeTexture(const char *name, const char *aname, TIFF *in, int &dstart, CTextureCache *cache, int width, int height, const char *smode, const char *tmode, T) {
     uint32_t fileWidth, fileHeight;
     uint32_t tileWidth, tileHeight;
     uint16_t numSamples;
@@ -2491,7 +2515,7 @@ static CTexture *readMadeTexture(const char *name, const char *aname, TIFF *in, 
             ;
         tileHeightShift = jj;
 
-        cTexture->layers[i] = new CTiledTexture<T>(new CTiffTileSource(name, dstart), cwidth, cheight, numSamples, fileWidth, fileHeight, sMode, tMode, tileWidth, tileWidthShift, tileHeight, tileHeightShift, M);
+        cTexture->layers[i] = new CTiledTexture<T>(cache, new CTiffTileSource(name, dstart), cwidth, cheight, numSamples, fileWidth, fileHeight, sMode, tMode, tileWidth, tileWidthShift, tileHeight, tileHeightShift, M);
         dstart++;
 
         cwidth = cwidth >> 1;
@@ -2516,7 +2540,7 @@ static CTexture *readMadeTexture(const char *name, const char *aname, TIFF *in, 
 //							from at texture-lookup time, unlike a baked
 //							texture's TIFFTAG_PIXAR_WRAPMODES tag.
 template <class T>
-static CTexture *readSynthesizedTexture(const char *aname, std::shared_ptr<CSynthesizedPyramid> pyramid) {
+static CTexture *readSynthesizedTexture(const char *aname, std::shared_ptr<CSynthesizedPyramid> pyramid, CTextureCache *cache) {
     double M;
 
     if (sizeof(T) == sizeof(float)) {
@@ -2552,7 +2576,7 @@ static CTexture *readSynthesizedTexture(const char *aname, std::shared_ptr<CSynt
     for (int i = 0; i < numLevels; i++) {
         const CSynthesizedPyramid::Level &lvl = pyramid->levels[i];
 
-        cTexture->layers[i] = new CTiledTexture<T>(new CSynthesizedTileSource(pyramid, i), cwidth, cheight, (short)pyramid->numChannels, lvl.width, lvl.height, TEXTURE_PERIODIC, TEXTURE_PERIODIC, DEFAULT_TILE_SIZE, tileSizeShift, DEFAULT_TILE_SIZE, tileSizeShift, M);
+        cTexture->layers[i] = new CTiledTexture<T>(cache, new CSynthesizedTileSource(pyramid, i), cwidth, cheight, (short)pyramid->numChannels, lvl.width, lvl.height, TEXTURE_PERIODIC, TEXTURE_PERIODIC, DEFAULT_TILE_SIZE, tileSizeShift, DEFAULT_TILE_SIZE, tileSizeShift, M);
 
         cwidth = cwidth >> 1;
         cheight = cheight >> 1;
@@ -2567,7 +2591,7 @@ static CTexture *readSynthesizedTexture(const char *aname, std::shared_ptr<CSynt
 // Return Value			:	The texture
 // Comments				:
 template <class T>
-static CTexture *readTexture(const char *name, const char *aname, TIFF *in, int &dstart, T) {
+static CTexture *readTexture(const char *name, const char *aname, TIFF *in, int &dstart, CTextureCache *cache, T) {
     TIFFSetDirectory(in, dstart);
     uint32_t width = 0;
     uint32_t height = 0;
@@ -2589,7 +2613,7 @@ static CTexture *readTexture(const char *name, const char *aname, TIFF *in, int 
     }
 
     CRegularTexture *cTexture = new CRegularTexture(aname);
-    cTexture->layer = new CBasicTexture<T>(new CTiffTileSource(name, dstart), width, height, numSamples, width, height, TEXTURE_BLACK, TEXTURE_BLACK, M);
+    cTexture->layer = new CBasicTexture<T>(cache, new CTiffTileSource(name, dstart), width, height, numSamples, width, height, TEXTURE_BLACK, TEXTURE_BLACK, M);
     dstart++;
 
     return cTexture;
@@ -2600,7 +2624,7 @@ static CTexture *readTexture(const char *name, const char *aname, TIFF *in, int 
 // Description			:	Load a texture from disk
 // Return Value			:	Pointer to the new texture
 // Comments				:
-static CTexture *texLoad(const char *name, const char *aname, TIFF *in, int &dstart, int unMade = FALSE) {
+static CTexture *texLoad(const char *name, const char *aname, TIFF *in, int &dstart, CTextureCache *cache, int unMade = FALSE) {
     CTexture *cTexture = NULL;
     uint16_t bitspersample;
 
@@ -2637,25 +2661,25 @@ static CTexture *texLoad(const char *name, const char *aname, TIFF *in, int &dst
                         *tmode++ = '\0';
 
                         if (bitspersample == 8) {
-                            cTexture = readMadeTexture<unsigned char>(name, aname, in, dstart, width, height, smode, tmode, 1);
+                            cTexture = readMadeTexture<unsigned char>(name, aname, in, dstart, cache, width, height, smode, tmode, 1);
                         }
                         else if (bitspersample == 16) {
-                            cTexture = readMadeTexture<unsigned short>(name, aname, in, dstart, width, height, smode, tmode, 1);
+                            cTexture = readMadeTexture<unsigned short>(name, aname, in, dstart, cache, width, height, smode, tmode, 1);
                         }
                         else {
-                            cTexture = readMadeTexture<float>(name, aname, in, dstart, width, height, smode, tmode, 1);
+                            cTexture = readMadeTexture<float>(name, aname, in, dstart, cache, width, height, smode, tmode, 1);
                         }
                     }
                 }
                 else {
                     if (bitspersample == 8) {
-                        cTexture = readMadeTexture<unsigned char>(name, aname, in, dstart, width, height, RI_BLACK, RI_BLACK, 1);
+                        cTexture = readMadeTexture<unsigned char>(name, aname, in, dstart, cache, width, height, RI_BLACK, RI_BLACK, 1);
                     }
                     else if (bitspersample == 16) {
-                        cTexture = readMadeTexture<unsigned short>(name, aname, in, dstart, width, height, RI_BLACK, RI_BLACK, 1);
+                        cTexture = readMadeTexture<unsigned short>(name, aname, in, dstart, cache, width, height, RI_BLACK, RI_BLACK, 1);
                     }
                     else {
-                        cTexture = readMadeTexture<float>(name, aname, in, dstart, width, height, RI_BLACK, RI_BLACK, 1);
+                        cTexture = readMadeTexture<float>(name, aname, in, dstart, cache, width, height, RI_BLACK, RI_BLACK, 1);
                     }
                 }
             }
@@ -2667,13 +2691,13 @@ static CTexture *texLoad(const char *name, const char *aname, TIFF *in, int &dst
 
         // This must be an un-made texture then
         if (bitspersample == 8) {
-            cTexture = readTexture<unsigned char>(name, aname, in, dstart, 1);
+            cTexture = readTexture<unsigned char>(name, aname, in, dstart, cache, 1);
         }
         else if (bitspersample == 16) {
-            cTexture = readTexture<unsigned short>(name, aname, in, dstart, 1);
+            cTexture = readTexture<unsigned short>(name, aname, in, dstart, cache, 1);
         }
         else {
-            cTexture = readTexture<float>(name, aname, in, dstart, 1);
+            cTexture = readTexture<float>(name, aname, in, dstart, cache, 1);
         }
     }
 
@@ -2776,7 +2800,7 @@ static std::string resolveDefaultTextureCacheDirectory() {
 //							ignoring failure -- an unwritable location
 //							degrades to in-memory-only per FR-007, detected
 //							later when the actual write attempt fails).
-static bool computeTextureCacheFilePath(const char *sourcePath, std::string &cachePath) {
+static bool computeTextureCacheFilePath(const char *sourcePath, std::string &cachePath, const char *diskCacheDirectory) {
     char absolutePath[OS_MAX_PATH_LENGTH];
     if (realpath(sourcePath, absolutePath) == NULL) {
         return false;
@@ -2787,7 +2811,7 @@ static bool computeTextureCacheFilePath(const char *sourcePath, std::string &cac
         return false;
     }
 
-    std::string directory = (CRenderer::textureCacheDirectory != NULL) ? CRenderer::textureCacheDirectory : resolveDefaultTextureCacheDirectory();
+    std::string directory = (diskCacheDirectory != NULL) ? diskCacheDirectory : resolveDefaultTextureCacheDirectory();
     if (!directory.empty() && (directory.back() != '/'))
         directory += '/';
 
@@ -2843,7 +2867,7 @@ static void writeTextureCacheEntry(const char *sourcePath, const std::string &fi
 // Description			:	Load a texture from disk
 // Return Value			:	Pointer to the new texture
 // Comments				:
-CTexture *CRenderer::textureLoad(const char *name, const CTextureFileResolver *resolver) {
+CTexture *textureLoadTexture(const char *name, const CTextureFileResolver *resolver, CTextureCache *cache, bool diskCacheEnabled, const char *diskCacheDirectory) {
     char fn[OS_MAX_PATH_LENGTH];
 
     if (textureLocate(resolver, fn, name) == FALSE) {
@@ -2884,14 +2908,14 @@ CTexture *CRenderer::textureLoad(const char *name, const CTextureFileResolver *r
         if (TIFFGetField(in, TIFFTAG_PIXAR_TEXTUREFORMAT, &textureFormat) == 1) {
             if (strcmp(textureFormat, TIFF_TEXTURE) == 0)
                 // This seems like a made texture
-                cTexture = texLoad(fn, name, in, directory);
+                cTexture = texLoad(fn, name, in, directory, cache);
             else
                 // This seems like a texture made by another software
-                cTexture = texLoad(fn, name, in, directory);
+                cTexture = texLoad(fn, name, in, directory, cache);
         }
         else {
             // This seems like an unmade texture
-            cTexture = texLoad(fn, name, in, directory);
+            cTexture = texLoad(fn, name, in, directory, cache);
         }
 
         TIFFClose(in);
@@ -2908,12 +2932,12 @@ CTexture *CRenderer::textureLoad(const char *name, const CTextureFileResolver *r
         std::string cachePath;
         bool haveCachePath = false;
 
-        if (CRenderer::textureCacheEnabled) {
+        if (diskCacheEnabled) {
             // Opt-in disk cache (T017/T018, contracts/texturecache-option.md):
             // a cache hit reads back through the completely ordinary,
             // unmodified CTiffTileSource fast path above -- no new
             // read-side code at all.
-            haveCachePath = computeTextureCacheFilePath(fn, cachePath);
+            haveCachePath = computeTextureCacheFilePath(fn, cachePath, diskCacheDirectory);
             if (haveCachePath) {
                 // Unlike looksLikeTiff()'s use on the SOURCE file above
                 // (whose existence locateFile() already confirmed, making
@@ -2927,7 +2951,7 @@ CTexture *CRenderer::textureLoad(const char *name, const CTextureFileResolver *r
                 TIFF *cacheIn = (osFileExists(cachePath.c_str()) && looksLikeTiff(cachePath.c_str())) ? TIFFOpen(cachePath.c_str(), "r") : NULL;
                 if (cacheIn != NULL) {
                     int directory = 0;
-                    cTexture = texLoad(cachePath.c_str(), name, cacheIn, directory);
+                    cTexture = texLoad(cachePath.c_str(), name, cacheIn, directory, cache);
                     TIFFClose(cacheIn);
                 }
             }
@@ -2938,7 +2962,7 @@ CTexture *CRenderer::textureLoad(const char *name, const CTextureFileResolver *r
             // decode+synthesize in memory (T009's original path).
             std::shared_ptr<CSynthesizedPyramid> pyramid = buildSynthesizedPyramid(fn);
             if (pyramid) {
-                if (CRenderer::textureCacheEnabled && haveCachePath) {
+                if (diskCacheEnabled && haveCachePath) {
                     // Best-effort disk-cache write (T018) -- never fails
                     // or alters this render either way (FR-007); the
                     // in-memory path below proceeds regardless.
@@ -2946,17 +2970,17 @@ CTexture *CRenderer::textureLoad(const char *name, const CTextureFileResolver *r
                 }
 
                 if (pyramid->bitsPerSample == 8) {
-                    cTexture = readSynthesizedTexture<unsigned char>(name, pyramid);
+                    cTexture = readSynthesizedTexture<unsigned char>(name, pyramid, cache);
                 }
                 else if (pyramid->bitsPerSample == 16) {
-                    cTexture = readSynthesizedTexture<unsigned short>(name, pyramid);
+                    cTexture = readSynthesizedTexture<unsigned short>(name, pyramid, cache);
                 }
                 else {
-                    cTexture = readSynthesizedTexture<float>(name, pyramid);
+                    cTexture = readSynthesizedTexture<float>(name, pyramid, cache);
                 }
             }
             // On failure (unrecognized/unsupported format, or a decode
-            // failure), cTexture stays NULL -- CRenderer::getTexture()'s
+            // failure), cTexture stays NULL -- the texture system's
             // existing CDummyTexture substitution + CODE_NOFILE error
             // (rendererFiles.cpp:373) handles it exactly as it always has.
         }
@@ -2970,7 +2994,7 @@ CTexture *CRenderer::textureLoad(const char *name, const CTextureFileResolver *r
 // Description			:	Load an environment from disk
 // Return Value			:	Pointer to the new environment
 // Comments				:
-CEnvironment *CRenderer::environmentLoad(const char *name, const CTextureFileResolver *resolver, float *toWorld) {
+CEnvironment *textureLoadEnvironment(const char *name, const CTextureFileResolver *resolver, CTextureCache *cache, const float *toWorld) {
     char fileName[OS_MAX_PATH_LENGTH];
 
     if (textureLocate(resolver, fileName, name) == FALSE) {
@@ -2980,7 +3004,7 @@ CEnvironment *CRenderer::environmentLoad(const char *name, const CTextureFileRes
     // Check if the file is a transparency shadow map
     FILE *tmpin = ropen(fileName, "rb", fileTransparencyShadow, TRUE);
     if (tmpin != NULL) {
-        return new CDeepShadow(name, fileName, toWorld, tmpin);
+        return new CDeepShadow(name, fileName, toWorld, tmpin, cache);
     }
 
     // Set the error handler so we don't crash
@@ -3001,7 +3025,7 @@ CEnvironment *CRenderer::environmentLoad(const char *name, const CTextureFileRes
                 CTexture *sides[6];
 
                 for (int i = 0; i < 6; ++i) {
-                    sides[i] = texLoad(fileName, name, in, directory);
+                    sides[i] = texLoad(fileName, name, in, directory, cache);
                 }
 
                 cTexture = new CCubicEnvironment(name, sides);
@@ -3010,7 +3034,7 @@ CEnvironment *CRenderer::environmentLoad(const char *name, const CTextureFileRes
                 int directory = 0;
                 CTexture *side;
 
-                side = texLoad(fileName, name, in, directory);
+                side = texLoad(fileName, name, in, directory, cache);
 
                 cTexture = new CSphericalEnvironment(name, side);
             }
@@ -3018,7 +3042,7 @@ CEnvironment *CRenderer::environmentLoad(const char *name, const CTextureFileRes
                 int directory = 0;
                 CTexture *side;
 
-                side = texLoad(fileName, name, in, directory);
+                side = texLoad(fileName, name, in, directory, cache);
 
                 cTexture = new CCylindericalEnvironment(name, side);
             }
@@ -3033,7 +3057,7 @@ CEnvironment *CRenderer::environmentLoad(const char *name, const CTextureFileRes
                 TIFFGetField(in, TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, &tmp);
                 movmm(worldToScreen, tmp);
 
-                side = texLoad(fileName, name, in, directory);
+                side = texLoad(fileName, name, in, directory, cache);
 
                 // Compute the transformation matrix to the light space
                 mulmm(localToNDC, worldToScreen, toWorld);
@@ -3048,54 +3072,48 @@ CEnvironment *CRenderer::environmentLoad(const char *name, const CTextureFileRes
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Function				:	initTextures
-// Description			:	Set the maximum texture memory and init texturing
+// Class				:	CTextureCache
+// Method				:	CTextureCache
+// Description			:	Set the maximum texture memory and init the cache (was CRenderer::initTextures)
 // Return Value			:	-
 // Comments				:
-void CRenderer::initTextures(int mm) {
-    // Set up our texturing
-    const int maxPerThread = (int)ceil((float)mm / CRenderer::numThreads);
+CTextureCache::CTextureCache(int threads, int maxMemory) {
+    numThreads = threads;
+    usedBlocks = NULL;
+    osCreateMutex(mutex);
 
-    CRenderer::textureUsedBlocks = NULL;
+    // The budget of one thread
+    const int maxPerThread = (int)ceil((float)maxMemory / numThreads);
 
-    CRenderer::textureUsedMemory = new int[CRenderer::numThreads];
-    CRenderer::textureMaxMemory = new int[CRenderer::numThreads];
+    perthread = new TexturePerthread[numThreads];
+    for (int i = 0; i < numThreads; ++i) {
+        perthread[i].thread = i;
+        perthread[i].maxMemory = maxPerThread;
+        perthread[i].usedMemory = 0;
 
-    CRenderer::textureRefNumber = new int *[CRenderer::numThreads];
+        perthread[i].refNumber = new int;
+        *perthread[i].refNumber = 0;
 
-    for (int i = 0; i < CRenderer::numThreads; ++i) {
-        CRenderer::textureMaxMemory[i] = maxPerThread;
-        CRenderer::textureUsedMemory[i] = 0;
-
-        CRenderer::textureRefNumber[i] = new int;
-        *CRenderer::textureRefNumber[i] = 0;
+        perthread[i].scratch = NULL;
+        memoryInit(perthread[i].scratch);
     }
-
-    // Note: all memory should have been cleared by previous shutdown
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Function				:	shutdownTextures
-// Description			:	Set the maximum texture memory and init texturing
+// Class				:	CTextureCache
+// Method				:	~CTextureCache
+// Description			:	Free the counters (was CRenderer::shutdownTextures)
 // Return Value			:	-
-// Comments				:
-void CRenderer::shutdownTextures() {
+// Comments				:	Every block was unregistered when its texture was deleted, which the
+//							texture system does first
+CTextureCache::~CTextureCache() {
+    assert(usedBlocks == NULL);
 
-    // Flush all the memory (blocks will be killed by earlier file shutdown)
+    for (int i = 0; i < numThreads; ++i) {
+        delete perthread[i].refNumber;
+        memoryTini(perthread[i].scratch);
+    }
+    delete[] perthread;
 
-    // for (int i=0;i<CRenderer::numThreads;i++) {
-    //	textureMemFlush(NULL,i,TRUE);
-    //	assert(CRenderer::textureUsedMemory[i] == 0);
-    // }
-
-    assert(CRenderer::textureUsedBlocks == NULL);
-
-    // free up our texturing counters
-    delete[] CRenderer::textureUsedMemory;
-    delete[] CRenderer::textureMaxMemory;
-
-    // Get rid of the reference counter
-    for (int i = 0; i < CRenderer::numThreads; ++i)
-        delete CRenderer::textureRefNumber[i];
-    delete[] CRenderer::textureRefNumber;
+    osDeleteMutex(mutex);
 }

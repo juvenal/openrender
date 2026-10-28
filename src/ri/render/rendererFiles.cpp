@@ -430,66 +430,6 @@ int CRenderer::locateFileEx(char *result, const char *name, const char *extensio
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRenderer
-// Method				:	getTexture
-// Description			:	Load a texture from file
-// Return Value			:
-// Comments				:
-CTexture *CRenderer::getTexture(const char *name) {
-    CFileResource *tex;
-
-    assert(name != NULL);
-    assert(frameFiles != NULL);
-
-    if (frameFiles->find(name, tex) == FALSE) {
-
-        // Load the texture
-        CSearchPathResolver resolver(texturePath);
-        tex = textureLoad(name, &resolver);
-
-        if (tex == NULL) {
-            // Not found, substitude with a dummy one
-            if (*name != 0)
-                error(CODE_NOFILE, "Failed open texture \"%s\"\n", name);
-            tex = new CDummyTexture(name);
-        }
-
-        frameFiles->insert(tex->name, tex);
-    }
-
-    return (CTexture *)tex;
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CRenderer
-// Method				:	getEnvironment
-// Description			:	Load an environment map (which can also be a shadow map)
-// Return Value			:
-// Comments				:
-CEnvironment *CRenderer::getEnvironment(const char *name) {
-    CFileResource *tex;
-
-    assert(name != NULL);
-    assert(frameFiles != NULL);
-
-    if (frameFiles->find(name, tex) == FALSE) {
-
-        CSearchPathResolver resolver(texturePath);
-        tex = environmentLoad(name, &resolver, toWorld);
-
-        if (tex == NULL) {
-            // Not found, substitude with a dummy one
-            error(CODE_NOFILE, "Failed open environment \"%s\"\n", name);
-            tex = new CDummyEnvironment(name);
-        }
-
-        frameFiles->insert(tex->name, tex);
-    }
-
-    return (CEnvironment *)tex;
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CRenderer
 // Method				:	getPhotonMap
 // Description			:	Load a photon map
 // Return Value			:
@@ -630,37 +570,6 @@ CTexture3d *CRenderer::getCache(const char *name, const char *mode, const float 
     }
 
     return (CTexture3d *)cache;
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CRenderer
-// Method				:	getTextureInfo
-// Description			:	Load a texture from file
-// Return Value			:
-// Comments				:
-CTextureInfoBase *CRenderer::getTextureInfo(const char *name) {
-    CFileResource *tex;
-
-    assert(name != NULL);
-    assert(frameFiles != NULL);
-
-    if (frameFiles->find(name, tex) == FALSE) {
-        // try environments first
-        CSearchPathResolver resolver(texturePath);
-        tex = environmentLoad(name, &resolver, toWorld);
-
-        if (tex == NULL) {
-            // else try as textures
-            tex = textureLoad(name, &resolver);
-        }
-
-        if (tex != NULL) {
-            // only store the result if found
-            frameFiles->insert(tex->name, tex);
-        }
-    }
-
-    return (CTextureInfoBase *)tex;
 }
 
 ///////////////////////////////////////////////////////////////////////

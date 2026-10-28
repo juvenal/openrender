@@ -226,7 +226,7 @@ endfunction()
 
 # T-C1 (T022, T022a): one executable, two entries selected by the argument. Run at -j2 (4 threads x 200 repeats).
 add_texture_system_test(TextureSystem_ConcurrentFirstLoad test_texture_system_concurrent_first_load
-    test_texture_system_concurrent_first_load.cpp)
+    test_texture_system_concurrent_first_load.cpp ENABLED) # enabled by T064 (Phase 5); the external-mutex entry below stays DISABLED until T071a
 add_test(NAME TextureSystem_ConcurrentFirstLoadExternalMutex
     COMMAND test_texture_system_concurrent_first_load external-mutex)
 set_tests_properties(TextureSystem_ConcurrentFirstLoadExternalMutex PROPERTIES
@@ -239,7 +239,7 @@ set_tests_properties(TextureSystem_ConcurrentFirstLoadExternalMutex PROPERTIES
 add_texture_system_test(TextureSystem_NullResolver test_texture_system_null_resolver
     test_texture_system_null_resolver.cpp ENABLED) # enabled by T050a (Phase 4): textureResolver.h exists
 add_texture_system_test(TextureSystem_InfoMiss test_texture_system_info_miss
-    test_texture_system_info_miss.cpp)
+    test_texture_system_info_miss.cpp ENABLED) # enabled by T063a (Phase 5): textureSystem.h exists
 
 # T-K1 (T023): dimensions consumed per lookup class; renders the deep shadow fixture with orender
 add_texture_system_test(TextureSystem_StreamCursor test_texture_system_stream_cursor

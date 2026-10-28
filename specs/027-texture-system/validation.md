@@ -436,6 +436,9 @@ No Shading, Hiders, Graphics State or core header was needed. Clean build under 
   `TextureSystem_StreamCursor`, which builds maps through the `make*` functions); (2) one throwaway `makeTexture` before the two compared bakes: **the first `makeTexture` of a process writes a different, smaller file
   than every later one** (1878 against 2142 bytes for `tiny_rgb8.png`), independent of the resolver (process state, present on the starting tree); the comparison needs both bakes in the steady state.
   The difference is reported, not fixed (behaviour-preserving phase).
+- **Approved by the maintainer at Checkpoint 4 (2026-10-27)**: the null-resolver semantics above (the name as given, a path or relative to the working directory, when the file exists; nothing else
+  searched), and the two setup fixes to the approved tests (`globalArena.init()/tini()` in `TextureSystem_NullResolver` and `TextureSystem_StreamCursor`; the throwaway first `makeTexture`).
+  The first-bake size difference is filed as GitHub **#109** and cited in the test's comment.
 - **Mutation**: `textureLocate` dereferencing the resolver without the null check: `TextureSystem_NullResolver` **and** `test_data_keys` red (segfault). Reverted.
 
 **T055.** `grep '#include ".*\(renderer\|options\|attributes\|xform\)\.h"' src/ri/texture` finds only `texture.cpp` (until Phase 5) and `texture3d.cpp` (FR-015).
@@ -447,7 +450,50 @@ No Shading, Hiders, Graphics State or core header was needed. Clean build under 
 - CP-d: 833 images, 0 differing, 0 missing against the T035a baseline (noise list: the seven `.slo` raytrace probes); every `MaxBlockAvgDiff` equals `baseline-diffs.txt`;
   `jit_texture_divergence.sh` (absolute output path): **all 18 rows equal** `jit-texture-divergence-base-macos.tsv`, the seven `.slo` raytrace rows included.
 
-## §5–§9 Phase checkpoints
+## §5 Phase 5: the texture system owns the state (US1; FR-001, FR-002, FR-006, FR-016, FR-018(c); GitHub #20)
+
+**T057.** The 10 phase-5 DB-010 lines were deleted by key (12 DB-010 lines left): `texture.cpp -> render/renderer.h` and its links `numThreads`, `textureMutex`, `synthesizeMutex`,
+`textureMaxMemory`, `textureRefNumber`, `textureUsedBlocks`, `textureUsedMemory`, `textureCacheEnabled`, `textureCacheDirectory`. `ctest -L architecture`: **red, exactly 10 `VIOLATION`s**, all from `texture.cpp`; `stale=0`.
+
+**T058-T062.**
+- `src/ri/texture/textureSystem.h` (contract, without the lookup virtuals): `TextureHandle`/`TexturePerthread` (opaque), `ETextureKind`, `TextureSampleStream`, `TextureOpt`, `TextureInfo`, `CTextureSystemSettings`, `CTextureSystem`
+  (`handle()`, `perthread()`, `describe()`), `createTextureSystem()` (`nullptr` and `CODE_BUG` unless `numThreads >= 1` and `resolver != nullptr`). Includes `common/` only.
+- `src/ri/texture/textureInternal.h` (Texturing-private): `CTextureCache` (the used-blocks list, the registry/eviction mutex that was `CRenderer::textureMutex`, the per-thread array) and `TexturePerthread`
+  (`thread`, `refNumber` as one separate `int` per thread, `usedMemory`, `maxMemory = ceil(total / numThreads)`, `scratch` = the system's own `CMemPage`); `textureLoadTexture` / `textureLoadEnvironment`.
+  The pyramid-synthesis lock is a function-local `std::mutex` in `texture.cpp`.
+- `texture.cpp`: every block carries its `CTextureCache *` (set at registration, given to each layer and deep-shadow tile at construction); `textureMemFlush`, `textureAllocateBlock`, register/unregister, the three reference-number updates and the
+  deep-shadow tile lock use the cache and `TexturePerthread` instead of the `CRenderer` statics. Eviction order, locks and per-block mutexes are moved, not changed (#19 stays out). `CRenderer::textureLoad`/`environmentLoad`/`initTextures`/`shutdownTextures`
+  became `textureLoadTexture`/`textureLoadEnvironment` and the cache's constructor and destructor. The lookups still take `CShadingContext *` and use `context->thread`; the eviction scratch memory is now the thread's own `CMemPage` instead of `context->threadMemory`.
+- `src/ri/texture/textureSystem.cpp` (in `ri_sources`, so `ribVector` has it): `CTextureSystemImpl` with the texture-family `CTrie<CFileResource*>` (split out of `frameFiles`, which keeps photon maps, irradiance caches and 3D textures), `handle()` reproducing `getTexture`, `getEnvironment`
+  and `getTextureInfo` exactly (substitutes and the two `CODE_NOFILE` texts; an `Info` miss returns `nullptr` and caches nothing), `perthread()`, `describe()`.
+- Core: `renderer.h` lost the six texture statics, `textureMutex`, `synthesizeMutex` and the members `textureLoad`, `environmentLoad`, `getTexture`, `getEnvironment`, `getTextureInfo`, `initTextures`, `shutdownTextures` (their definitions in
+  `rendererStatics.cpp`, `rendererMutexes.cpp` and `rendererFiles.cpp` are gone); it gained `CRenderer::textureSystem` and `CRenderer::textureResolver` (a `CSearchPathResolver` over `texturePath`). `beginFrame()` constructs the system where `initTextures()` ran;
+  `endFrame()` deletes it (and the resolver) where `shutdownTextures()` ran, after `frameFiles->destroy()`. The services' three texture getters keep their `shaderMutex` wrapper and forward to `CRenderer::textureSystem->handle()` (a temporary adapter).
+- **T063.** Clean build under `-Werror`; `ctest -L architecture` 21/21, **no `VIOLATION`**, no `STALE`; `texture_tile` green with the nine existing tests.
+
+**T063a.** `TextureSystem_InfoMiss` enabled and green. **Test fix (for approval)**: it expected one `locate()` per `Info` probe; today's `getTextureInfo` tries an environment and then a texture, and each loader locates, so one probe is **two** locates (messages unchanged, which the plan requires).
+The assertion now reads: the second probe locates again by the same amount as the first (`2 * perProbe`), i.e. nothing was cached. **Mutation**: caching a substitute for an `Info` miss: the test is **red** (`handle(missing, Info) == nullptr` fails on the second call). Reverted.
+
+**T064.** `TextureSystem_ConcurrentFirstLoad` enabled (the external-mutex entry stays disabled). With the moved find-load-insert and **no lock**: **red by assertion**, in the first repeat:
+`CHECK FAILED: existing[i] == existing[0] ... test_texture_system_concurrent_first_load.cpp:94 / failed in repeat 0` (unequal handles). This is FR-018(c)'s red, with T033's build failure (§2.2).
+
+**T065.** `handle()` holds `settings.loadMutex` when non-null, else the system's own mutex (`loadMutex` is `nullptr` in this phase: the services' getters still hold `CRenderer::shaderMutex`, a plain mutex), across find, load and insert.
+`TextureSystem_ConcurrentFirstLoad` (4 threads, 200 repeats, one handle, one locate, one `CODE_NOFILE`): **green, three runs in a row at `-j2`**.
+
+**Approved by the maintainer at Checkpoint 5 (2026-10-27):** the corrected `TextureSystem_InfoMiss` assertion (a second `textureinfo()` probe locates again by the same amount as the first, `2 x perProbe`); and the more frequent `.slo` raytrace probe noise is
+accepted as the uninitialized-scratch noise Phase 9 removes (no comparison tree is built).
+
+**Checkpoint 5 (T066), macOS.**
+- CP-a: clean build. CP-b: 888 registered, **32 failed = exactly `tools/known-red-p2.txt`**; `texture_tile` at `-j2`: 12/12 (the nine, `TextureSystem_NullResolver`, `TextureSystem_InfoMiss`, `TextureSystem_ConcurrentFirstLoad`; the external-mutex entry is disabled).
+- CP-c: `ctest -L architecture` 21/21, `RESULT PASS`, no `STALE`, no `VIOLATION`; `ALLOWED DB-010 x 12` (the 8 hider-origin lines and 4 Texturing lines: `texture.cpp` and `pointHierarchy.cpp` -> `core/shading.h`, `texture3d.cpp` -> `renderer.h` and `retrieveDisplayChannel`), nothing added.
+  `METRIC Texturing refs 1 distinct 1` (baseline 70/16) and `TOTAL refs 652 distinct 98` (baseline 721/110): the end figures of the spec, already reached (the baseline file is lowered at T114).
+- CP-d: 833 images, 0 differing, 0 missing (noise list: the seven `.slo` raytrace probes); every `MaxBlockAvgDiff` equals `baseline-diffs.txt`. The `Parity_{texture,unbaked}-*`, `Parity_env`, `Parity_shadow` scenes, the nine `texture_tile` tests and the determinism tests are in that comparison and unchanged.
+- **Divergence rows** (`jit_texture_divergence.sh`, absolute output path): in the checkpoint run `texture-png-raytrace` read 91.55 (86.20) and `unbaked-exr-raytrace` 84.91 (74.38); four immediate re-runs gave all 18 equal once and otherwise one to three deviating rows from the set
+  {`texture-png-raytrace` 91.55, `unbaked-exr-raytrace` 84.91, `unbaked-rgbe-raytrace` 84.94, and once `unbaked-rgbe-reyes` 81.91}. Six runs of `jit_texture_probes.sh` changed only `.slo` **raytrace** probe images (the `.slo` reyes images and every `.rslo` image were identical every time).
+  These are the `.slo` renders of §1.5, whose options are uninitialized scratch memory (research R10): the deviating values come back as the same few numbers (84.94 first appeared at Checkpoint 3, before this phase), and the noise shows more often after this phase's allocation changes. Not an interpreter change.
+  Reported for the maintainer; Phase 9 removes the cause (T107a).
+
+## §6–§9 Phase checkpoints
 
 ## §10 Linux
 
