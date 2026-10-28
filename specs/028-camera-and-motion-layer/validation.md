@@ -247,6 +247,8 @@ The same throwaway code served to try the mutation plan of Phase 3 (all red, bel
 
 **Linux risks to watch at the gate (T036):** GCC contracts floating-point more aggressively (`-ffp-contract=fast`) than Clang; `Camera_StartingTreeEquivalence`, `Motion_TwoKeyModel` (the polygon fused case calls `atTime<double>` with the sub-expressions inline, as the site will) and `Motion_TransformRayEquivalence` compare a verbatim copy with the library function, which only agree if both are contracted the same way. Also the explicit-instantiation idiom of `motion_replay.cpp` and `-Wall -Wextra -Wpedantic -Werror` over the new test files under GCC 13.
 
+**T035, test approval (maintainer, 2026-10-27).** The 11 new tests, the replay tool and the shrunk replay `tests/unit/motion/replay/macos.txt` (12 943 records, 1.62 MB, sha256 `79fc6be53d5c9200d35779f0a2f3b9eb7126c08de344242d75019e414be41ef0`) are approved and **frozen**. Any later edit to them needs the maintainer's explicit approval and a redo of T036 and T037. The Linux baseline gate (T036/T037) is run by the coordinator over ssh; Phase 3 does not start until the coordinator releases the gate.
+
 ## §3 Linux baseline gate (phase 2, T036, T037)
 
 (The handover procedure and the verification of the five Linux files.)
