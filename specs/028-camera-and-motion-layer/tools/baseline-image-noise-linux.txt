@@ -1,0 +1,11 @@
+# Images excluded from the CP-d byte comparison (image_manifest.sh diff), one path per line.
+# Measured on the starting tree (master 4eb683b plus the approved spec 028 tests), Linux
+# (Ubuntu 24.04, GCC 13.3, LLVM 18.1.3), 2026-10-27: two full-suite runs at -j2 gave 761 images,
+# 760 identical. The one entry below is a shared scratch output written by several
+# shading_parity tests into the same working directory (build-028/tests/shading_parity), so the
+# last writer wins; it is not a test product:
+#   test.tif: test_matrix_transform_jit, test_printf_jit, test_uniform_conditional_jit
+# tests/shading_parity/ri.tif (on the macOS list, same kind of race) was identical in both Linux
+# runs, so it is not listed here.
+# Every MaxBlockAvgDiff was identical in both runs. A path listed here still needs its tests green.
+tests/shading_parity/test.tif

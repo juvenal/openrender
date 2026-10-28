@@ -44,11 +44,11 @@ option(OPENRENDER_STATE_ONLY_TESTS "Build the State-only isolation tests" ON)
 # The camera and motion State-only tests (spec 028, research R16). The two State sources they need,
 # frameParams.cpp and camera.cpp, are compiled a second time into state_only_sources behind this option,
 # for the same archcheck reason as above: an in-scope object missing from the build tree is an
-# "incomplete build tree". OFF until the foundation phase (task T045) creates the sources and turns it ON;
-# until then the tests do not exist, so ctest -L architecture sees only production units. The dependency
-# makes it OFF whenever OPENRENDER_STATE_ONLY_TESTS is OFF, so no configuration needs a FATAL_ERROR.
+# "incomplete build tree", so the library must either build them or not exist. ON since task T045 (the
+# foundation phase created the sources); the dependency makes it OFF whenever
+# OPENRENDER_STATE_ONLY_TESTS is OFF, so no configuration needs a FATAL_ERROR.
 include(CMakeDependentOption)
-cmake_dependent_option(OPENRENDER_CAMERA_MOTION_ONLY_TESTS "Build the camera and motion State-only tests" OFF
+cmake_dependent_option(OPENRENDER_CAMERA_MOTION_ONLY_TESTS "Build the camera and motion State-only tests" ON
                        "OPENRENDER_STATE_ONLY_TESTS" OFF)
 
 if(OPENRENDER_STATE_ONLY_TESTS)
@@ -73,12 +73,10 @@ if(OPENRENDER_STATE_ONLY_TESTS)
         # src/ri/core (which holds the Shading shims shader.h and shading.h) on the path.
         configure_file(${CMAKE_SOURCE_DIR}/src/ri/core/ray.h
                        ${STATE_ONLY_INCLUDE_DIR}/ray.h COPYONLY)
-        # The two new State units, appended while they do not exist yet (T045 removes the guard)
-        foreach(_unit frameParams camera)
-            if(EXISTS ${CMAKE_SOURCE_DIR}/src/ri/state/${_unit}.cpp)
-                target_sources(state_only_sources PRIVATE ${CMAKE_SOURCE_DIR}/src/ri/state/${_unit}.cpp)
-            endif()
-        endforeach()
+        # The two State units of the camera layer, compiled a second time into the narrow library
+        target_sources(state_only_sources PRIVATE
+            ${CMAKE_SOURCE_DIR}/src/ri/state/frameParams.cpp
+            ${CMAKE_SOURCE_DIR}/src/ri/state/camera.cpp)
     endif()
     target_link_libraries(state_only_sources PUBLIC openrender_common_flags openrendercommon)
     target_compile_features(state_only_sources PUBLIC cxx_std_20)

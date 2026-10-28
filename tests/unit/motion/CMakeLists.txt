@@ -89,20 +89,19 @@ endforeach()
 # (Motion_Isolation, FR-012). They exist only when OPENRENDER_CAMERA_MOTION_ONLY_TESTS is ON.
 # ---------------------------------------------------------------------------
 if(OPENRENDER_CAMERA_MOTION_ONLY_TESTS)
-    add_camera_motion_test(Motion_TwoKeyModel test_motion_two_key motion test_motion_two_key.cpp
+    add_camera_motion_test(Motion_TwoKeyModel test_motion_two_key motion test_motion_two_key.cpp ENABLED
         INCLUDES ${CMAKE_SOURCE_DIR}/src/ri/geometry)
-    add_camera_motion_test(Motion_Isolation test_motion_isolation motion test_motion_isolation.cpp
+    add_camera_motion_test(Motion_Isolation test_motion_isolation motion test_motion_isolation.cpp ENABLED
         INCLUDES ${CMAKE_SOURCE_DIR}/src/ri/geometry)
-    add_camera_motion_test(Motion_CameraSlerpEquivalence test_motion_camera_slerp motion test_motion_camera_slerp.cpp
+    add_camera_motion_test(Motion_CameraSlerpEquivalence test_motion_camera_slerp motion test_motion_camera_slerp.cpp ENABLED
         INCLUDES ${CMAKE_SOURCE_DIR}/src/ri/geometry)
-    add_camera_motion_test(Motion_TransformRayEquivalence test_motion_transform_ray motion test_motion_transform_ray.cpp
+    add_camera_motion_test(Motion_TransformRayEquivalence test_motion_transform_ray motion test_motion_transform_ray.cpp ENABLED
         INCLUDES ${CMAKE_SOURCE_DIR}/src/ri/geometry)
 endif()
 
 # Frame_ParamsEqualCore is a Consumer (it drives in-process Ri sessions, like motion_replay) and needs no
-# option. Until the foundation phase provides frameParams.h and the core installs it (task T045) the
-# executable is EXCLUDE_FROM_ALL and the test DISABLED; its red state is a build failure of the executable.
-add_executable(test_frame_params_equal_core EXCLUDE_FROM_ALL test_frame_params_equal_core.cpp)
+# option. Enabled since task T045 (the foundation phase provides frameParams.h and the core installs it).
+add_executable(test_frame_params_equal_core test_frame_params_equal_core.cpp)
 target_compile_features(test_frame_params_equal_core PRIVATE cxx_std_20)
 target_link_libraries(test_frame_params_equal_core PRIVATE openrender_common_flags ribRender openrendercommon)
 target_include_directories(test_frame_params_equal_core PRIVATE ${MOTION_TEST_INCLUDES})
@@ -110,5 +109,4 @@ add_test(NAME Frame_ParamsEqualCore COMMAND test_frame_params_equal_core)
 set_tests_properties(Frame_ParamsEqualCore PROPERTIES
     TIMEOUT 120
     LABELS "motion;unit"
-    ENVIRONMENT "${MOTION_REPLAY_ENV}"
-    DISABLED TRUE)
+    ENVIRONMENT "${MOTION_REPLAY_ENV}")

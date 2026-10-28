@@ -54,6 +54,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../display)
 
 set(ri_sources
 	state/attributes.cpp
+	state/camera.cpp
+	state/frameParams.cpp
 	geometry/blobby.cpp
 	geometry/blobbyField.cpp
 	geometry/blobbyPolygonize.cpp
@@ -118,6 +120,7 @@ set(ri_sources
 	render/remoteChannel.cpp
 	render/geometryDispatch.cpp
 	render/renderer.cpp
+	render/rendererFrame.cpp
 	render/rendererClipping.cpp
 	render/rendererContext.cpp
 	render/rendererDeclarations.cpp
@@ -377,6 +380,7 @@ list(REMOVE_ITEM ribVector_sources
     render/remoteChannel.cpp
     render/geometryDispatch.cpp
     render/renderer.cpp
+    render/rendererFrame.cpp
     render/rendererContext.cpp
     render/rendererDeclarationsDispatch.cpp
     render/rendererDisplay.cpp

@@ -5,7 +5,7 @@
 # tests/unit/state (the State sources on a narrow include path, linked with libRIBCommon only), so they
 # also prove the camera layer includes nothing outside Graphics State and Infra. They exist only when
 # OPENRENDER_CAMERA_MOTION_ONLY_TESTS is ON, which also adds frameParams.cpp and camera.cpp to that
-# library; the option is OFF until task T045, because both files are created in the foundation phase.
+# library. Enabled since task T045 (the foundation phase created both files).
 
 if(OPENRENDER_CAMERA_MOTION_ONLY_TESTS)
     # add_camera_motion_test(NAME EXE LABEL SOURCES... [ENABLED] [INCLUDES dir...])
@@ -32,10 +32,10 @@ if(OPENRENDER_CAMERA_MOTION_ONLY_TESTS)
         endif()
     endfunction()
 
-    add_camera_motion_test(Camera_Analytic test_camera_analytic camera test_camera_analytic.cpp)
-    add_camera_motion_test(Camera_StartingTreeEquivalence test_camera_equivalence camera test_camera_equivalence.cpp)
-    add_camera_motion_test(Camera_CropInvariance test_camera_crop camera test_camera_crop.cpp)
-    add_camera_motion_test(Camera_GenerateRayOnly test_camera_generate_ray_only camera test_camera_generate_ray_only.cpp)
-    add_camera_motion_test(Camera_LensModel test_camera_lens_model camera test_camera_lens_model.cpp)
-    add_camera_motion_test(Frame_DefaultValue test_frame_default camera test_frame_default.cpp)
+    add_camera_motion_test(Camera_Analytic test_camera_analytic camera test_camera_analytic.cpp ENABLED)
+    add_camera_motion_test(Camera_StartingTreeEquivalence test_camera_equivalence camera test_camera_equivalence.cpp ENABLED)
+    add_camera_motion_test(Camera_CropInvariance test_camera_crop camera test_camera_crop.cpp ENABLED)
+    add_camera_motion_test(Camera_GenerateRayOnly test_camera_generate_ray_only camera test_camera_generate_ray_only.cpp ENABLED)
+    add_camera_motion_test(Camera_LensModel test_camera_lens_model camera test_camera_lens_model.cpp ENABLED)
+    add_camera_motion_test(Frame_DefaultValue test_frame_default camera test_frame_default.cpp ENABLED)
 endif()

@@ -56,6 +56,7 @@
 #include "remoteChannel.h"
 #include "renderer.h"
 #include "rendererContext.h"
+#include "rendererFrame.h"
 #include "reyes.h"
 #include "ri.h"
 #include "ri_config.h"
@@ -775,6 +776,10 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     const openrender::sampling::CSamplingConfig samplingConfig{
         o->samplingBackend, o->samplingSeed, (uint32_t)frame, pixelXsamples, pixelYsamples, jitter, renderLeft, renderTop, screenLeft, screenTop};
 
+    // The frame's shutter, raster, lens and camera-motion values, as one immutable value in Graphics
+    // State's slot, and the frame's camera (spec 028). Before the contexts exist: no thread reads yet.
+    beginFrameParams(samplingConfig);
+
     // Start the contexts
     numActiveThreads = numThreads;
     contexts = new CShadingContext *[numThreads];
@@ -826,6 +831,9 @@ void CRenderer::endFrame() {
     }
     delete[] contexts;
     contexts = NULL;
+
+    // No context is left to read the frame parameters (spec 028)
+    endFrameParams();
 
     assert(stats.numRasterGrids == 0);
     assert(stats.numRasterObjects == 0);

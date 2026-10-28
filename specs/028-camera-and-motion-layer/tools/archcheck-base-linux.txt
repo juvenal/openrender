@@ -1,0 +1,98 @@
+archcheck: platform=linux objects=275 sources=188 edges=2424 (include=1511 link=913)
+CYCLE     Consumer -> Geometry -> Consumer  (via src/preview/libribpreview/previewContext.cpp -> _ZTI10CCurveMesh; src/ri/geometry/surface.cpp -> src/ri/dataviewer/debug.h)  [allowlisted]
+CYCLE     Consumer -> Hiders -> Consumer  (via src/precomp/precomp.cpp -> src/ri/hiders/reyes.h; src/ri/hiders/irradiance.cpp -> _ZN9CDataView10drawPointsEiPKfS1_)  [allowlisted]
+CYCLE     Consumer -> Texturing -> Consumer  (via src/ri/dataviewer/dataLoad.cpp -> _ZN11CPointCloudC1EPKcPKfS3_P8_IO_FILE; src/ri/texture/brickmap.cpp -> _ZN9CDataView10drawPointsEiPKfS1_)  [allowlisted]
+CYCLE     Core -> Geometry -> Core  (via src/ri/hcshader.cpp -> src/ri/geometry/object.h; src/ri/geometry/blobby.cpp -> _ZN9CRenderer16retrieveVariableEPKc)  [allowlisted]
+CYCLE     Core -> Hiders -> Core  (via src/ri/hcshader.cpp -> _ZN15CShadingContext5traceEP4CRay; src/ri/hiders/compositor.cpp -> _ZN9CRenderer14sampleDefaultsE)  [allowlisted]
+CYCLE     Core -> SceneInterface -> Core  (via src/ri/render/geometryDispatch.cpp -> src/ri/parse/ri.h; @build/src/ri/ifexpr_generated.cpp -> src/ri/render/renderer.h)  [allowlisted]
+CYCLE     Core -> Texturing -> Core  (via src/ri/render/remoteChannel.cpp -> _ZN10CTexture3d14defineChannelsEPKc; src/ri/texture/brickmap.cpp -> _ZN9CRenderer10locateFileEPcPKcP11TSearchpathi)  [allowlisted]
+CYCLE     Geometry -> Hiders -> Geometry  (via src/ri/geometry/curves.cpp -> src/ri/hiders/reyes.h; src/ri/hiders/irradiance.cpp -> src/ri/geometry/surface.h)  [allowlisted]
+CYCLE     Geometry -> SceneInterface -> Geometry  (via src/ri/geometry/csgSolid.cpp -> src/ri/parse/riInterface.h; @build/src/ri/rib_generated.cpp -> src/ri/geometry/delayed.h)  [allowlisted]
+CYCLE     Geometry -> Shading -> Geometry  (via src/ri/geometry/bsplinePatchgrid.cpp -> src/ri/core/shading.h; src/libshader/shading/execute.cpp -> src/ri/geometry/surface.h)  [allowlisted]
+CYCLE     Geometry -> Shading -> SceneInterface -> Geometry  (via src/ri/geometry/bsplinePatchgrid.cpp -> src/ri/core/shading.h; @build/src/libshader/compiler/dso_generated.cpp -> src/ri/parse/dso.h; @build/src/ri/rib_generated.cpp -> src/ri/geometry/delayed.h)  [allowlisted]
+CYCLE     Hiders -> Shading -> Hiders  (via src/ri/hiders/bundles.cpp -> src/ri/core/shaderPl.h; src/libshader/shading/execute.cpp -> _ZN10CPhotonMap6lookupEPfPKfi)  [allowlisted]
+CYCLE     Hiders -> Texturing -> Shading -> Hiders  (via src/ri/hiders/irradiance.cpp -> _ZN10CTexture3dC2EPKcPKfS3_S3_iPNS_8CChannelE; src/ri/texture/pointHierarchy.cpp -> src/ri/core/shading.h; src/libshader/shading/execute.cpp -> _ZN10CPhotonMap6lookupEPfPKfi)  [allowlisted]
+CYCLE     Shading -> Texturing -> Shading  (via src/libshader/shading/execute.cpp -> _ZN10CTexture3d7resolveEiPPKcPiS3_; src/ri/texture/pointHierarchy.cpp -> src/ri/core/shading.h)  [allowlisted]
+ALLOWED   DB-001 x 8 DB-004 x 65 DB-005 x 8 DB-006 x 33 DB-010 x 35 DB-011 x 173 DB-015 x 10 DB-017 x 78 DB-019 x 3 DB-021 x 1 DB-025 x 12 DB-026 x 3
+CONSUMER  src/preview/libribpreview/previewContext.cpp -> src/ri/geometry/curves.h  [Consumer -> Geometry]
+CONSUMER  src/preview/libribpreview/previewContext.cpp -> src/ri/geometry/delayed.h  [Consumer -> Geometry]
+CONSUMER  src/preview/libribpreview/previewContext.cpp -> src/ri/geometry/patches.h  [Consumer -> Geometry]
+CONSUMER  src/preview/libribpreview/previewContext.cpp -> src/ri/geometry/points.h  [Consumer -> Geometry]
+CONSUMER  src/preview/libribpreview/previewContext.cpp -> src/ri/geometry/polygons.h  [Consumer -> Geometry]
+CONSUMER  src/preview/libribpreview/previewContext.cpp -> src/ri/geometry/quadrics.h  [Consumer -> Geometry]
+CONSUMER  src/preview/libribpreview/previewContext.cpp -> src/ri/geometry/subdivisionCreator.h  [Consumer -> Geometry]
+CONSUMER  src/preview/libribpreview/ribGeometryContext.cpp -> src/ri/geometry/curves.h  [Consumer -> Geometry]
+CONSUMER  src/preview/libribpreview/ribGeometryContext.cpp -> src/ri/geometry/delayed.h  [Consumer -> Geometry]
+CONSUMER  src/preview/libribpreview/ribGeometryContext.cpp -> src/ri/geometry/patches.h  [Consumer -> Geometry]
+CONSUMER  src/preview/libribpreview/ribGeometryContext.cpp -> src/ri/geometry/points.h  [Consumer -> Geometry]
+CONSUMER  src/preview/libribpreview/ribGeometryContext.cpp -> src/ri/geometry/polygons.h  [Consumer -> Geometry]
+CONSUMER  src/preview/libribpreview/ribGeometryContext.cpp -> src/ri/geometry/quadrics.h  [Consumer -> Geometry]
+CONSUMER  src/preview/libribpreview/ribGeometryContext.cpp -> src/ri/geometry/subdivisionCreator.h  [Consumer -> Geometry]
+CONSUMER  src/preview/libribpreview/ribGeometryContext.h -> src/ri/geometry/object.h  [Consumer -> Geometry]
+CONSUMER  src/preview/libribpreview/ribGeometryContext.cpp -> src/ri/state/pl.h  [Consumer -> GraphicsState]
+CONSUMER  src/preview/libribpreview/ribGeometryContext.h -> src/ri/state/attributes.h  [Consumer -> GraphicsState]
+CONSUMER  src/preview/libribpreview/ribGeometryContext.h -> src/ri/state/options.h  [Consumer -> GraphicsState]
+CONSUMER  src/preview/libribpreview/ribGeometryContext.h -> src/ri/state/xform.h  [Consumer -> GraphicsState]
+CONSUMER  src/precomp/precomp.cpp -> src/ri/hiders/reyes.h  [Consumer -> Hiders]
+CONSUMER  src/ri/dataviewer/dataLoad.cpp -> src/ri/hiders/irradiance.h  [Consumer -> Hiders]
+CONSUMER  src/ri/dataviewer/dataLoad.cpp -> src/ri/hiders/photonMap.h  [Consumer -> Hiders]
+CONSUMER  src/libshader/tests/test_format_versions.cpp -> src/ri/parse/ri.h  [Consumer -> SceneInterface]
+CONSUMER  src/libshader/tests/test_stale_shaders.cpp -> src/ri/parse/ri.h  [Consumer -> SceneInterface]
+CONSUMER  src/orender/orender.cpp -> src/ri/parse/ri.h  [Consumer -> SceneInterface]
+CONSUMER  src/otexmake/otexmake.cpp -> src/ri/parse/ri.h  [Consumer -> SceneInterface]
+CONSUMER  src/preview/libribpreview/previewContext.cpp -> src/ri/parse/riDiagnostics.h  [Consumer -> SceneInterface]
+CONSUMER  src/preview/libribpreview/previewContext.cpp -> src/ri/parse/rib.h  [Consumer -> SceneInterface]
+CONSUMER  src/preview/libribpreview/ribGeometryContext.cpp -> src/ri/parse/ri.h  [Consumer -> SceneInterface]
+CONSUMER  src/preview/libribpreview/ribGeometryContext.cpp -> src/ri/parse/rib.h  [Consumer -> SceneInterface]
+CONSUMER  src/preview/libribpreview/ribGeometryContext.h -> src/ri/parse/riInterface.h  [Consumer -> SceneInterface]
+CONSUMER  src/ri/dataviewer/dataLoad.cpp -> src/ri/parse/riInterface.h  [Consumer -> SceneInterface]
+CONSUMER  src/libshader/tests/test_atmosphere_debug_builtins.cpp -> src/libshader/compiler/rslo.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_call_sites.cpp -> src/libshader/compiler/ir.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_call_sites.cpp -> src/libshader/compiler/rslo.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_compiler.cpp -> src/libshader/compiler/rslo.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_format_versions.cpp -> src/libshader/shading/llvmJit.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_format_versions.cpp -> src/ri/core/shader.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_gate_hardening.cpp -> src/libshader/compiler/ir.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_gate_hardening.cpp -> src/libshader/compiler/llvmEmitter.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_gate_hardening.cpp -> src/libshader/compiler/rslo.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_illumination_emitter.cpp -> src/libshader/compiler/ir.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_illumination_emitter.cpp -> src/libshader/compiler/llvmEmitter.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_illumination_emitter.cpp -> src/libshader/compiler/rslo.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_mcomp_consistency.cpp -> src/libshader/shading/rslOps.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_opcode_coverage.cpp -> src/libshader/compiler/llvmEmitter.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_opcode_coverage.cpp -> src/libshader/compiler/opcodes.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_paramlist_emitter.cpp -> src/libshader/compiler/ir.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_paramlist_emitter.cpp -> src/libshader/compiler/llvmEmitter.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_paramlist_emitter.cpp -> src/libshader/compiler/rslo.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_rslo_prototype_match.cpp -> src/libshader/shading/rsloPrototypeMatch.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_stale_shaders.cpp -> src/libshader/shading/llvmJit.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_stale_shaders.cpp -> src/ri/core/shader.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_used_parameters_gating.cpp -> src/libshader/compiler/llvmEmitter.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_used_parameters_gating.cpp -> src/libshader/compiler/rslo.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_used_parameters_table.cpp -> src/libshader/compiler/llvmEmitter.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_used_parameters_table.cpp -> src/libshader/shading/scriptFunctions.h  [Consumer -> Shading]
+CONSUMER  src/libshader/tests/test_used_parameters_table.cpp -> src/libshader/shading/scriptOpcodes.h  [Consumer -> Shading]
+CONSUMER  src/oshader/oshader.cpp -> src/libshader/compiler/llvmEmitter.h  [Consumer -> Shading]
+CONSUMER  src/oshader/oshader.cpp -> src/libshader/compiler/opcodes.h  [Consumer -> Shading]
+CONSUMER  src/oshader/oshader.cpp -> src/libshader/compiler/rslo.h  [Consumer -> Shading]
+CONSUMER  src/sloinfo/sloinfo.cpp -> src/libshader/runtime/rslo.h  [Consumer -> Shading]
+CONSUMER  src/sloinfo/sloinfo.cpp -> src/libshader/shading/llvmJit.h  [Consumer -> Shading]
+CONSUMER  src/sloinfo/sloinfo.cpp -> src/libshader/shading/sloMetadata.h  [Consumer -> Shading]
+CONSUMER  src/ri/dataviewer/dataLoad.cpp -> src/ri/texture/brickmap.h  [Consumer -> Texturing]
+CONSUMER  src/ri/dataviewer/dataLoad.cpp -> src/ri/texture/pointCloud.h  [Consumer -> Texturing]
+UNRESOLVED src/common/comments.h  (no compiled translation unit includes it; no edges derived)
+UNRESOLVED src/common/simd.h  (no compiled translation unit includes it; no edges derived)
+UNRESOLVED src/display/file/file.h  (no compiled translation unit includes it; no edges derived)
+UNRESOLVED src/display/framebuffer/fbw.h  (no compiled translation unit includes it; no edges derived)
+UNRESOLVED src/preview/orender-wire-macos/CRibPreview/include/CRibPreview.h  (no compiled translation unit includes it; no edges derived)
+UNRESOLVED src/ri/hiders/harmonics.h  (no compiled translation unit includes it; no edges derived)
+UNRESOLVED src/ri/hiders/radiance.h  (no compiled translation unit includes it; no edges derived)
+UNRESOLVED src/rslo/rslo.h  (no compiled translation unit includes it; no edges derived)
+METRIC    Geometry refs 78 (baseline 78)  distinct 19 (baseline 19)
+METRIC    Hiders refs 567 (baseline 567)  distinct 84 (baseline 84)
+METRIC    Infra refs 0 (baseline 0)  distinct 0 (baseline 0)
+METRIC    SceneInterface refs 6 (baseline 6)  distinct 6 (baseline 6)
+METRIC    Shading refs 0 (baseline 0)  distinct 0 (baseline 0)
+METRIC    Texturing refs 70 (baseline 70)  distinct 16 (baseline 16)
+METRIC    TOTAL refs 721 (baseline 721)  distinct 110 (baseline 110)
+RESULT    PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0

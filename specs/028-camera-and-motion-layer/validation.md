@@ -106,7 +106,7 @@ every image of the suite is byte-identical to the starting tree's from phase 3 o
 |---|---|---|---|---|---|
 | 1 | clean (`-Werror`); T003 on the unchanged tree: reconfigure only, 0 compiled | 847/847 passed (838 + 9 new `motion`/`motion-record` tests), 250 s | `DB-004 x 65`, `DB-011 x 173`; Geometry 78/19, Hiders 567/84, TOTAL 721/110; `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | 761 images: **0 differing, 0 missing, 0 not in the manifest**; `diffs` table identical | 8/8 `Motion_Replay_*` |
 | 2 | clean (`-Werror`); `build-028` has the option OFF | 847/847 passed (the 11 new tests are not run: 10 do not exist with the option OFF, `Frame_ParamsEqualCore` reports "Not Run (Disabled)" and does not fail the run), 183 s | `DB-004 x 65`, `DB-011 x 173`; Geometry 78/19, Hiders 567/84, TOTAL 721/110; `RESULT PASS`; 21/21 `architecture` tests | n/a (no `src/` change) | 8 replay tests green, `Frame_ParamsEqualCore` Not Run (Disabled) |
-| 3 | | | | | |
+| 3 | clean (`-Werror`) | 858/858 passed (847 + the 11 new tests, all enabled), 206 s | `DB-004 x 65`, `DB-011 x 173`; Geometry 78/19, Hiders 567/84, TOTAL 721/110 (equal to the baseline); `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | 761 images: **0 differing, 0 missing, 0 not in the manifest**; `MaxBlockAvgDiff` table identical (empty diff) | 19/19 (11 new + 8 replay) |
 | 4 | | | | | |
 | 5 | | | | | |
 | 6 | | | | | |
@@ -253,9 +253,90 @@ The same throwaway code served to try the mutation plan of Phase 3 (all red, bel
 
 (The handover procedure and the verification of the five Linux files.)
 
+**T036, run by the coordinator over ssh (2026-10-27).** Host Ubuntu 24.04, 2 cores, GCC 13.3, LLVM 18.1.3. The baseline was taken on the worktree as it stood at the gate: `src/` equal to master `4eb683b` (`git diff --stat 4eb683b -- src` empty), the approved phase-2 tests, `OPENRENDER_CAMERA_MOTION_ONLY_TESTS` OFF. From phase 3 on, the tree no longer builds the starting `src/` with these tests, so this baseline cannot be taken later.
+
+- **Sync**: the 2974 tracked files (`git ls-files`) went to a fresh remote directory `/home/juvenal/Projects/Development/CLI/openrender-028` (`rsync -rlpc --files-from`, no `-t`). `sha256sum -c` of the Mac manifest (`shasum -a 256`, one line per file) reported every file OK. A SHA-256 over the per-file hashes was the same on both sides: `c2544538283b050d980b74bc18271fdc653bfea584744b7b411d72535ab24ace`.
+- **Configure and build**: `cmake -B build-028 -S . -DCMAKE_BUILD_TYPE=Release -DINSTALL_SELFCONTAINED=OFF`, JIT on. `cmake --build build-028 -j2` through the remote `cpujob`: exit 0, clean under `-Werror` (0 errors, 0 warnings, the new tests and `motion_replay.cpp` included).
+- **Architecture**: `ctest -L architecture` 21/21. The report ([tools/archcheck-base-linux.txt](tools/archcheck-base-linux.txt)) is the `Architecture_DomainBoundaries` output from ctest's `LastTest.log`:
+
+  ```text
+  archcheck: platform=linux objects=275 sources=188 edges=2424 (include=1511 link=913)
+  ALLOWED   DB-001 x 8 DB-004 x 65 DB-005 x 8 DB-006 x 33 DB-010 x 35 DB-011 x 173 DB-015 x 10
+            DB-017 x 78 DB-019 x 3 DB-021 x 1 DB-025 x 12 DB-026 x 3
+  METRIC    Geometry 78/19, Hiders 567/84, Infra 0/0, SceneInterface 6/6, Shading 0/0,
+            Texturing 70/16, TOTAL 721/110 (all equal to metrics-baseline.txt)
+  RESULT    PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0
+  ```
+
+  This is the Linux baseline for T111: `DB-004 x 65`, `DB-011 x 173` (175 lines minus the two macOS-tagged ones, as predicted in §0.2). The `ALLOWED` and `METRIC` rows are identical to macOS. The only platform difference is the header's object, source and include-edge counts (macOS 270, 185, 1506).
+- **Replay**: `ctest -R '^Motion_ReplayRecord$'` was run twice. `cmp` of the two `build-028/tests/unit/motion/replay-recorded-linux.txt` outputs: **byte-identical**. The first was copied unedited to `tests/unit/motion/replay/linux.txt`: 12 944 lines, header `# motion_replay v1 linux master-4eb683b` plus 12 943 records, the same count as macOS. Records per family: quadrics 4270, raytransform 2888, gridonly 2511, tessellation 1525, polygons 610, emptyshutter 610, bilinear 305, implicit 224. 3963 records differ from `macos.txt` (floating-point differences between the two compilers, as the T036 risk note expected), which is why each platform keeps its own file. Then `ctest -R '^Motion_Replay_'`: **8/8 passed**.
+- **Full suite** `ctest -LE determinism-sweep -j2`, twice, with the image stamp before each run and `LastTest.log` copied right after it:
+
+  | Run | Result | Real time |
+  |---|---|---|
+  | 1 | 841 of 848 passed, 7 failed; `Frame_ParamsEqualCore` Not Run (Disabled), `LibShader_Format_rslo_lower_minor` skipped by the test itself | 639 s |
+  | 2 | the same 7 failed, the same Not Run and skip | 631 s |
+
+  All 7 failures are Linux failures that predate spec 028, with the signatures already recorded in specs 022 to 024 and 039:
+  - `LibShader_McompConsistency`: #44, `symbol lookup error` in `libshader_shading.so.1`.
+  - `TextureTile_RenderByteIdentical`: #45.
+  - `TextureTile_CacheByteIdentical`, `TextureTile_CacheDefaultDirectory`, `TextureTile_CacheStaleDetection` and `TextureTile_CacheConcurrentWrite`: #46, `orender` aborts with a core dump.
+  - `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes`: #57, one pixel off, (99, 46) at 0.875 against 0.9375.
+
+  `Visual_spotlight-raytrace` (#105) passed in both runs. There is no failure outside the known Linux set.
+- **Image manifest**: run 1 recorded **761 images** ([tools/baseline-images-linux.sha256](tools/baseline-images-linux.sha256)), the same 761 paths as macOS. 279 of them have the same hash on both platforms.
+- **`MaxBlockAvgDiff` table**: 389 tests ([tools/baseline-diffs-linux.txt](tools/baseline-diffs-linux.txt)), **identical in both runs**. The tests are the same as macOS, and 27 values differ from macOS. A tool artifact: Ubuntu's default `awk` is `mawk`, under which `image_manifest.sh diffs` puts a leading comma before every value (`Parity_aov	,7.25`). It is consistent from run to run on Linux, so CP-d at T111 is valid as long as it runs on the same host with the same `awk`. The file was not edited, and neither was the tool.
+- **Run-to-run noise**: `image_manifest.sh diff` of run 2 against run 1: `manifest 761 images, fresh 761, noise-listed 0; 1 differing, 0 missing, 0 not in manifest`. The one image that differs is `tests/shading_parity/test.tif`, the shared scratch output of `test_matrix_transform_jit`, `test_printf_jit` and `test_uniform_conditional_jit` (the macOS §0.3 race). It is the only entry in [tools/baseline-image-noise-linux.txt](tools/baseline-image-noise-linux.txt). `tests/shading_parity/ri.tif`, which is on the macOS list for the same reason, was identical in both Linux runs.
+- **Files copied back**: their checksums were checked against the remote copies with `sha256sum -c`, and all were OK:
+
+  | File | sha256 |
+  |---|---|
+  | `tools/archcheck-base-linux.txt` | `9e32a961a05463a41f46f47ab9425ecf6041e015002e1df13db466e2211aded2` |
+  | `tools/baseline-images-linux.sha256` | `dd43c76b2ad24a692554b026d0480a2f029b84466889382c3dac428f4cd3dd62` |
+  | `tools/baseline-diffs-linux.txt` | `a507789e7c28ab9a3c0a5af880d3083db4bc54bcb27a00e2b20f05d71688cb4c` |
+  | `tools/baseline-image-noise-linux.txt` | `c9661e13c01fc13ac33966c549f60b46e49a54b9d545405ac19da8d267a0d155` |
+  | `tests/unit/motion/replay/linux.txt` | `94fc53eec5dec4cf05cf37673375803c9fba25f04a3834d1516034b1c10efa48` |
+
+  The remote tree and its logs (`build-028/logs/`) stay in place, at 204 MB.
+
+**T037 check.**
+- The five files exist and are non-empty. The replay header reads `# motion_replay v1 linux master-4eb683b`.
+- `archcheck-base-linux.txt` shows `RESULT PASS`, with no platform-tagged difference in `ALLOWED` or `METRIC` from macOS.
+- The coordinator's logs show the eight `Motion_Replay_*` tests green, the architecture check PASS and two suite runs.
+- `git diff --stat 4eb683b -- src` is still empty.
+- `linux.txt` is `Motion_ReplayRecord`'s output, unedited: `cmp` against the recorded run-1 file reports no difference.
+
+**The gate's criteria are met. Phase 3 waits for the coordinator to release the gate.**
+
 ## §4 Unit-test mutations, greps and diffs (phase 3, T047 to T050)
 
-(One row per mutation: file, edit, the red test, revert confirmed. The FR-003 and scope greps.)
+**Mutations** (T047 to T049): each is a scratch edit of a staged file, a rebuild of the test's target, the named test red, then `git checkout -- <file>` and `git diff -- <file>` empty (checked for every one). Run again with a pause of more than a second between each edit and each revert (see the note below).
+
+| Task | Test | Mutation | Result |
+|---|---|---|---|
+| T047 (1) | `Camera_Analytic` | `camera.cpp`: `from[COMP_X] -= lensUV[0] * aperture` (lens offset sign flipped) | red, 12 failed checks |
+| T047 (2) | `Camera_StartingTreeEquivalence` | `camera.cpp`: `subvv(ray.dir, from, to)` in the pinhole branch | red, 6 |
+| T047 (3) | `Camera_CropInvariance` | `camera.cpp`: `screenLeft((float)fp.sampling.originX)` | red, 76 |
+| T047 (4) | `Camera_GenerateRayOnly` | `camera.cpp`: default `evaluateImportance` returns `Supported` | red, 1 |
+| T047 (5) | `Camera_LensModel` | `camera.cpp`: `focaldistance - aperture` in `cocFactorScreen()` | red, 2 |
+| T047 (6) | `Frame_DefaultValue` | `frameParams.cpp`: default `invShutterTime = 2` | red, 2 |
+| T048 (1) | `Motion_TwoKeyModel` | `motion.h`: `atTime` as `key1 * t + key0 * (S(1) - t)` | red, 259 |
+| T048 (2) | `Motion_Isolation` | `motion.h`: `#include "renderer.h"` | red: the target does not build (`'renderer.h' file not found` on the narrow path) |
+| T048 (3) | `Motion_CameraSlerpEquivalence` | `motion.h`: `slerpq(Rjt, q, identQ, t)` | red, 918 |
+| T048 (4) | `Motion_TransformRayEquivalence` | `motion.h`: camera rotation applied without `xform->cameraMotion` (GitHub #106 case) | red, 2 |
+| T049 (1) | `Frame_ParamsEqualCore` | `rendererFrame.cpp`: `invShutterTime` copied from `shutterTime` | red, 42 |
+| T049 (2) | `Frame_ParamsEqualCore` | `rendererFrame.cpp`: `endFrameParams()` does not uninstall | red, 44 |
+
+**A build hazard found on the way.** macOS's `/usr/bin/make` (GNU make 3.81) compares whole-second modification times, so an edit made in the same second as the previous build of that file is not seen. The first mutation run therefore reported `T047-3` as "STILL GREEN" (a stale object), and the CP-b run that followed it saw three camera tests fail against stale mutated objects (`Camera_Analytic`, `Camera_StartingTreeEquivalence`, `Camera_CropInvariance`).
+Both were artifacts of the mutation script, not of the code: the script now waits 1.2 s after every apply and revert and touches the file, all 12 mutations were re-run and are red, and CP-a to CP-d were repeated on a tree rebuilt after the last revert. **Any future script that edits and rebuilds in quick succession must do the same.**
+
+**T050 greps and diffs:**
+- `grep -nE '#include *"(.*/)?(renderer|rendererContext)\.h"' src/ri/state/frameParams.* src/ri/state/camera.* src/ri/geometry/motion.h` prints nothing (FR-003).
+- `git diff --stat 4eb683b --` the "files 028 never edits" list (texture/, `rendererServicesImpl.h`, `rendererServices.h`, `shading.{h,cpp}`, `renderer.h`, `rendererStatics.cpp`, `rendererContext.cpp`, `reyes.{cpp,h}`, `stochastic.{cpp,h}`, `stochasticQuad.h`, `zbuffer.{cpp,h}`, `sampler.{h,cpp}`, `object.cpp`, `csgDefinition.cpp`, `implicit.h`, `dlo.h`) is empty; so is `surface.cpp`.
+- The Reyes and ray SLERP call shapes `Motion_CameraSlerpEquivalence` copies are all still there: `grep -nE 'slerpq\(Rjt(_pix)?, identQ, ' ...` lists eight sites (`reyes.cpp` 1433, 1604, 1643; `stochasticQuad.h` 520, 884; `rendererContext.cpp` 740; `stochastic.cpp` 220, conjugate `invRotQ`; `objectMisc.h` 213, conjugate `relRotQ_inv`).
+- `git diff --stat 4eb683b -- src`: 9 files, 769 insertions, no deletion: `CMakeLists.txt` (+4), `renderer.cpp` (+8), and the new `frameParams.{h,cpp}`, `camera.{h,cpp}`, `motion.h`, `rendererFrame.{h,cpp}`.
+- Files naming the qualified `CRenderer::invShutterTime` (SC-001's count, 9 before): the 7 Geometry files, `rendererServicesImpl.h`, `rendererStatics.cpp` and now `rendererFrame.cpp`: 10 until phase 11 deletes the Geometry ones (the target is 3).
+- `archcheck` lists `src/ri/geometry/motion.h` as `UNRESOLVED` (no compiled translation unit of the production build includes it yet; no edges derived). That is expected until phase 5 includes it from `dlobject.cpp` and `quadrics.cpp`; the result is `PASS`.
 
 ## §5 Allowlist `VIOLATION` lines and SC-008 timing (phases 4 to 11)
 
