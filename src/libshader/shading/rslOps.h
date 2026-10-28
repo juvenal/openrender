@@ -415,11 +415,20 @@ void op_depth(float *dst, int sd, const float *P, int sp, int n, const int *tags
  * Layer G — texture / environment / shadow (call via activeContext())
  * The "name" is a C string; channel is 0=R 1=G 2=B 3=A.
  * ----------------------------------------------------------------------- */
-void op_texture_f_v2(float *dst, int sd, const char *const *namepp, const float *chan, const float *s, int ss, const float *t, int st, int n, const int *tags, uint32_t callSite);
-void op_texture_c_v2(float *dst, int sd, const char *const *namepp, const float *s, int ss, const float *t, int st, int n, const int *tags, uint32_t callSite);
-void op_environment_f_v2(float *dst, int sd, const char *const *namepp, const float *chan, const float *D, int sD, int n, const int *tags, uint32_t callSite);
-void op_environment_c_v2(float *dst, int sd, const char *const *namepp, const float *D, int sD, int n, const int *tags, uint32_t callSite);
-void op_shadow_f_v2(float *dst, int sd, const char *const *namepp, const float *Ps, int sPs, int n, const int *tags, uint32_t callSite);
+/* The optional parameter list of each (GitHub #55): pair i is names[i] with its value at values[i], steps[i] bytes per
+ * item, varying when isVarying[i] is set. Every form carries the channel operand (ignored by the color forms and, for
+ * the eight-coordinate and environment forms, by the float ones as the interpreter does). The eight-coordinate forms
+ * take 8 coordinate pointers and 8 strides in arrays, s0 t0 s1 t1 s2 t2 s3 t3. The _v2 entries are gone (spec 027). */
+#define TEXTURE_PL_PARAMS const char *const *names, void *const *values, const int *steps, const int *isVarying, int numPairs, uint32_t callSite
+void op_texture_f_v3(float *dst, int sd, const char *const *namepp, const float *chan, const float *s, int ss, const float *t, int st, int n, const int *tags, TEXTURE_PL_PARAMS);
+void op_texture_c_v3(float *dst, int sd, const char *const *namepp, const float *chan, const float *s, int ss, const float *t, int st, int n, const int *tags, TEXTURE_PL_PARAMS);
+void op_texture_full_f_v3(float *dst, int sd, const char *const *namepp, const float *chan, const float *const *coords, const int *strides, int n, const int *tags, TEXTURE_PL_PARAMS);
+void op_texture_full_c_v3(float *dst, int sd, const char *const *namepp, const float *chan, const float *const *coords, const int *strides, int n, const int *tags, TEXTURE_PL_PARAMS);
+void op_environment_f_v3(float *dst, int sd, const char *const *namepp, const float *chan, const float *D, int sD, int n, const int *tags, TEXTURE_PL_PARAMS);
+void op_environment_c_v3(float *dst, int sd, const char *const *namepp, const float *chan, const float *D, int sD, int n, const int *tags, TEXTURE_PL_PARAMS);
+void op_shadow_f_v3(float *dst, int sd, const char *const *namepp, const float *chan, const float *Ps, int sPs, int n, const int *tags, TEXTURE_PL_PARAMS);
+void op_shadow_c_v3(float *dst, int sd, const char *const *namepp, const float *chan, const float *Ps, int sPs, int n, const int *tags, TEXTURE_PL_PARAMS);
+#undef TEXTURE_PL_PARAMS
 
 /* -----------------------------------------------------------------------
  * visibility()/transmission()/trace() (spec 017-jit-builtin-function-coverage,

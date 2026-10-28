@@ -8,17 +8,14 @@
  * a recording substitute (recording_texture_system.h) after RiBegin(), runs one probe shader per
  * builtin as .rslo (the interpreter) and as .slo (the JIT) on a four-point state, and checks:
  *
- *   A. each backend's recorded request equals THAT BACKEND'S expected request:
- *        interpreter: the handle request, the footprint from the (collapsed, du = dv = 0) derivatives
- *        or the eight given coordinates, and the option block of the shader's parameter list
- *        (init() defaults for what the list leaves alone);
- *        JIT: the handle request, a point lookup (texture()) or the direction/point repeated four
- *        times (environment(), shadow()), and the option block of whatever the scratch holds (the
- *        JIT binds no parameter list until Phase 9, research R10). The test fills the scratch with
- *        sentinel values before each .slo run and requires them back, so "the JIT's options are the
- *        scratch's" is pinned. The 8-coordinate and parameter-list forms are interpreter-only here.
- *        Until Phase 9 (FR-022) the two requests differ; T104 switches the JIT's expectations to
- *        "equal to the interpreter's", the one sanctioned assertion change.
+ *   A. each backend's recorded request equals the interpreter's expected request (from Phase 9, FR-010,
+ *      FR-022: the JIT binds the parameter list and builds the footprint as the interpreter does): the
+ *      handle request, the four corners (the collapsed, du = dv = 0 derivatives, or the eight given
+ *      coordinates), and the option block of the shader's parameter list (init() defaults for what the
+ *      list leaves alone). Before Phase 9 the JIT's request differed (a point lookup, the scratch's
+ *      options, a color form that wrote one channel); T104 switched its expectations to "equal to the
+ *      interpreter's", the one sanctioned assertion change, and enabled the parameter-list probes
+ *      under the JIT.
  *   B. the handle requests (name, kind) and the textureinfo() request are equal across backends;
  *   C. every builtin returns the canned value;
  *   D. with the texture system removed (textureSystem() returns nullptr): each builtin returns its
@@ -66,46 +63,16 @@ class CWarningSink : public CDiagnosticSink {
         }
 };
 
-// The JIT's *result* pins (spec 027, maintainer decision at Checkpoint 6): what the .slo half pins about the
-// values a color form, shadow() and textureinfo() produce cannot hold before Phase 9 (research R22: color forms
-// take the float-channel entry point, the shadow branch passes the channel operand as Ps, textureinfo returns
-// garbage resolution values). They stay compiled, and are skipped, until T104 defines
-// TEXTURE_SUBSTITUTE_JIT_RESULTS for this executable. The JIT's requests and options are pinned either way.
-#ifdef TEXTURE_SUBSTITUTE_JIT_RESULTS
-static const bool kJitResultPins = true;
-#else
-static const bool kJitResultPins = false;
-#endif
-
-// The scratch values the JIT's options must come from (sentinels: none is a default of any init())
-static const float kJitBlur = 0.07f, kJitWidth = 3.f, kJitSWidth = 5.f, kJitTWidth = 6.f, kJitFill = 0.9f, kJitSamples = 6.f;
-static const float kJitTraceSamples = 7.f, kJitBias = 0.3f;
-
-static void setJitSentinels(CProbeContext *probe) {
-    CShadingScratch &scratch = probe->currentShadingState->scratch;
-    scratch.textureParams.filter = RiGaussianFilter;
-    scratch.textureParams.blur = kJitBlur;
-    scratch.textureParams.width = kJitWidth;
-    scratch.textureParams.swidth = kJitSWidth;
-    scratch.textureParams.twidth = kJitTWidth;
-    scratch.textureParams.fill = kJitFill;
-    scratch.textureParams.samples = kJitSamples;
-    scratch.traceParams.samples = kJitTraceSamples;
-    scratch.traceParams.bias = kJitBias;
-}
-
 // What a run recorded
 struct SRun {
         SRunResult out;
         std::vector<SRecordedTextureCall> calls;
 };
 
-static SRun run(CProbeContext *probe, CRecordingTextureSystem *recording, CProgrammableShaderInstance *shader, CSurface *object, bool jit) {
+static SRun run(CProbeContext *probe, CRecordingTextureSystem *recording, CProgrammableShaderInstance *shader, CSurface *object) {
     if (recording)
         recording->calls.clear();
     setupState(probe, object);
-    if (jit)
-        setJitSentinels(probe);
     SRun r;
     r.out = runSurface(probe, shader, object);
     if (recording)
@@ -204,13 +171,6 @@ static void checkInterpreterEnvironment(const SRun &r, const char *what, const c
     }
 }
 
-// ---- the JIT's expected requests (the scratch's options, a point or a repeated direction) ----
-
-static void checkJitOptions(const TextureOpt &o, const char *what) {
-    expectOptions(o, kJitBlur, kJitWidth, kJitSWidth, kJitTWidth, kJitFill, kJitSamples, RiGaussianFilter, what);
-    expectTrace(o, kJitTraceSamples, &kJitBias, what);
-}
-
 int main(int argc, char **argv) {
     const std::string mode = argc > 1 ? argv[1] : "builtins";
     if (mode != "builtins" && mode != "hider") {
@@ -289,11 +249,11 @@ int main(int argc, char **argv) {
     // =========================================================================================
     struct SProbe {
             const char *name;
-            bool jit; // also run as .slo (no parameter list: the JIT binds none until Phase 9)
+            bool jit; // also run as .slo
     };
     static const SProbe probes[] = {
         {"tex_c", true},     {"tex_f", true},      {"env_c", true},        {"env_f", true},      {"shadow_f", true},
-        {"textureinfo", true}, {"tex_c_pl", false}, {"tex_c8_pl", false}, {"env_c_pl", false}, {"shadow_f_pl", false},
+        {"textureinfo", true}, {"tex_c_pl", true},   {"tex_c8_pl", true}, {"env_c_pl", true}, {"shadow_f_pl", true},
     };
 
 #ifdef TEXTURE_SUBSTITUTE_HAVE_JIT
@@ -333,9 +293,9 @@ int main(int argc, char **argv) {
         std::vector<SRun> ir(sizeof(probes) / sizeof(probes[0])), jr(ir.size());
         for (size_t k = 0; k < ir.size(); k++) {
             if (rslo[k])
-                ir[k] = run(probe, &recording, rslo[k], object, /*jit=*/false);
+                ir[k] = run(probe, &recording, rslo[k], object);
             if (slo[k])
-                jr[k] = run(probe, &recording, slo[k], object, /*jit=*/true);
+                jr[k] = run(probe, &recording, slo[k], object);
         }
         auto idx = [&](const char *n) {
             for (size_t k = 0; k < ir.size(); k++)
@@ -376,67 +336,39 @@ int main(int argc, char **argv) {
         }
 
         if (haveJit) {
-            printf("A. the JIT's requests (.slo)\n");
-            // texture(): a point lookup at (s, t), options from the scratch
-            for (const char *n : {"tex_c", "tex_f"}) {
-                const SRun &r = jr[idx(n)];
-                expectHandleRequest(r, "tex_a.tex", ETextureKind::Texture, n);
-                const auto calls = ofKind(r, SRecordedTextureCall::Point);
-                EXPECT_TRUE(calls.size() == (size_t)kNumPoints);
-                EXPECT_TRUE(ofKind(r, SRecordedTextureCall::Texture).empty());
-                for (size_t i = 0; i < calls.size() && i < (size_t)kNumPoints; i++) {
-                    EXPECT_TRUE(nearlyEqual(calls[i].s[0], kS[i]) && nearlyEqual(calls[i].t[0], kT[i]));
-                    checkJitOptions(calls[i].opt, n);
-                    if (strcmp(n, "tex_c") == 0) {
-                        if (kJitResultPins)
-                            EXPECT_TRUE(isColor(r.out.ci[i], CRecordingTextureSystem::kTexture[0], CRecordingTextureSystem::kTexture[1],
-                                                CRecordingTextureSystem::kTexture[2]));
-                    }
-                    else
-                        EXPECT_TRUE(isColor(r.out.ci[i], CRecordingTextureSystem::kTexture[1], CRecordingTextureSystem::kTexture[1],
-                                            CRecordingTextureSystem::kTexture[1]));
-                }
+            // The JIT's request is the interpreter's (Phase 9, T104): the same handle request, corners and options
+            printf("A. the JIT's requests (.slo), equal to the interpreter's\n");
+            checkInterpreterTexture(jr[idx("tex_c")], "tex_c .slo", false, 0, 1, 0, 1, defaultFilter, false);
+            checkInterpreterTexture(jr[idx("tex_f")], "tex_f .slo", false, 0, 1, 0, 1, defaultFilter, true);
+            checkInterpreterTexture(jr[idx("tex_c_pl")], "tex_c_pl .slo", false, 0.02f, 2, 0.5f, 4, RiBoxFilter, false);
+            checkInterpreterTexture(jr[idx("tex_c8_pl")], "tex_c8_pl .slo", true, 0, 1, 0, 3, RiBoxFilter, false);
+            checkInterpreterEnvironment(jr[idx("env_c")], "env_c .slo", "env_a.env", kN, 0, 0, 1, nullptr, defaultFilter);
+            checkInterpreterEnvironment(jr[idx("env_f")], "env_f .slo", "env_a.env", kN, 0, 0, 1, nullptr, defaultFilter);
+            checkInterpreterEnvironment(jr[idx("env_c_pl")], "env_c_pl .slo", "env_a.env", kN, 0.03f, 0.6f, 5, nullptr, RiBoxFilter);
+            {
+                const float bias = 0.25f;
+                checkInterpreterEnvironment(jr[idx("shadow_f")], "shadow_f .slo", "shadow_a.sm", kP, 0, 0, 1, nullptr, defaultFilter);
+                checkInterpreterEnvironment(jr[idx("shadow_f_pl")], "shadow_f_pl .slo", "shadow_a.sm", kP, 0.04f, 0, 3, &bias, RiBoxFilter);
             }
-            // environment() and shadow(): the direction (or point) four times, options from the scratch
-            struct SEnv {
-                    const char *probe, *name;
-                    const float (*dirs)[3];
-            };
-            for (const SEnv &e : {SEnv{"env_c", "env_a.env", kN}, SEnv{"env_f", "env_a.env", kN}, SEnv{"shadow_f", "shadow_a.sm", kP}}) {
-                const SRun &r = jr[idx(e.probe)];
-                expectHandleRequest(r, e.name, ETextureKind::Environment, e.probe);
-                const auto calls = ofKind(r, SRecordedTextureCall::Environment);
-                EXPECT_TRUE(calls.size() == (size_t)kNumPoints);
-                for (size_t i = 0; i < calls.size() && i < (size_t)kNumPoints; i++) {
-                    if (kJitResultPins || strcmp(e.probe, "shadow_f") != 0) // shadow_f: the recorded P is garbage until Phase 9
-                        for (int k = 0; k < 4; k++)
-                            for (int a = 0; a < 3; a++)
-                                EXPECT_TRUE(nearlyEqual(calls[i].d[k][a], e.dirs[i][a]));
-                    checkJitOptions(calls[i].opt, e.probe);
-                }
-            }
-            for (const char *n : {"env_c"})
-                for (int i = 0; kJitResultPins && i < kNumPoints; i++)
+            for (const char *n : {"env_c", "env_c_pl"})
+                for (int i = 0; i < kNumPoints; i++)
                     EXPECT_TRUE(isColor(jr[idx(n)].out.ci[i], CRecordingTextureSystem::kEnvironment[0], CRecordingTextureSystem::kEnvironment[1],
                                         CRecordingTextureSystem::kEnvironment[2]));
-            for (const char *n : {"env_f", "shadow_f"})
+            for (const char *n : {"env_f", "shadow_f", "shadow_f_pl"})
                 for (int i = 0; i < kNumPoints; i++)
                     EXPECT_TRUE(isColor(jr[idx(n)].out.ci[i], 0.375f, 0.375f, 0.375f));
             {
                 const SRun &r = jr[idx("textureinfo")];
                 expectHandleRequest(r, "tex_a.tex", ETextureKind::Info, "textureinfo .slo");
                 EXPECT_TRUE(!ofKind(r, SRecordedTextureCall::Describe).empty());
-                for (int i = 0; kJitResultPins && i < kNumPoints; i++)
+                for (int i = 0; i < kNumPoints; i++)
                     EXPECT_TRUE(isColor(r.out.ci[i], 1, CRecordingTextureSystem::kResolution[0], CRecordingTextureSystem::kResolution[1]));
             }
-            if (!kJitResultPins)
-                printf("   JIT result pins skipped until Phase 9: color forms, shadow P, textureinfo resolution (research R22)\n");
 
-            printf("B. the handle requests and the textureinfo() request equal across backends\n");
-            for (const char *n : {"tex_c", "tex_f", "env_c", "env_f", "shadow_f", "textureinfo"}) {
+            printf("B. the handle requests and the results equal across backends\n");
+            for (const char *n : {"tex_c", "tex_f", "env_c", "env_f", "shadow_f", "textureinfo", "tex_c_pl", "tex_c8_pl", "env_c_pl", "shadow_f_pl"}) {
                 EXPECT_TRUE(sameHandleRequests(ir[idx(n)], jr[idx(n)]));
-                const bool moved = strcmp(n, "tex_c") == 0 || strcmp(n, "env_c") == 0 || strcmp(n, "textureinfo") == 0;
-                for (int i = 0; (kJitResultPins || !moved) && i < kNumPoints; i++)
+                for (int i = 0; i < kNumPoints; i++)
                     for (int c = 0; c < 3; c++)
                         EXPECT_TRUE(nearlyEqual(ir[idx(n)].out.ci[i][c], jr[idx(n)].out.ci[i][c])); // C: the same canned value
             }
@@ -461,11 +393,9 @@ int main(int argc, char **argv) {
                 CProgrammableShaderInstance *shader = backend == 0 ? rslo[k] : slo[k];
                 if (!shader)
                     continue;
-                const bool jit = backend == 1;
-                const SRun r = run(probe, nullptr, shader, object, jit);
-                const float fill = jit ? kJitFill : (n == "tex_c_pl" ? 0.5f : n == "env_c_pl" ? 0.6f : 0.f);
-                const bool colorForm = jit && (n == "tex_c" || n == "env_c"); // the JIT writes one channel until Phase 9
-                for (int i = 0; (kJitResultPins || !colorForm) && i < kNumPoints; i++) {
+                const SRun r = run(probe, nullptr, shader, object);
+                const float fill = (n == "tex_c_pl" ? 0.5f : n == "env_c_pl" ? 0.6f : 0.f);
+                for (int i = 0; i < kNumPoints; i++) {
                     if (n == "textureinfo")
                         EXPECT_TRUE(isColor(r.out.ci[i], 0, -1, -1)); // found 0, the result array untouched
                     else

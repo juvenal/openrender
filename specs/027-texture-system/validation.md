@@ -611,7 +611,53 @@ its own token (`token3d()`, what `getTexture3d` returns, now a member) and forwa
 - CP-c (option ON): `ctest -L architecture` 21/21, `RESULT PASS`, no `STALE`, no `VIOLATION`; `ALLOWED DB-010 x 10`, nothing added; Shading's imports 6 (unchanged).
 - CP-d: 833 images, **0 differing, 0 missing** (noise list: the seven `.slo` raytrace probes); all 389 `MaxBlockAvgDiff` equal `baseline-diffs.txt`. Divergence rows: all 18 equal §0.7 (no noise deviation in this run).
 
-## §9 Phase checkpoints
+**Approved by the maintainer at Checkpoint 8 (2026-10-28):** the `globalArena.init()`/`tini()` setup fix in `TextureOnly_Standalone` (no expectation changed). Note carried to T115 and T117: a consumer of the texture system must initialize libRIBCommon's arena (`globalArena.init()`), which `RiBegin` does in a renderer; synthesizing an unbaked source decodes into it.
+
+## §9 Phase 9: JIT parity of `texture()`, `environment()` and `shadow()` (US3; FR-010, FR-022, SC-008, SC-012) - the only output-changing phase, `.slo` only
+
+**T099.** The footprint arithmetic is in two inline helpers in `textureCalls.h` (`libshader::textureCorners`, `environmentCorners`), and the interpreter macros (`TEXTUREFEXPR`, `TEXTURECEXPR`, `ENVIRONMENTEXPR`, `SHADOWEXPR`) call them; the JIT was not touched yet. Mid-phase check (`cpujob 027-p9a-*`, the whole Checkpoint-8 procedure): **0 differing** of 833 images against `baseline-images.sha256`, every
+`MaxBlockAvgDiff` equal, 32 failed = the known-red set, divergence rows as before (`unbaked-rgbe-raytrace` read 84.94, a known noise value). The interpreter's output is unchanged by the helper.
+
+**T100-T103.**
+- `llvmEmitter.cpp`: one branch for `texture`/`environment`/`shadow`, the form from the **prototype** (`c=`/`f=`; for `texture()` the run of `f` after `SF` counts the coordinates, 2 or 8, anything else fails the emit), the positional operands name, channel, coordinates (or `D`/`Ps` as **operand 2**), and the rest through `emitParamList()`; `n` and `tags` are the raw `numVerts`/`tags` as for `trace()`.
+- `rslOps.{h,cpp}`: `op_texture_{f,c}_v3`, `op_texture_full_{f,c}_v3`, `op_environment_{f,c}_v3`, `op_shadow_{f,c}_v3`; the `_v2` names are deleted (`grep -rn "op_texture_.*_v2\|op_environment_.*_v2\|op_shadow_f_v2" src tests` shows none).
+- `shading.cpp`: `jitTexture()` and `jitEnvironment()` replace `jitTextureF/C`, `jitEnvironmentF/C`, `jitShadowF`: the list is bound by `jitParameterList<CTextureLookup>()` / `<CEnvironmentLookup>()` and its varying values copied per vertex by `jitParameterListReady()`; `swidth`/`twidth`, the grid derivatives, the footprint, the options, the handle cached in `lookup->map`, the draws and the results (float `environment()` is channel 0, float `shadow()` the mean, the eight-coordinate float form channel 0) are the interpreter's. `"raytrace"` and the shader's own name trace, **by the name alone at
+  run time**, with the interpreter's `CTraceLocation` batch through `traceReflection()`/`traceTransmission()` (results as `ENVIRONMENTEXPR_POST`/`SHADOWEXPR_POST`); the `Failed open environment "raytrace"` error is gone under the JIT.
+- Three defects found on the way and fixed (research R22): the `shadow` branch passed operand 1 (the channel) as `Ps`; **`textureinfo()` took the second-to-last letter of its prototype as the result type, but the IR text carries `f=SSF` with no `!`, so every `.slo` `textureinfo()` was a string result** (the garbage resolution values; the letter is now the last one once an optional `!` is stripped); and **`buildVarTable` wrote the RSL globals over a shader's own parameters or locals of the
+  same name**, so the probe's `uniform float width` was the vector global `width` (the parameter list was bound varying: "width parameter was expected to be uniform"). The user's variable now shadows the global, as in the language and in the interpreter. No shipped shader has a parameter or local named like a global (checked over every compiled `.rslo` in `build-027/shaders`).
+
+**T104.** `test_texture_substitute.cpp`: the `.slo` half now calls the same `checkInterpreterTexture`/`checkInterpreterEnvironment` checks as the `.rslo` half (the handle request, the four corners, every option, the canned colors), the parameter-list probes (`tex_c_pl`, `tex_c8_pl`, `env_c_pl`, `shadow_f_pl`) run under the JIT too, the cross-backend equality covers all ten probes, the no-system fill is the interpreter's. The scratch sentinels, `checkJitOptions`, `setJitSentinels` and the `kJitResultPins` gate (Phase 6) are
+removed: every pin that was moved is unconditional now, so `TEXTURE_SUBSTITUTE_JIT_RESULTS` is not defined anywhere. `test_texture_substitute_3d.cpp` needed no change. This is the one sanctioned assertion change; it tightens.
+
+**T105.** `cpujob 027-p9-jitpl ctest -R 'ShadingParity_(JitPL|TextureSubstitute)' -j4`: **89/89**: every `ShadingParity_JitPL_{texture,envshadow}_*` case including `envshadow_raytrace_*`, every `_rslo` and `_slo` engaged control, `ShadingParity_JitPLDiagnosticsTexture`, `ShadingParity_TextureSubstitute` and `...3D`, and #55's own cases. The first run had 7 failures (the `width`, `swidth_twidth` cases and the substitute test's textureinfo rows); the two defects above were the cause.
+
+**T106.** Mutations (each reverted byte-identical, the file touched after a pause): (a) `jitParameterList` skips the pair named `blur`: `JitPL_texture_blur`, `JitPLEngaged_texture_blur_slo`, `JitPL_envshadow_blur`, `JitPLEngaged_envshadow_blur_slo` **red** (the `_rslo` controls stay green). (b) the traced branch off (`traced = false`): all nine `envshadow_raytrace_*` parity and `_slo` engaged tests **red**, the `_rslo` ones green. (A first attempt of (b) did not compile (`-Wlogical-op-parentheses`) and its run was discarded; it was redone.)
+
+**T107.** `tools/jit-texture-divergence-phase9-macos.tsv`: **all 18 scenes `identical`, MaxBlockAvgDiff 0.00** (the starting tree: 16 of 18 differ, 34.55-252.52). (The script needs absolute build and output paths.)
+
+**T107a.** `tools/jit_texture_stability.sh` (new: the seven raytrace probes only, 7 renders per run, 28 in all): four runs, `cpujob 027-p9-stab1..4`, all four **identical** and each equal to the `.rslo` render of the same scene (T107's `rslo` images):
+  - `texture-png-raytrace` `67023d53dda11454bcc84c1ace7608b4e3a9162ee56133c2eb6582615141060b`
+  - `texture-exr-raytrace` `398f123dedd3e84ef85dce76aa910fd1a83bbf523f96489756655b1e45948085`
+  - `texture-rgbe-raytrace` `ae04e3a53f810b5e0faf8350e78f0c871040163280084f1fb6920a917d5df060`
+  - `unbaked-png-raytrace` `99d0ed56267f47a5a67f641b93f5332ca7ea09c0fcbb9712562fc12a2c8fca1a`
+  - `unbaked-nonpot-raytrace` `b80626974af68a4bcb6ee8082987cfbcf917e9b96053c048440b44bd51b762f1`
+  - `unbaked-exr-raytrace` `65eb3e6812597c48a654296eb29eb8fce81205e095072857bca4d06923443911`
+  - `unbaked-rgbe-raytrace` `923b90c1f06991f74f59103727bc2dcebe3de6f78c652cced5fada5564cc2c42`
+
+**T108/T109.** `cpujob 027-p9b-*` (build, `-LE determinism-sweep -j4` suite, `texture_tile -j2`, probes, characterization scenes, manifest diff against `baseline-images.sha256` with the old noise list):
+- **895/895 tests pass: the known-red set is empty.** `texture_tile` 14/14, architecture 21/21.
+- 26 images differ, **all spec-027 JIT images**: the nine `.slo` probe images of the non-noise scenes (`texture-{png,exr,rgbe}-reyes`, `unbaked-{png,nonpot,exr,rgbe}-reyes`, `env-reyes`, `env-raytrace`; the shadow probes are unchanged) and 17 `.slo` renders of the T-J scenes (`tests/visual/jit-texture/jittex-*-slo.tif`); the seven noise-listed raytrace probes changed too (33 changed in all against the baseline manifest).
+  Every one of them equals its `.rslo` render (T107). **Every `.rslo` image, every characterization scene, every image of a scene that does not call these builtins, and all 389 `MaxBlockAvgDiff` are identical to the baseline.** In particular the existing `Visual_sphere-textureinfo-reyes-slo` is unchanged although the `textureinfo()` result type was corrected.
+- **T109 outcome: no existing (pre-027) test result, `MaxBlockAvgDiff`, image or reference changed.** No reference was regenerated and no threshold touched. No STOP.
+
+**T110.** `tools/baseline-image-noise.txt` no longer lists the seven probes (a copy: `baseline-image-noise-p9.txt`, the same text); `tools/baseline-images-p9.sha256` (833 images) and `tools/baseline-diffs-p9.txt` (389 lines) recorded right after the clean run above. Then the suite, probes and characterization scenes once more (`cpujob 027-p9c-*`): 895/895, `texture_tile` 14/14, `^determinism$` **155/155**, architecture 21/21,
+`image_manifest.sh diff baseline-images-p9.sha256`: **833 images, 0 differing, 0 missing, noise-listed 0**; `diffs` equal to `baseline-diffs-p9.txt` (and to the original `baseline-diffs.txt`). `ALLOWED DB-010 x 10` unchanged, `RESULT PASS`.
+
+**Checkpoint 9 (T111), macOS.**
+- CP-a: clean build, `-Werror`. CP-b: **895/895, the known-red set is empty**; `texture_tile` 14/14; determinism 155/155.
+- CP-c: architecture 21/21, `RESULT PASS`, `ALLOWED` unchanged from Phase 8 (`DB-010 x 10`), Texturing metric 1/1, TOTAL 652/98.
+- CP-d9: (1) every `.rslo` image, every characterization scene and every image of a scene that does not call these builtins is bit-identical to the baseline; (2) the JIT texture probes changed and are bit-identical to their `.rslo` renders, and the seven raytrace ones are bit-stable over four runs; (3) every `ShadingParity_JitPL_*` case and `_slo` control passes; (4) every `MaxBlockAvgDiff` equals the baseline; (5) the known-red set is empty.
+
 
 ## §10 Linux
 

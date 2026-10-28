@@ -86,16 +86,21 @@ Phases 6–8: the `op_texture_*_v2`, `op_environment_*_v2`, `op_shadow_f_v2`, `o
 bodies in `shading.cpp` change, to the `textureCalls` sequence above, and each backend keeps the request it makes
 today (research R10).
 
-Phase 9 (FR-022, research R22), following #55's ABI rule (`rslOps.h:428-431`): `op_texture_{f,c}_v3`,
+Phase 9 (FR-022, research R22), following #55's ABI rule (`rslOps.h`): `op_texture_{f,c}_v3`,
 `op_texture_full_{f,c}_v3`, `op_environment_{f,c}_v3` and `op_shadow_{f,c}_v3` replace the `_v2` names, which are
 deleted so a `.slo` compiled before the fix fails to bind. Each takes, after its positional operands and their
-strides, the `du`/`dv` grid pointers, `n`, `tags`, then `names, values, steps, isVarying, numPairs` (a
-`TJitParamList`) and the call site, exactly as `op_trace_*_v3` does. The emitter picks the entry point from the
-instruction's prototype (float or color destination, two or eight coordinates), never from the operand count, and
-passes the rest of the operands through `emitParamList()`. The run time binds the list with
+strides, the channel operand (carried by every form), `n`, `tags`, then `names, values, steps, isVarying, numPairs`
+(a `TJitParamList`) and the call site; the eight-coordinate forms take their eight coordinate pointers and strides
+as two arrays. `du`, `dv`, `P`, `N`, `dPdu`, `dPdv`, `time` and `L` are read from the shading state's varying globals
+inside `jitTexture()`/`jitEnvironment()`, as the interpreter reads them (the built-in's `PARAMETER_*` bits already
+make the state compute them). The emitter picks the entry point from the instruction's prototype (float or color
+destination; for `texture()` the run of `f` after `SF` is the number of coordinates), never from the operand count,
+and passes the rest of the operands through `emitParamList()`. The run time binds the list with
 `jitParameterList<CTextureLookup>()` (`texture()`) or `jitParameterList<CEnvironmentLookup>()` (`environment()`,
 `shadow()`), copies varying values per vertex with `jitParameterListReady()`, computes the interpreter's footprint
-with the same helper the interpreter macros call, and then runs the `textureCalls` sequence.
+with the helpers the interpreter macros call (`libshader::textureCorners`, `environmentCorners`), and then runs the
+`textureCalls` sequence. `"raytrace"` and the shader's own name (`"reflection"`, `"shadow"`) trace, decided by the
+name at run time, with the interpreter's `CTraceLocation` batch.
 
 ## Imports
 

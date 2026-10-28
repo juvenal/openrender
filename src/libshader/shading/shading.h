@@ -647,11 +647,13 @@ class CShadingContext {
         void jitArea(float *dst, int sd, const float *P, int n, const int *tags);
         void jitCalculateNormal(float *dst, int sd, const float *P, int n, const int *tags);
         void jitDepth(float *dst, int sd, const float *P, int sp, int n, const int *tags);
-        void jitTextureF(float *dst, int sd, const char *name, int channel, const float *s, int ss, const float *t, int st, int n, const int *tags, uint32_t callSite);
-        void jitTextureC(float *dst, int sd, const char *name, const float *s, int ss, const float *t, int st, int n, const int *tags, uint32_t callSite);
-        void jitEnvironmentF(float *dst, int sd, const char *name, int channel, const float *D, int sD, int n, const int *tags, uint32_t callSite);
-        void jitEnvironmentC(float *dst, int sd, const char *name, const float *D, int sD, int n, const int *tags, uint32_t callSite);
-        void jitShadowF(float *dst, int sd, const char *name, const float *Ps, int sPs, int n, const int *tags, uint32_t callSite);
+        // texture(), environment() and shadow() (spec 027, FR-022): the interpreter's request, with the call site's
+        // optional parameter list (jitParameterList() below). `coords` are the 2 or 8 coordinate operands with
+        // their strides; `channel` is the float forms' channel operand.
+        void jitTexture(float *dst, int sd, const char *name, bool color, int channel, int numCoords, const float *const *coords, const int *strides,
+                        int n, const int *tags, const TJitParamList &pl, uint32_t callSite);
+        void jitEnvironment(float *dst, int sd, const char *name, bool color, bool shadow, const float *D, int sD, int n, const int *tags,
+                            const TJitParamList &pl, uint32_t callSite);
         void jitFindCoordinateSystem(const char *name, const float *&from, const float *&to, ECoordinateSystem &type);
 
         // visibility()/transmission()/trace() (spec 017-jit-builtin-function-coverage,

@@ -25,6 +25,7 @@
 #ifndef TEXTURECALLS_H
 #define TEXTURECALLS_H
 
+#include "common/algebra.h"
 #include "ri/texture/textureSystem.h"
 
 class CShadingContext;
@@ -41,6 +42,37 @@ namespace libshader {
     // Whether the 3D channel operations have services to run against ("texture3d", "bake3d");
     // false with one warning per builtin when there are none
     bool texture3dAvailable(CShadingContext *context, const char *builtin);
+
+    // The lookup footprints, in one place for the interpreter's macros and the JIT's batch functions (spec 027, T099,
+    // FR-022): the arithmetic is the interpreter's, written once so the two backends cannot drift.
+
+    // texture(): the four corners around (s, t), from the grid derivatives of the coordinates (dsdu = Du(s) ...),
+    // the shading point's du and dv and the swidth/twidth multipliers
+    inline void textureCorners(float *cs, float *ct, float s, float t, float dsdu, float dsdv, float dtdu, float dtdv, float du, float dv, float swidth, float twidth) {
+        cs[0] = s;
+        cs[1] = s + dsdu * du * swidth;
+        cs[2] = s + dsdv * dv * swidth;
+        cs[3] = s + (dsdu * du + dsdv * dv) * swidth;
+        ct[0] = t;
+        ct[1] = t + dtdu * du * twidth;
+        ct[2] = t + dtdv * dv * twidth;
+        ct[3] = t + (dtdu * du + dtdv * dv) * twidth;
+    }
+
+    // environment() and shadow() (not traced): the four directions (or points) around D. dDdu and dDdv are
+    // scaled in place by the footprint, as the interpreter always did.
+    inline void environmentCorners(float *D0, float *D1, float *D2, float *D3, const float *D, float *dDdu, float *dDdv, float du, float dv, float swidth, float twidth) {
+        mulvf(dDdu, du * swidth * 0.5f);
+        mulvf(dDdv, dv * twidth * 0.5f);
+        subvv(D0, D, dDdu);
+        subvv(D0, dDdv);
+        addvv(D1, D, dDdu);
+        subvv(D1, dDdv);
+        subvv(D2, D, dDdu);
+        addvv(D2, dDdv);
+        addvv(D3, D, dDdu);
+        addvv(D3, dDdv);
+    }
 
 } // namespace libshader
 

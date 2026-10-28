@@ -459,6 +459,11 @@ buildVarTable(const IRModule &mod) {
     }
 
     for (const auto &[name, idx] : s_rslGlobals) {
+        // A parameter or local of the shader that has a global's name shadows it, as in the source language and in
+        // the interpreter (which addresses variables by index). A texture probe's `width` parameter was read as
+        // the vector global `width` before this guard (spec 027, Phase 9).
+        if (tbl.find(name) != tbl.end())
+            continue;
         auto strideIt = globalStrides.find(name);
         int stride = (strideIt != globalStrides.end()) ? strideIt->second : 3;
         auto bytesIt = globalItemBytes.find(name);
@@ -2684,141 +2689,112 @@ static bool emitFunction(const IRFunction &irFn,
             }
 
             // ================================================================
-            // Layer G — texture lookup
-            // IR: texture name [channel] s t
+            // Layer G — texture / environment / shadow (spec 027, FR-022)
+            // IR: texture name channel s t [params...]            "c=SFff", "f=SFff"
+            //     texture name channel s0 t0 .. s3 t3 [params...]  "c=SFffffffff", "f=SFffffffff"
+            //     environment name channel D [params...]           "c=SFv", "f=SFv"
+            //     shadow name channel Ps [params...]               "c=SFp", "f=SFp"
+            // The form comes from the instruction's PROTOTYPE (the destination's type, and for texture() the number
+            // of coordinates), never from the operand count: the IR carries the channel operand in every form, and
+            // the rest of the operands are the optional parameter list, marshalled as for trace()/occlusion()
+            // (GitHub #55) and bound at run time by the interpreter's own CPLLookup::bind().
             // ================================================================
-            else if (op == "texture") {
-                // Operands: [name, channel_or_s, t]  or  [name, s, t]
-                // If 4 operands: name channel s t (float channel)
-                // If 3 operands: name s t (color form)
+            else if (op == "texture" || op == "environment" || op == "shadow") {
                 if (ins.operands.size() < 3 || !dst)
                     continue;
                 const std::string &nameTok = ins.operands[0].token;
-
-                // Resolve name to a char** locals slot (or embed a string literal).
                 llvm::Value *namePP = nullptr;
                 VarDesc nameDesc;
                 if (resolveVar(nameTok, nameDesc)) {
                     namePP = loadVarPtr(nameDesc);
                 }
                 else {
-                    // String literal operand
-                    std::string s = nameTok;
-                    if (s.size() >= 2 && s.front() == '"')
-                        s = s.substr(1, s.size() - 2);
-                    llvm::Value *sptr = B.CreateGlobalString(s, "texname");
+                    std::string str = nameTok;
+                    if (str.size() >= 2 && str.front() == '"')
+                        str = str.substr(1, str.size() - 2);
+                    llvm::Value *sptr = B.CreateGlobalString(str, "texname");
                     llvm::Value *alloca = B.CreateAlloca(ptrTy, nullptr, "texname_pp");
                     B.CreateStore(sptr, alloca);
                     namePP = alloca;
                 }
-
-                if (ins.operands.size() >= 4) {
-                    // Float-channel form: texture name channel s t
-                    auto [chan, sc] = getVar(ins, 1);
-                    auto [s, ss] = getVar(ins, 2);
-                    auto [t, st] = getVar(ins, 3);
-                    if (!chan || !s || !t)
-                        continue;
-                    // (dst,sd, namepp, chan, s,ss, t,st, n, tags)
-                    auto *ty = llvm::FunctionType::get(voidTy,
-                                                       {ptrTy, i32Ty, ptrTy, ptrTy, ptrTy, i32Ty, ptrTy, i32Ty, i32Ty, ptrTy, i32Ty}, false);
-                    auto *fn = declareOp(mod, "op_texture_f_v2", ty);
-                    auto [n, tg] = collapseArgs(dstStrideVal, {ss, st});
-                    B.CreateCall(fn, {dst, dstStride, namePP, chan,
-                                      s, B.getInt32(ss), t, B.getInt32(st), n, tg, callSiteArg(B, ins)});
-                }
-                else {
-                    // Color form: texture name s t
-                    auto [s, ss] = getVar(ins, 1);
-                    auto [t, st] = getVar(ins, 2);
-                    if (!s || !t)
-                        continue;
-                    // (dst,sd, namepp, s,ss, t,st, n, tags)
-                    auto *ty = llvm::FunctionType::get(voidTy,
-                                                       {ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, ptrTy, i32Ty, i32Ty, ptrTy, i32Ty}, false);
-                    auto *fn = declareOp(mod, "op_texture_c_v2", ty);
-                    auto [n, tg] = collapseArgs(dstStrideVal, {ss, st});
-                    B.CreateCall(fn, {dst, dstStride, namePP,
-                                      s, B.getInt32(ss), t, B.getInt32(st), n, tg, callSiteArg(B, ins)});
-                }
-            }
-
-            // ================================================================
-            // Layer G — environment / shadow lookups
-            // ================================================================
-            else if (op == "environment") {
-                if (ins.operands.size() < 2 || !dst)
+                const bool isColor = !ins.proto.empty() && ins.proto[0] == 'c';
+                const size_t eq = ins.proto.find('=');
+                const std::string rhs = (eq == std::string::npos) ? std::string() : ins.proto.substr(eq + 1);
+                auto [chan, sChan] = getVar(ins, 1);
+                if (!chan)
                     continue;
-                const std::string &nameTok = ins.operands[0].token;
-                llvm::Value *namePP = nullptr;
-                VarDesc nameDesc;
-                if (resolveVar(nameTok, nameDesc)) {
-                    namePP = loadVarPtr(nameDesc);
-                }
-                else {
-                    std::string s = nameTok;
-                    if (s.size() >= 2 && s.front() == '"')
-                        s = s.substr(1, s.size() - 2);
-                    llvm::Value *sptr = B.CreateGlobalString(s, "envname");
-                    llvm::Value *alloca = B.CreateAlloca(ptrTy, nullptr, "envname_pp");
-                    B.CreateStore(sptr, alloca);
-                    namePP = alloca;
-                }
 
-                if (ins.operands.size() >= 3) {
-                    // Float-channel form: environment name channel D
-                    auto [chan, sc] = getVar(ins, 1);
-                    auto [D, sD] = getVar(ins, 2);
-                    if (!chan || !D)
-                        continue;
-                    auto *ty = llvm::FunctionType::get(voidTy,
-                                                       {ptrTy, i32Ty, ptrTy, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy, i32Ty}, false);
-                    auto *fn = declareOp(mod, "op_environment_f_v2", ty);
-                    auto [n, tg] = collapseArgs(dstStrideVal, {sD});
-                    B.CreateCall(fn, {dst, dstStride, namePP, chan,
-                                      D, B.getInt32(sD), n, tg, callSiteArg(B, ins)});
+                if (op == "texture") {
+                    // "SF" then the coordinates: a run of 'f' (the parameter list that follows starts with an 'S')
+                    int numCoords = 0;
+                    while (rhs.size() > (size_t)(2 + numCoords) && rhs[2 + numCoords] == 'f')
+                        numCoords++;
+                    if ((numCoords != 2 && numCoords != 8) || ins.operands.size() < (size_t)(2 + numCoords)) {
+                        fprintf(stderr, "llvmEmitter: in '%s', texture() with the prototype '%s' is not a two- or eight-coordinate form\n",
+                                std::string(func->getName()).c_str(), ins.proto.c_str());
+                        return false;
+                    }
+                    ParamListArgs pl;
+                    if (!emitParamList(ins, 2 + numCoords, pl))
+                        return false;
+                    if (numCoords == 2) {
+                        auto [sPtr, ss] = getVar(ins, 2);
+                        auto [tPtr, st] = getVar(ins, 3);
+                        if (!sPtr || !tPtr)
+                            continue;
+                        auto *ty = llvm::FunctionType::get(voidTy,
+                                                           {ptrTy, i32Ty, ptrTy, ptrTy, ptrTy, i32Ty, ptrTy, i32Ty, i32Ty, ptrTy,
+                                                            ptrTy, ptrTy, ptrTy, ptrTy, i32Ty, i32Ty},
+                                                           false);
+                        auto *fn = declareOp(mod, isColor ? "op_texture_c_v3" : "op_texture_f_v3", ty);
+                        B.CreateCall(fn, {dst, dstStride, namePP, chan, sPtr, B.getInt32(ss), tPtr, B.getInt32(st), numVerts, tags,
+                                          pl.names, pl.values, pl.steps, pl.isVarying, B.getInt32(pl.numPairs), callSiteArg(B, ins)});
+                    }
+                    else {
+                        // The eight coordinates as two stack arrays: pointers and strides, s0 t0 s1 t1 s2 t2 s3 t3
+                        auto *arrPtrTy = llvm::ArrayType::get(ptrTy, 8);
+                        auto *arrI32Ty = llvm::ArrayType::get(i32Ty, 8);
+                        llvm::Value *coordPtrs = B.CreateAlloca(arrPtrTy, nullptr, "tex8_coords");
+                        llvm::Value *coordStrides = B.CreateAlloca(arrI32Ty, nullptr, "tex8_strides");
+                        bool ok = true;
+                        for (int k = 0; k < 8; k++) {
+                            auto [cPtr, cStride] = getVar(ins, 2 + k);
+                            if (!cPtr) {
+                                ok = false;
+                                break;
+                            }
+                            B.CreateStore(cPtr, B.CreateGEP(arrPtrTy, coordPtrs, {B.getInt32(0), B.getInt32(k)}));
+                            B.CreateStore(B.getInt32(cStride), B.CreateGEP(arrI32Ty, coordStrides, {B.getInt32(0), B.getInt32(k)}));
+                        }
+                        if (!ok)
+                            continue;
+                        auto *ty = llvm::FunctionType::get(voidTy,
+                                                           {ptrTy, i32Ty, ptrTy, ptrTy, ptrTy, ptrTy, i32Ty, ptrTy,
+                                                            ptrTy, ptrTy, ptrTy, ptrTy, i32Ty, i32Ty},
+                                                           false);
+                        auto *fn = declareOp(mod, isColor ? "op_texture_full_c_v3" : "op_texture_full_f_v3", ty);
+                        B.CreateCall(fn, {dst, dstStride, namePP, chan, coordPtrs, coordStrides, numVerts, tags,
+                                          pl.names, pl.values, pl.steps, pl.isVarying, B.getInt32(pl.numPairs), callSiteArg(B, ins)});
+                    }
                 }
                 else {
-                    // Color form: environment name D
-                    auto [D, sD] = getVar(ins, 1);
+                    // environment(): name channel D; shadow(): name channel Ps (operand 2 in both)
+                    auto [D, sD] = getVar(ins, 2);
                     if (!D)
                         continue;
+                    ParamListArgs pl;
+                    if (!emitParamList(ins, 3, pl))
+                        return false;
                     auto *ty = llvm::FunctionType::get(voidTy,
-                                                       {ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy, i32Ty}, false);
-                    auto *fn = declareOp(mod, "op_environment_c_v2", ty);
-                    auto [n, tg] = collapseArgs(dstStrideVal, {sD});
-                    B.CreateCall(fn, {dst, dstStride, namePP,
-                                      D, B.getInt32(sD), n, tg, callSiteArg(B, ins)});
+                                                       {ptrTy, i32Ty, ptrTy, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy,
+                                                        ptrTy, ptrTy, ptrTy, ptrTy, i32Ty, i32Ty},
+                                                       false);
+                    const char *fnName = (op == "environment") ? (isColor ? "op_environment_c_v3" : "op_environment_f_v3")
+                                                               : (isColor ? "op_shadow_c_v3" : "op_shadow_f_v3");
+                    auto *fn = declareOp(mod, fnName, ty);
+                    B.CreateCall(fn, {dst, dstStride, namePP, chan, D, B.getInt32(sD), numVerts, tags,
+                                      pl.names, pl.values, pl.steps, pl.isVarying, B.getInt32(pl.numPairs), callSiteArg(B, ins)});
                 }
-            }
-            else if (op == "shadow") {
-                if (ins.operands.size() < 2 || !dst)
-                    continue;
-                const std::string &nameTok = ins.operands[0].token;
-                llvm::Value *namePP = nullptr;
-                VarDesc nameDesc;
-                if (resolveVar(nameTok, nameDesc)) {
-                    namePP = loadVarPtr(nameDesc);
-                }
-                else {
-                    std::string s = nameTok;
-                    if (s.size() >= 2 && s.front() == '"')
-                        s = s.substr(1, s.size() - 2);
-                    llvm::Value *sptr = B.CreateGlobalString(s, "shadowname");
-                    llvm::Value *alloca = B.CreateAlloca(ptrTy, nullptr, "shadowname_pp");
-                    B.CreateStore(sptr, alloca);
-                    namePP = alloca;
-                }
-                auto [Ps, sPs] = getVar(ins, 1);
-                if (!Ps)
-                    continue;
-                // (dst,sd, namepp, Ps,sPs, n, tags)
-                auto *ty = llvm::FunctionType::get(voidTy,
-                                                   {ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy, i32Ty}, false);
-                auto *fn = declareOp(mod, "op_shadow_f_v2", ty);
-                auto [n, tg] = collapseArgs(dstStrideVal, {sPs});
-                B.CreateCall(fn, {dst, dstStride, namePP,
-                                  Ps, B.getInt32(sPs), n, tg, callSiteArg(B, ins)});
             }
 
             // ================================================================
@@ -3006,8 +2982,7 @@ static bool emitFunction(const IRFunction &irFn,
             // textureinfo() (spec 017-jit-builtin-function-coverage,
             // US5): the prototype string carries a trailing "!" (e.g.
             // "f=SSF!"), unlike surface()/etc.'s clean "f=SF" forms above
-            // -- the result-type char is the SECOND-TO-LAST character,
-            // not the last.
+            // -- the result-type char is the last one once a trailing "!" is stripped.
             else if (op == "textureinfo") {
                 if (ins.operands.size() < 3 || !dst)
                     continue;
@@ -3016,9 +2991,19 @@ static bool emitFunction(const IRFunction &irFn,
                 auto [destPtr, sDest] = getVar(ins, 2);
                 if (!namePtr || !queryPtr || !destPtr)
                     continue;
+                // The result-type letter is the last one of the prototype once the optional "!" is
+                // stripped: the IR text carries "f=SSF" with no "!" (only the interpreter's DEFFUNC table
+                // spells it "f=SSF!"), so taking the second-to-last character read the query's "S" and
+                // made every textureinfo() a string result (spec 027, Phase 9: the garbage resolution
+                // values of the .slo probe)
                 char resultChar = 'F';
-                if (ins.proto.size() >= 2)
-                    resultChar = ins.proto[ins.proto.size() - 2];
+                {
+                    std::string resultProto = ins.proto;
+                    if (!resultProto.empty() && resultProto.back() == '!')
+                        resultProto.pop_back();
+                    if (!resultProto.empty())
+                        resultChar = resultProto.back();
+                }
                 const int resultKind = (resultChar == 'V') ? 3 : (resultChar == 'M') ? 16
                                                               : (resultChar == 'S')   ? -1
                                                                                       : 1;

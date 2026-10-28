@@ -1626,19 +1626,12 @@ DEFFUNC(ShaderNames, "shadername", "s=S", SHADERNAMESEXPR_PRE, SHADERNAMESEXPR, 
     (void)op2;                                                                                                               \
     DRAW_BEGIN
 
-#define TEXTUREFEXPR                                             \
-    plReady();                                                   \
-    cs[0] = s[i];                                                \
-    cs[1] = s[i] + dsdu[i] * du[i] * swidth;                     \
-    cs[2] = s[i] + dsdv[i] * dv[i] * swidth;                     \
-    cs[3] = s[i] + (dsdu[i] * du[i] + dsdv[i] * dv[i]) * swidth; \
-    ct[0] = t[i];                                                \
-    ct[1] = t[i] + dtdu[i] * du[i] * twidth;                     \
-    ct[2] = t[i] + dtdv[i] * dv[i] * twidth;                     \
-    ct[3] = t[i] + (dtdu[i] * du[i] + dtdv[i] * dv[i]) * twidth; \
-    vector tmp;                                                  \
-    DRAW_BIND(1)                                                 \
-    TEXTURE_LOOKUP(tmp)                                          \
+#define TEXTUREFEXPR                                                                                                 \
+    plReady();                                                                                                       \
+    libshader::textureCorners(cs, ct, s[i], t[i], dsdu[i], dsdv[i], dtdu[i], dtdv[i], du[i], dv[i], swidth, twidth); \
+    vector tmp;                                                                                                      \
+    DRAW_BIND(1)                                                                                                     \
+    TEXTURE_LOOKUP(tmp)                                                                                              \
     res[i] = tmp[int(*op2) & 3];
 
 #define TEXTUREFEXPR_UPDATE \
@@ -1660,17 +1653,10 @@ DEFFUNC(TextureFloat, "texture", "f=SFff!", TEXTUREFEXPR_PRE, TEXTUREFEXPR, TEXT
 // texture	"c=SFff"
 #ifndef INIT_SHADING
 
-#define TEXTURECEXPR                                             \
-    plReady();                                                   \
-    cs[0] = s[i];                                                \
-    cs[1] = s[i] + dsdu[i] * du[i] * swidth;                     \
-    cs[2] = s[i] + dsdv[i] * dv[i] * swidth;                     \
-    cs[3] = s[i] + (dsdu[i] * du[i] + dsdv[i] * dv[i]) * swidth; \
-    ct[0] = t[i];                                                \
-    ct[1] = t[i] + dtdu[i] * du[i] * twidth;                     \
-    ct[2] = t[i] + dtdv[i] * dv[i] * twidth;                     \
-    ct[3] = t[i] + (dtdu[i] * du[i] + dtdv[i] * dv[i]) * twidth; \
-    DRAW_BIND(1)                                                 \
+#define TEXTURECEXPR                                                                                                 \
+    plReady();                                                                                                       \
+    libshader::textureCorners(cs, ct, s[i], t[i], dsdu[i], dsdv[i], dtdu[i], dtdv[i], du[i], dv[i], swidth, twidth); \
+    DRAW_BIND(1)                                                                                                     \
     TEXTURE_LOOKUP(res)
 
 #define TEXTURECEXPR_UPDATE \
@@ -1895,55 +1881,46 @@ DEFFUNC(TextureColorFull, "texture", "c=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
     (void)P;                                                                                                                 \
     DRAW_BEGIN
 
-#define ENVIRONMENTEXPR(__float)                                            \
-    plReady();                                                              \
-    if (traced) {                                                           \
-        rays->res = res;                                                    \
-        movvv(rays->D, D);                                                  \
-        mulvf(rays->dDdu, dDdu, (*du) * swidth);                            \
-        mulvf(rays->dDdv, dDdv, (*dv) * twidth);                            \
-        movvv(rays->P, P);                                                  \
-        movvv(rays->N, N);                                                  \
-        mulvf(rays->dPdu, dPdu, (*du) * swidth);                            \
-        mulvf(rays->dPdv, dPdv, (*dv) * twidth);                            \
-        float largerConeAngle;                                              \
-        if (scratch->textureParams.blur > scratch->traceParams.coneAngle) { \
-            largerConeAngle = scratch->textureParams.blur;                  \
-        }                                                                   \
-        else {                                                              \
-            largerConeAngle = scratch->traceParams.coneAngle;               \
-        }                                                                   \
-        rays->coneAngle = largerConeAngle;                                  \
-        rays->numSamples = (int)scratch->traceParams.samples;               \
-        rays->bias = scratch->traceParams.bias;                             \
-        rays->sampleBase = scratch->traceParams.sampleBase;                 \
-        rays->maxDist = scratch->traceParams.maxDist;                       \
-        rays->time = *time;                                                 \
-        bindLocationDraws(rays, drawVertex, drawCounts, code->callSite);    \
-        ++rays;                                                             \
-        ++numRays;                                                          \
-    }                                                                       \
-    else {                                                                  \
-        vector D0, D1, D2, D3;                                              \
-        mulvf(dDdu, (*du) * swidth * 0.5f);                                 \
-        mulvf(dDdv, (*dv) * twidth * 0.5f);                                 \
-        subvv(D0, D, dDdu);                                                 \
-        subvv(D0, dDdv);                                                    \
-        addvv(D1, D, dDdu);                                                 \
-        subvv(D1, dDdv);                                                    \
-        subvv(D2, D, dDdu);                                                 \
-        addvv(D2, dDdv);                                                    \
-        addvv(D3, D, dDdu);                                                 \
-        addvv(D3, dDdv);                                                    \
-        DRAW_BIND(1)                                                        \
-        if (__float) {                                                      \
-            vector color;                                                   \
-            ENVIRONMENT_LOOKUP(color)                                       \
-            *res = color[0];                                                \
-        }                                                                   \
-        else {                                                              \
-            ENVIRONMENT_LOOKUP(res)                                         \
-        }                                                                   \
+#define ENVIRONMENTEXPR(__float)                                                                \
+    plReady();                                                                                  \
+    if (traced) {                                                                               \
+        rays->res = res;                                                                        \
+        movvv(rays->D, D);                                                                      \
+        mulvf(rays->dDdu, dDdu, (*du) * swidth);                                                \
+        mulvf(rays->dDdv, dDdv, (*dv) * twidth);                                                \
+        movvv(rays->P, P);                                                                      \
+        movvv(rays->N, N);                                                                      \
+        mulvf(rays->dPdu, dPdu, (*du) * swidth);                                                \
+        mulvf(rays->dPdv, dPdv, (*dv) * twidth);                                                \
+        float largerConeAngle;                                                                  \
+        if (scratch->textureParams.blur > scratch->traceParams.coneAngle) {                     \
+            largerConeAngle = scratch->textureParams.blur;                                      \
+        }                                                                                       \
+        else {                                                                                  \
+            largerConeAngle = scratch->traceParams.coneAngle;                                   \
+        }                                                                                       \
+        rays->coneAngle = largerConeAngle;                                                      \
+        rays->numSamples = (int)scratch->traceParams.samples;                                   \
+        rays->bias = scratch->traceParams.bias;                                                 \
+        rays->sampleBase = scratch->traceParams.sampleBase;                                     \
+        rays->maxDist = scratch->traceParams.maxDist;                                           \
+        rays->time = *time;                                                                     \
+        bindLocationDraws(rays, drawVertex, drawCounts, code->callSite);                        \
+        ++rays;                                                                                 \
+        ++numRays;                                                                              \
+    }                                                                                           \
+    else {                                                                                      \
+        vector D0, D1, D2, D3;                                                                  \
+        libshader::environmentCorners(D0, D1, D2, D3, D, dDdu, dDdv, *du, *dv, swidth, twidth); \
+        DRAW_BIND(1)                                                                            \
+        if (__float) {                                                                          \
+            vector color;                                                                       \
+            ENVIRONMENT_LOOKUP(color)                                                           \
+            *res = color[0];                                                                    \
+        }                                                                                       \
+        else {                                                                                  \
+            ENVIRONMENT_LOOKUP(res)                                                             \
+        }                                                                                       \
     }
 
 #define ENVIRONMENTEXPR_UPDATE(__n) \
@@ -2012,56 +1989,47 @@ DEFSHORTFUNC(EnvironmentColor, "environment", "c=SFv!", ENVIRONMENTEXPR_PRE("ref
         dvVector(dPdv, tmp);                                                                              \
     }
 
-#define SHADOWEXPR(__float)                                                 \
-    plReady();                                                              \
-    if (traced) {                                                           \
-        rays->res = res;                                                    \
-        movvv(rays->P, D);                                                  \
-        /* Ps need not lie on the shaded surface: no origin guard */        \
-        initv(rays->N, 0, 0, 0);                                            \
-        mulvf(rays->dPdu, dDdu, (*du) * swidth);                            \
-        mulvf(rays->dPdv, dDdv, (*dv) * twidth);                            \
-        subvv(rays->D, D, L);                                               \
-        mulvf(rays->dDdu, dPdu, (*du) * swidth);                            \
-        mulvf(rays->dDdv, dPdv, (*dv) * twidth);                            \
-        float largerConeAngle2;                                             \
-        if (scratch->textureParams.blur > scratch->traceParams.coneAngle) { \
-            largerConeAngle2 = scratch->textureParams.blur;                 \
-        }                                                                   \
-        else {                                                              \
-            largerConeAngle2 = scratch->traceParams.coneAngle;              \
-        }                                                                   \
-        rays->coneAngle = largerConeAngle2;                                 \
-        rays->sampleBase = scratch->traceParams.sampleBase;                 \
-        rays->numSamples = (int)scratch->traceParams.samples;               \
-        rays->bias = scratch->traceParams.bias;                             \
-        rays->maxDist = scratch->traceParams.maxDist;                       \
-        rays->time = *time;                                                 \
-        bindLocationDraws(rays, drawVertex, drawCounts, code->callSite);    \
-        ++rays;                                                             \
-        ++numRays;                                                          \
-    }                                                                       \
-    else {                                                                  \
-        vector D0, D1, D2, D3;                                              \
-        mulvf(dDdu, (*du) * swidth * 0.5f);                                 \
-        mulvf(dDdv, (*dv) * twidth * 0.5f);                                 \
-        subvv(D0, D, dDdu);                                                 \
-        subvv(D0, dDdv);                                                    \
-        addvv(D1, D, dDdu);                                                 \
-        subvv(D1, dDdv);                                                    \
-        subvv(D2, D, dDdu);                                                 \
-        addvv(D2, dDdv);                                                    \
-        addvv(D3, D, dDdu);                                                 \
-        addvv(D3, dDdv);                                                    \
-        DRAW_BIND(1)                                                        \
-        if (__float) {                                                      \
-            vector color;                                                   \
-            ENVIRONMENT_LOOKUP(color)                                       \
-            *res = (color[0] + color[1] + color[2]) / 3.0f;                 \
-        }                                                                   \
-        else {                                                              \
-            ENVIRONMENT_LOOKUP(res)                                         \
-        }                                                                   \
+#define SHADOWEXPR(__float)                                                                     \
+    plReady();                                                                                  \
+    if (traced) {                                                                               \
+        rays->res = res;                                                                        \
+        movvv(rays->P, D);                                                                      \
+        /* Ps need not lie on the shaded surface: no origin guard */                            \
+        initv(rays->N, 0, 0, 0);                                                                \
+        mulvf(rays->dPdu, dDdu, (*du) * swidth);                                                \
+        mulvf(rays->dPdv, dDdv, (*dv) * twidth);                                                \
+        subvv(rays->D, D, L);                                                                   \
+        mulvf(rays->dDdu, dPdu, (*du) * swidth);                                                \
+        mulvf(rays->dDdv, dPdv, (*dv) * twidth);                                                \
+        float largerConeAngle2;                                                                 \
+        if (scratch->textureParams.blur > scratch->traceParams.coneAngle) {                     \
+            largerConeAngle2 = scratch->textureParams.blur;                                     \
+        }                                                                                       \
+        else {                                                                                  \
+            largerConeAngle2 = scratch->traceParams.coneAngle;                                  \
+        }                                                                                       \
+        rays->coneAngle = largerConeAngle2;                                                     \
+        rays->sampleBase = scratch->traceParams.sampleBase;                                     \
+        rays->numSamples = (int)scratch->traceParams.samples;                                   \
+        rays->bias = scratch->traceParams.bias;                                                 \
+        rays->maxDist = scratch->traceParams.maxDist;                                           \
+        rays->time = *time;                                                                     \
+        bindLocationDraws(rays, drawVertex, drawCounts, code->callSite);                        \
+        ++rays;                                                                                 \
+        ++numRays;                                                                              \
+    }                                                                                           \
+    else {                                                                                      \
+        vector D0, D1, D2, D3;                                                                  \
+        libshader::environmentCorners(D0, D1, D2, D3, D, dDdu, dDdv, *du, *dv, swidth, twidth); \
+        DRAW_BIND(1)                                                                            \
+        if (__float) {                                                                          \
+            vector color;                                                                       \
+            ENVIRONMENT_LOOKUP(color)                                                           \
+            *res = (color[0] + color[1] + color[2]) / 3.0f;                                     \
+        }                                                                                       \
+        else {                                                                                  \
+            ENVIRONMENT_LOOKUP(res)                                                             \
+        }                                                                                       \
     }
 
 #define SHADOWEXPR_UPDATE(__n) \

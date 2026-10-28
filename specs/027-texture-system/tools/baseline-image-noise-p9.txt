@@ -1,0 +1,5 @@
+# Images excluded from the CP-d byte comparison (image_manifest.sh diff), one path per line.
+# Empty since Phase 9 (T110): the seven .slo + raytrace probes that were listed here (the texture-{png,exr,rgbe}
+# and unbaked-{png,nonpot,exr,rgbe} raytrace probes of jit_texture_probes.sh, unstable run to run on the starting
+# tree because the JIT read an uninitialized scratch) are bit-stable over four runs and equal to their .rslo
+# renders (T107a, validation.md section 9). A copy of this list is baseline-image-noise-p9.txt.
