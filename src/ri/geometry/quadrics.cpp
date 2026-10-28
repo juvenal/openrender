@@ -46,45 +46,45 @@
 #include "common/stats.h"
 #include "surface.h"
 
-#define transformPoints()                                                                                                                \
-    if ((xform->next != NULL) && (!(up & (PARAMETER_BEGIN_SAMPLE | PARAMETER_END_SAMPLE)))) {                                            \
-                                                                                                                                         \
-        transform(&varying[VARIABLE_P][start * 3], numVertices, xform->from, xform->next->from, &varying[VARIABLE_TIME][start]);         \
-                                                                                                                                         \
-        if (up & PARAMETER_DPDU) {                                                                                                       \
-            vtransform(&varying[VARIABLE_DPDU][start * 3], numVertices, xform->from, xform->next->from, &varying[VARIABLE_TIME][start]); \
-        }                                                                                                                                \
-                                                                                                                                         \
-        if (up & PARAMETER_DPDV) {                                                                                                       \
-            vtransform(&varying[VARIABLE_DPDV][start * 3], numVertices, xform->from, xform->next->from, &varying[VARIABLE_TIME][start]); \
-        }                                                                                                                                \
-                                                                                                                                         \
-        if (up & PARAMETER_NG) {                                                                                                         \
-            ntransform(&varying[VARIABLE_NG][start * 3], numVertices, xform->to, xform->next->to, &varying[VARIABLE_TIME][start]);       \
-        }                                                                                                                                \
-    }                                                                                                                                    \
-    else {                                                                                                                               \
-        float *from = xform->from;                                                                                                       \
-        float *to = xform->to;                                                                                                           \
-                                                                                                                                         \
-        if ((up & PARAMETER_END_SAMPLE) && (xform->next != NULL)) {                                                                      \
-            from = xform->next->from;                                                                                                    \
-            to = xform->next->to;                                                                                                        \
-        }                                                                                                                                \
-                                                                                                                                         \
-        transform(&varying[VARIABLE_P][start * 3], numVertices, from);                                                                   \
-                                                                                                                                         \
-        if (up & PARAMETER_DPDU) {                                                                                                       \
-            vtransform(&varying[VARIABLE_DPDU][start * 3], numVertices, from);                                                           \
-        }                                                                                                                                \
-                                                                                                                                         \
-        if (up & PARAMETER_DPDV) {                                                                                                       \
-            vtransform(&varying[VARIABLE_DPDV][start * 3], numVertices, from);                                                           \
-        }                                                                                                                                \
-                                                                                                                                         \
-        if (up & PARAMETER_NG) {                                                                                                         \
-            ntransform(&varying[VARIABLE_NG][start * 3], numVertices, to);                                                               \
-        }                                                                                                                                \
+#define transformPoints()                                                                                                                                         \
+    if ((xform->next != NULL) && (!(up & (PARAMETER_BEGIN_SAMPLE | PARAMETER_END_SAMPLE)))) {                                                                     \
+                                                                                                                                                                  \
+        openrender::motion::transformAtTime(&varying[VARIABLE_P][start * 3], numVertices, xform->from, xform->next->from, &varying[VARIABLE_TIME][start]);        \
+                                                                                                                                                                  \
+        if (up & PARAMETER_DPDU) {                                                                                                                                \
+            openrender::motion::vtransformAtTime(&varying[VARIABLE_DPDU][start * 3], numVertices, xform->from, xform->next->from, &varying[VARIABLE_TIME][start]);\
+        }                                                                                                                                                         \
+                                                                                                                                                                  \
+        if (up & PARAMETER_DPDV) {                                                                                                                                \
+            openrender::motion::vtransformAtTime(&varying[VARIABLE_DPDV][start * 3], numVertices, xform->from, xform->next->from, &varying[VARIABLE_TIME][start]);\
+        }                                                                                                                                                         \
+                                                                                                                                                                  \
+        if (up & PARAMETER_NG) {                                                                                                                                  \
+            openrender::motion::ntransformAtTime(&varying[VARIABLE_NG][start * 3], numVertices, xform->to, xform->next->to, &varying[VARIABLE_TIME][start]);      \
+        }                                                                                                                                                         \
+    }                                                                                                                                                             \
+    else {                                                                                                                                                        \
+        float *from = xform->from;                                                                                                                                \
+        float *to = xform->to;                                                                                                                                    \
+                                                                                                                                                                  \
+        if ((up & PARAMETER_END_SAMPLE) && (xform->next != NULL)) {                                                                                               \
+            from = xform->next->from;                                                                                                                             \
+            to = xform->next->to;                                                                                                                                 \
+        }                                                                                                                                                         \
+                                                                                                                                                                  \
+        transform(&varying[VARIABLE_P][start * 3], numVertices, from);                                                                                            \
+                                                                                                                                                                  \
+        if (up & PARAMETER_DPDU) {                                                                                                                                \
+            vtransform(&varying[VARIABLE_DPDU][start * 3], numVertices, from);                                                                                    \
+        }                                                                                                                                                         \
+                                                                                                                                                                  \
+        if (up & PARAMETER_DPDV) {                                                                                                                                \
+            vtransform(&varying[VARIABLE_DPDV][start * 3], numVertices, from);                                                                                    \
+        }                                                                                                                                                         \
+                                                                                                                                                                  \
+        if (up & PARAMETER_NG) {                                                                                                                                  \
+            ntransform(&varying[VARIABLE_NG][start * 3], numVertices, to);                                                                                        \
+        }                                                                                                                                                         \
     }
 
 ///////////////////////////////////////////////////////////////////////
@@ -198,10 +198,10 @@ void CSphere::intersect(CShadingContext *context, CRay *rv) {
     openrender::motion::transformRay(oFrom, oDir, xform, rv);
 
     if (nextData != NULL) {
-        r = (float)(this->r * (1.0 - rv->time) + nextData[0] * (double)rv->time);
-        vmin = (float)(this->vmin * (1.0 - rv->time) + nextData[1] * (double)rv->time);
-        vmax = (float)(this->vmax * (1.0 - rv->time) + nextData[2] * (double)rv->time);
-        umax = (float)(this->umax * (1.0 - rv->time) + nextData[3] * (double)rv->time);
+        r = openrender::motion::atTimeD(this->r, nextData[0], rv->time);
+        vmin = openrender::motion::atTimeD(this->vmin, nextData[1], rv->time);
+        vmax = openrender::motion::atTimeD(this->vmax, nextData[2], rv->time);
+        umax = openrender::motion::atTimeD(this->umax, nextData[3], rv->time);
     }
     else {
         r = this->r;
@@ -326,10 +326,10 @@ void CSphere::sample(int start, int numVertices, float **varying, float ***, uns
         // Precompute sinu cosu sinv and cosv
         for (int currentVertex = 0; currentVertex < numVertices; ++currentVertex) {
             const double ctime = *time++;
-            const float cumax = umax[currentVertex] = (float)(this->umax * (1.0 - ctime) + nextData[3] * ctime);
-            const float cvmax = vmax[currentVertex] = (float)(this->vmax * (1.0 - ctime) + nextData[2] * ctime);
-            const float cvmin = vmin[currentVertex] = (float)(this->vmin * (1.0 - ctime) + nextData[1] * ctime);
-            r[currentVertex] = (float)(this->r * (1.0 - ctime) + nextData[0] * (double)ctime);
+            const float cumax = umax[currentVertex] = openrender::motion::atTimeD(this->umax, nextData[3], (float)ctime);
+            const float cvmax = vmax[currentVertex] = openrender::motion::atTimeD(this->vmax, nextData[2], (float)ctime);
+            const float cvmin = vmin[currentVertex] = openrender::motion::atTimeD(this->vmin, nextData[1], (float)ctime);
+            r[currentVertex] = openrender::motion::atTimeD(this->r, nextData[0], (float)ctime);
 
             // Precompute sinu cosu sinv and cosv
             const double cu = u[currentVertex];
@@ -484,7 +484,7 @@ void CSphere::sample(int start, int numVertices, float **varying, float ***, uns
 
                 // Compute the dPdtime
                 subvv(dest, Pend, Pstart);
-                mulvf(dest, CRenderer::invShutterTime);
+                openrender::motion::toShutterRate(dest);
             }
         }
         else {
@@ -493,7 +493,7 @@ void CSphere::sample(int start, int numVertices, float **varying, float ***, uns
             const float *fromEnd = (xform->next != NULL ? xform->next->from + element(0, 3) : xform->from + element(0, 3));
             vector D;
             subvv(D, fromEnd, fromStart);
-            mulvf(D, CRenderer::invShutterTime);
+            openrender::motion::toShutterRate(D);
 
             // dPdtime is zero
             for (int i = 0; i < numVertices; ++i, dest += 3)
@@ -689,9 +689,9 @@ void CDisk::intersect(CShadingContext *context, CRay *rv) {
 
     // Convert to the object coordinate system
     if (nextData != NULL) {
-        r = (float)(this->r * (1.0 - (double)rv->time) + nextData[0] * (double)rv->time);
-        z = (float)(this->z * (1.0 - (double)rv->time) + nextData[1] * (double)rv->time);
-        umax = (float)(this->umax * (1.0 - (double)rv->time) + nextData[2] * (double)rv->time);
+        r = openrender::motion::atTimeD(this->r, nextData[0], rv->time);
+        z = openrender::motion::atTimeD(this->z, nextData[1], rv->time);
+        umax = openrender::motion::atTimeD(this->umax, nextData[2], rv->time);
     }
     else {
         r = this->r;
@@ -779,9 +779,9 @@ void CDisk::sample(int start, int numVertices, float **varying, float ***, unsig
         for (int i = 0; i < numVertices; ++i, dest += 3) {
             const double ctime = *time++;
 
-            r[i] = (float)(this->r * (1.0 - ctime) + nextData[0] * ctime);
-            z[i] = (float)(this->z * (1.0 - ctime) + nextData[1] * ctime);
-            umax[i] = (float)(this->umax * (1.0 - ctime) + nextData[2] * ctime);
+            r[i] = openrender::motion::atTimeD(this->r, nextData[0], (float)ctime);
+            z[i] = openrender::motion::atTimeD(this->z, nextData[1], (float)ctime);
+            umax[i] = openrender::motion::atTimeD(this->umax, nextData[2], (float)ctime);
             cosu[i] = cosf(u[i] * umax[i]);
             sinu[i] = sinf(u[i] * umax[i]);
 
@@ -898,7 +898,7 @@ void CDisk::sample(int start, int numVertices, float **varying, float ***, unsig
 
                 // Compute the dPdtime
                 subvv(dest, Pend, Pstart);
-                mulvf(dest, CRenderer::invShutterTime);
+                openrender::motion::toShutterRate(dest);
             }
         }
         else {
@@ -907,7 +907,7 @@ void CDisk::sample(int start, int numVertices, float **varying, float ***, unsig
             const float *fromEnd = (xform->next != NULL ? xform->next->from + element(0, 3) : xform->from + element(0, 3));
             vector D;
             subvv(D, fromEnd, fromStart);
-            mulvf(D, CRenderer::invShutterTime);
+            openrender::motion::toShutterRate(D);
 
             // dPdtime is zero
             for (int i = 0; i < numVertices; ++i, dest += 3)
@@ -1061,9 +1061,9 @@ void CCone::intersect(CShadingContext *context, CRay *rv) {
     dir = oDir;
 
     if (nextData != NULL) {
-        r = (float)(this->r * (1.0 - (double)rv->time) + nextData[0] * (double)rv->time);
-        height = (float)(this->height * (1.0 - (double)rv->time) + nextData[1] * (double)rv->time);
-        umax = (float)(this->umax * (1.0 - (double)rv->time) + nextData[2] * (double)rv->time);
+        r = openrender::motion::atTimeD(this->r, nextData[0], rv->time);
+        height = openrender::motion::atTimeD(this->height, nextData[1], rv->time);
+        umax = openrender::motion::atTimeD(this->umax, nextData[2], rv->time);
     }
     else {
         r = this->r;
@@ -1328,7 +1328,7 @@ void CCone::sample(int start, int numVertices, float **varying, float ***, unsig
 
                 // Compute the dPdtime
                 subvv(dest, Pend, Pstart);
-                mulvf(dest, CRenderer::invShutterTime);
+                openrender::motion::toShutterRate(dest);
             }
         }
         else {
@@ -1337,7 +1337,7 @@ void CCone::sample(int start, int numVertices, float **varying, float ***, unsig
             const float *fromEnd = (xform->next != NULL ? xform->next->from + element(0, 3) : xform->from + element(0, 3));
             vector D;
             subvv(D, fromEnd, fromStart);
-            mulvf(D, CRenderer::invShutterTime);
+            openrender::motion::toShutterRate(D);
 
             // dPdtime is zero
             for (int i = 0; i < numVertices; ++i, dest += 3)
@@ -1509,10 +1509,10 @@ void CParaboloid::intersect(CShadingContext *context, CRay *rv) {
     float r, umax;
 
     if (nextData != NULL) {
-        zmin = (float)(this->zmin * (1.0 - (double)rv->time) + nextData[1] * (double)rv->time);
-        zmax = (float)(this->zmax * (1.0 - (double)rv->time) + nextData[2] * (double)rv->time);
-        r = (float)(this->r * (1.0 - (double)rv->time) + nextData[0] * (double)rv->time);
-        umax = (float)(this->umax * (1.0 - (double)rv->time) + nextData[3] * (double)rv->time);
+        zmin = openrender::motion::atTimeD(this->zmin, nextData[1], rv->time);
+        zmax = openrender::motion::atTimeD(this->zmax, nextData[2], rv->time);
+        r = openrender::motion::atTimeD(this->r, nextData[0], rv->time);
+        umax = openrender::motion::atTimeD(this->umax, nextData[3], rv->time);
     }
     else {
         zmin = this->zmin;
@@ -1786,7 +1786,7 @@ void CParaboloid::sample(int start, int numVertices, float **varying, float ***,
 
                 // Compute the dPdtime
                 subvv(dest, Pend, Pstart);
-                mulvf(dest, CRenderer::invShutterTime);
+                openrender::motion::toShutterRate(dest);
             }
         }
         else {
@@ -1795,7 +1795,7 @@ void CParaboloid::sample(int start, int numVertices, float **varying, float ***,
             const float *fromEnd = (xform->next != NULL ? xform->next->from + element(0, 3) : xform->from + element(0, 3));
             vector D;
             subvv(D, fromEnd, fromStart);
-            mulvf(D, CRenderer::invShutterTime);
+            openrender::motion::toShutterRate(D);
 
             // dPdtime is zero
             for (int i = 0; i < numVertices; ++i, dest += 3)
@@ -1963,10 +1963,10 @@ void CCylinder::intersect(CShadingContext *context, CRay *rv) {
     float r, zmin, zmax, umax;
 
     if (nextData != NULL) {
-        zmin = (float)(this->zmin * (1.0 - (double)rv->time) + nextData[1] * (double)rv->time);
-        zmax = (float)(this->zmax * (1.0 - (double)rv->time) + nextData[2] * (double)rv->time);
-        r = (float)(this->r * (1.0 - (double)rv->time) + nextData[0] * (double)rv->time);
-        umax = (float)(this->umax * (1.0 - (double)rv->time) + nextData[3] * (double)rv->time);
+        zmin = openrender::motion::atTimeD(this->zmin, nextData[1], rv->time);
+        zmax = openrender::motion::atTimeD(this->zmax, nextData[2], rv->time);
+        r = openrender::motion::atTimeD(this->r, nextData[0], rv->time);
+        umax = openrender::motion::atTimeD(this->umax, nextData[3], rv->time);
     }
     else {
         zmin = this->zmin;
@@ -2235,7 +2235,7 @@ void CCylinder::sample(int start, int numVertices, float **varying, float ***, u
 
                 // Compute the dPdtime
                 subvv(dest, Pend, Pstart);
-                mulvf(dest, CRenderer::invShutterTime);
+                openrender::motion::toShutterRate(dest);
             }
         }
         else {
@@ -2244,7 +2244,7 @@ void CCylinder::sample(int start, int numVertices, float **varying, float ***, u
             const float *fromEnd = (xform->next != NULL ? xform->next->from + element(0, 3) : xform->from + element(0, 3));
             vector D;
             subvv(D, fromEnd, fromStart);
-            mulvf(D, CRenderer::invShutterTime);
+            openrender::motion::toShutterRate(D);
 
             // dPdtime is zero
             for (int i = 0; i < numVertices; ++i, dest += 3)
@@ -2413,9 +2413,9 @@ void CHyperboloid::intersect(CShadingContext *context, CRay *rv) {
     vector Nt;
 
     if (nextData != NULL) {
-        interpolatev(p1, this->p1, &nextData[0], rv->time);
-        interpolatev(p2, this->p2, &nextData[3], rv->time);
-        umax = (float)(this->umax * (1.0 - (double)rv->time) + nextData[6] * (double)rv->time);
+        openrender::motion::atTimeV(p1, this->p1, &nextData[0], rv->time);
+        openrender::motion::atTimeV(p2, this->p2, &nextData[3], rv->time);
+        umax = openrender::motion::atTimeD(this->umax, nextData[6], rv->time);
     }
     else {
         movvv(p1, this->p1);
@@ -2777,7 +2777,7 @@ void CHyperboloid::sample(int start, int numVertices, float **varying, float ***
 
                 // Compute the dPdtime
                 subvv(dest, Pend, Pstart);
-                mulvf(dest, CRenderer::invShutterTime);
+                openrender::motion::toShutterRate(dest);
             }
         }
         else {
@@ -2786,7 +2786,7 @@ void CHyperboloid::sample(int start, int numVertices, float **varying, float ***
             const float *fromEnd = (xform->next != NULL ? xform->next->from + element(0, 3) : xform->from + element(0, 3));
             vector D;
             subvv(D, fromEnd, fromStart);
-            mulvf(D, CRenderer::invShutterTime);
+            openrender::motion::toShutterRate(D);
 
             // dPdtime is zero
             for (int i = 0; i < numVertices; ++i, dest += 3)
@@ -2962,11 +2962,11 @@ void CToroid::intersect(CShadingContext *context, CRay *rv) {
     double rmin, rmax, umax, vmin, vmax;
 
     if (nextData != NULL) {
-        rmin = (float)(this->rmin * (1.0 - (double)rv->time) + nextData[0] * (double)rv->time);
-        rmax = (float)(this->rmax * (1.0 - (double)rv->time) + nextData[1] * (double)rv->time);
-        vmin = (float)(this->vmin * (1.0 - (double)rv->time) + nextData[2] * (double)rv->time);
-        vmax = (float)(this->vmax * (1.0 - (double)rv->time) + nextData[3] * (double)rv->time);
-        umax = (float)(this->umax * (1.0 - (double)rv->time) + nextData[4] * (double)rv->time);
+        rmin = openrender::motion::atTimeD(this->rmin, nextData[0], rv->time);
+        rmax = openrender::motion::atTimeD(this->rmax, nextData[1], rv->time);
+        vmin = openrender::motion::atTimeD(this->vmin, nextData[2], rv->time);
+        vmax = openrender::motion::atTimeD(this->vmax, nextData[3], rv->time);
+        umax = openrender::motion::atTimeD(this->umax, nextData[4], rv->time);
     }
     else {
         rmin = this->rmin;
@@ -3253,7 +3253,7 @@ void CToroid::sample(int start, int numVertices, float **varying, float ***, uns
 
                 // Compute the dPdtime
                 subvv(dest, Pend, Pstart);
-                mulvf(dest, CRenderer::invShutterTime);
+                openrender::motion::toShutterRate(dest);
             }
         }
         else {
@@ -3262,7 +3262,7 @@ void CToroid::sample(int start, int numVertices, float **varying, float ***, uns
             const float *fromEnd = (xform->next != NULL ? xform->next->from + element(0, 3) : xform->from + element(0, 3));
             vector D;
             subvv(D, fromEnd, fromStart);
-            mulvf(D, CRenderer::invShutterTime);
+            openrender::motion::toShutterRate(D);
 
             // dPdtime is zero
             for (int i = 0; i < numVertices; ++i, dest += 3)

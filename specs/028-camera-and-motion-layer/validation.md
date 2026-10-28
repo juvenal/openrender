@@ -109,7 +109,7 @@ every image of the suite is byte-identical to the starting tree's from phase 3 o
 | 3 | clean (`-Werror`) | 858/858 passed (847 + the 11 new tests, all enabled), 206 s | `DB-004 x 65`, `DB-011 x 173`; Geometry 78/19, Hiders 567/84, TOTAL 721/110 (equal to the baseline); `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | 761 images: **0 differing, 0 missing, 0 not in the manifest**; `MaxBlockAvgDiff` table identical (empty diff) | 19/19 (11 new + 8 replay) |
 | 4 | clean (`-Werror`) | 858/858 passed, 180 s | `DB-004 x 65`, **`DB-011 x 166`** (173 - 7); nothing added; Hiders 558/82 (was 567/84), TOTAL 712/108 (was 721/110), Geometry 78/19; `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | 761 images: **0 differing, 0 missing, 0 not in the manifest**; `MaxBlockAvgDiff` table identical | 19/19 |
 | 5 | clean (`-Werror`) | 858/858 passed, 209 s | **`DB-004 x 59`** (65 - 6), `DB-011 x 166`; Geometry 72/16 (was 78/19), Hiders 558/82, TOTAL 706/108; `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | 761 images: **0 differing, 0 missing, 0 not in the manifest**; `MaxBlockAvgDiff` table identical | 19/19 |
-| 6 | | | | | |
+| 6 | clean (`-Werror`) | 858/858 passed, 223 s | `DB-004 x 58` (59 - 1), `DB-011 x 166`; Geometry 58/16 (was 72/16), Hiders 558/82, TOTAL 692/108; `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | 761 images: **0 differing, 0 missing, 0 not in the manifest**; `MaxBlockAvgDiff` table identical | 19/19 |
 | 7 | | | | | |
 | 8 | | | | | |
 | 9 | | | | | |
@@ -375,6 +375,8 @@ The current tree's median does not exceed the starting tree's by more than the s
 
 ### Phase 5 (ray transform, T058 to T061)
 
+**Checkpoint 5 approved by the maintainer (2026-10-28).**
+
 **T058.** The 6 DB-004 lines (`cameraHasRotation`, `relRotQ`, `toWorld` for `dlobject.cpp` and for `quadrics.cpp`) were deleted from `tests/architecture/allowlist.txt` (6 deletions, 0 additions); the architecture check, run on the unchanged code, reported exactly these 6 and nothing else (`DB-004 x 59`, `RESULT FAIL violations=6`, `failing-cycles=1`, which clears with the fix):
 
 ```text
@@ -390,6 +392,29 @@ The current tree's median does not exceed the starting tree's by more than the s
 
 **T060.** CP-a clean; CP-b 858/858; CP-c: the 6 lines are gone with no `STALE` and no `VIOLATION`, `DB-004 x 59`, `DB-011 x 166`, and `src/ri/geometry/motion.h` is no longer `UNRESOLVED`; CP-d: 761 images byte-identical and the `MaxBlockAvgDiff` table identical (the quadrics scenes under object transform motion and the camera-motion scenes are in the suite); `Motion_Replay_*` 8/8 and the 11 new tests green (19/19).
 `grep -n 'cameraHasRotation|relRotQ|toWorld' src/ri/geometry/*.h src/ri/geometry/*.cpp` finds only `motion.h` (reading `frameParams().camera`) and unrelated parameter names (`toWorld` in `blobbyRepeller.{h,cpp}` and `blobbyField.{h,cpp}`, the primitive's own local-to-world matrix): none is one of the 6 edges.
+
+### Phase 6 (quadrics, T062 to T073)
+
+**Checkpoint 5 approved by the maintainer (2026-10-28).**
+
+**T062.** The 1 DB-004 line `src/ri/geometry/quadrics.cpp -> _ZN9CRenderer14invShutterTimeE` was deleted (1 deletion, 0 additions); on the unchanged code the architecture check reported exactly one `VIOLATION`:
+
+```text
+  VIOLATION link    src/ri/geometry/quadrics.cpp -> _ZN9CRenderer14invShutterTimeE (CRenderer::invShutterTime)  [Geometry -> Core]
+```
+
+(`DB-004 x 58`, `RESULT FAIL violations=1`, `failing-cycles=1`, which clears with the fix.)
+
+**T063 to T070, the code** (`quadrics.cpp`, every site keeps its own expression shape and precision, so no output changes):
+- the `transformPoints()` macro calls `motion::transformAtTime`, `vtransformAtTime` and `ntransformAtTime` (moved verbatim into `motion.h` in phase 3);
+- the 24 intersect-side parameter lerps `(float)(this->p * (1.0 - rv->time) + nextData[k] * (double)rv->time)` (the disk, cone, paraboloid, cylinder, hyperboloid and toroid ones wrote `(1.0 - (double)rv->time)`, the same value) became `motion::atTimeD(this->p, nextData[k], rv->time)`, and the hyperboloid's two `interpolatev(p, this->p, &nextData[k], rv->time)` became `motion::atTimeV`;
+- the 7 sample-side lerps of the sphere and the disk, written with `const double ctime` initialised from a float array (`*time++`), became `motion::atTimeD(this->p, nextData[k], (float)ctime)`: the narrowing is lossless because `ctime` always holds a float value, and the members and `nextData` are floats;
+- the 14 dPdtime scales `mulvf(dest|D, CRenderer::invShutterTime)` became `motion::toShutterRate(dest|D)`.
+The macro's backslashes were re-aligned to the longer lines (the file was not clang-format clean before, so no other formatting was touched).
+
+**T071.** The three grid `transform/vtransform/ntransform` overloads with a time argument are deleted from `objectMisc.h` (no caller was left: the build is the proof); the dead `interpolate()`/`interpolate3()` helpers stay for phase 11.
+
+**T072.** CP-a clean; CP-b 858/858; CP-c: the line is gone with no `STALE` and no `VIOLATION`, `DB-004 x 58`, `DB-011 x 166`; CP-d: 761 images byte-identical and the `MaxBlockAvgDiff` table identical; `Motion_Replay_quadrics` and the other 18 `motion`/`camera` tests green (19/19). `grep -c 'CRenderer::invShutterTime' src/ri/geometry/quadrics.cpp` prints 0.
 
 ## §6 Final macOS pass (phase 12, T109, T110)
 

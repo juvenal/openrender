@@ -460,18 +460,18 @@ is taken on the approved tree, and phase 3 does not start until its files are in
 **Per-site rule for the seven quadric tasks** (research R9, FR-014): keep each site's **exact expression shape** and its own precision. The intersect-side line `(float)(p * (1.0 - rv->time) + nextData[k] * (double)rv->time)` becomes `motion::atTimeD(p, nextData[k], rv->time)`; the `sample()` side uses `ctime` the same way; each `dPdtime` read
 `mulvf(dest, CRenderer::invShutterTime)` becomes `motion::toShutterRate(dest)`. A site whose shape differs from this is stopped and reported, not migrated by guess. Each quadric has 2 `invShutterTime` reads (14 in all).
 
-- [ ] T062 [US4] [RUN] Delete the 1 DB-004 line `src/ri/geometry/quadrics.cpp -> _ZN9CRenderer14invShutterTimeE`. `ctest -L architecture`: **exactly 1 `VIOLATION`**. Record it.
-- [ ] T063 [US2] `quadrics.cpp:48-80` (the `transformPoints()` macro): `transform`/`vtransform`/`ntransform` with `time` become `motion::transformAtTime`/`vtransformAtTime`/`ntransformAtTime`; include `motion.h` if not already.
-- [ ] T064 [US2] `CSphere`: intersect-side parameters (`~:200-203`), `sample()` parameters (`~:327-331`) and its two `dPdtime` scales, per the rule above.
-- [ ] T065 [US2] `CDisk`: intersect parameters, `sample()` parameters, two `dPdtime` scales.
-- [ ] T066 [US2] `CCone`: intersect parameters, `sample()` parameters, two `dPdtime` scales.
-- [ ] T067 [US2] `CParaboloid`: intersect parameters, `sample()` parameters, two `dPdtime` scales.
-- [ ] T068 [US2] `CCylinder`: intersect parameters, `sample()` parameters, two `dPdtime` scales.
-- [ ] T069 [US2] `CHyperboloid`: intersect parameters, `sample()` parameters, two `dPdtime` scales.
-- [ ] T070 [US2] `CToroid`: intersect parameters, `sample()` parameters, two `dPdtime` scales.
-- [ ] T071 [US2] Delete the grid `transform`, `vtransform` and `ntransform` overloads with `time` from `objectMisc.h:66-139` **only if** `grep -rn` shows no remaining caller in `src` (the quadrics were the users); if a caller remains, leave the overload and record the file in validation.md for Phase 11.
-- [ ] T072 [US2] [RUN] CP-a, CP-b, CP-c, **CP-d**, CP-m. Expected: **no `STALE`, no `VIOLATION`**, `ALLOWED DB-004 x 58`, `DB-011 x 166`; `grep -c 'CRenderer::invShutterTime' src/ri/geometry/quadrics.cpp` prints 0; `Motion_Replay_quadrics` green. (A single-object compile of `quadrics.cpp` through `cpujob`, with the coordinator's approval, is allowed after any quadric task to localize an error.)
-- [ ] T073 **Checkpoint 6 (PAUSE 6)**: stage; summarize; wait for review.
+- [X] T062 [US4] [RUN] Delete the 1 DB-004 line `src/ri/geometry/quadrics.cpp -> _ZN9CRenderer14invShutterTimeE`. `ctest -L architecture`: **exactly 1 `VIOLATION`**. Record it.
+- [X] T063 [US2] `quadrics.cpp:48-80` (the `transformPoints()` macro): `transform`/`vtransform`/`ntransform` with `time` become `motion::transformAtTime`/`vtransformAtTime`/`ntransformAtTime`; include `motion.h` if not already.
+- [X] T064 [US2] `CSphere`: intersect-side parameters (`~:200-203`), `sample()` parameters (`~:327-331`) and its two `dPdtime` scales, per the rule above.
+- [X] T065 [US2] `CDisk`: intersect parameters, `sample()` parameters, two `dPdtime` scales.
+- [X] T066 [US2] `CCone`: intersect parameters, `sample()` parameters, two `dPdtime` scales.
+- [X] T067 [US2] `CParaboloid`: intersect parameters, `sample()` parameters, two `dPdtime` scales.
+- [X] T068 [US2] `CCylinder`: intersect parameters, `sample()` parameters, two `dPdtime` scales.
+- [X] T069 [US2] `CHyperboloid`: intersect parameters, `sample()` parameters, two `dPdtime` scales.
+- [X] T070 [US2] `CToroid`: intersect parameters, `sample()` parameters, two `dPdtime` scales.
+- [X] T071 [US2] Delete the grid `transform`, `vtransform` and `ntransform` overloads with `time` from `objectMisc.h:66-139` **only if** `grep -rn` shows no remaining caller in `src` (the quadrics were the users); if a caller remains, leave the overload and record the file in validation.md for Phase 11.
+- [X] T072 [US2] [RUN] CP-a, CP-b, CP-c, **CP-d**, CP-m. Expected: **no `STALE`, no `VIOLATION`**, `ALLOWED DB-004 x 58`, `DB-011 x 166`; `grep -c 'CRenderer::invShutterTime' src/ri/geometry/quadrics.cpp` prints 0; `Motion_Replay_quadrics` green. (A single-object compile of `quadrics.cpp` through `cpujob`, with the coordinator's approval, is allowed after any quadric task to localize an error.)
+- [X] T073 **Checkpoint 6 (PAUSE 6)**: stage; summarize; wait for review.
 
 ---
 

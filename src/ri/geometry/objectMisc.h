@@ -59,23 +59,6 @@ inline void transform(float *src, int num, const float *from) {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Function				:	transform
-// Description			:	Transform bunch of points from one space to another
-// Return Value			:
-// Comments				:	This one also interpolates with a time constant
-inline void transform(float *src, int num, const float *from0, const float *from1, const float *time) {
-    int i;
-    vector tmp0, tmp1;
-
-    for (i = 0; i < num; i++) {
-        mulmp(tmp0, from0, src);
-        mulmp(tmp1, from1, src);
-        interpolatev(src, tmp0, tmp1, time[i]);
-        src += 3;
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
 // Function				:	vtransform
 // Description			:	Transform bunch of vectors from one space to another
 // Return Value			:
@@ -90,23 +73,6 @@ inline void vtransform(float *src, int num, const float *from) {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Function				:	vtransform
-// Description			:	Transform bunch of vectors from one space to another
-// Return Value			:
-// Comments				:	This one also interpolates with a time constant
-inline void vtransform(float *src, int num, const float *from0, const float *from1, const float *time) {
-    vector tmp0, tmp1;
-    int i;
-
-    for (i = 0; i < num; i++) {
-        mulmv(tmp0, from0, src);
-        mulmv(tmp1, from1, src);
-        interpolatev(src, tmp0, tmp1, time[i]);
-        src += 3;
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
 // Function				:	ntransform
 // Description			:	Transform bunch of normals from one space to another
 // Return Value			:
@@ -116,23 +82,6 @@ inline void ntransform(float *src, int num, const float *to) {
 
     for (i = num; i > 0; i--) {
         mulmn(src, to, src);
-        src += 3;
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// Function				:	ntransform
-// Description			:	Transform bunch of normals from one space to another
-// Return Value			:
-// Comments				:	This one also interpolates with a time constant
-inline void ntransform(float *src, int num, const float *to0, const float *to1, const float *time) {
-    vector tmp0, tmp1;
-    int i;
-
-    for (i = 0; i < num; i++) {
-        mulmn(tmp0, to0, src);
-        mulmn(tmp1, to1, src);
-        interpolatev(src, tmp0, tmp1, time[i]);
         src += 3;
     }
 }
