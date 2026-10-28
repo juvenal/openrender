@@ -107,7 +107,7 @@ every image of the suite is byte-identical to the starting tree's from phase 3 o
 | 1 | clean (`-Werror`); T003 on the unchanged tree: reconfigure only, 0 compiled | 847/847 passed (838 + 9 new `motion`/`motion-record` tests), 250 s | `DB-004 x 65`, `DB-011 x 173`; Geometry 78/19, Hiders 567/84, TOTAL 721/110; `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | 761 images: **0 differing, 0 missing, 0 not in the manifest**; `diffs` table identical | 8/8 `Motion_Replay_*` |
 | 2 | clean (`-Werror`); `build-028` has the option OFF | 847/847 passed (the 11 new tests are not run: 10 do not exist with the option OFF, `Frame_ParamsEqualCore` reports "Not Run (Disabled)" and does not fail the run), 183 s | `DB-004 x 65`, `DB-011 x 173`; Geometry 78/19, Hiders 567/84, TOTAL 721/110; `RESULT PASS`; 21/21 `architecture` tests | n/a (no `src/` change) | 8 replay tests green, `Frame_ParamsEqualCore` Not Run (Disabled) |
 | 3 | clean (`-Werror`) | 858/858 passed (847 + the 11 new tests, all enabled), 206 s | `DB-004 x 65`, `DB-011 x 173`; Geometry 78/19, Hiders 567/84, TOTAL 721/110 (equal to the baseline); `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | 761 images: **0 differing, 0 missing, 0 not in the manifest**; `MaxBlockAvgDiff` table identical (empty diff) | 19/19 (11 new + 8 replay) |
-| 4 | | | | | |
+| 4 | clean (`-Werror`) | 858/858 passed, 180 s | `DB-004 x 65`, **`DB-011 x 166`** (173 - 7); nothing added; Hiders 558/82 (was 567/84), TOTAL 712/108 (was 721/110), Geometry 78/19; `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | 761 images: **0 differing, 0 missing, 0 not in the manifest**; `MaxBlockAvgDiff` table identical | 19/19 |
 | 5 | | | | | |
 | 6 | | | | | |
 | 7 | | | | | |
@@ -310,6 +310,8 @@ The same throwaway code served to try the mutation plan of Phase 3 (all red, bel
 
 ## §4 Unit-test mutations, greps and diffs (phase 3, T047 to T050)
 
+**Checkpoint 3 approved by the maintainer (2026-10-28).**
+
 **Mutations** (T047 to T049): each is a scratch edit of a staged file, a rebuild of the test's target, the named test red, then `git checkout -- <file>` and `git diff -- <file>` empty (checked for every one). Run again with a pause of more than a second between each edit and each revert (see the note below).
 
 | Task | Test | Mutation | Result |
@@ -340,7 +342,34 @@ Both were artifacts of the mutation script, not of the code: the script now wait
 
 ## §5 Allowlist `VIOLATION` lines and SC-008 timing (phases 4 to 11)
 
-(Per allowlist phase: the exact `VIOLATION` lines before the code change. The interleaved timing tables of T056 and T100.)
+### Phase 4 (camera, T052 to T057)
+
+**T052.** The 7 DB-011 lines of `src/ri/hiders/raytracer.cpp` (`imagePlane`, `projection`, `focaldistance`, `invImagePlane`, `aperture`, `dxdPixel`, `dydPixel`) were deleted from `tests/architecture/allowlist.txt` (7 deletions, 0 additions), and the architecture check, run on the unchanged code, reported exactly these 7 and nothing else (`ALLOWED ... DB-011 x 166`, `RESULT FAIL violations=7 stale=0`; `failing-cycles=1` is reported alongside the 7 edges and is gone with them):
+
+```text
+  VIOLATION link    src/ri/hiders/raytracer.cpp -> _ZN9CRenderer10imagePlaneE (CRenderer::imagePlane)  [Hiders -> Core]
+  VIOLATION link    src/ri/hiders/raytracer.cpp -> _ZN9CRenderer10projectionE (CRenderer::projection)  [Hiders -> Core]
+  VIOLATION link    src/ri/hiders/raytracer.cpp -> _ZN9CRenderer13focaldistanceE (CRenderer::focaldistance)  [Hiders -> Core]
+  VIOLATION link    src/ri/hiders/raytracer.cpp -> _ZN9CRenderer13invImagePlaneE (CRenderer::invImagePlane)  [Hiders -> Core]
+  VIOLATION link    src/ri/hiders/raytracer.cpp -> _ZN9CRenderer8apertureE (CRenderer::aperture)  [Hiders -> Core]
+  VIOLATION link    src/ri/hiders/raytracer.cpp -> _ZN9CRenderer8dxdPixelE (CRenderer::dxdPixel)  [Hiders -> Core]
+  VIOLATION link    src/ri/hiders/raytracer.cpp -> _ZN9CRenderer8dydPixelE (CRenderer::dydPixel)  [Hiders -> Core]
+```
+
+**T053, T054.** `CRaytracer(int thread, const ICamera &camera)` holds the reference; `computeSamples` calls `camera.generateRay(cRay->xAbs, cRay->yAbs, cRay->time, lens)` per ray with the lens point `sample()` drew, copies `from`, `dir`, `da`, `db` into the `CPrimaryRay` and sets `t`, `flags`, `tmin`, `depthProbe` as before; the camera-motion comment moved with the behaviour it describes and now names `motion::transformRay`. `renderer.cpp` constructs `new CRaytracer(i, frameCamera())`, the only construction site (`grep -rn 'CRaytracer('` finds no other, in the Python/Lua bindings and the tests included).
+
+**T055.** CP-a clean; CP-b 858/858; CP-c: the 7 deleted lines are gone with no `STALE` and no `VIOLATION`, `DB-004 x 65`, `DB-011 x 166`; CP-d: 761 images byte-identical (the camera is on every raytrace ray, so the whole suite is the guard) and the `MaxBlockAvgDiff` table identical; the 8 replay tests and the 11 new tests green (19/19).
+`grep -nE 'CRenderer::(imagePlane|invImagePlane|projection|focaldistance|aperture|dxdPixel|dydPixel)|fullImagePixels2camera' src/ri/hiders/raytracer.cpp` prints nothing.
+
+**T056, SC-008 timing, interleaved** (five alternating pairs per scene, a starting-tree run in `build-028-scratch/bld` then a current-tree run in `build-028`, each `ctest -R '^<test>$'` alone through `cpujob`; every run in `build-028-logs/028-p4-timing.txt`; seconds):
+
+| Test | Starting tree | Current tree | Median start | Median current | Start spread (max - min) | Delta of medians |
+|---|---|---|---|---|---|---|
+| `Visual_teapot-motion-raytrace` | 19.97, 19.57, 21.15, 19.57, 19.51 | 19.70, 19.92, 20.34, 19.96, 19.73 | 19.57 | 19.92 | 19.51-21.15 (1.64) | +0.35 |
+| `Convergence_dof-raytrace` | 6.68, 6.83, 6.83, 6.65, 6.60 | 6.55, 6.87, 6.79, 6.73, 6.54 | 6.68 | 6.73 | 6.60-6.83 (0.23) | +0.05 |
+| `Visual_blobby-motion-grow-raytrace` | 2.35, 2.62, 2.38, 2.36, 2.38 | 2.38, 2.93, 2.37, 2.39, 2.36 | 2.38 | 2.38 | 2.35-2.62 (0.27) | +0.00 |
+
+The current tree's median does not exceed the starting tree's by more than the starting tree's own spread in any of the three scenes (the largest delta, +0.35 s on the teapot, is under a quarter of its 1.64 s spread). **SC-008 holds at phase 4.**
 
 ## §6 Final macOS pass (phase 12, T109, T110)
 

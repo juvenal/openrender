@@ -199,9 +199,7 @@ DB-011  link     src/ri/hiders/photon.cpp  ->  _ZN9CRenderer9worldBmaxE   # CRen
 DB-011  link     src/ri/hiders/photon.cpp  ->  _ZN9CRenderer9worldBminE   # CRenderer::worldBmin
 DB-011  link     src/ri/hiders/photonMap.cpp  ->  _ZN9CRenderer7toWorldE   # CRenderer::toWorld
 DB-011  link     src/ri/hiders/photonMap.cpp  ->  _ZN9CRenderer9fromWorldE   # CRenderer::fromWorld
-DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer10imagePlaneE   # CRenderer::imagePlane
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer10numSamplesE   # CRenderer::numSamples
-DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer10projectionE   # CRenderer::projection
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer11bucketWidthE   # CRenderer::bucketWidth
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer11depthFilterE   # CRenderer::depthFilter
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer11dispatchJobE   # CRenderer::dispatchJob
@@ -209,8 +207,6 @@ DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer11pixelFilterE   
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer11sampleOrderE   # CRenderer::sampleOrder
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer12bucketHeightE   # CRenderer::bucketHeight
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer13activeContextE  linux   # CRenderer::activeContext
-DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer13focaldistanceE   # CRenderer::focaldistance
-DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer13invImagePlaneE   # CRenderer::invImagePlane
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer13pixelXsamplesE   # CRenderer::pixelXsamples
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer13pixelYsamplesE   # CRenderer::pixelYsamples
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer13xSampleOffsetE   # CRenderer::xSampleOffset
@@ -235,9 +231,6 @@ DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer6commitEiiiiPf   
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer7clipMaxE   # CRenderer::clipMax
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer7xPixelsE   # CRenderer::xPixels
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer7yPixelsE   # CRenderer::yPixels
-DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer8apertureE   # CRenderer::aperture
-DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer8dxdPixelE   # CRenderer::dxdPixel
-DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer8dydPixelE   # CRenderer::dydPixel
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer8xBucketsE   # CRenderer::xBuckets
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer9netClientE   # CRenderer::netClient
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer9shootStepE   # CRenderer::shootStep

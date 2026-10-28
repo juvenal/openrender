@@ -387,7 +387,7 @@ void CPrimaryBundle::post() {
 // Description			:	Ctor
 // Return Value			:	-
 // Comments				:
-CRaytracer::CRaytracer(int thread) : CShadingContext(thread), primaryBundle(CRenderer::shootStep, CRenderer::numSamples, CRenderer::numExtraChannels, CRenderer::sampleOrder, CRenderer::numExtraSamples, CRenderer::sampleDefaults) {
+CRaytracer::CRaytracer(int thread, const openrender::ICamera &cam) : CShadingContext(thread), primaryBundle(CRenderer::shootStep, CRenderer::numSamples, CRenderer::numExtraChannels, CRenderer::sampleOrder, CRenderer::numExtraSamples, CRenderer::sampleDefaults), camera(cam) {
     CRenderer::raytracingFlags |= ATTRIBUTES_FLAGS_PRIMARY_VISIBLE;
 
     const int xoffset = (int)ceil((CRenderer::pixelFilterWidth - 1) * 0.5f);
@@ -618,87 +618,32 @@ void CRaytracer::sample(int left, int top, int xpixels, int ypixels) {
 // Return Value			:	-
 // Comments				:
 void CRaytracer::computeSamples(CPrimaryRay *rays, int numShading) {
-    int i;
-    float x, y;
     CPrimaryRay *cRay = rays;
-    const openrender::sampling::CSamplingConfig &cfg = samplingConfig();
 
-    if (CRenderer::aperture == 0) {
-        // No Depth of field effect
+    // Every primary ray comes from the camera layer (spec 028): the film position in the full
+    // image's pixels (a crop projects as the full frame does), the shutter fraction and the lens
+    // point that sample() drew for this ray. cRay->time is pre-assigned with stratified sampling
+    // in sample(); the camera passes it through unchanged.
+    for (int i = numShading; i > 0; i--, cRay++) {
+        const float lens[2] = {cRay->lensU, cRay->lensV};
+        const openrender::CameraRay r = camera.generateRay(cRay->xAbs, cRay->yAbs, cRay->time, lens);
 
-        for (i = numShading; i > 0; i--, cRay++) {
-            // The sample's location in the full image's pixels (T117)
-            x = cRay->xAbs;
-            y = cRay->yAbs;
+        movvv(cRay->from, r.from);
+        movvv(cRay->dir, r.dir);
+        cRay->da = r.da;
+        cRay->db = r.db;
 
-            vector from, to;
-            fullImagePixels2camera(from, x, y, 0, cfg.screenLeft, cfg.screenTop);
-            fullImagePixels2camera(to, x, y, CRenderer::imagePlane, cfg.screenLeft, cfg.screenTop);
-
-            movvv(cRay->from, from);
-            subvv(cRay->dir, to, from);
-            normalizev(cRay->dir);
-
-            // cRay->time is pre-assigned with stratified sampling in sample()
-            cRay->t = C_INFINITY;
-            cRay->flags = ATTRIBUTES_FLAGS_PRIMARY_VISIBLE;
-            cRay->tmin = 0;
-            cRay->depthProbe = false;
-        }
-    }
-    else {
-        for (i = numShading; i > 0; i--, cRay++) {
-            // The sample's location in the full image's pixels (T117)
-            x = cRay->xAbs;
-            y = cRay->yAbs;
-
-            vector from, to;
-            fullImagePixels2camera(from, x, y, 0, cfg.screenLeft, cfg.screenTop);
-            fullImagePixels2camera(to, x, y, CRenderer::focaldistance, cfg.screenLeft, cfg.screenTop);
-
-            // The lens point drawn with this ray's jitter and time in sample(): the
-            // camera lens slot through the concentric disk map (CSampler::cameraSample),
-            // area-uniform over the aperture.
-            from[COMP_X] += cRay->lensU * CRenderer::aperture;
-            from[COMP_Y] += cRay->lensV * CRenderer::aperture;
-
-            movvv(cRay->from, from);
-            subvv(cRay->dir, to, from);
-            normalizev(cRay->dir);
-
-            // cRay->time is pre-assigned with stratified sampling in sample()
-            cRay->t = C_INFINITY;
-            cRay->flags = ATTRIBUTES_FLAGS_PRIMARY_VISIBLE;
-            cRay->tmin = 0;
-            cRay->depthProbe = false;
-        }
+        cRay->t = C_INFINITY;
+        cRay->flags = ATTRIBUTES_FLAGS_PRIMARY_VISIBLE;
+        cRay->tmin = 0;
+        cRay->depthProbe = false;
     }
 
-    // Camera motion blur is handled entirely by the per-object xform interpolation
-    // in transform() (objectMisc.h): addObject() sets privXform->next for each static
-    // object when cameraHasMotion, and transform() lerps between xform->to and
-    // xform->next->to at cRay->time.  No explicit ray transformation is needed here —
-    // applying one would double-count the camera motion and cancel the blur.
-
-    // Setup the ray differentials
-    if (CRenderer::projection == OPTIONS_PROJECTION_PERSPECTIVE) {
-        const float a = CRenderer::dxdPixel / CRenderer::imagePlane;
-
-        cRay = rays;
-        for (i = numShading; i > 0; i--, cRay++) {
-            cRay->db = 0;
-            cRay->da = a;
-        }
-    }
-    else {
-        const float b = CRenderer::dxdPixel;
-
-        cRay = rays;
-        for (i = numShading; i > 0; i--, cRay++) {
-            cRay->da = 0;
-            cRay->db = b;
-        }
-    }
+    // Camera motion blur is handled entirely by the per-object xform interpolation in
+    // motion::transformRay (motion.h): addObject() sets privXform->next for each static object
+    // when cameraHasMotion, and transformRay lerps between xform->to and xform->next->to at
+    // cRay->time. No explicit ray transformation is needed here -- applying one would
+    // double-count the camera motion and cancel the blur.
 
     // Actually raytrace
     primaryBundle.numRays = numShading;

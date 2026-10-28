@@ -789,7 +789,7 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
         contexts[i] = NULL;
 
         if (strcmp(hider, "raytrace") == 0) {
-            contexts[i] = new CRaytracer(i);
+            contexts[i] = new CRaytracer(i, frameCamera());
             dispatchJob = dispatchReyes;
         }
         else if (strcmp(hider, "reyes") == 0) {

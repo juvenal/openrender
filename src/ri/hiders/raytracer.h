@@ -30,6 +30,7 @@
 
 #include <vector>
 
+#include "camera.h"
 #include "common/global.h"
 #include "compositor.h"
 #include "object.h"
@@ -143,7 +144,8 @@ class CPrimaryBundle : public CRayBundle {
 // Comments				:
 class CRaytracer : public CShadingContext {
     public:
-        CRaytracer(int thread);
+        // The camera is the frame's (spec 028): every primary ray comes from it. It outlives the context.
+        CRaytracer(int thread, const openrender::ICamera &camera);
         virtual ~CRaytracer();
 
         static void preDisplaySetup() {}
@@ -160,6 +162,8 @@ class CRaytracer : public CShadingContext {
         void splatSamples(CPrimaryRay *, int, int, int, int, int);
 
         CPrimaryBundle primaryBundle;
+
+        const openrender::ICamera &camera; // The frame's camera
 
         float *fbContribution;
         float *fbPixels;
