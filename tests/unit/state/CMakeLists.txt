@@ -41,6 +41,16 @@ set_tests_properties(State_LightOrder PROPERTIES
 # ---------------------------------------------------------------------------
 option(OPENRENDER_STATE_ONLY_TESTS "Build the State-only isolation tests" ON)
 
+# The camera and motion State-only tests (spec 028, research R16). The two State sources they need,
+# frameParams.cpp and camera.cpp, are compiled a second time into state_only_sources behind this option,
+# for the same archcheck reason as above: an in-scope object missing from the build tree is an
+# "incomplete build tree". OFF until the foundation phase (task T045) creates the sources and turns it ON;
+# until then the tests do not exist, so ctest -L architecture sees only production units. The dependency
+# makes it OFF whenever OPENRENDER_STATE_ONLY_TESTS is OFF, so no configuration needs a FATAL_ERROR.
+include(CMakeDependentOption)
+cmake_dependent_option(OPENRENDER_CAMERA_MOTION_ONLY_TESTS "Build the camera and motion State-only tests" OFF
+                       "OPENRENDER_STATE_ONLY_TESTS" OFF)
+
 if(OPENRENDER_STATE_ONLY_TESTS)
     # A test-only staging directory holding a copy of ri_config.h. src/ri/core itself
     # is NOT on the include path: it also holds the Shading shims shader.h and shading.h.
@@ -58,6 +68,18 @@ if(OPENRENDER_STATE_ONLY_TESTS)
         ${CMAKE_SOURCE_DIR}/src/ri/state/variableLookup.cpp
         ${CMAKE_SOURCE_DIR}/src/ri/state/shaderParameterHooks.cpp
     )
+    if(OPENRENDER_CAMERA_MOTION_ONLY_TESTS)
+        # CRay (Infra), staged like ri_config.h so Motion_Isolation can include it without putting
+        # src/ri/core (which holds the Shading shims shader.h and shading.h) on the path.
+        configure_file(${CMAKE_SOURCE_DIR}/src/ri/core/ray.h
+                       ${STATE_ONLY_INCLUDE_DIR}/ray.h COPYONLY)
+        # The two new State units, appended while they do not exist yet (T045 removes the guard)
+        foreach(_unit frameParams camera)
+            if(EXISTS ${CMAKE_SOURCE_DIR}/src/ri/state/${_unit}.cpp)
+                target_sources(state_only_sources PRIVATE ${CMAKE_SOURCE_DIR}/src/ri/state/${_unit}.cpp)
+            endif()
+        endforeach()
+    endif()
     target_link_libraries(state_only_sources PUBLIC openrender_common_flags openrendercommon)
     target_compile_features(state_only_sources PUBLIC cxx_std_20)
     target_include_directories(state_only_sources PUBLIC

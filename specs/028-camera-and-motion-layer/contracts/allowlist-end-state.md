@@ -75,7 +75,7 @@ Phases 9 (implicit) and 10 (tessellation) delete no line.
 | `ALLOWED DB-004` | 65 | **52** (65 - 6 - 7) | SC-003 "at most 52" |
 | `ALLOWED DB-011` | 173 | **166** (173 - 7) | SC-003 "at most 166" |
 | allowlist header `DB-004 (65)` | 65 | 52 | SC-009 |
-| allowlist header `DB-011 (182)` (both platforms' lines) | 182 | 175 | SC-009 |
+| allowlist header `DB-011 (182)` -> `(168)` (the file's own DB-011 line count: 175 lines at the baseline, 168 after; the stale header said 182) | 175 lines (header 182) | 168 | SC-009 |
 | `METRIC Geometry` | 78 / 19 | predicted **48 / 15** (-24 `invShutterTime`, -4 `relRotQ`, -1 `toWorld`, -1 `cameraHasRotation`) | lowered to the check's report |
 | `METRIC Hiders` | 567 / 84 | predicted **558 / 82** (-9 references in `computeSamples`; `focaldistance` and `dxdPixel` leave the class) | lowered to the check's report |
 | `METRIC TOTAL` | 721 / 110 | predicted **682 / 107** (`invShutterTime`, `focaldistance`, `dxdPixel` leave every counted class) | lowered to the check's report |
@@ -97,7 +97,11 @@ baseline`), never raised for any class.
 - **DB-004**: evidence drops `invShutterTime` (24), `relRotQ` (4), `toWorld`, `cameraHasRotation`;
   "Measured by the architecture check" becomes 52 edges (28 includes, 24 links); History records
   spec 028, the date, the 13 deleted lines.
-- **DB-011**: Size corrected from the stale "180 edges per platform" to the check's counts (173
-  before, 166 after on macOS; Linux per its report); History records spec 028, the date and the 7
-  deleted lines.
+- **DB-011**: Size corrected from the stale "180 edges per platform" (182 allowlist lines) to the
+  check's counts: **166 edges per platform after spec 028 (9 include, 157 link)**, 173 before
+  (9 include, 164 link); the thread-local `activeContext` edges are still listed once per platform,
+  tagged, so the file holds 168 lines (175 before). Linux per its own report (T037, T111). The
+  history note keeps the old figures: the header and Size text said 182 and 180, which were stale
+  (the file held 175 lines at `4eb683b`). History records spec 028, the date and the 7 deleted
+  lines.
 - Nothing refers to a merge commit or to anything that exists only after the merge.

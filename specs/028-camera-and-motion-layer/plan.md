@@ -131,7 +131,9 @@ plug-ins and 2 replay data files; the allowlist, the metrics baseline and the re
   - **Removed**: 7 Hiders -> Core link edges, 13 Geometry -> Core link edges.
   - **The slot** is a State-owned registration interface filled by the composition root (rule 1;
     rule 2's inversion), as `shaderParameterHooks.h` (spec 025) and `setDefaultServices()` (spec
-    024).
+    024). The `frameParams()` slot is a State-owned registration hook that the renderer core
+    writes only between frames (installed in `beginFrame` before any render thread exists,
+    uninstalled in `endFrame` after the last one is gone) and every other domain only reads.
 - [x] **Interface changes specified**: [contracts/frame-params.md](contracts/frame-params.md),
       [contracts/camera.md](contracts/camera.md),
       [contracts/motion-evaluator.md](contracts/motion-evaluator.md); allowlist and registry in
@@ -236,7 +238,7 @@ Details in [research.md](research.md); interfaces in [contracts/](contracts/). I
 Every phase from 3 on ends with the checkpoint of quickstart §2: **CP-a** clean build, **CP-b** full
 suite green, **CP-c** architecture PASS with exactly the cumulative deletions, **CP-d** every image
 and every `MaxBlockAvgDiff` equal to the starting tree's (noise list excepted), plus `ctest -L
-'motion|camera'`. Each phase pauses for the maintainer.
+'^motion$|^camera$'`. Each phase pauses for the maintainer.
 
 | # | Phase | Content | Allowlist lines deleted first | Tests that turn green / guard |
 |---|---|---|---|---|
@@ -251,7 +253,7 @@ and every `MaxBlockAvgDiff` equal to the starting tree's (noise list excepted), 
 | 9 | Implicit surface | `pluginTime()` at its three reads | none | `Motion_Replay_implicit` |
 | 10 | Tessellation | `CTesselationPatch::intersect`'s moving branch through `atTimeV` | none | `Motion_Replay_tessellation` |
 | 11 | Grid-only | `curves`, `points`, `patchgrid`, `bsplinePatchgrid` (+ `subdivision`, Q2); dead `interpolate`/`interpolate3` deleted | 4 DB-004 | `Motion_Replay_gridonly`, `_emptyshutter`; SC-001 greps; SC-008 re-timed |
-| 12 | Guardrails, docs, Linux | `metrics-baseline.txt` lowered to the report, allowlist header counts, registry (DB-004, DB-009, DB-011), DEVNOTES, HIDER_PARITY; the JIT-off build (quickstart §4c); the maintainer's Linux finished-tree run (§4b); the determinism sweep once | none | CP-a to CP-d on both platforms; sweep green |
+| 12 | Guardrails, docs, Linux | `metrics-baseline.txt` lowered to the report, allowlist header counts, registry (DB-004, DB-009, DB-011), DEVNOTES, HIDER_PARITY; the JIT-off build (quickstart §4c); the maintainer's Linux finished-tree run (§4b, which also runs the determinism sweep once on Linux); the determinism sweep once on macOS | none | CP-a to CP-d on both platforms; sweep green on both |
 
 Notes:
 - **Why phase 3 changes no output**: `FrameParams` and the camera are built and installed, but no
@@ -260,7 +262,8 @@ Notes:
   must report exactly those edges as `VIOLATION` and nothing else; that is recorded before the code
   change.
 - **Phase 11 also checks SC-001**: no `CRenderer::invShutterTime` under `src/ri/geometry` or
-  `src/ri/hiders`, and at most 6 files under `src/` naming `invShutterTime`.
+  `src/ri/hiders`, and the files under `src/` naming the qualified `CRenderer::invShutterTime` go from 9
+  to 3 (`rendererServicesImpl.h`, `rendererStatics.cpp`, `rendererFrame.cpp`).
 - **Stop rule**: any CP-d difference, any unexpected `VIOLATION`, or any replay difference stops the
   phase for the maintainer. Nothing is absorbed by a threshold, a noise-list entry or a re-record.
 
@@ -279,7 +282,7 @@ Notes:
 | T-M2 | `Motion_Isolation` | build failure | FR-012, US2 AS5, SC-007 |
 | T-M3 | `Motion_CameraSlerpEquivalence` | build failure | FR-021(a) |
 | T-M4 | `Motion_TransformRayEquivalence` | build failure | FR-019 |
-| T-R1 | `Motion_Replay_<family>` (8) | **characterization**: green on the starting tree by construction; red under its family's mutation (contracts/replay-format.md) | US2 AS1, AS4, FR-013, FR-014, FR-016, FR-018, FR-021(b), the `sample()`/`dPdtime` equivalence of FR-024 |
+| T-R1 | `Motion_Replay_<family>` (8) | **characterization**: green on the starting tree by construction; red under its family's mutation (contracts/replay-format.md) | US2 AS1, AS4, FR-013, FR-014, FR-016, FR-018, FR-021(b), the `sample()`/`dPdtime` equivalence of FR-024 (its sample-side check **is** the replay's `S` records: there is no separate sample-side test) |
 | T-A1 | `ctest -L architecture` after each allowlist phase's deletion | exactly that phase's `VIOLATION` lines | FR-022, SC-001 to SC-003 |
 
 Existing guards whose assertions do not change: the 15 camera/motion/DOF visual scenes, the 14
@@ -309,35 +312,51 @@ hider calls since spec 039: it is unaffected by 028 and stays as it is (not dele
 
 ## Open questions for the maintainer (with recommendations)
 
+**Decided 2026-10-27** (recorded in spec.md, Clarifications, "maintainer decisions on the plan" and "at the tasks stage"). The questions below are kept as written at the plan stage; each answer follows its question.
+
 None of them changes a reference-doc decision (D1-D30); Q3 would change the spec's wording.
 
 - **Q1. Camera and `FrameParams` in Graphics State.** Recommended (R1): it is the one domain both
   Geometry and Hiders may reach, D30's Transport can reach it, and it adds no edge. The alternative,
   a new Camera domain, needs a constitution amendment. **Recommendation**: approve Graphics State.
+  **Decided**: approved, Graphics State.
+
 - **Q2. `subdivision.cpp`'s float-precision time interpolation** (R14 finding 2) is outside decision
   2's grid-only list and has no `invShutterTime` read. **Recommendation**: include it in phase 11
   through `atTimeF` (FR-018's "each family's `sample()`"); otherwise it stays as the one copy left in
   Geometry.
+  **Decided**: yes, into phase 11 through `atTimeF`.
+
 - **Q3. FR-024 and SC-007 wording for the replay tests.** A replay recorded on the starting tree cannot
   fail there. **Recommendation**: amend FR-024 to say the replay tests are characterization tests,
   green on the starting tree by construction and shown red by a per-family mutation (spec 025's
   T-P1a precedent). The camera and evaluator unit tests stay red-first as written (SC-007).
+  **Decided**: FR-024 and SC-007 reworded (replays are characterization tests, red by mutation).
+
 - **Q4. Include pruning.** After phase 11, `objectMisc.h`, `dlobject.cpp`, `implicitSurface.cpp`,
   `patchgrid.cpp` and others name no `CRenderer` member but still include `renderer.h`; removing
   those includes would delete more DB-004 include lines, but each removal can surface transitive
   needs (spec 025 R12). **Recommendation**: not in 028 (SC-003 is met at 52); record the candidates
   in DB-004's evidence for spec 031 or a follow-up.
+  **Decided**: no pruning in 028; phase 12 records the candidates in DB-004's evidence.
+
 - **Q5. The shading_parity scratch-file race** (`tests/shading_parity/{ri,test}.tif`, validation §0.3).
   **Recommendation**: keep the two files in the noise list for 028 and file an issue; fixing it
   (separate working directories, as spec 025's T006a did for `tests/imager/ri.tif`) is test-only and
   can be added to phase 1 if you prefer.
+  **Decided**: keep the two files in the noise list; spec 027 fixes the race; no 028 task edits those registrations.
+
 - **Q6. `CBilinearPatch::sample()`'s `dPdtime` precedence error** (R14 finding 3) is preserved bit for
   bit. **Recommendation**: file it as an issue; a fix is an output-changing change for its own
   approved phase or spec.
+  **Decided**: filed as GitHub #108; preserved bit for bit.
+
 - **Q7. `CLAUDE.md`.** The plan stage did not run the agent-context update, because no agent message
   may authorize editing `CLAUDE.md`. **Recommendation**: at phase 12, with your explicit
   authorization, add the 028 lines to "Active Technologies"/"Recent Changes" and a Known gotcha on
   `FrameParams`' frame lifetime and on keeping expression shapes in `motion.h`.
+  **Decided**: not pre-authorized; task T107 pauses and asks the maintainer at that time, and never touches "Spec-kit agent rules".
+
 
 - **Q8. When the Linux starting-tree baseline is taken.** Decision 1 needs Linux's own manifest and
   replay recorded on the starting `src/`. From phase 3 on, the worktree no longer builds the
@@ -345,6 +364,7 @@ None of them changes a reference-doc decision (D1-D30); Q3 would change the spec
   files). **Recommendation**: a hard gate at Checkpoint 2 (quickstart §4a): you run the Linux
   baseline there, and phase 3 waits for its files. The alternative, rebuilding it later from master
   plus a named subset of 028's test files with the option forced OFF, is more fragile.
+  **Decided**: approved, a hard gate at Checkpoint 2 (tasks T036, T037).
 
 ## Reference-document decisions (D1-D30, §5.4, §7.4)
 

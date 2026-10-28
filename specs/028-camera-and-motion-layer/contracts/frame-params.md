@@ -8,7 +8,8 @@
 ## Header shape
 
 ```cpp
-// src/ri/state/frameParams.h -- includes only common/algebra.h and common/sampling.h (Infra)
+// src/ri/state/frameParams.h -- includes only common/algebra.h and common/sampling.h (Infra);
+// `projection` is a plain int, so the header does not need state/options.h (see below)
 namespace openrender {
 
     struct FrameCameraMotion {
@@ -37,7 +38,18 @@ namespace openrender {
 ```
 
 `frameParams()` is inline over a pointer defined in `frameParams.cpp`, which also defines the
-default value. The `.cpp` is in `ri_sources` (so `ribRender` and `ribVector` each have one slot,
+default value.
+
+**Includes.** The header includes `common/algebra.h` (`matrix`, `quaternion`, `vector`) and
+`common/sampling.h` (`CSamplingConfig`) and nothing else. `OPTIONS_PROJECTION_PERSPECTIVE`
+(`EProjectionType`) is declared in `state/options.h`, which is State but drags `ri_config.h`,
+`xform.h` and `userAttributes.h` with it, so it is **not** included by the header: the field is an
+`int` (the type data-model.md already gives it), and `frameParams.cpp` and `camera.cpp` include
+`state/options.h` themselves, to name the enum in the default value and in the projection test. A
+`static_assert` in `frameParams.cpp` pins the enumerators the camera relies on
+(`OPTIONS_PROJECTION_PERSPECTIVE == 0`, `OPTIONS_PROJECTION_ORTHOGRAPHIC == 1`), so a reordered
+enum breaks the build instead of changing a ray. Both files are State: the include is allowed
+and the State-only library already stages `ri_config.h`. The `.cpp` is in `ri_sources` (so `ribRender` and `ribVector` each have one slot,
 like the `CRenderer` statics) and in the State-only test library.
 
 ## Behaviour

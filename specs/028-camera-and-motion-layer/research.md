@@ -355,7 +355,7 @@ platform. Format and scenes: [contracts/replay-format.md](contracts/replay-forma
   file is copied from it on the starting tree, never overwritten by a test run).
 
 **Red evidence**: a replay test is a characterization test: recorded on the starting tree, it is
-green there by construction. Its red evidence is a mutation in a scratch copy (swap the operands
+green there by construction. Its red evidence is a mutation in a scratch copy (`build-028-scratch`, a gitignored directory inside the worktree; swap the operands
 of one `interpolatev` call; drop the `(double)` of one quadric parameter), shown red per family.
 This is spec 025's T-P1a precedent; FR-024's wording asks for "shown failing on the starting tree",
 which a replay cannot do (plan, open question Q3).
@@ -372,8 +372,7 @@ which a replay cannot do (plan, open question Q3).
    "each family's `sample()`"), pending the maintainer (Q2).
 3. **`CBilinearPatch::sample()`'s `dPdtime` has a precedence error** (`patches.cpp:477`):
    `a - b * (1 - cv) + c * cv` subtracts only the first half of the shutter-open position, where
-   `a - (b * (1 - cv) + c * cv)` is meant. Preserved bit for bit (FR-014); to be filed as an
-   issue by the maintainer (no GitHub write from this stage).
+   `a - (b * (1 - cv) + c * cv)` is meant. Preserved bit for bit (FR-014); filed as GitHub #108.
 4. **`CImplicit` and `CDLObject` have no test and no shipped scene** (R11); the replay fixtures
    are their first coverage.
 5. **The spec's Measured starting point lists `CTesselationPatch` among the intersection families**;
@@ -397,6 +396,20 @@ which a replay cannot do (plan, open question Q3).
   `renderer.h` or `rendererStatics.cpp`.
 - No 028 task depends on 027. Whichever branch merges second resolves the textual conflicts in
   those files and re-runs `ctest -L architecture`; that is the maintainer's merge, not a task.
+- **Either merge order works.** The conflicts are textual and disjoint in meaning; nothing in 028
+  assumes 027 has merged, and nothing in 027 assumes 028 has.
+  - **The second merger recomputes the totals from the check's report.** `metrics-baseline.txt`'s
+    `TOTAL` row (and each class row both specs lowered) and the allowlist header counts are not
+    merged arithmetically: after resolving the text, run `ctest -L architecture` and set every
+    row to the values `archcheck` prints (`NOTE metric ... < baseline`), never raising a class.
+  - **Keep the `endFrameParams()` hunk separate from 027's shutdown hunk** in
+    `CRenderer::endFrame()`: 028's call comes after the contexts are deleted, 027's texture
+    shutdown is its own statement, and the two must not be folded into one block, so each spec's
+    hunk stays reviewable on its own and a revert of either leaves the other intact.
+  - **After 027 merges, the two `shading_parity` noise entries become paths that no longer
+    exist.** Spec 027 fixes the shared-scratch-file race (Q5), so `tests/shading_parity/ri.tif`
+    and `test.tif` stop being written. `image_manifest.sh diff` skips noise-listed paths before it
+    looks for them, so nothing is reported (harmless); only the summary line's image counts change.
 
 ## R16. Doubly compiled sources and `archcheck` (spec 025 R11 precedent)
 

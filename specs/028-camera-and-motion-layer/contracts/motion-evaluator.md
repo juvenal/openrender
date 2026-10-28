@@ -28,6 +28,18 @@ namespace openrender::motion {
 The polygons' fused sites call `atTime<double>(spatial0, spatial1, ctime)` on their own double
 expressions and cast the result to float, as they do today.
 
+**`ctime` types.** `atTimeD` and `atTimeF` take `float t`. A grid-sampling site that declares
+`const double ctime` (`patchgrid.cpp:243`, the quadrics' `sample()`) initialises it from a float
+array (`*time++`), so `ctime` holds a float value exactly and `atTimeD(.., ctime)` narrows it
+without loss. Each such site's initialiser is checked when it is migrated (tasks T064 to T070,
+T095); a `ctime` computed in double that is not exactly a float is stopped and reported.
+**`bsplinePatchgrid.cpp:233-236` is a mixed shape and does not fit either entry point**: its
+`const float ctime` makes `vertex1[j] * ctime` a float product (rounded to float) beside a double
+`vertex0[j] * (1.0 - ctime)`, which neither `atTimeD` (both double) nor `atTimeF` (both float)
+reproduces. **Maintainer decision (2026-10-27): that one lerp stays in place** in 028 (its `dPdtime`
+scale still goes through `toShutterRate`); no entry point is added, and it is noted for a later
+precision-unification phase.
+
 **Expression shape** (research R9): `key0 * (S(1) - t) + key1 * t`, in this operand order, is the
 shape of every starting-tree site (`interpolatev`, the quadrics, the patches, the polygons, the
 patch grids, `subdivision.cpp`). A site whose shape differs is not migrated onto `atTime` without
