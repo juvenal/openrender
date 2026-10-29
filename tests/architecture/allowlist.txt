@@ -20,7 +20,7 @@ DB-001  link     src/libshader/shading/shading.cpp  ->  _ZN10CPhotonMap6lookupEP
 DB-001  link     src/libshader/shading/shading.cpp  ->  _ZN13CGatherBundleC1Ev   # CGatherBundle::CGatherBundle()
 DB-001  link     src/libshader/shading/shading.cpp  ->  _ZN15CShadingContext7traceExEP10CRayBundle   # CShadingContext::traceEx(CRayBundle*)
 
-# --- DB-004: Geometry depends on the renderer core and on Scene Interface (65) ---
+# --- DB-004: Geometry depends on the renderer core and on Scene Interface (52) ---
 DB-004  include  src/ri/geometry/blobby.cpp  ->  src/ri/render/renderer.h
 DB-004  include  src/ri/geometry/blobbyRepeller.cpp  ->  src/ri/render/renderer.h
 DB-004  include  src/ri/geometry/csgSolid.cpp  ->  src/ri/parse/riInterface.h
@@ -156,7 +156,7 @@ DB-010  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer19textureCacheEnab
 DB-010  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer21textureCacheDirectoryE   # CRenderer::textureCacheDirectory
 DB-010  link     src/ri/texture/texture3d.cpp  ->  _ZN9CRenderer22retrieveDisplayChannelEPKc   # CRenderer::retrieveDisplayChannel(char const*)
 
-# --- DB-011: Hiders read renderer-core state (CRenderer) (182) ---
+# --- DB-011: Hiders read renderer-core state (CRenderer) (168) ---
 DB-011  include  src/ri/hiders/compositor.cpp  ->  src/ri/render/renderer.h
 DB-011  include  src/ri/hiders/irradiance.cpp  ->  src/ri/render/renderer.h
 DB-011  include  src/ri/hiders/irradianceDispatch.cpp  ->  src/ri/render/renderer.h
