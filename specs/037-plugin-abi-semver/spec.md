@@ -5,6 +5,20 @@
 **Status**: Draft
 **Input**: Constitution Principle VIII rule 4 remediation, layer L7 (modernization), after spec 023; GitHub issue #26 (registry DB-003) plus the plug-in ABI safety work of DB-014, the channel-descriptor half of DB-021 and the DSO-loading half of DB-019. The four published plug-in headers (`shadeop.h`, `dlo.h`, `implicit.h`, `dsply.h`) gain a SemVer interface version, a version query symbol and C-includability, each with a host-side MAJOR check. Display plug-ins move to a v2 interface (per-display context handle, `const` parameter snapshot, channel descriptors, no writable pointers into renderer statics, no file-static current display), with a documented threading contract and deferred unload. Shader DSO operands get a per-thread init and one shadeop module that owns loading and `dsoParse`. One Geometric Procedures module owns the dlo, implicit and RiProc loaders. The spec also defines the **shared plug-in convention** (decision D7 of `DEVNOTES_DETAILS/RENDER_ARCHITECTURE_REFERENCES.md`, section 9) that every later plug-in type copies. Run-time loading of the RIS plug-in types (integrators, Bxdfs, lights, filters, patterns, hiders) is spec 051 and is out of scope here.
 
+## Clarifications
+
+### Session 2026-10-29
+
+- Q: Display v1 support (FR-006)? -> A: Option B. Display v2 is the new MAJOR; a confined v1 adapter keeps legacy and explicit-1.x display drivers working, so the host supports each display MAJOR it still lists (1 and 2). Constitution rule 4 is read as "the host rejects a MAJOR it does not support". The constitution is NOT edited by this spec; an amendment is a separate decision (see Assumptions).
+- Q: Legacy unversioned plug-ins (FR-007)? -> A: Option B. Unversioned plug-ins load as 1.0.0 with a warning that names the release in which they will be rejected. The rejection happens in that later release; nothing in this spec depends on it. The release is 1.2.0 (037 is expected to ship in 1.1.0).
+- Q: Sunset release? -> A: 1.2.0. 037 is expected to ship in 1.1.0; the rejection happens in 1.2.0, not in 037, and no 037 task depends on it.
+- Q: v1 adapter and renderer pointers? -> A: Copies only. A v1 driver never gets a writable alias into renderer state; a third-party driver that wrote through those pointers loses that effect, and that is intended.
+- Q: Warning for an explicit display 1.x? -> A: None. Only unversioned plug-ins get the FR-007 warning.
+- Q: Dynamic-load generator module lifetime? -> A: Released at frame end, after the geometry it generated is destroyed (FR-024).
+- Q: `file_base.h` (FR-026)? -> A: Stop installing it; `CFileOutputBase` stays an in-tree helper for the in-tree file drivers. Install lists and docs (US8) follow.
+- Q: Is US7 (Texturing channel interface, DB-021's 3 edges) in 037? -> A: Yes, it stays.
+- Q: What happens to the incidental defects found while specifying? -> A: They are fixed in 037 as the work reaches each one, tracked by FR-031 to FR-039 with acceptance coverage.
+
 ## User Scenarios & Testing *(mandatory)*
 
 The "users" of this feature are the people who write and ship plug-ins (display drivers, shader DSO operands, dynamic-load procedurals and implicit surfaces, in-tree and third-party), the maintainers who review them against constitution Principle VIII, and the authors of the later specs that add plug-in types (035, 041, 043, 051) and need one convention to copy.
@@ -24,7 +38,7 @@ The "users" of this feature are the people who write and ship plug-ins (display 
 
 ### User Story 1 - The host rejects an incompatible plug-in with a clear diagnostic (Priority: P1)
 
-A plug-in author, or a user who installed a plug-in built for another release, loads a display driver, shadeop DSO, dynamic-load object or implicit-surface module. If the plug-in was built against an incompatible MAJOR version of the interface, the renderer refuses it and says so in plain words, naming the file, the interface, the plug-in's version and the host's version. A plug-in built against an older MINOR loads; one built against a newer MINOR loads with a warning; one with no version at all (every plug-in built before this spec) loads as 1.0.0 with a warning.
+A plug-in author, or a user who installed a plug-in built for another release, loads a display driver, shadeop DSO, dynamic-load object or implicit-surface module. If the plug-in was built against an incompatible MAJOR version of the interface, the renderer refuses it and says so in plain words, naming the file, the interface, the plug-in's version and the host's version. A plug-in built against an older MINOR loads; one built against a newer MINOR loads with a warning; one with no version at all (every plug-in built before this spec) loads as 1.0.0 with a warning that names the release in which unversioned plug-ins will be rejected. For display plug-ins the host supports MAJOR 1 (through a confined adapter) and MAJOR 2; any other MAJOR is rejected.
 
 **Why this priority**: It is constitution Principle VIII rule 4 and the acceptance of issue #26. Everything else in this spec is built on a version being declared and checked.
 
@@ -32,11 +46,12 @@ A plug-in author, or a user who installed a plug-in built for another release, l
 
 **Acceptance Scenarios**:
 
-1. **Given** a test plug-in whose declared MAJOR differs from the host's, **When** the renderer loads it, **Then** the load fails, the plug-in is not called, the diagnostic names the file, the interface, both versions and the remedy ("rebuild against the installed header"), and the render either continues without that plug-in or fails exactly as it does today for a plug-in that cannot be found.
-2. **Given** a plug-in with the host's MAJOR and the same or an older MINOR, **When** it loads, **Then** it works and no version diagnostic is printed.
-3. **Given** a plug-in with the host's MAJOR and a newer MINOR, **When** it loads, **Then** it loads and one warning names both versions.
-4. **Given** a plug-in that exports no version query symbol, **When** it loads, **Then** it is treated as 1.0.0 and one warning per module per run says it is unversioned.
-5. **Given** the four in-tree display driver modules (file for TIFF and PNG, OpenEXR, RGBE, framebuffer), **When** the tree is built, **Then** each exports the current display interface version, loads without a diagnostic and renders the same image as before.
+1. **Given** a test plug-in whose declared MAJOR is not one the host supports, **When** the renderer loads it, **Then** the load fails, the plug-in is not called, the diagnostic names the file, the interface, both versions and the remedy ("rebuild against the installed header"), and the render either continues without that plug-in or fails exactly as it does today for a plug-in that cannot be found.
+2. **Given** a plug-in with a MAJOR the host supports and the same or an older MINOR, **When** it loads, **Then** it works and no version diagnostic is printed.
+3. **Given** a plug-in with a MAJOR the host supports and a newer MINOR, **When** it loads, **Then** it loads and one warning names both versions.
+4. **Given** a plug-in that exports no version query symbol, **When** it loads, **Then** it is treated as 1.0.0 and one warning per module per run says it is unversioned and names the release in which it will be rejected.
+5. **Given** the four in-tree display driver modules (file for TIFF and PNG, OpenEXR, RGBE, framebuffer), **When** the tree is built, **Then** each exports the current display interface version (2.0.0), loads without a diagnostic and renders the same image as before.
+6. **Given** a legacy display driver (no version symbol, or an explicit 1.x) built before this spec, **When** the renderer loads it, **Then** it loads through the v1 adapter with the legacy warning (unversioned only), renders the same image as before, and cannot reach or write renderer-core state.
 
 ---
 
@@ -53,7 +68,7 @@ A plug-in author writing in C (or in C++) includes `shadeop.h`, `dlo.h`, `implic
 1. **Given** each of the four headers, **When** included alone and together by a strict C17 translation unit, **Then** it compiles without warnings.
 2. **Given** the same headers included by a C++20 translation unit, **When** compiled, **Then** every existing in-tree plug-in and the example DSO still compile unchanged apart from the one-line version declaration.
 3. **Given** a plug-in built with hidden-by-default visibility, **When** it is loaded, **Then** the entry points and the version query symbol resolve.
-4. **Given** the `shadeop.h` exec typedef and the `SHADEOP` macro, **When** both are compiled together, **Then** they describe one signature.
+4. **Given** the `shadeop.h` exec typedef and the `SHADEOP` macro, **When** both are compiled together, **Then** they describe one signature (the `void *[]` versus `char *[]` mismatch is gone; tracked by FR-031).
 
 ---
 
@@ -72,6 +87,8 @@ A display driver author receives, for each display, a per-display context handle
 3. **Given** an AOV display with several channels, **When** the driver starts, **Then** the descriptors give each channel's name, sample count, type and offset, and the offsets and counts add up to the sample count the driver is sent in every tile.
 4. **Given** a driver whose `data` call fails on the first tile, **When** many threads keep dispatching tiles, **Then** no thread calls into an unloaded module (repeated under a thread sanitizer) and the module is unloaded only after `finish` for that display has returned.
 5. **Given** the header and the guide, **When** a driver author reads them, **Then** the reentrancy rules, the lifetime of the snapshot and descriptors, and the unload rule are stated, and every in-tree driver is written to them.
+6a. **Given** a display for which a parameter lookup arrives with no current display (a legacy v1 driver calling the callback outside `start`, or `quantize`/`dither` with no display), **When** the lookup runs, **Then** it returns a documented not-found result and never dereferences a null display (FR-020, FR-039).
+6b. **Given** a frame in which every display finishes normally, **When** `endDisplays` runs, **Then** each driver module is released after its `finish` has returned (FR-018, FR-035).
 6. **Given** the in-tree driver modules (file for TIFF and PNG, OpenEXR, RGBE, framebuffer), **When** migrated, **Then** the decoded pixels of the display and AOV scenes are identical to the pre-change output.
 
 ---
@@ -88,8 +105,8 @@ A shadeop author can ask for per-thread state: the renderer calls an optional pe
 
 1. **Given** a test shadeop that exports the per-thread entry points, **When** shaded on N threads, **Then** `init` runs once per participating thread, each `exec` receives its own thread's data, and the matching cleanup runs for every init before the module can be unloaded.
 2. **Given** a legacy shadeop with only the process-wide init, **When** shaded on N threads, **Then** it receives the same single data pointer as today and its output is unchanged.
-3. **Given** the shader compiler and the renderer, **When** each resolves a shadeop prototype, **Then** both go through the shadeop module and neither includes the Scene Interface's `dso.h` nor carries its own copy of the declaration parser.
-4. **Given** a module table entry whose `exec` symbol does not resolve, **When** the module is scanned, **Then** it is not selected for that prototype and a diagnostic names the missing symbol.
+3. **Given** the shader compiler and the renderer, **When** each resolves a shadeop prototype, **Then** both go through the shadeop module and neither includes the Scene Interface's `dso.h` nor carries its own copy of the declaration parser, and the parser keeps no result in file-static state shared between callers (FR-012, FR-037).
+4. **Given** a module table entry whose `exec` symbol does not resolve, **When** the module is scanned, **Then** it is not selected for that prototype, a diagnostic names the missing symbol, and the scan continues to a later module that has the operand; the test is on the resolved `exec[0]`, not on the output array's address (FR-013, FR-033).
 
 ---
 
@@ -104,8 +121,8 @@ The code that loads a DLO (`Geometry "dso"` style primitive), an implicit-surfac
 **Acceptance Scenarios**:
 
 1. **Given** the three kinds of procedural module, **When** each is loaded through its RIB statement, **Then** the version outcomes of US1 hold identically, produced by the same code.
-2. **Given** a DLO named by a bare file name that the procedural search path locates, **When** it loads, **Then** the located file is the one loaded.
-3. **Given** a `RiProcDynamicLoad` generator that has been expanded, **When** the frame ends, **Then** its module is released and it is not released while its generated geometry can still call it.
+2. **Given** a DLO named by a bare file name that the procedural search path locates, **When** it loads, **Then** the located file is the one loaded, not the unresolved name (FR-023, FR-032).
+3. **Given** a `RiProcDynamicLoad` generator that has been expanded, **When** the frame ends, **Then** its module is released (the previously commented-out unload now happens at the defined point, FR-024, FR-034) and it is not released while its generated geometry can still call it.
 4. **Given** the architecture check, **When** it runs, **Then** no allowlist line is added for the new module and the Scene Interface reaches the loader only through a route the allowed-dependency table permits.
 
 ---
@@ -141,9 +158,9 @@ The 3D-texture channel-list parser resolves channel names through an interface T
 
 ---
 
-### User Story 8 - `file_base.h` is either usable or no longer promised (Priority: P3)
+### User Story 8 - `file_base.h` is no longer promised and the install documentation is correct (Priority: P3)
 
-A third-party display author reading the install list and the guide is not told to use a helper that cannot link. Whichever way the decision falls, the installed headers, the install manifest, `INSTALL_ARTIFACTS.md` and `DISPLAY_PLUGIN_GUIDE.md` agree with one another and with the tree.
+A third-party display author reading the install list and the guide is not told to use a helper that cannot link. `file_base.h` is no longer installed (`CFileOutputBase` stays an in-tree helper), and the installed headers, the install manifest, `INSTALL_ARTIFACTS.md` and `DISPLAY_PLUGIN_GUIDE.md` agree with one another and with the tree, with no stale paths.
 
 **Why this priority**: Documentation and install hygiene; no runtime effect.
 
@@ -152,7 +169,7 @@ A third-party display author reading the install list and the guide is not told 
 **Acceptance Scenarios**:
 
 1. **Given** a scratch install, **When** the guide's example plug-in is built against the installed headers alone, **Then** it builds, loads and renders.
-2. **Given** the install list and guides, **When** compared with the installed files, **Then** every header they name is installed and every installed header is named.
+2. **Given** the install list and guides, **When** compared with the installed files, **Then** every header they name is installed and every installed header is named, `file_base.h` is in neither, and the guides' include paths and source paths exist in the tree (FR-026, FR-036, FR-038).
 
 ---
 
@@ -163,8 +180,9 @@ A third-party display author reading the install list and the guide is not told 
 - **A module is both a display driver and a shadeop** (exports symbols for several families). Each family's loader checks only its own version symbol.
 - **One shadeop module holds many tables.** There is one version per module, not per table.
 - **The same module is loaded twice** (two displays with the same driver, many DLO instances). The version is checked once per module per run, and the legacy warning is printed once per module per run.
-- **A display driver is a legacy unversioned one** (see FR-006): its behaviour depends on the answer to the display-v1 question.
-- **`findParameter`'s callers outside `displayStart`.** A legacy driver that calls the parameter callback after `start` returns: the outcome is defined (a documented result), not a read of whichever display started last.
+- **A display driver is a legacy unversioned one** (FR-006): it loads as 1.0.0 through the confined v1 adapter, with the legacy warning.
+- **A display driver declares an explicit 1.x**: same adapter, no legacy warning; a newer 1.x MINOR warns as for any family.
+- **`findParameter`'s callers outside `displayStart`.** A legacy driver that calls the parameter callback after `start` returns: the outcome is defined (the lookup returns not-found and the adapter logs once), not a read of whichever display started last.
 - **Zero-channel and depth-only displays.** The descriptor list is empty-safe and a `z`-only display gets one descriptor.
 - **All displays disable themselves mid-frame.** Rendering stops as it does today; no module is unloaded until every in-flight call has returned.
 - **Module unload at exit.** A module still referenced by live geometry (a DLO instance, an expanded procedural) is unloaded only after that geometry is destroyed.
@@ -178,13 +196,13 @@ A third-party display author reading the install list and the guide is not told 
 
 **Versioning and checks (US1, US2)**
 
-- **FR-001**: Each of `shadeop.h`, `dlo.h`, `implicit.h` and `dsply.h` MUST declare its interface version as SemVer 2.0.0 `MAJOR.MINOR.PATCH` macros, and MUST document the meaning of each part and a version history (every version change documented, per constitution rule 4). The current dlo, implicit and shadeop interfaces start at 1.0.0, except where FR-011 adds an optional entry point (MINOR).
+- **FR-001**: Each of `shadeop.h`, `dlo.h`, `implicit.h` and `dsply.h` MUST declare its interface version as SemVer 2.0.0 `MAJOR.MINOR.PATCH` macros, and MUST document the meaning of each part and a version history (every version change documented, per constitution rule 4). The current dlo, implicit and shadeop interfaces start at 1.0.0, except where FR-011 adds an optional entry point (MINOR). Display is 2.0.0; the display version history MUST also record that 1.x is the legacy interface and that the host still supports it through the v1 adapter (FR-006).
 - **FR-002**: Each header MUST provide a macro that defines a C-linkage version query symbol returning the version the plug-in was compiled against, so a plug-in declares its version by including the header and invoking one macro. There is one version per module per family.
-- **FR-003**: The host MUST read that symbol in every loader of the four families before calling any other entry point of the module. It MUST reject a MAJOR different from its own with a diagnostic that names the file, the interface, the plug-in's version and the host's version, and MUST NOT call the plug-in. It MUST load an equal-or-older MINOR silently and a newer MINOR with one warning naming both versions.
+- **FR-003**: The host MUST read that symbol in every loader of the four families before calling any other entry point of the module. It MUST reject a MAJOR that it does not support (each family lists the MAJORs the host supports; for dlo, implicit and shadeop that is the host's own, for display it is 1 and 2) with a diagnostic that names the file, the interface, the plug-in's version and the host's version, and MUST NOT call the plug-in. It MUST load an equal-or-older MINOR silently and a newer MINOR with one warning naming both versions.
 - **FR-004**: The check and the diagnostic MUST be produced by one shared routine used by every loader, not copied per loader.
 - **FR-005**: The four headers MUST be includable from C17 and from C++20 in any combination, with all C++-only constructs guarded, and MUST declare the entry points so that a plug-in compiled with hidden-by-default symbol visibility still exports them. The `SHADEOP` macro and the exec function typedef MUST describe the same signature.
-- **FR-006**: A plug-in that exports no version symbol MUST be loaded as 1.0.0 with one warning per module per run. For display plug-ins, whether a v1 (1.x) driver is still accepted once the host speaks display v2 is [NEEDS CLARIFICATION: display v1 support. The unversioned legacy rule makes every existing display driver 1.0.0, but display v2 is a MAJOR change and constitution rule 4 has the host reject a MAJOR it does not speak. Options: (A) v2 only, unversioned and 1.x display drivers are rejected with a message that says how to upgrade (breaks third-party drivers); (B) the host keeps a confined v1 adapter for legacy drivers, with the writable-pointer behaviour limited to them (needs rule 4 read as "each MAJOR the host still supports", which the constitution should state); (C) display 1.0.0 is first published as today's interface plus the query symbol, with v2 as 2.0.0 and both accepted for a stated period. Recommended: B.]
-- **FR-007**: How long the legacy (unversioned) allowance lasts is [NEEDS CLARIFICATION: legacy-plug-in sunset. Issue #26 suggests "warn for one release, then require the symbol"; the plan says only "unversioned = 1.0.0 + warning". Options: (A) accept with a warning indefinitely, the removal being a separate later decision; (B) accept with a warning in this release and make the symbol mandatory from a named later release, documented now; (C) reject unversioned plug-ins immediately. No requirement or task of this spec may depend on a future release or on the merge. Recommended: A, with the deprecation stated in the guides.]
+- **FR-006**: A plug-in that exports no version symbol MUST be loaded as 1.0.0 with one warning per module per run (the text of FR-007). Display v2 is the new display MAJOR; the host MUST keep a confined v1 adapter so display drivers at MAJOR 1 (unversioned or explicit 1.x) keep working, and so the host supports each display MAJOR it still lists (1 and 2). The adapter MUST be confined to one module and one place in the loader: v2 code paths know nothing of v1. Through the adapter a v1 driver MUST NOT be given pointers that alias renderer-core state (the adapter serves lookups from per-display, host-owned copies only; a third-party v1 driver that wrote through those pointers loses that effect, and this is intended) and MUST NOT depend on a host-wide "current display" (FR-014): the adapter binds the display for the duration of that driver's `displayStart` call only, and a lookup outside it returns not-found (FR-020). The host MUST reject a display MAJOR other than 1 or 2. The wording of constitution rule 4 that this relies on ("the host rejects a MAJOR it does not support") is recorded in the Assumptions; this spec does not edit the constitution.
+- **FR-007**: An unversioned plug-in MUST be accepted as 1.0.0 with a warning, once per module per run, whose text names the release in which unversioned plug-ins will be rejected: **1.2.0** (this spec is expected to ship in 1.1.0). The same release name MUST be stated in `DISPLAY_PLUGIN_GUIDE.md`, the shadeop and procedurals guides and `NEWS.md`/`ChangeLog.md`. The rejection itself is implemented in that later release, not here: no requirement, task or test of this spec may depend on it, on a future release, or on the merge. The warning text takes the release name from one constant so the later change is a one-line edit.
 - **FR-008**: Every in-tree plug-in MUST declare its version: the four display driver modules, and a test plug-in for each other family. An example DSO (`examples/dsotest`) MUST be updated to declare it.
 - **FR-009**: `RiProcDynamicLoad` generators implement the RenderMan Interface's fixed entry points (`ConvertParameters`, `Subdivide`, `Free`), which this spec does not rename or version-gate. A generator MAY export the same kind of version query symbol; if present it is checked as in FR-003, and if absent it is accepted without a warning.
 
@@ -213,12 +231,12 @@ A third-party display author reading the install list and the guide is not told 
 
 - **FR-022**: One Geometric Procedures module MUST own locating-and-loading, version checking, symbol resolution and release for dlo, implicit-surface and `RiProcDynamicLoad` modules, with the renderer core, Geometry and the RI entry point calling it. The existing per-site `osLoadModule`/`osResolve` sequences MUST be removed. The Scene Interface MUST reach the loader only by a route the constitution's allowed-dependency table permits (a registered hook or Geometry), not by a new direct dependency.
 - **FR-023**: The DLO loader MUST load the file the search located. Error messages for a missing entry point or failed init keep naming the module as they do today.
-- **FR-024**: A module's release MUST wait for every object that can still call it: a DLO or implicit instance holds its module until the instance is destroyed; a `RiProcDynamicLoad` generator's module is held until the geometry it generated is released, then released.
+- **FR-024**: A module's release MUST wait for every object that can still call it: a DLO or implicit instance holds its module until the instance is destroyed; a `RiProcDynamicLoad` generator's module is held until the geometry it generated is destroyed, and is released at frame end, after that.
 
 **Texturing and install (US7, US8)**
 
 - **FR-025**: The 3D-texture channel-list parsing MUST obtain channel descriptions through an interface Texturing owns, filled by the renderer core from the Graphics State channel registry, and MUST NOT include the renderer core or the Graphics State channel type. It MUST keep working with no active session.
-- **FR-026**: The `file_base.h` question MUST be resolved: [NEEDS CLARIFICATION: `file_base.h`. It is installed but cannot be used outside the tree (see the starting point). Options: (A) stop installing it, keep `CFileOutputBase` an in-tree helper for the in-tree file drivers, and teach third-party authors the C interface with an example that does not need it; (B) install it properly, which means a stable C++ ABI or a header-and-source example package, installing its dependencies, and a version of its own. Recommended: A.] Whichever is chosen, the installed headers, the install manifest, `INSTALL_ARTIFACTS.md` and `DISPLAY_PLUGIN_GUIDE.md` MUST agree.
+- **FR-026**: `file_base.h` MUST no longer be installed. `CFileOutputBase` and the `openrenderfilebase` library stay an in-tree helper for the in-tree file drivers, and third-party authors are taught the C display interface by an example that does not need it. The installed headers, the install manifest, `INSTALL_ARTIFACTS.md` and `DISPLAY_PLUGIN_GUIDE.md` MUST agree: none names `file_base.h` as a third-party facility. This also resolves `file_base.h` including the uninstalled `common/os.h` (FR-038).
 
 **Tests, documentation, registry**
 
@@ -226,6 +244,20 @@ A third-party display author reading the install list and the guide is not told 
 - **FR-028**: Documentation MUST be updated: a version history per interface, the convention document, `DISPLAY_PLUGIN_GUIDE.md` (display v2, correct include paths), a shadeop and a procedurals guide section (or new guides), `INSTALL_ARTIFACTS.md` and `DEVNOTES.md`.
 - **FR-029**: The registry MUST move DB-003 and DB-014 to Resolved with this spec's number and the date, delete the three DB-021 and the three DB-019 `dso.h` allowlist lines, update DB-019 (its JIT and standalone-compiler items remain for specs 038 and 043) and DB-024's display-ABI evidence, and add no allowlist line. New directories are classified in the architecture check's domain map.
 - **FR-030**: No file outside the plug-in boundary changes behaviour: with no plug-in loaded, every existing scene renders as before; the visual and shading-parity suites, the framebuffer tests and the architecture check pass.
+
+**Incidental defects found while specifying (fixed in this spec as the work reaches each one)**
+
+- **FR-031**: The shadeop exec typedef and the `SHADEOP` macro MUST describe one signature (today `void *[]` versus `char *[]`). Covered by FR-005, US2 scenario 4.
+- **FR-032**: The DLO loader MUST load the path the search located, not the unresolved name. Covered by FR-023, US5 scenario 2.
+- **FR-033**: The shadeop table scan MUST test the resolved `exec[0]` entry, not whether the output array pointer is non-null. Covered by FR-013, US4 scenario 4.
+- **FR-034**: `RiProcDynamicLoad` MUST release its module at the defined point (the commented-out unload is replaced by the lifetime rule of FR-024). Covered by US5 scenario 3.
+- **FR-035**: `endDisplays` MUST release every working display module after its `finish` returns (today it never unloads). Covered by FR-018, US3 scenario 6b.
+- **FR-036**: The stale paths in `DISPLAY_PLUGIN_GUIDE.md` (`ri/dsply.h`) and `INSTALL_ARTIFACTS.md` (`src/file/`) MUST be corrected to paths that exist. Covered by FR-028, US8 scenario 2.
+- **FR-037**: `dsoParse` MUST be compiled into exactly one library and keep no result in file-static state shared between callers. Covered by FR-012, US4 scenario 3.
+- **FR-038**: `file_base.h` MUST NOT include a header that is not installed; resolved by not installing `file_base.h` (FR-026).
+- **FR-039**: `findParameter` MUST NOT dereference a possibly null current display for `quantize` and `dither`. Covered by FR-020, US3 scenario 6a.
+
+Each of FR-031 to FR-039 MUST have a test or a mechanical check in the plug-in test set (FR-027) or the install check (SC-011); the tasks stage lists them.
 
 ### Key Entities
 
@@ -242,7 +274,7 @@ A third-party display author reading the install list and the guide is not told 
 
 ### Measurable Outcomes
 
-- **SC-001**: For each of the four families, a test plug-in built with a different MAJOR is rejected at load with a diagnostic that contains the file name, the interface name and both version numbers, and the plug-in's code is never entered (verified by the test plug-in recording any call).
+- **SC-001**: For each of the four families, a test plug-in built with a MAJOR the host does not support is rejected at load with a diagnostic that contains the file name, the interface name and both version numbers, and the plug-in's code is never entered (verified by the test plug-in recording any call).
 - **SC-002**: For each family, plug-ins at an equal or older MINOR load with no version message, at a newer MINOR load with exactly one warning, and with no version symbol load with exactly one legacy warning per module per run, across at least two loads of the same module.
 - **SC-003**: All four headers compile without warnings as strict C17 and as C++20, individually and together, and a hidden-visibility plug-in of each family loads.
 - **SC-004**: The decoded pixels of every output of the four in-tree display driver modules on the display and AOV scenes are identical to the pre-change outputs (zero differing pixels on deterministic scenes), and the framebuffer tests pass.
@@ -252,13 +284,17 @@ A third-party display author reading the install list and the guide is not told 
 - **SC-008**: There is exactly one copy of the version-check code, one copy of the declaration parser and one module per family doing its loading; a count of `osLoadModule` call sites outside those modules and the display host loader is zero.
 - **SC-009**: The architecture check passes with the three DB-019 `dso.h` edges and the three DB-021 edges gone, no line added, DB-003 and DB-014 under Resolved with this spec's number and the date, and `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md` and the guides consistent with the tree.
 - **SC-010**: A throwaway plug-in type written only from the convention header and the C++ convenience header is accepted when its table is current or larger and rejected, without reading past the table, when it is smaller or of a different MAJOR.
-- **SC-011**: A display plug-in written from the guide's example builds against the headers installed in a scratch prefix and renders, and the install list names exactly the headers installed.
+- **SC-011**: A display plug-in written from the guide's example builds against the headers installed in a scratch prefix and renders, the install list names exactly the headers installed, and `file_base.h` is neither installed nor named.
+- **SC-013**: A legacy display driver (unversioned and explicit 1.x) built before this spec loads through the v1 adapter, renders pixels identical to the pre-change output, and cannot change renderer-core state; a display MAJOR other than 1 or 2 is rejected.
+- **SC-014**: Each of the nine incidental defects (FR-031 to FR-039) has a passing test or mechanical check.
 - **SC-012**: The full test suite (visual, shading parity, state, common, framebuffer, architecture) passes on macOS and Linux with no threshold widened and no test disabled.
 
 ## Assumptions
 
+- **Constitution amendment needed (not made here)**: rule 4 of Principle VIII says the host "MUST reject a plug-in whose MAJOR version differs from its own". With the v1 display adapter the host supports two display MAJORs, so the rule as written would forbid it. This spec implements the reading "the host rejects a MAJOR it does not support" and records that the constitution should say so. Proposed wording: "The host MUST reject a plug-in whose MAJOR version is not one the host supports, with a clear diagnostic. A host MAY support more than one MAJOR of an interface, for example through a confined adapter for an older MAJOR; each supported MAJOR MUST be listed in that interface's version history, and dropping support for a MAJOR is a documented version change." Amending the constitution is the maintainer's separate decision (speckit-constitution); no requirement or task of this spec depends on it.
+- **Legacy sunset**: the release named in FR-007 is a documented intention; the rejection is implemented in that release, not here.
 - **Scope of "plug-in"**: this spec covers the four published families and defines the convention; run-time loading of the new RIS plug-in types, their registries and the constitution amendment that extends rule 4 to them are spec 051. The built-in registries of specs 030, 035 and 041 are not touched here.
-- **Version numbers**: shadeop, dlo and implicit are 1.0.0 for the current ABI; the shadeop per-thread entry points are an optional addition (1.1.0). Display is a MAJOR change (2.0.0). The exact constants are settled in the plan.
+- **Version numbers**: shadeop, dlo and implicit are 1.0.0 for the current ABI; the shadeop per-thread entry points are an optional addition (1.1.0). Display is a MAJOR change (2.0.0), and the host keeps supporting display 1.x through the v1 adapter. The exact constants are settled in the plan.
 - **Encoding**: versions are encoded `MAJOR<<16 | MINOR<<8 | PATCH` (decision D7 and section 9 of the architecture reference), so MINOR and PATCH each have 8 bits.
 - **Domains**: the shadeop module is classified as the Shader DSO Operands domain and the procedures module as the Geometric Procedures domain, each depending only on its own ABI header and the infrastructure floor; the display host loader stays in the renderer core (the composition root). Shading and Geometry may depend on them as the allowed-dependency table says; the Scene Interface may not depend on Procedures directly. Plan classifies new files in `tests/architecture/domain-map.txt`.
 - **Display parameter lifetime**: the in-tree drivers read parameters only inside `start`; the snapshot nevertheless stays valid until `finish` returns so a driver may keep reading it.
