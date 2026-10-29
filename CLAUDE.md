@@ -102,7 +102,7 @@ disposable, gitignored deploy tree only refreshed by `cmake --install`
 inside it.
 
 **Where the compiled shaders actually live:** `${CMAKE_BINARY_DIR}/shaders/` —
-108 `.rslo` (+ 108 `.slo` when the JIT is on), produced by `shaders/CMakeLists.txt`
+127 `.rslo` (+ 127 `.slo` when the JIT is on), produced by `shaders/CMakeLists.txt`
 as a **build** step. The tracked `shaders/` tree holds only `.sl` sources and
 `includes/`; compiled objects never land next to them. `cmake --install` copies
 the build-tree objects into the deploy tree — it no longer compiles anything.
@@ -215,6 +215,20 @@ shader slots are private and written through `bind*()`; a `bxdf` slot, a
 Surface/Bxdf last-bound record (`governingMaterial()`) and a scoped pattern-node
 table (`patterns`) exist for later specs. See gotcha 24.
 
+### Texture system (spec 027)
+`CTextureSystem` (`src/ri/texture/textureSystem.h`) owns Texturing's state for one
+frame: the tile cache and the per-thread budgets (`TexturePerthread`), the file
+families, and the load lock. The core creates it in `beginFrame()`
+(`CRenderer::textureSystem`, with a `CSearchPathResolver` over `texturePath` as its
+`CTextureFileResolver`) and deletes it in `endFrame()`. Handles are opaque
+(`TextureHandle`); a lookup takes a caller-built `TextureOpt` (the options and the
+position in the sample stream, which the caller writes back with
+`commitTextureDraws()`) and the thread's `TexturePerthread`, never a shading context.
+Shading reaches textures only through `CRendererServices::textureSystem()` and
+`libshader/shading/textureCalls.{h,cpp}`; the 3D channel operations go through
+`texture3dResolve/Lookup/Store` on the services. The RGBE codec lives in
+`libRIBCommon` (`src/common/rgbe.{h,cpp}`). See gotcha 25.
+
 ### Coordinate / matrix conventions
 Column-major matrices, `element(row,col) = row + 4*col`. `from` = local→world,
 `to` = world→local = `from^-1`. The REYES vertex buffer stores **sample
@@ -229,6 +243,8 @@ ctest --test-dir build -L visual -E slow                # skip slow tests (motio
 ctest --test-dir build -L libshader                     # compiler unit tests
 ctest --test-dir build -L common                        # libRIBCommon: sink, arena, vocabulary, state ownership
 ctest --test-dir build -L shading_parity                # JIT/interpreter parity, renderer-services routing, the illumination hook
+ctest --test-dir build -L texture_tile -j2              # texture system: cache, resolver, concurrency, sample-stream cursor (opt-in disk-cache scripts included)
+ctest --test-dir build -L texture_only                  # Texturing-only program: links libRIBCommon alone and reproduces the starting tree's lookups
 ctest --test-dir build -L state                         # Graphics State: handles and counts, last-bound record, pattern table, channel registry, light order, vocabulary
 ctest --test-dir build -LE determinism-sweep -j4        # the everyday full run: everything except the opt-in determinism sweep
 ctest --test-dir build -L '^determinism$' -j2           # default determinism set (148): harness, tie and derivative tests, one demanding scene per family
@@ -561,6 +577,35 @@ not in the agent definitions.
    to reverse them on every push. The unchecked cast of a light entry to
    `CProgrammableShaderInstance` (DB-013) lives in `lightInstanceOf()`.
 
+25. **The texture system is per frame, and its load lock is the core's
+   `shaderMutex` (spec 027).** `CRenderer::textureSystem` exists from
+   `beginFrame()` to `endFrame()`; `textureSystem()` of the services is `nullptr`
+   between frames, and with none installed a lookup returns the `fill` value and
+   warns once per builtin. The core passes `&CRenderer::shaderMutex` as the system's
+   `loadMutex`. It is a plain, non-recursive mutex, so **nothing that holds it may
+   call `handle()`**: the services getters that hold it (`getCache`, `getTexture3d`,
+   `getPhotonMap`) never reach a texture handle, a new caller that does is a
+   self-deadlock, and a debug build asserts a re-entry of `handle()`. A consumer
+   outside a renderer must call `globalArena.init()` first (`RiBegin` does it):
+   synthesizing an unbaked PNG/EXR/RGBE source decodes into it, behind a
+   process-wide function-local mutex in `texture.cpp`. `environment()` and `shadow()`
+   trace **by name** (`"raytrace"` or the shader's own `"reflection"`/`"shadow"`),
+   never because a handle is missing. Under the JIT, `texture()`, `environment()` and
+   `shadow()` bind their optional parameter lists with
+   `jitParameterList<CTextureLookup/CEnvironmentLookup>` and build their footprint
+   with the helpers the interpreter's macros call (`libshader::textureCorners`,
+   `environmentCorners`); the entry points are `op_*_v3`, so a `.slo` compiled before
+   spec 027 must be rebuilt. A shader's own parameter or local now shadows an RSL
+   global of the same name in the JIT's variable table (it used to lose to the
+   global). `.slo` and `.rslo` renders of a shader that calls `specular()` agree to
+   the last bits, not bit for bit: the JIT's `callSpecular` normalizes in float and
+   the interpreter's `normalizev` in double, so an 8-bit image is equal unless a
+   one-ulp difference crosses a rounding edge (Linux: 3 of the 18 texture parity
+   scenes read `MaxBlockAvgDiff` 0.02 between `.slo` and `.rslo`; macOS reads 0.00).
+   The only `CShadingContext` left in `src/ri/texture` is the 3D family
+   (`texture3d.h`, `pointHierarchy`, the `brickmap`/`pointCloud` assertion
+   overrides), for spec 032.
+
 ## Active Technologies
 - C++20, CMake ≥3.19; `libtiff`/`libpng` (mandatory), OpenEXR (optional,
   `HAVE_OPENEXR`-gated), in-tree RGBE codec — no new dependencies
@@ -596,8 +641,21 @@ not in the agent definitions.
   (025-graphics-state-handles)
 - Storage: N/A — memory only; no new persistent state
   (025-graphics-state-handles)
+- C++20, CMake ≥3.19, `-Werror`; no new dependencies — Texturing owns its cache
+  in a per-frame `CTextureSystem`, Shading reaches it through `CRendererServices`,
+  the RGBE codec moves to `libRIBCommon` (027-texture-system)
+- Storage: N/A — memory only; no new persistent state (027-texture-system)
 
 ## Recent Changes
+- 027-texture-system: Texturing's state (tile cache, per-thread budgets, file
+  families) lives in a per-frame `CTextureSystem` behind opaque handles and a
+  caller-built `TextureOpt`; the core supplies a file resolver; Shading reaches it
+  through `CRendererServices::textureSystem()` and `textureCalls` (flat-namespace
+  imports 7 → 6, DB-010 35 → 8 edges, DB-026 resolved); the RGBE codec moved to
+  `libRIBCommon`; under `.slo`, `texture()`/`environment()`/`shadow()` now honour
+  their parameter lists and match the interpreter (the only output change; `.rslo`
+  renders are byte-identical), and a JIT shader's own parameter or local shadows a
+  same-named RSL global (see spec 027).
 - 025-graphics-state-handles: Graphics State holds `ShaderGroupRef`/`MapRef`
   handles instead of `CShaderInstance*`/`CPhotonMap*` (DB-008: 7 include
   edges → 0), with a `bxdf` slot, a Surface/Bxdf last-bound record and a
