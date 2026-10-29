@@ -28,6 +28,7 @@
 
 #include "common/diagnostics.h"
 #include "implicitSurface.h"
+#include "motion.h"
 #include "objectMisc.h"
 #include "renderer.h"
 #include "reyes.h"
@@ -139,7 +140,7 @@ void CImplicit::intersect(CShadingContext *, CRay *ray) {
         lastP[0] = (float)(ray->from[0] + ray->dir[0] * lastT);
         lastP[1] = (float)(ray->from[1] + ray->dir[1] * lastT);
         lastP[2] = (float)(ray->from[2] + ray->dir[2] * lastT);
-        lastF = evalFunction(lastdF, data, lastP, ray->time);
+        lastF = evalFunction(lastdF, data, lastP, openrender::motion::pluginTime(*ray));
 
         dt = (float)fabs(lastF) * scaleFactor;
 
@@ -152,7 +153,7 @@ void CImplicit::intersect(CShadingContext *, CRay *ray) {
         P[1] = (float)(ray->from[1] + ray->dir[1] * t);
         P[2] = (float)(ray->from[2] + ray->dir[2] * t);
         assert(dotvv(P, P) >= 0);
-        F = evalFunction(dF, data, P, ray->time);
+        F = evalFunction(dF, data, P, openrender::motion::pluginTime(*ray));
 
         if ((lastF * F < 0) && (dt > C_EPSILON)) { // Did we step through the object ?
             dt *= 0.5f;
@@ -173,7 +174,7 @@ void CImplicit::intersect(CShadingContext *, CRay *ray) {
             // We found an intersection
             ray->object = this;
             if (evalNormalFunction != NULL)
-                evalNormalFunction(dF, data, P, ray->time);
+                evalNormalFunction(dF, data, P, openrender::motion::pluginTime(*ray));
             mulmn(ray->N, xform->to, dF);
             ray->t = (float)t;
             return;

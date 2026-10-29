@@ -511,9 +511,9 @@ is taken on the approved tree, and phase 3 does not start until its files are in
 
 **Independent test**: `Motion_Replay_implicit` green (the first coverage of `CImplicit`).
 
-- [ ] T086 [US2] `implicitSurface.cpp:142, 155, 176`: `ray->time` passed to `evalFunction`/`evalNormalFunction` becomes `motion::pluginTime(*ray)` (the unclamped shutter fraction, the value the ray carries). No arithmetic moves; **`implicit.h` (the Procedures ABI) is unchanged** and its DB-003 entry is untouched.
-- [ ] T087 [US2] [RUN] CP-a, CP-b, CP-c, **CP-d**, CP-m. Expected: **no allowlist change**, `ALLOWED DB-004 x 56`, `DB-011 x 166`; `git diff 4eb683b -- src/ri/geometry/implicit.h` is empty; `Motion_Replay_implicit` green.
-- [ ] T088 **Checkpoint 9 (PAUSE 9)**: stage; summarize; wait for review.
+- [X] T086 [US2] `implicitSurface.cpp:142, 155, 176`: `ray->time` passed to `evalFunction`/`evalNormalFunction` becomes `motion::pluginTime(*ray)` (the unclamped shutter fraction, the value the ray carries). No arithmetic moves; **`implicit.h` (the Procedures ABI) is unchanged** and its DB-003 entry is untouched.
+- [X] T087 [US2] [RUN] CP-a, CP-b, CP-c, **CP-d**, CP-m. Expected: **no allowlist change**, `ALLOWED DB-004 x 56`, `DB-011 x 166`; `git diff 4eb683b -- src/ri/geometry/implicit.h` is empty; `Motion_Replay_implicit` green.
+- [X] T088 **Checkpoint 9 (PAUSE 9)**: stage; summarize; wait for review.
 
 ---
 

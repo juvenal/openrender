@@ -112,7 +112,7 @@ every image of the suite is byte-identical to the starting tree's from phase 3 o
 | 6 | clean (`-Werror`) | 858/858 passed, 223 s | `DB-004 x 58` (59 - 1), `DB-011 x 166`; Geometry 58/16 (was 72/16), Hiders 558/82, TOTAL 692/108; `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | 761 images: **0 differing, 0 missing, 0 not in the manifest**; `MaxBlockAvgDiff` table identical | 19/19 |
 | 7 | clean (`-Werror`) | 858/858 passed, 190 s | `DB-004 x 57` (58 - 1), `DB-011 x 166`; Geometry 55/16 (was 58/16), Hiders 558/82, TOTAL 689/108; `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | 761 images: **0 differing, 0 missing, 0 not in the manifest**; `MaxBlockAvgDiff` table identical | 19/19 |
 | 8 | clean (`-Werror`) | 858/858 passed, 190 s | `DB-004 x 56` (57 - 1), `DB-011 x 166`; Geometry 53/16, Hiders 558/82, TOTAL 687/108; `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | 761 images: **0 differing, 0 missing, 0 not in the manifest**; `MaxBlockAvgDiff` table identical | 19/19 |
-| 9 | | | | | |
+| 9 | clean (`-Werror`) | 858/858 passed, 188 s | no allowlist change: `DB-004 x 56`, `DB-011 x 166`; Geometry 53/16, Hiders 558/82, TOTAL 687/108 (all unchanged from phase 8); `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | 761 images: **0 differing, 0 missing, 0 not in the manifest**; `MaxBlockAvgDiff` table identical | 19/19 |
 | 10 | | | | | |
 | 11 | | | | | |
 | 12 | | | | | |
@@ -444,6 +444,8 @@ The macro's backslashes were re-aligned to the longer lines (the file was not cl
 
 ### Phase 8 (polygons, T080 to T085)
 
+**Checkpoint 8 approved by the maintainer (2026-10-28).**
+
 **Checkpoint 7 approved by the maintainer (2026-10-28).**
 
 **Phase 7 metrics re-measured on the staged code** (the first job of this phase, before any edit): `ALLOWED DB-004 x 57, DB-011 x 166`; `METRIC Geometry 55/16, Hiders 558/82, TOTAL 689/108`; `RESULT PASS`. The figures in the phase 7 row are those of the staged code.
@@ -463,6 +465,14 @@ The macro's backslashes were re-aligned to the longer lines (the file was not cl
 The first attempt at the substitution used a pattern that could run across statements and rewrote two unrelated lines; it was caught in the diff before any build and redone with a pattern bounded to one statement.
 
 **T084.** CP-a clean; CP-b 858/858; CP-c: the line is gone with no `STALE` and no `VIOLATION`, `DB-004 x 56`, `DB-011 x 166`; CP-d: 761 images byte-identical and the `MaxBlockAvgDiff` table identical; `Motion_Replay_polygons` and the other 18 `motion`/`camera` tests green (19/19). `grep -c 'CRenderer::invShutterTime' src/ri/geometry/polygons.cpp` prints 0.
+
+### Phase 9 (implicit surface, T086 to T088)
+
+**Checkpoint 8 approved by the maintainer (2026-10-28).**
+
+**T086.** The three plug-in time reads of `CImplicit::intersect` (`implicitSurface.cpp:142, 155, 176`: the two `evalFunction` calls of the ray marcher and the `evalNormalFunction` call) pass `openrender::motion::pluginTime(*ray)`, the ray's own unclamped shutter fraction, instead of `ray->time`; `motion.h` is included. No arithmetic moved. **`implicit.h` (the Procedures ABI) is unchanged** (`git diff 4eb683b` on it, and on `dlo.h`, is empty), so DB-003 is untouched. There is no allowlist line to delete for this phase (research R11).
+
+**T087.** CP-a clean; CP-b 858/858; CP-c: no allowlist change, `DB-004 x 56`, `DB-011 x 166`, `RESULT PASS`; CP-d: 761 images byte-identical and the `MaxBlockAvgDiff` table identical; `Motion_Replay_implicit` (the first coverage of `CImplicit`) and the other 18 `motion`/`camera` tests green (19/19).
 
 ## §6 Final macOS pass (phase 12, T109, T110)
 
