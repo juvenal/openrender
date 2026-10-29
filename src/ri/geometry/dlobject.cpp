@@ -28,6 +28,7 @@
 
 #include "dlobject.h"
 #include "common/diagnostics.h"
+#include "motion.h"
 #include "objectMisc.h"
 #include "renderer.h"
 #include "reyes.h"
@@ -96,7 +97,7 @@ void CDLObject::intersect(CShadingContext *, CRay *ray) {
 
     // Transform the ray
     vector oFrom, oDir;
-    transform(oFrom, oDir, xform, ray);
+    openrender::motion::transformRay(oFrom, oDir, xform, ray);
 
     // Perform the actual intersection
     if (intersectFunction(data, oFrom, oDir, &t, oN)) {

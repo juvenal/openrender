@@ -606,6 +606,36 @@ not in the agent definitions.
    (`texture3d.h`, `pointHierarchy`, the `brickmap`/`pointCloud` assertion
    overrides), for spec 032.
 
+26. **`FrameParams` is installed for exactly one frame, and every motion site
+   keeps its own expression (spec 028).** The renderer core builds the
+   immutable `FrameParams` (`state/frameParams.h`) in `beginFrame()`
+   (`beginFrameParams()`, `render/rendererFrame.cpp`, after the sampling
+   configuration and before any hider context exists) and uninstalls it in
+   `endFrame()` (`endFrameParams()`) once the last render thread is gone.
+   Everything else reads it through `frameParams()` (lock-free; with nothing
+   installed it returns a default value), and the raytracer takes its camera
+   rays from `frameCamera()`, an `ICamera` (`CFrameCamera`,
+   `state/camera.{h,cpp}`), never from `CRenderer::imagePlane`/`aperture`/...
+   A field is a copy of the core static of the same meaning and is never
+   recomputed: the shutter scale is the stored `invShutterTime`, read through
+   `motion::shutterRate()`/`toShutterRate()`. Geometry evaluates every
+   intersection-time shutter lerp through the header-only
+   `geometry/motion.h`, but **each site keeps its own precision and
+   expression shape**: `atTimeD` (double, rounded to float), `atTimeF`
+   (float; subdivision), `atTimeV`, or `atTime<double>` for double keys (the
+   NURBS patches, the fused polygon forms). `CBSplinePatchGrid`'s
+   mixed-precision lerp has no entry point and stays in place in
+   `bsplinePatchgrid.cpp`. Another grouping or width changes the last bit,
+   and Clang and GCC contract a multiply-add differently (FMA), so the
+   byte-identical images depend on the shapes; `Motion_Replay_*` (12,943
+   recorded calls, `tests/unit/motion/replay/{macos,linux}.txt`) is the
+   guard, and a red replay means a site's expression moved, never a reason
+   for a tolerance. The camera-motion synthesis for an object stays in the
+   core, in `CRendererContext::addObject` (Reyes shares it, spec 031), and an
+   object with its own transform motion still gets no camera motion blur
+   (GitHub #106, preserved with #107, #108 and #110). Reyes's own
+   camera-rotation SLERP and motion bounds are untouched (DB-009, spec 031).
+
 ## Active Technologies
 - C++20, CMake ≥3.19; `libtiff`/`libpng` (mandatory), OpenEXR (optional,
   `HAVE_OPENEXR`-gated), in-tree RGBE codec — no new dependencies
@@ -645,8 +675,24 @@ not in the agent definitions.
   in a per-frame `CTextureSystem`, Shading reaches it through `CRendererServices`,
   the RGBE codec moves to `libRIBCommon` (027-texture-system)
 - Storage: N/A — memory only; no new persistent state (027-texture-system)
+- C++20, CMake ≥3.19, `-Werror`; no new dependencies — Graphics State owns the
+  per-frame `FrameParams` and the `ICamera` the raytracer takes its rays from,
+  Geometry owns the header-only motion evaluator `geometry/motion.h`
+  (028-camera-and-motion-layer)
+- Storage: N/A — memory only; no new persistent state
+  (028-camera-and-motion-layer)
 
 ## Recent Changes
+- 028-camera-and-motion-layer: the raytrace hider takes its camera from an
+  `ICamera` (`CFrameCamera`) built from a per-frame `FrameParams` that Graphics
+  State owns and the core installs once per frame, and Geometry evaluates every
+  intersection-time motion (the quadrics', patches', polygons', tessellation and
+  grid lerps, subdivision, the ray transform with its camera-rotation SLERP, the
+  implicit surface's plug-in time, the `dPdtime` scale) through the header-only
+  `geometry/motion.h`. 20 allowlist lines deleted (DB-004 65 → 52, DB-011
+  173 → 166), Geometry's `CRenderer::` metric 78 → 48; DB-009 narrowed and still
+  Open (Reyes's side is spec 031); no image changed, pinned by a replay of
+  12,943 recorded evaluator calls (see spec 028).
 - 027-texture-system: Texturing's state (tile cache, per-thread budgets, file
   families) lives in a per-frame `CTextureSystem` behind opaque handles and a
   caller-built `TextureOpt`; the core supplies a file resolver; Shading reaches it

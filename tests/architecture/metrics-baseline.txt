@@ -33,11 +33,19 @@
 # texture system, the file resolver and the option block. The TOTAL falls from 721 to 652
 # references and from 110 to 98 distinct members, as archcheck reported (a member that another
 # class also references stays in the total).
+#
+# Spec 028 (camera and motion layer): Geometry stops reading CRenderer::invShutterTime (24),
+# relRotQ (4), toWorld and cameraHasRotation, and the raytracer takes its camera from ICamera
+# and FrameParams (focaldistance and dxdPixel leave Hiders). Geometry 78 -> 48 references and
+# 19 -> 15 members, Hiders 567 -> 558 and 84 -> 82, TOTAL 721 -> 682 and 110 -> 107, as
+# archcheck reported.
+# Merged with spec 027: Texturing 1 / 1 from 027, Geometry and Hiders from 028; the TOTAL, 613
+# references and 95 distinct members, is archcheck's figure for the merged tree.
 
-Geometry           78    19
-Hiders            567    84
+Geometry           48    15
+Hiders            558    82
 Infra               0     0
 SceneInterface      6     6
 Shading             0     0
 Texturing           1     1
-TOTAL             652    98
+TOTAL             613    95

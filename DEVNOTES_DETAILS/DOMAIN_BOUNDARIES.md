@@ -154,11 +154,12 @@ request. Run `ctest -L architecture` locally before review.
 - **Evidence**:
   - 19 files under `src/ri/geometry/` include `renderer.h`/`rendererContext.h` and use 24 distinct
     renderer-core symbols (`grep` over `src/ri/geometry/*.{h,cpp}`, master `079feda`).
-  - Frame and camera parameters:
-    - `CRenderer::invShutterTime` (24 uses), `numThreads` (9), `maxGridSize` (9), `relRotQ` (4),
-      `maxEyeSplits` (3), `flags` (3)
+  - Frame and camera parameters (after spec 028; `invShutterTime` (24 uses), `relRotQ` (4),
+    `toWorld` and `cameraHasRotation` are gone from this list):
+    - `CRenderer::numThreads` (9), `maxGridSize` (9), `maxEyeSplits` (3), `flags` (3)
     - `dPixeldx`/`dPixeldy` (3 each), `projection`, `imagePlane` (2 each)
-    - `toWorld`, `cameraHasRotation`, `inFrustrum`, `raytracingFlags` (1 each)
+    - `inFrustrum`, `raytracingFlags` (1 each), and the dicing reads `pixelLeft`, `pixelTop`,
+      `invFocaldistance`, `cocFactorPixels` (spec 031's)
   - Locks: `CRenderer::tesselateMutex` (5), `CRenderer::delayedMutex` (4).
   - Upward calls into the scene context, for lazy instancing and procedurals:
     `CRenderer::context->processDelayedSolid` (2), `processDelayedObject`, `processDelayedInstance`.
@@ -179,9 +180,10 @@ request. Run `ctest -L architecture` locally before review.
   - service interfaces for file, texture and coordinate-system lookups
   - a Geometry-owned object sink in `instantiate()` in place of `CRiInterface` (its only use is
     `addObject()`), implemented by the renderer core and the RIB/preview back-ends
-- **Measured by the architecture check** (spec 022, macOS): 65 edges allowlisted under DB-004.
+- **Measured by the architecture check** (spec 028, macOS): 52 edges allowlisted under DB-004
+  (65 when spec 022 measured it).
   - 28 includes: `renderer.h` (17), `rendererContext.h` (9), `riInterface.h` (2).
-  - 37 link references to `CRenderer` members.
+  - 24 link references to `CRenderer` members (37 before spec 028).
   - Geometry's other cross-domain edges are registered elsewhere, so they are not counted
     here: diagnostics, RI tokens and `rendererc.h` were under DB-016 (41 edges, resolved by
     spec 023); symbols defined by
@@ -190,6 +192,19 @@ request. Run `ctest -L architecture` locally before review.
 - **History**: spec 021 (deferred CSG) resolves solids and procedural operands through a new
   Geometry-owned host interface rather than extending `processDelayed*`/`delayedMutex`; the
   existing uses remain.
+  - Spec 028, 2026-10-29: the intersection-time motion and camera-rotation reads moved into the
+    Geometry-owned `geometry/motion.h`, which reads the per-frame `FrameParams` installed by the
+    renderer core (`state/frameParams.h`). 13 allowlist lines were deleted: the 6 link lines
+    `dlobject.cpp` and `quadrics.cpp -> CRenderer::cameraHasRotation/relRotQ/toWorld`, and the 7
+    `-> CRenderer::invShutterTime` lines of `quadrics.cpp`, `patches.cpp`, `polygons.cpp`,
+    `curves.cpp`, `points.cpp`, `patchgrid.cpp` and `bsplinePatchgrid.cpp`. The Geometry
+    `CRenderer::` metric fell from 78 to 48 references and 19 to 15 members.
+  - Evidence for spec 031 or a follow-up (decision Q4): after spec 028 these files still include
+    `renderer.h` or `rendererContext.h` but name no `CRenderer` or `CRendererContext` member
+    (`grep -E '\bCRenderer(Context)?\b'` finds nothing): `curves.cpp`, `dlobject.cpp`,
+    `implicitSurface.cpp`, `objectMisc.h`, `patches.cpp`, `patchgrid.cpp`, `points.cpp`,
+    `polygons.cpp`, `quadrics.cpp`, `subdivision.cpp` and `subdivisionCreator.cpp`. The include
+    lines stay valid allowlist lines; spec 028 removes no include.
 
 ### DB-005 — Hiders and Shading share one class (`CShadingContext`)
 
@@ -249,17 +264,26 @@ request. Run `ctest -L architecture` locally before review.
 ### DB-009 — Motion blur and depth of field are implemented more than once
 
 - **Rules**: 3 (an effect is implemented once, generically, for every hider).
-- **Tracking**: remediation specs 028 ([#34](https://github.com/juvenal/openrender/issues/34)), 031 ([#37](https://github.com/juvenal/openrender/issues/37))
+- **Tracking**: remediation spec 031 ([#37](https://github.com/juvenal/openrender/issues/37)); spec 028 ([#34](https://github.com/juvenal/openrender/issues/34)) did the raytrace side
 - **Evidence**:
-  - `CRenderer::invShutterTime` is read by 7 Geometry files (`quadrics.cpp`, `patches.cpp`,
-    `patchgrid.cpp`, `bsplinePatchgrid.cpp`, `polygons.cpp`, `points.cpp`, `curves.cpp`) to
-    interpolate their own motion at intersection time, separately from the dicing path.
-  - Depth of field has two models: the REYES aperture jitter (`stochastic.h:81,108`) and the
-    raytrace thin lens (`raytracer.cpp:612-621`).
-- **Size**: not a dependency edge; tracked by review. (The `invShutterTime` reads themselves are
-  link edges under DB-004.)
+  - Depth of field has two models: Reyes's circle-of-confusion model (`CSampler::circleOfConfusion`,
+    `sampler.cpp:23`, 5 call sites in `reyes.cpp`: `:1165`, `:1469-1470`, `:1888-1889`; the aperture
+    tests are `reyes.cpp:172`, `:617`, `:1154`, `:1467`, `:1554`, `:1739`, `:1887`, and the aperture
+    jitter slots `jdx`, `jdy` are `stochastic.h:82`) and the camera layer's thin lens
+    (`CFrameCamera::generateRay`, `src/ri/state/camera.cpp:94`), which only the raytracer uses.
+  - Reyes keeps its own motion and camera-rotation code, with its own SLERP of the camera
+    rotation: `reyes.cpp:1427-1433`, `:1600-1604`, `:1637-1643`; `stochastic.cpp:166-169`, `:220`;
+    `stochasticQuad.h:511-520`, `:590`, `:873-884`. It reads `CRenderer::cameraHasRotation` and
+    `CRenderer::relRotQ` (DB-011), where the raytrace side reads `motion::cameraRotationAt` and
+    `transformRay` (`geometry/motion.h`), pinned equal to Reyes's SLERP by
+    `Motion_CameraSlerpEquivalence`.
+- **Size**: not a dependency edge; tracked by review.
 - **Direction**: one camera layer (`ICamera::generateRay`, `FrameParams`) and one Geometry-owned
-  motion evaluator used by dicing and intersection alike.
+  motion evaluator used by dicing and intersection alike. Spec 028 moved the raytrace side; the
+  Reyes side is spec 031.
+- **History**: spec 028, 2026-10-29: the raytrace side moved onto `ICamera`, `FrameParams` and
+  `motion.h` (Geometry's intersection-time motion no longer reads `CRenderer::invShutterTime`);
+  Reyes's side is spec 031.
 
 ### DB-010 — The hiders' GI caches use Texturing
 
@@ -294,11 +318,20 @@ request. Run `ctest -L architecture` locally before review.
     sampling parameters (`clipMax`, `bucketWidth`, `pixelXsamples`, `xSampleOffset`, …),
     `flags`, `hiderFlags`, `raytracingFlags`.
   - 9 files include `src/ri/render/renderer.h`.
-- **Size**: 180 edges per platform (9 include, 171 link). The thread-local `CRenderer::activeContext`
-  is referenced through Clang's TLS wrapper (`_ZTW…`) on macOS and directly by GCC on Linux, so its
-  2 edges are listed once per platform, tagged (182 allowlist lines).
+- **Size**: 166 edges per platform after spec 028 (9 include, 157 link), 173 before (9 include,
+  164 link). The thread-local `CRenderer::activeContext` is referenced through Clang's TLS wrapper
+  (`_ZTW…`) on macOS and directly by GCC on Linux, so its 2 edges are listed once per platform,
+  tagged: the allowlist holds 168 DB-011 lines (175 before). The previous header and Size text said
+  182 lines and 180 edges; they were stale (the file held 175 lines at the start of spec 028).
+  Linux counted 173 edges before spec 028 and 166 after it (`specs/028-camera-and-motion-layer/validation.md`
+  §3 and §7), the same as macOS.
 - **Direction**: inject immutable `FrameParams` and per-thread contexts; the mutable flags become
   capabilities on the injected interfaces. Each hider-side spec removes the statics it uses.
+- **History**: spec 028, 2026-10-29: the raytracer takes its camera from `ICamera` and the
+  per-frame `FrameParams` instead of the statics. 7 allowlist lines were deleted:
+  `raytracer.cpp -> CRenderer::imagePlane`, `projection`, `focaldistance`, `invImagePlane`,
+  `aperture`, `dxdPixel` and `dydPixel`. The Hiders `CRenderer::` metric fell from 567 to 558
+  references and 84 to 82 members.
 - **History**: spec 039, 2026-10-20: the hiders take every camera value from the sampler's
   camera slots through an immutable per-frame `CSamplingConfig`, so the Legacy camera path's
   reads went with it. Deleted allowlist lines: `raytracer.cpp` and `stochastic.cpp ->

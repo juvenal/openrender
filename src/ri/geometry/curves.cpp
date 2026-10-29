@@ -28,6 +28,7 @@
 
 #include "curves.h"
 #include "common/memory.h"
+#include "motion.h"
 #include "renderer.h"
 #include "rendererContext.h"
 #include "reyes.h"
@@ -382,7 +383,7 @@ void CCubicCurve::sample(int start, int numVertices, float **varying, float ***l
                 }
 
                 // Scale the dPdtime
-                mulvf(dest, CRenderer::invShutterTime);
+                openrender::motion::toShutterRate(dest);
             }
         }
         else {
@@ -514,7 +515,7 @@ void CLinearCurve::sample(int start [[maybe_unused]], int numVertices, float **v
                 }
 
                 // Scale the dPdtime
-                mulvf(dest, CRenderer::invShutterTime);
+                openrender::motion::toShutterRate(dest);
             }
         }
         else {

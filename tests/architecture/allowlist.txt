@@ -20,7 +20,7 @@ DB-001  link     src/libshader/shading/shading.cpp  ->  _ZN10CPhotonMap6lookupEP
 DB-001  link     src/libshader/shading/shading.cpp  ->  _ZN13CGatherBundleC1Ev   # CGatherBundle::CGatherBundle()
 DB-001  link     src/libshader/shading/shading.cpp  ->  _ZN15CShadingContext7traceExEP10CRayBundle   # CShadingContext::traceEx(CRayBundle*)
 
-# --- DB-004: Geometry depends on the renderer core and on Scene Interface (65) ---
+# --- DB-004: Geometry depends on the renderer core and on Scene Interface (52) ---
 DB-004  include  src/ri/geometry/blobby.cpp  ->  src/ri/render/renderer.h
 DB-004  include  src/ri/geometry/blobbyRepeller.cpp  ->  src/ri/render/renderer.h
 DB-004  include  src/ri/geometry/csgSolid.cpp  ->  src/ri/parse/riInterface.h
@@ -52,11 +52,6 @@ DB-004  include  src/ri/geometry/surface.cpp  ->  src/ri/render/rendererContext.
 DB-004  link     src/ri/geometry/blobby.cpp  ->  _ZN9CRenderer16retrieveVariableEPKc   # CRenderer::retrieveVariable(char const*)
 DB-004  link     src/ri/geometry/blobbyRepeller.cpp  ->  _ZN9CRenderer10locateFileEPcPKcP11TSearchpathi   # CRenderer::locateFile(char*, char const*, TSearchpath*, int)
 DB-004  link     src/ri/geometry/blobbyRepeller.cpp  ->  _ZN9CRenderer11texturePathE   # CRenderer::texturePath
-DB-004  link     src/ri/geometry/bsplinePatchgrid.cpp  ->  _ZN9CRenderer14invShutterTimeE   # CRenderer::invShutterTime
-DB-004  link     src/ri/geometry/curves.cpp  ->  _ZN9CRenderer14invShutterTimeE   # CRenderer::invShutterTime
-DB-004  link     src/ri/geometry/dlobject.cpp  ->  _ZN9CRenderer17cameraHasRotationE   # CRenderer::cameraHasRotation
-DB-004  link     src/ri/geometry/dlobject.cpp  ->  _ZN9CRenderer7relRotQE   # CRenderer::relRotQ
-DB-004  link     src/ri/geometry/dlobject.cpp  ->  _ZN9CRenderer7toWorldE   # CRenderer::toWorld
 DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer10imagePlaneE   # CRenderer::imagePlane
 DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer10projectionE   # CRenderer::projection
 DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer15raytracingFlagsE   # CRenderer::raytracingFlags
@@ -64,14 +59,6 @@ DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer8dPixeldxE   # CRe
 DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer8dPixeldyE   # CRenderer::dPixeldy
 DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer8pixelTopE   # CRenderer::pixelTop
 DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer9pixelLeftE   # CRenderer::pixelLeft
-DB-004  link     src/ri/geometry/patches.cpp  ->  _ZN9CRenderer14invShutterTimeE   # CRenderer::invShutterTime
-DB-004  link     src/ri/geometry/patchgrid.cpp  ->  _ZN9CRenderer14invShutterTimeE   # CRenderer::invShutterTime
-DB-004  link     src/ri/geometry/points.cpp  ->  _ZN9CRenderer14invShutterTimeE   # CRenderer::invShutterTime
-DB-004  link     src/ri/geometry/polygons.cpp  ->  _ZN9CRenderer14invShutterTimeE   # CRenderer::invShutterTime
-DB-004  link     src/ri/geometry/quadrics.cpp  ->  _ZN9CRenderer14invShutterTimeE   # CRenderer::invShutterTime
-DB-004  link     src/ri/geometry/quadrics.cpp  ->  _ZN9CRenderer17cameraHasRotationE   # CRenderer::cameraHasRotation
-DB-004  link     src/ri/geometry/quadrics.cpp  ->  _ZN9CRenderer7relRotQE   # CRenderer::relRotQ
-DB-004  link     src/ri/geometry/quadrics.cpp  ->  _ZN9CRenderer7toWorldE   # CRenderer::toWorld
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer10imagePlaneE   # CRenderer::imagePlane
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer10inFrustrumEPKfS1_   # CRenderer::inFrustrum(float const*, float const*)
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer10numThreadsE   # CRenderer::numThreads
@@ -142,7 +129,7 @@ DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZN10CTexture3dC2EPKcPKfS3_S3
 DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZN10CTexture3dD2Ev   # CTexture3d::~CTexture3d()
 DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZTI10CTexture3d   # typeinfo for CTexture3d
 
-# --- DB-011: Hiders read renderer-core state (CRenderer) (182) ---
+# --- DB-011: Hiders read renderer-core state (CRenderer) (168) ---
 DB-011  include  src/ri/hiders/compositor.cpp  ->  src/ri/render/renderer.h
 DB-011  include  src/ri/hiders/irradiance.cpp  ->  src/ri/render/renderer.h
 DB-011  include  src/ri/hiders/irradianceDispatch.cpp  ->  src/ri/render/renderer.h
@@ -172,9 +159,7 @@ DB-011  link     src/ri/hiders/photon.cpp  ->  _ZN9CRenderer9worldBmaxE   # CRen
 DB-011  link     src/ri/hiders/photon.cpp  ->  _ZN9CRenderer9worldBminE   # CRenderer::worldBmin
 DB-011  link     src/ri/hiders/photonMap.cpp  ->  _ZN9CRenderer7toWorldE   # CRenderer::toWorld
 DB-011  link     src/ri/hiders/photonMap.cpp  ->  _ZN9CRenderer9fromWorldE   # CRenderer::fromWorld
-DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer10imagePlaneE   # CRenderer::imagePlane
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer10numSamplesE   # CRenderer::numSamples
-DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer10projectionE   # CRenderer::projection
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer11bucketWidthE   # CRenderer::bucketWidth
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer11depthFilterE   # CRenderer::depthFilter
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer11dispatchJobE   # CRenderer::dispatchJob
@@ -182,8 +167,6 @@ DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer11pixelFilterE   
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer11sampleOrderE   # CRenderer::sampleOrder
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer12bucketHeightE   # CRenderer::bucketHeight
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer13activeContextE  linux   # CRenderer::activeContext
-DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer13focaldistanceE   # CRenderer::focaldistance
-DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer13invImagePlaneE   # CRenderer::invImagePlane
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer13pixelXsamplesE   # CRenderer::pixelXsamples
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer13pixelYsamplesE   # CRenderer::pixelYsamples
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer13xSampleOffsetE   # CRenderer::xSampleOffset
@@ -208,9 +191,6 @@ DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer6commitEiiiiPf   
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer7clipMaxE   # CRenderer::clipMax
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer7xPixelsE   # CRenderer::xPixels
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer7yPixelsE   # CRenderer::yPixels
-DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer8apertureE   # CRenderer::aperture
-DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer8dxdPixelE   # CRenderer::dxdPixel
-DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer8dydPixelE   # CRenderer::dydPixel
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer8xBucketsE   # CRenderer::xBuckets
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer9netClientE   # CRenderer::netClient
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer9shootStepE   # CRenderer::shootStep
