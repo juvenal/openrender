@@ -523,9 +523,9 @@ is taken on the approved tree, and phase 3 does not start until its files are in
 
 **Independent test**: `Motion_Replay_tessellation` green (intersection and sample records).
 
-- [ ] T089 [US2] `src/ri/geometry/surface.cpp`, `CTesselationPatch::intersect` moving branch (`:1453-1600`): `interpolatev(P.., cP0, cP1, timev)` becomes `motion::atTimeV` (include `motion.h`). **Nothing else in `surface.cpp` changes** (the dicing probes, `timev = 1`, are spec 031's: FR-018).
-- [ ] T090 [US2] [RUN] CP-a, CP-b, CP-c, **CP-d**, CP-m. Expected: **no allowlist change**, `ALLOWED DB-004 x 56`; `git diff 4eb683b -- src/ri/geometry/surface.cpp | grep '^@@'` shows hunks only inside `CTesselationPatch::intersect` (quickstart §3); `Motion_Replay_tessellation` green.
-- [ ] T091 **Checkpoint 10 (PAUSE 10)**: stage; summarize; wait for review.
+- [X] T089 [US2] `src/ri/geometry/surface.cpp`, `CTesselationPatch::intersect` moving branch (`:1453-1600`): `interpolatev(P.., cP0, cP1, timev)` becomes `motion::atTimeV` (include `motion.h`). **Nothing else in `surface.cpp` changes** (the dicing probes, `timev = 1`, are spec 031's: FR-018).
+- [X] T090 [US2] [RUN] CP-a, CP-b, CP-c, **CP-d**, CP-m. Expected: **no allowlist change**, `ALLOWED DB-004 x 56`; `git diff 4eb683b -- src/ri/geometry/surface.cpp | grep '^@@'` shows hunks only inside `CTesselationPatch::intersect` (quickstart §3); `Motion_Replay_tessellation` green.
+- [X] T091 **Checkpoint 10 (PAUSE 10)**: stage; summarize; wait for review.
 
 ---
 

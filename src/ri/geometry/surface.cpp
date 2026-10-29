@@ -38,6 +38,7 @@
 #include "reyes.h"
 #include "shading.h"
 #include "common/stats.h"
+#include "motion.h"
 #include "patchLayout.h"
 #include "surface.h"
 
@@ -1458,10 +1459,10 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
                 const float *Pt0 = thisTesselation->P;
                 const float *Pt1 = Pt0 + 4 * 3;
 
-                interpolatev(P00, Pt0, Pt1, timev);
-                interpolatev(P10, Pt0 + 3, Pt1 + 3, timev);
-                interpolatev(P01, Pt0 + 6, Pt1 + 6, timev);
-                interpolatev(P11, Pt0 + 9, Pt1 + 9, timev);
+                openrender::motion::atTimeV(P00, Pt0, Pt1, timev);
+                openrender::motion::atTimeV(P10, Pt0 + 3, Pt1 + 3, timev);
+                openrender::motion::atTimeV(P01, Pt0 + 6, Pt1 + 6, timev);
+                openrender::motion::atTimeV(P11, Pt0 + 9, Pt1 + 9, timev);
 
                 const float urg = (umax - umin);
                 const float vrg = (vmax - vmin);
@@ -1487,10 +1488,10 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
 
                     for (int j = 0; j < nb; j++) {
                         for (int i = 0; i < nb; i++, cP0 += 6, cP1 += 6) {
-                            interpolatev(P00, cP0, cP1, timev);
-                            interpolatev(P10, cP0 + 6, cP1 + 6, timev);
-                            interpolatev(P01, cP0 + (div + 1) * 6, cP1 + (div + 1) * 6, timev);
-                            interpolatev(P11, cP0 + (div + 1) * 6 + 6, cP1 + (div + 1) * 6 + 6, timev);
+                            openrender::motion::atTimeV(P00, cP0, cP1, timev);
+                            openrender::motion::atTimeV(P10, cP0 + 6, cP1 + 6, timev);
+                            openrender::motion::atTimeV(P01, cP0 + (div + 1) * 6, cP1 + (div + 1) * 6, timev);
+                            openrender::motion::atTimeV(P11, cP0 + (div + 1) * 6 + 6, cP1 + (div + 1) * 6 + 6, timev);
 
                             intersectQuads();
                         }
@@ -1509,10 +1510,10 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
 
                     for (int j = 0; j < div; j++) {
                         for (int i = 0; i < div; i++, cP0 += 3, cP1 += 3) {
-                            interpolatev(P00, cP0, cP1, timev);
-                            interpolatev(P10, cP0 + 3, cP1 + 3, timev);
-                            interpolatev(P01, cP0 + (div + 1) * 3, cP1 + (div + 1) * 3, timev);
-                            interpolatev(P11, cP0 + (div + 1) * 3 + 3, cP1 + (div + 1) * 3 + 3, timev);
+                            openrender::motion::atTimeV(P00, cP0, cP1, timev);
+                            openrender::motion::atTimeV(P10, cP0 + 3, cP1 + 3, timev);
+                            openrender::motion::atTimeV(P01, cP0 + (div + 1) * 3, cP1 + (div + 1) * 3, timev);
+                            openrender::motion::atTimeV(P11, cP0 + (div + 1) * 3 + 3, cP1 + (div + 1) * 3 + 3, timev);
 
                             intersectQuads();
                         }
@@ -1551,10 +1552,10 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
 
                             for (int cj = 0; cj < 2; cj++) {
                                 for (int ci = 0; ci < 2; ci++, cP0 += 6, cP1 += 6) {
-                                    interpolatev(P00, cP0, cP1, timev);
-                                    interpolatev(P10, cP0 + 6, cP1 + 6, timev);
-                                    interpolatev(P01, cP0 + (div + 1) * 6, cP1 + (div + 1) * 6, timev);
-                                    interpolatev(P11, cP0 + (div + 1) * 6 + 6, cP1 + (div + 1) * 6 + 6, timev);
+                                    openrender::motion::atTimeV(P00, cP0, cP1, timev);
+                                    openrender::motion::atTimeV(P10, cP0 + 6, cP1 + 6, timev);
+                                    openrender::motion::atTimeV(P01, cP0 + (div + 1) * 6, cP1 + (div + 1) * 6, timev);
+                                    openrender::motion::atTimeV(P11, cP0 + (div + 1) * 6 + 6, cP1 + (div + 1) * 6 + 6, timev);
 
                                     const int i = x * 2 + ci;
                                     const int j = y * 2 + cj;
@@ -1594,10 +1595,10 @@ void CTesselationPatch::intersect(CShadingContext *context, CRay *cRay) {
 
                             for (int cj = 0; cj < 4; cj++) {
                                 for (int ci = 0; ci < 4; ci++, cP0 += 3, cP1 += 3) {
-                                    interpolatev(P00, cP0, cP1, timev);
-                                    interpolatev(P10, cP0 + 3, cP1 + 3, timev);
-                                    interpolatev(P01, cP0 + (div + 1) * 3, cP1 + (div + 1) * 3, timev);
-                                    interpolatev(P11, cP0 + (div + 1) * 3 + 3, cP1 + (div + 1) * 3 + 3, timev);
+                                    openrender::motion::atTimeV(P00, cP0, cP1, timev);
+                                    openrender::motion::atTimeV(P10, cP0 + 3, cP1 + 3, timev);
+                                    openrender::motion::atTimeV(P01, cP0 + (div + 1) * 3, cP1 + (div + 1) * 3, timev);
+                                    openrender::motion::atTimeV(P11, cP0 + (div + 1) * 3 + 3, cP1 + (div + 1) * 3 + 3, timev);
 
                                     const int i = x * 4 + ci;
                                     const int j = y * 4 + cj;

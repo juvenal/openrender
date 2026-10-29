@@ -113,7 +113,7 @@ every image of the suite is byte-identical to the starting tree's from phase 3 o
 | 7 | clean (`-Werror`) | 858/858 passed, 190 s | `DB-004 x 57` (58 - 1), `DB-011 x 166`; Geometry 55/16 (was 58/16), Hiders 558/82, TOTAL 689/108; `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | 761 images: **0 differing, 0 missing, 0 not in the manifest**; `MaxBlockAvgDiff` table identical | 19/19 |
 | 8 | clean (`-Werror`) | 858/858 passed, 190 s | `DB-004 x 56` (57 - 1), `DB-011 x 166`; Geometry 53/16, Hiders 558/82, TOTAL 687/108; `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | 761 images: **0 differing, 0 missing, 0 not in the manifest**; `MaxBlockAvgDiff` table identical | 19/19 |
 | 9 | clean (`-Werror`) | 858/858 passed, 188 s | no allowlist change: `DB-004 x 56`, `DB-011 x 166`; Geometry 53/16, Hiders 558/82, TOTAL 687/108 (all unchanged from phase 8); `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | 761 images: **0 differing, 0 missing, 0 not in the manifest**; `MaxBlockAvgDiff` table identical | 19/19 |
-| 10 | | | | | |
+| 10 | clean (`-Werror`) | 858/858 passed, 213 s (second full run 858/858) | no allowlist change: `DB-004 x 56`, `DB-011 x 166`; Geometry 53/16, Hiders 558/82, TOTAL 687/108 (all unchanged from phase 9); `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | first full run: 761 images, **1 differing** (a one-off, see Phase 10 below), 0 missing, 0 not in the manifest; second full run: **0 differing**; `MaxBlockAvgDiff` table identical in both | 19/19 |
 | 11 | | | | | |
 | 12 | | | | | |
 
@@ -468,11 +468,26 @@ The first attempt at the substitution used a pattern that could run across state
 
 ### Phase 9 (implicit surface, T086 to T088)
 
+**Checkpoint 9 approved by the maintainer (2026-10-28).**
+
 **Checkpoint 8 approved by the maintainer (2026-10-28).**
 
 **T086.** The three plug-in time reads of `CImplicit::intersect` (`implicitSurface.cpp:142, 155, 176`: the two `evalFunction` calls of the ray marcher and the `evalNormalFunction` call) pass `openrender::motion::pluginTime(*ray)`, the ray's own unclamped shutter fraction, instead of `ray->time`; `motion.h` is included. No arithmetic moved. **`implicit.h` (the Procedures ABI) is unchanged** (`git diff 4eb683b` on it, and on `dlo.h`, is empty), so DB-003 is untouched. There is no allowlist line to delete for this phase (research R11).
 
 **T087.** CP-a clean; CP-b 858/858; CP-c: no allowlist change, `DB-004 x 56`, `DB-011 x 166`, `RESULT PASS`; CP-d: 761 images byte-identical and the `MaxBlockAvgDiff` table identical; `Motion_Replay_implicit` (the first coverage of `CImplicit`) and the other 18 `motion`/`camera` tests green (19/19).
+
+### Phase 10 (tessellation, T089 to T091)
+
+**T089.** In `CTesselationPatch::intersect`'s moving branch of `src/ri/geometry/surface.cpp`, the 20 `interpolatev(P.., Pt0/Pt1 or cP0/cP1, timev)` calls (div 1x1 and the four `cP0`/`cP1` branches; the key pointers are `const float *`) became `openrender::motion::atTimeV`. `#include "motion.h"` was added at `:38`. `git diff 4eb683b -- src/ri/geometry/surface.cpp | grep '^@@'` shows six hunks: the include, and five (`:1458`, `:1487`, `:1509`, `:1551`, `:1594`) inside `CTesselationPatch::intersect`. The dicing-probe `timev` uses and the macro `interpolatev(dPdu/dPdv)` at `:1127/1130` are unchanged. No allowlist line applies to this phase.
+
+**T090.** CP-a clean; CP-b 858/858; CP-c: no allowlist change, `DB-004 x 56`, `DB-011 x 166`, `RESULT PASS`, 21/21 `architecture` tests; CP-m 19/19 (`Motion_Replay_tessellation` green, no replay difference); `MaxBlockAvgDiff` table identical.
+
+**CP-d one-off (investigated at the maintainer's request, 2026-10-28).** The first full run had one differing image of the 761: `build-028/tests/visual/coverage-alpha-sides2-tjunction-r0.5_reyes/coverage-alpha-sides2-tjunction-r0.5-reyes.tif` (written by `CoverageAnalytic_alpha-sides2-tjunction-r0.5_reyes`, test #218, which passed with the same `MaxBlockAvgDiff`). Hashes: differing `a5d945b606ce4337f7128ab2a1de0102f54edce158d145024ef1ba2d70926c9e`, baseline `65e786c887f3a5413e0ab077ed859170b6ea02b04bfce759cc5b35e96fc1589f`.
+- *Pixel analysis* (both files decompressed with `tiffcp -c none` and compared; `scratchpad/tjcmp.py`): the image is a 160x120 single-channel float (alpha). **Exactly 1 of 19200 pixels differs**: x=119, y=64; the differing run holds 0.0 where the baseline holds 0.75 (the two-layer alpha of one sphere with `Sides 2`, `Opacity 0.5`). Value counts: baseline 0.0 x 12855, 0.75 x 5114, 0.9375 x 1231; differing run 0.0 x 12856, 0.75 x 5113, 0.9375 x 1231.
+- *Geometry under that pixel*: working the ray through the pixel centre (fov 45, 160x120, camera z = 6) gives a distance from the centre of the small sphere (centre `0.5 0.3 3` in camera space, radius 0.5) to the ray of about 0.497 against 0.5, so the pixel centre lies about 0.6% inside that sphere's silhouette: a silhouette-edge pixel of the small sphere, one pixel dropped out. It also sits on row 64, which would be the top row of a bucket row if the bucket height is 16. The scene is static REYES (`Hider "reyes" "jitter" [0]`, `PixelSamples 1 1`, no `MotionBegin`) and cannot reach the raytracer moving branch this phase edits.
+- *Variance measurement* (23 repeats of the test after the first occurrence, within the 40-repeat limit): 2 isolated reruns, then 20 more isolated runs through `cpujob`/ctest, all `rc=0` and all `65e786c887f3a541...` (the baseline hash; `build-028-logs/028-p10-iso-hashes.txt`); then one more full `-j4` suite (858/858, 761 images **0 differing**, `MaxBlockAvgDiff` identical, this image back at `65e786c887f3a541...`). The difference **did not recur in 23 repeats**; it is recorded as a one-off, not as a noise-list entry (none added; no reference touched; no issue filed).
+- *Evidence files* in `build-028-logs/`: `p10-tj-run0.tif` (the differing image), `p10-cov-run1.tif` and `p10-cov-run2.tif` (baseline-matching), `u-run0.tif` and `u-base.tif` (decompressed copies), `028-p10-ctest.log`, `028-p10-ctest2.log`, `028-p10-LastTest.log`, `028-p10-LastTest2.log`, `028-p10-iso-hashes.txt`.
+- *Family*: whether this matches the T-junction coverage tests that fail on Linux (#57) is for the maintainer to judge; the scene is one of that T-junction family and the symptom is a one-pixel coverage drop on a silhouette seam, but it passed on macOS in 23 of 24 runs.
 
 ## §6 Final macOS pass (phase 12, T109, T110)
 
