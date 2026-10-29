@@ -496,12 +496,12 @@ is taken on the approved tree, and phase 3 does not start until its files are in
 
 **Independent test**: `Motion_Replay_polygons` green; `polygons.cpp` reads no `CRenderer::invShutterTime`.
 
-- [ ] T080 [US4] [RUN] Delete the 1 DB-004 line `src/ri/geometry/polygons.cpp -> _ZN9CRenderer14invShutterTimeE`. `ctest -L architecture`: **exactly 1 `VIOLATION`**. Record it.
-- [ ] T081 [US2] Triangle and quad intersection (`polygons.cpp:183-187`, `730-736`): `interpolatev` becomes `motion::atTimeV`.
-- [ ] T082 [US2] The fused `sample()` lerps (`polygons.cpp:309-372`, `879-922`): the bilinear and temporal interpolation are **one double expression** today; the site computes its two spatial operands exactly as now and applies the model through `motion::atTime<double>(spatial0, spatial1, ctime)` cast to float (contracts/motion-evaluator.md); the normal's `interpolatev` becomes `atTimeV`. Do not split a statement or reorder an operand (FMA contraction, research R9). Hoisting the two spatial operands into named locals is **not needed**: the outer `a * (1 - t) + b * t` is the same single expression inside `atTime`, and contraction is decided per expression, so the choice is the same as the fused site's; the replay's `S` records and CP-d are the guard.
-- [ ] T083 [US2] The two `dPdtime` scales (`polygons.cpp:482`, `1046`) become `motion::toShutterRate(dest)`.
-- [ ] T084 [US2] [RUN] CP-a, CP-b, CP-c, **CP-d**, CP-m. Expected: **no `STALE`, no `VIOLATION`**, `ALLOWED DB-004 x 56`; `grep -c 'CRenderer::invShutterTime' src/ri/geometry/polygons.cpp` prints 0; `Motion_Replay_polygons` green.
-- [ ] T085 **Checkpoint 8 (PAUSE 8)**: stage; summarize; wait for review.
+- [X] T080 [US4] [RUN] Delete the 1 DB-004 line `src/ri/geometry/polygons.cpp -> _ZN9CRenderer14invShutterTimeE`. `ctest -L architecture`: **exactly 1 `VIOLATION`**. Record it.
+- [X] T081 [US2] Triangle and quad intersection (`polygons.cpp:183-187`, `730-736`): `interpolatev` becomes `motion::atTimeV`.
+- [X] T082 [US2] The fused `sample()` lerps (`polygons.cpp:309-372`, `879-922`): the bilinear and temporal interpolation are **one double expression** today; the site computes its two spatial operands exactly as now and applies the model through `motion::atTime<double>(spatial0, spatial1, ctime)` cast to float (contracts/motion-evaluator.md); the normal's `interpolatev` becomes `atTimeV`. Do not split a statement or reorder an operand (FMA contraction, research R9). Hoisting the two spatial operands into named locals is **not needed**: the outer `a * (1 - t) + b * t` is the same single expression inside `atTime`, and contraction is decided per expression, so the choice is the same as the fused site's; the replay's `S` records and CP-d are the guard.
+- [X] T083 [US2] The two `dPdtime` scales (`polygons.cpp:482`, `1046`) become `motion::toShutterRate(dest)`.
+- [X] T084 [US2] [RUN] CP-a, CP-b, CP-c, **CP-d**, CP-m. Expected: **no `STALE`, no `VIOLATION`**, `ALLOWED DB-004 x 56`; `grep -c 'CRenderer::invShutterTime' src/ri/geometry/polygons.cpp` prints 0; `Motion_Replay_polygons` green.
+- [X] T085 **Checkpoint 8 (PAUSE 8)**: stage; summarize; wait for review.
 
 ---
 

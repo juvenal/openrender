@@ -63,7 +63,6 @@ DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer8pixelTopE   # CRe
 DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer9pixelLeftE   # CRenderer::pixelLeft
 DB-004  link     src/ri/geometry/patchgrid.cpp  ->  _ZN9CRenderer14invShutterTimeE   # CRenderer::invShutterTime
 DB-004  link     src/ri/geometry/points.cpp  ->  _ZN9CRenderer14invShutterTimeE   # CRenderer::invShutterTime
-DB-004  link     src/ri/geometry/polygons.cpp  ->  _ZN9CRenderer14invShutterTimeE   # CRenderer::invShutterTime
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer10imagePlaneE   # CRenderer::imagePlane
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer10inFrustrumEPKfS1_   # CRenderer::inFrustrum(float const*, float const*)
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer10numThreadsE   # CRenderer::numThreads

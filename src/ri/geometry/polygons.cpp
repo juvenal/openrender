@@ -30,6 +30,7 @@
 #include "crossingMath.h"
 #include "common/diagnostics.h"
 #include "common/memory.h"
+#include "motion.h"
 #include "object.h"
 #include "patches.h"
 #include "polygons.h"
@@ -180,11 +181,11 @@ void CPolygonTriangle::intersect(CShadingContext *context, CRay *cRay) {
     vector t0, t1, t2;
 
     if ((vertices = pl->data1) != NULL) {
-        interpolatev(t0, vert0, vertices + this->v0 * 3, cRay->time);
+        openrender::motion::atTimeV(t0, vert0, vertices + this->v0 * 3, cRay->time);
         vert0 = t0;
-        interpolatev(t1, vert1, vertices + this->v1 * 3, cRay->time);
+        openrender::motion::atTimeV(t1, vert1, vertices + this->v1 * 3, cRay->time);
         vert1 = t1;
-        interpolatev(t2, vert2, vertices + this->v2 * 3, cRay->time);
+        openrender::motion::atTimeV(t2, vert2, vertices + this->v2 * 3, cRay->time);
         vert2 = t2;
     }
 
@@ -309,8 +310,7 @@ void CPolygonTriangle::sample(int start, int numVertices, float **varying, float
                         const double ctime = time[i];
 
                         for (int k = 0; k < numFloats; ++k) {
-                            *dest++ = (float)((sv00[k] * (1.0 - cu) + sv01[k] * cu * cv + sv02[k] * cu * (1.0 - cv)) * (1.0 - ctime) +
-                                              (sv10[k] * (1.0 - cu) + sv11[k] * cu * cv + sv12[k] * cu * (1.0 - cv)) * ctime);
+                            *dest++ = (float)openrender::motion::atTime<double>((sv00[k] * (1.0 - cu) + sv01[k] * cu * cv + sv02[k] * cu * (1.0 - cv)), (sv10[k] * (1.0 - cu) + sv11[k] * cu * cv + sv12[k] * cu * (1.0 - cv)), ctime);
                         }
                     }
                 }
@@ -333,9 +333,9 @@ void CPolygonTriangle::sample(int start, int numVertices, float **varying, float
                 const double cv = v[i];
                 const double ctime = time[i];
 
-                dest[0] = (float)((v01[0] * cv + v02[0] * (1.0 - cv) - v00[0]) * (1.0 - ctime) + (v11[0] * cv + v12[0] * (1 - cv) - v10[0]) * ctime);
-                dest[1] = (float)((v01[1] * cv + v02[1] * (1.0 - cv) - v00[1]) * (1.0 - ctime) + (v11[1] * cv + v12[1] * (1 - cv) - v10[1]) * ctime);
-                dest[2] = (float)((v01[2] * cv + v02[2] * (1.0 - cv) - v00[2]) * (1.0 - ctime) + (v11[2] * cv + v12[2] * (1 - cv) - v10[2]) * ctime);
+                dest[0] = (float)openrender::motion::atTime<double>((v01[0] * cv + v02[0] * (1.0 - cv) - v00[0]), (v11[0] * cv + v12[0] * (1 - cv) - v10[0]), ctime);
+                dest[1] = (float)openrender::motion::atTime<double>((v01[1] * cv + v02[1] * (1.0 - cv) - v00[1]), (v11[1] * cv + v12[1] * (1 - cv) - v10[1]), ctime);
+                dest[2] = (float)openrender::motion::atTime<double>((v01[2] * cv + v02[2] * (1.0 - cv) - v00[2]), (v11[2] * cv + v12[2] * (1 - cv) - v10[2]), ctime);
             }
         }
 
@@ -346,9 +346,9 @@ void CPolygonTriangle::sample(int start, int numVertices, float **varying, float
                 const double cu = u[i];
                 const double ctime = time[i];
 
-                dest[0] = (float)((v01[0] - v02[0]) * cu * (1.0 - ctime) + (v11[0] - v12[0]) * cu * ctime);
-                dest[1] = (float)((v01[1] - v02[1]) * cu * (1.0 - ctime) + (v11[1] - v12[1]) * cu * ctime);
-                dest[2] = (float)((v01[2] - v02[2]) * cu * (1.0 - ctime) + (v11[2] - v12[2]) * cu * ctime);
+                dest[0] = (float)openrender::motion::atTime<double>((v01[0] - v02[0]) * cu, (v11[0] - v12[0]) * cu, ctime);
+                dest[1] = (float)openrender::motion::atTime<double>((v01[1] - v02[1]) * cu, (v11[1] - v12[1]) * cu, ctime);
+                dest[2] = (float)openrender::motion::atTime<double>((v01[2] - v02[2]) * cu, (v11[2] - v12[2]) * cu, ctime);
             }
         }
 
@@ -369,7 +369,7 @@ void CPolygonTriangle::sample(int start, int numVertices, float **varying, float
 
             // Interpolate the normal vector
             for (int i = 0; i < numVertices; i++, dest += 3)
-                interpolatev(dest, normal0, normal1, time[i]);
+                openrender::motion::atTimeV(dest, normal0, normal1, time[i]);
         }
     }
     else {
@@ -479,7 +479,7 @@ void CPolygonTriangle::sample(int start, int numVertices, float **varying, float
                 }
 
                 // Scale the dPdtime
-                mulvf(dest - 3, CRenderer::invShutterTime);
+                openrender::motion::toShutterRate(dest - 3);
             }
         }
         else {
@@ -727,13 +727,13 @@ void CPolygonQuad::intersect(CShadingContext *context, CRay *cRay) {
     vector t0, t1, t2, t3;
 
     if ((vertices = pl->data1) != NULL) {
-        interpolatev(t0, P00, vertices + this->v0 * 3, cRay->time);
+        openrender::motion::atTimeV(t0, P00, vertices + this->v0 * 3, cRay->time);
         P00 = t0;
-        interpolatev(t1, P10, vertices + this->v1 * 3, cRay->time);
+        openrender::motion::atTimeV(t1, P10, vertices + this->v1 * 3, cRay->time);
         P10 = t1;
-        interpolatev(t2, P01, vertices + this->v2 * 3, cRay->time);
+        openrender::motion::atTimeV(t2, P01, vertices + this->v2 * 3, cRay->time);
         P01 = t2;
-        interpolatev(t3, P11, vertices + this->v3 * 3, cRay->time);
+        openrender::motion::atTimeV(t3, P11, vertices + this->v3 * 3, cRay->time);
         P11 = t3;
     }
 
@@ -879,8 +879,7 @@ void CPolygonQuad::sample(int start, int numVertices, float **varying, float ***
                         const double ctime = time[i];
 
                         for (int k = 0; k < numFloats; k++) {
-                            *dest++ = (float)(((sv00[k] * (1.0 - cu) + sv01[k] * cu) * (1.0 - cv) + (sv02[k] * (1.0 - cu) + sv03[k] * cu) * cv) * (1.0 - ctime) +
-                                              ((sv10[k] * (1.0 - cu) + sv11[k] * cu) * (1.0 - cv) + (sv12[k] * (1.0 - cu) + sv13[k] * cu) * cv) * ctime);
+                            *dest++ = (float)openrender::motion::atTime<double>(((sv00[k] * (1.0 - cu) + sv01[k] * cu) * (1.0 - cv) + (sv02[k] * (1.0 - cu) + sv03[k] * cu) * cv), ((sv10[k] * (1.0 - cu) + sv11[k] * cu) * (1.0 - cv) + (sv12[k] * (1.0 - cu) + sv13[k] * cu) * cv), ctime);
                         }
                     }
                 }
@@ -904,9 +903,9 @@ void CPolygonQuad::sample(int start, int numVertices, float **varying, float ***
                 const double cv = v[i];
                 const double ctime = time[i];
 
-                dest[0] = (float)(((-v00[0] + v01[0]) * (1.0 - cv) + (-v02[0] + v03[0]) * cv) * (1.0 - ctime) + ((-v10[0] + v11[0]) * (1.0 - cv) + (-v12[0] + v13[0]) * cv) * ctime);
-                dest[1] = (float)(((-v00[1] + v01[1]) * (1.0 - cv) + (-v02[1] + v03[1]) * cv) * (1.0 - ctime) + ((-v10[1] + v11[1]) * (1.0 - cv) + (-v12[1] + v13[1]) * cv) * ctime);
-                dest[2] = (float)(((-v00[2] + v01[2]) * (1.0 - cv) + (-v02[2] + v03[2]) * cv) * (1.0 - ctime) + ((-v10[2] + v11[2]) * (1.0 - cv) + (-v12[2] + v13[2]) * cv) * ctime);
+                dest[0] = (float)openrender::motion::atTime<double>(((-v00[0] + v01[0]) * (1.0 - cv) + (-v02[0] + v03[0]) * cv), ((-v10[0] + v11[0]) * (1.0 - cv) + (-v12[0] + v13[0]) * cv), ctime);
+                dest[1] = (float)openrender::motion::atTime<double>(((-v00[1] + v01[1]) * (1.0 - cv) + (-v02[1] + v03[1]) * cv), ((-v10[1] + v11[1]) * (1.0 - cv) + (-v12[1] + v13[1]) * cv), ctime);
+                dest[2] = (float)openrender::motion::atTime<double>(((-v00[2] + v01[2]) * (1.0 - cv) + (-v02[2] + v03[2]) * cv), ((-v10[2] + v11[2]) * (1.0 - cv) + (-v12[2] + v13[2]) * cv), ctime);
             }
         }
 
@@ -917,9 +916,9 @@ void CPolygonQuad::sample(int start, int numVertices, float **varying, float ***
                 const double cu = u[i];
                 const double ctime = time[i];
 
-                dest[0] = (float)((-(v00[0] * (1.0 - cu) + (v01[0] * cu)) + (v02[0] * (1.0 - cu) + (v03[0] * cu))) * (1.0 - ctime) + (-(v10[0] * (1.0 - cu) + (v11[0] * cu)) + (v12[0] * (1.0 - cu) + (v13[0] * cu))) * ctime);
-                dest[1] = (float)((-(v00[1] * (1.0 - cu) + (v01[1] * cu)) + (v02[1] * (1.0 - cu) + (v03[1] * cu))) * (1.0 - ctime) + (-(v10[1] * (1.0 - cu) + (v11[1] * cu)) + (v12[1] * (1.0 - cu) + (v13[1] * cu))) * ctime);
-                dest[2] = (float)((-(v00[2] * (1.0 - cu) + (v01[2] * cu)) + (v02[2] * (1.0 - cu) + (v03[2] * cu))) * (1.0 - ctime) + (-(v10[2] * (1.0 - cu) + (v11[2] * cu)) + (v12[2] * (1.0 - cu) + (v13[2] * cu))) * ctime);
+                dest[0] = (float)openrender::motion::atTime<double>((-(v00[0] * (1.0 - cu) + (v01[0] * cu)) + (v02[0] * (1.0 - cu) + (v03[0] * cu))), (-(v10[0] * (1.0 - cu) + (v11[0] * cu)) + (v12[0] * (1.0 - cu) + (v13[0] * cu))), ctime);
+                dest[1] = (float)openrender::motion::atTime<double>((-(v00[1] * (1.0 - cu) + (v01[1] * cu)) + (v02[1] * (1.0 - cu) + (v03[1] * cu))), (-(v10[1] * (1.0 - cu) + (v11[1] * cu)) + (v12[1] * (1.0 - cu) + (v13[1] * cu))), ctime);
+                dest[2] = (float)openrender::motion::atTime<double>((-(v00[2] * (1.0 - cu) + (v01[2] * cu)) + (v02[2] * (1.0 - cu) + (v03[2] * cu))), (-(v10[2] * (1.0 - cu) + (v11[2] * cu)) + (v12[2] * (1.0 - cu) + (v13[2] * cu))), ctime);
             }
         }
 
@@ -1043,7 +1042,7 @@ void CPolygonQuad::sample(int start, int numVertices, float **varying, float ***
                 }
 
                 // Scale the dPdtime
-                mulvf(dest, CRenderer::invShutterTime);
+                openrender::motion::toShutterRate(dest);
             }
         }
         else {

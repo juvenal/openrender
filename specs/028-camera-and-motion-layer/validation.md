@@ -111,7 +111,7 @@ every image of the suite is byte-identical to the starting tree's from phase 3 o
 | 5 | clean (`-Werror`) | 858/858 passed, 209 s | **`DB-004 x 59`** (65 - 6), `DB-011 x 166`; Geometry 72/16 (was 78/19), Hiders 558/82, TOTAL 706/108; `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | 761 images: **0 differing, 0 missing, 0 not in the manifest**; `MaxBlockAvgDiff` table identical | 19/19 |
 | 6 | clean (`-Werror`) | 858/858 passed, 223 s | `DB-004 x 58` (59 - 1), `DB-011 x 166`; Geometry 58/16 (was 72/16), Hiders 558/82, TOTAL 692/108; `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | 761 images: **0 differing, 0 missing, 0 not in the manifest**; `MaxBlockAvgDiff` table identical | 19/19 |
 | 7 | clean (`-Werror`) | 858/858 passed, 190 s | `DB-004 x 57` (58 - 1), `DB-011 x 166`; Geometry 55/16 (was 58/16), Hiders 558/82, TOTAL 689/108; `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | 761 images: **0 differing, 0 missing, 0 not in the manifest**; `MaxBlockAvgDiff` table identical | 19/19 |
-| 8 | | | | | |
+| 8 | clean (`-Werror`) | 858/858 passed, 190 s | `DB-004 x 56` (57 - 1), `DB-011 x 166`; Geometry 53/16, Hiders 558/82, TOTAL 687/108; `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 21/21 `architecture` tests | 761 images: **0 differing, 0 missing, 0 not in the manifest**; `MaxBlockAvgDiff` table identical | 19/19 |
 | 9 | | | | | |
 | 10 | | | | | |
 | 11 | | | | | |
@@ -420,6 +420,8 @@ The macro's backslashes were re-aligned to the longer lines (the file was not cl
 
 ### Phase 7 (patches, T074 to T079)
 
+**Checkpoint 7 approved by the maintainer (2026-10-28).**
+
 **Checkpoint 6 approved by the maintainer (2026-10-28).**
 
 **T074.** The 1 DB-004 line `src/ri/geometry/patches.cpp -> _ZN9CRenderer14invShutterTimeE` was deleted (1 deletion, 0 additions); on the unchanged code the architecture check reported exactly one `VIOLATION`:
@@ -439,6 +441,28 @@ The macro's backslashes were re-aligned to the longer lines (the file was not cl
 **A finding the replay caught, and its fix (before the checkpoint).** The first migration of the NURBS patch's sample-side lerp (`:1022`) used `atTimeD` like the other two. `Motion_Replay_tessellation` went red in 17 `nurbs` `S` records (the images and the `MaxBlockAvgDiff` table were unchanged, the replay being the finer guard): that site's keys are `const double *vertex0/vertex1` and its target is a `double *`, so `atTimeD`'s `float` parameters rounded the keys. The site now calls the template at its own precision, `(float)motion::atTime<double>(vertex0[j], vertex1[j], ctime)`, which is the starting tree's expression exactly (the same one definition of the model, as the polygons' fused sites use); the replay is green again. **Nothing was re-recorded and no test or reference was touched.** Lesson for the remaining sites (phase 11, `patchgrid.cpp` and `bsplinePatchgrid.cpp`): check the key type of every lerp before choosing `atTimeD`.
 
 **T078.** CP-a clean; CP-b 858/858; CP-c: the line is gone with no `STALE` and no `VIOLATION`, `DB-004 x 57`, `DB-011 x 166`; CP-d: 761 images byte-identical and the `MaxBlockAvgDiff` table identical; `Motion_Replay_bilinear` and `_tessellation` (its `S` records of the bicubic and NURBS scenes pin the three sample paths and the #108 expression) green with the 17 other `motion`/`camera` tests (19/19). `grep -c 'CRenderer::invShutterTime' src/ri/geometry/patches.cpp` prints 0.
+
+### Phase 8 (polygons, T080 to T085)
+
+**Checkpoint 7 approved by the maintainer (2026-10-28).**
+
+**Phase 7 metrics re-measured on the staged code** (the first job of this phase, before any edit): `ALLOWED DB-004 x 57, DB-011 x 166`; `METRIC Geometry 55/16, Hiders 558/82, TOTAL 689/108`; `RESULT PASS`. The figures in the phase 7 row are those of the staged code.
+
+**T080.** The 1 DB-004 line `src/ri/geometry/polygons.cpp -> _ZN9CRenderer14invShutterTimeE` was deleted (1 deletion, 0 additions); on the unchanged code the architecture check reported exactly one `VIOLATION`:
+
+```text
+  VIOLATION link    src/ri/geometry/polygons.cpp -> _ZN9CRenderer14invShutterTimeE (CRenderer::invShutterTime)  [Geometry -> Core]
+```
+
+(`DB-004 x 56`, `RESULT FAIL violations=1`, `failing-cycles=1`, which clears with the fix.)
+
+**T081 to T083, the code** (`polygons.cpp`; key types checked first: every key the polygons read is a `const float *`, and `ctime`, `cu`, `cv` are doubles):
+- the triangle's three and the quad's four intersect `interpolatev(tN, ..., vertices + this->vN * 3, cRay->time)` became `motion::atTimeV` (same key addresses, same order), and so did the normal's `interpolatev(dest, normal0, normal1, time[i])` in `sample()`;
+- the 14 fused sample statements (the triangle's and the quad's `P` and `dPdu`/`dPdv` temporal interpolation, each one double expression) became `(float)motion::atTime<double>(S0, S1, ctime)`, where `S0` and `S1` are the site's own two spatial double sub-expressions, written exactly as before and passed inline (nothing hoisted, no statement split, no operand reordered: per-expression contraction is the same, as `Motion_TwoKeyModel`'s polygon case pins);
+- the two dPdtime scales (`mulvf(dest - 3, ...)` and `mulvf(dest, ...)`) became `motion::toShutterRate`.
+The first attempt at the substitution used a pattern that could run across statements and rewrote two unrelated lines; it was caught in the diff before any build and redone with a pattern bounded to one statement.
+
+**T084.** CP-a clean; CP-b 858/858; CP-c: the line is gone with no `STALE` and no `VIOLATION`, `DB-004 x 56`, `DB-011 x 166`; CP-d: 761 images byte-identical and the `MaxBlockAvgDiff` table identical; `Motion_Replay_polygons` and the other 18 `motion`/`camera` tests green (19/19). `grep -c 'CRenderer::invShutterTime' src/ri/geometry/polygons.cpp` prints 0.
 
 ## §6 Final macOS pass (phase 12, T109, T110)
 
