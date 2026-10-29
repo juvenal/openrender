@@ -27,6 +27,7 @@
 #include <math.h>
 
 #include "common/memory.h"
+#include "motion.h"
 #include "object.h"
 #include "patchgrid.h"
 #include "renderer.h"
@@ -243,7 +244,7 @@ void CPatchGrid::sample(int start, int numVertices, float **varying, float ***lo
                 const double ctime = *time++;
 
                 for (int j = 0; j < vertexDataStep; ++j) {
-                    *interpolate++ = (float)(vertex0[j] * (1.0 - ctime) + vertex1[j] * ctime);
+                    *interpolate++ = openrender::motion::atTimeD(vertex0[j], vertex1[j], ctime);
                 }
             }
         }
@@ -377,7 +378,7 @@ void CPatchGrid::sample(int start, int numVertices, float **varying, float ***lo
                 }
 
                 // Scale the dPdtime
-                mulvf(dest, CRenderer::invShutterTime);
+                openrender::motion::toShutterRate(dest);
             }
         }
         else {

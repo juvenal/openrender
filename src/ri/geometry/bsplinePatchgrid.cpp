@@ -28,6 +28,7 @@
 
 #include "bsplinePatchgrid.h"
 #include "common/memory.h"
+#include "motion.h"
 #include "object.h"
 #include "patchUtils.h"
 #include "shading.h"
@@ -371,7 +372,7 @@ void CBSplinePatchGrid::sample(int start, int numVertices, float **varying, floa
                 }
 
                 // Scale the dPdtime
-                mulvf(dest - 3, CRenderer::invShutterTime);
+                openrender::motion::toShutterRate(dest - 3);
             }
         }
         else {

@@ -86,38 +86,4 @@ inline void ntransform(float *src, int num, const float *to) {
     }
 }
 
-///////////////////////////////////////////////////////////////////////
-// Function				:	interpolate
-// Description			:	Interpolate bunch of floats
-// Return Value			:
-// Comments				:
-inline void interpolate(int num, float *src0, const float *src1, const float *time) {
-    int i;
-
-    for (i = num; i > 0; i--) {
-        src0[0] = src0[0] * (1 - time[0]) + src1[0] * time[0];
-        time++;
-        src0++;
-        src1++;
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// Function				:	interpolate
-// Description			:	Interpolate bunch of points
-// Return Value			:
-// Comments				:
-inline void interpolate3(int num, float *src0, const float *src1, const float *time) {
-    int i;
-
-    for (i = num; i > 0; i--) {
-        src0[0] = src0[0] * (1 - time[0]) + src1[0] * time[0];
-        src0[1] = src0[1] * (1 - time[0]) + src1[1] * time[0];
-        src0[2] = src0[2] * (1 - time[0]) + src1[2] * time[0];
-        time++;
-        src0 += 3;
-        src1 += 3;
-    }
-}
-
 #endif

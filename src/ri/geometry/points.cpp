@@ -27,6 +27,7 @@
 #include <math.h>
 
 #include "common/memory.h"
+#include "motion.h"
 #include "points.h"
 #include "renderer.h"
 #include "rendererContext.h"
@@ -207,7 +208,7 @@ void CPoints::sample(int start [[maybe_unused]], int numVertices [[maybe_unused]
     assert(numVertices == numPoints);
     assert(start == 0);
 
-    if ((variables->moving) && (usedParameters & PARAMETER_END_SAMPLE)) {
+    if ((variables->moving) && openrender::motion::sampleKey(usedParameters)) {
         for (int i = 0; i < numPoints; ++i) {
             const float *cP = points[i] + vertexSize;
             memcpy(vertexData, cP, vertexSize * sizeof(float));
@@ -238,7 +239,7 @@ void CPoints::sample(int start [[maybe_unused]], int numVertices [[maybe_unused]
         if (variables->moving) {
             for (int i = 0; i < numPoints; ++i) {
                 subvv(dest, points[i] + vertexSize, points[i]);
-                mulvf(dest, CRenderer::invShutterTime);
+                openrender::motion::toShutterRate(dest);
             }
         }
         else {

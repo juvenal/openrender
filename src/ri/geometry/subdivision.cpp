@@ -27,6 +27,7 @@
 #include <math.h>
 
 #include "common/memory.h"
+#include "motion.h"
 #include "patchUtils.h"
 #include "patches.h"
 #include "renderer.h"
@@ -186,7 +187,7 @@ void CSubdivision::sample(int start, int numVertices, float **varying, float ***
                 const float ctime = *time++;
 
                 for (int j = 0; j < vertexDataStep; ++j) {
-                    *interpolate++ = vertex0[j] * (1 - ctime) + vertex1[j] * ctime;
+                    *interpolate++ = openrender::motion::atTimeF(vertex0[j], vertex1[j], ctime);
                 }
             }
         }

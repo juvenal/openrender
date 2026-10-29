@@ -52,8 +52,6 @@ DB-004  include  src/ri/geometry/surface.cpp  ->  src/ri/render/rendererContext.
 DB-004  link     src/ri/geometry/blobby.cpp  ->  _ZN9CRenderer16retrieveVariableEPKc   # CRenderer::retrieveVariable(char const*)
 DB-004  link     src/ri/geometry/blobbyRepeller.cpp  ->  _ZN9CRenderer10locateFileEPcPKcP11TSearchpathi   # CRenderer::locateFile(char*, char const*, TSearchpath*, int)
 DB-004  link     src/ri/geometry/blobbyRepeller.cpp  ->  _ZN9CRenderer11texturePathE   # CRenderer::texturePath
-DB-004  link     src/ri/geometry/bsplinePatchgrid.cpp  ->  _ZN9CRenderer14invShutterTimeE   # CRenderer::invShutterTime
-DB-004  link     src/ri/geometry/curves.cpp  ->  _ZN9CRenderer14invShutterTimeE   # CRenderer::invShutterTime
 DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer10imagePlaneE   # CRenderer::imagePlane
 DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer10projectionE   # CRenderer::projection
 DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer15raytracingFlagsE   # CRenderer::raytracingFlags
@@ -61,8 +59,6 @@ DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer8dPixeldxE   # CRe
 DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer8dPixeldyE   # CRenderer::dPixeldy
 DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer8pixelTopE   # CRenderer::pixelTop
 DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer9pixelLeftE   # CRenderer::pixelLeft
-DB-004  link     src/ri/geometry/patchgrid.cpp  ->  _ZN9CRenderer14invShutterTimeE   # CRenderer::invShutterTime
-DB-004  link     src/ri/geometry/points.cpp  ->  _ZN9CRenderer14invShutterTimeE   # CRenderer::invShutterTime
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer10imagePlaneE   # CRenderer::imagePlane
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer10inFrustrumEPKfS1_   # CRenderer::inFrustrum(float const*, float const*)
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer10numThreadsE   # CRenderer::numThreads
