@@ -27,14 +27,13 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
 
-#include "attributes.h"
 #include "common/algebra.h"
 #include "common/containers.h"
 #include "common/global.h"
 #include "common/fileResource.h"
 #include "common/stats.h"
+#include "textureSystem.h"
 
-class CShadingContext;
 class CVaryingTextureLookup;
 
 ///////////////////////////////////////////////////////////////////////
@@ -69,9 +68,9 @@ class CTexture : public CTextureInfoBase {
             atomicDecrement(stats.numTextures);
         }
 
-        virtual float lookupz(float u, float v, float z, CShadingContext *context) = 0;
-        virtual void lookup(float *dest, float u, float v, CShadingContext *context) = 0;
-        virtual void lookup4(float *dest, const float *u, const float *v, CShadingContext *context) = 0;
+        virtual float lookupz(float u, float v, float z, TextureOpt &opt, TexturePerthread *pt) = 0;
+        virtual void lookup(float *dest, float u, float v, TextureOpt &opt, TexturePerthread *pt) = 0;
+        virtual void lookup4(float *dest, const float *u, const float *v, TextureOpt &opt, TexturePerthread *pt) = 0;
 
         // textureinfo support
         void getResolution(float *r) {
@@ -100,7 +99,7 @@ class CEnvironment : public CTextureInfoBase {
             atomicDecrement(stats.numEnvironments);
         }
 
-        virtual void lookup(float *dest, const float *D0, const float *D1, const float *D2, const float *D3, CShadingContext *context) = 0;
+        virtual void lookup(float *dest, const float *D0, const float *D1, const float *D2, const float *D3, TextureOpt &opt, TexturePerthread *pt) = 0;
 
         // textureinfo support
         void getResolution(float *r) {
@@ -122,9 +121,9 @@ class CDummyTexture : public CTexture {
         CDummyTexture(const char *name) : CTexture(name) {}
         ~CDummyTexture() {}
 
-        float lookupz(float u, float v, float z, CShadingContext *context);
-        void lookup(float *dest, float u, float v, CShadingContext *context);
-        void lookup4(float *dest, const float *u, const float *v, CShadingContext *context);
+        float lookupz(float u, float v, float z, TextureOpt &opt, TexturePerthread *pt);
+        void lookup(float *dest, float u, float v, TextureOpt &opt, TexturePerthread *pt);
+        void lookup4(float *dest, const float *u, const float *v, TextureOpt &opt, TexturePerthread *pt);
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -136,7 +135,7 @@ class CDummyEnvironment : public CEnvironment {
         CDummyEnvironment(const char *name) : CEnvironment(name) {}
         ~CDummyEnvironment() {}
 
-        void lookup(float *dest, const float *D0, const float *D1, const float *D2, const float *D3, CShadingContext *context);
+        void lookup(float *dest, const float *D0, const float *D1, const float *D2, const float *D3, TextureOpt &opt, TexturePerthread *pt);
 };
 
 ///////////////////////////////////////////////////////////////////////

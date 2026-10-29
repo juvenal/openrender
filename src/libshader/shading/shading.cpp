@@ -47,6 +47,7 @@
 #include "common/stats.h"
 #include "texture.h"
 #include "texture3d.h"
+#include "textureCalls.h"
 
 // Default services pointer injected by src/ri/ at renderer startup.
 // nullptr until setDefaultServices() is called (standalone libshader mode).
@@ -566,16 +567,48 @@ const float *CShadingContext::rendererWorldBmin() const { return SVC ? SVC->worl
 const float *CShadingContext::rendererWorldBmax() const { return SVC ? SVC->worldBmax() : nullptr; }
 float CShadingContext::rendererClipMin() const { return SVC ? SVC->clipMin() : 0.f; }
 float CShadingContext::rendererClipMax() const { return SVC ? SVC->clipMax() : 1.f; }
-CTexture *CShadingContext::rendererGetTexture(const char *n) { return SVC ? SVC->getTexture(n) : nullptr; }
-CEnvironment *CShadingContext::rendererGetEnvironment(const char *n) { return SVC ? SVC->getEnvironment(n) : nullptr; }
 CPhotonMap *CShadingContext::rendererGetPhotonMap(const char *n) { return SVC ? SVC->getPhotonMap(n) : nullptr; }
 CTexture3d *CShadingContext::rendererGetCache(const char *h, const char *m, const float *f, const float *t) { return SVC ? SVC->getCache(h, m, f, t) : nullptr; }
-CTextureInfoBase *CShadingContext::rendererGetTextureInfo(const char *n) { return SVC ? SVC->getTextureInfo(n) : nullptr; }
 CTexture3d *CShadingContext::rendererGetTexture3d(const char *n, int w, const char *ch, const float *f, const float *t, int hier) { return SVC ? SVC->getTexture3d(n, w, ch, f, t, hier) : nullptr; }
+int CShadingContext::rendererTexture3dResolve(CTexture3d *t, int n, const char **names, int *entry, int *size) { return (SVC && t) ? SVC->texture3dResolve(t, n, names, entry, size) : 0; }
+void CShadingContext::rendererTexture3dLookup(CTexture3d *t, float *dest, const float *P, const float *N, float radius) {
+    if (SVC && t)
+        SVC->texture3dLookup(t, dest, P, N, radius);
+}
+void CShadingContext::rendererTexture3dStore(CTexture3d *t, const float *data, const float *P, const float *N, float radius) {
+    if (SVC && t)
+        SVC->texture3dStore(t, data, P, N, radius);
+}
 void CShadingContext::rendererSetOffendingObject(CObject *obj) {
     if (SVC)
         SVC->setOffendingObject(obj);
 }
+TextureOpt CShadingContext::textureOptions() const {
+    const CShadingScratch &sc = currentShadingState->scratch;
+    TextureOpt opt;
+    opt.filter = sc.textureParams.filter;
+    opt.blur = sc.textureParams.blur;
+    opt.width = sc.textureParams.width;
+    opt.swidth = sc.textureParams.swidth;
+    opt.twidth = sc.textureParams.twidth;
+    opt.fill = sc.textureParams.fill;
+    opt.samples = sc.textureParams.samples;
+    opt.traceSamples = sc.traceParams.samples;
+    opt.bias = sc.traceParams.bias;
+    opt.stream = {sampling.backend, drawCursor, drawCursorDim};
+    return opt;
+}
+
+void CShadingContext::lookupEnvironment(TextureHandle *environment, float *result, const float *D0, const float *D1, const float *D2, const float *D3) {
+    TextureOpt opt = textureOptions();
+    CTextureSystem *system = libshader::textureSystemOf(this);
+    if (environment && system)
+        system->environment(environment, opt, system->perthread(thread), D0, D1, D2, D3, result);
+    else
+        initv(result, opt.fill);
+    commitTextureDraws(opt);
+}
+
 int CShadingContext::rendererGetGlobalID(const char *n) { return SVC ? SVC->getGlobalID(n) : 0; }
 int CShadingContext::rendererShootStep() const { return SVC ? SVC->shootStep() : 1; }
 RtFilterFunc CShadingContext::rendererGetFilter(const char *n) const { return SVC ? SVC->getFilter(n) : nullptr; }
@@ -2966,93 +2999,6 @@ void CShadingContext::jitDepth(float *dst, int sd, const float *P, int sp, int n
     }
 }
 
-void CShadingContext::jitTextureF(float *dst, int sd, const char *name, int channel, const float *s, int ss, const float *t, int st, int n, const int *tags, uint32_t callSite) {
-    uint32_t *drawCounts = drawCounters(callSite);
-    if (!name || !name[0])
-        return;
-    CTexture *tex = rendererGetTexture(name);
-    if (!tex)
-        return;
-    vector tmp;
-    for (int i = 0; i < n; ++i) {
-        if (!tags || !tags[i]) {
-            bindDraws(i, drawCounts, callSite, 1);
-            tex->lookup(tmp, JIT_IDX(s, ss, i)[0], JIT_IDX(t, st, i)[0], this);
-            JIT_IDX(dst, sd, i)
-            [0] = tmp[channel & 3];
-        }
-    }
-}
-
-void CShadingContext::jitTextureC(float *dst, int sd, const char *name, const float *s, int ss, const float *t, int st, int n, const int *tags, uint32_t callSite) {
-    uint32_t *drawCounts = drawCounters(callSite);
-    if (!name || !name[0])
-        return;
-    CTexture *tex = rendererGetTexture(name);
-    if (!tex)
-        return;
-    for (int i = 0; i < n; ++i) {
-        if (!tags || !tags[i]) {
-            bindDraws(i, drawCounts, callSite, 1);
-            tex->lookup(JIT_IDX(dst, sd, i), JIT_IDX(s, ss, i)[0], JIT_IDX(t, st, i)[0], this);
-        }
-    }
-}
-
-void CShadingContext::jitEnvironmentF(float *dst, int sd, const char *name, int channel, const float *D, int sD, int n, const int *tags, uint32_t callSite) {
-    uint32_t *drawCounts = drawCounters(callSite);
-    if (!name || !name[0])
-        return;
-    CEnvironment *env = rendererGetEnvironment(name);
-    if (!env)
-        return;
-    vector tmp;
-    for (int i = 0; i < n; ++i) {
-        if (!tags || !tags[i]) {
-            const float *d = JIT_IDX(D, sD, i);
-            bindDraws(i, drawCounts, callSite, 1);
-            env->lookup(tmp, d, d, d, d, this);
-            JIT_IDX(dst, sd, i)
-            [0] = tmp[channel & 3];
-        }
-    }
-}
-
-void CShadingContext::jitEnvironmentC(float *dst, int sd, const char *name, const float *D, int sD, int n, const int *tags, uint32_t callSite) {
-    uint32_t *drawCounts = drawCounters(callSite);
-    if (!name || !name[0])
-        return;
-    CEnvironment *env = rendererGetEnvironment(name);
-    if (!env)
-        return;
-    for (int i = 0; i < n; ++i) {
-        if (!tags || !tags[i]) {
-            const float *d = JIT_IDX(D, sD, i);
-            bindDraws(i, drawCounts, callSite, 1);
-            env->lookup(JIT_IDX(dst, sd, i), d, d, d, d, this);
-        }
-    }
-}
-
-void CShadingContext::jitShadowF(float *dst, int sd, const char *name, const float *Ps, int sPs, int n, const int *tags, uint32_t callSite) {
-    uint32_t *drawCounts = drawCounters(callSite);
-    if (!name || !name[0])
-        return;
-    CEnvironment *env = rendererGetEnvironment(name);
-    if (!env)
-        return;
-    vector tmp;
-    for (int i = 0; i < n; ++i) {
-        if (!tags || !tags[i]) {
-            const float *p = JIT_IDX(Ps, sPs, i);
-            bindDraws(i, drawCounts, callSite, 1);
-            env->lookup(tmp, p, p, p, p, this);
-            JIT_IDX(dst, sd, i)
-            [0] = (tmp[0] + tmp[1] + tmp[2]) / 3.f;
-        }
-    }
-}
-
 void CShadingContext::jitFindCoordinateSystem(const char *name, const float *&from, const float *&to, ECoordinateSystem &type) {
     from = nullptr;
     to = nullptr;
@@ -3134,6 +3080,257 @@ void CShadingContext::jitParameterListReady(const CPLLookup *lookup, const TJitP
     const CPLLookup::TParamBinding *cBinding = lookup->varyings;
     for (int var = 0; var < lookup->numVaryings; ++var, ++cBinding)
         memcpy((char *)scratch + cBinding->dest, (const char *)pl.values[cBinding->opIndex] + (size_t)vertex * cBinding->step, cBinding->step);
+}
+
+// =========================================================================
+// texture(), environment() and shadow() under the JIT (spec 027, FR-010, FR-022):
+// the interpreter's own sequence (TEXTURE*EXPR, ENVIRONMENTEXPR, SHADOWEXPR in
+// shaderFunctions.h) over the call site's TJitParamList -- the list bound once per
+// (instance, call site) by jitParameterList(), the varying values copied per vertex by
+// jitParameterListReady(), the footprint from the helpers the interpreter's macros call
+// (textureCalls.h), then the textureCalls sequence (options from the scratch, the
+// texture system's lookup, the draw cursor written back).
+// =========================================================================
+void CShadingContext::jitTexture(float *dst, int sd, const char *name, bool color, int channel, int numCoords, const float *const *coords,
+                                 const int *strides, int n, const int *tags, const TJitParamList &pl, uint32_t callSite) {
+    if (!name)
+        return;
+    CTextureLookup *lookup = jitParameterList<CTextureLookup>(pl, callSite);
+    CShadingScratch *scratch = &(currentShadingState->scratch);
+
+    // The texture, fetched once per call site as the interpreter does
+    TextureHandle *tex = lookup->map;
+    if (tex == nullptr)
+        lookup->map = tex = libshader::textureHandle(this, name, ETextureKind::Texture, "texture");
+    CTextureSystem *texSys = libshader::textureSystemOf(this);
+    TexturePerthread *texPt = texSys ? texSys->perthread(thread) : nullptr;
+
+    const int numVertices = currentShadingState->numVertices;
+    const float *const *varying = currentShadingState->varying;
+    const float *du = varying[VARIABLE_DU];
+    const float *dv = varying[VARIABLE_DV];
+    const float swidth = (scratch->textureParams.width == 0 ? scratch->textureParams.swidth : scratch->textureParams.width);
+    const float twidth = (scratch->textureParams.width == 0 ? scratch->textureParams.twidth : scratch->textureParams.width);
+    scratch->textureParams.filter = lookup->filter;
+
+    // The grid derivatives of the two coordinates (the eight-coordinate form carries its own corners)
+    float *dsdu = nullptr, *dsdv = nullptr, *dtdu = nullptr, *dtdv = nullptr;
+    if (numCoords == 2) {
+        dsdu = (float *)ralloc(numVertices * 4 * sizeof(float), threadMemory);
+        dsdv = dsdu + numVertices;
+        dtdu = dsdv + numVertices;
+        dtdv = dtdu + numVertices;
+        // A uniform coordinate has no spatial derivative (and no array to differentiate)
+        if (strides[0] != 0) {
+            duFloat(dsdu, coords[0]);
+            dvFloat(dsdv, coords[0]);
+        }
+        else {
+            memset(dsdu, 0, 2 * numVertices * sizeof(float));
+        }
+        if (strides[1] != 0) {
+            duFloat(dtdu, coords[1]);
+            dvFloat(dtdv, coords[1]);
+        }
+        else {
+            memset(dtdu, 0, 2 * numVertices * sizeof(float));
+        }
+    }
+
+    uint32_t *drawCounts = drawCounters(callSite);
+    for (int i = 0; i < n; ++i) {
+        if (tags && tags[i])
+            continue;
+        jitParameterListReady(lookup, pl, i);
+
+        float cs[4], ct[4];
+        if (numCoords == 2) {
+            libshader::textureCorners(cs, ct, JIT_IDX(coords[0], strides[0], i)[0], JIT_IDX(coords[1], strides[1], i)[0], dsdu[i], dsdv[i], dtdu[i],
+                                      dtdv[i], du[i], dv[i], swidth, twidth);
+        }
+        else {
+            for (int k = 0; k < 4; ++k) {
+                cs[k] = JIT_IDX(coords[2 * k], strides[2 * k], i)[0];
+                ct[k] = JIT_IDX(coords[2 * k + 1], strides[2 * k + 1], i)[0];
+            }
+        }
+
+        bindDraws(i, drawCounts, callSite, 1);
+        TextureOpt opt = textureOptions();
+        vector tmp;
+        if (tex)
+            texSys->texture(tex, opt, texPt, cs, ct, tmp);
+        else
+            initv(tmp, opt.fill);
+        commitTextureDraws(opt);
+
+        float *res = JIT_IDX(dst, sd, i);
+        if (color)
+            movvv(res, tmp);
+        else // the two-coordinate float form takes the channel operand, the eight-coordinate one channel 0
+            res[0] = tmp[numCoords == 2 ? (channel & 3) : 0];
+    }
+}
+
+void CShadingContext::jitEnvironment(float *dst, int sd, const char *name, bool color, bool shadow, const float *D, int sD, int n, const int *tags,
+                                     const TJitParamList &pl, uint32_t callSite) {
+    if (!name)
+        return;
+    CEnvironmentLookup *lookup = jitParameterList<CEnvironmentLookup>(pl, callSite);
+    CShadingScratch *scratch = &(currentShadingState->scratch);
+
+    // Traced when it names "raytrace" or this shader's own kind, decided by the name alone as the interpreter does
+    const bool traced = (strcmp(name, "raytrace") == 0) || (strcmp(name, shadow ? "shadow" : "reflection") == 0);
+    TextureHandle *tex = nullptr;
+    CTextureSystem *texSys = nullptr;
+    TexturePerthread *texPt = nullptr;
+    if (!traced) {
+        tex = lookup->map;
+        if (tex == nullptr)
+            lookup->map = tex = libshader::textureHandle(this, name, ETextureKind::Environment, shadow ? "shadow" : "environment");
+        texSys = libshader::textureSystemOf(this);
+        texPt = texSys ? texSys->perthread(thread) : nullptr;
+    }
+
+    const int numVertices = currentShadingState->numVertices;
+    const int numRealVertices = currentShadingState->numRealVertices;
+    const float *const *varying = currentShadingState->varying;
+    const float *P = varying[VARIABLE_P];
+    const float *N = varying[VARIABLE_N];
+    const float *dPdu = varying[VARIABLE_DPDU];
+    const float *dPdv = varying[VARIABLE_DPDV];
+    const float *du = varying[VARIABLE_DU];
+    const float *dv = varying[VARIABLE_DV];
+    const float *time = varying[VARIABLE_TIME];
+    const float *L = varying[VARIABLE_L];
+    const float swidth = (scratch->textureParams.width == 0 ? scratch->textureParams.swidth : scratch->textureParams.width);
+    const float twidth = (scratch->textureParams.width == 0 ? scratch->textureParams.twidth : scratch->textureParams.width);
+    scratch->textureParams.filter = lookup->filter;
+
+    // The grid derivatives of the direction (or point). A uniform one has none.
+    float *dDdu = (float *)ralloc(numVertices * 6 * sizeof(float), threadMemory);
+    float *dDdv = dDdu + numVertices * 3;
+    if (sD != 0) {
+        duVector(dDdu, D);
+        dvVector(dDdv, D);
+    }
+    else {
+        memset(dDdu, 0, numVertices * 6 * sizeof(float));
+    }
+
+    CTraceLocation *raysBase = nullptr;
+    CTraceLocation *rays = nullptr;
+    int numRays = 0;
+    float *shadowDPdu = nullptr, *shadowDPdv = nullptr;
+    if (traced) {
+        raysBase = rays = (CTraceLocation *)ralloc(numVertices * sizeof(CTraceLocation), threadMemory);
+        if (shadow) {
+            // shadow() traces from the point toward the light: the derivatives of D - L (SHADOWEXPR_PRE)
+            float *tmp = (float *)ralloc(numVertices * sizeof(float) * 9, threadMemory);
+            shadowDPdu = tmp + numVertices * 3;
+            shadowDPdv = shadowDPdu + numVertices * 3;
+            for (int v = 0; v < numVertices; ++v)
+                subvv(tmp + v * 3, JIT_IDX(D, sD, v), L + v * 3);
+            duVector(shadowDPdu, tmp);
+            dvVector(shadowDPdv, tmp);
+        }
+    }
+
+    uint32_t *drawCounts = drawCounters(callSite);
+    for (int v = 0; v < numRealVertices; ++v) {
+        if (tags && tags[v])
+            continue;
+        jitParameterListReady(lookup, pl, v);
+        const float *d = JIT_IDX(D, sD, v);
+        float *res = JIT_IDX(dst, sd, v);
+
+        if (traced) {
+            rays->res = res;
+            if (shadow) {
+                movvv(rays->P, d);
+                initv(rays->N, 0, 0, 0); // Ps need not lie on the shaded surface: no origin guard
+                mulvf(rays->dPdu, dDdu + v * 3, du[v] * swidth);
+                mulvf(rays->dPdv, dDdv + v * 3, dv[v] * twidth);
+                subvv(rays->D, d, L + v * 3);
+                mulvf(rays->dDdu, shadowDPdu + v * 3, du[v] * swidth);
+                mulvf(rays->dDdv, shadowDPdv + v * 3, dv[v] * twidth);
+            }
+            else {
+                movvv(rays->D, d);
+                mulvf(rays->dDdu, dDdu + v * 3, du[v] * swidth);
+                mulvf(rays->dDdv, dDdv + v * 3, dv[v] * twidth);
+                movvv(rays->P, P + v * 3);
+                movvv(rays->N, N + v * 3);
+                mulvf(rays->dPdu, dPdu + v * 3, du[v] * swidth);
+                mulvf(rays->dPdv, dPdv + v * 3, dv[v] * twidth);
+            }
+            rays->coneAngle = (scratch->textureParams.blur > scratch->traceParams.coneAngle) ? scratch->textureParams.blur : scratch->traceParams.coneAngle;
+            rays->numSamples = (int)scratch->traceParams.samples;
+            rays->bias = scratch->traceParams.bias;
+            rays->sampleBase = scratch->traceParams.sampleBase;
+            rays->maxDist = scratch->traceParams.maxDist;
+            rays->time = time[v];
+            bindLocationDraws(rays, v, drawCounts, callSite);
+            ++rays;
+            ++numRays;
+        }
+        else {
+            vector D0, D1, D2, D3;
+            libshader::environmentCorners(D0, D1, D2, D3, d, dDdu + v * 3, dDdv + v * 3, du[v], dv[v], swidth, twidth);
+            bindDraws(v, drawCounts, callSite, 1);
+            TextureOpt opt = textureOptions();
+            vector color3;
+            if (tex)
+                texSys->environment(tex, opt, texPt, D0, D1, D2, D3, color3);
+            else
+                initv(color3, opt.fill);
+            commitTextureDraws(opt);
+            if (color)
+                movvv(res, color3);
+            else
+                res[0] = shadow ? (color3[0] + color3[1] + color3[2]) / 3.0f : color3[0];
+        }
+    }
+
+    if (traced && numRays > 0) {
+        rays = raysBase;
+        if (shadow)
+            traceTransmission(numRays, rays, FALSE);
+        else
+            traceReflection(numRays, rays, FALSE);
+        for (int i = 0; i < numRays; ++i, ++rays) {
+            if (shadow) {
+                if (color) {
+                    rays->res[0] = 1 - rays->C[0];
+                    rays->res[1] = 1 - rays->C[1];
+                    rays->res[2] = 1 - rays->C[2];
+                }
+                else {
+                    *(rays->res) = 1 - (rays->C[0] + rays->C[1] + rays->C[2]) / 3.0f;
+                }
+            }
+            else if (color) {
+                movvv(rays->res, rays->C);
+            }
+            else {
+                *(rays->res) = (rays->C[0] + rays->C[1] + rays->C[2]) / 3.0f;
+            }
+        }
+    }
+
+    // The derivative-offset tail repeats each real vertex's result, as for the trace builtins
+    if (n > numRealVertices) {
+        const int comps = color ? 3 : 1;
+        for (int i = 0; i < numRealVertices; ++i) {
+            const float *src = JIT_IDX(dst, sd, i);
+            float *tailDu = JIT_IDX(dst, sd, numRealVertices + i);
+            float *tailDv = JIT_IDX(dst, sd, 2 * numRealVertices + i);
+            for (int k = 0; k < comps; ++k) {
+                tailDu[k] = src[k];
+                tailDv[k] = src[k];
+            }
+        }
+    }
 }
 
 // =========================================================================
@@ -3344,11 +3541,11 @@ void CShadingContext::jitOcclusionBatch(float *dst, int sd, const float *P, int 
         lookup->map = cache;
         if (scratch->occlusionParams.environmentMapName != NULL &&
             scratch->occlusionParams.environmentMapName[0] != 0)
-            lookup->environment = this->rendererGetEnvironment(scratch->occlusionParams.environmentMapName);
+            lookup->environment = libshader::textureHandle(this, scratch->occlusionParams.environmentMapName, ETextureKind::Environment, "environment");
         if (scratch->occlusionParams.pointHierarchyName != NULL &&
             scratch->occlusionParams.pointHierarchyName[0] != 0)
             lookup->pointHierarchy = this->rendererGetTexture3d(scratch->occlusionParams.pointHierarchyName, FALSE, "_area", from, to, TRUE);
-        cache->resolve(lookup->numChannels, lookup->channelName, lookup->channelEntry, lookup->channelSize);
+        this->rendererTexture3dResolve(cache, lookup->numChannels, lookup->channelName, lookup->channelEntry, lookup->channelSize);
     }
     assert(cache->dataSize == 7);
 
@@ -3447,10 +3644,12 @@ void CShadingContext::jitTexture3d(float *dst, int sd, const char *const *name,
 
     const float *from, *to;
     findCoordinateSystem("world", from, to);
+    if (!libshader::texture3dAvailable(this, "texture3d"))
+        return;
     CTexture3d *tex = this->rendererGetTexture3d(name[0], FALSE, nullptr, from, to);
     if (!tex)
         return;
-    tex->resolve(0, nullptr, nullptr, nullptr);
+    this->rendererTexture3dResolve(tex, 0, nullptr, nullptr, nullptr);
 
     float *dest = (float *)ralloc(tex->dataSize * sizeof(float), threadMemory);
     float *dPdu = (float *)ralloc(n * 6 * sizeof(float), threadMemory);
@@ -3471,7 +3670,7 @@ void CShadingContext::jitTexture3d(float *dst, int sd, const char *const *name,
         mulvf(PduScaled, JIT_IDX(dPdu, 3, i), du[i]);
         mulvf(PdvScaled, JIT_IDX(dPdv, 3, i), dv[i]);
         const float radius = (lengthv(PduScaled) + lengthv(PdvScaled)) * 0.5f;
-        tex->lookup(dest, JIT_IDX(P, sP, i), JIT_IDX(N, sN, i), radius);
+        this->rendererTexture3dLookup(tex, dest, JIT_IDX(P, sP, i), JIT_IDX(N, sN, i), radius);
         JIT_IDX(dst, sd, i)[0] = 1.0f;
     }
 }
@@ -3485,10 +3684,12 @@ void CShadingContext::jitBake3d(float *dst, int sd, const char *const *name, con
 
     const float *from, *to;
     findCoordinateSystem("world", from, to);
+    if (!libshader::texture3dAvailable(this, "bake3d"))
+        return;
     CTexture3d *tex = this->rendererGetTexture3d(name[0], TRUE, channels ? channels[0] : nullptr, from, to);
     if (!tex)
         return;
-    tex->resolve(0, nullptr, nullptr, nullptr);
+    this->rendererTexture3dResolve(tex, 0, nullptr, nullptr, nullptr);
 
     float *dest = (float *)ralloc(tex->dataSize * sizeof(float), threadMemory);
     float *dPdu = (float *)ralloc(n * 6 * sizeof(float), threadMemory);
@@ -3509,7 +3710,7 @@ void CShadingContext::jitBake3d(float *dst, int sd, const char *const *name, con
         mulvf(PduScaled, JIT_IDX(dPdu, 3, i), du[i]);
         mulvf(PdvScaled, JIT_IDX(dPdv, 3, i), dv[i]);
         const float radius = (lengthv(PduScaled) + lengthv(PdvScaled)) * 0.5f;
-        tex->store(dest, JIT_IDX(P, sP, i), JIT_IDX(N, sN, i), radius);
+        this->rendererTexture3dStore(tex, dest, JIT_IDX(P, sP, i), JIT_IDX(N, sN, i), radius);
         JIT_IDX(dst, sd, i)[0] = 1.0f;
     }
 
@@ -3693,7 +3894,10 @@ void CShadingContext::jitTextureInfo(float *dst, int sd, const char *const *name
     if (n <= 0)
         return;
 
-    CTextureInfoBase *textureInfo = this->rendererGetTextureInfo(name[0]);
+    TextureHandle *textureInfo = libshader::textureHandle(this, name[0], ETextureKind::Info, "textureinfo");
+    TextureInfo info;
+    if (textureInfo)
+        libshader::textureSystemOf(this)->describe(textureInfo, info);
 
     float found = 0.0f;
     float out[16];
@@ -3710,20 +3914,23 @@ void CShadingContext::jitTextureInfo(float *dst, int sd, const char *const *name
         found = 1.0f;
         const char *q = query[0];
         if (strcmp(q, "resolution") == 0) {
-            textureInfo->getResolution(out);
+            out[0] = info.resolution[0];
+            out[1] = info.resolution[1];
         }
         else if (strcmp(q, "type") == 0) {
-            outS = textureInfo->getTextureType();
+            outS = info.type;
             isString = true;
         }
         else if (strcmp(q, "channels") == 0) {
-            out[0] = (float)textureInfo->getNumChannels();
+            out[0] = (float)info.numChannels;
         }
         else if (strcmp(q, "viewingmatrix") == 0) {
-            found = (float)textureInfo->getViewMatrix(out);
+            memcpy(out, info.viewMatrix, sizeof(info.viewMatrix));
+            found = (float)info.hasViewMatrix;
         }
         else if (strcmp(q, "projectionmatrix") == 0) {
-            found = (float)textureInfo->getProjectionMatrix(out);
+            memcpy(out, info.projectionMatrix, sizeof(info.projectionMatrix));
+            found = (float)info.hasProjectionMatrix;
         }
         else if (strcmp(q, "exists") == 0) {
             writeDest = false;

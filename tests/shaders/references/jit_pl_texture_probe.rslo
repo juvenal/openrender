@@ -1,0 +1,62 @@
+#!version 2.0.0
+#!name "jit_pl_texture_probe"
+surface
+#!parameters:
+uniform	string	map	=	"texture-png-source.tex"
+uniform	float	blur	=	0
+uniform	float	width	=	1
+uniform	float	swidth	=	1
+uniform	float	twidth	=	1
+uniform	float	fill	=	0
+uniform	float	samples	=	1
+uniform	string	filter	=	"box"
+#!variables:
+varying	vector	c2
+varying	float	f1
+varying	vector	c8
+varying	float	temporary_0
+varying	float	temporary_1
+varying	float	temporary_2
+varying	float	temporary_3
+varying	float	temporary_4
+varying	float	temporary_5
+varying	float	temporary_6
+uniform	vector	temporary_7
+#!Init:
+	return            
+#!Code:
+	texture	("c=SFffSfsfsfsfsfsfss")  c2 map 0 s t "blur" blur "width" width "swidth" swidth "twidth" twidth "fill" fill "samples" samples "filter" filter 0
+	texture	("f=SFffSfsfsfsfsfsfss")  f1 map 1 s t "blur" blur "width" width "swidth" swidth "twidth" twidth "fill" fill "samples" samples "filter" filter 1
+	vufloat  temporary_1 0.15
+	addff  temporary_0 s temporary_1
+	moveff  temporary_2 temporary_1
+	addff  temporary_1 t temporary_2
+	vufloat  temporary_3 0.15
+	addff  temporary_2 s temporary_3
+	moveff  temporary_4 temporary_3
+	addff  temporary_3 t temporary_4
+	texture	("c=SFffffffffSfsfsfsfsfsfss")  c8 map 0 s t temporary_0 t s temporary_1 temporary_2 temporary_3 "blur" blur "width" width "swidth" swidth "twidth" twidth "fill" fill "samples" samples "filter" filter 2
+	vufloat  temporary_4 0
+	comp	("f=cf")  temporary_3 c2 temporary_4
+	vufloat  temporary_5 1
+	comp	("f=cf")  temporary_4 c2 temporary_5
+	addff  temporary_2 temporary_3 temporary_4
+	vufloat  temporary_4 2
+	comp	("f=cf")  temporary_3 c2 temporary_4
+	addff  temporary_1 temporary_2 temporary_3
+	vufloat  temporary_2 3
+	divff  temporary_0 temporary_1 temporary_2
+	vufloat  temporary_5 0
+	comp	("f=cf")  temporary_4 c8 temporary_5
+	vufloat  temporary_6 1
+	comp	("f=cf")  temporary_5 c8 temporary_6
+	addff  temporary_3 temporary_4 temporary_5
+	vufloat  temporary_5 2
+	comp	("f=cf")  temporary_4 c8 temporary_5
+	addff  temporary_2 temporary_3 temporary_4
+	vufloat  temporary_3 3
+	divff  temporary_1 temporary_2 temporary_3
+	vfromf  Ci temporary_0 f1 temporary_1
+	vfromf  temporary_7 1
+	vuvector  Oi temporary_7
+	return

@@ -199,11 +199,11 @@ DEFSHORTFUNC(TraceV, "trace", "c=pv!", TRACEEXPR_PRE, TRACEEXPR, TRACEEXPR_UPDAT
         lookup->map = cache = this->rendererGetCache(scratch->occlusionParams.cacheHandle, mode, from, to);                                   \
         if (scratch->occlusionParams.environmentMapName != NULL &&                                                                            \
             scratch->occlusionParams.environmentMapName[0] != 0)                                                                              \
-            lookup->environment = this->rendererGetEnvironment(scratch->occlusionParams.environmentMapName);                                  \
+            lookup->environment = libshader::textureHandle(this, scratch->occlusionParams.environmentMapName, ETextureKind::Environment, "environment"); \
         if (scratch->occlusionParams.pointHierarchyName != NULL &&                                                                            \
             scratch->occlusionParams.pointHierarchyName[0] != 0)                                                                              \
             lookup->pointHierarchy = this->rendererGetTexture3d(scratch->occlusionParams.pointHierarchyName, FALSE, "_area", from, to, TRUE); \
-        cache->resolve(lookup->numChannels, lookup->channelName, lookup->channelEntry, lookup->channelSize);                                  \
+        this->rendererTexture3dResolve(cache, lookup->numChannels, lookup->channelName, lookup->channelEntry, lookup->channelSize);         \
     }                                                                                                                                         \
     float *dPdu = (float *)ralloc(numVertices * 6 * sizeof(float), threadMemory);                                                             \
     float *dPdv = dPdu + numVertices * 3;                                                                                                     \

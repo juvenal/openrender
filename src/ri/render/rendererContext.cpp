@@ -66,6 +66,7 @@
 #include "ray.h"
 #include "raytracer.h"
 #include "rendererContext.h"
+#include "searchPathResolver.h"
 #include "ri.h"
 #include "riHooks.h"
 #include "ri_config.h"
@@ -2029,7 +2030,7 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
         // Opt-in disk cache for the runtime-synthesized (non-TIFF)
         // texture-source fallback (spec 020-runtime-tile-paging,
         // contracts/texturecache-option.md). Render-global, like every
-        // other Option; consulted only inside CRenderer::textureLoad()'s
+        // other Option; consulted only inside textureLoadTexture()'s (texture.cpp)
         // new fallback (reached solely on TIFFOpen() failure) -- has no
         // effect on already-baked textures.
         for (i = 0; i < n; i++) {
@@ -6131,7 +6132,8 @@ void CRendererContext::RiMakeTextureV(const char *pic, const char *tex, const ch
         return;
 
     options = getOptions(FALSE);
-    makeTexture(pic, tex, options->texturePath, swrap, twrap, filterfunc, swidth, twidth, n, tokens, params);
+    CSearchPathResolver resolver(options->texturePath);
+    makeTexture(pic, tex, &resolver, swrap, twrap, filterfunc, swidth, twidth, n, tokens, params);
 }
 
 void CRendererContext::RiMakeBumpV(const char *pic, const char *tex, const char *swrap, const char *twrap, float (*filterfunc)(float, float, float, float), float swidth, float twidth, int n, const char *tokens[], const void *params[]) {
@@ -6141,7 +6143,8 @@ void CRendererContext::RiMakeBumpV(const char *pic, const char *tex, const char 
         return;
 
     options = getOptions(FALSE);
-    makeTexture(pic, tex, options->texturePath, swrap, twrap, filterfunc, swidth, twidth, n, tokens, params);
+    CSearchPathResolver resolver(options->texturePath);
+    makeTexture(pic, tex, &resolver, swrap, twrap, filterfunc, swidth, twidth, n, tokens, params);
 }
 
 void CRendererContext::RiMakeLatLongEnvironmentV(const char *pic, const char *tex, float (*filterfunc)(float, float, float, float), float swidth, float twidth, int n, const char *tokens[], const void *params[]) {
@@ -6151,7 +6154,8 @@ void CRendererContext::RiMakeLatLongEnvironmentV(const char *pic, const char *te
         return;
 
     options = getOptions(FALSE);
-    makeCylindericalEnvironment(pic, tex, options->texturePath, RI_PERIODIC, RI_CLAMP, filterfunc, swidth, twidth, n, tokens, params);
+    CSearchPathResolver resolver(options->texturePath);
+    makeCylindericalEnvironment(pic, tex, &resolver, RI_PERIODIC, RI_CLAMP, filterfunc, swidth, twidth, n, tokens, params);
 }
 
 void CRendererContext::RiMakeCubeFaceEnvironmentV(const char *px, const char *nx, const char *py, const char *ny, const char *pz, const char *nz, const char *tex, float /*fov*/, float (*filterfunc)(float, float, float, float), float swidth, float twidth, int n, const char *tokens[], const void *params[]) {
@@ -6162,7 +6166,8 @@ void CRendererContext::RiMakeCubeFaceEnvironmentV(const char *px, const char *nx
         return;
 
     options = getOptions(FALSE);
-    makeCubicEnvironment(px, py, pz, nx, ny, nz, tex, RI_CLAMP, RI_CLAMP, options->texturePath, filterfunc, swidth, twidth, n, tokens, params, FALSE);
+    CSearchPathResolver resolver(options->texturePath);
+    makeCubicEnvironment(px, py, pz, nx, ny, nz, tex, RI_CLAMP, RI_CLAMP, &resolver, filterfunc, swidth, twidth, n, tokens, params, FALSE);
 }
 
 void CRendererContext::RiMakeShadowV(const char *pic, const char *tex, int n, const char *tokens[], const void *params[]) {
@@ -6172,7 +6177,8 @@ void CRendererContext::RiMakeShadowV(const char *pic, const char *tex, int n, co
         return;
 
     options = getOptions(FALSE);
-    makeSideEnvironment(pic, tex, options->texturePath, RI_CLAMP, RI_CLAMP, RiBoxFilter, 1, 1, n, tokens, params, TRUE);
+    CSearchPathResolver resolver(options->texturePath);
+    makeSideEnvironment(pic, tex, &resolver, RI_CLAMP, RI_CLAMP, RiBoxFilter, 1, 1, n, tokens, params, TRUE);
 }
 
 void CRendererContext::RiMakeBrickMapV(int nb, const char **src, const char *dest, int n, const char *tokens[], const void *params[]) {
@@ -6182,7 +6188,8 @@ void CRendererContext::RiMakeBrickMapV(int nb, const char **src, const char *des
         return;
 
     options = getOptions(FALSE);
-    makeBrickMap(nb, src, dest, options->texturePath, n, tokens, params);
+    CSearchPathResolver resolver(options->texturePath);
+    makeBrickMap(nb, src, dest, &resolver, n, tokens, params);
 }
 
 void CRendererContext::RiArchiveRecord(const char *, const char *, va_list) {

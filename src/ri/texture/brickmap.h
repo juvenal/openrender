@@ -30,9 +30,9 @@
 #include "common/algebra.h"
 #include "common/containers.h"
 #include "common/global.h"
-#include "options.h"
 #include "common/stats.h"
 #include "texture3d.h"
+#include "textureResolver.h"
 
 // Forward
 
@@ -254,6 +254,6 @@ class CBrickMap : public CTexture3d {
         friend class CBrickMapGeometry;
 };
 
-void makeBrickMap(int n, const char **src, const char *dest, TSearchpath *searchPath, int numTokens, const char **tokens, const void **params);
+void makeBrickMap(int n, const char **src, const char *dest, const CTextureFileResolver *searchPath, int numTokens, const char **tokens, const void **params);
 
 #endif

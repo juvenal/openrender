@@ -32,6 +32,7 @@ add_library(openrendercommon_obj OBJECT
     sampling.cpp      # camera slots + unscrambled Sobol reference (spec 039)
     samplingPmj02.cpp # PMJ02 pattern tables, built once on first use (spec 039)
     refCounter.cpp
+    rgbe.cpp          # the Radiance RGBE codec, extern "C" (spec 027, moved from display/rgbe: one definer)
     stats.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/variable_generated.cpp
     ${openrendercommon_headers}

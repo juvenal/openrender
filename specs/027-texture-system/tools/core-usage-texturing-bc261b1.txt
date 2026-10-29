@@ -1,0 +1,21 @@
+refs 70 distinct 16
+    1 CRenderer::environmentLoad
+    1 CRenderer::initTextures
+    9 CRenderer::locateFile
+    9 CRenderer::numThreads
+    1 CRenderer::retrieveDisplayChannel
+    1 CRenderer::shutdownTextures
+    2 CRenderer::synthesizeMutex
+    2 CRenderer::textureCacheDirectory
+    2 CRenderer::textureCacheEnabled
+    1 CRenderer::textureLoad
+    6 CRenderer::textureMaxMemory
+    5 CRenderer::textureMutex
+    1 CRenderer::texturePath
+   11 CRenderer::textureRefNumber
+   10 CRenderer::textureUsedBlocks
+    8 CRenderer::textureUsedMemory
+  file brickmap.cpp: 1
+  file texmake.cpp: 6
+  file texture.cpp: 62
+  file texture3d.cpp: 1

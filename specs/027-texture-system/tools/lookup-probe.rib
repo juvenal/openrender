@@ -1,0 +1,17 @@
+##RenderMan RIB-Structure 1.0
+# Spec 027 (research R15, T004): the probe scene for tools/lookupprobe.sl. One tiny patch,
+# one shading grid; the shader prints the same lookup values at every point.
+# Run (quickstart §0.5), with the compiled probe on SHADERS and the fixtures on TEXTURES:
+#   TEXTURES=$W/examples/rib/tests:$W/tests/unit/texture_tile/fixtures:$W/tests/unit/image_input/fixtures
+version 3.03
+Hider "reyes"
+Display "lookup-probe.tif" "file" "rgba"
+Format 4 4 1
+PixelSamples 1 1
+ShadingRate 100
+Projection "orthographic"
+Translate 0 0 4
+WorldBegin
+  Surface "lookupprobe"
+  Patch "bilinear" "P" [-1 -1 0  1 -1 0  -1 1 0  1 1 0]
+WorldEnd

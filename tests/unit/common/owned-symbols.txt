@@ -39,3 +39,12 @@ _ZTI13CFileResource                             # typeinfo for CFileResource
 # --- Phase 5 (US1, T037): variables. Every RI_* token declared in ri.h is
 #     checked too (Common_StateOwnership's -DTOKENS_FROM=ri.h). ---
 _Z13parseVariableP9CVariablePKcS2_                  # parseVariable(CVariable*, char const*, char const*)
+
+# --- Spec 027: the RGBE codec (src/common/rgbe.{h,cpp}, extern "C": the names are not mangled, so they
+#     read the same on macOS and glibc). One definer: libRIBCommon. ---
+RGBE_WriteHeader
+RGBE_ReadHeader
+RGBE_WritePixels
+RGBE_ReadPixels
+RGBE_WritePixels_RLE
+RGBE_ReadPixels_RLE

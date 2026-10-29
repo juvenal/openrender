@@ -40,7 +40,9 @@
 #include "remoteChannel.h"
 #include "renderer.h"
 #include "rendererContext.h"
+#include "searchPathResolver.h"
 #include "shadeop.h"
+#include "shading.h"
 #include "texture.h"
 #include "texture3d.h"
 
@@ -429,64 +431,6 @@ int CRenderer::locateFileEx(char *result, const char *name, const char *extensio
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRenderer
-// Method				:	getTexture
-// Description			:	Load a texture from file
-// Return Value			:
-// Comments				:
-CTexture *CRenderer::getTexture(const char *name) {
-    CFileResource *tex;
-
-    assert(name != NULL);
-    assert(frameFiles != NULL);
-
-    if (frameFiles->find(name, tex) == FALSE) {
-
-        // Load the texture
-        tex = textureLoad(name, texturePath);
-
-        if (tex == NULL) {
-            // Not found, substitude with a dummy one
-            if (*name != 0)
-                error(CODE_NOFILE, "Failed open texture \"%s\"\n", name);
-            tex = new CDummyTexture(name);
-        }
-
-        frameFiles->insert(tex->name, tex);
-    }
-
-    return (CTexture *)tex;
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CRenderer
-// Method				:	getEnvironment
-// Description			:	Load an environment map (which can also be a shadow map)
-// Return Value			:
-// Comments				:
-CEnvironment *CRenderer::getEnvironment(const char *name) {
-    CFileResource *tex;
-
-    assert(name != NULL);
-    assert(frameFiles != NULL);
-
-    if (frameFiles->find(name, tex) == FALSE) {
-
-        tex = environmentLoad(name, texturePath, toWorld);
-
-        if (tex == NULL) {
-            // Not found, substitude with a dummy one
-            error(CODE_NOFILE, "Failed open environment \"%s\"\n", name);
-            tex = new CDummyEnvironment(name);
-        }
-
-        frameFiles->insert(tex->name, tex);
-    }
-
-    return (CEnvironment *)tex;
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CRenderer
 // Method				:	getPhotonMap
 // Description			:	Load a photon map
 // Return Value			:
@@ -629,34 +573,9 @@ CTexture3d *CRenderer::getCache(const char *name, const char *mode, const float 
     return (CTexture3d *)cache;
 }
 
-///////////////////////////////////////////////////////////////////////
-// Class				:	CRenderer
-// Method				:	getTextureInfo
-// Description			:	Load a texture from file
-// Return Value			:
-// Comments				:
-CTextureInfoBase *CRenderer::getTextureInfo(const char *name) {
-    CFileResource *tex;
-
-    assert(name != NULL);
-    assert(frameFiles != NULL);
-
-    if (frameFiles->find(name, tex) == FALSE) {
-        // try environments first
-        tex = environmentLoad(name, texturePath, toWorld);
-
-        if (tex == NULL) {
-            // else try as textures
-            tex = textureLoad(name, texturePath);
-        }
-
-        if (tex != NULL) {
-            // only store the result if found
-            frameFiles->insert(tex->name, tex);
-        }
-    }
-
-    return (CTextureInfoBase *)tex;
+// The point hierarchy's solid-angle limit: the occlusion() "maxsolidangle" of the lookup in progress (spec 027)
+static float pointHierarchyMaxSolidAngle(const CShadingContext *context) {
+    return context->currentShadingState->scratch.occlusionParams.maxSolidAngle;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -703,7 +622,9 @@ CTexture3d *CRenderer::getTexture3d(const char *name, int write, const char *cha
                 // Try to open the file
                 if ((in = ropen(fileName, "rb", filePointCloud, TRUE)) != NULL) {
                     if (hierarchy == TRUE) {
-                        texture3d = new CPointHierarchy(name, from, to, in);
+                        CPointHierarchy::Options options;
+                        options.maxSolidAngle = pointHierarchyMaxSolidAngle;
+                        texture3d = new CPointHierarchy(name, from, to, in, options);
                     }
                     else {
                         texture3d = new CPointCloud(name, from, to, in);

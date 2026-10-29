@@ -142,8 +142,6 @@ TSearchpath *CRenderer::shaderPath;
 TSearchpath *CRenderer::displayPath;
 TSearchpath *CRenderer::modulePath;
 TSearchpath *CRenderer::geometryPath;
-bool CRenderer::textureCacheEnabled;
-const char *CRenderer::textureCacheDirectory;
 int CRenderer::pixelXsamples, CRenderer::pixelYsamples;
 openrender::sampling::Backend CRenderer::samplingBackend = openrender::sampling::Backend::Sobol;
 uint32_t CRenderer::samplingSeed = 0;
@@ -171,6 +169,8 @@ int CRenderer::endofframe;
 char *CRenderer::filelog;
 int CRenderer::numThreads;
 int CRenderer::maxTextureSize;
+CSearchPathResolver *CRenderer::textureResolver = NULL;               // initialized in beginFrame, destroyed in endFrame
+CTextureSystem *CRenderer::textureSystem = NULL;                      // initialized in beginFrame, destroyed in endFrame
 int CRenderer::maxBrickSize;
 int CRenderer::maxGridSize;
 int CRenderer::maxRayDepth;
@@ -267,9 +267,5 @@ int *CRenderer::nonCompChannelOrder;                              // initialized
 int CRenderer::numExtraNonCompChannels;                           // initialized in beginDisplays / computeDisplayData
 int CRenderer::numExtraChannels;                                  // initialized in beginDisplays / computeDisplayData
 int CRenderer::numRenderedBuckets = 0;                            // initialized in beginFrame
-int **CRenderer::textureRefNumber = NULL;                         // initialized in initTextures, destroyed in shutdownTextures
-CTextureBlock *CRenderer::textureUsedBlocks = NULL;               // initialized in initTextures, destroyed in shutdownTextures
-int *CRenderer::textureUsedMemory = NULL;                         // initialized in initTextures, destroyed in shutdownTextures
-int *CRenderer::textureMaxMemory = NULL;                          // initialized in initTextures, destroyed in shutdownTextures
 
 const CUserAttributeDictionary *CRenderer::userOptions = NULL; // initialized in beginFrame

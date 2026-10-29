@@ -77,10 +77,8 @@ class CPLLookup {
         CPLLookup *next; // To maintain a linked list
 };
 
-class CTexture;
-class CEnvironment;
+struct TextureHandle; // ri/texture/textureSystem.h
 class CPhotonMap;
-class CTextureInfoBase;
 class CTexture3d;
 class CPointHierarchy;
 
@@ -99,7 +97,7 @@ class CTextureLookup : public CPLLookup {
         // static helper for irradiance cache lookups
         static void staticInit(CShadingScratch *scratch);
 
-        CTexture *map;
+        TextureHandle *map;
         RtFilterFunc filter;
 };
 
@@ -128,7 +126,7 @@ class CEnvironmentLookup : public CTraceLookup {
         void bind(const char *name, int &opIndex, int step, void *data, CShaderInstance *shader);
         void init(CShadingScratch *scratch, const CAttributes *attributes);
 
-        CEnvironment *map;
+        TextureHandle *map;
         RtFilterFunc filter;
 };
 
@@ -156,7 +154,7 @@ class CMapInfoLookup : public CPLLookup {
         CMapInfoLookup();
         ~CMapInfoLookup();
 
-        CTextureInfoBase *map;
+        TextureHandle *map;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -193,7 +191,7 @@ class COcclusionLookup : public CTexture3dLookup {
         void init(CShadingScratch *scratch, const CAttributes *attributes);
         void postBind(CShadingScratch *scratch);
 
-        CEnvironment *environment;  // The environment map to use
+        TextureHandle *environment; // The environment map to use
         CTexture3d *pointHierarchy; // The point hierarchy to use
 };
 

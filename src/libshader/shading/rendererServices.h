@@ -29,11 +29,9 @@
 #include "common/rendererc.h" // ECoordinateSystem
 
 // Forward declarations (defined in src/ri/)
-class CTexture;
 class CTexture3d;
-class CTextureInfoBase;
-class CEnvironment;
 class CPhotonMap;
+class CTextureSystem;
 class CVariable;
 class CDSO;
 class CObject;
@@ -90,15 +88,25 @@ class CRendererServices {
         virtual const float *worldBmax() const = 0;
 
         ///////////////////////////////////////////////////////////////
-        // Texture / environment / point-cloud resource loaders
+        // Point-cloud, photon-map and irradiance-cache resource loaders (2D textures: textureSystem() below)
         // Implementations must be thread-safe (include mutex locking).
         ///////////////////////////////////////////////////////////////
-        virtual CTexture *getTexture(const char *name) = 0;
-        virtual CEnvironment *getEnvironment(const char *name) = 0;
         virtual CPhotonMap *getPhotonMap(const char *name) = 0;
         virtual CTexture3d *getCache(const char *handle, const char *mode, const float *from, const float *to) = 0;
-        virtual CTextureInfoBase *getTextureInfo(const char *name) = 0;
         virtual CTexture3d *getTexture3d(const char *name, int write, const char *channels, const float *from, const float *to, int hierarchy = FALSE) = 0;
+
+        // The operations on a 3D texture or an irradiance cache returned by the two getters above (spec 027):
+        // Shading holds the handle and never calls the class. Not locked, as the calls always were.
+        // Binds `n` channel names to their entry points and sizes; returns the data size of one sample.
+        virtual int texture3dResolve(CTexture3d *t, int n, const char **names, int *entry, int *size) = 0;
+        // Fills `dest` with the sample at P with normal N and the given radius
+        virtual void texture3dLookup(CTexture3d *t, float *dest, const float *P, const float *N, float radius) = 0;
+        // Stores `data` at P with normal N and the given radius
+        virtual void texture3dStore(CTexture3d *t, const float *data, const float *P, const float *N, float radius) = 0;
+
+        // The frame's texture system (spec 027), nullptr between frames. Shading reaches 2D textures,
+        // environments, shadow maps and texture info only through it.
+        virtual CTextureSystem *textureSystem() = 0;
 
         ///////////////////////////////////////////////////////////////
         // Light category / global string IDs

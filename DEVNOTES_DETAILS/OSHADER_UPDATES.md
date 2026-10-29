@@ -328,6 +328,21 @@ hider never sets. Changes:
   `ShadingParity_IlluminationHook`, which runs the four forms through a probe context with the hook on,
   off and toggled.
 
+### `texture()`, `environment()` and `shadow()` under the JIT (spec 027)
+
+- **ABI.** `op_texture_{f,c}_v3`, `op_texture_full_{f,c}_v3`, `op_environment_{f,c}_v3` and `op_shadow_{f,c}_v3`
+  (`rslOps.h`) replace the `_v2` entry points, which are deleted so a `.slo` compiled before fails to bind. After the
+  positional operands (the name, the channel operand every form carries, the coordinates or `D`/`Ps` as operand 2) they take
+  `n`, `tags`, the call's optional parameter list (`names`, `values`, `steps`, `isVarying`, `numPairs`) and the call site,
+  as `op_trace_*_v3` does. The emitter picks the entry point from the instruction's prototype (the destination type and, for
+  `texture()`, the number of coordinates), never from the operand count.
+- **Run time.** `CShadingContext::jitTexture()`/`jitEnvironment()` bind the list with `jitParameterList<CTextureLookup>()`/
+  `<CEnvironmentLookup>()`, build the footprint with the helpers the interpreter's macros share (`libshader::textureCorners`,
+  `environmentCorners`, `textureCalls.h`), and run the texture-system sequence; `"raytrace"` and the shader's own name trace.
+- **Variable lookup.** A shader's own parameter or local now shadows a built-in variable of the same name (the emitter used to
+  let the global win).
+- **`textureinfo()`.** The result-type letter is the last one of the prototype once an optional `!` is stripped.
+
 ---
 
 ## Imager Shader Support

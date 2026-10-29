@@ -57,16 +57,17 @@ class CForwardingServices : public CRendererServices {
         const float *worldBmin() const override { return inner->worldBmin(); }
         const float *worldBmax() const override { return inner->worldBmax(); }
 
-        CTexture *getTexture(const char *name) override { return inner->getTexture(name); }
-        CEnvironment *getEnvironment(const char *name) override { return inner->getEnvironment(name); }
+        CTextureSystem *textureSystem() override { return inner->textureSystem(); }
         CPhotonMap *getPhotonMap(const char *name) override { return inner->getPhotonMap(name); }
         CTexture3d *getCache(const char *handle, const char *mode, const float *from, const float *to) override {
             return inner->getCache(handle, mode, from, to);
         }
-        CTextureInfoBase *getTextureInfo(const char *name) override { return inner->getTextureInfo(name); }
         CTexture3d *getTexture3d(const char *name, int write, const char *channels, const float *from, const float *to, int hierarchy = FALSE) override {
             return inner->getTexture3d(name, write, channels, from, to, hierarchy);
         }
+        int texture3dResolve(CTexture3d *t, int n, const char **names, int *entry, int *size) override { return inner->texture3dResolve(t, n, names, entry, size); }
+        void texture3dLookup(CTexture3d *t, float *dest, const float *P, const float *N, float radius) override { inner->texture3dLookup(t, dest, P, N, radius); }
+        void texture3dStore(CTexture3d *t, const float *data, const float *P, const float *N, float radius) override { inner->texture3dStore(t, data, P, N, radius); }
 
         int getGlobalID(const char *name) override {
             return inner->getGlobalID(name);

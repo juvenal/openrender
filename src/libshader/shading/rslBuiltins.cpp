@@ -21,7 +21,7 @@
 #include "noise.h"
 #include "shader.h"
 #include "shading.h"
-#include "texture.h"
+#include "textureCalls.h"
 #include <cmath>
 #include <cstring>
 
@@ -177,13 +177,13 @@ void rsl_noise_v_p_scalar(float *out, const float *in) {
 
 void rsl_texture_c_scalar(float *out, const char *name, float s, float t) {
     CShadingContext *ctx = libshader::activeContext();
-    CRendererServices *svc = ctx ? ctx->getServices() : nullptr;
-    CTexture *tex = svc ? svc->getTexture(name) : nullptr;
+    TextureHandle *tex = ctx ? libshader::textureHandle(ctx, name, ETextureKind::Texture, "texture") : nullptr;
     if (tex) {
-        // CTexture::lookup takes a context for parameter list access (blur, etc.)
-        // For simple lookup we might need a context anyway.
-        // For now, let's use the active one.
-        tex->lookup(out, s, t, libshader::activeContext());
+        // The options are the active context's scratch, the same as a texture() call made by a shader
+        TextureOpt opt = ctx->textureOptions();
+        CTextureSystem *system = libshader::textureSystemOf(ctx);
+        system->texturePoint(tex, opt, system->perthread(ctx->thread), s, t, out);
+        ctx->commitTextureDraws(opt);
     }
     else {
         out[0] = out[1] = out[2] = 0.0f;

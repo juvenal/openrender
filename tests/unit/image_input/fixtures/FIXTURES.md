@@ -59,6 +59,6 @@ Files:
 Radiance HDR, no RLE, header `#?RGBE` / `FORMAT=32-bit_rle_rgbe` /
 `-Y H +X W`. Pixel values are R(x,y)/G(x,y)/B(x,y) from the OpenEXR
 formulas above, run through the standard RGBE shared-exponent encoding
-(`float2rgbe`, mirrored from `src/display/rgbe/rgbe.cpp`). Decode is
+(`float2rgbe`, mirrored from `src/common/rgbe.cpp`). Decode is
 lossy (shared 8-bit exponent + 3x8-bit mantissa) — tests should compare
 with a relative tolerance of ~0.5% (1/256), not exact equality.

@@ -1,0 +1,10 @@
+ALLOWED   DB-001 x 8 DB-004 x 65 DB-005 x 8 DB-006 x 33 DB-008 x 7 DB-010 x 35 DB-011 x 173 DB-015 x 10 DB-017 x 78 DB-019 x 3 DB-021 x 1 DB-025 x 12 DB-026 x 3
+archcheck: platform=macos objects=256 sources=182 edges=2363 (include=1466 link=897)
+METRIC    Geometry refs 78 (baseline 78)  distinct 19 (baseline 19)
+METRIC    Hiders refs 567 (baseline 567)  distinct 84 (baseline 84)
+METRIC    Infra refs 0 (baseline 0)  distinct 0 (baseline 0)
+METRIC    SceneInterface refs 6 (baseline 6)  distinct 6 (baseline 6)
+METRIC    Shading refs 0 (baseline 0)  distinct 0 (baseline 0)
+METRIC    Texturing refs 70 (baseline 70)  distinct 16 (baseline 16)
+METRIC    TOTAL refs 721 (baseline 721)  distinct 110 (baseline 110)
+RESULT    PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0

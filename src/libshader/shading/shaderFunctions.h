@@ -1390,63 +1390,68 @@ DEFFUNC(RendererinfoM, "rendererinfo", "f=SM", PARAMETEREXPR_PRE(0), PARAMETEREX
 
 #ifndef INIT_SHADING
 
-#define TEXTUREINFO_PRE(_t)                                             \
-    plBegin(CMapInfoLookup, 4);                                         \
-    float *res;                                                         \
-    const char **op1;                                                   \
-    const char **op2;                                                   \
-    _t op3;                                                             \
-    float found;                                                        \
-    float out[16 * 2];                                                  \
-    const char *outS;                                                   \
-    _t src = (_t)out;                                                   \
-    int op3sz;                                                          \
-                                                                        \
-    operand(0, res, float *);                                           \
-    operand(1, op1, const char **);                                     \
-    operand(2, op2, const char **);                                     \
-    operandSize(3, op3, op3sz, _t);                                     \
-    (void)op3sz;                                                        \
-                                                                        \
-    CTextureInfoBase *textureInfo;                                      \
-    if ((textureInfo = lookup->map) == NULL) {                          \
-        lookup->map = textureInfo = this->rendererGetTextureInfo(*op1); \
-    }                                                                   \
-                                                                        \
-    if (textureInfo == NULL) {                                          \
-        found = 0;                                                      \
-        src = op3; /* prevent writing result */                         \
-    }                                                                   \
-    else {                                                              \
-                                                                        \
-        for (int i = 0; i < 16 * 2; ++i)                                \
-            out[i] = 0;                                                 \
-                                                                        \
-        found = 1;                                                      \
-                                                                        \
-        if (strcmp(*op2, "resolution") == 0) {                          \
-            textureInfo->getResolution(out);                            \
-        }                                                               \
-        else if (strcmp(*op2, "type") == 0) {                           \
-            outS = textureInfo->getTextureType();                       \
-            src = (_t) & outS;                                          \
-        }                                                               \
-        else if (strcmp(*op2, "channels") == 0) {                       \
-            out[0] = (float)textureInfo->getNumChannels();              \
-        }                                                               \
-        else if (strcmp(*op2, "viewingmatrix") == 0) {                  \
-            found = (float)textureInfo->getViewMatrix(out);             \
-        }                                                               \
-        else if (strcmp(*op2, "projectionmatrix") == 0) {               \
-            found = (float)textureInfo->getProjectionMatrix(out);       \
-        }                                                               \
-        else if (strcmp(*op2, "exists") == 0) {                         \
-            src = op3; /* prevent writing result */                     \
-        }                                                               \
-        else {                                                          \
-            found = 0;                                                  \
-            src = op3; /* prevent writing result */                     \
-        }                                                               \
+#define TEXTUREINFO_PRE(_t)                                                                                  \
+    plBegin(CMapInfoLookup, 4);                                                                              \
+    float *res;                                                                                              \
+    const char **op1;                                                                                        \
+    const char **op2;                                                                                        \
+    _t op3;                                                                                                  \
+    float found;                                                                                             \
+    float out[16 * 2];                                                                                       \
+    const char *outS;                                                                                        \
+    _t src = (_t)out;                                                                                        \
+    int op3sz;                                                                                               \
+                                                                                                             \
+    operand(0, res, float *);                                                                                \
+    operand(1, op1, const char **);                                                                          \
+    operand(2, op2, const char **);                                                                          \
+    operandSize(3, op3, op3sz, _t);                                                                          \
+    (void)op3sz;                                                                                             \
+                                                                                                             \
+    TextureHandle *textureInfo;                                                                              \
+    if ((textureInfo = lookup->map) == NULL) {                                                               \
+        lookup->map = textureInfo = libshader::textureHandle(this, *op1, ETextureKind::Info, "textureinfo"); \
+    }                                                                                                        \
+                                                                                                             \
+    if (textureInfo == NULL) {                                                                               \
+        found = 0;                                                                                           \
+        src = op3; /* prevent writing result */                                                              \
+    }                                                                                                        \
+    else {                                                                                                   \
+        TextureInfo info;                                                                                    \
+        libshader::textureSystemOf(this)->describe(textureInfo, info);                                       \
+                                                                                                             \
+        for (int i = 0; i < 16 * 2; ++i)                                                                     \
+            out[i] = 0;                                                                                      \
+                                                                                                             \
+        found = 1;                                                                                           \
+                                                                                                             \
+        if (strcmp(*op2, "resolution") == 0) {                                                               \
+            out[0] = info.resolution[0];                                                                     \
+            out[1] = info.resolution[1];                                                                     \
+        }                                                                                                    \
+        else if (strcmp(*op2, "type") == 0) {                                                                \
+            outS = info.type;                                                                                \
+            src = (_t) & outS;                                                                               \
+        }                                                                                                    \
+        else if (strcmp(*op2, "channels") == 0) {                                                            \
+            out[0] = (float)info.numChannels;                                                                \
+        }                                                                                                    \
+        else if (strcmp(*op2, "viewingmatrix") == 0) {                                                       \
+            memcpy(out, info.viewMatrix, sizeof(info.viewMatrix));                                           \
+            found = (float)info.hasViewMatrix;                                                               \
+        }                                                                                                    \
+        else if (strcmp(*op2, "projectionmatrix") == 0) {                                                    \
+            memcpy(out, info.projectionMatrix, sizeof(info.projectionMatrix));                               \
+            found = (float)info.hasProjectionMatrix;                                                         \
+        }                                                                                                    \
+        else if (strcmp(*op2, "exists") == 0) {                                                              \
+            src = op3; /* prevent writing result */                                                          \
+        }                                                                                                    \
+        else {                                                                                               \
+            found = 0;                                                                                       \
+            src = op3; /* prevent writing result */                                                          \
+        }                                                                                                    \
     }
 
 #define TEXTUREINFOF \
@@ -1562,6 +1567,20 @@ DEFFUNC(ShaderNames, "shadername", "s=S", SHADERNAMESEXPR_PRE, SHADERNAMESEXPR, 
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// One filtered lookup through the texture system. The option block is built per point, since the
+// scratch can change between calls, and the draws the lookup advanced are committed back to the
+// shader's stream (spec 027, FR-003, FR-005). With no handle (no texture system) the result is the
+// fill value.
+#define TEXTURE_LOOKUP(__out)                                \
+    {                                                        \
+        TextureOpt opt = this->textureOptions();             \
+        if (tex)                                             \
+            texSys->texture(tex, opt, texPt, cs, ct, __out); \
+        else                                                 \
+            initv(__out, opt.fill);                          \
+        this->commitTextureDraws(opt);                       \
+    }
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // texture	"f=SFff"
 #ifndef INIT_SHADING
@@ -1577,12 +1596,14 @@ DEFFUNC(ShaderNames, "shadername", "s=S", SHADERNAMESEXPR_PRE, SHADERNAMESEXPR, 
     operand(3, s, const float *);                                                                                            \
     operand(4, t, const float *);                                                                                            \
     /* Get the texture */                                                                                                    \
-    CTexture *tex;                                                                                                           \
+    TextureHandle *tex;                                                                                                      \
     if ((tex = lookup->map) == NULL) {                                                                                       \
         const char **op1;                                                                                                    \
         operand(1, op1, const char **);                                                                                      \
-        lookup->map = tex = this->rendererGetTexture(*op1);                                                                  \
+        lookup->map = tex = libshader::textureHandle(this, *op1, ETextureKind::Texture, "texture");                          \
     }                                                                                                                        \
+    CTextureSystem *texSys = libshader::textureSystemOf(this);                                                               \
+    TexturePerthread *texPt = texSys ? texSys->perthread(thread) : NULL;                                                     \
     int i;                                                                                                                   \
     float *dsdu = (float *)ralloc(numVertices * 4 * sizeof(float), threadMemory);                                            \
     float *dsdv = dsdu + numVertices;                                                                                        \
@@ -1605,19 +1626,12 @@ DEFFUNC(ShaderNames, "shadername", "s=S", SHADERNAMESEXPR_PRE, SHADERNAMESEXPR, 
     (void)op2;                                                                                                               \
     DRAW_BEGIN
 
-#define TEXTUREFEXPR                                             \
-    plReady();                                                   \
-    cs[0] = s[i];                                                \
-    cs[1] = s[i] + dsdu[i] * du[i] * swidth;                     \
-    cs[2] = s[i] + dsdv[i] * dv[i] * swidth;                     \
-    cs[3] = s[i] + (dsdu[i] * du[i] + dsdv[i] * dv[i]) * swidth; \
-    ct[0] = t[i];                                                \
-    ct[1] = t[i] + dtdu[i] * du[i] * twidth;                     \
-    ct[2] = t[i] + dtdv[i] * dv[i] * twidth;                     \
-    ct[3] = t[i] + (dtdu[i] * du[i] + dtdv[i] * dv[i]) * twidth; \
-    vector tmp;                                                  \
-    DRAW_BIND(1)                                                 \
-    tex->lookup4(tmp, cs, ct, this);                             \
+#define TEXTUREFEXPR                                                                                                 \
+    plReady();                                                                                                       \
+    libshader::textureCorners(cs, ct, s[i], t[i], dsdu[i], dsdv[i], dtdu[i], dtdv[i], du[i], dv[i], swidth, twidth); \
+    vector tmp;                                                                                                      \
+    DRAW_BIND(1)                                                                                                     \
+    TEXTURE_LOOKUP(tmp)                                                                                              \
     res[i] = tmp[int(*op2) & 3];
 
 #define TEXTUREFEXPR_UPDATE \
@@ -1639,18 +1653,11 @@ DEFFUNC(TextureFloat, "texture", "f=SFff!", TEXTUREFEXPR_PRE, TEXTUREFEXPR, TEXT
 // texture	"c=SFff"
 #ifndef INIT_SHADING
 
-#define TEXTURECEXPR                                             \
-    plReady();                                                   \
-    cs[0] = s[i];                                                \
-    cs[1] = s[i] + dsdu[i] * du[i] * swidth;                     \
-    cs[2] = s[i] + dsdv[i] * dv[i] * swidth;                     \
-    cs[3] = s[i] + (dsdu[i] * du[i] + dsdv[i] * dv[i]) * swidth; \
-    ct[0] = t[i];                                                \
-    ct[1] = t[i] + dtdu[i] * du[i] * twidth;                     \
-    ct[2] = t[i] + dtdv[i] * dv[i] * twidth;                     \
-    ct[3] = t[i] + (dtdu[i] * du[i] + dtdv[i] * dv[i]) * twidth; \
-    DRAW_BIND(1)                                                 \
-    tex->lookup4(res, cs, ct, this);
+#define TEXTURECEXPR                                                                                                 \
+    plReady();                                                                                                       \
+    libshader::textureCorners(cs, ct, s[i], t[i], dsdu[i], dsdv[i], dtdu[i], dtdv[i], du[i], dv[i], swidth, twidth); \
+    DRAW_BIND(1)                                                                                                     \
+    TEXTURE_LOOKUP(res)
 
 #define TEXTURECEXPR_UPDATE \
     ++i;                    \
@@ -1681,46 +1688,48 @@ DEFFUNC(TextureColor, "texture", "c=SFff!", TEXTUREFEXPR_PRE, TEXTURECEXPR, TEXT
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // texture	"f=SFffffffff"
 #ifndef INIT_SHADING
-#define TEXTUREFFULLEXPR_PRE /* Begin the parameter list */            \
-    plBegin(CTextureLookup, 11);                                       \
-    /* Fetch the parameters as usual */                                \
-    float *res;                                                        \
-    const float *op2, *op3, *op4, *op5, *op6, *op7, *op8, *op9, *op10; \
-    float cs[4], ct[4];                                                \
-    operand(0, res, float *);                                          \
-    operand(2, op2, const float *);                                    \
-    operand(3, op3, const float *);                                    \
-    operand(4, op4, const float *);                                    \
-    operand(5, op5, const float *);                                    \
-    operand(6, op6, const float *);                                    \
-    operand(7, op7, const float *);                                    \
-    operand(8, op8, const float *);                                    \
-    operand(9, op9, const float *);                                    \
-    operand(10, op10, const float *);                                  \
-    /* Get the texture */                                              \
-    CTexture *tex;                                                     \
-    if ((tex = lookup->map) == NULL) {                                 \
-        const char **op1;                                              \
-        operand(1, op1, const char **);                                \
-        lookup->map = tex = this->rendererGetTexture(*op1);            \
-    }                                                                  \
-    scratch->textureParams.filter = lookup->filter;                    \
-    (void)op2;                                                         \
+#define TEXTUREFFULLEXPR_PRE /* Begin the parameter list */                                         \
+    plBegin(CTextureLookup, 11);                                                                    \
+    /* Fetch the parameters as usual */                                                             \
+    float *res;                                                                                     \
+    const float *op2, *op3, *op4, *op5, *op6, *op7, *op8, *op9, *op10;                              \
+    float cs[4], ct[4];                                                                             \
+    operand(0, res, float *);                                                                       \
+    operand(2, op2, const float *);                                                                 \
+    operand(3, op3, const float *);                                                                 \
+    operand(4, op4, const float *);                                                                 \
+    operand(5, op5, const float *);                                                                 \
+    operand(6, op6, const float *);                                                                 \
+    operand(7, op7, const float *);                                                                 \
+    operand(8, op8, const float *);                                                                 \
+    operand(9, op9, const float *);                                                                 \
+    operand(10, op10, const float *);                                                               \
+    /* Get the texture */                                                                           \
+    TextureHandle *tex;                                                                             \
+    if ((tex = lookup->map) == NULL) {                                                              \
+        const char **op1;                                                                           \
+        operand(1, op1, const char **);                                                             \
+        lookup->map = tex = libshader::textureHandle(this, *op1, ETextureKind::Texture, "texture"); \
+    }                                                                                               \
+    CTextureSystem *texSys = libshader::textureSystemOf(this);                                      \
+    TexturePerthread *texPt = texSys ? texSys->perthread(thread) : NULL;                            \
+    scratch->textureParams.filter = lookup->filter;                                                 \
+    (void)op2;                                                                                      \
     DRAW_BEGIN
 
-#define TEXTUREFFULLEXPR             \
-    plReady();                       \
-    cs[0] = *op3;                    \
-    cs[1] = *op5;                    \
-    cs[2] = *op7;                    \
-    cs[3] = *op9;                    \
-    ct[0] = *op4;                    \
-    ct[1] = *op6;                    \
-    ct[2] = *op8;                    \
-    ct[3] = *op10;                   \
-    vector tmp;                      \
-    DRAW_BIND(1)                     \
-    tex->lookup4(tmp, cs, ct, this); \
+#define TEXTUREFFULLEXPR \
+    plReady();           \
+    cs[0] = *op3;        \
+    cs[1] = *op5;        \
+    cs[2] = *op7;        \
+    cs[3] = *op9;        \
+    ct[0] = *op4;        \
+    ct[1] = *op6;        \
+    ct[2] = *op8;        \
+    ct[3] = *op10;       \
+    vector tmp;          \
+    DRAW_BIND(1)         \
+    TEXTURE_LOOKUP(tmp)  \
     *res = tmp[0];
 
 #define TEXTUREFFULLEXPR_UPDATE \
@@ -1761,7 +1770,7 @@ DEFFUNC(TextureFloatFull, "texture", "f=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
     ct[2] = *op8;        \
     ct[3] = *op10;       \
     DRAW_BIND(1)         \
-    tex->lookup4(res, cs, ct, this);
+    TEXTURE_LOOKUP(res)
 
 #define TEXTURECFULLEXPR_UPDATE \
     DRAW_STEP                   \
@@ -1795,16 +1804,29 @@ DEFFUNC(TextureColorFull, "texture", "c=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
 #undef TEXTUREFFULLEXPR
 #undef TEXTUREFFULLEXPR_UPDATE
 #undef TEXTUREFFULLEXPR_POST
+#undef TEXTURE_LOOKUP
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 //	Environment / Shadow mapping macros
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// One environment, shadow or deep-shadow lookup through the texture system, in the way TEXTURE_LOOKUP
+// makes a texture lookup; the fill value when there is no handle.
+#define ENVIRONMENT_LOOKUP(__out)                                        \
+    {                                                                    \
+        TextureOpt opt = this->textureOptions();                         \
+        if (tex)                                                         \
+            texSys->environment(tex, opt, texPt, D0, D1, D2, D3, __out); \
+        else                                                             \
+            initv(__out, opt.fill);                                      \
+        this->commitTextureDraws(opt);                                   \
+    }
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // environment	"f=SFv"
 #ifndef INIT_SHADING
-#define ENVIRONMENTEXPR_PRE(__name)                                                                                          \
+#define ENVIRONMENTEXPR_PRE(__name, __builtin)                                                                               \
     /* Begin the parameter list */                                                                                           \
     plBegin(CEnvironmentLookup, 4);                                                                                          \
     float *res;                                                                                                              \
@@ -1815,17 +1837,23 @@ DEFFUNC(TextureColorFull, "texture", "c=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
     operand(1, op1, const char **);                                                                                          \
     operand(2, op2, const float *);                                                                                          \
     /* Get the texture */                                                                                                    \
-    CEnvironment *tex = NULL;                                                                                                \
-    if ((strcmp(*op1, "raytrace") != 0) && (strcmp(*op1, __name) != 0)) {                                                    \
+    /* Traced when it names "raytrace" or this shader's own kind; otherwise the map is a texture system handle */            \
+    const bool traced = (strcmp(*op1, "raytrace") == 0) || (strcmp(*op1, __name) == 0);                                      \
+    TextureHandle *tex = NULL;                                                                                               \
+    CTextureSystem *texSys = NULL;                                                                                           \
+    TexturePerthread *texPt = NULL;                                                                                          \
+    if (!traced) {                                                                                                           \
         if ((tex = lookup->map) == NULL) {                                                                                   \
-            lookup->map = tex = this->rendererGetEnvironment(*op1);                                                          \
+            lookup->map = tex = libshader::textureHandle(this, *op1, ETextureKind::Environment, __builtin);                  \
         }                                                                                                                    \
+        texSys = libshader::textureSystemOf(this);                                                                           \
+        texPt = texSys ? texSys->perthread(thread) : NULL;                                                                   \
     }                                                                                                                        \
     CTraceLocation *rays = nullptr;                                                                                          \
     int numRays = 0;                                                                                                         \
     const float *P = nullptr, *N = nullptr;                                                                                  \
     float *dPdu = nullptr, *dPdv = nullptr;                                                                                  \
-    if (tex == NULL) {                                                                                                       \
+    if (traced) {                                                                                                            \
         rays = (CTraceLocation *)ralloc(currentShadingState->numVertices * sizeof(CTraceLocation), threadMemory);            \
         P = varying[VARIABLE_P];                                                                                             \
         N = varying[VARIABLE_N];                                                                                             \
@@ -1853,55 +1881,46 @@ DEFFUNC(TextureColorFull, "texture", "c=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
     (void)P;                                                                                                                 \
     DRAW_BEGIN
 
-#define ENVIRONMENTEXPR(__float)                                            \
-    plReady();                                                              \
-    if (tex == NULL) {                                                      \
-        rays->res = res;                                                    \
-        movvv(rays->D, D);                                                  \
-        mulvf(rays->dDdu, dDdu, (*du) * swidth);                            \
-        mulvf(rays->dDdv, dDdv, (*dv) * twidth);                            \
-        movvv(rays->P, P);                                                  \
-        movvv(rays->N, N);                                                  \
-        mulvf(rays->dPdu, dPdu, (*du) * swidth);                            \
-        mulvf(rays->dPdv, dPdv, (*dv) * twidth);                            \
-        float largerConeAngle;                                              \
-        if (scratch->textureParams.blur > scratch->traceParams.coneAngle) { \
-            largerConeAngle = scratch->textureParams.blur;                  \
-        }                                                                   \
-        else {                                                              \
-            largerConeAngle = scratch->traceParams.coneAngle;               \
-        }                                                                   \
-        rays->coneAngle = largerConeAngle;                                  \
-        rays->numSamples = (int)scratch->traceParams.samples;               \
-        rays->bias = scratch->traceParams.bias;                             \
-        rays->sampleBase = scratch->traceParams.sampleBase;                 \
-        rays->maxDist = scratch->traceParams.maxDist;                       \
-        rays->time = *time;                                                 \
-        bindLocationDraws(rays, drawVertex, drawCounts, code->callSite);    \
-        ++rays;                                                             \
-        ++numRays;                                                          \
-    }                                                                       \
-    else {                                                                  \
-        vector D0, D1, D2, D3;                                              \
-        mulvf(dDdu, (*du) * swidth * 0.5f);                                 \
-        mulvf(dDdv, (*dv) * twidth * 0.5f);                                 \
-        subvv(D0, D, dDdu);                                                 \
-        subvv(D0, dDdv);                                                    \
-        addvv(D1, D, dDdu);                                                 \
-        subvv(D1, dDdv);                                                    \
-        subvv(D2, D, dDdu);                                                 \
-        addvv(D2, dDdv);                                                    \
-        addvv(D3, D, dDdu);                                                 \
-        addvv(D3, dDdv);                                                    \
-        DRAW_BIND(1)                                                        \
-        if (__float) {                                                      \
-            vector color;                                                   \
-            tex->lookup(color, D0, D1, D2, D3, this);                       \
-            *res = color[0];                                                \
-        }                                                                   \
-        else {                                                              \
-            tex->lookup(res, D0, D1, D2, D3, this);                         \
-        }                                                                   \
+#define ENVIRONMENTEXPR(__float)                                                                \
+    plReady();                                                                                  \
+    if (traced) {                                                                               \
+        rays->res = res;                                                                        \
+        movvv(rays->D, D);                                                                      \
+        mulvf(rays->dDdu, dDdu, (*du) * swidth);                                                \
+        mulvf(rays->dDdv, dDdv, (*dv) * twidth);                                                \
+        movvv(rays->P, P);                                                                      \
+        movvv(rays->N, N);                                                                      \
+        mulvf(rays->dPdu, dPdu, (*du) * swidth);                                                \
+        mulvf(rays->dPdv, dPdv, (*dv) * twidth);                                                \
+        float largerConeAngle;                                                                  \
+        if (scratch->textureParams.blur > scratch->traceParams.coneAngle) {                     \
+            largerConeAngle = scratch->textureParams.blur;                                      \
+        }                                                                                       \
+        else {                                                                                  \
+            largerConeAngle = scratch->traceParams.coneAngle;                                   \
+        }                                                                                       \
+        rays->coneAngle = largerConeAngle;                                                      \
+        rays->numSamples = (int)scratch->traceParams.samples;                                   \
+        rays->bias = scratch->traceParams.bias;                                                 \
+        rays->sampleBase = scratch->traceParams.sampleBase;                                     \
+        rays->maxDist = scratch->traceParams.maxDist;                                           \
+        rays->time = *time;                                                                     \
+        bindLocationDraws(rays, drawVertex, drawCounts, code->callSite);                        \
+        ++rays;                                                                                 \
+        ++numRays;                                                                              \
+    }                                                                                           \
+    else {                                                                                      \
+        vector D0, D1, D2, D3;                                                                  \
+        libshader::environmentCorners(D0, D1, D2, D3, D, dDdu, dDdv, *du, *dv, swidth, twidth); \
+        DRAW_BIND(1)                                                                            \
+        if (__float) {                                                                          \
+            vector color;                                                                       \
+            ENVIRONMENT_LOOKUP(color)                                                           \
+            *res = color[0];                                                                    \
+        }                                                                                       \
+        else {                                                                                  \
+            ENVIRONMENT_LOOKUP(res)                                                             \
+        }                                                                                       \
     }
 
 #define ENVIRONMENTEXPR_UPDATE(__n) \
@@ -1913,7 +1932,7 @@ DEFFUNC(TextureColorFull, "texture", "c=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
     ++dv;                           \
     ++time;                         \
     DRAW_STEP                       \
-    if (tex == NULL) {              \
+    if (traced) {                   \
         P += 3;                     \
         N += 3;                     \
         dPdu += 3;                  \
@@ -1922,7 +1941,7 @@ DEFFUNC(TextureColorFull, "texture", "c=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
     plStep();
 
 #define ENVIRONMENTEXPR_POST(__float)                                         \
-    if ((tex == NULL) && (numRays > 0)) {                                     \
+    if (traced && (numRays > 0)) {                                            \
         rays -= numRays;                                                      \
         traceReflection(numRays, rays, FALSE);                                \
         if (__float) {                                                        \
@@ -1944,8 +1963,8 @@ DEFFUNC(TextureColorFull, "texture", "c=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
 #define ENVIRONMENTEXPR_POST(__float)
 #endif
 
-DEFSHORTFUNC(EnvironmentFloat, "environment", "f=SFv!", ENVIRONMENTEXPR_PRE("reflection"), ENVIRONMENTEXPR(TRUE), ENVIRONMENTEXPR_UPDATE(1), ENVIRONMENTEXPR_POST(TRUE), PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_DU | PARAMETER_DV | PARAMETER_TIME | PARAMETER_DERIVATIVE)
-DEFSHORTFUNC(EnvironmentColor, "environment", "c=SFv!", ENVIRONMENTEXPR_PRE("reflection"), ENVIRONMENTEXPR(FALSE), ENVIRONMENTEXPR_UPDATE(3), ENVIRONMENTEXPR_POST(FALSE), PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_DU | PARAMETER_DV | PARAMETER_TIME | PARAMETER_DERIVATIVE)
+DEFSHORTFUNC(EnvironmentFloat, "environment", "f=SFv!", ENVIRONMENTEXPR_PRE("reflection", "environment"), ENVIRONMENTEXPR(TRUE), ENVIRONMENTEXPR_UPDATE(1), ENVIRONMENTEXPR_POST(TRUE), PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_DU | PARAMETER_DV | PARAMETER_TIME | PARAMETER_DERIVATIVE)
+DEFSHORTFUNC(EnvironmentColor, "environment", "c=SFv!", ENVIRONMENTEXPR_PRE("reflection", "environment"), ENVIRONMENTEXPR(FALSE), ENVIRONMENTEXPR_UPDATE(3), ENVIRONMENTEXPR_POST(FALSE), PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_DU | PARAMETER_DV | PARAMETER_TIME | PARAMETER_DERIVATIVE)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // shadow	"f=Sfv"
@@ -1957,9 +1976,9 @@ DEFSHORTFUNC(EnvironmentColor, "environment", "c=SFv!", ENVIRONMENTEXPR_PRE("ref
 // are correct or otherwise we waste time overtesselating
 
 #define SHADOWEXPR_PRE                                                                                    \
-    ENVIRONMENTEXPR_PRE("shadow");                                                                        \
+    ENVIRONMENTEXPR_PRE("shadow", "shadow");                                                              \
     const float *L = varying[VARIABLE_L];                                                                 \
-    if (tex == NULL) {                                                                                    \
+    if (traced) {                                                                                         \
         float *tmp = (float *)ralloc(currentShadingState->numVertices * sizeof(float) * 9, threadMemory); \
         dPdu = tmp + currentShadingState->numVertices * 3;                                                \
         dPdv = dPdu + currentShadingState->numVertices * 3;                                               \
@@ -1970,56 +1989,47 @@ DEFSHORTFUNC(EnvironmentColor, "environment", "c=SFv!", ENVIRONMENTEXPR_PRE("ref
         dvVector(dPdv, tmp);                                                                              \
     }
 
-#define SHADOWEXPR(__float)                                                 \
-    plReady();                                                              \
-    if (tex == NULL) {                                                      \
-        rays->res = res;                                                    \
-        movvv(rays->P, D);                                                  \
-        /* Ps need not lie on the shaded surface: no origin guard */        \
-        initv(rays->N, 0, 0, 0);                                            \
-        mulvf(rays->dPdu, dDdu, (*du) * swidth);                            \
-        mulvf(rays->dPdv, dDdv, (*dv) * twidth);                            \
-        subvv(rays->D, D, L);                                               \
-        mulvf(rays->dDdu, dPdu, (*du) * swidth);                            \
-        mulvf(rays->dDdv, dPdv, (*dv) * twidth);                            \
-        float largerConeAngle2;                                             \
-        if (scratch->textureParams.blur > scratch->traceParams.coneAngle) { \
-            largerConeAngle2 = scratch->textureParams.blur;                 \
-        }                                                                   \
-        else {                                                              \
-            largerConeAngle2 = scratch->traceParams.coneAngle;              \
-        }                                                                   \
-        rays->coneAngle = largerConeAngle2;                                 \
-        rays->sampleBase = scratch->traceParams.sampleBase;                 \
-        rays->numSamples = (int)scratch->traceParams.samples;               \
-        rays->bias = scratch->traceParams.bias;                             \
-        rays->maxDist = scratch->traceParams.maxDist;                       \
-        rays->time = *time;                                                 \
-        bindLocationDraws(rays, drawVertex, drawCounts, code->callSite);    \
-        ++rays;                                                             \
-        ++numRays;                                                          \
-    }                                                                       \
-    else {                                                                  \
-        vector D0, D1, D2, D3;                                              \
-        mulvf(dDdu, (*du) * swidth * 0.5f);                                 \
-        mulvf(dDdv, (*dv) * twidth * 0.5f);                                 \
-        subvv(D0, D, dDdu);                                                 \
-        subvv(D0, dDdv);                                                    \
-        addvv(D1, D, dDdu);                                                 \
-        subvv(D1, dDdv);                                                    \
-        subvv(D2, D, dDdu);                                                 \
-        addvv(D2, dDdv);                                                    \
-        addvv(D3, D, dDdu);                                                 \
-        addvv(D3, dDdv);                                                    \
-        DRAW_BIND(1)                                                        \
-        if (__float) {                                                      \
-            vector color;                                                   \
-            tex->lookup(color, D0, D1, D2, D3, this);                       \
-            *res = (color[0] + color[1] + color[2]) / 3.0f;                 \
-        }                                                                   \
-        else {                                                              \
-            tex->lookup(res, D0, D1, D2, D3, this);                         \
-        }                                                                   \
+#define SHADOWEXPR(__float)                                                                     \
+    plReady();                                                                                  \
+    if (traced) {                                                                               \
+        rays->res = res;                                                                        \
+        movvv(rays->P, D);                                                                      \
+        /* Ps need not lie on the shaded surface: no origin guard */                            \
+        initv(rays->N, 0, 0, 0);                                                                \
+        mulvf(rays->dPdu, dDdu, (*du) * swidth);                                                \
+        mulvf(rays->dPdv, dDdv, (*dv) * twidth);                                                \
+        subvv(rays->D, D, L);                                                                   \
+        mulvf(rays->dDdu, dPdu, (*du) * swidth);                                                \
+        mulvf(rays->dDdv, dPdv, (*dv) * twidth);                                                \
+        float largerConeAngle2;                                                                 \
+        if (scratch->textureParams.blur > scratch->traceParams.coneAngle) {                     \
+            largerConeAngle2 = scratch->textureParams.blur;                                     \
+        }                                                                                       \
+        else {                                                                                  \
+            largerConeAngle2 = scratch->traceParams.coneAngle;                                  \
+        }                                                                                       \
+        rays->coneAngle = largerConeAngle2;                                                     \
+        rays->sampleBase = scratch->traceParams.sampleBase;                                     \
+        rays->numSamples = (int)scratch->traceParams.samples;                                   \
+        rays->bias = scratch->traceParams.bias;                                                 \
+        rays->maxDist = scratch->traceParams.maxDist;                                           \
+        rays->time = *time;                                                                     \
+        bindLocationDraws(rays, drawVertex, drawCounts, code->callSite);                        \
+        ++rays;                                                                                 \
+        ++numRays;                                                                              \
+    }                                                                                           \
+    else {                                                                                      \
+        vector D0, D1, D2, D3;                                                                  \
+        libshader::environmentCorners(D0, D1, D2, D3, D, dDdu, dDdv, *du, *dv, swidth, twidth); \
+        DRAW_BIND(1)                                                                            \
+        if (__float) {                                                                          \
+            vector color;                                                                       \
+            ENVIRONMENT_LOOKUP(color)                                                           \
+            *res = (color[0] + color[1] + color[2]) / 3.0f;                                     \
+        }                                                                                       \
+        else {                                                                                  \
+            ENVIRONMENT_LOOKUP(res)                                                             \
+        }                                                                                       \
     }
 
 #define SHADOWEXPR_UPDATE(__n) \
@@ -2032,14 +2042,14 @@ DEFSHORTFUNC(EnvironmentColor, "environment", "c=SFv!", ENVIRONMENTEXPR_PRE("ref
     ++time;                    \
     DRAW_STEP                  \
     L += 3;                    \
-    if (tex == NULL) {         \
+    if (traced) {              \
         dPdu += 3;             \
         dPdv += 3;             \
     }                          \
     plStep();
 
 #define SHADOWEXPR_POST(__float)                                                  \
-    if ((tex == NULL) && (numRays > 0)) {                                         \
+    if (traced && (numRays > 0)) {                                                \
         rays -= numRays;                                                          \
         traceTransmission(numRays, rays, FALSE);                                  \
         if (__float) {                                                            \
@@ -2069,6 +2079,7 @@ DEFSHORTFUNC(ShadowFloat, "shadow", "f=SFp!", SHADOWEXPR_PRE, SHADOWEXPR(TRUE), 
 DEFSHORTFUNC(ShadowColor, "shadow", "c=SFp!", SHADOWEXPR_PRE, SHADOWEXPR(FALSE), SHADOWEXPR_UPDATE(3), SHADOWEXPR_POST(FALSE), PARAMETER_DU | PARAMETER_DV | PARAMETER_TIME | PARAMETER_DERIVATIVE)
 
 #undef ENVIRONMENTEXPR_PRE
+#undef ENVIRONMENT_LOOKUP
 #undef ENVIRONMENTEXPR
 #undef ENVIRONMENTEXPR_UPDATE
 #undef ENVIRONMENTEXPR_POST
@@ -2168,8 +2179,10 @@ DEFFUNC(FilterStep3, "filterstep", "f=fff!", FILTERSTEP3EXPR_PRE, FILTERSTEP3EXP
         const char **op1, **op2;                                                                                                                       \
         operand(1, op1, const char **);                                                                                                                \
         operand(2, op2, const char **);                                                                                                                \
-        lookup->map = tex = this->rendererGetTexture3d(*op1, TRUE, *op2, from, to);                                                                    \
-        tex->resolve(lookup->numChannels, lookup->channelName, lookup->channelEntry, lookup->channelSize);                                             \
+        if (libshader::texture3dAvailable(this, "bake3d")) {                                                                                           \
+            lookup->map = tex = this->rendererGetTexture3d(*op1, TRUE, *op2, from, to);                                                                \
+            this->rendererTexture3dResolve(tex, lookup->numChannels, lookup->channelName, lookup->channelEntry, lookup->channelSize);                  \
+        }                                                                                                                                              \
     }                                                                                                                                                  \
     float *res;                                                                                                                                        \
     const float *op3, *op4;                                                                                                                            \
@@ -2180,7 +2193,7 @@ DEFFUNC(FilterStep3, "filterstep", "f=fff!", FILTERSTEP3EXPR_PRE, FILTERSTEP3EXP
     const int uVerts = currentShadingState->numUvertices;                                                                                              \
     const int vVerts = currentShadingState->numVvertices;                                                                                              \
     const int doInterp = ((scratch->texture3dParams.interpolate == 1.0f) && currentShadingState->numVertices == currentShadingState->numRealVertices); \
-    float *dest = (float *)ralloc(tex->dataSize * sizeof(float), threadMemory);                                                                        \
+    float *dest = (float *)ralloc((tex ? tex->dataSize : 0) * sizeof(float), threadMemory);                                                            \
     const float **channelValues = (const float **)ralloc(lookup->numChannels * sizeof(const float *), threadMemory);                                   \
     float *dPdu = (float *)ralloc(numVertices * 6 * sizeof(float), threadMemory);                                                                      \
     float *dPdv = dPdu + numVertices * 3;                                                                                                              \
@@ -2210,16 +2223,16 @@ DEFFUNC(FilterStep3, "filterstep", "f=fff!", FILTERSTEP3EXPR_PRE, FILTERSTEP3EXP
     texture3Dflatten(dest, lookup->numChannels, channelValues, lookup->channelEntry, lookup->channelSize); \
     if (doInterp == FALSE) {                                                                               \
         movvv(P, op3);                                                                                     \
-        tex->store(dest, P, op4, radius);                                                                  \
+        this->rendererTexture3dStore(tex, dest, P, op4, radius);                                           \
     }                                                                                                      \
     else if ((curU < uVerts - 1) && (curV < vVerts - 1)) {                                                 \
         /* skip the end - do not double-bake seams */                                                      \
         P[0] = (dPdu[0] + dPdv[0]) * 0.5f + op3[0];                                                        \
         P[1] = (dPdu[1] + dPdv[1]) * 0.5f + op3[1];                                                        \
         P[2] = (dPdu[2] + dPdv[2]) * 0.5f + op3[2];                                                        \
-        tex->store(dest, P, op4, radius);                                                                  \
+        this->rendererTexture3dStore(tex, dest, P, op4, radius);                                           \
     }                                                                                                      \
-    *res = 1;
+    *res = tex ? 1 : 0;
 
 #define BAKE3DEXPR_UPDATE                                             \
     ++res;                                                            \
@@ -2258,33 +2271,35 @@ DEFSHORTFUNC(Bake3d, "bake3d", "f=SSpn!", BAKE3DEXPR_PRE, BAKE3DEXPR, BAKE3DEXPR
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // texture3d	"f=Spn!"
 #ifndef INIT_SHADING
-#define TEXTURE3DEXPR_PRE                                                                                  \
-    plBegin(CTexture3dLookup, 4);                                                                          \
-    CTexture3d *tex;                                                                                       \
-    if ((tex = lookup->map) == NULL) {                                                                     \
-        const float *from, *to;                                                                            \
-        findCoordinateSystem(scratch->texture3dParams.coordsys, from, to);                                 \
-        const char **op1;                                                                                  \
-        operand(1, op1, const char **);                                                                    \
-        lookup->map = tex = this->rendererGetTexture3d(*op1, FALSE, NULL, from, to);                       \
-        tex->resolve(lookup->numChannels, lookup->channelName, lookup->channelEntry, lookup->channelSize); \
-    }                                                                                                      \
-    float *res;                                                                                            \
-    const float *op2, *op3;                                                                                \
-    operand(0, res, float *);                                                                              \
-    operand(2, op2, const float *);                                                                        \
-    operand(3, op3, const float *);                                                                        \
-    float *dest = (float *)ralloc(tex->dataSize * sizeof(float), threadMemory);                            \
-    float **channelValues = (float **)ralloc(lookup->numChannels * sizeof(float *), threadMemory);         \
-    float *dPdu = (float *)ralloc(numVertices * 6 * sizeof(float), threadMemory);                          \
-    float *dPdv = dPdu + numVertices * 3;                                                                  \
-    duVector(dPdu, op2);                                                                                   \
-    dvVector(dPdv, op2);                                                                                   \
-    const float *du = varying[VARIABLE_DU];                                                                \
-    const float *dv = varying[VARIABLE_DV];                                                                \
-                                                                                                           \
-    for (int channel = 0; channel < lookup->numChannels; ++channel) {                                      \
-        operand(lookup->channelIndex[channel], channelValues[channel], float *);                           \
+#define TEXTURE3DEXPR_PRE                                                                                                             \
+    plBegin(CTexture3dLookup, 4);                                                                                                     \
+    CTexture3d *tex;                                                                                                                  \
+    if ((tex = lookup->map) == NULL) {                                                                                                \
+        const float *from, *to;                                                                                                       \
+        findCoordinateSystem(scratch->texture3dParams.coordsys, from, to);                                                            \
+        const char **op1;                                                                                                             \
+        operand(1, op1, const char **);                                                                                               \
+        if (libshader::texture3dAvailable(this, "texture3d")) {                                                                       \
+            lookup->map = tex = this->rendererGetTexture3d(*op1, FALSE, NULL, from, to);                                              \
+            this->rendererTexture3dResolve(tex, lookup->numChannels, lookup->channelName, lookup->channelEntry, lookup->channelSize); \
+        }                                                                                                                             \
+    }                                                                                                                                 \
+    float *res;                                                                                                                       \
+    const float *op2, *op3;                                                                                                           \
+    operand(0, res, float *);                                                                                                         \
+    operand(2, op2, const float *);                                                                                                   \
+    operand(3, op3, const float *);                                                                                                   \
+    float *dest = (float *)ralloc((tex ? tex->dataSize : 0) * sizeof(float), threadMemory);                                           \
+    float **channelValues = (float **)ralloc(lookup->numChannels * sizeof(float *), threadMemory);                                    \
+    float *dPdu = (float *)ralloc(numVertices * 6 * sizeof(float), threadMemory);                                                     \
+    float *dPdv = dPdu + numVertices * 3;                                                                                             \
+    duVector(dPdu, op2);                                                                                                              \
+    dvVector(dPdv, op2);                                                                                                              \
+    const float *du = varying[VARIABLE_DU];                                                                                           \
+    const float *dv = varying[VARIABLE_DV];                                                                                           \
+                                                                                                                                      \
+    for (int channel = 0; channel < lookup->numChannels; ++channel) {                                                                 \
+        operand(lookup->channelIndex[channel], channelValues[channel], float *);                                                      \
     }
 
 #define TEXTURE3DEXPR                                                                                     \
@@ -2298,9 +2313,9 @@ DEFSHORTFUNC(Bake3d, "bake3d", "f=SSpn!", BAKE3DEXPR_PRE, BAKE3DEXPR, BAKE3DEXPR
     else {                                                                                                \
         radius = (lengthv(dPdu) + lengthv(dPdv)) * 0.5f * scratch->texture3dParams.radiusScale;           \
     }                                                                                                     \
-    tex->lookup(dest, op2, op3, radius);                                                                  \
+    this->rendererTexture3dLookup(tex, dest, op2, op3, radius);                                           \
     texture3Dunpack(dest, lookup->numChannels, channelValues, lookup->channelEntry, lookup->channelSize); \
-    *res = 1;
+    *res = tex ? 1 : 0;
 
 #define TEXTURE3DEXPR_UPDATE                                          \
     ++res;                                                            \

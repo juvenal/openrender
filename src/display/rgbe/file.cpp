@@ -27,7 +27,7 @@
 #include "common/os.h"
 #include "dsply.h"
 #include "file/file_base.h"
-#include "rgbe.h"
+#include "common/rgbe.h"
 
 class CRgbeFramebuffer : public CFileOutputBase {
     public:

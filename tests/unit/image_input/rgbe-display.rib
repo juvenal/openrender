@@ -1,0 +1,27 @@
+##RenderMan RIB-Structure 1.0
+# Spec 027 (T028, Display_RgbeBytes, FR-017, SC-009): a small deterministic scene rendered through the
+# "rgbe" display driver. The output bytes are compared with fixtures/references/rgbe-display.hdr, which
+# T029 recorded from the STARTING tree's driver, so any change of the RGBE codec shows as a byte change.
+# -t:1 (set by the script), box pixel filter, one sample per pixel, no jitter: the same bytes every run.
+version 3.03
+Hider "reyes"
+Option "limits" "numthreads" [1]
+Display "rgbe-display.hdr" "rgbe" "rgb"
+Format 24 16 1
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Projection "orthographic"
+ScreenWindow -1.5 1.5 -1 1
+Translate 0 0 4
+WorldBegin
+  # a flat patch with a colour ramp (varying Cs) so many distinct exponents occur, and a sphere
+  Surface "constant"
+  Color [0.25 0.5 1]
+  Patch "bilinear" "P" [-1.4 -0.9 0  1.4 -0.9 0  -1.4 0.9 0  1.4 0.9 0]
+        "Cs" [1 0.1 0.01  0.01 1 0.1  0.1 0.01 1  1 1 0.001]
+  AttributeBegin
+    Color [4 0.5 0.0625]
+    Translate 0 0 -1
+    Sphere 0.6 -0.6 0.6 360
+  AttributeEnd
+WorldEnd

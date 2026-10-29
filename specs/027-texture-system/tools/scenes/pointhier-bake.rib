@@ -1,0 +1,43 @@
+##RenderMan RIB-Structure 1.0
+# Spec 027 (T030a, characterization): pass 1 of the point-hierarchy scene. Bakes the micropolygon
+# areas of a ground plane, a sphere and a box into "char-areacloud.ptc" with bake3d(), the recipe of
+# doc/Documentation/Point_based_GI.html. numthreads 1.
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["rslo"]
+Option "limits" "numthreads" [1]
+DisplayChannel "float _area"
+Display "pointhier-bake.tif" "file" "rgba"
+Format 48 36 1
+PixelSamples 1 1
+ShadingInterpolation "smooth"
+Projection "perspective" "fov" 40
+Translate 0 -0.5 6
+Rotate -40 1 0 0
+Rotate -20 0 1 0
+WorldBegin
+  Attribute "cull" "backfacing" 0
+  Attribute "cull" "hidden" 0
+  Attribute "dice" "rasterorient" 0
+  ShadingRate 1
+  Surface "char_bake_area" "filename" ["char-areacloud.ptc"]
+  AttributeBegin
+    Color [1 1 1]
+    Polygon "P" [-5 0 5  5 0 5  5 0 -5  -5 0 -5] "uniform normal N" [0 1 0]
+  AttributeEnd
+  AttributeBegin
+    Color [1 1 1]
+    Translate -0.7 0.5 0
+    Sphere 0.5 -0.5 0.5 360
+  AttributeEnd
+  AttributeBegin
+    Translate 0.3 0.01 0
+    Rotate -30 0 1 0
+    Color [1 1 1]
+    Polygon "P" [0 0 0  0 0 1  0 1 1  0 1 0] "uniform normal N" [-1 0 0]
+    Polygon "P" [1 1 0  1 1 1  1 0 1  1 0 0] "uniform normal N" [1 0 0]
+    Polygon "P" [0 1 0  1 1 0  1 0 0  0 0 0] "uniform normal N" [0 0 -1]
+    Polygon "P" [0 0 1  1 0 1  1 1 1  0 1 1] "uniform normal N" [0 0 1]
+    Polygon "P" [0 1 1  1 1 1  1 1 0  0 1 0] "uniform normal N" [0 1 0]
+  AttributeEnd
+WorldEnd

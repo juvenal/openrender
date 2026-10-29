@@ -26,10 +26,10 @@
 ////////////////////////////////////////////////////////////////////////
 #include "common/sampling.h"
 #include "pointHierarchy.h"
+#include "ri_config.h"
 #include "common/portable_io.h"
 #include "common/diagnostics.h"
 #include "common/random.h"
-#include "shading.h"
 
 // The predefined names for the area and the radiosity channels
 const char *areaName = "_area";
@@ -102,7 +102,7 @@ static inline float ff(const float *rP, const float *rN, const float *oP, const 
 // Description			:	Ctor
 // Return Value			:
 // Comments				:
-CPointHierarchy::CPointHierarchy(const char *n, const float *from, const float *to, FILE *in) : CTexture3d(n, from, to), CMap<CPointCloudPoint>() {
+CPointHierarchy::CPointHierarchy(const char *n, const float *from, const float *to, FILE *in, const Options &opts) : CTexture3d(n, from, to), CMap<CPointCloudPoint>(), options(opts) {
 
     // Try to read the point cloud
 
@@ -471,8 +471,7 @@ int CPointHierarchy::cluster(int numItems, int *indices) {
 // Return Value			:
 // Comments				:
 void CPointHierarchy::lookup(float *Cl, const float *Pl, const float *, const float *, const float *Nl, CShadingContext *context) {
-    const CShadingScratch *scratch = &(context->currentShadingState->scratch);
-    const float maxsolidangle = scratch->occlusionParams.maxSolidAngle;
+    const float maxsolidangle = options.maxSolidAngle(context);
     int *stack = (int *)alloca(POINTHIERARCHY_STACK_SIZE * sizeof(int));
     int *stackBase = stack;
     int i;

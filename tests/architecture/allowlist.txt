@@ -132,42 +132,15 @@ DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN15CShadingContext9saveState
 DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN6CReyes10drawObjectEP7CObject   # CReyes::drawObject(CObject*)
 DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN6CReyes8drawGridEP8CSurfaceiiffffPK9CGridSnap   # CReyes::drawGrid(CSurface*, int, int, float, float, float, float, CGridSnap const*)
 
-# --- DB-010: Texturing depends on Shading, the renderer core and Graphics State (35) ---
+# --- DB-010: The hiders' GI caches use Texturing (8) ---
 DB-010  include  src/ri/hiders/irradiance.cpp  ->  src/ri/texture/pointHierarchy.h
 DB-010  include  src/ri/hiders/irradiance.cpp  ->  src/ri/texture/texture.h
 DB-010  include  src/ri/hiders/irradiance.h  ->  src/ri/texture/texture3d.h
 DB-010  include  src/ri/hiders/irradianceDispatch.cpp  ->  src/ri/texture/pointHierarchy.h
 DB-010  include  src/ri/hiders/irradianceDispatch.cpp  ->  src/ri/texture/texture.h
-DB-010  include  src/ri/texture/brickmap.cpp  ->  src/ri/render/renderer.h
-DB-010  include  src/ri/texture/brickmap.h  ->  src/ri/state/options.h
-DB-010  include  src/ri/texture/pointCloud.h  ->  src/ri/state/options.h
-DB-010  include  src/ri/texture/pointHierarchy.cpp  ->  src/ri/core/shading.h
-DB-010  include  src/ri/texture/pointHierarchy.h  ->  src/ri/state/options.h
-DB-010  include  src/ri/texture/texmake.cpp  ->  src/ri/render/renderer.h
-DB-010  include  src/ri/texture/texmake.h  ->  src/ri/render/renderer.h
-DB-010  include  src/ri/texture/texmake.h  ->  src/ri/state/options.h
-DB-010  include  src/ri/texture/texture.cpp  ->  src/ri/core/shading.h
-DB-010  include  src/ri/texture/texture.cpp  ->  src/ri/render/renderer.h
-DB-010  include  src/ri/texture/texture.h  ->  src/ri/state/attributes.h
-DB-010  include  src/ri/texture/texture3d.cpp  ->  src/ri/render/renderer.h
-DB-010  include  src/ri/texture/texture3d.h  ->  src/ri/state/xform.h
 DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZN10CTexture3dC2EPKcPKfS3_S3_iPNS_8CChannelE   # CTexture3d::CTexture3d(char const*, float const*, float const*, float const*, int, CTexture3d::CChannel*)
 DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZN10CTexture3dD2Ev   # CTexture3d::~CTexture3d()
 DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZTI10CTexture3d   # typeinfo for CTexture3d
-DB-010  link     src/ri/texture/brickmap.cpp  ->  _ZN9CRenderer10locateFileEPcPKcP11TSearchpathi   # CRenderer::locateFile(char*, char const*, TSearchpath*, int)
-DB-010  link     src/ri/texture/texmake.cpp  ->  _ZN9CRenderer10locateFileEPcPKcP11TSearchpathi   # CRenderer::locateFile(char*, char const*, TSearchpath*, int)
-DB-010  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer10locateFileEPcPKcP11TSearchpathi   # CRenderer::locateFile(char*, char const*, TSearchpath*, int)
-DB-010  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer10numThreadsE   # CRenderer::numThreads
-DB-010  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer11texturePathE   # CRenderer::texturePath
-DB-010  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer12textureMutexE   # CRenderer::textureMutex
-DB-010  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer15synthesizeMutexE   # CRenderer::synthesizeMutex
-DB-010  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer16textureMaxMemoryE   # CRenderer::textureMaxMemory
-DB-010  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer16textureRefNumberE   # CRenderer::textureRefNumber
-DB-010  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer17textureUsedBlocksE   # CRenderer::textureUsedBlocks
-DB-010  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer17textureUsedMemoryE   # CRenderer::textureUsedMemory
-DB-010  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer19textureCacheEnabledE   # CRenderer::textureCacheEnabled
-DB-010  link     src/ri/texture/texture.cpp  ->  _ZN9CRenderer21textureCacheDirectoryE   # CRenderer::textureCacheDirectory
-DB-010  link     src/ri/texture/texture3d.cpp  ->  _ZN9CRenderer22retrieveDisplayChannelEPKc   # CRenderer::retrieveDisplayChannel(char const*)
 
 # --- DB-011: Hiders read renderer-core state (CRenderer) (182) ---
 DB-011  include  src/ri/hiders/compositor.cpp  ->  src/ri/render/renderer.h
@@ -443,8 +416,10 @@ DB-019  include  @build/src/libshader/compiler/dso_generated.cpp  ->  src/ri/par
 DB-019  include  @build/src/libshader/shading/rslo_generated.cpp  ->  src/ri/parse/dso.h
 DB-019  include  src/libshader/compiler/rslo.cpp  ->  src/ri/parse/dso.h
 
-# --- DB-021: Texturing reads the AOV/channel registry (1) ---
+# --- DB-021: Texturing reads the AOV/channel registry (3) ---
+DB-021  include  src/ri/texture/texture3d.cpp  ->  src/ri/render/renderer.h
 DB-021  include  src/ri/texture/texture3d.cpp  ->  src/ri/state/displayChannel.h
+DB-021  link     src/ri/texture/texture3d.cpp  ->  _ZN9CRenderer22retrieveDisplayChannelEPKc   # CRenderer::retrieveDisplayChannel(char const*)
 
 # --- DB-025: Domains call into the data viewer (a consumer) (12) ---
 DB-025  include  src/ri/geometry/surface.cpp  ->  src/ri/dataviewer/debug.h
@@ -459,10 +434,3 @@ DB-025  link     src/ri/texture/brickmap.cpp  ->  _ZN9CDataView13drawTrianglesEi
 DB-025  link     src/ri/texture/brickmap.cpp  ->  _ZN9CDataView9drawDisksEiPKfS1_S1_S1_   # CDataView::drawDisks(int, float const*, float const*, float const*, float const*)
 DB-025  link     src/ri/texture/pointCloud.cpp  ->  _ZN9CDataView10drawPointsEiPKfS1_   # CDataView::drawPoints(int, float const*, float const*)
 DB-025  link     src/ri/texture/pointCloud.cpp  ->  _ZN9CDataView9drawDisksEiPKfS1_S1_S1_   # CDataView::drawDisks(int, float const*, float const*, float const*, float const*)
-
-# --- DB-026: Texturing uses the RGBE codec in Display Outputs (5) ---
-DB-026  include  src/ri/texture/imageInputRgbe.cpp  ->  src/display/rgbe/rgbe.h
-DB-026  link     src/ri/texture/imageInputRgbe.cpp  ->  _Z15RGBE_ReadHeaderP7__sFILEPiS1_P16rgbe_header_info  macos   # RGBE_ReadHeader(__sFILE*, int*, int*, rgbe_header_info*)
-DB-026  link     src/ri/texture/imageInputRgbe.cpp  ->  _Z15RGBE_ReadHeaderP8_IO_FILEPiS1_P16rgbe_header_info  linux   # RGBE_ReadHeader(_IO_FILE*, int*, int*, rgbe_header_info*)
-DB-026  link     src/ri/texture/imageInputRgbe.cpp  ->  _Z15RGBE_ReadPixelsP7__sFILEPfi  macos   # RGBE_ReadPixels(__sFILE*, float*, int)
-DB-026  link     src/ri/texture/imageInputRgbe.cpp  ->  _Z15RGBE_ReadPixelsP8_IO_FILEPfi  linux   # RGBE_ReadPixels(_IO_FILE*, float*, int)

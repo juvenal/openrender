@@ -46,7 +46,7 @@
 #include "shaderPl.h"
 #include "shading.h"
 #include "surface.h"
-#include "texture.h"
+#include "textureCalls.h"
 #include "texture3d.h"
 
 // This function is defined in shader.cpp for debugging purposes

@@ -513,3 +513,91 @@ add_shader_parameter_test(ShadingParity_ShaderParameterEquivalenceDirect
     test_shading_parity_shader_parameter_equivalence_direct test_shader_parameter_equivalence_direct.cpp ENABLED)
 add_shader_parameter_test(ShadingParity_ShaderParameterBxdfIgnored
     test_shading_parity_shader_parameter_bxdf_ignored test_shader_parameter_bxdf_ignored.cpp ENABLED)
+
+# Spec 027 (T-J3, T032, FR-022): the same diagnostics check for texture(), environment() and shadow().
+# A NEW test beside ShadingParity_JitPLDiagnostics, which stays green and unchanged: the JIT drops these
+# builtins' parameter lists until Phase 9, so this one is red (the .slo log has none of the three
+# "Unknown parameter" lines). Same JIT guard as the existing one.
+add_executable(test_shading_parity_jit_paramlist_diagnostics_texture test_jit_paramlist_diagnostics_texture.cpp)
+target_link_libraries(test_shading_parity_jit_paramlist_diagnostics_texture PRIVATE openrender_common_flags)
+target_compile_features(test_shading_parity_jit_paramlist_diagnostics_texture PRIVATE cxx_std_20)
+add_test(NAME ShadingParity_JitPLDiagnosticsTexture COMMAND test_shading_parity_jit_paramlist_diagnostics_texture)
+set_tests_properties(ShadingParity_JitPLDiagnosticsTexture PROPERTIES
+    TIMEOUT 60
+    LABELS "shading_parity"
+    ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;ORENDER_BIN=$<TARGET_FILE:orender>;TEST_DISPLAYS_DIR=$<TARGET_FILE_DIR:file>"
+)
+if(NOT OPENRENDER_HAVE_LLVM)
+    set_tests_properties(ShadingParity_JitPLDiagnosticsTexture PROPERTIES DISABLED TRUE)
+endif()
+
+# ---------------------------------------------------------------------------
+# Substitute texture system tests (spec 027, T026 and T027; written first, red until Phases 6/7)
+# ---------------------------------------------------------------------------
+# Shading reaches textures only through the services' texture system. These tests install a
+# recording substitute and run one probe shader per builtin as .rslo and as .slo. They need
+# CRendererServices::textureSystem() (Phase 6, T072) and the 3D forwarders (Phase 7), so each
+# executable is EXCLUDE_FROM_ALL and each test DISABLED until T082 / T089 enable them. The .rslo half
+# runs with the JIT off; the .slo half is compiled in only with LLVM (TEXTURE_SUBSTITUTE_HAVE_JIT).
+function(add_texture_substitute_test EXE SOURCE)
+    cmake_parse_arguments(ARG "ENABLED" "" "" ${ARGN})
+    if(ARG_ENABLED)
+        add_executable(${EXE} ${SOURCE})
+    else()
+        add_executable(${EXE} EXCLUDE_FROM_ALL ${SOURCE})
+    endif()
+    target_link_libraries(${EXE} PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+    target_include_directories(${EXE} PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_BINARY_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+    target_compile_features(${EXE} PRIVATE cxx_std_20)
+    if(OPENRENDER_HAVE_LLVM)
+        target_compile_definitions(${EXE} PRIVATE TEXTURE_SUBSTITUTE_HAVE_JIT=1)
+    endif()
+endfunction()
+
+function(add_texture_substitute_case NAME EXE)
+    cmake_parse_arguments(ARG "ENABLED" "" "" ${ARGN})
+    add_test(NAME ${NAME} COMMAND ${EXE} ${ARG_UNPARSED_ARGUMENTS})
+    set_tests_properties(${NAME} PROPERTIES
+        TIMEOUT 120
+        LABELS "shading_parity"
+        ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>;OSHADER_BIN=$<TARGET_FILE:oshader>;SUBSTITUTE_SHADER_DIR=${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+    if(NOT ARG_ENABLED)
+        set_tests_properties(${NAME} PROPERTIES DISABLED TRUE)
+    endif()
+endfunction()
+
+# enabled by T082 (Phase 6); the 3D pair below stays EXCLUDE_FROM_ALL and DISABLED until T089 (Phase 7)
+add_texture_substitute_test(test_texture_substitute test_texture_substitute.cpp ENABLED)
+add_texture_substitute_case(ShadingParity_TextureSubstitute test_texture_substitute builtins ENABLED)
+add_texture_substitute_case(ShadingParity_TextureSubstituteHiderNoSystem test_texture_substitute hider ENABLED)
+
+# enabled by T089 (Phase 7)
+add_texture_substitute_test(test_texture_substitute_3d test_texture_substitute_3d.cpp ENABLED)
+add_texture_substitute_case(ShadingParity_TextureSubstitute3D test_texture_substitute_3d builtins ENABLED)
+add_texture_substitute_case(ShadingParity_TextureSubstitute3DNoServices test_texture_substitute_3d noservices ENABLED)
+
+# ---------------------------------------------------------------------------
+# One working directory per test (spec 027, T032a)
+# ---------------------------------------------------------------------------
+# Several of the tests above render with the default display name "ri.tif" or with
+# Display "test.tif" and no directory, so every one of them wrote the same two files
+# into this directory's build dir: under -j4 the last writer won, and the image
+# manifest of spec 027 saw `tests/shading_parity/{ri,test}.tif` change from run to
+# run. Each test now runs in its own `cwd/<test name>` directory. Nothing a test
+# asserts changes: the sources use absolute paths (mkdtemp directories, the env
+# vars above) and chdir to their own scratch directories. Same remedy as spec 025's
+# ImagerGuardTests. A test that already sets a WORKING_DIRECTORY keeps it.
+get_directory_property(_sp_all_tests TESTS)
+foreach(_sp_test IN LISTS _sp_all_tests)
+    get_test_property(${_sp_test} WORKING_DIRECTORY _sp_wd)
+    if(NOT _sp_wd)
+        file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cwd/${_sp_test})
+        set_tests_properties(${_sp_test} PROPERTIES
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cwd/${_sp_test})
+    endif()
+endforeach()

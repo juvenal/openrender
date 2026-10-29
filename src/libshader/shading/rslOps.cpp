@@ -1904,41 +1904,73 @@ void op_depth(float *dst, int sd, const float *P, int sp, int n, const int *tags
 // namepp is a char** (locals[idx] → char* string); namepp[0] = the string.
 // =========================================================================
 
-void op_texture_f_v2(float *dst, int sd, const char *const *namepp, const float *chan, const float *s, int ss, const float *t, int st, int n, const int *tags, uint32_t callSite) {
+// The texture(), environment() and shadow() entry points take, after their positional operands and strides, n and
+// tags, the call's optional parameter list (GitHub #55: names, values, steps, isVarying, numPairs) and the call
+// site. The color and float entries share an implementation; the channel operand is carried by every form.
+#define TEXTURE_PL_ARGS const char *const *names, void *const *values, const int *steps, const int *isVarying, int numPairs, uint32_t callSite
+
+static void textureLookupOp(float *dst, int sd, const char *const *namepp, bool color, const float *chan, int numCoords, const float *const *coords,
+                            const int *strides, int n, const int *tags, const CShadingContext::TJitParamList &pl, uint32_t callSite) {
     CShadingContext *ctx = libshader::activeContext();
     if (!ctx || !namepp || !namepp[0])
         return;
-    int channel = chan ? (int)chan[0] : 0;
-    ctx->jitTextureF(dst, sd, namepp[0], channel, s, ss, t, st, n, tags, callSite);
+    ctx->jitTexture(dst, sd, namepp[0], color, chan ? (int)chan[0] : 0, numCoords, coords, strides, n, tags, pl, callSite);
 }
 
-void op_texture_c_v2(float *dst, int sd, const char *const *namepp, const float *s, int ss, const float *t, int st, int n, const int *tags, uint32_t callSite) {
+static void environmentLookupOp(float *dst, int sd, const char *const *namepp, bool color, bool shadow, const float *D, int sD, int n, const int *tags,
+                                const CShadingContext::TJitParamList &pl, uint32_t callSite) {
     CShadingContext *ctx = libshader::activeContext();
     if (!ctx || !namepp || !namepp[0])
         return;
-    ctx->jitTextureC(dst, sd, namepp[0], s, ss, t, st, n, tags, callSite);
+    ctx->jitEnvironment(dst, sd, namepp[0], color, shadow, D, sD, n, tags, pl, callSite);
 }
 
-void op_environment_f_v2(float *dst, int sd, const char *const *namepp, const float *chan, const float *D, int sD, int n, const int *tags, uint32_t callSite) {
-    CShadingContext *ctx = libshader::activeContext();
-    if (!ctx || !namepp || !namepp[0])
-        return;
-    int channel = chan ? (int)chan[0] : 0;
-    ctx->jitEnvironmentF(dst, sd, namepp[0], channel, D, sD, n, tags, callSite);
+void op_texture_f_v3(float *dst, int sd, const char *const *namepp, const float *chan, const float *s, int ss, const float *t, int st, int n, const int *tags,
+                     TEXTURE_PL_ARGS) {
+    const float *coords[2] = {s, t};
+    const int strides[2] = {ss, st};
+    const CShadingContext::TJitParamList pl = {names, values, steps, isVarying, numPairs};
+    textureLookupOp(dst, sd, namepp, false, chan, 2, coords, strides, n, tags, pl, callSite);
 }
 
-void op_environment_c_v2(float *dst, int sd, const char *const *namepp, const float *D, int sD, int n, const int *tags, uint32_t callSite) {
-    CShadingContext *ctx = libshader::activeContext();
-    if (!ctx || !namepp || !namepp[0])
-        return;
-    ctx->jitEnvironmentC(dst, sd, namepp[0], D, sD, n, tags, callSite);
+void op_texture_c_v3(float *dst, int sd, const char *const *namepp, const float *chan, const float *s, int ss, const float *t, int st, int n, const int *tags,
+                     TEXTURE_PL_ARGS) {
+    const float *coords[2] = {s, t};
+    const int strides[2] = {ss, st};
+    const CShadingContext::TJitParamList pl = {names, values, steps, isVarying, numPairs};
+    textureLookupOp(dst, sd, namepp, true, chan, 2, coords, strides, n, tags, pl, callSite);
 }
 
-void op_shadow_f_v2(float *dst, int sd, const char *const *namepp, const float *Ps, int sPs, int n, const int *tags, uint32_t callSite) {
-    CShadingContext *ctx = libshader::activeContext();
-    if (!ctx || !namepp || !namepp[0])
-        return;
-    ctx->jitShadowF(dst, sd, namepp[0], Ps, sPs, n, tags, callSite);
+void op_texture_full_f_v3(float *dst, int sd, const char *const *namepp, const float *chan, const float *const *coords, const int *strides, int n,
+                          const int *tags, TEXTURE_PL_ARGS) {
+    const CShadingContext::TJitParamList pl = {names, values, steps, isVarying, numPairs};
+    textureLookupOp(dst, sd, namepp, false, chan, 8, coords, strides, n, tags, pl, callSite);
+}
+
+void op_texture_full_c_v3(float *dst, int sd, const char *const *namepp, const float *chan, const float *const *coords, const int *strides, int n,
+                          const int *tags, TEXTURE_PL_ARGS) {
+    const CShadingContext::TJitParamList pl = {names, values, steps, isVarying, numPairs};
+    textureLookupOp(dst, sd, namepp, true, chan, 8, coords, strides, n, tags, pl, callSite);
+}
+
+void op_environment_f_v3(float *dst, int sd, const char *const *namepp, const float *, const float *D, int sD, int n, const int *tags, TEXTURE_PL_ARGS) {
+    const CShadingContext::TJitParamList pl = {names, values, steps, isVarying, numPairs};
+    environmentLookupOp(dst, sd, namepp, false, false, D, sD, n, tags, pl, callSite);
+}
+
+void op_environment_c_v3(float *dst, int sd, const char *const *namepp, const float *, const float *D, int sD, int n, const int *tags, TEXTURE_PL_ARGS) {
+    const CShadingContext::TJitParamList pl = {names, values, steps, isVarying, numPairs};
+    environmentLookupOp(dst, sd, namepp, true, false, D, sD, n, tags, pl, callSite);
+}
+
+void op_shadow_f_v3(float *dst, int sd, const char *const *namepp, const float *, const float *Ps, int sPs, int n, const int *tags, TEXTURE_PL_ARGS) {
+    const CShadingContext::TJitParamList pl = {names, values, steps, isVarying, numPairs};
+    environmentLookupOp(dst, sd, namepp, false, true, Ps, sPs, n, tags, pl, callSite);
+}
+
+void op_shadow_c_v3(float *dst, int sd, const char *const *namepp, const float *, const float *Ps, int sPs, int n, const int *tags, TEXTURE_PL_ARGS) {
+    const CShadingContext::TJitParamList pl = {names, values, steps, isVarying, numPairs};
+    environmentLookupOp(dst, sd, namepp, true, true, Ps, sPs, n, tags, pl, callSite);
 }
 
 void op_visibility_v3(float *dst, int sd, const float *P, int sP, const float *D, int sD,

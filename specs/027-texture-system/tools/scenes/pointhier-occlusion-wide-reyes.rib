@@ -1,0 +1,45 @@
+##RenderMan RIB-Structure 1.0
+# Spec 027 (T030a, characterization): pass 2 of the point-hierarchy scene. occlusion() with
+# "pointbased" 1, "filename" "char-areacloud.ptc" and "maxsolidangle" 1.5, so CPointHierarchy::lookup
+# reads the limit (pointHierarchy.cpp, the occlusionParams.maxSolidAngle read). Rendered by
+# characterization_scenes.sh after pointhier-bake.rib, in the same directory. numthreads 1.
+# The "default" and "wide" scenes differ only in maxsolidangle: the script proves (and the starting
+# tree's hashes pin) that the limit changes the image, otherwise the scene checks nothing.
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["rslo"]
+Option "limits" "numthreads" [1]
+DisplayChannel "float _area"
+Display "pointhier-occlusion-wide-reyes.tif" "file" "rgba"
+Format 48 36 1
+PixelSamples 1 1
+ShadingInterpolation "smooth"
+Projection "perspective" "fov" 40
+Translate 0 -0.5 6
+Rotate -40 1 0 0
+Rotate -20 0 1 0
+WorldBegin
+  Attribute "cull" "backfacing" 0
+  Attribute "cull" "hidden" 0
+  Attribute "dice" "rasterorient" 0
+  Surface "char_occlusion_probe" "filename" ["char-areacloud.ptc"] "pointbased" [1] "maxsolidangle" [1.5]
+  AttributeBegin
+    Color [1 1 1]
+    Polygon "P" [-5 0 5  5 0 5  5 0 -5  -5 0 -5] "uniform normal N" [0 1 0]
+  AttributeEnd
+  AttributeBegin
+    Color [1 1 1]
+    Translate -0.7 0.5 0
+    Sphere 0.5 -0.5 0.5 360
+  AttributeEnd
+  AttributeBegin
+    Translate 0.3 0.01 0
+    Rotate -30 0 1 0
+    Color [1 1 1]
+    Polygon "P" [0 0 0  0 0 1  0 1 1  0 1 0] "uniform normal N" [-1 0 0]
+    Polygon "P" [1 1 0  1 1 1  1 0 1  1 0 0] "uniform normal N" [1 0 0]
+    Polygon "P" [0 1 0  1 1 0  1 0 0  0 0 0] "uniform normal N" [0 0 -1]
+    Polygon "P" [0 0 1  1 0 1  1 1 1  0 1 1] "uniform normal N" [0 0 1]
+    Polygon "P" [0 1 1  1 1 1  1 1 0  0 1 0] "uniform normal N" [0 1 0]
+  AttributeEnd
+WorldEnd

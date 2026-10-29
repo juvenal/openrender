@@ -25,11 +25,11 @@
 //
 ////////////////////////////////////////////////////////////////////////
 #include "texmake.h"
+#include "common/algebra.h"
 #include "common/diagnostics.h"
 #include "imageInput.h"
 #include "imageInputTiff.h"
 #include "common/memory.h"
-#include "renderer.h"
 #include "common/riVocabulary.h"
 #include "ri_config.h"
 #include "tiff.h"
@@ -374,12 +374,12 @@ void appendTexture(TIFF *out, int &dstart, int width, int height, int numSamples
 // Description			:	Create an image pyramid from input
 // Return Value			:
 // Comments				:
-void makeTexture(const char *input, const char *output, TSearchpath *path, const char *smode, const char *tmode, RtFilterFunc filt, float fwidth, float fheight, int numParams, const char **params, const void **vals) {
+void makeTexture(const char *input, const char *output, const CTextureFileResolver *path, const char *smode, const char *tmode, RtFilterFunc filt, float fwidth, float fheight, int numParams, const char **params, const void **vals) {
     char inputFileName[OS_MAX_PATH_LENGTH];
 
     getResizeMode(numParams, params, vals);
 
-    if (CRenderer::locateFile(inputFileName, input, path) == FALSE) {
+    if (textureLocate(path, inputFileName, input) == FALSE) {
         error(CODE_NOFILE, "Failed to find \"%s\"\n", input);
     }
     else {
@@ -442,12 +442,12 @@ void makeTexture(const char *input, const char *output, TSearchpath *path, const
 // Description			:	Create a single sided environment map
 // Return Value			:
 // Comments				:
-void makeSideEnvironment(const char *input, const char *output, TSearchpath *path, const char *smode, const char *tmode, RtFilterFunc filt, float fwidth, float fheight, int numParams, const char **params, const void **vals, int) {
+void makeSideEnvironment(const char *input, const char *output, const CTextureFileResolver *path, const char *smode, const char *tmode, RtFilterFunc filt, float fwidth, float fheight, int numParams, const char **params, const void **vals, int) {
     char inputFileName[OS_MAX_PATH_LENGTH];
 
     getResizeMode(numParams, params, vals);
 
-    if (CRenderer::locateFile(inputFileName, input, path) == FALSE) {
+    if (textureLocate(path, inputFileName, input) == FALSE) {
         error(CODE_NOFILE, "Failed to find \"%s\"\n", input);
     }
     else {
@@ -539,7 +539,7 @@ void makeSideEnvironment(const char *input, const char *output, TSearchpath *pat
 // Description			:	Create an environment map where each side is a pyramid
 // Return Value			:
 // Comments				:
-void makeCubicEnvironment(const char *px, const char *py, const char *pz, const char *nx, const char *ny, const char *nz, const char *output, const char *smode, const char *tmode, TSearchpath *path, RtFilterFunc filt, float fwidth, float fheight, int numParams, const char **params, const void **vals, int) {
+void makeCubicEnvironment(const char *px, const char *py, const char *pz, const char *nx, const char *ny, const char *nz, const char *output, const char *smode, const char *tmode, const CTextureFileResolver *path, RtFilterFunc filt, float fwidth, float fheight, int numParams, const char **params, const void **vals, int) {
     char inputFileName[OS_MAX_PATH_LENGTH];
     const char *names[6];
 
@@ -552,7 +552,7 @@ void makeCubicEnvironment(const char *px, const char *py, const char *pz, const 
     names[4] = pz;
     names[5] = nz;
 
-    if (CRenderer::locateFile(inputFileName, names[0], path) == FALSE) {
+    if (textureLocate(path, inputFileName, names[0]) == FALSE) {
         error(CODE_NOFILE, "Failed to find \"%s\"\n", names[0]);
     }
     else {
@@ -582,7 +582,7 @@ void makeCubicEnvironment(const char *px, const char *py, const char *pz, const 
                     CImageInput *faceInput;
 
                     // Open the file
-                    if (CRenderer::locateFile(inputFileName, names[i], path) == FALSE) {
+                    if (textureLocate(path, inputFileName, names[i]) == FALSE) {
                         error(CODE_NOFILE, "Failed to find \"%s\"\n", names[i]);
                         break;
                     }
@@ -630,12 +630,12 @@ void makeCubicEnvironment(const char *px, const char *py, const char *pz, const 
 // Description			:	Create an image pyramid from input
 // Return Value			:
 // Comments				:
-void makeSphericalEnvironment(const char *input, const char *output, TSearchpath *path, const char *smode, const char *tmode, RtFilterFunc filt, float fwidth, float fheight, int numParams, const char **params, const void **vals) {
+void makeSphericalEnvironment(const char *input, const char *output, const CTextureFileResolver *path, const char *smode, const char *tmode, RtFilterFunc filt, float fwidth, float fheight, int numParams, const char **params, const void **vals) {
     char inputFileName[OS_MAX_PATH_LENGTH];
 
     getResizeMode(numParams, params, vals);
 
-    if (CRenderer::locateFile(inputFileName, input, path) == FALSE) {
+    if (textureLocate(path, inputFileName, input) == FALSE) {
         error(CODE_NOFILE, "Failed to find \"%s\"\n", input);
     }
     else {
@@ -698,12 +698,12 @@ void makeSphericalEnvironment(const char *input, const char *output, TSearchpath
 // Description			:	Create an image pyramid from input
 // Return Value			:
 // Comments				:
-void makeCylindericalEnvironment(const char *input, const char *output, TSearchpath *path, const char *smode, const char *tmode, RtFilterFunc filt, float fwidth, float fheight, int numParams, const char **params, const void **vals) {
+void makeCylindericalEnvironment(const char *input, const char *output, const CTextureFileResolver *path, const char *smode, const char *tmode, RtFilterFunc filt, float fwidth, float fheight, int numParams, const char **params, const void **vals) {
     char inputFileName[OS_MAX_PATH_LENGTH];
 
     getResizeMode(numParams, params, vals);
 
-    if (CRenderer::locateFile(inputFileName, input, path) == FALSE) {
+    if (textureLocate(path, inputFileName, input) == FALSE) {
         error(CODE_NOFILE, "Failed to find \"%s\"\n", input);
     }
     else {

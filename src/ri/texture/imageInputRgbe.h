@@ -33,7 +33,7 @@
 // Class				:	CRgbeImageInput
 // Description			:	RGBE (Radiance HDR, .hdr/.pic) source-image decoder.
 //							Wires up the existing RGBE_ReadHeader()/
-//							RGBE_ReadPixels() (display/rgbe/rgbe.h) --
+//							RGBE_ReadPixels() (common/rgbe.h) --
 //							always 3-channel float, no layout ambiguity.
 // Comments				:
 class CRgbeImageInput : public CImageInput {
