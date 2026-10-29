@@ -70,7 +70,7 @@ class CBlobbyRepeller {
         // `toWorld` is the primitive's own local-to-world transform,
         // composed with the depth file's view transforms at load so an
         // object-space point can be taken straight to the map's frame --
-        // the same composition CRenderer::environmentLoad() does for a
+        // the same composition textureLoadEnvironment() (texture.cpp) does for a
         // shadow map. NULL means the primitive is already in world space.
         CBlobbyRepeller(const char *fileName, const float *toWorld, float A, float B, float C, float D);
         ~CBlobbyRepeller();

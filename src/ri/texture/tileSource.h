@@ -100,7 +100,7 @@ CTileSource *createTiffTileSource(const char *filename, short directory);
 // work on every call: it is meant for the one legitimate outside use
 // this spec has (direct unit testing of info()/fetchTile(), mirroring
 // createTiffTileSource()'s own rationale), not for constructing every
-// level of a real texture load -- CRenderer::textureLoad()'s own
+// level of a real texture load -- textureLoadTexture()'s own
 // fallback branch decodes once and constructs all levels together via a
 // file-local helper in texture.cpp, per
 // contracts/synthesized-tile-source.md.

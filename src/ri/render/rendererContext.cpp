@@ -2030,7 +2030,7 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
         // Opt-in disk cache for the runtime-synthesized (non-TIFF)
         // texture-source fallback (spec 020-runtime-tile-paging,
         // contracts/texturecache-option.md). Render-global, like every
-        // other Option; consulted only inside CRenderer::textureLoad()'s
+        // other Option; consulted only inside textureLoadTexture()'s (texture.cpp)
         // new fallback (reached solely on TIFFOpen() failure) -- has no
         // effect on already-baked textures.
         for (i = 0; i < n; i++) {

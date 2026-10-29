@@ -818,3 +818,7 @@ spec 025 merged), i.e. this worktree at `d75ead8` or master itself: nothing unde
 6. `ctest -L '^determinism$' -j2` (155 tests on macOS) and the sweep `ctest -L '^determinism-sweep$' -j2` (419 tests on macOS).
 Report the numbers; they are appended here.
 
+## §11 Phase 11: convergence
+
+**T126.** The three source comments that still named members removed from `CRenderer` now name their owners (comment text only; `git diff` for the three files shows comment lines only; no build or run is needed): `src/ri/render/rendererContext.cpp` (the `Option "texturecache"` comment: `textureLoadTexture()`, `texture.cpp`), `src/ri/texture/tileSource.h` (`textureLoadTexture()`) and `src/ri/geometry/blobbyRepeller.h` (the shadow-map composition: `textureLoadEnvironment()`, `texture.cpp`).
+`grep -rnE "CRenderer::(textureLoad|environmentLoad|initTextures|shutdownTextures|getTexture\b|getEnvironment|getTextureInfo)" src` now finds only the two historical "was CRenderer::..." notes in `texture.cpp` (`initTextures`, `shutdownTextures`). The converge agent's reading of `CPointHierarchy::Options::maxSolidAngle` stands (not a gap, no task added).
