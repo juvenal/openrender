@@ -2113,11 +2113,12 @@ static bool emitFunction(const IRFunction &irFn,
                 auto [r, sr] = getVar(ins, 2);
                 if (!dst || !nf || !v || !r)
                     continue;
-                // op_specular_batch(result, Nf, V, roughness, n, tags)
+                // op_specular_batch(result, Nf, sn, V, sv, roughness, sr, n, tags):
+                // the strides let a varying roughness be read per point (GitHub #111)
                 auto *ty = llvm::FunctionType::get(voidTy,
-                                                   {ptrTy, ptrTy, ptrTy, ptrTy, i32Ty, ptrTy}, false);
+                                                   {ptrTy, ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty, i32Ty, ptrTy}, false);
                 auto *fn = declareOp(mod, "op_specular_batch", ty);
-                B.CreateCall(fn, {dst, nf, v, r, numVerts, tags});
+                B.CreateCall(fn, {dst, nf, B.getInt32(sn), v, B.getInt32(sv), r, B.getInt32(sr), numVerts, tags});
             }
             else if (op == "phong") {
                 // phong() (spec 017-jit-builtin-function-coverage, US5):

@@ -102,7 +102,7 @@ disposable, gitignored deploy tree only refreshed by `cmake --install`
 inside it.
 
 **Where the compiled shaders actually live:** `${CMAKE_BINARY_DIR}/shaders/` —
-127 `.rslo` (+ 127 `.slo` when the JIT is on), produced by `shaders/CMakeLists.txt`
+130 `.rslo` (+ 130 `.slo` when the JIT is on), produced by `shaders/CMakeLists.txt`
 as a **build** step. The tracked `shaders/` tree holds only `.sl` sources and
 `includes/`; compiled objects never land next to them. `cmake --install` copies
 the build-tree objects into the deploy tree — it no longer compiles anything.
@@ -597,11 +597,15 @@ not in the agent definitions.
    `environmentCorners`); the entry points are `op_*_v3`, so a `.slo` compiled before
    spec 027 must be rebuilt. A shader's own parameter or local now shadows an RSL
    global of the same name in the JIT's variable table (it used to lose to the
-   global). `.slo` and `.rslo` renders of a shader that calls `specular()` agree to
-   the last bits, not bit for bit: the JIT's `callSpecular` normalizes in float and
-   the interpreter's `normalizev` in double, so an 8-bit image is equal unless a
-   one-ulp difference crosses a rounding edge (Linux: 3 of the 18 texture parity
-   scenes read `MaxBlockAvgDiff` 0.02 between `.slo` and `.rslo`; macOS reads 0.00).
+   global). `specular()`'s per-point term is one function shared by the interpreter
+   (`SPECULAREXPR`) and the JIT (`callSpecular`), `libshader::specularAccumulate` in
+   `libshader/shading/specularTerm.h` (GitHub #111). `.slo` and `.rslo` renders of it
+   are therefore bit-identical: the same precision, the same guard on the halfway
+   vector, and roughness read per point (`op_specular_batch` takes the operand
+   strides). A light's `__nonspecular` scales the highlight linearly,
+   `(1 - ns) * pow(N.H, 10/roughness)`, as it does in `phong()`. Before #111 the
+   interpreter applied it inside the power, so a fractional value all but removed
+   the highlight.
    The only `CShadingContext` left in `src/ri/texture` is the 3D family
    (`texture3d.h`, `pointHierarchy`, the `brickmap`/`pointCloud` assertion
    overrides), for spec 032.

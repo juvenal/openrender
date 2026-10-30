@@ -1,0 +1,27 @@
+#!version 2.0.0
+#!name "jit_nonspecular_uniform_light"
+light
+#!parameters:
+uniform	float	intensity	=	1
+uniform	point	from	=	"shader"  [ 0 0 0 ]
+uniform	point	to	=	"shader"  [ 0 0 1 ]
+output	uniform	float	__nonspecular	=	1
+#!variables:
+uniform	vector	temporary_0
+uniform	vector	temporary_1
+uniform	vector	temporary_2
+#!Init:
+	vfromf  temporary_0 0 0 0
+	pfrom  from "shader" temporary_0
+	vfromf  temporary_0 0 0 1
+	pfrom  to "shader" temporary_0
+	return            
+#!Code:
+	subvv  temporary_0 to from
+	vfromf  temporary_1 0
+	solar temporary_0 temporary_1 #!Label2
+	vfromf  temporary_2 intensity
+	vuvector  Cl temporary_2
+#!Label2:
+	endsolar
+	return

@@ -1,0 +1,34 @@
+#!version 2.0.0
+#!name "jit_specular_probe"
+surface
+#!parameters:
+uniform	float	roughness	=	0.1
+uniform	float	roughnessvary	=	0
+#!variables:
+varying	vector	Nf
+varying	vector	V
+varying	float	r
+varying	vector	temporary_0
+varying	float	temporary_1
+varying	float	temporary_2
+varying	float	temporary_3
+varying	float	temporary_4
+varying	float	temporary_5
+uniform	vector	temporary_6
+#!Init:
+	return            
+#!Code:
+	normalize	("v=v")  temporary_0 N
+	faceforward	("v=vv")  Nf temporary_0 I
+	normalize	("v=v")  temporary_0 I
+	negv  V temporary_0
+	vufloat  temporary_1 roughness
+	vufloat  temporary_3 1
+	vufloat  temporary_5 roughnessvary
+	mulff  temporary_4 temporary_5 s
+	addff  temporary_2 temporary_3 temporary_4
+	mulff  r temporary_1 temporary_2
+	specular	("c=nvf")  Ci Nf V r
+	vfromf  temporary_6 1
+	vuvector  Oi temporary_6
+	return

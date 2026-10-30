@@ -38,6 +38,7 @@
 #include "rslo_code.h"
 #include "shader.h"
 #include "shading.h"
+#include "specularTerm.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 //	Prototypes for shading language functions
