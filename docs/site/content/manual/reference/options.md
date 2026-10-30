@@ -75,6 +75,8 @@ under the raytrace hider is keyed by the shading batch, which depends on the buc
 change when the bucket size changes.
 
 An unknown sampler name is reported as an error (`Unknown sampler "<name>" (valid: sobol, pmj02,
-independent)`) and the current sampler is kept. Shaders can read both values with
-`option("sampling:sampler", s)` and `option("sampling:seed", n)`.
+independent); keeping the current sampler`) and otherwise ignored: the sampler stays whatever it
+was before, the one an earlier `Option "sampling"` set or else the default. It is not reset to the
+default, so `"pmj02"` followed by an unknown name still renders with `pmj02`. Shaders can read
+both values with `option("sampling:sampler", s)` and `option("sampling:seed", n)`.
 
