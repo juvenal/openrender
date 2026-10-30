@@ -1,0 +1,9 @@
+declare _area and Ci: 0 diagnostic(s)
+session "_area,Ci": 2 channel(s), data size 4
+  channel 0: name=_area type=float
+  channel 1: name=Ci type=color
+session: 0 diagnostic(s)
+session file: read back 2 channel(s), 2 point(s), data size 4 (expected 4)
+  channel 0: name=_area type=float
+  channel 1: name=Ci type=color
+  point (0.6 0.2 0.3) normal (0 0 1) radius 0.05 data 1.5 1 0.25 0.125

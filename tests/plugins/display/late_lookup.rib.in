@@ -1,0 +1,13 @@
+# Spec 037, DisplayV1_LateLookup (FR-039): one frame; the fixture looks up four parameters
+# from displayData, after displayStart has returned.
+Option "searchpath" "display" ["@V1_LATE_LOOKUP_DIR@"]
+Format 8 8 1
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Projection "orthographic"
+
+FrameBegin 1
+    Display "late-lookup.out" "v1_late_lookup" "rgba"
+    WorldBegin
+    WorldEnd
+FrameEnd

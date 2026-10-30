@@ -66,6 +66,7 @@ add_subdirectory(unit/sampling)
 add_subdirectory(unit/raster)
 add_subdirectory(unit/geometry)
 add_subdirectory(unit/state)
+add_subdirectory(plugins)
 add_subdirectory(convergence)
 add_subdirectory(architecture)
 

@@ -1,0 +1,4 @@
+== dlo_missing_tini (exit 255)
+<BUILD>/tests/plugins/scenes/rib_missing/dlo_missing_tini.rib (10): Missing "dloTini" in DLO "<BUILD>/tests/plugins/dlo/missing_symbol/missing_symbol.dsply"
+== implicit_missing_tini (exit 255)
+<BUILD>/tests/plugins/scenes/rib_missing/implicit_missing_tini.rib (10): Implicit file "<BUILD>/tests/plugins/implicit/missing_symbol/missing_symbol.dsply" is missing some functions

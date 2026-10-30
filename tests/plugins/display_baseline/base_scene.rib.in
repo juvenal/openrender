@@ -1,0 +1,24 @@
+# Spec 037 pixel baseline scene "@SCENE_NAME@" (FR-021, SC-004, SC-013).
+# Deterministic: box filter, one sample per pixel, 32 x 32 (four 16 x 16 buckets). The display
+# line below is the only thing that differs between the scenes.
+Option "searchpath" "display" ["@SCENE_DISPLAY_PATH@"]
+Format 32 32 1
+PixelSamples 1 1
+PixelFilter "box" 1 1
+ShadingRate 1
+@SCENE_PRE@
+Display "@SCENE_FILE@" "@SCENE_DEVICE@" "@SCENE_MODE@" @SCENE_PARAMS@
+Projection "perspective" "fov" 30
+Translate 0 0 4
+
+WorldBegin
+    LightSource "distantlight" 1 "float intensity" [1.2] "point from" [-1 1 -2] "point to" [0 0 0]
+    Surface "matte"
+    Color [0.9 0.5 0.3]
+    Sphere 1 -1 1 360
+    TransformBegin
+        Translate 0.7 -0.4 -0.6
+        Color [0.2 0.6 0.9]
+        Sphere 0.45 -0.45 0.45 360
+    TransformEnd
+WorldEnd

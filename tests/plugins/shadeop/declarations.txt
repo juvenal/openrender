@@ -1,0 +1,61 @@
+# Spec 037, ShadeopAbi_DeclarationCharacterization: the starting tree's dsoParse over about 40 declarations.
+#
+# One case per line: <declaration> TAB <1 if accepted, 0 if rejected> TAB <name> TAB <prototype>.
+# The declaration field uses escapes: \t tab, \n newline, {empty} the empty string, and {rep:N:text} N copies
+# of text. A rejected case has empty name and prototype fields.
+#
+# The prototype is the return type letter, '=', then one letter per parameter
+# (o f v n p c m s for void float vector normal point color matrix string). The parameter names and the
+# word 'output' do not appear in it.
+#
+# ORDER MATTERS. The old parser keeps its prototype in a static 256-byte buffer that it never
+# terminates: a declaration shorter than the one before it returns the new prototype followed by the
+# stale tail of the old one (measured: see the observation line the test prints). The cases are therefore ordered by increasing prototype length, and the
+# rejected ones (which can leave a partial prefix) come last. No case has a prototype of more than 255
+# letters (the buffer is unbounded). Unknown characters ($, ;) are echoed to stdout by flex and skipped.
+void void_op()	1	void_op	o=
+float float_op()	1	float_op	f=
+vector vector_op()	1	vector_op	v=
+normal normal_op()	1	normal_op	n=
+point point_op()	1	point_op	p=
+color color_op()	1	color_op	c=
+matrix matrix_op()	1	matrix_op	m=
+string string_op()	1	string_op	s=
+float f(float)	1	f	f=f
+float f(float a)	1	f	f=f
+float f(output float a)	1	f	f=f
+float f(float output a)	1	f	f=f
+float f(vector)	1	f	f=v
+float f(void)	1	f	f=o
+float _a1(float)	1	_a1	f=f
+float 9lives(float)	1	9lives	f=f
+float floatx(float)	1	floatx	f=f
+float colorful(color)	1	colorful	f=c
+float outputs(output string)	1	outputs	f=s
+float f$(float)	1	f	f=f
+float f(float;)	1	f	f=f
+float {rep:300:x}(float)	1	xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx	f=f
+float{rep:300: }f(float)	1	f	f=f
+float f(float, float)	1	f	f=ff
+float f(float a, vector b)	1	f	f=fv
+float f( float , float )	1	f	f=ff
+float\t f \n(\tfloat\n a ,\tcolor )	1	f	f=fc
+float f(output float a, output float b)	1	f	f=ff
+float f(string s, string t)	1	f	f=ss
+float f(float, vector, normal, point, color, matrix, string, void)	1	f	f=fvnpcmso
+float f({rep:59:float, }float)	1	f	f=ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+{empty}	0		
+float	0		
+f()	0		
+float f	0		
+float f(	0		
+float f(float	0		
+float f(float,)	0		
+float f(,)	0		
+float f(float float)	0		
+float f(float a b)	0		
+float f() extra	0		
+Float f()	0		
+float f(float))	0		
+float f(float)(float)	0		
+()	0		
