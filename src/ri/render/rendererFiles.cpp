@@ -30,7 +30,7 @@
 #include "brickmap.h"
 #include "dso.h"
 #include "common/diagnostics.h"
-#include "includes/logging.hpp"
+#include "include/logging.hpp"
 #include "irradiance.h"
 #include "netFileMapping.h"
 #include "options.h"

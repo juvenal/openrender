@@ -9,8 +9,10 @@
  *
  *   ConvertParameters, Subdivide and Free log their calls through pluginLog.h; the unload
  *   of the module image is logged by a destructor function. Variants:
- *     plain    Subdivide emits one RiSphere
- *     nested   Subdivide emits an RiProcedural whose subdivide and free functions live in
+ *     plain    no version symbol (TEST_NO_VERSION; accepted silently, FR-009); Subdivide emits one RiSphere
+ *     versioned  declares 1.0.0
+ *     v2       declares 2.0.0 (rejected)
+ *     nested   (no version) Subdivide emits an RiProcedural whose subdivide and free functions live in
  *              this module (FR-034: the module must outlive the geometry that calls them);
  *              those two log too, and emit one RiSphere
  *
@@ -28,10 +30,14 @@
  *
  */
 
+#include "dlo.h" /* OR_DYNAMICLOAD_DECLARE_VERSION lives in dlo.h (research Q3) */
 #include "pluginLog.h"
 #include "ri.h"
 
-#if defined(OR_DYNAMICLOAD_DECLARE_VERSION) && !defined(TEST_NO_VERSION) && !defined(TEST_ABI_MAJOR)
+#if defined(TEST_ABI_MAJOR)
+/* A variant that declares another version (TEST_ABI_MAJOR / TEST_ABI_MINOR): v2. */
+OR_DECLARE_ABI_VERSION_SYMBOL(orDynamicLoadAbiVersion, OR_ABI_VERSION(TEST_ABI_MAJOR, TEST_ABI_MINOR, 0))
+#elif defined(OR_DYNAMICLOAD_DECLARE_VERSION) && !defined(TEST_NO_VERSION)
 OR_DYNAMICLOAD_DECLARE_VERSION()
 #endif
 

@@ -142,8 +142,8 @@ warnings in-process.
 ## R1. One version-check routine and the convention header live in infrastructure
 
 **Decision.** The version encoding, the export macros, the status codes and the table header
-(`src/common/orplugin.h`, C17, installed) and the C++ convenience header
-(`src/common/orplugin.hpp`, installed) are infrastructure. The single host-side check routine
+(`src/include/orplugin.h`, C17, installed) and the C++ convenience header
+(`src/include/orplugin.hpp`, installed) are infrastructure (`src/include/` is on every target's include path). The single host-side check routine
 `checkPluginVersion()` and the table check `checkPluginTable()` live in
 `src/common/pluginAbi.{h,cpp}` (internal, not installed), compiled into `libRIBCommon`. Each of the
 four family headers includes `orplugin.h`.
@@ -484,7 +484,7 @@ gave it to Graphics State).
 **Decision.** One CMake list, `OPENRENDER_PUBLIC_HEADERS` (root `CMakeLists.txt` or
 `CMake/openRenderPublicHeaders.cmake`), names every installed header: `ri.h`, `ptcapi.h`,
 `dsply.h`, `shadeop.h`, `dlo.h`, `implicit.h`, `orplugin.h`, `orplugin.hpp`. `install(FILES ...)`
-uses it; `file_base.h`'s `install()` line is removed. A test stages exactly that list into a
+uses it, into the layout's include directory (self-contained `<ORENDERHOME>/include`; FHS `<prefix>/include/openRender/`, maintainer's decision 2026-10-30; the package config follows); `file_base.h`'s `install()` line is removed. A test stages exactly that list into a
 scratch include directory and compiles each header alone (C17 and C++20) plus the guide's example
 display (`examples/display/simpledisplay.c`, a v2 driver in C) against it; a second script checks
 that `INSTALL_ARTIFACTS.md` and `DISPLAY_PLUGIN_GUIDE.md` name exactly that list and that every

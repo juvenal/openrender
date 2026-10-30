@@ -32,7 +32,7 @@
 #include <math.h>
 #include <string.h>
 
-#include "includes/logging.hpp"
+#include "include/logging.hpp"
 
 #include "brickmap.h"
 #include "bundles.h"

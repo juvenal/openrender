@@ -140,6 +140,17 @@ include(GNUInstallDirs)
 # builds the bytecode interpreter alone. It no longer affects the CMake floor.
 option(OPENRENDER_ENABLE_JIT "Build the LLVM JIT (.slo) shader path (needs LLVM >= OPENRENDER_LLVM_MIN_VERSION)" ON)
 option(INSTALL_SELFCONTAINED "Build for a selfcontained setup (overrides custom directory settings)" ON)
+
+# Opt-in ThreadSanitizer build (spec 037, SC-006; used in a separate tree such as build-tsan, with only
+# `ctest -L plugin_abi`). Off by default, so no everyday configure changes. When ON it instruments every
+# C and C++ target and forces the JIT off, which keeps LLVM out of the instrumented build.
+option(OPENRENDER_TSAN "Build with ThreadSanitizer (opt-in; forces OPENRENDER_ENABLE_JIT=OFF)" OFF)
+if(OPENRENDER_TSAN)
+    set(OPENRENDER_ENABLE_JIT OFF CACHE BOOL "Build the LLVM JIT (.slo) shader path (needs LLVM >= OPENRENDER_LLVM_MIN_VERSION)" FORCE)
+    add_compile_options(-fsanitize=thread)
+    add_link_options(-fsanitize=thread)
+    message(STATUS "ThreadSanitizer build: -fsanitize=thread, JIT forced off")
+endif()
 # Remove obsolete staging options - we now use system package managers
 
 # SOVERSION defaults to the current major version.
@@ -302,10 +313,15 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/common/version_config.h.in
 
 # Make generated and project headers available to all targets
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/includes)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/include)
+
+# The public headers: one source of truth for what is installed (spec 037, FR-048), and a build-tree
+# directory that holds the convention headers flat, the way the installed layout does, so the family
+# headers' `#include "orplugin.h"` resolves in the tree as it does for a plug-in author.
+include(${CMAKE_CURRENT_SOURCE_DIR}/CMake/openRenderPublicHeaders.cmake)
 target_include_directories(openrender_common_flags INTERFACE
     ${CMAKE_CURRENT_BINARY_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/includes
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/include
 )
 target_compile_definitions(openrender_common_flags INTERFACE HAVE_CONFIG_H)
 

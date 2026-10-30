@@ -31,7 +31,7 @@
 #include "displayChannel.h"
 #include "common/diagnostics.h"
 #include "imager.h"
-#include "includes/logging.hpp"
+#include "include/logging.hpp"
 #include "common/memory.h"
 #include "options.h"
 #include "remoteChannel.h"

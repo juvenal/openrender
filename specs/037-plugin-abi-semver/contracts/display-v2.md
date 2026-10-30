@@ -1,6 +1,6 @@
 # Contract: display interface 2.0.0 (`src/display/dsply.h`; FR-001..FR-003, FR-014..FR-021, US3)
 
-Display Outputs domain. Installed as `<prefix>/include/dsply.h`. Includes `orplugin.h` only.
+Display Outputs domain. Installed as `dsply.h` in the layout's include directory (self-contained `<ORENDERHOME>/include`; FHS `<prefix>/include/openRender/`). Includes `orplugin.h` only.
 
 ## 1. Version
 

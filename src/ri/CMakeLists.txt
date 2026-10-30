@@ -37,6 +37,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/render)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/state)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/parse)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/geometry)
+# procedures/ (spec 037): the Procedures domain, the dlo and implicit ABI headers and the module that loads
+# them. The headers keep their installed names, so geometry/ and render/ include them unqualified.
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../procedures)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/texture)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/output)
 # core/ (pl, ray/map/noise, ri_config, and the Phase C1 shader/shading/shaderPl
@@ -124,6 +127,7 @@ set(ri_sources
 	render/rendererDeclarationsDispatch.cpp
 	render/rendererDisplay.cpp
 	render/rendererFiles.cpp
+	render/rendererProcedures.cpp
 	render/rendererFileSearch.cpp
 	render/rendererJobs.cpp
 	render/rendererMutexes.cpp
@@ -212,7 +216,7 @@ endif()
 # of libri; not part of its public API, so not propagated to linking executables).
 # Phase C: ri links against libshader_shading (shading engine in its own library).
 # LLVM is NOT added explicitly here; it propagates from libshader_shading PUBLIC link deps.
-add_library(ribRender SHARED $<TARGET_OBJECTS:ribRender_obj>)
+add_library(ribRender SHARED $<TARGET_OBJECTS:ribRender_obj> $<TARGET_OBJECTS:openrenderprocedures_obj>)
 set_target_properties(ribRender PROPERTIES OUTPUT_NAME RIBRender EXPORT_NAME RIBRender)
 # Propagate include paths to consumers: ri headers (options.h, shader.h forwarding, etc.)
 # and shading engine headers (shader.h actual, shading.h actual) must be findable by
@@ -255,7 +259,7 @@ if(APPLE)
 endif()
 
 # Static library — same object files, library consumers inherit the link requirements
-add_library(ribRender_static STATIC $<TARGET_OBJECTS:ribRender_obj>)
+add_library(ribRender_static STATIC $<TARGET_OBJECTS:ribRender_obj> $<TARGET_OBJECTS:openrenderprocedures_obj>)
 set_target_properties(ribRender_static PROPERTIES OUTPUT_NAME RIBRender EXPORT_NAME RIBRender_static)
 # The SHARED common library, not the archive: libshader_shading (shared-only)
 # binds its infrastructure to libRIBCommon, so a static program that also
@@ -382,6 +386,7 @@ list(REMOVE_ITEM ribVector_sources
     render/rendererDisplay.cpp
     render/rendererFiles.cpp
     render/rendererJobs.cpp
+    render/rendererProcedures.cpp
     render/rendererShadingServices.cpp
     geometry/surface.cpp
     geometry/surfaceCrossingDispatch.cpp
@@ -590,13 +595,9 @@ install(TARGETS ribRender EXPORT openRenderTargets
 install(TARGETS ribRender_static EXPORT openRenderStaticTargets
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
-install(FILES
-    geometry/dlo.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/../display/dsply.h
-    geometry/implicit.h
-    texture/ptcapi.h
-    parse/ri.h
-    render/shadeop.h
+# The installed header list is OPENRENDER_PUBLIC_HEADERS (CMake/openRenderPublicHeaders.cmake), the one
+# source of truth (spec 037, FR-048). file_base.h still installs from src/display/file/CMakeLists.txt.
+install(FILES ${OPENRENDER_PUBLIC_HEADERS}
     DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
 # Compatibility aliases: a symlink next to each real libRIB* artifact (both in

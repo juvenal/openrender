@@ -160,9 +160,12 @@ specs/037-plugin-abi-semver/
 ### Source Code (repository root)
 
 ```text
-src/common/
+src/include/                 # renamed from src/includes/ (maintainer's decision, 2026-10-30)
 ├── orplugin.h               # NEW, installed: convention (C17)
 ├── orplugin.hpp             # NEW, installed: C++ convenience
+└── logging.{h,hpp}          # internal, unchanged
+
+src/common/
 └── pluginAbi.{h,cpp}        # NEW: the one version/table check (libRIBCommon)
 
 src/display/

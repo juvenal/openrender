@@ -27,7 +27,7 @@
 #include <math.h>
 #include <string.h>
 
-#include "includes/logging.hpp"
+#include "include/logging.hpp"
 
 #include "brickmap.h"
 #include "bundles.h"
@@ -54,8 +54,10 @@
 #include "ray.h"
 #include "raytracer.h"
 #include "remoteChannel.h"
+#include "proceduralModules.h"
 #include "renderer.h"
 #include "rendererContext.h"
+#include "rendererProcedures.h"
 #include "reyes.h"
 #include "ri.h"
 #include "ri_config.h"
@@ -114,6 +116,9 @@ void CRenderer::beginRenderer(CRendererContext *c, const char *ribFile, const ch
     // shaders load before the first frame
     rendererShadingServicesInit();
 
+    // The DynamicLoad expansion of the Scene Interface's hook (spec 037); removed in endRenderer(), like the services
+    rendererProceduresInit();
+
     // Init the network (if applicable)
     initNetwork(ribFile, riNetString);
 
@@ -154,6 +159,9 @@ void CRenderer::endRenderer() {
 
     // Init the files
     shutdownFiles();
+
+    // Remove the DynamicLoad hook, dropping any frame reference a frame that never ended still holds
+    rendererProceduresShutdown();
 
     // Cleanup the parser
     parserCleanup();
@@ -851,6 +859,11 @@ void CRenderer::endFrame() {
 
     // Delete the root object and it's children
     root->destroy();
+
+    // The generators' modules go after the geometry that can still call into them (spec 037, FR-024, FR-034): a
+    // generator's Subdivide may have created procedurals whose functions live in its module, and root->destroy()
+    // frees them. endFrameResources() above is too early.
+    releaseFrameProceduralModules();
 
     // Terminate the displays
     endDisplays();

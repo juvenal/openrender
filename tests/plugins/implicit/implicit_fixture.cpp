@@ -30,7 +30,10 @@
 #include "implicit.h"
 #include "pluginLog.h"
 
-#if defined(IMPLICIT_DECLARE_VERSION) && !defined(TEST_NO_VERSION) && !defined(TEST_ABI_MAJOR)
+#if defined(TEST_ABI_MAJOR)
+// A variant that declares another version (TEST_ABI_MAJOR / TEST_ABI_MINOR): v2, newer.
+OR_DECLARE_ABI_VERSION_SYMBOL(orImplicitAbiVersion, OR_ABI_VERSION(TEST_ABI_MAJOR, TEST_ABI_MINOR, 0))
+#elif defined(IMPLICIT_DECLARE_VERSION) && !defined(TEST_NO_VERSION)
 IMPLICIT_DECLARE_VERSION()
 #endif
 

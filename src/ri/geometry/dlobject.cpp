@@ -40,13 +40,10 @@
 // Description			:	Ctor
 // Return Value			:	-
 // Comments				:
-CDLObject::CDLObject(CAttributes *a, CXform *x, void *handle, void *data, const float *bmi, const float *bma, dloInitFunction initFunction, dloIntersectFunction intersectFunction, dloTiniFunction tiniFunction) : CSurface(a, x) {
+CDLObject::CDLObject(CAttributes *a, CXform *x, CDloModule *module, void *data, const float *bmi, const float *bma) : CSurface(a, x) {
     atomicIncrement(stats.numGprims);
 
-    this->handle = handle;
-    this->initFunction = initFunction;
-    this->intersectFunction = intersectFunction;
-    this->tiniFunction = tiniFunction;
+    this->module = module;
     this->data = data;
     movvv(this->bmin, bmi);
     movvv(this->bmax, bma);
@@ -64,8 +61,8 @@ CDLObject::CDLObject(CAttributes *a, CXform *x, void *handle, void *data, const 
 CDLObject::~CDLObject() {
     atomicDecrement(stats.numGprims);
 
-    tiniFunction(data);
-    osUnloadModule(handle);
+    module->tini(data);
+    module->detach(); // the last reference unloads the module
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -99,7 +96,7 @@ void CDLObject::intersect(CShadingContext *, CRay *ray) {
     transform(oFrom, oDir, xform, ray);
 
     // Perform the actual intersection
-    if (intersectFunction(data, oFrom, oDir, &t, oN)) {
+    if (module->intersect(data, oFrom, oDir, &t, oN)) {
         mulmn(ray->N, xform->to, oN);
         ray->t = t;
         ray->object = this;

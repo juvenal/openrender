@@ -24,15 +24,19 @@
 //  Description			:	Display server interface
 //
 ////////////////////////////////////////////////////////////////////////
+/*
+ * Display driver interface (version 1 content). Strict C17 and C++20: the extern "C" block is guarded
+ * and the entry points are declared OR_PLUGIN_EXPORT, so a driver compiled with hidden-by-default
+ * symbol visibility still exports them. Version macros and the version history arrive with display
+ * 2.0.0 in Phase 5; the 1.x history is recorded there.
+ */
 #ifndef DSPLY_H
 #define DSPLY_H
 
+#include "orplugin.h"
+
 #ifndef LIB_EXPORT
-#if defined(_WINDOWS) || defined(WIN32)
-#define LIB_EXPORT __declspec(dllexport)
-#else
-#define LIB_EXPORT extern
-#endif
+#define LIB_EXPORT OR_PLUGIN_EXPORT
 #endif
 
 typedef enum {
@@ -49,11 +53,11 @@ typedef int (*TDisplayDataFunction)(void *, int, int, int, int, float *);
 typedef int (*TDisplayRawDataFunction)(void *, int, int, int, int, void *);
 typedef void (*TDisplayFinishFunction)(void *);
 
-extern "C" {
-LIB_EXPORT void *displayStart(const char *name, int width, int height, int numSamples, const char *samples, TDisplayParameterFunction);
-LIB_EXPORT int displayData(void *im, int x, int y, int w, int h, float *data);
-LIB_EXPORT int displayRawData(void *im, int x, int y, int w, int h, void *data);
-LIB_EXPORT void displayFinish(void *);
-}
+OR_EXTERN_C_BEGIN
+OR_VISIBLE void *displayStart(const char *name, int width, int height, int numSamples, const char *samples, TDisplayParameterFunction);
+OR_VISIBLE int displayData(void *im, int x, int y, int w, int h, float *data);
+OR_VISIBLE int displayRawData(void *im, int x, int y, int w, int h, void *data);
+OR_VISIBLE void displayFinish(void *);
+OR_EXTERN_C_END
 
 #endif

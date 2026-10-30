@@ -23,7 +23,7 @@ section, now empty, is removed; DB-019 stays Open for its JIT and standalone-com
 
 | From (class) | To (class) | Files | Rule |
 |---|---|---|---|
-| Display | Infra | `dsply.h` → `src/common/orplugin.h` | `* -> Infra` |
+| Display | Infra | `dsply.h` → `src/include/orplugin.h` | `* -> Infra` |
 | ShaderDSO | Infra | `shadeop.h`, `shadeopModule.cpp` → `orplugin.h`, `pluginAbi.h`, `os.h`, diagnostics | `* -> Infra` |
 | Procedures | Infra | `dlo.h`, `implicit.h`, `proceduralModules.cpp` → `orplugin.h`, `pluginAbi.h`, `os.h`, `refCounter.h`, diagnostics | `* -> Infra` |
 | Shading | ShaderDSO | `dsoHandle.h`, `scriptFunctions.h` (via `execute.cpp`), `libshader/compiler/rslo.cpp` → `src/shadeop/*.h`; link refs to `shadeopOperandData`/`Exec`, `enumerateShadeopDeclarations` | `Shading -> ShaderDSO` |
@@ -51,7 +51,7 @@ Core → Scene (`renderer.cpp`, `rendererFiles.cpp`, `rendererContext.cpp`, `ren
 + prefix  src/procedures/                              Procedures
 ```
 
-`src/common/orplugin.h(pp)` and `pluginAbi.*` are covered by `prefix src/common/ Infra`; the new
+`src/include/orplugin.h(pp)` (and the existing `prefix src/include/ Infra`, renamed from `src/includes/`) and `src/common/pluginAbi.*` (`prefix src/common/ Infra`) are covered; the new
 core files by `prefix src/ri/render/ Core`.
 
 ## Metrics

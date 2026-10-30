@@ -48,6 +48,11 @@ foreach(_dir src/display src/ri/geometry src/ri/render src/ri/parse src/shadeop 
     endif()
 endforeach()
 
+# orplugin.h and orplugin.hpp live in src/include/ (with the internal logging headers). A fixture that includes
+# "orplugin.h", directly or through a family header, finds them there.
+set(OR_PLUGIN_STAGE_INCLUDE ${CMAKE_SOURCE_DIR}/src/include)
+list(APPEND OR_PLUGIN_HEADER_DIRS ${OR_PLUGIN_STAGE_INCLUDE})
+
 # The directory that holds shadeop.h (FR-031 compile check). src/ri/render until the header moves.
 if(EXISTS ${CMAKE_SOURCE_DIR}/src/shadeop/shadeop.h)
     set(OR_SHADEOP_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/src/shadeop)
@@ -57,21 +62,27 @@ endif()
 
 # or_plugin_test_module(<target> <family> <variant> <source> [<more sources>...]
 #                       [OUTPUT_NAME <name>] [DEFS <definitions>...] [LIBS <libraries>...]
-#                       [INCLUDES <dirs>...] [HIDDEN] [NO_FLAGS] [NO_HEADER_DIRS])
+#                       [INCLUDES <dirs>...] [HIDDEN] [NO_FLAGS] [NO_HEADER_DIRS] [EXCLUDE_FROM_ALL])
 #
 # Defines one fixture module as the fixture rules above describe. DEFS are compile
 # definitions (TEST_ABI_MAJOR=1, TEST_NO_VERSION, ...); OR_TEST_TAG="<variant>" is always
 # defined, so every log line a fixture writes carries the variant it came from.
 # HIDDEN builds with hidden symbol visibility (the exports must then be explicit).
 # NO_FLAGS leaves out openrender_common_flags. NO_HEADER_DIRS leaves out the family header
-# directories (the frozen legacy driver must not be able to see the live dsply.h).
+# directories (the frozen legacy driver must not be able to see the live dsply.h). EXCLUDE_FROM_ALL is
+# for a fixture whose API does not exist yet: it builds only when asked for, so the red state is a compile
+# error of `cmake --build --target <test program>` (tasks.md, "Red-first convention").
 function(or_plugin_test_module target family variant source)
-    cmake_parse_arguments(ARG "HIDDEN;NO_FLAGS;NO_HEADER_DIRS" "OUTPUT_NAME" "DEFS;LIBS;INCLUDES" ${ARGN})
+    cmake_parse_arguments(ARG "HIDDEN;NO_FLAGS;NO_HEADER_DIRS;EXCLUDE_FROM_ALL" "OUTPUT_NAME" "DEFS;LIBS;INCLUDES" ${ARGN})
     if(NOT ARG_OUTPUT_NAME)
         set(ARG_OUTPUT_NAME ${variant})
     endif()
     # Any arguments no keyword claims are further source files of the module.
-    add_library(${target} MODULE ${source} ${ARG_UNPARSED_ARGUMENTS})
+    if(ARG_EXCLUDE_FROM_ALL)
+        add_library(${target} MODULE EXCLUDE_FROM_ALL ${source} ${ARG_UNPARSED_ARGUMENTS})
+    else()
+        add_library(${target} MODULE ${source} ${ARG_UNPARSED_ARGUMENTS})
+    endif()
     set(_dir ${OR_PLUGIN_BIN}/${family}/${variant})
     set_target_properties(${target} PROPERTIES
         PREFIX ""

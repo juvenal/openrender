@@ -13,7 +13,7 @@
  *     missing_symbol    TEST_OMIT_TINI: dloTini is not defined (characterization of the
  *                       host's error text for an incomplete module)
  *
- *   Written against the old dlo.h and the versioned one: the version line sits under
+ *   Written against the old header and the versioned one: the version line sits under
  *   #ifdef DLO_DECLARE_VERSION, so the same source builds in Phase 1 and later.
  *
  * Authors:
@@ -30,7 +30,10 @@
 #include "dlo.h"
 #include "pluginLog.h"
 
-#if defined(DLO_DECLARE_VERSION) && !defined(TEST_NO_VERSION) && !defined(TEST_ABI_MAJOR)
+#if defined(TEST_ABI_MAJOR)
+// A variant that declares another version (TEST_ABI_MAJOR / TEST_ABI_MINOR): v2, newer.
+OR_DECLARE_ABI_VERSION_SYMBOL(orDloAbiVersion, OR_ABI_VERSION(TEST_ABI_MAJOR, TEST_ABI_MINOR, 0))
+#elif defined(DLO_DECLARE_VERSION) && !defined(TEST_NO_VERSION)
 DLO_DECLARE_VERSION()
 #endif
 

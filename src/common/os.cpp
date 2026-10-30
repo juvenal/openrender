@@ -98,11 +98,14 @@ void *osLoadModule(const char *name) {
     // Unix dlopen expects an absolute path or the shared object to be in LD_LIBRARY_PATH
     // Convert the name to an absolute file name
     if (cModule == NULL) {
-        char absoluteName[OS_MAX_PATH_LENGTH];
-        char *absolute = realpath(name, absoluteName);
+        // realpath allocates the result. A fixed OS_MAX_PATH_LENGTH buffer is smaller than PATH_MAX, which
+        // glibc's fortified realpath aborts on ("buffer overflow detected") before it looks at the name, so
+        // on Linux every failed first dlopen ended the process instead of returning NULL.
+        char *absolute = realpath(name, NULL);
 
         if (absolute != NULL) {
             cModule = dlopen(absolute, RTLD_NOW);
+            free(absolute);
         }
     }
 #endif

@@ -17,7 +17,7 @@
 #include <cstring>
 #include <sstream>
 
-#include "includes/logging.hpp"
+#include "include/logging.hpp"
 #include "ri/parse/ri.h"
 #include "ri/render/renderer.h"
 #include "ri/render/rendererContext.h"

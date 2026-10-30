@@ -129,7 +129,8 @@ Delete `$WT/build-tsan` afterwards if disk is short.
 ```bash
 rm -rf $WT/build/install-stage && ~/.claude/bin/cpujob 037-install env DESTDIR=$WT/build/install-stage cmake --install $WT/build
 find $WT/build/install-stage -name 'file_base.h'            # expected: nothing
-ls $WT/build/install-stage/*/*/include                        # ri.h ptcapi.h dsply.h shadeop.h dlo.h implicit.h orplugin.h orplugin.hpp
+ls $WT/build/install-stage/*/*/include                        # self-contained: ri.h ptcapi.h dsply.h shadeop.h dlo.h implicit.h orplugin.h orplugin.hpp
+# FHS layout (-DINSTALL_SELFCONTAINED=OFF in a second scratch tree): the same names under <prefix>/include/openRender/
 ```
 
 Then build `examples/display/simpledisplay.c` against that include directory only, as the guide

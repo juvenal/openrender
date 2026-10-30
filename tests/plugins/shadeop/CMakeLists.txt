@@ -30,17 +30,25 @@ add_custom_target(plugin_shadeop_probe ALL DEPENDS ${SHADEOP_SHADER_DIR}/probe.r
 
 or_plugin_rib(${CMAKE_CURRENT_SOURCE_DIR}/scan.rib.in ${OR_PLUGIN_BIN}/shadeop/scan.rib)
 
-# FR-031 -- the SHADEOP macro and dsoExecFunction must describe one signature. The compile flags
-# are passed on so the check uses the project's toolchain (macOS: the SDK).
+# FR-031 -- the SHADEOP macro and dsoExecFunction must describe one signature, from C++20 and from
+# strict C17 (the C half is Phase 2, T036). The compile flags are passed on so the check uses the
+# project's toolchain (macOS: the SDK).
 set(_signature_flags "${CMAKE_CXX_FLAGS}")
 if(CMAKE_OSX_SYSROOT)
     set(_signature_flags "${_signature_flags} -isysroot ${CMAKE_OSX_SYSROOT}")
 endif()
+set(_signature_c_flags "${CMAKE_C_FLAGS}")
+if(CMAKE_OSX_SYSROOT)
+    set(_signature_c_flags "${_signature_c_flags} -isysroot ${CMAKE_OSX_SYSROOT}")
+endif()
 or_plugin_add_test(ShadeopAbi_SignatureMatches 120
     COMMAND ${CMAKE_COMMAND}
         -DCXX=${CMAKE_CXX_COMPILER}
+        -DCC=${CMAKE_C_COMPILER}
         "-DFLAGS=${_signature_flags}"
+        "-DC_FLAGS=${_signature_c_flags}"
         -DINCLUDE_DIR=${OR_SHADEOP_INCLUDE_DIR}
+        "-DEXTRA_INCLUDE_DIRS=${CMAKE_SOURCE_DIR}/src/include"
         -DWORKDIR=${OR_PLUGIN_BIN}/shadeop/work/signature
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_signature.cmake)
 

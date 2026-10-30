@@ -3,7 +3,7 @@
 #
 #   <kind>  <pattern>                         <class>
 #   prefix  src/ri/geometry/                  Geometry
-#   file    src/ri/geometry/dlo.h             Procedures
+#   prefix  src/procedures/                   Procedures
 #   file    @build/src/ri/rib_generated.cpp   SceneInterface
 #
 # kind is prefix | file. A file rule beats a prefix rule; among prefixes the
@@ -17,7 +17,7 @@
 # --- Infra: the shared floor ------------------------------------------------
 prefix  src/common/                                  Infra
 prefix  @build/src/common/                           Infra
-prefix  src/includes/                                Infra
+prefix  src/include/                                 Infra
 prefix  src/ri/core/                                 Infra
 file    @build/config.h                              Infra
 file    @build/version_config.h                      Infra
@@ -42,10 +42,9 @@ file    @build/src/ri/lex.if.cpp                     SceneInterface
 # --- Graphics State ----------------------------------------------------------
 prefix  src/ri/state/                                GraphicsState
 
-# --- Geometry, with the Geometric Procedures ABI headers ---------------------
+# --- Geometry; the Procedures domain (spec 037: dlo/implicit ABI headers and the loader) ---
 prefix  src/ri/geometry/                             Geometry
-file    src/ri/geometry/dlo.h                        Procedures
-file    src/ri/geometry/implicit.h                   Procedures
+prefix  src/procedures/                              Procedures
 
 # --- Hiders ------------------------------------------------------------------
 prefix  src/ri/hiders/                               Hiders

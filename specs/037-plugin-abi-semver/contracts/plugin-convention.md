@@ -1,6 +1,6 @@
 # Contract: the shared plug-in convention (FR-002..FR-005, FR-010, US6, SC-003, SC-010)
 
-Files (Infra, `src/common/`):
+Files (Infra: `orplugin.h` and `orplugin.hpp` in `src/include/`, installed in the layout's include directory, self-contained `<ORENDERHOME>/include` and FHS `<prefix>/include/openRender/`; `pluginAbi.{h,cpp}` in `src/common/`):
 
 | File | Installed | Language | Content |
 |---|---|---|---|

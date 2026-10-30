@@ -8,7 +8,7 @@
 function(or_stage_headers source_dir stage_dir names)
     set(_candidates
         src/ri/geometry src/display src/ri/texture src/ri/parse src/ri/render src/display/file
-        src/shadeop src/procedures src/common)
+        src/shadeop src/procedures src/include)
     file(REMOVE_RECURSE "${stage_dir}")
     file(MAKE_DIRECTORY "${stage_dir}/include")
     set(_staged "")

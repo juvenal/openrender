@@ -1,7 +1,9 @@
 # DynamicLoad fixtures and the FR-034 check (spec 037).
 #
-#   plain    ConvertParameters / Subdivide / Free; Subdivide emits one sphere
-#   nested   Subdivide emits a procedural whose subdivide and free functions live in the module
+#   plain      no version symbol (accepted silently); ConvertParameters / Subdivide / Free; Subdivide emits one sphere
+#   versioned  declares 1.0.0 (accepted silently)
+#   v2         declares 2.0.0 (rejected)
+#   nested     no version symbol; Subdivide emits a procedural whose subdivide and free functions live in the module
 #
 # Both modules call back into the host (RiSphere, RiProcedural). They link nothing: the symbols
 # resolve against the process that loads them, so the renderer's process-wide state stays one
@@ -14,8 +16,11 @@ function(or_dynload_module target variant)
     endif()
 endfunction()
 
-or_dynload_module(plugin_dynamicload_plain plain)
-or_dynload_module(plugin_dynamicload_nested nested DEFS TEST_NESTED)
+# plain and nested declare no version: a generator that does not declare one is accepted silently (FR-009).
+or_dynload_module(plugin_dynamicload_plain plain DEFS TEST_NO_VERSION)
+or_dynload_module(plugin_dynamicload_nested nested DEFS TEST_NESTED TEST_NO_VERSION)
+or_dynload_module(plugin_dynamicload_versioned versioned)
+or_dynload_module(plugin_dynamicload_v2 v2 DEFS TEST_ABI_MAJOR=2 TEST_ABI_MINOR=0)
 
 set(DYNLOAD_NESTED_FILE ${OR_PLUGIN_BIN}/dynamicload/nested/nested.dsply)
 or_plugin_rib(${CMAKE_CURRENT_SOURCE_DIR}/two_frames.rib.in ${OR_PLUGIN_BIN}/dynamicload/two_frames.rib)
@@ -31,3 +36,6 @@ or_plugin_add_test(ProceduresAbi_DynamicLoadRelease 120
         -DCOMMON=${OR_PLUGIN_COMMON_DIR}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_release.cmake)
 set_tests_properties(ProceduresAbi_DynamicLoadRelease PROPERTIES ENVIRONMENT "${OR_PLUGIN_RENDER_ENV}")
+
+# The object-definition scene of ProceduresAbi_ObjectAndFrames (tests/plugins/procedures/).
+configure_file(object_instance.rib.in ${OR_PLUGIN_BIN}/dynamicload/object_instance.rib @ONLY)

@@ -23,6 +23,7 @@ add_library(openrendercommon_obj OBJECT
     riTokens.cpp      # the RI_* token definitions (spec 023, from parse/ri.cpp)
     colorSpace.cpp    # convertColorFrom/convertColorTo (moved from ri/init.cpp for libshader)
     diagnostics.cpp   # error/warning/fatal/info + the installable sink (spec 023, from parse/error.cpp)
+    pluginAbi.cpp     # the one plug-in version check and table check (spec 037)
     logging.cpp       # the one current_log_level (spec 023)
     # Generic infrastructure moved from src/ri/core (spec 023): libshader_shading
     # resolves these from libRIBCommon, never from the renderer library.
