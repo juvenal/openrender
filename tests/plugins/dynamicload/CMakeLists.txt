@@ -37,5 +37,18 @@ or_plugin_add_test(ProceduresAbi_DynamicLoadRelease 120
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_release.cmake)
 set_tests_properties(ProceduresAbi_DynamicLoadRelease PROPERTIES ENVIRONMENT "${OR_PLUGIN_RENDER_ENV}")
 
+# FR-034, FR-024 -- the same two frames under the raytrace hider, where the nested procedural survives until
+# root->destroy(): the module must be released after it, not before (mutation: release before root->destroy()).
+or_plugin_rib(${CMAKE_CURRENT_SOURCE_DIR}/two_frames_raytrace.rib.in ${OR_PLUGIN_BIN}/dynamicload/two_frames_raytrace.rib)
+or_plugin_add_test(ProceduresAbi_DynamicLoadReleaseRaytrace 120
+    COMMAND ${CMAKE_COMMAND}
+        -DORENDER=$<TARGET_FILE:orender>
+        -DRIB=${OR_PLUGIN_BIN}/dynamicload/two_frames_raytrace.rib
+        -DWORKDIR=${OR_PLUGIN_BIN}/dynamicload/work/two_frames_raytrace
+        -DLOG=${OR_PLUGIN_BIN}/dynamicload/work/two_frames_raytrace.log
+        -DCOMMON=${OR_PLUGIN_COMMON_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_release.cmake)
+set_tests_properties(ProceduresAbi_DynamicLoadReleaseRaytrace PROPERTIES ENVIRONMENT "${OR_PLUGIN_RENDER_ENV}")
+
 # The object-definition scene of ProceduresAbi_ObjectAndFrames (tests/plugins/procedures/).
 configure_file(object_instance.rib.in ${OR_PLUGIN_BIN}/dynamicload/object_instance.rib @ONLY)

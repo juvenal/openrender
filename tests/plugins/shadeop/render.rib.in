@@ -1,0 +1,37 @@
+# Spec 037, the render-level shadeop tests (ShadeopAbi_Versions_Render, ShadeopAbi_LegacyShared): two
+# frames of a sphere shaded by @RIB_SURFACE@, whose operand comes from the modules in the procedural
+# search path @RIB_PROC_PATH@, on @RIB_THREADS@ shading thread(s) with 8x8 buckets. The shader is the
+# interpreter bytecode (the JIT has no DSO call path). Two frames, because per-thread data lasts until
+# RiEnd and not until the end of a frame (FR-011 c).
+Option "shaderformat" "default" ["rslo"]
+Option "searchpath" "shader" ["@SHADEOP_SHADER_DIR@:@SHADEOP_SHADER_DEFAULT_DIR@"]
+Option "searchpath" "display" ["@OR_DISPLAY_PATH@"]
+Option "searchpath" "procedural" ["@RIB_PROC_PATH@"]
+Option "limits" "numthreads" [@RIB_THREADS@]
+Option "limits" "bucketsize" [8 8]
+
+FrameBegin 1
+    Format 64 64 1
+    PixelSamples 1 1
+    PixelFilter "box" 1 1
+    Projection "perspective" "fov" 30
+    Translate 0 0 4
+    Display "@RIB_OUTPUT@" "file" "rgba"
+    WorldBegin
+        Surface "@RIB_SURFACE@"
+        Sphere 1 -1 1 360
+    WorldEnd
+FrameEnd
+
+FrameBegin 2
+    Format 64 64 1
+    PixelSamples 1 1
+    PixelFilter "box" 1 1
+    Projection "perspective" "fov" 30
+    Translate 0 0 4
+    Display "@RIB_OUTPUT@" "file" "rgba"
+    WorldBegin
+        Surface "@RIB_SURFACE@"
+        Sphere 1 -1 1 360
+    WorldEnd
+FrameEnd
