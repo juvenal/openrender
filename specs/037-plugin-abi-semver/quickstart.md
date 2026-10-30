@@ -77,6 +77,18 @@ All run under `-L plugin_abi`:
 | FR-039 | `DisplayV1_LateLookup` |
 | FR-040 | `DisplayAbi_UnsupportedParamType` |
 
+Tests added by the tasks stage (also under `-L plugin_abi`), not named in the tables above:
+
+| Test | Covers |
+|---|---|
+| `DisplayAbi_Snapshot` | table test of the snapshot contents (data-model §4.3), per-channel `quantize`, and the `structSize` of host-passed structs (FR-015, FR-016, FR-041) |
+| `ShadeopAbi_Versions_Render`, `ShadeopAbi_Versions_Registry` | the two halves of `ShadeopAbi_Versions` (SC-001, SC-002) |
+| `ShadeopAbi_ParserNewSymbol` | `parseShadeopDeclaration` defined only in `libRIBShadeop` (nm, Mach-O underscore handled) |
+| `DisplayAbi_Versions_Reject`, `DisplayAbi_Versions_V1`, `DisplayAbi_Versions_V2` | the three groups of `DisplayAbi_Versions` (SC-013) |
+| `PluginAbi_InstallList`, `PluginAbi_NoFileBaseInstalled`, `PluginAbi_ShadeopSoversion` | install list, no `file_base.h`, `libRIBShadeop` SOVERSION (SC-011, SC-019) |
+| `ProceduresAbi_NoLoadOutsideModule`, `PluginAbi_SingleCheckRoutine` | one `osLoadModule` site per module, one definer of `checkPluginVersion` (SC-008) |
+| `ProceduresAbi_Scenes`, `ProceduresAbi_MissingSymbol`, `ShadeopAbi_DeclarationCharacterization`, `Texture3dChannels_*`, `DisplayAbi_LegacyPixelsIdentical` | characterization tests captured green on the starting tree |
+
 ## 4. Architecture check
 
 ```bash
@@ -126,6 +138,6 @@ nothing landed outside `$WT/build/install-stage` (memory: a past `DESTDIR` run l
 
 ## 8. Linux
 
-Repeat steps 2, 4 and 5 on Ubuntu 24.04 / GCC 13 (`-Werror`; GCC catches array-bounds and
+Phase 1 already built the unmodified tree in the new remote tree `openrender-037` and ran the baselines there (tasks T031a-T031e); the final validation reuses that tree. Repeat steps 2, 4 and 5 on Ubuntu 24.04 / GCC 13 (`-Werror`; GCC catches array-bounds and
 sign-compare cases Clang misses). The `.dsply` test modules are ELF shared objects there; the same
 CMake builds them. Known Linux-only failures that predate 037 (#44, #45, #46, #57) are not regressions.

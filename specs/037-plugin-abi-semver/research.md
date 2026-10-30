@@ -149,7 +149,7 @@ warnings in-process.
 four family headers includes `orplugin.h`.
 
 **Rationale.** Three classes call the check (renderer core for displays, Shader DSO Operands,
-Geometric Procedures); the only place all three may depend on is Infra (`* -> Infra` in
+Procedures); the only place all three may depend on is Infra (`* -> Infra` in
 `domain-rules.txt`). FR-004 asks for one routine, not one per loader. The "warned once per module
 per run" record is process-wide state, and gotcha 22 makes `libRIBCommon` its only legitimate
 home. The family headers stay "their own published ABI header" plus Infra.
@@ -412,9 +412,9 @@ table, easy to misspell. A `thread_local` per operand: cleanup would have to run
 thread before it exits, which the host does not control. Re-reading `init(ctx, texturectx)`'s
 `ctx` as a thread index (PRMan's meaning): changes the meaning of an existing 1.0 entry point.
 
-## R11. One Geometric Procedures module, and how each caller reaches it
+## R11. One Procedures module, and how each caller reaches it
 
-**Decision.** `src/procedures/` (Geometric Procedures) holds `dlo.h` and `implicit.h` (moved with
+**Decision.** `src/procedures/` (the Procedures domain) holds `dlo.h` and `implicit.h` (moved with
 `git mv` from `src/ri/geometry/`) and `proceduralModules.{h,cpp}`: `acquireDloModule(path)`,
 `acquireImplicitModule(path)`, `acquireDynamicLoadModule(path)` each return a reference-counted
 `CProceduralModule` (base `CRefCounter`) holding the resolved entry points, after the version check

@@ -196,7 +196,7 @@ The renderer core owns one (replacing `CRenderer::dsos`) for the `RiBegin`..`RiE
 `oshader` uses the enumerate call only and owns nothing. No process-wide state in the shadeop
 library.
 
-## 6. Geometric Procedures entities
+## 6. Procedures entities
 
 ### 6.1 Procedural module (`CProceduralModule : CRefCounter`)
 

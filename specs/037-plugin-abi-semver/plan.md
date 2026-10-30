@@ -28,7 +28,7 @@ pixel-identical output.
 A new Shader DSO Operands library (`src/shadeop/`, `libRIBShadeop`) owns scanning, the table
 lookup, the version check, a hand-written reentrant declaration parser (replacing the flex/bison
 `dsoParse` compiled into four libraries) and optional per-thread operand state (shadeop 1.1.0); the
-renderer and the compiler both use it. A Geometric Procedures module (`src/procedures/`) owns
+renderer and the compiler both use it. A Procedures module (`src/procedures/`) owns
 dlo, implicit and DynamicLoad loading with reference-counted release; the Scene Interface reaches it
 through a Scene-owned hook the renderer core installs, and generator modules are released after
 `root->destroy()`. Texturing reads 3D-texture channels through an interface it owns (DB-021).
@@ -50,7 +50,8 @@ declarations.
 `plugin-abi-capture-baselines`, never a ctest, and refuses to overwrite existing references);
 test plug-ins are `MODULE` targets with `.dsply` suffix built from `tests/plugins/`; in-process
 test programs link `ribRender`; `cmake -P` scripts for the mechanical checks; an opt-in TSan tree
-(`OPENRENDER_TSAN`). Existing suites (visual, shading parity, state, common, framebuffer, texture,
+(`OPENRENDER_TSAN`). A test that needs an API not yet written is registered `EXCLUDE_FROM_ALL` +
+`DISABLED` until the API lands; the final pass requires none left (`0 Not Run (Disabled)`). Existing suites (visual, shading parity, state, common, framebuffer, texture,
 architecture) must stay green.
 
 **Target Platform**: macOS 13.3+ (arm64/x86-64, Mach-O bundles for modules) and Ubuntu 24.04 (GCC
@@ -64,7 +65,7 @@ loading is unchanged in count.
 
 **Constraints**: pixel-identical output of every in-tree driver (FR-021, SC-004); no allowlist line
 added (FR-029); no task may depend on spec 028, on the merge or on a future release (FR-007);
-loader-site edits in `rendererContext.cpp` and `implicitSurface.cpp` kept small (028 overlaps them).
+loader-site edits in `rendererContext.cpp`, `dlobject.cpp` and `implicitSurface.cpp` kept small (028, now on master, edited them).
 
 **Scale/Scope**: 4 public headers + 2 new public convention headers; 4 in-tree drivers; 16
 includer files; 6 `osLoadModule` call sites collapsed into 3 modules; ~60 test plug-in variants from ~8
@@ -92,7 +93,7 @@ to the spec and Q9 a site page.
 **Principle VIII — Domain Separation and Modular Boundaries**:
 
 - [x] **Domains touched are named**: Display Outputs (`dsply.h`, four drivers, `file_base`),
-      Shader DSO Operands (new `src/shadeop/`), Geometric Procedures (new `src/procedures/`),
+      Shader DSO Operands (new `src/shadeop/`), Procedures (new `src/procedures/`),
       Geometry (`CDLObject`, `CImplicit`), Scene Interface (`RiProcDynamicLoad`, the new hook,
       deletion of `dso.{l,y,h}`), Shading (`dsoHandle.h`, `scriptFunctions.h` DSO macros, the
       compiler's `enumerateDso`, unused include in `shading/rslo.y`), Texturing (`texture3d.cpp`,
@@ -177,7 +178,7 @@ src/shadeop/                 # NEW domain directory (Shader DSO Operands)
 ├── shadeopModule.{h,cpp}
 └── CMakeLists.txt           # openrendershadeop_obj -> libRIBShadeop (shared + static)
 
-src/procedures/              # NEW domain directory (Geometric Procedures)
+src/procedures/              # NEW domain directory (the Procedures domain)
 ├── dlo.h                    # git mv from src/ri/geometry/dlo.h
 ├── implicit.h               # git mv from src/ri/geometry/implicit.h
 ├── proceduralModules.{h,cpp}
@@ -240,7 +241,9 @@ CLAUDE.md agent rules). Phases 3–6 are independent of one another after Phase 
    decoded-pixel capture target (dither, `quantize` override, `type` selection and PNG `gAMA`
    included; research R16), the DLO/implicit/DynamicLoad/shadeop scenes, the legacy `file.dsply`
    fixture built from frozen base-tree sources, the shadeop declaration characterization test
-   against the existing `dsoParse`. All green on the unmodified tree.
+   against the existing `dsoParse`, the ten defect checks of FR-031..FR-040 run red, and a Linux gate
+   (new tree `openrender-037`; the unmodified tree is built there and its baselines and red checks run).
+   All green on the unmodified tree except the ten red defect checks.
 2. **Convention and the one check (US2, US6, FR-001..FR-005, FR-010).** `orplugin.h/.hpp`,
    `pluginAbi.{h,cpp}`, C17/C++20 header tests, convention tests with the guard-page fixture,
    versioned variants of the fixtures. Headers gain C guards and visibility; `SHADEOP` signature
@@ -273,7 +276,7 @@ CLAUDE.md agent rules). Phases 3–6 are independent of one another after Phase 
 | Unloading modules that used to stay mapped exposes plug-ins that keep pointers or threads alive (third-party drivers; the framebuffer's helper is a separate process) | Unload only at `endDisplays` after `finish`; convention rule 5; the v1 adapter keeps the legacy "no finish after failure". If a real driver misbehaves, the fallback is "release at `RiEnd`" (a change of the release point only). |
 | macOS refuses to unload some images (bundles with TLS or ObjC), so unload-observing tests flake | Tests assert the host's own counters (`proceduralModuleStats`, display host stats) and use C fixtures without TLS; the destructor log is supplementary. |
 | `libRIBShadeop` adds an installed library and package targets (self-contained bundler, rpath) | Approved (Q1); follows the `libshader_compiler` pattern; covered by the install-list check and the real-install quickstart step. |
-| Merge overlap with spec 028 in `rendererContext.cpp` (DLO branch) and `implicitSurface.cpp` (constructor) | Keep 037's edits to those blocks minimal and self-contained; whichever lands second resolves the textual conflict. No task depends on 028. |
+| Merge overlap with spec 028 (already merged to master as `b17c7f4`; this branch is not rebased) in `rendererContext.cpp` (DLO branch), `dlobject.cpp` and `implicitSurface.cpp` (constructor) | Keep 037's edits to those blocks minimal and self-contained; the textual conflict is the maintainer's at merge time. No task depends on 028 or on the merge. |
 | Per-thread shadeop slots indexed by `CShadingContext::thread` meet a context with an out-of-range index (imager, network server) | Out-of-range index falls back to the process-wide data with a one-time diagnostic (R10). |
 | The hand-written parser accepts a different language | Characterization test written against `dsoParse` before it is deleted; only stdout echo of unknown characters differs. |
 | TSan noise from third-party libraries (libtiff, OpenEXR) | The TSan run is limited to `-L plugin_abi`; suppressions only for third-party frames, never for openRender code. |
@@ -295,3 +298,11 @@ recorded for review:
 - `tests/architecture/allowlist.txt` has a DB-019 section header that says "(4)" over 3 lines. The implementation phase that deletes the DB-019 lines removes the section and with it the miscount (allowlist-end-state contract); `allowlist.txt` is not edited at the checklist stage.
 - Operand scan order is lexicographic by file name within a directory (FR-013); the shadeop contract is updated to match.
 - Checklist closure: guides are `DISPLAY_PLUGIN_GUIDE.md` (updated) plus the new `DEVNOTES_DETAILS/PLUGIN_ABI.md`; new requirements FR-046..FR-049 and SC-019/SC-020 (adapter named-file rule, version encoding and single version source, install list source and layouts, zero/depth-only displays).
+
+## Note from the tasks review (2026-10-29)
+
+- **Linux gate.** Phase 1 ends with a Linux gate (tasks T031a-T031e): the new tree `openrender-037` is created, the unmodified Phase 1 tree is built and its baselines and red checks run there, and `reference/linux/` is captured only if the macOS references differ. The final-phase Linux validation reuses that tree.
+- **Test approval.** Each phase stops after its red evidence for the maintainer's test approval before any implementation task of that phase.
+- **Macro prefixes (decision).** The legacy families keep their legacy prefixes (`SHADEOP_*`, `DLO_*`, `IMPLICIT_*` and the existing `dso*Function` type names) so existing plug-in sources keep compiling; the new interfaces and the convention use `OR_*` / `Or*` (`OR_DISPLAY_*`, `OR_DYNAMICLOAD_*`, `OrDisplay*`, `orplugin`). The difference is deliberate, not an inconsistency to clean up, and `PLUGIN_ABI.md` says so.
+- **FR-019.** The duplicate is `dsply.h`'s v1 typedefs against the RI's `RtDisplay*Function`; `displayV1Abi.h` resolves it and `ri.h` stays unchanged.
+- **028.** Spec 028 is merged on master (`b17c7f4`); this branch is not rebased and its overlap is a merge-time matter only.

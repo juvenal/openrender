@@ -1,6 +1,6 @@
-# Contract: dlo 1.0.0, implicit 1.0.0, DynamicLoad generators, and the Geometric Procedures module (FR-001..FR-009, FR-022..FR-024, FR-032, FR-034, US5)
+# Contract: dlo 1.0.0, implicit 1.0.0, DynamicLoad generators, and the Procedures module (FR-001..FR-009, FR-022..FR-024, FR-032, FR-034, US5)
 
-Geometric Procedures domain, `src/procedures/` (new; `domain-map.txt`:
+Procedures domain, `src/procedures/` (new; `domain-map.txt`:
 `prefix src/procedures/ Procedures`; the two `file src/ri/geometry/{dlo,implicit}.h Procedures`
 rules are deleted).
 
