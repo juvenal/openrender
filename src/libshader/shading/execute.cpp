@@ -45,6 +45,7 @@
 #include "shaderRefs.h"
 #include "shaderPl.h"
 #include "shading.h"
+#include "specularTerm.h"
 #include "surface.h"
 #include "textureCalls.h"
 #include "texture3d.h"

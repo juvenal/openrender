@@ -951,7 +951,6 @@ DEFLIGHTFUNC(Diffuse2, "diffuse", "c=pnf", DIFFUSE2EXPR_PRE, DIFFUSE2EXPR, DIFFU
     float *powers = (float *)ralloc(numVertices * sizeof(float), threadMemory);   \
     const float *op1, *op2, *op3;                                                 \
     float *res;                                                                   \
-    vector Ltmp, halfway;                                                         \
     operand(0, res, float *);                                                     \
     operand(1, op1, const float *);                                               \
     operand(2, op2, const float *);                                               \
@@ -969,7 +968,7 @@ DEFLIGHTFUNC(Diffuse2, "diffuse", "c=pnf", DIFFUSE2EXPR_PRE, DIFFUSE2EXPR, DIFFU
     for (int i = 0; i < numVertices; ++i) {                                       \
         if (*tags == 0) {                                                         \
             initv(R, 0, 0, 0);                                                    \
-            *power = 10.0f / *op3;                                                \
+            *power = libshader::specularPower(*op3);                              \
         }                                                                         \
         R += 3;                                                                   \
         op3 += 1;                                                                 \
@@ -1002,19 +1001,8 @@ DEFLIGHTFUNC(Diffuse2, "diffuse", "c=pnf", DIFFUSE2EXPR_PRE, DIFFUSE2EXPR, DIFFU
         power = powers;                                                           \
         tags = tagStart;
 
-#define SPECULAREXPR                                            \
-    normalizev(Ltmp, L);                                        \
-    addvv(halfway, V, Ltmp);                                    \
-    if (dotvv(halfway, halfway) > 0) {                          \
-        normalizev(halfway);                                    \
-        const float tmp = ((1.0f - ns[0]) * dotvv(N, halfway)); \
-        if (tmp > 0) {                                          \
-            const float coefficient = (float)pow(tmp, *power);  \
-            R[COMP_R] += coefficient * Cl[COMP_R];              \
-            R[COMP_G] += coefficient * Cl[COMP_G];              \
-            R[COMP_B] += coefficient * Cl[COMP_B];              \
-        }                                                       \
-    }
+// The term itself is shared with the JIT's callSpecular (specularTerm.h, GitHub #111).
+#define SPECULAREXPR libshader::specularAccumulate(R, N, V, L, Cl, ns[0], *power);
 
 #define SPECULAREXPR_UPDATE \
     R += 3;                 \

@@ -44,6 +44,7 @@
 #include "shaderPl.h"
 #include "shaderRefs.h"
 #include "shading.h"
+#include "specularTerm.h"
 #include "common/stats.h"
 #include "texture.h"
 #include "texture3d.h"
@@ -2082,7 +2083,13 @@ void CShadingContext::callDiffuse(float *result, const float *Nf) {
     }
 }
 
-void CShadingContext::callSpecular(float *result, const float *Nf, const float *V, float roughness) {
+// GitHub #111: the per-point term is libshader::specularAccumulate, the same
+// function the interpreter's SPECULAREXPR calls, so the two backends agree bit
+// for bit. Like the interpreter, only active points are zeroed, the exponent is
+// computed per point from that point's roughness, and each light's
+// __nonspecular scales its highlight. The steps are the operands' strides in
+// floats (0 for a uniform operand).
+void CShadingContext::callSpecular(float *result, const float *Nf, int nfStep, const float *V, int vStep, const float *roughness, int roughnessStep) {
     CShadingState *ss = currentShadingState;
     const int n = ss->numVertices;
     const int *tags = ss->tags;
@@ -2090,46 +2097,37 @@ void CShadingContext::callSpecular(float *result, const float *Nf, const float *
     CShaderInstance *cInst = ss->currentShaderInstance;
 
     float *costheta = (float *)ralloc(n * sizeof(float), threadMemory);
+    float *powers = (float *)ralloc(n * sizeof(float), threadMemory);
     for (int i = 0; i < n; ++i)
         costheta[i] = 0.0f;
     iterateLights(varying[VARIABLE_P], Nf, costheta, n, const_cast<int *>(tags),
                   ss->numActive, ss->numPassive, inShadow, varying, cInst);
 
-    // Zero ALL vertices unconditionally (original behavior)
     for (int i = 0; i < n; ++i) {
-        result[3 * i] = result[3 * i + 1] = result[3 * i + 2] = 0.0f;
+        if (tags[i] == 0) {
+            initv(result + 3 * i, 0, 0, 0);
+            powers[i] = libshader::specularPower(roughness[roughnessStep * i]);
+        }
     }
-    const float power = (roughness > 1e-6f) ? 10.0f / roughness : 1e6f;
     for (CShadedLight *light = ss->lights; light; light = light->next) {
         const int *ltags = light->lightTags;
         const float *L = light->savedState[0];
         const float *Cl = light->savedState[1];
+        const CShaderInstance *inst = light->instance;
+        const float *ns = nullptr;
+        int nsStep = 0;
+        if (inst && (inst->flags & SHADERFLAGS_NONSPECULAR)) {
+            const CLightShaderData *lightData = (const CLightShaderData *)inst->data;
+            ns = light->savedState[2 + lightData->nonSpecularIndex];
+            nsStep = lightData->nonSpecularStep;
+        }
         for (int i = 0; i < n; ++i) {
             if (tags[i] != 0)
                 continue;
             if (ltags != nullptr && ltags[i] != 0)
                 continue;
-            float lx = L[3 * i], ly = L[3 * i + 1], lz = L[3 * i + 2];
-            float lm = sqrtf(lx * lx + ly * ly + lz * lz);
-            if (lm < 1e-8f)
-                continue;
-            lx /= lm;
-            ly /= lm;
-            lz /= lm;
-            float hx = V[3 * i] + lx, hy = V[3 * i + 1] + ly, hz = V[3 * i + 2] + lz;
-            float hlen = sqrtf(hx * hx + hy * hy + hz * hz);
-            if (hlen < 1e-8f)
-                continue;
-            hx /= hlen;
-            hy /= hlen;
-            hz /= hlen;
-            float ndoth = Nf[3 * i] * hx + Nf[3 * i + 1] * hy + Nf[3 * i + 2] * hz;
-            if (ndoth <= 0.0f)
-                continue;
-            float coeff = powf(ndoth, power);
-            result[3 * i] += coeff * Cl[3 * i];
-            result[3 * i + 1] += coeff * Cl[3 * i + 1];
-            result[3 * i + 2] += coeff * Cl[3 * i + 2];
+            libshader::specularAccumulate(result + 3 * i, Nf + nfStep * i, V + vStep * i, L + 3 * i, Cl + 3 * i,
+                                          ns ? ns[nsStep * i] : 0.0f, powers[i]);
         }
     }
 }

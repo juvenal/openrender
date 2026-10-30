@@ -190,7 +190,7 @@ void op_ambient_batch(float *result, int n, const int *tags);
 void op_diffuse_batch(float *result, int sr, const float *Nf, int sn, int n, const int *tags);
 /* Calls ctx->callSpecular(result, Nf, V, roughness) — Phong specular highlight */
 /* roughness is always a scalar (uniform) — passed as float* and read as roughness[0] */
-void op_specular_batch(float *result, const float *Nf, const float *V, const float *roughness, int n, const int *tags);
+void op_specular_batch(float *result, const float *Nf, int sn, const float *V, int sv, const float *roughness, int sr, int n, const int *tags);
 void op_phong_batch(float *result, const float *Nf, const float *V, const float *size, int n, const int *tags);
 
 /* -----------------------------------------------------------------------

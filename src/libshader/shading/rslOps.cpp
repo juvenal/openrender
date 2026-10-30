@@ -803,12 +803,14 @@ void op_diffuse_batch(float *result, int sr, const float *Nf, int sn [[maybe_unu
         ctx->callDiffuse(result, Nf);
 }
 
-void op_specular_batch(float *result, const float *Nf, const float *V, const float *roughness, int n, const int *tags) {
+// sn, sv, sr: the operands' strides in floats (0 for a uniform operand), so a
+// varying roughness is read per point, as the interpreter does (GitHub #111).
+void op_specular_batch(float *result, const float *Nf, int sn, const float *V, int sv, const float *roughness, int sr, int n, const int *tags) {
     (void)n;
     (void)tags;
     CShadingContext *ctx = libshader::activeContext();
     if (ctx)
-        ctx->callSpecular(result, Nf, V, roughness ? roughness[0] : 0.1f);
+        ctx->callSpecular(result, Nf, sn, V, sv, roughness, sr);
 }
 
 void op_phong_batch(float *result, const float *Nf, const float *V, const float *size, int n, const int *tags) {

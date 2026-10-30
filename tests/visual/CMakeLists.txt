@@ -4574,3 +4574,90 @@ foreach(_entry IN LISTS _jittex_cases)
         set_tests_properties(${_slo_tests} PROPERTIES DISABLED TRUE)
     endif()
 endforeach()
+
+# --- specular() under the LLVM JIT (GitHub #111) ----------------------------------------------------
+# The JIT's callSpecular normalized in float, ignored each light's __nonspecular, read the roughness of
+# the first point only and had guards of its own; it now calls the interpreter's per-point term
+# (libshader::specularAccumulate, specularTerm.h). Scenes generated from examples/rib/tests/
+# jit-specular-probe.rib.in, probe shaders/jit_specular_probe.sl (Ci = specular() alone), one
+# distantlight plus the case's extra light.
+#   ShadingParity_JitSpecular_<case>: the case under .rslo and .slo, bit-identical.
+#   ShadingParity_JitSpecularEngaged_<control>_<format>: two cases, same format, must differ: the second
+#     light reaches the sphere (light), and its __nonspecular is honoured (nonspecular).
+# roughzero and guard (V + L = (0, 0, 0) at every point: an orthographic camera and a light straight
+# behind the sphere) were already green on the starting tree; they keep the guards of the two backends
+# equal (CLAUDE.md gotcha 2).
+# <case>|<hider>|<projection: perspective or orthographic>|<probe parameters>|<extra light shader, or ->|<its parameters>
+set(_jitspec_dir ${CMAKE_BINARY_DIR}/tests/visual/jit-specular)
+file(MAKE_DIRECTORY ${_jitspec_dir})
+set(_jitspec_extra_from "\"from\" [-3 1 -2] \"to\" [0 0 0]")
+set(_jitspec_cases
+    "base|reyes|perspective||-|"
+    "raytrace|raytrace|perspective||-|"
+    "varyrough|reyes|perspective|\"roughnessvary\" [1]|-|"
+    "roughzero|reyes|perspective|\"roughness\" [0]|-|"
+    "ns_off|reyes|perspective||jit_nonspecular_light|\"intensity\" [1] ${_jitspec_extra_from} \"nonspecular\" [0]"
+    "ns_on|reyes|perspective||jit_nonspecular_light|\"intensity\" [1] ${_jitspec_extra_from} \"nonspecular\" [1]"
+    "ns_half|reyes|perspective||jit_nonspecular_light|\"intensity\" [1] ${_jitspec_extra_from} \"nonspecular\" [0.5]"
+    "ns_uniform|reyes|perspective||jit_nonspecular_uniform_light|\"intensity\" [1] ${_jitspec_extra_from}"
+    "guard|reyes|orthographic||distantlight|\"intensity\" [1] \"from\" [0 0 10] \"to\" [0 0 0]")
+foreach(_entry IN LISTS _jitspec_cases)
+    string(REPLACE "|" ";" _parts "${_entry}")
+    list(GET _parts 0 _case)
+    list(GET _parts 1 HIDER)
+    list(GET _parts 2 _projection)
+    list(GET _parts 3 PARAMS)
+    list(GET _parts 4 _extra)
+    list(GET _parts 5 _extraParams)
+    if(_projection STREQUAL "orthographic")
+        set(PROJECTION "Projection \"orthographic\"\nScreenWindow -1.2 1.2 -1.2 1.2")
+    else()
+        set(PROJECTION "Projection \"perspective\"")
+    endif()
+    if(_extra STREQUAL "-")
+        set(LIGHTS "")
+    else()
+        set(LIGHTS "  LightSource \"${_extra}\" 2 ${_extraParams}")
+    endif()
+    foreach(FORMAT rslo slo)
+        set(OUTPUT jitspec-${_case}-${FORMAT}.tif)
+        configure_file(${CMAKE_SOURCE_DIR}/examples/rib/tests/jit-specular-probe.rib.in
+            ${_jitspec_dir}/jitspec-${_case}-${FORMAT}.rib @ONLY)
+    endforeach()
+
+    set(_parity ShadingParity_JitSpecular_${_case})
+    add_test(NAME ${_parity}
+        COMMAND test_render_compare $<TARGET_FILE:orender> same
+            ${_jitspec_dir}/jitspec-${_case}-rslo.rib jitspec-${_case}-rslo.tif
+            ${_jitspec_dir}/jitspec-${_case}-slo.rib jitspec-${_case}-slo.tif
+        WORKING_DIRECTORY ${_jitspec_dir})
+    set_tests_properties(${_parity} PROPERTIES TIMEOUT 120 LABELS "shading_parity;visual;regression"
+        RESOURCE_LOCK jit_specular_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+    if(NOT OPENRENDER_HAVE_LLVM)
+        set_tests_properties(${_parity} PROPERTIES DISABLED TRUE)
+    endif()
+endforeach()
+
+# <control>|<case A>|<case B>
+set(_jitspec_controls
+    "light|base|ns_off"
+    "nonspecular|ns_off|ns_on")
+foreach(_entry IN LISTS _jitspec_controls)
+    string(REPLACE "|" ";" _parts "${_entry}")
+    list(GET _parts 0 _control)
+    list(GET _parts 1 _caseA)
+    list(GET _parts 2 _caseB)
+    foreach(_format rslo slo)
+        set(_engaged ShadingParity_JitSpecularEngaged_${_control}_${_format})
+        add_test(NAME ${_engaged}
+            COMMAND test_render_compare $<TARGET_FILE:orender> differ
+                ${_jitspec_dir}/jitspec-${_caseA}-${_format}.rib jitspec-${_caseA}-${_format}.tif
+                ${_jitspec_dir}/jitspec-${_caseB}-${_format}.rib jitspec-${_caseB}-${_format}.tif
+            WORKING_DIRECTORY ${_jitspec_dir})
+        set_tests_properties(${_engaged} PROPERTIES TIMEOUT 120 LABELS "shading_parity;visual;regression"
+            RESOURCE_LOCK jit_specular_scratch ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+        if(_format STREQUAL "slo" AND NOT OPENRENDER_HAVE_LLVM)
+            set_tests_properties(${_engaged} PROPERTIES DISABLED TRUE)
+        endif()
+    endforeach()
+endforeach()
