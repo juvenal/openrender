@@ -30,7 +30,8 @@ target_include_directories(test_sampling_option PRIVATE ${SAMPLING_OPTION_INCLUD
 target_link_libraries(test_sampling_option PRIVATE ribRender openrendercommon)
 add_test(NAME SamplingOption_Parse COMMAND test_sampling_option parse)
 add_test(NAME SamplingOption_UnknownName COMMAND test_sampling_option unknown_name)
-set_tests_properties(SamplingOption_Parse SamplingOption_UnknownName PROPERTIES TIMEOUT 60
+add_test(NAME SamplingOption_UnknownKeepsCurrent COMMAND test_sampling_option unknown_keeps_current)
+set_tests_properties(SamplingOption_Parse SamplingOption_UnknownName SamplingOption_UnknownKeepsCurrent PROPERTIES TIMEOUT 60
     LABELS "rib_parse;unit;sampling" ENVIRONMENT "${SAMPLING_OPTION_ENV}")
 
 add_executable(test_sampling_option_roundtrip test_sampling_option_roundtrip.cpp)

@@ -47,8 +47,8 @@ Option "sampling" "int seed" [0]               # any integer, default 0
   ray depth). No generator lives in a shading context any more.
 - `"legacy"` (internal before Phase 9) is now an unknown name. An unknown name raises
   `CODE_BADTOKEN` (`Unknown sampler "<name>" (valid: sobol, pmj02, independent); keeping the
-  current sampler`) and keeps the current value (GitHub #76 tracks whether it should reset to the
-  default instead).
+  current sampler`) and keeps the current value: an earlier valid setting survives, it is not
+  reset to the default (GitHub #76, pinned by `SamplingOption_UnknownKeepsCurrent`).
 - Shaders query it with `option("sampling:sampler", s)` / `option("sampling:seed", n)`.
 - Non-GI renders are bit-identical at any `-t`/`-P`, and a frame rendered alone (`-f n`) equals
   the same frame of the full sequence. GI caches (irradiance cache with `maxerror` > 0, photon

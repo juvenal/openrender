@@ -6,7 +6,9 @@
  * Description:
  *   Spec 039, Phase 3 (US5): Option "sampling" is parsed into the options
  *   block (SamplingOption_Parse) and an unknown sampler name is reported
- *   through CODE_BADTOKEN (SamplingOption_UnknownName). The options are read
+ *   through CODE_BADTOKEN (SamplingOption_UnknownName). An unknown name after a
+ *   valid one keeps the valid one, not the default (GitHub #76,
+ *   SamplingOption_UnknownKeepsCurrent). The options are read
  *   back through the public interface (CRiInterface::getOptions()) and through
  *   COptions::find(), the lookup RSL's option() uses.
  *
@@ -171,14 +173,50 @@ static void unknownName() {
     RiEnd();
 }
 
+// SamplingOption_UnknownKeepsCurrent (GitHub #76)
+static void unknownKeepsCurrent() {
+    RiBegin(RI_NULL);
+    RiErrorHandler(capture);
+
+    // A valid, non-default sampler first ...
+    setSampler("pmj02");
+    CHECK(options()->samplingBackend == sp::Backend::PMJ02);
+    CHECK(diagnostics.empty());
+
+    // ... then an unknown name: one CODE_BADTOKEN diagnostic that says the
+    // current sampler is kept ...
+    setSampler("nosuchsampler");
+    CHECK(diagnostics.size() == 1);
+    if (!diagnostics.empty()) {
+        const Diagnostic &d = diagnostics.front();
+        std::fprintf(stderr, "diagnostic: code %d severity %d: %s", d.code, d.severity, d.message.c_str());
+        CHECK(d.code == RIE_BADTOKEN);
+        CHECK(d.severity == RIE_ERROR || d.severity == RIE_WARNING);
+        CHECK(d.message.find("Unknown sampler \"nosuchsampler\"") != std::string::npos);
+        CHECK(d.message.find("keeping the current sampler") != std::string::npos);
+    }
+
+    // ... and the backend stays pmj02: it is not reset to the default (Sobol).
+    CHECK(options()->samplingBackend == sp::Backend::PMJ02);
+    CHECK(options()->samplingBackend != sp::Backend::Sobol);
+    std::string name;
+    CHECK(findString("sampler", name) && name == "pmj02");
+
+    RiErrorHandler(RiErrorPrint);
+    diagnostics.clear();
+    RiEnd();
+}
+
 int main(int argc, char **argv) {
     const std::string which = argc >= 2 ? argv[1] : "";
     if (which == "parse")
         parse();
     else if (which == "unknown_name")
         unknownName();
+    else if (which == "unknown_keeps_current")
+        unknownKeepsCurrent();
     else {
-        std::fprintf(stderr, "usage: %s parse|unknown_name\n", argv[0]);
+        std::fprintf(stderr, "usage: %s parse|unknown_name|unknown_keeps_current\n", argv[0]);
         return 2;
     }
     if (failures) {

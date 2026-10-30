@@ -2051,9 +2051,10 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
     }
     else if (strcmp(name, RI_SAMPLING) == 0) {
         // Option "sampling" (spec 039): the sampler backend and the user seed.
-        // An unknown sampler name is reported through CODE_BADTOKEN and the
-        // current sampler is kept (GitHub #76: whether it should reset to the
-        // default instead).
+        // An unknown sampler name is reported through CODE_BADTOKEN and is
+        // otherwise ignored: the current sampler is kept (whatever an earlier
+        // Option "sampling" set, else the default), not reset to the default
+        // (GitHub #76, SamplingOption_UnknownKeepsCurrent).
         for (i = 0; i < n; i++) {
             if (strcmp(tokens[i], RI_SAMPLER) == 0) {
                 const char *val = ((const char **)params[i])[0];
