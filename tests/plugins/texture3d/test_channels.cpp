@@ -22,6 +22,13 @@
  *     unknown    inside a session, a channel list with a name the registry does not know: the error
  *                text and the channels that were kept
  *
+ *     fillalias  (T100a, not a report: the program decides, exit 0 or 1; Texture3dChannels_FillAliased)
+ *                inside a session, a channel declared with a fill value: the `fill` that the installed
+ *                CTexture3dChannelSource::find() hands out is the registry's own array (the pointer
+ *                channelRegistry()->retrieve() returns as `fill`), not a copy, as defineChannels has
+ *                always aliased it; a channel with no fill has fill == NULL on both sides; the source is
+ *                installed inside the session and gone after RiEnd
+ *
  *   Fields not observable without new API: the channels' per-channel sample counts, start offsets
  *   and fill values (CTexture3d::CChannel is a protected nested class, CTexture3d::queryChannels
  *   returns only names and type strings). The report covers names, type strings, the total data
@@ -48,6 +55,9 @@
 
 #include "common/diagnostics.h"
 #include "ri/parse/ri.h"
+#include "ri/state/channelRegistry.h"
+#include "ri/state/displayChannel.h"
+#include "ri/texture/texture3dChannels.h"
 #include "ri/texture/pointCloud.h"
 #include "ri/texture/ptcapi.h"
 
@@ -152,6 +162,56 @@ namespace {
         return 0;
     }
 
+    int g_fillFailed = 0;
+
+    void expectFill(bool condition, const char *what) {
+        if (!condition) {
+            ++g_fillFailed;
+            printf("FAIL %s\n", what);
+        }
+    }
+
+    int runFillAlias() {
+        expectFill(texture3dChannelSource() == nullptr, "no channel source before RiBegin");
+        RiBegin(RI_NULL);
+        CDiagnosticSink *previous = installDiagnosticSink(&g_sink);
+        const float fill = 0.75f;
+        RiDisplayChannel("float _filled", "float fill", &fill, RI_NULL);
+        RiDisplayChannel("float _plain", RI_NULL);
+        flushDiagnostics("declare _filled and _plain");
+
+        const CTexture3dChannelSource *source = texture3dChannelSource();
+        expectFill(source != nullptr, "the core installed a channel source for the session");
+        CChannelRegistry *registry = channelRegistry();
+        expectFill(registry != nullptr, "the session has a channel registry");
+        if (source != nullptr && registry != nullptr) {
+            const CDisplayChannel *filled = registry->retrieve("_filled");
+            expectFill(filled != nullptr && filled->fill != nullptr && filled->fill[0] == fill, "the registry holds the fill value 0.75 for _filled");
+            STexture3dChannelInfo info = {};
+            expectFill(source->find("_filled", info), "find() knows _filled");
+            expectFill(filled != nullptr && info.fill == filled->fill, "find() hands out the registry's own fill array for _filled, not a copy");
+            expectFill(info.fill != nullptr && info.fill[0] == fill, "the fill value is there");
+            expectFill(info.numSamples == 1 && info.type == TYPE_FLOAT && strcmp(info.name, "_filled") == 0, "name, sample count and type of _filled");
+
+            const CDisplayChannel *plain = registry->retrieve("_plain");
+            STexture3dChannelInfo plainInfo = {};
+            expectFill(source->find("_plain", plainInfo), "find() knows _plain");
+            expectFill(plain != nullptr && plainInfo.fill == plain->fill && plainInfo.fill == nullptr, "a channel with no fill has fill NULL on both sides");
+
+            STexture3dChannelInfo none = {};
+            expectFill(!source->find("nosuchchannel", none), "find() answers false for an unknown name");
+        }
+        installDiagnosticSink(previous);
+        RiEnd();
+        expectFill(texture3dChannelSource() == nullptr, "the channel source is removed at RiEnd");
+        if (g_fillFailed != 0) {
+            printf("%d check(s) failed\n", g_fillFailed);
+            return 1;
+        }
+        printf("ok\n");
+        return 0;
+    }
+
     int runUnknown() {
         RiBegin(RI_NULL);
         CDiagnosticSink *previous = installDiagnosticSink(&g_sink);
@@ -204,7 +264,7 @@ namespace {
 
 int main(int argc, char **argv) {
     if (argc != 2) {
-        fprintf(stderr, "usage: test_texture3d_channels session|nosession|unknown\n");
+        fprintf(stderr, "usage: test_texture3d_channels session|nosession|unknown|fillalias\n");
         return 2;
     }
     int rc;
@@ -214,6 +274,8 @@ int main(int argc, char **argv) {
         rc = runNoSession();
     else if (strcmp(argv[1], "unknown") == 0)
         rc = runUnknown();
+    else if (strcmp(argv[1], "fillalias") == 0)
+        rc = runFillAlias();
     else {
         fprintf(stderr, "unknown mode %s\n", argv[1]);
         return 2;

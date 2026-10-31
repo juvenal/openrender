@@ -4,6 +4,7 @@
 #   Texture3dChannels_NoSession   ptcapi create/read with names and types and no session; the string form
 #                                 with no session, which reports the unknown-channel error
 #   Texture3dChannels_Unknown     an unknown channel name inside a session: the error text
+#   Texture3dChannels_FillAliased the channel source hands out the registry's own fill array (T100a)
 #
 # Each compares the program's report with a data file captured on the starting tree
 # (texture3d/reference/<mode>.txt), green on the starting tree by design. The channel
@@ -48,6 +49,13 @@ foreach(_mode session nosession unknown)
         SCRATCH ${_env} ${CMAKE_COMMAND} -DMODE=capture -DRECAPTURE=ON -DREF=${OR_CAPTURE_SCRATCH}/texture3d_${_mode}.txt
             -DWORKDIR=${OR_PLUGIN_BIN}/texture3d/capture_work_scratch/${_mode} ${_run})
 endforeach()
+# T100a -- the fill the channel source hands out is the registry's own array (an aliasing the report tests above
+# cannot see: they read no fill values). The program decides; there is no reference file.
+file(MAKE_DIRECTORY ${OR_PLUGIN_BIN}/texture3d/work/fillalias)
+or_plugin_add_test(Texture3dChannels_FillAliased 60 COMMAND test_texture3d_channels fillalias)
+set_tests_properties(Texture3dChannels_FillAliased PROPERTIES ENVIRONMENT "${OR_PLUGIN_RENDER_ENV}"
+    WORKING_DIRECTORY ${OR_PLUGIN_BIN}/texture3d/work/fillalias)
+
 foreach(_target test_texture3d_channels)
     add_dependencies(plugin-abi-capture-baselines ${_target})
     add_dependencies(plugin-abi-capture-baselines-scratch ${_target})
