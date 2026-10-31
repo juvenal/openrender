@@ -114,7 +114,7 @@ namespace {
      *     Begin receiving an image. The channel string is info->mode.
      *
      * Return:
-     *     On Success: OR_STATUS_OK and the window as the instance
+     *     On Success: OR_STATUS_OK and the plug-in's own display object (the connection to the helper) as the instance
      *     On Failure: OR_STATUS_ERROR (no data, no finish)
      */
     OrStatus fbStart(OrDisplayContext * /*ctx*/, const OrDisplayInfo *info, void **instance) {
@@ -140,7 +140,7 @@ namespace {
      * Function: fbData
      *
      * Description:
-     *     Receive image data. A failure only reports: the window is deleted in fbFinish, which the host
+     *     Receive image data. A failure only reports: the plug-in's display object is deleted in fbFinish, which the host
      *     calls exactly once for every started display (the version 2 rule).
      */
     OrStatus fbData(OrDisplayContext * /*ctx*/, void *instance, int x, int y, int w, int h, float *pixels) {
@@ -158,7 +158,9 @@ namespace {
      * Function: fbFinish
      *
      * Description:
-     *     Finish receiving an image and release the window.
+     *     Finish receiving an image. This closes the plug-in's connection to the display helper (orender-fb)
+     *     and frees the plug-in's own CDisplay object. It does not stop the helper: the helper keeps running
+     *     and its window stays open.
      */
     void fbFinish(OrDisplayContext * /*ctx*/, void *instance) {
         CDisplay *cWindow = (CDisplay *)instance;
@@ -167,7 +169,7 @@ namespace {
 
         log_debug("displayFinish: calling finish()");
         cWindow->finish();
-        log_debug("displayFinish: finish() returned, deleting window");
+        log_debug("displayFinish: finish() returned, freeing the display object");
         delete cWindow;
         log_debug("displayFinish: done");
     }

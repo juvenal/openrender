@@ -151,6 +151,7 @@ set(ri_sources
 	texture/texmake.cpp
 	texture/texture.cpp
 	texture/texture3d.cpp
+	texture/texture3dChannels.cpp
 	state/xform.cpp
 )
 

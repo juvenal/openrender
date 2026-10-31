@@ -33,11 +33,16 @@
 # texture system, the file resolver and the option block. The TOTAL falls from 721 to 652
 # references and from 110 to 98 distinct members, as archcheck reported (a member that another
 # class also references stays in the total).
+#
+# Spec 037 (plug-in ABIs, T099): Texturing reaches the display channels through its own
+# interface (texture/texture3dChannels.h), implemented by the renderer core, so the last
+# CRenderer:: reference of Texturing (retrieveDisplayChannel, DB-021) is gone: Texturing
+# 1 -> 0 references and 1 -> 0 members, TOTAL 652 -> 651 and 98 -> 97, as archcheck reported.
 
 Geometry           78    19
 Hiders            567    84
 Infra               0     0
 SceneInterface      6     6
 Shading             0     0
-Texturing           1     1
-TOTAL             652    98
+Texturing           0     0
+TOTAL             651    97

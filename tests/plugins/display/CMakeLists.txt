@@ -106,7 +106,7 @@ display_rib(v1_legacy SEARCH ${_D}/v1_legacy
 
 # a normal in-tree display (a.tif) next to a hostile one; Exposure and Quantize make the statics matter
 set(_HOSTILE_PRE "Format 16 16 1\nExposure 1.8 2.2\nQuantize \"rgba\" 255 0 255 0.5")
-set(_HOSTILE_WORLD "Color [0.9 0.5 0.3]\nSurface \"constant\"\nSphere 1 -1 1 360")
+set(_HOSTILE_WORLD "Color [0.9 0.5 0.3]\nSurface \"constant\"\nTranslate 0 0 3\nSphere 1 -1 1 360")
 display_rib(base SEARCH "${OR_DISPLAY_PATH}" PRE "${_HOSTILE_PRE}" WORLD "${_HOSTILE_WORLD}" DISPLAYS "Display \"a.tif\" \"file\" \"rgba\"")
 foreach(_h v1_hostile v2_hostile)
     display_rib(${_h}_first SEARCH "${_D}/${_h}:${OR_DISPLAY_PATH}" PRE "${_HOSTILE_PRE}" WORLD "${_HOSTILE_WORLD}"

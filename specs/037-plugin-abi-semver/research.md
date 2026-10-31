@@ -322,8 +322,7 @@ with any other call for that display and called once each; `data` may run concur
 disjoint tiles; a `data` call that started before the failure was observed may still arrive after
 it, and the driver must treat it as a no-op; no call follows `finish`.
 
-The in-tree framebuffer driver stops deleting its window inside a failing `data`; `finish` deletes
-it (the v2 rule). `endDisplays` runs after the render threads have been joined, so "no host thread
+The in-tree framebuffer driver stops deleting its own display object (its connection to the `orender-fb` helper) inside a failing `data`; `finish` closes the connection and deletes it (the v2 rule). The helper and its window stay open. `endDisplays` runs after the render threads have been joined, so "no host thread
 is inside an entry point" holds when it releases modules.
 
 **Rationale.** Removes the unload race (US3-4, SC-006) without a per-call reader count, because

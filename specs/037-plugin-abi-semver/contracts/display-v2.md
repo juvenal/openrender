@@ -195,7 +195,8 @@ as `(const char *)findParameter("type", STRING_PARAMETER, 1)`), not a pointer to
 `const OrDisplayInfo *` instead of `TDisplayParameterFunction` and reads `quantize`, `dither`,
 `gamma` through `orDisplayFindParameter`. `file.cpp` reads `type` the same way (still the RIB
 type, so `.png` vs `"tiff"` selection is unchanged). The framebuffer driver moves its
-`delete cWindow` from the failing `data` into `finish`, and reads the channel string from
+`delete cWindow` (its own connection object; `finish` sends DONE and closes the socket, and the `orender-fb` helper and its
+window stay open) from the failing `data` into `finish`, and reads the channel string from
 `info->mode`.
 
 ## 7. Tests

@@ -262,7 +262,6 @@ class CRenderer {
         static CVariable *declareVariable(const char *, const char *, int um = 0);
         static void makeGlobalVariable(CVariable *);
         static CVariable *retrieveVariable(const char *);
-        static CDisplayChannel *retrieveDisplayChannel(const char *); // Forwards to the Graphics State channel registry (defined out of line: Texturing calls it)
         static void registerFrameTemporary(const char *, int); // Register file for end-of-frame deletion
         static int getGlobalID(const char *);                  // Global ID management
         static void shutdownDeclarations();
