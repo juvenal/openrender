@@ -73,6 +73,14 @@ The only edit made to approved test code since T016 is the GCC 13 fix in `tests/
 | `ctest -L '^shading_contract$'` | the 8 replay tests pass; the 28 are "Not Run (Disabled)" |
 | CP-b | not repeated (T063): nothing the suite runs has changed |
 
+### Phase 2 approval and the amendment (T064, 2026-10-31)
+
+The 28 Phase 2 tests were approved as written. One design amendment was decided with them, about the standalone program's current object:
+
+- The trace builtins read `currentObject->attributes` (`execute.cpp` `plBegin`, `executeMisc.cpp:720` and `:846`, `shading.cpp` `jitParameterList`), so with the null object of the standalone program (QE) they would crash, and T129 as first written (`objectAttributes()` null without an object) would not have fixed that. Phase 2 therefore used a harness stand-in (`attachFakeObject()`) for `TraceRequests` and `NoServices_Tracer` only.
+- Amended: `objectAttributes()` returns a default attribute set when there is no object (T129), the four trace-path reads go through it (T130, including `jitParameterList` as an exception to "reads in `shading.cpp` stay direct"), and `attachFakeObject()` is deleted in Phase 8 (T139a, an approved edit to approved test code, diff shown in the Phase 8 report). A read that cannot be routed keeps the stand-in for itself and is named.
+- Risk recorded with the amendment: a function-local default `CAttributes` in `libshader_shading` may add imports (`CAttributes::CAttributes()`, its vtable), which SC-011 forbids; T129 says to measure that at the Phase 7 checkpoint and stop if so (the no-import alternative is null-tolerant consumers).
+
 ### Phase 2: Linux (`openrender-026`, GCC 13.3, `-Werror`, `-j2`)
 
 | Check | Result |

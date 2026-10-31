@@ -499,9 +499,10 @@ The one TEST-APPROVAL for the bulk of the test code is at the end of this phase;
   `serviceTypes.h`, `tracer.h`, `shaderGlobals.h` and `sloLoader.h`. Paste it into validation.md §2, then `rm -rf build-red`.
 - [X] T063 [US2] [RUN] CP-a and CP-c with the option OFF (the main tree must be unaffected; no `src/` file changed since Phase 1): build, then `ctest -L architecture` and the full archcheck report
   (expect 8 / 8 / 33, `RESULT PASS`), and `ctest -N -L shading_contract` listing the new tests as disabled. CP-b is not repeated: nothing the suite runs has changed.
-- [ ] T064 [US1] **TEST-APPROVAL (PAUSE 2)**: stage `tests/shading_contract/`, `tests/CMakeLists.txt`, `validation.md`. Summarize: the cases and the requirement each covers (a table: test -> FR/SC/US), which
+- [X] T064 [US1] **TEST-APPROVAL (PAUSE 2)**: stage `tests/shading_contract/`, `tests/CMakeLists.txt`, `validation.md`. Summarize: the cases and the requirement each covers (a table: test -> FR/SC/US), which
   tests are red by build failure and which are characterization tests, the double's TEMPORARY block, the stub's two TEMPORARY traps, the four-way split of `NoServices`, the rendered-only forwarding
   recorder, the red evidence, and the CP-c result. **Wait for the maintainer's approval of every new test.** The decisions QA to QG (spec.md, Clarifications, "Session 2026-10-31") are already taken. This phase's approval also ends the phase.
+  **Approved 2026-10-31 (maintainer, via the coordinator): the 28 Phase 2 tests as written, deviations 2 to 9 included.** Deviation 1 (the standalone harness's `attachFakeObject()`, a zero-filled CObject-layout block, used by `TraceRequests` and `NoServices_Tracer` because the trace builtins read `currentObject->attributes`) was approved with an amendment: `objectAttributes()` returns a default attribute set when there is no current object (T129, which also serves FR-027), the trace-path reads are all routed through it by Phase 7 (T130), and `attachFakeObject()` is removed in Phase 8 (T139a). A read that cannot be routed in this spec keeps the fake object for that read alone, and the report names it.
 
 
 ---
@@ -514,7 +515,7 @@ No image can change (nothing reads the new members yet).
 
 ### Tests block
 
-- [ ] T065 [US1] Test gate for Phase 3. The tests this phase turns green are `ShadingContract_StandaloneLink`, `ShadingContract_StandaloneLinkLine`, `ShadingContract_ShaderGlobalsDouble` and
+- [X] T065 [US1] Test gate for Phase 3. The tests this phase turns green are `ShadingContract_StandaloneLink`, `ShadingContract_StandaloneLinkLine`, `ShadingContract_ShaderGlobalsDouble` and
   `ShadingContract_DoubleGlobalsMatchRenderer`. Their red evidence is Phase 2's build failure (`T062`), so TG step 2 is not repeated. The option `OPENRENDER_SHADING_CONTRACT_TESTS` **stays OFF at the gate**: the headers do not exist yet, so turning it on would break the build at the pause (it is turned on by `T075`). Every other contract test stays `DISABLED`. No existing test is edited in this phase.
 - [ ] T066 [US1] **TEST-APPROVAL (PAUSE 3a)**: list the four enabled tests and confirm no approved test is edited. A compile fix to Phase 2 test code that the real headers force (a typo, a signature) is an edit to an approved test, so it is **confirmed before it is applied**: `T075` stops and shows the maintainer the diff first;
   nothing is edited and reported afterwards. One-word reply from the maintainer to proceed with that rule.
@@ -765,11 +766,14 @@ backend's own behaviour (Q2). Tests that go green: `Messages{Interp,Jit}`, `NoSe
 ### Implementation
 
 - [ ] T129 [US7] Add `const CAttributes *CShadingContext::objectAttributes() const` (declared in `shading.h`, defined out of line in `shading.cpp`, which keeps `object.h`: it returns
-  `currentShadingState->currentObject->attributes`, and null when there is no object). It exists so that `execute.cpp` and `executeMisc.cpp` stop needing `CSurface`'s complete type.
+  `currentShadingState->currentObject->attributes`, **and a default attribute set when there is no current object** (amended at T064, 2026-10-31: the standalone program's trace cases run with no
+  object, and FR-027 wants the same robustness for the executor; it replaces the earlier "null when there is no object")). It exists so that `execute.cpp` and `executeMisc.cpp` stop needing `CSurface`'s complete type.
+  Implementation note: the default set is a function-local `static const CAttributes` in `shading.cpp`. **Measure the imports at the Phase 7 checkpoint** (`nm -m` / `dyld_info` and the Linux `nm -D`): constructing a `CAttributes` in `libshader_shading` can add imports (`CAttributes::CAttributes()`, its vtable) that SC-011 forbids (the imports must stay a subset of the baseline's). If it does, STOP and report; the alternative, with no import, is null-tolerant consumers (the lookups' `init` and the two flag reads take built-in defaults when `objectAttributes()` is null).
 - [ ] T130 [US7] Route the **seven** reads that are compiled into `execute.cpp`/`executeMisc.cpp`/`shaderFunctions.h`/`giFunctions.h` and read the object's attributes through `objectAttributes()` (research R5; the eighth site, `scripterror`, passes the object pointer and goes through `objectHandle()` in `T131`, "7 + 1"): `execute.cpp` `plBegin` (`lookup->init(scratch, attributes)`) and
   `runAmbientLights` (`lightSources`); `executeMisc.cpp` `flags & ATTRIBUTES_FLAGS_SAMPLEMOTION` (transmission) and `interior()`, `exterior()`, `flags` in `trace()`; `shaderFunctions.h`
   `flags & ATTRIBUTES_FLAGS_INSIDE` (`calculatenormal`); `giFunctions.h` `photonEstimator` (two sites). Locate by `grep -rn 'currentObject->attributes' src/libshader`. **The reads inside `shading.cpp` stay direct**
   (that unit keeps `object.h`; `shade()` takes the primitive until spec 029). A read that proves to need more than `CAttributes` is a stop condition.
+  **Amended at T064:** the trace path is read through `objectAttributes()` end to end, so these reads go through it as well, as the one exception to "the reads inside `shading.cpp` stay direct": `jitParameterList`'s `lookup->init(scratch, currentShadingState->currentObject->attributes)` (`shading.cpp`, the JIT twin of `plBegin`). Together with `plBegin`, `executeMisc.cpp:720` and `:846` that is every attribute read that `visibility()`, `transmission()` and `trace()` (probe and bundle, both backends) make. Any other read on that path that cannot be routed is named in the Phase 7 report (it keeps `attachFakeObject()` for itself, T139a).
 - [ ] T131 [US7] Change `setOffendingObject` to take an `ObjectHandle`: in `rendererServices.h` (`virtual void setOffendingObject(openrender::shading::ObjectHandle object) = 0;`), the shading context's
   `rendererSetOffendingObject(ObjectHandle)` helper (`shading.h`/`shading.cpp`), `execute.cpp`'s `scripterror` (now `rendererSetOffendingObject(objectHandle())`, which removes the upcast that needed `surface.h`),
   `CRendererServicesImpl` (`CRenderer::offendingObject = const_cast<CObject *>(static_cast<const CObject *>(h.ptr));`), the four test classes and the TEMPORARY blocks of `CContractServices` and `CContractForwarder` (Q11, A2); `ShadingContract_OffendingObject` turns green.
@@ -802,7 +806,10 @@ green unchanged. Red: 3 DB-001 `VIOLATION` lines, and the trace tests. Tests tha
 - [ ] T139 [US6] Edit the existing wrappers (QA, decided 2026-10-31; named for approval): add `ITracer *tracer() override { return inner->tracer(); }` to `CForwardingServices`, `CRecordingServices` and `CTextureServices` (not
   `CStubServices`: it has no inner implementation). Edit the new test code `load_stub.cpp`: **delete the two TEMPORARY traps** `CShadingContext::trace(CRay *)` and `traceEx(CRayBundle *)` (the table becomes the 4 symbols of
   contracts/test-doubles.md). That deletion is an edit to an approved test and is approved here.
-- [ ] T140 [US6] **TEST-APPROVAL (PAUSE 8a)**: stage the allowlist deletion, the enabled tests, `T139`; summarize the red output, the three `VIOLATION`s, the stub change (6 -> 4 symbols) and the
+- [ ] T139a [US6] Remove `attachFakeObject()` from `tests/shading_contract/contract_harness.h` (and the `ri/geometry/object.h` include if nothing else uses it) and its two callers, `case_trace_requests.cpp` (`TraceRequests{Interp,Jit}`) and `case_no_services.cpp`
+  (`NoServices_Tracer`): the trace path reads the object's attributes only through `objectAttributes()` since Phase 7 (T130), which returns a default set when there is no object, so the standalone program runs the probe and bundle forms with a null current object (QE, as decided). This edits approved test code
+  (approved at T064, 2026-10-31); show the diff in the Phase 8 report. If a read on the trace path could not be routed in Phase 7, keep `attachFakeObject()` for that read alone and name the read and why.
+- [ ] T140 [US6] **TEST-APPROVAL (PAUSE 8a)**: stage the allowlist deletion, the enabled tests, `T139`; summarize the red output, the three `VIOLATION`s, the stub change (6 -> 4 symbols), the removal of `attachFakeObject()` (`T139a`, with its diff) and the
   replay's role (the eight `TraceReplay_*` tests are **not** edited and **not** re-recorded; they must stay green through the move of the observer). **Wait for approval.**
 
 ### Implementation
