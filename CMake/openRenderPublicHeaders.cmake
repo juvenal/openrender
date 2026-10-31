@@ -20,3 +20,15 @@ set(OPENRENDER_PUBLIC_HEADERS
 # orplugin.h and orplugin.hpp live in src/include/, which the root CMakeLists.txt puts on the include path of
 # every target (the tree-wide include path replaces the build-tree copy an earlier revision made), so the family
 # headers' `#include "orplugin.h"` resolves in the tree as it does for a plug-in author.
+
+# The include directory of each install layout (spec 037, FR-026, FR-048), relative to the install prefix: the
+# self-contained layout (INSTALL_SELFCONTAINED=ON, <ORENDERHOME>/include) uses ${CMAKE_INSTALL_INCLUDEDIR}, the FHS
+# layout (OFF) ${CMAKE_INSTALL_INCLUDEDIR}/openRender, so openRender's headers do not mix with the system's. The install
+# rules, the INCLUDES DESTINATION of every exported target, the package config and the tests all use these.
+set(OPENRENDER_INCLUDEDIR_SELFCONTAINED "${CMAKE_INSTALL_INCLUDEDIR}")
+set(OPENRENDER_INCLUDEDIR_FHS "${CMAKE_INSTALL_INCLUDEDIR}/openRender")
+if(INSTALL_SELFCONTAINED)
+    set(OPENRENDER_INCLUDE_INSTALL_DIR "${OPENRENDER_INCLUDEDIR_SELFCONTAINED}")
+else()
+    set(OPENRENDER_INCLUDE_INSTALL_DIR "${OPENRENDER_INCLUDEDIR_FHS}")
+endif()

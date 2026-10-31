@@ -4,25 +4,26 @@
 #   PluginAbi_DocPaths               FR-036  stale path references in the guides
 #   ShadeopAbi_ParserSingleDefiner   FR-037  no library defines dsoParse (it was compiled into four)
 #   ShadeopAbi_ParserNewSymbol       FR-037  parseShadeopDeclaration is defined only in libRIBShadeop
-#   PluginAbi_InstallHeaders         FR-038  an installed header includes an uninstalled one; each C header
-#                                            also compiles alone as strict C17 (Phase 2)
+#   PluginAbi_InstallHeaders         FR-038, SC-011  the real header list staged for both layouts compiles alone
+#                                            (C++20, C17) and the guide's example display builds and renders
+#   PluginAbi_InstallList            FR-026, FR-048  install rules, INSTALL_ARTIFACTS.md and the guide name one list
+#   PluginAbi_NoFileBaseInstalled    FR-026  no install() rule names file_base.h
+#   PluginAbi_ShadeopSoversion       SC-019  libRIBShadeop carries OPENRENDER_COMPAT_SOVERSION
+#   PluginAbi_InstallLayouts         SC-011, SC-019  scratch-prefix install of both layouts + a find_package consumer
 #   PluginAbi_VersionHistory         FR-001, FR-047  every family header declares its version and a history
 #   PluginAbi_SingleCheckRoutine     SC-008  checkPluginVersion has one definer (enabled by T093)
 
-# The public (installed) header set of the STARTING tree: a hand copy of the install(FILES ...)
-# list of src/ri/CMakeLists.txt (dlo.h dsply.h implicit.h ptcapi.h ri.h shadeop.h) plus file_base.h
-# from src/file's CMakeLists. Names, not paths: stage_headers.cmake finds each in the directories
-# the headers have lived in, so the check keeps working while headers move. Phase 7 replaces this
-# variable with the real installed list.
-set(OPENRENDER_PUBLIC_HEADER_NAMES dlo.h dsply.h implicit.h ptcapi.h ri.h shadeop.h file_base.h)
-# orplugin.h and orplugin.hpp (Phase 2) join the set once they exist: the family headers include orplugin.h,
-# so an install set without it is not self-contained.
-foreach(_header orplugin.h orplugin.hpp)
-    if(EXISTS ${CMAKE_SOURCE_DIR}/src/include/${_header})
-        list(APPEND OPENRENDER_PUBLIC_HEADER_NAMES ${_header})
-    endif()
+# The public (installed) header set: names, from the real OPENRENDER_PUBLIC_HEADERS
+# (CMake/openRenderPublicHeaders.cmake), the one source of truth the install rules consume (FR-048). Names, not
+# paths: stage_headers.cmake finds each in the directory it lives in.
+set(OPENRENDER_PUBLIC_HEADER_NAMES "")
+foreach(_path ${OPENRENDER_PUBLIC_HEADERS})
+    get_filename_component(_name ${_path} NAME)
+    list(APPEND OPENRENDER_PUBLIC_HEADER_NAMES ${_name})
 endforeach()
 string(REPLACE ";" "|" _header_names "${OPENRENDER_PUBLIC_HEADER_NAMES}")
+# The include directory of each install layout, from the variables the install rules use.
+set(_layouts "selfcontained=${OPENRENDER_INCLUDEDIR_SELFCONTAINED}|fhs=${OPENRENDER_INCLUDEDIR_FHS}")
 
 # The toolchain flags the compile checks use: the project's C++ flags, and on macOS the SDK.
 set(_check_flags "${CMAKE_CXX_FLAGS}")
@@ -67,17 +68,64 @@ or_plugin_add_test(ShadeopAbi_ParserNewSymbol 60
         -DONLY_IN=RIBShadeop
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_single_definer.cmake)
 
-# FR-038 -- every installed header compiles alone and includes only installed headers.
-or_plugin_add_test(PluginAbi_InstallHeaders 120
+# FR-038, FR-026, SC-011, SC-019 -- the real public header list, staged for both layouts: every header compiles
+# alone, includes only installed headers, and the guide's example display builds against the layout's include
+# directory alone and renders (T102).
+or_plugin_add_test(PluginAbi_InstallHeaders 180
     COMMAND ${CMAKE_COMMAND}
         "-DHEADERS=${_header_names}"
+        "-DLAYOUTS=${_layouts}"
         -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
         -DSTAGE=${OR_PLUGIN_BIN}/checks/stage_install
         -DCXX=${CMAKE_CXX_COMPILER}
         "-DFLAGS=${_check_flags}"
         -DCC=${CMAKE_C_COMPILER}
         "-DC_FLAGS=${_check_c_flags}"
+        -DEXAMPLE=${CMAKE_SOURCE_DIR}/examples/display/simpledisplay.c
+        -DORENDER=$<TARGET_FILE:orender>
+        -DCOMMON=${OR_PLUGIN_COMMON_DIR}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_install_headers.cmake)
+set_tests_properties(PluginAbi_InstallHeaders PROPERTIES ENVIRONMENT "${OR_PLUGIN_RENDER_ENV}")
+
+# FR-026, FR-048 -- the install list, INSTALL_ARTIFACTS.md and the guide agree; file_base.h is in neither.
+or_plugin_add_test(PluginAbi_InstallList 60
+    COMMAND ${CMAKE_COMMAND}
+        "-DHEADERS=${_header_names}"
+        -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
+        -DARTIFACTS=${CMAKE_SOURCE_DIR}/INSTALL_ARTIFACTS.md
+        -DGUIDE=${CMAKE_SOURCE_DIR}/DEVNOTES_DETAILS/DISPLAY_PLUGIN_GUIDE.md
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_install_list.cmake)
+
+# FR-026 -- no install() rule names file_base.h.
+or_plugin_add_test(PluginAbi_NoFileBaseInstalled 60
+    COMMAND ${CMAKE_COMMAND}
+        "-DHEADERS=${_header_names}"
+        -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_no_file_base_installed.cmake)
+
+# FR-048, SC-019 -- libRIBShadeop carries OPENRENDER_COMPAT_SOVERSION (tests/ is configured before src/: the
+# target properties are read at generate time).
+or_plugin_add_test(PluginAbi_ShadeopSoversion 60
+    COMMAND ${CMAKE_COMMAND}
+        -DEXPECTED=${OPENRENDER_COMPAT_SOVERSION}
+        -DSHADEOP_SOVERSION=$<TARGET_PROPERTY:openrendershadeop,SOVERSION>
+        -DSHADEOP_SONAME=$<TARGET_SONAME_FILE_NAME:openrendershadeop>
+        -DCOMMON_SOVERSION=$<TARGET_PROPERTY:openrendercommon,SOVERSION>
+        -DCOMMON_SONAME=$<TARGET_SONAME_FILE_NAME:openrendercommon>
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_shadeop_soversion.cmake)
+
+# T102a (SC-011, SC-019) -- the scratch-prefix install of both layouts and a find_package(openRender) consumer.
+# The scratch trees and prefixes live under the build tree only; see check_install_layouts.cmake.
+or_plugin_add_test(PluginAbi_InstallLayouts 1800
+    COMMAND ${CMAKE_COMMAND}
+        -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
+        -DMAIN_BUILD=${CMAKE_BINARY_DIR}
+        -DSCRATCH=${OR_PLUGIN_BIN}/checks/install_layouts
+        "-DHEADERS=${_header_names}"
+        -DINCLUDE_SELFCONTAINED=${OPENRENDER_INCLUDEDIR_SELFCONTAINED}
+        -DINCLUDE_FHS=${OPENRENDER_INCLUDEDIR_FHS}
+        -DCMAKE_COMMAND=${CMAKE_COMMAND}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_install_layouts.cmake)
 
 # FR-001, FR-047 -- every family header declares its version and documents a history; enabled and RED until
 # T041 to T043 (dsply.h joined in T085). The header directories are those of the tree at configure time.
