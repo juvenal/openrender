@@ -24,7 +24,7 @@ Installed to: `${CMAKE_INSTALL_BINDIR}` → `/usr/local/bin/`
 
 ---
 
-## Shared Libraries (7 dylibs)
+## Shared Libraries (8 dylibs)
 
 Installed to: `${CMAKE_INSTALL_LIBDIR}` → `/usr/local/lib/`
 
@@ -38,7 +38,12 @@ All shared libraries carry `VERSION` and `SOVERSION` metadata (e.g. `libRIBRende
 | `libshader_compiler.dylib` | RSL shader compiler library | `/usr/local/lib/libshader_compiler.dylib` |
 | `libshader_runtime.dylib` | `.rslo`/`.slo` shader runtime loader | `/usr/local/lib/libshader_runtime.dylib` |
 | `libshader_shading.dylib` | Shading engine (JIT-callable `op_*`/`rsl_*` ops + builtins) | `/usr/local/lib/libshader_shading.dylib` |
+| `libRIBShadeop.dylib` | Shader DSO operands (spec 037): module scanning, the version check, the declaration parser and the per-thread state of shadeop modules; the renderer, the shading engine and the shader compiler link it | `/usr/local/lib/libRIBShadeop.dylib` |
 | `libRIBCommon.dylib` | Infrastructure every other library uses: diagnostics, the scratch arena, statistics, RI tokens, `CVariable`, math and sampling | `/usr/local/lib/libRIBCommon.dylib` |
+
+`libRIBShadeop` carries the same `VERSION`/`SOVERSION` metadata as the others (`libRIBShadeop.dylib → libRIBShadeop.1.dylib → libRIBShadeop.1.0.0.dylib`); `PluginAbi_ShadeopSoversion` checks that its SOVERSION equals `OPENRENDER_COMPAT_SOVERSION`.
+
+**The plug-in interface versions are independent of `OPENRENDER_COMPAT_SOVERSION`.** Each plug-in family (display, shader DSO operands, procedural DSO, implicit surface) carries its own `MAJOR.MINOR.PATCH` in its header (`dsply.h` is 2.0.0). Adding `libRIBShadeop` and moving the display interface to 2.0.0 changed neither the SOVERSION of any library nor `OPENRENDER_COMPAT_SOVERSION`: a plug-in's MAJOR changes only when that family's binary interface breaks, and a library's SOVERSION only when the library's own ABI does.
 
 `libRIBCommon` is the only image that defines this process-wide state (one diagnostic sink, one arena, one RI token table per process). Since spec 023 it is a shared library; on macOS `libRIBRender`, `libRIBVector` and `libRIBOut` re-export it, so programs linked against an earlier install, which bound `RI_*` tokens and `error()` to those libraries, keep running unchanged. On Linux each RI library lists it in `DT_NEEDED`.
 
@@ -73,7 +78,7 @@ general shared libraries.
 
 ---
 
-## Static Libraries (6 archives)
+## Static Libraries (7 archives)
 
 Installed to: `${CMAKE_INSTALL_LIBDIR}` → `/usr/local/lib/`
 
@@ -90,6 +95,7 @@ Shared internal code (diagnostics, the arena, statistics, RI tokens, `CVariable`
 | `libRIBOut.a` | RIB text output static archive | `/usr/local/lib/libRIBOut.a` |
 | `libshader_compiler.a` | Shader compiler static archive | `/usr/local/lib/libshader_compiler.a` |
 | `libshader_runtime.a` | Shader runtime static archive | `/usr/local/lib/libshader_runtime.a` |
+| `libRIBShadeop.a` | Shader DSO operands static archive (only for fully static programs; `libRIBRender.a` uses the shared `libRIBShadeop`) | `/usr/local/lib/libRIBShadeop.a` |
 | `libRIBCommon.a` | Infrastructure the archives above depend on (linked once; `libRIBRender.a` uses the shared `libRIBCommon` instead) | `/usr/local/lib/libRIBCommon.a` |
 
 ### Using openRender from CMake
@@ -106,8 +112,8 @@ target_link_libraries(app PRIVATE openRender::RIBRender_static)  # pulls the sha
 
 | Component | Targets | Needs at `find_package()` time |
 |-----------|---------|--------------------------------|
-| `Shared` (always) | `openRender::RIBRender`, `RIBVector`, `RIBOut`, `shader_shading`, `shader_runtime`, `shader_compiler`, `RIBCommon` | nothing; the shared libraries are self-contained |
-| `Static` (optional) | `openRender::RIBRender_static`, `RIBVector_static`, `RIBOut_static`, `shader_runtime_static`, `shader_compiler_static`, `RIBCommon_static` | TIFF, PNG, Threads (+ OpenEXR/Imath when built with OpenEXR), and the shared targets: `RIBRender_static` links `shader_shading` and the shared `RIBCommon` |
+| `Shared` (always) | `openRender::RIBRender`, `RIBVector`, `RIBOut`, `shader_shading`, `shader_runtime`, `shader_compiler`, `RIBShadeop`, `RIBCommon` | nothing; the shared libraries are self-contained |
+| `Static` (optional) | `openRender::RIBRender_static`, `RIBVector_static`, `RIBOut_static`, `shader_runtime_static`, `shader_compiler_static`, `RIBShadeop_static`, `RIBCommon_static` | TIFF, PNG, Threads (+ OpenEXR/Imath when built with OpenEXR), and the shared targets: `RIBRender_static` links `shader_shading` and the shared `RIBCommon` |
 
 If the static component's dependencies aren't found, plain `find_package(openRender)` still succeeds with only the shared targets. `COMPONENTS Static` as a requirement fails and names the missing dependency. Point CMake at the install with `-DCMAKE_PREFIX_PATH=<prefix>`.
 
@@ -145,18 +151,25 @@ Both destinations can be overridden at configure time with `-DOPENRENDER_PYTHOND
 
 ## Header Files
 
-Installed to: `${CMAKE_INSTALL_INCLUDEDIR}` → `/usr/local/include/`
+Installed to the include directory of the install layout (`OPENRENDER_INCLUDE_INSTALL_DIR`):
 
-From `src/ri/CMakeLists.txt`:
-- `dlo.h` - Dynamic loading operations
-- `dsply.h` - Display interface
-- `implicit.h` - Implicit surfaces
+| Layout | Include directory | With the default prefix |
+|--------|-------------------|-------------------------|
+| self-contained (`INSTALL_SELFCONTAINED=ON`, default) | `${CMAKE_INSTALL_INCLUDEDIR}` under the prefix, i.e. `<ORENDERHOME>/include` | `/usr/local/include/` |
+| FHS (`INSTALL_SELFCONTAINED=OFF`) | `${CMAKE_INSTALL_INCLUDEDIR}/openRender` | `/usr/local/include/openRender/` |
+
+The installed set is exactly `OPENRENDER_PUBLIC_HEADERS` (`CMake/openRenderPublicHeaders.cmake`), installed by `src/ri/CMakeLists.txt`; nothing else is installed there (`PluginAbi_InstallList`):
+- `dlo.h` - Procedural DSO interface
+- `dsply.h` - Display driver interface (version 2.0.0)
+- `implicit.h` - Implicit surface plug-in interface
+- `orplugin.h` - Common plug-in ABI header (status codes, version macros, function-table header); included by `dsply.h`, `shadeop.h`, `dlo.h` and `implicit.h`
+- `orplugin.hpp` - C++20 convenience over `orplugin.h` (`orplugin::makeTable`); optional, a plug-in can use `orplugin.h` alone
 - `ptcapi.h` - Point cloud API
 - `ri.h` - RenderMan Interface main header
-- `shadeop.h` - Shader operations
+- `rslo.h` - `.rslo`/`.slo` shader loader API (`libshader_runtime`)
+- `shadeop.h` - Shader DSO operand interface
 
-From `src/file/CMakeLists.txt`:
-- `file_base.h` - Base class for file-format display plugins (`CFileOutputBase`)
+Headers are included by file name alone (`#include "dsply.h"`). The CMake package (`find_package(openRender)`) puts the layout's include directory on every `openRender::` target and sets `openRender_INCLUDE_DIR`, so a consumer needs no extra flag. `examples/display/simpledisplay.c` is a display driver that builds against this directory alone.
 
 ---
 
@@ -236,18 +249,23 @@ Installed to: `${OPENRENDER_DOCDIR}` → `/usr/local/share/doc/`
 │   ├── libRIBOut.dylib      # shared (versioned: libRIBOut.1.dylib)
 │   ├── libRIBOut.a          # static
 │   ├── libRIBCommon.dylib   # shared infrastructure (versioned: libRIBCommon.1.dylib)
+│   ├── libRIBShadeop.dylib  # shared shader DSO operands (versioned: libRIBShadeop.1.dylib)
+│   ├── libRIBShadeop.a      # static shader DSO operands
 │   ├── libRIBCommon.a       # static infrastructure (static archives depend on it)
 │   ├── cmake/openRender/    # CMake package (find_package(openRender))
 │   ├── libri.{dylib,a}      # compat aliases -> libRIBRender
 │   ├── libribVector.{dylib,a}  # compat aliases (case-sensitive volumes only)
 │   ├── libribOut.{dylib,a}  # compat aliases (case-sensitive volumes only)
 │   └── libshader_{compiler,runtime,shading}.*
-├── include/
+├── include/             # self-contained layout; the FHS layout uses include/openRender/ instead
 │   ├── dlo.h
 │   ├── dsply.h
 │   ├── implicit.h
+│   ├── orplugin.h
+│   ├── orplugin.hpp
 │   ├── ptcapi.h
 │   ├── ri.h
+│   ├── rslo.h
 │   └── shadeop.h
 ├── displays/            # Display driver modules (.dsply; .dll on Windows)
 │   ├── framebuffer.dsply
@@ -377,9 +395,9 @@ When `INSTALL_SELFCONTAINED=ON` (default, self-contained):
 | Shared Libraries | 2 (installed) |
 | Static Libraries | 2 (installed) + 4 (build-only) |
 | Display Modules | 4 |
-| Header Files | 6 |
+| Header Files | 9 |
 | Language Binding Files | 2 |
 | Shader Files | 54 |
 | Man Pages | 6 |
 | Documentation Files | 8 |
-| **Total Installed Files** | **91** |
+| **Total Installed Files** | **94** |

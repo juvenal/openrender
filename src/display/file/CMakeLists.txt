@@ -19,5 +19,3 @@ endif(WIN32)
 set_target_properties(file PROPERTIES PREFIX "" SUFFIX ".dsply")
 install(TARGETS file LIBRARY DESTINATION "${OPENRENDER_DISPLAYSDIR}")
 
-# Install file_base.h alongside dsply.h so third-party plugin authors can use it.
-install(FILES file_base.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")

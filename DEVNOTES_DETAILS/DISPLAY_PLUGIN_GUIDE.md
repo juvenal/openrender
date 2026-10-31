@@ -29,7 +29,7 @@ loadable modules, not general shared libraries. Do **not** use `.so` or
 Every plugin must export exactly these four C symbols:
 
 ```c
-#include "ri/dsply.h"
+#include "dsply.h"
 
 // Called once at render begin. Return an opaque context pointer, or NULL on error.
 void *displayStart(const char *name,    // output filename / display name
@@ -65,9 +65,10 @@ Returns `NULL` if the parameter was not specified.
 
 ## Using `CFileOutputBase`
 
-For file-format plugins, `file_base.h` (installed to `<prefix>/include/`) provides
-`CFileOutputBase` — a base class that handles everything except the format-specific
-write step:
+The in-tree file-format plugins share `CFileOutputBase` (`src/display/file/`), a base
+class that handles everything except the format-specific write step. It is an in-tree
+helper and is **not installed**: a plug-in built outside the tree writes against
+`dsply.h` alone (see `examples/display/simpledisplay.c`). The base class does:
 
 - Scanline accumulation: collects out-of-order bucket tiles and delivers complete
   scanlines in order to the subclass
@@ -80,7 +81,7 @@ write step:
 ### Template method pattern
 
 ```cpp
-#include "file_base.h"
+// the in-tree base-class header of src/display/file/ (not installed)
 
 class CMyFormatFramebuffer : public CFileOutputBase {
 public:
@@ -188,8 +189,8 @@ install(TARGETS myfmt LIBRARY DESTINATION "${OPENRENDER_DISPLAYSDIR}")
 ```
 
 The `src/` directory is already in the include search path for all subdirectories
-(set by `src/CMakeLists.txt`), so `#include "file/file_base.h"` will resolve
-without any additional `target_include_directories` call.
+(set by `src/CMakeLists.txt`), so the base-class header of `src/display/file/` resolves
+for an in-tree driver without any additional `target_include_directories` call.
 
 Enable it conditionally:
 
@@ -204,7 +205,7 @@ endif()
 
 ## Framebuffer Plugins
 
-The framebuffer plugin (`src/framebuffer/`) follows the same `dsply.h` interface
+The framebuffer plugin (`src/display/framebuffer/`) follows the same `dsply.h` interface
 but uses a different internal design: instead of writing scanlines to disk, it
 forwards pixel tiles over a Unix domain socket to a persistent helper process
 (`orender-fb-macos` or `orender-fb-linux`). A new window is opened for each

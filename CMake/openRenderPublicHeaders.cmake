@@ -5,8 +5,8 @@
 # check compares the installed names with it, and the guides name no header that is not in it.
 # A header that moves inside the tree updates its entry here and nowhere else.
 #
-# file_base.h is not in the list: it is an in-tree helper of the in-tree file drivers. (Until Phase 7
-# removes it, src/display/file/CMakeLists.txt still installs it.)
+# file_base.h is not in the list and no install rule names it: it is an in-tree helper of the in-tree file
+# drivers. rslo.h (the .rslo/.slo loader API of libshader_runtime) is in the list: it is installed and documented.
 set(OPENRENDER_PUBLIC_HEADERS
     ${CMAKE_CURRENT_LIST_DIR}/../src/ri/parse/ri.h
     ${CMAKE_CURRENT_LIST_DIR}/../src/ri/texture/ptcapi.h
@@ -15,7 +15,8 @@ set(OPENRENDER_PUBLIC_HEADERS
     ${CMAKE_CURRENT_LIST_DIR}/../src/procedures/dlo.h
     ${CMAKE_CURRENT_LIST_DIR}/../src/procedures/implicit.h
     ${CMAKE_CURRENT_LIST_DIR}/../src/include/orplugin.h
-    ${CMAKE_CURRENT_LIST_DIR}/../src/include/orplugin.hpp)
+    ${CMAKE_CURRENT_LIST_DIR}/../src/include/orplugin.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/libshader/runtime/rslo.h)
 
 # orplugin.h and orplugin.hpp live in src/include/, which the root CMakeLists.txt puts on the include path of
 # every target (the tree-wide include path replaces the build-tree copy an earlier revision made), so the family

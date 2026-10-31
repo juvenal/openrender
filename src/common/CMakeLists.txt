@@ -83,9 +83,11 @@ endif()
 install(TARGETS openrendercommon EXPORT openRenderTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    INCLUDES DESTINATION "${OPENRENDER_INCLUDE_INSTALL_DIR}")
 # The static RI and libshader archives name this archive as an INTERFACE link
 # dependency instead of embedding their own copy, so a fully static program
 # linking several of them gets exactly one copy and no duplicate symbols.
 install(TARGETS openrendercommon_static EXPORT openRenderStaticTargets
-    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    INCLUDES DESTINATION "${OPENRENDER_INCLUDE_INSTALL_DIR}")

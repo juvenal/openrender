@@ -38,6 +38,11 @@
 
 @PACKAGE_INIT@
 
+# The directory the public headers (dsply.h, orplugin.h, ri.h, ...) were installed into: <ORENDERHOME>/include for
+# the self-contained layout, include/openRender for the FHS layout. The imported targets carry it as their
+# interface include directory; a plug-in author who builds without a target uses this variable.
+set_and_check(openRender_INCLUDE_DIR "@PACKAGE_OPENRENDER_INCLUDE_INSTALL_DIR@")
+
 include("${CMAKE_CURRENT_LIST_DIR}/openRenderTargets.cmake")
 set(openRender_Shared_FOUND TRUE)
 

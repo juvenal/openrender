@@ -676,7 +676,8 @@ endif()
 configure_package_config_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/CMake/openRenderConfig.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/openRenderConfig.cmake"
-    INSTALL_DESTINATION "${OPENRENDER_CMAKEDIR}")
+    INSTALL_DESTINATION "${OPENRENDER_CMAKEDIR}"
+    PATH_VARS OPENRENDER_INCLUDE_INSTALL_DIR)
 write_basic_package_version_file(
     "${CMAKE_CURRENT_BINARY_DIR}/openRenderConfigVersion.cmake"
     VERSION "${PROJECT_VERSION}"
@@ -684,14 +685,17 @@ write_basic_package_version_file(
 
 install(EXPORT openRenderTargets
     NAMESPACE openRender::
-    DESTINATION "${OPENRENDER_CMAKEDIR}")
+    DESTINATION "${OPENRENDER_CMAKEDIR}"
+    COMPONENT Development)
 install(EXPORT openRenderStaticTargets
     NAMESPACE openRender::
-    DESTINATION "${OPENRENDER_CMAKEDIR}")
+    DESTINATION "${OPENRENDER_CMAKEDIR}"
+    COMPONENT Development)
 install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/openRenderConfig.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/openRenderConfigVersion.cmake"
-    DESTINATION "${OPENRENDER_CMAKEDIR}")
+    DESTINATION "${OPENRENDER_CMAKEDIR}"
+    COMPONENT Development)
 
 # ###########################################################################
 # ########## Self-contained dependency bundling

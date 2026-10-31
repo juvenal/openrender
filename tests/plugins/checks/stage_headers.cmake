@@ -13,7 +13,7 @@ function(or_stage_headers source_dir stage_dir names)
     endif()
     set(_candidates
         src/ri/geometry src/display src/ri/texture src/ri/parse src/ri/render src/display/file
-        src/shadeop src/procedures src/include)
+        src/shadeop src/procedures src/include src/libshader/runtime)
     file(REMOVE_RECURSE "${stage_dir}")
     file(MAKE_DIRECTORY "${stage_dir}/${_include_dir}")
     set(_staged "")

@@ -12,8 +12,9 @@
 #   3. checks that every path the install manifest lists is inside the scratch prefix; that the layout's
 #      include directory holds exactly the public header list (no file_base.h, nothing else); that for the FHS
 #      layout nothing but the openRender directory lands directly in <prefix>/include;
-#   4. builds a consumer that uses find_package(openRender) and #include "dsply.h" / "orplugin.h" with no other
-#      include flag. The per-configuration targets files (which name the installed libraries) are removed
+#   4. configures a consumer that uses find_package(openRender), checks that openRender_INCLUDE_DIR and the
+#      INTERFACE_INCLUDE_DIRECTORIES of every exported shared target are the layout's include directory, and
+#      compiles #include "dsply.h" / "orplugin.h" with that directory and no other include flag. The per-configuration targets files (which name the installed libraries) are removed
 #      first: the consumer is an OBJECT library, it needs the include directories of the imported targets and
 #      no library file, and the Development component does not install the libraries.
 # The include directory of each layout comes from the variables the install rules use (INCLUDE_SELFCONTAINED
@@ -138,7 +139,7 @@ foreach(_layout selfcontained fhs)
     set(_consumer "${_root}/consumer")
     execute_process(
         COMMAND "${CMAKE_COMMAND}" -S "${CMAKE_CURRENT_LIST_DIR}/install_consumer" -B "${_consumer}" -G "${_generator}"
-                "-DCMAKE_PREFIX_PATH=${_prefix}" "-DCMAKE_C_COMPILER=${_cc}"
+                "-DCMAKE_PREFIX_PATH=${_prefix}" "-DCMAKE_C_COMPILER=${_cc}" "-DEXPECT_INCLUDE_DIR=${_prefix}/${_include_dir}"
         RESULT_VARIABLE _rc OUTPUT_VARIABLE _out ERROR_VARIABLE _out TIMEOUT 300)
     if(NOT _rc EQUAL 0)
         list(APPEND _failures "${_layout}: find_package(openRender) failed in the consumer: ${_out}")

@@ -463,10 +463,10 @@ install(TARGETS ribVector EXPORT openRenderTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+    INCLUDES DESTINATION "${OPENRENDER_INCLUDE_INSTALL_DIR}")
 install(TARGETS ribVector_static EXPORT openRenderStaticTargets
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+    INCLUDES DESTINATION "${OPENRENDER_INCLUDE_INSTALL_DIR}")
 
 # ribOut: RIB-text-output extraction (see the domain-split plan) -- the third
 # and final CRiInterface implementation, needing even less than ribVector.
@@ -584,23 +584,25 @@ install(TARGETS ribOut EXPORT openRenderTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+    INCLUDES DESTINATION "${OPENRENDER_INCLUDE_INSTALL_DIR}")
 install(TARGETS ribOut_static EXPORT openRenderStaticTargets
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+    INCLUDES DESTINATION "${OPENRENDER_INCLUDE_INSTALL_DIR}")
 
 install(TARGETS ribRender EXPORT openRenderTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+    INCLUDES DESTINATION "${OPENRENDER_INCLUDE_INSTALL_DIR}")
 install(TARGETS ribRender_static EXPORT openRenderStaticTargets
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+    INCLUDES DESTINATION "${OPENRENDER_INCLUDE_INSTALL_DIR}")
 # The installed header list is OPENRENDER_PUBLIC_HEADERS (CMake/openRenderPublicHeaders.cmake), the one
-# source of truth (spec 037, FR-048). file_base.h still installs from src/display/file/CMakeLists.txt.
+# source of truth (spec 037, FR-048); no other install rule puts a header into the include directory. The
+# directory is OPENRENDER_INCLUDE_INSTALL_DIR: <ORENDERHOME>/include (self-contained) or include/openRender (FHS).
 install(FILES ${OPENRENDER_PUBLIC_HEADERS}
-    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+    DESTINATION "${OPENRENDER_INCLUDE_INSTALL_DIR}"
+    COMPONENT Development)
 
 # Compatibility aliases: a symlink next to each real libRIB* artifact (both in
 # the build tree and once installed), for anything not yet updated to the new
