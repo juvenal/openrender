@@ -1,5 +1,5 @@
 ##RenderMan RIB-Structure 1.0
-# Spec 026 trace replay scene for shadow() (tests/shading_contract/replay). Characterization input: the
+# Spec 026 trace replay scene for shadow(), called from a light shader (L is defined there) (tests/shading_contract/replay). Characterization input: the
 # requests this scene makes are recorded on the starting tree, and a later phase must make the same
 # ones. Four pixels square, one thread, a fixed sampler and seed, no motion, no display statement
 # (the program installs a display that discards the pixels) and no shader format (the program sets it
@@ -32,8 +32,9 @@ WorldBegin
     Translate 1.4 0.2 -1.2
     Sphere 0.7 -0.7 0.7 360
   AttributeEnd
+  LightSource "replay_shadow" 1
   AttributeBegin
-    Surface "replay_shadow"
+    Surface "matte"
     Sphere 1 -1 1 360
   AttributeEnd
 WorldEnd

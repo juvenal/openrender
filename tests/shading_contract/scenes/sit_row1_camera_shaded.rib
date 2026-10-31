@@ -1,0 +1,19 @@
+##RenderMan RIB-Structure 1.0
+# Spec 026 Situations scene (tests/shading_contract): row 1: a REYES grid seen by the camera, camerahitmode "shader" (the default)
+version 3.03
+Hider "hidden"
+Option "shaderformat" "default" ["rslo"]
+Option "sampling" "sampler" ["sobol"]
+Option "sampling" "seed" [1]
+Option "limits" "numthreads" [1]
+PixelSamples 1 1
+Format 8 8 1
+Projection "perspective" "fov" 30
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  AttributeBegin
+    Surface "sit_marker"
+    Sphere 1 -1 1 360
+  AttributeEnd
+WorldEnd

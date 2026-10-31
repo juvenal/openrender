@@ -373,9 +373,9 @@ starting `src/` can no longer be built with 026's tests, so the baseline cannot 
   hook or the replay test code is fixed here and the macOS build re-run; one in code the maintainer already approved is a stop condition.
 - [X] T037 [US7] [RUN] Linux 3: `ctest --test-dir build -L architecture` on the remote, saving the full report as `$RR/specs/026-shading-contract-v2/tools/archcheck-base-linux.txt`. Expect
   the same 8 / 8 / 33 allowed lines and the same five deletion keys present (no platform tag).
-- [ ] T038 [US6] [RUN] Linux 4, **before the suite**: `ctest -L shading_contract-record` twice on the remote (the two `replay-fresh.txt` byte-identical), copy one to
+- [X] T038 [US6] [RUN] Linux 4, **before the suite**: `ctest -L shading_contract-record` twice on the remote (the two `replay-fresh.txt` byte-identical), copy one to
   `$RR/tests/shading_contract/replay/linux.txt`, then `-L '^shading_contract$'` (the 8 replay tests green). Without that file the replay tests fail with "no replay file".
-  **Not complete (stop condition, 2026-10-31):** the two Linux recordings are NOT byte-identical; the `.slo` sections of `transmission` and `shadow` differ run to run (validation.md D1). No `linux.txt` was kept; the evidence is in `tools/replay-nondeterminism-linux-run{1,2}.txt`. Awaiting the maintainer.
+  **First attempt (2026-10-31): the two Linux recordings were NOT byte-identical; the `.slo` sections of `transmission` and `shadow` differ run to run (validation.md D1). No `linux.txt` was kept; the evidence is in `tools/replay-nondeterminism-linux-run{1,2}.txt`. Resolved by T042a to T042g: the re-recording on Linux after the D1 fix is byte-identical and `linux.txt` exists (proposed for approval at T043).**
 - [X] T039 [US2] [RUN] Linux 5: stamp, run `ctest -LE determinism-sweep -j2 --output-on-failure` on the remote, record `baseline-images-linux.sha256`, `baseline-diffs-linux.txt` and
   `base-LastTest-linux.log`; run it a second time for `baseline-image-noise-linux.txt`. Record every Linux failure of the starting tree (the earlier specs found 7:
   #44, #45, #46, #57); they are the Linux baseline's failing set, not this spec's (CP-b on Linux allows exactly that set). **Note in validation.md §3 that this baseline is taken with the Phase 1 hook in the tree** (the hook is null in production and the macOS manifest check shows it adds no output).
@@ -384,24 +384,25 @@ starting `src/` can no longer be built with 026's tests, so the baseline cannot 
 - [X] T041 [US6] [RUN] Linux 6: `nm -D --undefined-only build/src/libshader/shading/libshader_shading.so | c++filt > tools/libshader-imports-base-linux.txt` and
   `readelf -d build/src/libshader/shading/libshader_shading.so > tools/libshader-dynamic-base-linux.txt` (on the remote). Record whether `FLAGS` has `BIND_NOW`: it decides
   whether the Phase 2 load stub must define the undefined functions as well as the vtables (the table may differ by platform; recorded, not tagged).
-- [ ] T042 Linux 7: `$T/linux_sync.sh pull`, then `ls $T/*-linux* tests/shading_contract/replay/linux.txt`, and `$T/linux_sync.sh verify`. All of: `archcheck-base-linux.txt`,
+- [X] T042 Linux 7: `$T/linux_sync.sh pull`, then `ls $T/*-linux* tests/shading_contract/replay/linux.txt`, and `$T/linux_sync.sh verify`. All of: `archcheck-base-linux.txt`,
   `baseline-images-linux.sha256`, `baseline-diffs-linux.txt`, `baseline-image-noise-linux.txt`, `libshader-imports-base-linux.txt`,
   `libshader-dynamic-base-linux.txt`, `base-LastTest-linux.log`, `baseline-sweep-images-linux.sha256`, `baseline-sweep-noise-linux.txt`, `base-sweep-LastTest-linux.log`, `replay/linux.txt` must exist locally. This is the gate: without them Phase 2 does not start.
-  **Not complete:** all the other Linux files were pulled and verified (10 files, 0 differences); `replay/linux.txt` does not exist (T038).
+  `replay/linux.txt` now exists (T042e); the final `pull` returned 11 files, 0 differences.
 - [X] T042a [US6] **D1 (validation.md §4.4): find the cause** of the Linux-only non-determinism of the `.slo` sections of `transmission` and `shadow` in the replay (decided 2026-10-31: fixed inside 026, no partial `linux.txt`). No debugger. Temporary logging is allowed (an `fprintf` in `jitTraceBatch` and the JIT shadow path behind an environment variable, never staged, removed afterwards); read the strides the emitter passes (`llvmEmitter.cpp` `visibility`/`transmission`/`trace`, `rslOps.cpp` `op_*_v3`) against `shading.cpp`'s `jitTraceBatch` and `jitEnvironment`. Record the evidence (which field is garbage, on which path, and why Linux sees it and macOS does not) in validation.md §4.4 D1.
   **T042a done (2026-10-31):** cause found without a debugger: `N` is unwritten for `transmission()`, `visibility()` and `trace()` because their `DEFSHORTFUNC` flags lack `PARAMETER_N` (validation.md §4.4 D1, part 1, proved with `MallocPreScribble`); part 2: the `shadow` scene reads `L` in a surface shader (scene defect, unproved).
-  **T042b/c/d: STOPPED.** The trial fix changes no suite image but changes bytes of the approved `macos.txt` (`transmission`, `visibility`), and the `shadow` scene would have to change too. Awaiting the maintainer; nothing of the fix is staged.
-- [ ] T042b [US6] **Scope check.** If the cause is outside 026 (not in the trace-request setup), STOP and report before fixing anything.
-- [ ] T042c [US6] **Fix** with the smallest change the evidence shows (pass and honour the real strides, or initialize the field). Stage it.
-- [ ] T042d [US2] [RUN] **No output change on macOS**: build, the suite (CP-b) with CP-d at 0 differing and 0 missing and every `MaxBlockAvgDiff` equal to the baseline, and `ShadingContract_TraceReplay_*` green against the approved `macos.txt` **byte for byte**. If the fix changes any `.slo` image or any byte of `macos.txt`, STOP and report before going further (a changed reference needs approval).
-- [ ] T042e [US6] [RUN] **Linux record twice** (push, verify, build, `ctest -L shading_contract-record` twice): the two `replay-fresh.txt` must be byte-identical and have the same request and ray counts as macOS, for all 16 sections. Copy one to `tests/shading_contract/replay/linux.txt` (proposed for approval at T043; not approved before).
-- [ ] T042f [US6] [RUN] **Linux with the replay included**: `ctest -L '^shading_contract$'` (the 8 `TraceReplay_*` green) and the Linux suite `-LE determinism-sweep -j2` with the `TraceReplay_*` checks included (only the recorded Linux failing set may fail), CP-c, and `linux_sync.sh pull` + `verify`.
-- [ ] T042g Update validation.md §4.4 D1 with the cause, the fix and the evidence (the before/after of the two recordings), and §3.
+  **T042b/c/d (first pass): STOPPED, then option A approved:** The trial fix changes no suite image but changes bytes of the approved `macos.txt` (`transmission`, `visibility`), and the `shadow` scene would have to change too. Option A was approved and done 2026-10-31 (validation.md §4.4 D1: `PARAMETER_N` on the four builtins, `shadow` scene moved into a light shader, `macos.txt` re-recorded in three sections, `linux.txt` recorded).
+- [X] T042b [US6] **Scope check.** If the cause is outside 026 (not in the trace-request setup), STOP and report before fixing anything.
+- [X] T042c [US6] **Fix** with the smallest change the evidence shows (pass and honour the real strides, or initialize the field). Stage it.
+- [X] T042d [US2] [RUN] **No output change on macOS**: build, the suite (CP-b) with CP-d at 0 differing and 0 missing and every `MaxBlockAvgDiff` equal to the baseline, and `ShadingContract_TraceReplay_*` green against the approved `macos.txt` **byte for byte**. If the fix changes any `.slo` image or any byte of `macos.txt`, STOP and report before going further (a changed reference needs approval).
+- [X] T042e [US6] [RUN] **Linux record twice** (push, verify, build, `ctest -L shading_contract-record` twice): the two `replay-fresh.txt` must be byte-identical and have the same request and ray counts as macOS, for all 16 sections. Copy one to `tests/shading_contract/replay/linux.txt` (proposed for approval at T043; not approved before).
+- [X] T042f [US6] [RUN] **Linux with the replay included**: `ctest -L '^shading_contract$'` (the 8 `TraceReplay_*` green) and the Linux suite `-LE determinism-sweep -j2` with the `TraceReplay_*` checks included (only the recorded Linux failing set may fail), CP-c, and `linux_sync.sh pull` + `verify`.
+- [X] T042g Update validation.md §4.4 D1 with the cause, the fix and the evidence (the before/after of the two recordings), and §3.
 
-- [ ] T043 [US2] **Checkpoint 1 (PAUSE 1, LINUX GATE)**: stage `src/` (the hook), `tests/shading_contract/`, `tests/CMakeLists.txt`, `tools/**`, `validation.md`. Summarize: the
+- [X] T043 [US2] **Checkpoint 1 (PAUSE 1, LINUX GATE)**: stage `src/` (the hook), `tests/shading_contract/`, `tests/CMakeLists.txt`, `tools/**`, `validation.md`. Summarize: the
   macOS and Linux baselines (test counts, failing sets, noise lists), the hook's 12 call sites, the replay's per-family request counts on both platforms, the eight mutation results,
   the 6 imports, and the CP-c result. **Ask the maintainer to approve the two recorded replay files (`replay/macos.txt`, `replay/linux.txt`) as new references**; once approved they are
   never re-recorded. **Also name for approval the other new references of this phase**: the two noise lists (`baseline-image-noise-macos.txt` from `T005`, `baseline-image-noise-linux.txt` from `T039`) and the two sweep manifests with their noise lists (`T007`, `T040`). Wait for the review.
+  **Approved 2026-10-31 (maintainer, via the coordinator), all recommendations:** the two noise lists, both sweep manifests with their noise lists, the suite manifests and diffs files for both platforms, `replay/macos.txt`, the three sections of it re-recorded after the D1 fix (`transmission`, `visibility`, `shadow`), `replay/linux.txt`, and the rewritten `replay_shadow.sl` / `replay_shadow.rib`; the `backends()` edit in `trace_replay.h` was ratified earlier. D4 is filed as GitHub #123 (P0, Bug Tracker). From here the replay files are never re-recorded.
 
 
 ---
@@ -413,7 +414,7 @@ The one TEST-APPROVAL for the bulk of the test code is at the end of this phase;
 
 ### Tests block (everything in this phase is a test; no `src/` file changes)
 
-- [ ] T044 [US1] (**Phase 2 note, 2026-10-31: `Situations` must cover the non-default hit modes itself, T009 found none in the visual suite**) Extend `tests/shading_contract/CMakeLists.txt` under `if(OPENRENDER_SHADING_CONTRACT_TESTS)`: the executables `test_shading_contract_standalone` (links
+- [X] T044 [US1] (**Phase 2 note, 2026-10-31: `Situations` must cover the non-default hit modes itself, T009 found none in the visual suite**) Extend `tests/shading_contract/CMakeLists.txt` under `if(OPENRENDER_SHADING_CONTRACT_TESTS)`: the executables `test_shading_contract_standalone` (links
   `libshader_shading`, `openrendercommon`, `state_only_sources` (spec 025's State-only library from `tests/unit/state/CMakeLists.txt`), `load_stub.cpp` and the doubles; **no `ribRender`**,
   nothing from `src/ri/{render,hiders,geometry}`) and `test_shading_contract_rendered` (adds `ribRender`). Both `EXCLUDE_FROM_ALL`. Each executable takes the case name as
   `argv[1]`; one ctest entry per case, every one `DISABLED TRUE`, label `shading_contract`, `TIMEOUT`, the same environment as `tests/shading_parity`. The `*Jit` entries and the `.slo`
@@ -424,7 +425,7 @@ The one TEST-APPROVAL for the bulk of the test code is at the end of this phase;
   until Phase 9), because it reads report fields that only Phase 9 adds and would otherwise stop the whole rendered program from compiling in Phases 3 to 8. A case that needs any other API a later phase adds gets its own
   executable the same way; test code must not name `libshader::traceRay`/`TraceKind` (Phase 8), `objectAttributes()` (Phase 7) or `lightParameter()` (Phase 6). `NoServices` is four tests because the plan's single
   `NoServices` cannot be green in Phase 3: no service is routed yet (QB, decided 2026-10-31).
-- [ ] T045 [P] [US1] Write `tests/shading_contract/contract_services.h`: `CContractServices`, a **standalone** `CRendererServices` v2 with no inner implementation (FR-004), recording every
+- [X] T045 [P] [US1] Write `tests/shading_contract/contract_services.h`: `CContractServices`, a **standalone** `CRendererServices` v2 with no inner implementation (FR-004), recording every
   call in order (method, request fields, answer). Answers per contracts/test-doubles.md: `maxGridSize` 64; the 29 built-in globals built with `parseVariable` from the declarations
   `initDeclarations()` registers (copied as text; `DoubleGlobalsMatchRenderer` keeps the copy honest); timing, raster, clip, bounds, `additionalParameters`, `hasIlluminationHook`,
   `shootStep` from fields the test sets; `getAttribute` from a table `(scope, objectKey, name) -> (type, count, values)`, anything else `NotFound`, with a per-test switch for `Unavailable`;
@@ -433,70 +434,70 @@ The one TEST-APPROVAL for the bulk of the test code is at the end of this phase;
   `textureSystem`, the lookups, `getDSO` and `getGlobalID` return `nullptr` or 0, recorded. Carries `static_assert(openrender::shading::kRendererServicesVersion.major == 2)`.
   **Temporary block**: the 28 methods that stay pure virtual until Phases 4 and 5 and `setOffendingObject(CObject *)` until Phase 7 are implemented in one delimited block marked
   `TEMPORARY (spec 026): deleted in phases 4, 5, 7`, each recording its call; without it the double is abstract in Phase 3 and `StandaloneLink` cannot go green (QD, decided).
-- [ ] T046 [P] [US6] Write `tests/shading_contract/recording_tracer.h`: `CRecordingTracer` (appends every request to a vector: kind, label, bundle depth, path depth, every ray's inputs; optional
+- [X] T046 [P] [US6] Write `tests/shading_contract/recording_tracer.h`: `CRecordingTracer` (appends every request to a vector: kind, label, bundle depth, path depth, every ray's inputs; optional
   inner tracer; for `traceRay` it may answer canned hits, `object` = a sentinel pointer and `t`; in the standalone program it never calls the bundle protocol) and `CCannedTracer` (rendered program
   only; drives the real bundle protocol with canned answers: `postTraceAction()`, then `postShade(n, rays, varying)` with canned `Ci`/`Oi` written into
   `context.currentShadingState->varying` for "hit" rays or `postShade(n, rays)` for "miss" rays, then `post()`, repeating while `bundle->numRays > 0`, as `trace.cpp` does). Carries the version `static_assert`.
-- [ ] T047 [P] [US1] Write `tests/shading_contract/load_stub.cpp`: `stubTrap(const char *what)` (message to stderr, then `std::abort()`, so a test that reaches a stub fails and never hangs, FR-024) and
+- [X] T047 [P] [US1] Write `tests/shading_contract/load_stub.cpp`: `stubTrap(const char *what)` (message to stderr, then `std::abort()`, so a test that reaches a stub fails and never hangs, FR-024) and
   the definitions that let `libshader_shading` load without `libRIBRender`: `CTraceBundle::postTraceAction()` (key function), `postShade(int, CRay **, float **)`, `postShade(int, CRay **)`, `post()`;
   the same four for `CTransmissionBundle`; `CGatherBundle::CGatherBundle()`, `~CGatherBundle()` and its four virtuals; `CPhotonMap::lookup(float *, const float *, int)`. Includes `ri/hiders/bundles.h` and
   `ri/hiders/photonMap.h` (test directory, allowed); compiled into the standalone executable only. **Plus two TEMPORARY traps, `CShadingContext::trace(CRay *)` and `CShadingContext::traceEx(CRayBundle *)`**,
   because the starting tree still imports them (6 imports, not the 4 of contracts/test-doubles.md); Phase 8 deletes them (QC, decided). Compare the table with
   `tools/libshader-imports-base-{macos,linux}.txt` and `libshader-dynamic-base-linux.txt` from Phase 1.
-- [ ] T048 [P] [US1] Write `tests/shading_contract/contract_harness.h`: a concrete `CShadingContext` subclass (`renderingLoop() override {}`, like `CProbeContext` in
+- [X] T048 [P] [US1] Write `tests/shading_contract/contract_harness.h`: a concrete `CShadingContext` subclass (`renderingLoop() override {}`, like `CProbeContext` in
   `tests/shading_parity/texture_substitute_harness.h`); state setup for N points with the 29 globals; loaders for `.rslo` (`parseShader`) and `.slo` (`parseSloShader` from `sloLoader.h`,
   Phase 3); a runner that executes a surface, displacement, atmosphere or light instance on N points and reads back `Ci`/`Oi`/`P`; install and restore of the services. **The standalone program
   cannot construct a `CSurface`** (that is Geometry), so its `currentObject` is null and the double is keyed on the null `ObjectHandle`; handle identity (a real `CProbeSurface`) is checked in the rendered
   program only (QE, decided). Shader outputs are produced by build steps that run `oshader` and `oshader --jit`.
-- [ ] T049 [P] [US3] Write the RSL shaders `tests/shading_contract/shaders/cm_attribute.sl`, `cm_option.sl`, `cm_rendererinfo.sl` (each with a float, a triple, a matrix and a string form, a
+- [X] T049 [P] [US3] Write the RSL shaders `tests/shading_contract/shaders/cm_attribute.sl`, `cm_option.sl`, `cm_rendererinfo.sl` (each with a float, a triple, a matrix and a string form, a
   name that exists, one that does not, and a varying name argument where RSL allows it), `cm_surface.sl`, `cm_displacement.sl`, `cm_atmosphere.sl`, `cm_incident.sl`, `cm_opposite.sl` (parameter
   queries of every type, a mutable parameter), `cm_lightsource.sl` (a light queried inside an `illuminance` loop, float and non-float).
-- [ ] T050 [P] [US4] Write `tests/shading_contract/shaders/cm_matrices.sl` (`transform`, `vtransform`, `ntransform`, `ptransform`, matrix forms and `texture3d`'s coordinate system, in both
+- [X] T050 [P] [US4] Write `tests/shading_contract/shaders/cm_matrices.sl` (`transform`, `vtransform`, `ntransform`, `ptransform`, matrix forms and `texture3d`'s coordinate system, in both
   directions, among `"current"`, `"world"`, `"camera"`, a user-declared system, `"object"`, `"shader"`, `"light"` and a colour-space name) and the traced shaders `cm_trace.sl`,
   `cm_transmission.sl`, `cm_visibility.sl`, `cm_gather.sl`, `cm_occlusion.sl`, `cm_indirect.sl`, `cm_env.sl`, `cm_shadow.sl` (US6).
-- [ ] T051 [P] [US1] Write `tests/shading_contract/case_link.cpp` (`StandaloneLink`: installs the double, runs a trivial shader under both backends, checks the double saw its globals and nothing
+- [X] T051 [P] [US1] Write `tests/shading_contract/case_link.cpp` (`StandaloneLink`: installs the double, runs a trivial shader under both backends, checks the double saw its globals and nothing
   from a renderer) and `tests/shading_contract/check_link_line.cmake` (`StandaloneLinkLine`: reads the link command of `test_shading_contract_standalone` and fails if it names `libRIBRender`,
   `ribRender_static` or any object under `src/ri/{render,hiders,geometry}`; US1 AS1, SC-001).
-- [ ] T052 [P] [US3] Write `tests/shading_contract/case_attributes.cpp` (`Attributes{Interp,Jit}`, standalone): for `attribute()`, `option()` and `rendererinfo()` the double receives the same
+- [X] T052 [P] [US3] Write `tests/shading_contract/case_attributes.cpp` (`Attributes{Interp,Jit}`, standalone): for `attribute()`, `option()` and `rendererinfo()` the double receives the same
   request from both backends (scope, object handle, `name[0]`, expected `QueryType` from the overload or from the JIT's `resultKind` 1/3/16/-1) and the builtin returns the double's answer; **one request
   per call, not per lane**; `NotFound` leaves the destination untouched and returns 0; a stored value smaller than the destination is copied as on master and 1 returned; the
   found/not-found result equals the documented contract. (The refusal of an unsafe `TypeMismatch` is tested in Phase 5, `T092`.) Recorded requests are compared pairwise between the two backends.
-- [ ] T053 [P] [US3] Write `tests/shading_contract/case_messages.cpp` (`Messages{Interp,Jit}`, standalone): for `surface()`, `displacement()`, `atmosphere()`, `incident()`, `opposite()` the
+- [X] T053 [P] [US3] Write `tests/shading_contract/case_messages.cpp` (`Messages{Interp,Jit}`, standalone): for `surface()`, `displacement()`, `atmosphere()`, `incident()`, `opposite()` the
   requests are equal between the backends (source: `incident` -> Interior, `opposite` -> Exterior as master maps them; name; expected type; `wantVariable` true for the first three, false for the
   last two) and the answers (default value, or variable and global index for a mutable parameter, read through `jitParameterFinish`) are consumed; **`lightsource()` asserts the documented difference**
   (the interpreter asks with the iterated light, `wantVariable = true`, every type; the JIT with the last light that ran, `wantVariable = false`, float only, value written into `result`, Q2).
-- [ ] T054 [P] [US4] Write `tests/shading_contract/case_matrices.cpp` (`Matrices{Interp,Jit}`, standalone; US4 AS1 to AS3): every matrix comes from the double's `getMatrix` for each system kind; the
+- [X] T054 [P] [US4] Write `tests/shading_contract/case_matrices.cpp` (`Matrices{Interp,Jit}`, standalone; US4 AS1 to AS3): every matrix comes from the double's `getMatrix` for each system kind; the
   request carries the object, the shader instance and the light instance as opaque handles and **time 0** (Q14); a double that honours time returns the per-time matrix when asked at another time; an
   `"object"` reference with a null object reports `Object system reference without an object` once and uses the identity matrix; an unknown name reports `Unknown coordinate system` and uses the
   identity; transformed values equal the values computed from the double's table.
-- [ ] T055 [P] [US6] Write `tests/shading_contract/case_trace_requests.cpp` (`TraceRequests{Interp,Jit}`, standalone): with a `CRecordingTracer`, `visibility()`, the probe `transmission()`
+- [X] T055 [P] [US6] Write `tests/shading_contract/case_trace_requests.cpp` (`TraceRequests{Interp,Jit}`, standalone): with a `CRecordingTracer`, `visibility()`, the probe `transmission()`
   and the reflection probe issue their rays (origin, direction, differentials, time, bias, ray type, depth, sample key, order) and consume canned single-ray answers; `trace()` and `transmission()` issue
   their **bundle requests** (recorded, never run: constructing the bundles on the stack only writes a vtable pointer). Ordering and sample identity equal the replay's.
-- [ ] T056 [P] [US1] Write `tests/shading_contract/case_no_services.cpp`: `NoServices_Matrix` (no services installed: `Unknown coordinate system` path, identity, one warning per kind), `NoServices_Attribute`,
+- [X] T056 [P] [US1] Write `tests/shading_contract/case_no_services.cpp`: `NoServices_Matrix` (no services installed: `Unknown coordinate system` path, identity, one warning per kind), `NoServices_Attribute`,
   `NoServices_Message` (not found, destination untouched, one warning per kind), `NoServices_Tracer` (the probe forms: `ray->object = NULL`, one warning; the bundle forms are `NoTracer`'s).
   Each is a separate case (US1 AS3, FR-012, FR-023(f)).
-- [ ] T057 [P] [US5] Write `tests/shading_contract/case_globals_double.cpp` (`ShaderGlobalsDouble`): a double producer fills a `ShaderGlobals` for each situation the renderer has today (camera
+- [X] T057 [P] [US5] Write `tests/shading_contract/case_globals_double.cpp` (`ShaderGlobalsDouble`): a double producer fills a `ShaderGlobals` for each situation the renderer has today (camera
   grid, camera ray hit under each hit mode, secondary hit, shadow-type hit, photon hit, a bare point) and a checker validates the documented invariants of contracts/shader-globals.md: structure of
   arrays with a runtime point count and a batch of one valid; `Strided<T>` with stride 0 and `data == nullptr` meaning absent; the derivative tail (`numDerivativeTail` 0 or `2 * numPoints`, never
   counted, never active, `sampleKey` copying the real point's); `gridU * gridV == numPoints` for a grid; inactive lanes unspecified; only `P`, `time` and the per-batch fields may be assumed.
-- [ ] T058 [P] [US3] Write `tests/shading_contract/case_real_answers.cpp` (`RealAnswers{Interp,Jit}_{Matrices,Attributes,Messages}`, rendered): a new complete forwarding class `CContractForwarder` in `tests/shading_contract/contract_forwarder.h` that forwards every member to the services installed before it and records the v2 ones (`CRendererServicesImpl` is `final`,
+- [X] T058 [P] [US3] Write `tests/shading_contract/case_real_answers.cpp` (`RealAnswers{Interp,Jit}_{Matrices,Attributes,Messages}`, rendered): a new complete forwarding class `CContractForwarder` in `tests/shading_contract/contract_forwarder.h` that forwards every member to the services installed before it and records the v2 ones (`CRendererServicesImpl` is `final`,
   so it cannot be derived from; the existing wrappers are not used, so this test does not depend on the wrappers, QA), real `CProbeSurface` objects (handle identity),
   real bound shaders. Each case asserts (i) every returned value equals an **oracle computed directly from `CRenderer`/`CAttributes`/the bound instances**, including found/not-found and
   the unknown-name and bad-system diagnostics, and (ii) the recorder saw the v2 call. (ii) is what makes the case red before its phase; (i) is what proves master's values are kept. **The forwarder also carries a delimited `TEMPORARY (spec 026)` block**, like `CContractServices` (QD): it forwards the methods that stay pure
   virtual until their phase (the two coordinate-system lookups, Phase 4; the 25 option getters and `lookupUserOption`, Phase 5; `setOffendingObject(CObject *)`, Phase 7). Without the block it stops compiling the moment a phase removes a member (A2).
-- [ ] T059 [P] [US6] Write `tests/shading_contract/case_gather_requests.cpp` (`GatherRequests{Interp,Jit}`: `gather()` constructs a `CGatherBundle`, which traps on the stub, so it is rendered),
+- [X] T059 [P] [US6] Write `tests/shading_contract/case_gather_requests.cpp` (`GatherRequests{Interp,Jit}`: `gather()` constructs a `CGatherBundle`, which traps on the stub, so it is rendered),
   `case_canned_trace.cpp` (`CannedTrace{Interp,Jit}`: a `CCannedTracer` drives the real bundle protocol; `trace`, `transmission`, `gather`, `occlusion`, `indirectdiffuse` consume the canned answers),
   `case_no_tracer.cpp` (`NoTracer`: the bundle forms, `gather` and the irradiance cache with no tracer installed warn once per kind and return the value of a ray that hits nothing).
-- [ ] T060 [P] [US1] Write `tests/shading_contract/case_double_globals.cpp` (`DoubleGlobalsMatchRenderer`, rendered): the double's 29 globals equal the renderer's `initDeclarations()` table entry by entry.
-- [ ] T061 [P] [US5] Write `tests/shading_contract/case_situations.cpp` and scenes `tests/shading_contract/scenes/sit_*.rib` (`Situations`, rendered): one small scene per row 1 to 5, 8 and 9 of the situation table in
+- [X] T060 [P] [US1] Write `tests/shading_contract/case_double_globals.cpp` (`DoubleGlobalsMatchRenderer`, rendered): the double's 29 globals equal the renderer's `initDeclarations()` table entry by entry.
+- [X] T061 [P] [US5] Write `tests/shading_contract/case_situations.cpp` and scenes `tests/shading_contract/scenes/sit_*.rib` (`Situations`, rendered): one small scene per row 1 to 5, 8 and 9 of the situation table in
   contracts/shader-globals.md, covering every (call site, hit mode) pair `T009` found, **rows 6 and 7 excepted (classify-only, B8)**; the scenes read `dim`, `displaceOnly`, `inShadow`, `rayDepth` and `illuminationHook` from the two
   spec-039 test observers (their reports gain these as trailing fields in Phase 9); the test asserts `libshader::classifyShading()` returns the row's ray type, hit mode, transport and pass, and that the
   branch `shade()` took (primitive-only versus shaded) matches the hit mode. **Rows 6 and 7 (implicit-surface hits and DSO-object hits, whose present behaviour is an oddity: O5 #119, O2 #116) and rows 10 to 14 (no `shade()`) are asserted from `classifyShading()` alone** (B8). The eight oddities of research R13 are asserted as
   oddities (documented, not fixed).
-- [ ] T062 [US1] [RUN] Red evidence by build failure, in a scratch tree: check `df -h /Volumes/Projects`, then `$CJ 026-red-configure cmake -B build-red -S . -DCMAKE_BUILD_TYPE=Release -DOPENRENDER_SHADING_CONTRACT_TESTS=ON`
+- [X] T062 [US1] [RUN] Red evidence by build failure, in a scratch tree: check `df -h /Volumes/Projects`, then `$CJ 026-red-configure cmake -B build-red -S . -DCMAKE_BUILD_TYPE=Release -DOPENRENDER_SHADING_CONTRACT_TESTS=ON`
   (through `cpujob`; the option is what makes the targets exist), `$CJ 026-red cmake --build build-red --target test_shading_contract_standalone test_shading_contract_rendered -j4`. The expected failure names the missing
   `serviceTypes.h`, `tracer.h`, `shaderGlobals.h` and `sloLoader.h`. Paste it into validation.md §2, then `rm -rf build-red`.
-- [ ] T063 [US2] [RUN] CP-a and CP-c with the option OFF (the main tree must be unaffected; no `src/` file changed since Phase 1): build, then `ctest -L architecture` and the full archcheck report
+- [X] T063 [US2] [RUN] CP-a and CP-c with the option OFF (the main tree must be unaffected; no `src/` file changed since Phase 1): build, then `ctest -L architecture` and the full archcheck report
   (expect 8 / 8 / 33, `RESULT PASS`), and `ctest -N -L shading_contract` listing the new tests as disabled. CP-b is not repeated: nothing the suite runs has changed.
 - [ ] T064 [US1] **TEST-APPROVAL (PAUSE 2)**: stage `tests/shading_contract/`, `tests/CMakeLists.txt`, `validation.md`. Summarize: the cases and the requirement each covers (a table: test -> FR/SC/US), which
   tests are red by build failure and which are characterization tests, the double's TEMPORARY block, the stub's two TEMPORARY traps, the four-way split of `NoServices`, the rendered-only forwarding
