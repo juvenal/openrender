@@ -419,6 +419,21 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CShadingContext
+// Method				:	reportTraceRequest
+// Description			:	Hand a trace request to the test hook (spec 026, Phase 1)
+// Return Value			:	-
+// Comments				:	The callers test traceRequestObserver for null first; null in production
+CTraceRequestObserver CShadingContext::traceRequestObserver = nullptr;
+
+void CShadingContext::reportTraceRequest(int kind, const char *label, int bundleDepth, int numRays, CRay *const *rays) const {
+    if (traceRequestObserver == nullptr)
+        return;
+    const CTraceRequestReport report{kind, label, bundleDepth, currentRayDepth, numRays, rays};
+    traceRequestObserver(report);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CShadingContext
 // Method				:	CShadingContext
 // Description			:	Ctor
 // Return Value			:	-
@@ -4484,6 +4499,8 @@ bool CShadingContext::gatherSample(CGatherBundle *lastGather, int *tags, int &nu
             lastGather->depth = 0;
             lastGather->postShader = shaderInstanceOf(cAttributes->interior());
             lastGather->numMisses = 0;
+            if (traceRequestObserver != nullptr)
+                reportTraceRequest(TRACEREQUEST_GATHER, lastGather->label, lastGather->depth, lastGather->numRays, lastGather->rays);
             traceEx(lastGather);
             numActive -= lastGather->numMisses;
             numPassive += lastGather->numMisses;
@@ -4495,6 +4512,8 @@ bool CShadingContext::gatherSample(CGatherBundle *lastGather, int *tags, int &nu
             lastGather->depth = 0;
             lastGather->postShader = shaderInstanceOf(cAttributes->exterior());
             lastGather->numMisses = 0;
+            if (traceRequestObserver != nullptr)
+                reportTraceRequest(TRACEREQUEST_GATHER, lastGather->label, lastGather->depth, lastGather->numRays, lastGather->rays);
             traceEx(lastGather);
             numActive -= lastGather->numMisses;
             numPassive += lastGather->numMisses;

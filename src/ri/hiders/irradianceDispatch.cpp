@@ -368,6 +368,10 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
             mulmp(ray.from, from, ray.from);
             mulmv(ray.dir, from, ray.dir);
 
+            if (CShadingContext::traceRequestObserver != nullptr) {
+                CRay *probe = &ray;
+                context->reportTraceRequest(TRACEREQUEST_OCCLUSION, scratch->traceParams.label, 0, 1, &probe);
+            }
             context->trace(&ray);
 
             // Do we have an intersection ?
@@ -468,6 +472,10 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
                 mulmp(ray.from, from, ray.from);
                 mulmv(ray.dir, from, ray.dir);
 
+                if (CShadingContext::traceRequestObserver != nullptr) {
+                    CRay *probe = &ray;
+                    context->reportTraceRequest(TRACEREQUEST_INDIRECTDIFFUSE, scratch->traceParams.label, 0, 1, &probe);
+                }
                 context->trace(&ray);
 
                 // Do we have an intersection ?

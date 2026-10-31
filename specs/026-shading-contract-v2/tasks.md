@@ -238,37 +238,37 @@ starting `src/` can no longer be built with 026's tests, so the baseline cannot 
 
 ### Setup and static baselines
 
-- [ ] T001 Orient in the worktree and read the rules. Run `git status` and `git log -1` (expect branch `026-shading-contract-v2`, base `d01da47`, spec
+- [X] T001 Orient in the worktree and read the rules. Run `git status` and `git log -1` (expect branch `026-shading-contract-v2`, base `d01da47`, spec
   commit `0475e1e`, only `specs/026-shading-contract-v2/` untracked or modified), `cat .specify/feature.json` (`specs/026-shading-contract-v2`),
   `git check-ignore build build-red build-nojit build-base build-logs` (all five must print: `.gitignore` has `build-*`), and `df -h /Volumes/Projects`
   (7.5 GiB were free at the plan stage; a build tree is about 0.6 GiB, and three scratch trees are used one at a time). Read `CLAUDE.md` (the worktree
   copy and the main checkout's copy are identical, commit time 1793332971; the "Spec-kit agent rules" section applies), `DEVNOTES.md`,
   `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`, constitution Principles III and VIII, and spec 028's `tasks.md` header. Record the output in validation.md §0.
-- [ ] T002 [P] Create `specs/026-shading-contract-v2/tools/` and copy `specs/028-camera-and-motion-layer/tools/image_manifest.sh` into it
+- [X] T002 [P] Create `specs/026-shading-contract-v2/tools/` and copy `specs/028-camera-and-motion-layer/tools/image_manifest.sh` into it
   **unchanged** (`cp -p`; quickstart §0; 028's copy is not edited). Check it is executable and that `sha256sum`/`shasum` is found.
-- [ ] T003 [P] `specs/026-shading-contract-v2/validation.md` already exists (seeded at the tasks stage with §4, the finding triage and the text of the seven issues filed as #115 to #121); do not recreate it. Fill it
+- [X] T003 [P] `specs/026-shading-contract-v2/validation.md` already exists (seeded at the tasks stage with §4, the finding triage and the text of the seven issues filed as #115 to #121); do not recreate it. Fill it
   as the work proceeds: §0 starting-tree measurements; §1 checkpoint records (one table per phase: CP-a to CP-d, CP-m, `ALLOWED`/`METRIC`/`RESULT`); §2 red evidence (Test gates, mutations, the red
   output of the F1 to F4 tests); §3 Linux records (every push and `verify`, builds, suites, baselines); §4 only gains evidence (a repro that was run, a moved line number), which goes to the coordinator as a comment on the issue, and a
   "closed by T-number" note against F1 to F4; §5 final summary against SC-001 to SC-014.
-- [ ] T004 [US2] [RUN] macOS baseline build and suite at the **starting `src/`** (no source edit yet): `$CJ 026-base-configure cmake -B build -S . -DCMAKE_BUILD_TYPE=Release`
+- [X] T004 [US2] [RUN] macOS baseline build and suite at the **starting `src/`** (no source edit yet): `$CJ 026-base-configure cmake -B build -S . -DCMAKE_BUILD_TYPE=Release`
   (through `cpujob`: a configure can trigger vcpkg; use the vcpkg environment the coordinator gives for this machine; do not invent `VCPKG_ROOT`; the JIT is ON), `$CJ 026-base-build cmake --build build
   --config Release -j4`, `$T/image_manifest.sh stamp build`, `$CJ 026-base-suite ctest --test-dir build -LE determinism-sweep -j4 --output-on-failure`,
   `cp build/Testing/Temporary/LastTest.log $T/base-LastTest-macos.log`, `$T/image_manifest.sh record build > $T/baseline-images-macos.sha256`,
   `$T/image_manifest.sh diffs $T/base-LastTest-macos.log > $T/baseline-diffs-macos.txt`. Record the test count, the pass set, and any test that skips
   itself or fails on the starting tree (a failing one is a stop condition for the maintainer, not a baseline to hide).
-- [ ] T005 [US2] [RUN] Noise check: stamp and run the suite a second time; list every image whose bytes differ between the two runs in
+- [X] T005 [US2] [RUN] Noise check: stamp and run the suite a second time; list every image whose bytes differ between the two runs in
   `$T/baseline-image-noise-macos.txt` (spec 028 found two `shading_parity` scratch files). Check that a noise-listed image's `MaxBlockAvgDiff` is equal in both runs.
-- [ ] T006 [US7] [RUN] Architecture report and imports on the starting tree: `$CJ 026-base-archreport build/tests/architecture/archcheck --source-dir .
+- [X] T006 [US7] [RUN] Architecture report and imports on the starting tree: `$CJ 026-base-archreport build/tests/architecture/archcheck --source-dir .
   --build-dir build --config tests/architecture > $T/archcheck-base-macos.txt`; `nm -m build/src/libshader/shading/libshader_shading.dylib | grep 'dynamically
   looked up' | c++filt > $T/libshader-imports-base-macos.txt`; `dyld_info -fixups build/src/libshader/shading/libshader_shading.dylib | c++filt >
   $T/libshader-fixups-base-macos.txt`. Expected: `ALLOWED DB-001 x 8`, `DB-005 x 8`, `DB-006 x 33`, `RESULT PASS`, and the 6 imports of research R10
   (`CPhotonMap::lookup`, `CGatherBundle::CGatherBundle()`, `CShadingContext::trace(CRay*)`, `CShadingContext::traceEx(CRayBundle*)`, vtable for
   `CTraceBundle`, vtable for `CTransmissionBundle`). Confirm from `dyld_info` that the dylib uses chained fixups that bind every import at load.
-- [ ] T007 [US2] [RUN] SC-007 holds for the determinism sweep too (B1), so record its image manifest on the **starting tree**, before `T017`: `$T/image_manifest.sh stamp build`, then `$CJ 026-base-sweep ctest --test-dir build -L
+- [X] T007 [US2] [RUN] SC-007 holds for the determinism sweep too (B1), so record its image manifest on the **starting tree**, before `T017`: `$T/image_manifest.sh stamp build`, then `$CJ 026-base-sweep ctest --test-dir build -L
   '^determinism-sweep$' -j2 --output-on-failure` (413 scenes x 5 configurations, about 10 to 12 minutes at `-j2`), `cp build/Testing/Temporary/LastTest.log $T/base-sweep-LastTest-macos.log`, `$T/image_manifest.sh record build >
   $T/baseline-sweep-images-macos.sha256`. Run it a second time and list the paths whose bytes differ between the two runs in `$T/baseline-sweep-noise-macos.txt`. If the sweep leaves no image under `build/tests` the manifest is empty: then record the
   pass/fail set and whatever output the sweep keeps, say so in validation.md §0, and ask the coordinator what the final comparison (`T176`) should diff.
-- [ ] T008 [US1] Re-take the plan's static counts on this worktree (no build) and record them in validation.md §0 with the current line numbers
+- [X] T008 [US1] Re-take the plan's static counts on this worktree (no build) and record them in validation.md §0 with the current line numbers
   (the plan's line numbers are `d01da47`'s; later tasks locate sites by symbol and by `grep`, not by number): the 57 pure virtuals of `CRendererServices`
   and the 57 overrides in `src/ri/render/rendererServicesImpl.h`; the `findCoordinateSystem` call sites, **counted as textual calls to
   `findCoordinateSystem(` or `jitFindCoordinateSystem(` outside their declarations, definitions and comments**: expected 25 (17 in `shaderFunctions.h`, 1 in `giFunctions.h`, 1 in
@@ -279,10 +279,10 @@ starting `src/` can no longer be built with 026's tests, so the baseline cannot 
   (`grep -rn 'currentObject->attributes' src/libshader`: the plan's "17" is a figure to re-measure, and the tree shows 22 code occurrences; **a differing total is not a stop condition**, the 7 + 1 sites below are the figure that matters) and, of the 8 sites compiled into `execute.cpp`/`executeMisc.cpp`/`shaderFunctions.h`/`giFunctions.h`, the **7 that read the object's
   attributes plus the 1 (`scripterror`) that passes the object pointer to `setOffendingObject`**; the five allowlist lines to be deleted
   (by key). Any difference that changes a design decision is a stop condition.
-- [ ] T009 [P] [US5] Grep the hit-mode values the visual suite uses: `grep -rhoE '(camerahitmode|specularhitmode|transmissionhitmode|diffusehitmode)"?[^"]*"[^"]*"'
+- [X] T009 [P] [US5] Grep the hit-mode values the visual suite uses: `grep -rhoE '(camerahitmode|specularhitmode|transmissionhitmode|diffusehitmode)"?[^"]*"[^"]*"'
   tests/visual --include='*.rib' | sort | uniq -c`. Record the (attribute, value) pairs in validation.md §0. Phase 2's `Situations` scenes must cover every
   (call site, hit mode) pair found (research R13, SC-006), **rows 6 and 7 excepted (classify-only, B8)**: a pair that only rows 6 or 7 reach (implicit-surface and DSO-object hits) is asserted from `classifyShading()`, not rendered.
-- [ ] T010 [P] Write `specs/026-shading-contract-v2/tools/linux_sync.sh` with the subcommands `push`, `verify`, `pull` and a `--dry-run` that prints the file list
+- [X] T010 [P] Write `specs/026-shading-contract-v2/tools/linux_sync.sh` with the subcommands `push`, `verify`, `pull` and a `--dry-run` that prints the file list
   and runs nothing remote, exactly as the standing rule "Linux" specifies (list from `git ls-files -z --cached --others --exclude-standard` minus
   entries missing on disk; `rsync -rlpc --from0 --files-from`; the two Linux-only exclusions; removal of files that a previous push sent and the list
   no longer holds, via the remote `.sync-manifest`; `verify` by `shasum -a 256` against remote `sha256sum`, failing on any difference or on a remote
@@ -291,100 +291,103 @@ starting `src/` can no longer be built with 026's tests, so the baseline cannot 
 
 ### Tests block: the trace replay (characterization tests, US6)
 
-- [ ] T011 [US6] Create `tests/shading_contract/CMakeLists.txt` and add `add_subdirectory(shading_contract)` to `tests/CMakeLists.txt`. In it: declare
+- [X] T011 [US6] Create `tests/shading_contract/CMakeLists.txt` and add `add_subdirectory(shading_contract)` to `tests/CMakeLists.txt`. In it: declare
   `option(OPENRENDER_SHADING_CONTRACT_TESTS "Spec 026 contract programs" OFF)` (Phase 2 fills it), and the replay targets below, every executable
   `EXCLUDE_FROM_ALL` and every test `DISABLED TRUE` until `T021`. Link `ribRender libshader_shading openrendercommon openrender_common_flags`
   like `tests/shading_parity`. Labels: `shading_contract` for the checks, `shading_contract-record` for the recorder. Environment as in
   `tests/shading_parity/CMakeLists.txt` (`SHADERS`, `ORENDERHOME`, `OSHADER_BIN`). `TIMEOUT` on every test.
-- [ ] T012 [P] [US6] Write `tests/shading_contract/replay/trace_replay_record.cpp`: renders the fixed scene set in process, **one render thread** so the order is
+- [X] T012 [P] [US6] Write `tests/shading_contract/replay/trace_replay_record.cpp`: renders the fixed scene set in process, **one render thread** so the order is
   defined, once per backend (`.rslo`; `.slo` when the JIT is on), installs `CShadingContext::traceRequestObserver` (declared in `T017`), and writes
   `replay-fresh.txt` into the build tree only. One record per request: kind, label, bundle depth, path depth, then per ray `from`, `dir`, `t`, `tmin`,
   `time`, `flags`, `da`, `db`, `key`, `depth`, floats as hex floats (research R14). Section headers name the scene and backend. Test
   `ShadingContract_TraceReplayRecord` (label `shading_contract-record`).
-- [ ] T013 [P] [US6] Write `tests/shading_contract/replay/trace_replay_check.cpp`: given a builtin name, re-renders that builtin's scenes (both backends) and
+- [X] T013 [P] [US6] Write `tests/shading_contract/replay/trace_replay_check.cpp`: given a builtin name, re-renders that builtin's scenes (both backends) and
   compares the fresh requests with `tests/shading_contract/replay/macos.txt` or `linux.txt` (chosen at compile time by `__APPLE__`) **exactly**. A
   missing replay file fails with "no replay file" (spec 028 found this on Linux); an empty section fails. The failure message names the builtin, the
   scene, the request index and the first differing field. Tests `ShadingContract_TraceReplay_{trace,transmission,visibility,gather,environment,shadow,
   occlusion,indirectdiffuse}` (8).
-- [ ] T014 [P] [US6] Write the eight scenes `tests/shading_contract/replay/scenes/replay_<builtin>.rib` and their shaders `.../shaders/replay_<builtin>.sl`: small (a few
+- [X] T014 [P] [US6] Write the eight scenes `tests/shading_contract/replay/scenes/replay_<builtin>.rib` and their shaders `.../shaders/replay_<builtin>.sl`: small (a few
   pixels), raytrace hider, fixed `Option "sampling"` sampler and seed (spec 039), no motion, each builtin used with at least two distinct shapes of
   call (for example `trace` with and without a bias and a `samples` parameter; `transmission` and `visibility` with a bundle form and a probe form;
   ray-traced `environment`/`shadow` through `"raytrace"`; `occlusion` and `indirectdiffuse` with the irradiance cache). Compile each shader to `.rslo` and
   (JIT on) `.slo` as build steps through `oshader`/`oshader --jit`, as `shaders/CMakeLists.txt` does. Every family must produce at least one request in each backend.
-- [ ] T015 [US6] [RUN] Red evidence by build failure: with the replay targets enabled only in a scratch invocation (`cmake --build build --target
+- [X] T015 [US6] [RUN] Red evidence by build failure: with the replay targets enabled only in a scratch invocation (`cmake --build build --target
   test_shading_contract_trace_replay_record`, after temporarily removing `EXCLUDE_FROM_ALL`), the build fails naming `traceRequestObserver`. Paste the
   error in validation.md §2, then restore the markers.
-- [ ] T016 [US6] **TEST-APPROVAL (PAUSE 1a)**: stage `tests/shading_contract/`, `tests/CMakeLists.txt`, `tools/linux_sync.sh`, `tools/image_manifest.sh`, the
+- [X] T016 [US6] **TEST-APPROVAL (PAUSE 1a)**: stage `tests/shading_contract/`, `tests/CMakeLists.txt`, `tools/linux_sync.sh`, `tools/image_manifest.sh`, the
   baselines and `validation.md`. Summarize: the recorder's format, the eight scenes and what each exercises, the eight planned mutations (below), why
   these are characterization tests (green by construction, red by mutation, Q7), and the T-numbers of the baselines. **Wait for the maintainer's
   approval of the replay tests and of the mutation list.** Nothing after this task edits `src/` until it is answered.
+  **Answered 2026-10-31 (maintainer, via the coordinator): approved, every recommendation accepted.** (1) The replay design: one child process per scene (GitHub #2), 4x4 pixels, raytrace hider, 1 thread, sobol sampler with seed 1, a discarding display, the line format with hex floats. (2) The eight scenes, including the probe forms that vary by direction and distance (the float `trace` and `visibility` forms take no parameter list). (3) The hook shape: the public `CShadingContext::reportTraceRequest(kind, label, bundleDepth, numRays, rays)` member and an `if (traceRequestObserver != nullptr)` guard at each of the 12 sites. (4) The eight mutations as listed, each reverted and followed by a check that `git diff` is clean. (5) **Note for Phase 2: T009 found no hit-mode attribute in the visual suite, so the `Situations` scene set (T044 and the scenes it names) must cover the non-default hit modes itself.**
 
 ### The hook (null in production; a source change that must not change any image)
 
-- [ ] T017 [US6] In `src/libshader/shading/shading.h` declare, next to `CPointKeyReport`/`pointKeyObserver`, a `CTraceRequestReport` (kind, label, bundle depth,
+- [X] T017 [US6] In `src/libshader/shading/shading.h` declare, next to `CPointKeyReport`/`pointKeyObserver`, a `CTraceRequestReport` (kind, label, bundle depth,
   path depth, ray count, a pointer to the rays) and `typedef void (*CTraceRequestObserver)(const CTraceRequestReport &)`, and
   `static CTraceRequestObserver traceRequestObserver;` with the comment "test hook, null in production; set only by tests" (spec 039's precedent). Define it
   `= nullptr` in `shading.cpp` beside `pointKeyObserver`. The kind enum names the eight builtins' families. Nothing is allocated unless the observer is set.
-- [ ] T018 [US6] In `src/libshader/shading/executeMisc.cpp`, just before each of the 8 trace calls (the probe `trace(` of the transmission/visibility forms, the
+- [X] T018 [US6] In `src/libshader/shading/executeMisc.cpp`, just before each of the 8 trace calls (the probe `trace(` of the transmission/visibility forms, the
   reflection probe `trace(`, and the six `traceEx(` in `traceTransmission`/`traceReflection`; locate by `grep -n 'trace(\|traceEx(' executeMisc.cpp`), add
   `if (traceRequestObserver != nullptr) { ... }` reporting the ray or the bundle's rays, label and depth. No other edit in the file.
-- [ ] T019 [US6] In `src/libshader/shading/shading.cpp`, the same before the two `traceEx(lastGather)` calls in `gatherSample` (shared by the interpreter and the JIT).
-- [ ] T020 [P] [US6] In `src/ri/hiders/irradianceDispatch.cpp`, the same before the two `context->trace(&ray)` calls in `CIrradianceCache::sample` (kinds `occlusion` and `indirectdiffuse`).
+- [X] T019 [US6] In `src/libshader/shading/shading.cpp`, the same before the two `traceEx(lastGather)` calls in `gatherSample` (shared by the interpreter and the JIT).
+- [X] T020 [P] [US6] In `src/ri/hiders/irradianceDispatch.cpp`, the same before the two `context->trace(&ray)` calls in `CIrradianceCache::sample` (kinds `occlusion` and `indirectdiffuse`).
   This is a Hiders file; the call is to a Shading static, which the table allows. No other edit.
-- [ ] T021 [US6] [RUN] Remove `EXCLUDE_FROM_ALL` from the recorder and the checker (the 8 tests and the recorder stay `DISABLED` until `T023`), then
+- [X] T021 [US6] [RUN] Remove `EXCLUDE_FROM_ALL` from the recorder and the checker (the 8 tests and the recorder stay `DISABLED` until `T023`), then
   CP-a: `$CJ 026-p1-build cmake --build build --config Release -j4`. Clean under `-Werror`; `ribVector` builds.
-- [ ] T022 [US2] [RUN] Prove the hook adds no output: CP-b (stamp, suite, copy the log as `p1.LastTest.log`), then `$T/image_manifest.sh diff
+- [X] T022 [US2] [RUN] Prove the hook adds no output: CP-b (stamp, suite, copy the log as `p1.LastTest.log`), then `$T/image_manifest.sh diff
   $T/baseline-images-macos.sha256 build $T/baseline-image-noise-macos.txt` must exit 0 and `$T/image_manifest.sh diffs build-logs/p1.LastTest.log | diff -
   $T/baseline-diffs-macos.txt` must be empty. Any difference stops the phase. Once the images match, `git add` the hook files (`src/libshader/shading/shading.h`, `shading.cpp`, `executeMisc.cpp`, `src/ri/hiders/irradianceDispatch.cpp`) so that from here on `git diff` (unstaged) shows only a mutation.
-- [ ] T023 [US6] [RUN] Record: enable `ShadingContract_TraceReplayRecord` only and run it **twice** (`$CJ 026-replay-rec ctest --test-dir build -R
+- [X] T023 [US6] [RUN] Record: enable `ShadingContract_TraceReplayRecord` only and run it **twice** (`$CJ 026-replay-rec ctest --test-dir build -R
   ShadingContract_TraceReplayRecord`, `-L shading_contract-record` selects the same); the two `build/tests/shading_contract/replay-fresh.txt` must be
   byte-identical (the replay is deterministic). Copy one to `tests/shading_contract/replay/macos.txt`. Record in validation.md §2 the request count per
   family and backend; a family with no requests in either backend is a defect in its scene (fix the scene, which re-opens `T016`).
-- [ ] T024 [US6] [RUN] Remove `DISABLED` from the eight `TraceReplay_*` tests, build, run `-L '^shading_contract$'`: all eight green by construction.
-- [ ] T025 [US6] [RUN] Mutation `trace`: in `traceReflection`'s ray setup in `executeMisc.cpp` drop the bias (set `tmin` to 0 for the reflection bundle's rays), rebuild,
+- [X] T024 [US6] [RUN] Remove `DISABLED` from the eight `TraceReplay_*` tests, build, run `-L '^shading_contract$'`: all eight green by construction.
+- [X] T025 [US6] [RUN] Mutation `trace`: in `traceReflection`'s ray setup in `executeMisc.cpp` drop the bias (set `tmin` to 0 for the reflection bundle's rays), rebuild,
   run `ShadingContract_TraceReplay_trace`: it must be red naming the field. Record the exact edit and the failing line in validation.md §2. Revert, and
   confirm `git diff -- src/libshader/shading/executeMisc.cpp` is empty (the hook is staged, so any unstaged difference is a leftover mutation).
-- [ ] T026 [US6] [RUN] Mutation `transmission`: in `traceTransmission` swap the order in which the exterior and interior bundles are traced (or change the copied `time`),
+- [X] T026 [US6] [RUN] Mutation `transmission`: in `traceTransmission` swap the order in which the exterior and interior bundles are traced (or change the copied `time`),
   rebuild, `ShadingContract_TraceReplay_transmission` must be red. Record, revert, confirm.
-- [ ] T027 [US6] [RUN] Mutation `visibility`: in the probe form used by `visibility()` change `tmin` (set it to 0), rebuild,
+- [X] T027 [US6] [RUN] Mutation `visibility`: in the probe form used by `visibility()` change `tmin` (set it to 0), rebuild,
   `ShadingContract_TraceReplay_visibility` must be red. Record, revert, confirm.
-- [ ] T028 [US6] [RUN] Mutation `gather`: in `gatherSample` (`shading.cpp`) zero the ray footprint `da` of the gather rays, rebuild,
+- [X] T028 [US6] [RUN] Mutation `gather`: in `gatherSample` (`shading.cpp`) zero the ray footprint `da` of the gather rays, rebuild,
   `ShadingContract_TraceReplay_gather` must be red. Record, revert, confirm.
-- [ ] T029 [US6] [RUN] Mutation `environment`: in the ray-traced `environment()` setup (`giFunctions.h`, the path that reaches `traceReflection`) change the bias
+- [X] T029 [US6] [RUN] Mutation `environment`: in the ray-traced `environment()` setup (`giFunctions.h`, the path that reaches `traceReflection`) change the bias
   passed to the trace, rebuild, `ShadingContract_TraceReplay_environment` must be red. Record, revert, confirm.
-- [ ] T030 [US6] [RUN] Mutation `shadow`: in the ray-traced `shadow()` setup (`giFunctions.h`, the path that reaches `traceTransmission`) change the bias, rebuild,
+- [X] T030 [US6] [RUN] Mutation `shadow`: in the ray-traced `shadow()` setup (`giFunctions.h`, the path that reaches `traceTransmission`) change the bias, rebuild,
   `ShadingContract_TraceReplay_shadow` must be red. Record, revert, confirm.
-- [ ] T031 [US6] [RUN] Mutation `occlusion`: in `irradianceDispatch.cpp`'s occlusion ray (`CIrradianceCache::sample`) change `tmin`, rebuild,
+- [X] T031 [US6] [RUN] Mutation `occlusion`: in `irradianceDispatch.cpp`'s occlusion ray (`CIrradianceCache::sample`) change `tmin`, rebuild,
   `ShadingContract_TraceReplay_occlusion` must be red. Record, revert, confirm.
-- [ ] T032 [US6] [RUN] Mutation `indirectdiffuse`: the same for the indirect-diffuse ray, `ShadingContract_TraceReplay_indirectdiffuse` must be red. Record, revert, confirm.
+- [X] T032 [US6] [RUN] Mutation `indirectdiffuse`: the same for the indirect-diffuse ray, `ShadingContract_TraceReplay_indirectdiffuse` must be red. Record, revert, confirm.
   If any of the eight mutations leaves its test green, stop: the scene is too weak (strengthen it, which re-opens `T016`); a mutation that is bitwise-equivalent
   may be replaced by a named one only with the maintainer's approval.
-- [ ] T033 [US6] [RUN] After the eight reverts: `git diff` (unstaged) is empty, rebuild, run `-L '^shading_contract$'` (all eight green) and
+- [X] T033 [US6] [RUN] After the eight reverts: `git diff` (unstaged) is empty, rebuild, run `-L '^shading_contract$'` (all eight green) and
   repeat `T022` (CP-b and CP-d) once more, since the tree was rebuilt eight times.
-- [ ] T034 [US7] [RUN] CP-c on macOS: expect `ALLOWED DB-001 x 8`, `DB-005 x 8`, `DB-006 x 33`, `RESULT PASS`, and the Shading metric unchanged
+- [X] T034 [US7] [RUN] CP-c on macOS: expect `ALLOWED DB-001 x 8`, `DB-005 x 8`, `DB-006 x 33`, `RESULT PASS`, and the Shading metric unchanged
   (`irradianceDispatch.cpp` adds a Hiders -> Shading reference, which is allowed). Record in validation.md §1 as the baseline for the cumulative table.
 
 ### Linux baseline (the gate, quickstart §4a)
 
-- [ ] T035 [RUN] Linux 1: `$T/linux_sync.sh push`, then `$T/linux_sync.sh verify` (record "N files, 0 differences"), then `ssh "$H" "ls $RR/specs/026-shading-contract-v2 &&
+- [X] T035 [RUN] Linux 1: `$T/linux_sync.sh push`, then `$T/linux_sync.sh verify` (record "N files, 0 differences"), then `ssh "$H" "ls $RR/specs/026-shading-contract-v2 &&
   test ! -e $RR/.git && echo no-git-ok"`, then configure through the remote `cpujob`: `ssh "$H" "cd $RR && ~/.claude/bin/cpujob 026-l1-configure cmake -B build -S . -DCMAKE_BUILD_TYPE=Release"` with the Linux flags the coordinator gives.
-- [ ] T036 [RUN] Linux 2: `ssh "$H" "cd $RR && ~/.claude/bin/cpujob 026-l1-build cmake --build build --config Release -j2"` (GCC 13, `-Werror`). A GCC-only error in the
+- [X] T036 [RUN] Linux 2: `ssh "$H" "cd $RR && ~/.claude/bin/cpujob 026-l1-build cmake --build build --config Release -j2"` (GCC 13, `-Werror`). A GCC-only error in the
   hook or the replay test code is fixed here and the macOS build re-run; one in code the maintainer already approved is a stop condition.
-- [ ] T037 [US7] [RUN] Linux 3: `ctest --test-dir build -L architecture` on the remote, saving the full report as `$RR/specs/026-shading-contract-v2/tools/archcheck-base-linux.txt`. Expect
+- [X] T037 [US7] [RUN] Linux 3: `ctest --test-dir build -L architecture` on the remote, saving the full report as `$RR/specs/026-shading-contract-v2/tools/archcheck-base-linux.txt`. Expect
   the same 8 / 8 / 33 allowed lines and the same five deletion keys present (no platform tag).
 - [ ] T038 [US6] [RUN] Linux 4, **before the suite**: `ctest -L shading_contract-record` twice on the remote (the two `replay-fresh.txt` byte-identical), copy one to
   `$RR/tests/shading_contract/replay/linux.txt`, then `-L '^shading_contract$'` (the 8 replay tests green). Without that file the replay tests fail with "no replay file".
-- [ ] T039 [US2] [RUN] Linux 5: stamp, run `ctest -LE determinism-sweep -j2 --output-on-failure` on the remote, record `baseline-images-linux.sha256`, `baseline-diffs-linux.txt` and
+  **Not complete (stop condition, 2026-10-31):** the two Linux recordings are NOT byte-identical; the `.slo` sections of `transmission` and `shadow` differ run to run (validation.md D1). No `linux.txt` was kept; the evidence is in `tools/replay-nondeterminism-linux-run{1,2}.txt`. Awaiting the maintainer.
+- [X] T039 [US2] [RUN] Linux 5: stamp, run `ctest -LE determinism-sweep -j2 --output-on-failure` on the remote, record `baseline-images-linux.sha256`, `baseline-diffs-linux.txt` and
   `base-LastTest-linux.log`; run it a second time for `baseline-image-noise-linux.txt`. Record every Linux failure of the starting tree (the earlier specs found 7:
   #44, #45, #46, #57); they are the Linux baseline's failing set, not this spec's (CP-b on Linux allows exactly that set). **Note in validation.md §3 that this baseline is taken with the Phase 1 hook in the tree** (the hook is null in production and the macOS manifest check shows it adds no output).
-- [ ] T040 [US2] [RUN] Linux 5b: the same sweep manifest for Linux (B1), on the tree that holds the Phase 1 hook: stamp, `ssh "$H" "cd $RR && ~/.claude/bin/cpujob 026-l1-sweep ctest --test-dir build -L '^determinism-sweep$' -j2 --output-on-failure"`,
+- [X] T040 [US2] [RUN] Linux 5b: the same sweep manifest for Linux (B1), on the tree that holds the Phase 1 hook: stamp, `ssh "$H" "cd $RR && ~/.claude/bin/cpujob 026-l1-sweep ctest --test-dir build -L '^determinism-sweep$' -j2 --output-on-failure"`,
   `baseline-sweep-images-linux.sha256`, `base-sweep-LastTest-linux.log`, a second run for `baseline-sweep-noise-linux.txt`; record the sweep's failing set on the starting tree (a failure that predates this spec is not this spec's).
-- [ ] T041 [US6] [RUN] Linux 6: `nm -D --undefined-only build/src/libshader/shading/libshader_shading.so | c++filt > tools/libshader-imports-base-linux.txt` and
+- [X] T041 [US6] [RUN] Linux 6: `nm -D --undefined-only build/src/libshader/shading/libshader_shading.so | c++filt > tools/libshader-imports-base-linux.txt` and
   `readelf -d build/src/libshader/shading/libshader_shading.so > tools/libshader-dynamic-base-linux.txt` (on the remote). Record whether `FLAGS` has `BIND_NOW`: it decides
   whether the Phase 2 load stub must define the undefined functions as well as the vtables (the table may differ by platform; recorded, not tagged).
 - [ ] T042 Linux 7: `$T/linux_sync.sh pull`, then `ls $T/*-linux* tests/shading_contract/replay/linux.txt`, and `$T/linux_sync.sh verify`. All of: `archcheck-base-linux.txt`,
   `baseline-images-linux.sha256`, `baseline-diffs-linux.txt`, `baseline-image-noise-linux.txt`, `libshader-imports-base-linux.txt`,
   `libshader-dynamic-base-linux.txt`, `base-LastTest-linux.log`, `baseline-sweep-images-linux.sha256`, `baseline-sweep-noise-linux.txt`, `base-sweep-LastTest-linux.log`, `replay/linux.txt` must exist locally. This is the gate: without them Phase 2 does not start.
+  **Not complete:** all the other Linux files were pulled and verified (10 files, 0 differences); `replay/linux.txt` does not exist (T038).
 - [ ] T043 [US2] **Checkpoint 1 (PAUSE 1, LINUX GATE)**: stage `src/` (the hook), `tests/shading_contract/`, `tests/CMakeLists.txt`, `tools/**`, `validation.md`. Summarize: the
   macOS and Linux baselines (test counts, failing sets, noise lists), the hook's 12 call sites, the replay's per-family request counts on both platforms, the eight mutation results,
   the 6 imports, and the CP-c result. **Ask the maintainer to approve the two recorded replay files (`replay/macos.txt`, `replay/linux.txt`) as new references**; once approved they are
@@ -400,7 +403,7 @@ The one TEST-APPROVAL for the bulk of the test code is at the end of this phase;
 
 ### Tests block (everything in this phase is a test; no `src/` file changes)
 
-- [ ] T044 [US1] Extend `tests/shading_contract/CMakeLists.txt` under `if(OPENRENDER_SHADING_CONTRACT_TESTS)`: the executables `test_shading_contract_standalone` (links
+- [ ] T044 [US1] (**Phase 2 note, 2026-10-31: `Situations` must cover the non-default hit modes itself, T009 found none in the visual suite**) Extend `tests/shading_contract/CMakeLists.txt` under `if(OPENRENDER_SHADING_CONTRACT_TESTS)`: the executables `test_shading_contract_standalone` (links
   `libshader_shading`, `openrendercommon`, `state_only_sources` (spec 025's State-only library from `tests/unit/state/CMakeLists.txt`), `load_stub.cpp` and the doubles; **no `ribRender`**,
   nothing from `src/ri/{render,hiders,geometry}`) and `test_shading_contract_rendered` (adds `ribRender`). Both `EXCLUDE_FROM_ALL`. Each executable takes the case name as
   `argv[1]`; one ctest entry per case, every one `DISABLED TRUE`, label `shading_contract`, `TIMEOUT`, the same environment as `tests/shading_parity`. The `*Jit` entries and the `.slo`

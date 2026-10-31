@@ -10,7 +10,7 @@
 # tests/shading_contract/replay/{macos,linux}.txt are recorded once, on the starting tree, and are
 # never re-recorded from a changed tree.
 #
-# Red-first convention (tasks.md): an executable is EXCLUDE_FROM_ALL and its test DISABLED until the
+# Red-first convention (tasks.md): an executable is EXCLUDE_FROM_ALL (the replay ones joined the build at T021, once the hook existed) and its test DISABLED until the
 # phase that provides what it needs, so the main build and every checkpoint stay green.
 
 # The contract programs (Phase 2) need headers that do not exist before Phase 3: OFF until then.
@@ -75,7 +75,7 @@ set(SHADING_CONTRACT_ENV
 # GitHub #2) and need the renderer library.
 # ---------------------------------------------------------------------------
 foreach(_t record check)
-    add_executable(test_shading_contract_trace_replay_${_t} EXCLUDE_FROM_ALL replay/trace_replay_${_t}.cpp)
+    add_executable(test_shading_contract_trace_replay_${_t} replay/trace_replay_${_t}.cpp)
     target_compile_features(test_shading_contract_trace_replay_${_t} PRIVATE cxx_std_20)
     target_include_directories(test_shading_contract_trace_replay_${_t} PRIVATE ${SHADING_CONTRACT_INCLUDES})
     target_link_libraries(test_shading_contract_trace_replay_${_t} PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
@@ -85,18 +85,18 @@ foreach(_t record check)
     endif()
 endforeach()
 
-# ShadingContract_TraceReplayRecord: writes replay-fresh.txt into the build tree only. T023 enables it.
+# ShadingContract_TraceReplayRecord: writes replay-fresh.txt into the build tree only. Enabled at T023.
 add_test(NAME ShadingContract_TraceReplayRecord COMMAND test_shading_contract_trace_replay_record
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 set_tests_properties(ShadingContract_TraceReplayRecord PROPERTIES
-    TIMEOUT 600 LABELS "shading_contract-record" ENVIRONMENT "${SHADING_CONTRACT_ENV}" DISABLED TRUE)
+    TIMEOUT 600 LABELS "shading_contract-record" ENVIRONMENT "${SHADING_CONTRACT_ENV}")
 
-# ShadingContract_TraceReplay_<builtin>: a fresh run against the recorded replay. T024 enables them.
+# ShadingContract_TraceReplay_<builtin>: a fresh run against the recorded replay. Enabled at T024.
 foreach(_b trace transmission visibility gather environment shadow occlusion indirectdiffuse)
     set(_cwd ${CMAKE_CURRENT_BINARY_DIR}/cwd/TraceReplay_${_b})
     file(MAKE_DIRECTORY ${_cwd})
     add_test(NAME ShadingContract_TraceReplay_${_b} COMMAND test_shading_contract_trace_replay_check ${_b}
              WORKING_DIRECTORY ${_cwd})
     set_tests_properties(ShadingContract_TraceReplay_${_b} PROPERTIES
-        TIMEOUT 300 LABELS "shading_contract" ENVIRONMENT "${SHADING_CONTRACT_ENV}" DISABLED TRUE)
+        TIMEOUT 300 LABELS "shading_contract" ENVIRONMENT "${SHADING_CONTRACT_ENV}")
 endforeach()

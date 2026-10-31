@@ -34,11 +34,31 @@ implement stage, phase by phase. Nothing below the headings of §0 to §3 and §
 
 **T010 `linux_sync.sh --dry-run`**: 3,110 files listed, none under `build*` or `.git/` (the two `.git*` entries are `.github` and `.gitignore`); no Linux-only file is listed; the script refuses a remote root other than `Projects/Development/CLI/openrender-026` and any root ending in `/openrender`, `/openrender-039` or `/openrender-037`. `rsync -rlpc --from0 --files-from` works with the local openrsync (protocol 29); the remote rsync is 3.2.7 (first real push at T035).
 
+**T016 TEST-APPROVAL (answered 2026-10-31, maintainer via the coordinator): approved, every recommendation accepted** (replay design, the eight scenes, the hook shape with the public `reportTraceRequest` member and the null guard at the 12 sites, the eight mutations with a clean `git diff` after each revert). **Carried to Phase 2: the `Situations` scene set must cover the non-default hit modes itself, because T009 found none in the visual suite.** Nothing recorded in Phase 1 counts as an approved reference before T043.
+
 **Tooling notes.** The shell prints `setValueForKeyFakeAssocArray`/`valueForKeyFakeAssocArray` errors on every command (filtered). The Linux host `juvenal@ubuntu-2404-desktop.v2-labs.io` answers (2 cores, 11 GB free in `/home`, cmake 3.28.3, GCC 13.3.0, `~/.claude/bin/cpujob` present); `openrender` and `openrender-037` trees exist there and are not touched.
 
 ## §1 Checkpoint records (one table per phase)
 
-_Not yet taken._
+### Phase 1 (macOS; the hook is in the tree)
+
+| Check | Result |
+|---|---|
+| CP-a build (`cpujob 026-p1-build`, `-j4`, Release, `-Werror`) | exit 0; no compiler warning; `ribVector` and the two replay executables built (the only warnings are the pre-existing `ld`/Swift ones, 21 against 23 on the starting tree) |
+| CP-b suite (`-LE determinism-sweep -j4`), hook in, replay tests still disabled (T022) | 929 tests, 100% passed; the 9 `ShadingContract_*` tests "Not Run (Disabled)"; `LibShader_Format_rslo_lower_minor` skips itself as on the baseline |
+| CP-d (T022) | 819 images, **0 differing, 0 missing**; every `MaxBlockAvgDiff` equal to `baseline-diffs-macos.txt` (the hook adds no output) |
+| Record (T023) | `ShadingContract_TraceReplayRecord` run twice: `replay-fresh.txt` byte-identical (788 lines). Copied to `tests/shading_contract/replay/macos.txt` |
+| Requests per family and backend (macOS) | `trace` 10 requests / 28 rays; `transmission` 2 / 20; `visibility` 8 / 8; `gather` 12 / 48; `environment` 3 / 24; `shadow` 2 / 20; `occlusion` 48 / 48; `indirectdiffuse` 48 / 48, **identical for `.rslo` and `.slo`** (every section of the two backends is byte-identical on macOS). No family is empty |
+| T024 | the 8 `TraceReplay_*` enabled: 8 of 8 green by construction |
+| T025 to T032 | eight mutations, each turned its named test red (§2) |
+| T033: after the reverts | `git diff` empty, full rebuild, 8 of 8 green; CP-b again (`p1b.LastTest.log`): **938 tests, 100% passed** (929 + the 9 now enabled), CP-d again **0 differing, 0 missing, `MaxBlockAvgDiff` equal** |
+| CP-c (T034) `ctest -L architecture` | 21 of 21 passed |
+| CP-c archcheck report (`build-logs/archcheck-p1.txt`) | `ALLOWED DB-001 x 8 DB-004 x 52 DB-005 x 8 DB-006 x 33 DB-010 x 8 DB-011 x 166 DB-015 x 10 DB-017 x 78 DB-019 x 3 DB-021 x 3 DB-025 x 12`; `METRIC Shading refs 0 (baseline 0)`, TOTAL 613 (baseline 613); `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`. The `ALLOWED`/`METRIC`/`RESULT` lines are identical to the starting tree's. No `incomplete build tree` with the two replay executables built |
+| Imports | the 6 flat-namespace imports are unchanged (`nm` diff against `libshader-imports-base-macos.txt` empty) |
+| After the Linux-driven test-header fix (below) | rebuild clean, 8 of 8 replay tests green again |
+
+The only edit made to approved test code since T016 is the GCC 13 fix in `tests/shading_contract/replay/trace_replay.h` (§3): `backends()` returns a `static const` vector built from one initializer list instead of `push_back` after a one-element list. It changes no value and no recorded byte.
+
 
 ## §2 Red evidence (Test gates, mutations)
 
@@ -61,9 +81,44 @@ tests/shading_contract/replay/trace_replay.h:156:26: error: no member named 'tra
 
 Scene sanity (not a test): the 8 scenes rendered with the real `orender` on both backends (16 renders, no diagnostic) before the hook existed, so a scene problem cannot be mistaken for a hook problem later.
 
+### Phase 1 (T025 to T032): the eight replay mutations (macOS)
+
+Each mutation: edited, `cmake --build build --target test_shading_contract_trace_replay_check -j4`, `ctest -L '^shading_contract$'`, reverted with `git checkout -- <file>` (the hook is staged, so that restores the hooked file), `git diff` empty after the revert (the first row printed 27 lines only because `tests/shading_contract/CMakeLists.txt` had an unstaged `DISABLED` removal at that moment; staged since, every later row is 0 lines). Driver and logs: `build-logs/mut-<name>-{build,test}.log`, `build-logs/mut-<name>.diff`. Every named test went red, with the first differing field named:
+
+| Builtin | Mutation | Named test | First failing line | Other tests red under the same edit |
+|---|---|---|---|---|
+| trace | `executeMisc.cpp`, `traceReflection`: `cRay->tmin = rays->bias;` -> `cRay->tmin = 0;` | `ShadingContract_TraceReplay_trace` RED | `TraceReplay trace (rslo): request 0 ray 0 field tmin differs: recorded tmin=0x1.47ae14p-7, fresh tmin=0x0p+0` | `environment` (it reaches `traceReflection` too) |
+| transmission | `executeMisc.cpp`, `traceTransmission` (non-motion branch): `cRay->time = rays->time;` -> `cRay->time = rays->time + 0.25f;` (the task's "or change the copied time" variant: `traceTransmission` has one bundle, no exterior/interior pair to swap) | `ShadingContract_TraceReplay_transmission` RED | `TraceReplay transmission (rslo): request 0 ray 0 field time differs: recorded time=0x0p+0, fresh time=0x1p-2` | `visibility`, `shadow` (same shared line) |
+| visibility | `executeMisc.cpp`, `traceTransmission` probe branch: added `cRay->tmin = 0;` before the hook | `ShadingContract_TraceReplay_visibility` RED | `TraceReplay visibility (rslo): request 0 ray 0 field tmin differs: recorded tmin=0x1.47ae14p-7, fresh tmin=0x0p+0` | none |
+| gather | `shading.cpp`, `gatherBegin`: both `ray->da = ...` assignments -> `ray->da = 0.0f;` | `ShadingContract_TraceReplay_gather` RED | `TraceReplay gather (rslo): request 8 ray 0 field da differs: recorded da=0x1p+0, fresh da=0x0p+0` | none |
+| environment | `shaderFunctions.h:1892` (the `ENVIRONMENTEXPR_PRE` macro): `rays->bias = scratch->traceParams.bias;` -> `... * 2.0f;` | `ShadingContract_TraceReplay_environment` RED | `TraceReplay environment (rslo): request 0 ray 0 field tmin differs: recorded tmin=0x1.47ae14p-7, fresh tmin=0x1.47ae14p-6` | none |
+| shadow | `shaderFunctions.h:2002` (the `SHADOWEXPR_PRE` macro): the same `* 2.0f` | `ShadingContract_TraceReplay_shadow` RED | `TraceReplay shadow (rslo): request 0 ray 0 field t differs: recorded t=0x1.6d530cp-3, fresh t=0x1.58d82cp-3` | none |
+| occlusion | `irradianceDispatch.cpp:361` (occlusion branch of `CIrradianceCache::sample`): `ray.tmin = scratch->traceParams.bias;` -> `ray.tmin = 0;` | `ShadingContract_TraceReplay_occlusion` RED | `TraceReplay occlusion (rslo): request 0 ray 0 field tmin differs: recorded tmin=0x1.47ae14p-7, fresh tmin=0x0p+0` | none |
+| indirectdiffuse | `irradianceDispatch.cpp:465` (indirectdiffuse branch): the same | `ShadingContract_TraceReplay_indirectdiffuse` RED | `TraceReplay indirectdiffuse (rslo): request 0 ray 0 field tmin differs: recorded tmin=0x1.47ae14p-7, fresh tmin=0x0p+0` | none |
+
+The `gather` mutation is detected on request 8 (the second `gather()` call, whose cone is wide enough for a non-zero `da`); the first call's `da` is 0 in the recording. After the eight reverts the tree was rebuilt in full: `git diff` empty, 8 of 8 replay tests green, and CP-b/CP-d repeated (see §1).
+
 ## §3 Linux records
 
-_Not yet taken._ Note for the reader: the Linux baseline is taken on the starting `src/` **plus the Phase 1 observer hook** (the macOS baseline is taken before it). The hook is null in production and adds no output, which the macOS manifest check at the end of Phase 1 shows; the Linux baseline is therefore comparable with the starting tree.
+Note for the reader: the Linux baseline is taken on the starting `src/` **plus the Phase 1 observer hook** (the macOS baseline is taken before it). The hook is null in production and adds no output, which the macOS manifest check shows (§1); the Linux baseline is therefore comparable with the starting tree.
+
+**Tree**: `juvenal@ubuntu-2404-desktop.v2-labs.io:~/Projects/Development/CLI/openrender-026` (created; `openrender` and `openrender-037` untouched), GCC 13.3.0, cmake 3.28.3, Release, JIT on (`.slo` built), 2 cores. Remote jobs through `~/.claude/bin/cpujob` at `-j2`; the first build ran with `CPUJOB_TIMEOUT=7200` (the build itself needed far less). The lock was shared with spec 037 (a few jobs queued behind its suite).
+
+| Step | Result |
+|---|---|
+| T035 `linux_sync.sh push` / `verify` | pushed 3,139 files; **3139 files, 0 differences**; `no-git-ok` (no `.git` in the remote tree). The recipe worked with the local openrsync against the remote rsync 3.2.7 |
+| T035 configure (`cpujob 026-l1-configure`) | clean |
+| T036 build, first attempt | **failed under `-Werror`: 4 `-Warray-bounds` errors (GCC 13 false positive) in my test header `replay::backends()`** (`std::vector<std::string> b = {"rslo"}; b.push_back("slo");`, inlined into `trace_replay_check.cpp`). Not in `src/`, not in the hook. Fixed (a single initializer list, no `push_back`), re-pushed (3,139 files, 0 differences) and rebuilt: **exit 0, no warning**. See "Deviations" in the T043 report: this is an edit to test code the maintainer approved at T016 and is listed for ratification |
+| T037 `ctest -L architecture` | 21 of 21 passed. `tools/archcheck-base-linux.txt`: `ALLOWED DB-001 x 8 ... DB-005 x 8 ... DB-006 x 33`, `METRIC Shading 0`, `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; the five deletion keys are present (no platform tag) |
+| T038 record, run twice | **NOT byte-identical** (`cmp`: differ at byte 20240, line 110). See defect D1. 14 of the 16 sections are identical between the two runs and match macOS in request counts; the `.slo` sections of `transmission` and `shadow` differ run to run. `tests/shading_contract/replay/linux.txt` was therefore **not** kept (deleted from the remote tree); both runs are kept as evidence in `tools/replay-nondeterminism-linux-run{1,2}.txt` |
+| T039 suite 1 (`-LE determinism-sweep -E '^ShadingContract_TraceReplay_' -j2`) | **931 tests, 924 passed, 7 failed**: `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes`, `TextureTile_RenderByteIdentical`, `TextureTile_CacheByteIdentical`, `TextureTile_CacheDefaultDirectory`, `TextureTile_CacheStaleDetection`, `TextureTile_CacheConcurrentWrite`, `LibShader_McompConsistency`. These are the Linux baseline's failing set (the 7 of the earlier specs: #44, #45, #46, #57). The 8 `TraceReplay_*` checks are excluded because no `linux.txt` exists; the recorder test ran. Manifest: 819 images; `baseline-diffs-linux.txt` 389 entries; log `tools/base-LastTest-linux.log` |
+| T039 suite 2 (noise) | same 7 failures; 819 images, **0 differing**; every `MaxBlockAvgDiff` equal; `baseline-image-noise-linux.txt` is empty (comment only) |
+| T040 sweep 1 (`-L '^determinism-sweep$' -j2`) | 419 tests, 417 passed, **2 failed**: `DeterminismSweep_sphere-texture3d-bake3d-reyes` and `..._reyes-slo`. 419 images in `baseline-sweep-images-linux.sha256` |
+| T040 sweep 2 | **419 of 419 passed**; 2 images differ from run 1: the same two bake3d scenes. They are the Linux sweep noise (`baseline-sweep-noise-linux.txt`) and flaky on the starting tree (a failure that predates this spec) |
+| T041 `nm -D --undefined-only` | the same 6 imports as macOS (`CPhotonMap::lookup`, `CGatherBundle::CGatherBundle()`, `CShadingContext::trace(CRay*)`, `CShadingContext::traceEx(CRayBundle*)`, `vtable for CTraceBundle`, `vtable for CTransmissionBundle`) among libstdc++/glibc ones. `readelf -d`: **no `FLAGS` entry, so no `BIND_NOW`**: function imports bind lazily through the PLT; the vtables are data relocations and resolve at load. So the Phase 2 load stub must define the 2 vtables; the undefined functions are only needed if something calls them (they are not bound at load) |
+| T042 `linux_sync.sh pull` | 10 files, 0 differences (all `*-linux*` files below). `replay/linux.txt` does **not** exist (see D1) |
+
+Files pulled: `archcheck-base-linux.txt`, `baseline-images-linux.sha256`, `baseline-diffs-linux.txt`, `baseline-image-noise-linux.txt`, `libshader-imports-base-linux.txt`, `libshader-dynamic-base-linux.txt`, `base-LastTest-linux.log`, `baseline-sweep-images-linux.sha256`, `baseline-sweep-noise-linux.txt`, `base-sweep-LastTest-linux.log`.
 
 ## §4 Findings: triage and filed issues
 
@@ -203,6 +258,29 @@ Reproduction (not run): `Attribute "user" ...` holding a color, then in a surfac
 
 Needs the destination length from the compiler (a signature or ABI change for these builtins); belongs with spec 033. Found while specifying spec 026's `TypeMismatch` rule.
 
+### §4.4 Defects found while implementing (not filed; for the maintainer)
+
+#### D1. Linux: the `.slo` `transmission()` and `shadow()` shading calls read uninitialized or non-deterministic data (found at T038)
+
+Found by the trace replay, on the starting tree plus the (read-only) hook, GCC 13.3, Ubuntu 24.04, Release.
+
+- Two runs of `ShadingContract_TraceReplayRecord` on Linux differ in exactly two of the 16 sections: `scene=transmission backend=slo` and `scene=shadow backend=slo`. All 14 other sections (including the **`.rslo` sections of the same two scenes**) are byte-identical between runs, and the request counts match macOS.
+- In run 1, `transmission` `.slo` and `.rslo` differ from each other (the sections are equal on macOS); `shadow` `.slo` made 13 rays against 20 for `.rslo` in run 1, and in run 2 it differs again. The rays that differ have a different `from` (one component, e.g. y) and a different `dir`/`t`, with the same key, `tmin`, `da` and `db`; one shadow request carries `da=-nan` (8 such values in run 1). The hook only reads fields the call sites have already written, and the `.rslo` sections (same `traceTransmission`, same hook) are stable, so the unstable input enters in the JIT's setup of the `CTraceLocation` records.
+- Not reproduced on macOS (two runs identical, every `.rslo`/`.slo` pair identical), which fits an uninitialized read that happens to see zeroes there.
+- Where to look (not debugged: no debugger by rule): `CShadingContext::jitTraceBatch` (`shading.cpp`, the `.slo` `transmission()`/`visibility()`/`trace()` entry) and the JIT shadow/environment setup next to it (`shading.cpp`, `CTraceLocation` fields `dPdu`, `dPdv`, `dDdu`, `dDdv`, `P`), against the interpreter's `TRANSMISSIONEXPR_PRE`/`SHADOWEXPR_PRE` (`giFunctions.h`, `shaderFunctions.h`). On a raytrace hit the shading dimension is 0-D, where the interpreter's `duVector`/`dvVector` write zeros; a JIT path that passes derivative arrays it did not fill, or that reads past a uniform-collapsed argument, would give exactly this symptom. Related to the known JIT items (GitHub #8, and the "uniform-dispatch numVerts tax" of spec 011).
+- Consequence for this spec: `replay/linux.txt` cannot be recorded for those two `.slo` sections. T038's "two byte-identical" check fails, and the baseline cannot honestly pin them. It also means a Linux `.slo` render of a scene using `transmission()` or a ray-traced `shadow()` is not deterministic on the starting tree.
+- Stop condition applied: "a Linux-only starting-tree failure". Nothing was worked around; the decision is in the T043 report. Evidence: `tools/replay-nondeterminism-linux-run1.txt`, `tools/replay-nondeterminism-linux-run2.txt`.
+
+#### D2. GCC 13 `-Warray-bounds` false positive on `std::vector<std::string>{...}` followed by `push_back`
+
+Not a defect of the product: a known GCC 13 diagnostic, hit by the new replay test header (see §3, T036). The fix is test-side.
+
+#### D3. Linux sweep: `sphere-texture3d-bake3d-reyes` and `-slo` are flaky on the starting tree
+
+Run 1 failed both, run 2 passed both, and their images differ between runs. macOS: no such flakiness. Recorded as the Linux sweep noise list; not this spec's.
+
+
 ## §5 Final summary against SC-001 to SC-014
 
 _Filled in at the final checkpoint._
+

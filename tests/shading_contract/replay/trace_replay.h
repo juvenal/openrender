@@ -62,10 +62,13 @@ namespace replay {
     }
 
     // The backends this build can render: .rslo always, .slo with the JIT.
-    inline std::vector<std::string> backends() {
-        std::vector<std::string> b = {"rslo"};
+    // (One initializer list, not a push_back after it: GCC 13's -Warray-bounds reads the push_back after a
+    // one-element list as an overflow, and the build is -Werror.)
+    inline const std::vector<std::string> &backends() {
 #ifdef SHADING_CONTRACT_HAVE_JIT
-        b.push_back("slo");
+        static const std::vector<std::string> b = {"rslo", "slo"};
+#else
+        static const std::vector<std::string> b = {"rslo"};
 #endif
         return b;
     }

@@ -790,6 +790,10 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
                 if (probeOnly) {
 
                     // No, just query an intersection and record the distance
+                    if (traceRequestObserver != nullptr) {
+                        CRay *probe = cRay;
+                        reportTraceRequest(TRACEREQUEST_VISIBILITY, bundle.label, 0, 1, &probe);
+                    }
                     trace(cRay);
                     rays->t += cRay->t * multiplier;
                 }
@@ -802,6 +806,8 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
                         bundle.depth = 0;
                         bundle.last = 0;
                         bundle.postShader = NULL;
+                        if (traceRequestObserver != nullptr)
+                            reportTraceRequest(TRACEREQUEST_TRANSMISSION, bundle.label, bundle.depth, bundle.numRays, bundle.rays);
                         traceEx(&bundle);
                         cRay = rayBase;
                         cRays = raysBase;
@@ -820,6 +826,8 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
         bundle.depth = 0;
         bundle.last = 0;
         bundle.postShader = NULL;
+        if (traceRequestObserver != nullptr)
+            reportTraceRequest(TRACEREQUEST_TRANSMISSION, bundle.label, bundle.depth, bundle.numRays, bundle.rays);
         traceEx(&bundle);
     }
 
@@ -936,6 +944,10 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
                 if (probeOnly) {
 
                     // No, just query an intersection and record the distance
+                    if (traceRequestObserver != nullptr) {
+                        CRay *probe = cRay;
+                        reportTraceRequest(TRACEREQUEST_TRACE, exteriorBundle.label, 0, 1, &probe);
+                    }
                     trace(cRay);
                     rays->t += cRay->t * multiplier;
                 }
@@ -951,6 +963,8 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
                             exteriorBundle.depth = 0;
                             exteriorBundle.last = 0;
                             exteriorBundle.postShader = exteriorShader;
+                            if (traceRequestObserver != nullptr)
+                                reportTraceRequest(TRACEREQUEST_TRACE, exteriorBundle.label, exteriorBundle.depth, exteriorBundle.numRays, exteriorBundle.rays);
                             traceEx(&exteriorBundle);
                             cExteriorRay = exteriorRayBase;
                             cExteriorRays = exteriorRaysBase;
@@ -968,6 +982,8 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
                             interiorBundle.depth = 0;
                             interiorBundle.last = 0;
                             interiorBundle.postShader = interiorShader;
+                            if (traceRequestObserver != nullptr)
+                                reportTraceRequest(TRACEREQUEST_TRACE, interiorBundle.label, interiorBundle.depth, interiorBundle.numRays, interiorBundle.rays);
                             traceEx(&interiorBundle);
                             cInteriorRay = interiorRayBase;
                             cInteriorRays = interiorRaysBase;
@@ -987,6 +1003,8 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
         exteriorBundle.depth = 0;
         exteriorBundle.last = 0;
         exteriorBundle.postShader = exteriorShader;
+        if (traceRequestObserver != nullptr)
+            reportTraceRequest(TRACEREQUEST_TRACE, exteriorBundle.label, exteriorBundle.depth, exteriorBundle.numRays, exteriorBundle.rays);
         traceEx(&exteriorBundle);
     }
     if (numInteriorRemaining != shootStep) {
@@ -996,6 +1014,8 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
         interiorBundle.depth = 0;
         interiorBundle.last = 0;
         interiorBundle.postShader = interiorShader;
+        if (traceRequestObserver != nullptr)
+            reportTraceRequest(TRACEREQUEST_TRACE, interiorBundle.label, interiorBundle.depth, interiorBundle.numRays, interiorBundle.rays);
         traceEx(&interiorBundle);
     }
 }

@@ -1,0 +1,1 @@
+# spec 026 Linux suite noise list: none. Two runs of the suite on the starting tree (plus the Phase 1 hook) wrote byte-identical images (819 images, 0 differing); every MaxBlockAvgDiff equal.

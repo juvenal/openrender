@@ -269,6 +269,30 @@ struct CPointDisplacedReport {
 };
 typedef void (*CPointDisplacedObserver)(const CPointDisplacedReport &);
 
+// A third test hook (spec 026, Phase 1): called just before Shading hands rays to the tracer,
+// with the request's kind, label, bundle depth, path depth and rays (their inputs: the tracer
+// has not run yet). Null in production. See CShadingContext::traceRequestObserver; it exists
+// for the trace replay (tests/shading_contract/replay), a characterization of the rays each
+// builtin makes. The kind names the call-site family, not the builtin: environment() reports
+// TRACE and shadow() reports TRANSMISSION.
+enum ETraceRequestKind {
+    TRACEREQUEST_TRACE,           // traceReflection: the bundle forms and the float probe of trace()/environment()
+    TRACEREQUEST_TRANSMISSION,    // traceTransmission bundles: transmission() and ray-traced shadow()
+    TRACEREQUEST_VISIBILITY,      // traceTransmission probes: visibility()
+    TRACEREQUEST_GATHER,          // gatherSample bundles
+    TRACEREQUEST_OCCLUSION,       // CIrradianceCache::sample, occlusion()
+    TRACEREQUEST_INDIRECTDIFFUSE, // CIrradianceCache::sample, indirectdiffuse()
+};
+struct CTraceRequestReport {
+        int kind;          // ETraceRequestKind
+        const char *label; // The ray label (may be nullptr)
+        int bundleDepth;   // The bundle's transparency depth (0 for a probe ray)
+        int pathDepth;     // The context's current ray depth
+        int numRays;       // The rays of the request
+        CRay *const *rays; // They, not yet traced
+};
+typedef void (*CTraceRequestObserver)(const CTraceRequestReport &);
+
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRayBundle
 // Description			:	Encapsulates a bundle of rays
@@ -322,6 +346,7 @@ class CShadingContext {
         // Test hook, null in production (see CPointKeyReport). Set only by tests.
         static CPointKeyObserver pointKeyObserver;
         static CPointDisplacedObserver pointDisplacedObserver; // Test hook, null in production
+        static CTraceRequestObserver traceRequestObserver;     // Test hook, null in production; set only by tests (spec 026)
 
         CShadingContext(int thread);
         virtual ~CShadingContext();
@@ -355,6 +380,9 @@ class CShadingContext {
         void trace(CRayBundle *);   // Trace and maybe shade bunch of rays
         void traceEx(CRayBundle *); // Trace and maybe shade a bundle of rays. This version increments the shading depth
         void trace(CRay *);         // Trace a ray (no shading)
+
+        // Report a trace request to traceRequestObserver. Callers test the observer for null first, so nothing is built in production.
+        void reportTraceRequest(int kind, const char *label, int bundleDepth, int numRays, CRay *const *rays) const;
         void traceAny(CRay *);      // Trace any ray (no shading)
 
         // gather()/gatherElse/gatherEnd shared computation, called from both the .rslo
