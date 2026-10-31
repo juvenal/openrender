@@ -114,6 +114,7 @@ CTrie<CNetFileMapping *> *CRenderer::netFileMappings = NULL;                 // 
 int CRenderer::numKnownGlobalIds = 0;                                        // initialized in initDeclarations
 CVariable *CRenderer::variables = NULL;                                      // initialized in initDeclarations, destroyed in shutdownDeclarations
 CArray<CVariable *> *CRenderer::globalVariables = NULL;                      // initialized in initDeclarations, destroyed in shutdownDeclarations
+CDisplayHost *CRenderer::displayHost = NULL;                                  // created in computeDisplayData, deleted in endDisplays
 CShadeopRegistry *CRenderer::shadeops = NULL;                                // initialized in initFiles, destroyed in shutdownFiles
 SOCKET CRenderer::netClient = INVALID_SOCKET;                                // initialized in initNetwork
 int CRenderer::netNumServers = 0;                                            // initialized in initNetwork

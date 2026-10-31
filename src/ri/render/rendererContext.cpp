@@ -1433,8 +1433,12 @@ void CRendererContext::RiDisplayV(const char *name, const char *type, const char
                     case TYPE_QUAD:
                     case TYPE_MPOINT:
                     case TYPE_DOUBLE:
-                        // No display driver consumes any of these.
-                        break;
+                        // No display driver consumes any of these: drop the entry (FR-040). j is not advanced,
+                        // so the stored count covers only initialized entries.
+                        warning(CODE_BADTOKEN, "Display parameter \"%s\": type not supported by display drivers, ignored\n", cDisplay->parameters[j].name);
+                        free(cDisplay->parameters[j].name);
+                        cDisplay->parameters[j].name = NULL;
+                        continue;
                     case TYPE_STRING:
                         cDisplay->parameters[j].type = EDisplayParameterType::String;
                         cDisplay->parameters[j].data = strdup(((char **)params[i])[0]);

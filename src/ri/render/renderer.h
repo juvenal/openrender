@@ -31,7 +31,6 @@
 #include "common/global.h"
 #include "common/os.h"
 #include "common/memory.h"
-#include "dsply.h" // spec 025: options.h no longer pulls in the display plug-in ABI
 #include "options.h"
 #include "shader.h" // spec 025: attributes.h and options.h no longer pull in Shading
 
@@ -96,6 +95,7 @@ class CGlobalIdentifier;
 class CXform;
 class CDSO;
 class CShadeopRegistry;
+class CDisplayHost;
 class CRendererContext;
 class CNetFileMapping;
 class CRay;
@@ -454,19 +454,15 @@ class CRenderer {
         // Comments				:
         class CDisplayData {
             public:
-                void *module;   // The module handle for the out device
-                void *handle;   // The handle for the out device
+                int hostIndex;  // The display's index in displayHost, or -1 (tsm, network client, a driver that did not load)
                 int numSamples; // The number of samples
                 CDisplayChannel *channels;
                 int numChannels;
-                char *displayName;               // The computed display name
-                TDisplayStartFunction start;     // The start function for the out device
-                TDisplayDataFunction data;       // The data function
-                TDisplayRawDataFunction rawData; // The raw data function
-                TDisplayFinishFunction finish;   // The finish function
-                COptions::CDisplay *display;     // The display corresponding to this display
+                char *displayName;           // The computed display name
+                COptions::CDisplay *display; // The display corresponding to this display
         };
 
+        static CDisplayHost *displayHost; // Loads, starts, feeds, finishes and releases the display drivers (displayHost.h)
         static int numDisplays;
         static CDisplayData *datas;
         static int *sampleOrder;            // variable entry, sample count pairs

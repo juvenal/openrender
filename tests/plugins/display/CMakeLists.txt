@@ -57,8 +57,8 @@ set_tests_properties(DisplayAbi_UnsupportedParamType PROPERTIES ENVIRONMENT "${O
 #     DisplayAbi_Versions_Reject, DisplayAbi_Versions_V1, DisplayV1_LegacyLoads, DisplayV1_Explicit1x,
 #     DisplayV1_HostileCopiesOnly, DisplayV1_CustomDisplay, DisplayV1_SerializedData, and in checks/
 #     DisplayV1_NoCastCheck
-#   DISABLED until T085/T086 (they need the new dsply.h, so their fixtures are EXCLUDE_FROM_ALL, or
-#   src/ri/render/displayHost.h): DisplayAbi_Versions_V2, DisplayAbi_HiddenVisibility, DisplayAbi_ZeroAndDepthOnly,
+#   written DISABLED until T085/T086 (they need the new dsply.h, so their fixtures were EXCLUDE_FROM_ALL, or
+#   src/ri/render/displayHost.h); T093 removed the markers: DisplayAbi_Versions_V2, DisplayAbi_HiddenVisibility, DisplayAbi_ZeroAndDepthOnly,
 #   DisplayAbi_Descriptors, DisplayAbi_TwoDisplayParams, DisplayAbi_Snapshot, DisplayAbi_LateDisable,
 #   DisplayAbi_Hostile, DisplayAbi_ReleaseAfterFinish_V2
 # Red state of the disabled ones: `cmake --build build --target plugin_display_v2 ... test_display_host` fails to
@@ -74,13 +74,13 @@ or_plugin_test_module(plugin_display_v1_hostile display v1_hostile v1_fixture.c 
 or_plugin_test_module(plugin_display_v1_serial display v1_serial v1_fixture.c DEFS TEST_SERIAL)
 or_plugin_test_module(plugin_display_v1_serial_fail display v1_serial_fail v1_fixture.c DEFS TEST_SERIAL TEST_FAIL_AT=3)
 
-# --- fixtures written against the new dsply.h: EXCLUDE_FROM_ALL until T085 ---
-or_plugin_test_module(plugin_display_v2 display v2 v2_fixture.c EXCLUDE_FROM_ALL)
-or_plugin_test_module(plugin_display_v2_hidden display v2_hidden v2_fixture.c HIDDEN EXCLUDE_FROM_ALL)
-or_plugin_test_module(plugin_display_v2_newer display v2_newer v2_fixture.c DEFS TEST_ABI_MAJOR=2 TEST_ABI_MINOR=9 EXCLUDE_FROM_ALL)
-or_plugin_test_module(plugin_display_v2_record display v2_record v2_fixture.c DEFS TEST_RECORD EXCLUDE_FROM_ALL)
-or_plugin_test_module(plugin_display_v2_failfirst display v2_failfirst v2_fixture.c DEFS TEST_FAILFIRST EXCLUDE_FROM_ALL)
-or_plugin_test_module(plugin_display_v2_hostile display v2_hostile v2_fixture.c DEFS TEST_HOSTILE EXCLUDE_FROM_ALL)
+# --- fixtures written against the new dsply.h (EXCLUDE_FROM_ALL until T085; T093 removed the markers) ---
+or_plugin_test_module(plugin_display_v2 display v2 v2_fixture.c)
+or_plugin_test_module(plugin_display_v2_hidden display v2_hidden v2_fixture.c HIDDEN)
+or_plugin_test_module(plugin_display_v2_newer display v2_newer v2_fixture.c DEFS TEST_ABI_MAJOR=2 TEST_ABI_MINOR=9)
+or_plugin_test_module(plugin_display_v2_record display v2_record v2_fixture.c DEFS TEST_RECORD)
+or_plugin_test_module(plugin_display_v2_failfirst display v2_failfirst v2_fixture.c DEFS TEST_FAILFIRST)
+or_plugin_test_module(plugin_display_v2_hostile display v2_hostile v2_fixture.c DEFS TEST_HOSTILE)
 set(DISPLAY_V2_FIXTURES plugin_display_v2 plugin_display_v2_hidden plugin_display_v2_newer plugin_display_v2_record
     plugin_display_v2_failfirst plugin_display_v2_hostile)
 
@@ -141,11 +141,10 @@ display_script_test(DisplayAbi_Versions_Reject check_versions_reject.cmake 180)
 display_script_test(DisplayAbi_Versions_V1 check_versions_v1.cmake 180)
 display_script_test(DisplayAbi_Versions_V2 check_versions_v2.cmake 180 "-DCASES=v2|v2_newer")
 display_script_test(DisplayAbi_HiddenVisibility check_versions_v2.cmake 120 "-DCASES=v2_hidden")
-set_tests_properties(DisplayAbi_Versions_V2 DisplayAbi_HiddenVisibility PROPERTIES DISABLED TRUE)
 
 find_package(Threads REQUIRED)
 # the in-process tests that drive CDisplayHost (src/ri/render/displayHost.h does not exist yet)
-add_executable(test_display_host EXCLUDE_FROM_ALL test_display_host.cpp)
+add_executable(test_display_host test_display_host.cpp)
 target_link_libraries(test_display_host PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon Threads::Threads)
 target_include_directories(test_display_host PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_BINARY_DIR})
 target_compile_features(test_display_host PRIVATE cxx_std_20)
@@ -157,12 +156,11 @@ foreach(_pair "zero|DisplayAbi_ZeroAndDepthOnly" "descriptors|DisplayAbi_Descrip
     list(GET _p 1 _test)
     file(MAKE_DIRECTORY ${OR_PLUGIN_BIN}/display/work/host_${_mode})
     or_plugin_add_test(${_test} 300 COMMAND test_display_host ${_mode} ${OR_PLUGIN_BIN})
-    set_tests_properties(${_test} PROPERTIES DISABLED TRUE WORKING_DIRECTORY ${OR_PLUGIN_BIN}/display/work/host_${_mode})
+    set_tests_properties(${_test} PROPERTIES WORKING_DIRECTORY ${OR_PLUGIN_BIN}/display/work/host_${_mode})
 endforeach()
 
 # --- group B ---
 display_script_test(DisplayAbi_Hostile check_hostile.cmake 300 "-DHOSTILE=v2_hostile|v1_hostile")
-set_tests_properties(DisplayAbi_Hostile PROPERTIES DISABLED TRUE)
 or_plugin_add_test(DisplayAbi_ReleaseAfterFinish_V2 120
     COMMAND ${CMAKE_COMMAND}
         -DORENDER=$<TARGET_FILE:orender>
@@ -171,7 +169,7 @@ or_plugin_add_test(DisplayAbi_ReleaseAfterFinish_V2 120
         -DLOG=${OR_PLUGIN_BIN}/display/work/release_v2/fixture.log
         -DCOMMON=${OR_PLUGIN_COMMON_DIR}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_release_v2.cmake)
-set_tests_properties(DisplayAbi_ReleaseAfterFinish_V2 PROPERTIES ENVIRONMENT "${OR_PLUGIN_RENDER_ENV}" DISABLED TRUE)
+set_tests_properties(DisplayAbi_ReleaseAfterFinish_V2 PROPERTIES ENVIRONMENT "${OR_PLUGIN_RENDER_ENV}")
 
 # --- group C: the adapter ---
 or_plugin_add_test(DisplayV1_LegacyLoads 180

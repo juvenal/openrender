@@ -125,6 +125,8 @@ set(ri_sources
 	render/rendererContext.cpp
 	render/rendererDeclarations.cpp
 	render/rendererDeclarationsDispatch.cpp
+	render/displayHost.cpp
+	render/displayV1Adapter.cpp
 	render/rendererDisplay.cpp
 	render/rendererFiles.cpp
 	render/rendererProcedures.cpp
@@ -381,6 +383,8 @@ list(REMOVE_ITEM ribVector_sources
     render/renderer.cpp
     render/rendererContext.cpp
     render/rendererDeclarationsDispatch.cpp
+    render/displayHost.cpp
+    render/displayV1Adapter.cpp
     render/rendererDisplay.cpp
     render/rendererFiles.cpp
     render/rendererJobs.cpp

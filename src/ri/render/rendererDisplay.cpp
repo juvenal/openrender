@@ -27,6 +27,8 @@
 #include <math.h>
 #include <string.h>
 
+#include <vector>
+
 #include "channelRegistry.h"
 #include "displayChannel.h"
 #include "common/diagnostics.h"
@@ -39,102 +41,90 @@
 #include "rendererContext.h"
 #include "stateConversions.h"
 #include "common/stats.h"
+#include "displayHost.h"
 
-static COptions::CDisplay *currentDisplay = NULL;
+namespace {
 
-///////////////////////////////////////////////////////////////////////
-// Function				:	findParameter
-// Description			:	This function can be used by the display server to probe for parameters
-// Return Value			:	-
-// Comments				:
-void *findParameter(const char *name, ParameterType type, int numItems) {
-    if (currentDisplay != NULL) {
-        int i;
-
-        // parameters provided on the display line override everything else
-        for (i = 0; i < currentDisplay->numParameters; i++) {
-            if (strcmp(name, currentDisplay->parameters[i].name) == 0) {
-                if (numItems == currentDisplay->parameters[i].numItems) {
-                    if (toStateType(type) == currentDisplay->parameters[i].type) {
-                        return currentDisplay->parameters[i].data;
-                    }
-                }
-            }
+    // The value type a channel's descriptor reports: the variable's type for an AOV, float for the standard channels
+    OrDisplayValueType valueTypeOf(const CVariable *variable) {
+        if (variable == NULL)
+            return OR_DISPLAY_VALUE_FLOAT;
+        switch (variable->type) {
+            case TYPE_COLOR:
+                return OR_DISPLAY_VALUE_COLOR;
+            case TYPE_POINT:
+                return OR_DISPLAY_VALUE_POINT;
+            case TYPE_VECTOR:
+                return OR_DISPLAY_VALUE_VECTOR;
+            case TYPE_NORMAL:
+                return OR_DISPLAY_VALUE_NORMAL;
+            case TYPE_MATRIX:
+                return OR_DISPLAY_VALUE_MATRIX;
+            default:
+                return OR_DISPLAY_VALUE_FLOAT;
         }
     }
-    // FIXME: lookup the channel's quantizer
-    // FIXME: depth quantizer for z
-    // Otherwise, we respect Quantize applied to the current display,
-    // falling back on the default color / depth quantizer
-    if (strcmp(name, "quantize") == 0) {
-        if ((numItems == 4) && (type == FLOAT_PARAMETER)) {
-            if (currentDisplay->quantizer[0] == -1) {
-                if (!strcmp(currentDisplay->outSamples, "z")) {
-                    return CRenderer::depthQuantizer;
-                }
-                else {
-                    return CRenderer::colorQuantizer;
-                }
-            }
-            else {
-                return currentDisplay->quantizer;
-            }
+
+    // What the display host is told about one display (displayHost.h): a copy of everything a driver can ask for,
+    // taken now, so the driver never sees renderer state.
+    void fillDisplaySpec(SDisplaySpec &spec, const COptions::CDisplay *cDisplay, const char *displayName, int xres, int yres, int numChannels,
+                         const CDisplayChannel *channels, const std::vector<OrDisplayValueType> &valueTypes) {
+        spec.name = displayName;
+        spec.type = cDisplay->outDevice;
+        spec.mode = cDisplay->outSamples;
+        spec.width = xres;
+        spec.height = yres;
+
+        for (int j = 0; j < numChannels; j++) {
+            SDisplayChannelSpec c;
+            c.name = channels[j].name;
+            c.numSamples = channels[j].numSamples;
+            c.valueType = valueTypes[(size_t)j];
+            c.hasQuantize = true;
+            memcpy(c.quantize, channels[j].quantizer, 5 * sizeof(float));
+            spec.channels.push_back(c);
         }
-    }
-    else if (strcmp(name, "dither") == 0) {
-        if ((numItems == 1) && (type == FLOAT_PARAMETER)) {
-            if (currentDisplay->quantizer[0] == -1) {
-                if (!strcmp(currentDisplay->outSamples, "z")) {
-                    return CRenderer::depthQuantizer + 4;
-                }
-                else {
-                    return CRenderer::colorQuantizer + 4;
-                }
+
+        for (int j = 0; j < cDisplay->numParameters; j++) {
+            const COptions::CDisplay::TDisplayParameter &p = cDisplay->parameters[j];
+            SDisplayParameterSpec out;
+            out.name = p.name;
+            out.type = static_cast<int>(toPluginType(p.type));
+            out.numItems = p.numItems;
+            switch (p.type) {
+                case EDisplayParameterType::Float:
+                    out.floats.assign((const float *)p.data, (const float *)p.data + p.numItems);
+                    break;
+                case EDisplayParameterType::Vector:
+                    out.floats.assign((const float *)p.data, (const float *)p.data + 3 * p.numItems);
+                    break;
+                case EDisplayParameterType::Matrix:
+                    out.floats.assign((const float *)p.data, (const float *)p.data + 16 * p.numItems);
+                    break;
+                case EDisplayParameterType::Integer:
+                    out.integers.assign((const int *)p.data, (const int *)p.data + p.numItems);
+                    break;
+                case EDisplayParameterType::String:
+                    out.strings.push_back((const char *)p.data);
+                    break;
             }
-            else {
-                return currentDisplay->quantizer + 4;
-            }
+            spec.parameters.push_back(out);
         }
-    }
-    else if (strcmp(name, "near") == 0) {
-        if ((numItems == 1) && (type == FLOAT_PARAMETER))
-            return &CRenderer::clipMin;
-    }
-    else if (strcmp(name, "far") == 0) {
-        if ((numItems == 1) && (type == FLOAT_PARAMETER))
-            return &CRenderer::clipMax;
-    }
-    else if (strcmp(name, "Nl") == 0) {
-        if ((numItems == 16) && (type == FLOAT_PARAMETER))
-            return &CRenderer::fromWorld;
-    }
-    else if (strcmp(name, "NP") == 0) {
-        if ((numItems == 16) && (type == FLOAT_PARAMETER))
-            return &CRenderer::worldToNDC;
-    }
-    else if (strcmp(name, "screen") == 0) {
-        if ((numItems == 16) && (type == FLOAT_PARAMETER))
-            return &CRenderer::toScreen;
-    }
-    else if (strcmp(name, "gamma") == 0) {
-        if ((numItems == 1) && (type == FLOAT_PARAMETER))
-            return &CRenderer::gamma;
-    }
-    else if (strcmp(name, "gain") == 0) {
-        if ((numItems == 1) && (type == FLOAT_PARAMETER))
-            return &CRenderer::gain;
-    }
-    else if (strcmp(name, "Software") == 0) {
-        if ((numItems == 1) && (type == STRING_PARAMETER))
-            return (void *)OPENRENDER_PROJECT_NAME;
-    }
-    else if (strcmp(name, "type") == 0 && currentDisplay) {
-        if ((numItems == 1) && (type == STRING_PARAMETER))
-            return (void *)currentDisplay->outDevice;
+
+        memcpy(spec.quantizer, cDisplay->quantizer, 5 * sizeof(float));
+        memcpy(spec.colorQuantizer, CRenderer::colorQuantizer, 5 * sizeof(float));
+        memcpy(spec.depthQuantizer, CRenderer::depthQuantizer, 5 * sizeof(float));
+        spec.clipMin = CRenderer::clipMin;
+        spec.clipMax = CRenderer::clipMax;
+        memcpy(spec.fromWorld, CRenderer::fromWorld, 16 * sizeof(float));
+        memcpy(spec.worldToNDC, CRenderer::worldToNDC, 16 * sizeof(float));
+        memcpy(spec.toScreen, CRenderer::toScreen, 16 * sizeof(float));
+        spec.gamma = CRenderer::gamma;
+        spec.gain = CRenderer::gain;
+        spec.software = OPENRENDER_PROJECT_NAME;
     }
 
-    return NULL;
-}
+} // namespace
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRenderer
@@ -234,15 +224,21 @@ void CRenderer::beginDisplays() {
 void CRenderer::endDisplays() {
     int i;
 
-    // Finish the out images
-    for (i = 0; i < numDisplays; i++) {
+    // Finish the out images. Every render thread has been joined by now (endFrame), so no dispatch is in flight:
+    // finish is called once for every display that started, and only then are the driver modules released
+    // (FR-018, FR-035). A shadow map is made from the file of a display that was still enabled at the end.
+    std::vector<bool> madeFile((size_t)numDisplays, false);
+    for (i = 0; i < numDisplays; i++)
+        madeFile[(size_t)i] = datas[i].hostIndex >= 0 && displayHost->enabled(datas[i].hostIndex);
+    if (displayHost != NULL) {
+        displayHost->finishAll();
+        delete displayHost;
+        displayHost = NULL;
+    }
 
-        // Is the module up ?
-        if (datas[i].module != NULL) {
-            datas[i].finish(datas[i].handle);
-            if (strcmp(datas[i].display->outDevice, RI_SHADOW) == 0) {
-                CRenderer::context->RiMakeShadowV(datas[i].displayName, datas[i].displayName, 0, NULL, NULL);
-            }
+    for (i = 0; i < numDisplays; i++) {
+        if (madeFile[(size_t)i] && strcmp(datas[i].display->outDevice, RI_SHADOW) == 0) {
+            CRenderer::context->RiMakeShadowV(datas[i].displayName, datas[i].displayName, 0, NULL, NULL);
         }
         if (datas[i].displayName != NULL)
             free(datas[i].displayName);
@@ -318,7 +314,7 @@ void CRenderer::dispatch(int left, int top, int width, int height, float *pixels
 
     // Send the pixels to the output servers
     for (i = 0; i < numDisplays; i++) {
-        if (datas[i].module != NULL) {
+        if (datas[i].hostIndex >= 0 && displayHost->enabled(datas[i].hostIndex)) {
             float *dispatchData;
             int imageSamples = datas[i].numSamples;
             int size = width * height * imageSamples * sizeof(float);
@@ -346,15 +342,16 @@ void CRenderer::dispatch(int left, int top, int width, int height, float *pixels
                 }
             }
 
-            if (datas[i].data(datas[i].handle, left, top, width, height, dispatchData) == FALSE) {
+            // A driver that fails disables its display; the module stays loaded until the display host finishes
+            // (the unload that used to be here raced with the other threads inside the driver)
+            bool newlyDisabled = false;
+            displayHost->dispatch(datas[i].hostIndex, left, top, width, height, dispatchData, &newlyDisabled);
+            if (newlyDisabled) {
                 // Lock this piece of code
                 osLock(displayKillMutex);
-                datas[i].handle = NULL;
                 numActiveDisplays--;
                 if (numActiveDisplays == 0)
                     hiderFlags |= HIDER_BREAK;
-                osUnloadModule(datas[i].module);
-                datas[i].module = NULL;
                 osUnlock(displayKillMutex);
             }
 
@@ -568,6 +565,7 @@ void CRenderer::computeDisplayData() {
         ;
 
     datas = new CDisplayData[i];
+    displayHost = new CDisplayHost;
     j = 0;
     numSamples = 5; // rgbaz
     numExtraSamples = 0;
@@ -580,6 +578,7 @@ void CRenderer::computeDisplayData() {
 
     for (cDisplay = displays; cDisplay != NULL; cDisplay = cDisplay->next) {
         datas[numDisplays].display = cDisplay;
+        datas[numDisplays].hostIndex = -1;
         datas[numDisplays].displayName = NULL;
         datas[numDisplays].numChannels = 0;
         datas[numDisplays].channels = NULL;
@@ -598,6 +597,7 @@ void CRenderer::computeDisplayData() {
             dspNumChannels++;
         }
         datas[numDisplays].channels = new CDisplayChannel[dspNumChannels];
+        std::vector<OrDisplayValueType> valueTypes; // per channel, for the descriptors
 
         // parse the channels / sample types
         sampleDefinition = strdup(cDisplay->outSamples); // duplicate to tokenize
@@ -691,6 +691,7 @@ void CRenderer::computeDisplayData() {
                 dspNumExtraChannels++;
                 isNewChannel = TRUE;
             }
+            valueTypes.push_back(valueTypeOf(oChannel->variable));
             memcpy((void *)(datas[numDisplays].channels + dspNumChannels), oChannel, sizeof(CDisplayChannel));
             if (oChannel->fill) {
                 // ensure a deep copy
@@ -743,9 +744,7 @@ void CRenderer::computeDisplayData() {
             int j;
             CDeepShadowHeader header;
 
-            // The TSM is hardcoded
-            datas[numDisplays].module = NULL;
-            datas[numDisplays].handle = NULL;
+            // The TSM is hardcoded (no display driver)
 
             // Set up the file header
             header.xres = xres;
@@ -825,63 +824,29 @@ void CRenderer::computeDisplayData() {
         }
         else if (netClient == INVALID_SOCKET) {
 
-            // Is this a custom display driver?
+            // A display driver, or the callbacks of RiCustomDisplay: the display host loads, checks, binds and starts it
+            SDisplaySpec spec;
+            bool haveDriver = true;
             if (strcmp(outDevice, "custom") == 0) {
-                datas[numDisplays].module = (void *)outDevice;
-                datas[numDisplays].start = (TDisplayStartFunction)cDisplay->startFunction;
-                datas[numDisplays].data = (TDisplayDataFunction)cDisplay->dataFunction;
-                datas[numDisplays].rawData = NULL;
-                datas[numDisplays].finish = (TDisplayFinishFunction)cDisplay->finishFunction;
+                spec.customStart = cDisplay->startFunction;
+                spec.customData = cDisplay->dataFunction;
+                spec.customFinish = cDisplay->finishFunction;
+            }
+            else if (locateFileEx(deviceFile, outDevice, osModuleExtension, displayPath)) {
+                spec.module = deviceFile;
             }
             else {
-
-                // Load the display driver
-                if (locateFileEx(deviceFile, outDevice, osModuleExtension, displayPath)) {
-                    datas[numDisplays].module = osLoadModule(deviceFile);
-                    datas[numDisplays].start = (TDisplayStartFunction)osResolve(datas[numDisplays].module, "displayStart");
-                    datas[numDisplays].data = (TDisplayDataFunction)osResolve(datas[numDisplays].module, "displayData");
-                    datas[numDisplays].rawData = (TDisplayRawDataFunction)osResolve(datas[numDisplays].module, "displayRawData");
-                    datas[numDisplays].finish = (TDisplayFinishFunction)osResolve(datas[numDisplays].module, "displayFinish");
-                }
-                else {
-                    // CDisplayData has no ctor, so start/data/rawData/finish are
-                    // uninitialized here -- null them too, not just module, or the
-                    // "missing implementation" check below reads garbage and can
-                    // call through an uninitialized function pointer (found via
-                    // ASan while investigating GitHub #2).
-                    datas[numDisplays].module = NULL;
-                    datas[numDisplays].start = NULL;
-                    datas[numDisplays].data = NULL;
-                    datas[numDisplays].rawData = NULL;
-                    datas[numDisplays].finish = NULL;
-                    error(CODE_SYSTEM, "Failed to open out device \"%s\" (error: %s)\n", cDisplay->outDevice, osModuleError());
-                }
+                error(CODE_SYSTEM, "Failed to open out device \"%s\" (error: %s)\n", cDisplay->outDevice, osModuleError());
+                haveDriver = false;
             }
 
-            // Check the stuff
-            if ((datas[numDisplays].start == NULL) || (datas[numDisplays].data == NULL) || (datas[numDisplays].finish == NULL)) {
-                error(CODE_SYSTEM, "The module \"%s\" has missing implementation\n", deviceFile);
-                if (datas[numDisplays].module != outDevice)
-                    osUnloadModule(datas[numDisplays].module);
-                datas[numDisplays].module = NULL;
-            }
-            else {
-                currentDisplay = cDisplay;
-                datas[numDisplays].handle = datas[numDisplays].start(displayName, xres, yres, datas[numDisplays].numSamples, cDisplay->outSamples, findParameter);
-                // GSHTODO: above sample names are now quite incorrect
-                if (datas[numDisplays].handle != NULL) {
+            if (haveDriver) {
+                fillDisplaySpec(spec, cDisplay, displayName, xres, yres, dspNumChannels, datas[numDisplays].channels, valueTypes);
+                datas[numDisplays].hostIndex = displayHost->add(spec);
+                // GSHTODO: the sample names the driver is given are now quite incorrect
+                if (displayHost->startDisplay(datas[numDisplays].hostIndex))
                     numActiveDisplays++;
-                }
-                else {
-                    if (datas[numDisplays].module != outDevice)
-                        osUnloadModule(datas[numDisplays].module);
-                    datas[numDisplays].module = NULL;
-                }
             }
-        }
-        else {
-            datas[numDisplays].module = NULL;
-            datas[numDisplays].handle = NULL;
         }
 
         numDisplays++;

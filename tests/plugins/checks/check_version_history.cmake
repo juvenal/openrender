@@ -3,7 +3,7 @@
 #
 # Every family header declares its interface version in macros and documents it in a version-history
 # table in its header comment. HEADERS names, per header, the macro prefixes it must define:
-#   shadeop.h:SHADEOP|dlo.h:DLO,OR_DYNAMICLOAD|implicit.h:IMPLICIT       (dsply.h joins in T085)
+#   shadeop.h:SHADEOP|dlo.h:DLO,OR_DYNAMICLOAD|implicit.h:IMPLICIT       (dsply.h:OR_DISPLAY joined in T085)
 #
 # For each prefix P of a header:
 #   * `#define P_ABI_VERSION OR_ABI_VERSION(M, m, p)` exists;

@@ -143,7 +143,7 @@ are the display's own `Quantize` values when set, otherwise the depth defaults f
 
 ### Host interface (what the tests drive; `src/ri/render/displayHost.h`)
 
-Written with the Phase 5 tests (T078 to T082) and part of what the maintainer approves with them:
+Written with the Phase 5 tests (T078 to T082); approved by the maintainer with them (2026-11-01):
 
 ```cpp
 struct SDisplayParameterSpec {      // one RIB display parameter, values owned by the spec

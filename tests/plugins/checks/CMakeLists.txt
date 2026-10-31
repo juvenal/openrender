@@ -7,7 +7,7 @@
 #   PluginAbi_InstallHeaders         FR-038  an installed header includes an uninstalled one; each C header
 #                                            also compiles alone as strict C17 (Phase 2)
 #   PluginAbi_VersionHistory         FR-001, FR-047  every family header declares its version and a history
-#   PluginAbi_SingleCheckRoutine     SC-008  checkPluginVersion has one definer (DISABLED until T093)
+#   PluginAbi_SingleCheckRoutine     SC-008  checkPluginVersion has one definer (enabled by T093)
 
 # The public (installed) header set of the STARTING tree: a hand copy of the install(FILES ...)
 # list of src/ri/CMakeLists.txt (dlo.h dsply.h implicit.h ptcapi.h ri.h shadeop.h) plus file_base.h
@@ -80,7 +80,7 @@ or_plugin_add_test(PluginAbi_InstallHeaders 120
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_install_headers.cmake)
 
 # FR-001, FR-047 -- every family header declares its version and documents a history; enabled and RED until
-# T041 to T043 (dsply.h joins in T085). The header directories are those of the tree at configure time.
+# T041 to T043 (dsply.h joined in T085). The header directories are those of the tree at configure time.
 set(_history_dirs "")
 foreach(_dir src/include src/ri/render src/ri/geometry src/display src/shadeop src/procedures)
     if(EXISTS ${CMAKE_SOURCE_DIR}/${_dir})
@@ -90,11 +90,11 @@ endforeach()
 string(REPLACE ";" "|" _history_dirs "${_history_dirs}")
 or_plugin_add_test(PluginAbi_VersionHistory 60
     COMMAND ${CMAKE_COMMAND}
-        "-DHEADERS=shadeop.h:SHADEOP|dlo.h:DLO,OR_DYNAMICLOAD|implicit.h:IMPLICIT"
+        "-DHEADERS=shadeop.h:SHADEOP|dlo.h:DLO,OR_DYNAMICLOAD|implicit.h:IMPLICIT|dsply.h:OR_DISPLAY"
         "-DINCLUDE_DIRS=${_history_dirs}"
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_version_history.cmake)
 
-# SC-008 -- one version-check routine. DISABLED until T093: the display host does not exist before Phase 5.
+# SC-008 -- one version-check routine. Enabled by T093 (the display host did not exist before Phase 5).
 # References: the libraries that call it (the renderer core holds the display host and the procedures
 # objects; the shadeop library joins when the target exists).
 set(_check_referencers "$<TARGET_FILE:ribRender>")
@@ -110,7 +110,6 @@ or_plugin_add_test(PluginAbi_SingleCheckRoutine 60
         "-DOTHERS=${_check_others}"
         "-DREFERENCERS=${_check_referencers}"
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_single_routine.cmake)
-set_tests_properties(PluginAbi_SingleCheckRoutine PROPERTIES DISABLED TRUE)
 
 # SC-008 -- osLoadModule is called only from the modules that own plug-in loading. Enabled and RED until
 # Phase 5 (displayHost.cpp): the starting tree has six other call sites.
