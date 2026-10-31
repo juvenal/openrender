@@ -311,7 +311,9 @@ namespace {
             expect(op != nullptr, "v2 then good: the later module supplies the operand");
             if (op != nullptr)
                 expect(callAdd(op, shadeopOperandData(op, 0), 0.25f, 0.5f) == 0.75f, "v2 then good: it works");
-            expect(g_sink.versionReports().size() == 1, "v2 then good: exactly one diagnostic (the rejection)");
+            // The rejection of v2.dsply was reported by the case above, in this process, and a rejection is never
+            // reported twice (checkPluginVersion caches the verdict): the total over both cases is one.
+            expect(g_sink.versionReports().empty(), "v2 then good: no further diagnostic (the rejection was reported once, by the case above)");
             expect(!entered(readLog(), "v2"), "v2 then good: the rejected module was not called");
         }
 

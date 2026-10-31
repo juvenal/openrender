@@ -7,20 +7,20 @@
  *   Spec 037 (versioned plug-in ABIs), ShadeopAbi_DeclarationCharacterization: the starting
  *   tree's shadeop declaration parser, characterized before it is replaced.
  *
- *   dsoParse(decl, name, prototype) is the flex/bison parser compiled into four libraries
- *   (FR-037). This program calls it over the table in declarations.txt (argv[1]) and checks
- *   the return value, the function name and the prototype of every case. Phase 4 replaces
- *   the parser with parseShadeopDeclaration and re-points this program at it with identical
- *   expectations (only flex's stdout echo of unknown characters differs): the language the
- *   hand-written parser accepts is fixed by this table, not by the new parser's own tests.
+ *   Written against the starting tree's dsoParse(decl, name, prototype), the flex/bison parser
+ *   compiled into four libraries (FR-037), and approved at T032. Phase 4 (T068) replaced that
+ *   parser with parseShadeopDeclaration and re-pointed this program at it: only the call
+ *   changed, the table (declarations.txt, byte-identical) and the expectations are the ones
+ *   the maintainer approved (only flex's stdout echo of unknown characters differs). The
+ *   language the hand-written parser accepts is fixed by this table, not by the new parser's
+ *   own tests.
  *
- *   The old parser keeps its result in file statics. `name` is a heap string the caller owns,
- *   `prototype` is a strdup of the static buffer; both are freed or copied before the next
- *   call. No case feeds it a prototype of more than 255 letters (its 256-byte buffer is
- *   unbounded).
+ *   This program calls the parser over the table in declarations.txt (argv[1]) and checks the
+ *   return value, the function name and the prototype of every case.
  *
  *   After the table, one observation is printed and not asserted: a declaration shorter than
- *   the one before it. See the header of declarations.txt.
+ *   the one before it. The old parser kept the stale tail of the longer prototype; the new one
+ *   keeps no state. See the header of declarations.txt.
  *
  * Authors:
  *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
@@ -38,7 +38,7 @@
 #include <string>
 #include <vector>
 
-#include "ri/parse/dso.h"
+#include "shadeop/shadeopDeclaration.h"
 
 namespace {
 
@@ -116,14 +116,14 @@ int main(int argc, char **argv) {
         const std::string expectedName = expand(fields[2]);
         const std::string expectedPrototype = fields[3];
 
-        char *name = nullptr;
-        char *prototype = nullptr;
-        const int result = dsoParse(declaration.c_str(), name, prototype);
+        SShadeopDeclaration parsed;
+        const int result = parseShadeopDeclaration(declaration, parsed) ? 1 : 0;
+        const char *name = result != 0 ? parsed.name.c_str() : nullptr;
+        const char *prototype = result != 0 ? parsed.prototype.c_str() : nullptr;
         ++cases;
 
         bool ok = (result != 0) == (expectedReturn != 0);
         if (ok && expectedReturn != 0) {
-            // Copy before the next call: the parser reuses its static result.
             ok = name != nullptr && prototype != nullptr && expectedName == name && expectedPrototype == prototype;
         }
         if (!ok) {
@@ -134,25 +134,13 @@ int main(int argc, char **argv) {
                    name == nullptr ? "(null)" : (strlen(name) > 40 ? (std::string(name).substr(0, 40) + "...").c_str() : name),
                    prototype == nullptr ? "(null)" : prototype);
         }
-        if (result != 0) {
-            free(name);
-            free(prototype);
-        }
     }
 
-    // Observation, not asserted: a shorter declaration after a longer one.
+    // Observation, not asserted: a shorter declaration after a longer one (the old parser kept the stale tail).
     {
-        char *name = nullptr;
-        char *prototype = nullptr;
-        if (dsoParse("float longer(float, float, float)", name, prototype)) {
-            free(name);
-            free(prototype);
-        }
-        if (dsoParse("void shorter()", name, prototype)) {
-            printf("observation: \"void shorter()\" after a 3-parameter declaration gives prototype [%s] (a clean parser gives [o=])\n", prototype);
-            free(name);
-            free(prototype);
-        }
+        SShadeopDeclaration longer, shorter;
+        if (parseShadeopDeclaration("float longer(float, float, float)", longer) && parseShadeopDeclaration("void shorter()", shorter))
+            printf("observation: \"void shorter()\" after a 3-parameter declaration gives prototype [%s] (a clean parser gives [o=])\n", shorter.prototype.c_str());
     }
 
     printf("%d case(s), %d failed\n", cases, failed);

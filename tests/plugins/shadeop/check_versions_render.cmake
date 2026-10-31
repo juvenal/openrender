@@ -8,8 +8,9 @@
 #
 #   good, hidden     current interface (hidden: hidden symbol visibility), 1.1 per-thread table:
 #                    loaded, no version diagnostic; threadInit lazily, once per thread index across
-#                    both frames, each exec gets the data its own thread's threadInit returned;
-#                    threadCleanup after the last exec, then cleanup, then the unload (FR-011)
+#                    both frames; threadCleanup after the last exec, then cleanup, then the unload
+#                    (FR-011). good_f1, hidden_f1: the same in ONE frame, where each exec gets the data
+#                    its own OS thread's threadInit returned (FR-011 b)
 #   newer 1.9.0      loaded, exactly one warning, exec ran
 #   v2 2.0.0 alone   exactly one error that names the file, the interface, both versions and the
 #                    remedy; no entry point of the module is ever called (SC-001)
@@ -57,16 +58,10 @@ foreach(_tag good hidden)
     endif()
 
     # threadInit: lazily and once per thread index, over both frames.
-    foreach(_v IN LISTS _tid_vars)
-        unset(${_v})
-    endforeach()
-    set(_tid_vars "")
     set(_tinit_idx "")
     foreach(_line IN LISTS _lines)
         if(_line MATCHES "^[0-9]+ ${_tag}:threadInit idx=([0-9]+) data=([0-9a-f]+) initdata=([0-9a-f]+) ([0-9]+)$")
             list(APPEND _tinit_idx ${CMAKE_MATCH_1})
-            set(_tid_of_${CMAKE_MATCH_2} ${CMAKE_MATCH_4})
-            list(APPEND _tid_vars _tid_of_${CMAKE_MATCH_2})
         endif()
     endforeach()
     list(LENGTH _tinit_idx _tinits)
@@ -79,18 +74,6 @@ foreach(_tag good hidden)
         if(NOT _distinct EQUAL _tinits)
             or_fail("${_tag}: threadInit ran ${_tinits} times for ${_distinct} thread index(es); it must run once per index across both frames (FR-011 b, c)")
         endif()
-        # every exec got the data of its own thread's threadInit
-        foreach(_line IN LISTS _lines)
-            if(_line MATCHES "^[0-9]+ ${_tag}:exec data=([0-9a-f]+) ([0-9]+)$")
-                if(NOT DEFINED _tid_of_${CMAKE_MATCH_1})
-                    or_fail("${_tag}: exec was called with data ${CMAKE_MATCH_1}, which no threadInit returned (FR-011 b)")
-                    break()
-                elseif(NOT "${_tid_of_${CMAKE_MATCH_1}}" STREQUAL "${CMAKE_MATCH_2}")
-                    or_fail("${_tag}: exec ran on thread ${CMAKE_MATCH_2} with the data that thread ${_tid_of_${CMAKE_MATCH_1}} initialized (FR-011 b)")
-                    break()
-                endif()
-            endif()
-        endforeach()
         # the order of the end of life: last exec, threadCleanup, cleanup, unload
         or_log_count(_tcleans "${_tag}:threadCleanup" ${_lines})
         if(NOT _tcleans EQUAL _tinits)
@@ -120,6 +103,39 @@ foreach(_tag good hidden)
         if(_first_tclean EQUAL -1 OR NOT (_last_exec LESS _first_tclean AND _last_tclean LESS _cleanup AND _cleanup LESS _unload))
             or_fail("${_tag}: expected last exec < threadCleanup < cleanup < unload, got last exec ${_last_exec}, threadCleanup ${_first_tclean}..${_last_tclean}, cleanup ${_cleanup}, unload ${_unload} (FR-011 d, FR-034)")
         endif()
+    endif()
+endforeach()
+
+# good and hidden, one frame: each exec gets the data of the OS thread that ran its threadInit. One frame,
+# because a second frame starts new threads and glibc reuses their ids for other thread indices.
+foreach(_tag good hidden)
+    run_case(${_tag}_f1)
+    expect_exit_zero(${_tag}_f1)
+    foreach(_v IN LISTS _tid_vars)
+        unset(${_v})
+    endforeach()
+    set(_tid_vars "")
+    foreach(_line IN LISTS _lines)
+        if(_line MATCHES "^[0-9]+ ${_tag}:threadInit idx=([0-9]+) data=([0-9a-f]+) initdata=([0-9a-f]+) ([0-9]+)$")
+            set(_tid_of_${CMAKE_MATCH_2} ${CMAKE_MATCH_4})
+            list(APPEND _tid_vars _tid_of_${CMAKE_MATCH_2})
+        endif()
+    endforeach()
+    set(_execs_checked 0)
+    foreach(_line IN LISTS _lines)
+        if(_line MATCHES "^[0-9]+ ${_tag}:exec data=([0-9a-f]+) ([0-9]+)$")
+            math(EXPR _execs_checked "${_execs_checked} + 1")
+            if(NOT DEFINED _tid_of_${CMAKE_MATCH_1})
+                or_fail("${_tag} (one frame): exec was called with data ${CMAKE_MATCH_1}, which no threadInit returned (FR-011 b)")
+                break()
+            elseif(NOT "${_tid_of_${CMAKE_MATCH_1}}" STREQUAL "${CMAKE_MATCH_2}")
+                or_fail("${_tag} (one frame): exec ran on thread ${CMAKE_MATCH_2} with the data that thread ${_tid_of_${CMAKE_MATCH_1}} initialized (FR-011 b)")
+                break()
+            endif()
+        endif()
+    endforeach()
+    if(_execs_checked EQUAL 0)
+        or_fail("${_tag} (one frame): the operand did not run")
     endif()
 endforeach()
 
@@ -156,7 +172,7 @@ endif()
 
 # v2 then good: the scan goes on.
 run_case(v2_then_good)
-expect_exit_zero(v2_then_good)
+# (no exit status check: the rejection of v2 is an error(), and orender exits 255 after any error())
 count_version_messages(_n)
 if(NOT _n EQUAL 1)
     or_fail("v2 then good: ${_n} version diagnostic(s), expected exactly one (the rejection):\n${_out}")

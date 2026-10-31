@@ -11,7 +11,7 @@ set(OPENRENDER_PUBLIC_HEADERS
     ${CMAKE_CURRENT_LIST_DIR}/../src/ri/parse/ri.h
     ${CMAKE_CURRENT_LIST_DIR}/../src/ri/texture/ptcapi.h
     ${CMAKE_CURRENT_LIST_DIR}/../src/display/dsply.h
-    ${CMAKE_CURRENT_LIST_DIR}/../src/ri/render/shadeop.h
+    ${CMAKE_CURRENT_LIST_DIR}/../src/shadeop/shadeop.h
     ${CMAKE_CURRENT_LIST_DIR}/../src/procedures/dlo.h
     ${CMAKE_CURRENT_LIST_DIR}/../src/procedures/implicit.h
     ${CMAKE_CURRENT_LIST_DIR}/../src/include/orplugin.h

@@ -411,11 +411,6 @@ DB-017  link     src/ri/hiders/photon.cpp  ->  _ZTI8CSurface   # typeinfo for CS
 DB-017  link     src/ri/hiders/photon.cpp  ->  _ZTV8CSurface   # vtable for CSurface
 DB-017  link     src/ri/hiders/trace.cpp  ->  _ZN7CObject7clusterEP15CShadingContext   # CObject::cluster(CShadingContext*)
 
-# --- DB-019: Shader compiler depends on Scene Interface / renderer-core headers (4) ---
-DB-019  include  @build/src/libshader/compiler/dso_generated.cpp  ->  src/ri/parse/dso.h
-DB-019  include  @build/src/libshader/shading/rslo_generated.cpp  ->  src/ri/parse/dso.h
-DB-019  include  src/libshader/compiler/rslo.cpp  ->  src/ri/parse/dso.h
-
 # --- DB-021: Texturing reads the AOV/channel registry (3) ---
 DB-021  include  src/ri/texture/texture3d.cpp  ->  src/ri/render/renderer.h
 DB-021  include  src/ri/texture/texture3d.cpp  ->  src/ri/state/displayChannel.h

@@ -162,17 +162,15 @@ include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
 # (CMake/openRenderUse{Flex,Bison}.cmake) hardcode PATH_OPT to "", so the
 # generated lex.*.cpp/*_generated.cpp names and ri_sources entries below
 # are unaffected by this move.
-flex_file(parse/dso.l lex.dso.cpp dso)
 flex_file(parse/rib.l lex.rib.cpp rib)
 flex_file(parse/ifexpr.l lex.if.cpp if)
 
 # define bison targets (they depend on flex ones, via prefix - third arg)
-bison_file(parse/dso.y dso_generated.cpp dso)
 bison_file(parse/rib.y rib_generated.cpp rib)
 bison_file(parse/ifexpr.y ifexpr_generated.cpp if)
 
 # add the generated bison cpp's
-set(ri_sources ${ri_sources} dso_generated.cpp rib_generated.cpp ifexpr_generated.cpp)
+set(ri_sources ${ri_sources} rib_generated.cpp ifexpr_generated.cpp)
 
 # Compile once with PIC so the same objects serve both the shared and static lib.
 #
@@ -235,7 +233,7 @@ target_include_directories(ribRender PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../display>
 )
-target_link_libraries(ribRender PRIVATE libshader_shading ${openrendertiff_libs} openrendercommon)
+target_link_libraries(ribRender PRIVATE libshader_shading ${openrendertiff_libs} openrendercommon openrendershadeop)
 openrender_reexport_common(ribRender)
 if(HAVE_OPENEXR)
     target_link_libraries(ribRender PRIVATE ${OPENRENDER_OPENEXR_LIBS})
@@ -264,7 +262,7 @@ set_target_properties(ribRender_static PROPERTIES OUTPUT_NAME RIBRender EXPORT_N
 # The SHARED common library, not the archive: libshader_shading (shared-only)
 # binds its infrastructure to libRIBCommon, so a static program that also
 # carried libRIBCommon.a would hold two copies of that state (spec 023, R1).
-target_link_libraries(ribRender_static INTERFACE libshader_shading ${openrendertiff_libs} openrendercommon)
+target_link_libraries(ribRender_static INTERFACE libshader_shading ${openrendertiff_libs} openrendercommon openrendershadeop)
 if(HAVE_OPENEXR)
     target_link_libraries(ribRender_static INTERFACE ${OPENRENDER_OPENEXR_LIBS})
 endif()
@@ -517,7 +515,6 @@ set(ribOut_sources
     state/displayChannel.cpp
     state/variableLookup.cpp
     vector/rendererDeclarationsDispatchStub.cpp
-    dso_generated.cpp
     rib_generated.cpp
 )
 

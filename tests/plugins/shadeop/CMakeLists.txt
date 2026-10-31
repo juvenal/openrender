@@ -16,10 +16,10 @@
 # directories into the build tree. Search-path order is by directory, never by the order osEnumerate
 # returns files in.
 #
-# Phase 4 tests (tasks.md T064). Enabled: ShadeopAbi_Versions_Render, ShadeopAbi_LegacyShared,
-# ShadeopAbi_ExampleBuilds, ShadeopAbi_MissingExec (Phase 1). EXCLUDE_FROM_ALL + DISABLED until the shadeop
-# module exists (T068/T072): the test programs that include src/shadeop/shadeopModule.h and
-# shadeopDeclaration.h (red state: the compile error of their targets), and ShadeopAbi_ParserNewSymbol.
+# Phase 4 tests (tasks.md T064): ShadeopAbi_Versions_Render, ShadeopAbi_LegacyShared, ShadeopAbi_ExampleBuilds,
+# ShadeopAbi_MissingExec (Phase 1) and the tests of the shadeop module API (test_registry.cpp,
+# test_parser_reentrant.cpp), which were EXCLUDE_FROM_ALL + DISABLED until the module existed (T076 removed
+# the markers).
 
 or_plugin_test_module(plugin_shadeop_good shadeop good shadeop_fixture.cpp DEFS TEST_THREADS)
 or_plugin_test_module(plugin_shadeop_hidden shadeop hidden shadeop_fixture.cpp HIDDEN DEFS TEST_THREADS)
@@ -38,10 +38,9 @@ or_plugin_test_module(plugin_shadeop_order_alpha shadeop/order first order_fixtu
 or_plugin_test_module(plugin_shadeop_order_beta shadeop/order second order_fixture.cpp OUTPUT_NAME beta DEFS TEST_ID=3)
 
 # FR-008 -- the example DSO, built as a module. NO_FLAGS: it is sample code for plug-in authors, not built
-# with the project's -Werror (it has unused parameters and short initializers); src for the includes it
-# uses today.
-or_plugin_test_module(plugin_shadeop_example shadeop example ${CMAKE_SOURCE_DIR}/examples/dsotest/dsotest.cpp
-    NO_FLAGS INCLUDES ${CMAKE_SOURCE_DIR}/src)
+# with the project's -Werror (it has unused parameters and short initializers). It includes only shadeop.h,
+# which the fixture include directories find, as an installed header would be.
+or_plugin_test_module(plugin_shadeop_example shadeop example ${CMAKE_SOURCE_DIR}/examples/dsotest/dsotest.cpp NO_FLAGS)
 
 set(SHADEOP_FIXTURE_TARGETS
     plugin_shadeop_good plugin_shadeop_hidden plugin_shadeop_unaware plugin_shadeop_legacy plugin_shadeop_newer
@@ -107,10 +106,10 @@ or_plugin_add_test(ShadeopAbi_MissingExec 120
 set_tests_properties(ShadeopAbi_MissingExec PROPERTIES ENVIRONMENT "${OR_PLUGIN_RENDER_ENV}")
 
 # T028 -- characterization of the old declaration parser (green on the starting tree by design).
-# An in-process program that calls dsoParse over declarations.txt. Phase 4 re-points it at
-# parseShadeopDeclaration with the same expectations.
+# An in-process program that calls the declaration parser over declarations.txt: dsoParse until Phase 4,
+# parseShadeopDeclaration since T068, with the same expectations.
 add_executable(test_shadeop_declaration test_declaration.cpp)
-target_link_libraries(test_shadeop_declaration PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+target_link_libraries(test_shadeop_declaration PRIVATE openrender_common_flags openrendershadeop openrendercommon)
 target_include_directories(test_shadeop_declaration PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_BINARY_DIR})
 target_compile_features(test_shadeop_declaration PRIVATE cxx_std_20)
 or_plugin_add_test(ShadeopAbi_DeclarationCharacterization 60
@@ -128,12 +127,18 @@ function(shadeop_case_rib name surface proc_path threads)
     set(RIB_PROC_PATH "${proc_path}")
     set(RIB_THREADS ${threads})
     set(RIB_OUTPUT ${name}.tif)
-    or_plugin_rib(${CMAKE_CURRENT_SOURCE_DIR}/render.rib.in ${OR_PLUGIN_BIN}/shadeop/versions/${name}.rib)
+    if(ARGN STREQUAL "ONE_FRAME")
+        or_plugin_rib(${CMAKE_CURRENT_SOURCE_DIR}/render_1f.rib.in ${OR_PLUGIN_BIN}/shadeop/versions/${name}.rib)
+    else()
+        or_plugin_rib(${CMAKE_CURRENT_SOURCE_DIR}/render.rib.in ${OR_PLUGIN_BIN}/shadeop/versions/${name}.rib)
+    endif()
 endfunction()
 
 set(_B ${OR_PLUGIN_BIN}/shadeop)
 shadeop_case_rib(good probe ${_B}/good 4)
 shadeop_case_rib(hidden probe ${_B}/hidden 4)
+shadeop_case_rib(good_f1 probe ${_B}/good 4 ONE_FRAME)
+shadeop_case_rib(hidden_f1 probe ${_B}/hidden 4 ONE_FRAME)
 shadeop_case_rib(newer probe ${_B}/newer 4)
 shadeop_case_rib(v2_only probe ${_B}/v2 4)
 shadeop_case_rib(v2_then_good probe "${_B}/v2:${_B}/good" 4)
@@ -167,18 +172,17 @@ or_plugin_add_test(ShadeopAbi_ExampleBuilds 60
         -DREADME=${CMAKE_SOURCE_DIR}/examples/dsotest/README.md
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_exports.cmake)
 
-# --- the tests that call the shadeop module API: EXCLUDE_FROM_ALL + DISABLED until it exists ---
-# Their red state is the compile error of the target (the header src/shadeop/shadeopModule.h does not
-# exist): `cmake --build build --target test_shadeop_registry test_shadeop_parser_reentrant`. T076 removes
-# EXCLUDE_FROM_ALL and the DISABLED markers. openrendershadeop is the library target T069 creates (tests/ is
+# --- the tests that call the shadeop module API ---
+# Written before src/shadeop/ existed (EXCLUDE_FROM_ALL + DISABLED, red state: the compile error of their
+# targets); T076 removed the markers. openrendershadeop is the library target T069 creates (tests/ is
 # configured before src/, so the name is resolved at generate time).
-add_executable(test_shadeop_registry EXCLUDE_FROM_ALL test_registry.cpp)
+add_executable(test_shadeop_registry test_registry.cpp)
 target_link_libraries(test_shadeop_registry PRIVATE openrender_common_flags openrendershadeop openrendercommon)
 target_include_directories(test_shadeop_registry PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_compile_features(test_shadeop_registry PRIVATE cxx_std_20)
 add_dependencies(test_shadeop_registry ${SHADEOP_FIXTURE_TARGETS} oshader)
 
-add_executable(test_shadeop_parser_reentrant EXCLUDE_FROM_ALL test_parser_reentrant.cpp)
+add_executable(test_shadeop_parser_reentrant test_parser_reentrant.cpp)
 target_link_libraries(test_shadeop_parser_reentrant PRIVATE openrender_common_flags openrendershadeop openrendercommon)
 target_include_directories(test_shadeop_parser_reentrant PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_features(test_shadeop_parser_reentrant PRIVATE cxx_std_20)
@@ -194,14 +198,13 @@ foreach(_mode versions perthread lifetime scanorder)
     set(_test ${_test_${_mode}})
     file(MAKE_DIRECTORY ${OR_PLUGIN_BIN}/shadeop/work/registry_${_mode})
     or_plugin_add_test(${_test} 120 COMMAND test_shadeop_registry ${_mode} ${OR_PLUGIN_BIN})
-    set_tests_properties(${_test} PROPERTIES DISABLED TRUE WORKING_DIRECTORY ${OR_PLUGIN_BIN}/shadeop/work/registry_${_mode})
+    set_tests_properties(${_test} PROPERTIES WORKING_DIRECTORY ${OR_PLUGIN_BIN}/shadeop/work/registry_${_mode})
 endforeach()
 
 file(MAKE_DIRECTORY ${OR_PLUGIN_BIN}/shadeop/work/compiler)
 or_plugin_add_test(ShadeopAbi_CompilerAndRenderer 120
     COMMAND test_shadeop_registry compiler ${OR_PLUGIN_BIN} $<TARGET_FILE:oshader> ${CMAKE_CURRENT_SOURCE_DIR}/probe.sl ${OR_PLUGIN_BIN}/shadeop/work/compiler)
-set_tests_properties(ShadeopAbi_CompilerAndRenderer PROPERTIES DISABLED TRUE WORKING_DIRECTORY ${OR_PLUGIN_BIN}/shadeop/work/compiler)
+set_tests_properties(ShadeopAbi_CompilerAndRenderer PROPERTIES WORKING_DIRECTORY ${OR_PLUGIN_BIN}/shadeop/work/compiler)
 
 or_plugin_add_test(ShadeopAbi_ParserReentrant 120
     COMMAND test_shadeop_parser_reentrant ${CMAKE_CURRENT_SOURCE_DIR}/declarations.txt)
-set_tests_properties(ShadeopAbi_ParserReentrant PROPERTIES DISABLED TRUE)

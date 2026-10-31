@@ -39,7 +39,6 @@
 #include "curves.h"
 #include "delayed.h"
 #include "dlobject.h"
-#include "dso.h"
 #include "common/diagnostics.h"
 #include "hcshader.h"
 #include "implicitSurface.h"
@@ -115,7 +114,7 @@ CTrie<CNetFileMapping *> *CRenderer::netFileMappings = NULL;                 // 
 int CRenderer::numKnownGlobalIds = 0;                                        // initialized in initDeclarations
 CVariable *CRenderer::variables = NULL;                                      // initialized in initDeclarations, destroyed in shutdownDeclarations
 CArray<CVariable *> *CRenderer::globalVariables = NULL;                      // initialized in initDeclarations, destroyed in shutdownDeclarations
-CDSO *CRenderer::dsos = NULL;                                                // initialized in initFiles, destroyed in shutdownFiles
+CShadeopRegistry *CRenderer::shadeops = NULL;                                // initialized in initFiles, destroyed in shutdownFiles
 SOCKET CRenderer::netClient = INVALID_SOCKET;                                // initialized in initNetwork
 int CRenderer::netNumServers = 0;                                            // initialized in initNetwork
 SOCKET *CRenderer::netServers = NULL;                                        // initialized in initNetwork, destroyed in shutdownNetwork

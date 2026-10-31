@@ -2,7 +2,8 @@
 # so a red check never breaks the -Werror main build.
 #
 #   PluginAbi_DocPaths               FR-036  stale path references in the guides
-#   ShadeopAbi_ParserSingleDefiner   FR-037  dsoParse is compiled into four libraries
+#   ShadeopAbi_ParserSingleDefiner   FR-037  no library defines dsoParse (it was compiled into four)
+#   ShadeopAbi_ParserNewSymbol       FR-037  parseShadeopDeclaration is defined only in libRIBShadeop
 #   PluginAbi_InstallHeaders         FR-038  an installed header includes an uninstalled one; each C header
 #                                            also compiles alone as strict C17 (Phase 2)
 #   PluginAbi_VersionHistory         FR-001, FR-047  every family header declares its version and a history
@@ -48,29 +49,23 @@ or_plugin_add_test(PluginAbi_DocPaths 60
         -DSTAGE=${OR_PLUGIN_BIN}/checks/stage_docpaths
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_doc_paths.cmake)
 
-# FR-037 -- dsoParse is defined in exactly one library. The path list is built from the targets.
+# FR-037 -- dsoParse was compiled into four libraries; the parser is now hand-written and lives in libRIBShadeop,
+# so no library defines dsoParse (MODE=none; the maintainer approved moving this test from MODE=single at T076).
 or_plugin_add_test(ShadeopAbi_ParserSingleDefiner 60
     COMMAND ${CMAKE_COMMAND}
         -DSYMBOL=dsoParse
-        "-DLIBRARIES=$<TARGET_FILE:ribRender>|$<TARGET_FILE:ribVector>|$<TARGET_FILE:ribOut>|$<TARGET_FILE:libshader_compiler>"
-        -DMODE=single
+        "-DLIBRARIES=$<TARGET_FILE:ribRender>|$<TARGET_FILE:ribVector>|$<TARGET_FILE:ribOut>|$<TARGET_FILE:libshader_compiler>|$<TARGET_FILE:openrendershadeop>"
+        -DMODE=none
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_single_definer.cmake)
 
-# FR-012, FR-037 (T064) -- the new parser has one definer, libRIBShadeop. DISABLED until T069 creates the
-# library (the path of a library that does not exist is a PRECONDITION failure of the script).
-if(EXISTS ${CMAKE_SOURCE_DIR}/src/shadeop/CMakeLists.txt)
-    set(_parser_new_library "$<TARGET_FILE:openrendershadeop>")
-else()
-    set(_parser_new_library "${CMAKE_BINARY_DIR}/src/shadeop/libRIBShadeop-not-built")
-endif()
+# FR-012, FR-037 (T064) -- the new parser has one definer, libRIBShadeop.
 or_plugin_add_test(ShadeopAbi_ParserNewSymbol 60
     COMMAND ${CMAKE_COMMAND}
         -DSYMBOL=parseShadeopDeclaration
-        "-DLIBRARIES=${_parser_new_library}|$<TARGET_FILE:ribRender>|$<TARGET_FILE:ribVector>|$<TARGET_FILE:ribOut>|$<TARGET_FILE:libshader_compiler>"
+        "-DLIBRARIES=$<TARGET_FILE:openrendershadeop>|$<TARGET_FILE:ribRender>|$<TARGET_FILE:ribVector>|$<TARGET_FILE:ribOut>|$<TARGET_FILE:libshader_compiler>"
         -DMODE=only
         -DONLY_IN=RIBShadeop
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_single_definer.cmake)
-set_tests_properties(ShadeopAbi_ParserNewSymbol PROPERTIES DISABLED TRUE)
 
 # FR-038 -- every installed header compiles alone and includes only installed headers.
 or_plugin_add_test(PluginAbi_InstallHeaders 120
@@ -124,3 +119,10 @@ or_plugin_add_test(ProceduresAbi_NoLoadOutsideModule 60
         -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
         "-DALLOWED=proceduralModules.cpp|shadeopModule.cpp|displayHost.cpp"
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_no_load_outside.cmake)
+
+# FR-019, FR-046 -- the version 1 display adapter is confined to its named files and nothing casts to a display
+# function type. Enabled and RED on the starting tree (dsply.h declares the v1 types; the host casts).
+or_plugin_add_test(DisplayV1_NoCastCheck 60
+    COMMAND ${CMAKE_COMMAND}
+        -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_display_v1_confined.cmake)

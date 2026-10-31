@@ -27,6 +27,7 @@
 #include <math.h>
 #include <string.h>
 
+#include "shadeop/shadeopModule.h"
 #include "include/logging.hpp"
 
 #include "brickmap.h"
@@ -34,7 +35,6 @@
 #include "curves.h"
 #include "delayed.h"
 #include "dlobject.h"
-#include "dso.h"
 #include "common/diagnostics.h"
 #include "hcshader.h"
 #include "implicitSurface.h"
@@ -747,6 +747,9 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     }
 
     // All of these must be after we determine the number of threads
+
+    // Size the per-thread slots of the shadeop operands before any shading thread exists (FR-011 f)
+    shadeops->beginFrame(numThreads);
 
     // Initialize tesselations
     CTesselationPatch::initTesselations(geoCacheSize);

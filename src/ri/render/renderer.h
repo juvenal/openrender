@@ -33,9 +33,7 @@
 #include "common/memory.h"
 #include "dsply.h" // spec 025: options.h no longer pulls in the display plug-in ABI
 #include "options.h"
-#include "shadeop.h"
 #include "shader.h" // spec 025: attributes.h and options.h no longer pull in Shading
-#include "libshader/shading/dsoHandle.h" // CDSO, now owned by the shading library
 
 // Compute the circle of confusion as a function of the depth.
 // cocSamples(z) is now CSampler::circleOfConfusion() (sampler.h, S1) --
@@ -97,6 +95,7 @@ class CNamedCoordinateSystem;
 class CGlobalIdentifier;
 class CXform;
 class CDSO;
+class CShadeopRegistry;
 class CRendererContext;
 class CNetFileMapping;
 class CRay;
@@ -152,7 +151,7 @@ class CRenderer {
         static int numKnownGlobalIds;                                     // The current free global ID
         static CVariable *variables;                                      // List of all defined variables
         static CArray<CVariable *> *globalVariables;                      // Array of global variables only
-        static CDSO *dsos;                                                // The list of DSO's that have been loaded
+        static CShadeopRegistry *shadeops;                                // The shadeop operands that have been loaded (created in initFiles, destroyed in shutdownFiles)
         static SOCKET netClient;                                          // The client that we're serving (-1 if client)
         static int netNumServers;                                         // The number of servers (0 if server)
         static SOCKET *netServers;                                        // The array of servers that are serving us

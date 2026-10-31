@@ -141,6 +141,53 @@ are the display's own `Quantize` values when set, otherwise the depth defaults f
 - No file-static or global "current display" (FR-014); the free function `findParameter` and
   `currentDisplay` are deleted.
 
+### Host interface (what the tests drive; `src/ri/render/displayHost.h`)
+
+Written with the Phase 5 tests (T078 to T082) and part of what the maintainer approves with them:
+
+```cpp
+struct SDisplayParameterSpec {      // one RIB display parameter, values owned by the spec
+    std::string name;
+    int type;                       // an OrDisplayParamType value; any other value is skipped (research M4)
+    int numItems;
+    std::vector<float> floats;      // float: n; vector: 3n; matrix: 16n
+    std::vector<int> integers;      // integer: n
+    std::vector<std::string> strings; // string: only the first is exposed
+};
+struct SDisplayChannelSpec { std::string name; int numSamples; OrDisplayValueType valueType;
+                             bool hasQuantize; float quantize[5]; };   // hasQuantize: this channel's own five values
+struct SDisplaySpec {
+    std::string name, type, mode;   // as written in the RIB (name with frame expansions applied)
+    std::string module;             // the located module file; "" for a RiCustomDisplay display
+    RtDisplayStartFunction customStart; RtDisplayDataFunction customData; RtDisplayFinishFunction customFinish;
+    int width, height;
+    std::vector<SDisplayChannelSpec> channels;     // in mode order; the host computes the offsets
+    std::vector<SDisplayParameterSpec> parameters; // the RIB parameters, in order
+    float quantizer[5];             // the display's own Quantize; quantizer[0] == -1: not set
+    float colorQuantizer[5], depthQuantizer[5];    // the renderer's defaults
+    float clipMin, clipMax, fromWorld[16], worldToNDC[16], toScreen[16], gamma, gain;
+    std::string software;           // OPENRENDER_PROJECT_NAME
+};
+class CDisplayHost {
+  public:
+    int add(const SDisplaySpec &);            // returns the display index; nothing is loaded yet
+    bool startDisplay(int index);             // load, version-check, bind, build the snapshot, start; false: disabled
+    int startAll();                           // startDisplay for every display in order; returns how many started
+    bool dispatch(int index, int x, int y, int w, int h, float *pixels);
+                                              // false once the display is disabled (a failed start or data); never
+                                              // calls the plug-in for a display with numSamples == 0
+    void finishAll();                         // finish exactly once for every started display, then release the modules
+    const OrDisplayInfo *info(int index) const; // the snapshot, valid from startDisplay until finishAll
+    bool enabled(int index) const;
+    ~CDisplayHost();                          // finishAll() if it has not run
+};
+```
+
+The core (`rendererDisplay.cpp`) resolves the module file with `locateFileEx` against the display path and hands the
+located path over in `SDisplaySpec::module`; the host loads exactly that file (a test passes an absolute path). A
+string parameter's `OrDisplayParameter::data` is the NUL-terminated string itself (the `const char *` a v1 driver reads
+as `(const char *)findParameter("type", STRING_PARAMETER, 1)`), not a pointer to a pointer.
+
 ## 6. In-tree drivers (FR-008, FR-021)
 
 `file.dsply` (TIFF, PNG), `openexr.dsply`, `rgbe.dsply`, `framebuffer.dsply` each add

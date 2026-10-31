@@ -11,6 +11,11 @@
 #     openRender::shader_shading  shading engine
 #     openRender::shader_runtime  .rslo/.slo loader
 #     openRender::shader_compiler RSL compiler
+#     openRender::RIBShadeop      shader DSO operands (spec 037): scanning, the
+#                                 version check, the declaration parser and the
+#                                 per-thread state of shadeop modules; the
+#                                 renderer, the shading engine and the shader
+#                                 compiler link it
 #     openRender::RIBCommon       shared infrastructure (diagnostics, scratch
 #                                 arena, statistics, RI tokens, ...); the only
 #                                 image that defines that process-wide state.
@@ -18,7 +23,7 @@
 #   Static  (available when its external dependencies are found: TIFF, PNG,
 #            Threads@OPENRENDER_CONFIG_OPENEXR_NOTE@)
 #     openRender::RIBRender_static, RIBVector_static, RIBOut_static,
-#     shader_runtime_static, shader_compiler_static, and
+#     shader_runtime_static, shader_compiler_static, RIBShadeop_static, and
 #     openRender::RIBCommon_static (the common archive the fully static
 #     archives depend on; linked automatically, exactly once).
 #     RIBRender_static links the SHARED openRender::RIBCommon instead, because

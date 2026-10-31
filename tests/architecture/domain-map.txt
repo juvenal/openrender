@@ -34,8 +34,6 @@ prefix  src/ri/parse/                                SceneInterface
 prefix  src/ri/output/                               SceneInterface
 file    @build/src/ri/rib_generated.cpp              SceneInterface
 file    @build/src/ri/lex.rib.cpp                    SceneInterface
-file    @build/src/ri/dso_generated.cpp              SceneInterface
-file    @build/src/ri/lex.dso.cpp                    SceneInterface
 file    @build/src/ri/ifexpr_generated.cpp           SceneInterface
 file    @build/src/ri/lex.if.cpp                     SceneInterface
 
@@ -45,6 +43,9 @@ prefix  src/ri/state/                                GraphicsState
 # --- Geometry; the Procedures domain (spec 037: dlo/implicit ABI headers and the loader) ---
 prefix  src/ri/geometry/                             Geometry
 prefix  src/procedures/                              Procedures
+
+# --- Shader DSO Operands (spec 037: the shadeop ABI header, declaration parser and module) ---
+prefix  src/shadeop/                                 ShaderDSO
 
 # --- Hiders ------------------------------------------------------------------
 prefix  src/ri/hiders/                               Hiders
@@ -62,9 +63,8 @@ prefix  @build/src/libshader/                        Shading
 # --- Display Outputs ---------------------------------------------------------
 prefix  src/display/                                 Display
 
-# --- Core: the composition root, with the Shader DSO ABI header --------------
+# --- Core: the composition root ----------------------------------------------
 prefix  src/ri/render/                               Core
-file    src/ri/render/shadeop.h                      ShaderDSO
 prefix  src/ri/vector/                               Core
 prefix  src/ri/hcshader.                             Core
 

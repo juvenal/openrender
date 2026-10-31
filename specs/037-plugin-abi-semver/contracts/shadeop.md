@@ -78,7 +78,7 @@ Prototype letters: `o f v n p c m s`; format `<ret>=<p1><p2>...` (e.g. `"float f
 ## 3. Module API (`shadeopModule.h`, internal C++)
 
 ```cpp
-struct SShadeopSearchPath { const char *const *directories; int count; }; // caller converts its TSearchpath
+struct SShadeopSearchPath { const char *const *directories; int count; }; // caller converts its TSearchpath; each entry ends with a separator, as a TSearchpath holds it
 
 // Compiler: every declaration of every "<name>_shadeops" found on the path, in scan order
 // (directories in search-path order; within a directory, module file names in lexicographic order, not osEnumerate order: FR-013). Version-checked; rejected modules
