@@ -112,6 +112,24 @@ set_tests_properties(ShadingParity_MatrixTransformJit PROPERTIES
     ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;ORENDER_BIN=$<TARGET_FILE:orender>;TEST_DISPLAYS_DIR=$<TARGET_FILE_DIR:file>"
 )
 
+# GitHub #123/#124: a point/vector written in a named space reaches the
+# current space the same way on both backends -- a light parameter default
+# (converted once at bind time, where the JIT has no shading context) and a
+# vector cast in a surface body (the JIT's vfrom lowering). Renders through
+# the orender CLI on both backends and checks a float pixel against the value
+# derived by hand.
+if(OPENRENDER_HAVE_LLVM)
+    add_executable(test_shading_parity_named_space_casts_jit test_named_space_casts_jit.cpp)
+    target_link_libraries(test_shading_parity_named_space_casts_jit PRIVATE openrender_common_flags)
+    target_compile_features(test_shading_parity_named_space_casts_jit PRIVATE cxx_std_20)
+    add_test(NAME ShadingParity_NamedSpaceCastsJit COMMAND test_shading_parity_named_space_casts_jit)
+    set_tests_properties(ShadingParity_NamedSpaceCastsJit PROPERTIES
+        TIMEOUT 60
+        LABELS "shading_parity"
+        ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;ORENDER_BIN=$<TARGET_FILE:orender>;TEST_DISPLAYS_DIR=$<TARGET_FILE_DIR:file>"
+    )
+endif()
+
 # GitHub #55: an optional parameter list's diagnostics ("Unknown parameter",
 # the uniform-channel warning) are printed once per call site by both
 # backends; the JIT used to drop the list unread. Renders a real fixture
