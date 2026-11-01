@@ -579,9 +579,18 @@ class CShadingContext {
         }
 
         // ---> Query wrappers (used by rslBuiltins / JIT runtime)
-        int queryAttribute(void *dest, const char *name) { return attributes(dest, name, nullptr, nullptr); }
-        int queryOption(void *dest, const char *name) { return options(dest, name, nullptr, nullptr); }
-        int queryRendererInfo(void *dest, const char *name) { return rendererInfo(dest, name, nullptr, nullptr); }
+        // With the QueryType the caller's destination expects (spec 026: the services refuse a stored value that
+        // cannot be copied safely into it, FR-026). The two-argument forms keep the callers that exist: a float
+        // destination asks Float, a string destination asks String.
+        int queryAttribute(void *dest, const char *name, openrender::shading::QueryType expected) { return attributes(dest, name, nullptr, nullptr, expected); }
+        int queryOption(void *dest, const char *name, openrender::shading::QueryType expected) { return options(dest, name, nullptr, nullptr, expected); }
+        int queryRendererInfo(void *dest, const char *name, openrender::shading::QueryType expected) { return rendererInfo(dest, name, nullptr, nullptr, expected); }
+        int queryAttribute(float *dest, const char *name) { return queryAttribute(dest, name, openrender::shading::QueryType::Float); }
+        int queryOption(float *dest, const char *name) { return queryOption(dest, name, openrender::shading::QueryType::Float); }
+        int queryRendererInfo(float *dest, const char *name) { return queryRendererInfo(dest, name, openrender::shading::QueryType::Float); }
+        int queryAttribute(const char **dest, const char *name) { return queryAttribute(dest, name, openrender::shading::QueryType::String); }
+        int queryOption(const char **dest, const char *name) { return queryOption(dest, name, openrender::shading::QueryType::String); }
+        int queryRendererInfo(const char **dest, const char *name) { return queryRendererInfo(dest, name, openrender::shading::QueryType::String); }
 
         // ---> Lighting batch operations for JIT path (same semantics as interpreter)
         void callAmbient(float *result);
@@ -1090,14 +1099,17 @@ class CShadingContext {
                                int n, const int *tags, const TJitParamList &pl, bool wantOcclusion, uint32_t callSite);
 
         // The following functions are used in the shaders
-        int surfaceParameter(void *dest, const char *name, CVariable **, int *);
-        int displacementParameter(void *dest, const char *name, CVariable **, int *);
-        int atmosphereParameter(void *dest, const char *name, CVariable **, int *);
-        int incidentParameter(void *dest, const char *name, CVariable **, int *);
-        int oppositeParameter(void *dest, const char *name, CVariable **, int *);
-        int options(void *dest, const char *name, CVariable **, int *);
-        int attributes(void *dest, const char *name, CVariable **, int *);
-        int rendererInfo(void *, const char *, CVariable **, int *);
+        // The expected type is the QueryType the caller's destination has; the message parameters ignore it until
+        // spec 026 Phase 6 (getMessage)
+        int surfaceParameter(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected);
+        int displacementParameter(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected);
+        int atmosphereParameter(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected);
+        int incidentParameter(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected);
+        int oppositeParameter(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected);
+        int options(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected);
+        int attributes(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected);
+        int rendererInfo(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected);
+        int queryServiceAttribute(openrender::shading::AttributeScope scope, void *dest, const char *name, openrender::shading::QueryType expected);
         const char *shaderName();
         const char *shaderName(const char *type);
 

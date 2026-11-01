@@ -193,17 +193,6 @@ class CRendererServices {
         virtual int shootStep() const = 0;
 
         ///////////////////////////////////////////////////////////////
-        // Coordinate-system registry
-        ///////////////////////////////////////////////////////////////
-        virtual bool findCoordinateSystem(const char *name,
-                                          const float *&from,
-                                          const float *&to) const = 0;
-        virtual bool findCoordinateSystemWithType(const char *name,
-                                                  const float *&from,
-                                                  const float *&to,
-                                                  ECoordinateSystem &type) const = 0;
-
-        ///////////////////////////////////////////////////////////////
         // Filter function lookup (shaderPl.cpp)
         ///////////////////////////////////////////////////////////////
         virtual RtFilterFunc getFilter(const char *name) const = 0;
@@ -216,39 +205,6 @@ class CRendererServices {
         // with the given RSL prototype; nullptr when none matches.
         ///////////////////////////////////////////////////////////////
         virtual CDSO *getDSO(const char *name, const char *prototype) = 0;
-
-        ///////////////////////////////////////////////////////////////
-        // Render option getters (shading.cpp CShadingContext::options())
-        ///////////////////////////////////////////////////////////////
-        virtual int xres() const = 0;
-        virtual int yres() const = 0;
-        virtual int frame() const = 0;
-        virtual float frameAR() const = 0;
-        virtual float cropLeft() const = 0;
-        virtual float cropTop() const = 0;
-        virtual float cropRight() const = 0;
-        virtual float cropBottom() const = 0;
-        virtual float fstop() const = 0;
-        virtual float focallength() const = 0;
-        virtual float focaldistance() const = 0;
-        virtual float bucketWidth() const = 0;
-        virtual float bucketHeight() const = 0;
-        virtual const float *colorQuantizer() const = 0;
-        virtual const float *depthQuantizer() const = 0;
-        virtual float pixelFilterWidth() const = 0;
-        virtual float pixelFilterHeight() const = 0;
-        virtual float gamma() const = 0;
-        virtual float gain() const = 0;
-        virtual int maxRayDepth() const = 0;
-        virtual float relativeDetail() const = 0;
-        virtual int pixelXsamples() const = 0;
-        virtual int pixelYsamples() const = 0;
-        // Option "sampling" (spec 039): the sampler's name ("sobol", "pmj02", ...) and the
-        // seed as the signed integer the scene gave. The name is a string with static
-        // storage.
-        virtual const char *samplingSampler() const = 0;
-        virtual int samplingSeed() const = 0;
-        virtual bool lookupUserOption(const char *name, CVariable *&var) const = 0;
 };
 
 #endif // RENDERER_SERVICES_H

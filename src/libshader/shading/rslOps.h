@@ -314,6 +314,9 @@ void op_mfrom(float *dst, int sd, const char *space, const float *src, int ss, i
  * current→named via convertColorTo(). Distinct math from op_pfrom; must not be
  * routed through the pfrom/point-matrix family. */
 void op_ctransform(float *dst, int sd, const char *space, const float *src, int ss, int n, const int *tags);
+/* op_ctransform_ss: mirror of CTRANSFORMSEXPR — ctransform("from", "to", c) "c=SSc": from->rgb->to via
+ * convertColorFrom() then convertColorTo() (spec 026, D8). */
+void op_ctransform_ss(float *dst, int sd, const char *space1, const char *space2, const float *src, int ss, int n, const int *tags);
 
 /* -----------------------------------------------------------------------
  * Matrix arithmetic (stride-16)

@@ -84,7 +84,7 @@ for the existing JIT.
 
 - `trace.cpp`, `bundles.{h,cpp}`, `photonMap.*`, `raytracer.*`, `reyes.*`, `photon.cpp`;
 - every Geometry, Graphics State and Texturing source;
-- the JIT emitter (`llvmEmitter.cpp`) and every `op_*` signature;
+- the JIT emitter (`llvmEmitter.cpp`) and every `op_*` signature (two exceptions, decided by the maintainer: the two-space `ctransform` lowering and the new `op_ctransform_ss`, D8, Phase 4, 2026-10-31; and the triple `resultKind` for the color, normal and point overloads of the attribute-family and message builtins, D9, Phase 5, 2026-11-01);
 - the plug-in ABI headers (`shadeop.h`, `dlo.h`, `implicit.h`, `dsply.h`);
 - `CLAUDE.md`.
 

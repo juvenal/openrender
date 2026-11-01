@@ -77,11 +77,13 @@ class CForwardingServices : public CRendererServices {
 
         int shootStep() const override { return inner->shootStep(); }
 
-        bool findCoordinateSystem(const char *name, const float *&from, const float *&to) const override {
-            return inner->findCoordinateSystem(name, from, to);
+
+        void getAttribute(const openrender::shading::AttributeRequest &r, openrender::shading::AttributeValue &a) const override {
+            inner->getAttribute(r, a);
         }
-        bool findCoordinateSystemWithType(const char *name, const float *&from, const float *&to, ECoordinateSystem &type) const override {
-            return inner->findCoordinateSystemWithType(name, from, to, type);
+
+        openrender::shading::MatrixAnswer getMatrix(const openrender::shading::MatrixRequest &r) const override {
+            return inner->getMatrix(r);
         }
 
         RtFilterFunc getFilter(const char *name) const override {
@@ -97,32 +99,6 @@ class CForwardingServices : public CRendererServices {
             return inner->getDSO(name, prototype);
         }
 
-        int xres() const override { return inner->xres(); }
-        int yres() const override { return inner->yres(); }
-        int frame() const override { return inner->frame(); }
-        float frameAR() const override { return inner->frameAR(); }
-        float cropLeft() const override { return inner->cropLeft(); }
-        float cropTop() const override { return inner->cropTop(); }
-        float cropRight() const override { return inner->cropRight(); }
-        float cropBottom() const override { return inner->cropBottom(); }
-        float fstop() const override { return inner->fstop(); }
-        float focallength() const override { return inner->focallength(); }
-        float focaldistance() const override { return inner->focaldistance(); }
-        float bucketWidth() const override { return inner->bucketWidth(); }
-        float bucketHeight() const override { return inner->bucketHeight(); }
-        const float *colorQuantizer() const override { return inner->colorQuantizer(); }
-        const float *depthQuantizer() const override { return inner->depthQuantizer(); }
-        float pixelFilterWidth() const override { return inner->pixelFilterWidth(); }
-        float pixelFilterHeight() const override { return inner->pixelFilterHeight(); }
-        float gamma() const override { return inner->gamma(); }
-        float gain() const override { return inner->gain(); }
-        int maxRayDepth() const override { return inner->maxRayDepth(); }
-        float relativeDetail() const override { return inner->relativeDetail(); }
-        int pixelXsamples() const override { return inner->pixelXsamples(); }
-        int pixelYsamples() const override { return inner->pixelYsamples(); }
-        bool lookupUserOption(const char *name, CVariable *&var) const override { return inner->lookupUserOption(name, var); }
-        const char *samplingSampler() const override { return inner->samplingSampler(); }
-        int samplingSeed() const override { return inner->samplingSeed(); }
 };
 
 ///////////////////////////////////////////////////////////////////////

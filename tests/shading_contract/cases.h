@@ -16,6 +16,7 @@ int caseNoServicesMatrix();                     // case_no_services.cpp         
 int caseNoServicesAttribute();                  // case_no_services.cpp
 int caseNoServicesMessage();                    // case_no_services.cpp
 int caseNoServicesTracer();                     // case_no_services.cpp
+int caseTypeMismatchAttribute(bool jit);        // case_type_mismatch_attribute.cpp  US3 AS4, FR-026, SC-013
 int caseShaderGlobalsDouble();                  // case_globals_double.cpp       US5 AS1, AS3, FR-015, FR-016
 
 #endif

@@ -119,46 +119,12 @@ class CContractForwarder final : public CRendererServices {
 
         // ================================================================================================
         // TEMPORARY (spec 026): deleted in phases 4, 5, 7.
-        //   findCoordinateSystem, findCoordinateSystemWithType        Phase 4
-        //   the 25 option getters and lookupUserOption                Phase 5
         //   setOffendingObject(CObject *)                             Phase 7
         // ================================================================================================
         void setOffendingObject(CObject *obj) override {
             ++offendingObjectCalls;
             inner->setOffendingObject(obj);
         }
-        bool findCoordinateSystem(const char *name, const float *&from, const float *&to) const override {
-            return inner->findCoordinateSystem(name, from, to);
-        }
-        bool findCoordinateSystemWithType(const char *name, const float *&from, const float *&to, ECoordinateSystem &type) const override {
-            return inner->findCoordinateSystemWithType(name, from, to, type);
-        }
-        int xres() const override { return inner->xres(); }
-        int yres() const override { return inner->yres(); }
-        float frameAR() const override { return inner->frameAR(); }
-        float cropLeft() const override { return inner->cropLeft(); }
-        float cropTop() const override { return inner->cropTop(); }
-        float cropRight() const override { return inner->cropRight(); }
-        float cropBottom() const override { return inner->cropBottom(); }
-        float fstop() const override { return inner->fstop(); }
-        float focallength() const override { return inner->focallength(); }
-        float focaldistance() const override { return inner->focaldistance(); }
-        float bucketWidth() const override { return inner->bucketWidth(); }
-        float bucketHeight() const override { return inner->bucketHeight(); }
-        float pixelFilterWidth() const override { return inner->pixelFilterWidth(); }
-        float pixelFilterHeight() const override { return inner->pixelFilterHeight(); }
-        float gamma() const override { return inner->gamma(); }
-        float gain() const override { return inner->gain(); }
-        int maxRayDepth() const override { return inner->maxRayDepth(); }
-        float relativeDetail() const override { return inner->relativeDetail(); }
-        int pixelXsamples() const override { return inner->pixelXsamples(); }
-        int pixelYsamples() const override { return inner->pixelYsamples(); }
-        bool lookupUserOption(const char *name, CVariable *&var) const override { return inner->lookupUserOption(name, var); }
-        int samplingSeed() const override { return inner->samplingSeed(); }
-        int frame() const override { return inner->frame(); }
-        const float *colorQuantizer() const override { return inner->colorQuantizer(); }
-        const float *depthQuantizer() const override { return inner->depthQuantizer(); }
-        const char *samplingSampler() const override { return inner->samplingSampler(); }
         // ================================================================================================
         // end of the TEMPORARY block
         // ================================================================================================

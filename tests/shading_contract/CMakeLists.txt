@@ -35,6 +35,7 @@ set(_replay_shader_outputs "")
 set(_contract_shader_names
     cm_attribute cm_option cm_rendererinfo cm_surface cm_displacement cm_atmosphere cm_incident cm_opposite
     cm_lightsource cm_lightsource_noloop cm_producer_surface cm_producer_displacement cm_producer_volume cm_producer_light
+    cm_mm_attribute cm_mm_option cm_mm_rendererinfo cm_mm_real cm_nullobject
     cm_matrices cm_trace cm_transmission cm_visibility cm_gather cm_occlusion cm_indirect cm_env cm_shadow
     sit_marker sit_mirror sit_transmit sit_displace)
 set(_shader_specs "")
@@ -145,7 +146,7 @@ if(OPENRENDER_SHADING_CONTRACT_TESTS)
     endif()
     add_executable(test_shading_contract_standalone
         standalone_main.cpp case_link.cpp case_attributes.cpp case_messages.cpp case_matrices.cpp
-        case_trace_requests.cpp case_no_services.cpp case_globals_double.cpp load_stub.cpp)
+        case_trace_requests.cpp case_no_services.cpp case_globals_double.cpp case_type_mismatch_attribute.cpp load_stub.cpp)
     target_compile_features(test_shading_contract_standalone PRIVATE cxx_std_20)
     target_compile_definitions(test_shading_contract_standalone PRIVATE ${SHADING_CONTRACT_PROGRAM_DEFS})
     target_include_directories(test_shading_contract_standalone PRIVATE ${SHADING_CONTRACT_INCLUDES} ${CMAKE_SOURCE_DIR}/src/display)
@@ -154,13 +155,22 @@ if(OPENRENDER_SHADING_CONTRACT_TESTS)
     add_dependencies(test_shading_contract_standalone shading_contract_replay_shaders)
 
     add_executable(test_shading_contract_rendered
-        rendered_main.cpp case_real_answers.cpp case_gather_requests.cpp case_canned_trace.cpp case_no_tracer.cpp case_double_globals.cpp)
+        rendered_main.cpp case_real_answers.cpp case_gather_requests.cpp case_canned_trace.cpp case_no_tracer.cpp case_double_globals.cpp case_null_object.cpp)
     target_compile_features(test_shading_contract_rendered PRIVATE cxx_std_20)
     target_compile_definitions(test_shading_contract_rendered PRIVATE ${SHADING_CONTRACT_PROGRAM_DEFS})
     target_include_directories(test_shading_contract_rendered PRIVATE ${SHADING_CONTRACT_INCLUDES})
     target_link_libraries(test_shading_contract_rendered PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
     add_dependencies(test_shading_contract_rendered shading_contract_replay_shaders)
 
+    # The attribute family's real-services mismatch test calls the query wrappers with the QueryType argument that
+    # Phase 5 adds, so it could not compile before then (B10): an executable of its own, EXCLUDE_FROM_ALL until the
+    # implementation made it compile (T105); its red evidence was the failed build of this target.
+    add_executable(test_shading_contract_typemismatch_attr typemismatch_attr_main.cpp case_type_mismatch_real.cpp)
+    target_compile_features(test_shading_contract_typemismatch_attr PRIVATE cxx_std_20)
+    target_compile_definitions(test_shading_contract_typemismatch_attr PRIVATE ${SHADING_CONTRACT_PROGRAM_DEFS})
+    target_include_directories(test_shading_contract_typemismatch_attr PRIVATE ${SHADING_CONTRACT_INCLUDES})
+    target_link_libraries(test_shading_contract_typemismatch_attr PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+    add_dependencies(test_shading_contract_typemismatch_attr shading_contract_replay_shaders)
     add_executable(test_shading_contract_situations EXCLUDE_FROM_ALL situations_main.cpp case_situations.cpp)
     target_compile_features(test_shading_contract_situations PRIVATE cxx_std_20)
     target_compile_definitions(test_shading_contract_situations PRIVATE ${SHADING_CONTRACT_PROGRAM_DEFS})
@@ -214,18 +224,30 @@ add_contract_test(ShadingContract_ShaderGlobalsDouble test_shading_contract_stan
 add_contract_test(ShadingContract_DoubleGlobalsMatchRenderer test_shading_contract_rendered DoubleGlobalsMatchRenderer ENABLED)
 
 # Phase 4 (getMatrix)
-add_contract_test(ShadingContract_MatricesInterp test_shading_contract_standalone MatricesInterp)
-add_contract_test(ShadingContract_MatricesJit test_shading_contract_standalone MatricesJit JIT)
-add_contract_test(ShadingContract_NoServices_Matrix test_shading_contract_standalone NoServices_Matrix)
-add_contract_test(ShadingContract_RealAnswersInterp_Matrices test_shading_contract_rendered RealAnswersInterp_Matrices)
-add_contract_test(ShadingContract_RealAnswersJit_Matrices test_shading_contract_rendered RealAnswersJit_Matrices JIT)
+add_contract_test(ShadingContract_MatricesInterp test_shading_contract_standalone MatricesInterp ENABLED)
+add_contract_test(ShadingContract_MatricesJit test_shading_contract_standalone MatricesJit JIT ENABLED)
+add_contract_test(ShadingContract_NoServices_Matrix test_shading_contract_standalone NoServices_Matrix ENABLED)
+add_contract_test(ShadingContract_RealAnswersInterp_Matrices test_shading_contract_rendered RealAnswersInterp_Matrices ENABLED)
+add_contract_test(ShadingContract_RealAnswersJit_Matrices test_shading_contract_rendered RealAnswersJit_Matrices JIT ENABLED)
 
 # Phase 5 (getAttribute)
-add_contract_test(ShadingContract_AttributesInterp test_shading_contract_standalone AttributesInterp)
-add_contract_test(ShadingContract_AttributesJit test_shading_contract_standalone AttributesJit JIT)
-add_contract_test(ShadingContract_NoServices_Attribute test_shading_contract_standalone NoServices_Attribute)
-add_contract_test(ShadingContract_RealAnswersInterp_Attributes test_shading_contract_rendered RealAnswersInterp_Attributes)
-add_contract_test(ShadingContract_RealAnswersJit_Attributes test_shading_contract_rendered RealAnswersJit_Attributes JIT)
+add_contract_test(ShadingContract_AttributesInterp test_shading_contract_standalone AttributesInterp ENABLED)
+add_contract_test(ShadingContract_AttributesJit test_shading_contract_standalone AttributesJit JIT ENABLED)
+add_contract_test(ShadingContract_NoServices_Attribute test_shading_contract_standalone NoServices_Attribute ENABLED)
+add_contract_test(ShadingContract_RealAnswersInterp_Attributes test_shading_contract_rendered RealAnswersInterp_Attributes ENABLED)
+add_contract_test(ShadingContract_RealAnswersJit_Attributes test_shading_contract_rendered RealAnswersJit_Attributes JIT ENABLED)
+add_contract_test(ShadingContract_TypeMismatch_AttributeInterp test_shading_contract_standalone TypeMismatch_AttributeInterp ENABLED)
+add_contract_test(ShadingContract_TypeMismatch_AttributeJit test_shading_contract_standalone TypeMismatch_AttributeJit JIT ENABLED)
+add_contract_test(ShadingContract_TypeMismatchReal_AttributeInterp test_shading_contract_typemismatch_attr TypeMismatchReal_AttributeInterp ENABLED)
+add_contract_test(ShadingContract_TypeMismatchReal_AttributeJit test_shading_contract_typemismatch_attr TypeMismatchReal_AttributeJit JIT ENABLED)
+add_contract_test(ShadingContract_NullObject_AttributesInterp test_shading_contract_rendered NullObject_AttributesInterp ENABLED)
+add_contract_test(ShadingContract_NullObject_AttributesJit test_shading_contract_rendered NullObject_AttributesJit JIT ENABLED)
+# F4 (FR-029): the accessor constants of incident() and opposite() agree with the message source they ask for
+add_test(NAME ShadingContract_MessageAccessors
+         COMMAND ${CMAKE_COMMAND} -DSHADER_FUNCTIONS=${CMAKE_SOURCE_DIR}/src/libshader/shading/shaderFunctions.h
+                 -DSHADING_CPP=${CMAKE_SOURCE_DIR}/src/libshader/shading/shading.cpp
+                 -P ${CMAKE_CURRENT_SOURCE_DIR}/check_message_accessors.cmake)
+set_tests_properties(ShadingContract_MessageAccessors PROPERTIES TIMEOUT 60 LABELS "shading_contract")
 
 # Phase 6 (getMessage)
 add_contract_test(ShadingContract_MessagesInterp test_shading_contract_standalone MessagesInterp)

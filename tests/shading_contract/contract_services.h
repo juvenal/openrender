@@ -395,57 +395,9 @@ class CContractServices final : public CRendererServices {
         // recording its call; without this block the double is abstract in Phase 3 and StandaloneLink
         // cannot go green (QD, decided 2026-10-31). Each removing phase deletes its part, named at that
         // phase's TEST-APPROVAL:
-        //   findCoordinateSystem, findCoordinateSystemWithType        Phase 4 (getMatrix replaces them)
-        //   the 25 option getters and lookupUserOption                Phase 5 (getAttribute replaces them)
         //   setOffendingObject(CObject *)                             Phase 7 (ObjectHandle replaces it)
         // ================================================================================================
-        bool findCoordinateSystem(const char *, const float *&, const float *&) const override {
-            calls.push_back("legacy:findCoordinateSystem");
-            return false;
-        }
-        bool findCoordinateSystemWithType(const char *, const float *&, const float *&, ECoordinateSystem &) const override {
-            calls.push_back("legacy:findCoordinateSystemWithType");
-            return false;
-        }
 
-        int xres() const override { return legacy("xres", 0); }
-        int yres() const override { return legacy("yres", 0); }
-        int frame() const override { return legacy("frame", 0); }
-        float frameAR() const override { return legacy("frameAR", 1.f); }
-        float cropLeft() const override { return legacy("cropLeft", 0.f); }
-        float cropTop() const override { return legacy("cropTop", 0.f); }
-        float cropRight() const override { return legacy("cropRight", 1.f); }
-        float cropBottom() const override { return legacy("cropBottom", 1.f); }
-        float fstop() const override { return legacy("fstop", 0.f); }
-        float focallength() const override { return legacy("focallength", 0.f); }
-        float focaldistance() const override { return legacy("focaldistance", 0.f); }
-        float bucketWidth() const override { return legacy("bucketWidth", 0.f); }
-        float bucketHeight() const override { return legacy("bucketHeight", 0.f); }
-        const float *colorQuantizer() const override {
-            calls.push_back("legacy:colorQuantizer");
-            return nullptr;
-        }
-        const float *depthQuantizer() const override {
-            calls.push_back("legacy:depthQuantizer");
-            return nullptr;
-        }
-        float pixelFilterWidth() const override { return legacy("pixelFilterWidth", 0.f); }
-        float pixelFilterHeight() const override { return legacy("pixelFilterHeight", 0.f); }
-        float gamma() const override { return legacy("gamma", 1.f); }
-        float gain() const override { return legacy("gain", 1.f); }
-        int maxRayDepth() const override { return legacy("maxRayDepth", 0); }
-        float relativeDetail() const override { return legacy("relativeDetail", 1.f); }
-        int pixelXsamples() const override { return legacy("pixelXsamples", 1); }
-        int pixelYsamples() const override { return legacy("pixelYsamples", 1); }
-        const char *samplingSampler() const override {
-            calls.push_back("legacy:samplingSampler");
-            return "sobol";
-        }
-        int samplingSeed() const override { return legacy("samplingSeed", 0); }
-        bool lookupUserOption(const char *, CVariable *&) const override {
-            calls.push_back("legacy:lookupUserOption");
-            return false;
-        }
 
         void setOffendingObject(CObject *) override {
             ++offendingObjectCalls;

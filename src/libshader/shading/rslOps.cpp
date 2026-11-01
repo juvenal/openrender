@@ -1280,6 +1280,21 @@ void op_ctransform(float *dst, int sd, const char *space, const float *src, int 
         }
 }
 
+// op_ctransform_ss: RSL ctransform("from", "to", c) "c=SSc" -- mirrors CTRANSFORMSEXPR (shaderFunctions.h): the
+// colour is converted from the first space to rgb, then from rgb to the second (spec 026, D8). The lookups go
+// through the same jitFindCoordinateSystem() path as the one-space ctransform, from first, then to.
+void op_ctransform_ss(float *dst, int sd, const char *space1, const char *space2, const float *src, int ss, int n, const int *tags) {
+    ECoordinateSystem cSystemFrom, cSystemTo;
+    getColorCoordinateSystem(space1, cSystemFrom);
+    getColorCoordinateSystem(space2, cSystemTo);
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i)) {
+            vector vtmp;
+            convertColorFrom(vtmp, IDX(src, ss, i), cSystemFrom);
+            convertColorTo(IDX(dst, sd, i), vtmp, cSystemTo);
+        }
+}
+
 // op_mfrom: RSL matrix "space" (...) constructor — mirrors MFROMEXPR (mulmm(res, from, op)).
 void op_mfrom(float *dst, int sd, const char *space, const float *src, int ss, int n, const int *tags) {
     const float *from = nullptr;

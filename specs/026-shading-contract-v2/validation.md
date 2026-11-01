@@ -170,6 +170,67 @@ Each mutation: edited, `cmake --build build --target test_shading_contract_trace
 
 The `gather` mutation is detected on request 8 (the second `gather()` call, whose cone is wide enough for a non-zero `da`); the first call's `da` is 0 in the recording. After the eight reverts the tree was rebuilt in full: `git diff` empty, 8 of 8 replay tests green, and CP-b/CP-d repeated (see §1).
 
+### Phase 4 (T082): the getMatrix tests fail on the Phase 3 tree (macOS)
+
+The five tests were enabled, and the three forwarding `getMatrix` overrides of T083 were added to `CForwardingServices`, `CRecordingServices` and `CTextureServices` (the only other edit; `src/` untouched). The build is clean; `ctest -R 'ShadingContract_(MatricesInterp|MatricesJit|NoServices_Matrix|RealAnswersInterp_Matrices|RealAnswersJit_Matrices)$'`: **0 of 5 passed**. Log: `build-logs/026-p4-red.log`.
+
+| Test | Failures | Why (matches the expected red of T082) |
+|---|---|---|
+| `Matrices{Interp,Jit}` | 106 each | `svc.matrixCalls.size() == e.names.size()` x 15 (the double's `getMatrix` was never asked: Shading still calls the legacy `findCoordinateSystemWithType`, which the TEMPORARY block answers "false"); the transformed values x 76 (`Unknown coordinate system` -> identity); the `unknown` warning count x 14; `objectErrors` x 1 (the NoObject path) |
+| `NoServices_Matrix` | 2 | `svc.count("getMatrix") == 2` and the `CODE_NOTSTARTED` once-warning count: with no services the old path still runs and warns `Unknown coordinate system` instead |
+| `RealAnswersInterp_Matrices` | 14 | `fwd.matrixCalls.size() == row.names.size()`: the forwarder recorded no `getMatrix` |
+| `RealAnswersJit_Matrices` | 23 | the same 14, plus 9 value mismatches |
+
+### Phase 4 (T085 to T089): macOS, after the implementation and the D8 fix (T086a)
+
+Implementation: `CRendererServicesImpl::getMatrix` (rendererShadingServices.cpp), `CShadingContext::findCoordinateSystem` rewritten over `getMatrix` with the diagnostics kept and a once-per-process `CODE_NOTSTARTED` warning for Unavailable or no services, and `findCoordinateSystem`/`findCoordinateSystemWithType` removed from the interface, the Impl and the six approved test overrides (T087). T086a (D8): the emitter's `ctransform` branch dispatches on the proto shape and calls the new `op_ctransform_ss`. `init.cpp` and the bind-time block of `rslOps.cpp` untouched.
+
+| Check | Result |
+|---|---|
+| build | clean (no compiler warning; the linker warnings about duplicate LLVM libraries and the Swift package's macOS 13.0/13.3 versions are old) |
+| T088 Phase 4 tests | all 5 **pass**: `MatricesInterp`, `MatricesJit`, `NoServices_Matrix`, `RealAnswersInterp_Matrices`, `RealAnswersJit_Matrices`. Before T086a the two JIT tests failed on `ctransform("rgb", "hsv", c)` only (D8) |
+| CP-b `-LE determinism-sweep` | **947 tests, 100% passed** (`ShadingParity_*`, `ShadingServices_*`, `TextureSubstitute*` pass with only the approved wrapper edits) |
+| CP-d (fresh stamp, after the `oshader` rebuild recompiled every shader) | 819 images, **0 differing, 0 missing**; `MaxBlockAvgDiff` equal to the baseline; 3 INFO lines (the `ri.tif` files the rendered contract tests leave in their cwd). No suite shader uses the two-space `ctransform` under `.slo` |
+| CP-m | `ctest -L shading_contract`: 18 of 18 run pass; the rest "Not Run (Disabled)" |
+| CP-c | `ctest -L architecture` 21 of 21; `ALLOWED` identical to the Phase 3 table (the same 11 DB lines), `RESULT PASS` |
+| D7 count | `init.cpp` preprocessed with the build's flags (`-E -P`): **19** `CRenderer::findCoordinateSystem(` calls (= 17 `shaderFunctions.h` + 1 `giFunctions.h` + 1 `shaderOpcodes.h`: every macro site expands there), 3 other `findCoordinateSystem(` tokens (the declarations in `renderer.h` and `shading.h`), 1 `jitFindCoordinateSystem(` (its declaration). They stay |
+
+### Phase 5 (T095): the getAttribute tests are red on the Phase 4 tree (macOS)
+
+Enabled: `Attributes{Interp,Jit}`, `NoServices_Attribute`, `RealAnswers{Interp,Jit}_Attributes`, and the new `TypeMismatch_Attribute{Interp,Jit}`, `TypeMismatchReal_Attribute{Interp,Jit}`, `NullObject_Attributes{Interp,Jit}` and `MessageAccessors`; the three wrappers got their `getAttribute` forwarding override (T096). The default build is clean (the new sources compile). `ctest -R` of the 12 tests: **0 of 12 passed**. Logs: `build-logs/026-p5-red.log`, `026-p5-build-tm.log`.
+
+| Test | Result | Why |
+|---|---|---|
+| `Attributes{Interp,Jit}`, `NoServices_Attribute` | SEGFAULT | `attribute()` dereferences `currentObject->attributes` and the standalone program has no object (QE); a crash is red evidence |
+| `RealAnswers{Interp,Jit}_Attributes` | 3 failures each | `fwd.attributeCalls.size() == 6`: the forwarder recorded no `getAttribute` (the three rows) |
+| `TypeMismatch_Attribute{Interp,Jit}` | SEGFAULT | the same null-object dereference; with an object the unsafe copy would overwrite the guards |
+| `TypeMismatchReal_Attribute{Interp,Jit}` | Not Run | the executable fails to **build**: 15 errors, all `too many arguments to function call, expected 2, have 3` (`queryAttribute`/`queryOption`/`queryRendererInfo` take no `QueryType` yet) |
+| `NullObject_Attributes{Interp,Jit}` | SEGFAULT | `attribute()` with `currentObject == nullptr` (F2) |
+| `MessageAccessors` | Failed | all 8 `DEFFUNC` lines and both `jit*Parameter` members pass the other accessor (F4); shown green on a scratch copy with the constants swapped |
+
+### Phase 5 (T098 to T107): the implementation, macOS and Linux
+
+Implemented: `CRendererServicesImpl::getAttribute` (the three name tables moved verbatim from Shading, null object -> `NotFound`, the FR-026 type check), `CShadingContext::queryServiceAttribute` and the three members over it (a `QueryType` argument; one `CODE_BADTOKEN` warning per builtin kind per process for a mismatch, one `CODE_NOTSTARTED` for an unavailable service), `PARAMETEREXPR_PRE(accessor, expected)` with the 32 `DEFFUNC` lines updated and the F4 accessors swapped, `queryTypeOfResultKind`, the five message members and their JIT entry points taking an ignored `QueryType`, the public `query*` wrappers (three-argument and the two-argument overloads), and the 26 option members removed from the interface, the Impl and the six test classes (T104). `test_shading_contract_typemismatch_attr` is no longer `EXCLUDE_FROM_ALL` (T105).
+
+Three findings stopped the first checkpoint run; the maintainer approved all three on 2026-11-01 (D9 as T105a; T1 and T2, the edits of `case_type_mismatch_real.cpp` and `case_null_object.cpp` in `tools/phase5-test-fixes.diff`, approved test edits) and they are applied:
+
+| Finding | Effect before the fix | Fix |
+|---|---|---|
+| D9, the JIT reads a color, normal or point destination as a float (`llvmEmitter.cpp`); `rendererinfo(name, vector)` resolves to the `f=SC` overload (declared before `f=SV`) | `AttributesJit`, `RealAnswersJit_Attributes`, `TypeMismatch_AttributeJit`, `TypeMismatchReal_AttributeJit` failed: the JIT asked `Float` where the interpreter asks `Triple` | `tools/phase5-d9-emitter.diff` (C, N and P map to 3, like the interpreter's `DEFLINKFUNC`) |
+| T1, the two new rendered tests installed their diagnostic sink before `RiBegin`, which replaces it | `TypeMismatchReal_AttributeInterp` failed its warning counts; `NullObject_Attributes` counted 0 trivially | `tools/phase5-test-fixes.diff`: install the sink after the session starts, as `case_real_answers.cpp` does |
+| T2, GCC 13 `-Werror=array-bounds` in `userAttributes.h:186` (the string branch of `insert()` seen against a one-float object; the family of D2) | Linux build of `test_shading_contract_typemismatch_attr` failed | same diff: the insert goes through a `noinline` helper that takes `const void *` |
+
+Results on the final staged tree (`linux_sync.sh push` then `verify`: 3,226 files, **0 differences**):
+
+| Check | macOS | Linux (`openrender-026`, GCC 13.3 `-Werror`, `-j2`) |
+|---|---|---|
+| build | clean | clean (exit 0) |
+| the 12 Phase 5 tests | **12 of 12 pass** | `shading_contract` label 29 of 29 |
+| CP-b `-LE determinism-sweep` | 959 tests, 100% passed | 960 tests, 953 passed, **7 failed = the Linux baseline's 7** |
+| CP-d (fresh stamp; the `oshader` rebuild recompiled every shader) | 819 images, **0 differing, 0 missing**, `MaxBlockAvgDiff` equal; 9 INFO lines (cwd `ri.tif` files of the contract tests) | 0 differing, 0 missing, equal diffs; 9 INFO |
+| CP-c | 21 of 21, `RESULT PASS`, `ALLOWED` unchanged | 21 of 21, `RESULT PASS`, `ALLOWED` unchanged |
+| `libshader_shading` imports (SC-011) | the same 6 flat-namespace imports | `diff` against `libshader-imports-base-linux.txt` empty |
+
 ## §3 Linux records
 
 Note for the reader: the Linux baseline is taken on the starting `src/` **plus the Phase 1 observer hook** (the macOS baseline is taken before it). The hook is null in production and adds no output, which the macOS manifest check shows (§1); the Linux baseline is therefore comparable with the starting tree.
@@ -212,6 +273,17 @@ The host did not resolve at the first attempt (three tries, 2026-10-31) and was 
 | `libshader_shading.so` imports (`nm -D --undefined-only`, demangled, sorted) | **identical** to `libshader-imports-base-linux.txt` (465 lines; `diff` empty): SC-011 holds on Linux. Saved as `tools/libshader-imports-phase3-linux.txt` |
 
 The suite counts differ by one between the platforms (943 on Linux, 942 on macOS), as they did at Phase 1 (939 against 938): a platform-gated test, unchanged by this phase.
+
+### Phase 4: Linux (T090; `openrender-026`, GCC 13.3, `-Werror`, `-j2`), after T086a
+
+| Check | Result |
+|---|---|
+| push / verify | 3,213 files, 0 differences |
+| build | exit 0, no warning |
+| CP-b `-LE determinism-sweep -j2` | 948 tests, 941 passed, **7 failed: exactly the Linux baseline's 7** (before T086a the two JIT Matrices tests failed too, D8) |
+| CP-d (fresh stamp) | 819 images, 0 differing, 0 missing; `MaxBlockAvgDiff` equal to `baseline-diffs-linux.txt`; 3 INFO (the cwd `ri.tif` files) |
+| CP-m | `ctest -L '^shading_contract$'`: 17 of 17 pass |
+| CP-c | 21 of 21; `ALLOWED` identical; `RESULT PASS` |
 
 ## §4 Findings: triage and filed issues
 
@@ -399,7 +471,15 @@ Run 1 failed both, run 2 passed both, and their images differ between runs. macO
 
 #### D7. The 25 coordinate-system call sites do not all reach `CShadingContext::findCoordinateSystem`: at bind time `init.cpp` redirects the macro (found by the #123 diagnosis, recorded 2026-10-31)
 
-The T008 count (25 textual sites) and the claim "all reach one member" (research R-coordinate-systems, plan.md, T086) are right for shading. `src/ri/render/init.cpp:60` has `#define findCoordinateSystem CRenderer::findCoordinateSystem` and its interpreter switch includes `scriptOpcodes.h`/`scriptFunctions.h` (-> `shaderOpcodes.h`, `shaderFunctions.h`), so the `pfrom` site (confirmed) and, by the same chain, the other macro sites expand there into a direct core call. Not a defect and no behaviour change: `T086` keeps those, the text of T086, plan.md and research.md is corrected, and T086 now counts the init.cpp expansions with `-E` and records the number here. The #123 cause is the JIT's bind-time fallback in `rslOps.cpp` plus `init.cpp`, fixed on `fix/123-named-space-light-default`; Phase 4 gets no #123 task.
+The T008 count (25 textual sites) and the claim "all reach one member" (research R-coordinate-systems, plan.md, T086) are right for shading. `src/ri/render/init.cpp:60` has `#define findCoordinateSystem CRenderer::findCoordinateSystem` and its interpreter switch includes `scriptOpcodes.h`/`scriptFunctions.h` (-> `shaderOpcodes.h`, `shaderFunctions.h`), so the `pfrom` site (confirmed) and, by the same chain, the other macro sites expand there into a direct core call. Not a defect and no behaviour change: `T086` keeps those, the text of T086, plan.md and research.md is corrected, and T086 counted the `init.cpp` expansions with `-E -P` and the build's own flags (T086, 2026-10-31): **19**, every macro site (17 in `shaderFunctions.h`, 1 in `giFunctions.h`, 1 in `shaderOpcodes.h`), each as a direct `CRenderer::findCoordinateSystem(` call; the other `findCoordinateSystem(` tokens in the preprocessed text are three declarations (`renderer.h`, `shading.h` x2). So all 19 macro sites are instantiated twice, once for shading (reaching the Shading member) and once for bind time (reaching the core). The #123 cause is the JIT's bind-time fallback in `rslOps.cpp` plus `init.cpp`, fixed on `fix/123-named-space-light-default`; Phase 4 gets no #123 task.
+
+#### D8. The JIT does not lower the two-space `ctransform("from", "to", c)` form (found at T088; pre-existing; `Matrices` and `RealAnswers` JIT fail on it)
+
+`llvmEmitter.cpp` handles `cfrom`, `mfrom` and `ctransform` in one branch that reads `operands[0]` as the space and `operands[1]` as the colour source. That is the `c=Sc` form. The `c=SSc` form (`addBuiltInFunction("ctransform", "c=SSc", 0)`, `CTRANSFORMSEXPR` in `shaderFunctions.h`) has operands `{from, to, src}`, so the branch looks up one space name (the first) instead of two and reads the second space name as the source. The `transform`/`vtransform`/`ntransform` branch above it already dispatches on the proto shape (`S`, `m`, `SS`, `Sm`); `ctransform` has no such dispatch. Visible effects under `.slo` on the unchanged emitter: `cm_matrices` case 8 asks the double for 1 name where the interpreter asks for 2 (`rgb`, `hsv`), and the converted colour is wrong at every lane (12 value checks, 4 points x 3). Not introduced by this spec: nothing in the emitter or `rslOps.cpp` changed. The approved tests (`Matrices{Jit}`, `RealAnswersJit_Matrices`) expect the interpreter's behaviour, so Phase 4 cannot go green without one of: (A) lowering the `SSc` form in the emitter with a new `op_ctransform_ss` in `rslOps.cpp` (mirrors `op_*transform_ss`; the two lookups then go through `jitFindCoordinateSystem` like every other site); or (B) an edit to the approved test cases (needs approval). **Decided (maintainer, 2026-10-31): option A, no issue filed.** Fixed in 026 as T086a: the emitter's `ctransform` branch now dispatches on the proto shape (`SSc`) and calls the new `op_ctransform_ss` (`rslOps.cpp`, next to `op_ctransform`; `rslOps.h`), which resolves both names through `getColorCoordinateSystem` (-> `jitFindCoordinateSystem`) and converts `from -> rgb -> to` as `CTRANSFORMSEXPR` does. FR-009 (spec.md), plan.md and tasks.md carry the amendment. The results after the fix are in the Phase 4 tables of §1 and §3.
+
+#### D9. The JIT reads a color, normal or point destination of `attribute()`, `option()`, `rendererinfo()` and the message builtins as a float (found at T105; pre-existing; fix approved by the maintainer 2026-11-01 as T105a, no issue filed)
+
+In `llvmEmitter.cpp` the branch for `surface`, `displacement`, `atmosphere`, `incident`, `opposite`, `attribute`, `option` and `rendererinfo` derives `resultKind` from the last letter of the matched prototype: `V` -> 3, `M` -> 16, `S` -> -1, anything else -> 1. The prototypes `f=SC`, `f=SN` and `f=SP` (color, normal, point destinations) fall in "anything else", so those calls copy one float, while the interpreter links the three to the vector overload (`DEFLINKFUNC` -> `f=SV`, three floats). Which prototype a vector argument matches depends on the order of `addBuiltInFunction`: `option` and `attribute` list `f=SV` before `f=SC`, `rendererinfo` lists `f=SC` first, so `rendererinfo("version", vector)` is compiled as a color query. Visible effect before this phase: the JIT's `rendererinfo(name, vector)` writes one float. With the `QueryType` of Phase 5 it also shows as a request that differs between the backends (Float against Triple), which the approved Phase 5 tests (`Attributes`, `RealAnswers_Attributes`, `TypeMismatch_Attribute`, `TypeMismatchReal_Attribute`, under `.slo`) assert is identical. Proposed fix (`tools/phase5-d9-emitter.diff`): C, N and P map to 3. It is the same kind of change as D8 (one emitter line, no `op_*` change); `spec.md` FR-009's amendment names the emitter only for `ctransform`, so it needed the maintainer's decision: approved 2026-11-01 and applied (FR-009 in spec.md and plan.md name it as the second emitter change). The trial changed no image on either platform.
 
 ## §5 Final summary against SC-001 to SC-014
 

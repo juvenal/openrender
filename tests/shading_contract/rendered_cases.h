@@ -12,6 +12,7 @@ int caseRealAnswers(bool jit, const char *family); // case_real_answers.cpp    U
 int caseGatherRequests(bool jit);                  // case_gather_requests.cpp  US6 AS1, FR-010, FR-011
 int caseCannedTrace(bool jit);                     // case_canned_trace.cpp     US6 AS1, AS3
 int caseNoTracer();                                // case_no_tracer.cpp        US6 AS3, FR-012
+int caseNullObjectAttributes(bool jit);            // case_null_object.cpp      US3 AS5, FR-027, SC-014
 int caseDoubleGlobalsMatchRenderer();              // case_double_globals.cpp   R10
 
 #endif
