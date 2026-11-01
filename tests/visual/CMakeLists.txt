@@ -1767,6 +1767,42 @@ foreach(_format rslo slo)
     endif()
 endforeach()
 
+# --- Dynamic-load object under the raytrace hider (GitHub #129). CDLObject::shade()
+# passed -1 vertices to CShadingContext::shade(), so every DLO hit ended in a
+# negative-size copy and a crash. The scene shades tests/unit/motion's dlo_sphere
+# fixture with the constant shader through a real display, and the probe reads the
+# centre pixel back exactly, RGBA = Cs, Os = 0.2 0.4 0.6 1, under the interpreter and
+# the JIT. The dlo branch of RiGeometry loads the name it is given unchanged, so the
+# scene names the fixture by its absolute path: configure_file fills the format and
+# the output, then file(GENERATE) resolves the fixture's path at generate time.
+foreach(_format rslo slo)
+    set(_name dlo-sphere-raytrace-${_format})
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/${_name})
+    file(MAKE_DIRECTORY ${_scratch})
+    set(FORMAT ${_format})
+    set(OUTPUT ${_name}.tif)
+    set(DLO_PLUGIN "$<TARGET_FILE:dlo_sphere>")
+    configure_file(${CMAKE_SOURCE_DIR}/examples/rib/tests/dlo-sphere-raytrace.rib.in
+        ${_scratch}/${_name}.rib.genex @ONLY)
+    file(GENERATE OUTPUT ${_scratch}/${_name}.rib INPUT ${_scratch}/${_name}.rib.genex)
+    add_test(NAME DloShade_Raytrace_${_format}
+        COMMAND test_pixel_probe $<TARGET_FILE:orender>
+            ${_scratch}/${_name}.rib
+            ${_name}.tif 16 16 0.00001 0.2 0.4 0.6 1
+        WORKING_DIRECTORY ${_scratch})
+    set_tests_properties(DloShade_Raytrace_${_format} PROPERTIES
+        TIMEOUT     120
+        LABELS      "visual;regression"
+        ENVIRONMENT "${VISUAL_ENV}"
+        DEPENDS     orender)
+    if(_format STREQUAL "slo" AND NOT OPENRENDER_HAVE_LLVM)
+        set_tests_properties(DloShade_Raytrace_${_format} PROPERTIES DISABLED TRUE)
+    endif()
+endforeach()
+unset(FORMAT)
+unset(OUTPUT)
+unset(DLO_PLUGIN)
+
 # --- Displacement parity: a single sphere with the "bump_lowfreq"
 # displacement shader bound (no "trace"/"displacements" attribute set on
 # the raytrace side). This is the TDD Red gate for T047/T048-T051 (spec
