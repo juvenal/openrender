@@ -276,8 +276,13 @@ class CContractServices final : public CRendererServices {
             calls.push_back("getStepFilter");
             return nullptr;
         }
-        CVariable *retrieveVariable(const char *) const override {
+        // The shader loader resolves every global a shader names (Ci, P, ...) through this lookup, so the double
+        // answers it from its own table of the 29 built-in globals; any other name is not a variable.
+        CVariable *retrieveVariable(const char *name) const override {
             calls.push_back("retrieveVariable");
+            for (const CVariable &v : table)
+                if (strcmp(v.name, name) == 0)
+                    return const_cast<CVariable *>(&v);
             return nullptr;
         }
         CDSO *getDSO(const char *, const char *) override {

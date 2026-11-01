@@ -14,8 +14,8 @@
 # Red-first convention (tasks.md): an executable is EXCLUDE_FROM_ALL (the replay ones joined the build at T021, once the hook existed) and its test DISABLED until the
 # phase that provides what it needs, so the main build and every checkpoint stay green.
 
-# The contract programs (Phase 2) need headers that do not exist before Phase 3: OFF until then.
-option(OPENRENDER_SHADING_CONTRACT_TESTS "Spec 026 contract programs (ON by default from Phase 3)" OFF)
+# The contract programs (Phase 2) need the headers Phase 3 creates: ON by default from Phase 3.
+option(OPENRENDER_SHADING_CONTRACT_TESTS "Spec 026 contract programs" ON)
 
 set(SHADING_CONTRACT_INCLUDES
     ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/parse
@@ -122,8 +122,9 @@ endforeach()
 # ---------------------------------------------------------------------------
 # The contract programs (spec 026, Phase 2). Written before the headers they use exist
 # (serviceTypes.h, tracer.h, shaderGlobals.h, situation.h, sloLoader.h arrive in Phase 3), so they are
-# built only with OPENRENDER_SHADING_CONTRACT_TESTS (OFF until Phase 3, ON by default from then) and every
-# executable is EXCLUDE_FROM_ALL. The tests are registered either way and every one is DISABLED until the
+# built only with OPENRENDER_SHADING_CONTRACT_TESTS (OFF until Phase 3, ON by default from then). The
+# standalone and the rendered program are part of the default build from Phase 3 (the headers exist); the
+# situations program stays EXCLUDE_FROM_ALL until Phase 9, because it reads report fields only Phase 9 adds. The tests are registered either way and every one is DISABLED until the
 # phase named beside it enables it (red-first convention: a disabled test is "Not Run", never a failure).
 # Red evidence: a scratch build with -DOPENRENDER_SHADING_CONTRACT_TESTS=ON fails to compile them.
 #
@@ -142,7 +143,7 @@ if(OPENRENDER_SHADING_CONTRACT_TESTS)
     if(NOT TARGET state_only_sources)
         message(FATAL_ERROR "OPENRENDER_SHADING_CONTRACT_TESTS needs the State-only library: enable OPENRENDER_STATE_ONLY_TESTS")
     endif()
-    add_executable(test_shading_contract_standalone EXCLUDE_FROM_ALL
+    add_executable(test_shading_contract_standalone
         standalone_main.cpp case_link.cpp case_attributes.cpp case_messages.cpp case_matrices.cpp
         case_trace_requests.cpp case_no_services.cpp case_globals_double.cpp load_stub.cpp)
     target_compile_features(test_shading_contract_standalone PRIVATE cxx_std_20)
@@ -152,7 +153,7 @@ if(OPENRENDER_SHADING_CONTRACT_TESTS)
     target_link_libraries(test_shading_contract_standalone PRIVATE openrender_common_flags libshader_shading openrendercommon state_only_sources)
     add_dependencies(test_shading_contract_standalone shading_contract_replay_shaders)
 
-    add_executable(test_shading_contract_rendered EXCLUDE_FROM_ALL
+    add_executable(test_shading_contract_rendered
         rendered_main.cpp case_real_answers.cpp case_gather_requests.cpp case_canned_trace.cpp case_no_tracer.cpp case_double_globals.cpp)
     target_compile_features(test_shading_contract_rendered PRIVATE cxx_std_20)
     target_compile_definitions(test_shading_contract_rendered PRIVATE ${SHADING_CONTRACT_PROGRAM_DEFS})
@@ -178,11 +179,11 @@ function(contract_program VAR PROGRAM)
     endif()
 endfunction()
 
-# add_contract_test(<test name> <program> <case>... [JIT])
+# add_contract_test(<test name> <program> <case>... [JIT] [ENABLED])
 #   One CTest entry per case, DISABLED until the phase that provides what it needs enables it. The entry
 #   exists (disabled) whether or not the program is configured.
 function(add_contract_test NAME PROGRAM CASE)
-    cmake_parse_arguments(ARG "JIT" "" "" ${ARGN})
+    cmake_parse_arguments(ARG "JIT;ENABLED" "" "" ${ARGN})
     if(ARG_JIT AND NOT OPENRENDER_HAVE_LLVM)
         return()
     endif()
@@ -195,17 +196,22 @@ function(add_contract_test NAME PROGRAM CASE)
         add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} -E true WORKING_DIRECTORY ${_cwd})
     endif()
     set_tests_properties(${NAME} PROPERTIES TIMEOUT 120 LABELS "shading_contract"
-        ENVIRONMENT "${SHADING_CONTRACT_ENV}" DISABLED TRUE)
+        ENVIRONMENT "${SHADING_CONTRACT_ENV}")
+    if(NOT ARG_ENABLED)
+        set_tests_properties(${NAME} PROPERTIES DISABLED TRUE)
+    endif()
 endfunction()
 
-# Phase 3 (the foundation: the headers, the version, the stub, the loader move)
-add_contract_test(ShadingContract_StandaloneLink test_shading_contract_standalone StandaloneLink)
+# Phase 3 (the foundation: the headers, the version, the stub, the loader move).
+# The two test-code edits of tools/phase3-test-fixes.diff (contract_services.h retrieveVariable; the key copy in case_globals_double.cpp)
+# were confirmed by the maintainer 2026-10-31; the four tests below are ENABLED.
+add_contract_test(ShadingContract_StandaloneLink test_shading_contract_standalone StandaloneLink ENABLED)
 add_test(NAME ShadingContract_StandaloneLinkLine
          COMMAND ${CMAKE_COMMAND} -DBUILD_DIR=${CMAKE_CURRENT_BINARY_DIR} -DTARGET=test_shading_contract_standalone
                  -P ${CMAKE_CURRENT_SOURCE_DIR}/check_link_line.cmake)
-set_tests_properties(ShadingContract_StandaloneLinkLine PROPERTIES TIMEOUT 60 LABELS "shading_contract" DISABLED TRUE)
-add_contract_test(ShadingContract_ShaderGlobalsDouble test_shading_contract_standalone ShaderGlobalsDouble)
-add_contract_test(ShadingContract_DoubleGlobalsMatchRenderer test_shading_contract_rendered DoubleGlobalsMatchRenderer)
+set_tests_properties(ShadingContract_StandaloneLinkLine PROPERTIES TIMEOUT 60 LABELS "shading_contract")
+add_contract_test(ShadingContract_ShaderGlobalsDouble test_shading_contract_standalone ShaderGlobalsDouble ENABLED)
+add_contract_test(ShadingContract_DoubleGlobalsMatchRenderer test_shading_contract_rendered DoubleGlobalsMatchRenderer ENABLED)
 
 # Phase 4 (getMatrix)
 add_contract_test(ShadingContract_MatricesInterp test_shading_contract_standalone MatricesInterp)

@@ -346,6 +346,8 @@ contradicts FR-010 ("Shading's call sites go through it") and FR-011.
 
 ## R8. `getMatrix` (FR-008, FR-009)
 
+**Correction (2026-10-31, the #123 diagnosis): this holds while shading only.** The same macros are also expanded in `src/ri/render/init.cpp` (bind-time init code; `#define findCoordinateSystem CRenderer::findCoordinateSystem`, line 60), where the `pfrom` site (`shaderOpcodes.h:513`) and, by the same include chain, the other macro sites call `CRenderer::findCoordinateSystem` directly and never reach the Shading member. They stay (renderer-side; the call `getMatrix` wraps). The count of 25 is of textual sites.
+
 **Finding**: every one of the 25 coordinate-system call sites (textual calls to `findCoordinateSystem(` or `jitFindCoordinateSystem(`, outside their declarations, definitions and comments; the spec's "about 30" counts mentions) goes through
 `CShadingContext::findCoordinateSystem(name, from, to[, type])` (`shading.cpp:2843-2925`):
 

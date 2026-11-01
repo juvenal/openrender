@@ -434,6 +434,16 @@ void CShadingContext::reportTraceRequest(int kind, const char *label, int bundle
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CShadingContext
+// Method				:	objectHandle
+// Description			:	The shaded object as an opaque handle (spec 026)
+// Return Value			:	null when there is no object
+// Comments				:	The one upcast of the current object: this unit keeps object.h (the DB-006 line that stays)
+openrender::shading::ObjectHandle CShadingContext::objectHandle() const {
+    return openrender::shading::ObjectHandle{static_cast<const CObject *>(currentShadingState->currentObject)};
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CShadingContext
 // Method				:	CShadingContext
 // Description			:	Ctor
 // Return Value			:	-

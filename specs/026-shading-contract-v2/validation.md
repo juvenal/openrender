@@ -78,8 +78,8 @@ The only edit made to approved test code since T016 is the GCC 13 fix in `tests/
 The 28 Phase 2 tests were approved as written. One design amendment was decided with them, about the standalone program's current object:
 
 - The trace builtins read `currentObject->attributes` (`execute.cpp` `plBegin`, `executeMisc.cpp:720` and `:846`, `shading.cpp` `jitParameterList`), so with the null object of the standalone program (QE) they would crash, and T129 as first written (`objectAttributes()` null without an object) would not have fixed that. Phase 2 therefore used a harness stand-in (`attachFakeObject()`) for `TraceRequests` and `NoServices_Tracer` only.
-- Amended: `objectAttributes()` returns a default attribute set when there is no object (T129), the four trace-path reads go through it (T130, including `jitParameterList` as an exception to "reads in `shading.cpp` stay direct"), and `attachFakeObject()` is deleted in Phase 8 (T139a, an approved edit to approved test code, diff shown in the Phase 8 report). A read that cannot be routed keeps the stand-in for itself and is named.
-- Risk recorded with the amendment: a function-local default `CAttributes` in `libshader_shading` may add imports (`CAttributes::CAttributes()`, its vtable), which SC-011 forbids; T129 says to measure that at the Phase 7 checkpoint and stop if so (the no-import alternative is null-tolerant consumers).
+- Amended (T064), then refined at T066 (2026-10-31, the maintainer's decision): `objectAttributes()` stays null when there is no object (T129); its consumers on the trace path (`plBegin`, `jitParameterList`, and the flag reads of `traceTransmission` and `traceReflection`) take built-in defaults when it is null (T129, T130), so no `static CAttributes` goes into `libshader_shading`; and `attachFakeObject()` is deleted in Phase 8 (T139a, an approved edit to approved test code, diff shown in the Phase 8 report). A read that cannot be made null-tolerant keeps the stand-in for itself and is named.
+- The first version of the amendment returned a default `CAttributes` set; it was dropped before any code was written because constructing one in `libshader_shading` can add imports (`CAttributes::CAttributes()`, its vtable) that SC-011 forbids. The import measurement stays at the Phase 7 checkpoint as a check, expecting no growth.
 
 ### Phase 2: Linux (`openrender-026`, GCC 13.3, `-Werror`, `-j2`)
 
@@ -90,6 +90,28 @@ The 28 Phase 2 tests were approved as written. One design amendment was decided 
 | `ctest -L architecture` | 21 of 21; `ALLOWED` lines identical, `RESULT PASS` |
 | `ctest -L '^shading_contract$'` | the 8 replay tests pass; the 28 new tests "Not Run (Disabled)" |
 | GCC 13 `-fsyntax-only -Wall -Wextra -Wpedantic -Wformat-security -Werror` of all 17 new sources against a scratch overlay of the contract headers | clean (no output). This is the check that the option-ON programs, which only build from Phase 3 on, compile under GCC; the overlay holds `serviceTypes.h`, `tracer.h`, `shaderGlobals.h`, `situation.h`, `sloLoader.h` and a copy of `rendererServices.h` and `shading.h` with the v2 members written exactly as the contracts say (scratch, outside the tree; not staged) |
+
+### Phase 3 (the foundation: headers, version, stub, loader move): macOS
+
+The two test-code fixes of `tools/phase3-test-fixes.diff` (D5, D6) were confirmed by the maintainer on 2026-10-31 and are applied; the four Phase 3 tests are ENABLED. Rows marked "before confirmation" were measured on a trial tree with the diff applied, before it was confirmed; the final-tree rerun is in the last row.
+
+| Check | Result |
+|---|---|
+| T075 configure | `build` reconfigured with `-UOPENRENDER_SHADING_CONTRACT_TESTS` (a cache entry written as OFF by the earlier configure survives a changed default) |
+| T075 compile of both contract programs against the real headers | no error, no warning, **no compile fix needed** (the headers match the contract text) |
+| T076 link line | `libshader_shading` and `libRIBCommon` only; `StandaloneLinkLine` passes |
+| T076 stub | the standalone program defines the 6 imports itself (`CPhotonMap::lookup`, `CGatherBundle::CGatherBundle()`, the vtables of `CTraceBundle` and `CTransmissionBundle`, `CShadingContext::trace`, `traceEx`); 0 flat-namespace fixups; the table equals the measured imports |
+| T076 `libshader_shading` imports | `diff` against `tools/libshader-imports-base-macos.txt` is **empty** (SC-011 holds: the moved `.slo` loader and the new headers add none). Saved as `tools/libshader-imports-phase3-macos.txt` |
+| T077, before confirmation | `StandaloneLink` (both `.rslo` and `.slo`), `StandaloneLinkLine`, `ShaderGlobalsDouble`, `DoubleGlobalsMatchRenderer`: 4 of 4 pass |
+| T077, without the fixes | Without the fixes, `StandaloneLink` fails (D5) and `ShaderGlobalsDouble` fails 32 of 399 checks in Release (D6) |
+| CP-a, with fixes | full build clean |
+| CP-b, with fixes | 942 tests, 100% passed |
+| CP-c | `ctest -L architecture` 21 of 21; `ALLOWED` DB-001 x 8, DB-005 x 8, DB-006 x 33, Shading metric 0, `RESULT PASS` (identical to the baseline) |
+| CP-d, with fixes | 819 images, 0 differing, 0 missing, every `MaxBlockAvgDiff` equal. One INFO line: a stray `ri.tif` in the working directory of `DoubleGlobalsMatchRenderer` (the rendered harness's `RiEnd` writes it); harmless, to be pointed at the test's scratch directory in Phase 8 |
+| CP-m, with fixes | the 8 replay tests and the 4 new ones pass; the other 24 contract tests "Not Run (Disabled)" |
+| includes of the new files | `serviceTypes.h`, `tracer.h`, `shaderGlobals.h`, `situation.{h,cpp}`, `sloLoader.{h,cpp}` include only Shading or Infra headers (no `renderer*.h`, nothing under `src/ri/{render,hiders,geometry}`) |
+| Final tree (diff applied, 4 tests ENABLED), 2026-10-31 | full build clean (`-Werror`, no warning); `ctest -L shading_contract`: the 8 replay tests, `StandaloneLinkLine` and the 4 new tests pass, 24 "Not Run (Disabled)"; CP-b `-LE determinism-sweep` **942 tests, 100% passed**; CP-d (fresh stamp) **819 images, 0 differing, 0 missing**, `MaxBlockAvgDiff` equal to `baseline-diffs-macos.txt`, 1 INFO (the stray `ri.tif`); CP-c 21 of 21, `RESULT PASS` |
+| T079 JIT-off compile (`build-nojit`, `-DOPENRENDER_ENABLE_JIT=OFF`) | configure and `libshader_shading` build exit 0, no error or warning under `-Werror`; `sloLoader.cpp` compiles empty and the library exports no `parseSloShader`. `build-nojit` is kept for T169 |
 
 ## §2 Red evidence (Test gates, mutations)
 
@@ -172,6 +194,24 @@ Note for the reader: the Linux baseline is taken on the starting `src/` **plus t
 | T042f after the D1 fix | contract 8 of 8; suite 939 tests, the 7 baseline failures only, images 0 differing; sweep 419 of 419, 0 differing; architecture 21 of 21; `pull` 11 files and `verify` 3,140 files, 0 differences |
 
 Files pulled: `archcheck-base-linux.txt`, `baseline-images-linux.sha256`, `baseline-diffs-linux.txt`, `baseline-image-noise-linux.txt`, `libshader-imports-base-linux.txt`, `libshader-dynamic-base-linux.txt`, `base-LastTest-linux.log`, `baseline-sweep-images-linux.sha256`, `baseline-sweep-noise-linux.txt`, `base-sweep-LastTest-linux.log`.
+
+### Phase 3: Linux (T080; `openrender-026`, GCC 13.3, `-Werror`, `-j2`)
+
+The host did not resolve at the first attempt (three tries, 2026-10-31) and was reachable again after the maintainer's check; the run below is on the final tree (the two confirmed test fixes applied, the four Phase 3 tests ENABLED).
+
+| Check | Result |
+|---|---|
+| push / verify | 3,213 files pushed; **3213 files, 0 differences** |
+| configure | clean; `-UOPENRENDER_SHADING_CONTRACT_TESTS` (the cache held the Phase 2 value), now `ON` |
+| build | exit 0, no warning (`-Werror`), both contract programs built against the real headers |
+| CP-b `-LE determinism-sweep -j2` | **943 tests, 936 passed, 7 failed: exactly the Linux baseline's 7** (`CoverageAnalytic_alpha-sides2-tjunction-r4_reyes`, `TextureTile_RenderByteIdentical`, `TextureTile_CacheByteIdentical`, `TextureTile_CacheDefaultDirectory`, `TextureTile_CacheStaleDetection`, `TextureTile_CacheConcurrentWrite`, `LibShader_McompConsistency`). No new failure |
+| CP-d (fresh stamp) | 819 images, **0 differing, 0 missing**, against `baseline-images-linux.sha256`; every `MaxBlockAvgDiff` equal to `baseline-diffs-linux.txt`; 1 INFO (the stray `ri.tif`, as on macOS) |
+| CP-m | `ctest -L '^shading_contract$'`: the 8 replay tests, `StandaloneLinkLine` and the 4 new tests pass (12 passed lines), the other 24 "Not Run (Disabled)", exit 0 |
+| CP-c | `ctest -L architecture` 21 of 21; `ALLOWED` DB-001 x 8, DB-004 x 52, DB-005 x 8, DB-006 x 33, DB-010 x 8, DB-011 x 166, DB-015 x 10, DB-017 x 78, DB-019 x 3, DB-021 x 3, DB-025 x 12; `RESULT PASS` |
+| standalone program, `nm -C --defined-only` | defines all 6 stub symbols: `CPhotonMap::lookup`, `CGatherBundle::CGatherBundle()`, `CShadingContext::trace(CRay*)`, `traceEx(CRayBundle*)`, `vtable for CTraceBundle`, `vtable for CTransmissionBundle`; none of them is an undefined import of the program. `readelf -d`: NEEDED `libshader_shading.so.1`, `libRIBCommon.so.1`, libstdc++, libgcc_s, libc; **`BIND_NOW` is set** (flags NOW, PIE), so an undefined symbol would fail at start: the stub's table equals the measurement and needs no Linux adjustment |
+| `libshader_shading.so` imports (`nm -D --undefined-only`, demangled, sorted) | **identical** to `libshader-imports-base-linux.txt` (465 lines; `diff` empty): SC-011 holds on Linux. Saved as `tools/libshader-imports-phase3-linux.txt` |
+
+The suite counts differ by one between the platforms (943 on Linux, 942 on macOS), as they did at Phase 1 (939 against 938): a platform-gated test, unchanged by this phase.
 
 ## §4 Findings: triage and filed issues
 
@@ -348,6 +388,18 @@ Not a defect of the product: a known GCC 13 diagnostic, hit by the new replay te
 
 Run 1 failed both, run 2 passed both, and their images differ between runs. macOS: no such flakiness. Recorded as the Linux sweep noise list; not this spec's.
 
+
+#### D5. `CContractServices::retrieveVariable` answers null, so the shader loader rejects every shader (found at T075/T077; approved test code; fix confirmed by the maintainer 2026-10-31 and applied)
+
+`parseShader` asks the services for every global a shader names (`Ci`, `P`, ...); the double returned `nullptr`, so `cm_producer_surface.rslo` failed with `Unknown variable` and `StandaloneLink` could not start. Proposed fix in `tools/phase3-test-fixes.diff` (`contract_services.h`): look the name up in the double's own table of the 29 globals. Test code only; a semantic failure of an approved test, so it waited for the maintainer's confirmation, which came 2026-10-31.
+
+#### D6. Suspected Apple clang 21.0.0 `-O2` miscompile of the key copy in `case_globals_double.cpp` `make()` (found at T077; approved test code; fix confirmed by the maintainer 2026-10-31 and applied)
+
+`b.keys[numPoints + t] = b.keys[t % numPoints]` (a tail copy within the same vector) comes out zero in Release (`ShaderGlobalsDouble`: 32 of 399 checks fail). The cause is suspected, not confirmed: the original loop is legal C++; `-O1`, `-O0`, ASan and UBSan all pass. A standalone reproduction was made in the scratch directory. Proposed fix (same diff, `case_globals_double.cpp`): build each block from `keyOf(p)` again. Not a defect in `src/`. On Linux (GCC 13) the original loop was not tried: the confirmed fix is in the tree, and the Linux Phase 3 table (§3) is green with it.
+
+#### D7. The 25 coordinate-system call sites do not all reach `CShadingContext::findCoordinateSystem`: at bind time `init.cpp` redirects the macro (found by the #123 diagnosis, recorded 2026-10-31)
+
+The T008 count (25 textual sites) and the claim "all reach one member" (research R-coordinate-systems, plan.md, T086) are right for shading. `src/ri/render/init.cpp:60` has `#define findCoordinateSystem CRenderer::findCoordinateSystem` and its interpreter switch includes `scriptOpcodes.h`/`scriptFunctions.h` (-> `shaderOpcodes.h`, `shaderFunctions.h`), so the `pfrom` site (confirmed) and, by the same chain, the other macro sites expand there into a direct core call. Not a defect and no behaviour change: `T086` keeps those, the text of T086, plan.md and research.md is corrected, and T086 now counts the init.cpp expansions with `-E` and records the number here. The #123 cause is the JIT's bind-time fallback in `rslOps.cpp` plus `init.cpp`, fixed on `fix/123-named-space-light-default`; Phase 4 gets no #123 task.
 
 ## §5 Final summary against SC-001 to SC-014
 

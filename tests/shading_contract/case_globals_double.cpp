@@ -135,12 +135,13 @@ namespace {
             fill(b.dPdtime, 3, b.totalPoints, 7.0f);
             g.dPdtime = {b.dPdtime.data(), 3};
         }
-        // The sample key of every real point; the tail copies the real point's (du block, then dv block)
+        // The sample key of every real point; the tail copies the real point's (du block, then dv block). Each
+        // block is built from keyOf() again: a copy from the same vector (keys[numPoints + t] = keys[t % numPoints])
+        // comes out zero under Apple clang 21 at -O2 and above (a suspected miscompile; the loop is legal C++).
         b.keys.resize(b.totalPoints);
-        for (int p = 0; p < numPoints; p++)
-            b.keys[p] = keyOf(p);
-        for (int t = 0; t < numTail; t++)
-            b.keys[numPoints + t] = b.keys[t % numPoints];
+        for (int block = 0; block < (tail ? 3 : 1); block++)
+            for (int p = 0; p < numPoints; p++)
+                b.keys[block * numPoints + p] = keyOf(p);
         g.sampleKey = {b.keys.data(), 1};
 
         // Inactive lanes are unspecified: poison them

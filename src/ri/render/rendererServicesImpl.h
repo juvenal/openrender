@@ -30,6 +30,10 @@
 #include "textureSystem.h"  // CTextureSystem, ETextureKind
 #include "userAttributes.h" // CUserAttributeDictionary
 
+// The services this class implements are version 2 (spec 026): the version constant is not checked at run time, so
+// the implementer states the major it was written against.
+static_assert(openrender::shading::kRendererServicesVersion.major == 2, "CRendererServicesImpl is written against renderer services version 2");
+
 class CRendererServicesImpl final : public CRendererServices {
     public:
         // Grid / memory

@@ -31,6 +31,8 @@ set(shading_sources
     shaderParameters.cpp
     shaderPl.cpp
     shading.cpp
+    situation.cpp
+    sloLoader.cpp
     textureCalls.cpp
 )
 

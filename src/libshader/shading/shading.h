@@ -383,6 +383,14 @@ class CShadingContext {
 
         // Report a trace request to traceRequestObserver. Callers test the observer for null first, so nothing is built in production.
         void reportTraceRequest(int kind, const char *label, int bundleDepth, int numRays, CRay *const *rays) const;
+
+        // The shaded object as an opaque handle (spec 026): the one place the shading context turns its current object
+        // into the handle the services take. Null when there is no object (the imager, a bare execution). Defined out of
+        // line in shading.cpp, which keeps object.h. Introduced in services version 2.0.0.
+        openrender::shading::ObjectHandle objectHandle() const;
+
+        // A shader instance (the executing shader, or a light) as an opaque handle. Null stays null.
+        static openrender::shading::ShaderHandle shaderHandle(const CShaderInstance *instance) { return openrender::shading::ShaderHandle{instance}; }
         void traceAny(CRay *);      // Trace any ray (no shading)
 
         // gather()/gatherElse/gatherEnd shared computation, called from both the .rslo

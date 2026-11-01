@@ -27,6 +27,7 @@
 #include "common/global.h"       // basic types
 #include "common/riVocabulary.h" // RtFilterFunc, RtStepFilterFunc, RtFloat
 #include "common/rendererc.h" // ECoordinateSystem
+#include "libshader/shading/serviceTypes.h" // the v2 query vocabulary
 
 // Forward declarations (defined in src/ri/)
 class CTexture3d;
@@ -44,9 +45,77 @@ class CMemPage; // defined as class in memory.h
 //                 All methods have sensible null-renderer defaults where
 //                 feasible; resource getters return nullptr by default.
 ///////////////////////////////////////////////////////////////////////
+namespace openrender::shading {
+
+    struct InterfaceVersion {
+            int major, minor, patch;
+    };
+
+    // The version of Shading's boundary: CRendererServices, ITracer (tracer.h) and ShaderGlobals
+    // (shaderGlobals.h) move together (D22). It is not checked at run time: every implementer
+    // static_asserts the MAJOR it was written against.
+    //   MAJOR  a member, field or enumerator removed or renamed; a signature changed; a documented
+    //          result or not-found behaviour changed.
+    //   MINOR  a member added with a documented no-implementation default; a field appended to a
+    //          struct; an enumerator appended.
+    //   PATCH  documentation, or an implementation fix with no contract change.
+    //
+    // History
+    //   2.0.0  spec 026, 2026-10-31: getAttribute, getMessage, getMatrix and tracer(), ITracer and
+    //          ShaderGlobals are added. The rest of the version-2 change lands phase by phase in spec 026:
+    //          setOffendingObject takes an ObjectHandle, and the coordinate-system and option getters
+    //          are removed. Version 1 was the unversioned interface of specs 024, 025 and 027.
+    inline constexpr InterfaceVersion kRendererServicesVersion{2, 0, 0};
+
+    class ITracer; // tracer.h
+
+} // namespace openrender::shading
+
 class CRendererServices {
     public:
         virtual ~CRendererServices() = default;
+
+        // ---- version 2 (spec 026), introduced in 2.0.0. Each has a default: an implementer that leaves
+        //      one out answers "Unavailable" (no tracer), and Shading degrades and warns once per kind.
+
+        // attribute(), option(), rendererinfo(). The name tables are the implementer's. The answer is the
+        // raw stored value; Shading copies it.
+        // Inputs: the scope, the object (Attribute scope only), name[0] of the call, and the QueryType the
+        //   shader expects. `answer` arrives default-constructed (status Unavailable).
+        // Outputs: status Found with type, count and data; NotFound; or TypeMismatch (the stored value
+        //   cannot be copied safely into the expected type, FR-026).
+        // Not found: Shading leaves the destination untouched and returns 0. A null object answers
+        //   NotFound (FR-027). The default body leaves `answer` at Unavailable.
+        // Thread-safe: called concurrently by every render thread; must not lock on the hot path.
+        // Re-enters Shading: never.
+        virtual void getAttribute(const openrender::shading::AttributeRequest &, openrender::shading::AttributeValue &answer) const { (void)answer; }
+
+        // surface(), displacement(), atmosphere(), incident(), opposite(), lightsource(). Writes a
+        // default value into request.dest in the parameter's own layout, or returns the variable (and the
+        // light's global index) that Shading reads the producer's current value from.
+        // Not found: status NotFound (the default body answers Unavailable); TypeMismatch is decided
+        //   before anything is written into request.dest, and never answered for the Light source.
+        // Thread-safe: as getAttribute.
+        // Re-enters Shading: it may call the bound instance's getParameter(), which reads only that instance.
+        virtual openrender::shading::MessageAnswer getMessage(const openrender::shading::MessageRequest &) const { return {}; }
+
+        // Every named space and colour-space name, including "object", "shader", "light", "current",
+        // "camera" and "world".
+        // Inputs: the name, and the object, shader and light handles. The time is 0 and may be ignored.
+        // Outputs: the kind and the column-major from and to matrices, valid until the end of the shading
+        //   call (never null when Found).
+        // Not found: NotFound or Unavailable (the default body); NoObject: an object space was requested
+        //   with a null object. Shading keeps the diagnostics and uses the identity matrix.
+        // Thread-safe: as getAttribute.
+        // Re-enters Shading: never.
+        virtual openrender::shading::MatrixAnswer getMatrix(const openrender::shading::MatrixRequest &) const { return {}; }
+
+        // The frame's tracer; nullptr between frames (installed in beginFrame(), cleared in endFrame()).
+        // Default: nullptr, and Shading warns once per kind and treats every ray as a miss.
+        // Thread-safe: called by every render thread. Re-enters Shading: never.
+        virtual openrender::shading::ITracer *tracer() { return nullptr; }
+
+        // ---- the members of version 1, unchanged unless marked
 
         ///////////////////////////////////////////////////////////////
         // Grid / global variable memory
