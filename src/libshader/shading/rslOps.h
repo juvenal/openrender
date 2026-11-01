@@ -282,6 +282,9 @@ void op_pfrom(float *dst, int sd, const char *space, const float *src, int ss, i
 void op_ptransform(float *dst, int sd, const char *space, const float *src, int ss, int n, const int *tags);
 void op_ntransform(float *dst, int sd, const char *space, const float *src, int ss, int n, const int *tags);
 void op_vtransform(float *dst, int sd, const char *space, const float *src, int ss, int n, const int *tags);
+/* vector "space" (...) / normal "space" (...): named -> current, the "from" matrix
+ * without translation (the interpreter's vfrom opcode, GitHub #124). */
+void op_vfrom(float *dst, int sd, const char *space, const float *src, int ss, int n, const int *tags);
 
 /* GitHub #10: transform()/vtransform()/ntransform() have three more overloads
  * beyond the single-space "S" form above, each with a different operand
@@ -632,6 +635,13 @@ void op_stoa(char **arr, int arrStride, const float *idx, int idxStride, const c
  * after jitInitEntry when libshader::activeContext() is not yet set.
  * Pass (nullptr, nullptr) to clear after jitInitEntry returns. */
 void jitSetInitXform(const float *fromMat, const float *toMat);
+
+/* Resolves any other named space during JIT init execution (GitHub #123), the
+ * way the interpreter's init section does. Installed by CRendererContext::init()
+ * around jitInitEntry and cleared with nullptr afterwards; Shading only calls it.
+ * Returns false for an unknown name (the conversion is then the identity). */
+using TJitInitCoordinateResolver = bool (*)(const char *name, const float *&from, const float *&to);
+void jitSetInitCoordinateResolver(TJitInitCoordinateResolver resolver);
 
 #endif
 

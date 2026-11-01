@@ -85,6 +85,15 @@ static void initDraw(CProgrammableShaderInstance *instance, uint32_t drawNumber,
 // Description			:	Execute the current shader's init code
 // Return Value			:	-
 // Comments				:
+#ifdef OPENRENDER_HAVE_LLVM
+// The JIT init section's resolver for named spaces (GitHub #123): the same lookup
+// the interpreter's pfrom/vfrom opcodes make below.
+static bool initCoordinateResolver(const char *name, const float *&from, const float *&to) {
+    ECoordinateSystem cSystem;
+    return CRenderer::findCoordinateSystem(name, from, to, cSystem) != FALSE;
+}
+#endif
+
 void CRendererContext::init(CProgrammableShaderInstance *currentShaderInstance) {
     uint32_t initDrawCounter = 0; // The number of random() draws this init run has made
     // At this point, the shader sends us the arrays for parameters/constants/variables/uniforms for the shader
@@ -220,12 +229,18 @@ void CRendererContext::init(CProgrammableShaderInstance *currentShaderInstance) 
             // Supply the shader-space xform so op_pfrom("shader",...) in the init
             // section can convert space-qualified parameter defaults correctly.
             // activeContext() is null at bind time; jitSetInitXform provides the fallback.
+            // Every other named space (GitHub #123) resolves through the lookup the
+            // interpreter's init section uses (findCoordinateSystem is
+            // CRenderer::findCoordinateSystem in this file).
             extern void jitSetInitXform(const float *, const float *);
+            extern void jitSetInitCoordinateResolver(bool (*)(const char *, const float *&, const float *&));
             if (currentShaderInstance->xform) {
                 jitSetInitXform(currentShaderInstance->xform->from,
                                 currentShaderInstance->xform->to);
             }
+            jitSetInitCoordinateResolver(initCoordinateResolver);
             currentShaderInstance->jitInitEntry(1, (void ***)stuffInit, &initTag);
+            jitSetInitCoordinateResolver(nullptr);
             jitSetInitXform(nullptr, nullptr);
         }
         return;
