@@ -1,6 +1,6 @@
-# PluginAbi_DocPaths (FR-036). Run as
+# PluginAbi_DocPaths (FR-036, FR-047, SC-020). Run as
 #   cmake -DDOCS="<doc>|<doc>|..." -DHEADERS="<a.h>|<b.h>|..." -DSOURCE_DIR=<repo> -DSTAGE=<scratch dir>
-#         -P this
+#         -DVERSIONS="<key>=<header>:<PREFIX>|..." -DREQUIRE="<doc>=<key>[,<key>]|..." -P this
 #
 # Extracts every *path reference* from the given documents and fails on one that does not exist.
 #
@@ -26,8 +26,24 @@
 # absolute install paths (/usr/local/...), tokens starting with '$' (CMake and shell variables), '~',
 # <prefix> paths other than <prefix>/include/..., URLs, and tokens with spaces, wildcards or operators.
 #
-# Documents that do not exist are skipped by the caller (PLUGIN_ABI.md and the site page exist only
-# after Phase 7); a document named here must exist.
+# A document named here must exist (the guides, PLUGIN_ABI.md and the site page are all required: a missing one is
+# a failure, not a skip).
+#
+# Version numbers (FR-047, SC-020). The version-history table in each family's header comment is the single source
+# of that family's versions (PluginAbi_VersionHistory checks the header itself); the documents only quote it. VERSIONS
+# maps an interface key to the header and macro prefix that define it:
+#   display=dsply.h:OR_DISPLAY|shadeop=shadeop.h:SHADEOP|dlo=dlo.h:DLO|dynamicload=dlo.h:OR_DYNAMICLOAD|implicit=implicit.h:IMPLICIT
+# A document *states a version for an interface* in one of two forms, and a statement that is not equal to the header's is a
+# failure:
+#   * prose: the interface word, optionally followed by qualifier words (interface, ABI, API, version, table, module,
+#     driver, drivers, operand, operands, plug-in, plug-ins, procedural, surface, DSO), then M.m.p, markup (backticks,
+#     bold) ignored, upper or lower case: "display 2.0.0", "the shadeop interface version 1.1.0". It must equal the
+#     header's *current* version (the OR_ABI_VERSION macro). A historical version is not written in this form: say
+#     "MAJOR 1" or quote the history table.
+#   * a tagged history row: "| M.m.p (key) | ... |", the form the headers use for a second interface in one file. It must be
+#     a row of that interface's history table in the header (any row, not only the newest).
+# REQUIRE names, per document, the interface keys the document must state a (prose) version for at least once.
+cmake_policy(SET CMP0057 NEW) # if(... IN_LIST ...) in script mode, whatever the CMake version
 include(${CMAKE_CURRENT_LIST_DIR}/stage_headers.cmake)
 
 string(REPLACE "|" ";" _docs "${DOCS}")
@@ -113,7 +129,8 @@ endfunction()
 
 foreach(_doc IN LISTS _docs)
     if(NOT EXISTS "${SOURCE_DIR}/${_doc}")
-        message(FATAL_ERROR "PRECONDITION: document ${_doc} does not exist")
+        list(APPEND _bad "${_doc}: the document does not exist")
+        continue()
     endif()
     get_filename_component(_docdir "${SOURCE_DIR}/${_doc}" DIRECTORY)
     file(READ "${SOURCE_DIR}/${_doc}" _content)
@@ -193,11 +210,118 @@ foreach(_doc IN LISTS _docs)
     endforeach()
 endforeach()
 
+# ---------------------------------------------------------------------------------------------------------------------
+# Version numbers
+# ---------------------------------------------------------------------------------------------------------------------
+set(_vbad "")
+set(_vchecked 0)
+if(DEFINED VERSIONS AND NOT VERSIONS STREQUAL "")
+    string(REPLACE "|" ";" _ventries "${VERSIONS}")
+    set(_keys "")
+    foreach(_entry IN LISTS _ventries)
+        string(REGEX MATCH "^([a-z]+)=([A-Za-z0-9_.]+):([A-Z_]+)$" _m "${_entry}")
+        set(_key "${CMAKE_MATCH_1}")
+        set(_header "${CMAKE_MATCH_2}")
+        set(_prefix "${CMAKE_MATCH_3}")
+        list(APPEND _keys "${_key}")
+        if(NOT EXISTS "${STAGE}/include/${_header}")
+            list(APPEND _vbad "VERSIONS: ${_header} is not in the staged header set")
+            continue()
+        endif()
+        file(READ "${STAGE}/include/${_header}" _htext)
+        if(NOT _htext MATCHES "#define[ \t]+${_prefix}_ABI_VERSION[ \t]+OR_ABI_VERSION\\(([0-9]+),[ \t]*([0-9]+),[ \t]*([0-9]+)\\)")
+            list(APPEND _vbad "VERSIONS: ${_header} defines no ${_prefix}_ABI_VERSION")
+            continue()
+        endif()
+        set(_current_${_key} "${CMAKE_MATCH_1}.${CMAKE_MATCH_2}.${CMAKE_MATCH_3}")
+        # the history rows of this interface: tagged with the key, or untagged when the key is the header's first prefix
+        string(REGEX MATCHALL "\\|[ \t]*[0-9]+\\.[0-9]+\\.[0-9]+[ \t]*(\\([a-z]+\\))?[ \t]*\\|" _hrows "${_htext}")
+        string(REGEX MATCHALL "#define[ \t]+[A-Z_]+_ABI_VERSION[ \t]+OR_ABI_VERSION" _hdefs "${_htext}")
+        string(REGEX MATCH "#define[ \t]+([A-Z_]+)_ABI_VERSION[ \t]+OR_ABI_VERSION" _firstdef "${_htext}")
+        set(_first_prefix "${CMAKE_MATCH_1}")
+        set(_rows_${_key} "")
+        foreach(_row IN LISTS _hrows)
+            string(REGEX MATCH "([0-9]+\\.[0-9]+\\.[0-9]+)[ \t]*(\\(([a-z]+)\\))?" _ignored "${_row}")
+            set(_rv "${CMAKE_MATCH_1}")
+            set(_rt "${CMAKE_MATCH_3}")
+            if((_rt STREQUAL "" AND _prefix STREQUAL _first_prefix) OR _rt STREQUAL _key)
+                list(APPEND _rows_${_key} "${_rv}")
+            endif()
+        endforeach()
+    endforeach()
+
+    string(REPLACE "|" ";" _reqs "${REQUIRE}")
+    foreach(_doc IN LISTS _docs)
+        if(NOT EXISTS "${SOURCE_DIR}/${_doc}")
+            foreach(_req IN LISTS _reqs)
+                string(REGEX MATCH "^([^=]+)=" _ignored "${_req}")
+                if(CMAKE_MATCH_1 STREQUAL _doc)
+                    list(APPEND _vbad "${_doc}: the document does not exist, so it states none of the versions it must")
+                endif()
+            endforeach()
+            continue()
+        endif()
+        file(READ "${SOURCE_DIR}/${_doc}" _raw)
+        set(_stated "")
+        string(REGEX REPLACE "[`*]" "" _plain "${_raw}")
+        string(TOLOWER "${_plain}" _lower)
+        string(REPLACE ";" " " _lower "${_lower}")
+        string(REGEX MATCHALL "(display|shadeop|dynamicload|dlo|implicit)( (interface|abi|api|version|table|module|driver|drivers|operand|operands|plug-in|plug-ins|plugin|procedural|surface|dso))* v?[0-9]+\\.[0-9]+\\.[0-9]+" _stmts "${_lower}")
+        foreach(_stmt IN LISTS _stmts)
+            string(REGEX MATCH "^[a-z]+" _skey "${_stmt}")
+            string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+$" _sver "${_stmt}")
+            math(EXPR _vchecked "${_vchecked} + 1")
+            list(APPEND _stated "${_skey}")
+            if(NOT DEFINED _current_${_skey})
+                list(APPEND _vbad "${_doc}: states a version for '${_skey}' ('${_stmt}'), which VERSIONS does not define")
+            elseif(NOT _sver STREQUAL _current_${_skey})
+                list(APPEND _vbad "${_doc}: '${_stmt}' but the header's ${_skey} version is ${_current_${_skey}}")
+            endif()
+        endforeach()
+        # tagged rows
+        string(REGEX MATCHALL "\\|[ \t]*[0-9]+\\.[0-9]+\\.[0-9]+[ \t]*\\([a-z]+\\)[ \t]*\\|" _trows "${_raw}")
+        foreach(_trow IN LISTS _trows)
+            string(REGEX MATCH "([0-9]+\\.[0-9]+\\.[0-9]+)[ \t]*\\(([a-z]+)\\)" _ignored "${_trow}")
+            set(_tv "${CMAKE_MATCH_1}")
+            set(_tk "${CMAKE_MATCH_2}")
+            math(EXPR _vchecked "${_vchecked} + 1")
+            if(NOT DEFINED _current_${_tk})
+                list(APPEND _vbad "${_doc}: history row '${_tv} (${_tk})' names an interface VERSIONS does not define")
+            elseif(NOT _tv IN_LIST _rows_${_tk})
+                list(APPEND _vbad "${_doc}: history row '${_tv} (${_tk})' is not in the ${_tk} history table of the header")
+            endif()
+        endforeach()
+        # required statements
+        foreach(_req IN LISTS _reqs)
+            string(REGEX MATCH "^([^=]+)=(.*)$" _ignored "${_req}")
+            if(CMAKE_MATCH_1 STREQUAL _doc)
+                string(REPLACE "," ";" _need "${CMAKE_MATCH_2}")
+                foreach(_k IN LISTS _need)
+                    if(NOT _k IN_LIST _stated)
+                        list(APPEND _vbad "${_doc}: states no ${_k} version (expected '${_k} ${_current_${_k}}')")
+                    endif()
+                endforeach()
+            endif()
+        endforeach()
+    endforeach()
+endif()
+list(REMOVE_DUPLICATES _vbad)
+list(LENGTH _vbad _vn)
+message("${_vchecked} version statement(s) compared with the headers; ${_vn} wrong or missing")
+
 list(REMOVE_DUPLICATES _bad)
 list(LENGTH _bad _n)
 message("${_checked} path reference(s) checked in ${DOCS}; ${_skipped} install-layout token(s) left to the scratch-install check; ${_n} stale")
-if(_n GREATER 0)
-    string(REPLACE ";" "\n  " _report "${_bad}")
-    string(REPLACE "@@SEMI@@" ";" _report "${_report}")
-    message(FATAL_ERROR "DEFECT FR-036: stale path references:\n  ${_report}")
+if(_n GREATER 0 OR _vn GREATER 0)
+    set(_report "")
+    if(_n GREATER 0)
+        string(REPLACE ";" "\n  " _paths "${_bad}")
+        string(REPLACE "@@SEMI@@" ";" _paths "${_paths}")
+        string(APPEND _report "DEFECT FR-036: stale path references:\n  ${_paths}\n")
+    endif()
+    if(_vn GREATER 0)
+        string(REPLACE ";" "\n  " _versions "${_vbad}")
+        string(APPEND _report "DEFECT FR-047/SC-020: version numbers the documents state differ from the headers:\n  ${_versions}\n")
+    endif()
+    message(FATAL_ERROR "${_report}")
 endif()

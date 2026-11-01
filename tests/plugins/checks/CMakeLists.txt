@@ -1,7 +1,7 @@
 # Cross-family mechanical checks (spec 037): cmake -P scripts, registered as ordinary ctest tests
 # so a red check never breaks the -Werror main build.
 #
-#   PluginAbi_DocPaths               FR-036  stale path references in the guides
+#   PluginAbi_DocPaths               FR-036, FR-047, SC-020  stale path references and wrong version numbers in the guides, PLUGIN_ABI.md and the site page
 #   ShadeopAbi_ParserSingleDefiner   FR-037  no library defines dsoParse (it was compiled into four)
 #   ShadeopAbi_ParserNewSymbol       FR-037  parseShadeopDeclaration is defined only in libRIBShadeop
 #   PluginAbi_InstallHeaders         FR-038, SC-011  the real header list staged for both layouts compiles alone
@@ -10,6 +10,7 @@
 #   PluginAbi_NoFileBaseInstalled    FR-026  no install() rule names file_base.h
 #   PluginAbi_ShadeopSoversion       SC-019  libRIBShadeop carries OPENRENDER_COMPAT_SOVERSION
 #   PluginAbi_InstallLayouts         SC-011, SC-019  scratch-prefix install of both layouts + a find_package consumer
+#   PluginAbi_RegistryConsistency    FR-029, SC-020  DEVNOTES.md and DOMAIN_BOUNDARIES.md agree with the allowlist and the tree
 #   PluginAbi_VersionHistory         FR-001, FR-047  every family header declares its version and a history
 #   PluginAbi_SingleCheckRoutine     SC-008  checkPluginVersion has one definer (enabled by T093)
 
@@ -33,22 +34,30 @@ if(CMAKE_OSX_SYSROOT)
     set(_check_c_flags "${_check_c_flags} -isysroot ${CMAKE_OSX_SYSROOT}")
 endif()
 
-# FR-036 -- every path reference in the guides must exist. PLUGIN_ABI.md and the site page are
-# listed once they exist (Phase 7).
-set(_doc_list DEVNOTES_DETAILS/DISPLAY_PLUGIN_GUIDE.md INSTALL_ARTIFACTS.md)
-foreach(_doc DEVNOTES_DETAILS/PLUGIN_ABI.md docs/site/content/manual/reference/plugin-abi.md)
-    if(EXISTS ${CMAKE_SOURCE_DIR}/${_doc})
-        list(APPEND _doc_list ${_doc})
-    endif()
-endforeach()
+# FR-036, FR-047, SC-020 -- every path reference in the guides, PLUGIN_ABI.md and the site page must exist (a missing
+# document is a failure), and every version number they state for an interface equals the header's (T108a).
+set(_doc_list DEVNOTES_DETAILS/DISPLAY_PLUGIN_GUIDE.md INSTALL_ARTIFACTS.md DEVNOTES_DETAILS/PLUGIN_ABI.md
+    docs/site/content/manual/reference/plugin-abi.md)
 string(REPLACE ";" "|" _docs "${_doc_list}")
+set(_versions "display=dsply.h:OR_DISPLAY|shadeop=shadeop.h:SHADEOP|dlo=dlo.h:DLO|dynamicload=dlo.h:OR_DYNAMICLOAD|implicit=implicit.h:IMPLICIT")
+# which interface versions each document must state (the check compares what it finds; this makes a missing one a failure)
+set(_required "DEVNOTES_DETAILS/DISPLAY_PLUGIN_GUIDE.md=display|DEVNOTES_DETAILS/PLUGIN_ABI.md=display,shadeop,dlo,dynamicload,implicit|docs/site/content/manual/reference/plugin-abi.md=display,shadeop")
 or_plugin_add_test(PluginAbi_DocPaths 60
     COMMAND ${CMAKE_COMMAND}
         "-DDOCS=${_docs}"
         "-DHEADERS=${_header_names}"
+        "-DVERSIONS=${_versions}"
+        "-DREQUIRE=${_required}"
         -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
         -DSTAGE=${OR_PLUGIN_BIN}/checks/stage_docpaths
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_doc_paths.cmake)
+
+# FR-029, SC-009, SC-020 -- DEVNOTES.md and DOMAIN_BOUNDARIES.md agree with the allowlist and the tree: DB-003,
+# DB-014 and DB-021 are Resolved by spec 037 with a date, no allowlist line is left for them (T108a).
+or_plugin_add_test(PluginAbi_RegistryConsistency 60
+    COMMAND ${CMAKE_COMMAND}
+        -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_registry_consistency.cmake)
 
 # FR-037 -- dsoParse was compiled into four libraries; the parser is now hand-written and lives in libRIBShadeop,
 # so no library defines dsoParse (MODE=none; the maintainer approved moving this test from MODE=single at T076).

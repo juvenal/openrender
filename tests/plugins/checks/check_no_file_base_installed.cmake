@@ -12,8 +12,10 @@ if("file_base.h" IN_LIST _list)
     list(APPEND _failures "file_base.h is in the public header list")
 endif()
 
-file(GLOB_RECURSE _files "${SOURCE_DIR}/CMakeLists.txt" "${SOURCE_DIR}/CMake/*.cmake" "${SOURCE_DIR}/CMake/*.in"
-     "${SOURCE_DIR}/src/*CMakeLists.txt")
+# not "${SOURCE_DIR}/CMakeLists.txt" in GLOB_RECURSE: that recurses into the build directories (see check_install_list.cmake)
+file(GLOB _files "${SOURCE_DIR}/CMakeLists.txt")
+file(GLOB_RECURSE _tree "${SOURCE_DIR}/CMake/*.cmake" "${SOURCE_DIR}/CMake/*.in" "${SOURCE_DIR}/src/*CMakeLists.txt")
+list(APPEND _files ${_tree})
 list(REMOVE_DUPLICATES _files)
 foreach(_file IN LISTS _files)
     file(READ "${_file}" _text)

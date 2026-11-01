@@ -19,7 +19,11 @@ string(REPLACE "|" ";" _list "${HEADERS}")
 set(_failures "")
 
 # --- the install rules ---
-file(GLOB_RECURSE _cmake_files "${SOURCE_DIR}/CMakeLists.txt" "${SOURCE_DIR}/src/*CMakeLists.txt" "${SOURCE_DIR}/CMake/*.cmake")
+# not "${SOURCE_DIR}/CMakeLists.txt" in GLOB_RECURSE: that recurses into the build directories, where the nested
+# configure of PluginAbi_InstallLayouts creates and deletes CMakeScratch files while this test runs
+file(GLOB _cmake_files "${SOURCE_DIR}/CMakeLists.txt")
+file(GLOB_RECURSE _cmake_tree "${SOURCE_DIR}/src/*CMakeLists.txt" "${SOURCE_DIR}/CMake/*.cmake")
+list(APPEND _cmake_files ${_cmake_tree})
 list(REMOVE_DUPLICATES _cmake_files)
 foreach(_file IN LISTS _cmake_files)
     file(READ "${_file}" _text)

@@ -144,7 +144,7 @@ option(INSTALL_SELFCONTAINED "Build for a selfcontained setup (overrides custom 
 # Opt-in ThreadSanitizer build (spec 037, SC-006; used in a separate tree such as build-tsan, with only
 # `ctest -L plugin_abi`). Off by default, so no everyday configure changes. When ON it instruments every
 # C and C++ target and forces the JIT off, which keeps LLVM out of the instrumented build.
-option(OPENRENDER_TSAN "Build with ThreadSanitizer (opt-in; forces OPENRENDER_ENABLE_JIT=OFF)" OFF)
+option(OPENRENDER_TSAN "Build with ThreadSanitizer (opt-in; forces OPENRENDER_ENABLE_JIT=OFF, leaves out the macOS viewer)" OFF)
 if(OPENRENDER_TSAN)
     set(OPENRENDER_ENABLE_JIT OFF CACHE BOOL "Build the LLVM JIT (.slo) shader path (needs LLVM >= OPENRENDER_LLVM_MIN_VERSION)" FORCE)
     add_compile_options(-fsanitize=thread)
