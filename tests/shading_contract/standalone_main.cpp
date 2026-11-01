@@ -26,6 +26,10 @@ int main(int argc, char **argv) {
         return caseTraceRequests(false);
     if (strcmp(which, "TypeMismatch_AttributeInterp") == 0)
         return caseTypeMismatchAttribute(false);
+    if (strcmp(which, "TypeMismatch_MessageInterp") == 0)
+        return caseTypeMismatchMessage(false);
+    if (strcmp(which, "LightsourceNoLoopInterp") == 0)
+        return caseLightsourceNoLoop(false);
 #ifdef SHADING_CONTRACT_HAVE_JIT
     if (strcmp(which, "AttributesJit") == 0)
         return caseAttributes(true);
@@ -37,6 +41,10 @@ int main(int argc, char **argv) {
         return caseTraceRequests(true);
     if (strcmp(which, "TypeMismatch_AttributeJit") == 0)
         return caseTypeMismatchAttribute(true);
+    if (strcmp(which, "TypeMismatch_MessageJit") == 0)
+        return caseTypeMismatchMessage(true);
+    if (strcmp(which, "LightsourceNoLoopJit") == 0)
+        return caseLightsourceNoLoop(true);
 #endif
     if (strcmp(which, "NoServices_Matrix") == 0)
         return caseNoServicesMatrix();
@@ -51,7 +59,7 @@ int main(int argc, char **argv) {
 
     fprintf(stderr,
             "usage: %s StandaloneLink|AttributesInterp|MessagesInterp|MatricesInterp|TraceRequestsInterp|"
-            "AttributesJit|MessagesJit|MatricesJit|TraceRequestsJit|TypeMismatch_Attribute{Interp,Jit}|NoServices_Matrix|NoServices_Attribute|"
+            "AttributesJit|MessagesJit|MatricesJit|TraceRequestsJit|TypeMismatch_Attribute{Interp,Jit}|TypeMismatch_Message{Interp,Jit}|LightsourceNoLoop{Interp,Jit}|NoServices_Matrix|NoServices_Attribute|"
             "NoServices_Message|NoServices_Tracer|ShaderGlobalsDouble\n",
             argv[0]);
     return 2;

@@ -923,9 +923,13 @@ void op_lightsource_f(float *result, int sr, const char *attrName, float *outPar
     if (ctx) {
         CShadingState *ss = ctx->currentShadingState;
         if (ss && ss->currentLightInstance) {
-            CProgrammableShaderInstance *light = (CProgrammableShaderInstance *)ss->currentLightInstance;
-            if (light)
-                light->getParameter(attrName, &value, nullptr, nullptr);
+            // The last light that ran, floats only, no variable (spec 026, Q2): asked through the services, which write
+            // the parameter's default into `value`
+            CRendererServices *svc = ctx->getServices();
+            if (svc != nullptr)
+                svc->getMessage(openrender::shading::MessageRequest{openrender::shading::MessageSource::Light, ctx->objectHandle(),
+                                                                     CShadingContext::shaderHandle(ss->currentLightInstance), attrName,
+                                                                     openrender::shading::QueryType::Float, &value, false});
         }
     }
     if (result)

@@ -89,6 +89,10 @@ class CRecordingServices final : public CRendererServices {
             inner->getAttribute(r, a);
         }
 
+        openrender::shading::MessageAnswer getMessage(const openrender::shading::MessageRequest &r) const override {
+            return inner->getMessage(r);
+        }
+
         openrender::shading::MatrixAnswer getMatrix(const openrender::shading::MatrixRequest &r) const override {
             return inner->getMatrix(r);
         }

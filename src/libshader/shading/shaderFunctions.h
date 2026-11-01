@@ -1208,7 +1208,7 @@ DEFFUNC(SpecularBRDF, "specularbrdf", "c=vnvf", SPECULARBRDFEXPR_PRE, SPECULARBR
                                                                                                      \
     int globalIndex = -1;                                                                            \
     CVariable *cVar = NULL;                                                                          \
-    float found = (float)(*currentLight)->instance->getParameter(*op1, op2, &cVar, &globalIndex);    \
+    float found = (float)lightParameter(op2, *op1, &cVar, &globalIndex);                             \
     const float *src = op2;                                                                          \
     int srcStep = op2Step;                                                                           \
                                                                                                      \

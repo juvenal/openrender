@@ -17,6 +17,8 @@ int caseNoServicesAttribute();                  // case_no_services.cpp
 int caseNoServicesMessage();                    // case_no_services.cpp
 int caseNoServicesTracer();                     // case_no_services.cpp
 int caseTypeMismatchAttribute(bool jit);        // case_type_mismatch_attribute.cpp  US3 AS4, FR-026, SC-013
+int caseTypeMismatchMessage(bool jit);          // case_type_mismatch_message.cpp  US3 AS4, FR-026, SC-013
+int caseLightsourceNoLoop(bool jit);            // case_lightsource_no_loop.cpp      US3 AS6, FR-028, SC-014
 int caseShaderGlobalsDouble();                  // case_globals_double.cpp       US5 AS1, AS3, FR-015, FR-016
 
 #endif

@@ -114,6 +114,9 @@ class CRendererServicesImpl final : public CRendererServices {
 
         // attribute(), option() and rendererinfo() (spec 026): the name tables are the renderer's
         void getAttribute(const openrender::shading::AttributeRequest &request, openrender::shading::AttributeValue &answer) const override;
+
+        // surface(), displacement(), atmosphere(), incident(), opposite() and lightsource() (spec 026): the bound instance's parameters
+        openrender::shading::MessageAnswer getMessage(const openrender::shading::MessageRequest &request) const override;
 };
 
 #endif // RENDERER_SERVICES_IMPL_H

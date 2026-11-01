@@ -1573,72 +1573,91 @@ void CShadingContext::restoreState(void *state) {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CShadingContext
-// Method				:	surfaceParameter
-// Description			:	Execute light sources
-// Return Value			:	-
-// Comments				:
-int CShadingContext::surfaceParameter(void *dest, const char *name, CVariable **var, int *globalIndex, openrender::shading::QueryType) {
-    const CAttributes *currentAttributes = currentShadingState->currentObject->attributes;
+// Method				:	queryMessage
+// Description			:	surface(), displacement(), atmosphere(), incident(), opposite() and lightsource(): ask the services (spec 026, FR-006, FR-026, FR-027)
+// Return Value			:	TRUE when the parameter was found
+// Comments				:	One request per call. Found: the services wrote the default into dest, or returned the producer's
+//							variable (and the light's saved-state index) that the caller reads the current value from.
+//							NotFound (including a null object, F2) and Unavailable leave dest untouched. TypeMismatch (decided
+//							before anything is written) is refused the same way, with one warning per builtin kind per process.
+//							A missing or unavailable service warns once per kind.
+int CShadingContext::queryMessage(openrender::shading::MessageSource source, const char *builtin, openrender::shading::ShaderHandle light, bool wantVariable, void *dest, const char *name, CVariable **var, int *globalIndex, openrender::shading::QueryType expected) {
+    using namespace openrender::shading;
 
-    if (currentAttributes->surface())
-        return shaderInstanceOf(currentAttributes->surface())->getParameter(name, dest, var, globalIndex);
-    return FALSE;
+    // Kinds: the five object sources in the enumeration's order, then lightsource() (no mismatch check)
+    static std::atomic<bool> s_warnedUnavailable[6] = {false, false, false, false, false, false};
+    static std::atomic<bool> s_warnedMismatch[6] = {false, false, false, false, false, false};
+    const int kind = (int)source;
+
+    CRendererServices *svc = currentShadingState->services;
+    MessageAnswer answer;
+    if (svc != nullptr)
+        answer = svc->getMessage(MessageRequest{source, objectHandle(), light, name, expected, dest, wantVariable});
+
+    switch (answer.status) {
+        case EQueryStatus::Found:
+            if (wantVariable && var != nullptr)
+                *var = answer.variable;
+            if (wantVariable && globalIndex != nullptr)
+                *globalIndex = answer.globalIndex;
+            return TRUE;
+
+        case EQueryStatus::TypeMismatch:
+            if (!s_warnedMismatch[kind].exchange(true)) {
+                static const char *const typeNames[4] = {"a float", "a vector", "a matrix", "a string"};
+                warning(CODE_BADTOKEN, "%s(\"%s\"): the parameter's stored value cannot be copied into %s destination; the query is refused and the destination is left untouched\n",
+                        builtin, name, typeNames[(int)expected]);
+            }
+            return FALSE;
+
+        case EQueryStatus::Unavailable:
+        default:
+            if (svc == nullptr || answer.status == EQueryStatus::Unavailable) {
+                if (!s_warnedUnavailable[kind].exchange(true))
+                    warning(CODE_NOTSTARTED, "renderer services do not provide %s(): the lookup of \"%s\" returns not found\n", builtin, name);
+            }
+            return FALSE;
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CShadingContext
-// Method				:	displacementParameter
-// Description			:	Execute light sources
-// Return Value			:	-
-// Comments				:
-int CShadingContext::displacementParameter(void *dest, const char *name, CVariable **var, int *globalIndex, openrender::shading::QueryType) {
-    const CAttributes *currentAttributes = currentShadingState->currentObject->attributes;
+// Method				:	surfaceParameter and its siblings
+// Description			:	The message-passing builtins of the object's bound shaders
+// Return Value			:	TRUE when the parameter was found
+// Comments				:	incident() reads the interior volume and opposite() the exterior one. surface(), displacement() and
+//							atmosphere() may return the producer's variable; incident() and opposite() skip mutable parameters.
+int CShadingContext::surfaceParameter(void *dest, const char *name, CVariable **var, int *globalIndex, openrender::shading::QueryType expected) {
+    return queryMessage(openrender::shading::MessageSource::Surface, "surface", openrender::shading::ShaderHandle{}, true, dest, name, var, globalIndex, expected);
+}
 
-    if (currentAttributes->displacement())
-        return shaderInstanceOf(currentAttributes->displacement())->getParameter(name, dest, var, globalIndex);
-    return FALSE;
+int CShadingContext::displacementParameter(void *dest, const char *name, CVariable **var, int *globalIndex, openrender::shading::QueryType expected) {
+    return queryMessage(openrender::shading::MessageSource::Displacement, "displacement", openrender::shading::ShaderHandle{}, true, dest, name, var, globalIndex, expected);
+}
+
+int CShadingContext::atmosphereParameter(void *dest, const char *name, CVariable **var, int *globalIndex, openrender::shading::QueryType expected) {
+    return queryMessage(openrender::shading::MessageSource::Atmosphere, "atmosphere", openrender::shading::ShaderHandle{}, true, dest, name, var, globalIndex, expected);
+}
+
+int CShadingContext::incidentParameter(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected) {
+    return queryMessage(openrender::shading::MessageSource::Interior, "incident", openrender::shading::ShaderHandle{}, false, dest, name, nullptr, nullptr, expected);
+}
+
+int CShadingContext::oppositeParameter(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected) {
+    return queryMessage(openrender::shading::MessageSource::Exterior, "opposite", openrender::shading::ShaderHandle{}, false, dest, name, nullptr, nullptr, expected);
 }
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CShadingContext
-// Method				:	atmosphereParameter
-// Description			:	Execute light sources
-// Return Value			:	-
-// Comments				:
-int CShadingContext::atmosphereParameter(void *dest, const char *name, CVariable **var, int *globalIndex, openrender::shading::QueryType) {
-    const CAttributes *currentAttributes = currentShadingState->currentObject->attributes;
-
-    if (currentAttributes->atmosphere())
-        return shaderInstanceOf(currentAttributes->atmosphere())->getParameter(name, dest, var, globalIndex);
-    return FALSE;
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CShadingContext
-// Method				:	incidentParameter
-// Description			:	Execute light sources
-// Return Value			:	-
-// Comments				:
-int CShadingContext::incidentParameter(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType) {
-    const CAttributes *currentAttributes = currentShadingState->currentObject->attributes;
-
-    if (currentAttributes->interior())
-        return shaderInstanceOf(currentAttributes->interior())->getParameter(name, dest, NULL, NULL); // skip mutable parameters
-    return FALSE;
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CShadingContext
-// Method				:	oppositeParameter
-// Description			:	Execute light sources
-// Return Value			:	-
-// Comments				:
-int CShadingContext::oppositeParameter(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType) {
-    const CAttributes *currentAttributes = currentShadingState->currentObject->attributes;
-
-    if (currentAttributes->exterior())
-        return shaderInstanceOf(currentAttributes->exterior())->getParameter(name, dest, NULL, NULL); // skip mutable parameters
-    return FALSE;
+// Method				:	lightParameter
+// Description			:	lightsource() inside an illuminance loop (interpreter): a parameter of the light being iterated
+// Return Value			:	TRUE when the parameter was found; FALSE with no light being iterated (F3, FR-028)
+// Comments				:	The source is Light and wantVariable is true: the caller reads the light's saved state through
+//							var and globalIndex. No TypeMismatch check for this source (B4): lightsource() keeps its output.
+int CShadingContext::lightParameter(void *dest, const char *name, CVariable **var, int *globalIndex) {
+    if (currentShadingState->currentLight == NULL)
+        return FALSE;
+    return queryMessage(openrender::shading::MessageSource::Light, "lightsource", shaderHandle(currentShadingState->currentLight->instance), true, dest, name, var, globalIndex, openrender::shading::QueryType::Float);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -2614,6 +2633,10 @@ const char *CShadingContext::shaderName() {
 // Return Value			:	-
 // Comments				:
 const char *CShadingContext::shaderName(const char *type) {
+    // No object (the imager): no shader of any type is bound (F2, FR-027)
+    if (currentShadingState->currentObject == NULL)
+        return "";
+
     CAttributes *currentAttributes = currentShadingState->currentObject->attributes;
 
     if (strcmp(type, "surface") == 0) {
@@ -3634,7 +3657,7 @@ void CShadingContext::jitSurfaceParameter(float *dst, int sd, const char *const 
         return;
     CVariable *cVar = nullptr;
     int globalIndex = -1;
-    float found = (float)this->surfaceParameter(dest, name[0], &cVar, &globalIndex, openrender::shading::QueryType::Float);
+    float found = (float)this->surfaceParameter(dest, name[0], &cVar, &globalIndex, queryTypeOfResultKind(resultKind));
     jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, cVar, ACCESSOR_SURFACE);
 }
 
@@ -3644,7 +3667,7 @@ void CShadingContext::jitDisplacementParameter(float *dst, int sd, const char *c
         return;
     CVariable *cVar = nullptr;
     int globalIndex = -1;
-    float found = (float)this->displacementParameter(dest, name[0], &cVar, &globalIndex, openrender::shading::QueryType::Float);
+    float found = (float)this->displacementParameter(dest, name[0], &cVar, &globalIndex, queryTypeOfResultKind(resultKind));
     jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, cVar, ACCESSOR_DISPLACEMENT);
 }
 
@@ -3654,7 +3677,7 @@ void CShadingContext::jitAtmosphereParameter(float *dst, int sd, const char *con
         return;
     CVariable *cVar = nullptr;
     int globalIndex = -1;
-    float found = (float)this->atmosphereParameter(dest, name[0], &cVar, &globalIndex, openrender::shading::QueryType::Float);
+    float found = (float)this->atmosphereParameter(dest, name[0], &cVar, &globalIndex, queryTypeOfResultKind(resultKind));
     jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, cVar, ACCESSOR_ATMOSPHERE);
 }
 
@@ -3665,7 +3688,7 @@ void CShadingContext::jitIncidentParameter(float *dst, int sd, const char *const
     // incidentParameter() always passes NULL for var/globalIndex ("skip
     // mutable parameters") -- cVar stays null, so jitParameterFinish always
     // takes the self-copy path (matching the interpreter exactly).
-    float found = (float)this->incidentParameter(dest, name[0], nullptr, nullptr, openrender::shading::QueryType::Float);
+    float found = (float)this->incidentParameter(dest, name[0], nullptr, nullptr, queryTypeOfResultKind(resultKind));
     jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, nullptr, ACCESSOR_INTERIOR);
 }
 
@@ -3673,7 +3696,7 @@ void CShadingContext::jitOppositeParameter(float *dst, int sd, const char *const
                                            void *dest, int sDest, int n, const int *tags, int resultKind) {
     if (n <= 0)
         return;
-    float found = (float)this->oppositeParameter(dest, name[0], nullptr, nullptr, openrender::shading::QueryType::Float);
+    float found = (float)this->oppositeParameter(dest, name[0], nullptr, nullptr, queryTypeOfResultKind(resultKind));
     jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, nullptr, ACCESSOR_EXTERIOR);
 }
 

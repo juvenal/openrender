@@ -1,0 +1,25 @@
+--- a/src/libshader/shading/rslOps.cpp
++++ b/src/libshader/shading/rslOps.cpp
+@@ -918,7 +918,9 @@
+ void op_lightsource_f(float *result, int sr, const char *attrName, float *outParam, int so, int n, const int *tags) {
+     (void)n;
+     (void)tags;
+-    float value = 0.0f;
++    // getParameter() writes the parameter's whole value, so a vector or matrix parameter would overrun a single float
++    // (#115); the scratch holds the largest value and the first float is what the JIT has always used
++    float scratch[16] = {0.0f};
+     CShadingContext *ctx = libshader::activeContext();
+     if (ctx) {
+         CShadingState *ss = ctx->currentShadingState;
+@@ -929,9 +931,10 @@
+             if (svc != nullptr)
+                 svc->getMessage(openrender::shading::MessageRequest{openrender::shading::MessageSource::Light, ctx->objectHandle(),
+                                                                      CShadingContext::shaderHandle(ss->currentLightInstance), attrName,
+-                                                                     openrender::shading::QueryType::Float, &value, false});
++                                                                     openrender::shading::QueryType::Float, scratch, false});
+         }
+     }
++    const float value = scratch[0];
+     if (result)
+         IDX(result, sr, 0)
+         [0] = value;

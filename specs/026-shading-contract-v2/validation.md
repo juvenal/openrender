@@ -231,6 +231,46 @@ Results on the final staged tree (`linux_sync.sh push` then `verify`: 3,226 file
 | CP-c | 21 of 21, `RESULT PASS`, `ALLOWED` unchanged | 21 of 21, `RESULT PASS`, `ALLOWED` unchanged |
 | `libshader_shading` imports (SC-011) | the same 6 flat-namespace imports | `diff` against `libshader-imports-base-linux.txt` empty |
 
+### Phase 6 (T111): the getMessage tests are red on the Phase 5 tree (macOS)
+
+Enabled: `Messages{Interp,Jit}`, `NoServices_Message`, `RealAnswers{Interp,Jit}_Messages`, and the new `TypeMismatch_Message{Interp,Jit}`, `LightsourceNoLoop{Interp,Jit}` (standalone), `TypeMismatchReal_Message{Interp,Jit}`, `LightsourceNoLoopReal{Interp,Jit}` and `NullObject_Messages{Interp,Jit}` (rendered); the three wrappers got their `getMessage` forwarding override (T112). The default build is clean. `ctest -R` of the 15 tests: **2 of 15 passed**. Log: `build-logs/026-p6-red.log`.
+
+| Test | Result | Why |
+|---|---|---|
+| `Messages{Interp,Jit}`, `NoServices_Message`, `TypeMismatch_Message{Interp,Jit}` | SEGFAULT | `surface()` and its siblings dereference `currentObject->attributes` and the standalone program has no object (QE); a crash is red evidence |
+| `NullObject_Messages{Interp,Jit}` | SEGFAULT | the same dereference with `currentObject == nullptr` (F2); `shadername("surface")` too |
+| `TypeMismatchReal_Message{Interp,Jit}` | SEGFAULT | the five members ignore the expected type: the matrix parameter is copied over the vector destination and its guards |
+| `LightsourceNoLoop{Interp,Jit}` (standalone), `LightsourceNoLoopReal{Interp,Jit}` | Interp: SEGFAULT (F3, the interpreter dereferences a null light); **Jit: Passed**, which pins what the JIT already does (`op_lightsource_f` guards `currentLightInstance`, no request, the destination gets 0, Q2) | |
+| `RealAnswers{Interp,Jit}_Messages` | SEGFAULT | **a test setup finding, below**: the crash is not the null object |
+
+Approved by the maintainer 2026-11-01 (T113): the new tests, the three forwarding overrides, the three deviations (guards inside shaders, no separate executable, the outcome asserted instead of the double recording the decision), and `tools/phase6-realanswers-locals.diff` (applied).
+
+Finding (approved test, decided: applied): `RealAnswers_Messages` runs a surface shader through the rendered harness, whose `runSurface` does not set `locals[ACCESSOR_SURFACE]`, `[ACCESSOR_DISPLACEMENT]` and `[ACCESSOR_ATMOSPHERE]` (the shading pipeline sets them at `shading.cpp:1021-1025`, after preparing the producers). `surface()`, `displacement()` and `atmosphere()` get a variable back from the bound producer and the macro then reads `locals[accessor][entry]`: a null array, so the test crashes before and after the implementation. Trial (`tools/phase6-realanswers-locals.diff`: the test prepares the three producers' locals before its rows, 8 lines; reverted, not staged): `RealAnswersInterp_Messages` then runs and fails on (ii) as T111 expects (`fwd.messageCalls.size() == 5` x10, the lightsource counts); `RealAnswersJit_Messages` runs its five rows (failing the same count) and then ends in a bus error in the lightsource part (cause not yet known; to be diagnosed with the implementation).
+
+### Phase 6 (T114 to T122): the implementation, macOS and Linux
+
+Implemented: `CRendererServicesImpl::getMessage` (the instance bound to the object, or the light handle; a null object answers `NotFound`; a non-writing `getParameterShape()` lookup, new on `CShaderInstance` with a "unknown, no check" default and the programmable instance's override, decides a `TypeMismatch` before `getParameter` writes, for the five object sources and not for `Light`); `CShadingContext::queryMessage` and the five members over it (one `CODE_BADTOKEN` per builtin kind for a mismatch, one `CODE_NOTSTARTED` for an unavailable service; the JIT entry points pass the type from `resultKind`; `incident` reads Interior, `opposite` Exterior); `lightParameter()` and `LIGHTPARAMETEREXPR_PRE` (no dereference of a null light, F3); the body of `op_lightsource_f` asks the services (Light, `currentLightInstance`, no variable, `Float`); `shaderName(type)` returns `""` with no object.
+
+Three findings stopped the checkpoint; they are in the table with the trial result. The staged tree contains the implementation and the tests as approved; the fixes below are NOT applied and need decisions.
+
+| Finding | Effect on the staged tree | Trial (`tools/`) |
+|---|---|---|
+| M1, `cm_surface.sl` (approved shader): the JIT keeps `float f = -1` uniform (its destination stride is 0), so the producer's varying `cmfloat` is refused by the varying-to-uniform guard in `jitParameterFinish` (`found = 0`) and `MessagesJit` fails on the surface row (4 + 4 checks). Declaring `varying float f` does not change it (uniform lifting); initializing it from a varying value does. Only the surface source needs it (displacement and atmosphere answer the double's floats into lane 0 only, which the other two rows expect uniform) | `MessagesJit`, and `RealAnswersJit_Messages`' surface row | `phase6-test-fixes.diff`: `float f = -1 + 0 * s;` in `cm_surface.sl` |
+| M2, `case_type_mismatch_real_message.cpp` (my approved test): it reads the producer's float through `surface()`, `displacement()` and `atmosphere()`, so it needs the same producer locals the `RealAnswers` fix prepares | `TypeMismatchReal_Message{Interp,Jit}` segfault on the null `locals` | same diff: the locals are prepared before the shaders run |
+| M3, **a pre-existing JIT memory overrun, #115's behaviour** (D10): `op_lightsource_f` calls `getParameter(name, &value)` with the address of one local float; `cm_lightsource.sl` asks `lightsource("cmvec", v)` and the JIT lowers every `lightsource()` to this float-only function, so the vector parameter (three floats) overruns the local and corrupts the stack: `RealAnswersJit_Messages` ends in a garbage-pointer SEGFAULT in its lightsource part (flaky: it depends on what sits next to the local, and it passed under added `fprintf` calls). The overrun is the same on the starting tree; `execute()` frame, jump address `0x3f4000003f000048` = the floats 0.75 and 0.5 | `RealAnswersJit_Messages` | `phase6-lightsource-scratch.diff`: the function passes a 16-float scratch and keeps `scratch[0]`, which is what the JIT has always returned. The first float is unchanged for every parameter type; the overrun is gone. Not applied: it is #115's own behaviour and the maintainer said to stop on that |
+
+One more change IS in the staged tree (found by the first Linux run): `CShadingState::currentLightInstance` had no initializer, so `lightsource()` outside a loop under the JIT read an uninitialized pointer (zero by luck on macOS, garbage on Linux: `LightsourceNoLoopJit` failed and `LightsourceNoLoopReal_Jit` crashed there). It now starts at `nullptr` (`shading.h`, one in-class initializer): the JIT's own null guard in `op_lightsource_f` then holds, FR-028 for the JIT. It is not a change to #115's behaviour (the last light that ran is still the one asked).
+
+With the three trials applied (then removed from the staged tree):
+
+| Check | macOS | Linux (`openrender-026`, GCC 13.3 `-Werror`, `-j2`) |
+|---|---|---|
+| the 15 Phase 6 tests | **15 of 15 pass**, five repeats each | `shading_contract` label 44 of 44 |
+| CP-b `-LE determinism-sweep` | 974 tests, 100% passed | 975 tests, 968 passed, **7 failed = the Linux baseline's 7** |
+| CP-d (fresh stamp) | 819 images, **0 differing, 0 missing**; 17 INFO lines (cwd `ri.tif` files of the contract tests) | 0 differing, 0 missing, equal diffs; 17 INFO |
+| CP-c | 21 of 21, `RESULT PASS`, `ALLOWED` unchanged | 21 of 21, `RESULT PASS`, `ALLOWED` unchanged |
+| `libshader_shading` imports (SC-011) | the same 6 flat-namespace imports | `diff` against `libshader-imports-base-linux.txt` empty |
+
 ## §3 Linux records
 
 Note for the reader: the Linux baseline is taken on the starting `src/` **plus the Phase 1 observer hook** (the macOS baseline is taken before it). The hook is null in production and adds no output, which the macOS manifest check shows (§1); the Linux baseline is therefore comparable with the starting tree.
@@ -480,6 +520,10 @@ The T008 count (25 textual sites) and the claim "all reach one member" (research
 #### D9. The JIT reads a color, normal or point destination of `attribute()`, `option()`, `rendererinfo()` and the message builtins as a float (found at T105; pre-existing; fix approved by the maintainer 2026-11-01 as T105a, no issue filed)
 
 In `llvmEmitter.cpp` the branch for `surface`, `displacement`, `atmosphere`, `incident`, `opposite`, `attribute`, `option` and `rendererinfo` derives `resultKind` from the last letter of the matched prototype: `V` -> 3, `M` -> 16, `S` -> -1, anything else -> 1. The prototypes `f=SC`, `f=SN` and `f=SP` (color, normal, point destinations) fall in "anything else", so those calls copy one float, while the interpreter links the three to the vector overload (`DEFLINKFUNC` -> `f=SV`, three floats). Which prototype a vector argument matches depends on the order of `addBuiltInFunction`: `option` and `attribute` list `f=SV` before `f=SC`, `rendererinfo` lists `f=SC` first, so `rendererinfo("version", vector)` is compiled as a color query. Visible effect before this phase: the JIT's `rendererinfo(name, vector)` writes one float. With the `QueryType` of Phase 5 it also shows as a request that differs between the backends (Float against Triple), which the approved Phase 5 tests (`Attributes`, `RealAnswers_Attributes`, `TypeMismatch_Attribute`, `TypeMismatchReal_Attribute`, under `.slo`) assert is identical. Proposed fix (`tools/phase5-d9-emitter.diff`): C, N and P map to 3. It is the same kind of change as D8 (one emitter line, no `op_*` change); `spec.md` FR-009's amendment names the emitter only for `ctransform`, so it needed the maintainer's decision: approved 2026-11-01 and applied (FR-009 in spec.md and plan.md name it as the second emitter change). The trial changed no image on either platform.
+
+#### D10. `op_lightsource_f` overruns its one-float local with a vector or matrix parameter (found at T120; pre-existing; JIT `lightsource()` is #115)
+
+`op_lightsource_f(result, sr, attrName, outParam, so, n, tags)` declares `float value`, calls `light->getParameter(attrName, &value, nullptr, nullptr)` and returns `value`. `getParameter` writes the whole parameter (one float, three for a vector, sixteen for a matrix, or a pointer for a string), and the emitter lowers every `lightsource()` call, whatever its destination type, to this function. A shader that asks a vector or matrix parameter overruns the stack (the starting tree has the same code). In `RealAnswersJit_Messages` the lightsource part asks `cmvec` and the process dies with a jump to an address made of the floats (0.5, 0.75): the approved Phase 2 test exercised the defect and was never run. Proposed (`tools/phase6-lightsource-scratch.diff`, not applied): a 16-float scratch in the function body, the first float returned as before. Whether to fix it in 026 or leave it to #115 is the maintainer's decision; the test cannot pass reliably without one of the two.
 
 ## §5 Final summary against SC-001 to SC-014
 

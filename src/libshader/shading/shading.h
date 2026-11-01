@@ -212,7 +212,7 @@ class CShadingState {
         CShaderInstance *postShader;    // Shader to be executed on the surface after the atmosphere
 
         CShaderInstance *currentShaderInstance; // The current shader instance that's executing
-        CShaderInstance *currentLightInstance;  // The current light instance that's executing
+        CShaderInstance *currentLightInstance = nullptr; // The current light instance that's executing (the last one that ran; none yet: lightsource() under the JIT outside any loop, spec 026 F3)
 
         float **locals[NUM_ACCESSORS]; // The local variables for each shader type
 
@@ -1110,6 +1110,9 @@ class CShadingContext {
         int attributes(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected);
         int rendererInfo(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected);
         int queryServiceAttribute(openrender::shading::AttributeScope scope, void *dest, const char *name, openrender::shading::QueryType expected);
+        int queryMessage(openrender::shading::MessageSource source, const char *builtin, openrender::shading::ShaderHandle light, bool wantVariable, void *dest, const char *name,
+                         CVariable **var, int *globalIndex, openrender::shading::QueryType expected);
+        int lightParameter(void *dest, const char *name, CVariable **var, int *globalIndex); // lightsource() in an illuminance loop (interpreter)
         const char *shaderName();
         const char *shaderName(const char *type);
 

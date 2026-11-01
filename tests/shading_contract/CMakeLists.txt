@@ -36,6 +36,8 @@ set(_contract_shader_names
     cm_attribute cm_option cm_rendererinfo cm_surface cm_displacement cm_atmosphere cm_incident cm_opposite
     cm_lightsource cm_lightsource_noloop cm_producer_surface cm_producer_displacement cm_producer_volume cm_producer_light
     cm_mm_attribute cm_mm_option cm_mm_rendererinfo cm_mm_real cm_nullobject
+    cm_mm_msg_surface cm_mm_msg_displacement cm_mm_msg_atmosphere cm_mm_msg_incident cm_mm_msg_opposite
+    cm_mm_real_msg_surface cm_mm_real_msg_displacement cm_mm_real_msg_atmosphere cm_mm_real_msg_incident cm_mm_real_msg_opposite cm_nullobject_msg
     cm_matrices cm_trace cm_transmission cm_visibility cm_gather cm_occlusion cm_indirect cm_env cm_shadow
     sit_marker sit_mirror sit_transmit sit_displace)
 set(_shader_specs "")
@@ -146,7 +148,7 @@ if(OPENRENDER_SHADING_CONTRACT_TESTS)
     endif()
     add_executable(test_shading_contract_standalone
         standalone_main.cpp case_link.cpp case_attributes.cpp case_messages.cpp case_matrices.cpp
-        case_trace_requests.cpp case_no_services.cpp case_globals_double.cpp case_type_mismatch_attribute.cpp load_stub.cpp)
+        case_trace_requests.cpp case_no_services.cpp case_globals_double.cpp case_type_mismatch_attribute.cpp case_type_mismatch_message.cpp case_lightsource_no_loop.cpp load_stub.cpp)
     target_compile_features(test_shading_contract_standalone PRIVATE cxx_std_20)
     target_compile_definitions(test_shading_contract_standalone PRIVATE ${SHADING_CONTRACT_PROGRAM_DEFS})
     target_include_directories(test_shading_contract_standalone PRIVATE ${SHADING_CONTRACT_INCLUDES} ${CMAKE_SOURCE_DIR}/src/display)
@@ -155,7 +157,7 @@ if(OPENRENDER_SHADING_CONTRACT_TESTS)
     add_dependencies(test_shading_contract_standalone shading_contract_replay_shaders)
 
     add_executable(test_shading_contract_rendered
-        rendered_main.cpp case_real_answers.cpp case_gather_requests.cpp case_canned_trace.cpp case_no_tracer.cpp case_double_globals.cpp case_null_object.cpp)
+        rendered_main.cpp case_real_answers.cpp case_gather_requests.cpp case_canned_trace.cpp case_no_tracer.cpp case_double_globals.cpp case_null_object.cpp case_type_mismatch_real_message.cpp case_lightsource_no_loop_real.cpp case_null_object_messages.cpp)
     target_compile_features(test_shading_contract_rendered PRIVATE cxx_std_20)
     target_compile_definitions(test_shading_contract_rendered PRIVATE ${SHADING_CONTRACT_PROGRAM_DEFS})
     target_include_directories(test_shading_contract_rendered PRIVATE ${SHADING_CONTRACT_INCLUDES})
@@ -250,11 +252,21 @@ add_test(NAME ShadingContract_MessageAccessors
 set_tests_properties(ShadingContract_MessageAccessors PROPERTIES TIMEOUT 60 LABELS "shading_contract")
 
 # Phase 6 (getMessage)
-add_contract_test(ShadingContract_MessagesInterp test_shading_contract_standalone MessagesInterp)
-add_contract_test(ShadingContract_MessagesJit test_shading_contract_standalone MessagesJit JIT)
-add_contract_test(ShadingContract_NoServices_Message test_shading_contract_standalone NoServices_Message)
-add_contract_test(ShadingContract_RealAnswersInterp_Messages test_shading_contract_rendered RealAnswersInterp_Messages)
-add_contract_test(ShadingContract_RealAnswersJit_Messages test_shading_contract_rendered RealAnswersJit_Messages JIT)
+add_contract_test(ShadingContract_MessagesInterp test_shading_contract_standalone MessagesInterp ENABLED)
+add_contract_test(ShadingContract_MessagesJit test_shading_contract_standalone MessagesJit JIT ENABLED)
+add_contract_test(ShadingContract_NoServices_Message test_shading_contract_standalone NoServices_Message ENABLED)
+add_contract_test(ShadingContract_RealAnswersInterp_Messages test_shading_contract_rendered RealAnswersInterp_Messages ENABLED)
+add_contract_test(ShadingContract_RealAnswersJit_Messages test_shading_contract_rendered RealAnswersJit_Messages JIT ENABLED)
+add_contract_test(ShadingContract_TypeMismatch_MessageInterp test_shading_contract_standalone TypeMismatch_MessageInterp ENABLED)
+add_contract_test(ShadingContract_TypeMismatch_MessageJit test_shading_contract_standalone TypeMismatch_MessageJit JIT ENABLED)
+add_contract_test(ShadingContract_LightsourceNoLoopInterp test_shading_contract_standalone LightsourceNoLoopInterp ENABLED)
+add_contract_test(ShadingContract_LightsourceNoLoopJit test_shading_contract_standalone LightsourceNoLoopJit JIT ENABLED)
+add_contract_test(ShadingContract_TypeMismatchReal_MessageInterp test_shading_contract_rendered TypeMismatchReal_MessageInterp ENABLED)
+add_contract_test(ShadingContract_TypeMismatchReal_MessageJit test_shading_contract_rendered TypeMismatchReal_MessageJit JIT ENABLED)
+add_contract_test(ShadingContract_LightsourceNoLoopRealInterp test_shading_contract_rendered LightsourceNoLoopRealInterp ENABLED)
+add_contract_test(ShadingContract_LightsourceNoLoopRealJit test_shading_contract_rendered LightsourceNoLoopRealJit JIT ENABLED)
+add_contract_test(ShadingContract_NullObject_MessagesInterp test_shading_contract_rendered NullObject_MessagesInterp ENABLED)
+add_contract_test(ShadingContract_NullObject_MessagesJit test_shading_contract_rendered NullObject_MessagesJit JIT ENABLED)
 
 # Phase 8 (the tracer)
 add_contract_test(ShadingContract_TraceRequestsInterp test_shading_contract_standalone TraceRequestsInterp)

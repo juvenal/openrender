@@ -13,6 +13,9 @@ int caseGatherRequests(bool jit);                  // case_gather_requests.cpp  
 int caseCannedTrace(bool jit);                     // case_canned_trace.cpp     US6 AS1, AS3
 int caseNoTracer();                                // case_no_tracer.cpp        US6 AS3, FR-012
 int caseNullObjectAttributes(bool jit);            // case_null_object.cpp      US3 AS5, FR-027, SC-014
+int caseTypeMismatchRealMessage(bool jit);         // case_type_mismatch_real_message.cpp  US3 AS4, FR-026, SC-013 (real side)
+int caseLightsourceNoLoopReal(bool jit);           // case_lightsource_no_loop_real.cpp      US3 AS6, FR-028, SC-014
+int caseNullObjectMessages(bool jit);              // case_null_object_messages.cpp          US3 AS5, FR-027, SC-014
 int caseDoubleGlobalsMatchRenderer();              // case_double_globals.cpp   R10
 
 #endif

@@ -29,6 +29,7 @@
 #include "shaderParameterHooks.h"
 #include "shaderParameters.h"
 #include "shading.h"
+#include "shaderRefs.h"
 
 // One instance per process; CRendererServicesImpl is stateless.
 static CRendererServicesImpl g_rendererServicesImpl;
@@ -348,4 +349,94 @@ void CRendererServicesImpl::getAttribute(const openrender::shading::AttributeReq
 
     if (answer.status == EQueryStatus::Found && copyIsUnsafe(answer, request.expected))
         answer.status = EQueryStatus::TypeMismatch;
+}
+
+///////////////////////////////////////////////////////////////////////
+// getMessage(): surface(), displacement(), atmosphere(), incident(), opposite(), lightsource() (spec 026, FR-006)
+//
+// The instance is the one bound to the object's attributes (or the light handle for the Light source); the answer
+// is its getParameter(), called as Shading called it. For the five object sources the stored shape of the
+// parameter is looked up first, without writing, so that a value that cannot be copied safely into a destination of
+// the expected type (FR-026) is answered TypeMismatch before anything is written into request.dest. The Light source
+// is exempt (B4): lightsource() keeps each backend's own output.
+///////////////////////////////////////////////////////////////////////
+openrender::shading::MessageAnswer CRendererServicesImpl::getMessage(const openrender::shading::MessageRequest &request) const {
+    using namespace openrender::shading;
+    MessageAnswer answer;
+    answer.status = EQueryStatus::NotFound;
+
+    CShaderInstance *instance = nullptr;
+    if (request.source == MessageSource::Light) {
+        instance = const_cast<CShaderInstance *>(static_cast<const CShaderInstance *>(request.light.ptr));
+    }
+    else {
+        // No object (the imager): nothing to read (FR-027)
+        if (!request.object)
+            return answer;
+        const CAttributes *currentAttributes = static_cast<const CObject *>(request.object.ptr)->attributes;
+        switch (request.source) {
+            case MessageSource::Surface:
+                if (currentAttributes->surface())
+                    instance = shaderInstanceOf(currentAttributes->surface());
+                break;
+            case MessageSource::Displacement:
+                if (currentAttributes->displacement())
+                    instance = shaderInstanceOf(currentAttributes->displacement());
+                break;
+            case MessageSource::Atmosphere:
+                if (currentAttributes->atmosphere())
+                    instance = shaderInstanceOf(currentAttributes->atmosphere());
+                break;
+            case MessageSource::Interior:
+                if (currentAttributes->interior())
+                    instance = shaderInstanceOf(currentAttributes->interior());
+                break;
+            case MessageSource::Exterior:
+                if (currentAttributes->exterior())
+                    instance = shaderInstanceOf(currentAttributes->exterior());
+                break;
+            default:
+                break;
+        }
+    }
+    if (instance == nullptr)
+        return answer;
+
+    if (request.source != MessageSource::Light) {
+        EVariableType type = TYPE_FLOAT;
+        int numFloats = 0;
+        if (instance->getParameterShape(request.name, type, numFloats)) {
+            const bool storedIsString = (type == TYPE_STRING);
+            bool unsafe;
+            switch (request.expected) {
+                case QueryType::String:
+                    unsafe = !storedIsString;
+                    break;
+                case QueryType::Triple:
+                    unsafe = storedIsString || numFloats > 3;
+                    break;
+                case QueryType::Matrix:
+                    unsafe = storedIsString || numFloats > 16;
+                    break;
+                case QueryType::Float:
+                default:
+                    unsafe = storedIsString;
+                    break;
+            }
+            if (unsafe) {
+                answer.status = EQueryStatus::TypeMismatch;
+                return answer;
+            }
+        }
+    }
+
+    CVariable *variable = nullptr;
+    int globalIndex = -1;
+    const int found = instance->getParameter(request.name, request.dest, request.wantVariable ? &variable : nullptr, request.wantVariable ? &globalIndex : nullptr);
+    if (found != FALSE) {
+        answer.status = EQueryStatus::Found;
+        answer.variable = variable;
+        answer.globalIndex = request.wantVariable ? globalIndex : -1;
+    }
+    return answer;
 }
