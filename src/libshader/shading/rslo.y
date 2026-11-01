@@ -60,7 +60,6 @@ typedef enum {
 #include "common/memory.h" // globalArena
 #include "shader.h"
 #include "common/diagnostics.h"
-#include "dso.h"
 #include "dsoHandle.h"
 #include "serviceLookup.h"
 #include "rsloPrototypeMatch.h"

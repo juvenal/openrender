@@ -26,9 +26,9 @@
 ////////////////////////////////////////////////////////////////////////
 #include "texture3d.h"
 #include "common/portable_io.h"
-#include "displayChannel.h"
 #include "common/diagnostics.h"
-#include "renderer.h"
+#include "common/variable.h" // CVariable, parseVariable (the ptcapi form of defineChannels)
+#include "texture3dChannels.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CTexture3d
@@ -79,7 +79,6 @@ CTexture3d::~CTexture3d() {
 // Comments				:
 void CTexture3d::defineChannels(const char *channelDefinitions) {
     char *nextComma, *sampleName, *tmp;
-    CDisplayChannel *oChannel;
 
     // This is used by remote channels
     // The channel definitions will be loaded when
@@ -116,20 +115,19 @@ void CTexture3d::defineChannels(const char *channelDefinitions) {
             sampleName++;
 
         // is the sample name a channel we know about?
-        oChannel = CRenderer::retrieveDisplayChannel(sampleName);
-        if (oChannel != NULL) {
+        // (the renderer core answers through the source it installed for the session; with none, every name is unknown)
+        STexture3dChannelInfo channel;
+        const CTexture3dChannelSource *source = texture3dChannelSource();
+        if (source != NULL && source->find(sampleName, channel)) {
             // it's a predefined / already seen channel
-            strcpy(channels[channelCount].name, oChannel->name);
+            strcpy(channels[channelCount].name, channel.name);
             channels[channelCount].sampleStart = dataSize;
-            channels[channelCount].numSamples = oChannel->numSamples;
-            if (oChannel->variable != NULL)
-                channels[channelCount].type = oChannel->variable->type;
-            else
-                channels[channelCount].type = TYPE_FLOAT;
-            channels[channelCount].fill = oChannel->fill;
+            channels[channelCount].numSamples = channel.numSamples;
+            channels[channelCount].type = (EVariableType)channel.type;
+            channels[channelCount].fill = (float *)channel.fill;
             // GSHTODO: duplicate fill
 
-            dataSize += oChannel->numSamples;
+            dataSize += channel.numSamples;
             channelCount++;
         }
         else {

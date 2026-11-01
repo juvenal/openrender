@@ -30,7 +30,7 @@
 #include <stdarg.h>
 #include <string.h>
 
-#include "includes/logging.hpp"
+#include "include/logging.hpp"
 
 #include "blobby.h"
 #include "blobbyField.h"
@@ -46,7 +46,6 @@
 #include "delayed.h"
 #include "displayChannel.h"
 #include "dlobject.h"
-#include "dso.h"
 #include "common/diagnostics.h"
 #include "hcshader.h"
 #include "implicitSurface.h"
@@ -72,7 +71,7 @@
 #include "ri_config.h"
 #include "rib.h"
 #include "ribOut.h"
-#include "shadeop.h"
+#include "proceduralModules.h"
 #include "shader.h"
 #include "shaderRefs.h"
 #include "stateConversions.h"
@@ -1012,7 +1011,7 @@ void CRendererContext::RiWorldBegin(void) {
     // (fromWorld1/toWorld1) before we discard the motion chain below.
     log_debug("RiWorldBegin: calling beginFrame");
     CRenderer::beginFrame(currentOptions, currentAttributes, currentXform);
-    log_debug("RiWorldBegin: beginFrame returned, hiderFlags={}", CRenderer::hiderFlags);
+    log_debug("RiWorldBegin: beginFrame returned, hiderFlags={}", CRenderer::hiderFlags.load());
 
     // Clear any camera-motion chain deep-copied by xformBegin().
     // Pre-world MotionBegin defines CAMERA motion, now captured in fromWorld1/toWorld1.
@@ -1434,8 +1433,12 @@ void CRendererContext::RiDisplayV(const char *name, const char *type, const char
                     case TYPE_QUAD:
                     case TYPE_MPOINT:
                     case TYPE_DOUBLE:
-                        // No display driver consumes any of these.
-                        break;
+                        // No display driver consumes any of these: drop the entry (FR-040). j is not advanced,
+                        // so the stored count covers only initialized entries.
+                        warning(CODE_BADTOKEN, "Display parameter \"%s\": type not supported by display drivers, ignored\n", cDisplay->parameters[j].name);
+                        free(cDisplay->parameters[j].name);
+                        cDisplay->parameters[j].name = NULL;
+                        continue;
                     case TYPE_STRING:
                         cDisplay->parameters[j].type = EDisplayParameterType::String;
                         cDisplay->parameters[j].data = strdup(((char **)params[i])[0]);
@@ -5476,7 +5479,9 @@ void CRendererContext::RiGeometryV(const char *type, int n, const char *tokens[]
             char location[OS_MAX_PATH_LENGTH];
 
             if (CRenderer::locateFileEx(location, name, osModuleExtension, currentOptions->proceduralPath)) {
-                CObject *cObject = new CImplicit(getAttributes(FALSE), getXform(FALSE), frame, location, stepSize, scaleFactor);
+                // The Procedures module loads and checks the module; it reports a failure and returns NULL
+                CImplicitModule *module = acquireImplicitModule(location, name);
+                CObject *cObject = new CImplicit(getAttributes(FALSE), getXform(FALSE), frame, module, name, stepSize, scaleFactor);
 
                 addObject(cObject);
             }
@@ -5517,42 +5522,22 @@ void CRendererContext::RiGeometryV(const char *type, int n, const char *tokens[]
             char location[OS_MAX_PATH_LENGTH];
 
             if (CRenderer::locateFileEx(location, name, osModuleExtension, currentOptions->proceduralPath)) {
-                void *handle, *data;
+                void *data;
                 vector bmin, bmax;
 
-                handle = osLoadModule(name);
+                // The module is the one the search located, not the name as written (FR-023, FR-032)
+                CDloModule *module = acquireDloModule(location, name);
 
-                if (handle != NULL) {
-                    dloInitFunction initFunction = (dloInitFunction)osResolve(handle, "dloInit");
-                    dloIntersectFunction intersectFunction = (dloIntersectFunction)osResolve(handle, "dloIntersect");
-                    dloTiniFunction tiniFunction = (dloTiniFunction)osResolve(handle, "dloTini");
+                if (module != NULL) {
+                    data = module->init(frame, bmin, bmax);
 
-                    if (initFunction != NULL) {
-                        if (intersectFunction != NULL) {
-                            if (tiniFunction != NULL) {
-                                data = initFunction(frame, bmin, bmax);
-
-                                if (data != NULL) {
-                                    addObject(new CDLObject(getAttributes(FALSE), getXform(FALSE), handle, data, bmin, bmax, initFunction, intersectFunction, tiniFunction));
-                                }
-                                else {
-                                    error(CODE_BADFILE, "DLO \"%s\" failed to initialize\n", name);
-                                }
-                            }
-                            else {
-                                error(CODE_BADFILE, "Missing \"dloTini\" in DLO \"%s\"\n", name);
-                            }
-                        }
-                        else {
-                            error(CODE_BADFILE, "Missing \"dloIntersect\" in DLO \"%s\"\n", name);
-                        }
+                    if (data != NULL) {
+                        addObject(new CDLObject(getAttributes(FALSE), getXform(FALSE), module, data, bmin, bmax));
                     }
                     else {
-                        error(CODE_BADFILE, "Missing \"dloInit\" in DLO \"%s\"\n", name);
+                        error(CODE_BADFILE, "DLO \"%s\" failed to initialize\n", name);
+                        module->detach();
                     }
-                }
-                else {
-                    error(CODE_BADFILE, "Failed to load DLO \"%s\"\n", name);
                 }
             }
             else {

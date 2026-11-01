@@ -1,0 +1,6 @@
+declare _area and Ci: 0 diagnostic(s)
+unknown "_area,nosuchchannel,Ci": 2 channel(s), data size 4
+  channel 0: name=_area type=float
+  channel 1: name=Ci type=color
+unknown: 1 diagnostic(s)
+  diagnostic code=19 severity=2: Unknown display channel "nosuchchannel"

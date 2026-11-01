@@ -1,0 +1,104 @@
+/**
+ * Project: openRender
+ *
+ * File: shadeop.h
+ *
+ * Description:
+ *   This file defines the interface for shadeop.
+ *
+ * Authors:
+ *   Okan Arikan <okan@cs.utexas.edu>
+ *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * Copyright (c) 1999 - 2003, Okan Arikan <okan@cs.utexas.edu>
+ *               2022 - 2025, Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
+ *
+ * License: GNU Lesser General Public License (LGPL) 2.1
+ *
+ */
+
+///////////////////////////////////////////////////////////////////////
+//
+//  File				:	shadeop.h
+//  Classes				:
+//  Description			:	Defines misc macros for the DSO shadeops
+//
+////////////////////////////////////////////////////////////////////////
+
+/*
+ * Shader DSO operands (shadeops). Strict C17 and C++20. A shadeop module exports a table
+ * <name>_shadeops[] and the functions the table names; it may declare its interface version with
+ * SHADEOP_DECLARE_VERSION() (once, at file scope).
+ *
+ * The prefix SHADEOP_* (and the dso*Function type names) of this family is kept deliberately, so
+ * existing plug-in sources keep compiling; the newer interfaces and the shared convention use OR_*.
+ *
+ * Threading: exec may be called concurrently from several shading threads. Without per-thread entry
+ * points every call receives the same initdata (the result of the module's one process-wide init).
+ * With them (interface 1.1), each shading thread receives its own data: threadInit(initdata, thread)
+ * is called lazily, once per thread index, on that thread's first call to the operand (for different
+ * threads, possibly concurrently); the data it returns is passed to every later exec on that thread
+ * and lasts until RiEnd; threadCleanup(initdata, threaddata) runs once per threadInit at RiEnd, after
+ * every exec that used the data has returned and before the module is unloaded, possibly on a
+ * different thread from threadInit. A NULL result of threadInit is a valid value, passed to exec
+ * unchanged (1.1 has no failure channel). The optional table <name>_shadeop_threads[] runs parallel
+ * to <name>_shadeops[]: one SHADEOP_THREAD_SPEC per row, "" meaning none.
+ *
+ * Version history:
+ *
+ * | Version | Change |
+ * |---|---|
+ * | 1.0.0 | The Pixie-era interface. Modules without orShadeopAbiVersion are 1.0.0 (they load with a warning; rejected from openRender 1.2.0). The header as shipped by spec 037 is C-includable and its exports stay visible under hidden-by-default visibility. SHADEOP_SPEC fields are const char * (same layout). The argv of SHADEOP is void *[], matching dsoExecFunction (same binary; source that did pointer arithmetic on argv[i] without a cast must add one). |
+ * | 1.1.0 | Optional <name>_shadeop_threads[] with per-thread init and cleanup (SHADEOP_THREAD_SPEC, SHADEOP_THREAD_TABLE, SHADEOP_THREAD_INIT, SHADEOP_THREAD_CLEANUP). SHADEOP_SPEC cannot grow (a new field changes its stride, a MAJOR change), which is why the thread entries live in a parallel table. A 1.0 module is unchanged and gets one process-wide initdata. |
+ */
+#ifndef SHADEOP_H
+#define SHADEOP_H
+
+#include "orplugin.h"
+
+#define SHADEOP_ABI_VERSION_MAJOR 1
+#define SHADEOP_ABI_VERSION_MINOR 1
+#define SHADEOP_ABI_VERSION_PATCH 0
+#define SHADEOP_ABI_VERSION OR_ABI_VERSION(1, 1, 0)
+#define SHADEOP_DECLARE_VERSION() OR_DECLARE_ABI_VERSION_SYMBOL(orShadeopAbiVersion, SHADEOP_ABI_VERSION)
+
+typedef struct {
+        const char *definition; /* "float name(float, point)"; "" terminates the table */
+        const char *init;       /* name of the SHADEOP_INIT function, or ""             */
+        const char *cleanup;    /* name of the SHADEOP_CLEANUP function, or ""          */
+} SHADEOP_SPEC;
+
+#define SHADEOP_TABLE(__shadeopname)                          \
+    OR_PLUGIN_EXPORT SHADEOP_SPEC __shadeopname##_shadeops[]; \
+    SHADEOP_SPEC __shadeopname##_shadeops[]
+
+#define SHADEOP_INIT(__shadeopname) OR_PLUGIN_EXPORT void *__shadeopname(int ctx, void *texturectx)
+
+#define SHADEOP(__shadeopname) OR_PLUGIN_EXPORT void __shadeopname(void *initdata, int argc, void *argv[])
+
+#define SHADEOP_CLEANUP(__shadeopname) OR_PLUGIN_EXPORT void __shadeopname(void *initdata)
+
+/* 1.1: the optional per-thread entry points, parallel to <name>_shadeops[] (one row per row, "" = none). */
+typedef struct {
+        const char *threadInit;    /* name of the SHADEOP_THREAD_INIT function, or ""    */
+        const char *threadCleanup; /* name of the SHADEOP_THREAD_CLEANUP function, or "" */
+} SHADEOP_THREAD_SPEC;
+
+#define SHADEOP_THREAD_TABLE(__shadeopname)                                 \
+    OR_PLUGIN_EXPORT SHADEOP_THREAD_SPEC __shadeopname##_shadeop_threads[]; \
+    SHADEOP_THREAD_SPEC __shadeopname##_shadeop_threads[]
+
+/* Called on the shading thread `thread` (0..N-1), lazily, once per thread index. */
+#define SHADEOP_THREAD_INIT(__shadeopname) OR_PLUGIN_EXPORT void *__shadeopname(void *initdata, int thread)
+
+/* Called once per threadInit, at RiEnd, possibly on another thread. */
+#define SHADEOP_THREAD_CLEANUP(__shadeopname) OR_PLUGIN_EXPORT void __shadeopname(void *initdata, void *threaddata)
+
+// The function prototypes for the DSO shaders
+typedef void *(*dsoInitFunction)(int, void *);
+typedef void (*dsoExecFunction)(void *, int, void *[]);
+typedef void (*dsoCleanupFunction)(void *);
+typedef void *(*dsoThreadInitFunction)(void *, int);
+typedef void (*dsoThreadCleanupFunction)(void *, void *);
+
+#endif

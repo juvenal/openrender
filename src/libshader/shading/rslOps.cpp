@@ -21,7 +21,7 @@
 #include "common/colorSpace.h"
 #include "common/diagnostics.h"
 #include "common/memory.h"
-#include "includes/logging.hpp"
+#include "include/logging.hpp"
 #include "noise.h"
 #include "shading.h"
 
@@ -975,6 +975,17 @@ void jitSetInitXform(const float *fromMat, const float *toMat) {
     s_jit_init_to = toMat;
 }
 
+// GitHub #123: every other named space at bind time. The renderer core installs
+// a resolver around jitInitEntry (CRendererContext::init()) that answers with the
+// same lookup the interpreter's init section uses, so a parameter default such as
+// point "world" (...) is converted to the current space by both backends. Shading
+// never names the renderer: the pointer is set from the core side only.
+static thread_local TJitInitCoordinateResolver s_jit_init_resolver = nullptr;
+
+void jitSetInitCoordinateResolver(TJitInitCoordinateResolver resolver) {
+    s_jit_init_resolver = resolver;
+}
+
 static bool getFromMatrix(const char *space, const float *&fromMat) {
     CShadingContext *ctx = libshader::activeContext();
     if (!ctx) {
@@ -982,6 +993,9 @@ static bool getFromMatrix(const char *space, const float *&fromMat) {
             fromMat = s_jit_init_from;
             return true;
         }
+        const float *to = nullptr;
+        if (s_jit_init_resolver && space && s_jit_init_resolver(space, fromMat, to))
+            return fromMat != nullptr;
         fromMat = nullptr;
         return false;
     }
@@ -997,6 +1011,9 @@ static bool getToMatrix(const char *space, const float *&toMat) {
             toMat = s_jit_init_to;
             return true;
         }
+        const float *from = nullptr;
+        if (s_jit_init_resolver && space && s_jit_init_resolver(space, from, toMat))
+            return toMat != nullptr;
         toMat = nullptr;
         return false;
     }
@@ -1074,6 +1091,29 @@ void op_ptransform(float *dst, int sd, const char *space, const float *src, int 
             if (i == 0)
                 log_debug("[JIT-ptransform] space='{}' out[0]=({:.4f},{:.4f},{:.4f})", space, r[0], r[1], r[2]);
         }
+}
+
+// op_vfrom: the vector "space" (...) constructor, named -> current (uses the "from"
+// matrix, no translation): the interpreter's VFROMEXPR, mulmv(res, from, op).
+// GitHub #124: the emitter used to lower vfrom to op_vtransform, which goes the
+// other way (current -> named).
+void op_vfrom(float *dst, int sd, const char *space, const float *src, int ss, int n, const int *tags) {
+    const float *from = nullptr;
+    if (!space || !getFromMatrix(space, from)) {
+        for (int i = 0; i < n; i++)
+            if (ACTIVE(tags, i)) {
+                IDX(dst, sd, i)
+                [0] = IDX(src, ss, i)[0];
+                IDX(dst, sd, i)
+                [1] = IDX(src, ss, i)[1];
+                IDX(dst, sd, i)
+                [2] = IDX(src, ss, i)[2];
+            }
+        return;
+    }
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i))
+            mulmv(IDX(dst, sd, i), from, IDX(src, ss, i));
 }
 
 // op_vtransform: RSL vtransform("space", V) — current→named (uses "to" matrix, no translation).

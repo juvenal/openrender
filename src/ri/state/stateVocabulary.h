@@ -25,7 +25,7 @@
 #ifndef STATEVOCABULARY_H
 #define STATEVOCABULARY_H
 
-// Must equal FLOAT_PARAMETER ... INTEGER_PARAMETER of dsply.h.
+// Must equal OR_DISPLAY_PARAM_FLOAT ... OR_DISPLAY_PARAM_INTEGER of dsply.h.
 enum class EDisplayParameterType : int {
     Float = 0,
     Vector = 1,

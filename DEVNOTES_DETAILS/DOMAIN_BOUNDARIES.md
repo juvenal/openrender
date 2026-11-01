@@ -2,7 +2,7 @@
 
 This file is the registry that constitution **Principle VIII (Domain Separation and Modular
 Boundaries)** requires (rule 8). The domains, the allowed-dependency table and the rules themselves
-live in `.specify/memory/constitution.md` (v1.2.0+); this file only tracks where the codebase does
+live in `.specify/memory/constitution.md` (v1.3.0+); this file only tracks where the codebase does
 not yet comply.
 
 **How to use it**
@@ -122,7 +122,7 @@ request. Run `ctest -L architecture` locally before review.
     the `CTraceBundle`/`CTransmissionBundle` vtables and `CPhotonMap::lookup`.
   - No includes: the 4 of `src/ri/render/renderer.h` are gone.
   - Shading's source-level coupling is registered separately: hider headers under DB-005,
-    Geometry headers under DB-006, and `dso.h` under DB-019.
+    Geometry headers under DB-006 (the `dso.h` edges once registered under DB-019 are gone since spec 037).
 - **Consequences today**: `libshader_shading` cannot load without `libRIBRender` in the process; a
   static engine link must whole-archive `libRIBRender.a` (the `openRender::RIBRender_static`
   package target applies `-force_load` for this — remove that workaround once this is resolved).
@@ -130,19 +130,6 @@ request. Run `ctest -L architecture` locally before review.
   renderer-core lookups go through `CRendererServices` (spec 024); invert the remaining
   Hiders/Texturing calls through interfaces Shading owns (trace/gather, photon/texture3d lookup),
   implemented and registered by the higher layers. Options are analysed in #24.
-
-### DB-003 — Plug-in ABI headers carry no interface version
-
-- **Rule**: 4 (plug-in interfaces MUST carry a Semantic Versioning 2.0.0 interface version; the host
-  MUST reject a MAJOR mismatch).
-- **Tracking**: [#26](https://github.com/juvenal/openrender/issues/26) (enhancement)
-- **Evidence**: none of the published plug-in headers declares a version — `src/ri/render/shadeop.h`
-  (Shader DSO Operands), `src/ri/geometry/dlo.h` and `src/ri/geometry/implicit.h` (Geometric
-  Procedures), `src/display/dsply.h` (Display Outputs) — and the loaders therefore cannot check one.
-- **Direction**: add a `MAJOR.MINOR.PATCH` interface version per header (macros plus an exported
-  query symbol each plug-in provides), have the host validate it at load time, and document each
-  header's version history. Existing plug-ins without the symbol need a defined transition rule
-  (e.g. treated as `1.0.0` with a warning for one release).
 
 ### DB-004 — Geometry depends on the renderer core and on Scene Interface
 
@@ -358,24 +345,6 @@ request. Run `ctest -L architecture` locally before review.
   instances; the consumers read only `CShaderInstance` members) now lives in `lightInstanceOf()`
   (`src/libshader/shading/shaderRefs.h`), preserved as it was.
 
-### DB-014 — Plug-in ABIs are unsafe beyond versioning
-
-- **Rules**: 4 (plug-in interfaces are versioned, C-includable and documented).
-- **Tracking**: remediation spec 037 ([#26](https://github.com/juvenal/openrender/issues/26)); versioning itself is DB-003.
-- **Evidence**:
-  - `dsply.h` hands display drivers writable pointers to renderer-core statics
-    (`src/ri/render/rendererDisplay.cpp:99-111`: `&CRenderer::clipMin`, `clipMax`,
-    `fromWorld`, `worldToNDC`), and the current display is a file-static
-    (`rendererDisplay.cpp:41`).
-  - A shadeop's `init` runs once (`rendererFiles.cpp:960`, `init(0, NULL)`) and its data is
-    shared by all threads; reentrancy and unload order are undocumented.
-  - The `dlo`/`implicit`/`RiProcedural` loaders are spread over the renderer core, Geometry and
-    Scene Interface.
-- **Size**: not a dependency edge; tracked by review.
-- **Direction**: per family, a versioned C header with a version query symbol (DB-003), a `const`
-  per-instance context with channel descriptors, documented threading, per-thread shadeop init
-  and deferred unload; one Geometric Procedures module owning the loaders.
-
 ### DB-015 — Scene Interface depends on the renderer core
 
 - **Rules**: the renderer-core rule.
@@ -429,16 +398,22 @@ request. Run `ctest -L architecture` locally before review.
 - **Rules**: the allowed-dependency table (Shading may not depend on Scene Interface or the
   renderer core).
 - **Tracking**: remediation specs 038 ([#43](https://github.com/juvenal/openrender/issues/43)), 037 ([#26](https://github.com/juvenal/openrender/issues/26))
-- **Evidence**:
-  - `src/libshader/compiler/rslo.cpp:38` and the generated DSO and `rslo` parsers include
-    `src/ri/parse/dso.h`.
-  - The compiler `dlopen`s shadeop DSOs itself (`rslo.cpp:1701`), and the JIT has no DSO shadeop
-    path.
-- **Size**: 3 include edges; 4 before spec 023, which moved `rendererc.h` into `src/common`
-  and so removed `llvmEmitter.cpp`'s include of it.
+- **Evidence**: spec 037 (2026-10-31) removed the dependency edges: the compiler includes no Scene
+  Interface or renderer-core header and no longer `dlopen`s shadeop DSOs itself; it reads
+  shadeop declarations through the shadeop module (`src/shadeop/shadeopModule.h`, Shading to
+  Shader DSO Operands, allowed). What remains is not an edge but the reason the entry stays open:
+  - the JIT has no DSO shadeop call path (the two DSO dispatcher rows of `scriptFunctions.h`,
+    named `XXX`, are resolved at run time and have no JIT emission), so a `.slo` shader cannot
+    call a DSO operand and needs the interpreter format;
+  - the compiler still takes its builtin and opcode tables from the shading engine's headers
+    (`scriptFunctions.h`, `opcodes.h`) instead of owning them, so it is not standalone.
+- **Size**: 0 include edges and 0 allowlist lines (3 include edges before spec 037; 4 before spec 023,
+  which moved `rendererc.h` into `src/common` and so removed `llvmEmitter.cpp`'s include of it).
 - **Direction**: a standalone compiler with its own builtin and opcode tables, reading shadeop
-  prototypes only through the versioned `shadeop.h`; DSO loading moves to the shadeop module
-  (037); a JIT DSO call path.
+  prototypes only through the versioned `shadeop.h` (043); a JIT DSO call path (038).
+- **History**: spec 037 deleted the 3 `dso.h` include lines (the compiler's `dso.y` copy and its
+  `dso_generated.cpp`, the unused include in `shading/rslo.y`, and `rslo.cpp`'s include) by
+  moving the declaration parser and the scan into `libRIBShadeop`.
 
 ### DB-020 — Cross-domain `friend` declarations
 
@@ -454,26 +429,6 @@ request. Run `ctest -L architecture` locally before review.
 - **Size**: not a dependency edge; tracked by review.
 - **Direction**: narrow public accessors or interfaces, removed with the spec that touches each
   class; delete the dangling friend.
-
-### DB-021 — Texturing reads the AOV/channel registry
-
-- **Rules**: the allowed-dependency table (Texturing depends on nothing).
-- **Tracking**: remediation spec 037 ([#26](https://github.com/juvenal/openrender/issues/26))
-- **Evidence**: `src/ri/texture/texture3d.cpp` includes `src/ri/state/displayChannel.h` and
-  `src/ri/render/renderer.h`, and builds its channel list by calling `CRenderer::retrieveDisplayChannel`,
-  an out-of-line forwarder in the renderer core that, since spec 025 (2026-10-27), forwards to the
-  Graphics State-owned `CChannelRegistry` (`src/ri/state/channelRegistry.{h,cpp}`). Texturing itself still
-  reads the registry through the renderer core (the link edge) and still includes the channel type.
-- **Size**: 3 edges (2 include, 1 link).
-- **Direction**: the registry is owned by Graphics State (done in 025) and passed to its consumers
-  as channel descriptors (037), so that Texturing no longer names `displayChannel.h` or calls into
-  the renderer core for it.
-- **History**: spec 025 moved the registry out of the renderer core's statics into Graphics State.
-  `texture3d.cpp` was deliberately left untouched, and the forwarder was kept out of line so that
-  `texture3d.o` references no Graphics State symbol: that edge and the link line are
-  unchanged. Spec 027 (2026-10-28) re-tagged the `renderer.h` include and the
-  `retrieveDisplayChannel` link of `texture3d.cpp` here from DB-010 (they are the same dependency);
-  `texture3d.cpp` itself was not edited.
 
 ### DB-023 — Domains are not build targets
 
@@ -503,6 +458,9 @@ request. Run `ctest -L architecture` locally before review.
 - **Size**: 36 consumer-reach edges; reported, never failing, no allowlist lines.
 - **Direction**: tools use public APIs: a shader-metadata API from Shading (033), one display ABI
   definition (037), `RiMake*` for precomputation (038).
+- **History**: spec 037 (2026-10-31) did the "one display ABI definition" item: `dsply.h` is the single
+  definition of the display interface, and the version 1 types survive only in the renderer core's
+  private `displayV1Abi.h`, which the version 1 adapter alone includes.
 
 ### DB-025 — Domains call into the data viewer (a consumer)
 
@@ -702,3 +660,91 @@ request. Run `ctest -L architecture` locally before review.
   - `Common_StateOwnership` checks the six `RGBE_*` names have exactly one definer;
     `Display_RgbeBytes` (a characterization test, byte-identical to the starting tree's driver
     output) and `ImageInput_Rgbe` guard the behaviour.
+
+### DB-003 — Plug-in ABI headers carry no interface version
+
+- **Rule**: 4 (plug-in interfaces MUST carry a Semantic Versioning 2.0.0 interface version; the host
+  MUST load only a MAJOR the host supports and reject any other).
+- **Tracking**: [#26](https://github.com/juvenal/openrender/issues/26) (enhancement)
+- **Evidence**: none of the published plug-in headers declares a version — `src/ri/render/shadeop.h`
+  (Shader DSO Operands), `src/ri/geometry/dlo.h` and `src/ri/geometry/implicit.h` (Geometric
+  Procedures), `src/display/dsply.h` (Display Outputs) — and the loaders therefore cannot check one.
+- **Direction**: add a `MAJOR.MINOR.PATCH` interface version per header (macros plus an exported
+  query symbol each plug-in provides), have the host validate it at load time, and document each
+  header's version history. Existing plug-ins without the symbol need a defined transition rule
+  (e.g. treated as `1.0.0` with a warning for one release).
+- **Resolved** by spec 037 (`specs/037-plugin-abi-semver/`), 2026-10-31:
+  - every plug-in header declares its interface version in macros and an exported version
+    symbol, with a version-history table in its header comment: display 2.0.0 (`dsply.h`),
+    shadeop 1.1.0 (`shadeop.h`), dlo 1.0.0 with dynamicload 1.0.0 (`dlo.h`), implicit 1.0.0
+    (`implicit.h`); the encoding, the export macros and the status codes are the shared
+    `orplugin.h`/`orplugin.hpp`;
+  - one routine, `checkPluginVersion` (`src/common/pluginAbi.{h,cpp}`, `libRIBCommon`), makes the
+    load decision for every family: a supported MAJOR loads, a newer MINOR loads with one warning,
+    any other MAJOR is rejected; a module without the symbol loads as 1.0.0 with one warning and
+    is rejected from openRender 1.2.0 (`OR_PLUGIN_UNVERSIONED_SUNSET`), `DynamicLoad` generators
+    excepted;
+  - the function-table size rule and the table header guard the display table;
+  - `PluginAbi_VersionHistory`, `PluginAbi_SingleCheckRoutine`, `PluginAbi_Convention` and the
+    per-family `*Abi_Versions` tests guard it; the numbers the guides quote are compared with the
+    headers by `PluginAbi_DocPaths`.
+
+
+### DB-014 — Plug-in ABIs are unsafe beyond versioning
+
+- **Rules**: 4 (plug-in interfaces are versioned, C-includable and documented).
+- **Tracking**: remediation spec 037 ([#26](https://github.com/juvenal/openrender/issues/26)); versioning itself is DB-003.
+- **Evidence**:
+  - `dsply.h` hands display drivers writable pointers to renderer-core statics
+    (`src/ri/render/rendererDisplay.cpp:99-111`: `&CRenderer::clipMin`, `clipMax`,
+    `fromWorld`, `worldToNDC`), and the current display is a file-static
+    (`rendererDisplay.cpp:41`).
+  - A shadeop's `init` runs once (`rendererFiles.cpp:960`, `init(0, NULL)`) and its data is
+    shared by all threads; reentrancy and unload order are undocumented.
+  - The `dlo`/`implicit`/`RiProcedural` loaders are spread over the renderer core, Geometry and
+    Scene Interface.
+- **Size**: not a dependency edge; tracked by review.
+- **Direction**: per family, a versioned C header with a version query symbol (DB-003), a `const`
+  per-instance context with channel descriptors, documented threading, per-thread shadeop init
+  and deferred unload; one Geometric Procedures module owning the loaders.
+- **Resolved** by spec 037 (`specs/037-plugin-abi-semver/`), 2026-10-31:
+  - display 2.0.0: a function table, a per-display context and a `const` snapshot with copies of
+    the renderer's values (no pointer to a renderer-core static), channel descriptors and a
+    documented threading and lifetime contract, loaded by `CDisplayHost` in the renderer core with
+    no file-static "current display"; MAJOR 1 drivers and `RiCustomDisplay` run through a confined
+    adapter (`displayV1Adapter.{h,cpp}`) that gives them mutable copies and serializes their data
+    calls;
+  - shadeop 1.1.0: optional per-thread init and cleanup, a documented concurrency rule, a
+    lexicographic scan order shared by the renderer and the compiler, and release at `RiEnd`
+    before the module is unloaded (`libRIBShadeop`, `src/shadeop/`);
+  - one Procedures module (`src/procedures/`) owns the `dlo`, `implicit` and `DynamicLoad`
+    loaders, with a frame reference that keeps a generator's module loaded until that frame's
+    geometry is destroyed; a bare module name is found on the procedural search path.
+
+
+### DB-021 — Texturing reads the AOV/channel registry
+
+- **Rules**: the allowed-dependency table (Texturing depends on nothing).
+- **Tracking**: remediation spec 037 ([#26](https://github.com/juvenal/openrender/issues/26))
+- **Evidence**: `src/ri/texture/texture3d.cpp` includes `src/ri/state/displayChannel.h` and
+  `src/ri/render/renderer.h`, and builds its channel list by calling `CRenderer::retrieveDisplayChannel`,
+  an out-of-line forwarder in the renderer core that, since spec 025 (2026-10-27), forwards to the
+  Graphics State-owned `CChannelRegistry` (`src/ri/state/channelRegistry.{h,cpp}`). Texturing itself still
+  reads the registry through the renderer core (the link edge) and still includes the channel type.
+- **Size**: 3 edges (2 include, 1 link).
+- **Direction**: the registry is owned by Graphics State (done in 025) and passed to its consumers
+  as channel descriptors (037), so that Texturing no longer names `displayChannel.h` or calls into
+  the renderer core for it.
+- **History**: spec 025 moved the registry out of the renderer core's statics into Graphics State.
+  `texture3d.cpp` was deliberately left untouched, and the forwarder was kept out of line so that
+  `texture3d.o` references no Graphics State symbol: that edge and the link line are
+  unchanged. Spec 027 (2026-10-28) re-tagged the `renderer.h` include and the
+  `retrieveDisplayChannel` link of `texture3d.cpp` here from DB-010 (they are the same dependency);
+  `texture3d.cpp` itself was not edited.
+- **Resolved** by spec 037 (`specs/037-plugin-abi-semver/`), 2026-10-31: Texturing reaches the channel
+  registry through its own interface (`src/ri/texture/texture3dChannels.{h,cpp}`, a
+  `CTexture3dChannelSource` the core installs at `RiBegin` and removes at `RiEnd`, backed by the
+  registry through `CRendererChannelSource`). `texture3d.cpp` includes neither `renderer.h` nor
+  `displayChannel.h`, and `CRenderer::retrieveDisplayChannel` is deleted: 3 edges to 0, with the
+  3 allowlist lines deleted and nothing added. `Texture3dChannels_Session`, `_NoSession`,
+  `_Unknown` and `_FillAliased` guard it.

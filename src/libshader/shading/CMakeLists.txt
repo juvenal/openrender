@@ -125,7 +125,7 @@ target_include_directories(libshader_shading PUBLIC
 # The shared libRIBCommon: its infrastructure symbols (diagnostics, arena,
 # stats, ref-counting, sampling, parseVariable) bind there, never to libRIBRender
 # (spec 023, US2).
-target_link_libraries(libshader_shading PRIVATE openrendercommon)
+target_link_libraries(libshader_shading PRIVATE openrendercommon openrendershadeop)
 
 if(OPENRENDER_HAVE_LLVM)
     # PUBLIC so that ri (which links this shared lib) automatically gets LLVM
@@ -149,5 +149,5 @@ install(TARGETS libshader_shading EXPORT openRenderTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+    INCLUDES DESTINATION "${OPENRENDER_INCLUDE_INSTALL_DIR}"
 )

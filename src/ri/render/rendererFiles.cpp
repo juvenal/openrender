@@ -28,9 +28,8 @@
 #include <string.h>
 
 #include "brickmap.h"
-#include "dso.h"
 #include "common/diagnostics.h"
-#include "includes/logging.hpp"
+#include "include/logging.hpp"
 #include "irradiance.h"
 #include "netFileMapping.h"
 #include "options.h"
@@ -41,8 +40,9 @@
 #include "renderer.h"
 #include "rendererContext.h"
 #include "searchPathResolver.h"
-#include "shadeop.h"
+#include "shadeop/shadeopModule.h"
 #include "shading.h"
+#include "libshader/shading/dsoHandle.h" // CDSO
 #include "texture.h"
 #include "texture3d.h"
 
@@ -66,8 +66,8 @@ void CRenderer::initFiles() {
     // Temporary files we store per frame
     frameTemporaryFiles = NULL;
 
-    // DSO init
-    dsos = NULL;
+    // The shadeop operands (spec 037): one registry per RiBegin..RiEnd; beginFrame() sizes its per-thread slots
+    shadeops = new CShadeopRegistry;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -99,18 +99,10 @@ void CRenderer::shutdownFiles() {
         osDeleteDir(temporaryPath);
     }
 
-    // Ditch the DSO shaders that have been loaded
-    CDSO *cDso;
-    for (cDso = dsos; cDso != NULL;) {
-        CDSO *nDso = cDso->next;
-        // Call DSO's cleanup
-        if (cDso->cleanup != NULL)
-            cDso->cleanup(cDso->handle);
-        free(cDso->name);
-        free(cDso->prototype);
-        delete cDso;
-        cDso = nDso;
-    }
+    // Ditch the shadeop operands that have been loaded: per operand the per-thread cleanups, the cleanup and
+    // the unload, in that order (FR-011 d, FR-034)
+    delete shadeops;
+    shadeops = NULL;
 
     // Ditch the loaded files
     assert(globalFiles != NULL);
@@ -558,136 +550,35 @@ RtStepFilterFunc CRenderer::getStepFilter(const char *name) {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Function				:	dsoLoadCallback
-// Description			:	This function will be called for each module
-// Return Value			:
-// Comments				:
-static int dsoLoadCallback(const char *file, void *ud) {
-    void *module = osLoadModule(file);
-
-    if (module != NULL) {
-        int i;
-        void **userData = (void **)ud;
-        char *name = (char *)userData[0];
-        char *prototype = (char *)userData[1];
-        SHADEOP_SPEC *shadeops;
-
-        {
-            char tmp[OS_MAX_PATH_LENGTH];
-
-            snprintf(tmp, sizeof(tmp), "%s_shadeops", name);
-
-            shadeops = (SHADEOP_SPEC *)osResolve(module, tmp);
-        }
-
-        if (shadeops != NULL) {
-            for (i = 0;; i++) {
-                char *dsoName, *dsoPrototype;
-
-                if (strcmp(shadeops[i].definition, "") == 0)
-                    break;
-
-                if (dsoParse(shadeops[i].definition, dsoName, dsoPrototype) == TRUE) {
-                    if (strcmp(dsoPrototype, prototype) == 0) {
-                        dsoInitFunction *init = (dsoInitFunction *)userData[2];
-                        dsoExecFunction *exec = (dsoExecFunction *)userData[3];
-                        dsoCleanupFunction *cleanup = (dsoCleanupFunction *)userData[4];
-
-                        // Bingo
-                        init[0] = (dsoInitFunction)osResolve(module, shadeops[i].init);
-                        exec[0] = (dsoExecFunction)osResolve(module, dsoName);
-                        cleanup[0] = (dsoCleanupFunction)osResolve(module, shadeops[i].cleanup);
-
-                        if (exec != NULL) {
-                            free(dsoName);
-                            free(dsoPrototype);
-
-                            // We have found the DSO
-                            return FALSE;
-                        }
-                    }
-
-                    free(dsoName);
-                    free(dsoPrototype);
-                }
-            }
-        }
-
-        osUnloadModule(module);
-    }
-    else {
-        error(CODE_SYSTEM, "Failed to load DSO \"%s\": %s\n", file, osModuleError());
-    }
-
-    // Continue iterating
-    return TRUE;
-}
-
-///////////////////////////////////////////////////////////////////////
 // Class				:	CRenderer
 // Method				:	getDSO
-// Description			:	Load a DSO matching the prototyoe
+// Description			:	Find the shadeop operand matching the prototype
 // Return Value			:
-// Comments				:	This function does not need to be thread safe
+// Comments				:	The shadeop module scans the procedural path (FR-013: directories in search-path order,
+//							file names lexicographic) and keeps what it selected until RiEnd. The CDSO handed to
+//							the shading library is owned by the operand. This function does not need to be thread safe
 CDSO *CRenderer::getDSO(const char *name, const char *prototype) {
-    CDSO *cDso;
-
     assert(name != NULL);
 
-    // Check if the DSO had been loaded before
-    for (cDso = dsos; cDso != NULL; cDso = cDso->next) {
-        if (strcmp(cDso->name, name) == 0) {
-            if (strcmp(cDso->prototype, prototype) == 0) {
-                return cDso;
-            }
-        }
+    // The procedural path as the shadeop module takes it: directories that end with a separator
+    std::vector<const char *> directories;
+    for (TSearchpath *inPath = proceduralPath; inPath != NULL; inPath = inPath->next)
+        directories.push_back(inPath->directory);
+    const SShadeopSearchPath searchPath = {directories.data(), (int)directories.size()};
+
+    CShadeopOperand *operand = shadeops->acquire(searchPath, name, prototype);
+    if (operand == NULL)
+        return NULL;
+
+    CDSO *dso = (CDSO *)shadeopOperandHostObject(operand);
+    if (dso == NULL) {
+        dso = new CDSO{operand, strdup(name), strdup(prototype)};
+        setShadeopOperandHostObject(operand, dso, [](void *object) {
+            CDSO *released = (CDSO *)object;
+            free(released->name);
+            free(released->prototype);
+            delete released;
+        });
     }
-
-    dsoInitFunction init;
-    dsoExecFunction exec;
-    dsoCleanupFunction cleanup;
-
-    init = NULL;
-    exec = NULL;
-    cleanup = NULL;
-
-    void *userData[5];
-    userData[0] = (void *)name;
-    userData[1] = (void *)prototype;
-    userData[2] = &init;
-    userData[3] = &exec;
-    userData[4] = &cleanup;
-
-    // Go over the directories
-    TSearchpath *inPath = proceduralPath;
-    char searchPath[OS_MAX_PATH_LENGTH];
-    for (; inPath != NULL; inPath = inPath->next) {
-        snprintf(searchPath, sizeof(searchPath), "%s*.%s", inPath->directory, osModuleExtension);
-        osEnumerate(searchPath, dsoLoadCallback, userData);
-    }
-
-    if (exec != NULL) {
-        void *handle;
-
-        // OK, we found the shader
-        if (init != NULL)
-            handle = init(0, NULL);
-        else
-            handle = NULL;
-
-        // Save the DSO
-        cDso = new CDSO;
-        cDso->init = init;
-        cDso->exec = exec;
-        cDso->cleanup = cleanup;
-        cDso->handle = handle;
-        cDso->name = strdup(name);
-        cDso->prototype = strdup(prototype);
-        cDso->next = CRenderer::dsos;
-        CRenderer::dsos = cDso;
-
-        return cDso;
-    }
-
-    return NULL;
+    return dso;
 }

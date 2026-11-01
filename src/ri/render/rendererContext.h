@@ -37,7 +37,6 @@
 #include "common/rendererc.h" // Renderer constants
 #include "resource.h"
 #include "riInterface.h"
-#include "shadeop.h"
 #include "shader.h"
 #include "texture.h"
 #include "common/variable.h"

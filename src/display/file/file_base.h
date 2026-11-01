@@ -30,20 +30,21 @@
  * Base class for scanline-streaming file-format display plugins.
  *
  * Usage:
- *   1. Call the constructor from the subclass with the desired pixelSize
- *      (bytes per pixel in the native output format) and the findParameter
- *      callback.  The constructor reads quantize/dither from the RIB Display
- *      statement.  Gain/gamma are applied upstream in CRenderer::dispatch().
+ *   1. Call the constructor from the subclass with the display's
+ *      OrDisplayInfo and the desired pixelSize (bytes per pixel in the native
+ *      output format).  The constructor reads quantize/dither/gamma from the
+ *      info with orDisplayFindParameter (the display line's own parameters
+ *      first, then the renderer-provided ones).  Gain/gamma are applied upstream in CRenderer::dispatch().
  *   2. Implement fillPixels(): convert nPx float pixels (numSamples components
  *      each) into scanlines[row] starting at byte offset xOff * pixelSize.
  *   3. Implement flushRow(): write the completed scanline at scanlines[row]
  *      to the output file.  The base class frees the buffer after the call.
- *   4. Call write() from displayData() -- it applies quantization, then
+ *   4. Call write() from the display's data function -- it applies quantization, then
  *      drives fillPixels() and flushRow().
  */
 class CFileOutputBase {
     public:
-        CFileOutputBase(int width, int height, int numSamples, int pixelSize, TDisplayParameterFunction findParameter, bool isDepth = false);
+        CFileOutputBase(const OrDisplayInfo *info, int pixelSize, bool isDepth = false);
         virtual ~CFileOutputBase();
 
         /** Accumulate a tile and flush any newly completed scanlines. */

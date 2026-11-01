@@ -1,0 +1,7 @@
+# Spec 037, ProceduresAbi_ObjectAndFrames: a DynamicLoad generator expanded inside an object definition.
+# A body-only archive read inside a world block, once per frame.
+ObjectBegin "gen"
+    Procedural "DynamicLoad" ["@DYNLOAD_NESTED_FILE@" ""] [-1 1 -1 1 -1 1]
+ObjectEnd
+ObjectInstance "gen"
+ObjectInstance "gen"

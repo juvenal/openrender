@@ -23,16 +23,20 @@
 //  Classes				:	-
 //  Description			:	Just a sample DSO file
 //
-//
-//
+//						Threading: the renderer may call SHADEOP functions concurrently from several shading
+//						threads. These two keep no state, so they are safe; a shadeop that keeps state in
+//						its init data must protect it, or ask for per-thread data with the interface 1.1
+//						table (see SHADEOP_THREAD_TABLE in shadeop.h).
 //
 //
 ////////////////////////////////////////////////////////////////////////
-#include <math.h>
+#include "shadeop.h" // the installed header: the only one a plug-in needs
 
-#include "common/algebra.h"
-#include "common/global.h"
-#include "ri/render/shadeop.h"
+// Declares the interface version this module was built against (spec 037). Once, at file scope. The host
+// reads it before it calls anything in the module: an unsupported MAJOR is refused with a message, a newer
+// MINOR loads with a warning, and a module without it is treated as 1.0.0 (a warning today, refused from
+// openRender 1.2.0).
+SHADEOP_DECLARE_VERSION()
 
 // Just returns a red color
 SHADEOP_TABLE(red) = {

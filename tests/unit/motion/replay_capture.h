@@ -90,15 +90,27 @@ namespace motionreplay {
         return captureContextSlot();
     }
 
+    // A display whose start function refuses to open (as in tests/unit/blobby and
+    // tests/unit/rib_parse), so no frame of a replay session ever renders, whatever display
+    // drivers are installed
+    inline void *refuseDisplayStart(const char *, int, int, int, const char *, RtDisplayParameterFunction) { return NULL; }
+    inline int unusedDisplayData(void *, int, int, int, int, float *) { return RI_FALSE; }
+    inline void unusedDisplayFinish(void *) {}
+
     class CReplaySession {
         public:
             // The raytrace hider keeps raytraced objects in the hierarchy and never calls the
-            // Reyes drawObject(); a 16 x 16 one-sample frame keeps the RiWorldEnd at the end of
-            // the session cheap (it renders what the scene holds). No Display is declared, so no
-            // image is written.
+            // Reyes drawObject(). A session with no Display of its own would still get the
+            // core's default "ri.tif" file display, and its RiWorldEnd would render the scene
+            // whenever file.dsply happened to be found on the display search path (GitHub
+            // #129). The session therefore declares a display that refuses to open: no display
+            // plug-in is loaded, no image is written and RiWorldEnd renders nothing, in every
+            // build. Every replayed call is made between RiWorldBegin and RiWorldEnd, so the
+            // frame render was never part of what the replay records.
             CReplaySession(float shutterOpen, float shutterClose, int camera) {
                 RiSetContextFactory(makeCaptureContext);
                 RiBegin(RI_NULL);
+                RiCustomDisplay("motion-replay-no-frame", RI_RGBA, refuseDisplayStart, unusedDisplayData, unusedDisplayFinish, RI_NULL);
                 RiHider("raytrace", RI_NULL);
                 RiFormat(16, 16, 1);
                 RiPixelSamples(1, 1);

@@ -21,6 +21,7 @@
 #include "common/global.h"
 #include "dsply.h"
 
+#include <assert.h>
 #include <string.h>
 
 #include "file_tiff.h"
@@ -29,47 +30,52 @@
 #include "file_png.h"
 #endif
 
-extern "C" {
+OR_DISPLAY_DECLARE_VERSION()
 
-void *displayStart(const char *name, int width, int height, int numSamples, const char *samples, TDisplayParameterFunction findParameter) {
-    CFileOutputBase *fb = nullptr;
+namespace {
+
+    OrStatus fileStart(OrDisplayContext * /*ctx*/, const OrDisplayInfo *info, void **instance) {
+        CFileOutputBase *fb = nullptr;
 
 #ifdef HAVE_LIBPNG
-    const char *type = (const char *)findParameter("type", STRING_PARAMETER, 1);
-    int len = (int)strlen(name);
-    if (((len > 4 && strcmp(&name[len - 4], ".png") == 0) && !(type && strcmp(type, "tiff") == 0)) || (type && strcmp(type, "png") == 0)) {
-        fb = new CFileFramebufferPNG(name, width, height, numSamples, samples, findParameter);
-        if (!static_cast<CFileFramebufferPNG *>(fb)->success()) {
-            delete fb;
-            fb = nullptr;
+        const char *type = (const char *)orDisplayFindParameter(info, "type", OR_DISPLAY_PARAM_STRING, 1);
+        int len = (int)strlen(info->name);
+        if (((len > 4 && strcmp(&info->name[len - 4], ".png") == 0) && !(type && strcmp(type, "tiff") == 0)) || (type && strcmp(type, "png") == 0)) {
+            fb = new CFileFramebufferPNG(info);
+            if (!static_cast<CFileFramebufferPNG *>(fb)->success()) {
+                delete fb;
+                fb = nullptr;
+            }
         }
-    }
 #endif
 
-    if (!fb)
-        fb = new CFileFramebufferTIFF(name, width, height, numSamples, samples, findParameter);
+        if (!fb)
+            fb = new CFileFramebufferTIFF(info);
 
-    if (!fb->success()) {
-        delete fb;
-        return nullptr;
+        if (!fb->success()) {
+            delete fb;
+            return OR_STATUS_ERROR;
+        }
+
+        *instance = fb;
+        return OR_STATUS_OK;
     }
 
-    return fb;
-}
+    OrStatus fileData(OrDisplayContext * /*ctx*/, void *instance, int x, int y, int w, int h, float *pixels) {
+        assert(instance != nullptr);
+        static_cast<CFileOutputBase *>(instance)->write(x, y, w, h, pixels);
+        return OR_STATUS_OK;
+    }
 
-int displayData(void *im, int x, int y, int w, int h, float *data) {
-    assert(im != nullptr);
-    static_cast<CFileOutputBase *>(im)->write(x, y, w, h, data);
-    return TRUE;
-}
+    void fileFinish(OrDisplayContext * /*ctx*/, void *instance) {
+        assert(instance != nullptr);
+        delete static_cast<CFileOutputBase *>(instance);
+    }
 
-int displayRawData(void * /*im*/, int /*x*/, int /*y*/, int /*w*/, int /*h*/, void * /*data*/) {
-    return TRUE;
-}
+    const OrDisplayPlugin g_plugin = {{(uint32_t)sizeof(OrDisplayPlugin), OR_DISPLAY_ABI_VERSION}, fileStart, fileData, fileFinish};
 
-void displayFinish(void *im) {
-    assert(im != nullptr);
-    delete static_cast<CFileOutputBase *>(im);
-}
+} // namespace
 
-} // extern "C"
+const OrDisplayPlugin *orDisplayPlugin(const OrHostInfo * /*host*/) {
+    return &g_plugin;
+}

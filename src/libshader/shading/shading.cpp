@@ -34,7 +34,7 @@
 
 #include "bundles.h"
 #include "common/diagnostics.h"
-#include "includes/logging.hpp"
+#include "include/logging.hpp"
 #include "irradiance.h"
 #include "common/memory.h"
 #include "object.h"

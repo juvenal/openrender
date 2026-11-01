@@ -37,6 +37,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/render)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/state)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/parse)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/geometry)
+# procedures/ (spec 037): the Procedures domain, the dlo and implicit ABI headers and the module that loads
+# them. The headers keep their installed names, so geometry/ and render/ include them unqualified.
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../procedures)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/texture)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/output)
 # core/ (pl, ray/map/noise, ri_config, and the Phase C1 shader/shading/shaderPl
@@ -126,8 +129,11 @@ set(ri_sources
 	render/rendererContext.cpp
 	render/rendererDeclarations.cpp
 	render/rendererDeclarationsDispatch.cpp
+	render/displayHost.cpp
+	render/displayV1Adapter.cpp
 	render/rendererDisplay.cpp
 	render/rendererFiles.cpp
+	render/rendererProcedures.cpp
 	render/rendererFileSearch.cpp
 	render/rendererJobs.cpp
 	render/rendererMutexes.cpp
@@ -149,6 +155,7 @@ set(ri_sources
 	texture/texmake.cpp
 	texture/texture.cpp
 	texture/texture3d.cpp
+	texture/texture3dChannels.cpp
 	state/xform.cpp
 )
 
@@ -162,17 +169,15 @@ include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
 # (CMake/openRenderUse{Flex,Bison}.cmake) hardcode PATH_OPT to "", so the
 # generated lex.*.cpp/*_generated.cpp names and ri_sources entries below
 # are unaffected by this move.
-flex_file(parse/dso.l lex.dso.cpp dso)
 flex_file(parse/rib.l lex.rib.cpp rib)
 flex_file(parse/ifexpr.l lex.if.cpp if)
 
 # define bison targets (they depend on flex ones, via prefix - third arg)
-bison_file(parse/dso.y dso_generated.cpp dso)
 bison_file(parse/rib.y rib_generated.cpp rib)
 bison_file(parse/ifexpr.y ifexpr_generated.cpp if)
 
 # add the generated bison cpp's
-set(ri_sources ${ri_sources} dso_generated.cpp rib_generated.cpp ifexpr_generated.cpp)
+set(ri_sources ${ri_sources} rib_generated.cpp ifexpr_generated.cpp)
 
 # Compile once with PIC so the same objects serve both the shared and static lib.
 #
@@ -216,7 +221,7 @@ endif()
 # of libri; not part of its public API, so not propagated to linking executables).
 # Phase C: ri links against libshader_shading (shading engine in its own library).
 # LLVM is NOT added explicitly here; it propagates from libshader_shading PUBLIC link deps.
-add_library(ribRender SHARED $<TARGET_OBJECTS:ribRender_obj>)
+add_library(ribRender SHARED $<TARGET_OBJECTS:ribRender_obj> $<TARGET_OBJECTS:openrenderprocedures_obj>)
 set_target_properties(ribRender PROPERTIES OUTPUT_NAME RIBRender EXPORT_NAME RIBRender)
 # Propagate include paths to consumers: ri headers (options.h, shader.h forwarding, etc.)
 # and shading engine headers (shader.h actual, shading.h actual) must be findable by
@@ -235,7 +240,7 @@ target_include_directories(ribRender PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../display>
 )
-target_link_libraries(ribRender PRIVATE libshader_shading ${openrendertiff_libs} openrendercommon)
+target_link_libraries(ribRender PRIVATE libshader_shading ${openrendertiff_libs} openrendercommon openrendershadeop)
 openrender_reexport_common(ribRender)
 if(HAVE_OPENEXR)
     target_link_libraries(ribRender PRIVATE ${OPENRENDER_OPENEXR_LIBS})
@@ -259,12 +264,12 @@ if(APPLE)
 endif()
 
 # Static library — same object files, library consumers inherit the link requirements
-add_library(ribRender_static STATIC $<TARGET_OBJECTS:ribRender_obj>)
+add_library(ribRender_static STATIC $<TARGET_OBJECTS:ribRender_obj> $<TARGET_OBJECTS:openrenderprocedures_obj>)
 set_target_properties(ribRender_static PROPERTIES OUTPUT_NAME RIBRender EXPORT_NAME RIBRender_static)
 # The SHARED common library, not the archive: libshader_shading (shared-only)
 # binds its infrastructure to libRIBCommon, so a static program that also
 # carried libRIBCommon.a would hold two copies of that state (spec 023, R1).
-target_link_libraries(ribRender_static INTERFACE libshader_shading ${openrendertiff_libs} openrendercommon)
+target_link_libraries(ribRender_static INTERFACE libshader_shading ${openrendertiff_libs} openrendercommon openrendershadeop)
 if(HAVE_OPENEXR)
     target_link_libraries(ribRender_static INTERFACE ${OPENRENDER_OPENEXR_LIBS})
 endif()
@@ -385,9 +390,12 @@ list(REMOVE_ITEM ribVector_sources
     render/rendererFrame.cpp
     render/rendererContext.cpp
     render/rendererDeclarationsDispatch.cpp
+    render/displayHost.cpp
+    render/displayV1Adapter.cpp
     render/rendererDisplay.cpp
     render/rendererFiles.cpp
     render/rendererJobs.cpp
+    render/rendererProcedures.cpp
     render/rendererShadingServices.cpp
     geometry/surface.cpp
     geometry/surfaceCrossingDispatch.cpp
@@ -461,10 +469,10 @@ install(TARGETS ribVector EXPORT openRenderTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+    INCLUDES DESTINATION "${OPENRENDER_INCLUDE_INSTALL_DIR}")
 install(TARGETS ribVector_static EXPORT openRenderStaticTargets
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+    INCLUDES DESTINATION "${OPENRENDER_INCLUDE_INSTALL_DIR}")
 
 # ribOut: RIB-text-output extraction (see the domain-split plan) -- the third
 # and final CRiInterface implementation, needing even less than ribVector.
@@ -518,7 +526,6 @@ set(ribOut_sources
     state/displayChannel.cpp
     state/variableLookup.cpp
     vector/rendererDeclarationsDispatchStub.cpp
-    dso_generated.cpp
     rib_generated.cpp
 )
 
@@ -583,27 +590,25 @@ install(TARGETS ribOut EXPORT openRenderTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+    INCLUDES DESTINATION "${OPENRENDER_INCLUDE_INSTALL_DIR}")
 install(TARGETS ribOut_static EXPORT openRenderStaticTargets
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+    INCLUDES DESTINATION "${OPENRENDER_INCLUDE_INSTALL_DIR}")
 
 install(TARGETS ribRender EXPORT openRenderTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+    INCLUDES DESTINATION "${OPENRENDER_INCLUDE_INSTALL_DIR}")
 install(TARGETS ribRender_static EXPORT openRenderStaticTargets
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
-install(FILES
-    geometry/dlo.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/../display/dsply.h
-    geometry/implicit.h
-    texture/ptcapi.h
-    parse/ri.h
-    render/shadeop.h
-    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+    INCLUDES DESTINATION "${OPENRENDER_INCLUDE_INSTALL_DIR}")
+# The installed header list is OPENRENDER_PUBLIC_HEADERS (CMake/openRenderPublicHeaders.cmake), the one
+# source of truth (spec 037, FR-048); no other install rule puts a header into the include directory. The
+# directory is OPENRENDER_INCLUDE_INSTALL_DIR: <ORENDERHOME>/include (self-contained) or include/openRender (FHS).
+install(FILES ${OPENRENDER_PUBLIC_HEADERS}
+    DESTINATION "${OPENRENDER_INCLUDE_INSTALL_DIR}"
+    COMPONENT Development)
 
 # Compatibility aliases: a symlink next to each real libRIB* artifact (both in
 # the build tree and once installed), for anything not yet updated to the new

@@ -26,7 +26,7 @@
 
 class CFileFramebufferPNG : public CFileOutputBase {
     public:
-        CFileFramebufferPNG(const char *name, int width, int height, int numSamples, const char *samples, TDisplayParameterFunction findParameter);
+        explicit CFileFramebufferPNG(const OrDisplayInfo *info);
         ~CFileFramebufferPNG() override;
 
         bool success() const override { return !!fhandle; }

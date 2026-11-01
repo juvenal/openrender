@@ -506,18 +506,6 @@ int CRenderer::getGlobalID(const char *name) {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRenderer
-// Method				:	retrieveDisplayChannel
-// Description			:	Find a display channel by name
-// Return Value			:	The found display channel, NULL otherwise
-// Comments				:	Forwards to the Graphics State channel registry. Defined out of line on
-//							purpose: Texturing (texture3d.cpp) calls it, and an inline body would make
-//							texture3d.o reference State symbols.
-CDisplayChannel *CRenderer::retrieveDisplayChannel(const char *name) {
-    return channelRegistry() != nullptr ? channelRegistry()->retrieve(name) : nullptr;
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CRenderer
 // Method				:	registerFrameTemporary
 // Description			:	Register a file as a temporary
 //						:	 Optionally register for deletion at frame-end

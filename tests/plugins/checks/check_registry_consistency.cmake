@@ -1,0 +1,184 @@
+# PluginAbi_RegistryConsistency (spec 037, FR-029, SC-009, SC-020). Run as
+#   cmake -DSOURCE_DIR=<repo> -P this
+#
+# DEVNOTES.md, DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md, tests/architecture/allowlist.txt and the tree agree about
+# what spec 037 resolved (contracts/allowlist-end-state.md):
+#   * DB-003, DB-014 and DB-021 are entries under "## Resolved", each carrying "**Resolved** by spec 037 ... <date>"
+#     on one line (a date as YYYY-MM-DD); none of them is left under "## Open";
+#   * DB-003's rule text says "a MAJOR the host supports", and the preamble names constitution "v1.3.0+", not "v1.2.0+";
+#   * DB-019 stays Open and its Size no longer counts include edges (0 allowlist lines);
+#   * DB-024's History records that the "one display ABI definition" item (037) is done;
+#   * the allowlist has no line for DB-003, DB-014, DB-019 or DB-021, and no line whose id is not an Open entry;
+#   * DEVNOTES.md has a status-table row for spec 037 (spec 037 in its first cell) that names DB-003, DB-014 and DB-021 as resolved, points to
+#     PLUGIN_ABI.md, and makes no claim about the merge;
+#   * the tree: texture3d.cpp includes neither renderer.h nor displayChannel.h, and no file of src/libshader includes
+#     the old src/ri/parse/dso.h.
+#
+# Red on the starting tree: the three entries are still Open, the preamble says v1.2.0+, DEVNOTES.md has no row for 037.
+cmake_policy(SET CMP0057 NEW) # if(... IN_LIST ...) in script mode, whatever the CMake version
+set(_failures "")
+
+set(_registry_path "${SOURCE_DIR}/DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md")
+set(_devnotes_path "${SOURCE_DIR}/DEVNOTES.md")
+set(_allowlist_path "${SOURCE_DIR}/tests/architecture/allowlist.txt")
+foreach(_path "${_registry_path}" "${_devnotes_path}" "${_allowlist_path}")
+    if(NOT EXISTS "${_path}")
+        message(FATAL_ERROR "PRECONDITION: ${_path} does not exist")
+    endif()
+endforeach()
+file(READ "${_registry_path}" _registry)
+file(READ "${_devnotes_path}" _devnotes)
+# a status-table row can contain ';', which CMake list handling would split: keep it out of the way
+string(REPLACE ";" "@@SEMI@@" _devnotes "${_devnotes}")
+
+# --- the registry: sections ---
+string(FIND "${_registry}" "\n## Open\n" _open_at)
+string(FIND "${_registry}" "\n## Resolved\n" _resolved_at)
+if(_open_at EQUAL -1 OR _resolved_at EQUAL -1)
+    message(FATAL_ERROR "PRECONDITION: DOMAIN_BOUNDARIES.md has no '## Open' or no '## Resolved' heading")
+endif()
+string(REGEX MATCHALL "\n### DB-[0-9]+" _headings "${_registry}")
+set(_open_ids "")
+set(_resolved_ids "")
+foreach(_heading IN LISTS _headings)
+    string(REGEX MATCH "DB-[0-9]+" _id "${_heading}")
+    string(FIND "${_registry}" "${_heading} " _at)
+    if(_at GREATER _resolved_at)
+        list(APPEND _resolved_ids "${_id}")
+    else()
+        list(APPEND _open_ids "${_id}")
+    endif()
+endforeach()
+
+# the text of one entry: from its heading to the next "### " heading (or the end)
+function(_or_section out id)
+    string(FIND "${_registry}" "\n### ${id} " _at)
+    if(_at EQUAL -1)
+        set(${out} "" PARENT_SCOPE)
+        return()
+    endif()
+    string(SUBSTRING "${_registry}" ${_at} -1 _rest)
+    string(SUBSTRING "${_rest}" 5 -1 _after)
+    string(FIND "${_after}" "\n### " _next)
+    string(FIND "${_after}" "\n## " _next_h2)
+    if(NOT _next EQUAL -1 AND (_next_h2 EQUAL -1 OR _next LESS _next_h2))
+        string(SUBSTRING "${_rest}" 0 ${_next} _text)
+    elseif(NOT _next_h2 EQUAL -1)
+        string(SUBSTRING "${_rest}" 0 ${_next_h2} _text)
+    else()
+        set(_text "${_rest}")
+    endif()
+    set(${out} "${_text}" PARENT_SCOPE)
+endfunction()
+
+foreach(_id DB-003 DB-014 DB-021)
+    if(NOT _id IN_LIST _resolved_ids)
+        list(APPEND _failures "DOMAIN_BOUNDARIES.md: ${_id} is not under '## Resolved'")
+        continue()
+    endif()
+    _or_section(_text "${_id}")
+    if(NOT _text MATCHES "\\*\\*Resolved\\*\\* by spec 037[^\n]*[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]")
+        list(APPEND _failures "DOMAIN_BOUNDARIES.md: ${_id} has no line '**Resolved** by spec 037 ... YYYY-MM-DD'")
+    endif()
+endforeach()
+
+_or_section(_db003 DB-003)
+if(NOT _db003 MATCHES "a MAJOR the host supports")
+    list(APPEND _failures "DOMAIN_BOUNDARIES.md: DB-003's rule text does not say 'a MAJOR the host supports'")
+endif()
+if(_registry MATCHES "\\(v1\\.2\\.0\\+\\)")
+    list(APPEND _failures "DOMAIN_BOUNDARIES.md: the preamble still names constitution v1.2.0+")
+endif()
+if(NOT _registry MATCHES "\\(v1\\.3\\.0\\+\\)")
+    list(APPEND _failures "DOMAIN_BOUNDARIES.md: the preamble does not name constitution v1.3.0+")
+endif()
+
+# DB-019 stays Open with 0 edges
+if(NOT "DB-019" IN_LIST _open_ids)
+    list(APPEND _failures "DOMAIN_BOUNDARIES.md: DB-019 must stay Open (the JIT DSO path, spec 038, and the standalone compiler, spec 043)")
+else()
+    _or_section(_db019 DB-019)
+    string(REGEX MATCH "- \\*\\*Size\\*\\*:[^\n]*" _size "${_db019}")
+    if(NOT _size MATCHES "(^|[^0-9])0 (include edges|allowlist lines|edges)")
+        list(APPEND _failures "DOMAIN_BOUNDARIES.md: DB-019's Size does not say 0 edges / 0 allowlist lines (it says: ${_size})")
+    endif()
+endif()
+
+# DB-024 History
+_or_section(_db024 DB-024)
+string(FIND "${_db024}" "- **History**" _history_at)
+if(_history_at EQUAL -1)
+    list(APPEND _failures "DOMAIN_BOUNDARIES.md: DB-024 has no History entry")
+else()
+    string(SUBSTRING "${_db024}" ${_history_at} -1 _history)
+    if(NOT _history MATCHES "037" OR NOT _history MATCHES "display ABI")
+        list(APPEND _failures "DOMAIN_BOUNDARIES.md: DB-024's History does not record the 'one display ABI definition' item as done by spec 037")
+    endif()
+endif()
+
+# --- the allowlist ---
+file(STRINGS "${_allowlist_path}" _allow_lines)
+set(_allow_ids "")
+foreach(_line IN LISTS _allow_lines)
+    if(_line MATCHES "^(DB-[0-9]+)[ \t]")
+        list(APPEND _allow_ids "${CMAKE_MATCH_1}")
+    endif()
+endforeach()
+list(REMOVE_DUPLICATES _allow_ids)
+foreach(_id DB-003 DB-014 DB-019 DB-021)
+    if(_id IN_LIST _allow_ids)
+        list(APPEND _failures "allowlist.txt: has a line for ${_id}, which spec 037 leaves with no allowlisted edge")
+    endif()
+endforeach()
+foreach(_id IN LISTS _allow_ids)
+    if(NOT _id IN_LIST _open_ids)
+        list(APPEND _failures "allowlist.txt: a line names ${_id}, which is not an Open entry of DOMAIN_BOUNDARIES.md")
+    endif()
+endforeach()
+
+# --- DEVNOTES.md ---
+string(REGEX MATCHALL "\n\\|[^|\n]*[Ss]pec 037[^\n]*" _rows "${_devnotes}")
+if(NOT _rows)
+    list(APPEND _failures "DEVNOTES.md: no status-table row mentions spec 037")
+else()
+    list(GET _rows 0 _row)
+    string(REPLACE "@@SEMI@@" ";" _row "${_row}")
+    foreach(_id DB-003 DB-014 DB-021)
+        if(NOT _row MATCHES "${_id}")
+            list(APPEND _failures "DEVNOTES.md: the spec 037 row does not name ${_id}")
+        endif()
+    endforeach()
+    if(NOT _row MATCHES "[Rr]esolved")
+        list(APPEND _failures "DEVNOTES.md: the spec 037 row does not say the DB entries are resolved")
+    endif()
+    if(NOT _row MATCHES "PLUGIN_ABI\\.md")
+        list(APPEND _failures "DEVNOTES.md: the spec 037 row does not point to PLUGIN_ABI.md")
+    endif()
+    if(_row MATCHES "[Mm]erged|merge commit|[Cc]loses #")
+        list(APPEND _failures "DEVNOTES.md: the spec 037 row makes a claim about the merge")
+    endif()
+endif()
+
+# --- the tree ---
+file(READ "${SOURCE_DIR}/src/ri/texture/texture3d.cpp" _t3d)
+foreach(_header renderer.h displayChannel.h)
+    if(_t3d MATCHES "#[ \t]*include[ \t]*[\"<][^\">]*${_header}[\">]")
+        list(APPEND _failures "tree: src/ri/texture/texture3d.cpp still includes ${_header} (DB-021)")
+    endif()
+endforeach()
+file(GLOB_RECURSE _shader_sources "${SOURCE_DIR}/src/libshader/*.cpp" "${SOURCE_DIR}/src/libshader/*.h" "${SOURCE_DIR}/src/libshader/*.y" "${SOURCE_DIR}/src/libshader/*.l")
+foreach(_file IN LISTS _shader_sources)
+    file(READ "${_file}" _src)
+    if(_src MATCHES "#[ \t]*include[ \t]*\"[^\"]*parse/dso\\.h\"")
+        file(RELATIVE_PATH _rel "${SOURCE_DIR}" "${_file}")
+        list(APPEND _failures "tree: ${_rel} includes the old src/ri/parse/dso.h (DB-019)")
+    endif()
+endforeach()
+
+list(LENGTH _open_ids _n_open)
+list(LENGTH _resolved_ids _n_resolved)
+message("registry: ${_n_open} Open and ${_n_resolved} Resolved entries; allowlist ids: ${_allow_ids}")
+if(_failures)
+    string(REPLACE ";" "\n  " _report "${_failures}")
+    message(FATAL_ERROR "DEFECT FR-029/SC-009/SC-020: DEVNOTES.md, DOMAIN_BOUNDARIES.md, the allowlist and the tree disagree:\n  ${_report}")
+endif()

@@ -15,7 +15,7 @@
 #include <cstring>
 
 #include "common/diagnostics.h"
-#include "includes/logging.hpp"
+#include "include/logging.hpp"
 
 int main(int argc, char **argv) {
     if (argc != 2) {

@@ -3110,8 +3110,12 @@ static bool emitFunction(const IRFunction &irFn,
             }
 
             // ================================================================
-            // Layer G — vfrom aliases used by some shader variants
-            // vtransform alias 'vfrom' (point transform); 'ntransform' alias 'nfrom'
+            // Layer G — vfrom: the vector "space" (...) constructor, named ->
+            // current with the "from" matrix (the interpreter's VFROMEXPR).
+            // GitHub #124: it used to call op_vtransform/op_ntransform, which
+            // go current -> named. The compiler emits vfrom for normals too
+            // (#125); nfrom is never emitted and has no interpreter opcode,
+            // so it is lowered the same way.
             // ================================================================
             else if (op == "vfrom" || op == "nfrom") {
                 if (ins.operands.size() < 2)
@@ -3126,8 +3130,7 @@ static bool emitFunction(const IRFunction &irFn,
                 llvm::Value *spacePtr = B.CreateGlobalString(spaceName, "space_str");
                 auto *ty = llvm::FunctionType::get(voidTy,
                                                    {ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy}, false);
-                const char *fnName = (op == "nfrom") ? "op_ntransform" : "op_vtransform";
-                auto *fn = declareOp(mod, fnName, ty);
+                auto *fn = declareOp(mod, "op_vfrom", ty);
                 auto [n, tg] = collapseArgs(dstStrideVal, {ss});
                 B.CreateCall(fn, {dst, dstStride, spacePtr, src, B.getInt32(ss), n, tg});
             }

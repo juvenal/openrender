@@ -31,6 +31,7 @@
 #include "common/os.h"
 #include "dlo.h"
 #include "object.h"
+#include "proceduralModules.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CDLObject
@@ -38,7 +39,7 @@
 // Comments				:
 class CDLObject : public CSurface {
     public:
-        CDLObject(CAttributes *, CXform *, void *, void *, const float *, const float *, dloInitFunction, dloIntersectFunction, dloTiniFunction);
+        CDLObject(CAttributes *, CXform *, CDloModule *, void *, const float *, const float *); // takes over the reference to the module
         ~CDLObject();
         int honorsRegion() const { return FALSE; } // Bypasses the region hook (spec 021)
 
@@ -53,12 +54,8 @@ class CDLObject : public CSurface {
         void shade(CShadingContext *, int, CRay **);                      // Shade the object
 
     private:
-        dloInitFunction initFunction;
-        dloIntersectFunction intersectFunction;
-        dloTiniFunction tiniFunction;
-
-        void *handle; // Handle
-        void *data;   // Implicit data
+        CDloModule *module; // The loaded module (attached); tini and the intersection come from it
+        void *data;         // Implicit data
 };
 
 #endif

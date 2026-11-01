@@ -38,6 +38,7 @@
 #include "common/global.h"
 #include "common/os.h"
 #include "delayed.h"
+#include "procDynamicLoadHook.h"
 #include "common/diagnostics.h"
 #include "logging.hpp"
 #include "ri.h"
@@ -1754,42 +1755,27 @@ RiProcRunProgram(void *data, RtFloat detail) {
 #endif
 }
 
+// The renderer core installs the DynamicLoad expansion (procDynamicLoadHook.h); this file loads no module.
+static TProcDynamicLoadHook currentProcDynamicLoadHook = nullptr;
+
+void setProcDynamicLoadHook(TProcDynamicLoadHook hook) {
+    currentProcDynamicLoadHook = hook;
+}
+
+TProcDynamicLoadHook procDynamicLoadHook() {
+    return currentProcDynamicLoadHook;
+}
+
 EXTERN(RtVoid)
 RiProcDynamicLoad(void *data, RtFloat detail) {
     CDelayedData *delayed = (CDelayedData *)data;
-    void *module;
+    const TProcDynamicLoadHook hook = currentProcDynamicLoadHook;
 
-    module = osLoadModule(delayed->generator);
-
-    if (module != NULL) {
-        // Extract information
-        RtPointer blindData;
-
-        typedef RtPointer (*FunConvertParameter)(char *);
-        typedef void (*FunSubdivide)(RtPointer, RtFloat);
-        typedef void (*FunFree)(RtPointer);
-
-        FunConvertParameter ConvertParameter;
-        FunSubdivide Subdivide;
-        FunFree Free;
-
-        ConvertParameter = (FunConvertParameter)osResolve(module, "ConvertParameters");
-        Subdivide = (FunSubdivide)osResolve(module, "Subdivide");
-        Free = (FunFree)osResolve(module, "Free");
-
-        blindData = NULL;
-        if (ConvertParameter != NULL)
-            blindData = ConvertParameter(delayed->helper);
-        if (Subdivide != NULL)
-            Subdivide(blindData, detail);
-        if (Free != NULL)
-            Free(blindData);
-
-        // osUnloadModule(module);
+    if (hook == nullptr) {
+        error(CODE_NOFILE, "The delayed module \"%s\" cannot be loaded: no renderer\n", delayed->generator);
+        return;
     }
-    else {
-        error(CODE_NOFILE, "The delayed module \"%s\" is not found: %s\n", delayed->generator, osModuleError());
-    }
+    hook(data, detail);
 }
 
 EXTERN(RtVoid)

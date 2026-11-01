@@ -31,6 +31,7 @@
 #include "common/os.h"
 #include "implicit.h"
 #include "object.h"
+#include "proceduralModules.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CImplicit
@@ -38,7 +39,7 @@
 // Comments				:
 class CImplicit : public CSurface {
     public:
-        CImplicit(CAttributes *, CXform *, int, const char *, float, float);
+        CImplicit(CAttributes *, CXform *, int, CImplicitModule *, const char *, float, float); // takes over the reference to the module (NULL: nothing loaded); the name is for diagnostics
         ~CImplicit();
         int honorsRegion() const { return FALSE; } // Bypasses the region hook (spec 021)
 
@@ -53,15 +54,10 @@ class CImplicit : public CSurface {
         void shade(CShadingContext *, int, CRay **);                      // Shade the object
 
     private:
-        implicitInitFunction initFunction; // DSO functions
-        implicitEvalFunction evalFunction;
-        implicitEvalNormalFunction evalNormalFunction;
-        implicitTiniFunction tiniFunction;
-
-        void *handle;      // Handle
-        void *data;        // Implicit data
-        float stepSize;    // The step size for the matching
-        float scaleFactor; // The scale factor for the transformation
+        CImplicitModule *module; // The loaded module (attached), or NULL when it did not load or initialize
+        void *data;              // Implicit data
+        float stepSize;          // The step size for the matching
+        float scaleFactor;       // The scale factor for the transformation
 };
 
 #endif

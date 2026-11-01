@@ -1,0 +1,25 @@
+# Spec 037, ProceduresAbi_DynamicLoadRelease (FR-034): two frames, each expanding the nested
+# generator by the name written here. Nothing else in the scene touches the module.
+Option "searchpath" "display" ["@OR_DISPLAY_PATH@"]
+Format 8 8 1
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Projection "perspective" "fov" 30
+
+FrameBegin 1
+    Display "frame1.tif" "file" "rgba"
+    Translate 0 0 4
+    WorldBegin
+        Surface "constant"
+        Procedural "DynamicLoad" ["@DYNLOAD_NESTED_FILE@" ""] [-1 1 -1 1 -1 1]
+    WorldEnd
+FrameEnd
+
+FrameBegin 2
+    Display "frame2.tif" "file" "rgba"
+    Translate 0 0 4
+    WorldBegin
+        Surface "constant"
+        Procedural "DynamicLoad" ["@DYNLOAD_NESTED_FILE@" ""] [-1 1 -1 1 -1 1]
+    WorldEnd
+FrameEnd
