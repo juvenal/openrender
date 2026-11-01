@@ -282,6 +282,26 @@ Seen while writing the tests (not part of the red table):
 - `PluginAbi_InstallLayouts` runs a nested configure of the source tree per layout (`-DINSTALL_SELFCONTAINED=ON|OFF`, `-DCMAKE_INSTALL_PREFIX=<scratch>`, build type, compilers, toolchain and the `OPENRENDER_*` options copied from the main cache) under `build/tests/plugins/checks/install_layouts/`, then `cmake --install <tree> --component Development`; it never builds a library. About 15 s on macOS, about 80 s on Linux. Every path it writes is under the build tree (`/usr/local/include` and the main `CMAKE_INSTALL_PREFIX` were checked untouched).
 - `rslo.h` is installed into the include directory by `src/libshader/runtime/CMakeLists.txt:62`, is not in `OPENRENDER_PUBLIC_HEADERS` and is not documented: the tests (installed set == list) are red on it. Decision for the maintainer (see the report): add `rslo.h` to the list and the documents, or stop installing it.
 
+### Phase 7 green evidence (T103 to T107a)
+
+The maintainer approved the Phase 7 tests (T104) and the four recommendations: `rslo.h` is installed and joins `OPENRENDER_PUBLIC_HEADERS`; the four stale references `PluginAbi_DocPaths` reported are fixed now (new task T106a), so `DocPaths` is green in this phase; the nested-configure approach of `PluginAbi_InstallLayouts` stays; the header installs, `install(EXPORT ...)` and the package config files carry `COMPONENT Development`.
+
+Implemented: `examples/display/simpledisplay.c` and `examples/display/README.md` (T103); the `install(FILES file_base.h ...)` rule removed from `src/display/file/CMakeLists.txt` and the `rslo.h` rule removed from `src/libshader/runtime/CMakeLists.txt` (it installs with the list), `OPENRENDER_PUBLIC_HEADERS` final with `rslo.h` as the ninth entry (T105); one variable, `OPENRENDER_INCLUDE_INSTALL_DIR` (`CMake/openRenderPublicHeaders.cmake`: `${CMAKE_INSTALL_INCLUDEDIR}` for the self-contained layout, `${CMAKE_INSTALL_INCLUDEDIR}/openRender` for FHS), used by the header `install(FILES ...)` and by the `INCLUDES DESTINATION` of every exported target (`ribRender`, `ribVector`, `ribOut`, `libshader_*`, and now also `openrendercommon` and `openrendershadeop`, shared and static, which had none), and by `CMake/openRenderConfig.cmake.in` through `PATH_VARS`, which defines `openRender_INCLUDE_DIR` (T105a); `INSTALL_ARTIFACTS.md` (T106) and the four path fixes (T106a: guide `#include "dsply.h"`; the `CFileOutputBase` section says the helper is in-tree and not installed and no longer names the file; `src/display/framebuffer/`).
+
+Two corrections to the approved tests, found when they first ran against an implementation (neither loosens a check): `install_consumer/CMakeLists.txt` linked the imported targets, which has no library file to link once the per-config targets files are removed, so it now takes the exported `INTERFACE_INCLUDE_DIRECTORIES` of the eight shared targets and `openRender_INCLUDE_DIR`, **checks that each equals the layout's include directory**, and compiles the consumer with that directory only (a stronger check than before); `stage_headers.cmake` gained `src/libshader/runtime` in its lookup directories, which `rslo.h` needs. The three scripts that use `IN_LIST` set policy CMP0057.
+
+**Ratified by the maintainer** (relayed by the coordinator): the three edits to approved Phase 7 test code, `install_consumer/CMakeLists.txt`, `check_install_layouts.cmake` and `stage_headers.cmake`. They were applied before the diff was shown; from now on an approved test, script or reference is edited only after its diff has been shown and approved.
+
+macOS: build clean (0 warnings, `-Werror`). `PluginAbi_DocPaths`, `_InstallHeaders`, `_InstallList`, `_NoFileBaseInstalled`, `_ShadeopSoversion`, `_InstallLayouts` all pass (InstallLayouts about 15 s). Full run `ctest -LE determinism-sweep -j4`: 958 registered, **957 passed, 0 failed, 1 skipped** (`LibShader_Format_rslo_lower_minor`, which skips by itself and is not in the Phase 6 pass list either). Against `pass-list-p6.txt`: nothing lost; gained the six tests above and `Texture3dChannels_FillAliased`. `ctest -L plugin_abi`: 63/63. `ctest -L architecture`: 21/21; the full report (`build-037-snapshots/archcheck-p7.txt`): `ALLOWED DB-001 x 8 DB-004 x 65 DB-005 x 8 DB-006 x 33 DB-010 x 8 DB-011 x 173 DB-015 x 10 DB-017 x 78 DB-025 x 12`, `METRIC TOTAL refs 651 (baseline 651) distinct 97 (baseline 97)`, `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`.
+
+**Mutation (T107)**, reverted afterwards (the file equals its backup): `file_base.h` added to `OPENRENDER_PUBLIC_HEADERS` in a scratch edit. `PluginAbi_InstallHeaders` red (`file_base.h: #include "common/os.h" names a header that is not in the installed set`, and it does not compile alone as C++20 or C17, in both layouts); `PluginAbi_InstallList` red (`INSTALL_ARTIFACTS.md (section|tree) does not name file_base.h, which is in the installed header list`); `PluginAbi_NoFileBaseInstalled` red (`file_base.h is in the public header list`).
+
+**Install locations (T107a, SC-011)**: both scratch installs ran green; the files below are what `cmake --install --component Development` put under each scratch prefix (`build/tests/plugins/checks/install_layouts/{selfcontained,fhs}/prefix`); nothing was written outside the build tree (the install manifests hold only paths under the scratch prefix; `/usr/local/include` is unchanged).
+
+### Phase 7 Linux (T108)
+
+`openrender-037` was synced from the staged tree (`rsync -rlpc --files-from`, then `sha256sum -c`: every file OK; no file deleted since the last sync). It was unreachable for a while (the host name did not resolve), so the gate ran after the first Phase 7 report. GCC 13 `-Werror`, `-j2` through the remote `cpujob`: configure and build clean, 0 warnings. `ctest -LE determinism-sweep -j2`: 959 registered, **951 passed, 7 failed, 1 skipped**; the seven failures are exactly the Linux baseline (`LibShader_McompConsistency`, `TextureTile_RenderByteIdentical`, `TextureTile_CacheByteIdentical`, `_CacheDefaultDirectory`, `_CacheStaleDetection`, `_CacheConcurrentWrite`, `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes`); the skip is `LibShader_Format_rslo_lower_minor` (as on macOS). The two Phase 6 reds, `PluginAbi_DocPaths` and `PluginAbi_InstallHeaders`, are green. The six Phase 7 tests pass (`InstallLayouts` takes about 96 s on Linux). `ctest -L architecture`: 21/21; the full report: `ALLOWED` unchanged, `METRIC TOTAL refs 651 (baseline 651) distinct 97 (baseline 97)`, `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`. Install check: both install manifests list only paths under their scratch prefix (0 outside), the prefixes hold exactly the nine headers and the four package files, `/usr/local` on the host has no file newer than the sync and its `include` is empty.
+
 ## 3. Phase 1 reference inventory (T029)
 
 Captured by `cpujob 037-p1-capture5 cmake --build build --target plugin-abi-capture-baselines -j1`, then a second capture (`plugin-abi-capture-baselines-scratch`, into the build tree) compared with `diff -r` / `cmp`: **identical sample for sample** for all pixel references, `missing_symbol.txt` and the three Texture3d reports. The target **refuses to overwrite**: running it again on the existing references fails with `<file> exists; refusing to overwrite (configure with -DOR037_RECAPTURE=ON ...)` for every scene (observed).
@@ -338,7 +358,16 @@ Read before the host moved (research M10). `CRenderer::renderFrame` (`renderer.c
 
 ## 6. macOS final pass
 
-Not yet (final phase).
+### Install include directories (T107a, SC-011)
+
+| Layout | Configure | Include directory (under the prefix) | Holds |
+|---|---|---|---|
+| self-contained | `-DINSTALL_SELFCONTAINED=ON` | `include/` (`<ORENDERHOME>/include`) | `dlo.h dsply.h implicit.h orplugin.h orplugin.hpp ptcapi.h ri.h rslo.h shadeop.h` |
+| FHS | `-DINSTALL_SELFCONTAINED=OFF` | `include/openRender/` | the same nine files; nothing else directly in `<prefix>/include` |
+
+The package files go to `lib/cmake/openRender/` in both layouts. A `find_package(openRender CONFIG)` consumer sees `openRender_INCLUDE_DIR` and the `INTERFACE_INCLUDE_DIRECTORIES` of all eight shared targets equal to that directory and compiles `#include "dsply.h"` and `#include "orplugin.h"` with it and no other flag.
+
+Final pass: not yet (final phase).
 
 ## 7. Linux results (T031a to T031e)
 
