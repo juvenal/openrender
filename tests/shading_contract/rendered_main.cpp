@@ -51,6 +51,8 @@ int main(int argc, char **argv) {
         return caseLightsourceNoLoopReal(true);
     if (strcmp(which, "NullObject_MessagesJit") == 0)
         return caseNullObjectMessages(true);
+    if (strcmp(which, "LightsourceOversizedJit") == 0)
+        return caseLightsourceOversized(true);
 #endif
     if (strcmp(which, "NoTracer") == 0)
         return caseNoTracer();
@@ -59,7 +61,7 @@ int main(int argc, char **argv) {
 
     fprintf(stderr,
             "usage: %s RealAnswers{Interp,Jit}_{Matrices,Attributes,Messages}|GatherRequests{Interp,Jit}|"
-            "CannedTrace{Interp,Jit}|NullObject_Attributes{Interp,Jit}|TypeMismatchReal_Message{Interp,Jit}|LightsourceNoLoopReal{Interp,Jit}|NullObject_Messages{Interp,Jit}|NoTracer|DoubleGlobalsMatchRenderer\n",
+            "CannedTrace{Interp,Jit}|NullObject_Attributes{Interp,Jit}|TypeMismatchReal_Message{Interp,Jit}|LightsourceNoLoopReal{Interp,Jit}|NullObject_Messages{Interp,Jit}|LightsourceOversizedJit|NoTracer|DoubleGlobalsMatchRenderer\n",
             argv[0]);
     return 2;
 }

@@ -1,7 +1,7 @@
 /* Spec 026 contract-test shader (tests/shading_contract). surface(): a parameter of each type (float, vector, matrix, string) and a name that does not exist. */
 surface cm_surface()
 {
-    float f = -1;
+    float f = -1 + 0 * s; /* varying by construction: the JIT keeps a destination uniform unless a varying value reaches it */
     float f2 = -7;
     vector v = vector(-1, -2, -3);
     matrix m = 1;

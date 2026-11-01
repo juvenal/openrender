@@ -1,6 +1,22 @@
+diff --git a/src/libshader/shading/rslOps.cpp b/src/libshader/shading/rslOps.cpp
+index 7e2fb6d8..333c6c4e 100644
 --- a/src/libshader/shading/rslOps.cpp
 +++ b/src/libshader/shading/rslOps.cpp
-@@ -918,7 +918,9 @@
+@@ -19,11 +19,13 @@
+ #include "rslOps.h"
+ #include "activeContext.h"
+ #include "common/colorSpace.h"
++#include "common/diagnostics.h"
+ #include "common/memory.h"
+ #include "includes/logging.hpp"
+ #include "noise.h"
+ #include "shading.h"
+ 
++#include <atomic>
+ #include <cmath>
+ #include <cstring>
+ #include <unistd.h>
+@@ -918,20 +920,38 @@ void op_pnoise_4d_v(float *dst, int sd, const float *P, int sP, const float *t,
  void op_lightsource_f(float *result, int sr, const char *attrName, float *outParam, int so, int n, const int *tags) {
      (void)n;
      (void)tags;
@@ -11,7 +27,27 @@
      CShadingContext *ctx = libshader::activeContext();
      if (ctx) {
          CShadingState *ss = ctx->currentShadingState;
-@@ -929,9 +931,10 @@
+         if (ss && ss->currentLightInstance) {
+             // The last light that ran, floats only, no variable (spec 026, Q2): asked through the services, which write
+-            // the parameter's default into `value`
+-            CRendererServices *svc = ctx->getServices();
++            // the parameter's default into the scratch. A parameter that does not fit the scratch is refused before
++            // anything is written (D10): the result stays 0, with one warning
++            CShaderInstance *light = ss->currentLightInstance;
++            bool fits = true;
++            EVariableType type = TYPE_FLOAT;
++            int numFloats = 0;
++            if (light->getParameterShape(attrName, type, numFloats)) {
++                const size_t bytes = (type == TYPE_STRING) ? (size_t)numFloats * sizeof(char *) : (size_t)numFloats * sizeof(float);
++                fits = (bytes <= sizeof(scratch));
++            }
++            if (!fits) {
++                static std::atomic<bool> s_warnedOversized{false};
++                if (!s_warnedOversized.exchange(true))
++                    warning(CODE_BADTOKEN, "lightsource(\"%s\"): the parameter holds more than %d bytes, more than the JIT's lightsource() can take; the query is refused and its result is 0\n",
++                            attrName, (int)sizeof(scratch));
++            }
++            CRendererServices *svc = fits ? ctx->getServices() : nullptr;
              if (svc != nullptr)
                  svc->getMessage(openrender::shading::MessageRequest{openrender::shading::MessageSource::Light, ctx->objectHandle(),
                                                                       CShadingContext::shaderHandle(ss->currentLightInstance), attrName,

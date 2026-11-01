@@ -45,6 +45,16 @@ int caseTypeMismatchRealMessage(bool jit) {
             s.attributes->bindExterior(ShaderGroupRef::retain(pExterior));
 
             CRProbeContext *ctx = s.makeContext(s.original);
+
+            // The message-passing locals the shading pipeline would have left (shading.cpp:1021-1025): surface(),
+            // displacement() and atmosphere() read the producer's current values from them
+            CShadingState *state = ctx->currentShadingState;
+            CMemPage *producerMemory = NULL;
+            memoryInit(producerMemory);
+            state->locals[ACCESSOR_SURFACE] = pSurface->prepare(producerMemory, state->varying, 3);
+            state->locals[ACCESSOR_DISPLACEMENT] = pDisplacement->prepare(producerMemory, state->varying, 3);
+            state->locals[ACCESSOR_ATMOSPHERE] = pAtmosphere->prepare(producerMemory, state->varying, 3);
+
             const char *shaders[5] = {"cm_mm_real_msg_surface", "cm_mm_real_msg_displacement", "cm_mm_real_msg_atmosphere",
                                       "cm_mm_real_msg_incident", "cm_mm_real_msg_opposite"};
             for (const char *name : shaders) {

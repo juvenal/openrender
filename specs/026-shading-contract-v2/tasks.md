@@ -734,11 +734,11 @@ backend's own behaviour (Q2). Tests that go green: `Messages{Interp,Jit}`, `NoSe
   unchanged (FR-022); the divergence (Q2: which light, mutable values, types, what `result` holds) is out of scope: it is filed as #115 (evidence is added as a comment on it), and it is named in DB-018's "still open" in Phase 10.
 - [X] T119 [US3] Null-guard `CShadingContext::shaderName(const char *type)` (`shading.cpp`): with no current object it returns `""`, the value it already returns when the shader of that type is not bound (F2, FR-027, Q8's direct
   read stays). No other change to the function. `shadername()` with no argument is unchanged.
-- [ ] T120 [US3] [RUN] Build and run the Phase 6 tests: `Messages{Interp,Jit}` (seven builtins' requests equal between backends; `lightsource()` asserts the documented difference),
+- [X] T120 [US3] [RUN] Build and run the Phase 6 tests: `Messages{Interp,Jit}` (seven builtins' requests equal between backends; `lightsource()` asserts the documented difference),
   `NoServices_Message`, `RealAnswers{Interp,Jit}_Messages`, `TypeMismatch_Message*`, `TypeMismatchReal_Message*`, `NullObject_Messages*`, `LightsourceNoLoop*` and `LightsourceNoLoopReal*` all green.
-- [ ] T121 [US3] [RUN] Checkpoint 6: CP-a, CP-b, CP-c (8 / 8 / 33), **CP-d**, CP-m, and `ctest -L shading_parity` (including the `.slo` message-passing parity tests). Record in validation.md §1.
-- [ ] T122 [US3] [RUN] CP-L for Phase 6.
-- [ ] T123 [US3] **Checkpoint 6 (PAUSE 6)**: stage; summarize (US3 done: the eight builtins ask the services; F1, F2 and F3 closed; `lightsource()`'s divergence is #115, out of scope); CP results; wait for review. **This is the MVP boundary** (see the strategy).
+- [X] T121 [US3] [RUN] Checkpoint 6: CP-a, CP-b, CP-c (8 / 8 / 33), **CP-d**, CP-m, and `ctest -L shading_parity` (including the `.slo` message-passing parity tests). Record in validation.md §1.
+- [X] T122 [US3] [RUN] CP-L for Phase 6.
+- [X] T123 [US3] **Checkpoint 6 (PAUSE 6)**: stage; summarize (US3 done: the eight builtins ask the services; F1, F2 and F3 closed; `lightsource()`'s divergence is #115, out of scope); CP results; wait for review. **This is the MVP boundary** (see the strategy).
 
 
 ---

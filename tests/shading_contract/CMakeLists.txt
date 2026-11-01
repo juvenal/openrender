@@ -36,6 +36,7 @@ set(_contract_shader_names
     cm_attribute cm_option cm_rendererinfo cm_surface cm_displacement cm_atmosphere cm_incident cm_opposite
     cm_lightsource cm_lightsource_noloop cm_producer_surface cm_producer_displacement cm_producer_volume cm_producer_light
     cm_mm_attribute cm_mm_option cm_mm_rendererinfo cm_mm_real cm_nullobject
+    cm_producer_light_big cm_lightsource_big
     cm_mm_msg_surface cm_mm_msg_displacement cm_mm_msg_atmosphere cm_mm_msg_incident cm_mm_msg_opposite
     cm_mm_real_msg_surface cm_mm_real_msg_displacement cm_mm_real_msg_atmosphere cm_mm_real_msg_incident cm_mm_real_msg_opposite cm_nullobject_msg
     cm_matrices cm_trace cm_transmission cm_visibility cm_gather cm_occlusion cm_indirect cm_env cm_shadow
@@ -157,7 +158,7 @@ if(OPENRENDER_SHADING_CONTRACT_TESTS)
     add_dependencies(test_shading_contract_standalone shading_contract_replay_shaders)
 
     add_executable(test_shading_contract_rendered
-        rendered_main.cpp case_real_answers.cpp case_gather_requests.cpp case_canned_trace.cpp case_no_tracer.cpp case_double_globals.cpp case_null_object.cpp case_type_mismatch_real_message.cpp case_lightsource_no_loop_real.cpp case_null_object_messages.cpp)
+        rendered_main.cpp case_real_answers.cpp case_gather_requests.cpp case_canned_trace.cpp case_no_tracer.cpp case_double_globals.cpp case_null_object.cpp case_type_mismatch_real_message.cpp case_lightsource_no_loop_real.cpp case_null_object_messages.cpp case_lightsource_oversized.cpp)
     target_compile_features(test_shading_contract_rendered PRIVATE cxx_std_20)
     target_compile_definitions(test_shading_contract_rendered PRIVATE ${SHADING_CONTRACT_PROGRAM_DEFS})
     target_include_directories(test_shading_contract_rendered PRIVATE ${SHADING_CONTRACT_INCLUDES})
@@ -267,6 +268,7 @@ add_contract_test(ShadingContract_LightsourceNoLoopRealInterp test_shading_contr
 add_contract_test(ShadingContract_LightsourceNoLoopRealJit test_shading_contract_rendered LightsourceNoLoopRealJit JIT ENABLED)
 add_contract_test(ShadingContract_NullObject_MessagesInterp test_shading_contract_rendered NullObject_MessagesInterp ENABLED)
 add_contract_test(ShadingContract_NullObject_MessagesJit test_shading_contract_rendered NullObject_MessagesJit JIT ENABLED)
+add_contract_test(ShadingContract_LightsourceOversizedJit test_shading_contract_rendered LightsourceOversizedJit JIT ENABLED)
 
 # Phase 8 (the tracer)
 add_contract_test(ShadingContract_TraceRequestsInterp test_shading_contract_standalone TraceRequestsInterp)
