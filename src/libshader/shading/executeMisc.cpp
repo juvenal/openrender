@@ -33,6 +33,7 @@
 #include "common/memory.h"
 #include "ri_config.h"
 #include "shaderRefs.h"
+#include "traceCalls.h"
 #include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -791,11 +792,7 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
                 if (probeOnly) {
 
                     // No, just query an intersection and record the distance
-                    if (traceRequestObserver != nullptr) {
-                        CRay *probe = cRay;
-                        reportTraceRequest(TRACEREQUEST_VISIBILITY, bundle.label, 0, 1, &probe);
-                    }
-                    trace(cRay);
+                    libshader::traceRay(*this, cRay, libshader::TraceKind::Visibility, bundle.label);
                     rays->t += cRay->t * multiplier;
                 }
                 else {
@@ -807,9 +804,7 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
                         bundle.depth = 0;
                         bundle.last = 0;
                         bundle.postShader = NULL;
-                        if (traceRequestObserver != nullptr)
-                            reportTraceRequest(TRACEREQUEST_TRANSMISSION, bundle.label, bundle.depth, bundle.numRays, bundle.rays);
-                        traceEx(&bundle);
+                        libshader::traceBundle(*this, &bundle, libshader::TraceKind::Transmission);
                         cRay = rayBase;
                         cRays = raysBase;
                         numRemaining = shootStep;
@@ -827,9 +822,7 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
         bundle.depth = 0;
         bundle.last = 0;
         bundle.postShader = NULL;
-        if (traceRequestObserver != nullptr)
-            reportTraceRequest(TRACEREQUEST_TRANSMISSION, bundle.label, bundle.depth, bundle.numRays, bundle.rays);
-        traceEx(&bundle);
+        libshader::traceBundle(*this, &bundle, libshader::TraceKind::Transmission);
     }
 
     inShadow = FALSE; // We're no longer in shadow
@@ -946,11 +939,7 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
                 if (probeOnly) {
 
                     // No, just query an intersection and record the distance
-                    if (traceRequestObserver != nullptr) {
-                        CRay *probe = cRay;
-                        reportTraceRequest(TRACEREQUEST_TRACE, exteriorBundle.label, 0, 1, &probe);
-                    }
-                    trace(cRay);
+                    libshader::traceRay(*this, cRay, libshader::TraceKind::Trace, exteriorBundle.label);
                     rays->t += cRay->t * multiplier;
                 }
                 else {
@@ -965,9 +954,7 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
                             exteriorBundle.depth = 0;
                             exteriorBundle.last = 0;
                             exteriorBundle.postShader = exteriorShader;
-                            if (traceRequestObserver != nullptr)
-                                reportTraceRequest(TRACEREQUEST_TRACE, exteriorBundle.label, exteriorBundle.depth, exteriorBundle.numRays, exteriorBundle.rays);
-                            traceEx(&exteriorBundle);
+                            libshader::traceBundle(*this, &exteriorBundle, libshader::TraceKind::Trace);
                             cExteriorRay = exteriorRayBase;
                             cExteriorRays = exteriorRaysBase;
                             numExteriorRemaining = shootStep;
@@ -984,9 +971,7 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
                             interiorBundle.depth = 0;
                             interiorBundle.last = 0;
                             interiorBundle.postShader = interiorShader;
-                            if (traceRequestObserver != nullptr)
-                                reportTraceRequest(TRACEREQUEST_TRACE, interiorBundle.label, interiorBundle.depth, interiorBundle.numRays, interiorBundle.rays);
-                            traceEx(&interiorBundle);
+                            libshader::traceBundle(*this, &interiorBundle, libshader::TraceKind::Trace);
                             cInteriorRay = interiorRayBase;
                             cInteriorRays = interiorRaysBase;
                             numInteriorRemaining = shootStep;
@@ -1005,9 +990,7 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
         exteriorBundle.depth = 0;
         exteriorBundle.last = 0;
         exteriorBundle.postShader = exteriorShader;
-        if (traceRequestObserver != nullptr)
-            reportTraceRequest(TRACEREQUEST_TRACE, exteriorBundle.label, exteriorBundle.depth, exteriorBundle.numRays, exteriorBundle.rays);
-        traceEx(&exteriorBundle);
+        libshader::traceBundle(*this, &exteriorBundle, libshader::TraceKind::Trace);
     }
     if (numInteriorRemaining != shootStep) {
         numReflectionRays += shootStep - numInteriorRemaining;
@@ -1016,9 +999,7 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
         interiorBundle.depth = 0;
         interiorBundle.last = 0;
         interiorBundle.postShader = interiorShader;
-        if (traceRequestObserver != nullptr)
-            reportTraceRequest(TRACEREQUEST_TRACE, interiorBundle.label, interiorBundle.depth, interiorBundle.numRays, interiorBundle.rays);
-        traceEx(&interiorBundle);
+        libshader::traceBundle(*this, &interiorBundle, libshader::TraceKind::Trace);
     }
 }
 

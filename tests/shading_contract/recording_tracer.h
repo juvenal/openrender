@@ -186,10 +186,8 @@ class CCannedTracer : public CRecordingTracer {
             }
 
             while (true) {
-                if (bundle->postTraceAction() == FALSE)
-                    return;
-
-                // The hits are shaded together, the misses reported together
+                // The hits are shaded together, the misses reported together. Every ray is answered before the bundle looks at
+                // the results: trace.cpp traces the rays first, and postTraceAction() counts the misses from ray->object
                 std::vector<CRay *> hits, misses;
                 std::vector<float> hitCi, hitOi;
                 for (int i = 0; i < numRays; i++) {
@@ -207,6 +205,8 @@ class CCannedTracer : public CRecordingTracer {
                         misses.push_back(r);
                     }
                 }
+                if (bundle->postTraceAction() == FALSE)
+                    return;
                 if (!hits.empty()) {
                     for (size_t k = 0; k < hits.size(); k++) {
                         memcpy(varying[VARIABLE_CI] + 3 * k, &hitCi[3 * k], 3 * sizeof(float));

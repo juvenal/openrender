@@ -64,6 +64,7 @@
 #include "common/stats.h"
 #include "surface.h"
 #include "texture.h"
+#include "traceCalls.h"
 
 // horizonCutoff and CHemisphereSample/posGradient/rotGradient below are used
 // only by sample(); moved here alongside it rather than left in
@@ -368,11 +369,7 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
             mulmp(ray.from, from, ray.from);
             mulmv(ray.dir, from, ray.dir);
 
-            if (CShadingContext::traceRequestObserver != nullptr) {
-                CRay *probe = &ray;
-                context->reportTraceRequest(TRACEREQUEST_OCCLUSION, scratch->traceParams.label, 0, 1, &probe);
-            }
-            context->trace(&ray);
+            libshader::traceRay(*context, &ray, libshader::TraceKind::Occlusion, scratch->traceParams.label);
 
             // Do we have an intersection ?
             if (ray.object != NULL) {
@@ -472,11 +469,7 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
                 mulmp(ray.from, from, ray.from);
                 mulmv(ray.dir, from, ray.dir);
 
-                if (CShadingContext::traceRequestObserver != nullptr) {
-                    CRay *probe = &ray;
-                    context->reportTraceRequest(TRACEREQUEST_INDIRECTDIFFUSE, scratch->traceParams.label, 0, 1, &probe);
-                }
-                context->trace(&ray);
+                libshader::traceRay(*context, &ray, libshader::TraceKind::IndirectDiffuse, scratch->traceParams.label);
 
                 // Do we have an intersection ?
                 if (ray.object != NULL) {

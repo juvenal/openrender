@@ -305,10 +305,9 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
     CShadingScratch *scratch = &(currentShadingState->scratch);                                                                            \
                                                                                                                                            \
     /* Overwrite some of the initial values from the attributes */                                                                         \
-    /* With no object (FR-027) the scratch keeps the values it already holds */                                                           \
+    /* With no object (FR-027) the lookups take the attribute defaults: a null attribute set is valid for init() */                      \
     const CAttributes *cAttributes = objectAttributes();                                                                                   \
-    if (cAttributes != NULL)                                                                                                               \
-        lookup->init(scratch, cAttributes);                                                                                                \
+    lookup->init(scratch, cAttributes);                                                                                                    \
                                                                                                                                            \
     /* Init the varyings	*/                                                                                                                \
     char **PL_VARIABLES = (char **)ralloc(lookup->numVaryings * sizeof(char *), threadMemory);                                             \

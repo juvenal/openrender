@@ -21,9 +21,9 @@
  * the replay's (ShadingContract_TraceReplay_*); here the sample identity is the legacy one (no frame
  * sampler is configured), so only structure is asserted.
  *
- * The standalone program has no CSurface, but the trace builtins read the object's attributes (the
- * parameter-list defaults, the interior and exterior shaders, the motion flag): the harness attaches a
- * zero-filled stand-in with default attributes (CHarness::attachFakeObject).
+ * The standalone program has no object: the trace builtins read the object's attributes through
+ * objectAttributes() (the parameter-list defaults, the interior and exterior shaders, the motion flag),
+ * which is null then, and take the built-in defaults (FR-027).
  */
 #include "cases.h"
 
@@ -62,7 +62,6 @@ int caseTraceRequests(bool jit) {
     CDiagnosticSink *previous = installDiagnosticSink(&sink);
     {
         CHarness h(svc, 4);
-        h.attachFakeObject();
 
         // ---- visibility(): the transmission probe form --------------------------------------------
         {
@@ -105,7 +104,7 @@ int caseTraceRequests(bool jit) {
                 if (q.bundle) {
                     CT_EXPECT((int)q.rays.size() == h.numPoints);
                     CT_EXPECT(q.bundleDepth == 0);
-                    CT_EXPECT(q.label != "");
+                    CT_EXPECT(q.label != "-");
                     for (const STraceRay &ray : q.rays)
                         checkRay(ray, ATTRIBUTES_FLAGS_SPECULAR_VISIBLE);
                 }

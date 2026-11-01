@@ -44,6 +44,7 @@
 #include "noise.h"
 #include "object.h"
 #include "patches.h"
+#include "hiderTracer.h"
 #include "photon.h"
 #include "photonMap.h"
 #include "pl.h"
@@ -764,6 +765,10 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     textureSystem = createTextureSystem(textureSettings);
     assert(textureSystem != NULL);
 
+    // The frame's tracer: before the frame parameters and before any context exists (spec 026). Stateless, so one per process
+    static CHiderTracer hiderTracer;
+    frameTracer = &hiderTracer;
+
     // Allow the hider to control display setup
     if (strcmp(hider, "raytrace") == 0) {
         CRaytracer::preDisplaySetup();
@@ -846,7 +851,8 @@ void CRenderer::endFrame() {
     delete[] contexts;
     contexts = NULL;
 
-    // No context is left to read the frame parameters (spec 028)
+    // No context is left to ask for rays, nor to read the frame parameters (specs 026, 028)
+    frameTracer = nullptr;
     endFrameParams();
 
     assert(stats.numRasterGrids == 0);

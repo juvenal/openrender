@@ -12,13 +12,10 @@
 
 # --- DB-001: Shading depends on the renderer core and the hiders (8) ---
 DB-001  link     src/libshader/shading/execute.cpp  ->  _ZN10CPhotonMap6lookupEPfPKfi   # CPhotonMap::lookup(float*, float const*, int)
-DB-001  link     src/libshader/shading/executeMisc.cpp  ->  _ZN15CShadingContext5traceEP4CRay   # CShadingContext::trace(CRay*)
-DB-001  link     src/libshader/shading/executeMisc.cpp  ->  _ZN15CShadingContext7traceExEP10CRayBundle   # CShadingContext::traceEx(CRayBundle*)
 DB-001  link     src/libshader/shading/executeMisc.cpp  ->  _ZTV12CTraceBundle   # vtable for CTraceBundle
 DB-001  link     src/libshader/shading/executeMisc.cpp  ->  _ZTV19CTransmissionBundle   # vtable for CTransmissionBundle
 DB-001  link     src/libshader/shading/shading.cpp  ->  _ZN10CPhotonMap6lookupEPfPKfi   # CPhotonMap::lookup(float*, float const*, int)
 DB-001  link     src/libshader/shading/shading.cpp  ->  _ZN13CGatherBundleC1Ev   # CGatherBundle::CGatherBundle()
-DB-001  link     src/libshader/shading/shading.cpp  ->  _ZN15CShadingContext7traceExEP10CRayBundle   # CShadingContext::traceEx(CRayBundle*)
 
 # --- DB-004: Geometry depends on the renderer core and on Scene Interface (52) ---
 DB-004  include  src/ri/geometry/blobby.cpp  ->  src/ri/render/renderer.h

@@ -1,0 +1,11 @@
+--- a/tests/shading_contract/case_trace_requests.cpp
++++ b/tests/shading_contract/case_trace_requests.cpp
+@@ -104,7 +104,7 @@
+                 if (q.bundle) {
+                     CT_EXPECT((int)q.rays.size() == h.numPoints);
+                     CT_EXPECT(q.bundleDepth == 0);
+-                    CT_EXPECT(q.label != "");
++                    CT_EXPECT(q.label != "-");
+                     for (const STraceRay &ray : q.rays)
+                         checkRay(ray, ATTRIBUTES_FLAGS_SPECULAR_VISIBLE);
+                 }

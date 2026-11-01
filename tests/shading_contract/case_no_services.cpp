@@ -125,7 +125,6 @@ int caseNoServicesTracer() {
     CDiagnosticSink *previous = installDiagnosticSink(&sink);
     {
         CHarness h(svc, 4);
-        h.attachFakeObject();
         CProgrammableShaderInstance *s = h.load("cm_visibility", false);
         CT_EXPECT(s != nullptr);
         if (s != nullptr) {

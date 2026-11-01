@@ -87,6 +87,7 @@ set(ri_sources
 #	dso.cpp
 	parse/error.cpp
 	hcshader.cpp
+	hiders/hiderTracer.cpp
 	hiders/irradiance.cpp
 	hiders/irradianceDispatch.cpp
 	hiders/occlusion.cpp
@@ -364,6 +365,7 @@ list(REMOVE_ITEM ribVector_sources
     geometry/csgTree.cpp
     geometry/dlobject.cpp
     hcshader.cpp
+    hiders/hiderTracer.cpp
     hiders/irradianceDispatch.cpp
     hiders/occlusion.cpp
     hiders/photon.cpp

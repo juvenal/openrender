@@ -86,6 +86,10 @@ class CForwardingServices : public CRendererServices {
             return inner->getMessage(r);
         }
 
+        openrender::shading::ITracer *tracer() override {
+            return inner->tracer();
+        }
+
         openrender::shading::MatrixAnswer getMatrix(const openrender::shading::MatrixRequest &r) const override {
             return inner->getMatrix(r);
         }

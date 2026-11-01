@@ -49,6 +49,7 @@
 #include "texture.h"
 #include "texture3d.h"
 #include "textureCalls.h"
+#include "traceCalls.h"
 
 // Default services pointer injected by src/ri/ at renderer startup.
 // nullptr until setDefaultServices() is called (standalone libshader mode).
@@ -2904,9 +2905,8 @@ T *CShadingContext::jitParameterList(const TJitParamList &pl, uint32_t callSite)
     }
 
     CShadingScratch *scratch = &(currentShadingState->scratch);
-    // With no object (FR-027) the scratch keeps the values it already holds
-    if (const CAttributes *objectAttrs = objectAttributes())
-        lookup->init(scratch, objectAttrs);
+    // With no object (FR-027) the lookups take the attribute defaults: a null attribute set is valid for init()
+    lookup->init(scratch, objectAttributes());
 
     const CPLLookup::TParamBinding *cBinding = lookup->uniforms;
     for (int var = 0; var < lookup->numUniforms; ++var, ++cBinding)
@@ -4342,9 +4342,7 @@ bool CShadingContext::gatherSample(CGatherBundle *lastGather, int *tags, int &nu
             lastGather->depth = 0;
             lastGather->postShader = shaderInstanceOf(cAttributes->interior());
             lastGather->numMisses = 0;
-            if (traceRequestObserver != nullptr)
-                reportTraceRequest(TRACEREQUEST_GATHER, lastGather->label, lastGather->depth, lastGather->numRays, lastGather->rays);
-            traceEx(lastGather);
+            libshader::traceBundle(*this, lastGather, libshader::TraceKind::Gather);
             numActive -= lastGather->numMisses;
             numPassive += lastGather->numMisses;
         }
@@ -4355,9 +4353,7 @@ bool CShadingContext::gatherSample(CGatherBundle *lastGather, int *tags, int &nu
             lastGather->depth = 0;
             lastGather->postShader = shaderInstanceOf(cAttributes->exterior());
             lastGather->numMisses = 0;
-            if (traceRequestObserver != nullptr)
-                reportTraceRequest(TRACEREQUEST_GATHER, lastGather->label, lastGather->depth, lastGather->numRays, lastGather->rays);
-            traceEx(lastGather);
+            libshader::traceBundle(*this, lastGather, libshader::TraceKind::Gather);
             numActive -= lastGather->numMisses;
             numPassive += lastGather->numMisses;
         }

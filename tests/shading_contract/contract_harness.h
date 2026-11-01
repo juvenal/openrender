@@ -28,7 +28,6 @@
 #include "libshader/shading/shading.h"
 #include "libshader/shading/shader.h"
 #include "libshader/shading/sloLoader.h"
-#include "ri/geometry/object.h" // CObject's layout only (see attachFakeObject)
 #include "ri/state/attributes.h"
 #include "ri/state/xform.h"
 
@@ -68,21 +67,6 @@ class CHarness {
         // into the state before a run, in place of the executing shader's own locals
         void setMessageLocals(int accessor, float **locals) { messageLocals[accessor] = locals; }
 
-        // A current object for the cases whose executor reads the object's attributes (the trace
-        // builtins). The standalone program cannot construct a CSurface (that is Geometry), so this is a
-        // zero-filled block, larger than any CSurface, whose CObject members attributes and xform are
-        // set: no virtual function is ever called on it, and its handle is just a key for the services
-        // double. Cases that must see a null object (the object coordinate system, FR-027) do not call it.
-        CSurface *attachFakeObject() {
-            static unsigned char block[4096] __attribute__((aligned(16)));
-            memset(block, 0, sizeof(block));
-            CObject *base = reinterpret_cast<CObject *>(block);
-            base->attributes = attributes;
-            base->xform = xform;
-            fakeObject = reinterpret_cast<CSurface *>(block);
-            return fakeObject;
-        }
-
         // Load the compiled shader <dir>/<name>.rslo or .slo and instantiate it
         CProgrammableShaderInstance *load(const std::string &name, bool jit) {
             const std::string path = contract_test::shaderDir() + "/" + name + (jit ? ".slo" : ".rslo");
@@ -116,7 +100,7 @@ class CHarness {
             ss->alights = nullptr;
             ss->currentLight = nullptr;
             ss->lightsExecuted = FALSE;
-            ss->currentObject = fakeObject; // null unless attachFakeObject() was called (QE)
+            ss->currentObject = nullptr; // the standalone program has no object (QE); the executor's reads take built-in defaults (FR-027)
             for (int i = 0; i < numPoints; i++) {
                 const float p[3] = {0.1f * (i + 1), 0.2f * (i + 1), 0.3f * (i + 1)};
                 const float n[3] = {0, 0, 1};
@@ -170,7 +154,6 @@ class CHarness {
 
         CContractServices &svc;
         int numPoints;
-        CSurface *fakeObject = nullptr;
         float **messageLocals[NUM_ACCESSORS] = {};
         CHarnessContext *context = nullptr;
         CAttributes *attributes = nullptr;

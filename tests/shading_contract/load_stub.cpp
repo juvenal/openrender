@@ -4,8 +4,7 @@
  * The load-time stub of the standalone contract program (spec 026, FR-024; contracts/test-doubles.md).
  *
  * libshader_shading still names a few Hiders symbols (research R10): the bundle classes
- * `trace()`/`transmission()`/`gather()` construct, the photon map lookup, and the two trace members
- * of CShadingContext. On macOS the chained fixups bind every one of them when the library loads, so
+ * `trace()`/`transmission()`/`gather()` construct and the photon map lookup. On macOS the chained fixups bind every one of them when the library loads, so
  * a process without libRIBRender cannot start unless something defines them. This file defines
  * them, and every body traps: a test that reaches a stub fails at once and never hangs (a message
  * to stderr, then std::abort()).
@@ -17,8 +16,8 @@
  *   vtable for CTransmissionBundle   the same four members
  *   CGatherBundle::CGatherBundle()   the constructor, ~CGatherBundle() and its four virtuals
  *   CPhotonMap::lookup(float*, const float*, int)
- *   CShadingContext::trace(CRay*)           TEMPORARY (QC): deleted in Phase 8 (6 symbols -> 4)
- *   CShadingContext::traceEx(CRayBundle*)   TEMPORARY (QC): deleted in Phase 8
+ *
+ * (Phase 8: the two CShadingContext::trace/traceEx traps are gone, the trace calls go through ITracer.)
  *
  * Compiled into the standalone executable only. Deleted by spec 029, which removes the imports.
  */
@@ -64,13 +63,3 @@ void CGatherBundle::post() { stubTrap("CGatherBundle::post"); }
 
 // ---- CPhotonMap -------------------------------------------------------------------------------------
 void CPhotonMap::lookup(float *, const float *, int) { stubTrap("CPhotonMap::lookup(float *, const float *, int)"); }
-
-// ======================================================================================================
-// TEMPORARY (spec 026, QC): deleted in Phase 8, when the trace calls go through ITracer.
-// The starting tree still imports these two (6 imports, not the 4 of contracts/test-doubles.md).
-// ======================================================================================================
-void CShadingContext::trace(CRay *) { stubTrap("CShadingContext::trace(CRay *)"); }
-void CShadingContext::traceEx(CRayBundle *) { stubTrap("CShadingContext::traceEx(CRayBundle *)"); }
-// ======================================================================================================
-// end of the TEMPORARY block
-// ======================================================================================================

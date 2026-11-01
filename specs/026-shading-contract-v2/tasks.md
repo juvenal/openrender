@@ -770,8 +770,7 @@ backend's own behaviour (Q2). Tests that go green: `Messages{Interp,Jit}`, `NoSe
 - [X] T129 [US7] Add `const CAttributes *CShadingContext::objectAttributes() const` (declared in `shading.h`, defined out of line in `shading.cpp`, which keeps `object.h`: it returns
   `currentShadingState->currentObject->attributes`, and **null when there is no current object**). It exists so that `execute.cpp` and `executeMisc.cpp` stop needing `CSurface`'s complete type.
   **Amended at T064/T066 (2026-10-31, null-tolerant design decided by the maintainer):** its consumers on the trace path take built-in defaults when it is null, so the standalone program's trace cases run with no object and the executor
-  no longer dereferences a null object (FR-027). The consumers are the parameter-list lookups' `init` (`plBegin` and `jitParameterList`: with a null attribute set the bias, maximum distance, samples and sample base keep the values the
-  scratch pad already holds) and the two flag reads (`flags & ATTRIBUTES_FLAGS_SAMPLEMOTION` in `traceTransmission`, and `interior()`, `exterior()`, `flags` in `traceReflection`: no motion sampling, no interior or exterior shader).
+  no longer dereferences a null object (FR-027). The consumers are the parameter-list lookups' `init` (`plBegin` and `jitParameterList`: `init` always runs; **corrected 2026-11-01 (maintainer, found in Phase 8)**: the scratch pad holds zeros, not defaults, so skipping `init` produced no rays. With a null attribute set `init` still sets samples 1, sample base 1, maximum distance infinity and an empty label, and the bias takes the attribute default 0.01 (the value `CAttributes`' constructor gives) through `traceBias()` in `shaderPl.cpp`; no `CAttributes` is constructed in Shading) and the two flag reads (`flags & ATTRIBUTES_FLAGS_SAMPLEMOTION` in `traceTransmission`, and `interior()`, `exterior()`, `flags` in `traceReflection`: no motion sampling, no interior or exterior shader).
   **No `static CAttributes` goes into `libshader_shading`** (a constructed default would add the imports `CAttributes::CAttributes()` and its vtable, which SC-011 forbids). Keep the import measurement at the Phase 7 checkpoint
   (`nm -m` / `dyld_info` and the Linux `nm -D`) as a check: expect no growth.
 - [X] T130 [US7] Route the **seven** reads that are compiled into `execute.cpp`/`executeMisc.cpp`/`shaderFunctions.h`/`giFunctions.h` and read the object's attributes through `objectAttributes()` (research R5; the eighth site, `scripterror`, passes the object pointer and goes through `objectHandle()` in `T131`, "7 + 1"): `execute.cpp` `plBegin` (`lookup->init(scratch, attributes)`) and
@@ -802,50 +801,50 @@ green unchanged. Red: 3 DB-001 `VIOLATION` lines, and the trace tests. Tests tha
 
 ### Tests block
 
-- [ ] T137 [US6] Delete exactly these three lines from `tests/architecture/allowlist.txt`, **by key** (Q1): `DB-001  link  src/libshader/shading/executeMisc.cpp  ->  _ZN15CShadingContext5traceEP4CRay`;
+- [X] T137 [US6] Delete exactly these three lines from `tests/architecture/allowlist.txt`, **by key** (Q1): `DB-001  link  src/libshader/shading/executeMisc.cpp  ->  _ZN15CShadingContext5traceEP4CRay`;
   `DB-001  link  src/libshader/shading/executeMisc.cpp  ->  _ZN15CShadingContext7traceExEP10CRayBundle`; `DB-001  link  src/libshader/shading/shading.cpp  ->  _ZN15CShadingContext7traceExEP10CRayBundle`. The
   two bundle vtables, `CGatherBundle::CGatherBundle()` and the two `CPhotonMap::lookup` lines stay for spec 029.
-- [ ] T138 [US6] Test gate for Phase 8 (TG steps 1 to 3). Enable `ShadingContract_TraceRequests{Interp,Jit}`, `GatherRequests{Interp,Jit}`, `CannedTrace{Interp,Jit}`, `NoTracer` and `NoServices_Tracer`. [RUN] build and run
+- [X] T138 [US6] Test gate for Phase 8 (TG steps 1 to 3). Enable `ShadingContract_TraceRequests{Interp,Jit}`, `GatherRequests{Interp,Jit}`, `CannedTrace{Interp,Jit}`, `NoTracer` and `NoServices_Tracer`. [RUN] build and run
   them, and `ctest -L architecture`. Expected red: the tracer tests fail because the double's `tracer()` was never asked (and, in the standalone program, the TEMPORARY stub traps for `trace`/`traceEx` abort: an abort is red
   evidence); `NoServices_Tracer` fails for lack of the new-kind warning; `ctest -L architecture` reports **exactly the three `VIOLATION`s** of the deletion above. Record in validation.md §2.
-- [ ] T139 [US6] Edit the existing wrappers (QA, decided 2026-10-31; named for approval): add `ITracer *tracer() override { return inner->tracer(); }` to `CForwardingServices`, `CRecordingServices` and `CTextureServices` (not
+- [X] T139 [US6] Edit the existing wrappers (QA, decided 2026-10-31; named for approval): add `ITracer *tracer() override { return inner->tracer(); }` to `CForwardingServices`, `CRecordingServices` and `CTextureServices` (not
   `CStubServices`: it has no inner implementation). Edit the new test code `load_stub.cpp`: **delete the two TEMPORARY traps** `CShadingContext::trace(CRay *)` and `traceEx(CRayBundle *)` (the table becomes the 4 symbols of
   contracts/test-doubles.md). That deletion is an edit to an approved test and is approved here.
-- [ ] T139a [US6] Remove `attachFakeObject()` from `tests/shading_contract/contract_harness.h` (and the `ri/geometry/object.h` include if nothing else uses it) and its two callers, `case_trace_requests.cpp` (`TraceRequests{Interp,Jit}`) and `case_no_services.cpp`
+- [X] T139a [US6] Remove `attachFakeObject()` from `tests/shading_contract/contract_harness.h` (and the `ri/geometry/object.h` include if nothing else uses it) and its two callers, `case_trace_requests.cpp` (`TraceRequests{Interp,Jit}`) and `case_no_services.cpp`
   (`NoServices_Tracer`): the trace path reads the object's attributes only through `objectAttributes()` since Phase 7 (T130), whose consumers take built-in defaults when it is null, so the standalone program runs the probe and bundle forms with a null current object (QE, as decided). This edits approved test code
   (approved at T064, 2026-10-31); show the diff in the Phase 8 report. If a read on the trace path could not be routed in Phase 7, keep `attachFakeObject()` for that read alone and name the read and why.
-- [ ] T140 [US6] **TEST-APPROVAL (PAUSE 8a)**: stage the allowlist deletion, the enabled tests, `T139`; summarize the red output, the three `VIOLATION`s, the stub change (6 -> 4 symbols), the removal of `attachFakeObject()` (`T139a`, with its diff) and the
+- [X] T140 [US6] **TEST-APPROVAL (PAUSE 8a)**: stage the allowlist deletion, the enabled tests, `T139`; summarize the red output, the three `VIOLATION`s, the stub change (6 -> 4 symbols), the removal of `attachFakeObject()` (`T139a`, with its diff) and the
   replay's role (the eight `TraceReplay_*` tests are **not** edited and **not** re-recorded; they must stay green through the move of the observer). **Wait for approval.**
 
 ### Implementation
 
-- [ ] T141 [US6] Create `src/libshader/shading/traceCalls.h` and `traceCalls.cpp` as contracts/tracer.md: `enum class TraceKind : uint8_t { Trace, Transmission, Visibility, Gather, Occlusion, IndirectDiffuse }`;
+- [X] T141 [US6] Create `src/libshader/shading/traceCalls.h` and `traceCalls.cpp` as contracts/tracer.md: `enum class TraceKind : uint8_t { Trace, Transmission, Visibility, Gather, Occlusion, IndirectDiffuse }`;
   `libshader::traceRay(CShadingContext &, CRay *, TraceKind)` and `traceBundle(CShadingContext &, CRayBundle *, TraceKind)`. Each calls `CShadingContext::traceRequestObserver` first when set (moved here from the call
   sites), then `context.getServices()->tracer()`. With no services or no tracer: warn once per process per kind (`std::atomic<bool>` per kind, `CODE_NOTSTARTED`), then `traceRay` sets `ray->object = nullptr` and
   `traceBundle` calls `bundle->postShade(bundle->numRays, bundle->rays)` (the miss path `traceEx` takes past the maximum ray depth, FR-012). Add `traceCalls.cpp` to `src/libshader/shading/CMakeLists.txt`. Includes
   `shading.h` and `tracer.h` only.
-- [ ] T142 [US6] Rewrite the 10 Shading call sites to go through the helpers, **removing the Phase 1 observer calls at them in the same edit** (the helpers observe the same thing): in `executeMisc.cpp`
+- [X] T142 [US6] Rewrite the 10 Shading call sites to go through the helpers, **removing the Phase 1 observer calls at them in the same edit** (the helpers observe the same thing): in `executeMisc.cpp`
   the probe `trace(cRay)` (kind `Transmission` or `Visibility`, chosen by the caller, `traceTransmission`'s probe) and the reflection probe `trace(cRay)` (`Trace`); the two `traceEx` in `traceTransmission`
   (`Transmission`) and the four in `traceReflection` (`Trace`); in `shading.cpp` the two `traceEx(lastGather)` in `gatherSample` (`Gather`). The ray-traced `environment()`/`shadow()` and the JIT's `jitTraceBatch`
   reach `traceReflection`/`traceTransmission`, so both backends are covered (FR-011).
-- [ ] T143 [P] [US6] In `src/ri/hiders/irradianceDispatch.cpp` replace the two `context->trace(&ray)` calls in `CIrradianceCache::sample` by `libshader::traceRay(*context, &ray, TraceKind::Occlusion)` and
+- [X] T143 [P] [US6] In `src/ri/hiders/irradianceDispatch.cpp` replace the two `context->trace(&ray)` calls in `CIrradianceCache::sample` by `libshader::traceRay(*context, &ray, TraceKind::Occlusion)` and
   `(..., TraceKind::IndirectDiffuse)`, removing the Phase 1 observer calls there (Q6). Include `libshader/shading/traceCalls.h` (Hiders -> Shading, allowed). That file is built into `ribRender` only; `ribVector`
   uses `vector/irradianceDispatchStub.cpp`.
-- [ ] T144 [P] [US6] Create `src/ri/hiders/hiderTracer.h` and `hiderTracer.cpp`: `class CHiderTracer final : public ITracer` with `traceRay(CShadingContext &c, CRay *r) override { c.trace(r); }` and `traceBundle(...)
+- [X] T144 [P] [US6] Create `src/ri/hiders/hiderTracer.h` and `hiderTracer.cpp`: `class CHiderTracer final : public ITracer` with `traceRay(CShadingContext &c, CRay *r) override { c.trace(r); }` and `traceBundle(...)
   override { c.traceEx(b); }`, stateless, with `static_assert(openrender::shading::kRendererServicesVersion.major == 2);`. Add `hiders/hiderTracer.cpp` to `ri_sources` in `src/ri/CMakeLists.txt` **and to the `REMOVE_ITEM`
   list for ribVector** with the other hider units (it calls `trace()`/`traceEx()`, which ribVector does not build).
-- [ ] T145 [US6] Install the tracer per frame. `src/ri/render/renderer.h` and `rendererStatics.cpp`: `static ITracer *frameTracer;` (`nullptr` between frames). `renderer.cpp` `beginFrame()`: `frameTracer =
+- [X] T145 [US6] Install the tracer per frame. `src/ri/render/renderer.h` and `rendererStatics.cpp`: `static ITracer *frameTracer;` (`nullptr` between frames). `renderer.cpp` `beginFrame()`: `frameTracer =
   &hiderTracer;` (a function-local static `CHiderTracer`) right after `textureSystem` is created and **before** `beginFrameParams()` and before any context is constructed; `endFrame()`: `frameTracer = nullptr;` right
   after the contexts are deleted, next to `endFrameParams()`. `CRendererServicesImpl::tracer()` returns `CRenderer::frameTracer`. Put the three-point answer to FR-010 (one hider class per frame; the adapter is stateless
   and every piece of trace state is a member of the context argument; the slot is written only while no render thread exists, the imager runs inside the frame) in a comment at `frameTracer`. That answer is **argued from the code, not tested** (accepted by the maintainer, C6); say so in the comment.
-- [ ] T146 [US6] [RUN] Build and run the Phase 8 tests (all green) and, **unedited and not re-recorded, the eight `ShadingContract_TraceReplay_*` tests** (green: the observer now sits in the helpers and
+- [X] T146 [US6] [RUN] Build and run the Phase 8 tests (all green) and, **unedited and not re-recorded, the eight `ShadingContract_TraceReplay_*` tests** (green: the observer now sits in the helpers and
   observes what is handed to the tracer). A red replay means a call site's rays changed: stop.
-- [ ] T147 [US6] [RUN] Re-measure the imports after the change: macOS `nm -m` and `dyld_info -fixups` of `libshader_shading` -> `libshader-imports-after-macos.txt`; expect **4** (`CGatherBundle::CGatherBundle()`, the two bundle
+- [X] T147 [US6] [RUN] Re-measure the imports after the change: macOS `nm -m` and `dyld_info -fixups` of `libshader_shading` -> `libshader-imports-after-macos.txt`; expect **4** (`CGatherBundle::CGatherBundle()`, the two bundle
   vtables, `CPhotonMap::lookup`), a subset of the starting 6 (SC-011); the standalone program still starts with the 4-symbol stub. Check `grep -rn 'CShadingContext::trace' src/libshader` shows no reference.
-- [ ] T148 [US6] [RUN] Checkpoint 8: CP-a, CP-b, **CP-c** (`ALLOWED DB-001 x 5`, `DB-005 x 8`, `DB-006 x 31`, `RESULT PASS`, no `STALE`), **CP-d**, CP-m. Record in validation.md §1.
-- [ ] T149 [US6] [RUN] CP-L for Phase 8, including `nm -D --undefined-only` and `readelf -d` of `libshader_shading.so` -> `libshader-imports-after-linux.txt` (the Linux imports must not grow) and the Linux
+- [X] T148 [US6] [RUN] Checkpoint 8: CP-a, CP-b, **CP-c** (`ALLOWED DB-001 x 5`, `DB-005 x 8`, `DB-006 x 31`, `RESULT PASS`, no `STALE`), **CP-d**, CP-m. Record in validation.md §1.
+- [X] T149 [US6] [RUN] CP-L for Phase 8, including `nm -D --undefined-only` and `readelf -d` of `libshader_shading.so` -> `libshader-imports-after-linux.txt` (the Linux imports must not grow) and the Linux
   stub table at 4 symbols (plus whatever `BIND_NOW` requires, recorded).
-- [ ] T150 [US6] **Checkpoint 8 (PAUSE 8)**: stage; summarize (US6 done: `ITracer` is Shading's, the hiders answer it unchanged, DB-001 8 -> 5, imports 6 -> 4, replay unchanged); CP results; wait for review.
+- [X] T150 [US6] **Checkpoint 8 (PAUSE 8)**: stage; summarize (US6 done: `ITracer` is Shading's, the hiders answer it unchanged, DB-001 8 -> 5, imports 6 -> 4, replay unchanged); CP results; wait for review.
 
 
 ---
