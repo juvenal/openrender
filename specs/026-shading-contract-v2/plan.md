@@ -256,7 +256,7 @@ Details are in [research.md](research.md), and the interfaces in [contracts/](co
     absence rule. `du`/`dv`, `rayWidth` and `dPdx`/`dPdy` are separate fields. The footprint is
     `CAttributes::shadingRate`, which is already √area.
 12. **Situations (R13)**: a 14-row table derived from every `shade()`/`displace()` call site. It
-    records 8 oddities and fixes none.
+    records 8 oddities and fixes none (one, the DLO vertex count O2 #116, was then resolved by #129, closed 2026-11-01).
 13. **SC-005 (R14)**: a single-threaded trace replay recorded on the starting tree through a
     null-in-production observer (Q7).
 

@@ -21,14 +21,14 @@
  * The branch shade() took (primitive-only versus shaded) is observed through a marker shader that prints
  * its ray depth every time it runs: with "primitive" the marker is absent from the output.
  *
- * Rows 6 and 7 (implicit-surface and DSO-object hits, whose present behaviour is an oddity, O5 #119 and
- * O2 #116) and rows 10 to 14 (no shade()) are asserted from classifyShading() alone (B8). The eight
- * oddities of research R13 are asserted as oddities (documented, not fixed): 1 camerahitmode applies
- * after the shaders; 2 a raytrace camera hit reads specularhitmode, not camerahitmode; 3 an
- * implicit-surface hit is 0-D (no derivatives, no hit mode); 4 a DSO-object hit passes vVertices = -1;
- * 5 diffusehitmode is parsed and never read; 6 the atmosphere runs only at depth 0 and never on a matte
- * object; 7 a shaded transmission hit skips the displacement shader; 8 camerahitmode is ignored for
- * 0-D points and by the raytrace camera hit.
+ * Rows 6 and 7 (implicit-surface and DSO-object hits; row 6's present behaviour is an oddity, O5 #119,
+ * and row 7 is kept classify-only as decided in B8, although the DLO vertex count was fixed by #129,
+ * was #116) and rows 10 to 14 (no shade()) are asserted from classifyShading() alone (B8). The seven
+ * oddities of research R13 that remain are asserted as oddities (documented, not fixed): 1 camerahitmode
+ * applies after the shaders; 2 a raytrace camera hit reads specularhitmode, not camerahitmode; 3 an
+ * implicit-surface hit is 0-D (no derivatives, no hit mode); 4 diffusehitmode is parsed and never read;
+ * 5 the atmosphere runs only at depth 0 and never on a matte object; 6 a shaded transmission hit skips
+ * the displacement shader; 7 camerahitmode is ignored for 0-D points and by the raytrace camera hit.
  */
 #include <cstdio>
 #include <cstdlib>
@@ -197,7 +197,7 @@ namespace {
         }
         if (s.rasterHider) {
             if (r.dim == (int)SHADING_0D)
-                return {2, c}; // camerahitmode ignored for 0-D points (oddity 8)
+                return {2, c}; // camerahitmode ignored for 0-D points (oddity 7)
             c.hitMode = mode(s.cameraMode);
             return {1, c};
         }
@@ -213,7 +213,11 @@ namespace {
 
     void checkScene(const SScene &s, const SRunOutput &out) {
         printf("  %s: %d report(s), %d marker(s), %d at depth >= 1, %d displacement run(s)\n", s.name, (int)out.reports.size(), out.markers, out.markersDeep, out.displacementRuns);
-        CT_EXPECT(!out.reports.empty());
+        // A primitive hit mode returns from shade() before fillPointKeys() and before the displacement shader, so neither
+        // observer fires: a scene whose hits are all primitive has no report, and no shader runs (no marker)
+        CT_EXPECT(!out.reports.empty() || !s.markerExpected);
+        if (!s.markerExpected)
+            CT_EXPECT(out.markers == 0);
 
         std::set<int> rows;
         for (const SReport &r : out.reports) {
@@ -275,7 +279,7 @@ namespace {
             auto c2 = libshader::classifyShading(situation((int)SHADING_0D, 0, 1, 1, false, false));
             CT_EXPECT(c2.rayType == RayType::Shadow && c2.hitMode == HitMode::Shade);
         }
-        // Row 7: a DSO-object ray hit classifies as rows 3 to 5 (its vVertices = -1 is a defect, filed as O2 #116)
+        // Row 7: a DSO-object ray hit classifies as rows 3 to 5 (its vertex count was fixed by #129, was #116)
         {
             auto c0 = libshader::classifyShading(situation((int)SHADING_2D, 0, 0, 0, false, false));
             CT_EXPECT(c0.rayType == RayType::Camera && c0.hitMode == HitMode::Primitive);

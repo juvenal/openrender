@@ -1,0 +1,4 @@
+                 (undefined) external __ZN10CPhotonMap6lookupEPfPKfi (dynamically looked up)
+                 (undefined) external __ZN13CGatherBundleC1Ev (dynamically looked up)
+                 (undefined) external __ZTV12CTraceBundle (dynamically looked up)
+                 (undefined) external __ZTV19CTransmissionBundle (dynamically looked up)

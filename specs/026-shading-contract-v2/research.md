@@ -521,9 +521,12 @@ oddities, recorded, not fixed here, and filed as O2 to O6 (`validation.md` §4):
    overwrites `Oi` with the attribute opacity and keeps `Ci` (`shading.cpp:1374-1382`).
 3. **Implicit-surface ray hits** are shaded as `SHADING_0D` (`implicitSurface.cpp:258`): no hit mode
    applies, and no derivatives.
-4. **DSO-object ray hits** call `shade(this, numRays, -1, SHADING_2D, 0)` (`dlobject.cpp:176`), so
-   `vVertices = -1`. Under `assert` that fails, and in Release `numVertices` is negative. Recorded as a
-   probable defect, to be filed.
+4. **DSO-object ray hits** called `shade(this, numRays, -1, SHADING_2D, 0)` (`dlobject.cpp:176`), so
+   `vVertices = -1`. Under `assert` that failed, and in Release `numVertices` was negative. Filed as O2
+   #116 and **resolved by #129 (closed 2026-11-01)**: `dlobject.cpp:173` now passes 1. Kept here as the
+   record; it is no longer an oddity, so seven remain. The numbers of the list are kept so that the filed
+   issues (#117 to #120) still match; the test and `situation.cpp` count the seven that remain (the old
+   5 to 8 are their 4 to 7).
 5. **`diffusehitmode`** is parsed, and a value other than `"p"` warns `CODE_UNIMPLEMENT`
    (`rendererContext.cpp:3701-3704`). It is never read, so gather hits use `specularhitmode`.
 6. **The atmosphere** runs only at ray depth 0 (`shading.cpp:1361`). A matte object runs no
@@ -543,7 +546,7 @@ oddities, recorded, not fixed here, and filed as O2 to O6 (`validation.md` §4):
 - **What it checks**: `classifyShading()` returns the table's row, and the branch `shade()` took
   (primitive-only versus shaded) matches the hit mode.
 - **The rows without `shade()`** (photon emission, imager, probe-only rays: rows 10-14) **and rows 6 and 7** (implicit-surface hits and DSO-object hits, whose present behaviour is an
-  oddity, O5 #119 and O2 #116) are checked from the table by a unit assertion on `classifyShading()`, not rendered (B8).
+  oddity, O5 #119; row 7 is kept as decided now that O2 #116 is resolved by #129, and could be rendered later) are checked from the table by a unit assertion on `classifyShading()`, not rendered (B8).
 - **SC-006's "every situation in the visual suite"**: every visual scene shades through these call
   sites with the hit-mode values Phase 1 greps from `tests/visual/**/*.rib`. The test's scene set
   covers every (call site, hit mode) pair that the grep finds, rows 6 and 7 excepted.
@@ -610,7 +613,7 @@ The classification, reasons and issue text are in `validation.md` §4; O1 to O7 
 **Filed by the maintainer as P1 (out of scope)**
 
 5. **O1**: JIT `lightsource()` reads the last light that ran, handles floats only, and writes the value where the found flag belongs (R7; Q2).
-6. **O2**: `CDLObject::shade` passes `vVertices = -1` (R13.4).
+6. **O2**: `CDLObject::shade` passed `vVertices = -1` (R13.4); resolved by #129 (closed 2026-11-01).
 7. **O3**: `camerahitmode` is ignored by raytrace camera hits and by 0-D points (R13.1, .2, .8).
 8. **O4**: `diffusehitmode` is never read (R13.5).
 9. **O5**: implicit-surface ray hits are shaded 0-D (R13.3).

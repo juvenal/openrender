@@ -832,7 +832,8 @@ void CShadingContext::fillPointKeys(CSurface *object, EShadingDim dim, bool repo
 
     // The hook reports the grids that are shaded, not the dicer's displacement-only probes
     if (report && pointKeyObserver != nullptr) {
-        const CPointKeyReport keyReport{object, numReal, state->pointKeys, u, v};
+        const CPointKeyReport keyReport{object, numReal, state->pointKeys, u, v, dim, FALSE, inShadow, currentRayDepth,
+                                        rendererIlluminationHook() ? 1 : 0};
         pointKeyObserver(keyReport);
     }
 }
@@ -1283,7 +1284,8 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
 
         if (pointDisplacedObserver != nullptr) {
             const CPointDisplacedReport report{object, displaceOnly, currentShadingState->numRealVertices, varying[VARIABLE_U],
-                                               varying[VARIABLE_V], varying[VARIABLE_P]};
+                                               varying[VARIABLE_V], varying[VARIABLE_P], dim, inShadow, currentRayDepth,
+                                               rendererIlluminationHook() ? 1 : 0};
             pointDisplacedObserver(report);
         }
     }

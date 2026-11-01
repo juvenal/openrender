@@ -54,7 +54,7 @@ Decisions of the analyze stage (2026-10-31): the analysis of spec, plan and task
 - B1: SC-007 stays as written (byte-identical images for the determinism sweep too). Phase 1 therefore records a sweep image manifest on the starting tree, on each platform, and the final phase diffs against it. (maintainer; **Decided 2026-10-31**)
 - B3: F4/FR-029 covers the crossed accessor constants in the JIT as well (`jitIncidentParameter` passes `ACCESSOR_EXTERIOR`, `jitOppositeParameter` `ACCESSOR_INTERIOR`, `shading.cpp`); the `MessageAccessors` test covers both, and F4 is folded into SC-013. (maintainer; **Decided 2026-10-31**)
 - B4: the `TypeMismatch` check is not applied to source `Light`. `lightsource()` keeps each backend's output (Q2, FR-022), and the interpreter and JIT disagree about the destination there. FR-026 is amended. (maintainer; **Decided 2026-10-31**)
-- B8: situation-table rows 6 (implicit-surface hits) and 7 (DSO-object hits, O2 / #116) are asserted from `classifyShading()` alone, like rows 10 to 14, because their present behaviour is an oddity and not a case to render. FR-018 is amended. (maintainer; **Decided 2026-10-31**)
+- B8: situation-table rows 6 (implicit-surface hits) and 7 (DSO-object hits, O2 / #116) are asserted from `classifyShading()` alone, like rows 10 to 14, because their present behaviour is an oddity and not a case to render. FR-018 is amended. (maintainer; **Decided 2026-10-31**) **Update 2026-11-01**: #116 (`CDLObject::shade` passed `vVertices = -1`) was fixed by #129 and closed; the DLO vertex count is now 1. Row 7 stays classify-only as decided (kept as decided; it could be rendered later now that the vertex count is fixed); its reason is no longer an oddity.
 
 Triage, in scope (resolved in this spec, tests first):
 
@@ -63,10 +63,10 @@ Triage, in scope (resolved in this spec, tests first):
 - F3 (R7): the interpreter's `lightsource()` outside an `illuminance`/`illuminate` loop answers not found instead of dereferencing a null light. FR-028, SC-014.
 - F4 (R7): the accessor constants of `incident()`/`opposite()` agree with the source they ask for, in the interpreter's `DEFFUNC` lines and in the JIT's `jitIncidentParameter`/`jitOppositeParameter` (`shading.cpp`); no output changes. FR-029, SC-013.
 
-Triage, out of scope (filed as P1: O1 #115, O2 #116, O3 #117, O4 #118, O5 #119, O6 #120, O7 #121; evidence is added as a comment on the issue; the text of each is kept in `validation.md` §4.3):
+Triage, out of scope (filed as P1: O1 #115, O2 #116 (resolved by #129, closed 2026-11-01), O3 #117, O4 #118, O5 #119, O6 #120, O7 #121; evidence is added as a comment on the issue; the text of each is kept in `validation.md` §4.3):
 
 - O1: the JIT/interpreter `lightsource()` divergence (Q2 keeps each backend's output; spec 033 owns the JIT entry points).
-- O2: `CDLObject::shade` passes `vVertices = -1` (a Geometry source, spec 031; memory-safety).
+- O2: `CDLObject::shade` passed `vVertices = -1` (a Geometry source, spec 031; memory-safety). **Resolved by #129 (closed 2026-11-01)**: `dlobject.cpp` now passes 1; kept here as the record.
 - O3: `camerahitmode` honoured only for REYES grids (situation oddities 1, 2, 8).
 - O4: `diffusehitmode` parsed and never read (oddity 5).
 - O5: implicit-surface ray hits shaded 0-D (oddity 3).

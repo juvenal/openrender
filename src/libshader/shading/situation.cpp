@@ -6,15 +6,15 @@
  * Description:
  *   classifyShading(): the situation table of contracts/shader-globals.md as a pure function (spec 026).
  *   Each branch names the table row and the code location it reproduces at spec 026's starting tree.
- *   The eight oddities of research R13 are encoded as the table has them. They are not fixed here:
+ *   The seven oddities of research R13 that remain are encoded as the table has them. They are not fixed here:
  *     1  camerahitmode applies after the shaders to a REYES grid (shading.cpp, the "primitive" overwrite of Oi)
  *     2  a raytrace camera hit reads specularhitmode, not camerahitmode (shading.cpp:915)
  *     3  an implicit-surface ray hit is shaded as SHADING_0D: no derivatives, no hit mode (O5 #119)
- *     4  a DSO-object ray hit calls shade() with vVertices = -1 (O2 #116)
- *     5  diffusehitmode is parsed and never read (rendererContext.cpp:3701-3704)
- *     6  the atmosphere runs only at depth 0 and never on a matte object (shading.cpp:1361, :933-936)
- *     7  a shaded transmission hit skips the displacement shader
- *     8  camerahitmode is ignored for 0-D points and by the raytrace camera hit
+ *     4  diffusehitmode is parsed and never read (rendererContext.cpp:3701-3704)
+ *     5  the atmosphere runs only at depth 0 and never on a matte object (shading.cpp:1361, :933-936)
+ *     6  a shaded transmission hit skips the displacement shader
+ *     7  camerahitmode is ignored for 0-D points and by the raytrace camera hit
+ *   (A DSO-object ray hit used to pass vVertices = -1; #129 fixed it, was #116, so it is no longer an oddity.)
  *
  * Authors:
  *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
@@ -75,7 +75,7 @@ namespace libshader {
         }
 
         if (s.rasterHider) {
-            // Row 2: REYES points and curves, SHADING_0D (reyes.cpp:907, :968): camerahitmode is ignored (oddity 8)
+            // Row 2: REYES points and curves, SHADING_0D (reyes.cpp:907, :968): camerahitmode is ignored (oddity 7)
             if (zeroD)
                 return c;
             // Row 1: a REYES or zbuffer grid seen by the camera (reyes.cpp:1061, :1115). camerahitmode is
@@ -90,9 +90,9 @@ namespace libshader {
         //   row 3: a raytrace camera hit (raytracer.cpp:652, depth 0) reads specularhitmode (shading.cpp:915),
         //          not camerahitmode (oddity 2)
         //   row 4: a secondary hit (depth >= 1, not in shadow) reads specularhitmode; diffusehitmode is
-        //          never read (oddity 5)
+        //          never read (oddity 4)
         //   row 6: an implicit-surface hit is SHADING_0D (implicitSurface.cpp:258): no hit mode (oddity 3)
-        //   row 7: a DSO-object hit (dlobject.cpp:176) is classified as rows 3 to 5 (oddity 4: vVertices = -1)
+        //   row 7: a DSO-object hit (dlobject.cpp:173) is classified as rows 3 to 5
         c.rayType = (s.rayDepth == 0) ? RayType::Camera : RayType::Secondary;
         c.hitMode = zeroD ? HitMode::Shade : modeOf(s.specularHitMode);
         return c;

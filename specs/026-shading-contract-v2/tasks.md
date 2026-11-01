@@ -492,7 +492,7 @@ The one TEST-APPROVAL for the bulk of the test code is at the end of this phase;
 - [X] T061 [P] [US5] Write `tests/shading_contract/case_situations.cpp` and scenes `tests/shading_contract/scenes/sit_*.rib` (`Situations`, rendered): one small scene per row 1 to 5, 8 and 9 of the situation table in
   contracts/shader-globals.md, covering every (call site, hit mode) pair `T009` found, **rows 6 and 7 excepted (classify-only, B8)**; the scenes read `dim`, `displaceOnly`, `inShadow`, `rayDepth` and `illuminationHook` from the two
   spec-039 test observers (their reports gain these as trailing fields in Phase 9); the test asserts `libshader::classifyShading()` returns the row's ray type, hit mode, transport and pass, and that the
-  branch `shade()` took (primitive-only versus shaded) matches the hit mode. **Rows 6 and 7 (implicit-surface hits and DSO-object hits, whose present behaviour is an oddity: O5 #119, O2 #116) and rows 10 to 14 (no `shade()`) are asserted from `classifyShading()` alone** (B8). The eight oddities of research R13 are asserted as
+  branch `shade()` took (primitive-only versus shaded) matches the hit mode. **Rows 6 and 7 (implicit-surface hits and DSO-object hits, row 6's present behaviour is an oddity, O5 #119; row 7 is kept classify-only as decided in B8, O2 #116 having been resolved by #129 on 2026-11-01) and rows 10 to 14 (no `shade()`) are asserted from `classifyShading()` alone** (B8). The seven remaining oddities of research R13 are asserted as
   oddities (documented, not fixed).
 - [X] T062 [US1] [RUN] Red evidence by build failure, in a scratch tree: check `df -h /Volumes/Projects`, then `$CJ 026-red-configure cmake -B build-red -S . -DCMAKE_BUILD_TYPE=Release -DOPENRENDER_SHADING_CONTRACT_TESTS=ON`
   (through `cpujob`; the option is what makes the targets exist), `$CJ 026-red cmake --build build-red --target test_shading_contract_standalone test_shading_contract_rendered -j4`. The expected failure names the missing
@@ -536,7 +536,7 @@ No image can change (nothing reads the new members yet).
   per-batch fields may be assumed; derivative tail never active; inactive lanes unspecified). `shadingCellFootprint` documented as "pixels: `CAttributes::shadingRate`, already sqrt(area), never square-rooted again".
 - [X] T070 [US5] Create `src/libshader/shading/situation.h` and `situation.cpp`: `libshader::ShadingSituation`, `ShadingClass` and `classifyShading()` as a **pure function** encoding the 14-row table
   of contracts/shader-globals.md (inputs `dim`, `displaceOnly`, `inShadow`, `rayDepth`, `illuminationHook`, `rasterHider`, the three hit-mode characters). Called only by tests (FR-018); nothing in the render path
-  includes it. The eight oddities of research R13 are encoded as the table has them (not fixed) with a comment per row naming the code location.
+  includes it. The oddities of research R13 are encoded as the table has them (not fixed) with a comment per row naming the code location (eight when written; O2, the DLO vertex count, was then resolved by #129, so seven remain).
 - [X] T071 [US1] Edit `src/libshader/shading/rendererServices.h` (depends on `T067`): add `InterfaceVersion` and `inline constexpr InterfaceVersion kRendererServicesVersion{2, 0, 0}` with the MAJOR/MINOR/PATCH
   rules and the history table (first row `2.0.0 (spec 026, <the date this task is done>)`; "version 1 was the unversioned interface of specs 024, 025, 027"); forward-declare `ITracer`; add the four members with the defaults of
   contracts/renderer-services-v2.md: `getAttribute(const AttributeRequest &, AttributeValue &answer) const` (default leaves `answer` at `Unavailable`), `getMessage(const MessageRequest &) const` (default `{}`),
@@ -855,22 +855,22 @@ green unchanged. Red: 3 DB-001 `VIOLATION` lines, and the trace tests. Tests tha
 
 ### Tests block
 
-- [ ] T151 [US5] Test gate for Phase 9 (TG steps 1 to 3). Enable `ShadingContract_Situations`. [RUN] build and run it. Remove `EXCLUDE_FROM_ALL` from `test_shading_contract_situations` too. Expected red: the executable does not build, because the observers' reports have no `dim`, `displaceOnly`,
+- [X] T151 [US5] Test gate for Phase 9 (TG steps 1 to 3). Enable `ShadingContract_Situations`. [RUN] build and run it. Remove `EXCLUDE_FROM_ALL` from `test_shading_contract_situations` too. Expected red: the executable does not build, because the observers' reports have no `dim`, `displaceOnly`,
   `inShadow`, `rayDepth`, `illuminationHook` fields yet (the build failure naming the missing fields is the red evidence; record it). Record in validation.md §2.
-- [ ] T152 [US5] **TEST-APPROVAL (PAUSE 9a)**: stage the enabled test; summarize the situation table's 14 rows, which rows are rendered (1 to 5, 8, 9) and which are asserted from `classifyShading()` alone (6 and 7, because their present behaviour is an oddity: #119 and #116; and 10 to 14, which no `shade()` call reaches; B8), the (call site, hit mode)
-  pairs from `T009` and the eight oddities the test asserts as oddities. The only existing-test edit in the phase is the trailing fields below (FR-023, allowed): existing readers ignore them; check by compiling
+- [ ] T152 [US5] **TEST-APPROVAL (PAUSE 9a)**: stage the enabled test; summarize the situation table's 14 rows, which rows are rendered (1 to 5, 8, 9) and which are asserted from `classifyShading()` alone (6 and 7: row 6 because its present behaviour is an oddity, #119, and row 7 kept as decided in B8 now that #116 is resolved by #129; and 10 to 14, which no `shade()` call reaches), the (call site, hit mode)
+  pairs from `T009` and the seven remaining oddities the test asserts as oddities (the DLO vertex count, #116, was fixed by #129). The only existing-test edit in the phase is the trailing fields below (FR-023, allowed): existing readers ignore them; check by compiling
   the spec-039 tests that read the reports. **Wait for approval.**
 
 ### Implementation
 
-- [ ] T153 [US5] In `src/libshader/shading/shading.h` append the trailing fields `dim`, `displaceOnly`, `inShadow`, `rayDepth`, `illuminationHook` to `CPointKeyReport` and `CPointDisplacedReport`, and fill them at the
+- [X] T153 [US5] In `src/libshader/shading/shading.h` append the trailing fields `dim`, `displaceOnly`, `inShadow`, `rayDepth`, `illuminationHook` to `CPointKeyReport` and `CPointDisplacedReport`, and fill them at the
   existing observer call sites (`shade()`/`displace()` in `shading.cpp`, where `pointKeyObserver` is invoked) from the values already in scope. **Append only; do not reorder or rename a field.** The observers stay null in
   production; nothing new is computed unless an observer is set. Any spec-039 test that aggregate-initializes a report must still compile unchanged (if one does not, stop: it is an edit to an approved test).
-- [ ] T154 [US5] [RUN] Build and run `ShadingContract_Situations` (green: `classifyShading()` returns the table's row for every rendered situation and the branch `shade()` took matches the hit mode; rows 10 to 14 asserted
+- [X] T154 [US5] [RUN] Build and run `ShadingContract_Situations` (green: `classifyShading()` returns the table's row for every rendered situation and the branch `shade()` took matches the hit mode; rows 10 to 14 asserted
   from the function), then the spec-039 tests (`ctest -R 'Sampling|PointKey|Displaced'` or the labels they carry) unchanged and green.
-- [ ] T155 [US5] [RUN] Checkpoint 9: CP-a, CP-b, CP-c (5 / 8 / 31), **CP-d**, CP-m. Record in validation.md §1. Check #116 to #120 (O2 to O6, §4.3) against what the situation test showed; any extra evidence goes to the coordinator as a comment on the issue (not fixed here).
-- [ ] T156 [US5] [RUN] CP-L for Phase 9.
-- [ ] T157 [US5] **Checkpoint 9 (PAUSE 9)**: stage; summarize (US5 done: `ShaderGlobals`, the enumerations and the situation table exist and match the code; nothing in the render path consumes them, FR-018); CP results; wait for review.
+- [X] T155 [US5] [RUN] Checkpoint 9: CP-a, CP-b, CP-c (5 / 8 / 31), **CP-d**, CP-m. Record in validation.md §1. Check #117 to #120 (O3 to O6, §4.3; O2 #116 is resolved by #129, closed 2026-11-01) against what the situation test showed; any extra evidence goes to the coordinator as a comment on the issue (not fixed here).
+- [X] T156 [US5] [RUN] CP-L for Phase 9.
+- [X] T157 [US5] **Checkpoint 9 (PAUSE 9)**: stage; summarize (US5 done: `ShaderGlobals`, the enumerations and the situation table exist and match the code; nothing in the render path consumes them, FR-018); CP results; wait for review.
 
 
 ---

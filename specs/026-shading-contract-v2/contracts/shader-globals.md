@@ -121,7 +121,7 @@ with its location.
 | 4 | Secondary hit (`trace`, ray-traced `environment`, `gather`, reflection/refraction) | `traceEx` -> depth >= 1, `!inShadow`, `SHADING_2D` | `Secondary` | `specularhitmode` (`:915`); `diffusehitmode` is parsed but never read (`rendererContext.cpp:3701-3704`) | Radiance | Full |
 | 5 | Shaded shadow/transmission hit (`transmission()`, ray-traced `shadow`) | `traceTransmission` sets `inShadow` (`executeMisc.cpp:717`) -> `shade()` | `Shadow` | `transmissionhitmode` (`shading.cpp:889`): `"p"` copies the attribute opacity and returns; `"s"` runs the surface only (`:907`) | Radiance | Full |
 | 6 | Implicit-surface ray hit | `implicitSurface.cpp:258` -> `SHADING_0D` | `Camera` (depth 0) / `Secondary` / `Shadow` | none (0-D skips the specular test) | Radiance | Full |
-| 7 | DSO-object ray hit | `dlobject.cpp:176` -> `shade(this, n, -1, SHADING_2D, 0)` (`vVertices = -1`: a defect, filed as O2, research R13.4) | as rows 3-5 | as rows 3-5 | Radiance | Full |
+| 7 | DSO-object ray hit | `dlobject.cpp:173` -> `shade(this, n, 1, SHADING_2D, 0)` (`vVertices` was -1, filed as O2 #116 and resolved by #129, closed 2026-11-01; now 1, `dlobject.cpp:173`) | as rows 3-5 | as rows 3-5 | Radiance | Full |
 | 8 | Displacement-only pass (dicing; ray tessellation) | `reyes.cpp:790, 870, 936, 1047, 1104`; `surface.cpp:1706-1794` (`PARAMETER_RAYTRACE`) -> `displace()` | `None` | none | Radiance | DisplaceOnly |
 | 9 | Displacement bound or grid-size estimate | `surface.cpp:304, 332, 334`; `geometryDispatch.cpp:455, 492` -> `displaceEstimate()` (`displaceOnly = 3`) | `None` | none | Radiance | DisplaceEstimate |
 | 10 | Photon emission (light shaders) | `photon.cpp:166-230`: phony object, `SHADING_0D`, illumination hook on; no `shade()` | `Photon` | none | Importance | Full |
@@ -137,4 +137,4 @@ Further rules the table relies on:
   (`:1065-1071`); `SHADING_0D` never does (`:1063`).
 
 `ShadingContract_Situations` checks rows 1 to 5, 8 and 9 against an in-process render (research R13). Rows 6 and 7 (implicit-surface and DSO-object
-hits, whose present behaviour is an oddity, O5 #119 and O2 #116) and rows 10-14 are checked against `classifyShading()` alone (B8).
+hits; row 6's present behaviour is an oddity, O5 #119, and row 7 is kept as decided now that O2 #116 is resolved by #129) and rows 10-14 are checked against `classifyShading()` alone (B8).

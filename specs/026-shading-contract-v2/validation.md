@@ -113,6 +113,25 @@ The two test-code fixes of `tools/phase3-test-fixes.diff` (D5, D6) were confirme
 | Final tree (diff applied, 4 tests ENABLED), 2026-10-31 | full build clean (`-Werror`, no warning); `ctest -L shading_contract`: the 8 replay tests, `StandaloneLinkLine` and the 4 new tests pass, 24 "Not Run (Disabled)"; CP-b `-LE determinism-sweep` **942 tests, 100% passed**; CP-d (fresh stamp) **819 images, 0 differing, 0 missing**, `MaxBlockAvgDiff` equal to `baseline-diffs-macos.txt`, 1 INFO (the stray `ri.tif`); CP-c 21 of 21, `RESULT PASS` |
 | T079 JIT-off compile (`build-nojit`, `-DOPENRENDER_ENABLE_JIT=OFF`) | configure and `libshader_shading` build exit 0, no error or warning under `-Werror`; `sloLoader.cpp` compiles empty and the library exports no `parseSloShader`. `build-nojit` is kept for T169 |
 
+### Phase 9 (T155; macOS, merged-tree baselines re-taken at the start of the phase)
+
+| Check | Result |
+|---|---|
+| CP-a build | exit 0 (`-j4`, Release, JIT ON) |
+| T154 `ShadingContract_Situations` | green after the approved test edit (below); the spec-039 tests unchanged: `ctest -L sampling -j4`, 114 tests passed |
+| CP-b suite (`-LE determinism-sweep -j4`) | **1052 of 1052 passed** (the merged baseline's 1051 plus `ShadingContract_Situations`, now enabled); `build-logs/026-p9c-suite.log` |
+| CP-d | 900 images, 0 differing, 0 missing, 0 not in manifest (against `baseline-images-macos-merged.sha256`); every `MaxBlockAvgDiff` equal (`diff` against `baseline-diffs-macos-merged.txt` empty) |
+| CP-c | `ctest -L architecture`: 21 of 21; `ALLOWED DB-001 x 5 DB-004 x 52 DB-005 x 8 DB-006 x 31 DB-010 x 8 DB-011 x 166 DB-015 x 10 DB-017 x 78 DB-025 x 12`; Shading metric 0 / 0; TOTAL refs 612, distinct 94 (the merged baseline); `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0` |
+| CP-m | the `shading_contract` tests are inside the suite: all passed. `libshader_shading` flat-namespace imports: 4, identical to `libshader-imports-merged-macos.txt` |
+| Sweep | not asked for in Phase 9 (Phase 10 runs it) |
+
+**Approved test edit (T154, maintainer 2026-11-01, option A)**: `case_situations.cpp` `checkScene()`: `CT_EXPECT(!out.reports.empty())` became `CT_EXPECT(!out.reports.empty() || !s.markerExpected)`, and a scene with `markerExpected` false asserts `out.markers == 0`, with a comment that a primitive hit mode returns from `shade()` before `fillPointKeys()` and the observers. The failure it resolves is the one recorded in §2 (`sit_row3_raytrace_primitive` and `sit_row4_secondary_primitive` have no report because the primitive hit returns first). Comment-only edits (maintainer, 2026-11-01): the O2 / #116 wording in `case_situations.cpp` and `situation.cpp` (the DLO vertex count was fixed by #129).
+
+**What the situation test showed about #117 to #120** (macOS log `build-logs/026-p9-sit.log`; no fix here, extra evidence for the coordinator):
+- #117 (O3): shown by the rendered scenes. `sit_row1_camera_primitive` runs the shader (154 markers) although `camerahitmode` is "primitive" (oddity 1, applied after the shaders); `sit_row2_points` runs the shader (3 markers) with `camerahitmode` "primitive" (oddity 8, ignored for 0-D points); `sit_row3_raytrace_primitive` has no report and no marker with `camerahitmode` "shader" and `specularhitmode` "primitive" (oddity 2, the raytrace camera hit reads `specularhitmode`).
+- #118 (O4, `diffusehitmode`), #119 (O5, implicit-surface hits) and #120 (O6, atmosphere at depth 0 only, transmission skipping displacement): not rendered by the test (no scene sets `diffusehitmode`, none has an implicit surface, an atmosphere or a displacement shader on the transmission scene); they are asserted from `classifyShading()` as the table has them, so the test adds no evidence either way.
+- #116 (O2) is resolved by #129 and is not checked.
+
 ## §2 Red evidence (Test gates, mutations)
 
 ### Phase 1 (T015): the replay targets fail to build on the starting tree
@@ -335,6 +354,22 @@ The findings behind the red tests (all in approved test code):
 4. `ColorDeterminism_transparent` failed once in the macOS full suite (run 8 differs from run 1 in a multi-threaded transparent render); it passes in isolation 8 of 8 and it uses no tracing. A known pre-existing flake, filed as GitHub #133 (P1); it did not fail in the final run.
 
 
+### Phase 9 (T151): the situations test is red on the merged tree (macOS)
+
+Context: master (spec 037, the #129 DLO fix, atomic `hiderFlags`, #123/#124) is merged into the branch (`5ed6e2f3`). **Baselines re-taken on the merged tree** (HEAD before any Phase 9 edit; the pre-merge ones in `tools/baseline-*-{macos,linux}.*` and `libshader-imports-*` stay as history and are no longer compared against): macOS `tools/baseline-images-macos-merged.sha256` (900 images), `tools/baseline-diffs-macos-merged.txt` (389 tests' `MaxBlockAvgDiff`), `tools/libshader-imports-merged-macos.txt` (4 flat-namespace imports), the archcheck `ALLOWED` line below, and the suite run (1051 of 1051 passed, `ShadingContract_Situations` Not Run as disabled, build `-j4`, `build-logs/026-p9b-suite.log`); the Linux set (`baseline-images-linux-merged.sha256`, `baseline-diffs-linux-merged.txt`, `libshader-imports-merged-linux.txt`) is taken by the same recipe in the same tree and listed in the Phase 9 Linux row. Merged `ALLOWED` (macOS): DB-001 x 5, DB-004 x 52, DB-005 x 8, DB-006 x 31, DB-010 x 8, DB-011 x 166, DB-015 x 10, DB-017 x 78, DB-025 x 12 (DB-019 and DB-021 went with spec 037); `RESULT PASS`; the Shading metric is 0 / 0.
+
+`ShadingContract_Situations` was enabled (`DISABLED` removed) and `test_shading_contract_situations` lost `EXCLUDE_FROM_ALL`. Building it fails with 9 errors, one per missing report field: `no member named 'dim'`, `'inShadow'`, `'rayDepth'` and `'illuminationHook'` in both `CPointKeyReport` and `CPointDisplacedReport`, and `'displaceOnly'` in `CPointKeyReport` (`CPointDisplacedReport` has it already). Log: `build-logs/026-p9-red.log`.
+
+**Linux merged baseline (taken 2026-11-01, tree `openrender-026` after the merge)**: incremental build exit 0; suite `-LE determinism-sweep -j2`: 1052 tests, only the 7 known Linux failures; architecture 21 of 21. Files: `tools/baseline-images-linux-merged.sha256`, `tools/baseline-diffs-linux-merged.txt`, `tools/libshader-imports-merged-linux.txt` (pulled with `linux_sync.sh pull`).
+
+### Phase 9 (T153, T154): fields appended, the situations test is red on two scenes (macOS)
+
+T153 (staged): `CPointKeyReport` gained `dim, displaceOnly, inShadow, rayDepth, illuminationHook` and `CPointDisplacedReport` gained `dim, inShadow, rayDepth, illuminationHook` (appended, nothing reordered; `shading.h`), filled in `fillPointKeys()` and `shade()` (`shading.cpp`) from the context's `inShadow`, `currentRayDepth`, `rendererIlluminationHook()` and `dim` (the key report's `displaceOnly` is `FALSE`: it fires for shaded grids only). Build exit 0. The spec-039 tests compile unchanged and `ctest -L sampling -j4` passes (114 sampling tests, `build-logs/026-p9-samp.log`).
+
+T154: `ShadingContract_Situations` **fails**: 132 assertions pass, 2 fail, both `CT_EXPECT(!out.reports.empty())` (`case_situations.cpp:216`) for `sit_row3_raytrace_primitive` and `sit_row4_secondary_primitive`: 0 reports, 0 markers. Cause (read from `shading.cpp:880-935`): with `specularhitmode "primitive"` (or `transmissionhitmode "primitive"`) `shade()` copies the attribute colour and opacity and **returns before** `fillPointKeys()` and before the displacement shader, so neither observer fires; the camera hit of a raytrace scene reads `specularhitmode` too (oddity 2), so the scene has no report at all. The other 8 scenes pass (`build-logs/026-p9-sit.log`). This is a mismatch between the approved test's expectation and where the observers sit, not an error in the new fields; no test, scene or threshold was changed.
+
+Resolved 2026-11-01 by the maintainer's option A (an approved edit to the test, diff shown): see the Phase 9 checkpoint in §1. Afterwards `ShadingContract_Situations` passes on macOS and Linux (10 scenes plus the classify-only rows).
+
 ## §3 Linux records
 
 Note for the reader: the Linux baseline is taken on the starting `src/` **plus the Phase 1 observer hook** (the macOS baseline is taken before it). The hook is null in production and adds no output, which the macOS manifest check shows (§1); the Linux baseline is therefore comparable with the starting tree.
@@ -389,6 +424,10 @@ The suite counts differ by one between the platforms (943 on Linux, 942 on macOS
 | CP-m | `ctest -L '^shading_contract$'`: 17 of 17 pass |
 | CP-c | 21 of 21; `ALLOWED` identical; `RESULT PASS` |
 
+### Phase 9: Linux (T156; `openrender-026`, GCC 13.3, `-Werror`, `-j2`)
+
+Pushed with `linux_sync.sh push` (3464 files) and `verify`: **3464 files, 0 differences** (again after the run). CP-a: incremental build exit 0, no `warning:` line in the log. CP-b: `ctest -LE determinism-sweep -j2`: 1053 tests, 1046 passed, **the 7 known Linux failures only** (the same set as the merged baseline run: `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes`, the five `TextureTile_*` byte-identity and cache tests, `LibShader_McompConsistency`); `ShadingContract_Situations` passed (0.21 s). CP-d: 900 images, 0 differing, 0 missing (against `baseline-images-linux-merged.sha256`), every `MaxBlockAvgDiff` equal to `baseline-diffs-linux-merged.txt`. CP-m: `-L '^shading_contract$'` 55 of 55. CP-c: architecture 21 of 21, `ALLOWED` identical to macOS (DB-001 x 5, DB-005 x 8, DB-006 x 31, ...), `RESULT PASS`. `nm -D --undefined-only` of `libshader_shading.so`: identical to `libshader-imports-merged-linux.txt`. Logs on the remote: `build-l17*.log`.
+
 ## §4 Findings: triage and filed issues
 
 **Rule (maintainer, 2026-10-31)**: a finding whose context matches or impacts this spec is resolved in spec 026.
@@ -404,7 +443,7 @@ files nothing and adds evidence as a comment on the issue. The text in §4.3 is 
 | F3 | The interpreter's `lightsource()` outside an `illuminance`/`illuminate` loop reads through a null `currentLight` (R7) | **IN-SPEC** | The macro is rewritten to go through `lightParameter()`/`getMessage` here (Q2). Only a path that crashes on master changes. The JIT already guards it. | FR-028, SC-014; Phase 6 |
 | F4 | `incident()`/`opposite()` pass `ACCESSOR_EXTERIOR`/`ACCESSOR_INTERIOR` the other way round from the source Shading asks for, in the interpreter (`shaderFunctions.h:1331-1344`) and in the JIT (`jitIncidentParameter`/`jitOppositeParameter`, `shading.cpp:3846, 3854`; R7) | **IN-SPEC** | The `DEFFUNC` lines are edited in Phase 5 anyway, and the two JIT members sit beside the code that gains the expected type. The accessor is never read for these two (no variable comes back), so no output changes. | FR-029; Phase 5 |
 | O1 (#115) | JIT `lightsource()` differs from the interpreter: reads the last light that ran, floats only, ignores mutable values, writes the value where the found flag belongs (R16.2) | **OUT-OF-SPEC** | Q2 (maintainer, 2026-10-30) decided each backend keeps its output, because making them equal changes the JIT's images (FR-022); spec 033 owns the JIT's message-passing entry points (DB-018). Reaffirmed 2026-10-31. | #115 |
-| O2 (#116) | `CDLObject::shade` calls `shade(this, numRays, -1, SHADING_2D, 0)` (R16.3, situation oddity 4) | **OUT-OF-SPEC** | A Geometry source (`dlobject.cpp`) that 026 does not edit; the fix changes DSO-object behaviour (today an assert in Debug and a negative vertex count in Release); spec 031 owns Geometry. Memory-safety. | #116 |
+| O2 (#116) | `CDLObject::shade` calls `shade(this, numRays, -1, SHADING_2D, 0)` (R16.3, situation oddity 4) | **OUT-OF-SPEC**, then **RESOLVED by #129** (closed 2026-11-01; `dlobject.cpp` now passes 1) | A Geometry source (`dlobject.cpp`) that 026 does not edit; the fix changes DSO-object behaviour (today an assert in Debug and a negative vertex count in Release); spec 031 owns Geometry. Memory-safety. | #116 |
 | O3 (#117) | `camerahitmode` is honoured only for REYES grids, after the shaders, and not by raytrace camera hits or 0-D points (R16.4; situation oddities 1, 2, 8) | **OUT-OF-SPEC** | Fixing it changes images and makes shading depend on the hider differently; the spec records "today's inference, oddities included" (Assumptions) and FR-022 forbids an output change. Spec 029 reads the ray type. | #117 |
 | O4 (#118) | `diffusehitmode` is parsed and warned about, never read; gather hits use `specularhitmode` (R16.4; oddity 5) | **OUT-OF-SPEC** | Same reason as O3; the parser is Scene Interface (`rendererContext.cpp`), not Shading. | #118 |
 | O5 (#119) | Implicit-surface ray hits are shaded as `SHADING_0D`: no derivatives, no hit mode (oddity 3) | **OUT-OF-SPEC** | Geometry source (`implicitSurface.cpp`); the fix changes images of implicit surfaces under filtered lookups; spec 031. | #119 |
@@ -452,6 +491,8 @@ Reproduction: two lights with different `float k` values; a surface that does `i
 Context: found while writing spec 026. Spec 026 routes both backends through `getMessage` and keeps each output (clarification Q2), so this is not fixed there. Spec 033 owns the JIT's message-passing entry points (registry DB-018).
 
 #### O2 (#116). `CDLObject::shade` passes `vVertices = -1`
+
+**Resolved 2026-11-01 by #129** (fix `c33733b2`, merged `a8e0cd8d`; #116 closed). `src/ri/geometry/dlobject.cpp:173` now passes 1, as the two other ray-hit callers do. The text below is the issue as filed, kept as the record. Spec 026 did not edit this source.
 
 Labels: `bug`, `memory-safety`, `priority: high`
 

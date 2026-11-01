@@ -252,6 +252,12 @@ struct CPointKeyReport {
         int numVertices;                             // Real vertices (no derivative-offset tail)
         const openrender::sampling::SampleKey *keys; // Their keys
         const float *u, *v;                          // Their parametric coordinates
+        // The shading situation (spec 026, FR-017), appended so that existing readers are unaffected
+        EShadingDim dim;                             // SHADING_0D, SHADING_2D or SHADING_2D_GRID
+        int displaceOnly;                            // Always FALSE: the key report is for shaded grids only
+        int inShadow;                                // TRUE for a shadow or transmission hit
+        int rayDepth;                                // The ray depth of the hit (0 for the camera)
+        int illuminationHook;                        // The illumination hook (photon pass), 0 or 1
 };
 typedef void (*CPointKeyObserver)(const CPointKeyReport &);
 
@@ -266,6 +272,11 @@ struct CPointDisplacedReport {
         int numVertices;     // Real vertices
         const float *u, *v;  // Their parametric coordinates
         const float *P;      // Their displaced positions, 3 floats each
+        // The shading situation (spec 026, FR-017), appended so that existing readers are unaffected
+        EShadingDim dim;     // SHADING_0D, SHADING_2D or SHADING_2D_GRID
+        int inShadow;        // TRUE for a shadow or transmission hit
+        int rayDepth;        // The ray depth of the hit (0 for the camera)
+        int illuminationHook; // The illumination hook (photon pass), 0 or 1
 };
 typedef void (*CPointDisplacedObserver)(const CPointDisplacedReport &);
 
