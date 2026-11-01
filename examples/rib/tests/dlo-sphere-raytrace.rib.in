@@ -1,0 +1,28 @@
+##RenderMan RIB-Structure 1.0
+# GitHub #129 regression: a dynamic-load object (Geometry "dlo") is shaded
+# under the raytrace hider. CDLObject::shade() used to pass -1 vertices to
+# CShadingContext::shade(), so the shading state held a negative vertex count
+# and the copy in complete() ran with a negative size: any DLO hit crashed
+# the render. The DLO is tests/unit/motion/fixtures/dlo_sphere (radius 1.1),
+# 5 units in front of the camera; its name must be an absolute path, so
+# tests/visual/CMakeLists.txt generates this scene with it. The constant
+# shader needs no lights or derivatives: test_pixel_probe reads the centre
+# pixel, which the sphere covers, back exactly as RGBA = Cs, Os =
+# 0.2 0.4 0.6 1.
+version 3.03
+Hider "raytrace" "jitter" [0]
+Option "shaderformat" "default" ["@FORMAT@"]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "@OUTPUT@" "file" "rgba"
+Projection "perspective"
+Format 32 32 1
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Color [0.2 0.4 0.6]
+  Opacity [1 1 1]
+  Surface "constant"
+  Geometry "dlo" "string file" ["@DLO_PLUGIN@"]
+WorldEnd
