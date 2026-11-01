@@ -68,6 +68,7 @@ add_subdirectory(unit/geometry)
 add_subdirectory(unit/state)
 add_subdirectory(unit/camera)
 add_subdirectory(unit/motion)
+add_subdirectory(plugins)
 add_subdirectory(convergence)
 add_subdirectory(architecture)
 

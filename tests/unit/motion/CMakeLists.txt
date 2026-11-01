@@ -35,7 +35,7 @@ foreach(_plugin implicit_moving_sphere dlo_sphere)
     add_library(${_plugin} MODULE fixtures/${_plugin}.cpp)
     target_compile_features(${_plugin} PRIVATE cxx_std_20)
     target_link_libraries(${_plugin} PRIVATE openrender_common_flags)
-    target_include_directories(${_plugin} PRIVATE ${CMAKE_SOURCE_DIR}/src/ri/geometry)
+    target_include_directories(${_plugin} PRIVATE ${CMAKE_SOURCE_DIR}/src/procedures ${CMAKE_SOURCE_DIR}/src/include)
     set_target_properties(${_plugin} PROPERTIES PREFIX ""
         LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/fixtures)
 endforeach()

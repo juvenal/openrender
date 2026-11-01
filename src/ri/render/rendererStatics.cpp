@@ -32,14 +32,13 @@
 #include <math.h>
 #include <string.h>
 
-#include "includes/logging.hpp"
+#include "include/logging.hpp"
 
 #include "brickmap.h"
 #include "bundles.h"
 #include "curves.h"
 #include "delayed.h"
 #include "dlobject.h"
-#include "dso.h"
 #include "common/diagnostics.h"
 #include "hcshader.h"
 #include "implicitSurface.h"
@@ -115,7 +114,8 @@ CTrie<CNetFileMapping *> *CRenderer::netFileMappings = NULL;                 // 
 int CRenderer::numKnownGlobalIds = 0;                                        // initialized in initDeclarations
 CVariable *CRenderer::variables = NULL;                                      // initialized in initDeclarations, destroyed in shutdownDeclarations
 CArray<CVariable *> *CRenderer::globalVariables = NULL;                      // initialized in initDeclarations, destroyed in shutdownDeclarations
-CDSO *CRenderer::dsos = NULL;                                                // initialized in initFiles, destroyed in shutdownFiles
+CDisplayHost *CRenderer::displayHost = NULL;                                  // created in computeDisplayData, deleted in endDisplays
+CShadeopRegistry *CRenderer::shadeops = NULL;                                // initialized in initFiles, destroyed in shutdownFiles
 SOCKET CRenderer::netClient = INVALID_SOCKET;                                // initialized in initNetwork
 int CRenderer::netNumServers = 0;                                            // initialized in initNetwork
 SOCKET *CRenderer::netServers = NULL;                                        // initialized in initNetwork, destroyed in shutdownNetwork
@@ -212,7 +212,7 @@ matrix CRenderer::fromNDC, CRenderer::toNDC;                             // init
 matrix CRenderer::fromRaster, CRenderer::toRaster;                       // initialized in beginFrame
 matrix CRenderer::fromScreen, CRenderer::toScreen;                       // initialized in beginFrame
 matrix CRenderer::worldToNDC;                                            // initialized in beginFrame
-unsigned int CRenderer::hiderFlags;                                      // initialized in beginFrame
+std::atomic<unsigned int> CRenderer::hiderFlags;                         // initialized in beginFrame
 int CRenderer::numSamples;                                               // initialized in beginDisplays
 int CRenderer::numExtraSamples;                                          // initialized in beginDisplays
 int CRenderer::xPixels, CRenderer::yPixels;                              // initialized in beginFrame

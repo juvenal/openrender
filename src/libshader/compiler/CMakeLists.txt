@@ -18,12 +18,10 @@ include_directories(AFTER  ${CMAKE_SOURCE_DIR}/src/ri/core)
 include_directories(AFTER  ${CMAKE_SOURCE_DIR}/src/ri/dataviewer)
 
 flex_file(rslo.l lex.rslo.cpp rslo)
-flex_file(../../ri/parse/dso.l lex.dso.cpp dso)  # relative from src/libshader/compiler/
 
 bison_file(rslo.y rslo_generated.cpp rslo)
-bison_file(../../ri/parse/dso.y dso_generated.cpp dso)
 
-set(parser_sources rslo_generated.cpp dso_generated.cpp)
+set(parser_sources rslo_generated.cpp)
 
 set(compiler_sources
     libshader_compiler_init.cpp   # defines LOGGING_IMPLEMENTATION for this library
@@ -73,7 +71,7 @@ target_include_directories(libshader_compiler_obj
         ${CMAKE_CURRENT_SOURCE_DIR}         # self-includes within compiler/
         ${CMAKE_CURRENT_BINARY_DIR}         # Flex/Bison generated files
         ${CMAKE_SOURCE_DIR}/src             # common/, ri_config.h
-        ${CMAKE_SOURCE_DIR}/src/ri          # dso.h, shadeop.h
+        ${CMAKE_SOURCE_DIR}/src/ri
 )
 
 # Header-only: llvmEmitter.cpp re-expands the interpreter's own opcode/function
@@ -83,7 +81,7 @@ target_include_directories(libshader_compiler_obj
 # libraries remain unlinked to each other in either direction.
 target_include_directories(libshader_compiler_obj PRIVATE ${CMAKE_SOURCE_DIR}/src/libshader/shading)
 
-target_link_libraries(libshader_compiler_obj PRIVATE openrendercommon)
+target_link_libraries(libshader_compiler_obj PRIVATE openrendercommon openrendershadeop)
 if(OPENRENDER_HAVE_LLVM)
     # Include dirs and defines only — no link dep on the OBJECT library.
     # The SHARED library below carries the actual LLVM link to avoid duplicates.
@@ -131,7 +129,7 @@ add_library(libshader_compiler SHARED
     $<TARGET_OBJECTS:libshader_compiler_obj>)
 # The shared libRIBCommon, not an embedded copy of the archive: one image per
 # process defines the common layer's state (spec 023, research R1).
-target_link_libraries(libshader_compiler PUBLIC openrendercommon)
+target_link_libraries(libshader_compiler PUBLIC openrendercommon openrendershadeop)
 if(OPENRENDER_HAVE_LLVM)
     # BUILD_INTERFACE: LLVM is linked into the shared library itself; exported
     # consumers must not be handed LLVM component names they cannot resolve.
@@ -156,13 +154,13 @@ add_library(libshader_compiler_static STATIC
 set_target_properties(libshader_compiler_static PROPERTIES
     OUTPUT_NAME shader_compiler
     EXPORT_NAME shader_compiler_static)
-target_link_libraries(libshader_compiler_static INTERFACE openrendercommon_static)
+target_link_libraries(libshader_compiler_static INTERFACE openrendercommon_static openrendershadeop_static)
 
 install(TARGETS libshader_compiler EXPORT openRenderTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+    INCLUDES DESTINATION "${OPENRENDER_INCLUDE_INSTALL_DIR}")
 install(TARGETS libshader_compiler_static EXPORT openRenderStaticTargets
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+    INCLUDES DESTINATION "${OPENRENDER_INCLUDE_INSTALL_DIR}")

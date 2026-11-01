@@ -39,3 +39,9 @@ On Windows, the `fbw` driver uses the native GDI API to display the render.
 - **Failed to connect**: Ensure `XDG_RUNTIME_DIR` is set correctly in your environment.
 - **Performance**: Ensure you have appropriate graphics drivers installed. While the current implementation uses software buffers (`wl_shm`), it still benefits from compositor acceleration.
 - **Window not appearing**: Check the console output for `[ERROR]` logs from the display driver.
+
+## Writing your own driver
+
+A display driver is a loadable module that exports a small function table. The
+interface, its version rules and a worked example are on the [Plug-in ABI](../plugin-abi/)
+page.

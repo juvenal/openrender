@@ -27,15 +27,14 @@
 #ifndef FRAME_H
 #define FRAME_H
 
+#include <atomic>
+
 #include "common/containers.h"
 #include "common/global.h"
 #include "common/os.h"
 #include "common/memory.h"
-#include "dsply.h" // spec 025: options.h no longer pulls in the display plug-in ABI
 #include "options.h"
-#include "shadeop.h"
 #include "shader.h" // spec 025: attributes.h and options.h no longer pull in Shading
-#include "libshader/shading/dsoHandle.h" // CDSO, now owned by the shading library
 
 // Compute the circle of confusion as a function of the depth.
 // cocSamples(z) is now CSampler::circleOfConfusion() (sampler.h, S1) --
@@ -97,6 +96,8 @@ class CNamedCoordinateSystem;
 class CGlobalIdentifier;
 class CXform;
 class CDSO;
+class CShadeopRegistry;
+class CDisplayHost;
 class CRendererContext;
 class CNetFileMapping;
 class CRay;
@@ -152,7 +153,7 @@ class CRenderer {
         static int numKnownGlobalIds;                                     // The current free global ID
         static CVariable *variables;                                      // List of all defined variables
         static CArray<CVariable *> *globalVariables;                      // Array of global variables only
-        static CDSO *dsos;                                                // The list of DSO's that have been loaded
+        static CShadeopRegistry *shadeops;                                // The shadeop operands that have been loaded (created in initFiles, destroyed in shutdownFiles)
         static SOCKET netClient;                                          // The client that we're serving (-1 if client)
         static int netNumServers;                                         // The number of servers (0 if server)
         static SOCKET *netServers;                                        // The array of servers that are serving us
@@ -263,7 +264,6 @@ class CRenderer {
         static CVariable *declareVariable(const char *, const char *, int um = 0);
         static void makeGlobalVariable(CVariable *);
         static CVariable *retrieveVariable(const char *);
-        static CDisplayChannel *retrieveDisplayChannel(const char *); // Forwards to the Graphics State channel registry (defined out of line: Texturing calls it)
         static void registerFrameTemporary(const char *, int); // Register file for end-of-frame deletion
         static int getGlobalID(const char *);                  // Global ID management
         static void shutdownDeclarations();
@@ -402,7 +402,7 @@ class CRenderer {
         static matrix fromRaster, toRaster;
         static matrix fromScreen, toScreen;
         static matrix worldToNDC;                                    // World to NDC matrix
-        static unsigned int hiderFlags;                              // The hider flags
+        static std::atomic<unsigned int> hiderFlags;                 // The hider flags: atomic, a display thread sets HIDER_BREAK while job threads read it
         static int numSamples;                                       // The actual number of samples to compute
         static int numExtraSamples;                                  // The number of actual samples
         static int xPixels, yPixels;                                 // The number of pixels to compute in X and Y
@@ -455,19 +455,15 @@ class CRenderer {
         // Comments				:
         class CDisplayData {
             public:
-                void *module;   // The module handle for the out device
-                void *handle;   // The handle for the out device
+                int hostIndex;  // The display's index in displayHost, or -1 (tsm, network client, a driver that did not load)
                 int numSamples; // The number of samples
                 CDisplayChannel *channels;
                 int numChannels;
-                char *displayName;               // The computed display name
-                TDisplayStartFunction start;     // The start function for the out device
-                TDisplayDataFunction data;       // The data function
-                TDisplayRawDataFunction rawData; // The raw data function
-                TDisplayFinishFunction finish;   // The finish function
-                COptions::CDisplay *display;     // The display corresponding to this display
+                char *displayName;           // The computed display name
+                COptions::CDisplay *display; // The display corresponding to this display
         };
 
+        static CDisplayHost *displayHost; // Loads, starts, feeds, finishes and releases the display drivers (displayHost.h)
         static int numDisplays;
         static CDisplayData *datas;
         static int *sampleOrder;            // variable entry, sample count pairs

@@ -1,0 +1,20 @@
+# Spec 037, DisplayAbi_ReleaseAfterFinish (FR-035): two frames, each with a display line that
+# names the unversioned v1_legacy fixture. Frame 1's finish must be logged before the module is
+# unloaded, and the unload before frame 2's start.
+Option "searchpath" "display" ["@V1_LEGACY_DIR@"]
+Format 8 8 1
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Projection "orthographic"
+
+FrameBegin 1
+    Display "release-frame1.out" "v1_legacy" "rgba"
+    WorldBegin
+    WorldEnd
+FrameEnd
+
+FrameBegin 2
+    Display "release-frame2.out" "v1_legacy" "rgba"
+    WorldBegin
+    WorldEnd
+FrameEnd

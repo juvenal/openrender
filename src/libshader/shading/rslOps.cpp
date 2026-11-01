@@ -20,7 +20,7 @@
 #include "activeContext.h"
 #include "common/colorSpace.h"
 #include "common/memory.h"
-#include "includes/logging.hpp"
+#include "include/logging.hpp"
 #include "noise.h"
 #include "shading.h"
 

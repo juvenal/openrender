@@ -1,0 +1,13 @@
+# Spec 037, the render-level display tests: @D_NAME@. A small scene whose Display lines are the only
+# thing that differs between the cases; the display search path names the fixture directories (and, for the
+# hostile cases, the in-tree drivers).
+Option "searchpath" "display" ["@D_SEARCH@"]
+Format 8 8 1
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Projection "orthographic"
+@D_PRE@
+@D_DISPLAYS@
+WorldBegin
+@D_WORLD@
+WorldEnd

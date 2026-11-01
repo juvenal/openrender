@@ -41,14 +41,17 @@ using namespace Imath;
 
 class CExrFramebuffer : public CFileOutputBase {
     public:
-        CExrFramebuffer(const char *name, int w, int h, int ns, const char * /*samples*/, TDisplayParameterFunction fp)
-            : CFileOutputBase(w, h, ns,
-                              /*pixelSize=*/ns * (int)sizeof(half),
-                              fp) {
+        explicit CExrFramebuffer(const OrDisplayInfo *info)
+            : CFileOutputBase(info,
+                              /*pixelSize=*/info->numSamples * (int)sizeof(half)) {
+            const char *name = info->name;
+            const int w = info->width;
+            const int h = info->height;
+            const int ns = info->numSamples;
 
             Header header(w, h);
 
-            const char *compress = (const char *)fp("compression", STRING_PARAMETER, 1);
+            const char *compress = (const char *)orDisplayFindParameter(info, "compression", OR_DISPLAY_PARAM_STRING, 1);
             if (compress) {
                 if (strcmp(compress, "RLE") == 0)
                     header.compression() = RLE_COMPRESSION;
@@ -62,7 +65,7 @@ class CExrFramebuffer : public CFileOutputBase {
                     header.compression() = PXR24_COMPRESSION;
             }
 
-            char *software = (char *)fp("Software", STRING_PARAMETER, 1);
+            const char *software = (const char *)orDisplayFindParameter(info, "Software", OR_DISPLAY_PARAM_STRING, 1);
             if (software)
                 header.insert("Software", StringAttribute(software));
 
@@ -110,30 +113,35 @@ class CExrFramebuffer : public CFileOutputBase {
         FrameBuffer *fb = nullptr;
 };
 
-extern "C" {
+OR_DISPLAY_DECLARE_VERSION()
 
-void *displayStart(const char *name, int width, int height, int numSamples, const char *samples, TDisplayParameterFunction fp) {
-    auto *f = new CExrFramebuffer(name, width, height, numSamples, samples, fp);
-    if (!f->success()) {
-        delete f;
-        return nullptr;
+namespace {
+
+    OrStatus exrStart(OrDisplayContext * /*ctx*/, const OrDisplayInfo *info, void **instance) {
+        auto *f = new CExrFramebuffer(info);
+        if (!f->success()) {
+            delete f;
+            return OR_STATUS_ERROR;
+        }
+        *instance = f;
+        return OR_STATUS_OK;
     }
-    return f;
-}
 
-int displayData(void *im, int x, int y, int w, int h, float *data) {
-    assert(im != nullptr);
-    static_cast<CExrFramebuffer *>(im)->write(x, y, w, h, data);
-    return TRUE;
-}
+    OrStatus exrData(OrDisplayContext * /*ctx*/, void *instance, int x, int y, int w, int h, float *pixels) {
+        assert(instance != nullptr);
+        static_cast<CExrFramebuffer *>(instance)->write(x, y, w, h, pixels);
+        return OR_STATUS_OK;
+    }
 
-int displayRawData(void * /*im*/, int /*x*/, int /*y*/, int /*w*/, int /*h*/, void * /*data*/) {
-    return TRUE;
-}
+    void exrFinish(OrDisplayContext * /*ctx*/, void *instance) {
+        assert(instance != nullptr);
+        delete static_cast<CExrFramebuffer *>(instance);
+    }
 
-void displayFinish(void *im) {
-    assert(im != nullptr);
-    delete static_cast<CExrFramebuffer *>(im);
-}
+    const OrDisplayPlugin g_plugin = {{(uint32_t)sizeof(OrDisplayPlugin), OR_DISPLAY_ABI_VERSION}, exrStart, exrData, exrFinish};
 
-} // extern "C"
+} // namespace
+
+const OrDisplayPlugin *orDisplayPlugin(const OrHostInfo * /*host*/) {
+    return &g_plugin;
+}

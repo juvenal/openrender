@@ -41,11 +41,17 @@
 # archcheck reported.
 # Merged with spec 027: Texturing 1 / 1 from 027, Geometry and Hiders from 028; the TOTAL, 613
 # references and 95 distinct members, is archcheck's figure for the merged tree.
+# Spec 037 (plug-in ABIs, T099): Texturing reaches the display channels through its own
+# interface (texture/texture3dChannels.h), implemented by the renderer core, so the last
+# CRenderer:: reference of Texturing (retrieveDisplayChannel, DB-021) is gone: Texturing
+# 1 -> 0 references and 1 -> 0 members, TOTAL 652 -> 651 and 98 -> 97, as archcheck reported.
+# Merged with spec 028: Texturing 0 / 0 from 037, Geometry and Hiders from 028; the TOTAL is
+# archcheck's figure for the merged tree.
 
 Geometry           48    15
 Hiders            558    82
 Infra               0     0
 SceneInterface      6     6
 Shading             0     0
-Texturing           1     1
-TOTAL             613    95
+Texturing           0     0
+TOTAL             612    94

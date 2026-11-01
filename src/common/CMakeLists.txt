@@ -23,6 +23,7 @@ add_library(openrendercommon_obj OBJECT
     riTokens.cpp      # the RI_* token definitions (spec 023, from parse/ri.cpp)
     colorSpace.cpp    # convertColorFrom/convertColorTo (moved from ri/init.cpp for libshader)
     diagnostics.cpp   # error/warning/fatal/info + the installable sink (spec 023, from parse/error.cpp)
+    pluginAbi.cpp     # the one plug-in version check and table check (spec 037)
     logging.cpp       # the one current_log_level (spec 023)
     # Generic infrastructure moved from src/ri/core (spec 023): libshader_shading
     # resolves these from libRIBCommon, never from the renderer library.
@@ -82,9 +83,11 @@ endif()
 install(TARGETS openrendercommon EXPORT openRenderTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    INCLUDES DESTINATION "${OPENRENDER_INCLUDE_INSTALL_DIR}")
 # The static RI and libshader archives name this archive as an INTERFACE link
 # dependency instead of embedding their own copy, so a fully static program
 # linking several of them gets exactly one copy and no duplicate symbols.
 install(TARGETS openrendercommon_static EXPORT openRenderStaticTargets
-    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    INCLUDES DESTINATION "${OPENRENDER_INCLUDE_INSTALL_DIR}")

@@ -23,26 +23,30 @@
 
 #include <string.h>
 
-CFileFramebufferTIFF::CFileFramebufferTIFF(const char *name, int w, int h, int ns, const char *samples, TDisplayParameterFunction fp)
-    : CFileOutputBase(w, h, ns,
-                      /*pixelSize placeholder — set below*/ ns,
-                      fp,
-                      /*isDepth=*/strcmp(samples, "z") == 0) {
+CFileFramebufferTIFF::CFileFramebufferTIFF(const OrDisplayInfo *info)
+    : CFileOutputBase(info,
+                      /*pixelSize placeholder — set below*/ info->numSamples,
+                      /*isDepth=*/strcmp(info->mode, "z") == 0) {
+
+    const char *name = info->name;
+    const int w = info->width;
+    const int h = info->height;
+    const int ns = info->numSamples;
 
     float worldToNDC[16] = {};
     float worldToCamera[16] = {};
-    float *tmp;
+    const float *tmp;
 
     // Pixar matrix metadata
-    if ((tmp = (float *)fp("NP", FLOAT_PARAMETER, 16)))
+    if ((tmp = (const float *)orDisplayFindParameter(info, "NP", OR_DISPLAY_PARAM_FLOAT, 16)))
         for (int i = 0; i < 16; i++)
             worldToNDC[i] = tmp[i];
-    if ((tmp = (float *)fp("Nl", FLOAT_PARAMETER, 16)))
+    if ((tmp = (const float *)orDisplayFindParameter(info, "Nl", OR_DISPLAY_PARAM_FLOAT, 16)))
         for (int i = 0; i < 16; i++)
             worldToCamera[i] = tmp[i];
 
-    char *software = (char *)fp("Software", STRING_PARAMETER, 1);
-    const char *compress = (const char *)fp("compression", STRING_PARAMETER, 1);
+    const char *software = (const char *)orDisplayFindParameter(info, "Software", OR_DISPLAY_PARAM_STRING, 1);
+    const char *compress = (const char *)orDisplayFindParameter(info, "compression", OR_DISPLAY_PARAM_STRING, 1);
 
     // Determine bit depth from quantization
     if (qmax == 0) {

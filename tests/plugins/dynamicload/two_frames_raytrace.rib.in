@@ -1,0 +1,30 @@
+# Spec 037, ProceduresAbi_DynamicLoadReleaseRaytrace (FR-034, FR-024): the two-frame scene of
+# ProceduresAbi_DynamicLoadRelease under the raytrace hider. REYES consumes the nested procedural while
+# it renders, so its free runs long before the frame ends; the raytracer frees the hierarchy only at
+# root->destroy(), so here the nested free runs at the end of the frame and the module must still be
+# mapped then. A release of the frame references before root->destroy() unmaps it first: the nested
+# free would then run in unmapped code.
+Option "searchpath" "display" ["@OR_DISPLAY_PATH@"]
+Hider "raytrace"
+Format 8 8 1
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Projection "perspective" "fov" 30
+
+FrameBegin 1
+    Display "frame1.tif" "file" "rgba"
+    Translate 0 0 4
+    WorldBegin
+        Surface "constant"
+        Procedural "DynamicLoad" ["@DYNLOAD_NESTED_FILE@" ""] [-1 1 -1 1 -1 1]
+    WorldEnd
+FrameEnd
+
+FrameBegin 2
+    Display "frame2.tif" "file" "rgba"
+    Translate 0 0 4
+    WorldBegin
+        Surface "constant"
+        Procedural "DynamicLoad" ["@DYNLOAD_NESTED_FILE@" ""] [-1 1 -1 1 -1 1]
+    WorldEnd
+FrameEnd

@@ -103,91 +103,81 @@ void CDisplay::clampData(int w, int h, float *d) {
     }
 }
 
-/*
- * Function: displayStart
- *
- * Description:
- *     Begin receiving an image
- *
- * Return:
- *     On Success: The handle of the image
- *     On Failure: NULL pointer
- *
- * Notes:
- *
- */
-void *displayStart(const char *name,
-                   int width,
-                   int height,
-                   int numSamples,
-                   const char *samples,
-                   TDisplayParameterFunction findParameter) {
-    (void)findParameter; // Suppress unused parameter warning
-    CDisplay *cWindow = NULL;
+OR_DISPLAY_DECLARE_VERSION()
+
+namespace {
+
+    /*
+     * Function: fbStart
+     *
+     * Description:
+     *     Begin receiving an image. The channel string is info->mode.
+     *
+     * Return:
+     *     On Success: OR_STATUS_OK and the plug-in's own display object (the connection to the helper) as the instance
+     *     On Failure: OR_STATUS_ERROR (no data, no finish)
+     */
+    OrStatus fbStart(OrDisplayContext * /*ctx*/, const OrDisplayInfo *info, void **instance) {
+        CDisplay *cWindow = NULL;
 
 #ifdef _WINDOWS
-    cWindow = new CWinDisplay(name, samples, width, height, numSamples);
+        cWindow = new CWinDisplay(info->name, info->mode, info->width, info->height, info->numSamples);
 #else
-    cWindow = new CIPCDisplay(name, samples, width, height, numSamples);
+        cWindow = new CIPCDisplay(info->name, info->mode, info->width, info->height, info->numSamples);
 #endif
 
-    if (cWindow == NULL || cWindow->failure == TRUE) {
-        if (cWindow)
-            delete cWindow;
-        return NULL;
+        if (cWindow == NULL || cWindow->failure == TRUE) {
+            if (cWindow)
+                delete cWindow;
+            return OR_STATUS_ERROR;
+        }
+
+        *instance = cWindow;
+        return OR_STATUS_OK;
     }
-    else {
-        return cWindow;
+
+    /*
+     * Function: fbData
+     *
+     * Description:
+     *     Receive image data. A failure only reports: the plug-in's display object is deleted in fbFinish, which the host
+     *     calls exactly once for every started display (the version 2 rule).
+     */
+    OrStatus fbData(OrDisplayContext * /*ctx*/, void *instance, int x, int y, int w, int h, float *pixels) {
+        CDisplay *cWindow = (CDisplay *)instance;
+
+        assert(cWindow != NULL);
+
+        if (cWindow->data(x, y, w, h, pixels) == FALSE)
+            return OR_STATUS_ERROR;
+
+        return OR_STATUS_OK;
     }
-}
 
-/*
- * Function: displayData
- *
- * Description:
- *     Receive image data
- *
- * Return:
- *     On Success: TRUE
- *     On Failure: FALSE
- *
- * Notes:
- *
- */
-int displayData(void *im, int x, int y, int w, int h, float *data) {
-    CDisplay *cWindow = (CDisplay *)im;
+    /*
+     * Function: fbFinish
+     *
+     * Description:
+     *     Finish receiving an image. This closes the plug-in's connection to the display helper (orender-fb)
+     *     and frees the plug-in's own CDisplay object. It does not stop the helper: the helper keeps running
+     *     and its window stays open.
+     */
+    void fbFinish(OrDisplayContext * /*ctx*/, void *instance) {
+        CDisplay *cWindow = (CDisplay *)instance;
 
-    assert(cWindow != NULL);
+        assert(cWindow != NULL);
 
-    if (cWindow->data(x, y, w, h, data) == FALSE) {
+        log_debug("displayFinish: calling finish()");
+        cWindow->finish();
+        log_debug("displayFinish: finish() returned, freeing the display object");
         delete cWindow;
-        return FALSE;
+        log_debug("displayFinish: done");
     }
 
-    return TRUE;
-}
+    const OrDisplayPlugin g_plugin = {{(uint32_t)sizeof(OrDisplayPlugin), OR_DISPLAY_ABI_VERSION}, fbStart, fbData, fbFinish};
 
-/*
- * Function: displayFinish
- *
- * Description:
- *     Finish receiving an image
- *
- * Return:
- *     On Success: The handle of the image
- *     On Failure: NULL pointer
- *
- * Notes:
- *
- */
-void displayFinish(void *im) {
-    CDisplay *cWindow = (CDisplay *)im;
+} // namespace
 
-    assert(cWindow != NULL);
-
-    log_debug("displayFinish: calling finish()");
-    cWindow->finish();
-    log_debug("displayFinish: finish() returned, deleting window");
-    delete cWindow;
-    log_debug("displayFinish: done");
+const OrDisplayPlugin *orDisplayPlugin(const OrHostInfo * /*host*/) {
+    return &g_plugin;
 }

@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "includes/logging.hpp"
+#include "include/logging.hpp"
 
 class CShaderInstance;
 

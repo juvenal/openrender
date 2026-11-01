@@ -20,7 +20,8 @@ cmake --build build --config Release
 From-scratch configure/build steps live in `COMPILING.txt` / `INSTALL.md`.
 Key CMake options: `USE_FLEX_BISON`, `INSTALL_SELFCONTAINED`,
 `OPENRENDER_COMPAT_SOVERSION`, `OPENRENDER_PYTHONDIR`, `OPENRENDER_LUADIR`,
-`OPENRENDER_ENABLE_JIT` (default ON), `OPENRENDER_LLVM_MIN_VERSION` (default 15).
+`OPENRENDER_ENABLE_JIT` (default ON), `OPENRENDER_LLVM_MIN_VERSION` (default 15),
+`OPENRENDER_TSAN` (ThreadSanitizer, off by default), `OR037_RECAPTURE` (test baselines).
 
 **flex and bison are mandatory.** No pre-generated parser sources are kept in
 the repo, so there is nothing to fall back to; the old `USE_FLEX_BISON=OFF`
@@ -154,7 +155,8 @@ alternative to `-I` but is no longer required as a workaround.
 ├── specs/NNN-feature/      Spec-kit feature specs (see Dev Workflow below)
 ├── src/
 │   ├── common/             Infrastructure → libRIBCommon (shared + static): algebra/math, diagnostics,
-│   │                       arena, RI vocabulary + tokens, CVariable/variable grammar, stats, sampling
+│   │                       arena, RI vocabulary + tokens, CVariable/variable grammar, stats, sampling,
+│   │                       plug-in version check (pluginAbi.{h,cpp})
 │   ├── ri/                 RenderMan interface implementation (the renderer core)
 │   ├── libshader/
 │   │   ├── compiler/        RSL compiler (formerly src/oshader) → libshader_compiler
@@ -164,8 +166,10 @@ alternative to `-I` but is no longer required as a workaround.
 │   ├── rslo/, rsloinfo/, sloinfo/   Shader runtime + inspection CLIs
 │   ├── orender/            Main renderer executable
 │   ├── preview/             orender-wire scene wireframe viewer (libribpreview + macOS/Linux frontends)
-│   ├── framebuffer/         IPC framebuffer display driver
-│   ├── file/                File-format display plugins (TIFF/PNG/EXR/RGBE)
+│   ├── display/            Display Outputs: dsply.h (display interface 2.0.0), file/framebuffer/openexr/rgbe drivers
+│   ├── shadeop/            Shader DSO Operands → libRIBShadeop (shadeop.h 1.1.0, declaration parser, scan, per-thread data)
+│   ├── procedures/         Geometric Procedures: dlo.h, implicit.h, the one loader for dlo/implicit/DynamicLoad
+│   ├── include/            orplugin.h / orplugin.hpp, the shared plug-in convention (installed)
 │   ├── otexmake/, precomp/  Texture / precomputation tools
 │   ├── python/, lua/        Language bindings
 │   └── gui/                 REMOVED (legacy GUI deleted; see DEVNOTES.md)
@@ -229,6 +233,33 @@ Shading reaches textures only through `CRendererServices::textureSystem()` and
 `texture3dResolve/Lookup/Store` on the services. The RGBE codec lives in
 `libRIBCommon` (`src/common/rgbe.{h,cpp}`). See gotcha 25.
 
+### Plug-in ABIs (spec 037)
+Every plug-in family declares an interface version, `OR_ABI_VERSION(major, minor, patch)` =
+`MAJOR<<16 | MINOR<<8 | PATCH` (MINOR and PATCH are 8 bits; a change that needs more is a MAJOR
+change), through an exported query symbol (`orDisplayAbiVersion`, `orShadeopAbiVersion`,
+`orDloAbiVersion`, `orImplicitAbiVersion`, optional `orDynamicLoadAbiVersion`) declared by a
+`*_DECLARE_VERSION()` macro. The version-history table in each family header's comment is the single
+source of its numbers; `DEVNOTES_DETAILS/PLUGIN_ABI.md`, the display guide and the site page quote it
+and `PluginAbi_DocPaths` compares them. One routine, `checkPluginVersion` (`src/common/pluginAbi.cpp`,
+`libRIBCommon`), makes every load decision: a supported MAJOR loads, a newer MINOR loads with one
+warning, any other MAJOR is rejected, and a module without the symbol loads as 1.0.0 with one warning
+and is rejected from openRender 1.2.0 (`OR_PLUGIN_UNVERSIONED_SUNSET`); DynamicLoad never warns.
+Display 2.0.0 is a function table (`OrDisplayPlugin`: `start`/`data`/`finish`) over a per-display
+context and a `const` `OrDisplayInfo` snapshot; `CDisplayHost` (`src/ri/render/displayHost.*`) loads
+and drives it, and MAJOR 1 modules and `RiCustomDisplay` run through the confined adapter
+(`displayV1Adapter.*`, the only files that name a v1 display type). Shader DSO operands live in
+`libRIBShadeop` (`src/shadeop/`, shared and static like `libRIBCommon`): one hand-written declaration
+parser (the flex/bison `dso` grammar is gone), one scan, per-thread operand data (`shadeop` 1.1.0).
+`src/procedures/` is the one loader for `dlo`, `implicit` and DynamicLoad modules, reference-counted,
+with a frame reference that keeps a DynamicLoad generator's module until the frame's geometry is
+destroyed (the hook is installed at `RiBegin` like the services). Texturing reaches the AOV channel
+registry through `CTexture3dChannelSource` (`texture3dChannels.*`), not the renderer core. The legacy
+families keep their `SHADEOP_*`/`DLO_*`/`IMPLICIT_*` macro prefixes on purpose; the convention and
+display 2.0.0 use `OR_*`/`Or*`. The public headers come from one list,
+`OPENRENDER_PUBLIC_HEADERS` (`CMake/openRenderPublicHeaders.cmake`), installed into
+`OPENRENDER_INCLUDE_INSTALL_DIR` (`<ORENDERHOME>/include` self-contained, `include/openRender` FHS);
+`file_base.h` is not installed. See `DEVNOTES_DETAILS/PLUGIN_ABI.md` and gotcha 27.
+
 ### Coordinate / matrix conventions
 Column-major matrices, `element(row,col) = row + 4*col`. `from` = local→world,
 `to` = world→local = `from^-1`. The REYES vertex buffer stores **sample
@@ -246,6 +277,7 @@ ctest --test-dir build -L shading_parity                # JIT/interpreter parity
 ctest --test-dir build -L texture_tile -j2              # texture system: cache, resolver, concurrency, sample-stream cursor (opt-in disk-cache scripts included)
 ctest --test-dir build -L texture_only                  # Texturing-only program: links libRIBCommon alone and reproduces the starting tree's lookups
 ctest --test-dir build -L state                         # Graphics State: handles and counts, last-bound record, pattern table, channel registry, light order, vocabulary
+ctest --test-dir build -L plugin_abi -j4                # plug-in ABIs (spec 037): headers, versions, display host and v1 adapter, shadeop module, procedures, install layouts, doc checks
 ctest --test-dir build -LE determinism-sweep -j4        # the everyday full run: everything except the opt-in determinism sweep
 ctest --test-dir build -L '^determinism$' -j2           # default determinism set (148): harness, tie and derivative tests, one demanding scene per family
 ctest --test-dir build -L '^determinism-sweep$' -j2     # opt-in full sweep (413 scenes x 5 configurations, ~10-12 min at -j2): before each merge, and for the Linux validation
@@ -253,6 +285,12 @@ ctest --test-dir build -L '^determinism-sweep$' -j2     # opt-in full sweep (413
 
 **`-L` is a regular expression.** `-L determinism` also selects every `determinism-sweep` test (the whole sweep); anchor it
 (`-L '^determinism$'`). The sweep tests carry no `visual` or `regression` label, so `-L visual` and `-L regression` skip them.
+
+The `plugin_abi` references (`tests/plugins/**/reference`) are captured once on the pre-change tree;
+`cmake --build build --target plugin-abi-capture-baselines` writes a missing one and refuses to
+overwrite an existing one unless configured with `-DOR037_RECAPTURE=ON`. `-DOPENRENDER_TSAN=ON`
+(forces `OPENRENDER_ENABLE_JIT=OFF`) builds with ThreadSanitizer; run `-L plugin_abi` in that tree
+(use a separate build directory).
 
 **REYES shading vs. sampling trap:** `ShadingRate` controls micropolygon grid
 dicing; `PixelSamples` controls visibility sampling *only*. Cranking
@@ -570,9 +608,9 @@ not in the agent definitions.
    does not link libshader_shading); with no hook installed `usedParameters`
    is 0 and `findParameter` is `nullptr`, so a State-only test that binds
    doubles must run with no `RiBegin` session open. The AOV/channel registry
-   is a Graphics State `CChannelRegistry`; `CRenderer::retrieveDisplayChannel`
-   is only an **out-of-line** forwarder to it (inline, it would put State
-   symbols into `texture3d.o` and break the DB-010 allowlist). `CAttributes`
+   is a Graphics State `CChannelRegistry`; Texturing reaches it through
+   `CTexture3dChannelSource` (`texture3dChannels.*`, spec 037), and
+   `CRenderer::retrieveDisplayChannel` no longer exists. `CAttributes`
    copies and `restore()` now keep the active lights in RIB order; they used
    to reverse them on every push. The unchecked cast of a light entry to
    `CProgrammableShaderInstance` (DB-013) lives in `lightInstanceOf()`.
@@ -640,6 +678,19 @@ not in the agent definitions.
    (GitHub #106, preserved with #107, #108 and #110). Reyes's own
    camera-rotation SLERP and motion bounds are untouched (DB-009, spec 031).
 
+27. **Plug-in modules are `dlopen`ed images; test and write them accordingly (spec 037).**
+   A loaded image runs its destructors at process exit, so a test that checks "unloaded after
+   `finish`" asserts the order of log lines, not that a destructor ran at that moment. The test
+   fixtures are plain C with no thread-local storage (a TLS block would change what an unload
+   releases). The v1 adapter's `thread_local` display binding is scoped to one `displayStart` call
+   and is not a "current display": nothing in the host reads a global one (there is none), and a
+   lookup outside `displayStart` answers `NULL` and logs once. The shadeop scan order is
+   lexicographic by module file name within a directory, in search-path order across directories,
+   and the renderer and `oshader` share the one scan; `osEnumerate` order is never relied on. A
+   DynamicLoad generator's module is held by a frame reference released after `root->destroy()`.
+   `checkPluginVersion` is the only version check: a new family adds an `SPluginFamily`, never a
+   second check.
+
 ## Active Technologies
 - C++20, CMake ≥3.19; `libtiff`/`libpng` (mandatory), OpenEXR (optional,
   `HAVE_OPENEXR`-gated), in-tree RGBE codec — no new dependencies
@@ -685,8 +736,23 @@ not in the agent definitions.
   (028-camera-and-motion-layer)
 - Storage: N/A — memory only; no new persistent state
   (028-camera-and-motion-layer)
+- C++20 and C17 (the public plug-in headers and the example driver are strict C17), CMake ≥3.19,
+  `-Werror`; no new dependencies — a shared plug-in convention (`orplugin.h`), versioned display,
+  shadeop, dlo and implicit interfaces, `libRIBShadeop`, the Procedures module
+  (037-plugin-abi-semver)
+- Storage: N/A — no new persistent state; the `plugin_abi` test references are captured files
+  (037-plugin-abi-semver)
 
 ## Recent Changes
+- 037-plugin-abi-semver: every plug-in family declares an interface version checked by one routine
+  (`checkPluginVersion`); display 2.0.0 (function table, per-display context, `const` snapshot,
+  channel descriptors, a documented threading contract) loaded by `CDisplayHost`, with MAJOR 1
+  drivers and `RiCustomDisplay` behind a confined adapter; shadeop 1.1.0 (per-thread data) in the
+  new `libRIBShadeop`; dlo, implicit and DynamicLoad at 1.0.0 behind one Procedures module with a
+  frame-held generator module; Texturing reads the channel registry through its own interface. DB-003,
+  DB-014 and DB-021 resolved (6 allowlist lines deleted, none added). Unversioned plug-ins warn and
+  are rejected from openRender 1.2.0; `file_base.h` is no longer installed; the public headers come
+  from one list into the layout's include directory (see spec 037).
 - 028-camera-and-motion-layer: the raytrace hider takes its camera from an
   `ICamera` (`CFrameCamera`) built from a per-frame `FrameParams` that Graphics
   State owns and the core installs once per frame, and Geometry evaluates every

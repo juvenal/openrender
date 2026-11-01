@@ -26,6 +26,10 @@
 ////////////////////////////////////////////////////////////////////////
 #include <math.h>
 
+// The init block runs once, at shader-bind time, outside any shading context: a DSO call in it uses the data of
+// thread index 0 (scriptFunctions.h, before its first inclusion)
+#define DSO_THREAD_INDEX 0
+
 #include "common/colorSpace.h"
 #include "common/diagnostics.h"
 #include "common/memory.h"
@@ -35,6 +39,7 @@
 #include "renderer.h"
 #include "rendererContext.h"
 #include "ri_config.h"
+#include "dsoHandle.h" // CDSO
 #include "rslo_code.h"
 #include "shader.h"
 #include "shading.h"

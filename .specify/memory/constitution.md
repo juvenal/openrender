@@ -1,21 +1,20 @@
 <!--
 Sync Impact Report:
-Version change: 1.1.0 → 1.2.0 (MINOR: new principle + new review duty; no obligation removed)
-Modified principles: None renamed or redefined
-Added sections: VIII. Domain Separation and Modular Boundaries
-Modified sections: Development Workflow → Code Review Requirements (domain-boundary review duty)
+Version change: 1.2.0 → 1.3.0 (MINOR: Principle VIII rule 4 expanded to allow a host to support
+  more than one MAJOR of a plug-in interface; the rejection duty and its diagnostic are kept)
+Modified principles: VIII. Domain Separation and Modular Boundaries, rule 4 (MAJOR check now reads
+  "not one the host supports"; multi-MAJOR support through a confined adapter permitted, each
+  supported MAJOR listed in the interface's version history, dropping one is a version change)
+Added sections: None
 Removed sections: None
 Templates requiring updates:
-  ✅ .specify/templates/plan-template.md - Constitution Check gains the Principle VIII gate
-  ✅ .specify/templates/spec-template.md - reviewed, no change needed (domain naming is a plan concern)
+  ✅ .specify/templates/plan-template.md - reviewed, Principle VIII gate names no rule 4 wording
+  ✅ .specify/templates/spec-template.md - reviewed, no change needed
   ✅ .specify/templates/tasks-template.md - reviewed, no change needed
   ✅ .specify/templates/checklist-template.md - reviewed, no change needed
   ✅ .specify/templates/agent-file-template.md - reviewed, no change needed
-  ✅ .claude/skills/speckit-*/SKILL.md - reviewed, no principle-number references to update
-New artifact: DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md - violation registry required by VIII rule 8
-Follow-up TODOs:
-  - Implement the CI domain-dependency check required by VIII rule 7 (registry DB-002, issue #25)
-  - Add Semantic Versioning to the plug-in ABI headers per VIII rule 4 (registry DB-003, issue #26)
+  ✅ specs/037-plugin-abi-semver/spec.md - its "Constitution amendment needed" note is now settled
+Follow-up TODOs: None (spec 037 implements the rule; registry DB-003, issue #26)
 Pending, intentionally not included: constitution-v1.1.1-draft.md (Principle VII PATCH) remains
   unratified; if ratified later it lands on top of this version.
 -->
@@ -113,7 +112,10 @@ their interfaces:
    - **MINOR**: backward-compatible addition (new optional entry point, field, or capability).
    - **PATCH**: backward-compatible fix with no interface change.
    Every version change MUST be documented. The host MUST reject a plug-in whose MAJOR version
-   differs from its own, with a clear diagnostic. Scene Interface back-ends (renderer, RIB writer,
+   is not one the host supports, with a clear diagnostic. A host MAY support more than one MAJOR
+   of an interface, for example through a confined adapter for an older MAJOR; each supported
+   MAJOR MUST be listed in that interface's version history, and dropping support for a MAJOR is
+   a documented version change. Scene Interface back-ends (renderer, RIB writer,
    preview) MUST plug in through self-registration, never by the dispatch layer naming a concrete
    implementation.
 5. **Independent buildability and testability.** Each domain SHOULD build as its own CMake target,
@@ -174,4 +176,4 @@ This constitution supersedes all other coding practices and guidelines. Amendmen
 
 All pull requests and code reviews MUST verify compliance with these principles. Complexity MUST be justified when it conflicts with simplicity principles. Use this constitution as the primary reference for all development decisions.
 
-**Version**: 1.2.0 | **Ratified**: 2025-12-07 | **Last Amended**: 2026-10-02
+**Version**: 1.3.0 | **Ratified**: 2025-12-07 | **Last Amended**: 2026-10-29

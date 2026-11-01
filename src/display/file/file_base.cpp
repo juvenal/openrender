@@ -22,23 +22,23 @@
 #include <math.h>
 #include <stdlib.h>
 
-CFileOutputBase::CFileOutputBase(int w, int h, int ns, int pixSz, TDisplayParameterFunction fp, bool isDepth)
-    : width(w), height(h), numSamples(ns), pixelSize(pixSz),
+CFileOutputBase::CFileOutputBase(const OrDisplayInfo *info, int pixSz, bool isDepth)
+    : width(info->width), height(info->height), numSamples(info->numSamples), pixelSize(pixSz),
       lastSavedLine(0),
       gamma(1.0f), qamp(0.0f),
       qzero(0.0f), qone(0.0f), qmin(0.0f), qmax(0.0f) {
 
     if (!isDepth) {
-        float *tmp;
-        if ((tmp = (float *)fp("quantize", FLOAT_PARAMETER, 4))) {
+        const float *tmp;
+        if ((tmp = (const float *)orDisplayFindParameter(info, "quantize", OR_DISPLAY_PARAM_FLOAT, 4))) {
             qzero = tmp[0];
             qone = tmp[1];
             qmin = tmp[2];
             qmax = tmp[3];
         }
-        if ((tmp = (float *)fp("dither", FLOAT_PARAMETER, 1)))
+        if ((tmp = (const float *)orDisplayFindParameter(info, "dither", OR_DISPLAY_PARAM_FLOAT, 1)))
             qamp = tmp[0];
-        if ((tmp = (float *)fp("gamma", FLOAT_PARAMETER, 1)))
+        if ((tmp = (const float *)orDisplayFindParameter(info, "gamma", OR_DISPLAY_PARAM_FLOAT, 1)))
             gamma = tmp[0]; // stored for PNG gAMA metadata; not used for color transform
     }
 

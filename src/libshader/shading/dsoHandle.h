@@ -24,21 +24,21 @@
 #ifndef DSOHANDLE_H
 #define DSOHANDLE_H
 
-#include "ri/render/shadeop.h" // dsoInitFunction, dsoExecFunction, dsoCleanupFunction
+#include "shadeop/shadeopModule.h" // CShadeopOperand, shadeopOperandData(), shadeopOperandExec()
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CDSO
-// Description			:	Holds a DSO shader info
-// Comments				:
+// Description			:	Holds a DSO shader info: the operand the shadeop module selected, with the
+//							name and prototype the shader asked for
+// Comments				:	A real class (shader.h, serviceLookup.h, rendererServices.h and renderer.h
+//							forward-declare it), kept an aggregate (the shading tests make stub ones with = {}).
+//							The renderer creates one per operand and hands it to the shadeop registry as the
+//							operand's host object, which destroys it when the operand is released.
 class CDSO {
     public:
-        void *handle;               // The handle to the module that implements the DSO shader
-        dsoInitFunction init;       // Init function
-        dsoExecFunction exec;       // Execute function
-        dsoCleanupFunction cleanup; // Cleanup function
-        char *name;                 // Name of the DSO shader
-        char *prototype;            // Prototype of the DSO shader
-        CDSO *next;
+        CShadeopOperand *operand; // The operand: its module, init data, per-thread data and exec
+        char *name;               // Name of the DSO shader (malloc'd)
+        char *prototype;          // Prototype of the DSO shader (malloc'd)
 };
 
 #endif

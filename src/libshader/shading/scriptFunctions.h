@@ -1126,23 +1126,29 @@ DEFFUNC(Splineap, "spline", "p=fP", SPLINEAPEXPR_PRE, SPLINEAPEXPR, SPLINEAPEXPR
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // DSO dispatcher
-#define DSOEXEC_PRE                                                    \
-    int numArguments;                                                  \
-    char **op;                                                         \
-    int *opSteps;                                                      \
-                                                                       \
-    argumentcount(numArguments);                                       \
-                                                                       \
-    op = (char **)ralloc(numArguments * sizeof(char *), threadMemory); \
-    opSteps = (int *)ralloc(numArguments * sizeof(int), threadMemory); \
-                                                                       \
-    for (int i = 0; i < numArguments; ++i) {                           \
-        operandSize(i, op[i], opSteps[i], char *);                     \
-        opSteps[i] *= operandBytesPerItem(i);                          \
-    }                                                                  \
-                                                                       \
-    void *handle = code->dso->handle;                                  \
-    dsoExecFunction exec = code->dso->exec;
+// The data exec receives is the shading thread's own when the module has per-thread entry points (spec 037,
+// shadeopOperandData), the shared init data otherwise. DSO_THREAD_INDEX is the executing context's thread
+// index; the init-block executor (render/init.cpp, one thread at shader-bind time, no context) defines it as 0.
+#ifndef DSO_THREAD_INDEX
+#define DSO_THREAD_INDEX thread
+#endif
+#define DSOEXEC_PRE                                                          \
+    int numArguments;                                                        \
+    char **op;                                                               \
+    int *opSteps;                                                            \
+                                                                             \
+    argumentcount(numArguments);                                             \
+                                                                             \
+    op = (char **)ralloc(numArguments * sizeof(char *), threadMemory);       \
+    opSteps = (int *)ralloc(numArguments * sizeof(int), threadMemory);       \
+                                                                             \
+    for (int i = 0; i < numArguments; ++i) {                                 \
+        operandSize(i, op[i], opSteps[i], char *);                           \
+        opSteps[i] *= operandBytesPerItem(i);                                \
+    }                                                                        \
+                                                                             \
+    void *handle = shadeopOperandData(code->dso->operand, DSO_THREAD_INDEX); \
+    dsoExecFunction exec = shadeopOperandExec(code->dso->operand);
 
 #define DSOEXEC exec(handle, numArguments - 1, (void **)op);
 
@@ -1172,8 +1178,8 @@ DEFFUNC(DSO, "XXX", "XXX", DSOEXEC_PRE, DSOEXEC, DSOEXEC_UPDATE, DSOEXEC_POST, 0
         opSteps[i + 1] *= operandBytesPerItem(i);                              \
     }                                                                          \
                                                                                \
-    void *handle = code->dso->handle;                                          \
-    dsoExecFunction exec = code->dso->exec;
+    void *handle = shadeopOperandData(code->dso->operand, DSO_THREAD_INDEX);   \
+    dsoExecFunction exec = shadeopOperandExec(code->dso->operand);
 
 #define DSOVOIDEXEC exec(handle, numArguments, (void **)op);
 

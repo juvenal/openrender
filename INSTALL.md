@@ -6,7 +6,7 @@ This document describes how to build and install openRender using CMake.
 
 - **C++20** compiler with `<format>` and `<source_location>`:
   **GCC 13 or newer**, or Clang 17+ with libc++, or Clang against libstdc++ 13+.
-  `src/includes/logging.hpp` uses `std::format`, and libstdc++ only gained
+  `src/include/logging.hpp` uses `std::format`, and libstdc++ only gained
   `<format>` in GCC 13 — GCC 11 and 12 cannot build this tree, which is why
   Ubuntu 22.04's stock toolchain does not work.
 - **CMake** 3.19 or higher

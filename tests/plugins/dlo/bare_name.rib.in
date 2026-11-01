@@ -1,0 +1,13 @@
+# Spec 037, ProceduresAbi_BareNameLocated (FR-032): a DLO named by a bare file name that only the
+# procedural search path can locate. The renderer must load the file the search found, not the
+# unresolved name. The scene is run from a directory that does not contain the module.
+Option "searchpath" "procedural" ["@DLO_BARE_DIR@"]
+Option "searchpath" "display" ["@OR_DISPLAY_PATH@"]
+Format 8 8 1
+PixelSamples 1 1
+Projection "orthographic"
+
+Display "bare-name.tif" "file" "rgba"
+WorldBegin
+    Geometry "dlo" "string file" ["bare_name"]
+WorldEnd

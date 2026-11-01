@@ -26,7 +26,7 @@
 
 class CFileFramebufferTIFF : public CFileOutputBase {
     public:
-        CFileFramebufferTIFF(const char *name, int width, int height, int numSamples, const char *samples, TDisplayParameterFunction findParameter);
+        explicit CFileFramebufferTIFF(const OrDisplayInfo *info);
         ~CFileFramebufferTIFF() override;
 
         bool success() const override { return !!image; }

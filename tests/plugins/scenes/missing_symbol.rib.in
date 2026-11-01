@@ -1,0 +1,11 @@
+# Spec 037, ProceduresAbi_MissingSymbol: @SCENE_NAME@. A module that lacks an entry point, named by absolute path.
+Option "searchpath" "display" ["@OR_DISPLAY_PATH@"]
+Format 8 8 1
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Projection "orthographic"
+
+Display "missing.tif" "file" "rgba"
+WorldBegin
+@PROC_BODY@
+WorldEnd

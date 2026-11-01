@@ -17,7 +17,11 @@ add_subdirectory(libribpreview)
 # So probe first, non-fatally, and only descend when the stack can actually
 # satisfy the viewer. Everything else in the tree builds either way. Same
 # degrade-rather-than-abort rule the LLVM and OpenEXR blocks follow.
-if(APPLE)
+# A ThreadSanitizer build (OPENRENDER_TSAN) leaves the macOS viewer out: swift links libribpreview.a without the
+# sanitizer runtime and fails with unresolved ___tsan_* symbols, and the viewer is no plug-in path.
+if(APPLE AND OPENRENDER_TSAN)
+    message(STATUS "ThreadSanitizer build: the macOS orender-wire viewer is not built")
+elseif(APPLE)
     add_subdirectory(orender-wire-macos)
 elseif(UNIX)
     set(_wire_missing "")

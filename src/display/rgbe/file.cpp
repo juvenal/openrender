@@ -31,10 +31,12 @@
 
 class CRgbeFramebuffer : public CFileOutputBase {
     public:
-        CRgbeFramebuffer(const char *name, int w, int h, int ns, const char * /*samples*/, TDisplayParameterFunction fp)
-            : CFileOutputBase(w, h, ns,
-                              /*pixelSize=*/ns * (int)sizeof(float),
-                              fp) {
+        explicit CRgbeFramebuffer(const OrDisplayInfo *info)
+            : CFileOutputBase(info,
+                              /*pixelSize=*/info->numSamples * (int)sizeof(float)) {
+            const char *name = info->name;
+            const int w = info->width;
+            const int h = info->height;
             char fileName[256];
             if (!strchr(name, '.'))
                 snprintf(fileName, sizeof(fileName), "%s.pic", name);
@@ -71,30 +73,35 @@ class CRgbeFramebuffer : public CFileOutputBase {
         FILE *image = nullptr;
 };
 
-extern "C" {
+OR_DISPLAY_DECLARE_VERSION()
 
-void *displayStart(const char *name, int width, int height, int numSamples, const char *samples, TDisplayParameterFunction fp) {
-    auto *f = new CRgbeFramebuffer(name, width, height, numSamples, samples, fp);
-    if (!f->success()) {
-        delete f;
-        return nullptr;
+namespace {
+
+    OrStatus rgbeStart(OrDisplayContext * /*ctx*/, const OrDisplayInfo *info, void **instance) {
+        auto *f = new CRgbeFramebuffer(info);
+        if (!f->success()) {
+            delete f;
+            return OR_STATUS_ERROR;
+        }
+        *instance = f;
+        return OR_STATUS_OK;
     }
-    return f;
-}
 
-int displayData(void *im, int x, int y, int w, int h, float *data) {
-    assert(im != nullptr);
-    static_cast<CRgbeFramebuffer *>(im)->write(x, y, w, h, data);
-    return TRUE;
-}
+    OrStatus rgbeData(OrDisplayContext * /*ctx*/, void *instance, int x, int y, int w, int h, float *pixels) {
+        assert(instance != nullptr);
+        static_cast<CRgbeFramebuffer *>(instance)->write(x, y, w, h, pixels);
+        return OR_STATUS_OK;
+    }
 
-int displayRawData(void * /*im*/, int /*x*/, int /*y*/, int /*w*/, int /*h*/, void * /*data*/) {
-    return TRUE;
-}
+    void rgbeFinish(OrDisplayContext * /*ctx*/, void *instance) {
+        assert(instance != nullptr);
+        delete static_cast<CRgbeFramebuffer *>(instance);
+    }
 
-void displayFinish(void *im) {
-    assert(im != nullptr);
-    delete static_cast<CRgbeFramebuffer *>(im);
-}
+    const OrDisplayPlugin g_plugin = {{(uint32_t)sizeof(OrDisplayPlugin), OR_DISPLAY_ABI_VERSION}, rgbeStart, rgbeData, rgbeFinish};
 
-} // extern "C"
+} // namespace
+
+const OrDisplayPlugin *orDisplayPlugin(const OrHostInfo * /*host*/) {
+    return &g_plugin;
+}

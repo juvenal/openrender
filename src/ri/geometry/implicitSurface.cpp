@@ -41,38 +41,22 @@
 // Description			:	Ctor
 // Return Value			:	-
 // Comments				:
-CImplicit::CImplicit(CAttributes *a, CXform *x, int frame, const char *name, float ss, float sf) : CSurface(a, x) {
-    handle = osLoadModule(name);
+CImplicit::CImplicit(CAttributes *a, CXform *x, int frame, CImplicitModule *loaded, const char *name, float ss, float sf) : CSurface(a, x) {
+    module = loaded; // the caller acquired it and reported a failure to load or resolve (NULL)
+    data = NULL;
 
-    if (handle != NULL) {
-        initFunction = (implicitInitFunction)osResolve(handle, "implicitInit");
-        evalFunction = (implicitEvalFunction)osResolve(handle, "implicitEval");
-        evalNormalFunction = (implicitEvalNormalFunction)osResolve(handle, "implicitEvalNormal");
-        tiniFunction = (implicitTiniFunction)osResolve(handle, "implicitTini");
+    if (module != NULL) {
+        data = module->init(frame, bmin, bmax);
 
-        if ((initFunction == NULL) ||
-            (evalFunction == NULL) ||
-            (tiniFunction == NULL)) {
-            error(CODE_BADFILE, "Implicit file \"%s\" is missing some functions\n", name);
-            osUnloadModule(handle);
-            handle = NULL;
+        if (data != NULL) {
+            xform->transformBound(bmin, bmax);
+            stepSize = ss;
         }
         else {
-            data = initFunction(frame, bmin, bmax);
-
-            if (data != NULL) {
-                xform->transformBound(bmin, bmax);
-                stepSize = ss;
-            }
-            else {
-                error(CODE_BADFILE, "Implicit \"%s\" failed to initialize\n", name);
-                osUnloadModule(handle);
-                handle = NULL;
-            }
+            error(CODE_BADFILE, "Implicit \"%s\" failed to initialize\n", name);
+            module->detach();
+            module = NULL;
         }
-    }
-    else {
-        error(CODE_BADFILE, "Failed to load implicit \"%s\": %s\n", name, osModuleError());
     }
 
     scaleFactor = (float)pow((double)fabs(determinantm(xform->from)), 1 / 3.0) * sf * (float)0.5;
@@ -89,9 +73,9 @@ CImplicit::CImplicit(CAttributes *a, CXform *x, int frame, const char *name, flo
 CImplicit::~CImplicit() {
     atomicDecrement(stats.numGprims);
 
-    if (handle != NULL) {
-        tiniFunction(data);
-        osUnloadModule(handle);
+    if (module != NULL) {
+        module->tini(data);
+        module->detach(); // the last reference unloads the module
     }
 }
 
@@ -125,7 +109,7 @@ void CImplicit::intersect(CShadingContext *, CRay *ray) {
         }
     }
 
-    if (handle == NULL)
+    if (module == NULL)
         return;
 
     if (dotvv(ray->dir, ray->dir) < 0)
@@ -140,7 +124,7 @@ void CImplicit::intersect(CShadingContext *, CRay *ray) {
         lastP[0] = (float)(ray->from[0] + ray->dir[0] * lastT);
         lastP[1] = (float)(ray->from[1] + ray->dir[1] * lastT);
         lastP[2] = (float)(ray->from[2] + ray->dir[2] * lastT);
-        lastF = evalFunction(lastdF, data, lastP, openrender::motion::pluginTime(*ray));
+        lastF = module->eval(lastdF, data, lastP, openrender::motion::pluginTime(*ray));
 
         dt = (float)fabs(lastF) * scaleFactor;
 
@@ -153,7 +137,7 @@ void CImplicit::intersect(CShadingContext *, CRay *ray) {
         P[1] = (float)(ray->from[1] + ray->dir[1] * t);
         P[2] = (float)(ray->from[2] + ray->dir[2] * t);
         assert(dotvv(P, P) >= 0);
-        F = evalFunction(dF, data, P, openrender::motion::pluginTime(*ray));
+        F = module->eval(dF, data, P, openrender::motion::pluginTime(*ray));
 
         if ((lastF * F < 0) && (dt > C_EPSILON)) { // Did we step through the object ?
             dt *= 0.5f;
@@ -173,8 +157,8 @@ void CImplicit::intersect(CShadingContext *, CRay *ray) {
         else {
             // We found an intersection
             ray->object = this;
-            if (evalNormalFunction != NULL)
-                evalNormalFunction(dF, data, P, openrender::motion::pluginTime(*ray));
+            if (module->evalNormal != NULL)
+                module->evalNormal(dF, data, P, openrender::motion::pluginTime(*ray));
             mulmn(ray->N, xform->to, dF);
             ray->t = (float)t;
             return;

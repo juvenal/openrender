@@ -1,0 +1,20 @@
+# Spec 037, DisplayAbi_ReleaseAfterFinish_V2 (FR-035): the two frames of release_after_finish.rib.in with the
+# version 2 fixture. Frame 1's finish must be logged before the module is unloaded, and the unload before
+# frame 2's start.
+Option "searchpath" "display" ["@V2_DIR@"]
+Format 8 8 1
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Projection "orthographic"
+
+FrameBegin 1
+    Display "release-frame1.out" "v2" "rgba"
+    WorldBegin
+    WorldEnd
+FrameEnd
+
+FrameBegin 2
+    Display "release-frame2.out" "v2" "rgba"
+    WorldBegin
+    WorldEnd
+FrameEnd

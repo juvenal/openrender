@@ -28,6 +28,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <vector>
+
 #include "common/rsloFormat.h"
 #include "irBuilder.h"
 #include "opcodes.h" // This file holds the constant strings
@@ -37,10 +39,9 @@
 #include "passes/passDCE.h"
 #include "passes/passManager.h"
 #include "passes/passUniformLifting.h"
-#include "ri/parse/dso.h"
-#include "ri/render/shadeop.h"
 #include "rslo.h"
 #include "rsloEmitter.h"
+#include "shadeop/shadeopModule.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	symbol
@@ -1696,65 +1697,23 @@ void CScriptContext::generateCode(const char *o) {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Function				:	dsoEnumerateCallback
-// Description			:	This function will be called for each module
-// Return Value			:
-// Comments				:
-static int dsoEnumerateCallback(const char *file, void *ud) {
-    void *module = osLoadModule(file);
-
-    if (module != nullptr) {
-        int i;
-        char *name = (char *)ud;
-        SHADEOP_SPEC *shadeops;
-
-        {
-            char tmp[OS_MAX_PATH_LENGTH];
-
-            snprintf(tmp, sizeof(tmp), "%s_shadeops", name);
-
-            shadeops = (SHADEOP_SPEC *)osResolve(module, tmp);
-        }
-
-        if (shadeops != nullptr) {
-            for (i = 0;; i++) {
-                char *dsoName, *dsoPrototype;
-
-                if (strcmp(shadeops[i].definition, "") == 0)
-                    break;
-
-                if (dsoParse(shadeops[i].definition, dsoName, dsoPrototype) == TRUE) {
-                    CFunctionPrototype *cFun = rslo->addBuiltInFunction(name, dsoPrototype, 0);
-
-                    cFun->dso = TRUE;
-
-                    free(dsoName);
-                    free(dsoPrototype);
-                }
-            }
-        }
-
-        osUnloadModule(module);
-    }
-
-    return TRUE;
-}
-
-///////////////////////////////////////////////////////////////////////
 // Class				:	CScriptContext
 // Method				:	enumerateDso
 // Description			:	Enumerate a particular DSO
 // Return Value			:
-// Comments				:
+// Comments				:	The shadeop module scans the path and parses the declarations, the same way the
+//							renderer's getDSO does (FR-012, FR-013)
 void CScriptContext::enumerateDso(const char *name) {
-    char searchPath[OS_MAX_PATH_LENGTH];
-    TSearchpath *inPath;
+    std::vector<const char *> directories;
+    for (TSearchpath *inPath = dsoPath; inPath != nullptr; inPath = inPath->next)
+        directories.push_back(inPath->directory);
+    const SShadeopSearchPath searchPath = {directories.data(), (int)directories.size()};
 
-    // Go over the directories
-    for (inPath = dsoPath; inPath != nullptr; inPath = inPath->next) {
-        snprintf(searchPath, sizeof(searchPath), "%s/*.%s", inPath->directory, osModuleExtension);
-        osEnumerate(searchPath, dsoEnumerateCallback, (void *)name);
-    }
+    enumerateShadeopDeclarations(searchPath, name, [&](const SShadeopDeclaration &declaration) {
+        CFunctionPrototype *cFun = rslo->addBuiltInFunction(name, declaration.prototype.c_str(), 0);
+
+        cFun->dso = TRUE;
+    });
 }
 
 ///////////////////////////////////////////////////////////////////////

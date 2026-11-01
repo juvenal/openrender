@@ -28,11 +28,16 @@
 
 #include <string.h>
 
-CFileFramebufferPNG::CFileFramebufferPNG(const char *name, int w, int h, int ns, const char *samples, TDisplayParameterFunction fp)
-    : CFileOutputBase(w, h, ns,
-                      /*pixelSize placeholder — fixed below*/ ns,
-                      fp,
-                      /*isDepth=*/strcmp(samples, "z") == 0) {
+CFileFramebufferPNG::CFileFramebufferPNG(const OrDisplayInfo *info)
+    : CFileOutputBase(info,
+                      /*pixelSize placeholder — fixed below*/ info->numSamples,
+                      /*isDepth=*/strcmp(info->mode, "z") == 0) {
+
+    const char *name = info->name;
+    const char *samples = info->mode;
+    const int w = info->width;
+    const int h = info->height;
+    const int ns = info->numSamples;
 
     // PNG can't store float; default to 8-bit when no RIB quantize is specified.
     if (qmax == 0) {
@@ -56,12 +61,12 @@ CFileFramebufferPNG::CFileFramebufferPNG(const char *name, int w, int h, int ns,
         return;
     }
 
-    char *software = (char *)fp("Software", STRING_PARAMETER, 1);
+    const char *software = (const char *)orDisplayFindParameter(info, "Software", OR_DISPLAY_PARAM_STRING, 1);
     if (software) {
         png_text comment;
         comment.compression = -1;
         comment.key = (png_charp) "Software";
-        comment.text = software;
+        comment.text = const_cast<png_charp>(software); // libpng copies it
         comment.text_length = strlen(software);
         png_set_text(png_ptr, info_ptr, &comment, 1);
     }
