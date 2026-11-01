@@ -608,9 +608,9 @@ not in the agent definitions.
    does not link libshader_shading); with no hook installed `usedParameters`
    is 0 and `findParameter` is `nullptr`, so a State-only test that binds
    doubles must run with no `RiBegin` session open. The AOV/channel registry
-   is a Graphics State `CChannelRegistry`; `CRenderer::retrieveDisplayChannel`
-   is only an **out-of-line** forwarder to it (inline, it would put State
-   symbols into `texture3d.o` and break the DB-010 allowlist). `CAttributes`
+   is a Graphics State `CChannelRegistry`; Texturing reaches it through
+   `CTexture3dChannelSource` (`texture3dChannels.*`, spec 037), and
+   `CRenderer::retrieveDisplayChannel` no longer exists. `CAttributes`
    copies and `restore()` now keep the active lights in RIB order; they used
    to reverse them on every push. The unchecked cast of a light entry to
    `CProgrammableShaderInstance` (DB-013) lives in `lightInstanceOf()`.
