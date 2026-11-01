@@ -212,7 +212,7 @@ matrix CRenderer::fromNDC, CRenderer::toNDC;                             // init
 matrix CRenderer::fromRaster, CRenderer::toRaster;                       // initialized in beginFrame
 matrix CRenderer::fromScreen, CRenderer::toScreen;                       // initialized in beginFrame
 matrix CRenderer::worldToNDC;                                            // initialized in beginFrame
-unsigned int CRenderer::hiderFlags;                                      // initialized in beginFrame
+std::atomic<unsigned int> CRenderer::hiderFlags;                         // initialized in beginFrame
 int CRenderer::numSamples;                                               // initialized in beginDisplays
 int CRenderer::numExtraSamples;                                          // initialized in beginDisplays
 int CRenderer::xPixels, CRenderer::yPixels;                              // initialized in beginFrame

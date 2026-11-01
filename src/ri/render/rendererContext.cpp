@@ -1011,7 +1011,7 @@ void CRendererContext::RiWorldBegin(void) {
     // (fromWorld1/toWorld1) before we discard the motion chain below.
     log_debug("RiWorldBegin: calling beginFrame");
     CRenderer::beginFrame(currentOptions, currentAttributes, currentXform);
-    log_debug("RiWorldBegin: beginFrame returned, hiderFlags={}", CRenderer::hiderFlags);
+    log_debug("RiWorldBegin: beginFrame returned, hiderFlags={}", CRenderer::hiderFlags.load());
 
     // Clear any camera-motion chain deep-copied by xformBegin().
     // Pre-world MotionBegin defines CAMERA motion, now captured in fromWorld1/toWorld1.

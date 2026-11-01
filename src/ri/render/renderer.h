@@ -27,6 +27,8 @@
 #ifndef FRAME_H
 #define FRAME_H
 
+#include <atomic>
+
 #include "common/containers.h"
 #include "common/global.h"
 #include "common/os.h"
@@ -400,7 +402,7 @@ class CRenderer {
         static matrix fromRaster, toRaster;
         static matrix fromScreen, toScreen;
         static matrix worldToNDC;                                    // World to NDC matrix
-        static unsigned int hiderFlags;                              // The hider flags
+        static std::atomic<unsigned int> hiderFlags;                 // The hider flags: atomic, a display thread sets HIDER_BREAK while job threads read it
         static int numSamples;                                       // The actual number of samples to compute
         static int numExtraSamples;                                  // The number of actual samples
         static int xPixels, yPixels;                                 // The number of pixels to compute in X and Y
