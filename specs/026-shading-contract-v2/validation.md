@@ -131,6 +131,7 @@ The two test-code fixes of `tools/phase3-test-fixes.diff` (D5, D6) were confirme
 - #117 (O3): shown by the rendered scenes. `sit_row1_camera_primitive` runs the shader (154 markers) although `camerahitmode` is "primitive" (oddity 1, applied after the shaders); `sit_row2_points` runs the shader (3 markers) with `camerahitmode` "primitive" (oddity 8, ignored for 0-D points); `sit_row3_raytrace_primitive` has no report and no marker with `camerahitmode` "shader" and `specularhitmode` "primitive" (oddity 2, the raytrace camera hit reads `specularhitmode`).
 - #118 (O4, `diffusehitmode`), #119 (O5, implicit-surface hits) and #120 (O6, atmosphere at depth 0 only, transmission skipping displacement): not rendered by the test (no scene sets `diffusehitmode`, none has an implicit surface, an atmosphere or a displacement shader on the transmission scene); they are asserted from `classifyShading()` as the table has them, so the test adds no evidence either way.
 - #116 (O2) is resolved by #129 and is not checked.
+- Posted: the coordinator added the #117 evidence as a comment on the issue (issuecomment-6565164454, 2026-11-01). Nothing was posted for #118 to #120 (no new evidence).
 
 ## §2 Red evidence (Test gates, mutations)
 
@@ -369,6 +370,29 @@ T153 (staged): `CPointKeyReport` gained `dim, displaceOnly, inShadow, rayDepth, 
 T154: `ShadingContract_Situations` **fails**: 132 assertions pass, 2 fail, both `CT_EXPECT(!out.reports.empty())` (`case_situations.cpp:216`) for `sit_row3_raytrace_primitive` and `sit_row4_secondary_primitive`: 0 reports, 0 markers. Cause (read from `shading.cpp:880-935`): with `specularhitmode "primitive"` (or `transmissionhitmode "primitive"`) `shade()` copies the attribute colour and opacity and **returns before** `fillPointKeys()` and before the displacement shader, so neither observer fires; the camera hit of a raytrace scene reads `specularhitmode` too (oddity 2), so the scene has no report at all. The other 8 scenes pass (`build-logs/026-p9-sit.log`). This is a mismatch between the approved test's expectation and where the observers sit, not an error in the new fields; no test, scene or threshold was changed.
 
 Resolved 2026-11-01 by the maintainer's option A (an approved edit to the test, diff shown): see the Phase 9 checkpoint in §1. Afterwards `ShadingContract_Situations` passes on macOS and Linux (10 scenes plus the classify-only rows).
+
+### Phase 10 (T158 to T160): the guardrail scripts, red before the edits (macOS)
+
+`tools/scope_greps.sh` (15 checks plus an INFO line) and `tools/timing_sc010.sh` (SC-010; run in T171) are written. **Base of the git comparisons**: `628d6747`, the master commit this branch merged, and not the starting tree `d01da47` of the task text: spec 037 and the DLO fix also changed the allowlist, the registry and some sources, so against `d01da47` their changes would show as this spec's. `SCOPE_BASE=<commit>` overrides it. The JIT emitter is the one file on the "never edits" list with approved edits (D8, D9, D10); its diff is printed as INFO, not failed.
+
+Output of `scope_greps.sh` now (exit 1; `build-logs/026-p10-scope-red.txt`):
+
+| Check | Result |
+|---|---|
+| `currentObject->attributes` only in `shading.cpp` (comments excepted) | PASS |
+| no `currentObject->xform`; no `surface.h`/`object.h` include in `execute*.cpp` | PASS |
+| the new headers and `sloLoader.{h,cpp}` include no renderer, Hiders or Geometry header | PASS |
+| the removed service methods have no caller | PASS |
+| `incident`/`opposite` accessors agree (interpreter and JIT) | PASS |
+| allowlist section headers read `(5)` and `(31)` | **FAIL** (still `(8)` and `(33)`: T162) |
+| allowlist: only the two header counts added, exactly the five lines deleted | **FAIL** (no header count added yet: T162) |
+| registry texts of DB-018, DB-006, DB-001 | **FAIL** (not written yet: T163) |
+| `DEVNOTES.md` has the spec 026 row | **FAIL** (T165) |
+| DB-001/005/006/018 still Open; DB-005 untouched; no merge wording in added registry lines | PASS |
+| `validation.md` §4 holds the classification and the text of #115 to #121 | PASS |
+| files 026 never edits unchanged | PASS (`llvmEmitter.cpp`: INFO, 29 insertions, 3 deletions: D8, D9, D10) |
+
+It fails on the document checks and passes on the code checks, as the task expects.
 
 ## §3 Linux records
 
