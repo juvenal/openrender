@@ -388,6 +388,10 @@ class CShadingContext {
         // into the handle the services take. Null when there is no object (the imager, a bare execution). Defined out of
         // line in shading.cpp, which keeps object.h. Introduced in services version 2.0.0.
         openrender::shading::ObjectHandle objectHandle() const;
+        // The shaded object's attributes, null when there is no current object (the imager, a bare execution). It exists so that
+        // execute.cpp and executeMisc.cpp read them without CSurface's complete type; the consumers on the trace path take built-in
+        // defaults when it is null (FR-027)
+        const CAttributes *objectAttributes() const;
 
         // A shader instance (the executing shader, or a light) as an opaque handle. Null stays null.
         static openrender::shading::ShaderHandle shaderHandle(const CShaderInstance *instance) { return openrender::shading::ShaderHandle{instance}; }
@@ -967,7 +971,7 @@ class CShadingContext {
         void rendererTexture3dLookup(CTexture3d *t, float *dest, const float *P, const float *N, float radius);
         void rendererTexture3dStore(CTexture3d *t, const float *data, const float *P, const float *N, float radius);
         // Additional renderer-service accessors for execute.cpp / executeMisc.cpp / shaderPl.cpp
-        void rendererSetOffendingObject(CObject *obj);
+        void rendererSetOffendingObject(openrender::shading::ObjectHandle object);
         int rendererGetGlobalID(const char *name);
         int rendererShootStep() const;
         RtFilterFunc rendererGetFilter(const char *name) const;

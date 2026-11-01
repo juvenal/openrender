@@ -288,7 +288,7 @@ DEFSHORTFUNC(Indirectdiffuse, "indirectdiffuse", "c=pnf!", IDEXPR_PRE(FALSE), ID
     }                                                                                                                                                                            \
     float *res;                                                                                                                                                                  \
     const float *op2, *op3;                                                                                                                                                      \
-    const int estimator = (scratch->photonmapParams.estimator == 0 ? currentShadingState->currentObject->attributes->photonEstimator : (int)scratch->photonmapParams.estimator); \
+    const int estimator = (scratch->photonmapParams.estimator == 0 ? objectAttributes()->photonEstimator : (int)scratch->photonmapParams.estimator); \
     operand(0, res, float *);                                                                                                                                                    \
     operand(2, op2, const float *);                                                                                                                                              \
     operand(3, op3, const float *);
@@ -335,7 +335,7 @@ DEFSHORTFUNC(Photonmap, "photonmap", "c=Spn!", PHOTONMAPEXPR_PRE, PHOTONMAPEXPR,
     }                                                                                                                                                                            \
     float *res;                                                                                                                                                                  \
     const float *op2;                                                                                                                                                            \
-    const int estimator = (scratch->photonmapParams.estimator == 0 ? currentShadingState->currentObject->attributes->photonEstimator : (int)scratch->photonmapParams.estimator); \
+    const int estimator = (scratch->photonmapParams.estimator == 0 ? objectAttributes()->photonEstimator : (int)scratch->photonmapParams.estimator); \
     operand(0, res, float *);                                                                                                                                                    \
     operand(2, op2, const float *);
 

@@ -14,10 +14,8 @@
  *   tracer()                                the test's tracer, or nullptr when `noTracer` is set,
  *                                           else the renderer's
  *
- * It carries a delimited TEMPORARY block, like CContractServices (QD, A2): the methods that stay pure
- * virtual until their phase are forwarded there. Without the block the forwarder would stop compiling
- * the moment a phase removes a member. Phases 4, 5 and 7 delete their parts, named at their
- * TEST-APPROVALs.
+ * setOffendingObject(ObjectHandle)       recorded (count and last handle), then forwarded. The TEMPORARY block of the
+ *                                         earlier phases is gone: phases 4, 5 and 7 deleted their parts.
  */
 #ifndef TESTS_SHADING_CONTRACT_CONTRACT_FORWARDER_H
 #define TESTS_SHADING_CONTRACT_CONTRACT_FORWARDER_H
@@ -48,6 +46,7 @@ class CContractForwarder final : public CRendererServices {
         mutable std::vector<SMatrixCall> matrixCalls;
         mutable int tracerCalls = 0;
         mutable int offendingObjectCalls = 0;
+        mutable const void *lastOffending = nullptr;
 
         // ---- version 2
         void getAttribute(const openrender::shading::AttributeRequest &r, openrender::shading::AttributeValue &answer) const override {
@@ -117,17 +116,12 @@ class CContractForwarder final : public CRendererServices {
             return inner->getDSO(name, prototype);
         }
 
-        // ================================================================================================
-        // TEMPORARY (spec 026): deleted in phases 4, 5, 7.
-        //   setOffendingObject(CObject *)                             Phase 7
-        // ================================================================================================
-        void setOffendingObject(CObject *obj) override {
+        // Error reporting (version 2): recorded, then forwarded
+        void setOffendingObject(openrender::shading::ObjectHandle object) override {
             ++offendingObjectCalls;
-            inner->setOffendingObject(obj);
+            lastOffending = object.ptr;
+            inner->setOffendingObject(object);
         }
-        // ================================================================================================
-        // end of the TEMPORARY block
-        // ================================================================================================
 };
 
 #endif

@@ -185,7 +185,7 @@ class CRendererServices {
         ///////////////////////////////////////////////////////////////
         // Error reporting
         ///////////////////////////////////////////////////////////////
-        virtual void setOffendingObject(CObject *obj) = 0;
+        virtual void setOffendingObject(openrender::shading::ObjectHandle object) = 0;
 
         ///////////////////////////////////////////////////////////////
         // Ray step size (executeMisc.cpp indirect illumination)

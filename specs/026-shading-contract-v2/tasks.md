@@ -750,46 +750,46 @@ backend's own behaviour (Q2). Tests that go green: `Messages{Interp,Jit}`, `NoSe
 
 ### Tests block
 
-- [ ] T124 [US7] Write `tests/shading_contract/case_offending_object.cpp` (`ShadingContract_OffendingObject`, rendered, interpreter only, **in an executable of its own**, `test_shading_contract_offending`, `EXCLUDE_FROM_ALL`: it asserts the
+- [X] T124 [US7] Write `tests/shading_contract/case_offending_object.cpp` (`ShadingContract_OffendingObject`, rendered, interpreter only, **in an executable of its own**, `test_shading_contract_offending`, `EXCLUDE_FROM_ALL`: it asserts the
   `setOffendingObject(ObjectHandle)` signature, which does not exist before this phase, C6/B10; FR-003, Q11). It runs a shader that reaches `scripterror` (`execute.cpp`: the macro at about `:181`; the only trigger is the
   `"Invalid uniform lighting call"` use at about `:691`; read the code around it for a construct that reaches it) on a real `CProbeSurface` with the `CContractForwarder` installed, and asserts that the forwarder recorded
   `setOffendingObject` with an `ObjectHandle` equal to the surface's pointer, once, and that the error text is unchanged. **If no RSL construct reaches `scripterror`, do not stall the Test gate (N6)**: fall back, in the same
   executable, to a direct call of the `rendererSetOffendingObject(ObjectHandle)` helper on a context whose `currentObject` is the `CProbeSurface`, and assert the same recording; say in validation.md §2 which form was used. Remove `EXCLUDE_FROM_ALL` from the executable in `T125`.
-- [ ] T125 [US7] Test gate for Phase 7 (the red is the registry check). Delete exactly these two lines from `tests/architecture/allowlist.txt`, **by key**: `DB-006  include  src/libshader/shading/execute.cpp  ->
+- [X] T125 [US7] Test gate for Phase 7 (the red is the registry check). Delete exactly these two lines from `tests/architecture/allowlist.txt`, **by key**: `DB-006  include  src/libshader/shading/execute.cpp  ->
   src/ri/geometry/surface.h` and `DB-006  include  src/libshader/shading/executeMisc.cpp  ->  src/ri/geometry/surface.h`. Do not touch `shading.cpp -> object.h`. Change nothing else in the file yet (the header counts are Phase 10's). Also enable `ShadingContract_OffendingObject` (remove `EXCLUDE_FROM_ALL` from `test_shading_contract_offending`).
-- [ ] T126 [US7] [RUN] `$CJ 026-p7-red ctest --test-dir build -L architecture --output-on-failure`: it must report **exactly two `VIOLATION` lines, those two edges**, and nothing else (no `STALE`, no other
+- [X] T126 [US7] [RUN] `$CJ 026-p7-red ctest --test-dir build -L architecture --output-on-failure`: it must report **exactly two `VIOLATION` lines, those two edges**, and nothing else (no `STALE`, no other
   `VIOLATION`). Also build `test_shading_contract_offending`: it must fail to build (no `setOffendingObject(ObjectHandle)` yet), which is that test's red evidence. Record both in validation.md §2. Any other architecture line means the design is wrong: stop.
-- [ ] T127 [US3] Plan the double edits (approved here, applied with the interface change below): `setOffendingObject(CObject *)` becomes `setOffendingObject(ObjectHandle)` in `CForwardingServices`,
+- [X] T127 [US3] Plan the double edits (approved here, applied with the interface change below): `setOffendingObject(CObject *)` becomes `setOffendingObject(ObjectHandle)` in `CForwardingServices`,
   `CRecordingServices`, `CStubServices` and `CTextureServices`, and the TEMPORARY blocks of `CContractServices` and `CContractForwarder` are deleted (they hold only that method by now) and replaced by the real recording override. No forwarding
   override is added to a wrapper in this phase. Check by `grep` that no existing test calls `setOffendingObject` with a `CObject *` other than through these classes.
-- [ ] T128 [US7] **TEST-APPROVAL (PAUSE 7a)**: stage the allowlist deletion and the planned edits; summarize `T126` (the two `VIOLATION`s and the `OffendingObject` build failure) and the double edits (Q3's `setOffendingObject` change in the four classes, plus the deletion of the last TEMPORARY entries of `CContractServices` and
+- [X] T128 [US7] **TEST-APPROVAL (PAUSE 7a)**: stage the allowlist deletion and the planned edits; summarize `T126` (the two `VIOLATION`s and the `OffendingObject` build failure) and the double edits (Q3's `setOffendingObject` change in the four classes, plus the deletion of the last TEMPORARY entries of `CContractServices` and
   `CContractForwarder`, A2). The one new test is `T124`. **Wait for approval.**
 
 ### Implementation
 
-- [ ] T129 [US7] Add `const CAttributes *CShadingContext::objectAttributes() const` (declared in `shading.h`, defined out of line in `shading.cpp`, which keeps `object.h`: it returns
+- [X] T129 [US7] Add `const CAttributes *CShadingContext::objectAttributes() const` (declared in `shading.h`, defined out of line in `shading.cpp`, which keeps `object.h`: it returns
   `currentShadingState->currentObject->attributes`, and **null when there is no current object**). It exists so that `execute.cpp` and `executeMisc.cpp` stop needing `CSurface`'s complete type.
   **Amended at T064/T066 (2026-10-31, null-tolerant design decided by the maintainer):** its consumers on the trace path take built-in defaults when it is null, so the standalone program's trace cases run with no object and the executor
   no longer dereferences a null object (FR-027). The consumers are the parameter-list lookups' `init` (`plBegin` and `jitParameterList`: with a null attribute set the bias, maximum distance, samples and sample base keep the values the
   scratch pad already holds) and the two flag reads (`flags & ATTRIBUTES_FLAGS_SAMPLEMOTION` in `traceTransmission`, and `interior()`, `exterior()`, `flags` in `traceReflection`: no motion sampling, no interior or exterior shader).
   **No `static CAttributes` goes into `libshader_shading`** (a constructed default would add the imports `CAttributes::CAttributes()` and its vtable, which SC-011 forbids). Keep the import measurement at the Phase 7 checkpoint
   (`nm -m` / `dyld_info` and the Linux `nm -D`) as a check: expect no growth.
-- [ ] T130 [US7] Route the **seven** reads that are compiled into `execute.cpp`/`executeMisc.cpp`/`shaderFunctions.h`/`giFunctions.h` and read the object's attributes through `objectAttributes()` (research R5; the eighth site, `scripterror`, passes the object pointer and goes through `objectHandle()` in `T131`, "7 + 1"): `execute.cpp` `plBegin` (`lookup->init(scratch, attributes)`) and
+- [X] T130 [US7] Route the **seven** reads that are compiled into `execute.cpp`/`executeMisc.cpp`/`shaderFunctions.h`/`giFunctions.h` and read the object's attributes through `objectAttributes()` (research R5; the eighth site, `scripterror`, passes the object pointer and goes through `objectHandle()` in `T131`, "7 + 1"): `execute.cpp` `plBegin` (`lookup->init(scratch, attributes)`) and
   `runAmbientLights` (`lightSources`); `executeMisc.cpp` `flags & ATTRIBUTES_FLAGS_SAMPLEMOTION` (transmission) and `interior()`, `exterior()`, `flags` in `trace()`; `shaderFunctions.h`
   `flags & ATTRIBUTES_FLAGS_INSIDE` (`calculatenormal`); `giFunctions.h` `photonEstimator` (two sites). Locate by `grep -rn 'currentObject->attributes' src/libshader`. **The reads inside `shading.cpp` stay direct**
   (that unit keeps `object.h`; `shade()` takes the primitive until spec 029). A read that proves to need more than `CAttributes` is a stop condition.
   **Amended at T064/T066:** the trace path is read through `objectAttributes()` end to end, so these reads go through it as well, as the one exception to "the reads inside `shading.cpp` stay direct": `jitParameterList`'s `lookup->init(scratch, currentShadingState->currentObject->attributes)` (`shading.cpp`, the JIT twin of `plBegin`). Together with `plBegin`, `executeMisc.cpp:720` and `:846` that is every attribute read that `visibility()`, `transmission()` and `trace()` (probe and bundle, both backends) make. Each of the four takes the built-in default when `objectAttributes()` is null (T129). Any other read on that path that cannot be made null-tolerant is named in the Phase 7 report (it keeps `attachFakeObject()` for itself, T139a).
-- [ ] T131 [US7] Change `setOffendingObject` to take an `ObjectHandle`: in `rendererServices.h` (`virtual void setOffendingObject(openrender::shading::ObjectHandle object) = 0;`), the shading context's
+- [X] T131 [US7] Change `setOffendingObject` to take an `ObjectHandle`: in `rendererServices.h` (`virtual void setOffendingObject(openrender::shading::ObjectHandle object) = 0;`), the shading context's
   `rendererSetOffendingObject(ObjectHandle)` helper (`shading.h`/`shading.cpp`), `execute.cpp`'s `scripterror` (now `rendererSetOffendingObject(objectHandle())`, which removes the upcast that needed `surface.h`),
   `CRendererServicesImpl` (`CRenderer::offendingObject = const_cast<CObject *>(static_cast<const CObject *>(h.ptr));`), the four test classes and the TEMPORARY blocks of `CContractServices` and `CContractForwarder` (Q11, A2); `ShadingContract_OffendingObject` turns green.
-- [ ] T132 [US7] Remove `#include "surface.h"` from `src/libshader/shading/execute.cpp` and `executeMisc.cpp`; add `#include "attributes.h"` to `execute.cpp` (Shading -> Graphics State, allowed;
+- [X] T132 [US7] Remove `#include "surface.h"` from `src/libshader/shading/execute.cpp` and `executeMisc.cpp`; add `#include "attributes.h"` to `execute.cpp` (Shading -> Graphics State, allowed;
   `executeMisc.cpp` already has it). Confirm `grep -n '#include "\(surface\|object\)\.h"' src/libshader/shading/execute*.cpp` is empty, and that no transitive path reaches `object.h`/`surface.h` from them (`bundles.h`
   -> `ray.h` and `shading.h`; `irradiance.h`; `photonMap.h`). Record any residual edge: it is a stop condition, not an allowlist addition.
-- [ ] T133 [US7] [RUN] `ShadingContract_OffendingObject` is green, and CP-c: `ctest -L architecture` now passes with `ALLOWED DB-006 x 31`, `DB-001 x 8`, `DB-005 x 8`, `RESULT PASS`, no `VIOLATION`, no `STALE`; the Shading metric still 0/0.
-- [ ] T134 [US7] [RUN] Checkpoint 7: CP-a, CP-b, CP-c (8 / 8 / 31 as the table says), **CP-d**, CP-m, the scope greps of quickstart §3 for SC-002 (`grep -n 'currentObject->attributes' src/libshader -r`: only in `shading.cpp`,
+- [X] T133 [US7] [RUN] `ShadingContract_OffendingObject` is green, and CP-c: `ctest -L architecture` now passes with `ALLOWED DB-006 x 31`, `DB-001 x 8`, `DB-005 x 8`, `RESULT PASS`, no `VIOLATION`, no `STALE`; the Shading metric still 0/0.
+- [X] T134 [US7] [RUN] Checkpoint 7: CP-a, CP-b, CP-c (8 / 8 / 31 as the table says), **CP-d**, CP-m, the scope greps of quickstart §3 for SC-002 (`grep -n 'currentObject->attributes' src/libshader -r`: only in `shading.cpp`,
   the sites of research R5's table; `grep -n 'currentObject->xform' src/libshader -r`: none). Record in validation.md §1.
-- [ ] T135 [US7] [RUN] CP-L for Phase 7, with Linux's own CP-c (8 / 8 / 31).
-- [ ] T136 [US7] **Checkpoint 7 (PAUSE 7)**: stage; summarize (DB-006 33 -> 31; `shading.cpp -> object.h` stays; the 7 + 1 reads and where each stays); CP results; wait for review.
+- [X] T135 [US7] [RUN] CP-L for Phase 7, with Linux's own CP-c (8 / 8 / 31).
+- [X] T136 [US7] **Checkpoint 7 (PAUSE 7)**: stage; summarize (DB-006 33 -> 31; `shading.cpp -> object.h` stays; the 7 + 1 reads and where each stays); CP results; wait for review.
 
 
 ---

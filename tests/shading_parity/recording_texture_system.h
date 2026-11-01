@@ -242,7 +242,7 @@ class CTextureServices : public CRendererServices {
 
         int getGlobalID(const char *name) override { return inner->getGlobalID(name); }
 
-        void setOffendingObject(CObject *obj) override { inner->setOffendingObject(obj); }
+        void setOffendingObject(openrender::shading::ObjectHandle object) override { inner->setOffendingObject(object); }
 
         int shootStep() const override { return inner->shootStep(); }
 

@@ -80,7 +80,7 @@ class CRecordingServices final : public CRendererServices {
             return inner->getGlobalID(name);
         }
 
-        void setOffendingObject(CObject *obj) override { inner->setOffendingObject(obj); }
+        void setOffendingObject(openrender::shading::ObjectHandle object) override { inner->setOffendingObject(object); }
 
         int shootStep() const override { return inner->shootStep(); }
 
@@ -165,7 +165,7 @@ class CStubServices final : public CRendererServices {
 
         int getGlobalID(const char *) override { return kGlobalID; }
 
-        void setOffendingObject(CObject *) override {}
+        void setOffendingObject(openrender::shading::ObjectHandle) override {}
 
         int shootStep() const override { return 0; }
 

@@ -46,7 +46,7 @@
 #include "shaderPl.h"
 #include "shading.h"
 #include "specularTerm.h"
-#include "surface.h"
+#include "attributes.h"
 #include "textureCalls.h"
 #include "texture3d.h"
 
@@ -180,7 +180,7 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
 
 #define scripterror(mes)                                                                         \
     {                                                                                            \
-        rendererSetOffendingObject(currentShadingState->currentObject);                          \
+        rendererSetOffendingObject(objectHandle());                                              \
         error(CODE_SCRIPT, "\"%s\", in shader \"%s\" (nullified)\n", mes, cInstance->getName()); \
         cInstance->parent->codeEntryPoint = -1;                                                  \
         cInstance->parent->initEntryPoint = -1;                                                  \
@@ -305,8 +305,10 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
     CShadingScratch *scratch = &(currentShadingState->scratch);                                                                            \
                                                                                                                                            \
     /* Overwrite some of the initial values from the attributes */                                                                         \
-    const CAttributes *cAttributes = currentShadingState->currentObject->attributes;                                                       \
-    lookup->init(scratch, cAttributes);                                                                                                    \
+    /* With no object (FR-027) the scratch keeps the values it already holds */                                                           \
+    const CAttributes *cAttributes = objectAttributes();                                                                                   \
+    if (cAttributes != NULL)                                                                                                               \
+        lookup->init(scratch, cAttributes);                                                                                                \
                                                                                                                                            \
     /* Init the varyings	*/                                                                                                                \
     char **PL_VARIABLES = (char **)ralloc(lookup->numVaryings * sizeof(char *), threadMemory);                                             \
@@ -382,7 +384,7 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
 //	Run the ambient light source shaders for the lP
 #define runAmbientLights()                                                                                                       \
     if (!currentShadingState->ambientLightsExecuted) {                                                                           \
-        const CAttributes *currentAttributes = currentShadingState->currentObject->attributes;                                   \
+        const CAttributes *currentAttributes = objectAttributes();                                                               \
         float *Clsave;                                                                                                           \
                                                                                                                                  \
         assert((numActive + numPassive) == numVertices);                                                                         \

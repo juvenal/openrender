@@ -404,6 +404,16 @@ openrender::shading::ObjectHandle CShadingContext::objectHandle() const {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CShadingContext
+// Method				:	objectAttributes
+// Description			:	The shaded object's attributes (spec 026, FR-003, FR-027)
+// Return Value			:	null when there is no current object
+// Comments				:	This unit keeps object.h: it is the one place that needs CObject's complete type for this read
+const CAttributes *CShadingContext::objectAttributes() const {
+    return currentShadingState->currentObject != nullptr ? currentShadingState->currentObject->attributes : nullptr;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CShadingContext
 // Method				:	CShadingContext
 // Description			:	Ctor
 // Return Value			:	-
@@ -565,9 +575,9 @@ void CShadingContext::rendererTexture3dStore(CTexture3d *t, const float *data, c
     if (SVC && t)
         SVC->texture3dStore(t, data, P, N, radius);
 }
-void CShadingContext::rendererSetOffendingObject(CObject *obj) {
+void CShadingContext::rendererSetOffendingObject(openrender::shading::ObjectHandle object) {
     if (SVC)
-        SVC->setOffendingObject(obj);
+        SVC->setOffendingObject(object);
 }
 TextureOpt CShadingContext::textureOptions() const {
     const CShadingScratch &sc = currentShadingState->scratch;
@@ -2894,7 +2904,9 @@ T *CShadingContext::jitParameterList(const TJitParamList &pl, uint32_t callSite)
     }
 
     CShadingScratch *scratch = &(currentShadingState->scratch);
-    lookup->init(scratch, currentShadingState->currentObject->attributes);
+    // With no object (FR-027) the scratch keeps the values it already holds
+    if (const CAttributes *objectAttrs = objectAttributes())
+        lookup->init(scratch, objectAttrs);
 
     const CPLLookup::TParamBinding *cBinding = lookup->uniforms;
     for (int var = 0; var < lookup->numUniforms; ++var, ++cBinding)

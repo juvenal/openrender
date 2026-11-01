@@ -98,7 +98,7 @@ class CRendererServicesImpl final : public CRendererServices {
         int getGlobalID(const char *name) override { return CRenderer::getGlobalID(name); }
 
         // Error reporting
-        void setOffendingObject(CObject *obj) override { CRenderer::offendingObject = obj; }
+        void setOffendingObject(openrender::shading::ObjectHandle object) override { CRenderer::offendingObject = const_cast<CObject *>(static_cast<const CObject *>(object.ptr)); }
 
         // Shoot step
         int shootStep() const override { return CRenderer::shootStep; }

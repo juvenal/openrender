@@ -174,6 +174,15 @@ if(OPENRENDER_SHADING_CONTRACT_TESTS)
     target_include_directories(test_shading_contract_typemismatch_attr PRIVATE ${SHADING_CONTRACT_INCLUDES})
     target_link_libraries(test_shading_contract_typemismatch_attr PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
     add_dependencies(test_shading_contract_typemismatch_attr shading_contract_replay_shaders)
+    # The offending-object test asserts setOffendingObject(ObjectHandle), which exists from Phase 7 on (C6, B10): an
+    # executable of its own, EXCLUDE_FROM_ALL until the implementation makes it compile (T125/T131). Its red evidence
+    # is the failed build of this target.
+    add_executable(test_shading_contract_offending case_offending_object.cpp)
+    target_compile_features(test_shading_contract_offending PRIVATE cxx_std_20)
+    target_compile_definitions(test_shading_contract_offending PRIVATE ${SHADING_CONTRACT_PROGRAM_DEFS})
+    target_include_directories(test_shading_contract_offending PRIVATE ${SHADING_CONTRACT_INCLUDES})
+    target_link_libraries(test_shading_contract_offending PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+    add_dependencies(test_shading_contract_offending shading_contract_replay_shaders)
     add_executable(test_shading_contract_situations EXCLUDE_FROM_ALL situations_main.cpp case_situations.cpp)
     target_compile_features(test_shading_contract_situations PRIVATE cxx_std_20)
     target_compile_definitions(test_shading_contract_situations PRIVATE ${SHADING_CONTRACT_PROGRAM_DEFS})
@@ -269,6 +278,18 @@ add_contract_test(ShadingContract_LightsourceNoLoopRealJit test_shading_contract
 add_contract_test(ShadingContract_NullObject_MessagesInterp test_shading_contract_rendered NullObject_MessagesInterp ENABLED)
 add_contract_test(ShadingContract_NullObject_MessagesJit test_shading_contract_rendered NullObject_MessagesJit JIT ENABLED)
 add_contract_test(ShadingContract_LightsourceOversizedJit test_shading_contract_rendered LightsourceOversizedJit JIT ENABLED)
+
+# Phase 7 (the offending object): its own executable, no case argument
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cwd/ShadingContract_OffendingObject)
+if(OPENRENDER_SHADING_CONTRACT_TESTS)
+    add_test(NAME ShadingContract_OffendingObject COMMAND $<TARGET_FILE:test_shading_contract_offending>
+             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cwd/ShadingContract_OffendingObject)
+else()
+    add_test(NAME ShadingContract_OffendingObject COMMAND ${CMAKE_COMMAND} -E true
+             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cwd/ShadingContract_OffendingObject)
+endif()
+set_tests_properties(ShadingContract_OffendingObject PROPERTIES TIMEOUT 120 LABELS "shading_contract"
+    ENVIRONMENT "${SHADING_CONTRACT_ENV}")
 
 # Phase 8 (the tracer)
 add_contract_test(ShadingContract_TraceRequestsInterp test_shading_contract_standalone TraceRequestsInterp)

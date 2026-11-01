@@ -361,7 +361,7 @@ DEFFUNC(AreaS, "area", "f=pS", AREAEXPR_PRE, AREAEXPR, AREAEXPR_UPDATE, NULL_EXP
     FUN2EXPR_PRE                                                                                                                   \
     float *dPdu = (float *)ralloc(numVertices * 6 * sizeof(float), threadMemory);                                                  \
     float *dPdv = dPdu + numVertices * 3;                                                                                          \
-    const float mult = ((currentShadingState->currentObject->attributes->flags & ATTRIBUTES_FLAGS_INSIDE) ? (float)-1 : (float)1); \
+    const float mult = ((objectAttributes()->flags & ATTRIBUTES_FLAGS_INSIDE) ? (float)-1 : (float)1);                                   \
     duVector(dPdu, op);                                                                                                            \
     dvVector(dPdv, op);
 

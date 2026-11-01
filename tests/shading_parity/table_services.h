@@ -73,7 +73,7 @@ class CForwardingServices : public CRendererServices {
             return inner->getGlobalID(name);
         }
 
-        void setOffendingObject(CObject *obj) override { inner->setOffendingObject(obj); }
+        void setOffendingObject(openrender::shading::ObjectHandle object) override { inner->setOffendingObject(object); }
 
         int shootStep() const override { return inner->shootStep(); }
 

@@ -388,31 +388,14 @@ class CContractServices final : public CRendererServices {
             return tracerValue;
         }
 
-        // ================================================================================================
-        // TEMPORARY (spec 026): deleted in phases 4, 5, 7.
-        //
-        // The methods that stay pure virtual until the phase that removes them are implemented here, each
-        // recording its call; without this block the double is abstract in Phase 3 and StandaloneLink
-        // cannot go green (QD, decided 2026-10-31). Each removing phase deletes its part, named at that
-        // phase's TEST-APPROVAL:
-        //   setOffendingObject(CObject *)                             Phase 7 (ObjectHandle replaces it)
-        // ================================================================================================
-
-
-        void setOffendingObject(CObject *) override {
+        // Error reporting (version 2: the handle of the object that caused the error)
+        void setOffendingObject(openrender::shading::ObjectHandle object) override {
             ++offendingObjectCalls;
-            calls.push_back("legacy:setOffendingObject");
+            lastOffending = object.ptr;
+            calls.push_back("setOffendingObject");
         }
-        // ================================================================================================
-        // end of the TEMPORARY block
-        // ================================================================================================
 
     private:
-        template <class T> T legacy(const char *name, T value) const {
-            calls.push_back(std::string("legacy:") + name);
-            return value;
-        }
-
         std::map<std::tuple<int, const void *, std::string>, SAttributeEntry> attributes;
         std::map<std::tuple<int, const void *, const void *, std::string>, SMessageEntry> messages;
         std::map<std::string, SMatrixEntry> matrices;
