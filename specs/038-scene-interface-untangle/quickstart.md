@@ -16,9 +16,10 @@ R=/home/juvenal/Projects/Development/CLI/openrender-038; : "${R:?}"   # the Linu
 
 ## 0. Preconditions
 
-- The spec stage is committed by the maintainer and master `d6910bd0` (spec 026) is merged into the
-  branch by the coordinator; `git -C $WT log --oneline -1 d6910bd0` succeeds and
-  `git -C $WT merge-base --is-ancestor d6910bd0 HEAD` exits 0.
+- The spec stage is committed by the maintainer and master's tip `01501f10` (spec 026 at `d6910bd0` plus
+  three doc-count corrections) is merged into the branch by the coordinator;
+  `git -C $WT log --oneline -1 01501f10` succeeds and
+  `git -C $WT merge-base --is-ancestor 01501f10 HEAD` exits 0.
 - A configured build tree `$WT/build` (JIT on, `-Werror`), flex and bison.
 - The Linux tree `"${H}:${R}"` (Ubuntu 24.04, GCC 13, `-Werror`, LLVM 18, 2 cores), created in
   Phase 0 and reused to the end; never the main `openrender` tree or another spec's tree. Always write
@@ -72,6 +73,8 @@ in the background with the log redirected on the remote. GCC 13 may reject code 
 (`array-bounds`, `sign-compare`): fix on the Mac, re-sync the changed files, tell the maintainer
 (changed tests are re-approved).
 
+Each checkpoint also runs `ctest -L architecture_038` (the temporary label of the new checks that are still red; `-L architecture` itself must pass) and compares it with the phase's expected red set; Phase 9 requires `ctest -N -L architecture_038` to list no test.
+
 Expected at the end of each phase: everything green except the checks of later phases that are still
 red or disabled, as plan.md lists per phase; `ctest -L architecture` reports the phase's deleted
 allowlist lines gone and no `STALE`.
@@ -92,10 +95,11 @@ allowlist lines gone and no `STALE`.
 
 ```bash
 ~/.claude/bin/cpujob 038-determinism ctest --test-dir $WT/build -L '^determinism-sweep$' -j2 --output-on-failure
+ssh "${H}" "cd ${R} && ~/.claude/bin/cpujob 038-lx-determinism ctest --test-dir build -L '^determinism-sweep\$' -j2 --output-on-failure"
 ssh "${H}" "cd ${R} && ~/.claude/bin/cpujob 038-lx-all ctest --test-dir build -LE determinism-sweep -j2 --output-on-failure"
 ssh "${H}" "cd ${R} && ~/.claude/bin/cpujob 038-lx-arch ctest --test-dir build -L architecture --output-on-failure"
 ```
 
-Expected: the sweep green (419 scenes × 5 configurations, about 10-12 minutes at `-j2`); the Linux
+Expected: the sweep green (419 scenes × 5 configurations, about 10-12 minutes at `-j2`, on both hosts); the Linux
 architecture check green with the same allowlist; `ctest` reports `0 Not Run (Disabled)` on both
 platforms.

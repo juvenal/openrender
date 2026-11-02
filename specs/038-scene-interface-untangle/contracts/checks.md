@@ -6,12 +6,14 @@ unmodified tree) for the maintainer's approval, before any implementation task o
 "Red" means it fails on master `d6910bd0` merged into the branch; a check that cannot fail does not
 count (SC-011), except as stated for the drift test (Q3).
 
-## Mechanical checks (`cmake -P`, label `architecture` unless noted)
+## Mechanical checks (`cmake -P`)
+
+Each check that is red on the starting tree carries the temporary ctest label `architecture_038` (and `preview` for `Preview_NoCoreReach`), so that `ctest -L architecture` passes at every checkpoint. The task that turns a check green changes its label to `architecture`: `SceneInterface_RibOutNoCore`, `_NoCoreInclude` and `_HooksAndRecords` in Phase 2, `_ActiveContextAssignments` in Phase 3, `_RibVectorResidual` and `Preview_NoCoreReach` in Phase 4, `Compiler_IncludeBoundary` in Phase 5, `Precomp_NoHiderCore` in Phase 7. Each checkpoint also runs `-L architecture_038` and compares the result with the expected red set; Phase 9 verifies no test carries the label.
 
 | Check | Fails when | On the starting tree |
 |---|---|---|
 | `SceneInterface_RibOutNoCore` | a `ribOut_obj` source (`$<TARGET_PROPERTY:ribOut_obj,SOURCES>`) is classified Core by `domain-map.txt` | red (6 files) |
-| `SceneInterface_RibVectorResidual` | `ribVector_obj` compiles a Core file not in `tests/architecture/ribvector-core-residual.txt`, or the file lists one it no longer compiles (stale) | red (`rendererClipping.cpp`, `resource.cpp` not listed, Q7) |
+| `SceneInterface_RibVectorResidual` | `ribVector_obj` compiles a Core file not in `tests/architecture/ribvector-core-residual.txt`, or the file lists one it no longer compiles (stale), or a "needed by" cell names a file under `parse/`, `output/` or `preview/` (the residual files exist only for Geometry and Hiders) | red (`rendererClipping.cpp`, `resource.cpp` not listed, Q7) |
 | `SceneInterface_NoCoreInclude` | a source in `src/ri/parse/`, `src/ri/output/` or a generated parser (`rib_generated.cpp`, `ifexpr_generated.cpp`, `lex.*.cpp`) includes a file classified Core (resolved through the target's include path) | red (`rib.y`, `ifexpr.y`, `ri.cpp`, `ribOut.cpp`) |
 | `SceneInterface_HooksAndRecords` | `riHooks.h` is not under `src/ri/parse/`; `CDelayedData` is defined outside the Scene Interface; a Scene source includes `geometry/delayed.h` | red |
 | `SceneInterface_ActiveContextAssignments` | a source under `src/` or `tests/` outside `src/ri/parse/` (the check's own script excluded; `specs/` and the documentation are not scanned) matches `\brenderMan\s*=[^=]`, or one names `savedRenderMan` | red (M6) |
@@ -25,11 +27,11 @@ count (SC-011), except as stated for the drift test (Q3).
 |---|---|---|
 | `SceneInterface_ContextInstall` (`common`) | rule 1 of contracts/active-context.md (construct, do not install: the active context and the sink are unchanged); links `ribOut`; uses only today's API | red at run time (the constructor assigns) |
 | `SceneInterface_ContextInstallRules` (`common`) | rules 2 to 6 (install, uninstall, delete, nest, attach twice); needs `riInstallContext`/`riUninstallContext`/`riPreviousContext` | `DISABLED`; its `EXCLUDE_FROM_ALL` executable fails to compile on the starting tree (red evidence, decision A) |
-| `SceneInterface_Services` (`common`) | no service: `riRetrieveVariable` → `nullptr`, `riLocateFile` only finds a separator path; standard session and renderer session: the declared set equals the **declared-set reference** below (so both are pinned to the unmodified `CRenderer::initDeclarations()`, not to each other); the file search finds the same files with the same `info` lines as `CRenderer::locateFile` outside a network session; nested sessions restore the outer services | `DISABLED`; its `EXCLUDE_FROM_ALL` executable fails to compile on the starting tree (the API does not exist): that compile failure is its red evidence (decision A, precedent `tests/unit/state/CMakeLists.txt:92`) |
+| `SceneInterface_Services` (`common`) | no service: `riRetrieveVariable` → `nullptr`, `riLocateFile` only finds a separator path; standard session and renderer session: the declared set equals the **declared-set reference** below (so both are pinned to the unmodified `CRenderer::initDeclarations()`, not to each other); the file search finds the same files with the same `info` lines as `CRenderer::locateFile` outside a network session; a lexer archive lookup (`ReadArchive`) with **no active context** (`renderMan == NULL`) neither crashes nor finds a file by search path; `riEvaluateCondition` on a context whose `getAttributes`/`getOptions` answer `nullptr` reports "not found" without crashing; nested sessions restore the outer services | `DISABLED`; its `EXCLUDE_FROM_ALL` executable fails to compile on the starting tree (the API does not exist): that compile failure is its red evidence (decision A, precedent `tests/unit/state/CMakeLists.txt:92`) |
 | `SceneInterface_IfCharacterization` (`regression`) | a RIB with `IfBegin`/`ElseIf`/`Else`/`IfEnd` over user attributes, options, comparison and string operators, nested; rendered through a capture context; the branch taken per block recorded and compared with a reference | green by design (M8); reference captured once |
-| `Preview_SelfRegistration` (`preview`) | contracts/backend-registration.md | `DISABLED`; its `EXCLUDE_FROM_ALL` executable fails to compile on the starting tree (red evidence, decision A) |
+| `Preview_SelfRegistration` (`preview`) | contracts/backend-registration.md, including the FR-014 case: a preview-only program's `RiBegin("#x")` and `RiBegin("file.rib")` print the unchanged "not available in this build" texts | `DISABLED`; its `EXCLUDE_FROM_ALL` executable fails to compile on the starting tree (red evidence, decision A) |
 | `LibShader_CompilerTableDrift` (`libshader`) | contracts/compiler-tables.md, mutation self-check | `DISABLED` until `builtinTables.cpp` exists (Q3) |
-| `ShadeopAbi_Jit_*` (`plugin_abi`) | the eight rows of contracts/jit-dso-call.md; the 8-thread and render cases use a new RIB template `tests/plugins/shadeop/render_format.rib.in` with the shader format as a parameter (the approved `render.rib.in` hard-codes `"rslo"`; its scene is not edited, only its stale header comment, in Phase 6) | red (the `.slo` compile exits 3) |
+| `ShadeopAbi_Jit_*` (`plugin_abi`; registered under `if(OPENRENDER_ENABLE_JIT)`) | the seven rows of contracts/jit-dso-call.md plus the `LibShader_GateHardening` positive case (an approved-test edit, below); the 8-thread and render cases use a new RIB template `tests/plugins/shadeop/render_format.rib.in` with the shader format as a parameter (the approved `render.rib.in` hard-codes `"rslo"`; its scene is not edited, only its stale header comment, in Phase 6) | red (the `.slo` compile exits 3) |
 
 ## Characterization references (captured once, from the unmodified tree)
 
@@ -50,12 +52,13 @@ reference and refuses to overwrite an existing one unless configured with `-DOR0
 
 | File | Edit | Why |
 |---|---|---|
-| `tests/unit/blobby/blobbyTestUtils.h:53` | `riInstallContext(iface)` (once) instead of assigning | the constructor no longer attaches diagnostics |
+| `tests/unit/blobby/blobbyTestUtils.h:53` | `riInstallContext(iface)` once (a function-local install-once guard: installing an installed context is a `CODE_BUG`) instead of assigning | the constructor no longer attaches diagnostics |
 | `tests/unit/texture_tile/test_texture_system_stream_cursor.cpp:110-111,228-229` | install / delete | FR-010 |
 | `tests/unit/texture_tile/test_texture_system_null_resolver.cpp:114-115,164-165` (and its comment `:14`) | install / delete | FR-010 |
-| `tests/preview/test_data_keys.cpp:50-57` | install / delete | FR-010 |
+| `tests/preview/test_data_keys.cpp:50-57` | install / delete; the stale comment at `:48` (`RiBeginLite`, the constructor's global) rewritten | FR-010 |
 | `tests/unit/csg/test_procedural_operand.cpp` (`:32` `#include "delayed.h"` replaced) and `tests/unit/sampling/test_object_ids.cpp` (no `delayed.h` include of its own: it gets `CDelayedData` through `scene_probe.h:40`, so a new `#include "delayedData.h"` is added next to `:26`) | `delayedData.h` | FR-008 |
 | `src/libshader/tests/test_opcode_coverage.cpp` | explicit `DSO` handled check | FR-020 |
+| `tests/plugins/shadeop/render_1f.rib.in:4`, `tests/plugins/shadeop/scan.rib.in:4`, `tests/plugins/shadeop/check_versions_render.cmake:5` (comment lines only) | the same stale sentence "(the JIT has no DSO call path)" replaced by the same wording as in `render.rib.in` | decision B (Phase 6) |
 | `tests/plugins/shadeop/render.rib.in` (header comment, comment lines only) | the sentence "The shader is the interpreter bytecode (the JIT has no DSO call path)" is replaced by one saying the shader format is `.rslo` here and `render_format.rib.in` is the same scene with the format as a parameter; the scene lines are untouched | the comment is stale once the JIT has a DSO call path (decision B; Phase 6) |
 | `src/libshader/tests/test_gate_hardening.cpp` | positive DSO compile case (builds a module with a `DSO` instruction, checks `op_dso_call` in the `.slo`; the synthetic unhandled mnemonic stays) | FR-020 |
 | `src/libshader/tests/test_format_versions.cpp:276-300` (`LibShader_Format_slo_emitted`) | expect `SLO_FORMAT_MINOR_BASE` for its probe; a new case expects 2.1.0 from a probe with a DSO call | Q1(a) |

@@ -38,6 +38,8 @@ CRiInterface *RiBeginBackEnd(const char *key, void *argument);
 void RiEndBackEnd(CRiInterface *context);
 ```
 
+`ri.cpp` keeps one static slot for the light session (the `CRiStandardSession` and the context it began); `RiBeginBackEnd` fills it and `RiEndBackEnd` releases it, and so does an unknown key (the slot is not left occupied after the diagnostic). A second `RiBeginBackEnd` while the slot is full is refused like `RiBegin`'s "Already started".
+
 `RiBeginLite()` (`ri.cpp:255-257`, `rib.h:32`), whose only caller is the preview, is replaced by
 `RiBeginBackEnd` and deleted. `ri.cpp` names no back-end; the key is the preview's string.
 
@@ -74,12 +76,12 @@ or `CRendererContext` symbol (checked by `nm` on its objects).
 - `Preview_SelfRegistration`: a program linking `libribpreview` alone gets a non-null context from
   `RiBeginBackEnd("preview", nullptr)` that is the active one; `RiEndBackEnd` leaves no active
   context and the previous diagnostic sink in place; `RiBeginBackEnd("nonexistent", nullptr)` prints
-  the diagnostic and returns `nullptr`. Registered `DISABLED` until the API exists.
+  the diagnostic and returns `nullptr` and leaves the slot free (a following `RiBeginBackEnd("preview", nullptr)` succeeds). Registered `DISABLED` until the API exists.
 - `Preview_NoCoreReach` (`cmake -P`): no `libribpreview` source includes a Core header and no
   `libribpreview` object has an undefined `CRenderer`/`CRendererContext` symbol. Red on the starting
   tree.
 - The preview suite (`tests/preview`) and a characterization of `ribpreview_load` over the preview
   scenes (vertices, colors, camera, bounds) captured before the change: identical after (SC-006).
-- FR-014: with no back-end linked for a mode, `RiBegin` prints the existing
+- FR-014 (a case of `Preview_SelfRegistration`, in a preview-only program): `RiBegin("#x")` and `RiBegin("file.rib")` print the existing
   "Full-render mode is not available in this build ..." / "RIB-output mode is not available in this
   build ..." texts (`ri.cpp:315,324`), unchanged.

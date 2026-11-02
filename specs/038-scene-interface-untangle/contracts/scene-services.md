@@ -118,7 +118,8 @@ The standard file search, in order (research M4, R3), all `info(CODE_RESOLUTION,
 |---|---|
 | `rib.y:222` `CRenderer::retrieveVariable(par->name)` | `riRetrieveVariable(par->name)` |
 | `rib.y:232-245` dead `if (FALSE)` branch | deleted; the `else` branch (the error) stays |
-| `rib.l:178` `CRenderer::locateFile(...)` | `riLocateFile(...)` |
+| `rib.l:178` `CRenderer::locateFile(...)` | `riLocateFile(...)`; and `rib.l:170` `renderMan->getOptions()`, unchecked today, becomes `renderMan ? renderMan->getOptions() : NULL` so a parse with no active context is safe (a test case in `SceneInterface_Services`) |
+| `ifexpr.y:203-224` `cAttributes->find(...)` / `cOptions->find(...)` | a `nullptr` from `getAttributes(TRUE)`/`getOptions()` is "not found" (a test case) |
 | `rib.y:39-40`, `ifexpr.y:28-29` core includes | deleted; `riServices.h`, `riCondition.h` and the State headers the code really needs |
 | `ri.cpp:407-417` writer bootstrap | `{ CRiStandardSession session; globalArena.init(); ribParse(rcPath, NULL); globalArena.tini(); }` (same scope as today) |
 

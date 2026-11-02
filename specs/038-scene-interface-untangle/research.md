@@ -523,7 +523,7 @@ are not CONSUMER lines.
 
 ### R14. Checks the DSO tests must make before calling the interpreter the reference
 
-- **R14a**: two identical DSO calls in a row, a value-returning call whose result is unused, and a
+- **R14a** (measured values are recorded in validation.md §1): two identical DSO calls in a row, a value-returning call whose result is unused, and a
   call followed by a read of its destination, compiled to `.rslo`: check that the passes (ConstFold,
   UniformLifting, CSE, DCE, CallSites) neither merge, drop nor reorder a DSO line (the IR records the
   operand name as the result and the destination as a read). If one does, that is a defect of the

@@ -94,7 +94,7 @@ flat-namespace import is added.
   records the wording change; no member changes, no version constant changes.
 - Shader DSO Operands interface (`shadeop.h` 1.1.0): unchanged.
 
-## Tests (FR-022, SC-008), all comparing `.rslo` against `.slo` renders in the same run
+## Tests (FR-022, SC-008), registered under `if(OPENRENDER_ENABLE_JIT)`, all comparing `.rslo` against `.slo` renders in the same run
 
 | Case | Shader (new, `tests/plugins/shadeop/`) | Expectation |
 |---|---|---|

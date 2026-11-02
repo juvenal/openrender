@@ -3,8 +3,9 @@
 **Branch**: `038-scene-interface-untangle` | **Date**: 2026-11-01 | **Spec**: [spec.md](spec.md)
 
 **Input**: Feature specification from `specs/038-scene-interface-untangle/spec.md` (specified and
-clarified 2026-11-01; constitution 1.3.0). Designed against master `d6910bd0` (spec 026 merged),
-which the coordinator merges into this branch before implementation (Phase 0).
+clarified 2026-11-01; constitution 1.3.0). Designed against master `d6910bd0` (spec 026 merged);
+the coordinator merges master's tip `01501f10` (`d6910bd0` plus three doc-count corrections) into this
+branch before implementation (Phase 0).
 
 ## Summary
 
@@ -61,15 +62,18 @@ run has none left. [contracts/checks.md](contracts/checks.md) has the full list.
 call. A JIT DSO call costs one C++ call per instruction with the interpreter's per-vertex loop
 inside, and binding is one `lookupDSO` per slot per load.
 
-**Constraints**: byte-identical renders, RIB text, preview extraction and shader bytes (FR-005,
-FR-019, SC-004). No allowlist line added (FR-025). No task depends on the merge of 038 (FR-030).
+**Constraints**: existing visual thresholds unchanged and green, a passing determinism sweep on both
+hosts, and identical byte-pinned artifacts (written RIB text, preview extraction, shader sha256
+manifests, `precomp` output) (FR-005, FR-019, SC-004). No allowlist line added (FR-025). No task depends on the merge of 038 (FR-030).
 `CLAUDE.md` is never edited by an agent; its changes go into `claude-md-draft.md`, which the
 maintainer applies. clang-format runs only on files that were clang-format clean before.
 
 **Scale/Scope**: about 25 source files edited and 8 new (`state/declarations.{h,cpp}`,
 `parse/riServices.{h,cpp}`, `parse/delayedData.h`, `parse/riCondition.h`, `hiders/rasterFlags.h`,
-`compiler/builtinTables.cpp`), 1 file moved (`riHooks.h`), about 20 new checks and tests, 9
-approved tests edited, and 10 allowlist lines deleted.
+`compiler/builtinTables.cpp`), 1 file moved (`riHooks.h`), about 20 new checks and tests, 13
+approved files edited (9 tests with code or include changes; 4 files whose comments only change:
+`render.rib.in`, `render_1f.rib.in`, `scan.rib.in`, `check_versions_render.cmake`), and 10 allowlist
+lines deleted.
 
 No NEEDS CLARIFICATION remains. The ten design questions of the plan stage (research.md section Q)
 were answered on 2026-11-02: the maintainer approved every recommendation, then changed Q8 (no version bump). The record is "Maintainer
@@ -229,6 +233,13 @@ The determinism sweep (`-L '^determinism-sweep$' -j2`) runs in Phase 9, before m
 platforms. Phases 5-6 depend only on Phase 1 and may run before or between Phases 2-4. Phase 7's
 `precomp` part depends only on Phase 1. The data-viewer part of US7 is in Phase 4 (it needs Phases 2-3).
 
+Labels: the new `cmake -P` checks that are red on the starting tree carry the temporary ctest label
+`architecture_038` and move to `architecture` in the phase that turns them green, so that every
+checkpoint's `ctest -L architecture` passes; the checkpoint also runs `-L architecture_038` and
+compares it with the expected red set. Phase 9 verifies that no `architecture_038` label is left.
+The `.slo` tests (`ShadeopAbi_Jit_*`, the `.slo` half of `Shaders_BytesUnchanged`, the new libshader
+JIT cases) are registered under `if(OPENRENDER_ENABLE_JIT)`.
+
 ### Phase 0 — Setup (precondition for the maintainer and the coordinator; no implementation)
 
 - The maintainer commits the spec stage. The coordinator merges master `d6910bd0` into the branch
@@ -239,9 +250,9 @@ platforms. Phases 5-6 depend only on Phase 1 and may run before or between Phase
   sweep of research M5.
 - Create the Linux tree `openrender-038` (moved here from Phase 1, so that every phase, this one
   included, closes with a Linux run), configure it, build it and record the Linux baseline.
-- Three doc fixes are staged on master and arrive with the merge if the maintainer commits them
-  first (the DB-015 allowlist header "(11)" to "(10)", the sweep count 413 to 419 in `CLAUDE.md`, the
-  DB-011 evidence 611 to 558); no 038 task repeats them.
+- Master's tip `01501f10` already contains three doc fixes, which arrive with the merge (the DB-015
+  allowlist header "(11)" to "(10)", the sweep count 413 to 419 in `CLAUDE.md`, the DB-011 evidence
+  611 to 558); no 038 task repeats them, and Phases 8 and 9 verify they arrived.
 
 ### Phase 1 — Tests first, references, Linux gate (no behaviour change)
 
@@ -252,7 +263,7 @@ platforms. Phases 5-6 depend only on Phase 1 and may run before or between Phase
   written here so that every new test exists before any implementation (the tasks stage fixed this;
   the Phase 6 text used to put the fixtures there).
 - Research R10a (the opcode mnemonic relation) and R14a-c (pass behaviour on DSO lines, upper-case
-  prototype letters, the uniform decision), measured and written into research.md. A defect found
+  prototype letters, the uniform decision), measured and recorded in validation.md §1 (research.md keeps the design question). A defect found
   stops for the maintainer.
 - Linux gate: build the Phase 1 tree on the Linux tree (created in Phase 0), run the red set and the
   characterizations there; capture `reference/linux/` only where a reference differs.
@@ -287,7 +298,8 @@ platforms. Phases 5-6 depend only on Phase 1 and may run before or between Phase
 - `RiRegisterBackEnd`, `RiBeginBackEnd`/`RiEndBackEnd`; `RiBeginLite` deleted; the preview's
   registrar and session; the preview's core includes removed. `CDataDocument` on the standard session
   with an installed sink (US7-AS2; tagged [US7] in tasks.md).
-- The `ribVector` `nm` sweep (`tools/ribvector_core_sweep.sh`); `ribvector-core-residual.txt`;
+- The `ribVector` `nm` sweep (`tools/ribvector_core_sweep.sh`, first run as the closing item of Phase 3 and
+  re-run after the CMake change as the confirmation); `ribvector-core-residual.txt`;
   `rendererClipping.cpp` and `resource.cpp` out of `ribVector` (Q7); the CMake comments rewritten.
 - Green: `Preview_SelfRegistration` (enabled), `Preview_NoCoreReach`, `Preview_ExtractionUnchanged`,
   `SceneInterface_RibVectorResidual`, the preview suite.
