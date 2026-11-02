@@ -31,7 +31,7 @@ consumer launches. Seven parts:
    the object hash are public context interfaces (`enterRayLevel`/`leaveRayLevel`, `objectHash()`); the context
    holds its owner's tracer; `CHiderTracer` and `frameTracer` go.
 6. **`shade()` consumes `ShaderGlobals` and an `IPointSource`**: the producer (`CHider::shadeSurface`, Hiders)
-   fills the batch's ray type, hit mode, transport and pass by `classifyShading()` (corrected to the code in two
+   fills the batch's ray type, hit mode, transport and pass by `classifyShading()` (corrected to the code in three
    places, Q5), and `shade()` branches on them alone; the derivative arithmetic stays where it is. Geometry keeps
    calling the unchanged `shade(CSurface *, ...)` symbol, now an opaque forwarding entry (Q1); `object.h` leaves
    Shading (DB-006 31 -> 30).
@@ -51,8 +51,11 @@ the existing JIT.
 
 **Storage**: N/A; memory only. New recorded files are test references (manifests, import lists) under `tools/`.
 
-**Testing**: ctest. New label `link` (in the everyday run) and `link-package` (opt-in, final phase); additions to
-`shading_contract`. Existing suites at every checkpoint: the full run (`-LE determinism-sweep`), `architecture`,
+**Testing**: ctest. New label `link` (in the everyday run) and `link-package` (opt-in, final phase, registered only with
+`-DOPENRENDER_LINK_PACKAGE_TEST=ON`: the test configures, builds and installs a scratch tree, so it must never join the
+everyday run; documented in `tests/CMakeLists.txt`, quickstart §5 and the CLAUDE.md draft); additions to
+`shading_contract`. The temporary option `OPENRENDER_029_RED_TESTS` gates the new targets until each joins the normal
+build and is removed in Phase 8 (departure D2). Existing suites at every checkpoint: the full run (`-LE determinism-sweep`), `architecture`,
 `shading_contract`, `shading_parity`, `texture_tile`, `^determinism$`; the sweep once per platform at the end.
 
 **Target Platform**: macOS (Apple Silicon, Apple Clang, vcpkg, 13.3 target) and Linux (Ubuntu 24.04, GCC 13,
@@ -83,7 +86,7 @@ allowlist only shrinks and no line is re-keyed; no task depends on the merge; `c
 on macOS, `-j2` for the sweep and on Linux).
 
 **Scale/Scope**: about 9 new source files, 3 deleted, 2 moved, about 35 edited sources; about 12 new tests;
-about 25 approved test files edited (TEST-APPROVAL inventory).
+about 33 approved test files edited, 9 of them mechanical and added at the tasks stage (TEST-APPROVAL inventory).
 
 **Measurements at the plan stage** (static, no build; Phase 1 re-measures):
 
@@ -218,7 +221,7 @@ green (spec 026's rule); until then its red evidence lives in the scratch build.
 | # | Phase | Content | Allowlist lines deleted | Tests that turn green or guard |
 |---|---|---|---|---|
 | 1 | Setup and baselines | Copy `image_manifest.sh`, `linux_sync.sh` to `tools/`. macOS §0: build, suite manifest, diffs, two-run noise list, sweep manifest and noise, archcheck, imports, fixups, timing series and a frozen copy of the binaries. The red link evidence (§1): no `dynamic_lookup` (macOS), `--no-undefined` (Linux), each failing on exactly the 4 symbols; the package consumer's red run (Q14 (a)). Whether a photon scene's light shader traces during emission (research R10, item 3). **Gate**: Linux §4a (the per-spec tree created, baseline, sweep manifest, imports, `readelf`, red link, pass/fail set) before Phase 2 | none | the starting tree's own suite |
-| 2 | Tests first | `tests/link/` (T-L1 to T-L4), `ShadingScope_Greps` (T-S1), the new contract cases (T-S2, T-P1, T-B1, T-H1, T-T1, T-T2, T-G1, T-G2) and their scenes; the red-first edit of `ShadingContract_Situations` (Q5). All red in `build-red`; nothing new registered in `build` | none | none (main build's pass set unchanged on both platforms) |
+| 2 | Tests first | `tests/link/` (T-L1 to T-L4), `ShadingScope_Greps` (T-S1), the new contract cases (T-S2, T-P1, T-B1, T-H1, T-T1, T-T2, T-G1, T-G2) and their scenes; the Q5 edit of `ShadingContract_Situations` written as `tools/situations-q5.patch` (applied in Phase 7, departure D1). All red in `build` configured with `OPENRENDER_029_RED_TESTS=ON` (departure D2); nothing new compiled or enabled in the normal `build` | none | none (main build's pass set unchanged on both platforms) |
 | 3 | US5: bundles and the photon map | `git mv` the bundles into Shading; the five vestigial includes; `IPhotonLookup`, `getPhotonMap`, 2.1.0 with its rule comment and history (every `static_assert` stays on MAJOR 2); the two `irradiance.h` includes; `src/ri/hiders` off the shading include path; `load_stub.cpp` deleted | 8 DB-005, 5 DB-001 | T-L1, T-P1, T-B1, T-S1 (no Hiders include); `ShadingContract_StandaloneLink*` without the stub; T-L2 most likely passes from here (no import is left even with `dynamic_lookup`), and is registered in Phase 4 with the wiring |
 | 4 | US1, US2: the link | `dynamic_lookup` out; `--no-undefined` (Linux); the INTERFACE flag out; the package block and its test copy out; `--no-as-needed` and the import-only `ribRender` links out; the comments and docs of the contract `link-and-tests.md` | none | T-L2, T-L3, `Common_DiagnosticsCrossLibraryStatic` (plain link), `LibShader_McompConsistency` on Linux (#44) |
 | 5 | US4 (and FR-013): composition and the hooks | `CHider`; the five hider classes; `IIlluminationHook`, its 12 Shading call sites and the photon hider; the friends out; the context `final` and virtual-free (`renderingLoop` moves); the public surface of Q12; the core (`contexts` as `CHider **`, the dispatcher's `activeContext`, the four consumers, `hcshader.cpp`'s hooks); Geometry's 13 call sites; `reyes.cpp:1994` and `renderer.cpp:1029` | 4 DB-011 (Q7 (a)) | T-S2, T-H1, T-S1 (no virtual, no foreign friend), the 9 edited test classes, the photon and hook suites unchanged |
@@ -271,22 +274,26 @@ widens a threshold, disables a test, or changes an expected value, except T-G3's
 | Phase | File:line | Edit | Why (requirement, question) |
 |---|---|---|---|
 | 1 | `specs/029-hider-shading-separation/tools/*` | new references: suite and sweep manifests, noise lists, diffs, archcheck, imports, fixups, red link logs, timing | FR-023, FR-027 |
-| 2 | `tests/shading_contract/case_situations.cpp:177-212` | `expectedRow`: shadow before hook, dimension and depth before the raster flag (the corrected order) | Q5 (a) |
-| 2 | `tests/shading_contract/case_situations.cpp:273-280` | row 6's shadow case expects `Primitive` under `transmissionhitmode "primitive"` | Q5 (a) |
-| 2 | `tests/shading_contract/case_situations.cpp:313-323` | two scenes appended (REYES secondary; implicit shadow) | Q5 (a), T-G1 |
-| 2 | `tests/shading_contract/CMakeLists.txt`, `tests/CMakeLists.txt` | new targets and `add_subdirectory(link)`; new scenes and shaders | FR-024 |
+| 2 (patch), 7 (applied) | `tests/shading_contract/case_situations.cpp:177-212` | written as `tools/situations-q5.patch` in Phase 2, applied in Phase 7 (D1): `expectedRow`: shadow before hook, dimension and depth before the raster flag (the corrected order) | Q5 (a) |
+| 2 (patch), 7 (applied) | `tests/shading_contract/case_situations.cpp:273-280` | (patch, D1) row 6's shadow case expects `Primitive` under `transmissionhitmode "primitive"` | Q5 (a) |
+| 2 (patch), 7 (applied) | `tests/shading_contract/case_situations.cpp:313-323` | (patch, D1) two scenes appended (REYES secondary; implicit shadow) | Q5 (a), T-G1 |
+| 2 | `tests/CMakeLists.txt:72`, `tests/shading_contract/CMakeLists.txt` (after `:191`), new `tests/link/CMakeLists.txt` | the options `OPENRENDER_029_RED_TESTS` and `OPENRENDER_LINK_PACKAGE_TEST`, `add_subdirectory(link)`, the gated targets; new scenes and shaders | FR-024 |
 | 3 | `tests/shading_contract/contract_services.h:242`, `contract_forwarder.h:92`, `tests/shading_parity/recording_services.h:67, 163`, `table_services.h:61`, `recording_texture_system.h:234` | `getPhotonMap` returns `IPhotonLookup *` | FR-012, FR-015 |
-| 3 | `tests/shading_contract/load_stub.cpp` (deleted), `CMakeLists.txt:135-136, 150-152`, `case_link.cpp:13` | the stub and its wiring go; comments | FR-005 |
+| 3 | `tests/shading_contract/load_stub.cpp` (deleted), `tests/shading_contract/CMakeLists.txt:136` (comment) and `:152` (source list), `case_link.cpp:13` | the stub and its wiring go; comments | FR-005 |
 | 4 | `tests/unit/common/CMakeLists.txt:69-84` | plain `ribRender_static` link; comment | FR-003 |
 | 4 | `tests/shading_parity/CMakeLists.txt:316-326, 338-346, 360-368, 381-389` | `--no-as-needed` out; `ribRender` out where the test calls none of it | FR-005, #44 |
 | 4 | `src/libshader/tests/CMakeLists.txt:88-112` | `LibShader_McompConsistency` without `ribRender`; comment | FR-005, #44 |
 | 5 | `tests/shading_contract/contract_harness.h:38-41`, `rendered_harness.h:38-41`, `tests/shading_parity/test_context_no_services.cpp:75-80`, `texture_substitute_harness.h:56-60` | the subclass with an empty loop becomes a directly constructed context | FR-007, FR-025 |
 | 5 | `tests/shading_parity/test_illumination_hook.cpp:131-160`, `test_illumination_hook_conditions.cpp:127-157`, `test_illumination_hook_operands.cpp:146-175`, `test_false_if_constructs.cpp:62-73` | the hook overrides become a recording `IIlluminationHook` installed on a plain context; expected calls unchanged | FR-013, FR-025 |
-| 5 | `tests/shading_parity/test_state_services.cpp:64-70` | the subclass's `vertexMemory` accessor becomes the context's `vertexMemoryInUse()` | FR-007, Q11 (FR-025 amended) |
+| 5 | `tests/shading_parity/test_state_services.cpp:64-73`, `:216-217` | the subclass's `vertexMemory` accessor becomes the context's `vertexMemoryInUse()`; `contexts[i]` is read through `->shadingContext()` | FR-007, Q11, Q6 (FR-025 amended) |
+| 5 | `tests/unit/csg/csgTestUtils.h:157`, `tests/unit/rib_parse/test_sampling_option_rsl.cpp:47`, `tests/unit/sampling/scene_probe.h:133`, `tests/unit/motion/replay_capture.h:165`, `tests/unit/motion/test_frame_params_equal_core.cpp:131`, `tests/shading_parity/test_ambient_accumulation.cpp:154, 235`, `test_derivative_inactive_lanes.cpp:171`, `test_derivative_inactive_grid_lanes.cpp:243` | mechanical: `CRenderer::contexts[0]` is a `CHider *` (Q6 (a)), so each read becomes `->shadingContext()` (no new `CRenderer` accessor); behaviour unchanged (spec correction C8, FR-025 amended at the tasks stage) | FR-009, Q6, FR-025 |
 | 6 | none (Q2 (a): the contract tests keep injecting their tracer through the services double) | | FR-016 |
 | 7 | `tests/shading_contract/contract_harness.h:103`, `rendered_harness.h:104`, `case_offending_object.cpp:50, 59`, `case_type_mismatch_real.cpp:87` | `ss->currentObject = ...` becomes `setShadedObject(...)` | FR-018, Q3 (FR-025 amended) |
+| 7 | `tests/shading_parity/texture_substitute_harness.h:89`, `test_ambient_accumulation.cpp:175, 255`, `test_false_if_constructs.cpp:99` | the same `currentObject` write becomes `setShadedObject(...)` (spec correction C7, FR-025 amended at the tasks stage) | FR-018, Q3 |
+| 7 | `tests/unit/sampling/scene_probe.h:74-75`, `tests/unit/sampling/test_displace_consistency.cpp:55` | conditional, include path only: `report.surface->stableId` needs `object.h` once `shading.h` stops including it (decided by the build) | FR-022, FR-025 |
 | 8 | `tests/architecture/metrics-baseline.txt` | lowered to the measured values | FR-030 |
-| 8 | `tests/architecture/allowlist.txt` header comments | counts | FR-028 |
+| 8 | `tests/architecture/allowlist.txt` header comments | counts (the empty DB-001/DB-005 sections go; the DB-015 header is master's) | FR-028 |
+| 8 | `tests/CMakeLists.txt`, `tests/shading_contract/CMakeLists.txt`, `tests/link/CMakeLists.txt` | the temporary option `OPENRENDER_029_RED_TESTS`, every `if(OPENRENDER_029_RED_TESTS)` block (empty by then) and the `DISABLED` conditionals are removed; a final grep proves it (D2) | FR-024 |
 
 ## Risks
 
@@ -400,6 +407,22 @@ Recorded in spec.md, marked "(corrected at plan, 2026-11-02)":
 - **C5**: Geometry passes a `CReyes *` where a `CShadingContext *` is expected, and reaches inherited members through
   it, at 13 sites (FR-010's measured list).
 - **C6**: the plan stage ran no build; the measurements the spec attributes to "the plan" are Phase 1's.
+- **C7** (added at the tasks stage, 2026-11-02; research R8 cites it): FR-025's list of allowed shaded-object test writes (Q3) names 5 sites; the code has **9**: the 5 named, plus `texture_substitute_harness.h:89`, `test_ambient_accumulation.cpp:175, 255` and `test_false_if_constructs.cpp:99`, with two conditional include-path edits (`scene_probe.h:74-75`, `test_displace_consistency.cpp:55`). FR-025 is amended to list them.
+- **C8** (tasks stage): with `CRenderer::contexts` a `CHider **` (Q6 (a)), 11 reads in 9 approved test files treat `contexts[...]` as a `CShadingContext *` (`csgTestUtils.h:157`, `test_sampling_option_rsl.cpp:47`, `scene_probe.h:133`, `replay_capture.h:165`, `test_frame_params_equal_core.cpp:131`, `test_ambient_accumulation.cpp:154, 235`, `test_derivative_inactive_lanes.cpp:171`, `test_derivative_inactive_grid_lanes.cpp:243`, `test_state_services.cpp:216-217`). They become `->shadingContext()` (mechanical); the maintainer chose editing the tests over a new `CRenderer` accessor. FR-025 is amended to list them.
+
+## Departures taken at the tasks stage (maintainer-approved, 2026-11-02)
+
+Where tasks.md differs from this plan's wording, tasks.md follows these (D1 to D8):
+
+- **D1**: the Q5 edit of `ShadingContract_Situations` is written in Phase 2 as `tools/situations-q5.patch`, shown red, and applied at Phase 7's Test gate (an in-place Phase 2 edit would leave an approved test red in `build` until Phase 7; disabling it is forbidden).
+- **D2**: a temporary CMake option `OPENRENDER_029_RED_TESTS` (OFF) gates every new compiled test target, each in its own executable, so `build` stays green and archcheck never meets a target it cannot build; scripts are registered `DISABLED`. Red evidence reuses `build` (option ON, then OFF) instead of a second `build-red`. Each target joins the normal build in the phase that turns it green, and **Phase 8 removes the option and every `if(OPENRENDER_029_RED_TESTS)` block, with a final grep that it is gone**.
+- **D3**: `Link_PackageStaticConsumer` registers only with `-DOPENRENDER_LINK_PACKAGE_TEST=ON` (kept permanently and documented), so the everyday `-LE determinism-sweep` run never builds a second tree; its nested build calls `cmake --build -j<n>` directly (never `cpujob`: the outer job holds the lock).
+- **D4**: the baseline sweeps are taken in Phase 1 on both hosts; the verification sweeps run last in Phase 8.
+- **D5**: `linux_sync.sh` pushes the tracked `tests/shading_contract/replay/linux.txt`, lists files with `git ls-files --cached` and aborts on untracked files, pulls back only `tools/*-linux*`, and refuses `openrender`, other `openrender-0NN`, `cellar` and `shrimp`.
+- **D6**: the red links are taken from a copy of the generated `link.txt` (flag removed or added), without touching `src/` or the worktree CMake files.
+- **D7**: Phase 5 stays one phase; its task order allows a 5a/5b split.
+- **D8**: added tasks: the measured test-edit inventory (Phase 1), the static answer to R10 item 3, the frozen `build-base` and the SC-010 script, and a record of whether `Link_StaticConsumer` already passes after Phase 3.
+- **Master tip**: master is now `01501f10` (the three out-of-spec doc fixes on `d6910bd0`; no source changes). Phase 1 carries a coordinator/maintainer task to merge it (`--no-ff --no-commit`) before any baseline, so the registry text and the allowlist header match; all `git diff` bases in the tasks are `01501f10`.
 
 Amendments applied to spec.md on 2026-11-02, after the answers (each marked "Amended 2026-11-02" there): FR-018 and
 US7 AS2 (Q1: the opaque forwarding entry in Shading until spec 031); FR-025's list of allowed test edits (Q3, Q5, Q11;

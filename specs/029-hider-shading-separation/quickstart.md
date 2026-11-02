@@ -49,18 +49,19 @@ planning machine on 2026-11-02; access was restored the same day.)
 **The link (FR-001, FR-024), Phase 1, on the starting tree, in a scratch build:**
 
 ```bash
-~/.claude/bin/cpujob 029-red-configure cmake -B build-red -S . -DCMAKE_BUILD_TYPE=Release
-# edit build-red only through a cache/option or a scratch copy of the CMakeLists: never the worktree's src/
-~/.claude/bin/cpujob 029-red-link cmake --build build-red --target libshader_shading -j4
+# no second build tree and no edit of the worktree's src/ or CMake files (departure D6): copy the generated
+# build/src/libshader/shading/CMakeFiles/libshader_shading.dir/link.txt to a scratch directory, remove
+# `-undefined dynamic_lookup` (macOS) or add `-Wl,--no-undefined` (Linux), point -o at a scratch path, and run it:
+~/.claude/bin/cpujob 029-red-link-macos sh scratch-link.sh
 ```
 
-The scratch build links the library without `-undefined dynamic_lookup` (macOS) and with `--no-undefined`
+The scratch link links the library without `-undefined dynamic_lookup` (macOS) and with `--no-undefined`
 (Linux). Expected: a link failure naming exactly the 4 symbols. The log goes to
 `tools/red-link-{macos,linux}.txt`. Also in Phase 1: the red run of `Link_PackageStaticConsumer`'s mechanism
 (Q14 (a)) with the package block removed in a scratch copy, recorded in `validation.md`.
 
-**The tests (Phase 2):** every new test of the plan's "Test design" is built in `build-red` with the tests
-enabled, and each failure is recorded in `validation.md` with its reason (build failure, launch abort, wrong
+**The tests (Phase 2):** every new test of the plan's "Test design" is built in `build` configured with
+`-DOPENRENDER_029_RED_TESTS=ON` (then switched OFF again; departure D2), and each failure is recorded in `validation.md` with its reason (build failure, launch abort, wrong
 value, script mismatch). The edited approved tests (TEST-APPROVAL) are shown red the same way where their edit
 makes them so (`ShadingContract_Situations` after Q5's edit).
 
@@ -100,7 +101,8 @@ grep -rnE 'force_load|whole-archive|export-dynamic|allow-shlib-undefined|dynamic
 test ! -e tests/shading_contract/load_stub.cpp && test ! -e src/ri/hiders/hiderTracer.h
 grep -rn 'frameTracer\|CHiderTracer' src tests                     # expect: none
 grep -rn 'public CShadingContext' src tests                        # expect: none
-git diff d6910bd0 -- tests/architecture/allowlist.txt | grep '^+[^+]'   # expect: header-count comments only
+git diff 01501f10 -- tests/architecture/allowlist.txt | grep '^+[^+]'   # expect: header-count comments only (01501f10 = master's tip, merged in Phase 1)
+! grep -rn 'OPENRENDER_029_RED_TESTS' CMake tests src   # expect: nothing (the temporary option is removed in Phase 8)
 ```
 
 ## §4 Linux (Ubuntu 24.04, GCC 13, `-Werror`): the agent, over ssh
@@ -137,7 +139,7 @@ with its cause in `validation.md` (`LibShader_McompConsistency`, #44, expected).
 ~/.claude/bin/cpujob 029-sweep ctest --test-dir build -L '^determinism-sweep$' -j2 --output-on-failure
 tools/image_manifest.sh diff tools/baseline-sweep-images-macos.sha256 build tools/baseline-sweep-noise-macos.txt
 ssh "$H" "cd $RR && ~/.claude/bin/cpujob 029-linux-sweep ctest --test-dir build -L '^determinism-sweep$' -j2 --output-on-failure"
-~/.claude/bin/cpujob 029-package ctest --test-dir build -L '^link-package$' --output-on-failure          # Q14 (a), each platform
+~/.claude/bin/cpujob 029-package ctest --test-dir build -L '^link-package$' --output-on-failure          # Q14 (a), each platform; configure with -DOPENRENDER_LINK_PACKAGE_TEST=ON first (the test is not registered otherwise), then OFF again
 ```
 
 - The JIT-off build (`-DOPENRENDER_ENABLE_JIT=OFF`, a separate build directory): builds, `-L '^link$'` and the

@@ -29,7 +29,7 @@ Add:
 
 ```bash
 ctest --test-dir build -L link                          # spec 029: libshader_shading self-contained, the static consumer, no workaround text
-ctest --test-dir build -L '^link-package$'              # opt-in: an installed openRender package consumed statically (scratch configure)
+ctest --test-dir build -L '^link-package$'              # opt-in (configure with -DOPENRENDER_LINK_PACKAGE_TEST=ON): an installed openRender package consumed statically (scratch configure, builds a second tree)
 ```
 
 ## 3. Gotcha 23 (the illumination hook sentence)
@@ -70,9 +70,9 @@ Every implementer `static_assert`s MAJOR 2."
 >    `shade(const ShaderGlobals &, IPointSource &)`; spec 031 retires the forwarding entry. `shade()` branches on the
 >    batch's ray type and hit mode only, which the producer takes from `classifyShading()` (corrected in spec 029 to
 >    the code: a shadow hit reads `transmissionhitmode` at every dimension; a reflection traced from a REYES grid is
->    `Secondary`). Never C-cast a hider to a context or back: `(CReyes *)contexts[i]` once compiled into a
+>    `Secondary`; only the photon-emission batch is `Photon`: three corrections). Never C-cast a hider to a context or back: `(CReyes *)contexts[i]` once compiled into a
 >    `reinterpret_cast`. The object hash stays the context's (`objectHash()`), and its empty-entry sentinel is the
-   context's address, not the hider's. The core's dispatcher sets
+>    context's address, not the hider's. The core's dispatcher sets
 >    `CRenderer::activeContext` for every render thread. The shaded object is three fields of the state set
 >    together with `setShadedObject()` (opaque surface, `ObjectHandle`, attributes); Shading includes no Geometry or
 >    Hiders header.

@@ -269,9 +269,10 @@ dereference that (`tests/unit/sampling/scene_probe.h:74-75`, `test_displace_cons
   the surface as an opaque pointer (for the observers' `surface` field, never dereferenced by Shading), the
   handle (what `objectHandle()` returns; the producer computes it as the `CObject *` upcast, exactly the value
   `CRendererServicesImpl` casts back), and the attributes (what `objectAttributes()` and the eight reads
-  return). `fillPointKeys` takes the stable id from the point source. `object.h` leaves Shading. The five test
-  writes become `setShadedObject(...)` calls, and `hcshader.cpp`/`photon.cpp`/`imager.cpp` use it
-  (TEST-APPROVAL for the tests; FR-025 is amended to allow it, spec correction C7).
+  return). `fillPointKeys` takes the stable id from the point source. `object.h` leaves Shading. The nine test
+  writes (the five named at the plan stage and four more found at the tasks stage) become `setShadedObject(...)` calls,
+  and `hcshader.cpp`/`photon.cpp`/`imager.cpp` use it (TEST-APPROVAL for the tests; FR-025 is amended to allow it,
+  spec corrections C7 and C8 in plan.md).
 - (b) Keep `CSurface *currentObject` opaque and add a process-wide accessor hook installed by the core
   (attributes, handle and stable id of a surface). No test edits, but a process-wide hook where a per-call
   value suffices, and Shading still stores a Geometry pointer it cannot interpret.
@@ -339,7 +340,7 @@ parameters and the pass. The derivative-offset construction (`:1060-1146`) and t
 - Hiders' new files (`hider.cpp`, `shadingProducer.cpp`) reference no `CRenderer::` symbol (a new file would
   need new DB-011 lines), and join `ribVector`'s `REMOVE_ITEM` list like `trace.cpp`.
 
-## R10. `classifyShading()` disagrees with `shade()` in two places (Q5)
+## R10. `classifyShading()` disagrees with `shade()` in three places (Q5)
 
 **Finding** (an in-scope defect of spec 026's test-only function, found while designing FR-019).
 
