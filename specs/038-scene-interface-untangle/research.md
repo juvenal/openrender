@@ -94,6 +94,8 @@ then, if `tryNormalize`, the same search with `/` and `\` replaced by `_`; `info
 (`rendererStatics.cpp:122`), so the fallback looks for the bare name in the working directory, and
 `netClient` is `INVALID_SOCKET` (`rendererStatics.cpp:119`), so the network steps never run.
 
+That holds only in a process with no earlier renderer session. `temporaryPath` is set by `beginRenderer()` and never cleared at `RiEnd` (GitHub #136, a core defect 038 does not fix), so after a renderer session the last resort looks in a deleted directory and the bare name in the working directory is not tried (D4-a).
+
 That is why `ribOut` compiles `rendererNetwork.cpp`, `rendererMutexes.cpp` and `rendererStatics.cpp`
 (`src/ri/CMakeLists.txt:515-530`): `rendererFileSearch.cpp` references `netClient`,
 `netFileMappings`, `temporaryPath`, `networkMutex` and `getFile`.
@@ -315,12 +317,13 @@ are not CONSUMER lines.
   registration surface, no second implementation to justify it); `ri.cpp` calling Graphics State
   directly with no service (fails FR-001's Scene-owned service).
 
-### R3. The standard file search reproduces the writer's behaviour exactly
+### R3. The standard file search reproduces the writer's behaviour exactly (in a process with no earlier renderer session)
 
 - **Decision**: `CRiStandardFileSearch::locate` is M4's algorithm without the two network steps,
   with the bare-name fallback in the working directory that the empty `temporaryPath` gives today,
   the same `info(CODE_RESOLUTION, ...)` texts and the normalized retry. The renderer's
   implementation forwards to `CRenderer::locateFile`, so the network mapping stays the renderer's.
+- **Accepted difference (D4-a, core defect GitHub #136)**: the claim holds in a process with no earlier renderer session. `CRenderer::temporaryPath` is never cleared at `RiEnd`, so after a renderer session `CRenderer::locateFile`'s last resort searches a deleted directory. The standard search always tries the bare name in the working directory, so a writer, preview or data-viewer lookup after a renderer session in the same process now finds a bare name that exists only in the working directory. 038 does not fix #136 and no task touches `endRenderer`; a `SceneInterface_Services` case pins the new behavior and NEWS records it.
 - **Rationale**: US1-3; byte-identical diagnostics (FR-005). The network is reached only by the
   core's implementation.
 - **Alternatives**: a network hook inside the Scene implementation (nothing outside the renderer
@@ -575,6 +578,7 @@ stated the opposite, spec.md was amended (spec.md, Clarifications, Session 2026-
 | Q8 | **Changed after the first approval.** `CRendererServices` stays 2.0.0: no version bump for the `getDSO` comment (the `.slo` loader also uses it). The wording change is recorded only in the version-history comment of `rendererServices.h`. Policy: MAJOR = breaking, MINOR = non-breaking addition, PATCH = bug fix only, a comment-only change gets no bump, no MAJOR bump before spec 055. | FR-021, Assumptions amended (Phase 6). |
 | Q9 | A DSO call in a parameter default (init section, thread index 0) joins FR-022's matrix (`probe_init.sl`). | FR-022, US6-AS3, SC-008 amended. |
 | Q10 | The compiler's allowed include roots also include `src/include`, `src/libshader/include` and the build directories. | US5-AS1, FR-018, SC-007 amended. |
+| D4-a | (analyze stage) The standard file search reproduces the writer's lookups only in a process with no earlier renderer session; after one, a bare name that exists only in the working directory is now found (core defect: `CRenderer::temporaryPath` never cleared at `RiEnd`, GitHub #136, not fixed by 038). Accepted behavior change. | R3, M4, FR-005, SC-004, Assumptions amended; a `SceneInterface_Services` case (T036); NEWS line (T132). |
 
 ## Q. Questions for the maintainer (answered; kept as the record of the options)
 

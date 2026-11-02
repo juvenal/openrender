@@ -364,6 +364,7 @@ SC-007 to SC-011.
 | Q8 | `CRendererServices` stays 2.0.0: the `getDSO` wording change goes only into the version-history comment of `rendererServices.h` (changed by the maintainer from the first approval, a PATCH bump) | approved (changed) | Phase 6 |
 | Q9 | an init-section DSO case in FR-022's matrix | approved | Phase 1, 6 |
 | Q10 | the compiler's allowed include roots (US5-AS1, SC-007) gain `src/include`, `src/libshader/include` and the build directories | approved | Phase 1 |
+| D4-a | the standard file search matches the writer's lookups only in a process with no earlier renderer session; after one, a bare name that exists only in the working directory is now found (core defect GitHub #136, `temporaryPath` never cleared at `RiEnd`, not fixed by 038): accepted behavior change, a `SceneInterface_Services` case, NEWS line | approved | Phase 1, 2, 8 |
 
 ## Risks
 
@@ -379,6 +380,7 @@ SC-007 to SC-011.
 | Overlap with in-flight spec 029 (`029-hider-shading-separation`, at `d6910bd0`): Hiders/Shading files, possibly `rendererDeclarationsDispatch.cpp` (the shading-context loop) and `rslOps` | 038 keeps those edits small and self-contained; the second to land rebases; no task reads a line only 029 changes. |
 | Removing two files from `libRIBVector` removes exported symbols | Q7 (approved); NEWS line. |
 | Construction-time reports no longer set `RiLastError` | Q5 (approved); NEWS line; the reachable reports are listed in Phase 3. |
+| After a renderer session a writer, preview or data-viewer lookup now finds a bare name that exists only in the working directory | D4-a (approved); core defect GitHub #136 (`temporaryPath` never cleared at `RiEnd`), not fixed here; a `SceneInterface_Services` case; NEWS line. |
 
 ## Complexity Tracking
 

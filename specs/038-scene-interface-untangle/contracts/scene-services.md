@@ -94,6 +94,14 @@ The standard file search, in order (research M4, R3), all `info(CODE_RESOLUTION,
 3. if `tryNormalize`: the same with `/` and `\` replaced by `_`, `tryNormalize` off;
 4. `"\"%s\" -> ???\n"` and FALSE.
 
+This reproduces `CRenderer::locateFile` outside a network session **in a process with no earlier
+renderer session** (D4-a). `CRenderer::temporaryPath` is set by `beginRenderer()` and never cleared at
+`RiEnd` (GitHub #136), so after a renderer session the core's last resort searches a deleted
+directory, while step 2 above always tries the bare name in the working directory. The accepted
+difference: a writer, preview or data-viewer lookup after a renderer session in the same process now
+finds a bare name that exists only in the working directory. 038 does not fix #136 and touches no
+`endRenderer` code; the core's own service (renderer session) is unchanged.
+
 ## 3. Renderer core
 
 - `CRenderer::initDeclarations()`: `CDeclarations::acquire()`, the coordinate systems, the global
