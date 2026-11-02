@@ -309,7 +309,8 @@ request. Run `ctest -L architecture` locally before review.
 - **Rules**: the renderer-core rule (no domain may depend on the renderer core).
 - **Tracking**: remediation specs 028 ([#34](https://github.com/juvenal/openrender/issues/34)), 029 ([#35](https://github.com/juvenal/openrender/issues/35)), 030 ([#36](https://github.com/juvenal/openrender/issues/36))
 - **Evidence**:
-  - 21 files under `src/ri/hiders/` make 611 `CRenderer::` references (grep count): frame and
+  - 19 files under `src/ri/hiders/` make 558 `CRenderer::` references (the archcheck metric,
+    `metrics-baseline.txt`; a raw grep counts 575): frame and
     sampling parameters (`clipMax`, `bucketWidth`, `pixelXsamples`, `xSampleOffset`, …),
     `flags`, `hiderFlags`, `raytracingFlags`.
   - 9 files include `src/ri/render/renderer.h`.
