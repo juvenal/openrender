@@ -46,6 +46,34 @@ set_tests_properties(DiskSampling PROPERTIES
 # add_executable(test_atomics test_atomics.cpp)
 # add_test(NAME AtomicOperations COMMAND test_atomics)
 
+# Spec 038 (Scene Interface untangle): the characterization references are written by one build target, never by
+# a ctest run. `cmake --build <build> --target scene-interface-capture-baselines` writes each reference that does
+# not exist yet, from the tree as it is (run it once, on the unmodified tree, before Phase 2), and refuses to
+# overwrite an existing one unless the tree was configured with -DOR038_RECAPTURE=ON. Modelled on
+# plugin-abi-capture-baselines (tests/plugins/CMakeLists.txt). The target is not part of `all`. Each directory
+# that owns a reference adds its own capture step with add_dependencies(), so this target must exist before
+# those directories are added.
+option(OR038_RECAPTURE "Let scene-interface-capture-baselines overwrite existing references" OFF)
+# On the Linux validation tree the same target runs with -DOR038_CAPTURE_DIFFERENCES=ON: it then writes a
+# reference/linux/<name> only where the Linux result differs from the macOS reference (and writes nothing
+# for a result that is equal), so every platform difference is a file that can be read and explained.
+option(OR038_CAPTURE_DIFFERENCES "scene-interface-capture-baselines writes reference/linux/ files only where Linux differs" OFF)
+# (cache entries, because src/libshader/tests reads them and is not below this directory)
+if(OR038_RECAPTURE)
+    set(OR038_RECAPTURE_FLAG --recapture CACHE INTERNAL "")
+else()
+    set(OR038_RECAPTURE_FLAG "" CACHE INTERNAL "") # empty: expands to no argument
+endif()
+if(OR038_CAPTURE_DIFFERENCES)
+    set(OR038_CAPTURE_FLAG --capture-differences CACHE INTERNAL "")
+    set(OR038_CAPTURE_MODE capture-differences CACHE INTERNAL "")
+else()
+    set(OR038_CAPTURE_FLAG --capture CACHE INTERNAL "")
+    set(OR038_CAPTURE_MODE capture CACHE INTERNAL "")
+endif()
+add_custom_target(scene-interface-capture-baselines
+    COMMENT "Capturing the spec 038 characterization references (an existing reference is never overwritten)")
+
 # Add test subdirectories
 add_subdirectory(framebuffer)
 add_subdirectory(imager)
@@ -68,6 +96,8 @@ add_subdirectory(unit/geometry)
 add_subdirectory(unit/state)
 add_subdirectory(unit/camera)
 add_subdirectory(unit/motion)
+add_subdirectory(unit/scene_interface)  # spec 038: services, active context, writer and `if` characterizations
+add_subdirectory(precomp)               # spec 038: the precomputation tool (Precomp_OutputUnchanged, Precomp_NoHiderCore)
 # After unit/state: shading_contract links its state_only_sources library
 add_subdirectory(shading_contract)
 add_subdirectory(plugins)

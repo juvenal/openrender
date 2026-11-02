@@ -73,7 +73,7 @@ in the background with the log redirected on the remote. GCC 13 may reject code 
 (`array-bounds`, `sign-compare`): fix on the Mac, re-sync the changed files, tell the maintainer
 (changed tests are re-approved).
 
-Each checkpoint also runs `ctest -L architecture_038` (the temporary label of the new checks that are still red; `-L architecture` itself must pass) and compares it with the phase's expected red set; Phase 9 requires `ctest -N -L architecture_038` to list no test.
+Each checkpoint also runs `ctest -L or038_red` (the temporary label of the new checks that are still red; `-L architecture` itself must pass) and compares it with the phase's expected red set; Phase 9 requires `ctest -N -L or038_red` to list no test.
 
 Expected at the end of each phase: everything green except the checks of later phases that are still
 red or disabled, as plan.md lists per phase; `ctest -L architecture` reports the phase's deleted

@@ -1,0 +1,105 @@
+# Spec 038, SceneInterface_IfCharacterization: IfBegin / ElseIf / Else / IfEnd over user attributes, options,
+# comparison and string operators, nested. Every branch holds a Sphere whose radius is its tag: the capture
+# context records the radius of each Sphere the dispatcher lets through, so the list of radii is the list of
+# branches taken. A block is tagged by its first digit (1x, 2x, ...); the tag after it is the branch.
+Option "user" "float quality" [3]
+Option "user" "string mode" ["draft"]
+Option "limits" "bucketsize" [16 16]
+WorldBegin
+  Attribute "user" "float level" [2]
+  Attribute "user" "string material" ["metal"]
+
+  # 1: attribute and option comparisons, one branch of a chain taken
+  IfBegin "$user:level == 1"
+    Sphere 11 -1 1 360
+  ElseIf "$user:level == 2"
+    Sphere 12 -1 1 360
+  Else
+    Sphere 13 -1 1 360
+  IfEnd
+
+  # 2: no branch true, the Else is taken
+  IfBegin "$user:level > 5"
+    Sphere 21 -1 1 360
+  ElseIf "$user:level < 0"
+    Sphere 22 -1 1 360
+  Else
+    Sphere 23 -1 1 360
+  IfEnd
+
+  # 3: string comparison and the explicit Attribute: / Option: prefixes
+  IfBegin "$Attribute:user:material == 'metal'"
+    Sphere 31 -1 1 360
+  Else
+    Sphere 32 -1 1 360
+  IfEnd
+  IfBegin "$Option:user:mode == 'final'"
+    Sphere 33 -1 1 360
+  ElseIf "$Option:user:mode == 'draft'"
+    Sphere 34 -1 1 360
+  IfEnd
+
+  # 4: arithmetic, logical operators and the options of the limits category
+  IfBegin "($user:level + $user:quality) * 2 == 10 && $Option:limits:bucketsize == 16"
+    Sphere 41 -1 1 360
+  Else
+    Sphere 42 -1 1 360
+  IfEnd
+  IfBegin "$user:level == 7 || $user:quality >= 3"
+    Sphere 43 -1 1 360
+  IfEnd
+  IfBegin "~($user:level == 2)"
+    Sphere 44 -1 1 360
+  Else
+    Sphere 45 -1 1 360
+  IfEnd
+
+  # 5: the string operators: match, concat and defined()
+  IfBegin "$user:material =~ 'met.*'"
+    Sphere 51 -1 1 360
+  Else
+    Sphere 52 -1 1 360
+  IfEnd
+  IfBegin "concat($user:material, '-x') == 'metal-x'"
+    Sphere 53 -1 1 360
+  Else
+    Sphere 54 -1 1 360
+  IfEnd
+  IfBegin "defined($user:level)"
+    Sphere 55 -1 1 360
+  Else
+    Sphere 56 -1 1 360
+  IfEnd
+  IfBegin "defined($user:nothere)"
+    Sphere 57 -1 1 360
+  Else
+    Sphere 58 -1 1 360
+  IfEnd
+
+  # 6: nested blocks, inside a taken branch and inside a skipped one
+  IfBegin "$user:level == 2"
+    Sphere 61 -1 1 360
+    IfBegin "$user:quality == 3"
+      Sphere 62 -1 1 360
+    Else
+      Sphere 63 -1 1 360
+    IfEnd
+    IfBegin "$user:quality == 9"
+      Sphere 64 -1 1 360
+    ElseIf "$user:quality == 3"
+      Sphere 65 -1 1 360
+      IfBegin "$user:material == 'wood'"
+        Sphere 66 -1 1 360
+      Else
+        Sphere 67 -1 1 360
+      IfEnd
+    IfEnd
+  Else
+    Sphere 68 -1 1 360
+    IfBegin "$user:quality == 3"
+      Sphere 69 -1 1 360
+    Else
+      Sphere 70 -1 1 360
+    IfEnd
+  IfEnd
+  Sphere 99 -1 1 360

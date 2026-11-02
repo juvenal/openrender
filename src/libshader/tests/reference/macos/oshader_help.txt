@@ -1,0 +1,67 @@
+### oshader no-argument: exit 1
+--- stdout
+oshader - A RenderMan Shading Language Compiler
+openRender - Open Rendering Tools 1.0.0 (Adheres to the RenderMan Standard)
+   (c) Copyright 2025-2026 by Juvenal A. Silva Jr.  All rights reserved.
+
+       The RenderMan (R) Interface Procedures and RIB Protocol are:
+            Copyright 1988, 1989, Pixar. All rights reserved.
+            RenderMan (R) is a registered trademark of Pixar
+
+Usage: oshader [options] filename.sl [filename.sl ...]
+The filenames are wildcard-expanded
+
+  Options:
+      -I <path>           Additional include path for the preprocessor
+      -D <symbol>         Define <symbol> for the preprocessor
+      -D <symbol>=<value> Define <symbol> to be <value>
+      -o <filename>       Output to <filename> 
+      --legacy-sdr        Force .sdr output extension (legacy)
+      --jit              Emit .slo (LLVM JIT bitcode) instead of .rslo
+      -nw                 Suppress warnings
+      -ne                 Suppress errors
+      -q                  Quiet, suppress progress display
+      -ri                 Display resolution information
+      -v                  Display version information
+      -h                  Display this help
+      -d <level>          Set log verbosity: error|warn|info|debug (default: warn)
+
+Environment variables:
+  SHADERS_INCLUDE    Additional include paths for the preprocessor
+--- stderr
+### oshader --help: exit 0
+--- stdout
+oshader - A RenderMan Shading Language Compiler
+openRender - Open Rendering Tools 1.0.0 (Adheres to the RenderMan Standard)
+   (c) Copyright 2025-2026 by Juvenal A. Silva Jr.  All rights reserved.
+
+       The RenderMan (R) Interface Procedures and RIB Protocol are:
+            Copyright 1988, 1989, Pixar. All rights reserved.
+            RenderMan (R) is a registered trademark of Pixar
+
+Usage: oshader [options] filename.sl [filename.sl ...]
+The filenames are wildcard-expanded
+
+  Options:
+      -I <path>           Additional include path for the preprocessor
+      -D <symbol>         Define <symbol> for the preprocessor
+      -D <symbol>=<value> Define <symbol> to be <value>
+      -o <filename>       Output to <filename> 
+      --legacy-sdr        Force .sdr output extension (legacy)
+      --jit              Emit .slo (LLVM JIT bitcode) instead of .rslo
+      -nw                 Suppress warnings
+      -ne                 Suppress errors
+      -q                  Quiet, suppress progress display
+      -ri                 Display resolution information
+      -v                  Display version information
+      -h                  Display this help
+      -d <level>          Set log verbosity: error|warn|info|debug (default: warn)
+
+Environment variables:
+  SHADERS_INCLUDE    Additional include paths for the preprocessor
+--- stderr
+### oshader missing_file.sl: exit 1
+--- stdout
+--- stderr
+Compiling missing_file.sl
+FATAL: Failed to open input filemissing_file.sl

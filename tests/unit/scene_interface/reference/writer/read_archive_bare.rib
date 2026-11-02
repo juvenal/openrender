@@ -1,0 +1,11 @@
+##RenderMan RIB-Structure 1.1
+##Creator openRender <version>
+##CreationDate <date>
+FrameBegin 1
+WorldBegin
+Sphere 1 -1 1 360 
+Color [0.5 0.5 0.5]
+Sphere 0.5 -0.5 0.5 360 
+Sphere 2 -2 2 360 
+WorldEnd
+FrameEnd

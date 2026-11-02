@@ -133,7 +133,7 @@ A back-end author, or a test, constructs a context without it silently becoming 
 
 1. **Given** `libribpreview` is linked into a program, **When** `ribpreview_load` is called, **Then** the preview context is created through the Scene Interface's registration, not by the library setting the global.
 2. **Given** a preview of any RIB in the preview suite, **When** it is loaded, **Then** the extracted scene is identical to the pre-change one, and diagnostics during the parse reach the same sink.
-3. **Given** a build that links the preview and not the renderer or the writer, **When** `RiBegin` is called for a mode whose back-end is not linked, **Then** the existing "not available in this build" diagnostic is printed.
+3. **Given** a build that links the preview and not the renderer, **When** `RiBegin("#x")` (full render) is called, **Then** the existing "Full-render mode is not available in this build" diagnostic is printed; `RiBegin("file.rib")` keeps writing the file, because the preview links `libRIBVector`, which registers the RIB writer (corrected 2026-11-02, T049 approval).
 
 ---
 
@@ -226,7 +226,7 @@ The tools that reach into the Scene Interface and the core get the same capabili
 
 - **FR-012**: The preview back-end MUST register itself with the Scene Interface by a static initializer in its own translation unit, as the other two back-ends do, and `ribpreview_load` MUST begin its session through the Scene Interface (declarations through the FR-001 service, context through FR-009). The selection key by which a program asks for the preview mode, and whether `ribpreview_load` goes through `RiBegin` or a lighter entry like today's `RiBeginLite`, is the plan's decision; neither may make the dispatch layer name the preview.
 - **FR-013**: `libribpreview` MUST include no renderer-core header and name no `CRenderer` or `CRendererContext` symbol. Whether the unused `renderer.h` and `rendererContext.h` includes in `ribGeometryContext.cpp` are removable is for the plan to confirm by building without them.
-- **FR-014**: A program linking none of the renderer, writer or preview keeps the existing "not available in this build" diagnostics. A preview-only program is tested: `RiBegin("#x")` and `RiBegin("file.rib")` print the unchanged texts (`ri.cpp:315,324`).
+- **FR-014**: A program that does not link a back-end keeps the existing "not available in this build" diagnostic for it (`ri.cpp:315,324`). A program that links `libribpreview` links `libRIBVector`, which registers the RIB writer, so it keeps the writer exactly as today: `RiBegin("file.rib")` writes the file and prints no diagnostic; only full render, `RiBegin("#x")`, prints "Full-render mode is not available in this build". The RIB-output text is printed only by a program that links neither `libRIBVector` nor `libRIBOut`. A preview-only program is tested for both calls (corrected 2026-11-02, T049 approval: the earlier wording expected the RIB-output text in a preview-only program, which the code cannot produce).
 
 **Build targets (US1, US4)**
 

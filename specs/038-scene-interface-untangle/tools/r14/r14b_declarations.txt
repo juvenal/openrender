@@ -1,0 +1,12 @@
+# R14b scratch declarations (spec 038): can a shadeop prototype contain an upper-case letter?
+# Same format as tests/plugins/shadeop/declarations.txt; the approved file is not edited.
+float f(float F)	1	f	f=f
+float f(float a, vector V)	1	f	f=fv
+float f(output float OUT)	1	f	f=f
+float f(Float)	0		
+FLOAT f(float)	0		
+float f(FLOAT a)	0		
+float f(OUTPUT float a)	0		
+float f(Vector)	0		
+float f(String s)	0		
+float f(float, Color)	0		

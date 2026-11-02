@@ -1,0 +1,11 @@
+##RenderMan RIB-Structure 1.1
+##Creator openRender <version>
+##CreationDate <date>
+Declare "myweight" "varying float"
+Declare "tag" "constant string"
+FrameBegin 1
+WorldBegin
+Surface "plastic"  "uniform float Kd" [0.5 ]  "color specularcolor" [1 1 1 ]  "constant string note" ["inline" ] 
+Polygon  "P" [0 0 0 1 0 0 0 1 0 ]  "varying float other" [1 2 3 ]  "uniform float u" [7 ] 
+WorldEnd
+FrameEnd

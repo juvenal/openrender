@@ -107,5 +107,5 @@ flat-namespace import is added.
 | missing operand at render time | `probe.slo` with the module removed from the search path | the Q2 warning; the `.rslo` fallback then prints the interpreter's "Failed to locate DSO function"; no crash |
 | compile coverage | `LibShader_GateHardening` positive case | `oshader --jit probe.sl` exits 0; the module declares `op_dso_call` |
 
-Before the tests are relied on, research R14a-c are measured; a defect found there is reported to
+Before the tests are relied on, research R14a-c are measured (R14a found the CSE defect, GitHub #139, not fixed by 038); a defect found there is reported to
 the maintainer, not reproduced.

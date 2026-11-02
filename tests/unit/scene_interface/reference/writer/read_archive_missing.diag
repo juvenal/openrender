@@ -1,0 +1,2 @@
+code=30 severity=0 "no_such_archive" -> ???\n
+code=3 severity=2 Failed to find "no_such_archive(.rib)"\n

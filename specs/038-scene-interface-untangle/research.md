@@ -528,7 +528,7 @@ are not CONSUMER lines.
 
 - **R14a** (measured values are recorded in validation.md §1): two identical DSO calls in a row, a value-returning call whose result is unused, and a
   call followed by a read of its destination, compiled to `.rslo`: check that the passes (ConstFold,
-  UniformLifting, CSE, DCE, CallSites) neither merge, drop nor reorder a DSO line (the IR records the
+  UniformLifting, CSE, DCE, CallSites) neither merge, drop nor reorder a DSO line (**measured in Phase 1: defect found, GitHub #139**, `CCSEPass` merges `vufloat` copies of a destination across uniform DSO calls; see validation.md section 1.1; the IR records the
   operand name as the result and the destination as a read). If one does, that is a defect of the
   `.rslo` path today; it is reported to the maintainer, not reproduced silently or fixed in passing.
 - **R14b**: whether a shadeop prototype (`shadeopDeclaration.cpp`) can produce an upper-case letter.

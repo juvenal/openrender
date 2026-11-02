@@ -1,0 +1,14 @@
+# Spec 038, SceneInterface_WriterText: IfBegin / ElseIf / Else / IfEnd are written as they are (the writer
+# evaluates nothing).
+Attribute "user" "float level" [2]
+FrameBegin 1
+  WorldBegin
+    IfBegin "$user:level == 1"
+      Sphere 1 -1 1 360
+    ElseIf "$user:level == 2"
+      Sphere 2 -2 2 360
+    Else
+      Sphere 3 -3 3 360
+    IfEnd
+  WorldEnd
+FrameEnd

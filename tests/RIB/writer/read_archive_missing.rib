@@ -1,0 +1,7 @@
+# Spec 038, SceneInterface_WriterText: ReadArchive of a file that exists nowhere: the lexer's error text.
+FrameBegin 1
+  WorldBegin
+    ReadArchive "no_such_archive"
+    Sphere 1 -1 1 360
+  WorldEnd
+FrameEnd

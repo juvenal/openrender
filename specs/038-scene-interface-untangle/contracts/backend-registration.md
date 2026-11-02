@@ -82,6 +82,8 @@ or `CRendererContext` symbol (checked by `nm` on its objects).
   tree.
 - The preview suite (`tests/preview`) and a characterization of `ribpreview_load` over the preview
   scenes (vertices, colors, camera, bounds) captured before the change: identical after (SC-006).
-- FR-014 (a case of `Preview_SelfRegistration`, in a preview-only program): `RiBegin("#x")` and `RiBegin("file.rib")` print the existing
-  "Full-render mode is not available in this build ..." / "RIB-output mode is not available in this
-  build ..." texts (`ri.cpp:315,324`), unchanged.
+- FR-014 (a case of `Preview_SelfRegistration`, in a preview-only program): `RiBegin("#x")` prints the existing
+  "Full-render mode is not available in this build ..." text (`ri.cpp:315`), unchanged. `RiBegin("file.rib")` keeps writing
+  the file with no diagnostic: `libribpreview` links `libRIBVector`, which compiles `output/ribOut.cpp` and registers the
+  RIB writer. (Corrected at the T049 approval; the RIB-output text is printed only by a program that links neither
+  `libRIBVector` nor `libRIBOut`.)

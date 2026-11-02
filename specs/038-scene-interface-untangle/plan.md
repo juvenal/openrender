@@ -234,9 +234,9 @@ platforms. Phases 5-6 depend only on Phase 1 and may run before or between Phase
 `precomp` part depends only on Phase 1. The data-viewer part of US7 is in Phase 4 (it needs Phases 2-3).
 
 Labels: the new `cmake -P` checks that are red on the starting tree carry the temporary ctest label
-`architecture_038` and move to `architecture` in the phase that turns them green, so that every
-checkpoint's `ctest -L architecture` passes; the checkpoint also runs `-L architecture_038` and
-compares it with the expected red set. Phase 9 verifies that no `architecture_038` label is left.
+`or038_red` and move to `architecture` in the phase that turns them green, so that every
+checkpoint's `ctest -L architecture` passes; the checkpoint also runs `-L or038_red` and
+compares it with the expected red set. Phase 9 verifies that no `or038_red` label is left.
 The `.slo` tests (`ShadeopAbi_Jit_*`, the `.slo` half of `Shaders_BytesUnchanged`, the new libshader
 JIT cases) are registered under `if(OPENRENDER_ENABLE_JIT)`.
 
@@ -370,7 +370,7 @@ SC-007 to SC-011.
 
 | Risk | Mitigation |
 |---|---|
-| A DSO line's IR form (operand name as the result, destination as a read) lets a pass merge, drop or reorder a DSO call in `.rslo` today | Measured first (R14a) on the `.rslo` path. The JIT consumes the same instruction stream, so parity holds either way. A defect is reported, not silently fixed. |
+| A DSO line's IR form (operand name as the result, destination as a read) lets a pass merge, drop or reorder a DSO call in `.rslo` today | Measured first (R14a) on the `.rslo` path. The JIT consumes the same instruction stream, so parity holds either way. A defect is reported, not silently fixed. **Measured: the CSE defect, GitHub #139 (P1); not fixed by 038, `probe_two.sl` unchanged.** |
 | The interpreter advances a uniform operand per vertex if a shadeop prototype can carry an upper-case letter | Measured first (R14b); the measured promotion (M11) covers lower-case prototypes. |
 | Installing the context after construction changes where construction-time reports go | Only `RiLastError` differs; same text, stream, severity (Q5). Measured list of reachable reports in Phase 3. |
 | The reference-counted table changes a sequence that relied on re-initialisation | Only the two sequences of M3 that use freed memory today behave differently; the five real sequences are characterised by tests. |

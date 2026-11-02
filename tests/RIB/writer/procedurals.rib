@@ -1,0 +1,8 @@
+# Spec 038, SceneInterface_WriterText: each kind of Procedural the grammar knows.
+FrameBegin 1
+  WorldBegin
+    Procedural "DelayedReadArchive" ["archive_inc.rib"] [-1 1 -1 1 -1 1]
+    Procedural "RunProgram" ["generator" "arg1 arg2"] [-2 2 -2 2 -2 2]
+    Procedural "DynamicLoad" ["module.so" "init"] [-3 3 -3 3 -3 3]
+  WorldEnd
+FrameEnd

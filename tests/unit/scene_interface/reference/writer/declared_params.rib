@@ -1,0 +1,14 @@
+##RenderMan RIB-Structure 1.1
+##Creator openRender <version>
+##CreationDate <date>
+Option "limits" "bucketsize" [16 16]
+Option "limits" "gridsize" [128]
+Attribute "displacementbound" "sphere" [0.5]
+Format 64 48 1
+Projection "perspective"  "fov" [45 ] 
+FrameBegin 1
+WorldBegin
+Attribute "identifier" "name" "declared"
+Polygon  "P" [0 0 0 1 0 0 0 1 0 ]  "Cs" [1 0 0 0 1 0 0 0 1 ]  "N" [0 0 1 0 0 1 0 0 1 ] 
+WorldEnd
+FrameEnd

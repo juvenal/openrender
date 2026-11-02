@@ -1,0 +1,7 @@
+# Spec 038, SceneInterface_WriterText: ReadArchive of a name with a directory separator (checked as given).
+FrameBegin 1
+  WorldBegin
+    ReadArchive "sub/nested_inc.rib"
+    Sphere 3 -3 3 360
+  WorldEnd
+FrameEnd
