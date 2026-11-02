@@ -72,7 +72,7 @@ maintainer applies. clang-format runs only on files that were clang-format clean
 approved tests edited, and 10 allowlist lines deleted.
 
 No NEEDS CLARIFICATION remains. The ten design questions of the plan stage (research.md section Q)
-were answered on 2026-11-02: the maintainer approved every recommendation. The record is "Maintainer
+were answered on 2026-11-02: the maintainer approved every recommendation, then changed Q8 (no version bump). The record is "Maintainer
 decisions" below and research.md section D.
 
 ## Constitution Check
@@ -112,8 +112,10 @@ decisions" below and research.md section D.
 - [x] **No hider-specific special case**: none.
 - [x] **Changed plug-in interfaces bump their SemVer**: no plug-in interface changes (`shadeop.h`
       stays 1.1.0). The `.slo` format gains MINOR 2.1 (written only by modules with a DSO call, Q1);
-      `CRendererServices` gets a comment-only PATCH 2.0.1 (Q8). Both are documented in their
-      headers' histories.
+      `CRendererServices` stays 2.0.0 (Q8: a comment-only change gets no version bump; the maintainer's
+      policy is MAJOR = breaking, MINOR = non-breaking addition, PATCH = bug fix only, and no MAJOR bump
+      before spec 055); the `getDSO` wording change is recorded in `rendererServices.h`'s
+      version-history comment. The `.slo` change is documented in `sloFormat.h`'s history.
 - [x] **Registered violations not extended; reductions noted**: DB-015 resolved (10 lines deleted);
       DB-019 resolved (0 lines; its two remaining findings fixed); DB-024 narrowed; DB-004, DB-011
       and DB-017 lines unchanged (the forwarders stay, R4). Edges added under any entry: 0. Scene
@@ -191,7 +193,7 @@ src/libshader/shading/
 ├── rslOps.{h,cpp}           # op_dso_call
 ├── llvmJit.{h,cpp}          # slot list + table address per module; bindShadeops
 ├── sloLoader.cpp            # binds on every load; missing-operand failure
-└── rendererServices.h       # getDSO comment, 2.0.1 (Q8)
+└── rendererServices.h       # getDSO comment and version-history comment only; stays 2.0.0 (Q8)
 src/common/sloFormat.h       # MINOR 1 (Q1)
 
 src/preview/libribpreview/   # previewContext.cpp registrar + light session; no core includes
@@ -225,7 +227,7 @@ Every phase ends with this **checkpoint**, and reports before the next phase sta
 
 The determinism sweep (`-L '^determinism-sweep$' -j2`) runs in Phase 9, before merge, on both
 platforms. Phases 5-6 depend only on Phase 1 and may run before or between Phases 2-4. Phase 7's
-`precomp` part depends only on Phase 1. Its data-viewer part needs Phases 2-3.
+`precomp` part depends only on Phase 1. The data-viewer part of US7 is in Phase 4 (it needs Phases 2-3).
 
 ### Phase 0 — Setup (precondition for the maintainer and the coordinator; no implementation)
 
@@ -235,11 +237,16 @@ platforms. Phases 5-6 depend only on Phase 1 and may run before or between Phase
   the archcheck report (DB-015's 10 lines at `:298-307`, Scene metric 6/6, TOTAL 612/94, the CONSUMER
   count and what DB-024's "36" counts, M14), the `ribOut`/`ribVector` source lists, and the `nm`
   sweep of research M5.
+- Create the Linux tree `openrender-038` (moved here from Phase 1, so that every phase, this one
+  included, closes with a Linux run), configure it, build it and record the Linux baseline.
+- Three doc fixes are staged on master and arrive with the merge if the maintainer commits them
+  first (the DB-015 allowlist header "(11)" to "(10)", the sweep count 413 to 419 in `CLAUDE.md`, the
+  DB-011 evidence 611 to 558); no 038 task repeats them.
 
 ### Phase 1 — Tests first, references, Linux gate (no behaviour change)
 
 - The mechanical checks of contracts/checks.md (red), the characterizations (`if` evaluator, writer
-  text, preview extraction, `precomp` output, shader byte snapshot) with their capture target (green),
+  text, preview extraction, `precomp` output, shader byte snapshot as a sha256 manifest per platform) with their capture target (green),
   the `DISABLED` API tests, and the `.slo` parity tests (red: compile exits 3), with their new
   fixture operands (void, string) and shaders (`probe_args`, `probe_void`, `probe_init`, Q9), all
   written here so that every new test exists before any implementation (the tasks stage fixed this;
@@ -247,7 +254,7 @@ platforms. Phases 5-6 depend only on Phase 1 and may run before or between Phase
 - Research R10a (the opcode mnemonic relation) and R14a-c (pass behaviour on DSO lines, upper-case
   prototype letters, the uniform decision), measured and written into research.md. A defect found
   stops for the maintainer.
-- Linux gate: create the remote tree, build the Phase 1 tree, run the red set and the
+- Linux gate: build the Phase 1 tree on the Linux tree (created in Phase 0), run the red set and the
   characterizations there; capture `reference/linux/` only where a reference differs.
 - **TEST-APPROVAL**. Checkpoint: everything green except the listed red checks and the disabled tests.
 
@@ -272,13 +279,14 @@ platforms. Phases 5-6 depend only on Phase 1 and may run before or between Phase
   `RiBegin`'s three branches; the archive path; `savedRenderMan` and the `extern`s deleted.
 - The four tests that assign the global, edited (approved at this phase's stop); the data viewer and
   the preview move here only as far as needed to compile (their sessions are Phase 4).
-- Green: `SceneInterface_ContextInstall` (enabled), `SceneInterface_ActiveContextAssignments`.
+- Green: `SceneInterface_ContextInstall` (rule 1, red since Phase 1), `SceneInterface_ContextInstallRules`
+  (enabled; its executable did not compile before the API existed), `SceneInterface_ActiveContextAssignments`.
 
 ### Phase 4 — US4 + FR-015/016/024: preview back-end, data viewer, `ribVector` (P2)
 
 - `RiRegisterBackEnd`, `RiBeginBackEnd`/`RiEndBackEnd`; `RiBeginLite` deleted; the preview's
   registrar and session; the preview's core includes removed. `CDataDocument` on the standard session
-  with an installed sink.
+  with an installed sink (US7-AS2; tagged [US7] in tasks.md).
 - The `ribVector` `nm` sweep (`tools/ribvector_core_sweep.sh`); `ribvector-core-residual.txt`;
   `rendererClipping.cpp` and `resource.cpp` out of `ribVector` (Q7); the CMake comments rewritten.
 - Green: `Preview_SelfRegistration` (enabled), `Preview_NoCoreReach`, `Preview_ExtractionUnchanged`,
@@ -295,9 +303,11 @@ platforms. Phases 5-6 depend only on Phase 1 and may run before or between Phase
 
 - The emitter's DSO decoding and lowering (dispatched before the destination prelude, contracts/jit-dso-call.md), shadeop slots, metadata and the 2.1.0 record (Q1, with `SLO_FORMAT_MINOR_BASE` and the `LibShader_Format_slo_emitted` edit);
   `op_dso_call`; `bindShadeops` and the binding in `parseSloShader` with the missing-operand rule
-  (Q2); `"DSO"` in `kHandledOpcodes`; `sloFormat.h` MINOR 1; the services comment (Q8).
+  (Q2); `"DSO"` in `kHandledOpcodes`; `sloFormat.h` MINOR 1; the services comments (Q8, no version bump); the stale header comment of the approved `render.rib.in`.
 - The edits of the three approved libshader tests (`test_format_versions.cpp`, `test_opcode_coverage.cpp`,
-  `test_gate_hardening.cpp`), approved at this phase's stop; the fixtures and parity tests were
+  `test_gate_hardening.cpp`) and the stale header comment of the approved
+  `tests/plugins/shadeop/render.rib.in` ("the JIT has no DSO call path"; comment lines only), approved
+  at this phase's stop; the fixtures and parity tests were
   approved in Phase 1.
 - Green: every `ShadeopAbi_Jit_*` test, the coverage and gate-hardening additions,
   `Shaders_BytesUnchanged` (shipped `.slo` still 2.0.0), the `-slo` visual variants.
@@ -339,7 +349,7 @@ SC-007 to SC-011.
 | Q5 | construction-time reports no longer set `RiLastError` (text, stream, severity unchanged): accepted behavior change, NEWS line | approved | Phase 3 |
 | Q6 | `ifexpr_generated.cpp` in all three targets | approved | Phase 2 |
 | Q7 | `rendererClipping.cpp`, `resource.cpp` out of `ribVector` (exported symbols of an installed library), NEWS line | approved | Phase 4 |
-| Q8 | `CRendererServices` 2.0.1 for the `getDSO` comment | approved | Phase 6 |
+| Q8 | `CRendererServices` stays 2.0.0: the `getDSO` wording change goes only into the version-history comment of `rendererServices.h` (changed by the maintainer from the first approval, a PATCH bump) | approved (changed) | Phase 6 |
 | Q9 | an init-section DSO case in FR-022's matrix | approved | Phase 1, 6 |
 | Q10 | the compiler's allowed include roots (US5-AS1, SC-007) gain `src/include`, `src/libshader/include` and the build directories | approved | Phase 1 |
 

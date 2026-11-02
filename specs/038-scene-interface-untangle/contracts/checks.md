@@ -23,12 +23,13 @@ count (SC-011), except as stated for the drift test (Q3).
 
 | Test (label) | What | On the starting tree |
 |---|---|---|
-| `SceneInterface_ContextInstall` (`common`) | the seven rules of contracts/active-context.md; links `ribOut` | rule 1 red (the constructor assigns); the install half `DISABLED` until the API exists |
-| `SceneInterface_Services` (`common`) | no service: `riRetrieveVariable` → `nullptr`, `riLocateFile` only finds a separator path; standard session and renderer session: the declared set equals the **declared-set reference** below (so both are pinned to the unmodified `CRenderer::initDeclarations()`, not to each other); the file search finds the same files with the same `info` lines as `CRenderer::locateFile` outside a network session; nested sessions restore the outer services | `DISABLED` until the API exists; its red evidence is the starting tree's lack of the API, so it pairs with the mechanical checks above |
+| `SceneInterface_ContextInstall` (`common`) | rule 1 of contracts/active-context.md (construct, do not install: the active context and the sink are unchanged); links `ribOut`; uses only today's API | red at run time (the constructor assigns) |
+| `SceneInterface_ContextInstallRules` (`common`) | rules 2 to 6 (install, uninstall, delete, nest, attach twice); needs `riInstallContext`/`riUninstallContext`/`riPreviousContext` | `DISABLED`; its `EXCLUDE_FROM_ALL` executable fails to compile on the starting tree (red evidence, decision A) |
+| `SceneInterface_Services` (`common`) | no service: `riRetrieveVariable` → `nullptr`, `riLocateFile` only finds a separator path; standard session and renderer session: the declared set equals the **declared-set reference** below (so both are pinned to the unmodified `CRenderer::initDeclarations()`, not to each other); the file search finds the same files with the same `info` lines as `CRenderer::locateFile` outside a network session; nested sessions restore the outer services | `DISABLED`; its `EXCLUDE_FROM_ALL` executable fails to compile on the starting tree (the API does not exist): that compile failure is its red evidence (decision A, precedent `tests/unit/state/CMakeLists.txt:92`) |
 | `SceneInterface_IfCharacterization` (`regression`) | a RIB with `IfBegin`/`ElseIf`/`Else`/`IfEnd` over user attributes, options, comparison and string operators, nested; rendered through a capture context; the branch taken per block recorded and compared with a reference | green by design (M8); reference captured once |
-| `Preview_SelfRegistration` (`preview`) | contracts/backend-registration.md | `DISABLED` until the API exists |
+| `Preview_SelfRegistration` (`preview`) | contracts/backend-registration.md | `DISABLED`; its `EXCLUDE_FROM_ALL` executable fails to compile on the starting tree (red evidence, decision A) |
 | `LibShader_CompilerTableDrift` (`libshader`) | contracts/compiler-tables.md, mutation self-check | `DISABLED` until `builtinTables.cpp` exists (Q3) |
-| `ShadeopAbi_Jit_*` (`plugin_abi`) | the eight rows of contracts/jit-dso-call.md; the 8-thread and render cases use a new RIB template `tests/plugins/shadeop/render_format.rib.in` with the shader format as a parameter (the approved `render.rib.in` hard-codes `"rslo"` and is not edited) | red (the `.slo` compile exits 3) |
+| `ShadeopAbi_Jit_*` (`plugin_abi`) | the eight rows of contracts/jit-dso-call.md; the 8-thread and render cases use a new RIB template `tests/plugins/shadeop/render_format.rib.in` with the shader format as a parameter (the approved `render.rib.in` hard-codes `"rslo"`; its scene is not edited, only its stale header comment, in Phase 6) | red (the `.slo` compile exits 3) |
 
 ## Characterization references (captured once, from the unmodified tree)
 
@@ -43,7 +44,7 @@ reference and refuses to overwrite an existing one unless configured with `-DOR0
 | the `if` branch log | `SceneInterface_IfCharacterization` | US2-2 |
 | `ribpreview_load` extraction per preview scene (vertices, colors, camera, bounds, as text) | `Preview_ExtractionUnchanged` (`preview`) | SC-006 |
 | `precomp` raw output | `Precomp_OutputUnchanged` | SC-009 (Q4) |
-| `.rslo` and `.slo` of every shipped shader and of `probe.sl`/`probe_two.sl` (`.rslo` only) | `Shaders_BytesUnchanged` (`libshader`) | FR-019 (with Q1(a), the `.slo` of shipped shaders keep their 2.0.0 record) |
+| a sha256 manifest per platform (`reference/<platform>/shaders.sha256`) of the `.rslo` and `.slo` of every shipped shader and of `probe.sl`/`probe_two.sl` (`.rslo` only), and the `oshader --help` text | `Shaders_BytesUnchanged` (`libshader`) | FR-019 (with Q1(a), the `.slo` of shipped shaders keep their 2.0.0 record) |
 
 ## Edits of approved tests
 
@@ -55,6 +56,7 @@ reference and refuses to overwrite an existing one unless configured with `-DOR0
 | `tests/preview/test_data_keys.cpp:50-57` | install / delete | FR-010 |
 | `tests/unit/csg/test_procedural_operand.cpp` (`:32` `#include "delayed.h"` replaced) and `tests/unit/sampling/test_object_ids.cpp` (no `delayed.h` include of its own: it gets `CDelayedData` through `scene_probe.h:40`, so a new `#include "delayedData.h"` is added next to `:26`) | `delayedData.h` | FR-008 |
 | `src/libshader/tests/test_opcode_coverage.cpp` | explicit `DSO` handled check | FR-020 |
+| `tests/plugins/shadeop/render.rib.in` (header comment, comment lines only) | the sentence "The shader is the interpreter bytecode (the JIT has no DSO call path)" is replaced by one saying the shader format is `.rslo` here and `render_format.rib.in` is the same scene with the format as a parameter; the scene lines are untouched | the comment is stale once the JIT has a DSO call path (decision B; Phase 6) |
 | `src/libshader/tests/test_gate_hardening.cpp` | positive DSO compile case (builds a module with a `DSO` instruction, checks `op_dso_call` in the `.slo`; the synthetic unhandled mnemonic stays) | FR-020 |
 | `src/libshader/tests/test_format_versions.cpp:276-300` (`LibShader_Format_slo_emitted`) | expect `SLO_FORMAT_MINOR_BASE` for its probe; a new case expects 2.1.0 from a probe with a DSO call | Q1(a) |
 | (note) `test_opcode_coverage.cpp` | the row above is the only edit: the guard has no reverse check, so adding `"DSO"` to `kHandledOpcodes` trips nothing | FR-020 |

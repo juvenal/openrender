@@ -21,7 +21,7 @@ R=/home/juvenal/Projects/Development/CLI/openrender-038; : "${R:?}"   # the Linu
   `git -C $WT merge-base --is-ancestor d6910bd0 HEAD` exits 0.
 - A configured build tree `$WT/build` (JIT on, `-Werror`), flex and bison.
 - The Linux tree `"${H}:${R}"` (Ubuntu 24.04, GCC 13, `-Werror`, LLVM 18, 2 cores), created in
-  Phase 1 and reused to the end; never the main `openrender` tree or another spec's tree. Always write
+  Phase 0 and reused to the end; never the main `openrender` tree or another spec's tree. Always write
   remote paths with braces, `"${H}:${R}/..."` (zsh reads `$H:path` as a modifier and copies locally).
   Before the first build: `ssh "${H}" 'df -h "$HOME"; "$HOME/.claude/bin/cpujob" --status'`, and stop
   unless there are 2 GB free beyond the expected build size.
@@ -96,6 +96,6 @@ ssh "${H}" "cd ${R} && ~/.claude/bin/cpujob 038-lx-all ctest --test-dir build -L
 ssh "${H}" "cd ${R} && ~/.claude/bin/cpujob 038-lx-arch ctest --test-dir build -L architecture --output-on-failure"
 ```
 
-Expected: the sweep green (413 scenes × 5 configurations, about 10-12 minutes at `-j2`); the Linux
+Expected: the sweep green (419 scenes × 5 configurations, about 10-12 minutes at `-j2`); the Linux
 architecture check green with the same allowlist; `ctest` reports `0 Not Run (Disabled)` on both
 platforms.

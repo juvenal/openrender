@@ -89,8 +89,9 @@ flat-namespace import is added.
   probe; a new case expects 2.1.0 from a probe with a DSO call (Q1 approved; TEST-APPROVAL). The `newer_minor`
   refusal (`:318`, `SLO_FORMAT_MINOR + 1`) keeps its meaning.
   A 2.0 loader rejects a 2.1 module before linking; a 2.0 module loads in a 2.1 loader.
-- `CRendererServices` is 2.0.1 (Q8, approved): `getDSO`'s comment gains the `.slo` loader and the
-  version history in `rendererServices.h` gets a PATCH line; no member changes.
+- `CRendererServices` stays 2.0.0 (Q8, changed by the maintainer: a comment-only change gets no bump):
+  `getDSO`'s comment gains the `.slo` loader and the version-history comment in `rendererServices.h`
+  records the wording change; no member changes, no version constant changes.
 - Shader DSO Operands interface (`shadeop.h` 1.1.0): unchanged.
 
 ## Tests (FR-022, SC-008), all comparing `.rslo` against `.slo` renders in the same run

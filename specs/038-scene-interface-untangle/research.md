@@ -494,7 +494,8 @@ are not CONSUMER lines.
     is handled and `LibShader_GateHardening` a positive case that `probe.sl` compiles with `--jit`
     and the module declares `op_dso_call` (FR-020).
   - `CRendererServices` is unchanged (still 2.0.0); only `getDSO`'s comment gains "and the `.slo`
-    loader", a PATCH under its own rule (Q8). No flat-namespace import is added: `op_dso_call` is
+    loader", recorded in the version-history comment only, with no version bump (Q8, changed by the
+    maintainer: a comment-only change gets none). No flat-namespace import is added: `op_dso_call` is
     defined in `libshader_shading` and calls `libRIBShadeop`, which it links.
 - **Rationale**: FR-020-FR-022. Decoding the existing form keeps `.rslo` bytes for every shader;
   binding by slot at load satisfies FR-021 and keeps `lookupDSO` a load-time call (its contract).
@@ -559,7 +560,7 @@ The full list is in [contracts/checks.md](contracts/checks.md).
 
 ## D. Maintainer decisions (2026-11-02)
 
-The maintainer approved every recommendation of section Q. Where a requirement or success criterion
+The maintainer approved every recommendation of section Q, and later changed Q8 (no version bump). Where a requirement or success criterion
 stated the opposite, spec.md was amended (spec.md, Clarifications, Session 2026-11-02). In plain words:
 
 | # | Decision | Effect |
@@ -571,7 +572,7 @@ stated the opposite, spec.md was amended (spec.md, Clarifications, Session 2026-
 | Q5 | Diagnostics raised while `CRendererContext` is constructed no longer set `RiLastError`; text, stream and severity are unchanged. Accepted behavior change. | FR-005, SC-004, Assumptions amended; NEWS line (Phase 8). |
 | Q6 | `ifexpr_generated.cpp` is compiled into `ribRender`, `ribVector` and `ribOut`. | FR-004 amended. |
 | Q7 | `rendererClipping.cpp` and `resource.cpp` are removed from `ribVector`. | FR-015 amended; NEWS line (Phase 8). |
-| Q8 | `CRendererServices` goes to 2.0.1 for the `getDSO` comment (the `.slo` loader also uses it). | FR-021, Assumptions amended; version history line in `rendererServices.h` (Phase 6). |
+| Q8 | **Changed after the first approval.** `CRendererServices` stays 2.0.0: no version bump for the `getDSO` comment (the `.slo` loader also uses it). The wording change is recorded only in the version-history comment of `rendererServices.h`. Policy: MAJOR = breaking, MINOR = non-breaking addition, PATCH = bug fix only, a comment-only change gets no bump, no MAJOR bump before spec 055. | FR-021, Assumptions amended (Phase 6). |
 | Q9 | A DSO call in a parameter default (init section, thread index 0) joins FR-022's matrix (`probe_init.sl`). | FR-022, US6-AS3, SC-008 amended. |
 | Q10 | The compiler's allowed include roots also include `src/include`, `src/libshader/include` and the build directories. | US5-AS1, FR-018, SC-007 amended. |
 
@@ -586,6 +587,6 @@ stated the opposite, spec.md was amended (spec.md, Clarifications, Session 2026-
 | Q5 | Reports raised while `CRendererContext` constructs no longer set `RiLastError` (same text, stream, severity) | (a) accept and document; (b) a two-phase begin | **(a)** |
 | Q6 | `ifexpr_generated.cpp` in `ribOut`/`ribVector` | (a) compile it in all three (a Scene file with no core dependency, unused there); (b) keep the exclusion | **(a)** |
 | Q7 | `rendererClipping.cpp`, `resource.cpp` in `ribVector` (unreferenced; removing them removes exported symbols of the installed `libRIBVector`) | (a) remove, note in NEWS; (b) pin as residual | **(a)** |
-| Q8 | `getDSO`'s comment now covers the `.slo` loader | (a) PATCH, services 2.0.1, with a history line; (b) no version change | **(a)**, the services header's own rule |
+| Q8 | `getDSO`'s comment now covers the `.slo` loader | (a) a PATCH bump of the services version, with a history line; (b) no version change | recommended (a); **the maintainer chose (b)**, see section D |
 | Q9 | Extra parity case: a DSO call in a parameter default (the init section, thread index 0) | (a) add to FR-022's matrix; (b) not in this spec | **(a)**, one more shader in the same test |
 | Q10 | The allowed include roots of US5-AS1 and SC-007 omit `src/include/` (`logging.h`), `src/libshader/include/` and the build directories (generated parser, `config.h`), which the compiler needs (M10, R11) | (a) amend US5-AS1 and SC-007 to R11's list; (b) keep them as written (the check would fail on a correct tree) | **(a)** |
