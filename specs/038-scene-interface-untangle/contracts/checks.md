@@ -53,11 +53,11 @@ reference and refuses to overwrite an existing one unless configured with `-DOR0
 | `tests/unit/texture_tile/test_texture_system_stream_cursor.cpp:110-111,228-229` | install / delete | FR-010 |
 | `tests/unit/texture_tile/test_texture_system_null_resolver.cpp:114-115,164-165` (and its comment `:14`) | install / delete | FR-010 |
 | `tests/preview/test_data_keys.cpp:50-57` | install / delete | FR-010 |
-| `tests/unit/csg/test_procedural_operand.cpp`, `tests/unit/sampling/test_object_ids.cpp` | `#include "delayedData.h"` | FR-008 |
+| `tests/unit/csg/test_procedural_operand.cpp` (`:32` `#include "delayed.h"` replaced) and `tests/unit/sampling/test_object_ids.cpp` (no `delayed.h` include of its own: it gets `CDelayedData` through `scene_probe.h:40`, so a new `#include "delayedData.h"` is added next to `:26`) | `delayedData.h` | FR-008 |
 | `src/libshader/tests/test_opcode_coverage.cpp` | explicit `DSO` handled check | FR-020 |
 | `src/libshader/tests/test_gate_hardening.cpp` | positive DSO compile case (builds a module with a `DSO` instruction, checks `op_dso_call` in the `.slo`; the synthetic unhandled mnemonic stays) | FR-020 |
 | `src/libshader/tests/test_format_versions.cpp:276-300` (`LibShader_Format_slo_emitted`) | expect `SLO_FORMAT_MINOR_BASE` for its probe; a new case expects 2.1.0 from a probe with a DSO call | Q1(a) |
-| `src/libshader/tests/test_opcode_coverage.cpp` | (no reverse check exists: the guard only tests that the universe is handled, so adding `"DSO"` to `kHandledOpcodes` trips nothing; the explicit check above is the only edit) | FR-020 |
+| (note) `test_opcode_coverage.cpp` | the row above is the only edit: the guard has no reverse check, so adding `"DSO"` to `kHandledOpcodes` trips nothing | FR-020 |
 | the five `riHooks.h` includers | none expected (bare-name include); a CMake include-path line if one does not see `src/ri/parse` | FR-007 |
 
 ## Existing suites that must stay green, unchanged

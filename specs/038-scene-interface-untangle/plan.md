@@ -71,8 +71,9 @@ maintainer applies. clang-format runs only on files that were clang-format clean
 `compiler/builtinTables.cpp`), 1 file moved (`riHooks.h`), about 20 new checks and tests, 9
 approved tests edited, and 10 allowlist lines deleted.
 
-No NEEDS CLARIFICATION remains. Ten design questions need the maintainer's answer before the
-phases they block (research.md section Q, repeated below); each has a recommendation.
+No NEEDS CLARIFICATION remains. The ten design questions of the plan stage (research.md section Q)
+were answered on 2026-11-02: the maintainer approved every recommendation. The record is "Maintainer
+decisions" below and research.md section D.
 
 ## Constitution Check
 
@@ -239,7 +240,10 @@ platforms. Phases 5-6 depend only on Phase 1 and may run before or between Phase
 
 - The mechanical checks of contracts/checks.md (red), the characterizations (`if` evaluator, writer
   text, preview extraction, `precomp` output, shader byte snapshot) with their capture target (green),
-  the `DISABLED` API tests, and the `.slo` parity tests (red: compile exits 3).
+  the `DISABLED` API tests, and the `.slo` parity tests (red: compile exits 3), with their new
+  fixture operands (void, string) and shaders (`probe_args`, `probe_void`, `probe_init`, Q9), all
+  written here so that every new test exists before any implementation (the tasks stage fixed this;
+  the Phase 6 text used to put the fixtures there).
 - Research R10a (the opcode mnemonic relation) and R14a-c (pass behaviour on DSO lines, upper-case
   prototype letters, the uniform decision), measured and written into research.md. A defect found
   stops for the maintainer.
@@ -292,8 +296,9 @@ platforms. Phases 5-6 depend only on Phase 1 and may run before or between Phase
 - The emitter's DSO decoding and lowering (dispatched before the destination prelude, contracts/jit-dso-call.md), shadeop slots, metadata and the 2.1.0 record (Q1, with `SLO_FORMAT_MINOR_BASE` and the `LibShader_Format_slo_emitted` edit);
   `op_dso_call`; `bindShadeops` and the binding in `parseSloShader` with the missing-operand rule
   (Q2); `"DSO"` in `kHandledOpcodes`; `sloFormat.h` MINOR 1; the services comment (Q8).
-- The new fixture operands (void, string) and shaders (`probe_args`, `probe_void`, `probe_init`
-  (Q9)), approved at this phase's stop.
+- The edits of the three approved libshader tests (`test_format_versions.cpp`, `test_opcode_coverage.cpp`,
+  `test_gate_hardening.cpp`), approved at this phase's stop; the fixtures and parity tests were
+  approved in Phase 1.
 - Green: every `ShadeopAbi_Jit_*` test, the coverage and gate-hardening additions,
   `Shaders_BytesUnchanged` (shipped `.slo` still 2.0.0), the `-slo` visual variants.
 
@@ -307,7 +312,7 @@ platforms. Phases 5-6 depend only on Phase 1 and may run before or between Phase
 - `DOMAIN_BOUNDARIES.md`: DB-015 and DB-019 to Resolved ("Spec 038", the implementation date),
   DB-024 narrowed, the DB-004/DB-011/DB-017 notes (contracts/allowlist-end-state.md); `DEVNOTES.md`
   status; `PLUGIN_ABI.md`; site `dso-shading.md`; `NEWS.md`/`ChangeLog.md` (the `libRIBVector`
-  symbol removal of Q7); the `metrics-baseline.txt` comment; `claude-md-draft.md` (Architecture,
+  symbol removal of Q7, the `RiLastError` difference of Q5); the `metrics-baseline.txt` comment; `claude-md-draft.md` (Architecture,
   gotchas for `riInstallContext` and `CDeclarations`, Recent Changes).
 
 ### Phase 9 — Validation
@@ -318,20 +323,25 @@ platforms. Phases 5-6 depend only on Phase 1 and may run before or between Phase
 - `validation.md`: every SC with its measured value (SC-001 ... SC-012), the before/after metric and
   allowlist counts, the CONSUMER count.
 
-## Maintainer decisions (from research.md section Q)
+## Maintainer decisions (research.md section Q; approved 2026-11-02, recorded in research.md section D)
 
-| # | Decision | Recommendation | Blocks |
+Every row below is decided as recommended. spec.md changed where a requirement or a success
+criterion stated the opposite (spec.md, Clarifications, Session 2026-11-02): FR-004, FR-005, FR-015,
+FR-018, FR-019, FR-021, FR-022, FR-023, FR-028, FR-029, US5-AS1, US6-AS3, US6-AS4, US7-AS1, SC-004,
+SC-007 to SC-011.
+
+| # | Decision | Approved | Blocks |
 |---|---|---|---|
-| Q1 | `.slo` format record: 2.1.0 only in modules with a DSO call (a second constant, an edit of the approved `LibShader_Format_slo_emitted`), or every module (every shipped `.slo` changes) | only those modules | Phase 6 |
-| Q2 | missing operand at `.slo` load: warn and fall back to `.rslo`, or hard failure | warn and fall back | Phase 6 |
-| Q3 | drift test's red evidence = its mutation check; FR-029/SC-011 amended | yes | Phase 1 |
-| Q4 | `precomp` constants location and criterion | `hiders/rasterFlags.h`; output equals the unmodified tool's; SC-009/US7-1/FR-023 reworded | Phase 1, 7 |
-| Q5 | construction-time reports no longer set `RiLastError` | accept, document | Phase 3 |
-| Q6 | `ifexpr_generated.cpp` in all three targets | yes | Phase 2 |
-| Q7 | `rendererClipping.cpp`, `resource.cpp` out of `ribVector` (exported symbols of an installed library) | remove, NEWS line | Phase 4 |
-| Q8 | `CRendererServices` 2.0.1 for the `getDSO` comment | yes | Phase 6 |
-| Q9 | an init-section DSO case in FR-022's matrix | add it | Phase 1, 6 |
-| Q10 | the compiler's allowed include roots (US5-AS1, SC-007) gain `src/include`, `src/libshader/include` and the build directories | amend | Phase 1 |
+| Q1 | `.slo` format record: 2.1.0 only in modules with a DSO call (a second constant `SLO_FORMAT_MINOR_BASE`, an edit of the approved `LibShader_Format_slo_emitted`, TEST-APPROVAL); every other shipped `.slo` keeps its bytes | approved | Phase 6 |
+| Q2 | missing operand at `.slo` load: warn and return `nullptr`; the loader falls back to the `.rslo` | approved | Phase 6 |
+| Q3 | drift test registered DISABLED until `builtinTables.cpp` exists; its red evidence is the mutation check; FR-029/SC-011 amended | approved | Phase 1 |
+| Q4 | `precomp` constants in `hiders/rasterFlags.h`; criterion: output after equals the unmodified tool's; SC-009/US7-1/FR-023 reworded | approved | Phase 1, 7 |
+| Q5 | construction-time reports no longer set `RiLastError` (text, stream, severity unchanged): accepted behavior change, NEWS line | approved | Phase 3 |
+| Q6 | `ifexpr_generated.cpp` in all three targets | approved | Phase 2 |
+| Q7 | `rendererClipping.cpp`, `resource.cpp` out of `ribVector` (exported symbols of an installed library), NEWS line | approved | Phase 4 |
+| Q8 | `CRendererServices` 2.0.1 for the `getDSO` comment | approved | Phase 6 |
+| Q9 | an init-section DSO case in FR-022's matrix | approved | Phase 1, 6 |
+| Q10 | the compiler's allowed include roots (US5-AS1, SC-007) gain `src/include`, `src/libshader/include` and the build directories | approved | Phase 1 |
 
 ## Risks
 
@@ -345,7 +355,8 @@ platforms. Phases 5-6 depend only on Phase 1 and may run before or between Phase
 | The module cache outlives the operands | Binding at every `parseSloShader`, which runs once per shader per session (`globalFiles` cache), before any instance exists, so no render thread sees a rebinding. |
 | GCC 13 `-Werror` rejects code Clang accepts | The Linux build at every checkpoint. |
 | Overlap with in-flight spec 029 (`029-hider-shading-separation`, at `d6910bd0`): Hiders/Shading files, possibly `rendererDeclarationsDispatch.cpp` (the shading-context loop) and `rslOps` | 038 keeps those edits small and self-contained; the second to land rebases; no task reads a line only 029 changes. |
-| Removing two files from `libRIBVector` removes exported symbols | Q7; NEWS line. |
+| Removing two files from `libRIBVector` removes exported symbols | Q7 (approved); NEWS line. |
+| Construction-time reports no longer set `RiLastError` | Q5 (approved); NEWS line; the reachable reports are listed in Phase 3. |
 
 ## Complexity Tracking
 

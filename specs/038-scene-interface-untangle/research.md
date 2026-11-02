@@ -557,7 +557,25 @@ The full list is in [contracts/checks.md](contracts/checks.md).
 
 ---
 
-## Q. Questions for the maintainer
+## D. Maintainer decisions (2026-11-02)
+
+The maintainer approved every recommendation of section Q. Where a requirement or success criterion
+stated the opposite, spec.md was amended (spec.md, Clarifications, Session 2026-11-02). In plain words:
+
+| # | Decision | Effect |
+|---|---|---|
+| Q1 | A module that calls a DSO operand records `.slo` format 2.1.0 (`SLO_FORMAT_MINOR` 1). Every other module records 2.0.0 (`SLO_FORMAT_MINOR_BASE` 0) and keeps its bytes. | `LibShader_Format_slo_emitted` (`test_format_versions.cpp:276-300`) is edited and a DSO case added: TEST-APPROVAL (Phase 6). FR-019, FR-021 amended. |
+| Q2 | A `.slo` whose DSO operand is missing at load warns (`CODE_BADFILE`, "Failed to locate DSO function", operand name and prototype) and returns `nullptr`; `getShader` falls back to the `.rslo`, whose load prints the interpreter's message. | US6-AS4, FR-021, SC-008, the edge case amended. |
+| Q3 | `LibShader_CompilerTableDrift` is registered DISABLED until `builtinTables.cpp` exists; its red evidence is the mutation self-check. | FR-029, SC-011 amended. |
+| Q4 | The tracked `stochasticPrimitives.h` is not raw tool output. The constants move to `src/ri/hiders/rasterFlags.h` (`reyes.h` includes it). The criterion is "output after equals the unmodified tool's output". | US7-AS1, FR-023, SC-009 amended. |
+| Q5 | Diagnostics raised while `CRendererContext` is constructed no longer set `RiLastError`; text, stream and severity are unchanged. Accepted behavior change. | FR-005, SC-004, Assumptions amended; NEWS line (Phase 8). |
+| Q6 | `ifexpr_generated.cpp` is compiled into `ribRender`, `ribVector` and `ribOut`. | FR-004 amended. |
+| Q7 | `rendererClipping.cpp` and `resource.cpp` are removed from `ribVector`. | FR-015 amended; NEWS line (Phase 8). |
+| Q8 | `CRendererServices` goes to 2.0.1 for the `getDSO` comment (the `.slo` loader also uses it). | FR-021, Assumptions amended; version history line in `rendererServices.h` (Phase 6). |
+| Q9 | A DSO call in a parameter default (init section, thread index 0) joins FR-022's matrix (`probe_init.sl`). | FR-022, US6-AS3, SC-008 amended. |
+| Q10 | The compiler's allowed include roots also include `src/include`, `src/libshader/include` and the build directories. | US5-AS1, FR-018, SC-007 amended. |
+
+## Q. Questions for the maintainer (answered; kept as the record of the options)
 
 | # | Question | Options | Recommendation |
 |---|---|---|---|

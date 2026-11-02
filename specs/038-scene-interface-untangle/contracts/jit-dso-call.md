@@ -72,7 +72,7 @@ flat-namespace import is added.
   `entry = resolve(name, prototype)`; a `nullptr` stops and returns the failing slot.
 - `parseSloShader` (`sloLoader.cpp:139`) calls it with `libshader::lookupDSO` on every load, after
   `compileShader` returns (the module cache outlives a `RiBegin`/`RiEnd` session; the operands live
-  until `RiEnd`). On a missing operand (Q2, recommended): `warning(CODE_BADFILE, "Error in shader
+  until `RiEnd`). On a missing operand (Q2, approved): `warning(CODE_BADFILE, "Error in shader
   \"%s\" (\"Failed to locate DSO function %s (%s)\") (v%d.%d.%d, .slo format %d.%d.%d)\n", ...)` and
   `return nullptr`, so `getShader` falls back to the `.rslo` (`rendererFiles.cpp:395-417`).
 - A module with no `openrender.shader.shadeops` node binds nothing (every `.slo` written before this
@@ -86,10 +86,11 @@ flat-namespace import is added.
   "2.1 spec 038: DSO shadeop calls (`op_dso_call`, the `openrender.shader.shadeops` slots)". The
   emitter writes `SLO_FORMAT_MINOR` only when the module has a slot (`llvmEmitter.cpp:502-503`).
 - `LibShader_Format_slo_emitted` (`test_format_versions.cpp:276-300`) expects the base record for its
-  probe; a new case expects 2.1.0 from a probe with a DSO call (TEST-APPROVAL). The `newer_minor`
+  probe; a new case expects 2.1.0 from a probe with a DSO call (Q1 approved; TEST-APPROVAL). The `newer_minor`
   refusal (`:318`, `SLO_FORMAT_MINOR + 1`) keeps its meaning.
   A 2.0 loader rejects a 2.1 module before linking; a 2.0 module loads in a 2.1 loader.
-- `CRendererServices` unchanged; `getDSO`'s comment gains the `.slo` loader (Q8: PATCH 2.0.1).
+- `CRendererServices` is 2.0.1 (Q8, approved): `getDSO`'s comment gains the `.slo` loader and the
+  version history in `rendererServices.h` gets a PATCH line; no member changes.
 - Shader DSO Operands interface (`shadeop.h` 1.1.0): unchanged.
 
 ## Tests (FR-022, SC-008), all comparing `.rslo` against `.slo` renders in the same run
