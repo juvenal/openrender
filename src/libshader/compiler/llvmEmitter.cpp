@@ -2060,6 +2060,28 @@ static bool emitFunction(const IRFunction &irFn,
             // wrapper bodies and shaderOpcodes.h/shaderFunctions.h for the
             // interpreter macros they mirror).
             // ================================================================
+            else if (op == "ctransform" && ins.proto.size() >= 4 && ins.proto.compare(ins.proto.find('=') + 1, std::string::npos, "SSc") == 0) {
+                // ctransform "c=SSc": operands are from_space to_space src (spec 026, D8). The branch below reads
+                // operands[0] as the one space and operands[1] as the source, which is the "c=Sc" form.
+                // (float* dst, int sd, const char* space1, const char* space2, const float* src, int ss, int n, const int* tags)
+                if (ins.operands.size() < 3)
+                    continue;
+                auto [src, ss] = getVar(ins, 2);
+                if (!dst || !src)
+                    continue;
+                auto unquote = [](const std::string &tok) {
+                    if (tok.size() >= 2 && tok.front() == '"')
+                        return tok.substr(1, tok.size() - 2);
+                    return tok;
+                };
+                llvm::Value *space1Ptr = B.CreateGlobalString(unquote(ins.operands[0].token), "space1_str");
+                llvm::Value *space2Ptr = B.CreateGlobalString(unquote(ins.operands[1].token), "space2_str");
+                auto *ty = llvm::FunctionType::get(voidTy,
+                                                   {ptrTy, i32Ty, ptrTy, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy}, false);
+                auto *fn = declareOp(mod, "op_ctransform_ss", ty);
+                auto [n, tg] = collapseArgs(dstStrideVal, {ss});
+                B.CreateCall(fn, {dst, dstStride, space1Ptr, space2Ptr, src, B.getInt32(ss), n, tg});
+            }
             else if (op == "cfrom" || op == "mfrom" || op == "ctransform") {
                 // operands: space_string src
                 if (ins.operands.size() < 2)
@@ -2952,9 +2974,13 @@ static bool emitFunction(const IRFunction &irFn,
                 if (!namePtr || !destPtr)
                     continue;
                 const char resultChar = ins.proto.empty() ? 'F' : ins.proto.back();
-                const int resultKind = (resultChar == 'V') ? 3 : (resultChar == 'M') ? 16
-                                                              : (resultChar == 'S')   ? -1
-                                                                                      : 1;
+                // A color, normal or point destination is a triple like a vector (the interpreter links
+                // "f=SC", "f=SN" and "f=SP" to "f=SV"): a rendererinfo() with a vector argument resolves to the
+                // "f=SC" overload and must not be read as a float
+                const bool isTriple = (resultChar == 'V' || resultChar == 'C' || resultChar == 'N' || resultChar == 'P');
+                const int resultKind = isTriple ? 3 : (resultChar == 'M') ? 16
+                                                  : (resultChar == 'S')   ? -1
+                                                                          : 1;
                 auto *ty = llvm::FunctionType::get(voidTy,
                                                    {ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy, i32Ty},
                                                    false);

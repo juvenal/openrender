@@ -1,0 +1,19 @@
+diff --git a/tests/shading_contract/shaders/cm_lightsource_big.sl b/tests/shading_contract/shaders/cm_lightsource_big.sl
+index ebaf928e..08ea4147 100644
+--- a/tests/shading_contract/shaders/cm_lightsource_big.sl
++++ b/tests/shading_contract/shaders/cm_lightsource_big.sl
+@@ -1,4 +1,4 @@
+-/* Spec 026 contract-test shader (tests/shading_contract). lightsource() inside an illuminance loop, asking for a 20-float array parameter (larger than the JIT's 16-float scratch: refused, the result is 0) and for a small float parameter of the same light (answered: 7). Ci = (the array query's destination, the small query's destination, the sum of the array query's results), Oi = the lighting. */
++/* Spec 026 contract-test shader (tests/shading_contract). lightsource() inside an illuminance loop, asking for a 20-float array parameter (larger than the JIT's 16-float scratch: refused, the result is 0) and for a small float parameter of the same light (answered: 7). Ci = (the array query's destination, the small query's destination, 0), Oi = the lighting. The queries' results are not read: under the JIT lightsource() writes its result into lane 0 only (GitHub #115), so the other lanes of a result would be uninitialized memory. */
+ surface cm_lightsource_big()
+ {
+     color Cd = 0;
+@@ -6,7 +6,7 @@ surface cm_lightsource_big()
+     float g = -1;
+     float found = 0;
+     illuminance(P, N, PI / 2) {
+-        found += lightsource("k", f);
++        lightsource("k", f);
+         lightsource("small", g);
+         Cd += Cl;
+     }

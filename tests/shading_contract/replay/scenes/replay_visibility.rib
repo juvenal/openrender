@@ -1,0 +1,39 @@
+##RenderMan RIB-Structure 1.0
+# Spec 026 trace replay scene for visibility() (tests/shading_contract/replay). Characterization input: the
+# requests this scene makes are recorded on the starting tree, and a later phase must make the same
+# ones. Four pixels square, one thread, a fixed sampler and seed, no motion, no display statement
+# (the program installs a display that discards the pixels) and no shader format (the program sets it
+# once per backend).
+version 3.03
+Hider "raytrace" "jitter" [0]
+Option "sampling" "sampler" ["sobol"]
+Option "sampling" "seed" [1]
+Option "limits" "numthreads" [1]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Format 4 4 1
+Projection "perspective" "fov" 30
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Attribute "visibility" "int specular" [1]
+  Attribute "visibility" "int transmission" [1]
+  Attribute "visibility" "int diffuse" [1]
+  AttributeBegin
+    Surface "constant"
+    Color 0.8 0.7 0.5
+    Translate 0 -1.6 0
+    Rotate -90 1 0 0
+    Disk 0 4 360
+  AttributeEnd
+  AttributeBegin
+    Surface "constant"
+    Color 0.2 0.5 0.9
+    Translate 1.4 0.2 -1.2
+    Sphere 0.7 -0.7 0.7 360
+  AttributeEnd
+  AttributeBegin
+    Surface "replay_visibility"
+    Sphere 1 -1 1 360
+  AttributeEnd
+WorldEnd

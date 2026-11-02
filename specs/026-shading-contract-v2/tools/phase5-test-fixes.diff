@@ -1,0 +1,102 @@
+diff --git a/tests/shading_contract/case_null_object.cpp b/tests/shading_contract/case_null_object.cpp
+index e19aec40..44589f74 100644
+--- a/tests/shading_contract/case_null_object.cpp
++++ b/tests/shading_contract/case_null_object.cpp
+@@ -20,9 +20,11 @@ using namespace openrender::shading;
+ 
+ int caseNullObjectAttributes(bool jit) {
+     CRecordingSink sink;
+-    CDiagnosticSink *previous = installDiagnosticSink(&sink);
++    CDiagnosticSink *previous = nullptr;
+     {
+         CRenderedSession s(jit);
++        // RiBegin installed the renderer's own sink: ours goes in after the session starts (case_real_answers.cpp)
++        previous = installDiagnosticSink(&sink);
+         CRProbeContext *ctx = s.makeContext(s.original);
+         CProgrammableShaderInstance *shader = s.load("cm_nullobject", SL_SURFACE);
+         CT_EXPECT(shader != nullptr);
+@@ -42,10 +44,10 @@ int caseNullObjectAttributes(bool jit) {
+             }
+         }
+         delete ctx;
++        // Not found is not a diagnostic
++        CT_EXPECT(sink.count(CODE_NOTSTARTED, DIAGNOSTIC_WARNING) == 0);
++        CT_EXPECT(sink.count(CODE_BADTOKEN, DIAGNOSTIC_WARNING) == 0);
++        installDiagnosticSink(previous);
+     }
+-    // Not found is not a diagnostic
+-    CT_EXPECT(sink.count(CODE_NOTSTARTED, DIAGNOSTIC_WARNING) == 0);
+-    CT_EXPECT(sink.count(CODE_BADTOKEN, DIAGNOSTIC_WARNING) == 0);
+-    installDiagnosticSink(previous);
+     return contract_test::finish();
+ }
+diff --git a/tests/shading_contract/case_type_mismatch_real.cpp b/tests/shading_contract/case_type_mismatch_real.cpp
+index c2811bfb..5c0bbc8f 100644
+--- a/tests/shading_contract/case_type_mismatch_real.cpp
++++ b/tests/shading_contract/case_type_mismatch_real.cpp
+@@ -74,6 +74,14 @@ namespace {
+             }
+     };
+ 
++    // CUserAttributeDictionary::insert() reads `value` as strings or as floats by the declaration; GCC 13 cannot see
++    // that and reports -Warray-bounds against a one-float object (the same family as D2), so the type is hidden here
++    __attribute__((noinline)) void insertUserAttribute(CRenderedSession &s, const char *declaration, const void *value) {
++        CVariable var;
++        CT_EXPECT(parseVariable(&var, nullptr, declaration));
++        s.attributes->userAttributes.insert(&var, value);
++    }
++
+     void direct(CRenderedSession &s, CShadingContext *ctx) {
+         CShadingState *ss = ctx->currentShadingState;
+         ss->currentObject = s.object;
+@@ -194,37 +202,34 @@ namespace {
+ 
+ int caseTypeMismatchRealAttribute(bool jit) {
+     CRecordingSink sink;
+-    CDiagnosticSink *previous = installDiagnosticSink(&sink);
++    CDiagnosticSink *previous = nullptr;
+     {
+         CRenderedSession s(jit);
++        // RiBegin installed the renderer's own sink: ours goes in after the session starts (case_real_answers.cpp)
++        previous = installDiagnosticSink(&sink);
+         s.attributes->name = const_cast<char *>("cmprobe");
+         s.attributes->shadingRate = 2.5f;
+ 
+         // The user attributes of the object
+-        CVariable var;
+         const float matrix[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+-        CT_EXPECT(parseVariable(&var, nullptr, "matrix cmmat"));
+-        s.attributes->userAttributes.insert(&var, matrix);
++        insertUserAttribute(s, "matrix cmmat", matrix);
+         const char *str[1] = {"hello"};
+-        CT_EXPECT(parseVariable(&var, nullptr, "string cmstr"));
+-        s.attributes->userAttributes.insert(&var, str);
++        insertUserAttribute(s, "string cmstr", str);
+         const float num = 2.5f;
+-        CT_EXPECT(parseVariable(&var, nullptr, "float cmnum"));
+-        s.attributes->userAttributes.insert(&var, &num);
++        insertUserAttribute(s, "float cmnum", &num);
+         const float vec[3] = {0.25f, 0.5f, 0.75f};
+-        CT_EXPECT(parseVariable(&var, nullptr, "vector cmvec"));
+-        s.attributes->userAttributes.insert(&var, vec);
++        insertUserAttribute(s, "vector cmvec", vec);
+ 
+         CRProbeContext *ctx = s.makeContext(s.original);
+         direct(s, ctx);
+         viaShader(s, ctx, jit);
+         delete ctx;
++        // the counts are read before the session ends
++        CT_EXPECT(sink.count(CODE_BADTOKEN, DIAGNOSTIC_WARNING) == 3);
++        CT_EXPECT(sink.count(CODE_BADTOKEN, DIAGNOSTIC_WARNING, "attribute") == 1);
++        CT_EXPECT(sink.count(CODE_BADTOKEN, DIAGNOSTIC_WARNING, "option") == 1);
++        CT_EXPECT(sink.count(CODE_BADTOKEN, DIAGNOSTIC_WARNING, "rendererinfo") == 1);
++        installDiagnosticSink(previous);
+     }
+-    // One warning of the kind per builtin kind per process: attribute, option, rendererinfo
+-    CT_EXPECT(sink.count(CODE_BADTOKEN, DIAGNOSTIC_WARNING) == 3);
+-    CT_EXPECT(sink.count(CODE_BADTOKEN, DIAGNOSTIC_WARNING, "attribute") == 1);
+-    CT_EXPECT(sink.count(CODE_BADTOKEN, DIAGNOSTIC_WARNING, "option") == 1);
+-    CT_EXPECT(sink.count(CODE_BADTOKEN, DIAGNOSTIC_WARNING, "rendererinfo") == 1);
+-    installDiagnosticSink(previous);
+     return contract_test::finish();
+ }

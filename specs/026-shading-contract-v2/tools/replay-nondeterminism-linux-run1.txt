@@ -1,0 +1,781 @@
+# openRender spec 026 trace replay, format 1. Recorded on the starting tree (d01da47 plus the observer hook).
+# Never re-recorded from a changed tree: a difference means a call site's rays changed.
+@@ section scene=trace backend=rslo
+req kind=trace label= bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.e071dcp-2,0x1.962e16p-2,0x1.0b05ccp+2 dir=-0x1.31235ep-1,0x1.cc1eb8p-3,-0x1.8ab7f6p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089b9p+0 db=0x1.1d0b0cp-1 key=4c0c2ea907562ec2:2b225d8d38b4a031:0:2 depth=1
+ray from=0x1.63382cp-3,0x1.2193ecp-3,0x1.f5eb1p+1 dir=0x1.2887e6p-1,0x1.7f1d02p-1,-0x1.4b4936p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089d66p+0 db=0x1.1d0fp-1 key=e79f8d3b0db0e818:4cc546a78eb92ad3:0:2 depth=1
+ray from=-0x1.e1a1d4p-3,-0x1.7d0a72p-2,0x1.061fccp+2 dir=-0x1.5060fcp-1,-0x1.d2fbdcp-2,-0x1.335e14p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089d68p+0 db=0x1.1d0f06p-1 key=3e61b5dedcc71b76:24f8bc3fc0dda48b:0:2 depth=1
+ray from=0x1.f921f8p-4,-0x1.de4b42p-3,0x1.f3fab6p+1 dir=0x1.c71466p-2,-0x1.98ae46p-1,-0x1.a0695ep-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089f42p+0 db=0x1.1d130cp-1 key=6e7ed18bef1cf4dc:3194846e51cfcfc7:0:2 depth=1
+req kind=trace label=replay bundledepth=0 pathdepth=0 rays=16
+ray from=-0x1.79bed2p-2,0x1.e45188p-2,0x1.0a9174p+2 dir=-0x1.6095aep-1,0x1.496658p-1,-0x1.567bf4p-2 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d21a8p+0 db=0x1.1d0b0cp-1 key=7a12d14dbe6b16b5:8689a6d087b4818f:0:2 depth=1
+ray from=-0x1.220eecp-2,0x1.353694p-3,0x1.02d83cp+2 dir=-0x1.8c67d8p-2,0x1.8415ecp-2,-0x1.ae5b5cp-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d21a8p+0 db=0x1.1d0b0cp-1 key=da8fd7f4c1aac2da:aab82815f068be19:0:2 depth=1
+ray from=-0x1.83568ap-2,0x1.baad9cp-3,0x1.05e128p+2 dir=-0x1.44570ap-1,0x1.a16f8cp-2,-0x1.50b9dep-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d21a8p+0 db=0x1.1d0b0cp-1 key=2ec530caa6f7e925:39620b13c1ee20aa:0:2 depth=1
+ray from=-0x1.08024p-3,0x1.58f752p-2,0x1.f5f11cp+1 dir=-0x1.946676p-2,0x1.5f7478p-1,-0x1.38a1b6p-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d21a8p+0 db=0x1.1d0b0cp-1 key=15c4f8ef1f767b68:42f1f47d1ea0c7da:0:2 depth=1
+ray from=0x1.7619e2p-3,0x1.9f5758p-3,0x1.fed624p+1 dir=0x1.6b141ap-2,0x1.2a122p-1,-0x1.769f1cp-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d237ep+0 db=0x1.1d0fp-1 key=b205bb8029586a2:4c72f2c6c85dfa91:0:2 depth=1
+ray from=0x1.d9d4e2p-2,0x1.c79f18p-2,0x1.0bd12p+2 dir=0x1.33e622p-1,0x1.293c5cp-1,-0x1.190ea6p-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d237ep+0 db=0x1.1d0fp-1 key=5f766fd0a884a2a2:a88f2bc0b4caf6f6:0:2 depth=1
+ray from=0x1.bea4a8p-4,0x1.53454cp-2,0x1.02f592p+2 dir=0x1.cf479p-2,0x1.b1c02ap-1,-0x1.1d49dp-2 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d237ep+0 db=0x1.1d0fp-1 key=b45cd9db9ea3f02e:be42ee91d4e05da:0:2 depth=1
+ray from=0x1.5fc53p-2,0x1.5442b2p-3,0x1.fb5d8cp+1 dir=0x1.195248p-1,0x1.189d86p-2,-0x1.941faep-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d237ep+0 db=0x1.1d0fp-1 key=75e6b32b34ce2742:f8091f5071f26c21:0:2 depth=1
+ray from=-0x1.232566p-3,-0x1.13272ap-2,0x1.0266ccp+2 dir=-0x1.dc9bc8p-2,-0x1.62fe9ep-1,-0x1.19a9a8p-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d238p+0 db=0x1.1d0f06p-1 key=c425bc8c110e4e4e:425c3460e70e8a71:0:2 depth=1
+ray from=-0x1.203ep-1,-0x1.603858p-2,0x1.0ba73cp+2 dir=-0x1.54ac5cp-1,-0x1.6c838p-2,-0x1.4ff566p-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d238p+0 db=0x1.1d0f06p-1 key=60eda3f25e2f78f0:6117ea64342d7579:0:2 depth=1
+ray from=-0x1.07b20cp-3,-0x1.866c54p-2,0x1.04480ep+2 dir=-0x1.a47144p-1,-0x1.130166p-1,-0x1.8ad96p-3 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d238p+0 db=0x1.1d0f06p-1 key=57ac09598c05fa7d:3f0abc96c11b9608:0:2 depth=1
+ray from=-0x1.e21cfcp-3,-0x1.f450ep-4,0x1.f3d502p+1 dir=-0x1.d1ec74p-8,-0x1.eda1f2p-2,-0x1.c0913p-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d238p+0 db=0x1.1d0f06p-1 key=4b4661ec761bef6c:eb04e81c034bf2f8:0:2 depth=1
+ray from=0x1.fe32fp-3,0x1.0b04p-7,0x1.fe5bfep+1 dir=0x1.511f12p-1,-0x1.6e9e72p-1,-0x1.dab31ep-3 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d255ap+0 db=0x1.1d130cp-1 key=1c1d610bb773c739:8db261026da4eb66:0:2 depth=1
+ray from=0x1.4d711cp-2,-0x1.cc7b84p-2,0x1.094f3ap+2 dir=0x1.08dfc6p-1,-0x1.ab88c8p-2,-0x1.7e7a56p-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d255ap+0 db=0x1.1d130cp-1 key=979f789c8fdc50f:8899be6788ee8c38:0:2 depth=1
+ray from=0x1.b81a5p-2,-0x1.776efap-2,0x1.09b5a8p+2 dir=0x1.5c34acp-2,-0x1.3ce594p-1,-0x1.6a80d2p-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d255ap+0 db=0x1.1d130cp-1 key=144aea9dc0895a33:8095f58270a5c472:0:2 depth=1
+ray from=0x1.1eaedep-3,-0x1.260c78p-2,0x1.f6f7c8p+1 dir=0x1.84a09p-1,-0x1.293e6ap-3,-0x1.44f284p-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d255ap+0 db=0x1.1d130cp-1 key=d939cf02781b7054:4b47c45d6d98d572:0:2 depth=1
+req kind=trace label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.504fa6p-3,0x1.3e56ecp-3,0x1.f8ff6ap+1 dir=-0x1.9507a8p-1,0x1.5db0e6p-2,-0x1.03da7ep-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089b9p+0 db=0x1.1d0b0cp-1 key=4cae611b91c9e533:200f0d2c1376bf8c:0:2 depth=1
+req kind=trace label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.437178p-2,0x1.543ddep-3,0x1.fb0e54p+1 dir=0x1.1d4ffcp-2,0x1.a5a312p-2,-0x1.bc3d5p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089d66p+0 db=0x1.1d0fp-1 key=f80a7d94db1823b3:3884ea37fa318cb6:0:2 depth=1
+req kind=trace label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.86b24cp-2,-0x1.7193p-2,0x1.08af78p+2 dir=-0x1.98292ep-1,-0x1.312f48p-1,-0x1.88d11p-4 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089d68p+0 db=0x1.1d0f06p-1 key=c72df9aeb693122c:7f0224d1aaa462ee:0:2 depth=1
+req kind=trace label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.ab7986p-3,-0x1.5bf858p-2,0x1.00b64ap+2 dir=0x1.556422p-1,-0x1.5f6878p-1,-0x1.2960d8p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089f42p+0 db=0x1.1d130cp-1 key=ca6dd38fa4c279af:cba765dbe83b8d13:0:2 depth=1
+req kind=trace label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.6638b4p-3,0x1.95b3acp-2,0x1.fd33fcp+1 dir=-0x1.2ded84p-2,0x1.f849a8p-2,-0x1.a34212p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.32ebd8p+0 db=0x1.1d0b0cp-1 key=69cc93319bef1de6:49bae9be2e780f4d:0:2 depth=1
+req kind=trace label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.bf94p-7,0x1.4a5c34p-3,0x1.f6ff3cp+1 dir=0x1.5b5262p-1,0x1.fa8f7p-2,-0x1.16235p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.fb922cp-1 db=0x1.1d0fp-1 key=da03769a68877e0e:e232b89b76071d7:0:2 depth=1
+req kind=trace label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.d473ap-2,-0x1.2d30acp-2,0x1.077dd8p+2 dir=-0x1.db58dap-2,-0x1.86785ap-1,-0x1.cd4086p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.05841cp+0 db=0x1.1d0f06p-1 key=453f87cfee3c5c38:c5c4252015cf40dc:0:2 depth=1
+req kind=trace label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.bb3ca8p-3,-0x1.462a56p-2,0x1.012564p+2 dir=0x1.1e9a94p-1,-0x1.cf5c7cp-3,-0x1.98256cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.c64b3cp-1 db=0x1.1d130cp-1 key=4315d98fe23e61d4:d2a8f2e35f457e1b:0:2 depth=1
+@@ end requests=10 rays=28
+@@ section scene=trace backend=slo
+req kind=trace label= bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.e071dcp-2,0x1.962e16p-2,0x1.0b05ccp+2 dir=-0x1.31235ep-1,0x1.cc1eb8p-3,-0x1.8ab7f6p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089b9p+0 db=0x1.1d0b0cp-1 key=4c0c2ea907562ec2:2b225d8d38b4a031:0:2 depth=1
+ray from=0x1.63382cp-3,0x1.2193ecp-3,0x1.f5eb1p+1 dir=0x1.2887e6p-1,0x1.7f1d02p-1,-0x1.4b4936p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089d66p+0 db=0x1.1d0fp-1 key=e79f8d3b0db0e818:4cc546a78eb92ad3:0:2 depth=1
+ray from=-0x1.e1a1d4p-3,-0x1.7d0a72p-2,0x1.061fccp+2 dir=-0x1.5060fcp-1,-0x1.d2fbdcp-2,-0x1.335e14p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089d68p+0 db=0x1.1d0f06p-1 key=3e61b5dedcc71b76:24f8bc3fc0dda48b:0:2 depth=1
+ray from=0x1.f921f8p-4,-0x1.de4b42p-3,0x1.f3fab6p+1 dir=0x1.c71466p-2,-0x1.98ae46p-1,-0x1.a0695ep-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089f42p+0 db=0x1.1d130cp-1 key=6e7ed18bef1cf4dc:3194846e51cfcfc7:0:2 depth=1
+req kind=trace label=replay bundledepth=0 pathdepth=0 rays=16
+ray from=-0x1.79bed2p-2,0x1.e45188p-2,0x1.0a9174p+2 dir=-0x1.6095aep-1,0x1.496658p-1,-0x1.567bf4p-2 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d21a8p+0 db=0x1.1d0b0cp-1 key=7a12d14dbe6b16b5:8689a6d087b4818f:0:2 depth=1
+ray from=-0x1.220eecp-2,0x1.353694p-3,0x1.02d83cp+2 dir=-0x1.8c67d8p-2,0x1.8415ecp-2,-0x1.ae5b5cp-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d21a8p+0 db=0x1.1d0b0cp-1 key=da8fd7f4c1aac2da:aab82815f068be19:0:2 depth=1
+ray from=-0x1.83568ap-2,0x1.baad9cp-3,0x1.05e128p+2 dir=-0x1.44570ap-1,0x1.a16f8cp-2,-0x1.50b9dep-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d21a8p+0 db=0x1.1d0b0cp-1 key=2ec530caa6f7e925:39620b13c1ee20aa:0:2 depth=1
+ray from=-0x1.08024p-3,0x1.58f752p-2,0x1.f5f11cp+1 dir=-0x1.946676p-2,0x1.5f7478p-1,-0x1.38a1b6p-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d21a8p+0 db=0x1.1d0b0cp-1 key=15c4f8ef1f767b68:42f1f47d1ea0c7da:0:2 depth=1
+ray from=0x1.7619e2p-3,0x1.9f5758p-3,0x1.fed624p+1 dir=0x1.6b141ap-2,0x1.2a122p-1,-0x1.769f1cp-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d237ep+0 db=0x1.1d0fp-1 key=b205bb8029586a2:4c72f2c6c85dfa91:0:2 depth=1
+ray from=0x1.d9d4e2p-2,0x1.c79f18p-2,0x1.0bd12p+2 dir=0x1.33e622p-1,0x1.293c5cp-1,-0x1.190ea6p-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d237ep+0 db=0x1.1d0fp-1 key=5f766fd0a884a2a2:a88f2bc0b4caf6f6:0:2 depth=1
+ray from=0x1.bea4a8p-4,0x1.53454cp-2,0x1.02f592p+2 dir=0x1.cf479p-2,0x1.b1c02ap-1,-0x1.1d49dp-2 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d237ep+0 db=0x1.1d0fp-1 key=b45cd9db9ea3f02e:be42ee91d4e05da:0:2 depth=1
+ray from=0x1.5fc53p-2,0x1.5442b2p-3,0x1.fb5d8cp+1 dir=0x1.195248p-1,0x1.189d86p-2,-0x1.941faep-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d237ep+0 db=0x1.1d0fp-1 key=75e6b32b34ce2742:f8091f5071f26c21:0:2 depth=1
+ray from=-0x1.232566p-3,-0x1.13272ap-2,0x1.0266ccp+2 dir=-0x1.dc9bc8p-2,-0x1.62fe9ep-1,-0x1.19a9a8p-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d238p+0 db=0x1.1d0f06p-1 key=c425bc8c110e4e4e:425c3460e70e8a71:0:2 depth=1
+ray from=-0x1.203ep-1,-0x1.603858p-2,0x1.0ba73cp+2 dir=-0x1.54ac5cp-1,-0x1.6c838p-2,-0x1.4ff566p-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d238p+0 db=0x1.1d0f06p-1 key=60eda3f25e2f78f0:6117ea64342d7579:0:2 depth=1
+ray from=-0x1.07b20cp-3,-0x1.866c54p-2,0x1.04480ep+2 dir=-0x1.a47144p-1,-0x1.130166p-1,-0x1.8ad96p-3 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d238p+0 db=0x1.1d0f06p-1 key=57ac09598c05fa7d:3f0abc96c11b9608:0:2 depth=1
+ray from=-0x1.e21cfcp-3,-0x1.f450ep-4,0x1.f3d502p+1 dir=-0x1.d1ec74p-8,-0x1.eda1f2p-2,-0x1.c0913p-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d238p+0 db=0x1.1d0f06p-1 key=4b4661ec761bef6c:eb04e81c034bf2f8:0:2 depth=1
+ray from=0x1.fe32fp-3,0x1.0b04p-7,0x1.fe5bfep+1 dir=0x1.511f12p-1,-0x1.6e9e72p-1,-0x1.dab31ep-3 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d255ap+0 db=0x1.1d130cp-1 key=1c1d610bb773c739:8db261026da4eb66:0:2 depth=1
+ray from=0x1.4d711cp-2,-0x1.cc7b84p-2,0x1.094f3ap+2 dir=0x1.08dfc6p-1,-0x1.ab88c8p-2,-0x1.7e7a56p-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d255ap+0 db=0x1.1d130cp-1 key=979f789c8fdc50f:8899be6788ee8c38:0:2 depth=1
+ray from=0x1.b81a5p-2,-0x1.776efap-2,0x1.09b5a8p+2 dir=0x1.5c34acp-2,-0x1.3ce594p-1,-0x1.6a80d2p-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d255ap+0 db=0x1.1d130cp-1 key=144aea9dc0895a33:8095f58270a5c472:0:2 depth=1
+ray from=0x1.1eaedep-3,-0x1.260c78p-2,0x1.f6f7c8p+1 dir=0x1.84a09p-1,-0x1.293e6ap-3,-0x1.44f284p-1 t=0x1.93e594p+99 tmin=0x1.99999ap-5 time=0x0p+0 flags=512 da=0x1.1d255ap+0 db=0x1.1d130cp-1 key=d939cf02781b7054:4b47c45d6d98d572:0:2 depth=1
+req kind=trace label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.504fa6p-3,0x1.3e56ecp-3,0x1.f8ff6ap+1 dir=-0x1.9507a8p-1,0x1.5db0e6p-2,-0x1.03da7ep-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089b9p+0 db=0x1.1d0b0cp-1 key=4cae611b91c9e533:200f0d2c1376bf8c:0:2 depth=1
+req kind=trace label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.437178p-2,0x1.543ddep-3,0x1.fb0e54p+1 dir=0x1.1d4ffcp-2,0x1.a5a312p-2,-0x1.bc3d5p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089d66p+0 db=0x1.1d0fp-1 key=f80a7d94db1823b3:3884ea37fa318cb6:0:2 depth=1
+req kind=trace label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.86b24cp-2,-0x1.7193p-2,0x1.08af78p+2 dir=-0x1.98292ep-1,-0x1.312f48p-1,-0x1.88d11p-4 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089d68p+0 db=0x1.1d0f06p-1 key=c72df9aeb693122c:7f0224d1aaa462ee:0:2 depth=1
+req kind=trace label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.ab7986p-3,-0x1.5bf858p-2,0x1.00b64ap+2 dir=0x1.556422p-1,-0x1.5f6878p-1,-0x1.2960d8p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089f42p+0 db=0x1.1d130cp-1 key=ca6dd38fa4c279af:cba765dbe83b8d13:0:2 depth=1
+req kind=trace label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.6638b4p-3,0x1.95b3acp-2,0x1.fd33fcp+1 dir=-0x1.2ded84p-2,0x1.f849a8p-2,-0x1.a34212p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.32ebd8p+0 db=0x1.1d0b0cp-1 key=69cc93319bef1de6:49bae9be2e780f4d:0:2 depth=1
+req kind=trace label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.bf94p-7,0x1.4a5c34p-3,0x1.f6ff3cp+1 dir=0x1.5b5262p-1,0x1.fa8f7p-2,-0x1.16235p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.fb922cp-1 db=0x1.1d0fp-1 key=da03769a68877e0e:e232b89b76071d7:0:2 depth=1
+req kind=trace label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.d473ap-2,-0x1.2d30acp-2,0x1.077dd8p+2 dir=-0x1.db58dap-2,-0x1.86785ap-1,-0x1.cd4086p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.05841cp+0 db=0x1.1d0f06p-1 key=453f87cfee3c5c38:c5c4252015cf40dc:0:2 depth=1
+req kind=trace label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.bb3ca8p-3,-0x1.462a56p-2,0x1.012564p+2 dir=0x1.1e9a94p-1,-0x1.cf5c7cp-3,-0x1.98256cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.c64b3cp-1 db=0x1.1d130cp-1 key=4315d98fe23e61d4:d2a8f2e35f457e1b:0:2 depth=1
+@@ end requests=10 rays=28
+@@ section scene=transmission backend=rslo
+req kind=transmission label= bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.41929ap-2,0x1.f3ec2ap-2,0x1.0918dap+2 dir=0x1.389be6p-2,0x1.82280ap-1,-0x1.29a6aap-1 t=0x1.485b0cp-1 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.3931ecp-3 db=0x1.1d0b0cp-1 key=4c0c2ea907562ec2:2b225d8d38b4a031:0:2 depth=1
+ray from=0x1.98e268p-4,0x1.d7e938p-4,0x1.f156e2p+1 dir=0x1.41055cp-1,0x1.23ca6cp-1,-0x1.0feeeep-1 t=0x1.9252bcp-1 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.3567d8p-3 db=0x1.1d0fp-1 key=e79f8d3b0db0e818:4cc546a78eb92ad3:0:2 depth=1
+ray from=-0x1.9d7e54p-3,-0x1.e17312p-3,0x1.01d648p+2 dir=0x1.60d40cp-1,0x1.b17d74p-2,-0x1.2d20a6p-1 t=0x1.da3092p-2 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.3e8106p-3 db=0x1.1d0f06p-1 key=3e61b5dedcc71b76:24f8bc3fc0dda48b:0:2 depth=1
+ray from=0x1.193b86p-3,0x1.477608p-4,0x1.f27fc4p+1 dir=0x1.66a246p-1,0x1.ff874ap-3,-0x1.564dc6p-1 t=0x1.196cp-1 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.3a8568p-3 db=0x1.1d130cp-1 key=6e7ed18bef1cf4dc:3194846e51cfcfc7:0:2 depth=1
+req kind=transmission label=replay bundledepth=0 pathdepth=0 rays=16
+ray from=-0x1.9d082cp-2,0x1.3b4d42p-1,0x1.103716p+2 dir=0x1.50a5ep-1,0x1.9257a8p-3,-0x1.746ad4p-1 t=0x1.cf9d0ap-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.9f1512p-3 db=0x1.1d0b0cp-1 key=7a12d14dbe6b16b5:8689a6d087b4818f:0:2 depth=1
+ray from=-0x1.797e7ep-3,0x1.c6081p-6,0x1.fa77cep+1 dir=0x1.2511aep-1,0x1.27d88cp-1,-0x1.29e01ap-1 t=0x1.b1f584p-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.9f1512p-3 db=0x1.1d0b0cp-1 key=da8fd7f4c1aac2da:aab82815f068be19:0:2 depth=1
+ray from=-0x1.f49868p-3,0x1.05a60cp-2,0x1.02cfaap+2 dir=0x1.2df0ep-1,0x1.36049ap-1,-0x1.119d26p-1 t=0x1.a62fdap-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.9f1512p-3 db=0x1.1d0b0cp-1 key=2ec530caa6f7e925:39620b13c1ee20aa:0:2 depth=1
+ray from=-0x1.35baaep-2,0x1.259cb4p-2,0x1.072662p+2 dir=0x1.53a3dap-1,0x1.8edf3p-2,-0x1.47214p-1 t=0x1.3e496ep-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.9f1512p-3 db=0x1.1d0b0cp-1 key=15c4f8ef1f767b68:42f1f47d1ea0c7da:0:2 depth=1
+ray from=0x1.454efcp-2,0x1.6bdfc4p-2,0x1.0b1e9cp+2 dir=0x1.42aa14p-1,0x1.2ff722p-1,-0x1.00325ep-1 t=0x1.9ff508p-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.98de56p-3 db=0x1.1d0fp-1 key=b205bb8029586a2:4c72f2c6c85dfa91:0:2 depth=1
+ray from=0x1.f7385cp-3,0x1.a4b33p-3,0x1.ffea16p+1 dir=0x1.619592p-1,0x1.a70c0ap-2,-0x1.2ff0d4p-1 t=0x1.aca7fap-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.98de56p-3 db=0x1.1d0fp-1 key=5f766fd0a884a2a2:a88f2bc0b4caf6f6:0:2 depth=1
+ray from=-0x1.36be6p-5,0x1.4e1c8cp-3,0x1.f6af6ep+1 dir=0x1.14a8d8p-1,0x1.e8c2c4p-2,-0x1.62cc56p-1 t=0x1.7ffc58p-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.98de56p-3 db=0x1.1d0fp-1 key=b45cd9db9ea3f02e:be42ee91d4e05da:0:2 depth=1
+ray from=0x1.3d29dp-1,0x1.6c9f8ap-2,0x1.0cda54p+2 dir=0x1.d2809p-2,0x1.03bdd8p-1,-0x1.768786p-1 t=0x1.6b45ep-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.98de56p-3 db=0x1.1d0fp-1 key=75e6b32b34ce2742:f8091f5071f26c21:0:2 depth=1
+ray from=-0x1.1f6a6ap-1,-0x1.4a3464p-2,0x1.0a19ep+2 dir=0x1.6405acp-1,0x1.cc0eaep-2,-0x1.1f311p-1 t=0x1.61553cp+0 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.a45c48p-3 db=0x1.1d0f06p-1 key=c425bc8c110e4e4e:425c3460e70e8a71:0:2 depth=1
+ray from=-0x1.a848ep-6,-0x1.abec3cp-3,0x1.fdf8b8p+1 dir=0x1.20c72cp-3,0x1.3d7982p-1,-0x1.8b25d8p-1 t=0x1.4bf9aap-2 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.a45c48p-3 db=0x1.1d0f06p-1 key=60eda3f25e2f78f0:6117ea64342d7579:0:2 depth=1
+ray from=-0x1.8d4f32p-2,-0x1.c154ap-2,0x1.117dbcp+2 dir=0x1.943b0cp-2,0x1.30266ap-1,-0x1.66de2cp-1 t=0x1.00c626p+0 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.a45c48p-3 db=0x1.1d0f06p-1 key=57ac09598c05fa7d:3f0abc96c11b9608:0:2 depth=1
+ray from=-0x1.e73826p-3,-0x1.78556p-3,0x1.fcb456p+1 dir=0x1.9e8054p-1,0x1.3edc74p-2,-0x1.fd9116p-2 t=0x1.7a436cp-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.a45c48p-3 db=0x1.1d0f06p-1 key=4b4661ec761bef6c:eb04e81c034bf2f8:0:2 depth=1
+ray from=0x1.474abp-2,-0x1.0ac8c6p-1,0x1.09ae78p+2 dir=0x1.0c273ap-1,0x1.11b8f2p-1,-0x1.539436p-1 t=0x1.a6e234p-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.9dd55ep-3 db=0x1.1d130cp-1 key=1c1d610bb773c739:8db261026da4eb66:0:2 depth=1
+ray from=0x1.f0f89p-4,-0x1.cedfp-4,0x1.f259f6p+1 dir=0x1.9dddp-1,0x1.bbbed2p-2,-0x1.98163ep-2 t=0x1.9bc57ap-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.9dd55ep-3 db=0x1.1d130cp-1 key=979f789c8fdc50f:8899be6788ee8c38:0:2 depth=1
+ray from=0x1.91c482p-2,-0x1.747858p-3,0x1.0d03bcp+2 dir=0x1.0961ep-2,0x1.2cb07ep-1,-0x1.8895bcp-1 t=0x1.ea9426p-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.9dd55ep-3 db=0x1.1d130cp-1 key=144aea9dc0895a33:8095f58270a5c472:0:2 depth=1
+ray from=0x1.d06e3ep-3,-0x1.3e18ap-2,0x1.01d856p+2 dir=0x1.b9071cp-1,0x1.2966aep-2,-0x1.aabd54p-2 t=0x1.74820cp-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.9dd55ep-3 db=0x1.1d130cp-1 key=d939cf02781b7054:4b47c45d6d98d572:0:2 depth=1
+@@ end requests=2 rays=20
+@@ section scene=transmission backend=slo
+req kind=transmission label= bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.41929ap-2,0x1.f3ec2ap-2,0x1.0918dap+2 dir=0x1.389be6p-2,0x1.82280ap-1,-0x1.29a6aap-1 t=0x1.485b0cp-1 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.3931ecp-3 db=0x1.1d0b0cp-1 key=4c0c2ea907562ec2:2b225d8d38b4a031:0:2 depth=1
+ray from=0x1.98e268p-4,0x1.17a5d8p-2,0x1.f156e2p+1 dir=0x1.63fb38p-1,0x1.a5da8cp-2,-0x1.2d8c42p-1 t=0x1.6a4f0cp-1 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.3567d8p-3 db=0x1.1d0fp-1 key=e79f8d3b0db0e818:4cc546a78eb92ad3:0:2 depth=1
+ray from=-0x1.9d7e54p-3,-0x1.e17312p-3,0x1.01d648p+2 dir=0x1.60d40cp-1,0x1.b17d74p-2,-0x1.2d20a6p-1 t=0x1.da3092p-2 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.3e8106p-3 db=0x1.1d0f06p-1 key=3e61b5dedcc71b76:24f8bc3fc0dda48b:0:2 depth=1
+ray from=0x1.193b86p-3,0x1.477608p-4,0x1.f27fc4p+1 dir=0x1.66a246p-1,0x1.ff874ap-3,-0x1.564dc6p-1 t=0x1.196cp-1 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.3a8568p-3 db=0x1.1d130cp-1 key=6e7ed18bef1cf4dc:3194846e51cfcfc7:0:2 depth=1
+req kind=transmission label=replay bundledepth=0 pathdepth=0 rays=16
+ray from=-0x1.9d082cp-2,0x1.3b4d42p-1,0x1.103716p+2 dir=0x1.50a5ep-1,0x1.9257a8p-3,-0x1.746ad4p-1 t=0x1.cf9d0ap-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.9f1512p-3 db=0x1.1d0b0cp-1 key=7a12d14dbe6b16b5:8689a6d087b4818f:0:2 depth=1
+ray from=-0x1.58af8p-3,0x1.c6081p-6,0x1.fc84bep+1 dir=0x1.1ba0a2p-1,0x1.27bb98p-1,-0x1.32fce2p-1 t=0x1.b20f26p-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.9f1512p-3 db=0x1.1d0b0cp-1 key=da8fd7f4c1aac2da:aab82815f068be19:0:2 depth=1
+ray from=-0x1.ef78acp-3,0x1.05a60cp-2,0x1.02f8a8p+2 dir=0x1.2c80fp-1,0x1.360cd6p-1,-0x1.1327c4p-1 t=0x1.a62d0cp-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.9f1512p-3 db=0x1.1d0b0cp-1 key=2ec530caa6f7e925:39620b13c1ee20aa:0:2 depth=1
+ray from=-0x1.35baaep-2,0x1.259cb4p-2,0x1.072662p+2 dir=0x1.53a3dap-1,0x1.8edf3p-2,-0x1.47214p-1 t=0x1.3e496ep-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.9f1512p-3 db=0x1.1d0b0cp-1 key=15c4f8ef1f767b68:42f1f47d1ea0c7da:0:2 depth=1
+ray from=0x1.454efcp-2,0x1.6bdfc4p-2,0x1.0b1e9cp+2 dir=0x1.42aa14p-1,0x1.2ff722p-1,-0x1.00325ep-1 t=0x1.9ff508p-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.98de56p-3 db=0x1.1d0fp-1 key=b205bb8029586a2:4c72f2c6c85dfa91:0:2 depth=1
+ray from=0x1.f7385cp-3,0x1.17a5d8p-2,0x1.ffea16p+1 dir=0x1.6c6536p-1,0x1.62c11p-2,-0x1.38e2b2p-1 t=0x1.9ea66p-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.98de56p-3 db=0x1.1d0fp-1 key=5f766fd0a884a2a2:a88f2bc0b4caf6f6:0:2 depth=1
+ray from=-0x1.36be6p-5,0x1.17a5d8p-2,0x1.f6af6ep+1 dir=0x1.2756ep-1,0x1.6df9fcp-2,-0x1.7813bcp-1 t=0x1.6718ecp-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.98de56p-3 db=0x1.1d0fp-1 key=b45cd9db9ea3f02e:be42ee91d4e05da:0:2 depth=1
+ray from=0x1.3d29dp-1,0x1.6c9f8ap-2,0x1.0cda54p+2 dir=0x1.d2809p-2,0x1.03bdd8p-1,-0x1.768786p-1 t=0x1.6b45ep-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.98de56p-3 db=0x1.1d0fp-1 key=75e6b32b34ce2742:f8091f5071f26c21:0:2 depth=1
+ray from=-0x1.d44e28p-2,-0x1.4a3464p-2,0x1.10c24ap+2 dir=0x1.3fcf8ap-1,0x1.ce93b4p-2,-0x1.462534p-1 t=0x1.5e92b6p+0 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.a45c48p-3 db=0x1.1d0f06p-1 key=c425bc8c110e4e4e:425c3460e70e8a71:0:2 depth=1
+ray from=-0x1.a848ep-6,-0x1.abec3cp-3,0x1.fdf8b8p+1 dir=0x1.20c72cp-3,0x1.3d7982p-1,-0x1.8b25d8p-1 t=0x1.4bf9aap-2 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.a45c48p-3 db=0x1.1d0f06p-1 key=60eda3f25e2f78f0:6117ea64342d7579:0:2 depth=1
+ray from=-0x1.8d4f32p-2,-0x1.c154ap-2,0x1.117dbcp+2 dir=0x1.943b0cp-2,0x1.30266ap-1,-0x1.66de2cp-1 t=0x1.00c626p+0 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.a45c48p-3 db=0x1.1d0f06p-1 key=57ac09598c05fa7d:3f0abc96c11b9608:0:2 depth=1
+ray from=-0x1.a16836p-3,-0x1.78556p-3,0x1.0088aap+2 dir=0x1.8c687p-1,0x1.436786p-2,-0x1.18d0a8p-1 t=0x1.750ff4p-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.a45c48p-3 db=0x1.1d0f06p-1 key=4b4661ec761bef6c:eb04e81c034bf2f8:0:2 depth=1
+ray from=0x1.474abp-2,-0x1.0ac8c6p-1,0x1.09ae78p+2 dir=0x1.0c273ap-1,0x1.11b8f2p-1,-0x1.539436p-1 t=0x1.a6e234p-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.9dd55ep-3 db=0x1.1d130cp-1 key=1c1d610bb773c739:8db261026da4eb66:0:2 depth=1
+ray from=0x1.f0f89p-4,-0x1.cedfp-4,0x1.f259f6p+1 dir=0x1.9dddp-1,0x1.bbbed2p-2,-0x1.98163ep-2 t=0x1.9bc57ap-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.9dd55ep-3 db=0x1.1d130cp-1 key=979f789c8fdc50f:8899be6788ee8c38:0:2 depth=1
+ray from=0x1.91c482p-2,-0x1.747858p-3,0x1.0d03bcp+2 dir=0x1.0961ep-2,0x1.2cb07ep-1,-0x1.8895bcp-1 t=0x1.ea9426p-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.9dd55ep-3 db=0x1.1d130cp-1 key=144aea9dc0895a33:8095f58270a5c472:0:2 depth=1
+ray from=0x1.d06e3ep-3,-0x1.3e18ap-2,0x1.01d856p+2 dir=0x1.b9071cp-1,0x1.2966aep-2,-0x1.aabd54p-2 t=0x1.74820cp-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.9dd55ep-3 db=0x1.1d130cp-1 key=d939cf02781b7054:4b47c45d6d98d572:0:2 depth=1
+@@ end requests=2 rays=20
+@@ section scene=visibility backend=rslo
+req kind=visibility label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.90ac64p-2,0x1.1629dap-2,0x1.0d70d2p+2 dir=0x1.f10bc8p-2,0x1.ec0162p-2,-0x1.75fb8ap-1 t=0x1.b891e4p-1 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.3931ecp-3 db=0x1.1d0b0cp-1 key=4c0c2ea907562ec2:2b225d8d38b4a031:0:2 depth=1
+req kind=visibility label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.3c38p-11,0x1.65f65cp-3,0x1.f8c5ep+1 dir=0x1.34f1eep-1,0x1.87e0dcp-1,-0x1.ca50d8p-3 t=0x1.b2b0b8p-1 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.3567d8p-3 db=0x1.1d0fp-1 key=e79f8d3b0db0e818:4cc546a78eb92ad3:0:2 depth=1
+req kind=visibility label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.3a531ep-2,-0x1.55ce5p-3,0x1.fb0cap+1 dir=0x1.edecccp-2,0x1.1616cp-1,-0x1.5fe18p-1 t=0x1.60c59cp-1 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.3e8106p-3 db=0x1.1d0f06p-1 key=3e61b5dedcc71b76:24f8bc3fc0dda48b:0:2 depth=1
+req kind=visibility label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.0e39e4p-2,-0x1.af25fap-2,0x1.051fd2p+2 dir=0x1.4c12aap-3,0x1.699d0ap-1,-0x1.60d4p-1 t=0x1.f5e9dp-1 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.3a8568p-3 db=0x1.1d130cp-1 key=6e7ed18bef1cf4dc:3194846e51cfcfc7:0:2 depth=1
+req kind=visibility label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.33817ap-2,0x1.9eda3ep-2,0x1.07a688p+2 dir=-0x1.2b2094p-1,0x1.b32c4ep-3,-0x1.91098cp-1 t=0x1.4852bp+1 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.8487bap-3 db=0x1.1d0b0cp-1 key=7a12d14dbe6b16b5:8689a6d087b4818f:0:2 depth=1
+req kind=visibility label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.79d17cp-2,0x1.860f8p-2,0x1.0d3da2p+2 dir=-0x1.1d6036p-1,0x1.e3c68ep-3,-0x1.978696p-1 t=0x1.5c877ep+1 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.afccap-3 db=0x1.1d0fp-1 key=b205bb8029586a2:4c72f2c6c85dfa91:0:2 depth=1
+req kind=visibility label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.81995p-6,-0x1.18956ap-2,0x1.03a492p+2 dir=-0x1.0735c2p-1,0x1.5ba87p-2,-0x1.934be2p-1 t=0x1.5c3b84p+1 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.99e79ap-3 db=0x1.1d0f06p-1 key=c425bc8c110e4e4e:425c3460e70e8a71:0:2 depth=1
+req kind=visibility label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.b932ap-3,-0x1.2fb9ep-4,0x1.ff6dc2p+1 dir=-0x1.2c670cp-1,0x1.e1e388p-3,-0x1.8cb8f6p-1 t=0x1.4855f8p+1 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.cdb93ep-3 db=0x1.1d130cp-1 key=1c1d610bb773c739:8db261026da4eb66:0:2 depth=1
+@@ end requests=8 rays=8
+@@ section scene=visibility backend=slo
+req kind=visibility label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.90ac64p-2,0x1.1629dap-2,0x1.0d70d2p+2 dir=0x1.f10bc8p-2,0x1.ec0162p-2,-0x1.75fb8ap-1 t=0x1.b891e4p-1 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.3931ecp-3 db=0x1.1d0b0cp-1 key=4c0c2ea907562ec2:2b225d8d38b4a031:0:2 depth=1
+req kind=visibility label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.3c38p-11,0x1.65f65cp-3,0x1.f8c5ep+1 dir=0x1.34f1eep-1,0x1.87e0dcp-1,-0x1.ca50d8p-3 t=0x1.b2b0b8p-1 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.3567d8p-3 db=0x1.1d0fp-1 key=e79f8d3b0db0e818:4cc546a78eb92ad3:0:2 depth=1
+req kind=visibility label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.3a531ep-2,-0x1.55ce5p-3,0x1.fb0cap+1 dir=0x1.edecccp-2,0x1.1616cp-1,-0x1.5fe18p-1 t=0x1.60c59cp-1 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.3e8106p-3 db=0x1.1d0f06p-1 key=3e61b5dedcc71b76:24f8bc3fc0dda48b:0:2 depth=1
+req kind=visibility label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.0e39e4p-2,-0x1.af25fap-2,0x1.051fd2p+2 dir=0x1.4c12aap-3,0x1.699d0ap-1,-0x1.60d4p-1 t=0x1.f5e9dp-1 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.3a8568p-3 db=0x1.1d130cp-1 key=6e7ed18bef1cf4dc:3194846e51cfcfc7:0:2 depth=1
+req kind=visibility label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.33817ap-2,0x1.9eda3ep-2,0x1.07a688p+2 dir=-0x1.2b2094p-1,0x1.b32c4ep-3,-0x1.91098cp-1 t=0x1.4852bp+1 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.8487bap-3 db=0x1.1d0b0cp-1 key=7a12d14dbe6b16b5:8689a6d087b4818f:0:2 depth=1
+req kind=visibility label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.79d17cp-2,0x1.860f8p-2,0x1.0d3da2p+2 dir=-0x1.1d6036p-1,0x1.e3c68ep-3,-0x1.978696p-1 t=0x1.5c877ep+1 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.afccap-3 db=0x1.1d0fp-1 key=b205bb8029586a2:4c72f2c6c85dfa91:0:2 depth=1
+req kind=visibility label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.81995p-6,-0x1.18956ap-2,0x1.03a492p+2 dir=-0x1.0735c2p-1,0x1.5ba87p-2,-0x1.934be2p-1 t=0x1.5c3b84p+1 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.99e79ap-3 db=0x1.1d0f06p-1 key=c425bc8c110e4e4e:425c3460e70e8a71:0:2 depth=1
+req kind=visibility label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.b932ap-3,-0x1.2fb9ep-4,0x1.ff6dc2p+1 dir=-0x1.2c670cp-1,0x1.e1e388p-3,-0x1.8cb8f6p-1 t=0x1.4855f8p+1 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.cdb93ep-3 db=0x1.1d130cp-1 key=1c1d610bb773c739:8db261026da4eb66:0:2 depth=1
+@@ end requests=8 rays=8
+@@ section scene=gather backend=rslo
+req kind=gather label=replay bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.e3bc7cp-2,0x1.4720c2p-2,0x1.099eecp+2 dir=-0x1.d7c08ep-1,0x1.85dbfep-2,-0x1.3fa0cep-4 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0b0cp-1 key=4c0c2ea907562ec2:2b225d8d38b4a031:0:2 depth=1
+ray from=0x1.5c6f3cp-2,0x1.5c043p-2,0x1.07811ap+2 dir=-0x1.113134p-1,-0x1.decap-2,-0x1.68d53p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0fp-1 key=e79f8d3b0db0e818:4cc546a78eb92ad3:0:2 depth=1
+ray from=-0x1.17918p-7,-0x1.0a2256p-2,0x1.ff67a8p+1 dir=-0x1.e3894cp-2,-0x1.bf1a7ep-1,-0x1.ec8b9cp-4 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0f06p-1 key=3e61b5dedcc71b76:24f8bc3fc0dda48b:0:2 depth=1
+ray from=0x1.9d182p-3,-0x1.c1f756p-2,0x1.00c32ep+2 dir=-0x1.37cd8ap-3,-0x1.1db00cp-1,-0x1.a1ac22p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d130cp-1 key=6e7ed18bef1cf4dc:3194846e51cfcfc7:0:2 depth=1
+req kind=gather label=replay bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.793428p-3,0x1.9abccp-3,0x1.fc5d3ep+1 dir=-0x1.0568b6p-1,0x1.45f214p-3,-0x1.b0a174p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0b0cp-1 key=5cca34a10ead66e0:36e8fc4240ee36a1:0:2 depth=1
+ray from=-0x1.0e511p-5,0x1.150a8ep-3,0x1.f2bd64p+1 dir=0x1.2feb7p-6,0x1.db198cp-2,-0x1.c5752ap-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0fp-1 key=bf76957d09f7c4c2:c27a80d1f6153042:0:2 depth=1
+ray from=-0x1.f6bb74p-2,-0x1.83f468p-2,0x1.0b195p+2 dir=-0x1.7136b6p-2,-0x1.1ad28ap-3,-0x1.d84c2ep-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0f06p-1 key=bd972f0e16eb28bf:6bff554351b9558:0:2 depth=1
+ray from=0x1.6258bap-2,-0x1.4c7ccep-3,0x1.043fccp+2 dir=-0x1.34e314p-1,0x1.b7c406p-2,-0x1.5811fcp-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d130cp-1 key=a47b536d912fdb84:b9285e0e9da95bf2:0:2 depth=1
+req kind=gather label=replay bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.a50afp-3,0x1.524258p-4,0x1.fe20fap+1 dir=-0x1.077a16p-3,0x1.b26144p-1,-0x1.06e7dp-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0b0cp-1 key=13e4f732a4d7a6b5:5a6c4dcbacd4b977:0:2 depth=1
+ray from=0x1.23733p-2,0x1.a7b0ap-2,0x1.07d988p+2 dir=0x1.d2babcp-1,0x1.1ff906p-2,-0x1.331638p-2 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0fp-1 key=b9302142db9cb85e:1476367d1a7c5d4e:0:2 depth=1
+ray from=-0x1.286142p-2,-0x1.4b4226p-2,0x1.063b18p+2 dir=0x1.daa42cp-2,0x1.7b6508p-3,-0x1.bba6c8p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0f06p-1 key=9f9af1e584374112:2776f16784e45fc4:0:2 depth=1
+ray from=0x1.6096fap-3,-0x1.e2db88p-4,0x1.f9b42ep+1 dir=0x1.acdc8p-1,-0x1.7ed02p-2,-0x1.97d9c4p-2 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d130cp-1 key=e2e509f789ca232b:94bcd5cef9325d7a:0:2 depth=1
+req kind=gather label=replay bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.4dea94p-2,0x1.15900cp-1,0x1.0a42dcp+2 dir=0x1.d270f2p-2,-0x1.41b0dcp-4,-0x1.c60568p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0b0cp-1 key=1feca0fd9514d7a4:4711004962e22dbc:0:2 depth=1
+ray from=0x1.b419ep-2,0x1.c2af48p-3,0x1.0202f6p+2 dir=0x1.350652p-2,-0x1.4ffa24p-2,-0x1.ca4fd8p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0fp-1 key=bfe62eb6b5f810d8:63764876a7e2ad5:0:2 depth=1
+ray from=-0x1.511d1ap-2,-0x1.5e3cf8p-3,0x1.fbe314p+1 dir=0x1.16987cp-3,-0x1.72edf8p-1,-0x1.59fba8p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0f06p-1 key=8e4deb6118b01304:a41d7d4e12a1de69:0:2 depth=1
+ray from=0x1.b72b7cp-2,-0x1.ec0aa4p-2,0x1.0bd9e2p+2 dir=0x1.dfba66p-2,0x1.201ba4p-3,-0x1.be90f2p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d130cp-1 key=b660bfed3f1aeb00:c081ed9cef812f59:0:2 depth=1
+req kind=gather label=replay bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.f687cap-3,0x1.bd4c58p-2,0x1.03df94p+2 dir=0x1.b2dd4ep-6,-0x1.308cdp-2,-0x1.e8a486p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0b0cp-1 key=ba2324421e2c4452:eac53987677aacc4:0:2 depth=1
+ray from=0x1.8a0c18p-3,0x1.950aep-3,0x1.fe391cp+1 dir=0x1.e58e48p-2,0x1.8caafep-1,-0x1.ac498p-2 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0fp-1 key=4893ac90a5e4bd2b:d678587e0a987c7a:0:2 depth=1
+ray from=-0x1.0ac9ep-2,-0x1.c423p-3,0x1.01226ep+2 dir=0x1.c4fe5ep-4,0x1.773e68p-3,-0x1.f4231ep-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0f06p-1 key=5a1295bbfa5d8a6:e9f88de5de529400:0:2 depth=1
+ray from=0x1.15547cp-2,-0x1.dca8a8p-5,0x1.00d948p+2 dir=-0x1.e6b4e8p-2,-0x1.94fc36p-1,-0x1.8a8366p-2 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d130cp-1 key=4e1de32889a616bf:aa4c81c43124d9be:0:2 depth=1
+req kind=gather label=replay bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.29d16ep-2,0x1.1e912p-2,0x1.056e16p+2 dir=0x1.25946ap-1,0x1.010988p-1,-0x1.4b7de2p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0b0cp-1 key=fc64332dd43a5230:cc4baf944c74005:0:2 depth=1
+ray from=0x1.3f785p-1,0x1.b214ap-2,0x1.0e798cp+2 dir=0x1.bab0dep-1,-0x1.aa6e3p-6,-0x1.00e336p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0fp-1 key=4c0df14ff3ec1bd0:c8f6555a0e790d85:0:2 depth=1
+ray from=-0x1.f7e3ep-3,-0x1.c92c84p-2,0x1.07bd52p+2 dir=0x1.38ecd8p-1,-0x1.cf0716p-3,-0x1.845bbap-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0f06p-1 key=da04ef8ac5529a6f:2baebc1dbe2ade03:0:2 depth=1
+ray from=0x1.278d46p-2,-0x1.e7df28p-2,0x1.073542p+2 dir=-0x1.64c224p-4,0x1.3fea2cp-2,-0x1.e452bap-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d130cp-1 key=f55904f22bf68bfe:388f39663bdc5ed2:0:2 depth=1
+req kind=gather label=replay bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.3709fp-3,-0x1.e3718p-5,0x1.f4d92ep+1 dir=-0x1.f43674p-2,0x1.09a72cp-1,-0x1.67314ap-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0b0cp-1 key=9dff4aa16c44198c:d977d5d59ebcf953:0:2 depth=1
+ray from=0x1.14bfe6p-3,0x1.5f948cp-2,0x1.03ae7cp+2 dir=-0x1.6606b8p-2,0x1.d659dcp-1,-0x1.78af74p-3 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0fp-1 key=adbb22c6860a4dfa:9132982e658287e4:0:2 depth=1
+ray from=-0x1.28a8f8p-1,-0x1.435bdp-2,0x1.09b8ap+2 dir=-0x1.d80952p-1,0x1.888d4ap-2,-0x1.c4f184p-5 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0f06p-1 key=979d528a5765b10a:3cb6a699ef86149d:0:2 depth=1
+ray from=0x1.ce2abcp-4,-0x1.7682b4p-3,0x1.f1e8bep+1 dir=0x1.933ad2p-2,-0x1.c1851p-2,-0x1.9d7ed2p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d130cp-1 key=bd71e05ff5e0793b:2b17199aad5f3dd7:0:2 depth=1
+req kind=gather label=replay bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.7a58e2p-2,0x1.c393d8p-2,0x1.09f936p+2 dir=-0x1.3169eap-1,-0x1.8b0ccep-1,-0x1.c49544p-3 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0b0cp-1 key=7f7017f7f68b77cc:56a32b7856ca0172:0:2 depth=1
+ray from=0x1.0c4622p-2,0x1.705e82p-3,0x1.fc6d6ep+1 dir=-0x1.0fb858p-6,-0x1.72175p-4,-0x1.fdd5c6p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0fp-1 key=f2de381bcdb7042e:ab23dd11798260d8:0:2 depth=1
+ray from=-0x1.973dcp-5,-0x1.04058ap-3,0x1.f2773ep+1 dir=-0x1.3a85e8p-1,-0x1.91ef5p-2,-0x1.5e7914p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0f06p-1 key=c9866b7a4952ee16:248f31d4ac2220c7:0:2 depth=1
+ray from=0x1.ab92f8p-2,-0x1.51ac84p-2,0x1.08c752p+2 dir=0x1.a89522p-1,0x1.4f41ecp-2,-0x1.cfc91ep-2 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d130cp-1 key=24ce542ccddd5e42:e43a98cf1223c2b2:0:2 depth=1
+req kind=gather label=gather bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.fa6baep-3,0x1.a6acc8p-3,0x1.02be32p+2 dir=0x1.bd4fcep-2,0x1.c2c9c8p-2,-0x1.923386p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0b0cp-1 key=7a12d14dbe6b16b5:8689a6d087b4818f:0:2 depth=1
+ray from=0x1.63586cp-3,0x1.de5d0cp-3,0x1.01937ap+2 dir=-0x1.74e9eep-6,-0x1.06931p-2,-0x1.eebe88p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0fp-1 key=b205bb8029586a2:4c72f2c6c85dfa91:0:2 depth=1
+ray from=-0x1.af22bp-4,-0x1.ac826p-3,0x1.fee46p+1 dir=0x1.64b088p-5,-0x1.5a8492p-1,-0x1.7842d4p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0f06p-1 key=c425bc8c110e4e4e:425c3460e70e8a71:0:2 depth=1
+ray from=0x1.742978p-2,-0x1.8dffdp-2,0x1.08de9cp+2 dir=-0x1.715752p-2,-0x1.d8f27ep-3,-0x1.ceaac6p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d130cp-1 key=1c1d610bb773c739:8db261026da4eb66:0:2 depth=1
+req kind=gather label=gather bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.5698f2p-2,0x1.e02e5p-2,0x1.09d75cp+2 dir=-0x1.8292fcp-2,-0x1.dca28p-6,-0x1.d9e146p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0b0cp-1 key=da8fd7f4c1aac2da:aab82815f068be19:0:2 depth=1
+ray from=0x1.61fa54p-2,0x1.25c3c8p-2,0x1.065c7p+2 dir=-0x1.611e48p-5,0x1.20068ep-1,-0x1.a6ba22p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0fp-1 key=5f766fd0a884a2a2:a88f2bc0b4caf6f6:0:2 depth=1
+ray from=-0x1.973be4p-2,-0x1.314a86p-2,0x1.0772a6p+2 dir=0x1.671ec2p-3,0x1.4cf64p-6,-0x1.f7f5a8p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0f06p-1 key=60eda3f25e2f78f0:6117ea64342d7579:0:2 depth=1
+ray from=0x1.ef0e7cp-3,-0x1.28b4a4p-3,0x1.01f0c2p+2 dir=-0x1.bc5364p-4,-0x1.2b66f4p-2,-0x1.e67734p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d130cp-1 key=979f789c8fdc50f:8899be6788ee8c38:0:2 depth=1
+req kind=gather label=gather bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.4478fcp-2,0x1.a1c9d6p-3,0x1.047c6ap+2 dir=-0x1.de92d6p-3,0x1.6b9114p-1,-0x1.541256p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0b0cp-1 key=2ec530caa6f7e925:39620b13c1ee20aa:0:2 depth=1
+ray from=0x1.10bfa6p-2,0x1.61e4fcp-2,0x1.063644p+2 dir=0x1.234984p-1,0x1.8362bp-3,-0x1.99c6b8p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0fp-1 key=b45cd9db9ea3f02e:be42ee91d4e05da:0:2 depth=1
+ray from=-0x1.154394p-2,-0x1.d74f04p-3,0x1.01dcf6p+2 dir=-0x1.08ef28p-1,-0x1.440846p-2,-0x1.97117ep-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0f06p-1 key=57ac09598c05fa7d:3f0abc96c11b9608:0:2 depth=1
+ray from=0x1.8c2c56p-3,-0x1.4bbe64p-2,0x1.ff0daap+1 dir=0x1.57b814p-2,-0x1.507d58p-4,-0x1.e0750cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d130cp-1 key=144aea9dc0895a33:8095f58270a5c472:0:2 depth=1
+req kind=gather label=gather bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.804ca2p-3,0x1.dfd9ecp-3,0x1.fd3c5cp+1 dir=0x1.38bafep-3,-0x1.a2e54cp-4,-0x1.f7476ap-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0b0cp-1 key=15c4f8ef1f767b68:42f1f47d1ea0c7da:0:2 depth=1
+ray from=0x1.6a633p-2,0x1.f8ab92p-3,0x1.0380b4p+2 dir=0x1.1b482p-1,0x1.72625p-1,-0x1.a6e66ep-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0fp-1 key=75e6b32b34ce2742:f8091f5071f26c21:0:2 depth=1
+ray from=-0x1.492204p-2,-0x1.7cfbacp-2,0x1.07c1e6p+2 dir=-0x1.adc86ap-1,-0x1.7a294p-5,-0x1.154218p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0f06p-1 key=4b4661ec761bef6c:eb04e81c034bf2f8:0:2 depth=1
+ray from=0x1.442d58p-2,-0x1.1e8c66p-2,0x1.05eafcp+2 dir=0x1.505f8ap-1,-0x1.2bab1ep-1,-0x1.e69aaep-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d130cp-1 key=d939cf02781b7054:4b47c45d6d98d572:0:2 depth=1
+@@ end requests=12 rays=48
+@@ section scene=gather backend=slo
+req kind=gather label=replay bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.e3bc7cp-2,0x1.4720c2p-2,0x1.099eecp+2 dir=-0x1.d7c08ep-1,0x1.85dbfep-2,-0x1.3fa0cep-4 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0b0cp-1 key=4c0c2ea907562ec2:2b225d8d38b4a031:0:2 depth=1
+ray from=0x1.5c6f3cp-2,0x1.5c043p-2,0x1.07811ap+2 dir=-0x1.113134p-1,-0x1.decap-2,-0x1.68d53p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0fp-1 key=e79f8d3b0db0e818:4cc546a78eb92ad3:0:2 depth=1
+ray from=-0x1.17918p-7,-0x1.0a2256p-2,0x1.ff67a8p+1 dir=-0x1.e3894cp-2,-0x1.bf1a7ep-1,-0x1.ec8b9cp-4 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0f06p-1 key=3e61b5dedcc71b76:24f8bc3fc0dda48b:0:2 depth=1
+ray from=0x1.9d182p-3,-0x1.c1f756p-2,0x1.00c32ep+2 dir=-0x1.37cd8ap-3,-0x1.1db00cp-1,-0x1.a1ac22p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d130cp-1 key=6e7ed18bef1cf4dc:3194846e51cfcfc7:0:2 depth=1
+req kind=gather label=replay bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.793428p-3,0x1.9abccp-3,0x1.fc5d3ep+1 dir=-0x1.0568b6p-1,0x1.45f214p-3,-0x1.b0a174p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0b0cp-1 key=5cca34a10ead66e0:36e8fc4240ee36a1:0:2 depth=1
+ray from=-0x1.0e511p-5,0x1.150a8ep-3,0x1.f2bd64p+1 dir=0x1.2feb7p-6,0x1.db198cp-2,-0x1.c5752ap-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0fp-1 key=bf76957d09f7c4c2:c27a80d1f6153042:0:2 depth=1
+ray from=-0x1.f6bb74p-2,-0x1.83f468p-2,0x1.0b195p+2 dir=-0x1.7136b6p-2,-0x1.1ad28ap-3,-0x1.d84c2ep-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0f06p-1 key=bd972f0e16eb28bf:6bff554351b9558:0:2 depth=1
+ray from=0x1.6258bap-2,-0x1.4c7ccep-3,0x1.043fccp+2 dir=-0x1.34e314p-1,0x1.b7c406p-2,-0x1.5811fcp-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d130cp-1 key=a47b536d912fdb84:b9285e0e9da95bf2:0:2 depth=1
+req kind=gather label=replay bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.a50afp-3,0x1.524258p-4,0x1.fe20fap+1 dir=-0x1.077a16p-3,0x1.b26144p-1,-0x1.06e7dp-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0b0cp-1 key=13e4f732a4d7a6b5:5a6c4dcbacd4b977:0:2 depth=1
+ray from=0x1.23733p-2,0x1.a7b0ap-2,0x1.07d988p+2 dir=0x1.d2babcp-1,0x1.1ff906p-2,-0x1.331638p-2 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0fp-1 key=b9302142db9cb85e:1476367d1a7c5d4e:0:2 depth=1
+ray from=-0x1.286142p-2,-0x1.4b4226p-2,0x1.063b18p+2 dir=0x1.daa42cp-2,0x1.7b6508p-3,-0x1.bba6c8p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0f06p-1 key=9f9af1e584374112:2776f16784e45fc4:0:2 depth=1
+ray from=0x1.6096fap-3,-0x1.e2db88p-4,0x1.f9b42ep+1 dir=0x1.acdc8p-1,-0x1.7ed02p-2,-0x1.97d9c4p-2 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d130cp-1 key=e2e509f789ca232b:94bcd5cef9325d7a:0:2 depth=1
+req kind=gather label=replay bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.4dea94p-2,0x1.15900cp-1,0x1.0a42dcp+2 dir=0x1.d270f2p-2,-0x1.41b0dcp-4,-0x1.c60568p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0b0cp-1 key=1feca0fd9514d7a4:4711004962e22dbc:0:2 depth=1
+ray from=0x1.b419ep-2,0x1.c2af48p-3,0x1.0202f6p+2 dir=0x1.350652p-2,-0x1.4ffa24p-2,-0x1.ca4fd8p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0fp-1 key=bfe62eb6b5f810d8:63764876a7e2ad5:0:2 depth=1
+ray from=-0x1.511d1ap-2,-0x1.5e3cf8p-3,0x1.fbe314p+1 dir=0x1.16987cp-3,-0x1.72edf8p-1,-0x1.59fba8p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0f06p-1 key=8e4deb6118b01304:a41d7d4e12a1de69:0:2 depth=1
+ray from=0x1.b72b7cp-2,-0x1.ec0aa4p-2,0x1.0bd9e2p+2 dir=0x1.dfba66p-2,0x1.201ba4p-3,-0x1.be90f2p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d130cp-1 key=b660bfed3f1aeb00:c081ed9cef812f59:0:2 depth=1
+req kind=gather label=replay bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.f687cap-3,0x1.bd4c58p-2,0x1.03df94p+2 dir=0x1.b2dd4ep-6,-0x1.308cdp-2,-0x1.e8a486p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0b0cp-1 key=ba2324421e2c4452:eac53987677aacc4:0:2 depth=1
+ray from=0x1.8a0c18p-3,0x1.950aep-3,0x1.fe391cp+1 dir=0x1.e58e48p-2,0x1.8caafep-1,-0x1.ac498p-2 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0fp-1 key=4893ac90a5e4bd2b:d678587e0a987c7a:0:2 depth=1
+ray from=-0x1.0ac9ep-2,-0x1.c423p-3,0x1.01226ep+2 dir=0x1.c4fe5ep-4,0x1.773e68p-3,-0x1.f4231ep-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0f06p-1 key=5a1295bbfa5d8a6:e9f88de5de529400:0:2 depth=1
+ray from=0x1.15547cp-2,-0x1.dca8a8p-5,0x1.00d948p+2 dir=-0x1.e6b4e8p-2,-0x1.94fc36p-1,-0x1.8a8366p-2 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d130cp-1 key=4e1de32889a616bf:aa4c81c43124d9be:0:2 depth=1
+req kind=gather label=replay bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.29d16ep-2,0x1.1e912p-2,0x1.056e16p+2 dir=0x1.25946ap-1,0x1.010988p-1,-0x1.4b7de2p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0b0cp-1 key=fc64332dd43a5230:cc4baf944c74005:0:2 depth=1
+ray from=0x1.3f785p-1,0x1.b214ap-2,0x1.0e798cp+2 dir=0x1.bab0dep-1,-0x1.aa6e3p-6,-0x1.00e336p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0fp-1 key=4c0df14ff3ec1bd0:c8f6555a0e790d85:0:2 depth=1
+ray from=-0x1.f7e3ep-3,-0x1.c92c84p-2,0x1.07bd52p+2 dir=0x1.38ecd8p-1,-0x1.cf0716p-3,-0x1.845bbap-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0f06p-1 key=da04ef8ac5529a6f:2baebc1dbe2ade03:0:2 depth=1
+ray from=0x1.278d46p-2,-0x1.e7df28p-2,0x1.073542p+2 dir=-0x1.64c224p-4,0x1.3fea2cp-2,-0x1.e452bap-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d130cp-1 key=f55904f22bf68bfe:388f39663bdc5ed2:0:2 depth=1
+req kind=gather label=replay bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.3709fp-3,-0x1.e3718p-5,0x1.f4d92ep+1 dir=-0x1.f43674p-2,0x1.09a72cp-1,-0x1.67314ap-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0b0cp-1 key=9dff4aa16c44198c:d977d5d59ebcf953:0:2 depth=1
+ray from=0x1.14bfe6p-3,0x1.5f948cp-2,0x1.03ae7cp+2 dir=-0x1.6606b8p-2,0x1.d659dcp-1,-0x1.78af74p-3 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0fp-1 key=adbb22c6860a4dfa:9132982e658287e4:0:2 depth=1
+ray from=-0x1.28a8f8p-1,-0x1.435bdp-2,0x1.09b8ap+2 dir=-0x1.d80952p-1,0x1.888d4ap-2,-0x1.c4f184p-5 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0f06p-1 key=979d528a5765b10a:3cb6a699ef86149d:0:2 depth=1
+ray from=0x1.ce2abcp-4,-0x1.7682b4p-3,0x1.f1e8bep+1 dir=0x1.933ad2p-2,-0x1.c1851p-2,-0x1.9d7ed2p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d130cp-1 key=bd71e05ff5e0793b:2b17199aad5f3dd7:0:2 depth=1
+req kind=gather label=replay bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.7a58e2p-2,0x1.c393d8p-2,0x1.09f936p+2 dir=-0x1.3169eap-1,-0x1.8b0ccep-1,-0x1.c49544p-3 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0b0cp-1 key=7f7017f7f68b77cc:56a32b7856ca0172:0:2 depth=1
+ray from=0x1.0c4622p-2,0x1.705e82p-3,0x1.fc6d6ep+1 dir=-0x1.0fb858p-6,-0x1.72175p-4,-0x1.fdd5c6p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0fp-1 key=f2de381bcdb7042e:ab23dd11798260d8:0:2 depth=1
+ray from=-0x1.973dcp-5,-0x1.04058ap-3,0x1.f2773ep+1 dir=-0x1.3a85e8p-1,-0x1.91ef5p-2,-0x1.5e7914p-1 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d0f06p-1 key=c9866b7a4952ee16:248f31d4ac2220c7:0:2 depth=1
+ray from=0x1.ab92f8p-2,-0x1.51ac84p-2,0x1.08c752p+2 dir=0x1.a89522p-1,0x1.4f41ecp-2,-0x1.cfc91ep-2 t=0x1.9p+6 tmin=0x1.47ae14p-6 time=0x0p+0 flags=1536 da=0x0p+0 db=0x1.1d130cp-1 key=24ce542ccddd5e42:e43a98cf1223c2b2:0:2 depth=1
+req kind=gather label=gather bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.fa6baep-3,0x1.a6acc8p-3,0x1.02be32p+2 dir=0x1.bd4fcep-2,0x1.c2c9c8p-2,-0x1.923386p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0b0cp-1 key=7a12d14dbe6b16b5:8689a6d087b4818f:0:2 depth=1
+ray from=0x1.63586cp-3,0x1.de5d0cp-3,0x1.01937ap+2 dir=-0x1.74e9eep-6,-0x1.06931p-2,-0x1.eebe88p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0fp-1 key=b205bb8029586a2:4c72f2c6c85dfa91:0:2 depth=1
+ray from=-0x1.af22bp-4,-0x1.ac826p-3,0x1.fee46p+1 dir=0x1.64b088p-5,-0x1.5a8492p-1,-0x1.7842d4p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0f06p-1 key=c425bc8c110e4e4e:425c3460e70e8a71:0:2 depth=1
+ray from=0x1.742978p-2,-0x1.8dffdp-2,0x1.08de9cp+2 dir=-0x1.715752p-2,-0x1.d8f27ep-3,-0x1.ceaac6p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d130cp-1 key=1c1d610bb773c739:8db261026da4eb66:0:2 depth=1
+req kind=gather label=gather bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.5698f2p-2,0x1.e02e5p-2,0x1.09d75cp+2 dir=-0x1.8292fcp-2,-0x1.dca28p-6,-0x1.d9e146p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0b0cp-1 key=da8fd7f4c1aac2da:aab82815f068be19:0:2 depth=1
+ray from=0x1.61fa54p-2,0x1.25c3c8p-2,0x1.065c7p+2 dir=-0x1.611e48p-5,0x1.20068ep-1,-0x1.a6ba22p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0fp-1 key=5f766fd0a884a2a2:a88f2bc0b4caf6f6:0:2 depth=1
+ray from=-0x1.973be4p-2,-0x1.314a86p-2,0x1.0772a6p+2 dir=0x1.671ec2p-3,0x1.4cf64p-6,-0x1.f7f5a8p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0f06p-1 key=60eda3f25e2f78f0:6117ea64342d7579:0:2 depth=1
+ray from=0x1.ef0e7cp-3,-0x1.28b4a4p-3,0x1.01f0c2p+2 dir=-0x1.bc5364p-4,-0x1.2b66f4p-2,-0x1.e67734p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d130cp-1 key=979f789c8fdc50f:8899be6788ee8c38:0:2 depth=1
+req kind=gather label=gather bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.4478fcp-2,0x1.a1c9d6p-3,0x1.047c6ap+2 dir=-0x1.de92d6p-3,0x1.6b9114p-1,-0x1.541256p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0b0cp-1 key=2ec530caa6f7e925:39620b13c1ee20aa:0:2 depth=1
+ray from=0x1.10bfa6p-2,0x1.61e4fcp-2,0x1.063644p+2 dir=0x1.234984p-1,0x1.8362bp-3,-0x1.99c6b8p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0fp-1 key=b45cd9db9ea3f02e:be42ee91d4e05da:0:2 depth=1
+ray from=-0x1.154394p-2,-0x1.d74f04p-3,0x1.01dcf6p+2 dir=-0x1.08ef28p-1,-0x1.440846p-2,-0x1.97117ep-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0f06p-1 key=57ac09598c05fa7d:3f0abc96c11b9608:0:2 depth=1
+ray from=0x1.8c2c56p-3,-0x1.4bbe64p-2,0x1.ff0daap+1 dir=0x1.57b814p-2,-0x1.507d58p-4,-0x1.e0750cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d130cp-1 key=144aea9dc0895a33:8095f58270a5c472:0:2 depth=1
+req kind=gather label=gather bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.804ca2p-3,0x1.dfd9ecp-3,0x1.fd3c5cp+1 dir=0x1.38bafep-3,-0x1.a2e54cp-4,-0x1.f7476ap-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0b0cp-1 key=15c4f8ef1f767b68:42f1f47d1ea0c7da:0:2 depth=1
+ray from=0x1.6a633p-2,0x1.f8ab92p-3,0x1.0380b4p+2 dir=0x1.1b482p-1,0x1.72625p-1,-0x1.a6e66ep-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0fp-1 key=75e6b32b34ce2742:f8091f5071f26c21:0:2 depth=1
+ray from=-0x1.492204p-2,-0x1.7cfbacp-2,0x1.07c1e6p+2 dir=-0x1.adc86ap-1,-0x1.7a294p-5,-0x1.154218p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d0f06p-1 key=4b4661ec761bef6c:eb04e81c034bf2f8:0:2 depth=1
+ray from=0x1.442d58p-2,-0x1.1e8c66p-2,0x1.05eafcp+2 dir=0x1.505f8ap-1,-0x1.2bab1ep-1,-0x1.e69aaep-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1536 da=0x1p+0 db=0x1.1d130cp-1 key=d939cf02781b7054:4b47c45d6d98d572:0:2 depth=1
+@@ end requests=12 rays=48
+@@ section scene=environment backend=rslo
+req kind=trace label= bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.65ab8ep-3,0x1.1262a6p-1,0x1.081486p+2 dir=-0x1.5ed8c8p-2,0x1.ee9778p-2,-0x1.9c925cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089b9p+0 db=0x1.2b013cp-1 key=4c0c2ea907562ec2:2b225d8d38b4a031:0:2 depth=1
+ray from=0x1.315472p-2,0x1.00a5ep-1,0x1.09c3cap+2 dir=0x1.922dd8p-3,0x1.fea38ep-2,-0x1.b041f8p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089d66p+0 db=0x1.2b0432p-1 key=e79f8d3b0db0e818:4cc546a78eb92ad3:0:2 depth=1
+ray from=-0x1.57b698p-2,-0x1.218aa8p-4,0x1.02507cp+2 dir=-0x1.627df2p-1,-0x1.720d26p-2,-0x1.3fc1f8p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089d68p+0 db=0x1.2b0434p-1 key=3e61b5dedcc71b76:24f8bc3fc0dda48b:0:2 depth=1
+ray from=0x1.788d06p-3,-0x1.556f24p-3,0x1.0141eep+2 dir=0x1.93c8a4p-1,-0x1.2b993p-3,-0x1.31c40cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089f42p+0 db=0x1.2b0732p-1 key=6e7ed18bef1cf4dc:3194846e51cfcfc7:0:2 depth=1
+req kind=trace label= bundledepth=0 pathdepth=0 rays=16
+ray from=-0x1.58385ep-2,0x1.db9c5p-2,0x1.09c964p+2 dir=-0x1.8d6f0ap-2,0x1.371adep-1,-0x1.62c7d8p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224b18p+0 db=0x1.2b013cp-1 key=7a12d14dbe6b16b5:8689a6d087b4818f:0:2 depth=1
+ray from=-0x1.90c588p-2,0x1.e708ep-5,0x1.0328b2p+2 dir=-0x1.b2914ap-1,0x1.0611fcp-1,-0x1.0fb688p-3 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224b18p+0 db=0x1.2b013cp-1 key=da8fd7f4c1aac2da:aab82815f068be19:0:2 depth=1
+ray from=-0x1.5e19fp-2,0x1.36e528p-2,0x1.06d8fep+2 dir=-0x1.2ab858p-1,0x1.773cd2p-1,-0x1.665e72p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224b18p+0 db=0x1.2b013cp-1 key=2ec530caa6f7e925:39620b13c1ee20aa:0:2 depth=1
+ray from=-0x1.2dc34p-5,0x1.231d1cp-2,0x1.00b38ap+2 dir=-0x1.a9172p-2,0x1.70bf46p-3,-0x1.c895d8p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224b18p+0 db=0x1.2b013cp-1 key=15c4f8ef1f767b68:42f1f47d1ea0c7da:0:2 depth=1
+ray from=0x1.832a18p-2,0x1.04d42cp-1,0x1.0b6f3ap+2 dir=0x1.7b8082p-2,0x1.0e09a6p-1,-0x1.876e52p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224ceep+0 db=0x1.2b0432p-1 key=b205bb8029586a2:4c72f2c6c85dfa91:0:2 depth=1
+ray from=0x1.05d4c4p-2,0x1.3249dap-3,0x1.024b88p+2 dir=0x1.8e2fecp-1,0x1.23b5fp-1,-0x1.0fffa8p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224ceep+0 db=0x1.2b0432p-1 key=5f766fd0a884a2a2:a88f2bc0b4caf6f6:0:2 depth=1
+ray from=-0x1.da4dep-5,0x1.9a146ap-3,0x1.fa9f16p+1 dir=0x1.2a9354p-1,0x1.e5d7ep-2,-0x1.519e28p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224ceep+0 db=0x1.2b0432p-1 key=b45cd9db9ea3f02e:be42ee91d4e05da:0:2 depth=1
+ray from=0x1.03598ep-1,0x1.48512p-3,0x1.07410ap+2 dir=0x1.932ca8p-3,0x1.696e4p-1,-0x1.5c5b58p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224ceep+0 db=0x1.2b0432p-1 key=75e6b32b34ce2742:f8091f5071f26c21:0:2 depth=1
+ray from=-0x1.8c9d64p-2,-0x1.8163dp-3,0x1.058542p+2 dir=-0x1.66442cp-1,-0x1.48d03p-1,-0x1.4071bap-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224cfp+0 db=0x1.2b0434p-1 key=c425bc8c110e4e4e:425c3460e70e8a71:0:2 depth=1
+ray from=-0x1.a25d58p-4,-0x1.688cbcp-3,0x1.ffc608p+1 dir=-0x1.12af1cp-1,-0x1.250f84p-1,-0x1.3d80c6p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224cfp+0 db=0x1.2b0434p-1 key=60eda3f25e2f78f0:6117ea64342d7579:0:2 depth=1
+ray from=-0x1.00aaa8p-2,-0x1.42a714p-1,0x1.0b4f44p+2 dir=-0x1.8df53p-1,-0x1.90fa62p-2,-0x1.f84aeap-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224cfp+0 db=0x1.2b0434p-1 key=57ac09598c05fa7d:3f0abc96c11b9608:0:2 depth=1
+ray from=-0x1.2e765cp-2,-0x1.ac11b8p-4,0x1.023132p+2 dir=-0x1.3d7d86p-2,-0x1.d38286p-2,-0x1.aaf816p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224cfp+0 db=0x1.2b0434p-1 key=4b4661ec761bef6c:eb04e81c034bf2f8:0:2 depth=1
+ray from=0x1.9b9adcp-2,-0x1.4d83dp-5,0x1.0300dcp+2 dir=0x1.25e6f6p-1,-0x1.80a988p-3,-0x1.9810d8p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224ecap+0 db=0x1.2b0732p-1 key=1c1d610bb773c739:8db261026da4eb66:0:2 depth=1
+ray from=0x1.469edap-2,-0x1.185a04p-1,0x1.0b09e2p+2 dir=0x1.310828p-1,-0x1.94cadcp-1,-0x1.219fd4p-3 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224ecap+0 db=0x1.2b0732p-1 key=979f789c8fdc50f:8899be6788ee8c38:0:2 depth=1
+ray from=0x1.aeb48cp-4,-0x1.486dep-3,0x1.ff4a3ep+1 dir=0x1.1ba1b6p-2,-0x1.ce56d4p-2,-0x1.b245d8p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224ecap+0 db=0x1.2b0732p-1 key=144aea9dc0895a33:8095f58270a5c472:0:2 depth=1
+ray from=0x1.38a0a8p-2,-0x1.04eadep-2,0x1.053ac6p+2 dir=0x1.3ec9e4p-1,-0x1.2341c2p-1,-0x1.131cf6p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224ecap+0 db=0x1.2b0732p-1 key=d939cf02781b7054:4b47c45d6d98d572:0:2 depth=1
+req kind=trace label= bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.6960a8p-3,0x1.619456p-2,0x1.0480aep+2 dir=-0x1.01d6c4p-1,0x1.450e32p-2,-0x1.9b65bep-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089b9p+0 db=0x1.2b013cp-1 key=4cae611b91c9e533:200f0d2c1376bf8c:0:2 depth=1
+ray from=0x1.055b54p-3,0x1.a0e392p-3,0x1.00e3f2p+2 dir=0x1.12073ap-1,0x1.597e42p-2,-0x1.8c7fa6p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089d66p+0 db=0x1.2b0432p-1 key=f80a7d94db1823b3:3884ea37fa318cb6:0:2 depth=1
+ray from=-0x1.156a4ep-2,-0x1.929ba2p-3,0x1.037962p+2 dir=-0x1.6d6ccp-1,-0x1.b17412p-2,-0x1.1db95cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089d68p+0 db=0x1.2b0434p-1 key=c72df9aeb693122c:7f0224d1aaa462ee:0:2 depth=1
+ray from=0x1.f97af8p-5,-0x1.6d14dcp-2,0x1.028a3ep+2 dir=0x1.371efcp-1,-0x1.76f7e4p-3,-0x1.8bad44p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089f42p+0 db=0x1.2b0732p-1 key=ca6dd38fa4c279af:cba765dbe83b8d13:0:2 depth=1
+@@ end requests=3 rays=24
+@@ section scene=environment backend=slo
+req kind=trace label= bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.65ab8ep-3,0x1.1262a6p-1,0x1.081486p+2 dir=-0x1.5ed8c8p-2,0x1.ee9778p-2,-0x1.9c925cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089b9p+0 db=0x1.2b013cp-1 key=4c0c2ea907562ec2:2b225d8d38b4a031:0:2 depth=1
+ray from=0x1.315472p-2,0x1.00a5ep-1,0x1.09c3cap+2 dir=0x1.922dd8p-3,0x1.fea38ep-2,-0x1.b041f8p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089d66p+0 db=0x1.2b0432p-1 key=e79f8d3b0db0e818:4cc546a78eb92ad3:0:2 depth=1
+ray from=-0x1.57b698p-2,-0x1.218aa8p-4,0x1.02507cp+2 dir=-0x1.627df2p-1,-0x1.720d26p-2,-0x1.3fc1f8p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089d68p+0 db=0x1.2b0434p-1 key=3e61b5dedcc71b76:24f8bc3fc0dda48b:0:2 depth=1
+ray from=0x1.788d06p-3,-0x1.556f24p-3,0x1.0141eep+2 dir=0x1.93c8a4p-1,-0x1.2b993p-3,-0x1.31c40cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089f42p+0 db=0x1.2b0732p-1 key=6e7ed18bef1cf4dc:3194846e51cfcfc7:0:2 depth=1
+req kind=trace label= bundledepth=0 pathdepth=0 rays=16
+ray from=-0x1.58385ep-2,0x1.db9c5p-2,0x1.09c964p+2 dir=-0x1.8d6f0ap-2,0x1.371adep-1,-0x1.62c7d8p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224b18p+0 db=0x1.2b013cp-1 key=7a12d14dbe6b16b5:8689a6d087b4818f:0:2 depth=1
+ray from=-0x1.90c588p-2,0x1.e708ep-5,0x1.0328b2p+2 dir=-0x1.b2914ap-1,0x1.0611fcp-1,-0x1.0fb688p-3 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224b18p+0 db=0x1.2b013cp-1 key=da8fd7f4c1aac2da:aab82815f068be19:0:2 depth=1
+ray from=-0x1.5e19fp-2,0x1.36e528p-2,0x1.06d8fep+2 dir=-0x1.2ab858p-1,0x1.773cd2p-1,-0x1.665e72p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224b18p+0 db=0x1.2b013cp-1 key=2ec530caa6f7e925:39620b13c1ee20aa:0:2 depth=1
+ray from=-0x1.2dc34p-5,0x1.231d1cp-2,0x1.00b38ap+2 dir=-0x1.a9172p-2,0x1.70bf46p-3,-0x1.c895d8p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224b18p+0 db=0x1.2b013cp-1 key=15c4f8ef1f767b68:42f1f47d1ea0c7da:0:2 depth=1
+ray from=0x1.832a18p-2,0x1.04d42cp-1,0x1.0b6f3ap+2 dir=0x1.7b8082p-2,0x1.0e09a6p-1,-0x1.876e52p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224ceep+0 db=0x1.2b0432p-1 key=b205bb8029586a2:4c72f2c6c85dfa91:0:2 depth=1
+ray from=0x1.05d4c4p-2,0x1.3249dap-3,0x1.024b88p+2 dir=0x1.8e2fecp-1,0x1.23b5fp-1,-0x1.0fffa8p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224ceep+0 db=0x1.2b0432p-1 key=5f766fd0a884a2a2:a88f2bc0b4caf6f6:0:2 depth=1
+ray from=-0x1.da4dep-5,0x1.9a146ap-3,0x1.fa9f16p+1 dir=0x1.2a9354p-1,0x1.e5d7ep-2,-0x1.519e28p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224ceep+0 db=0x1.2b0432p-1 key=b45cd9db9ea3f02e:be42ee91d4e05da:0:2 depth=1
+ray from=0x1.03598ep-1,0x1.48512p-3,0x1.07410ap+2 dir=0x1.932ca8p-3,0x1.696e4p-1,-0x1.5c5b58p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224ceep+0 db=0x1.2b0432p-1 key=75e6b32b34ce2742:f8091f5071f26c21:0:2 depth=1
+ray from=-0x1.8c9d64p-2,-0x1.8163dp-3,0x1.058542p+2 dir=-0x1.66442cp-1,-0x1.48d03p-1,-0x1.4071bap-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224cfp+0 db=0x1.2b0434p-1 key=c425bc8c110e4e4e:425c3460e70e8a71:0:2 depth=1
+ray from=-0x1.a25d58p-4,-0x1.688cbcp-3,0x1.ffc608p+1 dir=-0x1.12af1cp-1,-0x1.250f84p-1,-0x1.3d80c6p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224cfp+0 db=0x1.2b0434p-1 key=60eda3f25e2f78f0:6117ea64342d7579:0:2 depth=1
+ray from=-0x1.00aaa8p-2,-0x1.42a714p-1,0x1.0b4f44p+2 dir=-0x1.8df53p-1,-0x1.90fa62p-2,-0x1.f84aeap-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224cfp+0 db=0x1.2b0434p-1 key=57ac09598c05fa7d:3f0abc96c11b9608:0:2 depth=1
+ray from=-0x1.2e765cp-2,-0x1.ac11b8p-4,0x1.023132p+2 dir=-0x1.3d7d86p-2,-0x1.d38286p-2,-0x1.aaf816p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224cfp+0 db=0x1.2b0434p-1 key=4b4661ec761bef6c:eb04e81c034bf2f8:0:2 depth=1
+ray from=0x1.9b9adcp-2,-0x1.4d83dp-5,0x1.0300dcp+2 dir=0x1.25e6f6p-1,-0x1.80a988p-3,-0x1.9810d8p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224ecap+0 db=0x1.2b0732p-1 key=1c1d610bb773c739:8db261026da4eb66:0:2 depth=1
+ray from=0x1.469edap-2,-0x1.185a04p-1,0x1.0b09e2p+2 dir=0x1.310828p-1,-0x1.94cadcp-1,-0x1.219fd4p-3 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224ecap+0 db=0x1.2b0732p-1 key=979f789c8fdc50f:8899be6788ee8c38:0:2 depth=1
+ray from=0x1.aeb48cp-4,-0x1.486dep-3,0x1.ff4a3ep+1 dir=0x1.1ba1b6p-2,-0x1.ce56d4p-2,-0x1.b245d8p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224ecap+0 db=0x1.2b0732p-1 key=144aea9dc0895a33:8095f58270a5c472:0:2 depth=1
+ray from=0x1.38a0a8p-2,-0x1.04eadep-2,0x1.053ac6p+2 dir=0x1.3ec9e4p-1,-0x1.2341c2p-1,-0x1.131cf6p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-5 time=0x0p+0 flags=512 da=0x1.224ecap+0 db=0x1.2b0732p-1 key=d939cf02781b7054:4b47c45d6d98d572:0:2 depth=1
+req kind=trace label= bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.6960a8p-3,0x1.619456p-2,0x1.0480aep+2 dir=-0x1.01d6c4p-1,0x1.450e32p-2,-0x1.9b65bep-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089b9p+0 db=0x1.2b013cp-1 key=4cae611b91c9e533:200f0d2c1376bf8c:0:2 depth=1
+ray from=0x1.055b54p-3,0x1.a0e392p-3,0x1.00e3f2p+2 dir=0x1.12073ap-1,0x1.597e42p-2,-0x1.8c7fa6p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089d66p+0 db=0x1.2b0432p-1 key=f80a7d94db1823b3:3884ea37fa318cb6:0:2 depth=1
+ray from=-0x1.156a4ep-2,-0x1.929ba2p-3,0x1.037962p+2 dir=-0x1.6d6ccp-1,-0x1.b17412p-2,-0x1.1db95cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089d68p+0 db=0x1.2b0434p-1 key=c72df9aeb693122c:7f0224d1aaa462ee:0:2 depth=1
+ray from=0x1.f97af8p-5,-0x1.6d14dcp-2,0x1.028a3ep+2 dir=0x1.371efcp-1,-0x1.76f7e4p-3,-0x1.8bad44p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=512 da=0x1.089f42p+0 db=0x1.2b0732p-1 key=ca6dd38fa4c279af:cba765dbe83b8d13:0:2 depth=1
+@@ end requests=3 rays=24
+@@ section scene=shadow backend=rslo
+req kind=transmission label= bundledepth=0 pathdepth=0 rays=4
+ray from=-0x1.8a3d0ep-2,0x1.14e3a6p-2,0x1.0cfb98p+2 dir=0x1.d9ad1ap-3,-0x1.d30388p-1,-0x1.5a8526p-2 t=0x1.6d530ep-3 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.165f9ap-3 db=0x1.1d0b0cp-1 key=4c0c2ea907562ec2:2b225d8d38b4a031:0:2 depth=1
+ray from=0x1.ff35bp-4,0x1.059f54p-3,0x1.f36ab4p+1 dir=-0x1.3456bep-3,0x1.542c52p-1,0x1.76cfeap-1 t=0x1.635a6ap-4 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.1662bep-3 db=0x1.1d0fp-1 key=e79f8d3b0db0e818:4cc546a78eb92ad3:0:2 depth=1
+ray from=-0x1.52f424p-4,-0x1.200b98p-2,0x1.047e76p+2 dir=-0x1.8550c6p-3,0x1.52af12p-1,-0x1.736f8p-1 t=0x1.271b68p-3 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.1662c4p-3 db=0x1.1d0f06p-1 key=3e61b5dedcc71b76:24f8bc3fc0dda48b:0:2 depth=1
+ray from=0x1.80964cp-2,-0x1.03810ep-1,0x1.0d9e78p+2 dir=-0x1.524064p-2,0x1.aab9eap-1,-0x1.c5a16ep-2 t=0x1.79fe76p-3 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.1665f6p-3 db=0x1.1d130cp-1 key=6e7ed18bef1cf4dc:3194846e51cfcfc7:0:2 depth=1
+req kind=transmission label= bundledepth=0 pathdepth=0 rays=16
+ray from=-0x1.0c321cp-4,0x1.b2b97ep-2,0x1.d38b94p+1 dir=0x1.bbe4f8p-2,0x1.a1ffbap-1,-0x1.86b18ap-2 t=0x1.6c92d8p-5 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.91a98cp-3 db=0x1.1d0b08p-1 key=7a12d14dbe6b16b5:8689a6d087b4818f:0:2 depth=1
+ray from=-0x1.44e052p-2,0x1.1c2aeep-1,0x1.f9229ap+1 dir=0x1.18cb9ap-1,-0x1.12b5cp-1,-0x1.4860e6p-1 t=0x1.4cde58p-4 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.91a98cp-3 db=0x1.1d0b08p-1 key=da8fd7f4c1aac2da:aab82815f068be19:0:2 depth=1
+ray from=-0x1.95819ap-3,0x1.7d569ep-1,0x1.ea1eb8p+1 dir=-0x1.543622p-1,-0x1.2f30ecp-2,0x1.5f4f72p-1 t=0x1.3f4c02p-3 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.91a98cp-3 db=0x1.1d0b08p-1 key=2ec530caa6f7e925:39620b13c1ee20aa:0:2 depth=1
+ray from=-0x1.0ab3ccp-3,0x1.05fb14p-2,0x1.daf818p+1 dir=0x1.374f3ap-1,-0x1.2d1f3p-2,-0x1.7992d6p-1 t=-0x1.23adb8p-6 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.91a98cp-3 db=0x1.1d0b08p-1 key=15c4f8ef1f767b68:42f1f47d1ea0c7da:0:2 depth=1
+ray from=0x1.158fe8p-3,0x1.707cd8p-2,0x1.d0a1a4p+1 dir=0x1.aec8b6p-2,0x1.1a606ep-1,0x1.70cce4p-1 t=0x1.5fc2ap-2 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.908e62p-3 db=0x1.1d0efcp-1 key=b205bb8029586a2:4c72f2c6c85dfa91:0:2 depth=1
+ray from=0x1.6767b4p-1,0x1.2b6704p-1,0x1.f73adcp+1 dir=-0x1.6c1eacp-1,-0x1.d7f622p-2,-0x1.0fcc2ep-1 t=0x1.190c72p-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.908e62p-3 db=0x1.1d0efcp-1 key=5f766fd0a884a2a2:a88f2bc0b4caf6f6:0:2 depth=1
+ray from=0x1.8a45b4p-2,0x1.e0b402p-2,0x1.e3247cp+1 dir=-0x1.fc196ep-1,-0x1.6608bap-6,-0x1.f0a37cp-4 t=0x1.601486p-4 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.908e62p-3 db=0x1.1d0efcp-1 key=b45cd9db9ea3f02e:be42ee91d4e05da:0:2 depth=1
+ray from=0x1.e3f816p-3,0x1.f3c45p-2,0x1.e42894p+1 dir=0x1.ff7b92p-1,-0x1.6c41dep-5,-0x1.ab462p-8 t=0x1.65b16cp-2 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.908e62p-3 db=0x1.1d0efcp-1 key=75e6b32b34ce2742:f8091f5071f26c21:0:2 depth=1
+ray from=-0x1.956262p-3,-0x1.a798cp-3,0x1.f6fedp+1 dir=-0x1.9ba26ap-1,0x1.cf8ce6p-2,-0x1.8adfbep-2 t=0x1.807454p-3 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.93f3a8p-3 db=0x1.1d0f04p-1 key=c425bc8c110e4e4e:425c3460e70e8a71:0:2 depth=1
+ray from=-0x1.5d6f64p-3,0x1.d08bap-5,0x1.d0dba4p+1 dir=0x1.52ec1ap-1,-0x1.0e51e8p-1,0x1.1066eap-1 t=0x1.b94acp-4 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.93f3a8p-3 db=0x1.1d0f04p-1 key=60eda3f25e2f78f0:6117ea64342d7579:0:2 depth=1
+ray from=-0x1.6a1258p-5,-0x1.4ffbfap-4,0x1.e35fc8p+1 dir=-0x1.cef91ap-4,-0x1.478162p-1,0x1.85466cp-1 t=0x1.50398cp-3 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.93f3a8p-3 db=0x1.1d0f04p-1 key=57ac09598c05fa7d:3f0abc96c11b9608:0:2 depth=1
+ray from=-0x1.9083acp-2,-0x1.e772bap-5,0x1.e3fc1ep+1 dir=0x1.7ba266p-1,0x1.bde45cp-2,-0x1.055ff8p-1 t=0x1.620288p-2 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.93f3a8p-3 db=0x1.1d0f04p-1 key=4b4661ec761bef6c:eb04e81c034bf2f8:0:2 depth=1
+ray from=0x1.272a5ep-2,-0x1.a3b416p-5,0x1.d718fep+1 dir=0x1.5fa3c6p-1,0x1.e0ecep-7,0x1.74124p-1 t=0x1.573a3ap-2 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.92d1fep-3 db=0x1.1d130ap-1 key=1c1d610bb773c739:8db261026da4eb66:0:2 depth=1
+ray from=0x1.cc7e96p-2,0x1.9ffdcp-6,0x1.ed6cdp+1 dir=-0x1.dbda16p-2,-0x1.7f1c52p-1,-0x1.e4d0ccp-2 t=0x1.407998p-2 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.92d1fep-3 db=0x1.1d130ap-1 key=979f789c8fdc50f:8899be6788ee8c38:0:2 depth=1
+ray from=0x1.2e68ecp-2,0x1.0816cp-4,0x1.d6d344p+1 dir=0x1.64f57ap-2,-0x1.a6fa98p-1,0x1.c55592p-2 t=0x1.ffe0ecp-3 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.92d1fep-3 db=0x1.1d130ap-1 key=144aea9dc0895a33:8095f58270a5c472:0:2 depth=1
+ray from=0x1.0b5752p-1,-0x1.76551cp-2,0x1.fc2dccp+1 dir=-0x1.ad0efcp-2,0x1.75464p-1,-0x1.151afcp-1 t=0x1.232686p-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.92d1fep-3 db=0x1.1d130ap-1 key=d939cf02781b7054:4b47c45d6d98d572:0:2 depth=1
+@@ end requests=2 rays=20
+@@ section scene=shadow backend=slo
+req kind=transmission label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.80964cp-2,-0x1.03810ep-1,0x1.0d9e78p+2 dir=-0x1.524064p-2,0x1.aab9eap-1,-0x1.c5a16ep-2 t=0x1.79fe76p-3 tmin=0x1.47ae14p-7 time=0x0p+0 flags=2048 da=0x1.1665f6p-3 db=0x1.1d130cp-1 key=6e7ed18bef1cf4dc:3194846e51cfcfc7:0:2 depth=1
+req kind=transmission label= bundledepth=0 pathdepth=0 rays=12
+ray from=-0x1.0c321cp-4,0x1.b2b97ep-2,0x1.d38b94p+1 dir=0x1.a02d08p-6,0x1.0fee1ap-8,0x0p+0 t=0x1.93e594p+99 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=-nan db=0x1.1d0b08p-1 key=7a12d14dbe6b16b5:8689a6d087b4818f:0:2 depth=1
+ray from=-0x1.44e052p-2,0x1.1c2aeep-1,0x1.f9229ap+1 dir=0x1.8ddf42p-6,-0x1.17a68cp-5,0x0p+0 t=0x1.93e594p+99 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=-nan db=0x1.1d0b08p-1 key=da8fd7f4c1aac2da:aab82815f068be19:0:2 depth=1
+ray from=-0x1.95819ap-3,0x1.7d569ep-1,0x1.ea1eb8p+1 dir=-0x1.a1f484p-6,0x1.5e768cp-5,0x0p+0 t=0x1.93e594p+99 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=-nan db=0x1.1d0b08p-1 key=2ec530caa6f7e925:39620b13c1ee20aa:0:2 depth=1
+ray from=-0x1.0ab3ccp-3,0x1.05fb14p-2,0x1.daf818p+1 dir=-0x1.199d6cp-6,-0x1.1ce178p-6,0x0p+0 t=0x1.93e594p+99 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=-nan db=0x1.1d0b08p-1 key=15c4f8ef1f767b68:42f1f47d1ea0c7da:0:2 depth=1
+ray from=0x1.158fe8p-3,0x1.707cd8p-2,0x1.d0a1a4p+1 dir=-0x1.a68b88p-6,-0x1.3a635ep-5,0x0p+0 t=0x1.93e594p+99 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=-nan db=0x1.1d0efcp-1 key=b205bb8029586a2:4c72f2c6c85dfa91:0:2 depth=1
+ray from=0x1.6767b4p-1,0x1.2b6704p-1,0x1.f73adcp+1 dir=-0x1.cc637ep-7,0x1.d6adccp-6,0x0p+0 t=0x1.93e594p+99 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=-nan db=0x1.1d0efcp-1 key=5f766fd0a884a2a2:a88f2bc0b4caf6f6:0:2 depth=1
+ray from=0x1.8a45b4p-2,0x1.e0b402p-2,0x1.e3247cp+1 dir=0x1.210704p-8,-0x1.5b7e1ep-8,0x0p+0 t=0x1.93e594p+99 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=-nan db=0x1.1d0efcp-1 key=b45cd9db9ea3f02e:be42ee91d4e05da:0:2 depth=1
+ray from=0x1.e3f816p-3,0x1.f3c45p-2,0x1.e42894p+1 dir=0x1.459698p-5,0x1.a40406p-10,0x0p+0 t=0x1.93e594p+99 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=-nan db=0x1.1d0efcp-1 key=75e6b32b34ce2742:f8091f5071f26c21:0:2 depth=1
+ray from=0x1.272a5ep-2,-0x1.a3b416p-5,0x1.d718fep+1 dir=0x1.5fa3c6p-1,0x1.e0ecep-7,0x1.74124p-1 t=0x1.573a3ap-2 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.92d1fep-3 db=0x1.1d130ap-1 key=1c1d610bb773c739:8db261026da4eb66:0:2 depth=1
+ray from=0x1.cc7e96p-2,0x1.9ffdcp-6,0x1.ed6cdp+1 dir=-0x1.dbda16p-2,-0x1.7f1c52p-1,-0x1.e4d0ccp-2 t=0x1.407998p-2 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.92d1fep-3 db=0x1.1d130ap-1 key=979f789c8fdc50f:8899be6788ee8c38:0:2 depth=1
+ray from=0x1.2e68ecp-2,0x1.0816cp-4,0x1.d6d344p+1 dir=0x1.64f57ap-2,-0x1.a6fa98p-1,0x1.c55592p-2 t=0x1.ffe0ecp-3 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.92d1fep-3 db=0x1.1d130ap-1 key=144aea9dc0895a33:8095f58270a5c472:0:2 depth=1
+ray from=0x1.0b5752p-1,-0x1.76551cp-2,0x1.fc2dccp+1 dir=-0x1.ad0efcp-2,0x1.75464p-1,-0x1.151afcp-1 t=0x1.232686p-1 tmin=0x1.eb851ep-6 time=0x0p+0 flags=2048 da=0x1.92d1fep-3 db=0x1.1d130ap-1 key=d939cf02781b7054:4b47c45d6d98d572:0:2 depth=1
+@@ end requests=2 rays=13
+@@ section scene=occlusion backend=rslo
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.11c4e4p-2,0x1.50768cp-2,0x1.04dc86p+2 dir=-0x1.1fe4fcp-1,0x1.c6b9p-7,-0x1.a72a72p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.c41ddep-2,0x1.efc0fp-2,0x1.0c27ecp+2 dir=-0x1.e5f46p-2,0x1.23c908p-2,-0x1.aa5a74p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.a31d5p-3,0x1.13bf0ep-2,0x1.00082ep+2 dir=-0x1.211fcap-3,0x1.ae32cp-1,-0x1.0b4c3cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.ab2d44p-3,0x1.909dacp-2,0x1.00fd98p+2 dir=0x1.fc8eep-3,0x1.3fb7bp-1,-0x1.7ab1a8p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.8e9e6ep-2,0x1.04827p-1,0x1.0ba22ep+2 dir=0x1.51c55p-2,0x1.bb29d4p-3,-0x1.d62686p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.ade984p-2,0x1.45a054p-2,0x1.0898d8p+2 dir=-0x1.88c20cp-4,-0x1.44068p-2,-0x1.e2e098p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.9a4fc8p-4,0x1.45b6fap-2,0x1.f19bb8p+1 dir=-0x1.ca71ap-2,-0x1.3cf22ap-1,-0x1.4966b4p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.1f2efp-2,0x1.12e81cp-3,0x1.02795cp+2 dir=-0x1.c960ap-1,0x1.93dfe8p-4,-0x1.bec574p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.e99c0ep-2,0x1.39afap-2,0x1.097b12p+2 dir=-0x1.839822p-1,0x1.3e9c34p-1,-0x1.8b5a2p-3 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.e23234p-3,0x1.8236p-10,0x1.fe362ap+1 dir=0x1.226754p-1,0x1.7de216p-1,-0x1.612d14p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.8dfa8ap-3,-0x1.60222p-5,0x1.faf7ecp+1 dir=0x1.0c1742p-1,0x1.a6416p-2,-0x1.7d04dp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.211a4p-3,-0x1.6cf68p-7,0x1.f3d778p+1 dir=0x1.21edd4p-3,-0x1.85a9fap-1,-0x1.42dcdp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.26d72cp-3,0x1.e1ef0ep-3,0x1.018962p+2 dir=-0x1.77227ep-2,0x1.0c70f6p-1,-0x1.8911aap-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.07ce5cp-2,0x1.1b8928p-3,0x1.f66eacp+1 dir=0x1.bd388cp-3,0x1.c42772p-2,-0x1.bda90ep-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.68ca48p-2,0x1.844d08p-3,0x1.fed4bcp+1 dir=0x1.6001ccp-1,0x1.f9a738p-2,-0x1.100912p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.0d1d8cp-1,0x1.37007ep-2,0x1.08924ep+2 dir=0x1.af5da4p-2,-0x1.d3924p-7,-0x1.d0322cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.2132acp-1,0x1.5c59d8p-2,0x1.0b6874p+2 dir=0x1.d4393cp-2,-0x1.6930f6p-2,-0x1.a191aap-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.f72a7ep-2,0x1.9df0cp-2,0x1.0b96bp+2 dir=-0x1.c35746p-2,0x1.bd324ap-4,-0x1.c7bbc8p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.22e8eep-2,0x1.3ea14cp-2,0x1.05e548p+2 dir=-0x1.68cd6ap-1,0x1.317748p-1,-0x1.850704p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.c6e12p-2,0x1.65ae52p-2,0x1.09a758p+2 dir=0x1.8fc008p-2,0x1.c8b3aep-1,-0x1.c7ce24p-3 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.39369p-4,0x1.38310cp-3,0x1.f4b832p+1 dir=0x1.88a43ap-1,0x1.2682cap-1,-0x1.1fa246p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.4e30e2p-2,0x1.bdb7c8p-3,0x1.01488p+2 dir=0x1.ea03p-2,-0x1.b28d2cp-1,-0x1.bcfad2p-3 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.b2be4ep-2,0x1.d4d756p-2,0x1.0b5682p+2 dir=0x1.bcea0ap-3,-0x1.1dc028p-1,-0x1.995ecp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.91dcd4p-2,0x1.18ad58p-2,0x1.05b442p+2 dir=-0x1.a746e4p-2,-0x1.cf0f54p-4,-0x1.ce158ep-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.9abafp-2,-0x1.461d76p-2,0x1.08406ap+2 dir=0x1.9f76e8p-2,-0x1.1db068p-1,-0x1.7205ecp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.31f0bap-3,-0x1.89cb86p-3,0x1.fcf298p+1 dir=-0x1.53e894p-2,-0x1.8775b4p-1,-0x1.1a507cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.3905cep-2,-0x1.e862bp-2,0x1.097294p+2 dir=-0x1.4dfc92p-1,-0x1.50bd4p-2,-0x1.5d62cep-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.6f1008p-2,-0x1.4ae098p-2,0x1.07882p+2 dir=-0x1.47b944p-1,-0x1.0bda88p-3,-0x1.836c86p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.409ee4p-2,-0x1.d34558p-2,0x1.093282p+2 dir=-0x1.07f7e8p-2,0x1.9b3b6p-3,-0x1.e3b19p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.021bcep-2,-0x1.cdc158p-2,0x1.07f03cp+2 dir=-0x1.04ed4p-6,-0x1.16f3f8p-4,-0x1.fea594p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.769bdep-2,-0x1.a9ee6ep-3,0x1.00cca6p+2 dir=0x1.17728p-1,-0x1.67db5p-1,-0x1.d00d44p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.ae86cap-2,-0x1.30947cp-2,0x1.078626p+2 dir=-0x1.2e9d8ep-2,-0x1.b9127ep-1,-0x1.a4a124p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.b93d06p-2,-0x1.c0384ep-2,0x1.0b139cp+2 dir=-0x1.531474p-1,-0x1.7af554p-1,-0x1.ab718p-4 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.16b2fp-1,-0x1.487826p-2,0x1.09e296p+2 dir=-0x1.f5a56cp-1,0x1.204b9cp-3,-0x1.0c42ap-3 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.91564cp-4,-0x1.5cf798p-2,0x1.02ee4ep+2 dir=-0x1.9d29acp-2,0x1.5c5a36p-1,-0x1.381f68p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.5a17p-4,-0x1.4cb0b6p-2,0x1.025fbcp+2 dir=0x1.1f3436p-1,0x1.1492dp-5,-0x1.a6d0cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.7b1ab6p-2,-0x1.706bd4p-2,0x1.087354p+2 dir=0x1.5728dcp-2,-0x1.b7e9b8p-5,-0x1.e18f9cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.32b01p-2,-0x1.538704p-2,0x1.06932ep+2 dir=0x1.d5bea4p-2,-0x1.dc24ccp-3,-0x1.b70f1ep-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.b4e324p-2,-0x1.5002cp-1,0x1.0f240ep+2 dir=0x1.e1975p-3,-0x1.ef3018p-2,-0x1.af9f84p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.47e9ccp-3,0x1.1531p-9,0x1.f6a358p+1 dir=-0x1.9e0918p-2,-0x1.0e6538p-1,-0x1.7dc0cep-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.863548p-2,-0x1.25c328p-2,0x1.07461ep+2 dir=-0x1.2a056p-2,-0x1.7c6978p-2,-0x1.c3178cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.a63cbep-2,-0x1.1cbe3cp-1,0x1.0cf8acp+2 dir=0x1.c0ac1cp-4,0x1.d9d90ep-3,-0x1.eeb218p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.a4ddbep-2,-0x1.c6253cp-2,0x1.0acf88p+2 dir=0x1.d02254p-2,0x1.187e32p-1,-0x1.673c96p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.a0819p-2,-0x1.aad762p-2,0x1.0a3978p+2 dir=0x1.fb07e2p-1,0x1.12c814p-4,-0x1.bc2e08p-4 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.5ba638p-3,-0x1.5a923ap-2,0x1.fbd018p+1 dir=0x1.25811p-1,-0x1.8b1126p-1,0x1.13d2bp-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.b12e36p-3,-0x1.974f14p-2,0x1.013c1p+2 dir=-0x1.6a499ap-2,-0x1.541a04p-1,-0x1.506d88p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.239194p-2,-0x1.16f106p-1,0x1.074f34p+2 dir=-0x1.2f5c92p-1,-0x1.aa6064p-2,-0x1.603bp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.cf24dp-2,-0x1.3533c2p-2,0x1.08e8f6p+2 dir=-0x1.039d04p-2,0x1.84a15cp-1,-0x1.31a354p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+@@ end requests=48 rays=48
+@@ section scene=occlusion backend=slo
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.11c4e4p-2,0x1.50768cp-2,0x1.04dc86p+2 dir=-0x1.1fe4fcp-1,0x1.c6b9p-7,-0x1.a72a72p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.c41ddep-2,0x1.efc0fp-2,0x1.0c27ecp+2 dir=-0x1.e5f46p-2,0x1.23c908p-2,-0x1.aa5a74p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.a31d5p-3,0x1.13bf0ep-2,0x1.00082ep+2 dir=-0x1.211fcap-3,0x1.ae32cp-1,-0x1.0b4c3cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.ab2d44p-3,0x1.909dacp-2,0x1.00fd98p+2 dir=0x1.fc8eep-3,0x1.3fb7bp-1,-0x1.7ab1a8p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.8e9e6ep-2,0x1.04827p-1,0x1.0ba22ep+2 dir=0x1.51c55p-2,0x1.bb29d4p-3,-0x1.d62686p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.ade984p-2,0x1.45a054p-2,0x1.0898d8p+2 dir=-0x1.88c20cp-4,-0x1.44068p-2,-0x1.e2e098p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.9a4fc8p-4,0x1.45b6fap-2,0x1.f19bb8p+1 dir=-0x1.ca71ap-2,-0x1.3cf22ap-1,-0x1.4966b4p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.1f2efp-2,0x1.12e81cp-3,0x1.02795cp+2 dir=-0x1.c960ap-1,0x1.93dfe8p-4,-0x1.bec574p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.e99c0ep-2,0x1.39afap-2,0x1.097b12p+2 dir=-0x1.839822p-1,0x1.3e9c34p-1,-0x1.8b5a2p-3 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.e23234p-3,0x1.8236p-10,0x1.fe362ap+1 dir=0x1.226754p-1,0x1.7de216p-1,-0x1.612d14p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.8dfa8ap-3,-0x1.60222p-5,0x1.faf7ecp+1 dir=0x1.0c1742p-1,0x1.a6416p-2,-0x1.7d04dp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.211a4p-3,-0x1.6cf68p-7,0x1.f3d778p+1 dir=0x1.21edd4p-3,-0x1.85a9fap-1,-0x1.42dcdp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.26d72cp-3,0x1.e1ef0ep-3,0x1.018962p+2 dir=-0x1.77227ep-2,0x1.0c70f6p-1,-0x1.8911aap-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.07ce5cp-2,0x1.1b8928p-3,0x1.f66eacp+1 dir=0x1.bd388cp-3,0x1.c42772p-2,-0x1.bda90ep-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.68ca48p-2,0x1.844d08p-3,0x1.fed4bcp+1 dir=0x1.6001ccp-1,0x1.f9a738p-2,-0x1.100912p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.0d1d8cp-1,0x1.37007ep-2,0x1.08924ep+2 dir=0x1.af5da4p-2,-0x1.d3924p-7,-0x1.d0322cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.2132acp-1,0x1.5c59d8p-2,0x1.0b6874p+2 dir=0x1.d4393cp-2,-0x1.6930f6p-2,-0x1.a191aap-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.f72a7ep-2,0x1.9df0cp-2,0x1.0b96bp+2 dir=-0x1.c35746p-2,0x1.bd324ap-4,-0x1.c7bbc8p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.22e8eep-2,0x1.3ea14cp-2,0x1.05e548p+2 dir=-0x1.68cd6ap-1,0x1.317748p-1,-0x1.850704p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.c6e12p-2,0x1.65ae52p-2,0x1.09a758p+2 dir=0x1.8fc008p-2,0x1.c8b3aep-1,-0x1.c7ce24p-3 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.39369p-4,0x1.38310cp-3,0x1.f4b832p+1 dir=0x1.88a43ap-1,0x1.2682cap-1,-0x1.1fa246p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.4e30e2p-2,0x1.bdb7c8p-3,0x1.01488p+2 dir=0x1.ea03p-2,-0x1.b28d2cp-1,-0x1.bcfad2p-3 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.b2be4ep-2,0x1.d4d756p-2,0x1.0b5682p+2 dir=0x1.bcea0ap-3,-0x1.1dc028p-1,-0x1.995ecp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.91dcd4p-2,0x1.18ad58p-2,0x1.05b442p+2 dir=-0x1.a746e4p-2,-0x1.cf0f54p-4,-0x1.ce158ep-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.9abafp-2,-0x1.461d76p-2,0x1.08406ap+2 dir=0x1.9f76e8p-2,-0x1.1db068p-1,-0x1.7205ecp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.31f0bap-3,-0x1.89cb86p-3,0x1.fcf298p+1 dir=-0x1.53e894p-2,-0x1.8775b4p-1,-0x1.1a507cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.3905cep-2,-0x1.e862bp-2,0x1.097294p+2 dir=-0x1.4dfc92p-1,-0x1.50bd4p-2,-0x1.5d62cep-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.6f1008p-2,-0x1.4ae098p-2,0x1.07882p+2 dir=-0x1.47b944p-1,-0x1.0bda88p-3,-0x1.836c86p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.409ee4p-2,-0x1.d34558p-2,0x1.093282p+2 dir=-0x1.07f7e8p-2,0x1.9b3b6p-3,-0x1.e3b19p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.021bcep-2,-0x1.cdc158p-2,0x1.07f03cp+2 dir=-0x1.04ed4p-6,-0x1.16f3f8p-4,-0x1.fea594p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.769bdep-2,-0x1.a9ee6ep-3,0x1.00cca6p+2 dir=0x1.17728p-1,-0x1.67db5p-1,-0x1.d00d44p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.ae86cap-2,-0x1.30947cp-2,0x1.078626p+2 dir=-0x1.2e9d8ep-2,-0x1.b9127ep-1,-0x1.a4a124p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.b93d06p-2,-0x1.c0384ep-2,0x1.0b139cp+2 dir=-0x1.531474p-1,-0x1.7af554p-1,-0x1.ab718p-4 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.16b2fp-1,-0x1.487826p-2,0x1.09e296p+2 dir=-0x1.f5a56cp-1,0x1.204b9cp-3,-0x1.0c42ap-3 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.91564cp-4,-0x1.5cf798p-2,0x1.02ee4ep+2 dir=-0x1.9d29acp-2,0x1.5c5a36p-1,-0x1.381f68p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.5a17p-4,-0x1.4cb0b6p-2,0x1.025fbcp+2 dir=0x1.1f3436p-1,0x1.1492dp-5,-0x1.a6d0cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.7b1ab6p-2,-0x1.706bd4p-2,0x1.087354p+2 dir=0x1.5728dcp-2,-0x1.b7e9b8p-5,-0x1.e18f9cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.32b01p-2,-0x1.538704p-2,0x1.06932ep+2 dir=0x1.d5bea4p-2,-0x1.dc24ccp-3,-0x1.b70f1ep-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.b4e324p-2,-0x1.5002cp-1,0x1.0f240ep+2 dir=0x1.e1975p-3,-0x1.ef3018p-2,-0x1.af9f84p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.47e9ccp-3,0x1.1531p-9,0x1.f6a358p+1 dir=-0x1.9e0918p-2,-0x1.0e6538p-1,-0x1.7dc0cep-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.863548p-2,-0x1.25c328p-2,0x1.07461ep+2 dir=-0x1.2a056p-2,-0x1.7c6978p-2,-0x1.c3178cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.a63cbep-2,-0x1.1cbe3cp-1,0x1.0cf8acp+2 dir=0x1.c0ac1cp-4,0x1.d9d90ep-3,-0x1.eeb218p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.a4ddbep-2,-0x1.c6253cp-2,0x1.0acf88p+2 dir=0x1.d02254p-2,0x1.187e32p-1,-0x1.673c96p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.a0819p-2,-0x1.aad762p-2,0x1.0a3978p+2 dir=0x1.fb07e2p-1,0x1.12c814p-4,-0x1.bc2e08p-4 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.5ba638p-3,-0x1.5a923ap-2,0x1.fbd018p+1 dir=0x1.25811p-1,-0x1.8b1126p-1,0x1.13d2bp-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.b12e36p-3,-0x1.974f14p-2,0x1.013c1p+2 dir=-0x1.6a499ap-2,-0x1.541a04p-1,-0x1.506d88p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.239194p-2,-0x1.16f106p-1,0x1.074f34p+2 dir=-0x1.2f5c92p-1,-0x1.aa6064p-2,-0x1.603bp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=occlusion label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.cf24dp-2,-0x1.3533c2p-2,0x1.08e8f6p+2 dir=-0x1.039d04p-2,0x1.84a15cp-1,-0x1.31a354p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+@@ end requests=48 rays=48
+@@ section scene=indirectdiffuse backend=rslo
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.9ca97p-2,0x1.3ef74p-1,0x1.0e0e84p+2 dir=-0x1.0eef76p-1,-0x1.6c7fcp-7,-0x1.b23f88p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.99dcc8p-2,0x1.10494cp-1,0x1.0c4704p+2 dir=-0x1.6e84dp-1,0x1.24af0cp-1,-0x1.986d16p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.a298a6p-2,0x1.43ab9p-1,0x1.0e5734p+2 dir=-0x1.9b101ep-2,0x1.4add9ap-1,-0x1.4c0204p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.33ccb8p-2,0x1.5cae2cp-2,0x1.06c39ap+2 dir=-0x1.4ae4ep-6,0x1.2e8214p-1,-0x1.9cc224p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.b68f8cp-2,0x1.2fb26ap-2,0x1.0859eep+2 dir=0x1.f0ee48p-3,0x1.1b6766p-3,-0x1.eb5f66p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.0e61cp-2,0x1.02ff32p-2,0x1.04346p+2 dir=-0x1.1dcd0ap-3,-0x1.77148p-5,-0x1.fa56cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.8cb088p-2,0x1.3a4cap-2,0x1.07c5dp+2 dir=-0x1.8a2b02p-1,-0x1.a900ccp-2,-0x1.edda08p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.3f16eap-2,0x1.a2bc24p-2,0x1.0844eep+2 dir=-0x1.b7ad6ap-1,0x1.1b0c28p-2,-0x1.b7ba54p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.ce1868p-4,0x1.fc6ebp-4,0x1.f145bcp+1 dir=-0x1.18206cp-1,0x1.aa620ep-1,-0x1.0d0468p-4 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.e0bc5cp-2,0x1.e6afe8p-3,0x1.0803d2p+2 dir=0x1.1ff1e4p-1,0x1.37ff3p-1,-0x1.1d017cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.79c8bp-2,0x1.f4b29p-2,0x1.0adf38p+2 dir=0x1.2d425ap-1,0x1.008d2p-2,-0x1.88e456p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.bb2214p-3,0x1.1dda12p-2,0x1.00edaep+2 dir=0x1.1dfb2p-2,-0x1.0726d8p-1,-0x1.9e7a18p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.969b5ap-2,0x1.757c8cp-3,0x1.fe4a7cp+1 dir=-0x1.a18182p-3,0x1.f62154p-2,-0x1.b19008p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.c48348p-2,0x1.2f553ep-2,0x1.079156p+2 dir=0x1.030a08p-2,0x1.54166p-2,-0x1.d13dfp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.8813e8p-5,0x1.22b248p-3,0x1.f49904p+1 dir=0x1.7365acp-1,0x1.e5d7p-2,-0x1.fd4f62p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.145a38p-2,0x1.0383a2p-2,0x1.0389bcp+2 dir=0x1.3c74a6p-1,0x1.0dcf7ep-3,-0x1.8c9f06p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.d6567p-4,0x1.7aba06p-2,0x1.03cc8ep+2 dir=-0x1.be1decp-4,-0x1.64e4a4p-2,-0x1.dc339p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.df3d18p-2,0x1.b056ecp-2,0x1.0b7c74p+2 dir=-0x1.af34acp-2,0x1.577874p-3,-0x1.c7f2c8p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.b13ef4p-2,0x1.3507dcp-2,0x1.07dccp+2 dir=-0x1.2fcab4p-1,0x1.09a814p-1,-0x1.3a115p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.bbecb8p-4,0x1.516f94p-2,0x1.02e9a8p+2 dir=0x1.1ff664p-2,0x1.e8953ap-1,-0x1.60c23p-4 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.04658ap-1,0x1.c37dbp-2,0x1.0c9c1ep+2 dir=0x1.ca9306p-1,0x1.257178p-2,-0x1.5921ecp-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.823144p-2,0x1.145e52p-2,0x1.05511ep+2 dir=0x1.20d70cp-1,-0x1.13be6ep-1,-0x1.3f7e7cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.088d38p-2,0x1.d3d87p-3,0x1.01ae12p+2 dir=-0x1.b0db18p-5,-0x1.addf4ep-2,-0x1.cf6accp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.3dd042p-2,0x1.dcb768p-3,0x1.0247d4p+2 dir=-0x1.35e8f2p-1,-0x1.7a7584p-3,-0x1.8b8c7cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.0d2e16p-1,-0x1.cf4064p-2,0x1.0d26fp+2 dir=0x1.432964p-2,-0x1.3cb07p-1,-0x1.6fe1d4p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.8870bep-3,-0x1.8d128ep-2,0x1.059884p+2 dir=-0x1.3f697cp-2,-0x1.5a4e14p-2,-0x1.c6966ap-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.1af89cp-3,-0x1.e63e4cp-3,0x1.01a6e6p+2 dir=-0x1.326192p-1,-0x1.d1738cp-2,-0x1.5189fp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.cf6b8p-8,-0x1.0bd0eep-3,0x1.f28a28p+1 dir=-0x1.b78b3p-1,-0x1.97d2p-6,-0x1.056772p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.0e5cep-2,-0x1.524efap-2,0x1.05e14p+2 dir=-0x1.9b20acp-3,-0x1.68f56p-4,-0x1.f38162p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.2d60fap-3,-0x1.3041ecp-2,0x1.0308f6p+2 dir=0x1.a5a9acp-3,-0x1.42a6p-7,-0x1.f4bfdcp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.23d334p-2,-0x1.970e4ap-2,0x1.078cbap+2 dir=0x1.39445p-1,-0x1.2e7814p-1,-0x1.0bfb1ep-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.65a784p-4,-0x1.64c398p-2,0x1.02df86p+2 dir=0x1.684fap-3,-0x1.cb36eep-1,-0x1.9c7852p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.ca9bdcp-3,-0x1.6a0e86p-2,0x1.058f4cp+2 dir=-0x1.fe8b3ep-1,-0x1.25d8p-8,-0x1.9bd308p-5 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.122adep-3,-0x1.85e186p-2,0x1.045e4ap+2 dir=-0x1.5ccbecp-1,0x1.2d9ed2p-1,-0x1.b9a0e4p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.9cbe7p-2,-0x1.6d31a4p-3,0x1.fdc0fcp+1 dir=-0x1.44c7b4p-2,0x1.29dffcp-1,-0x1.7eb958p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.3237c8p-3,-0x1.791b2ap-2,0x1.046daap+2 dir=0x1.6f5d6cp-1,0x1.ed37d2p-2,-0x1.ffc08ap-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.03344ep-2,-0x1.0233ap-2,0x1.03695ap+2 dir=0x1.931adcp-1,0x1.73839ap-3,-0x1.2cf1bp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.f8b76cp-3,-0x1.53035cp-2,0x1.035efp+2 dir=0x1.b417d2p-1,-0x1.b2aba4p-3,-0x1.e8cdb2p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.9d0b32p-2,-0x1.eca8ap-2,0x1.0b60fcp+2 dir=0x1.cc9388p-2,-0x1.bf7084p-2,-0x1.8ebc52p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.10b8d6p-2,-0x1.d22524p-2,0x1.057d5p+2 dir=0x1.6d5f8p-8,-0x1.98dc0cp-1,-0x1.339352p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.0746d2p-3,-0x1.74d1ep-4,0x1.f324cp+1 dir=-0x1.ac4f98p-4,-0x1.c98966p-3,-0x1.f00c48p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.a0c252p-2,-0x1.4cccc8p-2,0x1.087cf8p+2 dir=-0x1.b75f9p-4,0x1.5b05d8p-2,-0x1.de20ep-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.8614f4p-3,-0x1.c7aac4p-3,0x1.fd7f28p+1 dir=0x1.b4ecaep-1,0x1.1bcdf8p-2,-0x1.c159dp-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.173386p-3,-0x1.09384p-4,0x1.f3f7bp+1 dir=0x1.e4d784p-1,-0x1.8e2254p-4,-0x1.35a88cp-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.c296cp-3,-0x1.545776p-3,0x1.008e4ap+2 dir=0x1.47a8b4p-1,-0x1.7fe43cp-1,-0x1.48a7ap-3 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.de61aap-3,-0x1.1cfb2p-2,0x1.02277p+2 dir=-0x1.68208p-1,-0x1.4c70d2p-1,-0x1.225b44p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.f4e9fp-4,-0x1.768534p-4,0x1.f23fdep+1 dir=-0x1.f80ba8p-2,-0x1.2daf6ap-2,-0x1.a2d198p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.d1c53p-2,-0x1.d925eep-3,0x1.079d34p+2 dir=0x1.979e3p-7,0x1.a448ccp-1,-0x1.22eb42p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+@@ end requests=48 rays=48
+@@ section scene=indirectdiffuse backend=slo
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.9ca97p-2,0x1.3ef74p-1,0x1.0e0e84p+2 dir=-0x1.0eef76p-1,-0x1.6c7fcp-7,-0x1.b23f88p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.99dcc8p-2,0x1.10494cp-1,0x1.0c4704p+2 dir=-0x1.6e84dp-1,0x1.24af0cp-1,-0x1.986d16p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.a298a6p-2,0x1.43ab9p-1,0x1.0e5734p+2 dir=-0x1.9b101ep-2,0x1.4add9ap-1,-0x1.4c0204p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.33ccb8p-2,0x1.5cae2cp-2,0x1.06c39ap+2 dir=-0x1.4ae4ep-6,0x1.2e8214p-1,-0x1.9cc224p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.b68f8cp-2,0x1.2fb26ap-2,0x1.0859eep+2 dir=0x1.f0ee48p-3,0x1.1b6766p-3,-0x1.eb5f66p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.0e61cp-2,0x1.02ff32p-2,0x1.04346p+2 dir=-0x1.1dcd0ap-3,-0x1.77148p-5,-0x1.fa56cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.8cb088p-2,0x1.3a4cap-2,0x1.07c5dp+2 dir=-0x1.8a2b02p-1,-0x1.a900ccp-2,-0x1.edda08p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.3f16eap-2,0x1.a2bc24p-2,0x1.0844eep+2 dir=-0x1.b7ad6ap-1,0x1.1b0c28p-2,-0x1.b7ba54p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.ce1868p-4,0x1.fc6ebp-4,0x1.f145bcp+1 dir=-0x1.18206cp-1,0x1.aa620ep-1,-0x1.0d0468p-4 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.e0bc5cp-2,0x1.e6afe8p-3,0x1.0803d2p+2 dir=0x1.1ff1e4p-1,0x1.37ff3p-1,-0x1.1d017cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.79c8bp-2,0x1.f4b29p-2,0x1.0adf38p+2 dir=0x1.2d425ap-1,0x1.008d2p-2,-0x1.88e456p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.bb2214p-3,0x1.1dda12p-2,0x1.00edaep+2 dir=0x1.1dfb2p-2,-0x1.0726d8p-1,-0x1.9e7a18p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0b0cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.969b5ap-2,0x1.757c8cp-3,0x1.fe4a7cp+1 dir=-0x1.a18182p-3,0x1.f62154p-2,-0x1.b19008p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.c48348p-2,0x1.2f553ep-2,0x1.079156p+2 dir=0x1.030a08p-2,0x1.54166p-2,-0x1.d13dfp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.8813e8p-5,0x1.22b248p-3,0x1.f49904p+1 dir=0x1.7365acp-1,0x1.e5d7p-2,-0x1.fd4f62p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.145a38p-2,0x1.0383a2p-2,0x1.0389bcp+2 dir=0x1.3c74a6p-1,0x1.0dcf7ep-3,-0x1.8c9f06p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.d6567p-4,0x1.7aba06p-2,0x1.03cc8ep+2 dir=-0x1.be1decp-4,-0x1.64e4a4p-2,-0x1.dc339p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.df3d18p-2,0x1.b056ecp-2,0x1.0b7c74p+2 dir=-0x1.af34acp-2,0x1.577874p-3,-0x1.c7f2c8p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.b13ef4p-2,0x1.3507dcp-2,0x1.07dccp+2 dir=-0x1.2fcab4p-1,0x1.09a814p-1,-0x1.3a115p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.bbecb8p-4,0x1.516f94p-2,0x1.02e9a8p+2 dir=0x1.1ff664p-2,0x1.e8953ap-1,-0x1.60c23p-4 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.04658ap-1,0x1.c37dbp-2,0x1.0c9c1ep+2 dir=0x1.ca9306p-1,0x1.257178p-2,-0x1.5921ecp-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.823144p-2,0x1.145e52p-2,0x1.05511ep+2 dir=0x1.20d70cp-1,-0x1.13be6ep-1,-0x1.3f7e7cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.088d38p-2,0x1.d3d87p-3,0x1.01ae12p+2 dir=-0x1.b0db18p-5,-0x1.addf4ep-2,-0x1.cf6accp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.3dd042p-2,0x1.dcb768p-3,0x1.0247d4p+2 dir=-0x1.35e8f2p-1,-0x1.7a7584p-3,-0x1.8b8c7cp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0fp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.0d2e16p-1,-0x1.cf4064p-2,0x1.0d26fp+2 dir=0x1.432964p-2,-0x1.3cb07p-1,-0x1.6fe1d4p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.8870bep-3,-0x1.8d128ep-2,0x1.059884p+2 dir=-0x1.3f697cp-2,-0x1.5a4e14p-2,-0x1.c6966ap-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.1af89cp-3,-0x1.e63e4cp-3,0x1.01a6e6p+2 dir=-0x1.326192p-1,-0x1.d1738cp-2,-0x1.5189fp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.cf6b8p-8,-0x1.0bd0eep-3,0x1.f28a28p+1 dir=-0x1.b78b3p-1,-0x1.97d2p-6,-0x1.056772p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.0e5cep-2,-0x1.524efap-2,0x1.05e14p+2 dir=-0x1.9b20acp-3,-0x1.68f56p-4,-0x1.f38162p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.2d60fap-3,-0x1.3041ecp-2,0x1.0308f6p+2 dir=0x1.a5a9acp-3,-0x1.42a6p-7,-0x1.f4bfdcp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.23d334p-2,-0x1.970e4ap-2,0x1.078cbap+2 dir=0x1.39445p-1,-0x1.2e7814p-1,-0x1.0bfb1ep-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.65a784p-4,-0x1.64c398p-2,0x1.02df86p+2 dir=0x1.684fap-3,-0x1.cb36eep-1,-0x1.9c7852p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.ca9bdcp-3,-0x1.6a0e86p-2,0x1.058f4cp+2 dir=-0x1.fe8b3ep-1,-0x1.25d8p-8,-0x1.9bd308p-5 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.122adep-3,-0x1.85e186p-2,0x1.045e4ap+2 dir=-0x1.5ccbecp-1,0x1.2d9ed2p-1,-0x1.b9a0e4p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.9cbe7p-2,-0x1.6d31a4p-3,0x1.fdc0fcp+1 dir=-0x1.44c7b4p-2,0x1.29dffcp-1,-0x1.7eb958p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=-0x1.3237c8p-3,-0x1.791b2ap-2,0x1.046daap+2 dir=0x1.6f5d6cp-1,0x1.ed37d2p-2,-0x1.ffc08ap-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d0f06p-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.03344ep-2,-0x1.0233ap-2,0x1.03695ap+2 dir=0x1.931adcp-1,0x1.73839ap-3,-0x1.2cf1bp-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.f8b76cp-3,-0x1.53035cp-2,0x1.035efp+2 dir=0x1.b417d2p-1,-0x1.b2aba4p-3,-0x1.e8cdb2p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.9d0b32p-2,-0x1.eca8ap-2,0x1.0b60fcp+2 dir=0x1.cc9388p-2,-0x1.bf7084p-2,-0x1.8ebc52p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.10b8d6p-2,-0x1.d22524p-2,0x1.057d5p+2 dir=0x1.6d5f8p-8,-0x1.98dc0cp-1,-0x1.339352p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.0746d2p-3,-0x1.74d1ep-4,0x1.f324cp+1 dir=-0x1.ac4f98p-4,-0x1.c98966p-3,-0x1.f00c48p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.a0c252p-2,-0x1.4cccc8p-2,0x1.087cf8p+2 dir=-0x1.b75f9p-4,0x1.5b05d8p-2,-0x1.de20ep-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.8614f4p-3,-0x1.c7aac4p-3,0x1.fd7f28p+1 dir=0x1.b4ecaep-1,0x1.1bcdf8p-2,-0x1.c159dp-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.173386p-3,-0x1.09384p-4,0x1.f3f7bp+1 dir=0x1.e4d784p-1,-0x1.8e2254p-4,-0x1.35a88cp-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.c296cp-3,-0x1.545776p-3,0x1.008e4ap+2 dir=0x1.47a8b4p-1,-0x1.7fe43cp-1,-0x1.48a7ap-3 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.de61aap-3,-0x1.1cfb2p-2,0x1.02277p+2 dir=-0x1.68208p-1,-0x1.4c70d2p-1,-0x1.225b44p-2 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.f4e9fp-4,-0x1.768534p-4,0x1.f23fdep+1 dir=-0x1.f80ba8p-2,-0x1.2daf6ap-2,-0x1.a2d198p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+req kind=indirectdiffuse label= bundledepth=0 pathdepth=0 rays=1
+ray from=0x1.d1c53p-2,-0x1.d925eep-3,0x1.079d34p+2 dir=0x1.979e3p-7,0x1.a448ccp-1,-0x1.22eb42p-1 t=0x1.93e594p+99 tmin=0x1.47ae14p-7 time=0x0p+0 flags=1024 da=0x1.975f5ep-3 db=0x1.1d130cp-1 key=0:0:0:0 depth=0
+@@ end requests=48 rays=48

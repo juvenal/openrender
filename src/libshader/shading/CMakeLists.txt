@@ -31,7 +31,10 @@ set(shading_sources
     shaderParameters.cpp
     shaderPl.cpp
     shading.cpp
+    situation.cpp
+    sloLoader.cpp
     textureCalls.cpp
+    traceCalls.cpp
 )
 
 flex_file(rslo.l lex.rslo.cpp rslo)

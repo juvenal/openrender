@@ -33,8 +33,8 @@
 #include "common/memory.h"
 #include "ri_config.h"
 #include "shaderRefs.h"
+#include "traceCalls.h"
 #include "common/stats.h"
-#include "surface.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -717,7 +717,9 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
     inShadow = TRUE;
 
     // Are we sampling the motion in the reflections?
-    const int sampleMotion = currentShadingState->currentObject->attributes->flags & ATTRIBUTES_FLAGS_SAMPLEMOTION;
+    // (no object: no motion sampling, FR-027)
+    const CAttributes *objectAttrs = objectAttributes();
+    const int sampleMotion = objectAttrs != nullptr ? (objectAttrs->flags & ATTRIBUTES_FLAGS_SAMPLEMOTION) : 0;
 
     // For each ray
     for (int i = numRays; i > 0; --i, ++rays) {
@@ -790,7 +792,7 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
                 if (probeOnly) {
 
                     // No, just query an intersection and record the distance
-                    trace(cRay);
+                    libshader::traceRay(*this, cRay, libshader::TraceKind::Visibility, bundle.label);
                     rays->t += cRay->t * multiplier;
                 }
                 else {
@@ -802,7 +804,7 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
                         bundle.depth = 0;
                         bundle.last = 0;
                         bundle.postShader = NULL;
-                        traceEx(&bundle);
+                        libshader::traceBundle(*this, &bundle, libshader::TraceKind::Transmission);
                         cRay = rayBase;
                         cRays = raysBase;
                         numRemaining = shootStep;
@@ -820,7 +822,7 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
         bundle.depth = 0;
         bundle.last = 0;
         bundle.postShader = NULL;
-        traceEx(&bundle);
+        libshader::traceBundle(*this, &bundle, libshader::TraceKind::Transmission);
     }
 
     inShadow = FALSE; // We're no longer in shadow
@@ -843,9 +845,10 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
     CTraceBundle interiorBundle, exteriorBundle;
 
     // Verify atmosphere shaders
-    CAttributes *cAttr = currentShadingState->currentObject->attributes;
-    CShaderInstance *interiorShader = shaderInstanceOf(cAttr->interior());
-    CShaderInstance *exteriorShader = shaderInstanceOf(cAttr->exterior());
+    // (no object: no interior or exterior shader and no motion sampling, FR-027)
+    const CAttributes *cAttr = objectAttributes();
+    CShaderInstance *interiorShader = cAttr != nullptr ? shaderInstanceOf(cAttr->interior()) : nullptr;
+    CShaderInstance *exteriorShader = cAttr != nullptr ? shaderInstanceOf(cAttr->exterior()) : nullptr;
 
     // Set the ray label
     if (scratch->traceParams.label == NULL) {
@@ -867,7 +870,7 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
     }
 
     // Are we sampling the motion in the reflections?
-    const int sampleMotion = cAttr->flags & ATTRIBUTES_FLAGS_SAMPLEMOTION;
+    const int sampleMotion = cAttr != nullptr ? (cAttr->flags & ATTRIBUTES_FLAGS_SAMPLEMOTION) : 0;
 
     // For each ray
     for (int i = numRays; i > 0; --i, ++rays) {
@@ -936,7 +939,7 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
                 if (probeOnly) {
 
                     // No, just query an intersection and record the distance
-                    trace(cRay);
+                    libshader::traceRay(*this, cRay, libshader::TraceKind::Trace, exteriorBundle.label);
                     rays->t += cRay->t * multiplier;
                 }
                 else {
@@ -951,7 +954,7 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
                             exteriorBundle.depth = 0;
                             exteriorBundle.last = 0;
                             exteriorBundle.postShader = exteriorShader;
-                            traceEx(&exteriorBundle);
+                            libshader::traceBundle(*this, &exteriorBundle, libshader::TraceKind::Trace);
                             cExteriorRay = exteriorRayBase;
                             cExteriorRays = exteriorRaysBase;
                             numExteriorRemaining = shootStep;
@@ -968,7 +971,7 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
                             interiorBundle.depth = 0;
                             interiorBundle.last = 0;
                             interiorBundle.postShader = interiorShader;
-                            traceEx(&interiorBundle);
+                            libshader::traceBundle(*this, &interiorBundle, libshader::TraceKind::Trace);
                             cInteriorRay = interiorRayBase;
                             cInteriorRays = interiorRaysBase;
                             numInteriorRemaining = shootStep;
@@ -987,7 +990,7 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
         exteriorBundle.depth = 0;
         exteriorBundle.last = 0;
         exteriorBundle.postShader = exteriorShader;
-        traceEx(&exteriorBundle);
+        libshader::traceBundle(*this, &exteriorBundle, libshader::TraceKind::Trace);
     }
     if (numInteriorRemaining != shootStep) {
         numReflectionRays += shootStep - numInteriorRemaining;
@@ -996,7 +999,7 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
         interiorBundle.depth = 0;
         interiorBundle.last = 0;
         interiorBundle.postShader = interiorShader;
-        traceEx(&interiorBundle);
+        libshader::traceBundle(*this, &interiorBundle, libshader::TraceKind::Trace);
     }
 }
 

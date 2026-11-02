@@ -1,0 +1,44 @@
+diff --color -ru a/tests/shading_contract/contract_services.h b/tests/shading_contract/contract_services.h
+--- a/tests/shading_contract/contract_services.h	2026-11-01 20:19:01
++++ b/tests/shading_contract/contract_services.h	2026-11-01 20:19:13
+@@ -356,11 +356,14 @@
+             calls.push_back("getMatrix");
+             MatrixAnswer a;
+             if (!matrixUnavailable) {
+-                if (strcmp(r.name, "object") == 0 && !r.object) {
++                auto it = matrices.find(r.name);
++                // NoObject is decided by the kind of the name, as the header and the renderer decide it; the name "object"
++                // (not in the table) keeps answering it, as before
++                if (!r.object && (strcmp(r.name, "object") == 0 || (it != matrices.end() && it->second.kind == COORDINATE_OBJECT))) {
+                     a.status = EQueryStatus::NoObject;
++                    a.kind = COORDINATE_OBJECT;
+                 }
+                 else {
+-                    auto it = matrices.find(r.name);
+                     if (it == matrices.end()) {
+                         a.status = EQueryStatus::NotFound;
+                     }
+diff --color -ru a/tests/shading_contract/recording_tracer.h b/tests/shading_contract/recording_tracer.h
+--- a/tests/shading_contract/recording_tracer.h	2026-11-01 20:19:01
++++ b/tests/shading_contract/recording_tracer.h	2026-11-01 20:19:01
+@@ -118,6 +118,8 @@
+             }
+         }
+ 
++        // Records the request only. It does not run the bundle protocol of tracer.h (no postTraceAction(), postShade()
++        // or post() call) unless an inner tracer is installed and runBundles is set; CCannedTracer drives the protocol.
+         void traceBundle(CShadingContext &context, CRayBundle *bundle) override {
+             STraceRequest q;
+             q.bundle = true;
+@@ -153,6 +155,11 @@
+             if (answer(*ray, ci, oi)) {
+                 ray->object = sentinel();
+                 ray->t = hitT;
++                ray->u = 0.5f; // the outputs tracer.h lists for a hit, as CRecordingTracer sets them
++                ray->v = 0.5f;
++                ray->N[0] = 0;
++                ray->N[1] = 0;
++                ray->N[2] = 1;
+             }
+             else {
+                 ray->object = nullptr;

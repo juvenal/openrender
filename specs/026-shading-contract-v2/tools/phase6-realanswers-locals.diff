@@ -1,0 +1,20 @@
+diff --git a/tests/shading_contract/case_real_answers.cpp b/tests/shading_contract/case_real_answers.cpp
+index de23fd2b..fab23a5c 100644
+--- a/tests/shading_contract/case_real_answers.cpp
++++ b/tests/shading_contract/case_real_answers.cpp
+@@ -270,6 +270,15 @@ namespace {
+             s.attributes->bindExterior(ShaderGroupRef::retain(pExterior));
+             s.attributes->addLight(pLight);
+ 
++            // The message-passing locals the shading pipeline would have left (shading.cpp:1021-1025): surface(),
++            // displacement() and atmosphere() read the producer's current values from them
++            CShadingState *state = ctx->currentShadingState;
++            CMemPage *producerMemory = NULL;
++            memoryInit(producerMemory);
++            state->locals[ACCESSOR_SURFACE] = pSurface->prepare(producerMemory, state->varying, 3);
++            state->locals[ACCESSOR_DISPLACEMENT] = pDisplacement->prepare(producerMemory, state->varying, 3);
++            state->locals[ACCESSOR_ATMOSPHERE] = pAtmosphere->prepare(producerMemory, state->varying, 3);
++
+             struct SRow {
+                     const char *shader;
+                     CProgrammableShaderInstance *producer;

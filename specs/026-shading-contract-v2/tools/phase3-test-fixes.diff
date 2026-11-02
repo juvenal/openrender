@@ -1,0 +1,42 @@
+diff --git a/tests/shading_contract/case_globals_double.cpp b/tests/shading_contract/case_globals_double.cpp
+index 41c392f8..d0429b12 100644
+--- a/tests/shading_contract/case_globals_double.cpp
++++ b/tests/shading_contract/case_globals_double.cpp
+@@ -135,12 +135,13 @@ namespace {
+             fill(b.dPdtime, 3, b.totalPoints, 7.0f);
+             g.dPdtime = {b.dPdtime.data(), 3};
+         }
+-        // The sample key of every real point; the tail copies the real point's (du block, then dv block)
++        // The sample key of every real point; the tail copies the real point's (du block, then dv block). Each
++        // block is built from keyOf() again: a copy from the same vector (keys[numPoints + t] = keys[t % numPoints])
++        // comes out zero under Apple clang 21 at -O2 and above (a suspected miscompile; the loop is legal C++).
+         b.keys.resize(b.totalPoints);
+-        for (int p = 0; p < numPoints; p++)
+-            b.keys[p] = keyOf(p);
+-        for (int t = 0; t < numTail; t++)
+-            b.keys[numPoints + t] = b.keys[t % numPoints];
++        for (int block = 0; block < (tail ? 3 : 1); block++)
++            for (int p = 0; p < numPoints; p++)
++                b.keys[block * numPoints + p] = keyOf(p);
+         g.sampleKey = {b.keys.data(), 1};
+ 
+         // Inactive lanes are unspecified: poison them
+diff --git a/tests/shading_contract/contract_services.h b/tests/shading_contract/contract_services.h
+index 7c30d9e2..8ad19e39 100644
+--- a/tests/shading_contract/contract_services.h
++++ b/tests/shading_contract/contract_services.h
+@@ -276,8 +276,13 @@ class CContractServices final : public CRendererServices {
+             calls.push_back("getStepFilter");
+             return nullptr;
+         }
+-        CVariable *retrieveVariable(const char *) const override {
++        // The shader loader resolves every global a shader names (Ci, P, ...) through this lookup, so the double
++        // answers it from its own table of the 29 built-in globals; any other name is not a variable.
++        CVariable *retrieveVariable(const char *name) const override {
+             calls.push_back("retrieveVariable");
++            for (const CVariable &v : table)
++                if (strcmp(v.name, name) == 0)
++                    return const_cast<CVariable *>(&v);
+             return nullptr;
+         }
+         CDSO *getDSO(const char *, const char *) override {
