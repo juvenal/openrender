@@ -1,8 +1,9 @@
 # Research: Hider / Shading Separation (spec 029)
 
-**Status**: plan stage, 2026-11-02. Every question below marked **Qn** is open and waits for the maintainer; the
-"Recommendation" is the plan's proposal, not a decision. Where this file says "the design", it means the
-recommended option, to be replaced by the maintainer's answer.
+**Status**: plan stage, 2026-11-02. **Decided 2026-11-02**: the maintainer accepted the recommended option of every
+question, Q1 to Q16, and replaced Q8 by a versioning policy (R11: `kRendererServicesVersion` 2.0.0 -> 2.1.0, MAJOR
+stays at 2 until spec 055). Each question is kept as written at the plan stage, followed by its decision; "the
+design" in this file is the decided option. The answers are recorded in spec.md, Clarifications, Session 2026-11-02.
 
 **Method**: static reading of the tree at master `d6910bd0` in the worktree, `grep` counts, the spec 026
 records under `specs/026-shading-contract-v2/tools/`, and two read-only inventories (the hiders' and
@@ -37,7 +38,7 @@ The spec asks for four things that cannot all hold literally:
 - FR-028: no allowlist line is added or re-keyed; a renamed or re-signed symbol that Geometry still calls
   would stale three lines and need three new ones.
 
-**Q1. How does Geometry keep calling `shade()`?**
+**Q1. How does Geometry keep calling `shade()`?** *Decided 2026-11-02: the recommended option, accepted by the maintainer.* (a): the opaque forwarding entry.
 
 - **(a) Recommended.** Keep `shade(CSurface *, ...)`, `displace()` and `displaceEstimate()` as a thin
   *forwarding entry* in Shading. It treats the `CSurface *` as an opaque, forward-declared pointer, never
@@ -121,7 +122,7 @@ carries no type, so retyping it keeps that line matched. `activeContext` (`threa
 `renderer.h:387`) is written only by `reyes.cpp:229` and `raytracer.cpp:420` and read only by
 `imager.cpp:128`; it costs four platform-tagged DB-011 lines (`allowlist.txt:164, 192, 202, 241`).
 
-**Q6. The core's array of hiders.**
+**Q6. The core's array of hiders.** *Decided 2026-11-02: the recommended option, accepted by the maintainer.* (a).
 - **(a) Recommended.** Retype `CRenderer::contexts` to `CHider **` and keep its name. Consumers that need the
   shading context call `contexts[i]->shadingContext()`; `reyes.cpp:1994` becomes a `static_cast<CReyes *>`;
   `renderer.cpp:1029` stays a `dynamic_cast`, now from `CHider *`. DB-011 line 232 stays matched. A clearer
@@ -131,7 +132,7 @@ carries no type, so retyping it keeps that line matched. `activeContext` (`threa
 - (c) Remove `reyes.cpp`'s read of the core altogether (the hiders find their siblings through Hiders). A
   DB-011 reduction, but spec 030's scope.
 
-**Q7. Who sets `activeContext`.**
+**Q7. Who sets `activeContext`.** *Decided 2026-11-02: the recommended option, accepted by the maintainer.* (a).
 - **(a) Recommended.** The core's dispatcher (`rendererDispatchThread`, `renderer.cpp:1051-1053`) sets
   `activeContext = &contexts[w]->shadingContext()` before `renderingLoop()`, for every hider. The two hider
   writes go, and with them the four DB-011 lines (168 -> 164) and two Hiders metric references. The photon
@@ -167,7 +168,7 @@ classifies by location, so the library would carry Hiders objects.
 `void lookup(float *C, const float *P, int maxFound)`, a defaulted inline virtual destructor and no data.
 `CPhotonMap` derives from it publicly and its existing `lookup(float *, const float *, int)` becomes the
 override (the 4-argument overload is untouched). `CRendererServices::getPhotonMap` returns
-`IPhotonLookup *` (MAJOR, R11). The core's implementation returns the `CPhotonMap *` it returns today, upcast.
+`IPhotonLookup *` (a breaking change within 2.x, R11). The core's implementation returns the `CPhotonMap *` it returns today, upcast.
 
 - **Byte identity**: the same function body runs; only the call becomes virtual.
 - **ribVector**: it compiles `photonMap.cpp` and does not link `libshader_shading`. The interface is
@@ -215,7 +216,7 @@ core from those bodies are keyed by `trace.cpp` (`allowlist.txt:280-284`: `clipP
 7. `CHiderTracer` (`hiderTracer.{h,cpp}`) and `CRenderer::frameTracer` are deleted; `hiderTracer.cpp` leaves
    `ri_sources` and the `ribVector` removal list.
 
-**Q2. Where Shading finds its tracer.**
+**Q2. Where Shading finds its tracer.** *Decided 2026-11-02: the recommended option, accepted by the maintainer.* (a): no test changes how it installs a tracer.
 - **(a) Recommended.** A per-context slot, `ITracer *CShadingContext::tracer()`, set by the owning hider
   (`context.setTracer(this)` in `CHider`'s constructor). `libshader::traceRay`/`traceBundle` use the
   context's tracer and fall back to `getServices()->tracer()` when the context has none (a context with no
@@ -224,7 +225,7 @@ core from those bodies are keyed by `trace.cpp` (`allowlist.txt:280-284`: `clipP
   the contract tests that inject a tracer through their services double (`case_canned_trace.cpp:43`,
   `case_gather_requests.cpp:28`, `case_no_tracer.cpp:26`) run unchanged, because their `CRProbeContext`
   has no hider. `tracer()` on the services keeps its signature; its meaning ("a tracer for a context whose
-  owner installed none") is part of the MAJOR bump (R11).
+  owner installed none") is recorded in 2.1.0 (R11).
 - (b) A per-context slot only; `CRendererServices::tracer()` is removed. Single route, but the three rendered
   cases, `contract_harness.h`, `rendered_harness.h`, `contract_forwarder.h:40-73`, `contract_services.h:148,
   396` and the three shading_parity wrappers (`recording_services.h:96`, `table_services.h:89`,
@@ -262,7 +263,7 @@ write it directly: `contract_harness.h:103`, `rendered_harness.h:104`, `case_off
 `case_type_mismatch_real.cpp:87`. The observers report it as `const CSurface *surface` and two tests
 dereference that (`tests/unit/sampling/scene_probe.h:74-75`, `test_displace_consistency.cpp:55`).
 
-**Q3. How the state holds the shaded object.**
+**Q3. How the state holds the shaded object.** *Decided 2026-11-02: the recommended option, accepted by the maintainer.* (a).
 - **(a) Recommended.** The state holds three values, set together through one member
   `setShadedObject(const CSurface *surface, ObjectHandle handle, const CAttributes *attributes)`:
   the surface as an opaque pointer (for the observers' `surface` field, never dereferenced by Shading), the
@@ -294,10 +295,10 @@ parameters and the pass. The derivative-offset construction (`:1060-1146`) and t
 - **The requested parameters** (`PARAMETER_*`, including `PARAMETER_RAYTRACE`, which `shade()` tests at
   `:957, 961`) are a sampling request, not a shading global.
 
-**Q4. What `shade()`'s input carries.**
+**Q4. What `shade()`'s input carries.** *Decided 2026-11-02: the recommended option, accepted by the maintainer.* (a).
 - **(a) Recommended.**
   - `BatchShape` gains `PointSet` (a 0-D point set: never differentiated, no hit mode except in shadow);
-    `Span` is narrowed to 2-D ray hits. The redefinition is part of the MAJOR bump (R11).
+    `Span` is narrowed to 2-D ray hits. The redefinition is recorded in 2.1.0 (R11).
   - On input to `shade()`, the producer fills every per-batch field (`numPoints`, `shape`, `gridU`/`gridV`,
     `object`, `rayType`, `hitMode`, `transport`, `pass`, `pathDepth`, `shadingCellFootprint`, the shutter
     pair); the per-point fields are **absent** on input. The values they describe are already in the
@@ -366,7 +367,7 @@ parameters and the pass. The derivative-offset construction (`:1060-1146`) and t
 A producer that follows the code (which byte-identical images require) would disagree with
 `classifyShading()` on all three, and FR-019's comparison would fail on any such scene.
 
-**Q5.**
+**Q5.** *Decided 2026-11-02: the recommended option, accepted by the maintainer.* (a): D1, FR-019, US7 AS1 and SC-008 are amended to the corrected function.
 - **(a) Recommended.** Correct `classifyShading()` to the code (dimension and depth first; a shadow hit reads
   `transmissionhitmode` at every dimension), correct the 026 situation table's rows 2, 4 and 6 text in
   029's contract, and edit `ShadingContract_Situations` (`case_situations.cpp:177-212, 273-280`, plus two new
@@ -375,20 +376,23 @@ A producer that follows the code (which byte-identical images require) would dis
 - (b) Leave `classifyShading()` and exclude the two cases from FR-019's comparison. Weakens FR-019 and keeps
   a wrong oracle for spec 049.
 
-## R11. The boundary version: 3.0.0 (FR-015, Q8)
+## R11. The boundary version: 2.0.0 -> 2.1.0 (FR-015)
 
-**Changes that are MAJOR** (rule in `rendererServices.h` and gotcha 28): `getPhotonMap` returns
-`IPhotonLookup *` (a result changed); `tracer()`'s meaning changes (Q2 (a)) or the member goes (Q2 (b));
+**Decided 2026-11-02 by the maintainer's versioning policy, which replaces the plan stage's Q8**: MAJOR is a
+breaking change, MINOR a non-breaking addition, PATCH a bug fix only, but MAJOR stays at 2 until spec 055,
+because nothing versioned has been distributed (MAJOR 1 is the pre-versioning interface). Spec 029 takes
+`kRendererServicesVersion` to **2.1.0**; the header's rule comment and history say that 2.x is unstable until
+the milestone closes, so this MINOR step may break ([contracts/renderer-services-version.md](contracts/renderer-services-version.md)).
+
+**Changes the 2.1.0 entry lists as breaking within 2.x** (each would be MAJOR after the milestone):
+`getPhotonMap` returns `IPhotonLookup *` (a result changed); `tracer()`'s meaning changes (Q2 (a));
 `BatchShape::Span` is narrowed and the presence rule is restated for `shade()`'s input (Q4 (a)).
-**Additions** in the same release: `IPhotonLookup`, `IIlluminationHook`, `IPointSource`,
-`IShadingProducer`, `BatchShape::PointSet`.
+**Additions**: `IPhotonLookup`, `IIlluminationHook`, `IPointSource`, `IShadingProducer`, `BatchShape::PointSet`.
 
-**Q8.** One MAJOR, `kRendererServicesVersion{3, 0, 0}`, introduced in the phase of the first MAJOR change
-(Phase 3, `getPhotonMap`) and covering everything 029 changes, with one history entry. Every `static_assert`
-moves to 3: `src/ri/render/rendererServicesImpl.h:35` (and `hiderTracer.h:25`, deleted in Phase 6), and in
-tests `contract_services.h:49`, `contract_forwarder.h:31`, `recording_tracer.h:31`,
-`case_globals_double.cpp:33` (TEST-APPROVAL). The alternative is a version per phase (3.0.0, then 4.0.0 at
-US7); nothing ships between phases, so it buys nothing.
+The version is set in Phase 3 (the first boundary change) and the one history entry grows with the later phases.
+Every implementer's `static_assert` stays on MAJOR 2 (`src/ri/render/rendererServicesImpl.h:35`, `hiderTracer.h:25`
+until Phase 6 deletes it, the new `hider.h`, and in tests `contract_services.h:49`, `contract_forwarder.h:31`,
+`recording_tracer.h:31`, `case_globals_double.cpp:33`): none of these lines is edited.
 
 ## R12. Link wiring and the static consumer (FR-001 to FR-005)
 
@@ -414,7 +418,7 @@ links `ribRender` only for the imports (`src/libshader/tests/CMakeLists.txt:88-1
   `libRIBRender` symbol (each checked at the Phase 4 Test gate; a target that still uses `ribRender` keeps
   it and loses only the workaround).
 
-**Q14. SC-002's installed-package half.** `cmake --install <build> --prefix <scratch>` fails in a
+**Q14. SC-002's installed-package half.** *Decided 2026-11-02: the recommended option, accepted by the maintainer.* (a); SC-002 and FR-004 amended. `cmake --install <build> --prefix <scratch>` fails in a
 self-contained build (GitHub #23: the `.orenderrc` rule writes to the configure-time prefix), and the
 libraries are in the same unnamed component as that rule, so the spec 037 scratch-prefix technique (which
 installs only the `Development` component) does not reach the libraries.
@@ -460,30 +464,30 @@ heavy REYES grid scene.
   `--no-undefined` does the same and that no other undefined symbol of the 465 is unsatisfied by the
   library's own link line;
 - the DB-011/metric deltas (Q7) and the final allowlist count;
-- the Linux host: `ubuntu-2404-desktop.v2-labs.io` does not resolve from the planning machine (2026-11-02).
-  The Phase 1 gate needs it.
+- the Linux measurements: `ubuntu-2404-desktop.v2-labs.io` did not resolve from the planning machine on
+  2026-11-02 (access restored the same day); they are Phase 1's, and its Linux baseline stays the gate for Phase 2.
 
 ## R16. Smaller decisions (recommendation first; overrule cheaply)
 
-- **Q9** (R4): physically move the bundle files into `src/libshader/shading/`.
-- **Q10**: names: `IPhotonLookup`, `IIlluminationHook`, `IPointSource`, `IShadingProducer`, `CHider`,
+- **Q9** (R4, decided 2026-11-02 as recommended): physically move the bundle files into `src/libshader/shading/`.
+- **Q10** (decided as recommended): names: `IPhotonLookup`, `IIlluminationHook`, `IPointSource`, `IShadingProducer`, `CHider`,
   `CSurfacePointSource`, `CRayLevel`; files `photonLookup.h`, `illuminationHook.h`, `pointSource.h`,
   `shadingProducer.h` (Shading), `hider.{h,cpp}`, `surfacePointSource.h`, `shadingProducer.cpp` (Hiders).
-- **Q11**: `CShadingContext` is declared `final`, and a test asserts `!std::is_polymorphic_v<CShadingContext>`
+- **Q11** (decided as recommended; FR-025 amended): `CShadingContext` is declared `final`, and a test asserts `!std::is_polymorphic_v<CShadingContext>`
   and `std::is_final_v`. The nine test subclasses construct the context directly; `test_state_services.cpp`
   reads the vertex memory through a new public read-only `vertexMemoryInUse()` (the alternative: drop that
   assertion from the test, which FR-025 forbids).
-- **Q12**: the public surface the hiders need is added as named members, not by making protected members
+- **Q12** (decided as recommended): the public surface the hiders need is added as named members, not by making protected members
   public wholesale: `rayDepth()`, `inShadowRay()`, `countTracedRay()`, today's protected
   `rendererIlluminationHook()` moved to the public section unrenamed (its 12 macro and JIT callers do not
   change), `enterRayLevel`/`leaveRayLevel`, `setTracer`/`tracer`,
   `setIlluminationHook`/`illuminationHook`, `setProducer`, `setShadedObject`, `vertexMemoryInUse()`. The
   photon hider reads `samplingConfig()` instead of the protected `sampling`.
-- **Q13**: the new tests (plan "Test design") and labels: `link` for the link tests (in the everyday run),
+- **Q13** (decided as recommended): the new tests (plan "Test design") and labels: `link` for the link tests (in the everyday run),
   `link-package` for the opt-in package consumer, `shading_contract` for the contract additions.
-- **Q15**: the include-path reduction beyond `hiders` and `geometry` (R15): take every directory that the
+- **Q15** (decided as recommended): the include-path reduction beyond `hiders` and `geometry` (R15): take every directory that the
   compile lets go.
-- **Q16. Where the object hash lives** (R6 item 2). **Recommended (a)**: in the context, behind
+- **Q16. Where the object hash lives** (R6 item 2). *Decided 2026-11-02: the recommended option, accepted by the maintainer.* (a). **Recommended (a)**: in the context, behind
   `objectHash()`, as today; `test_context_no_services.cpp` (the #53 regression, which constructs a context
   over sentinel storage and counts writes through the hash pointer, `:83-116`) keeps its assertion, and the
   sentinel value does not change. (b) Move it to `CHider` (FR-017's other option): `struct TObjectHash` and

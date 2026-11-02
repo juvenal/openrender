@@ -11,7 +11,7 @@ and `jitPhotonMap`), `giFunctions.h` (two declarations), `src/ri/hiders/photonMa
 namespace openrender::shading {
     // What Shading asks of a photon map (spec 029). Implemented by the photon map (CPhotonMap, Hiders), whose
     // storage, file handling and balancing stay in Hiders until spec 032. Returned by
-    // CRendererServices::getPhotonMap(). Introduced in 3.0.0. Version: kRendererServicesVersion.
+    // CRendererServices::getPhotonMap(). Introduced in 2.1.0. Version: kRendererServicesVersion.
     // Thread-safety: as CPhotonMap::lookup today (concurrent lookups on a balanced map). Re-enters Shading: never.
     class IPhotonLookup {
         public:
@@ -27,7 +27,7 @@ namespace openrender::shading {
 
 | Where | Today | After |
 |---|---|---|
-| `rendererServices.h:316` | `virtual CPhotonMap *getPhotonMap(const char *name) = 0;` | `virtual openrender::shading::IPhotonLookup *getPhotonMap(const char *name) = 0;` (MAJOR) |
+| `rendererServices.h:316` | `virtual CPhotonMap *getPhotonMap(const char *name) = 0;` | `virtual openrender::shading::IPhotonLookup *getPhotonMap(const char *name) = 0;` (breaking within 2.x, recorded in 2.1.0) |
 | `rendererServices.h:52`, `shading.h:60` | `class CPhotonMap;` | deleted |
 | `shading.h:977`, `shading.cpp:567` | `CPhotonMap *rendererGetPhotonMap(const char *)` | returns `IPhotonLookup *` |
 | `giFunctions.h:283, 330` | `CPhotonMap *map;` | `IPhotonLookup *map;` (the calls `:298`, `:344` unchanged in text) |

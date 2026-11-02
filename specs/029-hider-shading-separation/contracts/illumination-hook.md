@@ -12,7 +12,7 @@ namespace openrender::shading {
     // Owned by Shading; implemented by the hider that wants them (the photon hider), installed on the context it
     // owns with CShadingContext::setIlluminationHook(). Called only while rendererIlluminationHook() is true, at
     // the places listed below, with the operands hookOperand() picks (GitHub #68: a varying operand's first active
-    // point). Introduced in 3.0.0. Thread-safety: per context. Re-enters Shading: the photon hider traces, never shades.
+    // point). Introduced in 2.1.0. Thread-safety: per context. Re-enters Shading: the photon hider traces, never shades.
     class IIlluminationHook {
         public:
             virtual ~IIlluminationHook() = default;

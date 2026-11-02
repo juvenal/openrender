@@ -2,8 +2,9 @@
 
 The spec-kit plan stage would normally update `CLAUDE.md` through `.specify/scripts/bash/update-agent-context.sh`.
 That script was **not** run: `CLAUDE.md` is changed only by the maintainer (spec FR-032). This file holds the
-proposed text. It is written against the plan's recommended answers (Q1 to Q15) and must be revised to the
-maintainer's answers and to the measured end state before it is applied. The "Spec-kit agent rules" section is
+proposed text. It is written against the maintainer's answers of 2026-11-02 (the recommended option of Q1 to Q16, and the
+versioning policy that makes this spec's version 2.1.0) and must be revised to the measured end state before it is
+applied. The "Spec-kit agent rules" section is
 not touched.
 
 ## 1. Architecture, "Hider system" (CLAUDE.md:183-188)
@@ -31,9 +32,6 @@ ctest --test-dir build -L link                          # spec 029: libshader_sh
 ctest --test-dir build -L '^link-package$'              # opt-in: an installed openRender package consumed statically (scratch configure)
 ```
 
-Correct the sweep line's count: "(413 scenes x 5 configurations" -> "(419 scenes x 5 configurations" (measured in
-`tests/visual/determinism-scenes.cmake`, 2026-11-02).
-
 ## 3. Gotcha 23 (the illumination hook sentence)
 
 Replace "with it on, they only call the hider's hooks" with "with it on, they only call the context's
@@ -54,7 +52,12 @@ Replace from "The trace calls go through `ITracer` (`tracer.h`): the core sets `
 > symbols as an error (`--no-undefined` on Linux, ld64's default on macOS) and has no flat-namespace import, so
 > there is no load stub and no `-force_load` in the package; a new undefined reference fails its link.
 
-and "`CRendererServices` is version 2.0.0" -> "3.0.0" (with "`getPhotonMap` returns `IPhotonLookup *`").
+and "`CRendererServices` is version 2.0.0" -> "2.1.0" (with "`getPhotonMap` returns `IPhotonLookup *`"). Replace the
+gotcha's last sentence ("A change to the interface bumps `kRendererServicesVersion` (MAJOR: ...; MINOR: ...); every
+implementer `static_assert`s its MAJOR.") with: "A change to the interface steps `kRendererServicesVersion` and adds a
+history entry (MAJOR: breaking; MINOR: a non-breaking addition; PATCH: a bug fix only), but MAJOR stays at 2 until spec
+055: nothing versioned has been distributed, so 2.x is unstable and a MINOR step may break, saying so in its entry.
+Every implementer `static_assert`s MAJOR 2." 
 
 ## 5. New gotcha 29
 
@@ -93,6 +96,6 @@ Under `src/libshader/shading/`: mention `bundles.{h,cpp}` (moved from `src/ri/hi
 >   (`CHiderTracer` and `frameTracer` gone); the bundles moved into Shading and the photon map is reached through
 >   `IPhotonLookup`, so `libshader_shading` has no flat-namespace import, links with undefined symbols as an error,
 >   and a static consumer launches with no `-force_load`/`--whole-archive` (GitHub #24, #44); `shade()` consumes
->   `ShaderGlobals` (ray type and hit mode explicit) and an `IPointSource`; `kRendererServicesVersion` 3.0.0. DB-001
+>   `ShaderGlobals` (ray type and hit mode explicit) and an `IPointSource`; `kRendererServicesVersion` 2.1.0. DB-001
 >   and DB-005 resolved, DB-006 31 -> 30, DB-011 168 -> 164, DB-020 narrowed. No image changed on either platform;
 >   the spec 026 trace replay unchanged (see spec 029).

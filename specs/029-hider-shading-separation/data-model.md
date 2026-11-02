@@ -29,7 +29,7 @@ CRenderer (core, composition root)
 | `IPhotonLookup` | Shading | implemented by `CPhotonMap` | returned by `getPhotonMap()` |
 | `IPointSource` | Shading | `CSurfacePointSource` (Hiders), on the stack for one shading call | wraps one `CSurface *` and the requested parameters |
 | `IShadingProducer` | Shading | implemented by `CHider` | the forwarding entry's target |
-| `ShaderGlobals` | Shading (spec 026, 3.0.0) | built by the producer on the stack | per-batch fields on input to `shade()` |
+| `ShaderGlobals` | Shading (spec 026; changed in 2.1.0) | built by the producer on the stack | per-batch fields on input to `shade()` |
 | `CRayLevel` | Shading | a hider's local across one `traceBundle` | saved state and label |
 | bundles (`CTraceBundle`, `CTransmissionBundle`, `CGatherBundle` and their rays) | Shading (moved) | Shading's stack or heap, as today | relocation, no change |
 

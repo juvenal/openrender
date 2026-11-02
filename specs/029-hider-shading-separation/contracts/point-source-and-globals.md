@@ -15,7 +15,7 @@ class CSurface;     // opaque: never dereferenced by Shading
 
 namespace openrender::shading {
     // What shade() asks of the primitive it shades (spec 029, Q1 option B of the specify stage). Implemented in
-    // Hiders over CSurface (CSurfacePointSource). Version: kRendererServicesVersion; introduced in 3.0.0.
+    // Hiders over CSurface (CSurfacePointSource). Version: kRendererServicesVersion; introduced in 2.1.0.
     // Thread-safety: one per shading call, on the calling thread's stack. Re-enters Shading: never.
     class IPointSource {
         public:
@@ -40,7 +40,7 @@ namespace openrender::shading {
     // The target of CShadingContext's Geometry-facing forwarding entry, shade(CSurface *, ...) (Q1 (a)).
     // Implemented by the hider that owns the context (CHider) and installed with setProducer(). It builds the
     // point source and the batch description and calls CShadingContext::shade(const ShaderGlobals &, IPointSource &).
-    // Introduced in 3.0.0. Re-enters Shading: yes, exactly once per call.
+    // Introduced in 2.1.0. Re-enters Shading: yes, exactly once per call.
     class IShadingProducer {
         public:
             virtual ~IShadingProducer() = default;
@@ -50,7 +50,7 @@ namespace openrender::shading {
 }
 ```
 
-## `ShaderGlobals` changes (MAJOR with the rest of 3.0.0)
+## `ShaderGlobals` changes (recorded in 2.1.0; breaking within 2.x, allowed before spec 055)
 
 - `BatchShape` gains `PointSet`, appended: a 0-D point set (`SHADING_0D`: points, curves' vertices, implicit
   hits, a phony light batch). `Span` is narrowed to 2-D ray hits (`SHADING_2D`). `Grid` is `SHADING_2D_GRID`.

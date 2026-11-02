@@ -5,9 +5,10 @@
 **Input**: Feature specification from `specs/029-hider-shading-separation/spec.md`, with the maintainer's answers of
 2026-11-01 (Q1 = B, Q2 = A, Q3 = A; #134 to spec 033; #24 folded in).
 
-**Status of this plan**: every design choice below that has a real alternative is an **open question** (Q1 to
-Q15, "Open questions"), with the recommended option written into the design. Nothing here is decided until the
-maintainer answers.
+**Status of this plan**: **decided 2026-11-02.** The maintainer accepted the recommended option of every plan
+question, Q1 to Q16 ("Decisions" below), and replaced Q8 by a versioning policy: `kRendererServicesVersion` goes
+from 2.0.0 to **2.1.0**, and MAJOR stays at 2 until spec 055. The amendments those answers required are applied to
+spec.md (Clarifications, Session 2026-11-02).
 
 ## Summary
 
@@ -34,7 +35,8 @@ consumer launches. Seven parts:
    places, Q5), and `shade()` branches on them alone; the derivative arithmetic stays where it is. Geometry keeps
    calling the unchanged `shade(CSurface *, ...)` symbol, now an opaque forwarding entry (Q1); `object.h` leaves
    Shading (DB-006 31 -> 30).
-7. **The boundary becomes `kRendererServicesVersion` 3.0.0** (one MAJOR for the whole spec).
+7. **The boundary becomes `kRendererServicesVersion` 2.1.0** (one entry for the whole spec; MAJOR stays at 2 until
+   spec 055, and the history says 2.x is unstable until then, so this MINOR step may break).
 
 No image changes in any phase: the Phase 1 manifests of the suite and of the determinism sweep, on each platform
 against itself, the `MaxBlockAvgDiff` list, and the spec 026 trace replay (never re-recorded) prove it at every
@@ -62,7 +64,7 @@ the existing JIT.
 
 | Domain | What changes |
 |---|---|
-| Shading | New: `photonLookup.h`, `illuminationHook.h`, `pointSource.h`, `shadingProducer.h`; moved in: `bundles.{h,cpp}`. Edited: `shading.{h,cpp}` (composition surface, ray level, the two `shade` entries, the shaded object), `shaderOpcodes.h` (hook calls), `giFunctions.h` (two declarations), `traceCalls.cpp` (the context's tracer first), `rendererServices.h` (3.0.0, `getPhotonMap`), `shaderGlobals.h` (`PointSet`, presence rules), `situation.cpp` (Q5), `tracer.h` (comments), `execute.cpp`/`executeMisc.cpp`/`shaderPl.cpp` (includes), `CMakeLists.txt` |
+| Shading | New: `photonLookup.h`, `illuminationHook.h`, `pointSource.h`, `shadingProducer.h`; moved in: `bundles.{h,cpp}`. Edited: `shading.{h,cpp}` (composition surface, ray level, the two `shade` entries, the shaded object), `shaderOpcodes.h` (hook calls), `giFunctions.h` (two declarations), `traceCalls.cpp` (the context's tracer first), `rendererServices.h` (2.1.0, `getPhotonMap`), `shaderGlobals.h` (`PointSet`, presence rules), `situation.cpp` (Q5), `tracer.h` (comments), `execute.cpp`/`executeMisc.cpp`/`shaderPl.cpp` (includes), `CMakeLists.txt` |
 | Hiders | New: `hider.{h,cpp}`, `shadingProducer.cpp`, `surfacePointSource.h`. Edited: `reyes.{h,cpp}`, `stochastic.cpp`, `zbuffer.cpp`, `raytracer.{h,cpp}`, `photon.{h,cpp}`, `trace.cpp`, `photonMap.h`, `irradiance.cpp`/`irradianceDispatch.cpp` (vestigial includes). Deleted: `hiderTracer.{h,cpp}` |
 | Renderer core | `renderer.{h,cpp}`, `rendererStatics.cpp`, `rendererJobs.cpp`, `rendererDeclarationsDispatch.cpp`, `rendererContext.cpp` (include), `imager.cpp`, `rendererServicesImpl.h`, `geometryDispatch.cpp` (accessor), `hcshader.cpp`, `src/ri/CMakeLists.txt` |
 | Geometry | call sites only (FR-010): `surface.cpp:264, 304, 332, 334, 452`, `curves.cpp:720`, `patches.cpp:1604, 1882`, `polygons.cpp:1314`, `subdivisionCreator.cpp:1868`, `subdivisionLoop.cpp:354` |
@@ -94,7 +96,8 @@ about 25 approved test files edited (TEST-APPROVAL inventory).
 - Test subclasses of the context: 9 (spec said 5, correction C1).
 - Determinism sweep: 419 active entries (`tests/visual/determinism-scenes.cmake`); the spec's figure stands.
 - Disk: 10 GiB free on `/Volumes/Projects` (2026-11-02).
-- Linux host: not reachable from the planning machine (`Could not resolve hostname`), 2026-11-02.
+- Linux host: not reachable from the planning machine on 2026-11-02 (`Could not resolve hostname`); access restored
+  the same day (coordinator). Phase 1's Linux baseline stays the gate for Phase 2.
 
 ## Constitution Check
 
@@ -107,7 +110,7 @@ about 25 approved test files edited (TEST-APPROVAL inventory).
 | III. TDD (non-negotiable) | PASS (by plan order) | Phase 2 writes every new test and the red-first test edits; each is shown red in a scratch build before its code lands; the replay and manifests are characterization guards. |
 | IV. CLI | N/A | No CLI change. |
 | V. Minimal dependencies | PASS | None added. |
-| VI. Linux and macOS | PASS (gated) | Both platforms record their own baselines; Phase 2 waits for the Linux baseline, which needs the host reachable. |
+| VI. Linux and macOS | PASS (gated) | Both platforms record their own baselines; Phase 2 waits for the Linux baseline (§4a), the gate. |
 | VII. Docs | PASS | Registry, allowlist, metrics, DEVNOTES, `INSTALL_ARTIFACTS.md`; `CLAUDE.md` only as a draft. |
 | VIII. Domain separation | PASS | Below. |
 
@@ -129,19 +132,19 @@ about 25 approved test files edited (TEST-APPROVAL inventory).
 - [x] **Interface changes specified**: [contracts/shading-context.md](contracts/shading-context.md),
       [contracts/hider.md](contracts/hider.md), [contracts/point-source-and-globals.md](contracts/point-source-and-globals.md),
       [contracts/photon-lookup.md](contracts/photon-lookup.md), [contracts/illumination-hook.md](contracts/illumination-hook.md),
-      [contracts/renderer-services-v3.md](contracts/renderer-services-v3.md), [contracts/link-and-tests.md](contracts/link-and-tests.md),
+      [contracts/renderer-services-version.md](contracts/renderer-services-version.md), [contracts/link-and-tests.md](contracts/link-and-tests.md),
       [contracts/allowlist-end-state.md](contracts/allowlist-end-state.md), [data-model.md](data-model.md).
 - [x] **No hider-specific special case**: Shading names no hider; `shade()` branches on the batch's ray type and hit
       mode only; the producer's one hider-kind input (`rasterizes()`) is `classifyShading()`'s existing
       `rasterHider` and selects no behaviour of its own. The dispatcher sets `activeContext` for every hider alike.
 - [x] **Plug-in interfaces**: none changed (shadeop, dlo, implicit, display ABIs untouched); the services boundary is
-      internal C++, versioned 3.0.0 by its own rule.
+      internal C++, stepped to 2.1.0 by the maintainer's versioning policy (MAJOR stays at 2 until spec 055).
 - [x] **Registered violations not extended; reductions noted**: DB-001 and DB-005 to Resolved; DB-006 31 -> 30;
       DB-011 168 -> 164 (Q7 (a)); DB-020 narrowed; DB-023's include path narrowed. DB-004, DB-010, DB-017 unchanged.
 
-**Post-design re-check**: PASS. One spec premise needs the maintainer: FR-018's "instead of `CSurface *`" conflicts
-with FR-010/FR-021/FR-022/FR-028 for Geometry's calls (Q1). Two in-scope defects of spec 026's `classifyShading()`
-must be corrected for FR-019 to be testable (Q5).
+**Post-design re-check**: PASS. The two spec premises that could not hold as written are resolved by the
+maintainer's answers and amended in spec.md: FR-018 names the opaque forwarding entry for Geometry's calls (Q1), and
+D1/FR-019 name `classifyShading()` as corrected to the code (Q5).
 
 ## Project Structure
 
@@ -151,7 +154,7 @@ must be corrected for FR-019 to be testable (Q5).
 specs/029-hider-shading-separation/
 ├── spec.md, plan.md, research.md, data-model.md, quickstart.md
 ├── contracts/  shading-context.md, hider.md, point-source-and-globals.md, photon-lookup.md,
-│               illumination-hook.md, renderer-services-v3.md, link-and-tests.md, allowlist-end-state.md
+│               illumination-hook.md, renderer-services-version.md, link-and-tests.md, allowlist-end-state.md
 ├── claude-md-draft.md          # proposed CLAUDE.md text; the maintainer applies it
 ├── checklists/requirements.md
 ├── tools/                      # Phase 1: image_manifest.sh, linux_sync.sh, baselines, import lists, red logs
@@ -171,7 +174,7 @@ src/libshader/shading/
 ├── shaderOpcodes.h             # the hook calls (Phase 5)
 ├── giFunctions.h               # IPhotonLookup (Phase 3)
 ├── traceCalls.cpp, tracer.h    # the context's tracer (Phase 6)
-├── rendererServices.h          # 3.0.0, getPhotonMap (Phase 3); tracer() note (Phase 6)
+├── rendererServices.h          # 2.1.0, getPhotonMap (Phase 3); tracer() note (Phase 6)
 ├── shaderGlobals.h, situation.cpp     # Phase 7
 ├── execute.cpp, executeMisc.cpp, shaderPl.cpp   # includes (Phase 3)
 └── CMakeLists.txt              # sources (3), wiring (4), include path (3, 7)
@@ -214,9 +217,9 @@ green (spec 026's rule); until then its red evidence lives in the scratch build.
 
 | # | Phase | Content | Allowlist lines deleted | Tests that turn green or guard |
 |---|---|---|---|---|
-| 1 | Setup and baselines | Copy `image_manifest.sh`, `linux_sync.sh` to `tools/`. macOS §0: build, suite manifest, diffs, two-run noise list, sweep manifest and noise, archcheck, imports, fixups, timing series and a frozen copy of the binaries. The red link evidence (§1): no `dynamic_lookup` (macOS), `--no-undefined` (Linux), each failing on exactly the 4 symbols; the package consumer's red run (Q14 (a)). Whether a photon scene's light shader traces during emission (research R10, item 3). **Gate**: Linux §4a (the per-spec tree created, baseline, sweep manifest, imports, `readelf`, red link, pass/fail set) before Phase 2; needs the host reachable | none | the starting tree's own suite |
+| 1 | Setup and baselines | Copy `image_manifest.sh`, `linux_sync.sh` to `tools/`. macOS §0: build, suite manifest, diffs, two-run noise list, sweep manifest and noise, archcheck, imports, fixups, timing series and a frozen copy of the binaries. The red link evidence (§1): no `dynamic_lookup` (macOS), `--no-undefined` (Linux), each failing on exactly the 4 symbols; the package consumer's red run (Q14 (a)). Whether a photon scene's light shader traces during emission (research R10, item 3). **Gate**: Linux §4a (the per-spec tree created, baseline, sweep manifest, imports, `readelf`, red link, pass/fail set) before Phase 2 | none | the starting tree's own suite |
 | 2 | Tests first | `tests/link/` (T-L1 to T-L4), `ShadingScope_Greps` (T-S1), the new contract cases (T-S2, T-P1, T-B1, T-H1, T-T1, T-T2, T-G1, T-G2) and their scenes; the red-first edit of `ShadingContract_Situations` (Q5). All red in `build-red`; nothing new registered in `build` | none | none (main build's pass set unchanged on both platforms) |
-| 3 | US5: bundles and the photon map | `git mv` the bundles into Shading; the five vestigial includes; `IPhotonLookup`, `getPhotonMap`, 3.0.0 and its history; the `static_assert`s (`rendererServicesImpl.h:35`, `hiderTracer.h:25` and the four in tests: every `major == 2` in the tree); the two `irradiance.h` includes; `src/ri/hiders` off the shading include path; `load_stub.cpp` deleted | 8 DB-005, 5 DB-001 | T-L1, T-P1, T-B1, T-S1 (no Hiders include); `ShadingContract_StandaloneLink*` without the stub; T-L2 most likely passes from here (no import is left even with `dynamic_lookup`), and is registered in Phase 4 with the wiring |
+| 3 | US5: bundles and the photon map | `git mv` the bundles into Shading; the five vestigial includes; `IPhotonLookup`, `getPhotonMap`, 2.1.0 with its rule comment and history (every `static_assert` stays on MAJOR 2); the two `irradiance.h` includes; `src/ri/hiders` off the shading include path; `load_stub.cpp` deleted | 8 DB-005, 5 DB-001 | T-L1, T-P1, T-B1, T-S1 (no Hiders include); `ShadingContract_StandaloneLink*` without the stub; T-L2 most likely passes from here (no import is left even with `dynamic_lookup`), and is registered in Phase 4 with the wiring |
 | 4 | US1, US2: the link | `dynamic_lookup` out; `--no-undefined` (Linux); the INTERFACE flag out; the package block and its test copy out; `--no-as-needed` and the import-only `ribRender` links out; the comments and docs of the contract `link-and-tests.md` | none | T-L2, T-L3, `Common_DiagnosticsCrossLibraryStatic` (plain link), `LibShader_McompConsistency` on Linux (#44) |
 | 5 | US4 (and FR-013): composition and the hooks | `CHider`; the five hider classes; `IIlluminationHook`, its 12 Shading call sites and the photon hider; the friends out; the context `final` and virtual-free (`renderingLoop` moves); the public surface of Q12; the core (`contexts` as `CHider **`, the dispatcher's `activeContext`, the four consumers, `hcshader.cpp`'s hooks); Geometry's 13 call sites; `reyes.cpp:1994` and `renderer.cpp:1029` | 4 DB-011 (Q7 (a)) | T-S2, T-H1, T-S1 (no virtual, no foreign friend), the 9 edited test classes, the photon and hook suites unchanged |
 | 6 | US6: the hiders are the tracers | the trace bodies as `CHider` members in `trace.cpp`; `enterRayLevel`/`leaveRayLevel`, `countTracedRay`, `objectHash()` (the hash and its sentinel stay the context's, Q16); the context's tracer slot and `traceCalls`'s order (Q2); `hcshader.cpp`'s probes; `CHiderTracer`, `frameTracer`, `traceAny` out | none | T-T1, T-T2, T-S1 (no trace member), **every `ShadingContract_TraceReplay_*` with the replay files unchanged** |
@@ -273,16 +276,15 @@ widens a threshold, disables a test, or changes an expected value, except T-G3's
 | 2 | `tests/shading_contract/case_situations.cpp:313-323` | two scenes appended (REYES secondary; implicit shadow) | Q5 (a), T-G1 |
 | 2 | `tests/shading_contract/CMakeLists.txt`, `tests/CMakeLists.txt` | new targets and `add_subdirectory(link)`; new scenes and shaders | FR-024 |
 | 3 | `tests/shading_contract/contract_services.h:242`, `contract_forwarder.h:92`, `tests/shading_parity/recording_services.h:67, 163`, `table_services.h:61`, `recording_texture_system.h:234` | `getPhotonMap` returns `IPhotonLookup *` | FR-012, FR-015 |
-| 3 | `tests/shading_contract/contract_services.h:49`, `contract_forwarder.h:31`, `recording_tracer.h:31`, `case_globals_double.cpp:33` | `static_assert` on MAJOR 3 | FR-015, Q8 |
 | 3 | `tests/shading_contract/load_stub.cpp` (deleted), `CMakeLists.txt:135-136, 150-152`, `case_link.cpp:13` | the stub and its wiring go; comments | FR-005 |
 | 4 | `tests/unit/common/CMakeLists.txt:69-84` | plain `ribRender_static` link; comment | FR-003 |
 | 4 | `tests/shading_parity/CMakeLists.txt:316-326, 338-346, 360-368, 381-389` | `--no-as-needed` out; `ribRender` out where the test calls none of it | FR-005, #44 |
 | 4 | `src/libshader/tests/CMakeLists.txt:88-112` | `LibShader_McompConsistency` without `ribRender`; comment | FR-005, #44 |
 | 5 | `tests/shading_contract/contract_harness.h:38-41`, `rendered_harness.h:38-41`, `tests/shading_parity/test_context_no_services.cpp:75-80`, `texture_substitute_harness.h:56-60` | the subclass with an empty loop becomes a directly constructed context | FR-007, FR-025 |
 | 5 | `tests/shading_parity/test_illumination_hook.cpp:131-160`, `test_illumination_hook_conditions.cpp:127-157`, `test_illumination_hook_operands.cpp:146-175`, `test_false_if_constructs.cpp:62-73` | the hook overrides become a recording `IIlluminationHook` installed on a plain context; expected calls unchanged | FR-013, FR-025 |
-| 5 | `tests/shading_parity/test_state_services.cpp:64-70` | the subclass's `vertexMemory` accessor becomes the context's `vertexMemoryInUse()` | FR-007, Q11 (needs FR-025 amended) |
-| 6 | (Q2 (a)) none. (Q2 (b)): `contract_forwarder.h:40-73`, `contract_services.h:148, 396`, `recording_services.h:96`, `table_services.h:89`, `recording_texture_system.h:258`, `contract_harness.h`, `rendered_harness.h` | the tracer installed on the context | FR-016, Q2 |
-| 7 | `tests/shading_contract/contract_harness.h:103`, `rendered_harness.h:104`, `case_offending_object.cpp:50, 59`, `case_type_mismatch_real.cpp:87` | `ss->currentObject = ...` becomes `setShadedObject(...)` | FR-018, Q3 (needs FR-025 amended) |
+| 5 | `tests/shading_parity/test_state_services.cpp:64-70` | the subclass's `vertexMemory` accessor becomes the context's `vertexMemoryInUse()` | FR-007, Q11 (FR-025 amended) |
+| 6 | none (Q2 (a): the contract tests keep injecting their tracer through the services double) | | FR-016 |
+| 7 | `tests/shading_contract/contract_harness.h:103`, `rendered_harness.h:104`, `case_offending_object.cpp:50, 59`, `case_type_mismatch_real.cpp:87` | `ss->currentObject = ...` becomes `setShadedObject(...)` | FR-018, Q3 (FR-025 amended) |
 | 8 | `tests/architecture/metrics-baseline.txt` | lowered to the measured values | FR-030 |
 | 8 | `tests/architecture/allowlist.txt` header comments | counts | FR-028 |
 
@@ -305,76 +307,79 @@ widens a threshold, disables a test, or changes an expected value, except T-G3's
   `Statistics`-printing scenes is part of CP-b.
 - **`ribVector`** losing a definition it uses when `bundles.cpp` leaves `ri_sources`. Mitigation: it references no
   bundle type today (grep); CP-a links it.
-- **The Linux host**: unreachable from the planning machine; Phase 1's gate blocks Phase 2 until it is reachable.
 - **Known flaky tests** (`ImagerRegressionRender`, `Parity_transparency-matte-aov`, `Parity_depthdefault`,
   `ColorDeterminism_transparent` #133; `ShadingParity_AmbientAccumulation` is a real heap bug): a red run is re-run
   alone before it is written off.
 
-## Open questions for the maintainer (recommendation first)
+## Decisions (plan-stage questions, answered 2026-11-02)
 
-Research sections give the evidence. What each answer blocks:
+Every question was answered with its recommended option (the questions are kept as written, each followed by its
+decision). Research sections give the evidence. Where each answer is used:
 
 | Question | Blocks |
 |---|---|
 | Q5, Q13 | Phase 2 (the tests written) |
-| Q8, Q9, Q10 | Phase 3 |
+| the versioning policy (replaces Q8), Q9, Q10 | Phase 3 |
 | Q14 | Phase 1 (the red run) and Phase 8 |
 | Q6, Q7, Q11, Q12 | Phase 5 |
 | Q2, Q16 | Phase 6 (and Phase 2's T-T1/T-T2 shape) |
 | Q1, Q3, Q4 | Phase 7 (and Phase 2's T-G1/T-G2 shape) |
 | Q15 | Phases 3 and 7 (how far the include path shrinks) |
 
-- **Q1. The Geometry-facing `shade(CSurface *, ...)`** (research R1). **Recommended (a)**: keep it, with
+- **Q1. The Geometry-facing `shade(CSurface *, ...)`** *Decided 2026-11-02: the recommended option.* (research R1). **Recommended (a)**: keep it, with
   `displace`/`displaceEstimate`, as an opaque forwarding entry in Shading that calls the owning hider's
   `IShadingProducer`; amend FR-018 and US7 AS2 to name it, until spec 031 retires it. Alternatives: (b) define it in
   Hiders (rejected, DB-005's pattern); (c) move Geometry's calls and re-key 5 DB-006 lines with your sign-off;
   (d) narrow US7 and keep `object.h` in Shading.
-- **Q2. Where Shading finds its tracer** (R6). **Recommended (a)**: the context's own slot, set by the owning hider,
+- **Q2. Where Shading finds its tracer** *Decided 2026-11-02: the recommended option.* (R6). **Recommended (a)**: the context's own slot, set by the owning hider,
   with the services' `tracer()` as the fallback for a context with no owner; the renderer answers `nullptr`; the
   contract tests run unchanged. Alternatives: (b) the context's slot only, `tracer()` removed, about 9 test files
   edited; (c) keep a per-frame slot (contradicts FR-016).
-- **Q3. The shaded object in `CShadingState`** (R8). **Recommended (a)**: an opaque surface, the `ObjectHandle` and the
+- **Q3. The shaded object in `CShadingState`** *Decided 2026-11-02: the recommended option.* (R8). **Recommended (a)**: an opaque surface, the `ObjectHandle` and the
   attributes, set together through `setShadedObject()`; 5 test lines edited and FR-025 amended. Alternative: (b) keep
   `CSurface *currentObject` with a process-wide accessor hook installed by the core (no test edit).
-- **Q4. What `shade()`'s input carries** (R9). **Recommended (a)**: per-batch fields only on input, per-point fields
+- **Q4. What `shade()`'s input carries** *Decided 2026-11-02: the recommended option.* (R9). **Recommended (a)**: per-batch fields only on input, per-point fields
   absent; `BatchShape::PointSet` appended for 0-D and `Span` narrowed to 2-D; the requested parameters on the point
   source. Alternatives: (b) also per-point views of the producer-written varyings; (c) an appended `EShadingDim`
   field instead of `PointSet`.
-- **Q5. `classifyShading()` disagrees with `shade()`** (R10: a 0-D shadow hit; a secondary hit in a raster frame; a
+- **Q5. `classifyShading()` disagrees with `shade()`** *Decided 2026-11-02: the recommended option.* (R10: a 0-D shadow hit; a secondary hit in a raster frame; a
   ray traced during photon emission). **Recommended (a)**: correct the function to the code and edit
   `ShadingContract_Situations` (TEST-APPROVAL, Phase 2); no image changes. Alternative: (b) keep it and exclude those
   cases from FR-019's comparison.
-- **Q6. The core's hider array** (R3). **Recommended (a)**: `CRenderer::contexts` retyped to `CHider **`, name kept
+- **Q6. The core's hider array** *Decided 2026-11-02: the recommended option.* (R3). **Recommended (a)**: `CRenderer::contexts` retyped to `CHider **`, name kept
   (DB-011 line 232 stays matched); a clearer name is spec 030's. Alternatives: (b) a new `hiders` array (a new DB-011
   line, forbidden); (c) remove `reyes.cpp`'s read of the core (spec 030's scope).
-- **Q7. Who sets `activeContext`** (R3). **Recommended (a)**: the core's dispatcher, for every hider (4 DB-011 lines
+- **Q7. Who sets `activeContext`** *Decided 2026-11-02: the recommended option.* (R3). **Recommended (a)**: the core's dispatcher, for every hider (4 DB-011 lines
   and 2 metric references go; the photon threads setting it is unobservable, a photon frame never displays).
   Alternative: (b) keep the writes in the two loops.
-- **Q8. The version** (R11). **Recommended (a)**: one MAJOR, 3.0.0, introduced in Phase 3 and covering the spec;
-  six `static_assert`s, four in tests. Alternative: (b) a MAJOR per changing phase.
-- **Q9. The bundles** (R4). **Recommended**: `git mv` into `src/libshader/shading/` and delete the five vestigial
+- **Q8. The version** (R11). *Superseded 2026-11-02 by the maintainer's versioning policy*: not a MAJOR step. MAJOR
+  stays at 2 until spec 055 (nothing versioned has been distributed; MAJOR 1 is the pre-versioning interface); spec
+  029 takes `kRendererServicesVersion` from 2.0.0 to 2.1.0, set in Phase 3, and the header's rule comment and history
+  say that 2.x is unstable until the milestone closes, so a MINOR step may break. Every implementer's `static_assert`
+  stays on MAJOR 2, so no test file is edited for the version ([contracts/renderer-services-version.md](contracts/renderer-services-version.md)).
+- **Q9. The bundles** *Decided 2026-11-02: the recommended option.* (R4). **Recommended**: `git mv` into `src/libshader/shading/` and delete the five vestigial
   includes. Alternative: keep the files in `src/ri/hiders/` and compile them into the shading library (archcheck
   would class them as Hiders inside the shading library).
-- **Q10. Names** (R16): `IPhotonLookup`, `IIlluminationHook`, `IPointSource`, `IShadingProducer`, `CHider`,
+- **Q10. Names** *Decided 2026-11-02: the recommended option.* (R16): `IPhotonLookup`, `IIlluminationHook`, `IPointSource`, `IShadingProducer`, `CHider`,
   `CSurfacePointSource`, `CRayLevel`, `shadeSurface`, `enterRayLevel`/`leaveRayLevel`; files as listed.
-- **Q11. `final` and the nine test classes** (R16). **Recommended**: `final`, with compile-time checks; the nine
+- **Q11. `final` and the nine test classes** *Decided 2026-11-02: the recommended option.* (R16). **Recommended**: `final`, with compile-time checks; the nine
   construct the context directly; `test_state_services.cpp` reads `vertexMemoryInUse()`; FR-025 amended for that
   accessor. Alternative: no `final`, and the tests keep subclassing an ordinary class.
-- **Q12. The public surface the hiders need** (R16). **Recommended**: named members (`rayDepth`, `inShadowRay`,
+- **Q12. The public surface the hiders need** *Decided 2026-11-02: the recommended option.* (R16). **Recommended**: named members (`rayDepth`, `inShadowRay`,
   `countTracedRay`, `enterRayLevel`/`leaveRayLevel`, `setTracer`/`tracer`, `setIlluminationHook`/`illuminationHook`,
   `setProducer`, `setShadedObject`, `vertexMemoryInUse`; `rendererIlluminationHook()` moved to public unrenamed; the
   photon hider reads `samplingConfig()`). Alternative: move the protected section to public as a whole.
-- **Q13. The new tests and labels** (Test design): `link` (everyday run), `link-package` (opt-in), additions to
+- **Q13. The new tests and labels** *Decided 2026-11-02: the recommended option.* (Test design): `link` (everyday run), `link-package` (opt-in), additions to
   `shading_contract`; T-T1 links `ribRender` (it constructs real hiders). Alternative label: `plugin_abi`-style
   per-spec labels (`or029`).
-- **Q14. SC-002's installed-package half** (R12). **Recommended (a)**: automate the build-tree consumer at every
+- **Q14. SC-002's installed-package half** *Decided 2026-11-02: the recommended option.* (R12). **Recommended (a)**: automate the build-tree consumer at every
   checkpoint; run the package consumer once per platform in Phase 8 as an opt-in test with a scratch configure whose
   install prefix is the scratch prefix (GitHub #23 is not hit). Alternatives: (b) fix #23 here (out of scope);
   (c) amend SC-002 to the build tree.
-- **Q15. How far the shading include path shrinks** (R15). **Recommended**: drop every `src/ri/*` directory the
+- **Q15. How far the shading include path shrinks** *Decided 2026-11-02: the recommended option.* (R15). **Recommended**: drop every `src/ri/*` directory the
   compile lets go (at least `hiders` in Phase 3 and `geometry` in Phase 7), recorded as a DB-023 reduction.
   Alternative: only the two FR-006 requires.
-- **Q16. Where the object hash lives** (R6, R16). **Recommended (a)**: it stays in the context behind a documented
+- **Q16. Where the object hash lives** *Decided 2026-11-02: the recommended option.* (R6, R16). **Recommended (a)**: it stays in the context behind a documented
   `objectHash()`; the #53 regression (`test_context_no_services.cpp:83-116`) keeps its assertion and the sentinel
   value is unchanged. Alternative: (b) move it to `CHider` (FR-017's other option), rewriting the #53 test against
   a test hider (TEST-APPROVAL).
@@ -396,24 +401,27 @@ Recorded in spec.md, marked "(corrected at plan, 2026-11-02)":
   it, at 13 sites (FR-010's measured list).
 - **C6**: the plan stage ran no build; the measurements the spec attributes to "the plan" are Phase 1's.
 
-Amendments that depend on an answer (not made): FR-018 and US7 AS2 (Q1); FR-025's list of allowed edits (Q3, Q5,
-Q11, and Q2 (b)); SC-002 (Q14 (c)); **D1 and FR-019** (Q5 (a)): both name spec 026's `classifyShading()` as the
-oracle, which Q5 (a) corrects in three places, so they would say "`classifyShading()` as corrected by spec 029";
-US7 AS1 and SC-008 likewise.
+Amendments applied to spec.md on 2026-11-02, after the answers (each marked "Amended 2026-11-02" there): FR-018 and
+US7 AS2 (Q1: the opaque forwarding entry in Shading until spec 031); FR-025's list of allowed test edits (Q3, Q5, Q11;
+Q2 (a) needs none); D1, FR-019, US7 AS1 and SC-008 (Q5: `classifyShading()` corrected to the code and
+`ShadingContract_Situations` edited); SC-002 and FR-004 (Q14: the opt-in scratch-prefix package test in Phase 8);
+FR-015 and the specify-stage Q2's wording (the versioning policy: 2.1.0); the Scope line. A Clarifications session
+(2026-11-02) records every answer.
 
-## Out-of-spec findings (for the maintainer to file; not fixed here)
+## Out-of-spec findings (fixed on master by the maintainer, 2026-11-02; not planned in 029)
 
-- **O1**: `tests/architecture/allowlist.txt:297`, the DB-015 section header says "(11)" against 10 lines.
-- **O2**: `CLAUDE.md` says the determinism sweep has 413 scenes; `tests/visual/determinism-scenes.cmake` has 419
-  active entries (proposed in `claude-md-draft.md`, not applied).
-- **O3**: DB-011's Evidence in `DOMAIN_BOUNDARIES.md` quotes "21 files ... 611 `CRenderer::` references" against
-  the metric baseline's 558 (029's registry edit can correct it if the maintainer agrees; it is DB-011 text 029
-  touches anyway).
+- **O1**: `tests/architecture/allowlist.txt:297`, the DB-015 section header said "(11)" against 10 lines.
+- **O2**: `CLAUDE.md` said the determinism sweep has 413 scenes; `tests/visual/determinism-scenes.cmake` has 419
+  active entries.
+- **O3**: DB-011's Evidence in `DOMAIN_BOUNDARIES.md` quoted "611 `CRenderer::` references" against the metric
+  baseline's 558 (the raw grep count, 575, noted there).
+
+029's own edits to the allowlist header counts and to DB-011 (Phase 8) start from master's corrected text.
 
 ## Reference-document decisions
 
 No decision of `DEVNOTES_DETAILS/RENDER_ARCHITECTURE_REFERENCES.md` (D1-D30) changes. D22 (one services version)
-holds with 3.0.0; D25 (the boundary stays internal C++) holds; D30 (nothing new outside the existing domains) holds.
+holds with 2.1.0; D25 (the boundary stays internal C++) holds; D30 (nothing new outside the existing domains) holds.
 Spec 049's OSL adapter maps `IPointSource` + `ShaderGlobals` onto OSL's own globals later (Q1 option B's deferral).
 
 ## Complexity Tracking

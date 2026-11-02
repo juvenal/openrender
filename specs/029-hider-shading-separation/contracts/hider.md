@@ -96,7 +96,7 @@ inside `shade()` from the source), and calls `context.shade(globals, source)`.
   through `shadingContext()`.
 - `rendererStatics.cpp:174` (`frameTracer`), `renderer.h:364-368`, `renderer.cpp:47, 780-781, 866`: deleted.
 - `rendererServicesImpl.h:104` (`tracer()` override): deleted (Q2 (a)); `:67-72` `getPhotonMap` returns
-  `IPhotonLookup *` ([photon-lookup.md](photon-lookup.md)); `:35` asserts MAJOR 3.
+  `IPhotonLookup *` ([photon-lookup.md](photon-lookup.md)); `:35` keeps asserting MAJOR 2 (the version becomes 2.1.0, [renderer-services-version.md](renderer-services-version.md)).
 - `hcshader.cpp`: the hook calls (`:120, 135, 435, 450`) through `context->illuminationHook()` with a null test;
   the attribute reads (`:143, 458`) through `context->objectAttributes()`; the probe rays (`:199, 522`) through
   `context->tracer()->traceRay(*context, &ray)` (not `libshader::traceRay`, which reports to the replay

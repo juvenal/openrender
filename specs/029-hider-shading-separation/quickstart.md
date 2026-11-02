@@ -41,8 +41,8 @@ A different count is recorded and reported (FR-031), not corrected silently.
 Timing (SC-010): five interleaved series of the scenes of research R14 on this build, kept as a copy of the
 starting tree's binaries in `build-base/` (copy, not rebuild), so later phases compare against the same bits.
 
-**Gate**: Phase 2 does not start until the Linux baseline (§4a) exists. The Linux host did not resolve from the
-planning machine on 2026-11-02: access must be restored first.
+**Gate**: Phase 2 does not start until the Linux baseline (§4a) exists. (The Linux host did not resolve from the
+planning machine on 2026-11-02; access was restored the same day.)
 
 ## §1 Red evidence
 
