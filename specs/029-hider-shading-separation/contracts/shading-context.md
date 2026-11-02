@@ -1,6 +1,6 @@
 # Contract: `CShadingContext` after spec 029 (Shading)
 
-**Status**: plan-stage proposal. It assumes the recommended answers to Q1 to Q12 ([../research.md](../research.md));
+**Status**: plan-stage proposal. It assumes the recommended answers to P-Q1 to P-Q12 ([../research.md](../research.md));
 an answer that differs changes the marked parts.
 
 **Requirements**: FR-007, FR-008, FR-013, FR-016, FR-017, FR-018; SC-004, SC-007.
@@ -17,7 +17,7 @@ an answer that differs changes the marked parts.
 - `friend class CProgrammableShaderInstance;` stays (Shading's own). The friends `CPhotonHider`, `CSphereLight`
   and `CQuadLight` go (FR-008).
 - Checked at compile time by a test: `static_assert(!std::is_polymorphic_v<CShadingContext>)`,
-  `static_assert(std::is_final_v<CShadingContext>)` (Q11).
+  `static_assert(std::is_final_v<CShadingContext>)` (P-Q11).
 
 ## Members removed
 
@@ -38,7 +38,7 @@ an answer that differs changes the marked parts.
 // Shade a batch: `globals` describes it (per-batch fields only on input), `source` samples the primitive.
 void shade(const openrender::shading::ShaderGlobals &globals, openrender::shading::IPointSource &source);
 
-// The Geometry-facing forwarding entry (Q1 (a)). `surface` is opaque: Shading never dereferences it and hands it
+// The Geometry-facing forwarding entry (P-Q1 (a)). `surface` is opaque: Shading never dereferences it and hands it
 // to the producer the owner installed. With none installed: one CODE_NOTSTARTED warning per process, nothing shaded.
 // Keeps the mangled symbol that Geometry's allowlisted calls bind to (DB-006, allowlist.txt:109-113).
 void shade(CSurface *surface, int uVertices, int vVertices, EShadingDim dim, unsigned int usedParameters,
@@ -47,7 +47,7 @@ inline void displace(CSurface *s, int u, int v, EShadingDim d, unsigned int up) 
 inline void displaceEstimate(CSurface *s, int u, int v, EShadingDim d, unsigned int up) { shade(s, u, v, d, up, 3); }   // unchanged
 void setProducer(openrender::shading::IShadingProducer *producer);   // set by the owning hider; nullptr: none
 
-// ---- Tracing (Q2 (a), FR-016)
+// ---- Tracing (P-Q2 (a), FR-016)
 void setTracer(openrender::shading::ITracer *tracer);  // set by the owning hider
 openrender::shading::ITracer *tracer() const;          // the owner's tracer, nullptr if none (no services fallback here)
 
@@ -65,7 +65,7 @@ bool enterRayLevel(const CRayBundle &bundle, int maxRayDepth, CRayLevel &saved);
 void leaveRayLevel(const CRayLevel &saved);
 int rayDepth() const;          // currentRayDepth
 bool inShadowRay() const;      // inShadow (set by traceTransmission, executeMisc.cpp:717)
-// The per-thread object hash the owner's trace groups rays with (Q16 (a)): SHADING_OBJECT_CACHE_SIZE entries,
+// The per-thread object hash the owner's trace groups rays with (P-Q16 (a)): SHADING_OBJECT_CACHE_SIZE entries,
 // allocated and filled by the constructor (GitHub #53); an empty entry's object is (CSurface *)this of the context.
 TObjectHash *objectHash();
 void countTracedRay();         // ++numTracedRays (the statistics flushed by the destructor, shading.cpp:545)
@@ -75,19 +75,19 @@ void setIlluminationHook(openrender::shading::IIlluminationHook *hook);   // nul
 openrender::shading::IIlluminationHook *illuminationHook() const;
 bool rendererIlluminationHook() const;   // moved from protected to public, unrenamed (shading.h:972)
 
-// ---- The shaded object (Q3 (a))
+// ---- The shaded object (P-Q3 (a))
 // Sets the state's opaque surface (for the observers' reports), its handle (objectHandle()) and its attributes
 // (objectAttributes() and every attribute read in Shading). The producer passes the CObject * upcast as the handle,
 // the value CRendererServicesImpl casts back.
 void setShadedObject(const CSurface *surface, openrender::shading::ObjectHandle handle, const CAttributes *attributes);
 
-// ---- Tests (Q11)
+// ---- Tests (P-Q11)
 int vertexMemoryInUse() const;   // vertexMemory, read-only
 ```
 
 `objectHandle()` and `objectAttributes()` keep their signatures and return the stored values.
 
-## `CShadingState` (Q3 (a))
+## `CShadingState` (P-Q3 (a))
 
 `CSurface *currentObject` (`shading.h:190`) is replaced by three fields, written only through
 `setShadedObject()` (on the context, for the current state) or `shade()`:

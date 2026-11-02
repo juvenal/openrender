@@ -7,14 +7,14 @@ declarations are in [contracts/](contracts/).
 
 ```text
 CRenderer (core, composition root)
- └─ contexts: CHider *[numThreads]                      (one per render thread, per frame; Q6)
+ └─ contexts: CHider *[numThreads]                      (one per render thread, per frame; P-Q6)
      CHider (Hiders)  : ITracer, IShadingProducer       (owns, traces, produces)
       ├─ context: CShadingContext (Shading, final)      (by value; built first, destroyed last)
-      │    ├─ tracer   -> the owning CHider             (setTracer; Q2)
-      │    ├─ producer -> the owning CHider             (setProducer; Q1)
+      │    ├─ tracer   -> the owning CHider             (setTracer; P-Q2)
+      │    ├─ producer -> the owning CHider             (setProducer; P-Q1)
       │    ├─ hook     -> the owning CPhotonHider, or null (setIlluminationHook)
-      │    ├─ CShadingState* (current, free list)       (surface, object handle, attributes; Q3)
-      │    └─ traceObjectHash                           (stays; reached by the hider via objectHash(); Q16)
+      │    ├─ CShadingState* (current, free list)       (surface, object handle, attributes; P-Q3)
+      │    └─ traceObjectHash                           (stays; reached by the hider via objectHash(); P-Q16)
      CReyes : CHider  (CStochastic, CZbuffer : CReyes)
      CRaytracer : CHider
      CPhotonHider : CHider, IIlluminationHook
@@ -24,7 +24,7 @@ CRenderer (core, composition root)
 |---|---|---|---|
 | `CShadingContext` | Shading | a `CHider` member, or a test's local | no virtuals, no foreign friends, `final`; constructible alone |
 | `CHider` | Hiders | `CRenderer::contexts[i]`, from `beginFrame()` to `endFrame()` | `renderingLoop()`, `shadingContext()`, the `ITracer` and `IShadingProducer` overrides |
-| `ITracer` | Shading (spec 026, unchanged signatures) | implemented by `CHider` | the context's slot first, the services' `tracer()` as the fallback for a context with no owner (Q2 (a)) |
+| `ITracer` | Shading (spec 026, unchanged signatures) | implemented by `CHider` | the context's slot first, the services' `tracer()` as the fallback for a context with no owner (P-Q2 (a)) |
 | `IIlluminationHook` | Shading | implemented by `CPhotonHider` | null on every other context |
 | `IPhotonLookup` | Shading | implemented by `CPhotonMap` | returned by `getPhotonMap()` |
 | `IPointSource` | Shading | `CSurfacePointSource` (Hiders), on the stack for one shading call | wraps one `CSurface *` and the requested parameters |
@@ -33,7 +33,7 @@ CRenderer (core, composition root)
 | `CRayLevel` | Shading | a hider's local across one `traceBundle` | saved state and label |
 | bundles (`CTraceBundle`, `CTransmissionBundle`, `CGatherBundle` and their rays) | Shading (moved) | Shading's stack or heap, as today | relocation, no change |
 
-## `CShadingState`: the shaded object (Q3 (a))
+## `CShadingState`: the shaded object (P-Q3 (a))
 
 | Field | Type | Written by | Read by |
 |---|---|---|---|
@@ -52,13 +52,13 @@ the value `CRendererServicesImpl` casts back. `nullptr`/empty everywhere for the
 | `currentRayDepth`, `currentRayLabel`, `freeStates` | the context (private) | changed only by `enterRayLevel`/`leaveRayLevel` |
 | `maxRayDepth` | the frame (`CRenderer::maxRayDepth`, read by the hider in `trace.cpp`) | passed to `enterRayLevel`; compared there once |
 | `inShadow` | the context (private) | set by `traceTransmission`; read through `inShadowRay()` |
-| `traceObjectHash` | the context (private; `objectHash()` for the owner, Q16 (a)) | reset to the context's sentinel after each pass |
+| `traceObjectHash` | the context (private; `objectHash()` for the owner, P-Q16 (a)) | reset to the context's sentinel after each pass |
 
 State transitions of one `traceBundle` (unchanged from `traceEx`): `enterRayLevel` -> (`false`: one
 `postShade(numRays, rays)`, stop) / (`true`: `traceGroups` loop: trace, `postTraceAction`, group, shade, `postShade`,
 `post`, continue while `numRays > 0`) -> `leaveRayLevel`.
 
-## `ShaderGlobals` as `shade()`'s input (Q4 (a))
+## `ShaderGlobals` as `shade()`'s input (P-Q4 (a))
 
 | Field | Filled on input | Source |
 |---|---|---|
@@ -72,7 +72,7 @@ State transitions of one `traceBundle` (unchanged from `traceEx`): `enterRayLeve
 | `shader`, `activeTags`, `numDerivativeTail` | no (default) | not known before the shaders are chosen; `shade()` computes the tail itself |
 | every per-point `Strided` field | no (absent) | the context's varyings, written before the call or sampled inside it |
 
-## The situation table, corrected to the code (Q5 (a))
+## The situation table, corrected to the code (P-Q5 (a))
 
 Changes against spec 026's table (`specs/026-shading-contract-v2/contracts/shader-globals.md`, kept as the
 record of 026) are in **bold**.
@@ -96,7 +96,8 @@ Rule order in `classifyShading()`: rows 9, 8; row 10; row 5; row 1; row 2; rows 
 ## Validation rules
 
 - FR-019: for every batch a rendered scene shades, the producer's `rayType`/`hitMode`/`transport`/`pass` equal
-  `classifyShading()` of the same situation (by construction, the producer calls it) and the observed branch of
-  `shade()` matches the row (`ShadingContract_ProducerSituations` and `ShadingContract_Situations`).
+  that scene's independent expected row (the situation table written out by hand in the test, not a second call of
+  `classifyShading()`) and the observed branch of `shade()` matches the row (`ShadingContract_ProducerSituations`);
+  `ShadingContract_Situations` pins `classifyShading()` to the same table.
 - FR-020: the derivative-offset points and the grid du/dv are computed by the unchanged code in `shading.cpp`.
 - FR-023: images, the `MaxBlockAvgDiff` list, the sweep and the replay equal the Phase 1 records.

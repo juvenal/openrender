@@ -1,6 +1,6 @@
 # Contract: `CHider`, the hiders as owners and tracers (Hiders, renderer core)
 
-**Status**: plan-stage proposal, assuming the recommended answers to Q1, Q2, Q6, Q7, Q10, Q11 and Q12
+**Status**: plan-stage proposal, assuming the recommended answers to P-Q1, P-Q2, P-Q6, P-Q7, P-Q10, P-Q11 and P-Q12
 ([../research.md](../research.md)).
 
 **Requirements**: FR-007, FR-009, FR-010, FR-016, FR-017, FR-019, FR-021; SC-004, SC-007.
@@ -52,7 +52,7 @@ unchanged; only the receiver of each member access changes (`context.`), plus:
   bundle->postShade(bundle->numRays, bundle->rays); return; } traceGroups(bundle); context.leaveRayLevel(saved);`
   (`traceEx`'s order: the depth test, the push, the trace, the pop);
 - `traceRay` counts through `context.countTracedRay()`;
-- the object hash is the context's (`context.objectHash()`, Q16 (a)), and its empty-entry sentinel stays the
+- the object hash is the context's (`context.objectHash()`, P-Q16 (a)), and its empty-entry sentinel stays the
   context's address: `traceGroups` compares and resets against `(CSurface *)&context`, never the hider's `this`
   (the trap of research R2);
 - `object->intersect(&context, ray)`, `object->cluster(&context)`, `shadingGroups->object->shade(&context, ...)`
@@ -85,17 +85,17 @@ inside `shade()` from the source), and calls `context.shade(globals, source)`.
 
 ## The renderer core
 
-- `CRenderer::contexts` becomes `CHider **` with the same name (Q6 (a); `_ZN9CRenderer8contextsE` stays, DB-011
+- `CRenderer::contexts` becomes `CHider **` with the same name (P-Q6 (a); `_ZN9CRenderer8contextsE` stays, DB-011
   line 232 stays matched). `renderer.cpp:815-845`: `contexts[i] = new CRaytracer(...)`, ...;
   `contexts[i]->shadingContext().setSamplingConfig(...)`, `.updateState()`.
-- `renderer.cpp:1029`: `dynamic_cast<CReyes *>(contexts[0])`, now from `CHider *` (the cast's meaning is
-  restored, not lost: against a `CShadingContext **` it would compile and always return null).
+- `renderer.cpp:1029`: `dynamic_cast<CReyes *>(contexts[0])`, now from `CHider *` (a downcast of a
+  polymorphic type, valid; a `dynamic_cast` from the now non-polymorphic `CShadingContext` would not compile).
 - `renderer.cpp:1052` (`rendererDispatchThread`): `CRenderer::activeContext = &contexts[w]->shadingContext();`
-  then `contexts[w]->renderingLoop();` (Q7 (a)); the writes at `reyes.cpp:229` and `raytracer.cpp:420` go.
+  then `contexts[w]->renderingLoop();` (P-Q7 (a)); the writes at `reyes.cpp:229` and `raytracer.cpp:420` go.
 - `renderer.cpp:1068`, `rendererJobs.cpp:88-89`, `rendererDeclarationsDispatch.cpp:82`, `imager.cpp:130-134`:
   through `shadingContext()`.
 - `rendererStatics.cpp:174` (`frameTracer`), `renderer.h:364-368`, `renderer.cpp:47, 780-781, 866`: deleted.
-- `rendererServicesImpl.h:104` (`tracer()` override): deleted (Q2 (a)); `:67-72` `getPhotonMap` returns
+- `rendererServicesImpl.h:104` (`tracer()` override): deleted (P-Q2 (a)); `:67-72` `getPhotonMap` returns
   `IPhotonLookup *` ([photon-lookup.md](photon-lookup.md)); `:35` keeps asserting MAJOR 2 (the version becomes 2.1.0, [renderer-services-version.md](renderer-services-version.md)).
 - `hcshader.cpp`: the hook calls (`:120, 135, 435, 450`) through `context->illuminationHook()` with a null test;
   the attribute reads (`:143, 458`) through `context->objectAttributes()`; the probe rays (`:199, 522`) through

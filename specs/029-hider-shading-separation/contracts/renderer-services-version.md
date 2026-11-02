@@ -1,7 +1,7 @@
 # Contract: the boundary version, 2.0.0 -> 2.1.0 (Shading)
 
 **Requirements**: FR-015. **Decision**: the maintainer's versioning policy (spec.md, Clarifications, Session
-2026-11-02), which replaces the plan stage's Q8. **Research**: R11.
+2026-11-02), which replaces the plan stage's P-Q8. **Research**: R11.
 **File**: `src/libshader/shading/rendererServices.h:73-97` (the rule comment, the history and the constant).
 
 ## The policy

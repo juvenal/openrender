@@ -2,7 +2,7 @@
 
 The spec-kit plan stage would normally update `CLAUDE.md` through `.specify/scripts/bash/update-agent-context.sh`.
 That script was **not** run: `CLAUDE.md` is changed only by the maintainer (spec FR-032). This file holds the
-proposed text. It is written against the maintainer's answers of 2026-11-02 (the recommended option of Q1 to Q16, and the
+proposed text. It is written against the maintainer's answers of 2026-11-02 (the recommended option of P-Q1 to P-Q16, and the
 versioning policy that makes this spec's version 2.1.0) and must be revised to the measured end state before it is
 applied. The "Spec-kit agent rules" section is
 not touched.
@@ -70,8 +70,9 @@ Every implementer `static_assert`s MAJOR 2."
 >    `shade(const ShaderGlobals &, IPointSource &)`; spec 031 retires the forwarding entry. `shade()` branches on the
 >    batch's ray type and hit mode only, which the producer takes from `classifyShading()` (corrected in spec 029 to
 >    the code: a shadow hit reads `transmissionhitmode` at every dimension; a reflection traced from a REYES grid is
->    `Secondary`; only the photon-emission batch is `Photon`: three corrections). Never C-cast a hider to a context or back: `(CReyes *)contexts[i]` once compiled into a
->    `reinterpret_cast`. The object hash stays the context's (`objectHash()`), and its empty-entry sentinel is the
+>    `Secondary`; only the photon-emission batch is `Photon`: three corrections). Never C-cast between a hider and a context: a cast from `CHider **`'s elements to `CReyes *` is a
+>    `static_cast` (use it explicitly), a C-style cast from the context is a `reinterpret_cast`, and a `dynamic_cast` from
+>    the non-polymorphic `CShadingContext` does not compile. The object hash stays the context's (`objectHash()`), and its empty-entry sentinel is the
 >    context's address, not the hider's. The core's dispatcher sets
 >    `CRenderer::activeContext` for every render thread. The shaded object is three fields of the state set
 >    together with `setShadedObject()` (opaque surface, `ObjectHandle`, attributes); Shading includes no Geometry or

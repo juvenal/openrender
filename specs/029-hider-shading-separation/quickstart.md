@@ -3,7 +3,7 @@
 How to prove each claim of the spec. Every build, test and tool run (`oshader` and `precomp` included) goes
 through `~/.claude/bin/cpujob <label> <command>`: at most `-j4` on macOS, `-j2` for the sweep and on Linux. A
 test binary is never run directly. Check `df -h /Volumes/Projects` before a build (stop below 2 GB free; a build
-directory is about 0.6 GB, and Phase 1 holds two plus a scratch red build).
+directory is about 0.6 GB; `build`, the frozen `build-base` and the Phase 1 `build-pkg` coexist, and the Phase 2 red runs reuse `build` with `-DOPENRENDER_029_RED_TESTS=ON` instead of a second tree, DEP-2). `image_manifest.sh` and `archcheck` run through `cpujob` too (wrapped in `sh -c` where their output is redirected).
 
 Paths are relative to the worktree `/Volumes/Projects/Development/CLI/openrender-worktrees/029-hider-shading-separation`.
 `tools/` is `specs/029-hider-shading-separation/tools/`, created in Phase 1 with:
@@ -20,16 +20,16 @@ macOS:
 ```bash
 ~/.claude/bin/cpujob 029-base-configure cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
 ~/.claude/bin/cpujob 029-base-build cmake --build build --config Release -j4
-tools/image_manifest.sh stamp build
+~/.claude/bin/cpujob 029-base-stamp tools/image_manifest.sh stamp build
 ~/.claude/bin/cpujob 029-base-suite ctest --test-dir build -LE determinism-sweep -j4 --output-on-failure
 cp build/Testing/Temporary/LastTest.log tools/base-LastTest-macos.log
-tools/image_manifest.sh record build > tools/baseline-images-macos.sha256
-tools/image_manifest.sh diffs tools/base-LastTest-macos.log > tools/baseline-diffs-macos.txt
+~/.claude/bin/cpujob 029-base-record sh -c 'tools/image_manifest.sh record build > tools/baseline-images-macos.sha256'
+~/.claude/bin/cpujob 029-base-diffs sh -c 'tools/image_manifest.sh diffs tools/base-LastTest-macos.log > tools/baseline-diffs-macos.txt'
 # noise: stamp and run the suite again; every image whose bytes differ goes to tools/baseline-image-noise-macos.txt
 # the sweep, once, recorded the same way (spec 026 B1):
 ~/.claude/bin/cpujob 029-base-sweep ctest --test-dir build -L '^determinism-sweep$' -j2 --output-on-failure
-tools/image_manifest.sh record build > tools/baseline-sweep-images-macos.sha256    # noise list: tools/baseline-sweep-noise-macos.txt
-build/tests/architecture/archcheck --source-dir . --build-dir build --config tests/architecture > tools/archcheck-base-macos.txt
+~/.claude/bin/cpujob 029-base-sweeprec sh -c 'tools/image_manifest.sh record build > tools/baseline-sweep-images-macos.sha256'    # noise list: tools/baseline-sweep-noise-macos.txt
+~/.claude/bin/cpujob 029-base-archreport sh -c 'build/tests/architecture/archcheck --source-dir . --build-dir build --config tests/architecture > tools/archcheck-base-macos.txt'
 nm -m build/src/libshader/shading/libshader_shading.dylib | grep 'dynamically looked up' | c++filt > tools/libshader-imports-base-macos.txt
 dyld_info -fixups build/src/libshader/shading/libshader_shading.dylib | c++filt > tools/libshader-fixups-base-macos.txt
 ```
@@ -49,7 +49,7 @@ planning machine on 2026-11-02; access was restored the same day.)
 **The link (FR-001, FR-024), Phase 1, on the starting tree, in a scratch build:**
 
 ```bash
-# no second build tree and no edit of the worktree's src/ or CMake files (departure D6): copy the generated
+# no second build tree and no edit of the worktree's src/ or CMake files (departure DEP-6): copy the generated
 # build/src/libshader/shading/CMakeFiles/libshader_shading.dir/link.txt to a scratch directory, remove
 # `-undefined dynamic_lookup` (macOS) or add `-Wl,--no-undefined` (Linux), point -o at a scratch path, and run it:
 ~/.claude/bin/cpujob 029-red-link-macos sh scratch-link.sh
@@ -58,22 +58,22 @@ planning machine on 2026-11-02; access was restored the same day.)
 The scratch link links the library without `-undefined dynamic_lookup` (macOS) and with `--no-undefined`
 (Linux). Expected: a link failure naming exactly the 4 symbols. The log goes to
 `tools/red-link-{macos,linux}.txt`. Also in Phase 1: the red run of `Link_PackageStaticConsumer`'s mechanism
-(Q14 (a)) with the package block removed in a scratch copy, recorded in `validation.md`.
+(P-Q14 (a)) with the package block removed in a scratch copy, recorded in `validation.md`.
 
 **The tests (Phase 2):** every new test of the plan's "Test design" is built in `build` configured with
-`-DOPENRENDER_029_RED_TESTS=ON` (then switched OFF again; departure D2), and each failure is recorded in `validation.md` with its reason (build failure, launch abort, wrong
+`-DOPENRENDER_029_RED_TESTS=ON` (then switched OFF again; departure DEP-2), and each failure is recorded in `validation.md` with its reason (build failure, launch abort, wrong
 value, script mismatch). The edited approved tests (TEST-APPROVAL) are shown red the same way where their edit
-makes them so (`ShadingContract_Situations` after Q5's edit).
+makes them so (`ShadingContract_Situations` after P-Q5's edit).
 
 ## §2 Per-phase checkpoint (every phase from 3 on)
 
 ```bash
 ~/.claude/bin/cpujob 029-pN-build cmake --build build --config Release -j4                                       # CP-a, -Werror
-tools/image_manifest.sh stamp build
+~/.claude/bin/cpujob 029-pN-stamp tools/image_manifest.sh stamp build
 ~/.claude/bin/cpujob 029-pN-suite ctest --test-dir build -LE determinism-sweep -j4 --output-on-failure           # CP-b
 cp build/Testing/Temporary/LastTest.log build-logs/pN.LastTest.log
-tools/image_manifest.sh diff tools/baseline-images-macos.sha256 build tools/baseline-image-noise-macos.txt          # CP-d
-diff <(tools/image_manifest.sh diffs build-logs/pN.LastTest.log) tools/baseline-diffs-macos.txt                     # CP-d
+~/.claude/bin/cpujob 029-pN-imgdiff tools/image_manifest.sh diff tools/baseline-images-macos.sha256 build tools/baseline-image-noise-macos.txt          # CP-d
+~/.claude/bin/cpujob 029-pN-mbad sh -c 'tools/image_manifest.sh diffs build-logs/pN.LastTest.log | diff - tools/baseline-diffs-macos.txt'                     # CP-d
 ~/.claude/bin/cpujob 029-pN-arch ctest --test-dir build -L architecture --output-on-failure                       # CP-c
 ~/.claude/bin/cpujob 029-pN-contract ctest --test-dir build -L '^shading_contract$|^link$' --output-on-failure
 ```
@@ -99,8 +99,8 @@ grep -rnE '#include "(bundles|photonMap|irradiance|reyes|raytracer|photon|object
 grep -n 'ri/hiders\|ri/geometry' src/libshader/shading/CMakeLists.txt   # expect: none
 grep -rnE 'force_load|whole-archive|export-dynamic|allow-shlib-undefined|dynamic_lookup|no-as-needed' CMake src/libshader tests/unit/common tests/shading_parity src/libshader/tests   # expect: none
 test ! -e tests/shading_contract/load_stub.cpp && test ! -e src/ri/hiders/hiderTracer.h
-grep -rn 'frameTracer\|CHiderTracer' src tests                     # expect: none
-grep -rn 'public CShadingContext' src tests                        # expect: none
+grep -rn --exclude-dir=link 'frameTracer\|CHiderTracer' src tests   # expect: none
+grep -rn --exclude-dir=link 'public CShadingContext' src tests      # expect: none (tests/link/ holds the checker's own patterns and is excluded from the S1c/S1d scans)
 git diff 01501f10 -- tests/architecture/allowlist.txt | grep '^+[^+]'   # expect: header-count comments only (01501f10 = master's tip, merged in Phase 1)
 ! grep -rn 'OPENRENDER_029_RED_TESTS' CMake tests src   # expect: nothing (the temporary option is removed in Phase 8)
 ```
@@ -137,13 +137,14 @@ with its cause in `validation.md` (`LibShader_McompConsistency`, #44, expected).
 
 ```bash
 ~/.claude/bin/cpujob 029-sweep ctest --test-dir build -L '^determinism-sweep$' -j2 --output-on-failure
-tools/image_manifest.sh diff tools/baseline-sweep-images-macos.sha256 build tools/baseline-sweep-noise-macos.txt
+~/.claude/bin/cpujob 029-sweepdiff tools/image_manifest.sh diff tools/baseline-sweep-images-macos.sha256 build tools/baseline-sweep-noise-macos.txt
 ssh "$H" "cd $RR && ~/.claude/bin/cpujob 029-linux-sweep ctest --test-dir build -L '^determinism-sweep$' -j2 --output-on-failure"
-~/.claude/bin/cpujob 029-package ctest --test-dir build -L '^link-package$' --output-on-failure          # Q14 (a), each platform; configure with -DOPENRENDER_LINK_PACKAGE_TEST=ON first (the test is not registered otherwise), then OFF again
+~/.claude/bin/cpujob 029-package ctest --test-dir build -L '^link-package$' --output-on-failure          # P-Q14 (a), each platform; configure with -DOPENRENDER_LINK_PACKAGE_TEST=ON first (the test is not registered otherwise), then OFF again
 ```
 
-- The JIT-off build (`-DOPENRENDER_ENABLE_JIT=OFF`, a separate build directory): builds, `-L '^link$'` and the
-  suite have no failure outside the known-flaky set (the `*Jit` tests are not registered).
+- The JIT-off build (`-DOPENRENDER_ENABLE_JIT=OFF -DCMAKE_BUILD_TYPE=Debug`, a separate build directory, so the new
+  assert-only code compiles): builds, and `-L '^link$'` and `-L '^shading_contract$'` have no failure outside the
+  known-flaky set (the `*Jit` tests are not registered); the full suite stays the Release runs of the checkpoints.
 - SC-010: the five interleaved timing series against `build-base/`; a difference beyond the measured spread is a
   defect.
 - The ThreadSanitizer build is not required by this spec.

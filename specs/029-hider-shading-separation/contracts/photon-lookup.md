@@ -1,6 +1,6 @@
 # Contract: `IPhotonLookup` (Shading-owned, implemented by `CPhotonMap`)
 
-**Requirements**: FR-012, FR-014, FR-015 (the spec's Q2, option A). **Research**: R5, R11.
+**Requirements**: FR-012, FR-014, FR-015 (the spec's S-Q2, option A). **Research**: R5, R11.
 **Files**: new `src/libshader/shading/photonLookup.h`; edited `rendererServices.h`, `shading.{h,cpp}` (the accessor
 and `jitPhotonMap`), `giFunctions.h` (two declarations), `src/ri/hiders/photonMap.h`,
 `src/ri/render/rendererServicesImpl.h`; the six test overrides of `getPhotonMap`.

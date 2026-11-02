@@ -1,6 +1,6 @@
 # Contract: `shade()`'s input: `ShaderGlobals`, the point source and the producer (Shading, Hiders)
 
-**Status**: plan-stage proposal, assuming the recommended answers to Q1, Q3, Q4 and Q5
+**Status**: plan-stage proposal, assuming the recommended answers to P-Q1, P-Q3, P-Q4 and P-Q5
 ([../research.md](../research.md) R1, R8, R9, R10).
 
 **Requirements**: FR-018 to FR-022, FR-015; US7; SC-005, SC-008.
@@ -14,7 +14,7 @@ class CAttributes;  // Graphics State (Shading may depend on it)
 class CSurface;     // opaque: never dereferenced by Shading
 
 namespace openrender::shading {
-    // What shade() asks of the primitive it shades (spec 029, Q1 option B of the specify stage). Implemented in
+    // What shade() asks of the primitive it shades (spec 029, S-Q1 option B of the specify stage). Implemented in
     // Hiders over CSurface (CSurfacePointSource). Version: kRendererServicesVersion; introduced in 2.1.0.
     // Thread-safety: one per shading call, on the calling thread's stack. Re-enters Shading: never.
     class IPointSource {
@@ -37,7 +37,7 @@ namespace openrender::shading {
 
 ```cpp
 namespace openrender::shading {
-    // The target of CShadingContext's Geometry-facing forwarding entry, shade(CSurface *, ...) (Q1 (a)).
+    // The target of CShadingContext's Geometry-facing forwarding entry, shade(CSurface *, ...) (P-Q1 (a)).
     // Implemented by the hider that owns the context (CHider) and installed with setProducer(). It builds the
     // point source and the batch description and calls CShadingContext::shade(const ShaderGlobals &, IPointSource &).
     // Introduced in 2.1.0. Re-enters Shading: yes, exactly once per call.
@@ -70,13 +70,16 @@ namespace openrender::shading {
 | `pass` | `displaceOnly` FALSE / TRUE / 3 -> `Full` / `DisplaceOnly` / `DisplaceEstimate` |
 | `object` | `ObjectHandle{static_cast<const CObject *>(surface)}` |
 | `pathDepth` | `context.rayDepth()` |
-| `rayType`, `hitMode`, `transport` | `classifyShading()` of the situation built from: `dim`, `displaceOnly`, `context.inShadowRay()`, `context.rayDepth()`, `context.rendererIlluminationHook()`, `rasterizes()`, and the three hit-mode attributes of `surface->attributes` (after Q5's correction, below) |
+| `rayType`, `hitMode`, `transport` | `classifyShading()` of the situation built from: `dim`, `displaceOnly`, `context.inShadowRay()`, `context.rayDepth()`, `context.rendererIlluminationHook()`, `rasterizes()`, and the three hit-mode attributes of `surface->attributes` (after P-Q5's correction, below) |
 | `shadingCellFootprint` | `attributes->shadingRate` |
 | `shutterOpen`, `dtime` | from `FrameParams` (`frameParams()`, Graphics State), as spec 026's double does |
 
-The producer calls the same `classifyShading()` the test oracle uses, so FR-019 holds by construction for the
-three classified fields, and `ShadingContract_ProducerSituations` checks it on rendered scenes through a
-test observer (`shadeBatchObserver`, null in production, the precedent of spec 039's `pointKeyObserver`).
+The producer calls `classifyShading()`, and `ShadingContract_Situations` (edited, T-G3) pins that function to the
+situation table. `ShadingContract_ProducerSituations` is **not** circular: for each rendered scene it compares the
+batch the producer fills (`rayType`, `hitMode`, `transport`, `pass`) with that scene's independent expected row,
+the table written out by hand in the test, and the branch `shade()` took, both read through a test observer
+(`shadeBatchObserver`, null in production, the precedent of spec 039's `pointKeyObserver`). It never calls
+`classifyShading()` itself to compute the expectation.
 
 ## `shade(const ShaderGlobals &g, IPointSource &src)`: the branches (FR-018)
 
@@ -98,7 +101,7 @@ The derivative-offset construction (`:1060-1146`) and the grid du/dv (`:1148-121
 Every row of the left column is reproduced because the producer sets `hitMode` to `Shade` wherever today's code
 tests no hit mode, and `rayType` as today's branches imply (the corrected situation table below).
 
-## `classifyShading()` corrected to the code (Q5 (a))
+## `classifyShading()` corrected to the code (P-Q5 (a))
 
 `shade()` never reads the illumination hook, so the hook may decide only the transport and the emission row.
 Order of the rules (`situation.cpp`): the passes (rows 8, 9); then:
