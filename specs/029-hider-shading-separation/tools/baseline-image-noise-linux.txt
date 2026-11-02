@@ -1,0 +1,3 @@
+# Linux suite noise list (T019): images whose bytes differ between two runs of
+# ctest -LE determinism-sweep -j2 on the starting tree. Run 2 against run 1: 900 images, 0 differing, every
+# MaxBlockAvgDiff equal (the diffs listings are identical), and the same 7 tests fail in both runs. The list is empty.

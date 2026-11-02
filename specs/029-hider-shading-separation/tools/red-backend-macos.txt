@@ -1,0 +1,118 @@
+# T015 (c) P-Q17 backend measurement on macOS, starting tree (2026-11-02).
+# Variant (b)'s prefix (force_load block deleted) plus refs.cpp, which references ONLY the four libshader_shading imports
+# (_ZTV12CTraceBundle, _ZTV19CTransmissionBundle, _ZN13CGatherBundleC1Ev, _ZN10CPhotonMap6lookupEPfPKfi) so a plain link satisfies
+# them; linked with -Wl,-why_load (CMAKE_EXE_LINKER_FLAGS). cpujob 029-pkg-consumer-c.
+
+## RESULT: rendererContext.cpp.o and ribOut.cpp.o ARE pulled; RiBegin does not report CODE_INCAPABLE; the image is written.
+## ribOut.cpp.o: pulled by 'preferCompressedRibOut', referenced directly by ri.cpp.o (RiBegin's own object).
+## rendererContext.cpp.o: pulled by 'CRendererContext::getXform(int)', referenced by rendererDeclarationsDispatch.cpp.o
+##   (itself pulled by CRenderer::makeGlobalVariable, referenced from the objects ri.cpp.o pulls).
+## So the static initializers g_rendererContextRegistrar / g_ribOutRegistrar run today through ordinary transitive references,
+## not through any reference to the registrars. The chain is a property of the starting tree; T054 repeats the measurement after Phase 3
+## (bundles.cpp leaves libRIBRender.a) and Phase 4.
+
+## run:
+== run
+consumer: image present (5273 bytes), error-handler errors=0, no-backend reports=0
+run exit=0
+total 16
+-rw-r--r--@ 1 juvenal  admin  5273 Nov  2 17:14 consumer-out.tif
+exit=0
+
+## -why_load lines naming members of libRIBRender.a (96 members):
+'__ZN11CAttributes11bindSurfaceE9TStateRefI21CShaderGroupRefTargetE' caused load of libRIBRender.a[2](attributes.cpp.o)
+'__ZN10openrender12CFrameCameraC1ERKNS_11FrameParamsE' caused load of libRIBRender.a[3](camera.cpp.o)
+'__ZN10openrender6detail18defaultFrameParamsEv' caused load of libRIBRender.a[4](frameParams.cpp.o)
+'__Z12blobbyCreateP11CAttributesP6CXformPK14CBlobbyProgramS5_iPPKcPPKv' caused load of libRIBRender.a[5](blobby.cpp.o)
+'__ZN14CBlobbyProgramC1EiiPKiiPKfiPKPKc18EBlobbyOpcodeOrderS3_' caused load of libRIBRender.a[6](blobbyField.cpp.o)
+'__Z16blobbyPolygonizePK14CBlobbyProgramfiS1_' caused load of libRIBRender.a[7](blobbyPolygonize.cpp.o)
+'__ZN15CBlobbyRepellerC1EPKcPKfffff' caused load of libRIBRender.a[8](blobbyRepeller.cpp.o)
+'__Z12makeBrickMapiPPKcS0_PK20CTextureFileResolveriS1_PPKv' caused load of libRIBRender.a[9](brickmap.cpp.o)
+'__Z16createImageInputPKc' caused load of libRIBRender.a[10](imageInput.cpp.o)
+'__ZN18COpenExrImageInputC1Ev' caused load of libRIBRender.a[11](imageInputExr.cpp.o)
+'__ZN14CPngImageInputC1Ev' caused load of libRIBRender.a[12](imageInputPng.cpp.o)
+'__ZN15CRgbeImageInputC1Ev' caused load of libRIBRender.a[13](imageInputRgbe.cpp.o)
+'__ZTI15CTiffImageInput' caused load of libRIBRender.a[14](imageInputTiff.cpp.o)
+'__Z19createTextureSystemRK22CTextureSystemSettings' caused load of libRIBRender.a[15](textureSystem.cpp.o)
+'__ZN13CGatherBundleC1Ev' caused load of libRIBRender.a[16](bundles.cpp.o)
+'__ZN11CCompositor13evaluateDepthEPKfS1_i15DepthFilterModeS1_bf' caused load of libRIBRender.a[17](compositor.cpp.o)
+'__ZN10CCurveMeshC1EP11CAttributesP6CXformP3CPliiiPii' caused load of libRIBRender.a[18](curves.cpp.o)
+'__ZN17CBSplinePatchGridC1EP11CAttributesP6CXformP11CVertexDataP10CParameteriiffffPf' caused load of libRIBRender.a[19](bsplinePatchgrid.cpp.o)
+'__Z11freeCSGTreeP11CSGTreeNode' caused load of libRIBRender.a[20](csgTree.cpp.o)
+'__Z16buildImpliedCapsPK8CSurfaceRNSt3__16vectorI7CCSGCapNS2_9allocatorIS4_EEEE' caused load of libRIBRender.a[21](csgCaps.cpp.o)
+'__ZN13CCSGEvaluatorC1EPK14CCSGDefinitionRKNSt3__16vectorIP19CCSGResolvedOperandNS3_9allocatorIS6_EEEEf' caused load of libRIBRender.a[22](csgClassify.cpp.o)
+'__ZNK14CCSGDefinition7isEmptyEv' caused load of libRIBRender.a[23](csgDefinition.cpp.o)
+'__ZN9CCSGSolidC1EP11CAttributesP6CXformP14CCSGDefinition' caused load of libRIBRender.a[24](csgSolid.cpp.o)
+'__Z22countFreeFormCrossingsP15CShadingContextPK8CSurfacePKfS5_' caused load of libRIBRender.a[25](surfaceCrossingDispatch.cpp.o)
+'__Z12geometryHostv' caused load of libRIBRender.a[26](geometryHost.cpp.o)
+'__ZN9CDataView10drawPointsEiPKfS1_' caused load of libRIBRender.a[28](dataView.cpp.o)
+'__ZN14CDelayedObjectC1EP11CAttributesP6CXformPKfS5_PFvPvfEPFvS6_ES6_Pi' caused load of libRIBRender.a[30](delayed.cpp.o)
+'__ZN15CDisplayChannelC1EPKcP9CVariableiii' caused load of libRIBRender.a[31](displayChannel.cpp.o)
+'__ZN9CDLObjectC1EP11CAttributesP6CXformP10CDloModulePvPKfS8_' caused load of libRIBRender.a[32](dlobject.cpp.o)
+'__Z19riDiagnosticsAttachv' caused load of libRIBRender.a[33](error.cpp.o)
+'__ZN10CQuadLightC1EP11CAttributesP6CXform' caused load of libRIBRender.a[34](hcshader.cpp.o)
+'__ZTV12CHiderTracer' caused load of libRIBRender.a[35](hiderTracer.cpp.o)
+'__ZN16CIrradianceCacheC1EPKcjP7__sFILEPKfS5_S5_' caused load of libRIBRender.a[36](irradiance.cpp.o)
+'__Z22irradianceSampleAcceptffP15CShadingContext' caused load of libRIBRender.a[37](irradianceDispatch.cpp.o)
+'__ZN16COcclusionCuller10initCullerEiPf' caused load of libRIBRender.a[38](occlusion.cpp.o)
+'__ZN12CPhotonHider15preDisplaySetupEv' caused load of libRIBRender.a[39](photon.cpp.o)
+'__ZN10CPhotonMap6lookupEPfPKfi' caused load of libRIBRender.a[40](photonMap.cpp.o)
+'__ZN10CRaytracerC1EiRKN10openrender7ICameraE' caused load of libRIBRender.a[41](raytracer.cpp.o)
+'__ZN6CReyes10drawObjectEP7CObject' caused load of libRIBRender.a[42](reyes.cpp.o)
+'__ZN8CSampler11reyesAbsSubEii' caused load of libRIBRender.a[43](sampler.cpp.o)
+'__ZN11CStochasticC1Ei' caused load of libRIBRender.a[44](stochastic.cpp.o)
+'__ZN15CShadingContext5traceEP4CRay' caused load of libRIBRender.a[45](trace.cpp.o)
+'__ZN8CZbuffer15preDisplaySetupEv' caused load of libRIBRender.a[46](zbuffer.cpp.o)
+'__ZN15CImagerExecutor7executeER15CShaderInstanceiiiiPfi' caused load of libRIBRender.a[47](imager.cpp.o)
+'__ZN9CImplicitC1EP11CAttributesP6CXformiP15CImplicitModulePKcff' caused load of libRIBRender.a[48](implicitSurface.cpp.o)
+'__ZN16CRendererContext4initEP27CProgrammableShaderInstance' caused load of libRIBRender.a[49](init.cpp.o)
+'__ZN7CObject11setChildrenEP15CShadingContextPS_b' caused load of libRIBRender.a[51](object.cpp.o)
+'__Z20optionsGetSearchPathPKcP11TSearchpath' caused load of libRIBRender.a[52](options.cpp.o)
+'__Z21installVariableLookupPFP9CVariablePKcE' caused load of libRIBRender.a[53](variableLookup.cpp.o)
+'__ZN10CPatchMeshC1EP11CAttributesP6CXformP3CPliiiii' caused load of libRIBRender.a[54](patches.cpp.o)
+'__ZN10CPatchGridC1EP11CAttributesP6CXformP11CVertexDataP10CParameteriiiiiiPf' caused load of libRIBRender.a[55](patchgrid.cpp.o)
+'__Z18endChannelRegistryv' caused load of libRIBRender.a[56](channelRegistry.cpp.o)
+'__Z18parseParameterListiiiiiPPKcPPKvS0_iP11CAttributes' caused load of libRIBRender.a[57](pl.cpp.o)
+'__Z20shaderParameterHooksv' caused load of libRIBRender.a[58](shaderParameterHooks.cpp.o)
+'__ZN7CPointsC1EP11CAttributesP6CXformP3CPli' caused load of libRIBRender.a[59](points.cpp.o)
+'__ZN11CPointCloudC1EPKcPKfS3_P7__sFILE' caused load of libRIBRender.a[60](pointCloud.cpp.o)
+'__ZN15CPointHierarchyC1EPKcPKfS3_P7__sFILERKNS_7OptionsE' caused load of libRIBRender.a[61](pointHierarchy.cpp.o)
+'__ZN12CPolygonMeshC1EP11CAttributesP6CXformP3CPliPiS6_S6_' caused load of libRIBRender.a[62](polygons.cpp.o)
+'__ZN11CParaboloidC1EP11CAttributesP6CXformP10CParameterjffff' caused load of libRIBRender.a[64](quadrics.cpp.o)
+'__ZN17CRemoteTSMChannelC1EPKcP7__sFILEPiii' caused load of libRIBRender.a[65](remoteChannel.cpp.o)
+'__ZN7CObject4diceEP6CReyes' caused load of libRIBRender.a[66](geometryDispatch.cpp.o)
+'__ZN9CRenderer10beginFrameEPK8COptionsP11CAttributesP6CXform' caused load of libRIBRender.a[67](renderer.cpp.o)
+'__Z11frameCamerav' caused load of libRIBRender.a[68](rendererFrame.cpp.o)
+'__ZN9CRenderer10inFrustrumEPKfS1_' caused load of libRIBRender.a[69](rendererClipping.cpp.o)
+'__ZN16CRendererContext8getXformEi' caused load of libRIBRender.a[70](rendererContext.cpp.o)
+'__ZN9CRenderer16initDeclarationsEv' caused load of libRIBRender.a[71](rendererDeclarations.cpp.o)
+'__ZN9CRenderer18makeGlobalVariableEP9CVariable' caused load of libRIBRender.a[72](rendererDeclarationsDispatch.cpp.o)
+'__ZN12CDisplayHost12startDisplayEi' caused load of libRIBRender.a[73](displayHost.cpp.o)
+'__Z22displayV1ReleasePluginPK15OrDisplayPlugin' caused load of libRIBRender.a[74](displayV1Adapter.cpp.o)
+'__ZN9CRenderer12getAOVFilterEPKc' caused load of libRIBRender.a[75](rendererDisplay.cpp.o)
+'__ZN9CRenderer12locateFileExEPcPKcS2_P11TSearchpath' caused load of libRIBRender.a[76](rendererFiles.cpp.o)
+'__Z22rendererProceduresInitv' caused load of libRIBRender.a[77](rendererProcedures.cpp.o)
+'__ZN9CRenderer10locateFileEPcPKcP11TSearchpathi' caused load of libRIBRender.a[78](rendererFileSearch.cpp.o)
+'__ZN9CRenderer11dispatchJobE' caused load of libRIBRender.a[79](rendererJobs.cpp.o)
+'__ZN9CRenderer12networkMutexE' caused load of libRIBRender.a[80](rendererMutexes.cpp.o)
+'__ZN9CRenderer7getFileEPcPKc' caused load of libRIBRender.a[81](rendererNetwork.cpp.o)
+'__Z27rendererShadingServicesInitv' caused load of libRIBRender.a[82](rendererShadingServices.cpp.o)
+'__ZN9CRenderer7toWorldE' caused load of libRIBRender.a[83](rendererStatics.cpp.o)
+'__ZN9CResourceC1EPKcP11CAttributesP6CXform' caused load of libRIBRender.a[84](resource.cpp.o)
+'_RiBegin' caused load of libRIBRender.a[85](ri.cpp.o)
+'__ZN12CRiInterface7RiErrorEiiPKc' caused load of libRIBRender.a[86](riInterface.cpp.o)
+'_preferCompressedRibOut' caused load of libRIBRender.a[87](ribOut.cpp.o)
+'__ZN12CSubdivisionC1EP11CAttributesP6CXformP11CVertexDataP10CParameteriffffPf' caused load of libRIBRender.a[88](subdivision.cpp.o)
+'__ZN11CSubdivMeshC1EP11CAttributesP6CXformP3CPliPiS6_iPPKcS6_S6_PfPK21CHierarchicalOverride' caused load of libRIBRender.a[89](subdivisionCreator.cpp.o)
+'__Z27deleteHierarchicalOverridesP21CHierarchicalOverride' caused load of libRIBRender.a[90](subdivisionHierarchical.cpp.o)
+'__ZN15CLoopSubdivMeshC1EP11CAttributesP6CXformP3CPliPiS6_' caused load of libRIBRender.a[91](subdivisionLoop.cpp.o)
+'__ZN12CPatchLayout7addNodeEffff' caused load of libRIBRender.a[92](patchLayout.cpp.o)
+'__ZN17CTesselationPatch15initTesselationEP15CShadingContext' caused load of libRIBRender.a[93](surface.cpp.o)
+'__Z11makeTexturePKcS0_PK20CTextureFileResolverS0_S0_PFfffffEffiPS0_PPKv' caused load of libRIBRender.a[94](texmake.cpp.o)
+'__Z18textureLoadTexturePKcPK20CTextureFileResolverP13CTextureCachebS0_' caused load of libRIBRender.a[95](texture.cpp.o)
+'__ZN10CTexture3d12readChannelsEP7__sFILE' caused load of libRIBRender.a[96](texture3d.cpp.o)
+'__Z22texture3dChannelSourcev' caused load of libRIBRender.a[97](texture3dChannels.cpp.o)
+'__ZN6CXform4skewEfffffff' caused load of libRIBRender.a[98](xform.cpp.o)
+'__Z8ribParsePKcPFvS0_zE' caused load of libRIBRender.a[99](rib_generated.cpp.o)
+'__ZN16CRendererContext7ifParseEPKc' caused load of libRIBRender.a[100](ifexpr_generated.cpp.o)
+'__Z16acquireDloModulePKcS0_' caused load of libRIBRender.a[101](proceduralModules.cpp.o)

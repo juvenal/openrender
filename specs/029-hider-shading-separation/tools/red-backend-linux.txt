@@ -1,0 +1,158 @@
+# T022 P-Q17 backend measurement on Linux, starting tree (2026-11-02).
+# Variant (b)s prefix (whole-archive / export-dynamic block deleted) plus refs.cpp, which references ONLY the four libshader_shading
+# imports (_ZTV12CTraceBundle, _ZTV19CTransmissionBundle, _ZN13CGatherBundleC1Ev, _ZN10CPhotonMap6lookupEPfPKfi); linked with
+# -Wl,-Map=consumer-c.map (CMAKE_EXE_LINKER_FLAGS). Remote cpujob 029-l-pkg-consumer-c.
+
+## RESULT: rendererContext.cpp.o and ribOut.cpp.o ARE pulled; RiBegin does not report CODE_INCAPABLE; the image is written.
+## ribOut.cpp.o: pulled by preferCompressedRibOut, referenced directly by ri.cpp.o. rendererContext.cpp.o: pulled by
+## CRendererContext::getXform(int), referenced by rendererDeclarationsDispatch.cpp.o. Same chain as macOS.
+
+## run:
+== run
+consumer: image present (5273 bytes), error-handler errors=0, no-backend reports=0
+run exit=0
+total 1
+-rw-rw-r-- 1 juvenal juvenal 5273 Nov  2 18:14 consumer-out.tif
+exit=0
+
+## Archive member included to satisfy reference (libRIBRender.a members: 4894 mentions, first 60 lines of the map section):
+Archive member included to satisfy reference by file (symbol)
+
+libRIBRender.a(bundles.cpp.o)
+                              CMakeFiles/consumer.dir/refs.cpp.o (CGatherBundle::CGatherBundle())
+libRIBRender.a(photonMap.cpp.o)
+                              CMakeFiles/consumer.dir/refs.cpp.o (CPhotonMap::lookup(float*, float const*, int))
+libRIBRender.a(rendererStatics.cpp.o)
+                              libRIBRender.a(photonMap.cpp.o) (CRenderer::toWorld)
+libRIBRender.a(ri.cpp.o)
+                              CMakeFiles/consumer.dir/main.cpp.o (RiWorldBegin)
+libRIBRender.a(ribOut.cpp.o)
+                              libRIBRender.a(ri.cpp.o) (preferCompressedRibOut)
+libRIBRender.a(rib_generated.cpp.o)
+                              libRIBRender.a(ri.cpp.o) (ribParse(char const*, void (*)(char const*, ...)))
+libRIBRender.a(dataView.cpp.o)
+                              libRIBRender.a(photonMap.cpp.o) (CDataView::drawPoints(int, float const*, float const*))
+libRIBRender.a(error.cpp.o)
+                              libRIBRender.a(ri.cpp.o) (riDiagnosticsAttach())
+libRIBRender.a(rendererDeclarations.cpp.o)
+                              libRIBRender.a(rib_generated.cpp.o) (CRenderer::retrieveVariable(char const*))
+libRIBRender.a(rendererDeclarationsDispatch.cpp.o)
+                              libRIBRender.a(rendererDeclarations.cpp.o) (CRenderer::makeGlobalVariable(CVariable*))
+libRIBRender.a(rendererFileSearch.cpp.o)
+                              libRIBRender.a(rib_generated.cpp.o) (CRenderer::locateFile(char*, char const*, TSearchpath*, int))
+libRIBRender.a(rendererMutexes.cpp.o)
+                              libRIBRender.a(rendererFileSearch.cpp.o) (CRenderer::networkMutex)
+libRIBRender.a(rendererNetwork.cpp.o)
+                              libRIBRender.a(rendererFileSearch.cpp.o) (CRenderer::getFile(char*, char const*))
+libRIBRender.a(riInterface.cpp.o)
+                              libRIBRender.a(ribOut.cpp.o) (CRiInterface::RiError(int, int, char const*))
+libRIBRender.a(variableLookup.cpp.o)
+                              libRIBRender.a(rendererDeclarations.cpp.o) (installVariableLookup(CVariable* (*)(char const*)))
+libRIBRender.a(channelRegistry.cpp.o)
+                              libRIBRender.a(rendererDeclarations.cpp.o) (beginChannelRegistry())
+libRIBRender.a(rendererContext.cpp.o)
+                              libRIBRender.a(rendererDeclarationsDispatch.cpp.o) (CRendererContext::getXform(int))
+libRIBRender.a(rendererDisplay.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (CRenderer::getAOVFilter(char const*))
+libRIBRender.a(rendererFiles.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (CRenderer::locateFileEx(char*, char const*, char const*, TSearchpath*))
+libRIBRender.a(resource.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (CResource::CResource(char const*, CAttributes*, CXform*))
+libRIBRender.a(subdivisionCreator.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (CSubdivMesh::CSubdivMesh(CAttributes*, CXform*, CPl*, int, int*, int*, int, char const**, int*, int*, float*, CHierarchicalOverride const*))
+libRIBRender.a(subdivisionHierarchical.cpp.o)
+                              libRIBRender.a(subdivisionCreator.cpp.o) (cloneHierarchicalOverrides(CHierarchicalOverride const*))
+libRIBRender.a(subdivisionLoop.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (CLoopSubdivMesh::CLoopSubdivMesh(CAttributes*, CXform*, CPl*, int, int*, int*))
+libRIBRender.a(texmake.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (makeTexture(char const*, char const*, CTextureFileResolver const*, char const*, char const*, float (*)(float, float, float, float), float, float, int, char const**, void const**))
+libRIBRender.a(xform.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (CXform::CXform())
+libRIBRender.a(ifexpr_generated.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (CRendererContext::ifParse(char const*))
+libRIBRender.a(proceduralModules.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (CProceduralModule::detach())
+libRIBRender.a(attributes.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (CAttributes::addLight(CShaderGroupRefTarget*))
+libRIBRender.a(blobby.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (blobbyCreate(CAttributes*, CXform*, CBlobbyProgram const*, CBlobbyProgram const*, int, char const**, void const**))
+...
+## the two members of interest, with what pulled them:
+libRIBRender.a(ribOut.cpp.o)
+                              libRIBRender.a(ri.cpp.o) (preferCompressedRibOut)
+--
+                              libRIBRender.a(ribOut.cpp.o) (CRiInterface::RiError(int, int, char const*))
+libRIBRender.a(variableLookup.cpp.o)
+--
+libRIBRender.a(rendererContext.cpp.o)
+                              libRIBRender.a(rendererDeclarationsDispatch.cpp.o) (CRendererContext::getXform(int))
+--
+                              libRIBRender.a(rendererContext.cpp.o) (CRenderer::getAOVFilter(char const*))
+libRIBRender.a(rendererFiles.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (CRenderer::locateFileEx(char*, char const*, char const*, TSearchpath*))
+libRIBRender.a(resource.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (CResource::CResource(char const*, CAttributes*, CXform*))
+libRIBRender.a(subdivisionCreator.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (CSubdivMesh::CSubdivMesh(CAttributes*, CXform*, CPl*, int, int*, int*, int, char const**, int*, int*, float*, CHierarchicalOverride const*))
+libRIBRender.a(subdivisionHierarchical.cpp.o)
+--
+                              libRIBRender.a(rendererContext.cpp.o) (CLoopSubdivMesh::CLoopSubdivMesh(CAttributes*, CXform*, CPl*, int, int*, int*))
+libRIBRender.a(texmake.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (makeTexture(char const*, char const*, CTextureFileResolver const*, char const*, char const*, float (*)(float, float, float, float), float, float, int, char const**, void const**))
+libRIBRender.a(xform.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (CXform::CXform())
+libRIBRender.a(ifexpr_generated.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (CRendererContext::ifParse(char const*))
+libRIBRender.a(proceduralModules.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (CProceduralModule::detach())
+libRIBRender.a(attributes.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (CAttributes::addLight(CShaderGroupRefTarget*))
+libRIBRender.a(blobby.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (blobbyCreate(CAttributes*, CXform*, CBlobbyProgram const*, CBlobbyProgram const*, int, char const**, void const**))
+libRIBRender.a(blobbyField.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (CBlobbyProgram::~CBlobbyProgram())
+libRIBRender.a(blobbyPolygonize.cpp.o)
+--
+                              libRIBRender.a(rendererContext.cpp.o) (CCurveMesh::CCurveMesh(CAttributes*, CXform*, CPl*, int, int, int, int*, int))
+libRIBRender.a(bsplinePatchgrid.cpp.o)
+--
+                              libRIBRender.a(rendererContext.cpp.o) (CSGTreeNode::CSGTreeNode(ECSGOperation, CSGTreeNode*))
+libRIBRender.a(csgDefinition.cpp.o)
+--
+                              libRIBRender.a(rendererContext.cpp.o) (CCSGSolid::CCSGSolid(CAttributes*, CXform*, CCSGDefinition*))
+libRIBRender.a(surfaceCrossingDispatch.cpp.o)
+--
+                              libRIBRender.a(rendererContext.cpp.o) (setGeometryHost(CGeometryHost*))
+libRIBRender.a(delayed.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (CDelayedObject::CDelayedObject(CAttributes*, CXform*, float const*, float const*, void (*)(void*, float), void (*)(void*), void*, int*))
+libRIBRender.a(displayChannel.cpp.o)
+--
+                              libRIBRender.a(rendererContext.cpp.o) (CDLObject::CDLObject(CAttributes*, CXform*, CDloModule*, void*, float const*, float const*))
+libRIBRender.a(hcshader.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (CSphereLight::CSphereLight(CAttributes*, CXform*))
+libRIBRender.a(irradiance.cpp.o)
+--
+                              libRIBRender.a(rendererContext.cpp.o) (CImplicit::CImplicit(CAttributes*, CXform*, int, CImplicitModule*, char const*, float, float))
+libRIBRender.a(init.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (CRendererContext::init(CProgrammableShaderInstance*))
+libRIBRender.a(object.cpp.o)
+--
+                              libRIBRender.a(rendererContext.cpp.o) (COptions::CDisplay::CDisplay())
+libRIBRender.a(patches.cpp.o)
+--
+                              libRIBRender.a(rendererContext.cpp.o) (CPoints::CPoints(CAttributes*, CXform*, CPl*, int))
+libRIBRender.a(pointCloud.cpp.o)
+--
+                              libRIBRender.a(rendererContext.cpp.o) (CPolygonMesh::CPolygonMesh(CAttributes*, CXform*, CPl*, int, int*, int*, int*))
+libRIBRender.a(quadrics.cpp.o)
+                              libRIBRender.a(rendererContext.cpp.o) (CSphere::CSphere(CAttributes*, CXform*, CParameter*, unsigned int, float, float, float, float))
+libRIBRender.a(remoteChannel.cpp.o)
+--
+                              libRIBRender.a(rendererContext.cpp.o) (CRenderer::beginRenderer(CRendererContext*, char const*, char const*))
+libRIBRender.a(rendererFrame.cpp.o)
+--
+libRIBCommon.so.1             libRIBRender.a(rendererContext.cpp.o) (RI_PW)
+libOpenEXR-3_1.so.30          libRIBRender.a(imageInputExr.cpp.o) (Imf_3_1::ChannelList::begin() const)
+--
+libc.so.6                     libRIBRender.a(rendererContext.cpp.o) (fgets@@GLIBC_2.2.5)
+ld-linux-x86-64.so.2          libRIBRender.a(imager.cpp.o) (__tls_get_addr@@GLIBC_2.3)

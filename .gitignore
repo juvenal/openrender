@@ -65,6 +65,8 @@ Thumbs.db
 
 # Logs
 *.log
+# Spec 029 starting-tree test logs: fixed references, tracked on purpose
+!specs/029-hider-shading-separation/tools/*.log
 *.out
 
 # IDE

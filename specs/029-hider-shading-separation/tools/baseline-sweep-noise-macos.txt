@@ -1,0 +1,2 @@
+# macOS sweep noise list (T011): images whose bytes differ between two runs of
+# ctest -L '^determinism-sweep$' -j2 on the starting tree. Run 2 against run 1: 419 images, 0 differing. The list is empty.

@@ -466,6 +466,17 @@ indirection: a member at a fixed offset). The method is spec 026's SC-010: five 
 against a starting-tree build, on `somewood`/`wood`/`blue_marble`, a `gather` scene, a photon-map scene and a
 heavy REYES grid scene.
 
+**Scaled copies (maintainer decision on the Phase 1 finding F1, 2026-11-02).** The suite RIBs of those six scenes
+(`teapot-somewood-reyes`, `teapot-wood-reyes`, `teapot-blue_marble-reyes`, `sphere-gather-reyes`, `photon-parity`,
+`killeroo-reyes`) render in 0.09 to 0.80 s at `-t:4`, which is process start-up noise: a per-batch virtual call cannot show in it.
+`tools/timing_sc010.sh` therefore times a **scratch copy** of each RIB, generated once per run into its scratch directory (never a
+tracked scene, the same bytes for both trees), with a larger `Format` (every `Format w h a` times F; 640x480 times F inserted when
+the RIB has none), a finer `ShadingRate` (divided by S; 1/S inserted when none) and, for the photon scene, more photons (`"int emit"` times E).
+Initial factors, chosen from the unscaled times and the cost model (pixels x 1/ShadingRate x photons), aiming at several seconds per render at `-t:4`:
+somewood F=2 S=2; wood F=4 S=4; blue_marble F=4 S=4; gather F=3 S=2; photon-parity F=6 E=4 (`-t:1`, the photon hider races); killeroo F=2 S=4.
+The script flags `TOO SHORT` for a median under `MIN_SECONDS` (default 3) and exits 3; the first run confirms or raises the factors, and the confirmed
+values are recorded in validation.md §5. No timing has been run with them yet.
+
 ## R15. What the plan could not measure without a build
 
 - that the two `irradiance.h` includes are vestigial (no `CIrradianceCache` use; a transitive need is

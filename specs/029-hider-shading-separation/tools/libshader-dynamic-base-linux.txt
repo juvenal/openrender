@@ -1,0 +1,38 @@
+
+Dynamic section at offset 0x24903e8 contains 35 entries:
+  Tag        Type                         Name/Value
+ 0x0000000000000001 (NEEDED)             Shared library: [libRIBShadeop.so.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libRIBCommon.so.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libz.so.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libzstd.so.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libtinfo.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [ld-linux-x86-64.so.2]
+ 0x000000000000000e (SONAME)             Library soname: [libshader_shading.so.1]
+ 0x000000000000001d (RUNPATH)            Library runpath: [/home/juvenal/Projects/Development/CLI/openrender-029/build/src/shadeop:/home/juvenal/Projects/Development/CLI/openrender-029/build/src/common:]
+ 0x000000000000000c (INIT)               0x541000
+ 0x000000000000000d (FINI)               0x1baed84
+ 0x0000000000000019 (INIT_ARRAY)         0x231f968
+ 0x000000000000001b (INIT_ARRAYSZ)       1808 (bytes)
+ 0x000000000000001a (FINI_ARRAY)         0x2320078
+ 0x000000000000001c (FINI_ARRAYSZ)       8 (bytes)
+ 0x000000006ffffef5 (GNU_HASH)           0x298
+ 0x0000000000000005 (STRTAB)             0xd39c0
+ 0x0000000000000006 (SYMTAB)             0x32938
+ 0x000000000000000a (STRSZ)              1974671 (bytes)
+ 0x000000000000000b (SYMENT)             24 (bytes)
+ 0x0000000000000003 (PLTGOT)             0x2493fe8
+ 0x0000000000000002 (PLTRELSZ)           265512 (bytes)
+ 0x0000000000000014 (PLTREL)             RELA
+ 0x0000000000000017 (JMPREL)             0x4ffcc0
+ 0x0000000000000007 (RELA)               0x2c3548
+ 0x0000000000000008 (RELASZ)             2344824 (bytes)
+ 0x0000000000000009 (RELAENT)            24 (bytes)
+ 0x000000006ffffffe (VERNEED)            0x2c3208
+ 0x000000006fffffff (VERNEEDNUM)         7
+ 0x000000006ffffff0 (VERSYM)             0x2b5b50
+ 0x000000006ffffff9 (RELACOUNT)          78643
+ 0x0000000000000000 (NULL)               0x0

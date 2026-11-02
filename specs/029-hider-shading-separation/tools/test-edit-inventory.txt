@@ -1,0 +1,257 @@
+# T006 test-edit inventory, measured 2026-11-02 at HEAD 3cddd988
+# grep -rnE over tests/ and src/ (C/C++ sources, headers, CMake files); replay files are data and not scanned
+
+## 1. classes subclassing CShadingContext
+## pattern: public[[:space:]]+CShadingContext
+src/ri/hiders/photon.h:41:class CPhotonHider : public CShadingContext {
+src/ri/hiders/raytracer.h:145:class CRaytracer : public CShadingContext {
+src/ri/hiders/reyes.h:106:class CReyes : public CShadingContext {
+tests/shading_contract/contract_harness.h:38:class CHarnessContext : public CShadingContext {
+tests/shading_contract/rendered_harness.h:38:class CRProbeContext : public CShadingContext {
+tests/shading_parity/test_context_no_services.cpp:75:class CMinimalContext : public CShadingContext {
+tests/shading_parity/test_false_if_constructs.cpp:62:class CRunProbeContext : public CShadingContext {
+tests/shading_parity/test_illumination_hook_conditions.cpp:127:class CHookProbeContext : public CShadingContext {
+tests/shading_parity/test_illumination_hook_operands.cpp:146:class CHookProbeContext : public CShadingContext {
+tests/shading_parity/test_illumination_hook.cpp:131:class CHookProbeContext : public CShadingContext {
+tests/shading_parity/test_state_services.cpp:64:class CMinimalContext : public CShadingContext {
+tests/shading_parity/texture_substitute_harness.h:56:class CProbeContext : public CShadingContext {
+
+## 2. CRenderer::contexts
+## pattern: CRenderer::contexts
+src/ri/hiders/reyes.cpp:1994:        CReyes *hider = (CReyes *)CRenderer::contexts[i];
+src/ri/render/imager.cpp:130:        if (CRenderer::contexts == nullptr || CRenderer::contexts[0] == nullptr) {
+src/ri/render/imager.cpp:134:        ctx = CRenderer::contexts[0];
+src/ri/render/renderer.cpp:1052:    CRenderer::contexts[(uintptr_t)w]->renderingLoop();
+src/ri/render/rendererStatics.cpp:196:CShadingContext **CRenderer::contexts = NULL;                            // initialized in beginFrame, destroyed in endFrame
+tests/imager/test_imager_execution.cpp:13: * Note: execute() requires a live shading context (CRenderer::contexts[0]),
+tests/imager/test_imager_execution.cpp:88:    // WorldBegin initialises CRenderer::contexts — required by execute()
+tests/shading_parity/test_ambient_accumulation.cpp:154:        CShadingContext *ctx = CRenderer::contexts[0];
+tests/shading_parity/test_ambient_accumulation.cpp:235:        CShadingContext *ctx = CRenderer::contexts[0];
+tests/shading_parity/test_derivative_inactive_grid_lanes.cpp:243:    CShadingContext *ctx = CRenderer::contexts[0];
+tests/shading_parity/test_derivative_inactive_lanes.cpp:171:    CShadingContext *ctx = CRenderer::contexts[0];
+tests/shading_parity/test_state_services.cpp:184:    EXPECT_TRUE(CRenderer::contexts != nullptr);
+tests/shading_parity/test_state_services.cpp:185:    if (original == nullptr || CRenderer::contexts == nullptr) {
+tests/shading_parity/test_state_services.cpp:216:            if (CMinimalContext::vertexMemoryOf(CRenderer::contexts[i]) != fresh.memory()) {
+tests/shading_parity/test_state_services.cpp:217:                printf("  context %d: vertexMemory %d, fresh context %d\n", i, CMinimalContext::vertexMemoryOf(CRenderer::contexts[i]), fresh.memory());
+tests/unit/csg/csgTestUtils.h:13: *     CShadingContext (CRenderer::contexts[0]) for mesh materialization and
+tests/unit/csg/csgTestUtils.h:157:            CShadingContext *ctx() const { return CRenderer::contexts != NULL ? CRenderer::contexts[0] : NULL; }
+tests/unit/motion/replay_capture.h:165:            CShadingContext *ctx() const { return CRenderer::contexts != NULL ? CRenderer::contexts[0] : NULL; }
+tests/unit/motion/test_frame_params_equal_core.cpp:131:        const openrender::sampling::CSamplingConfig &cfg = CRenderer::contexts[0]->samplingConfig();
+tests/unit/rib_parse/test_sampling_option_rsl.cpp:47:    return CRenderer::contexts[0];
+tests/unit/sampling/scene_probe.h:133:            CShadingContext *ctx() const { return CRenderer::contexts != nullptr ? CRenderer::contexts[0] : nullptr; }
+
+## 3. CRenderer::activeContext
+## pattern: CRenderer::activeContext
+src/libshader/shading/activeContext.h:5:// CRenderer::activeContext (which lives in src/ri/).  This module provides the
+src/ri/hiders/raytracer.cpp:420:    CRenderer::activeContext = this;
+src/ri/hiders/reyes.cpp:229:    CRenderer::activeContext = this;
+src/ri/render/imager.cpp:128:    CShadingContext *ctx = CRenderer::activeContext;
+src/ri/render/rendererStatics.cpp:108:thread_local CShadingContext *CRenderer::activeContext = nullptr;            // set by each render thread at loop start
+
+## 4. currentObject
+## pattern: \bcurrentObject\b
+src/libshader/shading/shading.cpp:1022:    savedObject = currentShadingState->currentObject;
+src/libshader/shading/shading.cpp:1023:    currentShadingState->currentObject = object;
+src/libshader/shading/shading.cpp:1389:    currentShadingState->currentObject = savedObject;
+src/libshader/shading/shading.cpp:1438:        newState->currentObject = NULL;
+src/libshader/shading/shading.cpp:1776:        const CAttributes *currentAttributes = ss->currentObject->attributes;
+src/libshader/shading/shading.cpp:1835:    const CAttributes *attr = ss->currentObject->attributes;
+src/libshader/shading/shading.cpp:2064:        const CAttributes *attr = ss->currentObject->attributes;
+src/libshader/shading/shading.cpp:2650:    if (currentShadingState->currentObject == NULL)
+src/libshader/shading/shading.cpp:2653:    CAttributes *currentAttributes = currentShadingState->currentObject->attributes;
+src/libshader/shading/shading.cpp:2818:    const float mult = (currentShadingState && currentShadingState->currentObject &&
+src/libshader/shading/shading.cpp:2819:                        currentShadingState->currentObject->attributes &&
+src/libshader/shading/shading.cpp:2820:                        (currentShadingState->currentObject->attributes->flags & ATTRIBUTES_FLAGS_INSIDE))
+src/libshader/shading/shading.cpp:4014:    const CAttributes *cAttributes = currentShadingState->currentObject
+src/libshader/shading/shading.cpp:4015:                                          ? currentShadingState->currentObject->attributes
+src/libshader/shading/shading.cpp:403:    return openrender::shading::ObjectHandle{static_cast<const CObject *>(currentShadingState->currentObject)};
+src/libshader/shading/shading.cpp:413:    return currentShadingState->currentObject != nullptr ? currentShadingState->currentObject->attributes : nullptr;
+src/libshader/shading/shading.cpp:4288:    const CAttributes *cAttributes = currentShadingState->currentObject->attributes;
+src/libshader/shading/shading.h:190:        CSurface *currentObject;        // Current object
+src/libshader/shading/shading.h:879:        // macro's ternary resolve to `currentObject->attributes->
+src/ri/hcshader.cpp:143:        const float bias = currentShadingState->currentObject->attributes->bias;
+src/ri/hcshader.cpp:458:        const float bias = currentShadingState->currentObject->attributes->bias;
+src/ri/hiders/photon.cpp:178:                        currentShadingState->currentObject = phony;
+src/ri/render/imager.cpp:82:    state->currentObject = nullptr;
+tests/shading_contract/case_null_object_messages.cpp:7: * On the starting tree surface() and its four siblings dereference currentObject->attributes (a crash: that is
+tests/shading_contract/case_null_object.cpp:7: * attribute() dereferences currentObject->attributes (a crash: that is the red evidence). With the
+tests/shading_contract/case_offending_object.cpp:50:        ctx->currentShadingState->currentObject = s.object;
+tests/shading_contract/case_offending_object.cpp:59:        ctx->currentShadingState->currentObject = nullptr;
+tests/shading_contract/case_type_mismatch_real.cpp:87:        ss->currentObject = s.object;
+tests/shading_contract/contract_harness.h:103:            ss->currentObject = nullptr; // the standalone program has no object (QE); the executor's reads take built-in defaults (FR-027)
+tests/shading_contract/rendered_harness.h:104:            ss->currentObject = obj;
+tests/shading_parity/test_ambient_accumulation.cpp:175:                ss->currentObject = new CTestSurface(attrs, xform);
+tests/shading_parity/test_ambient_accumulation.cpp:255:                ss->currentObject = surface;
+tests/shading_parity/test_false_if_constructs.cpp:99:    ss->currentObject = object;
+tests/shading_parity/texture_substitute_harness.h:89:    ss->currentObject = object;
+
+## 5. getPhotonMap
+## pattern: getPhotonMap
+src/libshader/shading/rendererServices.h:316:        virtual CPhotonMap *getPhotonMap(const char *name) = 0;
+src/libshader/shading/rendererServices.h:321:        // as getPhotonMap.
+src/libshader/shading/shading.cpp:567:CPhotonMap *CShadingContext::rendererGetPhotonMap(const char *n) { return SVC ? SVC->getPhotonMap(n) : nullptr; }
+src/ri/CMakeLists.txt:314:# (CRenderer::getShader/getPhotonMap/getCache, LLVM JIT shader loading) and
+src/ri/CMakeLists.txt:345:# full-pipeline-only getShader/getPhotonMap/etc. -- and they're actually
+src/ri/dataviewer/dataLoad.h:27:// constructs for the CDataDocument's own lifetime (never via CRenderer::getPhotonMap/getCache/
+src/ri/render/renderer.cpp:1003:            cAttributes->globalMap = MapRef::retain(getPhotonMap(cAttributes->globalMapName));
+src/ri/render/renderer.cpp:1009:            cAttributes->causticMap = MapRef::retain(getPhotonMap(cAttributes->causticMapName));
+src/ri/render/renderer.cpp:772:    // The texture loads stay serialized with the other resource loads (getCache, getTexture3d, getPhotonMap hold
+src/ri/render/renderer.h:282:        static CPhotonMap *getPhotonMap(const char *);                                                                         // Load a photon map
+src/ri/render/rendererFiles.cpp:143:// Method				:	getPhotonMap
+src/ri/render/rendererFiles.cpp:147:CPhotonMap *CRenderer::getPhotonMap(const char *name) {
+src/ri/render/rendererFileSearch.cpp:10: *   -- getShader/getPhotonMap/getCache/getTexture3d, needing LLVM's
+src/ri/render/rendererServicesImpl.h:67:        CPhotonMap *getPhotonMap(const char *name) override {
+src/ri/render/rendererServicesImpl.h:69:            CPhotonMap *p = CRenderer::getPhotonMap(name);
+tests/shading_contract/case_link.cpp:50:    CT_EXPECT(svc.count("getPhotonMap") == 0);
+tests/shading_contract/contract_forwarder.h:92:        CPhotonMap *getPhotonMap(const char *name) override { return inner->getPhotonMap(name); }
+tests/shading_contract/contract_services.h:242:        CPhotonMap *getPhotonMap(const char *) override {
+tests/shading_contract/contract_services.h:243:            calls.push_back("getPhotonMap");
+tests/shading_parity/recording_services.h:163:        CPhotonMap *getPhotonMap(const char *) override { return nullptr; }
+tests/shading_parity/recording_services.h:67:        CPhotonMap *getPhotonMap(const char *name) override { return inner->getPhotonMap(name); }
+tests/shading_parity/recording_texture_system.h:234:        CPhotonMap *getPhotonMap(const char *name) override { return inner->getPhotonMap(name); }
+tests/shading_parity/table_services.h:61:        CPhotonMap *getPhotonMap(const char *name) override { return inner->getPhotonMap(name); }
+tests/unit/photon_map/test_photon_map_frame_release.cpp:104:    CPhotonMap *map = CRenderer::getPhotonMap(name);
+tests/unit/photon_map/test_photon_map_sessions.cpp:107:    CPhotonMap *map = CRenderer::getPhotonMap(name);
+tests/visual/CMakeLists.txt:859:# CRenderer::getPhotonMap() always constructs a (dummy, empty) map
+
+## 6. CHiderTracer / frameTracer
+## pattern: CHiderTracer|frameTracer
+src/libshader/shading/tracer.h:34:    // implementation, CHiderTracer, forwards to the hider's trace() and traceEx(). With no tracer Shading
+src/libshader/shading/tracer.h:81:            // entry that applies them (CHiderTracer does exactly that); one that does not call it must keep
+src/ri/hiders/hiderTracer.cpp:21:void CHiderTracer::traceRay(CShadingContext &context, CRay *ray) {
+src/ri/hiders/hiderTracer.cpp:25:void CHiderTracer::traceBundle(CShadingContext &context, CRayBundle *bundle) {
+src/ri/hiders/hiderTracer.h:25:static_assert(openrender::shading::kRendererServicesVersion.major == 2, "CHiderTracer is written against services version 2");
+src/ri/hiders/hiderTracer.h:27:class CHiderTracer final : public openrender::shading::ITracer {
+src/ri/hiders/hiderTracer.h:7: *   CHiderTracer: the hiders' answer to Shading's ITracer (spec 026, contracts/tracer.md). An adapter over
+src/ri/render/renderer.cpp:780:    static CHiderTracer hiderTracer;
+src/ri/render/renderer.cpp:781:    frameTracer = &hiderTracer;
+src/ri/render/renderer.cpp:866:    frameTracer = nullptr;
+src/ri/render/renderer.h:368:        static openrender::shading::ITracer *frameTracer;
+src/ri/render/rendererServicesImpl.h:104:        openrender::shading::ITracer *tracer() override { return CRenderer::frameTracer; }
+src/ri/render/rendererStatics.cpp:174:openrender::shading::ITracer *CRenderer::frameTracer = nullptr;       // the frame's tracer (spec 026): set in beginFrame, cleared in endFrame
+
+## 7. trace / traceEx calls
+## pattern: (->|\.)trace\(|traceEx
+src/libshader/compiler/llvmEmitter.cpp:1217:                // sampling + traceEx) on every remaining-sample iteration, not just
+src/libshader/shading/shading.cpp:1305:        // other writer is traceEx(), for secondary-ray bundles), so it must
+src/libshader/shading/shading.h:392:        void traceEx(CRayBundle *); // Trace and maybe shade a bundle of rays. This version increments the shading depth
+src/libshader/shading/traceCalls.h:38:    // Trace a bundle one level deeper and shade what it hits (the contract of CShadingContext::traceEx()). With no
+src/libshader/shading/traceCalls.h:39:    // tracer: one warning for `kind`, then bundle->postShade(numRays, rays), the path traceEx() takes past the maximum
+src/libshader/shading/tracer.h:34:    // implementation, CHiderTracer, forwards to the hider's trace() and traceEx(). With no tracer Shading
+src/libshader/shading/tracer.h:74:            // CShadingContext::traceEx(). The bundle (shading.h) holds numRays, rays (an array of CRay *),
+src/libshader/shading/tracer.h:80:            // the depth rule and the state recycling only by calling context.traceEx(bundle), the one public
+src/ri/hcshader.cpp:199:                    context->trace(&ray);
+src/ri/hcshader.cpp:522:                        context->trace(&ray);
+src/ri/hiders/hiderTracer.cpp:22:    context.trace(ray);
+src/ri/hiders/hiderTracer.cpp:26:    context.traceEx(bundle);
+src/ri/hiders/hiderTracer.h:8: *   CShadingContext::trace() and traceEx(), which stay where they are (trace.cpp). Stateless: all trace state is a
+src/ri/hiders/trace.cpp:249:// Method				:	traceEx
+src/ri/hiders/trace.cpp:253:void CShadingContext::traceEx(CRayBundle *bundle) {
+tests/shading_contract/load_stub.cpp:20: * (Phase 8: the two CShadingContext::trace/traceEx traps are gone, the trace calls go through ITracer.)
+
+## 8. CPointKeyReport / CPointDisplacedReport
+## pattern: CPointKeyReport|CPointDisplacedReport
+src/libshader/shading/shading.cpp:1286:            const CPointDisplacedReport report{object, displaceOnly, currentShadingState->numRealVertices, varying[VARIABLE_U],
+src/libshader/shading/shading.cpp:835:        const CPointKeyReport keyReport{object, numReal, state->pointKeys, u, v, dim, FALSE, inShadow, currentRayDepth,
+src/libshader/shading/shading.h:250:struct CPointKeyReport {
+src/libshader/shading/shading.h:262:typedef void (*CPointKeyObserver)(const CPointKeyReport &);
+src/libshader/shading/shading.h:269:struct CPointDisplacedReport {
+src/libshader/shading/shading.h:281:typedef void (*CPointDisplacedObserver)(const CPointDisplacedReport &);
+src/libshader/shading/shading.h:357:        // Test hook, null in production (see CPointKeyReport). Set only by tests.
+tests/shading_contract/case_situations.cpp:59:    void onKey(const CPointKeyReport &r) {
+tests/shading_contract/case_situations.cpp:63:    void onDisplaced(const CPointDisplacedReport &r) {
+tests/shading_contract/case_situations.cpp:8: * The renderer's two test observers (CPointKeyReport, CPointDisplacedReport) report, per shading call,
+tests/shading_contract/situations_main.cpp:6: * Phase 9 adds (CPointKeyReport::dim and friends) and would otherwise stop the whole rendered program
+tests/unit/sampling/scene_probe.h:12://       keys, with a CPointKeyReport:
+tests/unit/sampling/scene_probe.h:14://           struct CPointKeyReport {
+tests/unit/sampling/scene_probe.h:20://           typedef void (*CPointKeyObserver)(const CPointKeyReport &);
+tests/unit/sampling/scene_probe.h:71:    inline void observe(const CPointKeyReport &r) {
+tests/unit/sampling/test_displace_consistency.cpp:50:void observeDisplaced(const CPointDisplacedReport &r) {
+
+## 9. illuminateBegin / solarBegin
+## pattern: illuminateBegin|solarBegin
+src/libshader/shading/rslOps.h:272: * hook active it calls solarBegin(NULL, NULL); otherwise a tagged vertex gets its tag
+src/libshader/shading/shaderOpcodes.h:216:        illuminateBegin(hookOperand(Pl, stepP, tags, numVertices), NULL, NULL); \
+src/libshader/shading/shaderOpcodes.h:272:        illuminateBegin(hookOperand(Pf, stepP, tags, numVertices), hookOperand(Nf, stepN, tags, numVertices),                \
+src/libshader/shading/shaderOpcodes.h:382:        solarBegin(NULL, NULL);                         \
+src/libshader/shading/shaderOpcodes.h:421:        solarBegin(hookOperand(Nf, stepN, tags, numVertices),           \
+src/libshader/shading/shading.cpp:2148:            illuminateBegin(hookOperand(from, sf, tags, n), nullptr, nullptr);
+src/libshader/shading/shading.cpp:2192:            illuminateBegin(hookOperand(from, sf, tags, n), hookOperand(axis, sa, tags, n), hookOperand(angle, st, tags, n));
+src/libshader/shading/shading.cpp:2311:            solarBegin(hookOperand(Nf, sf, tags, n), hookOperand(thetaf, st, tags, n));
+src/libshader/shading/shading.cpp:2350:// With the illumination hook active only solarBegin(NULL, NULL) is called.
+src/libshader/shading/shading.cpp:2360:            solarBegin(nullptr, nullptr);
+src/libshader/shading/shading.h:1007:        virtual void solarBegin(const float *, const float *) {}
+src/libshader/shading/shading.h:1009:        virtual void illuminateBegin(const float *, const float *, const float *) {}
+src/libshader/shading/shading.h:643:        // calls solarBegin(NULL, NULL); otherwise L = Ps for each active vertex (no culling).
+src/ri/hcshader.cpp:120:        context->illuminateBegin(Pf, Nf, thetaf);
+src/ri/hcshader.cpp:435:        context->illuminateBegin(Pf, Nf, thetaf);
+src/ri/hiders/photon.cpp:238:// Method				:	solarBegin
+src/ri/hiders/photon.cpp:242:void CPhotonHider::solarBegin(const float *L, const float *) {
+src/ri/hiders/photon.cpp:423:// Method				:	illuminateBegin
+src/ri/hiders/photon.cpp:427:void CPhotonHider::illuminateBegin(const float *P, const float *N, const float *theta) {
+src/ri/hiders/photon.h:53:        void solarBegin(const float *, const float *);
+src/ri/hiders/photon.h:55:        void illuminateBegin(const float *, const float *, const float *);
+src/ri/render/init.cpp:64:#define illuminateBegin(a, b, c, d, e, f)
+tests/shading_parity/test_false_if_constructs.cpp:206:            fprintf(stderr, "    %s: %d illuminateBegin, %d illuminateEnd, gather bundle %s (expected %d, %d, %s)\n",
+tests/shading_parity/test_false_if_constructs.cpp:61:// illuminateBegin/illuminateEnd hook calls
+tests/shading_parity/test_false_if_constructs.cpp:72:        void illuminateBegin(const float *, const float *, const float *) override { ++numBegins; }
+tests/shading_parity/test_illumination_hook_conditions.cpp:136:        void illuminateBegin(const float *P, const float *N, const float *theta) override {
+tests/shading_parity/test_illumination_hook_conditions.cpp:147:        void solarBegin(const float *N, const float *theta) override {
+tests/shading_parity/test_illumination_hook_conditions.cpp:73:            return "illuminateBegin";
+tests/shading_parity/test_illumination_hook_conditions.cpp:77:            return "solarBegin";
+tests/shading_parity/test_illumination_hook_operands.cpp:155:        void illuminateBegin(const float *P, const float *N, const float *theta) override {
+tests/shading_parity/test_illumination_hook_operands.cpp:166:        void solarBegin(const float *N, const float *theta) override {
+tests/shading_parity/test_illumination_hook_operands.cpp:92:            return "illuminateBegin";
+tests/shading_parity/test_illumination_hook_operands.cpp:96:            return "solarBegin";
+tests/shading_parity/test_illumination_hook.cpp:140:        void illuminateBegin(const float *P, const float *N, const float *theta) override {
+tests/shading_parity/test_illumination_hook.cpp:151:        void solarBegin(const float *N, const float *theta) override {
+tests/shading_parity/test_illumination_hook.cpp:398:    // axis (0 0 1) and angle 0.5. solar(axis, angle) reaches solarBegin(axis,
+tests/shading_parity/test_illumination_hook.cpp:399:    // angle); solar() reaches solarBegin(null, null).
+tests/shading_parity/test_illumination_hook.cpp:85:            return "illuminateBegin";
+tests/shading_parity/test_illumination_hook.cpp:89:            return "solarBegin";
+tests/visual/CMakeLists.txt:1080:# #52). CPhotonHider::solarBegin() did nothing for solar() without a
+tests/visual/test_photon_solar0.cpp:7: * CPhotonHider::solarBegin() once did nothing for solar() without a
+
+## 10. includes of bundles.h, photonMap.h, irradiance.h
+## pattern: #include.*(bundles|photonMap|irradiance)\.h
+src/libshader/shading/execute.cpp:32:#include "bundles.h"
+src/libshader/shading/execute.cpp:38:#include "irradiance.h"
+src/libshader/shading/execute.cpp:41:#include "photonMap.h"
+src/libshader/shading/executeMisc.cpp:31:#include "bundles.h"
+src/libshader/shading/shaderPl.cpp:29:#include "bundles.h"
+src/libshader/shading/shading.cpp:35:#include "bundles.h"
+src/libshader/shading/shading.cpp:38:#include "irradiance.h"
+src/libshader/shading/shading.cpp:41:#include "photonMap.h"
+src/ri/dataviewer/dataLoad.cpp:10:#include "photonMap.h"
+src/ri/dataviewer/dataLoad.cpp:8:#include "irradiance.h"
+src/ri/hiders/bundles.cpp:29:#include "bundles.h"
+src/ri/hiders/irradiance.cpp:29:#include "bundles.h"
+src/ri/hiders/irradiance.cpp:33:#include "irradiance.h"
+src/ri/hiders/irradiance.cpp:35:#include "photonMap.h"
+src/ri/hiders/irradianceDispatch.cpp:53:#include "bundles.h"
+src/ri/hiders/irradianceDispatch.cpp:56:#include "irradiance.h"
+src/ri/hiders/irradianceDispatch.cpp:58:#include "photonMap.h"
+src/ri/hiders/photon.cpp:34:#include "photonMap.h"
+src/ri/hiders/photonMap.cpp:33:#include "photonMap.h"
+src/ri/hiders/radiance.cpp:44:#include "photonMap.h"
+src/ri/render/remoteChannel.cpp:35:#include "irradiance.h"
+src/ri/render/renderer.cpp:34:#include "bundles.h"
+src/ri/render/renderer.cpp:41:#include "irradiance.h"
+src/ri/render/renderer.cpp:49:#include "photonMap.h"
+src/ri/render/rendererContext.cpp:39:#include "bundles.h"
+src/ri/render/rendererContext.cpp:52:#include "irradiance.h"
+src/ri/render/rendererContext.cpp:58:#include "photonMap.h"
+src/ri/render/rendererFiles.cpp:33:#include "irradiance.h"
+src/ri/render/rendererFiles.cpp:36:#include "photonMap.h"
+src/ri/render/rendererServicesImpl.h:26:#include "photonMap.h" // CPhotonMap
+src/ri/render/rendererStatics.cpp:38:#include "bundles.h"
+src/ri/render/rendererStatics.cpp:45:#include "irradiance.h"
+src/ri/render/rendererStatics.cpp:52:#include "photonMap.h"
+src/ri/vector/irradianceDispatchStub.cpp:46:#include "irradiance.h"
+tests/preview/test_data_world_init.cpp:7:#include "ri/hiders/photonMap.h"
+tests/preview/test_dataview_chunking.cpp:5:#include "ri/hiders/photonMap.h"
+tests/shading_contract/load_stub.cpp:36:#include "ri/hiders/bundles.h"
+tests/shading_contract/load_stub.cpp:37:#include "ri/hiders/photonMap.h"
+tests/unit/photon_map/test_photon_map_frame_release.cpp:44:#include "ri/hiders/photonMap.h"
+tests/unit/photon_map/test_photon_map_sessions.cpp:45:#include "ri/hiders/photonMap.h"
+tests/unit/state/CMakeLists.txt:27:#   - a bare #include "shader.h", "photonMap.h", "dsply.h" or "blobbyField.h" in State

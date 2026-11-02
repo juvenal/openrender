@@ -1,0 +1,25 @@
+# T014 red link on macOS, starting tree (2026-11-02): link.txt of libshader_shading without '-undefined dynamic_lookup', -o a scratch path.
+# command: cpujob 029-red-link-macos sh <scratch>/redlink/scratch-link.sh   (cd build/src/libshader/shading; the generated link.txt, sed: flag removed, -o redirected)
+# result: exit 1, exactly 4 undefined symbols (CPhotonMap::lookup, CGatherBundle::CGatherBundle, vtable for CTraceBundle, vtable for CTransmissionBundle)
+ld: warning: ignoring duplicate libraries: '/Users/juvenal/.cache/vcpkg-installed/openrender/arm64-osx-openrender/lib/libLLVMAArch64Desc.a', '/Users/juvenal/.cache/vcpkg-installed/openrender/arm64-osx-openrender/lib/libLLVMAArch64Info.a', '/Users/juvenal/.cache/vcpkg-installed/openrender/arm64-osx-openrender/lib/libLLVMAArch64Utils.a', '/Users/juvenal/.cache/vcpkg-installed/openrender/arm64-osx-openrender/lib/libLLVMBitReader.a', '/Users/juvenal/.cache/vcpkg-installed/openrender/arm64-osx-openrender/lib/libLLVMCore.a', '/Users/juvenal/.cache/vcpkg-installed/openrender/arm64-osx-openrender/lib/libLLVMSupport.a'
+Undefined symbols for architecture arm64:
+  "CPhotonMap::lookup(float*, float const*, int)", referenced from:
+      CShadingContext::execute(CProgrammableShaderInstance*, float**) in execute.cpp.o
+      CShadingContext::execute(CProgrammableShaderInstance*, float**) in execute.cpp.o
+      CShadingContext::execute(CProgrammableShaderInstance*, float**) in execute.cpp.o
+      CShadingContext::execute(CProgrammableShaderInstance*, float**) in execute.cpp.o
+      CShadingContext::execute(CProgrammableShaderInstance*, float**) in execute.cpp.o
+      CShadingContext::execute(CProgrammableShaderInstance*, float**) in execute.cpp.o
+      CShadingContext::jitPhotonMap(float*, int, char const* const*, float const*, int, int, int const*) in shading.cpp.o
+      CShadingContext::jitPhotonMap(float*, int, char const* const*, float const*, int, int, int const*) in shading.cpp.o
+      ...
+  "CGatherBundle::CGatherBundle()", referenced from:
+      CShadingContext::gatherHeaderBegin(CGatherLookup const*, float const*, float, float*&, float*&) in shading.cpp.o
+  "vtable for CTraceBundle", referenced from:
+      CShadingContext::traceReflection(int, CShadingContext::CTraceLocation*, int) in executeMisc.cpp.o
+   NOTE: a missing vtable usually means the first non-inline virtual member function has no definition.
+  "vtable for CTransmissionBundle", referenced from:
+      CShadingContext::traceTransmission(int, CShadingContext::CTraceLocation*, int) in executeMisc.cpp.o
+   NOTE: a missing vtable usually means the first non-inline virtual member function has no definition.
+ld: symbol(s) not found for architecture arm64
+clang++: error: linker command failed with exit code 1 (use -v to see invocation)

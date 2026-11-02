@@ -38,7 +38,7 @@ Expected: `ALLOWED DB-001 x 5`, `DB-005 x 8`, `DB-006 x 31`, `DB-011 x 166` edge
 imports (`CGatherBundle::CGatherBundle()`, the two vtables, `CPhotonMap::lookup(float*, float const*, int)`).
 A different count is recorded and reported (FR-031), not corrected silently.
 
-Timing (SC-010): five interleaved series of the scenes of research R14 on this build, kept as a copy of the
+Timing (SC-010): five interleaved series of the scenes of research R14 (as scaled scratch copies made by `tools/timing_sc010.sh`) on this build, kept as a copy of the
 starting tree's binaries in `build-base/` (copy, not rebuild), so later phases compare against the same bits.
 
 **Gate**: Phase 2 does not start until the Linux baseline (§4a) exists. (The Linux host did not resolve from the
@@ -145,7 +145,7 @@ ssh "$H" "cd $RR && ~/.claude/bin/cpujob 029-linux-sweep ctest --test-dir build 
 - The JIT-off build (`-DOPENRENDER_ENABLE_JIT=OFF -DCMAKE_BUILD_TYPE=Debug`, a separate build directory, so the new
   assert-only code compiles): builds, and `-L '^link$'` and `-L '^shading_contract$'` have no failure outside the
   known-flaky set (the `*Jit` tests are not registered); the full suite stays the Release runs of the checkpoints.
-- SC-010: the five interleaved timing series against `build-base/`; a difference beyond the measured spread is a
+- SC-010: the five interleaved timing series, on the scaled scratch copies of research R14, against `build-base/`; a difference beyond the measured spread is a
   defect.
 - The ThreadSanitizer build is not required by this spec.
 
