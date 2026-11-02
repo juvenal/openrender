@@ -1,0 +1,68 @@
+# Contract: the checks, the characterization references and the approvals (FR-029, SC-011)
+
+Every row is new or an edit of an approved test, so every row is a TEST-APPROVAL item: the phase
+that adds it stops after its red evidence (or, for a characterization, its green evidence on the
+unmodified tree) for the maintainer's approval, before any implementation task of that phase.
+"Red" means it fails on master `d6910bd0` merged into the branch; a check that cannot fail does not
+count (SC-011), except as stated for the drift test (Q3).
+
+## Mechanical checks (`cmake -P`, label `architecture` unless noted)
+
+| Check | Fails when | On the starting tree |
+|---|---|---|
+| `SceneInterface_RibOutNoCore` | a `ribOut_obj` source (`$<TARGET_PROPERTY:ribOut_obj,SOURCES>`) is classified Core by `domain-map.txt` | red (6 files) |
+| `SceneInterface_RibVectorResidual` | `ribVector_obj` compiles a Core file not in `tests/architecture/ribvector-core-residual.txt`, or the file lists one it no longer compiles (stale) | red (`rendererClipping.cpp`, `resource.cpp` not listed, Q7) |
+| `SceneInterface_NoCoreInclude` | a source in `src/ri/parse/`, `src/ri/output/` or a generated parser (`rib_generated.cpp`, `ifexpr_generated.cpp`, `lex.*.cpp`) includes a file classified Core (resolved through the target's include path) | red (`rib.y`, `ifexpr.y`, `ri.cpp`, `ribOut.cpp`) |
+| `SceneInterface_HooksAndRecords` | `riHooks.h` is not under `src/ri/parse/`; `CDelayedData` is defined outside the Scene Interface; a Scene source includes `geometry/delayed.h` | red |
+| `SceneInterface_ActiveContextAssignments` | a source under `src/` or `tests/` outside `src/ri/parse/` (the check's own script excluded; `specs/` and the documentation are not scanned) matches `\brenderMan\s*=[^=]`, or one names `savedRenderMan` | red (M6) |
+| `Preview_NoCoreReach` (label `preview`) | a `libribpreview` source includes a Core header, or an object has an undefined `CRenderer`/`CRendererContext` symbol (`nm`) | red |
+| `Compiler_IncludeBoundary` | contracts/compiler-tables.md | red |
+| `Precomp_NoHiderCore` | contracts/tools.md | red |
+
+## In-process tests
+
+| Test (label) | What | On the starting tree |
+|---|---|---|
+| `SceneInterface_ContextInstall` (`common`) | the seven rules of contracts/active-context.md; links `ribOut` | rule 1 red (the constructor assigns); the install half `DISABLED` until the API exists |
+| `SceneInterface_Services` (`common`) | no service: `riRetrieveVariable` → `nullptr`, `riLocateFile` only finds a separator path; standard session and renderer session: the declared set equals the **declared-set reference** below (so both are pinned to the unmodified `CRenderer::initDeclarations()`, not to each other); the file search finds the same files with the same `info` lines as `CRenderer::locateFile` outside a network session; nested sessions restore the outer services | `DISABLED` until the API exists; its red evidence is the starting tree's lack of the API, so it pairs with the mechanical checks above |
+| `SceneInterface_IfCharacterization` (`regression`) | a RIB with `IfBegin`/`ElseIf`/`Else`/`IfEnd` over user attributes, options, comparison and string operators, nested; rendered through a capture context; the branch taken per block recorded and compared with a reference | green by design (M8); reference captured once |
+| `Preview_SelfRegistration` (`preview`) | contracts/backend-registration.md | `DISABLED` until the API exists |
+| `LibShader_CompilerTableDrift` (`libshader`) | contracts/compiler-tables.md, mutation self-check | `DISABLED` until `builtinTables.cpp` exists (Q3) |
+| `ShadeopAbi_Jit_*` (`plugin_abi`) | the eight rows of contracts/jit-dso-call.md; the 8-thread and render cases use a new RIB template `tests/plugins/shadeop/render_format.rib.in` with the shader format as a parameter (the approved `render.rib.in` hard-codes `"rslo"` and is not edited) | red (the `.slo` compile exits 3) |
+
+## Characterization references (captured once, from the unmodified tree)
+
+Captured by a build target `scene-interface-capture-baselines` (not a ctest), which writes a missing
+reference and refuses to overwrite an existing one unless configured with `-DOR038_RECAPTURE=ON`
+(037's pattern). The maintainer commits them with the phase that adds them.
+
+| Reference | Compared by | Covers |
+|---|---|---|
+| the declared set after the unmodified `CRenderer::initDeclarations()`: every variable's name, type, class, storage, `entry` and usage marker, in list order, and the global count (written by a small capture program linking `ribRender`) | `SceneInterface_Services` | FR-002 "declared set, global numbering ... exactly as today" |
+| `tests/RIB/writer/*.rib` → written text | `SceneInterface_WriterText` (`regression`) | US1-1: declared and inline parameters, `ReadArchive` of a relative name (search path), `IfBegin`/`Else`, each Procedural kind, written through `RiBegin(<file>)` |
+| the `if` branch log | `SceneInterface_IfCharacterization` | US2-2 |
+| `ribpreview_load` extraction per preview scene (vertices, colors, camera, bounds, as text) | `Preview_ExtractionUnchanged` (`preview`) | SC-006 |
+| `precomp` raw output | `Precomp_OutputUnchanged` | SC-009 (Q4) |
+| `.rslo` and `.slo` of every shipped shader and of `probe.sl`/`probe_two.sl` (`.rslo` only) | `Shaders_BytesUnchanged` (`libshader`) | FR-019 (with Q1(a), the `.slo` of shipped shaders keep their 2.0.0 record) |
+
+## Edits of approved tests
+
+| File | Edit | Why |
+|---|---|---|
+| `tests/unit/blobby/blobbyTestUtils.h:53` | `riInstallContext(iface)` (once) instead of assigning | the constructor no longer attaches diagnostics |
+| `tests/unit/texture_tile/test_texture_system_stream_cursor.cpp:110-111,228-229` | install / delete | FR-010 |
+| `tests/unit/texture_tile/test_texture_system_null_resolver.cpp:114-115,164-165` (and its comment `:14`) | install / delete | FR-010 |
+| `tests/preview/test_data_keys.cpp:50-57` | install / delete | FR-010 |
+| `tests/unit/csg/test_procedural_operand.cpp`, `tests/unit/sampling/test_object_ids.cpp` | `#include "delayedData.h"` | FR-008 |
+| `src/libshader/tests/test_opcode_coverage.cpp` | explicit `DSO` handled check | FR-020 |
+| `src/libshader/tests/test_gate_hardening.cpp` | positive DSO compile case (builds a module with a `DSO` instruction, checks `op_dso_call` in the `.slo`; the synthetic unhandled mnemonic stays) | FR-020 |
+| `src/libshader/tests/test_format_versions.cpp:276-300` (`LibShader_Format_slo_emitted`) | expect `SLO_FORMAT_MINOR_BASE` for its probe; a new case expects 2.1.0 from a probe with a DSO call | Q1(a) |
+| `src/libshader/tests/test_opcode_coverage.cpp` | (no reverse check exists: the guard only tests that the universe is handled, so adding `"DSO"` to `kHandledOpcodes` trips nothing; the explicit check above is the only edit) | FR-020 |
+| the five `riHooks.h` includers | none expected (bare-name include); a CMake include-path line if one does not see `src/ri/parse` | FR-007 |
+
+## Existing suites that must stay green, unchanged
+
+visual (including every `-slo` variant), shading parity, state, common, texture, plug-in ABI,
+preview, RIB output (`RibOut_ShaderStatementOrder`, the sampling-option round trip,
+`Blobby_RibOutRoundTrip`), libshader, architecture, the determinism set and, before merge, the
+determinism sweep. No threshold widened, no test disabled; at the end `0 Not Run (Disabled)`.
