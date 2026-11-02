@@ -280,7 +280,7 @@ ctest --test-dir build -L state                         # Graphics State: handle
 ctest --test-dir build -L plugin_abi -j4                # plug-in ABIs (spec 037): headers, versions, display host and v1 adapter, shadeop module, procedures, install layouts, doc checks
 ctest --test-dir build -LE determinism-sweep -j4        # the everyday full run: everything except the opt-in determinism sweep
 ctest --test-dir build -L '^determinism$' -j2           # default determinism set (148): harness, tie and derivative tests, one demanding scene per family
-ctest --test-dir build -L '^determinism-sweep$' -j2     # opt-in full sweep (413 scenes x 5 configurations, ~10-12 min at -j2): before each merge, and for the Linux validation
+ctest --test-dir build -L '^determinism-sweep$' -j2     # opt-in full sweep (419 scenes x 5 configurations, ~10-12 min at -j2): before each merge, and for the Linux validation
 ```
 
 **`-L` is a regular expression.** `-L determinism` also selects every `determinism-sweep` test (the whole sweep); anchor it

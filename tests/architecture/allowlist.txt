@@ -294,7 +294,7 @@ DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer5flagsE   # CRender
 DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer7clipMaxE   # CRenderer::clipMax
 DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer7clipMinE   # CRenderer::clipMin
 
-# --- DB-015: Scene Interface depends on the renderer core (11) ---
+# --- DB-015: Scene Interface depends on the renderer core (10) ---
 DB-015  include  @build/src/ri/ifexpr_generated.cpp  ->  src/ri/render/renderer.h
 DB-015  include  @build/src/ri/ifexpr_generated.cpp  ->  src/ri/render/rendererContext.h
 DB-015  include  @build/src/ri/rib_generated.cpp  ->  src/ri/render/renderer.h
