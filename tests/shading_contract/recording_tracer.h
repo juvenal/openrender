@@ -118,6 +118,8 @@ class CRecordingTracer : public openrender::shading::ITracer {
             }
         }
 
+        // Records the request only. It does not run the bundle protocol of tracer.h (no postTraceAction(), postShade()
+        // or post() call) unless an inner tracer is installed and runBundles is set; CCannedTracer drives the protocol.
         void traceBundle(CShadingContext &context, CRayBundle *bundle) override {
             STraceRequest q;
             q.bundle = true;
@@ -153,6 +155,11 @@ class CCannedTracer : public CRecordingTracer {
             if (answer(*ray, ci, oi)) {
                 ray->object = sentinel();
                 ray->t = hitT;
+                ray->u = 0.5f; // the outputs tracer.h lists for a hit, as CRecordingTracer sets them
+                ray->v = 0.5f;
+                ray->N[0] = 0;
+                ray->N[1] = 0;
+                ray->N[2] = 1;
             }
             else {
                 ray->object = nullptr;

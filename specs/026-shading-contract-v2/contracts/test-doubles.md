@@ -15,9 +15,9 @@ order: method, request fields, answer.
 |---|---|
 | grid/globals | `maxGridSize` 64; the 29 built-in globals built with `parseVariable` from `initDeclarations()`'s declarations (`ShadingContract_DoubleGlobalsMatchRenderer` checks them) |
 | timing, raster, clip, bounds, `additionalParameters`, `hasIlluminationHook`, `shootStep` | fields the test sets |
-| `getAttribute` | a table `(scope, objectKey, name) -> (type, count, values)`; anything else `NotFound`; a per-test switch answers `Unavailable` |
-| `getMessage` | a table `(source, objectKey or lightKey, name) -> default value, or (variable, globalIndex)` |
-| `getMatrix` | a table `name -> (kind, from, to)`, with time honoured when the test sets per-time entries; `"object"` with a null handle -> `NoObject` |
+| `getAttribute` | a table `(scope, object handle, name) -> (type, count, values)`; anything else `NotFound`; a per-test switch answers `Unavailable` |
+| `getMessage` | a table `(source, object handle, light handle, name) -> default value, or (variable, globalIndex)`; the entry's `variable` is returned only when the request has `wantVariable`, and then nothing is written into `dest` (the header's "dest is written XOR a variable is returned") |
+| `getMatrix` | a table `name -> (kind, from, to)`, with time honoured when the test sets per-time entries; the name `"object"` with a null handle -> `NoObject` (the double special-cases the name `"object"`, which is not in its table, where the header and the renderer decide by the kind `COORDINATE_OBJECT`; the two agree for that name, and a proposed edit makes the double decide by kind as well) |
 | `tracer()` | the test's `CRecordingTracer` or `nullptr` |
 | GI/3D getters, `textureSystem`, lookups, `getDSO`, `getGlobalID` | `nullptr` or 0, recorded |
 | `setOffendingObject` | recorded |

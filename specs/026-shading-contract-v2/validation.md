@@ -133,6 +133,23 @@ The two test-code fixes of `tools/phase3-test-fixes.diff` (D5, D6) were confirme
 - #116 (O2) is resolved by #129 and is not checked.
 - Posted: the coordinator added the #117 evidence as a comment on the issue (issuecomment-6565164454, 2026-11-01). Nothing was posted for #118 to #120 (no new evidence).
 
+### Phase 10 final checkpoint (T173, T175, T176; macOS, 2026-11-01)
+
+| Check | Result |
+|---|---|
+| CP-a | Release build with `-Werror`, JIT on, `-j4`: exit 0 |
+| CP-b (`-LE determinism-sweep -j4`) | **1052 of 1052 passed** (`build-logs/026-p10d-suite.log`) |
+| CP-d | 900 images against `baseline-images-macos-merged.sha256`: 0 differing, 0 missing, 0 not in the manifest; every `MaxBlockAvgDiff` equal to `baseline-diffs-macos-merged.txt` |
+| CP-c | `ctest -L architecture` 21 of 21; `ALLOWED DB-001 x 5 DB-004 x 52 DB-005 x 8 DB-006 x 31 DB-010 x 8 DB-011 x 166 DB-015 x 10 DB-017 x 78 DB-025 x 12`; METRIC Shading 0 / 0, TOTAL 612 / 94 (equal to `metrics-baseline.txt`, so T164 needs no edit); `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0` |
+| CP-m | `-L '^shading_contract$'` 55 of 55, none disabled |
+| `-L shading_parity` | 136 of 136 |
+| `-L texture_tile -j2` | 14 of 14 |
+| `-L '^determinism$' -j2` | 155 of 155 |
+| `libshader_shading` flat-namespace imports | 4, identical to `libshader-imports-merged-macos.txt` |
+| `scope_greps.sh` | exits 0 (15 checks) |
+| T175 | everything staged, no unstaged or untracked file, the "never edits" list unchanged (`scope_greps.sh`), no GitHub write |
+| T176 determinism sweep, macOS (`-L '^determinism-sweep$' -j2`, stamp taken just before) | **419 of 419 passed**; 419 images against `baseline-sweep-images-macos.sha256` (the starting tree's, B1): **0 differing, 0 missing**, 0 noise-listed |
+
 ## §2 Red evidence (Test gates, mutations)
 
 ### Phase 1 (T015): the replay targets fail to build on the starting tree
@@ -394,6 +411,32 @@ Output of `scope_greps.sh` now (exit 1; `build-logs/026-p10-scope-red.txt`):
 
 It fails on the document checks and passes on the code checks, as the task expects.
 
+### Phase 10 (T162 to T166): registry, DEVNOTES and the interface documentation (macOS)
+
+- Base substitution (maintainer, 2026-11-01): every comparison the task text makes with `d01da47` uses the merged master commit `628d6747` instead, the T170 starting-tree build for SC-010 included (`git archive 628d6747`); the task text and quickstart §3 are corrected, and `scope_greps.sh` already compares with `628d6747`.
+- T162: `tests/architecture/allowlist.txt`: the DB-001 header `(8)` became `(5)` and the DB-006 header `(33)` became `(31)`; nothing else changed.
+- T163: `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md` per `contracts/allowlist-end-state.md`, dated 2026-11-01 (DB-001, DB-006 and DB-018 stay Open, DB-005 untouched, nothing moved to Resolved).
+- T164: the `METRIC` lines of the Phase 9 `archcheck` report equal `tests/architecture/metrics-baseline.txt` (Shading 0 / 0, TOTAL 612 / 94, Geometry 48, Hiders 558, SceneInterface 6): no figure is lower, so the baseline file is not edited. Re-checked at T173.
+- T165: the spec 026 row of `DEVNOTES.md`; the dates of the validation platforms are filled in at T174.
+- `scope_greps.sh` now exits 0 (15 checks plus the INFO line).
+- T166: the documentation of `rendererServices.h` is complete (every member: inputs, outputs, not-found result, thread-safety, re-entrancy, introducing version; the final version history), with the gaps of the first independent read closed in `rendererServices.h`, `serviceTypes.h`, `tracer.h` and `shaderGlobals.h` and the same text in `contracts/{renderer-services-v2,tracer,shader-globals,test-doubles}.md`. Comment-only edits to those headers (the Release build with `-Werror` compiled them: exit 0). While writing it, facts that differ from the first draft of the design were found and documented as they are: `texture3dResolve` gives an unknown channel entry 0 and size 0 (and reports an error), not a not-found result; `additionalParameters` is the usage markers of the display channels' variables; `getFilter` falls back to the Gaussian filter and Shading calls it unchecked; the interpreter's `photonmap()` dereferences a null map unchecked (a hazard of the starting tree, not changed); the global ids start at 1.
+- T169 (JIT-off build, macOS, own tree `build-nojit`, removed afterwards): `cmake -DOPENRENDER_ENABLE_JIT=OFF` configure and build exit 0 under `-Werror`; `ctest -LE determinism-sweep -j4`: **863 of 863 passed**. The `*Jit` contract tests are not registered (0 `ShadingContract_*Jit` in the run, 76 `ShadingContract_*` tests, all the interpreter halves), and the `-slo` visual tests report "Not Run (Disabled)" as designed. `build-logs/026-nojit-suite.log`.
+- T170 (starting tree for SC-010): `git archive 628d6747` into `build-base-src`, configured and built as `build-base` (Release, JIT on, `-j4`, exit 0).
+- T171 (SC-010; `tools/timing_sc010.sh build-base build`, 5 interleaved series, 4 threads, one cpujob; `build-logs/026-sc010.log`): **0 scenes slower beyond the spread**. Seconds, median (min to max) of 5 runs, starting tree against finished tree:
+
+| Scene | Starting tree | Finished tree | Diff of medians | Larger spread | |
+|---|---|---|---|---|---|
+| `teapot-somewood-reyes` | 0.48 (0.42 to 1.81) | 0.55 (0.47 to 1.64) | +0.07 s (+14%) | 1.39 s | within spread (the first run of each tree is 1.6 to 1.8 s: a cold start) |
+| `teapot-somewood-raytrace` | 0.64 (0.56 to 0.75) | 0.62 (0.59 to 0.69) | -0.01 s (-2%) | 0.19 s | within spread |
+| `teapot-wood-reyes` | 0.14 (0.12 to 0.17) | 0.14 (0.13 to 0.17) | -0.01 s (-3.5%) | 0.05 s | within spread |
+| `teapot-blue_marble-reyes` | 0.15 (0.13 to 0.17) | 0.15 (0.14 to 0.17) | +0.00 s | 0.04 s | within spread |
+| `teapot-somewood-reyes-slo` | 0.20 (0.16 to 0.20) | 0.18 (0.16 to 0.20) | -0.02 s (-9%) | 0.04 s | within spread |
+| `sphere-gather-reyes` | 0.35 (0.32 to 0.37) | 0.33 (0.32 to 0.40) | -0.01 s (-4%) | 0.08 s | within spread |
+
+  These scenes render in well under a second (the visual suite's small frames), so the absolute differences are tens of milliseconds and the spread is the same size; the measurement can show a regression of the order of the spread, not a smaller one. Both trees wrote an image for each scene (the `teapot-wood-reyes` TIFFs have the same size). `build-base` and `build-base-src` were removed afterwards.
+- T172 (SC-011): macOS `libshader_shading` flat-namespace imports 6 (`tools/libshader-imports-base-macos.txt`) to 4 (`libshader-imports-merged-macos.txt`, the same 4 as `libshader-imports-after-macos.txt`), a subset of the 6: `CShadingContext::trace` and `traceEx` are gone. Linux `nm -D --undefined-only`: 465 lines at the starting tree and 465 on the finished tree; the finished tree lacks `CShadingContext::trace(CRay*)` and `traceEx(CRayBundle*)` and has the two `shadeopOperandData`/`shadeopOperandExec` imports that spec 037 (the merged master) added, so the imports of this spec did not grow (`libshader-imports-base-linux.txt` against `libshader-imports-merged-linux.txt`, leading spaces stripped).
+- `scope_greps.sh` was changed once, with the maintainer's approval (2026-11-01, `tools/scope_greps-claude-md.proposed.diff` applied): `CLAUDE.md` left the never-edits list, and a check that its added lines are exactly those of `tools/claude-md-026.diff` (none removed) took its place. It exits 0.
+
 ## §3 Linux records
 
 Note for the reader: the Linux baseline is taken on the starting `src/` **plus the Phase 1 observer hook** (the macOS baseline is taken before it). The hook is null in production and adds no output, which the macOS manifest check shows (§1); the Linux baseline is therefore comparable with the starting tree.
@@ -451,6 +494,12 @@ The suite counts differ by one between the platforms (943 on Linux, 942 on macOS
 ### Phase 9: Linux (T156; `openrender-026`, GCC 13.3, `-Werror`, `-j2`)
 
 Pushed with `linux_sync.sh push` (3464 files) and `verify`: **3464 files, 0 differences** (again after the run). CP-a: incremental build exit 0, no `warning:` line in the log. CP-b: `ctest -LE determinism-sweep -j2`: 1053 tests, 1046 passed, **the 7 known Linux failures only** (the same set as the merged baseline run: `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes`, the five `TextureTile_*` byte-identity and cache tests, `LibShader_McompConsistency`); `ShadingContract_Situations` passed (0.21 s). CP-d: 900 images, 0 differing, 0 missing (against `baseline-images-linux-merged.sha256`), every `MaxBlockAvgDiff` equal to `baseline-diffs-linux-merged.txt`. CP-m: `-L '^shading_contract$'` 55 of 55. CP-c: architecture 21 of 21, `ALLOWED` identical to macOS (DB-001 x 5, DB-005 x 8, DB-006 x 31, ...), `RESULT PASS`. `nm -D --undefined-only` of `libshader_shading.so`: identical to `libshader-imports-merged-linux.txt`. Logs on the remote: `build-l17*.log`.
+
+### Phase 10 final checkpoint: Linux (T174, T177; `openrender-026`, GCC 13.3, `-Werror`, `-j2`, 2026-11-01)
+
+Pushed with `linux_sync.sh push` and `verify`: 0 differences after each push. CP-a: incremental build exit 0, 0 `warning:` lines. CP-b: 1053 tests, 1046 passed, **the same 7 failures as the merged baseline run and the starting tree's set** (`CoverageAnalytic_alpha-sides2-tjunction-r4_reyes`, `LibShader_McompConsistency`, `TextureTile_CacheByteIdentical`, `TextureTile_CacheConcurrentWrite`, `TextureTile_CacheDefaultDirectory`, `TextureTile_CacheStaleDetection`, `TextureTile_RenderByteIdentical`: they predate this spec). CP-d: 900 images against `baseline-images-linux-merged.sha256`, 0 differing, 0 missing; every `MaxBlockAvgDiff` equal to the merged baseline. CP-m: `shading_contract` 55 of 55. CP-c: architecture 21 of 21, the same `ALLOWED` line as macOS, `RESULT PASS`. `-L '^determinism$' -j2`: 155 of 155. `nm -D --undefined-only` imports identical to `libshader-imports-merged-linux.txt`. `scope_greps.sh --code-only` on the remote tree: exit 0.
+
+T177 Linux determinism sweep (`-L '^determinism-sweep$' -j2`, stamp just before): **419 of 419 passed**; 419 images against `baseline-sweep-images-linux.sha256` with the noise list (2 noise-listed: the two bake3d scenes of the starting tree's own run-to-run noise): **0 differing, 0 missing**.
 
 ## §4 Findings: triage and filed issues
 
@@ -656,5 +705,42 @@ In `llvmEmitter.cpp` the branch for `surface`, `displacement`, `atmosphere`, `in
 
 ## §5 Final summary against SC-001 to SC-014
 
-_Filled in at the final checkpoint._
+### SC-001 to SC-014 (final, 2026-11-01)
+
+| SC | Result | Evidence |
+|---|---|---|
+| SC-001 | met | the standalone contract programs link the shading library, `libRIBCommon` and the double (with the load stub) and pass on macOS and Linux; the JIT halves load `.slo` through `sloLoader` (`ShadingContract_StandaloneLink*`, the `*Interp`/`*Jit` cases; JIT-off build: the interpreter halves only) |
+| SC-002 | met | `scope_greps.sh`: `currentObject->attributes` only in `shading.cpp` (research R5's sites), no `currentObject->xform`, no `surface.h`/`object.h` include in `execute*.cpp` |
+| SC-003 | met | `ShadingContract_{Attributes,Messages}{Interp,Jit}` and `RealAnswers*`: the double receives identical requests from both backends, except `lightsource()`, whose backend difference (#115) is asserted |
+| SC-004 | met | `ShadingContract_Matrices*`, `RealAnswers*_Matrices`; the transform builtins' images are byte-identical |
+| SC-005 | met | the trace-request replay (`ShadingContract_TraceReplay_*`, recorded on the starting tree, frozen) and `TraceRequests*` pass under both backends |
+| SC-006 | met | `ShadingContract_Situations` (rows 1 to 5, 8, 9 rendered; 6, 7 and 10 to 14 from `classifyShading()`, B8) and `ShaderGlobalsDouble` pass |
+| SC-007 | met | macOS: every one of 900 suite images and the 419 sweep images byte-identical to the baseline, every `MaxBlockAvgDiff` equal; Linux: the same against its own baselines; the Linux pass/fail set is the starting tree's 7 |
+| SC-008 | met | architecture 21 of 21 on both platforms; DB-006 33 to 31, DB-001 8 to 5, no line added or re-keyed, no stale line |
+| SC-009 | met | `DOMAIN_BOUNDARIES.md` records DB-018's service part, DB-006 and DB-001 with the spec number and date; no entry refers to the merge (`scope_greps.sh`) |
+| SC-010 | met | §1: 6 scenes, 5 interleaved series, 0 slower beyond the spread (caveat: the scenes take under a second) |
+| SC-011 | met | macOS imports 6 to 4, a subset; Linux 465 to 465 lines with `trace`/`traceEx` removed |
+| SC-012 | **met** | see below: three independent reviews; the maintainer marked it met |
+| SC-013 | met | the `TypeMismatch*` cases (attribute and message, standalone and real, both backends) and `ShadingContract_MessageAccessors` (FR-029) |
+| SC-014 | met | the `NullObject*` and `LightsourceNoLoop*` cases, both backends, standalone and real |
+
+**F1 to F4 are closed by their tests**: F1 (type-safe copies, FR-026) T092, T093, T098, T102, T109, T110, T115, T116; F2 (no current object, FR-027) T093, T110, T102, T116, T119; F3 (`lightsource()` outside a loop, FR-028) T109, T117; F4 (accessor constants, FR-029) T094, T101, T158.
+
+**Evidence added to the filed issues (O1 to O7, #115 to #121)**: #117 has the Phase 9 evidence comment (issuecomment-6565164454, posted by the coordinator). Drafts for #115 (the stack overrun next to the issue that Phase 6 fixed in `op_lightsource_f`, the issue itself unchanged) and #120 (F4 made the accessors agree, the RISpec question stays) were prepared and handed to the coordinator; no other comment is recorded, and this agent made no GitHub write. #118, #119 and #121 have no new evidence; #116 is resolved by #129.
+
+**Failures that predate this spec (Linux)**: the 7 above (#44, #45, #46, #57 in spec 028's account), identical on the starting tree, the merged master and the finished tree. Also known and unrelated: `ColorDeterminism_transparent` is flaky (GitHub #133).
+
+**Deviations and decisions recorded during the spec**: D1 (replay shadow scene), D4 (#123), D8 (`op_ctransform_ss`), D9 (resultKind 3 for C/N/P), D10 (`op_lightsource_f` scratch and size guard), the Phase 9 test edit (primitive hit modes report nothing), the base substitution `628d6747`, and the `scope_greps.sh` CLAUDE.md check, each approved by the maintainer; see §2 and the phase records.
+
+### SC-012 review record
+
+
+**SC-012 (a reviewer who did not write the headers or the double reads the headers and compares them with `tests/shading_contract/contract_services.h`)**: not marked met by the implementer.
+- Reviewer: an independent agent chosen by the maintainer (T167), who did not write the headers or the double.
+- First read (before T166): **NOT MET**. Its gaps were fed into T166 (the documentation of every member of `rendererServices.h`, `serviceTypes.h`, `tracer.h` and `shaderGlobals.h`).
+- Second read (after T166): **MET WITH MINOR GAPS**. Gaps a to h were fixed in the headers and `contracts/*.md` (documentation only): the installation of the services and which calls use the default services; TypeMismatch is the implementer's job; the `getMessage` variable path (`locals[accessor][entry]`, the varying-to-uniform refusal, `globalIndex`); the `traceBundle` depth rule reachable only through `context.traceEx()`, the variables `postShade` reads and the buffer sizes, `jimp` and `invDir`, and the pointers to `CRay` and `CRayBundle`; the 29 global declarations; an id of 0 is never stored, the light handle may be null, the renderer's `ObjectHandle` is a `const CObject *`; the stride-0 exception and the pointer to the presence table; the `tracer.md` double descriptions. The maintainer also had the doubles made to honour the header's "must": `getFilter`/`getStepFilter` return `RiGaussianFilter`/`RiGaussianStepFilter`, `getGlobalID` returns a stable id >= 1 per name, `NoObject` is decided by kind, `CCannedTracer` sets `u`, `v`, `N` on a hit, and the recorder's comment says it does not run the bundle protocol.
+- Third read (after the gap fixes): **MET WITH MINOR GAPS**; its six items were fixed (`newState()` is public while `currentRayDepth` and `freeStates` are private; a tracer that does not call `context.traceEx()` keeps its own depth count; `getGlobalID` for illuminance's category goes through the state's services, the same object as the default in practice; `jimp` and `invDir` are read by the hiders only; the stale `getGlobalID` comment in `contract_services.h`; the step and uniform-destination rules apply to the Light source too).
+- **SC-012: MET** (maintainer, 2026-11-01), by the independent reviews above; the implementer did not review its own work.
+
+**CLAUDE.md (T168)**: the maintainer authorized the spec 026 entries and approved the diff on 2026-11-01. `tools/claude-md-026.diff` is applied and staged (gotcha 28, an Active Technologies entry and a Recent Changes entry; the "Spec-kit agent rules" section is untouched).
 

@@ -22,8 +22,10 @@
  *                                    "object" with a null handle -> NoObject
  *   tracer()                         the test's tracer, or nullptr
  *   the GI/3D getters, textureSystem,
- *   the lookups, getDSO,
- *   getGlobalID                      nullptr or 0, recorded
+ *   getDSO                           nullptr or 0, recorded
+ *   getFilter, getStepFilter         RiGaussianFilter and RiGaussianStepFilter, recorded
+ *   retrieveVariable                 the double's table of the 29 built-in globals, recorded
+ *   getGlobalID                      a stable id >= 1 per name, recorded
  *
  * The standalone program has no CSurface (Geometry), so its current object is null and the tables
  * are keyed on the null ObjectHandle (QE). Handle identity is checked in the rendered program.
@@ -261,20 +263,26 @@ class CContractServices final : public CRendererServices {
             return nullptr;
         }
 
-        int getGlobalID(const char *) override {
+        // Get or create, as the header says: the same name always gets the same id, and an id is >= 1
+        int getGlobalID(const char *name) override {
             calls.push_back("getGlobalID");
-            return 0;
+            auto it = globalIds.find(name);
+            if (it == globalIds.end())
+                it = globalIds.emplace(name, (int)globalIds.size() + 1).first;
+            return it->second;
         }
 
         int shootStep() const override { return shootStepValue; }
 
+        // Never nullptr, as the header says: Shading calls the result unchecked. Every name gets the fallback the header
+        // names, the Gaussian filter
         RtFilterFunc getFilter(const char *) const override {
             calls.push_back("getFilter");
-            return nullptr;
+            return RiGaussianFilter;
         }
         RtStepFilterFunc getStepFilter(const char *) const override {
             calls.push_back("getStepFilter");
-            return nullptr;
+            return RiGaussianStepFilter;
         }
         // The shader loader resolves every global a shader names (Ci, P, ...) through this lookup, so the double
         // answers it from its own table of the 29 built-in globals; any other name is not a variable.
@@ -356,11 +364,14 @@ class CContractServices final : public CRendererServices {
             calls.push_back("getMatrix");
             MatrixAnswer a;
             if (!matrixUnavailable) {
-                if (strcmp(r.name, "object") == 0 && !r.object) {
+                auto it = matrices.find(r.name);
+                // NoObject is decided by the kind of the name, as the header and the renderer decide it; the name "object"
+                // (not in the table) keeps answering it, as before
+                if (!r.object && (strcmp(r.name, "object") == 0 || (it != matrices.end() && it->second.kind == COORDINATE_OBJECT))) {
                     a.status = EQueryStatus::NoObject;
+                    a.kind = COORDINATE_OBJECT;
                 }
                 else {
-                    auto it = matrices.find(r.name);
                     if (it == matrices.end()) {
                         a.status = EQueryStatus::NotFound;
                     }
@@ -399,6 +410,7 @@ class CContractServices final : public CRendererServices {
         std::map<std::tuple<int, const void *, std::string>, SAttributeEntry> attributes;
         std::map<std::tuple<int, const void *, const void *, std::string>, SMessageEntry> messages;
         std::map<std::string, SMatrixEntry> matrices;
+        std::map<std::string, int> globalIds;
 };
 
 #endif

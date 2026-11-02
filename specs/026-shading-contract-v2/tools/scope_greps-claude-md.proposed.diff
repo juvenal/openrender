@@ -1,0 +1,19 @@
+--- a/specs/026-shading-contract-v2/tools/scope_greps.sh
++++ b/specs/026-shading-contract-v2/tools/scope_greps.sh
+@@ -161,8 +161,14 @@
+ if need_git "files 026 never edits are unchanged"; then
+     out=$(git diff --stat "$BASE" -- src/ri/hiders/trace.cpp 'src/ri/hiders/bundles.*' 'src/ri/hiders/photonMap.*' 'src/ri/hiders/raytracer.*' \
+         'src/ri/hiders/reyes.*' 'src/ri/hiders/stochastic.*' 'src/ri/hiders/zbuffer.*' src/ri/hiders/photon.cpp \
+-        src/ri/geometry src/ri/state src/ri/texture src/display/dsply.h src/procedures src/shadeop src/include CLAUDE.md)
+-    check "files 026 never edits are unchanged (hiders, Geometry, State, Texturing, plug-in ABI headers, CLAUDE.md)" "$([ -z "$out" ]; echo $?)" "$out"
++        src/ri/geometry src/ri/state src/ri/texture src/display/dsply.h src/procedures src/shadeop src/include)
++    check "files 026 never edits are unchanged (hiders, Geometry, State, Texturing, plug-in ABI headers)" "$([ -z "$out" ]; echo $?)" "$out"
++    # CLAUDE.md is edited only as the maintainer authorized (2026-11-01): the lines added are exactly those of
++    # claude-md-026.diff, none is removed, so the "Spec-kit agent rules" section is untouched
++    want=$(grep '^+[^+]' specs/026-shading-contract-v2/tools/claude-md-026.diff)
++    got=$(git diff "$BASE" -- CLAUDE.md | grep '^+[^+]')
++    gone=$(git diff "$BASE" -- CLAUDE.md | grep '^-[^-]')
++    check "CLAUDE.md differs from the base only by the authorized diff" "$([ "$want" = "$got" ] && [ -z "$gone" ]; echo $?)" "$gone"
+     # The JIT emitter is the one source with maintainer-approved exceptions (D8, D9 and D10): its diff is listed, not failed.
+     e=$(git diff --stat "$BASE" -- src/libshader/compiler/llvmEmitter.cpp | tail -1)
+     printf 'INFO  llvmEmitter.cpp differs only by the approved D8, D9 and D10 edits: %s\n' "${e:-no difference}"

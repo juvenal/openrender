@@ -42,7 +42,7 @@ struct ShaderGlobals {
     int numDerivativeTail = 0;  // 0, or 2 * numPoints: the du-offset then dv-offset copies
     BatchShape shape = BatchShape::Point;
     int gridU = 0, gridV = 0;   // Grid only; gridU * gridV == numPoints
-    const int *activeTags = nullptr; // 0 = active (tags[]); nullptr: every real point is active
+    const int *activeTags = nullptr; // numPoints entries, 0 = active (the shading tags[]); nullptr: every real point is active
 
     // ---- per batch (always present)
     ObjectHandle object;
@@ -53,10 +53,10 @@ struct ShaderGlobals {
     ShadingPass pass = ShadingPass::Full;
     int pathDepth = 0;               // ray levels below the camera (CShadingContext::currentRayDepth)
     float shadingCellFootprint = 1;  // pixels: CAttributes::shadingRate, already sqrt(area)
-    float shutterOpen = 0, dtime = 0;
+    float shutterOpen = 0, dtime = 0; // the shutter's open time and its length (close - open), in RiShutter's units
 
     // ---- per point (presence: the table below)
-    Strided<float> P, N, Ng, I;      // stride 3
+    Strided<float> P, N, Ng, I;      // stride 3, camera space; I is the incident vector (the eye's direction to P)
     Strided<float> u, v, du, dv;     // stride 1; du/dv are the parametric steps
     Strided<float> rayWidth;         // stride 1; da * t + db of the ray that hit
     Strided<float> dPdu, dPdv;       // stride 3
@@ -74,7 +74,20 @@ struct ShaderGlobals {
 These are the rules from [../data-model.md](../data-model.md#per-point-fields-and-presence-rules),
 restated in the header comment.
 
-- **Always present**: `P`, `time` and every per-batch field. A consumer may assume nothing else.
+- **Always present**: `P`, `time` and every per-batch field. "Always present" is a rule for a producer: it must
+  set `P` and `time` (their `present()` is true) on every batch. The default-constructed structure has every
+  field absent, and a consumer may assume nothing else is set.
+- **Spaces and units**: unless stated otherwise `P`, `N`, `Ng`, `I`, `dPdu`, `dPdv` and `dPdtime` are in the
+  current (camera) coordinate system, the space `shade()` works in (`getMatrix("current")` is the identity);
+  the imager's `P` is the pixel coordinate. `shutterOpen`, `dtime` and `time` are in the time units of
+  `RiShutter` (the values a shader reads as `dtime` and `time`).
+- **Array lengths**: every per-point array with a non-zero stride has `numPoints + numDerivativeTail` elements
+  (times its stride): the real points first, then the tail. A field with stride 0 holds one value for every
+  point, tail included, and has one element (times its width). Which field a producer fills in which situation
+  (grid, ray hit, photon emission, displacement pass, imager) is the table of
+  [../data-model.md](../data-model.md#per-point-fields-and-presence-rules); the situations are those of the
+  "Situation table" below. `activeTags` has `numPoints` entries, indexed by real point; the
+  tail has no entry and is never active.
 - **The derivative tail** follows the real points and is never active. Its `sampleKey` is the real
   point's key.
 - **Inactive lanes** hold unspecified values.

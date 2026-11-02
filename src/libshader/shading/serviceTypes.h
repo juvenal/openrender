@@ -41,7 +41,8 @@ namespace openrender::shading {
 
     // The shaded object, opaque. Made only by CShadingContext::objectHandle(). Null when there is no
     // object (the imager, a bare execution). Valid for the duration of the shading call that made it;
-    // never stored by an implementer. Only an implementer casts it back to its own type.
+    // never stored by an implementer. Only an implementer casts it back to its own type: the renderer's
+    // handle points at a const CObject (the shaded object), and a double chooses its own meaning.
     struct ObjectHandle {
             const void *ptr = nullptr;
             explicit operator bool() const { return ptr != nullptr; }
@@ -117,13 +118,23 @@ namespace openrender::shading {
             const char *name;    // the parameter name
             QueryType expected;
             void *dest;          // where a default value is written, in the parameter's own layout
-            bool wantVariable;   // true where the caller reads the producer's current value (surface, displacement, atmosphere, the interpreter's lightsource)
+            // true where the caller reads the producer's current value (surface, displacement, atmosphere, the
+            // interpreter's lightsource). When true, the answer returns the producer's CVariable for every
+            // parameter except an immutable parameter of a light (shader.cpp getParameter), and writes nothing
+            // into `dest` for it; otherwise (or when false) `dest` receives the default value.
+            bool wantVariable;
     };
 
     struct MessageAnswer {
             EQueryStatus status = EQueryStatus::Unavailable;
-            CVariable *variable = nullptr; // set when a mutable or varying parameter must be read from the producer's storage; else null
-            int globalIndex = -1;          // the light's saved-state index; -1 otherwise
+            // Set (only when the request had wantVariable) when the parameter's current value is to be read
+            // from the producer's storage instead of `dest`: Shading reads variable->storage, ->entry,
+            // ->numFloats and ->container. Null when the default was written into `dest`. Owned by the
+            // producer's shader; valid until the end of the shading call.
+            CVariable *variable = nullptr;
+            // Meaningful only with a variable and for the Light source: the parameter's index in the light's
+            // saved state; -1 otherwise.
+            int globalIndex = -1;
     };
 
     ///////////////////////////////////////////////////////////////////////
@@ -140,8 +151,14 @@ namespace openrender::shading {
 
     struct MatrixAnswer {
             EQueryStatus status = EQueryStatus::Unavailable; // Found, NotFound, NoObject or Unavailable
-            ECoordinateSystem kind = COORDINATE_CUSTOM;      // the colour-space callers branch on it
-            const float *from = nullptr; // column-major 4x4, valid until the end of the shading call; never null when Found
+            // What the name is; callers branch on it. Legal values: COORDINATE_OBJECT, CAMERA, WORLD, SHADER,
+            // LIGHT, NDC, RASTER, SCREEN, CURRENT, CUSTOM, and COLOR_RGB, HSL, HSV, XYZ, CIE, YIQ, XYY. Any
+            // other value is treated as an unknown system (identity matrix, one warning). For NoObject the
+            // kind is COORDINATE_OBJECT.
+            ECoordinateSystem kind = COORDINATE_CUSTOM;
+            // Column-major 4x4: `from` takes points of the named system into the current (camera) system, `to`
+            // is its inverse. Valid until the end of the shading call; never null when Found.
+            const float *from = nullptr;
             const float *to = nullptr;
     };
 

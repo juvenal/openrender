@@ -30,9 +30,20 @@ struct InterfaceVersion { int major, minor, patch; };
 //   PATCH  documentation, or an implementation fix with no contract change.
 //
 // History
-//   2.0.0  spec 026, <the date the header task is done>: getAttribute, getMessage, getMatrix, tracer(), ITracer,
-//          ShaderGlobals; setOffendingObject takes an ObjectHandle; the coordinate-system and
-//          option getters removed. Version 1 was the unversioned interface of specs 024, 025, 027.
+//   2.0.0  spec 026, 2026-11-01. Version 1 was the unversioned interface of specs 024, 025 and 027
+//          (57 pure virtuals).
+//          Added:    getAttribute, getMessage, getMatrix and tracer() (each with a documented
+//                    no-implementation default), and the types of serviceTypes.h, ITracer
+//                    (tracer.h) and ShaderGlobals (shaderGlobals.h).
+//          Replaced: setOffendingObject(CObject *) became setOffendingObject(ObjectHandle).
+//          Removed:  findCoordinateSystem and findCoordinateSystemWithType (answered by getMatrix);
+//                    the 26 option getters xres, yres, frame, frameAR, cropLeft, cropTop, cropRight,
+//                    cropBottom, fstop, focallength, focaldistance, bucketWidth, bucketHeight,
+//                    colorQuantizer, depthQuantizer, pixelFilterWidth, pixelFilterHeight, gamma, gain,
+//                    maxRayDepth, relativeDetail, pixelXsamples, pixelYsamples, samplingSampler,
+//                    samplingSeed and lookupUserOption (answered by getAttribute with scope Option or
+//                    RendererInfo).
+//          Unchanged: the 28 other members below.
 inline constexpr InterfaceVersion kRendererServicesVersion{2, 0, 0};
 }
 ```
@@ -94,40 +105,125 @@ class CRendererServices {
     public:
         ...the 28 unchanged members, below...
 
-        // ---- v2 (spec 026). Each has a default: an implementer that leaves one out answers
-        //      "Unavailable" (no tracer), and Shading degrades and warns once per kind.
+        // ---- version 2 (spec 026), introduced in 2.0.0. Each has a default body: an implementer that
+        //      leaves one out answers "Unavailable" (getAttribute, getMessage, getMatrix) or has no tracer,
+        //      and Shading degrades and warns once per kind. All four are thread-safe and never
+        //      re-enter Shading, except where a comment says otherwise.
+        //
+        // Lifetime rule of every pointer in an answer: it points at storage outside the answer (the
+        // renderer's tables, an object's attributes, a shader instance, the implementer's matrices, or the
+        // answer's own inlineValue) and stays valid until the end of the shading call that asked. Shading
+        // copies what it needs and never frees or stores it.
 
-        // attribute(), option(), rendererinfo(). The name tables are the implementer's. The answer
-        // is the raw stored value; Shading copies it.
-        // Thread-safe: called concurrently by every render thread; must not lock on the hot path.
+        // attribute(), option(), rendererinfo(): the three name tables of the implementer. The answer is
+        // the raw stored value; Shading copies it.
+        // Inputs: the scope; the object (Attribute scope only; ignored for the others); name[0] of the
+        //   call (one request per call, not per lane); the QueryType the shader's destination has.
+        //   `answer` arrives default-constructed (status Unavailable) and is the caller's.
+        // Outputs: status Found with type, count (floats, or char * slots for a string) and data;
+        //   NotFound; or TypeMismatch (below).
+        // TypeMismatch (FR-026) is the IMPLEMENTER's job: Shading copies a Found answer without checking it
+        //   again (it copies `count` floats, or `count` char * slots when type is TYPE_STRING, from `data`
+        //   into the destination as stored). An implementer must therefore answer TypeMismatch for a stored
+        //   value that cannot be copied safely into the expected type: Triple
+        //   and more than 3 floats stored, Matrix and more than 16, String and a non-string stored, any
+        //   other type and a string stored. Shading refuses it like NotFound (destination untouched,
+        //   builtin returns 0) and warns once per builtin kind. A smaller stored value, and every float-class
+        //   query, is Found and copied as stored (the destination's length is unknown to the builtin: #121).
+        // Not found: Shading leaves the destination untouched and returns 0. A null object answers NotFound
+        //   for the Attribute scope (FR-027). The default body leaves `answer` at Unavailable: Shading warns
+        //   once per kind and treats it as not found.
+        // Thread-safety: called concurrently by every render thread; must not lock on the hot path.
         // Re-enters Shading: never.
-        // Not found: status NotFound; Shading leaves the destination untouched and returns 0.
-        // TypeMismatch: the stored value cannot be copied safely into `expected` (FR-026); Shading refuses it
-        //   like NotFound and warns once. A null object answers NotFound (FR-027).
-        // `answer` arrives default-constructed (status Unavailable); the default body leaves it so.
         virtual void getAttribute(const openrender::shading::AttributeRequest &, openrender::shading::AttributeValue &answer) const { (void)answer; }
 
-        // surface(), displacement(), atmosphere(), incident(), opposite(), lightsource(). Writes a
-        // default value into request.dest in the parameter's own layout, or returns the variable
-        // (and the light's global index) that Shading reads the producer's current value from.
-        // Thread-safe: as getAttribute. Re-enters Shading: it may call the instance's
-        // getParameter(), which reads only that instance.
+        // surface(), displacement(), atmosphere(), incident() (source Interior), opposite() (source
+        // Exterior) and lightsource() (source Light): a parameter of the shader bound to the object (or,
+        // for Light, of request.light).
+        // Inputs: the source; the object handle (the five object sources; null: nothing to read); the
+        //   light handle (Light only; a null light handle answers NotFound); the parameter name; the
+        //   QueryType expected; `dest`, where a default value is written in the parameter's own layout
+        //   (a float, 3 floats, 16 floats or one char * slot; its length is the caller's, not stated);
+        //   wantVariable.
+        // Outputs, by status:
+        //   Found, variable == nullptr: the parameter's default was written into `dest`.
+        //   Found, variable != nullptr (only when wantVariable): nothing was written into `dest`. The
+        //     variable is the producer's own variable, from which Shading reads the current value. For
+        //     surface(), displacement() and atmosphere() it reads, per point:
+        //       - storage STORAGE_PARAMETER or STORAGE_MUTABLEPARAMETER: currentShadingState->locals[accessor]
+        //         [entry], where the accessor is the one of the source (ACCESSOR_SURFACE, ACCESSOR_DISPLACEMENT,
+        //         ACCESSOR_ATMOSPHERE): the producer's own parameter storage in this shading call;
+        //       - any other storage: the varying global buffer at `entry` of the current shading state;
+        //       - the step between points is `numFloats`, or 0 when `container` is CONTAINER_UNIFORM or
+        //         CONTAINER_CONSTANT (one value for every point).
+        //     The step and the uniform-destination rule below apply to the Light source as well (the
+        //     interpreter's lightsource() takes its source from the light's saved state instead, but uses the
+        //     same step and the same refusal).
+        //     If the destination is uniform (the shader's own variable is uniform) and the variable is
+        //     varying, Shading refuses the copy: the builtin returns 0 and the destination is left alone.
+        //     For the interpreter's lightsource() (source Light), `globalIndex` selects the value:
+        //     Shading reads the iterated light's saved state at savedState[2 + globalIndex], the index
+        //     counting the instance's variables the way the light-saving code counts them (instance
+        //     parameters in reverse order); it is -1 otherwise and ignored for the other sources.
+        //     So `dest` is written XOR a variable is returned, never both.
+        //   NotFound: no such source, shader or parameter (including a null object, FR-027). Nothing is
+        //     written.
+        //   TypeMismatch: decided BEFORE anything is written into `dest`, under the rules of getAttribute
+        //     (stored string against a non-string expectation, and so on). Never answered for the Light
+        //     source (B4): lightsource() keeps each backend's output.
+        // wantVariable is true for surface(), displacement(), atmosphere() and the interpreter's
+        //   lightsource(); false for incident(), opposite() and the JIT's lightsource(), which skip the
+        //   producer's mutable parameters and take defaults only.
+        // Not found, default body: Unavailable (Shading warns once per kind and returns 0).
+        // Thread-safety: as getAttribute.
+        // Re-enters Shading: it may call the bound instance's getParameter(), which reads only that instance.
         virtual openrender::shading::MessageAnswer getMessage(const openrender::shading::MessageRequest &) const { return {}; }
 
-        // Every named space and colour-space name, including "object", "shader", "light",
-        // "current", "camera" and "world".
-        // Thread-safe: as getAttribute. Re-enters Shading: never.
-        // NoObject: an object space was requested with a null object.
+        // Every coordinate-system lookup: the named spaces and the colour-space names.
+        // Inputs: the name; the object handle (for "object"); the shader handle (the executing instance,
+        //   for "shader"); the light handle (the executing light, for "light"); the time, which is 0 in
+        //   2.0.0 and may be ignored. Shading passes the current shader instance and the current light
+        //   instance unconditionally, so either handle can be null when no such shader or light is
+        //   executing; the renderer's implementation asserts it is non-null for the kind it resolves
+        //   ("shader" or "light"), so a caller must not ask for those kinds outside a shader or light.
+        // Outputs, by status:
+        //   Found: `kind` is the ECoordinateSystem of the name, and `from` and `to` are column-major 4x4
+        //     matrices (from takes points of that space into the current (camera) space, to is its
+        //     inverse), never null, valid until the end of the shading call. The legal kinds are
+        //     COORDINATE_OBJECT, CAMERA, WORLD, SHADER, LIGHT, NDC, RASTER, SCREEN, CURRENT, CUSTOM and the
+        //     colour spaces COLOR_RGB, HSL, HSV, XYZ, CIE, YIQ and XYY; for a colour space Shading passes
+        //     the matrices through and the callers branch on `kind`. Any other kind is treated as an
+        //     unknown system (identity matrix, one warning). The renderer answers the identity for
+        //     "camera" and "current".
+        //   NoObject: decided by the KIND, not by the spelling of the name: the name resolved to
+        //     COORDINATE_OBJECT and the object handle is null. `kind` is set to COORDINATE_OBJECT.
+        //   NotFound: no such name. Shading warns "Unknown coordinate system" and uses the identity matrix.
+        //   Unavailable (the default body): as NotFound, with one "services do not provide" warning.
+        // Thread-safety: as getAttribute. Re-enters Shading: never.
         virtual openrender::shading::MatrixAnswer getMatrix(const openrender::shading::MatrixRequest &) const { return {}; }
 
-        // The frame's tracer, nullptr between frames (installed in beginFrame(), cleared in
-        // endFrame()).
+        // The frame's tracer. Not owned by Shading and not owned by the caller: the implementer keeps it
+        // alive from beginFrame() until endFrame() (the renderer installs it in beginFrame() and clears it
+        // in endFrame(), so between frames it is nullptr), and Shading never stores the pointer beyond a
+        // trace call.
+        // Default: nullptr, and Shading warns once per kind and treats every ray as a miss.
+        // Thread-safety: called by every render thread; the returned tracer is itself thread-safe.
+        // Re-enters Shading: never.
         virtual ITracer *tracer() { return nullptr; }
 
-        // Replaced: was setOffendingObject(CObject *)
+        // REPLACED in 2.0.0 (was setOffendingObject(CObject *)): records the object being shaded, so
+        // that an error message can name it. The handle is opaque to Shading and valid only for the
+        // duration of the call: the object of the current shading call, or a null handle to clear it. An
+        // implementer must not keep it past its next call. Output: none. Thread-safety: called by every
+        // render thread; the real renderer keeps one slot that the last writer wins; a double may store
+        // it or ignore it. Re-enters Shading: never. Introduced: 1.x (as the CObject * form).
         virtual void setOffendingObject(openrender::shading::ObjectHandle object) = 0;
 };
 ```
+
+`rendererServices.h` is the authoritative documentation: it states, for each of the 28 unchanged members as well, the
+inputs, outputs, not-found result, thread-safety, re-entrancy and the version that introduced it. This file keeps the
+design and the classification table below.
 
 The default bodies of the three queries are inline in the header and answer
 `status = Unavailable`. `getMessage`/`getMatrix` return their answers by value; that is safe because

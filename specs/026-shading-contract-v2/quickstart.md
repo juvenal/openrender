@@ -123,7 +123,7 @@ grep -n '#include "\(surface\|object\)\.h"' src/libshader/shading/execute*.cpp  
 # FR-003: the new headers include only Shading/Infra headers
 grep -n '#include' src/libshader/shading/{serviceTypes,tracer,shaderGlobals,situation,traceCalls}.h src/libshader/shading/sloLoader.{h,cpp}   # expect: Shading/Infra headers only; no renderer*.h, nothing under src/ri/{render,hiders,geometry}
 # FR-019: the allowlist only shrank, and no line changed in place
-git diff d01da47 -- tests/architecture/allowlist.txt | grep '^+[^+]'   # expect: only the two header-count comments
+git diff 628d6747 -- tests/architecture/allowlist.txt | grep '^+[^+]'   # expect: only the two header-count comments
 # FR-014: the removed methods have no caller left
 grep -rnE '(->|\.)(findCoordinateSystemWithType|lookupUserOption|pixelXsamples)\(' src tests   # expect: none
 ```
