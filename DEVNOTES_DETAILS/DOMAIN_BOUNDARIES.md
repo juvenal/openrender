@@ -95,10 +95,9 @@ request. Run `ctest -L architecture` locally before review.
   renderer-core rule (no domain may depend on the renderer core).
 - **Tracking**: [#24](https://github.com/juvenal/openrender/issues/24) (enhancement / design review)
 - **Evidence**: `libshader_shading` (Shading) links with `-undefined dynamic_lookup` (macOS) /
-  `--allow-shlib-undefined` (Linux) in `src/libshader/shading/CMakeLists.txt`, and binds 6
-  distinct `libRIBRender` symbols flat-namespace (`nm -m`, "dynamically looked up"), all in Hiders:
-  `CShadingContext::trace`/`traceEx`, `CGatherBundle`, `CTraceBundle`/`CTransmissionBundle`
-  vtables, `CPhotonMap::lookup`.
+  `--allow-shlib-undefined` (Linux) in `src/libshader/shading/CMakeLists.txt`, and binds
+  4 distinct `libRIBRender` symbols flat-namespace (`nm -m`, "dynamically looked up"), all in Hiders:
+  `CGatherBundle`, the `CTraceBundle`/`CTransmissionBundle` vtables, `CPhotonMap::lookup`.
 - **History**: before spec 023 it bound 29 symbols. The 17 infrastructure ones (`CRenderer::
   globalMemory`, `CRefCounter`, `CFileResource`, `memoryInit`/`memoryTini`/`memoryNewPage`,
   `stats`, `error`/`info`/`warning`, `parseVariable`, `sampleHemisphere`/
@@ -116,10 +115,14 @@ request. Run `ctest -L architecture` locally before review.
     cache's `resolve` go through `CRendererServices` (`texture3dResolve`/`Lookup`/`Store`), so
     `CTexture3d::resolve` is no longer imported; 7 → 6 imports, edge count unchanged. The record is
     `specs/027-texture-system/tools/libshader-dynlookup-{before,after}-macos.txt`.
-- **Measured by the architecture check** (macOS): 8 edges allowlisted under DB-001 (18 before
-  spec 024, 30 before spec 023).
-  - 8 link references from Shading sources: `CShadingContext::trace`/`traceEx`, `CGatherBundle`,
-    the `CTraceBundle`/`CTransmissionBundle` vtables and `CPhotonMap::lookup`.
+  - Spec 026, 2026-11-01: Shading's trace calls go through the Shading-owned `ITracer`
+    (`tracer.h`), reached through `CRendererServices::tracer()` and answered by the hiders' adapter
+    `CHiderTracer`; `trace`/`traceEx` are no longer imported (6 → 4 imports, 8 → 5 edges). The record is
+    `specs/026-shading-contract-v2/tools/libshader-imports-{base,after}-macos.txt`.
+- **Measured by the architecture check** (macOS): 5 edges allowlisted under DB-001 (8 before
+  spec 026, 18 before spec 024, 30 before spec 023).
+  - 5 link references from Shading sources: `CGatherBundle`, the `CTraceBundle`/`CTransmissionBundle`
+    vtables and the two `CPhotonMap::lookup` references.
   - No includes: the 4 of `src/ri/render/renderer.h` are gone.
   - Shading's source-level coupling is registered separately: hider headers under DB-005,
     Geometry headers under DB-006 (the `dso.h` edges once registered under DB-019 are gone since spec 037).
@@ -127,9 +130,11 @@ request. Run `ctest -L architecture` locally before review.
   static engine link must whole-archive `libRIBRender.a` (the `openRender::RIBRender_static`
   package target applies `-force_load` for this — remove that workaround once this is resolved).
 - **Direction**: generic infrastructure is already in `libRIBCommon` (spec 023) and the
-  renderer-core lookups go through `CRendererServices` (spec 024); invert the remaining
-  Hiders/Texturing calls through interfaces Shading owns (trace/gather, photon/texture3d lookup),
-  implemented and registered by the higher layers. Options are analysed in #24.
+  renderer-core lookups go through `CRendererServices` (spec 024) and the trace calls through
+  `ITracer` (spec 026); invert the remaining Hiders calls through interfaces Shading owns, with
+  `ITracer` as the interface the bundles (`CGatherBundle`, `CTraceBundle`, `CTransmissionBundle`)
+  and the photon map follow (spec 029), implemented and registered by the higher layers. Options
+  are analysed in #24.
 
 ### DB-004 — Geometry depends on the renderer core and on Scene Interface
 
@@ -226,8 +231,11 @@ request. Run `ctest -L architecture` locally before review.
     shim) and calls `CShadingContext::shade`, `saveState` and `restoreState`.
   - Geometry includes `src/ri/hiders/reyes.h` from 9 files and calls `CReyes::drawObject` and
     `CReyes::drawGrid` (`surface.cpp`).
-  - Shading includes `surface.h` and `object.h`, closing a Geometry ↔ Shading cycle.
-- **Size**: 33 edges (26 include, 7 link).
+  - Shading includes `object.h` (one file), closing a Geometry ↔ Shading cycle.
+- **Size**: 31 edges (24 include, 7 link).
+- **History**: Spec 026, 2026-11-01: `execute.cpp` and `executeMisc.cpp` no longer include `surface.h` (the
+  executor's attribute reads go through `CShadingContext::objectAttributes()`); `shading.cpp -> object.h`
+  stays for spec 029. The `ShaderGlobals` contract exists (`shaderGlobals.h`); nothing fills it yet.
 - **Direction**: an OSL-style `ShaderGlobals` filled by Geometry for Shading (026, 029);
   Geometry's dice and intersect take Geometry-owned `IDicer`/`IRayContext` interfaces instead of
   `CReyes*`/`CShadingContext*` (031).
@@ -301,7 +309,8 @@ request. Run `ctest -L architecture` locally before review.
 - **Rules**: the renderer-core rule (no domain may depend on the renderer core).
 - **Tracking**: remediation specs 028 ([#34](https://github.com/juvenal/openrender/issues/34)), 029 ([#35](https://github.com/juvenal/openrender/issues/35)), 030 ([#36](https://github.com/juvenal/openrender/issues/36))
 - **Evidence**:
-  - 21 files under `src/ri/hiders/` make 611 `CRenderer::` references (grep count): frame and
+  - 19 files under `src/ri/hiders/` make 558 `CRenderer::` references (the archcheck metric,
+    `metrics-baseline.txt`; a raw grep counts 575): frame and
     sampling parameters (`clipMax`, `bucketWidth`, `pixelXsamples`, `xSampleOffset`, …),
     `flags`, `hiderFlags`, `raytracingFlags`.
   - 9 files include `src/ri/render/renderer.h`.
@@ -385,13 +394,21 @@ request. Run `ctest -L architecture` locally before review.
 
 - **Rules**: 3 (Shading reaches other domains' data through services).
 - **Tracking**: remediation specs 026 ([#32](https://github.com/juvenal/openrender/issues/32)), 033 ([#39](https://github.com/juvenal/openrender/issues/39)), 034 ([#40](https://github.com/juvenal/openrender/issues/40))
-- **Evidence**: `surface()`, `displacement()`, `atmosphere()`, `incident()`, `opposite()`,
-  `option()` and `attribute()` (`src/libshader/shading/shading.cpp:1291-1361,1490`) read fields of
-  `currentShadingState->currentObject->attributes` themselves.
+- **Evidence**: spec 026 (2026-11-01): the eight builtins `attribute()`, `option()`, `rendererinfo()`,
+  `surface()`, `displacement()`, `atmosphere()`, `incident()` and `opposite()` ask the services
+  (`getAttribute`/`getMessage`) in both backends, and none reads
+  `currentShadingState->currentObject->attributes`; the reads that remain in `shading.cpp` are the
+  object's own, listed in spec 026's research R5.
+  - Still open: the JIT's message-passing entry points (`op_*_param`, `op_lightsource_f`, spec 033);
+    `shadername(type)`, a direct read null-guarded since spec 026; group-layer messages and
+    `setmessage` (spec 034); the `lightsource()` divergence between the interpreter and the JIT
+    ([#115](https://github.com/juvenal/openrender/issues/115)); and the unknown destination size of a
+    float-class query ([#121](https://github.com/juvenal/openrender/issues/121)).
 - **Size**: not a dependency edge (Shading may depend on Graphics State); tracked by review.
-- **Direction**: `RendererServices::get_attribute`, used by both backends; an explicit ray type /
-  hit mode in `ShaderGlobals` (spec 026, [#32](https://github.com/juvenal/openrender/issues/32)),
-  formerly listed under DB-012; `getmessage`/`setmessage` across shader-group layers (034).
+- **Direction**: the ray type and hit mode in `ShaderGlobals` (spec 026 defined the contract and the
+  situation table; spec 029 fills it, [#35](https://github.com/juvenal/openrender/issues/35));
+  the JIT's message-passing entry points through the services (spec 033); `getmessage`/`setmessage`
+  across shader-group layers (spec 034).
 
 ### DB-019 — The shader compiler depends on Scene Interface and renderer-core headers
 

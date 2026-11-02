@@ -1,0 +1,3 @@
+# spec 026 Linux sweep noise list: the two bake3d scenes. They differed between two runs of the sweep on the starting tree (run 1 failed both, run 2 passed both).
+tests/visual/determinism-sweep/sphere-texture3d-bake3d-reyes/sphere-texture3d-bake3d-reyes.tif
+tests/visual/determinism-sweep/sphere-texture3d-bake3d-reyes-slo/sphere-texture3d-bake3d-reyes-slo.tif

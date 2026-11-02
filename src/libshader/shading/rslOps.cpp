@@ -19,11 +19,13 @@
 #include "rslOps.h"
 #include "activeContext.h"
 #include "common/colorSpace.h"
+#include "common/diagnostics.h"
 #include "common/memory.h"
 #include "include/logging.hpp"
 #include "noise.h"
 #include "shading.h"
 
+#include <atomic>
 #include <cmath>
 #include <cstring>
 #include <unistd.h>
@@ -918,16 +920,38 @@ void op_pnoise_4d_v(float *dst, int sd, const float *P, int sP, const float *t, 
 void op_lightsource_f(float *result, int sr, const char *attrName, float *outParam, int so, int n, const int *tags) {
     (void)n;
     (void)tags;
-    float value = 0.0f;
+    // getParameter() writes the parameter's whole value, so a vector or matrix parameter would overrun a single float
+    // (#115); the scratch holds the largest value and the first float is what the JIT has always used
+    float scratch[16] = {0.0f};
     CShadingContext *ctx = libshader::activeContext();
     if (ctx) {
         CShadingState *ss = ctx->currentShadingState;
         if (ss && ss->currentLightInstance) {
-            CProgrammableShaderInstance *light = (CProgrammableShaderInstance *)ss->currentLightInstance;
-            if (light)
-                light->getParameter(attrName, &value, nullptr, nullptr);
+            // The last light that ran, floats only, no variable (spec 026, Q2): asked through the services, which write
+            // the parameter's default into the scratch. A parameter that does not fit the scratch is refused before
+            // anything is written (D10): the result stays 0, with one warning
+            CShaderInstance *light = ss->currentLightInstance;
+            bool fits = true;
+            EVariableType type = TYPE_FLOAT;
+            int numFloats = 0;
+            if (light->getParameterShape(attrName, type, numFloats)) {
+                const size_t bytes = (type == TYPE_STRING) ? (size_t)numFloats * sizeof(char *) : (size_t)numFloats * sizeof(float);
+                fits = (bytes <= sizeof(scratch));
+            }
+            if (!fits) {
+                static std::atomic<bool> s_warnedOversized{false};
+                if (!s_warnedOversized.exchange(true))
+                    warning(CODE_BADTOKEN, "lightsource(\"%s\"): the parameter holds more than %d bytes, more than the JIT's lightsource() can take; the query is refused and its result is 0\n",
+                            attrName, (int)sizeof(scratch));
+            }
+            CRendererServices *svc = fits ? ctx->getServices() : nullptr;
+            if (svc != nullptr)
+                svc->getMessage(openrender::shading::MessageRequest{openrender::shading::MessageSource::Light, ctx->objectHandle(),
+                                                                     CShadingContext::shaderHandle(ss->currentLightInstance), attrName,
+                                                                     openrender::shading::QueryType::Float, scratch, false});
         }
     }
+    const float value = scratch[0];
     if (result)
         IDX(result, sr, 0)
         [0] = value;
@@ -1317,6 +1341,21 @@ void op_ctransform(float *dst, int sd, const char *space, const float *src, int 
     for (int i = 0; i < n; i++)
         if (ACTIVE(tags, i)) {
             convertColorTo(IDX(dst, sd, i), IDX(src, ss, i), cSystem);
+        }
+}
+
+// op_ctransform_ss: RSL ctransform("from", "to", c) "c=SSc" -- mirrors CTRANSFORMSEXPR (shaderFunctions.h): the
+// colour is converted from the first space to rgb, then from rgb to the second (spec 026, D8). The lookups go
+// through the same jitFindCoordinateSystem() path as the one-space ctransform, from first, then to.
+void op_ctransform_ss(float *dst, int sd, const char *space1, const char *space2, const float *src, int ss, int n, const int *tags) {
+    ECoordinateSystem cSystemFrom, cSystemTo;
+    getColorCoordinateSystem(space1, cSystemFrom);
+    getColorCoordinateSystem(space2, cSystemTo);
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i)) {
+            vector vtmp;
+            convertColorFrom(vtmp, IDX(src, ss, i), cSystemFrom);
+            convertColorTo(IDX(dst, sd, i), vtmp, cSystemTo);
         }
 }
 

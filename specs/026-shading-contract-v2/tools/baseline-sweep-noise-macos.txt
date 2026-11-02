@@ -1,0 +1,1 @@
+# spec 026 macOS sweep noise list: none. Two runs of the determinism sweep on the starting tree wrote byte-identical images (419 images, 0 differing).

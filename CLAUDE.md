@@ -280,7 +280,7 @@ ctest --test-dir build -L state                         # Graphics State: handle
 ctest --test-dir build -L plugin_abi -j4                # plug-in ABIs (spec 037): headers, versions, display host and v1 adapter, shadeop module, procedures, install layouts, doc checks
 ctest --test-dir build -LE determinism-sweep -j4        # the everyday full run: everything except the opt-in determinism sweep
 ctest --test-dir build -L '^determinism$' -j2           # default determinism set (148): harness, tie and derivative tests, one demanding scene per family
-ctest --test-dir build -L '^determinism-sweep$' -j2     # opt-in full sweep (413 scenes x 5 configurations, ~10-12 min at -j2): before each merge, and for the Linux validation
+ctest --test-dir build -L '^determinism-sweep$' -j2     # opt-in full sweep (419 scenes x 5 configurations, ~10-12 min at -j2): before each merge, and for the Linux validation
 ```
 
 **`-L` is a regular expression.** `-L determinism` also selects every `determinism-sweep` test (the whole sweep); anchor it
@@ -691,6 +691,32 @@ not in the agent definitions.
    `checkPluginVersion` is the only version check: a new family adds an `SPluginFamily`, never a
    second check.
 
+28. **Shading's boundary is one versioned interface; the tracer is a per-frame slot (spec 026).**
+   `CRendererServices` is version 2.0.0 (`kRendererServicesVersion`, `rendererServices.h`, with
+   `serviceTypes.h`, `tracer.h` and `shaderGlobals.h`; the headers document every member, so read
+   them before writing an implementer or a double). The attribute, option and renderer-info
+   builtins ask `getAttribute`, the message-passing builtins (`surface()` ... `lightsource()`) ask
+   `getMessage` and every coordinate-system lookup asks `getMatrix`; the 26 option getters and the
+   two coordinate-system lookups are gone. One request is made per call, with `name[0]`, before the
+   per-lane copy. The shaded object and the executing shaders reach an implementer only as opaque
+   `ObjectHandle`/`ShaderHandle` made by `CShadingContext::objectHandle()`/`shaderHandle()`; a null
+   object (the imager) answers not found and is never dereferenced. A stored value that cannot be
+   copied safely into the shader's destination (`TypeMismatch`) is refused: the destination is left
+   untouched and the builtin warns once; `lightsource()` is exempt, and its interpreter and JIT
+   outputs still differ (GitHub #115). The trace calls go through `ITracer` (`tracer.h`): the core
+   sets `CRenderer::frameTracer` (one stateless `CHiderTracer`) in `beginFrame()` and clears it in
+   `endFrame()`, so `tracer()` is `nullptr` between frames, and Shading reaches it only through
+   `libshader::traceRay`/`traceBundle` (`traceCalls.h`), which warn once and treat the rays as
+   misses when there is none. A new flat-namespace import of `libshader_shading` must be added to
+   the load stub of the standalone contract programs (`tests/shading_contract/load_stub.cpp`, 4
+   symbols today) and to the DB-001 allowlist. `ShaderGlobals` and `classifyShading()` (the
+   situation table) are produced and consumed by tests only; nothing in the render path uses them
+   until spec 029. The `.slo` loader lives in Shading (`sloLoader.{h,cpp}`). A primitive hit mode
+   returns from `shade()` before the point-key and displaced-point test observers fire, so a
+   scene with only primitive hits reports nothing. A change to the interface bumps
+   `kRendererServicesVersion` (MAJOR: a member, field or result removed or changed; MINOR: a member
+   with a default, a field or enumerator appended); every implementer `static_assert`s its MAJOR.
+
 ## Active Technologies
 - C++20, CMake ≥3.19; `libtiff`/`libpng` (mandatory), OpenEXR (optional,
   `HAVE_OPENEXR`-gated), in-tree RGBE codec — no new dependencies
@@ -742,8 +768,25 @@ not in the agent definitions.
   (037-plugin-abi-semver)
 - Storage: N/A — no new persistent state; the `plugin_abi` test references are captured files
   (037-plugin-abi-semver)
+- C++20, CMake ≥3.19, `-Werror`; no new dependencies — Shading's boundary is the versioned
+  `CRendererServices` 2.0.0 (`getAttribute`, `getMessage`, `getMatrix`, `tracer()`) plus `ITracer`
+  and `ShaderGlobals`, with a contract test double and a standalone link stub
+  (026-shading-contract-v2)
+- Storage: N/A — memory only; the trace-request replay under `tests/shading_contract/replay/` is a
+  recorded file (026-shading-contract-v2)
 
 ## Recent Changes
+- 026-shading-contract-v2: Shading reaches the renderer through one documented, versioned
+  interface (`kRendererServicesVersion` 2.0.0): `getAttribute`, `getMessage` and `getMatrix`
+  replace 28 option and coordinate-system methods, `setOffendingObject` takes an opaque
+  `ObjectHandle`, and the trace calls go through a Shading-owned `ITracer` (`CHiderTracer`, a
+  per-frame slot) so `trace`/`traceEx` are no longer imported (flat-namespace imports 6 → 4).
+  `ShaderGlobals` and the 14-row situation table (`classifyShading()`) exist, checked against the
+  code and consumed by tests only. The `.slo` loader moved into Shading. A stored value that cannot
+  be copied safely into its destination is refused, a query with no object answers not found, and the interpreter's
+  `lightsource()` outside a light loop and the crossed `incident()`/`opposite()` accessor constants
+  are fixed. DB-001 8 → 5 edges, DB-006 33 → 31, DB-018's service part done; no image changed,
+  pinned by a recorded replay of the trace requests of the eight trace builtins (see spec 026).
 - 037-plugin-abi-semver: every plug-in family declares an interface version checked by one routine
   (`checkPluginVersion`); display 2.0.0 (function table, per-display context, `const` snapshot,
   channel descriptors, a documented threading contract) loaded by `CDisplayHost`, with MAJOR 1

@@ -30,6 +30,10 @@
 #include "textureSystem.h"  // CTextureSystem, ETextureKind
 #include "userAttributes.h" // CUserAttributeDictionary
 
+// The services this class implements are version 2 (spec 026): the version constant is not checked at run time, so
+// the implementer states the major it was written against.
+static_assert(openrender::shading::kRendererServicesVersion.major == 2, "CRendererServicesImpl is written against renderer services version 2");
+
 class CRendererServicesImpl final : public CRendererServices {
     public:
         // Grid / memory
@@ -94,19 +98,16 @@ class CRendererServicesImpl final : public CRendererServices {
         int getGlobalID(const char *name) override { return CRenderer::getGlobalID(name); }
 
         // Error reporting
-        void setOffendingObject(CObject *obj) override { CRenderer::offendingObject = obj; }
+        void setOffendingObject(openrender::shading::ObjectHandle object) override { CRenderer::offendingObject = const_cast<CObject *>(static_cast<const CObject *>(object.ptr)); }
+
+        // The frame's tracer (spec 026): null between frames
+        openrender::shading::ITracer *tracer() override { return CRenderer::frameTracer; }
 
         // Shoot step
         int shootStep() const override { return CRenderer::shootStep; }
 
-        // Coordinate systems
-        bool findCoordinateSystem(const char *name, const float *&from, const float *&to) const override {
-            ECoordinateSystem type;
-            return CRenderer::findCoordinateSystem(name, from, to, type) != FALSE;
-        }
-        bool findCoordinateSystemWithType(const char *name, const float *&from, const float *&to, ECoordinateSystem &type) const override {
-            return CRenderer::findCoordinateSystem(name, from, to, type) != FALSE;
-        }
+        // Coordinate systems (spec 026): every lookup, with the object, shader and light handles of the shading point
+        openrender::shading::MatrixAnswer getMatrix(const openrender::shading::MatrixRequest &request) const override;
 
         // Filter functions
         RtFilterFunc getFilter(const char *name) const override { return CRenderer::getFilter(name); }
@@ -114,35 +115,11 @@ class CRendererServicesImpl final : public CRendererServices {
         CVariable *retrieveVariable(const char *name) const override { return CRenderer::retrieveVariable(name); }
         CDSO *getDSO(const char *name, const char *prototype) override { return CRenderer::getDSO(name, prototype); }
 
-        // Render option getters
-        int xres() const override { return CRenderer::xres; }
-        int yres() const override { return CRenderer::yres; }
-        int frame() const override { return CRenderer::frame; }
-        float frameAR() const override { return CRenderer::frameAR; }
-        float cropLeft() const override { return CRenderer::cropLeft; }
-        float cropTop() const override { return CRenderer::cropTop; }
-        float cropRight() const override { return CRenderer::cropRight; }
-        float cropBottom() const override { return CRenderer::cropBottom; }
-        float fstop() const override { return CRenderer::fstop; }
-        float focallength() const override { return CRenderer::focallength; }
-        float focaldistance() const override { return CRenderer::focaldistance; }
-        float bucketWidth() const override { return CRenderer::bucketWidth; }
-        float bucketHeight() const override { return CRenderer::bucketHeight; }
-        const float *colorQuantizer() const override { return CRenderer::colorQuantizer; }
-        const float *depthQuantizer() const override { return CRenderer::depthQuantizer; }
-        float pixelFilterWidth() const override { return CRenderer::pixelFilterWidth; }
-        float pixelFilterHeight() const override { return CRenderer::pixelFilterHeight; }
-        float gamma() const override { return CRenderer::gamma; }
-        float gain() const override { return CRenderer::gain; }
-        int maxRayDepth() const override { return CRenderer::maxRayDepth; }
-        float relativeDetail() const override { return CRenderer::relativeDetail; }
-        int pixelXsamples() const override { return CRenderer::pixelXsamples; }
-        int pixelYsamples() const override { return CRenderer::pixelYsamples; }
-        const char *samplingSampler() const override { return openrender::sampling::samplerName(CRenderer::samplingBackend); }
-        int samplingSeed() const override { return (int)CRenderer::samplingSeed; }
-        bool lookupUserOption(const char *name, CVariable *&var) const override {
-            return CRenderer::userOptions ? CRenderer::userOptions->lookup(name, var) != FALSE : false;
-        }
+        // attribute(), option() and rendererinfo() (spec 026): the name tables are the renderer's
+        void getAttribute(const openrender::shading::AttributeRequest &request, openrender::shading::AttributeValue &answer) const override;
+
+        // surface(), displacement(), atmosphere(), incident(), opposite() and lightsource() (spec 026): the bound instance's parameters
+        openrender::shading::MessageAnswer getMessage(const openrender::shading::MessageRequest &request) const override;
 };
 
 #endif // RENDERER_SERVICES_IMPL_H

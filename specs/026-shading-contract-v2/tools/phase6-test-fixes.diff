@@ -1,0 +1,34 @@
+diff --git a/tests/shading_contract/case_type_mismatch_real_message.cpp b/tests/shading_contract/case_type_mismatch_real_message.cpp
+index 94e46d31..e65f509b 100644
+--- a/tests/shading_contract/case_type_mismatch_real_message.cpp
++++ b/tests/shading_contract/case_type_mismatch_real_message.cpp
+@@ -45,6 +45,16 @@ int caseTypeMismatchRealMessage(bool jit) {
+             s.attributes->bindExterior(ShaderGroupRef::retain(pExterior));
+ 
+             CRProbeContext *ctx = s.makeContext(s.original);
++
++            // The message-passing locals the shading pipeline would have left (shading.cpp:1021-1025): surface(),
++            // displacement() and atmosphere() read the producer's current values from them
++            CShadingState *state = ctx->currentShadingState;
++            CMemPage *producerMemory = NULL;
++            memoryInit(producerMemory);
++            state->locals[ACCESSOR_SURFACE] = pSurface->prepare(producerMemory, state->varying, 3);
++            state->locals[ACCESSOR_DISPLACEMENT] = pDisplacement->prepare(producerMemory, state->varying, 3);
++            state->locals[ACCESSOR_ATMOSPHERE] = pAtmosphere->prepare(producerMemory, state->varying, 3);
++
+             const char *shaders[5] = {"cm_mm_real_msg_surface", "cm_mm_real_msg_displacement", "cm_mm_real_msg_atmosphere",
+                                       "cm_mm_real_msg_incident", "cm_mm_real_msg_opposite"};
+             for (const char *name : shaders) {
+diff --git a/tests/shading_contract/shaders/cm_surface.sl b/tests/shading_contract/shaders/cm_surface.sl
+index 1cdde233..f09d5321 100644
+--- a/tests/shading_contract/shaders/cm_surface.sl
++++ b/tests/shading_contract/shaders/cm_surface.sl
+@@ -1,7 +1,7 @@
+ /* Spec 026 contract-test shader (tests/shading_contract). surface(): a parameter of each type (float, vector, matrix, string) and a name that does not exist. */
+ surface cm_surface()
+ {
+-    float f = -1;
++    float f = -1 + 0 * s; /* varying by construction: the JIT keeps a destination uniform unless a varying value reaches it */
+     float f2 = -7;
+     vector v = vector(-1, -2, -3);
+     matrix m = 1;

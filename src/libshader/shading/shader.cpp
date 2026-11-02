@@ -556,6 +556,46 @@ int CProgrammableShaderInstance::getParameter(const char *name, void *dest, CVar
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CProgrammableShaderInstance
+// Method				:	getParameterShape
+// Description			:	The stored type of a parameter and the floats it holds, writing nothing
+// Return Value			:	TRUE if the instance has such a parameter
+// Comments				:	The same loop over the parameters as getParameter()
+bool CProgrammableShaderInstance::getParameterShape(const char *name, EVariableType &type, int &numFloats) const {
+    for (const CVariable *cParameter = parameters; cParameter != NULL; cParameter = cParameter->next) {
+        if (strcmp(name, cParameter->name) != 0)
+            continue;
+
+        type = cParameter->type;
+        int perItem = 1;
+        switch (cParameter->type) {
+            case TYPE_COLOR:
+            case TYPE_VECTOR:
+            case TYPE_NORMAL:
+            case TYPE_POINT:
+                perItem = 3;
+                break;
+            case TYPE_MATRIX:
+            case TYPE_MPOINT:
+                perItem = 16;
+                break;
+            case TYPE_QUAD:
+                perItem = 4;
+                break;
+            case TYPE_DOUBLE:
+                perItem = 2;
+                break;
+            default:
+                perItem = 1;
+                break;
+        }
+        numFloats = cParameter->numItems * perItem;
+        return true;
+    }
+    return false;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CProgrammableShaderInstance
 // Method				:	execute
 // Description			:	Actually execute the shader
 // Return Value			:	-

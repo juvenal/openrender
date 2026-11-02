@@ -68,6 +68,8 @@ add_subdirectory(unit/geometry)
 add_subdirectory(unit/state)
 add_subdirectory(unit/camera)
 add_subdirectory(unit/motion)
+# After unit/state: shading_contract links its state_only_sources library
+add_subdirectory(shading_contract)
 add_subdirectory(plugins)
 add_subdirectory(convergence)
 add_subdirectory(architecture)

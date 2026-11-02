@@ -361,7 +361,7 @@ DEFFUNC(AreaS, "area", "f=pS", AREAEXPR_PRE, AREAEXPR, AREAEXPR_UPDATE, NULL_EXP
     FUN2EXPR_PRE                                                                                                                   \
     float *dPdu = (float *)ralloc(numVertices * 6 * sizeof(float), threadMemory);                                                  \
     float *dPdv = dPdu + numVertices * 3;                                                                                          \
-    const float mult = ((currentShadingState->currentObject->attributes->flags & ATTRIBUTES_FLAGS_INSIDE) ? (float)-1 : (float)1); \
+    const float mult = ((objectAttributes()->flags & ATTRIBUTES_FLAGS_INSIDE) ? (float)-1 : (float)1);                                   \
     duVector(dPdu, op);                                                                                                            \
     dvVector(dPdv, op);
 
@@ -1158,7 +1158,7 @@ DEFFUNC(SpecularBRDF, "specularbrdf", "c=vnvf", SPECULARBRDFEXPR_PRE, SPECULARBR
 
 ////////////////////
 // FIXME: Not 64 bit compatible
-#define PARAMETEREXPR_PRE(accessor)                                                                  \
+#define PARAMETEREXPR_PRE(accessor, expected)                                                       \
     float *res;                                                                                      \
     const char **op1;                                                                                \
     float *op2;                                                                                      \
@@ -1170,7 +1170,7 @@ DEFFUNC(SpecularBRDF, "specularbrdf", "c=vnvf", SPECULARBRDFEXPR_PRE, SPECULARBR
                                                                                                      \
     int globalIndex = -1;                                                                            \
     CVariable *cVar = NULL;                                                                          \
-    float found = (float)FUNCTION(op2, *op1, &cVar, &globalIndex);                                   \
+    float found = (float)FUNCTION(op2, *op1, &cVar, &globalIndex, openrender::shading::QueryType::expected); \
     const float *src = op2;                                                                          \
     int srcStep = op2Step;                                                                           \
                                                                                                      \
@@ -1208,7 +1208,7 @@ DEFFUNC(SpecularBRDF, "specularbrdf", "c=vnvf", SPECULARBRDFEXPR_PRE, SPECULARBR
                                                                                                      \
     int globalIndex = -1;                                                                            \
     CVariable *cVar = NULL;                                                                          \
-    float found = (float)(*currentLight)->instance->getParameter(*op1, op2, &cVar, &globalIndex);    \
+    float found = (float)lightParameter(op2, *op1, &cVar, &globalIndex);                             \
     const float *src = op2;                                                                          \
     int srcStep = op2Step;                                                                           \
                                                                                                      \
@@ -1275,7 +1275,7 @@ DEFFUNC(SpecularBRDF, "specularbrdf", "c=vnvf", SPECULARBRDFEXPR_PRE, SPECULARBR
 #undef PARAMETEREXPRV
 #undef PARAMETEREXPRM
 #undef PARAMETEREXPR_UPDATE
-#define PARAMETEREXPR_PRE(a)
+#define PARAMETEREXPR_PRE(a, e)
 #define LIGHTPARAMETEREXPR_PRE
 #define PARAMETEREXPRF
 #define PARAMETEREXPRS
@@ -1288,20 +1288,20 @@ DEFFUNC(SpecularBRDF, "specularbrdf", "c=vnvf", SPECULARBRDFEXPR_PRE, SPECULARBR
 DEFLINKFUNC(Displacement2, "displacement", "f=SC", PARAMETER_MESSAGEPASSING)
 DEFLINKFUNC(Displacement3, "displacement", "f=SN", PARAMETER_MESSAGEPASSING)
 DEFLINKFUNC(Displacement4, "displacement", "f=SP", PARAMETER_MESSAGEPASSING)
-DEFFUNC(DisplacementV, "displacement", "f=SV", PARAMETEREXPR_PRE(ACCESSOR_DISPLACEMENT), PARAMETEREXPRV, PARAMETEREXPR_UPDATE(1, 3), NULL_EXPR, PARAMETER_MESSAGEPASSING)
-DEFFUNC(Displacement, "displacement", "f=SF", PARAMETEREXPR_PRE(ACCESSOR_DISPLACEMENT), PARAMETEREXPRF, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
-DEFFUNC(DisplacementS, "displacement", "f=SS", PARAMETEREXPR_PRE(ACCESSOR_DISPLACEMENT), PARAMETEREXPRS, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
-DEFFUNC(DisplacementM, "displacement", "f=SM", PARAMETEREXPR_PRE(ACCESSOR_DISPLACEMENT), PARAMETEREXPRM, PARAMETEREXPR_UPDATE(1, 16), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(DisplacementV, "displacement", "f=SV", PARAMETEREXPR_PRE(ACCESSOR_DISPLACEMENT, Triple), PARAMETEREXPRV, PARAMETEREXPR_UPDATE(1, 3), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(Displacement, "displacement", "f=SF", PARAMETEREXPR_PRE(ACCESSOR_DISPLACEMENT, Float), PARAMETEREXPRF, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(DisplacementS, "displacement", "f=SS", PARAMETEREXPR_PRE(ACCESSOR_DISPLACEMENT, String), PARAMETEREXPRS, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(DisplacementM, "displacement", "f=SM", PARAMETEREXPR_PRE(ACCESSOR_DISPLACEMENT, Matrix), PARAMETEREXPRM, PARAMETEREXPR_UPDATE(1, 16), NULL_EXPR, PARAMETER_MESSAGEPASSING)
 #undef FUNCTION
 
 #define FUNCTION surfaceParameter
 DEFLINKFUNC(Surface2, "surface", "f=SC", PARAMETER_MESSAGEPASSING)
 DEFLINKFUNC(Surface3, "surface", "f=SN", PARAMETER_MESSAGEPASSING)
 DEFLINKFUNC(Surface4, "surface", "f=SP", PARAMETER_MESSAGEPASSING)
-DEFFUNC(SurfaceV, "surface", "f=SV", PARAMETEREXPR_PRE(ACCESSOR_SURFACE), PARAMETEREXPRV, PARAMETEREXPR_UPDATE(1, 3), NULL_EXPR, PARAMETER_MESSAGEPASSING)
-DEFFUNC(Surface, "surface", "f=SF", PARAMETEREXPR_PRE(ACCESSOR_SURFACE), PARAMETEREXPRF, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
-DEFFUNC(SurfaceS, "surface", "f=SS", PARAMETEREXPR_PRE(ACCESSOR_SURFACE), PARAMETEREXPRS, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
-DEFFUNC(SurfaceM, "surface", "f=SM", PARAMETEREXPR_PRE(ACCESSOR_SURFACE), PARAMETEREXPRM, PARAMETEREXPR_UPDATE(1, 16), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(SurfaceV, "surface", "f=SV", PARAMETEREXPR_PRE(ACCESSOR_SURFACE, Triple), PARAMETEREXPRV, PARAMETEREXPR_UPDATE(1, 3), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(Surface, "surface", "f=SF", PARAMETEREXPR_PRE(ACCESSOR_SURFACE, Float), PARAMETEREXPRF, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(SurfaceS, "surface", "f=SS", PARAMETEREXPR_PRE(ACCESSOR_SURFACE, String), PARAMETEREXPRS, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(SurfaceM, "surface", "f=SM", PARAMETEREXPR_PRE(ACCESSOR_SURFACE, Matrix), PARAMETEREXPRM, PARAMETEREXPR_UPDATE(1, 16), NULL_EXPR, PARAMETER_MESSAGEPASSING)
 #undef FUNCTION
 
 DEFLINKFUNC(Lightsource2, "lightsource", "f=SC", PARAMETER_MESSAGEPASSING)
@@ -1316,10 +1316,10 @@ DEFFUNC(LightsourceM, "lightsource", "f=SM", LIGHTPARAMETEREXPR_PRE, PARAMETEREX
 DEFLINKFUNC(Atmosphere2, "atmosphere", "f=SC", PARAMETER_MESSAGEPASSING)
 DEFLINKFUNC(Atmosphere3, "atmosphere", "f=SN", PARAMETER_MESSAGEPASSING)
 DEFLINKFUNC(Atmosphere4, "atmosphere", "f=SP", PARAMETER_MESSAGEPASSING)
-DEFFUNC(AtmosphereV, "atmosphere", "f=SV", PARAMETEREXPR_PRE(ACCESSOR_ATMOSPHERE), PARAMETEREXPRV, PARAMETEREXPR_UPDATE(1, 3), NULL_EXPR, PARAMETER_MESSAGEPASSING)
-DEFFUNC(Atmosphere, "atmosphere", "f=SF", PARAMETEREXPR_PRE(ACCESSOR_ATMOSPHERE), PARAMETEREXPRF, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
-DEFFUNC(AtmosphereS, "atmosphere", "f=SS", PARAMETEREXPR_PRE(ACCESSOR_ATMOSPHERE), PARAMETEREXPRS, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
-DEFFUNC(AtmosphereM, "atmosphere", "f=SM", PARAMETEREXPR_PRE(ACCESSOR_ATMOSPHERE), PARAMETEREXPRM, PARAMETEREXPR_UPDATE(1, 16), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(AtmosphereV, "atmosphere", "f=SV", PARAMETEREXPR_PRE(ACCESSOR_ATMOSPHERE, Triple), PARAMETEREXPRV, PARAMETEREXPR_UPDATE(1, 3), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(Atmosphere, "atmosphere", "f=SF", PARAMETEREXPR_PRE(ACCESSOR_ATMOSPHERE, Float), PARAMETEREXPRF, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(AtmosphereS, "atmosphere", "f=SS", PARAMETEREXPR_PRE(ACCESSOR_ATMOSPHERE, String), PARAMETEREXPRS, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(AtmosphereM, "atmosphere", "f=SM", PARAMETEREXPR_PRE(ACCESSOR_ATMOSPHERE, Matrix), PARAMETEREXPRM, PARAMETEREXPR_UPDATE(1, 16), NULL_EXPR, PARAMETER_MESSAGEPASSING)
 #undef FUNCTION
 
 /* note that whilst we provide accessors for incident and opposite, they will never be used */
@@ -1328,20 +1328,20 @@ DEFFUNC(AtmosphereM, "atmosphere", "f=SM", PARAMETEREXPR_PRE(ACCESSOR_ATMOSPHERE
 DEFLINKFUNC(Incident2, "incident", "f=SC", PARAMETER_MESSAGEPASSING)
 DEFLINKFUNC(Incident3, "incident", "f=SN", PARAMETER_MESSAGEPASSING)
 DEFLINKFUNC(Incident4, "incident", "f=SP", PARAMETER_MESSAGEPASSING)
-DEFFUNC(IncidentV, "incident", "f=SV", PARAMETEREXPR_PRE(ACCESSOR_EXTERIOR), PARAMETEREXPRV, PARAMETEREXPR_UPDATE(1, 3), NULL_EXPR, PARAMETER_MESSAGEPASSING)
-DEFFUNC(Incident, "incident", "f=SF", PARAMETEREXPR_PRE(ACCESSOR_EXTERIOR), PARAMETEREXPRF, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
-DEFFUNC(IncidentS, "incident", "f=SS", PARAMETEREXPR_PRE(ACCESSOR_EXTERIOR), PARAMETEREXPRS, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
-DEFFUNC(IncidentM, "incident", "f=SM", PARAMETEREXPR_PRE(ACCESSOR_EXTERIOR), PARAMETEREXPRM, PARAMETEREXPR_UPDATE(1, 16), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(IncidentV, "incident", "f=SV", PARAMETEREXPR_PRE(ACCESSOR_INTERIOR, Triple), PARAMETEREXPRV, PARAMETEREXPR_UPDATE(1, 3), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(Incident, "incident", "f=SF", PARAMETEREXPR_PRE(ACCESSOR_INTERIOR, Float), PARAMETEREXPRF, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(IncidentS, "incident", "f=SS", PARAMETEREXPR_PRE(ACCESSOR_INTERIOR, String), PARAMETEREXPRS, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(IncidentM, "incident", "f=SM", PARAMETEREXPR_PRE(ACCESSOR_INTERIOR, Matrix), PARAMETEREXPRM, PARAMETEREXPR_UPDATE(1, 16), NULL_EXPR, PARAMETER_MESSAGEPASSING)
 #undef FUNCTION
 
 #define FUNCTION oppositeParameter
 DEFLINKFUNC(Opposite2, "opposite", "f=SC", PARAMETER_MESSAGEPASSING)
 DEFLINKFUNC(Opposite3, "opposite", "f=SN", PARAMETER_MESSAGEPASSING)
 DEFLINKFUNC(Opposite4, "opposite", "f=SP", PARAMETER_MESSAGEPASSING)
-DEFFUNC(OppositeV, "opposite", "f=SV", PARAMETEREXPR_PRE(ACCESSOR_INTERIOR), PARAMETEREXPRV, PARAMETEREXPR_UPDATE(1, 3), NULL_EXPR, PARAMETER_MESSAGEPASSING)
-DEFFUNC(Opposite, "opposite", "f=SF", PARAMETEREXPR_PRE(ACCESSOR_INTERIOR), PARAMETEREXPRF, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
-DEFFUNC(OppositeS, "opposite", "f=SS", PARAMETEREXPR_PRE(ACCESSOR_INTERIOR), PARAMETEREXPRS, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
-DEFFUNC(OppositeM, "opposite", "f=SM", PARAMETEREXPR_PRE(ACCESSOR_INTERIOR), PARAMETEREXPRM, PARAMETEREXPR_UPDATE(1, 16), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(OppositeV, "opposite", "f=SV", PARAMETEREXPR_PRE(ACCESSOR_EXTERIOR, Triple), PARAMETEREXPRV, PARAMETEREXPR_UPDATE(1, 3), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(Opposite, "opposite", "f=SF", PARAMETEREXPR_PRE(ACCESSOR_EXTERIOR, Float), PARAMETEREXPRF, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(OppositeS, "opposite", "f=SS", PARAMETEREXPR_PRE(ACCESSOR_EXTERIOR, String), PARAMETEREXPRS, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(OppositeM, "opposite", "f=SM", PARAMETEREXPR_PRE(ACCESSOR_EXTERIOR, Matrix), PARAMETEREXPRM, PARAMETEREXPR_UPDATE(1, 16), NULL_EXPR, PARAMETER_MESSAGEPASSING)
 #undef FUNCTION
 
 /* note the accessor for the remaining functions is not used */
@@ -1350,30 +1350,30 @@ DEFFUNC(OppositeM, "opposite", "f=SM", PARAMETEREXPR_PRE(ACCESSOR_INTERIOR), PAR
 DEFLINKFUNC(Attributes2, "attribute", "f=SC", 0)
 DEFLINKFUNC(Attributes3, "attribute", "f=SN", 0)
 DEFLINKFUNC(Attributes4, "attribute", "f=SP", 0)
-DEFFUNC(AttributesV, "attribute", "f=SV", PARAMETEREXPR_PRE(0), PARAMETEREXPRV, PARAMETEREXPR_UPDATE(1, 3), NULL_EXPR, 0)
-DEFFUNC(Attributes, "attribute", "f=SF", PARAMETEREXPR_PRE(0), PARAMETEREXPRF, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, 0)
-DEFFUNC(AttributesS, "attribute", "f=SS", PARAMETEREXPR_PRE(0), PARAMETEREXPRS, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, 0)
-DEFFUNC(AttributesM, "attribute", "f=SM", PARAMETEREXPR_PRE(0), PARAMETEREXPRM, PARAMETEREXPR_UPDATE(1, 16), NULL_EXPR, 0)
+DEFFUNC(AttributesV, "attribute", "f=SV", PARAMETEREXPR_PRE(0, Triple), PARAMETEREXPRV, PARAMETEREXPR_UPDATE(1, 3), NULL_EXPR, 0)
+DEFFUNC(Attributes, "attribute", "f=SF", PARAMETEREXPR_PRE(0, Float), PARAMETEREXPRF, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, 0)
+DEFFUNC(AttributesS, "attribute", "f=SS", PARAMETEREXPR_PRE(0, String), PARAMETEREXPRS, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, 0)
+DEFFUNC(AttributesM, "attribute", "f=SM", PARAMETEREXPR_PRE(0, Matrix), PARAMETEREXPRM, PARAMETEREXPR_UPDATE(1, 16), NULL_EXPR, 0)
 #undef FUNCTION
 
 #define FUNCTION options
 DEFLINKFUNC(Options2, "option", "f=SC", 0)
 DEFLINKFUNC(Options3, "option", "f=SN", 0)
 DEFLINKFUNC(Options4, "option", "f=SP", 0)
-DEFFUNC(OptionsV, "option", "f=SV", PARAMETEREXPR_PRE(0), PARAMETEREXPRV, PARAMETEREXPR_UPDATE(1, 3), NULL_EXPR, 0)
-DEFFUNC(Options, "option", "f=SF", PARAMETEREXPR_PRE(0), PARAMETEREXPRF, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, 0)
-DEFFUNC(OptionsS, "option", "f=SS", PARAMETEREXPR_PRE(0), PARAMETEREXPRS, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, 0)
-DEFFUNC(OptionsM, "option", "f=SM", PARAMETEREXPR_PRE(0), PARAMETEREXPRM, PARAMETEREXPR_UPDATE(1, 16), NULL_EXPR, 0)
+DEFFUNC(OptionsV, "option", "f=SV", PARAMETEREXPR_PRE(0, Triple), PARAMETEREXPRV, PARAMETEREXPR_UPDATE(1, 3), NULL_EXPR, 0)
+DEFFUNC(Options, "option", "f=SF", PARAMETEREXPR_PRE(0, Float), PARAMETEREXPRF, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, 0)
+DEFFUNC(OptionsS, "option", "f=SS", PARAMETEREXPR_PRE(0, String), PARAMETEREXPRS, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, 0)
+DEFFUNC(OptionsM, "option", "f=SM", PARAMETEREXPR_PRE(0, Matrix), PARAMETEREXPRM, PARAMETEREXPR_UPDATE(1, 16), NULL_EXPR, 0)
 #undef FUNCTION
 
 #define FUNCTION rendererInfo
 DEFLINKFUNC(Rendererinfo2, "rendererinfo", "f=SC", 0)
 DEFLINKFUNC(Rendererinfo3, "rendererinfo", "f=SN", 0)
 DEFLINKFUNC(Rendererinfo4, "rendererinfo", "f=SP", 0)
-DEFFUNC(RendererinfoV, "rendererinfo", "f=SV", PARAMETEREXPR_PRE(0), PARAMETEREXPRV, PARAMETEREXPR_UPDATE(1, 3), NULL_EXPR, 0)
-DEFFUNC(Rendererinfo, "rendererinfo", "f=SF", PARAMETEREXPR_PRE(0), PARAMETEREXPRF, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, 0)
-DEFFUNC(RendererinfoS, "rendererinfo", "f=SS", PARAMETEREXPR_PRE(0), PARAMETEREXPRS, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, 0)
-DEFFUNC(RendererinfoM, "rendererinfo", "f=SM", PARAMETEREXPR_PRE(0), PARAMETEREXPRM, PARAMETEREXPR_UPDATE(1, 16), NULL_EXPR, 0)
+DEFFUNC(RendererinfoV, "rendererinfo", "f=SV", PARAMETEREXPR_PRE(0, Triple), PARAMETEREXPRV, PARAMETEREXPR_UPDATE(1, 3), NULL_EXPR, 0)
+DEFFUNC(Rendererinfo, "rendererinfo", "f=SF", PARAMETEREXPR_PRE(0, Float), PARAMETEREXPRF, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, 0)
+DEFFUNC(RendererinfoS, "rendererinfo", "f=SS", PARAMETEREXPR_PRE(0, String), PARAMETEREXPRS, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, 0)
+DEFFUNC(RendererinfoM, "rendererinfo", "f=SM", PARAMETEREXPR_PRE(0, Matrix), PARAMETEREXPRM, PARAMETEREXPR_UPDATE(1, 16), NULL_EXPR, 0)
 #undef FUNCTION
 
 #ifndef INIT_SHADING

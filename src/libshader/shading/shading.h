@@ -212,7 +212,7 @@ class CShadingState {
         CShaderInstance *postShader;    // Shader to be executed on the surface after the atmosphere
 
         CShaderInstance *currentShaderInstance; // The current shader instance that's executing
-        CShaderInstance *currentLightInstance;  // The current light instance that's executing
+        CShaderInstance *currentLightInstance = nullptr; // The current light instance that's executing (the last one that ran; none yet: lightsource() under the JIT outside any loop, spec 026 F3)
 
         float **locals[NUM_ACCESSORS]; // The local variables for each shader type
 
@@ -252,6 +252,12 @@ struct CPointKeyReport {
         int numVertices;                             // Real vertices (no derivative-offset tail)
         const openrender::sampling::SampleKey *keys; // Their keys
         const float *u, *v;                          // Their parametric coordinates
+        // The shading situation (spec 026, FR-017), appended so that existing readers are unaffected
+        EShadingDim dim;                             // SHADING_0D, SHADING_2D or SHADING_2D_GRID
+        int displaceOnly;                            // Always FALSE: the key report is for shaded grids only
+        int inShadow;                                // TRUE for a shadow or transmission hit
+        int rayDepth;                                // The ray depth of the hit (0 for the camera)
+        int illuminationHook;                        // The illumination hook (photon pass), 0 or 1
 };
 typedef void (*CPointKeyObserver)(const CPointKeyReport &);
 
@@ -266,8 +272,37 @@ struct CPointDisplacedReport {
         int numVertices;     // Real vertices
         const float *u, *v;  // Their parametric coordinates
         const float *P;      // Their displaced positions, 3 floats each
+        // The shading situation (spec 026, FR-017), appended so that existing readers are unaffected
+        EShadingDim dim;     // SHADING_0D, SHADING_2D or SHADING_2D_GRID
+        int inShadow;        // TRUE for a shadow or transmission hit
+        int rayDepth;        // The ray depth of the hit (0 for the camera)
+        int illuminationHook; // The illumination hook (photon pass), 0 or 1
 };
 typedef void (*CPointDisplacedObserver)(const CPointDisplacedReport &);
+
+// A third test hook (spec 026, Phase 1): called just before Shading hands rays to the tracer,
+// with the request's kind, label, bundle depth, path depth and rays (their inputs: the tracer
+// has not run yet). Null in production. See CShadingContext::traceRequestObserver; it exists
+// for the trace replay (tests/shading_contract/replay), a characterization of the rays each
+// builtin makes. The kind names the call-site family, not the builtin: environment() reports
+// TRACE and shadow() reports TRANSMISSION.
+enum ETraceRequestKind {
+    TRACEREQUEST_TRACE,           // traceReflection: the bundle forms and the float probe of trace()/environment()
+    TRACEREQUEST_TRANSMISSION,    // traceTransmission bundles: transmission() and ray-traced shadow()
+    TRACEREQUEST_VISIBILITY,      // traceTransmission probes: visibility()
+    TRACEREQUEST_GATHER,          // gatherSample bundles
+    TRACEREQUEST_OCCLUSION,       // CIrradianceCache::sample, occlusion()
+    TRACEREQUEST_INDIRECTDIFFUSE, // CIrradianceCache::sample, indirectdiffuse()
+};
+struct CTraceRequestReport {
+        int kind;          // ETraceRequestKind
+        const char *label; // The ray label (may be nullptr)
+        int bundleDepth;   // The bundle's transparency depth (0 for a probe ray)
+        int pathDepth;     // The context's current ray depth
+        int numRays;       // The rays of the request
+        CRay *const *rays; // They, not yet traced
+};
+typedef void (*CTraceRequestObserver)(const CTraceRequestReport &);
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRayBundle
@@ -322,6 +357,7 @@ class CShadingContext {
         // Test hook, null in production (see CPointKeyReport). Set only by tests.
         static CPointKeyObserver pointKeyObserver;
         static CPointDisplacedObserver pointDisplacedObserver; // Test hook, null in production
+        static CTraceRequestObserver traceRequestObserver;     // Test hook, null in production; set only by tests (spec 026)
 
         CShadingContext(int thread);
         virtual ~CShadingContext();
@@ -355,6 +391,21 @@ class CShadingContext {
         void trace(CRayBundle *);   // Trace and maybe shade bunch of rays
         void traceEx(CRayBundle *); // Trace and maybe shade a bundle of rays. This version increments the shading depth
         void trace(CRay *);         // Trace a ray (no shading)
+
+        // Report a trace request to traceRequestObserver. Callers test the observer for null first, so nothing is built in production.
+        void reportTraceRequest(int kind, const char *label, int bundleDepth, int numRays, CRay *const *rays) const;
+
+        // The shaded object as an opaque handle (spec 026): the one place the shading context turns its current object
+        // into the handle the services take. Null when there is no object (the imager, a bare execution). Defined out of
+        // line in shading.cpp, which keeps object.h. Introduced in services version 2.0.0.
+        openrender::shading::ObjectHandle objectHandle() const;
+        // The shaded object's attributes, null when there is no current object (the imager, a bare execution). It exists so that
+        // execute.cpp and executeMisc.cpp read them without CSurface's complete type; the consumers on the trace path take built-in
+        // defaults when it is null (FR-027)
+        const CAttributes *objectAttributes() const;
+
+        // A shader instance (the executing shader, or a light) as an opaque handle. Null stays null.
+        static openrender::shading::ShaderHandle shaderHandle(const CShaderInstance *instance) { return openrender::shading::ShaderHandle{instance}; }
         void traceAny(CRay *);      // Trace any ray (no shading)
 
         // gather()/gatherElse/gatherEnd shared computation, called from both the .rslo
@@ -543,9 +594,18 @@ class CShadingContext {
         }
 
         // ---> Query wrappers (used by rslBuiltins / JIT runtime)
-        int queryAttribute(void *dest, const char *name) { return attributes(dest, name, nullptr, nullptr); }
-        int queryOption(void *dest, const char *name) { return options(dest, name, nullptr, nullptr); }
-        int queryRendererInfo(void *dest, const char *name) { return rendererInfo(dest, name, nullptr, nullptr); }
+        // With the QueryType the caller's destination expects (spec 026: the services refuse a stored value that
+        // cannot be copied safely into it, FR-026). The two-argument forms keep the callers that exist: a float
+        // destination asks Float, a string destination asks String.
+        int queryAttribute(void *dest, const char *name, openrender::shading::QueryType expected) { return attributes(dest, name, nullptr, nullptr, expected); }
+        int queryOption(void *dest, const char *name, openrender::shading::QueryType expected) { return options(dest, name, nullptr, nullptr, expected); }
+        int queryRendererInfo(void *dest, const char *name, openrender::shading::QueryType expected) { return rendererInfo(dest, name, nullptr, nullptr, expected); }
+        int queryAttribute(float *dest, const char *name) { return queryAttribute(dest, name, openrender::shading::QueryType::Float); }
+        int queryOption(float *dest, const char *name) { return queryOption(dest, name, openrender::shading::QueryType::Float); }
+        int queryRendererInfo(float *dest, const char *name) { return queryRendererInfo(dest, name, openrender::shading::QueryType::Float); }
+        int queryAttribute(const char **dest, const char *name) { return queryAttribute(dest, name, openrender::shading::QueryType::String); }
+        int queryOption(const char **dest, const char *name) { return queryOption(dest, name, openrender::shading::QueryType::String); }
+        int queryRendererInfo(const char **dest, const char *name) { return queryRendererInfo(dest, name, openrender::shading::QueryType::String); }
 
         // ---> Lighting batch operations for JIT path (same semantics as interpreter)
         void callAmbient(float *result);
@@ -922,7 +982,7 @@ class CShadingContext {
         void rendererTexture3dLookup(CTexture3d *t, float *dest, const float *P, const float *N, float radius);
         void rendererTexture3dStore(CTexture3d *t, const float *data, const float *P, const float *N, float radius);
         // Additional renderer-service accessors for execute.cpp / executeMisc.cpp / shaderPl.cpp
-        void rendererSetOffendingObject(CObject *obj);
+        void rendererSetOffendingObject(openrender::shading::ObjectHandle object);
         int rendererGetGlobalID(const char *name);
         int rendererShootStep() const;
         RtFilterFunc rendererGetFilter(const char *name) const;
@@ -1054,14 +1114,20 @@ class CShadingContext {
                                int n, const int *tags, const TJitParamList &pl, bool wantOcclusion, uint32_t callSite);
 
         // The following functions are used in the shaders
-        int surfaceParameter(void *dest, const char *name, CVariable **, int *);
-        int displacementParameter(void *dest, const char *name, CVariable **, int *);
-        int atmosphereParameter(void *dest, const char *name, CVariable **, int *);
-        int incidentParameter(void *dest, const char *name, CVariable **, int *);
-        int oppositeParameter(void *dest, const char *name, CVariable **, int *);
-        int options(void *dest, const char *name, CVariable **, int *);
-        int attributes(void *dest, const char *name, CVariable **, int *);
-        int rendererInfo(void *, const char *, CVariable **, int *);
+        // The expected type is the QueryType the caller's destination has; the message parameters ignore it until
+        // spec 026 Phase 6 (getMessage)
+        int surfaceParameter(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected);
+        int displacementParameter(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected);
+        int atmosphereParameter(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected);
+        int incidentParameter(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected);
+        int oppositeParameter(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected);
+        int options(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected);
+        int attributes(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected);
+        int rendererInfo(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected);
+        int queryServiceAttribute(openrender::shading::AttributeScope scope, void *dest, const char *name, openrender::shading::QueryType expected);
+        int queryMessage(openrender::shading::MessageSource source, const char *builtin, openrender::shading::ShaderHandle light, bool wantVariable, void *dest, const char *name,
+                         CVariable **var, int *globalIndex, openrender::shading::QueryType expected);
+        int lightParameter(void *dest, const char *name, CVariable **var, int *globalIndex); // lightsource() in an illuminance loop (interpreter)
         const char *shaderName();
         const char *shaderName(const char *type);
 

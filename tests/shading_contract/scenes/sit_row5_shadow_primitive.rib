@@ -1,0 +1,25 @@
+##RenderMan RIB-Structure 1.0
+# Spec 026 Situations scene (tests/shading_contract): row 5: shadow-type hits, transmissionhitmode "primitive" (the default)
+version 3.03
+Hider "raytrace"
+Option "shaderformat" "default" ["rslo"]
+Option "sampling" "sampler" ["sobol"]
+Option "sampling" "seed" [1]
+Option "limits" "numthreads" [1]
+PixelSamples 1 1
+Format 8 8 1
+Projection "perspective" "fov" 30
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Attribute "visibility" "int transmission" [1]
+  AttributeBegin
+    Surface "sit_transmit"
+    Sphere 1 -1 1 360
+  AttributeEnd
+  AttributeBegin
+    Surface "sit_marker"
+    Translate 0 2.6 0
+    Sphere 0.7 -0.7 0.7 360
+  AttributeEnd
+WorldEnd

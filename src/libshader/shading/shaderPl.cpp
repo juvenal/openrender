@@ -244,10 +244,17 @@ void CTraceLookup::bind(const char *name, int &opIndex, int step, void *data, CS
 // Description			:	Initialize the scratch for this lookup
 // Return Value			:	-
 // Comments				:
+// The ray bias of a lookup: the object's attribute, or the attribute's default when there is no object (the imager, a bare
+// execution; spec 026, FR-027). 0.01 is the value CAttributes' constructor gives (attributes.cpp); Shading does not
+// construct a CAttributes for it, which would add an import to the library (SC-011).
+static float traceBias(const CAttributes *attributes) {
+    return attributes != nullptr ? attributes->bias : 0.01f;
+}
+
 void CTraceLookup::init(CShadingScratch *scratch, const CAttributes *attributes) {
 
     scratch->traceParams.samples = 1;
-    scratch->traceParams.bias = attributes->bias;
+    scratch->traceParams.bias = traceBias(attributes);
     scratch->traceParams.coneAngle = 0;
     scratch->traceParams.sampleBase = 1;
     scratch->traceParams.maxDist = C_INFINITY;
@@ -609,7 +616,7 @@ void COcclusionLookup::init(CShadingScratch *scratch, const CAttributes *attribu
     scratch->traceParams.coneAngle = 0;
     scratch->traceParams.sampleBase = 1;
     scratch->traceParams.label = "";
-    scratch->traceParams.bias = attributes->bias;
+    scratch->traceParams.bias = traceBias(attributes);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -896,7 +903,7 @@ void CGatherLookup::bind(const char *name, int &opIndex, int step, void *data, C
 // Comments				:
 void CGatherLookup::init(CShadingScratch *scratch, const CAttributes *attributes) {
     scratch->traceParams.samples = 1;
-    scratch->traceParams.bias = attributes->bias;
+    scratch->traceParams.bias = traceBias(attributes);
     scratch->gatherParams.distribution = NULL;
     scratch->traceParams.sampleBase = 1;
     scratch->traceParams.maxDist = C_INFINITY;

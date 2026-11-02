@@ -174,6 +174,16 @@ class CShaderInstance : public CShaderGroupRefTarget {
         virtual void illuminate(CShadingContext *, float **) = 0;
         virtual void setParameters(int, const char **, const void **) = 0;
         virtual int getParameter(const char *, void *, CVariable **, int *) = 0;
+        // The stored type of a parameter and the number of floats it holds in all (array items included), without
+        // writing anything: the services decide a TypeMismatch (spec 026, FR-026) from it before getParameter() writes
+        // the destination. The default is "unknown, no check" (the hard-coded lights); the programmable instance
+        // answers from its parameters, with the loop getParameter() uses.
+        virtual bool getParameterShape(const char *name, EVariableType &type, int &numFloats) const {
+            (void)name;
+            (void)type;
+            (void)numFloats;
+            return false;
+        }
         virtual void execute(CShadingContext *, float **) = 0;
         virtual unsigned int requiredParameters() = 0;
         virtual const char *getName() = 0;
@@ -219,6 +229,7 @@ class CProgrammableShaderInstance : public CShaderInstance {
         void illuminate(CShadingContext *, float **);
         void setParameters(int, const char **, const void **);
         int getParameter(const char *, void *, CVariable **, int *); // Get the value of a parameter
+        bool getParameterShape(const char *, EVariableType &, int &) const;
         void execute(CShadingContext *, float **);                   // Execute the shader
         unsigned int requiredParameters();
         const char *getName();

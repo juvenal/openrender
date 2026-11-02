@@ -49,6 +49,7 @@
 #include "texture.h"
 #include "texture3d.h"
 #include "textureCalls.h"
+#include "traceCalls.h"
 
 // Default services pointer injected by src/ri/ at renderer startup.
 // nullptr until setDefaultServices() is called (standalone libshader mode).
@@ -56,46 +57,6 @@ CRendererServices *CShadingContext::s_defaultServices = nullptr;
 
 // George's extrapolated derivative extensions
 #define USE_EXTRAPOLATED_DERIV
-
-// Options that are defined and responded
-const char *optionsFormat = "Format";
-const char *optionsDeviceFrame = "Frame";
-const char *optionsDeviceResolution = "DeviceResolution";
-const char *optionsFrameAspectRatio = "FrameAspectRatio";
-const char *optionsCropWindow = "CropWindow";
-const char *optionsDepthOfField = "DepthOfField";
-const char *optionsShutter = "Shutter";
-const char *optionsClipping = "Clipping";
-const char *optionsBucketSize = "BucketSize";
-const char *optionsColorQuantizer = "ColorQuantizer";
-const char *optionsDepthQuantizer = "DepthQuantizer";
-const char *optionsPixelFilter = "PixelFilter";
-const char *optionsGamma = "Gamma";
-const char *optionsMaxRayDepth = "MaxRayDepth";
-const char *optionsRelativeDetail = "RelativeDetail";
-const char *optionsPixelSamples = "PixelSamples";
-const char *optionsSamplingSampler = "sampling:sampler"; // spec 039
-const char *optionsSamplingSeed = "sampling:seed";
-
-// Attributes that are defined and responded
-const char *attributesShadingRate = "ShadingRate";
-const char *attributesSides = "Sides";
-const char *attributesMatte = "matte";
-const char *attributesMotionfactor = "GeometricApproximation:motionfactor";
-const char *attributesDisplacementBnd = "displacementbound:sphere";
-const char *attributesDisplacementSys = "displacementbound:coordinatesystem";
-const char *attributesName = "identifier:name";
-
-const char *attributesTraceBias = "trace:bias";
-const char *attributesTraceMaxDiffuse = "trace:maxdiffusedepth";
-const char *attributesTraceMaxSpecular = "trace:maxspeculardepth";
-
-const char *attributesUser = "user:";
-
-// Rendererinfo requests
-const char *rendererinfoRenderer = "renderer";
-const char *rendererinfoVersion = "version";
-const char *rendererinfoVersionStr = "versionstring";
 
 // Predefined ray labels used during raytracing
 const char *rayLabelPrimary = "camera";
@@ -419,6 +380,41 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CShadingContext
+// Method				:	reportTraceRequest
+// Description			:	Hand a trace request to the test hook (spec 026, Phase 1)
+// Return Value			:	-
+// Comments				:	The callers test traceRequestObserver for null first; null in production
+CTraceRequestObserver CShadingContext::traceRequestObserver = nullptr;
+
+void CShadingContext::reportTraceRequest(int kind, const char *label, int bundleDepth, int numRays, CRay *const *rays) const {
+    if (traceRequestObserver == nullptr)
+        return;
+    const CTraceRequestReport report{kind, label, bundleDepth, currentRayDepth, numRays, rays};
+    traceRequestObserver(report);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CShadingContext
+// Method				:	objectHandle
+// Description			:	The shaded object as an opaque handle (spec 026)
+// Return Value			:	null when there is no object
+// Comments				:	The one upcast of the current object: this unit keeps object.h (the DB-006 line that stays)
+openrender::shading::ObjectHandle CShadingContext::objectHandle() const {
+    return openrender::shading::ObjectHandle{static_cast<const CObject *>(currentShadingState->currentObject)};
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CShadingContext
+// Method				:	objectAttributes
+// Description			:	The shaded object's attributes (spec 026, FR-003, FR-027)
+// Return Value			:	null when there is no current object
+// Comments				:	This unit keeps object.h: it is the one place that needs CObject's complete type for this read
+const CAttributes *CShadingContext::objectAttributes() const {
+    return currentShadingState->currentObject != nullptr ? currentShadingState->currentObject->attributes : nullptr;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CShadingContext
 // Method				:	CShadingContext
 // Description			:	Ctor
 // Return Value			:	-
@@ -580,9 +576,9 @@ void CShadingContext::rendererTexture3dStore(CTexture3d *t, const float *data, c
     if (SVC && t)
         SVC->texture3dStore(t, data, P, N, radius);
 }
-void CShadingContext::rendererSetOffendingObject(CObject *obj) {
+void CShadingContext::rendererSetOffendingObject(openrender::shading::ObjectHandle object) {
     if (SVC)
-        SVC->setOffendingObject(obj);
+        SVC->setOffendingObject(object);
 }
 TextureOpt CShadingContext::textureOptions() const {
     const CShadingScratch &sc = currentShadingState->scratch;
@@ -836,7 +832,8 @@ void CShadingContext::fillPointKeys(CSurface *object, EShadingDim dim, bool repo
 
     // The hook reports the grids that are shaded, not the dicer's displacement-only probes
     if (report && pointKeyObserver != nullptr) {
-        const CPointKeyReport keyReport{object, numReal, state->pointKeys, u, v};
+        const CPointKeyReport keyReport{object, numReal, state->pointKeys, u, v, dim, FALSE, inShadow, currentRayDepth,
+                                        rendererIlluminationHook() ? 1 : 0};
         pointKeyObserver(keyReport);
     }
 }
@@ -1287,7 +1284,8 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
 
         if (pointDisplacedObserver != nullptr) {
             const CPointDisplacedReport report{object, displaceOnly, currentShadingState->numRealVertices, varying[VARIABLE_U],
-                                               varying[VARIABLE_V], varying[VARIABLE_P]};
+                                               varying[VARIABLE_V], varying[VARIABLE_P], dim, inShadow, currentRayDepth,
+                                               rendererIlluminationHook() ? 1 : 0};
             pointDisplacedObserver(report);
         }
     }
@@ -1588,317 +1586,160 @@ void CShadingContext::restoreState(void *state) {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CShadingContext
-// Method				:	surfaceParameter
-// Description			:	Execute light sources
-// Return Value			:	-
-// Comments				:
-int CShadingContext::surfaceParameter(void *dest, const char *name, CVariable **var, int *globalIndex) {
-    const CAttributes *currentAttributes = currentShadingState->currentObject->attributes;
+// Method				:	queryMessage
+// Description			:	surface(), displacement(), atmosphere(), incident(), opposite() and lightsource(): ask the services (spec 026, FR-006, FR-026, FR-027)
+// Return Value			:	TRUE when the parameter was found
+// Comments				:	One request per call. Found: the services wrote the default into dest, or returned the producer's
+//							variable (and the light's saved-state index) that the caller reads the current value from.
+//							NotFound (including a null object, F2) and Unavailable leave dest untouched. TypeMismatch (decided
+//							before anything is written) is refused the same way, with one warning per builtin kind per process.
+//							A missing or unavailable service warns once per kind.
+int CShadingContext::queryMessage(openrender::shading::MessageSource source, const char *builtin, openrender::shading::ShaderHandle light, bool wantVariable, void *dest, const char *name, CVariable **var, int *globalIndex, openrender::shading::QueryType expected) {
+    using namespace openrender::shading;
 
-    if (currentAttributes->surface())
-        return shaderInstanceOf(currentAttributes->surface())->getParameter(name, dest, var, globalIndex);
-    return FALSE;
-}
+    // Kinds: the five object sources in the enumeration's order, then lightsource() (no mismatch check)
+    static std::atomic<bool> s_warnedUnavailable[6] = {false, false, false, false, false, false};
+    static std::atomic<bool> s_warnedMismatch[6] = {false, false, false, false, false, false};
+    const int kind = (int)source;
 
-///////////////////////////////////////////////////////////////////////
-// Class				:	CShadingContext
-// Method				:	displacementParameter
-// Description			:	Execute light sources
-// Return Value			:	-
-// Comments				:
-int CShadingContext::displacementParameter(void *dest, const char *name, CVariable **var, int *globalIndex) {
-    const CAttributes *currentAttributes = currentShadingState->currentObject->attributes;
-
-    if (currentAttributes->displacement())
-        return shaderInstanceOf(currentAttributes->displacement())->getParameter(name, dest, var, globalIndex);
-    return FALSE;
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CShadingContext
-// Method				:	atmosphereParameter
-// Description			:	Execute light sources
-// Return Value			:	-
-// Comments				:
-int CShadingContext::atmosphereParameter(void *dest, const char *name, CVariable **var, int *globalIndex) {
-    const CAttributes *currentAttributes = currentShadingState->currentObject->attributes;
-
-    if (currentAttributes->atmosphere())
-        return shaderInstanceOf(currentAttributes->atmosphere())->getParameter(name, dest, var, globalIndex);
-    return FALSE;
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CShadingContext
-// Method				:	incidentParameter
-// Description			:	Execute light sources
-// Return Value			:	-
-// Comments				:
-int CShadingContext::incidentParameter(void *dest, const char *name, CVariable **, int *) {
-    const CAttributes *currentAttributes = currentShadingState->currentObject->attributes;
-
-    if (currentAttributes->interior())
-        return shaderInstanceOf(currentAttributes->interior())->getParameter(name, dest, NULL, NULL); // skip mutable parameters
-    return FALSE;
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CShadingContext
-// Method				:	oppositeParameter
-// Description			:	Execute light sources
-// Return Value			:	-
-// Comments				:
-int CShadingContext::oppositeParameter(void *dest, const char *name, CVariable **, int *) {
-    const CAttributes *currentAttributes = currentShadingState->currentObject->attributes;
-
-    if (currentAttributes->exterior())
-        return shaderInstanceOf(currentAttributes->exterior())->getParameter(name, dest, NULL, NULL); // skip mutable parameters
-    return FALSE;
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CShadingContext
-// Method				:	options
-// Description			:	Execute light sources
-// Return Value			:	-
-// Comments				:
-int CShadingContext::options(void *dest, const char *name, CVariable **, int *) {
     CRendererServices *svc = currentShadingState->services;
-    if (!svc)
+    MessageAnswer answer;
+    if (svc != nullptr)
+        answer = svc->getMessage(MessageRequest{source, objectHandle(), light, name, expected, dest, wantVariable});
+
+    switch (answer.status) {
+        case EQueryStatus::Found:
+            if (wantVariable && var != nullptr)
+                *var = answer.variable;
+            if (wantVariable && globalIndex != nullptr)
+                *globalIndex = answer.globalIndex;
+            return TRUE;
+
+        case EQueryStatus::TypeMismatch:
+            if (!s_warnedMismatch[kind].exchange(true)) {
+                static const char *const typeNames[4] = {"a float", "a vector", "a matrix", "a string"};
+                warning(CODE_BADTOKEN, "%s(\"%s\"): the parameter's stored value cannot be copied into %s destination; the query is refused and the destination is left untouched\n",
+                        builtin, name, typeNames[(int)expected]);
+            }
+            return FALSE;
+
+        case EQueryStatus::Unavailable:
+        default:
+            if (svc == nullptr || answer.status == EQueryStatus::Unavailable) {
+                if (!s_warnedUnavailable[kind].exchange(true))
+                    warning(CODE_NOTSTARTED, "renderer services do not provide %s(): the lookup of \"%s\" returns not found\n", builtin, name);
+            }
+            return FALSE;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CShadingContext
+// Method				:	surfaceParameter and its siblings
+// Description			:	The message-passing builtins of the object's bound shaders
+// Return Value			:	TRUE when the parameter was found
+// Comments				:	incident() reads the interior volume and opposite() the exterior one. surface(), displacement() and
+//							atmosphere() may return the producer's variable; incident() and opposite() skip mutable parameters.
+int CShadingContext::surfaceParameter(void *dest, const char *name, CVariable **var, int *globalIndex, openrender::shading::QueryType expected) {
+    return queryMessage(openrender::shading::MessageSource::Surface, "surface", openrender::shading::ShaderHandle{}, true, dest, name, var, globalIndex, expected);
+}
+
+int CShadingContext::displacementParameter(void *dest, const char *name, CVariable **var, int *globalIndex, openrender::shading::QueryType expected) {
+    return queryMessage(openrender::shading::MessageSource::Displacement, "displacement", openrender::shading::ShaderHandle{}, true, dest, name, var, globalIndex, expected);
+}
+
+int CShadingContext::atmosphereParameter(void *dest, const char *name, CVariable **var, int *globalIndex, openrender::shading::QueryType expected) {
+    return queryMessage(openrender::shading::MessageSource::Atmosphere, "atmosphere", openrender::shading::ShaderHandle{}, true, dest, name, var, globalIndex, expected);
+}
+
+int CShadingContext::incidentParameter(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected) {
+    return queryMessage(openrender::shading::MessageSource::Interior, "incident", openrender::shading::ShaderHandle{}, false, dest, name, nullptr, nullptr, expected);
+}
+
+int CShadingContext::oppositeParameter(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected) {
+    return queryMessage(openrender::shading::MessageSource::Exterior, "opposite", openrender::shading::ShaderHandle{}, false, dest, name, nullptr, nullptr, expected);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CShadingContext
+// Method				:	lightParameter
+// Description			:	lightsource() inside an illuminance loop (interpreter): a parameter of the light being iterated
+// Return Value			:	TRUE when the parameter was found; FALSE with no light being iterated (F3, FR-028)
+// Comments				:	The source is Light and wantVariable is true: the caller reads the light's saved state through
+//							var and globalIndex. No TypeMismatch check for this source (B4): lightsource() keeps its output.
+int CShadingContext::lightParameter(void *dest, const char *name, CVariable **var, int *globalIndex) {
+    if (currentShadingState->currentLight == NULL)
         return FALSE;
-
-    if (strcmp(name, optionsFormat) == 0) {
-        float *d = (float *)dest;
-        d[0] = (float)svc->xres();
-        d[1] = (float)svc->yres();
-        d[2] = 1.f;
-        return TRUE;
-    }
-    else if (strcmp(name, optionsDeviceFrame) == 0) {
-        ((float *)dest)[0] = (float)svc->frame();
-        return TRUE;
-    }
-    else if (strcmp(name, optionsDeviceResolution) == 0) {
-        float *d = (float *)dest;
-        d[0] = (float)svc->xres();
-        d[1] = (float)svc->yres();
-        d[2] = 1.f;
-        return TRUE;
-    }
-    else if (strcmp(name, optionsFrameAspectRatio) == 0) {
-        ((float *)dest)[0] = svc->frameAR();
-        return TRUE;
-    }
-    else if (strcmp(name, optionsCropWindow) == 0) {
-        float *d = (float *)dest;
-        d[0] = svc->cropLeft();
-        d[1] = svc->cropTop();
-        d[2] = svc->cropRight();
-        d[3] = svc->cropBottom();
-        return TRUE;
-    }
-    else if (strcmp(name, optionsDepthOfField) == 0) {
-        float *d = (float *)dest;
-        d[0] = svc->fstop();
-        d[1] = svc->focallength();
-        d[2] = svc->focaldistance();
-        return TRUE;
-    }
-    else if (strcmp(name, optionsShutter) == 0) {
-        float *d = (float *)dest;
-        d[0] = svc->shutterOpen();
-        d[1] = svc->shutterClose();
-        return TRUE;
-    }
-    else if (strcmp(name, optionsClipping) == 0) {
-        float *d = (float *)dest;
-        d[0] = svc->clipMin();
-        d[1] = svc->clipMax();
-        return TRUE;
-    }
-    else if (strcmp(name, optionsBucketSize) == 0) {
-        float *d = (float *)dest;
-        d[0] = svc->bucketWidth();
-        d[1] = svc->bucketHeight();
-        return TRUE;
-    }
-    else if (strcmp(name, optionsColorQuantizer) == 0) {
-        const float *q = svc->colorQuantizer();
-        float *d = (float *)dest;
-        d[0] = q[0];
-        d[1] = q[1];
-        d[2] = q[2];
-        d[3] = q[3];
-        return TRUE;
-    }
-    else if (strcmp(name, optionsDepthQuantizer) == 0) {
-        const float *q = svc->depthQuantizer();
-        float *d = (float *)dest;
-        d[0] = q[0];
-        d[1] = q[1];
-        d[2] = q[2];
-        d[3] = q[3];
-        return TRUE;
-    }
-    else if (strcmp(name, optionsPixelFilter) == 0) {
-        float *d = (float *)dest;
-        d[0] = svc->pixelFilterWidth();
-        d[1] = svc->pixelFilterHeight();
-        return TRUE;
-    }
-    else if (strcmp(name, optionsGamma) == 0) {
-        float *d = (float *)dest;
-        d[0] = svc->gamma();
-        d[1] = svc->gain();
-        return TRUE;
-    }
-    else if (strcmp(name, optionsMaxRayDepth) == 0) {
-        ((float *)dest)[0] = (float)svc->maxRayDepth();
-        return TRUE;
-    }
-    else if (strcmp(name, optionsRelativeDetail) == 0) {
-        ((float *)dest)[0] = svc->relativeDetail();
-        return TRUE;
-    }
-    else if (strcmp(name, optionsPixelSamples) == 0) {
-        float *d = (float *)dest;
-        d[0] = (float)svc->pixelXsamples();
-        d[1] = (float)svc->pixelYsamples();
-        return TRUE;
-    }
-    else if (strcmp(name, optionsSamplingSampler) == 0) {
-        ((const char **)dest)[0] = svc->samplingSampler();
-        return TRUE;
-    }
-    else if (strcmp(name, optionsSamplingSeed) == 0) {
-        ((float *)dest)[0] = (float)svc->samplingSeed();
-        return TRUE;
-    }
-    else if (strncmp(name, attributesUser, strlen(attributesUser)) == 0) {
-        CVariable *var;
-        if (svc->lookupUserOption(name + strlen(attributesUser), var)) {
-            if (var->type == TYPE_STRING) {
-                char **d = (char **)dest;
-                char **s = (char **)var->defaultValue;
-                for (int i = 0; i < var->numFloats; i++)
-                    d[i] = s[i];
-            }
-            else {
-                memcpy(dest, var->defaultValue, sizeof(float) * var->numFloats);
-            }
-            return TRUE;
-        }
-    }
-
-    return FALSE;
+    return queryMessage(openrender::shading::MessageSource::Light, "lightsource", shaderHandle(currentShadingState->currentLight->instance), true, dest, name, var, globalIndex, openrender::shading::QueryType::Float);
 }
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CShadingContext
-// Method				:	attributes
-// Description			:	Execute light sources
-// Return Value			:	-
-// Comments				:
-int CShadingContext::attributes(void *dest, const char *name, CVariable **, int *) {
-    const CAttributes *currentAttributes = currentShadingState->currentObject->attributes;
+// Method				:	queryServiceAttribute
+// Description			:	attribute(), option() and rendererinfo(): ask the services (spec 026, FR-005, FR-026, FR-027)
+// Return Value			:	TRUE when the destination was written
+// Comments				:	One request per call. The name tables are the renderer's. Found copies `count` floats (or
+//							char * slots) in the stored layout; NotFound and Unavailable leave the destination untouched;
+//							TypeMismatch (the stored value cannot be copied safely into the expected type) is refused the same
+//							way, with one warning per builtin kind per process. A missing or unavailable service warns once.
+int CShadingContext::queryServiceAttribute(openrender::shading::AttributeScope scope, void *dest, const char *name, openrender::shading::QueryType expected) {
+    using namespace openrender::shading;
 
-    if (strcmp(name, attributesShadingRate) == 0) {
-        float *d = (float *)dest;
-        d[0] = (float)currentAttributes->shadingRate;
-        return TRUE;
-    }
-    else if (strcmp(name, attributesSides) == 0) {
-        float *d = (float *)dest;
-        d[0] = (float)(currentAttributes->flags & ATTRIBUTES_FLAGS_DOUBLE_SIDED ? 2 : 1);
-        return TRUE;
-    }
-    else if (strcmp(name, attributesMatte) == 0) {
-        float *d = (float *)dest;
-        d[0] = (float)((currentAttributes->flags & ATTRIBUTES_FLAGS_MATTE) != 0);
-        return TRUE;
-    }
-    else if (strcmp(name, attributesMotionfactor) == 0) {
-        float *d = (float *)dest;
-        d[0] = (float)currentAttributes->motionFactor;
-        return TRUE;
-    }
-    else if (strcmp(name, attributesDisplacementBnd) == 0) {
-        float *d = (float *)dest;
-        d[0] = (float)currentAttributes->maxDisplacement;
-        return TRUE;
-    }
-    else if (strcmp(name, attributesDisplacementSys) == 0) {
-        char **d = (char **)dest;
-        d[0] = currentAttributes->maxDisplacementSpace;
-        return TRUE;
-    }
-    else if (strcmp(name, attributesName) == 0) {
-        char **d = (char **)dest;
-        d[0] = currentAttributes->name;
-        return TRUE;
-    }
-    // Additional attributes
-    else if (strcmp(name, attributesTraceBias) == 0) {
-        float *d = (float *)dest;
-        d[0] = (float)currentAttributes->bias;
-        return TRUE;
-    }
-    else if (strcmp(name, attributesTraceMaxDiffuse) == 0) {
-        float *d = (float *)dest;
-        d[0] = (float)currentAttributes->maxDiffuseDepth;
-        return TRUE;
-    }
-    else if (strcmp(name, attributesTraceMaxSpecular) == 0) {
-        float *d = (float *)dest;
-        d[0] = (float)currentAttributes->maxSpecularDepth;
-        return TRUE;
-    }
-    // User attributes
-    else if (strncmp(name, attributesUser, strlen(attributesUser)) == 0) {
-        CVariable *var;
+    static const char *const kindNames[3] = {"attribute", "option", "rendererinfo"};
+    static std::atomic<bool> s_warnedUnavailable[3] = {false, false, false};
+    static std::atomic<bool> s_warnedMismatch[3] = {false, false, false};
+    const int kind = (int)scope;
 
-        if (currentAttributes->userAttributes.lookup(name + strlen(attributesUser), var) == TRUE) {
-            if (var->type == TYPE_STRING) {
+    CRendererServices *svc = currentShadingState->services;
+    AttributeValue answer;
+    if (svc != nullptr)
+        svc->getAttribute(AttributeRequest{scope, objectHandle(), name, expected}, answer);
+
+    switch (answer.status) {
+        case EQueryStatus::Found:
+        {
+            if (answer.type == TYPE_STRING) {
                 char **d = (char **)dest;
-                char **s = (char **)var->defaultValue;
-                for (int i = 0; i < var->numFloats; i++) {
+                char *const *s = (char *const *)answer.data;
+                for (int i = 0; i < answer.count; i++)
                     d[i] = s[i];
-                }
             }
             else {
-                float *d = (float *)dest;
-                memcpy(d, var->defaultValue, sizeof(float) * var->numFloats);
+                memcpy(dest, answer.data, sizeof(float) * answer.count);
             }
             return TRUE;
         }
-    }
 
-    return FALSE;
+        case EQueryStatus::TypeMismatch:
+        {
+            if (!s_warnedMismatch[kind].exchange(true)) {
+                static const char *const typeNames[4] = {"a float", "a vector", "a matrix", "a string"};
+                warning(CODE_BADTOKEN, "%s(\"%s\"): the stored value (%s of %d) cannot be copied into %s destination; the query is refused and the destination is left untouched\n",
+                        kindNames[kind], name, answer.type == TYPE_STRING ? "a string" : "floats", answer.count, typeNames[(int)expected]);
+            }
+            return FALSE;
+        }
+
+        case EQueryStatus::Unavailable:
+        default:
+            if (svc == nullptr || answer.status == EQueryStatus::Unavailable) {
+                if (!s_warnedUnavailable[kind].exchange(true))
+                    warning(CODE_NOTSTARTED, "renderer services do not provide %s(): the lookup of \"%s\" returns not found\n", kindNames[kind], name);
+            }
+            return FALSE;
+    }
 }
 
-///////////////////////////////////////////////////////////////////////
-// Class				:	CShadingContext
-// Method				:	rendererInfo
-// Description			:	Execute light sources
-// Return Value			:	-
-// Comments				:
-int CShadingContext::rendererInfo(void *dest, const char *name, CVariable **, int *) {
+int CShadingContext::options(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected) {
+    return queryServiceAttribute(openrender::shading::AttributeScope::Option, dest, name, expected);
+}
 
-    if (strcmp(name, rendererinfoRenderer) == 0) {
-        char **d = (char **)dest;
-        d[0] = (char *)OPENRENDER_PROJECT_NAME;
-        return TRUE;
-    }
-    else if (strcmp(name, rendererinfoVersion) == 0) {
-        float *d = (float *)dest;
-        d[0] = (float)VERSION_MAJOR;
-        d[1] = (float)VERSION_MINOR;
-        d[2] = (float)VERSION_PATCH;
-        d[3] = (float)0;
-        return TRUE;
-    }
+int CShadingContext::attributes(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected) {
+    return queryServiceAttribute(openrender::shading::AttributeScope::Attribute, dest, name, expected);
+}
 
-    return FALSE;
+int CShadingContext::rendererInfo(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected) {
+    return queryServiceAttribute(openrender::shading::AttributeScope::RendererInfo, dest, name, expected);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -2805,6 +2646,10 @@ const char *CShadingContext::shaderName() {
 // Return Value			:	-
 // Comments				:
 const char *CShadingContext::shaderName(const char *type) {
+    // No object (the imager): no shader of any type is bound (F2, FR-027)
+    if (currentShadingState->currentObject == NULL)
+        return "";
+
     CAttributes *currentAttributes = currentShadingState->currentObject->attributes;
 
     if (strcmp(type, "surface") == 0) {
@@ -2853,70 +2698,69 @@ void CShadingContext::findCoordinateSystem(const char *name, const float *&from,
 // Return Value			:	-
 // Comments				:
 void CShadingContext::findCoordinateSystem(const char *name, const float *&from, const float *&to, ECoordinateSystem &cSystem) {
-    CRendererServices *svc = currentShadingState->services;
-    if (svc && svc->findCoordinateSystemWithType(name, from, to, cSystem)) {
+    using namespace openrender::shading;
 
-        switch (cSystem) {
-            case COORDINATE_OBJECT:
-                if (currentShadingState->currentObject == NULL) {
-                    error(CODE_SYSTEM, "Object system reference without an object\n");
-                    from = identityMatrix;
-                    to = identityMatrix;
-                }
-                else {
-                    from = currentShadingState->currentObject->xform->from;
-                    to = currentShadingState->currentObject->xform->to;
-                }
-                break;
-            case COORDINATE_CAMERA:
-                from = identityMatrix;
-                to = identityMatrix;
-                break;
-            case COORDINATE_WORLD:
-                // from/to already set by findCoordinateSystemWithType
-                break;
-            case COORDINATE_SHADER:
-                assert(currentShadingState->currentShaderInstance != NULL);
-                from = currentShadingState->currentShaderInstance->xform->from;
-                to = currentShadingState->currentShaderInstance->xform->to;
-                break;
-            case COORDINATE_LIGHT:
-                assert(currentShadingState->currentLightInstance != NULL);
-                from = currentShadingState->currentLightInstance->xform->from;
-                to = currentShadingState->currentLightInstance->xform->to;
-                break;
-            case COORDINATE_NDC:
-            case COORDINATE_RASTER:
-            case COORDINATE_SCREEN:
-                // from/to already set by findCoordinateSystemWithType
-                break;
-            case COORDINATE_CURRENT:
-                from = identityMatrix;
-                to = identityMatrix;
-                break;
-            case COLOR_RGB:
-            case COLOR_HSL:
-            case COLOR_HSV:
-            case COLOR_XYZ:
-            case COLOR_CIE:
-            case COLOR_YIQ:
-            case COLOR_XYY:
-                // Don't handle color, the custom must have been handled
-                break;
-            case COORDINATE_CUSTOM:
-                // from/to already set by findCoordinateSystemWithType
-                break;
-            default:
-                warning(CODE_BUG, "Unknown coordinate system: %s\n", name);
-                from = identityMatrix;
-                to = identityMatrix;
-                break;
-        }
+    // One "service unavailable" warning per process for this kind of lookup (the pattern of serviceLookup.cpp);
+    // the per-lookup "Unknown coordinate system" warning below stays
+    static std::atomic<bool> s_warnedUnavailable{false};
+
+    CRendererServices *svc = currentShadingState->services;
+    MatrixAnswer answer;
+    if (svc != nullptr) {
+        const MatrixRequest request{name,
+                                    objectHandle(),
+                                    shaderHandle(currentShadingState->currentShaderInstance),
+                                    shaderHandle(currentShadingState->currentLightInstance),
+                                    0.0f};
+        answer = svc->getMatrix(request);
     }
-    else {
-        warning(CODE_BUG, "Unknown coordinate system: %s\n", name);
-        from = identityMatrix;
-        to = identityMatrix;
+
+    if ((svc == nullptr || answer.status == EQueryStatus::Unavailable) && !s_warnedUnavailable.exchange(true))
+        warning(CODE_NOTSTARTED, "renderer services do not provide coordinate systems: getMatrix() lookup of \"%s\" returns not found\n", name);
+
+    switch (answer.status) {
+        case EQueryStatus::Found:
+            cSystem = answer.kind;
+            switch (cSystem) {
+                case COORDINATE_OBJECT:
+                case COORDINATE_CAMERA:
+                case COORDINATE_WORLD:
+                case COORDINATE_SHADER:
+                case COORDINATE_LIGHT:
+                case COORDINATE_NDC:
+                case COORDINATE_RASTER:
+                case COORDINATE_SCREEN:
+                case COORDINATE_CURRENT:
+                case COLOR_RGB:
+                case COLOR_HSL:
+                case COLOR_HSV:
+                case COLOR_XYZ:
+                case COLOR_CIE:
+                case COLOR_YIQ:
+                case COLOR_XYY:
+                case COORDINATE_CUSTOM:
+                    // The matrices are the renderer's (from/to for the colour names are as it returned them)
+                    from = answer.from;
+                    to = answer.to;
+                    return;
+                default:
+                    break;
+            }
+            warning(CODE_BUG, "Unknown coordinate system: %s\n", name);
+            from = identityMatrix;
+            to = identityMatrix;
+            return;
+        case EQueryStatus::NoObject:
+            cSystem = COORDINATE_OBJECT;
+            error(CODE_SYSTEM, "Object system reference without an object\n");
+            from = identityMatrix;
+            to = identityMatrix;
+            return;
+        default: // NotFound, Unavailable, and no services
+            warning(CODE_BUG, "Unknown coordinate system: %s\n", name);
+            from = identityMatrix;
+            to = identityMatrix;
+            return;
     }
 }
 
@@ -3063,7 +2907,8 @@ T *CShadingContext::jitParameterList(const TJitParamList &pl, uint32_t callSite)
     }
 
     CShadingScratch *scratch = &(currentShadingState->scratch);
-    lookup->init(scratch, currentShadingState->currentObject->attributes);
+    // With no object (FR-027) the lookups take the attribute defaults: a null attribute set is valid for init()
+    lookup->init(scratch, objectAttributes());
 
     const CPLLookup::TParamBinding *cBinding = lookup->uniforms;
     for (int var = 0; var < lookup->numUniforms; ++var, ++cBinding)
@@ -3805,13 +3650,28 @@ void CShadingContext::jitParameterFinish(float *dst, int sd, void *dest, int sDe
     }
 }
 
+// The QueryType a JIT call site expects, from its resultKind: 1 float, 3 triple, 16 matrix, -1 string
+// (the interpreter has it in the DEFFUNC overload). Shared by the attribute family and the messages.
+static openrender::shading::QueryType queryTypeOfResultKind(int resultKind) {
+    switch (resultKind) {
+        case 3:
+            return openrender::shading::QueryType::Triple;
+        case 16:
+            return openrender::shading::QueryType::Matrix;
+        case -1:
+            return openrender::shading::QueryType::String;
+        default:
+            return openrender::shading::QueryType::Float;
+    }
+}
+
 void CShadingContext::jitSurfaceParameter(float *dst, int sd, const char *const *name,
                                           void *dest, int sDest, int n, const int *tags, int resultKind) {
     if (n <= 0)
         return;
     CVariable *cVar = nullptr;
     int globalIndex = -1;
-    float found = (float)this->surfaceParameter(dest, name[0], &cVar, &globalIndex);
+    float found = (float)this->surfaceParameter(dest, name[0], &cVar, &globalIndex, queryTypeOfResultKind(resultKind));
     jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, cVar, ACCESSOR_SURFACE);
 }
 
@@ -3821,7 +3681,7 @@ void CShadingContext::jitDisplacementParameter(float *dst, int sd, const char *c
         return;
     CVariable *cVar = nullptr;
     int globalIndex = -1;
-    float found = (float)this->displacementParameter(dest, name[0], &cVar, &globalIndex);
+    float found = (float)this->displacementParameter(dest, name[0], &cVar, &globalIndex, queryTypeOfResultKind(resultKind));
     jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, cVar, ACCESSOR_DISPLACEMENT);
 }
 
@@ -3831,7 +3691,7 @@ void CShadingContext::jitAtmosphereParameter(float *dst, int sd, const char *con
         return;
     CVariable *cVar = nullptr;
     int globalIndex = -1;
-    float found = (float)this->atmosphereParameter(dest, name[0], &cVar, &globalIndex);
+    float found = (float)this->atmosphereParameter(dest, name[0], &cVar, &globalIndex, queryTypeOfResultKind(resultKind));
     jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, cVar, ACCESSOR_ATMOSPHERE);
 }
 
@@ -3842,16 +3702,16 @@ void CShadingContext::jitIncidentParameter(float *dst, int sd, const char *const
     // incidentParameter() always passes NULL for var/globalIndex ("skip
     // mutable parameters") -- cVar stays null, so jitParameterFinish always
     // takes the self-copy path (matching the interpreter exactly).
-    float found = (float)this->incidentParameter(dest, name[0], nullptr, nullptr);
-    jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, nullptr, ACCESSOR_EXTERIOR);
+    float found = (float)this->incidentParameter(dest, name[0], nullptr, nullptr, queryTypeOfResultKind(resultKind));
+    jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, nullptr, ACCESSOR_INTERIOR);
 }
 
 void CShadingContext::jitOppositeParameter(float *dst, int sd, const char *const *name,
                                            void *dest, int sDest, int n, const int *tags, int resultKind) {
     if (n <= 0)
         return;
-    float found = (float)this->oppositeParameter(dest, name[0], nullptr, nullptr);
-    jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, nullptr, ACCESSOR_INTERIOR);
+    float found = (float)this->oppositeParameter(dest, name[0], nullptr, nullptr, queryTypeOfResultKind(resultKind));
+    jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, nullptr, ACCESSOR_EXTERIOR);
 }
 
 void CShadingContext::jitAttributeParameter(float *dst, int sd, const char *const *name,
@@ -3860,7 +3720,7 @@ void CShadingContext::jitAttributeParameter(float *dst, int sd, const char *cons
         return;
     CVariable *cVar = nullptr;
     int globalIndex = -1;
-    float found = (float)this->attributes(dest, name[0], &cVar, &globalIndex);
+    float found = (float)this->attributes(dest, name[0], &cVar, &globalIndex, queryTypeOfResultKind(resultKind));
     jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, cVar, 0);
 }
 
@@ -3870,7 +3730,7 @@ void CShadingContext::jitOptionParameter(float *dst, int sd, const char *const *
         return;
     CVariable *cVar = nullptr;
     int globalIndex = -1;
-    float found = (float)this->options(dest, name[0], &cVar, &globalIndex);
+    float found = (float)this->options(dest, name[0], &cVar, &globalIndex, queryTypeOfResultKind(resultKind));
     jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, cVar, 0);
 }
 
@@ -3880,7 +3740,7 @@ void CShadingContext::jitRendererInfoParameter(float *dst, int sd, const char *c
         return;
     CVariable *cVar = nullptr;
     int globalIndex = -1;
-    float found = (float)this->rendererInfo(dest, name[0], &cVar, &globalIndex);
+    float found = (float)this->rendererInfo(dest, name[0], &cVar, &globalIndex, queryTypeOfResultKind(resultKind));
     jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, cVar, 0);
 }
 
@@ -4484,7 +4344,7 @@ bool CShadingContext::gatherSample(CGatherBundle *lastGather, int *tags, int &nu
             lastGather->depth = 0;
             lastGather->postShader = shaderInstanceOf(cAttributes->interior());
             lastGather->numMisses = 0;
-            traceEx(lastGather);
+            libshader::traceBundle(*this, lastGather, libshader::TraceKind::Gather);
             numActive -= lastGather->numMisses;
             numPassive += lastGather->numMisses;
         }
@@ -4495,7 +4355,7 @@ bool CShadingContext::gatherSample(CGatherBundle *lastGather, int *tags, int &nu
             lastGather->depth = 0;
             lastGather->postShader = shaderInstanceOf(cAttributes->exterior());
             lastGather->numMisses = 0;
-            traceEx(lastGather);
+            libshader::traceBundle(*this, lastGather, libshader::TraceKind::Gather);
             numActive -= lastGather->numMisses;
             numPassive += lastGather->numMisses;
         }

@@ -123,8 +123,8 @@
 
 #endif
 
-DEFSHORTFUNC(Visibility, "visibility", "f=pp!", TRANSMISSIONEXPR_PRE, TRANSMISSIONEXPR, TRANSMISSIONEXPR_UPDATE(1), VISIBILITYEXPR_POST, PARAMETER_RAYTRACE | PARAMETER_DERIVATIVE | PARAMETER_DU | PARAMETER_DV | PARAMETER_TIME)
-DEFSHORTFUNC(Transmission, "transmission", "c=pp!", TRANSMISSIONEXPR_PRE, TRANSMISSIONEXPR, TRANSMISSIONEXPR_UPDATE(3), TRANSMISSIONEXPR_POST, PARAMETER_RAYTRACE | PARAMETER_DERIVATIVE | PARAMETER_DU | PARAMETER_DV | PARAMETER_TIME)
+DEFSHORTFUNC(Visibility, "visibility", "f=pp!", TRANSMISSIONEXPR_PRE, TRANSMISSIONEXPR, TRANSMISSIONEXPR_UPDATE(1), VISIBILITYEXPR_POST, PARAMETER_RAYTRACE | PARAMETER_DERIVATIVE | PARAMETER_N | PARAMETER_DU | PARAMETER_DV | PARAMETER_TIME)
+DEFSHORTFUNC(Transmission, "transmission", "c=pp!", TRANSMISSIONEXPR_PRE, TRANSMISSIONEXPR, TRANSMISSIONEXPR_UPDATE(3), TRANSMISSIONEXPR_POST, PARAMETER_RAYTRACE | PARAMETER_DERIVATIVE | PARAMETER_N | PARAMETER_DU | PARAMETER_DV | PARAMETER_TIME)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // trace	"c=pv!"
@@ -168,8 +168,8 @@ DEFSHORTFUNC(Transmission, "transmission", "c=pp!", TRANSMISSIONEXPR_PRE, TRANSM
 
 #endif
 
-DEFSHORTFUNC(TraceF, "trace", "f=pv!", TRACEEXPR_PRE, TRACEEXPR, TRACEEXPR_UPDATE(1), TRACE2EXPR_POST, PARAMETER_RAYTRACE | PARAMETER_DERIVATIVE | PARAMETER_DU | PARAMETER_DV)
-DEFSHORTFUNC(TraceV, "trace", "c=pv!", TRACEEXPR_PRE, TRACEEXPR, TRACEEXPR_UPDATE(3), TRACEEXPR_POST, PARAMETER_RAYTRACE | PARAMETER_DERIVATIVE | PARAMETER_DU | PARAMETER_DV)
+DEFSHORTFUNC(TraceF, "trace", "f=pv!", TRACEEXPR_PRE, TRACEEXPR, TRACEEXPR_UPDATE(1), TRACE2EXPR_POST, PARAMETER_RAYTRACE | PARAMETER_DERIVATIVE | PARAMETER_N | PARAMETER_DU | PARAMETER_DV)
+DEFSHORTFUNC(TraceV, "trace", "c=pv!", TRACEEXPR_PRE, TRACEEXPR, TRACEEXPR_UPDATE(3), TRACEEXPR_POST, PARAMETER_RAYTRACE | PARAMETER_DERIVATIVE | PARAMETER_N | PARAMETER_DU | PARAMETER_DV)
 
 #undef TRACEEXPR_PRE
 #undef TRACEEXPR
@@ -288,7 +288,7 @@ DEFSHORTFUNC(Indirectdiffuse, "indirectdiffuse", "c=pnf!", IDEXPR_PRE(FALSE), ID
     }                                                                                                                                                                            \
     float *res;                                                                                                                                                                  \
     const float *op2, *op3;                                                                                                                                                      \
-    const int estimator = (scratch->photonmapParams.estimator == 0 ? currentShadingState->currentObject->attributes->photonEstimator : (int)scratch->photonmapParams.estimator); \
+    const int estimator = (scratch->photonmapParams.estimator == 0 ? objectAttributes()->photonEstimator : (int)scratch->photonmapParams.estimator); \
     operand(0, res, float *);                                                                                                                                                    \
     operand(2, op2, const float *);                                                                                                                                              \
     operand(3, op3, const float *);
@@ -335,7 +335,7 @@ DEFSHORTFUNC(Photonmap, "photonmap", "c=Spn!", PHOTONMAPEXPR_PRE, PHOTONMAPEXPR,
     }                                                                                                                                                                            \
     float *res;                                                                                                                                                                  \
     const float *op2;                                                                                                                                                            \
-    const int estimator = (scratch->photonmapParams.estimator == 0 ? currentShadingState->currentObject->attributes->photonEstimator : (int)scratch->photonmapParams.estimator); \
+    const int estimator = (scratch->photonmapParams.estimator == 0 ? objectAttributes()->photonEstimator : (int)scratch->photonmapParams.estimator); \
     operand(0, res, float *);                                                                                                                                                    \
     operand(2, op2, const float *);
 

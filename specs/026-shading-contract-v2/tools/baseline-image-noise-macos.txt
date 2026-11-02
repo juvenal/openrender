@@ -1,0 +1,1 @@
+# spec 026 macOS suite noise list: none. Two runs of the suite on the starting tree wrote byte-identical images (819 images, 0 differing); every MaxBlockAvgDiff equal.

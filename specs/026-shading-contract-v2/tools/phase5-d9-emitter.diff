@@ -1,0 +1,21 @@
+diff --git a/src/libshader/compiler/llvmEmitter.cpp b/src/libshader/compiler/llvmEmitter.cpp
+index 7df1f5b2..0e321dbc 100644
+--- a/src/libshader/compiler/llvmEmitter.cpp
++++ b/src/libshader/compiler/llvmEmitter.cpp
+@@ -2974,9 +2974,13 @@ static bool emitFunction(const IRFunction &irFn,
+                 if (!namePtr || !destPtr)
+                     continue;
+                 const char resultChar = ins.proto.empty() ? 'F' : ins.proto.back();
+-                const int resultKind = (resultChar == 'V') ? 3 : (resultChar == 'M') ? 16
+-                                                              : (resultChar == 'S')   ? -1
+-                                                                                      : 1;
++                // A color, normal or point destination is a triple like a vector (the interpreter links
++                // "f=SC", "f=SN" and "f=SP" to "f=SV"): a rendererinfo() with a vector argument resolves to the
++                // "f=SC" overload and must not be read as a float
++                const bool isTriple = (resultChar == 'V' || resultChar == 'C' || resultChar == 'N' || resultChar == 'P');
++                const int resultKind = isTriple ? 3 : (resultChar == 'M') ? 16
++                                                  : (resultChar == 'S')   ? -1
++                                                                          : 1;
+                 auto *ty = llvm::FunctionType::get(voidTy,
+                                                    {ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy, i32Ty},
+                                                    false);
