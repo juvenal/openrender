@@ -3,14 +3,14 @@
  *
  * ShadingContract_StandaloneLink (spec 026, T051; US1 AS1, FR-004, FR-024, SC-001).
  *
- * The program that runs this case links libshader_shading, libRIBCommon, the State-only library and
- * the load stub, and nothing of the renderer. The case installs the services double, builds a shading
+ * The program that runs this case links libshader_shading, libRIBCommon, and the State-only library, and
+ * nothing of the renderer (the load stub that defined the library's last imports is gone, spec 029). The case installs the services double, builds a shading
  * state from the double's 29 globals, runs a trivial shader under both backends and checks that
  *   - the double saw the state's global-variable queries (the state was built from it, not from a renderer);
  *   - the shader ran (Ci is what the shader writes);
  *   - nothing reached a renderer-only lookup: the double saw no photon map, cache, texture or DSO request.
  * If the program had needed a renderer to start, it would not have started: the macOS fixups bind every
- * import at load, and the load stub (load_stub.cpp) defines the six that remain.
+ * import at load, and nothing defines one: libshader_shading imports no renderer symbol since spec 029.
  *
  * The link command itself is checked by ShadingContract_StandaloneLinkLine (check_link_line.cmake).
  */

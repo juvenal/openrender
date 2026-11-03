@@ -239,7 +239,7 @@ class CContractServices final : public CRendererServices {
         const float *worldBmin() const override { return bmin; }
         const float *worldBmax() const override { return bmax; }
 
-        CPhotonMap *getPhotonMap(const char *) override {
+        openrender::shading::IPhotonLookup *getPhotonMap(const char *) override {
             calls.push_back("getPhotonMap");
             return nullptr;
         }

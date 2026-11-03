@@ -70,7 +70,6 @@ set(ri_sources
 	texture/imageInputRgbe.cpp
 	texture/imageInputTiff.cpp
 	texture/textureSystem.cpp
-	hiders/bundles.cpp
 	hiders/compositor.cpp
 	geometry/curves.cpp
 	geometry/bsplinePatchgrid.cpp

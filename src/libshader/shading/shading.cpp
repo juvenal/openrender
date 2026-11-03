@@ -35,10 +35,8 @@
 #include "bundles.h"
 #include "common/diagnostics.h"
 #include "include/logging.hpp"
-#include "irradiance.h"
 #include "common/memory.h"
 #include "object.h"
-#include "photonMap.h"
 #include "common/random.h"
 #include "ri_config.h"
 #include "shaderPl.h"
@@ -564,7 +562,7 @@ const float *CShadingContext::rendererWorldBmin() const { return SVC ? SVC->worl
 const float *CShadingContext::rendererWorldBmax() const { return SVC ? SVC->worldBmax() : nullptr; }
 float CShadingContext::rendererClipMin() const { return SVC ? SVC->clipMin() : 0.f; }
 float CShadingContext::rendererClipMax() const { return SVC ? SVC->clipMax() : 1.f; }
-CPhotonMap *CShadingContext::rendererGetPhotonMap(const char *n) { return SVC ? SVC->getPhotonMap(n) : nullptr; }
+openrender::shading::IPhotonLookup *CShadingContext::rendererGetPhotonMap(const char *n) { return SVC ? SVC->getPhotonMap(n) : nullptr; }
 CTexture3d *CShadingContext::rendererGetCache(const char *h, const char *m, const float *f, const float *t) { return SVC ? SVC->getCache(h, m, f, t) : nullptr; }
 CTexture3d *CShadingContext::rendererGetTexture3d(const char *n, int w, const char *ch, const float *f, const float *t, int hier) { return SVC ? SVC->getTexture3d(n, w, ch, f, t, hier) : nullptr; }
 int CShadingContext::rendererTexture3dResolve(CTexture3d *t, int n, const char **names, int *entry, int *size) { return (SVC && t) ? SVC->texture3dResolve(t, n, names, entry, size) : 0; }
@@ -4007,7 +4005,7 @@ void CShadingContext::jitPhotonMap(float *dst, int sd, const char *const *name,
     if (numRealVertices <= 0 || !name || !name[0])
         return;
 
-    CPhotonMap *map = this->rendererGetPhotonMap(name[0]);
+    openrender::shading::IPhotonLookup *map = this->rendererGetPhotonMap(name[0]);
     if (!map)
         return;
 

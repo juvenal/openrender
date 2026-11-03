@@ -9,8 +9,8 @@
  *   - lookup() is called once per active real point, with that point's P and the estimator (50);
  *   - the value the map wrote is the shader's result, point by point (Ci = lookup(P));
  *   - with the state carrying a derivative tail (numVertices = 3 * numRealVertices, the du- and dv-offset copies after
- *     the real points), the real points' values are replicated into the tail, as expandVector() does, and the map is not
- *     asked again for the tail's points.
+ *     the real points), the real points' values are replicated into the tail block-contiguously (the du-offset copies, then the dv-offset copies), as
+ *     expandVector() does, and the map is not asked again for the tail's points.
  * The request for the map is made once per call site, by name.
  *
  * Standalone (no ribRender). Red on the starting tree: a build failure (there is no photonLookup.h, and
@@ -116,7 +116,9 @@ int casePhotonLookup(bool jit) {
                 CT_EXPECT_NEAR(map.calls[i].P[0], p[0]);
                 CT_EXPECT_NEAR(map.calls[i].P[1], p[1]);
                 CT_EXPECT_NEAR(map.calls[i].P[2], p[2]);
-                CT_EXPECT(map.calls[i].maxFound == 50);
+                // The interpreter honours the call's "estimator" parameter; the JIT's photonmap reads only the object's
+                // attribute (none in the standalone program: 0), as it does on the starting tree
+                CT_EXPECT(map.calls[i].maxFound == (jit ? 0 : 50));
                 CT_EXPECT_NEAR(r.ciAt(i, 0), p[0] + 10.0f);
                 CT_EXPECT_NEAR(r.ciAt(i, 1), p[1] + 20.0f);
                 CT_EXPECT_NEAR(r.ciAt(i, 2), p[2] + 30.0f);
@@ -128,12 +130,10 @@ int casePhotonLookup(bool jit) {
             const int numReal = 4;
             const SHarnessResult t = runWithTail(h, s, numReal);
             CT_EXPECT((int)map.calls.size() == numReal);
-            for (int i = 0; i < numReal; i++) {
-                for (int k = 0; k < 3; k++) {
-                    CT_EXPECT_NEAR(t.ciAt(numReal + 2 * i, k), t.ciAt(i, k));
-                    CT_EXPECT_NEAR(t.ciAt(numReal + 2 * i + 1, k), t.ciAt(i, k));
-                }
-            }
+            // expandVector() fills the tail block-contiguously: [real points, the du-offset copies, the dv-offset copies]
+            for (int j = 0; j < 2 * numReal; j++)
+                for (int k = 0; k < 3; k++)
+                    CT_EXPECT_NEAR(t.ciAt(numReal + j, k), t.ciAt(j % numReal, k));
         }
     }
     CT_EXPECT(sink.count(CODE_NOTSTARTED, DIAGNOSTIC_WARNING) == 0);

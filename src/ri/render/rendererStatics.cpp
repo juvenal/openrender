@@ -35,7 +35,6 @@
 #include "include/logging.hpp"
 
 #include "brickmap.h"
-#include "bundles.h"
 #include "curves.h"
 #include "delayed.h"
 #include "dlobject.h"

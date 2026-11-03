@@ -20,6 +20,7 @@ include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(shading_sources
     activeContext.cpp
+    bundles.cpp
     execute.cpp
     executeMisc.cpp
     noise.cpp
@@ -100,20 +101,17 @@ elseif(UNIX)
     target_link_options(libshader_shading INTERFACE "-Wl,--allow-shlib-undefined")
 endif()
 
-# Shading engine needs src/ri/ headers for renderer types (CObject, CPhotonMap, etc.)
-# and its own directory for shading.h, shader.h, rslo_code.h, macro headers.
-# CPhotonMap now lives under src/ri/hiders/ (see the domain-split plan).
+# Shading engine needs the headers of the domains it may depend on (Graphics State, Texturing, the Infrastructure
+# in src/ri/core and src/ri/parse's ri.h) and, until spec 029 Phase 7, Geometry's, plus its own directory for
+# shading.h, shader.h, rslo_code.h, macro headers. The Hiders' directory is not on the path (spec 029): the bundles
+# and IPhotonLookup are Shading's own, in this directory.
 target_include_directories(libshader_shading PRIVATE
     ${CMAKE_SOURCE_DIR}/src/ri
-    ${CMAKE_SOURCE_DIR}/src/ri/hiders
-    ${CMAKE_SOURCE_DIR}/src/ri/render
     ${CMAKE_SOURCE_DIR}/src/ri/state
     ${CMAKE_SOURCE_DIR}/src/ri/parse
     ${CMAKE_SOURCE_DIR}/src/ri/geometry
     ${CMAKE_SOURCE_DIR}/src/ri/texture
-    ${CMAKE_SOURCE_DIR}/src/ri/output
     ${CMAKE_SOURCE_DIR}/src/ri/core
-    ${CMAKE_SOURCE_DIR}/src/ri/dataviewer
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_BINARY_DIR}
 )

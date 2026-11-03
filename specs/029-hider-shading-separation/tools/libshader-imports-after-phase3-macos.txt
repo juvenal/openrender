@@ -1,0 +1,3 @@
+# Phase 3 (T053), macOS: libshader_shading imports after spec 029 Phase 3
+# command: nm -m build/src/libshader/shading/libshader_shading.1.0.0.dylib | grep 'dynamically looked up' | c++filt
+# (empty above: no dynamically looked-up import); dyld_info -imports flat-namespace count: 0

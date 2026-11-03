@@ -30,6 +30,7 @@
 #include "common/global.h"
 #include "common/riVocabulary.h"
 #include "ri_config.h"
+#include "photonLookup.h" // IPhotonLookup: the map a photonmap() call site holds
 #include <cstddef>
 
 // Forward declarations
@@ -78,7 +79,6 @@ class CPLLookup {
 };
 
 struct TextureHandle; // ri/texture/textureSystem.h
-class CPhotonMap;
 class CTexture3d;
 class CPointHierarchy;
 
@@ -142,7 +142,7 @@ class CPhotonMapLookup : public CPLLookup {
         void bind(const char *name, int &opIndex, int step, void *data, CShaderInstance *shader);
         void init(CShadingScratch *scratch, const CAttributes *attributes);
 
-        CPhotonMap *map;
+        openrender::shading::IPhotonLookup *map;
 };
 
 ///////////////////////////////////////////////////////////////////////

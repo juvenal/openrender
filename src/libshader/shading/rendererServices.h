@@ -22,8 +22,7 @@
  *   directly; the exception is getGlobalID for illuminance()'s category argument, which goes through the
  *   current state's services (execute.cpp CATEGORYLIGHT_PRE). Since a state copies the default services when
  *   it is created, the two are the same object in practice. A standalone program that links libshader_shading without the renderer installs its double
- *   the same way and defines the few renderer symbols the library still imports
- *   (tests/shading_contract/load_stub.cpp).
+ *   the same way and needs nothing else: from spec 029 the library imports no symbol of the renderer.
  *
  *   An implementer, a test double included, needs only this file, serviceTypes.h, tracer.h and
  *   shaderGlobals.h. Every member says what it takes, what it returns, what "not found" looks like,
@@ -45,11 +44,11 @@
 #include "common/global.h"       // basic types
 #include "common/riVocabulary.h" // RtFilterFunc, RtStepFilterFunc, RtFloat
 #include "common/rendererc.h" // ECoordinateSystem
+#include "libshader/shading/photonLookup.h"  // IPhotonLookup, what getPhotonMap() answers (2.1.0)
 #include "libshader/shading/serviceTypes.h" // the v2 query vocabulary
 
 // Forward declarations (defined in src/ri/)
 class CTexture3d;
-class CPhotonMap;
 class CTextureSystem;
 class CVariable;
 class CDSO;
@@ -78,8 +77,14 @@ namespace openrender::shading {
     //   MINOR  a member added with a documented no-implementation default; a field appended to a
     //          struct; an enumerator appended.
     //   PATCH  documentation, or an implementation fix with no contract change.
+    //   Until the milestone closes (spec 055) MAJOR stays at 2 and 2.x is unstable: nothing versioned has been
+    //   distributed, so a MINOR step may also make a change listed under MAJOR above. Such an entry says so
+    //   ("Breaking within 2.x"). The rules above apply as written from the release that closes the milestone.
     //
     // History
+    //   2.1.0  spec 029. Breaking within 2.x (allowed before spec 055, see the rule above):
+    //          Changed:  getPhotonMap() returns openrender::shading::IPhotonLookup * (was CPhotonMap *).
+    //          Added:    IPhotonLookup (photonLookup.h).
     //   2.0.0  spec 026, 2026-11-01. Version 1 was the unversioned interface of specs 024, 025 and 027
     //          (57 pure virtuals).
     //          Added:    getAttribute, getMessage, getMatrix and tracer() (each with a documented
@@ -94,7 +99,7 @@ namespace openrender::shading {
     //                    samplingSeed and lookupUserOption (answered by getAttribute with scope Option or
     //                    RendererInfo).
     //          Unchanged: the 28 other members below.
-    inline constexpr InterfaceVersion kRendererServicesVersion{2, 0, 0};
+    inline constexpr InterfaceVersion kRendererServicesVersion{2, 1, 0};
 
     class ITracer; // tracer.h
 
@@ -313,7 +318,7 @@ class CRendererServices {
         // the JIT. The three loaders take the implementer's resource lock
         // (the core's shaderMutex, non-recursive): the call may block, and Shading calls them without
         // holding it. Called from any render thread.
-        virtual CPhotonMap *getPhotonMap(const char *name) = 0;
+        virtual openrender::shading::IPhotonLookup *getPhotonMap(const char *name) = 0;
         // Find or create the irradiance cache `handle`. `mode` is the file mode string of the cache
         // attribute ("r" read, "w" write, ...; nullptr is read as ""). `from` and `to` are the 16-float
         // column-major matrices of the cache's space. Output: a 3D-texture handle owned by the renderer and

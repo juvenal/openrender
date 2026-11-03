@@ -3,8 +3,8 @@
  *
  * ShadingContract_GatherRequests{Interp,Jit} (spec 026, T059; US6 AS1, FR-010, FR-011).
  *
- * gather() constructs a CGatherBundle (`new CGatherBundle`, shading.cpp), which traps on the standalone
- * program's load stub, so this case is rendered. A CRecordingTracer sits behind the forwarder's
+ * gather() constructs a CGatherBundle (`new CGatherBundle`, shading.cpp), which is Shading's own
+ * since spec 029, so the standalone program could run it too; this case stays rendered. A CRecordingTracer sits behind the forwarder's
  * tracer() and records what gather() hands the tracer:
  *   - bundle requests only (gather has no probe form), through ITracer::traceBundle;
  *   - the label the call gave ("cmgather") and bundle depth 0;

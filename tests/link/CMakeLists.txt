@@ -14,7 +14,7 @@
 # The sub-checks of ShadingScope_Greps that are true so far. Each phase appends the sub-checks it makes true
 # (Phase 3: S1a;S1b, Phase 5: S1c;S1f, Phase 6: S1d, Phase 7: S1e). An empty list is an error of the script, so the
 # registered test can never pass vacuously.
-set(OR029_SCOPE_CHECKS "")
+set(OR029_SCOPE_CHECKS "S1a;S1b")  # Phase 3
 
 # add_or029_script_test(<name> <label> <timeout> <cmake args...>): a `cmake -P` script test, DISABLED until its phase.
 function(add_or029_script_test NAME TIMEOUT)
@@ -26,9 +26,11 @@ function(add_or029_script_test NAME TIMEOUT)
 endfunction()
 
 # ---- T-L1 ------------------------------------------------------------------------------------------------------
-add_or029_script_test(Link_ShadingSelfContained 120
-    "-DLIB=$<TARGET_FILE:libshader_shading>" "-DRENDER=$<TARGET_FILE:ribRender>" "-DSYSTEM=${CMAKE_SYSTEM_NAME}"
-    -P ${CMAKE_CURRENT_SOURCE_DIR}/check_shading_self_contained.cmake)
+# Enabled in Phase 3 (registered like an ordinary test; no DISABLED marker)
+add_test(NAME Link_ShadingSelfContained
+    COMMAND ${CMAKE_COMMAND} "-DLIB=$<TARGET_FILE:libshader_shading>" "-DRENDER=$<TARGET_FILE:ribRender>" "-DSYSTEM=${CMAKE_SYSTEM_NAME}"
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/check_shading_self_contained.cmake)
+set_tests_properties(Link_ShadingSelfContained PROPERTIES TIMEOUT 120 LABELS "link")
 
 # ---- T-L3 ------------------------------------------------------------------------------------------------------
 add_or029_script_test(Link_NoWorkaroundText 60
@@ -39,10 +41,11 @@ add_or029_script_test(Link_NoWorkaroundText 60
 # The include path of the shading library is read from the generated compile_commands.json when it exists and from
 # the flags.make of its target otherwise (build tree, generator-specific): the script takes the directory of the
 # target's build files.
-add_or029_script_test(ShadingScope_Greps 60
-    "-DSOURCE_DIR=${CMAKE_SOURCE_DIR}" "-DBUILD_DIR=${CMAKE_BINARY_DIR}"
-    "-DCHECKS=${OR029_SCOPE_CHECKS}"
-    -P ${CMAKE_CURRENT_SOURCE_DIR}/check_scope.cmake)
+# Enabled in Phase 3 with the sub-checks that are true so far (OR029_SCOPE_CHECKS)
+add_test(NAME ShadingScope_Greps
+    COMMAND ${CMAKE_COMMAND} "-DSOURCE_DIR=${CMAKE_SOURCE_DIR}" "-DBUILD_DIR=${CMAKE_BINARY_DIR}" "-DCHECKS=${OR029_SCOPE_CHECKS}"
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/check_scope.cmake)
+set_tests_properties(ShadingScope_Greps PROPERTIES TIMEOUT 60 LABELS "link")
 
 # ---- T-L2 ------------------------------------------------------------------------------------------------------
 # A program linked plainly against ribRender_static (no force-load, whole-archive or export-dynamic): its own

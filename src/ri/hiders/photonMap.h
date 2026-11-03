@@ -37,6 +37,7 @@
 #include "common/refCounter.h"
 #include "stateHandles.h" // CMapRefTarget: a base of CPhotonMap (Hiders -> Graphics State)
 #include "xform.h"
+#include "photonLookup.h" // IPhotonLookup (Shading, header-only): CPhotonMap answers it
 
 #define PHOTON_LOOKUP_CACHE
 
@@ -72,7 +73,7 @@ class CPhotonRay : public CRay {
 // Class				:	CPhotonMap
 // Description			:	A Photon map
 // Comments				:
-class CPhotonMap : public CMap<CPhoton>, public CFileResource, public CDataView, public CMapRefTarget {
+class CPhotonMap : public CMap<CPhoton>, public CFileResource, public CDataView, public CMapRefTarget, public openrender::shading::IPhotonLookup {
 
 #ifdef PHOTON_LOOKUP_CACHE
         class CPhotonSample {
@@ -98,15 +99,15 @@ class CPhotonMap : public CMap<CPhoton>, public CFileResource, public CDataView,
         void reset();
         void write(const CXform *);
 
-        void lookup(float *, const float *, int);
+        void lookup(float *, const float *, int) override;
         void lookup(float *, const float *, const float *, int);
-        void balance();
+        void balance() override;
 
         void store(const float *, const float *, const float *, const float *);
 
-        void draw();
-        void bound(float *bmin, float *bmax);
-        const char *typeName() const { return "Photon Map"; }
+        void draw() override;
+        void bound(float *bmin, float *bmax) override;
+        const char *typeName() const override { return "Photon Map"; }
 
 #ifdef PHOTON_LOOKUP_CACHE
         int probe(float *, const float *, const float *);

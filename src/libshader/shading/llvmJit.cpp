@@ -43,8 +43,7 @@
 // llvmJitMetadata.cpp, built into the standalone libshader_jitmeta static library.
 // That code touches only LLVM bitcode APIs (no ri/CRenderer symbols), so tools like
 // sloinfo that only need metadata inspection can link it without pulling in the rest
-// of libshader_shading (whose -undefined dynamic_lookup symbols are resolved only
-// when ri.dylib loads it).
+// of libshader_shading (sloinfo needs neither the JIT nor a renderer).
 
 // =========================================================================
 // CLLVMJitEngine constructor / destructor / getInstance

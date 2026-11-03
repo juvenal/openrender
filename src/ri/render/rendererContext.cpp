@@ -36,7 +36,6 @@
 #include "blobbyField.h"
 #include "channelRegistry.h"
 #include "brickmap.h"
-#include "bundles.h"
 #include "common/algebra.h"
 #include "common/containers.h"
 #include "common/os.h"

@@ -11,11 +11,6 @@
 # Seeded by specs/022-domain-dependency-guardrails/tools/assign_registry.py.
 
 # --- DB-001: Shading depends on the renderer core and the hiders (5) ---
-DB-001  link     src/libshader/shading/execute.cpp  ->  _ZN10CPhotonMap6lookupEPfPKfi   # CPhotonMap::lookup(float*, float const*, int)
-DB-001  link     src/libshader/shading/executeMisc.cpp  ->  _ZTV12CTraceBundle   # vtable for CTraceBundle
-DB-001  link     src/libshader/shading/executeMisc.cpp  ->  _ZTV19CTransmissionBundle   # vtable for CTransmissionBundle
-DB-001  link     src/libshader/shading/shading.cpp  ->  _ZN10CPhotonMap6lookupEPfPKfi   # CPhotonMap::lookup(float*, float const*, int)
-DB-001  link     src/libshader/shading/shading.cpp  ->  _ZN13CGatherBundleC1Ev   # CGatherBundle::CGatherBundle()
 
 # --- DB-004: Geometry depends on the renderer core and on Scene Interface (52) ---
 DB-004  include  src/ri/geometry/blobby.cpp  ->  src/ri/render/renderer.h
@@ -72,14 +67,6 @@ DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer8pixelTopE   # CR
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer9pixelLeftE   # CRenderer::pixelLeft
 
 # --- DB-005: Hiders and Shading share one class (CShadingContext) (8) ---
-DB-005  include  src/libshader/shading/execute.cpp  ->  src/ri/hiders/bundles.h
-DB-005  include  src/libshader/shading/execute.cpp  ->  src/ri/hiders/irradiance.h
-DB-005  include  src/libshader/shading/execute.cpp  ->  src/ri/hiders/photonMap.h
-DB-005  include  src/libshader/shading/executeMisc.cpp  ->  src/ri/hiders/bundles.h
-DB-005  include  src/libshader/shading/shaderPl.cpp  ->  src/ri/hiders/bundles.h
-DB-005  include  src/libshader/shading/shading.cpp  ->  src/ri/hiders/bundles.h
-DB-005  include  src/libshader/shading/shading.cpp  ->  src/ri/hiders/irradiance.h
-DB-005  include  src/libshader/shading/shading.cpp  ->  src/ri/hiders/photonMap.h
 
 # --- DB-006: Geometry is coupled to Shading and to the hiders (31) ---
 DB-006  include  src/libshader/shading/shading.cpp  ->  src/ri/geometry/object.h

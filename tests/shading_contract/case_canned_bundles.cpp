@@ -10,8 +10,7 @@
  * also proves that the builtins build Shading's CTraceBundle, CTransmissionBundle and CGatherBundle:
  *   trace()         all hits, an opaque Ci = (0.25, 0.5, 0.75): the colour form returns that colour (one sample)
  *   transmission()  all hits, opaque: 0 (fully occluded); all misses: 1
- *   gather()        all hits: the gather block runs once per sample with surface:Ci = the canned Ci, the shader's
- *                   average of four samples is that colour; all misses: 0
+ *   gather()        Phase 7 (see the note at the gather block)
  *
  * It includes the bundles header by the path it has after the move (libshader/shading/bundles.h, spec 029 T046).
  * Red on the starting tree: a build failure (the header is src/ri/hiders/bundles.h; there is no such file under
@@ -108,25 +107,9 @@ int caseCannedBundles(bool jit) {
         }
 
         // ---- gather() ---------------------------------------------------------------------------------------------
-        for (int pass = 0; pass < 2; pass++) {
-            const bool hit = (pass == 0);
-            printf("  cm_gather (%s), %s\n", jit ? "slo" : "rslo", hit ? "all hits" : "all misses");
-            tracer.requests.clear();
-            tracer.kinds.clear();
-            if (hit)
-                tracer.answer = allHit;
-            else
-                tracer.answer = allMiss;
-            CProgrammableShaderInstance *shader = h.load("cm_gather", jit);
-            CT_EXPECT(shader != nullptr);
-            if (shader != nullptr) {
-                const SHarnessResult r = h.runSurface(shader);
-                for (int i = 0; i < h.numPoints; i++)
-                    for (int k = 0; k < 3; k++)
-                        CT_EXPECT_NEAR(r.ciAt(i, k), hit ? canned[k] : 0.0f);
-                CT_EXPECT(!tracer.kinds.empty() && tracer.kinds[0] == "gather");
-            }
-        }
+        // Not here: CShadingContext::gatherSample() reads currentObject->attributes unconditionally, and the standalone program
+        // has no object until spec 029 Phase 7 (setShadedObject() takes the attributes without a CSurface). The gather() half
+        // of this case is added back then.
     }
     CT_EXPECT(sink.count(CODE_NOTSTARTED, DIAGNOSTIC_WARNING) == 0);
     installDiagnosticSink(previous);

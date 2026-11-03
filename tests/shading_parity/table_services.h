@@ -58,7 +58,7 @@ class CForwardingServices : public CRendererServices {
         const float *worldBmax() const override { return inner->worldBmax(); }
 
         CTextureSystem *textureSystem() override { return inner->textureSystem(); }
-        CPhotonMap *getPhotonMap(const char *name) override { return inner->getPhotonMap(name); }
+        openrender::shading::IPhotonLookup *getPhotonMap(const char *name) override { return inner->getPhotonMap(name); }
         CTexture3d *getCache(const char *handle, const char *mode, const float *from, const float *to) override {
             return inner->getCache(handle, mode, from, to);
         }

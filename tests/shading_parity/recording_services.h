@@ -64,7 +64,7 @@ class CRecordingServices final : public CRendererServices {
         const float *worldBmax() const override { return inner->worldBmax(); }
 
         CTextureSystem *textureSystem() override { return inner->textureSystem(); }
-        CPhotonMap *getPhotonMap(const char *name) override { return inner->getPhotonMap(name); }
+        openrender::shading::IPhotonLookup *getPhotonMap(const char *name) override { return inner->getPhotonMap(name); }
         CTexture3d *getCache(const char *handle, const char *mode, const float *from, const float *to) override {
             return inner->getCache(handle, mode, from, to);
         }
@@ -160,7 +160,7 @@ class CStubServices final : public CRendererServices {
         const float *worldBmax() const override { return nullptr; }
 
         CTextureSystem *textureSystem() override { return nullptr; }
-        CPhotonMap *getPhotonMap(const char *) override { return nullptr; }
+        openrender::shading::IPhotonLookup *getPhotonMap(const char *) override { return nullptr; }
         CTexture3d *getCache(const char *, const char *, const float *, const float *) override { return nullptr; }
         CTexture3d *getTexture3d(const char *, int, const char *, const float *, const float *, int = FALSE) override { return nullptr; }
         int texture3dResolve(CTexture3d *, int, const char **, int *, int *) override { return 0; }
