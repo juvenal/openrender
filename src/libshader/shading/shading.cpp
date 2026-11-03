@@ -2143,7 +2143,8 @@ void CShadingContext::jitIlluminateBegin(const float *from, int sf, int *tags, i
 
     if (rendererIlluminationHook()) {
         if (*numActive != 0)
-            illuminateBegin(hookOperand(from, sf, tags, n), nullptr, nullptr);
+            if (openrender::shading::IIlluminationHook *hook = illuminationHook())
+                hook->illuminateBegin(hookOperand(from, sf, tags, n), nullptr, nullptr);
         return;
     }
 
@@ -2187,7 +2188,8 @@ void CShadingContext::jitIlluminate3Begin(
 
     if (rendererIlluminationHook()) {
         if (*numActive != 0)
-            illuminateBegin(hookOperand(from, sf, tags, n), hookOperand(axis, sa, tags, n), hookOperand(angle, st, tags, n));
+            if (openrender::shading::IIlluminationHook *hook = illuminationHook())
+                hook->illuminateBegin(hookOperand(from, sf, tags, n), hookOperand(axis, sa, tags, n), hookOperand(angle, st, tags, n));
         return;
     }
     log_debug("[JIT-DBG] jitIlluminate3Begin: n={} numActive={} numPassive={}", n, *numActive, *numPassive);
@@ -2235,7 +2237,8 @@ void CShadingContext::jitIlluminateEnd(int *tags, int n, int *numActive, int *nu
 
     if (rendererIlluminationHook()) {
         if (*numActive != 0)
-            illuminateEnd();
+            if (openrender::shading::IIlluminationHook *hook = illuminationHook())
+                hook->illuminateEnd();
         return;
     }
     log_debug("[JIT-DBG] jitIlluminateEnd: n={} numActive={} numPassive={}", n, *numActive, *numPassive);
@@ -2306,7 +2309,8 @@ void CShadingContext::jitSolarBegin(const float *Nf, int sf, const float *thetaf
 
     if (rendererIlluminationHook()) {
         if (*numActive != 0)
-            solarBegin(hookOperand(Nf, sf, tags, n), hookOperand(thetaf, st, tags, n));
+            if (openrender::shading::IIlluminationHook *hook = illuminationHook())
+                hook->solarBegin(hookOperand(Nf, sf, tags, n), hookOperand(thetaf, st, tags, n));
         return;
     }
 
@@ -2355,7 +2359,8 @@ void CShadingContext::jitSolar0Begin(int *tags, int n, int *numActive, int * /*n
 
     if (rendererIlluminationHook()) {
         if (*numActive != 0)
-            solarBegin(nullptr, nullptr);
+            if (openrender::shading::IIlluminationHook *hook = illuminationHook())
+                hook->solarBegin(nullptr, nullptr);
         return;
     }
 
@@ -2385,7 +2390,8 @@ void CShadingContext::jitSolarEnd(int *tags, int n, int *numActive, int *numPass
 
     if (rendererIlluminationHook()) {
         if (*numActive != 0)
-            solarEnd();
+            if (openrender::shading::IIlluminationHook *hook = illuminationHook())
+                hook->solarEnd();
         return;
     }
 

@@ -98,7 +98,7 @@ void CObject::dice(CReyes *rasterizer) {
 // Return Value			:	-
 // Comments				:
 void CCSGSolid::dice(CReyes *rasterizer) {
-    resolve(rasterizer);
+    resolve(&rasterizer->shadingContext());
     CObject::dice(rasterizer);
 }
 
@@ -413,7 +413,7 @@ void CSurface::shade(CShadingContext *context, int numRays, CRay **rays) {
 // Comments				:
 void CCurve::dice(CReyes *rasterizer) {
     // We can sample the object, so do so
-    float **varying = rasterizer->currentShadingState->varying;
+    float **varying = rasterizer->shadingContext().currentShadingState->varying;
     float *u = varying[VARIABLE_U];
     float *v = varying[VARIABLE_V];
     float *timev = varying[VARIABLE_TIME];
@@ -452,7 +452,7 @@ void CCurve::dice(CReyes *rasterizer) {
         for (i = 0; i < 6; i++)
             timev[i] = 1;
 
-        rasterizer->displaceEstimate(this, 2, 3, SHADING_2D_GRID, PARAMETER_P | PARAMETER_END_SAMPLE);
+        rasterizer->shadingContext().displaceEstimate(this, 2, 3, SHADING_2D_GRID, PARAMETER_P | PARAMETER_END_SAMPLE);
 
         for (i = 0; i < 6; i++)
             addBox(bmin, bmax, P + i * 3);
@@ -489,7 +489,7 @@ void CCurve::dice(CReyes *rasterizer) {
         timev[i] = 0;
 
     // Sample the curves
-    rasterizer->displaceEstimate(this, 2, 3, SHADING_2D_GRID, PARAMETER_P | PARAMETER_BEGIN_SAMPLE);
+    rasterizer->shadingContext().displaceEstimate(this, 2, 3, SHADING_2D_GRID, PARAMETER_P | PARAMETER_BEGIN_SAMPLE);
 
     // Add start sample bounds
     for (i = 0; i < 6; i++)
@@ -584,7 +584,7 @@ void CPoints::dice(CReyes *rasterizer) {
     else {
 
         // We're too many, split us
-        memBegin(rasterizer->threadMemory);
+        memBegin(rasterizer->shadingContext().threadMemory);
 
         vector D;
         int numFront, numBack;
@@ -595,9 +595,9 @@ void CPoints::dice(CReyes *rasterizer) {
         int num0, num1, moved;
         CPoints *child;
 
-        front = (const float **)ralloc(numPoints * sizeof(float *), rasterizer->threadMemory);
-        back = (const float **)ralloc(numPoints * sizeof(float *), rasterizer->threadMemory);
-        membership = (int *)ralloc(numPoints * sizeof(int), rasterizer->threadMemory);
+        front = (const float **)ralloc(numPoints * sizeof(float *), rasterizer->shadingContext().threadMemory);
+        back = (const float **)ralloc(numPoints * sizeof(float *), rasterizer->shadingContext().threadMemory);
+        membership = (int *)ralloc(numPoints * sizeof(int), rasterizer->shadingContext().threadMemory);
 
         for (i = 0; i < numPoints; i++)
             membership[i] = -1;
@@ -695,7 +695,7 @@ void CPoints::dice(CReyes *rasterizer) {
 
         child->detach();
 
-        memEnd(rasterizer->threadMemory);
+        memEnd(rasterizer->shadingContext().threadMemory);
     }
 }
 
@@ -730,7 +730,7 @@ void CDelayedObject::dice(CReyes *r) {
     if (processed == FALSE) {
         osLock(CRenderer::delayedMutex);
         if (processed == FALSE) {
-            CRenderer::context->processDelayedObject(r, this, subdivisionFunction, data, bmin, bmax);
+            CRenderer::context->processDelayedObject(&r->shadingContext(), this, subdivisionFunction, data, bmin, bmax);
             processed = TRUE;
         }
         osUnlock(CRenderer::delayedMutex);
@@ -771,7 +771,7 @@ void CDelayedInstance::dice(CReyes *r) {
     if (processed == FALSE) {
         osLock(CRenderer::delayedMutex);
         if (processed == FALSE) {
-            CRenderer::context->processDelayedInstance(r, this);
+            CRenderer::context->processDelayedInstance(&r->shadingContext(), this);
             processed = TRUE;
         }
         osUnlock(CRenderer::delayedMutex);

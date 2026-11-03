@@ -41,6 +41,7 @@
 #include "ri/core/shading.h"
 #include "ri/geometry/object.h"
 #include "ri/parse/ri.h"
+#include "ri/hiders/hider.h"
 #include "ri/render/renderer.h"
 #include "ri/render/rendererContext.h"
 #include "ri/state/attributes.h"
@@ -151,7 +152,7 @@ static void test_t019_no_crash_when_alights_null() {
     if (light) {
         RiWorldBegin();
 
-        CShadingContext *ctx = CRenderer::contexts[0];
+        CShadingContext *ctx = &CRenderer::contexts[0]->shadingContext();
         EXPECT_TRUE(ctx != nullptr);
 
         if (ctx) {
@@ -232,7 +233,7 @@ static void test_t020_ambient_accumulates_once() {
     if (light) {
         RiWorldBegin();
 
-        CShadingContext *ctx = CRenderer::contexts[0];
+        CShadingContext *ctx = &CRenderer::contexts[0]->shadingContext();
         EXPECT_TRUE(ctx != nullptr);
 
         if (ctx) {

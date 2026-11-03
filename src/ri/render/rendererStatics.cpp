@@ -104,7 +104,7 @@ const char *colorCieSystem = "cie";
 CRendererContext *CRenderer::context = NULL;                                 // initialzied in beginRenderer
 CArray<CShaderInstance *> *CRenderer::allLights = NULL;                      // initialized in beginRenderer, destroyed in endRenderer
 CShaderInstance *CRenderer::imagerShader = nullptr;                          // initialized in beginFrame
-thread_local CShadingContext *CRenderer::activeContext = nullptr;            // set by each render thread at loop start
+thread_local CShadingContext *CRenderer::activeContext = nullptr;            // set by the core when a render thread starts its loop
 CTrie<CNamedCoordinateSystem *> *CRenderer::definedCoordinateSystems = NULL; // initialized in initDeclarations, destroyed in shutdownDeclarations
 CTrie<CVariable *> *CRenderer::declaredVariables = NULL;                     // initialized in initDeclarations, destroyed in shutdownDeclarations
 CTrie<CFileResource *> *CRenderer::globalFiles = NULL;                       // initialized in initFiles, destroyed in shutdownFiles
@@ -192,7 +192,7 @@ TMemCheckpoint CRenderer::frameCheckpoint;                               // init
 CTrie<CFileResource *> *CRenderer::frameFiles = NULL;                    // initialized in beginFrame, destroyed in endFrame
 CArray<const char *> *CRenderer::frameTemporaryFiles = NULL;             // initialized in beginFrame, destroyed in endFrame
 CArray<CPhotonMap *> *CRenderer::framePhotonMaps = NULL;                 // initialized in beginFrame, released in endFrame
-CShadingContext **CRenderer::contexts = NULL;                            // initialized in beginFrame, destroyed in endFrame
+CHider **CRenderer::contexts = NULL;                                     // initialized in beginFrame, destroyed in endFrame
 int CRenderer::numActiveThreads = 0;                                     // initialized in beginFrame
 CTrie<CRemoteChannel *> *CRenderer::declaredRemoteChannels = NULL;       // initialized in beginFrame, destroyed in endFrame
 CArray<CRemoteChannel *> *CRenderer::remoteChannels = NULL;              // initialized in beginFrame, destroyed in endFrame

@@ -25,6 +25,7 @@
 //
 ////////////////////////////////////////////////////////////////////////
 #include "common/diagnostics.h"
+#include "hider.h"
 #include "renderer.h"
 #include "shading.h"
 #include "common/stats.h"
@@ -85,8 +86,8 @@ void CRenderer::dispatchReyes(int thread, CJob &job) {
         int x, y;
 
         // Find the bucket for this thread to render
-        x = contexts[thread]->currentXBucket;
-        y = contexts[thread]->currentYBucket;
+        x = contexts[thread]->shadingContext().currentXBucket;
+        y = contexts[thread]->shadingContext().currentYBucket;
         while (TRUE) {
 
             // Has this bucket been assigned to soneone ?

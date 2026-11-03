@@ -71,13 +71,8 @@ static int g_failed = 0;
         }                                                                      \
     } while (0)
 
-// The cheapest concrete context: an empty rendering loop, nothing else
-class CMinimalContext : public CShadingContext {
-    public:
-        explicit CMinimalContext(int thread) : CShadingContext(thread) {}
-
-        void renderingLoop() override {}
-};
+// The cheapest concrete context: a plain CShadingContext (it is concrete and final, spec 029)
+using CMinimalContext = CShadingContext;
 
 // Storage a context is built in, prepared so an unset pointer member points
 // at the sentinel

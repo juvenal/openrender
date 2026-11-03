@@ -387,7 +387,7 @@ void CPrimaryBundle::post() {
 // Description			:	Ctor
 // Return Value			:	-
 // Comments				:
-CRaytracer::CRaytracer(int thread, const openrender::ICamera &cam) : CShadingContext(thread), primaryBundle(CRenderer::shootStep, CRenderer::numSamples, CRenderer::numExtraChannels, CRenderer::sampleOrder, CRenderer::numExtraSamples, CRenderer::sampleDefaults), camera(cam) {
+CRaytracer::CRaytracer(int thread, const openrender::ICamera &cam) : CHider(thread), primaryBundle(CRenderer::shootStep, CRenderer::numSamples, CRenderer::numExtraChannels, CRenderer::sampleOrder, CRenderer::numExtraSamples, CRenderer::sampleDefaults), camera(cam) {
     CRenderer::raytracingFlags |= ATTRIBUTES_FLAGS_PRIMARY_VISIBLE;
 
     const int xoffset = (int)ceil((CRenderer::pixelFilterWidth - 1) * 0.5f);
@@ -417,18 +417,17 @@ CRaytracer::~CRaytracer() {
 // Return Value			:	-
 // Comments				:
 void CRaytracer::renderingLoop() {
-    CRenderer::activeContext = this;
     int left;
     int top;
     CRenderer::CJob job;
 
-    memBegin(threadMemory);
+    memBegin(context.threadMemory);
 
     // While not done
     while (TRUE) {
 
         // Get the job from the renderer
-        CRenderer::dispatchJob(thread, job);
+        CRenderer::dispatchJob(context.thread, job);
 
         // Process the job
         if (job.type == CRenderer::CJob::TERMINATE) {
@@ -443,8 +442,8 @@ void CRaytracer::renderingLoop() {
             assert(x < CRenderer::xBuckets);
             assert(y < CRenderer::yBuckets);
 
-            currentXBucket = x;
-            currentYBucket = y;
+            context.currentXBucket = x;
+            context.currentYBucket = y;
 
             left = x * CRenderer::bucketWidth;
             top = y * CRenderer::bucketHeight;
@@ -473,13 +472,13 @@ void CRaytracer::renderingLoop() {
 
             // Send bucket data if we're a netrender
             if (CRenderer::netClient != INVALID_SOCKET) {
-                CRenderer::sendBucketDataChannels(currentXBucket, currentYBucket);
+                CRenderer::sendBucketDataChannels(context.currentXBucket, context.currentYBucket);
             }
 
-            currentXBucket++;
-            if (currentXBucket == CRenderer::xBuckets) {
-                currentXBucket = 0;
-                currentYBucket++;
+            context.currentXBucket++;
+            if (context.currentXBucket == CRenderer::xBuckets) {
+                context.currentXBucket = 0;
+                context.currentYBucket++;
             }
         }
         else {
@@ -487,7 +486,7 @@ void CRaytracer::renderingLoop() {
         }
     }
 
-    memEnd(threadMemory);
+    memEnd(context.threadMemory);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -513,7 +512,7 @@ void CRaytracer::sample(int left, int top, int xpixels, int ypixels) {
     // the absolute subpixel (left/top are pixels here, so the bucket's first subpixel is
     // left * nx - xSampleOffset), exactly as reyes computes them. The primary ray keeps
     // its camera importance and key.
-    const openrender::sampling::CSamplingConfig &samplingCfg = samplingConfig();
+    const openrender::sampling::CSamplingConfig &samplingCfg = context.samplingConfig();
     const bool wantLens = (CRenderer::flags & OPTIONS_FLAGS_FOCALBLUR) != 0;
     const int xSampleOffset = CRenderer::xSampleOffset, ySampleOffset = CRenderer::ySampleOffset;
 
@@ -558,7 +557,7 @@ void CRaytracer::sample(int left, int top, int xpixels, int ypixels) {
                         const int ny = CRenderer::pixelYsamples;
                         // `left`/`top` count from the rendered window; adding the crop's origin
                         // makes the subpixel absolute in the full image (spec 039, T116)
-                        const CSampleValue jitterSample = CSampler::cameraSample(samplingCfg, cameraSeeds(), CSampler::raytraceAbsSub(left + samplingCfg.originX, nx, CRenderer::xSampleOffset, i + x),
+                        const CSampleValue jitterSample = CSampler::cameraSample(samplingCfg, context.cameraSeeds(), CSampler::raytraceAbsSub(left + samplingCfg.originX, nx, CRenderer::xSampleOffset, i + x),
                                                                                  CSampler::raytraceAbsSub(top + samplingCfg.originY, ny, CRenderer::ySampleOffset, j + y), wantLens);
 
                         // The location from the window's origin, for the splat (x, y), and in the full
@@ -649,7 +648,7 @@ void CRaytracer::computeSamples(CPrimaryRay *rays, int numShading) {
     primaryBundle.numRays = numShading;
     primaryBundle.last = 0;
     primaryBundle.depth = 0;
-    trace(&primaryBundle);
+    context.trace(&primaryBundle);
 
     if (CRenderer::depthFilter == DEPTH_MID)
         probeDepth(rays, numShading);
@@ -684,7 +683,7 @@ void CRaytracer::probeDepth(CPrimaryRay *rays, int numShading) {
 
         cRay->tmin = cRay->t + C_EPSILON;
         cRay->t = C_INFINITY;
-        trace((CRay *)cRay);
+        context.trace((CRay *)cRay);
 
         const float zold = (cRay->object != NULL) ? cameraDepth(cRay, cRay->t) : CRenderer::clipMax;
         cRay->depthProbe = false;

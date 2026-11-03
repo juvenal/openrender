@@ -34,12 +34,8 @@
 // The .rslo loader of libshader_shading (rslo.y)
 CShader *parseShader(const char *shaderName, const char *name);
 
-// The cheapest concrete context: an empty rendering loop, nothing else
-class CHarnessContext : public CShadingContext {
-    public:
-        explicit CHarnessContext(int thread) : CShadingContext(thread) {}
-        void renderingLoop() override {}
-};
+// The cheapest concrete context: a plain CShadingContext (it is concrete and final, spec 029)
+using CHarnessContext = CShadingContext;
 
 class CHarness {
     public:

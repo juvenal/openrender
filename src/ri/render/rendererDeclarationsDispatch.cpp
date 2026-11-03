@@ -57,6 +57,7 @@
  *
  */
 #include "displayChannel.h"
+#include "hider.h"
 #include "renderer.h"
 #include "rendererContext.h"
 #include "shading.h"
@@ -79,7 +80,7 @@ void CRenderer::makeGlobalVariable(CVariable *var) {
         int i;
 
         for (i = 0; i < numThreads; i++) {
-            contexts[i]->updateState();
+            contexts[i]->shadingContext().updateState();
         }
     }
 }

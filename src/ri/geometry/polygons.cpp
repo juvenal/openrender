@@ -1311,7 +1311,7 @@ void CPolygonMesh::intersect(CShadingContext *r, CRay *) {
 void CPolygonMesh::dice(CReyes *r) {
 
     if (children == NULL)
-        create(r);
+        create(&r->shadingContext());
 
     CObject::dice(r);
 }

@@ -717,7 +717,7 @@ void CCurveMesh::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
 void CCurveMesh::dice(CReyes *rasterizer) {
 
     if (children == NULL)
-        create(rasterizer);
+        create(&rasterizer->shadingContext());
 
     CObject::dice(rasterizer);
 }

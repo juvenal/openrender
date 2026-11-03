@@ -39,6 +39,7 @@
 #include "csgClassify.h"
 #include "csgDefinition.h"
 #include "object.h"
+#include "hider.h"
 #include "renderer.h"
 #include "rendererContext.h"
 #include "ri.h"
@@ -154,7 +155,7 @@ namespace csgtest {
             CCaptureContext *capture() const { return captureContextSlot(); }
 
             // A real shading context, for materialization and free-form queries
-            CShadingContext *ctx() const { return CRenderer::contexts != NULL ? CRenderer::contexts[0] : NULL; }
+            CShadingContext *ctx() const { return CRenderer::contexts != NULL ? &CRenderer::contexts[0]->shadingContext() : NULL; }
 
             // Run Ri calls in their own attribute block and return the single
             // object they created (NULL if they created none or several)

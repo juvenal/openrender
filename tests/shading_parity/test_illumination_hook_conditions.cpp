@@ -123,16 +123,16 @@ static void printCalls(const char *label, const std::vector<SHookCall> &calls) {
     }
 }
 
-// Shading context whose rendering loop is empty and whose four hooks only log
-class CHookProbeContext : public CShadingContext {
+// A plain shading context with an illumination hook installed whose four hooks only log
+class CHookProbeContext : public openrender::shading::IIlluminationHook {
     public:
-        explicit CHookProbeContext(int thread) : CShadingContext(thread) {}
+        explicit CHookProbeContext(int thread) : context(thread) { context.setIlluminationHook(this); }
 
-        void renderingLoop() override {}
+        CShadingContext context; // a plain shading context, the hooks below installed on it
 
         std::vector<SHookCall> calls;
 
-    protected:
+        // The four hooks only log (IIlluminationHook)
         void illuminateBegin(const float *P, const float *N, const float *theta) override {
             SHookCall c;
             c.hook = HOOK_ILLUMINATE_BEGIN;
@@ -177,7 +177,7 @@ class CHookProbeContext : public CShadingContext {
 static const int kNumPoints = 4;
 
 static void setupState(CHookProbeContext *probe, bool allInactive) {
-    CShadingState *ss = probe->currentShadingState;
+    CShadingState *ss = probe->context.currentShadingState;
     static const float Ps[kNumPoints][3] = {{-1.5f, 0, 0}, {-0.5f, 0, 0}, {0.5f, 0, 0}, {1.5f, 0, 3}};
     static float costheta[kNumPoints] = {0, 0, 0, 0};
 
@@ -208,13 +208,13 @@ static std::vector<SHookCall> runLight(CHookProbeContext *probe, CProgrammableSh
     setupState(probe, allInactive);
     probe->calls.clear();
 
-    CShadingState *ss = probe->currentShadingState;
+    CShadingState *ss = probe->context.currentShadingState;
     CMemPage *localMemory = NULL;
     memoryInit(localMemory);
     memset(localMemory->base, kPoisonByte, localMemory->totalSize);
     float **locals = light->prepare(localMemory, ss->varying, ss->numVertices);
 
-    probe->execute(light, locals);
+    probe->context.execute(light, locals);
     std::vector<SHookCall> calls = probe->calls;
 
     memoryTini(localMemory);
@@ -370,7 +370,7 @@ int main(int argc, char **argv) {
     RiWorldBegin();
     {
         CHookProbeContext *probe = new CHookProbeContext(0);
-        probe->updateState();
+        probe->context.updateState();
 
         for (const SFixture &fx : fixtures)
             testFixture(probe, oshaderBin, dir, fx);

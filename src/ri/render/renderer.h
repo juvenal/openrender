@@ -82,6 +82,7 @@ extern const char *colorCieSystem;
 // Forward definitions
 class CDisplayChannel;
 class CObject;
+class CHider;
 class CTracable;
 class CRemoteChannel;
 class CAttributes;
@@ -391,7 +392,7 @@ class CRenderer {
         static CTrie<CFileResource *> *frameFiles;              // Files that have been loaded (they stick around only during the frame)
         static CArray<const char *> *frameTemporaryFiles;       // This hold the name of temporary files
         static CArray<CPhotonMap *> *framePhotonMaps;           // The photon maps in frameFiles: each holds a counted reference for the cache (GitHub #64)
-        static CShadingContext **contexts;                      // The array of shading contexts
+        static CHider **contexts;                               // The array of hiders, one per render thread (each owns its shading context)
         static int numActiveThreads;                            // The number of threads currently active
         static CTrie<CRemoteChannel *> *declaredRemoteChannels; // Known remote channel lookup
         static CArray<CRemoteChannel *> *remoteChannels;        // all known channels

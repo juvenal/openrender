@@ -34,12 +34,8 @@
 #include "ri/state/attributes.h"
 #include "ri/state/xform.h"
 
-// The cheapest concrete context: an empty rendering loop, nothing else
-class CRProbeContext : public CShadingContext {
-    public:
-        explicit CRProbeContext(int thread) : CShadingContext(thread) {}
-        void renderingLoop() override {}
-};
+// The cheapest concrete context: a plain CShadingContext (it is concrete and final, spec 029)
+using CRProbeContext = CShadingContext;
 
 // CSurface is abstract; instantiate() is never called here
 class CRProbeSurface : public CSurface {

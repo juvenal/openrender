@@ -111,6 +111,12 @@ static CShadeBatchObserver shadeBatchObserver;   // member of CShadingContext
 
 `objectHandle()` and `objectAttributes()` keep their signatures and return the stored values.
 
+**Amendment of 2026-11-03 (F13, approved by the maintainer at the Phase 5 checkpoint):** `rendererSetOffendingObject(ObjectHandle)` moves from the
+protected renderer-service accessors to the public section, signature and body unchanged, with a short header comment. Cause: the approved spec 026
+test `ShadingContract_OffendingObject` reached it by deriving from the context (through `CRProbeContext`), which `final` forbids, and T068 (A)
+listed only the classes that name `CShadingContext` as their base. `CShadingContext` is not a versioned interface: no version changes, and
+`CRendererServices`' own `setOffendingObject(ObjectHandle)` (2.0.0) and its 2.1.0 history entry are untouched.
+
 ## `CShadingState` (P-Q3 (a))
 
 `CSurface *currentObject` (`shading.h:190`) is replaced by three fields, written only through

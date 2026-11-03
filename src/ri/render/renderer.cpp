@@ -811,7 +811,7 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
 
     // Start the contexts
     numActiveThreads = numThreads;
-    contexts = new CShadingContext *[numThreads];
+    contexts = new CHider *[numThreads];
     for (i = 0; i < numThreads; i++) {
 
         // Start the hiders here
@@ -840,8 +840,8 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
 
         assert(contexts[i] != NULL);
 
-        contexts[i]->setSamplingConfig(samplingConfig);
-        contexts[i]->updateState();
+        contexts[i]->shadingContext().setSamplingConfig(samplingConfig);
+        contexts[i]->shadingContext().updateState();
     }
 }
 
@@ -1048,6 +1048,7 @@ static TFunPrefix serverDispatchThread(void *w) {
 // Return Value			:
 // Comments				:
 static TFunPrefix rendererDispatchThread(void *w) {
+    CRenderer::activeContext = &CRenderer::contexts[(uintptr_t)w]->shadingContext();
     CRenderer::contexts[(uintptr_t)w]->renderingLoop();
 
     TFunReturn;
@@ -1064,7 +1065,7 @@ void CRenderer::renderFrame() {
     // Make sure we have a bounding hierarchy
     movvv(root->bmin, worldBmin);
     movvv(root->bmax, worldBmax);
-    root->setChildren(contexts[0], root->children);
+    root->setChildren(&contexts[0]->shadingContext(), root->children);
     numRenderedBuckets = 0;
 
     // Render the frame

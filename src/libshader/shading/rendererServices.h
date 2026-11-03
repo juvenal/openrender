@@ -84,7 +84,7 @@ namespace openrender::shading {
     // History
     //   2.1.0  spec 029. Breaking within 2.x (allowed before spec 055, see the rule above):
     //          Changed:  getPhotonMap() returns openrender::shading::IPhotonLookup * (was CPhotonMap *).
-    //          Added:    IPhotonLookup (photonLookup.h).
+    //          Added:    IPhotonLookup (photonLookup.h), IIlluminationHook (illuminationHook.h).
     //   2.0.0  spec 026, 2026-11-01. Version 1 was the unversioned interface of specs 024, 025 and 027
     //          (57 pure virtuals).
     //          Added:    getAttribute, getMessage, getMatrix and tracer() (each with a documented

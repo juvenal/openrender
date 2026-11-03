@@ -286,6 +286,7 @@ widens a threshold, disables a test, or changes an expected value, except T-G3's
 | 4 | `src/libshader/tests/CMakeLists.txt:88-112` | `LibShader_McompConsistency` without `ribRender`; comment | FR-005, #44 |
 | 5 | `tests/shading_contract/contract_harness.h:38-41`, `rendered_harness.h:38-41`, `tests/shading_parity/test_context_no_services.cpp:75-80`, `texture_substitute_harness.h:56-60` | the subclass with an empty loop becomes a directly constructed context | FR-007, FR-025 |
 | 5 | `tests/shading_parity/test_illumination_hook.cpp:131-160`, `test_illumination_hook_conditions.cpp:127-157`, `test_illumination_hook_operands.cpp:146-175`, `test_false_if_constructs.cpp:62-73` | the hook overrides become a recording `IIlluminationHook` installed on a plain context; expected calls unchanged | FR-013, FR-025 |
+| 5 | `tests/shading_contract/case_offending_object.cpp:30-35, 46, 55` | F13 (maintainer-approved 2026-11-03, `tools/phase5-f13-test-edit.diff`): `COffendingProbe` goes; the test calls the now-public `rendererSetOffendingObject(objectHandle())` on a plain probe context | FR-007, FR-025 |
 | 5 | `tests/shading_parity/test_state_services.cpp:64-73`, `:216-217` | the subclass's `vertexMemory` accessor becomes the context's `vertexMemoryInUse()`; `contexts[i]` is read through `->shadingContext()` | FR-007, P-Q11, P-Q6 (FR-025 amended) |
 | 5 | `tests/unit/csg/csgTestUtils.h:157`, `tests/unit/rib_parse/test_sampling_option_rsl.cpp:47`, `tests/unit/sampling/scene_probe.h:133`, `tests/unit/motion/replay_capture.h:165`, `tests/unit/motion/test_frame_params_equal_core.cpp:131`, `tests/shading_parity/test_ambient_accumulation.cpp:154, 235`, `test_derivative_inactive_lanes.cpp:171`, `test_derivative_inactive_grid_lanes.cpp:243` | mechanical: `CRenderer::contexts[0]` is a `CHider *` (P-Q6 (a)), so each read becomes `->shadingContext()` (no new `CRenderer` accessor); behaviour unchanged (spec correction C8, FR-025 amended at the tasks stage) | FR-009, P-Q6, FR-025 |
 | 6 | none (P-Q2 (a): the contract tests keep injecting their tracer through the services double) | | FR-016 |
@@ -430,6 +431,12 @@ Where tasks.md differs from this plan's wording, tasks.md follows these (DEP-1 t
 - **DEP-10** (analyze stage): the Phase 8 JIT-off build is a Debug build and runs `-L '^link$'` and `-L '^shading_contract$'`, so the new assert-only code compiles.
 - **DEP-11** (analyze stage): the Phase 1 backend measurement (P-Q17) is a gate; a plain static link that registers no renderer backend stops the work for the maintainer's choice of mechanism.
 - **Master tip**: master is now `01501f10` (the three out-of-spec doc fixes on `d6910bd0`; no source changes). Phase 1 carries a coordinator/maintainer task to merge it (`--no-ff --no-commit`) before any baseline, so the registry text and the allowlist header match; all `git diff` bases in the tasks are `01501f10`.
+
+- **DEP-12** (Phase 5 checkpoint, 2026-11-03, maintainer-approved): F13, `CShadingContext::rendererSetOffendingObject(ObjectHandle)` becomes public
+  ([contracts/shading-context.md](contracts/shading-context.md), amendment of 2026-11-03), and the approved spec 026 test
+  `tests/shading_contract/case_offending_object.cpp` drops its `COffendingProbe` subclass and calls it on the probe context
+  (`tools/phase5-f13-test-edit.diff`, applied after the maintainer approves the diff; it joins the TEST-APPROVAL inventory under Phase 5).
+  `CShadingContext` is not a versioned interface, so no version bump; the `CRendererServices` 2.1.0 history needs no change.
 
 Amendments applied to spec.md on 2026-11-02, after the answers (each marked "Amended 2026-11-02" there): FR-018 and
 US7 AS2 (P-Q1: the opaque forwarding entry in Shading until spec 031); FR-025's list of allowed test edits (P-Q3, P-Q5, P-Q11;

@@ -32,6 +32,7 @@
 #include "common/algebra.h"
 #include "common/containers.h"
 #include "common/global.h"
+#include "libshader/shading/illuminationHook.h"
 #include "libshader/shading/rendererServices.h"
 #include "common/random.h"
 #include "common/sampling.h"
@@ -339,7 +340,7 @@ typedef struct TObjectHash {
 // Class				:	CShadingContext
 // Description			:	Holds thread specific stuff
 // Comments				:
-class CShadingContext {
+class CShadingContext final {
     public:
         // An optional parameter list as a JIT call site passes it (GitHub #55):
         // pair i is names[i] with its value at values[i], steps[i] bytes per
@@ -358,11 +359,18 @@ class CShadingContext {
         static CPointDisplacedObserver pointDisplacedObserver; // Test hook, null in production
         static CTraceRequestObserver traceRequestObserver;     // Test hook, null in production; set only by tests (spec 026)
 
-        CShadingContext(int thread);
-        virtual ~CShadingContext();
+        explicit CShadingContext(int thread);
+        ~CShadingContext();
 
-        // This function is called to to render
-        virtual void renderingLoop() = 0;
+        // The photon pass's hooks into illuminate() and solar() (spec 029, illuminationHook.h): installed by the hider
+        // that owns this context, none by default. The interpreter's macros and the JIT call it only while
+        // rendererIlluminationHook() is true; with no hook installed those calls do nothing.
+        void setIlluminationHook(openrender::shading::IIlluminationHook *hook) { illuminationHookObject = hook; }
+        openrender::shading::IIlluminationHook *illuminationHook() const { return illuminationHookObject; }
+        bool rendererIlluminationHook() const;
+
+        // The vertex memory this context has allocated, read-only (for tests and the hiders' statistics)
+        int vertexMemoryInUse() const { return vertexMemory; }
 
         // The current shading state
         CShadingState *currentShadingState;
@@ -402,6 +410,10 @@ class CShadingContext {
         // execute.cpp and executeMisc.cpp read them without CSurface's complete type; the consumers on the trace path take built-in
         // defaults when it is null (FR-027)
         const CAttributes *objectAttributes() const;
+        // Records an object as the offending object, through the services (a no-op without them): what a shader error does before it
+        // reports (execute.cpp, scripterror). Public since spec 029 (F13): the context is final, so a test can no longer derive from it
+        // to reach this accessor.
+        void rendererSetOffendingObject(openrender::shading::ObjectHandle object);
 
         // A shader instance (the executing shader, or a light) as an opaque handle. Null stays null.
         static openrender::shading::ShaderHandle shaderHandle(const CShaderInstance *instance) { return openrender::shading::ShaderHandle{instance}; }
@@ -968,7 +980,6 @@ class CShadingContext {
         // All delegate to currentShadingState->services (set from CRendererServicesImpl
         // in the renderer context, nullptr in standalone libshader use).
         // These methods are called from macro headers (B3) and from shading.cpp.
-        bool rendererIlluminationHook() const;
         const float *rendererWorldBmin() const;
         const float *rendererWorldBmax() const;
         float rendererClipMin() const;
@@ -981,7 +992,6 @@ class CShadingContext {
         void rendererTexture3dLookup(CTexture3d *t, float *dest, const float *P, const float *N, float radius);
         void rendererTexture3dStore(CTexture3d *t, const float *data, const float *P, const float *N, float radius);
         // Additional renderer-service accessors for execute.cpp / executeMisc.cpp / shaderPl.cpp
-        void rendererSetOffendingObject(openrender::shading::ObjectHandle object);
         int rendererGetGlobalID(const char *name);
         int rendererShootStep() const;
         RtFilterFunc rendererGetFilter(const char *name) const;
@@ -1001,12 +1011,6 @@ class CShadingContext {
                     return base + step * i;
             return base;
         }
-
-        // Hiders can hook into the following functions
-        virtual void solarBegin(const float *, const float *) {}
-        virtual void solarEnd() {}
-        virtual void illuminateBegin(const float *, const float *, const float *) {}
-        virtual void illuminateEnd() {}
 
         int numShade;         // Number of times shade is called
         int numSampled;       // Number of points sampled
@@ -1028,6 +1032,7 @@ class CShadingContext {
         int inShadow;                // TRUE if we're in a shadow
 
         TObjectHash *traceObjectHash; // An object hash array for raytraced objects
+        openrender::shading::IIlluminationHook *illuminationHookObject = nullptr; // See setIlluminationHook()
 
         // The following functions are used in the shaders
         void duFloat(float *, const float *);
@@ -1171,10 +1176,7 @@ class CShadingContext {
         CPLLookup *jitPlHash[PL_HASH_SIZE]; // jitParameterList()'s lookups, keyed by (instance, call site)
 
 
-        friend class CPhotonHider;
         friend class CProgrammableShaderInstance;
-        friend class CSphereLight;
-        friend class CQuadLight;
 
         // Default renderer services injected by src/ri/ at startup via setDefaultServices()
         static CRendererServices *s_defaultServices;

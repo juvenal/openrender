@@ -53,11 +53,7 @@ static inline bool nearlyEqual(float a, float b) {
     return std::fabs(a - b) <= 1e-6f * (1.0f + std::fabs(a) + std::fabs(b));
 }
 
-class CProbeContext : public CShadingContext {
-    public:
-        explicit CProbeContext(int thread) : CShadingContext(thread) {}
-        void renderingLoop() override {}
-};
+using CProbeContext = CShadingContext;
 
 // CSurface is abstract; instantiate() is never called here
 class CProbeSurface : public CSurface {

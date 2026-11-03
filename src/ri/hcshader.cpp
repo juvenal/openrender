@@ -117,7 +117,8 @@ void CSphereLight::illuminate(CShadingContext *context, float **) {
         }
 
         // Call the hook handle
-        context->illuminateBegin(Pf, Nf, thetaf);
+        if (openrender::shading::IIlluminationHook *hook = context->illuminationHook())
+            hook->illuminateBegin(Pf, Nf, thetaf);
 
         // Compute the intensity
         L = currentShadingState->varying[VARIABLE_L];
@@ -132,7 +133,8 @@ void CSphereLight::illuminate(CShadingContext *context, float **) {
         }
 
         // Call the hook handle
-        context->illuminateEnd();
+        if (openrender::shading::IIlluminationHook *hook = context->illuminationHook())
+            hook->illuminateEnd();
     }
     else {
         CShadedLight **lights = &currentShadingState->lights;
@@ -432,7 +434,8 @@ void CQuadLight::illuminate(CShadingContext *context, float **) {
         }
 
         // Call the hook handle
-        context->illuminateBegin(Pf, Nf, thetaf);
+        if (openrender::shading::IIlluminationHook *hook = context->illuminationHook())
+            hook->illuminateBegin(Pf, Nf, thetaf);
 
         // Compute the intensity
         L = currentShadingState->varying[VARIABLE_L];
@@ -447,7 +450,8 @@ void CQuadLight::illuminate(CShadingContext *context, float **) {
         }
 
         // Call the hook handle
-        context->illuminateEnd();
+        if (openrender::shading::IIlluminationHook *hook = context->illuminationHook())
+            hook->illuminateEnd();
     }
     else {
         CShadedLight **lights = &currentShadingState->lights;

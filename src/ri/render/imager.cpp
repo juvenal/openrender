@@ -24,6 +24,7 @@
 
 #include "imager.h"
 #include "common/memory.h"
+#include "hider.h"
 #include "renderer.h"
 #include "common/rendererc.h"
 #include "shader.h"
@@ -131,7 +132,7 @@ void CImagerExecutor::execute(CShaderInstance &shader,
             log_warn("imager execute: shading context unavailable, skipping");
             return;
         }
-        ctx = CRenderer::contexts[0];
+        ctx = &CRenderer::contexts[0]->shadingContext();
     }
     const int chunkSize = CRenderer::maxGridSize;
 

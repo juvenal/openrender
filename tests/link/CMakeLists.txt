@@ -14,7 +14,7 @@
 # The sub-checks of ShadingScope_Greps that are true so far. Each phase appends the sub-checks it makes true
 # (Phase 3: S1a;S1b, Phase 5: S1c;S1f, Phase 6: S1d, Phase 7: S1e). An empty list is an error of the script, so the
 # registered test can never pass vacuously.
-set(OR029_SCOPE_CHECKS "S1a;S1b")  # Phase 3
+set(OR029_SCOPE_CHECKS "S1a;S1b;S1c;S1f")  # Phase 5
 
 # add_or029_script_test(<name> <label> <timeout> <cmake args...>): a `cmake -P` script test, DISABLED until its phase.
 function(add_or029_script_test NAME TIMEOUT)
@@ -42,7 +42,7 @@ set_tests_properties(Link_NoWorkaroundText PROPERTIES TIMEOUT 60 LABELS "link")
 # The include path of the shading library is read from the generated compile_commands.json when it exists and from
 # the flags.make of its target otherwise (build tree, generator-specific): the script takes the directory of the
 # target's build files.
-# Enabled in Phase 3 with the sub-checks that are true so far (OR029_SCOPE_CHECKS)
+# Enabled in Phase 3 with the sub-checks that are true so far (OR029_SCOPE_CHECKS; S1c and S1f joined in Phase 5)
 add_test(NAME ShadingScope_Greps
     COMMAND ${CMAKE_COMMAND} "-DSOURCE_DIR=${CMAKE_SOURCE_DIR}" "-DBUILD_DIR=${CMAKE_BINARY_DIR}" "-DCHECKS=${OR029_SCOPE_CHECKS}"
             -P ${CMAKE_CURRENT_SOURCE_DIR}/check_scope.cmake)

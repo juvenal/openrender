@@ -37,6 +37,7 @@
 
 #include "frameParams.h"
 #include "options.h"
+#include "hider.h"
 #include "renderer.h"
 #include "rendererContext.h"
 #include "ri.h"
@@ -128,7 +129,7 @@ namespace {
             fail(c.name, "camera.rotationOnly");
 
         // `sampling` is the CSamplingConfig the shading contexts were given
-        const openrender::sampling::CSamplingConfig &cfg = CRenderer::contexts[0]->samplingConfig();
+        const openrender::sampling::CSamplingConfig &cfg = CRenderer::contexts[0]->shadingContext().samplingConfig();
         ++g_checks;
         if (fp.sampling.backend != cfg.backend || fp.sampling.seed != cfg.seed || fp.sampling.frame != cfg.frame || fp.sampling.nx != cfg.nx || fp.sampling.ny != cfg.ny ||
             memcmp(&fp.sampling.jitter, &cfg.jitter, sizeof(float)) != 0 || fp.sampling.originX != cfg.originX || fp.sampling.originY != cfg.originY ||

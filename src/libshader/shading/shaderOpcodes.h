@@ -213,7 +213,8 @@ DEFOPCODE(EndIlluminationExpr, "endilluminance", 0, ENDILLUMINATIONEXPR_PRE, NUL
     const int stepP = operandVaryingStep(0);                                    \
                                                                                 \
     if (this->rendererIlluminationHook()) {                                     \
-        illuminateBegin(hookOperand(Pl, stepP, tags, numVertices), NULL, NULL); \
+        if (openrender::shading::IIlluminationHook *ihook = this->illuminationHook())                \
+            ihook->illuminateBegin(hookOperand(Pl, stepP, tags, numVertices), NULL, NULL); \
     }                                                                           \
     else {                                                                      \
         float *Ps = varying[VARIABLE_PS];                                       \
@@ -269,8 +270,9 @@ DEFOPCODE(Illuminate1, "illuminate", 2, ILLUMINATE1EXPR_PRE, NULL_EXPR, NULL_EXP
     const int stepTheta = operandVaryingStep(2);                                                                             \
                                                                                                                              \
     if (this->rendererIlluminationHook()) {                                                                                  \
-        illuminateBegin(hookOperand(Pf, stepP, tags, numVertices), hookOperand(Nf, stepN, tags, numVertices),                \
-                        hookOperand(thetaf, stepTheta, tags, numVertices));                                                  \
+        if (openrender::shading::IIlluminationHook *ihook = this->illuminationHook())                                                             \
+            ihook->illuminateBegin(hookOperand(Pf, stepP, tags, numVertices), hookOperand(Nf, stepN, tags, numVertices),    \
+                                   hookOperand(thetaf, stepTheta, tags, numVertices));                                       \
     }                                                                                                                        \
     else {                                                                                                                   \
         float *Ps = varying[VARIABLE_PS];                                                                                    \
@@ -322,7 +324,8 @@ DEFOPCODE(Illuminate3, "illuminate", 4, ILLUMINATE3EXPR_PRE, NULL_EXPR, NULL_EXP
 #else
 #define ILLUMINATEEND_PRE                                                                                                      \
     if (this->rendererIlluminationHook()) {                                                                                    \
-        illuminateEnd();                                                                                                       \
+        if (openrender::shading::IIlluminationHook *ihook = this->illuminationHook())                                                               \
+            ihook->illuminateEnd();                                                                                            \
     }                                                                                                                          \
     else {                                                                                                                     \
         log_debug("[rslo-dbg] [endilluminate] numActive={} numPassive={} numVertices={}", numActive, numPassive, numVertices); \
@@ -379,7 +382,8 @@ DEFOPCODE(EndIlluminate, "endilluminate", 0, ILLUMINATEEND_PRE, NULL_EXPR, NULL_
 #else
 #define SOLAR1EXPR_PRE                                  \
     if (this->rendererIlluminationHook()) {             \
-        solarBegin(NULL, NULL);                         \
+        if (openrender::shading::IIlluminationHook *ihook = this->illuminationHook()) \
+            ihook->solarBegin(NULL, NULL);               \
     }                                                   \
     else {                                              \
         const float *Ps = varying[VARIABLE_PS];         \
@@ -418,8 +422,9 @@ DEFOPCODE(Solar1, "solar", 1, SOLAR1EXPR_PRE, NULL_EXPR, NULL_EXPR, NULL_EXPR, P
     const int stepTheta = operandVaryingStep(1);                        \
                                                                         \
     if (this->rendererIlluminationHook()) {                             \
-        solarBegin(hookOperand(Nf, stepN, tags, numVertices),           \
-                   hookOperand(thetaf, stepTheta, tags, numVertices));  \
+        if (openrender::shading::IIlluminationHook *ihook = this->illuminationHook())        \
+            ihook->solarBegin(hookOperand(Nf, stepN, tags, numVertices), \
+                              hookOperand(thetaf, stepTheta, tags, numVertices)); \
     }                                                                   \
     else {                                                              \
         vector R;                                                       \
@@ -470,7 +475,8 @@ DEFOPCODE(Solar2, "solar", 3, SOLAR2EXPR_PRE, NULL_EXPR, NULL_EXPR, SOLAR2EXPR_P
 #else
 #define SOLAREND_PRE                                    \
     if (this->rendererIlluminationHook()) {             \
-        solarEnd();                                     \
+        if (openrender::shading::IIlluminationHook *ihook = this->illuminationHook()) \
+            ihook->solarEnd();                           \
     }                                                   \
     else {                                              \
         const float *L = varying[VARIABLE_L];           \

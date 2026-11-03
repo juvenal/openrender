@@ -42,6 +42,7 @@
 
 #include "common/diagnostics.h"
 #include "libshader/shading/shading.h"
+#include "ri/hiders/hider.h"
 #include "ri/parse/ri.h"
 #include "ri/render/renderer.h"
 #include "table_services.h"
@@ -61,17 +62,7 @@ static int g_failed = 0;
     } while (0)
 
 // The cheapest concrete context: an empty rendering loop, nothing else
-class CMinimalContext : public CShadingContext {
-    public:
-        explicit CMinimalContext(int thread) : CShadingContext(thread) {}
-
-        void renderingLoop() override {}
-
-        // vertexMemory is protected: read it, for this or any other context,
-        // through a pointer to the inherited member
-        static int vertexMemoryOf(const CShadingContext *c) { return c->*(&CMinimalContext::vertexMemory); }
-        int memory() const { return vertexMemory; }
-};
+using CMinimalContext = CShadingContext;
 
 // Counts what it is handed, by code
 class CCountingSink : public CDiagnosticSink {
@@ -118,14 +109,14 @@ static void checkUsableState(const CShadingState *state, int numGlobals, int gri
 // newState() then freeState() of a fresh (not recycled) state must leave
 // vertexMemory unchanged
 static void checkStatePairAccounting(CMinimalContext &ctx, const char *label) {
-    const int before = ctx.memory();
+    const int before = ctx.vertexMemoryInUse();
     CShadingState *s = ctx.newState();
     EXPECT_TRUE(s != nullptr);
     if (s == nullptr)
         return;
-    const int during = ctx.memory();
+    const int during = ctx.vertexMemoryInUse();
     ctx.freeState(s);
-    const int after = ctx.memory();
+    const int after = ctx.vertexMemoryInUse();
     printf("  %s: vertexMemory before %d, with the extra state %d, after freeing it %d\n", label, before, during, after);
     EXPECT_TRUE(during > before);
     EXPECT_TRUE(after == before);
@@ -213,8 +204,8 @@ static void caseTableGrowth() {
         fresh.updateState();
         int mismatched = 0;
         for (int i = 0; i < numContexts; i++) {
-            if (CMinimalContext::vertexMemoryOf(CRenderer::contexts[i]) != fresh.memory()) {
-                printf("  context %d: vertexMemory %d, fresh context %d\n", i, CMinimalContext::vertexMemoryOf(CRenderer::contexts[i]), fresh.memory());
+            if (CRenderer::contexts[i]->shadingContext().vertexMemoryInUse() != fresh.vertexMemoryInUse()) {
+                printf("  context %d: vertexMemory %d, fresh context %d\n", i, CRenderer::contexts[i]->shadingContext().vertexMemoryInUse(), fresh.vertexMemoryInUse());
                 mismatched++;
             }
         }
