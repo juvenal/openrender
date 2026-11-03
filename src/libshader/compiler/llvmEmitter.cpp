@@ -24,6 +24,8 @@
  */
 
 #include "llvmEmitter.h"
+#include "common/rendererc.h" // VARIABLE_* indices
+#include "common/sloFormat.h"
 #include "ir.h"
 #include "rslo.h" // SLC_* bit constants (compiler-side)
 
@@ -140,82 +142,10 @@ static bool currentBlockHasTerminator(llvm::IRBuilder<> &B) {
     return !bb->empty() && bb->back().isTerminator();
 }
 
-// =========================================================================
-// kOpcodeParamTable — re-expansion of the interpreter's own opcode/function
-// tables into (text, params) rows (spec 014-jit-shading-parity, research.md
-// D3). Mirrors the enum-only precedent at rslo_code.h:31-49 (same
-// DEFOPCODE/DEFFUNC-family macros, same scriptFunctions.h/scriptOpcodes.h
-// #includes), except the macro bodies capture `params` instead of
-// discarding it — that's what lets computeUsedParameters() OR in
-// PARAMETER_RAYTRACE/MESSAGEPASSING/NONAMBIENT/derivative bits by
-// opcode/function name, not just by declared-global-variable name.
-//
-// `params` arguments are literal expressions referencing PARAMETER_* (e.g.
-// "PARAMETER_RAYTRACE | PARAMETER_DERIVATIVE | PARAMETER_DU | PARAMETER_DV"
-// on giFunctions.h's TraceF/TraceV rows), so rendererc.h must be visible
-// here — unlike rslo_code.h, which never references `params` and so never
-// needed it.
-// =========================================================================
-#include "common/rendererc.h"
-#include "common/sloFormat.h"
-
-#define DEFOPCODE(name, text, nargs, expr_pre, expr, expr_update, expr_post, params) {text, static_cast<unsigned int>(params)},
-#define DEFSHORTOPCODE(name, text, nargs, expr_pre, expr, expr_update, expr_post, params) {text, static_cast<unsigned int>(params)},
-#define DEFLINKOPCODE(name, text, nargs) {text, 0u},
-#define DEFLINKFUNC(name, text, prototype, par) {text, static_cast<unsigned int>(par)},
-#define DEFFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) {text, static_cast<unsigned int>(par)},
-// DEFPRINTFUNC (GitHub #13): identical to DEFFUNC's expansion here -- only
-// execute.cpp's interpreter dispatch behavior differs.
-#define DEFPRINTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) {text, static_cast<unsigned int>(par)},
-#define DEFLIGHTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) {text, static_cast<unsigned int>(par)},
-#define DEFSHORTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) {text, static_cast<unsigned int>(par)},
-
-extern const OpcodeParamEntry kOpcodeParamTable[] = {
-#include "scriptFunctions.h"
-#include "scriptOpcodes.h"
-    {nullptr, 0u}};
-
-#undef DEFOPCODE
-#undef DEFSHORTOPCODE
-#undef DEFLINKOPCODE
-#undef DEFLINKFUNC
-#undef DEFFUNC
-#undef DEFPRINTFUNC
-#undef DEFLIGHTFUNC
-#undef DEFSHORTFUNC
-
-// =========================================================================
-// kAllFunctionMnemonics — every RSL builtin FUNCTION_ mnemonic, re-expanded
-// from ONLY scriptFunctions.h's own #include chain (-> shaderFunctions.h ->
-// giFunctions.h), capturing just `text` (spec 017-jit-builtin-function-
-// coverage, research.md D3) — the FUNCTION_-family mirror of opcodes.cpp's
-// kAllOpcodeMnemonics. Confirmed via grep: zero DEFOPCODE-family macros
-// anywhere in this #include chain, so this array is exclusively builtin
-// FUNCTIONs, never OPCODE_ bytecode mnemonics (those live in
-// kAllOpcodeMnemonics/opcodes.cpp instead). Two rows carry `text == "XXX"`
-// (scriptFunctions.h:1135,1166) -- the DSO/plugin-shadeop dispatcher rows,
-// whose real name/prototype is resolved from the loaded plugin at runtime,
-// never a static mnemonic (research.md D7); the coverage-guard test
-// hand-excludes "XXX", the same way it hand-excludes kDeadOpcodes entries
-// for the OPCODE_ family.
-// =========================================================================
-#define DEFLINKFUNC(name, text, prototype, par) text,
-#define DEFFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) text,
-// DEFPRINTFUNC (GitHub #13): identical to DEFFUNC's expansion here -- only
-// execute.cpp's interpreter dispatch behavior differs.
-#define DEFPRINTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) text,
-#define DEFLIGHTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) text,
-#define DEFSHORTFUNC(name, text, prototype, expr_pre, expr, expr_update, expr_post, par) text,
-
-extern const char *const kAllFunctionMnemonics[] = {
-#include "scriptFunctions.h"
-    nullptr};
-
-#undef DEFLINKFUNC
-#undef DEFFUNC
-#undef DEFPRINTFUNC
-#undef DEFLIGHTFUNC
-#undef DEFSHORTFUNC
+// kOpcodeParamTable and kAllFunctionMnemonics (declared in llvmEmitter.h) live in builtinTables.cpp: the
+// compiler owns its copy of the shading engine's builtin tables instead of re-expanding scriptFunctions.h /
+// scriptOpcodes.h (spec 038). The file is generated from the engine's headers; LibShader_CompilerTableDrift
+// compares the two.
 
 // =========================================================================
 // computeUsedParameters — the openrender.shader.usedparameters bitmask
@@ -323,8 +253,7 @@ unsigned int computeUsedParameters(const IRModule &ir) {
 // RSL global variable name → VARIABLE_* index (slot 1 / SL_GLOBAL_OPERAND)
 //
 // Indices reference the interpreter's own VARIABLE_* constants
-// (src/common/rendererc.h, already #include'd above at line 159 for
-// kOpcodeParamTable's `params` macro expansions) instead of hand-transcribed
+// (src/common/rendererc.h, #include'd above) instead of hand-transcribed
 // literals (spec 014-jit-shading-parity, research.md D7a) -- a future
 // addition/removal in rendererc.h now either compiles or fails to compile
 // here, instead of silently drifting the way a parallel literal table could.

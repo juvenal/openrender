@@ -477,12 +477,12 @@ endif()
 #                                 stay green while the compiler stops borrowing the shading engine's tables.
 #                                 References: reference/macos/{shaders.sha256,oshader_help.txt}, and
 #                                 reference/linux/ where a Linux result differs.
-#   LibShader_CompilerTableDrift  the compiler's builtin tables against the shading engine's. DISABLED until
-#                                 compiler/builtinTables.cpp exists (before it both sides come from the same headers
-#                                 and the comparison cannot differ); its red evidence is its mutation self-check
-#                                 (decision Q3). The executable is part of the normal build: it compiles and links
-#                                 today, and an unbuilt object of src/libshader/tests would make the architecture
-#                                 check report an incomplete build tree.
+#   LibShader_CompilerTableDrift  the compiler's builtin tables (compiler/builtinTables.cpp) against the shading
+#                                 engine's. Enabled in Phase 5, when builtinTables.cpp appeared (before it both sides
+#                                 came from the same headers and the comparison could not differ); its red evidence
+#                                 is its mutation self-check (decision Q3). The executable is part of the normal
+#                                 build: an unbuilt object of src/libshader/tests would make the architecture check
+#                                 report an incomplete build tree.
 # ---------------------------------------------------------------------------
 if(OPENRENDER_HAVE_LLVM)
     set(_shaders_with_slo ON)
@@ -540,7 +540,5 @@ if(OPENRENDER_HAVE_LLVM)
     add_test(NAME LibShader_CompilerTableDrift COMMAND test_libshader_compiler_table_drift)
     set_tests_properties(LibShader_CompilerTableDrift PROPERTIES
         TIMEOUT 30
-        LABELS "libshader;compiler;unit"
-        DISABLED TRUE)
-    message(STATUS "  - LibShader_CompilerTableDrift (DISABLED until compiler/builtinTables.cpp exists, spec 038)")
+        LABELS "libshader;compiler;unit")
 endif()

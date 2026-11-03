@@ -328,10 +328,10 @@ No test reads `RiLastError` (`grep` over `tests/`: no match). The only reader is
 
 ### 4.2 Departures from tasks.md (for the maintainer's review)
 
-1. **`src/preview/libribpreview/CMakeLists.txt` gains `target_link_options(ribpreview INTERFACE "LINKER:-u,_ribpreview_load")`** (`-u,ribpreview_load` off macOS), not in tasks.md. Evidence: with the planned code only, `Preview_SelfRegistration` (approved, unchanged) failed on its first run: "Back-end \"preview\" is not available in this build (none registered)". The test links the static `libribpreview` and calls only `RiBeginBackEnd`; nothing references `previewContext.cpp.o`, so the linker dropped the object and its registrar. The contract text ("a program that calls `ribpreview_load` links the registration") is weaker than the test ("a program linking `libribpreview` alone"). The option makes every link of the archive reference `ribpreview_load`, which pulls the object in. `orender-wire` and the Swift viewer call `ribpreview_load` and are unaffected. The alternative is to link the test against the whole archive (a change to the approved test's registration), which would hide the property for any other consumer.
+1. **(Accepted by the maintainer after the Phase 4 commit.) `src/preview/libribpreview/CMakeLists.txt` gains `target_link_options(ribpreview INTERFACE "LINKER:-u,_ribpreview_load")`** (`-u,ribpreview_load` off macOS), not in tasks.md. Evidence: with the planned code only, `Preview_SelfRegistration` (approved, unchanged) failed on its first run: "Back-end \"preview\" is not available in this build (none registered)". The test links the static `libribpreview` and calls only `RiBeginBackEnd`; nothing references `previewContext.cpp.o`, so the linker dropped the object and its registrar. The contract text ("a program that calls `ribpreview_load` links the registration") is weaker than the test ("a program linking `libribpreview` alone"). The option makes every link of the archive reference `ribpreview_load`, which pulls the object in. `orender-wire` and the Swift viewer call `ribpreview_load` and are unaffected. The alternative is to link the test against the whole archive (a change to the approved test's registration), which would hide the property for any other consumer.
 2. **`ribpreview_load` guards a null context** (`PreviewScene scene;` is returned empty when `RiBeginBackEnd` refuses): the old path could not fail, the new one can ("Already started").
 3. **Two stale objects removed from the build directory** (`ribVector_obj.dir/render/rendererClipping.cpp.o` and `resource.cpp.o`, left by earlier builds; CMake does not delete the object of a removed source). The sweep reads that directory, so the first Phase 4 sweep listed both as `UNREFERENCED` and one as a referencer of `rendererStatics.cpp`. Not a source change; the check itself (`SceneInterface_RibVectorResidual`) reads the target's `SOURCES` and was unaffected.
-4. **Left as is, reported:** `src/ri/render/rendererDeclarationsDispatch.cpp:16-17` still says `ribpreview_load()` calls `CRenderer::initDeclarations()`; it no longer does (comment only, in a Core file; not in any task).
+4. **Stale comment, fixed at the start of Phase 5 (maintainer decision, in-spec finding):** `src/ri/render/rendererDeclarationsDispatch.cpp:16-17` said `ribpreview_load()` calls `CRenderer::initDeclarations()`; it no longer does. Comment-only edit (no code, no version bump); synced to Linux with `rsync -c` and `sha256sum -c` (see §5).
 
 ### 4.3 Sweep, symbols and grep (T090, T095)
 
@@ -352,7 +352,41 @@ No test reads `RiLastError` (`grep` over `tests/`: no match). The only reader is
 
 ## 5. Phase 5: standalone compiler tables
 
-(Not started.)
+### 5.0 Before Phase 5: two maintainer decisions after the Phase 4 commit
+
+- The `-u,_ribpreview_load` link option (Phase 4 departure 1) was accepted as is; recorded in section 4.2 and at T087.
+- The stale comment of `src/ri/render/rendererDeclarationsDispatch.cpp:16-17` was fixed (comment only: no code, no version bump). `cpujob 038-p5-comment-build cmake --build build --config Release -j4`: exit 0, no `warning:`/`error:`; `ctest -L architecture`: 27/27. Synced to Linux with `rsync -rlpc -0 --files-from` and `sha256sum -c --quiet` OK (the file shows the new text on the remote); it compiles with the Phase 5 Linux build.
+
+### 5.1 T096 TEST-APPROVAL (approved)
+
+Approved as proposed: no edited test; `LibShader_CompilerTableDrift` enabled; `Compiler_IncludeBoundary` to `architecture`; `builtinTables.cpp` in the `if(OPENRENDER_HAVE_LLVM)` block next to `llvmEmitter.cpp` (every user of the tables is LLVM-only: `llvmEmitter.cpp` and the opcode coverage, gate hardening, used-parameters-table and drift tests).
+
+### 5.2 What landed (T097 to T101)
+
+- **T097** `src/libshader/compiler/builtinTables.cpp`, 766 lines, from `cpujob 038-p5-emit build/src/libshader/tests/test_libshader_compiler_table_drift --emit > src/libshader/compiler/builtinTables.cpp` (the pre-change executable, so the rows come from the engine's headers). `kAllFunctionMnemonics`: 321 rows, two `"XXX"`; `kOpcodeParamTable`: 417 rows (321 functions, then 96 opcodes), two `{"XXX", 0}`, parameter bits spelled as the engine spells them (88 rows). Byte-identical to the preview shown at T096. Never hand-edited.
+- **T098** `llvmEmitter.cpp`: both table blocks and the includes of `scriptFunctions.h` / `scriptOpcodes.h` are gone (7 insertions, 78 deletions), replaced by a short comment pointing at `builtinTables.cpp`. `common/rendererc.h` (the `VARIABLE_*` indices of `s_rslGlobals`) and `common/sloFormat.h` (`SLO_FORMAT_*`) are still used by the emitter's code, so both stay, moved to the top include block; the comment that said "already #include'd above at line 159" is updated.
+- **T099** `src/libshader/compiler/CMakeLists.txt`: `builtinTables.cpp` added to the sources next to `llvmEmitter.cpp`; the `include_directories(AFTER ...)` lines of `src/ri/*`, the PRIVATE `src/ri` and the PRIVATE `src/libshader/shading` (with its comment) are removed.
+- **T101** `LibShader_CompilerTableDrift` enabled (`DISABLED` and the "DISABLED until" message removed, comment updated); `Compiler_IncludeBoundary` moved to `architecture` (`or038_red` keeps only `Precomp_NoHiderCore`).
+
+### 5.3 Departure from tasks.md (not foreseen; for the maintainer's review)
+
+**The directories also reach the compiler through `src/CMakeLists.txt`.** It calls `include_directories(ri ri/hiders ri/render ri/state ri/parse ri/geometry ri/texture ri/output ri/core ri/dataviewer libshader/shading ...)` at directory scope, which every directory below `src` inherits, so removing the compiler's own `include_directories(AFTER ...)` lines (T099) left `Compiler_IncludeBoundary` failing with the same 11 include-path lines (the 2 include failures of `llvmEmitter.cpp` were gone). The compiler's `CMakeLists.txt` therefore filters those entries out of its own directory property (`get_property(... DIRECTORY PROPERTY INCLUDE_DIRECTORIES)`, drop `src/ri`, `src/ri/*` and `src/libshader/shading`, `set_property(DIRECTORY ...)`), with a comment. The property is per directory: no other target changes. The compiler compiled without any of them, which confirms nothing in it needed them. Not touched: `src/CMakeLists.txt` (other directories rely on it).
+
+### 5.4 Mutation check (T101)
+
+`LibShader_CompilerTableDrift` passes on the real tables. Its built-in `--self-check` (a runtime copy of each table with one row changed) reports all five mutations, including a text change and a bits change in `kOpcodeParamTable`, a missing row, a changed `kAllFunctionMnemonics` text and a renamed opcode. The scratch-copy check required by T101 (the tracked file is never edited): three scratch copies of `builtinTables.cpp` (in the session scratchpad) were compiled with the compiler's flags and linked into scratch copies of the drift executable, each run through `cpujob`; each exits 1 and names the row:
+- text of one `kOpcodeParamTable` row (`sin` to `sin_mutated`): `DRIFT in kOpcodeParamTable: row 2: compiler ("sin_mutated", 0x00000000) engine ("sin", 0x00000000)`;
+- bits of one `kOpcodeParamTable` row (`faceforward`, `PARAMETER_NG` to 0): `DRIFT in kOpcodeParamTable: row 123: compiler ("faceforward", 0x00000000) engine ("faceforward", 0x00010000)`;
+- text of one `kAllFunctionMnemonics` row (`radians`): `DRIFT in kAllFunctionMnemonics: row 1: compiler "radians_mutated" engine "radians"`.
+The untouched executable prints `LibShader_CompilerTableDrift: ok`.
+
+### 5.5 Checkpoint 5 (T100, T102, T103), macOS
+
+`cpujob 038-p5-build cmake --build build --config Release -j4` (twice, the second after the directory filter): exit 0, no `warning:`/`error:`. `038-p5-tests ctest -R 'Compiler_IncludeBoundary|LibShader_|Shaders_BytesUnchanged' -j4`: 28/28, which includes `Shaders_BytesUnchanged` (every shipped shader's `.rslo` and `.slo` byte-identical to the Phase 1 snapshot, and `oshader`'s no-argument, `--help` and missing-file output unchanged). `ctest -L shading_parity -j4`: 136/136. `ctest -L visual -R slo -j4`: 140/140.
+
+`038-p5-all ctest -LE determinism-sweep -j4` (230 s): 1077 tests, no `Not Run (Disabled)` left, 8 failed, all expected: `Precomp_NoHiderCore` (`or038_red`) and the seven `ShadeopAbi_Jit_*` (red until Phase 6). `038-p5-arch ctest -L architecture`: 28/28; archcheck `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`, `TOTAL refs 606 (baseline 606) distinct 90 (baseline 90)`, no baseline or allowlist edit. `038-p5-red ctest -L or038_red`: `Precomp_NoHiderCore` only, failing, as expected.
+
+**Linux** (tree `openrender-038`, GCC 13 `-Werror`; staged and new files synced with `rsync -rlpc -0 --files-from`, `sha256sum -c --quiet` OK; the phase deleted no file): `cpujob 038-p5-lx-build cmake --build build -j2`: exit 0, 0 `warning:`. `038-p5-lx-test ctest -LE determinism-sweep -j2` (689 s): 1078 tests, none `Not Run`, 15 failed: `Precomp_NoHiderCore`, the seven `ShadeopAbi_Jit_*` and the 7 Phase 0 baseline failures (#44 `LibShader_McompConsistency`, #45 `TextureTile_RenderByteIdentical`, #46 the four `TextureTile_Cache*`, #57 `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes`); no new failure. `Compiler_IncludeBoundary`, `Shaders_BytesUnchanged` (against the `reference/linux` manifest) and `LibShader_CompilerTableDrift` pass. `ctest -L architecture`: 28/28. `ctest -L or038_red`: `Precomp_NoHiderCore` only. Logs on the remote: `build/lx-p5-*.log`.
 
 ## 6. Phase 6: JIT DSO call
 

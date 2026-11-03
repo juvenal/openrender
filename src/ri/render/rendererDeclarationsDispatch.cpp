@@ -12,11 +12,12 @@
  *     shading context that a new global-storage variable now exists).
  *     Unlike the geometry classes' intersect()/dice()/shade() (see
  *     src/ri/render/geometryDispatch.cpp), this one is not vtable-anchored --
- *     it is reached for real, on every call to CRenderer::initDeclarations()
- *     (including from ribpreview_load(), which needs initDeclarations() so
- *     the RIB parser doesn't reject standard parameters), since several of
- *     the "global ..." typed variables it declares (P, N, Cs, Ci, etc.)
- *     route through CDeclarations::declare() -> makeGlobal() -> here. It is safe for a build with
+ *     it is reached for real, on every call to CRenderer::initDeclarations(),
+ *     since several of the "global ..." typed variables it declares (P, N,
+ *     Cs, Ci, etc.) route through CDeclarations::declare() -> makeGlobal()
+ *     -> here. (The preview and the data viewer no longer make that call:
+ *     since spec 038 they start a CRiStandardSession, which gives the RIB
+ *     parser the standard declarations without installing this observer.) It is safe for a build with
  *     no rendering pipeline (ribVector) because `contexts` -- the per-thread
  *     CShadingContext array this loop notifies -- is only ever allocated
  *     once CRenderer::render()/beginFrame() actually starts rendering
