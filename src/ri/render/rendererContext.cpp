@@ -98,8 +98,6 @@ extern bool riAddFramebuffer();
 extern int ribCommandLineno;         // Defined in rib.y
 extern const char *ribFile;          // Defined in rib.y
 extern int ignoreCommand;            // Defined in ri.cpp
-extern CRiInterface *savedRenderMan; // Defined in ri.cpp
-extern CRiInterface *renderMan;      // Defined in ri.cpp
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRendererContext
@@ -6222,15 +6220,14 @@ void *CRendererContext::RiArchiveBeginV(const char *name, int, const char *[], c
     // Concatenate the file names
     strcat(fileName, normalizedName);
 
-    // Save the interface
-    savedRenderMan = renderMan;
-    renderMan = new CRibOut(fileName);
+    // The archive writer becomes the active context; the renderer is its previous one, and RiArchiveEnd
+    // deletes the writer to get it back
+    riInstallContext(new CRibOut(fileName));
 
     return NULL;
 }
 
 void CRendererContext::RiArchiveEnd(void) {
-    savedRenderMan = NULL;
 }
 
 void CRendererContext::RiResourceV(const char *handle, const char *type, int n, const char *tokens[], const void *parms[]) {

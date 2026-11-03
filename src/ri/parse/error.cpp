@@ -175,9 +175,10 @@ static int toRIE(EDiagnosticSeverity severity) {
 // Description			:	Forwards diagnostics to the active RI context's
 //							error handler, exactly as error()/warning()/
 //							fatal()/info() used to do themselves
-// Comments				:	renderMan is read on every report: between the
-//							context's destruction and the detach in RiEnd it
-//							is NULL, and the default rules apply instead.
+// Comments				:	renderMan is read on every report: when no context is
+//							installed (before riInstallContext, after the last
+//							riUninstallContext) it is NULL, and the default rules
+//							apply instead.
 class CRiDiagnosticSink : public CDiagnosticSink {
     public:
         void report(EErrorCode code, EDiagnosticSeverity severity, const char *message) override {
@@ -196,8 +197,8 @@ static CDiagnosticSink *sinkBeforeAttach = NULL;
 // Function				:	riDiagnosticsAttach
 // Description			:	Route diagnostics to the RI context
 // Return Value			:
-// Comments				:	Idempotent: called from every CRiInterface
-//							constructor, it saves the previously installed
+// Comments				:	Idempotent: called by riInstallContext and
+//							RiContext, it saves the previously installed
 //							sink only the first time.
 void riDiagnosticsAttach() {
     if (riSinkAttached)
@@ -211,7 +212,8 @@ void riDiagnosticsAttach() {
 // Description			:	Restore the sink installed before the first
 //							RI context
 // Return Value			:
-// Comments				:	Called only where renderMan becomes NULL (RiEnd).
+// Comments				:	Called by riUninstallContext (riInterface.cpp) when no
+//							context is left active.
 void riDiagnosticsDetach() {
     if (!riSinkAttached)
         return;

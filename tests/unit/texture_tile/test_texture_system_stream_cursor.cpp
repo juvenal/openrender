@@ -106,9 +106,9 @@ int main(int argc, char **argv) {
     CHECK(workDir != nullptr);
     const std::string work = workDir;
 
-    // The make* functions report through the global interface, as in tests/preview/test_data_keys.cpp
-    CRiInterface *savedInterface = renderMan;
-    renderMan = new CRiInterface();
+    // The make* functions report through the installed interface, as in tests/preview/test_data_keys.cpp
+    CRiInterface *testInterface = new CRiInterface();
+    riInstallContext(testInterface);
     globalArena.init(); // the make* functions read their sources into the process-wide arena (no RiBegin here)
 
     // --- fixtures that are built here
@@ -225,8 +225,7 @@ int main(int argc, char **argv) {
 
     delete textures;
     globalArena.tini();
-    delete renderMan;
-    renderMan = savedInterface;
+    delete testInterface; // uninstalls it
     std::string cleanup = "rm -rf '" + work + "'";
     if (system(cleanup.c_str()) != 0)
         fprintf(stderr, "could not remove %s\n", work.c_str());

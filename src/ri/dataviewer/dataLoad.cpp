@@ -131,15 +131,15 @@ EDataFileType dataSniff(const char *fileName) {
     return type;
 }
 
-CDataDocument::CDataDocument() : dataView(NULL), declarationsInitialized(FALSE) {
+CDataDocument::CDataDocument() : dataView(NULL), declarationsInitialized(FALSE), sink(NULL) {
 }
 
 CDataDocument::~CDataDocument() {
     delete dataView;
 
     if (declarationsInitialized) {
-        delete renderMan;
-        renderMan = NULL;
+        delete sink; // uninstalls it
+        sink = NULL;
         globalArena.tini();
         CRenderer::shutdownDeclarations();
     }
@@ -169,10 +169,11 @@ EDataFileType CDataDocument::open(const char *fileName) {
     // Several reader constructors (e.g. CBrickMap's read path) call info()/error() for
     // legitimate diagnostics, not just on failure -- both dereference the global `renderMan`
     // unconditionally (error.cpp: renderMan->RiError(...)), which is otherwise only ever set
-    // by RiBegin()/RiBeginLite()'s callers. A plain CRiInterface has no pure virtuals and its
+    // by RiBegin() installing its context. A plain CRiInterface has no pure virtuals and its
     // default RiError() only forwards to a registered error handler (none here), so this is a
-    // safe, silent sink -- exactly what a headless loader needs.
-    renderMan = new CRiInterface();
+    // safe, silent sink -- exactly what a headless loader needs. It is installed explicitly.
+    sink = new CRiInterface();
+    riInstallContext(sink);
 
     // CRenderer::fromWorld/toWorld/fromWorld1/toWorld1/fromNDC/toNDC and worldBmin/worldBmax
     // are file-scope statics only ever initialized in beginFrame(), which this headless path

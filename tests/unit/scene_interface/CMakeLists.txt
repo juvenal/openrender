@@ -5,7 +5,7 @@
 #   SceneInterface_WriterText            characterization (regression): the RIB writer's text and diagnostics
 #   SceneInterface_IfCharacterization    characterization (regression): the branches the `if` evaluator takes
 #   SceneInterface_ContextInstall        rule 1 of the active-context contract; red at run time until Phase 3
-#   SceneInterface_ContextInstallRules   rules 2-6; DISABLED + EXCLUDE_FROM_ALL until Phase 3 (does not compile)
+#   SceneInterface_ContextInstallRules   rules 2-6 (enabled in Phase 3)
 #   SceneInterface_Services              the services (enabled in Phase 2)
 # and the program capture_scene_interface_declared_set, which writes reference/declared_set.txt from the
 # unmodified CRenderer::initDeclarations(). The references are written by the build target
@@ -64,10 +64,10 @@ add_test(NAME SceneInterface_ContextInstall COMMAND test_scene_interface_context
 set_tests_properties(SceneInterface_ContextInstall PROPERTIES TIMEOUT 60 LABELS "common;scene_interface" ENVIRONMENT "${SI_ENV}")
 
 si_executable(test_scene_interface_context_install_rules test_context_install.cpp
-    EXCLUDE_FROM_ALL DEFINE SI_INSTALL_RULES=1 LIBS ribRender)
+    DEFINE SI_INSTALL_RULES=1 LIBS ribRender)
 add_test(NAME SceneInterface_ContextInstallRules COMMAND test_scene_interface_context_install_rules)
 set_tests_properties(SceneInterface_ContextInstallRules PROPERTIES TIMEOUT 60 LABELS "common;scene_interface"
-    ENVIRONMENT "${SI_ENV}" DISABLED TRUE)
+    ENVIRONMENT "${SI_ENV}")
 
 # --- the services (contracts/scene-services.md) ---
 si_executable(test_scene_interface_services test_services.cpp LIBS ribRender)

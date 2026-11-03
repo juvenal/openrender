@@ -43,7 +43,11 @@ class COptions;    // forward declaration for getOptions()
 // Comments				:
 class CRiInterface {
     public:
+        // Assigns nothing global and attaches nothing: a constructed context is not the active one until
+        // riInstallContext() makes it so (spec 038)
         CRiInterface();
+        // If the context is installed, riUninstallContext(this) runs here, after the derived destructor
+        // has reported (the end-of-render statistics still reach the context's own handler)
         virtual ~CRiInterface();
 
         virtual void addObject(CObject *) {}
@@ -239,7 +243,26 @@ class CRiInterface {
 
     protected:
         void (*errorHandler)(int, int, const char *);
+
+    private:
+        CRiInterface *riPrevious = nullptr; // the context that was active when this one was installed
+        bool riInstalled = false;
+        friend void riInstallContext(CRiInterface *);
+        friend void riUninstallContext(CRiInterface *);
+        friend CRiInterface *riPreviousContext(const CRiInterface *);
 };
+
+// Make context the active one (renderMan), remembering the context active before it, and route diagnostics
+// to it (riDiagnosticsAttach, idempotent). Installing an installed context is a bug (CODE_BUG, ignored).
+void riInstallContext(CRiInterface *context);
+
+// If context is the active one: the remembered context becomes active again, and diagnostics are re-attached
+// when it is non-null, detached when it is null. If context is installed but not active (RiContext switched
+// away from it): only the mark is cleared. Not installed: nothing.
+void riUninstallContext(CRiInterface *context);
+
+// The context that was active when context was installed (nullptr when none, or not installed).
+CRiInterface *riPreviousContext(const CRiInterface *context);
 
 extern CRiInterface *renderMan; // This is the global variable that's implementing the RenderMan interface
 

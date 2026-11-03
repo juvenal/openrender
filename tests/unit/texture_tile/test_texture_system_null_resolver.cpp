@@ -11,8 +11,8 @@
  * a resolver over an empty path; on a missing file it requires the same diagnostics as with the
  * resolver, and no crash.
  *
- * Same setup as that preview test: `renderMan = new CRiInterface()` around the calls (the
- * diagnostics reach the global interface).
+ * Same setup as that preview test: a `CRiInterface` installed with riInstallContext() around the calls
+ * (the diagnostics reach the installed interface).
  *
  * Red: does not compile until textureResolver.h exists (Phase 4, T047); enabled by T050a, after the
  * make* functions take the resolver and tolerate nullptr.
@@ -111,8 +111,8 @@ int main() {
     CHECK(dir != nullptr);
     const std::string work = dir;
 
-    CRiInterface *savedInterface = renderMan;
-    renderMan = new CRiInterface();
+    CRiInterface *testInterface = new CRiInterface();
+    riInstallContext(testInterface);
     globalArena.init(); // makeTexture() reads the source into the process-wide arena (no RiBegin here)
 
     CDirectoryResolver emptyPath({});
@@ -161,8 +161,7 @@ int main() {
     }
 
     globalArena.tini();
-    delete renderMan;
-    renderMan = savedInterface;
+    delete testInterface; // uninstalls it
 
     std::string cleanup = "rm -rf '" + work + "'";
     if (system(cleanup.c_str()) != 0)

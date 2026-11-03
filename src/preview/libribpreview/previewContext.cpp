@@ -192,18 +192,13 @@ PreviewSceneC *ribpreview_load(const char *ribPath) {
     globalArena.init();
     RiBeginLite();
 
-    CPreviewContext ctx;
-    // CRiInterface's own constructor already does this (renderMan = this), so
-    // this line is technically redundant -- kept for clarity at the call site.
-    // The reset below is NOT redundant: ctx stays alive well past ribParse(),
-    // and renderMan must stop pointing at it before anything else runs.
-    renderMan = &ctx;
+    // The context is installed explicitly; deleting it after the parse uninstalls it, which hands the
+    // diagnostics back to the sink that was installed before it.
+    CPreviewContext *ctx = new CPreviewContext();
+    riInstallContext(ctx);
     ribParse(ribPath, nullptr);
-    renderMan = nullptr;
-    // ctx outlives this reset, so its destructor will not detach diagnostics.
-    riDiagnosticsDetach();
-
-    PreviewScene scene = std::move(ctx.result_);
+    PreviewScene scene = std::move(ctx->result_);
+    delete ctx;
 
     globalArena.tini();
     CRenderer::shutdownDeclarations();

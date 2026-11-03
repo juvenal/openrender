@@ -2,6 +2,7 @@
 #define DATALOAD_H
 
 class CDataView;
+class CRiInterface;
 
 // One of the six visualizable file-content types, or a reason CDataDocument::open() refused
 // to construct a document. Never determined from a filename/extension -- content only.
@@ -41,6 +42,7 @@ class CDataDocument {
     private:
         CDataView *dataView;
         int declarationsInitialized;
+        CRiInterface *sink; // the installed context the readers' diagnostics reach
 };
 
 #endif

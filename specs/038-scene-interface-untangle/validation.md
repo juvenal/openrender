@@ -281,7 +281,38 @@ Nothing is left unexplained: no new failure outside the expected red set on eith
 
 ## 3. Phase 3: explicit active context
 
-(Not started.)
+### 3.1 What landed (T073 to T079)
+
+- **T074** `parse/riInterface.{h,cpp}`: the constructor assigns `errorHandler` only (it no longer sets `renderMan` or attaches the diagnostics); `riInstallContext`, `riUninstallContext`, `riPreviousContext` and the private `riPrevious`/`riInstalled` members (contracts/active-context.md). Installing a context that is already installed is a `CODE_BUG` report and does nothing. Uninstalling restores the previous context and re-attaches the diagnostics (`riDiagnosticsAttach`), or detaches them when none is left; a context that `RiContext` switched away from only loses its mark. The destructor uninstalls an installed context.
+- **T075** `parse/ri.cpp`: the three `RiBegin` branches are `riInstallContext(factory(...))`; `savedRenderMan` is gone; `RiArchiveEnd` at nesting 0 deletes `renderMan` only when `riPreviousContext(renderMan) != nullptr`; `RiEnd` and `RiContext` are unchanged.
+- **T076** `render/rendererContext.cpp`: `RiArchiveBeginV` ends with `riInstallContext(new CRibOut(fileName))`, `RiArchiveEnd` has an empty body, both `extern` declarations are deleted.
+- **T077** the viewer and the preview stop assigning the global: `CDataDocument` owns a `CRiInterface *sink` (installed in `open()`, deleted in the destructor before `globalArena.tini()`), and `ribpreview_load` installs its `CPreviewContext` with `riInstallContext` and deletes it after moving the result out. Their stale comments are reworded. Their full move off the core is Phase 4.
+- **T073 / T078** the approved test edits were applied exactly as shown: `blobbyTestUtils.h`, `test_texture_system_null_resolver.cpp`, `test_texture_system_stream_cursor.cpp`, `test_data_keys.cpp` (each `renderMan = x` became `riInstallContext(x)`, the deletes now uninstall, two stale comments reworded). `SceneInterface_ContextInstallRules` lost `DISABLED` and `EXCLUDE_FROM_ALL`; `SceneInterface_ActiveContextAssignments` moved from `or038_red` to `architecture`.
+
+### 3.2 Construction-time diagnostics (T072)
+
+`ctor_reports_sweep.sh` (the bodies of `CRendererContext::CRendererContext`, `beginRenderer`, `initMutexes`, `initFiles`, `initDeclarations`, `rendererShadingServicesInit`, `rendererProceduresInit`, `initNetwork`) lists one report; `initNetwork` calls `netSetup`, which the script does not follow, so `rendererNetwork.cpp:470-700` was read as well. Every report below is raised while `CRendererContext` constructs. Before Phase 3 the constructor had already attached the diagnostics to the new context, so it reached the new context's error handler and set `RiLastError`. Now the constructor runs before `riInstallContext`, so the report reaches the sink installed before `RiBegin` (decision Q5) and does not set `RiLastError`.
+
+| Where | Call | Text | Severity |
+|---|---|---|---|
+| `rendererMutexes.cpp:151` (`initMutexes`) | `warning(CODE_SYSTEM, ...)` | "Atomic operations are not supported on this system, ..." | warning |
+| `rendererNetwork.cpp:519, 627, 630, 693` (`netSetup`) | `info(CODE_LOG / CODE_SYSTEM, ...)` | "Accepted incoming connection", "Connected to %s", "Version mismatch with server %s" | info |
+| `rendererNetwork.cpp:650, 655, 696` | `error(CODE_SYSTEM, ...)` | "Failed to connect to %s", "Failed to resolve %s", "Version mismatch with server %s" | error |
+| `rendererNetwork.cpp:490, 508, 515, 549, 557, 600, 637, 645` | `fatal(CODE_SYSTEM, ...)` | "Winsock init error", "Unrecognized startup sequence from the client", "Version mismatch with the client", "Socket error", "Bind error" | fatal |
+
+No test reads `RiLastError` (`grep` over `tests/`: no match). The only reader is `src/orender/orender.cpp:919`, `return (RiLastError != RIE_NOERROR) ? -1 : 0;`: a failed network connect (`Failed to connect`, `Failed to resolve`, `Version mismatch`) used to make `orender` exit with -1 and no longer does. That is the Q5 NEWS line (Phase 8); nothing asserts on it, so there is no conflict to report.
+
+### 3.3 Sweep (T081)
+
+`cpujob 038-p3-sweep ribvector_core_sweep.sh build` on the Phase 3 build: 9 `RESIDUAL` lines, the same 9 files as `tests/architecture/ribvector-core-residual.txt` (`rendererDeclarations.cpp`, `rendererFileSearch.cpp`, `rendererMutexes.cpp`, `rendererNetwork.cpp`, `rendererStatics.cpp` and the four `vector/*DispatchStub.cpp`), plus two `UNREFERENCED` files (`rendererClipping.cpp`, `resource.cpp`) that `ribVector_obj` still compiles, which is what keeps `SceneInterface_RibVectorResidual` red until Phase 4. Two non-Core referencers remain on the residual `rendererDeclarations.cpp`: `dataviewer/dataLoad.cpp` and `preview/previewContext.cpp` (both call `CRenderer::initDeclarations`; Phase 4).
+
+### 3.4 Checkpoint 3 (T080, T082), macOS
+
+`cpujob 038-p3-build cmake --build build --config Release -j4`: exit 0, no `warning:`/`error:` from the sources. `038-p3-tests` (the T080 selection): 46 tests, 44 passed, `Preview_NoCoreReach` red as expected, `Preview_SelfRegistration` Not Run (Disabled); `SceneInterface_ContextInstall`, `SceneInterface_ContextInstallRules` (first run ever, no edit) and `SceneInterface_ActiveContextAssignments` pass.
+
+`038-p3-all ctest -LE determinism-sweep -j4` (203 s): 1077 tests, 2 `Not Run (Disabled)` (`Preview_SelfRegistration`, `LibShader_CompilerTableDrift`), 11 failed, all expected: the four `or038_red` checks (`Preview_NoCoreReach`, `Precomp_NoHiderCore`, `SceneInterface_RibVectorResidual`, `Compiler_IncludeBoundary`) and the seven `ShadeopAbi_Jit_*` (red until Phase 6). `ContextInstall` left the red set (13 failures at Phase 2, 11 now), `ContextInstallRules` is enabled and green. `038-p3-arch ctest -L architecture`: 25/25. `038-p3-red ctest -L or038_red`: the four above, all failing.
+
+**Linux** (tree `openrender-038`, GCC 13 `-Werror`; staged and new files synced with `rsync -rlpc -0 --files-from` and `sha256sum -c --quiet` OK; no file deleted by the phase, so none removed by hand): `cpujob 038-p3-lx-build cmake --build build -j2`: exit 0, 0 `warning:`. `038-p3-lx-test ctest -LE determinism-sweep -j2` (684 s): 1078 tests, 2 `Not Run (Disabled)`, 18 failed: the same 11 as macOS plus the 7 Phase 0 baseline failures (#44 `LibShader_McompConsistency`, #45 `TextureTile_RenderByteIdentical`, #46 the four `TextureTile_Cache*`, #57 `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes`); no new failure. `038-p3-lx-arch ctest -L architecture`: 25/25. `038-p3-lx-red ctest -L or038_red`: the same 4. Logs on the remote: `build/lx-p3-*.log`.
 
 ## 4. Phase 4: preview back-end, data viewer, `ribVector`
 

@@ -110,7 +110,6 @@ static int currentBlock = 0;
 static int allowedCommands = RENDERMAN_ALL_BLOCKS;
 static int archiveNesting = 0;
 
-CRiInterface *savedRenderMan = NULL; // This variable contains the parent context for arhiving
 CRiInterface *renderMan = NULL;      // This variable is exported for error reporting
 
 // Test-facing override (see riHooks.h) -- ignores the rib-file/net-string args,
@@ -311,9 +310,9 @@ RiBegin(RtToken name) {
     // s_ribOutFactory non-null in the first place.
     auto resolveContext = [&](const char *ribFile, const char *netString) -> bool {
         if (s_contextFactory)
-            renderMan = s_contextFactory();
+            riInstallContext(s_contextFactory());
         else if (s_defaultContextFactory)
-            renderMan = s_defaultContextFactory(ribFile, netString);
+            riInstallContext(s_defaultContextFactory(ribFile, netString));
         else {
             error(CODE_INCAPABLE, "Full-render mode is not available in this build (no renderer context registered)\n");
             return false;
@@ -322,7 +321,7 @@ RiBegin(RtToken name) {
     };
     auto resolveRibOut = [&](const char *ribOutName, FILE *ribOutStream) -> bool {
         if (s_ribOutFactory)
-            renderMan = s_ribOutFactory(ribOutName, ribOutStream);
+            riInstallContext(s_ribOutFactory(ribOutName, ribOutStream));
         else {
             error(CODE_INCAPABLE, "RIB-output mode is not available in this build (no RIB writer registered)\n");
             return false;
@@ -2139,13 +2138,10 @@ RiArchiveEnd(void) {
     // Decrease the nesting and recover the original context
     archiveNesting--;
     if (archiveNesting == 0) {
-        if (savedRenderMan != NULL) {
+        // The archive writer a renderer installed over itself (RiArchiveBeginV) is deleted; deleting
+        // it uninstalls it, which makes the renderer active again and routes diagnostics back to it
+        if (riPreviousContext(renderMan) != nullptr)
             delete renderMan;
-            renderMan = savedRenderMan;
-            // The nested context's destructor detached diagnostics; route them
-            // to the restored context again.
-            riDiagnosticsAttach();
-        }
     }
 
     renderMan->RiArchiveEnd();
