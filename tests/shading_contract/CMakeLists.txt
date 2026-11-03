@@ -90,7 +90,10 @@ set(SHADING_CONTRACT_ENV
     "SHADING_CONTRACT_REPLAY_DIR=${CMAKE_CURRENT_SOURCE_DIR}/replay"
     "SHADING_CONTRACT_REPLAY_SCENES=${CMAKE_CURRENT_SOURCE_DIR}/replay/scenes"
     "SHADING_CONTRACT_SHADERS=${SHADING_CONTRACT_SHADER_DIR}"
-    "SHADING_CONTRACT_SCENES=${CMAKE_CURRENT_SOURCE_DIR}/scenes")
+    "SHADING_CONTRACT_SCENES=${CMAKE_CURRENT_SOURCE_DIR}/scenes"
+    # spec 029: the directory of the implicit-surface plug-in fixture (tests/plugins/implicit, good.dsply) that the
+    # implicit-shadow scene loads through the procedural search path
+    "SHADING_CONTRACT_IMPLICIT_DIR=${CMAKE_BINARY_DIR}/tests/plugins/implicit/good")
 
 # ---------------------------------------------------------------------------
 # The replay: the recorder and the checker. Both render in process (one Ri session per child process,
@@ -312,3 +315,119 @@ else()
 endif()
 set_tests_properties(ShadingContract_Situations PROPERTIES TIMEOUT 300 LABELS "shading_contract"
     ENVIRONMENT "${SHADING_CONTRACT_ENV}")
+
+# ---------------------------------------------------------------------------
+# Spec 029 (hider / shading separation): the new contract programs, written before the interfaces they use exist.
+# Each is an executable of its own (adding a case that cannot compile to an executable above would break the approved cases
+# already in it), defined only while OPENRENDER_029_RED_TESTS is ON, and its tests are registered DISABLED otherwise. A
+# program joins the normal build, and its test loses the DISABLED mark, in the phase that provides what it needs
+# (tasks.md, "Test gate"). Red evidence: the failed build of each target, one at a time (validation.md section 2).
+#
+#   test_shading_contract_standalone_context   T-S2  ShadingContext_Standalone{Interp,Jit}               Phase 5
+#   test_shading_contract_photon_lookup        T-P1  ShadingContract_PhotonLookup{Interp,Jit}            Phase 3
+#   test_shading_contract_canned_bundles       T-B1  ShadingContract_CannedBundles{Interp,Jit}           Phase 3
+#   test_shading_contract_hook_interface       T-H1  ShadingContract_IlluminationHookInterface{Interp,Jit} Phase 5
+#   test_shading_contract_hider_tracer         T-T1  HiderTracer_PerContext                              Phase 6 (links ribRender)
+#   test_shading_contract_ray_level            T-T2  ShadingContract_RayLevel                            Phase 6
+#   test_shading_contract_producer_situations  T-G1  ShadingContract_ProducerSituations                  Phase 7 (links ribRender)
+#   test_shading_contract_point_source         T-G2  ShadingContract_PointSource{Interp,Jit}             Phase 7
+# The shaders they run (cm_standalone, cm_photon, cm_hook_*) are compiled as build steps only here.
+# ---------------------------------------------------------------------------
+set(SHADING_CONTRACT_029_SHADERS cm_standalone cm_photon cm_hook_illuminate1 cm_hook_illuminate3 cm_hook_solar2 cm_hook_solar0)
+
+if(OPENRENDER_029_RED_TESTS)
+    if(NOT TARGET state_only_sources)
+        message(FATAL_ERROR "OPENRENDER_029_RED_TESTS needs the State-only library: enable OPENRENDER_STATE_ONLY_TESTS")
+    endif()
+
+    set(_029_shader_outputs "")
+    foreach(_n IN LISTS SHADING_CONTRACT_029_SHADERS)
+        set(_sl ${CMAKE_CURRENT_SOURCE_DIR}/shaders/${_n}.sl)
+        add_custom_command(
+            OUTPUT ${SHADING_CONTRACT_SHADER_DIR}/${_n}.rslo
+            COMMAND ${CMAKE_COMMAND} -DOSHADER=$<TARGET_FILE:oshader> -DSRC=${_sl}
+                    -DOUT=${SHADING_CONTRACT_SHADER_DIR}/${_n}.rslo
+                    -DINCDIR=${CMAKE_SOURCE_DIR}/shaders/includes
+                    -P ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+            DEPENDS ${_sl} oshader ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+            WORKING_DIRECTORY ${SHADING_CONTRACT_SHADER_DIR}
+            COMMENT ""
+            VERBATIM)
+        list(APPEND _029_shader_outputs ${SHADING_CONTRACT_SHADER_DIR}/${_n}.rslo)
+        if(OPENRENDER_HAVE_LLVM)
+            add_custom_command(
+                OUTPUT ${SHADING_CONTRACT_SHADER_DIR}/${_n}.slo
+                COMMAND ${CMAKE_COMMAND} -DOSHADER=$<TARGET_FILE:oshader> -DSRC=${_sl}
+                        -DOUT=${SHADING_CONTRACT_SHADER_DIR}/${_n}.slo
+                        -DINCDIR=${CMAKE_SOURCE_DIR}/shaders/includes -DJIT=ON
+                        -P ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+                DEPENDS ${_sl} oshader ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+                WORKING_DIRECTORY ${SHADING_CONTRACT_SHADER_DIR}
+                COMMENT ""
+                VERBATIM)
+            list(APPEND _029_shader_outputs ${SHADING_CONTRACT_SHADER_DIR}/${_n}.slo)
+        endif()
+    endforeach()
+    add_custom_target(shading_contract_029_shaders DEPENDS ${_029_shader_outputs})
+
+    # or029_contract_program(<target> <main source> <case source> [RENDERED] [EXTRA sources...])
+    #   STANDALONE: libshader_shading + libRIBCommon + the State-only library, no ribRender, no load stub (SC-001)
+    #   RENDERED:   adds ribRender
+    function(or029_contract_program TARGET)
+        cmake_parse_arguments(ARG "RENDERED" "" "SOURCES" ${ARGN})
+        add_executable(${TARGET} ${ARG_SOURCES})
+        target_compile_features(${TARGET} PRIVATE cxx_std_20)
+        target_compile_definitions(${TARGET} PRIVATE ${SHADING_CONTRACT_PROGRAM_DEFS})
+        target_include_directories(${TARGET} PRIVATE ${SHADING_CONTRACT_INCLUDES} ${CMAKE_SOURCE_DIR}/src/display)
+        if(ARG_RENDERED)
+            target_link_libraries(${TARGET} PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon state_only_sources)
+        else()
+            target_link_libraries(${TARGET} PRIVATE openrender_common_flags libshader_shading openrendercommon state_only_sources)
+        endif()
+        add_dependencies(${TARGET} shading_contract_replay_shaders shading_contract_029_shaders)
+    endfunction()
+
+    or029_contract_program(test_shading_contract_standalone_context SOURCES standalone_context_main.cpp case_standalone_context.cpp)
+    or029_contract_program(test_shading_contract_photon_lookup SOURCES photon_lookup_main.cpp case_photon_lookup.cpp)
+    or029_contract_program(test_shading_contract_canned_bundles SOURCES canned_bundles_main.cpp case_canned_bundles.cpp)
+    or029_contract_program(test_shading_contract_hook_interface SOURCES hook_interface_main.cpp case_illumination_hook_interface.cpp)
+    or029_contract_program(test_shading_contract_ray_level SOURCES ray_level_main.cpp case_ray_level.cpp)
+    or029_contract_program(test_shading_contract_point_source SOURCES point_source_main.cpp case_point_source.cpp)
+    or029_contract_program(test_shading_contract_hider_tracer RENDERED SOURCES hider_tracer_main.cpp case_hider_tracer.cpp)
+    or029_contract_program(test_shading_contract_producer_situations RENDERED SOURCES producer_situations_main.cpp case_producer_situations.cpp)
+endif()
+
+# add_contract_test_029(<test name> <program> <case argument> [JIT] [TIMEOUT <s>]): one CTest entry, DISABLED while the
+# program is not part of the build (OPENRENDER_029_RED_TESTS OFF), registered with its real target while ON.
+function(add_contract_test_029 NAME PROGRAM)
+    cmake_parse_arguments(ARG "JIT" "TIMEOUT" "CASE" ${ARGN})
+    if(ARG_JIT AND NOT OPENRENDER_HAVE_LLVM)
+        return()
+    endif()
+    if(NOT ARG_TIMEOUT)
+        set(ARG_TIMEOUT 120)
+    endif()
+    set(_cwd ${CMAKE_CURRENT_BINARY_DIR}/cwd/${NAME})
+    file(MAKE_DIRECTORY ${_cwd})
+    if(OPENRENDER_029_RED_TESTS)
+        add_test(NAME ${NAME} COMMAND $<TARGET_FILE:${PROGRAM}> ${ARG_CASE} WORKING_DIRECTORY ${_cwd})
+    else()
+        add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} -E true WORKING_DIRECTORY ${_cwd})
+        set_tests_properties(${NAME} PROPERTIES DISABLED TRUE)
+    endif()
+    set_tests_properties(${NAME} PROPERTIES TIMEOUT ${ARG_TIMEOUT} LABELS "shading_contract" ENVIRONMENT "${SHADING_CONTRACT_ENV}")
+endfunction()
+
+add_contract_test_029(ShadingContext_StandaloneInterp test_shading_contract_standalone_context CASE Interp)
+add_contract_test_029(ShadingContext_StandaloneJit test_shading_contract_standalone_context JIT CASE Jit)
+add_contract_test_029(ShadingContract_PhotonLookupInterp test_shading_contract_photon_lookup CASE Interp)
+add_contract_test_029(ShadingContract_PhotonLookupJit test_shading_contract_photon_lookup JIT CASE Jit)
+add_contract_test_029(ShadingContract_CannedBundlesInterp test_shading_contract_canned_bundles CASE Interp)
+add_contract_test_029(ShadingContract_CannedBundlesJit test_shading_contract_canned_bundles JIT CASE Jit)
+add_contract_test_029(ShadingContract_IlluminationHookInterfaceInterp test_shading_contract_hook_interface CASE Interp)
+add_contract_test_029(ShadingContract_IlluminationHookInterfaceJit test_shading_contract_hook_interface JIT CASE Jit)
+add_contract_test_029(HiderTracer_PerContext test_shading_contract_hider_tracer)
+add_contract_test_029(ShadingContract_RayLevel test_shading_contract_ray_level)
+add_contract_test_029(ShadingContract_ProducerSituations test_shading_contract_producer_situations TIMEOUT 600)
+add_contract_test_029(ShadingContract_PointSourceInterp test_shading_contract_point_source CASE Interp)
+add_contract_test_029(ShadingContract_PointSourceJit test_shading_contract_point_source JIT CASE Jit)

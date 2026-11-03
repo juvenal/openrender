@@ -52,3 +52,5 @@ recording `IPhotonLookup` for a named map; `photonmap("m", P)` under each backen
 real point with the shader's `P` and the estimator `photonEstimator` (or the parameter), and returns the
 double's value, replicated into the derivative tail as `expandVector` does. Red on the starting tree: build
 failure (no `photonLookup.h`, `getPhotonMap`'s type).
+
+The services double is `final` and answers no map, so the test wraps it (`tests/shading_contract/photon_services.h`) and points the state's `services` field at the wrapper after the harness built the context; `CShadingState::services` therefore stays a public field (amendment D5 of the T043 approval).

@@ -1,0 +1,121 @@
+diff --git a/tests/shading_contract/case_situations.cpp b/tests/shading_contract/case_situations.cpp
+index 39a381c7..94e94515 100644
+--- a/tests/shading_contract/case_situations.cpp
++++ b/tests/shading_contract/case_situations.cpp
+@@ -21,6 +21,11 @@
+  * The branch shade() took (primitive-only versus shaded) is observed through a marker shader that prints
+  * its ray depth every time it runs: with "primitive" the marker is absent from the output.
+  *
++ * Spec 029 (P-Q5) corrects the table to the code in three places, which expectedRow() below states: a shadow hit is a
++ * shadow whatever the dimension (before the illumination hook), and the dimension and the depth decide a ray hit before the
++ * raster flag does (so a reflection traced from a REYES grid is Secondary, not row 1). Three scenes show it: a REYES frame
++ * with a reflection hit under each specularhitmode, and an implicit-surface shadow hit.
++ *
+  * Rows 6 and 7 (implicit-surface and DSO-object hits; row 6's present behaviour is an oddity, O5 #119,
+  * and row 7 is kept classify-only as decided in B8, although the DLO vertex count was fixed by #129,
+  * was #116) and rows 10 to 14 (no shade()) are asserted from classifyShading() alone (B8). The seven
+@@ -80,6 +85,11 @@ namespace {
+         const std::string rib = std::string(dir) + "/" + scene + ".rib";
+         RiBegin(RI_NULL);
+         RiCustomDisplay("situations", RI_RGBA, displayStart, displayData, displayFinish, RI_NULL);
++        // The implicit-surface fixture (sit_row5_shadow_implicit_primitive) is found through the procedural search path
++        if (const char *implicitDir = getenv("SHADING_CONTRACT_IMPLICIT_DIR")) {
++            RtString path = const_cast<RtString>(implicitDir);
++            RiOption((RtToken) "searchpath", (RtToken) "procedural", &path, RI_NULL);
++        }
+         CShadingContext::pointKeyObserver = &onKey;
+         CShadingContext::pointDisplacedObserver = &onDisplaced;
+         RiReadArchive((RtToken)rib.c_str(), NULL, NULL);
+@@ -98,6 +108,7 @@ namespace {
+             bool markerExpected;                             // does a marker line appear at depth >= minMarkerDepth?
+             int minMarkerDepth;
+             bool expectMarkerAtAll;                          // any marker line (row 1: the shader runs even under "primitive")
++            bool deepMarkersAbsent = false;                  // no marker line at depth >= 1 (a REYES frame shades its camera-visible grids, so only the secondary hits are primitive)
+     };
+ 
+     struct SReport {
+@@ -169,7 +180,9 @@ namespace {
+         return "?";
+     }
+ 
+-    // The expected class of a report, from the situation table of contracts/shader-globals.md
++    // The expected class of a report: the situation table of contracts/shader-globals.md as spec 029 corrects it (P-Q5):
++    // the passes, then photon emission (hook, 0-D, depth 0, outside a shadow), then a shadow at every dimension, then a grid,
++    // then a 0-D batch at depth 0 in a raster frame, then any other ray hit (Camera at depth 0, else Secondary)
+     struct SRow {
+             int row;
+             libshader::ShadingClass cls;
+@@ -185,30 +198,28 @@ namespace {
+             c.pass = ShadingPass::DisplaceOnly;
+             return {8, c};
+         }
+-        if (r.hook) {
++        if (r.hook && r.dim == (int)SHADING_0D && r.rayDepth == 0 && !r.inShadow) {
+             c.rayType = RayType::Photon;
+             c.transport = TransportMode::Importance;
+             return {10, c};
+         }
++        if (r.hook)
++            c.transport = TransportMode::Importance; // Importance whenever the hook is on
+         if (r.inShadow) {
+             c.rayType = RayType::Shadow;
+-            c.hitMode = mode(s.transmissionMode);
++            c.hitMode = mode(s.transmissionMode); // at every dimension: shade() has no dimension test here
+             return {5, c};
+         }
+-        if (s.rasterHider) {
+-            if (r.dim == (int)SHADING_0D)
+-                return {2, c}; // camerahitmode ignored for 0-D points (oddity 7)
++        if (r.dim == (int)SHADING_2D_GRID) {
+             c.hitMode = mode(s.cameraMode);
+             return {1, c};
+         }
+-        if (r.rayDepth == 0) {
+-            c.rayType = RayType::Camera;
++        if (s.rasterHider && r.dim == (int)SHADING_0D && r.rayDepth == 0)
++            return {2, c}; // camerahitmode ignored for 0-D points (oddity 7)
++        c.rayType = (r.rayDepth == 0) ? RayType::Camera : RayType::Secondary;
++        if (r.dim == (int)SHADING_2D)
+             c.hitMode = mode(s.specularMode); // specularhitmode, not camerahitmode (oddity 2)
+-            return {3, c};
+-        }
+-        c.rayType = RayType::Secondary;
+-        c.hitMode = mode(s.specularMode);
+-        return {4, c};
++        return {r.rayDepth == 0 ? 3 : 4, c};
+     }
+ 
+     void checkScene(const SScene &s, const SRunOutput &out) {
+@@ -244,6 +255,8 @@ namespace {
+         }
+ 
+         // The branch shade() took
++        if (s.deepMarkersAbsent)
++            CT_EXPECT(out.markersDeep == 0);
+         if (s.expectMarkerAtAll)
+             CT_EXPECT(out.markers > 0);
+         else if (s.markerExpected)
+@@ -276,8 +289,10 @@ namespace {
+             CT_EXPECT(c0.rayType == RayType::Camera && c0.hitMode == HitMode::Shade);
+             auto c1 = libshader::classifyShading(situation((int)SHADING_0D, 0, 0, 1, false, false));
+             CT_EXPECT(c1.rayType == RayType::Secondary && c1.hitMode == HitMode::Shade);
++            // spec 029 (P-Q5): shade() tests transmissionhitmode in a shadow at every dimension, so a 0-D shadow hit
++            // follows the attribute ("primitive" in this situation)
+             auto c2 = libshader::classifyShading(situation((int)SHADING_0D, 0, 1, 1, false, false));
+-            CT_EXPECT(c2.rayType == RayType::Shadow && c2.hitMode == HitMode::Shade);
++            CT_EXPECT(c2.rayType == RayType::Shadow && c2.hitMode == HitMode::Primitive);
+         }
+         // Row 7: a DSO-object ray hit classifies as rows 3 to 5 (its vertex count was fixed by #129, was #116)
+         {
+@@ -321,6 +336,11 @@ int caseSituations(int argc, char **argv) {
+         {"sit_row5_shadow_primitive", false, 's', 's', 'p', false, 1, false},
+         {"sit_row5_shadow_shaded", false, 's', 's', 's', true, 1, false},
+         {"sit_row8_displace", true, 's', 's', 'p', true, 0, true},
++        // spec 029 (P-Q5): a REYES frame whose grid traces a reflection (a row 4 hit, not row 1), under each specularhitmode ...
++        {"sit_row4_secondary_raster_shaded", true, 's', 's', 'p', true, 1, false},
++        {"sit_row4_secondary_raster_primitive", true, 's', 'p', 'p', true, 1, true, true},
++        // ... and an implicit-surface (0-D) shadow hit under transmissionhitmode "primitive" (row 6 meets row 5)
++        {"sit_row5_shadow_implicit_primitive", false, 's', 's', 'p', false, 1, false},
+     };
+     for (const SScene &s : scenes) {
+         const std::string outFile = std::string(s.name) + ".out";

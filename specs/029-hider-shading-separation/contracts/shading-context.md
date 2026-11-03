@@ -52,7 +52,7 @@ void setTracer(openrender::shading::ITracer *tracer);  // set by the owning hide
 openrender::shading::ITracer *tracer() const;          // the owner's tracer, nullptr if none (no services fallback here)
 
 // ---- The ray level (FR-017): the one public way to go one ray level deeper
-struct CRayLevel {                     // what leaveRayLevel() restores
+struct CRayLevel {                     // nested in CShadingContext, named CShadingContext::CRayLevel everywhere (D3); what leaveRayLevel() restores
     CShadingState *savedState;
     const char *savedLabel;
 };
@@ -83,7 +83,31 @@ void setShadedObject(const CSurface *surface, openrender::shading::ObjectHandle 
 
 // ---- Tests (P-Q11)
 int vertexMemoryInUse() const;   // vertexMemory, read-only
+int tracedRays() const;          // numTracedRays, read-only (D2, T043 amendment; ShadingContract HiderTracer_PerContext reads it)
+
+// ---- The test observer of the shading entry (D1, T043 amendment; the precedent of pointKeyObserver)
+// Called once per shade(const ShaderGlobals &, IPointSource &) call, after the batch is described and before the branch runs
+// (the primitive shortcuts and the displacement passes included). Null in production; set only by tests.
+enum EShadeBranch { SHADEBRANCH_FULL, SHADEBRANCH_DISPLACE_ONLY, SHADEBRANCH_DISPLACE_ESTIMATE,
+                    SHADEBRANCH_SHADOW_PRIMITIVE, SHADEBRANCH_SPECULAR_PRIMITIVE, SHADEBRANCH_CAMERA_PRIMITIVE };
+struct CShadeBatchReport {              // namespace scope in shading.h, beside CPointKeyReport
+    const CSurface *surface;
+    const openrender::shading::ShaderGlobals *globals;   // what the producer filled
+    EShadingDim dim;                    // the situation facts of the call, read from the context, never from the classification
+    int displaceOnly, inShadow, rayDepth, illuminationHook;
+    EShadeBranch branch;                // the branch shade() took
+};
+typedef void (*CShadeBatchObserver)(const CShadeBatchReport &);
+static CShadeBatchObserver shadeBatchObserver;   // member of CShadingContext
 ```
+
+**Amendments of the T043 approval (2026-11-02), recorded here and in the tests that use them:**
+
+- D1: the observer and its report above (`ShadingContract_ProducerSituations` is written to exactly this shape).
+- D2: `tracedRays()`, the read-only getter of the per-context traced-ray count (`HiderTracer_PerContext`).
+- D3: `CRayLevel` is nested in `CShadingContext` and is written `CShadingContext::CRayLevel` everywhere, `hider.md` included.
+- D4: `ShadingContext_Standalone{Interp,Jit}` (enabled in Phase 5) uses only what Phase 5 adds: it does not call `tracer()`, which arrives in Phase 6.
+- D5: `ShadingContract_PhotonLookup` wraps the services double and points `CShadingState::services` at the wrapper, so that field stays public.
 
 `objectHandle()` and `objectAttributes()` keep their signatures and return the stored values.
 

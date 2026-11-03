@@ -48,7 +48,7 @@ class CHider : public openrender::shading::ITracer, public openrender::shading::
 The bodies of `traceRay`, `traceBundle` and `traceGroups` stay in **`trace.cpp`** with their expressions
 unchanged; only the receiver of each member access changes (`context.`), plus:
 
-- `traceBundle` = `CRayLevel saved; if (!context.enterRayLevel(*bundle, CRenderer::maxRayDepth, saved)) {
+- `traceBundle` = `CShadingContext::CRayLevel saved; if (!context.enterRayLevel(*bundle, CRenderer::maxRayDepth, saved)) {
   bundle->postShade(bundle->numRays, bundle->rays); return; } traceGroups(bundle); context.leaveRayLevel(saved);`
   (`traceEx`'s order: the depth test, the push, the trace, the pop);
 - `traceRay` counts through `context.countTracedRay()`;

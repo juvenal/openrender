@@ -78,7 +78,7 @@ The producer calls `classifyShading()`, and `ShadingContract_Situations` (edited
 situation table. `ShadingContract_ProducerSituations` is **not** circular: for each rendered scene it compares the
 batch the producer fills (`rayType`, `hitMode`, `transport`, `pass`) with that scene's independent expected row,
 the table written out by hand in the test, and the branch `shade()` took, both read through a test observer
-(`shadeBatchObserver`, null in production, the precedent of spec 039's `pointKeyObserver`). It never calls
+(`shadeBatchObserver`, null in production, the precedent of spec 039's `pointKeyObserver`; its report, `CShadeBatchReport`, and `EShadeBranch` are declared in [shading-context.md](shading-context.md), amendment D1 of the T043 approval). It never calls
 `classifyShading()` itself to compute the expectation.
 
 ## `shade(const ShaderGlobals &g, IPointSource &src)`: the branches (FR-018)

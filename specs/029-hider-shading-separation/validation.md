@@ -115,7 +115,7 @@ Checkpoint 1 (Phase 1; nothing in `src/` changed): the baselines above are the c
 
 ## §2 Red evidence
 
-Phase 1's red evidence is the two red links and the two package-consumer reds recorded above; the test reds begin in Phase 2.
+Phase 1's red evidence is the two red links and the two package-consumer reds recorded above; Phase 2's is in the section "Phase 2" below.
 
 ## §4 Findings for filing as P1, and departures from the plan
 
@@ -160,3 +160,97 @@ Phase 1's red evidence is the two red links and the two package-consumer reds re
 ## §5 Final summary against SC-001 to SC-011
 
 Not applicable before Phase 8. SC-010's scaled scenes and the confirmed factors are recorded here when T114 runs.
+
+## Phase 2 (tests first; no `src/` edit)
+
+Approved by the maintainer 2026-11-02 (T025): the CMake edits of `tests/CMakeLists.txt` and `tests/shading_contract/CMakeLists.txt`, the two options, the patch (written, not applied), the new tests and the three scenes. `git diff 01501f10 -- src` is empty; no approved test source and no approved reference is edited (`git diff -- tests/shading_contract/case_situations.cpp` is empty after every evidence run).
+
+### What was added
+
+- Options (`tests/CMakeLists.txt`): `OPENRENDER_029_RED_TESTS` (OFF, temporary, removed in Phase 8) and `OPENRENDER_LINK_PACKAGE_TEST` (OFF, permanent, documented); `add_subdirectory(link)`.
+- `tests/link/`: `CMakeLists.txt`, `check_shading_self_contained.cmake` (T-L1), `static_consumer.cpp` + `run_static_consumer.cmake` (T-L2), `check_no_workaround_text.cmake` (T-L3), `package/{CMakeLists.txt,main.cpp}` + `run_package_test.cmake` (T-L4), `check_scope.cmake` (T-S1, sub-checks S1a to S1f).
+- `tests/shading_contract/`: eight programs, one executable each, defined only inside `if(OPENRENDER_029_RED_TESTS)`: `test_shading_contract_standalone_context` (T-S2), `_photon_lookup` (T-P1), `_canned_bundles` (T-B1), `_hook_interface` (T-H1), `_ray_level` (T-T2), `_point_source` (T-G2), `_hider_tracer` (T-T1, links ribRender), `_producer_situations` (T-G1, links ribRender); `cases_029.h`; `photon_services.h`; six shaders (`cm_standalone`, `cm_photon`, `cm_hook_{illuminate1,illuminate3,solar2,solar0}`, compiled as build steps only with the option ON); three scenes (`sit_row4_secondary_raster_{shaded,primitive}.rib`, `sit_row5_shadow_implicit_primitive.rib`). The 13 contract tests and the 4 link tests are registered `DISABLED` while the option is OFF ("Not Run (Disabled)").
+- `tools/situations-q5.patch` (T-G3, the P-Q5 edit, not applied) and `tools/situations-parse-fix.patch` (proposed, see F6).
+- `SHADING_CONTRACT_ENV` gained `SHADING_CONTRACT_IMPLICIT_DIR` (the directory of the implicit fixture `good.dsply`); the patch and T-G1 read it.
+
+### §2 Red evidence, macOS (`build` configured with `-DOPENRENDER_029_RED_TESTS=ON`; one target at a time through `cpujob`)
+
+| Test | Result | Reason |
+|---|---|---|
+| T-S2 `test_shading_contract_standalone_context` | build failed | `static assertion failed: CShadingContext has no virtual function`, `... is final`, `allocating an object of abstract class type 'CShadingContext'`, no member `illuminationHook` |
+| T-P1 `..._photon_lookup` | build failed | fatal: `libshader/shading/photonLookup.h` file not found |
+| T-B1 `..._canned_bundles` | build failed | fatal: `libshader/shading/bundles.h` file not found (the header is `src/ri/hiders/bundles.h`; included by its post-move path, so the red says something about the bundles) |
+| T-H1 `..._hook_interface` | build failed | fatal: `libshader/shading/illuminationHook.h` file not found |
+| T-T2 `..._ray_level` | build failed | no member `enterRayLevel`, `leaveRayLevel`, `rayDepth`; unknown type name for the ray-level type |
+| T-G2 `..._point_source` | build failed | fatal: `libshader/shading/pointSource.h` file not found |
+| T-T1 `..._hider_tracer` | build failed | fatal: `hider.h` file not found |
+| T-G1 `..._producer_situations` | build failed | unknown type `CShadeBatchReport`; no member `shadeBatchObserver`; `SHADEBRANCH_*` undeclared; no `BatchShape::PointSet` |
+| T-L2 `test_link_static_consumer` | builds; `Link_StaticConsumer` fails | both formats (`rslo`, `slo`): `dyld: symbol not found in flat namespace '__ZTV12CTraceBundle'` (Subprocess aborted) |
+| T-L1 `Link_ShadingSelfContained` | fails | the 4 imports: `CPhotonMap::lookup`, `CGatherBundle::CGatherBundle()`, `vtable for CTraceBundle`, `vtable for CTransmissionBundle` (each reported by `dyld_info -imports` and by `nm -m`) |
+| T-L3 `Link_NoWorkaroundText` | fails | 18 matches: `CMake/openRenderConfig.cmake.in:81,91,95,96`; `src/libshader/shading/CMakeLists.txt:56,85,92,100`; `tests/unit/common/CMakeLists.txt:79,82,83`; `tests/shading_parity/CMakeLists.txt:326,346,368,389`; the load stub exists |
+| T-S1 registered `ShadingScope_Greps` | fails | `CHECKS is empty` (an empty list is an error, so it cannot pass vacuously): expected with the option ON in Phase 2 |
+| T-S1 `cmake -DCHECKS='S1a;S1b;S1c;S1d;S1e;S1f' -P tests/link/check_scope.cmake` | each of the six fails | S1a 8 (bundles.h x4, irradiance.h x2, photonMap.h x2 included from `src/libshader`); S1b 6; S1c 22 (3 virtuals, 3 friends, not final, 10 subclasses of `CShadingContext` in `src` and `tests`); S1d 19 (4 trace members, the CHiderTracer/frameTracer text, `hiderTracer.{h,cpp}`); S1e 2 (`shading.cpp` includes `object.h`); S1f 3 (the three `friend class`) |
+| T-L4 runner against T015's install (`-DPREFIX_DIR=<build-pkg/prefix>`, vcpkg toolchain line from `build/CMakeCache.txt`, GitHub #141) | as shipped: both formats pass (image written). `-DREMOVE_PACKAGE_BLOCK=ON`: both formats fail with `dyld: symbol not found in flat namespace '__ZTV12CTraceBundle'`, so the runner exits 0 ("every format fails, as the red mechanism requires") | the consumer passes only because of the package block |
+| T-G3 `tools/situations-q5.patch` applied; `test_shading_contract_situations` rebuilt; `ShadingContract_Situations` | **red**: 310 passed, 1 failed: `c2.rayType == Shadow && c2.hitMode == Primitive` (row 6's shadow case, `classifyShading()` returns Shade for a 0-D shadow hit today). With `situations-parse-fix.patch` on top (F6): 293 passed, **18 failed**: that one plus 17 x `row 4: classified None/0/0/0, expected Secondary/0/0/0` (the reflection hits of the REYES frame `sit_row4_secondary_raster_shaded`, which today's function sends to row 1) | P-Q5's corrected expectations against today's `classifyShading()`. Reverted with `git apply -R`; `git diff` of the file is empty |
+
+Every other row of the corrected table, applied to the real reports, holds for the ten scenes of 026 (with the parse fix): the correction changes only the REYES secondary hits and the 0-D shadow case. The "build failed" rows show the first error of each file only; see "What the red builds do not prove" below.
+
+### §3 Red evidence, Linux (GCC 13.3, `-Werror`, `-j2`, remote `cpujob`; `build` configured ON, then OFF again)
+
+The eight programs fail to build for the same reasons (GCC wording: `static assertion failed`, `invalid new-expression of abstract class type`, `fatal error: ... No such file or directory`, `'enterRayLevel' is not a member of 'CShadingContext'`, `'CShadeBatchReport' does not name a type`). `test_link_static_consumer` builds. `Link_StaticConsumer`: `symbol lookup error: libshader_shading.so.1: undefined symbol` at launch, exit 127, both formats. `Link_ShadingSelfContained`: `imports a symbol libRIBRender defines` for exactly the 4 symbols. `Link_NoWorkaroundText` and the six-sub-check `check_scope.cmake` fail as on macOS (S1a 8, S1b 6, S1c 22, S1d 19, S1e 2, S1f 3 failure lines).
+
+### What the red builds do not prove (and the extra check made)
+
+A test that stops at a missing header was compiled by neither compiler past that line, so the red builds say nothing about GCC accepting the rest. Extra check, in the scratchpad only (nothing tracked): a header overlay with the interfaces exactly as the contracts declare them (`photonLookup.h`, `illuminationHook.h`, `pointSource.h`, `shadingProducer.h`, a copy of `shading.h` made `final` and non-polymorphic with the new members, `BatchShape::PointSet`, `hider.h`/`raytracer.h`/`photon.h` stubs, `getPhotonMap` of the two doubles on `IPhotonLookup *`, `CHarnessContext` as an alias of `CShadingContext`) and `-fsyntax-only` of the eight case files with each target's own flags (`-Wall -Wextra -Wpedantic ... -Werror`): **all eight compile with no diagnostic under Apple clang and under GCC 13.3** (T-S2, T-P1, T-B1, T-H1, T-T2, T-G2, T-T1, T-G1). The check found one real bug in my test (`case_ray_level.cpp` used `CRay` without `ray.h`), fixed. What it cannot show: that the contracts' signatures are the ones Phases 3 to 7 land (see the decisions below).
+
+### §1 Phase 2 checkpoint (T042; CP-a to CP-d, CP-m, CP-v)
+
+| | macOS | Linux (GCC 13.3, `-Werror`, `-j2`) |
+|---|---|---|
+| Option | configured back to `-DOPENRENDER_029_RED_TESTS=OFF` | same |
+| CP-a build | exit 0, no warning (the new targets are not in the build; `test_shading_contract_situations` was rebuilt from the unmodified source) | exit 0, 0 warnings |
+| CP-b suite (`-LE determinism-sweep`) | **1069 tests: 1052 passed, 17 "Not Run (Disabled)"** (13 contract + 4 link, the new entries), 1 self-skip as in the baseline; no failure | 1070 tests: **the baseline's failing set** (`CoverageAnalytic_alpha-sides2-tjunction-r4_reyes`, `TextureTile_RenderByteIdentical`, `TextureTile_Cache{ByteIdentical,DefaultDirectory,StaleDetection,ConcurrentWrite}`, `LibShader_McompConsistency`: 7 of 1053 as before), 17 new entries Not Run; 692 s |
+| CP-d images | `image_manifest.sh diff`: 900 images, **0 differing, 0 missing**; every `MaxBlockAvgDiff` equal (the diffs listing equals the baseline's) | 900 images, **0 differing, 0 missing**; diffs listing equal |
+| CP-c architecture | `ctest -L architecture` 21 of 21; `ALLOWED DB-001 x 5, DB-005 x 8, DB-006 x 31, DB-011 x 166`, `RESULT PASS`, `METRIC TOTAL refs 612 (baseline 612)` | 21 of 21; the same `ALLOWED`, `RESULT PASS` |
+| CP-m (`-L '^shading_contract$\|^link$'`) | 55 of 55 pass, 17 Not Run (Disabled), the replay green; `git diff --stat` of `tests/shading_contract/replay` and of `tools/baseline*` empty | 55 pass, 17 Not Run |
+| CP-v | no `static_assert` line of the six files of `renderer-services-version.md` is edited | same tree |
+
+No label added contains the substring `architecture` (`shading_contract`, `link`, `link-package`). The Linux tree was synced with `linux_sync.sh push`/`verify` (3,557 files, 0 differences); `build-logs/overlay` on the remote is scratch (not pushed, not tracked).
+
+### §4 Phase 2 findings and decisions
+
+**Decisions the written tests need from the maintainer at the T043 approval (proposed contract amendments; none is in the contracts):**
+
+- **D1 `shadeBatchObserver` and its report.** The contracts name the observer and not its report. T-G1 is written to this shape (shading.h, beside `CPointKeyReport`): `enum EShadeBranch { SHADEBRANCH_FULL, SHADEBRANCH_DISPLACE_ONLY, SHADEBRANCH_DISPLACE_ESTIMATE, SHADEBRANCH_SHADOW_PRIMITIVE, SHADEBRANCH_SPECULAR_PRIMITIVE, SHADEBRANCH_CAMERA_PRIMITIVE }`; `struct CShadeBatchReport { const CSurface *surface; const openrender::shading::ShaderGlobals *globals; EShadingDim dim; int displaceOnly; int inShadow; int rayDepth; int illuminationHook; EShadeBranch branch; }`; `typedef void (*CShadeBatchObserver)(const CShadeBatchReport &)`; `static CShadeBatchObserver CShadingContext::shadeBatchObserver`, null in production, called once per `shade()` call after the batch is described and before the branch runs (the primitive shortcuts and the displacement passes included). The raw situation facts (`dim`, `displaceOnly`, `inShadow`, `rayDepth`, `illuminationHook`) are in the report, so the expectation never needs `classifyShading()`.
+- **D2 a read of the per-context traced-ray count.** The contracts give `countTracedRay()` and no getter. T-T1 uses `int CShadingContext::tracedRays() const` (read-only, like `vertexMemoryInUse()`).
+- **D3 where `CRayLevel` lives.** `shading-context.md` lists it among the context's members; `hider.md` uses it unqualified from a class that is not the context. T-T2 names the type through `decltype` of `enterRayLevel`'s third parameter, so either placement compiles, and reads the ray label back through the next level's `savedLabel` (the context has no public label accessor).
+- **D4 phase fit.** T-S2 is enabled in Phase 5, so it does not touch the tracer accessor (`tracer()` arrives in Phase 6; T-T1 checks it). T-P1 and T-B1 (Phase 3) and T-H1 (Phase 5) use only what their own phase adds.
+- **D5 `photon_services.h`.** The services double is `final` and answers no photon map, so T-P1 wraps it and points the state's `services` field at the wrapper after the harness built the context. This relies on `CShadingState::services` staying a public field and on the double's `getPhotonMap` becoming `IPhotonLookup *` in Phase 3 (already in the TEST-APPROVAL list).
+- **D6 T-G1's implicit scene.** See F7: the scene's own `(Shadow, Primitive, PointSet)` batch is not required.
+- **D7 P-Q5's patch and the parse bug.** See F6: the maintainer decides whether `situations-parse-fix.patch` joins T-G3 at the Phase 7 approval.
+
+**Findings (out of the plan; reported, not fixed):**
+
+- **F6 (P1 candidate; a defect of an approved test, spec 026).** `ShadingContract_Situations` parses the key observer's lines with `sscanf(line.c_str() + 7, "dim=%d ...")`. A key line is `R key dim=...`, where `dim=` starts at offset 6, so the format never matches and **every key report is read as all zeros** (dim 0, depth 0, no shadow, no hook). Only the `R disp` lines (offset 7) parse. So the 026 test's per-report checks are vacuous for the shaded-grid and ray-hit reports, and the REYES secondary hits that P-Q5 corrects are invisible to it. `tools/situations-parse-fix.patch` (one line: `sscanf(strstr(line.c_str(), "dim="), ...)`) applies on top of `situations-q5.patch`. Measured: without it the P-Q5 patch goes red on one assertion (row 6's classify-only shadow case); with it, on 18 (that one plus 17 x `row 4: classified None/0/0/0, expected Secondary/0/0/0` on the new REYES scene), and the ten scenes of 026 all pass against the corrected table. Recommendation: include the one-line fix in T-G3 at the Phase 7 approval. T-G1 has its own parser and is not affected.
+- **F7 (the implicit fixture draws nothing under the raytrace hider).** `tests/plugins/implicit` (`good.dsply`, a unit-sphere field) loads (a wrong name is reported) and `implicitEval` is called (758 times for a 16 x 16 frame), but the image equals the empty scene's (same md5) and a shader of the object never runs (no marker, as a camera hit or as a shadow occluder under `transmissionhitmode "shader"`). The plan's "implicit-surface shadow hit" therefore cannot be shown with an existing fixture, and I wrote no new plug-in. `sit_row5_shadow_implicit_primitive.rib` is in place and renders; `ShadingContract_ProducerSituations` checks every batch it does produce but does not require the 0-D shadow batch. Options: (a) another implicit fixture, (b) accept the weaker scene, (c) look at `CImplicit::intersect` (a possible defect; not investigated beyond the measurement).
+- **F8 (`dyld_info -fixups` is unusable here).** On this machine (Xcode 27) `dyld_info -fixups libshader_shading` exits 133 after a truncated listing (39,724 lines in one run, 39,587 in another). `-imports` exits 0 and lists the same flat-namespace imports (`(from <flat-namespace>)`). T-L1 uses `dyld_info -imports` and `nm -m` instead of `-fixups` (FR-001's wording). The Phase 1 record `libshader-fixups-base-macos.txt` may therefore be truncated; nothing reads it.
+- **F9 (T-L3 and T-S1 matches and the tasks that remove them).** T-L3's 18 matches: the package block (`openRenderConfig.cmake.in:81,91,95,96`) goes with the Phase 4 deletion; `src/libshader/shading/CMakeLists.txt:85,92,100` with the replaced link options; **`:56` (the `libshader_jitmeta` comment that names `dynamic_lookup`) only if the rewrite of `:50-57` drops that word**; `tests/unit/common/CMakeLists.txt:79,82,83` with T062; `tests/shading_parity/CMakeLists.txt:326,346,368,389` with Phase 4; `load_stub.cpp` with T052. T-S1: S1a/S1b by T046/T047, S1c/S1f by T071/T072, S1d by T087/T090 and the `tracer.h` comment rewrite that `renderer-services-version.md` already lists, S1e by T101. Nothing is left that no task removes.
+- **F10 (T-L2 on Linux).** The plain static consumer fails at launch with `symbol lookup error ... undefined symbol` (exit 127), as T022 measured; macOS aborts in dyld.
+
+**Departures from the plan / tasks:**
+
+- the P-Q5 edit is a patch applied in Phase 7, not an in-place edit (DEP-1, approved); `situations-parse-fix.patch` is new (F6);
+- the gating option and the opt-in option (approved);
+- the new block of `tests/shading_contract/CMakeLists.txt` is at the end of the file (after the Situations registration), not "after :191"; it defines the functions `or029_contract_program` and `add_contract_test_029`; the shared `SHADING_CONTRACT_ENV` gained `SHADING_CONTRACT_IMPLICIT_DIR` (the existing tests see one extra environment variable);
+- T-L1 on macOS uses `dyld_info -imports` (F8);
+- the six new shaders are compiled by a target of their own (`shading_contract_029_shaders`, inside the option), not added to `_contract_shader_names`;
+- T-G1 does not require the implicit scene's own batch (F7).
+
+## T043 approval record (maintainer, 2026-11-02)
+
+The maintainer accepted the written tests and every recommendation of the Phase 2 report.
+
+- **D1** accepted: `CShadeBatchReport { surface, globals, dim, displaceOnly, inShadow, rayDepth, illuminationHook, branch }` with `EShadeBranch` and `CShadingContext::shadeBatchObserver`. **D2** accepted: the read-only `tracedRays()` getter. **D3** accepted: `CRayLevel` is nested in `CShadingContext` and written `CShadingContext::CRayLevel` everywhere. **D4** accepted: `ShadingContext_Standalone` uses only what Phase 5 adds (no `tracer()`). **D5** accepted: `ShadingContract_PhotonLookup` relies on `CShadingState::services` staying public. D1 to D5 are written into the contracts (`shading-context.md`, `hider.md`, `point-source-and-globals.md`, `photon-lookup.md`, `link-and-tests.md`) as amendments of the T043 approval.
+- **D6** accepted: `ShadingContract_ProducerSituations` does not require the implicit scene's own 0-D shadow batch (tasks.md T038). **F7** (the implicit fixture draws nothing under the raytrace hider) is followed up by the coordinator; nothing more is done here.
+- **D7** accepted: `tools/situations-parse-fix.patch` is part of T-G3 (tasks.md T039, T094, T095). **F6 is an in-spec fix of this spec's own edit and is not filed.** Consequence for Phase 7, written into T039 and T095: against today's `classifyShading()` the test is red on 18 assertions, row 6's classify-only shadow case and 17 REYES reflection hits that come out `None` instead of `Secondary`; every one must turn green through the corrected `classifyShading()` (P-Q5) or be explained here before Phase 7 can pass; no expectation is relaxed.
+- **Departures accepted:** the new CMake block is at the end of `tests/shading_contract/CMakeLists.txt`; `SHADING_CONTRACT_IMPLICIT_DIR` is in the shared `SHADING_CONTRACT_ENV`; the six new shaders have a target of their own (`shading_contract_029_shaders`); `Link_ShadingSelfContained` uses `dyld_info -imports` (F8); the Q5 edit is a patch applied in Phase 7.
