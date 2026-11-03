@@ -177,7 +177,8 @@ archcheck_add_fixture(conditional-include 0
 # (and Preview_NoCoreReach, tests/preview), Phase 5 for Compiler_IncludeBoundary, Phase 7 for
 # Precomp_NoHiderCore (tests/precomp). Phase 9 requires that no test carries or038_red.
 # Done in Phase 2: SceneInterface_RibOutNoCore, _NoCoreInclude and _HooksAndRecords now carry architecture;
-# in Phase 3: SceneInterface_ActiveContextAssignments.
+# in Phase 3: SceneInterface_ActiveContextAssignments; in Phase 4: SceneInterface_RibVectorResidual and
+# Preview_NoCoreReach (tests/preview).
 set(OR038_MAP ${CMAKE_CURRENT_SOURCE_DIR}/domain-map.txt)
 set(OR038_COMMON
     -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
@@ -223,10 +224,10 @@ add_test(NAME Compiler_IncludeBoundary
         -DCOMPILER_BINARY_DIR=${CMAKE_BINARY_DIR}/src/libshader/compiler
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_compiler_include_boundary.cmake)
 
-foreach(_t SceneInterface_RibVectorResidual Compiler_IncludeBoundary)
+foreach(_t Compiler_IncludeBoundary)
     set_tests_properties(${_t} PROPERTIES TIMEOUT 60 LABELS "or038_red")
 endforeach()
-# Green since Phase 2 / 3 (spec 038): permanent architecture checks
-foreach(_t SceneInterface_RibOutNoCore SceneInterface_NoCoreInclude SceneInterface_HooksAndRecords SceneInterface_ActiveContextAssignments)
+# Green since Phase 2 / 3 / 4 (spec 038): permanent architecture checks
+foreach(_t SceneInterface_RibOutNoCore SceneInterface_NoCoreInclude SceneInterface_HooksAndRecords SceneInterface_ActiveContextAssignments SceneInterface_RibVectorResidual)
     set_tests_properties(${_t} PROPERTIES TIMEOUT 60 LABELS "architecture")
 endforeach()

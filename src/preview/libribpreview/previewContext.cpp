@@ -6,9 +6,8 @@
 #include "points.h"
 #include "polygons.h"
 #include "quadrics.h"
-#include "renderer.h"
 #include "rib.h"
-#include "riDiagnostics.h"
+#include "riHooks.h"
 #include "ribpreview_api.h"
 #include "subdivisionCreator.h"
 #include "tessellators/tessCurve.h"
@@ -187,21 +186,35 @@ void CPreviewContext::updateBounds(const float3 &p) {
 
 // ─── C API ────────────────────────────────────────────────────────────────────
 
-PreviewSceneC *ribpreview_load(const char *ribPath) {
-    CRenderer::initDeclarations();
-    globalArena.init();
-    RiBeginLite();
+// The preview registers itself as the Scene Interface back-end "preview" (riHooks.h), in the translation unit
+// that defines ribpreview_load so that a program calling it links the registration even from this static library.
+namespace {
+    CRiInterface *makePreviewContext(void *) {
+        return new CPreviewContext();
+    }
 
-    // The context is installed explicitly; deleting it after the parse uninstalls it, which hands the
-    // diagnostics back to the sink that was installed before it.
-    CPreviewContext *ctx = new CPreviewContext();
-    riInstallContext(ctx);
-    ribParse(ribPath, nullptr);
-    PreviewScene scene = std::move(ctx->result_);
-    delete ctx;
+    struct CPreviewRegistrar {
+            CPreviewRegistrar() {
+                RiRegisterBackEnd("preview", &makePreviewContext);
+            }
+    };
+    const CPreviewRegistrar g_previewRegistrar;
+} // namespace
+
+PreviewSceneC *ribpreview_load(const char *ribPath) {
+    globalArena.init();
+
+    // The light session installs the context; ending it deletes the context, which uninstalls it and hands the
+    // diagnostics back to the sink that was installed before it, and releases the standard services.
+    CPreviewContext *ctx = static_cast<CPreviewContext *>(RiBeginBackEnd("preview", nullptr));
+    PreviewScene scene; // empty when the session could not begin (the reason is already reported)
+    if (ctx != nullptr) {
+        ribParse(ribPath, nullptr);
+        scene = std::move(ctx->result_);
+        RiEndBackEnd(ctx);
+    }
 
     globalArena.tini();
-    CRenderer::shutdownDeclarations();
 
     // Synthesize valid clipping if no camera was set.
     PreviewCamera &cam = scene.camera;

@@ -60,12 +60,11 @@ set_tests_properties(test_preview_integration PROPERTIES
 #                                suite (reference/<platform>/<scene>.txt), run from the repository root.
 #                                Green on the starting tree by design.
 #   Preview_NoCoreReach          cmake -P: libribpreview includes no Core header and no object of it needs a
-#                                CRenderer / CRendererContext symbol. Red until Phase 4, so it carries the
-#                                temporary label or038_red (tests/architecture/CMakeLists.txt).
+#                                CRenderer / CRendererContext symbol. Green since Phase 4; labels preview and
+#                                architecture.
 #   Preview_SelfRegistration     a program linking libribpreview alone gets its context from
-#                                RiBeginBackEnd("preview", nullptr). DISABLED, with an EXCLUDE_FROM_ALL executable
-#                                that does not compile on the starting tree (RiBeginBackEnd does not exist): that
-#                                failure is its red evidence (decision A). Enabled in Phase 4.
+#                                RiBeginBackEnd("preview", nullptr). Enabled in Phase 4 (it was DISABLED, with an
+#                                EXCLUDE_FROM_ALL executable that did not compile while RiBeginBackEnd did not exist).
 # ---------------------------------------------------------------------------------------------------------
 add_executable(test_preview_extraction_unchanged test_extraction_unchanged.cpp)
 target_include_directories(test_preview_extraction_unchanged PRIVATE ${PREVIEW_TEST_INCLUDES}
@@ -104,9 +103,9 @@ add_test(NAME Preview_NoCoreReach
             -DSOURCE_DIR=${CMAKE_SOURCE_DIR} -DBUILD_DIR=${CMAKE_BINARY_DIR}
             -DMAP=${CMAKE_SOURCE_DIR}/tests/architecture/domain-map.txt
             -P ${CMAKE_CURRENT_SOURCE_DIR}/check_preview_no_core_reach.cmake)
-set_tests_properties(Preview_NoCoreReach PROPERTIES TIMEOUT 60 LABELS "preview;or038_red")
+set_tests_properties(Preview_NoCoreReach PROPERTIES TIMEOUT 60 LABELS "preview;architecture")
 
-add_executable(test_preview_self_registration EXCLUDE_FROM_ALL test_self_registration.cpp)
+add_executable(test_preview_self_registration test_self_registration.cpp)
 target_include_directories(test_preview_self_registration PRIVATE ${PREVIEW_TEST_INCLUDES}
     ${CMAKE_SOURCE_DIR}/tests/unit/scene_interface)
 target_link_libraries(test_preview_self_registration PRIVATE ribpreview openrendercommon)
@@ -116,5 +115,4 @@ add_test(NAME Preview_SelfRegistration
 set_tests_properties(Preview_SelfRegistration PROPERTIES
     TIMEOUT 60
     LABELS "preview"
-    ENVIRONMENT "${PREVIEW_TEST_ENV}"
-    DISABLED TRUE)
+    ENVIRONMENT "${PREVIEW_TEST_ENV}")

@@ -37,6 +37,17 @@ target_include_directories(ribpreview PUBLIC
 )
 
 target_link_libraries(ribpreview PUBLIC ribVector openrendercommon)
+
+# The preview registers itself as the Scene Interface back-end "preview" with a static initializer in
+# previewContext.cpp (spec 038). In a static archive the linker keeps an object only when something
+# references it, so a program that links libribpreview and begins the back-end without calling
+# ribpreview_load() would not get the registration. Every link of this library therefore references
+# ribpreview_load, which pulls previewContext.cpp.o (and its registrar) in.
+if(APPLE)
+    target_link_options(ribpreview INTERFACE "LINKER:-u,_ribpreview_load")
+else()
+    target_link_options(ribpreview INTERFACE "LINKER:-u,ribpreview_load")
+endif()
 target_compile_features(ribpreview PRIVATE cxx_std_20)
 
 # Suppress C++20 deprecation warning noise from ri headers

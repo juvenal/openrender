@@ -7,8 +7,6 @@
 #include "points.h"
 #include "polygons.h"
 #include "quadrics.h"
-#include "renderer.h"
-#include "rendererContext.h" // for CDelayedInstance, addInstance pattern
 #include "ri.h"
 #include "rib.h"
 #include "subdivisionCreator.h"

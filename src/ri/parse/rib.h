@@ -29,6 +29,17 @@
 
 void ribParse(const char *, void (*callback)(const char *, ...));
 void parserCleanup();
-void RiBeginLite();
+
+class CRiInterface;
+
+// Begin a session with the back-end registered under key (riHooks.h), without RiBegin's full start (no
+// .orenderrc, no network, no frame range): a CRiStandardSession, RiInit, the factory's context, riInstallContext.
+// Returns the context, or nullptr after an error report when no back-end is registered under key or a context
+// is already active ("Already started"). One light session at a time.
+CRiInterface *RiBeginBackEnd(const char *key, void *argument);
+
+// End it: delete the context (which uninstalls it) and end the standard session. Like RiBegin's light
+// predecessor it does not run RiTini.
+void RiEndBackEnd(CRiInterface *context);
 
 #endif
