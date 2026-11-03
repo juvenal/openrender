@@ -324,3 +324,30 @@ The diff was applied as written (`case_photon_lookup.cpp`, `case_canned_bundles.
 | CP-v | no `static_assert` line edited | same tree |
 
 Imports: macOS 0 dynamically looked up (was 4); Linux 461 undefined symbols (465 before), none of the four, none defined by `libRIBRender`. Findings of the phase: F11 is GitHub #145 and F12 is GitHub #146 (both P1, out of spec); the remaining Phase 3 tests are green.
+
+## Phase 4 (US1 and US2: the link; no allowlist line)
+
+T058 was approved as written. Edits: T-L2 `Link_StaticConsumer` and T-L3 `Link_NoWorkaroundText` enabled (T059); `src/libshader/shading/CMakeLists.txt` (T060: no `-undefined dynamic_lookup` on macOS, `LINKER:--no-undefined` on ELF, no INTERFACE `--allow-shlib-undefined`, header and jitmeta comments rewritten); `CMake/openRenderConfig.cmake.in`, `INSTALL_ARTIFACTS.md`, `DEVNOTES_DETAILS/OSHADER_UPDATES.md` (T061); the approved test CMake relinks (T062): `tests/unit/common/CMakeLists.txt` (plain `ribRender_static` link), `tests/shading_parity/CMakeLists.txt` (the four `--no-as-needed` options and comments removed), `src/libshader/tests/CMakeLists.txt` (`LibShader_McompConsistency` without `ribRender`).
+
+T059 evidence: before the edits `Link_NoWorkaroundText` was red with 17 matches, `Link_StaticConsumer` green (its red was Phase 1/2's launch abort); the scratch mutation (re-adding `-undefined dynamic_lookup` to a copy of a scanned file) turned T-L3 red and the revert turned it green. T-L3 scans comments too: the replacement comments avoid the six words.
+
+**Departure D8 (ribRender kept on two targets).** T058 allowed dropping `ribRender` from `test_shading_service_lookup` and `test_shading_no_services` "if the relinked test calls no `libRIBRender` symbol". Dropping it failed to compile, not to link: both include `shading.h` -> `shader.h` -> `stateHandles.h` / `ri_config.h` and `ri/parse/ri.h`, and `ribRender` supplies those include directories (PUBLIC). `nm -mu` of the built binaries lists 0 `libRIBRender` symbols, so the link needs nothing from it; replicating the include directories by hand would be brittle, so both keep `ribRender` for its include interface only and their comments say so. `test_shading_context_no_services` and `test_shading_state_services` keep it (they call `RiBegin`). `test_libshader_mcomp_consistency` dropped `ribRender` and builds, links and passes on both hosts (no `libRIBRender` include needed).
+
+**P-Q17 (T063).** `test_common_crosslib_static` links plainly. `nm` of the built binary shows `CRendererServicesImpl` (the backend) linked in, and cases 0 (two `RiBegin`/`RiEnd` sessions seen by a capture sink) and 2 (the `error()` `libshader_shading` binds to) pass: the sessions ran against a registered backend, the pass is not vacuous.
+
+Scope grep (T064): `grep -rnE 'force_load|whole-archive|export-dynamic|allow-shlib-undefined|dynamic_lookup|no-as-needed' CMake src/libshader tests/unit/common tests/shading_parity src/libshader/tests` finds nothing; `tests/shading_contract/load_stub.cpp` absent. `tests/plugins/dynamicload` still uses `-undefined dynamic_lookup` for its plug-in DSOs (out of scope, as the task says). Stale `link.txt` files of targets that are no longer generated (the red-test targets of the Linux tree, `build/tests/plugins/checks/install_layouts/*/tree`) still carry old flags; they are not in any Makefile.
+
+### Phase 4 CHECKPOINT 4
+
+| | macOS | Linux (GCC 13, `-Werror`, `-j2`) |
+|---|---|---|
+| CP-a build | exit 0, 0 warnings; `link.txt` of `libshader_shading` has no `dynamic_lookup`; `nm -m` 0 dynamically looked up, `dyld_info -imports` 0 flat-namespace | exit 0; link line has `--no-undefined` and links (no fifth undefined symbol); no live `link.txt` carries `--allow-shlib-undefined` or `--no-as-needed` |
+| CP-b suite | **1060 of 1060 pass** (the baseline's skip excepted) | 1061 tests, 6 fail: the baseline's set, **`LibShader_McompConsistency` (#44) now passes (SC-009)**: `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes` #57, `TextureTile_RenderByteIdentical` #45, `TextureTile_Cache{ByteIdentical,DefaultDirectory,StaleDetection,ConcurrentWrite}` #46 |
+| CP-d images | 900, **0 differing, 0 missing**, 1 not in manifest (`tests/link/cwd/Link_StaticConsumer/static_consumer.tif`, written by the newly enabled T-L2); `MaxBlockAvgDiff` listing equal | same: 0 / 0, 1 not in manifest; listing equal |
+| CP-c architecture | 21 of 21; `ALLOWED DB-004 x 52, DB-006 x 31, DB-010 x 8, DB-011 x 166, DB-015 x 10, DB-017 x 78, DB-025 x 12` (DB-001, DB-005 absent = 0); `RESULT PASS`; TOTAL refs 612 (baseline 612) | same `ALLOWED`; 21 of 21; `RESULT PASS` |
+| CP-m (`-L '^shading_contract$\|^link$'`) | 63 of 63 pass, 9 Not Run (Disabled); `Link_ShadingSelfContained`, `Link_StaticConsumer`, `Link_NoWorkaroundText` green; replay and `tools/baseline*` unchanged | 63 of 63 pass, 9 Not Run (Disabled); same three green |
+| CP-v | no `static_assert` line edited | same tree |
+
+Imports: macOS 0 dynamically looked up (`tools/libshader-imports-after-macos.txt`); Linux 461 undefined dynamic symbols, none defined by `libRIBRender` (`tools/libshader-imports-after-linux.txt`); the library now links with the linker enforcing it. Linux push 3561 files, 0 differences; pull 16 files, 0 differences.
+
+The `ShadingServices_*` targets on Linux were not re-examined for `--as-needed` dropping `ribRender` from NEEDED beyond the green run: all four pass.

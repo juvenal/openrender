@@ -33,9 +33,10 @@ add_test(NAME Link_ShadingSelfContained
 set_tests_properties(Link_ShadingSelfContained PROPERTIES TIMEOUT 120 LABELS "link")
 
 # ---- T-L3 ------------------------------------------------------------------------------------------------------
-add_or029_script_test(Link_NoWorkaroundText 60
-    "-DSOURCE_DIR=${CMAKE_SOURCE_DIR}"
-    -P ${CMAKE_CURRENT_SOURCE_DIR}/check_no_workaround_text.cmake)
+# Enabled in Phase 4 (registered like an ordinary test; no DISABLED marker)
+add_test(NAME Link_NoWorkaroundText
+    COMMAND ${CMAKE_COMMAND} "-DSOURCE_DIR=${CMAKE_SOURCE_DIR}" -P ${CMAKE_CURRENT_SOURCE_DIR}/check_no_workaround_text.cmake)
+set_tests_properties(Link_NoWorkaroundText PROPERTIES TIMEOUT 60 LABELS "link")
 
 # ---- T-S1 ------------------------------------------------------------------------------------------------------
 # The include path of the shading library is read from the generated compile_commands.json when it exists and from
@@ -48,35 +49,25 @@ add_test(NAME ShadingScope_Greps
 set_tests_properties(ShadingScope_Greps PROPERTIES TIMEOUT 60 LABELS "link")
 
 # ---- T-L2 ------------------------------------------------------------------------------------------------------
-# A program linked plainly against ribRender_static (no force-load, whole-archive or export-dynamic): its own
-# executable, defined only in the red block until Phase 4 (it aborts at launch today).
-if(OPENRENDER_029_RED_TESTS)
-    add_executable(test_link_static_consumer static_consumer.cpp)
-    target_compile_features(test_link_static_consumer PRIVATE cxx_std_20)
-    target_include_directories(test_link_static_consumer PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/ri/parse)
-    target_link_libraries(test_link_static_consumer PRIVATE openrender_common_flags ribRender_static libshader_shading openrendercommon ${CMAKE_DL_LIBS})
-    add_dependencies(test_link_static_consumer openrender_shaders)
-endif()
+# A program linked plainly against ribRender_static (no force-load, whole-archive or export-dynamic). Enabled in
+# Phase 4 (it joined the normal build then; before, it aborted at launch).
+add_executable(test_link_static_consumer static_consumer.cpp)
+target_compile_features(test_link_static_consumer PRIVATE cxx_std_20)
+target_include_directories(test_link_static_consumer PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/ri/parse)
+target_link_libraries(test_link_static_consumer PRIVATE openrender_common_flags ribRender_static libshader_shading openrendercommon ${CMAKE_DL_LIBS})
+add_dependencies(test_link_static_consumer openrender_shaders)
 
 set(OR029_STATIC_CONSUMER_FORMATS rslo)
 if(OPENRENDER_HAVE_LLVM)
     list(APPEND OR029_STATIC_CONSUMER_FORMATS slo)
 endif()
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cwd/Link_StaticConsumer)
-if(OPENRENDER_029_RED_TESTS)
-    set(_consumer_exe "$<TARGET_FILE:test_link_static_consumer>")
-else()
-    set(_consumer_exe "${CMAKE_COMMAND}")   # placeholder: the test is DISABLED and the target is not in this build
-endif()
 add_test(NAME Link_StaticConsumer
-    COMMAND ${CMAKE_COMMAND} "-DEXE=${_consumer_exe}" "-DFORMATS=${OR029_STATIC_CONSUMER_FORMATS}"
+    COMMAND ${CMAKE_COMMAND} "-DEXE=$<TARGET_FILE:test_link_static_consumer>" "-DFORMATS=${OR029_STATIC_CONSUMER_FORMATS}"
             -P ${CMAKE_CURRENT_SOURCE_DIR}/run_static_consumer.cmake
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cwd/Link_StaticConsumer)
 set_tests_properties(Link_StaticConsumer PROPERTIES TIMEOUT 300 LABELS "link"
     ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>")
-if(NOT OPENRENDER_029_RED_TESTS)
-    set_tests_properties(Link_StaticConsumer PROPERTIES DISABLED TRUE)
-endif()
 
 # ---- T-L4 ------------------------------------------------------------------------------------------------------
 # Opt-in: configures, builds and installs a scratch copy of this tree (CMAKE_INSTALL_PREFIX=<scratch>, so GitHub #23 is

@@ -184,12 +184,12 @@ format from the first two bytes:
 Reports shader name, type, parameters (name, type, storage class, default value).
 `rsloinfo` is a compatibility symlink to `sloinfo` for the `.rslo`-only inspector workflow.
 
-**Linking (`libshader_jitmeta`, macOS eager-bind crash)**: `sloinfo`/`rsloinfo` deliberately
+**Linking (`libshader_jitmeta`, history: the macOS eager-bind crash)**. Since spec 029 `libshader_shading` imports no renderer symbol (no `-undefined dynamic_lookup`), so the crash below cannot recur; the split stays because `sloinfo` needs neither the LLVM JIT nor a renderer. The story as it was: `sloinfo`/`rsloinfo` deliberately
 do not link `libri` or the full `libshader_shading` .dylib. For `.slo` inspection they need
 only `CLLVMJitEngine::extractMetadataFromFile()`, a pure LLVM-bitcode metadata probe with no
 `ri`/`CRenderer` dependency — but macOS dyld binds *all* data/vtable/RTTI cross-library
 references in a loaded image eagerly at load time, regardless of whether the owning code path
-ever executes. Linking the whole `libshader_shading` .dylib (whose `-undefined dynamic_lookup`
+ever executes. Linking the whole `libshader_shading` .dylib (whose then-existing `-undefined dynamic_lookup`
 symbols like `CRenderer::globalMemory`, `stats`, and RTTI/vtables for `CTraceBundle` et al. are
 meant to resolve only once `ri.dylib` loads it) therefore aborted `sloinfo` at startup even
 though the metadata probe itself never touched those symbols. Fix: `extractMetadataFromFile`/

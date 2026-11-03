@@ -1,0 +1,4 @@
+# Phase 4 (T063), macOS: libshader_shading imports after the link workarounds were removed (no -undefined dynamic_lookup)
+# command: nm -m build/src/libshader/shading/libshader_shading.1.0.0.dylib | grep 'dynamically looked up' | c++filt
+# dynamically looked up count: 0
+# dyld_info -imports flat-namespace count: 0

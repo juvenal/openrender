@@ -90,11 +90,8 @@ message(STATUS "  - LibShader_AtmosphereBuiltin / LibShader_DebugBuiltin (GitHub
 # shared by the JIT and, via scriptFunctions.h's mirrored macros, the
 # interpreter) used different index formulas for the matrix form, so
 # comp() read the transpose of what setcomp() wrote. The two functions
-# under test are pure free functions (no CShadingContext), but
-# libshader_shading.dylib itself is not self-contained -- it has
-# undefined references to CRenderer:: statics (normally provided by
-# ribRender) resolved at dyld load time regardless of which functions a
-# given caller actually calls, so ribRender must be linked too.
+# under test are pure free functions (no CShadingContext), and since spec 029
+# libshader_shading is self-contained: the test links no renderer library.
 # ---------------------------------------------------------------------------
 add_executable(test_libshader_mcomp_consistency test_mcomp_consistency.cpp)
 
@@ -106,7 +103,6 @@ target_include_directories(test_libshader_mcomp_consistency PRIVATE
 )
 
 target_link_libraries(test_libshader_mcomp_consistency PRIVATE
-    ribRender
     libshader_shading
     openrendercommon
 )

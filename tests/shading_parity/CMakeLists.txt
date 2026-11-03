@@ -314,16 +314,12 @@ if(OPENRENDER_HAVE_LLVM)
 endif()
 
 # Spec 024 (shading services routing), US2: the libshader::lookup* helpers
-# (serviceLookup.h) return what the installed services return. Linked against
-# ribRender because libshader_shading still leaves some imports (the hiders and
-# the texturing code) unresolved; on Linux the load would fail without it, as
-# LibShader_McompConsistency does.
+# (serviceLookup.h) return what the installed services return. libshader_shading
+# is self-contained (spec 029); ribRender is linked for its include directories
+# (shading.h reaches the renderer's state headers), not for a symbol: Linux's
+# --as-needed drops it from the executable's NEEDED list and the test still loads.
 add_executable(test_shading_service_lookup test_service_lookup.cpp)
 target_link_libraries(test_shading_service_lookup PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
-# These two tests reference no libRIBRender symbol, so Ubuntu's GCC (--as-needed by default)
-# drops libRIBRender from the executable's NEEDED list, and libshader_shading's remaining
-# imports (the 7 DB-001 symbols, GitHub #44) then fail to resolve at load time. Keep it.
-target_link_options(test_shading_service_lookup PRIVATE $<$<PLATFORM_ID:Linux>:LINKER:--no-as-needed>)
 target_include_directories(test_shading_service_lookup PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_BINARY_DIR}
@@ -338,12 +334,10 @@ set_tests_properties(ShadingServices_Lookup PROPERTIES
 # Spec 024 (shading services routing), US3: with no services installed every
 # routed lookup returns its not-found value and warns once per kind, and an
 # unresolved light category is skipped. Runs in its own process with no
-# RiBegin() and no CShadingContext (GitHub #53). ribRender only resolves
-# libshader_shading's remaining imports; the test never calls into it.
+# RiBegin() and no CShadingContext (GitHub #53). ribRender is linked for
+# its include directories only, as in test_shading_service_lookup.
 add_executable(test_shading_no_services test_no_services.cpp)
 target_link_libraries(test_shading_no_services PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
-# Same reason as test_shading_service_lookup: keep libRIBRender NEEDED on Linux (GitHub #44).
-target_link_options(test_shading_no_services PRIVATE $<$<PLATFORM_ID:Linux>:LINKER:--no-as-needed>)
 target_include_directories(test_shading_no_services PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_BINARY_DIR}
@@ -364,8 +358,6 @@ set_tests_properties(ShadingServices_NoServices PROPERTIES
 # default shaders at RiWorldBegin.
 add_executable(test_shading_context_no_services test_context_no_services.cpp)
 target_link_libraries(test_shading_context_no_services PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
-# Same reason as test_shading_service_lookup: keep libRIBRender NEEDED on Linux (GitHub #44).
-target_link_options(test_shading_context_no_services PRIVATE $<$<PLATFORM_ID:Linux>:LINKER:--no-as-needed>)
 target_include_directories(test_shading_context_no_services PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_BINARY_DIR}
@@ -385,8 +377,6 @@ set_tests_properties(ShadingServices_ContextNoServices PROPERTIES
 # process per case (argv[1]), so a crash in one case cannot hide another.
 add_executable(test_shading_state_services test_state_services.cpp)
 target_link_libraries(test_shading_state_services PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
-# Same reason as test_shading_service_lookup: keep libRIBRender NEEDED on Linux (GitHub #44).
-target_link_options(test_shading_state_services PRIVATE $<$<PLATFORM_ID:Linux>:LINKER:--no-as-needed>)
 target_include_directories(test_shading_state_services PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_BINARY_DIR}
