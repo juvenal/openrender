@@ -30,6 +30,7 @@
 #include "csgSolid.h"
 #include "csgTestUtils.h"
 #include "delayed.h"
+#include "delayedData.h"
 #include "quadrics.h"
 #include "common/stats.h"
 

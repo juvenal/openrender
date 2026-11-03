@@ -72,7 +72,7 @@ Users of the table statics outside `rendererDeclarations*.cpp`: `rendererService
 | Sequence | Init | Parse | Teardown |
 |---|---|---|---|
 | Renderer session | `CRendererContext` ctor → `beginRenderer()` → `initDeclarations()` (`renderer.cpp:114`) | everything until `RiEnd` | `endRenderer()` → `shutdownDeclarations()` (`renderer.cpp:160`) |
-| Writer mode `RiBegin(<plain name>)` / `OPENRENDER_RUNPROGRAM` | `ri.cpp:407-409`, only if `$ORENDERHOME/.orenderrc` exists | `.orenderrc` only | `ri.cpp:414-417` |
+| Writer mode `RiBegin(<plain name>)` / `OPENRENDER_RUNPROGRAM` | `ri.cpp:407-409`, in RIB-writer mode (`ribOutMode`) only and only if `$ORENDERHOME/.orenderrc` exists | `.orenderrc` only | `ri.cpp:414-417` |
 | Writer tests (`RibOut_ShaderStatementOrder`, `test_sampling_option_roundtrip.cpp:91-95`) | the test calls `CRenderer::initDeclarations()` after `RiBegin` | the test's RIB | the test calls `shutdownDeclarations()` before `RiEnd` |
 | Preview `ribpreview_load` | `previewContext.cpp:191` | one RIB | `previewContext.cpp:209` |
 | Data viewer `CDataDocument::open` | `dataLoad.cpp:165` | none (readers) | the document's destructor, `dataLoad.cpp:144` |

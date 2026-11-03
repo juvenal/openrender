@@ -6,7 +6,7 @@
 #   SceneInterface_IfCharacterization    characterization (regression): the branches the `if` evaluator takes
 #   SceneInterface_ContextInstall        rule 1 of the active-context contract; red at run time until Phase 3
 #   SceneInterface_ContextInstallRules   rules 2-6; DISABLED + EXCLUDE_FROM_ALL until Phase 3 (does not compile)
-#   SceneInterface_Services              the services; DISABLED + EXCLUDE_FROM_ALL until Phase 2 (does not compile)
+#   SceneInterface_Services              the services (enabled in Phase 2)
 # and the program capture_scene_interface_declared_set, which writes reference/declared_set.txt from the
 # unmodified CRenderer::initDeclarations(). The references are written by the build target
 # scene-interface-capture-baselines (tests/CMakeLists.txt), never by a ctest run.
@@ -70,10 +70,10 @@ set_tests_properties(SceneInterface_ContextInstallRules PROPERTIES TIMEOUT 60 LA
     ENVIRONMENT "${SI_ENV}" DISABLED TRUE)
 
 # --- the services (contracts/scene-services.md) ---
-si_executable(test_scene_interface_services test_services.cpp EXCLUDE_FROM_ALL LIBS ribRender)
+si_executable(test_scene_interface_services test_services.cpp LIBS ribRender)
 add_test(NAME SceneInterface_Services COMMAND test_scene_interface_services ${SI_REFERENCE} ${SI_WORK}/services)
 set_tests_properties(SceneInterface_Services PROPERTIES TIMEOUT 120 LABELS "common;scene_interface"
-    ENVIRONMENT "${SI_ENV}" DISABLED TRUE)
+    ENVIRONMENT "${SI_ENV}")
 
 # --- the capture of this directory's references (scene-interface-capture-baselines, tests/CMakeLists.txt) ---
 set(SI_CAPTURE_FLAGS ${OR038_CAPTURE_FLAG} ${OR038_RECAPTURE_FLAG})

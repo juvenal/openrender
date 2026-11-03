@@ -275,7 +275,7 @@ JIT cases) are registered under `if(OPENRENDER_ENABLE_JIT)`.
   core's `initDeclarations`/`shutdownDeclarations` on `CDeclarations` plus its own services;
   `notifyGlobalVariable` replacing `makeGlobalVariable`; the table statics out of `renderer.h`.
 - `rib.y`, `rib.l`, `ri.cpp` on the services; the dead branch deleted; the writer branch's standard
-  session; `ifexpr.y` → `riEvaluateCondition`; `CRendererContext::ifParse` deleted.
+  session (`ribOutMode` only); `ifexpr.y` → `riEvaluateCondition`; `CRendererContext::ifParse` deleted.
 - `git mv` of `riHooks.h`; `delayedData.h`; the two `CDelayedData` test includes (approved at this
   phase's stop).
 - `ribOut_sources` without Core files; `ifexpr_generated.cpp` in the three targets (Q6).

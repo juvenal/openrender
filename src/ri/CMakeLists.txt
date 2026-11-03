@@ -113,6 +113,7 @@ set(ri_sources
 	geometry/patches.cpp
 	geometry/patchgrid.cpp
 	state/channelRegistry.cpp
+	state/declarations.cpp
 	state/pl.cpp
 	state/shaderParameterHooks.cpp
 	geometry/points.cpp
@@ -144,6 +145,7 @@ set(ri_sources
 	parse/ri.cpp
 #	rib.cpp
 	parse/riInterface.cpp
+	parse/riServices.cpp
 	output/ribOut.cpp
 #	sl.cpp
 	geometry/subdivision.cpp
@@ -380,7 +382,6 @@ list(REMOVE_ITEM ribVector_sources
     hiders/stochastic.cpp
     hiders/trace.cpp
     hiders/zbuffer.cpp
-    ifexpr_generated.cpp
     render/imager.cpp
     geometry/implicitSurface.cpp
     render/init.cpp
@@ -498,10 +499,10 @@ install(TARGETS ribVector_static EXPORT openRenderStaticTargets
 # CRendererContext or CRibOut directly, precisely so a consumer that links
 # only one of them never pulls in the others' dependencies).
 #
-# ifexpr_generated.cpp is excluded for the same reason it is for ribVector:
-# it defines CRendererContext::ifParse(), called only from the two
-# RiIfBeginV/RiElseIfV sites in rendererContext.cpp, which ribOut doesn't
-# link either.
+# ifexpr_generated.cpp is compiled into ribOut, ribVector and ribRender alike (spec 038):
+# it defines riEvaluateCondition(), a Scene Interface function with no core dependency
+# (called only from the two RiIfBeginV/RiElseIfV sites in rendererContext.cpp, so
+# nothing in ribOut or ribVector calls it).
 #
 # Note: CRibOut doesn't override getAttributes()/getOptions()/getXform() (it
 # has no real CAttributes/COptions/CXform to return), so it inherits
@@ -517,16 +518,16 @@ set(ribOut_sources
     parse/error.cpp
     parse/ri.cpp
     parse/riInterface.cpp
-    render/rendererDeclarations.cpp
-    render/rendererFileSearch.cpp
-    render/rendererMutexes.cpp
-    render/rendererNetwork.cpp
-    render/rendererStatics.cpp
+    parse/riServices.cpp
+    state/attributes.cpp
     state/channelRegistry.cpp
+    state/declarations.cpp
     state/displayChannel.cpp
+    state/options.cpp
+    state/shaderParameterHooks.cpp
     state/variableLookup.cpp
-    vector/rendererDeclarationsDispatchStub.cpp
     rib_generated.cpp
+    ifexpr_generated.cpp
 )
 
 add_library(ribOut_obj OBJECT ${ribOut_sources} ${ri_headers})

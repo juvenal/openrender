@@ -129,7 +129,7 @@ finds a bare name that exists only in the working directory. 038 does not fix #1
 | `rib.l:178` `CRenderer::locateFile(...)` | `riLocateFile(...)`; and `rib.l:170` `renderMan->getOptions()`, unchecked today, becomes `renderMan ? renderMan->getOptions() : NULL` so a parse with no active context is safe (a test case in `SceneInterface_Services`) |
 | `ifexpr.y:203-224` `cAttributes->find(...)` / `cOptions->find(...)` | a `nullptr` from `getAttributes(TRUE)`/`getOptions()` is "not found" (a test case) |
 | `rib.y:39-40`, `ifexpr.y:28-29` core includes | deleted; `riServices.h`, `riCondition.h` and the State headers the code really needs |
-| `ri.cpp:407-417` writer bootstrap | `{ CRiStandardSession session; globalArena.init(); ribParse(rcPath, NULL); globalArena.tini(); }` (same scope as today) |
+| `ri.cpp:407-417` writer bootstrap | `{ CRiStandardSession session; globalArena.init(); ribParse(rcPath, NULL); globalArena.tini(); }` (same scope as today), only `if (ribOutMode)`: in the renderer path `ribParse(rcPath, NULL)` runs bare, `beginRenderer()` having initialized both |
 
 ## 5. Behaviour that must not change
 

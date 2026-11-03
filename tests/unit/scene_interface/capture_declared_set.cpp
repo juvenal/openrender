@@ -33,6 +33,7 @@
 #include <string>
 
 #include "common/memory.h"
+#include "declarations.h"
 #include "renderer.h"
 #include "scene_interface_testing.h"
 
@@ -46,8 +47,8 @@ int main(int argc, char **argv) {
     globalArena.init();
     CRenderer::initDeclarations();
 
-    const std::string text = sitest::declaredSetText(CRenderer::variables, CRenderer::globalVariables->numItems, [](int i) {
-        return static_cast<const CVariable *>(CRenderer::globalVariables->array[i]);
+    const std::string text = sitest::declaredSetText(CDeclarations::variableList(), CDeclarations::numGlobals(), [](int i) {
+        return static_cast<const CVariable *>(CDeclarations::global(i));
     });
 
     CRenderer::shutdownDeclarations();

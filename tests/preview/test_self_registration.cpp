@@ -13,14 +13,12 @@
  *   2. RiBeginBackEnd("nonexistent", nullptr) prints "Back-end \"nonexistent\" is not available in this build
  *      (none registered)", returns nullptr, and leaves the light-session slot free (a following
  *      RiBeginBackEnd("preview", nullptr) succeeds).
- *   3. FR-014, the unchanged diagnostics of RiBegin in this program: RiBegin("#x") prints the existing
- *      "Full-render mode is not available in this build" text (ri.cpp:315), because no renderer context is
- *      registered. RiBegin("file.rib") does NOT print the RIB-output text in this program: libribpreview
- *      links libRIBVector, which compiles output/ribOut.cpp and so registers the RIB writer (checked on the
- *      starting tree with nm: g_ribOutRegistrar is in libRIBVector). The case asserts that unchanged
- *      behaviour (a writer is active and wrote file.rib) and is reported to the maintainer: tasks.md T037 and
- *      FR-014 expect the "RIB-output mode is not available" text here, which only a program that links
- *      neither libRIBVector nor libRIBOut can produce.
+ *   3. FR-014 (as corrected at the T049 approval): RiBegin("#x") prints the existing "Full-render mode is
+ *      not available in this build" text (ri.cpp:315), because no renderer context is registered.
+ *      RiBegin("file.rib") keeps writing the file and prints no diagnostic: libribpreview links libRIBVector,
+ *      which compiles output/ribOut.cpp and so registers the RIB writer (g_ribOutRegistrar is in
+ *      libRIBVector). Only a program that links neither libRIBVector nor libRIBOut prints "RIB-output mode
+ *      is not available in this build". The case asserts that a writer is active and wrote file.rib.
  *
  *   DISABLED, with an EXCLUDE_FROM_ALL executable that does not compile on the starting tree (RiBeginBackEnd
  *   does not exist): that failure is its red evidence (FR-029, decision A). Phase 4 enables it.

@@ -10,7 +10,7 @@
  *   installs the hook in CRenderer::beginRenderer() and removes it in endRenderer() (the services
  *   pattern); with none installed RiProcDynamicLoad reports that there is no renderer.
  *
- *   `data` is the CDelayedData * the Procedural statement created; the hook reads its generator
+ *   `data` is the CDelayedData * (parse/delayedData.h) the Procedural statement created; the hook reads its generator
  *   and helper strings. Defined in ri.cpp, which is compiled into ribRender, ribVector and ribOut.
  *
  * Authors:

@@ -7,7 +7,7 @@
  *   Real (rendering-time) bodies of the two parts of rendererDeclarations.cpp
  *   that reach into things a no-pipeline build can't have:
  *
- *   - CRenderer::makeGlobalVariable() touches the shading engine
+ *   - CRenderer::notifyGlobalVariable() touches the shading engine
  *     (CShadingContext::updateState(), notifying every live per-thread
  *     shading context that a new global-storage variable now exists).
  *     Unlike the geometry classes' intersect()/dice()/shade() (see
@@ -16,7 +16,7 @@
  *     (including from ribpreview_load(), which needs initDeclarations() so
  *     the RIB parser doesn't reject standard parameters), since several of
  *     the "global ..." typed variables it declares (P, N, Cs, Ci, etc.)
- *     route through declareVariable() -> here. It is safe for a build with
+ *     route through CDeclarations::declare() -> makeGlobal() -> here. It is safe for a build with
  *     no rendering pipeline (ribVector) because `contexts` -- the per-thread
  *     CShadingContext array this loop notifies -- is only ever allocated
  *     once CRenderer::render()/beginFrame() actually starts rendering
@@ -63,16 +63,12 @@
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRenderer
-// Method				:	makeGlobalVariable
-// Description			:	Forcefully make a variable global
+// Method				:	notifyGlobalVariable
+// Description			:	A global variable was added to the declaration table
 // Return Value			:
-// Comments				:
-void CRenderer::makeGlobalVariable(CVariable *var) {
-
-    // Did we already start rendering ?
-    var->entry = globalVariables->numItems;
-    var->storage = STORAGE_GLOBAL;
-    globalVariables->push(var);
+// Comments				:	Installed as the observer of CDeclarations (Graphics State), which numbers the
+//							variable; this keeps the part that reaches the shading engine
+void CRenderer::notifyGlobalVariable(CVariable *) {
 
     // Flush the states for the shading contexts
     if (contexts != NULL) {

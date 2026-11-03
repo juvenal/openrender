@@ -15,8 +15,9 @@
  *   render()/endFrame()/endRenderer()/renderFrame(), still in renderer.cpp)
  *   is ever linked in. ribVector never calls any of those pipeline
  *   functions -- confirmed by tracing ribpreview_load()'s actual call graph
- *   (RiBeginLite() -> RiInit(), a purely local token-array setup that never
- *   touches CRenderer at all) -- so renderer.cpp itself is excluded from
+ *   (the preview's session starts with RiInit(), a purely local
+ *   token-array setup, and the declaration table is Graphics State's CDeclarations; none of
+ *   it touches CRenderer's pipeline) -- so renderer.cpp itself is excluded from
  *   ribVector's source list entirely, no stub needed.
  *
  * Authors:
@@ -107,13 +108,10 @@ CArray<CShaderInstance *> *CRenderer::allLights = NULL;                      // 
 CShaderInstance *CRenderer::imagerShader = nullptr;                          // initialized in beginFrame
 thread_local CShadingContext *CRenderer::activeContext = nullptr;            // set by each render thread at loop start
 CTrie<CNamedCoordinateSystem *> *CRenderer::definedCoordinateSystems = NULL; // initialized in initDeclarations, destroyed in shutdownDeclarations
-CTrie<CVariable *> *CRenderer::declaredVariables = NULL;                     // initialized in initDeclarations, destroyed in shutdownDeclarations
 CTrie<CFileResource *> *CRenderer::globalFiles = NULL;                       // initialized in initFiles, destroyed in shutdownFiles
 CTrie<CGlobalIdentifier *> *CRenderer::globalIdHash = NULL;                  // initialized in initDeclarations, destroyed in shutdownDeclarations
 CTrie<CNetFileMapping *> *CRenderer::netFileMappings = NULL;                 // initialized in initNetwork, destroyed in shutdownNetwork
 int CRenderer::numKnownGlobalIds = 0;                                        // initialized in initDeclarations
-CVariable *CRenderer::variables = NULL;                                      // initialized in initDeclarations, destroyed in shutdownDeclarations
-CArray<CVariable *> *CRenderer::globalVariables = NULL;                      // initialized in initDeclarations, destroyed in shutdownDeclarations
 CDisplayHost *CRenderer::displayHost = NULL;                                  // created in computeDisplayData, deleted in endDisplays
 CShadeopRegistry *CRenderer::shadeops = NULL;                                // initialized in initFiles, destroyed in shutdownFiles
 SOCKET CRenderer::netClient = INVALID_SOCKET;                                // initialized in initNetwork

@@ -67,6 +67,7 @@
 #include "rendererContext.h"
 #include "searchPathResolver.h"
 #include "ri.h"
+#include "riCondition.h"
 #include "riHooks.h"
 #include "ri_config.h"
 #include "rib.h"
@@ -6396,7 +6397,7 @@ void CRendererContext::RiIfBeginV(const char *expr, int, const char *[], const v
     // Partial: conditional expression is parsed; inline parameters (n/tokens/parms) are accepted per spec but not evaluated.
 
     if (riExecTag == 0) {
-        if (ifParse(expr)) {
+        if (riEvaluateCondition(this, expr)) {
             // We're executing ...
         }
         else {
@@ -6418,7 +6419,7 @@ void CRendererContext::RiElseIfV(const char *expr, int, const char *[], const vo
         riExecTag++;
     }
     else if (riExecTag == 1) {
-        if (ifParse(expr)) {
+        if (riEvaluateCondition(this, expr)) {
             // We're executing
             riExecTag--;
             ignoreCommand = FALSE;

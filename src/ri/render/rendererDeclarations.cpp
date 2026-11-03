@@ -28,18 +28,37 @@
 #include <string.h>
 
 #include "channelRegistry.h"
+#include "declarations.h"
 #include "displayChannel.h"
 #include "common/diagnostics.h"
 #include "renderer.h"
 #include "rendererContext.h"
+#include "riServices.h"
 #include "shading.h"
 #include "variableLookup.h"
 
-// The channel registry's declaration hook. &CRenderer::declareVariable does not convert to a
-// TVariableDeclaration (it takes a third, defaulted parameter), so a captureless adapter is installed.
-static CVariable *declareVariableAdapter(const char *name, const char *declaration) {
-    return CRenderer::declareVariable(name, declaration, 0);
-}
+// The services the renderer core installs for the Scene Interface (parse/riServices.h) while its declarations
+// exist: the declared-variable table of Graphics State, and CRenderer::locateFile (which adds the network
+// mapping and the temporary directory the standard search has no use for).
+namespace {
+    class CCoreDeclarationService : public CRiDeclarationService {
+        public:
+            CVariable *retrieveVariable(const char *name) override { return CRenderer::retrieveVariable(name); }
+            CVariable *declareVariable(const char *name, const char *type) override { return CRenderer::declareVariable(name, type, 0); }
+    };
+
+    class CCoreFileSearchService : public CRiFileSearchService {
+        public:
+            int locateFile(char *result, const char *name, TSearchpath *searchpath, int tryNormalize) override {
+                return CRenderer::locateFile(result, name, searchpath, tryNormalize);
+            }
+    };
+
+    CCoreDeclarationService coreDeclarations;
+    CCoreFileSearchService coreFileSearch;
+    CRiDeclarationService *previousDeclarations = nullptr; // what was installed before initDeclarations()
+    CRiFileSearchService *previousFileSearch = nullptr;
+} // namespace
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CGlobalIdentifier
@@ -59,227 +78,19 @@ class CGlobalIdentifier {
 // Comments				:
 void CRenderer::initDeclarations() {
 
-    ////////////////////////////////////////////////////////////////////////////////////////////
-    //
-    //
-    //			A L L O C A T E    M E M O R Y
-    //
-    //
-    ////////////////////////////////////////////////////////////////////////////////////////////
+    // The declared-variable table, the variable list, the global variable array and the standard declared set
+    // are Graphics State's (state/declarations.cpp); a global variable added while shading contexts are live
+    // is announced to them by notifyGlobalVariable
+    CDeclarations::acquire();
+    CDeclarations::setGlobalObserver(&CRenderer::notifyGlobalVariable);
+
     // Init the coordinate systems
     definedCoordinateSystems = new CTrie<CNamedCoordinateSystem *>;
-
-    // Init the declared variables
-    declaredVariables = new CTrie<CVariable *>;
-    // Allocate the global variables array
-    globalVariables = new CArray<CVariable *>;
-    // This is the list of all variables
-    variables = NULL;
-
-    // The display channels live in Graphics State's channel registry, which registers the five
-    // built-ins (rgb, rgba, a, z, rgbaz) itself
-    beginChannelRegistry();
 
     // Zero is reserved as an invalid value
     numKnownGlobalIds = 1;
     // Global Ids
     globalIdHash = new CTrie<CGlobalIdentifier *>;
-
-    ////////////////////////////////////////////////////////////////////////////////////////////
-    //
-    //
-    //			R E G I S T E R    O P T I O N S / A T T R I B U T E S
-    //
-    //
-    ////////////////////////////////////////////////////////////////////////////////////////////
-    // Define the options
-    declareVariable(RI_ARCHIVE, "string");
-    declareVariable(RI_PROCEDURAL, "string");
-    declareVariable(RI_TEXTURE, "string");
-    declareVariable(RI_SHADER, "string");
-    declareVariable(RI_DISPLAY, "string");
-    declareVariable(RI_RESOURCE, "string");
-    declareVariable(RI_GEOMETRY, "string");
-
-    declareVariable(RI_BUCKETSIZE, "int[2]");
-    declareVariable(RI_METABUCKETS, "int[2]");
-    declareVariable(RI_INHERITATTRIBUTES, "int");
-    declareVariable(RI_GRIDSIZE, "int");
-    declareVariable(RI_EYESPLITS, "int");
-    declareVariable(RI_TEXTUREMEMORY, "int");
-    declareVariable(RI_BRICKMEMORY, "int");
-    declareVariable(RI_NUMTHREADS, "int");
-    declareVariable(RI_THREADSTRIDE, "int");
-    declareVariable(RI_GEOCACHEMEMORY, "int");
-    declareVariable(RI_OTHRESHOLD, "color");
-    declareVariable(RI_ZTHRESHOLD, "color");
-
-    declareVariable(RI_RADIANCECACHE, "int");
-    declareVariable(RI_JITTER, "float");
-    declareVariable(RI_FALSECOLOR, "int");
-    declareVariable(RI_EMIT, "int");
-    declareVariable(RI_SAMPLESPECTRUM, "int");
-    declareVariable(RI_DEPTHFILTER, "string");
-    declareVariable(RI_FILTER, "string");
-    declareVariable(RI_MODE, "string");
-
-    declareVariable(RI_MAXDEPTH, "int");
-
-    declareVariable(RI_ENDOFFRAME, "int");
-    declareVariable(RI_FILELOG, "string");
-    declareVariable(RI_PROGRESS, "int");
-
-    declareVariable(RI_TEXTURECACHEENABLE, "int");
-    declareVariable(RI_TEXTURECACHEDIRECTORY, "string");
-
-    // Option "sampling" (spec 039)
-    declareVariable(RI_SAMPLER, "string");
-    declareVariable(RI_SEED, "int");
-
-    // File display variables
-
-    declareVariable("quantize", "float[4]");
-    declareVariable("dither", "float");
-    declareVariable("gamma", "float");
-    declareVariable("gain", "float");
-    declareVariable("near", "float");
-    declareVariable("far", "float");
-    declareVariable("Software", "string");
-    declareVariable("compression", "string");
-    declareVariable("NP", "float[16]");
-    declareVariable("Nl", "float[16]");
-
-    // Define the attributes
-    declareVariable(RI_NUMPROBES, "int[2]");
-    declareVariable(RI_MINSUBDIVISION, "int");
-    declareVariable(RI_MAXSUBDIVISION, "int");
-    declareVariable(RI_MINSPLITS, "int");
-    declareVariable(RI_BOUNDEXPAND, "float");
-    declareVariable(RI_BINARY, "int");
-    declareVariable(RI_RASTERORIENT, "int");
-
-    declareVariable(RI_SPHERE, "float");
-    declareVariable(RI_DISPLACEMENT, "float");
-    declareVariable(RI_COORDINATESYSYTEM, "string");
-
-    declareVariable(RI_TESSELLATIONTOLERANCE, "float");
-
-    declareVariable(RI_DISPLACEMENTS, "int");
-    declareVariable(RI_BIAS, "float");
-    declareVariable(RI_MAXDIFFUSEDEPTH, "int");
-    declareVariable(RI_MAXSPECULARDEPTH, "int");
-    declareVariable(RI_SAMPLEMOTION, "int");
-
-    declareVariable(RI_HANDLE, "string");
-    declareVariable(RI_FILEMODE, "string");
-    declareVariable(RI_MAXERROR, "float");
-    declareVariable(RI_MAXPIXELDIST, "float");
-
-    declareVariable(RI_GLOBALMAP, "string");
-    declareVariable(RI_CAUSTICMAP, "string");
-    declareVariable(RI_SHADINGMODEL, "string");
-    declareVariable(RI_ESTIMATOR, "int");
-    declareVariable(RI_ILLUMINATEFRONT, "int");
-    declareVariable(RI_IOR, "float");
-    declareVariable(RI_IORRANGE, "float[2]");
-
-    declareVariable(RI_TRANSMISSION, "int");
-    declareVariable(RI_CAMERA, "int");
-    declareVariable(RI_SPECULAR, "int");
-    declareVariable(RI_DIFFUSE, "int");
-    declareVariable(RI_PHOTON, "int");
-
-    declareVariable(RI_DIFFUSEHITMODE, "string");
-    declareVariable(RI_SPECULARHITMODE, "string");
-    declareVariable(RI_TRANSMISSIONHITMODE, "string");
-    declareVariable(RI_CAMERAHITMODE, "string");
-    declareVariable(RI_SHADERFORMAT, "string");
-
-    // Blobby implicit surfaces (spec 015). Both must be pre-declared here
-    // or the RIB parser rejects them with "Parameter not declared" before
-    // RiAttributeV/RiOptionV ever sees them.
-    declareVariable(RI_BLOBBYTOLERANCE, "float");
-    declareVariable(RI_BLOBBYOPCODEORDER, "string");
-    declareVariable(RI_DEFAULT, "string"); // Option "shaderformat" "default" token
-
-    declareVariable(RI_NAME, "string");
-
-    declareVariable(RI_HIDDEN, "int");
-    declareVariable(RI_BACKFACING, "int");
-
-    declareVariable(RI_SENSE, "string"); // Attribute "trimcurve" "sense" ("inside"/"outside")
-
-    ////////////////////////////////////////////////////////////////////////////////////////////
-    //
-    //
-    //			R E G I S T E R    D E F A U L T    V A R I A B L E S
-    //
-    //
-    ////////////////////////////////////////////////////////////////////////////////////////////
-    CVariable *tmp;
-    tmp = declareVariable("P", "global vertex point", PARAMETER_P);
-    assert(tmp->entry == VARIABLE_P);
-    tmp = declareVariable("Ps", "global vertex point", PARAMETER_PS);
-    assert(tmp->entry == VARIABLE_PS);
-    tmp = declareVariable("N", "global varying normal", PARAMETER_N);
-    assert(tmp->entry == VARIABLE_N);
-    tmp = declareVariable("Ng", "global varying normal", PARAMETER_NG);
-    assert(tmp->entry == VARIABLE_NG);
-    tmp = declareVariable("dPdu", "global vertex vector", PARAMETER_DPDU);
-    assert(tmp->entry == VARIABLE_DPDU);
-    tmp = declareVariable("dPdv", "global vertex vector", PARAMETER_DPDV);
-    assert(tmp->entry == VARIABLE_DPDV);
-    tmp = declareVariable("L", "global varying vector", PARAMETER_L);
-    assert(tmp->entry == VARIABLE_L);
-    tmp = declareVariable("Cs", "global varying color", PARAMETER_CS);
-    assert(tmp->entry == VARIABLE_CS);
-    tmp = declareVariable("Os", "global varying color", PARAMETER_OS);
-    assert(tmp->entry == VARIABLE_OS);
-    tmp = declareVariable("Cl", "global varying color", PARAMETER_CL);
-    assert(tmp->entry == VARIABLE_CL);
-    tmp = declareVariable("Ol", "global varying color", PARAMETER_OL);
-    assert(tmp->entry == VARIABLE_OL);
-    tmp = declareVariable("Ci", "global varying color", PARAMETER_CI);
-    assert(tmp->entry == VARIABLE_CI);
-    tmp = declareVariable("Oi", "global varying color", PARAMETER_OI);
-    assert(tmp->entry == VARIABLE_OI);
-    tmp = declareVariable("s", "global varying float", PARAMETER_S);
-    assert(tmp->entry == VARIABLE_S);
-    tmp = declareVariable("t", "global varying float", PARAMETER_T);
-    assert(tmp->entry == VARIABLE_T);
-    tmp = declareVariable("st", "varying float[2]", PARAMETER_S | PARAMETER_T);
-    tmp = declareVariable("du", "global varying float", PARAMETER_DU | PARAMETER_DERIVATIVE);
-    assert(tmp->entry == VARIABLE_DU);
-    tmp = declareVariable("dv", "global varying float", PARAMETER_DV | PARAMETER_DERIVATIVE);
-    assert(tmp->entry == VARIABLE_DV);
-    tmp = declareVariable("u", "global varying float", PARAMETER_U);
-    assert(tmp->entry == VARIABLE_U);
-    tmp = declareVariable("v", "global varying float", PARAMETER_V);
-    assert(tmp->entry == VARIABLE_V);
-    tmp = declareVariable("I", "global varying vector", PARAMETER_I);
-    assert(tmp->entry == VARIABLE_I);
-    tmp = declareVariable("E", "global varying point", PARAMETER_E);
-    assert(tmp->entry == VARIABLE_E);
-    tmp = declareVariable("alpha", "global varying float", PARAMETER_ALPHA);
-    assert(tmp->entry == VARIABLE_ALPHA);
-    tmp = declareVariable("time", "global varying float", PARAMETER_TIME);
-    assert(tmp->entry == VARIABLE_TIME);
-    tmp = declareVariable("Pw", "global vertex htpoint", PARAMETER_P);
-    tmp->entry = VARIABLE_PW;
-    tmp = declareVariable("Pz", "vertex float", PARAMETER_P);
-    tmp->entry = VARIABLE_P;
-    tmp = declareVariable("ncomps", "global uniform float", PARAMETER_NCOMPS);
-    assert(tmp->entry == VARIABLE_NCOMPS);
-    tmp = declareVariable("dtime", "global uniform float", PARAMETER_DTIME);
-    assert(tmp->entry == VARIABLE_DTIME);
-    tmp = declareVariable("dPdtime", "global varying vector", PARAMETER_DPDTIME);
-    assert(tmp->entry == VARIABLE_DPDTIME);
-
-    tmp = declareVariable("width", "global varying float", 0);
-    assert(tmp->entry == VARIABLE_WIDTH);
-    tmp = declareVariable("constantwidth", "global constant float", 0);
-    assert(tmp->entry == VARIABLE_CONSTANTWIDTH);
-    tmp = declareVariable("Np", "uniform normal", PARAMETER_NG);
 
     ////////////////////////////////////////////////////////////////////////////////////////////
     //
@@ -308,11 +119,10 @@ void CRenderer::initDeclarations() {
     defineCoordinateSystem(colorYiqSystem, identityMatrix, identityMatrix, COLOR_YIQ);
     defineCoordinateSystem(colorXyySystem, identityMatrix, identityMatrix, COLOR_XYY);
 
-    // Parameter lists (state/pl.cpp) resolve declared names through this hook
-    installVariableLookup(&CRenderer::retrieveVariable);
-
-    // The channel registry declares new channels' variables through the declared-variable table
-    installVariableDeclaration(&declareVariableAdapter);
+    // The Scene Interface resolves declared names and files through these while a renderer session lasts;
+    // the services installed before are put back by shutdownDeclarations()
+    previousDeclarations = riInstallDeclarationService(&coreDeclarations);
+    previousFileSearch = riInstallFileSearchService(&coreFileSearch);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -322,21 +132,21 @@ void CRenderer::initDeclarations() {
 // Return Value			:
 // Comments				:
 void CRenderer::shutdownDeclarations() {
-    // The declarations are going away: stop resolving names through them
-    installVariableLookup(nullptr);
-    installVariableDeclaration(nullptr);
+    // Put back the services that were installed before initDeclarations()
+    riInstallFileSearchService(previousFileSearch);
+    riInstallDeclarationService(previousDeclarations);
+    previousFileSearch = nullptr;
+    previousDeclarations = nullptr;
+
+    // Nobody to notify any more
+    CDeclarations::setGlobalObserver(nullptr);
 
     // Ditch the global IDs
     assert(globalIdHash != NULL);
     globalIdHash->destroy();
 
-    // Ditch the display channels
-    endChannelRegistry();
-
-    // First the variables
-    assert(declaredVariables != NULL);
-    declaredVariables->destroy();
-    delete globalVariables;
+    // The variables, the display channels and the lookup hooks are Graphics State's
+    CDeclarations::release();
 
     // Ditch the coordinate stsrems
     assert(definedCoordinateSystems != NULL);
@@ -389,81 +199,12 @@ void CRenderer::defineCoordinateSystem(const char *name, const float *from, cons
 // Return Value			:	The new variable if successful, NULL otherwise
 // Comments				:
 CVariable *CRenderer::declareVariable(const char *name, const char *type, int marker) {
-    CVariable cVariable, *nVariable;
-
-    assert(declaredVariables != NULL);
-
-    if (parseVariable(&cVariable, name, type)) {
-        // Parse successful, insert the variable into the dictionary
-        CVariable *oVariable;
-
-        if (declaredVariables->find(cVariable.name, oVariable)) {
-            if ((cVariable.numFloats != oVariable->numFloats) ||
-                (cVariable.numItems != oVariable->numItems)) {
-                error(CODE_SYSTEM, "Variable \"%s\" was previously defined differently\n", cVariable.name);
-            }
-            else {
-                if (cVariable.type != oVariable->type) {
-                    if ((cVariable.type == TYPE_STRING) || (oVariable->type == TYPE_STRING)) {
-                        error(CODE_SYSTEM, "Variable \"%s\" was previously defined differently\n", cVariable.name);
-                    }
-                }
-            }
-
-            // Overwrite the container
-            oVariable->container = cVariable.container;
-
-            // If we're overwriting "st" make sure to overwrite the s and t too
-            if (oVariable->usageMarker == (PARAMETER_S | PARAMETER_T)) {
-                if (declaredVariables->find("s", nVariable)) {
-                    nVariable->container = cVariable.container;
-                }
-                else {
-                    assert(FALSE);
-                }
-
-                if (declaredVariables->find("t", nVariable)) {
-                    nVariable->container = cVariable.container;
-                }
-                else {
-                    assert(FALSE);
-                }
-            }
-
-            return oVariable;
-        }
-
-        // Add the new variable into the variables list
-        nVariable = new CVariable;
-        nVariable[0] = cVariable;
-        nVariable->next = variables;
-        nVariable->usageMarker = marker;
-        nVariable->defaultValue = NULL;
-        nVariable->accessor = -1;
-        variables = nVariable;
-
-        // Insert the variable into the variables trie
-        declaredVariables->insert(nVariable->name, nVariable);
-
-        // Make the variable global if it needs to be global
-        if (nVariable->storage == STORAGE_GLOBAL) {
-            makeGlobalVariable(nVariable);
-        }
-
-        return nVariable;
-    }
-    else {
-        return NULL;
-    }
+    return CDeclarations::declare(name, type, marker);
 }
 
-// CRenderer::makeGlobalVariable() lives in rendererDeclarationsDispatch.cpp
-// (real body) / rendererDeclarationsDispatchStub.cpp (ribVector stub).
-// initDeclarations() (above) reaches it unconditionally -- every "global ..."
-// typed variable it declares (P, N, Cs, Ci, etc.) routes through
-// declareVariable() -> here -- so it can't simply be excluded from a
-// ribVector build the way the hider/shading files are; it needs its own
-// real/stub split like the geometry dispatch methods.
+// CDeclarations::declare() numbers a global variable and calls notifyGlobalVariable(), which lives in
+// rendererDeclarationsDispatch.cpp (real body) / rendererDeclarationsDispatchStub.cpp (ribVector stub)
+// because it reaches the shading engine.
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRenderer
@@ -472,15 +213,7 @@ CVariable *CRenderer::declareVariable(const char *name, const char *type, int ma
 // Return Value			:	The variable if found, NULL otherwise
 // Comments				:
 CVariable *CRenderer::retrieveVariable(const char *name) {
-    CVariable *cVariable;
-
-    assert(declaredVariables != NULL);
-
-    if (declaredVariables->find(name, cVariable)) {
-        return cVariable;
-    }
-
-    return NULL;
+    return CDeclarations::find(name);
 }
 
 ///////////////////////////////////////////////////////////////////////

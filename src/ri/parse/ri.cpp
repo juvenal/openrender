@@ -35,9 +35,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "common/containers.h"
 #include "common/global.h"
+#include "common/memory.h"
 #include "common/os.h"
-#include "delayed.h"
+#include "delayedData.h"
 #include "procDynamicLoadHook.h"
 #include "common/diagnostics.h"
 #include "logging.hpp"
@@ -45,6 +47,7 @@
 #include "riDiagnostics.h"
 #include "riHooks.h"
 #include "riInterface.h"
+#include "riServices.h"
 #include "ri_config.h"
 #include "rib.h"
 
@@ -402,18 +405,18 @@ RiBegin(RtToken name) {
             // globalArena/declarations are never initialized on
             // that path. ribParse() unconditionally touches both (via
             // arenaSave() and the parameter-list machinery in pl.cpp), so
-            // bootstrap them here for CRibOut only, mirroring the pattern
-            // CRibGeometryContext uses in previewContext.cpp.
+            // bootstrap them here for CRibOut only: a standard Scene
+            // Interface session (Graphics State's declarations and the
+            // standard file search, riServices.h) and the arena. In the
+            // renderer path beginRenderer() has done both already.
             if (ribOutMode) {
-                CRenderer::initDeclarations();
+                CRiStandardSession session;
                 globalArena.init();
-            }
-
-            ribParse(rcPath, NULL);
-
-            if (ribOutMode) {
+                ribParse(rcPath, NULL);
                 globalArena.tini();
-                CRenderer::shutdownDeclarations();
+            }
+            else {
+                ribParse(rcPath, NULL);
             }
 
             log_info("Loaded .orenderrc defaults from '{}'", rcPath);

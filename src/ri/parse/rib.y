@@ -32,12 +32,14 @@
 
 #include "common/global.h"
 #include "common/containers.h"
+#include "common/memory.h"
 #include "common/os.h"
 #include "ri.h"
-#include "delayed.h"
+#include "delayedData.h"
 #include "rib.h"
-#include "rendererContext.h"
-#include "renderer.h"
+#include "options.h"
+#include "riInterface.h"
+#include "riServices.h"
 #include "common/diagnostics.h"
 #include "ri_config.h"
 
@@ -219,7 +221,7 @@ static	int		parameterListCheck() {
 	// For each parameter encountered
 	for (i = 0; i < numParameters; i++) {
 		TParameter *par = parameters + i;
-		CVariable  *var = CRenderer::retrieveVariable(par->name);
+		CVariable  *var = riRetrieveVariable(par->name);
 		EVariableClass container;
 
 		// Get the variable container to check the number of items
@@ -229,25 +231,10 @@ static	int		parameterListCheck() {
 				container	=	tmp.container;
 				var			=	&tmp;
 			} else {
-				if (FALSE) { 	// If we want to go through the shader parameters (performance hit)
-					// Not global, not inline, check the shaders
-					CAttributes	*attributes	=	CRenderer::context->getAttributes(FALSE);
-					var						=	attributes->findParameter(par->name);
-
-					if (var != NULL) {
-						container	=	var->container;
-					} else {
-						// This isn't a globally declared variable
-						// Neither is it an inline delcaration
-						error(CODE_BADTOKEN,"Parameter \"%s\" is not declared\n",par->name);
-						return FALSE;
-					}
-				} else {
-					// This isn't a globally declared variable
-					// Neither is it an inline delcaration
-					error(CODE_BADTOKEN,"Parameter \"%s\" is not declared\n",par->name);
-					return FALSE;
-				}
+				// This isn't a globally declared variable
+				// Neither is it an inline delcaration
+				error(CODE_BADTOKEN,"Parameter \"%s\" is not declared\n",par->name);
+				return FALSE;
 			}
 		} else {
 			// This variable is predeclared.  It may or may not be a global though
