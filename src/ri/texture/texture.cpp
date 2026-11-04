@@ -2792,13 +2792,18 @@ static std::string resolveDefaultTextureCacheDirectory() {
 //							degrades to in-memory-only per FR-007, detected
 //							later when the actual write attempt fails).
 static bool computeTextureCacheFilePath(const char *sourcePath, std::string &cachePath, const char *diskCacheDirectory) {
-    char absolutePath[OS_MAX_PATH_LENGTH];
-    if (realpath(sourcePath, absolutePath) == NULL) {
+    // realpath allocates the result: a fixed OS_MAX_PATH_LENGTH buffer is smaller than PATH_MAX, which
+    // glibc's fortified realpath aborts on, and which a source resolving to 512+ characters overflows
+    // everywhere (GitHub #46).
+    char *resolved = realpath(sourcePath, NULL);
+    if (resolved == NULL) {
         return false;
     }
+    const std::string absolutePath(resolved);
+    free(resolved);
 
     struct stat st;
-    if (stat(absolutePath, &st) != 0) {
+    if (stat(absolutePath.c_str(), &st) != 0) {
         return false;
     }
 

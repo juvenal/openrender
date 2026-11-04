@@ -36,6 +36,19 @@ SOURCE_PNG="$3"
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 
+# Runs orender with its output captured, and prints that output only when it
+# exits non-zero (an abort or a crash must reach the ctest log; a clean run
+# stays quiet). Never fails: each test checks its own outputs afterwards.
+run_orender() {
+    local log="$WORKDIR/orender.log" rc=0
+    "$@" >"$log" 2>&1 || rc=$?
+    if [ "$rc" -ne 0 ]; then
+        echo "orender exited with status $rc; its output:"
+        cat "$log"
+    fi
+    return 0
+}
+
 CACHE_DIR="$WORKDIR/cache"
 mkdir -p "$CACHE_DIR"
 
@@ -47,7 +60,7 @@ render() {
         -e "s|@TEXTURE_PATH@|${SOURCE_PNG}|" \
         "$TEMPLATE" > "$WORKDIR/scene.rib"
 
-    (cd "$WORKDIR" && "$ORENDER" scene.rib >/dev/null 2>&1) || true
+    (cd "$WORKDIR" && run_orender "$ORENDER" scene.rib)
 
     if [ ! -f "$WORKDIR/cache-scene.tif" ]; then
         echo "FAIL: render did not produce an output file (option: $cache_option)"
