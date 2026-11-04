@@ -28,6 +28,19 @@ SOURCE_PNG="$3"
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 
+# Runs orender with its output captured, and prints that output only when it
+# exits non-zero (an abort or a crash must reach the ctest log; a clean run
+# stays quiet). Never fails: each test checks its own outputs afterwards.
+run_orender() {
+    local log="$WORKDIR/orender.log" rc=0
+    "$@" >"$log" 2>&1 || rc=$?
+    if [ "$rc" -ne 0 ]; then
+        echo "orender exited with status $rc; its output:"
+        cat "$log"
+    fi
+    return 0
+}
+
 sed -e "s|@CACHE_OPTION@|Option \"texturecache\" \"enable\" [1]|" \
     -e "s|@TEXTURE_PATH@|${SOURCE_PNG}|" \
     "$TEMPLATE" > "$WORKDIR/scene.rib"
@@ -35,7 +48,7 @@ sed -e "s|@CACHE_OPTION@|Option \"texturecache\" \"enable\" [1]|" \
 DEFAULT_CACHE_DIR="$WORKDIR/openRenderTextureCache"
 
 echo "=== Render 1 (expect a miss: no cache entry exists yet) ==="
-(cd "$WORKDIR" && TMPDIR="$WORKDIR" "$ORENDER" -t:1 scene.rib >/dev/null 2>&1) || true
+(cd "$WORKDIR" && TMPDIR="$WORKDIR" run_orender "$ORENDER" -t:1 scene.rib)
 
 if [ ! -f "$WORKDIR/cache-scene.tif" ]; then
     echo "FAIL: render 1 did not produce an output file"
@@ -50,7 +63,7 @@ fi
 echo "Cache entry found under the default directory: $DEFAULT_CACHE_DIR"
 
 echo "=== Render 2 (expect a hit against the same default-resolved entry) ==="
-(cd "$WORKDIR" && TMPDIR="$WORKDIR" "$ORENDER" -t:1 scene.rib >/dev/null 2>&1) || true
+(cd "$WORKDIR" && TMPDIR="$WORKDIR" run_orender "$ORENDER" -t:1 scene.rib)
 
 if [ ! -f "$WORKDIR/cache-scene.tif" ]; then
     echo "FAIL: render 2 did not produce an output file"

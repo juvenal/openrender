@@ -177,6 +177,21 @@ set_tests_properties(TextureTile_CacheStaleDetection PROPERTIES
     ENVIRONMENT "${TEXTURE_TILE_ENV}"
     DEPENDS orender)
 
+# GitHub #46: a source whose RESOLVED path is longer than OS_MAX_PATH_LENGTH
+# (named through a short symlink; see the script's header). SKIP_RETURN_CODE 77
+# is the script's "filesystem cannot hold the deep path" exit.
+add_test(NAME TextureTile_CacheLongResolvedPath
+    COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/test_texture_cache_long_resolved_path.sh
+        $<TARGET_FILE:orender>
+        ${CACHE_SCENE_TEMPLATE}
+        ${CACHE_SOURCE_PNG})
+set_tests_properties(TextureTile_CacheLongResolvedPath PROPERTIES
+    TIMEOUT 60
+    SKIP_RETURN_CODE 77
+    LABELS "texture_tile;unit"
+    ENVIRONMENT "${TEXTURE_TILE_ENV}"
+    DEPENDS orender)
+
 add_test(NAME TextureTile_CacheConcurrentWrite
     COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/test_texture_cache_concurrent_write.sh
         $<TARGET_FILE:orender>
