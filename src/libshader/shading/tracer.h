@@ -30,9 +30,9 @@ class CRayBundle; // shading.h
 
 namespace openrender::shading {
 
-    // Introduced in 2.0.0. Obtained from CRendererServices::tracer() (rendererServices.h); the renderer's
-    // implementation, CHiderTracer, forwards to the hider's trace() and traceEx(). With no tracer Shading
-    // warns once per kind and treats every ray as a miss.
+    // Introduced in 2.0.0. Implemented by the hiders (CHider): a hider is the tracer of the shading context it owns and installs
+    // itself with CShadingContext::setTracer(). Shading asks the context's own tracer first and CRendererServices::tracer()
+    // (rendererServices.h) only for a context with none. With no tracer Shading warns once per kind and treats every ray as a miss.
     //
     // The fields of CRay are in src/ri/core/ray.h and those of CRayBundle in shading.h (class CRayBundle).
     //
@@ -77,9 +77,9 @@ namespace openrender::shading {
             // The depth rule and the new shading state live in the context: the current ray depth
             // (currentRayDepth) and the list of free shading states (freeStates) are private to
             // CShadingContext, while newState() is public. An implementer outside the context therefore gets
-            // the depth rule and the state recycling only by calling context.traceEx(bundle), the one public
-            // entry that applies them (CHiderTracer does exactly that); one that does not call it must keep
-            // and apply its own depth count, and cannot read or change the context's.
+            // the depth rule and the state recycling only by calling context.enterRayLevel() and leaveRayLevel(),
+            // the one public way to apply them (the hiders do exactly that); one that does not call them must
+            // keep and apply its own depth count, and cannot read or change the context's.
             // The maximum ray depth is the Option "trace" "maxdepth" (default 5), compared with the
             // context's current ray depth. At the maximum (no deeper level is allowed), nothing is traced:
             // the bundle gets ONE call bundle->postShade(numRays, rays), the miss form (without a varying

@@ -20,13 +20,14 @@
 ///////////////////////////////////////////////////////////////////////
 //
 //  File				:	trace.cpp
-//  Classes				:	CShadingContext
-//  Description			:	This file implements raytracing functionality of the shading context
+//  Classes				:	CHider
+//  Description			:	This file implements the raytracing of the hiders: the tracer of the shading context a hider owns (spec 029)
 //
 ////////////////////////////////////////////////////////////////////////
 #include <math.h>
 
 #include "common/memory.h"
+#include "hider.h"
 #include "options.h"
 #include "points.h"
 #include "renderer.h"
@@ -34,8 +35,8 @@
 #include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////
-// Class				:	CShadingContext
-// Method				:	trace
+// Class				:	CHider
+// Method				:	traceGroups
 // Description			:	Trace/Shade bunch of rays
 // Return Value			:	-
 // Comments				:	Assume the following fields of CRay have been set:
@@ -44,7 +45,7 @@
 //							3. t
 //							4. tmin
 //							5. flags
-void CShadingContext::trace(CRayBundle *bundle) {
+void CHider::traceGroups(CRayBundle *bundle) {
     int i;
     const COptions::CClipPlane *cPlane;
     float t;
@@ -71,7 +72,7 @@ void CShadingContext::trace(CRayBundle *bundle) {
         }
 
         ray->t = t;
-        trace(ray);
+        traceRay(context, ray);
     }
 
     // The transparency pass loop
@@ -95,6 +96,7 @@ void CShadingContext::trace(CRayBundle *bundle) {
             TShadingGroup *shadingGroups = NULL; // Holds a list of shading groups
 
             // Check we have the hash table allocated
+            TObjectHash *const traceObjectHash = context.objectHash();
             assert(traceObjectHash != NULL);
 
             // Hash the rays into the table
@@ -121,7 +123,7 @@ void CShadingContext::trace(CRayBundle *bundle) {
                 if (cHash->object == cRay->object) {
                     // Hash hit
                 }
-                else if (cHash->object == (CObject *)this) {
+                else if (cHash->object == (CObject *)&context) {
                     // First entry
                     cHash->object = cRay->object;
                     cHash->numRays = 0;
@@ -139,7 +141,7 @@ void CShadingContext::trace(CRayBundle *bundle) {
 
                     // Did we find it ?
                     if (cHash == NULL) {
-                        cHash = (TObjectHash *)ralloc(sizeof(TObjectHash), threadMemory);
+                        cHash = (TObjectHash *)ralloc(sizeof(TObjectHash), context.threadMemory);
                         cHash->object = cRay->object;
                         cHash->numRays = 0;
                         cHash->rays = NULL;
@@ -160,7 +162,7 @@ void CShadingContext::trace(CRayBundle *bundle) {
             rays += numRays;
             while ((cHash = objects) != NULL) {
                 CRay *cRay;
-                TShadingGroup *cGroup = (TShadingGroup *)ralloc(sizeof(TShadingGroup), threadMemory);
+                TShadingGroup *cGroup = (TShadingGroup *)ralloc(sizeof(TShadingGroup), context.threadMemory);
 
                 // Put the rays in this bin into an array
                 for (cRay = cHash->rays; cRay != NULL; cRay = (CRay *)(cRay->object)) {
@@ -172,7 +174,7 @@ void CShadingContext::trace(CRayBundle *bundle) {
                 cGroup->object = cHash->object;
                 cGroup->rays = rays;
                 cGroup->numRays = cHash->numRays;
-                cHash->object = (CSurface *)this;
+                cHash->object = (CSurface *)&context;
                 cGroup->next = shadingGroups;
                 shadingGroups = cGroup;
             }
@@ -182,7 +184,7 @@ void CShadingContext::trace(CRayBundle *bundle) {
             //         can use the beginning of the rays array to store continuing rays
 
             // Shade the shading groups
-            for (varying = currentShadingState->varying; shadingGroups != NULL; shadingGroups = shadingGroups->next) {
+            for (varying = context.currentShadingState->varying; shadingGroups != NULL; shadingGroups = shadingGroups->next) {
                 int numShading;
                 int chunkIndex = 0; // The index of the maxGridSize chunk within this object's rays in this pass
 
@@ -199,15 +201,15 @@ void CShadingContext::trace(CRayBundle *bundle) {
                         // Ray hits carry their rays' identities (spec 039, R3.4/R3.7): hand
                         // the keys to the shading state before the surface samples itself
                         for (i = 0; i < numShading; i++)
-                            currentShadingState->pointKeys[i] = shadingGroups->rays[i]->key;
-                        currentShadingState->batchKey = openrender::sampling::detail::mix(
-                            (uint64_t)currentXBucket << 32 | (uint32_t)currentYBucket,
-                            shadingGroups->object->stableId, (uint64_t)currentRayDepth, (uint64_t)chunkIndex);
-                        currentShadingState->pointKeysFromRays = TRUE;
+                            context.currentShadingState->pointKeys[i] = shadingGroups->rays[i]->key;
+                        context.currentShadingState->batchKey = openrender::sampling::detail::mix(
+                            (uint64_t)context.currentXBucket << 32 | (uint32_t)context.currentYBucket,
+                            shadingGroups->object->stableId, (uint64_t)context.rayDepth(), (uint64_t)chunkIndex);
+                        context.currentShadingState->pointKeysFromRays = TRUE;
 
-                        shadingGroups->object->shade(this, numShading, shadingGroups->rays);
+                        shadingGroups->object->shade(&context, numShading, shadingGroups->rays);
 
-                        currentShadingState->pointKeysFromRays = FALSE;
+                        context.currentShadingState->pointKeysFromRays = FALSE;
                         chunkIndex++;
                         bundle->postShade(numShading, shadingGroups->rays, varying);
                     }
@@ -235,7 +237,7 @@ void CShadingContext::trace(CRayBundle *bundle) {
 
                 cRay->tmin = cRay->t + C_EPSILON;
                 cRay->t = C_INFINITY;
-                trace(cRay);
+                traceRay(context, cRay);
             }
 
             // Increment the traced ray counter
@@ -245,35 +247,19 @@ void CShadingContext::trace(CRayBundle *bundle) {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Class				:	CShadingContext
-// Method				:	traceEx
-// Description			:	Trace/Shade bunch of rays
+// Class				:	CHider
+// Method				:	traceBundle
+// Description			:	Trace/Shade bunch of rays one ray level deeper (ITracer; the former CShadingContext::traceEx)
 // Return Value			:	-
 // Comments				:
-void CShadingContext::traceEx(CRayBundle *bundle) {
-    if (currentRayDepth < CRenderer::maxRayDepth) {
-        CShadingState *savedState = currentShadingState;
-        const char *savedLabel = currentRayLabel;
+void CHider::traceBundle(CShadingContext &ctx, CRayBundle *bundle) {
+    assert(&ctx == &context);
+    (void)ctx;
 
-        currentRayDepth++;
-        currentRayLabel = bundle->label;
-
-        if (freeStates == NULL)
-            freeStates = newState();
-        assert(freeStates != NULL); // Rendering always has the renderer's services
-
-        currentShadingState = freeStates;
-        freeStates = currentShadingState->next;
-        currentShadingState->postShader = bundle->postShader;
-
-        trace(bundle);
-
-        currentRayDepth--;
-        currentShadingState->next = freeStates;
-        freeStates = currentShadingState;
-
-        currentRayLabel = savedLabel;
-        currentShadingState = savedState;
+    CShadingContext::CRayLevel saved;
+    if (context.enterRayLevel(*bundle, CRenderer::maxRayDepth, saved)) {
+        traceGroups(bundle);
+        context.leaveRayLevel(saved);
     }
     else {
         // GSHTODO: what about postTrace(), post() here??
@@ -290,9 +276,9 @@ class CTraceObject {
 };
 
 ///////////////////////////////////////////////////////////////////////
-// Class				:	CShadingContext
-// Method				:	trace
-// Description			:	Trace a single ray
+// Class				:	CHider
+// Method				:	traceRay
+// Description			:	Trace a single ray (ITracer; the former CShadingContext::trace(CRay *))
 // Return Value			:	-
 // Comments				:	Assume the following fields of CRay have been set:
 //							1. from
@@ -300,7 +286,9 @@ class CTraceObject {
 //							3. t
 //							4. tmin
 //							5. flags
-void CShadingContext::trace(CRay *ray) {
+void CHider::traceRay(CShadingContext &ctx, CRay *ray) {
+    assert(&ctx == &context);
+    (void)ctx;
 
     CTraceObject heapBase[TRACE_HEAP_SIZE + 1];
     CTraceObject *heap = heapBase;
@@ -318,10 +306,10 @@ void CShadingContext::trace(CRay *ray) {
     // A primary ray under the new samplers already carries its camera importance;
     // every other ray draws one.
     if (!ray->cameraImportance)
-        ray->jimp = rayImportance(ray->key, ray->depth);
+        ray->jimp = context.rayImportance(ray->key, ray->depth);
     ray->object = NULL;
 
-    numTracedRays++;
+    context.countTracedRay();
 
     // While we have objects in the heap, pop the object and process it
     while ((numObjects > 0) && (heap[1].tmin < ray->t)) {
@@ -347,7 +335,7 @@ void CShadingContext::trace(CRay *ray) {
 
         // If this is a real object, intersect it with the ray
         if ((object->flags & OBJECT_DUMMY) == 0) {
-            object->intersect(this, ray);
+            object->intersect(&context, ray);
         }
 
         // Is the object hierarchy ready ?
@@ -359,7 +347,7 @@ void CShadingContext::trace(CRay *ray) {
             if ((object->flags & OBJECT_HIERARCHY_READY) == 0) {
 
                 // Do the clustering
-                object->cluster(this);
+                object->cluster(&context);
 
                 // Mark the object as ready
                 object->flags |= OBJECT_HIERARCHY_READY;
@@ -374,7 +362,7 @@ void CShadingContext::trace(CRay *ray) {
             // Allocate more heap space if we need it (very unlikely)
             if (numObjects == maxObjects) {
                 maxObjects *= 2;
-                CTraceObject *newHeap = (CTraceObject *)ralloc((maxObjects + 1) * sizeof(CTraceObject), threadMemory);
+                CTraceObject *newHeap = (CTraceObject *)ralloc((maxObjects + 1) * sizeof(CTraceObject), context.threadMemory);
                 memcpy(newHeap, heap, (numObjects + 1) * sizeof(CTraceObject));
                 heap = newHeap;
             }

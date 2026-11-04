@@ -36,6 +36,8 @@
 #include "ray.h"
 #include "shading.h"
 
+class CPhotonMap; // photonMap.h
+
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CPhotonHider
 // Description			:	This class implements the photon hider

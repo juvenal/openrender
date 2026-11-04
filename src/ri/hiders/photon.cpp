@@ -606,7 +606,7 @@ processBounce:;
 
     // Trace the ray in the scene
     numTracedPhotons++;
-    context.trace(&ray);
+    traceRay(context, &ray);
 
     // Do we have an intersection ?
     if (ray.object != NULL) {

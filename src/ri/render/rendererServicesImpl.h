@@ -100,9 +100,6 @@ class CRendererServicesImpl final : public CRendererServices {
         // Error reporting
         void setOffendingObject(openrender::shading::ObjectHandle object) override { CRenderer::offendingObject = const_cast<CObject *>(static_cast<const CObject *>(object.ptr)); }
 
-        // The frame's tracer (spec 026): null between frames
-        openrender::shading::ITracer *tracer() override { return CRenderer::frameTracer; }
-
         // Shoot step
         int shootStep() const override { return CRenderer::shootStep; }
 

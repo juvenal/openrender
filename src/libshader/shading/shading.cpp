@@ -558,6 +558,47 @@ CShadingContext::~CShadingContext() {
 #define SVC (currentShadingState->services)
 
 bool CShadingContext::rendererIlluminationHook() const { return SVC && SVC->hasIlluminationHook(); }
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CShadingContext
+// Method				:	enterRayLevel
+// Description			:	Go one ray level deeper (the body of what traceEx() did before the trace)
+// Return Value			:	FALSE past the maximum ray depth, nothing changed
+// Comments				:
+bool CShadingContext::enterRayLevel(const CRayBundle &bundle, int maxRayDepth, CRayLevel &saved) {
+    if (currentRayDepth >= maxRayDepth)
+        return false;
+
+    saved.savedState = currentShadingState;
+    saved.savedLabel = currentRayLabel;
+
+    currentRayDepth++;
+    currentRayLabel = bundle.label;
+
+    if (freeStates == NULL)
+        freeStates = newState();
+    assert(freeStates != NULL); // Rendering always has the renderer's services
+
+    currentShadingState = freeStates;
+    freeStates = currentShadingState->next;
+    currentShadingState->postShader = bundle.postShader;
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CShadingContext
+// Method				:	leaveRayLevel
+// Description			:	Come back from a ray level (what traceEx() did after the trace, in the same order)
+// Return Value			:	-
+// Comments				:
+void CShadingContext::leaveRayLevel(const CRayLevel &saved) {
+    currentRayDepth--;
+    currentShadingState->next = freeStates;
+    freeStates = currentShadingState;
+
+    currentRayLabel = saved.savedLabel;
+    currentShadingState = saved.savedState;
+}
 const float *CShadingContext::rendererWorldBmin() const { return SVC ? SVC->worldBmin() : nullptr; }
 const float *CShadingContext::rendererWorldBmax() const { return SVC ? SVC->worldBmax() : nullptr; }
 float CShadingContext::rendererClipMin() const { return SVC ? SVC->clipMin() : 0.f; }

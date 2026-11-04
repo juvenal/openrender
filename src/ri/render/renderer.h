@@ -361,12 +361,6 @@ class CRenderer {
         static int maxTextureSize;                      // Maximum amount of texture data to keep in memory (in bytes)
         static CSearchPathResolver *textureResolver;    // Finds the texture files (spec 027); owned here, outlives the system
         static CTextureSystem *textureSystem;           // The frame's texture system (spec 027): created in beginFrame(), deleted in endFrame()
-        // The frame's tracer, the hiders' answer to Shading's ITracer (spec 026): installed in beginFrame() before any context exists, null between frames.
-        // Why one slot is enough (FR-010), argued from the code and not tested (accepted by the maintainer): (1) all of a frame's contexts are created
-        // by the same strcmp(hider, ...) chain in beginFrame(), so one hider class serves a frame, and a photon pass is its own frame; (2) the adapter is
-        // stateless, every piece of trace state (currentRayDepth, currentRayLabel, freeStates, traceObjectHash) is a member of the context passed to it;
-        // (3) the slot is written only in beginFrame() and endFrame(), while no render thread exists (the imager runs inside the frame, rendererDisplay.cpp).
-        static openrender::shading::ITracer *frameTracer;
         static int maxBrickSize;                        // Maximum amount of brick data to keep in memory (in bytes)
         static int maxGridSize;                         // Maximum number of points to shade at a time
         static int maxRayDepth;                         // Maximum raytracing recursion depth

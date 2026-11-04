@@ -198,7 +198,9 @@ void CSphereLight::illuminate(CShadingContext *context, float **) {
                     }
                     ray.db = DEFAULT_RAY_DB;
 
-                    context->trace(&ray);
+                    ray.object = NULL; // a context with no tracer treats the probe as a miss
+                    if (openrender::shading::ITracer *tracer = context->tracer())
+                        tracer->traceRay(*context, &ray);
 
                     if (ray.object == NULL) {
                         subvv(P, Ps);
@@ -523,7 +525,9 @@ void CQuadLight::illuminate(CShadingContext *context, float **) {
                         }
                         ray.db = DEFAULT_RAY_DB;
 
-                        context->trace(&ray);
+                        ray.object = NULL; // a context with no tracer treats the probe as a miss
+                        if (openrender::shading::ITracer *tracer = context->tracer())
+                            tracer->traceRay(*context, &ray);
 
                         if (ray.object == NULL) {
                             visibility++;

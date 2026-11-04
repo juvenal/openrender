@@ -23,6 +23,7 @@
 // Return Value			:	-
 // Comments				:
 CHider::CHider(int thread) : context(thread) {
+    context.setTracer(this);
 }
 
 ///////////////////////////////////////////////////////////////////////

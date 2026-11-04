@@ -648,7 +648,7 @@ void CRaytracer::computeSamples(CPrimaryRay *rays, int numShading) {
     primaryBundle.numRays = numShading;
     primaryBundle.last = 0;
     primaryBundle.depth = 0;
-    context.trace(&primaryBundle);
+    traceGroups(&primaryBundle);
 
     if (CRenderer::depthFilter == DEPTH_MID)
         probeDepth(rays, numShading);
@@ -683,7 +683,7 @@ void CRaytracer::probeDepth(CPrimaryRay *rays, int numShading) {
 
         cRay->tmin = cRay->t + C_EPSILON;
         cRay->t = C_INFINITY;
-        context.trace((CRay *)cRay);
+        traceRay(context, (CRay *)cRay);
 
         const float zold = (cRay->object != NULL) ? cameraDepth(cRay, cRay->t) : CRenderer::clipMax;
         cRay->depthProbe = false;

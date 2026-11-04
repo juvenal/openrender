@@ -34,6 +34,7 @@
 #include "common/global.h"
 #include "libshader/shading/illuminationHook.h"
 #include "libshader/shading/rendererServices.h"
+#include "libshader/shading/tracer.h"
 #include "common/random.h"
 #include "common/sampling.h"
 #include "ri/texture/textureSystem.h"
@@ -394,10 +395,30 @@ class CShadingContext final {
         inline void displace(CSurface *surface, int u, int v, EShadingDim dim, unsigned int up) { shade(surface, u, v, dim, up, TRUE); }
         inline void displaceEstimate(CSurface *surface, int u, int v, EShadingDim dim, unsigned int up) { shade(surface, u, v, dim, up, 3); }
 
-        // Raytracing functions
-        void trace(CRayBundle *);   // Trace and maybe shade bunch of rays
-        void traceEx(CRayBundle *); // Trace and maybe shade a bundle of rays. This version increments the shading depth
-        void trace(CRay *);         // Trace a ray (no shading)
+        // ---- Tracing (spec 029): the context traces nothing itself. The hider that owns it is its tracer (an ITracer, tracer.h) and
+        // installs itself here; the trace calls of the shading builtins reach it through libshader::traceRay/traceBundle.
+        void setTracer(openrender::shading::ITracer *tracer) { tracerObject = tracer; }
+        // The owner's tracer, nullptr if none (the services' tracer() is the fallback of libshader::traceRay, not of this accessor)
+        openrender::shading::ITracer *tracer() const { return tracerObject; }
+
+        // The ray level (FR-017): the one public way to go one ray level deeper, and the one place the depth rule is applied.
+        struct CRayLevel { // what leaveRayLevel() restores
+                CShadingState *savedState;
+                const char *savedLabel;
+        };
+        // If rayDepth() < maxRayDepth: depth + 1, the bundle's label, a fresh state from the free list (newState() when it is empty)
+        // carrying the bundle's post shader; returns true. Otherwise changes nothing and returns false: the caller makes the miss
+        // call bundle.postShade(numRays, rays).
+        bool enterRayLevel(const CRayBundle &bundle, int maxRayDepth, CRayLevel &saved);
+        // Depth - 1, the state back on the free list, the label and the state restored
+        void leaveRayLevel(const CRayLevel &saved);
+        int rayDepth() const { return currentRayDepth; }
+        bool inShadowRay() const { return inShadow != FALSE; }
+        // The per-thread object hash the owner's trace groups rays with: SHADING_OBJECT_CACHE_SIZE entries, allocated and filled by
+        // the constructor (GitHub #53). An empty entry's object is (CSurface *)this of the context.
+        TObjectHash *objectHash() { return traceObjectHash; }
+        void countTracedRay() { ++numTracedRays; }
+        int tracedRays() const { return numTracedRays; }
 
         // Report a trace request to traceRequestObserver. Callers test the observer for null first, so nothing is built in production.
         void reportTraceRequest(int kind, const char *label, int bundleDepth, int numRays, CRay *const *rays) const;
@@ -417,7 +438,6 @@ class CShadingContext final {
 
         // A shader instance (the executing shader, or a light) as an opaque handle. Null stays null.
         static openrender::shading::ShaderHandle shaderHandle(const CShaderInstance *instance) { return openrender::shading::ShaderHandle{instance}; }
-        void traceAny(CRay *);      // Trace any ray (no shading)
 
         // gather()/gatherElse/gatherEnd shared computation, called from both the .rslo
         // interpreter (giOpcodes.h) and the LLVM JIT op_gather_* wrappers (rslOps.cpp).
@@ -1033,6 +1053,7 @@ class CShadingContext final {
 
         TObjectHash *traceObjectHash; // An object hash array for raytraced objects
         openrender::shading::IIlluminationHook *illuminationHookObject = nullptr; // See setIlluminationHook()
+        openrender::shading::ITracer *tracerObject = nullptr;                     // See setTracer()
 
         // The following functions are used in the shaders
         void duFloat(float *, const float *);

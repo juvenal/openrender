@@ -396,3 +396,32 @@ F13 (maintainer, 2026-11-03): option 1. `CShadingContext::rendererSetOffendingOb
 | CP-v | no `static_assert` line edited | same tree |
 
 Linux push 3566 files / 0 differences; pull 16 files; verify 0 differences.
+
+## Phase 6 (US6: the hiders are the tracers; no allowlist line)
+
+T083 approved by the maintainer through the coordinator (2026-11-03): no approved test, reference or `static_assert` edited; T-T1 `HiderTracer_PerContext`, T-T2 `ShadingContract_RayLevel` and S1d enabled (`tests/shading_contract/CMakeLists.txt`, `tests/link/CMakeLists.txt`).
+
+**T084 red evidence (Test gate).**
+- `test_shading_contract_ray_level`: build fails: no member `enterRayLevel`, `leaveRayLevel`, `rayDepth` in `CShadingContext`, unknown type `CRayLevelType` (`build-logs/029-p6-red-test_shading_contract_ray_level.log`).
+- `test_shading_contract_hider_tracer`: build fails: no member `tracer` in `CShadingContext`, "cannot initialize a variable of type 'CHider *' with an lvalue of type 'CPhotonHider *'" (no `ITracer` base on `CHider`... the photon hider is not yet a `CHider` in the test's view of the headers) and `static_cast` from `CHider *` to `ITracer *` not related. One error is **not** a red reason: `photon.h:75 use of undeclared identifier 'CPhotonMap'`; the header was not self-contained once `shading.h` stopped bringing `photonMap.h` in (Phase 3); fixed in `photon.h` with a forward declaration `class CPhotonMap;` (no new include).
+- `ShadingScope_Greps`: S1d red (4 trace members in the class body, 10 `frameTracer`/`CHiderTracer` lines, `hiderTracer.{h,cpp}` exist), S1a/S1b/S1c/S1f green (`build-logs/029-p6-red-scope.txt`).
+- The S1d scratch mutation (re-add `void traceAny(CRay *);`) is run after the implementation, when S1d is green: **not yet run**.
+
+**Implementation done (T085-T089), macOS CP-a build green (`build-logs/029-p6-build3.log`, exit 0, 0 warnings):** the trace interface on the context (`CShadingContext::CRayLevel`, `enterRayLevel`, `leaveRayLevel`, `rayDepth`, `inShadowRay`, `objectHash`, `countTracedRay`, `tracedRays`, `setTracer`/`tracer`; `trace`, `traceEx`, `trace(CRay *)`, `traceAny` deleted); `libshader::traceRay`/`traceBundle` ask the context's tracer first and the services' `tracer()` as the fallback; `tracer.h`, `traceCalls.h` and `rendererServices.h` comments and the 2.1.0 history updated; `trace.cpp` bodies are `CHider::traceGroups` / `traceRay(ctx, ray)` / `traceBundle(ctx, bundle)` with the sentinel `(CSurface *)&context` and `(CObject *)&context`; `CHider` is an `ITracer` and installs itself; callers `raytracer.cpp` (`traceGroups`, `traceRay`), `photon.cpp`, `hcshader.cpp` (null-tested, the probe's `ray.object` set to NULL first); `hiderTracer.{h,cpp}`, `CRenderer::frameTracer` and the services' `tracer()` override deleted, `src/ri/CMakeLists.txt` entries removed.
+
+(The disk-space stop of 2026-11-03 is lifted: the maintainer freed space, 10 GiB free for the rest of the phase; `df` checked before each build and suite.)
+
+**T090.** `ShadingContract_TraceReplay_*` (all), `HiderTracer_PerContext`, `ShadingContract_RayLevel`, `ShadingServices_ContextNoServices`, `ShadingContract_{NoTracer,CannedTrace,GatherRequests}` and `ShadingScope_Greps` pass; `git diff --stat -- tests/shading_contract/replay` is empty; `grep -rn --exclude-dir=link 'frameTracer\|CHiderTracer' src tests` is empty; `src/ri/hiders/hiderTracer.h` is absent. First S1d run was red on one hit: my own comment in `rendererServices.h` still named `CHiderTracer`; reworded ("the renderer's adapter class is gone"), then S1d green. **S1d mutation:** re-adding `void traceAny(CRay *);` to the class body turned S1d red (`trace member in CShadingContext: void traceAny(`), restored from a mtime-preserving copy, S1d green again, `git diff -- shading.h` empty (`build-logs/029-p6-mutation.txt`).
+
+### Phase 6 CHECKPOINT 6
+
+| | macOS | Linux (GCC 13, `-Werror`, `-j2`) |
+|---|---|---|
+| CP-a build | exit 0, 0 warnings | exit 0, 0 warnings |
+| CP-b suite | **1066 of 1066 pass** | 1067 tests, 6 fail: the baseline's set, unchanged (#57, #45, #46 x4) |
+| CP-d images | 900, **0 differing, 0 missing**, 2 not in manifest (`Link_StaticConsumer`, `HiderTracer_PerContext/ri.tif`, both from tests enabled since the baseline); listing equal | same |
+| CP-c architecture | 21 of 21; ALLOWED unchanged (DB-004 52, DB-006 31, DB-010 8, DB-011 164, DB-015 10, DB-017 78, DB-025 12); Hiders 556/81, TOTAL 610/93; `RESULT PASS` | same |
+| CP-m | 69 of 69 pass (T-T1, T-T2, every `TraceReplay_*` included), 6 Not Run (Disabled); replay and `tools/baseline*` unchanged | 69 of 69 pass |
+| CP-v | no `static_assert` line edited | same tree |
+
+The replay (`macos.txt`/`linux.txt`) is green and unchanged on both hosts. Statistics scenes are part of CP-b and CP-d: the counters stayed in the context (`countTracedRay`, `tracedRays`). Linux push 3566+ files, verify 0 differences; pull 16 files.

@@ -85,6 +85,8 @@ namespace openrender::shading {
     //   2.1.0  spec 029. Breaking within 2.x (allowed before spec 055, see the rule above):
     //          Changed:  getPhotonMap() returns openrender::shading::IPhotonLookup * (was CPhotonMap *).
     //          Added:    IPhotonLookup (photonLookup.h), IIlluminationHook (illuminationHook.h).
+    //          Changed:  tracer() is the fallback for a context with no tracer of its own: the hiders implement ITracer
+    //                    (the renderer's adapter class is gone) and install themselves with CShadingContext::setTracer().
     //   2.0.0  spec 026, 2026-11-01. Version 1 was the unversioned interface of specs 024, 025 and 027
     //          (57 pure virtuals).
     //          Added:    getAttribute, getMessage, getMatrix and tracer() (each with a documented
@@ -206,11 +208,11 @@ class CRendererServices {
         // Thread-safety: as getAttribute. Re-enters Shading: never.
         virtual openrender::shading::MatrixAnswer getMatrix(const openrender::shading::MatrixRequest &) const { return {}; }
 
-        // The frame's tracer. Not owned by Shading and not owned by the caller: the implementer keeps it
-        // alive from beginFrame() until endFrame() (the renderer installs it in beginFrame() and clears it
-        // in endFrame(), so between frames it is nullptr), and Shading never stores the pointer beyond a
-        // trace call.
-        // Default: nullptr, and Shading warns once per kind and treats every ray as a miss.
+        // The fallback tracer, for a shading context with no tracer of its own (since 2.1.0 the hider that owns a
+        // context is its tracer and installs itself with CShadingContext::setTracer(); the renderer's services answer
+        // nullptr). Not owned by Shading and not owned by the caller: the implementer keeps it alive as long as Shading may
+        // ask for it, and Shading never stores the pointer beyond a trace call. A test double may inject one here.
+        // Default: nullptr, and with no tracer at all Shading warns once per kind and treats every ray as a miss.
         // Thread-safety: called by every render thread; the returned tracer is itself thread-safe.
         // Re-enters Shading: never.
         virtual openrender::shading::ITracer *tracer() { return nullptr; }

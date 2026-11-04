@@ -170,7 +170,6 @@ int CRenderer::numThreads;
 int CRenderer::maxTextureSize;
 CSearchPathResolver *CRenderer::textureResolver = NULL;               // initialized in beginFrame, destroyed in endFrame
 CTextureSystem *CRenderer::textureSystem = NULL;                      // initialized in beginFrame, destroyed in endFrame
-openrender::shading::ITracer *CRenderer::frameTracer = nullptr;       // the frame's tracer (spec 026): set in beginFrame, cleared in endFrame
 int CRenderer::maxBrickSize;
 int CRenderer::maxGridSize;
 int CRenderer::maxRayDepth;

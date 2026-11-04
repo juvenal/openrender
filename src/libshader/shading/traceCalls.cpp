@@ -68,8 +68,12 @@ namespace libshader {
         }
 
         openrender::shading::ITracer *tracerOf(CShadingContext &context, TraceKind kind) {
-            CRendererServices *svc = context.getServices();
-            openrender::shading::ITracer *tracer = svc != nullptr ? svc->tracer() : nullptr;
+            // The hider that owns the context is its tracer; the services' tracer() is the fallback for a context with none
+            openrender::shading::ITracer *tracer = context.tracer();
+            if (tracer == nullptr) {
+                CRendererServices *svc = context.getServices();
+                tracer = svc != nullptr ? svc->tracer() : nullptr;
+            }
             if (tracer == nullptr && !s_warned[(int)kind].exchange(true))
                 warning(CODE_NOTSTARTED, "renderer services provide no tracer: %s rays are treated as misses\n", kindName(kind));
             return tracer;
