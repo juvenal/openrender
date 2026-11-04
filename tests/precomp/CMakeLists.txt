@@ -3,8 +3,8 @@
 #   Precomp_OutputUnchanged   characterization: the bytes precomp writes, against the raw output of the
 #                             unmodified tool (reference/stochasticPrimitives.raw.h), run from a scratch tree.
 #                             Green on the starting tree by design.
-#   Precomp_NoHiderCore       precomp.cpp includes neither reyes.h nor a core header. Red until Phase 7, so
-#                             it carries the temporary label or038_red (tests/architecture/CMakeLists.txt).
+#   Precomp_NoHiderCore       precomp.cpp includes neither reyes.h nor a core header. Green since Phase 7
+#                             (precomp.cpp includes rasterFlags.h instead); labels architecture and precomp.
 add_test(NAME Precomp_OutputUnchanged
     COMMAND ${CMAKE_COMMAND} -DMODE=compare -DPRECOMP=$<TARGET_FILE:precomp>
             -DWORK=${CMAKE_CURRENT_BINARY_DIR}/work
@@ -18,7 +18,7 @@ add_test(NAME Precomp_NoHiderCore
             -DSOURCE_DIR=${CMAKE_SOURCE_DIR} -DBUILD_DIR=${CMAKE_BINARY_DIR}
             -DMAP=${CMAKE_SOURCE_DIR}/tests/architecture/domain-map.txt
             -P ${CMAKE_CURRENT_SOURCE_DIR}/check_precomp_no_hider_core.cmake)
-set_tests_properties(Precomp_NoHiderCore PROPERTIES TIMEOUT 60 LABELS "or038_red;precomp")
+set_tests_properties(Precomp_NoHiderCore PROPERTIES TIMEOUT 60 LABELS "architecture;precomp")
 
 # Capture of the reference (scene-interface-capture-baselines, tests/CMakeLists.txt): written once, from the
 # unmodified tool, and never replaced unless configured with -DOR038_RECAPTURE=ON.

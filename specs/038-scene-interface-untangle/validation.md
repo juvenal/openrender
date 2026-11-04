@@ -427,7 +427,27 @@ Red evidence before any implementation (`cpujob 038-p6-red`, with `SLO_FORMAT_MI
 
 ## 7. Phase 7: `precomp`
 
-(Not started.)
+### 7.1 T119 TEST-APPROVAL (approved as laid out)
+
+Facts established while preparing it (the tree is untouched; the only compile was a scratch copy outside the tree):
+- `precomp.cpp` uses these of `reyes.h`: `RASTER_POINT`, `_UNSHADED`, `_MOVING`, `_TRANSPARENT`, `_FOCALBLUR`, `_EXTRASAMPLES`, `_MATTE`, `_LOD`, `_UNDERCULL`, `_XTREME`, `_GLOBAL_MASK`, `_DEPTHFILT_MASK` and `_HIGHBITS_SHIFT`, all among `reyes.h:42-55`; it uses nothing of `renderer.h` (`CRenderer::depthFilter == DEPTH_MID` at `:399` is inside a printed string).
+- A scratch copy of `precomp.cpp` with the two includes replaced by `ri/hiders/rasterFlags.h` (a scratch header holding `reyes.h:42-55`, `#pragma once`) passes `-fsyntax-only` with the tool's own compile flags (`-Werror` among them): `cpujob 038-p7-syntax`, exit 0.
+- Every other user of `RASTER_*` is a hider file that includes `reyes.h`, which will include the new header.
+- `src/precomp/CMakeLists.txt` links `openrendercommon` only and needs nothing added: the new header has no include.
+- The report line to be replaced (`ctest -R Architecture_DomainBoundaries -V`): `CONSUMER  src/precomp/precomp.cpp -> src/ri/hiders/reyes.h  [Consumer -> Hiders]` (the only precomp line); metrics now `TOTAL refs 606 distinct 90`, `Hiders refs 558 distinct 82`.
+
+### 7.2 What landed (T120 to T123)
+
+- **T120** `src/ri/hiders/rasterFlags.h` (new, `#ifndef RASTERFLAGS_H`, no includes): the Note comment and `reyes.h:42-55` moved verbatim (`RASTER_MOVING` through `RASTER_DEPTHFILT_MASK`). `reyes.h` includes it (after `object.h`) in their place; `RASTER_DRAW_FRONT` and the rest stay.
+- **T121** `src/precomp/precomp.cpp:35-36`: `reyes.h` and `renderer.h` replaced by `ri/hiders/rasterFlags.h`; the printed `CRenderer::depthFilter == DEPTH_MID` stays. `src/precomp/CMakeLists.txt` needs nothing (links `openrendercommon` only).
+- **T122** `Precomp_NoHiderCore` passed (`cpujob 038-p7-tests ctest -R 'Precomp_'`: `Precomp_OutputUnchanged` and `Precomp_NoHiderCore`, 2/2), then its label moved from `or038_red` to `architecture` in `tests/precomp/CMakeLists.txt` (comment updated), and the comment in `tests/architecture/CMakeLists.txt` records it was the last: `ctest -N -L or038_red` now lists no test (Phase 9 requires that). `ctest -L visual -E slow -j4`: 539/539.
+- **T123** CONSUMER report re-measured (`ctest -R Architecture_DomainBoundaries -V`): 71 edges, 32 from `src/libshader/tests/*` (28 at Phase 0: the drift, format-version and gate-hardening tests added edges) and 39 from the tools (38 at Phase 0). The tool breakdown now: `oshader.cpp` 3, `sloinfo.cpp` 3, `precomp.cpp` 1 (now `-> rasterFlags.h`, was `-> reyes.h`; still Consumer to Hiders), `orender.cpp` 1, `otexmake.cpp` 1, `previewContext.cpp` 9, `ribGeometryContext.cpp` 10, `ribGeometryContext.h` 5, `dataLoad.cpp` 6 (5 at Phase 0, plus `riServices.h`, Scene Interface). By target domain: Geometry 15, Graphics State 4, Hiders 3, Scene Interface 9 (8), Shading 6, Texturing 2. The Consumer-to-Core include edges retired since the starting tree (not listed in the CONSUMER section; read from the diff against `master`): `previewContext.cpp` lost `renderer.h` and `riDiagnostics.h`, `ribGeometryContext.cpp` lost `renderer.h` and `rendererContext.h`, `precomp.cpp` lost `renderer.h` and `reyes.h`; `dataLoad.cpp` keeps `renderer.h` (the `CRenderer::fromWorld` seeding, DB-025) but no longer calls `CRenderer::initDeclarations()`/`shutdownDeclarations()`, and the preview no longer calls them or `RiBeginLite()` either. Metrics unchanged: `TOTAL refs 606 (baseline 606) distinct 90`, `Hiders refs 558 distinct 82`, `SceneInterface refs 0`; `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`. Material for the Phase 8 DB-024 text.
+
+### 7.3 Checkpoint 7, macOS
+
+`cpujob 038-p7-build cmake --build build --config Release -j4`: exit 0, no warnings. `038-p7-all ctest -LE determinism-sweep -j4` (189 s): 1078 tests, none `Not Run`, **0 failed** (the seven `ShadeopAbi_Jit_*` and `Precomp_NoHiderCore` are green). `ctest -L architecture`: 29/29. `ctest -N -L or038_red`: Total Tests: 0.
+
+**Linux** (tree `openrender-038`, GCC 13 `-Werror`; synced with `rsync -rlpc -0 --files-from`, `sha256sum -c --quiet` OK; no file deleted): `cpujob 038-p7-lx-build cmake --build build -j2`: exit 0, 0 `warning:`. `ctest -R Precomp_`: 2/2. `038-p7-lx-test ctest -LE determinism-sweep -j2` (688 s): 1079 tests, none `Not Run`, 7 failed, exactly the Phase 0 baseline (#44 `LibShader_McompConsistency`, #45 `TextureTile_RenderByteIdentical`, #46 the four `TextureTile_Cache*`, #57 `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes`); no new failure, `Precomp_NoHiderCore`, `Precomp_OutputUnchanged` and the seven `ShadeopAbi_Jit_*` (`PerThread8` included) pass. `ctest -L architecture`: 29/29. `ctest -N -L or038_red`: Total Tests: 0. Logs on the remote: `build/lx-p7-*.log`.
 
 ## 8. Phase 8: documentation
 

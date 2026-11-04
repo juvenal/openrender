@@ -178,7 +178,8 @@ archcheck_add_fixture(conditional-include 0
 # Precomp_NoHiderCore (tests/precomp). Phase 9 requires that no test carries or038_red.
 # Done in Phase 2: SceneInterface_RibOutNoCore, _NoCoreInclude and _HooksAndRecords now carry architecture;
 # in Phase 3: SceneInterface_ActiveContextAssignments; in Phase 4: SceneInterface_RibVectorResidual and
-# Preview_NoCoreReach (tests/preview); in Phase 5: Compiler_IncludeBoundary.
+# Preview_NoCoreReach (tests/preview); in Phase 5: Compiler_IncludeBoundary; in Phase 7: Precomp_NoHiderCore
+# (tests/precomp), the last one: no test carries or038_red any more.
 set(OR038_MAP ${CMAKE_CURRENT_SOURCE_DIR}/domain-map.txt)
 set(OR038_COMMON
     -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
