@@ -23,6 +23,7 @@
 
 #include "libshader/shading/rendererServices.h"
 #include "common/memory.h"    // CMemPage
+#include "declarations.h"      // CDeclarations (Graphics State: the declared-variable table)
 #include "photonMap.h" // CPhotonMap
 #include "renderer.h"
 #include "texture.h"        // CTexture, CTextureInfoBase, CEnvironment
@@ -38,8 +39,8 @@ class CRendererServicesImpl final : public CRendererServices {
     public:
         // Grid / memory
         int maxGridSize() const override { return CRenderer::maxGridSize; }
-        int numGlobalVariables() const override { return CRenderer::globalVariables->numItems; }
-        CVariable *globalVariable(int i) const override { return CRenderer::globalVariables->array[i]; }
+        int numGlobalVariables() const override { return CDeclarations::numGlobals(); }
+        CVariable *globalVariable(int i) const override { return CDeclarations::global(i); }
 
         // Timing
         float shutterOpen() const override { return CRenderer::shutterOpen; }

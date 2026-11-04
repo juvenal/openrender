@@ -151,8 +151,21 @@ calls an operand.
 
 **Signature.** `SHADEOP(f)` declares `void f(void *initdata, int argc, void *argv[])`,
 which is exactly `dsoExecFunction`; source that did pointer arithmetic on `argv[i]`
-without a cast needs one. The JIT (`.slo`) has no DSO call path yet; a shader that
-calls a DSO operand needs the interpreter format (`.rslo`).
+without a cast needs one.
+
+**In a JIT (`.slo`) shader** (spec 038). `oshader --jit` compiles a call of a DSO operand: it
+lowers it to the runtime entry `op_dso_call` (`src/libshader/shading/rslOps.h`), which does what the
+interpreter does (the operand's data, the per-thread data when the module has any, one `exec`
+call per active point, or one for a uniform call), and records the operand's name and prototype
+in the module (`openrender.shader.shadeops`). The loader binds each operand with the renderer's
+`getDSO` service every time it loads the shader. A module with such a call records the `.slo`
+format 2.1.0 (`src/common/sloFormat.h`); every other `.slo` still records 2.0.0, so a renderer
+that reads only 2.0 still loads it, and a renderer that reads 2.0 refuses a 2.1 module before it
+links it. If the operand cannot be found when the shader loads, the renderer warns
+(`Failed to locate DSO function name (prototype)`, in the form of the `.rslo` loader's message,
+with the `.slo` format) and falls back to the `.rslo` of the shader, where the interpreter
+reports the same missing operand. The shadeop interface and `CRendererServices` do not change
+version.
 
 ---
 

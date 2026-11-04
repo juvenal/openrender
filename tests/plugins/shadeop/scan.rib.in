@@ -1,7 +1,7 @@
 # Spec 037, ShadeopAbi_MissingExec (FR-033): the shader calls probe_add. The first procedural
 # directory holds a module whose table names the operand but whose exec symbol is absent; the
 # second holds a module with the full operand. The scan must skip the first and go on.
-# The shader is the interpreter bytecode (the JIT has no DSO call path).
+# The shader format is .rslo in this template.
 Option "shaderformat" "default" ["rslo"]
 Option "searchpath" "shader" ["@SHADEOP_SHADER_DIR@:@SHADEOP_SHADER_DEFAULT_DIR@"]
 Option "searchpath" "display" ["@OR_DISPLAY_PATH@"]

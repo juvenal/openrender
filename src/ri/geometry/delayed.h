@@ -31,29 +31,6 @@
 #include "object.h"
 
 ///////////////////////////////////////////////////////////////////////
-// Class				:	CDelayedData
-// Description			:	This is a simple container used by the rib interface for procedural dynamic objects
-// Comments				:
-class CDelayedData {
-    public:
-        CDelayedData() {
-            generator = NULL;
-            helper = NULL;
-        }
-
-        ~CDelayedData() {
-            if (generator != NULL)
-                free(generator);
-            if (helper != NULL)
-                free(helper);
-        }
-
-        char *generator;
-        char *helper;
-        vector bmin, bmax;
-};
-
-///////////////////////////////////////////////////////////////////////
 // Class				:	CDelayedObject
 // Description			:	Contains a delayed object
 // Comments				:

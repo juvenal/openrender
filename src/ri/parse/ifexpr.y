@@ -25,13 +25,16 @@
 #include "ri_config.h"
 #include "common/diagnostics.h"
 #include "common/rendererc.h"
-#include "renderer.h"
-#include "rendererContext.h"
+#include "attributes.h"
+#include "common/memory.h"
+#include "options.h"
+#include "riCondition.h"
+#include "riInterface.h"
 
 int							iflex(void );		// Forward definition for stupid yacc
 void						iferror(const char *,...);
 
-static	CRendererContext	*context	=	NULL;
+static	CRiInterface	*context	=	NULL;
 static	int					silent		=	FALSE;
 static	int					result		=	0;	// 0 - FALSE
 												// 1 - TRUE
@@ -202,10 +205,11 @@ static	int					result		=	0;	// 0 - FALSE
 				// Lookup the attributes
 				CAttributes	*cAttributes	=	context->getAttributes(TRUE);
 
-				if (cAttributes->find(name,decl,expr.type,expr.value,expr.intValue,expr.floatValue) == FALSE) {
+				// A context that answers nullptr has nothing to find
+				if (cAttributes == NULL || cAttributes->find(name,decl,expr.type,expr.value,expr.intValue,expr.floatValue) == FALSE) {
 					if (typeSet == FALSE) {
 						COptions	*cOptions		=	context->getOptions();
-						if (cOptions->find(name,decl,expr.type,expr.value,expr.intValue,expr.floatValue) == FALSE) {
+						if (cOptions == NULL || cOptions->find(name,decl,expr.type,expr.value,expr.intValue,expr.floatValue) == FALSE) {
 							if (!silent) error(CODE_BADTOKEN,"Failed to find variable \"%s\"\n",name);
 							result	=	FALSE;
 						}
@@ -218,10 +222,10 @@ static	int					result		=	0;	// 0 - FALSE
 				// Lookup the options
 				COptions	*cOptions		=	context->getOptions();
 
-				if (cOptions->find(name,decl,expr.type,expr.value,expr.intValue,expr.floatValue) == FALSE) {
+				if (cOptions == NULL || cOptions->find(name,decl,expr.type,expr.value,expr.intValue,expr.floatValue) == FALSE) {
 					if (typeSet == FALSE) {
 						CAttributes	*cAttributes	=	context->getAttributes(TRUE);
-						if (cAttributes->find(name,decl,expr.type,expr.value,expr.intValue,expr.floatValue) == FALSE) {
+						if (cAttributes == NULL || cAttributes->find(name,decl,expr.type,expr.value,expr.intValue,expr.floatValue) == FALSE) {
 							if (!silent) error(CODE_BADTOKEN,"Failed to find variable \"%s\"\n",name);
 							result	=	FALSE;
 						}
@@ -561,11 +565,12 @@ ifExpr:			//////////////////////////////////////////////////////////////////////
 
 
 ///////////////////////////////////////////////////////////////////////
-// Function				:	ifParse
+// Function				:	riEvaluateCondition
 // Description			:	Parse an if statement
 // Return Value			:	TRUE/FALSE
-// Comments				:
-int		CRendererContext::ifParse(const char *expr) {
+// Comments				:	Was CRendererContext::ifParse; it uses the context's attributes and options through
+//							the CRiInterface accessors, exactly where it used them, and needs nothing of the core
+int		riEvaluateCondition(CRiInterface *ctx, const char *expr) {
 
 	// Begin a new page
 	arenaBegin(globalArena);
@@ -574,7 +579,7 @@ int		CRendererContext::ifParse(const char *expr) {
 	YY_BUFFER_STATE	newState;
 
 	// Save the necessary info
-	context			=	this;
+	context			=	ctx;
 	result			=	2;
 	silent			=	FALSE;
 

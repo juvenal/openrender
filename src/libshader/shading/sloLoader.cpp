@@ -33,6 +33,9 @@
 #include "common/variable.h"  // CVariable, EVariableType, EVariableStorage
 #include "common/global.h"    // allocate_untyped
 #include "common/os.h"        // osProcessEscapes
+#include "common/diagnostics.h" // warning()
+#include "common/sloFormat.h"  // SLO_FORMAT_*
+#include "serviceLookup.h"     // libshader::lookupDSO
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -298,6 +301,25 @@ CShader *parseSloShader(const char *shaderName, const char *sloPath) {
         std::string logicalName = ext ? std::string(base, ext) : std::string(base);
         sh->jitEntry = CLLVMJitEngine::getInstance().compileShader(sloPath, logicalName);
         sh->jitInitEntry = CLLVMJitEngine::getInstance().lookupInitEntry(logicalName);
+
+        // The DSO operands the module calls (spec 038), bound on every load: the operands belong to this
+        // renderer session, while the compiled module outlives it. A module without a DSO call binds nothing.
+        // A missing operand refuses the .slo, so getShader() falls back to the .rslo, where the interpreter
+        // reports the same missing operand (decision Q2).
+        if (sh->jitEntry != nullptr) {
+            std::string failedName, failedPrototype;
+            const int failed = CLLVMJitEngine::getInstance().bindShadeops(
+                logicalName,
+                [](const std::string &name, const std::string &prototype) -> void * { return libshader::lookupDSO(name.c_str(), prototype.c_str()); },
+                &failedName, &failedPrototype);
+            if (failed >= 0) {
+                warning(CODE_BADFILE, "Error in shader \"%s\" (\"Failed to locate DSO function %s (%s)\") (v%d.%d.%d, .slo format %d.%d.%d)\n",
+                        shaderName, failedName.c_str(), failedPrototype.c_str(), VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH, SLO_FORMAT_MAJOR,
+                        SLO_FORMAT_MINOR, SLO_FORMAT_PATCH);
+                delete sh;
+                return nullptr;
+            }
+        }
     }
 
     return sh;

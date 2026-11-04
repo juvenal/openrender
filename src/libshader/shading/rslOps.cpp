@@ -21,6 +21,7 @@
 #include "common/colorSpace.h"
 #include "common/diagnostics.h"
 #include "common/memory.h"
+#include "dsoHandle.h"
 #include "include/logging.hpp"
 #include "noise.h"
 #include "shading.h"
@@ -2345,6 +2346,25 @@ void op_format(char **dst, int sd, const char *const *fmt, int sf,
     CShadingContext *ctx = libshader::activeContext();
     if (ctx)
         ctx->jitFormat(dst, sd, fmt, sf, operands, strides, numOperands, n, tags);
+}
+
+void op_dso_call(void *slotEntry, int isVoid, int inInit, int argc, void **argv, const int *steps, int n, const int *tags) {
+    CShadeopOperand *operand = static_cast<CDSO *>(slotEntry)->operand;
+    dsoExecFunction exec = shadeopOperandExec(operand);
+    // The init function runs once at bind time on one thread, with no active context: the shared init data.
+    void *data = shadeopOperandData(operand, inInit ? 0 : libshader::activeContext()->thread);
+
+    if (n == 1 && tags == nullptr) {
+        exec(data, argc, argv);
+        return;
+    }
+    const int first = isVoid ? 1 : 0; // a void operand has no destination to advance
+    for (int v = 0; v < n; ++v) {
+        if (ACTIVE(tags, v))
+            exec(data, argc, argv);
+        for (int i = first; i <= argc; ++i)
+            argv[i] = static_cast<char *>(argv[i]) + steps[i];
+    }
 }
 
 void op_printf(const char *const *fmt, int sf, void *const *operands,

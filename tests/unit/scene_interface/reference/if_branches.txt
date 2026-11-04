@@ -1,0 +1,20 @@
+# spec 038: the radii of the Spheres the dispatcher let through, in order (see scenes/if_branches.rib)
+12
+23
+31
+34
+42
+45
+52
+53
+56
+58
+61
+62
+65
+67
+99
+# diagnostics (the evaluator's; file-resolution lines left out)
+code=25 severity=2 Unable to cast a string in the expression\n
+code=19 severity=2 Failed to find variable "nothere"\n
+code=25 severity=2 Unable to cast a string in the expression\n

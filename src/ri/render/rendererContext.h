@@ -271,7 +271,6 @@ class CRendererContext : public CRiInterface, public CGeometryHost {
         uint64_t pendingInstanceKey; // The handle key of the light being created, or 0 (spec 039)
 
         void init(CProgrammableShaderInstance *); // Execute the init code of a shader
-        int ifParse(const char *expr);            // Evaluate a condition
         int addMotion(float *parameters, int parameterSize, const char *name, float *&p0, float *&p1);
 };
 

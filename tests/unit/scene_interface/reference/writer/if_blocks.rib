@@ -1,0 +1,14 @@
+##RenderMan RIB-Structure 1.1
+##Creator openRender <version>
+##CreationDate <date>
+FrameBegin 1
+WorldBegin
+IfBegin "$user:level == 1" 
+Sphere 1 -1 1 360 
+ElseIf "$user:level == 2" 
+Sphere 2 -2 2 360 
+Else
+Sphere 3 -3 3 360 
+IfEnd
+WorldEnd
+FrameEnd

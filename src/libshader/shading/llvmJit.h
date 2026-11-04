@@ -21,10 +21,13 @@
 #include "common/formatVersion.h"
 #include "common/global.h"
 #include "sloMetadata.h"
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 // Forward declarations for LLVM types to keep headers clean
 namespace llvm {
@@ -91,6 +94,22 @@ class CLLVMJitEngine {
         TShaderJitEntry lookupInitEntry(const std::string &shaderName);
 
         /**
+         * @brief Binds the DSO shadeop operands a compiled module calls (spec 038).
+         *
+         * A module that calls shadeop operands carries the slot list `openrender.shader.shadeops`
+         * (name and prototype per slot) and the slot array `@"<shader>.shadeops"`, which compileShader()
+         * records. This writes each slot in order from resolve(name, prototype), and stops at the first
+         * nullptr. The slots belong to the renderer session that resolved them, so the loader calls this
+         * on every load, not only when the module is compiled. A module without slots binds nothing.
+         *
+         * @return -1 when every slot is bound, otherwise the index of the slot that could not be
+         *         resolved (its name and prototype are written to the two optional outputs).
+         */
+        int bindShadeops(const std::string &shaderName,
+                         const std::function<void *(const std::string &name, const std::string &prototype)> &resolve,
+                         std::string *failedName = nullptr, std::string *failedPrototype = nullptr);
+
+        /**
          * @brief Singleton access for the global JIT engine.
          */
         static CLLVMJitEngine &getInstance();
@@ -110,6 +129,11 @@ class CLLVMJitEngine {
         std::unordered_map<std::string, TShaderJitEntry> cache_;
         std::unordered_map<std::string, TShaderJitEntry> initCache_;
         std::unordered_map<std::string, SLOShaderInfo> metaCache_;
+
+        // The DSO operands a compiled module calls (spec 038): per shader name the slots read from
+        // `openrender.shader.shadeops` and the address of the module's slot array.
+        std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>> shadeopSlots_;
+        std::unordered_map<std::string, void **> shadeopArrays_;
 
         // Errors the JIT session reports on its own (the unresolved-symbol list of a
         // module that cannot bind, for one) while a compile is in flight; compileShader()

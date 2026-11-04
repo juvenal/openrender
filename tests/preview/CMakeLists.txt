@@ -52,3 +52,67 @@ add_preview_test(test_preview_integration test_integration.cpp)
 set_tests_properties(test_preview_integration PROPERTIES
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
 )
+
+# ---------------------------------------------------------------------------------------------------------
+# Spec 038 (Scene Interface untangle), US4: the preview back-end.
+#
+#   Preview_ExtractionUnchanged  characterization: what ribpreview_load extracts from each scene of the preview
+#                                suite (reference/<platform>/<scene>.txt), run from the repository root.
+#                                Green on the starting tree by design.
+#   Preview_NoCoreReach          cmake -P: libribpreview includes no Core header and no object of it needs a
+#                                CRenderer / CRendererContext symbol. Green since Phase 4; labels preview and
+#                                architecture.
+#   Preview_SelfRegistration     a program linking libribpreview alone gets its context from
+#                                RiBeginBackEnd("preview", nullptr). Enabled in Phase 4 (it was DISABLED, with an
+#                                EXCLUDE_FROM_ALL executable that did not compile while RiBeginBackEnd did not exist).
+# ---------------------------------------------------------------------------------------------------------
+add_executable(test_preview_extraction_unchanged test_extraction_unchanged.cpp)
+target_include_directories(test_preview_extraction_unchanged PRIVATE ${PREVIEW_TEST_INCLUDES}
+    ${CMAKE_SOURCE_DIR}/tests/unit/scene_interface)
+target_link_libraries(test_preview_extraction_unchanged PRIVATE ${PREVIEW_TEST_LIBS})
+target_compile_features(test_preview_extraction_unchanged PRIVATE cxx_std_20)
+# GEOMETRIES is the tracked geometry/ directory (teapot.rib), not the gitignored deploy tree the other preview tests name
+set(PREVIEW_EXTRACTION_ENV
+    "SHADERS=${CMAKE_SOURCE_DIR}/openrender/shaders"
+    "ORENDERHOME=${CMAKE_SOURCE_DIR}/openrender"
+    "DISPLAYS=${CMAKE_SOURCE_DIR}/openrender/displays"
+    "GEOMETRIES=${CMAKE_SOURCE_DIR}/geometry")
+add_test(NAME Preview_ExtractionUnchanged
+    COMMAND test_preview_extraction_unchanged ${CMAKE_CURRENT_SOURCE_DIR}/reference)
+set_tests_properties(Preview_ExtractionUnchanged PROPERTIES
+    TIMEOUT 120
+    LABELS "preview;regression"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    ENVIRONMENT "${PREVIEW_EXTRACTION_ENV}")
+
+add_custom_target(si_capture_preview
+    COMMAND ${CMAKE_COMMAND} -E env ${PREVIEW_EXTRACTION_ENV} $<TARGET_FILE:test_preview_extraction_unchanged> ${CMAKE_CURRENT_SOURCE_DIR}/reference ${OR038_CAPTURE_FLAG}
+            ${OR038_RECAPTURE_FLAG}
+    DEPENDS test_preview_extraction_unchanged
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    COMMENT "Capturing the preview extraction references (an existing reference is never overwritten)"
+    VERBATIM)
+add_dependencies(scene-interface-capture-baselines si_capture_preview)
+
+add_test(NAME Preview_NoCoreReach
+    COMMAND ${CMAKE_COMMAND}
+            "-DINCLUDE_DIRS=$<TARGET_PROPERTY:ribpreview,INCLUDE_DIRECTORIES>"
+            -DPREVIEW_DIR=${CMAKE_SOURCE_DIR}/src/preview/libribpreview
+            -DOBJECT_DIR=${CMAKE_BINARY_DIR}/src/preview/libribpreview/CMakeFiles/ribpreview.dir
+            -DNM=${CMAKE_NM}
+            -DSOURCE_DIR=${CMAKE_SOURCE_DIR} -DBUILD_DIR=${CMAKE_BINARY_DIR}
+            -DMAP=${CMAKE_SOURCE_DIR}/tests/architecture/domain-map.txt
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/check_preview_no_core_reach.cmake)
+set_tests_properties(Preview_NoCoreReach PROPERTIES TIMEOUT 60 LABELS "preview;architecture")
+
+add_executable(test_preview_self_registration test_self_registration.cpp)
+target_include_directories(test_preview_self_registration PRIVATE ${PREVIEW_TEST_INCLUDES}
+    ${CMAKE_SOURCE_DIR}/tests/unit/scene_interface)
+target_link_libraries(test_preview_self_registration PRIVATE ribpreview openrendercommon)
+target_compile_features(test_preview_self_registration PRIVATE cxx_std_20)
+add_test(NAME Preview_SelfRegistration
+    COMMAND test_preview_self_registration ${CMAKE_CURRENT_BINARY_DIR}/self_registration_work)
+set_tests_properties(Preview_SelfRegistration PROPERTIES
+    TIMEOUT 60
+    LABELS "preview"
+    ENVIRONMENT "${PREVIEW_TEST_ENV}")

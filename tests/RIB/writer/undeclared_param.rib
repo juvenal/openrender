@@ -1,0 +1,9 @@
+# Spec 038, SceneInterface_WriterText: a parameter that is neither declared nor inline is refused with
+# "Parameter ... is not declared", each at the statement that names it; the statements around them are written.
+FrameBegin 1
+  WorldBegin
+    Polygon "P" [0 0 0  1 0 0  0 1 0] "bogus" [1 2 3]
+    Sphere 1 -1 1 360 "bogus2" [1]
+    Polygon "P" [0 0 0  1 0 0  0 1 0]
+  WorldEnd
+FrameEnd

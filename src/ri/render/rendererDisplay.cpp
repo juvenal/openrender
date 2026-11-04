@@ -32,6 +32,7 @@
 #include "channelRegistry.h"
 #include "displayChannel.h"
 #include "common/diagnostics.h"
+#include "declarations.h"
 #include "imager.h"
 #include "include/logging.hpp"
 #include "common/memory.h"
@@ -631,7 +632,7 @@ void CRenderer::computeDisplayData() {
 
                     // Make sure the variable is global
                     if (oChannel->outType == -1) {
-                        makeGlobalVariable(oChannel->variable);
+                        CDeclarations::makeGlobal(oChannel->variable);
                         oChannel->outType = oChannel->variable->entry;
                     }
                 }
@@ -655,7 +656,7 @@ void CRenderer::computeDisplayData() {
                     if (cVar != NULL) {
                         // Make sure the variable is global
                         if (cVar->storage != STORAGE_GLOBAL) {
-                            makeGlobalVariable(cVar);
+                            CDeclarations::makeGlobal(cVar);
                         }
                         else if (cVar->storage == STORAGE_PARAMETER || cVar->storage == STORAGE_MUTABLEPARAMETER) {
                             error(CODE_BADTOKEN, "Failed to find output variable or display channel \"%s\"\n", sampleName);

@@ -11,6 +11,7 @@
 #include "pointCloud.h"
 #include "renderer.h"
 #include "riInterface.h"
+#include "riServices.h"
 
 #include <cstdio>
 #include <cstring>
@@ -131,17 +132,18 @@ EDataFileType dataSniff(const char *fileName) {
     return type;
 }
 
-CDataDocument::CDataDocument() : dataView(NULL), declarationsInitialized(FALSE) {
+CDataDocument::CDataDocument() : dataView(NULL), session(NULL), sink(NULL) {
 }
 
 CDataDocument::~CDataDocument() {
     delete dataView;
 
-    if (declarationsInitialized) {
-        delete renderMan;
-        renderMan = NULL;
+    if (session != NULL) {
+        delete sink; // uninstalls it
+        sink = NULL;
         globalArena.tini();
-        CRenderer::shutdownDeclarations();
+        delete session;
+        session = NULL;
     }
 }
 
@@ -157,22 +159,21 @@ EDataFileType CDataDocument::open(const char *fileName) {
         return type;
     }
 
-    // Everything below constructs a reader against a live CRenderer -- init the declarations
-    // table and memory pool exactly once, kept alive for this document's own lifetime (not
-    // torn down at the end of this call: the readers/interactive state must survive across
-    // ribdata_key()'s re-emit cycle, unlike ribpreview_load's fully-materialized-then-torn-
-    // down RIB scene).
-    CRenderer::initDeclarations();
+    // Everything below constructs a reader, which needs the standard declarations table and the memory
+    // pool: a standard session (the declarations and the file search, no renderer) and the arena, kept
+    // alive for this document's own lifetime (not torn down at the end of this call: the readers/interactive
+    // state must survive across ribdata_key()'s re-emit cycle, unlike ribpreview_load's
+    // fully-materialized-then-torn-down RIB scene).
+    session = new CRiStandardSession();
     globalArena.init();
-    declarationsInitialized = TRUE;
 
     // Several reader constructors (e.g. CBrickMap's read path) call info()/error() for
-    // legitimate diagnostics, not just on failure -- both dereference the global `renderMan`
-    // unconditionally (error.cpp: renderMan->RiError(...)), which is otherwise only ever set
-    // by RiBegin()/RiBeginLite()'s callers. A plain CRiInterface has no pure virtuals and its
-    // default RiError() only forwards to a registered error handler (none here), so this is a
-    // safe, silent sink -- exactly what a headless loader needs.
-    renderMan = new CRiInterface();
+    // legitimate diagnostics, not just on failure. They reach the active context, so one is needed:
+    // a plain CRiInterface has no pure virtuals and its default RiError() only forwards to a registered
+    // error handler (none here), a safe, silent sink -- exactly what a headless loader needs. It is
+    // installed explicitly and removed again with the document.
+    sink = new CRiInterface();
+    riInstallContext(sink);
 
     // CRenderer::fromWorld/toWorld/fromWorld1/toWorld1/fromNDC/toNDC and worldBmin/worldBmax
     // are file-scope statics only ever initialized in beginFrame(), which this headless path

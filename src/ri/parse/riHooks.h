@@ -34,3 +34,9 @@ void RiRegisterDefaultContextFactory(CRiInterface *(*factory)(const char *ribFil
 // is set: name for RiBegin(<plain filename>), stream for RiBegin(NULL) writing
 // to stdout (or any other pre-opened destination a caller supplies).
 void RiRegisterRibOutFactory(CRiInterface *(*factory)(const char *name, FILE *stream));
+
+// A named Scene Interface back-end (spec 038), registered once by a static initializer in the back-end's
+// own translation unit (the preview's is in previewContext.cpp). RiBeginBackEnd (rib.h) looks the key up and
+// passes its argument through unchanged. ri.cpp names no back-end: the key is the registering code's string.
+using TRiBackEndFactory = CRiInterface *(*)(void *argument);
+void RiRegisterBackEnd(const char *key, TRiBackEndFactory factory);

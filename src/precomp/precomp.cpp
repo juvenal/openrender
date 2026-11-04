@@ -32,8 +32,7 @@
 #include "common/algebra.h"
 #include "common/global.h"
 #include "logging.hpp"
-#include "ri/hiders/reyes.h"
-#include "ri/render/renderer.h"
+#include "ri/hiders/rasterFlags.h"
 
 typedef struct {
         double *val;

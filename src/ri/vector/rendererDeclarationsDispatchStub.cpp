@@ -9,7 +9,7 @@
  *
  *   - CRenderer::render()/beginFrame() never run in this build, so
  *     `contexts` (the per-thread CShadingContext array) is always NULL and
- *     the notification loop in makeGlobalVariable()'s real body is always a
+ *     the notification loop in notifyGlobalVariable()'s real body is always a
  *     no-op in practice -- but omitting it here (rather than keeping the
  *     `if (contexts != NULL)` guard and relying on it always being false)
  *     means this build never needs CShadingContext resolvable at all.
@@ -20,7 +20,7 @@
  *     preview path can ever set true (see rendererDeclarationsDispatch.cpp's
  *     header comment for the full argument) -- so this is a loud,
  *     unreachable stub, matching CSurface::intersect()'s pattern rather
- *     than makeGlobalVariable()'s.
+ *     than notifyGlobalVariable()'s.
  *
  * Authors:
  *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
@@ -36,12 +36,9 @@
 #include "common/diagnostics.h"
 #include "renderer.h"
 
-void CRenderer::makeGlobalVariable(CVariable *var) {
-    var->entry = globalVariables->numItems;
-    var->storage = STORAGE_GLOBAL;
-    globalVariables->push(var);
+void CRenderer::notifyGlobalVariable(CVariable *) {
     // No rendering pipeline in this build: there are no per-thread
-    // CShadingContext instances to notify.
+    // CShadingContext instances to notify (the numbering is Graphics State's).
 }
 
 int CRenderer::findCoordinateSystem(const char *, const float *&, const float *&, ECoordinateSystem &) {

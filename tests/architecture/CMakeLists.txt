@@ -164,3 +164,64 @@ archcheck_add_fixture(metric-decrease 0
 archcheck_add_fixture(conditional-include 0
     "NOTBUILT +DB-001 include src/state/options.cpp -> src/shading/shader.h +\\(directive inactive in this build; skipped\\).*RESULT +PASS"
     FAIL_REGEX "STALE")
+
+# --- Spec 038 (Scene Interface untangle): the mechanical checks -------------------------------
+#
+# Each is a `cmake -P` script that reads the build system's own view of a target (a generator
+# expression on the command line), never a hand-kept list. While spec 038 was in progress each one
+# was red on the starting tree by design and carried a temporary label of its own instead of
+# `architecture`, so that `ctest -L architecture` stayed green at every checkpoint; the phase that
+# turned a check green moved it to `architecture`: Phase 2 for SceneInterface_RibOutNoCore,
+# SceneInterface_NoCoreInclude and SceneInterface_HooksAndRecords, Phase 3 for
+# SceneInterface_ActiveContextAssignments, Phase 4 for SceneInterface_RibVectorResidual and
+# Preview_NoCoreReach (tests/preview), Phase 5 for Compiler_IncludeBoundary and Phase 7 for
+# Precomp_NoHiderCore (tests/precomp). All of them carry `architecture` now; the temporary label is gone.
+set(OR038_MAP ${CMAKE_CURRENT_SOURCE_DIR}/domain-map.txt)
+set(OR038_COMMON
+    -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
+    -DBUILD_DIR=${CMAKE_BINARY_DIR}
+    -DMAP=${OR038_MAP})
+
+add_test(NAME SceneInterface_RibOutNoCore
+    COMMAND ${CMAKE_COMMAND} ${OR038_COMMON}
+        "-DSOURCES=$<TARGET_PROPERTY:ribOut_obj,SOURCES>"
+        -DTARGET_DIR=${CMAKE_SOURCE_DIR}/src/ri
+        -DTARGET_BINARY_DIR=${CMAKE_BINARY_DIR}/src/ri
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_ribout_no_core.cmake)
+
+add_test(NAME SceneInterface_RibVectorResidual
+    COMMAND ${CMAKE_COMMAND} ${OR038_COMMON}
+        "-DSOURCES=$<TARGET_PROPERTY:ribVector_obj,SOURCES>"
+        -DTARGET_DIR=${CMAKE_SOURCE_DIR}/src/ri
+        -DTARGET_BINARY_DIR=${CMAKE_BINARY_DIR}/src/ri
+        -DRESIDUAL=${CMAKE_CURRENT_SOURCE_DIR}/ribvector-core-residual.txt
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_ribvector_residual.cmake)
+
+add_test(NAME SceneInterface_NoCoreInclude
+    COMMAND ${CMAKE_COMMAND} ${OR038_COMMON}
+        "-DINCLUDE_DIRS=$<TARGET_PROPERTY:ribOut_obj,INCLUDE_DIRECTORIES>"
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_no_core_include.cmake)
+
+add_test(NAME SceneInterface_HooksAndRecords
+    COMMAND ${CMAKE_COMMAND} ${OR038_COMMON}
+        "-DINCLUDE_DIRS=$<TARGET_PROPERTY:ribOut_obj,INCLUDE_DIRECTORIES>"
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_hooks_and_records.cmake)
+
+add_test(NAME SceneInterface_ActiveContextAssignments
+    COMMAND ${CMAKE_COMMAND}
+        -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_active_context_assignments.cmake)
+
+# The compiler's include path: its own property plus what its two linked libraries export (usage
+# requirements the compile line carries but the target's INCLUDE_DIRECTORIES property does not).
+add_test(NAME Compiler_IncludeBoundary
+    COMMAND ${CMAKE_COMMAND} ${OR038_COMMON}
+        "-DINCLUDE_DIRS=$<TARGET_PROPERTY:libshader_compiler_obj,INCLUDE_DIRECTORIES>;$<TARGET_PROPERTY:openrendercommon,INTERFACE_INCLUDE_DIRECTORIES>;$<TARGET_PROPERTY:openrendershadeop,INTERFACE_INCLUDE_DIRECTORIES>"
+        -DCOMPILER_DIR=${CMAKE_SOURCE_DIR}/src/libshader/compiler
+        -DCOMPILER_BINARY_DIR=${CMAKE_BINARY_DIR}/src/libshader/compiler
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_compiler_include_boundary.cmake)
+
+# Green since Phase 2 / 3 / 4 / 5 (spec 038): permanent architecture checks
+foreach(_t SceneInterface_RibOutNoCore SceneInterface_NoCoreInclude SceneInterface_HooksAndRecords SceneInterface_ActiveContextAssignments SceneInterface_RibVectorResidual Compiler_IncludeBoundary)
+    set_tests_properties(${_t} PROPERTIES TIMEOUT 60 LABELS "architecture")
+endforeach()

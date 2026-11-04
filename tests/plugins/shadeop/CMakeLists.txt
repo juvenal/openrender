@@ -208,3 +208,66 @@ set_tests_properties(ShadeopAbi_CompilerAndRenderer PROPERTIES WORKING_DIRECTORY
 
 or_plugin_add_test(ShadeopAbi_ParserReentrant 120
     COMMAND test_shadeop_parser_reentrant ${CMAKE_CURRENT_SOURCE_DIR}/declarations.txt)
+
+# ---------------------------------------------------------------------------------------------------------
+# Spec 038 (Scene Interface untangle), US6: the JIT's DSO call path. Tests first (Phase 1): every case below is
+# red on the starting tree, because `oshader --jit` exits 3 with "JIT coverage gap for '<shader>': builtin
+# 'DSO' has no emitFunction() case" (contracts/jit-dso-call.md; tasks.md T042-T044). A JIT-off build has no
+# .slo, so the cases exist only under OPENRENDER_ENABLE_JIT.
+#
+# Each case renders one scene twice in one test run, as .rslo (the interpreter) and as .slo (the JIT), and
+# compares (check_jit_parity.cmake). The shaders are compiled by the check, at ctest time, so the build stays
+# green. The scene is render_format.rib.in, render.rib.in with the shader format as a parameter (the approved
+# render.rib.in hard-codes "rslo" and is not edited here).
+#
+#   ShadeopAbi_Jit_Probe          probe.sl, a uniform value-returning call (the 1.1 fixture)
+#   ShadeopAbi_Jit_ProbeTwo       probe_two.sl, two operands of one (unversioned) module
+#   ShadeopAbi_Jit_Args           probe_args.sl: varying, uniform-promoted, string and if-masked arguments
+#   ShadeopAbi_Jit_Void           probe_void.sl: a void operand; its records are compared
+#   ShadeopAbi_Jit_Init           probe_init.sl: a parameter default that calls the operand (init section, Q9)
+#   ShadeopAbi_Jit_PerThread8     probe.sl on 8 shading threads: 8 data pointers and 8 cleanups, as .rslo reports
+#   ShadeopAbi_Jit_MissingOperand probe.slo with the module removed from the search path (decision Q2)
+# ---------------------------------------------------------------------------------------------------------
+if(OPENRENDER_ENABLE_JIT)
+    or_plugin_test_module(plugin_shadeop_jit shadeop jit jit_fixture.cpp)
+
+    set(_JB ${OR_PLUGIN_BIN}/shadeop)
+
+    # shadeop_jit_case(<name> <kind> <shader> <source> <include dirs> <procedural path> <threads> <size> <fixture tag>)
+    function(shadeop_jit_case name kind shader source includes proc_path threads size tag)
+        set(_work ${_JB}/jit_work/${name})
+        set(RIB_SURFACE ${shader})
+        set(RIB_PROC_PATH "${proc_path}")
+        set(RIB_THREADS ${threads})
+        set(RIB_SIZE ${size})
+        set(RIB_OUTPUT ${shader}.tif)
+        foreach(_format rslo slo)
+            set(RIB_SHADER_FORMAT ${_format})
+            if(kind STREQUAL "missing")
+                set(RIB_SHADER_DIR ${_work}/both)
+            else()
+                set(RIB_SHADER_DIR ${_work}/${_format})
+            endif()
+            or_plugin_rib(${CMAKE_CURRENT_SOURCE_DIR}/render_format.rib.in ${_work}/${_format}.rib)
+        endforeach()
+        or_plugin_add_test(ShadeopAbi_Jit_${name} 600
+            COMMAND ${CMAKE_COMMAND}
+                -DCASE=${name} -DKIND=${kind} -DSHADER=${shader} -DSOURCE=${source}
+                "-DINCLUDE_DIRS=${includes}" -DTAG=${tag} -DOUTPUT=${shader}.tif
+                -DOSHADER=$<TARGET_FILE:oshader> -DORENDER=$<TARGET_FILE:orender>
+                -DTOOL=$<TARGET_FILE:plugin_abi_pixel_compare>
+                -DRIB_RSLO=${_work}/rslo.rib -DRIB_SLO=${_work}/slo.rib
+                -DWORKROOT=${_work}
+                -DCOMMON=${OR_PLUGIN_COMMON_DIR}
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/check_jit_parity.cmake)
+        set_tests_properties(ShadeopAbi_Jit_${name} PROPERTIES ENVIRONMENT "${OR_PLUGIN_RENDER_ENV}")
+    endfunction()
+
+    shadeop_jit_case(Probe pixels probe ${CMAKE_CURRENT_SOURCE_DIR}/probe.sl ${_JB}/good ${_JB}/good 4 64 good)
+    shadeop_jit_case(ProbeTwo pixels probe_two ${CMAKE_CURRENT_SOURCE_DIR}/probe_two.sl ${_JB}/legacy ${_JB}/legacy 4 64 legacy)
+    shadeop_jit_case(Args pixels probe_args ${CMAKE_CURRENT_SOURCE_DIR}/probe_args.sl ${_JB}/jit ${_JB}/jit 4 64 jit)
+    shadeop_jit_case(Void void probe_void ${CMAKE_CURRENT_SOURCE_DIR}/probe_void.sl ${_JB}/jit ${_JB}/jit 4 64 jit)
+    shadeop_jit_case(Init pixels probe_init ${CMAKE_CURRENT_SOURCE_DIR}/probe_init.sl ${_JB}/jit ${_JB}/jit 4 64 jit)
+    shadeop_jit_case(PerThread8 perthread probe ${CMAKE_CURRENT_SOURCE_DIR}/probe.sl ${_JB}/good ${_JB}/good 8 256 good)
+    shadeop_jit_case(MissingOperand missing probe ${CMAKE_CURRENT_SOURCE_DIR}/probe.sl ${_JB}/good ${_JB}/no_such_module_dir 4 64 good)
+endif()

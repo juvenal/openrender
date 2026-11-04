@@ -34,10 +34,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <vector>
 
+#include "common/containers.h"
 #include "common/global.h"
+#include "common/memory.h"
 #include "common/os.h"
-#include "delayed.h"
+#include "delayedData.h"
 #include "procDynamicLoadHook.h"
 #include "common/diagnostics.h"
 #include "logging.hpp"
@@ -45,6 +48,7 @@
 #include "riDiagnostics.h"
 #include "riHooks.h"
 #include "riInterface.h"
+#include "riServices.h"
 #include "ri_config.h"
 #include "rib.h"
 
@@ -107,7 +111,6 @@ static int currentBlock = 0;
 static int allowedCommands = RENDERMAN_ALL_BLOCKS;
 static int archiveNesting = 0;
 
-CRiInterface *savedRenderMan = NULL; // This variable contains the parent context for arhiving
 CRiInterface *renderMan = NULL;      // This variable is exported for error reporting
 
 // Test-facing override (see riHooks.h) -- ignores the rib-file/net-string args,
@@ -119,6 +122,19 @@ static CRiInterface *(*s_defaultContextFactory)(const char *ribFile, const char 
 // Registered once by ribOut.cpp's static initializer; unset only in a build
 // that never links the output domain.
 static CRiInterface *(*s_ribOutFactory)(const char *name, FILE *stream) = nullptr;
+// Registered by static initializers in each back-end's own translation unit (RiRegisterBackEnd); a handful at
+// most, so a short list searched linearly. ri.cpp never names a back-end.
+struct SRiBackEnd {
+        const char *key;
+        TRiBackEndFactory factory;
+};
+static std::vector<SRiBackEnd> &riBackEnds() {
+    static std::vector<SRiBackEnd> backEnds; // function-local: usable from other translation units' static initializers
+    return backEnds;
+}
+// The one light session (RiBeginBackEnd .. RiEndBackEnd): the standard services it began with and its context.
+static CRiStandardSession *s_lightSession = nullptr;
+static CRiInterface *s_lightContext = nullptr;
 
 void RiSetContextFactory(CRiInterface *(*factory)()) {
     s_contextFactory = factory;
@@ -130,6 +146,15 @@ void RiRegisterDefaultContextFactory(CRiInterface *(*factory)(const char *ribFil
 
 void RiRegisterRibOutFactory(CRiInterface *(*factory)(const char *name, FILE *stream)) {
     s_ribOutFactory = factory;
+}
+
+void RiRegisterBackEnd(const char *key, TRiBackEndFactory factory) {
+    for (SRiBackEnd &b : riBackEnds())
+        if (strcmp(b.key, key) == 0) {
+            b.factory = factory; // re-registration replaces
+            return;
+        }
+    riBackEnds().push_back({key, factory});
 }
 int ignoreCommand = FALSE;    // This variable can be set to force ignore ri commands (used for conditional execution)
 int insideRunProgram = FALSE; // Are we running inside a runprogram context
@@ -250,10 +275,36 @@ static void RiTini() {
     initialized = FALSE;
 }
 
-// Lightweight init: set currentBlock so Ri calls dispatch to renderMan
-// without the full RiBegin() overhead (no display plugins, no network).
-void RiBeginLite() {
+// The light session: a named back-end's context without the full RiBegin() overhead (no .orenderrc, no display
+// plugins, no network). The session slot is released again on every failure path.
+CRiInterface *RiBeginBackEnd(const char *key, void *argument) {
+    if (renderMan != NULL || s_lightSession != nullptr) {
+        error(CODE_NESTING, "Already started\n");
+        return nullptr;
+    }
+    TRiBackEndFactory factory = nullptr;
+    for (const SRiBackEnd &b : riBackEnds())
+        if (strcmp(b.key, key) == 0)
+            factory = b.factory;
+    if (factory == nullptr) {
+        error(CODE_INCAPABLE, "Back-end \"%s\" is not available in this build (none registered)\n", key);
+        return nullptr;
+    }
+
+    s_lightSession = new CRiStandardSession();
     RiInit();
+    s_lightContext = factory(argument);
+    riInstallContext(s_lightContext);
+    return s_lightContext;
+}
+
+void RiEndBackEnd(CRiInterface *context) {
+    if (context == nullptr || context != s_lightContext)
+        return;
+    delete context; // uninstalls it
+    s_lightContext = nullptr;
+    delete s_lightSession;
+    s_lightSession = nullptr;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -308,9 +359,9 @@ RiBegin(RtToken name) {
     // s_ribOutFactory non-null in the first place.
     auto resolveContext = [&](const char *ribFile, const char *netString) -> bool {
         if (s_contextFactory)
-            renderMan = s_contextFactory();
+            riInstallContext(s_contextFactory());
         else if (s_defaultContextFactory)
-            renderMan = s_defaultContextFactory(ribFile, netString);
+            riInstallContext(s_defaultContextFactory(ribFile, netString));
         else {
             error(CODE_INCAPABLE, "Full-render mode is not available in this build (no renderer context registered)\n");
             return false;
@@ -319,7 +370,7 @@ RiBegin(RtToken name) {
     };
     auto resolveRibOut = [&](const char *ribOutName, FILE *ribOutStream) -> bool {
         if (s_ribOutFactory)
-            renderMan = s_ribOutFactory(ribOutName, ribOutStream);
+            riInstallContext(s_ribOutFactory(ribOutName, ribOutStream));
         else {
             error(CODE_INCAPABLE, "RIB-output mode is not available in this build (no RIB writer registered)\n");
             return false;
@@ -402,18 +453,18 @@ RiBegin(RtToken name) {
             // globalArena/declarations are never initialized on
             // that path. ribParse() unconditionally touches both (via
             // arenaSave() and the parameter-list machinery in pl.cpp), so
-            // bootstrap them here for CRibOut only, mirroring the pattern
-            // CRibGeometryContext uses in previewContext.cpp.
+            // bootstrap them here for CRibOut only: a standard Scene
+            // Interface session (Graphics State's declarations and the
+            // standard file search, riServices.h) and the arena. In the
+            // renderer path beginRenderer() has done both already.
             if (ribOutMode) {
-                CRenderer::initDeclarations();
+                CRiStandardSession session;
                 globalArena.init();
-            }
-
-            ribParse(rcPath, NULL);
-
-            if (ribOutMode) {
+                ribParse(rcPath, NULL);
                 globalArena.tini();
-                CRenderer::shutdownDeclarations();
+            }
+            else {
+                ribParse(rcPath, NULL);
             }
 
             log_info("Loaded .orenderrc defaults from '{}'", rcPath);
@@ -2136,13 +2187,10 @@ RiArchiveEnd(void) {
     // Decrease the nesting and recover the original context
     archiveNesting--;
     if (archiveNesting == 0) {
-        if (savedRenderMan != NULL) {
+        // The archive writer a renderer installed over itself (RiArchiveBeginV) is deleted; deleting
+        // it uninstalls it, which makes the renderer active again and routes diagnostics back to it
+        if (riPreviousContext(renderMan) != nullptr)
             delete renderMan;
-            renderMan = savedRenderMan;
-            // The nested context's destructor detached diagnostics; route them
-            // to the restored context again.
-            riDiagnosticsAttach();
-        }
     }
 
     renderMan->RiArchiveEnd();

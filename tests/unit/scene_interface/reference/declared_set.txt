@@ -1,0 +1,153 @@
+# spec 038: the table CRenderer::initDeclarations() builds, captured from the unmodified tree
+variables 121
+v 0 Np type=3 container=0 storage=0 entry=- numFloats=3 numItems=1 marker=0x10000
+v 1 constantwidth type=0 container=4 storage=1 entry=28 numFloats=1 numItems=1 marker=0x0
+v 2 width type=0 container=2 storage=1 entry=27 numFloats=1 numItems=1 marker=0x0
+v 3 dPdtime type=2 container=2 storage=1 entry=26 numFloats=3 numItems=1 marker=0x8000
+v 4 dtime type=0 container=0 storage=1 entry=25 numFloats=1 numItems=1 marker=0x80
+v 5 ncomps type=0 container=0 storage=1 entry=24 numFloats=1 numItems=1 marker=0x100
+v 6 Pz type=0 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x400
+v 7 Pw type=6 container=1 storage=1 entry=23 numFloats=4 numItems=1 marker=0x400
+v 8 time type=0 container=2 storage=1 entry=22 numFloats=1 numItems=1 marker=0x40
+v 9 alpha type=0 container=2 storage=1 entry=21 numFloats=1 numItems=1 marker=0x200
+v 10 E type=4 container=2 storage=1 entry=20 numFloats=3 numItems=1 marker=0x1000000
+v 11 I type=2 container=2 storage=1 entry=19 numFloats=3 numItems=1 marker=0x2000000
+v 12 v type=0 container=2 storage=1 entry=18 numFloats=1 numItems=1 marker=0x8
+v 13 u type=0 container=2 storage=1 entry=17 numFloats=1 numItems=1 marker=0x4
+v 14 dv type=0 container=2 storage=1 entry=16 numFloats=1 numItems=1 marker=0x4020
+v 15 du type=0 container=2 storage=1 entry=15 numFloats=1 numItems=1 marker=0x4010
+v 16 st type=0 container=2 storage=0 entry=- numFloats=2 numItems=2 marker=0x3
+v 17 t type=0 container=2 storage=1 entry=14 numFloats=1 numItems=1 marker=0x2
+v 18 s type=0 container=2 storage=1 entry=13 numFloats=1 numItems=1 marker=0x1
+v 19 Oi type=1 container=2 storage=1 entry=12 numFloats=3 numItems=1 marker=0x80000
+v 20 Ci type=1 container=2 storage=1 entry=11 numFloats=3 numItems=1 marker=0x40000
+v 21 Ol type=1 container=2 storage=1 entry=10 numFloats=3 numItems=1 marker=0x200000
+v 22 Cl type=1 container=2 storage=1 entry=9 numFloats=3 numItems=1 marker=0x100000
+v 23 Os type=1 container=2 storage=1 entry=8 numFloats=3 numItems=1 marker=0x800000
+v 24 Cs type=1 container=2 storage=1 entry=7 numFloats=3 numItems=1 marker=0x400000
+v 25 L type=2 container=2 storage=1 entry=6 numFloats=3 numItems=1 marker=0x4000000
+v 26 dPdv type=2 container=1 storage=1 entry=5 numFloats=3 numItems=1 marker=0x2000
+v 27 dPdu type=2 container=1 storage=1 entry=4 numFloats=3 numItems=1 marker=0x1000
+v 28 Ng type=3 container=2 storage=1 entry=3 numFloats=3 numItems=1 marker=0x10000
+v 29 N type=3 container=2 storage=1 entry=2 numFloats=3 numItems=1 marker=0x30000
+v 30 Ps type=4 container=1 storage=1 entry=1 numFloats=3 numItems=1 marker=0x800
+v 31 P type=4 container=1 storage=1 entry=0 numFloats=3 numItems=1 marker=0x400
+v 32 sense type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 33 backfacing type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 34 hidden type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 35 name type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 36 default type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 37 opcodeorder type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 38 tolerance type=0 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 39 shaderformat type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 40 camerahitmode type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 41 transmissionhitmode type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 42 specularhitmode type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 43 diffusehitmode type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 44 photon type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 45 diffuse type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 46 specular type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 47 camera type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 48 transmission type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 49 iorrange type=0 container=1 storage=0 entry=- numFloats=2 numItems=2 marker=0x0
+v 50 ior type=0 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 51 illuminatefront type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 52 estimator type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 53 shadingmodel type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 54 causticmap type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 55 globalmap type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 56 maxpixeldist type=0 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 57 maxerror type=0 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 58 filemode type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 59 handle type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 60 samplemotion type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 61 maxspeculardepth type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 62 maxdiffusedepth type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 63 bias type=0 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 64 displacements type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 65 tessellationtolerance type=0 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 66 coordinatesystem type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 67 displacement type=0 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 68 sphere type=0 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 69 rasterorient type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 70 binary type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 71 boundexpand type=0 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 72 minsplits type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 73 maxsubdivision type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 74 minsubdivision type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 75 numprobes type=10 container=1 storage=0 entry=- numFloats=2 numItems=2 marker=0x0
+v 76 Nl type=0 container=1 storage=0 entry=- numFloats=16 numItems=16 marker=0x0
+v 77 NP type=0 container=1 storage=0 entry=- numFloats=16 numItems=16 marker=0x0
+v 78 compression type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 79 Software type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 80 far type=0 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 81 near type=0 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 82 gain type=0 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 83 gamma type=0 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 84 dither type=0 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 85 quantize type=0 container=1 storage=0 entry=- numFloats=4 numItems=4 marker=0x0
+v 86 seed type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 87 sampler type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 88 directory type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 89 enable type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 90 progress type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 91 filelog type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 92 endofframe type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 93 maxdepth type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 94 mode type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 95 filter type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 96 depthfilter type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 97 samplespectrum type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 98 emit type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 99 falsecolor type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 100 jitter type=0 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 101 radiancecache type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 102 zthreshold type=1 container=1 storage=0 entry=- numFloats=3 numItems=1 marker=0x0
+v 103 othreshold type=1 container=1 storage=0 entry=- numFloats=3 numItems=1 marker=0x0
+v 104 geocachememory type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 105 threadstride type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 106 numthreads type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 107 brickmemory type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 108 texturememory type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 109 eyesplits type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 110 gridsize type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 111 inheritattributes type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 112 metabuckets type=10 container=1 storage=0 entry=- numFloats=2 numItems=2 marker=0x0
+v 113 bucketsize type=10 container=1 storage=0 entry=- numFloats=2 numItems=2 marker=0x0
+v 114 geometry type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 115 resource type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 116 display type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 117 shader type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 118 texture type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 119 procedural type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 120 archive type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+globals 29
+g 0 P entry=0
+g 1 Ps entry=1
+g 2 N entry=2
+g 3 Ng entry=3
+g 4 dPdu entry=4
+g 5 dPdv entry=5
+g 6 L entry=6
+g 7 Cs entry=7
+g 8 Os entry=8
+g 9 Cl entry=9
+g 10 Ol entry=10
+g 11 Ci entry=11
+g 12 Oi entry=12
+g 13 s entry=13
+g 14 t entry=14
+g 15 du entry=15
+g 16 dv entry=16
+g 17 u entry=17
+g 18 v entry=18
+g 19 I entry=19
+g 20 E entry=20
+g 21 alpha entry=21
+g 22 time entry=22
+g 23 Pw entry=23
+g 24 ncomps entry=24
+g 25 dtime entry=25
+g 26 dPdtime entry=26
+g 27 width entry=27
+g 28 constantwidth entry=28

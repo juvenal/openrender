@@ -67,6 +67,7 @@
 #include "rendererContext.h"
 #include "searchPathResolver.h"
 #include "ri.h"
+#include "riCondition.h"
 #include "riHooks.h"
 #include "ri_config.h"
 #include "rib.h"
@@ -97,8 +98,6 @@ extern bool riAddFramebuffer();
 extern int ribCommandLineno;         // Defined in rib.y
 extern const char *ribFile;          // Defined in rib.y
 extern int ignoreCommand;            // Defined in ri.cpp
-extern CRiInterface *savedRenderMan; // Defined in ri.cpp
-extern CRiInterface *renderMan;      // Defined in ri.cpp
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRendererContext
@@ -6221,15 +6220,14 @@ void *CRendererContext::RiArchiveBeginV(const char *name, int, const char *[], c
     // Concatenate the file names
     strcat(fileName, normalizedName);
 
-    // Save the interface
-    savedRenderMan = renderMan;
-    renderMan = new CRibOut(fileName);
+    // The archive writer becomes the active context; the renderer is its previous one, and RiArchiveEnd
+    // deletes the writer to get it back
+    riInstallContext(new CRibOut(fileName));
 
     return NULL;
 }
 
 void CRendererContext::RiArchiveEnd(void) {
-    savedRenderMan = NULL;
 }
 
 void CRendererContext::RiResourceV(const char *handle, const char *type, int n, const char *tokens[], const void *parms[]) {
@@ -6396,7 +6394,7 @@ void CRendererContext::RiIfBeginV(const char *expr, int, const char *[], const v
     // Partial: conditional expression is parsed; inline parameters (n/tokens/parms) are accepted per spec but not evaluated.
 
     if (riExecTag == 0) {
-        if (ifParse(expr)) {
+        if (riEvaluateCondition(this, expr)) {
             // We're executing ...
         }
         else {
@@ -6418,7 +6416,7 @@ void CRendererContext::RiElseIfV(const char *expr, int, const char *[], const vo
         riExecTag++;
     }
     else if (riExecTag == 1) {
-        if (ifParse(expr)) {
+        if (riEvaluateCondition(this, expr)) {
             // We're executing
             riExecTag--;
             ignoreCommand = FALSE;

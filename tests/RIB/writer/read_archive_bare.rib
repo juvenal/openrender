@@ -1,0 +1,9 @@
+# Spec 038, SceneInterface_WriterText: ReadArchive of a bare name. The test runs in a scratch directory that
+# holds include/* at its top level, so the name is found in the working directory (the lexer's locateFile).
+FrameBegin 1
+  WorldBegin
+    Sphere 1 -1 1 360
+    ReadArchive "archive_inc.rib"
+    Sphere 2 -2 2 360
+  WorldEnd
+FrameEnd

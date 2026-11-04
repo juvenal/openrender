@@ -23,6 +23,7 @@
 #include <set>
 #include <unistd.h>
 
+#include "delayedData.h"
 #include "scene_probe.h"
 
 using namespace probe;

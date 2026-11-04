@@ -1,0 +1,22 @@
+# The Core files that ribVector (libRIBVector, the geometry-only extraction) still compiles at the end of
+# spec 038, and the Geometry / Hiders file that needs each (spec 038, FR-015, decision Q7).
+#
+# Format: <repo-relative path>  <needed by>. '#' starts a comment. Measured by
+# specs/038-scene-interface-untangle/tools/ribvector_core_sweep.sh (the nm sweep of research M5) and
+# read by SceneInterface_RibVectorResidual (tests/architecture/check_ribvector_residual.cmake).
+#
+# The list may only shrink: a file ribVector_obj no longer compiles must be deleted from it (the check fails on
+# a stale line), and a file it compiles must be listed. A "needed by" cell never names a file under parse/,
+# output/ or preview/: the Scene Interface and the preview have no need of the renderer core (the check
+# fails on it). Specs 029-031 delete lines as Geometry and Hiders stop needing them.
+#
+# file                                                   needed by
+src/ri/render/rendererDeclarations.cpp                   src/ri/geometry/blobby.cpp (CRenderer::retrieveVariable)
+src/ri/render/rendererFileSearch.cpp                     src/ri/geometry/blobbyRepeller.cpp (CRenderer::locateFile)
+src/ri/render/rendererNetwork.cpp                        src/ri/render/rendererFileSearch.cpp
+src/ri/render/rendererMutexes.cpp                        src/ri/render/rendererFileSearch.cpp
+src/ri/render/rendererStatics.cpp                        Geometry (object.cpp, blobbyRepeller.cpp), Hiders (compositor.cpp, irradiance.cpp, photonMap.cpp)
+src/ri/vector/geometryDispatchStub.cpp                   Geometry
+src/ri/vector/irradianceDispatchStub.cpp                 Hiders (irradiance.cpp)
+src/ri/vector/rendererDeclarationsDispatchStub.cpp       src/ri/geometry/object.cpp (findCoordinateSystem)
+src/ri/vector/surfaceCrossingDispatchStub.cpp            Geometry

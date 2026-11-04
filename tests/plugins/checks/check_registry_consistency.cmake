@@ -6,7 +6,7 @@
 #   * DB-003, DB-014 and DB-021 are entries under "## Resolved", each carrying "**Resolved** by spec 037 ... <date>"
 #     on one line (a date as YYYY-MM-DD); none of them is left under "## Open";
 #   * DB-003's rule text says "a MAJOR the host supports", and the preamble names constitution "v1.3.0+", not "v1.2.0+";
-#   * DB-019 stays Open and its Size no longer counts include edges (0 allowlist lines);
+#   * DB-019 is Resolved by spec 038 ("**Resolved** by spec 038 ... YYYY-MM-DD") and its Size counts no include edges (0 allowlist lines);
 #   * DB-024's History records that the "one display ABI definition" item (037) is done;
 #   * the allowlist has no line for DB-003, DB-014, DB-019 or DB-021, and no line whose id is not an Open entry;
 #   * DEVNOTES.md has a status-table row for spec 037 (spec 037 in its first cell) that names DB-003, DB-014 and DB-021 as resolved, points to
@@ -93,11 +93,14 @@ if(NOT _registry MATCHES "\\(v1\\.3\\.0\\+\\)")
     list(APPEND _failures "DOMAIN_BOUNDARIES.md: the preamble does not name constitution v1.3.0+")
 endif()
 
-# DB-019 stays Open with 0 edges
-if(NOT "DB-019" IN_LIST _open_ids)
-    list(APPEND _failures "DOMAIN_BOUNDARIES.md: DB-019 must stay Open (the JIT DSO path, spec 038, and the standalone compiler, spec 043)")
+# DB-019 is Resolved by spec 038 with 0 edges
+if(NOT "DB-019" IN_LIST _resolved_ids OR "DB-019" IN_LIST _open_ids)
+    list(APPEND _failures "DOMAIN_BOUNDARIES.md: DB-019 must be under '## Resolved' and not under '## Open' (spec 038 did the JIT DSO path and the standalone compiler)")
 else()
     _or_section(_db019 DB-019)
+    if(NOT _db019 MATCHES "\\*\\*Resolved\\*\\* by spec 038[^\n]*[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]")
+        list(APPEND _failures "DOMAIN_BOUNDARIES.md: DB-019 has no line '**Resolved** by spec 038 ... YYYY-MM-DD'")
+    endif()
     string(REGEX MATCH "- \\*\\*Size\\*\\*:[^\n]*" _size "${_db019}")
     if(NOT _size MATCHES "(^|[^0-9])0 (include edges|allowlist lines|edges)")
         list(APPEND _failures "DOMAIN_BOUNDARIES.md: DB-019's Size does not say 0 edges / 0 allowlist lines (it says: ${_size})")

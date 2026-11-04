@@ -186,6 +186,22 @@ TShaderJitEntry CLLVMJitEngine::compileShader(const std::string &filename,
         hasInit = (initMD && initMD->getNumOperands() > 0);
     }
 
+    // The DSO operands the module calls (spec 038): the slot list, in slot order.
+    std::vector<std::pair<std::string, std::string>> shadeops;
+    if (const llvm::NamedMDNode *slots = module->getNamedMetadata("openrender.shader.shadeops")) {
+        for (unsigned i = 0; i < slots->getNumOperands(); ++i) {
+            const llvm::MDNode *entry = slots->getOperand(i);
+            const auto *name = entry->getNumOperands() >= 2 ? llvm::dyn_cast<llvm::MDString>(entry->getOperand(0)) : nullptr;
+            const auto *proto = entry->getNumOperands() >= 2 ? llvm::dyn_cast<llvm::MDString>(entry->getOperand(1)) : nullptr;
+            if (name == nullptr || proto == nullptr) {
+                error(CODE_BADFILE, "Cannot load JIT shader \"%s\" (%s): its DSO operand list is malformed. Recompile it with `oshader --jit`.\n",
+                      shaderName.c_str(), filename.c_str());
+                return nullptr;
+            }
+            shadeops.emplace_back(name->getString().str(), proto->getString().str());
+        }
+    }
+
     {
         std::lock_guard<std::mutex> errLock(sessionErrorMutex_);
         sessionErrors_.clear();
@@ -220,6 +236,20 @@ TShaderJitEntry CLLVMJitEngine::compileShader(const std::string &filename,
     }
 
     TShaderJitEntry entry = reinterpret_cast<TShaderJitEntry>(symOrErr->getValue());
+
+    // The module's slot array, written by bindShadeops() once the loader has resolved the operands.
+    if (!shadeops.empty()) {
+        auto arrayOrErr = jit->lookup(shaderName + ".shadeops");
+        if (!arrayOrErr) {
+            const std::string text = llvm::toString(arrayOrErr.takeError());
+            error(CODE_BADFILE, "Cannot bind JIT shader \"%s\" (%s): its DSO slot array is missing (%s). Recompile it with `oshader --jit`.\n",
+                  shaderName.c_str(), filename.c_str(), text.c_str());
+            return nullptr;
+        }
+        shadeopSlots_[shaderName] = std::move(shadeops);
+        shadeopArrays_[shaderName] = reinterpret_cast<void **>(arrayOrErr->getValue());
+    }
+
     cache_[shaderName] = entry;
 
     // Cache init entry if present.
@@ -236,6 +266,31 @@ TShaderJitEntry CLLVMJitEngine::compileShader(const std::string &filename,
     }
 
     return entry;
+}
+
+// =========================================================================
+// CLLVMJitEngine::bindShadeops
+// =========================================================================
+int CLLVMJitEngine::bindShadeops(const std::string &shaderName,
+                                 const std::function<void *(const std::string &, const std::string &)> &resolve,
+                                 std::string *failedName, std::string *failedPrototype) {
+    std::lock_guard<std::mutex> lock(compileMutex_);
+    auto slots = shadeopSlots_.find(shaderName);
+    if (slots == shadeopSlots_.end())
+        return -1;
+    void **array = shadeopArrays_[shaderName];
+    for (size_t k = 0; k < slots->second.size(); ++k) {
+        void *entry = resolve(slots->second[k].first, slots->second[k].second);
+        if (entry == nullptr) {
+            if (failedName)
+                *failedName = slots->second[k].first;
+            if (failedPrototype)
+                *failedPrototype = slots->second[k].second;
+            return static_cast<int>(k);
+        }
+        array[k] = entry;
+    }
+    return -1;
 }
 
 // =========================================================================

@@ -456,13 +456,89 @@ if(OPENRENDER_HAVE_LLVM)
     target_link_libraries(test_libshader_format_versions PRIVATE ribRender libshader_shading openrendercommon ${_call_sites_llvm_libs})
 
     set(_format_cases rslo_old_refused rslo_newer_refused rslo_lower_minor rslo_current_loads
-        slo_emitted slo_old_refused slo_missing_refused slo_newer_refused slo_current_loads)
+        slo_emitted slo_dso_emitted slo_old_refused slo_missing_refused slo_newer_refused slo_current_loads)
     foreach(_case IN LISTS _format_cases)
         add_test(NAME LibShader_Format_${_case} COMMAND test_libshader_format_versions ${_case})
         set_tests_properties(LibShader_Format_${_case} PROPERTIES TIMEOUT 60
             LABELS "libshader;compiler;unit"
-            ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;SHADER_INCLUDES=${CMAKE_SOURCE_DIR}/shaders/includes;SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}")
+            ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;SHADER_INCLUDES=${CMAKE_SOURCE_DIR}/shaders/includes;SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};SHADEOP_MODULE_DIR=$<TARGET_FILE_DIR:plugin_shadeop_good>")
     endforeach()
     # Nothing lower than minor 0 exists: report a skip, not a pass, while that holds.
     set_tests_properties(LibShader_Format_rslo_lower_minor PROPERTIES SKIP_RETURN_CODE 77)
+endif()
+
+# ---------------------------------------------------------------------------
+# Spec 038 (Scene Interface untangle), US5: the standalone compiler.
+#
+#   Shaders_BytesUnchanged        characterization (cmake -P, no object under src/): the sha256 of the .rslo of every
+#                                 shipped shader and of probe.sl / probe_two.sl, of the .slo of every shipped shader
+#                                 when the JIT is built, and the text and exit status of `oshader` with no argument,
+#                                 with --help and with a missing file. Green on the starting tree by design; it must
+#                                 stay green while the compiler stops borrowing the shading engine's tables.
+#                                 References: reference/macos/{shaders.sha256,oshader_help.txt}, and
+#                                 reference/linux/ where a Linux result differs.
+#   LibShader_CompilerTableDrift  the compiler's builtin tables (compiler/builtinTables.cpp) against the shading
+#                                 engine's. Enabled in Phase 5, when builtinTables.cpp appeared (before it both sides
+#                                 came from the same headers and the comparison could not differ); its red evidence
+#                                 is its mutation self-check (decision Q3). The executable is part of the normal
+#                                 build: an unbuilt object of src/libshader/tests would make the architecture check
+#                                 report an incomplete build tree.
+# ---------------------------------------------------------------------------
+if(OPENRENDER_HAVE_LLVM)
+    set(_shaders_with_slo ON)
+else()
+    set(_shaders_with_slo OFF)
+endif()
+add_test(NAME Shaders_BytesUnchanged
+    COMMAND ${CMAKE_COMMAND} -DMODE=compare
+        -DSHADER_DIR=${CMAKE_BINARY_DIR}/shaders
+        -DPROBE_DIR=${CMAKE_BINARY_DIR}/tests/plugins/shadeop/shaders
+        -DOSHADER=$<TARGET_FILE:oshader>
+        -DWITH_SLO=${_shaders_with_slo}
+        -DREFERENCE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}/reference
+        -DWORK=${CMAKE_CURRENT_BINARY_DIR}/shaders_bytes_work
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_shaders_bytes.cmake)
+set_tests_properties(Shaders_BytesUnchanged PROPERTIES TIMEOUT 120 LABELS "libshader;regression")
+
+add_custom_target(si_capture_shaders
+    COMMAND ${CMAKE_COMMAND} -DMODE=${OR038_CAPTURE_MODE} -DRECAPTURE=${OR038_RECAPTURE}
+        -DSHADER_DIR=${CMAKE_BINARY_DIR}/shaders
+        -DPROBE_DIR=${CMAKE_BINARY_DIR}/tests/plugins/shadeop/shaders
+        -DOSHADER=$<TARGET_FILE:oshader>
+        -DWITH_SLO=${_shaders_with_slo}
+        -DREFERENCE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}/reference
+        -DWORK=${CMAKE_CURRENT_BINARY_DIR}/shaders_bytes_capture
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_shaders_bytes.cmake
+    DEPENDS oshader openrender_shaders plugin_shadeop_probe
+    COMMENT "Capturing the shader byte snapshot (an existing reference is never overwritten)"
+    VERBATIM)
+add_dependencies(scene-interface-capture-baselines si_capture_shaders)
+
+if(OPENRENDER_HAVE_LLVM)
+    add_executable(test_libshader_compiler_table_drift test_compiler_table_drift.cpp)
+    target_compile_features(test_libshader_compiler_table_drift PRIVATE cxx_std_20)
+    target_include_directories(test_libshader_compiler_table_drift PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/libshader/compiler   # llvmEmitter.h, opcodes.h
+        ${CMAKE_BINARY_DIR}/src/libshader/compiler   # Flex/Bison generated headers
+        ${CMAKE_SOURCE_DIR}/src                      # common/, logging.h
+        ${CMAKE_SOURCE_DIR}/src/ri                   # rendererc.h (PARAMETER_* constants)
+        ${CMAKE_SOURCE_DIR}/src/ri/hiders
+        ${CMAKE_SOURCE_DIR}/src/ri/render
+        ${CMAKE_SOURCE_DIR}/src/ri/state
+        ${CMAKE_SOURCE_DIR}/src/ri/parse
+        ${CMAKE_SOURCE_DIR}/src/ri/geometry
+        ${CMAKE_SOURCE_DIR}/src/ri/texture
+        ${CMAKE_SOURCE_DIR}/src/ri/output
+        ${CMAKE_SOURCE_DIR}/src/ri/core
+        ${CMAKE_SOURCE_DIR}/src/ri/dataviewer
+        ${CMAKE_SOURCE_DIR}/src/libshader/shading    # scriptFunctions.h / scriptOpcodes.h (this test is a consumer)
+    )
+    target_link_libraries(test_libshader_compiler_table_drift PRIVATE
+        libshader_compiler
+        openrendercommon
+    )
+    add_test(NAME LibShader_CompilerTableDrift COMMAND test_libshader_compiler_table_drift)
+    set_tests_properties(LibShader_CompilerTableDrift PROPERTIES
+        TIMEOUT 30
+        LABELS "libshader;compiler;unit")
 endif()

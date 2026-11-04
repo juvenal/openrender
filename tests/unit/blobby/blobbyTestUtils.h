@@ -50,7 +50,12 @@ namespace blobbytest {
         if (iface == NULL)
             iface = new CRiInterface;
 
-        renderMan = iface;
+        // Installing an installed context is a bug (CODE_BUG): the helper can run more than once
+        static bool installed = false;
+        if (!installed) {
+            riInstallContext(iface);
+            installed = true;
+        }
         renderMan->RiErrorHandler(recordError);
         messages().clear();
     }

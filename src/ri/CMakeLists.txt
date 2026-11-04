@@ -113,6 +113,7 @@ set(ri_sources
 	geometry/patches.cpp
 	geometry/patchgrid.cpp
 	state/channelRegistry.cpp
+	state/declarations.cpp
 	state/pl.cpp
 	state/shaderParameterHooks.cpp
 	geometry/points.cpp
@@ -144,6 +145,7 @@ set(ri_sources
 	parse/ri.cpp
 #	rib.cpp
 	parse/riInterface.cpp
+	parse/riServices.cpp
 	output/ribOut.cpp
 #	sl.cpp
 	geometry/subdivision.cpp
@@ -280,8 +282,15 @@ if(UNIX)
     target_link_libraries(ribRender_static INTERFACE z)
 endif()
 
-# ribVector: geometry-only extraction for orender-wire (see the domain-split
-# plan) -- the same ri_sources list minus every file confirmed, via an
+# ribVector (libRIBVector): the geometry-only extraction that orender-wire (through libribpreview) and the
+# data viewer link. It is the Scene Interface (parse/, the generated grammars, state/) plus Geometry and
+# the Texturing/Hiders files those need, and no renderer pipeline: no shading engine, no LLVM, no Reyes or
+# raytrace hider, no display host. A file is excluded because it reaches CShadingContext/CReyes or the full
+# render path; the Core files it still compiles are pinned in tests/architecture/ribvector-core-residual.txt
+# (SceneInterface_RibVectorResidual), each with the Geometry or Hiders file that needs it, and that list may
+# only shrink. The preview and the data viewer reach no Core file themselves (Preview_NoCoreReach).
+#
+# The list is the same ri_sources list minus every file confirmed, via an
 # `nm -u` sweep over ribRender_obj's built object files (not by reading
 # source -- see geometryDispatch.cpp's and rendererDeclarationsDispatch.cpp's
 # header comments for what that sweep found), to still reach
@@ -293,9 +302,9 @@ endif()
 # implicitSurface.cpp -- none of which orender-wire's preview path ever
 # constructs), rendererShadingServices.cpp, and CRenderer's actual render
 # pipeline (renderer.cpp, confirmed dead code here by tracing
-# ribpreview_load()'s call graph: RiBeginLite() -> RiInit(), which never
-# touches CRenderer -- ribVector needs only its static data, split out to
-# rendererStatics.cpp). Also excludes rendererContext.cpp: CRendererContext
+# ribpreview_load()'s call graph: RiBeginBackEnd("preview") -> a
+# CRiStandardSession and RiInit(), which never touch CRenderer -- ribVector
+# needs only its static data, split out to rendererStatics.cpp). Also excludes rendererContext.cpp: CRendererContext
 # is the *other* CRiInterface implementation (the one orender's real
 # RiBegin() path uses), never constructed by ribpreview_load() (which uses
 # CPreviewContext, in libribpreview, instead) -- but its own compiled
@@ -303,10 +312,12 @@ endif()
 # straight into CRenderer::beginFrame()/render()/etc. and construct
 # CProgrammableShaderInstance/CShader/CDLObject/CImplicit/CPhotonMap/
 # CQuadLight/CSphereLight, so linking it in would silently reintroduce most
-# of what everything else in this list was excluded to avoid. geometryDispatch.cpp and
-# rendererDeclarationsDispatch.cpp are swapped for their vector/*Stub.cpp
-# counterparts rather than merely removed, since those methods are reached
-# for real (or vtable-required) even in a build with no rendering pipeline.
+# of what everything else in this list was excluded to avoid. The four real/stub pairs are
+# swapped rather than merely removed, since their methods are reached for real (or vtable-required) even
+# in a build with no rendering pipeline: render/geometryDispatch.cpp -> vector/geometryDispatchStub.cpp,
+# hiders/irradianceDispatch.cpp -> vector/irradianceDispatchStub.cpp,
+# render/rendererDeclarationsDispatch.cpp -> vector/rendererDeclarationsDispatchStub.cpp, and
+# geometry/surfaceCrossingDispatch.cpp -> vector/surfaceCrossingDispatchStub.cpp (below).
 #
 # The six entries below were confirmed excludable by a second `nm -u` sweep
 # after the above: init.cpp is a single function, CRendererContext::init(),
@@ -321,15 +332,9 @@ endif()
 # surfaceCrossingDispatch.cpp (free-form
 # crossing counts, only ever reached from CSG classification) is swapped for
 # vector/surfaceCrossingDispatchStub.cpp. parse/ifexpr_generated.cpp
-# (the RIB `if()`-conditional grammar) defines CRendererContext::ifParse(),
-# called only from the two RiIfBeginV/RiElseIfV sites in the already-excluded
-# rendererContext.cpp -- confirmed by grepping every ifParse call site
-# repo-wide, so despite being a *separate* grammar file from the main RIB
-# parser, it's exclusively a CRendererContext feature and drops out cleanly
-# with it (verified this is NOT the same situation as rib_generated.cpp's own
-# direct CRenderer::context->getAttributes() calls, which were load-bearing
-# for PatchMesh/Curves parsing and got a real, generic fix instead -- see the
-# CRiInterface::getAttributes() virtual and rib.y's getBasisSteps()).
+# (the RIB `if()` conditional grammar) is compiled into ribVector as well: since spec 038
+# it defines riEvaluateCondition(), a Scene Interface function with no core dependency
+# (it used to define CRendererContext::ifParse() and dropped out with rendererContext.cpp).
 #
 # A third sweep (after the above) found remoteChannel.cpp and
 # render/rendererJobs.cpp: the former's CRemoteChannel-derived classes
@@ -343,11 +348,16 @@ endif()
 # network path-search helpers with no shading-engine dependency of their
 # own, but they lived in render/rendererFiles.cpp alongside the genuinely
 # full-pipeline-only getShader/getPhotonMap/etc. -- and they're actually
-# needed (blobbyRepeller.cpp, texmake.cpp, texture.cpp, brickmap.cpp, and
-# rib_generated.cpp's RiReadArchiveV archive-path search all call
-# locateFile() directly). Moved to render/rendererFileSearch.cpp, compiled
-# identically for both ribRender and ribVector -- no real/stub split needed,
-# since there's nothing shading-specific to swap out.
+# needed (Geometry's blobbyRepeller.cpp still calls locateFile() directly,
+# which keeps the file on the residual list; the RIB lexer's archive search
+# goes through riLocateFile() since spec 038). Moved to
+# render/rendererFileSearch.cpp, compiled identically for both ribRender and
+# ribVector -- no real/stub split needed, since there's nothing
+# shading-specific to swap out.
+#
+# render/rendererClipping.cpp and render/resource.cpp are excluded as well
+# (spec 038, decision Q7): the sweep found nothing in ribVector or the preview
+# referencing either, so libRIBVector no longer exports their symbols.
 #
 # spec 018 (multi-format texture source decoding): texture/imageInput.cpp
 # and texture/imageInputTiff.cpp stay in ribVector_sources for the same
@@ -380,7 +390,6 @@ list(REMOVE_ITEM ribVector_sources
     hiders/stochastic.cpp
     hiders/trace.cpp
     hiders/zbuffer.cpp
-    ifexpr_generated.cpp
     render/imager.cpp
     geometry/implicitSurface.cpp
     render/init.cpp
@@ -399,6 +408,8 @@ list(REMOVE_ITEM ribVector_sources
     render/rendererShadingServices.cpp
     geometry/surface.cpp
     geometry/surfaceCrossingDispatch.cpp
+    render/rendererClipping.cpp
+    render/resource.cpp
 )
 list(APPEND ribVector_sources
     vector/geometryDispatchStub.cpp
@@ -498,10 +509,10 @@ install(TARGETS ribVector_static EXPORT openRenderStaticTargets
 # CRendererContext or CRibOut directly, precisely so a consumer that links
 # only one of them never pulls in the others' dependencies).
 #
-# ifexpr_generated.cpp is excluded for the same reason it is for ribVector:
-# it defines CRendererContext::ifParse(), called only from the two
-# RiIfBeginV/RiElseIfV sites in rendererContext.cpp, which ribOut doesn't
-# link either.
+# ifexpr_generated.cpp is compiled into ribOut, ribVector and ribRender alike (spec 038):
+# it defines riEvaluateCondition(), a Scene Interface function with no core dependency
+# (called only from the two RiIfBeginV/RiElseIfV sites in rendererContext.cpp, so
+# nothing in ribOut or ribVector calls it).
 #
 # Note: CRibOut doesn't override getAttributes()/getOptions()/getXform() (it
 # has no real CAttributes/COptions/CXform to return), so it inherits
@@ -512,21 +523,25 @@ install(TARGETS ribVector_static EXPORT openRenderStaticTargets
 # NULL-deref this session fixed for PatchMesh/Curves parsing existed for
 # "-ribout" mode too, before today), not something this target-creation
 # step introduces or fixes -- flagged as a follow-up, not fixed here.
+# What ribOut excludes, and why: every Core file (render/, vector/), Geometry, Texturing and Hiders. Its
+# sources are only Scene Interface files (output/, parse/, the generated grammars) and the Graphics State
+# files the grammars call (state/); SceneInterface_RibOutNoCore and SceneInterface_NoCoreInclude fail on a
+# Core file in the list or on a Core include, so unlike ribVector it has no residual list.
 set(ribOut_sources
     output/ribOut.cpp
     parse/error.cpp
     parse/ri.cpp
     parse/riInterface.cpp
-    render/rendererDeclarations.cpp
-    render/rendererFileSearch.cpp
-    render/rendererMutexes.cpp
-    render/rendererNetwork.cpp
-    render/rendererStatics.cpp
+    parse/riServices.cpp
+    state/attributes.cpp
     state/channelRegistry.cpp
+    state/declarations.cpp
     state/displayChannel.cpp
+    state/options.cpp
+    state/shaderParameterHooks.cpp
     state/variableLookup.cpp
-    vector/rendererDeclarationsDispatchStub.cpp
     rib_generated.cpp
+    ifexpr_generated.cpp
 )
 
 add_library(ribOut_obj OBJECT ${ribOut_sources} ${ri_headers})

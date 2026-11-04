@@ -45,16 +45,16 @@ static void writePointCloudFixture(const char *path) {
 static void writeBrickMapFixture(const char *ptcPath, const char *brkPath) {
     // makeBrickMap() (and CBrickMap construction generally) calls info()/error() for
     // legitimate diagnostics, not just failures; both unconditionally dereference the global
-    // `renderMan` (normally set up by RiBegin()/RiBeginLite()'s caller). A plain CRiInterface
-    // is a safe, silent sink (its default RiError() only forwards to a registered handler).
-    CRiInterface *saved = renderMan;
-    renderMan = new CRiInterface();
+    // `renderMan` (normally installed by RiBegin()). A plain CRiInterface, installed with
+    // riInstallContext(), is a safe, silent sink (its default RiError() only forwards to a
+    // registered handler).
+    CRiInterface *testInterface = new CRiInterface();
+    riInstallContext(testInterface);
 
     const char *src[1] = {ptcPath};
     makeBrickMap(1, src, brkPath, NULL, 0, NULL, NULL);
 
-    delete renderMan;
-    renderMan = saved;
+    delete testInterface; // uninstalls it
 }
 
 // Runs the key sequence with stdout redirected to a scratch file, and returns its byte count

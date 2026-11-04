@@ -1,0 +1,7 @@
+##RenderMan RIB-Structure 1.1
+##Creator openRender <version>
+##CreationDate <date>
+FrameBegin 1
+WorldBegin
+WorldEnd
+FrameEnd

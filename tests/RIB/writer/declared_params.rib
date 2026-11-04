@@ -1,0 +1,13 @@
+# Spec 038, SceneInterface_WriterText: parameters of the standard declared set (no Declare, no inline declaration).
+Option "limits" "bucketsize" [16 16]
+Option "limits" "gridsize" [128]
+Attribute "displacementbound" "sphere" [0.5]
+Format 64 48 1
+Projection "perspective" "fov" 45
+FrameBegin 1
+  WorldBegin
+    Attribute "identifier" "name" ["declared"]
+    Polygon "P" [0 0 0  1 0 0  0 1 0] "Cs" [1 0 0  0 1 0  0 0 1] "N" [0 0 1  0 0 1  0 0 1]
+    Sphere 1 -1 1 360 "Os" [1 1 1]
+  WorldEnd
+FrameEnd

@@ -1,0 +1,15 @@
+# spec 038: ribpreview_load(examples/rib/polygon.rib)
+vertexCount 8
+projMatrix 2.79903817 0 0 0 0 3.7320509 0 0 -0 -0 1 1 0 0 -0.00100000005 0
+viewMatrix 1 0 0 0 0 1 0 0 0 0 1 0 0.5 0.5 -3 1
+near 0.00100000005 far 100000 projectionType 0 fov 30 aspect 1.33333337
+boundsMin 0 0 0
+boundsMax 1 1 0
+v 0 0 0 c 1 0 0
+v 1 0 0 c 1 0 0
+v 1 0 0 c 1 0 0
+v 1 1 0 c 1 0 0
+v 1 1 0 c 1 0 0
+v 0 1 0 c 1 0 0
+v 0 1 0 c 1 0 0
+v 0 0 0 c 1 0 0

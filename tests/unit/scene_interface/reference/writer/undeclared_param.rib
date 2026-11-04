@@ -1,0 +1,8 @@
+##RenderMan RIB-Structure 1.1
+##Creator openRender <version>
+##CreationDate <date>
+FrameBegin 1
+WorldBegin
+Polygon  "P" [0 0 0 1 0 0 0 1 0 ] 
+WorldEnd
+FrameEnd

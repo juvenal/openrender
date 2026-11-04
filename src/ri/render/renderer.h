@@ -149,13 +149,10 @@ class CRenderer {
         static CRendererContext *context;                                 // The renderer context (RenderMan Interface)
         static CArray<CShaderInstance *> *allLights;                      // An array of all allocated lights
         static CTrie<CNamedCoordinateSystem *> *definedCoordinateSystems; // This holds the named coordinate systems defined for this context
-        static CTrie<CVariable *> *declaredVariables;                     // Declared variables
         static CTrie<CFileResource *> *globalFiles;                       // Files that have been loaded (they stick around for the entire rendering)
         static CTrie<CGlobalIdentifier *> *globalIdHash;                  // This holds global string to id mappings (light categories for example)
         static CTrie<CNetFileMapping *> *netFileMappings;                 // This holds name->name mappings of files
         static int numKnownGlobalIds;                                     // The current free global ID
-        static CVariable *variables;                                      // List of all defined variables
-        static CArray<CVariable *> *globalVariables;                      // Array of global variables only
         static CShadeopRegistry *shadeops;                                // The shadeop operands that have been loaded (created in initFiles, destroyed in shutdownFiles)
         static SOCKET netClient;                                          // The client that we're serving (-1 if client)
         static int netNumServers;                                         // The number of servers (0 if server)
@@ -265,7 +262,7 @@ class CRenderer {
         static void defineCoordinateSystem(const char *, const float *, const float *, ECoordinateSystem type = COORDINATE_CUSTOM);
         static int findCoordinateSystem(const char *, const float *&, const float *&, ECoordinateSystem &);
         static CVariable *declareVariable(const char *, const char *, int um = 0);
-        static void makeGlobalVariable(CVariable *);
+        static void notifyGlobalVariable(CVariable *); // Flush the live shading contexts' states: a global variable was added (the observer of CDeclarations)
         static CVariable *retrieveVariable(const char *);
         static void registerFrameTemporary(const char *, int); // Register file for end-of-frame deletion
         static int getGlobalID(const char *);                  // Global ID management

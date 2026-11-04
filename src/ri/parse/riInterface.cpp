@@ -26,6 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
 #include <stdarg.h>
 
+#include "common/diagnostics.h"
 #include "common/os.h"
 #include "ri.h"
 #include "riDiagnostics.h"
@@ -34,29 +35,65 @@
 
 CRiInterface::CRiInterface() {
     errorHandler = RiErrorPrint;
-    renderMan = this;
+}
+
+CRiInterface::~CRiInterface() {
+    // An installed context is uninstalled here: the previously active context becomes active again and
+    // diagnostics follow it (spec 023 attach/detach), or go back to the sink that was installed before the
+    // first context when there is none. The derived context's own destructor has already run, so whatever
+    // it reported (end-of-render statistics) still reached its error handler.
+    if (riInstalled)
+        riUninstallContext(this);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	riInstallContext
+// Description			:	Make a context the active one
+// Return Value			:
+// Comments				:	renderMan is assigned only in this directory (spec 038)
+void riInstallContext(CRiInterface *context) {
+    if (context == nullptr)
+        return;
+
+    if (context->riInstalled) {
+        error(CODE_BUG, "riInstallContext: the context is already installed\n");
+        return;
+    }
+
+    context->riPrevious = renderMan;
+    context->riInstalled = true;
+    renderMan = context;
+
     // Diagnostics now reach an RI context's error handler (spec 023).
     riDiagnosticsAttach();
 }
 
-CRiInterface::~CRiInterface() {
-    // renderMan is a bare global pointer, not owned by any one instance: whoever
-    // constructs a CRiInterface becomes the active one automatically (see the
-    // constructor above), but nothing symmetrically un-installs it. Most call
-    // sites (RiEnd(), RiArchiveEnd()'s nested-context restore) already reassign
-    // renderMan themselves right after destroying the old one, so this guard is
-    // a no-op there -- it only matters for a caller that destroys a CRiInterface
-    // without immediately repointing renderMan elsewhere (e.g. ribpreview_load()
-    // used to rely on doing this by hand), where leaving renderMan dangling at a
-    // freed object would otherwise be a silent use-after-free waiting to happen.
-    // The same point hands diagnostics back to the sink that was installed
-    // before the first context (spec 023). Here the derived context's own
-    // destructor has already run, so whatever it reported (end-of-render
-    // statistics) still reached its error handler.
-    if (renderMan == this) {
-        renderMan = nullptr;
+///////////////////////////////////////////////////////////////////////
+// Function				:	riUninstallContext
+// Description			:	Undo riInstallContext
+// Return Value			:
+// Comments				:
+void riUninstallContext(CRiInterface *context) {
+    if (context == nullptr || !context->riInstalled)
+        return;
+
+    CRiInterface *previous = context->riPrevious;
+    context->riPrevious = nullptr;
+    context->riInstalled = false;
+
+    // A context RiContext() switched away from is no longer the active one: only its mark goes
+    if (renderMan != context)
+        return;
+
+    renderMan = previous;
+    if (renderMan != nullptr)
+        riDiagnosticsAttach();
+    else
         riDiagnosticsDetach();
-    }
+}
+
+CRiInterface *riPreviousContext(const CRiInterface *context) {
+    return (context != nullptr && context->riInstalled) ? context->riPrevious : nullptr;
 }
 
 void CRiInterface::RiDeclare(const char *, const char *) {

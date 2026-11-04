@@ -132,6 +132,38 @@ static IRModule buildModule(bool injectUnhandledOpcode) {
     return mod;
 }
 
+// A module with one call of a shadeop operand, in the form expression.cpp writes it:
+//     DSO  probe_add ("f=ff") temporary_0 0.25 0.5
+// (opcode DSO, result = the operand's name, then the quoted prototype, the destination and the arguments).
+static IRModule buildDsoModule() {
+    IRModule mod;
+    mod.shaderType = "surface";
+    mod.version = "1.0.0";
+
+    IRVarInfo x;
+    x.cName = "temporary_0";
+    x.symbolName = "x";
+    x.slcType = SLC_UNIFORM | SLC_FLOAT;
+    x.numItems = 1;
+    x.defaultValue = "";
+    mod.addVar(x);
+
+    IRInstr call;
+    call.opcode = "DSO";
+    call.result = "probe_add";
+    call.operands.push_back(IROperand{"(\"f=ff\")"});
+    call.operands.push_back(IROperand{"temporary_0"});
+    call.operands.push_back(IROperand{"0.25"});
+    call.operands.push_back(IROperand{"0.5"});
+    mod.codeFn.append(call);
+
+    IRInstr ret;
+    ret.opcode = "return";
+    mod.codeFn.append(ret);
+
+    return mod;
+}
+
 // Redirects stderr to `path` for the duration of `fn`, then restores it,
 // returning whatever `fn` returned. Used to capture emitLLVMBitcode()'s
 // own fprintf(stderr, ...) diagnostic without shelling out to a
@@ -173,6 +205,21 @@ int main() {
                 "the positive control's moveff instruction must actually emit a call to op_moveff "
                 "(not just an empty, trivially-verifying function)");
     remove(positiveSlo.c_str());
+
+    // -----------------------------------------------------------------
+    // A DSO call compiles (spec 038): the module is written, it calls op_dso_call and holds the slot
+    // array "<shader>.shadeops". (Symbol names are plain ASCII in the bitcode string table; the named
+    // metadata is not, so it is not grepped here: test_format_versions.cpp reads it with the LLVM reader.)
+    // -----------------------------------------------------------------
+    const std::string dsoSlo = "gate_hardening_dso.slo";
+    remove(dsoSlo.c_str());
+    IRModule dsoMod = buildDsoModule();
+    bool dsoResult = emitLLVMBitcode(dsoMod, dsoSlo, "gate_dso");
+    EXPECT_TRUE(dsoResult, "emitLLVMBitcode must succeed for an IRModule with a DSO instruction");
+    EXPECT_TRUE(fileExists(dsoSlo), "emitLLVMBitcode must write a .slo file for a DSO call");
+    EXPECT_TRUE(fileContains(dsoSlo, "op_dso_call"), "the DSO instruction must emit a call to op_dso_call");
+    EXPECT_TRUE(fileContains(dsoSlo, "gate_dso.shadeops"), "the module must declare the slot array of its DSO calls");
+    remove(dsoSlo.c_str());
 
     // -----------------------------------------------------------------
     // Negative: the same shape, with one synthetic, guaranteed-never-
