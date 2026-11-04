@@ -479,6 +479,248 @@ Red first: with the edit in place and DB-019 still under `## Open`, `cpujob 038-
 
 **Linux** (tree `openrender-038`; synced with `rsync -rlpc -0 --files-from`, `sha256sum -c --quiet` OK, no file deleted): `cpujob 038-p8-lx-build cmake --build build -j2`: exit 0, 0 `warning:`. `038-p8-lx-test ctest -LE determinism-sweep -j2` (692 s): 1079 tests, none `Not Run`, 7 failed, exactly the Phase 0 baseline (#44 `LibShader_McompConsistency`, #45 `TextureTile_RenderByteIdentical`, #46 the four `TextureTile_Cache*`, #57 `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes`); `PluginAbi_RegistryConsistency` and `PluginAbi_DocPaths` pass. `ctest -L architecture`: 29/29. `ctest -N -L or038_red`: Total Tests: 0. Logs on the remote: `build/lx-p8-*.log`.
 
-## 9. Phase 9: polish
+## 9. Phase 9: validation (2026-11-04)
 
-(Not started.)
+No code change in this phase. Disk: 8.3 to 8.5 GiB free on `/Volumes/Projects` at every long job.
+
+### 9.1 T140: tests
+
+No test was edited and none was added in Phase 9. The only edits of the phase: a comment in `tests/architecture/CMakeLists.txt` reworded so that `git grep -n or038_red -- '*CMakeLists.txt' '*.cmake'` finds nothing (T143 requires none; the three hits were history comments naming the temporary label, which no test carries any more), and the validation records. `CLAUDE.md` was edited by the coordinator, not by the agent (see SC-010).
+
+### 9.2 T141, T142: determinism sweeps (`-L '^determinism-sweep$' -j2`, label anchored, 419 scenes x 5 configurations)
+
+| Host | Command | Result |
+|---|---|---|
+| macOS | `cpujob 038-determinism ctest --test-dir build -L '^determinism-sweep$' -j2 --output-on-failure` | 419 tests, 419 passed, 0 failed, 0 Not Run (683 s) |
+| Linux (`openrender-038`, Ubuntu 24.04, GCC 13 `-Werror`, LLVM 18, 2 cores) | `cpujob 038-lx-determinism ctest --test-dir build -L '^determinism-sweep$' -j2 --output-on-failure` | 419 tests, 419 passed, 0 failed, 0 Not Run (1364 s) |
+
+The Linux tree was synced with `rsync -rlpc -0 --files-from` and verified with `sha256sum -c --quiet manifest.sha256` (3601 files, rc 0) before the build and before the sweep, and again after the last comment edit (rc 0). Spec 029 shared the machine lock on macOS; no timeout occurred.
+
+### 9.3 T143, T144: CHECKPOINT 9
+
+| Run | macOS | Linux |
+|---|---|---|
+| Build | `cpujob 038-p9-build cmake --build build --config Release -j4`: exit 0, no warnings | `cmake --build build -j2`: exit 0, 0 `warning:` |
+| `ctest -LE determinism-sweep` (`-j4` / `-j2`) | 1078 tests, 1078 passed, 0 failed, 0 Not Run (308 s) | 1079 tests, 7 failed, 0 Not Run (685 s) |
+| `ctest -L architecture` | 29/29 | 29/29 |
+| `ctest -N -L or038_red` | Total Tests: 0 | Total Tests: 0 |
+| `git grep -n or038_red -- '*CMakeLists.txt' '*.cmake'` | no hit | (the Linux tree has no git metadata; same files, sha256 verified) |
+
+Linux failures, compared by name with the Phase 0 baseline: `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes` (#57), `TextureTile_RenderByteIdentical` (#45), `TextureTile_CacheByteIdentical`, `TextureTile_CacheDefaultDirectory`, `TextureTile_CacheStaleDetection`, `TextureTile_CacheConcurrentWrite` (#46 x4) and `LibShader_McompConsistency` (#44): exactly the seven, no other failure, nothing new. The expected red set (`or038_red`) is empty on both hosts: every check turned green in its phase.
+
+### 9.4 T145: success criteria
+
+| SC | Evidence (measured) | Command or test |
+|---|---|---|
+| SC-001 | `ribOut` Core files 6 to 0 (`SceneInterface_RibOutNoCore` passes; 6 files red at Phase 1). The files `ribVector` needs of the Core for the Scene Interface or the preview: 0; the residual list is pinned at 9 files, each with the Geometry or Hiders file that needs it, shrink-only (`SceneInterface_RibVectorResidual`; sweep 4.3 and 5.x: same 9 on both hosts) | `ctest -R 'SceneInterface_(RibOutNoCore\|RibVectorResidual)'`; `specs/038-scene-interface-untangle/tools/ribvector_core_sweep.sh build` |
+| SC-002 | archcheck `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; 10 DB-015 allowlist lines deleted (6 include, 4 link), none added anywhere in the spec; `SceneInterface` metric 6 refs / 6 members to 0 / 0; TOTAL 612 / 94 to 606 / 90 | `ctest -R Architecture_DomainBoundaries -V` (`METRIC SceneInterface refs 0 (baseline 0) distinct 0 (baseline 0)`, `TOTAL refs 606 (baseline 606) distinct 90 (baseline 90)`) |
+| SC-003 | no generated parser, no file of `src/ri/parse` or `src/ri/output` and no file of `libribpreview` includes a Core header; `libribpreview` objects: 565 undefined symbols, none of `CRenderer`/`CRendererContext` | `SceneInterface_NoCoreInclude`, `SceneInterface_HooksAndRecords`, `Preview_NoCoreReach` (all `architecture`, 29/29 on both hosts) |
+| SC-004 | visual (539 with `-E slow` on macOS at Phase 7; all 1078 / 1079 of the full run on the two hosts), RIB-output, preview and shading-parity suites pass with no threshold widened and no test disabled; determinism sweep 419/419 on both hosts; byte-pinned artifacts identical to the pre-change references: `SceneInterface_WriterText`, `Preview_ExtractionUnchanged`, `Shaders_BytesUnchanged` (every shipped `.rslo` and `.slo`, `oshader` help text), `Precomp_OutputUnchanged`; the accepted differences are the two named in the criterion (NEWS, ChangeLog) | full runs 9.3, sweeps 9.2 |
+| SC-005 | a constructed, uninstalled context changes neither the active context nor the sink; installed, both change; uninstalled, both are restored; nested archives through `riPreviousContext`; 0 files outside `src/ri/parse/` assign `renderMan` or name `savedRenderMan` | `SceneInterface_ContextInstall`, `SceneInterface_ContextInstallRules`, `SceneInterface_ActiveContextAssignments` |
+| SC-006 | `ribpreview_load` extraction equals the pre-change references on every preview scene; the library names 0 `CRenderer` symbols | `Preview_ExtractionUnchanged`, `Preview_NoCoreReach`, `Preview_SelfRegistration` |
+| SC-007 | the compiler's include path holds 0 directories under `src/ri` and `src/libshader/shading` (13 failures at Phase 5 start, 0 after); `LibShader_CompilerTableDrift` passes and, on scratch copies of `builtinTables.cpp`, fails for a changed text and a changed bit set in `kOpcodeParamTable` and a changed text in `kAllFunctionMnemonics` (5.4); all shipped shaders compile to byte-identical `.rslo` and `.slo` | `Compiler_IncludeBoundary`, `LibShader_CompilerTableDrift`, `Shaders_BytesUnchanged` |
+| SC-008 | `probe`, `probe_two`, `probe_args`, `probe_void`, `probe_init` render pixel for pixel equal under `.rslo` and `.slo`; the per-thread operand on 8 threads gives 8 distinct data pointers and 8 cleanups under the JIT (`PerThread8` also passed 10 repeated runs on the 2-core Linux host); a DSO call in a parameter default renders equal; a missing operand warns, returns `nullptr` and the `.rslo` fallback reports it, no crash | `ShadeopAbi_Jit_Probe`, `_ProbeTwo`, `_Args`, `_Void`, `_Init`, `_PerThread8`, `_MissingOperand` (7/7 on both hosts); `LibShader_GateHardening`, `LibShader_OpcodeCoverage`, `LibShader_Format_slo_dso_emitted` |
+| SC-009 | `precomp` writes a `stochasticPrimitives.h` byte-identical to the unmodified tool's; it includes neither `reyes.h` nor a Core header, and its one hider include is `rasterFlags.h` | `Precomp_OutputUnchanged`, `Precomp_NoHiderCore` |
+| SC-010 | DB-015 and DB-019 under Resolved with "spec 038" and 2026-11-04; DB-024 narrowed and Open; the allowlist has no DB-015 or DB-019 line (`PluginAbi_RegistryConsistency` now requires DB-019 Resolved: approved edit, 8.2). `DEVNOTES.md`, the registry and `CLAUDE.md` agree with the tree. **The `CLAUDE.md` clause is applied in the worktree, on the maintainer's authorization, by the coordinator** (all six sections of `claude-md-draft.md`, verbatim, staged; the agent did not edit the file). Checked against the tree after it was applied: every backticked identifier and path of the 80 added lines resolves (82 found, the other 2 are the brace and glob patterns `declarations.{h,cpp}` and `tests/**/reference`, whose files exist); gotchas 29 to 34 are contiguous after 28; the layer-4 path now names `src/ri/render/rendererDeclarations.cpp` and `src/ri/state/declarations.cpp`; the only removed line is the stale layer-4 text; `kRendererServicesVersion` stays 2.0.0 as gotcha 28 now says. Nothing disagrees. | `PluginAbi_RegistryConsistency`, `PluginAbi_DocPaths`; `git diff --cached CLAUDE.md` |
+| SC-011 | every check of FR-029 was red on the starting tree (master `d6910bd0` merged in) before its implementation, except the table-drift test (its mutation self-check, Q3) and the three DISABLED API tests (their executables fail to compile, decision A); recorded per phase in sections 1, 3.1, 4.1, 5.x, 6.1 and 7.1 | sections 1 to 7 |
+| SC-012 | the full suite (everything but the sweep) passes on macOS (1078/1078) and on Linux with GCC 13 `-Werror` apart from the 7 baseline failures that fail the same way on the starting tree | 9.3 |
+
+### 9.5 Before and after
+
+- **Architecture metrics and allowlist:** `SceneInterface` references / members 6 / 6 to 0 / 0; TOTAL 612 / 94 to 606 / 90; `Geometry` 48 / 15 and `Hiders` 558 / 82 unchanged; allowlist: 10 DB-015 lines deleted, no line added (381 lines at the end).
+- **CONSUMER section:** 71 edges (66 at Phase 0): 32 from `src/libshader/tests/*` (28), 39 from the tools (38); see 7.2.
+- **`ribOut` Core files:** 6 to 0. **Residual list length:** 9 files (`rendererDeclarations`, `rendererFileSearch`, `rendererMutexes`, `rendererNetwork`, `rendererStatics`, and the four `vector/*DispatchStub.cpp`); `rendererClipping.cpp` and `resource.cpp` no longer compiled into `libRIBVector`.
+- **Flat-namespace imports of `libshader_shading`:** unchanged at 4 (`CPhotonMap::lookup`, `CGatherBundle::CGatherBundle()`, the vtables of `CTraceBundle` and `CTransmissionBundle`; `nm -m -u libshader_shading.1.0.0.dylib`); `op_dso_call` added none.
+- **Interface versions:** `CRendererServices` 2.0.0 and the shadeop interface 1.1.0, both unchanged; the `.slo` format is 2.1.0 for a module that calls a DSO operand and 2.0.0 for every other.
+- **Accepted departures recorded in this file:** the `-u` link option of `libribpreview` (4.2), the compiler include-path filter (5.3), the void-DSO interpreter fix (6.3, 6.5), the `PluginAbi_RegistryConsistency` edit (8.2); known behaviour changes in `NEWS.md` and `ChangeLog.md`.
+
+### 9.6 Files changed
+
+`git diff --cached --name-status 01501f10` (the base the spec started from): 184 files, 56 under `src/`, 92 under `tests/`, 28 under `specs/038-scene-interface-untangle/`, 8 others (`.specify/feature.json`, `ChangeLog.md`, `CLAUDE.md`, `DEVNOTES.md`, `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`, `DEVNOTES_DETAILS/PLUGIN_ABI.md`, `docs/site/content/manual/reference/dso-shading.md`, `NEWS.md`):
+
+```text
+M .specify/feature.json
+M ChangeLog.md
+M CLAUDE.md
+M DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md
+M DEVNOTES_DETAILS/PLUGIN_ABI.md
+M DEVNOTES.md
+M docs/site/content/manual/reference/dso-shading.md
+M NEWS.md
+A specs/038-scene-interface-untangle/checklists/requirements.md
+A specs/038-scene-interface-untangle/claude-md-draft.md
+A specs/038-scene-interface-untangle/contracts/active-context.md
+A specs/038-scene-interface-untangle/contracts/allowlist-end-state.md
+A specs/038-scene-interface-untangle/contracts/backend-registration.md
+A specs/038-scene-interface-untangle/contracts/checks.md
+A specs/038-scene-interface-untangle/contracts/compiler-tables.md
+A specs/038-scene-interface-untangle/contracts/jit-dso-call.md
+A specs/038-scene-interface-untangle/contracts/scene-services.md
+A specs/038-scene-interface-untangle/contracts/tools.md
+A specs/038-scene-interface-untangle/data-model.md
+A specs/038-scene-interface-untangle/plan.md
+A specs/038-scene-interface-untangle/quickstart.md
+A specs/038-scene-interface-untangle/research.md
+A specs/038-scene-interface-untangle/spec.md
+A specs/038-scene-interface-untangle/tasks.md
+A specs/038-scene-interface-untangle/tools/ctor_reports_sweep.sh
+A specs/038-scene-interface-untangle/tools/include_sweep.sh
+A specs/038-scene-interface-untangle/tools/r14/r14a_diffargs.sl
+A specs/038-scene-interface-untangle/tools/r14/r14a_dup.sl
+A specs/038-scene-interface-untangle/tools/r14/r14a_loop.sl
+A specs/038-scene-interface-untangle/tools/r14/r14a_readback.sl
+A specs/038-scene-interface-untangle/tools/r14/r14a_unused.sl
+A specs/038-scene-interface-untangle/tools/r14/r14a.sh
+A specs/038-scene-interface-untangle/tools/r14/r14b_declarations.txt
+A specs/038-scene-interface-untangle/tools/r14/r14c_vary.sl
+A specs/038-scene-interface-untangle/tools/ribvector_core_sweep.sh
+A specs/038-scene-interface-untangle/validation.md
+M src/common/sloFormat.h
+A src/libshader/compiler/builtinTables.cpp
+M src/libshader/compiler/CMakeLists.txt
+M src/libshader/compiler/llvmEmitter.cpp
+M src/libshader/shading/llvmJit.cpp
+M src/libshader/shading/llvmJit.h
+M src/libshader/shading/rendererServices.h
+M src/libshader/shading/rslOps.cpp
+M src/libshader/shading/rslOps.h
+M src/libshader/shading/scriptFunctions.h
+M src/libshader/shading/sloLoader.cpp
+A src/libshader/tests/check_shaders_bytes.cmake
+M src/libshader/tests/CMakeLists.txt
+A src/libshader/tests/reference/linux/shaders.sha256
+A src/libshader/tests/reference/macos/oshader_help.txt
+A src/libshader/tests/reference/macos/shaders.sha256
+A src/libshader/tests/test_compiler_table_drift.cpp
+M src/libshader/tests/test_format_versions.cpp
+M src/libshader/tests/test_gate_hardening.cpp
+M src/libshader/tests/test_opcode_coverage.cpp
+M src/precomp/precomp.cpp
+M src/preview/libribpreview/CMakeLists.txt
+M src/preview/libribpreview/previewContext.cpp
+M src/preview/libribpreview/ribGeometryContext.cpp
+M src/ri/CMakeLists.txt
+M src/ri/dataviewer/dataLoad.cpp
+M src/ri/dataviewer/dataLoad.h
+M src/ri/geometry/delayed.h
+A src/ri/hiders/rasterFlags.h
+M src/ri/hiders/reyes.h
+A src/ri/parse/delayedData.h
+M src/ri/parse/error.cpp
+M src/ri/parse/ifexpr.y
+M src/ri/parse/procDynamicLoadHook.h
+M src/ri/parse/ri.cpp
+M src/ri/parse/rib.h
+M src/ri/parse/rib.l
+M src/ri/parse/rib.y
+A src/ri/parse/riCondition.h
+R src/ri/parse/riHooks.h
+M src/ri/parse/riInterface.cpp
+M src/ri/parse/riInterface.h
+A src/ri/parse/riServices.cpp
+A src/ri/parse/riServices.h
+M src/ri/render/renderer.h
+M src/ri/render/rendererContext.cpp
+M src/ri/render/rendererContext.h
+M src/ri/render/rendererDeclarations.cpp
+M src/ri/render/rendererDeclarationsDispatch.cpp
+M src/ri/render/rendererDisplay.cpp
+M src/ri/render/rendererProcedures.cpp
+M src/ri/render/rendererServicesImpl.h
+M src/ri/render/rendererStatics.cpp
+A src/ri/state/declarations.cpp
+A src/ri/state/declarations.h
+M src/ri/vector/rendererDeclarationsDispatchStub.cpp
+M tests/architecture/allowlist.txt
+A tests/architecture/check_active_context_assignments.cmake
+A tests/architecture/check_compiler_include_boundary.cmake
+A tests/architecture/check_hooks_and_records.cmake
+A tests/architecture/check_no_core_include.cmake
+A tests/architecture/check_ribout_no_core.cmake
+A tests/architecture/check_ribvector_residual.cmake
+M tests/architecture/CMakeLists.txt
+A tests/architecture/domain_classify.cmake
+M tests/architecture/metrics-baseline.txt
+A tests/architecture/ribvector-core-residual.txt
+M tests/CMakeLists.txt
+M tests/plugins/checks/check_registry_consistency.cmake
+A tests/plugins/shadeop/check_jit_parity.cmake
+M tests/plugins/shadeop/check_versions_render.cmake
+M tests/plugins/shadeop/CMakeLists.txt
+A tests/plugins/shadeop/jit_fixture.cpp
+A tests/plugins/shadeop/probe_args.sl
+A tests/plugins/shadeop/probe_init.sl
+A tests/plugins/shadeop/probe_void.sl
+M tests/plugins/shadeop/render_1f.rib.in
+A tests/plugins/shadeop/render_format.rib.in
+M tests/plugins/shadeop/render.rib.in
+M tests/plugins/shadeop/scan.rib.in
+A tests/precomp/check_precomp_no_hider_core.cmake
+A tests/precomp/check_precomp_output.cmake
+A tests/precomp/CMakeLists.txt
+A tests/precomp/reference/stochasticPrimitives.raw.h
+A tests/preview/check_preview_no_core_reach.cmake
+M tests/preview/CMakeLists.txt
+A tests/preview/reference/linux/examples_rib_camera-dof.txt
+A tests/preview/reference/linux/examples_rib_quadrics-a.txt
+A tests/preview/reference/linux/examples_rib_quadrics-b.txt
+A tests/preview/reference/linux/examples_rib_teapot.txt
+A tests/preview/reference/macos/examples_rib_camera-dof.txt
+A tests/preview/reference/macos/examples_rib_colorcube.txt
+A tests/preview/reference/macos/examples_rib_general-polygon.txt
+A tests/preview/reference/macos/examples_rib_polygon.txt
+A tests/preview/reference/macos/examples_rib_quadrics-a.txt
+A tests/preview/reference/macos/examples_rib_quadrics-b.txt
+A tests/preview/reference/macos/examples_rib_subdiv-geometry-samples.txt
+A tests/preview/reference/macos/examples_rib_teapot.txt
+A tests/preview/reference/macos/examples_rib_tests_parity_motion-subdiv-translate-wire.txt
+A tests/preview/reference/macos/examples_rib_tests_subdiv-crease-convergence-wire.txt
+A tests/preview/reference/macos/examples_rib_tests_subdiv-facevarying-seam-wire.txt
+A tests/preview/reference/macos/examples_rib_tests_subdiv-hierarchical-override-wire.txt
+A tests/preview/reference/macos/examples_rib_tests_subdiv-loop-wire.txt
+A tests/preview/reference/macos/examples_rib_tests_subdiv-new-tags-wire.txt
+M tests/preview/test_data_keys.cpp
+A tests/preview/test_extraction_unchanged.cpp
+A tests/preview/test_self_registration.cpp
+A tests/RIB/writer/declared_params.rib
+A tests/RIB/writer/if_blocks.rib
+A tests/RIB/writer/include/archive_inc.rib
+A tests/RIB/writer/include/sub/nested_inc.rib
+A tests/RIB/writer/inline_params.rib
+A tests/RIB/writer/procedurals.rib
+A tests/RIB/writer/read_archive_bare.rib
+A tests/RIB/writer/read_archive_missing.rib
+A tests/RIB/writer/read_archive_separator.rib
+A tests/RIB/writer/undeclared_param.rib
+M tests/unit/blobby/blobbyTestUtils.h
+M tests/unit/csg/test_procedural_operand.cpp
+M tests/unit/sampling/test_object_ids.cpp
+A tests/unit/scene_interface/capture_declared_set.cpp
+A tests/unit/scene_interface/CMakeLists.txt
+A tests/unit/scene_interface/reference/declared_set.txt
+A tests/unit/scene_interface/reference/if_branches.txt
+A tests/unit/scene_interface/reference/writer/declared_params.diag
+A tests/unit/scene_interface/reference/writer/declared_params.rib
+A tests/unit/scene_interface/reference/writer/if_blocks.diag
+A tests/unit/scene_interface/reference/writer/if_blocks.rib
+A tests/unit/scene_interface/reference/writer/inline_params.diag
+A tests/unit/scene_interface/reference/writer/inline_params.rib
+A tests/unit/scene_interface/reference/writer/procedurals.diag
+A tests/unit/scene_interface/reference/writer/procedurals.rib
+A tests/unit/scene_interface/reference/writer/read_archive_bare.diag
+A tests/unit/scene_interface/reference/writer/read_archive_bare.rib
+A tests/unit/scene_interface/reference/writer/read_archive_missing.diag
+A tests/unit/scene_interface/reference/writer/read_archive_missing.rib
+A tests/unit/scene_interface/reference/writer/read_archive_separator.diag
+A tests/unit/scene_interface/reference/writer/read_archive_separator.rib
+A tests/unit/scene_interface/reference/writer/undeclared_param.diag
+A tests/unit/scene_interface/reference/writer/undeclared_param.rib
+A tests/unit/scene_interface/scene_interface_testing.h
+A tests/unit/scene_interface/scenes/if_branches.rib
+A tests/unit/scene_interface/test_context_install.cpp
+A tests/unit/scene_interface/test_if_characterization.cpp
+A tests/unit/scene_interface/test_services.cpp
+A tests/unit/scene_interface/test_writer_text.cpp
+M tests/unit/texture_tile/test_texture_system_null_resolver.cpp
+M tests/unit/texture_tile/test_texture_system_stream_cursor.cpp
+```

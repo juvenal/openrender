@@ -168,18 +168,14 @@ archcheck_add_fixture(conditional-include 0
 # --- Spec 038 (Scene Interface untangle): the mechanical checks -------------------------------
 #
 # Each is a `cmake -P` script that reads the build system's own view of a target (a generator
-# expression on the command line), never a hand-kept list. They are red on the starting tree by
-# design (Phase 1 of spec 038), so they carry the TEMPORARY label or038_red instead of
-# architecture, and `ctest -L architecture` is not made to fail by them. The task that turns a check
-# green changes its label to `architecture`: Phase 2 for SceneInterface_RibOutNoCore,
+# expression on the command line), never a hand-kept list. While spec 038 was in progress each one
+# was red on the starting tree by design and carried a temporary label of its own instead of
+# `architecture`, so that `ctest -L architecture` stayed green at every checkpoint; the phase that
+# turned a check green moved it to `architecture`: Phase 2 for SceneInterface_RibOutNoCore,
 # SceneInterface_NoCoreInclude and SceneInterface_HooksAndRecords, Phase 3 for
-# SceneInterface_ActiveContextAssignments, Phase 4 for SceneInterface_RibVectorResidual
-# (and Preview_NoCoreReach, tests/preview), Phase 5 for Compiler_IncludeBoundary, Phase 7 for
-# Precomp_NoHiderCore (tests/precomp). Phase 9 requires that no test carries or038_red.
-# Done in Phase 2: SceneInterface_RibOutNoCore, _NoCoreInclude and _HooksAndRecords now carry architecture;
-# in Phase 3: SceneInterface_ActiveContextAssignments; in Phase 4: SceneInterface_RibVectorResidual and
-# Preview_NoCoreReach (tests/preview); in Phase 5: Compiler_IncludeBoundary; in Phase 7: Precomp_NoHiderCore
-# (tests/precomp), the last one: no test carries or038_red any more.
+# SceneInterface_ActiveContextAssignments, Phase 4 for SceneInterface_RibVectorResidual and
+# Preview_NoCoreReach (tests/preview), Phase 5 for Compiler_IncludeBoundary and Phase 7 for
+# Precomp_NoHiderCore (tests/precomp). All of them carry `architecture` now; the temporary label is gone.
 set(OR038_MAP ${CMAKE_CURRENT_SOURCE_DIR}/domain-map.txt)
 set(OR038_COMMON
     -DSOURCE_DIR=${CMAKE_SOURCE_DIR}

@@ -207,7 +207,7 @@ sites), `src/ri/shaderFunctions.h` (built-ins), `src/ri/zbufferQuad.h`.
 1. Token constants — `src/ri/ri.h` / `ri.cpp`
 2. RIB parsing — `RiAttributeV()` in `src/ri/rendererContext.cpp`
 3. Storage/query — `CAttributes` in `src/ri/attributes.h/cpp` (`find()`)
-4. Pre-declaration — `initDeclarations()` in `src/ri/rendererDeclarations.cpp` (required, or RIB parser rejects the attribute with "Parameter not declared" before it ever reaches step 2)
+4. Pre-declaration — `CRenderer::initDeclarations()` in `src/ri/render/rendererDeclarations.cpp`, which fills Graphics State's `CDeclarations` (`src/ri/state/declarations.cpp`) (required, or RIB parser rejects the attribute with "Parameter not declared" before it ever reaches step 2)
 
 ### Graphics State handles (spec 025)
 `CAttributes` and `COptions` hold other domains' objects only as opaque,
@@ -259,6 +259,20 @@ display 2.0.0 use `OR_*`/`Or*`. The public headers come from one list,
 `OPENRENDER_PUBLIC_HEADERS` (`CMake/openRenderPublicHeaders.cmake`), installed into
 `OPENRENDER_INCLUDE_INSTALL_DIR` (`<ORENDERHOME>/include` self-contained, `include/openRender` FHS);
 `file_base.h` is not installed. See `DEVNOTES_DETAILS/PLUGIN_ABI.md` and gotcha 27.
+
+### Scene Interface services and the active context (spec 038)
+The Scene Interface (`src/ri/parse/`, `src/ri/output/`, the generated parsers) includes no renderer-core
+header and references no `CRenderer`/`CRendererContext` symbol (`SceneInterface_NoCoreInclude`, `_RibOutNoCore`).
+The declared variables are Graphics State's `CDeclarations` (`src/ri/state/declarations.{h,cpp}`, reference
+counted, acquired by `CRiStandardSession` or by `CRenderer::initDeclarations()`); the grammar reaches variable
+lookup and file search through two Scene-owned services (`CRiDeclarationService`, `CRiFileSearchService`,
+`parse/riServices.h`) that the renderer core implements (`CCoreDeclarationService`/`CCoreFileSearchService`) and
+that a program without a renderer gets from `CRiStandardSession`. The `if` evaluator is `riEvaluateCondition`
+(`parse/riCondition.h`). `riHooks.h` lives in `src/ri/parse/`. The active RI context is installed explicitly
+(`riInstallContext`, `riUninstallContext`, `riPreviousContext`); a back-end registers a named factory
+(`RiRegisterBackEnd`) and a program starts it with `RiBeginBackEnd`/`RiEndBackEnd` (the preview registers
+itself as `"preview"`). `libRIBVector` compiles only the Core files in
+`tests/architecture/ribvector-core-residual.txt`, a list that only shrinks. See gotchas 29 to 33.
 
 ### Coordinate / matrix conventions
 Column-major matrices, `element(row,col) = row + 4*col`. `from` = local→world,
@@ -385,6 +399,8 @@ not in the agent definitions.
    newly-added `op_*` symbol ever fails to resolve at bind time, wire up
    `addProcessSymbol()` for real then, rather than assuming it's already
    wired.
+   `op_dso_call` (spec 038, a `.slo` shader's call of a DSO operand) is one more JIT-only entry resolved the
+   same way; it adds no flat-namespace import.
 4. **LLVM LLJIT init:** requires `InitializeNativeTarget()` /
    `AsmPrinter`/`AsmParser` before `LLJITBuilder().create()` — failure is a
    silent `nullptr`, not a crash or exception.
@@ -716,6 +732,51 @@ not in the agent definitions.
    scene with only primitive hits reports nothing. A change to the interface bumps
    `kRendererServicesVersion` (MAJOR: a member, field or result removed or changed; MINOR: a member
    with a default, a field or enumerator appended); every implementer `static_assert`s its MAJOR.
+   `getDSO` also serves the `.slo` loader since spec 038 (`sloLoader.cpp` binds the DSO operands of a JIT module
+   with `libshader::lookupDSO`, on every load); that is a wording change of the member, so
+   `kRendererServicesVersion` stays 2.0.0.
+29. **The active RI context is installed explicitly (spec 038).** `CRiInterface`'s constructor assigns nothing:
+   not `renderMan`, not the diagnostic sink. `riInstallContext(ctx)` makes it the active one (and attaches the
+   diagnostics), `riUninstallContext(ctx)` / the destructor of an installed context hands both back to the
+   previous context, `riPreviousContext(ctx)` answers which one that is, and archive nesting uses it
+   (`savedRenderMan` is gone). Installing an installed context is a `CODE_BUG` report. Nothing outside
+   `src/ri/parse/` may assign `renderMan` (`SceneInterface_ActiveContextAssignments` scans `src/` and `tests/`).
+   Reports raised while `CRendererContext` constructs happen before the install, so they reach the sink
+   installed before `RiBegin` and never set `RiLastError` (an accepted behaviour change, NEWS).
+30. **Declarations are Graphics State's, reference counted (spec 038).** `CDeclarations` holds the declared
+   set and the global numbering; `CRenderer::retrieveVariable`/`declareVariable` and `initDeclarations()`
+   are forwarders in the renderer core, and `notifyGlobalVariable` (the per-thread shading contexts' update) is
+   the one thing the table still asks of the core, installed as an observer by `initDeclarations()`. A program
+   without a renderer holds a `CRiStandardSession`: the standard declarations and a file search that finds a
+   path as written or through the search path, with no network and no temporary directory. Never call
+   `CRenderer::initDeclarations()` from the Scene Interface, the preview or the data viewer.
+31. **Named back-ends register themselves (spec 038).** `RiRegisterBackEnd(key, factory)` is called by a static
+   initializer in the back-end's own translation unit; `RiBeginBackEnd(key, arg)` starts a light session
+   (`CRiStandardSession`, `RiInit`, the factory, `riInstallContext`; no `.orenderrc`, no network, no
+   `RiTini`) and `RiEndBackEnd` ends it. An unknown key reports "Back-end ... is not available in this build" and
+   returns `nullptr`. In a static archive the linker keeps the registering object only if something references it:
+   `libribpreview` forces `ribpreview_load` into every link (`target_link_options(... -u ...)`), so keep the
+   registrar in the translation unit that defines the entry point a consumer calls.
+32. **The compiler owns its builtin tables (spec 038).** `src/libshader/compiler/builtinTables.cpp` defines
+   `kOpcodeParamTable` and `kAllFunctionMnemonics`; it is generated by
+   `test_libshader_compiler_table_drift --emit`, never edited by hand, and `LibShader_CompilerTableDrift` fails with
+   the first differing row when the engine's `scriptFunctions.h`/`scriptOpcodes.h` change (regenerate the file).
+   The compiler's include path holds no Scene Interface, renderer or shading-engine directory
+   (`Compiler_IncludeBoundary`): `src/CMakeLists.txt` adds those directories to every directory below `src`, so
+   `src/libshader/compiler/CMakeLists.txt` filters them out of its own directory property.
+33. **A `.slo` shader can call a DSO operand (spec 038).** `oshader --jit` lowers a `DSO name ("proto") dest args`
+   instruction to `op_dso_call` (decoded in one place, `decodeDsoCall`, before the destination prelude: the
+   instruction's result field is the operand's name, not a destination). The module gets a slot array
+   `@"<shader>.shadeops"` and the metadata `openrender.shader.shadeops`; the loader binds each slot on every
+   load (`CLLVMJitEngine::bindShadeops`, resolved with `getDSO`) because the operands belong to the renderer
+   session while the compiled module outlives it. Only such a module records the `.slo` format 2.1.0
+   (`SLO_FORMAT_MINOR`); every other module records `SLO_FORMAT_MINOR_BASE` (2.0.0), so shipped `.slo` keep
+   their bytes. A missing operand makes the loader warn and return `nullptr`, so `getShader()` falls back to the
+   `.rslo`. The interpreter's void-DSO row (`DSO_VOID`) steps its argument pointers as `char **`: they are
+   byte steps.
+34. **`precomp` and the hiders share `rasterFlags.h` (spec 038).** The `RASTER_*` constants live in
+   `src/ri/hiders/rasterFlags.h` (no includes); `reyes.h` includes it, `precomp` includes only it
+   (`Precomp_NoHiderCore`, `Precomp_OutputUnchanged`).
 
 ## Active Technologies
 - C++20, CMake ≥3.19; `libtiff`/`libpng` (mandatory), OpenEXR (optional,
@@ -774,8 +835,26 @@ not in the agent definitions.
   (026-shading-contract-v2)
 - Storage: N/A — memory only; the trace-request replay under `tests/shading_contract/replay/` is a
   recorded file (026-shading-contract-v2)
+- C++20, CMake ≥3.19, `-Werror`; no new dependencies — the Scene Interface owns its services and is built without the
+  renderer core (`CDeclarations` in Graphics State, `CRiStandardSession`, explicit context installation, named
+  back-ends), the shader compiler owns its builtin tables, and the JIT calls DSO shadeop operands
+  (038-scene-interface-untangle)
+- Storage: N/A — memory only; the characterization references under `tests/**/reference` and
+  `src/libshader/tests/reference` are recorded files (038-scene-interface-untangle)
 
 ## Recent Changes
+- 038-scene-interface-untangle: the Scene Interface no longer depends on the renderer core (DB-015 resolved):
+  declarations are Graphics State's `CDeclarations`, file search and variable lookup are Scene-owned services
+  the core implements and `CRiStandardSession` supplies, `riHooks.h` moved into `src/ri/parse/`, the active
+  context is installed explicitly (`riInstallContext`; a constructor assigns nothing) and `RiBeginLite` became
+  `RiBeginBackEnd` with named, self-registering back-ends (the preview). `libRIBVector` compiles only the Core
+  files pinned in `ribvector-core-residual.txt`. The shader compiler owns its builtin tables
+  (`builtinTables.cpp`, generated, drift-tested; DB-019 resolved) and a `.slo` shader can call a DSO operand
+  (`op_dso_call`; format 2.1.0 only for such modules; a missing operand falls back to the `.rslo`).
+  `precomp` includes `rasterFlags.h` instead of the hider. Fixed on the way: the interpreter's void DSO operands
+  stepped varying arguments four times too far. Reports raised while the renderer context is constructed no
+  longer set `RiLastError`, so a failed network connect no longer makes `orender` exit with -1. No image
+  changed (see spec 038).
 - 026-shading-contract-v2: Shading reaches the renderer through one documented, versioned
   interface (`kRendererServicesVersion` 2.0.0): `getAttribute`, `getMessage` and `getMatrix`
   replace 28 option and coordinate-system methods, `setOffendingObject` takes an opaque
