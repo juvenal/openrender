@@ -177,7 +177,7 @@ void CPhotonHider::renderingLoop() {
                         context.currentShadingState->numActive = numVertices;
                         context.currentShadingState->numPassive = 0;
                         context.currentShadingState->shadingDim = SHADING_0D;
-                        context.currentShadingState->currentObject = phony;
+                        context.setShadedObject(phony, openrender::shading::ObjectHandle{static_cast<const CObject *>(phony)}, phony->attributes);
                         context.currentShadingState->lightCategory = 0;
 
                         // Ensure there's space for the ambient lights

@@ -21,6 +21,7 @@
 #define HIDER_H
 
 #include "libshader/shading/rendererServices.h" // kRendererServicesVersion
+#include "libshader/shading/shadingProducer.h"    // IShadingProducer
 #include "libshader/shading/tracer.h"           // ITracer
 #include "shading.h"                              // CShadingContext (Shading; Hiders -> Shading is allowed)
 
@@ -30,9 +31,9 @@ static_assert(openrender::shading::kRendererServicesVersion.major == 2, "CHider 
 // Class				:	CHider
 // Description			:	The base of every hider. It owns the shading context of its render thread.
 // Comments				:	One hider per render thread, created and destroyed by the renderer core with its context.
-class CHider : public openrender::shading::ITracer {
+class CHider : public openrender::shading::ITracer, public openrender::shading::IShadingProducer {
     public:
-        explicit CHider(int thread); // constructs the context and installs itself as its tracer
+        explicit CHider(int thread); // constructs the context and installs itself as its tracer and its producer
         virtual ~CHider(); // the context is destroyed after the derived hider's destructor body
 
         // Render this thread's share of the frame (moved from CShadingContext)
@@ -47,7 +48,15 @@ class CHider : public openrender::shading::ITracer {
         void traceRay(CShadingContext &ctx, CRay *ray) override;
         void traceBundle(CShadingContext &ctx, CRayBundle *bundle) override;
 
+        // IShadingProducer (shadingProducer.h): the target of the context's Geometry-facing shade(CSurface *, ...). Builds the point
+        // source and the batch description and calls context.shade(ShaderGlobals, IPointSource) (shadingProducer.cpp)
+        void shadeSurface(CShadingContext &ctx, CSurface *surface, int uVertices, int vVertices, EShadingDim dim, unsigned int usedParameters,
+                          int displaceOnly) override;
+
     protected:
+        // True for the hiders that rasterize (the frame's hider kind, which the batch's situation depends on)
+        virtual bool rasterizes() const { return false; }
+
         // Trace a bundle's rays, group them by object, shade, postShade/post, continue (the former CShadingContext::trace(CRayBundle *))
         void traceGroups(CRayBundle *bundle);
 

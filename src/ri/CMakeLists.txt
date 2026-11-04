@@ -72,6 +72,7 @@ set(ri_sources
 	texture/textureSystem.cpp
 	hiders/compositor.cpp
 	hiders/hider.cpp
+	hiders/shadingProducer.cpp
 	geometry/curves.cpp
 	geometry/bsplinePatchgrid.cpp
 	geometry/csgTree.cpp
@@ -370,6 +371,7 @@ list(REMOVE_ITEM ribVector_sources
     geometry/dlobject.cpp
     hcshader.cpp
     hiders/hider.cpp
+    hiders/shadingProducer.cpp
     hiders/irradianceDispatch.cpp
     hiders/occlusion.cpp
     hiders/photon.cpp

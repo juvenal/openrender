@@ -1,0 +1,97 @@
+--- a/tests/shading_contract/contract_harness.h
++++ b/tests/shading_contract/contract_harness.h
+@@ -96,7 +96,7 @@
+             ss->alights = nullptr;
+             ss->currentLight = nullptr;
+             ss->lightsExecuted = FALSE;
+-            ss->currentObject = nullptr; // the standalone program has no object (QE); the executor's reads take built-in defaults (FR-027)
++            context->setShadedObject(nullptr, openrender::shading::ObjectHandle{}, nullptr); // the standalone program has no object (QE); the executor's reads take built-in defaults (FR-027)
+             for (int i = 0; i < numPoints; i++) {
+                 const float p[3] = {0.1f * (i + 1), 0.2f * (i + 1), 0.3f * (i + 1)};
+                 const float n[3] = {0, 0, 1};
+--- a/tests/shading_contract/rendered_harness.h
++++ b/tests/shading_contract/rendered_harness.h
+@@ -97,7 +97,7 @@
+             ss->alights = nullptr;
+             ss->currentLight = nullptr;
+             ss->lightsExecuted = FALSE;
+-            ss->currentObject = obj;
++            ctx->setShadedObject(obj, openrender::shading::ObjectHandle{static_cast<const CObject *>(obj)}, obj != nullptr ? obj->attributes : nullptr);
+             for (int i = 0; i < n; i++) {
+                 const float p[3] = {0.1f * (i + 1), 0.2f * (i + 1), 0.3f * (i + 1)};
+                 const float nn[3] = {0, 0, 1};
+--- a/tests/shading_contract/case_offending_object.cpp
++++ b/tests/shading_contract/case_offending_object.cpp
+@@ -36,7 +36,7 @@
+         ctx->updateState();
+ 
+         // A current object: the forwarder records the handle, the real services set the offending object
+-        ctx->currentShadingState->currentObject = s.object;
++        ctx->setShadedObject(s.object, ObjectHandle{static_cast<const CObject *>(s.object)}, s.object->attributes);
+         CRenderer::offendingObject = nullptr;
+         ctx->rendererSetOffendingObject(ctx->objectHandle()); // as a shader error would reach it (public since spec 029, F13)
+         const void *surface = static_cast<const CObject *>(s.object);
+@@ -45,7 +45,7 @@
+         CT_EXPECT(static_cast<const void *>(CRenderer::offendingObject) == surface);
+ 
+         // No current object: a null handle, a null offending object
+-        ctx->currentShadingState->currentObject = nullptr;
++        ctx->setShadedObject(nullptr, ObjectHandle{}, nullptr);
+         ctx->rendererSetOffendingObject(ctx->objectHandle()); // as a shader error would reach it (public since spec 029, F13)
+         CT_EXPECT(fwd.offendingObjectCalls == 2);
+         CT_EXPECT(fwd.lastOffending == nullptr);
+--- a/tests/shading_contract/case_type_mismatch_real.cpp
++++ b/tests/shading_contract/case_type_mismatch_real.cpp
+@@ -83,8 +83,7 @@
+     }
+ 
+     void direct(CRenderedSession &s, CShadingContext *ctx) {
+-        CShadingState *ss = ctx->currentShadingState;
+-        ss->currentObject = s.object;
++        ctx->setShadedObject(s.object, openrender::shading::ObjectHandle{static_cast<const CObject *>(s.object)}, s.object->attributes);
+ 
+         // ---- attribute() -----------------------------------------------------------------------------
+         {
+--- a/tests/shading_parity/texture_substitute_harness.h
++++ b/tests/shading_parity/texture_substitute_harness.h
+@@ -82,7 +82,7 @@
+     ss->alights = nullptr;
+     ss->currentLight = nullptr;
+     ss->lightsExecuted = FALSE;
+-    ss->currentObject = object;
++    probe->setShadedObject(object, openrender::shading::ObjectHandle{static_cast<const CObject *>(object)}, object->attributes);
+ 
+     for (int i = 0; i < kNumPoints; i++) {
+         memcpy(ss->varying[VARIABLE_P] + 3 * i, kP[i], 3 * sizeof(float));
+--- a/tests/shading_parity/test_ambient_accumulation.cpp
++++ b/tests/shading_parity/test_ambient_accumulation.cpp
+@@ -173,7 +173,8 @@
+ 
+                 CAttributes *attrs = new CAttributes();
+                 CXform *xform = new CXform();
+-                ss->currentObject = new CTestSurface(attrs, xform);
++                CSurface *testSurface = new CTestSurface(attrs, xform);
++                ctx->setShadedObject(testSurface, openrender::shading::ObjectHandle{static_cast<const CObject *>(testSurface)}, testSurface->attributes);
+ 
+                 CMemPage *localMemory = NULL;
+                 memoryInit(localMemory);
+@@ -253,7 +254,7 @@
+                 ss->numPassive = 0;
+                 ss->tags[0] = 0;
+                 ss->ambientLightsExecuted = 0;
+-                ss->currentObject = surface;
++                ctx->setShadedObject(surface, openrender::shading::ObjectHandle{static_cast<const CObject *>(surface)}, surface->attributes);
+ 
+                 // The real public call site (shading.cpp:1711-1749) -- drives
+                 // light->prepare()/illuminate() for every non-ambient-excluded
+--- a/tests/shading_parity/test_false_if_constructs.cpp
++++ b/tests/shading_parity/test_false_if_constructs.cpp
+@@ -97,7 +97,7 @@
+     ss->alights = nullptr;
+     ss->currentLight = nullptr;
+     ss->lightsExecuted = FALSE;
+-    ss->currentObject = object;
++    probe->context.setShadedObject(object, openrender::shading::ObjectHandle{static_cast<const CObject *>(object)}, object->attributes);
+ 
+     for (int i = 0; i < kNumPoints; i++) {
+         memcpy(ss->varying[VARIABLE_P] + 3 * i, P[i], 3 * sizeof(float));

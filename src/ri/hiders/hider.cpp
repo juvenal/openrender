@@ -24,6 +24,7 @@
 // Comments				:
 CHider::CHider(int thread) : context(thread) {
     context.setTracer(this);
+    context.setProducer(this);
 }
 
 ///////////////////////////////////////////////////////////////////////

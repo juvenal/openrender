@@ -54,43 +54,48 @@ namespace libshader {
             return c;
         }
 
-        // Row 10: photon emission (light shaders), photon.cpp:166-230: a phony object, SHADING_0D, the
-        // illumination hook on. Row 11 (a photon hits a surface, photon.cpp:609-700) runs no shader and
-        // is not a shading situation.
-        if (s.illuminationHook) {
-            c.rayType = RayType::Photon;
-            c.transport = TransportMode::Importance;
-            return c;
-        }
-
         const bool zeroD = (s.dim == (int)SHADING_0D);
 
-        // Row 5: a shaded shadow or transmission hit (traceTransmission sets inShadow, executeMisc.cpp:717).
-        // transmissionhitmode (shading.cpp:889): "p" copies the attribute opacity and returns, "s" runs the
-        // surface only (:907). A 0-D hit (row 6) has no hit mode.
-        if (s.inShadow) {
-            c.rayType = RayType::Shadow;
-            c.hitMode = zeroD ? HitMode::Shade : modeOf(s.transmissionHitMode);
+        // The illumination hook decides the transport (rows 2 to 5 included) and the emission row: shade() never reads it
+        // (spec 029, corrected from spec 026's function, which applied the hook before every other rule).
+        c.transport = s.illuminationHook ? TransportMode::Importance : TransportMode::Radiance;
+
+        // Row 10: photon emission (light shaders), photon.cpp:166-230: a phony object, SHADING_0D, depth 0, the
+        // illumination hook on. A shadow or secondary ray traced by a light shader during emission is not this row:
+        // shade() tests its hit modes. Row 11 (a photon hits a surface, photon.cpp:609-700) runs no shader and
+        // is not a shading situation.
+        if (s.illuminationHook && zeroD && s.rayDepth == 0 && !s.inShadow) {
+            c.rayType = RayType::Photon;
             return c;
         }
 
-        if (s.rasterHider) {
-            // Row 2: REYES points and curves, SHADING_0D (reyes.cpp:907, :968): camerahitmode is ignored (oddity 7)
-            if (zeroD)
-                return c;
-            // Row 1: a REYES or zbuffer grid seen by the camera (reyes.cpp:1061, :1115). camerahitmode is
-            // applied after the shaders (oddity 1): "p" overwrites Oi with the attribute opacity and keeps Ci
-            // (shading.cpp:1374-1382).
+        // Rows 5 and 6: a shaded shadow or transmission hit (traceTransmission sets inShadow, executeMisc.cpp:717).
+        // transmissionhitmode (shading.cpp:889-898, no dimension test): "p" copies the attribute opacity and returns,
+        // "s" runs the surface only.
+        if (s.inShadow) {
+            c.rayType = RayType::Shadow;
+            c.hitMode = modeOf(s.transmissionHitMode);
+            return c;
+        }
+
+        // Row 1: a grid seen by the camera (reyes.cpp:1061, :1115). camerahitmode is applied after the shaders (oddity 1):
+        // "p" overwrites Oi with the attribute opacity and keeps Ci (shading.cpp:1374-1382).
+        if (s.dim == (int)SHADING_2D_GRID) {
             c.hitMode = modeOf(s.cameraHitMode);
             return c;
         }
 
-        // A ray hit: rows 3, 4, 6 and 7 (and, with no hider at all, row 14: the RSLShading::shade() facade,
-        // a bare execution, which has no ray and is told apart by its caller, not by this function).
+        // Row 2: REYES points and curves, SHADING_0D at depth 0 in a raster frame (reyes.cpp:907, :968): camerahitmode is
+        // ignored (oddity 7)
+        if (s.rasterHider && zeroD && s.rayDepth == 0)
+            return c;
+
+        // A ray hit, 2-D or 0-D, at any depth and in any frame: rows 3, 4, 6 and 7 (and, with no hider at all, row 14: the
+        // RSLShading::shade() facade, a bare execution, which has no ray and is told apart by its caller, not by this function).
         //   row 3: a raytrace camera hit (raytracer.cpp:652, depth 0) reads specularhitmode (shading.cpp:915),
         //          not camerahitmode (oddity 2)
-        //   row 4: a secondary hit (depth >= 1, not in shadow) reads specularhitmode; diffusehitmode is
-        //          never read (oddity 4)
+        //   row 4: a secondary hit (depth >= 1, not in shadow), also one traced from a REYES grid, reads specularhitmode;
+        //          diffusehitmode is never read (oddity 4)
         //   row 6: an implicit-surface hit is SHADING_0D (implicitSurface.cpp:258): no hit mode (oddity 3)
         //   row 7: a DSO-object hit (dlobject.cpp:173) is classified as rows 3 to 5
         c.rayType = (s.rayDepth == 0) ? RayType::Camera : RayType::Secondary;

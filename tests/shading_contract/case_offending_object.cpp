@@ -36,7 +36,7 @@ int main(int, char **) {
         ctx->updateState();
 
         // A current object: the forwarder records the handle, the real services set the offending object
-        ctx->currentShadingState->currentObject = s.object;
+        ctx->setShadedObject(s.object, ObjectHandle{static_cast<const CObject *>(s.object)}, s.object->attributes);
         CRenderer::offendingObject = nullptr;
         ctx->rendererSetOffendingObject(ctx->objectHandle()); // as a shader error would reach it (public since spec 029, F13)
         const void *surface = static_cast<const CObject *>(s.object);
@@ -45,7 +45,7 @@ int main(int, char **) {
         CT_EXPECT(static_cast<const void *>(CRenderer::offendingObject) == surface);
 
         // No current object: a null handle, a null offending object
-        ctx->currentShadingState->currentObject = nullptr;
+        ctx->setShadedObject(nullptr, ObjectHandle{}, nullptr);
         ctx->rendererSetOffendingObject(ctx->objectHandle()); // as a shader error would reach it (public since spec 029, F13)
         CT_EXPECT(fwd.offendingObjectCalls == 2);
         CT_EXPECT(fwd.lastOffending == nullptr);

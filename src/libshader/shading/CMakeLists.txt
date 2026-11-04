@@ -86,14 +86,13 @@ elseif(UNIX)
 endif()
 
 # Shading engine needs the headers of the domains it may depend on (Graphics State, Texturing, the Infrastructure
-# in src/ri/core and src/ri/parse's ri.h) and, until spec 029 Phase 7, Geometry's, plus its own directory for
-# shading.h, shader.h, rslo_code.h, macro headers. The Hiders' directory is not on the path (spec 029): the bundles
-# and IPhotonLookup are Shading's own, in this directory.
+# in src/ri/core and src/ri/parse's ri.h), plus its own directory for shading.h, shader.h, rslo_code.h, macro headers.
+# Neither the Hiders' nor Geometry's directory is on the path (spec 029): the bundles, IPhotonLookup and IPointSource
+# are Shading's own, in this directory.
 target_include_directories(libshader_shading PRIVATE
     ${CMAKE_SOURCE_DIR}/src/ri
     ${CMAKE_SOURCE_DIR}/src/ri/state
     ${CMAKE_SOURCE_DIR}/src/ri/parse
-    ${CMAKE_SOURCE_DIR}/src/ri/geometry
     ${CMAKE_SOURCE_DIR}/src/ri/texture
     ${CMAKE_SOURCE_DIR}/src/ri/core
     ${CMAKE_CURRENT_SOURCE_DIR}

@@ -8,9 +8,8 @@
  *   data-model.md). A structure of arrays with a runtime point count and no fixed batch width: a grid
  *   (u fastest), a span of independent points, or one point. It owns nothing.
  *
- *   Nothing in the render path produces or consumes it in spec 026 (FR-018): only the test doubles and
- *   ShadingContract_Situations do. Spec 029 switches shade() to the structure, and spec 049 adapts it to
- *   OSL's.
+ *   Spec 026 produced it only in test doubles. Since spec 029 shade() takes it (with an IPointSource) as its input:
+ *   the hider that owns the context describes the batch, and spec 049 adapts the structure to OSL's.
  *
  *   Spaces and units: unless a field says otherwise, P, N, Ng, I, dPdu, dPdv and dPdtime are in the
  *   current (camera) coordinate system, the space shade() works in (getMatrix("current") is the identity).
@@ -22,6 +21,10 @@
  *       must set P and time (their present() is true) on every batch, whatever the situation. The default
  *       constructed structure has every field absent, and a consumer may assume nothing else is set.
  *     - Every other per-point field is optional: test present() before reading it.
+ *     - As the input of shade() (spec 029) every per-batch field is set and every per-point field is absent: the per-point
+ *       values are in the context's varyings (written by the hider or Geometry before the call: u, v, time, and for ray
+ *       hits P, Ng, I, du) or are sampled by the point source inside shade(). A full description (what the test doubles and
+ *       ShadingContract_ShaderGlobalsDouble build, and spec 049) follows the rules above.
  *     - Array lengths: every per-point array with a non-zero stride has numPoints + numDerivativeTail
  *       elements (times its stride): the real points first, then the tail. A field with stride 0 holds
  *       one value for every point, tail included, and has one element (times its width).
@@ -58,9 +61,11 @@ namespace openrender::shading {
 
     // The vocabularies below are append only.
 
-    // Grid is gridU x gridV points, u fastest (numUvertices/numVvertices); Span is independent points
-    // (ray hits, SHADING_0D); Point is a batch of one.
-    enum class BatchShape : uint8_t { Grid, Span, Point };
+    // Grid is gridU x gridV points, u fastest (numUvertices/numVvertices); Span is independent 2-D ray hits
+    // (SHADING_2D); Point is a batch of one; PointSet (2.1.0) is a 0-D point set (SHADING_0D: points, curves' vertices,
+    // implicit hits, a phony light batch). The producer of shade()'s input sets gridU and gridV for every shape (the
+    // number of u and v vertices of the call, numPoints = gridU * gridV).
+    enum class BatchShape : uint8_t { Grid, Span, Point, PointSet };
 
     // None covers a rasterised grid or point, a displacement pass, the imager and a bare execution.
     enum class RayType : uint8_t { None, Camera, Secondary, Shadow, Photon };
@@ -88,7 +93,7 @@ namespace openrender::shading {
             int numPoints = 0;               // real points
             int numDerivativeTail = 0;       // 0, or 2 * numPoints: the du-offset then dv-offset copies
             BatchShape shape = BatchShape::Point;
-            int gridU = 0, gridV = 0;        // Grid only; gridU * gridV == numPoints
+            int gridU = 0, gridV = 0;        // gridU * gridV == numPoints; a Grid's dimensions (shade()'s input sets them for every shape)
             const int *activeTags = nullptr; // numPoints entries, 0 = active (the shading tags[]); nullptr: every real point is active
 
             // ---- per batch (always present)

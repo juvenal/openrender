@@ -80,7 +80,9 @@ static void executeChunk(CShaderInstance &shader,
     state->alights = nullptr;
     state->currentLight = nullptr;
     state->freeLights = nullptr;
-    state->currentObject = nullptr;
+    state->currentSurface = nullptr; // no shaded object: the imager's reads take built-in defaults
+    state->currentObject = openrender::shading::ObjectHandle{};
+    state->currentAttributes = nullptr;
     state->postShader = nullptr;
     std::memset(state->tags, 0, chunkLen * 3 * sizeof(int));
 

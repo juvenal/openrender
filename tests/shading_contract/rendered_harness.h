@@ -97,7 +97,7 @@ class CRenderedSession {
             ss->alights = nullptr;
             ss->currentLight = nullptr;
             ss->lightsExecuted = FALSE;
-            ss->currentObject = obj;
+            ctx->setShadedObject(obj, openrender::shading::ObjectHandle{static_cast<const CObject *>(obj)}, obj != nullptr ? obj->attributes : nullptr);
             for (int i = 0; i < n; i++) {
                 const float p[3] = {0.1f * (i + 1), 0.2f * (i + 1), 0.3f * (i + 1)};
                 const float nn[3] = {0, 0, 1};

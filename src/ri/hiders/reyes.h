@@ -254,6 +254,7 @@ class CReyes : public CHider {
 
         // This function is called to to render
         void renderingLoop() override;
+        bool rasterizes() const override { return true; }
 
         // The following functions must be overriden by the child rasterizer
         virtual void rasterBegin(int, int, int, int, int) = 0;

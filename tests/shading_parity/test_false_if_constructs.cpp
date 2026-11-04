@@ -97,7 +97,7 @@ static void setupState(CRunProbeContext *probe, CSurface *object) {
     ss->alights = nullptr;
     ss->currentLight = nullptr;
     ss->lightsExecuted = FALSE;
-    ss->currentObject = object;
+    probe->context.setShadedObject(object, openrender::shading::ObjectHandle{static_cast<const CObject *>(object)}, object->attributes);
 
     for (int i = 0; i < kNumPoints; i++) {
         memcpy(ss->varying[VARIABLE_P] + 3 * i, P[i], 3 * sizeof(float));

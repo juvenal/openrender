@@ -69,7 +69,6 @@ DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer9pixelLeftE   # C
 # --- DB-005: Hiders and Shading share one class (CShadingContext) (8) ---
 
 # --- DB-006: Geometry is coupled to Shading and to the hiders (31) ---
-DB-006  include  src/libshader/shading/shading.cpp  ->  src/ri/geometry/object.h
 DB-006  include  src/ri/geometry/bsplinePatchgrid.cpp  ->  src/ri/core/shading.h
 DB-006  include  src/ri/geometry/curves.cpp  ->  src/ri/hiders/reyes.h
 DB-006  include  src/ri/geometry/curves.h  ->  src/ri/core/shading.h

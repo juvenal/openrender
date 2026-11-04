@@ -85,7 +85,11 @@ namespace openrender::shading {
     //   2.1.0  spec 029. Breaking within 2.x (allowed before spec 055, see the rule above):
     //          Changed:  getPhotonMap() returns openrender::shading::IPhotonLookup * (was CPhotonMap *).
     //          Added:    IPhotonLookup (photonLookup.h), IIlluminationHook (illuminationHook.h).
-    //          Changed:  tracer() is the fallback for a context with no tracer of its own: the hiders implement ITracer
+    //          Added:    BatchShape::PointSet, IPointSource (pointSource.h), IShadingProducer (shadingProducer.h), the producer
+    //                    and the shade(ShaderGlobals, IPointSource) entry of CShadingContext.
+    //          Changed:  BatchShape::Span is narrowed to 2-D ray hits; the presence rules are stated per direction (the
+    //                    input of shade(): per-batch fields only; a full description: spec 026's rules);
+    //                    tracer() is the fallback for a context with no tracer of its own: the hiders implement ITracer
     //                    (the renderer's adapter class is gone) and install themselves with CShadingContext::setTracer().
     //   2.0.0  spec 026, 2026-11-01. Version 1 was the unversioned interface of specs 024, 025 and 027
     //          (57 pure virtuals).
