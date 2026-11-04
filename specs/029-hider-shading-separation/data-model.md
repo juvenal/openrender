@@ -93,6 +93,8 @@ record of 026) are in **bold**.
 
 Rule order in `classifyShading()`: rows 9, 8; row 10; row 5; row 1; row 2; rows 3/4/6/7.
 
+Photon emission does not reach this row through `shade()`: the photon hider sets its 0-D state itself and runs the light with `cLight->illuminate(...)` (`src/ri/hiders/photon.cpp` contains no `shade(` call), so emission reports no batch through `shade()` or `shadeBatchObserver`, and the `Photon` rule of `classifyShading()` (row 10) is reached only by a caller that describes such a situation to it (the test doubles and `ShadingContract_Situations`); a ray a light shader traces during emission is shaded one ray level deeper as a secondary hit with the hook on (`Secondary`, `Importance`, `hitMode` from `specularhitmode`), the row `sit_photon_emission_trace` pins.
+
 ## Validation rules
 
 - FR-019: for every batch a rendered scene shades, the producer's `rayType`/`hitMode`/`transport`/`pass` equal

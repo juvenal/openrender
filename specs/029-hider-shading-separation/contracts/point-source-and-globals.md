@@ -109,6 +109,7 @@ Order of the rules (`situation.cpp`): the passes (rows 8, 9); then:
 1. **Photon emission** (hook on, 0-D, depth 0, not in a shadow): `Photon`, `Shade`, `Importance` (row 10).
    Today's function applies the hook rule before every other rule, so a shadow or secondary ray traced by a light
    shader *during* emission classifies as `Photon` while `shade()` tests its hit modes.
+   Photon emission does not reach this row through `shade()`: the photon hider sets its 0-D state itself and runs the light with `cLight->illuminate(...)` (`src/ri/hiders/photon.cpp` contains no `shade(` call), so emission reports no batch through `shade()` or `shadeBatchObserver`, and the `Photon` rule of `classifyShading()` (row 10) is reached only by a caller that describes such a situation to it (the test doubles and `ShadingContract_Situations`); a ray a light shader traces during emission is shaded one ray level deeper as a secondary hit with the hook on (`Secondary`, `Importance`, `hitMode` from `specularhitmode`), the row `sit_photon_emission_trace` pins.
 2. **In a shadow** (`inShadow`): `Shadow`, `hitMode` from `transmissionhitmode` at **every** dimension
    (`shading.cpp:883-898` has no dimension test). Today's function returns `Shade` for 0-D (row 6's shadow case).
 3. **A grid** (`SHADING_2D_GRID`): `None`, `hitMode` from `camerahitmode` (row 1).

@@ -280,6 +280,9 @@ int caseProducerSituations(int argc, char **argv) {
         // the (Shadow, Primitive, PointSet) batch of its own cannot be required yet; every batch the scene does produce is checked
         // against the table. Departure recorded in validation.md section 4.
         {"sit_row5_shadow_implicit_primitive", false, 's', 's', 'p', {{RayType::Camera, HitMode::Shade, BatchShape::Span}}},
+        // spec 029: a photon pass whose light shader traces during emission. The ray hit it makes is a secondary hit with the hook on
+        // (row 4: depth 1, specularhitmode "shader"; the transport is Importance, checked for every batch by expectedRow)
+        {"sit_photon_emission_trace", false, 's', 's', 'p', {{RayType::Secondary, HitMode::Shade, BatchShape::Span}}},
     };
     for (const SScene &s : scenes) {
         const std::string outFile = std::string(s.name) + ".out";

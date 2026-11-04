@@ -40,7 +40,7 @@ set(_contract_shader_names
     cm_mm_msg_surface cm_mm_msg_displacement cm_mm_msg_atmosphere cm_mm_msg_incident cm_mm_msg_opposite
     cm_mm_real_msg_surface cm_mm_real_msg_displacement cm_mm_real_msg_atmosphere cm_mm_real_msg_incident cm_mm_real_msg_opposite cm_nullobject_msg
     cm_matrices cm_trace cm_transmission cm_visibility cm_gather cm_occlusion cm_indirect cm_env cm_shadow
-    sit_marker sit_mirror sit_transmit sit_displace)
+    sit_marker sit_mirror sit_transmit sit_displace sit_photon_light)
 set(_shader_specs "")
 foreach(_b trace transmission visibility gather environment shadow occlusion indirectdiffuse)
     list(APPEND _shader_specs "replay_${_b}|${CMAKE_CURRENT_SOURCE_DIR}/replay/shaders/replay_${_b}.sl")
