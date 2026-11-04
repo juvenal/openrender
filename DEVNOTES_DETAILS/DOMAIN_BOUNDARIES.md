@@ -53,6 +53,28 @@ fails as stale.
 | `UNRESOLVED` | a header no compiled translation unit includes, so it yields no edges | no |
 | `METRIC` / `WARNING` / `NOTE` | renderer-core usage (`CRenderer::` / `CRendererContext::` references and distinct members) per class against the baseline; an increase warns, a decrease suggests lowering the baseline | no |
 
+**Checks of spec 038** (label `architecture`; each is a `cmake -P` script that reads the build system's
+own view of a target, so none is a hand-kept list; they print `FAIL: <what>` lines and a count):
+
+| Test | Fails when |
+|---|---|
+| `SceneInterface_RibOutNoCore` | a source of `libRIBOut` (`ribOut_obj`) is classified Core by `domain-map.txt` |
+| `SceneInterface_NoCoreInclude` | a Scene Interface source (`src/ri/parse/`, `src/ri/output/`, a generated parser) includes a Core file |
+| `SceneInterface_HooksAndRecords` | `riHooks.h` is not under `src/ri/parse/`, `CDelayedData` is defined outside the Scene Interface, or a Scene source includes `geometry/delayed.h` |
+| `SceneInterface_ActiveContextAssignments` | a source under `src/` or `tests/` outside `src/ri/parse/` assigns `renderMan` or names `savedRenderMan` |
+| `SceneInterface_RibVectorResidual` | `libRIBVector` (`ribVector_obj`) compiles a Core file `tests/architecture/ribvector-core-residual.txt` does not list, the list names a file it no longer compiles, or a "needed by" cell names a file under `parse/`, `output/` or `preview/` |
+| `Preview_NoCoreReach` | a `libribpreview` source includes a Core header, or an object of it has an undefined `CRenderer`/`CRendererContext` symbol |
+| `Compiler_IncludeBoundary` | the shader compiler's include path contains a Scene Interface, renderer or shading-engine directory, or a compiler source includes a file outside its allowed roots |
+| `Precomp_NoHiderCore` | `precomp.cpp` includes `reyes.h` or a Core header |
+
+Read a `SceneInterface_RibVectorResidual` failure by its text: "compiles the Core file X, which the
+list does not list" means a new Core dependency of Geometry or Hiders (fix the dependency, or list the
+file with the file that needs it, never with a Scene Interface or preview file); "lists X, which
+ribVector_obj no longer compiles" means the residual shrank: delete the line. The list only shrinks;
+`specs/038-scene-interface-untangle/tools/ribvector_core_sweep.sh <build-dir>` prints, from the built
+objects, which Core file each `ribVector` object needs (an `nm` sweep; remove the objects of a source
+the target stopped compiling first, CMake leaves them behind).
+
 **Data files** (`tests/architecture/`, formats in
 `specs/022-domain-dependency-guardrails/contracts/data-files.md`)
 
@@ -62,6 +84,8 @@ fails as stale.
 - `allowlist.txt`: one line per known violating edge, with its registry ID and an optional
   `macos`/`linux` tag for edges the two toolchains spell differently.
 - `metrics-baseline.txt`: renderer-core usage per class.
+- `ribvector-core-residual.txt`: the Core files `libRIBVector` still compiles and the Geometry or Hiders file
+  that needs each (spec 038); read by `SceneInterface_RibVectorResidual`.
 
 **Classify a new file** (the check stops with `unclassified: <path>`)
 
@@ -197,6 +221,15 @@ request. Run `ctest -L architecture` locally before review.
     `implicitSurface.cpp`, `objectMisc.h`, `patches.cpp`, `patchgrid.cpp`, `points.cpp`,
     `polygons.cpp`, `quadrics.cpp`, `subdivision.cpp` and `subdivisionCreator.cpp`. The include
     lines stay valid allowlist lines; spec 028 removes no include.
+  - Spec 038 (2026-11-04), no allowlist change: `libRIBVector` (the geometry-only library) compiles
+    only the Core files pinned in `tests/architecture/ribvector-core-residual.txt`
+    (`SceneInterface_RibVectorResidual`; the list may only shrink). Those that belong to this entry:
+    `render/rendererDeclarations.cpp` (needed by `geometry/blobby.cpp`: `CRenderer::retrieveVariable`),
+    `render/rendererFileSearch.cpp` (needed by `geometry/blobbyRepeller.cpp`: `CRenderer::locateFile`)
+    and the two files that file needs, `render/rendererNetwork.cpp` and `render/rendererMutexes.cpp`,
+    and `render/rendererStatics.cpp` (the `CRenderer` statics Geometry's `object.cpp` and
+    `blobbyRepeller.cpp` read; also Hiders' and the data viewer's, below). Spec 038 also took
+    `render/rendererClipping.cpp` and `render/resource.cpp` out of `libRIBVector`.
 
 ### DB-005 — Hiders and Shading share one class (`CShadingContext`)
 
@@ -336,6 +369,12 @@ request. Run `ctest -L architecture` locally before review.
   `stochastic.cpp -> CRenderer::jitter`. The Hiders `CRenderer::` metric fell from 586 to 567
   references and 87 to 84 members.
 
+- **History**: spec 038 (2026-11-04), no allowlist change: `render/rendererStatics.cpp`, the file that
+  defines the `CRenderer` statics the hiders read, is one of the Core files `libRIBVector` still
+  compiles (`tests/architecture/ribvector-core-residual.txt`), needed by `hiders/compositor.cpp`,
+  `hiders/irradiance.cpp` and `hiders/photonMap.cpp` as well as by Geometry (DB-004) and the data
+  viewer (DB-024). It leaves the list when the hiders stop reading the statics (specs 029 to 031).
+
 ### DB-013 — No hider registry: `strcmp` chains in the renderer core
 
 - **Rules**: 3; adding a hider must not require core edits.
@@ -354,34 +393,21 @@ request. Run `ctest -L architecture` locally before review.
   instances; the consumers read only `CShaderInstance` members) now lives in `lightInstanceOf()`
   (`src/libshader/shading/shaderRefs.h`), preserved as it was.
 
-### DB-015 — Scene Interface depends on the renderer core
-
-- **Rules**: the renderer-core rule.
-- **Tracking**: remediation spec 038 ([#43](https://github.com/juvenal/openrender/issues/43))
-- **Evidence**:
-  - The generated RIB and `ifexpr` parsers include `renderer.h`/`rendererContext.h`, and the
-    RIB parser calls `CRenderer::locateFile` and `retrieveVariable`. (The `variable` parser moved
-    to `libRIBCommon` in spec 023 and no longer includes `renderer.h`.)
-  - `ri.cpp` calls `CRenderer::initDeclarations`/`shutdownDeclarations`.
-  - `ri.cpp` and `ribOut.cpp` include `src/ri/render/riHooks.h`.
-  - `CRiInterface`'s constructor installs itself as the global `renderMan`
-    (`src/ri/parse/riInterface.cpp:36`).
-- **Size**: 10 edges (6 include, 4 link); 11 before spec 023.
-- **Direction**: a Scene-owned declaration and file-search service implemented by the core;
-  `riHooks.h` moves into Scene Interface; explicit active-context installation.
-
 ### DB-017 — Link-time `*Dispatch` / `*DispatchStub` substitution pairs
 
 - **Rules**: 2 and 3 (dependencies go through interfaces, not through which file the linker
   receives).
 - **Tracking**: remediation spec 031 ([#37](https://github.com/juvenal/openrender/issues/37))
-- **Evidence**: four pairs, swapped by `src/ri/CMakeLists.txt` (lines 266-303) depending on
-  the library being built: `render/geometryDispatch.cpp` / `vector/geometryDispatchStub.cpp`,
+- **Evidence**: four pairs, swapped by `src/ri/CMakeLists.txt` (`ribVector_sources`, lines 374-418)
+  depending on the library being built: `render/geometryDispatch.cpp` / `vector/geometryDispatchStub.cpp`,
   `render/rendererDeclarationsDispatch.cpp` / `vector/rendererDeclarationsDispatchStub.cpp`,
   `geometry/surfaceCrossingDispatch.cpp` / `vector/surfaceCrossingDispatchStub.cpp` (spec 021),
   `hiders/irradianceDispatch.cpp` / `vector/irradianceDispatchStub.cpp`. Geometry methods
   (`CSurface::dice`, `CSurface::shade`, `CSurface::regionCoverage`, `CObject::dice`, the
-  `CSurface` vtable and typeinfo) are defined in the renderer-core file.
+  `CSurface` vtable and typeinfo) are defined in the renderer-core file. The `rendererDeclarations`
+  pair now carries `CRenderer::findCoordinateSystem` and `CRenderer::notifyGlobalVariable` (spec 038
+  moved the declaration table to Graphics State's `CDeclarations`; the rest of
+  `render/rendererDeclarations.cpp` is not part of the pair).
 - **Size**: 78 link edges (Geometry 70, Hiders 7, plus one `rendererDeclarations` pair edge). A
   wrong assumption only fails at run time.
 - **Direction**: delete each pair once its consumer is interface-based (Geometry's `IDicer`/
@@ -389,6 +415,10 @@ request. Run `ctest -L architecture` locally before review.
   stubs. The "injected RNG" part is done for `CObject::cluster()` (spec 039, 2026-10-20): its draws
   come from a `CKeyedStream` keyed by the object's `stableId` and the iteration, not from the
   shading context's generator; the pair itself remains for the other reasons above.
+- **History**: spec 038 (2026-11-04), no allowlist change: the four stub files are the four
+  `vector/*DispatchStub.cpp` entries of `tests/architecture/ribvector-core-residual.txt`
+  (`SceneInterface_RibVectorResidual`), each with the Geometry or Hiders file that needs it
+  (`geometry/object.cpp` for the declarations stub, `hiders/irradiance.cpp` for the irradiance stub).
 
 ### DB-018 — Message passing reads `CAttributes` directly
 
@@ -409,28 +439,6 @@ request. Run `ctest -L architecture` locally before review.
   situation table; spec 029 fills it, [#35](https://github.com/juvenal/openrender/issues/35));
   the JIT's message-passing entry points through the services (spec 033); `getmessage`/`setmessage`
   across shader-group layers (spec 034).
-
-### DB-019 — The shader compiler depends on Scene Interface and renderer-core headers
-
-- **Rules**: the allowed-dependency table (Shading may not depend on Scene Interface or the
-  renderer core).
-- **Tracking**: remediation specs 038 ([#43](https://github.com/juvenal/openrender/issues/43)), 037 ([#26](https://github.com/juvenal/openrender/issues/26))
-- **Evidence**: spec 037 (2026-10-31) removed the dependency edges: the compiler includes no Scene
-  Interface or renderer-core header and no longer `dlopen`s shadeop DSOs itself; it reads
-  shadeop declarations through the shadeop module (`src/shadeop/shadeopModule.h`, Shading to
-  Shader DSO Operands, allowed). What remains is not an edge but the reason the entry stays open:
-  - the JIT has no DSO shadeop call path (the two DSO dispatcher rows of `scriptFunctions.h`,
-    named `XXX`, are resolved at run time and have no JIT emission), so a `.slo` shader cannot
-    call a DSO operand and needs the interpreter format;
-  - the compiler still takes its builtin and opcode tables from the shading engine's headers
-    (`scriptFunctions.h`, `opcodes.h`) instead of owning them, so it is not standalone.
-- **Size**: 0 include edges and 0 allowlist lines (3 include edges before spec 037; 4 before spec 023,
-  which moved `rendererc.h` into `src/common` and so removed `llvmEmitter.cpp`'s include of it).
-- **Direction**: a standalone compiler with its own builtin and opcode tables, reading shadeop
-  prototypes only through the versioned `shadeop.h` (043); a JIT DSO call path (038).
-- **History**: spec 037 deleted the 3 `dso.h` include lines (the compiler's `dso.y` copy and its
-  `dso_generated.cpp`, the unused include in `shading/rslo.y`, and `rslo.cpp`'s include) by
-  moving the declaration parser and the scan into `libRIBShadeop`.
 
 ### DB-020 — Cross-domain `friend` declarations
 
@@ -466,18 +474,33 @@ request. Run `ctest -L architecture` locally before review.
 - **Rules**: none broken (consumers may depend on anything). Registered as evidence for the
   public APIs the tools should use.
 - **Tracking**: remediation specs 033 ([#39](https://github.com/juvenal/openrender/issues/39)), 037 ([#26](https://github.com/juvenal/openrender/issues/26)), 038 ([#43](https://github.com/juvenal/openrender/issues/43))
-- **Evidence** (the check's `CONSUMER` section, 36 include edges):
+- **Evidence** (the check's `CONSUMER` section; spec 038 re-measured it on 2026-11-04: 71 edges, 32
+  from `src/libshader/tests/*` and 39 from the tools; the registry's earlier 36 counted the tool edges
+  without the two `ri.h` edges of `orender.cpp` and `otexmake.cpp`, which makes 37 now):
   - `sloinfo.cpp` and `oshader.cpp` include Shading internals (3 each);
-  - `precomp.cpp` includes a hider header;
-  - `libribpreview` includes 15 Geometry headers, 3 Graphics State headers and 4 Scene Interface
-    headers;
-  - `src/ri/dataviewer/dataLoad.cpp` reaches into Hiders and Texturing.
-- **Size**: 36 consumer-reach edges; reported, never failing, no allowlist lines.
+  - `precomp.cpp` includes one Hiders header, `rasterFlags.h` (the `RASTER_*` constants, no other
+    content; it used to include `reyes.h` and the renderer core's `renderer.h`);
+  - `libribpreview` includes 15 Geometry headers, 4 Graphics State headers (`pl.h`, `attributes.h`,
+    `options.h`, `xform.h`) and 5 Scene Interface headers (`riHooks.h`, `rib.h` twice, `ri.h`,
+    `riInterface.h`); the earlier text said 3 and 4. It includes no renderer-core header;
+  - `src/ri/dataviewer/dataLoad.cpp` reaches into Hiders (2) and Texturing (2) and includes 2 Scene
+    Interface headers (`riInterface.h`, `riServices.h`), and `renderer.h` for the `CRenderer::fromWorld`
+    seeding (DB-025).
+- **Size**: 37 consumer-reach edges from the tools (39 listed with the two `ri.h` edges); reported,
+  never failing, no allowlist lines.
 - **Direction**: tools use public APIs: a shader-metadata API from Shading (033), one display ABI
-  definition (037), `RiMake*` for precomputation (038).
+  definition (037). Spec 038 did not add `RiMake*` for precomputation (the earlier Direction): it cut
+  `precomp` off the hider class and the renderer core by moving the constants into `rasterFlags.h`.
+  Remaining: `sloinfo` and `oshader` (specs 033 and 043), the data viewer's Hiders and Texturing reach
+  (spec 032), and the preview's Geometry and Graphics State includes.
 - **History**: spec 037 (2026-10-31) did the "one display ABI definition" item: `dsply.h` is the single
   definition of the display interface, and the version 1 types survive only in the renderer core's
   private `displayV1Abi.h`, which the version 1 adapter alone includes.
+  - Spec 038 (2026-11-04): `precomp` includes `src/ri/hiders/rasterFlags.h` instead of `reyes.h` and
+    `renderer.h`; the preview starts its session with `RiBeginBackEnd("preview")` (a
+    `CRiStandardSession`) and the data viewer holds a `CRiStandardSession`, so neither calls
+    `CRenderer::initDeclarations()`/`shutdownDeclarations()` and the preview includes neither `renderer.h`,
+    `rendererContext.h` nor `riDiagnostics.h`. The data viewer still includes `renderer.h` (DB-025).
 
 ### DB-025 — Domains call into the data viewer (a consumer)
 
@@ -765,3 +788,80 @@ request. Run `ctest -L architecture` locally before review.
   `displayChannel.h`, and `CRenderer::retrieveDisplayChannel` is deleted: 3 edges to 0, with the
   3 allowlist lines deleted and nothing added. `Texture3dChannels_Session`, `_NoSession`,
   `_Unknown` and `_FillAliased` guard it.
+
+### DB-015 — Scene Interface depends on the renderer core
+
+- **Rules**: the renderer-core rule.
+- **Tracking**: remediation spec 038 ([#43](https://github.com/juvenal/openrender/issues/43))
+- **Evidence** (as registered; 10 allowlist lines, 6 include and 4 link, 11 before spec 023):
+  - The generated RIB and `ifexpr` parsers include `renderer.h`/`rendererContext.h`, and the
+    RIB parser calls `CRenderer::locateFile` and `retrieveVariable`. (The `variable` parser moved
+    to `libRIBCommon` in spec 023 and no longer includes `renderer.h`.)
+  - `ri.cpp` calls `CRenderer::initDeclarations`/`shutdownDeclarations`.
+  - `ri.cpp` and `ribOut.cpp` include `src/ri/render/riHooks.h`.
+  - `CRiInterface`'s constructor installs itself as the global `renderMan`
+    (`src/ri/parse/riInterface.cpp:37`).
+- **Size**: 0 edges, 0 allowlist lines (10 edges before spec 038).
+- **Resolved** by spec 038 (`specs/038-scene-interface-untangle/`), 2026-11-04: the Scene Interface
+  (`src/ri/parse/`, `src/ri/output/`, the generated parsers) includes no renderer-core header and
+  references no `CRenderer`/`CRendererContext` symbol. The 10 allowlist lines were deleted and none
+  was added; the `SceneInterface` metric went from 6 references and 6 members to 0 and 0 (TOTAL 612/94
+  to 606/90). What replaced each edge:
+  - `ifexpr_generated.cpp -> renderer.h`, `rendererContext.h` (2 include): the condition evaluator is
+    the Scene Interface function `riEvaluateCondition(CRiInterface *, const char *)`
+    (`parse/riCondition.h`, `ifexpr.y`), which asks the active context for attributes and options;
+    `CRendererContext::ifParse` is gone.
+  - `rib_generated.cpp -> renderer.h`, `rendererContext.h` (2 include) and `-> CRenderer::locateFile`,
+    `CRenderer::retrieveVariable` (2 link): the grammar calls `riRetrieveVariable` and `riLocateFile`
+    (`parse/riServices.{h,cpp}`), which go through two services the Scene Interface owns,
+    `CRiDeclarationService` and `CRiFileSearchService`. The renderer core implements and installs
+    them (`CCoreDeclarationService`/`CCoreFileSearchService`, `render/rendererDeclarations.cpp`); a
+    program without a renderer (the RIB writer, the preview, the data viewer) installs the standard
+    pair with `CRiStandardSession`. The declaration table itself is Graphics State's `CDeclarations`
+    (`state/declarations.{h,cpp}`, reference counted, the same declared set and global numbering as
+    before).
+  - `ri.cpp -> CRenderer::initDeclarations`, `shutdownDeclarations` (2 link): the RIB-writer start-up
+    holds a `CRiStandardSession` instead; the renderer's `initDeclarations` acquires the same table.
+  - `ri.cpp`, `ribOut.cpp -> render/riHooks.h` (2 include): `riHooks.h` moved to `src/ri/parse/`.
+  - The constructor's side effect (not an allowlist line): `CRiInterface`'s constructor assigns
+    nothing; `riInstallContext`/`riUninstallContext`/`riPreviousContext` install a context
+    explicitly, archive nesting uses `riPreviousContext` (the `savedRenderMan` global is gone), and
+    `SceneInterface_ActiveContextAssignments` fails on an assignment of `renderMan` outside
+    `src/ri/parse/`.
+  - Behaviour change, accepted: reports raised while `CRendererContext` constructs reach the sink
+    installed before `RiBegin` and no longer set `RiLastError` (NEWS).
+  `SceneInterface_RibOutNoCore`, `SceneInterface_NoCoreInclude`, `SceneInterface_HooksAndRecords`,
+  `SceneInterface_ActiveContextAssignments`, `SceneInterface_ContextInstall` and `_ContextInstallRules`
+  guard it, and `libRIBOut` compiles no Core file.
+
+### DB-019 — The shader compiler depends on Scene Interface and renderer-core headers
+
+- **Rules**: the allowed-dependency table (Shading may not depend on Scene Interface or the
+  renderer core).
+- **Tracking**: remediation specs 038 ([#43](https://github.com/juvenal/openrender/issues/43)), 037 ([#26](https://github.com/juvenal/openrender/issues/26))
+- **Evidence**: spec 037 (2026-10-31) removed the dependency edges: the compiler includes no Scene
+  Interface or renderer-core header and no longer `dlopen`s shadeop DSOs itself; it reads
+  shadeop declarations through the shadeop module (`src/shadeop/shadeopModule.h`, Shading to
+  Shader DSO Operands, allowed). What remained then was not an edge but the reason the entry stayed
+  open (both items are done, see Resolved below):
+  - the JIT had no DSO shadeop call path (the two DSO dispatcher rows of `scriptFunctions.h`,
+    named `XXX`, are resolved at run time and have no JIT emission), so a `.slo` shader could not
+    call a DSO operand and needed the interpreter format;
+  - the compiler still took its builtin and opcode tables from the shading engine's headers
+    (`scriptFunctions.h`, `scriptOpcodes.h`) instead of owning them, so it was not standalone.
+- **Size**: 0 include edges and 0 allowlist lines (3 include edges before spec 037; 4 before spec 023,
+  which moved `rendererc.h` into `src/common` and so removed `llvmEmitter.cpp`'s include of it).
+- **Direction**: a standalone compiler with its own builtin and opcode tables (done in spec 038;
+  spec 043 keeps the public library and C API, decision D25), reading shadeop prototypes only through
+  the versioned `shadeop.h` (done in spec 037); a JIT DSO call path (done in spec 038).
+- **History**: spec 037 deleted the 3 `dso.h` include lines (the compiler's `dso.y` copy and its
+  `dso_generated.cpp`, the unused include in `shading/rslo.y`, and `rslo.cpp`'s include) by
+  moving the declaration parser and the scan into `libRIBShadeop`.
+- **Resolved** by spec 038 (`specs/038-scene-interface-untangle/`), 2026-11-04: a `.slo` shader calls DSO
+  operands (`op_dso_call`; the `openrender.shader.shadeops` slots, which the loader binds on every load;
+  format 2.1.0 only for a module with such a call, a missing operand falls back to the `.rslo`); the
+  compiler owns its builtin and opcode tables (`compiler/builtinTables.cpp`, generated by
+  `test_libshader_compiler_table_drift --emit`, guarded by `LibShader_CompilerTableDrift`) and its include
+  path holds no Scene Interface, renderer or shading-engine directory (`Compiler_IncludeBoundary`). No
+  allowlist line was involved (0 before, 0 after). `ShadeopAbi_Jit_*`, `LibShader_GateHardening` and
+  `LibShader_OpcodeCoverage` guard the DSO path.
