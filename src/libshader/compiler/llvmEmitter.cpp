@@ -34,7 +34,9 @@
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wpedantic"
 #include <llvm/Bitcode/BitcodeWriter.h>
+#include <llvm/IR/Constants.h>
 #include <llvm/IR/Function.h>
+#include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Metadata.h>
@@ -69,7 +71,7 @@ extern const char *const kHandledOpcodes[] = {
     "bake3d", "break", "calculatenormal",
     "ceil", "cellnoise", "cfrom", "clamp", "clampf", "clampv", "clearlighting", "comp", "concat", "continue",
     "cos", "cross", "ctransform",
-    "debug", "degrees", "depth", "Deriv", "determinant", "diffuse", "displacement", "distance", "divff", "divmm", "divvf", "divvv", "dot", "Du", "Dv",
+    "debug", "degrees", "depth", "Deriv", "determinant", "diffuse", "displacement", "distance", "divff", "divmm", "divvf", "divvv", "dot", "DSO", "Du", "Dv",
     "else", "endfor", "endif", "endilluminance", "endilluminate",
     "endsolar", "endwhile", "environment", "exp", "faceforward", "felt",
     "feq", "feql", "fegt", "fge", "fgt", "ffroma", "filterstep", "fle",
@@ -406,10 +408,72 @@ buildVarTable(const IRModule &mod) {
 // =========================================================================
 // Embed named metadata in the LLVM module.
 // =========================================================================
+// DSO shadeop calls (spec 038).
+//
+// expression.cpp writes a call of a shadeop operand as
+//     DSO <name> ("<prototype>") [<destination>] <argument>...
+// and CIRBuilder::parseLine stores it as opcode DSO, result = <name> (the operand's name, NOT a destination),
+// operands = the quoted prototype, the destination (value-returning operands only: a prototype that starts with
+// 'o' is void) and the arguments. decodeDsoCall is the one place that reads those fields.
+// =========================================================================
+struct DsoCall {
+        std::string name;  // the operand's name
+        std::string proto; // the prototype without its quotes and parentheses
+        bool isVoid = false;
+        int dstOperand = -1;   // index in IRInstr::operands of the destination, -1 for a void operand
+        int firstArgument = 1; // index of the first argument
+};
+
+static bool decodeDsoCall(const IRInstr &ins, DsoCall &out) {
+    if (ins.result.empty() || ins.operands.empty())
+        return false;
+    const std::string &sig = ins.operands[0].token; // ("f=ff")
+    if (sig.size() < 5 || sig[0] != '(' || sig[1] != '"' || sig[sig.size() - 1] != ')' || sig[sig.size() - 2] != '"')
+        return false;
+    out.name = ins.result;
+    out.proto = sig.substr(2, sig.size() - 4);
+    out.isVoid = (out.proto[0] == 'o');
+    out.dstOperand = out.isVoid ? -1 : 1;
+    out.firstArgument = out.isVoid ? 1 : 2;
+    return (int)ins.operands.size() >= out.firstArgument;
+}
+
+// The shadeop operands a module calls, numbered in first-use order across the module (the init function, then
+// the code): the slot k of the module's array "<shader>.shadeops" holds the CDSO the loader binds for entry k.
+struct DsoSlots {
+        std::vector<std::pair<std::string, std::string>> list; // (name, prototype) per slot
+        std::unordered_map<std::string, int> index;            // name + '\n' + prototype -> slot
+        llvm::GlobalVariable *global = nullptr;                // [N x ptr] zeroinitializer, only if N > 0
+        llvm::ArrayType *globalType = nullptr;
+
+        static std::string key(const std::string &name, const std::string &proto) { return name + '\n' + proto; }
+};
+
+// Returns false (after reporting) when a DSO instruction cannot be decoded.
+static bool collectDsoSlots(const IRModule &mod, DsoSlots &slots) {
+    for (const IRFunction *fn : {&mod.initFn, &mod.codeFn})
+        for (const IRBlock &blk : fn->blocks)
+            for (const IRInstr &ins : blk.instrs) {
+                if (ins.opcode != "DSO")
+                    continue;
+                DsoCall call;
+                if (!decodeDsoCall(ins, call)) {
+                    fprintf(stderr, "llvmEmitter: malformed DSO instruction (operand '%s')\n", ins.result.c_str());
+                    return false;
+                }
+                const std::string k = DsoSlots::key(call.name, call.proto);
+                if (slots.index.emplace(k, (int)slots.list.size()).second)
+                    slots.list.emplace_back(call.name, call.proto);
+            }
+    return true;
+}
+
+// =========================================================================
 static void embedMetadata(llvm::Module &mod,
                           const std::string &shaderName,
                           const IRModule &ir,
                           bool hasInit,
+                          const DsoSlots &dso,
                           llvm::LLVMContext &ctx) {
     auto mkStr = [&](const std::string &s) -> llvm::Metadata * {
         return llvm::MDString::get(ctx, s);
@@ -428,8 +492,20 @@ static void embedMetadata(llvm::Module &mod,
     {
         llvm::Type *i32 = llvm::Type::getInt32Ty(ctx);
         auto mkInt = [&](int v) -> llvm::Metadata * { return llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(i32, v)); };
-        llvm::Metadata *format[3] = {mkInt(SLO_FORMAT_MAJOR), mkInt(SLO_FORMAT_MINOR), mkInt(SLO_FORMAT_PATCH)};
+        // The record is the lowest reader version the module needs: 2.1 for a module that calls a DSO operand, the base
+        // minor (2.0) for every other, so their bytes stay what they were.
+        const int minor = dso.list.empty() ? SLO_FORMAT_MINOR_BASE : SLO_FORMAT_MINOR;
+        llvm::Metadata *format[3] = {mkInt(SLO_FORMAT_MAJOR), mkInt(minor), mkInt(SLO_FORMAT_PATCH)};
         mod.getOrInsertNamedMetadata(SLO_FORMAT_KEY)->addOperand(llvm::MDNode::get(ctx, format));
+    }
+
+    // The slots of the module's DSO calls, in slot order: the loader binds each from (name, prototype).
+    if (!dso.list.empty()) {
+        llvm::NamedMDNode *slots = mod.getOrInsertNamedMetadata("openrender.shader.shadeops");
+        for (const auto &[name, proto] : dso.list) {
+            llvm::Metadata *entry[2] = {mkStr(name), mkStr(proto)};
+            slots->addOperand(llvm::MDNode::get(ctx, entry));
+        }
     }
 
     if (hasInit) {
@@ -532,6 +608,8 @@ static bool emitFunction(const IRFunction &irFn,
                          llvm::Value *slot2,
                          llvm::Value *tags,
                          const std::unordered_map<std::string, VarDesc> &varTbl,
+                         const DsoSlots &dsoSlots,
+                         bool inInit,
                          llvm::LLVMContext &ctx,
                          llvm::Module &mod) {
     // Insert at the END of the existing entry block (after slot loads).
@@ -1023,6 +1101,72 @@ static bool emitFunction(const IRFunction &irFn,
             // ----------------------------------------------------------------
             if (op == "jmp")
                 continue;
+
+            // ----------------------------------------------------------------
+            // DSO shadeop call (spec 038). Dispatched BEFORE the destination
+            // prelude below: for a DSO instruction ins.result is the operand's
+            // NAME, not a destination, so resolving it as one would take a
+            // shader variable of that name as the destination, or fall back to
+            // stride 3 and make a uniform call look varying to collapseArgs.
+            // The destination is the decoded operand, and only the decoded
+            // destination's and arguments' strides reach collapseArgs.
+            // ----------------------------------------------------------------
+            if (op == "DSO") {
+                DsoCall call;
+                if (!decodeDsoCall(ins, call) || dsoSlots.global == nullptr) {
+                    fprintf(stderr, "llvmEmitter: malformed DSO instruction in '%s'\n", std::string(func->getName()).c_str());
+                    return false;
+                }
+                const int slot = dsoSlots.index.at(DsoSlots::key(call.name, call.proto));
+                const int argc = (int)ins.operands.size() - call.firstArgument;
+
+                // argv[0] is the destination (null for a void operand), argv[1..argc] the arguments; steps[] the
+                // per-vertex byte size of each (0 for a uniform operand or a literal).
+                llvm::IRBuilder<> entryB(entryBB, entryBB->begin()); // allocas in the entry block: a call inside a loop must not grow the stack
+                auto *argvTy = llvm::ArrayType::get(ptrTy, argc + 1);
+                auto *stepsTy = llvm::ArrayType::get(i32Ty, argc + 1);
+                auto *argvArr = entryB.CreateAlloca(argvTy, nullptr, "dso_argv");
+                auto *stepsArr = entryB.CreateAlloca(stepsTy, nullptr, "dso_steps");
+
+                bool anyVarying = false;
+                bool ok = true;
+                auto bind = [&](int position, int operandIndex) {
+                    llvm::Value *p = llvm::ConstantPointerNull::get(ptrTy);
+                    int step = 0;
+                    if (operandIndex >= 0) {
+                        auto [ptr, stride] = getVar(ins, operandIndex);
+                        if (!ptr) {
+                            ok = false;
+                            return;
+                        }
+                        p = ptr;
+                        VarDesc d{};
+                        if (stride != 0 && resolveVar(ins.operands[operandIndex].token, d))
+                            step = d.itemBytes;
+                        anyVarying = anyVarying || stride != 0;
+                    }
+                    B.CreateStore(p, B.CreateGEP(argvTy, argvArr, {B.getInt32(0), B.getInt32(position)}));
+                    B.CreateStore(B.getInt32(step), B.CreateGEP(stepsTy, stepsArr, {B.getInt32(0), B.getInt32(position)}));
+                };
+                bind(0, call.dstOperand);
+                for (int k = 0; k < argc && ok; ++k)
+                    bind(k + 1, call.firstArgument + k);
+                if (!ok) {
+                    fprintf(stderr, "llvmEmitter: DSO call of '%s' in '%s' has an operand that is neither a variable nor a literal\n",
+                            call.name.c_str(), std::string(func->getName()).c_str());
+                    return false;
+                }
+
+                // All strides 0 -> run once (n=1, no tags; or once iff a point is active inside a masked scope).
+                auto [n, tg] = collapseArgs(anyVarying ? 1 : 0, {});
+
+                auto *slotPtr = B.CreateGEP(dsoSlots.globalType, dsoSlots.global, {B.getInt32(0), B.getInt32(slot)});
+                auto *slotEntry = B.CreateLoad(ptrTy, slotPtr, "dso_slot");
+                auto *ty = llvm::FunctionType::get(voidTy, {ptrTy, i32Ty, i32Ty, i32Ty, ptrTy, ptrTy, i32Ty, ptrTy}, false);
+                auto *fn = declareOp(mod, "op_dso_call", ty);
+                B.CreateCall(fn, {slotEntry, B.getInt32(call.isVoid ? 1 : 0), B.getInt32(inInit ? 1 : 0), B.getInt32(argc), argvArr, stepsArr, n, tg});
+                continue;
+            }
 
             // ----------------------------------------------------------------
             // Resolve destination variable.
@@ -3403,11 +3547,22 @@ bool emitLLVMBitcode(const IRModule &mod,
 
     auto varTbl = buildVarTable(mod);
 
+    // The module's DSO calls: one slot per distinct (name, prototype), in first-use order. The array is only
+    // there when the module has a call, so every other .slo keeps its bytes.
+    DsoSlots dsoSlots;
+    if (!collectDsoSlots(mod, dsoSlots))
+        return false;
+    if (!dsoSlots.list.empty()) {
+        dsoSlots.globalType = llvm::ArrayType::get(ptrTy, dsoSlots.list.size());
+        dsoSlots.global = new llvm::GlobalVariable(*llvmMod, dsoSlots.globalType, false, llvm::GlobalValue::ExternalLinkage,
+                                                   llvm::ConstantAggregateZero::get(dsoSlots.globalType), shaderName + ".shadeops");
+    }
+
     // Helper: build and emit one function with the standard shader signature.
     // Returns false if emitFunction() hit the hardened coverage gate (US2) —
     // the diagnostic naming the unhandled mnemonic is already printed by
     // emitFunction() itself at the point of failure.
-    auto buildAndEmit = [&](const std::string &fnName, const IRFunction &irFn) -> bool {
+    auto buildAndEmit = [&](const std::string &fnName, const IRFunction &irFn, bool inInit) -> bool {
         auto *funcTy = llvm::FunctionType::get(voidTy, {i32Ty, ptrTy, ptrTy}, false);
         auto *func = llvm::Function::Create(
             funcTy, llvm::Function::ExternalLinkage, fnName, llvmMod.get());
@@ -3427,7 +3582,7 @@ bool emitLLVMBitcode(const IRModule &mod,
         llvm::Value *slot2 = B.CreateLoad(ptrTy, slot2_pp, "locals");
 
         // Continue appending to entry (after the slot loads).
-        return emitFunction(irFn, func, entry, numVerts, slot1, slot2, tags, varTbl, ctx, *llvmMod);
+        return emitFunction(irFn, func, entry, numVerts, slot1, slot2, tags, varTbl, dsoSlots, inInit, ctx, *llvmMod);
     };
 
     // -----------------------------------------------------------------------
@@ -3435,20 +3590,20 @@ bool emitLLVMBitcode(const IRModule &mod,
     // -----------------------------------------------------------------------
     bool hasInit = isFnNonTrivial(mod.initFn);
     if (hasInit) {
-        if (!buildAndEmit(shaderName + "_init", mod.initFn))
+        if (!buildAndEmit(shaderName + "_init", mod.initFn, true))
             return false;
     }
 
     // -----------------------------------------------------------------------
     // Compile #!Code section as the main shader entry function.
     // -----------------------------------------------------------------------
-    if (!buildAndEmit(shaderName, mod.codeFn))
+    if (!buildAndEmit(shaderName, mod.codeFn, false))
         return false;
 
     // -----------------------------------------------------------------------
     // Embed metadata (including hasinit flag).
     // -----------------------------------------------------------------------
-    embedMetadata(*llvmMod, shaderName, mod, hasInit, ctx);
+    embedMetadata(*llvmMod, shaderName, mod, hasInit, dsoSlots, ctx);
 
     // -----------------------------------------------------------------------
     // Verify the module before writing — catches invalid IR before crash.

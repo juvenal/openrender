@@ -1,7 +1,7 @@
 # Spec 037, ShadeopAbi_Versions_Render, the one-frame renders (good_f1, hidden_f1): one
 # frame of a sphere shaded by @RIB_SURFACE@, whose operand comes from the modules in the procedural
-# search path @RIB_PROC_PATH@, on @RIB_THREADS@ shading thread(s) with 8x8 buckets. The shader is the
-# interpreter bytecode (the JIT has no DSO call path). One frame, so an OS thread keeps one thread
+# search path @RIB_PROC_PATH@, on @RIB_THREADS@ shading thread(s) with 8x8 buckets. The shader format is
+# .rslo in this template. One frame, so an OS thread keeps one thread
 # index for the whole render: the thread-affinity check of the per-thread data needs that (a second frame
 # starts new threads, and glibc reuses their ids for other thread indices).
 Option "shaderformat" "default" ["rslo"]

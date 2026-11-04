@@ -591,6 +591,14 @@ void op_printf(const char *const *fmt, int sf, void *const *operands,
 void op_clearlighting();
 void op_debug(int n, const int *tags);
 
+// DSO shadeop call (spec 038): the JIT form of the interpreter's DSO / DSO_VOID dispatcher rows
+// (scriptFunctions.h, DSOEXEC / DSOVOIDEXEC). `slotEntry` is the CDSO the loader bound into the module's slot
+// array; `argv` holds argc + 1 pointers: [0] the destination of a value-returning operand (unused when `isVoid`),
+// then the argc operands; `steps` holds the matching per-vertex byte sizes (0 for a uniform operand). `inInit` is 1
+// in the shader's init function, which runs on one thread with the shared init data (thread index 0). With n == 1
+// and no tags the operand runs once; otherwise once per active vertex, every pointer advancing by its step.
+void op_dso_call(void *slotEntry, int isVoid, int inInit, int argc, void **argv, const int *steps, int n, const int *tags);
+
 /* -----------------------------------------------------------------------
  * Spline interpolation (Catmull-Rom, default basis, no basis-string variant)
  * knots[] is an array of numKnots float* pointers; all stride 3 for color,

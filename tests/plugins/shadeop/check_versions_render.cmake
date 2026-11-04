@@ -2,7 +2,7 @@
 #   cmake -DORENDER=<orender> -DRIBDIR=<dir of <case>.rib> -DWORKROOT=<dir> -DCOMMON=<dir> -P this
 #
 # The render-level half of the shadeop version cases, driven by .rslo renders of probe.sl / probe_two.sl
-# (the interpreter bytecode; the JIT has no DSO path). It needs no new API, so it is enabled and red on the
+# (the shader format is .rslo in these cases). It needs no new API, so it is enabled and red on the
 # starting tree, where the renderer calls no version check and never looks at a per-thread table. Each
 # case is two frames on four shading threads (fixtures: shadeop_fixture.cpp):
 #

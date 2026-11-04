@@ -17,7 +17,11 @@
  *                           while the supported minor is 0: nothing lower exists)
  *     rslo_current_loads    the file the compiler wrote loads
  *   .slo (metadata node `openrender.slo.format`, three i32 operands)
- *     slo_emitted           oshader --jit writes the node, with the SLO_FORMAT_* numbers
+ *     slo_emitted           oshader --jit writes the node for a module without a DSO call, with
+ *                           SLO_FORMAT_MINOR_BASE as the minor (spec 038: the record is the lowest
+ *                           reader version the module needs)
+ *     slo_dso_emitted       a module with a DSO operand call records 2.1.0 and the
+ *                           `openrender.shader.shadeops` slot list (spec 038)
  *     slo_old_refused       a module whose node says 1.0.0 is refused BEFORE linking: it
  *                           is otherwise a valid, linkable module, so only the format
  *                           check can refuse it
@@ -288,7 +292,7 @@ static void sloEmitted() {
             EXPECT_TRUE(node != nullptr);
             if (node) {
                 EXPECT_TRUE(node->getNumOperands() == 1);
-                const int expected[3] = {SLO_FORMAT_MAJOR, SLO_FORMAT_MINOR, SLO_FORMAT_PATCH};
+                const int expected[3] = {SLO_FORMAT_MAJOR, SLO_FORMAT_MINOR_BASE, SLO_FORMAT_PATCH};
                 if (node->getNumOperands() == 1 && node->getOperand(0)->getNumOperands() == 3)
                     for (int i = 0; i < 3; ++i) {
                         auto *c = llvm::mdconst::dyn_extract<llvm::ConstantInt>(node->getOperand(0)->getOperand(i));
@@ -300,6 +304,49 @@ static void sloEmitted() {
         }
     }
     removeDir(dir, {"emitted_probe.sl", "emitted_probe.slo"});
+}
+
+// A shader that calls a shadeop operand (spec 038). SHADEOP_MODULE_DIR is where the fixture module of
+// tests/plugins/shadeop lives; oshader finds the operand through -I.
+static bool compileDsoProbe(const std::string &dir, const char *name) {
+    const char *oshader = getenv("OSHADER_BIN");
+    const char *includes = getenv("SHADER_INCLUDES");
+    const char *modules = getenv("SHADEOP_MODULE_DIR");
+    if (!oshader || !modules)
+        return false;
+    spit(dir + "/" + name + ".sl",
+         std::string("surface ") + name + "()\n{\n    float v = probe_add(0.25, 0.5);\n    Ci = color(v, v, v);\n}\n");
+    const std::string cmd = std::string("\"") + oshader + "\"" + (includes ? std::string(" -I") + includes : "") + " -I" + modules +
+                            " --jit " + dir + "/" + name + ".sl -o " + dir + "/" + name + ".slo >/dev/null 2>&1";
+    return system(cmd.c_str()) == 0;
+}
+
+static void sloDsoEmitted() {
+    const std::string dir = makeTempDir();
+    EXPECT_TRUE(compileDsoProbe(dir, "dso_probe"));
+    llvm::LLVMContext context;
+    auto buffer = llvm::MemoryBuffer::getFile(dir + "/dso_probe.slo");
+    EXPECT_TRUE(static_cast<bool>(buffer));
+    if (buffer) {
+        auto module = llvm::parseBitcodeFile((*buffer)->getMemBufferRef(), context);
+        EXPECT_TRUE(static_cast<bool>(module));
+        if (module) {
+            const llvm::NamedMDNode *node = (*module)->getNamedMetadata(kFormatKey);
+            EXPECT_TRUE(node != nullptr);
+            if (node && node->getNumOperands() == 1 && node->getOperand(0)->getNumOperands() == 3) {
+                const int expected[3] = {2, 1, 0}; // the contract, not the macros: a DSO call needs a 2.1 reader
+                for (int i = 0; i < 3; ++i) {
+                    auto *c = llvm::mdconst::dyn_extract<llvm::ConstantInt>(node->getOperand(0)->getOperand(i));
+                    EXPECT_TRUE(c && c->getSExtValue() == expected[i]);
+                }
+            }
+            else
+                EXPECT_TRUE(false); // one node of three integer operands
+            const llvm::NamedMDNode *slots = (*module)->getNamedMetadata("openrender.shader.shadeops");
+            EXPECT_TRUE(slots != nullptr && slots->getNumOperands() == 1); // probe_add
+        }
+    }
+    removeDir(dir, {"dso_probe.sl", "dso_probe.slo"});
 }
 
 static void sloOldRefused() {
@@ -342,6 +389,8 @@ int main(int argc, char **argv) {
         rsloCurrentLoads();
     else if (which == "slo_emitted")
         sloEmitted();
+    else if (which == "slo_dso_emitted")
+        sloDsoEmitted();
     else if (which == "slo_old_refused")
         sloOldRefused();
     else if (which == "slo_missing_refused")
@@ -352,7 +401,7 @@ int main(int argc, char **argv) {
         sloCurrentLoads();
     else {
         fprintf(stderr, "usage: %s rslo_old_refused|rslo_newer_refused|rslo_lower_minor|rslo_current_loads|"
-                        "slo_emitted|slo_old_refused|slo_missing_refused|slo_newer_refused|slo_current_loads\n",
+                        "slo_emitted|slo_dso_emitted|slo_old_refused|slo_missing_refused|slo_newer_refused|slo_current_loads\n",
                 argv[0]);
         return 2;
     }

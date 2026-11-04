@@ -13,7 +13,9 @@ include_directories(AFTER  ${CMAKE_CURRENT_SOURCE_DIR})
 get_property(_compiler_dir_includes DIRECTORY PROPERTY INCLUDE_DIRECTORIES)
 set(_compiler_kept_includes "")
 foreach(_dir IN LISTS _compiler_dir_includes)
-    if(_dir STREQUAL "${CMAKE_SOURCE_DIR}/src/ri" OR _dir MATCHES "^${CMAKE_SOURCE_DIR}/src/ri/"
+    # A plain prefix compare, not a regex: the source path may contain characters a regex treats as special.
+    string(FIND "${_dir}/" "${CMAKE_SOURCE_DIR}/src/ri/" _at)
+    if(_dir STREQUAL "${CMAKE_SOURCE_DIR}/src/ri" OR _at EQUAL 0
        OR _dir STREQUAL "${CMAKE_SOURCE_DIR}/src/libshader/shading")
         continue()
     endif()

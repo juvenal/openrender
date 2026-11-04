@@ -13,7 +13,10 @@
  *
  *   `oshader --jit` records the version in the named metadata node
  *   `openrender.slo.format`, one node of three i32 operands (major, minor,
- *   patch). The JIT loader checks it before it adds or links a module; a module
+ *   patch). The record is the lowest reader version the module needs: a module
+ *   that uses nothing added by a later MINOR records SLO_FORMAT_MINOR_BASE, so
+ *   an older loader still reads it, and only a module that uses an addition
+ *   records SLO_FORMAT_MINOR. The JIT loader checks it before it adds or links a module; a module
  *   without the node (written before the format had a version) counts as 1.0.0.
  *   The unresolved-symbol failure at link time stays as a backstop for a module
  *   of the current format whose calls no longer resolve.
@@ -22,6 +25,8 @@
  *     1.0  the format before spec 039 (no version record).
  *     2.0  spec 039, Phase 4: the stochastic runtime entries are the `_v2` ones,
  *          which take the call-site ordinal as a last argument. A MAJOR change.
+ *     2.1  spec 038: DSO shadeop calls (`op_dso_call`, the `openrender.shader.shadeops`
+ *          slots). A MINOR change: a module without a DSO call still records 2.0.
  *
  * Authors:
  *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
@@ -37,7 +42,9 @@
 #include "common/formatVersion.h"
 
 #define SLO_FORMAT_MAJOR 2
-#define SLO_FORMAT_MINOR 0
+#define SLO_FORMAT_MINOR 1
+// What a module that uses none of the MINOR additions records (spec 038).
+#define SLO_FORMAT_MINOR_BASE 0
 #define SLO_FORMAT_PATCH 0
 
 // Named metadata node that holds the version.

@@ -94,6 +94,8 @@ namespace openrender::shading {
     //                    samplingSeed and lookupUserOption (answered by getAttribute with scope Option or
     //                    RendererInfo).
     //          Unchanged: the 28 other members below.
+    //          Wording only, no version change (spec 038): getDSO also serves the .slo loader, which binds the
+    //          DSO operands of a JIT-compiled module with it (the member, its signature and its result are unchanged).
     inline constexpr InterfaceVersion kRendererServicesVersion{2, 0, 0};
 
     class ITracer; // tracer.h
@@ -395,10 +397,11 @@ class CRendererServices {
         virtual CVariable *retrieveVariable(const char *name) const = 0;
 
         ///////////////////////////////////////////////////////////////
-        // DSO shadeops (the .rslo loader, single-threaded)
+        // DSO shadeops (the .rslo loader and the .slo loader, single-threaded)
         // Find (and load and cache on first use) the shadeop implementing `name`
         // with the given RSL prototype; nullptr when none matches (the shader then fails to load with a
-        // message). Called only while a shader is loaded, which is serialized by the loader. Introduced in
+        // message). Called only while a shader is loaded, which is serialized by the loader. The .slo
+        // loader calls it for every DSO operand a JIT module names, on every load. Introduced in
         // spec 024.
         ///////////////////////////////////////////////////////////////
         virtual CDSO *getDSO(const char *name, const char *prototype) = 0;

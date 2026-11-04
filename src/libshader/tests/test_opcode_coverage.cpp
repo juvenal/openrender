@@ -97,10 +97,18 @@ static void test_reachable_functions_are_all_handled() {
     }
 }
 
+// The DSO call (spec 038) is in neither table above: opcodes.cpp lists only OPCODE_* and the two DSO rows of
+// kAllFunctionMnemonics are the "XXX" placeholders excluded above. expression.cpp writes `DSO <name> ("<proto>") ...`
+// for every call of a shadeop operand, so the emitter must handle it.
+static void test_dso_call_is_handled() {
+    EXPECT_TRUE(isHandled("DSO"));
+}
+
 int main() {
     LOG_SET_LEVEL(LOG_LEVEL_NONE);
     test_reachable_opcodes_are_all_handled();
     test_reachable_functions_are_all_handled();
+    test_dso_call_is_handled();
     printf("\nResults: %d passed, %d failed\n", g_passed, g_failed);
     return g_failed > 0 ? 1 : 0;
 }

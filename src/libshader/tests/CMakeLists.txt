@@ -456,12 +456,12 @@ if(OPENRENDER_HAVE_LLVM)
     target_link_libraries(test_libshader_format_versions PRIVATE ribRender libshader_shading openrendercommon ${_call_sites_llvm_libs})
 
     set(_format_cases rslo_old_refused rslo_newer_refused rslo_lower_minor rslo_current_loads
-        slo_emitted slo_old_refused slo_missing_refused slo_newer_refused slo_current_loads)
+        slo_emitted slo_dso_emitted slo_old_refused slo_missing_refused slo_newer_refused slo_current_loads)
     foreach(_case IN LISTS _format_cases)
         add_test(NAME LibShader_Format_${_case} COMMAND test_libshader_format_versions ${_case})
         set_tests_properties(LibShader_Format_${_case} PROPERTIES TIMEOUT 60
             LABELS "libshader;compiler;unit"
-            ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;SHADER_INCLUDES=${CMAKE_SOURCE_DIR}/shaders/includes;SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}")
+            ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;SHADER_INCLUDES=${CMAKE_SOURCE_DIR}/shaders/includes;SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};SHADEOP_MODULE_DIR=$<TARGET_FILE_DIR:plugin_shadeop_good>")
     endforeach()
     # Nothing lower than minor 0 exists: report a skip, not a pass, while that holds.
     set_tests_properties(LibShader_Format_rslo_lower_minor PROPERTIES SKIP_RETURN_CODE 77)

@@ -1163,18 +1163,20 @@ DEFFUNC(DSO, "XXX", "XXX", DSOEXEC_PRE, DSOEXEC, DSOEXEC_UPDATE, DSOEXEC_POST, 0
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // VOID DSO dispatcher
+// (op is char **, as in the value-returning dispatcher above: opSteps is in bytes, so a float ** would step
+// every varying argument four times too far; fixed in spec 038, found by ShadeopAbi_Jit_Void.)
 #define DSOVOIDEXEC_PRE                                                        \
     int numArguments;                                                          \
-    float **op;                                                                \
+    char **op;                                                                 \
     int *opSteps;                                                              \
                                                                                \
     argumentcount(numArguments);                                               \
                                                                                \
-    op = (float **)ralloc((numArguments + 1) * sizeof(float *), threadMemory); \
+    op = (char **)ralloc((numArguments + 1) * sizeof(char *), threadMemory);   \
     opSteps = (int *)ralloc((numArguments + 1) * sizeof(int), threadMemory);   \
                                                                                \
     for (int i = 0; i < numArguments; ++i) {                                   \
-        operandSize(i, op[i + 1], opSteps[i + 1], float *);                    \
+        operandSize(i, op[i + 1], opSteps[i + 1], char *);                     \
         opSteps[i + 1] *= operandBytesPerItem(i);                              \
     }                                                                          \
                                                                                \
