@@ -161,7 +161,7 @@ alternative to `-I` but is no longer required as a workaround.
 │   ├── libshader/
 │   │   ├── compiler/        RSL compiler (formerly src/oshader) → libshader_compiler
 │   │   ├── runtime/         .rslo/.slo loader (formerly src/rslo) → libshader_runtime
-│   │   └── shading/         Shading execution engine (Phase C: physically moved from src/ri/)
+│   │   └── shading/         Shading execution engine (Phase C: physically moved from src/ri/); bundles.{h,cpp} (moved from src/ri/hiders/ by spec 029)
 │   ├── oshader/            RSL→.rslo/.slo compiler CLI (oshader, oshader --jit)
 │   ├── rslo/, rsloinfo/, sloinfo/   Shader runtime + inspection CLIs
 │   ├── orender/            Main renderer executable
@@ -180,13 +180,15 @@ alternative to `-I` but is no longer required as a workaround.
 ## Architecture
 
 ### Hider system
-`CShadingContext` (`src/ri/shading.h`) is the abstract base. Implementations:
+`CHider` (`src/ri/hiders/hider.h`) is the base of every hider (spec 029). It owns its thread's
+`CShadingContext` (Shading, `final`, no virtuals), declares `renderingLoop()`, and is the context's tracer and
+shading producer. Implementations:
 - `CReyes` (bucket rasterizer) → `CStochastic` (motion blur, DOF) and `CZbuffer` (classic depth buffer)
 - `CRaytracer` — primary camera rays (no native motion blur support yet — open issue)
 - `CPhotonHider` — photon map pass
 
-Hider selection is a `strcmp` chain in `renderer.cpp:beginFrame()` (~line 908).
-Adding a hider = new `#include` + `if/else if` branch + a class inheriting `CShadingContext`.
+Hider selection is a `strcmp` chain in `renderer.cpp:beginFrame()` (~line 815).
+Adding a hider = new `#include` + `if/else if` branch + a class inheriting `CHider`.
 
 ### Shading pipeline
 ```
@@ -281,6 +283,8 @@ ctest --test-dir build -L plugin_abi -j4                # plug-in ABIs (spec 037
 ctest --test-dir build -LE determinism-sweep -j4        # the everyday full run: everything except the opt-in determinism sweep
 ctest --test-dir build -L '^determinism$' -j2           # default determinism set (148): harness, tie and derivative tests, one demanding scene per family
 ctest --test-dir build -L '^determinism-sweep$' -j2     # opt-in full sweep (419 scenes x 5 configurations, ~10-12 min at -j2): before each merge, and for the Linux validation
+ctest --test-dir build -L link                          # spec 029: libshader_shading self-contained, the static consumer, no workaround text
+ctest --test-dir build -L '^link-package$'              # opt-in (configure with -DOPENRENDER_LINK_PACKAGE_TEST=ON): an installed openRender package consumed statically (scratch configure, builds a second tree)
 ```
 
 **`-L` is a regular expression.** `-L determinism` also selects every `determinism-sweep` test (the whole sweep); anchor it
@@ -584,7 +588,9 @@ not in the agent definitions.
    storing ID 0. The illumination hook is one query,
    `rendererIlluminationHook()`, evaluated at every illuminate/solar begin
    and end by both the interpreter macros and the JIT `jit*Begin`/`End`
-   functions; with it on, they only call the hider's hooks and touch no
+   functions; with it on, they only call the context's `IIlluminationHook`
+   (`illuminationHook.h`), which the photon hider installs on the context it
+   owns; with none installed the calls are no-ops. They touch no
    tags, counts or `L`. The photon hider never sets `costheta`, so no code
    reached from the hook path may read it. `solar()` with no arguments is
    the label-only `solar` instruction and emits `op_solar0_begin`; the
@@ -691,10 +697,10 @@ not in the agent definitions.
    `checkPluginVersion` is the only version check: a new family adds an `SPluginFamily`, never a
    second check.
 
-28. **Shading's boundary is one versioned interface; the tracer is a per-frame slot (spec 026).**
-   `CRendererServices` is version 2.0.0 (`kRendererServicesVersion`, `rendererServices.h`, with
-   `serviceTypes.h`, `tracer.h` and `shaderGlobals.h`; the headers document every member, so read
-   them before writing an implementer or a double). The attribute, option and renderer-info
+28. **Shading's boundary is one versioned interface; the tracer is the hider that owns the context (specs 026, 029).**
+   `CRendererServices` is version 2.1.0 (`kRendererServicesVersion`, `rendererServices.h`, with
+   `serviceTypes.h`, `tracer.h` and `shaderGlobals.h`; `getPhotonMap` returns `IPhotonLookup *`; the headers document
+   every member, so read them before writing an implementer or a double). The attribute, option and renderer-info
    builtins ask `getAttribute`, the message-passing builtins (`surface()` ... `lightsource()`) ask
    `getMessage` and every coordinate-system lookup asks `getMatrix`; the 26 option getters and the
    two coordinate-system lookups are gone. One request is made per call, with `name[0]`, before the
@@ -703,19 +709,43 @@ not in the agent definitions.
    object (the imager) answers not found and is never dereferenced. A stored value that cannot be
    copied safely into the shader's destination (`TypeMismatch`) is refused: the destination is left
    untouched and the builtin warns once; `lightsource()` is exempt, and its interpreter and JIT
-   outputs still differ (GitHub #115). The trace calls go through `ITracer` (`tracer.h`): the core
-   sets `CRenderer::frameTracer` (one stateless `CHiderTracer`) in `beginFrame()` and clears it in
-   `endFrame()`, so `tracer()` is `nullptr` between frames, and Shading reaches it only through
-   `libshader::traceRay`/`traceBundle` (`traceCalls.h`), which warn once and treat the rays as
-   misses when there is none. A new flat-namespace import of `libshader_shading` must be added to
-   the load stub of the standalone contract programs (`tests/shading_contract/load_stub.cpp`, 4
-   symbols today) and to the DB-001 allowlist. `ShaderGlobals` and `classifyShading()` (the
-   situation table) are produced and consumed by tests only; nothing in the render path uses them
-   until spec 029. The `.slo` loader lives in Shading (`sloLoader.{h,cpp}`). A primitive hit mode
+   outputs still differ (GitHub #115). The trace calls go through `ITracer` (`tracer.h`), answered by
+   the hider that owns the context: each `CHider` installs itself with `setTracer()`, and
+   `libshader::traceRay`/`traceBundle` (`traceCalls.h`) ask the context's tracer first and the
+   services' `tracer()` only for a context with no owner (the contract doubles); the renderer's
+   services answer `nullptr`. With neither, they warn once and treat the rays as misses. There is no
+   per-frame slot and no adapter any more (spec 029). The depth rule lives in the context's
+   `enterRayLevel()`/`leaveRayLevel()`; the hider passes `CRenderer::maxRayDepth`. `libshader_shading`
+   is self-contained: it links with undefined symbols as an error (`--no-undefined` on Linux, ld64's
+   default on macOS) and has no flat-namespace import, so there is no load stub and no `-force_load`
+   in the package; a new undefined reference fails its link. `shade()` consumes `ShaderGlobals`, with
+   its ray type and hit mode taken from the situation table `classifyShading()`, since spec 029
+   (gotcha 35). The `.slo` loader lives in Shading (`sloLoader.{h,cpp}`). A primitive hit mode
    returns from `shade()` before the point-key and displaced-point test observers fire, so a
-   scene with only primitive hits reports nothing. A change to the interface bumps
-   `kRendererServicesVersion` (MAJOR: a member, field or result removed or changed; MINOR: a member
-   with a default, a field or enumerator appended); every implementer `static_assert`s its MAJOR.
+   scene with only primitive hits reports nothing. A change to the interface steps
+   `kRendererServicesVersion` and adds a history entry (MAJOR: breaking; MINOR: a non-breaking
+   addition; PATCH: a bug fix only), but MAJOR stays at 2 until spec 055: nothing versioned has been
+   distributed, so 2.x is unstable and a MINOR step may break, saying so in its entry. Every
+   implementer `static_assert`s MAJOR 2.
+35. **Hiders own a shading context; several names are frozen by the allowlist (spec 029).** `CRenderer::contexts`
+   is a `CHider **` that kept its name, because `reyes.cpp`'s DB-011 line is keyed on the symbol; reach the context
+   with `contexts[i]->shadingContext()`. The trace bodies are `CHider` members that stay in `trace.cpp` (its DB-011
+   and DB-017 lines are keyed on the file). Geometry keeps calling `CShadingContext::shade(CSurface *, ...)`,
+   `displace()` and `displaceEstimate()`: an opaque forwarding entry that calls the owning hider's
+   `IShadingProducer`, which builds the point source (`CSurfacePointSource`) and the `ShaderGlobals` batch and calls
+   `shade(const ShaderGlobals &, IPointSource &)`; spec 031 retires the forwarding entry. `shade()` branches on the
+   batch's ray type and hit mode only, which the producer takes from `classifyShading()`, corrected in spec 029 to
+   the code in three places: a shadow hit reads `transmissionhitmode` at every dimension; a ray hit traced from a
+   REYES grid (any depth, any frame) is `Secondary`; and the `Photon` rule is narrowed to a 0-D batch at depth 0 not
+   in a shadow. Photon emission itself never calls `shade()` (`photon.cpp` sets its 0-D state and runs the light with
+   `illuminate()`), so only the test doubles reach the `Photon` rule; a ray a light traces during emission is a
+   `Secondary` hit with the hook on (`sit_photon_emission_trace` pins it). Never C-cast between a hider and a context:
+   a cast from `CHider **`'s elements to `CReyes *` is a `static_cast` (use it explicitly), a C-style cast from the
+   context is a `reinterpret_cast`, and a `dynamic_cast` from the non-polymorphic `CShadingContext` does not compile.
+   The object hash stays the context's (`objectHash()`), and its empty-entry sentinel is the context's address, not
+   the hider's. The core's dispatcher sets `CRenderer::activeContext` for every render thread. The shaded object is
+   three fields of the state set together with `setShadedObject()` (opaque surface, `ObjectHandle`, attributes);
+   Shading includes no Geometry or Hiders header.
 
 ## Active Technologies
 - C++20, CMake ≥3.19; `libtiff`/`libpng` (mandatory), OpenEXR (optional,
@@ -774,8 +804,22 @@ not in the agent definitions.
   (026-shading-contract-v2)
 - Storage: N/A — memory only; the trace-request replay under `tests/shading_contract/replay/` is a
   recorded file (026-shading-contract-v2)
+- C++20, CMake ≥3.19, `-Werror`; no new dependencies: hiders own a `final` `CShadingContext` (`CHider`), implement
+  `ITracer` and a Shading-owned `IShadingProducer`; Shading reaches the photon map through `IPhotonLookup` and the
+  photon pass through `IIlluminationHook`; `shade()` consumes `ShaderGlobals` and an `IPointSource`;
+  `libshader_shading` is self-contained (029-hider-shading-separation)
+- Storage: N/A; memory only (029-hider-shading-separation)
 
 ## Recent Changes
+- 029-hider-shading-separation: the hiders own their shading context instead of deriving from it (`CHider`); the
+  context is `final` and has no virtuals and no foreign friends; the hiders trace for the context they own
+  (`CHiderTracer` and `frameTracer` gone); the bundles moved into Shading and the photon map is reached through
+  `IPhotonLookup`, so `libshader_shading` has no flat-namespace import, links with undefined symbols as an error,
+  and a static consumer launches with no `-force_load`/`--whole-archive` (GitHub #24, #44); `shade()` consumes
+  `ShaderGlobals` (ray type and hit mode explicit) and an `IPointSource`; `kRendererServicesVersion` 2.1.0. DB-001
+  and DB-005 resolved, DB-006 31 -> 30, DB-011 168 -> 164, DB-020 narrowed; the allowlist 372 -> 354 entries, the
+  `CRenderer::` metric 612 -> 610 references (Hiders 558 -> 556). No image changed on either platform; the spec 026
+  trace replay unchanged (see spec 029).
 - 026-shading-contract-v2: Shading reaches the renderer through one documented, versioned
   interface (`kRendererServicesVersion` 2.0.0): `getAttribute`, `getMessage` and `getMatrix`
   replace 28 option and coordinate-system methods, `setOffendingObject` takes an opaque

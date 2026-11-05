@@ -1,9 +1,9 @@
-# Proposed CLAUDE.md changes for spec 029 (draft; not applied)
+# Proposed CLAUDE.md changes for spec 029 (applied 2026-11-05)
 
-> **Gotcha numbering when this draft is applied.** Spec 038 is merged first and its `CLAUDE.md` already has gotchas
-> 29 to 34. If 038 is on master when this draft is applied, this spec's new gotcha 29 (section 5) becomes **gotcha 35**,
-> and every reference to "gotcha 29" in this draft (and in the text it adds elsewhere) follows. The 029 tree's own
-> `CLAUDE.md`, text and tests stay based on `01501f10`; this branch does not merge master.
+> **Applied with the maintainer's authorization, as gotcha 35.** Spec 038 is on master with gotchas 29 to 34, so this
+> spec's new gotcha 29 (section 5) became **gotcha 35**. Gotcha 28 got two changes this draft does not list, because the
+> draft left them stale: its title (no more per-frame slot) and the sentence saying `ShaderGlobals` and
+> `classifyShading()` are consumed by tests only.
 
 The spec-kit plan stage would normally update `CLAUDE.md` through `.specify/scripts/bash/update-agent-context.sh`.
 That script was **not** run: `CLAUDE.md` is changed only by the maintainer (spec FR-032). This file holds the
