@@ -109,6 +109,11 @@ The body follows the subject line after **one blank line**. It must:
 Body line width: 72 characters maximum (wrap prose, but keep code snippets on
 one line even if longer).
 
+4. **IMPORTANT TOPICS** always follow the directives below:
+   - Don't use the 'generated' footer.
+   - Don’t use the 'Co-Authored-By' footer.
+   - Don’t use the 'Claude-Session' footer.
+
 ---
 
 ## Step 5 — Stage files
