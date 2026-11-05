@@ -75,24 +75,14 @@ for (j = 0; j < vdiv; j++) {
         // rasterEdge() keeps it watertight, so a sample on an edge shared by two
         // quads lands in exactly one (GitHub #50). Same test as the stochastic
         // hider's checkPixel.
-#define checkPixel(__op)                                                                      \
-    float aleft, atop, aright, abottom, side;                                                 \
-                                                                                              \
-    atop = rasterEdge(xcent, ycent, v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y], side);    \
-    if (side __op 0)                                                                          \
-        continue;                                                                             \
-    aright = rasterEdge(xcent, ycent, v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y], side);  \
-    if (side __op 0)                                                                          \
-        continue;                                                                             \
-    abottom = rasterEdge(xcent, ycent, v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y], side); \
-    if (side __op 0)                                                                          \
-        continue;                                                                             \
-    aleft = rasterEdge(xcent, ycent, v2[COMP_X], v2[COMP_Y], v0[COMP_X], v0[COMP_Y], side);   \
-    if (side __op 0)                                                                          \
-        continue;                                                                             \
-                                                                                              \
-    const float u = aleft / (aleft + aright);                                                 \
-    const float v = atop / (atop + abottom);                                                  \
+#define checkPixel(__op)                                                                                  \
+    float aleft, atop, aright, abottom;                                                                   \
+                                                                                                          \
+    if (!rasterQuadCover(xcent, ycent, v0, v1, v2, v3, (0 __op 1), waived, aleft, atop, aright, abottom)) \
+        continue;                                                                                         \
+                                                                                                          \
+    const float u = aleft / (aleft + aright);                                                             \
+    const float v = atop / (atop + abottom);                                                              \
     const float z = rasterQuadDepth(v0[COMP_Z], v1[COMP_Z], v2[COMP_Z], v3[COMP_Z], u, v);
 
 #define recordPixel()                                                                                                                         \
@@ -122,16 +112,13 @@ for (j = 0; j < vdiv; j++) {
         }                                                                                                                                     \
     }
 
-        const float dx01 = v1[COMP_X] - v0[COMP_X];
-        const float dy01 = v1[COMP_Y] - v0[COMP_Y];
-        float a = area(v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y], v2[COMP_X], v2[COMP_Y]);
-        if (fabsf(a) < C_EPSILON || dx01 * dx01 + dy01 * dy01 < degenerateEdgeSq) {
-            // Top edge is degenerate or shorter than one pixel in sample space.
-            // Floating-point noise from a near-zero top edge makes the sign of the
-            // primary triangle unreliable. The second triangle always preserves the
-            // correct winding sign for front-facing convex quads.
-            a = area(v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y]);
-        }
+        // The winding comes from the first triangle, or from the second one when the top edge is
+        // shorter than a pixel in sample space or the first has no usable area or a tiny left edge
+        // (see rasterQuadOrientation()); noise in a near-zero top edge makes the first one's sign
+        // unreliable.
+        const int tinyEdges = rasterQuadTinyEdges(v0, v1, v2, v3);
+        const int waived = rasterQuadWaived(tinyEdges);
+        float a = rasterQuadOrientation(v0, v1, v2, v3, tinyEdges, degenerateEdgeSq);
         if (a > 0) {
 
             if (flags & (RASTER_DRAW_BACK | RASTER_SHADE_BACKFACE)) {
