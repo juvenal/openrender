@@ -319,22 +319,19 @@ set_tests_properties(ShadingContract_Situations PROPERTIES TIMEOUT 300 LABELS "s
 # ---------------------------------------------------------------------------
 # Spec 029 (hider / shading separation): the new contract programs, written before the interfaces they use exist.
 # Each is an executable of its own (adding a case that cannot compile to an executable above would break the approved cases
-# already in it), defined only while OPENRENDER_029_RED_TESTS is ON, and its tests are registered DISABLED otherwise. A
-# program joins the normal build, and its test loses the DISABLED mark, in the phase that provides what it needs
-# (tasks.md, "Test gate"). Red evidence: the failed build of each target, one at a time (validation.md section 2).
+# already in it); they are part of the build whenever the State-only library is (and registered DISABLED placeholders
+# otherwise).
 #
-#   test_shading_contract_standalone_context   T-S2  ShadingContext_Standalone{Interp,Jit}               Phase 5 (enabled)
-#   test_shading_contract_photon_lookup        T-P1  ShadingContract_PhotonLookup{Interp,Jit}            Phase 3 (enabled)
-#   test_shading_contract_canned_bundles       T-B1  ShadingContract_CannedBundles{Interp,Jit}           Phase 3 (enabled)
-#   test_shading_contract_hook_interface       T-H1  ShadingContract_IlluminationHookInterface{Interp,Jit} Phase 5 (enabled)
-#   test_shading_contract_hider_tracer         T-T1  HiderTracer_PerContext                              Phase 6 (links ribRender; enabled)
-#   test_shading_contract_ray_level            T-T2  ShadingContract_RayLevel                            Phase 6 (enabled)
-#   test_shading_contract_producer_situations  T-G1  ShadingContract_ProducerSituations                  Phase 7 (links ribRender; enabled)
-#   test_shading_contract_point_source         T-G2  ShadingContract_PointSource{Interp,Jit}             Phase 7 (enabled)
+#   test_shading_contract_standalone_context   T-S2  ShadingContext_Standalone{Interp,Jit}               Phase 5
+#   test_shading_contract_photon_lookup        T-P1  ShadingContract_PhotonLookup{Interp,Jit}            Phase 3
+#   test_shading_contract_canned_bundles       T-B1  ShadingContract_CannedBundles{Interp,Jit}           Phase 3
+#   test_shading_contract_hook_interface       T-H1  ShadingContract_IlluminationHookInterface{Interp,Jit} Phase 5
+#   test_shading_contract_hider_tracer         T-T1  HiderTracer_PerContext                              Phase 6 (links ribRender)
+#   test_shading_contract_ray_level            T-T2  ShadingContract_RayLevel                            Phase 6
+#   test_shading_contract_producer_situations  T-G1  ShadingContract_ProducerSituations                  Phase 7 (links ribRender)
+#   test_shading_contract_point_source         T-G2  ShadingContract_PointSource{Interp,Jit}             Phase 7
 # The shaders they run (cm_standalone, cm_photon, cm_hook_*) are compiled as build steps only here.
 # ---------------------------------------------------------------------------
-# Phase 3 enables T-P1 and T-B1 (their programs and cm_photon are part of the normal build from here), Phase 5 T-S2 and T-H1
-# (cm_standalone, cm_hook_*); the others stay in the block of OPENRENDER_029_RED_TESTS until their phase.
 set(SHADING_CONTRACT_029_SHADERS cm_photon cm_standalone cm_hook_illuminate1 cm_hook_illuminate3 cm_hook_solar2 cm_hook_solar0)
 
 if(TARGET state_only_sources)
@@ -394,14 +391,12 @@ if(TARGET state_only_sources)
     or029_contract_program(test_shading_contract_hider_tracer RENDERED SOURCES hider_tracer_main.cpp case_hider_tracer.cpp)
     or029_contract_program(test_shading_contract_point_source SOURCES point_source_main.cpp case_point_source.cpp)
     or029_contract_program(test_shading_contract_producer_situations RENDERED SOURCES producer_situations_main.cpp case_producer_situations.cpp)
-elseif(OPENRENDER_029_RED_TESTS)
-    message(FATAL_ERROR "OPENRENDER_029_RED_TESTS needs the State-only library: enable OPENRENDER_STATE_ONLY_TESTS")
 endif()
 
-# add_contract_test_029(<test name> <program> <case argument> [JIT] [TIMEOUT <s>]): one CTest entry, DISABLED while the
-# program is not part of the build (OPENRENDER_029_RED_TESTS OFF), registered with its real target while ON.
+# add_contract_test_029(<test name> <program> <case argument> [JIT] [TIMEOUT <s>]): one CTest entry for the program; DISABLED
+# (a placeholder `cmake -E true`) when the program is not part of the build.
 function(add_contract_test_029 NAME PROGRAM)
-    cmake_parse_arguments(ARG "JIT;ENABLED" "TIMEOUT" "CASE" ${ARGN})
+    cmake_parse_arguments(ARG "JIT" "TIMEOUT" "CASE" ${ARGN})
     if(ARG_JIT AND NOT OPENRENDER_HAVE_LLVM)
         return()
     endif()
@@ -410,7 +405,7 @@ function(add_contract_test_029 NAME PROGRAM)
     endif()
     set(_cwd ${CMAKE_CURRENT_BINARY_DIR}/cwd/${NAME})
     file(MAKE_DIRECTORY ${_cwd})
-    if(OPENRENDER_029_RED_TESTS OR (ARG_ENABLED AND TARGET ${PROGRAM}))
+    if(TARGET ${PROGRAM})
         add_test(NAME ${NAME} COMMAND $<TARGET_FILE:${PROGRAM}> ${ARG_CASE} WORKING_DIRECTORY ${_cwd})
     else()
         add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} -E true WORKING_DIRECTORY ${_cwd})
@@ -419,16 +414,16 @@ function(add_contract_test_029 NAME PROGRAM)
     set_tests_properties(${NAME} PROPERTIES TIMEOUT ${ARG_TIMEOUT} LABELS "shading_contract" ENVIRONMENT "${SHADING_CONTRACT_ENV}")
 endfunction()
 
-add_contract_test_029(ShadingContext_StandaloneInterp test_shading_contract_standalone_context ENABLED CASE Interp)
-add_contract_test_029(ShadingContext_StandaloneJit test_shading_contract_standalone_context JIT ENABLED CASE Jit)
-add_contract_test_029(ShadingContract_PhotonLookupInterp test_shading_contract_photon_lookup ENABLED CASE Interp)
-add_contract_test_029(ShadingContract_PhotonLookupJit test_shading_contract_photon_lookup JIT ENABLED CASE Jit)
-add_contract_test_029(ShadingContract_CannedBundlesInterp test_shading_contract_canned_bundles ENABLED CASE Interp)
-add_contract_test_029(ShadingContract_CannedBundlesJit test_shading_contract_canned_bundles JIT ENABLED CASE Jit)
-add_contract_test_029(ShadingContract_IlluminationHookInterfaceInterp test_shading_contract_hook_interface ENABLED CASE Interp)
-add_contract_test_029(ShadingContract_IlluminationHookInterfaceJit test_shading_contract_hook_interface JIT ENABLED CASE Jit)
-add_contract_test_029(HiderTracer_PerContext test_shading_contract_hider_tracer ENABLED)
-add_contract_test_029(ShadingContract_RayLevel test_shading_contract_ray_level ENABLED)
-add_contract_test_029(ShadingContract_ProducerSituations test_shading_contract_producer_situations ENABLED TIMEOUT 600)
-add_contract_test_029(ShadingContract_PointSourceInterp test_shading_contract_point_source ENABLED CASE Interp)
-add_contract_test_029(ShadingContract_PointSourceJit test_shading_contract_point_source JIT ENABLED CASE Jit)
+add_contract_test_029(ShadingContext_StandaloneInterp test_shading_contract_standalone_context CASE Interp)
+add_contract_test_029(ShadingContext_StandaloneJit test_shading_contract_standalone_context JIT CASE Jit)
+add_contract_test_029(ShadingContract_PhotonLookupInterp test_shading_contract_photon_lookup CASE Interp)
+add_contract_test_029(ShadingContract_PhotonLookupJit test_shading_contract_photon_lookup JIT CASE Jit)
+add_contract_test_029(ShadingContract_CannedBundlesInterp test_shading_contract_canned_bundles CASE Interp)
+add_contract_test_029(ShadingContract_CannedBundlesJit test_shading_contract_canned_bundles JIT CASE Jit)
+add_contract_test_029(ShadingContract_IlluminationHookInterfaceInterp test_shading_contract_hook_interface CASE Interp)
+add_contract_test_029(ShadingContract_IlluminationHookInterfaceJit test_shading_contract_hook_interface JIT CASE Jit)
+add_contract_test_029(HiderTracer_PerContext test_shading_contract_hider_tracer)
+add_contract_test_029(ShadingContract_RayLevel test_shading_contract_ray_level)
+add_contract_test_029(ShadingContract_ProducerSituations test_shading_contract_producer_situations TIMEOUT 600)
+add_contract_test_029(ShadingContract_PointSourceInterp test_shading_contract_point_source CASE Interp)
+add_contract_test_029(ShadingContract_PointSourceJit test_shading_contract_point_source JIT CASE Jit)

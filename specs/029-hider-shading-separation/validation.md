@@ -154,12 +154,37 @@ Phase 1's red evidence is the two red links and the two package-consumer reds re
 - **F5 (P-Q17 does not stop Phase 2).** See the macOS and Linux measurements above: a plain static link registers the backend
   today, through transitive references. It is a property of the starting tree's archive-member graph (nothing names the registrars), so Phase 3
   (T054) and Phase 4 re-measure it; if a later phase's move of `bundles.cpp` ever changes which members are pulled, the maintainer's options in plan P-Q17 apply then.
+- **F13 (the tenth context subclass, `COffendingProbe`).** Found at the Phase 5 checkpoint: an approved spec 026 test reached a protected accessor by deriving from the (now `final`) context. Resolved by the maintainer: `rendererSetOffendingObject` public, the test calls it directly (`tools/phase5-f13-test-edit.diff`, approved); DEP-12 in plan.md.
+- **F14 (photon emission never reaches `shade()`).** `photon.cpp:150-230` sets its 0-D state itself and runs the light with `illuminate()`, so row 10 of the situation table and `classifyShading()`'s `Photon` rule are reached only by the test doubles; a ray a light traces during emission is a `Secondary` hit with the hook on. Maintainer decision (option 2): documented in `contracts/point-source-and-globals.md` and `data-model.md`, no assertion added (Phase 7 addendum).
+- **F15 (Debug-only findings, for filing as P1; not fixed). T113.** The starting tree fails the same three tests in a Debug JIT-off build with identical values (T113 base check): `traceTransmission`'s `assert(inShadow == FALSE)` (`executeMisc.cpp:714`) fires on spec 026's `sit_row5_shadow_shaded` (nested `transmission()` inside a shadow hit shaded with hit mode "shader"; in Release the inner call's `inShadow = FALSE` at `:828` may clear the flag while the outer call still traces: from code reading, not observed), and the bit-exact trace replay is a Release recording that cannot pass in Debug. Draft issue text in the T113 section above.
+- Filed by the maintainer during this spec: #144 (implicit surfaces in camera space), #145 (the JIT's `photonmap()` ignores `"estimator"`), #146 (a null shaded object in the imager's `ambient()`).
 - Departures from the plan: none in the test-edit lists (T006). The frozen copy's binaries were re-signed ad hoc after `install_name_tool`
   (the task says so). The Linux first build and suites needed no extended timeout.
 
 ## §5 Final summary against SC-001 to SC-011
 
-Not applicable before Phase 8. SC-010's scaled scenes and the confirmed factors are recorded here when T114 runs.
+Evidence is in the Phase sections below (macOS and Linux, GCC 13 `-Werror`, 2026-11-04). The last full suite with the photon test, the sweeps and the timing ran on the finished tree.
+
+| SC | Result | Evidence |
+|---|---|---|
+| SC-001 | met | macOS: `dyld_info -imports` 0 flat-namespace imports, `nm -m` 0 dynamically looked up, ld64's default `-undefined error` (`tools/libshader-imports-after-macos.txt`); Linux: links with `--no-undefined`, 461 undefined dynamic symbols, none defined by `libRIBRender`, no INTERFACE `--allow-shlib-undefined` (`tools/libshader-imports-after-linux.txt`); `Link_ShadingSelfContained` green on both. 4 imports before. |
+| SC-002 | met | `Link_StaticConsumer` green at every checkpoint on both hosts (backend registered, P-Q17); `Link_PackageStaticConsumer` passed once per platform in Phase 8 (macOS 242 s, Linux 1014 s) from a scratch configure with its own prefix. |
+| SC-003 | met | the `grep` of `CMake`, `src/libshader`, `tests/unit/common`, `tests/shading_parity`, `src/libshader/tests` finds none of the six words; `load_stub.cpp` is gone; `Link_NoWorkaroundText` green. `tests/plugins/dynamicload` keeps its own `dynamic_lookup`. |
+| SC-004 | met | `ShadingContext_Standalone{Interp,Jit}` (`!is_polymorphic`, `is_final`, a context built with no hider runs a shader under both backends); `ShadingScope_Greps` S1c (no `virtual`, no foreign friend, `final`, no `public CShadingContext`). |
+| SC-005 | met | `ctest -L architecture` 21 of 21 on both hosts, `RESULT PASS`; DB-001's 5, DB-005's 8 and DB-006's `shading.cpp -> object.h` lines deleted (31 -> 30), 18 deleted in all (13 + 4 + 1), none added or re-keyed; DB-011 164 (down from 168); Shading's include path has neither the Hiders' nor Geometry's directory. |
+| SC-006 | met | full suite CP-d: 900 images, 0 differing, 0 missing on both hosts, every `MaxBlockAvgDiff` equal; determinism sweep: macOS 419 of 419 pass, 419 images 0 differing, 0 missing; Linux 419 of 419 pass, 419 images 0 differing, 0 missing (1 noise-listed); the spec 026 replay green and unchanged on both. |
+| SC-007 | met | no hider derives from `CShadingContext`; `shading.h` declares no `trace`, `traceEx` or `traceAny`; `CRenderer::frameTracer` and `CHiderTracer` are gone; each `CHider` is the `ITracer` of its context (`HiderTracer_PerContext`, `ShadingContract_RayLevel`, S1d). |
+| SC-008 | met | `ShadingContract_ProducerSituations` (3804 checks) and `ShadingContract_Situations` (all assertions, including the 18 that were red against the old `classifyShading()`); Geometry gained no include (`git diff 01501f10 -- src/ri/geometry \| grep '^+#include'` empty), DB-006 30 = 23 include + 7 link, `shading.cpp` includes no Geometry header (S1e). The photon-emission row is not produced by `shade()` (see §4, F14). |
+| SC-009 | met | Linux full suite: the starting tree's set except `LibShader_McompConsistency` (#44), which passes (cause removed); the six remaining failures are the baseline's (#57, #45, #46 x4). |
+| SC-010 | met | `timing_sc010.sh`, five interleaved series, scaled scratch RIBs, all six scenes between 3.0 and 6.0 s: every difference of medians within the larger spread (somewood +10.7%, 1.68 s spread; the others -6.6% to +2.8%); table under T114. |
+| SC-011 | met | `DOMAIN_BOUNDARIES.md`: DB-001 and DB-005 under Resolved with "spec 029" and 2026-11-04; DB-020 narrowed; DB-006 and DB-011 histories; line references corrected; no entry names a merge; `metrics-baseline.txt` is 556/81 and 610/93 (archcheck at baseline). |
+
+Allowlist 372 -> 354. `kRendererServicesVersion` 2.1.0. Both determinism sweeps and the trace replay unchanged. The T113 Debug findings (§4, F13) do not affect any SC.
+
+### T117 / T118: the determinism sweeps (last)
+
+- macOS (`cpujob 029-sweep ctest -L '^determinism-sweep$' -j2`): **419 of 419 pass**; `image_manifest.sh diff` against `baseline-sweep-images-macos.sha256` and its noise list: 419 images, **0 differing, 0 missing**; the pass/fail set equals `base-sweep-LastTest-macos.log`'s (all pass, none failed in either).
+- Linux (remote `cpujob`, `-j2`): **419 of 419 pass**; against `baseline-sweep-images-linux.sha256` and its noise list: 419 images, **0 differing, 0 missing**, 1 noise-listed (the known bake3d flake, F4, which passed); the set equals `base-sweep-LastTest-linux.log`'s (all pass). Pull and verify clean (3571 files, 0 differences).
 
 ## Phase 2 (tests first; no `src/` edit)
 
@@ -468,3 +493,73 @@ Added, and nothing else changed (no existing expectation, no other approved test
 **Checks:** `ShadingContract_ProducerSituations`, `ShadingContract_Situations`, `ShadingScope_Greps` pass on macOS and on Linux (GCC 13, `-Werror`, `-j2`); `ctest -L architecture` 21 of 21 on both, unchanged (`DB-006 x 30`). Linux push 3571 files, verify 0 differences.
 
 **Maintainer decision (2026-11-04): option 2.** `sit_photon_emission_trace` stays as it is and no assertion about the absent emission batch is added. The behaviour is stated in the spec instead (no code, no test changed): one sentence in `contracts/point-source-and-globals.md` ("`classifyShading()` corrected to the code", under rule 1) and the same sentence in `data-model.md` under the situation table. The wording was checked against the code first: `grep -n 'shade(' src/ri/hiders/photon.cpp src/ri/hiders/photon.h` is empty, the emission path ends in `cLight->illuminate(&context, ...)` (`photon.cpp:221`), and the scene's one observed batch is the traced hit at depth 1 (`Secondary`, `Importance`). Note on the file named in the request: `contracts/shader-globals.md` belongs to spec 026 (a merged spec's record, which this spec does not edit; it is not in 029's `contracts/`), so the sentence went into 029's own copy of the corrected table.
+
+## Phase 8 (US8 and US3: registry, docs, final validation)
+
+T106 approved by the maintainer through the coordinator (2026-11-04) with five decisions: the comment-only rewording of `tests/shading_contract/cases_029.h:5`; base-commit line references for the Resolved entries (DB-001, DB-005) and current ones for the Open ones (DB-013, DB-020); the gotcha wording (three `classifyShading()` corrections, and that photon emission never calls `shade()`); `build-nojit` and the T115 scratch tree may be deleted after use (nothing else, `build-base` stays); and a note at the top of `claude-md-draft.md` that spec 038's gotchas 29-34 make this spec's gotcha 29 become 35 if 038 is on master when the draft is applied.
+
+**T107 / T108 (measured, then written).** archcheck on the Phase 7 tree, identical on macOS and Linux: `ALLOWED DB-004 x 52, DB-006 x 30, DB-010 x 8, DB-011 x 164, DB-015 x 10, DB-017 x 78, DB-025 x 12`; `METRIC` Geometry 48/15, Hiders 556/81 (baseline 558/82), Infra 0/0, SceneInterface 6/6, Shading 0/0, Texturing 0/0, TOTAL 610/93 (baseline 612/94); 354 allowlist entries (372 at the start), the same as `contracts/allowlist-end-state.md` expects. `tests/architecture/metrics-baseline.txt` now holds 556/81 and 610/93 with a spec 029 paragraph; `tests/architecture/allowlist.txt`: the empty DB-001 and DB-005 sections are removed, DB-006 `(31)` -> `(30)`, DB-011 `(168)` -> `(164)` (the DB-015 header untouched). After the edit archcheck reports `METRIC` at baseline and `RESULT PASS`.
+
+**T109-T111a (documents and gating).** `DOMAIN_BOUNDARIES.md`: DB-001 and DB-005 moved to Resolved ("spec 029", 2026-11-04; their evidence cites the base commit `01501f10`'s lines), DB-006 (31 -> 30, the Shading -> Geometry cycle closed, history), DB-011 (history only), DB-013 (current `renderer.cpp:778-830`, the friendships gone), DB-016 (the arena/stats follow-up no longer "stays with spec 029"; #135), DB-018 (filled by the hiders' producer, corrected table), DB-020 (Shading's friends dropped, 029 off its tracking, still Open for the irradiance, texture3d, point-cloud and brick-map friends), DB-023 (the measured include path). `DEVNOTES.md`: a status row for spec 029 and the Install row no longer describes the force-load as required. `claude-md-draft.md` refreshed (numbers, three corrections, the emission note, the numbering note). T111a: `OPENRENDER_029_RED_TESTS` is gone from `CMake`, `tests` and `src` (`grep` finds nothing), `add_or029_script_test` and the `ENABLED` keyword are removed, `add_contract_test_029` registers the real test whenever its target exists.
+
+### Phase 8 CHECKPOINT (T112, macOS) and T116 (Linux), the full suite WITH the photon test (`sit_photon_emission_trace`)
+
+| | macOS | Linux (GCC 13, `-Werror`, `-j2`) |
+|---|---|---|
+| CP-a build | exit 0, 0 warnings | exit 0, 0 warnings |
+| CP-b suite (full, `-LE determinism-sweep`) | **1069 of 1069 pass** (`ShadingContract_ProducerSituations`, with the photon scene, included) | 1070 tests, 6 fail: the baseline's set, unchanged (#57, #45, #46 x4); `LibShader_McompConsistency` (#44) passes |
+| CP-d images | 900, **0 differing, 0 missing**, 2 not in manifest (`Link_StaticConsumer`, `HiderTracer_PerContext`); listing equal | same |
+| CP-c | 21 of 21; ALLOWED as above; `RESULT PASS`; metric at baseline (610/93) | same |
+| CP-m | 72 of 72 | 72 of 72 |
+| CP-v | no `static_assert` line edited | same tree |
+
+Scope greps: no `OPENRENDER_029_RED_TESTS`, none of `force_load|whole-archive|export-dynamic|allow-shlib-undefined|dynamic_lookup|no-as-needed` in the listed directories, `load_stub.cpp` and `hiderTracer.h` absent, no `public CShadingContext`, no `frameTracer|CHiderTracer`; `git diff --stat HEAD` of the replay and the `baseline*` files is empty (note: against `01501f10` the baselines are new files of this spec, so tasks.md's "empty" form of that check only holds for the replay); the "files 029 never edits" diff against `01501f10` is empty; the allowlist differs from `01501f10` by exactly the 18 deleted entries (13 + 4 + 1) and the four removed or renumbered section headers; Geometry gained no include (`git diff 01501f10 -- src/ri/geometry | grep '^+#include'` is empty); `ALLOWED DB-006 x 30`.
+
+### T113: JIT-off Debug build: FINDING, stopped
+
+`build-nojit` (Debug, `-DOPENRENDER_ENABLE_JIT=OFF`) configures and builds clean (`-Werror`, 0 warnings: the assert-only code compiles). `-L '^link$'`: 4 of 4 pass. `-L '^shading_contract$'`: **41 of 45 pass; 4 fail**, none in the known-flaky set:
+- `ShadingContract_TraceReplay_occlusion` and `_indirectdiffuse` (rslo): the recorded `dir` of one ray differs from the fresh one in the last bit (`-0x1.e2e096p-1` vs `-0x1.e2e098p-1`, request 5 and request 21). The replay is a bit-exact record of a Release build; a Debug build (no optimisation, different FMA contraction) rounds those two directions differently. It is the "a red replay means a site's expression moved" signal of gotcha 26 only for a Release build; here the build type is the difference. Not caused by this spec (the replay files are unchanged and green in Release on both platforms).
+- `ShadingContract_Situations` and `ShadingContract_ProducerSituations`: the scene child aborts with `Assertion failed: (inShadow == FALSE), function traceTransmission, file executeMisc.cpp, line 714`. Reproduced alone with `build-nojit/src/orender/orender tests/shading_contract/scenes/sit_row5_shadow_shaded.rib` (same abort; `sit_row5_shadow_primitive` and `sit_row3_raytrace_shaded` render). The scene is spec 026's `transmissionhitmode "shader"` shadow scene: its `sit_transmit` shader calls `transmission()` upward through its own sphere, the shadow ray hits the sphere again, and that hit is shaded (hit mode "shader") by the same surface, which calls `transmission()` while `inShadow` is already TRUE. The assertion (`executeMisc.cpp:714`, "We can not be in shadow at this stage") is on the starting tree too (`01501f10:src/libshader/shading/executeMisc.cpp:714`), and `inShadow` is untouched by this spec, so this is a latent Debug-only defect that the Release build compiles out: nested `transmission()` inside a shadow hit shaded with hit mode "shader". Reported for filing as a P1, not fixed (task rule); the scene and the assertion are both outside this spec's edits.
+
+Nothing in the Release suites on either platform depends on it. T113 is therefore not ticked. Remaining after the maintainer's decision: T113 (a decision on the four), T114 (SC-010 timing), T115 (macOS package test), T116's package test on Linux, T117/T118 (the sweeps), T119, T120.
+
+### T113 base check: the same four failures on the starting tree (measured 2026-11-04)
+
+The starting tree (`git archive 01501f10` into `build-nojit-base/src`, built Debug with `-DOPENRENDER_ENABLE_JIT=OFF` in `build-nojit-base/build`, through `cpujob`, only the targets these tests need; 235 MB) gives, through `ctest` under `cpujob`:
+
+| Test (base `01501f10`, Debug, JIT off) | Result | Assertion / values | This tree (Debug, JIT off) |
+|---|---|---|---|
+| `ShadingContract_TraceReplay_occlusion` | **fail** | `request 5 ray 0 field dir differs: recorded dir=-0x1.88c32ap-4,-0x1.440672p-2,-0x1.e2e096p-1, fresh dir=-0x1.88c322p-4,-0x1.440672p-2,-0x1.e2e098p-1` | the same recorded and fresh values, to the digit |
+| `ShadingContract_TraceReplay_indirectdiffuse` | **fail** | `request 21 ray 0 field dir differs: recorded dir=0x1.20d6fap-1,-0x1.13be72p-1,-0x1.3f7e88p-1, fresh dir=0x1.20d6f8p-1,-0x1.13be7p-1,-0x1.3f7e88p-1` | the same, to the digit |
+| `ShadingContract_Situations` | **fail** | `Assertion failed: (inShadow == FALSE), function traceTransmission, file executeMisc.cpp, line 714.`; then `FAIL: status == 0 (case_situations.cpp:330)` and `FAIL: out.markersDeep >= 1 || ... (case_situations.cpp:250)` | the same assertion; the test lines are `:350` and `:263` here (the Phase 7 patch added lines to the file) |
+| `ShadingContract_ProducerSituations` | does not exist at the base (it is this spec's test) | | fails here with the same abort (`case_producer_situations.cpp:292`) |
+
+So the four failures are not a regression of this spec: the starting tree fails them the same way, with identical values. The bit-exact replay is a Release recording and cannot pass in a Debug build; the Debug assertion is a latent defect of `traceTransmission` reached by the spec 026 scene `sit_row5_shadow_shaded`. T113 is ticked as "findings recorded" (its "no failure outside the known-flaky set" condition does not hold on the starting tree either). `build-nojit` (this tree's Debug build) was deleted after the check, as authorised; `build-nojit-base` is kept.
+
+**Filed as GitHub #148 (P1, 2026-11-04, on the maintainer's approval); not fixed in this spec. The text as drafted:**
+
+> *Debug builds abort in `traceTransmission` when a shadow hit shaded with hit mode "shader" calls `transmission()` itself.*
+> `src/libshader/shading/executeMisc.cpp:714` asserts `inShadow == FALSE` ("We can not be in shadow at this stage"); the function then sets `inShadow = TRUE` at `:717` and clears it at `:828`. With `Attribute "shade" "string transmissionhitmode" ["shader"]`, a shadow-type hit runs the hit surface's shader (`shading.cpp`, the branch for `inShadow`), and if that shader calls `transmission()` the function is re-entered with `inShadow` already TRUE, so the assertion fires. Minimal scene: `tests/shading_contract/scenes/sit_row5_shadow_shaded.rib` (the `sit_transmit` shader casts `transmission(P, P + vector(0,3,0))` upward through its own sphere, so the shadow ray hits the sphere again and shades it as a shadow hit). Reproduce: build Debug (`-DCMAKE_BUILD_TYPE=Debug`), run `orender` on that scene: `Assertion failed: (inShadow == FALSE), function traceTransmission, file executeMisc.cpp, line 714.`; it also fails `ShadingContract_Situations` on `01501f10` and on the spec 029 tree. Release builds compile the assertion out, so they do not abort. *From code reading, not observed:* in a Release build the inner call's `inShadow = FALSE` at `:828` clears the flag while the outer call is still tracing, so the remaining hits of the outer call may be shaded as not in shadow (wrong hit mode, `Oi` and the shadow class). Either make `inShadow` a depth counter or save and restore it, or forbid the nesting; and note that `ShadingContract_Situations` and `ShadingContract_ProducerSituations` cannot run in Debug until then.
+> Separately: `ShadingContract_TraceReplay_*` is a bit-exact replay recorded in Release; in Debug (different floating-point contraction) `occlusion` and `indirectdiffuse` differ in the last bit of one ray direction. Run the replay in Release only, or document it.
+
+### T114: SC-010 timing (`timing_sc010.sh build-base build`, five interleaved series, 4 threads, one `cpujob` job; macOS)
+
+`build-base` is the relocated copy of the starting tree's Release build (its binaries load only `build-base` libraries); `build` is the finished tree. The RIBs are scaled scratch copies generated by the script, identical bytes for both trees. The queue before and during the run was other sessions' `cpujob` jobs (`fix57-*`), serialised by the lock; nothing ran outside `cpujob` that I know of.
+
+First run (initial factors, exit 3): four scenes' medians were under the 3 s minimum (`TOO SHORT`): somewood 2.27/2.25 s, gather 2.84/2.86 s, photon-parity 1.66/1.61 s, killeroo 1.94/2.06 s; the differences of medians were already within spread (-0.9% to +6.6%). Record: `build-logs/029-sc010-run1.log`. Factors raised for those four (the other two kept: wood and blue_marble were at 3.3 s and 4.0 s), and the script's `SCALES` default updated to the confirmed values:
+
+| scene | factors (confirmed) | start median (s) | final median (s) | diff of medians | larger spread | verdict |
+|---|---|---|---|---|---|---|
+| teapot-somewood-reyes | format x3, shadingrate x2 | 4.93 | 5.46 | +0.53 s (+10.7%) | 1.68 s | within spread |
+| teapot-wood-reyes | format x4, shadingrate x4 | 3.42 | 3.52 | +0.10 s (+2.8%) | 0.65 s | within spread |
+| teapot-blue_marble-reyes | format x4, shadingrate x4 | 4.44 | 4.25 | -0.19 s (-4.3%) | 0.63 s | within spread |
+| sphere-gather-reyes | format x4, shadingrate x2 | 5.99 | 5.60 | -0.40 s (-6.6%) | 1.10 s | within spread |
+| photon-parity | format x8, emit x8 | 3.12 | 3.02 | -0.10 s (-3.3%) | 0.87 s | within spread |
+| killeroo-reyes | format x3, shadingrate x4 | 4.73 | 4.70 | -0.03 s (-0.6%) | 1.72 s | within spread |
+
+Second run (`build-logs/029-sc010-run2.log`): 0 scenes slower beyond the spread, 0 medians under 3 s, exit 0. The one visibly positive median, somewood +10.7%, is inside its spread (the starting tree's own runs span 4.12 to 5.81 s); no threshold was moved. Individual runs are in the log.
+
+### T115 / T116: `Link_PackageStaticConsumer` (the installed package consumed statically)
+
+- macOS: `-DOPENRENDER_LINK_PACKAGE_TEST=ON`, `CPUJOB_TIMEOUT=7200 cpujob ... ctest -L '^link-package$'`: **passed** (242 s: scratch configure with `CMAKE_INSTALL_PREFIX=<scratch>`, build, install, then the consumer built through `find_package(openRender COMPONENTS Static)` with the vcpkg toolchain line of T030, GitHub #141, and run). Scratch tree (573 MB) deleted; option reconfigured OFF.
+- Linux (remote `cpujob`, GCC 13): **passed** (1014 s). Scratch tree (173 MB) deleted; option reconfigured OFF.

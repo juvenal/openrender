@@ -7,23 +7,12 @@
 #   Link_PackageStaticConsumer(T-L4)  the same through the installed package (opt-in: builds and installs a second tree)
 #   ShadingScope_Greps        (T-S1)  the scope of Shading and the hiders, one sub-check per phase
 #
-# Red-first convention (tasks.md): a script test is registered DISABLED and a compiled target is defined only inside
-# if(OPENRENDER_029_RED_TESTS), until the phase that makes it true. A disabled test is "Not Run", never a failure.
 # None of these carries the `architecture` label (a regular expression: `link` and `link-package` do not contain it).
 
 # The sub-checks of ShadingScope_Greps that are true so far. Each phase appends the sub-checks it makes true
 # (Phase 3: S1a;S1b, Phase 5: S1c;S1f, Phase 6: S1d, Phase 7: S1e). An empty list is an error of the script, so the
 # registered test can never pass vacuously.
 set(OR029_SCOPE_CHECKS "S1a;S1b;S1c;S1d;S1e;S1f")  # Phase 7
-
-# add_or029_script_test(<name> <label> <timeout> <cmake args...>): a `cmake -P` script test, DISABLED until its phase.
-function(add_or029_script_test NAME TIMEOUT)
-    add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} ${ARGN})
-    set_tests_properties(${NAME} PROPERTIES TIMEOUT ${TIMEOUT} LABELS "link")
-    if(NOT OPENRENDER_029_RED_TESTS)
-        set_tests_properties(${NAME} PROPERTIES DISABLED TRUE)
-    endif()
-endfunction()
 
 # ---- T-L1 ------------------------------------------------------------------------------------------------------
 # Enabled in Phase 3 (registered like an ordinary test; no DISABLED marker)

@@ -1,11 +1,16 @@
 # Proposed CLAUDE.md changes for spec 029 (draft; not applied)
 
+> **Gotcha numbering when this draft is applied.** Spec 038 is merged first and its `CLAUDE.md` already has gotchas
+> 29 to 34. If 038 is on master when this draft is applied, this spec's new gotcha 29 (section 5) becomes **gotcha 35**,
+> and every reference to "gotcha 29" in this draft (and in the text it adds elsewhere) follows. The 029 tree's own
+> `CLAUDE.md`, text and tests stay based on `01501f10`; this branch does not merge master.
+
 The spec-kit plan stage would normally update `CLAUDE.md` through `.specify/scripts/bash/update-agent-context.sh`.
 That script was **not** run: `CLAUDE.md` is changed only by the maintainer (spec FR-032). This file holds the
 proposed text. It is written against the maintainer's answers of 2026-11-02 (the recommended option of P-Q1 to P-Q16, and the
 versioning policy that makes this spec's version 2.1.0) and must be revised to the measured end state before it is
 applied. The "Spec-kit agent rules" section is
-not touched.
+not touched. The numbers below are the measured end state (2026-11-04).
 
 ## 1. Architecture, "Hider system" (CLAUDE.md:183-188)
 
@@ -68,9 +73,12 @@ Every implementer `static_assert`s MAJOR 2."
 >    `displace()` and `displaceEstimate()`: an opaque forwarding entry that calls the owning hider's
 >    `IShadingProducer`, which builds the point source (`CSurfacePointSource`) and the `ShaderGlobals` batch and calls
 >    `shade(const ShaderGlobals &, IPointSource &)`; spec 031 retires the forwarding entry. `shade()` branches on the
->    batch's ray type and hit mode only, which the producer takes from `classifyShading()` (corrected in spec 029 to
->    the code: a shadow hit reads `transmissionhitmode` at every dimension; a reflection traced from a REYES grid is
->    `Secondary`; only the photon-emission batch is `Photon`: three corrections). Never C-cast between a hider and a context: a cast from `CHider **`'s elements to `CReyes *` is a
+>    batch's ray type and hit mode only, which the producer takes from `classifyShading()`, corrected in spec 029 to
+>    the code in three places: a shadow hit reads `transmissionhitmode` at every dimension; a ray hit traced from a
+>    REYES grid (any depth, any frame) is `Secondary`; and the `Photon` rule is narrowed to a 0-D batch at depth 0 not
+>    in a shadow. Photon emission itself never calls `shade()` (`photon.cpp` sets its 0-D state and runs the light with
+>    `illuminate()`), so only the test doubles reach the `Photon` rule; a ray a light traces during emission is a
+>    `Secondary` hit with the hook on (`sit_photon_emission_trace` pins it). Never C-cast between a hider and a context: a cast from `CHider **`'s elements to `CReyes *` is a
 >    `static_cast` (use it explicitly), a C-style cast from the context is a `reinterpret_cast`, and a `dynamic_cast` from
 >    the non-polymorphic `CShadingContext` does not compile. The object hash stays the context's (`objectHash()`), and its empty-entry sentinel is the
 >    context's address, not the hider's. The core's dispatcher sets
@@ -90,7 +98,7 @@ Under `src/libshader/shading/`: mention `bundles.{h,cpp}` (moved from `src/ri/hi
 >   `libshader_shading` is self-contained (029-hider-shading-separation)
 > - Storage: N/A; memory only (029-hider-shading-separation)
 
-## 8. Recent Changes (prepend; numbers to be replaced by the measured ones)
+## 8. Recent Changes (prepend)
 
 > - 029-hider-shading-separation: the hiders own their shading context instead of deriving from it (`CHider`); the
 >   context is `final` and has no virtuals and no foreign friends; the hiders trace for the context they own
@@ -98,5 +106,6 @@ Under `src/libshader/shading/`: mention `bundles.{h,cpp}` (moved from `src/ri/hi
 >   `IPhotonLookup`, so `libshader_shading` has no flat-namespace import, links with undefined symbols as an error,
 >   and a static consumer launches with no `-force_load`/`--whole-archive` (GitHub #24, #44); `shade()` consumes
 >   `ShaderGlobals` (ray type and hit mode explicit) and an `IPointSource`; `kRendererServicesVersion` 2.1.0. DB-001
->   and DB-005 resolved, DB-006 31 -> 30, DB-011 168 -> 164, DB-020 narrowed. No image changed on either platform;
->   the spec 026 trace replay unchanged (see spec 029).
+>   and DB-005 resolved, DB-006 31 -> 30, DB-011 168 -> 164, DB-020 narrowed; the allowlist 372 -> 354 entries, the
+>   `CRenderer::` metric 612 -> 610 references (Hiders 558 -> 556). No image changed on either platform; the spec 026
+>   trace replay unchanged (see spec 029).

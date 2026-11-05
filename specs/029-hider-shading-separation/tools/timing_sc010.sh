@@ -42,7 +42,7 @@ SCENE_THREADS="${SCENE_THREADS:-photon-parity=1}"
 export SCENE_THREADS
 export SCENES
 # unscaled time at -t:4 -> factors (pixels x 1/ShadingRate x photons)
-SCALES="${SCALES:-teapot-somewood-reyes:format=2,shadingrate=2 teapot-wood-reyes:format=4,shadingrate=4 teapot-blue_marble-reyes:format=4,shadingrate=4 sphere-gather-reyes:format=3,shadingrate=2 photon-parity:format=6,emit=4 killeroo-reyes:format=2,shadingrate=4}"
+SCALES="${SCALES:-teapot-somewood-reyes:format=3,shadingrate=2 teapot-wood-reyes:format=4,shadingrate=4 teapot-blue_marble-reyes:format=4,shadingrate=4 sphere-gather-reyes:format=4,shadingrate=2 photon-parity:format=8,emit=8 killeroo-reyes:format=3,shadingrate=4}"
 MIN_SECONDS="${MIN_SECONDS:-3}"
 export SCALES MIN_SECONDS
 

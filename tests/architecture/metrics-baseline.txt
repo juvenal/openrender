@@ -47,11 +47,15 @@
 # 1 -> 0 references and 1 -> 0 members, TOTAL 652 -> 651 and 98 -> 97, as archcheck reported.
 # Merged with spec 028: Texturing 0 / 0 from 037, Geometry and Hiders from 028; the TOTAL is
 # archcheck's figure for the merged tree.
+#
+# Spec 029 (hider / shading separation): the hiders no longer write CRenderer::activeContext (reyes.cpp and
+# raytracer.cpp; the renderer core sets it for every render thread now): Hiders 558 -> 556 references and
+# 82 -> 81 members, TOTAL 612 -> 610 and 94 -> 93, as archcheck reported. Nothing else moved.
 
 Geometry           48    15
-Hiders            558    82
+Hiders            556    81
 Infra               0     0
 SceneInterface      6     6
 Shading             0     0
 Texturing           0     0
-TOTAL             612    94
+TOTAL             610    93

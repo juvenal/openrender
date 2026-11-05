@@ -10,8 +10,6 @@
 #
 # Seeded by specs/022-domain-dependency-guardrails/tools/assign_registry.py.
 
-# --- DB-001: Shading depends on the renderer core and the hiders (5) ---
-
 # --- DB-004: Geometry depends on the renderer core and on Scene Interface (52) ---
 DB-004  include  src/ri/geometry/blobby.cpp  ->  src/ri/render/renderer.h
 DB-004  include  src/ri/geometry/blobbyRepeller.cpp  ->  src/ri/render/renderer.h
@@ -66,9 +64,7 @@ DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer8dPixeldyE   # CR
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer8pixelTopE   # CRenderer::pixelTop
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer9pixelLeftE   # CRenderer::pixelLeft
 
-# --- DB-005: Hiders and Shading share one class (CShadingContext) (8) ---
-
-# --- DB-006: Geometry is coupled to Shading and to the hiders (31) ---
+# --- DB-006: Geometry is coupled to Shading and to the hiders (30) ---
 DB-006  include  src/ri/geometry/bsplinePatchgrid.cpp  ->  src/ri/core/shading.h
 DB-006  include  src/ri/geometry/curves.cpp  ->  src/ri/hiders/reyes.h
 DB-006  include  src/ri/geometry/curves.h  ->  src/ri/core/shading.h
@@ -110,7 +106,7 @@ DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZN10CTexture3dC2EPKcPKfS3_S3
 DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZN10CTexture3dD2Ev   # CTexture3d::~CTexture3d()
 DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZTI10CTexture3d   # typeinfo for CTexture3d
 
-# --- DB-011: Hiders read renderer-core state (CRenderer) (168) ---
+# --- DB-011: Hiders read renderer-core state (CRenderer) (164) ---
 DB-011  include  src/ri/hiders/compositor.cpp  ->  src/ri/render/renderer.h
 DB-011  include  src/ri/hiders/irradiance.cpp  ->  src/ri/render/renderer.h
 DB-011  include  src/ri/hiders/irradianceDispatch.cpp  ->  src/ri/render/renderer.h

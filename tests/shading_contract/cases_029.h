@@ -1,9 +1,8 @@
 /**
  * tests/shading_contract/cases_029.h
  *
- * The contract cases spec 029 adds (tasks.md, Phase 2). Each lives in an executable of its own, defined only while
- * OPENRENDER_029_RED_TESTS is ON until the phase that makes it compile and pass (the red-first convention: adding a
- * case that cannot compile to an existing executable would break the approved cases already in it).
+ * The contract cases spec 029 adds (tasks.md, Phase 2). Each lives in an executable of its own (adding a case that
+ * cannot compile to an existing executable would break the approved cases already in it).
  */
 #ifndef TESTS_SHADING_CONTRACT_CASES_029_H
 #define TESTS_SHADING_CONTRACT_CASES_029_H

@@ -68,11 +68,6 @@ add_subdirectory(unit/geometry)
 add_subdirectory(unit/state)
 add_subdirectory(unit/camera)
 add_subdirectory(unit/motion)
-# Spec 029 (hider / shading separation). TEMPORARY, removed in Phase 8: build and register the new tests whose
-# phase has not come (they do not compile or pass yet). OFF everywhere except the Phase 2 red-evidence configure;
-# a test joins the normal build in the phase that makes it compile and pass (specs/029-hider-shading-separation/tasks.md,
-# "Red-first convention").
-option(OPENRENDER_029_RED_TESTS "Spec 029, temporary: build the new tests that do not compile or pass yet; ON only for red evidence; removed in Phase 8" OFF)
 # Permanent: registers the opt-in Link_PackageStaticConsumer (label link-package). It builds and installs a second
 # copy of the tree, so it is not part of the everyday run; the final phase runs it with this option ON.
 option(OPENRENDER_LINK_PACKAGE_TEST "Register Link_PackageStaticConsumer: builds and installs a scratch tree, then builds a consumer through find_package(openRender COMPONENTS Static)" OFF)
