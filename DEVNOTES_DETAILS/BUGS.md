@@ -624,6 +624,33 @@ This file tracks known defects and implementation gaps in openRender. Open items
       layout (their boundaries move with the displacement, which the snaps cannot follow), and cracks
       between separate surfaces remain. Merge after #54: without it, `sphere-gather-reyes` self-hits
       recurse through gather() and never finish.
+- [x] Bug: reyes and zbuffer dropped samples inside micropolygons with a collapsed edge, one sliver at a
+      sphere pole, on Linux (FIXED — GitHub #57, branch `fix/57-tjunction-coverage-linux`, 2026-11-04).
+      `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes` missed one sample at pixel (99, 46) on Linux
+      only. It was not #51's snapping: leaf divisions, boundary owners and snaps were bit-identical on
+      both platforms, and the failing grid had no snaps. A sphere's pole row is not one point:
+      `cosf` of the float pole angle is 1.5e-8, not 0, so after projection two neighbouring pole
+      vertices are bit-equal or a rounding step apart, differently per platform and per quad.
+      `rasterEdge()` gave only an exactly zero-length edge `side = 0`; the sign of an edge a few ulps
+      long is rounding noise, so it rejected every sample of a pole sliver about 0.2 px² in area (22
+      background pixels inside 24 opaque spheres on Linux, 0 on macOS), and the winding taken from a
+      triangle with such an edge was noise too. `rasterQuadTinyEdges()` finds the edges at most 4
+      float epsilons of the largest coordinate long (4 to 8 ulp, relative so it follows the spacing of
+      floats across the image) once per quad; `rasterQuadCover()` skips the test of the one tiny edge,
+      or of none if a second edge is tiny too (a needle keeps all four tests, or its ends would
+      vanish); `rasterQuadOrientation()` takes the winding from the second triangle when the first
+      has a tiny top or left edge. The reyes and zbuffer checkPixel macros call these, and the zbuffer hider keeps its own
+      winding rule (second triangle for a top edge under a pixel), plus the left-edge case. Guarded by
+      `Raster_QuadEdgeDegenerate` (`tests/unit/raster/test_raster_edge.cpp`, run on the real helpers:
+      pole pairs 0 to 2 ulp apart as the top, bottom, left or right edge, both windings, near the
+      origin and far from it, plus samples that must stay outside and a needle).
+      Left open: that zbuffer rule takes the second triangle even when its own bottom edge is tiny, so
+      a sphere whose pole at v = 1 faces the camera still loses its pole fan under the zbuffer hider
+      (627 background pixels inside 24 opaque spheres on macOS, 636 on Linux). Skipping the second
+      triangle when it has a tiny edge fixes it and changes 7 pixels of
+      `Visual_csg-open-quadric-caps-zbuffer` on macOS, so it is left for its own change.
+      Images: none of the repo's scenes changed on macOS; on Linux a few samples in sphere scenes
+      regain coverage.
 - [x] Bug: secondary rays from `gather()`, `occlusion()` and `indirectdiffuse()` re-hit their own
       convex surface (FIXED — GitHub #54, branch `fix/ray-origin-self-hit`, 2026-10-14). Each ray's
       origin is jittered across the shading footprint along `dPdu`/`dPdv`; at a reyes grid's edge those

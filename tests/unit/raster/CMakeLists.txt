@@ -22,3 +22,13 @@ target_include_directories(test_occlusion_culler PRIVATE ${CMAKE_SOURCE_DIR}/src
 target_link_libraries(test_occlusion_culler PRIVATE ribRender openrendercommon)
 add_test(NAME Raster_OcclusionCullerMaxDepth COMMAND test_occlusion_culler)
 set_tests_properties(Raster_OcclusionCullerMaxDepth PROPERTIES TIMEOUT 60 LABELS "unit;determinism")
+
+# Raster_QuadEdgeDegenerate: the quad coverage test of the reyes and zbuffer hiders accepts a sample
+# inside a pole-like micropolygon whose two pole vertices are a few ulps apart (the sphere's pole row
+# is not one point after projection), whichever way the gap points and the quad winds, and still
+# rejects samples outside it, a needle's extension included (GitHub #57). Header-only.
+add_executable(test_raster_edge test_raster_edge.cpp)
+target_compile_features(test_raster_edge PRIVATE cxx_std_20)
+target_include_directories(test_raster_edge PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/ri/hiders)
+add_test(NAME Raster_QuadEdgeDegenerate COMMAND test_raster_edge)
+set_tests_properties(Raster_QuadEdgeDegenerate PROPERTIES TIMEOUT 60 LABELS "unit;determinism")

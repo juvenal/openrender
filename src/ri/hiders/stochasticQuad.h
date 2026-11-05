@@ -377,68 +377,40 @@ const float importance = grid->object->attributes->lodImportance;
 // Camera pure-rotation fast path: the quad stays at its static t=0 position and
 // the sample center is the pre-rotated one from rasterBegin; the interpolated
 // static depth is scaled to the sample's time by zScale
-#define checkPixel(__op)                                                                      \
-    const int camRotFast = CRenderer::cameraRotationOnly;                                     \
-    const float xcent = camRotFast ? pixel->xcentRot : pixel->xcent;                          \
-    const float ycent = camRotFast ? pixel->ycentRot : pixel->ycent;                          \
-    float aleft, atop, aright, abottom, side;                                                 \
-                                                                                              \
-    atop = rasterEdge(xcent, ycent, v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y], side);    \
-    if (side __op 0) {                                                                        \
-        continue;                                                                             \
-    }                                                                                         \
-    aright = rasterEdge(xcent, ycent, v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y], side);  \
-    if (side __op 0) {                                                                        \
-        continue;                                                                             \
-    }                                                                                         \
-    abottom = rasterEdge(xcent, ycent, v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y], side); \
-    if (side __op 0) {                                                                        \
-        continue;                                                                             \
-    }                                                                                         \
-    aleft = rasterEdge(xcent, ycent, v2[COMP_X], v2[COMP_Y], v0[COMP_X], v0[COMP_Y], side);   \
-    if (side __op 0) {                                                                        \
-        continue;                                                                             \
-    }                                                                                         \
-                                                                                              \
-    const float u = aleft / (aleft + aright);                                                 \
-    const float v = atop / (atop + abottom);                                                  \
-    float z = rasterQuadDepth(v0[COMP_Z], v1[COMP_Z], v2[COMP_Z], v3[COMP_Z], u, v);          \
-    if (camRotFast) {                                                                         \
-        z *= pixel->zScale;                                                                   \
-    }                                                                                         \
-    if (z < CRenderer::clipMin) {                                                             \
-        continue;                                                                             \
+#define checkPixel(__op)                                                                                  \
+    const int camRotFast = CRenderer::cameraRotationOnly;                                                 \
+    const float xcent = camRotFast ? pixel->xcentRot : pixel->xcent;                                      \
+    const float ycent = camRotFast ? pixel->ycentRot : pixel->ycent;                                      \
+    float aleft, atop, aright, abottom;                                                                   \
+                                                                                                          \
+    if (!rasterQuadCover(xcent, ycent, v0, v1, v2, v3, (0 __op 1), waived, aleft, atop, aright, abottom)) \
+        continue;                                                                                         \
+                                                                                                          \
+    const float u = aleft / (aleft + aright);                                                             \
+    const float v = atop / (atop + abottom);                                                              \
+    float z = rasterQuadDepth(v0[COMP_Z], v1[COMP_Z], v2[COMP_Z], v3[COMP_Z], u, v);                      \
+    if (camRotFast) {                                                                                     \
+        z *= pixel->zScale;                                                                               \
+    }                                                                                                     \
+    if (z < CRenderer::clipMin) {                                                                         \
+        continue;                                                                                         \
     }
 
 #else
 
-#define checkPixel(__op)                                                                      \
-    const float xcent = pixel->xcent;                                                         \
-    const float ycent = pixel->ycent;                                                         \
-    float aleft, atop, aright, abottom, side;                                                 \
-                                                                                              \
-    atop = rasterEdge(xcent, ycent, v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y], side);    \
-    if (side __op 0) {                                                                        \
-        continue;                                                                             \
-    }                                                                                         \
-    aright = rasterEdge(xcent, ycent, v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y], side);  \
-    if (side __op 0) {                                                                        \
-        continue;                                                                             \
-    }                                                                                         \
-    abottom = rasterEdge(xcent, ycent, v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y], side); \
-    if (side __op 0) {                                                                        \
-        continue;                                                                             \
-    }                                                                                         \
-    aleft = rasterEdge(xcent, ycent, v2[COMP_X], v2[COMP_Y], v0[COMP_X], v0[COMP_Y], side);   \
-    if (side __op 0) {                                                                        \
-        continue;                                                                             \
-    }                                                                                         \
-                                                                                              \
-    const float u = aleft / (aleft + aright);                                                 \
-    const float v = atop / (atop + abottom);                                                  \
-    const float z = rasterQuadDepth(v0[COMP_Z], v1[COMP_Z], v2[COMP_Z], v3[COMP_Z], u, v);    \
-    if (z < CRenderer::clipMin) {                                                             \
-        continue;                                                                             \
+#define checkPixel(__op)                                                                                  \
+    const float xcent = pixel->xcent;                                                                     \
+    const float ycent = pixel->ycent;                                                                     \
+    float aleft, atop, aright, abottom;                                                                   \
+                                                                                                          \
+    if (!rasterQuadCover(xcent, ycent, v0, v1, v2, v3, (0 __op 1), waived, aleft, atop, aright, abottom)) \
+        continue;                                                                                         \
+                                                                                                          \
+    const float u = aleft / (aleft + aright);                                                             \
+    const float v = atop / (atop + abottom);                                                              \
+    const float z = rasterQuadDepth(v0[COMP_Z], v1[COMP_Z], v2[COMP_Z], v3[COMP_Z], u, v);                \
+    if (z < CRenderer::clipMin) {                                                                         \
+        continue;                                                                                         \
     }
 
 #endif
@@ -477,6 +449,20 @@ if (yres < ymax) {
 }
 
 int x, y;
+// The collapsed edges of every quad, once per grid rather than once per pixel and quad
+std::vector<unsigned char> tinyEdgeMasks((size_t)grid->udiv * grid->vdiv);
+{
+    const float *p = grid->vertices;
+    for (int qj = 0; qj < grid->vdiv; qj++) {
+        for (int qi = 0; qi < grid->udiv; qi++, p += numVertexSamples) {
+            const float *q1 = p + numVertexSamples;
+            const float *q2 = q1 + grid->udiv * numVertexSamples;
+            tinyEdgeMasks[(size_t)qj * grid->udiv + qi] = (unsigned char)rasterQuadTinyEdges(p, q1, q2, q2 + numVertexSamples);
+        }
+        p += numVertexSamples;
+    }
+}
+
 for (y = ymin; y <= ymax; y++) {
     for (x = xmin; x <= xmax; x++) {
         CPixel *pixel = fb[y] + x;
@@ -568,6 +554,8 @@ for (y = ymin; y <= ymax; y++) {
                 const float *v3 = v2 + numVertexSamples;
                 (void)v0;
                 (void)v3; // Suppress unused variable warnings in some compilation paths
+                const int tinyEdges = tinyEdgeMasks[(size_t)j * udiv + i];
+                const int waived = rasterQuadWaived(tinyEdges);
 
 #ifdef STOCHASTIC_FOCAL_BLUR
                 const float v0d = v0[9];
@@ -645,10 +633,7 @@ for (y = ymin; y <= ymax; y++) {
 #endif
 
                 // Check the orientation of the quad
-                float a = area(v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y], v2[COMP_X], v2[COMP_Y]);
-                if (fabsf(a) < C_EPSILON) {
-                    a = area(v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y]);
-                }
+                float a = rasterQuadOrientation(v0, v1, v2, v3, tinyEdges);
                 if (a > 0) {
                     // Back face culling
                     if (!shouldDrawBack()) {
@@ -754,6 +739,10 @@ for (j = 0; j < vdiv; j++) {
         // Per-quad bounds are now arc-expanded in insertGrid() for camera rotation,
         // so no full-bucket fallback is needed here.
 
+        // The quad's collapsed edges, before any per-sample deformation
+        const int tinyEdges = rasterQuadTinyEdges(v0, v1, v2, v3);
+        const int waived = rasterQuadWaived(tinyEdges);
+
 // Figure our if we have to do the slow rasterization
 #ifdef STOCHASTIC_FOCAL_BLUR
 #define SLOW_RASTER
@@ -773,10 +762,7 @@ for (j = 0; j < vdiv; j++) {
         // Do the fast rasterization
 
         // Check the orientation of the quad
-        float a = area(v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y], v2[COMP_X], v2[COMP_Y]);
-        if (fabsf(a) < C_EPSILON) {
-            a = area(v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y]);
-        }
+        float a = rasterQuadOrientation(v0, v1, v2, v3, tinyEdges);
         if (a > 0) {
 
             // Back face culling
@@ -936,10 +922,7 @@ for (j = 0; j < vdiv; j++) {
 #endif
 
                 // Check the orientation of the quad
-                float a = area(v0[COMP_X], v0[COMP_Y], v1[COMP_X], v1[COMP_Y], v2[COMP_X], v2[COMP_Y]);
-                if (fabsf(a) < C_EPSILON) {
-                    a = area(v1[COMP_X], v1[COMP_Y], v3[COMP_X], v3[COMP_Y], v2[COMP_X], v2[COMP_Y]);
-                }
+                float a = rasterQuadOrientation(v0, v1, v2, v3, tinyEdges);
                 if (a > 0) {
 
                     // Back face culling
