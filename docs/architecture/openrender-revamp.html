@@ -1,0 +1,827 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--
+  openRender architecture revamp brief: a living document.
+  Published copy: https://claude.ai/artifact/VUcfoWSwFnyXUWvNtJetc3 (private until shared).
+
+  Keep it current when a roadmap spec merges:
+  - "Now" diagram and the merged-spec list: what the spec separated.
+  - Figures: allowlist edges (non-comment lines of tests/architecture/allowlist.txt,
+    baseline 686 at spec 022's merge), core references per domain
+    (tests/architecture/metrics-baseline.txt, baseline 813 / 118), Shading's
+    flat-namespace imports, registry entries open/resolved
+    (DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md), specs merged out of 022-057.
+  - Road: move the "now" marker; update the date in the eyebrow and footer.
+  Sources: constitution Principle VIII, DOMAIN_BOUNDARIES.md,
+  RENDER_ARCHITECTURE_REFERENCES.md (D1-D30), the 022-057 roadmap.
+-->
+<title>openRender Architecture Revamp</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@112,500;112,700;125,800&family=Literata:opsz,wght@7..72,400;7..72,600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a technical brief. Hero with a bucket-rendered sphere, then three architecture
+   snapshots side by side, the target spelled out, the road there, gains, risks, sources. */
+:root {
+  --bg: #eef1f6;
+  --surface: #ffffff;
+  --ink: #121826;
+  --muted: #566176;
+  --line: #cdd4df;
+  --accent: #2c48d0;
+  --accent-soft: #dfe5fb;
+  --bad: #c43636;
+  --bad-soft: #f8e1e1;
+  --warm: #b8640f;
+  --warm-soft: #f6e7d4;
+  --good: #1d7f55;
+  --good-soft: #dcefe5;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body: "Literata", Georgia, "Times New Roman", serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e121a; --surface: #161c27; --ink: #e5e9f1; --muted: #98a3b7; --line: #2b3546;
+    --accent: #8098ff; --accent-soft: #1e2850; --bad: #f07a7a; --bad-soft: #3a1d22;
+    --warm: #f0a65a; --warm-soft: #3a2a17; --good: #55c48f; --good-soft: #15322a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e121a; --surface: #161c27; --ink: #e5e9f1; --muted: #98a3b7; --line: #2b3546;
+  --accent: #8098ff; --accent-soft: #1e2850; --bad: #f07a7a; --bad-soft: #3a1d22;
+  --warm: #f0a65a; --warm-soft: #3a2a17; --good: #55c48f; --good-soft: #15322a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--body); font-size: 17px; line-height: 1.6;
+}
+.wrap {
+  max-width: 1240px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0;
+}
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.12; }
+h2 { font-size: clamp(1.6rem, 3.2vw, 2.3rem); font-variation-settings: "wdth" 112; font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: 1.08rem; font-weight: 700; font-variation-settings: "wdth" 112; }
+p { margin: 0; }
+.prose { max-width: 66ch; }
+.eyebrow {
+  font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--muted);
+}
+code, .mono { font-family: var(--mono); font-size: 0.86em; }
+section { padding-block: clamp(48px, 7vw, 88px); border-top: 1px solid var(--line); }
+.sec-head { display: grid; gap: 14px; margin-bottom: 36px; }
+.sec-head p { color: var(--muted); }
+
+/* Hero */
+.hero { padding-block: clamp(40px, 6vw, 80px) clamp(36px, 5vw, 64px); }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: clamp(28px, 4vw, 56px); align-items: center; }
+.hero h1 {
+  font-size: clamp(2.4rem, 6.2vw, 4.6rem); font-weight: 800; font-variation-settings: "wdth" 125;
+  letter-spacing: -0.025em; margin-block: 14px 22px;
+}
+.hero h1 em { font-style: normal; color: var(--accent); }
+.hero .lede { font-size: 1.16rem; max-width: 56ch; }
+.bucket-frame { display: grid; gap: 10px; }
+.bucket-frame canvas {
+  width: 100%; max-width: 100%; aspect-ratio: 16 / 10; display: block;
+  border: 1px solid var(--line); background: var(--surface); border-radius: 4px;
+}
+.bucket-frame figcaption { font-family: var(--mono); font-size: 0.74rem; color: var(--muted); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); margin-top: clamp(36px, 5vw, 56px); }
+.stat { background: var(--surface); padding: 20px 22px; display: grid; gap: 6px; align-content: start; }
+.stat b { font-family: var(--display); font-size: clamp(1.8rem, 3.4vw, 2.6rem); font-weight: 800; font-variation-settings: "wdth" 112; line-height: 1; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 0.92rem; color: var(--muted); line-height: 1.45; }
+
+/* Snapshots */
+.legend { display: flex; flex-wrap: wrap; gap: 10px 22px; font-family: var(--mono); font-size: 0.76rem; color: var(--muted); margin-bottom: 24px; }
+.legend i { display: inline-block; width: 26px; height: 0; vertical-align: middle; margin-right: 8px; border-top: 2px solid; }
+.lg-bad { border-color: var(--bad) !important; }
+.lg-clean { border-color: var(--accent) !important; }
+.lg-wire { border-color: var(--line) !important; border-top-style: dashed !important; }
+.lg-plan { border-color: var(--good) !important; }
+.snaps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.snap { background: var(--surface); border: 1px solid var(--line); display: grid; grid-template-rows: auto auto 1fr; min-width: 0; }
+.snap.target { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.snap header { padding: 18px 20px 6px; display: grid; gap: 4px; }
+.snap header .when { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.snap.target header .when { color: var(--accent); }
+.snap header h3 { font-size: 1.3rem; }
+.diagram { overflow-x: auto; padding: 6px 10px 0; }
+.diagram svg { width: 100%; min-width: 300px; height: auto; display: block; }
+.snap .caption { padding: 10px 20px 20px; font-size: 0.95rem; color: var(--ink); display: grid; gap: 10px; align-content: start; }
+.snap .caption p { color: var(--muted); }
+.snap .note { font-family: var(--mono); font-size: 0.72rem; color: var(--accent); line-height: 1.5; }
+
+/* SVG styling through tokens */
+svg text { font-family: var(--display); fill: var(--ink); }
+svg .t-title { font-size: 12.5px; font-weight: 700; font-variation-settings: "wdth" 112; }
+svg .t-sub { font-family: var(--mono); font-size: 8.6px; fill: var(--muted); }
+svg .t-tag { font-family: var(--mono); font-size: 8.4px; font-weight: 600; }
+svg .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.2; }
+svg .box-bad { fill: var(--bad-soft); stroke: var(--bad); stroke-width: 1.4; }
+svg .box-warm { fill: var(--warm-soft); stroke: var(--warm); stroke-width: 1.4; }
+svg .box-good { fill: var(--good-soft); stroke: var(--good); stroke-width: 1.4; }
+svg .box-acc { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.4; }
+svg .hub-bad { fill: var(--bad); stroke: none; }
+svg .hub-bad-t { fill: var(--surface); }
+svg .e-bad { stroke: var(--bad); stroke-width: 1.6; fill: none; }
+svg .e-bad-thick { stroke: var(--bad); stroke-width: 3.2; fill: none; }
+svg .e-clean { stroke: var(--accent); stroke-width: 1.6; fill: none; }
+svg .e-wire { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; fill: none; opacity: 0.6; }
+svg .e-good { stroke: var(--good); stroke-width: 1.6; fill: none; }
+svg .divider { stroke: var(--bad); stroke-dasharray: 4 3; stroke-width: 1; }
+svg .divider-warm { stroke: var(--warm); stroke-dasharray: 4 3; stroke-width: 1; }
+svg .core-bar { fill: none; stroke: var(--muted); stroke-dasharray: 5 4; stroke-width: 1.2; }
+svg .ah-bad { fill: var(--bad); }
+svg .ah-clean { fill: var(--accent); }
+svg .ah-good { fill: var(--good); }
+svg .fill-bad { fill: var(--bad); }
+svg .fill-warm { fill: var(--warm); }
+svg .fill-good { fill: var(--good); }
+svg .fill-acc { fill: var(--accent); }
+svg .pill { fill: var(--accent); }
+svg .pill-t { fill: var(--surface); font-family: var(--mono); font-size: 8px; font-weight: 600; }
+
+/* Final goal */
+.goal-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: clamp(28px, 4vw, 56px); align-items: start; }
+.goal-grid .prose { display: grid; gap: 16px; }
+.axes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--line); background: var(--surface); }
+.axis { padding: 18px 16px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.axis + .axis { border-left: 1px solid var(--line); }
+.axis h3 { font-size: 0.98rem; }
+.axis .q { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); }
+.chips { display: flex; flex-direction: column; gap: 6px; }
+.chip { font-family: var(--mono); font-size: 0.78rem; padding: 4px 8px; border: 1px solid var(--line); border-radius: 3px; display: flex; justify-content: space-between; gap: 8px; }
+.chip small { color: var(--muted); font-size: 0.68rem; white-space: nowrap; }
+.chip.now { border-color: var(--good); }
+.chip.next { border-color: var(--accent); border-style: dashed; }
+.axes-foot { grid-column: 1 / -1; border-top: 1px solid var(--line); padding: 12px 16px; font-family: var(--mono); font-size: 0.74rem; color: var(--muted); text-align: center; }
+
+/* Road */
+.road-wrap { overflow-x: auto; padding-bottom: 8px; }
+.road { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(118px, 1fr); min-width: 1100px; position: relative; }
+.road::before { content: ""; position: absolute; left: 0; right: 0; top: 23px; height: 4px; background: linear-gradient(90deg, var(--good) 0 15%, var(--warm) 15% 22%, var(--accent) 22% 100%); border-radius: 2px; }
+.stop { position: relative; display: grid; gap: 8px; padding-right: 10px; align-content: start; }
+.dot { width: 18px; height: 18px; border-radius: 50%; margin-top: 16px; background: var(--surface); border: 3px solid var(--accent); position: relative; z-index: 1; }
+.stop.done .dot { background: var(--good); border-color: var(--good); }
+.stop.now .dot { background: var(--warm); border-color: var(--warm); box-shadow: 0 0 0 5px var(--warm-soft); }
+.stop.mile .dot { width: 26px; height: 26px; margin-top: 12px; background: var(--accent); box-shadow: 0 0 0 6px var(--accent-soft); }
+.stop .id { font-family: var(--mono); font-size: 0.74rem; color: var(--muted); }
+.stop .nm { font-family: var(--display); font-weight: 700; font-variation-settings: "wdth" 112; font-size: 0.92rem; line-height: 1.25; }
+.stop .ds { font-size: 0.82rem; color: var(--muted); line-height: 1.4; }
+.stop.mile .nm { color: var(--accent); }
+.side { margin-top: 28px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+.side > div { background: var(--surface); border: 1px solid var(--line); padding: 18px 20px; display: grid; gap: 10px; align-content: start; }
+.side ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 0.94rem; }
+.side li::marker { color: var(--muted); }
+
+/* Gains */
+.gains { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+.gain { background: var(--surface); padding: 22px 22px 24px; display: grid; gap: 10px; align-content: start; }
+.gain .k { font-family: var(--mono); font-size: 0.72rem; color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; }
+.gain p { font-size: 0.96rem; }
+.gain .ev { font-family: var(--mono); font-size: 0.74rem; color: var(--muted); line-height: 1.5; }
+
+/* Progress so far */
+.so-far { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(24px, 4vw, 48px); align-items: start; }
+.chart { background: var(--surface); border: 1px solid var(--line); padding: 20px 22px 18px; display: grid; gap: 14px; }
+.chart .bars { display: grid; gap: 12px; }
+.bar-row { display: grid; grid-template-columns: 110px minmax(0, 1fr) 92px; gap: 12px; align-items: center; font-size: 0.86rem; }
+.bar-row .lbl { font-family: var(--display); font-weight: 600; }
+.bar-row .val { font-family: var(--mono); font-size: 0.78rem; font-variant-numeric: tabular-nums; text-align: right; color: var(--muted); }
+.track { position: relative; height: 18px; background: repeating-linear-gradient(90deg, transparent 0 calc(16.666% - 1px), var(--line) calc(16.666% - 1px) 16.666%); }
+.track .was { position: absolute; left: 0; top: 0; height: 8px; background: var(--muted); opacity: 0.35; border-radius: 0 2px 2px 0; }
+.track .is { position: absolute; left: 0; top: 10px; height: 8px; background: var(--accent); border-radius: 0 2px 2px 0; }
+.track .zero { position: absolute; left: 0; top: 8px; width: 3px; height: 12px; background: var(--good); }
+.axis-row { display: grid; grid-template-columns: 110px minmax(0, 1fr) 92px; gap: 12px; font-family: var(--mono); font-size: 0.68rem; color: var(--muted); }
+.axis-row .ticks { display: flex; justify-content: space-between; }
+.chart-key { display: flex; gap: 18px; flex-wrap: wrap; font-family: var(--mono); font-size: 0.72rem; color: var(--muted); }
+.chart-key i { display: inline-block; width: 14px; height: 8px; margin-right: 6px; vertical-align: middle; }
+.meter { display: grid; gap: 8px; }
+.meter .m { height: 22px; display: flex; border: 1px solid var(--line); }
+.meter .m .gone { background: var(--good); width: 47.2%; }
+.meter .m .left { background: var(--bad-soft); flex: 1; border-left: 2px solid var(--bad); }
+.meter .ml { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 0.74rem; color: var(--muted); gap: 12px; flex-wrap: wrap; }
+.done-list { display: grid; gap: 0; border-top: 1px solid var(--line); }
+.done-list div { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 0.94rem; }
+.done-list .n { font-family: var(--mono); font-size: 0.8rem; color: var(--good); font-weight: 600; padding-top: 2px; }
+.done-list b { font-family: var(--display); font-variation-settings: "wdth" 112; }
+
+/* Risks */
+.risks { display: grid; gap: 0; border-top: 1px solid var(--line); }
+.risk { display: grid; grid-template-columns: 92px minmax(0, 1.2fr) minmax(0, 1fr); gap: 22px; padding: 20px 0; border-bottom: 1px solid var(--line); }
+.sev { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; padding: 3px 8px; border-radius: 3px; justify-self: start; align-self: start; }
+.sev.high { background: var(--bad-soft); color: var(--bad); }
+.sev.med { background: var(--warm-soft); color: var(--warm); }
+.sev.low { background: var(--accent-soft); color: var(--accent); }
+.risk h3 { margin-bottom: 6px; }
+.risk p { font-size: 0.95rem; }
+.risk .mit { font-size: 0.92rem; color: var(--muted); }
+.risk .mit b { color: var(--ink); font-family: var(--display); font-weight: 600; font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; display: block; margin-bottom: 4px; }
+
+/* Method strip */
+.method { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 18px; margin-top: 40px; }
+.method div { display: grid; gap: 6px; align-content: start; border-top: 2px solid var(--ink); padding-top: 12px; }
+.method b { font-family: var(--display); font-variation-settings: "wdth" 112; font-size: 0.95rem; }
+.method span { font-size: 0.88rem; color: var(--muted); line-height: 1.45; }
+
+footer { border-top: 1px solid var(--line); padding-block: 36px 56px; font-size: 0.86rem; color: var(--muted); }
+footer .wrap > div { display: grid; gap: 10px; max-width: 80ch; }
+
+@media (max-width: 1080px) {
+  .snaps { grid-template-columns: minmax(0, 1fr); max-width: 620px; }
+  .gains { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .method { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 860px) {
+  .hero-grid, .goal-grid, .so-far, .side { grid-template-columns: minmax(0, 1fr); }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .risk { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+}
+@media (max-width: 560px) {
+  body { font-size: 16px; }
+  .gains, .method { grid-template-columns: minmax(0, 1fr); }
+  .axes { grid-template-columns: minmax(0, 1fr); }
+  .axis + .axis { border-left: 0; border-top: 1px solid var(--line); }
+  .bar-row, .axis-row { grid-template-columns: 78px minmax(0, 1fr) 76px; gap: 8px; }
+}
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow">openRender · architecture brief · 5 November 2026</div>
+        <h1>One renderer, <em>ten clean domains</em>.</h1>
+        <p class="lede">openRender is a RenderMan-compliant renderer with a twenty-year Pixie lineage. Its revamp splits a tightly knotted codebase into independent, swappable parts. The goal is a modern, physically based renderer that still renders every classic RenderMan scene the way it always has.</p>
+      </div>
+      <figure class="bucket-frame" style="margin:0">
+        <canvas id="bucket" width="640" height="400" aria-label="A shaded sphere rendered bucket by bucket"></canvas>
+        <figcaption><span>REYES renders in buckets, one tile at a time</span><span id="bucket-status">bucket 0 / 80</span></figcaption>
+      </figure>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><b>47%</b><span>of known boundary violations removed (686 → 362 forbidden dependency edges)</span></div>
+      <div class="stat"><b>12 → 4</b><span>symbols the shading library still borrows from the core at load time</span></div>
+      <div class="stat"><b>10 / 36</b><span>roadmap specs merged; the hider–shading split (029) is in progress</span></div>
+      <div class="stat"><b>0</b><span>images changed by the structural specs. Only two capability specs, 027 and 039, changed images, both on purpose.</span></div>
+    </div>
+  </header>
+</div>
+
+<section id="snapshots">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Three snapshots</div>
+      <h2>Where it started, where it stands, where it lands</h2>
+      <p class="prose">Each diagram shows the same parts of the renderer. Red arrows are dependencies that break the separation rules. Blue arrows go through a declared, versioned interface. The goal is a picture with no red in it.</p>
+    </div>
+    <div class="legend">
+      <span><i class="lg-bad"></i>forbidden dependency</span>
+      <span><i class="lg-clean"></i>through a declared interface</span>
+      <span><i class="lg-plan"></i>allowed by the constitution</span>
+      <span><i class="lg-wire"></i>core wiring (allowed)</span>
+    </div>
+
+    <div class="snaps">
+      <!-- BEFORE -->
+      <article class="snap">
+        <header>
+          <span class="when">Before · early October 2026, before spec 021</span>
+          <h3>A hub and a knot</h3>
+        </header>
+        <div class="diagram">
+          <svg viewBox="0 0 380 446" role="img" aria-label="Before: every part depends on one central renderer object; hiders and shading are one class">
+            <defs>
+              <marker id="ab" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" class="ah-bad"/></marker>
+            </defs>
+            <!-- edges to the hub -->
+            <path class="e-bad" d="M95,54 C110,120 140,170 160,198" marker-end="url(#ab)"/>
+            <path class="e-bad" d="M285,54 C270,110 250,160 228,198" marker-end="url(#ab)"/>
+            <path class="e-bad" d="M70,150 C80,180 110,205 128,215" marker-end="url(#ab)"/>
+            <path class="e-bad-thick" d="M285,170 C280,190 270,200 262,206" marker-end="url(#ab)"/>
+            <path class="e-bad" d="M95,312 C100,290 130,278 150,270" marker-end="url(#ab)"/>
+            <path class="e-bad" d="M285,312 C280,292 252,280 232,272" marker-end="url(#ab)"/>
+            <path class="e-bad" d="M190,392 L190,274" marker-end="url(#ab)"/>
+            <!-- domain-to-domain tangles -->
+            <path class="e-bad" d="M130,125 C160,125 180,148 198,150" marker-end="url(#ab)"/>
+            <path class="e-bad" d="M150,312 C150,250 205,215 214,173" marker-end="url(#ab)"/>
+            <path class="e-bad" d="M330,312 C340,260 345,210 336,173" marker-end="url(#ab)"/>
+            <path class="e-bad" d="M240,173 C230,230 215,290 200,312" marker-end="url(#ab)"/>
+
+            <rect class="box" x="10" y="10" width="170" height="44" rx="3"/>
+            <text class="t-title" x="20" y="29">Scene Interface</text>
+            <text class="t-sub" x="20" y="44">RIB parser reaches into the core</text>
+
+            <rect class="box" x="200" y="10" width="170" height="44" rx="3"/>
+            <text class="t-title" x="210" y="29">Display Outputs</text>
+            <text class="t-sub" x="210" y="44">drivers get writable core data</text>
+
+            <rect class="box" x="10" y="100" width="120" height="50" rx="3"/>
+            <text class="t-title" x="20" y="120">Graphics State</text>
+            <text class="t-sub" x="20" y="135">owns shader and</text>
+            <text class="t-sub" x="20" y="145">photon-map objects</text>
+
+            <rect class="box-bad" x="200" y="88" width="170" height="85" rx="3"/>
+            <line class="divider" x1="200" y1="130" x2="370" y2="130"/>
+            <text class="t-title" x="210" y="107">Hiders</text>
+            <text class="t-sub" x="210" y="121">inherit the shading class</text>
+            <text class="t-title" x="210" y="149">Shading</text>
+            <text class="t-sub" x="210" y="163">binds 28 core symbols at load</text>
+            <text class="t-tag fill-bad" x="300" y="107">ONE CLASS</text>
+
+            <rect class="hub-bad" x="110" y="200" width="160" height="72" rx="4"/>
+            <text class="t-title hub-bad-t" x="122" y="222">CRenderer</text>
+            <text class="t-sub hub-bad-t" x="122" y="240">~243 static members</text>
+            <text class="t-sub hub-bad-t" x="122" y="254">used from 87 files in</text>
+            <text class="t-sub hub-bad-t" x="122" y="265">every domain</text>
+
+            <rect class="box" x="10" y="312" width="170" height="58" rx="3"/>
+            <text class="t-title" x="20" y="332">Geometry</text>
+            <text class="t-sub" x="20" y="347">takes the shading class as input</text>
+            <text class="t-sub" x="20" y="360">CSG: BSP kernel, pre-baked</text>
+
+            <rect class="box" x="200" y="312" width="170" height="58" rx="3"/>
+            <text class="t-title" x="210" y="332">Texturing</text>
+            <text class="t-sub" x="210" y="347">cache and paging live in core</text>
+            <text class="t-sub" x="210" y="360">lookups take the shading class</text>
+
+            <rect class="box" x="10" y="392" width="360" height="44" rx="3"/>
+            <text class="t-title" x="20" y="411">Plug-ins · display, shadeop, procedures</text>
+            <text class="t-sub" x="20" y="426">no interface versions · loaders spread over three domains</text>
+          </svg>
+        </div>
+        <div class="caption">
+          <p>One central object held the renderer's state, and every part read and wrote it. Hiders, which decide what is visible, were the same class as the shading engine, which decides what it looks like. Nothing in the build stopped a new shortcut from being added.</p>
+        </div>
+      </article>
+
+      <!-- NOW -->
+      <article class="snap">
+        <header>
+          <span class="when">Now · master, 5 November 2026</span>
+          <h3>Boundaries drawn, one knot left</h3>
+        </header>
+        <div class="diagram">
+          <svg viewBox="0 0 380 446" role="img" aria-label="Now: Scene, State, Texturing, Display and plug-ins are separated; hiders and geometry still depend on the core">
+            <defs>
+              <marker id="nb" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 z" class="ah-bad"/></marker>
+              <marker id="nc" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 z" class="ah-clean"/></marker>
+            </defs>
+            <!-- core wiring (allowed: the core composes everything) -->
+            <path class="e-wire" d="M150,212 C120,150 100,90 95,56"/>
+            <path class="e-wire" d="M230,212 C260,150 280,90 285,56"/>
+            <path class="e-wire" d="M130,240 C100,230 80,200 70,152"/>
+            <path class="e-wire" d="M190,276 L190,390"/>
+            <!-- remaining violations -->
+            <path class="e-bad-thick" d="M285,174 C280,192 266,202 256,210" marker-end="url(#nb)"/>
+            <text class="t-tag fill-bad" x="296" y="196">168 lines</text>
+            <path class="e-bad" d="M95,312 C100,292 130,282 150,276" marker-end="url(#nb)"/>
+            <path class="e-bad" d="M150,312 C150,250 205,215 214,176" marker-end="url(#nb)"/>
+            <!-- clean interfaces -->
+            <path class="e-clean" d="M330,176 C340,230 335,280 320,310" marker-end="url(#nc)"/>
+            <path class="e-clean" d="M200,160 C170,160 150,140 132,130" marker-end="url(#nc)"/>
+            <rect class="pill" x="132" y="282" width="78" height="15" rx="7"/>
+            <text class="pill-t" x="140" y="292">services v2</text>
+            <path class="e-clean" d="M262,176 C262,215 245,262 212,286" marker-end="url(#nc)"/>
+
+            <rect class="box-good" x="10" y="10" width="170" height="44" rx="3"/>
+            <text class="t-title" x="20" y="29">Scene Interface</text>
+            <text class="t-sub" x="20" y="44">builds without the core · 038</text>
+
+            <rect class="box-good" x="200" y="10" width="170" height="44" rx="3"/>
+            <text class="t-title" x="210" y="29">Display Outputs</text>
+            <text class="t-sub" x="210" y="44">display ABI 2.0, read-only · 037</text>
+
+            <rect class="box-good" x="10" y="100" width="120" height="52" rx="3"/>
+            <text class="t-title" x="20" y="120">Graphics State</text>
+            <text class="t-sub" x="20" y="135">handles, frame params,</text>
+            <text class="t-sub" x="20" y="145">declarations · 025 028</text>
+
+            <rect class="box-warm" x="200" y="88" width="170" height="88" rx="3"/>
+            <line class="divider-warm" x1="200" y1="130" x2="370" y2="130"/>
+            <text class="t-title" x="210" y="107">Hiders</text>
+            <text class="t-sub" x="210" y="121">still inherit shading · 029</text>
+            <text class="t-title" x="210" y="149">Shading</text>
+            <text class="t-sub" x="210" y="163">versioned services + tracer</text>
+            <text class="t-tag fill-warm" x="296" y="107">SPLITTING</text>
+
+            <rect class="box" x="120" y="212" width="140" height="64" rx="4"/>
+            <text class="t-title" x="132" y="232">Renderer core</text>
+            <text class="t-sub" x="132" y="249">606 references (was 813)</text>
+            <text class="t-sub" x="132" y="263">from Hiders and Geometry</text>
+
+            <rect class="box-warm" x="10" y="312" width="170" height="58" rx="3"/>
+            <text class="t-title" x="20" y="332">Geometry</text>
+            <text class="t-sub" x="20" y="347">shared motion evaluator · 028</text>
+            <text class="t-sub" x="20" y="360">CSG via generic hooks · 021</text>
+
+            <rect class="box-good" x="200" y="312" width="170" height="58" rx="3"/>
+            <text class="t-title" x="210" y="332">Texturing</text>
+            <text class="t-sub" x="210" y="347">its own texture system · 027</text>
+            <text class="t-sub" x="210" y="360">no core references left</text>
+
+            <rect class="box-good" x="10" y="392" width="360" height="44" rx="3"/>
+            <text class="t-title" x="20" y="411">Plug-ins · versioned, one load check</text>
+            <text class="t-sub" x="20" y="426">semantic versions · one procedures loader · shadeop library · 037</text>
+          </svg>
+        </div>
+        <div class="caption">
+          <p>Half the boundary work is done. The parser, the graphics state, texturing, displays and plug-ins now stand on their own, and shading reaches the renderer only through one versioned interface. The remaining knot is the hiders. They still are the shading class and still read core state directly. Spec 029, now under way, separates them.</p>
+        </div>
+      </article>
+
+      <!-- TARGET -->
+      <article class="snap target">
+        <header>
+          <span class="when">Target · after the full roadmap, 022–057</span>
+          <h3>Ten domains, one composition root</h3>
+        </header>
+        <div class="diagram">
+          <svg viewBox="0 0 380 446" role="img" aria-label="Target: ten domains in layers, a new Transport domain for integrators, the core only wires them together">
+            <defs>
+              <marker id="tg" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 z" class="ah-good"/></marker>
+            </defs>
+            <rect class="core-bar" x="10" y="8" width="360" height="30" rx="3"/>
+            <text class="t-title" x="20" y="27" style="font-size:11px">Renderer core</text>
+            <text class="t-sub" x="112" y="27">wires the domains · nothing depends on it</text>
+
+            <!-- edges, all allowed by the constitution's table -->
+            <path class="e-good" d="M180,148 L198,148" marker-end="url(#tg)"/>
+            <path class="e-good" d="M95,176 L95,202" marker-end="url(#tg)"/>
+            <path class="e-good" d="M150,176 L232,202" marker-end="url(#tg)"/>
+            <path class="e-good" d="M232,176 L152,202" marker-end="url(#tg)"/>
+            <path class="e-good" d="M300,176 L300,202" marker-end="url(#tg)"/>
+            <path class="e-good" d="M60,286 L60,302" marker-end="url(#tg)"/>
+            <path class="e-good" d="M160,286 L160,352" marker-end="url(#tg)"/>
+            <path class="e-good" d="M300,286 L300,352" marker-end="url(#tg)"/>
+            <path class="e-good" d="M270,74 L376,74 L376,368 L372,368" marker-end="url(#tg)"/>
+            <path class="e-good" d="M376,244 L372,244" marker-end="url(#tg)"/>
+
+            <rect class="box" x="110" y="52" width="160" height="44" rx="3"/>
+            <text class="t-title" x="122" y="71">Scene Interface</text>
+            <text class="t-sub" x="122" y="86">RIB in and out</text>
+
+            <rect class="box" x="10" y="120" width="170" height="56" rx="3"/>
+            <text class="t-title" x="20" y="139">Hiders · visibility</text>
+            <text class="t-sub" x="20" y="154">reyes · zbuffer · raytrace</text>
+            <text class="t-sub" x="20" y="166">photon · one registry</text>
+
+            <rect class="box-acc" x="198" y="120" width="170" height="56" rx="3"/>
+            <text class="t-title" x="208" y="139">Transport</text>
+            <text class="t-tag fill-acc" x="300" y="139">NEW</text>
+            <text class="t-sub" x="208" y="154">integrators: classic · direct</text>
+            <text class="t-sub" x="208" y="166">pathtracer · bdpt later</text>
+
+            <rect class="box" x="10" y="204" width="170" height="82" rx="3"/>
+            <text class="t-title" x="20" y="223">Shading</text>
+            <text class="t-sub" x="20" y="238">backends: RSL interpreter,</text>
+            <text class="t-sub" x="20" y="250">RSL JIT, OSL</text>
+            <text class="t-sub" x="20" y="264">closures · BRDF library</text>
+            <text class="t-sub" x="20" y="276">light service · RSL 2.0</text>
+
+            <rect class="box" x="198" y="204" width="170" height="82" rx="3"/>
+            <text class="t-title" x="208" y="223">Geometry</text>
+            <text class="t-sub" x="208" y="238">dicing and ray interfaces</text>
+            <text class="t-sub" x="208" y="250">shared motion and camera</text>
+            <text class="t-sub" x="208" y="264">area sampling for lights</text>
+            <text class="t-sub" x="208" y="276">fills shading globals</text>
+
+            <rect class="box" x="10" y="304" width="120" height="40" rx="3"/>
+            <text class="t-title" x="20" y="321">Texturing</text>
+            <text class="t-sub" x="20" y="335">textures · GI storage</text>
+
+            <rect class="box" x="10" y="354" width="362" height="34" rx="3"/>
+            <text class="t-title" x="20" y="375">Graphics State</text>
+            <text class="t-sub" x="122" y="375">handles · shader networks · frame params</text>
+
+            <rect class="box" x="10" y="400" width="362" height="38" rx="3"/>
+            <text class="t-title" x="20" y="417" style="font-size:11px">Versioned plug-ins</text>
+            <text class="t-sub" x="20" y="430">display · shadeop · procedures · Bxdf · integrator · light · filters</text>
+          </svg>
+        </div>
+        <div class="caption">
+          <p>Every part depends only on what the constitution allows. Visibility, shading and light transport become three independent choices. Integrators get a new tenth domain, Transport. The core only assembles the parts and owns no behavior of its own.</p>
+          <p class="note">Planned architecture, not delivered. It covers the full roadmap, specs 022–057. Spec 042 is the PBR milestone, and 049–050 (OSL, path tracer) end the critical path. Specs 041–057 are provisional until each is specified.</p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="goal">
+  <div class="wrap">
+    <div class="goal-grid">
+      <div class="prose">
+        <div class="eyebrow">The final goal</div>
+        <h2>Pick what you see, how it looks and how light moves, independently</h2>
+        <p>Today, a RenderMan surface shader computes its own lighting. That model is kept as the <span class="mono">classic</span> integrator, and under it every existing scene renders exactly as it does now.</p>
+        <p>Next to it the revamp adds physically based transport. The renderer integrates the light, materials are described as closures, and lights can be sampled by area. Neither model needs a different hider or a different shading language.</p>
+        <p>The commitment that holds this together: <strong>every hider × integrator × material combination either renders or stops with a clear diagnostic</strong>. Nothing degrades silently. A dedicated compatibility suite checks every one of those combinations.</p>
+      </div>
+      <div class="axes" role="table" aria-label="The three independent choices">
+        <div class="axis">
+          <h3>Visibility</h3>
+          <span class="q">Hider · what is seen</span>
+          <div class="chips">
+            <span class="chip now">reyes <small>today</small></span>
+            <span class="chip now">zbuffer <small>today</small></span>
+            <span class="chip now">raytrace <small>today</small></span>
+            <span class="chip now">photon <small>GI pass</small></span>
+          </div>
+        </div>
+        <div class="axis">
+          <h3>Shading</h3>
+          <span class="q">Language × backend</span>
+          <div class="chips">
+            <span class="chip now">RSL · interpreter <small>today</small></span>
+            <span class="chip now">RSL · LLVM JIT <small>today</small></span>
+            <span class="chip next">RSL 2.0 + closures <small>044–047, 036</small></span>
+            <span class="chip next">OSL <small>049</small></span>
+            <span class="chip next">C++ Bxdf plug-ins <small>035</small></span>
+          </div>
+        </div>
+        <div class="axis">
+          <h3>Transport</h3>
+          <span class="q">Integrator · how light moves</span>
+          <div class="chips">
+            <span class="chip now">classic <small>today's model</small></span>
+            <span class="chip next">direct <small>042 · PBR</small></span>
+            <span class="chip next">pathtracer <small>050</small></span>
+            <span class="chip next">bdpt <small>later</small></span>
+          </div>
+        </div>
+        <div class="axes-foot">shared renderer services: textures · attributes · transforms · derivatives · ray queries · light sampling</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="progress">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Progress so far</div>
+      <h2>The cleanup is measured on every build</h2>
+      <p class="prose">Since spec 022, a build check maps every source file to its domain and fails on any dependency the rules forbid, unless it is on a list of known violations. That list may only shrink. The figures below come from that check.</p>
+    </div>
+    <div class="so-far">
+      <div style="display:grid; gap:20px; min-width:0">
+        <div class="chart">
+          <h3>References to the central renderer object, by domain</h3>
+          <div class="chart-key"><span><i style="background:var(--muted);opacity:.35"></i>first audit (spec 022)</span><span><i style="background:var(--accent)"></i>master today</span><span><i style="background:var(--good)"></i>zero</span></div>
+          <div class="bars">
+            <div class="bar-row"><span class="lbl">Hiders</span><div class="track"><span class="was" style="width:98%"></span><span class="is" style="width:93%"></span></div><span class="val">588 → 558</span></div>
+            <div class="bar-row"><span class="lbl">Texturing</span><div class="track"><span class="was" style="width:17.3%"></span><span class="zero"></span></div><span class="val">104 → 0</span></div>
+            <div class="bar-row"><span class="lbl">Geometry</span><div class="track"><span class="was" style="width:12.7%"></span><span class="is" style="width:8%"></span></div><span class="val">76 → 48</span></div>
+            <div class="bar-row"><span class="lbl">Scene</span><div class="track"><span class="was" style="width:3.2%"></span><span class="zero"></span></div><span class="val">19 → 0</span></div>
+            <div class="bar-row"><span class="lbl">Shading</span><div class="track"><span class="was" style="width:2.7%"></span><span class="zero"></span></div><span class="val">16 → 0</span></div>
+            <div class="bar-row"><span class="lbl">Infra</span><div class="track"><span class="was" style="width:1.7%"></span><span class="zero"></span></div><span class="val">10 → 0</span></div>
+          </div>
+          <div class="axis-row"><span></span><span class="ticks"><span>0</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span></span><span></span></div>
+          <p style="font-size:.9rem;color:var(--muted)">Four domains no longer reference the central object at all. The hiders account for nine in ten of the references left. They are the target of specs 029, 030 and 031.</p>
+        </div>
+        <div class="chart meter">
+          <h3>Known violations, as dependency edges</h3>
+          <div class="m" role="img" aria-label="324 of 686 edges retired"><span class="gone"></span><span class="left"></span></div>
+          <div class="ml"><span>324 retired</span><span>362 remain · 15 registry entries open, 11 resolved</span></div>
+        </div>
+      </div>
+      <div style="min-width:0">
+        <h3 style="margin-bottom:14px">Ten specs merged</h3>
+        <div class="done-list">
+          <div><span class="n">022</span><span><b>Guardrails.</b> A build check enforces the domain rules and tracks every known exception.</span></div>
+          <div><span class="n">023</span><span><b>Common floor.</b> Diagnostics, memory and vocabulary move into one shared base library.</span></div>
+          <div><span class="n">024</span><span><b>Shading services.</b> Shading calls the renderer only through its services; JIT and interpreter now agree in photon passes.</span></div>
+          <div><span class="n">025</span><span><b>State handles.</b> The graphics state stores references, not other domains' objects.</span></div>
+          <div><span class="n">026</span><span><b>Shading contract.</b> One versioned interface (2.0.0) for attributes, messages, matrices and ray tracing.</span></div>
+          <div><span class="n">027</span><span><b>Texture system.</b> Texturing owns its cache. JIT texture calls now honour their options.</span></div>
+          <div><span class="n">028</span><span><b>Camera and motion.</b> One camera and one motion evaluator. 12,943 recorded calls prove nothing moved.</span></div>
+          <div><span class="n">037</span><span><b>Plug-in versions.</b> Every plug-in family carries a semantic version that one routine checks.</span></div>
+          <div><span class="n">038</span><span><b>Scene interface.</b> The RIB parser and writer build without the renderer core.</span></div>
+          <div><span class="n">039</span><span><b>Sampling.</b> One counter-based sampler. Non-GI renders are bit-identical at any thread count.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="road">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">The road to the target</div>
+      <h2>A critical path with one milestone in the middle</h2>
+      <p class="prose">Specs land one at a time, each a mergeable slice with the full test suite green. Two items run in parallel whenever their dependencies allow it. The direct integrator (042) is the PBR milestone. RSL 2.0, OSL and the path tracer build on it.</p>
+    </div>
+    <div class="road-wrap" tabindex="0" aria-label="Critical path, scrollable">
+      <div class="road">
+        <div class="stop done"><span class="dot"></span><span class="id">022–028 · 037–039</span><span class="nm">Foundations</span><span class="ds">ten specs merged</span></div>
+        <div class="stop now"><span class="dot"></span><span class="id">029 · now</span><span class="nm">Hiders leave shading</span><span class="ds">composition replaces inheritance</span></div>
+        <div class="stop"><span class="dot"></span><span class="id">030 ∥ 056</span><span class="nm">Registries · volumes</span><span class="ds">hider and integrator registry; Interior/Exterior shaders</span></div>
+        <div class="stop"><span class="dot"></span><span class="id">033 ∥ 057</span><span class="nm">Shader backends · area lights</span><span class="ds">pluggable backends; lights bound to geometry</span></div>
+        <div class="stop"><span class="dot"></span><span class="id">035</span><span class="nm">Materials</span><span class="ds">closures, BRDF library, C++ Bxdfs</span></div>
+        <div class="stop"><span class="dot"></span><span class="id">041 · 054</span><span class="nm">Lights · shading rate</span><span class="ds">light service; one meaning of ShadingRate</span></div>
+        <div class="stop mile"><span class="dot"></span><span class="id">042 · milestone</span><span class="nm">Direct integrator: PBR</span><span class="ds">on reyes, zbuffer and raytrace</span></div>
+        <div class="stop"><span class="dot"></span><span class="id">044–047 · 036</span><span class="nm">RSL 2.0</span><span class="ds">structs, class shaders, co-shaders, plausible shading, closures</span></div>
+        <div class="stop"><span class="dot"></span><span class="id">spike · 049</span><span class="nm">OSL backend</span><span class="ds">industry-standard shaders, a peer of RSL</span></div>
+        <div class="stop"><span class="dot"></span><span class="id">050</span><span class="nm">Path tracer</span><span class="ds">full global transport</span></div>
+      </div>
+    </div>
+    <div class="side">
+      <div>
+        <h3>Running beside the path</h3>
+        <ul>
+          <li><b>031</b> geometry stops naming hiders; link-time substitution tricks deleted</li>
+          <li><b>032 → 040 → 053</b> GI caches split out, made deterministic, then extended to new materials</li>
+          <li><b>034</b> shader networks: pattern nodes wired into materials</li>
+          <li><b>043</b> shader compiler as a versioned library, needed before RSL 2.0</li>
+          <li><b>048</b> OpenImageIO as an image backend, ahead of OSL</li>
+        </ul>
+      </div>
+      <div>
+        <h3>After the core path</h3>
+        <ul>
+          <li><b>051</b> run-time loading for every plug-in type, plus light, display and sample filters</li>
+          <li><b>052</b> a public shading runtime library for editor previews</li>
+          <li><b>055</b> native JIT lowering, the next performance step for compiled shaders</li>
+          <li>API and ABI reach MAJOR version 2 once the series ends</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="gains">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">What the target buys</div>
+      <h2>Gains, in terms a studio would notice</h2>
+    </div>
+    <div class="gains">
+      <div class="gain"><span class="k">Replaceable parts</span><h3>Swap a module without touching the rest</h3><p>Each domain sits behind an interface, so a hider, shading backend or integrator can be replaced alone. A build check guards the separation.</p><span class="ev">evidence: 324 forbidden edges already removed</span></div>
+      <div class="gain"><span class="k">Physically based</span><h3>Modern light transport</h3><p>Direct lighting with real materials first, then a full path tracer. The same scene description drives both.</p><span class="ev">042 milestone · 050 path tracer</span></div>
+      <div class="gain"><span class="k">Standards</span><h3>OSL next to RSL</h3><p>Industry-standard Open Shading Language shaders run as a peer backend. Existing RSL shaders and RIB files keep working.</p><span class="ev">049 · classic default kept identical</span></div>
+      <div class="gain"><span class="k">Reproducibility</span><h3>Same input, same image</h3><p>Non-GI renders are already bit-identical at any thread or process count. Spec 040 extends this to the GI caches.</p><span class="ev">404 scenes × 3 samplers in the sweep</span></div>
+      <div class="gain"><span class="k">Ecosystem</span><h3>Safe third-party plug-ins</h3><p>Every plug-in type gets a semantic version and a C function table. Incompatible modules are rejected with a message instead of crashing.</p><span class="ev">037 done · 051 extends it to every type</span></div>
+      <div class="gain"><span class="k">Spec completeness</span><h3>The RenderMan gaps closed</h3><p>Volume shaders on every ray, and area lights bound to real geometry with soft shadows on every hider, both before PBR.</p><span class="ev">056 · 057 on the critical path</span></div>
+    </div>
+
+    <div class="method">
+      <div><b>One slice at a time</b><span>Every spec goes through specify, clarify, plan, tasks, analyze and implement, with a review after each stage.</span></div>
+      <div><b>Images as the contract</b><span>Structural changes must leave rendered images byte-identical. Visual and parity suites compare them block by block.</span></div>
+      <div><b>Recorded replays</b><span>Recordings of real calls, such as 12,943 motion evaluations and every trace request, prove that a move changed nothing.</span></div>
+      <div><b>A list that only shrinks</b><span>Known violations are listed by name. A fixed one must be deleted from the list, and a new one fails the build.</span></div>
+      <div><b>Two platforms</b><span>Each spec is validated on macOS and on Linux with GCC 13 and warnings as errors.</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="risks">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Risks and pitfalls</div>
+      <h2>What could slow it down, and the guard against each</h2>
+      <p class="prose">These risks come from the project's own records: the violation registry, the bug tracker, and lessons learned while delivering the specs so far.</p>
+    </div>
+    <div class="risks">
+      <div class="risk"><span class="sev high">High</span><div><h3>The hider–shading split is the biggest single move</h3><p>One class is at once the hider base, the shading state, the ray tracer and the JIT runtime, and 77 files depend on it. A mistake here touches every image the renderer makes.</p></div><p class="mit"><b>Guard</b>The split happens in four steps: forward, move, re-home tracing, then cut the inheritance. Renders stay byte-identical after each step. The work is under way in its own worktree.</p></div>
+      <div class="risk"><span class="sev high">High</span><div><h3>The hiders still lean on the core</h3><p>558 references and 168 allowlist lines remain. Another 78 lines are link-time substitution pairs that only fail at run time.</p></div><p class="mit"><b>Guard</b>Each remaining violation has a scheduled owner: the registry in 030 and the geometry interfaces in 031. The build check alerts on any increase.</p></div>
+      <div class="risk"><span class="sev med">Medium</span><div><h3>A long, strictly ordered critical path</h3><p>Fourteen steps separate 029 from the path tracer, and each one depends on the step before. A slip early on, especially in 029, pushes back everything after it.</p></div><p class="mit"><b>Guard</b>Two items in flight at once. The off-path specs (031, 032, 034, 043, 048) fill idle capacity, and each spec is a mergeable slice that delivers value alone.</p></div>
+      <div class="risk"><span class="sev med">Medium</span><div><h3>Interpreter and JIT can disagree</h3><p>The same shader can still give different results in its two forms. One known case runs a guarded uniform assignment regardless of its condition (#8). Another affects light message passing (#115).</p></div><p class="mit"><b>Guard</b>Parity suites run every shader both ways. Native JIT lowering (055) waits until #8 is fixed.</p></div>
+      <div class="risk"><span class="sev med">Medium</span><div><h3>Bit-exact output is fragile</h3><p>Regrouping one expression, or letting compilers fuse multiply-adds differently, changes the last bit of an image. A tidy refactor can look like a regression.</p></div><p class="mit"><b>Guard</b>Each call site keeps its exact arithmetic, and recorded replays catch any drift. A red replay means code moved; it is never a reason to widen a tolerance.</p></div>
+      <div class="risk"><span class="sev med">Medium</span><div><h3>OSL brings heavy dependencies</h3><p>OpenImageIO 3, an LLVM 18 floor and CMake 3.23 come with it, and the legacy image codecs are removed. Building LLVM from source takes nearly two hours.</p></div><p class="mit"><b>Guard</b>OpenImageIO lands first as an optional backend (048). A hands-on spike precedes the OSL backend, and vcpkg caches the vendored toolchain.</p></div>
+      <div class="risk"><span class="sev low">Watch</span><div><h3>Some images will change on purpose</h3><p>A direct integrator cannot reproduce full global transport. Correct volume shading also changes how CSG interiors look today.</p></div><p class="mit"><b>Guard</b>Like is compared with like. Each intended change gets a documented re-render, and the classic default stays identical.</p></div>
+      <div class="risk"><span class="sev low">Watch</span><div><h3>The boundary check runs in CI only on release tags</h3><p>Between releases it relies on discipline: the check runs locally before every review.</p></div><p class="mit"><b>Guard</b>Every phase report includes a passing architecture run. Running it in CI on every push is a cheap step that remains open.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <p><b>Sources.</b> The constitution's domain rules (Principle VIII). The domain-boundary registry and its build check (allowlist and core-usage baseline at spec 022's merge compared with master <span class="mono">71fcc0c9</span>). The roadmap plan for specs 022–057. The render-architecture decision record (D1–D30). DEVNOTES. The "before" snapshot describes the tree before spec 021 began (early October 2026), which had no automated boundary check. Its first measurement, at spec 022, is used as the baseline.</p>
+      <p><b>Definitions.</b> A "violation" counts as one forbidden dependency edge (an include or a link-time symbol), so one design flaw can account for many edges. "Merged" means on master as of 5 November 2026.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  const canvas = document.getElementById('bucket');
+  const status = document.getElementById('bucket-status');
+  if (!canvas || !canvas.getContext) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height, BX = 10, BY = 8;
+  const bw = W / BX, bh = H / BY, total = BX * BY;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function hexToRgb(s) {
+    s = s.trim();
+    if (s.startsWith('#')) {
+      const n = s.length === 4 ? s.slice(1).split('').map(c => c + c).join('') : s.slice(1);
+      return [parseInt(n.slice(0, 2), 16), parseInt(n.slice(2, 4), 16), parseInt(n.slice(4, 6), 16)];
+    }
+    const m = s.match(/\d+/g); return m ? m.slice(0, 3).map(Number) : [128, 128, 128];
+  }
+  function tokens() {
+    const cs = getComputedStyle(document.documentElement);
+    return { bg: hexToRgb(cs.getPropertyValue('--surface')), acc: hexToRgb(cs.getPropertyValue('--accent')),
+             warm: hexToRgb(cs.getPropertyValue('--warm')), ink: hexToRgb(cs.getPropertyValue('--muted')) };
+  }
+
+  // A tiny ray tracer: two spheres on a ground plane, one key light, soft-ish shadow.
+  function renderImage(t) {
+    const img = ctx.createImageData(W, H), d = img.data;
+    const L = norm([-0.55, 0.75, -0.45]);
+    const spheres = [{ c: [-0.55, 0.0, 3.2], r: 1.0, col: t.acc }, { c: [1.05, -0.45, 2.7], r: 0.55, col: t.warm }];
+    const groundY = -1.0;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const u = (x - W / 2) / H * 1.9, v = -(y - H / 2) / H * 1.9;
+      const dir = norm([u, v + 0.05, 1.4]);
+      let hit = trace([0, 0.25, -0.6], dir, spheres, groundY);
+      let c;
+      if (!hit) {
+        const k = Math.max(0, Math.min(1, 0.5 + v * 0.6));
+        c = mix(t.bg, t.ink, 0.06 + 0.08 * k);
+      } else {
+        const sh = trace(add(hit.p, mul(hit.n, 1e-3)), L, spheres, groundY - 10) ? 0.35 : 1.0;
+        const diff = Math.max(0, dot(hit.n, L)) * sh;
+        if (hit.ground) {
+          const chk = ((Math.floor(hit.p[0] * 1.5) + Math.floor(hit.p[2] * 1.5)) & 1) ? 0.10 : 0.05;
+          c = mix(t.bg, t.ink, chk + (1 - diff) * 0.22);
+        } else {
+          const h = norm(sub(L, dir));
+          const spec = Math.pow(Math.max(0, dot(hit.n, h)), 48) * sh;
+          const base = mix(t.bg, hit.col, 0.25 + 0.75 * diff);
+          c = base.map(ch => Math.min(255, ch + spec * 230));
+        }
+      }
+      const i = (y * W + x) * 4; d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255;
+    }
+    return img;
+  }
+  function trace(o, dir, spheres, groundY) {
+    let best = null, tmin = 1e9;
+    for (const s of spheres) {
+      const oc = sub(o, s.c), b = dot(oc, dir), c = dot(oc, oc) - s.r * s.r, disc = b * b - c;
+      if (disc > 0) { const tt = -b - Math.sqrt(disc); if (tt > 1e-4 && tt < tmin) { tmin = tt; const p = add(o, mul(dir, tt)); best = { p, n: norm(sub(p, s.c)), col: s.col }; } }
+    }
+    if (dir[1] < -1e-4) { const tt = (groundY - o[1]) / dir[1]; if (tt > 1e-4 && tt < tmin) { tmin = tt; best = { p: add(o, mul(dir, tt)), n: [0, 1, 0], ground: true }; } }
+    return best;
+  }
+  function dot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+  function add(a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; }
+  function sub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
+  function mul(a, s) { return [a[0] * s, a[1] * s, a[2] * s]; }
+  function norm(a) { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; }
+  function mix(a, b, k) { return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k]; }
+
+  let full = null, timer = null;
+  function draw() {
+    const t = tokens();
+    full = renderImage(t);
+    if (timer) clearInterval(timer);
+    // Resting frame: the finished image, faded, so the canvas is never empty.
+    ctx.putImageData(full, 0, 0);
+    ctx.fillStyle = 'rgba(' + t.bg.join(',') + ',0.72)';
+    ctx.fillRect(0, 0, W, H);
+    if (reduce) { ctx.putImageData(full, 0, 0); status.textContent = 'bucket ' + total + ' / ' + total; return; }
+    let k = 0;
+    timer = setInterval(function () {
+      const bx = k % BX, by = Math.floor(k / BX);
+      ctx.putImageData(full, 0, 0, bx * bw, by * bh, bw, bh);
+      k++;
+      status.textContent = 'bucket ' + k + ' / ' + total;
+      if (k < total) {
+        const nx = k % BX, ny = Math.floor(k / BX);
+        ctx.strokeStyle = 'rgba(' + t.acc.join(',') + ',0.9)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(nx * bw + 1, ny * bh + 1, bw - 2, bh - 2);
+      } else { clearInterval(timer); timer = null; }
+    }, 38);
+  }
+  draw();
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  if (mq.addEventListener) mq.addEventListener('change', draw);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+})();
+</script>
+</body>
+</html>
