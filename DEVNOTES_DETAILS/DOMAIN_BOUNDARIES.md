@@ -277,15 +277,16 @@ request. Run `ctest -L architecture` locally before review.
 - **Rules**: the renderer-core rule (no domain may depend on the renderer core).
 - **Tracking**: remediation specs 028 ([#34](https://github.com/juvenal/openrender/issues/34)), 029 ([#35](https://github.com/juvenal/openrender/issues/35)), 030 ([#36](https://github.com/juvenal/openrender/issues/36))
 - **Evidence**:
-  - 19 files under `src/ri/hiders/` make 558 `CRenderer::` references (the archcheck metric,
-    `metrics-baseline.txt`; a raw grep counts 575): frame and
+  - 19 files under `src/ri/hiders/` make 556 `CRenderer::` references (the archcheck metric,
+    `metrics-baseline.txt`; a raw grep counts 573): frame and
     sampling parameters (`clipMax`, `bucketWidth`, `pixelXsamples`, `xSampleOffset`, …),
     `flags`, `hiderFlags`, `raytracingFlags`.
   - 9 files include `src/ri/render/renderer.h`.
-- **Size**: 166 edges per platform after spec 028 (9 include, 157 link), 173 before (9 include,
-  164 link). The thread-local `CRenderer::activeContext` is referenced through Clang's TLS wrapper
-  (`_ZTW…`) on macOS and directly by GCC on Linux, so its 2 edges are listed once per platform,
-  tagged: the allowlist holds 168 DB-011 lines (175 before). The previous header and Size text said
+- **Size**: 164 edges per platform and 164 DB-011 lines after spec 029 (9 include, 155 link). After
+  spec 028 it was 166 edges (9 include, 157 link) and 168 lines, because the thread-local
+  `CRenderer::activeContext`, referenced through Clang's TLS wrapper (`_ZTW…`) on macOS and directly
+  by GCC on Linux, had its 2 edges listed once per platform; before spec 028, 173 edges (9 include,
+  164 link) and 175 lines. The previous header and Size text said
   182 lines and 180 edges; they were stale (the file held 175 lines at the start of spec 028).
   Linux counted 173 edges before spec 028 and 166 after it (`specs/028-camera-and-motion-layer/validation.md`
   §3 and §7), the same as macOS.
