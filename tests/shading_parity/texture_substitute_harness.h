@@ -53,11 +53,7 @@ static inline bool nearlyEqual(float a, float b) {
     return std::fabs(a - b) <= 1e-6f * (1.0f + std::fabs(a) + std::fabs(b));
 }
 
-class CProbeContext : public CShadingContext {
-    public:
-        explicit CProbeContext(int thread) : CShadingContext(thread) {}
-        void renderingLoop() override {}
-};
+using CProbeContext = CShadingContext;
 
 // CSurface is abstract; instantiate() is never called here
 class CProbeSurface : public CSurface {
@@ -86,7 +82,7 @@ static void setupState(CProbeContext *probe, CSurface *object) {
     ss->alights = nullptr;
     ss->currentLight = nullptr;
     ss->lightsExecuted = FALSE;
-    ss->currentObject = object;
+    probe->setShadedObject(object, openrender::shading::ObjectHandle{static_cast<const CObject *>(object)}, object->attributes);
 
     for (int i = 0; i < kNumPoints; i++) {
         memcpy(ss->varying[VARIABLE_P] + 3 * i, kP[i], 3 * sizeof(float));

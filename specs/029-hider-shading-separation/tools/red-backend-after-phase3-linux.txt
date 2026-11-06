@@ -1,0 +1,7 @@
+# T054 (Phase 3, Linux): P-Q17 backend measurement on the plain static consumer after bundles.cpp moved into libshader_shading.
+# Link_StaticConsumer PASSES (rslo and slo) on Linux; relinked with -Wl,-Map (Archive member included lines for the two backend objects):
+# ribOut.cpp.o: included to satisfy preferCompressedRibOut, referenced by ri.cpp.o. rendererContext.cpp.o: included to satisfy CRendererContext::getXform(int), referenced by rendererDeclarationsDispatch.cpp.o. 4,862 map mentions of libRIBRender.a members in all (the map lists every member once per reference).
+../../src/ri/libRIBRender.a(ribOut.cpp.o)
+                              ../../src/ri/libRIBRender.a(ri.cpp.o) (preferCompressedRibOut)
+../../src/ri/libRIBRender.a(rendererContext.cpp.o)
+                              ../../src/ri/libRIBRender.a(rendererDeclarationsDispatch.cpp.o) (CRendererContext::getXform(int))

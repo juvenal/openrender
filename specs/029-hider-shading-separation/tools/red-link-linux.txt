@@ -1,0 +1,17 @@
+# T021 red link on Linux, starting tree (2026-11-02): link.txt of libshader_shading with -Wl,--no-undefined added, -o a scratch path.
+# command: cpujob 029-red-link-linux sh build-logs/redlink/scratch-link.sh (cd build/src/libshader/shading; the generated link.txt, sed: --no-undefined added, -o redirected)
+# result: exit 1, exactly 4 undefined symbols (CPhotonMap::lookup, CGatherBundle::CGatherBundle, vtable for CTransmissionBundle, vtable for CTraceBundle)
+/usr/bin/ld: CMakeFiles/libshader_shading.dir/execute.cpp.o: in function `CShadingContext::execute(CProgrammableShaderInstance*, float**)':
+execute.cpp:(.text+0x3a1be): undefined reference to `CPhotonMap::lookup(float*, float const*, int)'
+/usr/bin/ld: execute.cpp:(.text+0x3bc66): undefined reference to `CPhotonMap::lookup(float*, float const*, int)'
+/usr/bin/ld: execute.cpp:(.text+0x3e03a): undefined reference to `CPhotonMap::lookup(float*, float const*, int)'
+/usr/bin/ld: execute.cpp:(.text+0x4164a): undefined reference to `CPhotonMap::lookup(float*, float const*, int)'
+/usr/bin/ld: execute.cpp:(.text+0x46b66): undefined reference to `CPhotonMap::lookup(float*, float const*, int)'
+/usr/bin/ld: CMakeFiles/libshader_shading.dir/execute.cpp.o:execute.cpp:(.text+0x47aef): more undefined references to `CPhotonMap::lookup(float*, float const*, int)' follow
+/usr/bin/ld: CMakeFiles/libshader_shading.dir/shading.cpp.o: in function `CShadingContext::gatherHeaderBegin(CGatherLookup const*, float const*, float, float*&, float*&)':
+shading.cpp:(.text+0x10ab5): undefined reference to `CGatherBundle::CGatherBundle()'
+/usr/bin/ld: CMakeFiles/libshader_shading.dir/executeMisc.cpp.o: in function `CShadingContext::traceTransmission(int, CShadingContext::CTraceLocation*, int)':
+executeMisc.cpp:(.text+0x1984): undefined reference to `vtable for CTransmissionBundle'
+/usr/bin/ld: CMakeFiles/libshader_shading.dir/executeMisc.cpp.o: in function `CShadingContext::traceReflection(int, CShadingContext::CTraceLocation*, int)':
+executeMisc.cpp:(.text+0x33bf): undefined reference to `vtable for CTraceBundle'
+collect2: error: ld returned 1 exit status

@@ -58,6 +58,7 @@
  *
  */
 #include "displayChannel.h"
+#include "hider.h"
 #include "renderer.h"
 #include "rendererContext.h"
 #include "shading.h"
@@ -76,7 +77,7 @@ void CRenderer::notifyGlobalVariable(CVariable *) {
         int i;
 
         for (i = 0; i < numThreads; i++) {
-            contexts[i]->updateState();
+            contexts[i]->shadingContext().updateState();
         }
     }
 }

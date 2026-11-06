@@ -82,6 +82,7 @@ extern const char *colorCieSystem;
 // Forward definitions
 class CDisplayChannel;
 class CObject;
+class CHider;
 class CTracable;
 class CRemoteChannel;
 class CAttributes;
@@ -357,12 +358,6 @@ class CRenderer {
         static int maxTextureSize;                      // Maximum amount of texture data to keep in memory (in bytes)
         static CSearchPathResolver *textureResolver;    // Finds the texture files (spec 027); owned here, outlives the system
         static CTextureSystem *textureSystem;           // The frame's texture system (spec 027): created in beginFrame(), deleted in endFrame()
-        // The frame's tracer, the hiders' answer to Shading's ITracer (spec 026): installed in beginFrame() before any context exists, null between frames.
-        // Why one slot is enough (FR-010), argued from the code and not tested (accepted by the maintainer): (1) all of a frame's contexts are created
-        // by the same strcmp(hider, ...) chain in beginFrame(), so one hider class serves a frame, and a photon pass is its own frame; (2) the adapter is
-        // stateless, every piece of trace state (currentRayDepth, currentRayLabel, freeStates, traceObjectHash) is a member of the context passed to it;
-        // (3) the slot is written only in beginFrame() and endFrame(), while no render thread exists (the imager runs inside the frame, rendererDisplay.cpp).
-        static openrender::shading::ITracer *frameTracer;
         static int maxBrickSize;                        // Maximum amount of brick data to keep in memory (in bytes)
         static int maxGridSize;                         // Maximum number of points to shade at a time
         static int maxRayDepth;                         // Maximum raytracing recursion depth
@@ -388,7 +383,7 @@ class CRenderer {
         static CTrie<CFileResource *> *frameFiles;              // Files that have been loaded (they stick around only during the frame)
         static CArray<const char *> *frameTemporaryFiles;       // This hold the name of temporary files
         static CArray<CPhotonMap *> *framePhotonMaps;           // The photon maps in frameFiles: each holds a counted reference for the cache (GitHub #64)
-        static CShadingContext **contexts;                      // The array of shading contexts
+        static CHider **contexts;                               // The array of hiders, one per render thread (each owns its shading context)
         static int numActiveThreads;                            // The number of threads currently active
         static CTrie<CRemoteChannel *> *declaredRemoteChannels; // Known remote channel lookup
         static CArray<CRemoteChannel *> *remoteChannels;        // all known channels

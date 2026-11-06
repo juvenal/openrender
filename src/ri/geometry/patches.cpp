@@ -1601,7 +1601,7 @@ void CPatchMesh::intersect(CShadingContext *rasterizer, CRay *) {
 void CPatchMesh::dice(CReyes *rasterizer) {
 
     if (children == NULL)
-        create(rasterizer);
+        create(&rasterizer->shadingContext());
 
     CObject::dice(rasterizer);
 }
@@ -1879,7 +1879,7 @@ void CNURBSPatchMesh::intersect(CShadingContext *rasterizer, CRay *) {
 void CNURBSPatchMesh::dice(CReyes *rasterizer) {
 
     if (children == NULL)
-        create(rasterizer);
+        create(&rasterizer->shadingContext());
 
     CObject::dice(rasterizer);
 }

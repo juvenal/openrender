@@ -1865,7 +1865,7 @@ void CSubdivMesh::intersect(CShadingContext *rasterizer, CRay *) {
 void CSubdivMesh::dice(CReyes *rasterizer) {
 
     if (children == NULL)
-        create(rasterizer);
+        create(&rasterizer->shadingContext());
 
     CObject::dice(rasterizer);
 }

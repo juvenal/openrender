@@ -1,0 +1,20 @@
+# T022 red package-consumer run on Linux (Ubuntu 24.04, GCC 13.3, -Werror build), starting tree (2026-11-02). Scratch consumer under
+# build-pkg/consumer/ (not tracked), the same sources as macOS: find_package(openRender CONFIG REQUIRED COMPONENTS Static) +
+# openRender::RIBRender_static; main.cpp renders the #24 scene. Install prefix build-pkg/prefix (scratch). Each variant is one
+# remote cpujob (029-l-pkg-consumer-a/-b/-c): configure, build, run. The package puts --allow-shlib-undefined on every consumer link.
+
+## (a) as shipped (--whole-archive and --export-dynamic present): consumer: image present (5273 bytes), error-handler errors=0, no-backend reports=0
+== configure (a, prefix /home/juvenal/Projects/Development/CLI/openrender-029/build-pkg/prefix)
+== build
+== run
+consumer: image present (5273 bytes), error-handler errors=0, no-backend reports=0
+run exit=0
+-rw-rw-r-- 1 juvenal juvenal 5273 Nov  2 18:14 consumer-out.tif
+
+## (b) the --whole-archive / --export-dynamic block deleted from a scratch copy of the installed openRenderConfig.cmake (build-pkg/prefix-b):
+## the plain static consumer LINKS (--allow-shlib-undefined) and ABORTS AT LAUNCH, as on macOS
+== configure (b, prefix prefix-b)
+== build
+== run
+consumer/build-b/consumer: symbol lookup error: prefix-b/lib/libshader_shading.so.1: undefined symbol: _ZTV19CTransmissionBundle
+run exit=127

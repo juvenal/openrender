@@ -66,22 +66,14 @@ add_test(NAME Common_DiagnosticsCrossLibrary
 set_tests_properties(Common_DiagnosticsCrossLibrary PROPERTIES
     TIMEOUT 120 LABELS "common;unit" ENVIRONMENT "${_crosslib_env}")
 
-# ... and linked the way the package's Static component links libRIBRender.a
-# (whole archive, as CMake/openRenderConfig.cmake.in does; cases 0 and 2).
+# ... and linked the way the package's Static component links libRIBRender.a:
+# plainly, as any consumer would (cases 0 and 2).
 add_executable(test_common_crosslib_static test_common_crosslib.cpp)
 target_compile_features(test_common_crosslib_static PRIVATE cxx_std_20)
 target_compile_definitions(test_common_crosslib_static PRIVATE CROSSLIB_STATIC)
 target_include_directories(test_common_crosslib_static PRIVATE
     ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/ri/parse)
 target_link_libraries(test_common_crosslib_static PRIVATE ribRender_static ${CMAKE_DL_LIBS})
-if(APPLE)
-    target_link_options(test_common_crosslib_static PRIVATE
-        "LINKER:-force_load,$<TARGET_FILE:ribRender_static>")
-elseif(UNIX)
-    target_link_options(test_common_crosslib_static PRIVATE
-        "LINKER:--whole-archive,$<TARGET_FILE:ribRender_static>,--no-whole-archive"
-        "LINKER:--export-dynamic")
-endif()
 add_test(NAME Common_DiagnosticsCrossLibraryStatic
     COMMAND test_common_crosslib_static $<TARGET_FILE:libshader_shading>)
 set_tests_properties(Common_DiagnosticsCrossLibraryStatic PROPERTIES

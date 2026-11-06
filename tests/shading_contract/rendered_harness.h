@@ -34,12 +34,8 @@
 #include "ri/state/attributes.h"
 #include "ri/state/xform.h"
 
-// The cheapest concrete context: an empty rendering loop, nothing else
-class CRProbeContext : public CShadingContext {
-    public:
-        explicit CRProbeContext(int thread) : CShadingContext(thread) {}
-        void renderingLoop() override {}
-};
+// The cheapest concrete context: a plain CShadingContext (it is concrete and final, spec 029)
+using CRProbeContext = CShadingContext;
 
 // CSurface is abstract; instantiate() is never called here
 class CRProbeSurface : public CSurface {
@@ -101,7 +97,7 @@ class CRenderedSession {
             ss->alights = nullptr;
             ss->currentLight = nullptr;
             ss->lightsExecuted = FALSE;
-            ss->currentObject = obj;
+            ctx->setShadedObject(obj, openrender::shading::ObjectHandle{static_cast<const CObject *>(obj)}, obj != nullptr ? obj->attributes : nullptr);
             for (int i = 0; i < n; i++) {
                 const float p[3] = {0.1f * (i + 1), 0.2f * (i + 1), 0.3f * (i + 1)};
                 const float nn[3] = {0, 0, 1};

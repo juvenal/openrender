@@ -113,53 +113,6 @@ request. Run `ctest -L architecture` locally before review.
 
 ## Open
 
-### DB-001 — Shading resolves renderer-core symbols at load time
-
-- **Rules**: 2 (acyclic dependencies; no upward dependency via load-time-bound symbols), and the
-  renderer-core rule (no domain may depend on the renderer core).
-- **Tracking**: [#24](https://github.com/juvenal/openrender/issues/24) (enhancement / design review)
-- **Evidence**: `libshader_shading` (Shading) links with `-undefined dynamic_lookup` (macOS) /
-  `--allow-shlib-undefined` (Linux) in `src/libshader/shading/CMakeLists.txt`, and binds
-  4 distinct `libRIBRender` symbols flat-namespace (`nm -m`, "dynamically looked up"), all in Hiders:
-  `CGatherBundle`, the `CTraceBundle`/`CTransmissionBundle` vtables, `CPhotonMap::lookup`.
-- **History**: before spec 023 it bound 29 symbols. The 17 infrastructure ones (`CRenderer::
-  globalMemory`, `CRefCounter`, `CFileResource`, `memoryInit`/`memoryTini`/`memoryNewPage`,
-  `stats`, `error`/`info`/`warning`, `parseVariable`, `sampleHemisphere`/
-  `sampleCosineHemisphere`, ...) now resolve from `libRIBCommon` (DB-016, Resolved). The record
-  is `specs/023-common-infrastructure-floor/tools/libshader-nm-m-{before,after}-macos.txt`.
-  `parseVariable` is defined in `libRIBCommon`, so spec 024 needed no variable-parsing service.
-  - Spec 024, 2026-10-16: the five renderer-core lookups (`CRenderer::getDSO`, `getFilter`,
-    `getStepFilter`, `getGlobalID`, `retrieveVariable`) go through `CRendererServices`
-    (`getDSO` added to it), reached by Shading through the helpers in `serviceLookup.h`;
-    12 → 7 imports, 18 → 8 edges. The record is
-    `specs/024-shading-services-routing/tools/libshader-dynlookup-{before,after}-macos.txt`.
-    `CDSO` moved to `src/libshader/shading/dsoHandle.h`, and no Shading source includes
-    `renderer.h` any more.
-  - Spec 027, 2026-10-28: the 3D channel operations of `texture3d()`/`bake3d()` and the irradiance
-    cache's `resolve` go through `CRendererServices` (`texture3dResolve`/`Lookup`/`Store`), so
-    `CTexture3d::resolve` is no longer imported; 7 → 6 imports, edge count unchanged. The record is
-    `specs/027-texture-system/tools/libshader-dynlookup-{before,after}-macos.txt`.
-  - Spec 026, 2026-11-01: Shading's trace calls go through the Shading-owned `ITracer`
-    (`tracer.h`), reached through `CRendererServices::tracer()` and answered by the hiders' adapter
-    `CHiderTracer`; `trace`/`traceEx` are no longer imported (6 → 4 imports, 8 → 5 edges). The record is
-    `specs/026-shading-contract-v2/tools/libshader-imports-{base,after}-macos.txt`.
-- **Measured by the architecture check** (macOS): 5 edges allowlisted under DB-001 (8 before
-  spec 026, 18 before spec 024, 30 before spec 023).
-  - 5 link references from Shading sources: `CGatherBundle`, the `CTraceBundle`/`CTransmissionBundle`
-    vtables and the two `CPhotonMap::lookup` references.
-  - No includes: the 4 of `src/ri/render/renderer.h` are gone.
-  - Shading's source-level coupling is registered separately: hider headers under DB-005,
-    Geometry headers under DB-006 (the `dso.h` edges once registered under DB-019 are gone since spec 037).
-- **Consequences today**: `libshader_shading` cannot load without `libRIBRender` in the process; a
-  static engine link must whole-archive `libRIBRender.a` (the `openRender::RIBRender_static`
-  package target applies `-force_load` for this — remove that workaround once this is resolved).
-- **Direction**: generic infrastructure is already in `libRIBCommon` (spec 023) and the
-  renderer-core lookups go through `CRendererServices` (spec 024) and the trace calls through
-  `ITracer` (spec 026); invert the remaining Hiders calls through interfaces Shading owns, with
-  `ITracer` as the interface the bundles (`CGatherBundle`, `CTraceBundle`, `CTransmissionBundle`)
-  and the photon map follow (spec 029), implemented and registered by the higher layers. Options
-  are analysed in #24.
-
 ### DB-004 — Geometry depends on the renderer core and on Scene Interface
 
 - **Rule**: the renderer-core rule ("no domain MAY depend on the renderer core"); the
@@ -231,29 +184,6 @@ request. Run `ctest -L architecture` locally before review.
     `blobbyRepeller.cpp` read; also Hiders' and the data viewer's, below). Spec 038 also took
     `render/rendererClipping.cpp` and `render/resource.cpp` out of `libRIBVector`.
 
-### DB-005 — Hiders and Shading share one class (`CShadingContext`)
-
-- **Rules**: 2 (acyclic dependencies); the allowed-dependency table (Shading may not depend on
-  Hiders).
-- **Tracking**: remediation spec 029 ([#35](https://github.com/juvenal/openrender/issues/35))
-- **Evidence**:
-  - `CReyes` (`reyes.h:104`), `CRaytracer` (`raytracer.h:140`) and `CPhotonHider`
-    (`photon.h:41`) inherit `CShadingContext`, which is declared in Shading
-    (`src/libshader/shading/shading.h`).
-  - Its trace bodies are defined in Hiders: `CShadingContext::trace` and `traceEx` in
-    `src/ri/hiders/trace.cpp:47,240,289`.
-  - Shading includes hider headers: `bundles.h` (4), `irradiance.h` (2), `photonMap.h` (2).
-- **Size**: 8 include edges. The matching link references (trace, bundles, photon map) are
-  counted under DB-001.
-- **Direction**: composition. Shading's `ShadingContext` keeps state and execution with no hider
-  knowledge, and is owned by Hiders' `CHider`; the hiders implement a Shading-owned `ITracer`.
-  Strangler steps with byte-identical renders at each step.
-- **History**: the per-context RNG state is gone, the RNG part of V1 (spec 039, 2026-10-20):
-  `CShadingContext` no longer holds a generator (the Mersenne Twister, `urand()`/`irand()` and the
-  `random2d/3d/4d` CSobol members were deleted); every draw comes from the sampler's sub-stream
-  of the sample's identity, so the shared class no longer carries random state between the
-  hider and the shader it runs. The class sharing itself (this entry) is unchanged.
-
 ### DB-006 — Geometry is coupled to Shading and to the hiders
 
 - **Rules**: 2; the allowed-dependency table (Geometry may depend only on Graphics State and
@@ -264,11 +194,16 @@ request. Run `ctest -L architecture` locally before review.
     shim) and calls `CShadingContext::shade`, `saveState` and `restoreState`.
   - Geometry includes `src/ri/hiders/reyes.h` from 9 files and calls `CReyes::drawObject` and
     `CReyes::drawGrid` (`surface.cpp`).
-  - Shading includes `object.h` (one file), closing a Geometry ↔ Shading cycle.
-- **Size**: 31 edges (24 include, 7 link).
+  - Shading included `object.h` (one file) until spec 029, closing a Geometry ↔ Shading cycle; it no longer does.
+- **Size**: 30 edges (23 include, 7 link) after spec 029 (31 before).
 - **History**: Spec 026, 2026-11-01: `execute.cpp` and `executeMisc.cpp` no longer include `surface.h` (the
   executor's attribute reads go through `CShadingContext::objectAttributes()`); `shading.cpp -> object.h`
   stays for spec 029. The `ShaderGlobals` contract exists (`shaderGlobals.h`); nothing fills it yet.
+- **History**: Spec 029, 2026-11-04: `shading.cpp` includes no Geometry header (`shading.cpp -> object.h` deleted: 31 → 30 edges) and the Geometry
+  directory is off `libshader_shading`'s include path. `shade()` takes a `ShaderGlobals` and an `IPointSource` that the hiders implement over
+  `CSurface` (`CSurfacePointSource`); `CShadingContext::shade(CSurface *, ...)`, the symbol Geometry's lines bind to, is an opaque forwarding
+  entry to the owning hider's `IShadingProducer`. Geometry's other lines are unchanged and it gained no include of a Shading or Hiders header;
+  its call sites reach the context through `CReyes::shadingContext()`.
 - **Direction**: an OSL-style `ShaderGlobals` filled by Geometry for Shading (026, 029);
   Geometry's dice and intersect take Geometry-owned `IDicer`/`IRayContext` interfaces instead of
   `CReyes*`/`CShadingContext*` (031).
@@ -368,6 +303,10 @@ request. Run `ctest -L architecture` locally before review.
   CRenderer::frame` (the seed of the deleted `apertureGenerator`), and `raytracer.cpp` and
   `stochastic.cpp -> CRenderer::jitter`. The Hiders `CRenderer::` metric fell from 586 to 567
   references and 87 to 84 members.
+- **History**: spec 029, 2026-11-04: the hiders no longer write `CRenderer::activeContext` (`reyes.cpp`, `raytracer.cpp`; the renderer core sets it in
+  `rendererDispatchThread` for every hider). 4 allowlist lines were deleted (the `_ZTW…` wrapper pair on macOS, the plain symbol pair on
+  Linux): 164 DB-011 lines (168 before), 164 edges per platform (166 before). The Hiders `CRenderer::` metric fell from 558 to 556 references
+  and 82 to 81 members.
 
 - **History**: spec 038 (2026-11-04), no allowlist change: `render/rendererStatics.cpp`, the file that
   defines the `CRenderer` statics the hiders read, is one of the Core files `libRIBVector` still
@@ -380,10 +319,10 @@ request. Run `ctest -L architecture` locally before review.
 - **Rules**: 3; adding a hider must not require core edits.
 - **Tracking**: remediation spec 030 ([#36](https://github.com/juvenal/openrender/issues/36))
 - **Evidence**:
-  - Two `strcmp(hider, …)` chains in `src/ri/render/renderer.cpp:747-787`, plus the
+  - Two `strcmp(hider, …)` chains in `src/ri/render/renderer.cpp:778-830`, plus the
     `"stochastic"` alias in `rendererContext.cpp:1529`.
   - The built-in `CSphereLight`/`CQuadLight` fallback (`src/ri/hcshader.{h,cpp}`, 776 lines) is
-    still compiled, and both classes are friends of `CShadingContext` (`shading.h:903-904`).
+    still compiled; they were friends of `CShadingContext` until spec 029 dropped the friendships.
 - **Size**: not a dependency edge; tracked by review.
 - **Direction**: a self-registering hider factory (name, aliases, capabilities); retire
   `hcshader` now that the RSL `spherelight`/`quadlight` ship.
@@ -436,17 +375,19 @@ request. Run `ctest -L architecture` locally before review.
     float-class query ([#121](https://github.com/juvenal/openrender/issues/121)).
 - **Size**: not a dependency edge (Shading may depend on Graphics State); tracked by review.
 - **Direction**: the ray type and hit mode in `ShaderGlobals` (spec 026 defined the contract and the
-  situation table; spec 029 fills it, [#35](https://github.com/juvenal/openrender/issues/35));
+  situation table; spec 029 filled it, [#35](https://github.com/juvenal/openrender/issues/35): the hiders' producer sets `rayType`, `hitMode` and `transport` per batch from the
+  situation table as corrected to the code (`classifyShading()`, `specs/029-hider-shading-separation/contracts/point-source-and-globals.md`) and `shade()` reads them);
   the JIT's message-passing entry points through the services (spec 033); `getmessage`/`setmessage`
   across shader-group layers (spec 034).
 
 ### DB-020 — Cross-domain `friend` declarations
 
 - **Rules**: 3 (no back doors into another domain's internals).
-- **Tracking**: remediation specs 029 ([#35](https://github.com/juvenal/openrender/issues/35)), 030 ([#36](https://github.com/juvenal/openrender/issues/36)), 032 ([#38](https://github.com/juvenal/openrender/issues/38))
+- **Tracking**: remediation specs 030 ([#36](https://github.com/juvenal/openrender/issues/36)), 032 ([#38](https://github.com/juvenal/openrender/issues/38))
 - **Evidence**:
-  - `CShadingContext` befriends `CPhotonHider`, `CSphereLight` and `CQuadLight`
-    (`shading.h:901,903,904`).
+  - `CShadingContext` no longer befriends `CPhotonHider`, `CSphereLight` and `CQuadLight` (spec 029, 2026-11-04; they
+    were at `shading.h:1175,1177,1178` at the base commit); its only friend is Shading's own
+    `CProgrammableShaderInstance`.
   - `CIrradianceCache` befriends `CRemoteICacheChannel` (`irradiance.h:137`); `CTexture3d` and
     `CPointCloud` befriend `CRemotePtCloudChannel` (`texture3d.h:100`, `pointCloud.h:149`).
   - `CBrickMap` befriends `CBrickMapGeometry` (`brickmap.h:254`), a class forward-declared at
@@ -463,8 +404,9 @@ request. Run `ctest -L architecture` locally before review.
 - **Evidence**:
   - `ribRender_obj` (`src/ri/CMakeLists.txt:178`) compiles sources from six domains plus the
     renderer core into one OBJECT library.
-  - `libshader_shading`'s include path lists `src/ri/{core,dataviewer,geometry,hiders,output,
-    parse,render,state,texture}`, so nothing stops a new cross-domain include at compile time.
+  - `libshader_shading`'s include path lists `src/ri/{core,parse,state,texture}` and `src/ri` itself (measured at the end of spec 029,
+    2026-11-04; the Geometry directory was the last cross-domain one to leave it), so a Geometry
+    or Hiders header cannot be included by Shading at compile time. Other domains' include paths are unchanged.
 - **Size**: not a dependency edge; tracked by review and by the architecture check.
 - **Direction**: per-domain include visibility first, then per-domain OBJECT targets as each layer
   lands.
@@ -607,7 +549,8 @@ request. Run `ctest -L architecture` locally before review.
   - Follow-up: the shared `globalArena`/`stats` become injected per-context state in specs 029
     and 039 (constitution rule 1). Split as done: spec 039 (2026-10-20) removed randomness from
     per-context state (draws are keyed by sample identity, no generator remains in a context);
-    the arena and stats injection stays with spec 029.
+    the arena and stats injection was not part of spec 029 (the hider/shading separation) and is tracked
+    separately ([#135](https://github.com/juvenal/openrender/issues/135)).
 
 ### DB-012 — The JIT ignores the hiders' illumination hook
 
@@ -788,6 +731,104 @@ request. Run `ctest -L architecture` locally before review.
   `displayChannel.h`, and `CRenderer::retrieveDisplayChannel` is deleted: 3 edges to 0, with the
   3 allowlist lines deleted and nothing added. `Texture3dChannels_Session`, `_NoSession`,
   `_Unknown` and `_FillAliased` guard it.
+
+### DB-001 — Shading resolves renderer-core symbols at load time
+
+- **Rules**: 2 (acyclic dependencies; no upward dependency via load-time-bound symbols), and the
+  renderer-core rule (no domain may depend on the renderer core).
+- **Tracking**: [#24](https://github.com/juvenal/openrender/issues/24) (enhancement / design review)
+- **Evidence**: `libshader_shading` (Shading) links with `-undefined dynamic_lookup` (macOS) /
+  `--allow-shlib-undefined` (Linux) in `src/libshader/shading/CMakeLists.txt`, and binds
+  4 distinct `libRIBRender` symbols flat-namespace (`nm -m`, "dynamically looked up"), all in Hiders:
+  `CGatherBundle`, the `CTraceBundle`/`CTransmissionBundle` vtables, `CPhotonMap::lookup`.
+- **History**: before spec 023 it bound 29 symbols. The 17 infrastructure ones (`CRenderer::
+  globalMemory`, `CRefCounter`, `CFileResource`, `memoryInit`/`memoryTini`/`memoryNewPage`,
+  `stats`, `error`/`info`/`warning`, `parseVariable`, `sampleHemisphere`/
+  `sampleCosineHemisphere`, ...) now resolve from `libRIBCommon` (DB-016, Resolved). The record
+  is `specs/023-common-infrastructure-floor/tools/libshader-nm-m-{before,after}-macos.txt`.
+  `parseVariable` is defined in `libRIBCommon`, so spec 024 needed no variable-parsing service.
+  - Spec 024, 2026-10-16: the five renderer-core lookups (`CRenderer::getDSO`, `getFilter`,
+    `getStepFilter`, `getGlobalID`, `retrieveVariable`) go through `CRendererServices`
+    (`getDSO` added to it), reached by Shading through the helpers in `serviceLookup.h`;
+    12 → 7 imports, 18 → 8 edges. The record is
+    `specs/024-shading-services-routing/tools/libshader-dynlookup-{before,after}-macos.txt`.
+    `CDSO` moved to `src/libshader/shading/dsoHandle.h`, and no Shading source includes
+    `renderer.h` any more.
+  - Spec 027, 2026-10-28: the 3D channel operations of `texture3d()`/`bake3d()` and the irradiance
+    cache's `resolve` go through `CRendererServices` (`texture3dResolve`/`Lookup`/`Store`), so
+    `CTexture3d::resolve` is no longer imported; 7 → 6 imports, edge count unchanged. The record is
+    `specs/027-texture-system/tools/libshader-dynlookup-{before,after}-macos.txt`.
+  - Spec 026, 2026-11-01: Shading's trace calls go through the Shading-owned `ITracer`
+    (`tracer.h`), reached through `CRendererServices::tracer()` and answered by the hiders' adapter
+    `CHiderTracer`; `trace`/`traceEx` are no longer imported (6 → 4 imports, 8 → 5 edges). The record is
+    `specs/026-shading-contract-v2/tools/libshader-imports-{base,after}-macos.txt`.
+- **Measured by the architecture check** (macOS, before spec 029): 5 edges allowlisted under DB-001 (8 before
+  spec 026, 18 before spec 024, 30 before spec 023).
+  - 5 link references from Shading sources: `CGatherBundle`, the `CTraceBundle`/`CTransmissionBundle`
+    vtables and the two `CPhotonMap::lookup` references.
+  - No includes: the 4 of `src/ri/render/renderer.h` are gone.
+  - Shading's source-level coupling is registered separately: hider headers under DB-005,
+    Geometry headers under DB-006 (the `dso.h` edges once registered under DB-019 are gone since spec 037).
+- **Consequences before spec 029**: `libshader_shading` could not load without `libRIBRender` in the process; a
+  static engine link had to whole-archive `libRIBRender.a` (the `openRender::RIBRender_static`
+  package target applied `-force_load` for this).
+- **Direction**: generic infrastructure is in `libRIBCommon` (spec 023), the renderer-core lookups go
+  through `CRendererServices` (spec 024), the trace calls through `ITracer` (spec 026), and the bundles
+  and the photon map were inverted by spec 029. Options were analysed in #24.
+- **Resolved** by spec 029 (`specs/029-hider-shading-separation/`), 2026-11-04:
+  - 4 imports to 0, and 5 allowlist lines deleted with nothing added: `CGatherBundle`, `CTraceBundle` and
+    `CTransmissionBundle` moved into Shading (`src/libshader/shading/bundles.{h,cpp}`), and the photon map
+    is reached through the Shading-owned `IPhotonLookup` (`photonLookup.h`), which `CPhotonMap` implements.
+    `kRendererServicesVersion` is 2.1.0 (the photon-map accessor's type changed; `IPhotonLookup`,
+    `IIlluminationHook`, `IPointSource`, `IShadingProducer` and `BatchShape::PointSet` are new).
+  - `libshader_shading` links with undefined symbols as an error (`-undefined error` on macOS, which is
+    ld64's default, and `--no-undefined` on Linux); `-undefined dynamic_lookup`, the INTERFACE
+    `--allow-shlib-undefined`, the package's `-force_load`/`--whole-archive`/`--export-dynamic` block, the
+    four `--no-as-needed` test options and the load stub of the standalone contract programs are gone. A
+    program linked plainly against `ribRender_static` renders the #24 scene (the target carries one INTERFACE
+    `-u ribrender_context_anchor` option so the render back-end's registrar is kept, P-Q17 option (a); `Link_StaticConsumer`;
+    `Link_PackageStaticConsumer` through the installed package, opt-in with `-DOPENRENDER_LINK_PACKAGE_TEST=ON`).
+    `LibShader_McompConsistency` (#44) passes on Linux.
+  - The records are `specs/029-hider-shading-separation/tools/libshader-imports-{base,after-phase3,after}-{macos,linux}.txt`
+    (the import lists before and after; the final lists are empty on macOS and 461 undefined dynamic
+    symbols, none defined by `libRIBRender`, on Linux). `Link_ShadingSelfContained` guards it.
+
+### DB-005 — Hiders and Shading share one class (`CShadingContext`)
+
+- **Rules**: 2 (acyclic dependencies); the allowed-dependency table (Shading may not depend on
+  Hiders).
+- **Tracking**: remediation spec 029 ([#35](https://github.com/juvenal/openrender/issues/35))
+- **Evidence** (at the base commit `01501f10`, before spec 029):
+  - `CReyes` (`reyes.h:106`), `CRaytracer` (`raytracer.h:145`) and `CPhotonHider`
+    (`photon.h:41`) inherited `CShadingContext`, which is declared in Shading
+    (`src/libshader/shading/shading.h`), and `CPhotonHider`, `CSphereLight` and `CQuadLight` were its
+    friends (`shading.h:1175,1177,1178`).
+  - Its trace bodies were defined in Hiders: `CShadingContext::trace`, `traceEx` and `trace(CRay *)` in
+    `src/ri/hiders/trace.cpp:47,253,303`.
+  - Shading includes hider headers: `bundles.h` (4), `irradiance.h` (2), `photonMap.h` (2).
+- **Size**: 8 include edges. The matching link references (trace, bundles, photon map) are
+  counted under DB-001.
+- **Direction**: composition. Shading's `ShadingContext` keeps state and execution with no hider
+  knowledge, and is owned by Hiders' `CHider`; the hiders implement a Shading-owned `ITracer`.
+  Strangler steps with byte-identical renders at each step (done by spec 029).
+- **History**: the per-context RNG state is gone, the RNG part of V1 (spec 039, 2026-10-20):
+  `CShadingContext` no longer holds a generator (the Mersenne Twister, `urand()`/`irand()` and the
+  `random2d/3d/4d` CSobol members were deleted); every draw comes from the sampler's sub-stream
+  of the sample's identity, so the shared class no longer carries random state between the
+  hider and the shader it runs. The class sharing itself (this entry) is unchanged.
+- **Resolved** by spec 029 (`specs/029-hider-shading-separation/`), 2026-11-04:
+  - 8 include edges to 0, and 8 allowlist lines deleted with nothing added. `CShadingContext` is a `final`,
+    virtual-free class; `CHider` (`src/ri/hiders/hider.{h,cpp}`) owns one and is its `ITracer` and its
+    `IShadingProducer`; `CReyes` (with `CStochastic` and `CZbuffer`), `CRaytracer` and `CPhotonHider` derive
+    from `CHider`, the last also from `IIlluminationHook`. The trace bodies are `CHider` members in `trace.cpp`
+    (`traceGroups`, `traceRay`, `traceBundle`); the depth rule is applied only by
+    `CShadingContext::enterRayLevel()`; `CHiderTracer` and `CRenderer::frameTracer` are gone. The four
+    illumination-hook virtuals became `IIlluminationHook` (`illuminationHook.h`), and the three friends are gone.
+  - Shading includes no hider header (`bundles.h` is Shading's own; `irradiance.h` and `photonMap.h` are not
+    included) and, since spec 029's Phase 7, no Geometry header. The records: no image changed on either
+    platform, the trace replay is unchanged. `ShadingContext_Standalone{Interp,Jit}`,
+    `ShadingContract_IlluminationHookInterface{Interp,Jit}`, `HiderTracer_PerContext`,
+    `ShadingContract_RayLevel` and `ShadingScope_Greps` guard it.
 
 ### DB-015 — Scene Interface depends on the renderer core
 

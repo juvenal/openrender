@@ -5,9 +5,8 @@
  *
  *   CRecordingTracer   appends every request (label, bundle depth, path depth, every ray's inputs)
  *                      to a vector. For traceRay it may answer canned hits: `object` a sentinel
- *                      pointer and `t`. It never runs the bundle protocol, so the standalone program
- *                      (whose load stub traps in the bundles) can use it: constructing a bundle on the
- *                      stack only writes a vtable pointer.
+ *                      pointer and `t`. It never runs the bundle protocol unless told to (a bundle
+ *                      constructed on the stack only writes a vtable pointer).
  *
  *   CCannedTracer      rendered program only. Drives the real bundle protocol with canned answers, as
  *                      trace.cpp does: postTraceAction(), then postShade(n, rays, varying) with the

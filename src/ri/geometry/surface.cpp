@@ -261,7 +261,7 @@ int CPatch::probe(CReyes *r) {
     const int nonrasterorient = attributes->flags & ATTRIBUTES_FLAGS_NONRASTERORIENT_DICE;
     int numUprobes = attributes->numUProbes;
     int numVprobes = attributes->numVProbes;
-    float **varying = r->currentShadingState->varying;
+    float **varying = r->shadingContext().currentShadingState->varying;
 
     // Estimate the grid size until convergence
     for (int numTries = 0; numTries < 5; ++numTries) {
@@ -301,7 +301,7 @@ int CPatch::probe(CReyes *r) {
             }
 
             assert(k <= (int)CRenderer::maxGridSize);
-            r->displaceEstimate(object, numUprobes, numVprobes, SHADING_2D_GRID, PARAMETER_P | PARAMETER_N | PARAMETER_END_SAMPLE);
+            r->shadingContext().displaceEstimate(object, numUprobes, numVprobes, SHADING_2D_GRID, PARAMETER_P | PARAMETER_N | PARAMETER_END_SAMPLE);
             cullFlags &= cull(bmin, bmax, varying[VARIABLE_P], varying[VARIABLE_N], k, attributes->flags & ATTRIBUTES_FLAGS_DOUBLE_SIDED, disableCull);
 
             // Save the end positions
@@ -329,7 +329,7 @@ int CPatch::probe(CReyes *r) {
 
 // FIXME: correct this
 #if 1
-        r->displaceEstimate(object, numUprobes, numVprobes, SHADING_2D_GRID, PARAMETER_P | PARAMETER_N | PARAMETER_BEGIN_SAMPLE);
+        r->shadingContext().displaceEstimate(object, numUprobes, numVprobes, SHADING_2D_GRID, PARAMETER_P | PARAMETER_N | PARAMETER_BEGIN_SAMPLE);
 #else
         r->displaceEstimate(object, numUprobes, numVprobes, SHADING_2D_GRID, PARAMETER_P | PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_N | PARAMETER_BEGIN_SAMPLE);
 
@@ -449,7 +449,7 @@ int CPatch::probe(CReyes *r) {
         if (region != NULL) {
             vector rlo, rhi;
             regionBound(object, numUprobes, numVprobes, trimU, trimV, rlo, rhi);
-            const int coverage = region->classifyBound(r, rlo, rhi);
+            const int coverage = region->classifyBound(&r->shadingContext(), rlo, rhi);
             if (coverage == REGION_ALL_OUT)
                 return FALSE;
             regionSeam = (coverage == REGION_MIXED);

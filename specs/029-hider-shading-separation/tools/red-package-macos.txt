@@ -1,0 +1,21 @@
+# T015 red package-consumer run on macOS, starting tree (2026-11-02). Scratch consumer under build-pkg/consumer/ (not tracked):
+# find_package(openRender CONFIG REQUIRED COMPONENTS Static) + openRender::RIBRender_static; main.cpp renders the #24 scene
+# (RiBegin, Display "file", a distant light, Surface "matte", one Sphere). Install prefix build-pkg/prefix (scratch, GitHub #23 not hit).
+# The consumer is configured with vcpkg's toolchain (VCPKG_MANIFEST_MODE=OFF, the shared installed dir): the static libtiff needs libjpeg.
+# Each variant is one cpujob (029-pkg-consumer-a/-b/-c): configure, build, run.
+
+## (a) as shipped (the force_load block present): consumer: image present (5273 bytes), error-handler errors=0, no-backend reports=0
+== configure (a, prefix /Volumes/Projects/Development/CLI/openrender-worktrees/029-hider-shading-separation/build-pkg/prefix)
+== build
+== run
+consumer: image present (5273 bytes), error-handler errors=0, no-backend reports=0
+run exit=0
+-rw-r--r--@ 1 juvenal  admin  5273 Nov  2 17:14 consumer-out.tif
+
+## (b) the -force_load block deleted from a scratch copy of the installed openRenderConfig.cmake (build-pkg/prefix-b): launch abort
+== configure (b, prefix /Volumes/Projects/Development/CLI/openrender-worktrees/029-hider-shading-separation/build-pkg/prefix-b)
+== build
+== run
+dyld[83460]: symbol not found in flat namespace '__ZTV12CTraceBundle'
+run exit=134
+# expected: dyld: symbol not found in flat namespace '__ZTV12CTraceBundle' (exit 134)  -> observed as above

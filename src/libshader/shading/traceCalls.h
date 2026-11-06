@@ -35,9 +35,9 @@ namespace libshader {
     // it nowhere else; may be nullptr). With no tracer: one warning for `kind`, then ray->object = nullptr (a miss).
     void traceRay(CShadingContext &context, CRay *ray, TraceKind kind, const char *label = nullptr);
 
-    // Trace a bundle one level deeper and shade what it hits (the contract of CShadingContext::traceEx()). With no
-    // tracer: one warning for `kind`, then bundle->postShade(numRays, rays), the path traceEx() takes past the maximum
-    // ray depth.
+    // Trace a bundle one level deeper and shade what it hits (the contract of ITracer::traceBundle()). The context's own
+    // tracer answers; the services' tracer() only for a context with none. With no tracer: one warning for `kind`, then
+    // bundle->postShade(numRays, rays), the path taken past the maximum ray depth.
     void traceBundle(CShadingContext &context, CRayBundle *bundle, TraceKind kind);
 
 } // namespace libshader

@@ -28,6 +28,7 @@
 #define REYES_H
 
 #include "common/global.h"
+#include "hider.h"
 #include "object.h"
 #include "rasterFlags.h"
 #include "renderer.h"
@@ -85,7 +86,7 @@ inline int rasterCameraMotionTransform(float *xOut, float *yOut, float *zOut, co
 // Description			:	This class is implementes a REYES like scan
 //							line renderer
 // Comments				:
-class CReyes : public CShadingContext {
+class CReyes : public CHider {
     protected:
         ///////////////////////////////////////////////////////////////////////
         // Class				:	CRasterPatch
@@ -234,7 +235,8 @@ class CReyes : public CShadingContext {
         ~CReyes();
 
         // This function is called to to render
-        void renderingLoop();
+        void renderingLoop() override;
+        bool rasterizes() const override { return true; }
 
         // The following functions must be overriden by the child rasterizer
         virtual void rasterBegin(int, int, int, int, int) = 0;

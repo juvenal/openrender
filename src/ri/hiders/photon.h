@@ -31,14 +31,18 @@
 #include "common/global.h" // The global header file
 #include "options.h"
 #include "common/random.h"
+#include "hider.h"
+#include "libshader/shading/illuminationHook.h"
 #include "ray.h"
 #include "shading.h"
+
+class CPhotonMap; // photonMap.h
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CPhotonHider
 // Description			:	This class implements the photon hider
 // Comments				:
-class CPhotonHider : public CShadingContext {
+class CPhotonHider : public CHider, public openrender::shading::IIlluminationHook {
     public:
         CPhotonHider(int thread, CAttributes *);
         virtual ~CPhotonHider();
@@ -46,14 +50,15 @@ class CPhotonHider : public CShadingContext {
         static void preDisplaySetup();
 
         // The main hider interface
-        // The following functions are commented out for we want the CShadingContext to handle those
-        void renderingLoop(); // Right after world end to force rendering of the entire frame
+        void renderingLoop() override; // Right after world end to force rendering of the entire frame
+
+        // The illumination hooks (IIlluminationHook), installed on the context in the constructor
+        void solarBegin(const float *, const float *) override;
+        void solarEnd() override;
+        void illuminateBegin(const float *, const float *, const float *) override;
+        void illuminateEnd() override;
 
     protected:
-        void solarBegin(const float *, const float *);
-        void solarEnd();
-        void illuminateBegin(const float *, const float *, const float *);
-        void illuminateEnd();
 
         int numTracedPhotons;
 

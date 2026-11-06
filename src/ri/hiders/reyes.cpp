@@ -71,31 +71,31 @@
         CBucket *cBucket;                     \
                                               \
         cBucket = buckets[__by][__bx];        \
-        __o->next[thread] = cBucket->objects; \
+        __o->next[context.thread] = cBucket->objects; \
         cBucket->objects = __o;               \
     }
 
 // Defer the object to the next bucket that'll need it (buckets must be locked)
 #define objectDefer(__cObject)                                                                            \
-    if ((__cObject->xbound[1] >= tbucketRight) && (currentXBucket < CRenderer::xBucketsMinusOne)) {       \
-        assert(buckets[currentYBucket][currentXBucket + 1] != NULL);                                      \
+    if ((__cObject->xbound[1] >= tbucketRight) && (context.currentXBucket < CRenderer::xBucketsMinusOne)) {       \
+        assert(buckets[context.currentYBucket][context.currentXBucket + 1] != NULL);                                      \
                                                                                                           \
-        objectExplicitInsert(__cObject, currentXBucket + 1, currentYBucket);                              \
-        __logPushRight(__cObject, currentXBucket + 1, currentYBucket);                                    \
+        objectExplicitInsert(__cObject, context.currentXBucket + 1, context.currentYBucket);                              \
+        __logPushRight(__cObject, context.currentXBucket + 1, context.currentYBucket);                                    \
     }                                                                                                     \
-    else if ((__cObject->ybound[1] >= tbucketBottom) && (currentYBucket < CRenderer::yBucketsMinusOne)) { \
+    else if ((__cObject->ybound[1] >= tbucketBottom) && (context.currentYBucket < CRenderer::yBucketsMinusOne)) { \
         int xb = xbucket(__cObject->xbound[0]);                                                           \
         if (xb < 0)                                                                                       \
             xb = 0;                                                                                       \
         assert(xb < (int)CRenderer::xBuckets);                                                            \
-        assert(buckets[currentYBucket + 1][xb] != NULL);                                                  \
+        assert(buckets[context.currentYBucket + 1][xb] != NULL);                                                  \
                                                                                                           \
-        objectExplicitInsert(__cObject, xb, currentYBucket + 1);                                          \
-        __logPushDown(__cObject, xb, currentYBucket + 1);                                                 \
+        objectExplicitInsert(__cObject, xb, context.currentYBucket + 1);                                          \
+        __logPushDown(__cObject, xb, context.currentYBucket + 1);                                                 \
     }                                                                                                     \
     else {                                                                                                \
-        __logPushDiscard(__cObject, currentXBucket, currentYBucket);                                      \
-        __cObject->next[thread] = objectsToDelete;                                                        \
+        __logPushDiscard(__cObject, context.currentXBucket, context.currentYBucket);                                      \
+        __cObject->next[context.thread] = objectsToDelete;                                                        \
         objectsToDelete = __cObject;                                                                      \
     }
 
@@ -103,7 +103,7 @@
     {                                            \
         CRasterObject *cObject;                  \
         while ((cObject = __objects) != NULL) {  \
-            __objects = __objects->next[thread]; \
+            __objects = __objects->next[context.thread]; \
             osLock(cObject->mutex);              \
             cObject->refCount--;                 \
             if (cObject->refCount == 0) {        \
@@ -146,7 +146,7 @@ CReyes::CBucket::~CBucket() {
 // Description			:	Ctor
 // Return Value			:	-
 // Comments				:
-CReyes::CReyes(int thread) : CShadingContext(thread) {
+CReyes::CReyes(int thread) : CHider(thread) {
     int cx, cy;
 
     // Allocate the buckets
@@ -226,12 +226,11 @@ CReyes::~CReyes() {
 // Return Value			:	-
 // Comments				:
 void CReyes::renderingLoop() {
-    CRenderer::activeContext = this;
     CRenderer::CJob job;
 
 #define computeExtends                                                                                         \
-    bucketPixelLeft = currentXBucket * CRenderer::bucketWidth;                                                 \
-    bucketPixelTop = currentYBucket * CRenderer::bucketHeight;                                                 \
+    bucketPixelLeft = context.currentXBucket * CRenderer::bucketWidth;                                         \
+    bucketPixelTop = context.currentYBucket * CRenderer::bucketHeight;                                         \
     int availableWidth = CRenderer::xPixels - bucketPixelLeft;                                                 \
     if (CRenderer::bucketWidth < availableWidth) {                                                             \
         bucketPixelWidth = CRenderer::bucketWidth;                                                             \
@@ -255,7 +254,7 @@ void CReyes::renderingLoop() {
     while (TRUE) {
 
         // Get the job from the renderer
-        CRenderer::dispatchJob(thread, job);
+        CRenderer::dispatchJob(context.thread, job);
 
         // Process the job
         if (job.type == CRenderer::CJob::TERMINATE) {
@@ -272,7 +271,7 @@ void CReyes::renderingLoop() {
             assert(y < CRenderer::yBuckets);
 
             // Skip the buckets reach the bucket we want
-            while ((currentXBucket != x) || (currentYBucket != y)) {
+            while ((context.currentXBucket != x) || (context.currentYBucket != y)) {
                 computeExtends;
                 skip();
             }
@@ -307,13 +306,13 @@ void CReyes::render() {
 
     // Insert the objects into the queue
     osLock(bucketMutex);
-    CBucket *cBucket = buckets[currentYBucket][currentXBucket];
+    CBucket *cBucket = buckets[context.currentYBucket][context.currentXBucket];
     int nullBucket = (cBucket->objects == NULL);
     int noObjects = TRUE;
     cBucket->queue = &objectQueue;
     while ((cObject = cBucket->objects) != NULL) {
         __logObjectDequeue(cObject, currentXBucket, currentYBucket);
-        cBucket->objects = cObject->next[thread];
+        cBucket->objects = cObject->next[context.thread];
         objectQueue.insert(cObject);
     }
     osUnlock(bucketMutex);
@@ -410,7 +409,7 @@ void CReyes::render() {
             CRasterObject *objectsToDelete = NULL;
 
             // We killed this bucket
-            buckets[currentYBucket][currentXBucket] = NULL;
+            buckets[context.currentYBucket][context.currentXBucket] = NULL;
 
             // Defer the current object
             __logObjectOpacityCull(cObject, currentXBucket, currentYBucket);
@@ -424,7 +423,7 @@ void CReyes::render() {
             }
 
             objectQueue.numItems = 1;
-            buckets[currentYBucket][currentXBucket] = NULL;
+            buckets[context.currentYBucket][context.currentXBucket] = NULL;
 
             osUnlock(bucketMutex);
 
@@ -440,17 +439,17 @@ void CReyes::render() {
     __logBucketTerminate(currentXBucket, currentYBucket);
 
     // All objects must be processed
-    buckets[currentYBucket][currentXBucket] = NULL;
+    buckets[context.currentYBucket][context.currentXBucket] = NULL;
     assert(cBucket->objects == NULL);
     assert(cBucket->queue->numItems == 1);
 
     osUnlock(bucketMutex);
 
     // Begin a new memory page
-    memBegin(threadMemory);
+    memBegin(context.threadMemory);
 
     // Allocate the framebuffer area (from the thread memory)
-    float *pixelBuffer = (float *)ralloc(CRenderer::bucketWidth * CRenderer::bucketHeight * CRenderer::numSamples * sizeof(float), threadMemory);
+    float *pixelBuffer = (float *)ralloc(CRenderer::bucketWidth * CRenderer::bucketHeight * CRenderer::numSamples * sizeof(float), context.threadMemory);
 
     // Get the framebuffer
     rasterEnd(pixelBuffer, noObjects);
@@ -460,11 +459,11 @@ void CReyes::render() {
 
     // Send bucket data if we're a netrender
     if (CRenderer::netClient != INVALID_SOCKET) {
-        CRenderer::sendBucketDataChannels(currentXBucket, currentYBucket);
+        CRenderer::sendBucketDataChannels(context.currentXBucket, context.currentYBucket);
     }
 
     // Restore the memory
-    memEnd(threadMemory);
+    memEnd(context.threadMemory);
 
     // Lock the bucket one more time
     osLock(bucketMutex);
@@ -474,10 +473,10 @@ void CReyes::render() {
     delete cBucket;
 
     // Advance the bucket
-    currentXBucket++;
-    if (currentXBucket == CRenderer::xBuckets) {
-        currentXBucket = 0;
-        currentYBucket++;
+    context.currentXBucket++;
+    if (context.currentXBucket == CRenderer::xBuckets) {
+        context.currentXBucket = 0;
+        context.currentYBucket++;
     }
 
     // Unlock the bucket
@@ -497,25 +496,25 @@ void CReyes::skip() {
 
     // Defer the objects
     osLock(bucketMutex);
-    cBucket = buckets[currentYBucket][currentXBucket];
+    cBucket = buckets[context.currentYBucket][context.currentXBucket];
 
     __logBucketSkip(currentXBucket, currentBucket);
 
     while ((cObject = cBucket->objects) != NULL) {
-        cBucket->objects = cObject->next[thread];
+        cBucket->objects = cObject->next[context.thread];
         __logObjectSkip(cObject, currentXBucket, currentBucket);
         objectDefer(cObject);
     }
 
     // Just have rendered this bucket, so deallocate it
     delete cBucket;
-    buckets[currentYBucket][currentXBucket] = NULL;
+    buckets[context.currentYBucket][context.currentXBucket] = NULL;
 
     // Advance the bucket
-    currentXBucket++;
-    if (currentXBucket == CRenderer::xBuckets) {
-        currentXBucket = 0;
-        currentYBucket++;
+    context.currentXBucket++;
+    if (context.currentXBucket == CRenderer::xBuckets) {
+        context.currentXBucket = 0;
+        context.currentYBucket++;
     }
     osUnlock(bucketMutex);
 
@@ -766,11 +765,11 @@ void CReyes::drawPoints(CSurface *object, int numPoints) {
 //							way, so they land bit-identically on those grids'
 //							vertices. Only undisplaced surfaces snap.
 void CReyes::snapGrid(CRasterGrid *grid, int moving) {
-    float **varying = currentShadingState->varying;
+    float **varying = context.currentShadingState->varying;
     CSurface *object = (CSurface *)(grid->object);
     const int n = grid->numSnaps;
     const int numTerms = grid->snapTermStart[n];
-    const int chunk = currentShadingState->services->maxGridSize(); // The varyings hold a grid
+    const int chunk = context.currentShadingState->services->maxGridSize(); // The varyings hold a grid
     float *points = new float[numTerms * 3];
 
     for (int sample = 0; sample <= moving; sample++) {
@@ -787,7 +786,7 @@ void CReyes::snapGrid(CRasterGrid *grid, int moving) {
                 time[t] = (float)sample;
             }
 
-            displace(object, count, 1, SHADING_0D, (sample ? PARAMETER_END_SAMPLE : PARAMETER_BEGIN_SAMPLE) | PARAMETER_P);
+            context.displace(object, count, 1, SHADING_0D, (sample ? PARAMETER_END_SAMPLE : PARAMETER_BEGIN_SAMPLE) | PARAMETER_P);
             camera2samples(count, varying[VARIABLE_P]);
             memcpy(points + first * 3, varying[VARIABLE_P], count * 3 * sizeof(float));
         }
@@ -843,7 +842,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
     if (grid->dim == SHADING_0D) {
         // This is a 0 dimensional point cloud
         int i;
-        float **varying = currentShadingState->varying;
+        float **varying = context.currentShadingState->varying;
         int numPoints = grid->vdiv;
         float *sizeArray;
         CSurface *object = (CSurface *)(grid->object);
@@ -867,7 +866,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
             varying[VARIABLE_CONSTANTWIDTH][0] = -C_INFINITY;
 
             // Shade the points
-            displace(object, numPoints, 1, SHADING_0D, PARAMETER_BEGIN_SAMPLE | PARAMETER_P);
+            context.displace(object, numPoints, 1, SHADING_0D, PARAMETER_BEGIN_SAMPLE | PARAMETER_P);
 
             // Figure out the size of the ribbon
             sizeArray = varying[VARIABLE_WIDTH];
@@ -904,7 +903,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
             numGridsShaded++;
 
             // Shade the points
-            shade(object, numPoints, 1, SHADING_0D, PARAMETER_BEGIN_SAMPLE | PARAMETER_P);
+            context.shade(object, numPoints, 1, SHADING_0D, PARAMETER_BEGIN_SAMPLE | PARAMETER_P);
 
             // Copy the point samples
             copySamples(numPoints, varying, grid->vertices, 0);
@@ -933,7 +932,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
                 varying[VARIABLE_CONSTANTWIDTH][0] = -C_INFINITY;
 
                 // Shade the points
-                displace(object, numPoints, 1, SHADING_0D, PARAMETER_END_SAMPLE | PARAMETER_P);
+                context.displace(object, numPoints, 1, SHADING_0D, PARAMETER_END_SAMPLE | PARAMETER_P);
 
                 // Figure out the size of the points
                 sizeArray = varying[VARIABLE_WIDTH];
@@ -965,7 +964,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
             }
             else {
                 // Shade the points
-                shade(object, numPoints, 1, SHADING_0D, PARAMETER_END_SAMPLE | PARAMETER_P);
+                context.shade(object, numPoints, 1, SHADING_0D, PARAMETER_END_SAMPLE | PARAMETER_P);
 
                 // Copy the point samples
                 copySamples(numPoints, varying, grid->vertices, 1);
@@ -978,7 +977,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
         // This is a 2 dimensional surface
         int i, j;
         int k;
-        float **varying = currentShadingState->varying;
+        float **varying = context.currentShadingState->varying;
         CSurface *object = (CSurface *)(grid->object);
         const CAttributes *attributes = object->attributes;
         const int udiv = grid->udiv;
@@ -1040,11 +1039,11 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
             if (object->region != NULL && grid->coverage == NULL) {
                 grid->coverage = new unsigned char[udiv * vdiv];
                 memset(grid->coverage, 1, udiv * vdiv);
-                object->regionCoverage(this, udiv, vdiv, varying[VARIABLE_U], varying[VARIABLE_V], grid->coverage);
+                object->regionCoverage(&context, udiv, vdiv, varying[VARIABLE_U], varying[VARIABLE_V], grid->coverage);
             }
 
             // Displace the sucker
-            displace(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_BEGIN_SAMPLE | PARAMETER_P);
+            context.displace(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_BEGIN_SAMPLE | PARAMETER_P);
 
             // Project the P into samples
             camera2samples(numVertices, varying[VARIABLE_P]);
@@ -1058,7 +1057,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
             numGridsShaded++;
 
             // Shade the sucker
-            shade(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_BEGIN_SAMPLE | PARAMETER_P);
+            context.shade(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_BEGIN_SAMPLE | PARAMETER_P);
 
             // Project the P into samples
             camera2samples(numVertices, varying[VARIABLE_P]);
@@ -1101,7 +1100,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
 
             if (Ponly) {
                 // Shade the sucker
-                displace(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_END_SAMPLE | PARAMETER_P);
+                context.displace(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_END_SAMPLE | PARAMETER_P);
 
                 // Project the P into samples
                 camera2samples(numVertices, varying[VARIABLE_P]);
@@ -1112,7 +1111,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
             }
             else {
                 // Shade the sucker
-                shade(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_END_SAMPLE | PARAMETER_P);
+                context.shade(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_END_SAMPLE | PARAMETER_P);
 
                 // Project the P into samples
                 camera2samples(numVertices, varying[VARIABLE_P]);
@@ -1991,7 +1990,7 @@ void CReyes::insertObject(CRasterObject *object) {
 
     // Insert the the object into every thread
     for (i = 0; i < CRenderer::numThreads; i++) {
-        CReyes *hider = (CReyes *)CRenderer::contexts[i];
+        CReyes *hider = static_cast<CReyes *>(CRenderer::contexts[i]);
         int bx = sx;
         int by = sy;
         int killObj = FALSE;
@@ -2001,18 +2000,18 @@ void CReyes::insertObject(CRasterObject *object) {
         osLock(hider->bucketMutex);
 
         // Determine the bucket
-        if (by <= hider->currentYBucket) {
-            by = hider->currentYBucket;
-            if (ey < hider->currentYBucket) {
+        if (by <= hider->context.currentYBucket) {
+            by = hider->context.currentYBucket;
+            if (ey < hider->context.currentYBucket) {
                 // This must have been caused by dicing an
                 // object which was previously occluded, resulting
                 // in objects in previous buckets, so we will
                 // cause a deletion
                 killObj = TRUE;
             }
-            if (bx < hider->currentXBucket) {
-                bx = hider->currentXBucket;
-                if (ey == hider->currentYBucket && ex < hider->currentXBucket) {
+            if (bx < hider->context.currentXBucket) {
+                bx = hider->context.currentXBucket;
+                if (ey == hider->context.currentYBucket && ex < hider->context.currentXBucket) {
                     // This must have been caused by dicing an
                     // object which was previously occluded, resulting
                     // in objects in previous buckets, so we will

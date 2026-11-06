@@ -36,7 +36,6 @@
 #include "blobbyField.h"
 #include "channelRegistry.h"
 #include "brickmap.h"
-#include "bundles.h"
 #include "common/algebra.h"
 #include "common/containers.h"
 #include "common/os.h"
@@ -6522,3 +6521,11 @@ namespace {
     const CRendererContextRegistrar g_rendererContextRegistrar;
 
 } // namespace
+
+// The anchor of the registrar above. In a static archive the linker keeps an object only when something
+// references one of its symbols, and nothing in a program that calls only Ri*() names this translation unit
+// (ri.cpp must not: it may not name CRendererContext). ribRender_static therefore carries a linker option
+// (`-u ribrender_context_anchor`, src/ri/CMakeLists.txt) that references this symbol in every link of the
+// archive, so the registration runs without -force_load or --whole-archive.
+extern "C" void ribrender_context_anchor() {
+}

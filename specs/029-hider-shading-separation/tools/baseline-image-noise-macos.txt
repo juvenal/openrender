@@ -1,0 +1,3 @@
+# macOS suite noise list (T009): images whose bytes differ between two runs of
+# ctest -LE determinism-sweep -j4 on the starting tree. Run 2 against run 1: 900 images, 0 differing,
+# every MaxBlockAvgDiff equal. The list is empty.

@@ -13,9 +13,8 @@
  *     (hitT reaches the shader through the trace() float form);
  *   - trace()'s colour form and transmission() issue their *bundle* requests through
  *     ITracer::traceBundle: one bundle of four rays (the state's points) with the label the call
- *     used, bundle depth 0, the same flags. The recording tracer never runs the bundle protocol, so
- *     the load stub's traps stay unreached (constructing a bundle on the stack only writes a vtable
- *     pointer).
+ *     used, bundle depth 0, the same flags. The recording tracer never runs the bundle protocol
+ *     (constructing a bundle on the stack only writes a vtable pointer).
  * The two backends issue the same requests (the call sites are shared), so the Interp and Jit tests run
  * the same expectations. The bitwise equality of ordering and sample identity with the starting tree is
  * the replay's (ShadingContract_TraceReplay_*); here the sample identity is the legacy one (no frame

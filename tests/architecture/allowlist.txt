@@ -10,13 +10,6 @@
 #
 # Seeded by specs/022-domain-dependency-guardrails/tools/assign_registry.py.
 
-# --- DB-001: Shading depends on the renderer core and the hiders (5) ---
-DB-001  link     src/libshader/shading/execute.cpp  ->  _ZN10CPhotonMap6lookupEPfPKfi   # CPhotonMap::lookup(float*, float const*, int)
-DB-001  link     src/libshader/shading/executeMisc.cpp  ->  _ZTV12CTraceBundle   # vtable for CTraceBundle
-DB-001  link     src/libshader/shading/executeMisc.cpp  ->  _ZTV19CTransmissionBundle   # vtable for CTransmissionBundle
-DB-001  link     src/libshader/shading/shading.cpp  ->  _ZN10CPhotonMap6lookupEPfPKfi   # CPhotonMap::lookup(float*, float const*, int)
-DB-001  link     src/libshader/shading/shading.cpp  ->  _ZN13CGatherBundleC1Ev   # CGatherBundle::CGatherBundle()
-
 # --- DB-004: Geometry depends on the renderer core and on Scene Interface (52) ---
 DB-004  include  src/ri/geometry/blobby.cpp  ->  src/ri/render/renderer.h
 DB-004  include  src/ri/geometry/blobbyRepeller.cpp  ->  src/ri/render/renderer.h
@@ -71,18 +64,7 @@ DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer8dPixeldyE   # CR
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer8pixelTopE   # CRenderer::pixelTop
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer9pixelLeftE   # CRenderer::pixelLeft
 
-# --- DB-005: Hiders and Shading share one class (CShadingContext) (8) ---
-DB-005  include  src/libshader/shading/execute.cpp  ->  src/ri/hiders/bundles.h
-DB-005  include  src/libshader/shading/execute.cpp  ->  src/ri/hiders/irradiance.h
-DB-005  include  src/libshader/shading/execute.cpp  ->  src/ri/hiders/photonMap.h
-DB-005  include  src/libshader/shading/executeMisc.cpp  ->  src/ri/hiders/bundles.h
-DB-005  include  src/libshader/shading/shaderPl.cpp  ->  src/ri/hiders/bundles.h
-DB-005  include  src/libshader/shading/shading.cpp  ->  src/ri/hiders/bundles.h
-DB-005  include  src/libshader/shading/shading.cpp  ->  src/ri/hiders/irradiance.h
-DB-005  include  src/libshader/shading/shading.cpp  ->  src/ri/hiders/photonMap.h
-
-# --- DB-006: Geometry is coupled to Shading and to the hiders (31) ---
-DB-006  include  src/libshader/shading/shading.cpp  ->  src/ri/geometry/object.h
+# --- DB-006: Geometry is coupled to Shading and to the hiders (30) ---
 DB-006  include  src/ri/geometry/bsplinePatchgrid.cpp  ->  src/ri/core/shading.h
 DB-006  include  src/ri/geometry/curves.cpp  ->  src/ri/hiders/reyes.h
 DB-006  include  src/ri/geometry/curves.h  ->  src/ri/core/shading.h
@@ -124,7 +106,7 @@ DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZN10CTexture3dC2EPKcPKfS3_S3
 DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZN10CTexture3dD2Ev   # CTexture3d::~CTexture3d()
 DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZTI10CTexture3d   # typeinfo for CTexture3d
 
-# --- DB-011: Hiders read renderer-core state (CRenderer) (168) ---
+# --- DB-011: Hiders read renderer-core state (CRenderer) (164) ---
 DB-011  include  src/ri/hiders/compositor.cpp  ->  src/ri/render/renderer.h
 DB-011  include  src/ri/hiders/irradiance.cpp  ->  src/ri/render/renderer.h
 DB-011  include  src/ri/hiders/irradianceDispatch.cpp  ->  src/ri/render/renderer.h
@@ -161,7 +143,6 @@ DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer11dispatchJobE   
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer11pixelFilterE   # CRenderer::pixelFilter
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer11sampleOrderE   # CRenderer::sampleOrder
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer12bucketHeightE   # CRenderer::bucketHeight
-DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer13activeContextE  linux   # CRenderer::activeContext
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer13pixelXsamplesE   # CRenderer::pixelXsamples
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer13pixelYsamplesE   # CRenderer::pixelYsamples
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer13xSampleOffsetE   # CRenderer::xSampleOffset
@@ -189,7 +170,6 @@ DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer7yPixelsE   # CRe
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer8xBucketsE   # CRenderer::xBuckets
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer9netClientE   # CRenderer::netClient
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer9shootStepE   # CRenderer::shootStep
-DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZTWN9CRenderer13activeContextE  macos   # thread-local wrapper routine for CRenderer::activeContext
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer10imagePlaneE   # CRenderer::imagePlane
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer10inFrustrumEPKfS1_   # CRenderer::inFrustrum(float const*, float const*)
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer10numSamplesE   # CRenderer::numSamples
@@ -199,7 +179,6 @@ DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer11bucketWidthE   # CR
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer11dispatchJobE   # CRenderer::dispatchJob
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer11sampleOrderE   # CRenderer::sampleOrder
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer12bucketHeightE   # CRenderer::bucketHeight
-DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer13activeContextE  linux   # CRenderer::activeContext
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer13invImagePlaneE   # CRenderer::invImagePlane
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer13pixelXsamplesE   # CRenderer::pixelXsamples
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer13pixelYsamplesE   # CRenderer::pixelYsamples
@@ -238,7 +217,6 @@ DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer9dSampledxE   # CRend
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer9dSampledyE   # CRenderer::dSampledy
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer9netClientE   # CRenderer::netClient
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer9pixelLeftE   # CRenderer::pixelLeft
-DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZTWN9CRenderer13activeContextE  macos   # thread-local wrapper routine for CRenderer::activeContext
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer10imagePlaneE   # CRenderer::imagePlane
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer10numSamplesE   # CRenderer::numSamples
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer11bucketWidthE   # CRenderer::bucketWidth

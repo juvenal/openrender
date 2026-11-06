@@ -57,20 +57,21 @@ static int g_failed = 0;
 // The byte ASan fills fresh heap allocations with
 static const unsigned char kPoisonByte = 0xbe;
 
-// Shading context whose rendering loop is empty and which counts the
+// A plain shading context with an illumination hook installed that counts the
 // illuminateBegin/illuminateEnd hook calls
-class CRunProbeContext : public CShadingContext {
+class CRunProbeContext : public openrender::shading::IIlluminationHook {
     public:
-        explicit CRunProbeContext(int thread) : CShadingContext(thread) {}
+        explicit CRunProbeContext(int thread) : context(thread) { context.setIlluminationHook(this); }
 
-        void renderingLoop() override {}
+        CShadingContext context; // a plain shading context, the hooks below installed on it
 
         int numBegins = 0;
         int numEnds = 0;
 
-    protected:
         void illuminateBegin(const float *, const float *, const float *) override { ++numBegins; }
         void illuminateEnd() override { ++numEnds; }
+        void solarBegin(const float *, const float *) override {}
+        void solarEnd() override {}
 };
 
 // CSurface is abstract; instantiate() is never called here
@@ -85,7 +86,7 @@ class CTestSurface : public CSurface {
 static const int kNumPoints = 4;
 
 static void setupState(CRunProbeContext *probe, CSurface *object) {
-    CShadingState *ss = probe->currentShadingState;
+    CShadingState *ss = probe->context.currentShadingState;
     static const float P[kNumPoints][3] = {{-1.5f, 0, 0}, {-0.5f, 0, 0}, {0.5f, 0, 0}, {1.5f, 0, 0}};
 
     ss->numVertices = kNumPoints;
@@ -96,7 +97,7 @@ static void setupState(CRunProbeContext *probe, CSurface *object) {
     ss->alights = nullptr;
     ss->currentLight = nullptr;
     ss->lightsExecuted = FALSE;
-    ss->currentObject = object;
+    probe->context.setShadedObject(object, openrender::shading::ObjectHandle{static_cast<const CObject *>(object)}, object->attributes);
 
     for (int i = 0; i < kNumPoints; i++) {
         memcpy(ss->varying[VARIABLE_P] + 3 * i, P[i], 3 * sizeof(float));
@@ -129,7 +130,7 @@ static SRun runSurface(CRunProbeContext *probe, CProgrammableShaderInstance *sur
     setupState(probe, object);
     probe->numBegins = probe->numEnds = 0;
 
-    CShadingState *ss = probe->currentShadingState;
+    CShadingState *ss = probe->context.currentShadingState;
     static char sentinelStorage;
     CGatherBundle *const sentinel = reinterpret_cast<CGatherBundle *>(&sentinelStorage);
     ss->currentGather = sentinel;
@@ -139,7 +140,7 @@ static SRun runSurface(CRunProbeContext *probe, CProgrammableShaderInstance *sur
     memset(localMemory->base, kPoisonByte, localMemory->totalSize);
     float **locals = surface->prepare(localMemory, ss->varying, ss->numVertices);
 
-    probe->execute(surface, locals);
+    probe->context.execute(surface, locals);
 
     SRun run = {probe->numBegins, probe->numEnds, ss->currentGather != sentinel};
     ss->currentGather = nullptr;
@@ -269,7 +270,7 @@ int main(int argc, char **argv) {
         CTestSurface *object = new CTestSurface(attrs, xform);
 
         CRunProbeContext *probe = new CRunProbeContext(0);
-        probe->updateState();
+        probe->context.updateState();
 
         for (const SFixture &fx : fixtures)
             testFixture(probe, oshaderBin, dir, object, fx);

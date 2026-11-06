@@ -83,8 +83,7 @@ namespace {
     }
 
     void direct(CRenderedSession &s, CShadingContext *ctx) {
-        CShadingState *ss = ctx->currentShadingState;
-        ss->currentObject = s.object;
+        ctx->setShadedObject(s.object, openrender::shading::ObjectHandle{static_cast<const CObject *>(s.object)}, s.object->attributes);
 
         // ---- attribute() -----------------------------------------------------------------------------
         {

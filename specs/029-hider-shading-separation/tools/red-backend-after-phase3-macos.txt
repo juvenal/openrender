@@ -1,0 +1,6 @@
+# T054 (Phase 3, macOS): P-Q17 backend measurement on the plain static consumer after bundles.cpp moved into libshader_shading.
+# test_link_static_consumer (RED_TESTS ON for the build only), relinked with -Wl,-why_load; Link_StaticConsumer PASSES (rslo and slo): image written, no CODE_INCAPABLE.
+# RESULT: ribOut.cpp.o and rendererContext.cpp.o are still pulled; 95 libRIBRender.a members in all (96 before the move).
+'_RiBegin' caused load of build/src/ri/libRIBRender.a[84](ri.cpp.o)
+'_preferCompressedRibOut' caused load of build/src/ri/libRIBRender.a[86](ribOut.cpp.o)
+'__ZN16CRendererContext8getXformEi' caused load of build/src/ri/libRIBRender.a[69](rendererContext.cpp.o)

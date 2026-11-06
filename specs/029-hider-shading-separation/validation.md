@@ -1,0 +1,621 @@
+# Validation record: spec 029, Hider / Shading Separation
+
+Worktree `/Volumes/Projects/Development/CLI/openrender-worktrees/029-hider-shading-separation`, branch
+`029-hider-shading-separation`. Base for every `git diff <base>`: master `01501f10`.
+
+## §0 Starting-tree measurements and orientation
+
+### T001a / T002 orientation (2026-11-02)
+
+- T001 (PAUSE 1a) approved by the maintainer 2026-11-02; T001a done by the maintainer: `git log -1` is
+  `3cddd988 Merge master (the spec 026 count fixes) into 029-hider-shading-separation`, the merge of `01501f10`.
+- `git status --short` at the start: clean. Branch `029-hider-shading-separation`. `.specify/feature.json` names
+  `specs/029-hider-shading-separation`.
+- `git diff 01501f10 --stat -- CLAUDE.md DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md tests/architecture/allowlist.txt`
+  is empty: the three master documentation files equal master `01501f10`'s.
+- `git check-ignore -v build build-base build-pkg build-nojit build-logs`: all five ignored by `.gitignore:6 build-*`
+  (and `build` by `.gitignore:5`).
+- CLAUDE.md "Spec-kit agent rules": both copies (this worktree and the main checkout) carry the section; the two
+  `CLAUDE.md` files are byte-identical (`diff` empty), same last-commit time (1793635596), no uncommitted change. The
+  worktree copy was followed; the rules are identical.
+- Disk: `df -h /Volumes/Projects` 8.4 GiB free at the start.
+
+### macOS baseline (T007 to T012; starting `src/`, Release, JIT on, vcpkg shared tree, `-Werror`)
+
+Environment: `VCPKG_ROOT=/Users/juvenal/.vcpkg`, `VCPKG_INSTALLED_DIR=/Users/juvenal/.cache/vcpkg-installed/openrender`
+(the configure reused the binary cache; LLVM 23.1.1 core-only).
+
+| Task | Result |
+|---|---|
+| T007 configure (`029-base-configure`) | clean |
+| T007 build (`029-base-build`, `-j4`) | exit 0, no warning, every target built (`orender-wire-macos` included) |
+| T008 suite (`029-base-suite`, `-LE determinism-sweep -j4`) | **1052 tests, 100% passed**; 1 test skips itself on the baseline (`LibShader_Format_rslo_lower_minor`, `Skipped`). Real time 272 s. No failure. `baseline-images-macos.sha256`: **900 images**; `baseline-diffs-macos.txt`: 389 tests with a `MaxBlockAvgDiff` |
+| T009 noise (`029-base-suite2`) | run 2: 1052 tests, 100% passed, same skip; **900 images, 0 differing, 0 missing**; every `MaxBlockAvgDiff` equal (the two listings are identical). `baseline-image-noise-macos.txt` is empty (comment only) |
+| T010 archcheck (`029-base-archreport`) | `ALLOWED DB-001 x 5, DB-004 x 52, DB-005 x 8, DB-006 x 31, DB-010 x 8, DB-011 x 166, DB-015 x 10, DB-017 x 78, DB-025 x 12`; `METRIC TOTAL refs 612 distinct 94`, Shading 0; `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`. Equal to the expected 5 / 8 / 31 / 166 |
+| T010 imports | exactly **4** (`nm -m ... | grep 'dynamically looked up'`): `CPhotonMap::lookup(float*, float const*, int)`, `CGatherBundle::CGatherBundle()`, `vtable for CTraceBundle`, `vtable for CTransmissionBundle`. `libshader-fixups-base-macos.txt` has 39,588 lines |
+| T011 sweep (`029-base-sweep`, `-L '^determinism-sweep$' -j2`) | **419 of 419 passed**, 611 s; 419 images in `baseline-sweep-images-macos.sha256` (the sweep leaves its images under `build/tests`, so the manifest mechanism applies as it is) |
+| T011 sweep noise (`029-base-sweep2`) | run 2: 419 of 419 passed (596 s); **0 differing**; `baseline-sweep-noise-macos.txt` is empty |
+| T012 frozen copy | `cp -Rp build build-base` (575 MB) under `cpujob 029-freeze-base`, then install names, `LC_RPATH` entries and dylib ids rewritten with `install_name_tool` and every modified Mach-O re-signed (`codesign -f -s -`): **307 Mach-O files seen, 199 rewritten, 0 still naming `$W/build/` in `otool -L` or `LC_RPATH`**. Run check (`029-base-frozen2`): one `orender` run of `sphere-gather-reyes` from `build-base` with `DYLD_PRINT_LIBRARIES=1` loads 6 openRender images (`orender`, `libRIBRender`, `libRIBCommon`, `libshader_shading`, `libRIBShadeop`, `file.dsply`), **all from `build-base/`, none from `build/`** |
+| T012 `timing_sc010.sh` (the Phase 1 version; the scaling of §4 F1 was added after review) | copied from 026's, `SCENES` set to research R14's (`teapot-somewood-reyes teapot-wood-reyes teapot-blue_marble-reyes sphere-gather-reyes photon-parity killeroo-reyes`; `photon-parity` runs at `-t:1`, the photon hider races), environment built from the tree being run, stale `.gpm` removed before each run, `SCENES` / `SCENE_THREADS` overridable. One sanity series (`029-sc010-sanity`, `build-base` vs `build`, expected equal): **every scene renders in 0.09 to 0.80 s**; see §4 finding F1 |
+
+### T013: does a suite photon scene's light shader trace during photon emission? (research R10 item 3)
+
+Statically: **no.** The photon-mode scenes are `photon-parity{,-slo}`, `photon-solar0-{alone,after-distant,before-distant}{,-slo}`
+(through `Visual_photon-solar0-*` and `PhotonSolar0_*`), and the four `subdiv-*-photon` scenes. The lights they bind are
+`pointlight`, `spotlight`, `distantlight`, `ambientlight` and `solar0_light` (`shaders/*.sl`); none contains a call to
+`trace`, `transmission`, `visibility`, `shadow`, `environment`, `occlusion` or `indirectdiffuse`, and none has an `#include`.
+(`photonparity_view.sl` and `photonmap_probe.sl` call `photonmap()` in the camera frame, not in a light.) So no suite scene
+exercises the corrected 0-D/`inShadow` branch of `classifyShading()` through a light during photon emission; T-G1's dynamic
+confirmation (Phase 7) is the first exercise. The correction is made either way.
+
+### T006: the measured test-edit inventory (`tools/test-edit-inventory.txt`, HEAD `3cddd988`)
+
+Measured with `grep -rnE` over `tests/` and `src/` (C/C++ sources, headers, CMake files). **Every list of Phases 3, 5 and 7
+matches the measurement; no difference.** Counts per pattern: subclasses of `CShadingContext` 12 (3 hiders + 9 test classes in 9
+files); `CRenderer::contexts` 21 occurrences (11 test reads in 9 files, matching Phase 5's list B, plus two comment mentions in
+`tests/imager/test_imager_execution.cpp` and one in `csgTestUtils.h`; the rest is `src`); `CRenderer::activeContext` 5 (all
+`src`, no test); `currentObject` writes in tests 9 in 8 files (Phase 7's five of list A and four of list B; two more test files
+mention it in comments only, `case_null_object{,_messages}.cpp:7`, and no edit is listed for them); `getPhotonMap` doubles 6
+(exactly the six of T044); `CHiderTracer`/`frameTracer` in tests 0; `->trace(`/`traceEx` in tests 0 (a comment in
+`load_stub.cpp`, which is deleted); `CPointKeyReport`/`CPointDisplacedReport` users dereferencing `->surface`: `scene_probe.h:74-75`
+and `test_displace_consistency.cpp:55` (the conditional include-path edits of Phase 7); hook overrides in tests: the four probes
+(`illuminateBegin` 4x, `solarBegin` 3x); includes in tests: `bundles.h` only in `load_stub.cpp` (deleted), `photonMap.h` in four
+test files (`tests/preview/test_data_world_init.cpp`, `test_dataview_chunking.cpp`, `tests/unit/photon_map/test_photon_map_*.cpp`),
+`irradiance.h` none. The four `photonMap.h` includers are not in any list and need no edit: the header stays in
+`src/ri/hiders`, and `photonLookup.h` (T048) is reachable for them because their targets link `ribRender`, whose PUBLIC include
+directories carry `src/libshader/shading` (`src/ri/CMakeLists.txt:229-242`). Phase 3's build confirms it.
+Source-side observation (not a test edit): `src/ri/render/imager.cpp:130-134` reads `CRenderer::contexts[0]` into a
+`CShadingContext *` and `rendererJobs.cpp:88-89` / `rendererDeclarationsDispatch.cpp:82` call members through `contexts[i]`;
+research and plan name all three files already (plan.md:72, research.md:121-122).
+
+### macOS red evidence (T014, T015)
+
+- **T014 red link** (`029-red-link-macos`, `tools/red-link-macos.txt`): `libshader_shading`'s generated `link.txt` run from its own directory with
+  `-undefined dynamic_lookup` removed and `-o` pointed at a scratch path: exit 1, **exactly the 4 symbols** of T010
+  (`CPhotonMap::lookup(float*, float const*, int)`, `CGatherBundle::CGatherBundle()`, `vtable for CTraceBundle`,
+  `vtable for CTransmissionBundle`); no other undefined symbol. No finding.
+- **T015 package consumer** (`tools/red-package-macos.txt`): scratch install (`build-pkg/prefix`, a full second build and install, exit 0
+  with `CPUJOB_TIMEOUT=7200`), scratch consumer under `build-pkg/consumer/`. (a) as shipped: image written (5,273 bytes), exit 0.
+  (b) the `-force_load` block deleted from a scratch copy of the installed config: configure and link succeed, **launch abort**
+  `dyld: symbol not found in flat namespace '__ZTV12CTraceBundle'`, exit 134. FR-004's red reproduces on macOS.
+- **T015 (c), P-Q17 backend measurement** (`tools/red-backend-macos.txt`): (b)'s prefix plus a `refs.cpp` that references only the four
+  imports, linked with `-Wl,-why_load`: **`ribOut.cpp.o` and `rendererContext.cpp.o` ARE pulled** (`ribOut.cpp.o` by `preferCompressedRibOut`,
+  referenced directly by `ri.cpp.o`; `rendererContext.cpp.o` by `CRendererContext::getXform(int)`, referenced by
+  `rendererDeclarationsDispatch.cpp.o`), 96 members of `libRIBRender.a` in all; the consumer's `RiBegin` reports no `CODE_INCAPABLE` and the image is
+  written. **P-Q17 does not stop the work on macOS: there is nothing to decide today.** The registration works through ordinary
+  transitive references of the starting tree, not through any reference to the registrars; T054 repeats the measurement after Phase 3.
+  *(History: this record is true of this branch before the merge of master. Spec 038 removed `ri.cpp`'s references to `CRenderer::initDeclarations()`, which had pulled `rendererContext.cpp.o`, so on the merged tree a plain link pulled 10 members and registered no backend; the answer to P-Q17 is now option (a), an explicit `-u` anchor. See "Merged-tree verification" below.)*
+
+## §3 Linux records
+
+Tree `juvenal@ubuntu-2404-desktop.v2-labs.io:~/Projects/Development/CLI/openrender-029` (created in T016; `openrender`, `openrender-038`, `cellar` and
+`shrimp` untouched). GCC 13.3.0, cmake 3.28.3, LLVM 18, 2 cores, Release, JIT on. Every remote job through the remote `cpujob` at `-j2`.
+
+| Step | Result |
+|---|---|
+| T016 `linux_sync.sh push` / `verify` | pushed 3,505 files; **3505 files, 0 differences**; `no-git-ok` (no `.git` in the remote tree). The first push created the tree (checked beforehand: no `openrender-029` existed) |
+| T016 configure (`029-l1-configure`) | clean |
+| T017 build (`029-l1-build`, `-j2`) | exit 0, **0 warnings** under GCC 13 `-Werror` (the default 2700 s timeout was enough) |
+| T018 `ctest -L architecture` | 21 of 21 passed. `archcheck-base-linux.txt`: `ALLOWED DB-001 x 5 ... DB-005 x 8 ... DB-006 x 31 ... DB-011 x 166`, `RESULT PASS` (equal to macOS). `nm -D --undefined-only libshader_shading.so`: **465 undefined symbols, the 4 among them** (`CPhotonMap::lookup`, `CGatherBundle::CGatherBundle()`, `vtable for CTraceBundle`, `vtable for CTransmissionBundle`). `readelf -d`: no `FLAGS` entry, so **no `BIND_NOW`** (lazy binding); `NEEDED` libRIBShadeop, libRIBCommon, libz, libzstd, libtinfo, libstdc++, libm, libgcc_s, libc |
+| T019 suite 1 (`029-l1-suite`, `-LE determinism-sweep -j2`) | **1053 tests, 1046 passed, 7 failed** (680 s): `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes` (#57), `TextureTile_RenderByteIdentical` (#45), `TextureTile_CacheByteIdentical`, `TextureTile_CacheDefaultDirectory`, `TextureTile_CacheStaleDetection`, `TextureTile_CacheConcurrentWrite` (the four `TextureTile_Cache*` of #46), `LibShader_McompConsistency` (#44). **Exactly the recorded 7.** 1 test skips itself (`LibShader_Format_rslo_lower_minor`). Linux has one test macOS lacks (`IPCDisplayTests`). 900 images (the same count as macOS) |
+| T019 suite 2 (noise) | the same 7 failures; **900 images, 0 differing**; the `MaxBlockAvgDiff` listings are identical (diff empty); `baseline-image-noise-linux.txt` is empty (comment only) |
+| T020 sweep 1 (`029-l1-sweep`, `-j2`) | **419 of 419 passed** (1,387 s); 419 images in `baseline-sweep-images-linux.sha256` |
+| T020 sweep 2 | 418 of 419: **`DeterminismSweep_sphere-texture3d-bake3d-reyes` failed (orender segmentation fault in the default-threads configuration)**; 1 image differs from run 1 (`sphere-texture3d-bake3d-reyes.tif`). Spec 026 recorded this bake3d scene as flaky on the Linux starting tree; `baseline-sweep-noise-linux.txt` lists that image. Nothing else differs |
+| T021 red link (`029-red-link-linux`) | `libshader_shading`'s `link.txt` with `-Wl,--no-undefined` added and `-o` redirected: exit 1, **exactly the 4 symbols** (`CPhotonMap::lookup(float*, float const*, int)` at several sites, `CGatherBundle::CGatherBundle()`, `vtable for CTransmissionBundle`, `vtable for CTraceBundle`); none of the other 461 undefined symbols. No fifth symbol: no finding |
+| T022 package consumer (remote `build-pkg`, scratch prefix, `CPUJOB_TIMEOUT=7200`; configure, build and install exit 0) | (a) as shipped: image written, exit 0. (b) the `--whole-archive` / `--export-dynamic` block deleted from a scratch copy of the installed config: the consumer **links** (the package's static targets put `--allow-shlib-undefined` on every consumer link) and **aborts at launch**: `libshader_shading.so.1: undefined symbol: _ZTV19CTransmissionBundle`, exit 127. FR-004's red reproduces on Linux (`tools/red-package-linux.txt`) |
+| T022 (c), P-Q17 backend measurement | `-Wl,-Map=` of (b)'s prefix plus `refs.cpp`: `ribOut.cpp.o` (by `preferCompressedRibOut` from `ri.cpp.o`) and `rendererContext.cpp.o` (by `CRendererContext::getXform(int)` from `rendererDeclarationsDispatch.cpp.o`) **are included**, 200 `libRIBRender.a` mentions in the map; the image is written, no `CODE_INCAPABLE`. Same chain as macOS (`tools/red-backend-linux.txt`) *(History: before the merge of master; spec 038 changed the result, see "Merged-tree verification".)* |
+| T022 cleanup | the remote `build-pkg` deleted (`~/` has 9.7 GB free) |
+| T023 `linux_sync.sh pull` / `verify` | the 13 Linux-produced files pulled (13 files, 0 differences), all 12 files T023 names exist locally (plus `red-backend-linux.txt`); after `git add`, **`verify`: 3517 files, 0 differences**, no remote `.git` |
+
+SC-009's Linux comparison basis (§4a): the failing set of the starting tree is the 7 above; the sweep has no failure in run 1 and the one flaky bake3d scene in run 2.
+
+## §1 Checkpoint records
+
+Checkpoint 1 (Phase 1; nothing in `src/` changed): the baselines above are the checkpoint. `ALLOWED` per platform: DB-001 5, DB-005 8, DB-006 31, DB-011 166
+(macOS and Linux), `RESULT PASS`; 4 imports on both platforms.
+
+## §2 Red evidence
+
+Phase 1's red evidence is the two red links and the two package-consumer reds recorded above; Phase 2's is in the section "Phase 2" below.
+
+## §4 Findings for filing as P1, and departures from the plan
+
+- **F1 (SC-010 scene set is too short to time). Decision (maintainer, 2026-11-02): time scaled scratch copies; see the resolution below.** Research R14's six scenes (`teapot-somewood-reyes`, `teapot-wood-reyes`,
+  `teapot-blue_marble-reyes`, `sphere-gather-reyes`, `photon-parity`, `killeroo-reyes`) render in 0.09 to 0.80 s each at `-t:4`
+  (sanity series `029-sc010-sanity`, `build-base` vs `build`, which are the same bits; the script's "BEYOND SPREAD" lines for
+  `photon-parity` and `killeroo-reyes` are an artefact of one series: the spread of a single run is 0). A difference of a few
+  milliseconds is process start-up and thread-pool noise, so SC-010 as specified cannot see a per-batch cost of the new virtual calls. The
+  heaviest scenes of the whole suite (`Convergence_dof-reyes` 23 s, `Convergence_motion-reyes` 15 s, `Visual_teapot-motion-raytrace` 33 s,
+  `Parity_csg-sphere-cube-difference-1600-*` 13 s) are not shading-bound in the sense of R14. For the maintainer to decide before Phase 8:
+  heavier scenes, or scratch copies of the R14 RIBs with a larger `Format`/`PixelSamples`/finer `ShadingRate` (the script's `SCENES`
+  and the RIB directory are overridable). Not a defect of the code; a gap in the plan's measurement.
+  **Resolution (maintainer, 2026-11-02):** `timing_sc010.sh` generates scratch copies of the six RIBs (never tracked scenes) with a larger `Format`,
+  a finer `ShadingRate` and, for `photon-parity`, more photons, until each render takes several seconds at `-t:4`. Initial factors (an estimate from the
+  unscaled times and the cost model, **not yet timed**): `teapot-somewood-reyes` Format x2 ShadingRate /2; `teapot-wood-reyes` x4 /4;
+  `teapot-blue_marble-reyes` x4 /4; `sphere-gather-reyes` x3 /2; `photon-parity` Format x6, emit x4 (`-t:1`); `killeroo-reyes` x2 /4. The script flags `TOO SHORT`
+  (median under `MIN_SECONDS`, default 3 s; exit 3). The confirmed factors and medians are recorded in §5 when the first series runs. The change to the approved
+  `timing_sc010.sh` is the one reported at the Phase 1 hand-back; research R14, T012, T114 and quickstart.md §0/§5 were updated.
+- **F2 resolved by the maintainer (departure: `.gitignore` edited on this branch).** `.gitignore` gained `!specs/029-hider-shading-separation/tools/*.log` after
+  `*.log`, and the four `base-*LastTest-*.log` files (about 5 MB) are staged, so all 30 approved references are tracked. Original finding:
+- **F2 (the `.log` references are gitignored).** `.gitignore:67` is `*.log`, so `tools/base-LastTest-{macos,linux}.log` and
+  `tools/base-sweep-LastTest-{macos,linux}.log` (T001's list; 1.0 to 1.7 MB each) exist on disk but `git add` skips them; the other 26 references are staged.
+  Spec 026's tools directory has none of them either. `-f` would stage them; the CP-d checks use `baseline-diffs-*.txt` and the manifests, not the logs.
+- **F3 = GitHub #141 (P1, filed by the maintainer 2026-11-02).** The coordinator verified it: both trees use the one shared vcpkg install, and a consumer
+  with `CMAKE_PREFIX_PATH` at the prefix plus the shared `arm64-osx-openrender` dir, without the toolchain, still fails (31 undefined: 25 jpeg/jpeg12, 6 lzma, from `libtiff.a`);
+  the prefix alone picks Homebrew TIFF/PNG and fails on 14 OpenEXR `Imf_3_4` symbols. T-L4 (T030, T115, `contracts/link-and-tests.md`) now states that its macOS consumer is configured
+  with the vcpkg toolchain line from the main build's cache. The coordinator's scratch builds `build-pkg/consumer/build-{d,e}` go when `build-pkg` is removed at T040. Original finding:
+- **F3 (the installed Static component is not self-sufficient on a vcpkg macOS install).** A consumer that only sets
+  `CMAKE_PREFIX_PATH` to the install prefix and the vcpkg installed tree fails to link (`_jpeg_abort`, `_jpeg_std_error` from the static
+  `libtiff.a`): CMake's `FindTIFF` module does not carry libtiff's own dependencies. It links when the consumer is configured with vcpkg's
+  toolchain (`CMAKE_TOOLCHAIN_FILE`, `VCPKG_MANIFEST_MODE=OFF`, `VCPKG_INSTALLED_DIR`, `VCPKG_TARGET_TRIPLET`), which is how the scratch consumer ran. T-L4
+  (`Link_PackageStaticConsumer`, Phase 8) needs the same configure line on macOS. A property of the existing package, not of 029.
+- **F4 (decision: stays).** The Linux bake3d sweep flake stays in `baseline-sweep-noise-linux.txt` as recorded. Original finding:
+- **F4 (known flake, restated).** Linux sweep run 2: `DeterminismSweep_sphere-texture3d-bake3d-reyes` segfaulted once (default threads); it
+  passed in run 1 and is flaky on the starting tree per spec 026's record. The macOS sweep had no such failure in two runs.
+- **F5 (P-Q17 does not stop Phase 2).** See the macOS and Linux measurements above: a plain static link registers the backend
+  today, through transitive references. It is a property of the starting tree's archive-member graph (nothing names the registrars), so Phase 3
+  (T054) and Phase 4 re-measure it; if a later phase's move of `bundles.cpp` ever changes which members are pulled, the maintainer's options in plan P-Q17 apply then.
+  *(History: the merge of spec 038 changed which members are pulled, and the maintainer chose P-Q17 option (a) on 2026-11-05; see "Merged-tree verification".)*
+- **F13 (the tenth context subclass, `COffendingProbe`).** Found at the Phase 5 checkpoint: an approved spec 026 test reached a protected accessor by deriving from the (now `final`) context. Resolved by the maintainer: `rendererSetOffendingObject` public, the test calls it directly (`tools/phase5-f13-test-edit.diff`, approved); DEP-12 in plan.md.
+- **F14 (photon emission never reaches `shade()`).** `photon.cpp:150-230` sets its 0-D state itself and runs the light with `illuminate()`, so row 10 of the situation table and `classifyShading()`'s `Photon` rule are reached only by the test doubles; a ray a light traces during emission is a `Secondary` hit with the hook on. Maintainer decision (option 2): documented in `contracts/point-source-and-globals.md` and `data-model.md`, no assertion added (Phase 7 addendum).
+- **F15 (Debug-only findings, for filing as P1; not fixed). T113.** The starting tree fails the same three tests in a Debug JIT-off build with identical values (T113 base check): `traceTransmission`'s `assert(inShadow == FALSE)` (`executeMisc.cpp:714`) fires on spec 026's `sit_row5_shadow_shaded` (nested `transmission()` inside a shadow hit shaded with hit mode "shader"; in Release the inner call's `inShadow = FALSE` at `:828` may clear the flag while the outer call still traces: from code reading, not observed), and the bit-exact trace replay is a Release recording that cannot pass in Debug. Draft issue text in the T113 section above.
+- Filed by the maintainer during this spec: #144 (implicit surfaces in camera space), #145 (the JIT's `photonmap()` ignores `"estimator"`), #146 (a null shaded object in the imager's `ambient()`).
+- Departures from the plan: none in the test-edit lists (T006). The frozen copy's binaries were re-signed ad hoc after `install_name_tool`
+  (the task says so). The Linux first build and suites needed no extended timeout.
+
+## §5 Final summary against SC-001 to SC-011
+
+Evidence is in the Phase sections below (macOS and Linux, GCC 13 `-Werror`, 2026-11-04). The last full suite with the photon test, the sweeps and the timing ran on the finished tree.
+
+| SC | Result | Evidence |
+|---|---|---|
+| SC-001 | met | macOS: `dyld_info -imports` 0 flat-namespace imports, `nm -m` 0 dynamically looked up, ld64's default `-undefined error` (`tools/libshader-imports-after-macos.txt`); Linux: links with `--no-undefined`, 461 undefined dynamic symbols, none defined by `libRIBRender`, no INTERFACE `--allow-shlib-undefined` (`tools/libshader-imports-after-linux.txt`); `Link_ShadingSelfContained` green on both. 4 imports before. |
+| SC-002 | met | `Link_StaticConsumer` green at every checkpoint on both hosts (backend registered, P-Q17); `Link_PackageStaticConsumer` passed once per platform in Phase 8 (macOS 242 s, Linux 1014 s) from a scratch configure with its own prefix. |
+| SC-003 | met | the `grep` of `CMake`, `src/libshader`, `tests/unit/common`, `tests/shading_parity`, `src/libshader/tests` finds none of the six words; `load_stub.cpp` is gone; `Link_NoWorkaroundText` green. `tests/plugins/dynamicload` keeps its own `dynamic_lookup`. |
+| SC-004 | met | `ShadingContext_Standalone{Interp,Jit}` (`!is_polymorphic`, `is_final`, a context built with no hider runs a shader under both backends); `ShadingScope_Greps` S1c (no `virtual`, no foreign friend, `final`, no `public CShadingContext`). |
+| SC-005 | met | `ctest -L architecture` 21 of 21 on both hosts, `RESULT PASS`; DB-001's 5, DB-005's 8 and DB-006's `shading.cpp -> object.h` lines deleted (31 -> 30), 18 deleted in all (13 + 4 + 1), none added or re-keyed; DB-011 164 (down from 168); Shading's include path has neither the Hiders' nor Geometry's directory. |
+| SC-006 | met | full suite CP-d: 900 images, 0 differing, 0 missing on both hosts, every `MaxBlockAvgDiff` equal; determinism sweep: macOS 419 of 419 pass, 419 images 0 differing, 0 missing; Linux 419 of 419 pass, 419 images 0 differing, 0 missing (1 noise-listed); the spec 026 replay green and unchanged on both. |
+| SC-007 | met | no hider derives from `CShadingContext`; `shading.h` declares no `trace`, `traceEx` or `traceAny`; `CRenderer::frameTracer` and `CHiderTracer` are gone; each `CHider` is the `ITracer` of its context (`HiderTracer_PerContext`, `ShadingContract_RayLevel`, S1d). |
+| SC-008 | met | `ShadingContract_ProducerSituations` (3804 checks) and `ShadingContract_Situations` (all assertions, including the 18 that were red against the old `classifyShading()`); Geometry gained no include (`git diff 01501f10 -- src/ri/geometry \| grep '^+#include'` empty), DB-006 30 = 23 include + 7 link, `shading.cpp` includes no Geometry header (S1e). The photon-emission row is not produced by `shade()` (see §4, F14). |
+| SC-009 | met | Linux full suite: the starting tree's set except `LibShader_McompConsistency` (#44), which passes (cause removed); the six remaining failures are the baseline's (#57, #45, #46 x4). |
+| SC-010 | met | `timing_sc010.sh`, five interleaved series, scaled scratch RIBs, all six scenes between 3.0 and 6.0 s: every difference of medians within the larger spread (somewood +10.7%, 1.68 s spread; the others -6.6% to +2.8%); table under T114. |
+| SC-011 | met | `DOMAIN_BOUNDARIES.md`: DB-001 and DB-005 under Resolved with "spec 029" and 2026-11-04; DB-020 narrowed; DB-006 and DB-011 histories; line references corrected; no entry names a merge; `metrics-baseline.txt` is 556/81 and 610/93 (archcheck at baseline). |
+
+Allowlist 372 -> 354. `kRendererServicesVersion` 2.1.0. Both determinism sweeps and the trace replay unchanged. The T113 Debug findings (§4, F13) do not affect any SC.
+
+### T117 / T118: the determinism sweeps (last)
+
+- macOS (`cpujob 029-sweep ctest -L '^determinism-sweep$' -j2`): **419 of 419 pass**; `image_manifest.sh diff` against `baseline-sweep-images-macos.sha256` and its noise list: 419 images, **0 differing, 0 missing**; the pass/fail set equals `base-sweep-LastTest-macos.log`'s (all pass, none failed in either).
+- Linux (remote `cpujob`, `-j2`): **419 of 419 pass**; against `baseline-sweep-images-linux.sha256` and its noise list: 419 images, **0 differing, 0 missing**, 1 noise-listed (the known bake3d flake, F4, which passed); the set equals `base-sweep-LastTest-linux.log`'s (all pass). Pull and verify clean (3571 files, 0 differences).
+
+## Phase 2 (tests first; no `src/` edit)
+
+Approved by the maintainer 2026-11-02 (T025): the CMake edits of `tests/CMakeLists.txt` and `tests/shading_contract/CMakeLists.txt`, the two options, the patch (written, not applied), the new tests and the three scenes. `git diff 01501f10 -- src` is empty; no approved test source and no approved reference is edited (`git diff -- tests/shading_contract/case_situations.cpp` is empty after every evidence run).
+
+### What was added
+
+- Options (`tests/CMakeLists.txt`): `OPENRENDER_029_RED_TESTS` (OFF, temporary, removed in Phase 8) and `OPENRENDER_LINK_PACKAGE_TEST` (OFF, permanent, documented); `add_subdirectory(link)`.
+- `tests/link/`: `CMakeLists.txt`, `check_shading_self_contained.cmake` (T-L1), `static_consumer.cpp` + `run_static_consumer.cmake` (T-L2), `check_no_workaround_text.cmake` (T-L3), `package/{CMakeLists.txt,main.cpp}` + `run_package_test.cmake` (T-L4), `check_scope.cmake` (T-S1, sub-checks S1a to S1f).
+- `tests/shading_contract/`: eight programs, one executable each, defined only inside `if(OPENRENDER_029_RED_TESTS)`: `test_shading_contract_standalone_context` (T-S2), `_photon_lookup` (T-P1), `_canned_bundles` (T-B1), `_hook_interface` (T-H1), `_ray_level` (T-T2), `_point_source` (T-G2), `_hider_tracer` (T-T1, links ribRender), `_producer_situations` (T-G1, links ribRender); `cases_029.h`; `photon_services.h`; six shaders (`cm_standalone`, `cm_photon`, `cm_hook_{illuminate1,illuminate3,solar2,solar0}`, compiled as build steps only with the option ON); three scenes (`sit_row4_secondary_raster_{shaded,primitive}.rib`, `sit_row5_shadow_implicit_primitive.rib`). The 13 contract tests and the 4 link tests are registered `DISABLED` while the option is OFF ("Not Run (Disabled)").
+- `tools/situations-q5.patch` (T-G3, the P-Q5 edit, not applied) and `tools/situations-parse-fix.patch` (proposed, see F6).
+- `SHADING_CONTRACT_ENV` gained `SHADING_CONTRACT_IMPLICIT_DIR` (the directory of the implicit fixture `good.dsply`); the patch and T-G1 read it.
+
+### §2 Red evidence, macOS (`build` configured with `-DOPENRENDER_029_RED_TESTS=ON`; one target at a time through `cpujob`)
+
+| Test | Result | Reason |
+|---|---|---|
+| T-S2 `test_shading_contract_standalone_context` | build failed | `static assertion failed: CShadingContext has no virtual function`, `... is final`, `allocating an object of abstract class type 'CShadingContext'`, no member `illuminationHook` |
+| T-P1 `..._photon_lookup` | build failed | fatal: `libshader/shading/photonLookup.h` file not found |
+| T-B1 `..._canned_bundles` | build failed | fatal: `libshader/shading/bundles.h` file not found (the header is `src/ri/hiders/bundles.h`; included by its post-move path, so the red says something about the bundles) |
+| T-H1 `..._hook_interface` | build failed | fatal: `libshader/shading/illuminationHook.h` file not found |
+| T-T2 `..._ray_level` | build failed | no member `enterRayLevel`, `leaveRayLevel`, `rayDepth`; unknown type name for the ray-level type |
+| T-G2 `..._point_source` | build failed | fatal: `libshader/shading/pointSource.h` file not found |
+| T-T1 `..._hider_tracer` | build failed | fatal: `hider.h` file not found |
+| T-G1 `..._producer_situations` | build failed | unknown type `CShadeBatchReport`; no member `shadeBatchObserver`; `SHADEBRANCH_*` undeclared; no `BatchShape::PointSet` |
+| T-L2 `test_link_static_consumer` | builds; `Link_StaticConsumer` fails | both formats (`rslo`, `slo`): `dyld: symbol not found in flat namespace '__ZTV12CTraceBundle'` (Subprocess aborted) |
+| T-L1 `Link_ShadingSelfContained` | fails | the 4 imports: `CPhotonMap::lookup`, `CGatherBundle::CGatherBundle()`, `vtable for CTraceBundle`, `vtable for CTransmissionBundle` (each reported by `dyld_info -imports` and by `nm -m`) |
+| T-L3 `Link_NoWorkaroundText` | fails | 18 matches: `CMake/openRenderConfig.cmake.in:81,91,95,96`; `src/libshader/shading/CMakeLists.txt:56,85,92,100`; `tests/unit/common/CMakeLists.txt:79,82,83`; `tests/shading_parity/CMakeLists.txt:326,346,368,389`; the load stub exists |
+| T-S1 registered `ShadingScope_Greps` | fails | `CHECKS is empty` (an empty list is an error, so it cannot pass vacuously): expected with the option ON in Phase 2 |
+| T-S1 `cmake -DCHECKS='S1a;S1b;S1c;S1d;S1e;S1f' -P tests/link/check_scope.cmake` | each of the six fails | S1a 8 (bundles.h x4, irradiance.h x2, photonMap.h x2 included from `src/libshader`); S1b 6; S1c 22 (3 virtuals, 3 friends, not final, 10 subclasses of `CShadingContext` in `src` and `tests`); S1d 19 (4 trace members, the CHiderTracer/frameTracer text, `hiderTracer.{h,cpp}`); S1e 2 (`shading.cpp` includes `object.h`); S1f 3 (the three `friend class`) |
+| T-L4 runner against T015's install (`-DPREFIX_DIR=<build-pkg/prefix>`, vcpkg toolchain line from `build/CMakeCache.txt`, GitHub #141) | as shipped: both formats pass (image written). `-DREMOVE_PACKAGE_BLOCK=ON`: both formats fail with `dyld: symbol not found in flat namespace '__ZTV12CTraceBundle'`, so the runner exits 0 ("every format fails, as the red mechanism requires") | the consumer passes only because of the package block |
+| T-G3 `tools/situations-q5.patch` applied; `test_shading_contract_situations` rebuilt; `ShadingContract_Situations` | **red**: 310 passed, 1 failed: `c2.rayType == Shadow && c2.hitMode == Primitive` (row 6's shadow case, `classifyShading()` returns Shade for a 0-D shadow hit today). With `situations-parse-fix.patch` on top (F6): 293 passed, **18 failed**: that one plus 17 x `row 4: classified None/0/0/0, expected Secondary/0/0/0` (the reflection hits of the REYES frame `sit_row4_secondary_raster_shaded`, which today's function sends to row 1) | P-Q5's corrected expectations against today's `classifyShading()`. Reverted with `git apply -R`; `git diff` of the file is empty |
+
+Every other row of the corrected table, applied to the real reports, holds for the ten scenes of 026 (with the parse fix): the correction changes only the REYES secondary hits and the 0-D shadow case. The "build failed" rows show the first error of each file only; see "What the red builds do not prove" below.
+
+### §3 Red evidence, Linux (GCC 13.3, `-Werror`, `-j2`, remote `cpujob`; `build` configured ON, then OFF again)
+
+The eight programs fail to build for the same reasons (GCC wording: `static assertion failed`, `invalid new-expression of abstract class type`, `fatal error: ... No such file or directory`, `'enterRayLevel' is not a member of 'CShadingContext'`, `'CShadeBatchReport' does not name a type`). `test_link_static_consumer` builds. `Link_StaticConsumer`: `symbol lookup error: libshader_shading.so.1: undefined symbol` at launch, exit 127, both formats. `Link_ShadingSelfContained`: `imports a symbol libRIBRender defines` for exactly the 4 symbols. `Link_NoWorkaroundText` and the six-sub-check `check_scope.cmake` fail as on macOS (S1a 8, S1b 6, S1c 22, S1d 19, S1e 2, S1f 3 failure lines).
+
+### What the red builds do not prove (and the extra check made)
+
+A test that stops at a missing header was compiled by neither compiler past that line, so the red builds say nothing about GCC accepting the rest. Extra check, in the scratchpad only (nothing tracked): a header overlay with the interfaces exactly as the contracts declare them (`photonLookup.h`, `illuminationHook.h`, `pointSource.h`, `shadingProducer.h`, a copy of `shading.h` made `final` and non-polymorphic with the new members, `BatchShape::PointSet`, `hider.h`/`raytracer.h`/`photon.h` stubs, `getPhotonMap` of the two doubles on `IPhotonLookup *`, `CHarnessContext` as an alias of `CShadingContext`) and `-fsyntax-only` of the eight case files with each target's own flags (`-Wall -Wextra -Wpedantic ... -Werror`): **all eight compile with no diagnostic under Apple clang and under GCC 13.3** (T-S2, T-P1, T-B1, T-H1, T-T2, T-G2, T-T1, T-G1). The check found one real bug in my test (`case_ray_level.cpp` used `CRay` without `ray.h`), fixed. What it cannot show: that the contracts' signatures are the ones Phases 3 to 7 land (see the decisions below).
+
+### §1 Phase 2 checkpoint (T042; CP-a to CP-d, CP-m, CP-v)
+
+| | macOS | Linux (GCC 13.3, `-Werror`, `-j2`) |
+|---|---|---|
+| Option | configured back to `-DOPENRENDER_029_RED_TESTS=OFF` | same |
+| CP-a build | exit 0, no warning (the new targets are not in the build; `test_shading_contract_situations` was rebuilt from the unmodified source) | exit 0, 0 warnings |
+| CP-b suite (`-LE determinism-sweep`) | **1069 tests: 1052 passed, 17 "Not Run (Disabled)"** (13 contract + 4 link, the new entries), 1 self-skip as in the baseline; no failure | 1070 tests: **the baseline's failing set** (`CoverageAnalytic_alpha-sides2-tjunction-r4_reyes`, `TextureTile_RenderByteIdentical`, `TextureTile_Cache{ByteIdentical,DefaultDirectory,StaleDetection,ConcurrentWrite}`, `LibShader_McompConsistency`: 7 of 1053 as before), 17 new entries Not Run; 692 s |
+| CP-d images | `image_manifest.sh diff`: 900 images, **0 differing, 0 missing**; every `MaxBlockAvgDiff` equal (the diffs listing equals the baseline's) | 900 images, **0 differing, 0 missing**; diffs listing equal |
+| CP-c architecture | `ctest -L architecture` 21 of 21; `ALLOWED DB-001 x 5, DB-005 x 8, DB-006 x 31, DB-011 x 166`, `RESULT PASS`, `METRIC TOTAL refs 612 (baseline 612)` | 21 of 21; the same `ALLOWED`, `RESULT PASS` |
+| CP-m (`-L '^shading_contract$\|^link$'`) | 55 of 55 pass, 17 Not Run (Disabled), the replay green; `git diff --stat` of `tests/shading_contract/replay` and of `tools/baseline*` empty | 55 pass, 17 Not Run |
+| CP-v | no `static_assert` line of the six files of `renderer-services-version.md` is edited | same tree |
+
+No label added contains the substring `architecture` (`shading_contract`, `link`, `link-package`). The Linux tree was synced with `linux_sync.sh push`/`verify` (3,557 files, 0 differences); `build-logs/overlay` on the remote is scratch (not pushed, not tracked).
+
+### §4 Phase 2 findings and decisions
+
+**Decisions the written tests need from the maintainer at the T043 approval (proposed contract amendments; none is in the contracts):**
+
+- **D1 `shadeBatchObserver` and its report.** The contracts name the observer and not its report. T-G1 is written to this shape (shading.h, beside `CPointKeyReport`): `enum EShadeBranch { SHADEBRANCH_FULL, SHADEBRANCH_DISPLACE_ONLY, SHADEBRANCH_DISPLACE_ESTIMATE, SHADEBRANCH_SHADOW_PRIMITIVE, SHADEBRANCH_SPECULAR_PRIMITIVE, SHADEBRANCH_CAMERA_PRIMITIVE }`; `struct CShadeBatchReport { const CSurface *surface; const openrender::shading::ShaderGlobals *globals; EShadingDim dim; int displaceOnly; int inShadow; int rayDepth; int illuminationHook; EShadeBranch branch; }`; `typedef void (*CShadeBatchObserver)(const CShadeBatchReport &)`; `static CShadeBatchObserver CShadingContext::shadeBatchObserver`, null in production, called once per `shade()` call after the batch is described and before the branch runs (the primitive shortcuts and the displacement passes included). The raw situation facts (`dim`, `displaceOnly`, `inShadow`, `rayDepth`, `illuminationHook`) are in the report, so the expectation never needs `classifyShading()`.
+- **D2 a read of the per-context traced-ray count.** The contracts give `countTracedRay()` and no getter. T-T1 uses `int CShadingContext::tracedRays() const` (read-only, like `vertexMemoryInUse()`).
+- **D3 where `CRayLevel` lives.** `shading-context.md` lists it among the context's members; `hider.md` uses it unqualified from a class that is not the context. T-T2 names the type through `decltype` of `enterRayLevel`'s third parameter, so either placement compiles, and reads the ray label back through the next level's `savedLabel` (the context has no public label accessor).
+- **D4 phase fit.** T-S2 is enabled in Phase 5, so it does not touch the tracer accessor (`tracer()` arrives in Phase 6; T-T1 checks it). T-P1 and T-B1 (Phase 3) and T-H1 (Phase 5) use only what their own phase adds.
+- **D5 `photon_services.h`.** The services double is `final` and answers no photon map, so T-P1 wraps it and points the state's `services` field at the wrapper after the harness built the context. This relies on `CShadingState::services` staying a public field and on the double's `getPhotonMap` becoming `IPhotonLookup *` in Phase 3 (already in the TEST-APPROVAL list).
+- **D6 T-G1's implicit scene.** See F7: the scene's own `(Shadow, Primitive, PointSet)` batch is not required.
+- **D7 P-Q5's patch and the parse bug.** See F6: the maintainer decides whether `situations-parse-fix.patch` joins T-G3 at the Phase 7 approval.
+
+**Findings (out of the plan; reported, not fixed):**
+
+- **F6 (P1 candidate; a defect of an approved test, spec 026).** `ShadingContract_Situations` parses the key observer's lines with `sscanf(line.c_str() + 7, "dim=%d ...")`. A key line is `R key dim=...`, where `dim=` starts at offset 6, so the format never matches and **every key report is read as all zeros** (dim 0, depth 0, no shadow, no hook). Only the `R disp` lines (offset 7) parse. So the 026 test's per-report checks are vacuous for the shaded-grid and ray-hit reports, and the REYES secondary hits that P-Q5 corrects are invisible to it. `tools/situations-parse-fix.patch` (one line: `sscanf(strstr(line.c_str(), "dim="), ...)`) applies on top of `situations-q5.patch`. Measured: without it the P-Q5 patch goes red on one assertion (row 6's classify-only shadow case); with it, on 18 (that one plus 17 x `row 4: classified None/0/0/0, expected Secondary/0/0/0` on the new REYES scene), and the ten scenes of 026 all pass against the corrected table. Recommendation: include the one-line fix in T-G3 at the Phase 7 approval. T-G1 has its own parser and is not affected.
+- **F7 (the implicit fixture draws nothing under the raytrace hider). Filed by the maintainer as GitHub #144, P1 ("Implicit surfaces are evaluated in camera space, so they draw nothing under raytrace"). Cause: `CImplicit::intersect` (`src/ri/geometry/implicitSurface.cpp:122-140`) passes camera-space points to `implicitEval` and never transforms the ray into object space, as `CDLObject` does with `transformRay`. Out of spec: not fixed here; D6 stands.** `tests/plugins/implicit` (`good.dsply`, a unit-sphere field) loads (a wrong name is reported) and `implicitEval` is called (758 times for a 16 x 16 frame), but the image equals the empty scene's (same md5) and a shader of the object never runs (no marker, as a camera hit or as a shadow occluder under `transmissionhitmode "shader"`). The plan's "implicit-surface shadow hit" therefore cannot be shown with an existing fixture, and I wrote no new plug-in. `sit_row5_shadow_implicit_primitive.rib` is in place and renders; `ShadingContract_ProducerSituations` checks every batch it does produce but does not require the 0-D shadow batch. Options: (a) another implicit fixture, (b) accept the weaker scene, (c) look at `CImplicit::intersect` (a possible defect; not investigated beyond the measurement).
+- **F8 (`dyld_info -fixups` is unusable here).** On this machine (Xcode 27) `dyld_info -fixups libshader_shading` exits 133 after a truncated listing (39,724 lines in one run, 39,587 in another). `-imports` exits 0 and lists the same flat-namespace imports (`(from <flat-namespace>)`). T-L1 uses `dyld_info -imports` and `nm -m` instead of `-fixups` (FR-001's wording). The Phase 1 record `libshader-fixups-base-macos.txt` may therefore be truncated; nothing reads it.
+- **F9 (T-L3 and T-S1 matches and the tasks that remove them).** T-L3's 18 matches: the package block (`openRenderConfig.cmake.in:81,91,95,96`) goes with the Phase 4 deletion; `src/libshader/shading/CMakeLists.txt:85,92,100` with the replaced link options; **`:56` (the `libshader_jitmeta` comment that names `dynamic_lookup`) only if the rewrite of `:50-57` drops that word**; `tests/unit/common/CMakeLists.txt:79,82,83` with T062; `tests/shading_parity/CMakeLists.txt:326,346,368,389` with Phase 4; `load_stub.cpp` with T052. T-S1: S1a/S1b by T046/T047, S1c/S1f by T071/T072, S1d by T087/T090 and the `tracer.h` comment rewrite that `renderer-services-version.md` already lists, S1e by T101. Nothing is left that no task removes.
+- **F10 (T-L2 on Linux).** The plain static consumer fails at launch with `symbol lookup error ... undefined symbol` (exit 127), as T022 measured; macOS aborts in dyld.
+
+**Departures from the plan / tasks:**
+
+- the P-Q5 edit is a patch applied in Phase 7, not an in-place edit (DEP-1, approved); `situations-parse-fix.patch` is new (F6);
+- the gating option and the opt-in option (approved);
+- the new block of `tests/shading_contract/CMakeLists.txt` is at the end of the file (after the Situations registration), not "after :191"; it defines the functions `or029_contract_program` and `add_contract_test_029`; the shared `SHADING_CONTRACT_ENV` gained `SHADING_CONTRACT_IMPLICIT_DIR` (the existing tests see one extra environment variable);
+- T-L1 on macOS uses `dyld_info -imports` (F8);
+- the six new shaders are compiled by a target of their own (`shading_contract_029_shaders`, inside the option), not added to `_contract_shader_names`;
+- T-G1 does not require the implicit scene's own batch (F7).
+
+## T043 approval record (maintainer, 2026-11-02)
+
+The maintainer accepted the written tests and every recommendation of the Phase 2 report.
+
+- **D1** accepted: `CShadeBatchReport { surface, globals, dim, displaceOnly, inShadow, rayDepth, illuminationHook, branch }` with `EShadeBranch` and `CShadingContext::shadeBatchObserver`. **D2** accepted: the read-only `tracedRays()` getter. **D3** accepted: `CRayLevel` is nested in `CShadingContext` and written `CShadingContext::CRayLevel` everywhere. **D4** accepted: `ShadingContext_Standalone` uses only what Phase 5 adds (no `tracer()`). **D5** accepted: `ShadingContract_PhotonLookup` relies on `CShadingState::services` staying public. D1 to D5 are written into the contracts (`shading-context.md`, `hider.md`, `point-source-and-globals.md`, `photon-lookup.md`, `link-and-tests.md`) as amendments of the T043 approval.
+- **D6** accepted: `ShadingContract_ProducerSituations` does not require the implicit scene's own 0-D shadow batch (tasks.md T038). **F7** (the implicit fixture draws nothing under the raytrace hider) is followed up by the coordinator; nothing more is done here.
+- **D7** accepted: `tools/situations-parse-fix.patch` is part of T-G3 (tasks.md T039, T094, T095). **F6 is an in-spec fix of this spec's own edit and is not filed.** Consequence for Phase 7, written into T039 and T095: against today's `classifyShading()` the test is red on 18 assertions, row 6's classify-only shadow case and 17 REYES reflection hits that come out `None` instead of `Secondary`; every one must turn green through the corrected `classifyShading()` (P-Q5) or be explained here before Phase 7 can pass; no expectation is relaxed.
+- **Departures accepted:** the new CMake block is at the end of `tests/shading_contract/CMakeLists.txt`; `SHADING_CONTRACT_IMPLICIT_DIR` is in the shared `SHADING_CONTRACT_ENV`; the six new shaders have a target of their own (`shading_contract_029_shaders`); `Link_ShadingSelfContained` uses `dyld_info -imports` (F8); the Q5 edit is a patch applied in Phase 7.
+
+## Phase 3 (US5 and US2: the bundles and the photon map; 13 allowlist lines)
+
+T044 approved by the maintainer 2026-11-02 (with the moved line numbers and the 13 deletions by key). F7 is filed as GitHub #144 (see §4).
+
+### §2 Test gate (T045), macOS
+
+- Enabled: `Link_ShadingSelfContained` (T-L1), `ShadingContract_PhotonLookup{Interp,Jit}` (T-P1), `ShadingContract_CannedBundles{Interp,Jit}` (T-B1), `ShadingScope_Greps` with `OR029_SCOPE_CHECKS = S1a;S1b`. The two programs and `cm_photon` joined the normal build (`or029_contract_program` and the shader loop moved out of the option block; `add_contract_test_029` gained `ENABLED`).
+- The 13 allowlist lines deleted by key (8 DB-005, 5 DB-001); no other line touched.
+- Red, before the code: `test_shading_contract_photon_lookup` fails to build (`libshader/shading/photonLookup.h` not found), `test_shading_contract_canned_bundles` too (`libshader/shading/bundles.h` not found); `Link_ShadingSelfContained` fails on the 4 imports; `ShadingScope_Greps` fails S1a (8 lines) and S1b (6 lines); `ctest -L architecture` shows **exactly the 13 `VIOLATION` lines** (8 include, 5 link, `[Shading -> Hiders]`) and nothing else.
+- Mutation check of S1a/S1b (scratch, reverted, `git diff` empty): adding `#include "hiders/photonMap.h"` and `#include "irradiance.h"` to `situation.cpp` adds exactly 4 failure lines naming that file (2 per sub-check); with it reverted there are none.
+
+### Implementation (T046 to T052)
+
+- `src/ri/hiders/bundles.{h,cpp}` moved with `git mv` to `src/libshader/shading/` (byte for byte); `bundles.cpp` joined `shading_sources`, left `ri_sources`. `ribVector` (which compiles `ri_sources`) lost `bundles.cpp` with it and still builds.
+- Vestigial includes deleted (the build decided): `irradiance.h` and `photonMap.h` from `execute.cpp` and `shading.cpp`; `bundles.h` from the five outside includers (`renderer.cpp`, `rendererContext.cpp`, `rendererStatics.cpp`, `irradiance.cpp`, `irradianceDispatch.cpp`): none uses a bundle type. The remaining `bundles.h` includers are Shading's four files.
+- `src/libshader/shading/photonLookup.h` (`IPhotonLookup`, inline defaulted virtual destructor, one pure virtual `lookup(float *, const float *, int)`); `CPhotonMap` derives from it (`lookup(float *, const float *, int) override`; `balance`, `draw`, `bound` and `typeName` also gained `override`, which clang's `-Winconsistent-missing-override` requires once one member says it). `getPhotonMap()` returns `IPhotonLookup *` in `rendererServices.h`, `rendererGetPhotonMap` (`shading.h`/`shading.cpp`), `jitPhotonMap`, `giFunctions.h` (both macros), `CPhotonMapLookup::map` (`shaderPl.h`) and `CRendererServicesImpl` (the same object, upcast); the two `class CPhotonMap;` forward declarations in Shading are gone. The six doubles' `getPhotonMap` signature (compile-fix, T044) is the only test-side edit.
+- `kRendererServicesVersion` is **2.1.0**; the rule comment and the 2.1.0 history entry carry Phase 3's two lines (`getPhotonMap` changed, `IPhotonLookup` added). No `static_assert` line is edited (CP-v: empty). Comments naming the load stub or the imports corrected in `rendererServices.h` and `llvmJit.cpp`.
+- Include path (T051): `src/ri/hiders` is off `libshader_shading`'s include path, and `render`, `output` and `dataviewer` went with it (all four removed at once; the compile needed none of them). `geometry`, `state`, `parse`, `texture`, `core` and `src/ri` stay (`geometry` until Phase 7). DB-023 note: the path lost 4 of 10 directories.
+- `tests/shading_contract/load_stub.cpp` deleted (`git rm`); the source list and the comments that cited it edited as T044 lists (`CMakeLists.txt:139,155`, `case_link.cpp`, `case_no_tracer.cpp`, `case_gather_requests.cpp`, `recording_tracer.h`, `case_trace_requests.cpp`); `ShadingContract_StandaloneLink` and `ShadingContract_StandaloneLinkLine` pass without it.
+
+### §1 Phase 3 checkpoint, macOS (CP-a to CP-d, CP-v)
+
+- CP-a: build exit 0 under `-Werror`, no warning, every target (`ribVector` included).
+- Imports (T053): `nm -m libshader_shading.1.0.0.dylib | grep -c 'dynamically looked up'` = **0** (was 4); `dyld_info -imports` shows no `<flat-namespace>` entry (`tools/libshader-imports-after-phase3-macos.txt`). `Link_ShadingSelfContained` and `ShadingScope_Greps` (S1a, S1b) **pass**.
+- CP-b: 1058 tests (1052 + the 6 enabled), **1054 pass, 4 fail**: `ShadingContract_PhotonLookupInterp`, `..Jit`, `ShadingContract_CannedBundlesInterp`, `..Jit` (see "The four new tests" below); every other test is green, the replay and `Visual_*` included.
+- CP-d: 900 images, **0 differing, 0 missing**; every `MaxBlockAvgDiff` equal.
+- CP-c: `ctest -L architecture` 21 of 21; `ALLOWED DB-004 x 52, DB-006 x 31, DB-010 x 8, DB-011 x 166, DB-015 x 10, DB-017 x 78, DB-025 x 12`: **DB-001 and DB-005 have no edge left**; `RESULT PASS`; `METRIC` unchanged (TOTAL 612, Shading 0).
+- CP-v: no `static_assert` edited.
+- T054 (informational): `Link_StaticConsumer` **already passes** with `-undefined dynamic_lookup` still in the link line (both formats), as expected. P-Q17: relinked with `-Wl,-why_load`, `ribOut.cpp.o` and `rendererContext.cpp.o` are **still pulled** (95 members, 96 before), by the same references; the image is written and `RiBegin` reports no `CODE_INCAPABLE` (`tools/red-backend-after-phase3-macos.txt`).
+
+### The four new tests that are red (a TEST-APPROVAL; none of this is an implementation problem)
+
+With the implementation in, `ShadingContract_PhotonLookup{Interp,Jit}` and `ShadingContract_CannedBundles{Interp,Jit}` run and fail for reasons in their own assumptions, found now because Phase 2 could only compile them against stubs. Each was diagnosed and a fix applied transiently (evidence only; reverted, `git diff` empty); with the fixes all four **pass**. `tools/phase3-test-fixes.diff` is the proposed edit (not applied):
+
+1. **T-P1, the derivative tail layout (both backends).** `expandVector()` fills the tail block-contiguously: `[real points, the du-offset copies, the dv-offset copies]` (measured: the tail's values are real 0..3, 0..3 in order), and the JIT's `jitPhotonMap` says the same ("block-contiguous [real, +du, +dv]"). The case asserted the interleaved layout (`tail[2i]`, `tail[2i+1]` = real `i`). Fix: `ci(numReal + j) == ci(j % numReal)` for `j < 2 * numReal`.
+2. **T-P1, the estimator (JIT).** The interpreter honours `photonmap(..., "estimator", 50)`; the JIT's `jitPhotonMap` reads the estimator from the object's attributes only (none in the standalone program: 0), ignoring the parameter list. Fix: expect 50 under the interpreter and 0 under the JIT. This is a pre-existing interpreter/JIT difference, out of 029's scope (finding F11).
+3. **T-B1, gather() has no object.** `CShadingContext::gatherSample()` reads `currentShadingState->currentObject->attributes` unconditionally (and `callAmbient`/`prepareAmbient` do too), so a gather() in the standalone program, which has no `CSurface`, segfaults (crash report: `gatherSample` called from `execute`). This is outside FR-027's scope (finding F12). Fix: the gather half of T-B1 comes out of Phase 3 and returns in Phase 7, when `setShadedObject()` lets the standalone program supply attributes without a `CSurface`; trace() and transmission() stay (they pass). F12.
+
+Phase 3's CHECKPOINT (CP-b all green, T053, T055, T056) waits for this approval.
+
+### §3 Phase 3 on Linux (GCC 13.3, `-Werror`, `-j2`, remote `cpujob`; CP-L)
+
+- `linux_sync.sh push`: 3,559 files, 0 differences (it removed the stale `load_stub.cpp` from the remote); configure and build exit 0, **0 warnings** under `-Werror` (`bundles.cpp` in `libshader_shading`, `photonMap.h` overrides, the shorter include path all accepted by GCC).
+- Imports: `nm -D --undefined-only libshader_shading.so` has **461** undefined symbols (465 before), none of the four, and **none defined by `libRIBRender.so`** (`tools/libshader-imports-after-phase3-linux.txt`).
+- CP-b: 1059 tests, **10 fail**: the baseline's failing set **minus `LibShader_McompConsistency`** (#44: its cause, the `CTransmissionBundle` import, is gone, so this spec turns it green as SC-009 expects) = `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes` (#57), `TextureTile_RenderByteIdentical` (#45), the four `TextureTile_Cache*` (#46), plus the four new tests of the TEST-APPROVAL above (`PhotonLookup{Interp,Jit}` fail, `CannedBundles{Interp,Jit}` segfault, as on macOS).
+- CP-d: 900 images, **0 differing, 0 missing**; the `MaxBlockAvgDiff` listing equals the baseline's.
+- CP-c: 21 of 21; `ALLOWED DB-004 x 52, DB-006 x 31, DB-010 x 8, DB-011 x 166, DB-015 x 10, DB-017 x 78, DB-025 x 12`; DB-001 and DB-005 have no edge; `RESULT PASS`.
+
+### §4 Phase 3 findings
+
+- **F11 (the JIT's `photonmap()` ignores the call's `"estimator"` parameter).** The interpreter's macro uses `scratch->photonmapParams.estimator` when set; `jitPhotonMap` reads `cAttributes->photonEstimator` only. A shader that passes `"estimator", N` gets N under `.rslo` and the attribute under `.slo`. Pre-existing, out of 029's scope (the texture calls were made consistent by spec 027; photonmap was not); T-P1's proposed fix asserts the difference as it is. A documented spec 017 scoping (`shading.h:873-878`); filed as **GitHub #145** (P1).
+- **F12 (`gather()` reads the current object's attributes with no null check).** `CShadingContext::gather()`'s sampling (`gatherSample()`, `shading.cpp:4286`) and `callAmbient()` (`:1833`), `prepareAmbient()` (`:2062`) and the light loop (`:1774`) dereference `currentShadingState->currentObject->attributes` unconditionally, so a standalone program (no `CSurface`) segfaults in `gather()`. Pre-existing and **outside FR-027's scope** (spec 026's FR-027 covers only the six object builtins and `shadername(type)`; this is not a contradiction of it). Filed as **GitHub #146** (P1): `ambient()` in an imager shader segfaults because the GI builtins dereference a null shaded object; confirmed in a real render (the imager runs with `currentObject = nullptr`, `imager.cpp`, and `callAmbient()` crashes; an imager `gather()` did not crash in that scene). Not fixed here; after Phase 7's `setShadedObject(nullptr, handle, attributes)` a standalone program can give gather its attributes, which is where T-B1's gather half returns.
+
+### T053 to T057 after the approval of `tools/phase3-test-fixes.diff` (maintainer, 2026-11-03)
+
+The diff was applied as written (`case_photon_lookup.cpp`, `case_canned_bundles.cpp`). F11 is GitHub #145 and F12 is GitHub #146 (both P1); F12 is outside FR-027's scope; neither is fixed here.
+
+### Phase 3 CHECKPOINT 3 (after the approved test fixes)
+
+| | macOS | Linux (GCC 13, `-Werror`, `-j2`) |
+|---|---|---|
+| CP-a build | exit 0, 0 warnings | exit 0, 0 warnings |
+| CP-b suite | **1058 of 1058 pass** (the 6 newly enabled included), 1 self-skip as in the baseline | 1059 tests, 6 fail: **the baseline's set minus `LibShader_McompConsistency` (#44, turned green by this spec)**: `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes` #57, `TextureTile_RenderByteIdentical` #45, `TextureTile_Cache{ByteIdentical,DefaultDirectory,StaleDetection,ConcurrentWrite}` #46 |
+| CP-d images | 900, **0 differing, 0 missing**; `MaxBlockAvgDiff` listing equal | 900, **0 differing, 0 missing**; listing equal |
+| CP-c architecture | 21 of 21; `ALLOWED DB-004 x 52, DB-006 x 31, DB-010 x 8, DB-011 x 166, DB-015 x 10, DB-017 x 78, DB-025 x 12` (DB-001 and DB-005 gone); `RESULT PASS`; TOTAL refs 612 (baseline 612) | 21 of 21; same `ALLOWED`; `RESULT PASS` |
+| CP-m (`-L '^shading_contract$\|^link$'`) | 61 of 61 pass, 11 Not Run (Disabled); replay green; `tests/shading_contract/replay` and `tools/baseline*` unchanged | all pass, 11 Not Run (Disabled) |
+| CP-v | no `static_assert` line edited | same tree |
+
+Imports: macOS 0 dynamically looked up (was 4); Linux 461 undefined symbols (465 before), none of the four, none defined by `libRIBRender`. Findings of the phase: F11 is GitHub #145 and F12 is GitHub #146 (both P1, out of spec); the remaining Phase 3 tests are green.
+
+## Phase 4 (US1 and US2: the link; no allowlist line)
+
+T058 was approved as written. Edits: T-L2 `Link_StaticConsumer` and T-L3 `Link_NoWorkaroundText` enabled (T059); `src/libshader/shading/CMakeLists.txt` (T060: no `-undefined dynamic_lookup` on macOS, `LINKER:--no-undefined` on ELF, no INTERFACE `--allow-shlib-undefined`, header and jitmeta comments rewritten); `CMake/openRenderConfig.cmake.in`, `INSTALL_ARTIFACTS.md`, `DEVNOTES_DETAILS/OSHADER_UPDATES.md` (T061); the approved test CMake relinks (T062): `tests/unit/common/CMakeLists.txt` (plain `ribRender_static` link), `tests/shading_parity/CMakeLists.txt` (the four `--no-as-needed` options and comments removed), `src/libshader/tests/CMakeLists.txt` (`LibShader_McompConsistency` without `ribRender`).
+
+T059 evidence: before the edits `Link_NoWorkaroundText` was red with 17 matches, `Link_StaticConsumer` green (its red was Phase 1/2's launch abort); the scratch mutation (re-adding `-undefined dynamic_lookup` to a copy of a scanned file) turned T-L3 red and the revert turned it green. T-L3 scans comments too: the replacement comments avoid the six words.
+
+**Departure D8 (ribRender kept on two targets; accepted by the maintainer after Phase 4's commit, 2026-11-03).** T058 allowed dropping `ribRender` from `test_shading_service_lookup` and `test_shading_no_services` "if the relinked test calls no `libRIBRender` symbol". Dropping it failed to compile, not to link: both include `shading.h` -> `shader.h` -> `stateHandles.h` / `ri_config.h` and `ri/parse/ri.h`, and `ribRender` supplies those include directories (PUBLIC). `nm -mu` of the built binaries lists 0 `libRIBRender` symbols, so the link needs nothing from it; replicating the include directories by hand would be brittle, so both keep `ribRender` for its include interface only and their comments say so. `test_shading_context_no_services` and `test_shading_state_services` keep it (they call `RiBegin`). `test_libshader_mcomp_consistency` dropped `ribRender` and builds, links and passes on both hosts (no `libRIBRender` include needed).
+
+**P-Q17 (T063).** `test_common_crosslib_static` links plainly. `nm` of the built binary shows `CRendererServicesImpl` (the backend) linked in, and cases 0 (two `RiBegin`/`RiEnd` sessions seen by a capture sink) and 2 (the `error()` `libshader_shading` binds to) pass: the sessions ran against a registered backend, the pass is not vacuous.
+
+Scope grep (T064): `grep -rnE 'force_load|whole-archive|export-dynamic|allow-shlib-undefined|dynamic_lookup|no-as-needed' CMake src/libshader tests/unit/common tests/shading_parity src/libshader/tests` finds nothing; `tests/shading_contract/load_stub.cpp` absent. `tests/plugins/dynamicload` still uses `-undefined dynamic_lookup` for its plug-in DSOs (out of scope, as the task says). Stale `link.txt` files of targets that are no longer generated (the red-test targets of the Linux tree, `build/tests/plugins/checks/install_layouts/*/tree`) still carry old flags; they are not in any Makefile.
+
+### Phase 4 CHECKPOINT 4
+
+| | macOS | Linux (GCC 13, `-Werror`, `-j2`) |
+|---|---|---|
+| CP-a build | exit 0, 0 warnings; `link.txt` of `libshader_shading` has no `dynamic_lookup`; `nm -m` 0 dynamically looked up, `dyld_info -imports` 0 flat-namespace | exit 0; link line has `--no-undefined` and links (no fifth undefined symbol); no live `link.txt` carries `--allow-shlib-undefined` or `--no-as-needed` |
+| CP-b suite | **1060 of 1060 pass** (the baseline's skip excepted) | 1061 tests, 6 fail: the baseline's set, **`LibShader_McompConsistency` (#44) now passes (SC-009)**: `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes` #57, `TextureTile_RenderByteIdentical` #45, `TextureTile_Cache{ByteIdentical,DefaultDirectory,StaleDetection,ConcurrentWrite}` #46 |
+| CP-d images | 900, **0 differing, 0 missing**, 1 not in manifest (`tests/link/cwd/Link_StaticConsumer/static_consumer.tif`, written by the newly enabled T-L2); `MaxBlockAvgDiff` listing equal | same: 0 / 0, 1 not in manifest; listing equal |
+| CP-c architecture | 21 of 21; `ALLOWED DB-004 x 52, DB-006 x 31, DB-010 x 8, DB-011 x 166, DB-015 x 10, DB-017 x 78, DB-025 x 12` (DB-001, DB-005 absent = 0); `RESULT PASS`; TOTAL refs 612 (baseline 612) | same `ALLOWED`; 21 of 21; `RESULT PASS` |
+| CP-m (`-L '^shading_contract$\|^link$'`) | 63 of 63 pass, 9 Not Run (Disabled); `Link_ShadingSelfContained`, `Link_StaticConsumer`, `Link_NoWorkaroundText` green; replay and `tools/baseline*` unchanged | 63 of 63 pass, 9 Not Run (Disabled); same three green |
+| CP-v | no `static_assert` line edited | same tree |
+
+Imports: macOS 0 dynamically looked up (`tools/libshader-imports-after-macos.txt`); Linux 461 undefined dynamic symbols, none defined by `libRIBRender` (`tools/libshader-imports-after-linux.txt`); the library now links with the linker enforcing it. Linux push 3561 files, 0 differences; pull 16 files, 0 differences.
+
+The `ShadingServices_*` targets on Linux were not re-examined for `--as-needed` dropping `ribRender` from NEEDED beyond the green run: all four pass.
+
+## Phase 5 (US4: composition and the illumination hooks; 4 allowlist lines)
+
+T068 was approved by the maintainer through the coordinator (2026-11-03): (A) the nine context classes, (B) the ten `contexts[...]` readers (C8), (C) the four DB-011 lines, (D) T-S2, T-H1, S1c and S1f.
+
+**T069 red evidence (Test gate).** `tests/shading_contract/CMakeLists.txt` (T-S2, T-H1 and their `cm_*` shaders out of the red block, the four tests `ENABLED`), `tests/link/CMakeLists.txt` (`OR029_SCOPE_CHECKS` = `S1a;S1b;S1c;S1f`), `tests/architecture/allowlist.txt` (the four `activeContext` lines deleted by key).
+- `test_shading_contract_standalone_context`: build fails with four errors: `!std::is_polymorphic_v<CShadingContext>` fails, `std::is_final_v<CShadingContext>` fails, "allocating an object of abstract class type 'CShadingContext'", "no member named 'illuminationHook'".
+- `test_shading_contract_hook_interface`: `'libshader/shading/illuminationHook.h' file not found`.
+- `ShadingScope_Greps`: S1c red (6 virtuals, 3 friends, not `final`, 12 subclasses), S1f red (3 friends), S1a/S1b green (`build-logs/029-p5-red-scope.txt`).
+- `-L architecture`: exactly 2 `VIOLATION` lines per platform (macOS: the `_ZTWN9CRenderer13activeContextE` pair of `raytracer.cpp` and `reyes.cpp`; Linux: the `_ZN9CRenderer13activeContextE` pair), `RESULT FAIL violations=2` (`build-logs/029-p5-red-arch.txt`, `029-p5-red-arch-linux.txt`).
+- The two scratch mutations were run **after** T071, when S1c/S1f were green (a mutation shows nothing on a check that is already red): adding `virtual void scratchMutation() {}` to the class body turned S1c red (S1f stayed green); re-adding `friend class CPhotonHider;` turned S1c and S1f red; each reverted with `git checkout`, `git diff -- shading.h` empty, S1c/S1f green again (`build-logs/029-p5-mutations.txt`).
+
+**Implementation (T070-T077).** `illuminationHook.h`; `CShadingContext` is `final`, with a non-virtual destructor, an `explicit` constructor, no `renderingLoop()`, no hook virtuals and no friend but `CProgrammableShaderInstance`; new public `setIlluminationHook`/`illuminationHook`/`rendererIlluminationHook` (unrenamed, moved from protected) and `vertexMemoryInUse()`; 12 call sites (6 interpreter macros, 6 JIT) as `if (IIlluminationHook *h = ...) h->x(...)` at the same place with the same arguments; the 2.1.0 history entry gains `IIlluminationHook`. `src/ri/hiders/hider.{h,cpp}` (`CHider`, `context` declared first; `ri_sources` and `ribVector`'s `REMOVE_ITEM`); `CReyes` (so `CStochastic`/`CZbuffer`), `CRaytracer`, `CPhotonHider` derive from it (the last also from `IIlluminationHook`, installing itself in its constructor), every inherited member read through `context.` (the mechanical edits were made from the compiler's own "use of undeclared identifier" list, 13 in `stochastic.cpp`, 79 in `photon.cpp` as predicted; the REYES macros `objectExplicitInsert`/`objectDefer`/`flushObjects`/`computeExtends` were edited by hand); `CRenderer::contexts` is `CHider **`; `rendererDispatchThread` sets `activeContext` for every hider (the writes at `reyes.cpp` and `raytracer.cpp` are gone); `reyes.cpp` reads `static_cast<CReyes *>(CRenderer::contexts[i])`; `hcshader.cpp` through `context->illuminationHook()`; Geometry call sites only (`surface.cpp`, `curves.cpp`, `patches.cpp` x2, `polygons.cpp`, `subdivisionCreator.cpp`, `subdivisionLoop.cpp`, and `geometryDispatch.cpp` x3 that the plan counted as `rasterizer->shadingContext()` uses). Nothing in Geometry changed signature. No `hider.cpp` reference to a `CRenderer::` symbol.
+
+**T078 test edits** (the diffs are `tools/phase5-test-edits.diff`): (A) the five context classes became aliases of `CShadingContext` (`CHarnessContext`, `CRProbeContext`, `CMinimalContext` x2, `CProbeContext`), `test_state_services.cpp`'s protected read became `vertexMemoryInUse()`, the four hook probes became a plain `CShadingContext context` member of a recording `IIlluminationHook` (`probe->context.currentShadingState`/`updateState()`/`execute()`; their expected call lists and assertions are unchanged; `test_false_if_constructs.cpp`'s probe gained empty `solarBegin/solarEnd` for the pure interface); (B) the nine other files plus `test_state_services.cpp:216-217` read `&contexts[0]->shadingContext()`.
+
+**F13 (UNPLANNED, needs the maintainer): the tenth class.** `tests/shading_contract/case_offending_object.cpp:31` (`ShadingContract_OffendingObject`, a spec 026 test) defines `COffendingProbe : public CRProbeContext` to reach the **protected** `rendererSetOffendingObject()` and `objectHandle()`. T068 (A) lists nine classes that derive from `CShadingContext` by name; this one derives through `CRProbeContext`, and the tasks-stage grep missed it. With `CShadingContext` final it no longer compiles (`base 'CShadingContext' is marked 'final'`, and on Linux `cannot derive from 'final' base`). I did not edit it. Options for the maintainer: (1) make `rendererSetOffendingObject()` public (a one-line `src` change; it is one of the accessors the macros use), (2) a test-only access trick (an explicitly instantiated member-pointer accessor in the test, no `src` change), (3) reach it through a shader error (`scripterror` in `execute.cpp:181`), a different test design. The target is the only build failure of the tree on either host.
+
+### Phase 5 CHECKPOINT 5
+
+| | macOS | Linux (GCC 13, `-Werror`, `-j2`) |
+|---|---|---|
+| CP-a build | `-k`: 0 warnings, 1 error: `test_shading_contract_offending` (F13) | same: 1 error (F13), `-Werror` clean elsewhere |
+| CP-b suite | 1064 tests, 1 fails: `ShadingContract_OffendingObject` (F13, its executable does not build) | 1065 tests, 7 fail: the baseline's six (#57, #45, #46 x4) plus F13 |
+| CP-d images | 900, **0 differing**, 1 missing (`ShadingContract_OffendingObject/ri.tif`, F13), 1 not in manifest (`Link_StaticConsumer`); `MaxBlockAvgDiff` listing equal | same |
+| CP-c architecture | 21 of 21; `ALLOWED DB-004 x 52, DB-006 x 31, DB-010 x 8, DB-011 x 164, DB-015 x 10, DB-017 x 78, DB-025 x 12`; `RESULT PASS`; `METRIC` Hiders 556/81 (baseline 558/82), TOTAL 610/93 (612/94) | same lines, 21 of 21, `RESULT PASS` |
+| CP-m | 66 of 67 pass (F13), 9 Not Run (Disabled); replay and `tools/baseline*` unchanged | 66 of 67 pass (F13), 9 Disabled |
+| CP-v | no `static_assert` line edited | same tree |
+
+T079's targeted run (`ShadingContext_Standalone*`, `ShadingContract_IlluminationHookInterface*`, `ShadingScope_Greps`, `ShadingParity_IlluminationHook*/FalseIf*`, `ShadingServices_*`, `Visual_photon-parity`, `Visual_solar0`): 28 of 28 pass on macOS with the expected call lists unchanged. Trap audit: `grep -rn --exclude-dir=link 'public CShadingContext' src tests` is empty; no C-style cast of a hider or context is left (the only `(CReyes *)` casts are in declarations and the one `static_cast`). Linux push 3561 files / verify 0 differences; pull 16 files / verify 3564 files, 0 differences.
+
+### Phase 5 CHECKPOINT 5, final (after F13)
+
+F13 (maintainer, 2026-11-03): option 1. `CShadingContext::rendererSetOffendingObject` is public (contracts/shading-context.md amendment, plan.md DEP-12 and TEST-APPROVAL inventory row; no version bump, the `CRendererServices` 2.1.0 history needs no change). The test edit `tools/phase5-f13-test-edit.diff` was shown, approved and applied to `tests/shading_contract/case_offending_object.cpp`.
+
+| | macOS | Linux (GCC 13, `-Werror`, `-j2`) |
+|---|---|---|
+| CP-a build | exit 0, 0 warnings | exit 0, 0 warnings |
+| CP-b suite | **1064 of 1064 pass** | 1065 tests, 6 fail: the baseline's set, unchanged (#57 `CoverageAnalytic_alpha-sides2-tjunction-r4_reyes`, #45 `TextureTile_RenderByteIdentical`, #46 `TextureTile_Cache{ByteIdentical,DefaultDirectory,StaleDetection,ConcurrentWrite}`) |
+| CP-d images | 900, **0 differing, 0 missing**, 1 not in manifest (`Link_StaticConsumer`); listing equal | same |
+| CP-c architecture | 21 of 21; `ALLOWED` DB-004 52, DB-006 31, DB-010 8, DB-011 164, DB-015 10, DB-017 78, DB-025 12; Hiders refs 556/81, TOTAL 610/93; `RESULT PASS` | same ALLOWED and TOTAL; `RESULT PASS` |
+| CP-m | 67 of 67 pass (`ShadingContract_OffendingObject` green), 9 Not Run (Disabled); replay and `tools/baseline*` unchanged | 67 of 67 pass |
+| CP-v | no `static_assert` line edited | same tree |
+
+Linux push 3566 files / 0 differences; pull 16 files; verify 0 differences.
+
+## Phase 6 (US6: the hiders are the tracers; no allowlist line)
+
+T083 approved by the maintainer through the coordinator (2026-11-03): no approved test, reference or `static_assert` edited; T-T1 `HiderTracer_PerContext`, T-T2 `ShadingContract_RayLevel` and S1d enabled (`tests/shading_contract/CMakeLists.txt`, `tests/link/CMakeLists.txt`).
+
+**T084 red evidence (Test gate).**
+- `test_shading_contract_ray_level`: build fails: no member `enterRayLevel`, `leaveRayLevel`, `rayDepth` in `CShadingContext`, unknown type `CRayLevelType` (`build-logs/029-p6-red-test_shading_contract_ray_level.log`).
+- `test_shading_contract_hider_tracer`: build fails: no member `tracer` in `CShadingContext`, "cannot initialize a variable of type 'CHider *' with an lvalue of type 'CPhotonHider *'" (no `ITracer` base on `CHider`... the photon hider is not yet a `CHider` in the test's view of the headers) and `static_cast` from `CHider *` to `ITracer *` not related. One error is **not** a red reason: `photon.h:75 use of undeclared identifier 'CPhotonMap'`; the header was not self-contained once `shading.h` stopped bringing `photonMap.h` in (Phase 3); fixed in `photon.h` with a forward declaration `class CPhotonMap;` (no new include).
+- `ShadingScope_Greps`: S1d red (4 trace members in the class body, 10 `frameTracer`/`CHiderTracer` lines, `hiderTracer.{h,cpp}` exist), S1a/S1b/S1c/S1f green (`build-logs/029-p6-red-scope.txt`).
+- The S1d scratch mutation (re-add `void traceAny(CRay *);`) is run after the implementation, when S1d is green: **not yet run**. (It was run afterwards: see the T090 paragraph below, `build-logs/029-p6-mutation.txt`, and again on the merged tree in "Merged-tree verification".)
+
+**Implementation done (T085-T089), macOS CP-a build green (`build-logs/029-p6-build3.log`, exit 0, 0 warnings):** the trace interface on the context (`CShadingContext::CRayLevel`, `enterRayLevel`, `leaveRayLevel`, `rayDepth`, `inShadowRay`, `objectHash`, `countTracedRay`, `tracedRays`, `setTracer`/`tracer`; `trace`, `traceEx`, `trace(CRay *)`, `traceAny` deleted); `libshader::traceRay`/`traceBundle` ask the context's tracer first and the services' `tracer()` as the fallback; `tracer.h`, `traceCalls.h` and `rendererServices.h` comments and the 2.1.0 history updated; `trace.cpp` bodies are `CHider::traceGroups` / `traceRay(ctx, ray)` / `traceBundle(ctx, bundle)` with the sentinel `(CSurface *)&context` and `(CObject *)&context`; `CHider` is an `ITracer` and installs itself; callers `raytracer.cpp` (`traceGroups`, `traceRay`), `photon.cpp`, `hcshader.cpp` (null-tested, the probe's `ray.object` set to NULL first); `hiderTracer.{h,cpp}`, `CRenderer::frameTracer` and the services' `tracer()` override deleted, `src/ri/CMakeLists.txt` entries removed.
+
+(The disk-space stop of 2026-11-03 is lifted: the maintainer freed space, 10 GiB free for the rest of the phase; `df` checked before each build and suite.)
+
+**T090.** `ShadingContract_TraceReplay_*` (all), `HiderTracer_PerContext`, `ShadingContract_RayLevel`, `ShadingServices_ContextNoServices`, `ShadingContract_{NoTracer,CannedTrace,GatherRequests}` and `ShadingScope_Greps` pass; `git diff --stat -- tests/shading_contract/replay` is empty; `grep -rn --exclude-dir=link 'frameTracer\|CHiderTracer' src tests` is empty; `src/ri/hiders/hiderTracer.h` is absent. First S1d run was red on one hit: my own comment in `rendererServices.h` still named `CHiderTracer`; reworded ("the renderer's adapter class is gone"), then S1d green. **S1d mutation:** re-adding `void traceAny(CRay *);` to the class body turned S1d red (`trace member in CShadingContext: void traceAny(`), restored from a mtime-preserving copy, S1d green again, `git diff -- shading.h` empty (`build-logs/029-p6-mutation.txt`).
+
+### Phase 6 CHECKPOINT 6
+
+| | macOS | Linux (GCC 13, `-Werror`, `-j2`) |
+|---|---|---|
+| CP-a build | exit 0, 0 warnings | exit 0, 0 warnings |
+| CP-b suite | **1066 of 1066 pass** | 1067 tests, 6 fail: the baseline's set, unchanged (#57, #45, #46 x4) |
+| CP-d images | 900, **0 differing, 0 missing**, 2 not in manifest (`Link_StaticConsumer`, `HiderTracer_PerContext/ri.tif`, both from tests enabled since the baseline); listing equal | same |
+| CP-c architecture | 21 of 21; ALLOWED unchanged (DB-004 52, DB-006 31, DB-010 8, DB-011 164, DB-015 10, DB-017 78, DB-025 12); Hiders 556/81, TOTAL 610/93; `RESULT PASS` | same |
+| CP-m | 69 of 69 pass (T-T1, T-T2, every `TraceReplay_*` included), 6 Not Run (Disabled); replay and `tools/baseline*` unchanged | 69 of 69 pass |
+| CP-v | no `static_assert` line edited | same tree |
+
+The replay (`macos.txt`/`linux.txt`) is green and unchanged on both hosts. Statistics scenes are part of CP-b and CP-d: the counters stayed in the context (`countTracedRay`, `tracedRays`). Linux push 3566+ files, verify 0 differences; pull 16 files.
+
+## Phase 7 (US7: `shade()` consumes `ShaderGlobals`; DB-006 31 -> 30)
+
+T094 approved by the maintainer through the coordinator (2026-11-04): the two `case_situations.cpp` patches (q5, then parse-fix, applied in sequence on the current tree), `tools/phase7-test-edits.diff` (the nine shaded-object writes; applied with the code, T101), the conditional include edits (not needed: the build did not ask for them), the DB-006 deletion by key, T-G1/T-G2/S1e enabled.
+
+**T095 red evidence (Test gate).**
+- `test_shading_contract_point_source`: `'libshader/shading/pointSource.h' file not found`. `test_shading_contract_producer_situations`: unknown type `CShadeBatchReport`, no `shadeBatchObserver`, no `SHADEBRANCH_*`, no `BatchShape::PointSet`.
+- `ShadingContract_Situations` against today's `classifyShading()`: **293 passed, 18 failed**, exactly the predicted set: 17 REYES reflection hits of `sit_row4_secondary_raster_shaded` (row 4: classified `None/0/0/0`, expected `Secondary/0/0/0`, `case_situations.cpp:251`) and 1 row-6 shadow case (`c2.rayType == Shadow && c2.hitMode == Primitive`, `:295`). All 18 are green after T097 (`build-logs/029-p7-red-situations.log`).
+- `-L architecture`: exactly 1 `VIOLATION`: `shading.cpp:39 -> src/ri/geometry/object.h [Shading -> Geometry]` (`build-logs/029-p7-red-arch.txt`). `ShadingScope_Greps`: S1e red (`shading.cpp includes object.h`), S1a-S1d and S1f green.
+- S1e mutation (after T101, when green): adding `#include "object.h"` to `shading.cpp` turned S1e red; restored from a mtime-preserving copy, `git diff` empty, S1e green (`build-logs/029-p7-mutation.txt`).
+
+**Implementation (T096-T101).** New Shading headers `pointSource.h` (`IPointSource`) and `shadingProducer.h` (`IShadingProducer`; `shading.h` only forward-declares it, because `shadingProducer.h` needs `EShadingDim` from `shading.h`); `shaderGlobals.h`: `BatchShape::PointSet` appended, `Span` narrowed to 2-D ray hits, the presence rules per direction, 2.1.0 history updated. `classifyShading()` corrected in the three places (photon emission requires 0-D, depth 0 and not in a shadow; a shadow takes `transmissionhitmode` at every dimension; a ray hit is any non-grid, non-depth-0-0-D batch, so a reflection traced from a REYES grid is `Secondary`; `transport` is `Importance` whenever the hook is on). `shade(const ShaderGlobals &, IPointSource &)` replaces the body of the old `shade`: `shade(CSurface *, ...)` (the same mangled symbol) is the opaque forwarding entry to the installed `IShadingProducer` (one `CODE_NOTSTARTED` warning per process with none), `displace`/`displaceEstimate` stay inline wrappers, `CShadingState::currentObject` is now `currentSurface` (opaque), `currentObject` (`ObjectHandle`) and `currentAttributes`, set with `setShadedObject()` and saved/restored by `shade()`; `objectHandle()`/`objectAttributes()` return the stored values; the branches read the batch as contracts/point-source-and-globals.md "the branches" says; `shadeBatchObserver`/`CShadeBatchReport`/`EShadeBranch` added (D1). **The derivative-offset construction and the grid du/dv are untouched**: the diff of those regions (`git diff HEAD -U0 -- shading.cpp`) shows only `object->sample/interpolate` becoming `src.sample/interpolate` with the same arguments in the same order. Hiders: `surfacePointSource.h`, `shadingProducer.cpp` (`CHider::shadeSurface`), `CHider` is an `IShadingProducer`, `rasterizes()` (`CReyes`: true), `context.setProducer(this)`; `photon.cpp` sets the phony object with `setShadedObject`, `imager.cpp` sets none, `hcshader.cpp` reads `currentAttributes->bias`.
+- A departure from the producer table (no behaviour change): `shade()` uses `g.numPoints` for the vertex count, and `gridU`/`gridV` when set, else `numPoints x 1`. The producer sets both for every shape (so `numUvertices`/`numVvertices` are as before); the contract test builds a `Span` with only `numPoints`.
+- `shading.cpp` lost `object.h` and, with it, one transitive include, fixed by including `options.h` (Graphics State) for `OPTIONS_PROJECTION_PERSPECTIVE`. `shading.cpp` includes no Geometry header.
+- Include path (FR-006, P-Q15, a DB-023 reduction): `src/libshader/shading/CMakeLists.txt` `target_include_directories(libshader_shading PRIVATE ...)` was {src/ri, src/ri/state, src/ri/parse, src/ri/geometry, src/ri/texture, src/ri/core, own source dir, own binary dir}; `src/ri/geometry` is gone, the rest compile without further change, so the final list is {src/ri, src/ri/state, src/ri/parse, src/ri/texture, src/ri/core, own source dir, own binary dir}.
+- T102: `ShadingContract_(ProducerSituations|PointSource|Situations|ShaderGlobalsDouble|TraceReplay)`, `ShadingScope_Greps`, `ShadingParity*`, `ShadingContract_OffendingObject`, `ShadingContract_TypeMismatch*`: 149 of 149 pass (`ShadingContract_ShaderGlobalsDouble` unchanged and green). `ShadingContract_ProducerSituations`: 3804 checks, 0 failed. Dynamic confirmation of T013: T-G1 has no photon-pass scene, so none of its scenes classifies a photon emission; the suite's photon scenes still run the light shaders that statically trace nothing, and they are pinned by CP-d.
+
+### Phase 7 CHECKPOINT 7
+
+| | macOS | Linux (GCC 13, `-Werror`, `-j2`) |
+|---|---|---|
+| CP-a build | exit 0, 0 warnings | exit 0, 0 warnings |
+| CP-b suite | **1069 of 1069 pass** | 1070 tests, 6 fail: the baseline's set, unchanged (#57, #45, #46 x4) |
+| CP-d images | 900, **0 differing, 0 missing**, 2 not in manifest (`Link_StaticConsumer`, `HiderTracer_PerContext`); listing equal (hit-mode scenes included) | same |
+| CP-c architecture | 21 of 21; `ALLOWED` DB-004 52, **DB-006 30**, DB-010 8, DB-011 164, DB-015 10, DB-017 78, DB-025 12 (DB-006 31 -> 30); TOTAL 610/93; `RESULT PASS` | same |
+| CP-m | **72 of 72 pass**, none disabled; replay and `tools/baseline*` unchanged | 72 of 72 pass |
+| CP-v | no `static_assert` line edited | same tree |
+
+Geometry's other include lines are unchanged: `git diff 01501f10 -- src/ri/geometry | grep '^+#include'` is empty. DB-006 30 = 23 include + 7 link lines. No expectation was relaxed: every assertion of `ShadingContract_Situations` passes against the corrected `classifyShading()`.
+
+### Phase 7 addendum: the photon-pass scene of `ShadingContract_ProducerSituations` (closes the T013 dynamic gap; maintainer's request, 2026-11-04)
+
+Added, and nothing else changed (no existing expectation, no other approved test): `tests/shading_contract/scenes/sit_photon_emission_trace.rib` (`Hider "photon"`, one light, a disk), `tests/shading_contract/shaders/sit_photon_light.sl` (a small custom light, because no shipped light traces: its own code calls `trace()` before `illuminate()`, so the photon pass runs the trace once per emitted photon), its name in the shader list of `tests/shading_contract/CMakeLists.txt`, and one entry of `scenes[]` in `case_producer_situations.cpp`: `{"sit_photon_emission_trace", false, 's', 's', 'p', {{Secondary, Shade, Span}}}`. The expectation is the table's (`expectedRow`, already in the test): a ray hit at depth 1 in a frame with the hook on is a secondary hit, `specularhitmode` "shader" -> `Shade`, transport `Importance`; `expectedRow` also checks `pass`, `shape` and the branch of every observed batch.
+
+**What the scene produces** (`build-logs/029-p7b-sit_photon_emission_trace.out`, identical on Linux): exactly one batch, `rayType=2 (Secondary) hitMode=0 (Shade) transport=1 (Importance) pass=0 shape=1 (Span) pathDepth=1 branch=0 (Full) dim=2 displaceOnly=0 inShadow=0 rayDepth=1 hook=1`. The 16 traced hits are shaded in one batch; the surface ran (16 `SITMARK` lines with ray depth 1). It agrees with the table and passes on both hosts.
+
+**Finding (for the maintainer, no table, expectation or src changed): the scene produces no photon-emission batch (row 10), and cannot.** Photon emission does not call `shade()`: `photon.cpp:150-230` fills the shading state itself (0-D, the phony object, the hook on, depth 0) and runs the light with `cLight->illuminate(&context, ...)`, so `CShadingContext::shade(ShaderGlobals, IPointSource)` is never entered for it and `shadeBatchObserver` never fires with a `Photon` classification. Row 10 of the situation table (and `classifyShading()`'s photon-emission rule) therefore describes a state, not a `shade()` call, in the current tree; `Photon` is produced only by the test doubles and `ShadingContract_Situations`. No assertion of a photon-emission classification was added, because there is nothing for the observer to see. Options if the maintainer wants it pinned: (a) assert the absence of any `Photon` batch in this scene (a regression guard for "emission does not shade"), (b) leave it, (c) a later spec routes emission through `shade()`.
+
+**Suite photon scenes.** T-G1's observer sees only the scenes under `tests/shading_contract/scenes`, so it cannot see the suite's own photon scenes (`photon-parity*`, `photon-solar0-*`, `subdiv-*-photon`; they are rendered by `Visual_*`/`PhotonSolar0_*`). By the same code path none of them can produce a `Photon` batch (emission never calls `shade()`; a photon hit runs no shader, row 11), and their lights contain no trace call (T013, static). So they exercise neither the corrected 0-D/`inShadow` branch nor the emission row; their images are pinned by CP-d and unchanged.
+
+**Checks:** `ShadingContract_ProducerSituations`, `ShadingContract_Situations`, `ShadingScope_Greps` pass on macOS and on Linux (GCC 13, `-Werror`, `-j2`); `ctest -L architecture` 21 of 21 on both, unchanged (`DB-006 x 30`). Linux push 3571 files, verify 0 differences.
+
+**Maintainer decision (2026-11-04): option 2.** `sit_photon_emission_trace` stays as it is and no assertion about the absent emission batch is added. The behaviour is stated in the spec instead (no code, no test changed): one sentence in `contracts/point-source-and-globals.md` ("`classifyShading()` corrected to the code", under rule 1) and the same sentence in `data-model.md` under the situation table. The wording was checked against the code first: `grep -n 'shade(' src/ri/hiders/photon.cpp src/ri/hiders/photon.h` is empty, the emission path ends in `cLight->illuminate(&context, ...)` (`photon.cpp:221`), and the scene's one observed batch is the traced hit at depth 1 (`Secondary`, `Importance`). Note on the file named in the request: `contracts/shader-globals.md` belongs to spec 026 (a merged spec's record, which this spec does not edit; it is not in 029's `contracts/`), so the sentence went into 029's own copy of the corrected table.
+
+## Phase 8 (US8 and US3: registry, docs, final validation)
+
+T106 approved by the maintainer through the coordinator (2026-11-04) with five decisions: the comment-only rewording of `tests/shading_contract/cases_029.h:5`; base-commit line references for the Resolved entries (DB-001, DB-005) and current ones for the Open ones (DB-013, DB-020); the gotcha wording (three `classifyShading()` corrections, and that photon emission never calls `shade()`); `build-nojit` and the T115 scratch tree may be deleted after use (nothing else, `build-base` stays); and a note at the top of `claude-md-draft.md` that spec 038's gotchas 29-34 make this spec's gotcha 29 become 35 if 038 is on master when the draft is applied.
+
+**T107 / T108 (measured, then written).** archcheck on the Phase 7 tree, identical on macOS and Linux: `ALLOWED DB-004 x 52, DB-006 x 30, DB-010 x 8, DB-011 x 164, DB-015 x 10, DB-017 x 78, DB-025 x 12`; `METRIC` Geometry 48/15, Hiders 556/81 (baseline 558/82), Infra 0/0, SceneInterface 6/6, Shading 0/0, Texturing 0/0, TOTAL 610/93 (baseline 612/94); 354 allowlist entries (372 at the start), the same as `contracts/allowlist-end-state.md` expects. `tests/architecture/metrics-baseline.txt` now holds 556/81 and 610/93 with a spec 029 paragraph; `tests/architecture/allowlist.txt`: the empty DB-001 and DB-005 sections are removed, DB-006 `(31)` -> `(30)`, DB-011 `(168)` -> `(164)` (the DB-015 header untouched). After the edit archcheck reports `METRIC` at baseline and `RESULT PASS`.
+
+**T109-T111a (documents and gating).** `DOMAIN_BOUNDARIES.md`: DB-001 and DB-005 moved to Resolved ("spec 029", 2026-11-04; their evidence cites the base commit `01501f10`'s lines), DB-006 (31 -> 30, the Shading -> Geometry cycle closed, history), DB-011 (history only), DB-013 (current `renderer.cpp:778-830`, the friendships gone), DB-016 (the arena/stats follow-up no longer "stays with spec 029"; #135), DB-018 (filled by the hiders' producer, corrected table), DB-020 (Shading's friends dropped, 029 off its tracking, still Open for the irradiance, texture3d, point-cloud and brick-map friends), DB-023 (the measured include path). `DEVNOTES.md`: a status row for spec 029 and the Install row no longer describes the force-load as required. `claude-md-draft.md` refreshed (numbers, three corrections, the emission note, the numbering note). T111a: `OPENRENDER_029_RED_TESTS` is gone from `CMake`, `tests` and `src` (`grep` finds nothing), `add_or029_script_test` and the `ENABLED` keyword are removed, `add_contract_test_029` registers the real test whenever its target exists.
+
+### Phase 8 CHECKPOINT (T112, macOS) and T116 (Linux), the full suite WITH the photon test (`sit_photon_emission_trace`)
+
+| | macOS | Linux (GCC 13, `-Werror`, `-j2`) |
+|---|---|---|
+| CP-a build | exit 0, 0 warnings | exit 0, 0 warnings |
+| CP-b suite (full, `-LE determinism-sweep`) | **1069 of 1069 pass** (`ShadingContract_ProducerSituations`, with the photon scene, included) | 1070 tests, 6 fail: the baseline's set, unchanged (#57, #45, #46 x4); `LibShader_McompConsistency` (#44) passes |
+| CP-d images | 900, **0 differing, 0 missing**, 2 not in manifest (`Link_StaticConsumer`, `HiderTracer_PerContext`); listing equal | same |
+| CP-c | 21 of 21; ALLOWED as above; `RESULT PASS`; metric at baseline (610/93) | same |
+| CP-m | 72 of 72 | 72 of 72 |
+| CP-v | no `static_assert` line edited | same tree |
+
+Scope greps: no `OPENRENDER_029_RED_TESTS`, none of `force_load|whole-archive|export-dynamic|allow-shlib-undefined|dynamic_lookup|no-as-needed` in the listed directories, `load_stub.cpp` and `hiderTracer.h` absent, no `public CShadingContext`, no `frameTracer|CHiderTracer`; `git diff --stat HEAD` of the replay and the `baseline*` files is empty (note: against `01501f10` the baselines are new files of this spec, so tasks.md's "empty" form of that check only holds for the replay); the "files 029 never edits" diff against `01501f10` is empty; the allowlist differs from `01501f10` by exactly the 18 deleted entries (13 + 4 + 1) and the four removed or renumbered section headers; Geometry gained no include (`git diff 01501f10 -- src/ri/geometry | grep '^+#include'` is empty); `ALLOWED DB-006 x 30`.
+
+### T113: JIT-off Debug build: FINDING, stopped
+
+`build-nojit` (Debug, `-DOPENRENDER_ENABLE_JIT=OFF`) configures and builds clean (`-Werror`, 0 warnings: the assert-only code compiles). `-L '^link$'`: 4 of 4 pass. `-L '^shading_contract$'`: **41 of 45 pass; 4 fail**, none in the known-flaky set:
+- `ShadingContract_TraceReplay_occlusion` and `_indirectdiffuse` (rslo): the recorded `dir` of one ray differs from the fresh one in the last bit (`-0x1.e2e096p-1` vs `-0x1.e2e098p-1`, request 5 and request 21). The replay is a bit-exact record of a Release build; a Debug build (no optimisation, different FMA contraction) rounds those two directions differently. It is the "a red replay means a site's expression moved" signal of gotcha 26 only for a Release build; here the build type is the difference. Not caused by this spec (the replay files are unchanged and green in Release on both platforms).
+- `ShadingContract_Situations` and `ShadingContract_ProducerSituations`: the scene child aborts with `Assertion failed: (inShadow == FALSE), function traceTransmission, file executeMisc.cpp, line 714`. Reproduced alone with `build-nojit/src/orender/orender tests/shading_contract/scenes/sit_row5_shadow_shaded.rib` (same abort; `sit_row5_shadow_primitive` and `sit_row3_raytrace_shaded` render). The scene is spec 026's `transmissionhitmode "shader"` shadow scene: its `sit_transmit` shader calls `transmission()` upward through its own sphere, the shadow ray hits the sphere again, and that hit is shaded (hit mode "shader") by the same surface, which calls `transmission()` while `inShadow` is already TRUE. The assertion (`executeMisc.cpp:714`, "We can not be in shadow at this stage") is on the starting tree too (`01501f10:src/libshader/shading/executeMisc.cpp:714`), and `inShadow` is untouched by this spec, so this is a latent Debug-only defect that the Release build compiles out: nested `transmission()` inside a shadow hit shaded with hit mode "shader". Reported for filing as a P1, not fixed (task rule); the scene and the assertion are both outside this spec's edits.
+
+Nothing in the Release suites on either platform depends on it. T113 is therefore not ticked. Remaining after the maintainer's decision: T113 (a decision on the four), T114 (SC-010 timing), T115 (macOS package test), T116's package test on Linux, T117/T118 (the sweeps), T119, T120.
+
+### T113 base check: the same four failures on the starting tree (measured 2026-11-04)
+
+The starting tree (`git archive 01501f10` into `build-nojit-base/src`, built Debug with `-DOPENRENDER_ENABLE_JIT=OFF` in `build-nojit-base/build`, through `cpujob`, only the targets these tests need; 235 MB) gives, through `ctest` under `cpujob`:
+
+| Test (base `01501f10`, Debug, JIT off) | Result | Assertion / values | This tree (Debug, JIT off) |
+|---|---|---|---|
+| `ShadingContract_TraceReplay_occlusion` | **fail** | `request 5 ray 0 field dir differs: recorded dir=-0x1.88c32ap-4,-0x1.440672p-2,-0x1.e2e096p-1, fresh dir=-0x1.88c322p-4,-0x1.440672p-2,-0x1.e2e098p-1` | the same recorded and fresh values, to the digit |
+| `ShadingContract_TraceReplay_indirectdiffuse` | **fail** | `request 21 ray 0 field dir differs: recorded dir=0x1.20d6fap-1,-0x1.13be72p-1,-0x1.3f7e88p-1, fresh dir=0x1.20d6f8p-1,-0x1.13be7p-1,-0x1.3f7e88p-1` | the same, to the digit |
+| `ShadingContract_Situations` | **fail** | `Assertion failed: (inShadow == FALSE), function traceTransmission, file executeMisc.cpp, line 714.`; then `FAIL: status == 0 (case_situations.cpp:330)` and `FAIL: out.markersDeep >= 1 || ... (case_situations.cpp:250)` | the same assertion; the test lines are `:350` and `:263` here (the Phase 7 patch added lines to the file) |
+| `ShadingContract_ProducerSituations` | does not exist at the base (it is this spec's test) | | fails here with the same abort (`case_producer_situations.cpp:292`) |
+
+So the four failures are not a regression of this spec: the starting tree fails them the same way, with identical values. The bit-exact replay is a Release recording and cannot pass in a Debug build; the Debug assertion is a latent defect of `traceTransmission` reached by the spec 026 scene `sit_row5_shadow_shaded`. T113 is ticked as "findings recorded" (its "no failure outside the known-flaky set" condition does not hold on the starting tree either). `build-nojit` (this tree's Debug build) was deleted after the check, as authorised; `build-nojit-base` is kept.
+
+**Filed as GitHub #148 (P1, 2026-11-04, on the maintainer's approval); not fixed in this spec. The text as drafted:**
+
+> *Debug builds abort in `traceTransmission` when a shadow hit shaded with hit mode "shader" calls `transmission()` itself.*
+> `src/libshader/shading/executeMisc.cpp:714` asserts `inShadow == FALSE` ("We can not be in shadow at this stage"); the function then sets `inShadow = TRUE` at `:717` and clears it at `:828`. With `Attribute "shade" "string transmissionhitmode" ["shader"]`, a shadow-type hit runs the hit surface's shader (`shading.cpp`, the branch for `inShadow`), and if that shader calls `transmission()` the function is re-entered with `inShadow` already TRUE, so the assertion fires. Minimal scene: `tests/shading_contract/scenes/sit_row5_shadow_shaded.rib` (the `sit_transmit` shader casts `transmission(P, P + vector(0,3,0))` upward through its own sphere, so the shadow ray hits the sphere again and shades it as a shadow hit). Reproduce: build Debug (`-DCMAKE_BUILD_TYPE=Debug`), run `orender` on that scene: `Assertion failed: (inShadow == FALSE), function traceTransmission, file executeMisc.cpp, line 714.`; it also fails `ShadingContract_Situations` on `01501f10` and on the spec 029 tree. Release builds compile the assertion out, so they do not abort. *From code reading, not observed:* in a Release build the inner call's `inShadow = FALSE` at `:828` clears the flag while the outer call is still tracing, so the remaining hits of the outer call may be shaded as not in shadow (wrong hit mode, `Oi` and the shadow class). Either make `inShadow` a depth counter or save and restore it, or forbid the nesting; and note that `ShadingContract_Situations` and `ShadingContract_ProducerSituations` cannot run in Debug until then.
+> Separately: `ShadingContract_TraceReplay_*` is a bit-exact replay recorded in Release; in Debug (different floating-point contraction) `occlusion` and `indirectdiffuse` differ in the last bit of one ray direction. Run the replay in Release only, or document it.
+
+### T114: SC-010 timing (`timing_sc010.sh build-base build`, five interleaved series, 4 threads, one `cpujob` job; macOS)
+
+`build-base` is the relocated copy of the starting tree's Release build (its binaries load only `build-base` libraries); `build` is the finished tree. The RIBs are scaled scratch copies generated by the script, identical bytes for both trees. The queue before and during the run was other sessions' `cpujob` jobs (`fix57-*`), serialised by the lock; nothing ran outside `cpujob` that I know of.
+
+First run (initial factors, exit 3): four scenes' medians were under the 3 s minimum (`TOO SHORT`): somewood 2.27/2.25 s, gather 2.84/2.86 s, photon-parity 1.66/1.61 s, killeroo 1.94/2.06 s; the differences of medians were already within spread (-0.9% to +6.6%). Record: `build-logs/029-sc010-run1.log`. Factors raised for those four (the other two kept: wood and blue_marble were at 3.3 s and 4.0 s), and the script's `SCALES` default updated to the confirmed values:
+
+| scene | factors (confirmed) | start median (s) | final median (s) | diff of medians | larger spread | verdict |
+|---|---|---|---|---|---|---|
+| teapot-somewood-reyes | format x3, shadingrate x2 | 4.93 | 5.46 | +0.53 s (+10.7%) | 1.68 s | within spread |
+| teapot-wood-reyes | format x4, shadingrate x4 | 3.42 | 3.52 | +0.10 s (+2.8%) | 0.65 s | within spread |
+| teapot-blue_marble-reyes | format x4, shadingrate x4 | 4.44 | 4.25 | -0.19 s (-4.3%) | 0.63 s | within spread |
+| sphere-gather-reyes | format x4, shadingrate x2 | 5.99 | 5.60 | -0.40 s (-6.6%) | 1.10 s | within spread |
+| photon-parity | format x8, emit x8 | 3.12 | 3.02 | -0.10 s (-3.3%) | 0.87 s | within spread |
+| killeroo-reyes | format x3, shadingrate x4 | 4.73 | 4.70 | -0.03 s (-0.6%) | 1.72 s | within spread |
+
+Second run (`build-logs/029-sc010-run2.log`): 0 scenes slower beyond the spread, 0 medians under 3 s, exit 0. The one visibly positive median, somewood +10.7%, is inside its spread (the starting tree's own runs span 4.12 to 5.81 s); no threshold was moved. Individual runs are in the log.
+
+### T115 / T116: `Link_PackageStaticConsumer` (the installed package consumed statically)
+
+- macOS: `-DOPENRENDER_LINK_PACKAGE_TEST=ON`, `CPUJOB_TIMEOUT=7200 cpujob ... ctest -L '^link-package$'`: **passed** (242 s: scratch configure with `CMAKE_INSTALL_PREFIX=<scratch>`, build, install, then the consumer built through `find_package(openRender COMPONENTS Static)` with the vcpkg toolchain line of T030, GitHub #141, and run). Scratch tree (573 MB) deleted; option reconfigured OFF.
+- Linux (remote `cpujob`, GCC 13): **passed** (1014 s). Scratch tree (173 MB) deleted; option reconfigured OFF.
+
+## Merged-tree verification (done on the uncommitted merge of master `0e43749c` into this branch; 2026-11-05)
+
+Method: the working tree of `git merge --no-ff --no-commit master` (six conflicts resolved, staged; tree `1713b05e84bec539fdad9f016382e1b05f59ea41` before this section), master frozen at `0e43749c`. Baselines for macOS images are this spec's `baseline-*-macos` manifests (against `01501f10`). Nothing was committed, aborted or reset.
+
+**S1d scratch mutation, on the merged tree.** Run without altering the tree: `tests/link/check_scope.cmake` against a scratch copy of `src/` and `tests/` outside the worktree. Unmutated copy: S1a to S1f all PASS. With `void traceAny(CRay *);` added to the class body of the copy's `shading.h`: `FAIL S1d: trace member in CShadingContext: void traceAny(`, S1a, S1b, S1c, S1e, S1f PASS (`build-logs/029v-s1d-mutation.txt`). `git write-tree` after: unchanged. (The in-tree mutation of Phase 6 is in `build-logs/029-p6-mutation.txt`.)
+
+**macOS (Release, `-j4`, through `cpujob`).**
+
+| | merged tree |
+|---|---|
+| Build | exit 0, 0 warnings |
+| Architecture (`-L architecture`, inside the suite and alone) | 29 of 29; ALLOWED DB-004 52, DB-006 30, DB-010 8, DB-011 164, DB-017 78, DB-025 12 (344 entries, DB-015 and DB-019 absent); Hiders 556/81, SceneInterface 0/0, TOTAL 604/89; `RESULT PASS` |
+| Suite (`-LE determinism-sweep -j4`) | 1097 tests, **1096 pass, 1 fails: `Link_StaticConsumer`** (below); the self-skip is unchanged |
+| Sweep (`-L '^determinism-sweep$' -j2`) | **419 of 419 pass** |
+| Images, suite | baseline 900, merged 914: **900 in common, 0 differing, 0 missing, 14 new** (new tests of specs 029, 038 and #57's scene); every `MaxBlockAvgDiff` line equal to `baseline-diffs-macos.txt` (389 rows, no difference) |
+| Images, sweep | baseline 419, merged 419: **419 in common, 0 differing, 0 missing, 0 new** |
+| `Link_PackageStaticConsumer` | **not run** at this point (the plain-link consumer already failed, below); it passed after option (a), see the P-Q17 paragraph |
+
+**FINDING (a merge interaction, stop): `Link_StaticConsumer` fails on the merged tree.** Both formats: `Full-render mode is not available in this build (no renderer context registered)`, `RiBegin reported that no renderer context is registered`, no image (`build-logs/029v-mac-suite.log`, test 1382). This is plan risk P-Q17 materialising. Evidence: relinking the consumer with `-Wl,-map` (scratch output, `scratchpad/map/consumer.map`) pulls **10** `libRIBRender.a` members (`displayChannel`, `error`, `variableLookup`, `channelRegistry`, `declarations`, `ri`, `riInterface`, `riServices`, `ribOut`, `rib_generated`) and neither `rendererContext.cpp.o` nor `rendererDeclarationsDispatch.cpp.o`; on this branch before the merge it pulled 95 members including `rendererContext.cpp.o` (`tools/red-backend-after-phase3-macos.txt`: `_RiBegin` -> `ri.cpp.o`, `_preferCompressedRibOut` -> `ribOut.cpp.o`, `CRendererContext::getXform(int)` -> `rendererContext.cpp.o` via `rendererDeclarationsDispatch.cpp.o`). Cause: spec 038 deleted the references from `ri.cpp` to `CRenderer::initDeclarations()`/`shutdownDeclarations()` (its DB-015 allowlist lines), which were the references that pulled the `rendererDeclarationsDispatch` object and, through it, `rendererContext.o`, whose static initializer registers the render backend. A plain static link of a program that names only `Ri*` entry points now has no reference to the registrar. The mechanism is the one plan P-Q17 predicted and left to the maintainer: "(a) the CMake package/target keeps pulling them without `-force_load` (an object library or an explicit `LINKER` reference scoped to those objects), (b) a function the consumer calls (an explicit `RiRegisterRenderBackend`-style entry in a domain that may name the backend, never `ri.cpp`), (c) an amendment of FR-004/SC-002 saying a static consumer must name its backend". No code or test was changed. Master has no `Link_StaticConsumer`, so the failure is not "also failing on master".
+
+**P-Q17 answered: option (a), implemented and verified on macOS (2026-11-05).** `ribRender_static` carries an INTERFACE `LINKER:-u,<sym>` option (`_ribrender_context_anchor` on Apple, `ribrender_context_anchor` elsewhere; `src/ri/CMakeLists.txt`) naming a new C-linkage function `ribrender_context_anchor()` in `src/ri/render/rendererContext.cpp`, next to the registrar. An anchor was added because `rendererContext.cpp.o` defines no stable unmangled symbol (only `___clang_call_terminate`), and spelling a mangled C++ name in CMake would break with the compiler. `ri.cpp` names nothing of it (Principle VIII rule 4); no include or link edge was added. The idiom is `ribpreview_load`'s (gotcha 31).
+
+| Check (macOS, Release, through `cpujob`) | Result |
+|---|---|
+| Incremental build (`build-logs/029a-build.log`) | exit 0; compiler warnings 0; `ld: warning` 5 lines (2 distinct: "ignoring duplicate libraries" for `libImath-3_2.a` and four `libLLVM*.a`); the log is incremental (1 file compiled, 134 link steps), so it is not a count of the whole tree |
+| Consumer relinked with `-Wl,-map` (scratch output) | **98** `libRIBRender.a` members (10 without the option, 95 before the merge); `rendererContext.cpp.o` and `rendererDeclarationsDispatch.cpp.o` present; `ribOut.cpp.o` present, so both registrars are registered |
+| Suite (`-LE determinism-sweep -j4`, `build-logs/029a-suite2.log`) | 1097 tests, **100% passed** (the self-skip `LibShader_Format_rslo_lower_minor` unchanged); `Link_StaticConsumer` passes; architecture 29 of 29; ALLOWED DB-004 52, DB-006 30, DB-010 8, DB-011 164, DB-017 78, DB-025 12; Hiders 556/81, SceneInterface 0/0, TOTAL 604/89: **the added code symbol changed no count** |
+| Images, suite | baseline 900, fresh 915: **900 in common, 0 differing, 0 missing, 15 new** (the 14 recorded above plus `tests/link/cwd/Link_StaticConsumer/static_consumer.tif`, which the test can write only now that it passes); `MaxBlockAvgDiff` listing (389 rows) equal to `baseline-diffs-macos.txt` |
+| Sweep (`-L '^determinism-sweep$' -j2`, rerun because code changed) | **419 of 419 pass**; 419 images, **0 differing, 0 missing, 0 new** against `baseline-sweep-images-macos.sha256` |
+| `Link_PackageStaticConsumer` (separate scratch configure `build-pkgtest`, `-DOPENRENDER_LINK_PACKAGE_TEST=ON`) | **passed**, 182 s; both formats: image written, 0 errors, 0 no-backend reports. The installed `openRenderStaticTargets.cmake` has `INTERFACE_LINK_OPTIONS "LINKER:-u,_ribrender_context_anchor"` and the consumer's `link.txt` carries `-u,_ribrender_context_anchor` with no `-force_load`/`--whole-archive`, so the option reaches an installed consumer. `ld: warning` 23 lines (19 distinct) in the nested second-tree build: duplicate-library notices, macOS-13.0 vs newer-dylib notices for the scratch tree's own libraries and an object-file notice; compiler warnings 0 |
+
+`ld: warning` was not compared with a master build (no macOS master build exists in this setup); the compiler warning count is 0 everywhere. `Link_NoWorkaroundText` and the other link tests passed unchanged. No test, threshold or reference was edited.
+
+The Linux run of this tree followed the macOS run and is recorded in the next paragraph.
+
+**Linux (Ubuntu 24.04, GCC 13.3, Release, `-j2`, remote `cpujob`, detached with `setsid nohup`; results in `build-logs/linux-merged/`, the master baseline in `build-logs/mergebase-*`).** The first attempt, earlier on 2026-11-05, hit a network outage of the Linux host (port 22 unreachable); the run below is the second. Sync: `tools/linux_sync.sh push` sent 3689 files and removed `src/ri/render/riHooks.h` (moved by spec 038); `verify` 3689 files, 0 differences; the remote tree has no file the index lacks apart from earlier scratch logs. A fresh build directory (`build-merged`) was used.
+
+| | master (the Linux baseline) | merged tree |
+|---|---|---|
+| Build | exit 0 | exit 0; compiler `warning:` lines 0 (the project builds with `-Werror`); fresh directory, 8 min |
+| Suite (`-LE determinism-sweep -j2`) | 1081 tests; failed: `TextureTile_RenderByteIdentical` (#45), `LibShader_McompConsistency` (#44); `LibShader_Format_rslo_lower_minor` self-skips | 1098 tests (the 17 more are spec 029's new tests; none of master's is missing); failed: `TextureTile_RenderByteIdentical` (#45), `Visual_sphere-texture3d-bake3d-reyes` (below); `LibShader_McompConsistency` **passes**; the self-skip is unchanged |
+| Architecture | n/a | 29 of 29; ALLOWED DB-004 52, DB-006 30, DB-010 8, DB-011 164, DB-017 78, DB-025 12; TOTAL 604/89 |
+| Sweep (`-L '^determinism-sweep$' -j2`) | 419 of 419 | **419 of 419** |
+| Images, suite | 913 | 915: 913 in common, **1 differing** (`tests/visual/sphere-texture3d-bake3d-reyes/sphere-texture3d-bake3d-reyes.tif`, the image of the crashed test below), 0 missing, 2 new (`Link_StaticConsumer/static_consumer.tif`, `HiderTracer_PerContext/ri.tif`); the `MaxBlockAvgDiff` listing differs only in that test's row (master 4.02, merged none because the render crashed) |
+| Images, sweep | 419 | 419: **419 in common, 0 differing, 0 missing, 0 new** (and no `MaxBlockAvgDiff` rows on either side) |
+| Consumer `-Wl,-Map=` (GNU ld) | n/a | 98 `libRIBRender.a` members; `rendererContext.cpp.o` and `ribOut.cpp.o` present; the link line carries `-Wl,-u,ribrender_context_anchor` |
+| `Link_PackageStaticConsumer` (separate scratch configure, `-DOPENRENDER_LINK_PACKAGE_TEST=ON`) | n/a | **passed**, 537 s; both formats: image written, 0 errors, 0 no-backend reports; the installed `openRenderStaticTargets.cmake` has `INTERFACE_LINK_OPTIONS "LINKER:-u,ribrender_context_anchor"`, the consumer's `link.txt` carries it and has no `-force_load`/`--whole-archive`; compiler warnings 0 |
+
+**`Visual_sphere-texture3d-bake3d-reyes` segfaulted once in the merged suite (investigated, not dismissed).** The earlier sweep flake of this scene is F4 above. What was measured, with `ctest` for the repeats:
+- Rounds of the two bake3d visual tests (`rslo` and `slo`) at `-j2`, 40 rounds each: merged tree **4 of 40 failed**, master's build **2 of 40 failed**. The `rslo` test alone, 40 rounds on the merged tree: **0 failed**. Each variant runs in its own working directory, so the two do not share a `.ptc` file: it fails only when the two run at the same time on this 2-core host.
+- Backtraces (the pair run under `gdb -batch` with `timeout` and `nice`, not through `cpujob`, because a debugger cannot go through it): both trees crash with `SIGSEGV` in `CPointCloud::lookup(CPointLookup*, int, float)`, a deep recursion over the cloud's hierarchy, called from `CPointCloud::lookup(float*, const float*, const float*, float)`, from the shader's `texture3d()` (merged: `CShadingContext::execute` on the `rslo` test; master: `CShadingContext::jitTexture3d` on the `slo` test) on a render thread while another render thread is in `CStochastic::rasterBegin`. Files: `build-logs/linux-merged/bake3d-gdb-a.txt` (merged), `bake3d-gdb-master-b.txt` (master).
+- `src/ri/texture/pointCloud.cpp` and the rest of `src/ri/texture` are identical in master and the merged tree (`git diff 0e43749c --stat -- src/ri/texture` is empty). The crash site is the point-cloud lookup that the same shader's `bake3d()` just filled, which fits a race between the render threads' bake and lookup of the same cloud (the scene's own comment says the cloud is cached per frame by name); it was not proven, and the faulting line was not found (Release build, no symbols for it). This does not point at spec 029's change, and the merge did not introduce it, but the rate was not shown to be equal (4 of 40 against 2 of 40 is a small sample).
+- Two open issues already record this crash, neither with a backtrace: #122 (its cause, a `.ptc` file shared by the two tests, does not match the tree, where each test has its own working directory and its own file) and #150, whose list of follow-ups records one unexplained segfault of this test.

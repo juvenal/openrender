@@ -39,6 +39,7 @@
 #include "common/sampling.h"
 #include "delayed.h"
 #include "object.h"
+#include "hider.h"
 #include "renderer.h"
 #include "rendererContext.h"
 #include "ri.h"
@@ -130,7 +131,7 @@ namespace probe {
             }
 
             CCapture *capture() const { return captureSlot(); }
-            CShadingContext *ctx() const { return CRenderer::contexts != nullptr ? CRenderer::contexts[0] : nullptr; }
+            CShadingContext *ctx() const { return CRenderer::contexts != nullptr ? &CRenderer::contexts[0]->shadingContext() : nullptr; }
 
             // Run the Ri calls and return the objects they added.
             std::vector<CObject *> emit(const std::function<void()> &calls) {

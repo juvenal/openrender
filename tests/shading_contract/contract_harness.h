@@ -34,12 +34,8 @@
 // The .rslo loader of libshader_shading (rslo.y)
 CShader *parseShader(const char *shaderName, const char *name);
 
-// The cheapest concrete context: an empty rendering loop, nothing else
-class CHarnessContext : public CShadingContext {
-    public:
-        explicit CHarnessContext(int thread) : CShadingContext(thread) {}
-        void renderingLoop() override {}
-};
+// The cheapest concrete context: a plain CShadingContext (it is concrete and final, spec 029)
+using CHarnessContext = CShadingContext;
 
 class CHarness {
     public:
@@ -100,7 +96,7 @@ class CHarness {
             ss->alights = nullptr;
             ss->currentLight = nullptr;
             ss->lightsExecuted = FALSE;
-            ss->currentObject = nullptr; // the standalone program has no object (QE); the executor's reads take built-in defaults (FR-027)
+            context->setShadedObject(nullptr, openrender::shading::ObjectHandle{}, nullptr); // the standalone program has no object (QE); the executor's reads take built-in defaults (FR-027)
             for (int i = 0; i < numPoints; i++) {
                 const float p[3] = {0.1f * (i + 1), 0.2f * (i + 1), 0.3f * (i + 1)};
                 const float n[3] = {0, 0, 1};

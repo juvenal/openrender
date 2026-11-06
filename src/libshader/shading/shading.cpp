@@ -35,21 +35,22 @@
 #include "bundles.h"
 #include "common/diagnostics.h"
 #include "include/logging.hpp"
-#include "irradiance.h"
 #include "common/memory.h"
-#include "object.h"
-#include "photonMap.h"
+#include "options.h"
 #include "common/random.h"
 #include "ri_config.h"
 #include "shaderPl.h"
 #include "shaderRefs.h"
 #include "shading.h"
+#include "shadingProducer.h"
 #include "specularTerm.h"
 #include "common/stats.h"
 #include "texture.h"
 #include "texture3d.h"
 #include "textureCalls.h"
 #include "traceCalls.h"
+
+using namespace openrender::shading;
 
 // Default services pointer injected by src/ri/ at renderer startup.
 // nullptr until setDefaultServices() is called (standalone libshader mode).
@@ -385,6 +386,7 @@ inline void complete(int num, float **varying, unsigned int usedParameters, cons
 // Return Value			:	-
 // Comments				:	The callers test traceRequestObserver for null first; null in production
 CTraceRequestObserver CShadingContext::traceRequestObserver = nullptr;
+CShadeBatchObserver CShadingContext::shadeBatchObserver = nullptr;
 
 void CShadingContext::reportTraceRequest(int kind, const char *label, int bundleDepth, int numRays, CRay *const *rays) const {
     if (traceRequestObserver == nullptr)
@@ -398,9 +400,9 @@ void CShadingContext::reportTraceRequest(int kind, const char *label, int bundle
 // Method				:	objectHandle
 // Description			:	The shaded object as an opaque handle (spec 026)
 // Return Value			:	null when there is no object
-// Comments				:	The one upcast of the current object: this unit keeps object.h (the DB-006 line that stays)
+// Comments				:	The handle the producer stored with setShadedObject() (spec 029); this unit includes no Geometry header
 openrender::shading::ObjectHandle CShadingContext::objectHandle() const {
-    return openrender::shading::ObjectHandle{static_cast<const CObject *>(currentShadingState->currentObject)};
+    return currentShadingState->currentObject;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -408,9 +410,9 @@ openrender::shading::ObjectHandle CShadingContext::objectHandle() const {
 // Method				:	objectAttributes
 // Description			:	The shaded object's attributes (spec 026, FR-003, FR-027)
 // Return Value			:	null when there is no current object
-// Comments				:	This unit keeps object.h: it is the one place that needs CObject's complete type for this read
+// Comments				:	The attributes the producer stored with setShadedObject() (spec 029)
 const CAttributes *CShadingContext::objectAttributes() const {
-    return currentShadingState->currentObject != nullptr ? currentShadingState->currentObject->attributes : nullptr;
+    return currentShadingState->currentAttributes;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -560,11 +562,52 @@ CShadingContext::~CShadingContext() {
 #define SVC (currentShadingState->services)
 
 bool CShadingContext::rendererIlluminationHook() const { return SVC && SVC->hasIlluminationHook(); }
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CShadingContext
+// Method				:	enterRayLevel
+// Description			:	Go one ray level deeper (the body of what traceEx() did before the trace)
+// Return Value			:	FALSE past the maximum ray depth, nothing changed
+// Comments				:
+bool CShadingContext::enterRayLevel(const CRayBundle &bundle, int maxRayDepth, CRayLevel &saved) {
+    if (currentRayDepth >= maxRayDepth)
+        return false;
+
+    saved.savedState = currentShadingState;
+    saved.savedLabel = currentRayLabel;
+
+    currentRayDepth++;
+    currentRayLabel = bundle.label;
+
+    if (freeStates == NULL)
+        freeStates = newState();
+    assert(freeStates != NULL); // Rendering always has the renderer's services
+
+    currentShadingState = freeStates;
+    freeStates = currentShadingState->next;
+    currentShadingState->postShader = bundle.postShader;
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CShadingContext
+// Method				:	leaveRayLevel
+// Description			:	Come back from a ray level (what traceEx() did after the trace, in the same order)
+// Return Value			:	-
+// Comments				:
+void CShadingContext::leaveRayLevel(const CRayLevel &saved) {
+    currentRayDepth--;
+    currentShadingState->next = freeStates;
+    freeStates = currentShadingState;
+
+    currentRayLabel = saved.savedLabel;
+    currentShadingState = saved.savedState;
+}
 const float *CShadingContext::rendererWorldBmin() const { return SVC ? SVC->worldBmin() : nullptr; }
 const float *CShadingContext::rendererWorldBmax() const { return SVC ? SVC->worldBmax() : nullptr; }
 float CShadingContext::rendererClipMin() const { return SVC ? SVC->clipMin() : 0.f; }
 float CShadingContext::rendererClipMax() const { return SVC ? SVC->clipMax() : 1.f; }
-CPhotonMap *CShadingContext::rendererGetPhotonMap(const char *n) { return SVC ? SVC->getPhotonMap(n) : nullptr; }
+openrender::shading::IPhotonLookup *CShadingContext::rendererGetPhotonMap(const char *n) { return SVC ? SVC->getPhotonMap(n) : nullptr; }
 CTexture3d *CShadingContext::rendererGetCache(const char *h, const char *m, const float *f, const float *t) { return SVC ? SVC->getCache(h, m, f, t) : nullptr; }
 CTexture3d *CShadingContext::rendererGetTexture3d(const char *n, int w, const char *ch, const float *f, const float *t, int hier) { return SVC ? SVC->getTexture3d(n, w, ch, f, t, hier) : nullptr; }
 int CShadingContext::rendererTexture3dResolve(CTexture3d *t, int n, const char **names, int *entry, int *size) { return (SVC && t) ? SVC->texture3dResolve(t, n, names, entry, size) : 0; }
@@ -794,7 +837,7 @@ void CShadingContext::bindLocationDraws(CTraceLocation *location, int vertex, ui
 //							already carry the key of their ray (the hider set it);
 //							only their derivative-offset tail vertices are filled,
 //							from their real vertex.
-void CShadingContext::fillPointKeys(CSurface *object, EShadingDim dim, bool report) {
+void CShadingContext::fillPointKeys(const CSurface *surface, uint64_t stableId, EShadingDim dim, bool report) {
     using openrender::sampling::cellKey;
     CShadingState *state = currentShadingState;
     const int numReal = state->numRealVertices;
@@ -806,7 +849,7 @@ void CShadingContext::fillPointKeys(CSurface *object, EShadingDim dim, bool repo
     const float *v = state->varying[VARIABLE_V];
 
     if (!state->pointKeysFromRays) {
-        const uint64_t id = object->stableId;
+        const uint64_t id = stableId;
         if (dim == SHADING_0D) {
             // The whole point set is shaded in one call: the index is the point's identity
             for (int i = 0; i < numReal; i++)
@@ -832,10 +875,27 @@ void CShadingContext::fillPointKeys(CSurface *object, EShadingDim dim, bool repo
 
     // The hook reports the grids that are shaded, not the dicer's displacement-only probes
     if (report && pointKeyObserver != nullptr) {
-        const CPointKeyReport keyReport{object, numReal, state->pointKeys, u, v, dim, FALSE, inShadow, currentRayDepth,
+        const CPointKeyReport keyReport{surface, numReal, state->pointKeys, u, v, dim, FALSE, inShadow, currentRayDepth,
                                         rendererIlluminationHook() ? 1 : 0};
         pointKeyObserver(keyReport);
     }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CShadingContext
+// Method				:	shade
+// Description			:	The Geometry-facing entry: hand the call to the producer that owns this context
+// Return Value			:	-
+// Comments				:	Opaque: the surface is never dereferenced here. The mangled symbol is the one Geometry's
+//							allowlisted calls bind to (DB-006). With no producer: one warning per process, nothing is shaded.
+void CShadingContext::shade(CSurface *surface, int uVertices, int vVertices, EShadingDim dim, unsigned int usedParameters, int displaceOnly) {
+    if (producerObject == nullptr) {
+        static std::atomic<bool> warned{false};
+        if (!warned.exchange(true))
+            warning(CODE_NOTSTARTED, "no shading producer is installed on this shading context: surfaces are not shaded\n");
+        return;
+    }
+    producerObject->shadeSurface(*this, surface, uVertices, vVertices, dim, usedParameters, displaceOnly);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -849,15 +909,23 @@ void CShadingContext::fillPointKeys(CSurface *object, EShadingDim dim, bool repo
 //
 //	Preconditions:
 //	!!!	->	u,v,time,I		fields of varying must be set
-void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, EShadingDim dim, unsigned int usedParameters, int displaceOnly) {
-    const CAttributes *currentAttributes = object->attributes;
+void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
+    const CAttributes *currentAttributes = src.attributes();
+    const EShadingDim dim = (g.shape == BatchShape::Grid) ? SHADING_2D_GRID : (g.shape == BatchShape::Span) ? SHADING_2D : SHADING_0D;
+    const int displaceOnly = (g.pass == ShadingPass::Full) ? FALSE : (g.pass == ShadingPass::DisplaceOnly) ? TRUE : 3;
+    // The producer sets gridU and gridV for every shape; a description that does not (a test's span) is numPoints x 1
+    const int uVertices = (g.gridU > 0) ? g.gridU : g.numPoints;
+    const int vVertices = (g.gridV > 0) ? g.gridV : 1;
+    unsigned int usedParameters = src.requestedParameters();
     float **varying = currentShadingState->varying;
     float ***locals = currentShadingState->locals;
     CShaderInstance *displacement;
     CShaderInstance *surface;
     CShaderInstance *atmosphere;
     int i;
-    CSurface *savedObject;
+    const CSurface *savedSurface;
+    ObjectHandle savedObject;
+    const CAttributes *savedAttributes;
 
     assert(uVertices > 0);
     assert(vVertices > 0);
@@ -868,9 +936,27 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
     // runs them.
 
     // This is the number of vertices we will be sampling/shading
-    int numVertices = uVertices * vVertices;
+    int numVertices = g.numPoints;
+    assert(numVertices == uVertices * vVertices);
     assert(!currentShadingState->services || numVertices <= currentShadingState->services->maxGridSize());
     assert(numVertices > 0);
+
+    // The test observer sees the batch before the branch runs
+    if (shadeBatchObserver != nullptr) {
+        EShadeBranch branch = SHADEBRANCH_FULL;
+        if (displaceOnly == 3)
+            branch = SHADEBRANCH_DISPLACE_ESTIMATE;
+        else if (displaceOnly != FALSE)
+            branch = SHADEBRANCH_DISPLACE_ONLY;
+        else if (g.rayType == RayType::Shadow)
+            branch = (g.hitMode == HitMode::Primitive) ? SHADEBRANCH_SHADOW_PRIMITIVE : SHADEBRANCH_FULL;
+        else if (g.rayType == RayType::Camera || g.rayType == RayType::Secondary)
+            branch = (g.hitMode == HitMode::Primitive) ? SHADEBRANCH_SPECULAR_PRIMITIVE : SHADEBRANCH_FULL;
+        else if (g.rayType == RayType::None && dim == SHADING_2D_GRID && g.hitMode == HitMode::Primitive)
+            branch = SHADEBRANCH_CAMERA_PRIMITIVE;
+        const CShadeBatchReport batch{src.surface(), &g, dim, displaceOnly, inShadow, currentRayDepth, rendererIlluminationHook() ? 1 : 0, branch};
+        shadeBatchObserver(batch);
+    }
 
     // Update the stats
     numShade++;
@@ -880,10 +966,10 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
     if (displaceOnly == FALSE) {
 
         // Are we in a shadow ray ?
-        if (inShadow == TRUE) {
+        if (g.rayType == RayType::Shadow) {
 
             // Yes, are we supposed to shade the objects in the shadow ?
-            if (currentAttributes->transmissionHitMode == 'p') {
+            if (g.hitMode == HitMode::Primitive) {
 
                 // No, just copy the color/opacity from the attributes field
                 float *opacity = varying[VARIABLE_OI];
@@ -898,7 +984,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
             }
 
             // The transmission must be shade at this point
-            assert(currentAttributes->transmissionHitMode == 's');
+            assert(g.hitMode == HitMode::Shade);
 
             // We need to execute the shaders
             displacement = NULL; // currentAttributes->displacement;	// We probably don't need to execute the displacement shader
@@ -909,7 +995,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
             // check the hit mode
 
             // If we're raytracing, are we supposed to shade hit rays?
-            if ((dim == SHADING_2D) && (currentAttributes->specularHitMode == 'p')) {
+            if ((g.rayType == RayType::Camera || g.rayType == RayType::Secondary) && g.hitMode == HitMode::Primitive) {
                 // No, just copy the color/opacity from the attributes field
                 float *opacity = varying[VARIABLE_OI];
                 float *color = varying[VARIABLE_CI];
@@ -969,8 +1055,8 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
             for (int a = 0; a < NUM_ACCESSORS; a++)
                 locals[a] = NULL;
 
-            object->sample(0, numVertices, varying, locals, usedParameters);
-            object->interpolate(numVertices, varying, locals);
+            src.sample(0, numVertices, varying, locals, usedParameters);
+            src.interpolate(numVertices, varying, locals);
 
             // We're not shading just sampling
             if (usedParameters & PARAMETER_N) {
@@ -1019,8 +1105,10 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
     }
 
     // We're shading
+    savedSurface = currentShadingState->currentSurface;
     savedObject = currentShadingState->currentObject;
-    currentShadingState->currentObject = object;
+    savedAttributes = currentShadingState->currentAttributes;
+    setShadedObject(src.surface(), g.object, currentAttributes);
     currentShadingState->numUvertices = uVertices;
     currentShadingState->numVvertices = vVertices;
     currentShadingState->numVertices = numVertices;
@@ -1071,7 +1159,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
             // Sample the object at the main intersection points
             usedParameters |= PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_P;
             const unsigned int shadingParameters = usedParameters;
-            object->sample(0, numRealVertices, varying, locals, usedParameters);
+            src.sample(0, numRealVertices, varying, locals, usedParameters);
             usedParameters = shadingParameters; // Restore the required parameters for the second round of shading
 
             float *dPdu = varying[VARIABLE_DPDU];
@@ -1139,10 +1227,10 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
             }
 
             // Sample the object again, this time at the extra shading points
-            object->sample(numRealVertices, 2 * numRealVertices, varying, locals, usedParameters);
+            src.sample(numRealVertices, 2 * numRealVertices, varying, locals, usedParameters);
 
             // Interpolate the various variables defined on the object
-            object->interpolate(numVertices, varying, locals);
+            src.interpolate(numVertices, varying, locals);
         }
         else {
             // We're shading a regular grid, so take the shortcut while computing the surface derivatives
@@ -1160,10 +1248,10 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
             usedParameters |= PARAMETER_P | PARAMETER_DPDU | PARAMETER_DPDV;
 
             // Sample the object
-            object->sample(0, numVertices, varying, locals, usedParameters);
+            src.sample(0, numVertices, varying, locals, usedParameters);
 
             // Interpolate the various variables defined on the object
-            object->interpolate(numVertices, varying, locals);
+            src.interpolate(numVertices, varying, locals);
 
             // Compute I (incident ray direction, camera space)
             if (currentShadingState->services && currentShadingState->services->projection() == OPTIONS_PROJECTION_PERSPECTIVE) {
@@ -1227,10 +1315,10 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
         currentShadingState->numPassive = 0;
 
         // Sample the object
-        object->sample(0, numVertices, varying, locals, usedParameters);
+        src.sample(0, numVertices, varying, locals, usedParameters);
 
         // Interpolate the various variables defined on the object
-        object->interpolate(numVertices, varying, locals);
+        src.interpolate(numVertices, varying, locals);
 
         // Compute the I
         if (currentRayDepth == 0) {
@@ -1247,7 +1335,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
     }
 
     // Give the points their sample identities (spec 039)
-    fillPointKeys(object, dim, displaceOnly == FALSE);
+    fillPointKeys(src.surface(), src.stableId(), dim, displaceOnly == FALSE);
 
     // Clear the tags for shader execution
     memset(currentShadingState->tags, 0, numVertices * sizeof(int));
@@ -1283,7 +1371,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
         displacement->execute(this, locals[ACCESSOR_DISPLACEMENT]);
 
         if (pointDisplacedObserver != nullptr) {
-            const CPointDisplacedReport report{object, displaceOnly, currentShadingState->numRealVertices, varying[VARIABLE_U],
+            const CPointDisplacedReport report{src.surface(), displaceOnly, currentShadingState->numRealVertices, varying[VARIABLE_U],
                                                varying[VARIABLE_V], varying[VARIABLE_P], dim, inShadow, currentRayDepth,
                                                rendererIlluminationHook() ? 1 : 0};
             pointDisplacedObserver(report);
@@ -1356,7 +1444,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
         if (atmosphere != NULL) {
 
             // Do not execute atmosphere for non-camera rays
-            if (currentRayDepth == 0) {
+            if (g.pathDepth == 0) {
                 atmosphere->execute(this, locals[ACCESSOR_ATMOSPHERE]);
             }
         }
@@ -1369,7 +1457,7 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
     }
 
     // Check if we should are a camera ray, and have primitive hit mode
-    if ((dim == SHADING_2D_GRID) && (currentAttributes->cameraHitMode == 'p')) {
+    if (g.rayType == RayType::None && g.hitMode == HitMode::Primitive) {
         // Yes, force opacity 1
         float *opacity = varying[VARIABLE_OI];
         const float *so = currentAttributes->surfaceOpacity;
@@ -1386,7 +1474,9 @@ void CShadingContext::shade(CSurface *object, int uVertices, int vVertices, ESha
     memEnd(shaderStateMemory);
 
     // Restore the shaded object
+    currentShadingState->currentSurface = savedSurface;
     currentShadingState->currentObject = savedObject;
+    currentShadingState->currentAttributes = savedAttributes;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -1435,7 +1525,9 @@ CShadingState *CShadingContext::newState() {
         newState->alights = NULL;
         newState->freeLights = NULL;
         newState->postShader = NULL;
-        newState->currentObject = NULL;
+        newState->currentSurface = NULL;
+        newState->currentObject = openrender::shading::ObjectHandle{};
+        newState->currentAttributes = NULL;
         newState->stats = &stats;
         newState->services = svc;
         newState->diffuseReady = FALSE;
@@ -1773,7 +1865,7 @@ void CShadingContext::iterateLights(const float *lP, const float *lN, const floa
     }
 
     if (!curLightingValid) {
-        const CAttributes *currentAttributes = ss->currentObject->attributes;
+        const CAttributes *currentAttributes = ss->currentAttributes;
         ss->numActive = numActive;
         ss->numPassive = numPassive;
         ss->lightsExecuted = TRUE;
@@ -1832,7 +1924,7 @@ void CShadingContext::callAmbient(float *result) {
     const int *tags = ss->tags;
     float **varying = ss->varying;
     CShaderInstance *cInst = ss->currentShaderInstance;
-    const CAttributes *attr = ss->currentObject->attributes;
+    const CAttributes *attr = ss->currentAttributes;
 
     if (!ss->ambientLightsExecuted) {
         ss->ambientLightsExecuted = TRUE;
@@ -2061,7 +2153,7 @@ void CShadingContext::prepareAmbient() {
     CShadingState *ss = currentShadingState;
     if (!ss->ambientLightsExecuted) {
         ss->ambientLightsExecuted = TRUE;
-        const CAttributes *attr = ss->currentObject->attributes;
+        const CAttributes *attr = ss->currentAttributes;
         if (ss->alights == NULL) {
             ss->alights = (CShadedLight *)ralloc(sizeof(CShadedLight), threadMemory);
             ss->alights->savedState = (float **)ralloc(2 * sizeof(float *), threadMemory);
@@ -2145,7 +2237,8 @@ void CShadingContext::jitIlluminateBegin(const float *from, int sf, int *tags, i
 
     if (rendererIlluminationHook()) {
         if (*numActive != 0)
-            illuminateBegin(hookOperand(from, sf, tags, n), nullptr, nullptr);
+            if (openrender::shading::IIlluminationHook *hook = illuminationHook())
+                hook->illuminateBegin(hookOperand(from, sf, tags, n), nullptr, nullptr);
         return;
     }
 
@@ -2189,7 +2282,8 @@ void CShadingContext::jitIlluminate3Begin(
 
     if (rendererIlluminationHook()) {
         if (*numActive != 0)
-            illuminateBegin(hookOperand(from, sf, tags, n), hookOperand(axis, sa, tags, n), hookOperand(angle, st, tags, n));
+            if (openrender::shading::IIlluminationHook *hook = illuminationHook())
+                hook->illuminateBegin(hookOperand(from, sf, tags, n), hookOperand(axis, sa, tags, n), hookOperand(angle, st, tags, n));
         return;
     }
     log_debug("[JIT-DBG] jitIlluminate3Begin: n={} numActive={} numPassive={}", n, *numActive, *numPassive);
@@ -2237,7 +2331,8 @@ void CShadingContext::jitIlluminateEnd(int *tags, int n, int *numActive, int *nu
 
     if (rendererIlluminationHook()) {
         if (*numActive != 0)
-            illuminateEnd();
+            if (openrender::shading::IIlluminationHook *hook = illuminationHook())
+                hook->illuminateEnd();
         return;
     }
     log_debug("[JIT-DBG] jitIlluminateEnd: n={} numActive={} numPassive={}", n, *numActive, *numPassive);
@@ -2308,7 +2403,8 @@ void CShadingContext::jitSolarBegin(const float *Nf, int sf, const float *thetaf
 
     if (rendererIlluminationHook()) {
         if (*numActive != 0)
-            solarBegin(hookOperand(Nf, sf, tags, n), hookOperand(thetaf, st, tags, n));
+            if (openrender::shading::IIlluminationHook *hook = illuminationHook())
+                hook->solarBegin(hookOperand(Nf, sf, tags, n), hookOperand(thetaf, st, tags, n));
         return;
     }
 
@@ -2357,7 +2453,8 @@ void CShadingContext::jitSolar0Begin(int *tags, int n, int *numActive, int * /*n
 
     if (rendererIlluminationHook()) {
         if (*numActive != 0)
-            solarBegin(nullptr, nullptr);
+            if (openrender::shading::IIlluminationHook *hook = illuminationHook())
+                hook->solarBegin(nullptr, nullptr);
         return;
     }
 
@@ -2387,7 +2484,8 @@ void CShadingContext::jitSolarEnd(int *tags, int n, int *numActive, int *numPass
 
     if (rendererIlluminationHook()) {
         if (*numActive != 0)
-            solarEnd();
+            if (openrender::shading::IIlluminationHook *hook = illuminationHook())
+                hook->solarEnd();
         return;
     }
 
@@ -2647,10 +2745,10 @@ const char *CShadingContext::shaderName() {
 // Comments				:
 const char *CShadingContext::shaderName(const char *type) {
     // No object (the imager): no shader of any type is bound (F2, FR-027)
-    if (currentShadingState->currentObject == NULL)
+    if (currentShadingState->currentAttributes == NULL)
         return "";
 
-    CAttributes *currentAttributes = currentShadingState->currentObject->attributes;
+    const CAttributes *currentAttributes = currentShadingState->currentAttributes;
 
     if (strcmp(type, "surface") == 0) {
         if (currentAttributes->surface())
@@ -2815,9 +2913,8 @@ void CShadingContext::jitCalculateNormal(float *dst, int sd, const float *P, int
     duVector(dPdu_buf, P);
     dvVector(dPdv_buf, P);
 
-    const float mult = (currentShadingState && currentShadingState->currentObject &&
-                        currentShadingState->currentObject->attributes &&
-                        (currentShadingState->currentObject->attributes->flags & ATTRIBUTES_FLAGS_INSIDE))
+    const float mult = (currentShadingState && currentShadingState->currentAttributes &&
+                        (currentShadingState->currentAttributes->flags & ATTRIBUTES_FLAGS_INSIDE))
                            ? -1.f
                            : 1.f;
     for (int i = 0; i < n; ++i) {
@@ -4007,13 +4104,11 @@ void CShadingContext::jitPhotonMap(float *dst, int sd, const char *const *name,
     if (numRealVertices <= 0 || !name || !name[0])
         return;
 
-    CPhotonMap *map = this->rendererGetPhotonMap(name[0]);
+    openrender::shading::IPhotonLookup *map = this->rendererGetPhotonMap(name[0]);
     if (!map)
         return;
 
-    const CAttributes *cAttributes = currentShadingState->currentObject
-                                          ? currentShadingState->currentObject->attributes
-                                          : nullptr;
+    const CAttributes *cAttributes = currentShadingState->currentAttributes;
     const int estimator = cAttributes ? cAttributes->photonEstimator : 0;
 
     for (int i = 0; i < numRealVertices; ++i) {
@@ -4285,7 +4380,7 @@ bool CShadingContext::gatherSample(CGatherBundle *lastGather, int *tags, int &nu
     const float temp = 1 / (float)(lastGather->numSamples);
     int numIntRays = 0;
     int numExtRays = 0;
-    const CAttributes *cAttributes = currentShadingState->currentObject->attributes;
+    const CAttributes *cAttributes = currentShadingState->currentAttributes;
     const int sampleMotion = cAttributes->flags & ATTRIBUTES_FLAGS_SAMPLEMOTION;
     for (int i = 0; i < numRealVertices; ++i) {
         if (tags[i]) {

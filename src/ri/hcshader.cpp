@@ -117,7 +117,8 @@ void CSphereLight::illuminate(CShadingContext *context, float **) {
         }
 
         // Call the hook handle
-        context->illuminateBegin(Pf, Nf, thetaf);
+        if (openrender::shading::IIlluminationHook *hook = context->illuminationHook())
+            hook->illuminateBegin(Pf, Nf, thetaf);
 
         // Compute the intensity
         L = currentShadingState->varying[VARIABLE_L];
@@ -132,7 +133,8 @@ void CSphereLight::illuminate(CShadingContext *context, float **) {
         }
 
         // Call the hook handle
-        context->illuminateEnd();
+        if (openrender::shading::IIlluminationHook *hook = context->illuminationHook())
+            hook->illuminateEnd();
     }
     else {
         CShadedLight **lights = &currentShadingState->lights;
@@ -140,7 +142,7 @@ void CSphereLight::illuminate(CShadingContext *context, float **) {
         float *Ps = currentShadingState->varying[VARIABLE_PS];
         int j;
         CRay ray;
-        const float bias = currentShadingState->currentObject->attributes->bias;
+        const float bias = currentShadingState->currentAttributes->bias;
         int numVertices = currentShadingState->numRealVertices;
         CShadedLight *cLight;
 
@@ -196,7 +198,9 @@ void CSphereLight::illuminate(CShadingContext *context, float **) {
                     }
                     ray.db = DEFAULT_RAY_DB;
 
-                    context->trace(&ray);
+                    ray.object = NULL; // a context with no tracer treats the probe as a miss
+                    if (openrender::shading::ITracer *tracer = context->tracer())
+                        tracer->traceRay(*context, &ray);
 
                     if (ray.object == NULL) {
                         subvv(P, Ps);
@@ -432,7 +436,8 @@ void CQuadLight::illuminate(CShadingContext *context, float **) {
         }
 
         // Call the hook handle
-        context->illuminateBegin(Pf, Nf, thetaf);
+        if (openrender::shading::IIlluminationHook *hook = context->illuminationHook())
+            hook->illuminateBegin(Pf, Nf, thetaf);
 
         // Compute the intensity
         L = currentShadingState->varying[VARIABLE_L];
@@ -447,7 +452,8 @@ void CQuadLight::illuminate(CShadingContext *context, float **) {
         }
 
         // Call the hook handle
-        context->illuminateEnd();
+        if (openrender::shading::IIlluminationHook *hook = context->illuminationHook())
+            hook->illuminateEnd();
     }
     else {
         CShadedLight **lights = &currentShadingState->lights;
@@ -455,7 +461,7 @@ void CQuadLight::illuminate(CShadingContext *context, float **) {
         const int *tags = currentShadingState->tags;
         float *Ps = currentShadingState->varying[VARIABLE_PS];
         CRay ray;
-        const float bias = currentShadingState->currentObject->attributes->bias;
+        const float bias = currentShadingState->currentAttributes->bias;
         vector D;
         int j;
         int numVertices = currentShadingState->numRealVertices;
@@ -519,7 +525,9 @@ void CQuadLight::illuminate(CShadingContext *context, float **) {
                         }
                         ray.db = DEFAULT_RAY_DB;
 
-                        context->trace(&ray);
+                        ray.object = NULL; // a context with no tracer treats the probe as a miss
+                        if (openrender::shading::ITracer *tracer = context->tracer())
+                            tracer->traceRay(*context, &ray);
 
                         if (ray.object == NULL) {
                             visibility++;

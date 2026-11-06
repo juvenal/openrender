@@ -7,7 +7,8 @@
  * a services implementation that does not provide one), the bundle forms, gather() and the irradiance
  * cache must degrade, not crash: each warns once per kind (CODE_NOTSTARTED) and returns the value of a
  * ray that hits nothing. The bundles' miss path runs the bundle's postShade(n, rays), which is why this
- * case is rendered (the standalone program's load stub traps there).
+ * case is rendered (it uses the renderer's own services through the forwarder; the standalone
+ * program has the bundles too since spec 029, ShadingContract_CannedBundles uses them there).
  *   trace()          colour form: 0 (a first-hit miss adds nothing)
  *   transmission()   1 (nothing in the way)
  *   gather()         the gather block never runs: 0

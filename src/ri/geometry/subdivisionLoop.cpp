@@ -351,7 +351,7 @@ void CLoopSubdivMesh::intersect(CShadingContext *rasterizer, CRay *) {
 void CLoopSubdivMesh::dice(CReyes *rasterizer) {
 
     if (children == NULL)
-        create(rasterizer);
+        create(&rasterizer->shadingContext());
 
     CObject::dice(rasterizer);
 }

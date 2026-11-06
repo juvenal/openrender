@@ -1,0 +1,11 @@
+--- a/tests/shading_contract/case_situations.cpp
++++ b/tests/shading_contract/case_situations.cpp
+@@ -162,7 +162,7 @@
+             else if (line.rfind("R ", 0) == 0) {
+                 SReport r{};
+                 r.displaced = (line.compare(2, 4, "disp") == 0);
+-                sscanf(line.c_str() + 7, "dim=%d displaceOnly=%d inShadow=%d rayDepth=%d hook=%d", &r.dim, &r.displaceOnly, &r.inShadow, &r.rayDepth, &r.hook);
++                sscanf(strstr(line.c_str(), "dim="), "dim=%d displaceOnly=%d inShadow=%d rayDepth=%d hook=%d", &r.dim, &r.displaceOnly, &r.inShadow, &r.rayDepth, &r.hook);
+                 out.reports.push_back(r);
+             }
+         }

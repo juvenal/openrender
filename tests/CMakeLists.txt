@@ -98,8 +98,13 @@ add_subdirectory(unit/camera)
 add_subdirectory(unit/motion)
 add_subdirectory(unit/scene_interface)  # spec 038: services, active context, writer and `if` characterizations
 add_subdirectory(precomp)               # spec 038: the precomputation tool (Precomp_OutputUnchanged, Precomp_NoHiderCore)
+# Permanent: registers the opt-in Link_PackageStaticConsumer (label link-package). It builds and installs a second
+# copy of the tree, so it is not part of the everyday run; the final phase runs it with this option ON.
+option(OPENRENDER_LINK_PACKAGE_TEST "Register Link_PackageStaticConsumer: builds and installs a scratch tree, then builds a consumer through find_package(openRender COMPONENTS Static)" OFF)
+
 # After unit/state: shading_contract links its state_only_sources library
 add_subdirectory(shading_contract)
+add_subdirectory(link)
 add_subdirectory(plugins)
 add_subdirectory(convergence)
 add_subdirectory(architecture)

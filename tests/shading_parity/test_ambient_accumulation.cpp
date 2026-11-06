@@ -41,6 +41,7 @@
 #include "ri/core/shading.h"
 #include "ri/geometry/object.h"
 #include "ri/parse/ri.h"
+#include "ri/hiders/hider.h"
 #include "ri/render/renderer.h"
 #include "ri/render/rendererContext.h"
 #include "ri/state/attributes.h"
@@ -151,7 +152,7 @@ static void test_t019_no_crash_when_alights_null() {
     if (light) {
         RiWorldBegin();
 
-        CShadingContext *ctx = CRenderer::contexts[0];
+        CShadingContext *ctx = &CRenderer::contexts[0]->shadingContext();
         EXPECT_TRUE(ctx != nullptr);
 
         if (ctx) {
@@ -172,7 +173,8 @@ static void test_t019_no_crash_when_alights_null() {
 
                 CAttributes *attrs = new CAttributes();
                 CXform *xform = new CXform();
-                ss->currentObject = new CTestSurface(attrs, xform);
+                CSurface *testSurface = new CTestSurface(attrs, xform);
+                ctx->setShadedObject(testSurface, openrender::shading::ObjectHandle{static_cast<const CObject *>(testSurface)}, testSurface->attributes);
 
                 CMemPage *localMemory = NULL;
                 memoryInit(localMemory);
@@ -232,7 +234,7 @@ static void test_t020_ambient_accumulates_once() {
     if (light) {
         RiWorldBegin();
 
-        CShadingContext *ctx = CRenderer::contexts[0];
+        CShadingContext *ctx = &CRenderer::contexts[0]->shadingContext();
         EXPECT_TRUE(ctx != nullptr);
 
         if (ctx) {
@@ -252,7 +254,7 @@ static void test_t020_ambient_accumulates_once() {
                 ss->numPassive = 0;
                 ss->tags[0] = 0;
                 ss->ambientLightsExecuted = 0;
-                ss->currentObject = surface;
+                ctx->setShadedObject(surface, openrender::shading::ObjectHandle{static_cast<const CObject *>(surface)}, surface->attributes);
 
                 // The real public call site (shading.cpp:1711-1749) -- drives
                 // light->prepare()/illuminate() for every non-ambient-excluded

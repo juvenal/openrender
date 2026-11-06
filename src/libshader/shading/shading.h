@@ -32,7 +32,11 @@
 #include "common/algebra.h"
 #include "common/containers.h"
 #include "common/global.h"
+#include "libshader/shading/illuminationHook.h"
+#include "libshader/shading/pointSource.h"
 #include "libshader/shading/rendererServices.h"
+#include "libshader/shading/shaderGlobals.h"
+#include "libshader/shading/tracer.h"
 #include "common/random.h"
 #include "common/sampling.h"
 #include "ri/texture/textureSystem.h"
@@ -57,7 +61,6 @@ class CQuadVertex;
 class CQuadTriangle;
 class CQuad;
 class CTexture3d;
-class CPhotonMap;
 class CVertex;
 class CMovingVertex;
 class CTriangle;
@@ -74,6 +77,10 @@ class CSphereLight;
 struct TObjectHash;
 class CPLLookup;
 class CPointHierarchy;
+class CAttributes;
+namespace openrender::shading {
+    class IShadingProducer; // shadingProducer.h
+}
 
 typedef enum {
     SHADING_0D,      // Shading points
@@ -187,7 +194,10 @@ class CStats;
 class CShadingState {
     public:
         // ---> Input fields
-        CSurface *currentObject;        // Current object
+        // The shaded object, set together through CShadingContext::setShadedObject() (spec 029): the surface is opaque to Shading
+        const CSurface *currentSurface;                  // For the observers' reports; never dereferenced here
+        openrender::shading::ObjectHandle currentObject; // objectHandle(), and every request to the services
+        const CAttributes *currentAttributes;            // objectAttributes() and every attribute read in Shading
         int numVertices;                // The number of vertices to be shaded
         int numUvertices, numVvertices; // The number of o/v vertices (only if rendering a regular grid)
         EShadingDim shadingDim;         // The shading dimentionality
@@ -280,6 +290,30 @@ struct CPointDisplacedReport {
 };
 typedef void (*CPointDisplacedObserver)(const CPointDisplacedReport &);
 
+// A fourth test hook (spec 029): called once per shade(const ShaderGlobals &, IPointSource &) call, after the batch is described and
+// before the branch runs (the primitive shortcuts and the displacement passes included), with the batch the producer filled, the
+// situation facts of the call read from the context, and the branch shade() will take. Null in production; set only by tests
+// (ShadingContract_ProducerSituations), as pointKeyObserver is.
+enum EShadeBranch {
+    SHADEBRANCH_FULL,                // the shaders run
+    SHADEBRANCH_DISPLACE_ONLY,       // only the displacement shader runs
+    SHADEBRANCH_DISPLACE_ESTIMATE,   // the bound or grid-size estimate: the geometry is only sampled
+    SHADEBRANCH_SHADOW_PRIMITIVE,    // a shadow hit with transmissionhitmode "p": the attribute opacity is copied
+    SHADEBRANCH_SPECULAR_PRIMITIVE,  // a ray hit with specularhitmode "p": the attribute colour and opacity are copied
+    SHADEBRANCH_CAMERA_PRIMITIVE     // a grid with camerahitmode "p": the shaders run, then the opacity is overwritten
+};
+struct CShadeBatchReport {
+        const CSurface *surface;                           // The source's surface (opaque)
+        const openrender::shading::ShaderGlobals *globals; // What the producer filled
+        EShadingDim dim;                                   // The batch's dimension: the shape, read from the context's call
+        int displaceOnly;                                  // FALSE, TRUE or 3
+        int inShadow;                                      // CShadingContext::inShadow
+        int rayDepth;                                      // CShadingContext::currentRayDepth
+        int illuminationHook;                              // The illumination hook (photon pass), 0 or 1
+        EShadeBranch branch;                               // The branch shade() takes
+};
+typedef void (*CShadeBatchObserver)(const CShadeBatchReport &);
+
 // A third test hook (spec 026, Phase 1): called just before Shading hands rays to the tracer,
 // with the request's kind, label, bundle depth, path depth and rays (their inputs: the tracer
 // has not run yet). Null in production. See CShadingContext::traceRequestObserver; it exists
@@ -340,7 +374,7 @@ typedef struct TObjectHash {
 // Class				:	CShadingContext
 // Description			:	Holds thread specific stuff
 // Comments				:
-class CShadingContext {
+class CShadingContext final {
     public:
         // An optional parameter list as a JIT call site passes it (GitHub #55):
         // pair i is names[i] with its value at values[i], steps[i] bytes per
@@ -358,12 +392,20 @@ class CShadingContext {
         static CPointKeyObserver pointKeyObserver;
         static CPointDisplacedObserver pointDisplacedObserver; // Test hook, null in production
         static CTraceRequestObserver traceRequestObserver;     // Test hook, null in production; set only by tests (spec 026)
+        static CShadeBatchObserver shadeBatchObserver;         // Test hook, null in production; set only by tests (spec 029)
 
-        CShadingContext(int thread);
-        virtual ~CShadingContext();
+        explicit CShadingContext(int thread);
+        ~CShadingContext();
 
-        // This function is called to to render
-        virtual void renderingLoop() = 0;
+        // The photon pass's hooks into illuminate() and solar() (spec 029, illuminationHook.h): installed by the hider
+        // that owns this context, none by default. The interpreter's macros and the JIT call it only while
+        // rendererIlluminationHook() is true; with no hook installed those calls do nothing.
+        void setIlluminationHook(openrender::shading::IIlluminationHook *hook) { illuminationHookObject = hook; }
+        openrender::shading::IIlluminationHook *illuminationHook() const { return illuminationHookObject; }
+        bool rendererIlluminationHook() const;
+
+        // The vertex memory this context has allocated, read-only (for tests and the hiders' statistics)
+        int vertexMemoryInUse() const { return vertexMemory; }
 
         // The current shading state
         CShadingState *currentShadingState;
@@ -380,17 +422,51 @@ class CShadingContext {
         const openrender::sampling::CameraSeeds &cameraSeeds() const { return camera; }
 
         // Shade points on a surface
+        // The Geometry-facing entry (spec 029): opaque, it never dereferences the surface and hands the call to the producer that
+        // owns this context (setProducer(); none installed: one warning per process and nothing is shaded). The symbol is the
+        // one Geometry's allowlisted calls bind to.
         void shade(CSurface *, int, int, EShadingDim, unsigned int, int displaceOnly = FALSE);
-        void fillPointKeys(CSurface *, EShadingDim, bool report = true); // Give the points about to be shaded their sample identities (spec 039)
+        // Shade a batch: `globals` describes it (per-batch fields only on input, shaderGlobals.h), `source` samples the primitive
+        void shade(const openrender::shading::ShaderGlobals &globals, openrender::shading::IPointSource &source);
+        void setProducer(openrender::shading::IShadingProducer *producer) { producerObject = producer; }
+        // The shaded object: the opaque surface (for the observers' reports), its handle (objectHandle()) and its attributes
+        // (objectAttributes() and every attribute read in Shading) of the current state, set together. The producer passes the
+        // CObject * upcast as the handle, the value the renderer's services cast back.
+        void setShadedObject(const CSurface *surface, openrender::shading::ObjectHandle handle, const CAttributes *attributes) {
+            currentShadingState->currentSurface = surface;
+            currentShadingState->currentObject = handle;
+            currentShadingState->currentAttributes = attributes;
+        }
+        void fillPointKeys(const CSurface *, uint64_t stableId, EShadingDim, bool report = true); // Give the points about to be shaded their sample identities (spec 039)
         // Execute a compiled shader (public for RSLShading::shade() in libshader)
         void execute(CProgrammableShaderInstance *, float **);
         inline void displace(CSurface *surface, int u, int v, EShadingDim dim, unsigned int up) { shade(surface, u, v, dim, up, TRUE); }
         inline void displaceEstimate(CSurface *surface, int u, int v, EShadingDim dim, unsigned int up) { shade(surface, u, v, dim, up, 3); }
 
-        // Raytracing functions
-        void trace(CRayBundle *);   // Trace and maybe shade bunch of rays
-        void traceEx(CRayBundle *); // Trace and maybe shade a bundle of rays. This version increments the shading depth
-        void trace(CRay *);         // Trace a ray (no shading)
+        // ---- Tracing (spec 029): the context traces nothing itself. The hider that owns it is its tracer (an ITracer, tracer.h) and
+        // installs itself here; the trace calls of the shading builtins reach it through libshader::traceRay/traceBundle.
+        void setTracer(openrender::shading::ITracer *tracer) { tracerObject = tracer; }
+        // The owner's tracer, nullptr if none (the services' tracer() is the fallback of libshader::traceRay, not of this accessor)
+        openrender::shading::ITracer *tracer() const { return tracerObject; }
+
+        // The ray level (FR-017): the one public way to go one ray level deeper, and the one place the depth rule is applied.
+        struct CRayLevel { // what leaveRayLevel() restores
+                CShadingState *savedState;
+                const char *savedLabel;
+        };
+        // If rayDepth() < maxRayDepth: depth + 1, the bundle's label, a fresh state from the free list (newState() when it is empty)
+        // carrying the bundle's post shader; returns true. Otherwise changes nothing and returns false: the caller makes the miss
+        // call bundle.postShade(numRays, rays).
+        bool enterRayLevel(const CRayBundle &bundle, int maxRayDepth, CRayLevel &saved);
+        // Depth - 1, the state back on the free list, the label and the state restored
+        void leaveRayLevel(const CRayLevel &saved);
+        int rayDepth() const { return currentRayDepth; }
+        bool inShadowRay() const { return inShadow != FALSE; }
+        // The per-thread object hash the owner's trace groups rays with: SHADING_OBJECT_CACHE_SIZE entries, allocated and filled by
+        // the constructor (GitHub #53). An empty entry's object is (CSurface *)this of the context.
+        TObjectHash *objectHash() { return traceObjectHash; }
+        void countTracedRay() { ++numTracedRays; }
+        int tracedRays() const { return numTracedRays; }
 
         // Report a trace request to traceRequestObserver. Callers test the observer for null first, so nothing is built in production.
         void reportTraceRequest(int kind, const char *label, int bundleDepth, int numRays, CRay *const *rays) const;
@@ -403,10 +479,13 @@ class CShadingContext {
         // execute.cpp and executeMisc.cpp read them without CSurface's complete type; the consumers on the trace path take built-in
         // defaults when it is null (FR-027)
         const CAttributes *objectAttributes() const;
+        // Records an object as the offending object, through the services (a no-op without them): what a shader error does before it
+        // reports (execute.cpp, scripterror). Public since spec 029 (F13): the context is final, so a test can no longer derive from it
+        // to reach this accessor.
+        void rendererSetOffendingObject(openrender::shading::ObjectHandle object);
 
         // A shader instance (the executing shader, or a light) as an opaque handle. Null stays null.
         static openrender::shading::ShaderHandle shaderHandle(const CShaderInstance *instance) { return openrender::shading::ShaderHandle{instance}; }
-        void traceAny(CRay *);      // Trace any ray (no shading)
 
         // gather()/gatherElse/gatherEnd shared computation, called from both the .rslo
         // interpreter (giOpcodes.h) and the LLVM JIT op_gather_* wrappers (rslOps.cpp).
@@ -969,12 +1048,11 @@ class CShadingContext {
         // All delegate to currentShadingState->services (set from CRendererServicesImpl
         // in the renderer context, nullptr in standalone libshader use).
         // These methods are called from macro headers (B3) and from shading.cpp.
-        bool rendererIlluminationHook() const;
         const float *rendererWorldBmin() const;
         const float *rendererWorldBmax() const;
         float rendererClipMin() const;
         float rendererClipMax() const;
-        CPhotonMap *rendererGetPhotonMap(const char *name);
+        openrender::shading::IPhotonLookup *rendererGetPhotonMap(const char *name);
         CTexture3d *rendererGetCache(const char *handle, const char *mode, const float *from, const float *to);
         CTexture3d *rendererGetTexture3d(const char *name, int write, const char *channels, const float *from, const float *to, int hierarchy = FALSE);
         // The operations on a handle those two return, through the services (no-ops without services or a handle)
@@ -982,7 +1060,6 @@ class CShadingContext {
         void rendererTexture3dLookup(CTexture3d *t, float *dest, const float *P, const float *N, float radius);
         void rendererTexture3dStore(CTexture3d *t, const float *data, const float *P, const float *N, float radius);
         // Additional renderer-service accessors for execute.cpp / executeMisc.cpp / shaderPl.cpp
-        void rendererSetOffendingObject(openrender::shading::ObjectHandle object);
         int rendererGetGlobalID(const char *name);
         int rendererShootStep() const;
         RtFilterFunc rendererGetFilter(const char *name) const;
@@ -1002,12 +1079,6 @@ class CShadingContext {
                     return base + step * i;
             return base;
         }
-
-        // Hiders can hook into the following functions
-        virtual void solarBegin(const float *, const float *) {}
-        virtual void solarEnd() {}
-        virtual void illuminateBegin(const float *, const float *, const float *) {}
-        virtual void illuminateEnd() {}
 
         int numShade;         // Number of times shade is called
         int numSampled;       // Number of points sampled
@@ -1029,6 +1100,9 @@ class CShadingContext {
         int inShadow;                // TRUE if we're in a shadow
 
         TObjectHash *traceObjectHash; // An object hash array for raytraced objects
+        openrender::shading::IIlluminationHook *illuminationHookObject = nullptr; // See setIlluminationHook()
+        openrender::shading::ITracer *tracerObject = nullptr;                     // See setTracer()
+        openrender::shading::IShadingProducer *producerObject = nullptr;          // See setProducer()
 
         // The following functions are used in the shaders
         void duFloat(float *, const float *);
@@ -1172,10 +1246,7 @@ class CShadingContext {
         CPLLookup *jitPlHash[PL_HASH_SIZE]; // jitParameterList()'s lookups, keyed by (instance, call site)
 
 
-        friend class CPhotonHider;
         friend class CProgrammableShaderInstance;
-        friend class CSphereLight;
-        friend class CQuadLight;
 
         // Default renderer services injected by src/ri/ at startup via setDefaultServices()
         static CRendererServices *s_defaultServices;

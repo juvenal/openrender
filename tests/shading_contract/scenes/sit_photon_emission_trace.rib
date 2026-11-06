@@ -1,0 +1,25 @@
+##RenderMan RIB-Structure 1.0
+# Spec 029 ProducerSituations scene (tests/shading_contract): a photon pass whose light shader traces during emission. The
+# batches it produces are the hit of that trace (a ray hit, hook on: transport Importance) and, if shade() is asked to
+# describe it, the emission itself (row 10).
+version 3.03
+Hider "photon" "int emit" [16]
+Option "shaderformat" "default" ["rslo"]
+Option "sampling" "sampler" ["sobol"]
+Option "sampling" "seed" [1]
+Option "limits" "numthreads" [1]
+PixelSamples 1 1
+Format 8 8 1
+Projection "perspective" "fov" 30
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Attribute "visibility" "int specular" [1]
+  LightSource "sit_photon_light" 1
+  AttributeBegin
+    Surface "sit_marker"
+    Translate 0 -1.2 0
+    Rotate -90 1 0 0
+    Disk 0 6 360
+  AttributeEnd
+WorldEnd

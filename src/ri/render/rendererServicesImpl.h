@@ -65,11 +65,11 @@ class CRendererServicesImpl final : public CRendererServices {
         const float *worldBmax() const override { return CRenderer::worldBmax; }
 
         // Resource loaders (with mutex)
-        CPhotonMap *getPhotonMap(const char *name) override {
+        openrender::shading::IPhotonLookup *getPhotonMap(const char *name) override {
             osLock(CRenderer::shaderMutex);
             CPhotonMap *p = CRenderer::getPhotonMap(name);
             osUnlock(CRenderer::shaderMutex);
-            return p;
+            return p; // the same object, upcast
         }
         CTexture3d *getCache(const char *handle, const char *mode, const float *from, const float *to) override {
             osLock(CRenderer::shaderMutex);
@@ -100,9 +100,6 @@ class CRendererServicesImpl final : public CRendererServices {
 
         // Error reporting
         void setOffendingObject(openrender::shading::ObjectHandle object) override { CRenderer::offendingObject = const_cast<CObject *>(static_cast<const CObject *>(object.ptr)); }
-
-        // The frame's tracer (spec 026): null between frames
-        openrender::shading::ITracer *tracer() override { return CRenderer::frameTracer; }
 
         // Shoot step
         int shootStep() const override { return CRenderer::shootStep; }

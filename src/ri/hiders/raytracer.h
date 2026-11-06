@@ -33,6 +33,7 @@
 #include "camera.h"
 #include "common/global.h"
 #include "compositor.h"
+#include "hider.h"
 #include "object.h"
 #include "options.h"
 #include "shading.h"
@@ -142,7 +143,7 @@ class CPrimaryBundle : public CRayBundle {
 // Class				:	CRaytracer
 // Description			:	Defines a raytracer
 // Comments				:
-class CRaytracer : public CShadingContext {
+class CRaytracer : public CHider {
     public:
         // The camera is the frame's (spec 028): every primary ray comes from it. It outlives the context.
         CRaytracer(int thread, const openrender::ICamera &camera);
@@ -151,8 +152,7 @@ class CRaytracer : public CShadingContext {
         static void preDisplaySetup() {}
 
         // The main hider interface
-        // The following functions are commented out for we want the CShadingContext to handle those
-        void renderingLoop();
+        void renderingLoop() override;
 
     protected:
         // Sampling functions

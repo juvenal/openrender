@@ -38,6 +38,7 @@
 #include "common/memory.h"
 #include "ri/core/shading.h"
 #include "ri/parse/ri.h"
+#include "ri/hiders/hider.h"
 #include "ri/render/renderer.h"
 #include "ri/render/rendererContext.h"
 
@@ -240,7 +241,7 @@ int main() {
     RiBegin(RI_NULL);
     RiWorldBegin();
 
-    CShadingContext *ctx = CRenderer::contexts[0];
+    CShadingContext *ctx = &CRenderer::contexts[0]->shadingContext();
     EXPECT_TRUE(ctx != nullptr);
     if (ctx) {
         // updateState() gives a fresh state with its varying and tag arrays

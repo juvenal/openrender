@@ -70,8 +70,9 @@ set(ri_sources
 	texture/imageInputRgbe.cpp
 	texture/imageInputTiff.cpp
 	texture/textureSystem.cpp
-	hiders/bundles.cpp
 	hiders/compositor.cpp
+	hiders/hider.cpp
+	hiders/shadingProducer.cpp
 	geometry/curves.cpp
 	geometry/bsplinePatchgrid.cpp
 	geometry/csgTree.cpp
@@ -90,7 +91,6 @@ set(ri_sources
 #	dso.cpp
 	parse/error.cpp
 	hcshader.cpp
-	hiders/hiderTracer.cpp
 	hiders/irradiance.cpp
 	hiders/irradianceDispatch.cpp
 	hiders/occlusion.cpp
@@ -281,6 +281,18 @@ endif()
 if(UNIX)
     target_link_libraries(ribRender_static INTERFACE z)
 endif()
+# CRendererContext registers itself as RiBegin()'s full-render implementation with a static initializer in
+# rendererContext.cpp (riHooks.h); ri.cpp may not name it. In a static archive the linker keeps an object only when
+# something references it, and a program that calls only Ri*() entry points used to reach it through ri.cpp's
+# references to CRenderer::initDeclarations() (removed by spec 038). Every link of this archive therefore references
+# ribrender_context_anchor, defined next to the registrar, which pulls rendererContext.cpp.o in without
+# -force_load or --whole-archive (the same idiom as ribpreview_load in src/preview/libribpreview). ribOut.cpp.o is
+# still pulled by ri.cpp's reference to preferCompressedRibOut.
+if(APPLE)
+    target_link_options(ribRender_static INTERFACE "LINKER:-u,_ribrender_context_anchor")
+else()
+    target_link_options(ribRender_static INTERFACE "LINKER:-u,ribrender_context_anchor")
+endif()
 
 # ribVector (libRIBVector): the geometry-only extraction that orender-wire (through libribpreview) and the
 # data viewer link. It is the Scene Interface (parse/, the generated grammars, state/) plus Geometry and
@@ -380,7 +392,8 @@ list(REMOVE_ITEM ribVector_sources
     geometry/csgTree.cpp
     geometry/dlobject.cpp
     hcshader.cpp
-    hiders/hiderTracer.cpp
+    hiders/hider.cpp
+    hiders/shadingProducer.cpp
     hiders/irradianceDispatch.cpp
     hiders/occlusion.cpp
     hiders/photon.cpp

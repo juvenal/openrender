@@ -31,7 +31,6 @@
 #include "include/logging.hpp"
 
 #include "brickmap.h"
-#include "bundles.h"
 #include "curves.h"
 #include "delayed.h"
 #include "dlobject.h"
@@ -44,7 +43,6 @@
 #include "noise.h"
 #include "object.h"
 #include "patches.h"
-#include "hiderTracer.h"
 #include "photon.h"
 #include "photonMap.h"
 #include "pl.h"
@@ -776,10 +774,6 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     textureSystem = createTextureSystem(textureSettings);
     assert(textureSystem != NULL);
 
-    // The frame's tracer: before the frame parameters and before any context exists (spec 026). Stateless, so one per process
-    static CHiderTracer hiderTracer;
-    frameTracer = &hiderTracer;
-
     // Allow the hider to control display setup
     if (strcmp(hider, "raytrace") == 0) {
         CRaytracer::preDisplaySetup();
@@ -812,7 +806,7 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
 
     // Start the contexts
     numActiveThreads = numThreads;
-    contexts = new CShadingContext *[numThreads];
+    contexts = new CHider *[numThreads];
     for (i = 0; i < numThreads; i++) {
 
         // Start the hiders here
@@ -841,8 +835,8 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
 
         assert(contexts[i] != NULL);
 
-        contexts[i]->setSamplingConfig(samplingConfig);
-        contexts[i]->updateState();
+        contexts[i]->shadingContext().setSamplingConfig(samplingConfig);
+        contexts[i]->shadingContext().updateState();
     }
 }
 
@@ -862,8 +856,7 @@ void CRenderer::endFrame() {
     delete[] contexts;
     contexts = NULL;
 
-    // No context is left to ask for rays, nor to read the frame parameters (specs 026, 028)
-    frameTracer = nullptr;
+    // No context is left to read the frame parameters (specs 026, 028)
     endFrameParams();
 
     assert(stats.numRasterGrids == 0);
@@ -1049,6 +1042,7 @@ static TFunPrefix serverDispatchThread(void *w) {
 // Return Value			:
 // Comments				:
 static TFunPrefix rendererDispatchThread(void *w) {
+    CRenderer::activeContext = &CRenderer::contexts[(uintptr_t)w]->shadingContext();
     CRenderer::contexts[(uintptr_t)w]->renderingLoop();
 
     TFunReturn;
@@ -1065,7 +1059,7 @@ void CRenderer::renderFrame() {
     // Make sure we have a bounding hierarchy
     movvv(root->bmin, worldBmin);
     movvv(root->bmax, worldBmax);
-    root->setChildren(contexts[0], root->children);
+    root->setChildren(&contexts[0]->shadingContext(), root->children);
     numRenderedBuckets = 0;
 
     // Render the frame

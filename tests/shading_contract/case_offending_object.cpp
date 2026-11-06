@@ -25,17 +25,6 @@
 
 using namespace openrender::shading;
 
-namespace {
-
-    // rendererSetOffendingObject() is protected: a probe context that exposes it, as a shader error would reach it
-    class COffendingProbe : public CRProbeContext {
-        public:
-            explicit COffendingProbe(int thread) : CRProbeContext(thread) {}
-            void reportOffender() { rendererSetOffendingObject(objectHandle()); }
-    };
-
-} // namespace
-
 int main(int, char **) {
     CRecordingSink sink;
     {
@@ -43,21 +32,21 @@ int main(int, char **) {
         CContractForwarder fwd(s.original);
 
         CShadingContext::setDefaultServices(&fwd);
-        COffendingProbe *ctx = new COffendingProbe(0);
+        CRProbeContext *ctx = new CRProbeContext(0);
         ctx->updateState();
 
         // A current object: the forwarder records the handle, the real services set the offending object
-        ctx->currentShadingState->currentObject = s.object;
+        ctx->setShadedObject(s.object, ObjectHandle{static_cast<const CObject *>(s.object)}, s.object->attributes);
         CRenderer::offendingObject = nullptr;
-        ctx->reportOffender();
+        ctx->rendererSetOffendingObject(ctx->objectHandle()); // as a shader error would reach it (public since spec 029, F13)
         const void *surface = static_cast<const CObject *>(s.object);
         CT_EXPECT(fwd.offendingObjectCalls == 1);
         CT_EXPECT(fwd.lastOffending == surface);
         CT_EXPECT(static_cast<const void *>(CRenderer::offendingObject) == surface);
 
         // No current object: a null handle, a null offending object
-        ctx->currentShadingState->currentObject = nullptr;
-        ctx->reportOffender();
+        ctx->setShadedObject(nullptr, ObjectHandle{}, nullptr);
+        ctx->rendererSetOffendingObject(ctx->objectHandle()); // as a shader error would reach it (public since spec 029, F13)
         CT_EXPECT(fwd.offendingObjectCalls == 2);
         CT_EXPECT(fwd.lastOffending == nullptr);
         CT_EXPECT(CRenderer::offendingObject == nullptr);

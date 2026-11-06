@@ -231,7 +231,7 @@ class CTextureServices : public CRendererServices {
         const float *worldBmin() const override { return inner->worldBmin(); }
         const float *worldBmax() const override { return inner->worldBmax(); }
 
-        CPhotonMap *getPhotonMap(const char *name) override { return inner->getPhotonMap(name); }
+        openrender::shading::IPhotonLookup *getPhotonMap(const char *name) override { return inner->getPhotonMap(name); }
         CTexture3d *getCache(const char *handle, const char *mode, const float *from, const float *to) override {
             return inner->getCache(handle, mode, from, to);
         }

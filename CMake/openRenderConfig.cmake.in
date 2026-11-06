@@ -75,26 +75,6 @@ if(_openRender_static_missing)
 else()
     include("${CMAKE_CURRENT_LIST_DIR}/openRenderStaticTargets.cmake")
     set(openRender_Static_FOUND TRUE)
-
-    # libshader_shading resolves its remaining renderer-core and hider symbols
-    # (trace, bundles, getDSO/getFilter, ...) from libRIBRender at load time
-    # (flat-namespace / --allow-shlib-undefined; GitHub #24); its
-    # infrastructure now comes from the shared libRIBCommon. A static link
-    # only pulls the archive members the program itself references, so those
-    # symbols would be missing and the program aborts at launch
-    # ("symbol not found in flat namespace '__ZTV12CTraceBundle'"). Load the
-    # whole archive, and on ELF export the executable's symbols so the shared
-    # library can bind to them.
-    if(APPLE)
-        set_property(TARGET openRender::RIBRender_static APPEND PROPERTY
-            INTERFACE_LINK_OPTIONS
-            "LINKER:-force_load,$<TARGET_FILE:openRender::RIBRender_static>")
-    elseif(UNIX)
-        set_property(TARGET openRender::RIBRender_static APPEND PROPERTY
-            INTERFACE_LINK_OPTIONS
-            "LINKER:--whole-archive,$<TARGET_FILE:openRender::RIBRender_static>,--no-whole-archive"
-            "LINKER:--export-dynamic")
-    endif()
 endif()
 unset(_openRender_static_missing)
 unset(_openRender_static_dep_targets)

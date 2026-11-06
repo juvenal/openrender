@@ -8,10 +8,10 @@
 #   Batch RSL:    rslOps.cpp, rslBuiltins.cpp  (called by JIT-compiled shaders)
 #   Public API:   RSLShading.cpp
 #
-# Build note: this library uses headers from src/ri/ (CObject, CPhotonMap, etc.)
-# via its PRIVATE include path.  It does NOT link against ri; instead ri links
-# against libshader_shading (one-way dependency).  Cross-references to ri symbols
-# (CObject::, stats global, etc.) are resolved when ri's shared library is linked.
+# Build note: the library is self-contained (spec 029). It links with undefined symbols as an error
+# (ld64's default for a dylib, --no-undefined on ELF) and depends only on libRIBCommon, libRIBShadeop and
+# LLVM; it imports no symbol of the renderer or of the hiders. It uses the headers of the domains it may
+# depend on through its PRIVATE include path, and ri links against it (one-way dependency).
 
 # The rslo.y parser in this directory includes "lex.rslo.cpp" from the binary dir.
 # Add binary and source dirs BEFORE so generated flex output is found first.
@@ -20,6 +20,7 @@ include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(shading_sources
     activeContext.cpp
+    bundles.cpp
     execute.cpp
     executeMisc.cpp
     noise.cpp
@@ -52,9 +53,7 @@ if(OPENRENDER_HAVE_LLVM)
     # Deliberately split out of libshader_shading: this code touches only LLVM
     # bitcode APIs, never CRenderer/stats/vtables/etc. from ri. Tools like sloinfo
     # that only need metadata inspection link this instead of the full
-    # libshader_shading .dylib, so they aren't exposed to that library's
-    # -undefined dynamic_lookup symbols (which dyld binds eagerly for data/vtable/
-    # RTTI references regardless of whether the code path is ever exercised).
+    # libshader_shading library: sloinfo needs no LLVM JIT and no renderer.
     llvm_map_components_to_libnames(JITMETA_LLVM_LIBS core bitreader support)
     add_library(libshader_jitmeta STATIC llvmJitMetadata.cpp)
     set_target_properties(libshader_jitmeta PROPERTIES OUTPUT_NAME shader_jitmeta)
@@ -79,41 +78,23 @@ if(APPLE)
         set_target_properties(libshader_shading PROPERTIES
             INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
     endif()
-    # Allow undefined symbols (resolved at runtime when ri.dylib loads this library)
-    # This breaks the circular dependency: libshader_shading references CRenderer::*,
-    # stats, etc. from ri, while ri links against libshader_shading.
-    target_link_options(libshader_shading PRIVATE "-undefined" "dynamic_lookup")
+    # ld64's default for a dylib is already `-undefined error`, so an undefined symbol is a link error here too.
 elseif(UNIX)
-    # ELF equivalent of the APPLE workaround above, but applied on the consumer
-    # side: libshader_shading.so's undefined CRenderer::*/stats/etc. symbols
-    # (satisfied at runtime by ribRender.so) carry no recorded NEEDED entry back
-    # to ribRender -- this library deliberately never links ribRender (one-way
-    # dependency, see the file header comment). GNU ld's default is to allow
-    # that (--allow-shlib-undefined) *unless* something in the same link
-    # directly calls a symbol that only libshader_shading.so exports (e.g. a
-    # test binding straight to op_mcomp()/op_setmcomp() while also linking
-    # ribRender for CRenderer::* etc.) -- once that happens, ld additionally
-    # insists libshader_shading.so's own undefined symbols be resolvable too,
-    # and refuses to take it on faith that a sibling ribRender.so on the same
-    # command line will cover them at runtime, even though it does. INTERFACE
-    # so every consumer's link automatically gets the flag.
-    target_link_options(libshader_shading INTERFACE "-Wl,--allow-shlib-undefined")
+    # GNU ld has to be told: an undefined symbol in this library is a link error, as for libRIBCommon
+    # (src/common/CMakeLists.txt). Nothing inherits a relaxation: no consumer needs one.
+    target_link_options(libshader_shading PRIVATE "LINKER:--no-undefined")
 endif()
 
-# Shading engine needs src/ri/ headers for renderer types (CObject, CPhotonMap, etc.)
-# and its own directory for shading.h, shader.h, rslo_code.h, macro headers.
-# CPhotonMap now lives under src/ri/hiders/ (see the domain-split plan).
+# Shading engine needs the headers of the domains it may depend on (Graphics State, Texturing, the Infrastructure
+# in src/ri/core and src/ri/parse's ri.h), plus its own directory for shading.h, shader.h, rslo_code.h, macro headers.
+# Neither the Hiders' nor Geometry's directory is on the path (spec 029): the bundles, IPhotonLookup and IPointSource
+# are Shading's own, in this directory.
 target_include_directories(libshader_shading PRIVATE
     ${CMAKE_SOURCE_DIR}/src/ri
-    ${CMAKE_SOURCE_DIR}/src/ri/hiders
-    ${CMAKE_SOURCE_DIR}/src/ri/render
     ${CMAKE_SOURCE_DIR}/src/ri/state
     ${CMAKE_SOURCE_DIR}/src/ri/parse
-    ${CMAKE_SOURCE_DIR}/src/ri/geometry
     ${CMAKE_SOURCE_DIR}/src/ri/texture
-    ${CMAKE_SOURCE_DIR}/src/ri/output
     ${CMAKE_SOURCE_DIR}/src/ri/core
-    ${CMAKE_SOURCE_DIR}/src/ri/dataviewer
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_BINARY_DIR}
 )

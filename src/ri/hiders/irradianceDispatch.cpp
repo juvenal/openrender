@@ -50,7 +50,6 @@
  */
 #include <math.h>
 
-#include "bundles.h"
 #include "common/portable_io.h"
 #include "common/diagnostics.h"
 #include "irradiance.h"

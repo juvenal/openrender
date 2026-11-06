@@ -29,6 +29,7 @@
 #include <cstring>
 #include <string>
 
+#include "hider.h"
 #include "renderer.h"
 #include "ri.h"
 #include "shading.h"
@@ -44,7 +45,7 @@ static int failures = 0;
     } while (0)
 
 static CShadingContext *context() {
-    return CRenderer::contexts[0];
+    return &CRenderer::contexts[0]->shadingContext();
 }
 
 // option(name, string): TRUE and the string, or FALSE.

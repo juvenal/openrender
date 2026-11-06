@@ -50,11 +50,15 @@
 # Spec 038 (Phase 2): the Scene Interface no longer reaches the renderer core (DB-015: ifParse moved to the
 # Scene Interface as riEvaluateCondition, initDeclarations/shutdownDeclarations are no longer called by ri.cpp):
 # SceneInterface 6 -> 0 references and 6 -> 0 members, TOTAL 612 -> 606 and 94 -> 90, as archcheck reported.
+#
+# Spec 029 (hider / shading separation): the hiders no longer write CRenderer::activeContext (reyes.cpp and
+# raytracer.cpp; the renderer core sets it for every render thread now): Hiders 558 -> 556 references and
+# 82 -> 81 members; with spec 038 merged, TOTAL 606 -> 604 and 90 -> 89 (the values of the merged tree, as archcheck reported).
 
 Geometry           48    15
-Hiders            558    82
+Hiders            556    81
 Infra               0     0
 SceneInterface      0     0
 Shading             0     0
 Texturing           0     0
-TOTAL             606    90
+TOTAL             604    89

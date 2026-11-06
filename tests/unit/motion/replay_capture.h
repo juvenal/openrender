@@ -49,6 +49,7 @@
 #include <vector>
 
 #include "object.h"
+#include "hider.h"
 #include "renderer.h"
 #include "rendererContext.h"
 #include "ri.h"
@@ -162,7 +163,7 @@ namespace motionreplay {
             CCaptureContext *capture() const { return captureContextSlot(); }
 
             // A real shading context, for materialization
-            CShadingContext *ctx() const { return CRenderer::contexts != NULL ? CRenderer::contexts[0] : NULL; }
+            CShadingContext *ctx() const { return CRenderer::contexts != NULL ? &CRenderer::contexts[0]->shadingContext() : NULL; }
 
             // Run Ri calls in their own attribute block; whatever objects they create are
             // captured. Returns how many.

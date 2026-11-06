@@ -280,7 +280,7 @@ DEFSHORTFUNC(Indirectdiffuse, "indirectdiffuse", "c=pnf!", IDEXPR_PRE(FALSE), ID
 #ifndef INIT_SHADING
 #define PHOTONMAPEXPR_PRE                                                                                                                                                        \
     plBegin(CPhotonMapLookup, 4);                                                                                                                                                \
-    CPhotonMap *map;                                                                                                                                                             \
+    openrender::shading::IPhotonLookup *map;                                                                                                                                     \
     if ((map = lookup->map) == NULL) {                                                                                                                                           \
         const char **op1;                                                                                                                                                        \
         operand(1, op1, const char **);                                                                                                                                          \
@@ -327,7 +327,7 @@ DEFSHORTFUNC(Photonmap, "photonmap", "c=Spn!", PHOTONMAPEXPR_PRE, PHOTONMAPEXPR,
 #ifndef INIT_SHADING
 #define PHOTONMAP2EXPR_PRE                                                                                                                                                       \
     plBegin(CPhotonMapLookup, 3);                                                                                                                                                \
-    CPhotonMap *map;                                                                                                                                                             \
+    openrender::shading::IPhotonLookup *map;                                                                                                                                     \
     if ((map = lookup->map) == NULL) {                                                                                                                                           \
         const char **op1;                                                                                                                                                        \
         operand(1, op1, const char **);                                                                                                                                          \

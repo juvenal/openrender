@@ -174,7 +174,7 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int /*nullBucket*/) {
     // indexed by the sample's absolute subpixel coordinates (`left`/`top` are already
     // subpixels here), so raytrace and a neighbouring bucket compute the same values
     // for the same subpixel.
-    const openrender::sampling::CSamplingConfig &samplingCfg = samplingConfig();
+    const openrender::sampling::CSamplingConfig &samplingCfg = context.samplingConfig();
     const bool wantLens = (CRenderer::flags & OPTIONS_FLAGS_FOCALBLUR) != 0;
 
     // Init the occlusion culler to zero
@@ -196,7 +196,7 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int /*nullBucket*/) {
 
             // `left`/`top` count from the rendered window; the crop's origin makes them absolute
             // in the full image, so a crop draws the same samples (spec 039, T116)
-            const CSampleValue sample = CSampler::cameraSample(samplingCfg, cameraSeeds(), CSampler::reyesAbsSub(left + samplingCfg.originX * samplingCfg.nx, j),
+            const CSampleValue sample = CSampler::cameraSample(samplingCfg, context.cameraSeeds(), CSampler::reyesAbsSub(left + samplingCfg.originX * samplingCfg.nx, j),
                                                                CSampler::reyesAbsSub(top + samplingCfg.originY * samplingCfg.ny, i), wantLens);
 
             pixel->jx = sample.jitterX;
@@ -487,7 +487,7 @@ void CStochastic::rasterEnd(float *fb2, int noObjects) {
         return;
     }
 
-    memBegin(threadMemory);
+    memBegin(context.threadMemory);
 
     // Collapse the samples (transparency composite)
     const int numExtraNonCompChannels = CRenderer::numExtraNonCompChannels;
@@ -501,7 +501,7 @@ void CStochastic::rasterEnd(float *fb2, int noObjects) {
     const float halfFilterWidth = filterWidth * 0.5f;
     const float halfFilterHeight = filterHeight * 0.5f;
     const int pixelSize = 6 + CRenderer::numExtraSamples; // alpha + depth + color + opacity + extra samples
-    float *fbs = (float *)ralloc(totalWidth * totalHeight * pixelSize * sizeof(float), threadMemory);
+    float *fbs = (float *)ralloc(totalWidth * totalHeight * pixelSize * sizeof(float), context.threadMemory);
     const int sampleLineDisplacement = CRenderer::pixelXsamples * pixelSize;
     int sx, sy;
 
@@ -854,7 +854,7 @@ void CStochastic::rasterEnd(float *fb2, int noObjects) {
     }
     else {
         // Continuous mode: evaluate filter function at exact sample positions and normalize per pixel
-        float *filterNorm = (float *)ralloc(xres * sizeof(float), threadMemory);
+        float *filterNorm = (float *)ralloc(xres * sizeof(float), context.threadMemory);
 
         for (int y = 0; y < yres; y++) {
             memset(filterNorm, 0, xres * sizeof(float));
@@ -891,7 +891,7 @@ void CStochastic::rasterEnd(float *fb2, int noObjects) {
         }
     }
 
-    memEnd(threadMemory);
+    memEnd(context.threadMemory);
 }
 
 // A transient data structure to hold TSM data
@@ -1212,14 +1212,14 @@ void CStochastic::deepShadowCompute() {
 
     osLock(CRenderer::deepShadowMutex);
 
-    memBegin(threadMemory);
+    memBegin(context.threadMemory);
 
     prevFilePos = ftell(CRenderer::deepShadowFile);
 
     // Allocate the memory for misc junk
-    samples = (CFragment **)ralloc(totalHeight * totalWidth * sizeof(CFragment *), threadMemory);
-    fSamples = (CFragment **)ralloc(filterWidth * filterHeight * sizeof(CFragment *), threadMemory);
-    fWeights = (float *)ralloc(filterWidth * filterHeight * sizeof(float) * 4, threadMemory);
+    samples = (CFragment **)ralloc(totalHeight * totalWidth * sizeof(CFragment *), context.threadMemory);
+    fSamples = (CFragment **)ralloc(filterWidth * filterHeight * sizeof(CFragment *), context.threadMemory);
+    fWeights = (float *)ralloc(filterWidth * filterHeight * sizeof(float) * 4, context.threadMemory);
 
     // Init the samples
     for (i = 0; i < totalWidth * totalHeight; i++)
@@ -1302,11 +1302,11 @@ void CStochastic::deepShadowCompute() {
     // Record the index in the file
     //	we now save sizes too in order to support arbitrary bucket orders
     //	indices are now bucket starts
-    const int tileIndex = currentYBucket * CRenderer::xBuckets + currentXBucket;
+    const int tileIndex = context.currentYBucket * CRenderer::xBuckets + context.currentXBucket;
     CRenderer::deepShadowIndex[tileIndex] = prevFilePos;
     CRenderer::deepShadowIndex[tileIndex + CRenderer::xBuckets * CRenderer::yBuckets] = ftell(CRenderer::deepShadowFile) - prevFilePos;
 
-    memEnd(threadMemory);
+    memEnd(context.threadMemory);
 
     osUnlock(CRenderer::deepShadowMutex);
 }
