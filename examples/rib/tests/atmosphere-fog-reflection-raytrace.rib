@@ -1,0 +1,28 @@
+##RenderMan RIB-Structure 1.0
+# Spec 056 (US6 AS2), family atmosphere-fog-reflection-raytrace.
+# A mirror polygon at z = 4 (volume_reflect_probe, tilt 0.5) in an Atmosphere fog scene, perspective camera. The
+# central pixel of the 9 x 9 image looks along +z: its camera hit at the mirror is fogged once, with length(I) = 4,
+# d = 1 - exp(-4/6) = 0.486583; the reflected ray hits a constant-colour polygon, which must NOT be fogged again.
+# Expected RGB at pixel (4,4): C2*(1 - d) + bg*d = (0.443291, 0.697317, 0.69195) (tolerance 0.0001).
+version 3.03
+Hider "raytrace" "jitter" [0]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "atmosphere-fog-reflection-raytrace.tif" "file" "rgba"
+Format 9 9 1
+Projection "perspective"
+Clipping 0.1 100
+WorldBegin
+  Atmosphere "fog" "float distance" [6] "color background" [0.7 0.8 1]
+  Attribute "visibility" "int specular" [1] "int transmission" [1]
+  AttributeBegin
+    Surface "volume_reflect_probe" "float tiltx" [0.5]
+    Polygon "P" [-4 -4 4 4 -4 4 4 4 4 -4 4 4] "N" [0 0 -1 0 0 -1 0 0 -1 0 0 -1]
+  AttributeEnd
+  AttributeBegin
+    Color [0.2 0.6 0.4]
+    Surface "constant"
+    Polygon "P" [1.2 -4 3 8 -4 3 8 4 3 1.2 4 3] "N" [0 0 -1 0 0 -1 0 0 -1 0 0 -1]
+  AttributeEnd
+WorldEnd

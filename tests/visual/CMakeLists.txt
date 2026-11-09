@@ -4384,6 +4384,9 @@ endforeach()
 # Every non-GI visual and parity scene under each orender configuration (FR-031).
 include(${CMAKE_CURRENT_SOURCE_DIR}/determinism-scenes.cmake)
 
+# --- Volume shader segments (spec 056): the scenes, probes, goldens, differ and parity tests, in a file of their own ---
+include(${CMAKE_CURRENT_SOURCE_DIR}/volume-scenes.cmake)
+
 # --- Equal-depth ties (spec 039, Phase 7, T084c) ---------------------------------------------
 # Two coincident opaque triangles of different colour: every sample of the overlap receives two
 # fragments at exactly the same depth. The hiders keep the fragment that arrives first

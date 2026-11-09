@@ -1,0 +1,36 @@
+##RenderMan RIB-Structure 1.0
+# Spec 056, family volume-gather-none (the no-volume twin).
+# As volume-exterior-fog-reflection (same mirror, same target, same tilted direction), but the surface gathers one
+# ray along the reflected direction (a cone of angle 0, so the direction is exact) and averages surface:Ci. The
+# gather point is enclosed along that direction: every ray of the probed pixel hits the target after 2.0000, so the
+# else branch never runs. Exterior fog (distance 4, background (0.1, 0.3, 0.9)) attenuates the hit's Ci before it is recorded.
+# Probe pixel (5,4), RGB: (0.2, 0.6, 0.4) (tolerance 1e-05).
+version 3.03
+Option "shaderformat" "default" ["slo"]
+Hider "raytrace" "jitter" [0]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "volume-gather-none-raytrace-slo.tif" "file" "rgba"
+Format 8 8 1
+Projection "orthographic"
+Clipping 0.1 100
+Rotate 20 0 0 1
+Translate 0.3 -0.2 2
+WorldBegin
+  TransformBegin
+    # camera space: the inverse of the camera transform above
+    Translate -0.3 0.2 -2
+    Rotate -20 0 0 1
+    Attribute "visibility" "int specular" [1] "int transmission" [1]
+    AttributeBegin
+      Surface "volume_gather_probe" "float tiltx" [0.5]
+      Polygon "P" [-2 -2 4 2 -2 4 2 2 4 -2 2 4] "N" [0 0 -1 0 0 -1 0 0 -1 0 0 -1]
+    AttributeEnd
+    AttributeBegin
+      Color [0.2 0.6 0.4]
+      Surface "constant"
+      Polygon "P" [1.2 -2 3 8 -2 3 8 2 3 1.2 2 3] "N" [0 0 -1 0 0 -1 0 0 -1 0 0 -1]
+    AttributeEnd
+  TransformEnd
+WorldEnd

@@ -1,0 +1,34 @@
+atmosphere-*.tif and volume-*-none-*.tif (Linux goldens for Golden_atmosphere-* and Golden_volume-none-*, spec 056 T045-T048)
+
+Rendered 2026-11-09 by tools/capture_goldens.sh --platform linux (the test's own command with --write), three times per
+file, byte-identical, on the starting tree plus the Phase 1 tests.
+
+Host:      ubuntu-2404-desktop (Ubuntu 24.04.5 LTS, kernel 7.0.0-42-generic, x86_64)
+Compiler:  gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, Release (-O3), system toolchain, -Werror
+Tree:      the 056 worktree as staged on 2026-11-09: the starting tree (e83d005d plus the spec documents) plus the Phase 1 tests,
+           scenes and shaders; no change under src/ except the added lines of src/libshader/tests/reference. Synced with
+           specs/056-volume-shader-segments/tools/sync_linux.sh (SHA-256 manifest matched against the Mac).
+
+SHA-256 of each file (sha256sum):
+132caf599456e71a79a799fe6f686eff2c6de204a61918b8a0b286a0a4271874  atmosphere-depthcue-raytrace-slo.tif
+132caf599456e71a79a799fe6f686eff2c6de204a61918b8a0b286a0a4271874  atmosphere-depthcue-raytrace.tif
+f760680b10938597460a5ebc28bf59eabe6ae176f5e577edd48ebc72eb23cb8d  atmosphere-depthcue-reyes-slo.tif
+f760680b10938597460a5ebc28bf59eabe6ae176f5e577edd48ebc72eb23cb8d  atmosphere-depthcue-reyes.tif
+f760680b10938597460a5ebc28bf59eabe6ae176f5e577edd48ebc72eb23cb8d  atmosphere-depthcue-zbuffer-slo.tif
+f760680b10938597460a5ebc28bf59eabe6ae176f5e577edd48ebc72eb23cb8d  atmosphere-depthcue-zbuffer.tif
+abfa8d86ed7a5f52311ac35d20e730e855991a201c0f4a854aaf86082ebf4e3a  atmosphere-fog-raytrace-slo.tif
+89cd4fb6d941f2c722b8137850e9fa44ebd72cdd606c35f8d409bc9b8bfe46f9  atmosphere-fog-raytrace.tif
+65fd5d3aa8ff8338195506ea387bc6df15493fe76ecee9d8e853470c87ef9c31  atmosphere-fog-reyes-slo.tif
+7326e832553b3873ee11f7e11d9872d0d4a22df0481fb9b7e9e400f38ec69b13  atmosphere-fog-reyes.tif
+65fd5d3aa8ff8338195506ea387bc6df15493fe76ecee9d8e853470c87ef9c31  atmosphere-fog-zbuffer-slo.tif
+7326e832553b3873ee11f7e11d9872d0d4a22df0481fb9b7e9e400f38ec69b13  atmosphere-fog-zbuffer.tif
+f56f2d7a74426e25ee9e2e23e6b682ad0132fd61c20eb60cb80f5917d10958b7  volume-interior-fog-slab-none-raytrace-slo.tif
+f56f2d7a74426e25ee9e2e23e6b682ad0132fd61c20eb60cb80f5917d10958b7  volume-interior-fog-slab-none-raytrace.tif
+f56f2d7a74426e25ee9e2e23e6b682ad0132fd61c20eb60cb80f5917d10958b7  volume-interior-fog-slab-none-reyes-slo.tif
+f56f2d7a74426e25ee9e2e23e6b682ad0132fd61c20eb60cb80f5917d10958b7  volume-interior-fog-slab-none-reyes.tif
+f56f2d7a74426e25ee9e2e23e6b682ad0132fd61c20eb60cb80f5917d10958b7  volume-interior-fog-slab-none-zbuffer-slo.tif
+f56f2d7a74426e25ee9e2e23e6b682ad0132fd61c20eb60cb80f5917d10958b7  volume-interior-fog-slab-none-zbuffer.tif
+12100d888e48adbc14d9615b23d2e21c9c9c95e8a2ee89a0cb50280f41e15154  volume-random-fog-none-raytrace.tif
+
+Compared bit for bit, like the macOS goldens one directory up, which differ in the fog and depthcue scenes by floating point
+(the slab and random-fog twins are byte-identical on both platforms). Re-render only under the rules of rerendered-references.md.
