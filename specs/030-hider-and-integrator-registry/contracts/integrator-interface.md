@@ -68,7 +68,7 @@ typedef struct OrIntegratorParameter {
     const char *name;
     int type;            /* TYPE_FLOAT, TYPE_INTEGER, TYPE_STRING, TYPE_COLOR, TYPE_POINT, TYPE_VECTOR, TYPE_NORMAL, TYPE_MATRIX */
     int numItems;
-    const void *data;    /* float[], int[], const char *[]: host memory, valid during configure */
+    const void *data;    /* normalised at statement time: float[numItems] (TYPE_FLOAT), float[numItems*3] (color/point/vector/normal), float[numItems*16] (matrix), int[numItems] (TYPE_INTEGER), const char *[numItems] (TYPE_STRING); host memory, valid during configure */
 } OrIntegratorParameter;
 
 typedef struct OrIntegratorSettings {
@@ -85,8 +85,8 @@ typedef struct OrIntegratorTable {
     const char *name;
     const OrIntegratorAlias *aliases;
     int numAliases;
-    const OrCapability *requires;
-    int numRequires;
+    const OrCapability *required;   /* not "requires": a C++20 keyword, and this header is also compiled as C++20 */
+    int numRequired;
     const OrCapability *optional;
     int numOptional;
     OrIntegratorInstance *(*create)(void);
@@ -119,7 +119,7 @@ typedef struct OrIntegratorTable {
 
 ```text
 beginFrame():  resolve hider (fallback reyes) -> resolve integrator (fallback classic, error lists names)
-               -> transportCheckPair  --refused--> no displays, no hiders, no integrator (frame-refusal.md)
+               -> transportCheckPair  --refused--> no displays, no hiders, no integrator (frame-transport.md)
                -> create -> configure (report unaccepted parameters)
                -> ... displays, FrameParams, per-thread hiders ...
                -> prepare
@@ -133,7 +133,7 @@ endFrame():    finish -> destroy -> delete hiders -> ... -> endDisplays -> clear
 |---|---|
 | name | `classic` |
 | aliases | none |
-| requires / optional | none / none |
+| required / optional | none / none |
 | create / destroy | a static instance / nothing |
 | configure | accepts no parameter; returns OK |
 | prepare / finish | return at once |

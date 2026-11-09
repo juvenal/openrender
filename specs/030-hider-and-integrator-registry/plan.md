@@ -53,7 +53,7 @@ shrink-only (FR-030); no MAJOR version step before spec 055 (both new interfaces
 task depends on the merge (FR-033); no threshold widened, no approved test or reference edited; the
 constitution amendment only with the maintainer's approval at implement.
 
-**Scale/Scope**: about 15 new files (Hiders 5, Transport 9, Core 2), about 25 edited source files, the
+**Scale/Scope**: about 19 new files (Hiders 6, Transport 10, Core 2, Infra 1), about 25 edited source files, the
 deletion of `hcshader.{h,cpp}` (798 lines), 3 allowlist lines deleted, 1 registry entry resolved.
 
 No NEEDS CLARIFICATION remains: the clarify answers are applied as decisions and every choice the spec left
@@ -164,7 +164,7 @@ src/ri/render/                      # renderer core
 
 src/ri/hcshader.{h,cpp}             DELETE
 src/ri/state/options.{h,cpp}        EDIT integrator, integratorHandle, integratorParameters
-src/ri/parse/{ri.h,ri.cpp,riInterface.h,rib.y,rib.l}   EDIT RiIntegrator(V), grammar, lexer
+src/ri/parse/{ri.h,ri.cpp,riInterface.h,riInterface.cpp,rib.y,rib.l}   EDIT RiIntegrator(V), default no-op body, grammar, lexer
 src/ri/output/ribOut.{h,cpp}        EDIT RiIntegratorV
 src/common/{riVocabulary.h,riTokens.cpp}, src/ri/parse/ri.h   EDIT RI_INTEGRATOR, RI_CLASSIC
 src/common/kindRegistry.h           NEW  TKindNameTable (header-only)
@@ -217,7 +217,7 @@ Each phase ends with `ctest --test-dir build -L architecture` (agent rules).
 | `Registry_PairRefusal_<hider>` (4) | `registry` | test-double integrators with each built-in hider: frame refused, one error, no output file, a following frame renders, Debug asserts hold | FR-012, FR-024, SC-006 |
 | `Registry_ClassicPairs` | `registry` | `classic` with each built-in hider accepted; lifecycle counted once per rendered frame, zero on a refused one | FR-013, FR-016 |
 | `Registry_UnknownIntegratorFallback` | `registry` | `Integrator "bogus"`: error listing names, classic image, `orender` exit -1; with `Hider "bogus"` both fall back | FR-024, US4 AS5 |
-| `Registry_IntegratorParameters` | `registry` | unaccepted parameters diagnosed per name; string `handle` consumed; non-string `handle` rejected; frame renders | FR-020, FR-021 |
+| `Registry_IntegratorParameters` | `registry` | unaccepted parameters diagnosed per name; string `handle` consumed; non-string `handle` rejected; an `int`, a `color` and a `string` parameter reach `configure` with the stored data shape (`int[]`, 3 floats, `char *[]`); frame renders | FR-020, FR-021 |
 | `Registry_IntegratorImageIdentity` | `registry`, `visual` | `Integrator "classic"` vs no statement byte-identical for reyes, zbuffer, raytrace (photon: maps identical) | SC-005 |
 | `RibParse_IntegratorStatement` | `rib_parse` | parsing, option-block validity (world-block error equals `Hider`'s), last wins, storage in `COptions` | FR-017, FR-018 |
 | `RibOut_IntegratorRoundTrip` | `scene_interface` | parse → write preserves the statement and its parameters; preview ignores it silently | FR-019 |
@@ -227,7 +227,7 @@ Each phase ends with `ctest --test-dir build -L architecture` (agent rules).
 | `Architecture_Fixture_transport-allowed` | `architecture` | Transport → Shading and Hiders → Transport pass | FR-030 |
 | `Architecture_Fixture_transport-cycle` | `architecture` | Transport → Hiders is a `VIOLATION` and a `CYCLE` | FR-030, US6 AS1 |
 | `Hcshader_MissingShader` | `registry` | `LightSource "spherelight"` with an empty shader path: `Failed to find shader "spherelight"` (`CODE_NOSHADER`) | FR-026, US5 AS2 |
-| `Hcshader_NoReferences` | `architecture` | a `cmake -P` grep: no `hcshader`/`CSphereLight`/`CQuadLight` outside history records; `tests/architecture/unit/test_archcheck_parsers.cpp` (in-memory prefix-matching data) is exempt (Q8) | SC-007 |
+| `Hcshader_NoReferences` | `architecture` | a case-sensitive `cmake -P` grep: no `hcshader`/`CSphereLight`/`CQuadLight` outside history records; `tests/architecture/unit/test_archcheck_parsers.cpp` (in-memory prefix-matching data) is exempt (Q8), and the script excludes itself, its registrations and the `Hcshader_*` test sources (Q-A amendment) | SC-007 |
 | `Registry_CoreNamesNoHider` | `architecture` | a `cmake -P` grep of the five core files for hider headers, class names, `strcmp(hider` | FR-007, SC-003 |
 
 The label `registry` is new (one `ctest -L registry` entry for CLAUDE.md's Testing section at the end).
@@ -276,9 +276,15 @@ by 030. 056 has no spec text yet, so its overlap cannot be verified (research R1
 | Q7 | New **`Link_StaticConsumerRegistries`**; the approved `Link_StaticConsumer` untouched; spec wording updated (US2 AS3, FR-006) | research R13; spec.md |
 | Q8 | `tests/architecture/unit/test_archcheck_parsers.cpp`'s test data **exempted** from the no-reference check; the approved test is not edited | "Existing tests" note; `Hcshader_NoReferences` row |
 | Tests | The 22-row new-test list and the `registry` label approved at plan level; each test is still shown at the implement test pause before it is applied | "New tests" |
+| Tasks stage, Q-A | `Hcshader_NoReferences` exemption list approved: history comments in `shaders/*.sl`, `examples/rib/*.rib`, `tests/visual/CMakeLists.txt`, `.plans/`, `CLAUDE.md`, `DEVNOTES*`, `NEWS.md`, `specs/` (plus Q8's `test_archcheck_parsers.cpp`); `shading.h` (`class CSphereLight;`) and `shaderRefs.h` are edited. **Amendment, approved by the maintainer 2026-11-09 (analyze finding F3)**: `check_hcshader_references.cmake` also excludes itself, the lines that register `Hcshader_*` in `tests/architecture/CMakeLists.txt` and `tests/unit/registry/CMakeLists.txt`, and `tests/unit/registry/test_hcshader_missing_shader.cpp` (they contain the searched strings by necessity), and matches case-sensitively (the Shading comment "hcShaders" at `shader.h:153` is not a match) | tasks.md T023, T027, T054 |
+| Tasks stage, Q-B | Three extra cases approved inside existing tests (the `checkPluginVersion` overload's rejection path: MAJOR 3 and a too-small `structSize`; the reserved pair-alias field warning) and one new test, `Registry_FrameAbort` (abort paths: `create` NULL, `configure` non-OK, `prepare` non-OK); the new-test list is 22 + 1 | tasks.md T021, T023 |
+| Tasks stage, Q-C | Only the two NEW Python/Lua scripts are registered in CTest, behind `find_program`; the existing `test_prman` scripts stay unregistered (they were never in CTest) | tasks.md T022 |
+| Tasks stage, Q-D/Q-E | Phase order changed (hcshader first, additive Hiders phase, RI surface before Core, Core split in two); Linux full suite at Phases 4, 8, 9, 10, light elsewhere | tasks.md D1-D5 |
+| Tasks stage | Test sources outside `src/` are not Transport files; only the two architecture fixtures wait for the amendment | tasks.md T037 |
 | Amendment | Constitution 1.3.0 → 1.4.0 (D30) stays an implement-time approval point | research R11; contracts/architecture-and-records.md |
+| Analyze remediation (2026-11-09) | Findings F1-F21 applied to the spec documents (approved by the maintainer): `requires` renamed `required`/`numRequired` in the integrator table (a C++20 keyword); the peer group owned by the slot (`setFramePeers`); Q-A amended (see its row); grammar, `riInterface.cpp`, parameter data shape, table `destroy`, traceability table and T138a in tasks.md | tasks.md, contracts/ |
 
-Spec corrections from R16-R19 were applied to spec.md (Clarifications, "2026-11-07 (plan-stage
+Spec corrections from the reconciliation items R16-R19 (research.md R12's bullets; spec Source reconciliation rows R16-R19) were applied to spec.md (Clarifications, "2026-11-07 (plan-stage
 corrections)"). The questions as they were asked are kept below for the record.
 
 ## Open questions for the maintainer (answered 2026-11-07, see the table above)

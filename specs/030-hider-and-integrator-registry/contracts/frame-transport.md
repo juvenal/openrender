@@ -27,14 +27,15 @@ struct SFrameTransport {
     bool refused = false;                         // detected before displays: nothing built, no output file
     bool aborted = false;                         // detected after displays (create NULL, prepare non-OK): no thread runs
     SHiderTraits traits;                          // all false on a refused frame
-    CHiderPeers peers;                            // { contexts, numThreads }, set right after contexts is allocated
+    CHiderPeers peers;                            // { contexts, numThreads }: owned by the slot (never a local), set by setFramePeers() right after contexts is allocated and before the construction loop; valid until endFrameTransport()
 };
 // renderFrame() runs only when !refused && !aborted.
 
 const SFrameTransport &frameTransport();          // read-only; a default value outside a frame
 // Core-only (called by CRenderer):
 void beginFrameTransport(const COptions *o);      // resolve, check, create + configure, traits
-void prepareFrameTransport(CHider **contexts, int numThreads); // peers, prepare
+void setFramePeers(CHider **contexts, int numThreads);   // stores the peer group in the slot (before the construction loop)
+void prepareFrameTransport();                     // prepare (the peers were stored by setFramePeers)
 void finishFrameTransport();                      // finish + destroy (start of endFrame)
 void endFrameTransport();                         // clear (end of endFrame, after endDisplays)
 ```
@@ -56,8 +57,9 @@ beginDisplays()                                  no-display branch when refused 
 ... samplingConfig, beginFrameParams()  (unchanged position, :805)
 if (!refused):
     contexts = new CHider *[numThreads] (all NULL)
-    peers = { contexts, numThreads }            set BEFORE the loop, so a constructor may read it
-    for each thread i: contexts[i] = hiderOf(hider->create(&info{i, numThreads, &frame}))
+    setFramePeers(contexts, numThreads)         the slot owns the peers; set BEFORE the loop, so a constructor may read it,
+                                                and CReyes may keep a pointer to it until endFrame
+    for each thread i: contexts[i] = hiderOf(hider->create(&info{i, numThreads, &frame}))   (frame.peers = &frameTransport().peers)
                        NULL -> error CODE_BUG, aborted, stop the loop
                        dispatchJob = hider->dispatch == BUCKETS ? dispatchReyes : dispatchPhoton
                        contexts[i]->shadingContext().setSamplingConfig(...); updateState()   (unchanged)
@@ -94,7 +96,7 @@ file). No built-in hider or integrator reaches either path.
 | `RiWorldBegin` → `beginFrame()` | one `CODE_LIMIT` error; texture system, shadeops, `FrameParams` set up; no-display branch; `contexts == NULL`; no integrator instance |
 | world block | statements run; `render()` attaches raytraced objects to `root` and submits nothing (`rasterization` false); unraytraced objects are released by `addObject`'s `detach()`; a `Declare` reaches `notifyGlobalVariable`, which already guards `contexts != NULL` |
 | `RiWorldEnd` → `renderFrame()` | returns at once if `frameTransport().refused` or `.aborted` (before `root->setChildren(&contexts[0]->...)`) |
-| `RiWorldEnd` → `endFrame()` | no `finish`; the delete loop is skipped when `contexts == NULL` (and skips `NULL` entries after an aborted construction); `endFrameParams`, `root->destroy()`, procedural modules, `endDisplays()` (nothing started), remote channels, photon maps as usual; `endFrameTransport()` last |
+| `RiWorldEnd` → `endFrame()` | no `finish`; the destroy loop (each hider through the table's `destroy`, in index order) is skipped when `contexts == NULL` (and skips `NULL` entries after an aborted construction); `endFrameParams`, `root->destroy()`, procedural modules, `endDisplays()` (nothing started), remote channels, photon maps as usual; `endFrameTransport()` last |
 | output | no image file, no photon map; `RiLastError` set (exit -1 for `orender`); the process continues; the next frame is checked on its own |
 
 Not changed: `rendererDeclarationsDispatch.cpp` (null-safe; spec 031 deletes the file), `imager.cpp:133`

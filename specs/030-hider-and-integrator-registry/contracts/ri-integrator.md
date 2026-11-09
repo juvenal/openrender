@@ -1,7 +1,7 @@
 # Contract: `RiIntegrator` and the RIB `Integrator` statement
 
 **Domains**: Scene Interface (API, grammar, `ribOut`), Graphics State (storage), renderer core
-(`CRendererContext::RiIntegratorV`), Consumers (Python and Lua helpers). **Research**: R9, R12 (R19).
+(`CRendererContext::RiIntegratorV`), Consumers (Python and Lua helpers). **Research**: R9, R12 (the reconciliation bullet numbered R19 in the spec's Source reconciliation table).
 **Requirements**: FR-017 to FR-022.
 
 ## C API (`src/ri/parse/ri.h`, `ri.cpp`)
@@ -19,7 +19,7 @@ forwards to `renderMan->RiIntegratorV(...)`. Backward-compatible addition: no ex
 ## `CRiInterface` and back-ends
 
 - `src/ri/parse/riInterface.h`: `virtual void RiIntegratorV(const char *name, int n, const char *tokens[], const void *params[]);`
-  with a default no-op body (the preview back-end, `CPreviewContext`, inherits it and ignores the statement
+  with a default no-op body defined out of line in `src/ri/parse/riInterface.cpp` beside `CRiInterface::RiHiderV` (`:168`) (the preview back-end, `CPreviewContext`, inherits it and ignores the statement
   without a diagnostic, FR-019).
 - `src/ri/output/ribOut.{h,cpp}`: `CRibOut::RiIntegratorV` writes `Integrator "<name>" ` plus the parameter
   list through the same writer `Hider` uses (`ribOut.cpp:310`), so parse-then-write preserves it
@@ -28,13 +28,16 @@ forwards to `renderMan->RiIntegratorV(...)`. Backward-compatible addition: no ex
   - `name == NULL` or empty: `error(CODE_BADTOKEN, "Integrator name missing")`, options unchanged;
   - otherwise replaces `COptions::integrator` and the parameter list together (last statement wins);
   - a string `handle` is stored in `COptions::integratorHandle`; a non-string `handle` is an error;
+  - a token that is neither pre-declared nor an inline declaration is an error (`Integrator parameter "<p>" not defined`) and the entry is skipped, as `RiDisplayV` does;
+  - the surviving parameters are normalised once, at statement time, into the stored data shape: float `float[numItems]`; color/point/vector/normal `float[numItems*3]`; matrix `float[numItems*16]`; integer `int[numItems]` (converted from the parser's float array); string `numItems` `strdup`ed strings; quad/mpoint/double are dropped with a warning. `configure` therefore receives `type`, `numItems` and `data` unconverted;
   - no name validation here: the name is resolved at frame begin, like the hider's.
 
 ## RIB grammar and lexer
 
 - `src/ri/parse/rib.l`: `Integrator` → `RIB_INTEGRATOR` (next to `Hider`, `rib.l:52`).
-- `src/ri/parse/rib.y`: a rule of the `Hider` form (`rib.y:1063`):
-  `RIB_INTEGRATOR RIB_TEXT ribParameters` → `RiIntegratorV($2, numParameters, tokens, vals)`.
+- `src/ri/parse/rib.y`: a `%token RIB_INTEGRATOR` declaration (beside `%token RIB_HIDER`, `rib.y:561`) and a rule of the `Hider` form (`rib.y:1058-1063`):
+  `RIB_INTEGRATOR RIB_TEXT ribPL { if (parameterListCheck()) { RiIntegratorV($2, numParameters, tokens, vals); } }`
+  (the nonterminal is `ribPL`, `rib.y:769`).
   A missing or non-string name is the grammar's existing syntax error; no crash.
 
 ## Tokens (gotcha 22: all three lists)
@@ -49,11 +52,11 @@ forwards to `renderMan->RiIntegratorV(...)`. Backward-compatible addition: no ex
 char *integrator;                      // default "classic"
 char *integratorHandle;                // reserved RIS-style handle; NULL by default
 int numIntegratorParameters;
-CTypedParameter *integratorParameters; // { char *name; int type; int numItems; void *data; }
+CTypedParameter *integratorParameters; // { char *name; int type /* TYPE_* of the common variable grammar */; int numItems; void *data; } data shape: see RiIntegratorV above
 ```
 
 Copied by the copy constructor, freed by the destructor (the `CDisplay::parameters` pattern). No
-`COptions::find` entry: `Hider` has none for its name (research R19), so neither has `Integrator`.
+`COptions::find` entry: `Hider` has none for its name (research R12, reconciliation bullet R19), so neither has `Integrator`.
 No pre-declaration is added to `rendererDeclarations.cpp`: integrator parameters use inline declarations
 (FR-020). Graphics State includes no Transport header.
 

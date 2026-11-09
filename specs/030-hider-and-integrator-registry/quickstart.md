@@ -55,8 +55,8 @@ WorldBegin ... Integrator "classic" ...    -> the option-block error Hider gets 
 ```
 
 Round-trip: parse a RIB with `Integrator "classic" "int maxdepth" [5]` through the RIB writer and check
-the statement is preserved. Python and Lua: `ctest -R 'Python|Lua'` (the helper tests gain an
-`Integrator` case once approved).
+the statement is preserved. Python and Lua: `ctest -L helpers` (the two new scripts `test_prman_integrator.py` and
+`test_prman_integrator.lua`, registered behind `find_program`; a host without the interpreter records a skip).
 
 ## 5. Capability negotiation and the refused frame (US4, SC-006)
 

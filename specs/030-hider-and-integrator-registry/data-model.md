@@ -33,11 +33,11 @@ Built-ins: `raytrace`, `reyes` (aliases `hidden`, `stochastic`-deprecated), `zbu
 | Field | Rule |
 |---|---|
 | name, aliases[] | as for hider kinds, in their own namespace (a hider and an integrator may share a name) |
-| requires[], optional[] | capabilities |
+| required[], optional[] | capabilities (the C member is `required`, not `requires`: a C++20 keyword) |
 | create / destroy | one instance per rendered frame |
 | configure / prepare / finish | required; called once per rendered frame, in that order |
 
-Built-in: `classic` (requires none, optional none).
+Built-in: `classic` (required none, optional none).
 
 ## Registry (one per kind family)
 
@@ -82,8 +82,9 @@ Read-only for render threads between `prepare` and `finish`. Cleared after `endD
 
 ## Peer group (Hiders, `CHiderPeers`)
 
-`{ CHider *const *members; int count; }`, one per frame, owned by the slot; `members` is the core's
-`contexts` array, `count` is `numThreads`. Handed to every per-thread reyes-family hider at construction;
+`{ CHider *const *members; int count; }`, one per frame, owned by the slot (stored by the core-only
+`setFramePeers(contexts, numThreads)` before the construction loop; never a local variable, because `CReyes` keeps a
+pointer to it until `endFrame()`); `members` is the core's `contexts` array, `count` is `numThreads`. Handed to every per-thread reyes-family hider at construction;
 used for the sibling insertion loop (`reyes.cpp:1992-1993`).
 
 ## Pair check result (`SPairVerdict`)

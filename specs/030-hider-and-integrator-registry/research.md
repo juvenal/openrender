@@ -278,7 +278,7 @@ void     (*finish)(OrIntegratorInstance *, const OrTransportHost *host);
   appended members, without changing a slot's signature.
 - The `render` slot of §5.1 is **not** in 2.0.0; 042 appends it to the table in a MINOR step (the
   table's `structSize` tells the host whether a module has it, `checkPluginTable`).
-- `classic`: requires none, optional none; `create` returns a static instance; `configure` accepts no
+- `classic`: required none, optional none (the table member is `required`/`numRequired`, never `requires`, a C++20 keyword); `create` returns a static instance; `configure` accepts no
   parameter (every `acceptedParameters[i] = 0`); `prepare` and `finish` return at once. It counts its
   three calls in three atomics exposed to tests only through
   `transportClassicLifecycleCounts()` (`src/ri/transport/classicIntegrator.h`) so SC-006's "observed
@@ -364,7 +364,7 @@ today's "no active display" abort. Neither path is reachable with the built-ins;
 - *A hidden "null hider" constructed for the refused frame*: the core would name a concrete hider class
   (FR-007) or the registry would carry an unselectable entry. Rejected.
 
-Verification belongs to the tasks: one refusal test per built-in hider (a test-double integrator
+Verification belongs to the tasks (tasks stage, Q-B: abort paths covered by `Registry_FrameAbort`; the network claim above stays reasoned, not measured): one refusal test per built-in hider (a test-double integrator
 requiring a capability none provides), each with geometry and a `Declare` in the world block, run in a
 Debug build too (the `stats.numRasterGrids/Objects == 0` asserts of `endFrame()`), asserting the
 diagnostic, no output file, no crash, a following frame that renders, and exit -1 for `orender`.
@@ -433,6 +433,8 @@ parameters as warnings: would make `orender` exit 0 where an unknown option exit
   (display, shadeop, dlo, implicit, dynamicload) changes. `orplugin.h`/`.hpp` are unchanged.
 - The new headers are **not** added to `OPENRENDER_PUBLIC_HEADERS` (not installed): they become external
   extension points with spec 051 (D30 (3)). The `PluginAbi_*` install-layout tests are therefore unchanged.
+
+Tasks stage (Q-B): the overload's rejection path (MAJOR 3, a too-small `structSize`) is covered by cases inside `Registry_HiderCollisions` and `Registry_IntegratorLookup`.
 
 **Alternatives considered.** (a) Built-ins checked by `checkPluginTable` only, `checkPluginVersion` unused
 until 051: does not meet FR-011's "checked by `checkPluginVersion`"; rejected. **Maintainer answer Q5
