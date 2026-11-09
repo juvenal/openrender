@@ -241,6 +241,16 @@ void CTransmissionBundle::postShade(int nr, CRay **r) {
 }
 
 ///////////////////////////////////////////////////////////////////////
+// Class				:	CTransmissionBundle
+// Method				:	continuationLimit
+// Description			:	A ray that passed a transparent hit goes on to its original end point, not to infinity
+// Return Value			:	-
+// Comments				:
+float CTransmissionBundle::continuationLimit(const CRay *ray) const {
+    return ((const CTransmissionRay *)ray)->tEnd;
+}
+
+///////////////////////////////////////////////////////////////////////
 // Class				:	CTraceBundle
 // Method				:	post
 // Description			:	Called after the first pass

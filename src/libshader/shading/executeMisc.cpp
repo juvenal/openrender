@@ -777,6 +777,7 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
                     minDist = rays->maxDist;
                 }
                 cRay->t = minDist - rays->bias;
+                cRay->tEnd = cRay->t; // A continuation past a transparent hit stops here (GitHub #153)
                 cRay->tmin = rays->bias;
                 if (sampleMotion)
                     cRay->time = (drawTime(keyedSub, sampleIndex) + currentSample - 1) * multiplier;
