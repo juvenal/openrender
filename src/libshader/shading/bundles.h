@@ -66,6 +66,7 @@ class CTransmissionRay : public CRay {
         vector opacity;
         float *dest;
         float multiplier;
+        float tEnd; // The end of the ray (the light or maxdist, less the bias): a continued ray stops here
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -74,6 +75,7 @@ class CTransmissionRay : public CRay {
 // Comments				:
 class CTransmissionBundle : public CRayBundle {
     public:
+        float continuationLimit(const CRay *ray) const;
         int postTraceAction();
         void postShade(int, CRay **, float **);
         void postShade(int, CRay **);
