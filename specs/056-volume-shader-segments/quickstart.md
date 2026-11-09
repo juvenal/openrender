@@ -50,17 +50,20 @@ The camera transform is not the identity, so a miss that reaches the world bound
 | `volume-miss-clipping-*` | a far `Clipping` of `1e30`: `I` finite, value as above |
 | `volume-incident-opposite-*` | outside hit `(exterior, interior)` values; inside hit, swapped |
 | `volume-shadow-light-*` | a ray-traced `shadow()` in a light, with **different** `Interior` and `Exterior` bound: the side the snapshot normal picks is the one whose attenuation appears (covers the `shadow` location fills, interpreter `shaderFunctions.h:1986` and JIT `shading.cpp:3191`) |
+| `volume-primitive-hitmode-*` | the reflected object in `specularhitmode "primitive"`: still `C·T + bg·d` (FR-005) |
+| `volume-csg-fragment-*` | a camera pixel on a CSG fragment is unfogged (no camera-ray volume); a reflected ray leaving a fragment gets the exterior fog (FR-011) |
+| `volume-random-fog-raytrace*` | a volume with a `random()` term runs (differs from `volume-random-fog-none-raytrace`) and is identical at any thread count |
 | `volume-environment-raytrace-*` | `environment("raytrace", R)` with different `Interior` and `Exterior`: the exterior fog's value (covers `shaderFunctions.h:1880` and `shading.cpp:3203`) |
 
-Every scene has reyes, zbuffer and raytrace variants, each in `.rslo` and `.slo` (FR-014, FR-019).
+Every scene has reyes, zbuffer and raytrace variants, each in `.rslo` and `.slo` (FR-014, FR-019), except `volume-random-fog` (raytrace) and the atmosphere reflection probe (raytrace only). No-volume twins are `<family>-none-<hider>[-slo]`.
 
 ## 3. Cross-hider parity (FR-014)
 
 ```bash
-~/.claude/bin/cpujob s056-parity ctest --test-dir build -R 'Parity_volume-' --output-on-failure
+~/.claude/bin/cpujob s056-parity ctest --test-dir build -R 'Parity_(volume|atmosphere)-' --output-on-failure
 ```
 
-Expected: raytrace against reyes and zbuffer within the default parity threshold (20). No threshold is widened.
+Expected: `Parity_volume-glass-sphere-*` and `Parity_atmosphere-*` (the 8-bit atmosphere twins): raytrace against reyes and zbuffer within the default parity threshold (20). The float probe scenes prove agreement by hitting the same hand-computed value on every hider and backend. No threshold is widened.
 
 ## 4. Atmosphere unchanged (US6, SC-007)
 

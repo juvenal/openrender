@@ -40,12 +40,14 @@ derives from) changes only by an in-class initialiser: `CShaderInstance *postSha
 | `postShader` (inherited) | `CShaderInstance *` | the segment's volume shader for this submission; null means no step |
 | `levelTraced` | `int` | FALSE at submission; set TRUE by the bundle's `postTraceAction()`; a miss call with it FALSE is the max-depth refusal |
 | `begin(n, rays, volume)` | method | one submission: sets `numRays`, `rays`, `depth = 0`, `last = 0`, `postShader = volume`, `levelTraced = FALSE` (replaces the five hand-written field resets at `executeMisc.cpp:802-806, 820-824, 952-956, 969-973, 988-1001` and `shading.cpp:4436-4451`) |
-| `attenuateHits(n, rays, Ci, Oi)` | protected | computes each ray's endpoint `t = ray->t`, and from it `P` and `I`, then calls `context.shadeVolumeSegments(...)` in place on `Ci`/`Oi` |
-| `attenuateMisses(n, rays, Ci, Oi)` | protected | the same, with endpoints from the miss rule; `Ci`/`Oi` start at 0 |
+| `attenuateHits(n, rays, Ci, Oi)` | protected | fills each ray's `segStart`/`segEnd` (a hit: `segmentStart`, `ray->t`) and calls `context.shadeVolumeSegments(...)` in place on `Ci`/`Oi` |
+| `attenuateMisses(n, rays, Ci, Oi)` | protected | the same, with `segEnd` from the miss rule: `min(ray->t, segmentLimit)` when below `C_INFINITY`, else `C_INFINITY` ("to the world-bound exit"); `Ci`/`Oi` start at 0 |
 
-The per-call scratch for `P`, `I` and the miss `Ci`/`Oi` (3 floats per ray each) is allocated from `threadMemory` inside
-a `memBegin`/`memEnd` checkpoint that the bundle opens around the step. Otherwise it would pile up until the spawning
-`shade()` returns.
+The bundle computes no `P`, `I` or world-bound exit itself: `rendererWorldBmin()/Bmax()` are `protected` members of the
+`final` context (`shading.h:1038-1052`) and stay so. `shadeVolumeSegments` derives `P`, `I` and the exit inside the
+context. The per-call scratch for `segStart`/`segEnd` (1 float per ray each) and the miss `Ci`/`Oi` (3 floats per ray) is
+allocated from `threadMemory` inside a `memBegin`/`memEnd` checkpoint that the bundle opens around the step. Otherwise it
+would pile up until the spawning `shade()` returns.
 
 ### Segment endpoint rules
 
@@ -55,8 +57,9 @@ a `memBegin`/`memEnd` checkpoint that the bundle opens around the step. Otherwis
 | miss, `min(ray->t, segmentLimit) < C_INFINITY` | that minimum (a clip plane, a gather `maxdist`, a transmission destination) | `segmentStart` |
 | miss, nothing finite | `max(s, tFar(world bound))`; `s` if the ray never enters the bound, the bound is empty, or there are no services | `segmentStart` |
 
-`P = from + e·dir`, `I = (e - s)·dir`. `I` is always finite (FR-007, SC-009). The world bound is
-`CRendererServices::worldBmin()/worldBmax()`, in camera space (research R5).
+`P = from + e·dir`, `I = (e - s)·dir`, both computed by `shadeVolumeSegments` from the `segStart`/`segEnd` the bundle
+passes (`segEnd = C_INFINITY` means "the world-bound exit"). `I` is always finite (FR-007, SC-009). The world bound is
+`CRendererServices::worldBmin()/worldBmax()`, in camera space (research R5), read inside the context.
 
 ### Per-bundle behaviour (`postShader != null`; with null, every path is byte-identical to today)
 
@@ -84,7 +87,7 @@ a `memBegin`/`memEnd` checkpoint that the bundle opens around the step. Otherwis
 
 | Member | Change |
 |---|---|
-| `shadeVolumeSegments(CShaderInstance *, const CSegmentSpawn &, int n, CRay *const *rays, const float *P, const float *I, float *Ci, float *Oi)` | new, public (bundles call it): the step of research R2. Any `n >= 0`: the step works through the points in chunks of at most `maxGridSize()` itself, because `tracer.h` promises chunking only for hits, and a tracer, the canned contract double included (`recording_tracer.h:223-224`), may report every miss of a bundle in one call. `Ci`/`Oi` in and out, 3 floats per point |
+| `shadeVolumeSegments(CShaderInstance *, const CSegmentSpawn &, int n, CRay *const *rays, const float *segStart, const float *segEnd, float *Ci, float *Oi)` | new, public (bundles call it): the step of research R2. It derives `P = from + segEnd·dir` and `I = (segEnd - segStart)·dir` per point, using the world-bound exit (slab test, double precision, clamped to `>= segStart`; zero-length when the ray never enters the bound, the bound is empty or there are no services) wherever `segEnd` is `C_INFINITY`. Any `n >= 0`: the step works through the points in chunks of at most `maxGridSize()` itself, because `tracer.h` promises chunking only for hits, and a tracer, the canned contract double included (`recording_tracer.h:223-224`), may report every miss of a bundle in one call. `Ci`/`Oi` in and out, 3 floats per point |
 | `traceReflection` | volume selection gated on `spawn` and `volumeSegment`; side test on `sideN`; submits with `begin()`; writes `segmentStart`/`segmentLimit` |
 | `traceTransmission` | gains the interior/exterior split (one bundle when the shaders are equal, as today); side test on `sideN`; submits with `begin()`; writes the segment fields |
 | `gatherHeaderBegin` / `gatherSample` | the bundle is built with the context; selection gated as above; `segmentLimit = maxDist` |
@@ -102,7 +105,7 @@ a `memBegin`/`memEnd` checkpoint that the bundle opens around the step. Otherwis
 
 | Item | Location | Note |
 |---|---|---|
-| `selectVolumeShader` | `src/ri/state/attributes.h:250-263` | FR-011 |
+| `selectVolumeShader` | `src/ri/state/attributes.h:251-263` | FR-011 |
 | `ATTRIBUTES_FLAGS_SOLID_FRAGMENT` | `src/ri/state/attributes.h:59` | FR-011; bit 26 free; the stale "spec 013" comment goes with it (FR-020) |
 | the flag write | `src/ri/geometry/csgSolid.cpp:273` | the clone at `:272` stays (operand flip) |
 | `CSG_InteriorExteriorSelection` | `tests/unit/csg/test_interior_exterior_selection.cpp`, `tests/unit/csg/CMakeLists.txt:64` | retirement approved at clarify |

@@ -101,6 +101,7 @@ in-scattering several times.
   - `L` is `C_INFINITY` for `trace()` (which ignores `maxdist`, #98, unchanged), the call's `maxDist` for `gather()` (`shading.cpp:4414`), and the destination for `transmission()`/`shadow()`, recorded at creation as the ray's initial `t` (`executeMisc.cpp:779`, `min(d, maxDist) - bias`). The destination has to be recorded because the hider resets a continued ray's `t` to `C_INFINITY` (`trace.cpp:239`), so a shadow ray that passed a transparent surface would otherwise have no end at the light;
   - the far clipping distance is never used.
 - `P = from + e·dir` and `I = (e - s)·dir`, from the ray (`dir` has unit length, `tracer.h`), for hits and misses alike.
+- **Where it is computed**: inside `CShadingContext::shadeVolumeSegments()`, not in the bundle. The bundle passes each ray's `segStart` and `segEnd` (`C_INFINITY` meaning "to the world-bound exit"). `rendererWorldBmin()/Bmax()` are `protected` members of the `final` context (`shading.h:1038-1052`), which a bundle cannot call, and they stay protected.
 
 **World bound**: `CRendererServices::worldBmin()/worldBmax()` (`rendererServices.h:315-316`), already reached through
 `rendererWorldBmin()/Bmax()` (`shading.cpp:606-607`). The values are `CRenderer::worldBmin/worldBmax`
@@ -139,7 +140,7 @@ tie rule (`executeMisc.cpp:909`, `shading.cpp:4421`). `Nside` is the **shaded su
 point, as the shader holds it at the call**:
 - `trace()`, `transmission()`, `environment("raytrace")`: the location's `N` (`giFunctions.h:68`, `shaderFunctions.h:1880`, JIT `shading.cpp:3203`, `:3359`). This is the current behaviour of `traceReflection`.
 - `gather()`: `varying[VARIABLE_N]` (`giOpcodes.h:33`, JIT `shading.cpp:2704`), current behaviour.
-- `shadow()`: the location's `N` is deliberately zero (no origin guard: `shaderFunctions.h:1986`, `shading.cpp:3191`), and inside a light shader the varying `N` is not reliable, because an area light writes its own normal into `N` (gotcha 10) and lights run on the surface state's `varying` (`shading.cpp:1905`). The side normal is therefore a **snapshot of the surface's `N` taken when the lights are run**. `iterateLights` (`shading.cpp:1852`, the one light runner the interpreter and the JIT share) copies `varying[VARIABLE_N]` into a per-state buffer before the first light executes and exposes it as `lightSideN` for the duration of the light loop. A `shadow()` call outside a light loop (from a surface shader) uses `varying[VARIABLE_N]`.
+- `shadow()`: the location's `N` is deliberately zero (no origin guard: `shaderFunctions.h:1986`, `shading.cpp:3191`), and inside a light shader the varying `N` is not reliable, because an area light writes its own normal into `N` (gotcha 10) and lights run on the surface state's `varying` (`shading.cpp:1905`). The side normal is therefore a **snapshot of the surface's `N` taken when the lights are run**. `iterateLights` (`shading.cpp:1852`, the one runner of *illuminating* lights, shared by the interpreter and the JIT) copies `varying[VARIABLE_N]` into a per-state buffer before the first light executes and exposes it as `lightSideN` for the duration of the light loop. A `shadow()` call outside a light loop (from a surface shader) uses `varying[VARIABLE_N]`. Lights are also run, for `ambient()`, at three other sites (`shading.cpp:1950`, `:2177`, `execute.cpp:415`); they do not set `lightSideN`, so a `shadow()` called from an ambient-run light body uses `varying[VARIABLE_N]` as well. That is accepted: an ambient light has no `illuminate` body, so no area light overwrites `N` there, and the case is not tested (`validation.md` lists it as untested by design).
 
 A new `CTraceLocation` field, `sideN`, carries the side normal, because the locations come from raw `ralloc` memory and
 `N` keeps its origin-guard role. It is filled at every site that fills a location:
@@ -149,8 +150,8 @@ A new `CTraceLocation` field, `sideN`, carries the side normal, because the loca
 - JIT: `shading.cpp:3191` (shadow), `:3203` (environment), `:3359` (trace/transmission/visibility).
 
 **Consequence (accepted by the maintainer, 2026-11-07, Q3; documented in `RISPEC_GAPS.md`)**: a shader that rewrites `N` before tracing changes the side, for example
-`N = faceforward(N, I)`. The existing split already behaves this way, and `glass.sl`/`mirror.sl` use a local `Nf`, so
-they are not affected.
+`N = faceforward(N, I)`. The existing split already behaves this way, and `glass.sl`/`mirror.sl` compute the side from a local `Nf`; `mirror.sl` rewrites the global `N` only by
+normalising it (`N = normalize(N)`, `mirror.sl:18`), which keeps its direction, so the side does not change.
 
 **Alternatives considered for `shadow()`**:
 - *`Ns`, the illuminance normal* (advisor's suggestion). Rejected as the default: shipped shaders pass a faceforwarded `Nf` to `illuminance`/`specular`/`diffuse` (`glass.sl`, `mirror.sl`), which flips the side for any point seen from inside. US3's own test (a shadow ray from the sphere's back wall, seen through the front wall) would read "exterior" where the spawning rule says "interior".
@@ -171,7 +172,7 @@ float `trace()` (`:939`) build no bundle and run no step (FR-010, US3 AS3).
 **Decision**:
 - Delete the selection block at `shading.cpp:1384-1400` and the post-shader execution at `:1452-1456`. `shade()` no longer runs any interior or exterior shader.
 - `CShadingState::postShader` (`shading.h:222`) and its copy in `enterRayLevel` (`shading.cpp:588`) **stay**, documented as "the volume shader of the segments this level's rays travel; read by no shading code". This keeps the approved spec 029 contract test `ShadingContract_RayLevel` (`tests/shading_contract/case_ray_level.cpp:121, 132`) unchanged. The initialisation in `newState()` (`shading.cpp:1527`) and `imager.cpp:86` stay as they are.
-- `selectVolumeShader` (`src/ri/state/attributes.h:250-263`), `ATTRIBUTES_FLAGS_SOLID_FRAGMENT` (`:59`) and its only writer (`src/ri/geometry/csgSolid.cpp:273`) are deleted (FR-011). The attribute clone at `csgSolid.cpp:272` stays, because it also carries the operand flip (`:274-275`). Bit 26 becomes unused.
+- `selectVolumeShader` (`src/ri/state/attributes.h:251-263`), `ATTRIBUTES_FLAGS_SOLID_FRAGMENT` (`:59`) and its only writer (`src/ri/geometry/csgSolid.cpp:273`) are deleted (FR-011). The attribute clone at `csgSolid.cpp:272` stays, because it also carries the operand flip (`:274-275`). Bit 26 becomes unused.
 
 **Alternative**: remove `CShadingState::postShader` too. That is cleaner, but it needs an edit to an approved test
 (`case_ray_level.cpp`). The maintainer chose to keep the field (Q4, 2026-11-07).
