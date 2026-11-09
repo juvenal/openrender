@@ -1,0 +1,34 @@
+scaled killeroo-reyes             format x3, shadingrate x4
+scaled csg-hero-displaced-raytrace format x2.5
+scaled blobby-csg-difference-reyes format x5, shadingrate x4
+scaled camera-dof-reyes           format x2, shadingrate x2
+scaled camera-dof-raytrace        format x4
+series 1 of 5 done
+series 2 of 5 done
+series 3 of 5 done
+series 4 of 5 done
+series 5 of 5 done
+
+scene                        tree     median      min      max   spread   runs
+killeroo-reyes               start      3.58     3.31     3.77     0.46   3.31, 3.58, 3.59, 3.55, 3.77
+killeroo-reyes               final      3.58     3.19     3.90     0.71   3.19, 3.58, 3.53, 3.58, 3.90
+killeroo-reyes               diff of medians -0.00 s (-0.0%), larger spread 0.71 s: within spread
+
+csg-hero-displaced-raytrace  start      9.48     7.76    10.47     2.71   7.76, 9.48, 9.42, 10.47, 9.97
+csg-hero-displaced-raytrace  final      9.48     8.49     9.80     1.31   8.49, 9.80, 9.48, 9.43, 9.74
+csg-hero-displaced-raytrace  diff of medians -0.00 s (-0.0%), larger spread 2.71 s: within spread
+
+blobby-csg-difference-reyes  start      3.78     3.56     4.06     0.49   3.56, 3.77, 3.78, 4.06, 3.98
+blobby-csg-difference-reyes  final      3.85     3.53     4.29     0.76   3.53, 3.81, 3.85, 4.29, 3.85
+blobby-csg-difference-reyes  diff of medians +0.07 s (+1.8%), larger spread 0.76 s: within spread
+
+camera-dof-reyes             start      4.00     3.88     4.44     0.56   3.88, 4.00, 3.96, 4.44, 4.16
+camera-dof-reyes             final      4.01     3.97     4.54     0.57   3.98, 4.01, 3.97, 4.54, 4.11
+camera-dof-reyes             diff of medians +0.01 s (+0.3%), larger spread 0.57 s: within spread
+
+camera-dof-raytrace          start      4.62     4.44     4.88     0.44   4.44, 4.53, 4.62, 4.88, 4.67
+camera-dof-raytrace          final      4.65     4.47     4.95     0.49   4.47, 4.58, 4.65, 4.95, 4.69
+camera-dof-raytrace          diff of medians +0.03 s (+0.7%), larger spread 0.49 s: within spread
+
+scenes slower beyond the spread: 0
+scene medians under 3 s: 0

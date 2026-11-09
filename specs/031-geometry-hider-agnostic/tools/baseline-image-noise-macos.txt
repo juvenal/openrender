@@ -1,0 +1,1 @@
+# images whose bytes differed between two baseline runs on macOS (031-base-suite, 031-base-suite2): none.

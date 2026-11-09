@@ -1,0 +1,783 @@
+
+build/src/ri/CMakeFiles/ribVector_obj.dir/dataviewer/dataLoad.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/dataviewer/dataView.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/dataviewer/debug.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/geometry/blobby.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/geometry/blobbyField.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/geometry/blobbyPolygonize.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/geometry/blobbyRepeller.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/geometry/bsplinePatchgrid.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/geometry/curves.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/geometry/delayed.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/geometry/geometryHost.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/geometry/object.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/geometry/patches.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/geometry/patchgrid.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/geometry/patchLayout.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/geometry/points.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/geometry/polygons.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/geometry/quadrics.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/geometry/subdivision.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/geometry/subdivisionCreator.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/geometry/subdivisionHierarchical.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/geometry/subdivisionLoop.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/hiders/compositor.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/hiders/irradiance.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/hiders/linsys.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/hiders/photonMap.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/ifexpr_generated.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/output/ribOut.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/parse/error.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/parse/ri.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/parse/riInterface.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/parse/riServices.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/render/rendererDeclarations.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/render/rendererFileSearch.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/render/rendererMutexes.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/render/rendererNetwork.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/render/rendererStatics.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/rib_generated.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/state/attributes.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/state/camera.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/state/channelRegistry.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/state/declarations.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/state/displayChannel.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/state/frameParams.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/state/options.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/state/pl.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/state/shaderParameterHooks.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/state/variableLookup.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/state/xform.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/texture/brickmap.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/texture/imageInput.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/texture/imageInputExr.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/texture/imageInputPng.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/texture/imageInputRgbe.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/texture/imageInputTiff.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/texture/pointCloud.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/texture/pointHierarchy.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/texture/ptcapi.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/texture/texmake.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/texture/texture3dChannels.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/texture/texture3d.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/texture/texture.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/texture/textureSystem.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/vector/geometryDispatchStub.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/vector/irradianceDispatchStub.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/vector/rendererDeclarationsDispatchStub.cpp.o:
+build/src/ri/CMakeFiles/ribVector_obj.dir/vector/surfaceCrossingDispatchStub.cpp.o:
+                 U acos
+                 U acosf
+                 U asctime
+                 U asin
+                 U asinf
+                 U atan2
+                 U atan2f
+                 U beginChannelRegistry()
+                 U bind
+                 U blobbyPolygonize(CBlobbyProgram const*, float, int, CBlobbyProgram const*)
+                 U CAttributes::find(char const*, char const*, EVariableType&, void const*&, int&, float&) const
+                 U CAttributes::findParameter(char const*)
+                 U CBicubicPatch::CBicubicPatch(CAttributes*, CXform*, CVertexData*, CParameter*, float, float, float, float, float*, float const*, float const*)
+                 U CBlobbyMesh::~CBlobbyMesh()
+                 U CBlobbyProgram::evaluate(float const*, float*) const
+                 U CBlobbyProgram::evaluateWeights(float const*, float*, float*) const
+                 U CBlobbyProgram::getExtent(float*, float*) const
+                 U CBlobbyProgram::getLeafMatrix(int, float*) const
+                 U CBlobbyProgram::getLeafSeed(int, float*) const
+                 U CBlobbyRepeller::~CBlobbyRepeller()
+                 U CBlobbyRepeller::CBlobbyRepeller(char const*, float const*, float, float, float, float)
+                 U CBlobbyRepeller::evaluate(float const*, float*) const
+                 U CBrickMap::CBrickMap(_IO_FILE*, char const*, float const*, float const*)
+                 U cbrt
+                 U CBSplinePatchGrid::CBSplinePatchGrid(CAttributes*, CXform*, CVertexData*, CParameter*, int, int, float, float, float, float, float*)
+                 U CCubicCurve::splitToChildren(CReyes*)
+                 U CCurve::dice(CReyes*)
+                 U CDataView::drawDisks(int, float const*, float const*, float const*, float const*)
+                 U CDataView::drawFile(char const*)
+                 U CDataView::drawPoints(int, float const*, float const*)
+                 U CDataView::drawTriangles(int, float const*, float const*)
+                 U CDebugView::CDebugView(_IO_FILE*, char const*)
+                 U CDeclarations::acquire()
+                 U CDeclarations::declare(char const*, char const*, int)
+                 U CDeclarations::find(char const*)
+                 U CDeclarations::release()
+                 U CDeclarations::setGlobalObserver(void (*)(CVariable*))
+                 U CDelayedInstance::dice(CReyes*)
+                 U CDelayedInstance::intersect(CShadingContext*, CRay*)
+                 U CDelayedObject::dice(CReyes*)
+                 U CDelayedObject::intersect(CShadingContext*, CRay*)
+                 U CDisplayChannel::~CDisplayChannel()
+                 U CDisplayChannel::CDisplayChannel(char const*, CVariable*, int, int, int)
+                 U CFileResource::~CFileResource()
+                 U CFileResource::CFileResource(char const*)
+                 U CIrradianceCache::CIrradianceCache(char const*, unsigned int, _IO_FILE*, float const*, float const*, float const*)
+                 U CIrradianceCache::sample(float*, float const*, float const*, float const*, float const*, CShadingContext*)
+                 U clearerr
+                 U CLinearCurve::splitToChildren(CReyes*)
+                 U cloneHierarchicalOverrides(CHierarchicalOverride const*)
+                 U close
+                 U CObject::~CObject()
+                 U CObject::CObject(CAttributes*, CXform*)
+                 U CObject::dice(CReyes*)
+                 U CObject::makeBound(float*, float*) const
+                 U CObject::setChildren(CShadingContext*, CObject*, bool)
+                 U colorCieSystem
+                 U colorHslSystem
+                 U colorHsvSystem
+                 U colorRgbSystem
+                 U colorXyySystem
+                 U colorXyzSystem
+                 U colorYiqSystem
+                 U connect
+                 U coordinateCameraSystem
+                 U coordinateCurrentSystem
+                 U coordinateLightSystem
+                 U coordinateNDCSystem
+                 U coordinateObjectSystem
+                 U coordinateRasterSystem
+                 U coordinateScreenSystem
+                 U coordinateShaderSystem
+                 U coordinateWorldSystem
+                 U COptions::find(char const*, char const*, EVariableType&, void const*&, int&, float&) const
+                 U cos
+                 U cosf
+                 U countFreeFormCrossings(CShadingContext*, CSurface const*, float const*, float const*)
+                 U CPatchGrid::CPatchGrid(CAttributes*, CXform*, CVertexData*, CParameter*, int, int, int, int, int, int, float*)
+                 U CPhotonMap::CPhotonMap(char const*, _IO_FILE*)
+                 U CPl::clone(CAttributes*)
+                 U CPl::collect(int&, float*&, EVariableClass, CMemPage*)
+                 U CPl::~CPl()
+                 U CPl::CPl(int, int, CPlParameter*, float*, float*)
+                 U CPl::facevarying(float*, float*, float*, float*, CParameter*)
+                 U CPl::find(int, float const*&, float const*&)
+                 U CPl::parameterUsage()
+                 U CPl::transform(CXform*, float*)
+                 U CPl::uniform(int, CParameter*)
+                 U CPl::varying(float*, float*, float*, float*, CParameter*)
+                 U CPl::varying(int, int, CParameter*)
+                 U CPl::varying(int, int, int, int, CParameter*)
+                 U CPl::vertexData()
+                 U CPngImageInput::CPngImageInput()
+                 U CPointCloud::CPointCloud(char const*, float const*, float const*, float const*, int, char**, char**, int)
+                 U CPointCloud::CPointCloud(char const*, float const*, float const*, _IO_FILE*)
+                 U CPointCloud::getPoint(int, float*, float*, float*, float*)
+                 U CPoints::dice(CReyes*)
+                 U CPolygonMesh::CPolygonMesh(CAttributes*, CXform*, CPl*, int, int*, int*, int*)
+                 U createImageInput(char const*)
+                 U CRefCounter::~CRefCounter()
+                 U CRefCounter::CRefCounter()
+                 U CRenderer::clipMax
+                 U CRenderer::compChannelOrder
+                 U CRenderer::definedCoordinateSystems
+                 U CRenderer::dPixeldx
+                 U CRenderer::dPixeldy
+                 U CRenderer::findCoordinateSystem(char const*, float const*&, float const*&, ECoordinateSystem&)
+                 U CRenderer::frameTemporaryFiles
+                 U CRenderer::fromNDC
+                 U CRenderer::fromWorld
+                 U CRenderer::fromWorld1
+                 U CRenderer::getFile(char*, char const*)
+                 U CRenderer::globalIdHash
+                 U CRenderer::imagePlane
+                 U CRenderer::locateFile(char*, char const*, TSearchpath*, int)
+                 U CRenderer::netClient
+                 U CRenderer::netFileMappings
+                 U CRenderer::netNumServers
+                 U CRenderer::netServers
+                 U CRenderer::networkMutex
+                 U CRenderer::nonCompChannelOrder
+                 U CRenderer::notifyGlobalVariable(CVariable*)
+                 U CRenderer::numExtraCompChannels
+                 U CRenderer::numExtraNonCompChannels
+                 U CRenderer::numKnownGlobalIds
+                 U CRenderer::pixelLeft
+                 U CRenderer::pixelTop
+                 U CRenderer::projection
+                 U CRenderer::raytracingFlags
+                 U CRenderer::retrieveVariable(char const*)
+                 U CRenderer::sampleDefaults
+                 U CRenderer::temporaryPath
+                 U CRenderer::texturePath
+                 U CRenderer::toNDC
+                 U CRenderer::toWorld
+                 U CRenderer::toWorld1
+                 U CRenderer::worldBmax
+                 U CRenderer::worldBmin
+                 U CRgbeImageInput::CRgbeImageInput()
+                 U CRiInterface::~CRiInterface()
+                 U CRiInterface::CRiInterface()
+                 U CRiInterface::RiError(int, int, char const*)
+                 U CRiStandardSession::~CRiStandardSession()
+                 U CRiStandardSession::CRiStandardSession()
+                 U CSubdivision::CSubdivision(CAttributes*, CXform*, CVertexData*, CParameter*, int, float, float, float, float, float*)
+                 U CSurface::checkRayGuard(CRay*, CShadingContext*)
+                 U CSurface::dice(CReyes*)
+                 U CSurface::interpolate(int, float**, float***) const
+                 U CSurface::intersect(CShadingContext*, CRay*)
+                 U CSurface::moving() const
+                 U CSurface::regionCoverage(CShadingContext*, int, int, float const*, float const*, unsigned char*)
+                 U CSurface::sample(int, int, float**, float***, unsigned int&) const
+                 U CSurface::shade(CShadingContext*, int, CRay**)
+                 U CTexture3d::~CTexture3d()
+                 U CTexture3d::CTexture3d(char const*, float const*, float const*, float const*, int, CTexture3d::CChannel*)
+                 U CTexture3d::defineChannels(char const*)
+                 U CTexture3d::defineChannels(int, char**, char**)
+                 U CTexture3d::queryChannels(int*, char const**, char const**)
+                 U CTexture3d::readChannels(_IO_FILE*)
+                 U CTexture3d::writeChannels(_IO_FILE*)
+                 U CTextureCache::~CTextureCache()
+                 U CTextureCache::CTextureCache(int, int)
+                 U CTiffImageInput::CTiffImageInput()
+                 U current_log_level
+                 U CVertexData::dispatch(float const*, int, int, float**, float***)
+                 U __cxa_allocate_exception
+                 U __cxa_atexit
+                 U __cxa_begin_catch
+                 U __cxa_end_catch
+                 U __cxa_free_exception
+                 U __cxa_guard_abort
+                 U __cxa_guard_acquire
+                 U __cxa_guard_release
+                 U __cxa_rethrow
+                 U __cxa_throw
+                 U __cxa_throw_bad_array_new_length
+                 U CXform::concat(CXform*)
+                 U CXform::CXform(CXform*)
+                 U CXform::transformBound(float*, float*) const
+                 U declareVariableThroughHook(char const*, char const*)
+                 U deleteHierarchicalOverrides(CHierarchicalOverride*)
+                 U determinantm(float const*)
+                 U diagnosticsPrintDefault(EDiagnosticSeverity, char const*)
+                 U __dso_handle
+                 U dup2
+                 U __dynamic_cast
+                 U endChannelRegistry()
+                 U __errno_location
+                 U error(EErrorCode, char const*, ...)
+                 U _exit
+                 U exit
+                 U fatal(EErrorCode, char const*, ...)
+                 U fclose
+                 U fdopen
+                 U feof
+                 U ferror
+                 U fflush
+                 U fileBrickMap
+                 U fileGatherCache
+                 U fileIrradianceCache
+                 U filePhotonMap
+                 U filePointCloud
+                 U fileTransparencyShadow
+                 U fmax
+                 U fmodf
+                 U fopen
+                 U fork
+                 U __fprintf_chk
+                 U fread
+                 U __fread_chk
+                 U free
+                 U frexp
+                 U frexpf
+                 U frexpl
+                 U fseek
+                 U ftell
+                 U fwrite
+                 U getc
+                 U getenv
+                 U gethostbyaddr
+                 U gethostbyname
+                 U gethostname
+                 U getpid
+                 U getsockname
+                 U globalArena
+                 U _GLOBAL_OFFSET_TABLE_
+                 U __gttf2
+                 U __gxx_personality_v0
+                 U identityMatrix
+                 U identitym(float*)
+                 U inet_addr
+                 U inet_ntoa
+                 U info(EErrorCode, char const*, ...)
+                 U installDiagnosticSink(CDiagnosticSink*)
+                 U installVariableDeclaration(CVariable* (*)(char const*, char const*))
+                 U installVariableLookup(CVariable* (*)(char const*))
+                 U invertm(float*, float const*)
+                 U irradianceSampleAccept(float, float, CShadingContext*)
+                 U isalpha
+                 U __isoc23_sscanf
+                 U __isoc23_strtol
+                 U isspace
+                 U __libc_single_threaded
+                 U localtime
+                 U localtime_r
+                 U log
+                 U logf
+                 U __longjmp_chk
+                 U lookupVariable(char const*)
+                 U lround
+                 U makeTexture(char const*, char const*, CTextureFileResolver const*, char const*, char const*, float (*)(float, float, float, float), float, float, int, char const**, void const**)
+                 U malloc
+                 U memchr
+                 U memcpy
+                 U __memcpy_chk
+                 U memmove
+                 U memoryInit(CMemPage*&)
+                 U memoryNewPage(int)
+                 U memoryTini(CMemPage*&)
+                 U memset
+                 U __memset_chk
+                 U openrender::detail::defaultFrameParams()
+                 U openrender::detail::installedFrameParams
+                 U openrender::sampling::detail::pmj02Get1D(unsigned long, unsigned int, unsigned int)
+                 U openrender::sampling::samplerName(openrender::sampling::Backend)
+                 U operator delete[](void*)
+                 U operator delete(void*, unsigned long)
+                 U operator delete[](void*, unsigned long)
+                 U operator new(unsigned long)
+                 U operator new[](unsigned long)
+                 U osAvailableCPUs()
+                 U osCreateDir(char const*)
+                 U osCreateMutex(pthread_mutex_t&)
+                 U osDeleteFile(char const*)
+                 U osDeleteMutex(pthread_mutex_t&)
+                 U osEnvironment(char const*)
+                 U osFileExists(char const*)
+                 U osFixSlashes(char*)
+                 U osProcessEscapes(char*)
+                 U osTempname(char const*, char const*, char*)
+                 U parseParameterList(int, int, int, int, int, char const**, void const**, char const*, int, CAttributes*)
+                 U parseVariable(CVariable*, char const*, char const*)
+                 U pclose
+                 U pipe
+                 U png_create_info_struct
+                 U png_create_read_struct
+                 U png_destroy_read_struct
+                 U png_get_IHDR
+                 U png_init_io
+                 U png_read_end
+                 U png_read_info
+                 U png_read_row
+                 U png_set_longjmp_fn
+                 U png_set_swap
+                 U popen
+                 U pow
+                 U powf
+                 U preferCompressedRibOut
+                 U pthread_mutex_lock
+                 U pthread_mutex_unlock
+                 U putenv
+                 U realloc
+                 U realpath
+                 U recv
+                 U rename
+                 U renderMan
+                 U RGBE_ReadHeader
+                 U RGBE_ReadPixels
+                 U RI_ARCHIVE
+                 U RiArchiveBeginV
+                 U RiArchiveEnd
+                 U RiAreaLightSourceV
+                 U RiAtmosphereV
+                 U RiAttribute
+                 U RiAttributeBegin
+                 U RiAttributeEnd
+                 U RiAttributeV
+                 U RI_BACKFACING
+                 U RiBasis
+                 U RiBesselFilter
+                 U RI_BESSELFILTER
+                 U RiBezierBasis
+                 U RI_BIAS
+                 U RI_BICUBIC
+                 U RI_BILINEAR
+                 U RI_BINARY
+                 U RI_BLACK
+                 U RiBlackmanHarrisFilter
+                 U RI_BLACKMANHARRISFILTER
+                 U RI_BLOBBY
+                 U RI_BLOBBYOPCODEORDER
+                 U RI_BLOBBYTOLERANCE
+                 U RiBlobbyV
+                 U RiBound
+                 U RI_BOUND
+                 U RI_BOUNDEXPAND
+                 U RiBoxFilter
+                 U RI_BOXFILTER
+                 U ribParse(char const*, void (*)(char const*, ...))
+                 U RI_BRICKMEMORY
+                 U RiBSplineBasis
+                 U RI_BUCKETSIZE
+                 U RI_CAMERA
+                 U RI_CAMERAHITMODE
+                 U RiCatmullRomBasis
+                 U RiCatmullRomFilter
+                 U RI_CATMULLROMFILTER
+                 U RI_CAUSTICMAP
+                 U RI_CLAMP
+                 U RiClipping
+                 U RiClippingPlane
+                 U RiColor
+                 U RiColorSamples
+                 U RI_COMMENT
+                 U RI_COMPRESSION
+                 U RiConcatTransform
+                 U RiConeV
+                 U RiCoordinateSystem
+                 U RI_COORDINATESYSYTEM
+                 U RiCoordSysTransform
+                 U RI_CORNER
+                 U RI_CREASE
+                 U RI_CREASEMETHOD
+                 U RiCropWindow
+                 U RI_CUBIC
+                 U RI_CULL
+                 U RiCurvesV
+                 U RiCylinderV
+                 U RiDeclare
+                 U RI_DEFAULT
+                 U RiDeformationV
+                 U RI_DEPTHFILTER
+                 U RiDepthOfField
+                 U RiDetail
+                 U RiDetailRange
+                 U riDiagnosticsAttach()
+                 U riDiagnosticsDetach()
+                 U RI_DICE
+                 U RI_DIFFUSE
+                 U RI_DIFFUSEHITMODE
+                 U RiDiskFilter
+                 U RI_DISKFILTER
+                 U RiDiskV
+                 U RI_DISPLACEMENT
+                 U RI_DISPLACEMENTBOUND
+                 U RI_DISPLACEMENTS
+                 U RiDisplacementV
+                 U RI_DISPLAY
+                 U RiDisplayChannelV
+                 U RiDisplayV
+                 U RiElse
+                 U RiElseIfV
+                 U RI_EMIT
+                 U RI_ENDOFFRAME
+                 U RiErrorAbort
+                 U RiErrorHandler
+                 U RiErrorPrint
+                 U RI_ESTIMATOR
+                 U RiExposure
+                 U RiExteriorV
+                 U RI_EYESPLITS
+                 U RI_FACEVARYINGINTERPOLATEBOUNDARY
+                 U RI_FACEVARYINGPROPAGATECORNERS
+                 U RI_FALSECOLOR
+                 U RI_FILELOG
+                 U RI_FILEMODE
+                 U RI_FILTER
+                 U RiFormat
+                 U RiFrameAspectRatio
+                 U RiFrameBegin
+                 U RiFrameEnd
+                 U RiGaussianFilter
+                 U RI_GAUSSIANFILTER
+                 U RiGeneralPolygonV
+                 U RI_GEOCACHEMEMORY
+                 U RiGeometricApproximation
+                 U RiGeometricRepresentation
+                 U RI_GEOMETRY
+                 U RiGeometryV
+                 U RI_GLOBALMAP
+                 U RI_GRIDSIZE
+                 U RI_HANDLE
+                 U RiHermiteBasis
+                 U RI_HIDDEN
+                 U RI_HIDER
+                 U RiHiderV
+                 U RiHierarchicalSubdivisionMeshV
+                 U RI_HOLE
+                 U RiHyperboloidV
+                 U RI_IDENTIFIER
+                 U RiIdentity
+                 U RiIfBeginV
+                 U RiIfEnd
+                 U RiIlluminate
+                 U RI_ILLUMINATEFRONT
+                 U RiImagerV
+                 U RI_INHERITATTRIBUTES
+                 U riInstallContext(CRiInterface*)
+                 U riInstallDeclarationService(CRiDeclarationService*)
+                 U riInstallFileSearchService(CRiFileSearchService*)
+                 U RiInteriorV
+                 U RI_INTERPOLATEBOUNDARY
+                 U RI_IOR
+                 U RI_IORRANGE
+                 U RI_IRRADIANCE
+                 U RI_JITTER
+                 U RiLightSourceV
+                 U RI_LIMITS
+                 U RI_LINEAR
+                 U riLocateFile(char*, char const*, TSearchpath*, int)
+                 U RiMakeBrickMapV
+                 U RiMakeBumpV
+                 U RiMakeCubeFaceEnvironmentV
+                 U RiMakeLatLongEnvironmentV
+                 U RiMakeShadowV
+                 U RiMakeTextureV
+                 U RiMatte
+                 U RI_MAXDEPTH
+                 U RI_MAXDIFFUSEDEPTH
+                 U RI_MAXERROR
+                 U RI_MAXPIXELDIST
+                 U RI_MAXSPECULARDEPTH
+                 U RI_MAXSUBDIVISION
+                 U RI_METABUCKETS
+                 U RI_MINSPLITS
+                 U RI_MINSUBDIVISION
+                 U RiMitchellFilter
+                 U RI_MITCHELLFILTER
+                 U RI_MODE
+                 U RiMotionBeginV
+                 U RiMotionEnd
+                 U RI_NAME
+                 U RI_NONPERIODIC
+                 U RI_NOWRAP
+                 U RI_NUMPROBES
+                 U RI_NUMTHREADS
+                 U RiNuPatchV
+                 U RiObjectBegin
+                 U RiObjectEnd
+                 U RiObjectInstance
+                 U RI_OFFSET
+                 U RiOpacity
+                 U RiOption
+                 U RiOptionV
+                 U RiOrientation
+                 U RI_OTHRESHOLD
+                 U RiParaboloidV
+                 U RiPatchMeshV
+                 U RiPatchV
+                 U RI_PERIODIC
+                 U RiPerspective
+                 U RI_PHOTON
+                 U RiPixelFilter
+                 U RiPixelSamples
+                 U RiPixelVariance
+                 U RiPointsGeneralPolygonsV
+                 U RiPointsPolygonsV
+                 U RiPointsV
+                 U RiPolygonV
+                 U RiPowerBasis
+                 U riPreviousContext(CRiInterface const*)
+                 U RiProcDelayedReadArchive
+                 U RiProcDynamicLoad
+                 U RiProcedural
+                 U RI_PROCEDURAL
+                 U RiProcFree
+                 U RiProcRunProgram
+                 U RI_PROGRESS
+                 U RiProjectionV
+                 U RiQuantize
+                 U RI_RADIANCECACHE
+                 U RI_RASTERORIENT
+                 U RiRegisterRibOutFactory(CRiInterface* (*)(char const*, _IO_FILE*))
+                 U RiRelativeDetail
+                 U RI_RESOURCE
+                 U RiResourceBegin
+                 U RiResourceEnd
+                 U RiResourceV
+                 U riRetrieveVariable(char const*)
+                 U RiReverseOrientation
+                 U RI_RIB
+                 U RiRotate
+                 U RI_S
+                 U RI_SAMPLEMOTION
+                 U RI_SAMPLER
+                 U RI_SAMPLESPECTRUM
+                 U RI_SAMPLING
+                 U RiScale
+                 U RiScreenWindow
+                 U RI_SEARCHPATH
+                 U RI_SEED
+                 U RI_SENSE
+                 U RI_SHADE
+                 U RI_SHADER
+                 U RI_SHADERFORMAT
+                 U RiShadingInterpolation
+                 U RI_SHADINGMODEL
+                 U RiShadingRate
+                 U RiShutter
+                 U RI_SHUTTER
+                 U RiSides
+                 U RiSincFilter
+                 U RI_SINCFILTER
+                 U RiSkew
+                 U RI_SOLID
+                 U RiSolidBegin
+                 U RiSolidEnd
+                 U RI_SPECULAR
+                 U RI_SPECULARHITMODE
+                 U RI_SPHERE
+                 U RiSphereV
+                 U RI_STATISTICS
+                 U RI_STRUCTURE
+                 U RiSubdivisionMeshV
+                 U RiSurfaceV
+                 U RI_T
+                 U RI_TESSELLATIONTOLERANCE
+                 U RI_TEXTURE
+                 U RI_TEXTURECACHEDIRECTORY
+                 U RI_TEXTURECACHEENABLE
+                 U RiTextureCoordinates
+                 U RI_TEXTUREMEMORY
+                 U RI_THREADSTRIDE
+                 U RiTorusV
+                 U RI_TRACE
+                 U RiTransform
+                 U RiTransformBegin
+                 U RiTransformEnd
+                 U RiTranslate
+                 U RI_TRANSMISSION
+                 U RI_TRANSMISSIONHITMODE
+                 U RiTriangleFilter
+                 U RI_TRIANGLEFILTER
+                 U RiTrimCurve
+                 U RI_USER
+                 U RI_VERBATIM
+                 U RI_VISIBILITY
+                 U RiWorldBegin
+                 U RiWorldEnd
+                 U RI_ZTHRESHOLD
+                 U ropen(char const*, char const*, char const*, int)
+                 U rotatem(float*, float, float, float, float)
+                 U scalem(float*, float, float, float)
+                 U send
+                 U _setjmp
+                 U setsockopt
+                 U shaderParameterHooks()
+                 U signal
+                 U sin
+                 U sincos
+                 U sincosf
+                 U sinf
+                 U skewm(float*, float, float, float, float, float, float, float)
+                 U snprintf
+                 U __snprintf_chk
+                 U socket
+                 U sqrt
+                 U sqrtf
+                 U __stack_chk_fail
+                 U stat
+                 U stats
+                 U std::__basic_file<char>::is_open() const
+                 U std::basic_ofstream<char, std::char_traits<char> >::~basic_ofstream()
+                 U std::basic_ofstream<char, std::char_traits<char> >::basic_ofstream(char const*, std::_Ios_Openmode)
+                 U std::basic_ostream<char, std::char_traits<char> >::flush()
+                 U std::basic_ostream<char, std::char_traits<char> >& std::__ostream_insert<char, std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&, char const*, long)
+                 U std::cerr
+                 U std::chrono::_V2::system_clock::now()
+                 U std::clog
+                 U std::cout
+                 U std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace_cold(char*, unsigned long, char const*, unsigned long, unsigned long)
+                 U std::__cxx11::numpunct<char>::id
+                 U std::__detail::_Prime_rehash_policy::_M_need_rehash(unsigned long, unsigned long, unsigned long) const
+                 U std::__detail::_Prime_rehash_policy::_M_next_bkt(unsigned long) const
+                 U stderr
+                 U std::_Hash_bytes(void const*, unsigned long, unsigned long)
+                 U stdin
+                 U std::ios_base_library_init()
+                 U std::locale::classic()
+                 U std::locale::id::_M_id() const
+                 U std::locale::~locale()
+                 U std::locale::locale()
+                 U std::locale::locale(std::locale const&)
+                 U std::locale::name[abi:cxx11]() const
+                 U std::locale::operator=(std::locale const&)
+                 U std::locale::operator==(std::locale const&) const
+                 U stdout
+                 U std::_Rb_tree_decrement(std::_Rb_tree_node_base*)
+                 U std::_Rb_tree_increment(std::_Rb_tree_node_base*)
+                 U std::_Rb_tree_insert_and_rebalance(bool, std::_Rb_tree_node_base*, std::_Rb_tree_node_base*, std::_Rb_tree_node_base&)
+                 U std::runtime_error::~runtime_error()
+                 U std::runtime_error::runtime_error(char const*)
+                 U std::runtime_error::what() const
+                 U std::__throw_bad_alloc()
+                 U std::__throw_bad_array_new_length()
+                 U std::__throw_bad_cast()
+                 U std::__throw_length_error(char const*)
+                 U std::__throw_out_of_range_fmt(char const*, ...)
+                 U std::__throw_system_error(int)
+                 U std::to_chars(char*, char*, double)
+                 U std::to_chars(char*, char*, double, std::chars_format)
+                 U std::to_chars(char*, char*, double, std::chars_format, int)
+                 U std::to_chars(char*, char*, float)
+                 U std::to_chars(char*, char*, _Float128)
+                 U std::to_chars(char*, char*, _Float128, std::chars_format)
+                 U std::to_chars(char*, char*, _Float128, std::chars_format, int)
+                 U std::to_chars(char*, char*, float, std::chars_format)
+                 U std::to_chars(char*, char*, float, std::chars_format, int)
+                 U std::to_chars(char*, char*, long double)
+                 U std::to_chars(char*, char*, long double, std::chars_format)
+                 U std::to_chars(char*, char*, long double, std::chars_format, int)
+                 U strcat
+                 U __strcat_chk
+                 U strchr
+                 U strcmp
+                 U strcpy
+                 U __strcpy_chk
+                 U strdup
+                 U strerror
+                 U strftime
+                 U strlen
+                 U strncmp
+                 U strncpy
+                 U __strncpy_chk
+                 U strstr
+                 U strtod
+                 U system
+                 U texture3dChannelSource()
+                 U textureLoadEnvironment(char const*, CTextureFileResolver const*, CTextureCache*, float const*)
+                 U textureLoadTexture(char const*, CTextureFileResolver const*, CTextureCache*, bool, char const*)
+                 U TIFFClose
+                 U TIFF_CUBIC_ENVIRONMENT
+                 U TIFF_CYLINDER_ENVIRONMENT
+                 U _TIFFfree
+                 U TIFFGetField
+                 U TIFFGetFieldDefaulted
+                 U TIFFIsTiled
+                 U _TIFFmalloc
+                 U TIFFOpen
+                 U TIFFReadScanline
+                 U TIFFReadTile
+                 U TIFFScanlineSize
+                 U TIFFSetDirectory
+                 U TIFFSetErrorHandler
+                 U TIFFSetField
+                 U TIFFSetWarningHandler
+                 U TIFF_SHADOW
+                 U TIFF_SPHERICAL_ENVIRONMENT
+                 U TIFF_TEXTURE
+                 U TIFFWriteDirectory
+                 U TIFFWriteTile
+                 U time
+                 U toupper
+                 U transformBound(float*, float*, float const*, float const*, float const*)
+                 U translatem(float*, float, float, float)
+                 U typeinfo for CFileResource
+                 U typeinfo for CObject
+                 U typeinfo for CRefCounter
+                 U typeinfo for CRiInterface
+                 U typeinfo for CSurface
+                 U typeinfo for CTexture3d
+                 U typeinfo for CTiffImageInput
+                 U typeinfo for std::runtime_error
+                 U __udivti3
+                 U __unordtf2
+                 U _Unwind_Resume
+                 U __vsnprintf_chk
+                 U vtable for CDummyEnvironment
+                 U vtable for CDummyTexture
+                 U vtable for CSurface
+                 U vtable for __cxxabiv1::__class_type_info
+                 U vtable for __cxxabiv1::__si_class_type_info
+                 U vtable for __cxxabiv1::__vmi_class_type_info
+                 U warning(EErrorCode, char const*, ...)
+                 w __cxa_pure_virtual

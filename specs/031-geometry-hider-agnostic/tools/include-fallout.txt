@@ -1,0 +1,15 @@
+# T013 include-fallout probe (research R7), 2026-11-09, starting tree (HEAD 99d382fe).
+# Scratch copy: build-scratch/{src,tests} (cp -R, 42 MB; kept, not deleted: the brief says ask before deleting). The five Geometry headers that
+# include renderer.h / rendererContext.h / riInterface.h / shading.h / shader.h / reyes.h (objectMisc.h, quadrics.h, object.h, points.h, curves.h;
+# one line each) lost those lines in the scratch copy only; every other Geometry header carries none of those includes directly.
+# Every -I and source path of build/compile_commands.json (627 TUs; -DCMAKE_EXPORT_COMPILE_COMMANDS=ON was added to the T005 configure) was
+# rewritten to the scratch copy; generated parser sources stay in build/. Job 031-fallout: control pass over the UNMODIFIED copy: 627 TUs, 0 failing.
+# Strip pass: 91 TUs fail, but every one fails first on Geometry's own use of CRenderer (object.h:97, `CRenderer::raytracingFlags` in raytraced()),
+# so the first error says nothing about the dependent file. Job 031-fallout2 reran the strip pass with -ferror-limit=0 and kept only the TUs with an
+# error located OUTSIDE src/ri/geometry (an error a file owes to the stripped includes, not to Geometry's own headers):
+#
+#   src/ri/hiders/photonMap.cpp: 4 errors; first: photonMap.cpp:102: use of undeclared identifier 'CRenderer'
+#
+# Result: exactly one file outside Geometry, hiders/photonMap.cpp (the expected one, plan P-Q3 (a)); no other Hiders, Texturing, Graphics State or
+# Shading file, no Core file and no test file lost a name. (The 57 non-Geometry TUs of the first pass fail only because they include a Geometry
+# header whose own CRenderer use is not yet removed; they are the include-graph of object.h, not fallout.) Logs: build-logs/fallout-*.txt.
