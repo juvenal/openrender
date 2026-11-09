@@ -116,3 +116,36 @@ set_tests_properties(Preview_SelfRegistration PROPERTIES
     TIMEOUT 60
     LABELS "preview"
     ENVIRONMENT "${PREVIEW_TEST_ENV}")
+
+# ---------------------------------------------------------------------------------------------------------
+# Spec 032 (GI cache split), US3: Preview_DataSceneUnchanged. Characterization: the data viewer's scene for the
+# five document types (ribdata_* C API and the CDataView draw stream), before and after each key, against
+# reference/<platform>/datascene.txt. Green on the starting tree by design; the cache split moves the data
+# structures off CDataView and this test shows the viewer's output did not change. The photon map is written by an
+# orender photon pass and the irradiance cache is fixture F1's file (tests/gi_split, GiFixture_ICache), so the test
+# includes no photon-map header. Recorded once, on the unmodified tree, by its own --record mode.
+# ---------------------------------------------------------------------------------------------------------
+if(APPLE)
+    set(GI_PREVIEW_PLATFORM macos)
+else()
+    set(GI_PREVIEW_PLATFORM linux)
+endif()
+set(GI_PREVIEW_DISPLAY_PATH "$<TARGET_FILE_DIR:file>:$<TARGET_FILE_DIR:rgbe>:$<TARGET_FILE_DIR:framebuffer>")
+if(HAVE_OPENEXR)
+    set(GI_PREVIEW_DISPLAY_PATH "${GI_PREVIEW_DISPLAY_PATH}:$<TARGET_FILE_DIR:openexr>")
+endif()
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/data_scene_unchanged)
+add_executable(test_data_scene_unchanged test_data_scene_unchanged.cpp)
+target_include_directories(test_data_scene_unchanged PRIVATE ${PREVIEW_TEST_INCLUDES})
+target_link_libraries(test_data_scene_unchanged PRIVATE ${PREVIEW_TEST_LIBS})
+target_compile_features(test_data_scene_unchanged PRIVATE cxx_std_20)
+add_test(NAME Preview_DataSceneUnchanged
+    COMMAND test_data_scene_unchanged $<TARGET_FILE:orender> ${CMAKE_SOURCE_DIR}/examples/rib/tests
+            ${CMAKE_BINARY_DIR}/tests/gi_split/fixture/icache-fixture.icache
+            ${CMAKE_CURRENT_BINARY_DIR}/data_scene_unchanged
+            ${CMAKE_CURRENT_SOURCE_DIR}/reference/${GI_PREVIEW_PLATFORM}/datascene.txt)
+set_tests_properties(Preview_DataSceneUnchanged PROPERTIES
+    TIMEOUT 180
+    LABELS "preview;regression"
+    FIXTURES_REQUIRED GiFixture_ICache
+    ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_BINARY_DIR}/tests/visual/_home;DISPLAYS=${GI_PREVIEW_DISPLAY_PATH};GEOMETRIES=${CMAKE_SOURCE_DIR}/geometry;TEXTURES=${CMAKE_SOURCE_DIR}/examples/rib/tests")

@@ -1,0 +1,37 @@
+##RenderMan RIB-Structure 1.0
+# Spec 032, fixture F1 (GiFixture_ICache): a small scene whose render writes a small irradiance cache.
+#
+# It is sphere-occlusion-reyes (the lone sphere plus an overlapping occluder, occlusion_probe) with the
+# cache written to a file: Attribute "irradiance" "handle" names it and "filemode" "w" is
+# CACHE_WRITE | CACHE_SAMPLE, so CIrradianceCache writes the tree when the frame ends. maxerror 0.6
+# (the default, stated) is greater than zero, so the lookups insert records. 48 x 36 pixels keeps the
+# cache to a few hundred records. numthreads 1 (and -t:1 on the command line) fills the cache in a fixed
+# order. On the starting tree a cache can only be filled by a render: the insertion there is private to
+# CIrradianceCache, or sample() only.
+#
+# T-A (GiRemote_Loopback*), T-A2 and T-B read the cache this scene writes. The occluder carries
+# Attribute "visibility" "diffuse" [1]: ray-visibility categories default OFF (see
+# examples/rib/tests/sphere-occlusion-reyes.rib).
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["rslo"]
+Option "limits" "numthreads" [1]
+Display "icache-fixture.tif" "file" "rgba"
+Format 48 36 1
+PixelSamples 1 1
+Projection "perspective"
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Attribute "irradiance" "string handle" ["icache-fixture.icache"]
+  Attribute "irradiance" "string filemode" ["w"]
+  Attribute "irradiance" "float maxerror" [0.6]
+  Surface "occlusion_probe"
+  Sphere 1 -1 1 360
+  AttributeBegin
+    Attribute "visibility" "diffuse" [1]
+    Surface "matte"
+    Translate 1.2 0 -0.5
+    Sphere 0.9 -0.9 0.9 360
+  AttributeEnd
+WorldEnd

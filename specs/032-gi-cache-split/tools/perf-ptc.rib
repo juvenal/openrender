@@ -1,0 +1,39 @@
+##RenderMan RIB-Structure 1.0
+# Spec 032 SC-007 scratch scene 3 (timing_sc007.sh): bake3d() in frame 1, texture3d() in frame 2, on a sphere
+# at 640 x 480, ShadingRate 1. texture3d_bake3d_probe bakes and reads in one shader, so both frames exercise both
+# calls; frame 2 finds the point cloud frame 1 wrote. Not a suite scene: the script scales Format and ShadingRate
+# in a scratch copy (SCALES) and puts the series' thread count in @THREADS@.
+version 3.03
+FrameBegin 1
+  Hider "reyes"
+  Option "shaderformat" "default" ["rslo"]
+  Option "limits" "numthreads" [@THREADS@]
+  Display "perf-ptc-1.tif" "file" "rgba"
+  Format 640 480 1
+  PixelSamples 1 1
+  ShadingRate 1
+  Projection "perspective"
+  Clipping 0.1 100
+  Translate 0 0 5
+  WorldBegin
+    Surface "texture3d_bake3d_probe"
+    Sphere 1 -1 1 360
+  WorldEnd
+FrameEnd
+
+FrameBegin 2
+  Hider "reyes"
+  Option "shaderformat" "default" ["rslo"]
+  Option "limits" "numthreads" [@THREADS@]
+  Display "perf-ptc-2.tif" "file" "rgba"
+  Format 640 480 1
+  PixelSamples 1 1
+  ShadingRate 1
+  Projection "perspective"
+  Clipping 0.1 100
+  Translate 0 0 5
+  WorldBegin
+    Surface "texture3d_bake3d_probe"
+    Sphere 1 -1 1 360
+  WorldEnd
+FrameEnd
