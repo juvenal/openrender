@@ -5,6 +5,8 @@
 # across a pixel, so there is no closed form. Checked by VolumeDiffer_glass-sphere-<hider> (the image differs from
 # its twin), by Parity_volume-glass-sphere-* (cross-hider and cross-backend agreement) and, after Phase 2, by a
 # reference image approved by the maintainer.
+# UNREGISTERED until GitHub #157 (the shipped glass shader is broken under the JIT: it disagrees with its .rslo and is
+# not deterministic across thread counts): no parity, sweep or visual test uses this scene; the #157 fix re-adds them.
 version 3.03
 Option "shaderformat" "default" ["slo"]
 Hider "zbuffer" "jitter" [0]

@@ -67,7 +67,7 @@ its checkpoint folded into this one.
 | Registrations | `tests/visual/volume-scenes.cmake` (new), `tests/visual/volume-probes.cmake` (generated), one `include()` line in `tests/visual/CMakeLists.txt`, 154 sweep entries appended to `tests/visual/determinism-scenes.cmake`, `tests/visual/parity-thresholds.md` ("Spec 056") |
 | Tools | `tools/gen_scenes.py`, `tools/capture_goldens.{sh,py}`, `tools/sync_linux.sh` |
 
-Counts after the Phase 1 build: `ctest -N` 1866 tests (1516 + 350), `-L determinism-sweep` 573 entries (419 + 154), 137 shaders in
+Counts after the Phase 1 build: `ctest -N` 1866 tests (1516 + 350), `-L determinism-sweep` 573 entries (419 + 154; 570 after the glass correction below), 137 shaders in
 `build/shaders` (130 + 7, both formats), `-L volume` 181 tests, none `DISABLED`.
 
 ### Preliminary red evidence on the starting tree (a look before approval, not the recorded T050)
@@ -166,3 +166,17 @@ Pending only the maintainer's commit; Phase 2 not started.
 
 T021 and T044 to T056; the Linux tasks T007, T008, T047, T048, T051, T052 and the Linux halves of T053 and T054 cannot run while
 `ubuntu-2404-desktop.v2-labs.io` is unreachable.
+
+## 1a. Phase 1 correction: glass-sphere `.slo` unregistered (GitHub #157), 2026-11-09
+
+Decision (maintainer, via the coordinator): the shipped `glass` shader's JIT defect is filed as #157 (P1, Bug Tracker); 056 runs the
+glass-sphere scenes as `.rslo` only until it is fixed.
+
+- Unregistered: `Parity_volume-glass-sphere-jit` (its row is gone from `parity-thresholds.md`) and
+  `DeterminismSweep_volume-interior-fog-glass-sphere-{reyes,zbuffer,raytrace}-slo` (the generator skips them in the marked block of
+  `determinism-scenes.cmake`: 151 entries instead of 154, sweep 419 + 151 = 570). The three `-slo` glass RIBs are kept, each with a
+  header note, as the #157 repro; the #157 fix re-adds the tests.
+- Recorded in `tasks.md` (correction section, T024, T038, T082), `spec.md` (FR-019), `plan.md`. No `Visual_..._glass-sphere-*-slo` test or
+  reference will be added in a later phase. No task depends on #157's fix.
+- `tasks.md` globs now match the registered names: `VolumeProbe_*-none_*`, `VolumeProbe_incident-opposite_*`; the others
+  (`VolumeProbe_atmosphere-fog-reflection_*`, `_miss-clipping_*`, `_csg-fragment_*`) already matched.

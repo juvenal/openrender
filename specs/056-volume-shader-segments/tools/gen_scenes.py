@@ -64,6 +64,8 @@ def main():
              "# One entry per scene file, every one of them a non-GI visual or probe scene (gather() here is not the irradiance cache).",
              "# BEGIN spec 056"]
     for s in scenes:
+        if s.name.startswith("volume-interior-fog-glass-sphere") and s.name.endswith("-slo"):
+            continue   # unregistered until GitHub #157 (glass under the JIT); the RIBs stay as the repro
         sweep.append("add_determinism_sweep(%s examples/rib/tests/%s.rib %s.tif)" % (s.name, s.name, s.name))
     sweep.append("# END spec 056")
     dpath = os.path.join(ROOT, "tests", "visual", "determinism-scenes.cmake")

@@ -40,6 +40,9 @@ def scenes():
                 "its twin), by Parity_volume-glass-sphere-* (cross-hider and cross-backend agreement) and, after Phase 2, by a",
                 "reference image approved by the maintainer.",
             ]
+            if slo:
+                comment.append("UNREGISTERED until GitHub #157 (the shipped glass shader is broken under the JIT: it disagrees with its .rslo and is")
+                comment.append("not deterministic across thread counts): no parity, sweep or visual test uses this scene; the #157 fix re-adds them.")
             out.append(Scene(name, h, slo, body, comment, fmt=(48, 48) if floats else (96, 96), floats=floats, projection="perspective",
                              clipping="0.1 100", camera=False, pixel_samples="1 1" if floats else "2 2"))
     return out
