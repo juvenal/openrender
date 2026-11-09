@@ -1,0 +1,5 @@
+# Spec 030 Linux sweep noise list (T015): two runs of ctest -L ^determinism-sweep$ -j2 on the starting tree (e83d005d, GCC 13.3).
+# Run 1: 418 of 419 passed; DeterminismSweep_sphere-texture3d-bake3d-reyes failed with "Segmentation fault (core dumped)" in
+#   configuration 2 of 5 (default thread count), so the image of that run differs from the image of run 2.
+# Run 2: 419 of 419 passed. An intermittent crash on the starting tree, not a baseline image difference; see validation.md section 4.
+tests/visual/determinism-sweep/sphere-texture3d-bake3d-reyes/sphere-texture3d-bake3d-reyes.tif

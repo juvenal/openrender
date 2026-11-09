@@ -87,7 +87,7 @@ file). No built-in hider or integrator reaches either path.
 | `renderer.cpp:1022` | `dynamic_cast<CReyes *>(contexts[0])->drawObject` | `if (frameTransport().traits.rasterization) contexts[0]->drawObject(cObject)` |
 | `rendererContext.cpp:1012` (debug log) | prints `hiderFlags` | prints `hiderFlags` (unchanged; only BREAK/DONE remain) |
 
-`illuminationHook` is a `bool` read per illuminate/solar begin and end; no lookup on that path.
+`illuminationHook` is a `bool` read per illuminate/solar begin and end; no lookup on that path. Tests that exercise the hook outside a frame (the four `tests/shading_parity` tests of amendment F1, 2026-11-09) switch it through a core-only, test-only setter on the slot (tasks.md T109a; its name and signature are shown at that pause); the setter is not part of any public header.
 
 ## The refused frame
 

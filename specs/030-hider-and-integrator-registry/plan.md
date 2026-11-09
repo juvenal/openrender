@@ -203,7 +203,7 @@ core.
 
 Each phase ends with `ctest --test-dir build -L architecture` (agent rules).
 
-## New tests (approved at plan level 2026-11-07; each is shown again at the implement test pause; no existing test or reference is edited)
+## New tests (approved at plan level 2026-11-07; each is shown again at the implement test pause; no existing test or reference is edited, except the four hook-switching edits of the F1 amendment, 2026-11-09, shown as a diff first at tasks.md T109a)
 
 | Proposed name | Label(s) | What it proves | Req. |
 |---|---|---|---|
@@ -233,6 +233,15 @@ Each phase ends with `ctest --test-dir build -L architecture` (agent rules).
 The label `registry` is new (one `ctest -L registry` entry for CLAUDE.md's Testing section at the end).
 
 **Existing tests and references this design touches** (checked for the plan):
+- **Amendment F1 (2026-11-09, found by the Phase 1 measurement T017 (a), maintainer-approved).** The plan's
+  statement that no test names `hiderFlags` or `HIDER_*` was wrong: four approved `tests/shading_parity` tests
+  (`test_false_if_constructs.cpp:127-151`, `test_illumination_hook.cpp:217-241`,
+  `test_illumination_hook_conditions.cpp:205-221`, `test_illumination_hook_operands.cpp:224-240`) switch the
+  illumination hook with `CRenderer::hiderFlags |= / &= HIDER_ILLUMINATIONHOOK`. Deleting the constant (FR-008) and
+  reading the hook from `frameTransport().traits.illuminationHook` would break them. Decision: a pinned-test edit
+  with a diff-first pause (tasks.md T109a, between T109 and T110); only the lines that switch the hook and their
+  save/restore move to the new traits, through a test-only setter in `rendererTransport.{h,cpp}` if one is needed;
+  every assertion stays unchanged; the four tests stay in the baseline pass set. Nothing else in a test changes.
 - `Common_VocabularyConsistency` (`tests/unit/common/vocabulary_consistency.cmake`) compares the three token
   lists as sets, with no hard-coded count: adding `RI_INTEGRATOR`/`RI_CLASSIC` to all three needs no edit.
 - `archcheck`'s rules parser does not require a row per class (a class without a row may depend only on
@@ -282,6 +291,7 @@ by 030. 056 has no spec text yet, so its overlap cannot be verified (research R1
 | Tasks stage, Q-D/Q-E | Phase order changed (hcshader first, additive Hiders phase, RI surface before Core, Core split in two); Linux full suite at Phases 4, 8, 9, 10, light elsewhere | tasks.md D1-D5 |
 | Tasks stage | Test sources outside `src/` are not Transport files; only the two architecture fixtures wait for the amendment | tasks.md T037 |
 | Amendment | Constitution 1.3.0 → 1.4.0 (D30) stays an implement-time approval point | research R11; contracts/architecture-and-records.md |
+| Implement stage, Phase 1 report (2026-11-09), amendment F1 | The four `tests/shading_parity` tests that switch `HIDER_ILLUMINATIONHOOK` through `CRenderer::hiderFlags` get a **pinned-test edit, diff shown first** (new task T109a, before T110): only the hook-switching lines and their save/restore move to `frameTransport().traits.illuminationHook` (test-only setter if needed); assertions unchanged. T110 waits for it. Also decided: T110 keeps the `ribvector-core-residual.txt` row for `rendererStatics.cpp` valid and unchanged (shortened or corrected in the same task only if the check says otherwise) | tasks.md T109a, T110; spec.md Clarifications 2026-11-09 |
 | Analyze remediation (2026-11-09) | Findings F1-F21 applied to the spec documents (approved by the maintainer): `requires` renamed `required`/`numRequired` in the integrator table (a C++20 keyword); the peer group owned by the slot (`setFramePeers`); Q-A amended (see its row); grammar, `riInterface.cpp`, parameter data shape, table `destroy`, traceability table and T138a in tasks.md | tasks.md, contracts/ |
 
 Spec corrections from the reconciliation items R16-R19 (research.md R12's bullets; spec Source reconciliation rows R16-R19) were applied to spec.md (Clarifications, "2026-11-07 (plan-stage
