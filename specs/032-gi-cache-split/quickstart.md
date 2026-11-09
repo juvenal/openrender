@@ -9,9 +9,9 @@ long runs). Long jobs run in the background with output to a log. Never run a te
 ```bash
 ~/.claude/bin/cpujob 032-base-build cmake --build build --config Release -j4
 ~/.claude/bin/cpujob 032-base-suite ctest --test-dir build -LE determinism-sweep -j4 --output-on-failure
-specs/032-gi-cache-split/tools/image_manifest.sh build > specs/032-gi-cache-split/tools/baseline-images-macos.sha256
+~/.claude/bin/cpujob 032-base-manifest specs/032-gi-cache-split/tools/image_manifest.sh record build > specs/032-gi-cache-split/tools/baseline-images-macos.sha256
 ~/.claude/bin/cpujob 032-base-sweep ctest --test-dir build -L '^determinism-sweep$' -j2   # sweep manifest
-build/tests/architecture/archcheck --source-dir . --build-dir build --config tests/architecture \
+~/.claude/bin/cpujob 032-base-archreport build/tests/architecture/archcheck --source-dir . --build-dir build --config tests/architecture \
     > specs/032-gi-cache-split/tools/archcheck-base-macos.txt
 ```
 
@@ -26,7 +26,7 @@ build/tests/architecture/archcheck --source-dir . --build-dir build --config tes
 ~/.claude/bin/cpujob 032-arch ctest --test-dir build -L architecture --output-on-failure
 grep -rnE 'CShadingContext|CRenderer|CDataView|CRemote|CMapRefTarget|IPhotonLookup|dataView\.h|debug\.h' src/ri/texture  # expect nothing
 grep -rn 'friend ' src/ri/texture src/ri/hiders   # expect only makeBrickMap
-grep -c '^DB-' tests/architecture/allowlist.txt   # expect 319 on the e83d005d base
+grep -c '^DB-' tests/architecture/allowlist.txt   # 344 on the unmodified e83d005d base; 319 once the spec is done
 ```
 
 Expected:
@@ -39,7 +39,7 @@ Expected:
 
 ```bash
 ~/.claude/bin/cpujob 032-visual ctest --test-dir build -L visual -j4 --output-on-failure
-specs/032-gi-cache-split/tools/image_manifest.sh build | diff - specs/032-gi-cache-split/tools/baseline-images-macos.sha256
+~/.claude/bin/cpujob 032-manifest specs/032-gi-cache-split/tools/image_manifest.sh record build | diff - specs/032-gi-cache-split/tools/baseline-images-macos.sha256
 ~/.claude/bin/cpujob 032-gifiles ctest --test-dir build -L gi_split -j2 --output-on-failure
 ```
 

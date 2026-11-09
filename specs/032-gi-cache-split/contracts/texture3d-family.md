@@ -38,7 +38,7 @@ unchanged. `typeName()` and `bound()` are not added to `CTexture3d`; each struct
 - **Deleted**: `class CBrickMapGeometry;` (`:39`) and `friend class CBrickMapGeometry;` (`:254`) (Q6); the 6-argument
   `lookup` override, replaced by `lookupPointBased(...) { assert(FALSE); }`; `draw()`, `keyDown()`,
   `currentChannel()`, `detailLevel()`, `drawMode()`; the statics `detail`, `drawType` and `drawChannel`. The bodies
-  of `draw` (`:1162-1390`) and `keyDown` (`:1397-1435`) move to `CBrickMapView`.
+  of `draw` (`:1162-1389`) and `keyDown` (`:1397-1434`) move to `CBrickMapView`.
 - **Added**:
 
 ```cpp

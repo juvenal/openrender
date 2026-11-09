@@ -68,7 +68,7 @@ references live under `tests/gi_split/reference/` and `tests/preview/reference/`
 - Texturing: the new stores; `CTexture3d`, `pointCloud`, `brickmap` and `pointHierarchy` edited.
 - Shading: `irradianceCalls`, `irradianceSampler.h`, `photonMapAccess.h`; `shading.{h,cpp}`, `giFunctions.h` and
   `rendererServices.h` edited.
-- Hiders: `irradianceSampler`; `photon.{h,cpp}` and `hider.cpp` edited; `irradiance*`, `photonMap.*` deleted.
+- Hiders: `irradianceSampler.cpp` and `hiderIrradianceSampler.h`; `photon.{h,cpp}` and `hider.cpp` edited; `irradiance*`, `photonMap.*` deleted.
 - Infra: `core/map.h`'s `permuted` hook.
 - Core: `render/photonMap.h`; `rendererFiles`, `remoteChannel`, `renderer`, `rendererContext`, `rendererStatics`,
   `rendererServicesImpl.h` and the default-sampler installation edited.
@@ -189,7 +189,7 @@ src/libshader/shading/
 ├── rendererServices.h       EDIT  2.2.0 entry, getCache wording
 └── CMakeLists.txt           EDIT  irradianceCalls.cpp
 src/ri/hiders/
-├── irradianceSampler.{h,cpp} NEW  (from irradianceDispatch.cpp) the sampler
+├── irradianceSampler.cpp, hiderIrradianceSampler.h  NEW  (from irradianceDispatch.cpp) the sampler; the header is not named irradianceSampler.h, Shading owns that basename
 ├── hider.cpp                EDIT  installs the sampler
 ├── photon.{h,cpp}           EDIT  photonMapOf/IPhotonStore, keys, writePhotons(CRenderer::world)
 ├── irradiance.{h,cpp}, irradianceDispatch.cpp, photonMap.{h,cpp}   DELETED
@@ -242,7 +242,7 @@ The design is in the contracts; research R1 to R15 hold the decisions and their 
   `insertReceived` in arrival order.
 - **Keys** (`contracts/gi-keys.md`). The record key comes from the bound sub-stream, the photon key from the point
   key and the bounce. `CMap::permuted` reorders the side array.
-- **Services** (`contracts/renderer-services-version.md`). 2.2.0, additions only. `getCache` keeps its type (OQ-1).
+- **Services** (`contracts/renderer-services-version.md`). 2.2.0, additions only. `getCache` keeps its type (OQ-1); Core's `getCache` `dynamic_cast`s the entry it finds and answers `nullptr` for a name registered as another 3D kind (analyze M3).
 
 ## Phases and order of work
 
@@ -252,11 +252,11 @@ every phase boundary.
 | # | Phase | Content | Gate |
 |---|---|---|---|
 | 1 | Setup and baselines (both platforms) | Copy `image_manifest.sh` and `linux_sync.sh` from spec 029's `tools/`. Base build; suite log; image manifest; sweep manifest; archcheck report; frozen `build-base`; perf scratch scenes and `timing_sc007.sh`, with the base series. Fixture F1. **Record T-A, T-B and T-F on the unmodified tree, before any `src/` edit, each twice** (the two recordings must agree: indeterminate bytes, OQ-8), and stage them. Re-recording stays allowed until Phase 3 begins, in case the masks change at the approval pause. Re-measure research M | the recordings staged on macOS and Linux |
-| 2 | Tests | Write T-A2, T-C, T-D, T-E and T-G (red where a red state exists) and apply M1 to M4 and M6. **TEST-APPROVAL pause** | maintainer approval |
-| 3 | 3D family ties and the three Texturing-derived adapters (US3, US4 partial) | `CTexture3d` without `CDataView`/`CShadingContext`/friend; `lookupPointBased`; `CPointHierarchy::Options` out; `CBrickMapGeometry` out; the point-cloud channel through the public operations. **The adapters and document classes of the point cloud, the brick map and the irradiance cache**: the cache, still in `src/ri/hiders/` here, loses `draw`/`keyDown`/`drawDiscs`, which move to `CIrradianceCacheView` (Consumer -> Hiders is allowed), and gains `forEachNode`/`forEachRecord`. It gets no temporary `CDataView` base (that would be an un-allowlisted include edge). Allowlist: the DB-025 lines of `texture3d.h`, `brickmap.cpp`, `pointCloud.cpp` and `hiders/irradiance.cpp` (9 of the 11), and the header count | `-L architecture`, T-B, the preview tests, `plugin_abi`, T-A (cloud), the GI set |
-| 4 | Irradiance cache split (US1, US2) | `irradianceStore.h`, `irradianceCache.*` in Texturing; `irradianceSampler.h`, `irradianceCalls.*`; `CIrradianceSampler` and its installation; the adapter repointed at the Texturing class; the cache channel through the public operations; the dispatch pair, stub and `irradianceSampleAccept` deleted; the dead `radiance.{h,cpp}` and `harmonics.h` deleted (OQ-4); build lists; residual row; M5. `nm -u` of the sampler object (no Texturing symbol) and of `libshader_shading` (no new import). Allowlist: DB-010 (8, the section goes) and the DB-011 lines of `irradiance.cpp` and `irradianceDispatch.cpp` (4), and the headers | `-L architecture`, T-C (cache), T-D, T-A, T-A2, `-L link`, the shading contract, the GI set byte-identical |
-| 5 | Photon map split (US1, US2, US3) | `photonStore.*`; `photonMapAccess.h`; Core `photonMap.h`; the photon-map adapter; `photon.cpp` and the sampler through `photonMapOf`; `writePhotons`; `hiders/photonMap.*` deleted. Allowlist: DB-025 `photonMap.h`/`photonMap.cpp` (2) and DB-011 `photonMap.cpp` (2), and the headers | `-L architecture`, T-C (photons), T-F, the #64 tests, `PhotonSolar0_*`, T-B, the GI set |
-| 6 | Boundary close-out (US1, US4) | Metrics lowered to the reported values; T-G green; the registry drafts (shown for approval). Every allowlist line has already gone in the phase that made it stale (archcheck fails on a STALE line, so no phase may end with one) | `-L architecture`, T-G, T-A2 |
+| 2 | Tests | Write T-A2, T-C, T-D, T-E and T-G (red where a red state exists) and prepare M1 to M6 as exact patches (not applied: M5 and M6a land in Phase 4, M1 to M4 and M6b in Phase 5, when their targets exist). **TEST-APPROVAL pauses** 2a (new tests) and 2b (include edits); Phase 1 has its own pause 1a before T-A, T-B and T-F are recorded | maintainer approval |
+| 3 | 3D family ties and the three Texturing-derived adapters (US3, US4 partial) | `CTexture3d` without `CDataView`/friend (it keeps the 6-argument `lookup` and `CPointHierarchy::Options` until Phase 4: Shading calls that virtual); `CBrickMapGeometry` out; the point-cloud channel through the public operations. **The adapters and document classes of the point cloud, the brick map and the irradiance cache**: the cache, still in `src/ri/hiders/` here, loses `draw`/`keyDown`/`drawDiscs`, which move to `CIrradianceCacheView` (Consumer -> Hiders is allowed), and gains `forEachNode`/`forEachRecord`. It gets no temporary `CDataView` base (that would be an un-allowlisted include edge). Allowlist: the DB-025 lines of `texture3d.h`, `brickmap.cpp`, `pointCloud.cpp` and `hiders/irradiance.cpp` (9 of the 11), and the header count | `-L architecture`, T-B, the preview tests, `plugin_abi`, T-A (cloud), the GI set |
+| 4 | Irradiance cache split (US1, US2) | `irradianceStore.h`, `irradianceCache.*` in Texturing; `irradianceSampler.h`, `irradianceCalls.*`; `CIrradianceSampler` and its installation; the adapter repointed at the Texturing class; `CTexture3d` without `CShadingContext`, `lookupPointBased`, `CPointHierarchy::Options` out; the six historical `CRenderer` comments under `src/ri/texture/` reworded; the cache channel through the public operations; the dispatch pair, stub and `irradianceSampleAccept` deleted; the dead `radiance.{h,cpp}` and `harmonics.h` deleted (OQ-4); build lists; residual row; M5. `nm -u` of the sampler object (no Texturing symbol) and of `libshader_shading` (no new import). Allowlist: DB-010 (8, the section goes) and the DB-011 lines of `irradiance.cpp` and `irradianceDispatch.cpp` (4), and the headers | `-L architecture`, T-C (cache), T-D, T-A, T-A2, `-L link`, the shading contract, the GI set byte-identical |
+| 5 | Photon map split (US1, US2, US3) | the dead `CPhotonRay` and `#include "ray.h"` removed from the Hiders `photonMap.h` first (T078a); `photonStore.*`; `photonMapAccess.h`; Core `photonMap.h`; the photon-map adapter; `photon.cpp` and the sampler through `photonMapOf`; `writePhotons`; `hiders/photonMap.*` deleted. Allowlist: DB-025 `photonMap.h`/`photonMap.cpp` (2) and DB-011 `photonMap.cpp` (2), and the headers | `-L architecture`, T-C (photons), T-F, the #64 tests, `PhotonSolar0_*`, T-B, the GI set |
+| 6 | Boundary close-out (US1, US4) | Metrics lowered to the reported values; T-G green; the registry drafts (shown for approval). Every allowlist line has already gone in the phase that made it stale (archcheck fails on a STALE line, so no phase may end with one) | `-L architecture`, T-G, T-A2 (re-run) |
 | 7 | Keys (US5) | `CIrradianceRecord::key`, `irradianceRecordKey`, `boundDraws()`; the `CMap::permuted` hook, `CPhotonStore::keys`, `photonKey`, `tracePhoton`'s argument; T-A's after-state comparison strips the key | T-E, T-A, T-F, the GI set |
 | 8 | Guardrails, docs, Linux, perf, sweep | `CLAUDE.md`/`DEVNOTES.md`/`DOMAIN_BOUNDARIES.md` drafts for approval (FR-025); the 2.2.0 entry; the no-JIT build and the TSan build compile; SC-007 timing on both platforms; the Linux set (FR-024); **last: the determinism sweep on both platforms** | SC-001 to SC-010 |
 
@@ -357,7 +357,7 @@ Each had a recommendation, which the design follows; the maintainer accepted eve
   - Recommended: delete them in this spec. They do not compile (`CCache` is undefined), and git keeps the history.
   - Alternative: leave them, and scope T-G's Hiders scan and FR-002's wording to compiled sources.
 - **OQ-5 US4 AS1 (receiver lookups equal the sender's).** The base receiver places a record by `dP`, without the
-  sender's `/K` (`remoteChannel.cpp:579` "error adjustment!!"), so the two trees can differ in shape and the lookups
+  sender's `/K` (`remoteChannel.cpp:582` "error adjustment!!"), so the two trees can differ in shape and the lookups
   in value. The base tree has no context-free lookup to measure it.
   - Recommended: T-A pins the receiver's full tree (its written file) against the base recording; T-A2 compares
     lookups on the finished tree and reports, not fixes, any difference.
@@ -432,3 +432,17 @@ All of these were applied to spec.md on 2026-11-07 after approval. FR and SC num
 | Process-default sampler beside the `CHider`-installed one | Two contract tests run GI calls on a context no hider owns | A `CHider`-only install fails them; a services member needs the forwarder doubles edited (R3) |
 | `CMap::permuted` virtual hook in Infra | FR-017 requires `balance()` to permute the photon keys, and only `balance()` knows the permutation | Recomputing the order after `balance()` is impossible without a per-item identity inside `CPhoton` (Q3 forbids it) |
 | Header-only Core `CPhotonMap` | `libRIBVector` constructs it, and its residual list may not grow | A `render/photonMap.cpp` would add a Core file to the list |
+
+## Maintainer answers to the tasks stage (2026-11-09)
+
+tasks.md was approved with every recommendation. Where they change this plan, the text above was edited.
+
+| # | Answer | Effect on this plan |
+|---|---|---|
+| D8 | Reword the six historical `CRenderer` comments under `src/ri/texture/` in Phase 4 | Phase 4 row; SC-001's literal scan holds |
+| T-B | The photon-map fixture is written by an `orender` photon pass, header-free | `contracts/tests.md` T-B row; T-B is not among M1 to M4 |
+| D3, D4 | A pause before the T-A, T-B and T-F recordings; approvals split as 2a (new tests) and 2b (include edits) | Phase 1 and Phase 2 rows |
+| Version | `kRendererServicesVersion` 2.2.0 is stepped in Phase 8 | none (already planned) |
+| No-OpenEXR | Built only if the tree supports configuring one; report either way | none |
+| Analyze remediation (2026-11-09) | The Hiders sampler header is `hiderIrradianceSampler.h`; T-A2/T-C/T-D/T-E targets live in `tests/gi_split` and red evidence is taken in a scratch tree; T078a removes the dead `CPhotonRay`; Core's `getCache` answers `nullptr` on a kind mismatch (second CTest name `GiCache_KindMismatch` of T-A2); T-E is enabled by T108a | Phase 2, 4, 5 and 7 rows; `contracts/` |
+| D1, D2, D5 | Departures listed in tasks.md: the 6-argument lookup reshape moves to Phase 4; M5 and M6a land in Phase 4, M1 to M4 and M6b in Phase 5; T-A2 is enabled in Phase 4 | Phase 2, 3, 4 and 6 rows; `contracts/tests.md` T-A2 row (the "Red until Phase 6" inconsistency is fixed) |

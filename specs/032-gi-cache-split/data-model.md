@@ -61,7 +61,7 @@ The sampler's answer: `C[7]`, `bool keep`, `gP[21]`, `gR[21]`, `dP` (already hal
 
 ### `IIrradianceSampler` (Shading interface)
 
-Implemented by `CIrradianceSampler` (Hiders). There is one stateless instance. The context's owning hider installs it
+Implemented by `CIrradianceSampler` (Hiders, `hiders/hiderIrradianceSampler.h`). There is one stateless instance. The context's owning hider installs it
 (`CHider`), and the core installs it as the process default at `RiBegin`.
 
 ## Photon map

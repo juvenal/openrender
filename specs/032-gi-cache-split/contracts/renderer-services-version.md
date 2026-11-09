@@ -14,7 +14,9 @@
 //                    setDefaultIrradianceSampler() (installed by the renderer core from RiBegin to RiEnd) and
 //                    boundDraws(); irradianceCalls.h: libshader::irradianceLookup(), shared by the interpreter and the JIT.
 //          Wording:  getCache() answers only irradiance caches; Shading converts its answer with irradianceStoreOf()
-//                    (texture/irradianceStore.h). The member, its signature and its result are unchanged.
+//                    (texture/irradianceStore.h). The member and its signature are unchanged. Core's CRenderer::getCache now
+//                    checks the kind (dynamic_cast) and answers nullptr for a name registered as another 3D kind (#104);
+//                    Shading treats nullptr as 'no cache' (libshader::irradianceLookup, step 0).
 inline constexpr InterfaceVersion kRendererServicesVersion{2, 2, 0};
 ```
 
@@ -25,6 +27,10 @@ inline constexpr InterfaceVersion kRendererServicesVersion{2, 2, 0};
 - The implementers' `static_assert(kRendererServicesVersion.major == 2)`: `CHider`, `CRendererServicesImpl`, the test
   doubles.
 - `IPhotonLookup`.
+
+## What does change in behaviour
+
+`CRenderer::getCache` answers `nullptr`, not the other object, when the name is already registered as a point cloud or brick map. The base answered that object and its `lookup` asserted (a no-op in Release). T-A2's `GiCache_KindMismatch` pins it. No test double changes: they forward or return `nullptr` already.
 
 ## Collision rule (030, 031)
 

@@ -106,7 +106,7 @@ void sample(CShadingContext &ctx, const float *cacheFrom, const float *P, const 
 
 `IrradianceSample` carries `C[7]`, a `keep` flag, `gP[21]`, `gR[21]` and `dP`.
 
-The single implementation is the Hiders class `CIrradianceSampler` (`src/ri/hiders/irradianceSampler.{h,cpp}`):
+The single implementation is the Hiders class `CIrradianceSampler` (`src/ri/hiders/irradianceSampler.cpp` and `hiderIrradianceSampler.h`; the header is not named `irradianceSampler.h` because Shading owns that basename):
 - Its body is `irradianceDispatch.cpp:252-587` (hemisphere, tracing through `libshader::traceRay`, environment
   lookups, photon-map reads through R6's `photonMapOf`), plus the keep decision (`maxError != 0 && coverage < 1 -
   C_EPSILON`).
@@ -148,7 +148,7 @@ Resolution order at a miss:
 **Decision.** `CRendererServices::getCache` and `CRenderer::getCache` keep returning `CTexture3d *`. The shared
 function converts with `irradianceStoreOf(CTexture3d *)`, an inline `static_cast` in `irradianceStore.h`, under a
 rule written into `getCache`'s comment: getCache answers only irradiance caches. This mirrors `photonMapOf()` (spec
-025).
+025). The rule is enforced in Core, which may name Texturing types: `CRenderer::getCache` converts the entry it finds in `frameFiles` with `dynamic_cast<CIrradianceStore *>` and answers `nullptr` for a name registered as another 3D kind (#104), because the unchecked `static_cast` of a wrong-kind object would be undefined behaviour in Shading. Shading cannot `dynamic_cast` (it would need `CTexture3d`'s typeinfo, an undefined symbol in `libshader_shading`), so `irradianceLookup` only handles a null cache.
 
 **Rationale.**
 - Seven test doubles override `getCache` with that return type: `contract_services.h:246`, `contract_forwarder.h:93`,

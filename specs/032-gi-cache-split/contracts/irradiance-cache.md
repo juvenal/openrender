@@ -10,7 +10,8 @@
 | `src/ri/texture/irradianceCache.{h,cpp}` | Texturing | new (moved from `src/ri/hiders/irradiance.{h,cpp}`) |
 | `src/libshader/shading/irradianceSampler.h` | Shading | new, header-only |
 | `src/libshader/shading/irradianceCalls.{h,cpp}` | Shading | new |
-| `src/ri/hiders/irradianceSampler.{h,cpp}` | Hiders | new (the body of `irradianceDispatch.cpp:68-587`) |
+| `src/ri/hiders/irradianceSampler.cpp` | Hiders | new (the body of `irradianceDispatch.cpp:68-587`) |
+| `src/ri/hiders/hiderIrradianceSampler.h` | Hiders | new. Deliberately not `irradianceSampler.h`: Shading owns that basename, and a same-named Hiders header would include itself (a quoted include searches the including file's directory first) |
 | `src/ri/hiders/irradiance.{h,cpp}`, `src/ri/hiders/irradianceDispatch.cpp`, `src/ri/vector/irradianceDispatchStub.cpp` | Hiders, Core | deleted |
 | `giFunctions.h` (`IDEXPR`), `shading.cpp` (the JIT occlusion/indirectdiffuse body), `shading.h` | Shading | edited |
 | `hider.cpp` | Hiders | edited (installs the sampler) |
@@ -46,7 +47,8 @@ class CIrradianceStore : public CTexture3d {
         const float *cacheTo() const { return to; }
 };
 
-// getCache() answers only irradiance caches (rendererServices.h). The only conversion allowed.
+// getCache() answers only irradiance caches (rendererServices.h): Core's CRenderer::getCache dynamic_casts the entry it finds
+// in frameFiles and answers nullptr for another kind (#104), so this cast never sees a wrong object. The only conversion allowed.
 inline CIrradianceStore *irradianceStoreOf(CTexture3d *t) { return static_cast<CIrradianceStore *>(t); }
 ```
 
@@ -126,7 +128,7 @@ namespace libshader {
 }
 ```
 
-Body: research R2, steps 1 to 4. The sampler is resolved in this order:
+Body: research R2, steps 1 to 4, preceded by step 0: a null `cache` (Core's `getCache` answers `nullptr` for a name registered as another 3D kind, see below) writes the no-joy value `{0, 0, 0, 1, 0, 0, 0}` and returns, drawing nothing. The sampler is resolved in this order:
 1. `ctx.irradianceSampler()`;
 2. `CShadingContext::defaultIrradianceSampler()`;
 3. none: `warning(CODE_NOTSTARTED, ...)` once per context, then the unsampled miss.
@@ -145,7 +147,7 @@ Call sites (the text of each call is the only change):
 
 ## `CIrradianceSampler` (Hiders)
 
-- **`hiders/irradianceSampler.h`**: `class CIrradianceSampler final : public openrender::shading::IIrradianceSampler`,
+- **`hiders/hiderIrradianceSampler.h`**: includes Shading's `irradianceSampler.h` (the bare name resolves to `src/libshader/shading/`, because no Hiders file has it); `class CIrradianceSampler final : public openrender::shading::IIrradianceSampler`,
   plus `openrender::shading::IIrradianceSampler &irradianceSamplerInstance();` (a function-local static).
 - **`hiders/irradianceSampler.cpp`**:
   - `horizonCutoff`, `CHemisphereSample`, `posGradient` and `rotGradient` are moved verbatim.
@@ -154,12 +156,12 @@ Call sites (the text of each call is the only change):
     N, attributes->photonEstimator)` (`photon-map.md`).
   - Then, when `keep`: `posGradient(out.gP, ...)`, `rotGradient(out.gR, ...)`, `rMean *= 0.5f`, the `maxPixelDist`
     clamp, `out.dP = rMean`. These are the same expressions in the same order, now outside the lock.
-- **Includes**: `irradianceSampler.h`, `shading.h`, `shaderPl.h`, `traceCalls.h`, `photonMapAccess.h`, `object.h`
+- **Includes**: `hiderIrradianceSampler.h`, `shading.h`, `shaderPl.h`, `traceCalls.h`, `photonMapAccess.h`, `object.h`
   (Geometry, for `ray.object->attributes`), Infra. No `src/ri/texture` header and no `renderer.h`. Phase 4 runs an
   `nm -u` check of its object for Texturing symbols.
 - **Installation**: `CHider::CHider` calls `context.setIrradianceSampler(&irradianceSamplerInstance())`.
   `CRenderer::beginRenderer` calls `CShadingContext::setDefaultIrradianceSampler(&irradianceSamplerInstance())`, and
-  `endRenderer` resets it to `nullptr`, in the same place as `setDefaultServices`.
+  `endRenderer` resets it to `nullptr`, in the same place as `setDefaultServices` (`rendererShadingServices.cpp:65,81`). `hider.cpp` and `rendererShadingServices.cpp` include `hiderIrradianceSampler.h`.
 
 ## Invariants (checked by the GI test set and T-D)
 

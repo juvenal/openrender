@@ -20,8 +20,8 @@
 class CPointCloudView : public CDataView {
     public:
         explicit CPointCloudView(const CPointCloud *cloud);
-        void draw() override;                 // body: pointCloud.cpp:348-404, drawing through the read interface
-        int keyDown(int key) override;        // body: pointCloud.cpp:406-435
+        void draw() override;                 // body: pointCloud.cpp:348-398, drawing through the read interface
+        int keyDown(int key) override;        // body: pointCloud.cpp:406-429
         int currentChannel() const override { return drawChannel; }
         int drawMode() const override { return drawDiscs; }
     protected:

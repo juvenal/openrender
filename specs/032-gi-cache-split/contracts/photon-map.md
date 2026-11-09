@@ -48,7 +48,7 @@ The bodies are `photonMap.cpp:65-552` with two changes:
 - `CRenderer::toWorld/fromWorld` become the constructor's and `write`'s arguments.
 - The key side array is added (Phase 7).
 
-The direction tables move here. The `object.h`/`raytracer.h` includes are dropped.
+The direction tables move here. The `object.h`/`raytracer.h` includes are dropped. `CPhotonRay` (used nowhere in `src/` or `tests/`) and `#include "ray.h"` are deleted from the Hiders header in place before the move (T078a): `ray.h` lives in `src/ri/core`, which the `texture_only` narrow include path excludes, so `photonStore.h` could not otherwise be compiled there.
 
 ## `photonMapAccess.h` (Shading)
 
