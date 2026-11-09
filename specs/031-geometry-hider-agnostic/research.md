@@ -25,7 +25,7 @@ in the renderer directory today).
 
 Through `CRenderer::context` (the renderer core): the three `processDelayed*` calls in `geometryDispatch.cpp`
 (`:714`, `:733`, `:755`, `:774`), each under `CRenderer::delayedMutex` with a double-checked `processed` flag.
-`processDelayedObject`/`processDelayedInstance` (`rendererContext.cpp:441`, `:476`) pass the context only to
+`processDelayedObject`/`processDelayedInstance` (`rendererContext.cpp:441`, `:475`) pass the context only to
 `setChildren`, which ignores it. **So the procedural expander needs no scratch or thread handle at all**: this
 answers the spec's "opaque handle the procedural expander needs" note.
 
@@ -93,19 +93,26 @@ renderer core once per frame from its statics (**stored copies, never recomputed
 Geometry-owned slot with the pattern of `FrameParams`: `installGeometryFrame(const CGeometryFrame *)` /
 `geometryFrame()`, lock-free, a default value when nothing is installed. Both interfaces expose it through a
 non-virtual `frame()` accessor that returns the installed value, so dicing and ray tessellation read the same one
-(FR-002), and the readers that hold no interface (`CObject::raytraced()`, the `CTesselationPatch` constructor and
-destructor) read `geometryFrame()`. `CTesselationPatch::initTesselations` takes the thread count as a parameter
+(FR-002), and the readers that hold no interface (`CObject::raytraced()`, the `CTesselationPatch` constructor) read
+`geometryFrame()`. **The `CTesselationPatch` destructor does not** (analyze stage, M4): a patch can be destroyed after
+the frame is uninstalled, so the constructor stores the thread count (`numThreadsAtBuild`) and the destructor, the
+`tesselationOverhead` statistic and `purgeTesselations` use that member. `CTesselationPatch::initTesselations` takes the thread count as a parameter
 instead (`initTesselations(geoCacheSize, numThreads)`), because it runs before the install point.
 
-- **Install point**: in `CRenderer::beginFrame()` next to `beginFrameParams` (`renderer.cpp:805`), after
-  `beginDisplays()` (`:796`). Not earlier: `beginDisplays` still writes `flags`
+- **Install point (corrected at the tasks stage, 2026-11-09, Q2)**: in `CRenderer::beginFrame()` **after the loop that
+  constructs `contexts[i]` (`renderer.cpp:816-832`)**, not at `:805`: `CRaytracer::CRaytracer` (`raytracer.cpp:391`) and
+  `CPhotonHider::CPhotonHider` (`photon.cpp:74`) OR `ATTRIBUTES_FLAGS_PRIMARY_VISIBLE` into `raytracingFlags` in their
+  constructors, so the flag is final only after the loop. The text below that says "next to `beginFrameParams`" and that
+  `raytracingFlags` is final at `:720` is superseded; the other reasoning (after `beginDisplays()` `:796`) stands. Not earlier: `beginDisplays` still writes `flags`
   (`rendererDisplay.cpp:798`, `OPTIONS_FLAGS_DEEP_SHADOW_RENDERING`), so a copy taken before it would be stale in a
   bit Geometry does not read today but could later; no hider's `preDisplaySetup()` writes a copied field (grep).
   Every other field is final by then (the depth-of-field block `:446-458`, the flags `:461-471`, `raytracingFlags`
   `:720`, `beginClipping()`, the network override of `numThreads` `:739-746`). No reader runs before it:
   `initTesselations` (`:755`) receives `numThreads` as a parameter. **Uninstall**: at the end of `endFrame()`, after
-  `root->destroy()` and `CTesselationPatch::shutdownTesselations()` (`:920`), because tessellation destructors loop
-  over `numThreads`.
+  `root->destroy()` and `CTesselationPatch::shutdownTesselations()` (`:920`), so that every reader that still reads the frame (the
+  constructor, the dicing code, `raytraced()`) runs inside it; the destructors no longer read it (see above), which
+  covers a patch that outlives the frame. Phase 3 reports any `geometryFrame()` read with no frame installed in a
+  debug build, not only `raytraced()`.
 - **Default** (nothing installed: the preview, the data viewer, unit tests without a frame, and the time between
   frames): every field 0. The preview reads the same today for the one field it can reach
   (`CRenderer::raytracingFlags` is 0 until the first `beginFrame`, `rendererStatics.cpp:196`), so `raytraced()`
@@ -479,7 +486,7 @@ All three sibling `plan.md` files are still the 127-line template on 2026-11-07,
 
 | Shared item | 030 (registry) | 032 (GI cache split) | 056 (volume segments) | How 031 avoids colliding |
 |---|---|---|---|---|
-| `src/ri/render/renderer.cpp` `beginFrame()` | replaces the two `strcmp` chains (`:778-792`, `:815-834`) | — | — | 031 touches other lines only: the frame-value install before `:755`, the uninstall at the end of `endFrame()`, `:1062` (`setChildren`), and in the lens phase `:446-458`; no hider selection |
+| `src/ri/render/renderer.cpp` `beginFrame()` | replaces the two `strcmp` chains (`:778-792`, `:815-834`) | — | — | 031 touches other lines only: the frame-value install after the context loop (`:816-832`; the thread count reaches `initTesselations` at `:755` as a parameter), the uninstall at the end of `endFrame()`, `:1062` (`setChildren`), and in the lens phase `:446-458`; no hider selection |
 | `src/ri/hiders/hider.{h,cpp}` | may add registration and capabilities to `CHider` | — | — | 031 adds the `IRayContext` base and its overrides and drops `IShadingProducer`; a textual merge in the class head, resolved by the second merger |
 | `reyes.cpp` DB-011 lines, `metrics-baseline.txt` Hiders row | deletes `reyes.cpp -> CRenderer::contexts` (and maybe `numThreads`), lowers the Hiders row | deletes 5 DB-011 lines (irradiance, photonMap) | — | different lines of the same block; the Hiders row is re-measured by whichever merges second |
 | `photonMap.cpp -> CRenderer::fromWorld/toWorld` (2 DB-011 lines) | — | removes the reads (storage moves to Texturing) | — | only under P-Q3 (a): both delete the same two lines (a clean merge); the second merger records 0 for them |

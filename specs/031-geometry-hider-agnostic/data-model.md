@@ -29,7 +29,7 @@ Geometry (src/ri/geometry/) names only:  IRayContext, IDicer, IObjectSink, CGeom
 | `IDicer` | Geometry (`dicer.h`) | interface | `CReyes` | `rayContext()`, draw*, `probe`, `inFrustum`, `frame()` |
 | `IObjectSink` | Geometry (`objectSink.h`) | interface, header-only | `CRiInterface` (all its back-ends) | one method, `addObject(CObject *)` |
 | `CGeometryHost` | Geometry (`geometryHost.h`, spec 021) | installed by `CRendererContext` at construction | `CRendererContext` | gains `expandDelayedObject`, `expandDelayedInstance`, `findCoordinateSystem` |
-| `CGeometryFrame` | Geometry (`geometryFrame.{h,cpp}`) | value installed by the core next to `beginFrameParams` until the end of `endFrame` | — (a value) | stored copies of core statics; default all 0 |
+| `CGeometryFrame` | Geometry (`geometryFrame.{h,cpp}`) | value installed by the core after the hider-context loop of `beginFrame` (tasks-stage correction, Q2) until the end of `endFrame` | — (a value) | stored copies of core statics; default all 0 |
 | `EShadingDim` | Infra (`src/common/shadingDim.h`) | enum | — | moved from `shading.h` (same name, values, order) |
 | `FrameParams` | Graphics State (spec 028) | installed in `beginFrameParams` | — | gains `cocFactorScreen`, `cocFactorSamples` (copies) for Phase 7; both removed in the lens phase |
 | `LensModel` | Graphics State (`camera.h`, spec 028) | value | — | lens phase: `circleOfConfusion(z)`, `fromFrame(fp)`; `cocFactorScreen()` removed |
@@ -40,7 +40,7 @@ Geometry (src/ri/geometry/) names only:  IRayContext, IDicer, IObjectSink, CGeom
 
 | Field | Type | Copied from (core static) | Read by |
 |---|---|---|---|
-| `numThreads` | `int` | `CRenderer::numThreads` (after the network override) | `CTesselationPatch` (constructor, destructor, `tesselate`); `initTesselations` takes it as a parameter |
+| `numThreads` | `int` | `CRenderer::numThreads` (after the network override) | `CTesselationPatch` (constructor only, which stores it in `numThreadsAtBuild`; the destructor, `purgeTesselations` and the statistics use the stored member, so a patch destroyed after the uninstall frees what it allocated); `initTesselations` takes it as a parameter |
 | `maxGridSize` | `int` | `CRenderer::maxGridSize` | `CPatch::probe`/`buildLayout`/`layoutNode`/`splitToChildren`, `CCurve::dice`, `CPoints::dice`, `CTesselationPatch` |
 | `maxEyeSplits` | `int` | `CRenderer::maxEyeSplits` | `CPatch::probe` |
 | `flags` | `unsigned int` | `CRenderer::flags` | motion blur / focal blur tests in `CPatch::probe`, `CCurve::dice` |
@@ -53,7 +53,8 @@ Geometry (src/ri/geometry/) names only:  IRayContext, IDicer, IObjectSink, CGeom
 
 Validation: `numThreads >= 1` and `maxGridSize >= 1` whenever a frame is installed (asserted in debug at install);
 with nothing installed every field is 0, and only `raytracingFlags` may be read there (by `raytraced()`, which then
-answers false, as `CRenderer::raytracingFlags` does outside a frame today).
+answers false, as `CRenderer::raytracingFlags` does outside a frame today). A debug build reports once any
+`geometryFrame()` read with no frame installed outside `libRIBVector` (the analyze-stage extension of T039).
 
 ## State transitions
 
@@ -75,9 +76,9 @@ no host installed: CODE_BUG once, the object stays unexpanded
 beginFrame: ... DoF block, flags, raytracingFlags, beginClipping, numThreads override
             -> CTesselationPatch::initTesselations(geoCacheSize, numThreads)   (thread count now a parameter)
             -> preDisplaySetup, beginDisplays (may still set flags bits)
-            -> installGeometryFrame(&value)            (new, next to beginFrameParams)
             -> beginFrameParams(samplingConfig)          (spec 028, unchanged position)
-            -> contexts[i] = new <hider>(i, ...)
+            -> contexts[i] = new <hider>(i, ...)        (CRaytracer, CPhotonHider OR PRIMARY_VISIBLE into raytracingFlags)
+            -> installGeometryFrame(&value)            (new, AFTER the context loop; tasks-stage Q2)
 endFrame:   delete contexts; endFrameParams(); ...; root->destroy(); ...; shutdownTesselations()
             -> installGeometryFrame(nullptr)            (new, last)
 ```

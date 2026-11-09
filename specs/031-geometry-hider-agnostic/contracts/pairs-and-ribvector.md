@@ -27,7 +27,7 @@ vtable into `surface.cpp`, which can join `libRIBVector` only once it names no h
 | `CPoints::dice` (`:576`) | `points.cpp` | |
 | `CDelayedObject::intersect`/`dice`, `CDelayedInstance::intersect`/`dice` (`:708-782`) | `delayed.cpp` | through `CGeometryHost` ([host-and-sink.md](host-and-sink.md)) |
 | `CRenderer::notifyGlobalVariable` (`rendererDeclarationsDispatch.cpp`) | `render/rendererDeclarations.cpp` | core; the file leaves `libRIBVector` |
-| `CRenderer::findCoordinateSystem` (same) | `CRendererContext::findCoordinateSystem` (host) | core |
+| `CRenderer::findCoordinateSystem` (same) | `render/rendererDeclarations.cpp` (the static stays: its core callers are `rendererContext.cpp:3307,3319,3321`, `init.cpp:98`, `rendererShadingServices.cpp:95`); `CRendererContext::findCoordinateSystem` (the host member, Geometry's only caller) calls it | core |
 | `countFreeFormCrossings` | `geometry/surfaceCrossings.cpp` | `IRayContext *` parameter; the stub's "reports 0" behaviour is gone because nothing in `libRIBVector` classifies |
 
 ## `src/ri/CMakeLists.txt` (`ribVector_sources`, today `:386-432`)
@@ -47,7 +47,7 @@ vtable into `surface.cpp`, which can join `libRIBVector` only once it names no h
 src/ri/render/rendererFileSearch.cpp       src/ri/geometry/blobbyRepeller.cpp (CRenderer::locateFile)
 src/ri/render/rendererNetwork.cpp          src/ri/render/rendererFileSearch.cpp
 src/ri/render/rendererMutexes.cpp          src/ri/render/rendererFileSearch.cpp
-src/ri/render/rendererStatics.cpp          Geometry (blobbyRepeller.cpp), Hiders (compositor.cpp, irradiance.cpp, photonMap.cpp)
+src/ri/render/rendererStatics.cpp          Geometry (blobbyRepeller.cpp), Hiders (compositor.cpp, irradiance.cpp)   # photonMap.cpp removed by T079; measured at T086
 src/ri/vector/irradianceDispatchStub.cpp   Hiders (irradiance.cpp)   # spec 032 deletes it
 ```
 

@@ -3,7 +3,7 @@
 **Feature Branch**: `031-geometry-hider-agnostic`
 **Created**: 2026-11-06
 **Status**: Draft
-**Input**: Constitution Principle VIII remediation, layer L4, after specs 028 and 029 (both merged); GitHub #37. Geometry stops naming the hiders and the shading engine. Its dice and ray-side entry points take Geometry-owned interfaces (dicing, ray-side, procedural expansion) instead of `CReyes *` and `CShadingContext *`; Reyes reads the camera and the motion it needs from the shared camera and motion layer spec 028 built; the link-time `*Dispatch`/`*DispatchStub` substitution pairs that exist only because of the old coupling are deleted, and `ribVector` (the preview's and the data viewer's geometry library) builds without stubs. Resolves registry entry DB-006 (all of it: every edge is Geometry's) and, with the lens phase, DB-009; narrows DB-017 to the irradiance pair that spec 032 deletes; reduces DB-004 (#27) to the three `blobbyRepeller.cpp` lines and DB-011 by 11 lines. Every render is byte-identical through the interface and Reyes-rotation phases; the last phase, a physically based lens model shared by Reyes and the raytracer, may change depth-of-field images only, each approved by the maintainer.
+**Input**: Constitution Principle VIII remediation, layer L4, after specs 028 and 029 (both merged); GitHub #37. Geometry stops naming the hiders and the shading engine. Its dice and ray-side entry points take Geometry-owned interfaces (dicing, ray-side, procedural expansion) instead of `CReyes *` and `CShadingContext *`; Reyes reads the camera and the motion it needs from the shared camera and motion layer spec 028 built; the link-time `*Dispatch`/`*DispatchStub` substitution pairs that exist only because of the old coupling are deleted, and `ribVector` (the preview's and the data viewer's geometry library) builds without stubs. Resolves registry entry DB-006 (all of it: every edge is Geometry's) and, with the lens phase, DB-009; narrows DB-017 to the irradiance pair that spec 032 deletes; reduces DB-004 (#27) to the three `blobbyRepeller.cpp` lines and DB-011 by 13 lines (the 11 camera and lens statics Reyes and the stochastic hider read, plus the 2 `photonMap.cpp` lines). Every render is byte-identical through the interface and Reyes-rotation phases; the last phase, a physically based lens model shared by Reyes and the raytracer, may change depth-of-field images only, each approved by the maintainer.
 
 ## Clarifications
 
@@ -34,6 +34,12 @@ The maintainer approved the plan with every recommendation (P-Q1 to P-Q14, `plan
 - SC-005, SC-006, SC-007: `hiders/photonMap.cpp` relies on `object.h -> renderer.h`, so it reads the camera matrices from `FrameParams` and its two DB-011 lines go too (P-Q3 (a)); spec 032 deletes the same two lines, and whichever spec merges second drops its duplicate edit. The allowlist goes from 344 to 173.
 - FR-031 (new): the Reyes bucket bound (`reyes.cpp:616-636`), narrower than the scatter today, must cover the lens phase's circle of confusion, verified by a test or measurement; a possible link to #112 is noted, not claimed as a fix.
 - Scope Boundaries: spec 032 does not edit `surface.cpp` (its FR-016); the earlier text said both specs touch it.
+
+### Tasks-stage amendments (2026-11-09)
+
+- **DB-017 re-keys (decision Q1).** The 52 DB-017 link lines whose keys are mangled signatures are edited **in place** in Phases 4 (32) and 5 (20) as the signatures change: same file, same function, count unchanged. That is an edit of a key, not a line added, so FR-017's "No line is added to the allowlist" and US6 AS1's "it only shrank" stand for the count and for the set of (entry, file, function) edges; the re-key diff is shown at each pause and `git diff` against `e83d005d` shows deletions and these 52 edits only. All 77 remaining DB-017 lines are deleted in Phase 6.
+- **`CGeometryFrame` is installed after the hider-context loop** of `beginFrame()`, not next to `beginFrameParams` (`raytracer.cpp:391` and `photon.cpp:74` set `raytracingFlags` in their constructors).
+- **Registry edit timing.** The DOMAIN_BOUNDARIES edits wait for the maintainer's acceptance of the Phase 8 gate (the task after it applies them); DB-009 waits for the lens phase.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -108,7 +114,7 @@ Reyes takes the camera rotation and translation and the shutter from the per-fra
 **Acceptance Scenarios**:
 
 1. **Given** a rotating-camera motion-blur scene, **When** rendered, **Then** the image is byte-identical and Reyes's rotation uses `motion::cameraRotationAt` over `FrameParams` (no second SLERP expression).
-2. **Given** the DB-011 allowlist, **When** Reyes and the stochastic hider stop reading the camera statics, **Then** their lines are deleted (up to 11, counting those the lens phase removes).
+2. **Given** the DB-011 allowlist, **When** Reyes and the stochastic hider stop reading the camera statics, **Then** their 11 lines are deleted in this phase (the lens phase removes none of them; it may delete further stale lines, which it counts).
 
 ---
 

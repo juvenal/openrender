@@ -70,6 +70,8 @@ splitting the compound `from[X] += lensUV[0] * aperture` may change how it contr
 
 ## The bucket bound (FR-031, decided 2026-11-07)
 
+**Test seam (tasks-stage Q4, approved 2026-11-09)**: the expansion of `reyes.cpp:616-636` moves into a small inline function in a new `src/ri/hiders/reyesLensBounds.h`, called by `reyes.cpp` and by `Hiders_ReyesBucketBoundCoversCoC`, with the per-axis expressions below. Its signature is shown and approved at PAUSE 9a (T110) before it is written.
+
 `reyes.cpp:616-636` expands an object's screen bound by `|circleOfConfusion(z)|` at its nearest and farthest depth
 and then converts per axis with `|dSampledx|`/`|dSampledy|`, the same per-axis magnitudes the grid bounds and the
 scatter use, so no bucket the blur reaches skips the object. Verified by the new test

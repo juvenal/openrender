@@ -77,8 +77,8 @@ until their phase. Existing suites at every checkpoint: `-LE determinism-sweep`,
 
 | Domain | What changes |
 |---|---|
-| Geometry | New: `rayContext.h`, `dicer.h`, `objectSink.h`, `geometryFrame.{h,cpp}`; renamed `surfaceCrossingDispatch.{h,cpp}` -> `surfaceCrossings.{h,cpp}`. Edited: `object.{h,cpp}`, `objectMisc.h`, `surface.{h,cpp}`, `curves.{h,cpp}`, `points.{h,cpp}`, `delayed.{h,cpp}`, `quadrics.{h,cpp}`, `polygons.{h,cpp}`, `patches.{h,cpp}`, `patchgrid.{h,cpp}`, `bsplinePatchgrid.{h,cpp}`, `subdivision*.{h,cpp}`, `csg*.{h,cpp}`, `dlobject.{h,cpp}`, `implicitSurface.{h,cpp}`, `blobby.cpp`, `geometryHost.h` |
-| Hiders | `hider.{h,cpp}` (`IRayContext`, no `IShadingProducer`), `shadingProducer.cpp`, `reyes.{h,cpp}` (`IDicer`, `FrameParams`, lens), `stochastic.cpp`, `stochasticQuad.h`, `trace.cpp` (call sites), `sampler.{h,cpp}` (lens phase), `photonMap.cpp` (P-Q3 (a)) |
+| Geometry | (`CTesselationPatch` stores its thread count at construction, analyze M4; the tessellation lock is an exported pair in Phases 4-5 and TU-local after Phase 6's T080, analyze M5.) New: `rayContext.h`, `dicer.h`, `objectSink.h`, `geometryFrame.{h,cpp}`; renamed `surfaceCrossingDispatch.{h,cpp}` -> `surfaceCrossings.{h,cpp}`. Edited: `object.{h,cpp}`, `objectMisc.h`, `surface.{h,cpp}`, `curves.{h,cpp}`, `points.{h,cpp}`, `delayed.{h,cpp}`, `quadrics.{h,cpp}`, `polygons.{h,cpp}`, `patches.{h,cpp}`, `patchgrid.{h,cpp}`, `bsplinePatchgrid.{h,cpp}`, `subdivision*.{h,cpp}`, `csg*.{h,cpp}`, `dlobject.{h,cpp}`, `implicitSurface.{h,cpp}`, `blobby.cpp`, `geometryHost.h` |
+| Hiders | `hider.{h,cpp}` (`IRayContext`, no `IShadingProducer`), `shadingProducer.cpp`, `reyes.{h,cpp}` (`IDicer`, `FrameParams`, lens), `stochastic.cpp`, `stochasticQuad.h`, `trace.cpp` (call sites), `sampler.{h,cpp}` (lens phase), `photonMap.cpp` (P-Q3 (a)), `photon.cpp` (`CPhonySurface::instantiate`, signature only, analyze M2) |
 | Shading | `shading.{h,cpp}` (entries removed, `EShadingDim` include), `shadingProducer.h` (deleted), `rendererServices.h` (2.2.0) |
 | Graphics State | `frameParams.{h,cpp}` (two copies, Phase 7; removed in the lens phase), `camera.{h,cpp}` (lens phase) |
 | Scene Interface | `parse/riInterface.h` (`CRiInterface : IObjectSink`) |
@@ -96,7 +96,7 @@ object or grid) and a virtual `varyings()` (a few per dice); the shading calls l
 Measured with spec 029's timing method (research R12).
 
 **Constraints**: byte-identical output per platform through Phase 8; no threshold, reference, manifest or replay
-changed; the allowlist only shrinks and no line is re-keyed; no task depends on any merge; `cpujob` for every job.
+changed; the allowlist only shrinks, and the only line edits other than deletions are the 52 in-place DB-017 re-keys of Phases 4 and 5 (approved 2026-11-09, below); no task depends on any merge; `cpujob` for every job.
 
 **Scale/Scope**: about 6 new source files, 5 deleted, 2 renamed, about 60 edited sources; 7 new tests (+2 or 4 in the
 lens phase); about 30 approved test files edited mechanically.
@@ -177,6 +177,7 @@ line, P-Q12) and `blobbyRepeller.cpp` (DB-004's remainder, out of scope by FR-01
 | P-Q13 | **Approved at plan level**; each new test is still shown at the TEST-APPROVAL pause before it is written | contracts/tests.md |
 | P-Q14 | **Yes**: spec corrected (SC-005, SC-006, SC-007 -> 344 -> 173, US5 AS2, US7, FR-003, FR-010, FR-024, Key Entities, Scope Boundaries; new FR-031) | spec.md Clarifications |
 | Pinned tests | The changes to `test_frame_params_equal_core.cpp` and `test_camera_lens_model.cpp` are approved in principle; each diff is shown before it is applied | contracts/tests.md items 8-9 |
+| Tasks stage (2026-11-09) | **Q1**: the 52 DB-017 link lines keyed on mangled signatures are re-keyed in place in Phases 4 (32) and 5 (20); same file and function, count unchanged, no line added, diff shown at each pause; an approved amendment to "no line is re-keyed". **Q2**: `CGeometryFrame` is installed after the context loop, not next to `beginFrameParams` (`raytracer.cpp:391`, `photon.cpp:74` set `raytracingFlags` in the hider constructors). **Q3**: per-phase Linux build check at Phases 2 to 7. **Q4**: the `reyesLensBounds.h` seam, signature approved at PAUSE 9a. **Q5**: registry edits wait for approval | tasks.md "Maintainer answers"; contracts/allowlist-end-state.md; research R3; contracts/lens-model.md |
 | Bucket bound | **Brought into the lens phase** (new FR-031): the bound at `reyes.cpp:616-636` must cover the unified circle of confusion on each axis, verified by `Hiders_ReyesBucketBoundCoversCoC` (below); the possible link to #112 is noted without claiming a fix | contracts/lens-model.md, tests.md; Phase 9 |
 
 The table below is the question list as it was put to the maintainer, kept for the record.

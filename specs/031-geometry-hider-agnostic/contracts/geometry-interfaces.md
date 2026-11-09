@@ -167,7 +167,16 @@ Reyes's own shading calls (`reyes.cpp:906`, `:967`, `:1060`, `:1114`, today `con
 - **The tessellation lock (P-Q6)** becomes Geometry's: a `std::mutex` local to `surface.cpp` guards what
   `CRenderer::tesselateMutex` guards today (the `children` test-and-set in `CSurface::intersect` and
   `checkRayGuard`, the tessellation list in `CTesselationPatch`), with the same scopes; `CRenderer::tesselateMutex`
-  is deleted from the core (`renderer.h:176`, `rendererMutexes.cpp:81`, `:144`, `:167`). Alternative: an
+  is deleted from the core (`renderer.h:176`, `rendererMutexes.cpp:81`, `:144`, `:167`). The lock sites are
+  `surface.cpp:1625-1636` (`CTesselationPatch::tesselate`), `surface.cpp:2440` and `:2480` (`purgeTesselations`) and
+  `geometryDispatch.cpp:284`, `:294`, `:337`, `:348`. **Design in two steps (tasks stage, finding F3, analyze M5)**:
+  Phases 4 and 5 export a pair, `CTesselationPatch::lockTessellation()`/`unlockTessellation()` (declared in
+  `surface.h`, backed by the `std::mutex` in `surface.cpp`), because `geometryDispatch.cpp` is another translation
+  unit until Phase 6; at T080 the last core-side caller moves into `surface.cpp`, the declarations leave `surface.h`
+  and the pair becomes TU-local to `surface.cpp`, so the end state is the mutex local to `surface.cpp` described
+  above and it is never public API. `CTesselationPatch` also stores the thread count at construction
+  (`numThreadsAtBuild`) and its destructor never reads the frame (a patch can be destroyed after the frame is
+  uninstalled). Alternative: an
   `IRayContext::lockTessellation()` pair answered by the core's mutex (FR-003's wording lists "the tessellation
   lock"); rejected because the lock guards Geometry's own data structure and nothing else takes it.
 - **CSG stays generic** (FR-019, gotchas 13-14): the interfaces name no CSG type; `CCSGSolid::dice` resolves through

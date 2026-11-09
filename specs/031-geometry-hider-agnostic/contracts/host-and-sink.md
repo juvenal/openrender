@@ -3,8 +3,9 @@
 **Status**: approved 2026-11-07 (P-Q1, P-Q4: blobby calls `CDeclarations::find`). **Requirements**: FR-004,
 FR-010, FR-015, FR-016, FR-028; US2 AS3, US5 AS2-AS3. **Files**: `src/ri/geometry/geometryHost.h`, new
 `src/ri/geometry/objectSink.h`, `src/ri/parse/riInterface.h`, `src/ri/render/rendererContext.{h,cpp}`,
-`src/ri/geometry/{delayed,object,blobby}.cpp`, every `instantiate` override (27 Geometry declarations, 24 bodies
-calling `addObject`).
+`src/ri/geometry/{delayed,object,blobby}.cpp`, every `instantiate` override (32 declarations in the Geometry headers and 19 definitions in the `.cpp` files, 24 bodies
+calling `addObject`; plus the two overrides outside Geometry, `CPhonySurface::instantiate` at `hiders/photon.cpp:56` and
+`CCaptureHolder::instantiate` at `render/rendererContext.cpp:502`).
 
 ## `CGeometryHost` (extended, not duplicated)
 
@@ -36,7 +37,7 @@ class CGeometryHost {
   today's `CDelayedObject::intersect`/`dice` (`geometryDispatch.cpp:711-717`, `:730-736`) moved across the boundary;
   `expandDelayedInstance` likewise (`:752-758`, `:771-777`).
 - `processDelayedObject`/`processDelayedInstance` lose their unused `CShadingContext *` parameter
-  (`rendererContext.cpp:441`, `:476`); `setChildren(context, ...)` (`:465`, `:494`) becomes `setChildren(...)`.
+  (`rendererContext.cpp:441`, `:475`); `setChildren(context, ...)` (`:465`, `:494`) becomes `setChildren(...)`.
 - `findCoordinateSystem`: today's `CRenderer::findCoordinateSystem` body (`rendererDeclarationsDispatch.cpp`), moved
   unchanged (a `CRenderer` static stays only if a core caller needs it; the measurement at Phase 3 decides).
 
