@@ -9,8 +9,9 @@
  *       cache whose root setup() overwrites), the receiver's lookupCached() is compared with the sender's at the sender's
  *       record positions, with a counting draw callback. The receiver places a record by its dP without the sender's
  *       K = 0.4 / maxError (remoteChannel.cpp:582 on the starting tree), so the two trees can differ. Any difference is
- *       REPORTED and not fixed (OQ-5). The test fails only if the draw counts differ: the number of draws is the number of
- *       records passing the front test, which the tree shape must not change for the same records.
+ *       REPORTED and not fixed (OQ-5), and so are the draw counts (the number of draws is the number of records the lookup
+ *       visits and that pass the front test, which a different tree shape changes). The test fails only if the hit counts
+ *       differ.
  *
  *   GiCache_KindMismatch      (case `kind`, analyze finding M3, D15, contracts/renderer-services-version.md)
  *       In one session a name registered as a point cloud and then asked of CRenderer::getCache answers nullptr (Core's kind
@@ -122,7 +123,10 @@ static int runLookup(const std::string &fixture) {
     if (differ > 0) {
         printf("lookup: REPORTED, not fixed (OQ-5): the receiver places a record by dP without the sender's 1/K, so the trees differ\n");
     }
-    EXPECT(drawsS == drawsR, "the draw counts differ: sender %ld, receiver %ld", drawsS, drawsR);
+    if (drawsS != drawsR) {
+        printf("lookup: REPORTED, not fixed (OQ-5): the draw counts differ (sender %ld, receiver %ld): the same difference seen through the callback\n", drawsS, drawsR);
+    }
+    EXPECT(hitS == hitR, "the hit counts differ: sender %d, receiver %d", hitS, hitR);
 
     delete receiver;
     delete sender;

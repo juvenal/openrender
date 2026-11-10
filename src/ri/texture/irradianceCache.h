@@ -1,10 +1,11 @@
 /**
  * Project: openRender
  *
- * File: irradiance.h
+ * File: irradianceCache.h
  *
  * Description:
- *   This file defines the interface for irradiance.
+ *   This file defines the interface for the irradiance cache: passive storage (spec 032). It holds records, answers a
+ *   lookup from them and takes a record the caller computed; the sampler that computes one lives in Hiders.
  *
  * Authors:
  *   Okan Arikan <okan@cs.utexas.edu>
@@ -19,52 +20,30 @@
 
 ///////////////////////////////////////////////////////////////////////
 //
-//  File				:	irradiance.cpp
+//  File				:	irradianceCache.h
 //  Classes				:	CIrradianceCache
 //  Description			:
 //
 ////////////////////////////////////////////////////////////////////////
-#ifndef IRRADIANCE_H
-#define IRRADIANCE_H
+#ifndef IRRADIANCECACHE_H
+#define IRRADIANCECACHE_H
 
 #include <vector>
 
 #include "common/algebra.h"
 #include "common/global.h"
 #include "common/os.h"
-#include "depository.h"
-#include "options.h"
-#include "common/random.h"
-#include "shader.h"
+#include "irradianceStore.h"
 #include "texture3d.h"
 
-const unsigned int CACHE_SAMPLE = 1; // Cache needs to be sampled
-const unsigned int CACHE_READ = 2;   // Read the cache
-const unsigned int CACHE_WRITE = 4;  // Write the cache
-const unsigned int CACHE_RDONLY = 8; // ONLY Read the cache
-
 // Forward declarations
-class CRemoteICacheChannel;
-class CShadingContext;
-
-///////////////////////////////////////////////////////////////////////
-// Function				:	irradianceSampleAccept
-// Description			:	Weighted-discard test used by CIrradianceCache::
-//							lookup() while accumulating cached samples. Real
-//							body lives in irradianceDispatch.cpp (needs
-//							the context's draw cursor via context->drawNext());
-//							a non-shading stub lives in
-//							vector/irradianceDispatchStub.cpp for consumers
-//							that must not link libshader_shading.
-// Return Value			:	TRUE if the sample should be accepted
-// Comments				:
-bool irradianceSampleAccept(float w, float smallSampleWeight, CShadingContext *context);
+class CMemStack;
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CIrradianceCache
 // Description			:	Encapsulates an irradiance cache
 // Comments				:
-class CIrradianceCache : public CTexture3d {
+class CIrradianceCache : public CIrradianceStore {
     public:
         ///////////////////////////////////////////////////////////////////////
         // Class				:	CIrradiance
@@ -83,6 +62,33 @@ class CIrradianceCache : public CTexture3d {
 
                 float dP;           // Mean radius
                 CCacheSample *next; // Next irradiance in the list
+
+                // The record this sample holds (a copy), and the other way. A sample is the record's fields in the same
+                // order and a list link, so that it goes on the wire as the raw bytes it always has (remoteChannel.cpp)
+                void get(CIrradianceRecord &record) const {
+                    movvv(record.P, P);
+                    movvv(record.N, N);
+                    movvv(record.irradiance, irradiance);
+                    record.coverage = coverage;
+                    movvv(record.envdir, envdir);
+                    for (int i = 0; i < 7 * 3; i++) {
+                        record.gP[i] = gP[i];
+                        record.gR[i] = gR[i];
+                    }
+                    record.dP = dP;
+                }
+                void set(const CIrradianceRecord &record) {
+                    movvv(P, record.P);
+                    movvv(N, record.N);
+                    movvv(irradiance, record.irradiance);
+                    coverage = record.coverage;
+                    movvv(envdir, record.envdir);
+                    for (int i = 0; i < 7 * 3; i++) {
+                        gP[i] = record.gP[i];
+                        gR[i] = record.gR[i];
+                    }
+                    dP = record.dP;
+                }
         };
 
         ///////////////////////////////////////////////////////////////////////
@@ -104,13 +110,18 @@ class CIrradianceCache : public CTexture3d {
         };
 
     public:
-        CIrradianceCache(const char *name, unsigned int flags, FILE *in, const float *from, const float *to, const float *tondc = NULL);
+        // worldBmin/worldBmax: the world's bound, from which a fresh cache sizes its root (the caller reads it from the renderer)
+        CIrradianceCache(const char *name, unsigned int flags, FILE *in, const float *from, const float *to, const float *tondc, const float *worldBmin, const float *worldBmax);
         ~CIrradianceCache();
 
         void lookup(float *, const float *, const float *, float) { assert(FALSE); }
         void store(const float *, const float *, const float *, float) { assert(FALSE); }
+        void lookupPointBased(float *, const float *, const float *, const float *, const float *, const CPointBasedLookup &) { assert(FALSE); }
 
-        void lookup(float *, const float *, const float *, const float *, const float *, CShadingContext *);
+        // The CIrradianceStore interface
+        bool lookupCached(float *C, const float *P, const float *N, float maxError, IrradianceDrawFn draw, void *drawState, float *Pc, float *Nc);
+        void insertRecord(const CIrradianceRecord &record, float maxError);
+        bool samplesOnMiss() const { return (flags & CACHE_SAMPLE) != 0; }
 
         const char *typeName() const { return "Irradiance Cache"; }
 
@@ -142,12 +153,15 @@ class CIrradianceCache : public CTexture3d {
             }
         }
 
-        // Visit every record: forEachNode's order, each node's list from its head. visit(const CCacheSample &).
+        // Visit every record: forEachNode's order, each node's list from its head. visit(const CIrradianceRecord &): a copy
+        // of the record, valid for the call.
         template <class F>
         void forEachRecord(F &&visit) const {
             forEachNode([&](const CCacheSample *head) {
                 for (const CCacheSample *cSample = head; cSample != NULL; cSample = cSample->next) {
-                    visit(*cSample);
+                    CIrradianceRecord record;
+                    cSample->get(record);
+                    visit(static_cast<const CIrradianceRecord &>(record));
                 }
             });
         }
@@ -167,7 +181,6 @@ class CIrradianceCache : public CTexture3d {
         void writeNode(FILE *, CCacheNode *);
         CCacheNode *readNode(FILE *);
 
-        void sample(float *, const float *, const float *, const float *, const float *, CShadingContext *);
         void clamp(CCacheSample *);
 
         CMemStack *memory;
@@ -179,8 +192,6 @@ class CIrradianceCache : public CTexture3d {
         TMutex mutex;
 
         static CChannel cacheChannels[3];
-
-        friend class CRemoteICacheChannel;
 };
 
 #endif

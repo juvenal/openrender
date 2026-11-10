@@ -25,8 +25,9 @@ Validation:
 
 ### `CCacheSample` (Texturing, `texture/irradianceCache.h`)
 
-`CIrradianceRecord` plus `CCacheSample *next`, at offset 232 after R10: `sizeof` grows from 232 to 240 on LP64. The
-remote channel sends these raw bytes (`next` masked by the loopback test).
+A standalone, standard-layout class (it does not derive from `CIrradianceRecord`: the approved loopback test takes `offsetof(next)`): the record's fields in the same order, then `CCacheSample *next`
+(offset 224, `sizeof` 232 on LP64), with `get(CIrradianceRecord &)` and `set(const CIrradianceRecord &)` to copy between the two. After R10 the record gains `key` and `next` moves to 232 (`sizeof` 240); the
+cache keeps `sizeof(CIrradianceRecord) == offsetof(CCacheSample, next)` by a `static_assert`. The remote channel sends these raw bytes (`next` masked by the loopback test).
 
 ### `CCacheNode` (Texturing)
 

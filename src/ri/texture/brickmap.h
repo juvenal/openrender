@@ -202,7 +202,7 @@ class CBrickMap : public CTexture3d {
         }
 
         void lookup(float *data, const float *P, const float *N, float dP);
-        void lookup(float *, const float *, const float *, const float *, const float *, CShadingContext *) { assert(FALSE); }
+        void lookupPointBased(float *, const float *, const float *, const float *, const float *, const CPointBasedLookup &) { assert(FALSE); }
         void store(const float *data, const float *P, const float *N, float dP);
 
         void finalize();

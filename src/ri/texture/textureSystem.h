@@ -7,7 +7,7 @@
  *   The texture system (spec 027, contracts/texture-system.md): the per-frame owner of the texture
  *   cache. It hands out handles to textures, environments, shadow maps and texture-info records, owns
  *   the tile cache and the per-thread budgets behind them, and finds files through the resolver it
- *   was given. The renderer core constructs one per frame (CRenderer::textureSystem) and Shading
+ *   was given. The renderer core constructs one per frame (its textureSystem member) and Shading
  *   reaches textures only through the renderer services' textureSystem().
  *
  *   Texturing depends on infrastructure alone: this header includes common/ headers and nothing else,

@@ -145,8 +145,10 @@ static int run(bool sampleFlag) {
     CHECK(hit == expectHit);
     if (hit) {
         const double inv = 1.0 / totalWeight;
-        const double envLen = sqrt(env[0] * env[0] + env[1] * env[1] + env[2] * env[2]);
-        const double expected[7] = {irr[0] * inv, irr[1] * inv, irr[2] * inv, cov * inv, env[0] / envLen, env[1] / envLen, env[2] / envLen};
+        // the envdir is normalized with normalizevf(), the cache's own (approximate, isqrtf-based) normalization: images depend on it
+        float envN[3] = {(float)env[0], (float)env[1], (float)env[2]};
+        normalizevf(envN);
+        const double expected[7] = {irr[0] * inv, irr[1] * inv, irr[2] * inv, cov * inv, envN[0], envN[1], envN[2]};
         for (int i = 0; i < 7; i++) {
             CHECK(fabs((double)C[i] - expected[i]) <= 1e-4 * (1.0 + fabs(expected[i])));
         }

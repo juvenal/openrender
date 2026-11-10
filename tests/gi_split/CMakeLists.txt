@@ -23,7 +23,8 @@ option(OPENRENDER_032_RED_TESTS "Define the spec 032 red-first tests (scratch tr
 # The sub-checks the finished phases have turned on (each phase appends its own in its test gate). A tree configured before a phase
 # landed keeps its cached value: configure with -DGI032_BOUNDARY_CHECKS="<list>" (or an empty list to run none).
 #   Phase 3: friends-texture texture-names-viewer hiders-no-viewer-irradiance
-set(GI032_BOUNDARY_CHECKS "friends-texture;texture-names-viewer;hiders-no-viewer-irradiance" CACHE STRING
+#   Phase 4: friends-hiders texture-names-shading texture-names-core texture-includes hiders-no-texture files-absent
+set(GI032_BOUNDARY_CHECKS "friends-texture;texture-names-viewer;hiders-no-viewer-irradiance;friends-hiders;texture-names-shading;texture-names-core;texture-includes;hiders-no-texture;files-absent" CACHE STRING
     "Sub-checks of GiSplit_Boundary that are enabled (a ;-list); empty runs none")
 
 if(APPLE)
@@ -105,6 +106,25 @@ set_tests_properties(GiRemote_LoopbackCache GiRemote_LoopbackPointCloud PROPERTI
 set_tests_properties(GiRemote_LoopbackCache PROPERTIES FIXTURES_REQUIRED GiFixture_ICache)
 
 # ---------------------------------------------------------------------------------------------------------
+# T-A2 GiRemote_LoopbackLookup, GiCache_KindMismatch (enabled in Phase 4, T069)
+# ---------------------------------------------------------------------------------------------------------
+# T-A2: GiRemote_LoopbackLookup and GiCache_KindMismatch (one source, one executable, two names)
+add_executable(test_gi_remote_lookup test_gi_remote_lookup.cpp)
+target_compile_features(test_gi_remote_lookup PRIVATE cxx_std_20)
+target_include_directories(test_gi_remote_lookup PRIVATE ${GI_SPLIT_INCLUDES})
+target_link_libraries(test_gi_remote_lookup PRIVATE ribRender openrendercommon Threads::Threads)
+add_test(NAME GiRemote_LoopbackLookup
+    COMMAND test_gi_remote_lookup lookup ${GI_SPLIT_F1_CACHE} ${CMAKE_CURRENT_BINARY_DIR}/loopback-lookup)
+add_test(NAME GiCache_KindMismatch
+    COMMAND test_gi_remote_lookup kind - ${CMAKE_CURRENT_BINARY_DIR}/kind-mismatch)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/loopback-lookup ${CMAKE_CURRENT_BINARY_DIR}/kind-mismatch)
+set_tests_properties(GiRemote_LoopbackLookup GiCache_KindMismatch PROPERTIES
+    TIMEOUT 60
+    LABELS "gi_split;regression"
+    ENVIRONMENT "${GI_SPLIT_ENV}")
+set_tests_properties(GiRemote_LoopbackLookup PROPERTIES FIXTURES_REQUIRED GiFixture_ICache)
+
+# ---------------------------------------------------------------------------------------------------------
 # The reference capture: build targets, never ctests (neither is part of `all`). Modelled on spec 037's
 # plugin-abi-capture-baselines.
 #   gi-split-capture-references          writes the four references of T-A, T-B and T-F under reference/<platform>/ of
@@ -147,26 +167,10 @@ add_custom_target(gi-split-capture-references-scratch
 # ---------------------------------------------------------------------------------------------------------
 # Each target below fails to build on the starting tree, for the reason stated beside it; the red evidence is the compile
 # output of that one target in a scratch tree (build-red032, task T035). The phase that makes a test buildable moves its
-# definition out of this block (T-A2, T-D and the cache half of T-C in Phase 4; the photon half of T-C in Phase 5; T-E in
-# Phase 7, T108a), so that the main `build` never has a red target.
+# definition out of this block (T-A2, T-D and the cache half of T-C in Phase 4, done: T-A2 is above, T-C and T-D are defined in
+# tests/unit/texture_only/CMakeLists.txt by M6a; the photon half of T-C in Phase 5; T-E in Phase 7, T108a), so that the main
+# `build` never has a red target.
 if(OPENRENDER_032_RED_TESTS)
-    # T-A2: GiRemote_LoopbackLookup and GiCache_KindMismatch (one source, one executable, two names)
-    #   red: ri/texture/irradianceCache.h does not exist (Phase 4)
-    add_executable(test_gi_remote_lookup test_gi_remote_lookup.cpp)
-    target_compile_features(test_gi_remote_lookup PRIVATE cxx_std_20)
-    target_include_directories(test_gi_remote_lookup PRIVATE ${GI_SPLIT_INCLUDES})
-    target_link_libraries(test_gi_remote_lookup PRIVATE ribRender openrendercommon Threads::Threads)
-    add_test(NAME GiRemote_LoopbackLookup
-        COMMAND test_gi_remote_lookup lookup ${GI_SPLIT_F1_CACHE} ${CMAKE_CURRENT_BINARY_DIR}/loopback-lookup)
-    add_test(NAME GiCache_KindMismatch
-        COMMAND test_gi_remote_lookup kind - ${CMAKE_CURRENT_BINARY_DIR}/kind-mismatch)
-    file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/loopback-lookup ${CMAKE_CURRENT_BINARY_DIR}/kind-mismatch)
-    set_tests_properties(GiRemote_LoopbackLookup GiCache_KindMismatch PROPERTIES
-        TIMEOUT 60
-        LABELS "gi_split;regression"
-        ENVIRONMENT "${GI_SPLIT_ENV}")
-    set_tests_properties(GiRemote_LoopbackLookup PROPERTIES FIXTURES_REQUIRED GiFixture_ICache)
-
     # T-E: GiKeys_Photons, GiKeys_IrradianceRecords, and the opt-in GiKeys_PhotonsThreads (label gi_split_threads)
     #   red: ri/render/photonMap.h does not exist (Phase 5); then photonKey, CIrradianceRecord::key, irradianceCache.h (Phases 4, 7)
     add_executable(test_gi_keys test_gi_keys.cpp)
@@ -184,23 +188,20 @@ if(OPENRENDER_032_RED_TESTS)
     set_tests_properties(GiKeys_PhotonsThreads PROPERTIES
         TIMEOUT 600 LABELS "gi_split_threads" ENVIRONMENT "${GI_SPLIT_ENV}")
 
-    # T-C and T-D (sources in tests/unit/texture_only, label texture_only): compiled as objects only, on an include path that
-    # mirrors tests/unit/texture_only/CMakeLists.txt (src, src/ri/texture, the build directory, a staging directory holding
-    # ri_config.h and a copy of core/map.h; src/ri/core itself stays off the path, as that file's comment requires). M6a
-    # (Phase 4) defines the real library and the two executables there and takes these two definitions over.
-    #   TextureOnly_GiStores           red: irradianceCache.h and photonStore.h do not exist (Phases 4 and 5)
-    #   TextureOnly_IrradianceDrawOrder red: irradianceCache.h does not exist (Phase 4)
+    # T-C, the photon half (source in tests/unit/texture_only, label texture_only): compiled as an object only, on an include
+    # path that mirrors tests/unit/texture_only/CMakeLists.txt (src, src/ri/texture, the build directory, a staging directory
+    # holding ri_config.h and a copy of core/map.h; src/ri/core itself stays off the path, as that file's comment requires).
+    # The cache half and T-D are real targets there since M6a (Phase 4); M6b (Phase 5) takes this one over.
+    #   TextureOnly_GiStores           red: photonStore.h does not exist (Phase 5)
     set(GI_SPLIT_STAGING ${CMAKE_CURRENT_BINARY_DIR}/texture_only_staging)
     configure_file(${CMAKE_SOURCE_DIR}/src/ri/core/ri_config.h ${GI_SPLIT_STAGING}/ri_config.h COPYONLY)
     configure_file(${CMAKE_SOURCE_DIR}/src/ri/core/map.h ${GI_SPLIT_STAGING}/map.h COPYONLY)
-    foreach(_t test_gi_stores test_irradiance_draw_order)
-        add_library(red_${_t} OBJECT ${CMAKE_SOURCE_DIR}/tests/unit/texture_only/${_t}.cpp)
-        target_compile_features(red_${_t} PRIVATE cxx_std_20)
-        target_link_libraries(red_${_t} PRIVATE openrender_common_flags)
-        target_include_directories(red_${_t} PRIVATE
-            ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/ri/texture ${CMAKE_BINARY_DIR} ${GI_SPLIT_STAGING})
-    endforeach()
-    target_compile_definitions(red_test_gi_stores PRIVATE GI_STORES_CACHE GI_STORES_PHOTONS)
+    add_library(red_test_gi_stores OBJECT ${CMAKE_SOURCE_DIR}/tests/unit/texture_only/test_gi_stores.cpp)
+    target_compile_features(red_test_gi_stores PRIVATE cxx_std_20)
+    target_link_libraries(red_test_gi_stores PRIVATE openrender_common_flags)
+    target_include_directories(red_test_gi_stores PRIVATE
+        ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/ri/texture ${CMAKE_BINARY_DIR} ${GI_SPLIT_STAGING})
+    target_compile_definitions(red_test_gi_stores PRIVATE GI_STORES_PHOTONS)
 endif()
 
 message(STATUS "  - spec 032 gi_split tests (GiFixture_ICache, GiFiles_Unchanged, GiRemote_Loopback*), platform ${GI_SPLIT_PLATFORM}")

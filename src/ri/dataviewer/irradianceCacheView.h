@@ -29,7 +29,7 @@
 #define IRRADIANCECACHEVIEW_H
 
 #include "dataView.h"
-#include "irradiance.h"
+#include "irradianceCache.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CIrradianceCacheView
@@ -57,8 +57,8 @@ class CIrradianceCacheView : public CDataView {
 // Comments				:	One final overrider for each member both bases declare (the view answers the channels)
 class CIrradianceCacheDocument final : public CIrradianceCache, public CIrradianceCacheView {
     public:
-        CIrradianceCacheDocument(const char *name, unsigned int flags, FILE *in, const float *from, const float *to, const float *tondc = NULL)
-            : CIrradianceCache(name, flags, in, from, to, tondc), CIrradianceCacheView(this) {}
+        CIrradianceCacheDocument(const char *name, unsigned int flags, FILE *in, const float *from, const float *to, const float *tondc, const float *worldBmin, const float *worldBmax)
+            : CIrradianceCache(name, flags, in, from, to, tondc, worldBmin, worldBmax), CIrradianceCacheView(this) {}
 
         void bound(float *bmin, float *bmax) override { CIrradianceCache::bound(bmin, bmax); }
         const char *typeName() const override { return CIrradianceCache::typeName(); }

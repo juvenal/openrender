@@ -55,7 +55,7 @@ void CIrradianceCacheView::draw() {
     cdP = dP;
 
     // Every record, in the cache's own order (the root, then the children of a node last in, first out)
-    cache->forEachRecord([&](const CIrradianceCache::CCacheSample &record) {
+    cache->forEachRecord([&](const CIrradianceRecord &record) {
         if (j == 0) {
             if (drawDiscs)
                 drawDisks(chunkSize, P, dP, N, C);

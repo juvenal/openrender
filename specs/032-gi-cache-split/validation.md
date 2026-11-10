@@ -83,31 +83,6 @@ The photon map of `photon-parity.rib` at `-t:1` holds 46,273 photons and is iden
 419 images in `baseline-sweep-images-macos.sha256`; **0 differing between the runs**, so `baseline-sweep-noise-macos.txt` is empty (header only).
 `base-sweep-LastTest-macos.log` and `base-LastTest-macos.log` are force-added (`*.log` is gitignored).
 
-## §5 SC-007 timing
-
-Base against base (`032-timing-base`, `timing_sc007.sh build-base build-base 5`, THREADS 4, scales `perf-occlusion-cache` format x12
-shadingrate x3, `perf-indirect-photon` format x6 shadingrate x3 emit x10, `perf-ptc` format x6 shadingrate x3), medians and spreads in
-seconds, saved as `tools/timing-base-macos.txt`:
-
-| Scene | start median (spread) | final median (spread) |
-|---|---|---|
-| perf-occlusion-cache | 7.31 (4.04) | 6.00 (3.07) |
-| perf-indirect-photon | 6.21 (3.84) | 6.89 (7.28) |
-| perf-ptc | 5.01 (3.66) | 4.98 (3.28) |
-
-Linux (`timing-base-linux.txt`, 5 series, `-t:4`, `perf-ptc` at `-t:1`):
-
-| Scene | start median (spread) | final median (spread) |
-|---|---|---|
-| perf-occlusion-cache | 9.22 (0.32) | 9.19 (0.31) |
-| perf-indirect-photon | 13.63 (0.35) | 13.53 (0.21) |
-| perf-ptc | 6.82 (0.37) | 6.87 (0.28) |
-
-No scene under 3 s on either platform. The macOS spreads are large because the machine was shared with other specs' builds and suites for the whole run
-(the `cpujob` lock serialises jobs of the same user but not their render load or the thermal state); the bar of SC-007 is this spread.
-The unscaled templates render in 0.05 to 0.1 s, so the scales above were chosen from a sanity series (the first scales gave 1.1 s for
-`perf-occlusion-cache`, which was raised from x6 to x12).
-
 ## §1 Architecture reports per checkpoint
 
 Checkpoint 1 (Phase 1, unmodified `src/`): macOS `ctest -L architecture` 29 of 29 passed (`032-p1-final-arch`, with the new tests registered);
@@ -237,6 +212,29 @@ Remote disk 9.2 GB free before, 8.7 GB after `build-base`.
 
 ## §5 SC-007 timing
 
+Base against base (`032-timing-base`, `timing_sc007.sh build-base build-base 5`, THREADS 4, scales `perf-occlusion-cache` format x12
+shadingrate x3, `perf-indirect-photon` format x6 shadingrate x3 emit x10, `perf-ptc` format x6 shadingrate x3), medians and spreads in
+seconds, saved as `tools/timing-base-macos.txt`:
+
+| Scene | start median (spread) | final median (spread) |
+|---|---|---|
+| perf-occlusion-cache | 7.31 (4.04) | 6.00 (3.07) |
+| perf-indirect-photon | 6.21 (3.84) | 6.89 (7.28) |
+| perf-ptc | 5.01 (3.66) | 4.98 (3.28) |
+
+Linux (`timing-base-linux.txt`, 5 series, `-t:4`, `perf-ptc` at `-t:1`):
+
+| Scene | start median (spread) | final median (spread) |
+|---|---|---|
+| perf-occlusion-cache | 9.22 (0.32) | 9.19 (0.31) |
+| perf-indirect-photon | 13.63 (0.35) | 13.53 (0.21) |
+| perf-ptc | 6.82 (0.37) | 6.87 (0.28) |
+
+No scene under 3 s on either platform. The macOS spreads are large because the machine was shared with other specs' builds and suites for the whole run
+(the `cpujob` lock serialises jobs of the same user but not their render load or the thermal state); the bar of SC-007 is this spread.
+The unscaled templates render in 0.05 to 0.1 s, so the scales above were chosen from a sanity series (the first scales gave 1.1 s for
+`perf-occlusion-cache`, which was raised from x6 to x12).
+
 ## §6 Departures and findings
 
 ### Phase 2
@@ -259,6 +257,19 @@ Remote disk 9.2 GB free before, 8.7 GB after `build-base`.
   executables come with M6a, whose sources do not exist yet); T-A2 and T-E are real executables and tests in the block.
 - **T-D's tree.** The root of its cache is 0.1 wide, so no record can descend and the lookup always visits every record in list order;
   the expectation is computed from `forEachRecord()` (the cache's own order, after `clamp()`).
+
+- **T032 line numbers (re-grepped 2026-11-10, Phase 4 start).** M1 `test_photon_map_frame_release.cpp:44`, M2 `test_photon_map_sessions.cpp:45`,
+  M3 `test_data_world_init.cpp:7`, M4 `test_dataview_chunking.cpp:5` (each `#include "ri/hiders/photonMap.h"`), M5 `test_gi_remote_loopback.cpp:49` and
+  `:260-261`, M6a at the end of the 59-line `tests/unit/texture_only/CMakeLists.txt`; M1-M5, M6a and M7 pass `git apply --check` on this tree (M6b applies only
+  after M6a, Phase 5). Tasks T027 to T037 were ticked in `tasks.md` on 2026-11-10 (housekeeping): T027 to T031 by the files and the red table above, T032 by
+  the eight patches and this line record, T033/T034 by the red-evidence heading "after PAUSE 2a and 2b" and the approvals recorded in this section (M7 approved
+  2026-11-09), T035 to T037 by the table above and the Phase 2 commit `1cc0416c`.
+
+### Phase 4
+
+- Out-of-spec defects found while moving the cache, filed by the maintainer and **not fixed here**: GitHub #158 (the JIT's `jitOcclusionBatch` returns without writing its output when `getCache` answers
+  `nullptr`, unchanged from the starting tree) and #159 (`getTexture3d` returns a registered irradiance cache, a wrong-kind frame file, cast to `CPointCloud *`), both P1.
+- `transformBound` lives in Graphics State: the cache computes the world box with a file-local copy (`transformWorldBound`), which keeps Texturing free of State and the Texturing-only link line closed.
 
 ## §7 SC-001 to SC-010 walk
 
@@ -339,3 +350,106 @@ Every sub-check exits non-zero for its stated reason. The three Phase 3 ones are
 
 **Approved after the Phase 3 report** (also in plan.md and tasks.md D17 to D19): `treeDepth()` for the cache's depth accessor, `dataLoad.h` including `dataView.h`, and
 `const getNumPoints()`; the two `check_gi_split_boundary.cmake` fixes were ratified after the fact.
+
+### Phase 4 (T054 to T077): irradiance cache split
+
+**PAUSE 4a (T054), approved by the maintainer 2026-11-10.** M5 and M6a approved exactly as shown (`tools/test-edit-patches/M5-test_gi_remote_loopback.diff`,
+`M6a-texture_only-CMakeLists.diff`); the M5 include stays where the patch puts it (not alphabetised). Both pass `git apply --check` at the start of Phase 4.
+Any difference between the applied diff and the approved one stops the work. Housekeeping done at the same pause: Phase 1 tasks T001 to T026 ticked
+(all confirmed), the duplicate `§5` heading merged.
+
+**Test gate (T055).** Twelve allowlist lines deleted by key: all eight DB-010 lines with their section header (`irradiance.cpp -> pointHierarchy.h`, `-> texture.h`;
+`irradiance.h -> texture3d.h`; `irradianceDispatch.cpp -> pointHierarchy.h`, `-> texture.h`; `irradiance.cpp ->` the `CTexture3d` constructor, destructor and typeinfo);
+DB-011 `irradiance.cpp -> renderer.h`, `irradianceDispatch.cpp -> renderer.h`, `irradiance.cpp -> CRenderer::worldBmax` and `-> worldBmin`; the DB-011 header `(164)`
+is `(160)`; the allowlist is **335 -> 323** (`grep -c '^DB-'`). The six Phase 4 sub-checks (`friends-hiders`, `texture-names-shading`, `texture-names-core`,
+`texture-includes`, `hiders-no-texture`, `files-absent`) are added to the default of `GI032_BOUNDARY_CHECKS` (`tests/gi_split/CMakeLists.txt`). Red, on the Phase 3
+tree (`032-p4-red-configure`, `032-p4-red-arch`, `build-logs/032-p4-red-arch.log`): `Architecture_DomainBoundaries` fails with **exactly the twelve `VIOLATION`
+lines of the deleted keys** (eight at `irradiance.cpp`/`irradiance.h`, four at `irradianceDispatch.cpp`: the DB-010 and DB-011 include and link edges) and nothing else;
+`GiSplit_Boundary` fails on `friends-hiders` 1, `texture-names-shading` 7, `texture-names-core` 6, `hiders-no-texture` 6, `files-absent` 9 (`texture-includes` has nothing
+to match: the Phase 3 edit already removed its one include).
+
+**Implementation (T056 to T070).** Texturing: `irradianceStore.h` (new, header-only: the `CACHE_*` flags, `CIrradianceRecord`, `IrradianceDrawFn`, `CIrradianceStore`,
+`irradianceStoreOf`); `hiders/irradiance.{h,cpp}` moved with `git mv` to `texture/irradianceCache.{h,cpp}` and converted (derives from `CIrradianceStore`; the
+constructor takes `worldBmin/worldBmax`; `lookupCached` is the old `lookup` up to the miss decision with the two substitutions; `insertRecord` is the old insertion
+under the lock; `sample()`, `lookup(..., CShadingContext *)` and `friend CRemoteICacheChannel` are gone). `texture3d.h` loses `CShadingContext` and the six-argument `lookup`
+(now `lookupPointBased` with `CPointBasedLookup`), and `pointHierarchy.{h,cpp}` loses `Options`; under `src/ri/texture` the quickstart section 1 scan finds nothing.
+Shading: `irradianceSampler.h` (`IIrradianceSampler`, `IrradianceSample`), `irradianceCalls.{h,cpp}` (`libshader::irradianceLookup`), the sampler slots in `shading.{h,cpp}`
+(`setIrradianceSampler`, `setDefaultIrradianceSampler`), the two call sites (`giFunctions.h` `IDEXPR`, `shading.cpp` `jitOcclusionBatch`). Hiders: `irradianceDispatch.cpp` moved
+to `irradianceSampler.cpp` (`CIrradianceSampler::sample`, the gradients and the radius now computed outside the lock) with `hiderIrradianceSampler.h`; `hider.cpp` installs it on
+every hider's context, `rendererShadingServices.cpp` as the process default. Core: `rendererFiles.cpp` (constructor arguments, `getCache` answers
+`dynamic_cast<CIrradianceStore *>`, `pointHierarchyMaxSolidAngle` gone), `remoteChannel.cpp` (the cache channel goes through `forEachNode`, `insertReceived`, `rootCenter`,
+`rootSide`, `setRoot`; the sent bytes are unchanged), include paths. Viewer: `irradianceCacheView.{h,cpp}`, `dataLoad.cpp` pass the world bound. Deleted:
+`vector/irradianceDispatchStub.cpp`, `hiders/radiance.{h,cpp}`, `hiders/harmonics.h` (compiled by no target, as OQ-4 said). `src/ri/CMakeLists.txt`, the residual list
+(`irradianceDispatchStub.cpp` row deleted, `rendererStatics.cpp` cell updated), M5 and M6a (applied exactly as approved; `git apply --check` passed on both) and T-A2/T-C/T-D enabled.
+Two deviations of detail from the text, both inside the spec: (1) **`transformBound` is Graphics State's** (`state/xform.cpp`), which Texturing may not include and the
+Texturing-only link line (T-C/T-D) does not have, so the cache computes the world box with a file-local copy of the same corner order and arithmetic (`transformWorldBound`);
+(2) `forEachRecord` passes a `CIrradianceRecord` copy (the approved tests `static_cast` to it, and `CCacheSample` must stay standard-layout for the approved `offsetof(next)` of T-A),
+so `CCacheSample` has `get()`/`set()` and the cache keeps its raw-bytes wire layout. The interpreter's `assert(cache->dataSize == 7)` became `assert(cache == NULL || ...)` so a
+null cache reaches `irradianceLookup` in a debug build too.
+
+**T065, null cache.** `getCache` answers `nullptr` for a name registered as a point cloud or brick map (`GiCache_KindMismatch` passes: a different kind answers `nullptr`, and the
+cache obtained under another name is returned unchanged by a second call). The interpreter's `IDEXPR_PRE` reaches `irradianceLookup` with the null cache (`rendererTexture3dResolve`
+tests its argument; the `dataSize` assert was made null-tolerant), which writes the no-joy value. The JIT's `jitOcclusionBatch` returns before the lookup when `getCache` answers
+`nullptr` (`if (!cache) return;`, unchanged from the base), leaving the destination as it was. The remote-server path `CHANNELTYPE_ICACHE` (`remoteChannel.cpp`) casts `getCache`'s answer
+with a C cast and would hand a null to `CRemoteICacheChannel`'s constructor for a wrong-kind name (the base handed it the wrong object): reported as a finding, not changed.
+
+**T070 stale references** (`grep -rn "irradiance\.h\|irradianceDispatch\|irradianceSampleAccept\|radiance\.h\|harmonics\.h"` over `src tests CMakeLists.txt`): comments only, in files this
+spec may not edit or fixes in Phase 6: `src/ri/hiders/depository.cpp:24`, `src/ri/render/rendererFileSearch.cpp:22`, `src/preview/libribpreview/dataScene.h:14`,
+`tests/visual/CMakeLists.txt:657`, `tests/preview/test_data_world_init.cpp:85`; plus the descriptions inside `tests/architecture/check_gi_split_boundary.cmake` and the basename guard
+of `tests/link/check_scope.cmake` S1b (`irradiance.h`), which is meant to name the old header. The six historical comments under `src/ri/texture/` that named `CRenderer` are reworded.
+
+**macOS checkpoint** (all through `cpujob`): CP-a build `-j4` exit 0 under `-Werror` after one fix (`CMemStack` needs `common/containers.h`); a no-JIT configure and build of
+`libshader_shading` and `ribRender` (`032-p4-nojit`) exit 0, `build-nojit` deleted. `nm -u` of `hiders/irradianceSampler.cpp.o`: 15 undefined symbols, none a `CIrradiance*`,
+`CTexture3d` or `CPointHierarchy` one (`CPhotonMap::lookup`, `CTextureLookup::staticInit`, `CShadingContext::lookupEnvironment`, `libshader::traceRay`, the sampling helpers and libc/libc++).
+`nm -m libshader_shading.dylib | grep 'dynamically looked up'`: **0 lines, equal to the base** (`tools/libshader-imports-after-phase4-macos.txt`, empty). `ctest -L link` **4 of 4**; the
+shading-contract, trace-replay and shading tests (`-R 'ShadingContract_|ShadingTrace|TraceReplay|Shading.*Replay'`) **66 of 66**, unedited. The new tests: `GiFixture_ICache`, `GiFiles_Unchanged`,
+`GiRemote_LoopbackCache`, `GiRemote_LoopbackPointCloud`, `Preview_DataSceneUnchanged`, `GiCache_KindMismatch`, `TextureOnly_Standalone` pass against their base recordings;
+**three enabled tests fail, each for a reason in the test, none in the cache** (see "Findings" below): `GiRemote_LoopbackLookup`, `TextureOnly_GiStores`, `TextureOnly_IrradianceDrawOrder`.
+Full suite `-LE determinism-sweep`: **1107 tests, 1104 passed, the three above failed**; no other test failed. CP-d: 920 images in the manifest, of which the 915 of the base
+are **0 differing, 0 missing** (the five more are the new tests' own images); the `MaxBlockAvgDiff` listing equals the base (`diff` empty), the GI test set included, `-slo` variants too.
+CP-c: `ctest -L architecture` **30 of 30**; the full report `ALLOWED DB-004 x 52, DB-006 x 30, DB-011 x 160, DB-017 x 78, DB-025 x 3` (DB-010 gone), `METRIC Hiders 553/80, Texturing 0/0, TOTAL 601/88`,
+`RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; `GiSplit_Boundary` green with the nine sub-checks of Phases 3 and 4; allowlist **335 -> 323**.
+Informational SC-007 (`timing_sc007.sh build-base build 3`, `-t:4`): perf-occlusion-cache -3.4%, perf-indirect-photon +2.4%, perf-ptc +8.0% (spread 0.83 s), all within the spread, none beyond; no scene under 3 s.
+
+**Findings (Phase 4).** The three failing tests were written in Phase 2 against an implementation that did not exist and were first run here. Each fails for a reason the
+unchanged base behaviour explains, so none can be fixed in `src/` without changing images; each needs an edit of an approved test, which waits for approval:
+1. `TextureOnly_IrradianceDrawOrder`: its draw count and its draw order pass; the blend fails on `C[6]` (the envdir z) at 0.99927 against the expected 1.0 (relative error 7e-4 > the 1e-4 it allows).
+   The cache normalizes the envdir with `normalizevf`, which uses the approximate `isqrtf`, as the base did, and the images depend on it. Proposed edit: compute the expected envdir with `normalizevf` itself.
+2. `TextureOnly_GiStores`: the cache is written with `CACHE_WRITE | CACHE_SAMPLE` and read back with `CACHE_READ | CACHE_RDONLY`, and the lookup's discard threshold (`smallSampleWeight`) is 0.1 with the
+   first flag set and 0 without: a record of weight below 0.05 counts only after the reload (irradiance 0.0946554 before, 0.0961394 after at the first query). The reader also lists each node's records in
+   the reverse of the order they were written, so even with equal flags the sums differ in the last bits (checked with a scratch copy of the test in the scratchpad, `032-dbg-stores2.cpp`, which gives the reader `CACHE_SAMPLE` too: the difference is then one ulp, 0.0946554467 against 0.0946554393). Proposed edit: the same `CACHE_SAMPLE` flag on both sides and a 1e-5 relative bound on `C` (`Pc`, `Nc` stay exact).
+3. `GiRemote_LoopbackLookup` (T-A2): it fails only when the draw counts differ (sender 707, receiver 628) while it reports 12 of 93 positions that differ and hits 93/93 on both sides. The receiver places a record by
+   `dP` without the sender's `1/K` (OQ-5), so its tree is deeper and the lookup visits fewer nodes: a different draw count is the same difference seen through the callback. Proposed edit: report the draw counts like the
+   positions and fail on the hit counts only.
+
+**Linux checkpoint (T076; Ubuntu 24.04, GCC 13 `-Werror`, remote `cpujob` at `-j2`, `openrender-032`; the host had rebooted and was reachable).** Pushed 3,777 files, `verify` 0 differences;
+configure with the Phase 4 `GI032_BOUNDARY_CHECKS` list; build exit 0 with no warning and no error (`-Woverloaded-virtual` clean); the full suite `-LE determinism-sweep`: **1108 tests, 1104 passed, 4 failed**:
+`TextureTile_RenderByteIdentical` (the baseline failure #45) and the same three as on macOS (`GiRemote_LoopbackLookup`: sender 707 draws, receiver 628, 5 of 93 positions differ, hits 93/93;
+`TextureOnly_GiStores`, `TextureOnly_IrradianceDrawOrder`: the same checks). Images: 915 in the base manifest, **0 differing, 0 missing**, the five more are the new tests' own;
+the `MaxBlockAvgDiff` listing equals the base. `ctest -L architecture` **30 of 30**; the report `ALLOWED DB-004 x 52, DB-006 x 30, DB-011 x 160, DB-017 x 78, DB-025 x 3`, `METRIC TOTAL 601/88`, `RESULT PASS`.
+`nm -D --undefined-only libshader_shading.so | c++filt`: **461 symbols, identical to the base** (`tools/libshader-imports-after-phase4-linux.txt`; `diff` empty). `linux_sync.sh pull` / `verify`: 19 files, 0 differences.
+
+**Approvals after the Phase 4 report (maintainer, 2026-11-10), recorded before they were applied.** The diff of the three test edits is
+`tools/test-edit-patches/M8-phase4-test-fixes.diff` (made with `diff -u` against the files as staged at Checkpoint 4; it is the diff that was applied, and `git apply --check` is not needed:
+it was applied by copying the edited files). No tolerance was changed.
+1. **T-D `TextureOnly_IrradianceDrawOrder`:** the expected envdir is computed with `normalizevf()` itself (the cache's own normalization) instead of an exact division; the 1e-4 bound stays.
+2. **T-C `TextureOnly_GiStores`:** the reader gets the same `CACHE_SAMPLE` flag as the writer; the 1e-5 bound is **not** added. The check is exact and order-independent: the stored records of the written cache
+   and of the reloaded one (`forEachRecord`: position, normal, irradiance, coverage, envdir, both gradients, dP, every float) are sorted by their bytes and compared with `memcmp` as multisets, and the hit flags and
+   the query point/normal in cache space (`Pc`, `Nc`) stay exact. The lookup value `C` is no longer compared: the reader lists a node's records in the reverse of the order they were written, so the same lookup
+   sums in another order and `C` can differ by an ulp (shown with a scratch copy: 0.0946554467 against 0.0946554393 with equal flags). An exact `C` comparison is therefore impossible for a reason shown, not loosened:
+   the records, which `C` is computed from, are what is compared.
+3. **T-A2 `GiRemote_LoopbackLookup`:** the draw counts are reported like the positions (`REPORTED, not fixed (OQ-5)`) and the test fails only on the hit counts (T027's approved text).
+4. **In-spec fix, `remoteChannel.cpp` `CHANNELTYPE_ICACHE`:** `getCache` can answer `nullptr` for a name registered as another kind: the server reports the error, answers `NET_NACK` and returns `FALSE` like the
+   other refusals, and never constructs `CRemoteICacheChannel` with null. No new test (the path needs a network peer; `GiCache_KindMismatch` covers the `nullptr` answer itself).
+5. **Filed, not fixed:** GitHub #158 (JIT `jitOcclusionBatch` leaves its output unwritten when `getCache` answers `nullptr`) and #159 (`getTexture3d` returns a wrong-kind frame file cast to `CPointCloud *`), both P1.
+6. **`data-model.md`:** `CCacheSample` is standalone and standard-layout (the record's fields and `next`), not derived from `CIrradianceRecord`.
+7. **No git in any test or build step** (maintainer's ruling): none was introduced.
+
+**Checkpoint 4 after the approved fixes (2026-11-10).** macOS rebuilt (`032-p4b-build`, `-j4`, `-Werror`, exit 0). The ten new/characterization tests pass
+(`GiFixture_ICache`, `Preview_DataSceneUnchanged`, `GiFiles_Unchanged`, `GiRemote_LoopbackCache`, `GiRemote_LoopbackPointCloud`, `GiRemote_LoopbackLookup`, `GiCache_KindMismatch`,
+`TextureOnly_Standalone`, `TextureOnly_GiStores` (64 stored records and all hits equal after the reload), `TextureOnly_IrradianceDrawOrder` (7 draws, the blend equals the expected one)).
+`GiRemote_LoopbackLookup` reports hits sender 93, receiver 93, draws 707 against 628, 12 positions differing (OQ-5), and passes. Full suite `-LE determinism-sweep`: **1107 of 1107 passed**.
+Images: the 915 base images **0 differing, 0 missing** (5 more are the new tests' own); the `MaxBlockAvgDiff` listing equals the base. `ctest -L architecture` 30 of 30, `ALLOWED DB-004 x 52, DB-006 x 30, DB-011 x 160,
+DB-017 x 78, DB-025 x 3`, `METRIC TOTAL 601/88`, `RESULT PASS`; allowlist 323.
+Linux (pushed 3,778 files, 0 differences; GCC 13 `-Werror` build exit 0): **1108 tests, 1107 passed; the one failure is `TextureTile_RenderByteIdentical` (#45)**; images 0 differing, 0 missing; listing equal;
+`ctest -L architecture` 30 of 30, `RESULT PASS`; `libshader_shading.so` undefined symbols identical to the base (461); pull/verify 19 files, 0 differences.

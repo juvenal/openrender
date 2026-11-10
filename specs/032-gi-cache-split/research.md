@@ -34,7 +34,7 @@ anything a build can confirm.
   `CIrradianceStore : public CTexture3d` with three pure virtuals (`lookupCached`, `insertRecord`,
   `samplesOnMiss`), inline accessors for `from`/`to`, the record type `CIrradianceRecord`, the draw-callback type and
   the inline accessor `irradianceStoreOf(CTexture3d *)`.
-- `CCacheSample` (the tree's node record) is `CIrradianceRecord` plus `next`.
+- `CCacheSample` (the tree's node record) is the record's fields plus `next`, a standalone standard-layout class (see data-model.md).
 
 **Rationale.** FR-027 allows the store's abstract class to be header-only in Texturing. Shading needs the cache both
 as a store (lookup, insert) and as a `CTexture3d` (the services' `texture3dResolve` and the `dataSize` assert of the

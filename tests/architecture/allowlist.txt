@@ -96,20 +96,8 @@ DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN15CShadingContext9saveState
 DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN6CReyes10drawObjectEP7CObject   # CReyes::drawObject(CObject*)
 DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN6CReyes8drawGridEP8CSurfaceiiffffPK9CGridSnap   # CReyes::drawGrid(CSurface*, int, int, float, float, float, float, CGridSnap const*)
 
-# --- DB-010: The hiders' GI caches use Texturing (8) ---
-DB-010  include  src/ri/hiders/irradiance.cpp  ->  src/ri/texture/pointHierarchy.h
-DB-010  include  src/ri/hiders/irradiance.cpp  ->  src/ri/texture/texture.h
-DB-010  include  src/ri/hiders/irradiance.h  ->  src/ri/texture/texture3d.h
-DB-010  include  src/ri/hiders/irradianceDispatch.cpp  ->  src/ri/texture/pointHierarchy.h
-DB-010  include  src/ri/hiders/irradianceDispatch.cpp  ->  src/ri/texture/texture.h
-DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZN10CTexture3dC2EPKcPKfS3_S3_iPNS_8CChannelE   # CTexture3d::CTexture3d(char const*, float const*, float const*, float const*, int, CTexture3d::CChannel*)
-DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZN10CTexture3dD2Ev   # CTexture3d::~CTexture3d()
-DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZTI10CTexture3d   # typeinfo for CTexture3d
-
-# --- DB-011: Hiders read renderer-core state (CRenderer) (164) ---
+# --- DB-011: Hiders read renderer-core state (CRenderer) (160) ---
 DB-011  include  src/ri/hiders/compositor.cpp  ->  src/ri/render/renderer.h
-DB-011  include  src/ri/hiders/irradiance.cpp  ->  src/ri/render/renderer.h
-DB-011  include  src/ri/hiders/irradianceDispatch.cpp  ->  src/ri/render/renderer.h
 DB-011  include  src/ri/hiders/occlusion.cpp  ->  src/ri/render/renderer.h
 DB-011  include  src/ri/hiders/photon.cpp  ->  src/ri/render/renderer.h
 DB-011  include  src/ri/hiders/pixelFilter.h  ->  src/ri/render/renderer.h
@@ -122,8 +110,6 @@ DB-011  link     src/ri/hiders/compositor.cpp  ->  _ZN9CRenderer19nonCompChannel
 DB-011  link     src/ri/hiders/compositor.cpp  ->  _ZN9CRenderer20numExtraCompChannelsE   # CRenderer::numExtraCompChannels
 DB-011  link     src/ri/hiders/compositor.cpp  ->  _ZN9CRenderer23numExtraNonCompChannelsE   # CRenderer::numExtraNonCompChannels
 DB-011  link     src/ri/hiders/compositor.cpp  ->  _ZN9CRenderer7clipMaxE   # CRenderer::clipMax
-DB-011  link     src/ri/hiders/irradiance.cpp  ->  _ZN9CRenderer9worldBmaxE   # CRenderer::worldBmax
-DB-011  link     src/ri/hiders/irradiance.cpp  ->  _ZN9CRenderer9worldBminE   # CRenderer::worldBmin
 DB-011  link     src/ri/hiders/photon.cpp  ->  _ZN9CRenderer10hiderFlagsE   # CRenderer::hiderFlags
 DB-011  link     src/ri/hiders/photon.cpp  ->  _ZN9CRenderer11dispatchJobE   # CRenderer::dispatchJob
 DB-011  link     src/ri/hiders/photon.cpp  ->  _ZN9CRenderer11maxGridSizeE   # CRenderer::maxGridSize

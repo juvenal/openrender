@@ -22,6 +22,7 @@
 #include <cstddef>
 #include <cstring>
 
+#include "hiderIrradianceSampler.h"
 #include "rendererServicesImpl.h"
 #include "ri_config.h"
 #include "object.h"
@@ -63,6 +64,7 @@ namespace {
 // install the shader-parameter hooks Graphics State calls.
 void rendererShadingServicesInit() {
     CShadingContext::setDefaultServices(&g_rendererServicesImpl);
+    CShadingContext::setDefaultIrradianceSampler(&irradianceSamplerInstance());
 
     // Graphics State asks Shading, through two function pointers, which parameters the bound
     // shaders need and which parameter a name refers to (spec 025). Installed here, not in
@@ -78,6 +80,7 @@ void rendererShadingServicesInit() {
 void rendererShadingServicesShutdown() {
     setTexture3dChannelSource(nullptr);
     installShaderParameterHooks(nullptr);
+    CShadingContext::setDefaultIrradianceSampler(nullptr);
     CShadingContext::setDefaultServices(nullptr);
 }
 

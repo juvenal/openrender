@@ -33,8 +33,6 @@
 #include "common/fileResource.h"
 #include "common/rendererc.h"
 
-class CShadingContext;
-
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CTexture3d
 // Description			:	Base class for 3d textures
@@ -62,8 +60,12 @@ class CTexture3d : public CFileResource {
         virtual void lookup(float *, const float *, const float *, float) = 0;
         virtual void store(const float *, const float *, const float *, float) = 0;
 
-        // For irradiance cache type of queries
-        virtual void lookup(float *, const float *, const float *, const float *, const float *, CShadingContext *) = 0;
+        // For point-based queries (the point hierarchy): what the lookup in progress asks of it, which the caller reads from
+        // its own state and hands in
+        struct CPointBasedLookup {
+                float maxSolidAngle;
+        };
+        virtual void lookupPointBased(float *C, const float *P, const float *dPdu, const float *dPdv, const float *N, const CPointBasedLookup &opt) = 0;
 
         // Resolve the names to channels
         void resolve(int n, const char **names, int *entry, int *size);

@@ -46,7 +46,7 @@
 #include "common/global.h"
 #include "common/memory.h"
 #include "common/rendererc.h"
-#include "ri/hiders/irradiance.h"
+#include "ri/texture/irradianceCache.h"
 #include "ri/parse/riInterface.h"
 #include "ri/parse/riServices.h"
 #include "ri/render/remoteChannel.h"
@@ -257,8 +257,8 @@ static bool runCache(const std::string &fixture, gitest::Sections &out) {
     identitym(to);
 
     // the sender reads fixture F1's file; the receiver is a fresh write cache that setup() re-roots
-    CIrradianceCache *sender = new CIrradianceCache(fixture.c_str(), CACHE_READ | CACHE_RDONLY, NULL, from, to, NULL);
-    CIrradianceCache *receiver = new CIrradianceCache("gi-loopback-cache-recv.icache", CACHE_WRITE, NULL, from, to, NULL);
+    CIrradianceCache *sender = new CIrradianceCache(fixture.c_str(), CACHE_READ | CACHE_RDONLY, NULL, from, to, NULL, CRenderer::worldBmin, CRenderer::worldBmax);
+    CIrradianceCache *receiver = new CIrradianceCache("gi-loopback-cache-recv.icache", CACHE_WRITE, NULL, from, to, NULL, CRenderer::worldBmin, CRenderer::worldBmax);
     CRemoteICacheChannel sendChannel(sender);
     CRemoteICacheChannel recvChannel(receiver);
 

@@ -102,7 +102,7 @@ static inline float ff(const float *rP, const float *rN, const float *oP, const 
 // Description			:	Ctor
 // Return Value			:
 // Comments				:
-CPointHierarchy::CPointHierarchy(const char *n, const float *from, const float *to, FILE *in, const Options &opts) : CTexture3d(n, from, to), CMap<CPointCloudPoint>(), options(opts) {
+CPointHierarchy::CPointHierarchy(const char *n, const float *from, const float *to, FILE *in) : CTexture3d(n, from, to), CMap<CPointCloudPoint>() {
 
     // Try to read the point cloud
 
@@ -466,12 +466,12 @@ int CPointHierarchy::cluster(int numItems, int *indices) {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CPointHierarchy
-// Method				:	lookup
+// Method				:	lookupPointBased
 // Description			:	Lookup smtg
 // Return Value			:
 // Comments				:
-void CPointHierarchy::lookup(float *Cl, const float *Pl, const float *, const float *, const float *Nl, CShadingContext *context) {
-    const float maxsolidangle = options.maxSolidAngle(context);
+void CPointHierarchy::lookupPointBased(float *Cl, const float *Pl, const float *, const float *, const float *Nl, const CPointBasedLookup &opt) {
+    const float maxsolidangle = opt.maxSolidAngle;
     int *stack = (int *)alloca(POINTHIERARCHY_STACK_SIZE * sizeof(int));
     int *stackBase = stack;
     int i;

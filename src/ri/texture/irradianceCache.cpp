@@ -1,10 +1,10 @@
 /**
  * Project: openRender
  *
- * File: irradiance.cpp
+ * File: irradianceCache.cpp
  *
  * Description:
- *   This file implements the functionality for irradiance.
+ *   This file implements the functionality for the irradiance cache (passive storage, spec 032).
  *
  * Authors:
  *   Okan Arikan <okan@cs.utexas.edu>
@@ -19,28 +19,70 @@
 
 ///////////////////////////////////////////////////////////////////////
 //
-//  File				:	irradiance.cpp
+//  File				:	irradianceCache.cpp
 //  Classes				:	CIrradianceCache
 //  Description			:
 //
 ////////////////////////////////////////////////////////////////////////
 #include <math.h>
+#include <stddef.h>
+#include <string.h>
 
 #include "common/portable_io.h"
 #include "common/diagnostics.h"
-#include "irradiance.h"
+#include "irradianceCache.h"
+#include "common/containers.h"
 #include "common/memory.h"
-#include "photonMap.h"
-#include "pointHierarchy.h"
-#include "renderer.h"
 #include "ri_config.h"
-#include "shaderPl.h"
-#include "shading.h"
 #include "common/stats.h"
-#include "surface.h"
-#include "texture.h"
 
 const float weightNormalDenominator = (float)(1 / (1 - cos(radians(10))));
+
+// A sample is the record's fields and a list link (it goes on the wire as raw bytes)
+static_assert(offsetof(CIrradianceCache::CCacheSample, next) == sizeof(CIrradianceRecord), "CCacheSample is a CIrradianceRecord and its list link");
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	transformWorldBound
+// Description			:	Transform a bounding box and bound the result (the corner order and arithmetic of the Graphics State's
+//							transformBound(), which Texturing does not reach)
+// Return Value			:	-
+// Comments				:
+static void transformWorldBound(float *lbmin, float *lbmax, const float *to, const float *bmin, const float *bmax) {
+    vector corners[8];
+    int i;
+    vector vtmp;
+
+    initv(vtmp, bmin[COMP_X], bmin[COMP_Y], bmin[COMP_Z]);
+    mulmp(corners[0], to, vtmp);
+
+    initv(vtmp, bmin[COMP_X], bmin[COMP_Y], bmax[COMP_Z]);
+    mulmp(corners[1], to, vtmp);
+
+    initv(vtmp, bmin[COMP_X], bmax[COMP_Y], bmax[COMP_Z]);
+    mulmp(corners[2], to, vtmp);
+
+    initv(vtmp, bmin[COMP_X], bmax[COMP_Y], bmin[COMP_Z]);
+    mulmp(corners[3], to, vtmp);
+
+    initv(vtmp, bmax[COMP_X], bmin[COMP_Y], bmin[COMP_Z]);
+    mulmp(corners[4], to, vtmp);
+
+    initv(vtmp, bmax[COMP_X], bmin[COMP_Y], bmax[COMP_Z]);
+    mulmp(corners[5], to, vtmp);
+
+    initv(vtmp, bmax[COMP_X], bmax[COMP_Y], bmax[COMP_Z]);
+    mulmp(corners[6], to, vtmp);
+
+    initv(vtmp, bmax[COMP_X], bmax[COMP_Y], bmin[COMP_Z]);
+    mulmp(corners[7], to, vtmp);
+
+    movvv(lbmin, corners[0]);
+    movvv(lbmax, corners[0]);
+
+    for (i = 1; i < 8; i++) {
+        addBox(lbmin, lbmax, corners[i]);
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////
 //
@@ -61,7 +103,7 @@ CTexture3d::CChannel CIrradianceCache::cacheChannels[3] = {
 // Description			:	Ctor
 // Return Value			:
 // Comments				:
-CIrradianceCache::CIrradianceCache(const char *name, unsigned int f, FILE *in, const float *from, const float *to, const float *tondc) : CTexture3d(name, from, to, tondc, 3, cacheChannels) {
+CIrradianceCache::CIrradianceCache(const char *name, unsigned int f, FILE *in, const float *from, const float *to, const float *tondc, const float *worldBmin, const float *worldBmax) : CIrradianceStore(name, from, to, tondc, 3, cacheChannels) {
     int i;
 
     assert(dataSize == 7);
@@ -95,7 +137,7 @@ CIrradianceCache::CIrradianceCache(const char *name, unsigned int f, FILE *in, c
         vector center, bmin, bmax;
 
         // Transform the bounding box to the world
-        transformBound(bmin, bmax, to, CRenderer::worldBmin, CRenderer::worldBmax);
+        transformWorldBound(bmin, bmax, to, worldBmin, worldBmax);
 
         root = (CCacheNode *)memory->alloc(sizeof(CCacheNode));
         for (i = 0; i < 8; i++)
@@ -300,178 +342,204 @@ CIrradianceCache::CCacheNode *CIrradianceCache::readNode(FILE *in) {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CIrradianceCache
-// Method				:	lookup
+// Method				:	lookupCached
 // Description			:	Lookup da cache
-// Return Value			:
-// Comments				:
-void CIrradianceCache::lookup(float *C, const float *cP, const float *cdPdu, const float *cdPdv, const float *cN, CShadingContext *context) {
-    const CShadingScratch *scratch = &(context->currentShadingState->scratch);
+// Return Value			:	TRUE on a hit (C is written); FALSE on a miss (C is left alone)
+// Comments				:	Pc and Nc receive the query point and normal in the cache's space, which a miss hands to the sampler
+bool CIrradianceCache::lookupCached(float *C, const float *cP, const float *cN, float maxError, IrradianceDrawFn draw, void *drawState, float *Pc, float *Nc) {
+    CCacheSample *cSample;
+    CCacheNode *cNode;
+    float totalWeight = 0;
+    CCacheNode **stackBase = (CCacheNode **)alloca(maxDepth * sizeof(CCacheNode *) * 8);
+    CCacheNode **stack;
+    int i;
+    float coverage;
+    vector irradiance, envdir;
+    vector P, N;
 
-    // Is this a point based lookup?
-    if ((scratch->occlusionParams.pointbased) && (scratch->occlusionParams.pointHierarchy != NULL)) {
-        int i;
+    // A small value for discard-smoothing of irradiance
+    const float smallSampleWeight = (flags & CACHE_SAMPLE) ? 0.1f : 0.0f;
 
-        for (i = 0; i < 7; i++)
-            C[i] = 0;
+    // Transform the lookup point to the correct coordinate system
+    mulmp(P, to, cP);
+    mulmn(N, from, cN);
+    movvv(Pc, P);
+    movvv(Nc, N);
 
-        scratch->occlusionParams.pointHierarchy->lookup(C, cP, cdPdu, cdPdv, cN, context);
-    }
-    else {
-        CCacheSample *cSample;
-        CCacheNode *cNode;
-        float totalWeight = 0;
-        CCacheNode **stackBase = (CCacheNode **)alloca(maxDepth * sizeof(CCacheNode *) * 8);
-        CCacheNode **stack;
-        int i;
-        float coverage;
-        vector irradiance, envdir;
-        vector P, N;
+    // Init the result
+    coverage = 0;
+    initv(irradiance, 0);
+    initv(envdir, 0);
 
-        // A small value for discard-smoothing of irradiance
-        const float smallSampleWeight = (flags & CACHE_SAMPLE) ? 0.1f : 0.0f;
+    // The weighting algorithm is that described in [Tabellion and Lamorlette 2004]
+    // We need to convert the max error as in Wald to Tabellion
+    // The default value of maxError is 0.4f
+    const float K = 0.4f / maxError;
 
-        // Transform the lookup point to the correct coordinate system
-        mulmp(P, to, cP);
-        mulmn(N, from, cN);
+    // Note, we do not need to lock the data for reading
+    // if word-writes are atomic
 
-        // Init the result
-        coverage = 0;
-        initv(irradiance, 0);
-        initv(envdir, 0);
+    // Prepare for the non recursive tree traversal
+    stack = stackBase;
+    *stack++ = root;
+    while (stack > stackBase) {
+        cNode = *(--stack);
 
-        // The weighting algorithm is that described in [Tabellion and Lamorlette 2004]
-        // We need to convert the max error as in Wald to Tabellion
-        // The default value of maxError is 0.4f
-        const float K = 0.4f / scratch->occlusionParams.maxError;
+        // Sum the values in this level
+        for (cSample = cNode->samples; cSample != NULL; cSample = cSample->next) {
+            vector D;
 
-        // Note, we do not need to lock the data for reading
-        // if word-writes are atomic
+            // D = vector from sample to query point
+            subvv(D, P, cSample->P);
 
-        // Prepare for the non recursive tree traversal
-        stack = stackBase;
-        *stack++ = root;
-        while (stack > stackBase) {
-            cNode = *(--stack);
+            // Ignore sample in the front
+            float a = dotvv(D, cSample->N);
+            if ((a * a / (dotvv(D, D) + C_EPSILON)) > 0.1)
+                continue;
 
-            // Sum the values in this level
-            for (cSample = cNode->samples; cSample != NULL; cSample = cSample->next) {
-                vector D;
+            // Positional error
+            float e1 = sqrtf(dotvv(D, D)) / cSample->dP;
 
-                // D = vector from sample to query point
-                subvv(D, P, cSample->P);
+            // Directional error
+            float e2 = 1 - dotvv(N, cSample->N);
+            if (e2 < 0)
+                e2 = 0;
+            e2 = sqrtf(e2 * weightNormalDenominator);
 
-                // Ignore sample in the front
-                float a = dotvv(D, cSample->N);
-                if ((a * a / (dotvv(D, D) + C_EPSILON)) > 0.1)
-                    continue;
-
-                // Positional error
-                float e1 = sqrtf(dotvv(D, D)) / cSample->dP;
-
-                // Directional error
-                float e2 = 1 - dotvv(N, cSample->N);
-                if (e2 < 0)
-                    e2 = 0;
-                e2 = sqrtf(e2 * weightNormalDenominator);
-
-                // Compute the weight
-                float maxE1E2;
-                if (e2 > e1) {
-                    maxE1E2 = e2;
-                }
-                else {
-                    maxE1E2 = e1;
-                }
-                float w = 1 - K * maxE1E2;
-                if (irradianceSampleAccept(w, smallSampleWeight, context)) {
-                    vector ntmp;
-
-                    crossvv(ntmp, cSample->N, N);
-
-                    // Sum the sample
-                    totalWeight += w;
-                    coverage += w * (cSample->coverage + dotvv(cSample->gP + 0 * 3, D) + dotvv(cSample->gR + 0 * 3, ntmp));
-                    irradiance[0] += w * (cSample->irradiance[0] + dotvv(cSample->gP + 1 * 3, D) + dotvv(cSample->gR + 1 * 3, ntmp));
-                    irradiance[1] += w * (cSample->irradiance[1] + dotvv(cSample->gP + 2 * 3, D) + dotvv(cSample->gR + 2 * 3, ntmp));
-                    irradiance[2] += w * (cSample->irradiance[2] + dotvv(cSample->gP + 3 * 3, D) + dotvv(cSample->gR + 3 * 3, ntmp));
-                    envdir[0] += w * (cSample->envdir[0] + dotvv(cSample->gP + 4 * 3, D) + dotvv(cSample->gR + 4 * 3, ntmp));
-                    envdir[1] += w * (cSample->envdir[1] + dotvv(cSample->gP + 5 * 3, D) + dotvv(cSample->gR + 5 * 3, ntmp));
-                    envdir[2] += w * (cSample->envdir[2] + dotvv(cSample->gP + 6 * 3, D) + dotvv(cSample->gR + 6 * 3, ntmp));
-                }
-            }
-
-            // Check the children
-            for (i = 0; i < 8; i++) {
-                CCacheNode *tNode;
-
-                if ((tNode = cNode->children[i]) != NULL) {
-                    const float tSide = tNode->side;
-
-                    if (((tNode->center[0] + tSide) > P[0]) &&
-                        ((tNode->center[1] + tSide) > P[1]) &&
-                        ((tNode->center[2] + tSide) > P[2]) &&
-                        ((tNode->center[0] - tSide) < P[0]) &&
-                        ((tNode->center[1] - tSide) < P[1]) &&
-                        ((tNode->center[2] - tSide) < P[2])) {
-                        *stack++ = tNode;
-                    }
-                }
-            }
-        }
-
-        // Do we have anything ?
-        if (totalWeight > C_EPSILON) {
-            double normalizer = 1 / totalWeight;
-
-            normalizevf(envdir);
-
-            C[0] = (float)(irradiance[0] * normalizer);
-            C[1] = (float)(irradiance[1] * normalizer);
-            C[2] = (float)(irradiance[2] * normalizer);
-            C[3] = (float)(coverage * normalizer);
-            mulmv(C + 4, from, envdir); // envdir is stored in the target coordinate system
-        }
-        else {
-            // Are we sampling the cache ?
-            if (flags & CACHE_SAMPLE) {
-                vector dPdu, dPdv;
-
-                // Convert the tangent space
-                mulmv(dPdu, to, cdPdu);
-                mulmv(dPdv, to, cdPdv);
-
-                // Create a new sample
-                sample(C, P, dPdu, dPdv, N, context);
-                mulmv(C + 4, from, C + 4); // envdir is stored in the target coordinate system
+            // Compute the weight
+            float maxE1E2;
+            if (e2 > e1) {
+                maxE1E2 = e2;
             }
             else {
+                maxE1E2 = e1;
+            }
+            float w = 1 - K * maxE1E2;
+            if (w > draw(drawState) * smallSampleWeight) {
+                vector ntmp;
 
-                // No joy
-                C[0] = 0;
-                C[1] = 0;
-                C[2] = 0;
-                C[3] = 1;
-                C[4] = 0;
-                C[5] = 0;
-                C[6] = 0;
+                crossvv(ntmp, cSample->N, N);
+
+                // Sum the sample
+                totalWeight += w;
+                coverage += w * (cSample->coverage + dotvv(cSample->gP + 0 * 3, D) + dotvv(cSample->gR + 0 * 3, ntmp));
+                irradiance[0] += w * (cSample->irradiance[0] + dotvv(cSample->gP + 1 * 3, D) + dotvv(cSample->gR + 1 * 3, ntmp));
+                irradiance[1] += w * (cSample->irradiance[1] + dotvv(cSample->gP + 2 * 3, D) + dotvv(cSample->gR + 2 * 3, ntmp));
+                irradiance[2] += w * (cSample->irradiance[2] + dotvv(cSample->gP + 3 * 3, D) + dotvv(cSample->gR + 3 * 3, ntmp));
+                envdir[0] += w * (cSample->envdir[0] + dotvv(cSample->gP + 4 * 3, D) + dotvv(cSample->gR + 4 * 3, ntmp));
+                envdir[1] += w * (cSample->envdir[1] + dotvv(cSample->gP + 5 * 3, D) + dotvv(cSample->gR + 5 * 3, ntmp));
+                envdir[2] += w * (cSample->envdir[2] + dotvv(cSample->gP + 6 * 3, D) + dotvv(cSample->gR + 6 * 3, ntmp));
             }
         }
 
-        // Make sure we don't have NaNs
-        assert(dotvv(C, C) >= 0);
+        // Check the children
+        for (i = 0; i < 8; i++) {
+            CCacheNode *tNode;
+
+            if ((tNode = cNode->children[i]) != NULL) {
+                const float tSide = tNode->side;
+
+                if (((tNode->center[0] + tSide) > P[0]) &&
+                    ((tNode->center[1] + tSide) > P[1]) &&
+                    ((tNode->center[2] + tSide) > P[2]) &&
+                    ((tNode->center[0] - tSide) < P[0]) &&
+                    ((tNode->center[1] - tSide) < P[1]) &&
+                    ((tNode->center[2] - tSide) < P[2])) {
+                    *stack++ = tNode;
+                }
+            }
+        }
     }
+
+    // Do we have anything ?
+    if (totalWeight > C_EPSILON) {
+        double normalizer = 1 / totalWeight;
+
+        normalizevf(envdir);
+
+        C[0] = (float)(irradiance[0] * normalizer);
+        C[1] = (float)(irradiance[1] * normalizer);
+        C[2] = (float)(irradiance[2] * normalizer);
+        C[3] = (float)(coverage * normalizer);
+        mulmv(C + 4, from, envdir); // envdir is stored in the target coordinate system
+        return true;
+    }
+
+    return false;
 }
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CIrradianceCache
-// Method				:	sample
-// Description			:	Sample the occlusion
-// Return Value			:
-// Comments				:	Real body lives in irradianceDispatch.cpp (needs
-//							CShadingContext draw cursor/trace and
-//							CTextureLookup::staticInit); a non-shading stub
-//							lives in vector/irradianceDispatchStub.cpp for
-//							consumers that must not link libshader_shading.
+// Method				:	insertRecord
+// Description			:	Add a record the caller computed
+// Return Value			:	-
+// Comments				:	Everything that changes the tree happens under the cache's lock
+void CIrradianceCache::insertRecord(const CIrradianceRecord &record, float maxError) {
+    CCacheNode *cNode;
+    CCacheSample *cSample;
+    int depth;
+    int i, j;
+
+    // We're modifying, lock the thing
+    osLock(mutex);
+
+    // Create the sample
+    cSample = (CCacheSample *)memory->alloc(sizeof(CCacheSample));
+
+    // Record the data (in the target coordinate system)
+    cSample->set(record);
+
+    // Do the neighbour clamping trick
+    clamp(cSample);
+    float rMean = cSample->dP; // copy dP back so we get the right place in the octree
+
+    // The error multiplier
+    const float K = 0.4f / maxError;
+    rMean /= K;
+
+    // Insert the new sample into the cache
+    const float *P = cSample->P;
+    cNode = root;
+    depth = 0;
+    while (cNode->side > (2 * rMean)) {
+        depth++;
+
+        for (j = 0, i = 0; i < 3; i++) {
+            if (P[i] > cNode->center[i]) {
+                j |= 1 << i;
+            }
+        }
+
+        if (cNode->children[j] == NULL) {
+            CCacheNode *nNode = (CCacheNode *)memory->alloc(sizeof(CCacheNode));
+
+            for (i = 0; i < 3; i++) {
+                if (P[i] > cNode->center[i]) {
+                    nNode->center[i] = cNode->center[i] + cNode->side * 0.25f;
+                }
+                else {
+                    nNode->center[i] = cNode->center[i] - cNode->side * 0.25f;
+                }
+            }
+
+            cNode->children[j] = nNode;
+            nNode->side = cNode->side * 0.5f;
+            nNode->samples = NULL;
+            for (i = 0; i < 8; i++)
+                nNode->children[i] = NULL;
+        }
+
+        cNode = cNode->children[j];
+    }
+
+    cSample->next = cNode->samples;
+    cNode->samples = cSample;
+    if (depth > maxDepth) {
+        maxDepth = depth;
+    }
+
+    osUnlock(mutex);
+}
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CIrradianceCache

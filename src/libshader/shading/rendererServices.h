@@ -331,8 +331,10 @@ class CRendererServices {
         // Find or create the irradiance cache `handle`. `mode` is the file mode string of the cache
         // attribute ("r" read, "w" write, ...; nullptr is read as ""). `from` and `to` are the 16-float
         // column-major matrices of the cache's space. Output: a 3D-texture handle owned by the renderer and
-        // valid until the end of the frame's files, or nullptr when it cannot be opened. Locked and threaded
-        // as getPhotonMap.
+        // valid until the end of the frame's files, or nullptr when it cannot be opened or when `handle` is already
+        // registered as another kind of 3D file (a point cloud, a brick map). It answers only irradiance caches; Shading
+        // converts the answer with irradianceStoreOf() (irradianceStore.h) and a null answer is the "no joy" lookup
+        // (libshader::irradianceLookup). Locked and threaded as getPhotonMap.
         virtual CTexture3d *getCache(const char *handle, const char *mode, const float *from, const float *to) = 0;
         // Find or create the point cloud / brick map `name`; `write` non-zero opens it for writing with the
         // comma-separated `channels`; `from` and `to` as getCache; `hierarchy` builds the point hierarchy.

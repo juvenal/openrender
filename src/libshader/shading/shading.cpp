@@ -48,6 +48,7 @@
 #include "texture.h"
 #include "texture3d.h"
 #include "textureCalls.h"
+#include "irradianceCalls.h"
 #include "traceCalls.h"
 
 using namespace openrender::shading;
@@ -55,6 +56,7 @@ using namespace openrender::shading;
 // Default services pointer injected by src/ri/ at renderer startup.
 // nullptr until setDefaultServices() is called (standalone libshader mode).
 CRendererServices *CShadingContext::s_defaultServices = nullptr;
+openrender::shading::IIrradianceSampler *CShadingContext::s_defaultIrradianceSampler = nullptr;
 
 // George's extrapolated derivative extensions
 #define USE_EXTRAPOLATED_DERIV
@@ -3528,7 +3530,7 @@ void CShadingContext::jitOcclusionBatch(float *dst, int sd, const float *P, int 
         bindDraws(i, drawCounts, callSite, (uint32_t)scratch->traceParams.samples);
 
         float C[7];
-        cache->lookup(C, JIT_IDX(P, sP, i), PduScaled, PdvScaled, JIT_IDX(N, sN, i), this);
+        libshader::irradianceLookup(*this, cache, C, JIT_IDX(P, sP, i), PduScaled, PdvScaled, JIT_IDX(N, sN, i));
         for (int channel = 0; channel < lookup->numChannels; ++channel)
             channelValues[channel] = channelBase[channel] + (size_t)i * lookup->channelSize[channel];
         texture3Dunpack(C, lookup->numChannels, channelValues, lookup->channelEntry, lookup->channelSize);

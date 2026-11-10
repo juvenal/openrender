@@ -24,6 +24,7 @@
 #include "photonStore.h"
 #endif
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -66,6 +67,15 @@ static std::vector<CacheAnswer> queryCache(CIrradianceStore &cache, int &hits) {
     return answers;
 }
 
+// The records a cache holds, as a multiset: every field of every record (they are all floats, with no padding), sorted by their
+// bytes, so that the comparison is exact and does not depend on the order of the lists
+static std::vector<CIrradianceRecord> storedRecords(const CIrradianceCache &cache) {
+    std::vector<CIrradianceRecord> records;
+    cache.forEachRecord([&](const CIrradianceRecord &r) { records.push_back(r); });
+    std::sort(records.begin(), records.end(), [](const CIrradianceRecord &a, const CIrradianceRecord &b) { return memcmp(&a, &b, sizeof(a)) < 0; });
+    return records;
+}
+
 static int cacheSection() {
     printf("irradiance cache\n");
     matrix from, to;
@@ -76,6 +86,7 @@ static int cacheSection() {
 
     int hitsBefore = 0;
     std::vector<CacheAnswer> before;
+    std::vector<CIrradianceRecord> recordsBefore;
     {
         CIrradianceCache cache(name, CACHE_WRITE | CACHE_SAMPLE, NULL, from, to, NULL, bmin, bmax);
         for (int ix = 0; ix < 8; ix++) {
@@ -95,26 +106,37 @@ static int cacheSection() {
             }
         }
         before = queryCache(cache, hitsBefore);
+        recordsBefore = storedRecords(cache);
         printf("  %d of %zu lookups hit before the reload\n", hitsBefore, before.size());
         CHECK(hitsBefore > 0); // the comparison below would be vacuous
     } // the destructor writes the file
 
     int hitsAfter = 0;
     std::vector<CacheAnswer> after;
+    std::vector<CIrradianceRecord> recordsAfter;
     {
-        CIrradianceCache cache(name, CACHE_READ | CACHE_RDONLY, NULL, from, to, NULL, bmin, bmax);
+        // the same CACHE_SAMPLE flag as the writer: it sets the lookup's discard threshold
+        CIrradianceCache cache(name, CACHE_READ | CACHE_RDONLY | CACHE_SAMPLE, NULL, from, to, NULL, bmin, bmax);
         after = queryCache(cache, hitsAfter);
+        recordsAfter = storedRecords(cache);
     }
     remove(name);
     CHECK(hitsAfter == hitsBefore);
     CHECK(before.size() == after.size());
+    // every stored field of every record, exactly, as a multiset (the reader lists a node's records in the reverse of the order they
+    // were written, so a lookup sums in another order and its result can differ by an ulp: the records are compared, not that sum)
+    CHECK(!recordsBefore.empty());
+    CHECK(recordsBefore.size() == recordsAfter.size());
+    for (size_t i = 0; i < recordsBefore.size(); i++) {
+        CHECK(memcmp(&recordsBefore[i], &recordsAfter[i], sizeof(CIrradianceRecord)) == 0);
+    }
+    // which queries hit, and the query point and normal in the cache's space, are order-independent: exact too
     for (size_t i = 0; i < before.size(); i++) {
         CHECK(before[i].hit == after[i].hit);
-        CHECK(memcmp(before[i].C, after[i].C, sizeof(before[i].C)) == 0);
         CHECK(memcmp(before[i].Pc, after[i].Pc, sizeof(before[i].Pc)) == 0);
         CHECK(memcmp(before[i].Nc, after[i].Nc, sizeof(before[i].Nc)) == 0);
     }
-    printf("  the answers after the reload equal the answers before it\n");
+    printf("  the %zu stored records and the hits after the reload equal those before it\n", recordsBefore.size());
     return 0;
 }
 #endif

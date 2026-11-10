@@ -62,7 +62,7 @@ class CPointCloud : public CTexture3d, public CMap<CPointCloudPoint> {
         // Store/Lookup interface
         void store(const float *, const float *, const float *, float);
         void lookup(float *, const float *, const float *, float);
-        void lookup(float *, const float *, const float *, const float *, const float *, CShadingContext *) { assert(FALSE); }
+        void lookupPointBased(float *, const float *, const float *, const float *, const float *, const CPointBasedLookup &) { assert(FALSE); }
 
         // The extent and the name of the structure (the data viewer's adapter, CPointCloudView, reports them)
         void bound(float *bmin, float *bmax);

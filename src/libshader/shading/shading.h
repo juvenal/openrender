@@ -33,6 +33,7 @@
 #include "common/containers.h"
 #include "common/global.h"
 #include "libshader/shading/illuminationHook.h"
+#include "libshader/shading/irradianceSampler.h"
 #include "libshader/shading/pointSource.h"
 #include "libshader/shading/rendererServices.h"
 #include "libshader/shading/shaderGlobals.h"
@@ -448,6 +449,15 @@ class CShadingContext final {
         void setTracer(openrender::shading::ITracer *tracer) { tracerObject = tracer; }
         // The owner's tracer, nullptr if none (the services' tracer() is the fallback of libshader::traceRay, not of this accessor)
         openrender::shading::ITracer *tracer() const { return tracerObject; }
+
+        // ---- The irradiance sampler (spec 032): how libshader::irradianceLookup computes a new sample on a cache miss. The hider
+        // that owns the context installs one (the cache itself is passive storage and samples nothing); the process-wide default
+        // is the fallback for a context with none.
+        void setIrradianceSampler(openrender::shading::IIrradianceSampler *sampler) { irradianceSamplerObject = sampler; }
+        openrender::shading::IIrradianceSampler *irradianceSampler() const { return irradianceSamplerObject; }
+        static void setDefaultIrradianceSampler(openrender::shading::IIrradianceSampler *sampler) { s_defaultIrradianceSampler = sampler; }
+        static openrender::shading::IIrradianceSampler *defaultIrradianceSampler() { return s_defaultIrradianceSampler; }
+        bool irradianceSamplerWarned = false; // libshader::irradianceLookup has reported that no sampler is installed
 
         // The ray level (FR-017): the one public way to go one ray level deeper, and the one place the depth rule is applied.
         struct CRayLevel { // what leaveRayLevel() restores
@@ -1102,6 +1112,7 @@ class CShadingContext final {
         TObjectHash *traceObjectHash; // An object hash array for raytraced objects
         openrender::shading::IIlluminationHook *illuminationHookObject = nullptr; // See setIlluminationHook()
         openrender::shading::ITracer *tracerObject = nullptr;                     // See setTracer()
+        openrender::shading::IIrradianceSampler *irradianceSamplerObject = nullptr; // See setIrradianceSampler()
         openrender::shading::IShadingProducer *producerObject = nullptr;          // See setProducer()
 
         // The following functions are used in the shaders
@@ -1250,6 +1261,7 @@ class CShadingContext final {
 
         // Default renderer services injected by src/ri/ at startup via setDefaultServices()
         static CRendererServices *s_defaultServices;
+        static openrender::shading::IIrradianceSampler *s_defaultIrradianceSampler; // See setDefaultIrradianceSampler()
 };
 
 

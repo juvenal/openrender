@@ -1,42 +1,17 @@
 /**
  * Project: openRender
  *
- * File: irradianceDispatch.cpp
+ * File: irradianceSampler.cpp
  *
  * Description:
- *   Real (rendering-time) bodies of the two pieces of the irradiance-cache
- *   code that reach into the shading engine (the CShadingContext draw cursor/
- *   trace, CTextureLookup::staticInit) -- found via an `nm -u` sweep over
- *   ribVector_obj's built object files after adding hiders/irradiance.cpp
- *   back to its source list (needed for CIrradianceCache's constructor/
- *   lookup()/readNode(), which src/preview/libribpreview/dataSink.cpp's
- *   data-file viewer feature genuinely uses through CDataDocument::open()
- *   in dataLoad.cpp):
+ *   CIrradianceSampler (spec 032): the render-time half of the irradiance cache. The cache itself is passive storage in
+ *   Texturing; when a lookup finds nothing near the query point, Shading's libshader::irradianceLookup asks this sampler
+ *   for a new irradiance sample: the hemisphere, the probe rays (through libshader::traceRay, so the tracer of the
+ *   context's owner), environment lookups and photon-map reads, and, when the sample is worth keeping, its gradients and
+ *   radius of validity. It names no Texturing type; the cache keeps what it returns.
  *
- *   - CIrradianceCache::sample() computes a NEW irradiance sample by
- *     hemisphere sampling and ray tracing -- the render-time global-
- *     illumination pass, called only from the photon/irradiance hider
- *     while actually rendering. Nothing in orender-wire's preview path
- *     (or the data-viewer, which only ever reads an already-computed
- *     cache via lookup()) calls it.
- *
- *   - irradianceSampleAccept() is a small weighted-discard test lookup()
- *     itself calls while walking the cache's octree -- lookup() IS needed
- *     by the data-viewer, so this couldn't be handled by excluding the
- *     whole method; it needed pulling out just the one line that calls
- *     context->drawNext() (an inline read of the context's draw cursor). See
- *     irradiance.h's declaration and irradianceDispatchStub.cpp's stub
- *     for why the stub's answer is exact, not an approximation, for
- *     every case ribVector can actually reach.
- *
- *   A consumer that must not link libshader_shading (orender-wire's
- *   ribVector, see the domain-split plan) needs alternate, non-shading
- *   bodies for both -- see irradianceDispatchStub.cpp.
- *
- *   Everything else about CIrradianceCache (constructor/destructor,
- *   writeNode/readNode, lookup()'s own control flow, clamp(), draw(),
- *   keyDown(), bound()) has no such dependency and stays in
- *   hiders/irradiance.cpp, compiled identically for every consumer.
+ *   Nothing in orender-wire's preview path (or the data viewer, which only reads a cache already computed) reaches this
+ *   file: ribVector leaves it out (src/ri/CMakeLists.txt) and needs no stand-in, because the cache is passive storage.
  *
  * Authors:
  *   Okan Arikan <okan@cs.utexas.edu>
@@ -52,22 +27,17 @@
 
 #include "common/portable_io.h"
 #include "common/diagnostics.h"
-#include "irradiance.h"
+#include "hiderIrradianceSampler.h"
 #include "common/memory.h"
 #include "photonMap.h"
-#include "pointHierarchy.h"
-#include "renderer.h"
 #include "ri_config.h"
 #include "shaderPl.h"
 #include "shading.h"
 #include "common/stats.h"
 #include "surface.h"
-#include "texture.h"
 #include "traceCalls.h"
 
-// horizonCutoff and CHemisphereSample/posGradient/rotGradient below are used
-// only by sample(); moved here alongside it rather than left in
-// hiders/irradiance.cpp for the same reason sample() itself moved.
+// horizonCutoff and CHemisphereSample/posGradient/rotGradient below are used only by sample()
 const float horizonCutoff = (float)cosf((float)radians(80));
 
 ///////////////////////////////////////////////////////////////////////
@@ -244,13 +214,12 @@ inline void rotGradient(float *dP, int np, int nt, CHemisphereSample *h, const f
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Class				:	CIrradianceCache
+// Class				:	CIrradianceSampler
 // Method				:	sample
 // Description			:	Sample the occlusion
-// Return Value			:
-// Comments				:
-void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const float *dPdv, const float *N, CShadingContext *context) {
-    CCacheSample *cSample;
+// Return Value			:	-
+// Comments				:	P, dPdu, dPdv and N are in the cache's space; cacheFrom takes it to the tracer's
+void CIrradianceSampler::sample(CShadingContext &ctx, const float *cacheFrom, const float *P, const float *dPdu, const float *dPdv, const float *N, openrender::shading::IrradianceSample &out) {
     int i, j;
     float coverage;
     vector irradiance;
@@ -258,11 +227,9 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
     float rMean;
     CRay ray;
     vector X, Y;
-    CCacheNode *cNode;
-    int depth;
 
     // Allocate memory
-    const CShadingScratch *scratch = &(context->currentShadingState->scratch);
+    const CShadingScratch *scratch = &(ctx.currentShadingState->scratch);
     const int nt = (int)(sqrtf(scratch->traceParams.samples / (float)C_PI) + 0.5);
     const int np = (int)(C_PI * nt + 0.5);
     // Spec 039 (T076c): with no cache to fill, occlusion() takes `samples` directions from
@@ -276,7 +243,7 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
 
     // initialize texture lookups if needed
     if (scratch->occlusionParams.environment) {
-        CTextureLookup::staticInit(&(context->currentShadingState->scratch));
+        CTextureLookup::staticInit(&(ctx.currentShadingState->scratch));
     }
 
     // Create an orthanormal coordinate system
@@ -316,16 +283,16 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
     if (scratch->occlusionParams.occlusion == TRUE) {
 
         // We're shading for occlusion
-        context->numOcclusionRays += numSamples;
-        context->numOcclusionSamples++;
+        ctx.numOcclusionRays += numSamples;
+        ctx.numOcclusionSamples++;
 
         for (int k = 0; k < numSamples; k++, hemisphere++) {
             float rv[2];
             float tmp;
             float phi;
             if (fromSampler) {
-                const openrender::sampling::Sample2D dir = context->drawBound2D(0, (uint32_t)k);
-                const openrender::sampling::Sample2D origin = context->drawBound2D(1, (uint32_t)k);
+                const openrender::sampling::Sample2D dir = ctx.drawBound2D(0, (uint32_t)k);
+                const openrender::sampling::Sample2D origin = ctx.drawBound2D(1, (uint32_t)k);
                 rv[0] = origin.u;
                 rv[1] = origin.v;
                 tmp = sqrtf(dir.u);
@@ -334,10 +301,10 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
             else {
                 i = k / np;
                 j = k % np;
-                context->drawNext2(rv);
+                ctx.drawNext2(rv);
 
-                tmp = sqrtf((i + context->drawNext()) / (float)nt);
-                phi = (float)(2 * C_PI * (j + context->drawNext()) / (float)np);
+                tmp = sqrtf((i + ctx.drawNext()) / (float)nt);
+                phi = (float)(2 * C_PI * (j + ctx.drawNext()) / (float)np);
             }
             const float cosPhi = (cosf(phi) * tmp);
             const float sinPhi = (sinf(phi) * tmp);
@@ -365,10 +332,10 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
             ray.db = db;
 
             // Transform the ray into the right coordinate system
-            mulmp(ray.from, from, ray.from);
-            mulmv(ray.dir, from, ray.dir);
+            mulmp(ray.from, cacheFrom, ray.from);
+            mulmv(ray.dir, cacheFrom, ray.dir);
 
-            libshader::traceRay(*context, &ray, libshader::TraceKind::Occlusion, scratch->traceParams.label);
+            libshader::traceRay(ctx, &ray, libshader::TraceKind::Occlusion, scratch->traceParams.label);
 
             // Do we have an intersection ?
             if (ray.object != NULL) {
@@ -401,9 +368,9 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
                     movvv(D3, ray.dir);
 
                     float savedSamples = scratch->traceParams.samples;
-                    context->currentShadingState->scratch.traceParams.samples = 1;
-                    context->lookupEnvironment(tex, color, D0, D1, D2, D3);
-                    context->currentShadingState->scratch.traceParams.samples = savedSamples;
+                    ctx.currentShadingState->scratch.traceParams.samples = 1;
+                    ctx.lookupEnvironment(tex, color, D0, D1, D2, D3);
+                    ctx.currentShadingState->scratch.traceParams.samples = savedSamples;
 
                     addvv(irradiance, color);
                     movvv(hemisphere->irradiance, color);
@@ -429,16 +396,16 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
     else {
 
         // We're shading for indirectdiffuse
-        context->numIndirectDiffuseRays += numSamples;
-        context->numIndirectDiffuseSamples++;
+        ctx.numIndirectDiffuseRays += numSamples;
+        ctx.numIndirectDiffuseSamples++;
 
         for (i = 0; i < nt; i++) {
             for (j = 0; j < np; j++, hemisphere++) {
                 float rv[2];
-                context->drawNext2(rv);
+                ctx.drawNext2(rv);
 
-                float tmp = sqrtf((i + context->drawNext()) / (float)nt);
-                const float phi = (float)(2 * C_PI * (j + context->drawNext()) / (float)np);
+                float tmp = sqrtf((i + ctx.drawNext()) / (float)nt);
+                const float phi = (float)(2 * C_PI * (j + ctx.drawNext()) / (float)np);
                 const float cosPhi = (cosf(phi) * tmp);
                 const float sinPhi = (sinf(phi) * tmp);
 
@@ -465,10 +432,10 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
                 ray.db = db;
 
                 // Transform the ray into the right coordinate system
-                mulmp(ray.from, from, ray.from);
-                mulmv(ray.dir, from, ray.dir);
+                mulmp(ray.from, cacheFrom, ray.from);
+                mulmv(ray.dir, cacheFrom, ray.dir);
 
-                libshader::traceRay(*context, &ray, libshader::TraceKind::IndirectDiffuse, scratch->traceParams.label);
+                libshader::traceRay(ctx, &ray, libshader::TraceKind::IndirectDiffuse, scratch->traceParams.label);
 
                 // Do we have an intersection ?
                 if (ray.object != NULL) {
@@ -510,7 +477,7 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
                         addvv(irradiance, C);
                         movvv(hemisphere->irradiance, C);
 
-                        context->numIndirectDiffusePhotonmapLookups++;
+                        ctx.numIndirectDiffusePhotonmapLookups++;
                     }
                     else {
                         initv(hemisphere->irradiance, 0);
@@ -541,9 +508,9 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
                         movvv(D3, ray.dir);
 
                         float savedSamples = scratch->traceParams.samples;
-                        context->currentShadingState->scratch.traceParams.samples = 1;
-                        context->lookupEnvironment(tex, color, D0, D1, D2, D3);
-                        context->currentShadingState->scratch.traceParams.samples = savedSamples;
+                        ctx.currentShadingState->scratch.traceParams.samples = 1;
+                        ctx.lookupEnvironment(tex, color, D0, D1, D2, D3);
+                        ctx.currentShadingState->scratch.traceParams.samples = savedSamples;
 
                         addvv(irradiance, color);
                         movvv(hemisphere->irradiance, color);
@@ -577,26 +544,22 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
     normalizevf(envdir);
 
     // Record the value
-    C[0] = irradiance[0];
-    C[1] = irradiance[1];
-    C[2] = irradiance[2];
-    C[3] = coverage;
-    C[4] = envdir[0];
-    C[5] = envdir[1];
-    C[6] = envdir[2];
+    out.C[0] = irradiance[0];
+    out.C[1] = irradiance[1];
+    out.C[2] = irradiance[2];
+    out.C[3] = coverage;
+    out.C[4] = envdir[0];
+    out.C[5] = envdir[1];
+    out.C[6] = envdir[2];
 
     // Should we save it ?
+    out.keep = false;
     if ((scratch->occlusionParams.maxError != 0) && (coverage < 1 - C_EPSILON)) {
-
-        // We're modifying, lock the thing
-        osLock(mutex);
-
-        // Create the sample
-        cSample = (CCacheSample *)memory->alloc(sizeof(CCacheSample));
+        out.keep = true;
 
         // Compute the gradients of the illumination
-        posGradient(cSample->gP, np, nt, hemisphere, X, Y);
-        rotGradient(cSample->gR, np, nt, hemisphere, X, Y);
+        posGradient(out.gP, np, nt, hemisphere, X, Y);
+        rotGradient(out.gR, np, nt, hemisphere, X, Y);
 
         // Compute the radius of validity
         rMean *= 0.5f;
@@ -607,71 +570,16 @@ void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const
             rMean = maxDist;
         }
 
-        // Record the data (in the target coordinate system)
-        movvv(cSample->P, P);
-        movvv(cSample->N, N);
-        cSample->dP = rMean;
-        cSample->coverage = coverage;
-        movvv(cSample->envdir, envdir);
-        movvv(cSample->irradiance, irradiance);
-
-        // Do the neighbour clamping trick
-        clamp(cSample);
-        rMean = cSample->dP; // copy dP back so we get the right place in the octree
-
-        // The error multiplier
-        const float K = 0.4f / scratch->occlusionParams.maxError;
-        rMean /= K;
-
-        // Insert the new sample into the cache
-        cNode = root;
-        depth = 0;
-        while (cNode->side > (2 * rMean)) {
-            depth++;
-
-            for (j = 0, i = 0; i < 3; i++) {
-                if (P[i] > cNode->center[i]) {
-                    j |= 1 << i;
-                }
-            }
-
-            if (cNode->children[j] == NULL) {
-                CCacheNode *nNode = (CCacheNode *)memory->alloc(sizeof(CCacheNode));
-
-                for (i = 0; i < 3; i++) {
-                    if (P[i] > cNode->center[i]) {
-                        nNode->center[i] = cNode->center[i] + cNode->side * 0.25f;
-                    }
-                    else {
-                        nNode->center[i] = cNode->center[i] - cNode->side * 0.25f;
-                    }
-                }
-
-                cNode->children[j] = nNode;
-                nNode->side = cNode->side * 0.5f;
-                nNode->samples = NULL;
-                for (i = 0; i < 8; i++)
-                    nNode->children[i] = NULL;
-            }
-
-            cNode = cNode->children[j];
-        }
-
-        cSample->next = cNode->samples;
-        cNode->samples = cSample;
-        if (depth > maxDepth) {
-            maxDepth = depth;
-        }
-
-        osUnlock(mutex);
+        out.dP = rMean;
     }
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Function				:	irradianceSampleAccept
-// Description			:	Weighted-discard test for CIrradianceCache::lookup()
-// Return Value			:	TRUE if the sample should be accepted
+// Function				:	irradianceSamplerInstance
+// Description			:	The shared sampler
+// Return Value			:	-
 // Comments				:
-bool irradianceSampleAccept(float w, float smallSampleWeight, CShadingContext *context) {
-    return w > context->drawNext() * smallSampleWeight;
+openrender::shading::IIrradianceSampler &irradianceSamplerInstance() {
+    static CIrradianceSampler instance;
+    return instance;
 }
