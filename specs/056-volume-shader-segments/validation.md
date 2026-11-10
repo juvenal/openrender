@@ -272,3 +272,16 @@ from `attributes.h`; the flag write in `csgSolid.cpp` is gone (the clone and the
 - T100 candidates (rendered after T094/T098 by `056-p3-render`): `tools/proposed/csg/csg-sphere-sphere-difference-interior-raytrace{,-inside}.{tif,png}` beside the old references (`*-OLD.png`).
   Outside: the mirrored sphere is tinted by the Exterior fog (blue) on the reflected rays, the boundary carries no fog of its own, the notch is visible at the left edge. Inside:
   the camera is inside the material, the reflections are tinted by the Interior fog (red), no fog painted over the walls. **Not copied to `examples/rib/tests/references/`: T100 is a PAUSE (image by image).**
+
+### T100 to T104: the references, the full runs, CHECKPOINT 3
+
+- T100: the maintainer approved both candidate images as rendered (outside and inside; the inside image's inner disc is visibly grainy, which is the scene's own
+  deterministic sampling noise) with the condition that the Linux `Visual_` test passes against the new macOS references at the default threshold. They were copied over
+  `examples/rib/tests/references/csg-sphere-sphere-difference-interior-raytrace.tif` and `-inside.tif`; no threshold changed.
+- Condition met: on Linux (`056-p3b-lx-vis`) both `Visual_csg-sphere-sphere-difference-interior-raytrace` and `-inside` pass at the default threshold.
+- T101 (macOS): `ctest -L architecture` 29 / 29 (`056-p3-arch`); `ctest -LE determinism-sweep -j4` (`056-p3-all`): 1302 tests, **8 failed = exactly the Phase 4 rows**
+  (`VolumeProbe_incident-opposite_*` 6, `ShadingContract_MessageSide{Interp,Jit}` 2); both CSG Visual tests and every `VolumeProbe_csg-fragment_*` pass;
+  `ctest -L '^determinism-sweep$' -j2` (`056-p3-sweep`): 570 / 570.
+- T102 (Linux, GCC 13 `-Werror`, `-j2`): build clean, architecture 29 / 29, full run 1303 tests, 9 failed = the 8 Phase 4 rows plus the baseline `TextureTile_RenderByteIdentical`;
+  sweep 570 / 570 (`DeterminismSweep_volume-csg-fragment-raytrace-slo`, the Linux-only starting-tree failure, now passes: the arrival-side rule it exposed is gone).
+- Expected red at the end of Phase 3: only the Phase 4 rows. `git diff HEAD -- tests/architecture/allowlist.txt` is empty; DB-004/DB-017 lines keyed on `csgSolid.cpp` are untouched (the deleted line named no foreign symbol).
