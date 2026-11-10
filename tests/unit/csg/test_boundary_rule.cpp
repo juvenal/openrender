@@ -53,7 +53,7 @@ class CCountingSphere : public CSurface {
             double t0 = (-b - std::sqrt(disc)) / (2 * a), t1 = (-b + std::sqrt(disc)) / (2 * a);
             return (t0 > 0) + (t1 > 0);
         }
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const override {}
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const override {}
 
         float c[3], r;
         mutable int calls;

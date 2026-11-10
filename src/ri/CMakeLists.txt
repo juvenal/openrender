@@ -82,6 +82,7 @@ set(ri_sources
 	geometry/csgSolid.cpp
 	geometry/surfaceCrossingDispatch.cpp
 	geometry/geometryHost.cpp
+	geometry/geometryFrame.cpp
 	dataviewer/dataLoad.cpp
 	dataviewer/dataView.cpp
 	dataviewer/debug.cpp
@@ -214,6 +215,9 @@ target_link_libraries(ribRender_obj PRIVATE openrendercommon ${openrendertiff_li
 # compiles texmake.cpp/imageInput.cpp too -- unlike TIFF/PNG/RGBE (already
 # zero-cost there), OpenEXR is a real, optional external dependency this
 # target should stay free of.
+# geometryFrame.cpp reports (debug builds) a read with no CGeometryFrame installed; only the renderer installs one,
+# so ribVector_obj, which never does, is compiled without the definition (spec 031).
+target_compile_definitions(ribRender_obj PRIVATE OPENRENDER_GEOMETRY_FRAME_REPORT)
 if(HAVE_OPENEXR)
     target_compile_definitions(ribRender_obj PRIVATE HAVE_OPENEXR)
     target_link_libraries(ribRender_obj PRIVATE ${OPENRENDER_OPENEXR_LIBS})

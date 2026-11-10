@@ -68,7 +68,7 @@ class CCurve : public CSurface {
 
         // Object interface
         void dice(CReyes *);
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 
         // Surface interface
         int moving() const { return base->variables->moving; }
@@ -127,7 +127,7 @@ class CCurveMesh : public CObject {
         // Object interface
         void intersect(CShadingContext *, CRay *) {}
         void dice(CReyes *rasterizer);
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         // Raw vertex/topology data for non-shading consumers (e.g. orender-wire's
         // wireframe extractor), which has no CShadingContext to dice() through.
@@ -151,7 +151,5 @@ class CCurveMesh : public CObject {
         const CVariable *sizeVariable;
         float maxSize;
 };
-
-void curvesCreate(CAttributes *, CXform *, CPl *, int, int, int, int *, int, CRendererContext *);
 
 #endif

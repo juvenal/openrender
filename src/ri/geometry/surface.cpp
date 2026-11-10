@@ -34,7 +34,6 @@
 #include "common/diagnostics.h"
 #include "common/memory.h"
 #include "renderer.h"
-#include "rendererContext.h"
 #include "reyes.h"
 #include "shading.h"
 #include "common/stats.h"
@@ -2346,17 +2345,17 @@ void CTesselationPatch::splitToChildren(CShadingContext *context) {
 // Description			:	initialize the thread data for tesselations
 // Return Value			:
 // Comments				:
-void CTesselationPatch::initTesselations(int geoCacheMemory) {
+void CTesselationPatch::initTesselations(int geoCacheMemory, int numThreads) {
     for (int i = 0; i < TESSELATION_NUM_LEVELS; i++) {
-        lastRefNumbers[i] = new int[CRenderer::numThreads];
-        tesselationUsedMemory[i] = new int[CRenderer::numThreads];
+        lastRefNumbers[i] = new int[numThreads];
+        tesselationUsedMemory[i] = new int[numThreads];
 
-        for (int j = 0; j < CRenderer::numThreads; j++) {
+        for (int j = 0; j < numThreads; j++) {
             tesselationUsedMemory[i][j] = 0;
         }
 
         // calculate the maximum tesselation cache size per thread, per level
-        tesselationMaxMemory[i] = (int)ceil((float)geoCacheMemory / (float)TESSELATION_NUM_LEVELS / (float)CRenderer::numThreads);
+        tesselationMaxMemory[i] = (int)ceil((float)geoCacheMemory / (float)TESSELATION_NUM_LEVELS / (float)numThreads);
     }
 
     // Init stats

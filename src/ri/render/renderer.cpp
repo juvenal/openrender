@@ -752,7 +752,7 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     shadeops->beginFrame(numThreads);
 
     // Initialize tesselations
-    CTesselationPatch::initTesselations(geoCacheSize);
+    CTesselationPatch::initTesselations(geoCacheSize, numThreads);
 
     // Initialize the brickmaps
     CBrickMap::initBrickMap(maxBrickSize);
@@ -838,6 +838,10 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
         contexts[i]->shadingContext().setSamplingConfig(samplingConfig);
         contexts[i]->shadingContext().updateState();
     }
+
+    // The frame limits Geometry reads (spec 031). After the contexts exist: the raytrace and photon hiders OR
+    // ATTRIBUTES_FLAGS_PRIMARY_VISIBLE into raytracingFlags in their constructors, so the copy is final only here
+    beginGeometryFrame();
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -918,6 +922,9 @@ void CRenderer::endFrame() {
 
     // Cleanup the tesselations
     CTesselationPatch::shutdownTesselations();
+
+    // Nothing in Geometry reads the frame limits from here on (spec 031)
+    endGeometryFrame();
 
     // Release the world
     world->detach();

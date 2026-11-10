@@ -44,7 +44,7 @@ class CPatch : public CObject {
 
         void intersect(CShadingContext *, CRay *) { assert(FALSE); }
         void dice(CReyes *); // Split or render this object
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 
         void buildLayout(CReyes *, int wrapU, int wrapV); // Decide every split up front (root patch only)
 
@@ -85,11 +85,11 @@ class CTesselationPatch : public CObject {
 
         void intersect(CShadingContext *, CRay *);
         void dice(CReyes *) { assert(FALSE); }
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 
         void initTesselation(CShadingContext *context);
 
-        static void initTesselations(int geoCacheMemory);
+        static void initTesselations(int geoCacheMemory, int numThreads);
         static void shutdownTesselations();
 
     private:

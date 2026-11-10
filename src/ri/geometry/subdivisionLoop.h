@@ -57,7 +57,7 @@ class CLoopSubdivMesh : public CObject {
 
         void intersect(CShadingContext *, CRay *);
         void dice(CReyes *rasterizer);
-        void instantiate(CAttributes *a, CXform *x, CRiInterface *c) const;
+        void instantiate(CAttributes *a, CXform *x, IObjectSink *c) const;
 
         int moving() const { return pl->data1 != NULL; }
 

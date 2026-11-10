@@ -200,7 +200,7 @@ void CImplicit::dice(CReyes *) {
 // Description			:	Create a copy
 // Return Value			:	-
 // Comments				:
-void CImplicit::instantiate(CAttributes *, CXform *, CRiInterface *) const {
+void CImplicit::instantiate(CAttributes *, CXform *, IObjectSink *) const {
 }
 
 ///////////////////////////////////////////////////////////////////////

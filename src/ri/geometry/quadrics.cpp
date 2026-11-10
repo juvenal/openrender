@@ -41,7 +41,6 @@
 #include "patchUtils.h"
 #include "quadrics.h"
 #include "renderer.h"
-#include "rendererContext.h"
 #include "shading.h"
 #include "common/stats.h"
 #include "surface.h"
@@ -525,7 +524,7 @@ void CSphere::interpolate(int numVertices, float **varying, float ***locals) con
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CSphere::instantiate(CAttributes *a, CXform *x, CRiInterface *cx) const {
+void CSphere::instantiate(CAttributes *a, CXform *x, IObjectSink *cx) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform
@@ -939,7 +938,7 @@ void CDisk::interpolate(int numVertices, float **varying, float ***locals) const
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CDisk::instantiate(CAttributes *a, CXform *x, CRiInterface *cx) const {
+void CDisk::instantiate(CAttributes *a, CXform *x, IObjectSink *cx) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform
@@ -1369,7 +1368,7 @@ void CCone::interpolate(int numVertices, float **varying, float ***locals) const
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CCone::instantiate(CAttributes *a, CXform *x, CRiInterface *cx) const {
+void CCone::instantiate(CAttributes *a, CXform *x, IObjectSink *cx) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform
@@ -1826,7 +1825,7 @@ void CParaboloid::interpolate(int numVertices, float **varying, float ***locals)
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CParaboloid::instantiate(CAttributes *a, CXform *x, CRiInterface *cx) const {
+void CParaboloid::instantiate(CAttributes *a, CXform *x, IObjectSink *cx) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform
@@ -2276,7 +2275,7 @@ void CCylinder::interpolate(int numVertices, float **varying, float ***locals) c
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CCylinder::instantiate(CAttributes *a, CXform *x, CRiInterface *cx) const {
+void CCylinder::instantiate(CAttributes *a, CXform *x, IObjectSink *cx) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform
@@ -2818,7 +2817,7 @@ void CHyperboloid::interpolate(int numVertices, float **varying, float ***locals
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CHyperboloid::instantiate(CAttributes *a, CXform *x, CRiInterface *cx) const {
+void CHyperboloid::instantiate(CAttributes *a, CXform *x, IObjectSink *cx) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform
@@ -3297,7 +3296,7 @@ void CToroid::interpolate(int numVertices, float **varying, float ***locals) con
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CToroid::instantiate(CAttributes *a, CXform *x, CRiInterface *cx) const {
+void CToroid::instantiate(CAttributes *a, CXform *x, IObjectSink *cx) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform

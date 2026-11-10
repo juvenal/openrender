@@ -34,7 +34,7 @@ namespace {
         f.maxGridSize = 289;
         f.maxEyeSplits = 13;
         f.flags = OPTIONS_FLAGS_MOTIONBLUR | OPTIONS_FLAGS_FOCALBLUR;
-        f.raytracingFlags = ATTRIBUTES_FLAGS_PRIMARY_VISIBLE | ATTRIBUTES_FLAGS_SHADOW_VISIBLE;
+        f.raytracingFlags = ATTRIBUTES_FLAGS_PRIMARY_VISIBLE | ATTRIBUTES_FLAGS_TRANSMISSION_VISIBLE;
         f.projection = OPTIONS_PROJECTION_PERSPECTIVE;
         f.imagePlane = 1.3125f;
         f.dPixeldx = 0.0031f;
@@ -79,7 +79,7 @@ namespace {
     // the frame's camera2pixels is renderer.h's expression over the same values
     void testCamera2Pixels() {
         const CGeometryFrame f = filledFrame();
-        CRenderer::projection = f.projection;
+        CRenderer::projection = (EProjectionType)f.projection;
         CRenderer::imagePlane = f.imagePlane;
         CRenderer::dPixeldx = f.dPixeldx;
         CRenderer::dPixeldy = f.dPixeldy;

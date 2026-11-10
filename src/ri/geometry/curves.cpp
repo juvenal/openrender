@@ -30,7 +30,6 @@
 #include "common/memory.h"
 #include "motion.h"
 #include "renderer.h"
-#include "rendererContext.h"
 #include "reyes.h"
 #include "common/stats.h"
 
@@ -697,7 +696,7 @@ CCurveMesh::~CCurveMesh() {
 // Description			:	instantiate
 // Return Value			:	Clone the object
 // Comments				:	-
-void CCurveMesh::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
+void CCurveMesh::instantiate(CAttributes *a, CXform *x, IObjectSink *c) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform

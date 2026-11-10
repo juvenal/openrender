@@ -72,7 +72,7 @@ class CTestSurface : public CSurface {
     public:
         CTestSurface(CAttributes *a, CXform *x) : CSurface(a, x) {}
         ~CTestSurface() {}
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(false); }
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(false); }
 };
 
 static bool writeFixture(const std::string &path, const std::string &shaderKind, const std::string &shaderName, const std::string &paramDecl, const std::string &body) {

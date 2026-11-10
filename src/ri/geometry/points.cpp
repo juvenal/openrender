@@ -30,7 +30,6 @@
 #include "motion.h"
 #include "points.h"
 #include "renderer.h"
-#include "rendererContext.h"
 #include "reyes.h"
 #include "common/stats.h"
 
@@ -271,7 +270,7 @@ void CPoints::interpolate(int numVertices, float **varying, float ***locals) con
 // Description			:	Clone the points
 // Return Value			:	-
 // Comments				:
-void CPoints::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
+void CPoints::instantiate(CAttributes *a, CXform *x, IObjectSink *c) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform

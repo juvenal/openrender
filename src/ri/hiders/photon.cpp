@@ -53,7 +53,7 @@ class CPhonySurface : public CSurface {
         CPhonySurface(CAttributes *a, CXform *x) : CSurface(a, x) {}
         ~CPhonySurface() {}
 
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 };
 
 // Spec 039: a photon draws from the sampler sub-stream of its own identity,

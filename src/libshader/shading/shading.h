@@ -82,11 +82,7 @@ namespace openrender::shading {
     class IShadingProducer; // shadingProducer.h
 }
 
-typedef enum {
-    SHADING_0D,      // Shading points
-    SHADING_2D_GRID, // Shading a 2D grid
-    SHADING_2D       // Shading a 2D surface that has been arbitraryly sampled
-} EShadingDim;
+#include "common/shadingDim.h" // EShadingDim (moved to Infra by spec 031)
 
 // Predefined ray labels used during raytracing
 extern const char *rayLabelPrimary;

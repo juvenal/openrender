@@ -35,7 +35,6 @@
 #include "patches.h"
 #include "polygons.h"
 #include "renderer.h"
-#include "rendererContext.h"
 #include "reyes.h"
 #include "shading.h"
 #include "common/stats.h"
@@ -1322,7 +1321,7 @@ void CPolygonMesh::dice(CReyes *r) {
 // Description			:	Instanciate the mesh
 // Return Value			:	-
 // Comments				:
-void CPolygonMesh::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
+void CPolygonMesh::instantiate(CAttributes *a, CXform *x, IObjectSink *c) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform

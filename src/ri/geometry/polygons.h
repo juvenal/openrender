@@ -47,7 +47,7 @@ class CPolygonMesh : public CObject {
 
         void intersect(CShadingContext *, CRay *);
         void dice(CReyes *);
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         // Raw vertex/topology data for non-shading consumers (e.g. orender-wire's
         // wireframe extractor), which has no CShadingContext to dice() through.
@@ -87,7 +87,7 @@ class CPolygonTriangle : public CSurface {
 
         void intersect(CShadingContext *, CRay *);
         int countCrossings(CShadingContext *, const float *, const float *) const;
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 
         int moving() const { return mesh->pl->data1 != NULL; }
         void sample(int, int, float **, float ***, unsigned int &) const;
@@ -110,7 +110,7 @@ class CPolygonQuad : public CSurface {
 
         void intersect(CShadingContext *, CRay *);
         int countCrossings(CShadingContext *, const float *, const float *) const;
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 
         int moving() const { return mesh->pl->data1 != NULL; }
         void sample(int, int, float **, float ***, unsigned int &) const;

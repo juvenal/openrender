@@ -41,7 +41,7 @@ class CSubdivision : public CSurface {
         ~CSubdivision();
         int countCrossings(CShadingContext *, const float *, const float *) const; // Spec 021
 
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 
         int moving() const { return vertexData->moving; }
         void sample(int, int, float **, float ***, unsigned int &) const;

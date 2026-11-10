@@ -28,7 +28,6 @@
 
 #include "delayed.h"
 #include "renderer.h"
-#include "rendererContext.h"
 #include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////
@@ -100,7 +99,7 @@ CDelayedObject::~CDelayedObject() {
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CDelayedObject::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
+void CDelayedObject::instantiate(CAttributes *a, CXform *x, IObjectSink *c) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform);
@@ -162,7 +161,7 @@ CDelayedInstance::~CDelayedInstance() {
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CDelayedInstance::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
+void CDelayedInstance::instantiate(CAttributes *a, CXform *x, IObjectSink *c) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform);

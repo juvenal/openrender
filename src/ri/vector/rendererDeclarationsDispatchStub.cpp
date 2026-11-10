@@ -14,13 +14,9 @@
  *     `if (contexts != NULL)` guard and relying on it always being false)
  *     means this build never needs CShadingContext resolvable at all.
  *
- *   - CRenderer::findCoordinateSystem()'s one reachable caller
- *     (CObject::makeBound()) guards it behind
- *     `attributes->maxDisplacementSpace != NULL`, which nothing on the
- *     preview path can ever set true (see rendererDeclarationsDispatch.cpp's
- *     header comment for the full argument) -- so this is a loud,
- *     unreachable stub, matching CSurface::intersect()'s pattern rather
- *     than notifyGlobalVariable()'s.
+ *   - CRenderer::findCoordinateSystem() is no longer defined here (spec 031): its one reachable caller,
+ *     CObject::makeBound(), asks the Geometry host (CGeometryHost::findCoordinateSystem), and a build with no
+ *     host resolves to nothing, as for an unknown system.
  *
  * Authors:
  *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
@@ -41,8 +37,3 @@ void CRenderer::notifyGlobalVariable(CVariable *) {
     // CShadingContext instances to notify (the numbering is Graphics State's).
 }
 
-int CRenderer::findCoordinateSystem(const char *, const float *&, const float *&, ECoordinateSystem &) {
-    error(CODE_BUG, "CRenderer::findCoordinateSystem() reached in a build with no rendering pipeline\n");
-    assert(FALSE);
-    return FALSE;
-}

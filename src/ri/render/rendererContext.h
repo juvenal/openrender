@@ -64,6 +64,9 @@ class CRendererContext : public CRiInterface, public CGeometryHost {
         CObject *capture(const CObject *object, CAttributes *attributes, CXform *xform) override;
         CObject *expand(const CObject *procedural, CAttributes *flagged) override;
         void releaseAtFrameEnd(CFrameResource *resource) override;
+        void expandDelayedObject(CDelayedObject *object) override;
+        void expandDelayedInstance(CDelayedInstance *instance) override;
+        int findCoordinateSystem(const char *name, const float *&from, const float *&to, ECoordinateSystem &system) override;
 
         // Rendering of the frame is over: hand every pending frame resource
         // its frameEnded() call (CRenderer::endFrame, before the hierarchy goes)
@@ -220,8 +223,8 @@ class CRendererContext : public CRiInterface, public CGeometryHost {
         CShaderInstance *getShader(const char *, int, int, const char **, const void **); // Load a shader
 
         // Delayed object junk
-        void processDelayedObject(CShadingContext *context, CDelayedObject *, void (*subdivisionFunction)(void *, float), void *, const float *, const float *);
-        void processDelayedInstance(CShadingContext *context, CDelayedInstance *instance);
+        void processDelayedObject(CDelayedObject *, void (*subdivisionFunction)(void *, float), void *, const float *, const float *);
+        void processDelayedInstance(CDelayedInstance *instance);
 
         virtual void addObject(CObject *) override; // Add an object into the scene
         void addInstance(const void *);    // Add an instance into the scene

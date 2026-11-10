@@ -55,7 +55,7 @@ class CSphere : public CSurface {
         int wrapsU() const { return (nextData == NULL) && isFullTurn(umax); }
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
             int depthValue = 3 - depth;
@@ -102,7 +102,7 @@ class CDisk : public CSurface {
         int wrapsU() const { return (nextData == NULL) && isFullTurn(umax); }
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         void wireData(float &r, float &z, float &umax) const {
             r = this->r;
@@ -138,7 +138,7 @@ class CCone : public CSurface {
         int wrapsU() const { return (nextData == NULL) && isFullTurn(umax); }
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
             int depthValue2 = 3 - depth;
@@ -186,7 +186,7 @@ class CParaboloid : public CSurface {
         int wrapsU() const { return (nextData == NULL) && isFullTurn(umax); }
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
             int depthValue = 3 - depth;
@@ -236,7 +236,7 @@ class CCylinder : public CSurface {
         int wrapsU() const { return (nextData == NULL) && isFullTurn(umax); }
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
             int depthValue2 = 3 - depth;
@@ -284,7 +284,7 @@ class CHyperboloid : public CSurface {
         int wrapsU() const { return (nextData == NULL) && isFullTurn(umax); }
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
             int depthValue = 3 - depth;
@@ -334,7 +334,7 @@ class CToroid : public CSurface {
         int wrapsV() const { return (nextData == NULL) && isFullTurn(vmax - vmin); }
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
             int depthValue = 3 - depth;

@@ -43,7 +43,6 @@ static dmatrix dinvBezier = {0, 0, 0, 1.0,
                              0, 1.0 / 3.0, 2.0 / 3.0, 1.0,
                              1.0, 1.0, 1.0, 1.0};
 #include "renderer.h"
-#include "rendererContext.h"
 #include "reyes.h"
 #include "shading.h"
 #include "common/stats.h"
@@ -1567,7 +1566,7 @@ CPatchMesh::~CPatchMesh() {
 // Description			:	instantiate
 // Return Value			:	Clone the object
 // Comments				:	-
-void CPatchMesh::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
+void CPatchMesh::instantiate(CAttributes *a, CXform *x, IObjectSink *c) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform
@@ -1842,7 +1841,7 @@ CNURBSPatchMesh::~CNURBSPatchMesh() {
 // Description			:	instantiate
 // Return Value			:	Clone the object
 // Comments				:	-
-void CNURBSPatchMesh::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
+void CNURBSPatchMesh::instantiate(CAttributes *a, CXform *x, IObjectSink *c) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform

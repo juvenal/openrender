@@ -27,7 +27,7 @@
 #include "common/diagnostics.h"
 #include "patches.h"
 #include "polygons.h"
-#include "riInterface.h"
+#include "objectSink.h"
 #include "common/stats.h"
 #include "subdivisionCreator.h"
 #include "subdivisionLoop.h"
@@ -183,7 +183,7 @@ void CCSGSolid::intersect(CShadingContext *context, CRay *) {
 //							composed transform (ObjectInstance)
 // Return Value			:	-
 // Comments				:
-void CCSGSolid::instantiate(CAttributes *a, CXform *x, CRiInterface *cx) const {
+void CCSGSolid::instantiate(CAttributes *a, CXform *x, IObjectSink *cx) const {
     CXform *nx = new CXform(x);
     nx->concat(xform);
     cx->addObject(new CCSGSolid(a != NULL ? a : attributes, nx, definition));

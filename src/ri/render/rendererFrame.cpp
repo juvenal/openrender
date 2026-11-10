@@ -20,12 +20,14 @@
 #include "rendererFrame.h"
 
 #include "frameParams.h"
+#include "geometryFrame.h"
 #include "renderer.h"
 
 namespace {
 
     openrender::FrameParams frameValue;               // the installed value
     openrender::CFrameCamera *frameCameraObject = NULL; // the frame's camera
+    CGeometryFrame geometryFrameValue = CGeometryFrame(); // the installed geometry frame (spec 031)
 
 } // namespace
 
@@ -65,6 +67,31 @@ void beginFrameParams(const openrender::sampling::CSamplingConfig &samplingConfi
 
     delete frameCameraObject;
     frameCameraObject = new openrender::CFrameCamera(frameValue);
+}
+
+void beginGeometryFrame() {
+    CGeometryFrame &g = geometryFrameValue;
+
+    g.numThreads = CRenderer::numThreads;
+    g.maxGridSize = CRenderer::maxGridSize;
+    g.maxEyeSplits = CRenderer::maxEyeSplits;
+    g.flags = CRenderer::flags;
+    g.raytracingFlags = CRenderer::raytracingFlags;
+    g.projection = (int)CRenderer::projection;
+    g.imagePlane = CRenderer::imagePlane;
+    g.dPixeldx = CRenderer::dPixeldx;
+    g.dPixeldy = CRenderer::dPixeldy;
+    g.pixelLeft = CRenderer::pixelLeft;
+    g.pixelTop = CRenderer::pixelTop;
+    g.clipMin = CRenderer::clipMin;
+    g.cocFactorPixels = CRenderer::cocFactorPixels;
+    g.invFocaldistance = CRenderer::invFocaldistance;
+
+    installGeometryFrame(&geometryFrameValue);
+}
+
+void endGeometryFrame() {
+    installGeometryFrame(NULL);
 }
 
 void endFrameParams() {

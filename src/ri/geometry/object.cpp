@@ -32,7 +32,8 @@
 #include "common/random.h"
 #include "common/sampling.h"
 #include "renderer.h"
-#include "rendererContext.h"
+#include "geometryFrame.h"
+#include "geometryHost.h"
 #include "common/riVocabulary.h"
 #include "ri_config.h"
 #include "shading.h"
@@ -206,7 +207,8 @@ void CObject::makeBound(float *bmin, float *bmax) const {
         const float *from, *to;
         ECoordinateSystem sys;
 
-        if (CRenderer::findCoordinateSystem(attributes->maxDisplacementSpace, from, to, sys)) {
+        CGeometryHost *host = geometryHost();
+        if (host != NULL && host->findCoordinateSystem(attributes->maxDisplacementSpace, from, to, sys)) {
             maxDisp = attributes->maxDisplacement * getDisp(from, attributes->maxDisplacement);
         }
 
@@ -240,7 +242,7 @@ void CObject::estimateDicing(float *P, int udiv, int vdiv, int &nudiv, int &nvdi
     if (!nonrasterorient) {
 
         // Project to pixels
-        camera2pixels((udiv + 1) * (vdiv + 1), P);
+        camera2pixels(geometryFrame(), (udiv + 1) * (vdiv + 1), P);
 
         // U stats
         cP = P;
@@ -284,18 +286,19 @@ void CObject::estimateDicing(float *P, int udiv, int vdiv, int &nudiv, int &nvdi
     else { // non raster oriented
         vector tmp;
 
+        const CGeometryFrame &f = geometryFrame();
         float maxDim;
-        if (CRenderer::dPixeldy > CRenderer::dPixeldx) {
-            maxDim = CRenderer::dPixeldy;
+        if (f.dPixeldy > f.dPixeldx) {
+            maxDim = f.dPixeldy;
         }
         else {
-            maxDim = CRenderer::dPixeldx;
+            maxDim = f.dPixeldx;
         }
-        if (CRenderer::projection == OPTIONS_PROJECTION_PERSPECTIVE) {
+        if (f.projection == OPTIONS_PROJECTION_PERSPECTIVE) {
             for (j = 0; j < (vdiv + 1) * (udiv + 1); ++j) {
                 float x, y;
-                x = (CRenderer::imagePlane * P[j * 3 + COMP_X] / P[j * 3 + COMP_Z]);
-                y = (CRenderer::imagePlane * P[j * 3 + COMP_Y] / P[j * 3 + COMP_Z]);
+                x = (f.imagePlane * P[j * 3 + COMP_X] / P[j * 3 + COMP_Z]);
+                y = (f.imagePlane * P[j * 3 + COMP_Y] / P[j * 3 + COMP_Z]);
                 initv(tmp, x - P[j * 3 + COMP_X], y - P[j * 3 + COMP_Y], P[j * 3 + COMP_Z] - 1);
                 P[j * 3 + COMP_X] = x * maxDim;
                 P[j * 3 + COMP_Y] = y * maxDim;
@@ -304,8 +307,8 @@ void CObject::estimateDicing(float *P, int udiv, int vdiv, int &nudiv, int &nvdi
         }
         else {
             for (j = 0; j < (vdiv + 1) * (udiv + 1); ++j) {
-                P[j * 3 + COMP_X] = P[j * 3 + COMP_X] * CRenderer::dPixeldx;
-                P[j * 3 + COMP_Y] = P[j * 3 + COMP_Y] * CRenderer::dPixeldy;
+                P[j * 3 + COMP_X] = P[j * 3 + COMP_X] * f.dPixeldx;
+                P[j * 3 + COMP_Y] = P[j * 3 + COMP_Y] * f.dPixeldy;
                 P[j * 3 + COMP_Z] *= maxDim;
             }
         }

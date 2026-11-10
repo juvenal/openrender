@@ -114,6 +114,7 @@ Nothing overrides `dice(CReyes *)` / `splitToChildren(CReyes *)` outside Geometr
 
 | Phase | CP-a | CP-b | CP-c | CP-d | CP-r | CP-det | CP-m | CP-Lb |
 |---|---|---|---|---|---|---|---|---|
+| 3 | macOS Release build exit 0, 0 compiler warnings (first build stopped only on the two compile-only test fixes of §2); Linux incremental build exit 0, **0 warnings** under GCC 13 `-Werror` | macOS **1099/1099** (the baseline's 1097 plus `Geometry_ObjectSink`, `Geometry_FrameDefault`); re-run on the final tree (after `clang-format` of 3 files) 1099/1099 | `ctest -L architecture` 29/29 on both hosts; `ALLOWED DB-004 x 33, DB-006 x 30, DB-010 x 8, DB-011 x 164, DB-017 x 77, DB-025 x 12` = **324**; METRIC Geometry refs 48 -> **30** (distinct 15 -> 9), Hiders 556/81 unchanged, TOTAL 604 -> 586 (the metrics baseline file is not lowered until T077); `RESULT PASS` | **0 differing, 0 missing** of 915 images (`image_manifest.sh diff` with the macOS baseline), `MaxBlockAvgDiff` listing identical (empty `diff`), on both the first and the final tree | `Motion_(Replay|CameraSlerpEquivalence)` 10/10 on both hosts; `git diff --stat -- tests/unit/motion/replay` empty | `^determinism$` 156/156 (macOS) | `-L '^geometry_contract$'` 2/2 (`Geometry_ObjectSink`, `Geometry_FrameDefault`) on both hosts; later tests not built | Linux push 3,754 files, `verify` 0 differences; build, `-L architecture` 29/29, contract 2/2, motion 10/10 |
 | 2 | macOS: red-evidence configure ON then OFF, 0 `Building` lines after OFF (nothing rebuilt); Linux: build exit 0, 0 warnings | not re-run (nothing but gated tests and CMake changed; the baseline suite is the Phase 1 record) | `ctest -L architecture`: 29 of 29 on both hosts; report: 344 entries (DB-004 52, DB-006 30, DB-010 8, DB-011 164, DB-017 78, DB-025 12), Geometry 48/15, Hiders 556/81, TOTAL 604/89, `RESULT PASS` | n/a (no image-producing code changed) | n/a | n/a | `-L '^geometry_contract$'` finds no test with the option OFF (both hosts) | done, `Motion_*` 10/10 |
 | 1 | macOS build exit 0, 0 warnings; Linux build exit 0, 0 warnings | macOS 1097/1097 (1 self-skip), twice, sweep 419/419 twice; Linux 1097/1098 (#45) twice, sweep 419/419 twice | `ctest -L architecture`: 29 of 29 on both hosts (344 entries, RESULT PASS) | baselines recorded (0 noise on both hosts) | n/a | n/a | n/a | baseline built and verified (§3) |
 
@@ -143,6 +144,34 @@ Two defects found and fixed in my own new tests before the evidence was recorded
 length-prefixed identifiers (`15CShadingContext`, `6CReyes`, `6CHider`, `16IShadingProducer`), exact by construction, and needs no `c++filt`; it was re-run (the table above is the second run).
 
 Switched back: `OPENRENDER_031_RED_TESTS=OFF`; `cmake --build build` finds nothing to rebuild (0 `Building` lines in `build-logs/p2-offbuild.log`).
+
+### Phase 3 scratch mutations (T045; each reverted, `git diff` empty afterwards)
+
+1. **F1 install point.** `beginGeometryFrame()` moved to right after `beginFrameParams(samplingConfig)` (`renderer.cpp:805`), rebuilt, `ctest -R 'Visual_.*raytrace'` (80 tests): **77 of 80 failed and `image_manifest.sh diff` reported 77 differing images** (the 835 "missing" are every image outside the subset, as expected). The install point after the context loop is therefore load-bearing, and the F1 evidence is red as required.
+2. **`camera2pixels` copy.** One character changed in `geometryFrame.h` (`- f.pixelLeft` to `+ f.pixelLeft` in the perspective branch): `Geometry_FrameDefault` **fails** (exit 8).
+3. **Report check (T039).** See §4 item 6.
+
+### Phase 3 test gate (T035)
+
+PAUSE 3a (T034) approved: the signature-only edits of the seven approved tests and of `CPhonySurface` and `CCaptureHolder`; enabling `Geometry_ObjectSink` and `Geometry_FrameDefault`; the 20 allowlist deletions;
+the install point after the context loop; and compile-only fixes to the two enabled tests (no assertion, threshold or expected value). Evidence (`tools/red-phase3-macos.txt`):
+- `Geometry_ObjectSink` and `Geometry_FrameDefault` moved out of the red block (`tests/geometry_contract/CMakeLists.txt`); after a reconfigure, both fail to build: `'objectSink.h' file not found`, `'geometryFrame.h' file not found`.
+  (A first attempt without the reconfigure said "No rule to make target": a gate artefact of `cmake --build --target` before the CMake regeneration, repeated correctly.)
+- The 20 allowlist lines deleted by key; `ctest -L architecture` red with **exactly 20 `VIOLATION` lines** (`ALLOWED DB-004 x 33 ... DB-017 x 77`, `RESULT FAIL violations=20 stale=0 badid=0`): `blobby.cpp -> CRenderer::retrieveVariable`; `csgSolid.cpp:30` and `subdivisionLoop.cpp:40 -> riInterface.h`;
+  `-> rendererContext.h` of `curves`, `delayed`, `object`, `patches`, `points`, `polygons`, `quadrics`, `subdivisionCreator`, `surface`; `object.cpp -> CRenderer::{imagePlane, projection, raytracingFlags, dPixeldx, dPixeldy, pixelTop, pixelLeft}`; `object.cpp -> CRenderer::findCoordinateSystem`. (`failing-cycles=1` appeared with them and is gone with the code.)
+
+**Compile-only fixes to the two enabled tests** (the programs had never compiled; shown as diffs, no assertion or threshold touched):
+
+```
+tests/geometry_contract/test_object_sink.cpp
+-        CCsgSession session;
++        csgtest::CCsgSession session;                      (the helper lives in namespace csgtest)
+tests/geometry_contract/test_frame_default.cpp
+-        f.raytracingFlags = ATTRIBUTES_FLAGS_PRIMARY_VISIBLE | ATTRIBUTES_FLAGS_SHADOW_VISIBLE;
++        f.raytracingFlags = ATTRIBUTES_FLAGS_PRIMARY_VISIBLE | ATTRIBUTES_FLAGS_TRANSMISSION_VISIBLE;   (no SHADOW_VISIBLE exists; the transmission/shadow bit is the one meant; the test sets a value and reads the same value back)
+-        CRenderer::projection = f.projection;
++        CRenderer::projection = (EProjectionType)f.projection;                                        (int to enum)
+```
 
 ## §3 Linux records
 
@@ -182,6 +211,14 @@ Phase 1 is complete; the maintainer commits it before Phase 2 starts.
 1. HEAD/staging mismatch (§0 Orientation): the tasks-stage edits are committed, not staged. Informational.
 2. T013: only `hiders/photonMap.cpp` is include fallout; the 57 non-Geometry failures of a naive strip probe are Geometry's own `object.h:97` `CRenderer` use (informational, for whoever repeats the probe).
 3. The `rendererShadingServices.cpp:95` caller cited in F4 no longer exists (informational, spec text drift).
+5. **T038 writers audit** (the statics copied into `CGeometryFrame`: `numThreads, maxGridSize, maxEyeSplits, flags, raytracingFlags, projection, imagePlane, dPixeldx, dPixeldy, pixelLeft, pixelTop, clipMin, cocFactorPixels, invFocaldistance`).
+   Every writer in `src/ri`: `renderer.cpp:201-256, :386-420, :720, :746` (all in `beginRenderer()`/`beginFrame()` before the context loop, hence before the install) and **`hiders/raytracer.cpp:391` and `hiders/photon.cpp:74`**
+   (`raytracingFlags |= ATTRIBUTES_FLAGS_PRIMARY_VISIBLE`, in the hider constructors). No writer after `beginFrameParams` other than those two: the task did not stop. `rendererContext.cpp:1150-1719` write `COptions` fields, not the statics.
+   **Readers while the frame is not installed**: `CRaytracer::CRaytracer` reaches `CHider(thread)`/`CShadingContext`, the primary bundle and `new float[]`s; `CPhotonHider::CPhotonHider` reaches `CPhonySurface` (`CSurface(a, world)` -> `CObject::CObject`, which reads neither `raytraced()` nor the frame) and `attach()`;
+   `CHider`/`updateState()` are Shading. None calls `geometryFrame()` or `raytraced()`; no reader stops the task and the install stays after the loop. The only `geometryFrame()` readers in Phase 3 are `CObject::estimateDicing` (dice time, inside a frame) and `raytraced()` (exempt accessor).
+6. **T039 report check.** `geometryFrame()` reports once (`CODE_BUG`) a read with no frame installed in a debug build of the renderer (`OPENRENDER_GEOMETRY_FRAME_REPORT`, defined for `ribRender_obj` only); `raytraced()` uses `geometryFrameRaytracingFlags()`, which never reports.
+   The report is compiled out of the Release suite, so a scratch mutation forced it on (`#if 1`), the whole suite ran (1099/1099 passed), and `LastTest.log` was searched: **exactly one report, from `Geometry_FrameDefault` itself**, which reads the default on purpose ("nothing installed: all zero").
+   No other test reaches the report. The mutation was reverted (`git diff` empty).
 4. `build` is 580 MB, not the 2.6 GB of the main checkout's tree; the `build-base` copy was affordable once the maintainer freed disk.
 
 ## §5 Reference approvals

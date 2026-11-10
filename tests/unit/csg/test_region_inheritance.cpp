@@ -29,7 +29,7 @@ class CTestObject : public CObject {
     public:
         CTestObject() : CObject(new CAttributes(), new CXform()) {}
         void intersect(CShadingContext *, CRay *) override {}
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const override {}
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const override {}
 };
 
 class CTestRegion : public CRegionPredicate {

@@ -167,7 +167,7 @@ class CNoRegionSurface : public CSurface {
         }
         int honorsRegion() const override { return FALSE; }
         void intersect(CShadingContext *, CRay *) override {}
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const override {}
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const override {}
 };
 
 TEST(unsupported_members_are_dropped_with_one_warning) {

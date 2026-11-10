@@ -140,7 +140,7 @@ void CDLObject::dice(CReyes *) {
 // Description			:	Create a copy
 // Return Value			:	-
 // Comments				:
-void CDLObject::instantiate(CAttributes *, CXform *, CRiInterface *) const {
+void CDLObject::instantiate(CAttributes *, CXform *, IObjectSink *) const {
 }
 
 ///////////////////////////////////////////////////////////////////////

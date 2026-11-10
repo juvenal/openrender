@@ -49,12 +49,14 @@
  * License: GNU Lesser General Public License (LGPL) 2.1
  *
  */
+#include <atomic>
 #include <vector>
 
 #include <math.h>
 
 #include "curves.h"
 #include "delayed.h"
+#include "geometryHost.h"
 #include "common/diagnostics.h"
 #include "common/memory.h"
 #include "object.h"
@@ -699,23 +701,44 @@ void CPoints::dice(CReyes *rasterizer) {
     }
 }
 
+namespace {
+
+    // With no host installed a delayed object stays unexpanded and the missing host is reported once
+    void reportNoGeometryHost() {
+        static std::atomic<bool> reported{false};
+        if (!reported.exchange(true))
+            error(CODE_BUG, "A delayed object or instance was reached with no geometry host installed\n");
+    }
+
+    void expandThroughHost(CDelayedObject *object) {
+        CGeometryHost *host = geometryHost();
+        if (host != NULL)
+            host->expandDelayedObject(object);
+        else
+            reportNoGeometryHost();
+    }
+
+    void expandThroughHost(CDelayedInstance *instance) {
+        CGeometryHost *host = geometryHost();
+        if (host != NULL)
+            host->expandDelayedInstance(instance);
+        else
+            reportNoGeometryHost();
+    }
+
+} // namespace
+
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CDelayedObject
 // Method				:	intersect
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CDelayedObject::intersect(CShadingContext *context, CRay *) {
+void CDelayedObject::intersect(CShadingContext *, CRay *) {
 
-    // Process the object
-    if (processed == FALSE) {
-        osLock(CRenderer::delayedMutex);
-        if (processed == FALSE) {
-            CRenderer::context->processDelayedObject(context, this, subdivisionFunction, data, bmin, bmax);
-            processed = TRUE;
-        }
-        osUnlock(CRenderer::delayedMutex);
-    }
+    // Process the object (through the host, which serializes the expansion)
+    if (processed == FALSE)
+        expandThroughHost(this);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -727,14 +750,8 @@ void CDelayedObject::intersect(CShadingContext *context, CRay *) {
 void CDelayedObject::dice(CReyes *r) {
 
     // Process the object
-    if (processed == FALSE) {
-        osLock(CRenderer::delayedMutex);
-        if (processed == FALSE) {
-            CRenderer::context->processDelayedObject(&r->shadingContext(), this, subdivisionFunction, data, bmin, bmax);
-            processed = TRUE;
-        }
-        osUnlock(CRenderer::delayedMutex);
-    }
+    if (processed == FALSE)
+        expandThroughHost(this);
 
     // Let the parent dice it
     CObject::dice(r);
@@ -746,17 +763,11 @@ void CDelayedObject::dice(CReyes *r) {
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CDelayedInstance::intersect(CShadingContext *context, CRay *) {
+void CDelayedInstance::intersect(CShadingContext *, CRay *) {
 
     // Process the instance
-    if (processed == FALSE) {
-        osLock(CRenderer::delayedMutex);
-        if (processed == FALSE) {
-            CRenderer::context->processDelayedInstance(context, this);
-            processed = TRUE;
-        }
-        osUnlock(CRenderer::delayedMutex);
-    }
+    if (processed == FALSE)
+        expandThroughHost(this);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -768,14 +779,8 @@ void CDelayedInstance::intersect(CShadingContext *context, CRay *) {
 void CDelayedInstance::dice(CReyes *r) {
 
     // Process the instance
-    if (processed == FALSE) {
-        osLock(CRenderer::delayedMutex);
-        if (processed == FALSE) {
-            CRenderer::context->processDelayedInstance(&r->shadingContext(), this);
-            processed = TRUE;
-        }
-        osUnlock(CRenderer::delayedMutex);
-    }
+    if (processed == FALSE)
+        expandThroughHost(this);
 
     // Let the parent take care of the instance
     CObject::dice(r);

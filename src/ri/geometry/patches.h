@@ -50,7 +50,7 @@ class CBilinearPatch : public CSurface {
 
         // CObject interface
         void intersect(CShadingContext *, CRay *);
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 
         // CSurface interface
         int moving() const { return variables->moving; }
@@ -75,7 +75,7 @@ class CBicubicPatch : public CSurface {
         int countCrossings(CShadingContext *, const float *, const float *) const; // Spec 021
 
         // CObject interface
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 
         // CSurface interface
         int moving() const { return variables->moving; }
@@ -102,7 +102,7 @@ class CNURBSPatch : public CSurface {
         int countCrossings(CShadingContext *, const float *, const float *) const; // Spec 021
 
         // CObject interface
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 
         // CSurface interface
         int moving() const { return variables->moving; }
@@ -155,7 +155,7 @@ class CPatchMesh : public CObject {
         // CObject interface
         void intersect(CShadingContext *, CRay *);
         void dice(CReyes *rasterizer);
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         // Raw control-cage data for non-shading consumers (e.g. orender-wire's
         // wireframe extractor), which has no CShadingContext to dice() through.
@@ -240,7 +240,7 @@ class CNURBSPatchMesh : public CObject {
         // CObject interface
         void intersect(CShadingContext *, CRay *);
         void dice(CReyes *rasterizer);
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         // Raw control-cage data for non-shading consumers (e.g. orender-wire's
         // wireframe extractor), which has no CShadingContext to dice() through.

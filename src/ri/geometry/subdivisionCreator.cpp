@@ -34,7 +34,6 @@
 #include "patchgrid.h"
 #include "pl.h"
 #include "renderer.h"
-#include "rendererContext.h"
 #include "reyes.h"
 #include "common/riVocabulary.h"
 #include "ri_config.h"
@@ -1876,7 +1875,7 @@ void CSubdivMesh::dice(CReyes *rasterizer) {
 // Description			:	Clone the primitive
 // Return Value			:	-
 // Comments				:
-void CSubdivMesh::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
+void CSubdivMesh::instantiate(CAttributes *a, CXform *x, IObjectSink *c) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform

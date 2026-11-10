@@ -79,7 +79,7 @@ class CTestSurface : public CSurface {
     public:
         CTestSurface(CAttributes *a, CXform *x) : CSurface(a, x) {}
         ~CTestSurface() {}
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(false); }
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(false); }
 };
 
 // Four points, xcomp(P) from -1.5 to 1.5

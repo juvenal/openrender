@@ -30,6 +30,8 @@
 #include <atomic>
 
 #include "attributes.h"
+#include "geometryFrame.h"
+#include "objectSink.h"
 #include "common/global.h"
 #include "ray.h"
 #include "common/refCounter.h"
@@ -45,7 +47,6 @@ class CShadingContext;
 class CReyes;
 class CVolume;
 class CRendererContext;
-class CRiInterface;
 class CTesselationPatch;
 
 // Various object flags
@@ -95,7 +96,7 @@ class CObject : public CRefCounter {
         virtual ~CObject();
 
         // Instance management
-        inline int raytraced() { return (attributes->flags & CRenderer::raytracingFlags); }
+        inline int raytraced() { return (attributes->flags & geometryFrameRaytracingFlags()); }
 
         ///////////////////////////////////////////////////////////////
         //
@@ -106,7 +107,7 @@ class CObject : public CRefCounter {
         //
         virtual void intersect(CShadingContext *, CRay *) = 0;
         virtual void dice(CReyes *);
-        virtual void instantiate(CAttributes *, CXform *, CRiInterface *) const = 0;
+        virtual void instantiate(CAttributes *, CXform *, IObjectSink *) const = 0;
 
         // Cluster the children
         void cluster(CShadingContext *);
@@ -161,7 +162,7 @@ class CDummyObject : public CObject {
         virtual ~CDummyObject();
 
         virtual void intersect(CShadingContext *, CRay *);
-        virtual void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
+        virtual void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 };
 
 ///////////////////////////////////////////////////////////////////////

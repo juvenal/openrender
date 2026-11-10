@@ -30,6 +30,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#include "../geometry/objectSink.h" // IObjectSink: where CObject::instantiate() reports its objects (spec 031)
 #include "ri.h"
 #include "ri_config.h"
 
@@ -41,7 +42,7 @@ class COptions;    // forward declaration for getOptions()
 // Class				:	CRiInterface
 // Description			:	This is the virtual class that implements the RenderMan interface
 // Comments				:
-class CRiInterface {
+class CRiInterface : public IObjectSink {
     public:
         // Assigns nothing global and attaches nothing: a constructed context is not the active one until
         // riInstallContext() makes it so (spec 038)
@@ -50,7 +51,7 @@ class CRiInterface {
         // has reported (the end-of-render statistics still reach the context's own handler)
         virtual ~CRiInterface();
 
-        virtual void addObject(CObject *) {}
+        void addObject(CObject *) override {}
 
         // General-purpose accessor for a context that tracks a real
         // CAttributes stack (CRendererContext, CRibGeometryContext); one that

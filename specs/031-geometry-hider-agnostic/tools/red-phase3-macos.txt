@@ -1,0 +1,30 @@
+VIOLATION link    src/ri/geometry/blobby.cpp -> _ZN9CRenderer16retrieveVariableEPKc (CRenderer::retrieveVariable(char const*))  [Geometry -> Core] rule: allowed-dependency table (Geometry may depend on: GraphicsState, Procedures, Infra)  defined in: src/ri/render/rendererDeclarations.cpp
+VIOLATION include src/ri/geometry/csgSolid.cpp:30 -> src/ri/parse/riInterface.h  [Geometry -> SceneInterface] rule: allowed-dependency table (Geometry may depend on: GraphicsState, Procedures, Infra)
+VIOLATION include src/ri/geometry/curves.cpp:33 -> src/ri/render/rendererContext.h  [Geometry -> Core] rule: allowed-dependency table (Geometry may depend on: GraphicsState, Procedures, Infra)
+VIOLATION include src/ri/geometry/delayed.cpp:31 -> src/ri/render/rendererContext.h  [Geometry -> Core] rule: allowed-dependency table (Geometry may depend on: GraphicsState, Procedures, Infra)
+VIOLATION link    src/ri/geometry/object.cpp -> _ZN9CRenderer10imagePlaneE (CRenderer::imagePlane)  [Geometry -> Core] rule: allowed-dependency table (Geometry may depend on: GraphicsState, Procedures, Infra)  defined in: src/ri/render/rendererStatics.cpp
+VIOLATION link    src/ri/geometry/object.cpp -> _ZN9CRenderer10projectionE (CRenderer::projection)  [Geometry -> Core] rule: allowed-dependency table (Geometry may depend on: GraphicsState, Procedures, Infra)  defined in: src/ri/render/rendererStatics.cpp
+VIOLATION link    src/ri/geometry/object.cpp -> _ZN9CRenderer15raytracingFlagsE (CRenderer::raytracingFlags)  [Geometry -> Core] rule: allowed-dependency table (Geometry may depend on: GraphicsState, Procedures, Infra)  defined in: src/ri/render/rendererStatics.cpp
+VIOLATION link    src/ri/geometry/object.cpp -> _ZN9CRenderer20findCoordinateSystemEPKcRPKfS4_R17ECoordinateSystem (CRenderer::findCoordinateSystem(char const*, float const*&, float const*&, ECoordinateSystem&))  [Geometry -> Core] rule: allowed-dependency table (Geometry may depend on: GraphicsState, Procedures, Infra)  defined in: src/ri/render/rendererDeclarationsDispatch.cpp, src/ri/vector/rendererDeclarationsDispatchStub.cpp
+VIOLATION link    src/ri/geometry/object.cpp -> _ZN9CRenderer8dPixeldxE (CRenderer::dPixeldx)  [Geometry -> Core] rule: allowed-dependency table (Geometry may depend on: GraphicsState, Procedures, Infra)  defined in: src/ri/render/rendererStatics.cpp
+VIOLATION link    src/ri/geometry/object.cpp -> _ZN9CRenderer8dPixeldyE (CRenderer::dPixeldy)  [Geometry -> Core] rule: allowed-dependency table (Geometry may depend on: GraphicsState, Procedures, Infra)  defined in: src/ri/render/rendererStatics.cpp
+VIOLATION link    src/ri/geometry/object.cpp -> _ZN9CRenderer8pixelTopE (CRenderer::pixelTop)  [Geometry -> Core] rule: allowed-dependency table (Geometry may depend on: GraphicsState, Procedures, Infra)  defined in: src/ri/render/rendererStatics.cpp
+VIOLATION link    src/ri/geometry/object.cpp -> _ZN9CRenderer9pixelLeftE (CRenderer::pixelLeft)  [Geometry -> Core] rule: allowed-dependency table (Geometry may depend on: GraphicsState, Procedures, Infra)  defined in: src/ri/render/rendererStatics.cpp
+VIOLATION include src/ri/geometry/object.cpp:35 -> src/ri/render/rendererContext.h  [Geometry -> Core] rule: allowed-dependency table (Geometry may depend on: GraphicsState, Procedures, Infra)
+VIOLATION include src/ri/geometry/patches.cpp:46 -> src/ri/render/rendererContext.h  [Geometry -> Core] rule: allowed-dependency table (Geometry may depend on: GraphicsState, Procedures, Infra)
+VIOLATION include src/ri/geometry/points.cpp:33 -> src/ri/render/rendererContext.h  [Geometry -> Core] rule: allowed-dependency table (Geometry may depend on: GraphicsState, Procedures, Infra)
+VIOLATION include src/ri/geometry/polygons.cpp:38 -> src/ri/render/rendererContext.h  [Geometry -> Core] rule: allowed-dependency table (Geometry may depend on: GraphicsState, Procedures, Infra)
+VIOLATION include src/ri/geometry/quadrics.cpp:44 -> src/ri/render/rendererContext.h  [Geometry -> Core] rule: allowed-dependency table (Geometry may depend on: GraphicsState, Procedures, Infra)
+VIOLATION include src/ri/geometry/subdivisionCreator.cpp:37 -> src/ri/render/rendererContext.h  [Geometry -> Core] rule: allowed-dependency table (Geometry may depend on: GraphicsState, Procedures, Infra)
+VIOLATION include src/ri/geometry/subdivisionLoop.cpp:40 -> src/ri/parse/riInterface.h  [Geometry -> SceneInterface] rule: allowed-dependency table (Geometry may depend on: GraphicsState, Procedures, Infra)
+VIOLATION include src/ri/geometry/surface.cpp:37 -> src/ri/render/rendererContext.h  [Geometry -> Core] rule: allowed-dependency table (Geometry may depend on: GraphicsState, Procedures, Infra)
+ALLOWED   DB-004 x 33 DB-006 x 30 DB-010 x 8 DB-011 x 164 DB-017 x 77 DB-025 x 12
+RESULT    FAIL violations=20 stale=0 badid=0 failing-cycles=1 notbuilt=0
+
+== test_geometry_object_sink build:
+tests/geometry_contract/test_object_sink.cpp:24:10: fatal error: 'objectSink.h' file not found
+1 error generated.
+
+== test_geometry_frame_default build:
+tests/geometry_contract/test_frame_default.cpp:21:10: fatal error: 'geometryFrame.h' file not found
+1 error generated.

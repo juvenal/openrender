@@ -55,7 +55,7 @@ int main() {
     (void)tests_passed; // csgTestUtils.h's counters, unused here
     (void)tests_failed;
     {
-        CCsgSession session;
+        csgtest::CCsgSession session;
 
         CObject *sphere = session.one([&] { RiSphere(1.0f, -1.0f, 1.0f, 360.0f, RI_NULL); });
         checkReportsExactlyTheCreatedObjects(sphere);

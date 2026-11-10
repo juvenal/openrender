@@ -13,42 +13,23 @@
 # --- DB-004: Geometry depends on the renderer core and on Scene Interface (52) ---
 DB-004  include  src/ri/geometry/blobby.cpp  ->  src/ri/render/renderer.h
 DB-004  include  src/ri/geometry/blobbyRepeller.cpp  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/csgSolid.cpp  ->  src/ri/parse/riInterface.h
 DB-004  include  src/ri/geometry/curves.cpp  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/curves.cpp  ->  src/ri/render/rendererContext.h
 DB-004  include  src/ri/geometry/delayed.cpp  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/delayed.cpp  ->  src/ri/render/rendererContext.h
 DB-004  include  src/ri/geometry/dlobject.cpp  ->  src/ri/render/renderer.h
 DB-004  include  src/ri/geometry/implicitSurface.cpp  ->  src/ri/render/renderer.h
 DB-004  include  src/ri/geometry/object.cpp  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/object.cpp  ->  src/ri/render/rendererContext.h
 DB-004  include  src/ri/geometry/object.h  ->  src/ri/render/renderer.h
 DB-004  include  src/ri/geometry/objectMisc.h  ->  src/ri/render/renderer.h
 DB-004  include  src/ri/geometry/patches.cpp  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/patches.cpp  ->  src/ri/render/rendererContext.h
 DB-004  include  src/ri/geometry/patchgrid.cpp  ->  src/ri/render/renderer.h
 DB-004  include  src/ri/geometry/points.cpp  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/points.cpp  ->  src/ri/render/rendererContext.h
 DB-004  include  src/ri/geometry/polygons.cpp  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/polygons.cpp  ->  src/ri/render/rendererContext.h
 DB-004  include  src/ri/geometry/quadrics.cpp  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/quadrics.cpp  ->  src/ri/render/rendererContext.h
 DB-004  include  src/ri/geometry/subdivision.cpp  ->  src/ri/render/renderer.h
 DB-004  include  src/ri/geometry/subdivisionCreator.cpp  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/subdivisionCreator.cpp  ->  src/ri/render/rendererContext.h
-DB-004  include  src/ri/geometry/subdivisionLoop.cpp  ->  src/ri/parse/riInterface.h
 DB-004  include  src/ri/geometry/surface.cpp  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/surface.cpp  ->  src/ri/render/rendererContext.h
-DB-004  link     src/ri/geometry/blobby.cpp  ->  _ZN9CRenderer16retrieveVariableEPKc   # CRenderer::retrieveVariable(char const*)
 DB-004  link     src/ri/geometry/blobbyRepeller.cpp  ->  _ZN9CRenderer10locateFileEPcPKcP11TSearchpathi   # CRenderer::locateFile(char*, char const*, TSearchpath*, int)
 DB-004  link     src/ri/geometry/blobbyRepeller.cpp  ->  _ZN9CRenderer11texturePathE   # CRenderer::texturePath
-DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer10imagePlaneE   # CRenderer::imagePlane
-DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer10projectionE   # CRenderer::projection
-DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer15raytracingFlagsE   # CRenderer::raytracingFlags
-DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer8dPixeldxE   # CRenderer::dPixeldx
-DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer8dPixeldyE   # CRenderer::dPixeldy
-DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer8pixelTopE   # CRenderer::pixelTop
-DB-004  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer9pixelLeftE   # CRenderer::pixelLeft
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer10imagePlaneE   # CRenderer::imagePlane
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer10inFrustrumEPKfS1_   # CRenderer::inFrustrum(float const*, float const*)
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer10numThreadsE   # CRenderer::numThreads
@@ -303,7 +284,6 @@ DB-017  link     src/ri/geometry/implicitSurface.cpp  ->  _ZN8CSurface14regionCo
 DB-017  link     src/ri/geometry/implicitSurface.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
 DB-017  link     src/ri/geometry/implicitSurface.cpp  ->  _ZTV8CSurface   # vtable for CSurface
 DB-017  link     src/ri/geometry/object.cpp  ->  _ZN7CObject4diceEP6CReyes   # CObject::dice(CReyes*)
-DB-017  link     src/ri/geometry/object.cpp  ->  _ZN9CRenderer20findCoordinateSystemEPKcRPKfS4_R17ECoordinateSystem   # CRenderer::findCoordinateSystem(char const*, float const*&, float const*&, ECoordinateSystem&)
 DB-017  link     src/ri/geometry/patches.cpp  ->  _ZN7CObject4diceEP6CReyes   # CObject::dice(CReyes*)
 DB-017  link     src/ri/geometry/patches.cpp  ->  _ZN8CSurface13checkRayGuardEP4CRayP15CShadingContext   # CSurface::checkRayGuard(CRay*, CShadingContext*)
 DB-017  link     src/ri/geometry/patches.cpp  ->  _ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph   # CSurface::regionCoverage(CShadingContext*, int, int, float const*, float const*, unsigned char*)

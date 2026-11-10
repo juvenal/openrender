@@ -37,7 +37,7 @@
 #include "common/diagnostics.h"
 #include "polygons.h"
 #include "reyes.h"
-#include "riInterface.h"
+#include "objectSink.h"
 #include "common/stats.h"
 #include "subdivisionLoop.h"
 
@@ -362,7 +362,7 @@ void CLoopSubdivMesh::dice(CReyes *rasterizer) {
 // Description			:	Instantiate the primitive
 // Return Value			:	-
 // Comments				:
-void CLoopSubdivMesh::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
+void CLoopSubdivMesh::instantiate(CAttributes *a, CXform *x, IObjectSink *c) const {
     CXform *nx = new CXform(x);
     nx->concat(xform);
 

@@ -60,7 +60,7 @@ class CProbeSurface : public CSurface {
     public:
         CProbeSurface(CAttributes *a, CXform *x) : CSurface(a, x) {}
         ~CProbeSurface() {}
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(false); }
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(false); }
 };
 
 static const int kNumPoints = 4;

@@ -77,7 +77,7 @@ class CCSGSolid : public CObject {
         // CObject interface
         void intersect(CShadingContext *, CRay *);
         void dice(CReyes *);
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         // Build the per-instance state and the children, exactly once; the
         // first dice() or intersect() calls it. Later calls return at once.
