@@ -182,6 +182,7 @@ SClassicLifecycleCounts transportClassicLifecycleCounts();   // a snapshot of th
 | unknown integrator at frame begin | `CODE_BADTOKEN` (error) | `Integrator "<name>" unavailable; registered: <n1>, <n2>. Using "classic"` |
 | unaccepted parameter | `CODE_BADTOKEN` (error; maintainer answer Q4: `orender` exits -1, like an unknown `Option`) | `Integrator "<name>" does not define parameter "<p>"; ignored` |
 | unsupported pair | `CODE_LIMIT` (error) | `Hider "<h>" cannot run integrator "<i>": <shortfall>[; <shortfall>]...; the frame is not rendered`, where a `<shortfall>` is `missing "<c>" <v>` (the capability is not provided; `<v>` is the version required) or `"<c>" <v1> provided, <v2> required` (provided at a lower version), versions written `MAJOR.MINOR.PATCH` (e.g. `1.0.0`), shortfalls in the order of the integrator's `required` array, joined by `; `; one error per refused frame |
+| alias without a name | `CODE_BADTOKEN` (error) | `Integrator "<n>" has an alias without a name; the registration is ignored (<origin>)`; the whole table is refused (added at Phase 5, approved by the maintainer 2026-11-10) |
 | registration refusals | as the hider registry (contracts/hider-registration.md), with "Integrator"; a MAJOR mismatch and a `structSize` smaller than `sizeof(OrIntegratorTable)` both report `CODE_VERSION` and register nothing | |
 
 ## Version history (to be written in `integratorAbi.h`)

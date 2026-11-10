@@ -59,13 +59,13 @@ reg_executable(test_hcshader_missing_shader test_hcshader_missing_shader.cpp)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/empty_shader_dir)
 reg_test(Hcshader_MissingShader test_hcshader_missing_shader ARGS ${CMAKE_CURRENT_BINARY_DIR}/empty_shader_dir)
 
+# ---- Phase 5: the integrator table and the pair check (the Transport headers) -----------------------------------------------
+reg_executable(test_registry_integrator_table test_registry_integrator_table.cpp)
+reg_test(Registry_IntegratorLookup test_registry_integrator_table ARGS lookup)
+reg_test(Registry_PairCheck test_registry_integrator_table ARGS pair_check)
+
 # ---- red until their phase ----------------------------------------------------------------------------------------------
 if(OPENRENDER_030_RED_TESTS)
-    # Phase 5: the integrator table, the pair check (no transport/ headers yet).
-    reg_executable(test_registry_integrator_table test_registry_integrator_table.cpp)
-    reg_test(Registry_IntegratorLookup test_registry_integrator_table ARGS lookup)
-    reg_test(Registry_PairCheck test_registry_integrator_table ARGS pair_check)
-
     # Phase 6: the hider table (no hiderRegistry.h yet).
     reg_executable(test_registry_hider_table test_registry_hider_table.cpp)
     reg_test(Registry_HiderLookup test_registry_hider_table ARGS lookup)

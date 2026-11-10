@@ -10,7 +10,7 @@ function(openrender_reexport_common target)
     endif()
 endfunction()
 
-file(GLOB ri_headers *.h hiders/*.h render/*.h state/*.h parse/*.h geometry/*.h texture/*.h output/*.h core/*.h dataviewer/*.h)
+file(GLOB ri_headers *.h hiders/*.h render/*.h state/*.h parse/*.h geometry/*.h texture/*.h output/*.h core/*.h dataviewer/*.h transport/*.h)
 
 # for flex and bison files that depend on ri/ files
 include_directories(.)
@@ -71,6 +71,10 @@ set(ri_sources
 	texture/imageInputTiff.cpp
 	texture/textureSystem.cpp
 	hiders/compositor.cpp
+	transport/builtinIntegrators.cpp
+	transport/capabilityCheck.cpp
+	transport/classicIntegrator.cpp
+	transport/integratorRegistry.cpp
 	hiders/hider.cpp
 	hiders/shadingProducer.cpp
 	geometry/curves.cpp
@@ -384,6 +388,10 @@ endif()
 # imageInput.cpp itself must stay linked into both.
 set(ribVector_sources ${ri_sources})
 list(REMOVE_ITEM ribVector_sources
+    transport/builtinIntegrators.cpp
+    transport/capabilityCheck.cpp
+    transport/classicIntegrator.cpp
+    transport/integratorRegistry.cpp
     geometry/csgCaps.cpp
     geometry/csgClassify.cpp
     geometry/csgDefinition.cpp

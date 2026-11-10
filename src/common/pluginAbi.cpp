@@ -17,6 +17,7 @@
 
 #include "pluginAbi.h"
 
+#include <cstdio>
 #include <cstdlib>
 #include <map>
 #include <mutex>
@@ -83,6 +84,38 @@ namespace {
 
 } // namespace
 
+namespace {
+
+    // The verdict rules and their diagnostics, shared by both overloads of checkPluginVersion (gotcha 27: one check).
+    // `haveVersion` is false for a module that declares no version symbol. Called with the cache lock held.
+    SPluginVersionVerdict computeVerdict(const SPluginFamily &family, const char *shown, bool haveVersion, uint32_t declared) {
+        SPluginVersionVerdict v = {EPluginVerdict::Accept, OR_ABI_VERSION(1, 0, 0), false};
+
+        if (!haveVersion) {
+            // No version symbol: a module built before the interface was versioned is 1.0.0.
+            if (family.warnWhenUnversioned) {
+                v.verdict = EPluginVerdict::AcceptUnversioned;
+                warning(CODE_VERSION, "%s: the %s plug-in declares no interface version; it is treated as 1.0.0. Unversioned plug-ins will be rejected from openRender %s: rebuild against the installed header and declare the version.\n", shown, family.interfaceName, OR_PLUGIN_UNVERSIONED_SUNSET);
+            }
+        }
+        else {
+            v.versioned = true;
+            v.pluginVersion = declared;
+            uint32_t hostForMajor = 0;
+            if (!hostVersionOf(family, OR_ABI_MAJOR(v.pluginVersion), hostForMajor)) {
+                v.verdict = EPluginVerdict::Reject;
+                error(CODE_VERSION, "%s: the %s plug-in is interface version %s (0x%08x), which this openRender (%s version %s, supported major version(s): %s) cannot load: rebuild against the installed header.\n", shown, family.interfaceName, describe(v.pluginVersion).c_str(), (unsigned)v.pluginVersion, family.interfaceName, describe(family.hostVersion).c_str(), supportedMajors(family).c_str());
+            }
+            else if (OR_ABI_MINOR(v.pluginVersion) > OR_ABI_MINOR(hostForMajor)) {
+                v.verdict = EPluginVerdict::AcceptNewerMinor;
+                warning(CODE_VERSION, "%s: the %s plug-in is interface version %s, newer than the %s this openRender implements: some features of the plug-in may be unused.\n", shown, family.interfaceName, describe(v.pluginVersion).c_str(), describe(hostForMajor).c_str());
+            }
+        }
+        return v;
+    }
+
+} // namespace
+
 SPluginVersionVerdict checkPluginVersion(const SPluginFamily &family, void *module, const char *path) {
     SVerdictCache &c = cache();
     // One lock around lookup, computation and diagnostic: a verdict is computed and announced once.
@@ -94,30 +127,28 @@ SPluginVersionVerdict checkPluginVersion(const SPluginFamily &family, void *modu
         return found->second;
 
     const char *shown = path != nullptr ? path : "(unknown path)";
-    SPluginVersionVerdict v = {EPluginVerdict::Accept, OR_ABI_VERSION(1, 0, 0), false};
     const VersionFunction query = module != nullptr ? (VersionFunction)osResolve(module, family.versionSymbol) : nullptr;
+    const SPluginVersionVerdict v = computeVerdict(family, shown, query != nullptr, query != nullptr ? query() : 0);
 
-    if (query == nullptr) {
-        // No version symbol: a module built before the interface was versioned is 1.0.0.
-        if (family.warnWhenUnversioned) {
-            v.verdict = EPluginVerdict::AcceptUnversioned;
-            warning(CODE_VERSION, "%s: the %s plug-in declares no interface version; it is treated as 1.0.0. Unversioned plug-ins will be rejected from openRender %s: rebuild against the installed header and declare the version.\n", shown, family.interfaceName, OR_PLUGIN_UNVERSIONED_SUNSET);
-        }
-    }
-    else {
-        v.versioned = true;
-        v.pluginVersion = query();
-        uint32_t hostForMajor = 0;
-        if (!hostVersionOf(family, OR_ABI_MAJOR(v.pluginVersion), hostForMajor)) {
-            v.verdict = EPluginVerdict::Reject;
-            error(CODE_VERSION, "%s: the %s plug-in is interface version %s (0x%08x), which this openRender (%s version %s, supported major version(s): %s) cannot load: rebuild against the installed header.\n", shown, family.interfaceName, describe(v.pluginVersion).c_str(), (unsigned)v.pluginVersion, family.interfaceName, describe(family.hostVersion).c_str(), supportedMajors(family).c_str());
-        }
-        else if (OR_ABI_MINOR(v.pluginVersion) > OR_ABI_MINOR(hostForMajor)) {
-            v.verdict = EPluginVerdict::AcceptNewerMinor;
-            warning(CODE_VERSION, "%s: the %s plug-in is interface version %s, newer than the %s this openRender implements: some features of the plug-in may be unused.\n", shown, family.interfaceName, describe(v.pluginVersion).c_str(), describe(hostForMajor).c_str());
-        }
-    }
+    c.verdicts[key] = v;
+    return v;
+}
 
+// A table registered inside the process (a built-in, a static registrar): the version is the table header's, there is
+// no module and no symbol. Same rules, same diagnostics, same cache; the key is the interface, the origin and the
+// declared version, so a corrected table registered under the same origin is not answered with the old verdict.
+SPluginVersionVerdict checkPluginVersion(const SPluginFamily &family, uint32_t declaredVersion, const char *origin) {
+    SVerdictCache &c = cache();
+    std::lock_guard<std::mutex> lock(c.mutex);
+
+    char version[16];
+    snprintf(version, sizeof(version), "%08x", (unsigned)declaredVersion);
+    const std::string key = std::string(family.interfaceName) + "\ndeclared:" + version + "\n" + (origin != nullptr ? origin : "");
+    const auto found = c.verdicts.find(key);
+    if (found != c.verdicts.end())
+        return found->second;
+
+    const SPluginVersionVerdict v = computeVerdict(family, origin != nullptr ? origin : "(unknown origin)", true, declaredVersion);
     c.verdicts[key] = v;
     return v;
 }

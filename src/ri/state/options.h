@@ -162,6 +162,26 @@ class COptions {
         float jitter; // Amount of jitter in samples
 
         char *hider;                     // Hider name
+
+        // The Integrator statement (spec 030): the name ("classic" by default; resolved at frame begin, like the hider's),
+        // the reserved string parameter "handle", and the statement's other parameters. Graphics State stores plain data
+        // and includes no Transport header. Replaced together by each Integrator statement (the last wins), deep-copied
+        // with the options.
+        char *integrator;
+        char *integratorHandle;
+        // One parameter of the statement. `type` is the TYPE_* of the common variable grammar (EVariableType), not
+        // EDisplayParameterType. `data` is normalised once, at statement time, so an integrator's configure receives it
+        // unconverted: TYPE_FLOAT float[numItems]; TYPE_COLOR, TYPE_POINT, TYPE_VECTOR and TYPE_NORMAL float[numItems * 3];
+        // TYPE_MATRIX float[numItems * 16]; TYPE_INTEGER int[numItems]; TYPE_STRING an array of numItems strdup'ed strings
+        // (char *[numItems]). Arrays are allocated with new[]; the strings with strdup (free).
+        struct CTypedParameter {
+                char *name;
+                int type;
+                int numItems;
+                void *data;
+        };
+        int numIntegratorParameters;
+        CTypedParameter *integratorParameters; // new CTypedParameter[numIntegratorParameters], or NULL
         const char *defaultShaderFormat; // nullptr → hardcoded "slo" fallback
 
         // Opt-in disk cache for the runtime-synthesized (non-TIFF)

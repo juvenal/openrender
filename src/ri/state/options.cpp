@@ -227,6 +227,93 @@ COptions::CClipPlane::CClipPlane(const CClipPlane *other) {
 }
 
 ///////////////////////////////////////////////////////////////////////
+// The Integrator statement's parameter list (spec 030): a deep copy and a release, by the data shape
+// COptions::CTypedParameter documents.
+namespace {
+
+    // The number of floats one item of a float-shaped type holds, or 0 for a type that is not stored as floats.
+    int integratorFloatsPerItem(int type) {
+        switch (type) {
+            case TYPE_FLOAT:
+                return 1;
+            case TYPE_COLOR:
+            case TYPE_POINT:
+            case TYPE_VECTOR:
+            case TYPE_NORMAL:
+                return 3;
+            case TYPE_MATRIX:
+                return 16;
+            default:
+                return 0;
+        }
+    }
+
+    COptions::CTypedParameter *copyIntegratorParameters(const COptions::CTypedParameter *from, int n) {
+        if (from == NULL || n <= 0)
+            return NULL;
+
+        COptions::CTypedParameter *to = new COptions::CTypedParameter[n];
+        for (int i = 0; i < n; i++) {
+            to[i].name = from[i].name != NULL ? strdup(from[i].name) : NULL;
+            to[i].type = from[i].type;
+            to[i].numItems = from[i].numItems;
+            to[i].data = NULL;
+            if (from[i].data == NULL)
+                continue;
+
+            const int floats = integratorFloatsPerItem(from[i].type);
+            if (floats != 0) {
+                const int count = from[i].numItems * floats;
+                float *data = new float[count];
+                memcpy(data, from[i].data, count * sizeof(float));
+                to[i].data = data;
+            }
+            else if (from[i].type == TYPE_INTEGER) {
+                int *data = new int[from[i].numItems];
+                memcpy(data, from[i].data, from[i].numItems * sizeof(int));
+                to[i].data = data;
+            }
+            else if (from[i].type == TYPE_STRING) {
+                const char **strings = (const char **)from[i].data;
+                char **data = new char *[from[i].numItems];
+                for (int j = 0; j < from[i].numItems; j++)
+                    data[j] = strings[j] != NULL ? strdup(strings[j]) : NULL;
+                to[i].data = data;
+            }
+        }
+        return to;
+    }
+
+    void freeIntegratorParameters(COptions::CTypedParameter *parameters, int n) {
+        if (parameters == NULL)
+            return;
+
+        for (int i = 0; i < n; i++) {
+            if (parameters[i].name != NULL)
+                free(parameters[i].name);
+            if (parameters[i].data == NULL)
+                continue;
+
+            if (integratorFloatsPerItem(parameters[i].type) != 0) {
+                delete[] (float *)parameters[i].data;
+            }
+            else if (parameters[i].type == TYPE_INTEGER) {
+                delete[] (int *)parameters[i].data;
+            }
+            else if (parameters[i].type == TYPE_STRING) {
+                char **strings = (char **)parameters[i].data;
+                for (int j = 0; j < parameters[i].numItems; j++)
+                    if (strings[j] != NULL)
+                        free(strings[j]);
+                delete[] strings;
+            }
+        }
+        delete[] parameters;
+    }
+
+} // namespace
+
+///////////////////////////////////////////////////////////////////////
 // Class				:	COptions
 // Method				:	COptions
 // Description			:	All the default frame specific settings are defined here
@@ -261,6 +348,11 @@ COptions::COptions() {
     jitter = 0.99f;
 
     hider = strdup("reyes");
+
+    integrator = strdup("classic");
+    integratorHandle = NULL;
+    numIntegratorParameters = 0;
+    integratorParameters = NULL;
     defaultShaderFormat = nullptr;
     textureCacheEnabled = false;
     textureCacheDirectory = nullptr;
@@ -388,6 +480,11 @@ COptions::COptions(const COptions *o) {
 
     hider = strdup(o->hider);
 
+    integrator = strdup(o->integrator);
+    integratorHandle = o->integratorHandle != NULL ? strdup(o->integratorHandle) : NULL;
+    numIntegratorParameters = o->numIntegratorParameters;
+    integratorParameters = copyIntegratorParameters(o->integratorParameters, o->numIntegratorParameters);
+
     archivePath = optionsCloneSearchPath(o->archivePath);
     proceduralPath = optionsCloneSearchPath(o->proceduralPath);
     texturePath = optionsCloneSearchPath(o->texturePath);
@@ -489,6 +586,12 @@ COptions::~COptions() {
 
     if (hider != NULL)
         free(hider);
+
+    if (integrator != NULL)
+        free(integrator);
+    if (integratorHandle != NULL)
+        free(integratorHandle);
+    freeIntegratorParameters(integratorParameters, numIntegratorParameters);
 
     optionsDeleteSearchPath(archivePath);
     optionsDeleteSearchPath(proceduralPath);

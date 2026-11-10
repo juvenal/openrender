@@ -152,6 +152,7 @@ overrides it.
 |---|---|---|
 | duplicate name or alias | `CODE_BADTOKEN` (error) | `Hider "<x>" is already registered (by "<first>"); the second registration is ignored` |
 | table without a name | `CODE_BADTOKEN` (error) | `Hider registration without a name ignored (<origin>)` |
+| alias without a name | `CODE_BADTOKEN` (error) | `<Kind> "<n>" has an alias without a name; the registration is ignored (<origin>)`, where `<Kind>` is `Hider` or `Integrator` and `<n>` the table's name; the whole table is refused (added at Phase 5, approved by the maintainer 2026-11-10; the shared `TKindNameTable` writes it for both registries) |
 | non-NULL pair field | `CODE_BADTOKEN` (warning) | `Hider alias "<a>" names integrator "<i>"; pair aliases are not supported yet, the alias selects the hider only` |
 | version or table size | `CODE_VERSION` (error), for **both** a MAJOR the host does not support (a table of MAJOR 3) **and** a `structSize` smaller than `sizeof(OrHiderTable)`; the table is not registered | `checkPluginVersion` (the built-in overload taking the declared version, maintainer answer Q5) / `checkPluginTable` texts (spec 037) |
 | deprecated alias used | `CODE_BADTOKEN` (warning) | the alias's `deprecationWarning` |
