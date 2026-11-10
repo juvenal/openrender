@@ -62,7 +62,7 @@ static dmatrix dinvBezier = {0, 0, 0, 1.0,
         assert(vertexSize > 0);                                                                                \
                                                                                                                \
         if (__vertex == NULL)                                                                                  \
-            __vertex = (float *)ralloc(vertexSize * (__nu) * (__nv) * sizeof(float), __context->threadMemory); \
+            __vertex = (float *)ralloc(vertexSize * (__nu) * (__nv) * sizeof(float), __context.scratch()); \
                                                                                                                \
         __dest = __vertex;                                                                                     \
                                                                                                                \
@@ -192,7 +192,7 @@ CBilinearPatch::~CBilinearPatch() {
 //							CSG solid's boundary rule) keep this ray hit?
 // Return Value			:	TRUE when there is no region or it accepts the hit
 // Comments				:	Spec 021; vertices are already in camera space
-static int regionKeepsBilinearHit(const CSurface *surface, CShadingContext *context, const CRay *ray, double t, double u,
+static int regionKeepsBilinearHit(const CSurface *surface, IRayContext &context, const CRay *ray, double t, double u,
                                   double v, const float *P00, const float *P10, const float *P01, const float *P11) {
     if (surface->region == NULL)
         return TRUE;
@@ -203,7 +203,7 @@ static int regionKeepsBilinearHit(const CSurface *surface, CShadingContext *cont
         dPdv[k] = (float)((P01[k] - P00[k]) * (1 - u) + (P11[k] - P10[k]) * u);
     }
     crossvv(N, dPdu, dPdv);
-    return surface->region->accepts(context, P, N);
+    return surface->region->accepts(&context, P, N);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -212,7 +212,7 @@ static int regionKeepsBilinearHit(const CSurface *surface, CShadingContext *cont
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:	-
-void CBilinearPatch::intersect(CShadingContext *context, CRay *cRay) {
+void CBilinearPatch::intersect(IRayContext &context, CRay *cRay) {
 
     if (checkRayGuard(cRay, context))
         return;
@@ -1585,7 +1585,7 @@ void CPatchMesh::instantiate(CAttributes *a, CXform *x, IObjectSink *c) const {
 // Description			:	Intersect a ray with this pritimive
 // Return Value			:	-
 // Comments				:
-void CPatchMesh::intersect(CShadingContext *rasterizer, CRay *) {
+void CPatchMesh::intersect(IRayContext &rasterizer, CRay *) {
 
     if (children == NULL)
         create(rasterizer);
@@ -1600,7 +1600,7 @@ void CPatchMesh::intersect(CShadingContext *rasterizer, CRay *) {
 void CPatchMesh::dice(CReyes *rasterizer) {
 
     if (children == NULL)
-        create(&rasterizer->shadingContext());
+        create(*rasterizer);
 
     CObject::dice(rasterizer);
 }
@@ -1611,7 +1611,7 @@ void CPatchMesh::dice(CReyes *rasterizer) {
 // Description			:	Create the children
 // Return Value			:	-
 // Comments				:
-void CPatchMesh::create(CShadingContext *context) {
+void CPatchMesh::create(IRayContext &context) {
 
     osLock(mutex);
     if (children != NULL) {
@@ -1628,14 +1628,14 @@ void CPatchMesh::create(CShadingContext *context) {
     int vertexSize;
     CObject *allChildren = NULL;
 
-    memBegin(context->threadMemory);
+    memBegin(context.scratch());
 
     uvertices = uVertices;
     vvertices = vVertices;
 
     vertices = NULL;
     pl->transform(xform);
-    pl->collect(vertexSize, vertices, CONTAINER_VERTEX, context->threadMemory);
+    pl->collect(vertexSize, vertices, CONTAINER_VERTEX, context.scratch());
     parameterList = pl;
     vertexData = pl->vertexData();
     vertexData->attach();
@@ -1724,14 +1724,14 @@ void CPatchMesh::create(CShadingContext *context) {
 
     vertexData->detach();
 
-    memEnd(context->threadMemory);
+    memEnd(context.scratch());
 
     // We're done with the parameter list
     delete pl;
     pl = NULL;
 
     // Set the children pointer
-    setChildren(context, allChildren);
+    setChildren(allChildren);
 
     // Release the lock
     osUnlock(mutex);
@@ -1863,7 +1863,7 @@ void CNURBSPatchMesh::instantiate(CAttributes *a, CXform *x, IObjectSink *c) con
 // Description			:	Dice the primitive
 // Return Value			:	-
 // Comments				:
-void CNURBSPatchMesh::intersect(CShadingContext *rasterizer, CRay *) {
+void CNURBSPatchMesh::intersect(IRayContext &rasterizer, CRay *) {
 
     if (children == NULL)
         create(rasterizer);
@@ -1878,7 +1878,7 @@ void CNURBSPatchMesh::intersect(CShadingContext *rasterizer, CRay *) {
 void CNURBSPatchMesh::dice(CReyes *rasterizer) {
 
     if (children == NULL)
-        create(&rasterizer->shadingContext());
+        create(*rasterizer);
 
     CObject::dice(rasterizer);
 }
@@ -2146,7 +2146,7 @@ static CTrimTest *buildTrimTestFromPending(CAttributes *attributes) {
 // Description			:	split
 // Return Value			:	Split the mesh
 // Comments				:	-
-void CNURBSPatchMesh::create(CShadingContext *context) {
+void CNURBSPatchMesh::create(IRayContext &context) {
 
     osLock(mutex);
     if (children != NULL) {
@@ -2173,12 +2173,12 @@ void CNURBSPatchMesh::create(CShadingContext *context) {
     // Transform the core into the camera coordinate system
     vertices = NULL;
     pl->transform(xform);
-    pl->collect(vertexSize, vertices, CONTAINER_VERTEX, context->threadMemory);
+    pl->collect(vertexSize, vertices, CONTAINER_VERTEX, context.scratch());
     parameterList = pl;
     vertexData = pl->vertexData();
     vertexData->attach();
 
-    memBegin(context->threadMemory);
+    memBegin(context.scratch());
 
     // trimTest (if any) was already built eagerly at construction time by
     // buildTrimTestFromPending() / instantiate()'s inherited-trimTest path;
@@ -2211,12 +2211,12 @@ void CNURBSPatchMesh::create(CShadingContext *context) {
         }
     }
 
-    memEnd(context->threadMemory);
+    memEnd(context.scratch());
 
     vertexData->detach();
 
     // Set the children
-    setChildren(context, allChildren);
+    setChildren(allChildren);
 
     // Release the lock
     osUnlock(mutex);
@@ -2229,7 +2229,7 @@ void CNURBSPatchMesh::create(CShadingContext *context) {
 //							Newton core (spec 021; ribVector links a stub)
 // Return Value			:	-
 // Comments				:
-int CBicubicPatch::countCrossings(CShadingContext *context, const float *from, const float *dir) const {
+int CBicubicPatch::countCrossings(IRayContext *context, const float *from, const float *dir) const {
     return countFreeFormCrossings(context, this, from, dir);
 }
 
@@ -2240,7 +2240,7 @@ int CBicubicPatch::countCrossings(CShadingContext *context, const float *from, c
 //							Newton core (spec 021; ribVector links a stub)
 // Return Value			:	-
 // Comments				:
-int CNURBSPatch::countCrossings(CShadingContext *context, const float *from, const float *dir) const {
+int CNURBSPatch::countCrossings(IRayContext *context, const float *from, const float *dir) const {
     return countFreeFormCrossings(context, this, from, dir);
 }
 
@@ -2251,7 +2251,7 @@ int CNURBSPatch::countCrossings(CShadingContext *context, const float *from, con
 //							open (spec 021)
 // Return Value			:	-
 // Comments				:	The vertices are already in camera space
-int CBilinearPatch::countCrossings(CShadingContext *, const float *from, const float *dir) const {
+int CBilinearPatch::countCrossings(IRayContext *, const float *from, const float *dir) const {
     const int vertexSize = variables->vertexSize;
     const float *P00 = vertex;
     return countBilinearCrossings(P00, P00 + vertexSize, P00 + 2 * vertexSize, P00 + 3 * vertexSize, from, dir);

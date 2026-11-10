@@ -425,7 +425,7 @@ static std::mutex crossingCacheMutex;
 //							first use)
 // Return Value			:	The unsigned number of crossings
 // Comments				:
-int countFreeFormCrossings(CShadingContext *, const CSurface *surface, const float *from, const float *dir) {
+int countFreeFormCrossings(IRayContext *, const CSurface *surface, const float *from, const float *dir) {
     CCrossingCache *cache = surface->crossingCache.load(std::memory_order_acquire);
     if (cache == NULL) {
         std::lock_guard<std::mutex> lock(crossingCacheMutex);

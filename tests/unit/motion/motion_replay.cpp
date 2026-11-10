@@ -64,7 +64,7 @@
 // tool names that one member through an explicit instantiation (the access check does not apply to the
 // arguments of an explicit instantiation) and calls it directly.
 struct CurveMeshCreateTag {
-        typedef void (CCurveMesh::*type)(CShadingContext *);
+        typedef void (CCurveMesh::*type)(IRayContext &);
         friend type curveMeshCreate(CurveMeshCreateTag);
 };
 template <CurveMeshCreateTag::type M>
@@ -500,7 +500,7 @@ namespace {
     // hierarchy: non-dummy objects are intersected, lazily built children are clustered and
     // visited, and a subtree whose box the ray no longer reaches is pruned. A CSurface with no
     // children only builds its tessellation on the first call and finds the hit in the child.
-    void traceFrom(CShadingContext *ctx, CObject *start, CRay *ray) {
+    void traceFrom(IRayContext *ctx, CObject *start, CRay *ray) {
         std::vector<CObject *> stack;
         stack.push_back(start);
         long visits = 0;
@@ -521,12 +521,12 @@ namespace {
                 continue;
 
             if ((o->flags & OBJECT_DUMMY) == 0)
-                o->intersect(ctx, ray);
+                o->intersect(*ctx, ray);
 
             if ((o->flags & OBJECT_HIERARCHY_READY) == 0) {
                 osLock(CRenderer::hierarchyMutex);
                 if ((o->flags & OBJECT_HIERARCHY_READY) == 0) {
-                    o->cluster(ctx);
+                    o->cluster(*ctx);
                     o->flags |= OBJECT_HIERARCHY_READY;
                 }
                 osUnlock(CRenderer::hierarchyMutex);
@@ -577,7 +577,7 @@ namespace {
             d[i] /= len;
     }
 
-    void queryIntersections(CShadingContext *ctx, const SceneDef &sc, CObject *leaf, int leafIndex, std::vector<std::string> &out) {
+    void queryIntersections(IRayContext *ctx, const SceneDef &sc, CObject *leaf, int leafIndex, std::vector<std::string> &out) {
         for (int r = 0; r < kRaysPerLeaf; ++r) {
             double o[3], d[3];
             makeRay(leaf, r, o, d);
@@ -688,7 +688,7 @@ namespace {
         const auto t0 = std::chrono::steady_clock::now();
         CReplaySession session(sc.shutterOpen, sc.shutterClose, sc.camera);
         sc.build(session);
-        CShadingContext *ctx = session.ctx();
+        IRayContext *ctx = session.ctx();
         if (ctx == NULL) {
             fprintf(stderr, "motion_replay: scene %s: no shading context\n", sc.id);
             return false;
@@ -699,7 +699,7 @@ namespace {
             if (CPoints *points = dynamic_cast<CPoints *>(top))
                 (points->*pointsPrep(PointsPrepTag()))();
             if (CCurveMesh *mesh = dynamic_cast<CCurveMesh *>(top))
-                (mesh->*curveMeshCreate(CurveMeshCreateTag()))(ctx); // The mesh builds its curves lazily and has no materialize()
+                (mesh->*curveMeshCreate(CurveMeshCreateTag()))(*ctx); // The mesh builds its curves lazily and has no materialize()
             collectLeaves(ctx, top, leaves);
         }
 

@@ -41,11 +41,11 @@ class CPolygonTriangle;
 // Comments				:
 class CPolygonMesh : public CObject {
     public:
-        void materialize(CShadingContext *context) { if (children == NULL) create(context); } // Idempotent (spec 021)
+        void materialize(IRayContext &context) { if (children == NULL) create(context); } // Idempotent (spec 021)
         CPolygonMesh(CAttributes *, CXform *, CPl *, int, int *, int *, int *);
         ~CPolygonMesh();
 
-        void intersect(CShadingContext *, CRay *);
+        void intersect(IRayContext &, CRay *);
         void dice(CReyes *);
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
@@ -60,7 +60,7 @@ class CPolygonMesh : public CObject {
         }
 
     private:
-        void create(CShadingContext *);
+        void create(IRayContext &);
 
         CPl *pl;
         int npoly, nloops, nverts;
@@ -85,8 +85,8 @@ class CPolygonTriangle : public CSurface {
         CPolygonTriangle(CAttributes *, CXform *, CPolygonMesh *, int v0, int v1, int v2, int fv0, int fv1, int fv2, int uniform);
         ~CPolygonTriangle();
 
-        void intersect(CShadingContext *, CRay *);
-        int countCrossings(CShadingContext *, const float *, const float *) const;
+        void intersect(IRayContext &, CRay *);
+        int countCrossings(IRayContext *, const float *, const float *) const;
         void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 
         int moving() const { return mesh->pl->data1 != NULL; }
@@ -108,8 +108,8 @@ class CPolygonQuad : public CSurface {
         CPolygonQuad(CAttributes *, CXform *, CPolygonMesh *, int v0, int v1, int v2, int v3, int fv0, int fv1, int fv2, int fv3, int uniform);
         ~CPolygonQuad();
 
-        void intersect(CShadingContext *, CRay *);
-        int countCrossings(CShadingContext *, const float *, const float *) const;
+        void intersect(IRayContext &, CRay *);
+        int countCrossings(IRayContext *, const float *, const float *) const;
         void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 
         int moving() const { return mesh->pl->data1 != NULL; }

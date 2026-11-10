@@ -716,7 +716,7 @@ void CCurveMesh::instantiate(CAttributes *a, CXform *x, IObjectSink *c) const {
 void CCurveMesh::dice(CReyes *rasterizer) {
 
     if (children == NULL)
-        create(&rasterizer->shadingContext());
+        create(*rasterizer);
 
     CObject::dice(rasterizer);
 }
@@ -727,7 +727,7 @@ void CCurveMesh::dice(CReyes *rasterizer) {
 // Description			:	Dice the primitive
 // Return Value			:	-
 // Comments				:
-void CCurveMesh::create(CShadingContext *context) {
+void CCurveMesh::create(IRayContext &context) {
 
     osLock(mutex);
     if (children != NULL) {
@@ -741,12 +741,12 @@ void CCurveMesh::create(CShadingContext *context) {
     float *vertex;
     CObject *allChildren;
 
-    memBegin(context->threadMemory);
+    memBegin(context.scratch());
 
     // Extract the vertices
     vertex = NULL;
     pl->transform(xform);                                                     // Transform the core
-    pl->collect(vertexSize, vertex, CONTAINER_VERTEX, context->threadMemory); // Obtain the vertex data
+    pl->collect(vertexSize, vertex, CONTAINER_VERTEX, context.scratch()); // Obtain the vertex data
 
     // Multiply the curve width by the expansion in the coordinate system
     {
@@ -864,10 +864,10 @@ void CCurveMesh::create(CShadingContext *context) {
         }
     }
 
-    memEnd(context->threadMemory);
+    memEnd(context.scratch());
 
     // Set the child objects
-    setChildren(context, allChildren);
+    setChildren(allChildren);
 
     osUnlock(mutex);
 }

@@ -70,8 +70,8 @@ class CCSGCapRegion : public CRegionPredicate {
         CCSGCapRegion(const CCSGEvaluator *evaluator, int operand, const CSurface *quadric, const CCSGCap &cap)
             : evaluator(evaluator), operand(operand), quadric(quadric), cap(cap) {}
 
-        int accepts(CShadingContext *ctx, const float *P, const float *Ng) const override;
-        int classifyBound(CShadingContext *ctx, const float *bmin, const float *bmax) const override;
+        int accepts(IRayContext *ctx, const float *P, const float *Ng) const override;
+        int classifyBound(IRayContext *ctx, const float *bmin, const float *bmax) const override;
 
         const CCSGEvaluator *evaluator;
         int operand;

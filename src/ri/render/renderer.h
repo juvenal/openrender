@@ -173,7 +173,6 @@ class CRenderer {
         static TMutex commitMutex;      // The mutex that controls job dispatch
         static TMutex displayKillMutex; // To serialize the killing of a thread
         static TMutex networkMutex;     // To serialize the network communication
-        static TMutex tesselateMutex;   // To serialize the tesselation
         static TMutex shaderMutex;      // To serialize shader parameter list access
         static TMutex delayedMutex;     // To serialize rib parsing/delayed objects
         static TMutex deepShadowMutex;  // To serialize deep shadow _writes_

@@ -24,6 +24,7 @@
 #include "libshader/shading/shadingProducer.h"    // IShadingProducer
 #include "libshader/shading/tracer.h"           // ITracer
 #include "shading.h"                              // CShadingContext (Shading; Hiders -> Shading is allowed)
+#include "rayContext.h"                           // IRayContext (Geometry; Hiders -> Geometry is allowed)
 
 static_assert(openrender::shading::kRendererServicesVersion.major == 2, "CHider is written against services version 2");
 
@@ -31,7 +32,7 @@ static_assert(openrender::shading::kRendererServicesVersion.major == 2, "CHider 
 // Class				:	CHider
 // Description			:	The base of every hider. It owns the shading context of its render thread.
 // Comments				:	One hider per render thread, created and destroyed by the renderer core with its context.
-class CHider : public openrender::shading::ITracer, public openrender::shading::IShadingProducer {
+class CHider : public openrender::shading::ITracer, public openrender::shading::IShadingProducer, public IRayContext {
     public:
         explicit CHider(int thread); // constructs the context and installs itself as its tracer and its producer
         virtual ~CHider(); // the context is destroyed after the derived hider's destructor body
@@ -42,6 +43,16 @@ class CHider : public openrender::shading::ITracer, public openrender::shading::
         // Inline: no link symbol (Geometry calls it)
         CShadingContext &shadingContext() { return context; }
         const CShadingContext &shadingContext() const { return context; }
+
+        // IRayContext (geometry/rayContext.h, spec 031): what Geometry's ray side asks of this render thread. In this phase
+        // shade() and displace() forward to the context's Geometry-facing entry, so the bytes cannot move (Phase 5 rewires them).
+        int threadIndex() const override { return context.thread; }
+        CMemPage *&scratch() override { return context.threadMemory; }
+        float **varyings() override { return context.currentShadingState->varying; }
+        void shade(CSurface *surface, int u, int v, EShadingDim dim, unsigned int up) override { context.shade(surface, u, v, dim, up, FALSE); }
+        void displace(CSurface *surface, int u, int v, EShadingDim dim, unsigned int up) override { context.shade(surface, u, v, dim, up, TRUE); }
+        void *saveShadingState() override { return context.saveState(); }
+        void restoreShadingState(void *state) override { context.restoreState(state); }
 
         // ITracer (tracer.h; signatures unchanged). `ctx` is always this hider's own context (asserted in debug). The bodies
         // are in trace.cpp; every caller goes through this signature, there is no one-argument traceRay().

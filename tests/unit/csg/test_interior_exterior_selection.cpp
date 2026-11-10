@@ -130,7 +130,7 @@ TEST(instance_leaves_carry_the_fragment_flag_and_the_flip) {
         RiSolidEnd();
     }));
     ASSERT(solid != NULL);
-    solid->resolve(s.ctx());
+    solid->resolve(*s.ctx());
     const CCSGInstanceState *state = solid->instanceState();
     ASSERT(state != NULL);
     ASSERT(state->operands.size() == 2);

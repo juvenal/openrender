@@ -32,11 +32,9 @@ DB-004  link     src/ri/geometry/blobbyRepeller.cpp  ->  _ZN9CRenderer10locateFi
 DB-004  link     src/ri/geometry/blobbyRepeller.cpp  ->  _ZN9CRenderer11texturePathE   # CRenderer::texturePath
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer10imagePlaneE   # CRenderer::imagePlane
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer10inFrustrumEPKfS1_   # CRenderer::inFrustrum(float const*, float const*)
-DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer10numThreadsE   # CRenderer::numThreads
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer10projectionE   # CRenderer::projection
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer11maxGridSizeE   # CRenderer::maxGridSize
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer12maxEyeSplitsE   # CRenderer::maxEyeSplits
-DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer14tesselateMutexE   # CRenderer::tesselateMutex
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer15cocFactorPixelsE   # CRenderer::cocFactorPixels
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer16invFocaldistanceE   # CRenderer::invFocaldistance
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer5flagsE   # CRenderer::flags
@@ -69,11 +67,7 @@ DB-006  include  src/ri/geometry/subdivisionCreator.cpp  ->  src/ri/hiders/reyes
 DB-006  include  src/ri/geometry/subdivisionLoop.cpp  ->  src/ri/hiders/reyes.h
 DB-006  include  src/ri/geometry/surface.cpp  ->  src/ri/core/shading.h
 DB-006  include  src/ri/geometry/surface.cpp  ->  src/ri/hiders/reyes.h
-DB-006  link     src/ri/geometry/dlobject.cpp  ->  _ZN15CShadingContext5shadeEP8CSurfaceii11EShadingDimji   # CShadingContext::shade(CSurface*, int, int, EShadingDim, unsigned int, int)
-DB-006  link     src/ri/geometry/implicitSurface.cpp  ->  _ZN15CShadingContext5shadeEP8CSurfaceii11EShadingDimji   # CShadingContext::shade(CSurface*, int, int, EShadingDim, unsigned int, int)
-DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN15CShadingContext12restoreStateEPv   # CShadingContext::restoreState(void*)
 DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN15CShadingContext5shadeEP8CSurfaceii11EShadingDimji   # CShadingContext::shade(CSurface*, int, int, EShadingDim, unsigned int, int)
-DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN15CShadingContext9saveStateEv   # CShadingContext::saveState()
 DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN6CReyes10drawObjectEP7CObject   # CReyes::drawObject(CObject*)
 DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN6CReyes8drawGridEP8CSurfaceiiffffPK9CGridSnap   # CReyes::drawGrid(CSurface*, int, int, float, float, float, float, CGridSnap const*)
 
@@ -254,10 +248,10 @@ DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer7clipMaxE   # CRend
 DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer7clipMinE   # CRenderer::clipMin
 
 # --- DB-017: Link-time *Dispatch / *DispatchStub substitution pairs (78) ---
-DB-017  link     src/ri/geometry/bsplinePatchgrid.cpp  ->  _ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph   # CSurface::regionCoverage(CShadingContext*, int, int, float const*, float const*, unsigned char*)
+DB-017  link     src/ri/geometry/bsplinePatchgrid.cpp  ->  _ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph   # CSurface::regionCoverage(IRayContext*, int, int, float const*, float const*, unsigned char*)
 DB-017  link     src/ri/geometry/bsplinePatchgrid.cpp  ->  _ZN8CSurface4diceEP6CReyes   # CSurface::dice(CReyes*)
-DB-017  link     src/ri/geometry/bsplinePatchgrid.cpp  ->  _ZN8CSurface5shadeEP15CShadingContextiPP4CRay   # CSurface::shade(CShadingContext*, int, CRay**)
-DB-017  link     src/ri/geometry/bsplinePatchgrid.cpp  ->  _ZN8CSurface9intersectEP15CShadingContextP4CRay   # CSurface::intersect(CShadingContext*, CRay*)
+DB-017  link     src/ri/geometry/bsplinePatchgrid.cpp  ->  _ZN8CSurface5shadeER11IRayContextiPP4CRay   # CSurface::shade(IRayContext&, int, CRay**)
+DB-017  link     src/ri/geometry/bsplinePatchgrid.cpp  ->  _ZN8CSurface9intersectER11IRayContextP4CRay   # CSurface::intersect(IRayContext&, CRay*)
 DB-017  link     src/ri/geometry/bsplinePatchgrid.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
 DB-017  link     src/ri/geometry/bsplinePatchgrid.cpp  ->  _ZTV8CSurface   # vtable for CSurface
 DB-017  link     src/ri/geometry/csgCaps.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
@@ -268,72 +262,71 @@ DB-017  link     src/ri/geometry/curves.cpp  ->  _ZN11CCubicCurve15splitToChildr
 DB-017  link     src/ri/geometry/curves.cpp  ->  _ZN12CLinearCurve15splitToChildrenEP6CReyes   # CLinearCurve::splitToChildren(CReyes*)
 DB-017  link     src/ri/geometry/curves.cpp  ->  _ZN6CCurve4diceEP6CReyes   # CCurve::dice(CReyes*)
 DB-017  link     src/ri/geometry/curves.cpp  ->  _ZN7CObject4diceEP6CReyes   # CObject::dice(CReyes*)
-DB-017  link     src/ri/geometry/curves.cpp  ->  _ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph   # CSurface::regionCoverage(CShadingContext*, int, int, float const*, float const*, unsigned char*)
-DB-017  link     src/ri/geometry/curves.cpp  ->  _ZN8CSurface5shadeEP15CShadingContextiPP4CRay   # CSurface::shade(CShadingContext*, int, CRay**)
-DB-017  link     src/ri/geometry/curves.cpp  ->  _ZN8CSurface9intersectEP15CShadingContextP4CRay   # CSurface::intersect(CShadingContext*, CRay*)
+DB-017  link     src/ri/geometry/curves.cpp  ->  _ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph   # CSurface::regionCoverage(IRayContext*, int, int, float const*, float const*, unsigned char*)
+DB-017  link     src/ri/geometry/curves.cpp  ->  _ZN8CSurface5shadeER11IRayContextiPP4CRay   # CSurface::shade(IRayContext&, int, CRay**)
+DB-017  link     src/ri/geometry/curves.cpp  ->  _ZN8CSurface9intersectER11IRayContextP4CRay   # CSurface::intersect(IRayContext&, CRay*)
 DB-017  link     src/ri/geometry/curves.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
 DB-017  link     src/ri/geometry/curves.cpp  ->  _ZTV8CSurface   # vtable for CSurface
 DB-017  link     src/ri/geometry/delayed.cpp  ->  _ZN14CDelayedObject4diceEP6CReyes   # CDelayedObject::dice(CReyes*)
-DB-017  link     src/ri/geometry/delayed.cpp  ->  _ZN14CDelayedObject9intersectEP15CShadingContextP4CRay   # CDelayedObject::intersect(CShadingContext*, CRay*)
+DB-017  link     src/ri/geometry/delayed.cpp  ->  _ZN14CDelayedObject9intersectER11IRayContextP4CRay   # CDelayedObject::intersect(IRayContext&, CRay*)
 DB-017  link     src/ri/geometry/delayed.cpp  ->  _ZN16CDelayedInstance4diceEP6CReyes   # CDelayedInstance::dice(CReyes*)
-DB-017  link     src/ri/geometry/delayed.cpp  ->  _ZN16CDelayedInstance9intersectEP15CShadingContextP4CRay   # CDelayedInstance::intersect(CShadingContext*, CRay*)
-DB-017  link     src/ri/geometry/dlobject.cpp  ->  _ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph   # CSurface::regionCoverage(CShadingContext*, int, int, float const*, float const*, unsigned char*)
+DB-017  link     src/ri/geometry/delayed.cpp  ->  _ZN16CDelayedInstance9intersectER11IRayContextP4CRay   # CDelayedInstance::intersect(IRayContext&, CRay*)
+DB-017  link     src/ri/geometry/dlobject.cpp  ->  _ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph   # CSurface::regionCoverage(IRayContext*, int, int, float const*, float const*, unsigned char*)
 DB-017  link     src/ri/geometry/dlobject.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
 DB-017  link     src/ri/geometry/dlobject.cpp  ->  _ZTV8CSurface   # vtable for CSurface
-DB-017  link     src/ri/geometry/implicitSurface.cpp  ->  _ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph   # CSurface::regionCoverage(CShadingContext*, int, int, float const*, float const*, unsigned char*)
+DB-017  link     src/ri/geometry/implicitSurface.cpp  ->  _ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph   # CSurface::regionCoverage(IRayContext*, int, int, float const*, float const*, unsigned char*)
 DB-017  link     src/ri/geometry/implicitSurface.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
 DB-017  link     src/ri/geometry/implicitSurface.cpp  ->  _ZTV8CSurface   # vtable for CSurface
 DB-017  link     src/ri/geometry/object.cpp  ->  _ZN7CObject4diceEP6CReyes   # CObject::dice(CReyes*)
 DB-017  link     src/ri/geometry/patches.cpp  ->  _ZN7CObject4diceEP6CReyes   # CObject::dice(CReyes*)
-DB-017  link     src/ri/geometry/patches.cpp  ->  _ZN8CSurface13checkRayGuardEP4CRayP15CShadingContext   # CSurface::checkRayGuard(CRay*, CShadingContext*)
-DB-017  link     src/ri/geometry/patches.cpp  ->  _ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph   # CSurface::regionCoverage(CShadingContext*, int, int, float const*, float const*, unsigned char*)
+DB-017  link     src/ri/geometry/patches.cpp  ->  _ZN8CSurface13checkRayGuardEP4CRayR11IRayContext   # CSurface::checkRayGuard(CRay*, IRayContext&)
+DB-017  link     src/ri/geometry/patches.cpp  ->  _ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph   # CSurface::regionCoverage(IRayContext*, int, int, float const*, float const*, unsigned char*)
 DB-017  link     src/ri/geometry/patches.cpp  ->  _ZN8CSurface4diceEP6CReyes   # CSurface::dice(CReyes*)
-DB-017  link     src/ri/geometry/patches.cpp  ->  _ZN8CSurface5shadeEP15CShadingContextiPP4CRay   # CSurface::shade(CShadingContext*, int, CRay**)
-DB-017  link     src/ri/geometry/patches.cpp  ->  _ZN8CSurface9intersectEP15CShadingContextP4CRay   # CSurface::intersect(CShadingContext*, CRay*)
+DB-017  link     src/ri/geometry/patches.cpp  ->  _ZN8CSurface5shadeER11IRayContextiPP4CRay   # CSurface::shade(IRayContext&, int, CRay**)
+DB-017  link     src/ri/geometry/patches.cpp  ->  _ZN8CSurface9intersectER11IRayContextP4CRay   # CSurface::intersect(IRayContext&, CRay*)
 DB-017  link     src/ri/geometry/patches.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
 DB-017  link     src/ri/geometry/patches.cpp  ->  _ZTV8CSurface   # vtable for CSurface
-DB-017  link     src/ri/geometry/patchgrid.cpp  ->  _ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph   # CSurface::regionCoverage(CShadingContext*, int, int, float const*, float const*, unsigned char*)
+DB-017  link     src/ri/geometry/patchgrid.cpp  ->  _ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph   # CSurface::regionCoverage(IRayContext*, int, int, float const*, float const*, unsigned char*)
 DB-017  link     src/ri/geometry/patchgrid.cpp  ->  _ZN8CSurface4diceEP6CReyes   # CSurface::dice(CReyes*)
-DB-017  link     src/ri/geometry/patchgrid.cpp  ->  _ZN8CSurface5shadeEP15CShadingContextiPP4CRay   # CSurface::shade(CShadingContext*, int, CRay**)
-DB-017  link     src/ri/geometry/patchgrid.cpp  ->  _ZN8CSurface9intersectEP15CShadingContextP4CRay   # CSurface::intersect(CShadingContext*, CRay*)
+DB-017  link     src/ri/geometry/patchgrid.cpp  ->  _ZN8CSurface5shadeER11IRayContextiPP4CRay   # CSurface::shade(IRayContext&, int, CRay**)
+DB-017  link     src/ri/geometry/patchgrid.cpp  ->  _ZN8CSurface9intersectER11IRayContextP4CRay   # CSurface::intersect(IRayContext&, CRay*)
 DB-017  link     src/ri/geometry/patchgrid.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
 DB-017  link     src/ri/geometry/patchgrid.cpp  ->  _ZTV8CSurface   # vtable for CSurface
 DB-017  link     src/ri/geometry/points.cpp  ->  _ZN7CPoints4diceEP6CReyes   # CPoints::dice(CReyes*)
-DB-017  link     src/ri/geometry/points.cpp  ->  _ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph   # CSurface::regionCoverage(CShadingContext*, int, int, float const*, float const*, unsigned char*)
-DB-017  link     src/ri/geometry/points.cpp  ->  _ZN8CSurface5shadeEP15CShadingContextiPP4CRay   # CSurface::shade(CShadingContext*, int, CRay**)
+DB-017  link     src/ri/geometry/points.cpp  ->  _ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph   # CSurface::regionCoverage(IRayContext*, int, int, float const*, float const*, unsigned char*)
+DB-017  link     src/ri/geometry/points.cpp  ->  _ZN8CSurface5shadeER11IRayContextiPP4CRay   # CSurface::shade(IRayContext&, int, CRay**)
 DB-017  link     src/ri/geometry/points.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
 DB-017  link     src/ri/geometry/points.cpp  ->  _ZTV8CSurface   # vtable for CSurface
 DB-017  link     src/ri/geometry/polygons.cpp  ->  _ZN7CObject4diceEP6CReyes   # CObject::dice(CReyes*)
-DB-017  link     src/ri/geometry/polygons.cpp  ->  _ZN8CSurface13checkRayGuardEP4CRayP15CShadingContext   # CSurface::checkRayGuard(CRay*, CShadingContext*)
-DB-017  link     src/ri/geometry/polygons.cpp  ->  _ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph   # CSurface::regionCoverage(CShadingContext*, int, int, float const*, float const*, unsigned char*)
+DB-017  link     src/ri/geometry/polygons.cpp  ->  _ZN8CSurface13checkRayGuardEP4CRayR11IRayContext   # CSurface::checkRayGuard(CRay*, IRayContext&)
+DB-017  link     src/ri/geometry/polygons.cpp  ->  _ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph   # CSurface::regionCoverage(IRayContext*, int, int, float const*, float const*, unsigned char*)
 DB-017  link     src/ri/geometry/polygons.cpp  ->  _ZN8CSurface4diceEP6CReyes   # CSurface::dice(CReyes*)
-DB-017  link     src/ri/geometry/polygons.cpp  ->  _ZN8CSurface5shadeEP15CShadingContextiPP4CRay   # CSurface::shade(CShadingContext*, int, CRay**)
+DB-017  link     src/ri/geometry/polygons.cpp  ->  _ZN8CSurface5shadeER11IRayContextiPP4CRay   # CSurface::shade(IRayContext&, int, CRay**)
 DB-017  link     src/ri/geometry/polygons.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
 DB-017  link     src/ri/geometry/polygons.cpp  ->  _ZTV8CSurface   # vtable for CSurface
-DB-017  link     src/ri/geometry/quadrics.cpp  ->  _ZN8CSurface13checkRayGuardEP4CRayP15CShadingContext   # CSurface::checkRayGuard(CRay*, CShadingContext*)
-DB-017  link     src/ri/geometry/quadrics.cpp  ->  _ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph   # CSurface::regionCoverage(CShadingContext*, int, int, float const*, float const*, unsigned char*)
+DB-017  link     src/ri/geometry/quadrics.cpp  ->  _ZN8CSurface13checkRayGuardEP4CRayR11IRayContext   # CSurface::checkRayGuard(CRay*, IRayContext&)
+DB-017  link     src/ri/geometry/quadrics.cpp  ->  _ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph   # CSurface::regionCoverage(IRayContext*, int, int, float const*, float const*, unsigned char*)
 DB-017  link     src/ri/geometry/quadrics.cpp  ->  _ZN8CSurface4diceEP6CReyes   # CSurface::dice(CReyes*)
-DB-017  link     src/ri/geometry/quadrics.cpp  ->  _ZN8CSurface5shadeEP15CShadingContextiPP4CRay   # CSurface::shade(CShadingContext*, int, CRay**)
+DB-017  link     src/ri/geometry/quadrics.cpp  ->  _ZN8CSurface5shadeER11IRayContextiPP4CRay   # CSurface::shade(IRayContext&, int, CRay**)
 DB-017  link     src/ri/geometry/quadrics.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
 DB-017  link     src/ri/geometry/quadrics.cpp  ->  _ZTV8CSurface   # vtable for CSurface
-DB-017  link     src/ri/geometry/subdivision.cpp  ->  _ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph   # CSurface::regionCoverage(CShadingContext*, int, int, float const*, float const*, unsigned char*)
+DB-017  link     src/ri/geometry/subdivision.cpp  ->  _ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph   # CSurface::regionCoverage(IRayContext*, int, int, float const*, float const*, unsigned char*)
 DB-017  link     src/ri/geometry/subdivision.cpp  ->  _ZN8CSurface4diceEP6CReyes   # CSurface::dice(CReyes*)
-DB-017  link     src/ri/geometry/subdivision.cpp  ->  _ZN8CSurface5shadeEP15CShadingContextiPP4CRay   # CSurface::shade(CShadingContext*, int, CRay**)
-DB-017  link     src/ri/geometry/subdivision.cpp  ->  _ZN8CSurface9intersectEP15CShadingContextP4CRay   # CSurface::intersect(CShadingContext*, CRay*)
+DB-017  link     src/ri/geometry/subdivision.cpp  ->  _ZN8CSurface5shadeER11IRayContextiPP4CRay   # CSurface::shade(IRayContext&, int, CRay**)
+DB-017  link     src/ri/geometry/subdivision.cpp  ->  _ZN8CSurface9intersectER11IRayContextP4CRay   # CSurface::intersect(IRayContext&, CRay*)
 DB-017  link     src/ri/geometry/subdivision.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
 DB-017  link     src/ri/geometry/subdivision.cpp  ->  _ZTV8CSurface   # vtable for CSurface
 DB-017  link     src/ri/geometry/subdivisionCreator.cpp  ->  _ZN7CObject4diceEP6CReyes   # CObject::dice(CReyes*)
 DB-017  link     src/ri/geometry/subdivisionLoop.cpp  ->  _ZN7CObject4diceEP6CReyes   # CObject::dice(CReyes*)
-DB-017  link     src/ri/hiders/photon.cpp  ->  _ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph   # CSurface::regionCoverage(CShadingContext*, int, int, float const*, float const*, unsigned char*)
+DB-017  link     src/ri/hiders/photon.cpp  ->  _ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph   # CSurface::regionCoverage(IRayContext*, int, int, float const*, float const*, unsigned char*)
 DB-017  link     src/ri/hiders/photon.cpp  ->  _ZN8CSurface4diceEP6CReyes   # CSurface::dice(CReyes*)
-DB-017  link     src/ri/hiders/photon.cpp  ->  _ZN8CSurface5shadeEP15CShadingContextiPP4CRay   # CSurface::shade(CShadingContext*, int, CRay**)
-DB-017  link     src/ri/hiders/photon.cpp  ->  _ZN8CSurface9intersectEP15CShadingContextP4CRay   # CSurface::intersect(CShadingContext*, CRay*)
+DB-017  link     src/ri/hiders/photon.cpp  ->  _ZN8CSurface5shadeER11IRayContextiPP4CRay   # CSurface::shade(IRayContext&, int, CRay**)
+DB-017  link     src/ri/hiders/photon.cpp  ->  _ZN8CSurface9intersectER11IRayContextP4CRay   # CSurface::intersect(IRayContext&, CRay*)
 DB-017  link     src/ri/hiders/photon.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
 DB-017  link     src/ri/hiders/photon.cpp  ->  _ZTV8CSurface   # vtable for CSurface
-DB-017  link     src/ri/hiders/trace.cpp  ->  _ZN7CObject7clusterEP15CShadingContext   # CObject::cluster(CShadingContext*)
+DB-017  link     src/ri/hiders/trace.cpp  ->  _ZN7CObject7clusterER11IRayContext   # CObject::cluster(IRayContext&)
 
 # --- DB-025: Domains call into the data viewer (a consumer) (12) ---
-DB-025  include  src/ri/geometry/surface.cpp  ->  src/ri/dataviewer/debug.h
 DB-025  include  src/ri/hiders/irradiance.cpp  ->  src/ri/dataviewer/debug.h
 DB-025  include  src/ri/hiders/photonMap.h  ->  src/ri/dataviewer/dataView.h
 DB-025  include  src/ri/texture/texture3d.h  ->  src/ri/dataviewer/dataView.h

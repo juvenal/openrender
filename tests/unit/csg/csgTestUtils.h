@@ -10,7 +10,7 @@
  *   - CCsgSession: an in-process Ri session (RiBegin(RI_NULL) + RiWorldBegin,
  *     following test_ambient_accumulation.cpp) whose context captures every
  *     primitive instead of rendering it, and which exposes a real
- *     CShadingContext (CRenderer::contexts[0]) for mesh materialization and
+ *     an IRayContext (CRenderer::contexts[0]) for mesh materialization and
  *     free-form crossing queries
  *   - depth-first materialization and resolved-operand builders
  *   - analytic membership helpers for spheres and boxes
@@ -155,7 +155,7 @@ namespace csgtest {
             CCaptureContext *capture() const { return captureContextSlot(); }
 
             // A real shading context, for materialization and free-form queries
-            CShadingContext *ctx() const { return CRenderer::contexts != NULL ? &CRenderer::contexts[0]->shadingContext() : NULL; }
+            IRayContext *ctx() const { return CRenderer::contexts != NULL ? CRenderer::contexts[0] : NULL; }
 
             // Run Ri calls in their own attribute block and return the single
             // object they created (NULL if they created none or several)
@@ -177,8 +177,8 @@ namespace csgtest {
 
     // Depth-first: materialize the object, then each of its children, and
     // collect every CSurface that has no children of its own.
-    inline void collectSurfaces(CShadingContext *ctx, CObject *o, std::vector<CSurface *> &out) {
-        o->materialize(ctx);
+    inline void collectSurfaces(IRayContext *ctx, CObject *o, std::vector<CSurface *> &out) {
+        o->materialize(*ctx);
         if (o->children == NULL) {
             CSurface *s = dynamic_cast<CSurface *>(o);
             if (s != NULL)
@@ -191,7 +191,7 @@ namespace csgtest {
 
     // An operand made of the given members, each contributing its surfaces,
     // with its kind derived by the production code
-    inline CCSGResolvedOperand *makeOperand(CShadingContext *ctx, const std::vector<CObject *> &members) {
+    inline CCSGResolvedOperand *makeOperand(IRayContext *ctx, const std::vector<CObject *> &members) {
         CCSGResolvedOperand *op = new CCSGResolvedOperand();
         for (size_t m = 0; m < members.size(); m++) {
             op->addMember(members[m]);
@@ -206,7 +206,7 @@ namespace csgtest {
 
     // An operand whose surfaces all belong to ONE member, as a mesh's would:
     // the first piece stands for the member; every piece contributes surfaces.
-    inline CCSGResolvedOperand *makeOperandOneMember(CShadingContext *ctx, const std::vector<CObject *> &pieces) {
+    inline CCSGResolvedOperand *makeOperandOneMember(IRayContext *ctx, const std::vector<CObject *> &pieces) {
         CCSGResolvedOperand *op = new CCSGResolvedOperand();
         op->addMember(pieces[0]);
         for (CObject *piece : pieces) {

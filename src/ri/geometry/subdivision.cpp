@@ -385,6 +385,6 @@ void CSubdivision::interpolate(int numVertices, float **varying, float ***locals
 //							Newton core (spec 021; ribVector links a stub)
 // Return Value			:	-
 // Comments				:
-int CSubdivision::countCrossings(CShadingContext *context, const float *from, const float *dir) const {
+int CSubdivision::countCrossings(IRayContext *context, const float *from, const float *dir) const {
     return countFreeFormCrossings(context, this, from, dir);
 }

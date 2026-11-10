@@ -21,6 +21,6 @@
 // CSG is structurally unsupported on the preview path (CRibGeometryContext
 // has no RiSolidBegin/RiSolidEnd override), so no free-form surface is ever
 // classified there.
-int countFreeFormCrossings(CShadingContext *, const CSurface *, const float *, const float *) {
+int countFreeFormCrossings(IRayContext *, const CSurface *, const float *, const float *) {
     return 0;
 }

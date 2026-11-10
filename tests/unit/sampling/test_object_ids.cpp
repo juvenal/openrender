@@ -234,7 +234,7 @@ static void tessellation() {
         if (group->size() != 1)
             continue;
         CObject *parent = (*group)[0];
-        parent->materialize(s.ctx()); // builds the children
+        parent->materialize(*s.ctx()); // builds the children
 
         std::vector<uint64_t> children;
         for (const CObject *c = parent->children; c != nullptr; c = c->sibling)

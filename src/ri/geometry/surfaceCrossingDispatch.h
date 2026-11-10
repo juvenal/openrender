@@ -33,7 +33,7 @@
 #include <vector>
 
 class CSurface;
-class CShadingContext;
+class IRayContext;
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CCrossingSurface
@@ -76,6 +76,6 @@ int findSurfaceCrossings(const CCrossingSurface &surface, const CCrossingSeedGri
 
 // Renderer entry point used by the free-form CSurface::countCrossings()
 // overrides; the ribVector build links a stub that reports 0.
-int countFreeFormCrossings(CShadingContext *ctx, const CSurface *surface, const float *from, const float *dir);
+int countFreeFormCrossings(IRayContext *ctx, const CSurface *surface, const float *from, const float *dir);
 
 #endif // SURFACECROSSINGDISPATCH_H

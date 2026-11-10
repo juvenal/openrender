@@ -118,6 +118,81 @@ Nothing overrides `dice(CReyes *)` / `splitToChildren(CReyes *)` outside Geometr
 | 2 | macOS: red-evidence configure ON then OFF, 0 `Building` lines after OFF (nothing rebuilt); Linux: build exit 0, 0 warnings | not re-run (nothing but gated tests and CMake changed; the baseline suite is the Phase 1 record) | `ctest -L architecture`: 29 of 29 on both hosts; report: 344 entries (DB-004 52, DB-006 30, DB-010 8, DB-011 164, DB-017 78, DB-025 12), Geometry 48/15, Hiders 556/81, TOTAL 604/89, `RESULT PASS` | n/a (no image-producing code changed) | n/a | n/a | `-L '^geometry_contract$'` finds no test with the option OFF (both hosts) | done, `Motion_*` 10/10 |
 | 1 | macOS build exit 0, 0 warnings; Linux build exit 0, 0 warnings | macOS 1097/1097 (1 self-skip), twice, sweep 419/419 twice; Linux 1097/1098 (#45) twice, sweep 419/419 twice | `ctest -L architecture`: 29 of 29 on both hosts (344 entries, RESULT PASS) | baselines recorded (0 noise on both hosts) | n/a | n/a | n/a | baseline built and verified (§3) |
 
+### Phase 4 (macOS; the Linux half is recorded in §3)
+
+| CP | Result |
+|---|---|
+| CP-a build (`031-p4-build`, `031-p4-build2` after the `clang-format` of 3 files) | exit 0, 0 first-party compiler warnings under `-Werror` (the only "warning" lines are `ld` duplicate-library notices); every target including `ribVector` and the data viewer built. One first-pass error, an unused parameter in `CLoopSubdivMesh::create` (it used to pass the context to `setChildren`), fixed by dropping the name |
+| CP-b suite (`031-p4-suite`, `-LE determinism-sweep -j4`) | **1099/1099 passed** (the 1 self-skip is `LibShader_Format_rslo_lower_minor`), the Phase 3 count; no new test enabled in this phase |
+| CP-d | `image_manifest.sh diff`: 915 images, **0 differing, 0 missing, 0 not in manifest**; `diffs` against `baseline-diffs-macos.txt`: empty (every `MaxBlockAvgDiff` equal) |
+| CP-r | `Motion_Replay_*` and `Motion_CameraSlerpEquivalence`: 10/10; `git diff --stat -- tests/unit/motion/replay` empty |
+| CP-det | `^determinism$` 156/156 (`-j2`) |
+| CP-m | `^geometry_contract$` 2/2 (`Geometry_ObjectSink`, `Geometry_FrameDefault`); the later tests are not built |
+| preview / viewer | the `SceneInterface_`/`Preview_` tests with label `preview`: 3/3; the data viewer is a build target and built |
+| CP-c | `ctest -L architecture` 29/29. Report (`build-logs/p4-archreport2.txt`): `ALLOWED DB-004 x 31, DB-006 x 26, DB-010 x 8, DB-011 x 164, DB-017 x 77, DB-025 x 11` = **317** (the expected row of tasks.md); METRIC Geometry refs 48 -> **21** (distinct 15 -> 7), Hiders 556/81 unchanged, TOTAL 604 -> 577 (distinct 89 -> 84); `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0` |
+| T055 `tesselationOverhead` comparison | `csg-hero-displaced-raytrace.rib` with `Option "statistics" "endofframe" [3]` and `-x 3 -t:1`, `build-base` against `build`: **identical** (Peak memory 10,685,796; memory 0; cache hits 5,403,084; misses 7,897; Tess. Overhead 1,585,840 bytes both) |
+
+**Test gate (T049).** The 7 lines were deleted by key and `ctest -L architecture` was run on the Phase 3 build tree, before any rebuild: `RESULT FAIL violations=6 stale=0` with exactly the six link
+`VIOLATION` lines (`dlobject.cpp` and `implicitSurface.cpp -> CShadingContext::shade`, `surface.cpp -> CShadingContext::restoreState`, `saveState`, `CRenderer::numThreads`, `CRenderer::tesselateMutex`; `build-logs/p4-tg-arch.log`).
+**The seventh, DB-025 `surface.cpp -> dataviewer/debug.h`, did not show**: I had already edited `surface.cpp` (the `#include "debug.h"` was gone) before running the gate, and archcheck reads the include
+edge from the source text, not from the stale depfile. This is an order slip (the gate should have run before the first source edit); the line is a fact of HEAD (`git show HEAD:src/ri/geometry/surface.cpp` has `#include "debug.h"` at `:33`)
+and the line is gone from the allowlist with the include. The final archcheck shows no `STALE` and no `VIOLATION`.
+
+**DB-017 re-key (Q1, T060): 32 lines, in place.** archcheck reported exactly 32 `STALE` (old key) and 32 `VIOLATION` (new key) lines after the build; each old line was rewritten with the new mangled name and demangled comment
+(file, function and count unchanged, no line added; the names equal those proposed at PAUSE 4a). allowlist diff `-32/+32`:
+
+| File | Old key | New key |
+|---|---|---|
+| `geometry/bsplinePatchgrid.cpp` | `_ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph` | `_ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph` |
+| `geometry/bsplinePatchgrid.cpp` | `_ZN8CSurface5shadeEP15CShadingContextiPP4CRay` | `_ZN8CSurface5shadeER11IRayContextiPP4CRay` |
+| `geometry/bsplinePatchgrid.cpp` | `_ZN8CSurface9intersectEP15CShadingContextP4CRay` | `_ZN8CSurface9intersectER11IRayContextP4CRay` |
+| `geometry/curves.cpp` | `_ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph` | `_ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph` |
+| `geometry/curves.cpp` | `_ZN8CSurface5shadeEP15CShadingContextiPP4CRay` | `_ZN8CSurface5shadeER11IRayContextiPP4CRay` |
+| `geometry/curves.cpp` | `_ZN8CSurface9intersectEP15CShadingContextP4CRay` | `_ZN8CSurface9intersectER11IRayContextP4CRay` |
+| `geometry/delayed.cpp` | `_ZN14CDelayedObject9intersectEP15CShadingContextP4CRay` | `_ZN14CDelayedObject9intersectER11IRayContextP4CRay` |
+| `geometry/delayed.cpp` | `_ZN16CDelayedInstance9intersectEP15CShadingContextP4CRay` | `_ZN16CDelayedInstance9intersectER11IRayContextP4CRay` |
+| `geometry/dlobject.cpp` | `_ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph` | `_ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph` |
+| `geometry/implicitSurface.cpp` | `_ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph` | `_ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph` |
+| `geometry/patches.cpp` | `_ZN8CSurface13checkRayGuardEP4CRayP15CShadingContext` | `_ZN8CSurface13checkRayGuardEP4CRayR11IRayContext` |
+| `geometry/patches.cpp` | `_ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph` | `_ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph` |
+| `geometry/patches.cpp` | `_ZN8CSurface5shadeEP15CShadingContextiPP4CRay` | `_ZN8CSurface5shadeER11IRayContextiPP4CRay` |
+| `geometry/patches.cpp` | `_ZN8CSurface9intersectEP15CShadingContextP4CRay` | `_ZN8CSurface9intersectER11IRayContextP4CRay` |
+| `geometry/patchgrid.cpp` | `_ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph` | `_ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph` |
+| `geometry/patchgrid.cpp` | `_ZN8CSurface5shadeEP15CShadingContextiPP4CRay` | `_ZN8CSurface5shadeER11IRayContextiPP4CRay` |
+| `geometry/patchgrid.cpp` | `_ZN8CSurface9intersectEP15CShadingContextP4CRay` | `_ZN8CSurface9intersectER11IRayContextP4CRay` |
+| `geometry/points.cpp` | `_ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph` | `_ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph` |
+| `geometry/points.cpp` | `_ZN8CSurface5shadeEP15CShadingContextiPP4CRay` | `_ZN8CSurface5shadeER11IRayContextiPP4CRay` |
+| `geometry/polygons.cpp` | `_ZN8CSurface13checkRayGuardEP4CRayP15CShadingContext` | `_ZN8CSurface13checkRayGuardEP4CRayR11IRayContext` |
+| `geometry/polygons.cpp` | `_ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph` | `_ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph` |
+| `geometry/polygons.cpp` | `_ZN8CSurface5shadeEP15CShadingContextiPP4CRay` | `_ZN8CSurface5shadeER11IRayContextiPP4CRay` |
+| `geometry/quadrics.cpp` | `_ZN8CSurface13checkRayGuardEP4CRayP15CShadingContext` | `_ZN8CSurface13checkRayGuardEP4CRayR11IRayContext` |
+| `geometry/quadrics.cpp` | `_ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph` | `_ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph` |
+| `geometry/quadrics.cpp` | `_ZN8CSurface5shadeEP15CShadingContextiPP4CRay` | `_ZN8CSurface5shadeER11IRayContextiPP4CRay` |
+| `geometry/subdivision.cpp` | `_ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph` | `_ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph` |
+| `geometry/subdivision.cpp` | `_ZN8CSurface5shadeEP15CShadingContextiPP4CRay` | `_ZN8CSurface5shadeER11IRayContextiPP4CRay` |
+| `geometry/subdivision.cpp` | `_ZN8CSurface9intersectEP15CShadingContextP4CRay` | `_ZN8CSurface9intersectER11IRayContextP4CRay` |
+| `hiders/photon.cpp` | `_ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph` | `_ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph` |
+| `hiders/photon.cpp` | `_ZN8CSurface5shadeEP15CShadingContextiPP4CRay` | `_ZN8CSurface5shadeER11IRayContextiPP4CRay` |
+| `hiders/photon.cpp` | `_ZN8CSurface9intersectEP15CShadingContextP4CRay` | `_ZN8CSurface9intersectER11IRayContextP4CRay` |
+| `hiders/trace.cpp` | `_ZN7CObject7clusterEP15CShadingContext` | `_ZN7CObject7clusterER11IRayContext` |
+
+**Allowlist, whole phase**: 344 -> 324 at Phase 3, now **317** (7 deleted + 32 re-keyed). Lines that left with `numThreads`: only `surface.cpp -> CRenderer::numThreads` (and `tesselateMutex`, `restoreState`,
+`saveState`); no further `surface.cpp -> CRenderer::` line went stale (the dice side keeps `flags`, `maxGridSize`, `maxEyeSplits`, `imagePlane`, `projection`, `dPixeldx`, ... for Phase 5).
+
+**Lock design.** `CTesselationPatch::lockTessellation()`/`unlockTessellation()` (static, declared in `surface.h`, defined in `surface.cpp` over a namespace-scope `static std::mutex`) replace `osLock/osUnlock(CRenderer::tesselateMutex)`
+at `surface.cpp` (`tesselate`, `purgeTesselations`) and `geometryDispatch.cpp` (`CSurface::checkRayGuard`, `CSurface::intersect`), same scopes and order. `CRenderer::tesselateMutex` is deleted (`renderer.h`, `rendererMutexes.cpp` definition, create and
+delete). Phase 6 (T080) makes the pair TU-local. `CTesselationPatch` has `numThreadsAtBuild` (from `geometryFrame().numThreads` in the constructor), used by the constructor arrays, the destructor, `tesselationOverhead` and
+`purgeTesselations`' callers; `shutdownTesselations()` asserts (debug only) `tesselationList == NULL` and `stats.tesselationMemory` equal to its value at `initTesselations`.
+
+**Production edits of the phase**: `rayContext.h` (new); `CHider : IRayContext` (`hider.h`; `shade`/`displace` forward to the context's existing Geometry-facing entry, `saveShadingState`/`restoreShadingState` to `saveState`/`restoreState`);
+every ray-side Geometry signature of the signature map (`CObject::intersect/cluster/materialize/regionCoverage`, `CSurface::shade/countCrossings/checkRayGuard`, the region hooks, `CCSGSolid::resolve/build`, the CSG classifiers, `countFreeFormCrossings`, the six mesh `create`,
+`CTesselationPatch`'s functions); `CObject::setChildren` lost its first parameter (callers `renderer.cpp`, `rendererContext.cpp` x2, and the Geometry bodies); `CCaptureHolder::intersect`; the bodies in `geometryDispatch.cpp` and the stubs
+(`geometryDispatchStub.cpp`, `surfaceCrossingDispatchStub.cpp`) track the signatures; `trace.cpp` passes `*this` (`:210`, `:338`, `:350`) and `reyes.cpp:1042` passes `this`; the dice-side bodies pass `*rasterizer`/`*r` to `create`/`resolve`/`classifyBound`
+as transitional arguments (Phase 5 turns them into `dicer.rayContext()`). DB-025: `#include "debug.h"`, the dead `DEBUG_HITS` block and its two `debugHit()` calls, and the dead `DEBUG_TESSELATIONS` block of `surface.cpp` are deleted.
+No float expression changed text. `clang-format` was applied to `dlobject.h`, `implicitSurface.h` (clean before) and the new `rayContext.h`; the other edited files were not clang-format clean before and were left alone.
+
+**Approved test edits applied (T057)**: exactly the list of PAUSE 4a (15 test files; `git diff --cached --stat -- tests`), no assertion, threshold or recording changed.
+
 ## §2 Red evidence
 
 ### Phase 2 (macOS; `build` configured with `-DOPENRENDER_031_RED_TESTS=ON`, then OFF again)
@@ -200,6 +275,12 @@ A final `push`/`verify` after the last edits to the (OFF-gated) check scripts is
 
 Linux baseline pass/fail set: everything passes except `TextureTile_RenderByteIdentical` (known, #45). macOS: everything passes. **The Phase 2 gate files of T016 to T018 all exist.**
 
+### Phase 4 CP-Lb (Linux, 2026-11-10; the host was back after a reboot, /home 8.5 GB free)
+
+After `git add`, `linux_sync.sh push` (3,755 files) and `verify` (**3755 files, 0 differences**); remote incremental build (`031-l4-build`, remote `cpujob`, `-j2`): exit 0, **0 warnings** under GCC 13 `-Werror`;
+`ctest -L architecture` **29/29**; `-L '^geometry_contract$'` **2/2**; `-R 'Motion_(Replay|CameraSlerpEquivalence)'` **10/10**; archcheck report **identical to macOS** (`ALLOWED DB-004 x 31, DB-006 x 26, DB-010 x 8, DB-011 x 164,
+DB-017 x 77, DB-025 x 11` = 317; Geometry 21/7, Hiders 556/81, TOTAL 577/84; `RESULT PASS`). `pull`: 9 Linux-produced files, 0 differences. Not run on Linux (CP-Lb is a build check): the full suite and CP-d (Phase 8).
+
 ### T020 / PAUSE 1 outcome (2026-11-09)
 
 The maintainer approved Phase 1 as reported: **Q1 (DB-017 re-key in Phases 4 and 5, 32 + 20 lines), Q2 (install `CGeometryFrame` after the context loop) and Q3 (the Linux CP-Lb build check at
@@ -220,6 +301,21 @@ Phase 1 is complete; the maintainer commits it before Phase 2 starts.
    The report is compiled out of the Release suite, so a scratch mutation forced it on (`#if 1`), the whole suite ran (1099/1099 passed), and `LastTest.log` was searched: **exactly one report, from `Geometry_FrameDefault` itself**, which reads the default on purpose ("nothing installed: all zero").
    No other test reaches the report. The mutation was reverted (`git diff` empty).
 4. `build` is 580 MB, not the 2.6 GB of the main checkout's tree; the `build-base` copy was affordable once the maintainer freed disk.
+7. **Cross-spec note (recorded at PAUSE 4a, 2026-11-10; not acted on).** master `0e554fed` carries the GitHub #153 fix (`94c8d798`, "keep a continued shadow ray's end point"), which this tree
+   does not have. It touches `src/ri/hiders/trace.cpp` (one hunk in `CHider::traceGroups`: `cRay->t = C_INFINITY;` becomes `cRay->t = bundle->continuationLimit(cRay);`, master `:239`),
+   `src/libshader/shading/{bundles.cpp,bundles.h,executeMisc.cpp,shading.h}` (`CRayBundle::continuationLimit()` at `shading.h:~356`, `CTransmissionRay::tEnd`, `CTransmissionBundle::continuationLimit`),
+   `tests/visual/CMakeLists.txt` (+69 lines), seven `transmission-dest-*` RIBs and `tests/visual/shaders/transmission_destination_probe.sl`.
+   **Phase 4's hunks that meet it**: `trace.cpp` only, and only in the same function: `:210` (`shadingGroups->object->shade(&context, ...)` becomes `shade(*this, ...)`; about 30 lines before master's hunk,
+   no overlap, so the merge is textual-clean; `git merge-tree --write-tree HEAD master` at Phase 3's HEAD exits 0 with no conflict) and `:338`/`:350` (`intersect`/`cluster`, in `CHider::traceRay`, far from it).
+   No Phase 4 hunk touches `bundles.*`, `executeMisc.cpp` or `shading.h` (031's only `shading.h` edit is Phase 3's `EShadingDim` at `:84-89`; master's is at `:356`). After master is merged into 031
+   (before 031 merges): the seven new `transmission-dest-*` images have no entry in `tools/baseline-images-{macos,linux}.sha256` or the `MaxBlockAvgDiff` baselines, so CP-d must be re-baselined for
+   those images only (from master's own results), and the suite count rises by master's new tests. `Motion_Replay_*` is unaffected (no motion expression moved).
+
+### PAUSE 4a outcome (2026-11-10)
+
+The maintainer approved, exactly as proposed: the test-edit list of T048 (a) including the finding that `tests/unit/geometry/test_degenerate_fix_offset.cpp:70` needs no edit; the `*s.ctx()` / `*ctx`
+dereference at call sites that now take a reference (no new `rc()` helper); the `CTesselationPatch::lockTessellation()`/`unlockTessellation()` pair on a static `std::mutex` in `surface.cpp` with
+`CRenderer::tesselateMutex` removed; `numThreadsAtBuild` set from `geometryFrame()`. The DB-017 names are confirmed from archcheck's STALE/VIOLATION pairs at T060; an approved-test diff that differs from the list stops the phase.
 
 ## §5 Reference approvals
 

@@ -78,7 +78,6 @@ TMutex CRenderer::networkMutex;
 //
 //	VERIFIED
 /////////////////////////////////////////////////////////////
-TMutex CRenderer::tesselateMutex;
 
 /////////////////////////////////////////////////////////////
 //	Used to ensure that each shader PL gets unpacked by one
@@ -141,7 +140,6 @@ void CRenderer::initMutexes() {
     osCreateMutex(commitMutex);
     osCreateMutex(displayKillMutex);
     osCreateMutex(networkMutex);
-    osCreateMutex(tesselateMutex);
     osCreateMutex(shaderMutex);
     osCreateMutex(delayedMutex);
     osCreateMutex(deepShadowMutex);
@@ -164,7 +162,6 @@ void CRenderer::shutdownMutexes() {
     osDeleteMutex(commitMutex);
     osDeleteMutex(displayKillMutex);
     osDeleteMutex(networkMutex);
-    osDeleteMutex(tesselateMutex);
     osDeleteMutex(shaderMutex);
     osDeleteMutex(delayedMutex);
     osDeleteMutex(deepShadowMutex);

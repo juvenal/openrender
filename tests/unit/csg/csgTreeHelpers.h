@@ -63,13 +63,13 @@ namespace csgtest {
     }
 
     // The solid's membership at P
-    inline int inside(const CCSGDefinition *def, const std::vector<CCSGResolvedOperand *> &ops, CShadingContext *ctx,
+    inline int inside(const CCSGDefinition *def, const std::vector<CCSGResolvedOperand *> &ops, IRayContext *ctx,
                       const float *P) {
         return def->evaluate([&](int op) { return classifyOperand(ctx, *ops[op], P) == CSG_IN; });
     }
 
     // Volume estimated from the centres of an n x n x n grid over [lo, hi]
-    inline double volume(const CCSGDefinition *def, const std::vector<CCSGResolvedOperand *> &ops, CShadingContext *ctx,
+    inline double volume(const CCSGDefinition *def, const std::vector<CCSGResolvedOperand *> &ops, IRayContext *ctx,
                          const float *lo, const float *hi, int n) {
         int count = 0;
         for (const std::vector<float> &p : gridPoints(lo, hi, n))
@@ -95,7 +95,7 @@ namespace csgtest {
     }
 
     // accepts() for a point on a planar leaf with normal (nx, ny, nz)
-    inline int onPlane(const CCSGEvaluator &ev, CShadingContext *ctx, int operand, float x, float y, float z, float nx,
+    inline int onPlane(const CCSGEvaluator &ev, IRayContext *ctx, int operand, float x, float y, float z, float nx,
                        float ny, float nz) {
         const float P[3] = {x, y, z}, Ng[3] = {nx, ny, nz};
         return ev.accepts(ctx, operand, P, Ng);

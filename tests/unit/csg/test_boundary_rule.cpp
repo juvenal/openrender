@@ -41,7 +41,7 @@ class CCountingSphere : public CSurface {
         CCountingSphere(float cx, float cy, float cz, float r)
             : CSurface(new CAttributes(), new CXform()), c{cx, cy, cz}, r(r), calls(0) {}
 
-        int countCrossings(CShadingContext *, const float *from, const float *dir) const override {
+        int countCrossings(IRayContext *, const float *from, const float *dir) const override {
             calls++;
             double oc[3] = {from[0] - c[0], from[1] - c[1], from[2] - c[2]};
             double a = dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2];

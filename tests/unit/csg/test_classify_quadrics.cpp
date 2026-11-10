@@ -25,7 +25,7 @@
 
 using namespace csgtest;
 
-static int at(CShadingContext *ctx, CCSGResolvedOperand *op, float x, float y, float z) {
+static int at(IRayContext *ctx, CCSGResolvedOperand *op, float x, float y, float z) {
     const float P[3] = {x, y, z};
     return classifyOperand(ctx, *op, P);
 }

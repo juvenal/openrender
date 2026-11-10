@@ -100,7 +100,7 @@ void CObject::dice(CReyes *rasterizer) {
 // Return Value			:	-
 // Comments				:
 void CCSGSolid::dice(CReyes *rasterizer) {
-    resolve(&rasterizer->shadingContext());
+    resolve(*rasterizer);
     CObject::dice(rasterizer);
 }
 
@@ -112,7 +112,7 @@ void CCSGSolid::dice(CReyes *rasterizer) {
 // Comments				:	Reaches into shading (its draws, originally
 //							CShadingContext::urand(), now a CKeyedStream),
 //							not merely threadMemory as it first appears.
-void CObject::cluster(CShadingContext *context) {
+void CObject::cluster(IRayContext &context) {
     int numChildren;
     CObject *cObject;
 
@@ -129,11 +129,11 @@ void CObject::cluster(CShadingContext *context) {
     CObject *back, *backChildren;
 
     // Begin a memory page
-    memBegin(context->threadMemory);
+    memBegin(context.scratch());
 
     // Cluster the midpoints of the objects
-    float *P = (float *)ralloc(numChildren * 3 * sizeof(float), context->threadMemory);
-    int *indices = (int *)ralloc(numChildren * sizeof(int), context->threadMemory);
+    float *P = (float *)ralloc(numChildren * 3 * sizeof(float), context.scratch());
+    int *indices = (int *)ralloc(numChildren * sizeof(int), context.scratch());
 
     // For 5 iterations
     for (int iteration = 0; iteration < 15; iteration++) {
@@ -240,7 +240,7 @@ void CObject::cluster(CShadingContext *context) {
         cObject = nObject;
     }
 
-    memEnd(context->threadMemory);
+    memEnd(context.scratch());
 
     // Recurse
     front->children = frontChildren;
@@ -264,7 +264,7 @@ void CObject::cluster(CShadingContext *context) {
 //							polygons.cpp).
 // Return Value			:	TRUE if the caller should return immediately
 // Comments				:
-bool CSurface::checkRayGuard(CRay *rv, CShadingContext *context) {
+bool CSurface::checkRayGuard(CRay *rv, IRayContext &context) {
     if (!(rv->flags & attributes->flags))
         return TRUE;
 
@@ -283,7 +283,7 @@ bool CSurface::checkRayGuard(CRay *rv, CShadingContext *context) {
     if ((attributes->displacement()) && (attributes->flags & ATTRIBUTES_FLAGS_DISPLACEMENTS)) {
         // Do we have a grid ?
         if (children == NULL) {
-            osLock(CRenderer::tesselateMutex);
+            CTesselationPatch::lockTessellation();
 
             if (children == NULL) {
                 CTesselationPatch *tesselation = new CTesselationPatch(attributes, xform, this, 0, 1, 0, 1, 0, 0, -1);
@@ -293,7 +293,7 @@ bool CSurface::checkRayGuard(CRay *rv, CShadingContext *context) {
                 children = tesselation;
             }
 
-            osUnlock(CRenderer::tesselateMutex);
+            CTesselationPatch::unlockTessellation();
         }
         return TRUE;
     }
@@ -307,7 +307,7 @@ bool CSurface::checkRayGuard(CRay *rv, CShadingContext *context) {
 // Description			:	Intersect the surface
 // Return Value			:
 // Comments				:
-void CSurface::intersect(CShadingContext *context, CRay *cRay) {
+void CSurface::intersect(IRayContext &context, CRay *cRay) {
 
     if (!(cRay->flags & attributes->flags))
         return;
@@ -334,9 +334,9 @@ void CSurface::intersect(CShadingContext *context, CRay *cRay) {
         if (!(t < cRay->t))
             return;
 
-        // We must lock the tesselateMutex so that the list of known tesselation patches
+        // We must take the tessellation lock so that the list of known tesselation patches
         // is maintained in a thread safe manner
-        osLock(CRenderer::tesselateMutex);
+        CTesselationPatch::lockTessellation();
 
         if (children == NULL) {
 
@@ -347,7 +347,7 @@ void CSurface::intersect(CShadingContext *context, CRay *cRay) {
             children = tesselation;
         }
 
-        osUnlock(CRenderer::tesselateMutex);
+        CTesselationPatch::unlockTessellation();
     }
 }
 
@@ -384,8 +384,8 @@ void CSurface::dice(CReyes *rasterizer) {
 // Description			:	Shade the intersections
 // Return Value			:
 // Comments				:
-void CSurface::shade(CShadingContext *context, int numRays, CRay **rays) {
-    float **varying = context->currentShadingState->varying;
+void CSurface::shade(IRayContext &context, int numRays, CRay **rays) {
+    float **varying = context.varyings();
     float *u = varying[VARIABLE_U];
     float *v = varying[VARIABLE_V];
     float *time = varying[VARIABLE_TIME];
@@ -404,7 +404,7 @@ void CSurface::shade(CShadingContext *context, int numRays, CRay **rays) {
         I += 3;
     }
 
-    context->shade(this, numRays, 1, SHADING_2D, 0);
+    context.shade(this, numRays, 1, SHADING_2D, 0);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -734,7 +734,7 @@ namespace {
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CDelayedObject::intersect(CShadingContext *, CRay *) {
+void CDelayedObject::intersect(IRayContext &, CRay *) {
 
     // Process the object (through the host, which serializes the expansion)
     if (processed == FALSE)
@@ -763,7 +763,7 @@ void CDelayedObject::dice(CReyes *r) {
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CDelayedInstance::intersect(CShadingContext *, CRay *) {
+void CDelayedInstance::intersect(IRayContext &, CRay *) {
 
     // Process the instance
     if (processed == FALSE)
@@ -796,7 +796,7 @@ void CDelayedInstance::dice(CReyes *r) {
 // Comments				:	Keeps every quad touching an accepted corner, so a
 //							seam overlaps by under a micropolygon rather than
 //							opening a gap (spec 021)
-void CSurface::regionCoverage(CShadingContext *context, int udiv, int vdiv, const float *u, const float *v, unsigned char *coverage) {
+void CSurface::regionCoverage(IRayContext *context, int udiv, int vdiv, const float *u, const float *v, unsigned char *coverage) {
     if (region == NULL)
         return;
     const int nu = udiv + 1, nv = vdiv + 1, count = nu * nv;

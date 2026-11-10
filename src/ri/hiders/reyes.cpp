@@ -1039,7 +1039,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
             if (object->region != NULL && grid->coverage == NULL) {
                 grid->coverage = new unsigned char[udiv * vdiv];
                 memset(grid->coverage, 1, udiv * vdiv);
-                object->regionCoverage(&context, udiv, vdiv, varying[VARIABLE_U], varying[VARIABLE_V], grid->coverage);
+                object->regionCoverage(this, udiv, vdiv, varying[VARIABLE_U], varying[VARIABLE_V], grid->coverage);
             }
 
             // Displace the sucker

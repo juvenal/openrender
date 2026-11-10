@@ -49,17 +49,17 @@ void CObject::dice(CReyes *) {
     assert(FALSE);
 }
 
-void CObject::cluster(CShadingContext *) {
+void CObject::cluster(IRayContext &) {
     error(CODE_BUG, "CObject::cluster() reached in a build with no rendering pipeline\n");
     assert(FALSE);
 }
 
-bool CSurface::checkRayGuard(CRay *, CShadingContext *) {
+bool CSurface::checkRayGuard(CRay *, IRayContext &) {
     // Never raytraced in this build -- there is nothing for the caller to do.
     return TRUE;
 }
 
-void CSurface::intersect(CShadingContext *, CRay *) {
+void CSurface::intersect(IRayContext &, CRay *) {
     error(CODE_BUG, "CSurface::intersect() reached in a build with no rendering pipeline\n");
     assert(FALSE);
 }
@@ -69,7 +69,7 @@ void CSurface::dice(CReyes *) {
     assert(FALSE);
 }
 
-void CSurface::shade(CShadingContext *, int, CRay **) {
+void CSurface::shade(IRayContext &, int, CRay **) {
     error(CODE_BUG, "CSurface::shade() reached in a build with no rendering pipeline\n");
     assert(FALSE);
 }
@@ -94,7 +94,7 @@ void CPoints::dice(CReyes *) {
     assert(FALSE);
 }
 
-void CDelayedObject::intersect(CShadingContext *, CRay *) {
+void CDelayedObject::intersect(IRayContext &, CRay *) {
     error(CODE_BUG, "CDelayedObject::intersect() reached in a build with no rendering pipeline\n");
     assert(FALSE);
 }
@@ -104,7 +104,7 @@ void CDelayedObject::dice(CReyes *) {
     assert(FALSE);
 }
 
-void CDelayedInstance::intersect(CShadingContext *, CRay *) {
+void CDelayedInstance::intersect(IRayContext &, CRay *) {
     error(CODE_BUG, "CDelayedInstance::intersect() reached in a build with no rendering pipeline\n");
     assert(FALSE);
 }
@@ -114,6 +114,6 @@ void CDelayedInstance::dice(CReyes *) {
     assert(FALSE);
 }
 
-void CSurface::regionCoverage(CShadingContext *, int, int, const float *, const float *, unsigned char *) {
+void CSurface::regionCoverage(IRayContext *, int, int, const float *, const float *, unsigned char *) {
     error(CODE_BUG, "CSurface::regionCoverage() reached in a build with no rendering pipeline\n");
 }

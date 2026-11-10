@@ -39,7 +39,7 @@ class CPatchGrid : public CSurface {
     public:
         CPatchGrid(CAttributes *, CXform *, CVertexData *, CParameter *, int, int, int, int, int, int, float *);
         ~CPatchGrid();
-        int countCrossings(CShadingContext *, const float *, const float *) const; // Spec 021
+        int countCrossings(IRayContext *, const float *, const float *) const; // Spec 021
 
         // Object interface
         void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }

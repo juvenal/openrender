@@ -28,14 +28,14 @@ using namespace csgtest;
 class CTestObject : public CObject {
     public:
         CTestObject() : CObject(new CAttributes(), new CXform()) {}
-        void intersect(CShadingContext *, CRay *) override {}
+        void intersect(IRayContext &, CRay *) override {}
         void instantiate(CAttributes *, CXform *, IObjectSink *) const override {}
 };
 
 class CTestRegion : public CRegionPredicate {
     public:
-        int accepts(CShadingContext *, const float *, const float *) const override { return TRUE; }
-        int classifyBound(CShadingContext *, const float *, const float *) const override { return REGION_ALL_IN; }
+        int accepts(IRayContext *, const float *, const float *) const override { return TRUE; }
+        int classifyBound(IRayContext *, const float *, const float *) const override { return REGION_ALL_IN; }
 };
 
 // A sibling chain of n fresh objects
@@ -56,7 +56,7 @@ TEST(children_inherit_the_parent_region) {
     CTestObject &parent = *new CTestObject(); // ref-counted: never on the stack
     parent.region = &region;
     std::vector<CObject *> kids;
-    parent.setChildren(NULL, chain(3, kids));
+    parent.setChildren(chain(3, kids));
     for (CObject *k : kids)
         ASSERT(k->region == &region);
 }
@@ -69,7 +69,7 @@ TEST(a_child_keeps_its_own_region) {
     std::vector<CObject *> kids;
     CObject *head = chain(2, kids);
     kids[0]->region = &ownRegion;
-    parent.setChildren(NULL, head);
+    parent.setChildren(head);
     ASSERT(kids[0]->region == &ownRegion);
     ASSERT(kids[1]->region == &parentRegion);
 }
@@ -78,7 +78,7 @@ TEST(no_region_stays_no_region) {
     CCsgSession s;
     CTestObject &parent = *new CTestObject(); // ref-counted: never on the stack
     std::vector<CObject *> kids;
-    parent.setChildren(NULL, chain(3, kids));
+    parent.setChildren(chain(3, kids));
     for (CObject *k : kids)
         ASSERT(k->region == NULL);
 }
@@ -90,11 +90,11 @@ TEST(a_grandchild_created_later_inherits_through_an_intermediate) {
     parent.region = &region;
     // The parent's child is created first (the inner mesh) ...
     CTestObject *intermediate = new CTestObject();
-    parent.setChildren(NULL, intermediate);
+    parent.setChildren(intermediate);
     ASSERT(intermediate->region == &region);
     // ... and only later creates its own children (the triangles)
     std::vector<CObject *> grandkids;
-    intermediate->setChildren(NULL, chain(4, grandkids));
+    intermediate->setChildren(chain(4, grandkids));
     for (CObject *g : grandkids)
         ASSERT(g->region == &region);
 }

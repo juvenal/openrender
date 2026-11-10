@@ -1066,7 +1066,7 @@ void CRenderer::renderFrame() {
     // Make sure we have a bounding hierarchy
     movvv(root->bmin, worldBmin);
     movvv(root->bmax, worldBmax);
-    root->setChildren(&contexts[0]->shadingContext(), root->children);
+    root->setChildren(root->children);
     numRenderedBuckets = 0;
 
     // Render the frame

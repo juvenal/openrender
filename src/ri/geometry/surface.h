@@ -42,7 +42,7 @@ class CPatch : public CObject {
         CPatch(CAttributes *a, CXform *x, CSurface *o, float umin, float umax, float vmin, float vmax, int depth, int minDepth);
         ~CPatch();
 
-        void intersect(CShadingContext *, CRay *) { assert(FALSE); }
+        void intersect(IRayContext &, CRay *) { assert(FALSE); }
         void dice(CReyes *); // Split or render this object
         void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 
@@ -83,20 +83,27 @@ class CTesselationPatch : public CObject {
         CTesselationPatch(CAttributes *a, CXform *x, CSurface *o, float umin, float umax, float vmin, float vmax, char depth, char minDepth, float r);
         ~CTesselationPatch();
 
-        void intersect(CShadingContext *, CRay *);
+        void intersect(IRayContext &, CRay *);
         void dice(CReyes *) { assert(FALSE); }
         void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 
-        void initTesselation(CShadingContext *context);
+        void initTesselation(IRayContext &context);
 
         static void initTesselations(int geoCacheMemory, int numThreads);
         static void shutdownTesselations();
 
-    private:
-        CPurgableTesselation *tesselate(CShadingContext *context, char div, int estimateOnly);
-        void splitToChildren(CShadingContext *context);
-        void sampleTesselation(CShadingContext *context, int div, unsigned int sample, float *&P);
+        // Geometry's tessellation lock (spec 031): serializes the creation of the top-level tessellation of a surface
+        // (CSurface::intersect, CSurface::checkRayGuard) and the list of tessellation patches. Exported until the
+        // last caller outside surface.cpp is moved into it (Phase 6), then local to surface.cpp.
+        static void lockTessellation();
+        static void unlockTessellation();
 
+    private:
+        CPurgableTesselation *tesselate(IRayContext &context, char div, int estimateOnly);
+        void splitToChildren(IRayContext &context);
+        void sampleTesselation(IRayContext &context, int div, unsigned int sample, float *&P);
+
+        int numThreadsAtBuild;        // The thread count the per-thread arrays were built for (the frame may be gone by the destructor)
         char depth;                   // Depth of the patch
         char minDepth;                // The minimum depth of the patch
         CSurface *object;             // The object the surface belongs to
@@ -116,7 +123,7 @@ class CTesselationPatch : public CObject {
 
         // Helper static functions
 
-        static void purgeTesselations(CShadingContext *context, CTesselationPatch *entry, int level, int thread, int all);
+        static void purgeTesselations(IRayContext &context, CTesselationPatch *entry, int level, int thread, int all);
         static void tesselationQuickSort(CTesselationEntry **activeTesselations, int start, int end, int thread);
 };
 

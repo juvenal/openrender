@@ -336,7 +336,7 @@ CLoopSubdivMesh::~CLoopSubdivMesh() {
 // Description			:	Intersect a ray with the primitive
 // Return Value			:	-
 // Comments				:
-void CLoopSubdivMesh::intersect(CShadingContext *rasterizer, CRay *) {
+void CLoopSubdivMesh::intersect(IRayContext &rasterizer, CRay *) {
 
     if (children == NULL)
         create(rasterizer);
@@ -351,7 +351,7 @@ void CLoopSubdivMesh::intersect(CShadingContext *rasterizer, CRay *) {
 void CLoopSubdivMesh::dice(CReyes *rasterizer) {
 
     if (children == NULL)
-        create(&rasterizer->shadingContext());
+        create(*rasterizer);
 
     CObject::dice(rasterizer);
 }
@@ -472,7 +472,7 @@ CObject *CLoopSubdivMesh::buildPolygonMesh() {
 //							this object via setChildren()
 // Return Value			:	-
 // Comments				:
-void CLoopSubdivMesh::create(CShadingContext *context) {
+void CLoopSubdivMesh::create(IRayContext &) {
 
     osLock(mutex);
     if (children != NULL) {
@@ -480,7 +480,7 @@ void CLoopSubdivMesh::create(CShadingContext *context) {
         return;
     }
 
-    setChildren(context, buildPolygonMesh());
+    setChildren(buildPolygonMesh());
 
     osUnlock(mutex);
 }

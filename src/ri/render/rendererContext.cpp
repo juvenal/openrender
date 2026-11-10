@@ -462,7 +462,7 @@ void CRendererContext::processDelayedObject(CDelayedObject *cDelayed, void (*sub
     delayed = NULL;
 
     // Create the hierarchy
-    cDelayed->setChildren(NULL, cDelayed->children); // the context parameter goes in Phase 4 (spec 031)
+    cDelayed->setChildren(cDelayed->children);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -491,7 +491,7 @@ void CRendererContext::processDelayedInstance(CDelayedInstance *cDelayed) {
     delayed = NULL;
 
     // Create the hierarchy
-    cDelayed->setChildren(NULL, cDelayed->children); // the context parameter goes in Phase 4 (spec 031)
+    cDelayed->setChildren(cDelayed->children);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -539,7 +539,7 @@ int CRendererContext::findCoordinateSystem(const char *name, const float *&from,
 class CCaptureHolder : public CObject {
     public:
         CCaptureHolder(CAttributes *a, CXform *x) : CObject(a, x) {}
-        void intersect(CShadingContext *, CRay *) {}
+        void intersect(IRayContext &, CRay *) {}
         void instantiate(CAttributes *, CXform *, IObjectSink *) const {}
 };
 

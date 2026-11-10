@@ -125,7 +125,7 @@ class CCurveMesh : public CObject {
         int honorsRegion() const { return FALSE; } // Encloses no volume (spec 021)
 
         // Object interface
-        void intersect(CShadingContext *, CRay *) {}
+        void intersect(IRayContext &, CRay *) {}
         void dice(CReyes *rasterizer);
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
@@ -139,7 +139,7 @@ class CCurveMesh : public CObject {
         }
 
     private:
-        void create(CShadingContext *context);
+        void create(IRayContext &context);
 
         CPl *pl;
         int numVertices;

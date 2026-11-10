@@ -434,6 +434,6 @@ void CBSplinePatchGrid::interpolate(int numVertices, float **varying, float ***l
 //							Newton core (spec 021; ribVector links a stub)
 // Return Value			:	-
 // Comments				:
-int CBSplinePatchGrid::countCrossings(CShadingContext *context, const float *from, const float *dir) const {
+int CBSplinePatchGrid::countCrossings(IRayContext *context, const float *from, const float *dir) const {
     return countFreeFormCrossings(context, this, from, dir);
 }

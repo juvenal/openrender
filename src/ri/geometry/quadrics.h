@@ -46,11 +46,11 @@ class CSphere : public CSurface {
         CSphere(CAttributes *, CXform *, CParameter *, unsigned int, float, float, float, float, float, float, float, float);
         ~CSphere();
         int impliedSolidIsConvex() const { return fabs(umax) <= C_PI || fabs(umax) >= 2 * C_PI; } // A wedge of at most 180 degrees
-        int countCrossings(CShadingContext *, const float *, const float *) const;
+        int countCrossings(IRayContext *, const float *, const float *) const;
         int impliesSolid() const { return TRUE; }
         int impliedSolidContains(const float *) const;
 
-        void intersect(CShadingContext *, CRay *);
+        void intersect(IRayContext &, CRay *);
         int moving() const { return (nextData != NULL) | (xform->next != NULL); }
         int wrapsU() const { return (nextData == NULL) && isFullTurn(umax); }
         void sample(int, int, float **, float ***, unsigned int &) const;
@@ -95,9 +95,9 @@ class CDisk : public CSurface {
         CDisk(CAttributes *, CXform *, CParameter *, unsigned int, float, float, float);
         CDisk(CAttributes *, CXform *, CParameter *, unsigned int, float, float, float, float, float, float);
         ~CDisk();
-        int countCrossings(CShadingContext *, const float *, const float *) const;
+        int countCrossings(IRayContext *, const float *, const float *) const;
 
-        void intersect(CShadingContext *, CRay *);
+        void intersect(IRayContext &, CRay *);
         int moving() const { return (nextData != NULL) | (xform->next != NULL); }
         int wrapsU() const { return (nextData == NULL) && isFullTurn(umax); }
         void sample(int, int, float **, float ***, unsigned int &) const;
@@ -129,11 +129,11 @@ class CCone : public CSurface {
         CCone(CAttributes *, CXform *, CParameter *, unsigned int, float, float, float, float, float, float);
         ~CCone();
         int impliedSolidIsConvex() const { return fabs(umax) <= C_PI || fabs(umax) >= 2 * C_PI; } // A wedge of at most 180 degrees
-        int countCrossings(CShadingContext *, const float *, const float *) const;
+        int countCrossings(IRayContext *, const float *, const float *) const;
         int impliesSolid() const { return TRUE; }
         int impliedSolidContains(const float *) const;
 
-        void intersect(CShadingContext *, CRay *);
+        void intersect(IRayContext &, CRay *);
         int moving() const { return (nextData != NULL) | (xform->next != NULL); }
         int wrapsU() const { return (nextData == NULL) && isFullTurn(umax); }
         void sample(int, int, float **, float ***, unsigned int &) const;
@@ -177,11 +177,11 @@ class CParaboloid : public CSurface {
         CParaboloid(CAttributes *, CXform *, CParameter *, unsigned int, float, float, float, float, float, float, float, float);
         ~CParaboloid();
         int impliedSolidIsConvex() const { return fabs(umax) <= C_PI || fabs(umax) >= 2 * C_PI; } // A wedge of at most 180 degrees
-        int countCrossings(CShadingContext *, const float *, const float *) const;
+        int countCrossings(IRayContext *, const float *, const float *) const;
         int impliesSolid() const { return TRUE; }
         int impliedSolidContains(const float *) const;
 
-        void intersect(CShadingContext *, CRay *);
+        void intersect(IRayContext &, CRay *);
         int moving() const { return (nextData != NULL) | (xform->next != NULL); }
         int wrapsU() const { return (nextData == NULL) && isFullTurn(umax); }
         void sample(int, int, float **, float ***, unsigned int &) const;
@@ -227,11 +227,11 @@ class CCylinder : public CSurface {
         CCylinder(CAttributes *, CXform *, CParameter *, unsigned int, float, float, float, float, float, float, float, float);
         ~CCylinder();
         int impliedSolidIsConvex() const { return fabs(umax) <= C_PI || fabs(umax) >= 2 * C_PI; } // A wedge of at most 180 degrees
-        int countCrossings(CShadingContext *, const float *, const float *) const;
+        int countCrossings(IRayContext *, const float *, const float *) const;
         int impliesSolid() const { return TRUE; }
         int impliedSolidContains(const float *) const;
 
-        void intersect(CShadingContext *, CRay *);
+        void intersect(IRayContext &, CRay *);
         int moving() const { return (nextData != NULL) | (xform->next != NULL); }
         int wrapsU() const { return (nextData == NULL) && isFullTurn(umax); }
         void sample(int, int, float **, float ***, unsigned int &) const;
@@ -275,11 +275,11 @@ class CHyperboloid : public CSurface {
         CHyperboloid(CAttributes *, CXform *, CParameter *, unsigned int, const float *, const float *, float);
         CHyperboloid(CAttributes *, CXform *, CParameter *, unsigned int, const float *, const float *, float, const float *, const float *, float);
         ~CHyperboloid();
-        int countCrossings(CShadingContext *, const float *, const float *) const;
+        int countCrossings(IRayContext *, const float *, const float *) const;
         int impliesSolid() const;
         int impliedSolidContains(const float *) const;
 
-        void intersect(CShadingContext *, CRay *);
+        void intersect(IRayContext &, CRay *);
         int moving() const { return (nextData != NULL) | (xform->next != NULL); }
         int wrapsU() const { return (nextData == NULL) && isFullTurn(umax); }
         void sample(int, int, float **, float ***, unsigned int &) const;
@@ -324,11 +324,11 @@ class CToroid : public CSurface {
         CToroid(CAttributes *, CXform *, CParameter *, unsigned int, float, float, float, float, float);
         CToroid(CAttributes *, CXform *, CParameter *, unsigned int, float, float, float, float, float, float, float, float, float, float);
         ~CToroid();
-        int countCrossings(CShadingContext *, const float *, const float *) const;
+        int countCrossings(IRayContext *, const float *, const float *) const;
         int impliesSolid() const { return TRUE; }
         int impliedSolidContains(const float *) const;
 
-        void intersect(CShadingContext *, CRay *);
+        void intersect(IRayContext &, CRay *);
         int moving() const { return (nextData != NULL) | (xform->next != NULL); }
         int wrapsU() const { return (nextData == NULL) && isFullTurn(umax); }
         int wrapsV() const { return (nextData == NULL) && isFullTurn(vmax - vmin); }

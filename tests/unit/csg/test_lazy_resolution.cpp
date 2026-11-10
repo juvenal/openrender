@@ -136,15 +136,15 @@ TEST(first_intersect_resolves_exactly_once) {
     const int resolved = stats.numCsgInstancesResolved;
     CRay ray;
     missRay(ray);
-    solid->intersect(s.ctx(), &ray);
+    solid->intersect(*s.ctx(), &ray);
     const CCSGInstanceState *state = solid->instanceState();
     ASSERT(state != NULL);
     ASSERT(stats.numCsgInstancesResolved == resolved + 1);
     ASSERT(solid->children != NULL);
     // Further calls reuse it
     missRay(ray);
-    solid->intersect(s.ctx(), &ray);
-    solid->resolve(s.ctx());
+    solid->intersect(*s.ctx(), &ray);
+    solid->resolve(*s.ctx());
     ASSERT(solid->instanceState() == state);
     ASSERT(stats.numCsgInstancesResolved == resolved + 1);
     // The instance leaves carry their operand's region; the templates do not
@@ -166,7 +166,7 @@ class CNoRegionSurface : public CSurface {
             initv(bmax, 1, 1, 1);
         }
         int honorsRegion() const override { return FALSE; }
-        void intersect(CShadingContext *, CRay *) override {}
+        void intersect(IRayContext &, CRay *) override {}
         void instantiate(CAttributes *, CXform *, IObjectSink *) const override {}
 };
 
@@ -185,7 +185,7 @@ TEST(unsupported_members_are_dropped_with_one_warning) {
     CCSGSolid *solid = new CCSGSolid(new CAttributes(), new CXform(), def);
     solid->attach();
 
-    const std::string out = stdoutOf([&] { solid->resolve(s.ctx()); });
+    const std::string out = stdoutOf([&] { solid->resolve(*s.ctx()); });
     ASSERT(occurrences(out, "not supported as a solid operand") == 1);
     const CCSGInstanceState *state = solid->instanceState();
     ASSERT(state != NULL);
@@ -215,7 +215,7 @@ TEST(operands_that_contribute_nothing_never_render) {
         RiSolidEnd();
     });
     ASSERT(withDisk != NULL);
-    withDisk->resolve(s.ctx());
+    withDisk->resolve(*s.ctx());
     std::vector<CObject *> leaves;
     descendants(withDisk, leaves);
     ASSERT(countOf<CDisk>(leaves) == 0);
@@ -239,7 +239,7 @@ TEST(operands_that_contribute_nothing_never_render) {
         RiSolidEnd();
     });
     ASSERT(withSheet != NULL);
-    withSheet->resolve(s.ctx());
+    withSheet->resolve(*s.ctx());
     leaves.clear();
     descendants(withSheet, leaves);
     ASSERT(countOf<CNURBSPatchMesh>(leaves) == 0);
@@ -251,7 +251,7 @@ TEST(operands_that_contribute_nothing_never_render) {
 static bool isPassthroughCylinder(CCsgSession &s, CCSGSolid *solid) {
     if (solid == NULL)
         return false;
-    solid->resolve(s.ctx());
+    solid->resolve(*s.ctx());
     const CCSGInstanceState *state = solid->instanceState();
     if (state == NULL || state->passthrough != 0)
         return false;
@@ -319,7 +319,7 @@ TEST(empty_first_operands_and_intersections_yield_nothing) {
         RiSolidEnd();
     });
     ASSERT(d != NULL);
-    d->resolve(s.ctx());
+    d->resolve(*s.ctx());
     ASSERT(d->instanceState() != NULL);
     ASSERT(d->children == NULL);
 
@@ -330,7 +330,7 @@ TEST(empty_first_operands_and_intersections_yield_nothing) {
         RiSolidEnd();
     });
     ASSERT(i != NULL);
-    i->resolve(s.ctx());
+    i->resolve(*s.ctx());
     ASSERT(i->instanceState() != NULL);
     ASSERT(i->children == NULL);
 }

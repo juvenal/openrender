@@ -1849,7 +1849,7 @@ CSubdivMesh::~CSubdivMesh() {
 // Description			:	Intersect the thing
 // Return Value			:	-
 // Comments				:
-void CSubdivMesh::intersect(CShadingContext *rasterizer, CRay *) {
+void CSubdivMesh::intersect(IRayContext &rasterizer, CRay *) {
 
     if (children == NULL)
         create(rasterizer);
@@ -1864,7 +1864,7 @@ void CSubdivMesh::intersect(CShadingContext *rasterizer, CRay *) {
 void CSubdivMesh::dice(CReyes *rasterizer) {
 
     if (children == NULL)
-        create(&rasterizer->shadingContext());
+        create(*rasterizer);
 
     CObject::dice(rasterizer);
 }
@@ -2242,17 +2242,17 @@ CObject *CSubdivMesh::buildSurfaces(CMemPage *&mem) {
 //							the result on this object via setChildren()
 // Return Value			:	-
 // Comments				:
-void CSubdivMesh::create(CShadingContext *context) {
+void CSubdivMesh::create(IRayContext &context) {
     osLock(mutex);
     if (children != NULL) {
         osUnlock(mutex);
         return;
     }
 
-    CObject *allChildren = buildSurfaces(context->threadMemory);
+    CObject *allChildren = buildSurfaces(context.scratch());
 
     // Set the children objects
-    setChildren(context, allChildren);
+    setChildren(allChildren);
 
     osUnlock(mutex);
 }

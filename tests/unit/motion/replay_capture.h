@@ -163,7 +163,7 @@ namespace motionreplay {
             CCaptureContext *capture() const { return captureContextSlot(); }
 
             // A real shading context, for materialization
-            CShadingContext *ctx() const { return CRenderer::contexts != NULL ? &CRenderer::contexts[0]->shadingContext() : NULL; }
+            IRayContext *ctx() const { return CRenderer::contexts != NULL ? CRenderer::contexts[0] : NULL; }
 
             // Run Ri calls in their own attribute block; whatever objects they create are
             // captured. Returns how many.
@@ -181,8 +181,8 @@ namespace motionreplay {
 
     // Depth first: materialize the object, then each of its children, and collect every object
     // that has no children of its own (the leaves a ray or a sample query is aimed at).
-    inline void collectLeaves(CShadingContext *ctx, CObject *o, std::vector<CObject *> &out) {
-        o->materialize(ctx);
+    inline void collectLeaves(IRayContext *ctx, CObject *o, std::vector<CObject *> &out) {
+        o->materialize(*ctx);
         if (o->children == NULL) {
             out.push_back(o);
             return;

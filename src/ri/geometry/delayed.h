@@ -40,7 +40,7 @@ class CDelayedObject : public CObject {
         ~CDelayedObject();
 
         // Object interface
-        void intersect(CShadingContext *, CRay *);
+        void intersect(IRayContext &, CRay *);
         void dice(CReyes *);
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
@@ -65,7 +65,7 @@ class CDelayedInstance : public CObject {
         int honorsRegion() const { return FALSE; } // An ObjectInstance cannot be an operand (spec 021)
 
         // Object interface
-        void intersect(CShadingContext *, CRay *);
+        void intersect(IRayContext &, CRay *);
         void dice(CReyes *);
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 

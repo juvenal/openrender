@@ -131,7 +131,7 @@ namespace probe {
             }
 
             CCapture *capture() const { return captureSlot(); }
-            CShadingContext *ctx() const { return CRenderer::contexts != nullptr ? &CRenderer::contexts[0]->shadingContext() : nullptr; }
+            IRayContext *ctx() const { return CRenderer::contexts != nullptr ? CRenderer::contexts[0] : nullptr; }
 
             // Run the Ri calls and return the objects they added.
             std::vector<CObject *> emit(const std::function<void()> &calls) {

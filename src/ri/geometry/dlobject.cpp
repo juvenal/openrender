@@ -72,7 +72,7 @@ CDLObject::~CDLObject() {
 // Description			:	Intersect the surface with the ray
 // Return Value			:	-
 // Comments				:
-void CDLObject::intersect(CShadingContext *, CRay *ray) {
+void CDLObject::intersect(IRayContext &, CRay *ray) {
     vector oN;
     float t;
 
@@ -149,8 +149,8 @@ void CDLObject::instantiate(CAttributes *, CXform *, IObjectSink *) const {
 // Description			:	Shade the surface
 // Return Value			:	-
 // Comments				:
-void CDLObject::shade(CShadingContext *context, int numRays, CRay **rays) {
-    float **varying = context->currentShadingState->varying;
+void CDLObject::shade(IRayContext &context, int numRays, CRay **rays) {
+    float **varying = context.varyings();
     float *P = varying[VARIABLE_P];
     float *N = varying[VARIABLE_NG];
     float *I = varying[VARIABLE_I];
@@ -170,5 +170,5 @@ void CDLObject::shade(CShadingContext *context, int numRays, CRay **rays) {
         I += 3;
     }
 
-    context->shade(this, numRays, 1, SHADING_2D, 0);
+    context.shade(this, numRays, 1, SHADING_2D, 0);
 }

@@ -70,7 +70,7 @@ class CPoints : public CSurface {
         int honorsRegion() const { return FALSE; } // Encloses no volume (spec 021)
 
         // Object interface
-        void intersect(CShadingContext *, CRay *) {}
+        void intersect(IRayContext &, CRay *) {}
         void dice(CReyes *);
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 

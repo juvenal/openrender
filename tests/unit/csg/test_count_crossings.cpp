@@ -26,13 +26,13 @@
 
 using namespace csgtest;
 
-static int crossings(CObject *o, CShadingContext *ctx, float fx, float fy, float fz, float dx, float dy, float dz) {
+static int crossings(CObject *o, IRayContext *ctx, float fx, float fy, float fz, float dx, float dy, float dz) {
     const float from[3] = {fx, fy, fz}, dir[3] = {dx, dy, dz};
     return static_cast<CSurface *>(o)->countCrossings(ctx, from, dir);
 }
 
 // Total crossings over every surface a (mesh) object materializes into
-static int meshCrossings(CObject *o, CShadingContext *ctx, float fx, float fy, float fz, float dx, float dy, float dz,
+static int meshCrossings(CObject *o, IRayContext *ctx, float fx, float fy, float fz, float dx, float dy, float dz,
                          int *numSurfaces) {
     std::vector<CSurface *> surfaces;
     collectSurfaces(ctx, o, surfaces);

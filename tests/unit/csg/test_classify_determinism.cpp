@@ -29,7 +29,7 @@ using namespace csgtest;
 
 static const float LO[3] = {-0.5f, -0.5f, -0.5f}, HI[3] = {0.5f, 0.5f, 0.5f};
 
-static std::vector<int> classifyAll(CShadingContext *ctx, const CCSGResolvedOperand &op,
+static std::vector<int> classifyAll(IRayContext *ctx, const CCSGResolvedOperand &op,
                                     const std::vector<std::vector<float>> &pts, const std::vector<size_t> &order) {
     std::vector<int> out(pts.size(), -1);
     for (size_t i : order)
@@ -37,7 +37,7 @@ static std::vector<int> classifyAll(CShadingContext *ctx, const CCSGResolvedOper
     return out;
 }
 
-static bool deterministic(CShadingContext *ctx, const CCSGResolvedOperand &op, const std::vector<std::vector<float>> &pts,
+static bool deterministic(IRayContext *ctx, const CCSGResolvedOperand &op, const std::vector<std::vector<float>> &pts,
                           const std::function<bool(const float *)> &truth) {
     std::vector<size_t> forward(pts.size());
     for (size_t i = 0; i < pts.size(); i++)

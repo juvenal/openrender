@@ -138,7 +138,7 @@ static float getDisp(const float *mat, float) {
 // Description			:	Set the children objects
 // Return Value			:
 // Comments				:
-void CObject::setChildren(CShadingContext *, CObject *allChildren, bool inheritId) {
+void CObject::setChildren(CObject *allChildren, bool inheritId) {
 
     // Give the children their identities: they inherit ours (pieces of a split),
     // or are numbered by their position in the chain
@@ -408,7 +408,7 @@ CDummyObject::~CDummyObject() {
 // Description			:	Intersect a ray
 // Return Value			:
 // Comments				:
-void CDummyObject::intersect(CShadingContext *, CRay *) {
+void CDummyObject::intersect(IRayContext &, CRay *) {
     // Should never reach this point
     // assert(FALSE);
 }

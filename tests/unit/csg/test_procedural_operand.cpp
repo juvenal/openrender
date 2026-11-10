@@ -197,7 +197,7 @@ TEST(procedural_directly_in_a_boolean_block_joins_its_first_operand) {
         // The direct sphere and the procedural form the first operand together
         ASSERT(solid->definition->operandMembers[0].size() == 2);
         ASSERT(countOf<CDelayedObject>(solid->definition->operandMembers[0]) == 1);
-        solid->resolve(s.ctx());
+        solid->resolve(*s.ctx());
         const CCSGInstanceState *state = solid->instanceState();
         ASSERT(state != NULL && fullyExpanded(state));
         ASSERT(countOf<CSphere>(state->operands[0]->members) == 2);
@@ -237,9 +237,9 @@ TEST(expanded_once_on_first_use_and_never_when_never_needed) {
     CCSGSolid *neverNeeded = solidFrom(s, emit);
     ASSERT(capturedProcedural(used, 2, 0) && capturedProcedural(neverNeeded, 2, 0));
     const int expansions = stats.numCsgProceduralExpansions;
-    used->resolve(s.ctx());
+    used->resolve(*s.ctx());
     ASSERT(stats.numCsgProceduralExpansions == expansions + 1);
-    used->resolve(s.ctx());
+    used->resolve(*s.ctx());
     ASSERT(stats.numCsgProceduralExpansions == expansions + 1);
     // The never-needed solid's procedural was never expanded
     ASSERT(neverNeeded->instanceState() == NULL);
@@ -271,7 +271,7 @@ TEST(nested_procedurals_expand_recursively) {
     });
     ASSERT(capturedProcedural(solid, 2, 0));
     const int expansions = stats.numCsgProceduralExpansions;
-    solid->resolve(s.ctx());
+    solid->resolve(*s.ctx());
     ASSERT(stats.numCsgProceduralExpansions == expansions + 2);
     const CCSGInstanceState *state = solid->instanceState();
     ASSERT(state != NULL && fullyExpanded(state));
@@ -298,7 +298,7 @@ TEST(a_solid_block_inside_an_expansion_is_swallowed_and_reported_once) {
     ASSERT(capturedProcedural(solid, 2, 0));
     const size_t capturedBefore = s.capture()->captured.size();
     const int resolvedBefore = stats.numCsgInstancesResolved;
-    const std::string out = outputOf([&] { solid->resolve(s.ctx()); });
+    const std::string out = outputOf([&] { solid->resolve(*s.ctx()); });
     ASSERT(occurrences(out, "cannot be nested inside a \"primitive\" solid block") == 1);
     const CCSGInstanceState *state = solid->instanceState();
     ASSERT(state != NULL && fullyExpanded(state));
@@ -325,7 +325,7 @@ TEST(an_empty_expansion_is_an_empty_operand) {
         RiSolidEnd();
     });
     ASSERT(capturedProcedural(solid, 2, 0));
-    solid->resolve(s.ctx());
+    solid->resolve(*s.ctx());
     const CCSGInstanceState *state = solid->instanceState();
     ASSERT(state != NULL);
     ASSERT(state->operands[0]->kind == CSG_OPERAND_EMPTY);
@@ -349,7 +349,7 @@ TEST(the_open_cylinder_archive_gets_implied_caps) {
         RiSolidEnd();
     });
     ASSERT(capturedProcedural(solid, 2, 1));
-    solid->resolve(s.ctx());
+    solid->resolve(*s.ctx());
     const CCSGInstanceState *state = solid->instanceState();
     ASSERT(state != NULL && fullyExpanded(state));
     ASSERT(state->operands[1]->kind == CSG_OPERAND_SINGLE_QUADRIC);
@@ -374,7 +374,7 @@ TEST(expanded_objects_carry_the_fragment_flag_and_inside_parity) {
     ASSERT(capturedProcedural(solid, 2, 1));
     ASSERT(solid->definition->operandFlip(1) == 1);
     const unsigned int templateInside = solid->definition->operandMembers[1][0]->attributes->flags & ATTRIBUTES_FLAGS_INSIDE;
-    solid->resolve(s.ctx());
+    solid->resolve(*s.ctx());
     const CCSGInstanceState *state = solid->instanceState();
     ASSERT(state != NULL && fullyExpanded(state));
     ASSERT(!state->operands[1]->members.empty());

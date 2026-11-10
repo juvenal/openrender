@@ -85,7 +85,7 @@ CImplicit::~CImplicit() {
 // Description			:	Intersect the surface with the ray
 // Return Value			:	-
 // Comments				:
-void CImplicit::intersect(CShadingContext *, CRay *ray) {
+void CImplicit::intersect(IRayContext &, CRay *ray) {
     float tmin, tmax;
     vector lastP, P;
     float lastF, F;
@@ -209,8 +209,8 @@ void CImplicit::instantiate(CAttributes *, CXform *, IObjectSink *) const {
 // Description			:	Shade the surface
 // Return Value			:	-
 // Comments				:
-void CImplicit::shade(CShadingContext *context, int numRays, CRay **rays) {
-    float **varying = context->currentShadingState->varying;
+void CImplicit::shade(IRayContext &context, int numRays, CRay **rays) {
+    float **varying = context.varyings();
     float *P = varying[VARIABLE_P];
     float *N = varying[VARIABLE_NG];
     float *I = varying[VARIABLE_I];
@@ -239,5 +239,5 @@ void CImplicit::shade(CShadingContext *context, int numRays, CRay **rays) {
         }
     }
 
-    context->shade(this, numRays, 1, SHADING_0D, 0);
+    context.shade(this, numRays, 1, SHADING_0D, 0);
 }
