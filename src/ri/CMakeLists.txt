@@ -70,6 +70,7 @@ set(ri_sources
 	texture/imageInputRgbe.cpp
 	texture/imageInputTiff.cpp
 	texture/irradianceCache.cpp
+	texture/photonStore.cpp
 	texture/textureSystem.cpp
 	hiders/compositor.cpp
 	hiders/hider.cpp
@@ -88,6 +89,7 @@ set(ri_sources
 	dataviewer/dataView.cpp
 	dataviewer/debug.cpp
 	dataviewer/irradianceCacheView.cpp
+	dataviewer/photonMapView.cpp
 	dataviewer/pointCloudView.cpp
 	geometry/delayed.cpp
 	state/displayChannel.cpp
@@ -98,7 +100,6 @@ set(ri_sources
 	hiders/irradianceSampler.cpp
 	hiders/occlusion.cpp
 	hiders/photon.cpp
-	hiders/photonMap.cpp
 	hiders/raytracer.cpp
 	hiders/reyes.cpp
 	hiders/sampler.cpp

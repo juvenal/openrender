@@ -31,7 +31,7 @@
 #include "common/memory.h"
 #include "object.h"
 #include "photon.h"
-#include "photonMap.h"
+#include "photonMapAccess.h"
 #include "common/random.h"
 #include "renderer.h"
 #include "ri_config.h"
@@ -92,14 +92,14 @@ CPhotonHider::CPhotonHider(int thread, CAttributes *a) : CHider(thread) {
 // Return Value			:	-
 // Comments				:
 CPhotonHider::~CPhotonHider() {
-    CPhotonMap *cMap;
+    openrender::shading::CPhotonMapRefTarget *cMap;
 
     // Balance the maps that have been modified
     while ((cMap = balanceList.pop()) != NULL) {
         // Note that we are single threaded in the destructor
         // but we may have items in this list which are already written
         // write() takes care of this
-        cMap->write(CRenderer::world);
+        cMap->writePhotons(CRenderer::world);
     }
 
     phony->detach();
@@ -627,8 +627,8 @@ processBounce:;
             // Matte surface
             case SM_MATTE:
             {
-                CPhotonMap *globalMap;
-                CPhotonMap *causticMap;
+                openrender::shading::CPhotonMapRefTarget *globalMap;
+                openrender::shading::CPhotonMapRefTarget *causticMap;
 
                 // Compute the normalized normal vector at the intersection
                 normalizev(Nl, ray.N);
@@ -637,29 +637,29 @@ processBounce:;
                 }
 
                 // Save the photon
-                if ((globalMap = photonMapOf(attributes->globalMap)) != NULL) {
-                    if (globalMap->modifying == FALSE) {
+                if ((globalMap = openrender::shading::photonMapOf(attributes->globalMap)) != NULL) {
+                    if (globalMap->isModifying() == FALSE) {
                         // Note: this isn't strictly thread safe, more than one
                         // thread may end up with the map in the balance list
                         // but the write() will take care of it
-                        globalMap->modifying = TRUE;
-                        globalMap->reset();
+                        globalMap->setModifying(TRUE);
+                        globalMap->resetPhotons();
                         balanceList.push(globalMap);
                     }
 
-                    globalMap->store(Pl, Nl, ray.dir, Cl);
+                    globalMap->storePhoton(Pl, Nl, ray.dir, Cl, 0);
                 }
 
-                if ((causticMap = photonMapOf(attributes->causticMap)) != NULL) {
+                if ((causticMap = openrender::shading::photonMapOf(attributes->causticMap)) != NULL) {
                     if (lastBounceSpecular) {
-                        if (causticMap->modifying == FALSE) {
+                        if (causticMap->isModifying() == FALSE) {
                             // Note: this isn't strictly thread safe, see above
-                            causticMap->modifying = TRUE;
-                            causticMap->reset();
+                            causticMap->setModifying(TRUE);
+                            causticMap->resetPhotons();
                             balanceList.push(causticMap);
                         }
 
-                        causticMap->store(Pl, Nl, ray.dir, Cl);
+                        causticMap->storePhoton(Pl, Nl, ray.dir, Cl, 0);
 
                         return;
                     }

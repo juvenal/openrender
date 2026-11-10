@@ -57,7 +57,7 @@ static constexpr double SUM_TOLERANCE = 0.05;
 // photons (check 6).
 static constexpr double MIN_UPWARD_SHARE = 0.15;
 
-// On-disk layout of one CPhoton (src/ri/hiders/photonMap.h): vector P, N;
+// On-disk layout of one CPhoton (src/ri/render/photonMap.h): vector P, N;
 // short flags (+2 padding); vector C; unsigned char theta, phi (+2 padding).
 static constexpr size_t PHOTON_SIZE = 44;
 static constexpr size_t PHOTON_N_OFFSET = 12;

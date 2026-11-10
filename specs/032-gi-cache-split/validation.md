@@ -453,3 +453,55 @@ Images: the 915 base images **0 differing, 0 missing** (5 more are the new tests
 DB-017 x 78, DB-025 x 3`, `METRIC TOTAL 601/88`, `RESULT PASS`; allowlist 323.
 Linux (pushed 3,778 files, 0 differences; GCC 13 `-Werror` build exit 0): **1108 tests, 1107 passed; the one failure is `TextureTile_RenderByteIdentical` (#45)**; images 0 differing, 0 missing; listing equal;
 `ctest -L architecture` 30 of 30, `RESULT PASS`; `libshader_shading.so` undefined symbols identical to the base (461); pull/verify 19 files, 0 differences.
+
+### Phase 5 (T078 to T093): photon map split
+
+**PAUSE 5a (T078), open.** M1 to M4 and M6b re-grepped on the Phase 4 tree (HEAD `4cba8c2c`): `test_photon_map_frame_release.cpp:44`, `test_photon_map_sessions.cpp:45`, `test_data_world_init.cpp:7`,
+`test_dataview_chunking.cpp:5` (each `#include "ri/hiders/photonMap.h"`), and the end of the texture-only library definition of `tests/unit/texture_only/CMakeLists.txt` after M6a; all five patches in
+`tools/test-edit-patches/` pass `git apply --check` and equal the approved text of T032. `tests/visual/test_photon_solar0.cpp` is not edited (its comment at `:60` naming `src/ri/hiders/photonMap.h` goes stale).
+T078a preconditions checked by grep: `CPhotonRay` appears only in `photonMap.h:63-66` (its banner and class), and `CRay`/`ray.` appear nowhere else in `photonMap.{h,cpp}`. Nothing is edited before the maintainer answers.
+
+**PAUSE 5a approved (maintainer, 2026-11-10).** M1 to M4 and M6b are applied at T087 exactly as shown above (a difference from the approved diff stops the work); the one-line stale comment at
+`tests/visual/test_photon_solar0.cpp:60` is changed to name `src/ri/render/photonMap.h` (the only edit to that file); T078a (dead `CPhotonRay` and the `ray.h` include) may go ahead.
+
+**T078a.** `CPhotonRay` and `#include "ray.h"` removed from `src/ri/hiders/photonMap.h` in place (nothing else used `CRay`): full build clean, `ctest -L architecture` 30 of 30 with the allowlist at 323 and the metrics unchanged,
+`photonmap_*|PhotonSolar0_*` 5 of 5 (`032-p5-prebuild`).
+
+**Test gate (T079).** Four allowlist lines deleted by key (DB-025 `photonMap.h -> dataView.h` and `photonMap.cpp -> CDataView::drawPoints`; DB-011 `photonMap.cpp -> CRenderer::toWorld`, `-> fromWorld`); headers DB-025 `(3)` -> `(1)`,
+DB-011 `(160)` -> `(158)`; allowlist **323 -> 319**; `hiders-no-viewer` added to the default `GI032_BOUNDARY_CHECKS`. Red on the Phase 4 tree (`build-logs/032-p5-red-arch.log`): `Architecture_DomainBoundaries` fails with exactly the four
+`VIOLATION` lines of the deleted keys; `GiSplit_Boundary` fails on `hiders-no-viewer` (2 matches: `photonMap.h` `dataView.h` and `CDataView`), every earlier sub-check passing.
+
+**Implementation (T080 to T087).** Texturing: `hiders/photonMap.{h,cpp}` moved with `git mv` to `texture/photonStore.{h,cpp}`: `CPhotonStore : CMap<CPhoton>, CFileResource` (the constructor takes the creator's world matrices, `write(fromWorld, toWorld)`,
+`store(..., key)` accepts and drops the key, `bound() const`, the direction tables and the lookup cache move with it; no `CRenderer`, `CShadingContext`, `CDataView`, `CMapRefTarget` or `IPhotonLookup` mention, no `object.h`/`raytracer.h`).
+Shading: `photonMapAccess.h` (`IPhotonEstimator`, `IPhotonStore`, `CPhotonMapRefTarget`, `photonMapOf`). Core: `render/photonMap.h`, header-only `CPhotonMap : CPhotonStore, CPhotonMapRefTarget, CPhotonMapView` (one `CRefCounter` base; `write(NULL)`
+writes the renderer's matrices). Consumer: `dataviewer/photonMapView.{h,cpp}` (the old draw body, moved; its member is `photons`, not `store`, because `CPhotonMap::store` must stay unambiguous). Hiders: `photon.{h,cpp}` go through
+`CPhotonMapRefTarget` (`isModifying`/`setModifying`/`resetPhotons`/`storePhoton(..., 0)`/`writePhotons(CRenderer::world)`), `irradianceSampler.cpp` through `estimate`. `CRenderer::fromWorld/toWorld` are set only at `renderer.cpp:302-303` from `x->from/to`, and
+the hider (`contexts[i]`, `renderer.cpp:854`) is destroyed before `world->detach()` (`:923`), so the `.pm` bytes are unchanged. `ri_sources`, the residual list cell (`rendererStatics.cpp`), the `stateHandles.h` and `photonLookup.h` comments done.
+M1 to M4 and M6b applied exactly as approved (all five `git apply --check` passed first); the comment at `tests/visual/test_photon_solar0.cpp:60` now names `src/ri/render/photonMap.h` (the only change to that file).
+
+**macOS checkpoint** (all `cpujob`): build exit 0 `-Werror` after two source slips of mine (a constructor signature, a view member named `store`). `nm -u` of `irradianceSampler.cpp.o` and `photon.cpp.o`: no `CPhotonStore`, `CPhotonMap`, `CIrradiance`, `CTexture3d`,
+`CPointHierarchy`, `CDataView` or `CMap` symbol; `libshader_shading.dylib` dynamically looked-up imports **0, as the base**; `ctest -L link` 4 of 4. The photon tests: `photonmap_FrameCacheRelease`, `photonmap_TwoFrameSession`,
+`photonmap_ObjectDefinitionRelease`, `PhotonSolar0_rslo`, `PhotonSolar0_slo`, `GiFiles_Unchanged` (the `.pm` of `photon-parity` at `-t:1` equal to the base in every defined field, the cache file's SHA-256 unchanged), `Preview_DataSceneUnchanged`,
+`test_data_world_init`, `test_dataview_chunking`, `GiRemote_*`, `GiCache_KindMismatch` all pass. Full suite `-LE determinism-sweep`: **1107 tests, 1106 passed, 1 failed: `TextureOnly_GiStores` (SEGFAULT)**, see the finding. Images: 915 of the base **0 differing, 0 missing**
+(5 more are the new tests'), the `MaxBlockAvgDiff` listing equal to the base, the photon scenes and the GI set included. `ctest -L architecture` 30 of 30; `ALLOWED DB-004 x 52, DB-006 x 30, DB-011 x 158, DB-017 x 78, DB-025 x 1` (DB-010 already gone),
+`METRIC Hiders 549/78 (baseline 556/81), Texturing 0/0, TOTAL 597/86`, `RESULT PASS`; allowlist **319**; `GiSplit_Boundary` complete with all ten sub-checks.
+**Linux** (pushed 3,782 files, GCC 13 `-Werror`, `-j2`): build exit 0, 1108 tests, 1106 passed, the failures being `TextureTile_RenderByteIdentical` (#45) and `TextureOnly_GiStores` (the same segfault); images 0 differing, 0 missing; listing equal; architecture 30 of 30,
+the same report; `libshader_shading.so` imports identical to the base (`tools/libshader-imports-after-phase5-linux.txt`).
+
+**Finding (Phase 5): `TextureOnly_GiStores`, photon section, cannot pass as written.** Marker prints in a scratch copy (scratchpad `032-dbg-photon.cpp`) put the crash at the fifth lookup of the freshly filled store, the first one that finds two or more photons.
+`CPhotonStore::root` (the probe cache's octree) is created only when a map is read from a file (`photonMap.cpp:68`, `:107` on the starting tree; the constructor leaves it `NULL` for a new map), `probe()` tests it, but `insert()` does not: a lookup that finds photons in a
+map that was never read dereferences a null root. The renderer never does this (a map is written by the photon hider and read in a later frame), which is why the base never showed it; the approved test queries the store before the reload. It need not compare equal even with a guard:
+the reloaded store has a root and answers from its probe samples, the original answers uncached. This is a pre-existing defect on a path the product does not reach; the code is as on the starting tree. Proposed edit of the test (needs approval): compare the stored photons exactly after the reload
+(`numItems`, and every field of every item from 1 on: `P`, `N`, `flags`, `C`, `theta`, `phi`, as the T-F reader does, with the file's maxPower and matrices) and query only stores that were read from the file (two stores read from the same file answer equally).
+
+**Approvals after the Phase 5 report (maintainer, 2026-11-10), recorded before they were applied.**
+1. The null lookup-cache root of a photon store that was filled and not read from a file is **GitHub #160** (P1, Bug Tracker), filed and **not fixed** in this spec (`CPhotonStore::insert` dereferences `root`, which only the read constructor creates). No `Closes` line.
+2. **`TextureOnly_GiStores`, photon section, edited as proposed** (`tools/test-edit-patches/M9-phase5-photon-section.diff`, made with `diff -u` against the file as staged at Checkpoint 5; it is the diff applied). No tolerance anywhere: after `write(fromWorld, toWorld)` with exactly
+   representable non-identity matrices (scale 2, translate (1, 2, 4), and the inverse) the written store's photons are captured; two stores are then read from the file with identity world matrices and compared exactly: `numItems`; every field of every item from 1 on (`P`, `N`, `C`, `flags`, `theta`, `phi`);
+   `maxPower` equal to what `write()` put into the file; and the matrices (against identity the reader's `to` is the file's `fromWorld` and its `from` the file's `toWorld`). The estimates are queried only on the two stores read from the file and compared with `memcmp`; the store that was filled and not read is never queried.
+
+**Checkpoint 5 after the approved edit (2026-11-10).** macOS rebuilt (`032-p5b-build`, `-j4`, `-Werror`, exit 0). `TextureOnly_GiStores` passes (64 stored cache records and the hits after the reload equal; **126 stored photons**, `maxPower` and matrices after the
+reload equal those written, and two readers answer alike). Full suite `-LE determinism-sweep`: **1107 of 1107 passed**. Images: the 915 base images **0 differing, 0 missing** (5 more are the new tests'); the `MaxBlockAvgDiff` listing equals the base; the photon scenes and the GI
+set are byte-identical. `ctest -L architecture` 30 of 30; `ALLOWED DB-004 x 52, DB-006 x 30, DB-011 x 158, DB-017 x 78, DB-025 x 1`; `METRIC Hiders 549/78 (baseline 556/81), Texturing 0/0, TOTAL 597/86`; `RESULT PASS`; allowlist **323 -> 319**.
+Linux (pushed 3,784 files; GCC 13 `-Werror`, `-j2`; build exit 0): **1108 tests, 1107 passed, the one failure is `TextureTile_RenderByteIdentical` (#45)**; `TextureOnly_GiStores` passes; images 0 differing, 0 missing, listing equal; `ctest -L architecture` 30 of 30, same report;
+`libshader_shading.so` imports identical to the base (461). `.pm` of `photon-parity` at `-t:1` equal to the base in every defined field (`GiFiles_Unchanged`, both platforms). Checkpoint 5 (T089 to T093) is ticked.

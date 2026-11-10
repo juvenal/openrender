@@ -10,10 +10,10 @@
  *   domains (Shading, Hiders). State never inspects them: it holds them
  *   through reference-counted handles to two empty base classes that those
  *   domains derive from, CShaderGroupRefTarget (implemented by CShaderInstance)
- *   and CMapRefTarget (implemented by CPhotonMap).
+ *   and CMapRefTarget (a base of Shading's CPhotonMapRefTarget, which Core's CPhotonMap implements).
  *
  *   The domain that owns a target resolves the handle back to its own type with
- *   an inline static_cast (shaderRefs.h in Shading, photonMap.h in Hiders).
+ *   an inline static_cast (shaderRefs.h and photonMapAccess.h in Shading).
  *   State never casts a target.
  *
  *   Header-only on purpose: every operation is inline, so State exports no

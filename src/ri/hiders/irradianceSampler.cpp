@@ -29,7 +29,7 @@
 #include "common/diagnostics.h"
 #include "hiderIrradianceSampler.h"
 #include "common/memory.h"
-#include "photonMap.h"
+#include "photonMapAccess.h"
 #include "ri_config.h"
 #include "shaderPl.h"
 #include "shading.h"
@@ -441,9 +441,9 @@ void CIrradianceSampler::sample(CShadingContext &ctx, const float *cacheFrom, co
                 if (ray.object != NULL) {
                     vector P, N, C;
                     CAttributes *attributes = ray.object->attributes;
-                    CPhotonMap *globalMap;
+                    openrender::shading::CPhotonMapRefTarget *globalMap;
 
-                    if ((globalMap = photonMapOf(attributes->globalMap)) != NULL) {
+                    if ((globalMap = openrender::shading::photonMapOf(attributes->globalMap)) != NULL) {
                         normalizev(N, ray.N);
                         mulvf(P, ray.dir, ray.t);
                         addvv(P, ray.from);
@@ -451,7 +451,7 @@ void CIrradianceSampler::sample(CShadingContext &ctx, const float *cacheFrom, co
                         if (dotvv(ray.dir, N) > 0)
                             mulvf(N, -1);
 
-                        globalMap->lookup(C, P, N, attributes->photonEstimator);
+                        globalMap->estimate(C, P, N, attributes->photonEstimator);
 
                         // HACK: Avoid too bright spots
                         float maxC01;

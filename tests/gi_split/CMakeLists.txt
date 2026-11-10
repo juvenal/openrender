@@ -24,7 +24,8 @@ option(OPENRENDER_032_RED_TESTS "Define the spec 032 red-first tests (scratch tr
 # landed keeps its cached value: configure with -DGI032_BOUNDARY_CHECKS="<list>" (or an empty list to run none).
 #   Phase 3: friends-texture texture-names-viewer hiders-no-viewer-irradiance
 #   Phase 4: friends-hiders texture-names-shading texture-names-core texture-includes hiders-no-texture files-absent
-set(GI032_BOUNDARY_CHECKS "friends-texture;texture-names-viewer;hiders-no-viewer-irradiance;friends-hiders;texture-names-shading;texture-names-core;texture-includes;hiders-no-texture;files-absent" CACHE STRING
+#   Phase 5: hiders-no-viewer
+set(GI032_BOUNDARY_CHECKS "friends-texture;texture-names-viewer;hiders-no-viewer-irradiance;friends-hiders;texture-names-shading;texture-names-core;texture-includes;hiders-no-texture;files-absent;hiders-no-viewer" CACHE STRING
     "Sub-checks of GiSplit_Boundary that are enabled (a ;-list); empty runs none")
 
 if(APPLE)

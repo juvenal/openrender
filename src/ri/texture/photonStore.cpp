@@ -1,10 +1,10 @@
 /**
  * Project: openRender
  *
- * File: photonMap.cpp
+ * File: photonStore.cpp
  *
  * Description:
- *   This file implements the functionality for photonMap.
+ *   This file implements the photon store (spec 032): see photonStore.h.
  *
  * Authors:
  *   Okan Arikan <okan@cs.utexas.edu>
@@ -19,8 +19,8 @@
 
 ///////////////////////////////////////////////////////////////////////
 //
-//  File				:	photonMap.cpp
-//  Classes				:
+//  File				:	photonStore.cpp
+//  Classes				:	CPhotonStore
 //  Description			:
 //
 ////////////////////////////////////////////////////////////////////////
@@ -29,12 +29,9 @@
 #include "common/portable_io.h"
 #include "common/diagnostics.h"
 #include "common/memory.h"
-#include "object.h"
-#include "photonMap.h"
+#include "photonStore.h"
 #include "common/random.h"
-#include "raytracer.h"
 #include "common/stats.h"
-#include "tiffio.h"
 
 // Precomputed conversion tables for the sin/cosine
 const float costheta[] = {1.000000f, 0.999925f, 0.999699f, 0.999322f, 0.998795f, 0.998118f, 0.997290f, 0.996313f, 0.995185f, 0.993907f, 0.992480f, 0.990903f, 0.989177f, 0.987301f, 0.985278f, 0.983105f, 0.980785f, 0.978317f, 0.975702f, 0.972940f, 0.970031f, 0.966976f, 0.963776f, 0.960431f, 0.956940f, 0.953306f, 0.949528f, 0.945607f, 0.941544f, 0.937339f, 0.932993f, 0.928506f, 0.923880f, 0.919114f, 0.914210f, 0.909168f, 0.903989f, 0.898674f, 0.893224f, 0.887640f, 0.881921f, 0.876070f, 0.870087f, 0.863973f, 0.857729f, 0.851355f, 0.844854f, 0.838225f, 0.831470f, 0.824589f, 0.817585f, 0.810457f, 0.803208f, 0.795837f, 0.788346f, 0.780737f, 0.773010f, 0.765167f, 0.757209f, 0.749136f, 0.740951f, 0.732654f, 0.724247f, 0.715731f, 0.707107f, 0.698376f, 0.689541f, 0.680601f, 0.671559f, 0.662416f, 0.653173f, 0.643832f, 0.634393f, 0.624859f, 0.615232f, 0.605511f, 0.595699f, 0.585798f, 0.575808f, 0.565732f, 0.555570f, 0.545325f, 0.534998f, 0.524590f, 0.514103f, 0.503538f, 0.492898f, 0.482184f, 0.471397f, 0.460539f, 0.449611f, 0.438616f, 0.427555f, 0.416430f, 0.405241f, 0.393992f, 0.382683f, 0.371317f, 0.359895f, 0.348419f, 0.336890f, 0.325310f, 0.313682f, 0.302006f, 0.290285f, 0.278520f, 0.266713f, 0.254866f, 0.242980f, 0.231058f, 0.219101f, 0.207111f, 0.195090f, 0.183040f, 0.170962f, 0.158858f, 0.146730f, 0.134581f, 0.122411f, 0.110222f, 0.098017f, 0.085797f, 0.073565f, 0.061321f, 0.049068f, 0.036807f, 0.024541f, 0.012272f, 0.000000f, -0.012272f, -0.024541f, -0.036807f, -0.049068f, -0.061321f, -0.073565f, -0.085797f, -0.098017f, -0.110222f, -0.122411f, -0.134581f, -0.146730f, -0.158858f, -0.170962f, -0.183040f, -0.195090f, -0.207111f, -0.219101f, -0.231058f, -0.242980f, -0.254866f, -0.266713f, -0.278520f, -0.290285f, -0.302006f, -0.313682f, -0.325310f, -0.336890f, -0.348419f, -0.359895f, -0.371317f, -0.382683f, -0.393992f, -0.405241f, -0.416430f, -0.427555f, -0.438616f, -0.449611f, -0.460539f, -0.471397f, -0.482184f, -0.492898f, -0.503538f, -0.514103f, -0.524590f, -0.534998f, -0.545325f, -0.555570f, -0.565732f, -0.575808f, -0.585798f, -0.595699f, -0.605511f, -0.615232f, -0.624859f, -0.634393f, -0.643832f, -0.653173f, -0.662416f, -0.671559f, -0.680601f, -0.689541f, -0.698376f, -0.707107f, -0.715731f, -0.724247f, -0.732654f, -0.740951f, -0.749136f, -0.757209f, -0.765167f, -0.773010f, -0.780737f, -0.788346f, -0.795837f, -0.803208f, -0.810457f, -0.817585f, -0.824589f, -0.831470f, -0.838225f, -0.844854f, -0.851355f, -0.857729f, -0.863973f, -0.870087f, -0.876070f, -0.881921f, -0.887640f, -0.893224f, -0.898674f, -0.903989f, -0.909168f, -0.914210f, -0.919114f, -0.923880f, -0.928506f, -0.932993f, -0.937339f, -0.941544f, -0.945607f, -0.949528f, -0.953306f, -0.956940f, -0.960431f, -0.963776f, -0.966976f, -0.970031f, -0.972940f, -0.975702f, -0.978317f, -0.980785f, -0.983105f, -0.985278f, -0.987301f, -0.989177f, -0.990903f, -0.992480f, -0.993907f, -0.995185f, -0.996313f, -0.997290f, -0.998118f, -0.998795f, -0.999322f, -0.999699f, -0.999925f};
@@ -57,18 +54,17 @@ const float sinphi[] = {0.000000f, 0.024541f, 0.049068f, 0.073565f, 0.098017f, 0
 ///////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////
-// Class				:	CPhotonMap
-// Method				:	CPhotonMap
+// Class				:	CPhotonStore
+// Method				:	CPhotonStore
 // Description			:	Ctor
 // Return Value			:
 // Comments				:
-CPhotonMap::CPhotonMap(const char *n, FILE *in) : CMap<CPhoton>(), CFileResource(n) {
+CPhotonStore::CPhotonStore(const char *n, FILE *in, const float *curFromWorld, const float *curToWorld) : CMap<CPhoton>(), CFileResource(n) {
 
 #ifdef PHOTON_LOOKUP_CACHE
     root = NULL;
     maxDepth = 1;
 #endif
-    attach(); // Count the fileResource reference
     modifying = FALSE;
     maxPower = 0;
     osCreateMutex(mutex);
@@ -78,16 +74,16 @@ CPhotonMap::CPhotonMap(const char *n, FILE *in) : CMap<CPhoton>(), CFileResource
 
     // Try to read the photonmap
     if (in != NULL) {
-        matrix fromWorld, toWorld;
+        matrix fileFromWorld, fileToWorld;
 
         CMap<CPhoton>::read(in);
 
         // Read the transformation matrices (portable I/O - Phase 2)
-        if (!readFloat32Array(in, fromWorld, 16)) {
+        if (!readFloat32Array(in, fileFromWorld, 16)) {
             error(CODE_SYSTEM, "Failed to read photon map fromWorld matrix\n");
             return;
         }
-        if (!readFloat32Array(in, toWorld, 16)) {
+        if (!readFloat32Array(in, fileToWorld, 16)) {
             error(CODE_SYSTEM, "Failed to read photon map toWorld matrix\n");
             return;
         }
@@ -99,8 +95,8 @@ CPhotonMap::CPhotonMap(const char *n, FILE *in) : CMap<CPhoton>(), CFileResource
         }
         maxPower = maxPower_f;
 
-        mulmm(to, fromWorld, CRenderer::toWorld);
-        mulmm(from, CRenderer::fromWorld, toWorld);
+        mulmm(to, fileFromWorld, curToWorld);
+        mulmm(from, curFromWorld, fileToWorld);
 
 #ifdef PHOTON_LOOKUP_CACHE
         // Initialize the lookup octree
@@ -138,12 +134,12 @@ CPhotonMap::CPhotonMap(const char *n, FILE *in) : CMap<CPhoton>(), CFileResource
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Class				:	CPhotonMap
-// Method				:	~CPhotonMap
+// Class				:	CPhotonStore
+// Method				:	~CPhotonStore
 // Description			:	Dtor
 // Return Value			:
 // Comments				:
-CPhotonMap::~CPhotonMap() {
+CPhotonStore::~CPhotonStore() {
 #ifdef PHOTON_LOOKUP_CACHE
     if (root != NULL) {
         CPhotonNode **stackBase = (CPhotonNode **)alloca(maxDepth * sizeof(CPhotonNode *) * 8);
@@ -176,22 +172,22 @@ CPhotonMap::~CPhotonMap() {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Class				:	CPhotonMap
+// Class				:	CPhotonStore
 // Method				:	reset
 // Description			:	Reset the photonmap
 // Return Value			:
 // Comments				:
-void CPhotonMap::reset() {
+void CPhotonStore::reset() {
     CMap<CPhoton>::reset();
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Class				:	CPhotonMap
+// Class				:	CPhotonStore
 // Method				:	write
 // Description			:	Write the photon map into a file
 // Return Value			:
 // Comments				:
-void CPhotonMap::write(const CXform *) {
+void CPhotonStore::write(const float *fromWorld, const float *toWorld) {
     // Note: write is multithread safe, though it will
     // only ever be called in a single-threaded state
     // we do this so it manages the modifying state properly
@@ -209,12 +205,12 @@ void CPhotonMap::write(const CXform *) {
             CMap<CPhoton>::write(out);
 
             // Write the matrices (portable I/O - Phase 2)
-            if (!writeFloat32Array(out, CRenderer::fromWorld, 16)) {
+            if (!writeFloat32Array(out, fromWorld, 16)) {
                 error(CODE_SYSTEM, "Failed to write photon map fromWorld matrix\n");
                 fclose(out);
                 return;
             }
-            if (!writeFloat32Array(out, CRenderer::toWorld, 16)) {
+            if (!writeFloat32Array(out, toWorld, 16)) {
                 error(CODE_SYSTEM, "Failed to write photon map toWorld matrix\n");
                 fclose(out);
                 return;
@@ -241,12 +237,12 @@ void CPhotonMap::write(const CXform *) {
 #ifdef PHOTON_LOOKUP_CACHE
 
 ///////////////////////////////////////////////////////////////////////
-// Class				:	CPhotonMap
+// Class				:	CPhotonStore
 // Method				:	lookup
 // Description			:	Locate the nearest maxFoundPhoton photons
 // Return Value			:
 // Comments				:
-int CPhotonMap::probe(float *C, const float *P, const float *N) {
+int CPhotonStore::probe(float *C, const float *P, const float *N) {
     CPhotonNode *cNode;
     CPhotonNode **stackBase = (CPhotonNode **)alloca(maxDepth * sizeof(CPhotonNode *) * 8);
     CPhotonNode **stack;
@@ -322,12 +318,12 @@ int CPhotonMap::probe(float *C, const float *P, const float *N) {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Class				:	CPhotonMap
+// Class				:	CPhotonStore
 // Method				:	insert
 // Description			:	Insert a sample
 // Return Value			:
 // Comments				:
-void CPhotonMap::insert(const float *C, const float *P, const float *N, float dP) {
+void CPhotonStore::insert(const float *C, const float *P, const float *N, float dP) {
     CPhotonSample *cSample = new CPhotonSample;
     CPhotonNode *cNode = root;
     int depth = 0;
@@ -385,13 +381,13 @@ void CPhotonMap::insert(const float *C, const float *P, const float *N, float dP
 #endif
 
 ///////////////////////////////////////////////////////////////////////
-// Class				:	CPhotonMap
+// Class				:	CPhotonStore
 // Method				:	lookup
 // Description			:	Locate the nearest maxFoundPhoton photons
 // Return Value			:
 // Comments				:	Nl	must be normalized
 //							Il	must be normalized
-void CPhotonMap::lookup(float *Cl, const float *Pl, const float *Nl, int maxFound) {
+void CPhotonStore::lookup(float *Cl, const float *Pl, const float *Nl, int maxFound) {
     int numFound;
     const CPhoton **indices = (const CPhoton **)alloca((maxFound + 1) * sizeof(CPhoton *));
     float *distances = (float *)alloca((maxFound + 1) * sizeof(float));
@@ -444,13 +440,13 @@ void CPhotonMap::lookup(float *Cl, const float *Pl, const float *Nl, int maxFoun
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Class				:	CPhotonMap
+// Class				:	CPhotonStore
 // Method				:	lookup
 // Description			:	Locate the nearest maxFoundPhoton photons
 // Return Value			:
 // Comments				:	Nl	must be normalized
 //							Il	must be normalized
-void CPhotonMap::lookup(float *Cl, const float *Pl, int maxFound) {
+void CPhotonStore::lookup(float *Cl, const float *Pl, int maxFound) {
     int numFound = 0;
     const CPhoton **indices = (const CPhoton **)alloca((maxFound + 1) * sizeof(CPhoton *));
     float *distances = (float *)alloca((maxFound + 1) * sizeof(float));
@@ -499,12 +495,12 @@ void CPhotonMap::lookup(float *Cl, const float *Pl, int maxFound) {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Class				:	CPhotonMap
+// Class				:	CPhotonStore
 // Method				:	balance
 // Description			:	Balance the map
 // Return Value			:
 // Comments				:
-void CPhotonMap::balance() {
+void CPhotonStore::balance() {
     // If we have no photons in the map, add a dummy one to avoid an if statement during the lookup
     if (numItems == 0) {
         vector P = {0, 0, 0};
@@ -517,12 +513,12 @@ void CPhotonMap::balance() {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Class				:	CPhotonMap
+// Class				:	CPhotonStore
 // Method				:	store
 // Description			:	Store a photon
 // Return Value			:
 // Comments				:
-void CPhotonMap::store(const float *P, const float *N, const float *I, const float *C) {
+void CPhotonStore::store(const float *P, const float *N, const float *I, const float *C) {
 
     osLock(mutex);
     CPhoton *ton = CMap<CPhoton>::store(P, N);
@@ -536,12 +532,22 @@ void CPhotonMap::store(const float *P, const float *N, const float *I, const flo
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Class				:	CPhotonMap
+// Class				:	CPhotonStore
+// Method				:	store
+// Description			:	Store a photon with the key of the point that emitted it
+// Return Value			:
+// Comments				:	The key is accepted and not kept yet
+void CPhotonStore::store(const float *P, const float *N, const float *I, const float *C, [[maybe_unused]] uint64_t key) {
+    store(P, N, I, C);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CPhotonStore
 // Method				:	bound
 // Description			:	Bound the data
 // Return Value			:
 // Comments				:
-void CPhotonMap::bound(float *bmin, float *bmax) {
+void CPhotonStore::bound(float *bmin, float *bmax) const {
     int i;
 
     initv(bmin, C_INFINITY);
@@ -549,50 +555,4 @@ void CPhotonMap::bound(float *bmin, float *bmax) {
 
     for (i = 1; i < numItems; i++)
         addBox(bmin, bmax, items[i].P);
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CPhotonMap
-// Method				:	draw
-// Description			:	Draw the photonmap
-// Return Value			:
-// Comments				:
-void CPhotonMap::draw() {
-    float P[chunkSize * 3];
-    float C[chunkSize * 3];
-    int i, j;
-    float *cP = P;
-    float *cC = C;
-    CPhoton *cT = items + 1;
-
-    // Collect and dispatch the photons
-    for (i = numItems, j = chunkSize; i > 0; i--, cT++, cP += 3, cC += 3, j--) {
-        if (j == 0) {
-            drawPoints(chunkSize, P, C);
-            cP = P;
-            cC = C;
-            j = chunkSize;
-        }
-
-        float maxC01;
-        if (cT->C[1] > cT->C[0]) {
-            maxC01 = cT->C[1];
-        }
-        else {
-            maxC01 = cT->C[0];
-        }
-        float maxChannel;
-        if (cT->C[2] > maxC01) {
-            maxChannel = cT->C[2];
-        }
-        else {
-            maxChannel = maxC01;
-        }
-
-        movvv(cP, cT->P);
-        mulvf(cC, cT->C, 1 / maxChannel);
-    }
-
-    if (j != chunkSize)
-        drawPoints(chunkSize - j, P, C);
 }

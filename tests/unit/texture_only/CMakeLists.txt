@@ -65,6 +65,7 @@ if(OPENRENDER_TEXTURE_ONLY_TESTS)
         ${CMAKE_SOURCE_DIR}/src/ri/texture/irradianceCache.cpp
         ${CMAKE_SOURCE_DIR}/src/ri/texture/texture3d.cpp
         ${CMAKE_SOURCE_DIR}/src/ri/texture/texture3dChannels.cpp
+        ${CMAKE_SOURCE_DIR}/src/ri/texture/photonStore.cpp
     )
     target_link_libraries(texturing_only_gi_sources PUBLIC openrender_common_flags openrendercommon)
     target_compile_features(texturing_only_gi_sources PUBLIC cxx_std_20)
@@ -76,7 +77,7 @@ if(OPENRENDER_TEXTURE_ONLY_TESTS)
     )
 
     add_executable(test_gi_stores test_gi_stores.cpp)
-    target_compile_definitions(test_gi_stores PRIVATE GI_STORES_CACHE)
+    target_compile_definitions(test_gi_stores PRIVATE GI_STORES_CACHE GI_STORES_PHOTONS)
     target_link_libraries(test_gi_stores PRIVATE texturing_only_gi_sources)
     add_test(NAME TextureOnly_GiStores COMMAND test_gi_stores)
 

@@ -1,10 +1,12 @@
 /**
  * Project: openRender
  *
- * File: photonMap.h
+ * File: photonStore.h
  *
  * Description:
- *   This file defines the interface for photonMap.
+ *   This file defines the photon store (spec 032): the storage of a photon map, a kd-tree of photons with its file
+ *   format, its balancing and its irradiance estimates. The handle target, the data-viewer adapter and the reads of the
+ *   renderer's world matrices belong to Core (render/photonMap.h), which composes this class.
  *
  * Authors:
  *   Okan Arikan <okan@cs.utexas.edu>
@@ -19,25 +21,21 @@
 
 ///////////////////////////////////////////////////////////////////////
 //
-//  File				:	photonMap.h
-//  Classes				:	CPhotonMap
+//  File				:	photonStore.h
+//  Classes				:	CPhoton, CPhotonStore
 //  Description			:
 //
 ////////////////////////////////////////////////////////////////////////
-#ifndef PHOTONMAP_H
-#define PHOTONMAP_H
+#ifndef PHOTONSTORE_H
+#define PHOTONSTORE_H
+
+#include <stdint.h>
 
 #include "common/algebra.h"
 #include "common/global.h"
 #include "common/os.h"
-#include "dataView.h"
 #include "common/fileResource.h"
 #include "map.h"
-#include "ray.h"
-#include "common/refCounter.h"
-#include "stateHandles.h" // CMapRefTarget: a base of CPhotonMap (Hiders -> Graphics State)
-#include "xform.h"
-#include "photonLookup.h" // IPhotonLookup (Shading, header-only): CPhotonMap answers it
 
 #define PHOTON_LOOKUP_CACHE
 
@@ -60,20 +58,10 @@ class CPhoton : public CMapItem {
 };
 
 ///////////////////////////////////////////////////////////////////////
-// Class				:	CPhotonRay
-// Description			:	A Photon
+// Class				:	CPhotonStore
+// Description			:	The storage of a photon map
 // Comments				:
-class CPhotonRay : public CRay {
-    public:
-        vector intensity; // The intensity
-        float factor;     // The product of all the factors (used for routian roulette)
-};
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CPhotonMap
-// Description			:	A Photon map
-// Comments				:
-class CPhotonMap : public CMap<CPhoton>, public CFileResource, public CDataView, public CMapRefTarget, public openrender::shading::IPhotonLookup {
+class CPhotonStore : public CMap<CPhoton>, public CFileResource {
 
 #ifdef PHOTON_LOOKUP_CACHE
         class CPhotonSample {
@@ -93,21 +81,22 @@ class CPhotonMap : public CMap<CPhoton>, public CFileResource, public CDataView,
 #endif
 
     public:
-        CPhotonMap(const char *, FILE *);
-        ~CPhotonMap();
+        // fromWorld/toWorld: the creator's current world matrices (a map read from a file is related to them)
+        CPhotonStore(const char *, FILE *, const float *fromWorld, const float *toWorld);
+        ~CPhotonStore() override;
 
         void reset();
-        void write(const CXform *);
+        void write(const float *fromWorld, const float *toWorld); // writes these matrices into the file
 
-        void lookup(float *, const float *, int) override;
-        void lookup(float *, const float *, const float *, int);
+        void lookup(float *, const float *, int);                 // Shading's photonmap() estimate
+        void lookup(float *, const float *, const float *, int);  // the hiders' estimate
         void balance() override;
 
         void store(const float *, const float *, const float *, const float *);
+        void store(const float *, const float *, const float *, const float *, uint64_t key); // the key is not kept yet
 
-        void draw() override;
-        void bound(float *bmin, float *bmax) override;
-        const char *typeName() const override { return "Photon Map"; }
+        void bound(float *bmin, float *bmax) const;
+        const char *typeName() const { return "Photon Map"; }
 
 #ifdef PHOTON_LOOKUP_CACHE
         int probe(float *, const float *, const float *);
@@ -123,12 +112,5 @@ class CPhotonMap : public CMap<CPhoton>, public CFileResource, public CDataView,
         float searchRadius;
         TMutex mutex; // For synchronization during writing
 };
-
-// Resolves a Graphics State map handle back to the photon map it holds (spec 025). The only
-// conversion allowed is this static_cast; the compiler applies CMapRefTarget's offset in
-// CPhotonMap. A map slot only ever holds a CPhotonMap.
-inline CPhotonMap *photonMapOf(const MapRef &r) {
-    return static_cast<CPhotonMap *>(r.get());
-}
 
 #endif

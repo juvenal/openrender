@@ -5,8 +5,8 @@
  *
  * Description:
  *   IPhotonLookup: what Shading asks of a photon map (spec 029, contracts/photon-lookup.md). Owned by Shading;
- *   implemented by the photon map (CPhotonMap, Hiders), whose storage, file handling and balancing stay in
- *   Hiders until spec 032. Returned by CRendererServices::getPhotonMap().
+ *   implemented by the photon map (CPhotonMap, Core, render/photonMap.h), whose storage, file handling and balancing
+ *   are Texturing's (CPhotonStore, spec 032). Returned by CRendererServices::getPhotonMap().
  *
  *   Introduced in 2.1.0. Version: kRendererServicesVersion (rendererServices.h).
  *   Thread-safety: as CPhotonMap::lookup today (concurrent lookups on a balanced map).

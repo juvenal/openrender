@@ -96,7 +96,7 @@ DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN15CShadingContext9saveState
 DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN6CReyes10drawObjectEP7CObject   # CReyes::drawObject(CObject*)
 DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN6CReyes8drawGridEP8CSurfaceiiffffPK9CGridSnap   # CReyes::drawGrid(CSurface*, int, int, float, float, float, float, CGridSnap const*)
 
-# --- DB-011: Hiders read renderer-core state (CRenderer) (160) ---
+# --- DB-011: Hiders read renderer-core state (CRenderer) (158) ---
 DB-011  include  src/ri/hiders/compositor.cpp  ->  src/ri/render/renderer.h
 DB-011  include  src/ri/hiders/occlusion.cpp  ->  src/ri/render/renderer.h
 DB-011  include  src/ri/hiders/photon.cpp  ->  src/ri/render/renderer.h
@@ -120,8 +120,6 @@ DB-011  link     src/ri/hiders/photon.cpp  ->  _ZN9CRenderer5worldE   # CRendere
 DB-011  link     src/ri/hiders/photon.cpp  ->  _ZN9CRenderer9allLightsE   # CRenderer::allLights
 DB-011  link     src/ri/hiders/photon.cpp  ->  _ZN9CRenderer9worldBmaxE   # CRenderer::worldBmax
 DB-011  link     src/ri/hiders/photon.cpp  ->  _ZN9CRenderer9worldBminE   # CRenderer::worldBmin
-DB-011  link     src/ri/hiders/photonMap.cpp  ->  _ZN9CRenderer7toWorldE   # CRenderer::toWorld
-DB-011  link     src/ri/hiders/photonMap.cpp  ->  _ZN9CRenderer9fromWorldE   # CRenderer::fromWorld
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer10numSamplesE   # CRenderer::numSamples
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer11bucketWidthE   # CRenderer::bucketWidth
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer11depthFilterE   # CRenderer::depthFilter
@@ -338,7 +336,5 @@ DB-017  link     src/ri/hiders/photon.cpp  ->  _ZTI8CSurface   # typeinfo for CS
 DB-017  link     src/ri/hiders/photon.cpp  ->  _ZTV8CSurface   # vtable for CSurface
 DB-017  link     src/ri/hiders/trace.cpp  ->  _ZN7CObject7clusterEP15CShadingContext   # CObject::cluster(CShadingContext*)
 
-# --- DB-025: Domains call into the data viewer (a consumer) (3) ---
+# --- DB-025: Domains call into the data viewer (a consumer) (1) ---
 DB-025  include  src/ri/geometry/surface.cpp  ->  src/ri/dataviewer/debug.h
-DB-025  include  src/ri/hiders/photonMap.h  ->  src/ri/dataviewer/dataView.h
-DB-025  link     src/ri/hiders/photonMap.cpp  ->  _ZN9CDataView10drawPointsEiPKfS1_   # CDataView::drawPoints(int, float const*, float const*)
