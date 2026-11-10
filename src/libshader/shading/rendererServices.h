@@ -82,6 +82,12 @@ namespace openrender::shading {
     //   ("Breaking within 2.x"). The rules above apply as written from the release that closes the milestone.
     //
     // History
+    //   2.2.0  spec 031. Breaking within 2.x (allowed before spec 055, see the rule above):
+    //          Removed:  CShadingContext's Geometry-facing entries shade(CSurface *, ...), displace(), displaceEstimate() and
+    //                    setProducer(), and IShadingProducer (shadingProducer.h, file deleted). Geometry reaches the hider that
+    //                    owns the context through its own interfaces (IRayContext, IDicer: the hider shades through
+    //                    shade(ShaderGlobals, IPointSource)).
+    //          Changed:  EShadingDim is defined in common/shadingDim.h (same name, values and order) and shading.h includes it.
     //   2.1.0  spec 029. Breaking within 2.x (allowed before spec 055, see the rule above):
     //          Changed:  getPhotonMap() returns openrender::shading::IPhotonLookup * (was CPhotonMap *).
     //          Added:    IPhotonLookup (photonLookup.h), IIlluminationHook (illuminationHook.h).
@@ -108,7 +114,7 @@ namespace openrender::shading {
     //          Wording only, no version change (spec 038, made while 2.0.0 was current, before 2.1.0): getDSO also serves
     //          the .slo loader, which binds the DSO operands of a JIT-compiled module with it (the member, its signature
     //          and its result are unchanged).
-    inline constexpr InterfaceVersion kRendererServicesVersion{2, 1, 0};
+    inline constexpr InterfaceVersion kRendererServicesVersion{2, 2, 0};
 
     class ITracer; // tracer.h
 

@@ -154,7 +154,7 @@ class CPatchMesh : public CObject {
 
         // CObject interface
         void intersect(IRayContext &, CRay *);
-        void dice(CReyes *rasterizer);
+        void dice(IDicer &rasterizer);
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         // Raw control-cage data for non-shading consumers (e.g. orender-wire's
@@ -239,7 +239,7 @@ class CNURBSPatchMesh : public CObject {
 
         // CObject interface
         void intersect(IRayContext &, CRay *);
-        void dice(CReyes *rasterizer);
+        void dice(IDicer &rasterizer);
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         // Raw control-cage data for non-shading consumers (e.g. orender-wire's

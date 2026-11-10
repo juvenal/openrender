@@ -1861,10 +1861,10 @@ void CSubdivMesh::intersect(IRayContext &rasterizer, CRay *) {
 // Description			:	Dice the primitive
 // Return Value			:	-
 // Comments				:
-void CSubdivMesh::dice(CReyes *rasterizer) {
+void CSubdivMesh::dice(IDicer &rasterizer) {
 
     if (children == NULL)
-        create(*rasterizer);
+        create(rasterizer.rayContext());
 
     CObject::dice(rasterizer);
 }

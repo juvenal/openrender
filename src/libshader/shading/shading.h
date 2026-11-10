@@ -78,10 +78,6 @@ struct TObjectHash;
 class CPLLookup;
 class CPointHierarchy;
 class CAttributes;
-namespace openrender::shading {
-    class IShadingProducer; // shadingProducer.h
-}
-
 #include "common/shadingDim.h" // EShadingDim (moved to Infra by spec 031)
 
 // Predefined ray labels used during raytracing
@@ -418,13 +414,8 @@ class CShadingContext final {
         const openrender::sampling::CameraSeeds &cameraSeeds() const { return camera; }
 
         // Shade points on a surface
-        // The Geometry-facing entry (spec 029): opaque, it never dereferences the surface and hands the call to the producer that
-        // owns this context (setProducer(); none installed: one warning per process and nothing is shaded). The symbol is the
-        // one Geometry's allowlisted calls bind to.
-        void shade(CSurface *, int, int, EShadingDim, unsigned int, int displaceOnly = FALSE);
         // Shade a batch: `globals` describes it (per-batch fields only on input, shaderGlobals.h), `source` samples the primitive
         void shade(const openrender::shading::ShaderGlobals &globals, openrender::shading::IPointSource &source);
-        void setProducer(openrender::shading::IShadingProducer *producer) { producerObject = producer; }
         // The shaded object: the opaque surface (for the observers' reports), its handle (objectHandle()) and its attributes
         // (objectAttributes() and every attribute read in Shading) of the current state, set together. The producer passes the
         // CObject * upcast as the handle, the value the renderer's services cast back.
@@ -436,8 +427,6 @@ class CShadingContext final {
         void fillPointKeys(const CSurface *, uint64_t stableId, EShadingDim, bool report = true); // Give the points about to be shaded their sample identities (spec 039)
         // Execute a compiled shader (public for RSLShading::shade() in libshader)
         void execute(CProgrammableShaderInstance *, float **);
-        inline void displace(CSurface *surface, int u, int v, EShadingDim dim, unsigned int up) { shade(surface, u, v, dim, up, TRUE); }
-        inline void displaceEstimate(CSurface *surface, int u, int v, EShadingDim dim, unsigned int up) { shade(surface, u, v, dim, up, 3); }
 
         // ---- Tracing (spec 029): the context traces nothing itself. The hider that owns it is its tracer (an ITracer, tracer.h) and
         // installs itself here; the trace calls of the shading builtins reach it through libshader::traceRay/traceBundle.
@@ -1098,7 +1087,6 @@ class CShadingContext final {
         TObjectHash *traceObjectHash; // An object hash array for raytraced objects
         openrender::shading::IIlluminationHook *illuminationHookObject = nullptr; // See setIlluminationHook()
         openrender::shading::ITracer *tracerObject = nullptr;                     // See setTracer()
-        openrender::shading::IShadingProducer *producerObject = nullptr;          // See setProducer()
 
         // The following functions are used in the shaders
         void duFloat(float *, const float *);

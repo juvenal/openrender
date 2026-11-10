@@ -21,7 +21,6 @@
 #define HIDER_H
 
 #include "libshader/shading/rendererServices.h" // kRendererServicesVersion
-#include "libshader/shading/shadingProducer.h"    // IShadingProducer
 #include "libshader/shading/tracer.h"           // ITracer
 #include "shading.h"                              // CShadingContext (Shading; Hiders -> Shading is allowed)
 #include "rayContext.h"                           // IRayContext (Geometry; Hiders -> Geometry is allowed)
@@ -32,9 +31,9 @@ static_assert(openrender::shading::kRendererServicesVersion.major == 2, "CHider 
 // Class				:	CHider
 // Description			:	The base of every hider. It owns the shading context of its render thread.
 // Comments				:	One hider per render thread, created and destroyed by the renderer core with its context.
-class CHider : public openrender::shading::ITracer, public openrender::shading::IShadingProducer, public IRayContext {
+class CHider : public openrender::shading::ITracer, public IRayContext {
     public:
-        explicit CHider(int thread); // constructs the context and installs itself as its tracer and its producer
+        explicit CHider(int thread); // constructs the context and installs itself as its tracer
         virtual ~CHider(); // the context is destroyed after the derived hider's destructor body
 
         // Render this thread's share of the frame (moved from CShadingContext)
@@ -44,13 +43,13 @@ class CHider : public openrender::shading::ITracer, public openrender::shading::
         CShadingContext &shadingContext() { return context; }
         const CShadingContext &shadingContext() const { return context; }
 
-        // IRayContext (geometry/rayContext.h, spec 031): what Geometry's ray side asks of this render thread. In this phase
-        // shade() and displace() forward to the context's Geometry-facing entry, so the bytes cannot move (Phase 5 rewires them).
+        // IRayContext (geometry/rayContext.h, spec 031): what Geometry's ray side asks of this render thread. shade() and displace()
+        // describe the batch and shade it (shadeSurface(), shadingProducer.cpp).
         int threadIndex() const override { return context.thread; }
         CMemPage *&scratch() override { return context.threadMemory; }
         float **varyings() override { return context.currentShadingState->varying; }
-        void shade(CSurface *surface, int u, int v, EShadingDim dim, unsigned int up) override { context.shade(surface, u, v, dim, up, FALSE); }
-        void displace(CSurface *surface, int u, int v, EShadingDim dim, unsigned int up) override { context.shade(surface, u, v, dim, up, TRUE); }
+        void shade(CSurface *surface, int u, int v, EShadingDim dim, unsigned int up) override { shadeSurface(surface, u, v, dim, up, FALSE); }
+        void displace(CSurface *surface, int u, int v, EShadingDim dim, unsigned int up) override { shadeSurface(surface, u, v, dim, up, TRUE); }
         void *saveShadingState() override { return context.saveState(); }
         void restoreShadingState(void *state) override { context.restoreState(state); }
 
@@ -59,12 +58,11 @@ class CHider : public openrender::shading::ITracer, public openrender::shading::
         void traceRay(CShadingContext &ctx, CRay *ray) override;
         void traceBundle(CShadingContext &ctx, CRayBundle *bundle) override;
 
-        // IShadingProducer (shadingProducer.h): the target of the context's Geometry-facing shade(CSurface *, ...). Builds the point
-        // source and the batch description and calls context.shade(ShaderGlobals, IPointSource) (shadingProducer.cpp)
-        void shadeSurface(CShadingContext &ctx, CSurface *surface, int uVertices, int vVertices, EShadingDim dim, unsigned int usedParameters,
-                          int displaceOnly) override;
-
     protected:
+        // Shade (displaceOnly FALSE), displace (TRUE) or probe (3) the points written into the context's varyings: builds the point
+        // source and the batch description and calls context.shade(ShaderGlobals, IPointSource) (shadingProducer.cpp)
+        void shadeSurface(CSurface *surface, int uVertices, int vVertices, EShadingDim dim, unsigned int usedParameters, int displaceOnly);
+
         // True for the hiders that rasterize (the frame's hider kind, which the batch's situation depends on)
         virtual bool rasterizes() const { return false; }
 

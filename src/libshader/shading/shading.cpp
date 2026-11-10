@@ -42,7 +42,6 @@
 #include "shaderPl.h"
 #include "shaderRefs.h"
 #include "shading.h"
-#include "shadingProducer.h"
 #include "specularTerm.h"
 #include "common/stats.h"
 #include "texture.h"
@@ -879,23 +878,6 @@ void CShadingContext::fillPointKeys(const CSurface *surface, uint64_t stableId, 
                                         rendererIlluminationHook() ? 1 : 0};
         pointKeyObserver(keyReport);
     }
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CShadingContext
-// Method				:	shade
-// Description			:	The Geometry-facing entry: hand the call to the producer that owns this context
-// Return Value			:	-
-// Comments				:	Opaque: the surface is never dereferenced here. The mangled symbol is the one Geometry's
-//							allowlisted calls bind to (DB-006). With no producer: one warning per process, nothing is shaded.
-void CShadingContext::shade(CSurface *surface, int uVertices, int vVertices, EShadingDim dim, unsigned int usedParameters, int displaceOnly) {
-    if (producerObject == nullptr) {
-        static std::atomic<bool> warned{false};
-        if (!warned.exchange(true))
-            warning(CODE_NOTSTARTED, "no shading producer is installed on this shading context: surfaces are not shaded\n");
-        return;
-    }
-    producerObject->shadeSurface(*this, surface, uVertices, vVertices, dim, usedParameters, displaceOnly);
 }
 
 ///////////////////////////////////////////////////////////////////////

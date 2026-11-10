@@ -1597,10 +1597,10 @@ void CPatchMesh::intersect(IRayContext &rasterizer, CRay *) {
 // Description			:	Dice the primitive
 // Return Value			:	-
 // Comments				:
-void CPatchMesh::dice(CReyes *rasterizer) {
+void CPatchMesh::dice(IDicer &rasterizer) {
 
     if (children == NULL)
-        create(*rasterizer);
+        create(rasterizer.rayContext());
 
     CObject::dice(rasterizer);
 }
@@ -1875,10 +1875,10 @@ void CNURBSPatchMesh::intersect(IRayContext &rasterizer, CRay *) {
 // Description			:	Dice the primitive
 // Return Value			:	-
 // Comments				:
-void CNURBSPatchMesh::dice(CReyes *rasterizer) {
+void CNURBSPatchMesh::dice(IDicer &rasterizer) {
 
     if (children == NULL)
-        create(*rasterizer);
+        create(rasterizer.rayContext());
 
     CObject::dice(rasterizer);
 }

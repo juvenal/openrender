@@ -71,7 +71,7 @@ class CPoints : public CSurface {
 
         // Object interface
         void intersect(IRayContext &, CRay *) {}
-        void dice(CReyes *);
+        void dice(IDicer &);
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         // Surface interface

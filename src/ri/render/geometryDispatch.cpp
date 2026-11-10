@@ -79,14 +79,14 @@
 // Description			:	Dice the children objects
 // Return Value			:	-
 // Comments				:
-void CObject::dice(CReyes *rasterizer) {
+void CObject::dice(IDicer &dicer) {
     CObject *cObject, *nObject;
     for (cObject = children; cObject != NULL; cObject = nObject) {
         nObject = cObject->sibling;
 
         cObject->attach();
 
-        rasterizer->drawObject(cObject);
+        dicer.drawObject(cObject);
 
         cObject->detach();
     }
@@ -99,9 +99,9 @@ void CObject::dice(CReyes *rasterizer) {
 //							its leaves like any object's children (spec 021)
 // Return Value			:	-
 // Comments				:
-void CCSGSolid::dice(CReyes *rasterizer) {
-    resolve(*rasterizer);
-    CObject::dice(rasterizer);
+void CCSGSolid::dice(IDicer &dicer) {
+    resolve(dicer.rayContext());
+    CObject::dice(dicer);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -357,7 +357,7 @@ void CSurface::intersect(IRayContext &context, CRay *cRay) {
 // Description			:	Dice the object into smaller ones
 // Return Value			:
 // Comments				:
-void CSurface::dice(CReyes *rasterizer) {
+void CSurface::dice(IDicer &dicer) {
 
     int minU, minV;
     int dicingStatsResult = getDicingStats(0, minU, minV);
@@ -371,8 +371,8 @@ void CSurface::dice(CReyes *rasterizer) {
 
     CPatch *cSurface = new CPatch(attributes, xform, this, 0, 1, 0, 1, 0, minSplits);
     cSurface->attach();
-    cSurface->buildLayout(rasterizer, wrapsU(), wrapsV());
-    cSurface->dice(rasterizer);
+    cSurface->buildLayout(dicer, wrapsU(), wrapsV());
+    cSurface->dice(dicer);
     cSurface->detach();
 
     // Note we tesselate for raytracing on demand - so we do not automatically emit a CTesselationPatch here
@@ -413,9 +413,9 @@ void CSurface::shade(IRayContext &context, int numRays, CRay **rays) {
 // Description			:	Dice the curve group into smaller ones
 // Return Value			:	-
 // Comments				:
-void CCurve::dice(CReyes *rasterizer) {
+void CCurve::dice(IDicer &dicer) {
     // We can sample the object, so do so
-    float **varying = rasterizer->shadingContext().currentShadingState->varying;
+    float **varying = dicer.rayContext().varyings();
     float *u = varying[VARIABLE_U];
     float *v = varying[VARIABLE_V];
     float *timev = varying[VARIABLE_TIME];
@@ -454,7 +454,7 @@ void CCurve::dice(CReyes *rasterizer) {
         for (i = 0; i < 6; i++)
             timev[i] = 1;
 
-        rasterizer->shadingContext().displaceEstimate(this, 2, 3, SHADING_2D_GRID, PARAMETER_P | PARAMETER_END_SAMPLE);
+        dicer.probe(this, 2, 3, SHADING_2D_GRID, PARAMETER_P | PARAMETER_END_SAMPLE);
 
         for (i = 0; i < 6; i++)
             addBox(bmin, bmax, P + i * 3);
@@ -491,7 +491,7 @@ void CCurve::dice(CReyes *rasterizer) {
         timev[i] = 0;
 
     // Sample the curves
-    rasterizer->shadingContext().displaceEstimate(this, 2, 3, SHADING_2D_GRID, PARAMETER_P | PARAMETER_BEGIN_SAMPLE);
+    dicer.probe(this, 2, 3, SHADING_2D_GRID, PARAMETER_P | PARAMETER_BEGIN_SAMPLE);
 
     // Add start sample bounds
     for (i = 0; i < 6; i++)
@@ -501,12 +501,12 @@ void CCurve::dice(CReyes *rasterizer) {
         if (bmax[COMP_Z] < CRenderer::clipMin) {
             // The curve is behind the screen
         }
-        else if (CRenderer::inFrustrum(bmin, bmax) == FALSE) {
+        else if (dicer.inFrustum(bmin, bmax) == FALSE) {
             // The curve is out of the viewing frustrum
         }
         else {
             // Split the curve into two pieces
-            splitToChildren(rasterizer);
+            splitToChildren(dicer);
         }
     }
     else {
@@ -525,10 +525,10 @@ void CCurve::dice(CReyes *rasterizer) {
 
         // Can we render this sucker ?
         if ((udiv + 1) * (vdiv + 1) > CRenderer::maxGridSize) {
-            splitToChildren(rasterizer);
+            splitToChildren(dicer);
         }
         else {
-            rasterizer->drawGrid(this, udiv, vdiv, 0, 1, vmin, vmax);
+            dicer.drawGrid(this, udiv, vdiv, 0, 1, vmin, vmax, nullptr);
         }
     }
 }
@@ -539,7 +539,7 @@ void CCurve::dice(CReyes *rasterizer) {
 // Description			:	Split the curve into two children
 // Return Value			:	-
 // Comments				:
-void CCubicCurve::splitToChildren(CReyes *rasterizer) {
+void CCubicCurve::splitToChildren(IDicer &dicer) {
     const float vmid = (vmin + vmax) * 0.5f;
 
     // Create the children
@@ -547,8 +547,8 @@ void CCubicCurve::splitToChildren(CReyes *rasterizer) {
     CCubicCurve *c1 = new CCubicCurve(attributes, xform, base, vmid, vmax, gvmin, gvmax);
 
     // Insert the children
-    rasterizer->drawObject(c0);
-    rasterizer->drawObject(c1);
+    dicer.drawObject(c0);
+    dicer.drawObject(c1);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -557,7 +557,7 @@ void CCubicCurve::splitToChildren(CReyes *rasterizer) {
 // Description			:	Split the curve into two children
 // Return Value			:	-
 // Comments				:
-void CLinearCurve::splitToChildren(CReyes *rasterizer) {
+void CLinearCurve::splitToChildren(IDicer &dicer) {
     const float vmid = (vmin + vmax) * 0.5f;
 
     // Create the children
@@ -565,8 +565,8 @@ void CLinearCurve::splitToChildren(CReyes *rasterizer) {
     CLinearCurve *c1 = new CLinearCurve(attributes, xform, base, vmid, vmax, gvmin, gvmax);
 
     // Insert the children
-    rasterizer->drawObject(c0);
-    rasterizer->drawObject(c1);
+    dicer.drawObject(c0);
+    dicer.drawObject(c1);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -575,18 +575,18 @@ void CLinearCurve::splitToChildren(CReyes *rasterizer) {
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CPoints::dice(CReyes *rasterizer) {
+void CPoints::dice(IDicer &dicer) {
     if (pl != NULL)
         prep();
 
     if (numPoints < CRenderer::maxGridSize) {
         // We're small enough to render directly
-        rasterizer->drawPoints(this, numPoints);
+        dicer.drawPoints(this, numPoints);
     }
     else {
 
         // We're too many, split us
-        memBegin(rasterizer->shadingContext().threadMemory);
+        memBegin(dicer.rayContext().scratch());
 
         vector D;
         int numFront, numBack;
@@ -597,9 +597,9 @@ void CPoints::dice(CReyes *rasterizer) {
         int num0, num1, moved;
         CPoints *child;
 
-        front = (const float **)ralloc(numPoints * sizeof(float *), rasterizer->shadingContext().threadMemory);
-        back = (const float **)ralloc(numPoints * sizeof(float *), rasterizer->shadingContext().threadMemory);
-        membership = (int *)ralloc(numPoints * sizeof(int), rasterizer->shadingContext().threadMemory);
+        front = (const float **)ralloc(numPoints * sizeof(float *), dicer.rayContext().scratch());
+        back = (const float **)ralloc(numPoints * sizeof(float *), dicer.rayContext().scratch());
+        membership = (int *)ralloc(numPoints * sizeof(int), dicer.rayContext().scratch());
 
         for (i = 0; i < numPoints; i++)
             membership[i] = -1;
@@ -685,7 +685,7 @@ void CPoints::dice(CReyes *rasterizer) {
         child = new CPoints(attributes, xform, base, numFront, front);
         child->attach();
 
-        rasterizer->drawObject(child);
+        dicer.drawObject(child);
 
         child->detach();
 
@@ -693,11 +693,11 @@ void CPoints::dice(CReyes *rasterizer) {
 
         child->attach();
 
-        rasterizer->drawObject(child);
+        dicer.drawObject(child);
 
         child->detach();
 
-        memEnd(rasterizer->shadingContext().threadMemory);
+        memEnd(dicer.rayContext().scratch());
     }
 }
 
@@ -747,7 +747,7 @@ void CDelayedObject::intersect(IRayContext &, CRay *) {
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CDelayedObject::dice(CReyes *r) {
+void CDelayedObject::dice(IDicer &r) {
 
     // Process the object
     if (processed == FALSE)
@@ -776,7 +776,7 @@ void CDelayedInstance::intersect(IRayContext &, CRay *) {
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CDelayedInstance::dice(CReyes *r) {
+void CDelayedInstance::dice(IDicer &r) {
 
     // Process the instance
     if (processed == FALSE)

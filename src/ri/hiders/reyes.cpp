@@ -371,7 +371,7 @@ void CReyes::render() {
                                   tbucketTop,
                                   cObject->zmin)) {
 
-                        cObject->object->dice(this);
+                        cObject->object->dice(*this);
                         cObject->diced = TRUE;
                     }
                     else {
@@ -524,6 +524,16 @@ void CReyes::skip() {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CReyes
+// Method				:	inFrustum
+// Description			:	IDicer: is the camera-space box in the frustrum?
+// Return Value			:	TRUE if it may be visible
+// Comments				:	Out of line so the reference to CRenderer::inFrustrum stays in this file
+int CReyes::inFrustum(const float *bmin, const float *bmax) {
+    return CRenderer::inFrustrum(bmin, bmax);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CReyes
 // Method				:	drawObject
 // Description			:	Draw an object
 // Return Value			:	-
@@ -564,10 +574,10 @@ void CReyes::drawObject(CObject *object) {
     // Compute the projected extend of the bound in the pixel space
     if (CRenderer::projection == OPTIONS_PROJECTION_PERSPECTIVE) {
         if (zmin < C_EPSILON) {                      // Spanning the eye plane ?
-            if (CRenderer::inFrustrum(bmin, bmax)) { // Are we in the frustrum ?
+            if (CReyes::inFrustum(bmin, bmax)) { // Are we in the frustrum ?
                                                      // If we can not make the perspective divide
                                                      // Go ahead and process the object now
-                object->dice(this);
+                object->dice(*this);
             }
 
             return;
@@ -786,7 +796,7 @@ void CReyes::snapGrid(CRasterGrid *grid, int moving) {
                 time[t] = (float)sample;
             }
 
-            context.displace(object, count, 1, SHADING_0D, (sample ? PARAMETER_END_SAMPLE : PARAMETER_BEGIN_SAMPLE) | PARAMETER_P);
+            shadeSurface(object, count, 1, SHADING_0D, (sample ? PARAMETER_END_SAMPLE : PARAMETER_BEGIN_SAMPLE) | PARAMETER_P, TRUE);
             camera2samples(count, varying[VARIABLE_P]);
             memcpy(points + first * 3, varying[VARIABLE_P], count * 3 * sizeof(float));
         }
@@ -866,7 +876,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
             varying[VARIABLE_CONSTANTWIDTH][0] = -C_INFINITY;
 
             // Shade the points
-            context.displace(object, numPoints, 1, SHADING_0D, PARAMETER_BEGIN_SAMPLE | PARAMETER_P);
+            shadeSurface(object, numPoints, 1, SHADING_0D, PARAMETER_BEGIN_SAMPLE | PARAMETER_P, TRUE);
 
             // Figure out the size of the ribbon
             sizeArray = varying[VARIABLE_WIDTH];
@@ -903,7 +913,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
             numGridsShaded++;
 
             // Shade the points
-            context.shade(object, numPoints, 1, SHADING_0D, PARAMETER_BEGIN_SAMPLE | PARAMETER_P);
+            shadeSurface(object, numPoints, 1, SHADING_0D, PARAMETER_BEGIN_SAMPLE | PARAMETER_P, FALSE);
 
             // Copy the point samples
             copySamples(numPoints, varying, grid->vertices, 0);
@@ -932,7 +942,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
                 varying[VARIABLE_CONSTANTWIDTH][0] = -C_INFINITY;
 
                 // Shade the points
-                context.displace(object, numPoints, 1, SHADING_0D, PARAMETER_END_SAMPLE | PARAMETER_P);
+                shadeSurface(object, numPoints, 1, SHADING_0D, PARAMETER_END_SAMPLE | PARAMETER_P, TRUE);
 
                 // Figure out the size of the points
                 sizeArray = varying[VARIABLE_WIDTH];
@@ -964,7 +974,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
             }
             else {
                 // Shade the points
-                context.shade(object, numPoints, 1, SHADING_0D, PARAMETER_END_SAMPLE | PARAMETER_P);
+                shadeSurface(object, numPoints, 1, SHADING_0D, PARAMETER_END_SAMPLE | PARAMETER_P, FALSE);
 
                 // Copy the point samples
                 copySamples(numPoints, varying, grid->vertices, 1);
@@ -1043,7 +1053,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
             }
 
             // Displace the sucker
-            context.displace(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_BEGIN_SAMPLE | PARAMETER_P);
+            shadeSurface(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_BEGIN_SAMPLE | PARAMETER_P, TRUE);
 
             // Project the P into samples
             camera2samples(numVertices, varying[VARIABLE_P]);
@@ -1057,7 +1067,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
             numGridsShaded++;
 
             // Shade the sucker
-            context.shade(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_BEGIN_SAMPLE | PARAMETER_P);
+            shadeSurface(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_BEGIN_SAMPLE | PARAMETER_P, FALSE);
 
             // Project the P into samples
             camera2samples(numVertices, varying[VARIABLE_P]);
@@ -1100,7 +1110,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
 
             if (Ponly) {
                 // Shade the sucker
-                context.displace(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_END_SAMPLE | PARAMETER_P);
+                shadeSurface(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_END_SAMPLE | PARAMETER_P, TRUE);
 
                 // Project the P into samples
                 camera2samples(numVertices, varying[VARIABLE_P]);
@@ -1111,7 +1121,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
             }
             else {
                 // Shade the sucker
-                context.shade(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_END_SAMPLE | PARAMETER_P);
+                shadeSurface(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_END_SAMPLE | PARAMETER_P, FALSE);
 
                 // Project the P into samples
                 camera2samples(numVertices, varying[VARIABLE_P]);

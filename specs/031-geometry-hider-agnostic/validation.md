@@ -193,6 +193,61 @@ No float expression changed text. `clang-format` was applied to `dlobject.h`, `i
 
 **Approved test edits applied (T057)**: exactly the list of PAUSE 4a (15 test files; `git diff --cached --stat -- tests`), no assertion, threshold or recording changed.
 
+### Phase 5 (macOS; the Linux half is in §3)
+
+**Test gate (T065), run before any source edit.** The 15 lines were deleted by key and `ctest -L architecture` was run on the unchanged Phase 4 build tree: `RESULT FAIL violations=15 stale=0`
+(`build-logs/p5-tg-arch.log`) with exactly the 15 link `VIOLATION` lines of PAUSE 5a: `surface.cpp -> CShadingContext::shade(CSurface*, int, int, EShadingDim, unsigned int, int)`, `CReyes::drawObject`, `CReyes::drawGrid`, and
+`CRenderer::` `imagePlane`, `inFrustrum`, `projection`, `maxGridSize`, `maxEyeSplits`, `cocFactorPixels`, `invFocaldistance`, `flags`, `dPixeldx`, `dPixeldy`, `pixelTop`, `pixelLeft` (`failing-cycles=3` with them, gone with the code).
+
+**Source work.** `dicer.h` (new, `IDicer`: `rayContext`, `drawObject`, `drawGrid` with no default argument, `drawPoints`, `probe`, `inFrustum`, `frame`; not derived from `IRayContext`). `CReyes : CHider, IDicer`: `rayContext()` returns `*this`,
+`drawObject/drawGrid/drawPoints` keep their bodies, `probe` calls `shadeSurface(..., 3)`, `inFrustum` is out of line in `reyes.cpp` (`CRenderer::inFrustrum`), and `drawObject`'s own frustum test calls `CReyes::inFrustum` so the
+file keeps one reference (Hiders refs stay 556; the first build had 557). Forwarding entries retired: `CShadingContext::shade(CSurface *, ...)`, `displace`, `displaceEstimate`, `setProducer`/`producerObject`, the `IShadingProducer`
+forward declaration, `shadingProducer.h` (`git rm`), its include and the "no shading producer" warning; `CHider` lost the `IShadingProducer` base, `setProducer(this)` and the override: `shadeSurface` is a protected member without the context
+argument, body unchanged, and `CHider::shade/displace` call it with FALSE/TRUE. **F5 as planned**: the nine `reyes.cpp` sites (`context.displace` at `:789,:869,:935,:1046,:1103`, `context.shade` at `:906,:967,:1060,:1114` before the `inFrustum`
+insertion) now call `shadeSurface(object, ..., TRUE/FALSE)` with the same arguments, and `object->dice(this)` (`:374`, `:570`) became `dice(*this)`; no site differed from the plan. Geometry: every `dice`/`splitToChildren`/`buildLayout`/`probe`/`layoutNode`
+takes `IDicer &`; `r->shadingContext()` became `dicer.rayContext()`, `displaceEstimate` became `dicer.probe`, the `CRenderer::` reads of `CPatch::probe/buildLayout/layoutNode/dice` and `sampleTesselation` (`maxGridSize`, which the Phase 4 note missed:
+`surface.cpp:1693`) read `dicer.frame()` / `context.frame()` (one `const CGeometryFrame &frame` in `probe`), `cull` and `minCocPixels` take the frame (`minCocPixels` keeps its expression, `absf((1 / z) - frame.invFocaldistance) * frame.cocFactorPixels`,
+the text of the old `cocPixels` macro), `camera2pixels(frame, ...)` is the frame's copy, `CRenderer::inFrustrum` became `dicer.inFrustum`; the dead `#else` branch of the `#if 1` in `probe` (`r->displaceEstimate`, ~63 lines) is deleted. The bodies in
+`geometryDispatch.cpp` (still core-side, so its own `CRenderer::flags/clipMin/maxGridSize` reads stay until Phase 6) and the stubs track the signatures. `kRendererServicesVersion` is 2.2.0 with the "Breaking within 2.x" history entry; no test pins the
+minor (five `static_assert(...major == 2)` only). **No approved test or harness was edited** (T071 empty: the re-grep of PAUSE 5a found nothing to change, and the build confirmed it).
+
+**DB-017 re-key, part 2 (Q1, T073): 20 lines, in place.** archcheck reported exactly 20 `STALE` and 20 `VIOLATION` lines after the build; every new name equals the one proposed at PAUSE 5a (the script asserted it). allowlist diff `-20/+20`:
+
+| File | Old key | New key |
+|---|---|---|
+| `geometry/bsplinePatchgrid.cpp` | `_ZN8CSurface4diceEP6CReyes` | `_ZN8CSurface4diceER6IDicer` |
+| `geometry/csgSolid.cpp` | `_ZN9CCSGSolid4diceEP6CReyes` | `_ZN9CCSGSolid4diceER6IDicer` |
+| `geometry/curves.cpp` | `_ZN11CCubicCurve15splitToChildrenEP6CReyes` | `_ZN11CCubicCurve15splitToChildrenER6IDicer` |
+| `geometry/curves.cpp` | `_ZN12CLinearCurve15splitToChildrenEP6CReyes` | `_ZN12CLinearCurve15splitToChildrenER6IDicer` |
+| `geometry/curves.cpp` | `_ZN6CCurve4diceEP6CReyes` | `_ZN6CCurve4diceER6IDicer` |
+| `geometry/curves.cpp` | `_ZN7CObject4diceEP6CReyes` | `_ZN7CObject4diceER6IDicer` |
+| `geometry/delayed.cpp` | `_ZN14CDelayedObject4diceEP6CReyes` | `_ZN14CDelayedObject4diceER6IDicer` |
+| `geometry/delayed.cpp` | `_ZN16CDelayedInstance4diceEP6CReyes` | `_ZN16CDelayedInstance4diceER6IDicer` |
+| `geometry/object.cpp` | `_ZN7CObject4diceEP6CReyes` | `_ZN7CObject4diceER6IDicer` |
+| `geometry/patches.cpp` | `_ZN7CObject4diceEP6CReyes` | `_ZN7CObject4diceER6IDicer` |
+| `geometry/patches.cpp` | `_ZN8CSurface4diceEP6CReyes` | `_ZN8CSurface4diceER6IDicer` |
+| `geometry/patchgrid.cpp` | `_ZN8CSurface4diceEP6CReyes` | `_ZN8CSurface4diceER6IDicer` |
+| `geometry/points.cpp` | `_ZN7CPoints4diceEP6CReyes` | `_ZN7CPoints4diceER6IDicer` |
+| `geometry/polygons.cpp` | `_ZN7CObject4diceEP6CReyes` | `_ZN7CObject4diceER6IDicer` |
+| `geometry/polygons.cpp` | `_ZN8CSurface4diceEP6CReyes` | `_ZN8CSurface4diceER6IDicer` |
+| `geometry/quadrics.cpp` | `_ZN8CSurface4diceEP6CReyes` | `_ZN8CSurface4diceER6IDicer` |
+| `geometry/subdivision.cpp` | `_ZN8CSurface4diceEP6CReyes` | `_ZN8CSurface4diceER6IDicer` |
+| `geometry/subdivisionCreator.cpp` | `_ZN7CObject4diceEP6CReyes` | `_ZN7CObject4diceER6IDicer` |
+| `geometry/subdivisionLoop.cpp` | `_ZN7CObject4diceEP6CReyes` | `_ZN7CObject4diceER6IDicer` |
+| `hiders/photon.cpp` | `_ZN8CSurface4diceEP6CReyes` | `_ZN8CSurface4diceER6IDicer` |
+
+| CP (macOS) | Result |
+|---|---|
+| CP-a build | exit 0, 0 first-party warnings under `-Werror`, first pass (`031-p5-build`); every target incl. `ribVector`, the preview and the data viewer |
+| CP-b suite (`031-p5-suite`, `-LE determinism-sweep -j4`) | **1099/1099 passed** (self-skip `LibShader_Format_rslo_lower_minor`); the Phase 4 count, no test enabled |
+| CP-d | `image_manifest.sh diff`: 915 images, **0 differing, 0 missing, 0 not in manifest**; `diffs` against `baseline-diffs-macos.txt`: empty |
+| CP-r | `Motion_*` 10/10; `tests/unit/motion/replay` untouched |
+| CP-det | `^determinism$` 156/156 (`-j2`) |
+| CP-m | `^geometry_contract$` 2/2 (the Phase 3 pair) |
+| `-L shading_parity` / `-L state` / preview tests | 136/136, 7/7, 3/3; the data viewer is a build target and built |
+| Timing, information only (`031-p5-time`, `timing_sc010.sh build-base build 3`) | start vs final medians (s): `killeroo-reyes` 3.62/3.64, `csg-hero-displaced-raytrace` 9.93/9.91, `blobby-csg-difference-reyes` 3.85/3.95, `camera-dof-reyes` 4.35/4.42, `camera-dof-raytrace` 4.94/4.82; every difference within spread, 0 scenes slower beyond it (`build-logs/p5-timing.log`) |
+| CP-c | `ctest -L architecture` 29/29; `ALLOWED DB-004 x 19, DB-006 x 23, DB-010 x 8, DB-011 x 164, DB-017 x 77, DB-025 x 11` = **302** (the table's row); METRIC Geometry refs 21 -> **2** (distinct 7 -> 2: the two `blobbyRepeller.cpp` `CRenderer::` uses), Hiders 556/81 unchanged, TOTAL 577 -> 558 (distinct 84 -> 83); `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0` |
+
 ## §2 Red evidence
 
 ### Phase 2 (macOS; `build` configured with `-DOPENRENDER_031_RED_TESTS=ON`, then OFF again)
@@ -280,6 +335,12 @@ Linux baseline pass/fail set: everything passes except `TextureTile_RenderByteId
 After `git add`, `linux_sync.sh push` (3,755 files) and `verify` (**3755 files, 0 differences**); remote incremental build (`031-l4-build`, remote `cpujob`, `-j2`): exit 0, **0 warnings** under GCC 13 `-Werror`;
 `ctest -L architecture` **29/29**; `-L '^geometry_contract$'` **2/2**; `-R 'Motion_(Replay|CameraSlerpEquivalence)'` **10/10**; archcheck report **identical to macOS** (`ALLOWED DB-004 x 31, DB-006 x 26, DB-010 x 8, DB-011 x 164,
 DB-017 x 77, DB-025 x 11` = 317; Geometry 21/7, Hiders 556/81, TOTAL 577/84; `RESULT PASS`). `pull`: 9 Linux-produced files, 0 differences. Not run on Linux (CP-Lb is a build check): the full suite and CP-d (Phase 8).
+
+### Phase 5 CP-Lb (Linux, 2026-11-10)
+
+After `git add`, `linux_sync.sh push` (3,755 files) and `verify` (**3755 files, 0 differences**); remote incremental build (`031-l5-build`, remote `cpujob`, `-j2`): exit 0, **0 warnings** under GCC 13 `-Werror`;
+`ctest -L architecture` **29/29**; `-L '^geometry_contract$'` **2/2**; `-R 'Motion_(Replay|CameraSlerpEquivalence)'` **10/10**; `-L shading_parity` **136/136**; archcheck report **identical to macOS**
+(`ALLOWED DB-004 x 19, DB-006 x 23, DB-010 x 8, DB-011 x 164, DB-017 x 77, DB-025 x 11` = 302, `RESULT PASS`). The full suite and CP-d on Linux are Phase 8's.
 
 ### T020 / PAUSE 1 outcome (2026-11-09)
 

@@ -46,7 +46,7 @@ class CPolygonMesh : public CObject {
         ~CPolygonMesh();
 
         void intersect(IRayContext &, CRay *);
-        void dice(CReyes *);
+        void dice(IDicer &);
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         // Raw vertex/topology data for non-shading consumers (e.g. orender-wire's

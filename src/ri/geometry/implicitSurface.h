@@ -45,7 +45,7 @@ class CImplicit : public CSurface {
 
         // Object interface
         void intersect(IRayContext &, CRay *);
-        void dice(CReyes *);                                            // Split or render this object
+        void dice(IDicer &);                                            // Split or render this object
         void instantiate(CAttributes *, CXform *, IObjectSink *) const; // Instanciate this object
 
         // Surface functionality

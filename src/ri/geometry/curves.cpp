@@ -713,10 +713,10 @@ void CCurveMesh::instantiate(CAttributes *a, CXform *x, IObjectSink *c) const {
 // Description			:	Dice the primitive
 // Return Value			:	-
 // Comments				:
-void CCurveMesh::dice(CReyes *rasterizer) {
+void CCurveMesh::dice(IDicer &rasterizer) {
 
     if (children == NULL)
-        create(*rasterizer);
+        create(rasterizer.rayContext());
 
     CObject::dice(rasterizer);
 }

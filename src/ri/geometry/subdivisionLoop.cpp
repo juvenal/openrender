@@ -348,10 +348,10 @@ void CLoopSubdivMesh::intersect(IRayContext &rasterizer, CRay *) {
 // Description			:	Dice the primitive
 // Return Value			:	-
 // Comments				:
-void CLoopSubdivMesh::dice(CReyes *rasterizer) {
+void CLoopSubdivMesh::dice(IDicer &rasterizer) {
 
     if (children == NULL)
-        create(*rasterizer);
+        create(rasterizer.rayContext());
 
     CObject::dice(rasterizer);
 }

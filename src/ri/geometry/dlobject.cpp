@@ -131,7 +131,7 @@ void CDLObject::interpolate(int, float **, float ***) const {
 // Description			:	Dice the surface for scan-line rendering
 // Return Value			:	-
 // Comments				:
-void CDLObject::dice(CReyes *) {
+void CDLObject::dice(IDicer &) {
 }
 
 ///////////////////////////////////////////////////////////////////////

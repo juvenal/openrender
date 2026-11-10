@@ -67,7 +67,7 @@ class CCurve : public CSurface {
         int honorsRegion() const { return FALSE; } // Encloses no volume (spec 021)
 
         // Object interface
-        void dice(CReyes *);
+        void dice(IDicer &);
         void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 
         // Surface interface
@@ -75,7 +75,7 @@ class CCurve : public CSurface {
         void interpolate(int, float **, float ***) const;
 
     protected:
-        virtual void splitToChildren(CReyes *) = 0;
+        virtual void splitToChildren(IDicer &) = 0;
 
         CBase *base;
         float vmin, vmax;   // The parametric range of the curves
@@ -95,7 +95,7 @@ class CCubicCurve : public CCurve {
         void sample(int, int, float **, float ***, unsigned int &) const;
 
     protected:
-        void splitToChildren(CReyes *);
+        void splitToChildren(IDicer &);
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -111,7 +111,7 @@ class CLinearCurve : public CCurve {
         void sample(int, int, float **, float ***, unsigned int &) const;
 
     protected:
-        void splitToChildren(CReyes *);
+        void splitToChildren(IDicer &);
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -126,7 +126,7 @@ class CCurveMesh : public CObject {
 
         // Object interface
         void intersect(IRayContext &, CRay *) {}
-        void dice(CReyes *rasterizer);
+        void dice(IDicer &rasterizer);
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         // Raw vertex/topology data for non-shading consumers (e.g. orender-wire's

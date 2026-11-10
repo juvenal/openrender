@@ -43,15 +43,15 @@ class CPatch : public CObject {
         ~CPatch();
 
         void intersect(IRayContext &, CRay *) { assert(FALSE); }
-        void dice(CReyes *); // Split or render this object
+        void dice(IDicer &); // Split or render this object
         void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 
-        void buildLayout(CReyes *, int wrapU, int wrapV); // Decide every split up front (root patch only)
+        void buildLayout(IDicer &, int wrapU, int wrapV); // Decide every split up front (root patch only)
 
     private:
-        void splitToChildren(CReyes *, int);
-        int probe(CReyes *);                           // Probe the bound and divisions; FALSE if culled
-        void layoutNode(CReyes *, CPatchLayout *, int); // Decide this patch's layout node
+        void splitToChildren(IDicer &, int);
+        int probe(IDicer &);                           // Probe the bound and divisions; FALSE if culled
+        void layoutNode(IDicer &, CPatchLayout *, int); // Decide this patch's layout node
         void useLayout(CPatchLayout *, int);           // Take the decisions from a layout node
 
         CPatchLayout *layout;         // The surface's split layout, or NULL
@@ -84,7 +84,7 @@ class CTesselationPatch : public CObject {
         ~CTesselationPatch();
 
         void intersect(IRayContext &, CRay *);
-        void dice(CReyes *) { assert(FALSE); }
+        void dice(IDicer &) { assert(FALSE); }
         void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 
         void initTesselation(IRayContext &context);

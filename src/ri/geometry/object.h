@@ -30,6 +30,7 @@
 #include <atomic>
 
 #include "attributes.h"
+#include "dicer.h"
 #include "geometryFrame.h"
 #include "objectSink.h"
 #include "rayContext.h"
@@ -44,7 +45,6 @@ const unsigned int GEOMETRY_FORCE_VARYING = 1; // Force vertex variables to be v
 const unsigned int GEOMETRY_FORCE_VERTEX = 2;  // Force varying variables to be vertex
 
 class CVariable;
-class CReyes;
 class CVolume;
 class CRendererContext;
 class CTesselationPatch;
@@ -106,7 +106,7 @@ class CObject : public CRefCounter {
         //
         //
         virtual void intersect(IRayContext &, CRay *) = 0;
-        virtual void dice(CReyes *);
+        virtual void dice(IDicer &);
         virtual void instantiate(CAttributes *, CXform *, IObjectSink *) const = 0;
 
         // Cluster the children
@@ -187,7 +187,7 @@ class CSurface : public CObject {
 
         // CObject interface
         virtual void intersect(IRayContext &, CRay *); // Intersect a ray with the surface
-        virtual void dice(CReyes *);                       // Split or render this object
+        virtual void dice(IDicer &);                       // Split or render this object
 
         // CSurface interface
         virtual int moving() const;                                               // TRUE if we're moving

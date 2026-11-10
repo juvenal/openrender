@@ -44,7 +44,7 @@
 #include "points.h"
 #include "surface.h"
 
-void CObject::dice(CReyes *) {
+void CObject::dice(IDicer &) {
     error(CODE_BUG, "CObject::dice() reached in a build with no rendering pipeline\n");
     assert(FALSE);
 }
@@ -64,7 +64,7 @@ void CSurface::intersect(IRayContext &, CRay *) {
     assert(FALSE);
 }
 
-void CSurface::dice(CReyes *) {
+void CSurface::dice(IDicer &) {
     error(CODE_BUG, "CSurface::dice() reached in a build with no rendering pipeline\n");
     assert(FALSE);
 }
@@ -74,22 +74,22 @@ void CSurface::shade(IRayContext &, int, CRay **) {
     assert(FALSE);
 }
 
-void CCurve::dice(CReyes *) {
+void CCurve::dice(IDicer &) {
     error(CODE_BUG, "CCurve::dice() reached in a build with no rendering pipeline\n");
     assert(FALSE);
 }
 
-void CCubicCurve::splitToChildren(CReyes *) {
+void CCubicCurve::splitToChildren(IDicer &) {
     error(CODE_BUG, "CCubicCurve::splitToChildren() reached in a build with no rendering pipeline\n");
     assert(FALSE);
 }
 
-void CLinearCurve::splitToChildren(CReyes *) {
+void CLinearCurve::splitToChildren(IDicer &) {
     error(CODE_BUG, "CLinearCurve::splitToChildren() reached in a build with no rendering pipeline\n");
     assert(FALSE);
 }
 
-void CPoints::dice(CReyes *) {
+void CPoints::dice(IDicer &) {
     error(CODE_BUG, "CPoints::dice() reached in a build with no rendering pipeline\n");
     assert(FALSE);
 }
@@ -99,7 +99,7 @@ void CDelayedObject::intersect(IRayContext &, CRay *) {
     assert(FALSE);
 }
 
-void CDelayedObject::dice(CReyes *) {
+void CDelayedObject::dice(IDicer &) {
     error(CODE_BUG, "CDelayedObject::dice() reached in a build with no rendering pipeline\n");
     assert(FALSE);
 }
@@ -109,7 +109,7 @@ void CDelayedInstance::intersect(IRayContext &, CRay *) {
     assert(FALSE);
 }
 
-void CDelayedInstance::dice(CReyes *) {
+void CDelayedInstance::dice(IDicer &) {
     error(CODE_BUG, "CDelayedInstance::dice() reached in a build with no rendering pipeline\n");
     assert(FALSE);
 }

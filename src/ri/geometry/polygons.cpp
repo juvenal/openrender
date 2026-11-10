@@ -1307,10 +1307,10 @@ void CPolygonMesh::intersect(IRayContext &r, CRay *) {
 // Description			:	Split the mesh
 // Return Value			:	-
 // Comments				:
-void CPolygonMesh::dice(CReyes *r) {
+void CPolygonMesh::dice(IDicer &r) {
 
     if (children == NULL)
-        create(*r);
+        create(r.rayContext());
 
     CObject::dice(r);
 }

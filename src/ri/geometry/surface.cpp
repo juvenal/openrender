@@ -46,9 +46,9 @@
 // Description			:	return the minimum circle of confusion
 // Return Value			:
 // Comments				:	(inline for speed, needed for CSurface::dice() )
-static inline float minCocPixels(float z1, float z2) {
-    float coc1 = cocPixels(z1);
-    float coc2 = cocPixels(z2);
+static inline float minCocPixels(const CGeometryFrame &frame, float z1, float z2) {
+    float coc1 = absf((1 / z1) - frame.invFocaldistance) * frame.cocFactorPixels;
+    float coc2 = absf((1 / z2) - frame.invFocaldistance) * frame.cocFactorPixels;
     if (coc2 < coc1) {
         return coc2;
     }
@@ -101,7 +101,7 @@ CPatch::~CPatch() {
         layout->detach();
 }
 
-static inline int cull(float *bmin, float *bmax, const float *P, const float *N, int k, int doubleSided, int disable) {
+static inline int cull(const CGeometryFrame &frame, float *bmin, float *bmax, const float *P, const float *N, int k, int doubleSided, int disable) {
     int i;
 
     // Update the bounding box
@@ -114,7 +114,7 @@ static inline int cull(float *bmin, float *bmax, const float *P, const float *N,
     if (doubleSided == FALSE && !disable) {
         P -= k * 3;
 
-        if (CRenderer::projection == OPTIONS_PROJECTION_PERSPECTIVE) {
+        if (frame.projection == OPTIONS_PROJECTION_PERSPECTIVE) {
             for (i = k; i > 0; i--) {
                 if (dotvv(P, N) < 0)
                     break;
@@ -218,7 +218,8 @@ static int splitDirection(int udiv, int vdiv, int maxGridSize) {
 // Return Value			:	FALSE if the patch is culled
 // Comments				:	Sets bmin, bmax, udiv and vdiv (udiv = 0: the patch
 //							spans the eye plane)
-int CPatch::probe(CReyes *r) {
+int CPatch::probe(IDicer &dicer) {
+    const CGeometryFrame &frame = dicer.frame();
 
     int minDivU, minDivV;
     object->getDicingStats(depth, minDivU, minDivV);
@@ -229,7 +230,7 @@ int CPatch::probe(CReyes *r) {
     int up, vp;
     int k;
     int cullFlags = TRUE;
-    int moving = (CRenderer::flags & OPTIONS_FLAGS_MOTIONBLUR) && (object->moving());
+    int moving = (frame.flags & OPTIONS_FLAGS_MOTIONBLUR) && (object->moving());
     const int hasTrim = object->hasTrim();
     float *trimU = nullptr;
     float *trimV = nullptr;
@@ -237,7 +238,7 @@ int CPatch::probe(CReyes *r) {
     int regionSeam = FALSE; // The patch straddles its region's boundary
 
     if (moving == TRUE) {
-        Pmov = (float *)alloca(CRenderer::maxGridSize * 3 * 2 * sizeof(float));
+        Pmov = (float *)alloca(frame.maxGridSize * 3 * 2 * sizeof(float));
     }
 
     // object->interpolate() (invoked inside displaceEstimate() below) remaps
@@ -249,8 +250,8 @@ int CPatch::probe(CReyes *r) {
     // displaceEstimate() has run - doing so double-maps the coordinates.
     // Snapshot the local probe values before displaceEstimate() mutates them.
     if (hasTrim || region != NULL) {
-        trimU = (float *)alloca(CRenderer::maxGridSize * sizeof(float));
-        trimV = (float *)alloca(CRenderer::maxGridSize * sizeof(float));
+        trimU = (float *)alloca(frame.maxGridSize * sizeof(float));
+        trimV = (float *)alloca(frame.maxGridSize * sizeof(float));
     }
 
     // We need to split this patch, so no need to compute udiv / vdiv
@@ -260,7 +261,7 @@ int CPatch::probe(CReyes *r) {
     const int nonrasterorient = attributes->flags & ATTRIBUTES_FLAGS_NONRASTERORIENT_DICE;
     int numUprobes = attributes->numUProbes;
     int numVprobes = attributes->numVProbes;
-    float **varying = r->shadingContext().currentShadingState->varying;
+    float **varying = dicer.rayContext().varyings();
 
     // Estimate the grid size until convergence
     for (int numTries = 0; numTries < 5; ++numTries) {
@@ -299,12 +300,12 @@ int CPatch::probe(CReyes *r) {
                 }
             }
 
-            assert(k <= (int)CRenderer::maxGridSize);
-            r->shadingContext().displaceEstimate(object, numUprobes, numVprobes, SHADING_2D_GRID, PARAMETER_P | PARAMETER_N | PARAMETER_END_SAMPLE);
-            cullFlags &= cull(bmin, bmax, varying[VARIABLE_P], varying[VARIABLE_N], k, attributes->flags & ATTRIBUTES_FLAGS_DOUBLE_SIDED, disableCull);
+            assert(k <= (int)frame.maxGridSize);
+            dicer.probe(object, numUprobes, numVprobes, SHADING_2D_GRID, PARAMETER_P | PARAMETER_N | PARAMETER_END_SAMPLE);
+            cullFlags &= cull(frame, bmin, bmax, varying[VARIABLE_P], varying[VARIABLE_N], k, attributes->flags & ATTRIBUTES_FLAGS_DOUBLE_SIDED, disableCull);
 
             // Save the end positions
-            assert(numUprobes * numVprobes <= CRenderer::maxGridSize);
+            assert(numUprobes * numVprobes <= frame.maxGridSize);
             memcpy(Pmov, varying[VARIABLE_P], numUprobes * numVprobes * 3 * sizeof(float));
         }
 
@@ -317,7 +318,7 @@ int CPatch::probe(CReyes *r) {
             }
         }
 
-        assert(k <= (int)CRenderer::maxGridSize);
+        assert(k <= (int)frame.maxGridSize);
 
         // Snapshot the local [0,1] probe coordinates before displaceEstimate()
         // below overwrites them with global surface parametric coordinates.
@@ -327,72 +328,9 @@ int CPatch::probe(CReyes *r) {
         }
 
 // FIXME: correct this
-#if 1
-        r->shadingContext().displaceEstimate(object, numUprobes, numVprobes, SHADING_2D_GRID, PARAMETER_P | PARAMETER_N | PARAMETER_BEGIN_SAMPLE);
-#else
-        r->displaceEstimate(object, numUprobes, numVprobes, SHADING_2D_GRID, PARAMETER_P | PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_N | PARAMETER_BEGIN_SAMPLE);
+        dicer.probe(object, numUprobes, numVprobes, SHADING_2D_GRID, PARAMETER_P | PARAMETER_N | PARAMETER_BEGIN_SAMPLE);
 
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        // OK, we sampled the surface but is it accurate enough?
-        // To verify it compare the numerical derivative against the analytical one
-        // FIXME: We may want to do the centered derivative estimate here
-
-        // Compare the derivatives
-        bool inconsistent = false;
-        const float *P = varying[VARIABLE_P];
-        const float *dPdu = varying[VARIABLE_DPDU];
-        for (int i = 0; i < numVprobes; ++i) {
-            const float *cP = P + i * numUprobes * 3;
-            const float *cdPdu = dPdu + i * numUprobes * 3;
-            for (int j = numUprobes - 1; j > 0; --j, cP += 3, cdPdu += 3) {
-                vector D1, D2;
-                subvv(D1, cP + 3, cP);
-                mulvf(D2, cdPdu, (float)ustep);
-                subvv(D2, D1);
-                if (dotvv(D2, D2) > 0.25f * dotvv(D1, D1)) { // More than %50 relative error?
-                    inconsistent = true;
-                    break;
-                }
-            }
-
-            if (inconsistent)
-                break;
-        }
-
-        // Are we still going?
-        if (inconsistent == false) {
-            const float *dPdv = varying[VARIABLE_DPDV];
-            for (int i = 0; i < numUprobes; ++i) {
-                const float *cP = P + i * 3;
-                const float *cdPdv = dPdv + i * 3;
-                const int step = numUprobes * 3;
-                for (int j = numVprobes - 1; j > 0; --j, cP += step, cdPdv += step) {
-                    vector D1, D2;
-                    subvv(D1, cP + step, cP);
-                    mulvf(D2, cdPdv, (float)vstep);
-                    subvv(D2, D1);
-                    if (dotvv(D2, D2) > 0.25f * dotvv(D1, D1)) { // More than %50 relative error?
-                        inconsistent = true;
-                        break;
-                    }
-                }
-
-                if (inconsistent)
-                    break;
-            }
-        }
-
-        // OK, if we're inconsistent, this probe was not accurate enough
-        if (inconsistent) {
-            // Let's double the probes and re-estimate
-            numUprobes *= 2;
-            numVprobes *= 2;
-            continue;
-        }
-
-#endif
-
-        cullFlags &= cull(bmin, bmax, varying[VARIABLE_P], varying[VARIABLE_N], k, attributes->flags & ATTRIBUTES_FLAGS_DOUBLE_SIDED, disableCull);
+        cullFlags &= cull(frame, bmin, bmax, varying[VARIABLE_P], varying[VARIABLE_N], k, attributes->flags & ATTRIBUTES_FLAGS_DOUBLE_SIDED, disableCull);
 
         // FIXME: implies if either end is culled we cull - wrong
         //  Are we culled ?
@@ -408,7 +346,7 @@ int CPatch::probe(CReyes *r) {
         // the same way a patch spanning the eye plane is forced to split
         // below (udiv = 0), so the boundary resolves at finer granularity
         // instead of drawing one grid that ignores trimming. Once depth
-        // reaches CRenderer::maxEyeSplits, the remaining imprecision is
+        // reaches frame.maxEyeSplits, the remaining imprecision is
         // accepted, consistent with the specification's own trim-curve
         // approximation caveat. No new grid data structure is introduced;
         // this only decides whether/how the existing dicing path proceeds.
@@ -426,7 +364,7 @@ int CPatch::probe(CReyes *r) {
             }
 
             if (numTrimAccepted < k) {
-                if (depth < CRenderer::maxEyeSplits) {
+                if (depth < frame.maxEyeSplits) {
                     udiv = 0;
                     break;
                 }
@@ -448,7 +386,7 @@ int CPatch::probe(CReyes *r) {
         if (region != NULL) {
             vector rlo, rhi;
             regionBound(object, numUprobes, numVprobes, trimU, trimV, rlo, rhi);
-            const int coverage = region->classifyBound(r, rlo, rhi);
+            const int coverage = region->classifyBound(&dicer.rayContext(), rlo, rhi);
             if (coverage == REGION_ALL_OUT)
                 return FALSE;
             regionSeam = (coverage == REGION_MIXED);
@@ -483,7 +421,7 @@ int CPatch::probe(CReyes *r) {
         addvf(bmax, attributes->maxDisplacement);
 
         // Frustrum culling
-        if (CRenderer::inFrustrum(bmin, bmax) == FALSE)
+        if (dicer.inFrustum(bmin, bmax) == FALSE)
             return FALSE;
 
         // Can we make the perspective divide ?
@@ -499,8 +437,8 @@ int CPatch::probe(CReyes *r) {
                 shadingRate = kRegionSeamShadingRate;
 
             // Correct shading rate with dof factor
-            if (CRenderer::flags & OPTIONS_FLAGS_FOCALBLUR) {
-                const float coc = minCocPixels(bmin[COMP_Z], bmax[COMP_Z]);
+            if (frame.flags & OPTIONS_FLAGS_FOCALBLUR) {
+                const float coc = minCocPixels(frame, bmin[COMP_Z], bmax[COMP_Z]);
                 float maxRate;
                 float cocRate = 0.5f * coc;
                 if (1 > cocRate) {
@@ -513,11 +451,11 @@ int CPatch::probe(CReyes *r) {
             }
 
             // Optionally correct shading rate with motionfactor
-            if ((CRenderer::flags & OPTIONS_FLAGS_MOTIONBLUR) && (object->moving())) {
+            if ((frame.flags & OPTIONS_FLAGS_MOTIONBLUR) && (object->moving())) {
 
                 // Project the vertices
                 memcpy(Pmov + numUprobes * numVprobes * 3, varying[VARIABLE_P], numUprobes * numVprobes * 3 * sizeof(float));
-                camera2pixels(numUprobes * numVprobes * 2, Pmov);
+                camera2pixels(frame, numUprobes * numVprobes * 2, Pmov);
 
                 // Compute the amount of motion on the screen
                 float blurDistance = 0;
@@ -539,7 +477,7 @@ int CPatch::probe(CReyes *r) {
         else {
 
             // Are we making too many splits ?
-            if (depth >= CRenderer::maxEyeSplits) {
+            if (depth >= frame.maxEyeSplits) {
                 warning(CODE_SYSTEM, "Too many eye splits for primitive \"%s\"\n", attributes->name);
                 return FALSE;
             }
@@ -558,7 +496,7 @@ int CPatch::probe(CReyes *r) {
         }
 
         // Check the size ... If we're too big, we should be split
-        if ((udiv + 1) * (vdiv + 1) > CRenderer::maxGridSize) {
+        if ((udiv + 1) * (vdiv + 1) > frame.maxGridSize) {
             if (!regionSeam || depth < kRegionMaxSplitDepth) {
                 if (regionSeam)
                     atomicIncrement(stats.numCsgSeamSplits);
@@ -566,7 +504,7 @@ int CPatch::probe(CReyes *r) {
             }
 
             // A seam patch at the split cap is kept, at the finest grid that fits
-            while ((udiv + 1) * (vdiv + 1) > CRenderer::maxGridSize) {
+            while ((udiv + 1) * (vdiv + 1) > frame.maxGridSize) {
                 if (udiv >= vdiv)
                     udiv = std::max(1, udiv / 2);
                 else
@@ -601,15 +539,15 @@ int CPatch::probe(CReyes *r) {
 //							A displaced surface keeps no layout: its grids'
 //							boundaries move with the displacement, which the
 //							snaps do not follow.
-void CPatch::buildLayout(CReyes *r, int wrapU, int wrapV) {
+void CPatch::buildLayout(IDicer &dicer, int wrapU, int wrapV) {
     if (attributes->displacement())
         return;
 
     layout = new CPatchLayout(wrapU, wrapV);
     layout->attach();
     node = layout->addNode(umin, umax, vmin, vmax);
-    layoutNode(r, layout, node);
-    layout->finalize(CRenderer::maxGridSize);
+    layoutNode(dicer, layout, node);
+    layout->finalize(dicer.frame().maxGridSize);
 
     // dice() takes the decisions from the layout
     udiv = vdiv = -1;
@@ -622,8 +560,8 @@ void CPatch::buildLayout(CReyes *r, int wrapU, int wrapV) {
 // Return Value			:	-
 // Comments				:	The same decisions dice() and splitToChildren()
 //							make, in the same order
-void CPatch::layoutNode(CReyes *r, CPatchLayout *l, int index) {
-    if (probe(r) == FALSE)
+void CPatch::layoutNode(IDicer &dicer, CPatchLayout *l, int index) {
+    if (probe(dicer) == FALSE)
         return; // The node stays culled
 
     CPatchLayout::CNode *n = &l->nodes[index];
@@ -634,7 +572,7 @@ void CPatch::layoutNode(CReyes *r, CPatchLayout *l, int index) {
 
     // Leaves keep room to double either division, so nesting their
     // boundaries never needs a grid over the size limit
-    const int dir = splitDirection(udiv, vdiv, CRenderer::maxGridSize / 2);
+    const int dir = splitDirection(udiv, vdiv, dicer.frame().maxGridSize / 2);
     if (dir < 0) {
         n->state = CPatchLayout::NODE_LEAF;
         return;
@@ -677,7 +615,7 @@ void CPatch::layoutNode(CReyes *r, CPatchLayout *l, int index) {
 
     for (int i = 0; i < numChildren; i++) {
         CPatch child(attributes, xform, object, ranges[i][0], ranges[i][1], ranges[i][2], ranges[i][3], depth + 1, minDepth);
-        child.layoutNode(r, l, first + i);
+        child.layoutNode(dicer, l, first + i);
     }
 }
 
@@ -699,7 +637,7 @@ void CPatch::useLayout(CPatchLayout *l, int index) {
 // Description			:	Dice the surface into smaller primitives
 // Return Value			:	-
 // Comments				:
-void CPatch::dice(CReyes *r) {
+void CPatch::dice(IDicer &dicer) {
 
     // Have we checked size of this piece before ?
     if ((udiv == -1) && (vdiv == -1)) {
@@ -712,33 +650,33 @@ void CPatch::dice(CReyes *r) {
             udiv = n.udiv;
             vdiv = n.vdiv;
         }
-        else if (probe(r) == FALSE) {
+        else if (probe(dicer) == FALSE) {
             return;
         }
 
         // Finally record the surface with the rasterizer
-        r->drawObject(this);
+        dicer.drawObject(this);
     }
     else if (layout != NULL) {
         const CPatchLayout::CNode &n = layout->nodes[node];
         if (n.state == CPatchLayout::NODE_SPLIT) {
-            splitToChildren(r, n.split);
+            splitToChildren(dicer, n.split);
         }
         else {
             // Dispatch the grid, its boundary snapped onto its neighbours'
             CGridSnap snap;
             layout->snaps(node, snap);
-            r->drawGrid(object, udiv, vdiv, umin, umax, vmin, vmax, &snap);
+            dicer.drawGrid(object, udiv, vdiv, umin, umax, vmin, vmax, &snap);
         }
     }
     else {
-        const int dir = splitDirection(udiv, vdiv, CRenderer::maxGridSize);
+        const int dir = splitDirection(udiv, vdiv, dicer.frame().maxGridSize);
         if (dir >= 0) {
-            splitToChildren(r, dir);
+            splitToChildren(dicer, dir);
         }
         else {
             // We're small enough, just dispatch the grid
-            r->drawGrid(object, udiv, vdiv, umin, umax, vmin, vmax);
+            dicer.drawGrid(object, udiv, vdiv, umin, umax, vmin, vmax, nullptr);
         }
     }
 }
@@ -749,7 +687,7 @@ void CPatch::dice(CReyes *r) {
 // Description			:	Split the surface into smaller ones
 // Return Value			:	-
 // Comments				:
-void CPatch::splitToChildren(CReyes *r, int dir) {
+void CPatch::splitToChildren(IDicer &dicer, int dir) {
     CPatch *p1, *p2, *p3, *p4;
     float umid, vmid;
 
@@ -769,8 +707,8 @@ void CPatch::splitToChildren(CReyes *r, int dir) {
             p1->attach();
             p2->attach();
 
-            p1->dice(r);
-            p2->dice(r);
+            p1->dice(dicer);
+            p2->dice(dicer);
 
             p1->detach();
             p2->detach();
@@ -792,8 +730,8 @@ void CPatch::splitToChildren(CReyes *r, int dir) {
             p1->attach();
             p2->attach();
 
-            p1->dice(r);
-            p2->dice(r);
+            p1->dice(dicer);
+            p2->dice(dicer);
 
             p1->detach();
             p2->detach();
@@ -824,10 +762,10 @@ void CPatch::splitToChildren(CReyes *r, int dir) {
             p3->attach();
             p4->attach();
 
-            p1->dice(r);
-            p2->dice(r);
-            p3->dice(r);
-            p4->dice(r);
+            p1->dice(dicer);
+            p2->dice(dicer);
+            p3->dice(dicer);
+            p4->dice(dicer);
 
             p1->detach();
             p2->detach();
@@ -1690,7 +1628,7 @@ void CTesselationPatch::sampleTesselation(IRayContext &context, int div, unsigne
 
     const float time = (sample == PARAMETER_BEGIN_SAMPLE) ? 0.0f : 1.0f;
 
-    if ((div + 1) * (div + 1) <= CRenderer::maxGridSize) {
+    if ((div + 1) * (div + 1) <= context.frame().maxGridSize) {
         float *uv = varying[VARIABLE_U];
         float *vv = varying[VARIABLE_V];
         float *timev = varying[VARIABLE_TIME];
