@@ -285,3 +285,15 @@ from `attributes.h`; the flag write in `csgSolid.cpp` is gone (the clone and the
 - T102 (Linux, GCC 13 `-Werror`, `-j2`): build clean, architecture 29 / 29, full run 1303 tests, 9 failed = the 8 Phase 4 rows plus the baseline `TextureTile_RenderByteIdentical`;
   sweep 570 / 570 (`DeterminismSweep_volume-csg-fragment-raytrace-slo`, the Linux-only starting-tree failure, now passes: the arrival-side rule it exposed is gone).
 - Expected red at the end of Phase 3: only the Phase 4 rows. `git diff HEAD -- tests/architecture/allowlist.txt` is empty; DB-004/DB-017 lines keyed on `csgSolid.cpp` are untouched (the deleted line named no foreign symbol).
+
+
+## 4. Phase 4: `incident()` and `opposite()` read the right side (US7, FR-013, FR-022), 2026-11-10
+
+- T105 TEST-APPROVAL: no approved test edited, none added. `ShadingContract_Messages{Interp,Jit}` and `ShadingContract_MessageAccessors` pass unedited (the harness' `I = N = (0,0,1)` gives `x > 0`, so `incident()` still reads Interior and `opposite()` Exterior).
+- T106: one edit, `src/libshader/shading/shading.cpp`: a file-local `rayArrivesFromExterior(const CShadingState *)` (`numVertices > 0` and `dot(I, N)` of vertex 0 `< 0`; a null state or no vertex is false), read by `incidentParameter` (Exterior when true, else Interior) and `oppositeParameter` (the swap). `wantVariable` stays false; the interpreter macros and `jitIncidentParameter`/`jitOppositeParameter` both call these two members, so one edit serves both backends. No services member, no `kRendererServicesVersion` step, accessor constants untouched. The `surfaceParameter` comment block was reworded.
+  (tasks.md cites `shading.cpp:1747-1753` and `:3795-3812`; the members are now at about `:1900` and `:3963`.)
+- T107 (`056-p4-msg`, macOS): 21 / 21 pass: `ShadingContract_MessageSide{Interp,Jit}`, all 12 `VolumeProbe_incident-opposite_*`, `ShadingContract_Messages{Interp,Jit}`, `ShadingContract_MessageAccessors`, `DeterminismSweep_sphere-shader-parameter-reyes(-slo)`.
+- T108 macOS: build clean (`056-p4-build`, only the usual `ld` duplicate-library notes); `ctest -LE determinism-sweep -j4` (`056-p4-all`): **1302 / 1302 pass**, one skipped (`LibShader_Format_rslo_lower_minor`, as before); `ctest -L architecture` (`056-p4-arch`): 29 / 29. The determinism sweep was not re-run (the change reaches only `incident()`/`opposite()`; the one sweep scene using them, `sphere-shader-parameter-*`, is in the run above).
+- T108 Linux (the host was unreachable when the macOS half was reported, back after a reboot; GCC 13 `-Werror`, remote `cpujob` `-j2`): `tools/sync_linux.sh` synced and verified 4006 files; build (`056-p4-lx-build`) clean; T107 set (`056-p4-lx-msg`) 21 / 21 pass;
+  `ctest -LE determinism-sweep -j2` (`056-p4-lx-all`): 1303 tests, **1 failed = the baseline `TextureTile_RenderByteIdentical` (#45)**, nothing else; `ctest -L architecture` (`056-p4-lx-arch`): 29 / 29.
+- Expected red at the end of Phase 4: none on macOS; on Linux only the baseline `TextureTile_RenderByteIdentical`.

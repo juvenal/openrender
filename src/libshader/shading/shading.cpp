@@ -1883,7 +1883,7 @@ int CShadingContext::queryMessage(openrender::shading::MessageSource source, con
 // Method				:	surfaceParameter and its siblings
 // Description			:	The message-passing builtins of the object's bound shaders
 // Return Value			:	TRUE when the parameter was found
-// Comments				:	incident() reads the interior volume and opposite() the exterior one. surface(), displacement() and
+// Comments				:	incident() reads the volume the incoming ray is in and opposite() the other one (spec 056). surface(), displacement() and
 //							atmosphere() may return the producer's variable; incident() and opposite() skip mutable parameters.
 int CShadingContext::surfaceParameter(void *dest, const char *name, CVariable **var, int *globalIndex, openrender::shading::QueryType expected) {
     return queryMessage(openrender::shading::MessageSource::Surface, "surface", openrender::shading::ShaderHandle{}, true, dest, name, var, globalIndex, expected);
@@ -1897,12 +1897,23 @@ int CShadingContext::atmosphereParameter(void *dest, const char *name, CVariable
     return queryMessage(openrender::shading::MessageSource::Atmosphere, "atmosphere", openrender::shading::ShaderHandle{}, true, dest, name, var, globalIndex, expected);
 }
 
+// incident() and opposite() choose their source once per call from vertex 0 (spec 056, FR-013): x = dot(I, N) < 0 means the ray
+// arrives from the exterior side, so incident() reads the Exterior volume and opposite() the Interior one; otherwise (a tie included)
+// the swap. The same approximation shade() makes for the side of a hit; no state or no vertex answers not found, as before.
+static bool rayArrivesFromExterior(const CShadingState *ss) {
+    return ss != nullptr && ss->numVertices > 0 && dotvv(ss->varying[VARIABLE_I], ss->varying[VARIABLE_N]) < 0;
+}
+
 int CShadingContext::incidentParameter(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected) {
-    return queryMessage(openrender::shading::MessageSource::Interior, "incident", openrender::shading::ShaderHandle{}, false, dest, name, nullptr, nullptr, expected);
+    using openrender::shading::MessageSource;
+    const MessageSource source = rayArrivesFromExterior(currentShadingState) ? MessageSource::Exterior : MessageSource::Interior;
+    return queryMessage(source, "incident", openrender::shading::ShaderHandle{}, false, dest, name, nullptr, nullptr, expected);
 }
 
 int CShadingContext::oppositeParameter(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected) {
-    return queryMessage(openrender::shading::MessageSource::Exterior, "opposite", openrender::shading::ShaderHandle{}, false, dest, name, nullptr, nullptr, expected);
+    using openrender::shading::MessageSource;
+    const MessageSource source = rayArrivesFromExterior(currentShadingState) ? MessageSource::Interior : MessageSource::Exterior;
+    return queryMessage(source, "opposite", openrender::shading::ShaderHandle{}, false, dest, name, nullptr, nullptr, expected);
 }
 
 ///////////////////////////////////////////////////////////////////////
