@@ -1,4 +1,4 @@
-# Hcshader_NoReferences (spec 030, SC-007, FR-025, FR-028): no tracked file under src/, CMake/, tests/, doc/, docs/ or
+# Hcshader_NoReferences (spec 030, SC-007, FR-025, FR-028): no file under src/, CMake/, tests/, doc/, docs/ or
 # examples/ names the retired built-in lights: `hcshader`, `CSphereLight` or `CQuadLight`. The search is CASE-SENSITIVE
 # (the Shading comment "hcShaders" in src/libshader/shading/shader.h is not a match).
 #
@@ -15,7 +15,16 @@
 # tests/unit/registry/test_hcshader_missing_shader.cpp, and the lines of tests/architecture/CMakeLists.txt and
 # tests/unit/registry/CMakeLists.txt that register the Hcshader_* tests (they necessarily name the script and the source).
 #
-# It never passes vacuously: no tracked file list, or an empty scan, is an error.
+# The files are listed with file(GLOB_RECURSE) over those six directories: the check uses neither git nor any other tool, so
+# it runs the same in a source tarball with no .git (and no git installed). A path with a build-tree component
+# (CMakeFiles, build*, _build, cmake-build*) is skipped, so a build directory configured inside one of the six trees is never
+# scanned; symbolic links are not followed.
+#
+# It never passes vacuously: an empty or implausibly small scan is an error.
+#
+# Script mode (-P) sets no policy: without this line CMake 3.28 leaves CMP0057 unset and reads `IN_LIST` as a plain
+# argument. 3.19 is the project's CMake floor.
+cmake_policy(VERSION 3.19)
 if(NOT DEFINED SOURCE_DIR)
     message(FATAL_ERROR "check_hcshader_references: -DSOURCE_DIR= is required")
 endif()
@@ -31,12 +40,15 @@ function(read_lines path out)
     set(${out} "${_text}" PARENT_SCOPE)
 endfunction()
 
-execute_process(COMMAND git -C "${SOURCE_DIR}" ls-files -- src CMake tests doc docs examples
-    OUTPUT_VARIABLE _files RESULT_VARIABLE _rc ERROR_VARIABLE _err)
-if(NOT _rc EQUAL 0 OR "${_files}" STREQUAL "")
-    message(FATAL_ERROR "check_hcshader_references: cannot list the tracked files (git ls-files: ${_rc} ${_err})")
+set(_files "")
+foreach(_dir src CMake tests doc docs examples)
+    file(GLOB_RECURSE _found LIST_DIRECTORIES false RELATIVE "${SOURCE_DIR}" "${SOURCE_DIR}/${_dir}/*")
+    list(APPEND _files ${_found})
+endforeach()
+if("${_files}" STREQUAL "")
+    message(FATAL_ERROR "check_hcshader_references: no file found under ${SOURCE_DIR}/{src,CMake,tests,doc,docs,examples}")
 endif()
-string(REPLACE "\n" ";" _files "${_files}")
+set(_build_tree_component "(^|/)(CMakeFiles|build[^/]*|_build|cmake-build[^/]*)/")
 
 # The exemption lists are arguments of the registration (tests/architecture/CMakeLists.txt), '|'-separated, so the list
 # shown to the maintainer at T023 is the one that runs. The defaults below are the same lists.
@@ -61,6 +73,9 @@ set(_scanned 0)
 set(_hits "")
 foreach(_f IN LISTS _files)
     if(_f STREQUAL "" OR NOT _f MATCHES "${_text_ext}")
+        continue()
+    endif()
+    if(_f MATCHES "${_build_tree_component}")
         continue()
     endif()
     if(_f IN_LIST _exempt_files)
@@ -88,4 +103,4 @@ endif()
 if(NOT "${_hits}" STREQUAL "")
     message(FATAL_ERROR "Hcshader_NoReferences: the retired built-in lights are still named:\n${_hits}")
 endif()
-message(STATUS "Hcshader_NoReferences: ${_scanned} tracked files scanned, no reference")
+message(STATUS "Hcshader_NoReferences: ${_scanned} files scanned, no reference")

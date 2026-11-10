@@ -8,7 +8,7 @@
  *
  *   With the built-in sphere and quad lights retired, a light named "spherelight" or "quadlight" that
  *   no compiled shader answers for is an ordinary missing shader: the error
- *   `Failed to find shader "<name>"` (CODE_NOSHADER) and no light. On the starting tree the C++
+ *   `Failed to find shader "<name>"` (RIE_NOSHADER) and no light. On the starting tree the C++
  *   substitute (src/ri/hcshader.cpp) answers instead, so no error is reported: this test is red by
  *   assertion until Phase 4 deletes it.
  *
@@ -52,9 +52,9 @@ int main(int argc, char **argv) {
                       s.frames.text().c_str());
         bool noShaderCode = false;
         for (const SReport &r : s.frames.list)
-            if (r.text.find(expected) != std::string::npos && r.code == CODE_NOSHADER)
+            if (r.text.find(expected) != std::string::npos && r.code == RIE_NOSHADER)
                 noShaderCode = true;
-        REG_CHECK_MSG(noShaderCode, "%s: the error carries CODE_NOSHADER", light);
+        REG_CHECK_MSG(noShaderCode, "%s: the error carries RIE_NOSHADER", light);
     }
     return finish("Hcshader_MissingShader");
 }

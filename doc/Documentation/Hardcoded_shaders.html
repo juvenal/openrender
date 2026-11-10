@@ -59,67 +59,11 @@ var wgCurRevisionId = "1976";
 			<h3 id="siteSub">From PixieWiki</h3>
 			<div id="contentSub"><span class="subpages">&lt; <a href="../Documentation.html" title="Documentation">Documentation</a></span></div>
 									<div id="jump-to-nav">Jump to: <a href="#column-one">navigation</a>, <a href="#searchInput">search</a></div>			<!-- start content -->
-			<p><br />
-<b>!!! Temporarily disabled for further optimizations&nbsp;!!!</b>
-</p><p>Some Pixie shaders are hardcoded in the source distribution. Such shaders often execute faster or have access to capabilities that other shaders can not. Currently, the set of such shaders is quite small. As I identify performance bottlenecks in the shading pipeline can not be helped, I will add shaders that go around them.
+<p><br />
+<b>This page is retired.</b>
+</p><p>The <tt>spherelight</tt> and <tt>quadlight</tt> light sources used to be built into the renderer as C++ code. They were retired in spec 030 (hider and integrator registry): both are now ordinary RSL shaders, <tt>shaders/spherelight.sl</tt> and <tt>shaders/quadlight.sl</tt>, compiled with the rest of the shader set and found on the shader search path like any other shader.
+</p><p>A <tt>LightSource "spherelight"</tt> or <tt>LightSource "quadlight"</tt> statement loads the RSL shader of that name when the compiled shader is on the shader path. When it is not, the renderer reports <tt>Failed to find shader</tt> for the name, as it does for any other missing shader, and no light is created.
 </p>
-<a name="quadlight"></a><h1><span class="editsection">[<a href="/pixiewiki_install/index.php?title=Documentation/Hardcoded_shaders&amp;action=edit&amp;section=1" title="Edit section: quadlight">edit</a>]</span> <span class="mw-headline"> quadlight </span></h1>
-<p>This is a light source shader that behaves like a rectangular area light source. The following two definitions should be identical:
-</p>
-<pre>AreaLightSource "arealight" 1 
-Patch "bilinear" "P" [65 -52.5 0 65 52.5 0 -65 -52.5 0 -65 52.5 0]
-</pre>
-<p>and
-</p>
-<pre>LightSource "quadlight" 1 "P" [65 -52.5 0 65 52.5 0 -65 -52.5 0 -65 52.5 0]
-</pre>
-<p>They both define a rectangular area light source. Quadlight accepts the following parameters:
-</p>
-<table class="wikitable">
-<tr>
-<td> <tt>lightcolor</tt> </td><td> <tt>color</tt> </td><td> (1,1,1)
-</td></tr>
-<tr>
-<td> <tt>intensity</tt> </td><td> <tt>float</tt> </td><td> 1
-</td></tr>
-<tr>
-<td> <tt>numSamples</tt> </td><td> <tt>float</tt> </td><td>  Copied from numarealightsamples attribute
-</td></tr>
-<tr>
-<td> <tt>P</tt> </td><td> <tt>point[4]</tt> </td><td> (-1,-1,0),(1,-1,0),(-1,1,0),(1,1,0)
-</td></tr></table>
-<p>Notice that the rectangle that defines the arealight is given in the P argument. This light source also generates raytraced shadows for objects marked with
-</p>
-<pre>Attribute "visibility" "transmission" "..."
-</pre>
-<a name="spherelight"></a><h1><span class="editsection">[<a href="/pixiewiki_install/index.php?title=Documentation/Hardcoded_shaders&amp;action=edit&amp;section=2" title="Edit section: spherelight">edit</a>]</span> <span class="mw-headline"> spherelight </span></h1>
-<p>This is a light source shader that behaves like a spherical light source. The following two definitions should be identical.
-</p>
-<pre>AreaLightSource "arealight" 1 
-Sphere 1 -1 1 360
-</pre>
-<p>and
-</p>
-<pre>LightSource "spherelight" 1 "radius" 1
-</pre>
-<p>They both define a spherical area light source. Spherelight accepts the following parameters.
-</p>
-<table class="wikitable">
-<tr>
-<td> <tt>from</tt> </td><td> <tt>point</tt> </td><td> (0,0,0)
-</td></tr>
-<tr>
-<td> <tt>radius</tt> </td><td> <tt>float</tt> </td><td> 1
-</td></tr>
-<tr>
-<td> <tt>numSamples</tt> </td><td> <tt>float</tt> </td><td> Copied from numarealightsamples attribute
-</td></tr>
-<tr>
-<td> <tt>intensity</tt> </td><td> <tt>float</tt> </td><td> 1
-</td></tr>
-<tr>
-<td> <tt>lightcolor</tt> </td><td> <tt>color</tt> </td><td> (1,1,1)
-</td></tr></table>
 
 <!-- Saved in parser cache with key georgeg_pixiewikidb:pcache:idhash:1535-0!1!0!!en!2 and timestamp 20071121223100 -->
 <div class="printfooter">

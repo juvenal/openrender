@@ -69,7 +69,6 @@ prefix  src/display/                                 Display
 # --- Core: the composition root ----------------------------------------------
 prefix  src/ri/render/                               Core
 prefix  src/ri/vector/                               Core
-prefix  src/ri/hcshader.                             Core
 
 # --- Consumers: executables, tools, bindings, preview, dataviewer ------------
 prefix  src/ri/dataviewer/                           Consumer

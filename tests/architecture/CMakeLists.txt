@@ -238,8 +238,8 @@ endforeach()
 #
 # Each is a `cmake -P` script over the tracked sources. They are red on the starting tree by design (the references
 # and the strcmp chains exist), so they are registered DISABLED while OPENRENDER_030_RED_TESTS is OFF (the red-evidence
-# configure turns the option ON and runs them); the phase that turns one green removes the `if` below:
-# Phase 4 for Hcshader_NoReferences, Phase 8 for Registry_CoreNamesNoHider.
+# configure turns the option ON and runs them); the phase that turns one green removes it from the `if` below:
+# Phase 4 did it for Hcshader_NoReferences, Phase 8 does it for Registry_CoreNamesNoHider.
 set(OR030_HCSHADER_EXEMPT_FILES
     "tests/architecture/unit/test_archcheck_parsers.cpp|tests/visual/CMakeLists.txt|examples/rib/spherelight.rib|examples/rib/quadlight.rib|tests/architecture/check_hcshader_references.cmake|tests/unit/registry/test_hcshader_missing_shader.cpp")
 set(OR030_HCSHADER_REGISTRATION_FILES "tests/architecture/CMakeLists.txt|tests/unit/registry/CMakeLists.txt")
@@ -255,5 +255,5 @@ add_test(NAME Registry_CoreNamesNoHider
 set_tests_properties(Registry_CoreNamesNoHider PROPERTIES TIMEOUT 60 LABELS "architecture")
 
 if(NOT OPENRENDER_030_RED_TESTS)
-    set_tests_properties(Hcshader_NoReferences Registry_CoreNamesNoHider PROPERTIES DISABLED TRUE)
+    set_tests_properties(Registry_CoreNamesNoHider PROPERTIES DISABLED TRUE)
 endif()

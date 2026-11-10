@@ -90,7 +90,6 @@ set(ri_sources
 	geometry/dlobject.cpp
 #	dso.cpp
 	parse/error.cpp
-	hcshader.cpp
 	hiders/irradiance.cpp
 	hiders/irradianceDispatch.cpp
 	hiders/occlusion.cpp
@@ -310,7 +309,7 @@ endif()
 # raytrace/photon/stochastic/zbuffer/occlusion/irradiance/sampler/trace
 # hiders, CPatch/CTesselationPatch's own adaptive-tessellation machinery
 # (surface.cpp), the imager/DL-object/implicit-surface/hierarchical-cache-
-# shader features (dlobject.cpp, hcshader.cpp, imager.cpp,
+# shader features (dlobject.cpp, imager.cpp,
 # implicitSurface.cpp -- none of which orender-wire's preview path ever
 # constructs), rendererShadingServices.cpp, and CRenderer's actual render
 # pipeline (renderer.cpp, confirmed dead code here by tracing
@@ -322,8 +321,8 @@ endif()
 # CPreviewContext, in libribpreview, instead) -- but its own compiled
 # method bodies (RiWorldBegin/RiWorldEnd/RiGeometryV/getShader/etc.) call
 # straight into CRenderer::beginFrame()/render()/etc. and construct
-# CProgrammableShaderInstance/CShader/CDLObject/CImplicit/CPhotonMap/
-# CQuadLight/CSphereLight, so linking it in would silently reintroduce most
+# CProgrammableShaderInstance/CShader/CDLObject/CImplicit/CPhotonMap, so
+# linking it in would silently reintroduce most
 # of what everything else in this list was excluded to avoid. The four real/stub pairs are
 # swapped rather than merely removed, since their methods are reached for real (or vtable-required) even
 # in a build with no rendering pipeline: render/geometryDispatch.cpp -> vector/geometryDispatchStub.cpp,
@@ -391,7 +390,6 @@ list(REMOVE_ITEM ribVector_sources
     geometry/csgSolid.cpp
     geometry/csgTree.cpp
     geometry/dlobject.cpp
-    hcshader.cpp
     hiders/hider.cpp
     hiders/shadingProducer.cpp
     hiders/irradianceDispatch.cpp
@@ -507,7 +505,7 @@ install(TARGETS ribVector_static EXPORT openRenderStaticTargets
 # ribVector (built by excluding a handful of files from the full ri_sources
 # list), ribOut_sources is a small explicit whitelist -- deriving it by
 # exclusion would mean excluding nearly everything (all of geometry/,
-# texture/, hiders/, plus dlobject/hcshader/imager/implicitSurface/
+# texture/, hiders/, plus dlobject/imager/implicitSurface/
 # remoteChannel/state/*) to reach the same handful of files.
 #
 # ribOut needs the shared RIB-parsing grammar (parse/ri.cpp's RiBegin/RiEnd

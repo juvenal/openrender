@@ -35,7 +35,6 @@
 #include "delayed.h"
 #include "dlobject.h"
 #include "common/diagnostics.h"
-#include "hcshader.h"
 #include "implicitSurface.h"
 #include "irradiance.h"
 #include "common/memory.h"

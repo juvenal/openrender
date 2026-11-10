@@ -46,7 +46,6 @@
 #include "displayChannel.h"
 #include "dlobject.h"
 #include "common/diagnostics.h"
-#include "hcshader.h"
 #include "implicitSurface.h"
 #include "irradiance.h"
 #include "common/memory.h"
@@ -339,24 +338,6 @@ CShaderInstance *CRendererContext::getShader(const char *name, int type, int np,
         arenaEnd(globalArena);
 
         cInstance = instance;
-    }
-
-    if (cInstance == NULL) {
-        // Look into the hardcoded shaders
-        if (strcmp(name, "spherelight") == 0) {
-            cInstance = new CSphereLight(currentAttributes, currentXform);
-            cInstance->instanceKey = takeInstanceKey();
-
-            // Add the new light into the active lights list for the frame
-            CRenderer::allLights->push(cInstance);
-        }
-        else if (strcmp(name, "quadlight") == 0) {
-            cInstance = new CQuadLight(currentAttributes, currentXform);
-            cInstance->instanceKey = takeInstanceKey();
-
-            // Add the new light into the active lights list for the frame
-            CRenderer::allLights->push(cInstance);
-        }
     }
 
     // If not found, error out

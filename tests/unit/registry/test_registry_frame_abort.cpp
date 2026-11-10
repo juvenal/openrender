@@ -8,7 +8,7 @@
  *   (new test, maintainer answer Q-B, 2026-11-07). Registry_FrameAbort.
  *
  *   Three failures a built-in never has, produced by test doubles, each followed by a frame that must render:
- *     (a) a hider whose create returns NULL: one error (CODE_BUG, "could not create its thread 0 context"); the
+ *     (a) a hider whose create returns NULL: one error (RIE_BUG, "could not create its thread 0 context"); the
  *         frame is aborted before any render thread starts (the hider double took no bucket job), nothing leaks;
  *     (b) an integrator whose configure returns non-OK: one error ("could not be configured"); the frame is
  *         REFUSED before the displays start (no output file); prepare and finish are never called; the instance
@@ -72,9 +72,9 @@ int main() {
                       s.frames.text().c_str());
         bool bug = false;
         for (const SReport &r : s.frames.list)
-            if (r.code == CODE_BUG && r.text.find("could not create its thread") != std::string::npos)
+            if (r.code == RIE_BUG && r.text.find("could not create its thread") != std::string::npos)
                 bug = true;
-        REG_CHECK_MSG(bug, "the error carries CODE_BUG");
+        REG_CHECK_MSG(bug, "the error carries RIE_BUG");
         REG_CHECK_MSG(s.frames.errors() == 1, "exactly one error; got:\n%s", s.frames.text().c_str());
         REG_CHECK(s.lastError != RIE_NOERROR);
         REG_CHECK_MSG(hiders.nullCreates == 1, "create called once (one thread), got %d", hiders.nullCreates.load());

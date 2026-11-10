@@ -74,6 +74,44 @@ Drafts live in `tools/test-drafts/` (not compiled by the build, not registered, 
 | CP-d guard | `image_manifest.sh diff`: manifest 915, fresh 920, **0 differing, 0 missing**, 5 not in manifest (the Phase 2 tests' own images); `diffs` equal to `baseline-diffs-macos.txt` |
 | T047 ordering gate | `src/ri/transport` does not exist; `git grep -n 'transport/' -- src` finds nothing; `git diff --cached --name-only -- src` is empty |
 
+### Phase 4 checkpoint (T058 to T060; the `hcshader` retirement; macOS)
+
+| Check | Result |
+|---|---|
+| Test gate (T050; `030-p4-configure`, `030-p4-tg-build`, `030-p4-tg-run`, `-R 'Hcshader_'`) | both tests enabled (see §2): `Hcshader_NoReferences` Failed and `Hcshader_MissingShader` Failed, each red for its stated reason, **before** any `src/` edit |
+| CP-a build (`030-p4-build`, `-j4`) | exit 0; no compiler warning (`grep 'warning:'` finds 21 linker warnings only: 6 `ignoring duplicate libraries` and 15 about the `orender-wire-macos` Swift product and libribpreview objects built for macOS 13.3 and linked at 13.0; the latter are not new source warnings and are named here so the next phase can compare); `ribVector` builds, the residual check is green |
+| T058 explicit set (`030-p4-lights`, `-R 'Visual_spherelight\|Visual_quadlight\|Sampling_ThreadSweep_quadlight\|Hcshader_'`) | **6 of 7 passed**: `Visual_spherelight`, `Visual_spherelight-slo`, `Visual_quadlight`, `Visual_quadlight-slo` (references and thresholds untouched), `Sampling_ThreadSweep_quadlight` and `Hcshader_NoReferences` pass; **`Hcshader_MissingShader` still fails, finding F9** (a defect in the approved test, not in the source) |
+| CP-b suite (`030-p4-suite`, `-LE determinism-sweep -j4`) | **1103 run, 1102 passed, 1 failed** (210.7 s): the failure is `Hcshader_MissingShader` (F9). Not Run: `Helpers_PrmanIntegratorPython`/`Lua` and `Registry_CoreNamesNoHider` (still `DISABLED`) and the self-skip `LibShader_Format_rslo_lower_minor`. Phase 3's 1101 run plus the two Hcshader tests enabled by T050; nothing else changed state |
+| CP-d images | `image_manifest.sh diff`: manifest 915 images, fresh 921, **0 differing, 0 missing**, 6 not in manifest (the Phase 2 and 4 tests' own images, information only); `diffs` equal to `baseline-diffs-macos.txt` (empty diff). The four spherelight/quadlight scenes (`-rslo` and `-slo`) render the same bytes as the baseline |
+| CP-c architecture (`030-p4-arch`, `030-p4-archreport`) | `ctest -L architecture`: 33 registered, 32 run, **32 of 32 passed** (`Registry_CoreNamesNoHider` `Not Run (Disabled)`; `Hcshader_NoReferences` now green). Full report: `ALLOWED DB-004 x 52, DB-006 x 30, DB-010 x 8, DB-011 x 164, DB-017 x 78, DB-025 x 12`, `METRIC TOTAL refs 604 distinct 89`, `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`; the `ALLOWED`/`METRIC`/`RESULT` lines equal `archcheck-base-macos.txt` line for line. `allowlist.txt`: 344 entries, untouched |
+
+### Phase 4 checkpoint, second run after the approved F9 test fix (2026-11-10; macOS)
+
+Maintainer approval (relayed by the coordinator, 2026-11-10) of two edits to approved tests, and nothing else: in `tests/unit/registry/test_hcshader_missing_shader.cpp` the comparison `r.code == CODE_NOSHADER` -> `r.code == RIE_NOSHADER` (:55; the message at :57 and the header comment at :11 follow), and in `tests/unit/registry/test_registry_frame_abort.cpp` `CODE_BUG` -> `RIE_BUG` (:75, message :77). Diffs (`git diff -U0`):
+
+```
+test_hcshader_missing_shader.cpp  @@ -11     - *   `Failed to find shader "<name>"` (CODE_NOSHADER) and no light. ...
+                                           + *   `Failed to find shader "<name>"` (RIE_NOSHADER) and no light. ...
+                                  @@ -55     -            if (r.text.find(expected) != std::string::npos && r.code == CODE_NOSHADER)
+                                           +            if (r.text.find(expected) != std::string::npos && r.code == RIE_NOSHADER)
+                                  @@ -57     -        REG_CHECK_MSG(noShaderCode, "%s: the error carries CODE_NOSHADER", light);
+                                           +        REG_CHECK_MSG(noShaderCode, "%s: the error carries RIE_NOSHADER", light);
+test_registry_frame_abort.cpp     @@ -75     -            if (r.code == CODE_BUG && r.text.find("could not create its thread") != std::string::npos)
+                                           +            if (r.code == RIE_BUG && r.text.find("could not create its thread") != std::string::npos)
+                                  @@ -77     -        REG_CHECK_MSG(bug, "the error carries CODE_BUG");
+                                           +        REG_CHECK_MSG(bug, "the error carries RIE_BUG");
+```
+
+(The `frame_abort` header comment at :11 still reads "CODE_BUG"; it was outside the approved lines and is left.) `frame_abort` stays behind the red option, so it is not compiled in this tree.
+
+| Check | Result |
+|---|---|
+| CP-a build (`030-p4b-build`) | exit 0 |
+| T058 explicit set (`030-p4b-lights`) | **7 of 7 passed**: the four `Visual_*light*`, `Sampling_ThreadSweep_quadlight`, `Hcshader_MissingShader`, `Hcshader_NoReferences` |
+| CP-b suite (`030-p4b-suite`, `-LE determinism-sweep -j4`) | **1103 run, 1103 passed, 0 failed**; Not Run: the two helper tests and `Registry_CoreNamesNoHider` (`DISABLED`), self-skip `LibShader_Format_rslo_lower_minor` |
+| CP-d | manifest 915, fresh 921, **0 differing, 0 missing**, 6 not in manifest; `diffs` equal to `baseline-diffs-macos.txt` |
+| CP-c (`030-p4b-arch`, `030-p4b-archreport`) | `ctest -L architecture` 32 of 32; report `ALLOWED`/`METRIC`/`RESULT` lines equal `archcheck-base-macos.txt` (`DB-011 x 164`, `TOTAL 604/89`, `RESULT PASS`) |
+
 ## §2 Red evidence
 
 ### Phase 2 (T028 to T030; starting `src/`, generator Unix Makefiles on macOS; logs `build-logs/030-p2-*.log`)
@@ -111,6 +149,12 @@ Then the option was reconfigured OFF (`030-p2-off`): configure and build exit 0,
 
 With the amendment, `domain-rules.txt`, `domain-map.txt` and the two fixtures in place but before the `Class::Transport` edit of `archcheck`, `ctest -R ArchFixture_transport` (`030-p3-red`, after a reconfigure; `archcheck` and both fixture objects built): **0 of 2 passed**. `ArchFixture_transport_allowed`: `archcheck: .../fixtures/transport-allowed/domain-map.txt:8: unknown class 'Transport'`, exit 2, expected 0. `ArchFixture_transport_cycle`: the same message, exit 2, expected 1. Green after T043 (§1).
 
+### Phase 4 (T050; Test gate for the retirement; 2026-11-10)
+
+`Hcshader_MissingShader` moved out of the `OPENRENDER_030_RED_TESTS` block in `tests/unit/registry/CMakeLists.txt` and `Hcshader_NoReferences` removed from the `DISABLED` line in `tests/architecture/CMakeLists.txt` (the test sources and `check_hcshader_references.cmake` are untouched). Reconfigure (`030-p4-configure`), build of `test_hcshader_missing_shader` (`030-p4-tg-build`), `ctest -R Hcshader_` (`030-p4-tg-run`, `build-logs/030-p4-tg-run.log`) on the tree with `src/` still unedited: **0 of 2 passed**.
+- `Hcshader_MissingShader` Failed by assertion: only `Failed to find shader "defaultsurface"` and `"defaultlight"` are reported (the empty search path); `CHECK failed: s.frames.count("Failed to find shader \"spherelight\"") == 1` and the same for `quadlight`, because the C++ substitute answers.
+- `Hcshader_NoReferences` Failed: lists `src/libshader/shading/shaderRefs.h`, `shading.h`, `src/ri/CMakeLists.txt` (x5), `src/ri/hcshader.{h,cpp}`, `renderer.cpp`, `rendererContext.cpp` (x3), `rendererStatics.cpp` and `tests/architecture/domain-map.txt`; none of the exempt files and no registration line.
+
 
 ## §3 Linux records
 
@@ -135,6 +179,18 @@ Build with the option OFF (`030-linux-p2`: configure + build, exit 0, 0 `warning
 
 `030-linux-p3`: configure + build exit 0, 0 `warning:` lines under GCC 13 `-Werror`; `ctest -L architecture`: 31 of 31 passed (the two new script tests `Not Run (Disabled)`); `ctest -R ArchFixture_transport`: 2 of 2 passed (both new fixtures green on Linux).
 
+### Phase 4 full CP-L (T059; 2026-11-10; `linux_sync.sh push` 3812 files, `verify` 0 differences; the two `src/ri/hcshader.*` files removed from the remote by the sync)
+
+The host answered again after the maintainer's report (the first attempt, earlier the same day, had timed out). The remote `cpujob` was busy with spec 056's build for a while; the job `030-linux-p4` (`CPUJOB_TIMEOUT=7200`, `-j2`) queued behind it and ran `build-logs/run-p4.sh` in the remote tree (configure, build, suite, CP-d, architecture). Remote disk 8.5 GiB free.
+
+| Check | Result |
+|---|---|
+| Build (Release, JIT on, GCC 13 `-Werror`) | exit 0, **0 `warning:` lines** |
+| Suite (`-LE determinism-sweep -j2`, 688 s) | **1104 run, 1102 passed, 2 failed**: `TextureTile_RenderByteIdentical` (the recorded Linux starting failure, T016/#45) and `Hcshader_NoReferences` (F11, an environment limitation of the check, not a leftover reference). Not Run: the two helper tests and `Registry_CoreNamesNoHider` (`DISABLED`), self-skip `LibShader_Format_rslo_lower_minor`. 1104 against macOS's 1103: the one Linux-only test, as at the baseline. `Hcshader_MissingShader`, the four `Visual_*light*` and `Sampling_ThreadSweep_quadlight` **pass** |
+| CP-d against the `-linux` baseline | manifest 915 images, fresh 921, **0 differing, 0 missing**, 6 not in manifest; `diffs` equal to `baseline-diffs-linux.txt` (empty diff) |
+| `-L architecture` | 33 registered, 32 run: 31 passed and `Hcshader_NoReferences` failed (F11). Full report: `ALLOWED` identical to the baseline (`DB-011 x 164`), `METRIC TOTAL refs 604 distinct 89`, `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0` |
+| `pull` + `verify` | 8 Linux-produced files, 0 differences (nothing new produced; the full-tree `verify` shows 4 differences only in `tasks.md` and `validation.md`, edited after the push) |
+
 ### T016: the Linux starting failure set
 
 The only Linux non-pass set of the starting tree (the only allowed Linux non-pass set for the whole spec, plus the self-skip):
@@ -153,6 +209,59 @@ The only Linux non-pass set of the starting tree (the only allowed Linux non-pas
 - **F7 (Phase 2 drafts: assumptions beyond the contracts).** (1) `CIntegratorRegistry` mirrors `CHiderRegistry` (`add(table, origin)`, `find(name)` returning `{table, alias}`, `size()`, `at(i)`, `integratorRegistry()`); (2) `transportClassicLifecycleCounts()` returns `SClassicLifecycleCounts { uint64_t configure, prepare, finish; }` by value; (3) a table refused for an alias collision is refused whole (nothing of it registered); (4) the diagnostics of the version check carry `CODE_VERSION` for both a MAJOR mismatch and a too-small `structSize`; (5) a `configure` failure destroys the integrator instance it created (the contract is silent: the draft asserts `destroyed == created`) and a `prepare` failure destroys both the hiders and the instance, without `finish`; (6) the pair-refusal text carries `Hider "<h>" cannot run integrator "<i>"`, `missing "<c>" <v>` or `"<c>" <v1> provided, <v2> required`, and `the frame is not rendered` (the contract's table); (7) the process hider registry holds exactly 4 entries in a program that links no other hider, 6 with `hider_double.cpp`, and the integrator registry 1 / 7 with `integrator_doubles.cpp`; (8) the double hider provides `display-output`, so a frame with a `Display` file driver runs it and the file driver writes an image of the (empty) samples; whether that driver tolerates a hider that submits no samples is first known at Phase 8; (9) `Registry_PairCheck` asserts the verdict's fields; the human-readable text with both versions is asserted in `Registry_PairRefusal_*`, where it is produced.
 - **F8 (T029's premise).** Two new compiled tests compile on the starting tree and are red by assertion at run time, not by build failure: `Hcshader_MissingShader` and `Registry_IntegratorImageIdentity` (RI calls only). The red evidence of T029/T030 therefore shows a failing run for these two, and a build error for the others.
 - **F6 (disk).** `/Volumes/Projects` free space swung between 0.45 GiB and 8.6 GiB during the phase because other specs build and test in parallel. Every heavy job of this phase started above the 2 GB floor; a dip to 1.4 GiB and one to 0.45 GiB happened during other specs' jobs while mine was queued or running (nothing of mine failed).
+- **F9 (Phase 4, T058: `Hcshader_MissingShader` stays red after the retirement; a defect in the approved test, NOT edited, waits for the maintainer).** With `hcshader` deleted the renderer reports exactly what the test expects, `./hcshader_missing_spherelight.rib (7): Failed to find shader "spherelight"` (and the same for `quadlight`), once each; the first `REG_CHECK` (text, count 1) now passes. The second check fails: `test_hcshader_missing_shader.cpp:57` compares the report's `code` with `CODE_NOSHADER` (the `EErrorCode` enum, value 23), but the session recorder (`regtest::sessionHandler` in `registry_testing.h`) is an RI error handler and stores the **RI code** it is handed, `RIE_NOSHADER` = 45 (`error.cpp` maps `CODE_NOSHADER` to `RIE_NOSHADER`; the red run of the starting tree already printed `[code 45 severity 2]` for the missing `defaultsurface`). The comparison can never hold for a session report; the same report on a `CRecordingSink` would carry 23. Proposed one-line fix to the approved test, to be applied only on approval: `test_hcshader_missing_shader.cpp:56` `r.code == CODE_NOSHADER` -> `r.code == RIE_NOSHADER` (and the message at `:57` and the header comment "(CODE_NOSHADER)" -> "(RIE_NOSHADER)"); no source change, no threshold. **Same pattern, not yet reachable:** `test_registry_frame_abort.cpp:75` (Phase 9) compares a session report's code with `CODE_BUG` (value 10) where the handler stores `RIE_BUG`; check it when its gate opens (`test_registry_hider_table.cpp` and `test_registry_integrator_table.cpp` read a `CRecordingSink`, which stores `EErrorCode`, so their `CODE_*` comparisons are right). The result of T058 therefore reads "the four light visual tests and the sampling test pass, `Hcshader_NoReferences` green, `Hcshader_MissingShader` red for F9 only".
+- **F10 (Phase 4, Linux).** The Linux host `juvenal@ubuntu-2404-desktop.v2-labs.io` was tried once at T059 (2026-11-10, `ssh -o ConnectTimeout=10`): `Operation timed out` on port 22. The full CP-L of Phase 4 is **pending** (see §3).
+- **F9 resolved (2026-11-10).** The maintainer approved the two test edits (relayed by the coordinator): `test_hcshader_missing_shader.cpp` `CODE_NOSHADER` -> `RIE_NOSHADER` (:55, :57, header :11) and `test_registry_frame_abort.cpp` `CODE_BUG` -> `RIE_BUG` (:75, :77); diffs and the second macOS run in §1. T058 is 7 of 7.
+- **F10 resolved.** The Linux host came back; the full Phase 4 CP-L ran (§3).
+- **F11 (Phase 4, Linux; for the maintainer).** `Hcshader_NoReferences` fails in the Linux per-spec tree: `check_hcshader_references.cmake:37` lists the files with `git ls-files`, and the tree that `linux_sync.sh` builds has no `.git` (by design: `verify` fails on a remote `.git`), so the check ends with "cannot list the tracked files (git ls-files: 128 fatal: not a git repository)". It is a failure of the check's environment, not a reference: a `grep -rnE 'hcshader|CSphereLight|CQuadLight' src CMake tests doc docs examples` over the remote tree, minus the same exemptions and the script's own registrations, finds **no hit**. The same limitation applies to every later spec 030 script test that lists files with git (`Registry_CoreNamesNoHider` uses explicit paths, so it is not affected). Options for the maintainer: (a) accept it as a known Linux-tree limit and compare the Linux set to "T016 plus `Hcshader_NoReferences`"; (b) approve a fallback in the approved script (when `git ls-files` fails, `file(GLOB_RECURSE)` over the five scanned directories, same exemptions), which changes an approved test and is therefore not applied. T059 stays unticked until the maintainer chooses.
+- **F11 resolved (2026-11-10)**; the added `cmake_policy(VERSION 3.19)` line was approved by the maintainer the same day, by the maintainer ruling "no test or build step may use git" and the approved script rewrite; see the section "F11 ruling and its fix" at the end of this file's §4.
+
+### F11 ruling and its fix (2026-11-10; relayed by the coordinator)
+
+**Ruling (maintainer, 2026-11-10):** no test or build step may use git, because a source tarball has no `.git` and may have no git installed. This is broader than the options offered in F11 and binds every later script and test of this spec. **Approved edits to approved tests:** (1) `tests/architecture/check_hcshader_references.cmake`: remove the `git ls-files` call completely (no fallback, no skip) and list the files with `file(GLOB_RECURSE ... LIST_DIRECTORIES false)` over `src CMake tests doc docs examples`, exemptions unchanged, build trees excluded, comments and error text fixed; the registration in `tests/architecture/CMakeLists.txt` needed no change and is untouched; (2) `tests/unit/registry/test_registry_frame_abort.cpp:11` header comment `CODE_BUG` -> `RIE_BUG`.
+
+Diff of the script (`git diff -U0`, the pure removal of git and its replacement):
+
+```
+-# ... no tracked file under src/, ...                       +# ... no file under src/, ...
+-# It never passes vacuously: no tracked file list, or an empty scan, is an error.
++# The files are listed with file(GLOB_RECURSE) over those six directories: ... no .git (and no git installed). A path with a
++# build-tree component (CMakeFiles, build*, _build, cmake-build*) is skipped ...; symbolic links are not followed.
++# It never passes vacuously: an empty or implausibly small scan is an error.
++cmake_policy(VERSION 3.19)                                   (see below)
+-execute_process(COMMAND git -C "${SOURCE_DIR}" ls-files -- src CMake tests doc docs examples ...)
+-if(NOT _rc EQUAL 0 OR "${_files}" STREQUAL "")  message(FATAL_ERROR "... cannot list the tracked files (git ls-files: ...)")
+-string(REPLACE "\n" ";" _files "${_files}")
++set(_files "")
++foreach(_dir src CMake tests doc docs examples)
++    file(GLOB_RECURSE _found LIST_DIRECTORIES false RELATIVE "${SOURCE_DIR}" "${SOURCE_DIR}/${_dir}/*")
++    list(APPEND _files ${_found})
++endforeach()
++if("${_files}" STREQUAL "")  message(FATAL_ERROR "check_hcshader_references: no file found under ...")
++set(_build_tree_component "(^|/)(CMakeFiles|build[^/]*|_build|cmake-build[^/]*)/")
++    if(_f MATCHES "${_build_tree_component}")  continue()  endif()      (in the scan loop, before the exemption test)
+-message(STATUS "... ${_scanned} tracked files scanned, no reference")  +message(STATUS "... ${_scanned} files scanned, no reference")
+```
+
+and of `test_registry_frame_abort.cpp`: `:11` `(CODE_BUG, "could not create ...` -> `(RIE_BUG, ...` (with :75 and :77 from the earlier approval).
+
+**One addition not in the approved list: `cmake_policy(VERSION 3.19)` (approved by the maintainer 2026-11-10, relayed by the coordinator: kept).** Once the script reached its scan on Linux (CMake 3.28), `-P` script mode left CMP0057 unset, so `if(_f IN_LIST _exempt_files)` failed with "if given arguments"; macOS's newer CMake defaults the policy to NEW, which hid it (the script used to fail earlier, at `git`, on Linux). One line, no behaviour change on a CMake that already reads `IN_LIST`; 3.19 is the project floor. No other script of the architecture or link tests uses `IN_LIST`.
+
+**Generated or untracked files in the six scanned trees (answer to the coordinator's question).** On a normal macOS checkout after a build there are two kinds, measured with `find` against `git ls-files`: `src/preview/orender-wire-macos/CRibPreview/include/ribpreview_api.h` (generated by the build, gitignored: a copy of a tracked header, scanned, no reference) and `src/python/__pycache__/prman.cpython-315.pyc` (not a scanned extension). The script's extension filter drops binaries and caches; its build-tree rule skips any path with a `CMakeFiles`, `build*`, `_build` or `cmake-build*` directory component, so a build directory configured inside one of the six trees is not scanned. The project's own build trees (`build`, `build-base`, `build-debug`, `build-logs`) sit at the root, outside the six, and no tracked path under them contains such a component (checked). The glob gives 2009 files on the real tree; `git ls-files` gave 2008 after the same filters, the one extra being the generated `ribpreview_api.h`.
+
+**Red then green, macOS** (`cmake -P` through `cpujob`, scratch copy of the six directories under the scratchpad, prefix `030-`, no `.git`):
+
+| Case | Result |
+|---|---|
+| Real tree | `Hcshader_NoReferences: 2009 files scanned, no reference`, exit 0 |
+| Scratch copy, clean | the same, exit 0 |
+| Scratch copy with a planted `src/ri/030_planted.cpp` holding `CSphereLight`/`hcshader` | **fails**: `src/ri/030_planted.cpp: // uses CSphereLight from hcshader.h`; a planted `doc/030_planted.html` holding `CQuadLight` also fails, exit 1 (final script) |
+| Scratch copy, planted file removed | green again, exit 0 |
+| Same text inside `src/build-x/CMakeFiles/gen.cpp` | skipped (build-tree rule), passes |
+| Clean scratch copy with `PATH=/nonexistent` (no git, no other tool) | passes, exit 0 |
+| `ctest -L architecture` on the real tree (`030-p4c-arch`, `030-p4d-arch`) | 32 of 32 passed, `Hcshader_NoReferences` Passed; T058 set 7 of 7 |
+
+**Linux** (`linux_sync.sh push` 3812 files, `verify` 0 differences; build exit 0, 0 warnings; remote `cpujob`, `-j2`): first run `-L architecture` failed only on the `IN_LIST` policy above (31 of 32); after `cmake_policy(VERSION 3.19)`: **`ctest -L architecture` 32 of 32 passed** (33 registered, `Registry_CoreNamesNoHider` `Not Run (Disabled)`), and the T058 set **7 of 7 passed** (`Visual_quadlight`, `-slo`, `Visual_spherelight`, `-slo`, `Sampling_ThreadSweep_quadlight`, `Hcshader_MissingShader`, `Hcshader_NoReferences`). The earlier Linux suite and CP-d (§3) are unchanged by this edit (no `src/` or image-affecting change). The Linux pass/fail set therefore equals T016's.
 
 ## §5 Final summary against SC-001 to SC-011
 

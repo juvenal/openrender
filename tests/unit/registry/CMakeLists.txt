@@ -53,14 +53,14 @@ reg_executable(test_registry_hider_statements test_registry_hider_statements.cpp
 reg_test(Registry_HiderAliasDiagnostics test_registry_hider_statements ARGS alias_diagnostics)
 reg_test(Registry_UnknownHiderFallback test_registry_hider_statements ARGS unknown_fallback)
 
+# ---- Phase 4: with the built-in lights deleted a light with no compiled shader is an ordinary missing shader ---------------
+# (it compiled on the starting tree, RI calls only, and was red by assertion: the C++ substitute still answered)
+reg_executable(test_hcshader_missing_shader test_hcshader_missing_shader.cpp)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/empty_shader_dir)
+reg_test(Hcshader_MissingShader test_hcshader_missing_shader ARGS ${CMAKE_CURRENT_BINARY_DIR}/empty_shader_dir)
+
 # ---- red until their phase ----------------------------------------------------------------------------------------------
 if(OPENRENDER_030_RED_TESTS)
-    # Phase 4: with the built-in lights deleted a light with no compiled shader is an ordinary missing shader. It compiles today
-    # (RI calls only) and is red by assertion: the C++ substitute still answers.
-    reg_executable(test_hcshader_missing_shader test_hcshader_missing_shader.cpp)
-    file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/empty_shader_dir)
-    reg_test(Hcshader_MissingShader test_hcshader_missing_shader ARGS ${CMAKE_CURRENT_BINARY_DIR}/empty_shader_dir)
-
     # Phase 5: the integrator table, the pair check (no transport/ headers yet).
     reg_executable(test_registry_integrator_table test_registry_integrator_table.cpp)
     reg_test(Registry_IntegratorLookup test_registry_integrator_table ARGS lookup)

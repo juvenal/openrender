@@ -73,7 +73,6 @@ class CVolume;
 class CParticipatingMedium;
 class CVisorCache;
 class CPl;
-class CSphereLight;
 struct TObjectHash;
 class CPLLookup;
 class CPointHierarchy;
