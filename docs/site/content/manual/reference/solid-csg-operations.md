@@ -220,16 +220,28 @@ Later occurrences in the same frame are silent.
 
 ## Interior / Exterior shading
 
-The `Interior`/`Exterior` RIB statements (atmosphere shaders assigned per
-attribute state) are consulted for the faces of a solid: `Interior` when a
-camera or ray sample is inside the solid's volume, `Exterior` when outside.
-Each face carries its own operand's Interior/Exterior assignment, not a
-single value forced across the whole composite, so different operands in the
-same CSG tree may carry different atmosphere shaders. Interior/Exterior
-assigned to attribute state that never enters a `SolidBegin`/`SolidEnd`
-block remains a no-op.
+`Interior` and `Exterior` assign a volume shader to the two sides of a surface; a CSG solid is no special case. The
+rule is the same for every surface, and a solid's fragments simply follow it:
+
+- A ray that a surface shader spawns with `trace()` (and `environment("raytrace")`), `gather()`, `transmission()` or a
+  ray-traced `shadow()` is attenuated by the volume shader of the surface the shader is running on, not of the surface it
+  hits. The ray gets the `Exterior` shader when its direction has a positive component along the surface's normal `N`
+  at the call, and the `Interior` shader otherwise. A solid's surface is oriented outward everywhere, including on a
+  `"difference"` operand's cavity walls, so a ray leaving the outside of the solid reads `Exterior` and a ray that goes
+  into the material or the cut-away reads `Interior`. A side with no shader attenuates nothing.
+- The shader runs once for each stretch of the ray (a segment): from its origin to a hit, to the point where it passes
+  through a transparent surface (a new segment then starts, with the same shader), or, for a ray that hits nothing, to
+  its `maxdist`, to the light or destination of a `transmission()`/`shadow()`, or to the edge of the scene's bounds.
+  The shader sees `I` as the segment's vector, `P` as its end point, and `Ci`/`Oi` as the colour and opacity the ray
+  would otherwise return; it changes colour and opacity only. `fog` works as written.
+- A camera ray has no spawning surface, so the camera's own view of a solid carries no `Interior`/`Exterior` fog; the fog
+  appears on the secondary rays that leave the solid: reflections, refractions, shadows. `Atmosphere` is unchanged: it
+  still applies to camera rays only.
+- The side comes from the shader's global `N`, so a surface shader that rewrites `N` before it traces (for example
+  `N = faceforward(N, I)`) changes which volume its rays see.
 
 ```
+Surface "mirror" "float Ka" [0.3] "float Kr" [0.8]
 Interior "fog" "distance" 4 "background" [0.9 0.1 0.1]
 Exterior "fog" "distance" 4 "background" [0.1 0.1 0.9]
 SolidBegin "difference"
@@ -245,15 +257,12 @@ SolidBegin "difference"
 SolidEnd
 ```
 
-The solid's surface is oriented outward everywhere, including on a
-`"difference"` operand's cavity walls, so a camera in empty space almost
-always sees the `Exterior` shader, with `Interior` appearing only as thin
-silhouette-edge noise. `Interior` dominates only when the camera itself is
-inside the solid's own material. See
-`examples/rib/tests/csg-sphere-sphere-difference-interior-raytrace.rib`
-(camera outside, `Exterior` dominant) and its companion
-`csg-sphere-sphere-difference-interior-raytrace-inside.rib` (camera inside
-the solid's material, `Interior` dominant throughout).
+See `examples/rib/tests/csg-sphere-sphere-difference-interior-raytrace.rib` (camera outside: the mirrored solid
+reflects the scene through the `Exterior` fog, so the reflections are tinted blue, and the cut-away's walls show the
+`Interior` fog, red, on the rays that go into it) and its companion
+`csg-sphere-sphere-difference-interior-raytrace-inside.rib` (camera inside the material: every reflection leaves into
+the interior side and is tinted by the `Interior` fog, red). Both use a mirror surface, because a surface that traces
+nothing spawns no rays for the volume to attenuate.
 
 ## CSG statistics
 

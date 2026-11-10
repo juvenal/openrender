@@ -297,3 +297,36 @@ from `attributes.h`; the flag write in `csgSolid.cpp` is gone (the clone and the
 - T108 Linux (the host was unreachable when the macOS half was reported, back after a reboot; GCC 13 `-Werror`, remote `cpujob` `-j2`): `tools/sync_linux.sh` synced and verified 4006 files; build (`056-p4-lx-build`) clean; T107 set (`056-p4-lx-msg`) 21 / 21 pass;
   `ctest -LE determinism-sweep -j2` (`056-p4-lx-all`): 1303 tests, **1 failed = the baseline `TextureTile_RenderByteIdentical` (#45)**, nothing else; `ctest -L architecture` (`056-p4-lx-arch`): 29 / 29.
 - Expected red at the end of Phase 4: none on macOS; on Linux only the baseline `TextureTile_RenderByteIdentical`.
+
+
+## 5. Phase 5: documents, 2026-11-10
+
+- T111 TEST-APPROVAL: no test edited, none added.
+- T112 (applied): `DEVNOTES_DETAILS/RISPEC_GAPS.md`: the Volume Shading entry is `[x]`, the "parsed, stored ... never executed" claim and the stale citation (`shading.cpp:1049`)
+  are gone, the rule is written down (spawning surface, side by the sign of `dot(dir, N)`, segments, hits and misses, `Atmosphere` camera-only, the accepted `N`-rewrite consequence,
+  `incident()`/`opposite()`), the header count is "8 of 11 implemented, 1 partial, 2 absent", and the footer records the entry's verification date (2026-11-10). The Area Light entry is untouched.
+- T113, T115, T117 (proposals only, nothing applied): `tools/proposed/devnotes-row.md` (the `DEVNOTES.md:17` row, a spec 056 status row, the `NEWS.md` entry, the `ChangeLog.md` lines) and
+  `tools/proposed/site-solid-csg.md` (the rewrite of `solid-csg-operations.md:221-256`, the `renderman-rispec.md:30` row and its count line 19). T114 and T116 are the PAUSEs.
+- T118: `git grep -n 'selectVolumeShader\|SOLID_FRAGMENT\|csgSolid.cpp:273' -- . ':!specs'` finds nothing; the `csgSolid.cpp` lines of `tests/architecture/allowlist.txt` (DB-004 `:16`, DB-017 `:284-285`) and
+  `DOMAIN_BOUNDARIES.md` do not cite them, so no registry entry moves.
+- T119: `quickstart.md`: one name reconciled (`-E 'Parity_|golden'` became `-E 'Parity_|Golden_'`: the registered tests are `Golden_*`); every other command, test name and scene family was checked against `ctest -N`.
+- T120: `claude-md-draft.md` (architecture subsection, gotcha 36, the shader count 130 -> 137, the sweep 419 -> 570, a `-L volume` line, Active Technologies, Recent Changes). `CLAUDE.md` is not edited;
+  gotchas 12 and 13 contain no statement the spec made false.
+- T121 (what is applied so far, T112 only): `056-p5-docs` `-R 'DocPaths|Doc'`: 1 / 1 (`PluginAbi_DocPaths`); `056-p5-arch` `ctest -L architecture`: 29 / 29.
+- T122 (SC-008 walk of `RISPEC_GAPS.md`, each line opened, macOS tree): `rendererContext.cpp:2372` `void CRendererContext::RiInteriorV(...)` (body: `attributes->bindInterior(...)`), `:2385` `RiExteriorV` (`bindExterior`);
+  `executeMisc.cpp:942` `int isExterior = (dotvv(dir, rays->sideN) > 0) || (interiorShader == exteriorShader);`, `:773` the same for `rdir` (transmission);
+  `shading.cpp:4599` `rays[numExtRays++] = raysBase;` (the gather split on `dotvv(raysBase->dir, normalN) > 0`, `:4598`), `:4615`/`:4622` `lastGather->begin(..., attachVolume ? shaderInstanceOf(cAttributes->interior()/exterior()) : nullptr)`;
+  `bundles.cpp:59` `void CSegmentBundle::attenuateHits(`, `:82` `attenuateMisses(`; `shading.cpp:654` `void CShadingContext::shadeVolumeSegments(`; `:1598`-`:1602` `if (atmosphere != NULL) {` ... `atmosphere->execute(...)` under `g.pathDepth == 0`;
+  `:1907` `int CShadingContext::incidentParameter(`. Every one holds what the entry says. `git grep -n -i 'never executed\|stored and never\|doubly false' -- DEVNOTES.md DEVNOTES_DETAILS docs` still finds:
+  `DEVNOTES.md:17` and `docs/site/content/references/renderman-rispec.md:30` (both waiting on the T114 / T116 answers), the two dated correction notes inside `RISPEC_GAPS.md` itself (they quote the old claim on purpose), and an unrelated CSE sentence in `OSHADER_UPDATES.md`.
+- T123: macOS architecture 29 / 29 done. The Linux sync and the Linux `-L architecture` and doc-test run are **pending**: the documents still change after the PAUSE answers, and nothing built changed in this phase, so they are run once after those edits.
+
+### T114, T116 and T121 to T123: the approved edits and the final runs
+
+- T114 (approved, applied as written in `tools/proposed/devnotes-row.md`): the `DEVNOTES.md:17` row, a spec 056 status row after the spec 029 row, one `NEWS.md` entry at the top of "Unreleased", and the `ChangeLog.md` lines (Added, Changed x2, Removed, Docs).
+- T116 (approved A, B and C, applied as written in `tools/proposed/site-solid-csg.md`): A the rewrite of the "Interior / Exterior shading" section of `docs/site/content/manual/reference/solid-csg-operations.md`;
+  B the Volume Shading row of `docs/site/content/references/renderman-rispec.md` (now **Yes**); C its count line (8 of 11 implemented, 1 partial, 2 absent).
+- T122 re-check after the edits: `git grep -n -i 'never executed\|stored and never\|never run\|doubly false' -- DEVNOTES.md DEVNOTES_DETAILS docs` finds only the two dated correction notes inside `RISPEC_GAPS.md` (they quote the old claim on purpose) and the unrelated CSE sentence in `OSHADER_UPDATES.md`.
+- T121/T123 macOS: `056-p5b-docs` (`-R 'DocPaths|Doc'`) 1 / 1; `056-p5b-arch` (`-L architecture`) 29 / 29.
+- T123 Linux (`tools/sync_linux.sh`: 4009 files synced and verified; remote `cpujob` `-j2`, `056-p5-lx`, `056-p5-lx-arch`): doc tests 1 / 1, `-L architecture` 29 / 29.
+- Nothing built changed in Phase 5 (documents only), so no build and no full run were made; the Phase 4 results stand. `CLAUDE.md` is untouched.

@@ -33,7 +33,7 @@ On the starting tree these cases fail: the step does not exist, and `incident()`
 ## 2. Hand-computed fog values in rendered scenes (SC-001, SC-002, SC-003, SC-009)
 
 ```bash
-~/.claude/bin/cpujob s056-probe ctest --test-dir build -L volume -E 'Parity_|golden' --output-on-failure
+~/.claude/bin/cpujob s056-probe ctest --test-dir build -L volume -E 'Parity_|Golden_' --output-on-failure
 ```
 
 Each `VolumeProbe_*` test renders one scene to a float TIFF and checks named pixels against values computed by hand.
