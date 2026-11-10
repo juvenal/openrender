@@ -352,16 +352,7 @@ DB-017  link     src/ri/hiders/photon.cpp  ->  _ZTI8CSurface   # typeinfo for CS
 DB-017  link     src/ri/hiders/photon.cpp  ->  _ZTV8CSurface   # vtable for CSurface
 DB-017  link     src/ri/hiders/trace.cpp  ->  _ZN7CObject7clusterEP15CShadingContext   # CObject::cluster(CShadingContext*)
 
-# --- DB-025: Domains call into the data viewer (a consumer) (12) ---
+# --- DB-025: Domains call into the data viewer (a consumer) (3) ---
 DB-025  include  src/ri/geometry/surface.cpp  ->  src/ri/dataviewer/debug.h
-DB-025  include  src/ri/hiders/irradiance.cpp  ->  src/ri/dataviewer/debug.h
 DB-025  include  src/ri/hiders/photonMap.h  ->  src/ri/dataviewer/dataView.h
-DB-025  include  src/ri/texture/texture3d.h  ->  src/ri/dataviewer/dataView.h
-DB-025  link     src/ri/hiders/irradiance.cpp  ->  _ZN9CDataView10drawPointsEiPKfS1_   # CDataView::drawPoints(int, float const*, float const*)
-DB-025  link     src/ri/hiders/irradiance.cpp  ->  _ZN9CDataView9drawDisksEiPKfS1_S1_S1_   # CDataView::drawDisks(int, float const*, float const*, float const*, float const*)
 DB-025  link     src/ri/hiders/photonMap.cpp  ->  _ZN9CDataView10drawPointsEiPKfS1_   # CDataView::drawPoints(int, float const*, float const*)
-DB-025  link     src/ri/texture/brickmap.cpp  ->  _ZN9CDataView10drawPointsEiPKfS1_   # CDataView::drawPoints(int, float const*, float const*)
-DB-025  link     src/ri/texture/brickmap.cpp  ->  _ZN9CDataView13drawTrianglesEiPKfS1_   # CDataView::drawTriangles(int, float const*, float const*)
-DB-025  link     src/ri/texture/brickmap.cpp  ->  _ZN9CDataView9drawDisksEiPKfS1_S1_S1_   # CDataView::drawDisks(int, float const*, float const*, float const*, float const*)
-DB-025  link     src/ri/texture/pointCloud.cpp  ->  _ZN9CDataView10drawPointsEiPKfS1_   # CDataView::drawPoints(int, float const*, float const*)
-DB-025  link     src/ri/texture/pointCloud.cpp  ->  _ZN9CDataView9drawDisksEiPKfS1_S1_S1_   # CDataView::drawDisks(int, float const*, float const*, float const*, float const*)

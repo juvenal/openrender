@@ -130,7 +130,7 @@ for the stated reason:
 | T-E (`GiKeys_Photons`, `GiKeys_IrradianceRecords`, `GiKeys_PhotonsThreads`) | `tests/gi_split/test_gi_keys.cpp.o` | `fatal error: 'ri/render/photonMap.h' file not found` (line 51) |
 | T-C (`TextureOnly_GiStores`) | `red_test_gi_stores` | `fatal error: 'irradianceCache.h' file not found` (line 21; `photonStore.h` is the next in line, Phase 5) |
 | T-D (`TextureOnly_IrradianceDrawOrder`) | `red_test_irradiance_draw_order` | `fatal error: 'irradianceCache.h' file not found` (line 31) |
-| T-G (`GiSplit_Boundary`) | `ctest -R` in the scratch tree | **Failed**, all ten sub-checks red: friends-texture 3, texture-names-viewer 9, hiders-no-viewer-irradiance 1, friends-hiders 1, texture-names-shading 7, texture-names-core 6, hiders-no-viewer 3, texture-includes 1, hiders-no-texture 6, files-absent 9 |
+| T-G (`GiSplit_Boundary`) | `ctest -R` in the scratch tree | **Failed**, but only partly verified: the script then lost failures raised inside its functions (fixed in Phase 3; every sub-check is shown red on its own in the Phase 3 table). The counts it printed: friends-texture 3, texture-names-viewer 9, hiders-no-viewer-irradiance 1, friends-hiders 1, texture-names-shading 7, texture-names-core 6, hiders-no-viewer 3, texture-includes 1, hiders-no-texture 6, files-absent 9 |
 
 A fatal include error stops a translation unit at its first missing header, so the other missing members (`lookupCached`, `insertReceived`,
 `photonKey`, `CIrradianceRecord::key`, the `getCache` kind check) are not reached; each phase finds the next. Main tree (T036): the
@@ -140,7 +140,7 @@ enabled). T035's cleanup is done: the scratch tree `build-red032` was deleted by
 
 T031: `GiSplit_Boundary` run on the unmodified tree with every sub-check enabled (`032-p2-boundary`, `cmake -P` of
 `tests/architecture/check_gi_split_boundary.cmake`, include directories of `ribRender_obj`). What matches today, which is the red
-state each phase turns green (10 sub-checks, all 10 red as expected):
+state each phase turns green. **Only partly verified at the time:** the script then lost the failures raised inside two of its functions (see Phase 3), so of the ten only `files-absent` was really shown to fail; the other nine were verified in Phase 3 (table below):
 
 ```
   friends-texture: src/ri/texture/brickmap.h: friend class CBrickMapGeometry;
@@ -261,3 +261,81 @@ Remote disk 9.2 GB free before, 8.7 GB after `build-base`.
   the expectation is computed from `forEachRecord()` (the cache's own order, after `clamp()`).
 
 ## §7 SC-001 to SC-010 walk
+
+### Phase 3 (T038 to T053): the 3D family's ties and the Texturing-derived adapters
+
+**Test gate (T038).** Nine allowlist lines deleted by key (DB-025: `texture3d.h -> dataView.h`; `brickmap.cpp` -> `drawPoints`, `drawTriangles`,
+`drawDisks`; `pointCloud.cpp` -> `drawPoints`, `drawDisks`; `irradiance.cpp` -> `debug.h`, `drawPoints`, `drawDisks`); the DB-025 section header
+`(12)` is `(3)` (`surface.cpp`, `photonMap.h`, `photonMap.cpp` remain); the allowlist is **344 -> 335**. `friends-texture`,
+`texture-names-viewer` and `hiders-no-viewer-irradiance` are the default of `GI032_BOUNDARY_CHECKS` (`tests/gi_split/CMakeLists.txt`).
+Red, taken on the unmodified `src/` (the Phase 3 source edits were stashed for the run and restored; `032-p3-red-arch.log`):
+`Architecture_DomainBoundaries` fails with **exactly the nine `VIOLATION` lines of the deleted keys** and nothing else (`violations=9`).
+`GiSplit_Boundary` against a `git archive HEAD` copy of `src/` (`032-p3-boundary-red.log`): friends-texture 3, texture-names-viewer 9,
+hiders-no-viewer-irradiance 1, exit 1.
+
+**A defect in T-G, found and fixed here (needs the maintainer's ratification).** The first red run showed `GiSplit_Boundary` *passing* on the
+unmodified tree. Cause: `gi_scan()` and `gi_include_classes()` are CMake functions and `or_check_fail()` is a macro that counts in the scope it
+is expanded in, so every failure raised inside them was lost on return (the Phase 2 evidence did not show it because `files-absent` is called at
+the top level and failed alone). Fix, in the approved `tests/architecture/check_gi_split_boundary.cmake`: a `gi_fail()` function that records the
+failure in a global property, counted before `or_check_end()`. Re-run on the same pristine copy: the three Phase 3 sub-checks fail and the script
+exits 1. The diff is the file's last staged change.
+
+**Implementation** (`git diff --cached --stat -- src`: 18 files, +930 / -507). Texturing:
+`texture3d.h` loses `dataView.h`, the `CDataView` base and the `CRemotePtCloudChannel` friend, and gains public `defineChannels(const char *)`,
+`setTransform`, `setDPScale`, `channelSampleStart`, `channelNumSamples`; `pointCloud.{h,cpp}` lose `draw`/`keyDown`/`currentChannel`/`drawMode`,
+the two statics and the friend, and gain `points()`, `pointData()` (`getNumPoints()` became `const`); `brickmap.{h,cpp}` lose the forward
+declaration and friend of `CBrickMapGeometry`, `draw`/`keyDown` and the three statics, and gain `visitVoxels`, `maxLevel`, `sideLength`;
+`pointHierarchy.h` loses the three empty viewer members. `pointCloud.cpp` and `brickmap.cpp` have **deletions only** (no line added, so no body
+of `store`, the lookups, the hierarchy traversal or the brick paging changed). The six-argument `lookup(..., CShadingContext *)` and
+`CPointHierarchy::Options` stay until Phase 4 (D1). Hiders: `irradiance.{h,cpp}` lose `draw`, `keyDown`, `drawDiscs`, `debug.h`; they gain
+`forEachNode`, `forEachRecord`, `rootCenter`, `rootSide`, `setRoot`, `insertReceived` and `treeDepth()` (**named `treeDepth`, not `maxDepth`,
+because the private member of that name exists**). Consumer: new `src/ri/dataviewer/{pointCloudView,brickMapView,irradianceCacheView}.{h,cpp}`
+with the `Document` classes, built by `dataLoad.cpp`; `dataLoad.h` now includes `dataView.h` (it used to forward-declare `CDataView`, which
+`test_data_pointcloud.cpp` needs complete for its `dynamic_cast`; it had received it through `texture3d.h`). Core: the point-cloud remote channel
+reads through `getNumPoints()`, `points()`, `pointData()`, `numChannels()`, `channelName()`, `setTransform`, `setDPScale`; the sent bytes are unchanged.
+`src/ri/CMakeLists.txt` lists the three adapters (they reach `ribVector_sources`).
+
+**macOS checkpoint** (all `cpujob`): build `-j4` exit 0 under `-Werror`; the T050 selection
+(`Preview_DataSceneUnchanged|test_data_|test_dataview_chunking|test_debugdump_roundtrip|test_wire_cli|GiRemote_Loopback|GiFiles_Unchanged|TextureOnly_|PluginAbi|Texture3dChannels|Photon|photonmap`)
+**40 of 40 passed**, `GiRemote_LoopbackCache`, `GiRemote_LoopbackPointCloud` and `Preview_DataSceneUnchanged` against their base recordings; the full suite
+`-LE determinism-sweep` **1103 of 1103 passed** (1097 base + the 5 Phase 1 tests + `GiSplit_Boundary`); images: 915 in the manifest, **0 differing, 0 missing**,
+4 not in the manifest (the new tests' own images), every `MaxBlockAvgDiff` listing identical to the base; the GI set is part of that run; `libshader_shading`
+dynamically looked-up imports: 0 (as the base); `ctest -L architecture` 30 of 30; the full report `ALLOWED ... DB-025 x 3`, `METRIC TOTAL 604/89`, `RESULT PASS`.
+`grep -rn "friend " src/ri/texture src/ri/hiders` shows `makeBrickMap` and `CRemoteICacheChannel` only (the latter goes in Phase 4).
+
+**Linux checkpoint (T052; GCC 13 `-Werror`, remote `cpujob` at `-j2`, `openrender-032`).** Build exit 0 (no warning, `-Woverloaded-virtual` clean); the T050
+selection **40 of 40 passed**; the full suite `-LE determinism-sweep`: **1104 tests, 1102 passed**; the two failures were `TextureTile_RenderByteIdentical` (the
+baseline failure #45) and `GiSplit_Boundary`. The second was a second defect of T-G, found only on Linux: a `cmake -P` script starts with the old policies, so on
+CMake 3.28 `IN_LIST` (CMP0057) was read as a plain argument and the script errored even with no sub-check enabled. Fix (staged, same file as the macOS fix):
+`cmake_minimum_required(VERSION 3.19)` at the top of `check_gi_split_boundary.cmake`. After pushing it and configuring the remote tree with
+`-DGI032_BOUNDARY_CHECKS=<the Phase 3 list>`, `ctest -L architecture` is **30 of 30** and the full report is `ALLOWED ... DB-025 x 3`, `RESULT PASS`.
+Images: 915 in the manifest, **0 differing, 0 missing** (4 new images of the new tests); the `MaxBlockAvgDiff` listing is identical to the base; the dynamically
+resolved undefined symbols of `libshader_shading.so` are the same 461 as the base. (A tree configured before Phase 3 keeps its cached, empty
+`GI032_BOUNDARY_CHECKS`: configure with `-DGI032_BOUNDARY_CHECKS="friends-texture;texture-names-viewer;hiders-no-viewer-irradiance"`.)
+
+**Other notes.** The two edits to the approved `check_gi_split_boundary.cmake` (the lost failures, the policy) are defect fixes, not changes of what it checks; both
+are in the staged diff for ratification. `contract_forwarder.h` and M1 to M6 are not touched (their phases are later). Two shared-scratchpad and shared-stash
+facts worth knowing: `git stash` is shared across worktrees (the run used and dropped `stash@{0}` by message), and the pristine `src/` copy used for the red run
+is `scratchpad/032-pristine` (untracked, outside the repo).
+
+**Each of the ten T-G sub-checks, red on its own (maintainer's request after Phase 3).** The fixed `check_gi_split_boundary.cmake`, once per sub-check
+(`CHECKS=<that one>`), through `cpujob`, against a `git archive 1cc0416c src` copy (the Phase 2 commit's `src/`) under `build-logs/`, removed afterwards
+(logs `build-logs/032-p3-each-<check>.log`):
+
+| Sub-check | Exit | Matches (what they are) |
+|---|---|---|
+| friends-texture | 1 | 3 (`brickmap.h` `CBrickMapGeometry`; `pointCloud.h`, `texture3d.h` `CRemotePtCloudChannel`) |
+| texture-names-viewer | 1 | 9 (`CBrickMapGeometry`, `CDataView`, `CRemote*`, `dataView.h` in `brickmap.h`, `pointCloud.h`, `pointHierarchy.h`, `texture3d.h`) |
+| hiders-no-viewer-irradiance | 1 | 1 (`irradiance.cpp` `#include "debug.h"`) |
+| friends-hiders | 1 | 1 (`irradiance.h` `friend class CRemoteICacheChannel`) |
+| texture-names-shading | 1 | 7 (`CShadingContext` in `brickmap.h`, `pointCloud.h`, `pointHierarchy.{h,cpp}`, `texture3d.h`) |
+| texture-names-core | 1 | 6 (the six historical comments naming `CRenderer`) |
+| texture-includes | 1 | 1 (`texture3d.h -> dataviewer/dataView.h`, class Consumer) |
+| hiders-no-texture | 1 | 6 (`irradiance.{h,cpp}`, `irradianceDispatch.cpp`, `radiance.cpp` include Texturing headers) |
+| files-absent | 1 | 9 (the five files, four code mentions of `irradianceSampleAccept`) |
+| hiders-no-viewer | 1 | 3 (`irradiance.cpp` `debug.h`; `photonMap.h` `dataView.h` and `CDataView`) |
+
+Every sub-check exits non-zero for its stated reason. The three Phase 3 ones are green on the Phase 3 tree; the other seven stay red until their phases.
+
+**Approved after the Phase 3 report** (also in plan.md and tasks.md D17 to D19): `treeDepth()` for the cache's depth accessor, `dataLoad.h` including `dataView.h`, and
+`const getNumPoints()`; the two `check_gi_split_boundary.cmake` fixes were ratified after the fact.

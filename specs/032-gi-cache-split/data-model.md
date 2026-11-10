@@ -52,7 +52,7 @@ Unchanged: `samples` (list head), `children[8]`, `center`, `side`.
   - A fresh root is built over the transformed world bound otherwise.
   - The file is written in the destructor when `CACHE_WRITE`.
 - **Read interface** (R7): `forEachNode`, `forEachRecord`, `rootCenter`, `rootSide`, `setRoot`, `insertReceived`,
-  `maxDepth`, plus `bound`, `typeName`, `numChannels`, `channelName`.
+  `treeDepth`, plus `bound`, `typeName`, `numChannels`, `channelName`.
 
 ### `IrradianceSample` (Shading, `libshader/shading/irradianceSampler.h`)
 

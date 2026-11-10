@@ -283,7 +283,7 @@ SC-004's recorded `DataScene` (T-B) pins all of this.
   - `rootCenter()`, `rootSide()`, `setRoot(center, side)`.
   - `insertReceived(const CCacheSample &)`: copy into the cache's memory and place by the record's `dP` with no
     clamp, no `K` and no lock, exactly as `remoteChannel.cpp:578-622`.
-  - `maxDepth()`.
+  - `treeDepth()` (named so because the member `maxDepth` exists; approved after Phase 3).
 - **`CPointCloud`**: `points()` (`items + 1`), `pointData()` (`data.array`) and `numPoints()` (existing
   `getNumPoints`), with the existing `store` and `dataSize`.
 - **`CTexture3d`**:

@@ -20,7 +20,11 @@
 # green). tests/architecture's GiSplit_Boundary reads GI032_BOUNDARY_CHECKS, the sub-checks the finished phases enable.
 
 option(OPENRENDER_032_RED_TESTS "Define the spec 032 red-first tests (scratch trees only: they do not build before their phase)" OFF)
-set(GI032_BOUNDARY_CHECKS "" CACHE STRING "Sub-checks of GiSplit_Boundary that are enabled (a ;-list); empty runs none")
+# The sub-checks the finished phases have turned on (each phase appends its own in its test gate). A tree configured before a phase
+# landed keeps its cached value: configure with -DGI032_BOUNDARY_CHECKS="<list>" (or an empty list to run none).
+#   Phase 3: friends-texture texture-names-viewer hiders-no-viewer-irradiance
+set(GI032_BOUNDARY_CHECKS "friends-texture;texture-names-viewer;hiders-no-viewer-irradiance" CACHE STRING
+    "Sub-checks of GiSplit_Boundary that are enabled (a ;-list); empty runs none")
 
 if(APPLE)
     set(GI_SPLIT_PLATFORM macos)

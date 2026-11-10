@@ -30,7 +30,6 @@
 #include "common/algebra.h"
 #include "common/global.h"
 #include "common/os.h"
-#include "dataView.h"
 #include "common/fileResource.h"
 #include "common/rendererc.h"
 
@@ -40,7 +39,7 @@ class CShadingContext;
 // Class				:	CTexture3d
 // Description			:	Base class for 3d textures
 // Comments				:
-class CTexture3d : public CFileResource, public CDataView {
+class CTexture3d : public CFileResource {
     protected:
         ///////////////////////////////////////////////////////////////////////
         // Class				:	CChannel
@@ -76,17 +75,27 @@ class CTexture3d : public CFileResource, public CDataView {
         void getToMatrix(float *m) { movmm(m, to); }
         void getNDCMatrix(float *m) { movmm(m, toNDC); }
 
-        // CDataView channel accessors (FR-016) — shared by every CTexture3d-derived document
-        // type (CBrickMap, CPointCloud); currentChannel()/drawMode() stay per-subclass since
-        // the "currently selected" channel/draw-mode statics live there, not here.
+        // Storage accessors the viewer and the remote channels read, shared by every CTexture3d-derived
+        // structure (CBrickMap, CPointCloud, CIrradianceCache)
         int numChannels() const { return channelCount; }
         const char *channelName(int index) const {
             return (index >= 0 && index < channelCount) ? channels[index].name : NULL;
         }
+        int channelSampleStart(int i) const { return channels[i].sampleStart; }
+        int channelNumSamples(int i) const { return channels[i].numSamples; }
+
+        // Channel definition from a comma-separated list of names (the remote point-cloud channel's setup)
+        void defineChannels(const char *);
+
+        // The transformation of a cloud a remote channel fills (identity, scale 1: the client has no world of its own)
+        void setTransform(const float *f, const float *t) {
+            movmm(from, f);
+            movmm(to, t);
+        }
+        void setDPScale(float s) { dPscale = s; }
 
         int dataSize; // The size of each data sample
     protected:
-        void defineChannels(const char *);
         void defineChannels(int, char **, char **);
         void writeChannels(FILE *);
         void readChannels(FILE *);
@@ -96,8 +105,6 @@ class CTexture3d : public CFileResource, public CDataView {
         float dPscale;      // The amount we need to scale dP by
         int channelCount;   // Number of channels
         CChannel *channels; // List of channels
-
-        friend class CRemotePtCloudChannel;
 };
 
 ///////////////////////////////////////////////////////////////////////

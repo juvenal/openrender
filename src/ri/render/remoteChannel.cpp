@@ -664,13 +664,14 @@ CRemotePtCloudChannel::CRemotePtCloudChannel(CPointCloud *c) : CRemoteChannel(c-
 int CRemotePtCloudChannel::sendRemoteFrame(SOCKET s) {
 
     // Send the number of items
-    rcSend(s, &cloud->numItems, sizeof(int), FALSE);
+    const int numPoints = cloud->getNumPoints();
+    rcSend(s, &numPoints, sizeof(int), FALSE);
 
     // Send the points
-    rcSend(s, cloud->items + 1, sizeof(CPointCloudPoint) * cloud->numItems, FALSE);
+    rcSend(s, cloud->points(), sizeof(CPointCloudPoint) * numPoints, FALSE);
 
     // Send the data
-    rcSend(s, cloud->data.array, sizeof(float) * cloud->dataSize * cloud->numItems, FALSE);
+    rcSend(s, cloud->pointData(), sizeof(float) * cloud->dataSize * numPoints, FALSE);
 
     return TRUE;
 }
@@ -721,12 +722,12 @@ int CRemotePtCloudChannel::sendSetupData(SOCKET s) {
     // encode the channel (tidy this up)
     channelDef[0] = '\0';
     int i = 0;
-    while (i < (cloud->channelCount - 1)) {
-        snprintf(ptr, sizeof(channelDef) - (size_t)(ptr - channelDef), "%s,", cloud->channels[i].name);
-        ptr += strlen(cloud->channels[i].name) + 1;
+    while (i < (cloud->numChannels() - 1)) {
+        snprintf(ptr, sizeof(channelDef) - (size_t)(ptr - channelDef), "%s,", cloud->channelName(i));
+        ptr += strlen(cloud->channelName(i)) + 1;
         i++;
     }
-    strcpy(ptr, cloud->channels[cloud->channelCount - 1].name);
+    strcpy(ptr, cloud->channelName(cloud->numChannels() - 1));
 
     rcSend(s, channelDef, 1024, FALSE);
 
@@ -746,12 +747,13 @@ int CRemotePtCloudChannel::setup(SOCKET s) {
     rcRecv(s, channelDef, 1024, FALSE);
     cloud->defineChannels(channelDef);
 
-    identitym(cloud->to);
-    identitym(cloud->from);
+    matrix identity;
+    identitym(identity);
+    cloud->setTransform(identity, identity);
 
     // set the scale to 1
 
-    cloud->dPscale = 1;
+    cloud->setDPScale(1);
 
     return TRUE;
 }

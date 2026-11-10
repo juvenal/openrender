@@ -27,6 +27,8 @@
 #ifndef IRRADIANCE_H
 #define IRRADIANCE_H
 
+#include <vector>
+
 #include "common/algebra.h"
 #include "common/global.h"
 #include "common/os.h"
@@ -110,11 +112,56 @@ class CIrradianceCache : public CTexture3d {
 
         void lookup(float *, const float *, const float *, const float *, const float *, CShadingContext *);
 
-        void draw();
-        int keyDown(int key);
         const char *typeName() const { return "Irradiance Cache"; }
 
         void bound(float *bmin, float *bmax);
+
+        // The read interface of the data viewer and the remote channel
+        ///////////////////////////////////////////////////////////////////////
+        // Method				:	forEachNode
+        // Description			:	Visit the sample list of every node, in the tree's stack order
+        // Comments				:	The root first; the children of a node are pushed 0 to 7 and popped last in, first out
+        //							(the order the remote channel sends them). visit(const CCacheSample *head): the head of the
+        //							node's list, which may be NULL.
+        template <class F>
+        void forEachNode(F &&visit) const {
+            std::vector<const CCacheNode *> stack;
+            stack.push_back(root);
+            while (!stack.empty()) {
+                const CCacheNode *cNode = stack.back();
+                stack.pop_back();
+
+                visit((const CCacheSample *)cNode->samples);
+
+                for (int i = 0; i < 8; i++) {
+                    const CCacheNode *tNode;
+                    if ((tNode = cNode->children[i]) != NULL) {
+                        stack.push_back(tNode);
+                    }
+                }
+            }
+        }
+
+        // Visit every record: forEachNode's order, each node's list from its head. visit(const CCacheSample &).
+        template <class F>
+        void forEachRecord(F &&visit) const {
+            forEachNode([&](const CCacheSample *head) {
+                for (const CCacheSample *cSample = head; cSample != NULL; cSample = cSample->next) {
+                    visit(*cSample);
+                }
+            });
+        }
+
+        const float *rootCenter() const { return root->center; }
+        float rootSide() const { return root->side; }
+        void setRoot(const float *center, float side) {
+            movvv(root->center, center);
+            root->side = side;
+        }
+        int treeDepth() const { return maxDepth; } // the depth of the deepest node (the member of that name is private)
+
+        // Place a record a remote server sent (a copy; placed by its own dP, with no clamp, no K and no lock)
+        void insertReceived(const CCacheSample &record);
 
     private:
         void writeNode(FILE *, CCacheNode *);
@@ -131,7 +178,6 @@ class CIrradianceCache : public CTexture3d {
 
         TMutex mutex;
 
-        static int drawDiscs; // Which type to draw
         static CChannel cacheChannels[3];
 
         friend class CRemoteICacheChannel;

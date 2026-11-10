@@ -82,9 +82,12 @@ set(ri_sources
 	geometry/csgSolid.cpp
 	geometry/surfaceCrossingDispatch.cpp
 	geometry/geometryHost.cpp
+	dataviewer/brickMapView.cpp
 	dataviewer/dataLoad.cpp
 	dataviewer/dataView.cpp
 	dataviewer/debug.cpp
+	dataviewer/irradianceCacheView.cpp
+	dataviewer/pointCloudView.cpp
 	geometry/delayed.cpp
 	state/displayChannel.cpp
 	geometry/dlobject.cpp

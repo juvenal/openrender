@@ -24,6 +24,9 @@
 #   hiders-no-viewer              (5) no dataView.h / debug.h / CDataView in any file of src/ri/hiders
 #
 # Every match is printed with its file and line, whether or not the sub-check is enabled, only for the enabled ones.
+# A -P script starts with the old policies; this one uses IN_LIST (CMP0057), which CMake 3.28 (the Linux baseline) reads as a plain
+# argument unless the policy is set. The project floor is 3.19.
+cmake_minimum_required(VERSION 3.19)
 include(${CMAKE_CURRENT_LIST_DIR}/domain_classify.cmake)
 or_check_begin()
 or_map_load("${MAP}" "${SOURCE_DIR}" "${BUILD_DIR}")
@@ -36,6 +39,14 @@ foreach(_c IN LISTS _enabled)
         or_check_fail("unknown sub-check '${_c}' in CHECKS")
     endif()
 endforeach()
+
+# gi_fail(<message>): a failure raised inside a function. or_check_fail() is a macro and counts in the scope it is expanded in, so a
+# call inside gi_scan() or gi_include_classes() would be lost when they return; the failures are kept in a global property and
+# counted at the top level before or_check_end().
+function(gi_fail msg)
+    message("FAIL: ${msg}")
+    set_property(GLOBAL APPEND PROPERTY GI_SPLIT_FAILURES "${msg}")
+endfunction()
 
 # the code files of a directory (recursive)
 function(gi_files dir out)
@@ -93,7 +104,7 @@ function(gi_scan check regex blind)
         endforeach()
     endforeach()
     if(_n GREATER 0)
-        or_check_fail("${check}: ${_n} match(es)")
+        gi_fail("${check}: ${_n} match(es)")
     else()
         message("  ${check}: no match")
     endif()
@@ -166,7 +177,7 @@ function(gi_include_classes check files allowed forbid_mode)
         endforeach()
     endforeach()
     if(_n GREATER 0)
-        or_check_fail("${check}: ${_n} include(s)")
+        gi_fail("${check}: ${_n} include(s)")
     else()
         message("  ${check}: no match")
     endif()
@@ -210,4 +221,8 @@ endif()
 
 list(LENGTH _enabled _ne)
 message("${_ne} sub-check(s) enabled")
+get_property(_function_failures GLOBAL PROPERTY GI_SPLIT_FAILURES)
+foreach(_m IN LISTS _function_failures)
+    math(EXPR _or_check_failures "${_or_check_failures} + 1")
+endforeach()
 or_check_end(GiSplit_Boundary)

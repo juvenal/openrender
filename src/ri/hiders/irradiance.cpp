@@ -27,7 +27,6 @@
 #include <math.h>
 
 #include "common/portable_io.h"
-#include "debug.h"
 #include "common/diagnostics.h"
 #include "irradiance.h"
 #include "common/memory.h"
@@ -51,7 +50,6 @@ const float weightNormalDenominator = (float)(1 / (1 - cos(radians(10))));
 //
 ///////////////////////////////////////////////////////////////////////
 
-int CIrradianceCache::drawDiscs = TRUE;
 CTexture3d::CChannel CIrradianceCache::cacheChannels[3] = {
     {"irradiance", 3, 0, NULL, TYPE_COLOR},
     {"occlusion", 1, 3, NULL, TYPE_FLOAT},
@@ -533,87 +531,59 @@ void CIrradianceCache::clamp(CCacheSample *nSample) {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CIrradianceCache
-// Method				:	draw
-// Description			:	Draw the irradiance cache
-// Return Value			:
-// Comments				:
-void CIrradianceCache::draw() {
-    CCacheSample *cSample;
-    CCacheNode *cNode;
-    CCacheNode **stackBase = (CCacheNode **)alloca(maxDepth * sizeof(CCacheNode *) * 8);
-    CCacheNode **stack;
-    int i, j;
-    float P[chunkSize * 3];
-    float C[chunkSize * 3];
-    float N[chunkSize * 3];
-    float dP[chunkSize];
-    float *cP, *cC, *cN, *cdP;
-
-    j = chunkSize;
-    cP = P;
-    cC = C;
-    cN = N;
-    cdP = dP;
-    stack = stackBase;
-    *stack++ = root;
-    while (stack > stackBase) {
-        cNode = *(--stack);
-
-        // Sum the values in this level
-        for (cSample = cNode->samples; cSample != NULL; cSample = cSample->next, j--, cP += 3, cN += 3, cdP++, cC += 3) {
-            if (j == 0) {
-                if (drawDiscs)
-                    drawDisks(chunkSize, P, dP, N, C);
-                else
-                    drawPoints(chunkSize, P, C);
-                cP = P;
-                cC = C;
-                cN = N;
-                cdP = dP;
-                j = chunkSize;
-            }
-
-            movvv(cP, cSample->P);
-            movvv(cN, cSample->N);
-            *cdP = cSample->dP;
-            movvv(cC, cSample->irradiance);
-        }
-
-        // Check the children
-        for (i = 0; i < 8; i++) {
-            CCacheNode *tNode;
-
-            if ((tNode = cNode->children[i]) != NULL) {
-                *stack++ = tNode;
-            }
-        }
-    }
-
-    if (j != chunkSize) {
-        if (drawDiscs)
-            drawDisks(chunkSize - j, P, dP, N, C);
-        else
-            drawPoints(chunkSize - j, P, C);
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CIrradianceCache
-// Method				:	keyDown
-// Description			:	handle keypresses
+// Method				:	insertReceived
+// Description			:	Place a record a remote server sent
 // Return Value			:	-
-// Comments				:
-int CIrradianceCache::keyDown(int key) {
-    if ((key == 'd') || (key == 'D')) {
-        drawDiscs = TRUE;
-        return TRUE;
-    }
-    else if ((key == 'p') || (key == 'P')) {
-        drawDiscs = FALSE;
-        return TRUE;
+// Comments				:	The record is copied into the cache's memory and placed by its own dP, with no clamp(), no
+//							K = 0.4 / maxError and no lock: what the remote channel has always done on receipt
+void CIrradianceCache::insertReceived(const CCacheSample &record) {
+    CCacheSample *cSample = (CCacheSample *)memory->alloc(sizeof(CCacheSample));
+    *cSample = record;
+    cSample->next = NULL;
+
+    const float rMean = cSample->dP; // error adjustment!!
+    vector P;
+    movvv(P, cSample->P);
+
+    CCacheNode *cNode = root;
+    int depth = 0;
+    while (cNode->side > (2 * rMean)) {
+        int i, j;
+        depth++;
+
+        for (j = 0, i = 0; i < 3; i++) {
+            if (P[i] > cNode->center[i]) {
+                j |= 1 << i;
+            }
+        }
+
+        if (cNode->children[j] == NULL) {
+            CCacheNode *nNode = (CCacheNode *)memory->alloc(sizeof(CCacheNode));
+
+            for (i = 0; i < 3; i++) {
+                if (P[i] > cNode->center[i]) {
+                    nNode->center[i] = cNode->center[i] + cNode->side / (float)4;
+                }
+                else {
+                    nNode->center[i] = cNode->center[i] - cNode->side / (float)4;
+                }
+            }
+
+            cNode->children[j] = nNode;
+            nNode->side = cNode->side * 0.5f;
+            nNode->samples = NULL;
+            for (i = 0; i < 8; i++)
+                nNode->children[i] = NULL;
+        }
+
+        cNode = cNode->children[j];
     }
 
-    return FALSE;
+    cSample->next = cNode->samples;
+    cNode->samples = cSample;
+    if (depth > maxDepth) {
+        maxDepth = depth;
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////

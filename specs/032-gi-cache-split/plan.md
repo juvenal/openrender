@@ -454,3 +454,12 @@ tasks.md was approved with every recommendation. Where they change this plan, th
   therefore stay non-final (`contracts/irradiance-cache.md`, "Test seam"). The wrapper needs M7: removing `final` from
   `CContractForwarder` (`tools/test-edit-patches/M7-contract_forwarder.diff`, applied when T-E is enabled in Phase 7).
 - T-C and T-D are OBJECT libraries in `tests/gi_split`'s red block until M6a defines the real library in `tests/unit/texture_only`.
+
+## Phase 3 notes (2026-11-09, maintainer answers after the Phase 3 report)
+
+- The cache's read interface names its depth accessor `treeDepth()` (the private member `maxDepth` has the other name).
+- `src/ri/dataviewer/dataLoad.h` includes `dataView.h` instead of forward-declaring `CDataView`: `CPointCloud` no longer reaches it through
+  `texture3d.h`, and `test_data_pointcloud.cpp` (approved, unedited) needs it complete for its `dynamic_cast`.
+- `CPointCloud::getNumPoints()` is `const`.
+- `check_gi_split_boundary.cmake` was fixed twice after Phase 3 testing (failures raised inside functions were lost; `cmake -P` needs
+  `cmake_minimum_required(VERSION 3.19)` for `IN_LIST`); both ratified.

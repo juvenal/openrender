@@ -33,13 +33,6 @@
 #include "common/random.h"
 
 ///////////////////////////////////////////////////////////////////////
-// globals
-///////////////////////////////////////////////////////////////////////
-
-int CPointCloud::drawDiscs = TRUE;
-int CPointCloud::drawChannel = 0;
-
-///////////////////////////////////////////////////////////////////////
 // Class				:	CPointCloud
 // Method				:	CPointCloud
 // Description			:	Ctor
@@ -337,95 +330,6 @@ void CPointCloud::getPoint(int i, float *C, float *P, float *N, float *dP) {
     movvv(P, p->P);
     movvv(N, p->N);
     dP[0] = p->dP;
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CPointCloud
-// Method				:	draw
-// Description			:	Gui interface
-// Return Value			:
-// Comments				:
-void CPointCloud::draw() {
-    float P[chunkSize * 3];
-    float C[chunkSize * 3];
-    float N[chunkSize * 3];
-    float dP[chunkSize];
-    int i, j;
-    int sampleStart = channels[drawChannel].sampleStart;
-    int numSamples = channels[drawChannel].numSamples;
-    float *cP = P;
-    float *cC = C;
-    float *cN = N;
-    float *cdP = dP;
-    CPointCloudPoint *cT = items + 1;
-
-    // Collect and dispatch the photons
-    for (i = numItems, j = chunkSize; i > 0; i--, cT++, cP += 3, cdP++, cN += 3, cC += 3, j--) {
-        if (j == 0) {
-            if (drawDiscs)
-                drawDisks(chunkSize, P, dP, N, C);
-            else
-                drawPoints(chunkSize, P, C);
-            cP = P;
-            cC = C;
-            cN = N;
-            cdP = dP;
-            j = chunkSize;
-        }
-
-        movvv(cP, cT->P);
-        movvv(cN, cT->N);
-        *cdP = cT->dP; // was /dPscale;	but should already be in world
-
-        float *DDs = data.array + cT->entryNumber + sampleStart;
-        if (numSamples == 1) {
-            initv(cC, DDs[0]);
-        }
-        else if (numSamples == 2) {
-            initv(cC, DDs[0], DDs[1], 0);
-        }
-        else {
-            movvv(cC, DDs);
-        }
-    }
-
-    if (j != chunkSize) {
-        if (drawDiscs)
-            drawDisks(chunkSize - j, P, dP, N, C);
-        else
-            drawPoints(chunkSize - j, P, C);
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CPointCloud
-// Method				:	keyDown
-// Description			:	handle keypresses
-// Return Value			:	-
-// Comments				:
-int CPointCloud::keyDown(int key) {
-    if ((key == 'd') || (key == 'D')) {
-        drawDiscs = TRUE;
-        return TRUE;
-    }
-    else if ((key == 'p') || (key == 'P')) {
-        drawDiscs = FALSE;
-        return TRUE;
-    }
-    else if ((key == 'q') || (key == 'Q')) {
-        drawChannel--;
-        if (drawChannel < 0)
-            drawChannel = 0;
-        return TRUE;
-    }
-    else if ((key == 'w') || (key == 'W')) {
-        drawChannel++;
-        if (drawChannel >= channelCount)
-            drawChannel = channelCount - 1;
-        return TRUE;
-    }
-
-    return FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////
