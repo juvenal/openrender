@@ -63,3 +63,17 @@ target_link_libraries(test_ribout_shader_order PRIVATE ribRender openrendercommo
 add_test(NAME RibOut_ShaderStatementOrder COMMAND test_ribout_shader_order)
 set_tests_properties(RibOut_ShaderStatementOrder PROPERTIES TIMEOUT 60
     LABELS "rib_parse;unit" ENVIRONMENT "${SAMPLING_OPTION_ENV}")
+
+# Spec 030 (hider and integrator registry), FR-017 / FR-018: the Integrator statement is parsed into the options block.
+# Red until Phase 7 (no Integrator statement, no options members): behind the red-first option.
+if(OPENRENDER_030_RED_TESTS)
+    add_executable(test_integrator_statement test_integrator_statement.cpp)
+    target_compile_features(test_integrator_statement PRIVATE cxx_std_20)
+    target_include_directories(test_integrator_statement PRIVATE ${SAMPLING_OPTION_INCLUDES})
+    target_link_libraries(test_integrator_statement PRIVATE ribRender openrendercommon)
+    file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/work/RibParse_IntegratorStatement)
+    add_test(NAME RibParse_IntegratorStatement COMMAND test_integrator_statement
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/work/RibParse_IntegratorStatement)
+    set_tests_properties(RibParse_IntegratorStatement PROPERTIES TIMEOUT 60
+        LABELS "rib_parse;unit" ENVIRONMENT "${SAMPLING_OPTION_ENV}")
+endif()

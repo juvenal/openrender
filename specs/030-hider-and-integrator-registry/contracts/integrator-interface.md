@@ -20,6 +20,32 @@ Transport includes Infra (`common/`, `include/`) only in this spec: no Graphics 
 header is needed yet (they are allowed by D30 for 042). It never includes a Hiders, Scene Interface or Core
 header (the `transport-cycle` fixture proves a Transport → Hiders include fails).
 
+## Registry API (internal C++; `integratorRegistry.h`)
+
+`CIntegratorRegistry` **mirrors `CHiderRegistry`** (contracts/hider-registration.md "Registry API") with the integrator
+table type; its API is pinned here so the tests can be written against it (maintainer approval of the Phase 2 test
+drafts, 2026-11-09):
+
+```cpp
+class CIntegratorRegistry {
+public:
+    // Same rules as CHiderRegistry::add: validate, version check, store; false and one diagnostic when refused, the
+    // first registration stays; a refusal is of the WHOLE table (a name or alias collision, an unnamed table, a version
+    // or size refusal): nothing of it is registered.
+    bool add(const OrIntegratorTable *table, const char *origin);
+    struct SLookup { const OrIntegratorTable *table; const OrIntegratorAlias *alias; };  // alias == nullptr for a name
+    SLookup find(const char *nameOrAlias) const;   // exact, case-sensitive; names and aliases both resolve
+    int size() const;
+    const OrIntegratorTable *at(int i) const;      // registration order
+};
+CIntegratorRegistry &integratorRegistry();         // process instance: classic + static registrars, once (std::call_once)
+```
+
+In a program that links no integrator other than the built-in (`Registry_IntegratorLookup`,
+`Link_StaticConsumerRegistries`), `integratorRegistry().size()` is exactly **1** (`classic`). A test file's
+`OR_REGISTER_INTEGRATOR` entries follow it in append order. A local `CIntegratorRegistry` instance is what the unit
+tests use for collisions and rejections.
+
 ## Capability vocabulary (`capability.h`)
 
 ```c
@@ -103,14 +129,16 @@ typedef struct OrIntegratorTable {
   the host reports every 0 (research R9). Returning a status other than `OR_STATUS_OK` makes the host report
   `error(CODE_BADTOKEN, "Integrator \"%s\" could not be configured")` and **refuse** the frame through the
   same path as an unsupported pair: `configure` runs before `beginDisplays()`, so no display is started and
-  no file is written. `classic` always returns OK.
+  no file is written. The instance `create` returned is **destroyed** (through the table's `destroy`, so
+  `destroy` calls equal `create` calls); `prepare` and `finish` are never called. `classic` always returns OK.
 - `prepare`: after the per-thread hiders exist and the displays have started, before any render thread. A
   non-OK status (`error(CODE_BADTOKEN, "Integrator \"%s\" could not prepare the frame")`) **aborts** the
   frame: the hiders are destroyed at once (`contexts` becomes `NULL`), `HIDER_BREAK` is set,
   `renderFrame()` spawns no thread, `finish` is not called, and the started displays are finished by `endDisplays()` as in today's "no
   active display" abort (a driver may write its file). This is not the refusal, whose "no output file"
-  guarantee holds only for failures detected before the displays. `classic` always returns OK, so no
-  built-in reaches it.
+  guarantee holds only for failures detected before the displays. Everything created for the frame is
+  **destroyed** at once: the per-thread hiders built so far (each through its table's `destroy`) and the integrator
+  instance (through the table's `destroy`, without `finish`). `classic` always returns OK, so no built-in reaches it.
 - `finish`: at the start of `endFrame()`, before the hiders are destroyed, once per frame for which
   `prepare` returned OK.
 - Threading: all three are called on the thread that runs `RiWorldBegin`/`RiWorldEnd`, never concurrently.
@@ -139,7 +167,13 @@ endFrame():    finish -> destroy -> delete hiders -> ... -> endDisplays -> clear
 | prepare / finish | return at once |
 
 Each lifecycle slot increments one atomic counter readable through `transportClassicLifecycleCounts()`
-(declared in `classicIntegrator.h`, used only by tests; it changes no output).
+(declared in `classicIntegrator.h`, used only by tests; it changes no output). It returns **by value** a struct of three
+`uint64_t`, one per slot:
+
+```cpp
+struct SClassicLifecycleCounts { uint64_t configure; uint64_t prepare; uint64_t finish; };
+SClassicLifecycleCounts transportClassicLifecycleCounts();   // a snapshot of the three counters
+```
 
 ## Diagnostics
 
@@ -147,8 +181,8 @@ Each lifecycle slot increments one atomic counter readable through `transportCla
 |---|---|---|
 | unknown integrator at frame begin | `CODE_BADTOKEN` (error) | `Integrator "<name>" unavailable; registered: <n1>, <n2>. Using "classic"` |
 | unaccepted parameter | `CODE_BADTOKEN` (error; maintainer answer Q4: `orender` exits -1, like an unknown `Option`) | `Integrator "<name>" does not define parameter "<p>"; ignored` |
-| unsupported pair | `CODE_LIMIT` (error) | `Hider "<h>" cannot run integrator "<i>": missing "<c>" <v>; "<c2>" <v1> provided, <v2> required; the frame is not rendered` |
-| registration refusals | as the hider registry (contracts/hider-registration.md), with "Integrator" | |
+| unsupported pair | `CODE_LIMIT` (error) | `Hider "<h>" cannot run integrator "<i>": <shortfall>[; <shortfall>]...; the frame is not rendered`, where a `<shortfall>` is `missing "<c>" <v>` (the capability is not provided; `<v>` is the version required) or `"<c>" <v1> provided, <v2> required` (provided at a lower version), versions written `MAJOR.MINOR.PATCH` (e.g. `1.0.0`), shortfalls in the order of the integrator's `required` array, joined by `; `; one error per refused frame |
+| registration refusals | as the hider registry (contracts/hider-registration.md), with "Integrator"; a MAJOR mismatch and a `structSize` smaller than `sizeof(OrIntegratorTable)` both report `CODE_VERSION` and register nothing | |
 
 ## Version history (to be written in `integratorAbi.h`)
 

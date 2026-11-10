@@ -66,6 +66,8 @@ if (!refused):
     if (!aborted) prepareFrameTransport()       prepare; non-OK -> error, aborted
     if (aborted): destroy the hiders created so far at once, delete[] contexts, contexts = NULL,
                   traits cleared, integrator destroyed without finish, hiderFlags |= HIDER_BREAK
+                  (everything created for the frame is destroyed: hiders and integrator instance; a configure failure,
+                   detected earlier, destroyed the instance it had created and refused the frame)
 else:
     contexts stays NULL
 ```

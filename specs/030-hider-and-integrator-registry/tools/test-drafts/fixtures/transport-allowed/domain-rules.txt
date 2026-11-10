@@ -1,0 +1,14 @@
+# Copy of tests/architecture/domain-rules.txt (constitution v1.4.0, spec 030: the Transport domain).
+Core           -> *
+Consumer       -> *
+*              -> Infra
+GraphicsState  ->
+Texturing      ->
+SceneInterface -> GraphicsState Geometry
+Geometry       -> GraphicsState Procedures
+Shading        -> GraphicsState Texturing ShaderDSO
+Hiders         -> GraphicsState Geometry Shading Display Transport
+Transport      -> GraphicsState Geometry Shading
+ShaderDSO      ->
+Procedures     ->
+Display        ->

@@ -104,7 +104,10 @@ void orHiderAddPending(OrHiderTableGetter getter);   // defined ONCE, out of lin
 class CHiderRegistry {
 public:
     // Validates (R2), checks the version (checkPluginVersion overload + checkPluginTable, R10), stores.
-    // Returns false and reports one diagnostic when refused; the first registration stays.
+    // Returns false and reports one diagnostic when refused; the first registration stays. A refusal is of the
+    // WHOLE table: if its name or any one of its aliases collides, or its version or size is refused, nothing of it
+    // is registered (no partial table, no alias without its target). Maintainer-approved at the Phase 2 test
+    // approval, 2026-11-09.
     bool add(const OrHiderTable *table, const char *origin);
 
     // Exact, case-sensitive. Names and aliases both resolve.
@@ -122,6 +125,11 @@ bool hiderProvides(const OrHiderTable *, const char *capability, uint32_t *versi
 
 A local `CHiderRegistry` instance (not the process one) is what unit tests use for duplicate and collision
 refusals, so they do not change the process registry.
+
+In a program that links no hider other than the built-ins (the case of `Link_StaticConsumerRegistries` and of
+`Registry_HiderLookup`), `hiderRegistry().size()` is exactly **4**, in the order `raytrace`, `reyes`, `zbuffer`,
+`photon`; a test file's `OR_REGISTER_HIDER` entries follow them in append order (`Registry_TestDoubleHider`'s two
+doubles make 6).
 
 ## Built-in registrations
 
@@ -145,7 +153,7 @@ overrides it.
 | duplicate name or alias | `CODE_BADTOKEN` (error) | `Hider "<x>" is already registered (by "<first>"); the second registration is ignored` |
 | table without a name | `CODE_BADTOKEN` (error) | `Hider registration without a name ignored (<origin>)` |
 | non-NULL pair field | `CODE_BADTOKEN` (warning) | `Hider alias "<a>" names integrator "<i>"; pair aliases are not supported yet, the alias selects the hider only` |
-| version or table size | `CODE_VERSION` | `checkPluginVersion` (the built-in overload taking the declared version, maintainer answer Q5) / `checkPluginTable` texts (spec 037) |
+| version or table size | `CODE_VERSION` (error), for **both** a MAJOR the host does not support (a table of MAJOR 3) **and** a `structSize` smaller than `sizeof(OrHiderTable)`; the table is not registered | `checkPluginVersion` (the built-in overload taking the declared version, maintainer answer Q5) / `checkPluginTable` texts (spec 037) |
 | deprecated alias used | `CODE_BADTOKEN` (warning) | the alias's `deprecationWarning` |
 | unknown name at frame begin | `CODE_BADTOKEN` (error) | `Hider "<name>" unavailable` (today's text) |
 

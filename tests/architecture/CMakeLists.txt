@@ -225,3 +225,27 @@ add_test(NAME Compiler_IncludeBoundary
 foreach(_t SceneInterface_RibOutNoCore SceneInterface_NoCoreInclude SceneInterface_HooksAndRecords SceneInterface_ActiveContextAssignments SceneInterface_RibVectorResidual Compiler_IncludeBoundary)
     set_tests_properties(${_t} PROPERTIES TIMEOUT 60 LABELS "architecture")
 endforeach()
+
+# --- Spec 030 (hider and integrator registry): two mechanical checks ----------------------------------------
+#
+# Each is a `cmake -P` script over the tracked sources. They are red on the starting tree by design (the references
+# and the strcmp chains exist), so they are registered DISABLED while OPENRENDER_030_RED_TESTS is OFF (the red-evidence
+# configure turns the option ON and runs them); the phase that turns one green removes the `if` below:
+# Phase 4 for Hcshader_NoReferences, Phase 8 for Registry_CoreNamesNoHider.
+set(OR030_HCSHADER_EXEMPT_FILES
+    "tests/architecture/unit/test_archcheck_parsers.cpp|tests/visual/CMakeLists.txt|examples/rib/spherelight.rib|examples/rib/quadlight.rib|tests/architecture/check_hcshader_references.cmake|tests/unit/registry/test_hcshader_missing_shader.cpp")
+set(OR030_HCSHADER_REGISTRATION_FILES "tests/architecture/CMakeLists.txt|tests/unit/registry/CMakeLists.txt")
+
+add_test(NAME Hcshader_NoReferences
+    COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
+        "-DEXEMPT_FILES=${OR030_HCSHADER_EXEMPT_FILES}" "-DREGISTRATION_FILES=${OR030_HCSHADER_REGISTRATION_FILES}"
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_hcshader_references.cmake)
+set_tests_properties(Hcshader_NoReferences PROPERTIES TIMEOUT 120 LABELS "architecture")
+
+add_test(NAME Registry_CoreNamesNoHider
+    COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${CMAKE_SOURCE_DIR} -P ${CMAKE_CURRENT_SOURCE_DIR}/check_core_names_no_hider.cmake)
+set_tests_properties(Registry_CoreNamesNoHider PROPERTIES TIMEOUT 60 LABELS "architecture")
+
+if(NOT OPENRENDER_030_RED_TESTS)
+    set_tests_properties(Hcshader_NoReferences Registry_CoreNamesNoHider PROPERTIES DISABLED TRUE)
+endif()

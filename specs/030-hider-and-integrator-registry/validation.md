@@ -36,13 +36,62 @@ Environment: `VCPKG_ROOT=/Users/juvenal/.vcpkg`, `VCPKG_INSTALLED_DIR=/Users/juv
 
 Disk during the macOS baseline: 6.3 GiB at the start, then wildly variable because three other specs build in parallel (it fell to 0.45 GiB for a moment during another spec's job, and was freed by the maintainer to 8.6 GiB); 7.5 GiB free after T011 and the sweeps. Every heavy job of this phase was started with at least 2.3 GiB free.
 
+### Phase 2 drafting stage (T021 to T023, before the TEST-APPROVAL; 2026-11-09)
+
+Drafts live in `tools/test-drafts/` (not compiled by the build, not registered, not under `tests/`); nothing under `tests/` or `src/` has been touched yet.
+
+- **What was checked on the drafts without applying them** (syntax-only compiles with the tree's own flags, `-Werror`, through `cpujob`, nothing run; and two `cmake -P` runs):
+  - `test_registry_hider_statements.cpp` and `test_hcshader_missing_shader.cpp` compile clean against the starting tree (they use RI calls and existing headers only).
+  - The rest compile clean against **stub headers written from the contracts** (`hiderAbi.h/.hpp`, `hiderRegistry.h`, `hiderPeers.h`, `transport/{capability,capabilityCheck,integratorAbi,integratorRegistry,classicIntegrator}.h` and a copy of `options.h` with the integrator members): this checks the drafts against the contracts, not against the future code. The only errors left are the expected one, `RiIntegrator` undeclared (Phase 7 adds it).
+  - `check_hcshader_references.cmake` and `check_core_names_no_hider.cmake` were run on the starting tree: both fail for the stated reason. The first lists exactly the FR-025 places (`shaderRefs.h`, `shading.h`, `src/ri/CMakeLists.txt` x5, `hcshader.{h,cpp}`, `renderer.cpp`, `rendererContext.cpp` x3, `rendererStatics.cpp`, `tests/architecture/domain-map.txt`) and none of the exempt files; the second lists the five `#include`s, the `C*::preDisplaySetup` calls and the `strcmp(hider` chains of `renderer.cpp`.
+  - The two helper scripts were run against a scratch copy of the helpers with the one-line `Integrator` method added (pass) and against the unpatched helpers (fail with `AttributeError` / a nil call): macOS Python 3.15.2 and Lua 5.5.1. Linux (remote `cpujob`, scratch copy in `/tmp`, removed): Lua 5.4.6 and Python 3.12.3, both pass against the patched helpers.
+- **Interface assumptions the drafts make that the contracts do not spell out** (each is a point the later phases must meet or the maintainer must change in the draft): see the T023 report; they are listed in §4 F7.
+
 ## §1 Checkpoint records
 
 (one table per phase: CP-a to CP-d, `ALLOWED`/`METRIC`/`RESULT`; none yet)
 
+### Phase 2 checkpoint (T031, T032; no `src/` change)
+
+| Check | Result |
+|---|---|
+| CP-a build (option OFF, `030-p2-build`, `-j4`) | exit 0, 0 warnings |
+| CP-b suite (`030-p2-suite`, `-LE determinism-sweep -j4`) | **1103 registered, 1099 run, 100% passed**, 232.8 s; the 4 other tests are the registered-but-`DISABLED` script and helper tests (`Not Run (Disabled)`: `Helpers_PrmanIntegratorPython`, `Helpers_PrmanIntegratorLua`, `Hcshader_NoReferences`, `Registry_CoreNamesNoHider`); 1 test skips itself as on the baseline. Equals T007's pass set (1097) plus the two characterization tests |
+| CP-d images | `image_manifest.sh diff`: manifest 915 images, fresh 920, **0 differing, 0 missing**, 5 not in manifest (the new tests' own images under `tests/unit/registry/work/`, information only); `diffs` equal to `baseline-diffs-macos.txt` (empty diff) |
+| CP-c architecture (`030-p2-arch`) | `ctest -L architecture`: 29 of 29 passed (the two new script tests are `Not Run (Disabled)`); full report `ALLOWED`/`METRIC`/`RESULT` lines identical to T009 (`DB-011 x 164`, `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`) |
+
 ## §2 Red evidence
 
-(every Test gate; none yet)
+### Phase 2 (T028 to T030; starting `src/`, generator Unix Makefiles on macOS; logs `build-logs/030-p2-*.log`)
+
+**Characterization tests, green on the starting tree (T028)**, built with the option OFF (`030-p2-build`: exit 0, 0 warnings) and run through ctest (`030-p2-char`, `-V` in `030-p2-char-v.log`): `Registry_HiderAliasDiagnostics` Passed (0.03 s) and `Registry_UnknownHiderFallback` Passed (0.19 s). What they pin, as the run printed it:
+- `Deprecated Hider "stochastic"; use "reyes" instead` once per `stochastic` statement (the API session printed it twice for two statements, the frame with two render threads once);
+- `Hider "bogus" unavailable` once per frame (`./unknown_bogus.rib (10)`), the reyes image byte-identical to `Hider "reyes"`, `RiLastError` set; with a TSM display both `Hider "bogus" unavailable` and `Hider must be reyes (or hidden, or the deprecated stochastic alias) for TSM` appear.
+
+**Compiled tests, red evidence (T029)**: `cmake -B build -S . -DOPENRENDER_030_RED_TESTS=ON` (`030-p2-red-configure`, exit 0), then the eleven new targets with `-- -k` (`030-p2-red-build`, exit 2, log `build-logs/030-p2-red-build.log`). Each target, and the first error that makes it red:
+
+| Target (ctest names) | Result | First error |
+|---|---|---|
+| `test_registry_integrator_table` (Registry_IntegratorLookup, Registry_PairCheck) | build failure | `'transport/capability.h' file not found` |
+| `test_registry_hider_table` (Registry_HiderLookup, Registry_HiderCollisions) | build failure | `'hiderAbi.h' file not found` |
+| `test_registry_hider_double` (Registry_TestDoubleHider) | build failure | `'hiderRegistry.h' file not found` (and `'hiderAbi.hpp'` in `hider_double.cpp`) |
+| `test_registry_pairs` (Registry_PairRefusal_x4, Registry_ClassicPairs) | build failure | `'transport/classicIntegrator.h' file not found` (and `transport/capability.h` in `integrator_doubles.cpp`) |
+| `test_registry_integrator_statements` (Registry_UnknownIntegratorFallback, Registry_IntegratorParameters) | build failure | `use of undeclared identifier 'RiIntegrator'` (plus the doubles' missing headers) |
+| `test_registry_frame_abort` (Registry_FrameAbort) | build failure | its two dependencies `hider_double.cpp` and `integrator_doubles.cpp` (`hiderAbi.hpp`, `transport/capability.h` not found) |
+| `test_integrator_statement` (RibParse_IntegratorStatement) | build failure | `no member named 'integrator' in 'COptions'` (19 errors) and `RiIntegrator` undeclared |
+| `test_scene_interface_integrator_roundtrip` (RibOut_IntegratorRoundTrip) | build failure | `no member named 'integrator' in 'COptions'` (4 errors) |
+| `test_link_static_consumer_registries` (Link_StaticConsumerRegistries) | build failure | `'hiderRegistry.h' file not found` |
+| `test_hcshader_missing_shader` (Hcshader_MissingShader) | **builds** (finding F8) | red by assertion, below |
+| `test_registry_identity` (Registry_IntegratorImageIdentity) | **builds** (finding F8) | red by assertion, below |
+
+Then the option was reconfigured OFF (`030-p2-off`): configure and build exit 0, 0 warnings, `git status` shows no tracked change from the reconfigure.
+
+**Script and runtime tests, red evidence (T030)**, in the option-ON configure (`030-p2-red-scripts`, `build-logs/030-p2-red-scripts.log`): `ctest -R 'Hcshader_NoReferences|Registry_CoreNamesNoHider|Hcshader_MissingShader|Registry_IntegratorImageIdentity|Helpers_PrmanIntegrator'`: **0 of 6 passed**, all six red for the stated reason:
+- `Hcshader_NoReferences` Failed: lists `src/libshader/shading/shaderRefs.h` (1), `shading.h` (1), `src/ri/CMakeLists.txt` (5), `src/ri/hcshader.cpp` (40), `hcshader.h` (11), `renderer.cpp`, `rendererContext.cpp`, `rendererStatics.cpp`, `tests/architecture/domain-map.txt`; no registration line of the new CMake files and no exempt file.
+- `Registry_CoreNamesNoHider` Failed: the five hider `#include`s, the `C*::preDisplaySetup()` calls and the `strcmp(hider` chains in `renderer.cpp`, `rendererContext.cpp`, `rendererDisplay.cpp`, `rendererStatics.cpp`.
+- `Hcshader_MissingShader` Failed by assertion: `CHECK failed: s.frames.count("Failed to find shader \"spherelight\"") == 1` (and `quadlight`): the C++ substitute answers, the only `Failed to find shader` reports are for `defaultsurface` and `defaultlight` (an empty search path).
+- `Registry_IntegratorImageIdentity` Failed by assertion: `Integrator ... RIB Parse error` for every hider and `CHECK failed: classic == none1` (the controls, two renders with no statement, pass).
+- `Helpers_PrmanIntegratorPython` Failed: `AttributeError: 'Ri' object has no attribute 'Integrator'`; `Helpers_PrmanIntegratorLua` Failed: `attempt to call a nil value (method 'Integrator')`.
 
 ## §3 Linux records
 
@@ -59,6 +108,10 @@ Host `juvenal@ubuntu-2404-desktop.v2-labs.io` (GCC 13.3.0, Ubuntu 24.04, 2 cores
 | T015 sweep run 2 (`030-linux-base-sweep2`) | **419 of 419 passed (1338 s)**; the two manifests differ in exactly one path, the image of the crashed test (`baseline-sweep-noise-linux.txt` lists it) |
 | pull + verify | `linux_sync.sh pull`: the 8 Linux-produced files, 8 files, 0 differences |
 
+### Phase 2 light CP-L (T033; `linux_sync.sh push` 3795 files, `verify` 0 differences; remote `cpujob` at `-j2`, default timeout)
+
+Build with the option OFF (`030-linux-p2`: configure + build, exit 0, 0 `warning:` lines under GCC 13 `-Werror`); `Registry_HiderAliasDiagnostics` and `Registry_UnknownHiderFallback` **Passed** (0.91 s, 0.03 s), so the pinned texts are the same on Linux; `ctest -L architecture`: 29 of 29 passed (the two new script tests `Not Run (Disabled)`). The Linux red evidence of the compiled tests is not repeated. The Lua draft ran on Lua 5.4.6 and Python 3.12.3 against the patched helpers (see the drafting-stage note in §0).
+
 ### T016: the Linux starting failure set
 
 The only Linux non-pass set of the starting tree (the only allowed Linux non-pass set for the whole spec, plus the self-skip):
@@ -74,6 +127,8 @@ The only Linux non-pass set of the starting tree (the only allowed Linux non-pas
 - **F3 (T017 (b), (c), (d) measured).** G2's list of `hcshader` mentions is complete and adds `src/libshader/shading/shaderRefs.h:41` (comment), `tests/architecture/domain-map.txt:69` and `tests/architecture/unit/test_archcheck_parsers.cpp:104,130-131` (in-memory data, exempt by Q8). The class count is data only (`kClassCount = 12` plus `kClassNames`); a rule table does not need a row per class, so the 18 fixtures' own `domain-rules.txt` copies need no edit. `ribvector-core-residual.txt` names `src/ri/render/rendererStatics.cpp`, which T110 edits: its row must stay valid or be deleted in the same task.
 - **F4 (T018; updated 2026-11-09).** Both hosts have `python3` (3.15.2 macOS, 3.12.3 Linux). Lua: macOS has `lua` 5.5.1; at the T018 measurement Linux had none, and the maintainer has since installed one there: **`lua` is Lua 5.4.6 on Linux (Ubuntu 24.04 ships no 5.5)**. The new Lua helper test (`tests/lua/test_prman_integrator.lua`) can therefore run on both hosts, and its code must work on **Lua 5.4** (the lower of the two: no 5.5-only syntax or library function). It stays guarded by `find_program`. The existing `tests/python/test_prman.py` and `tests/lua/test_prman.lua` are unregistered pure text-generating helpers; the Lua one needs `LUA_PATH='src/lua/?.lua;;'`.
 - **F5 (build-base).** The frozen copy was made by a scratch script, not a spec tool (the recipe in 029's record is prose only); the numbers are in §0.
+- **F7 (Phase 2 drafts: assumptions beyond the contracts).** (1) `CIntegratorRegistry` mirrors `CHiderRegistry` (`add(table, origin)`, `find(name)` returning `{table, alias}`, `size()`, `at(i)`, `integratorRegistry()`); (2) `transportClassicLifecycleCounts()` returns `SClassicLifecycleCounts { uint64_t configure, prepare, finish; }` by value; (3) a table refused for an alias collision is refused whole (nothing of it registered); (4) the diagnostics of the version check carry `CODE_VERSION` for both a MAJOR mismatch and a too-small `structSize`; (5) a `configure` failure destroys the integrator instance it created (the contract is silent: the draft asserts `destroyed == created`) and a `prepare` failure destroys both the hiders and the instance, without `finish`; (6) the pair-refusal text carries `Hider "<h>" cannot run integrator "<i>"`, `missing "<c>" <v>` or `"<c>" <v1> provided, <v2> required`, and `the frame is not rendered` (the contract's table); (7) the process hider registry holds exactly 4 entries in a program that links no other hider, 6 with `hider_double.cpp`, and the integrator registry 1 / 7 with `integrator_doubles.cpp`; (8) the double hider provides `display-output`, so a frame with a `Display` file driver runs it and the file driver writes an image of the (empty) samples; whether that driver tolerates a hider that submits no samples is first known at Phase 8; (9) `Registry_PairCheck` asserts the verdict's fields; the human-readable text with both versions is asserted in `Registry_PairRefusal_*`, where it is produced.
+- **F8 (T029's premise).** Two new compiled tests compile on the starting tree and are red by assertion at run time, not by build failure: `Hcshader_MissingShader` and `Registry_IntegratorImageIdentity` (RI calls only). The red evidence of T029/T030 therefore shows a failing run for these two, and a build error for the others.
 - **F6 (disk).** `/Volumes/Projects` free space swung between 0.45 GiB and 8.6 GiB during the phase because other specs build and test in parallel. Every heavy job of this phase started above the 2 GB floor; a dip to 1.4 GiB and one to 0.45 GiB happened during other specs' jobs while mine was queued or running (nothing of mine failed).
 
 ## §5 Final summary against SC-001 to SC-011
