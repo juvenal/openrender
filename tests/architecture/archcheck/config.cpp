@@ -37,6 +37,7 @@ namespace archcheck {
             "ShaderDSO",
             "Procedures",
             "Display",
+            "Transport",
             "Core",
             "Infra",
             "Consumer",
@@ -46,7 +47,7 @@ namespace archcheck {
             return static_cast<std::size_t>(c);
         }
 
-        // Classes that take part in the acyclicity check: the nine domains plus Infra.
+        // Classes that take part in the acyclicity check: the ten domains plus Infra.
         bool isLayered(Class c) {
             return c != Class::Core && c != Class::Consumer;
         }

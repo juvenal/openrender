@@ -50,6 +50,9 @@ prefix  src/shadeop/                                 ShaderDSO
 # --- Hiders ------------------------------------------------------------------
 prefix  src/ri/hiders/                               Hiders
 
+# --- Transport (spec 030: integrators and the capability vocabulary) ---------
+prefix  src/ri/transport/                            Transport
+
 # --- Texturing ---------------------------------------------------------------
 prefix  src/ri/texture/                              Texturing
 

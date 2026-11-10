@@ -60,6 +60,20 @@ Drafts live in `tools/test-drafts/` (not compiled by the build, not registered, 
 | CP-d images | `image_manifest.sh diff`: manifest 915 images, fresh 920, **0 differing, 0 missing**, 5 not in manifest (the new tests' own images under `tests/unit/registry/work/`, information only); `diffs` equal to `baseline-diffs-macos.txt` (empty diff) |
 | CP-c architecture (`030-p2-arch`) | `ctest -L architecture`: 29 of 29 passed (the two new script tests are `Not Run (Disabled)`); full report `ALLOWED`/`METRIC`/`RESULT` lines identical to T009 (`DB-011 x 164`, `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0`) |
 
+### Phase 3 checkpoint (T044 to T047; the governance gate; no `src/` change)
+
+| Check | Result |
+|---|---|
+| Amendment applied (T038) | through the `speckit-constitution` workflow with `tools/constitution-1.4.0-draft.md` as input; the hooks were declined (the mandatory `before_constitution` `speckit.git.initialize`, because the repository exists, and the optional `after_constitution` commit). The resulting `git diff` of `.specify/memory/constitution.md` and `.specify/templates/plan-template.md` equals the draft's planned diff line for line (only the function-context text of three hunk headers differs). Constitution 1.4.0, Last Amended 2026-11-09, ten domains, the Sync Impact Report |
+| Data files (T039, T040) | `domain-rules.txt`: header and Source line v1.4.0, `Transport -> GraphicsState Geometry Shading`, Hiders row `... Display Transport`; `domain-map.txt`: `prefix src/ri/transport/ Transport` (no other `src/ri/` prefix shadows it; the `src/ri/hcshader.` line stays for Phase 4). `metrics-baseline.txt` unchanged (T045: the report lists only the classes that use the core, no `Transport` row) |
+| archcheck class (T043) | `config.h` (`Class::Transport` after `Display`, `kClassCount` 13), `config.cpp` (`kClassNames`, comment "the ten domains plus Infra"), `main.cpp` (help text) |
+| CP-a build (`030-p3-build`) | exit 0, 0 warnings |
+| T044 fixtures | `ctest -R ArchFixture`: **20 of 20 passed**, both new fixtures green: `transport-allowed` `RESULT PASS violations=0`; `transport-cycle` `VIOLATION include src/transport/classic.cpp:1 -> src/hiders/hider.h [Transport -> Hiders] rule: allowed-dependency table (Transport may depend on: GraphicsState, Geometry, Shading, Infra)` and `CYCLE Hiders -> Transport -> Hiders ... [FAILING]`, exit 1; every old fixture unchanged |
+| Class-count dependence | none found: `Architecture_Parsers`, `Architecture_DomainBoundaries` and `Architecture_Determinism` pass unedited (`ctest -L architecture`: 31 registered, **31 of 31 passed**, the two new script tests `Not Run (Disabled)`); the full report's `ALLOWED`, `METRIC` and `RESULT` lines are identical to T009 (DB-011 x 164, TOTAL 604/89, `RESULT PASS`) |
+| CP-b suite (`030-p3-suite`, `-LE determinism-sweep -j4`) | **1105 registered, 1101 run, 100% passed** (249.2 s) = Phase 2's 1099 plus the two fixtures; the 4 disabled tests as before; 1 self-skip |
+| CP-d guard | `image_manifest.sh diff`: manifest 915, fresh 920, **0 differing, 0 missing**, 5 not in manifest (the Phase 2 tests' own images); `diffs` equal to `baseline-diffs-macos.txt` |
+| T047 ordering gate | `src/ri/transport` does not exist; `git grep -n 'transport/' -- src` finds nothing; `git diff --cached --name-only -- src` is empty |
+
 ## §2 Red evidence
 
 ### Phase 2 (T028 to T030; starting `src/`, generator Unix Makefiles on macOS; logs `build-logs/030-p2-*.log`)
@@ -93,6 +107,11 @@ Then the option was reconfigured OFF (`030-p2-off`): configure and build exit 0,
 - `Registry_IntegratorImageIdentity` Failed by assertion: `Integrator ... RIB Parse error` for every hider and `CHECK failed: classic == none1` (the controls, two renders with no statement, pass).
 - `Helpers_PrmanIntegratorPython` Failed: `AttributeError: 'Ri' object has no attribute 'Integrator'`; `Helpers_PrmanIntegratorLua` Failed: `attempt to call a nil value (method 'Integrator')`.
 
+### Phase 3 (T042; Test gate for the Transport class)
+
+With the amendment, `domain-rules.txt`, `domain-map.txt` and the two fixtures in place but before the `Class::Transport` edit of `archcheck`, `ctest -R ArchFixture_transport` (`030-p3-red`, after a reconfigure; `archcheck` and both fixture objects built): **0 of 2 passed**. `ArchFixture_transport_allowed`: `archcheck: .../fixtures/transport-allowed/domain-map.txt:8: unknown class 'Transport'`, exit 2, expected 0. `ArchFixture_transport_cycle`: the same message, exit 2, expected 1. Green after T043 (§1).
+
+
 ## §3 Linux records
 
 Host `juvenal@ubuntu-2404-desktop.v2-labs.io` (GCC 13.3.0, Ubuntu 24.04, 2 cores, LLVM 18, Python 3.12.3; no Lua at the time of the baseline, Lua 5.4.6 installed afterwards, see F4), per-spec tree `~/Projects/Development/CLI/openrender-030`, remote `cpujob` at `-j2` (`CPUJOB_TIMEOUT=7200` for the first build and the suites; the remote lock was shared with spec 031). The host was unreachable ("Network is unreachable") from the start of the phase until the coordinator reported it back; T012 to T015 ran after that. `openrender-030` was checked absent before `mkdir -p`; remote disk 9.8 GiB free at T005, 9.1 GiB after the sweeps.
@@ -111,6 +130,10 @@ Host `juvenal@ubuntu-2404-desktop.v2-labs.io` (GCC 13.3.0, Ubuntu 24.04, 2 cores
 ### Phase 2 light CP-L (T033; `linux_sync.sh push` 3795 files, `verify` 0 differences; remote `cpujob` at `-j2`, default timeout)
 
 Build with the option OFF (`030-linux-p2`: configure + build, exit 0, 0 `warning:` lines under GCC 13 `-Werror`); `Registry_HiderAliasDiagnostics` and `Registry_UnknownHiderFallback` **Passed** (0.91 s, 0.03 s), so the pinned texts are the same on Linux; `ctest -L architecture`: 29 of 29 passed (the two new script tests `Not Run (Disabled)`). The Linux red evidence of the compiled tests is not repeated. The Lua draft ran on Lua 5.4.6 and Python 3.12.3 against the patched helpers (see the drafting-stage note in §0).
+
+### Phase 3 light CP-L (T046; `linux_sync.sh push` 3814 files, `verify` 0 differences)
+
+`030-linux-p3`: configure + build exit 0, 0 `warning:` lines under GCC 13 `-Werror`; `ctest -L architecture`: 31 of 31 passed (the two new script tests `Not Run (Disabled)`); `ctest -R ArchFixture_transport`: 2 of 2 passed (both new fixtures green on Linux).
 
 ### T016: the Linux starting failure set
 

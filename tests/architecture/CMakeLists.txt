@@ -153,6 +153,14 @@ archcheck_add_fixture(not-built 0
 archcheck_add_fixture(tagged-untagged-dup 2
     "allowlist\\.txt:3: same edge listed tagged and untagged")
 
+# --- Spec 030 (hider and integrator registry): the Transport domain (FR-030, US6 AS1) -----------------------
+# Added after the Principle VIII amendment (constitution v1.4.0) and before the Transport class of archcheck: until
+# the class exists, archcheck exits 2 on the Transport rows of these fixtures' rule tables.
+archcheck_add_fixture(transport-allowed 0 "RESULT +PASS"
+    FAIL_REGEX "VIOLATION|CYCLE")
+archcheck_add_fixture(transport-cycle 1
+    "VIOLATION include src/transport/classic.cpp:1 -> src/hiders/hider.h +\\[Transport -> Hiders\\].*CYCLE +[A-Za-z >-]*(Hiders[A-Za-z >-]*Transport|Transport[A-Za-z >-]*Hiders)[^[]*\\[FAILING\\]")
+
 # --- User Story 3: renderer-core usage metric (spec 022 T046-T047) ----------
 archcheck_add_fixture(metric-increase 0
     "WARNING +metric Geometry refs 3 > baseline 2 \\(\\+1\\).*WARNING +metric Geometry distinct 2 > baseline 1 \\(\\+1\\).*RESULT +PASS")
