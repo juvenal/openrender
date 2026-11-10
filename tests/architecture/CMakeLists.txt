@@ -225,3 +225,19 @@ add_test(NAME Compiler_IncludeBoundary
 foreach(_t SceneInterface_RibOutNoCore SceneInterface_NoCoreInclude SceneInterface_HooksAndRecords SceneInterface_ActiveContextAssignments SceneInterface_RibVectorResidual Compiler_IncludeBoundary)
     set_tests_properties(${_t} PROPERTIES TIMEOUT 60 LABELS "architecture")
 endforeach()
+
+# Spec 031 (geometry, hider-agnostic): red on the starting tree by the facts they check, registered only while
+# OPENRENDER_031_RED_TESTS is ON; the phase that makes each green moves it out of the gate (Phase 6; the option is
+# removed at tasks T128).
+if(OPENRENDER_031_RED_TESTS)
+    add_test(NAME Geometry_NoHiderShadingNames
+        COMMAND ${CMAKE_COMMAND}
+            -DGEOMETRY_DIR=${CMAKE_SOURCE_DIR}/src/ri/geometry
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/check_geometry_no_names.cmake)
+    add_test(NAME Geometry_RibVectorNoStubs
+        COMMAND ${CMAKE_COMMAND}
+            "-DSOURCES=$<TARGET_PROPERTY:ribVector_obj,SOURCES>"
+            -DOBJECT_DIR=${CMAKE_BINARY_DIR}/src/ri/CMakeFiles/ribVector_obj.dir
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/check_ribvector_no_stubs.cmake)
+    set_tests_properties(Geometry_NoHiderShadingNames Geometry_RibVectorNoStubs PROPERTIES TIMEOUT 120 LABELS "architecture")
+endif()

@@ -93,6 +93,10 @@ add_subdirectory(unit/common)
 add_subdirectory(unit/sampling)
 add_subdirectory(unit/raster)
 add_subdirectory(unit/geometry)
+# Spec 031: the geometry_contract programs are red on the starting tree and are built only while this is ON, until the
+# phase that makes each green moves it out of the gate (tasks T022, T128 removes the option). Default OFF.
+option(OPENRENDER_031_RED_TESTS "Build the spec 031 geometry_contract programs and register the two red architecture checks (red until their phase)" OFF)
+add_subdirectory(geometry_contract)
 add_subdirectory(unit/state)
 add_subdirectory(unit/camera)
 add_subdirectory(unit/motion)

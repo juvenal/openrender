@@ -114,11 +114,35 @@ Nothing overrides `dice(CReyes *)` / `splitToChildren(CReyes *)` outside Geometr
 
 | Phase | CP-a | CP-b | CP-c | CP-d | CP-r | CP-det | CP-m | CP-Lb |
 |---|---|---|---|---|---|---|---|---|
+| 2 | macOS: red-evidence configure ON then OFF, 0 `Building` lines after OFF (nothing rebuilt); Linux: build exit 0, 0 warnings | not re-run (nothing but gated tests and CMake changed; the baseline suite is the Phase 1 record) | `ctest -L architecture`: 29 of 29 on both hosts; report: 344 entries (DB-004 52, DB-006 30, DB-010 8, DB-011 164, DB-017 78, DB-025 12), Geometry 48/15, Hiders 556/81, TOTAL 604/89, `RESULT PASS` | n/a (no image-producing code changed) | n/a | n/a | `-L '^geometry_contract$'` finds no test with the option OFF (both hosts) | done, `Motion_*` 10/10 |
 | 1 | macOS build exit 0, 0 warnings; Linux build exit 0, 0 warnings | macOS 1097/1097 (1 self-skip), twice, sweep 419/419 twice; Linux 1097/1098 (#45) twice, sweep 419/419 twice | `ctest -L architecture`: 29 of 29 on both hosts (344 entries, RESULT PASS) | baselines recorded (0 noise on both hosts) | n/a | n/a | n/a | baseline built and verified (§3) |
 
 ## §2 Red evidence
 
-(Phase 2.)
+### Phase 2 (macOS; `build` configured with `-DOPENRENDER_031_RED_TESTS=ON`, then OFF again)
+
+PAUSE 2a (T021) approved the test list, the F1 case in `Geometry_FrameDefault` (recorded in `contracts/tests.md`) and the `blobbyRepeller.cpp` exception keyed by file and token count.
+Files written: `tests/geometry_contract/{CMakeLists.txt, contract_test.h, fixtures.h, test_dice_through_dicer.cpp, test_intersect_through_ray_context.cpp,
+test_object_sink.cpp, test_frame_default.cpp, test_expansion_through_host.cpp}`; `tests/architecture/{check_geometry_no_names.cmake, check_ribvector_no_stubs.cmake}`;
+edits to `tests/CMakeLists.txt` (the option, default OFF, and `add_subdirectory(geometry_contract)`) and `tests/architecture/CMakeLists.txt` (two `add_test`, inside the option block, label `architecture`).
+The five programs are drafts against the contracts: they could not be compiled (the headers they include do not exist), so any compile fix needed when they first build lands with the
+code of the phase that enables them (Phase 3 for `Geometry_ObjectSink` and `Geometry_FrameDefault`, Phase 6 for the rest) and is shown at that phase's TEST-APPROVAL.
+
+| Test | Result with the option ON (`tools/red-geometry-contract-macos.txt`, `tools/red-architecture-macos.txt`) |
+|---|---|
+| `Geometry_DiceThroughDicer` | build fails: `'dicer.h' file not found` |
+| `Geometry_IntersectThroughRayContext` | build fails: `'rayContext.h' file not found` |
+| `Geometry_ExpansionThroughHost` | build fails: `'dicer.h' file not found` (the first missing header; the host also lacks `expandDelayedObject`/`expandDelayedInstance`) |
+| `Geometry_ObjectSink` | build fails: `'objectSink.h' file not found` |
+| `Geometry_FrameDefault` | build fails: `'geometryFrame.h' file not found` |
+| `Geometry_NoHiderShadingNames` | fails: **311 banned-identifier tokens** under `src/ri/geometry/` (each printed as `file:line: token`); the `blobbyRepeller.cpp` exception sees exactly its 2 `CRenderer` tokens (line 138) |
+| `Geometry_RibVectorNoStubs` | fails: `ribVector_obj` compiles `vector/geometryDispatchStub.cpp`, `rendererDeclarationsDispatchStub.cpp` and `surfaceCrossingDispatchStub.cpp`; and **55 undefined references** in `nm -u` name `CShadingContext`/`CReyes` (e.g. `CSurface::dice(CReyes*)`, `CSurface::intersect(CShadingContext*, CRay*)`) |
+
+Two defects found and fixed in my own new tests before the evidence was recorded (neither touches an approved test): `test_expansion_through_host.cpp` included `diagnostics.h` without its `common/` prefix; and the first
+`Geometry_RibVectorNoStubs` run reported **0** undefined references because `execute_process` truncated the large `nm` output piped into `c++filt` (demangled output 17 bytes). The check now matches the mangled name's
+length-prefixed identifiers (`15CShadingContext`, `6CReyes`, `6CHider`, `16IShadingProducer`), exact by construction, and needs no `c++filt`; it was re-run (the table above is the second run).
+
+Switched back: `OPENRENDER_031_RED_TESTS=OFF`; `cmake --build build` finds nothing to rebuild (0 `Building` lines in `build-logs/p2-offbuild.log`).
 
 ## §3 Linux records
 
@@ -138,6 +162,12 @@ coordinator's word. Every remote job through the remote `cpujob` at `-j2`; the r
 | T018 sweep 1 (`031-l1-sweep1`, `-j2`) | **419 of 419 passed** (1398 s); 419 images in `tools/baseline-sweep-images-linux.sha256` |
 | T018 sweep 2 (noise) | **419 of 419 passed** (1345 s); **0 images differ**; `tools/baseline-sweep-noise-linux.txt` holds a comment only. (029 recorded one flaky bake3d scene on Linux; it did not recur here) |
 | `pull` / `verify` | pulled the 9 Linux-produced files (9 files, 0 differences); after `git add` and a second `push`, **`verify`: 3737 files, 0 differences**, no remote `.git` |
+
+### Phase 2 CP-Lb (Linux build check of the CMake change; option default OFF)
+
+After `git add`, `linux_sync.sh push` (3,747 files) and `verify` (**3747 files, 0 differences**); remote reconfigure (`031-l2-configure`) and incremental build (`031-l2-build`, `-j2`): exit 0, **0 warnings** under GCC 13 `-Werror`;
+`ctest -L architecture`: **29 of 29 passed**; `-L '^geometry_contract$'`: "No tests were found" (the option is OFF: the five programs are not built, as intended); `-R 'Motion_(Replay|CameraSlerpEquivalence)'`: **10 of 10 passed**.
+A final `push`/`verify` after the last edits to the (OFF-gated) check scripts is recorded under the Phase 2 checkpoint in §1.
 
 Linux baseline pass/fail set: everything passes except `TextureTile_RenderByteIdentical` (known, #45). macOS: everything passes. **The Phase 2 gate files of T016 to T018 all exist.**
 

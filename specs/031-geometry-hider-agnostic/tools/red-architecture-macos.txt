@@ -1,0 +1,401 @@
+# Phase 2 red evidence, macOS: ctest -R 'Geometry_(NoHiderShadingNames|RibVectorNoStubs)' with the option ON (job 031-red-arch2), 2026-11-09
+
+Test project build
+    Start 1494: Geometry_NoHiderShadingNames
+1/2 Test #1494: Geometry_NoHiderShadingNames .....***Failed    1.81 sec
+-- VIOLATION src/ri/geometry/blobby.cpp:286: CRenderer
+-- VIOLATION src/ri/geometry/blobby.cpp:410: CRenderer
+-- VIOLATION src/ri/geometry/blobby.cpp:411: CRenderer
+-- VIOLATION src/ri/geometry/blobbyRepeller.cpp:105: CShadingContext
+-- VIOLATION src/ri/geometry/blobbyRepeller.h:31: CShadingContext
+-- VIOLATION src/ri/geometry/bsplinePatchgrid.cpp:437: CShadingContext
+-- VIOLATION src/ri/geometry/bsplinePatchgrid.h:42: CShadingContext
+-- VIOLATION src/ri/geometry/bsplinePatchgrid.h:45: CRiInterface
+-- VIOLATION src/ri/geometry/csgCaps.cpp:293: CShadingContext
+-- VIOLATION src/ri/geometry/csgCaps.cpp:297: CShadingContext
+-- VIOLATION src/ri/geometry/csgCaps.h:73: CShadingContext
+-- VIOLATION src/ri/geometry/csgCaps.h:74: CShadingContext
+-- VIOLATION src/ri/geometry/csgClassify.cpp:72: CShadingContext
+-- VIOLATION src/ri/geometry/csgClassify.cpp:80: CShadingContext
+-- VIOLATION src/ri/geometry/csgClassify.cpp:99: CShadingContext
+-- VIOLATION src/ri/geometry/csgClassify.cpp:103: CShadingContext
+-- VIOLATION src/ri/geometry/csgClassify.cpp:116: CShadingContext
+-- VIOLATION src/ri/geometry/csgClassify.cpp:120: CShadingContext
+-- VIOLATION src/ri/geometry/csgClassify.cpp:120: CShadingContext
+-- VIOLATION src/ri/geometry/csgClassify.cpp:120: CShadingContext
+-- VIOLATION src/ri/geometry/csgClassify.cpp:120: CShadingContext
+-- VIOLATION src/ri/geometry/csgClassify.cpp:120: CShadingContext
+-- VIOLATION src/ri/geometry/csgClassify.h:43: CShadingContext
+-- VIOLATION src/ri/geometry/csgClassify.h:47: CShadingContext
+-- VIOLATION src/ri/geometry/csgClassify.h:61: CShadingContext
+-- VIOLATION src/ri/geometry/csgClassify.h:68: CShadingContext
+-- VIOLATION src/ri/geometry/csgClassify.h:72: CShadingContext
+-- VIOLATION src/ri/geometry/csgClassify.h:88: CShadingContext
+-- VIOLATION src/ri/geometry/csgClassify.h:89: CShadingContext
+-- VIOLATION src/ri/geometry/csgDefinition.h:42: CShadingContext
+-- VIOLATION src/ri/geometry/csgSolid.cpp:93: CShadingContext
+-- VIOLATION src/ri/geometry/csgSolid.cpp:172: CShadingContext
+-- VIOLATION src/ri/geometry/csgSolid.cpp:177: CReyes
+-- VIOLATION src/ri/geometry/csgSolid.cpp:186: CRiInterface
+-- VIOLATION src/ri/geometry/csgSolid.cpp:199: CShadingContext
+-- VIOLATION src/ri/geometry/csgSolid.cpp:227: CShadingContext
+-- VIOLATION src/ri/geometry/csgSolid.h:78: CShadingContext
+-- VIOLATION src/ri/geometry/csgSolid.h:79: CReyes
+-- VIOLATION src/ri/geometry/csgSolid.h:80: CRiInterface
+-- VIOLATION src/ri/geometry/csgSolid.h:84: CShadingContext
+-- VIOLATION src/ri/geometry/csgSolid.h:92: CShadingContext
+-- VIOLATION src/ri/geometry/curves.cpp:700: CRiInterface
+-- VIOLATION src/ri/geometry/curves.cpp:717: CReyes
+-- VIOLATION src/ri/geometry/curves.cpp:731: CShadingContext
+-- VIOLATION src/ri/geometry/curves.h:70: CReyes
+-- VIOLATION src/ri/geometry/curves.h:71: CRiInterface
+-- VIOLATION src/ri/geometry/curves.h:78: CReyes
+-- VIOLATION src/ri/geometry/curves.h:98: CReyes
+-- VIOLATION src/ri/geometry/curves.h:114: CReyes
+-- VIOLATION src/ri/geometry/curves.h:128: CShadingContext
+-- VIOLATION src/ri/geometry/curves.h:129: CReyes
+-- VIOLATION src/ri/geometry/curves.h:130: CRiInterface
+-- VIOLATION src/ri/geometry/curves.h:133: CShadingContext
+-- VIOLATION src/ri/geometry/curves.h:142: CShadingContext
+-- VIOLATION src/ri/geometry/curves.h:155: CRendererContext
+-- VIOLATION src/ri/geometry/delayed.cpp:91: CRenderer
+-- VIOLATION src/ri/geometry/delayed.cpp:103: CRiInterface
+-- VIOLATION src/ri/geometry/delayed.cpp:153: CRenderer
+-- VIOLATION src/ri/geometry/delayed.cpp:165: CRiInterface
+-- VIOLATION src/ri/geometry/delayed.h:43: CShadingContext
+-- VIOLATION src/ri/geometry/delayed.h:44: CReyes
+-- VIOLATION src/ri/geometry/delayed.h:45: CRiInterface
+-- VIOLATION src/ri/geometry/delayed.h:68: CShadingContext
+-- VIOLATION src/ri/geometry/delayed.h:69: CReyes
+-- VIOLATION src/ri/geometry/delayed.h:70: CRiInterface
+-- VIOLATION src/ri/geometry/dlobject.cpp:75: CShadingContext
+-- VIOLATION src/ri/geometry/dlobject.cpp:134: CReyes
+-- VIOLATION src/ri/geometry/dlobject.cpp:143: CRiInterface
+-- VIOLATION src/ri/geometry/dlobject.cpp:152: CShadingContext
+-- VIOLATION src/ri/geometry/dlobject.h:47: CShadingContext
+-- VIOLATION src/ri/geometry/dlobject.h:48: CReyes
+-- VIOLATION src/ri/geometry/dlobject.h:49: CRiInterface
+-- VIOLATION src/ri/geometry/dlobject.h:54: CShadingContext
+-- VIOLATION src/ri/geometry/geometryHost.h:55: CRenderer
+-- VIOLATION src/ri/geometry/geometryHost.h:55: CRendererContext
+-- VIOLATION src/ri/geometry/implicitSurface.cpp:88: CShadingContext
+-- VIOLATION src/ri/geometry/implicitSurface.cpp:194: CReyes
+-- VIOLATION src/ri/geometry/implicitSurface.cpp:203: CRiInterface
+-- VIOLATION src/ri/geometry/implicitSurface.cpp:212: CShadingContext
+-- VIOLATION src/ri/geometry/implicitSurface.h:47: CShadingContext
+-- VIOLATION src/ri/geometry/implicitSurface.h:48: CReyes
+-- VIOLATION src/ri/geometry/implicitSurface.h:49: CRiInterface
+-- VIOLATION src/ri/geometry/implicitSurface.h:54: CShadingContext
+-- VIOLATION src/ri/geometry/motion.h:163: CRendererContext
+-- VIOLATION src/ri/geometry/object.cpp:131: CShadingContext
+-- VIOLATION src/ri/geometry/object.cpp:140: CShadingContext
+-- VIOLATION src/ri/geometry/object.cpp:209: CRenderer
+-- VIOLATION src/ri/geometry/object.cpp:288: CRenderer
+-- VIOLATION src/ri/geometry/object.cpp:288: CRenderer
+-- VIOLATION src/ri/geometry/object.cpp:289: CRenderer
+-- VIOLATION src/ri/geometry/object.cpp:292: CRenderer
+-- VIOLATION src/ri/geometry/object.cpp:294: CRenderer
+-- VIOLATION src/ri/geometry/object.cpp:297: CRenderer
+-- VIOLATION src/ri/geometry/object.cpp:298: CRenderer
+-- VIOLATION src/ri/geometry/object.cpp:307: CRenderer
+-- VIOLATION src/ri/geometry/object.cpp:308: CRenderer
+-- VIOLATION src/ri/geometry/object.cpp:408: CShadingContext
+-- VIOLATION src/ri/geometry/object.h:44: CShadingContext
+-- VIOLATION src/ri/geometry/object.h:45: CReyes
+-- VIOLATION src/ri/geometry/object.h:47: CRendererContext
+-- VIOLATION src/ri/geometry/object.h:48: CRiInterface
+-- VIOLATION src/ri/geometry/object.h:81: CShadingContext
+-- VIOLATION src/ri/geometry/object.h:85: CShadingContext
+-- VIOLATION src/ri/geometry/object.h:98: CRenderer
+-- VIOLATION src/ri/geometry/object.h:107: CShadingContext
+-- VIOLATION src/ri/geometry/object.h:108: CReyes
+-- VIOLATION src/ri/geometry/object.h:109: CRiInterface
+-- VIOLATION src/ri/geometry/object.h:112: CShadingContext
+-- VIOLATION src/ri/geometry/object.h:120: CShadingContext
+-- VIOLATION src/ri/geometry/object.h:124: CShadingContext
+-- VIOLATION src/ri/geometry/object.h:134: CShadingContext
+-- VIOLATION src/ri/geometry/object.h:163: CShadingContext
+-- VIOLATION src/ri/geometry/object.h:164: CRiInterface
+-- VIOLATION src/ri/geometry/object.h:188: CShadingContext
+-- VIOLATION src/ri/geometry/object.h:189: CReyes
+-- VIOLATION src/ri/geometry/object.h:195: CShadingContext
+-- VIOLATION src/ri/geometry/object.h:221: CShadingContext
+-- VIOLATION src/ri/geometry/object.h:228: CShadingContext
+-- VIOLATION src/ri/geometry/object.h:255: CShadingContext
+-- VIOLATION src/ri/geometry/patches.cpp:165: CShadingContext
+-- VIOLATION src/ri/geometry/patches.cpp:185: CShadingContext
+-- VIOLATION src/ri/geometry/patches.cpp:1243: CRiInterface
+-- VIOLATION src/ri/geometry/patches.cpp:1262: CShadingContext
+-- VIOLATION src/ri/geometry/patches.cpp:1274: CReyes
+-- VIOLATION src/ri/geometry/patches.cpp:1288: CShadingContext
+-- VIOLATION src/ri/geometry/patches.cpp:1518: CRiInterface
+-- VIOLATION src/ri/geometry/patches.cpp:1540: CShadingContext
+-- VIOLATION src/ri/geometry/patches.cpp:1552: CReyes
+-- VIOLATION src/ri/geometry/patches.cpp:1823: CShadingContext
+-- VIOLATION src/ri/geometry/patches.cpp:1906: CShadingContext
+-- VIOLATION src/ri/geometry/patches.cpp:1917: CShadingContext
+-- VIOLATION src/ri/geometry/patches.cpp:1928: CShadingContext
+-- VIOLATION src/ri/geometry/patches.h:49: CShadingContext
+-- VIOLATION src/ri/geometry/patches.h:52: CShadingContext
+-- VIOLATION src/ri/geometry/patches.h:53: CRiInterface
+-- VIOLATION src/ri/geometry/patches.h:75: CShadingContext
+-- VIOLATION src/ri/geometry/patches.h:78: CRiInterface
+-- VIOLATION src/ri/geometry/patches.h:102: CShadingContext
+-- VIOLATION src/ri/geometry/patches.h:105: CRiInterface
+-- VIOLATION src/ri/geometry/patches.h:151: CShadingContext
+-- VIOLATION src/ri/geometry/patches.h:156: CShadingContext
+-- VIOLATION src/ri/geometry/patches.h:157: CReyes
+-- VIOLATION src/ri/geometry/patches.h:158: CRiInterface
+-- VIOLATION src/ri/geometry/patches.h:161: CShadingContext
+-- VIOLATION src/ri/geometry/patches.h:169: CShadingContext
+-- VIOLATION src/ri/geometry/patches.h:229: CShadingContext
+-- VIOLATION src/ri/geometry/patches.h:241: CShadingContext
+-- VIOLATION src/ri/geometry/patches.h:242: CReyes
+-- VIOLATION src/ri/geometry/patches.h:243: CRiInterface
+-- VIOLATION src/ri/geometry/patches.h:246: CShadingContext
+-- VIOLATION src/ri/geometry/patches.h:254: CShadingContext
+-- VIOLATION src/ri/geometry/patchgrid.cpp:413: CShadingContext
+-- VIOLATION src/ri/geometry/patchgrid.h:42: CShadingContext
+-- VIOLATION src/ri/geometry/patchgrid.h:45: CRiInterface
+-- VIOLATION src/ri/geometry/points.cpp:274: CRiInterface
+-- VIOLATION src/ri/geometry/points.h:73: CShadingContext
+-- VIOLATION src/ri/geometry/points.h:74: CReyes
+-- VIOLATION src/ri/geometry/points.h:75: CRiInterface
+-- VIOLATION src/ri/geometry/points.h:83: CShadingContext
+-- VIOLATION src/ri/geometry/polygons.cpp:140: CShadingContext
+-- VIOLATION src/ri/geometry/polygons.cpp:151: CShadingContext
+-- VIOLATION src/ri/geometry/polygons.cpp:171: CShadingContext
+-- VIOLATION src/ri/geometry/polygons.cpp:717: CShadingContext
+-- VIOLATION src/ri/geometry/polygons.cpp:1244: CShadingContext
+-- VIOLATION src/ri/geometry/polygons.cpp:1256: CReyes
+-- VIOLATION src/ri/geometry/polygons.cpp:1270: CRiInterface
+-- VIOLATION src/ri/geometry/polygons.cpp:1815: CShadingContext
+-- VIOLATION src/ri/geometry/polygons.cpp:1927: CShadingContext
+-- VIOLATION src/ri/geometry/polygons.cpp:1932: CShadingContext
+-- VIOLATION src/ri/geometry/polygons.h:44: CShadingContext
+-- VIOLATION src/ri/geometry/polygons.h:48: CShadingContext
+-- VIOLATION src/ri/geometry/polygons.h:49: CReyes
+-- VIOLATION src/ri/geometry/polygons.h:50: CRiInterface
+-- VIOLATION src/ri/geometry/polygons.h:53: CShadingContext
+-- VIOLATION src/ri/geometry/polygons.h:63: CShadingContext
+-- VIOLATION src/ri/geometry/polygons.h:88: CShadingContext
+-- VIOLATION src/ri/geometry/polygons.h:89: CShadingContext
+-- VIOLATION src/ri/geometry/polygons.h:90: CRiInterface
+-- VIOLATION src/ri/geometry/polygons.h:111: CShadingContext
+-- VIOLATION src/ri/geometry/polygons.h:112: CShadingContext
+-- VIOLATION src/ri/geometry/polygons.h:113: CRiInterface
+-- VIOLATION src/ri/geometry/quadrics.cpp:60: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.cpp:150: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.cpp:489: CRiInterface
+-- VIOLATION src/ri/geometry/quadrics.cpp:638: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.cpp:903: CRiInterface
+-- VIOLATION src/ri/geometry/quadrics.cpp:1007: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.cpp:1333: CRiInterface
+-- VIOLATION src/ri/geometry/quadrics.cpp:1455: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.cpp:1790: CRiInterface
+-- VIOLATION src/ri/geometry/quadrics.cpp:1911: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.cpp:2240: CRiInterface
+-- VIOLATION src/ri/geometry/quadrics.cpp:2358: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.cpp:2782: CRiInterface
+-- VIOLATION src/ri/geometry/quadrics.cpp:2913: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.cpp:3261: CRiInterface
+-- VIOLATION src/ri/geometry/quadrics.cpp:3361: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.cpp:3397: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.cpp:3413: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.cpp:3462: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.cpp:3494: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.cpp:3538: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.cpp:3599: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.h:49: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.h:53: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.h:58: CRiInterface
+-- VIOLATION src/ri/geometry/quadrics.h:98: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.h:100: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.h:105: CRiInterface
+-- VIOLATION src/ri/geometry/quadrics.h:132: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.h:136: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.h:141: CRiInterface
+-- VIOLATION src/ri/geometry/quadrics.h:180: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.h:184: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.h:189: CRiInterface
+-- VIOLATION src/ri/geometry/quadrics.h:230: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.h:234: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.h:239: CRiInterface
+-- VIOLATION src/ri/geometry/quadrics.h:278: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.h:282: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.h:287: CRiInterface
+-- VIOLATION src/ri/geometry/quadrics.h:327: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.h:331: CShadingContext
+-- VIOLATION src/ri/geometry/quadrics.h:337: CRiInterface
+-- VIOLATION src/ri/geometry/subdivision.cpp:388: CShadingContext
+-- VIOLATION src/ri/geometry/subdivision.h:42: CShadingContext
+-- VIOLATION src/ri/geometry/subdivision.h:44: CRiInterface
+-- VIOLATION src/ri/geometry/subdivisionCreator.cpp:1853: CShadingContext
+-- VIOLATION src/ri/geometry/subdivisionCreator.cpp:1865: CReyes
+-- VIOLATION src/ri/geometry/subdivisionCreator.cpp:1879: CRiInterface
+-- VIOLATION src/ri/geometry/subdivisionCreator.cpp:2246: CShadingContext
+-- VIOLATION src/ri/geometry/subdivisionCreator.h:42: CShadingContext
+-- VIOLATION src/ri/geometry/subdivisionCreator.h:46: CShadingContext
+-- VIOLATION src/ri/geometry/subdivisionCreator.h:47: CReyes
+-- VIOLATION src/ri/geometry/subdivisionCreator.h:48: CRiInterface
+-- VIOLATION src/ri/geometry/subdivisionCreator.h:53: CShadingContext
+-- VIOLATION src/ri/geometry/subdivisionCreator.h:62: CShadingContext
+-- VIOLATION src/ri/geometry/subdivisionLoop.cpp:339: CShadingContext
+-- VIOLATION src/ri/geometry/subdivisionLoop.cpp:351: CReyes
+-- VIOLATION src/ri/geometry/subdivisionLoop.cpp:365: CRiInterface
+-- VIOLATION src/ri/geometry/subdivisionLoop.cpp:475: CShadingContext
+-- VIOLATION src/ri/geometry/subdivisionLoop.h:54: CShadingContext
+-- VIOLATION src/ri/geometry/subdivisionLoop.h:58: CShadingContext
+-- VIOLATION src/ri/geometry/subdivisionLoop.h:59: CReyes
+-- VIOLATION src/ri/geometry/subdivisionLoop.h:60: CRiInterface
+-- VIOLATION src/ri/geometry/subdivisionLoop.h:65: CShadingContext
+-- VIOLATION src/ri/geometry/subdivisionLoop.h:71: CShadingContext
+-- VIOLATION src/ri/geometry/surface.cpp:118: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:222: CReyes
+-- VIOLATION src/ri/geometry/surface.cpp:233: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:241: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:253: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:254: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:303: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:308: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:321: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:412: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:430: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:487: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:503: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:517: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:543: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:562: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:570: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:605: CReyes
+-- VIOLATION src/ri/geometry/surface.cpp:613: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:626: CReyes
+-- VIOLATION src/ri/geometry/surface.cpp:638: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:703: CReyes
+-- VIOLATION src/ri/geometry/surface.cpp:736: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:753: CReyes
+-- VIOLATION src/ri/geometry/surface.cpp:882: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:897: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:898: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:937: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:949: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:960: CShadingContext
+-- VIOLATION src/ri/geometry/surface.cpp:972: CShadingContext
+-- VIOLATION src/ri/geometry/surface.cpp:1456: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:1460: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:1467: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:1499: CShadingContext
+-- VIOLATION src/ri/geometry/surface.cpp:1514: CShadingContext
+-- VIOLATION src/ri/geometry/surface.cpp:1523: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:1643: CShadingContext
+-- VIOLATION src/ri/geometry/surface.cpp:2117: CShadingContext
+-- VIOLATION src/ri/geometry/surface.cpp:2182: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:2183: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:2185: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:2190: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:2265: CShadingContext
+-- VIOLATION src/ri/geometry/surface.cpp:2271: CRenderer
+-- VIOLATION src/ri/geometry/surface.cpp:2311: CRenderer
+-- VIOLATION src/ri/geometry/surface.h:45: CShadingContext
+-- VIOLATION src/ri/geometry/surface.h:46: CReyes
+-- VIOLATION src/ri/geometry/surface.h:47: CRiInterface
+-- VIOLATION src/ri/geometry/surface.h:49: CReyes
+-- VIOLATION src/ri/geometry/surface.h:52: CReyes
+-- VIOLATION src/ri/geometry/surface.h:53: CReyes
+-- VIOLATION src/ri/geometry/surface.h:54: CReyes
+-- VIOLATION src/ri/geometry/surface.h:86: CShadingContext
+-- VIOLATION src/ri/geometry/surface.h:87: CReyes
+-- VIOLATION src/ri/geometry/surface.h:88: CRiInterface
+-- VIOLATION src/ri/geometry/surface.h:90: CShadingContext
+-- VIOLATION src/ri/geometry/surface.h:96: CShadingContext
+-- VIOLATION src/ri/geometry/surface.h:97: CShadingContext
+-- VIOLATION src/ri/geometry/surface.h:98: CShadingContext
+-- VIOLATION src/ri/geometry/surface.h:119: CShadingContext
+-- VIOLATION src/ri/geometry/surfaceCrossingDispatch.cpp:428: CShadingContext
+-- VIOLATION src/ri/geometry/surfaceCrossingDispatch.h:36: CShadingContext
+-- VIOLATION src/ri/geometry/surfaceCrossingDispatch.h:79: CShadingContext
+CMake Error at tests/architecture/check_geometry_no_names.cmake:60 (message):
+  Geometry_NoHiderShadingNames: 311 banned identifier(s) under
+  src/ri/geometry
+
+
+
+    Start 1495: Geometry_RibVectorNoStubs
+2/2 Test #1495: Geometry_RibVectorNoStubs ........***Failed    0.07 sec
+-- VIOLATION ribVector_obj compiles vector/geometryDispatchStub.cpp
+-- VIOLATION ribVector_obj compiles vector/rendererDeclarationsDispatchStub.cpp
+-- VIOLATION ribVector_obj compiles vector/surfaceCrossingDispatchStub.cpp
+-- VIOLATION undefined reference: __Z22countFreeFormCrossingsP15CShadingContextPK8CSurfacePKfS5_
+-- VIOLATION undefined reference: __ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph
+-- VIOLATION undefined reference: __ZN8CSurface4diceEP6CReyes
+-- VIOLATION undefined reference: __ZN8CSurface5shadeEP15CShadingContextiPP4CRay
+-- VIOLATION undefined reference: __ZN8CSurface9intersectEP15CShadingContextP4CRay
+-- VIOLATION undefined reference: __ZN11CCubicCurve15splitToChildrenEP6CReyes
+-- VIOLATION undefined reference: __ZN12CLinearCurve15splitToChildrenEP6CReyes
+-- VIOLATION undefined reference: __ZN6CCurve4diceEP6CReyes
+-- VIOLATION undefined reference: __ZN7CObject11setChildrenEP15CShadingContextPS_b
+-- VIOLATION undefined reference: __ZN7CObject4diceEP6CReyes
+-- VIOLATION undefined reference: __ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph
+-- VIOLATION undefined reference: __ZN8CSurface5shadeEP15CShadingContextiPP4CRay
+-- VIOLATION undefined reference: __ZN8CSurface9intersectEP15CShadingContextP4CRay
+-- VIOLATION undefined reference: __ZN14CDelayedObject4diceEP6CReyes
+-- VIOLATION undefined reference: __ZN14CDelayedObject9intersectEP15CShadingContextP4CRay
+-- VIOLATION undefined reference: __ZN16CDelayedInstance4diceEP6CReyes
+-- VIOLATION undefined reference: __ZN16CDelayedInstance9intersectEP15CShadingContextP4CRay
+-- VIOLATION undefined reference: __ZN7CObject4diceEP6CReyes
+-- VIOLATION undefined reference: __Z22countFreeFormCrossingsP15CShadingContextPK8CSurfacePKfS5_
+-- VIOLATION undefined reference: __ZN7CObject11setChildrenEP15CShadingContextPS_b
+-- VIOLATION undefined reference: __ZN7CObject4diceEP6CReyes
+-- VIOLATION undefined reference: __ZN8CSurface13checkRayGuardEP4CRayP15CShadingContext
+-- VIOLATION undefined reference: __ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph
+-- VIOLATION undefined reference: __ZN8CSurface4diceEP6CReyes
+-- VIOLATION undefined reference: __ZN8CSurface5shadeEP15CShadingContextiPP4CRay
+-- VIOLATION undefined reference: __ZN8CSurface9intersectEP15CShadingContextP4CRay
+-- VIOLATION undefined reference: __Z22countFreeFormCrossingsP15CShadingContextPK8CSurfacePKfS5_
+-- VIOLATION undefined reference: __ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph
+-- VIOLATION undefined reference: __ZN8CSurface4diceEP6CReyes
+-- VIOLATION undefined reference: __ZN8CSurface5shadeEP15CShadingContextiPP4CRay
+-- VIOLATION undefined reference: __ZN8CSurface9intersectEP15CShadingContextP4CRay
+-- VIOLATION undefined reference: __ZN7CPoints4diceEP6CReyes
+-- VIOLATION undefined reference: __ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph
+-- VIOLATION undefined reference: __ZN8CSurface5shadeEP15CShadingContextiPP4CRay
+-- VIOLATION undefined reference: __ZN7CObject11setChildrenEP15CShadingContextPS_b
+-- VIOLATION undefined reference: __ZN7CObject4diceEP6CReyes
+-- VIOLATION undefined reference: __ZN8CSurface13checkRayGuardEP4CRayP15CShadingContext
+-- VIOLATION undefined reference: __ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph
+-- VIOLATION undefined reference: __ZN8CSurface4diceEP6CReyes
+-- VIOLATION undefined reference: __ZN8CSurface5shadeEP15CShadingContextiPP4CRay
+-- VIOLATION undefined reference: __ZN8CSurface13checkRayGuardEP4CRayP15CShadingContext
+-- VIOLATION undefined reference: __ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph
+-- VIOLATION undefined reference: __ZN8CSurface4diceEP6CReyes
+-- VIOLATION undefined reference: __ZN8CSurface5shadeEP15CShadingContextiPP4CRay
+-- VIOLATION undefined reference: __Z22countFreeFormCrossingsP15CShadingContextPK8CSurfacePKfS5_
+-- VIOLATION undefined reference: __ZN8CSurface14regionCoverageEP15CShadingContextiiPKfS3_Ph
+-- VIOLATION undefined reference: __ZN8CSurface4diceEP6CReyes
+-- VIOLATION undefined reference: __ZN8CSurface5shadeEP15CShadingContextiPP4CRay
+-- VIOLATION undefined reference: __ZN8CSurface9intersectEP15CShadingContextP4CRay
+-- VIOLATION undefined reference: __ZN7CObject11setChildrenEP15CShadingContextPS_b
+-- VIOLATION undefined reference: __ZN7CObject4diceEP6CReyes
+-- VIOLATION undefined reference: __ZN7CObject11setChildrenEP15CShadingContextPS_b
+-- VIOLATION undefined reference: __ZN7CObject4diceEP6CReyes
+-- VIOLATION undefined reference: __Z22irradianceSampleAcceptffP15CShadingContext
+-- VIOLATION undefined reference: __ZN16CIrradianceCache6sampleEPfPKfS2_S2_S2_P15CShadingContext
+CMake Error at tests/architecture/check_ribvector_no_stubs.cmake:63 (message):
+  Geometry_RibVectorNoStubs: 55 undefined hider/shading symbol(s), stubs
+  compiled:
+  vector/geometryDispatchStub.cpp;vector/rendererDeclarationsDispatchStub.cpp;vector/surfaceCrossingDispatchStub.cpp
+
+
+
+
+0% tests passed, 2 tests failed out of 2
+
+Label Time Summary:
+architecture    =   1.87 sec*proc (2 tests)
+
+Total Test time (real) =   1.93 sec
+
+The following tests FAILED:
+	1494 - Geometry_NoHiderShadingNames (Failed)             architecture
+	1495 - Geometry_RibVectorNoStubs (Failed)                architecture
+Errors while running CTest
