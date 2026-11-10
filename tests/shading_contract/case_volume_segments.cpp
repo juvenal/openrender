@@ -508,8 +508,8 @@ int caseVolumeSegments(bool jit) {
             const SHarnessResult r = c.run(sTrace);
             for (int i = 0; i < 3; i++)
                 CT_EXPECT(expectColour(r, i, kCanned, kTolValue, "nested trace allowed"));
-            // two outer requests (one per side) and the nested ones, which carry no volume and sit one level deeper
-            CT_EXPECT(c.tracer.requests.size() >= 3);
+            // one outer request (both sides bind the same shader, so one bundle) and the nested one, which carries no volume and sits one level deeper
+            CT_EXPECT(c.tracer.requests.size() >= 2);
             for (const SRequest &q : c.tracer.requests)
                 if (q.depthAtEntry >= 1)
                     CT_EXPECT(!q.volume);

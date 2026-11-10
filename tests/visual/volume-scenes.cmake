@@ -107,6 +107,16 @@ foreach(_hider reyes zbuffer raytrace)
     set_tests_properties(VolumeDiffer_glass-sphere-${_hider} PROPERTIES TIMEOUT 240 LABELS "visual;regression;volume"
         ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
 endforeach()
+# Visual_volume-interior-fog-glass-sphere-<hider>: the 8-bit sphere against the approved reference image of the finished step (spec 056, T082;
+# default threshold). The references show the glass rim's own speckles, which the no-Interior twins have too (glass is deterministic but noisy
+# at the silhouette). rslo only: the shipped glass shader is broken under the JIT, GitHub #157.
+foreach(_hider reyes zbuffer raytrace)
+    add_visual_test(volume-interior-fog-glass-sphere-${_hider}
+        examples/rib/tests/volume-interior-fog-glass-sphere-${_hider}.rib
+        volume-interior-fog-glass-sphere-${_hider}.tif
+        volume-interior-fog-glass-sphere-${_hider}.tif)
+    set_tests_properties(Visual_volume-interior-fog-glass-sphere-${_hider} PROPERTIES LABELS "visual;regression;volume")
+endforeach()
 # VolumeProbe_random-fog-runs: the random fog changes the image, so a green determinism test means the fog ran
 set(_scratch ${_volume_dir}/random-fog-runs)
 file(MAKE_DIRECTORY ${_scratch})

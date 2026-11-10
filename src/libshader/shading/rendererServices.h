@@ -309,7 +309,7 @@ class CRendererServices {
         ///////////////////////////////////////////////////////////////
         // World bounds
         ///////////////////////////////////////////////////////////////
-        // The bounding box of the world in world space (not camera space): 3 floats each (x, y, z), min
+        // The bounding box of the world in camera space (the ray hierarchy's root bound, which the tracer intersects camera-space rays with; verified by the spec 056 miss-clipping probe): 3 floats each (x, y, z), min
         // then max corner, never nullptr, valid for the whole render and constant during a frame. Shading
         // uses its diagonal as the world radius.
         virtual const float *worldBmin() const = 0;

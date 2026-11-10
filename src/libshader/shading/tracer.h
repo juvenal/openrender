@@ -109,7 +109,8 @@ namespace openrender::shading {
             //      place between passes.
             // Thread-safety: as traceRay.
             // Re-enters Shading: yes. Hits are shaded through shade() on `context`, in a new shading
-            // state one ray level deeper, and a shader there may trace again.
+            // state one ray level deeper, and a shader there may trace again. postShade() may also run
+            // the segment's volume shader on `context` (spec 056), in a further state at the segment's depth.
             virtual void traceBundle(CShadingContext &context, CRayBundle *bundle) = 0;
     };
 

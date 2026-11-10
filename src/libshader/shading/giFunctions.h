@@ -66,6 +66,7 @@
     mulvf(rays->dDdu, dTdu, *du);                         \
     mulvf(rays->dDdv, dTdv, *dv);                         \
     movvv(rays->N, N);                                    \
+    movvv(rays->sideN, N);                                \
     rays->coneAngle = scratch->traceParams.coneAngle;     \
     rays->numSamples = (int)scratch->traceParams.samples; \
     rays->bias = scratch->traceParams.bias;               \

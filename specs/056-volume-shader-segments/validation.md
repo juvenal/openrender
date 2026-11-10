@@ -180,3 +180,65 @@ glass-sphere scenes as `.rslo` only until it is fixed.
   reference will be added in a later phase. No task depends on #157's fix.
 - `tasks.md` globs now match the registered names: `VolumeProbe_*-none_*`, `VolumeProbe_incident-opposite_*`; the others
   (`VolumeProbe_atmosphere-fog-reflection_*`, `_miss-clipping_*`, `_csg-fragment_*`) already matched.
+
+## 2. Phase 2: the segment step
+
+Source changed (all in `src/libshader/shading/`): `bundles.{h,cpp}` (`CSegmentSpawn`, `CSegmentRay`, `CSegmentBundle`; the three bundles rebased, with
+`attenuateHits`/`attenuateMisses`, hit classification on the hit's own opacity, miss compositing, `levelTraced`), `shading.{h,cpp}`
+(`CShadingState::{volumeSegment,lightSideN,lightSideNStore}`, `CTraceLocation::sideN`, `CRayBundle::postShader = nullptr`, `shadeVolumeSegments()`,
+`iterateLights` snapshot, `gatherSample` volume choice and segment fields, the JIT location fills), `executeMisc.cpp` (`traceReflection`
+gating and `begin()`, `traceTransmission` with the interior/exterior split), `giFunctions.h`/`shaderFunctions.h` (the `sideN` fills),
+`shaderPl.{h,cpp}` (`globalEntry()`), and two comment-only edits (`rendererServices.h` world bound, `tracer.h` "Re-enters Shading").
+`shade()`'s overwrite and tail are untouched (Phase 3 deletes them). `git diff HEAD --stat -- tests/architecture` is empty.
+
+- **Deviation (T062 skipped):** the separate build and run of the shared types alone, which the tasks make the first safety net, was not made; the step and
+  the entry points were written together, and the full run (T073, below) is the byte-identity evidence instead.
+- **A defect found and fixed on the way:** the first build crashed `VolumeDiffer_glass-sphere-raytrace` (SIGSEGV): `lightSideNStore` was
+  allocated for `mgs` vertices but a raytrace shading state has up to `3 * mgs` (the derivative-offset tail, like `Ns`, `mgs * 9` floats). Fixed.
+- **T072 (macOS, `-R 'ShadingContract_VolumeSegments|VolumeProbe|VolumeDiffer|Determinism_volume'`, 166 tests):** every `VolumeProbe` of slab,
+  exterior-reflection, miss-clipping, primitive-hitmode, transmission, shadow-light, environment, gather, random-fog-runs, and `VolumeDiffer_*`,
+  `Determinism_volume-random-fog(+slo)` pass at the approved tolerances on reyes, zbuffer and raytrace, `.rslo` and `.slo`: the hand-computed
+  values (including the over-form compositing, the transparent wall of the transmission scene, the light that rewrites `N` and the camera-space
+  miss) match. Still red, as the table says: `VolumeProbe_csg-fragment_*` (12, Phase 3) and `VolumeProbe_incident-opposite_*` (6, Phase 4).
+  The hit-distance and atmosphere-reflection values that were provisional: no change (the atmosphere goldens and the reflection probe still pass).
+- **ShadingContract_VolumeSegments{Interp,Jit}: 176 passed, 1 failed** each: `c.tracer.requests.size() >= 3` in the nested-trace case. The
+  assertion is wrong (one outer bundle, not two, when both sides bind the same shader); the step is right. The proposed one-line change to the
+  approved test is `tools/proposed/contract_nested_requests.diff`, **not applied, awaiting the maintainer**. Until then these two tests stay red.
+- **T074 (camera-space verdict): "camera space".** `VolumeProbe_miss-clipping_*` (far clipping 1e30) read the camera-space prediction
+  (segment 7.0, value `0.0826 0.2479 0.7436`) on all six variants; the world-space reading of the same bound would give 10.134 (a difference of 0.099 in the
+  blue channel). T075: the comment at `rendererServices.h:312` now says camera space (comment only; `kRendererServicesVersion` stays 2.1.0).
+  T076: the `traceBundle` paragraph of `tracer.h` notes that `postShade` may run the volume shader.
+- **T073 (byte identity, `ctest -LE determinism-sweep -j4`, `056-p2-all`):** 1292 tests, 22 failed, all in the Phase 3/4 and pending rows:
+  `csg-fragment` 12, `incident-opposite` 6, `ShadingContract_MessageSide{Interp,Jit}` 2, `ShadingContract_VolumeSegments{Interp,Jit}` 2.
+  Every pre-existing test passes with its existing reference and threshold (all `Golden_*`, `Visual_*`, `Parity_*`, `ShadingContract_RayLevel`,
+  `_Messages*`, `_MessageAccessors`). `DeterminismSweep_(volume|atmosphere)` (`056-p2-sweepnew`, -j2): 151 / 151 pass.
+- **T077:** only `bundles.h` was clang-format clean before; it is formatted (one line). The other edited files were not clean and are not reformatted.
+- **T078:** `ctest -L architecture` 29 / 29, allowlist unchanged (taken before the one-line `bundles.h` format).
+- **T080 (perf, no budget):** `Visual_sphere-trace-reyes` 0.16 s (Phase 0) vs 0.15 s, `Visual_camera-dof-raytrace` 1.15 s vs 0.86 s (single runs under load): no regression.
+- **T079 (Linux, GCC 13 `-Werror`, `-j2`):** build clean; `ctest -L architecture` 29 / 29; `ctest -LE determinism-sweep -j2`: 1293 tests, 23 failed =
+  the macOS 22 plus the baseline `TextureTile_RenderByteIdentical`.
+- **T081:** the three candidate images (and their no-Interior twins, rslo, 8-bit, rendered by `tools/render_scenes.py` through cpujob) are in
+  `specs/056-volume-shader-segments/tools/proposed/glass/` (`.tif` and an enlarged `.png` of each). With the fog the sphere is red, with
+  a highlight; the twins are the grey glass sphere. Reyes, zbuffer and raytrace agree to the eye. **T082 is a PAUSE: nothing is copied to
+  `examples/rib/tests/references/` and no `Visual_volume-interior-fog-glass-sphere-*` test is registered until the maintainer approves each image.**
+
+### Maintainer answers at the T082 PAUSE (applied)
+
+- The three glass-sphere references (reyes, zbuffer, raytrace; `.rslo`, 8-bit) were approved as rendered and copied to
+  `examples/rib/tests/references/volume-interior-fog-glass-sphere-{reyes,zbuffer,raytrace}.tif`. **They show speckles on the sphere's rim**:
+  that is the shipped `glass` shader's own deterministic behaviour at the silhouette and is present in the no-Interior twins too, not an artefact of the
+  volume step. `Visual_volume-interior-fog-glass-sphere-{reyes,zbuffer,raytrace}` are registered (default threshold 20, `volume-scenes.cmake`), `.rslo`
+  only: there is no `-slo` test or reference until GitHub #157 is fixed.
+- The contract edit was approved and applied exactly as `tools/proposed/contract_nested_requests.diff`: `c.tracer.requests.size() >= 3` became `>= 2`
+  in the nested-trace case of `case_volume_segments.cpp` (the diff file is kept as the record). `ShadingContract_VolumeSegments{Interp,Jit}` are now green.
+
+### Checkpoint 2 re-run after the approvals (T083, T084)
+
+- macOS (`056-p2b-build`, `056-p2b-arch`, `056-p2b-all`): the tree rebuilt; `ctest -L architecture` **29 / 29** (re-run after the `bundles.h` clang-format and the
+  edits above); `ctest -LE determinism-sweep -j4`: 1295 tests, **20 failed, exactly the remaining Phase 3 and 4 rows**: `VolumeProbe_csg-fragment_*` 12
+  (Phase 3), `VolumeProbe_incident-opposite_*` 6 and `ShadingContract_MessageSide{Interp,Jit}` 2 (Phase 4). `ShadingContract_VolumeSegments{Interp,Jit}` pass;
+  `Visual_volume-interior-fog-glass-sphere-{reyes,zbuffer,raytrace}` pass against the approved references; every pre-existing test passes unchanged.
+- Linux (remote `cpujob` `-j2`, GCC 13 `-Werror`, `openrender-056`): build clean; `ctest -L architecture` 29 / 29; full run 1296 tests, 21 failed = the same 20
+  plus the baseline `TextureTile_RenderByteIdentical`; the three `Visual_..._glass-sphere-*` tests pass on Linux against the same (macOS-rendered) references.
+- Expected red at the end of Phase 2: only the Phase 3 and Phase 4 rows. No threshold was widened, no approved test or reference changed other than the
+  one approved line and the new references above.

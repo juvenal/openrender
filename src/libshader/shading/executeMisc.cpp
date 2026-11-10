@@ -694,21 +694,34 @@ void CShadingContext::DvVector(float *dest, const float *src) {
 // Return Value			:	-
 // Comments				:
 void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int probeOnly) {
-    CTransmissionRay *rayBase;
-    CTransmissionRay **raysBase;
-    CTransmissionRay *cRay, **cRays;
+    CTransmissionRay *interiorRayBase = nullptr, *cInteriorRay = nullptr;
+    CTransmissionRay *exteriorRayBase, *cExteriorRay;
+    CTransmissionRay **interiorRaysBase = nullptr, **exteriorRaysBase, **cInteriorRays = nullptr, **cExteriorRays;
     const CShadingScratch *scratch = &(currentShadingState->scratch);
     const int shootStep = rendererShootStep();
-    int numRemaining = shootStep;
-    CTransmissionBundle bundle;
+    int numInteriorRemaining = shootStep;
+    int numExteriorRemaining = shootStep;
+    CTransmissionBundle interiorBundle(*this), exteriorBundle(*this);
+
+    // The volume shader of each side is the spawning surface's, as for trace() (spec 056, FR-001, FR-010); with none bound both are
+    // null, every ray goes to the one bundle in the order of the starting tree (FR-016). No volume for a ray built inside a volume step.
+    const CAttributes *cAttr = objectAttributes();
+    const bool attachVolume = cAttr != nullptr && !currentShadingState->volumeSegment;
+    CShaderInstance *interiorShader = attachVolume ? shaderInstanceOf(cAttr->interior()) : nullptr;
+    CShaderInstance *exteriorShader = attachVolume ? shaderInstanceOf(cAttr->exterior()) : nullptr;
 
     // Set the ray label we're tracing
-    if ((bundle.label = scratch->traceParams.label) == NULL)
-        bundle.label = rayLabelTransmission;
+    if ((exteriorBundle.label = scratch->traceParams.label) == NULL)
+        exteriorBundle.label = rayLabelTransmission;
+    interiorBundle.label = exteriorBundle.label;
 
     // Allocate temp memory
-    cRay = rayBase = (CTransmissionRay *)ralloc(shootStep * sizeof(CTransmissionRay), threadMemory);
-    cRays = raysBase = (CTransmissionRay **)ralloc(shootStep * sizeof(CTransmissionRay *), threadMemory);
+    cExteriorRay = exteriorRayBase = (CTransmissionRay *)ralloc(shootStep * sizeof(CTransmissionRay), threadMemory);
+    cExteriorRays = exteriorRaysBase = (CTransmissionRay **)ralloc(shootStep * sizeof(CTransmissionRay *), threadMemory);
+    if (interiorShader != exteriorShader) {
+        cInteriorRay = interiorRayBase = (CTransmissionRay *)ralloc(shootStep * sizeof(CTransmissionRay), threadMemory);
+        cInteriorRays = interiorRaysBase = (CTransmissionRay **)ralloc(shootStep * sizeof(CTransmissionRay *), threadMemory);
+    }
 
     // We can not be in shadow at this stage
     assert(inShadow == FALSE);
@@ -746,7 +759,7 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
         const openrender::sampling::SubstreamKey *keyedSub = rays->keyed ? &rays->sub : nullptr;
         for (int currentSample = numSamples; currentSample > 0; --currentSample) {
             const int sampleIndex = numSamples - currentSample;
-            vector from, L, dir;
+            vector from, L, dir, rdir;
 
             // Sample the ray
             sampleRay(from, L);
@@ -755,9 +768,12 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
             mulvf(dir, L, 1 / d);
 
             // Sample a point in the cone
-            drawCone(keyedSub, sampleIndex, cRay->dir, dir, coneAngle, false);
-            if (dotvv(cRay->dir, cRay->dir) > C_EPSILON) {
+            drawCone(keyedSub, sampleIndex, rdir, dir, coneAngle, false);
+            if (dotvv(rdir, rdir) > C_EPSILON) {
+                const int isExterior = (dotvv(rdir, rays->sideN) > 0) || (interiorShader == exteriorShader);
+                CTransmissionRay *cRay = isExterior ? cExteriorRay : cInteriorRay;
 
+                movvv(cRay->dir, rdir);
                 movvv(cRay->from, from);
                 // These rays come from raw memory: set every field trace() reads
                 cRay->cameraImportance = false;
@@ -777,6 +793,10 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
                     minDist = rays->maxDist;
                 }
                 cRay->t = minDist - rays->bias;
+                // Spec 056: the segment starts at the origin and a miss ends at the destination, recorded here because the hider
+                // resets a continued ray's t (GitHub #153: not changed)
+                cRay->segmentStart = 0;
+                cRay->segmentLimit = cRay->t;
                 cRay->tmin = rays->bias;
                 if (sampleMotion)
                     cRay->time = (drawTime(keyedSub, sampleIndex) + currentSample - 1) * multiplier;
@@ -792,37 +812,47 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
                 if (probeOnly) {
 
                     // No, just query an intersection and record the distance
-                    libshader::traceRay(*this, cRay, libshader::TraceKind::Visibility, bundle.label);
+                    libshader::traceRay(*this, cRay, libshader::TraceKind::Visibility, exteriorBundle.label);
                     rays->t += cRay->t * multiplier;
                 }
-                else {
-                    *cRays++ = cRay++;
-                    if (--numRemaining == 0) {
+                else if (isExterior) {
+                    *cExteriorRays++ = cRay;
+                    cExteriorRay++;
+                    if (--numExteriorRemaining == 0) {
                         numTransmissionRays += shootStep;
-                        bundle.numRays = shootStep;
-                        bundle.rays = (CRay **)raysBase;
-                        bundle.depth = 0;
-                        bundle.last = 0;
-                        bundle.postShader = NULL;
-                        libshader::traceBundle(*this, &bundle, libshader::TraceKind::Transmission);
-                        cRay = rayBase;
-                        cRays = raysBase;
-                        numRemaining = shootStep;
+                        exteriorBundle.begin(shootStep, (CRay **)exteriorRaysBase, exteriorShader);
+                        libshader::traceBundle(*this, &exteriorBundle, libshader::TraceKind::Transmission);
+                        cExteriorRay = exteriorRayBase;
+                        cExteriorRays = exteriorRaysBase;
+                        numExteriorRemaining = shootStep;
+                    }
+                }
+                else {
+                    *cInteriorRays++ = cRay;
+                    cInteriorRay++;
+                    if (--numInteriorRemaining == 0) {
+                        numTransmissionRays += shootStep;
+                        interiorBundle.begin(shootStep, (CRay **)interiorRaysBase, interiorShader);
+                        libshader::traceBundle(*this, &interiorBundle, libshader::TraceKind::Transmission);
+                        cInteriorRay = interiorRayBase;
+                        cInteriorRays = interiorRaysBase;
+                        numInteriorRemaining = shootStep;
                     }
                 }
             }
         }
     }
 
-    // Finish the bundle
-    if (numRemaining != shootStep) {
-        numTransmissionRays += shootStep - numRemaining;
-        bundle.numRays = shootStep - numRemaining;
-        bundle.rays = (CRay **)raysBase;
-        bundle.depth = 0;
-        bundle.last = 0;
-        bundle.postShader = NULL;
-        libshader::traceBundle(*this, &bundle, libshader::TraceKind::Transmission);
+    // Finish the bundles
+    if (numExteriorRemaining != shootStep) {
+        numTransmissionRays += shootStep - numExteriorRemaining;
+        exteriorBundle.begin(shootStep - numExteriorRemaining, (CRay **)exteriorRaysBase, exteriorShader);
+        libshader::traceBundle(*this, &exteriorBundle, libshader::TraceKind::Transmission);
+    }
+    if (numInteriorRemaining != shootStep) {
+        numTransmissionRays += shootStep - numInteriorRemaining;
+        interiorBundle.begin(shootStep - numInteriorRemaining, (CRay **)interiorRaysBase, interiorShader);
+        libshader::traceBundle(*this, &interiorBundle, libshader::TraceKind::Transmission);
     }
 
     inShadow = FALSE; // We're no longer in shadow
@@ -842,13 +872,15 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
     const int shootStep = rendererShootStep();
     int numInteriorRemaining = shootStep;
     int numExteriorRemaining = shootStep;
-    CTraceBundle interiorBundle, exteriorBundle;
+    CTraceBundle interiorBundle(*this), exteriorBundle(*this);
 
     // Verify atmosphere shaders
     // (no object: no interior or exterior shader and no motion sampling, FR-027)
     const CAttributes *cAttr = objectAttributes();
-    CShaderInstance *interiorShader = cAttr != nullptr ? shaderInstanceOf(cAttr->interior()) : nullptr;
-    CShaderInstance *exteriorShader = cAttr != nullptr ? shaderInstanceOf(cAttr->exterior()) : nullptr;
+    // (spec 056: the volume shader is the spawning surface's, never one for a ray built inside a volume step: FR-009)
+    const bool attachVolume = cAttr != nullptr && !currentShadingState->volumeSegment;
+    CShaderInstance *interiorShader = attachVolume ? shaderInstanceOf(cAttr->interior()) : nullptr;
+    CShaderInstance *exteriorShader = attachVolume ? shaderInstanceOf(cAttr->exterior()) : nullptr;
 
     // Set the ray label
     if (scratch->traceParams.label == NULL) {
@@ -906,7 +938,7 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
             drawCone(keyedSub, sampleIndex, dir, D, coneAngle, false);
             if (dotvv(dir, dir) > C_EPSILON) {
                 CTraceRay *cRay;
-                int isExterior = (dotvv(dir, rays->N) > 0) || (interiorShader == exteriorShader);
+                int isExterior = (dotvv(dir, rays->sideN) > 0) || (interiorShader == exteriorShader);
 
                 if (isExterior)
                     cRay = cExteriorRay;
@@ -930,6 +962,8 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
                 else
                     cRay->time = rays->time;
                 cRay->t = C_INFINITY;
+                cRay->segmentStart = 0; // Spec 056: the segment starts at the origin and a miss ends at the world bound's exit (trace() ignores maxdist)
+                cRay->segmentLimit = C_INFINITY;
                 cRay->tmin = rays->bias;
                 cRay->flags = ATTRIBUTES_FLAGS_SPECULAR_VISIBLE;
                 cRay->dest = rays->C;
@@ -949,11 +983,7 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
 
                         if (--numExteriorRemaining == 0) {
                             numReflectionRays += shootStep;
-                            exteriorBundle.numRays = shootStep;
-                            exteriorBundle.rays = (CRay **)exteriorRaysBase;
-                            exteriorBundle.depth = 0;
-                            exteriorBundle.last = 0;
-                            exteriorBundle.postShader = exteriorShader;
+                            exteriorBundle.begin(shootStep, (CRay **)exteriorRaysBase, exteriorShader);
                             libshader::traceBundle(*this, &exteriorBundle, libshader::TraceKind::Trace);
                             cExteriorRay = exteriorRayBase;
                             cExteriorRays = exteriorRaysBase;
@@ -966,11 +996,7 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
 
                         if (--numInteriorRemaining == 0) {
                             numReflectionRays += shootStep;
-                            interiorBundle.numRays = shootStep;
-                            interiorBundle.rays = (CRay **)interiorRaysBase;
-                            interiorBundle.depth = 0;
-                            interiorBundle.last = 0;
-                            interiorBundle.postShader = interiorShader;
+                            interiorBundle.begin(shootStep, (CRay **)interiorRaysBase, interiorShader);
                             libshader::traceBundle(*this, &interiorBundle, libshader::TraceKind::Trace);
                             cInteriorRay = interiorRayBase;
                             cInteriorRays = interiorRaysBase;
@@ -985,20 +1011,12 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
     // Finish the bundles
     if (numExteriorRemaining != shootStep) {
         numReflectionRays += shootStep - numExteriorRemaining;
-        exteriorBundle.numRays = shootStep - numExteriorRemaining;
-        exteriorBundle.rays = (CRay **)exteriorRaysBase;
-        exteriorBundle.depth = 0;
-        exteriorBundle.last = 0;
-        exteriorBundle.postShader = exteriorShader;
+        exteriorBundle.begin(shootStep - numExteriorRemaining, (CRay **)exteriorRaysBase, exteriorShader);
         libshader::traceBundle(*this, &exteriorBundle, libshader::TraceKind::Trace);
     }
     if (numInteriorRemaining != shootStep) {
         numReflectionRays += shootStep - numInteriorRemaining;
-        interiorBundle.numRays = shootStep - numInteriorRemaining;
-        interiorBundle.rays = (CRay **)interiorRaysBase;
-        interiorBundle.depth = 0;
-        interiorBundle.last = 0;
-        interiorBundle.postShader = interiorShader;
+        interiorBundle.begin(shootStep - numInteriorRemaining, (CRay **)interiorRaysBase, interiorShader);
         libshader::traceBundle(*this, &interiorBundle, libshader::TraceKind::Trace);
     }
 }
