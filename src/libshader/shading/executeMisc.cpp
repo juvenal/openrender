@@ -793,8 +793,9 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
                     minDist = rays->maxDist;
                 }
                 cRay->t = minDist - rays->bias;
-                // Spec 056: the segment starts at the origin and a miss ends at the destination, recorded here because the hider
-                // resets a continued ray's t (GitHub #153: not changed)
+                cRay->tEnd = cRay->t; // A continuation past a transparent hit stops here (GitHub #153)
+                // Spec 056: the segment starts at the origin and a miss ends at the destination (the same end point as tEnd: since #153 the
+                // hider continues a ray to continuationLimit(), so a continued ray's t is tEnd, and segmentLimit keeps the step independent of that)
                 cRay->segmentStart = 0;
                 cRay->segmentLimit = cRay->t;
                 cRay->tmin = rays->bias;

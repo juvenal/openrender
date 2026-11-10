@@ -360,6 +360,12 @@ class CRayBundle {
         virtual void postShade(int, CRay **, float **) = 0; // The function that's called with the shade results
         virtual void postShade(int, CRay **) = 0;           // The function that's called with the rays that don't intersect anything
         virtual void post() = 0;                            // The function that's called after each pass
+
+        // The distance a ray that survived a pass (the bundle kept it in rays[]) is continued to: the hider sets the
+        // continued ray's t to this, with tmin just past the hit. The default is no limit; a bundle whose rays have an
+        // end point of their own (a transmission ray ends at its light or maxdist) answers with it, so the continued
+        // ray cannot find occluders beyond it (GitHub #153).
+        virtual float continuationLimit(const CRay *) const { return C_INFINITY; }
 };
 
 ///////////////////////////////////////////////////////////////////////
