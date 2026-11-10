@@ -242,3 +242,33 @@ gating and `begin()`, `traceTransmission` with the interior/exterior split), `gi
   plus the baseline `TextureTile_RenderByteIdentical`; the three `Visual_..._glass-sphere-*` tests pass on Linux against the same (macOS-rendered) references.
 - Expected red at the end of Phase 2: only the Phase 3 and Phase 4 rows. No threshold was widened, no approved test or reference changed other than the
   one approved line and the new references above.
+
+## 3. Phase 3: CSG becomes the general case (in progress, stopped at the T090 to T093 PAUSEs)
+
+Started after the merge of master (0e554fed, the #153 fix) was committed as 5e1889e6 and validated (macOS: 1303 tests, 20 failures = the Phase 3/4 rows,
+all 8 `TransmissionDestination_*` pass, sweep 570/570, architecture 29/29; Linux: same plus the baseline `TextureTile`, sweep 569/570 with the known
+Linux-only `DeterminismSweep_volume-csg-fragment-raytrace-slo`).
+
+- T085 TEST-APPROVAL: nothing approved is edited yet. T086 to T089 wrote proposals only, in `tools/proposed/`:
+  `csg-sphere-sphere-difference-interior-raytrace{,-inside}.rib` (matte replaced by a mirror, header comments rewritten, names and test IDs kept),
+  `visual-csg-comments.diff` (the comment blocks of `tests/visual/CMakeLists.txt`), `state_isolation.diff` (the `selectVolumeShader` checks, `:450-458`),
+  `procedural_operand.diff` (the flag assertion at `:382` and the rename to `expanded_objects_carry_the_inside_parity`),
+  `retire_interior_exterior_selection.diff` (the CMake line; `git rm` of the test file) and `carry_clone_and_flip.diff` (the new case
+  `instance_leaves_are_clones_and_only_the_subtrahend_is_flipped` in `test_boundary_rule.cpp`, verbatim apart from the flag and `selectVolumeShader` lines).
+  No candidate image is rendered yet (it would show the old arrival-side fog under the new rule): T100 does that after T094.
+
+### Approvals applied and the code change (T090 to T099), 2026-11-09
+
+The maintainer approved T090 to T093 as proposed. Applied: the two CSG scenes (matte to mirror, headers rewritten) and the comment blocks of `tests/visual/CMakeLists.txt`;
+`CSG_InteriorExteriorSelection` retired (`git rm`, CMake line) with its last case carried into `test_boundary_rule.cpp` (the hunk is that case and an `#include "csgSolid.h"` only);
+`State_Isolation` and `CSG_ProceduralOperand` edited as in their diffs. Source (T094, T095): `shade()` no longer assigns `postShader` from `selectVolumeShader` or runs
+an interior/exterior shader (`shading.cpp`); `selectVolumeShader` and `ATTRIBUTES_FLAGS_SOLID_FRAGMENT` (with its stale "spec 013" comment, bit 26 now unused) are deleted
+from `attributes.h`; the flag write in `csgSolid.cpp` is gone (the clone and the operand flip stay). `git grep 'SOLID_FRAGMENT\|selectVolumeShader' -- src tests` finds nothing.
+`CShadingState::postShader`, its `enterRayLevel` copy and `imager.cpp` stay.
+
+- T099 (`056-p3-csg`, macOS): 46 tests, 2 failed, as expected: `Visual_csg-sphere-sphere-difference-interior-raytrace` and `-inside` against their old references (the arrival-side fog is gone
+  and the scenes now trace). `VolumeProbe_csg-fragment_*` (12), `CSG_*` (including the carried case), `State_Isolation` and both `DeterminismSweep_csg-sphere-sphere-difference-interior-*` pass.
+- Side result: with the arrival rule gone, the pre-existing cross-hider disagreement of the CSG camera pixel disappears (the probe passes on all hiders and both backends).
+- T100 candidates (rendered after T094/T098 by `056-p3-render`): `tools/proposed/csg/csg-sphere-sphere-difference-interior-raytrace{,-inside}.{tif,png}` beside the old references (`*-OLD.png`).
+  Outside: the mirrored sphere is tinted by the Exterior fog (blue) on the reflected rays, the boundary carries no fog of its own, the notch is visible at the left edge. Inside:
+  the camera is inside the material, the reflections are tinted by the Interior fog (red), no fog painted over the walls. **Not copied to `examples/rib/tests/references/`: T100 is a PAUSE (image by image).**

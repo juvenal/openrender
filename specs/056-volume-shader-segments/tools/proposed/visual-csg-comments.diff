@@ -1,0 +1,34 @@
+--- a/tests/visual/CMakeLists.txt
++++ b/tests/visual/CMakeLists.txt
+@@ -2332,12 +2332,8 @@
+     csg-object-instance-reuse-raytrace.tif)
+ 
+-# T036 (US3, SC-004): a "difference" solid (sphere minus sphere) with both
+-# Interior and Exterior fog shaders assigned. A correctly-oriented CSG
+-# difference has outward normals everywhere, so a camera in empty space
+-# sees the Exterior shader almost exclusively (dot(I,N) < 0 at essentially
+-# every front-facing hit) -- the Interior shader only turns up as
+-# silhouette-edge tessellation noise from this vantage point. This scene
+-# is viewed from an angle that also reveals the cut-away notch silhouette
+-# (blue Exterior tint, cutaway visible as a crescent).
++# T036 (US3, SC-004), rewritten by spec 056 (FR-011, FR-012): a "difference" solid (sphere minus sphere) with both Interior and Exterior fog
++# shaders and a mirror surface. Interior and Exterior are the volumes of the surface a ray leaves, CSG or not, so the camera hits carry no fog
++# and the fog is on the reflected rays that leave a fragment, by the side they enter (the Exterior, blue, off the outside of the solid). The
++# scene is viewed from an angle that also reveals the cut-away notch. The reference is approved image by image (spec 056, T100).
+ add_visual_test(csg-sphere-sphere-difference-interior-raytrace
+     examples/rib/tests/csg-sphere-sphere-difference-interior-raytrace.rib
+@@ -2345,11 +2341,7 @@
+     csg-sphere-sphere-difference-interior-raytrace.tif)
+ 
+-# T036 companion (US3, SC-004): same solid, but the camera sits inside the
+-# solid's own material (world origin -- inside the outer sphere, radius 1,
+-# and outside the subtracted bite sphere at distance 0.9 > its radius 0.6),
+-# so nearly every primary ray hits a front-facing wall from inside the
+-# solid and the Interior shader dominates (red tint throughout). Paired
+-# with csg-sphere-sphere-difference-interior-raytrace, this demonstrates
+-# the visibly distinct inside/outside appearance SC-004 requires.
++# T036 companion (US3, SC-004), rewritten by spec 056 (FR-011, FR-012): same solid with the camera inside the solid's own material (world
++# origin, inside the outer sphere and outside the bite sphere). The reflected rays leave into the interior side, so the Interior fog (red)
++# tints the reflections throughout, while the camera hits themselves carry none. Paired with the scene above it shows the two sides.
+ add_visual_test(csg-sphere-sphere-difference-interior-raytrace-inside
+     examples/rib/tests/csg-sphere-sphere-difference-interior-raytrace-inside.rib
