@@ -68,6 +68,7 @@ On the base tree the cache can only be filled by a render: insertion there is pr
 | M3 | `tests/preview/test_data_world_init.cpp:7` | same |
 | M4 | `tests/preview/test_dataview_chunking.cpp:5` | same |
 | M5 | the new T-A source, after Phase 4 | `#include "ri/hiders/irradiance.h"` becomes `#include "ri/texture/irradianceCache.h"`, and the two cache constructions gain the explicit world-bound arguments (`CRenderer::worldBmin/worldBmax`, the values the base constructor read). This is a new test, so FR-029 does not bind it; the adaptation is listed so the maintainer approves it with the test. The references are not re-recorded |
+| M7 (applied with T-E's enabling, Phase 7, T108a) | `tests/shading_contract/contract_forwarder.h:33` | `class CContractForwarder final : public CRendererServices {` becomes `class CContractForwarder : public CRendererServices {`. One word, so that T-E's services wrapper can derive from the shared forwarder and override `getCache()` only, instead of copying its 38 members (PAUSE 2a answer). **Approved by the maintainer after the Phase 2 report (2026-11-09)**; applied exactly as in `tools/test-edit-patches/M7-contract_forwarder.diff` |
 | M6 (applied as M6a in Phase 4 and M6b in Phase 5) | `tests/unit/texture_only/CMakeLists.txt` | Adds a second library on the same narrow include path: `irradianceCache.cpp`, `photonStore.cpp`, `texture3d.cpp`, `texture3dChannels.cpp`, plus a staging copy of `src/ri/core/map.h` beside `ri_config.h`. `src/ri/core` stays off the path, as the file's comment requires. Also the two executables T-C and T-D. The existing `TextureOnly_Standalone` target is untouched. M6a (Phase 4): `irradianceCache.cpp`, `texture3d.cpp`, `texture3dChannels.cpp`, the `map.h` staging copy and the T-C/T-D executables; M6b (Phase 5): `photonStore.cpp` |
 
 No other existing test changes. `test_photon_solar0.cpp`'s comment naming `src/ri/hiders/photonMap.h` becomes stale
@@ -86,3 +87,8 @@ shown at the implement stage's test pause before it is applied.
   the determinism sweep at `-j2` against the Phase 1 manifests.
 - Builds: the no-JIT build and the no-OpenEXR build (if configured) once each; the TSan tree builds once (no test run
   for #122, Q8).
+
+**T-E's seam (PAUSE 2a, 2026-11-09).** The irradiance records are read through a test-only `CIrradianceCache` subclass whose
+`insertRecord()` copies each record, handed to Shading by a `CContractForwarder`-derived services wrapper whose `getCache()` is
+replaced (`CIrradianceCache` and `insertRecord` stay non-final: `irradiance-cache.md`). The photons are read by keeping the map
+alive with `attach()` after the frame and reading `photonKey(i)`.

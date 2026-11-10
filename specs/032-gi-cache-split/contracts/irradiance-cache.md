@@ -172,3 +172,11 @@ Call sites (the text of each call is the only change):
 3. `C`, the envdir transform, the "no joy" value and the NaN assert are unchanged.
 4. `libshader_shading` imports no new symbol. The calls into the store and the hierarchy are virtual; `irradianceStoreOf`
    is a `static_cast`.
+
+## Test seam: `CIrradianceCache` and `insertRecord` stay non-final
+
+T-E's `GiKeys_IrradianceRecords` (maintainer answer at PAUSE 2a, 2026-11-09) reads `(key, record)` pairs through a test-only
+subclass of `CIrradianceCache` that overrides `insertRecord()` to copy each record before forwarding, and hands it to Shading
+through a services wrapper (`CContractForwarder` with `getCache()` replaced). So `CIrradianceCache` must not be `final` and
+`CIrradianceStore::insertRecord` must stay virtual and overridable, and its constructor must stay inheritable
+(`using CIrradianceCache::CIrradianceCache`). Nothing in `src/` is added for the test.

@@ -141,8 +141,62 @@ add_custom_target(gi-split-capture-references-scratch
 # ---------------------------------------------------------------------------------------------------------
 # The red-first tests of Phase 2 onwards (T-A2, T-C, T-D, T-E): defined here, behind the option, in a scratch tree
 # ---------------------------------------------------------------------------------------------------------
+# Each target below fails to build on the starting tree, for the reason stated beside it; the red evidence is the compile
+# output of that one target in a scratch tree (build-red032, task T035). The phase that makes a test buildable moves its
+# definition out of this block (T-A2, T-D and the cache half of T-C in Phase 4; the photon half of T-C in Phase 5; T-E in
+# Phase 7, T108a), so that the main `build` never has a red target.
 if(OPENRENDER_032_RED_TESTS)
-    # Phase 2 (T027 to T030) adds the targets here.
+    # T-A2: GiRemote_LoopbackLookup and GiCache_KindMismatch (one source, one executable, two names)
+    #   red: ri/texture/irradianceCache.h does not exist (Phase 4)
+    add_executable(test_gi_remote_lookup test_gi_remote_lookup.cpp)
+    target_compile_features(test_gi_remote_lookup PRIVATE cxx_std_20)
+    target_include_directories(test_gi_remote_lookup PRIVATE ${GI_SPLIT_INCLUDES})
+    target_link_libraries(test_gi_remote_lookup PRIVATE ribRender openrendercommon Threads::Threads)
+    add_test(NAME GiRemote_LoopbackLookup
+        COMMAND test_gi_remote_lookup lookup ${GI_SPLIT_F1_CACHE} ${CMAKE_CURRENT_BINARY_DIR}/loopback-lookup)
+    add_test(NAME GiCache_KindMismatch
+        COMMAND test_gi_remote_lookup kind - ${CMAKE_CURRENT_BINARY_DIR}/kind-mismatch)
+    file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/loopback-lookup ${CMAKE_CURRENT_BINARY_DIR}/kind-mismatch)
+    set_tests_properties(GiRemote_LoopbackLookup GiCache_KindMismatch PROPERTIES
+        TIMEOUT 60
+        LABELS "gi_split;regression"
+        ENVIRONMENT "${GI_SPLIT_ENV}")
+    set_tests_properties(GiRemote_LoopbackLookup PROPERTIES FIXTURES_REQUIRED GiFixture_ICache)
+
+    # T-E: GiKeys_Photons, GiKeys_IrradianceRecords, and the opt-in GiKeys_PhotonsThreads (label gi_split_threads)
+    #   red: ri/render/photonMap.h does not exist (Phase 5); then photonKey, CIrradianceRecord::key, irradianceCache.h (Phases 4, 7)
+    add_executable(test_gi_keys test_gi_keys.cpp)
+    target_compile_features(test_gi_keys PRIVATE cxx_std_20)
+    target_include_directories(test_gi_keys PRIVATE ${GI_SPLIT_INCLUDES} ${CMAKE_SOURCE_DIR}/tests)
+    target_link_libraries(test_gi_keys PRIVATE ribRender openrendercommon Threads::Threads)
+    foreach(_d keys-photons keys-records keys-photons-threads)
+        file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${_d})
+    endforeach()
+    add_test(NAME GiKeys_Photons COMMAND test_gi_keys photons ${CMAKE_CURRENT_BINARY_DIR}/keys-photons)
+    add_test(NAME GiKeys_IrradianceRecords COMMAND test_gi_keys records ${CMAKE_CURRENT_BINARY_DIR}/keys-records)
+    add_test(NAME GiKeys_PhotonsThreads COMMAND test_gi_keys photons-threads ${CMAKE_CURRENT_BINARY_DIR}/keys-photons-threads)
+    set_tests_properties(GiKeys_Photons GiKeys_IrradianceRecords PROPERTIES
+        TIMEOUT 300 LABELS "gi_split;regression" ENVIRONMENT "${GI_SPLIT_ENV}")
+    set_tests_properties(GiKeys_PhotonsThreads PROPERTIES
+        TIMEOUT 600 LABELS "gi_split_threads" ENVIRONMENT "${GI_SPLIT_ENV}")
+
+    # T-C and T-D (sources in tests/unit/texture_only, label texture_only): compiled as objects only, on an include path that
+    # mirrors tests/unit/texture_only/CMakeLists.txt (src, src/ri/texture, the build directory, a staging directory holding
+    # ri_config.h and a copy of core/map.h; src/ri/core itself stays off the path, as that file's comment requires). M6a
+    # (Phase 4) defines the real library and the two executables there and takes these two definitions over.
+    #   TextureOnly_GiStores           red: irradianceCache.h and photonStore.h do not exist (Phases 4 and 5)
+    #   TextureOnly_IrradianceDrawOrder red: irradianceCache.h does not exist (Phase 4)
+    set(GI_SPLIT_STAGING ${CMAKE_CURRENT_BINARY_DIR}/texture_only_staging)
+    configure_file(${CMAKE_SOURCE_DIR}/src/ri/core/ri_config.h ${GI_SPLIT_STAGING}/ri_config.h COPYONLY)
+    configure_file(${CMAKE_SOURCE_DIR}/src/ri/core/map.h ${GI_SPLIT_STAGING}/map.h COPYONLY)
+    foreach(_t test_gi_stores test_irradiance_draw_order)
+        add_library(red_${_t} OBJECT ${CMAKE_SOURCE_DIR}/tests/unit/texture_only/${_t}.cpp)
+        target_compile_features(red_${_t} PRIVATE cxx_std_20)
+        target_link_libraries(red_${_t} PRIVATE openrender_common_flags)
+        target_include_directories(red_${_t} PRIVATE
+            ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/ri/texture ${CMAKE_BINARY_DIR} ${GI_SPLIT_STAGING})
+    endforeach()
+    target_compile_definitions(red_test_gi_stores PRIVATE GI_STORES_CACHE GI_STORES_PHOTONS)
 endif()
 
 message(STATUS "  - spec 032 gi_split tests (GiFixture_ICache, GiFiles_Unchanged, GiRemote_Loopback*), platform ${GI_SPLIT_PLATFORM}")

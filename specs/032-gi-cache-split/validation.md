@@ -116,6 +116,102 @@ full report `ALLOWED DB-004 x 52, DB-006 x 30, DB-010 x 8, DB-011 x 164, DB-017 
 
 ## §2 Red evidence
 
+### Phase 2, so far (the tests are written; PAUSE 2a and 2b are open, nothing is built red yet)
+
+### T035 to T037 (after PAUSE 2a and 2b, 2026-11-09)
+
+Red evidence, taken in the scratch tree `build-red032` (configured with `-DOPENRENDER_032_RED_TESTS=ON` and all ten sub-checks in
+`GI032_BOUNDARY_CHECKS`; only each test's object was built, through `cpujob`; logs `build-logs/032-red-*.log`). Every new test is red
+for the stated reason:
+
+| Test (CTest names) | Object target | Result on the starting tree |
+|---|---|---|
+| T-A2 (`GiRemote_LoopbackLookup`, `GiCache_KindMismatch`) | `tests/gi_split/test_gi_remote_lookup.cpp.o` | `fatal error: 'ri/texture/irradianceCache.h' file not found` (line 42) |
+| T-E (`GiKeys_Photons`, `GiKeys_IrradianceRecords`, `GiKeys_PhotonsThreads`) | `tests/gi_split/test_gi_keys.cpp.o` | `fatal error: 'ri/render/photonMap.h' file not found` (line 51) |
+| T-C (`TextureOnly_GiStores`) | `red_test_gi_stores` | `fatal error: 'irradianceCache.h' file not found` (line 21; `photonStore.h` is the next in line, Phase 5) |
+| T-D (`TextureOnly_IrradianceDrawOrder`) | `red_test_irradiance_draw_order` | `fatal error: 'irradianceCache.h' file not found` (line 31) |
+| T-G (`GiSplit_Boundary`) | `ctest -R` in the scratch tree | **Failed**, all ten sub-checks red: friends-texture 3, texture-names-viewer 9, hiders-no-viewer-irradiance 1, friends-hiders 1, texture-names-shading 7, texture-names-core 6, hiders-no-viewer 3, texture-includes 1, hiders-no-texture 6, files-absent 9 |
+
+A fatal include error stops a translation unit at its first missing header, so the other missing members (`lookupCached`, `insertReceived`,
+`photonKey`, `CIrradianceRecord::key`, the `getCache` kind check) are not reached; each phase finds the next. Main tree (T036): the
+main `build` was reconfigured with the Phase 2 additions (option OFF) and built (`032-p2-green-build`, exit 0, nothing from `src/`
+changed); `ctest -L 'gi_split|preview'` passed; `ctest -L architecture` passed (30 of 30, `GiSplit_Boundary` green with no sub-check
+enabled). T035's cleanup is done: the scratch tree `build-red032` was deleted by the coordinator on the maintainer's word (2026-11-09).
+
+T031: `GiSplit_Boundary` run on the unmodified tree with every sub-check enabled (`032-p2-boundary`, `cmake -P` of
+`tests/architecture/check_gi_split_boundary.cmake`, include directories of `ribRender_obj`). What matches today, which is the red
+state each phase turns green (10 sub-checks, all 10 red as expected):
+
+```
+  friends-texture: src/ri/texture/brickmap.h: friend class CBrickMapGeometry;
+  friends-texture: src/ri/texture/pointCloud.h: friend class CRemotePtCloudChannel;
+  friends-texture: src/ri/texture/texture3d.h: friend class CRemotePtCloudChannel;
+FAIL: friends-texture: 3 match(es)
+  texture-names-viewer: src/ri/texture/brickmap.h: class CBrickMapGeometry;
+  texture-names-viewer: src/ri/texture/brickmap.h: friend class CBrickMapGeometry;
+  texture-names-viewer: src/ri/texture/pointCloud.h: // CDataView interface for drawing
+  texture-names-viewer: src/ri/texture/pointCloud.h: friend class CRemotePtCloudChannel;
+  texture-names-viewer: src/ri/texture/pointHierarchy.h: // CDataView interface
+  texture-names-viewer: src/ri/texture/texture3d.h: #include "dataView.h"
+  texture-names-viewer: src/ri/texture/texture3d.h: class CTexture3d : public CFileResource, public CDataView {
+  texture-names-viewer: src/ri/texture/texture3d.h: // CDataView channel accessors (FR-016) — shared by every CTexture3d-derived document
+  texture-names-viewer: src/ri/texture/texture3d.h: friend class CRemotePtCloudChannel;
+FAIL: texture-names-viewer: 9 match(es)
+  hiders-no-viewer-irradiance: src/ri/hiders/irradiance.cpp: #include "debug.h"
+FAIL: hiders-no-viewer-irradiance: 1 match(es)
+  friends-hiders: src/ri/hiders/irradiance.h: friend class CRemoteICacheChannel;
+FAIL: friends-hiders: 1 match(es)
+  texture-names-shading: src/ri/texture/brickmap.h: void lookup(float *, const float *, const float *, const float *, const float *, CShadingContext *) { assert(FALSE); }
+  texture-names-shading: src/ri/texture/pointCloud.h: void lookup(float *, const float *, const float *, const float *, const float *, CShadingContext *) { assert(FALSE); }
+  texture-names-shading: src/ri/texture/pointHierarchy.cpp: void CPointHierarchy::lookup(float *Cl, const float *Pl, const float *, const float *, const float *Nl, CShadingContext *context) {
+  texture-names-shading: src/ri/texture/pointHierarchy.h: float (*maxSolidAngle)(const CShadingContext *context);
+  texture-names-shading: src/ri/texture/pointHierarchy.h: void lookup(float *, const float *, const float *, const float *, const float *, CShadingContext *);
+  texture-names-shading: src/ri/texture/texture3d.h: class CShadingContext;
+  texture-names-shading: src/ri/texture/texture3d.h: virtual void lookup(float *, const float *, const float *, const float *, const float *, CShadingContext *) = 0;
+FAIL: texture-names-shading: 7 match(es)
+  texture-names-core: src/ri/texture/texture.cpp: // Description			:	Set the maximum texture memory and init the cache (was CRenderer::initTextures)
+  texture-names-core: src/ri/texture/texture.cpp: // Description			:	Free the counters (was CRenderer::shutdownTextures)
+  texture-names-core: src/ri/texture/textureInternal.h: *   Texturing-private (spec 027): the tile cache that texture.cpp used to keep in CRenderer statics,
+  texture-names-core: src/ri/texture/textureInternal.h: TMutex mutex;                 // guards the registry during eviction (was CRenderer::textureMutex)
+  texture-names-core: src/ri/texture/textureResolver.h: // relative to the working directory) when the file exists. This is what CRenderer::locateFile does
+  texture-names-core: src/ri/texture/textureSystem.h: *   was given. The renderer core constructs one per frame (CRenderer::textureSystem) and Shading
+FAIL: texture-names-core: 6 match(es)
+  hiders-no-viewer: src/ri/hiders/irradiance.cpp: #include "debug.h"
+  hiders-no-viewer: src/ri/hiders/photonMap.h: #include "dataView.h"
+  hiders-no-viewer: src/ri/hiders/photonMap.h: class CPhotonMap : public CMap<CPhoton>, public CFileResource, public CDataView, public CMapRefTarget, public openrender::shading::IPhotonLookup {
+FAIL: hiders-no-viewer: 3 match(es)
+  texture-includes: src/ri/texture/texture3d.h includes src/ri/dataviewer/dataView.h (Consumer)
+FAIL: texture-includes: 1 include(s)
+  hiders-no-texture: src/ri/hiders/irradiance.cpp includes src/ri/texture/pointHierarchy.h (Texturing)
+  hiders-no-texture: src/ri/hiders/irradiance.cpp includes src/ri/texture/texture.h (Texturing)
+  hiders-no-texture: src/ri/hiders/irradiance.h includes src/ri/texture/texture3d.h (Texturing)
+  hiders-no-texture: src/ri/hiders/irradianceDispatch.cpp includes src/ri/texture/pointHierarchy.h (Texturing)
+  hiders-no-texture: src/ri/hiders/irradianceDispatch.cpp includes src/ri/texture/texture.h (Texturing)
+  hiders-no-texture: src/ri/hiders/radiance.cpp includes src/ri/texture/texture.h (Texturing)
+FAIL: hiders-no-texture: 6 include(s)
+  files-absent: src/ri/hiders/harmonics.h exists
+  files-absent: src/ri/hiders/irradianceDispatch.cpp exists
+  files-absent: src/ri/hiders/radiance.cpp exists
+  files-absent: src/ri/hiders/radiance.h exists
+  files-absent: src/ri/vector/irradianceDispatchStub.cpp exists
+  files-absent: src/ri/hiders/irradiance.cpp names irradianceSampleAccept in code
+  files-absent: src/ri/hiders/irradiance.h names irradianceSampleAccept in code
+  files-absent: src/ri/hiders/irradianceDispatch.cpp names irradianceSampleAccept in code
+  files-absent: src/ri/vector/irradianceDispatchStub.cpp names irradianceSampleAccept in code
+FAIL: files-absent: 9 finding(s)
+10 sub-check(s) enabled
+  GiSplit_Boundary: 1 failure(s).
+  tests/architecture/check_gi_split_boundary.cmake:213 (or_check_end)
+```
+
+`texture-names-core` matches exactly the six comments the tasks predict (`texture.cpp:3073,3101`, `textureInternal.h:7,54`,
+`textureResolver.h:48`, `textureSystem.h:10`). `texture-includes` finds one include of another domain
+(`texture3d.h -> dataviewer/dataView.h`, class Consumer). `files-absent` finds the five files and four code mentions of
+`irradianceSampleAccept` (`irradiance.cpp`, `irradiance.h`, `irradianceDispatch.cpp`, `irradianceDispatchStub.cpp`).
+
+The registration of `GiSplit_Boundary` (label `architecture`, `GI032_BOUNDARY_CHECKS` empty) was configured in the main `build`:
+`ctest -L architecture` **30 of 30 passed** (the 29 of Phase 1 plus `GiSplit_Boundary`, a pass with no sub-check enabled).
+
 ## §3 Per-phase checkpoint records
 
 ### Phase 1, Linux (T021 to T025; Ubuntu 24.04, GCC 13, `-Werror`, remote `cpujob` at `-j2`, tree `~/Projects/Development/CLI/openrender-032`)
@@ -142,5 +238,26 @@ Remote disk 9.2 GB free before, 8.7 GB after `build-base`.
 ## §5 SC-007 timing
 
 ## §6 Departures and findings
+
+### Phase 2
+
+- **Retraction (Phase 1 report).** The Phase 1 report listed "`orender` exits 0 when a render fails early" as a finding. It has no repro
+  and is withdrawn: the sub-second timings that suggested it were real, fast renders (valid `.tif` outputs, exit 0), and the one real
+  failure seen (`orender failed (-11)`, #122) was caught by its nonzero return code. It was never recorded in this file.
+- **T-E's seam (for the record-key test).** The renderer creates and frees the irradiance cache inside the frame, so a test
+  cannot read it afterwards, and no key is written to a cache file (Q3 B). `test_gi_keys.cpp` therefore installs a
+  `CRendererServices` wrapper over the renderer's own for the length of the frame (a substitute installed after `RiBegin` survives
+  `RiWorldBegin`, gotcha 23); its `getCache()` builds a `CIrradianceCache` subclass whose `insertRecord()` copies every
+  `(key, record)` first. Nothing in `src/` changes for it. After PAUSE 2a the wrapper derives from `CContractForwarder`
+  (`tests/shading_contract/contract_forwarder.h`) and overrides `getCache()` only, so it lists no member of `CRendererServices`.
+  `CContractForwarder` is `final`, so this needs the one-word edit M7 (`tools/test-edit-patches/M7-contract_forwarder.diff`), not applied
+  yet; **approved by the maintainer (2026-11-09)**, it lands exactly as in the patch with T-E's enabling in Phase 7 (T108a). `CIrradianceCache` and `insertRecord` must stay non-final.
+  The photon half needs no seam: it keeps the map alive with `attach()` and reads `photonKey(i)` after the frame.
+- **T-A2 shares no code with T-A.** Its loopback helpers are in a new header `tests/gi_split/gi_loopback.h`, because T-A (approved,
+  recorded) is not edited.
+- **T-C and T-D definitions.** In the red block they are OBJECT libraries on the narrow include path (the real library and
+  executables come with M6a, whose sources do not exist yet); T-A2 and T-E are real executables and tests in the block.
+- **T-D's tree.** The root of its cache is 0.1 wide, so no record can descend and the lookup always visits every record in list order;
+  the expectation is computed from `forEachRecord()` (the cache's own order, after `clamp()`).
 
 ## §7 SC-001 to SC-010 walk

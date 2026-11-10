@@ -446,3 +446,11 @@ tasks.md was approved with every recommendation. Where they change this plan, th
 | No-OpenEXR | Built only if the tree supports configuring one; report either way | none |
 | Analyze remediation (2026-11-09) | The Hiders sampler header is `hiderIrradianceSampler.h`; T-A2/T-C/T-D/T-E targets live in `tests/gi_split` and red evidence is taken in a scratch tree; T078a removes the dead `CPhotonRay`; Core's `getCache` answers `nullptr` on a kind mismatch (second CTest name `GiCache_KindMismatch` of T-A2); T-E is enabled by T108a | Phase 2, 4, 5 and 7 rows; `contracts/` |
 | D1, D2, D5 | Departures listed in tasks.md: the 6-argument lookup reshape moves to Phase 4; M5 and M6a land in Phase 4, M1 to M4 and M6b in Phase 5; T-A2 is enabled in Phase 4 | Phase 2, 3, 4 and 6 rows; `contracts/tests.md` T-A2 row (the "Red until Phase 6" inconsistency is fixed) |
+
+## Phase 2 notes (2026-11-09, PAUSE 2a/2b answers)
+
+- T-E reads irradiance records through a test-only `CIrradianceCache` subclass overriding `insertRecord()` and a services wrapper
+  derived from `tests/shading_contract/contract_forwarder.h` (`getCache()` replaced). `CIrradianceCache` and `insertRecord` must
+  therefore stay non-final (`contracts/irradiance-cache.md`, "Test seam"). The wrapper needs M7: removing `final` from
+  `CContractForwarder` (`tools/test-edit-patches/M7-contract_forwarder.diff`, applied when T-E is enabled in Phase 7).
+- T-C and T-D are OBJECT libraries in `tests/gi_split`'s red block until M6a defines the real library in `tests/unit/texture_only`.
