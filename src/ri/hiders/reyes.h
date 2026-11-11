@@ -244,7 +244,7 @@ class CReyes : public CHider {
         virtual void rasterEnd(float *, int) = 0;
 
         // The following can be called from the "dice" function to insert an object into the scene
-        void drawObject(CObject *);                                      // Draw an object
+        void drawObject(CObject *) override;                             // Draw an object
         void drawGrid(CSurface *, int, int, float, float, float, float, const CGridSnap * = NULL); // Draw a grid
         void drawPoints(CSurface *, int);                                // Draw points (RiPoints)
 

@@ -27,6 +27,8 @@
 #include <math.h>
 
 #include "common/memory.h"
+#include "hiderAbi.hpp"
+#include "hiderRegistry.h"
 #include "pixelFilter.h"
 #include "rasterEdge.h"
 #include "zbuffer.h"
@@ -201,4 +203,37 @@ void CZbuffer::rasterEnd(float *fb2, int /*noObjects*/) {
             }
         }
     }
+}
+
+///////////////////////////////////////////////////////////////////////
+// The registration table of this hider (spec 030, contracts/hider-registration.md "Built-in registrations")
+namespace {
+
+    const OrCapability kZbufferProvides[] = {{OR_CAP_RASTERIZATION, OR_CAP_VERSION}, {OR_CAP_DISPLAY_OUTPUT, OR_CAP_VERSION}};
+
+    OrHiderInstance *zbufferCreate(const OrHiderCreateInfo *info) {
+        return instanceOf(new CZbuffer(info->thread));
+    }
+
+    void zbufferDestroy(OrHiderInstance *instance) {
+        delete hiderOf(instance);
+    }
+
+    const OrHiderTable kZbufferTable = {
+        {sizeof(OrHiderTable), OR_HIDER_ABI_VERSION},
+        "zbuffer",
+        nullptr,
+        0,
+        kZbufferProvides,
+        2,
+        OR_HIDER_DISPATCH_BUCKETS,
+        nullptr,
+        zbufferCreate,
+        zbufferDestroy,
+    };
+
+} // namespace
+
+const OrHiderTable *orHiderTableZbuffer() {
+    return &kZbufferTable;
 }

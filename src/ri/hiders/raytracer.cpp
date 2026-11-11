@@ -30,6 +30,8 @@
 
 #include "common/diagnostics.h"
 #include "common/memory.h"
+#include "hiderAbi.hpp"
+#include "hiderRegistry.h"
 #include "pixelFilter.h"
 #include "raytracer.h"
 #include "renderer.h"
@@ -777,4 +779,38 @@ void CRaytracer::splatSamples(CPrimaryRay *samples, int numShading, int left, in
             }
         }
     }
+}
+
+///////////////////////////////////////////////////////////////////////
+// The registration table of this hider (spec 030, contracts/hider-registration.md "Built-in registrations")
+namespace {
+
+    const OrCapability kRaytraceProvides[] = {{OR_CAP_DISPLAY_OUTPUT, OR_CAP_VERSION}, {OR_CAP_DISPLAY_CHANNELS, OR_CAP_VERSION}};
+
+    OrHiderInstance *raytraceCreate(const OrHiderCreateInfo *info) {
+        const SHiderFrame &frame = frameOf(info->frame);
+        return instanceOf(new CRaytracer(info->thread, *frame.camera));
+    }
+
+    void raytraceDestroy(OrHiderInstance *instance) {
+        delete hiderOf(instance);
+    }
+
+    const OrHiderTable kRaytraceTable = {
+        {sizeof(OrHiderTable), OR_HIDER_ABI_VERSION},
+        "raytrace",
+        nullptr,
+        0,
+        kRaytraceProvides,
+        2,
+        OR_HIDER_DISPATCH_BUCKETS,
+        nullptr,
+        raytraceCreate,
+        raytraceDestroy,
+    };
+
+} // namespace
+
+const OrHiderTable *orHiderTableRaytrace() {
+    return &kRaytraceTable;
 }

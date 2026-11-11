@@ -38,6 +38,8 @@
 #include "common/random.h"
 #include "sampler.h"
 #include "stochastic.h"
+#include "hiderAbi.hpp"
+#include "hiderRegistry.h"
 
 // This macro is used to allocate fragments
 #define newFragment(__a)                                               \
@@ -1309,4 +1311,47 @@ void CStochastic::deepShadowCompute() {
     memEnd(context.threadMemory);
 
     osUnlock(CRenderer::deepShadowMutex);
+}
+
+///////////////////////////////////////////////////////////////////////
+// The registration table of this hider (spec 030, contracts/hider-registration.md "Built-in registrations")
+namespace {
+
+    const OrHiderAlias kReyesAliases[] = {
+        {"hidden", nullptr, nullptr},
+        {"stochastic", "Deprecated Hider \"stochastic\"; use \"reyes\" instead", nullptr},
+    };
+
+    const OrCapability kReyesProvides[] = {
+        {OR_CAP_RASTERIZATION, OR_CAP_VERSION},
+        {OR_CAP_DISPLAY_OUTPUT, OR_CAP_VERSION},
+        {OR_CAP_DISPLAY_CHANNELS, OR_CAP_VERSION},
+        {OR_CAP_DEEP_SHADOW_OUTPUT, OR_CAP_VERSION},
+    };
+
+    OrHiderInstance *reyesCreate(const OrHiderCreateInfo *info) {
+        return instanceOf(new CStochastic(info->thread));
+    }
+
+    void reyesDestroy(OrHiderInstance *instance) {
+        delete hiderOf(instance);
+    }
+
+    const OrHiderTable kReyesTable = {
+        {sizeof(OrHiderTable), OR_HIDER_ABI_VERSION},
+        "reyes",
+        kReyesAliases,
+        2,
+        kReyesProvides,
+        4,
+        OR_HIDER_DISPATCH_BUCKETS,
+        nullptr,
+        reyesCreate,
+        reyesDestroy,
+    };
+
+} // namespace
+
+const OrHiderTable *orHiderTableReyes() {
+    return &kReyesTable;
 }

@@ -64,13 +64,13 @@ reg_executable(test_registry_integrator_table test_registry_integrator_table.cpp
 reg_test(Registry_IntegratorLookup test_registry_integrator_table ARGS lookup)
 reg_test(Registry_PairCheck test_registry_integrator_table ARGS pair_check)
 
+# ---- Phase 6: the hider table (hiderAbi.h, hiderRegistry.h) ------------------------------------------------------------------
+reg_executable(test_registry_hider_table test_registry_hider_table.cpp)
+reg_test(Registry_HiderLookup test_registry_hider_table ARGS lookup)
+reg_test(Registry_HiderCollisions test_registry_hider_table ARGS collisions)
+
 # ---- red until their phase ----------------------------------------------------------------------------------------------
 if(OPENRENDER_030_RED_TESTS)
-    # Phase 6: the hider table (no hiderRegistry.h yet).
-    reg_executable(test_registry_hider_table test_registry_hider_table.cpp)
-    reg_test(Registry_HiderLookup test_registry_hider_table ARGS lookup)
-    reg_test(Registry_HiderCollisions test_registry_hider_table ARGS collisions)
-
     # Phase 7: the Integrator statement parses (it compiles today; red by assertion).
     reg_executable(test_registry_identity test_registry_identity.cpp)
     reg_test(Registry_IntegratorImageIdentity test_registry_identity LABELS visual TIMEOUT 300)

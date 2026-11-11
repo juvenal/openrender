@@ -64,7 +64,7 @@ DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer8dPixeldyE   # CR
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer8pixelTopE   # CRenderer::pixelTop
 DB-004  link     src/ri/geometry/surface.cpp  ->  _ZN9CRenderer9pixelLeftE   # CRenderer::pixelLeft
 
-# --- DB-006: Geometry is coupled to Shading and to the hiders (30) ---
+# --- DB-006: Geometry is coupled to Shading and to the hiders (29) ---
 DB-006  include  src/ri/geometry/bsplinePatchgrid.cpp  ->  src/ri/core/shading.h
 DB-006  include  src/ri/geometry/curves.cpp  ->  src/ri/hiders/reyes.h
 DB-006  include  src/ri/geometry/curves.h  ->  src/ri/core/shading.h
@@ -93,7 +93,6 @@ DB-006  link     src/ri/geometry/implicitSurface.cpp  ->  _ZN15CShadingContext5s
 DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN15CShadingContext12restoreStateEPv   # CShadingContext::restoreState(void*)
 DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN15CShadingContext5shadeEP8CSurfaceii11EShadingDimji   # CShadingContext::shade(CSurface*, int, int, EShadingDim, unsigned int, int)
 DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN15CShadingContext9saveStateEv   # CShadingContext::saveState()
-DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN6CReyes10drawObjectEP7CObject   # CReyes::drawObject(CObject*)
 DB-006  link     src/ri/geometry/surface.cpp  ->  _ZN6CReyes8drawGridEP8CSurfaceiiffffPK9CGridSnap   # CReyes::drawGrid(CSurface*, int, int, float, float, float, float, CGridSnap const*)
 
 # --- DB-010: The hiders' GI caches use Texturing (8) ---

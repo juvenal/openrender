@@ -31,6 +31,8 @@
 #include "common/memory.h"
 #include "object.h"
 #include "photon.h"
+#include "hiderAbi.hpp"
+#include "hiderRegistry.h"
 #include "photonMap.h"
 #include "common/random.h"
 #include "renderer.h"
@@ -881,4 +883,38 @@ processBounce:;
             } break;
         }
     }
+}
+
+///////////////////////////////////////////////////////////////////////
+// The registration table of this hider (spec 030, contracts/hider-registration.md "Built-in registrations")
+namespace {
+
+    const OrCapability kPhotonProvides[] = {{OR_CAP_ILLUMINATION_HOOK, OR_CAP_VERSION}};
+
+    OrHiderInstance *photonCreate(const OrHiderCreateInfo *info) {
+        const SHiderFrame &frame = frameOf(info->frame);
+        return instanceOf(new CPhotonHider(info->thread, frame.acquireWorldAttributes(frame.host)));
+    }
+
+    void photonDestroy(OrHiderInstance *instance) {
+        delete hiderOf(instance);
+    }
+
+    const OrHiderTable kPhotonTable = {
+        {sizeof(OrHiderTable), OR_HIDER_ABI_VERSION},
+        "photon",
+        nullptr,
+        0,
+        kPhotonProvides,
+        1,
+        OR_HIDER_DISPATCH_PHOTONS,
+        nullptr,
+        photonCreate,
+        photonDestroy,
+    };
+
+} // namespace
+
+const OrHiderTable *orHiderTablePhoton() {
+    return &kPhotonTable;
 }

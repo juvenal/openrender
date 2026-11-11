@@ -75,7 +75,9 @@ set(ri_sources
 	transport/capabilityCheck.cpp
 	transport/classicIntegrator.cpp
 	transport/integratorRegistry.cpp
+	hiders/builtinHiders.cpp
 	hiders/hider.cpp
+	hiders/hiderRegistry.cpp
 	hiders/shadingProducer.cpp
 	geometry/curves.cpp
 	geometry/bsplinePatchgrid.cpp
@@ -398,7 +400,9 @@ list(REMOVE_ITEM ribVector_sources
     geometry/csgSolid.cpp
     geometry/csgTree.cpp
     geometry/dlobject.cpp
+    hiders/builtinHiders.cpp
     hiders/hider.cpp
+    hiders/hiderRegistry.cpp
     hiders/shadingProducer.cpp
     hiders/irradianceDispatch.cpp
     hiders/occlusion.cpp
