@@ -158,7 +158,7 @@ class CPatchMesh : public CObject {
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         // Raw control-cage data for non-shading consumers (e.g. orender-wire's
-        // wireframe extractor), which has no CShadingContext to dice() through.
+        // wireframe extractor), which has no dicer to dice() through.
         void wireData(const float *&positions, int &nu, int &nv) const {
             positions = pl->data0;
             nu = uVertices;
@@ -243,7 +243,7 @@ class CNURBSPatchMesh : public CObject {
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         // Raw control-cage data for non-shading consumers (e.g. orender-wire's
-        // wireframe extractor), which has no CShadingContext to dice() through.
+        // wireframe extractor), which has no dicer to dice() through.
         void wireData(const float *&positions, int &nu, int &nv) const {
             positions = pl->data0;
             nu = uVertices;

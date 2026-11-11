@@ -24,10 +24,12 @@
 //  Description			:
 //
 ////////////////////////////////////////////////////////////////////////
+#include <atomic>
 #include <math.h>
 
 #include "delayed.h"
-#include "renderer.h"
+#include "common/diagnostics.h"
+#include "geometryHost.h"
 #include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////
@@ -85,16 +87,6 @@ CDelayedObject::~CDelayedObject() {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CDelayedObject
-// Method				:	intersect / dice
-// Comments				:	Real bodies live in render/geometryDispatch.cpp
-//							(need CRenderer::context->processDelayedObject());
-//							a loud stub lives in
-//							vector/geometryDispatchStub.cpp -- addObject()
-//							never calls either on this class (see
-//							geometryDispatch.cpp's header comment).
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CDelayedObject
 // Method				:	instantiate
 // Description			:	See object.h
 // Return Value			:	-
@@ -147,16 +139,6 @@ CDelayedInstance::~CDelayedInstance() {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CDelayedInstance
-// Method				:	intersect / dice
-// Comments				:	Real bodies live in render/geometryDispatch.cpp
-//							(need CRenderer::context->processDelayedInstance());
-//							a loud stub lives in
-//							vector/geometryDispatchStub.cpp -- addObject()
-//							never calls either on this class (see
-//							geometryDispatch.cpp's header comment).
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CDelayedInstance
 // Method				:	instantiate
 // Description			:	See object.h
 // Return Value			:	-
@@ -170,4 +152,92 @@ void CDelayedInstance::instantiate(CAttributes *a, CXform *x, IObjectSink *c) co
         a = attributes;
 
     c->addObject(new CDelayedInstance(a, nx, instance));
+}
+
+namespace {
+
+    // With no host installed a delayed object stays unexpanded and the missing host is reported once
+    void reportNoGeometryHost() {
+        static std::atomic<bool> reported{false};
+        if (!reported.exchange(true))
+            error(CODE_BUG, "A delayed object or instance was reached with no geometry host installed\n");
+    }
+
+    void expandThroughHost(CDelayedObject *object) {
+        CGeometryHost *host = geometryHost();
+        if (host != NULL)
+            host->expandDelayedObject(object);
+        else
+            reportNoGeometryHost();
+    }
+
+    void expandThroughHost(CDelayedInstance *instance) {
+        CGeometryHost *host = geometryHost();
+        if (host != NULL)
+            host->expandDelayedInstance(instance);
+        else
+            reportNoGeometryHost();
+    }
+
+} // namespace
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CDelayedObject
+// Method				:	intersect
+// Description			:	See object.h
+// Return Value			:	-
+// Comments				:
+void CDelayedObject::intersect(IRayContext &, CRay *) {
+
+    // Process the object (through the host, which serializes the expansion)
+    if (processed == FALSE)
+        expandThroughHost(this);
+}
+
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CDelayedObject
+// Method				:	dice
+// Description			:	See object.h
+// Return Value			:	-
+// Comments				:
+void CDelayedObject::dice(IDicer &r) {
+
+    // Process the object
+    if (processed == FALSE)
+        expandThroughHost(this);
+
+    // Let the parent dice it
+    CObject::dice(r);
+}
+
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CDelayedInstance
+// Method				:	intersect
+// Description			:	See object.h
+// Return Value			:	-
+// Comments				:
+void CDelayedInstance::intersect(IRayContext &, CRay *) {
+
+    // Process the instance
+    if (processed == FALSE)
+        expandThroughHost(this);
+}
+
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CDelayedInstance
+// Method				:	dice
+// Description			:	See object.h
+// Return Value			:	-
+// Comments				:
+void CDelayedInstance::dice(IDicer &r) {
+
+    // Process the instance
+    if (processed == FALSE)
+        expandThroughHost(this);
+
+    // Let the parent take care of the instance
+    CObject::dice(r);
 }

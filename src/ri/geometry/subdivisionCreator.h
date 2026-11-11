@@ -50,7 +50,7 @@ class CSubdivMesh : public CObject {
         int moving() const { return pl->data1 != NULL; }
 
         // Raw vertex/topology data for non-shading consumers (e.g. orender-wire's
-        // wireframe extractor), which has no CShadingContext to dice() through.
+        // wireframe extractor), which has no dicer to dice() through.
         void wireData(const float *&positions, int &numFaces, const int *&numVerticesPerFace, const int *&vertexIndices) const {
             positions = pl->data0;
             numFaces = this->numFaces;

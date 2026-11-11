@@ -36,7 +36,6 @@
 #include "common/os.h"
 #include "common/diagnostics.h"
 #include "polygons.h"
-#include "reyes.h"
 #include "objectSink.h"
 #include "common/stats.h"
 #include "subdivisionLoop.h"

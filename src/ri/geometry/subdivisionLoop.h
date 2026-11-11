@@ -62,7 +62,7 @@ class CLoopSubdivMesh : public CObject {
         int moving() const { return pl->data1 != NULL; }
 
         // Refines this mesh and wraps the result in a plain CPolygonMesh,
-        // without touching any CShadingContext -- for CSG leaf dispatch,
+        // without touching any ray context -- for CSG leaf dispatch,
         // which resolves entirely in the geometry domain, outside any
         // hider. Caller owns the returned object's lifecycle.
         CObject *buildPolygonMesh();

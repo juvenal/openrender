@@ -30,7 +30,6 @@
 #include "common/global.h"
 #include "object.h"
 #include "pl.h"
-#include "shading.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CCubicCurves
@@ -130,7 +129,7 @@ class CCurveMesh : public CObject {
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         // Raw vertex/topology data for non-shading consumers (e.g. orender-wire's
-        // wireframe extractor), which has no CShadingContext to dice() through.
+        // wireframe extractor), which has no dicer to dice() through.
         void wireData(const float *&positions, int &numCurves, const int *&nverts, int &wrap) const {
             positions = pl->data0;
             numCurves = this->numCurves;

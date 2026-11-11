@@ -31,7 +31,6 @@
 #include "common/global.h"
 #include "object.h"
 #include "pl.h"
-#include "shader.h"
 
 // TRUE if a sweep angle closes the surface on itself
 inline int isFullTurn(float angle) { return fabs(angle) >= 2 * C_PI * (1 - 1e-6); }

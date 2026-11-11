@@ -1,0 +1,178 @@
+diff --git a/tests/geometry_contract/fixtures.h b/tests/geometry_contract/fixtures.h
+index c64e5269..437208ba 100644
+--- a/tests/geometry_contract/fixtures.h
++++ b/tests/geometry_contract/fixtures.h
+@@ -27,11 +27,12 @@
+ 
+ namespace contract {
+ 
+-    // attributes and a transform that translates by (0, 0, z)
++    // attributes and a transform that translates by (0, 0, z); `z` is also the depth of the camera-space vertex data below
+     struct Placement {
+         CAttributes *attributes;
+         CXform *xform;
+-        explicit Placement(float z) : attributes(new CAttributes()), xform(new CXform()) {
++        float z;
++        explicit Placement(float z) : attributes(new CAttributes()), xform(new CXform()), z(z) {
+             xform->translate(0, 0, z);
+             attributes->attach();
+             xform->attach();
+@@ -48,17 +49,18 @@ namespace contract {
+         return new CPl(n, 1, p, data);
+     }
+ 
+-    inline CSurface *sphere(const Placement &pl) { return new CSphere(pl.attributes, pl.xform, NULL, 0, 1.0f, -1.0f, 1.0f, 6.2831853f); }
++    inline CSurface *sphere(const Placement &pl) { return new CSphere(pl.attributes, pl.xform, NULL, 0, 1.0f, -1.5707964f, 1.5707964f, 6.2831853f); }
+ 
++    // patch and points data are camera-space vertices, as RiPatch and RiPoints hand them over: at depth pl.z
+     inline CSurface *bilinearPatch(const Placement &pl) {
+-        float *v = new float[12]{-1, -1, 0, 1, -1, 0, -1, 1, 0, 1, 1, 0};
++        float *v = new float[12]{-1, -1, pl.z, 1, -1, pl.z, -1, 1, pl.z, 1, 1, pl.z};
+         CPl *list = positionList(4, v);
+         return new CBilinearPatch(pl.attributes, pl.xform, list->vertexData(), NULL, 0.0f, 0.0f, 1.0f, 1.0f, v);
+     }
+ 
+     // a bilinear-degree NURBS patch (order 2 x 2) whose (u,v) square carries one triangular trim loop
+     inline CSurface *trimmedNurbsPatch(const Placement &pl) {
+-        float *v = new float[12]{-1, -1, 0, 1, -1, 0, -1, 1, 0, 1, 1, 0};
++        float *v = new float[12]{-1, -1, pl.z, 1, -1, pl.z, -1, 1, pl.z, 1, 1, pl.z};
+         CPl *list = positionList(4, v);
+         static float knots[4] = {0, 0, 1, 1};
+         CTrimTest *trim = new CTrimTest();
+@@ -74,7 +76,7 @@ namespace contract {
+         for (int i = 0; i < n; i++) {
+             v[3 * i + 0] = -0.5f + (float)i / (float)n;
+             v[3 * i + 1] = 0.0f;
+-            v[3 * i + 2] = 0.0f;
++            v[3 * i + 2] = pl.z;
+         }
+         return new CPoints(pl.attributes, pl.xform, positionList(n, v), n);
+     }
+diff --git a/tests/geometry_contract/test_dice_through_dicer.cpp b/tests/geometry_contract/test_dice_through_dicer.cpp
+index af567c61..fc1a44dc 100644
+--- a/tests/geometry_contract/test_dice_through_dicer.cpp
++++ b/tests/geometry_contract/test_dice_through_dicer.cpp
+@@ -64,7 +64,10 @@ namespace {
+     class RecordingDicer : public IDicer {
+         public:
+             IRayContext &rayContext() override { return context; }
+-            void drawObject(CObject *object) override { objects.push_back(object); }
++            void drawObject(CObject *object) override {
++                object->attach(); // a hider holds a reference to what it queues
++                objects.push_back(object);
++            }
+             void drawGrid(CSurface *, int udiv, int vdiv, float umin, float umax, float vmin, float vmax, const CGridSnap *) override {
+                 grids.push_back({udiv, vdiv, umin, umax, vmin, vmax});
+             }
+diff --git a/tests/geometry_contract/test_intersect_through_ray_context.cpp b/tests/geometry_contract/test_intersect_through_ray_context.cpp
+index d3288487..fe16d32a 100644
+--- a/tests/geometry_contract/test_intersect_through_ray_context.cpp
++++ b/tests/geometry_contract/test_intersect_through_ray_context.cpp
+@@ -35,29 +35,35 @@ namespace {
+             StubShader() = default;
+     };
+ 
+-    // The thread context of the intersection: no shader runs, displace() is recorded and leaves P as sampled.
++    // The thread context of the intersection: no shader runs, displace() is recorded and leaves P as the undisplaced surface samples it.
+     class RecordingRayContext : public IRayContext {
+         public:
+             RecordingRayContext() {
+                 memoryInit(memory);
+                 for (int i = 0; i < kVaryings; i++)
+                     varying[i] = new float[kPoints * 4]();
++                locals = new float **[kLocals]();
+             }
+             ~RecordingRayContext() override {
+                 for (int i = 0; i < kVaryings; i++)
+                     delete[] varying[i];
++                delete[] locals;
+                 memoryTini(memory);
+             }
+             int threadIndex() const override { return 0; }
+             CMemPage *&scratch() override { return memory; }
+             float **varyings() override { return varying; }
+             void shade(CSurface *, int, int, EShadingDim, unsigned int) override { ++shades; }
+-            void displace(CSurface *, int, int, EShadingDim, unsigned int) override { ++displaces; }
++            void displace(CSurface *surface, int u, int v, EShadingDim, unsigned int up) override {
++                ++displaces;
++                surface->sample(0, u * v, varying, locals, up);
++            }
+             void *saveShadingState() override { return nullptr; }
+             void restoreShadingState(void *) override {}
+ 
+-            static const int kVaryings = 64, kPoints = 4096;
++            static const int kVaryings = 64, kLocals = 64, kPoints = 4096;
+             float *varying[kVaryings];
++            float ***locals;
+             CMemPage *memory = nullptr;
+             int shades = 0, displaces = 0;
+     };
+@@ -76,6 +82,14 @@ namespace {
+         installGeometryFrame(&frame);
+     }
+ 
++    // The hider's trace loop in miniature: intersect an object, then everything below it (a mesh's pieces, a tessellation
++    // patch's sub-patches) depth first.
++    void intersectHierarchy(CObject *object, IRayContext &ctx, CRay *ray) {
++        object->intersect(ctx, ray);
++        for (CObject *child = object->children; child != nullptr; child = child->sibling)
++            intersectHierarchy(child, ctx, ray);
++    }
++
+     // a ray along +z at (x, y)
+     CRay makeRay(float x, float y) {
+         CRay ray;
+@@ -87,7 +101,7 @@ namespace {
+         ray.dir[1] = 0;
+         ray.dir[2] = 1;
+         ray.time = 0;
+-        ray.flags = 0;
++        ray.flags = ATTRIBUTES_FLAGS_PRIMARY_VISIBLE; // the attributes' default visibility, which checkRayGuard tests
+         ray.t = 1e30f;
+         ray.tmin = 1e-6f;
+         ray.object = nullptr;
+@@ -115,7 +129,7 @@ namespace {
+         const float *du = ctx.varyings()[VARIABLE_DU];
+         CHECK(u[0] == ray.u && v[0] == ray.v);
+         CHECK(time[0] == ray.time);
+-        CHECK(I[0] == ray.dir[0] && I[1] == ray.dir[1] && I[2] == ray.dir[2]);
++        CHECK(I[0] == ray.dir[0] * ray.t && I[1] == ray.dir[1] * ray.t && I[2] == ray.dir[2] * ray.t); // I = dir * t
+         CHECK(du != nullptr);
+ 
+         // a ray that misses the sphere reports nothing
+@@ -131,7 +145,7 @@ namespace {
+         CPolygonMesh *mesh = new CPolygonMesh(placement.attributes, placement.xform, contract::positionList(4, v), 1, &nloops, &nverts, verts);
+         mesh->materialize(ctx); // lazy child creation reaches the thread's context only through IRayContext
+         CRay ray = makeRay(0.25f, 0.25f);
+-        mesh->intersect(ctx, &ray);
++        intersectHierarchy(mesh, ctx, &ray);
+         CHECK(ray.object != nullptr);
+         CHECK(std::fabs(ray.t - 5.0f) < 1e-3f);
+     }
+@@ -141,8 +155,9 @@ namespace {
+         placement.attributes->bindDisplacement(ShaderGroupRef::adopt(new StubShader));
+         placement.attributes->maxDisplacement = 0.1f;
+         CSurface *sphere = contract::sphere(placement);
+-        CRay ray = makeRay(0, 0);
+-        sphere->intersect(ctx, &ray);
++        CRay ray = makeRay(0.3f, 0.2f); // off the pole, where the tessellation is not degenerate
++        ray.db = 0.01f; // the ray footprint that picks the tessellation level
++        intersectHierarchy(sphere, ctx, &ray); // builds the tessellation patch, which hands intersection to its pieces
+         // tessellation of a displaced surface asks the context to displace, and the hit lands on a piece of it
+         CHECK(ctx.displaces > 0);
+         CHECK(ray.object != nullptr);
+@@ -153,12 +168,14 @@ namespace {
+ int main() {
+     CRiStandardSession session;
+     installFrame();
++    CTesselationPatch::initTesselations(16 * 1024 * 1024, 1); // the renderer core does this at the start of every frame
+     {
+         RecordingRayContext ctx;
+         testSphere(ctx);
+         testPolygonMesh(ctx);
+         testDisplacedQuadric(ctx);
+     }
++    CTesselationPatch::shutdownTesselations();
+     installGeometryFrame(nullptr);
+     return CONTRACT_RESULT("Geometry_IntersectThroughRayContext");
+ }

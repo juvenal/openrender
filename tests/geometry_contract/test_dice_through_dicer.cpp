@@ -64,7 +64,10 @@ namespace {
     class RecordingDicer : public IDicer {
         public:
             IRayContext &rayContext() override { return context; }
-            void drawObject(CObject *object) override { objects.push_back(object); }
+            void drawObject(CObject *object) override {
+                object->attach(); // a hider holds a reference to what it queues
+                objects.push_back(object);
+            }
             void drawGrid(CSurface *, int udiv, int vdiv, float umin, float umax, float vmin, float vmax, const CGridSnap *) override {
                 grids.push_back({udiv, vdiv, umin, umax, vmin, vmax});
             }

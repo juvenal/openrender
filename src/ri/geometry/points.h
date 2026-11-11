@@ -31,7 +31,6 @@
 #include "pl.h"
 #include "ray.h"
 #include "common/refCounter.h"
-#include "shading.h"
 #include "surface.h"
 
 ///////////////////////////////////////////////////////////////////////
@@ -80,7 +79,7 @@ class CPoints : public CSurface {
         void interpolate(int, float **, float ***) const;
 
         // Raw vertex data for non-shading consumers (e.g. orender-wire's
-        // wireframe extractor), which has no CShadingContext to dice() through.
+        // wireframe extractor), which has no dicer to dice() through.
         // Only ever called on objects built via the CPl* constructor (the RIB-
         // level object-graph representation reached through instantiate()/
         // addObject()); the CPointBase* constructor below is prep()'s internal,

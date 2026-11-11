@@ -11,7 +11,7 @@
  *
  *   Validation: numThreads >= 1 and maxGridSize >= 1 whenever a frame is installed (asserted in debug at
  *   install). With nothing installed only raytracingFlags may be read (by CObject::raytraced(), which then
- *   answers false, as CRenderer::raytracingFlags does outside a frame today); a debug build of the renderer
+ *   answers false, as the renderer's own flags do outside a frame today); a debug build of the renderer
  *   reports once any other read with no frame installed.
  *
  * Authors:

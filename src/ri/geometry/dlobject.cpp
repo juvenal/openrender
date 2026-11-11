@@ -30,9 +30,6 @@
 #include "common/diagnostics.h"
 #include "motion.h"
 #include "objectMisc.h"
-#include "renderer.h"
-#include "reyes.h"
-#include "shading.h"
 #include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////

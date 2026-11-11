@@ -28,7 +28,7 @@
 //							RiBlobby time. CTexture::lookupz() is
 //							deliberately NOT used: it reaches
 //							lookupPixel(), which dereferences
-//							context->thread, and no CShadingContext exists
+//							context->thread, and no shading thread exists
 //							at build time -- a null context there is a
 //							crash, not a degradation.
 //

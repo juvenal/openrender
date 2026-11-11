@@ -30,6 +30,7 @@
 #include "common/diagnostics.h"
 #include "common/memory.h"
 #include "object.h"
+#include "state/frameParams.h"
 #include "photonMap.h"
 #include "common/random.h"
 #include "raytracer.h"
@@ -99,8 +100,8 @@ CPhotonMap::CPhotonMap(const char *n, FILE *in) : CMap<CPhoton>(), CFileResource
         }
         maxPower = maxPower_f;
 
-        mulmm(to, fromWorld, CRenderer::toWorld);
-        mulmm(from, CRenderer::fromWorld, toWorld);
+        mulmm(to, fromWorld, openrender::frameParams().camera.toWorld);
+        mulmm(from, openrender::frameParams().camera.fromWorld, toWorld);
 
 #ifdef PHOTON_LOOKUP_CACHE
         // Initialize the lookup octree
@@ -209,12 +210,12 @@ void CPhotonMap::write(const CXform *) {
             CMap<CPhoton>::write(out);
 
             // Write the matrices (portable I/O - Phase 2)
-            if (!writeFloat32Array(out, CRenderer::fromWorld, 16)) {
+            if (!writeFloat32Array(out, openrender::frameParams().camera.fromWorld, 16)) {
                 error(CODE_SYSTEM, "Failed to write photon map fromWorld matrix\n");
                 fclose(out);
                 return;
             }
-            if (!writeFloat32Array(out, CRenderer::toWorld, 16)) {
+            if (!writeFloat32Array(out, openrender::frameParams().camera.toWorld, 16)) {
                 error(CODE_SYSTEM, "Failed to write photon map toWorld matrix\n");
                 fclose(out);
                 return;

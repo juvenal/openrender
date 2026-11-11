@@ -1,0 +1,18 @@
+# Phase 6 include-fallout probe (PAUSE 6a, 2026-11-10), HEAD ddd3f036. Read-only: a scratch copy of src/ and tests/ outside the worktree; the six core
+# includes (renderer.h, rendererContext.h, riInterface.h, shading.h, shader.h, reyes.h) removed from every Geometry header and source except
+# blobbyRepeller.cpp (39 lines); every TU of build/compile_commands.json (631 entries) compiled with -fsyntax-only -ferror-limit=0 against the copy.
+#
+# Result: the only failing file is src/ri/hiders/photonMap.cpp (4 errors: use of undeclared identifier 'CRenderer' at :102, :103, :212, :217; it is listed
+# twice because two targets compile it). No Geometry file fails (the Geometry sources and headers already need no core, Shading or Reyes include),
+# no Core file, no test file and no other Hiders, Texturing, Graphics State or Shading file. T085 (test-side include additions) is therefore empty.
+# The five tests/geometry_contract programs (not in compile_commands.json while gated) also compile -fsyntax-only, both against HEAD and against the
+# stripped copy, with 0 errors.
+#
+# Comment-only names (Geometry_NoHiderShadingNames, cmake -P of the unedited check on HEAD): 24 tokens in 20 files:
+#   blobbyRepeller.cpp:105 CShadingContext      blobbyRepeller.h:31 CShadingContext      csgSolid.cpp:177 CReyes             curves.h:133 CShadingContext
+#   delayed.cpp:90, :152 CRenderer              dicer.h:8 CReyes, :9 CStochastic CZbuffer   geometryFrame.h:14 CRenderer
+#   geometryHost.h:58 CRenderer CRendererContext, :90 CRenderer                    motion.h:163 CRendererContext (authorised, comment only)
+#   object.cpp:132 CShadingContext              object.h:49 CRendererContext             objectSink.h:8 CRiInterface
+#   patches.h:161, :246 CShadingContext         points.h:83 CShadingContext              polygons.h:53 CShadingContext
+#   rayContext.h:9 CHider                       subdivisionCreator.h:53 CShadingContext  subdivisionLoop.h:65 CShadingContext
+# (blobbyRepeller.cpp's two CRenderer:: uses at :138 are the check's keyed exception.)

@@ -42,12 +42,9 @@ static dmatrix dinvBezier = {0, 0, 0, 1.0,
                              0, 0, 1.0 / 3.0, 1.0,
                              0, 1.0 / 3.0, 2.0 / 3.0, 1.0,
                              1.0, 1.0, 1.0, 1.0};
-#include "renderer.h"
-#include "reyes.h"
-#include "shading.h"
 #include "common/stats.h"
 #include "surface.h"
-#include "surfaceCrossingDispatch.h"
+#include "surfaceCrossings.h"
 
 ///////////////////////////////////////////////////////////////////////
 // Macro				:	gatherData

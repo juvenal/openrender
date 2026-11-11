@@ -33,9 +33,6 @@
 #include "common/polynomial.h"
 #include "common/diagnostics.h"
 #include "common/memory.h"
-#include "renderer.h"
-#include "reyes.h"
-#include "shading.h"
 #include "common/stats.h"
 #include "motion.h"
 #include "patchLayout.h"
@@ -800,17 +797,22 @@ CTesselationPatch *CTesselationPatch::tesselationList;
 static int tesselationMemoryAtInit = 0; // stats.tesselationMemory when the frame's tesselations were initialized (end-of-frame check)
 #endif
 
-// Geometry's tessellation lock (spec 031, P-Q6): the test-and-set of a surface's top-level tessellation and the list of
-// tessellation patches. It was the renderer core's tesselateMutex; the same non-recursive mutex semantics.
-static std::mutex tessellationMutex;
+namespace {
 
-void CTesselationPatch::lockTessellation() {
-    tessellationMutex.lock();
-}
+    // Geometry's tessellation lock (spec 031, P-Q6): the test-and-set of a surface's top-level tessellation and the list of
+    // tessellation patches. It was the renderer core's tesselateMutex (the same non-recursive mutex semantics); only this file
+    // takes it.
+    std::mutex tessellationMutex;
 
-void CTesselationPatch::unlockTessellation() {
-    tessellationMutex.unlock();
-}
+    void lockTessellation() {
+        tessellationMutex.lock();
+    }
+
+    void unlockTessellation() {
+        tessellationMutex.unlock();
+    }
+
+} // namespace
 
 #ifdef DEBUG_STATS
 static int tessPerLevel[DEBUG_STATS * TESSELATION_NUM_LEVELS];
@@ -2396,4 +2398,202 @@ void CTesselationPatch::purgeTesselations(IRayContext &context, CTesselationPatc
     }
 
     unlockTessellation();
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CSurface
+// Method				:	checkRayGuard
+// Description			:	Shared ray-rejection + displacement-tesselation
+//							guard, consolidated from three previously
+//							duplicated copies (a macro each in quadrics.cpp
+//							and patches.cpp, plus two open-coded copies in
+//							polygons.cpp).
+// Return Value			:	TRUE if the caller should return immediately
+// Comments				:
+bool CSurface::checkRayGuard(CRay *rv, IRayContext &context) {
+    if (!(rv->flags & attributes->flags))
+        return TRUE;
+
+    if (attributes->flags & ATTRIBUTES_FLAGS_LOD) {
+        const float importance = attributes->lodImportance;
+        if (importance >= 0) {
+            if (rv->jimp > importance)
+                return TRUE;
+        }
+        else {
+            if ((1 - rv->jimp) >= -importance)
+                return TRUE;
+        }
+    }
+
+    if ((attributes->displacement()) && (attributes->flags & ATTRIBUTES_FLAGS_DISPLACEMENTS)) {
+        // Do we have a grid ?
+        if (children == NULL) {
+            lockTessellation();
+
+            if (children == NULL) {
+                CTesselationPatch *tesselation = new CTesselationPatch(attributes, xform, this, 0, 1, 0, 1, 0, 0, -1);
+
+                tesselation->initTesselation(context);
+                tesselation->attach();
+                children = tesselation;
+            }
+
+            unlockTessellation();
+        }
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CSurface
+// Method				:	intersect
+// Description			:	Intersect the surface
+// Return Value			:
+// Comments				:
+void CSurface::intersect(IRayContext &context, CRay *cRay) {
+
+    if (!(cRay->flags & attributes->flags))
+        return;
+
+    if (attributes->flags & ATTRIBUTES_FLAGS_LOD) {
+        const float importance = attributes->lodImportance;
+        if (importance >= 0) {
+            if (cRay->jimp > importance)
+                return;
+        }
+        else {
+            if ((1 - cRay->jimp) >= -importance)
+                return;
+        }
+    }
+
+    // Do we have a grid ?
+    if (children == NULL) {
+        // Intersect with our bounding box
+        float t = nearestBox(bmin, bmax, cRay->from, cRay->invDir, cRay->tmin, cRay->t);
+
+        // Bail out if the hit point is already further than the ray got
+        // Note: this avoids unneeded top level tesselations
+        if (!(t < cRay->t))
+            return;
+
+        // We must take the tessellation lock so that the list of known tesselation patches
+        // is maintained in a thread safe manner
+        lockTessellation();
+
+        if (children == NULL) {
+
+            CTesselationPatch *tesselation = new CTesselationPatch(attributes, xform, this, 0, 1, 0, 1, 0, 0, -1);
+
+            tesselation->initTesselation(context);
+            tesselation->attach();
+            children = tesselation;
+        }
+
+        unlockTessellation();
+    }
+}
+
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CSurface
+// Method				:	dice
+// Description			:	Dice the object into smaller ones
+// Return Value			:
+// Comments				:
+void CSurface::dice(IDicer &dicer) {
+
+    int minU, minV;
+    int dicingStatsResult = getDicingStats(0, minU, minV);
+    int minSplits;
+    if (attributes->minSplits > dicingStatsResult) {
+        minSplits = attributes->minSplits;
+    }
+    else {
+        minSplits = dicingStatsResult;
+    }
+
+    CPatch *cSurface = new CPatch(attributes, xform, this, 0, 1, 0, 1, 0, minSplits);
+    cSurface->attach();
+    cSurface->buildLayout(dicer, wrapsU(), wrapsV());
+    cSurface->dice(dicer);
+    cSurface->detach();
+
+    // Note we tesselate for raytracing on demand - so we do not automatically emit a CTesselationPatch here
+}
+
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CSurface
+// Method				:	shade
+// Description			:	Shade the intersections
+// Return Value			:
+// Comments				:
+void CSurface::shade(IRayContext &context, int numRays, CRay **rays) {
+    float **varying = context.varyings();
+    float *u = varying[VARIABLE_U];
+    float *v = varying[VARIABLE_V];
+    float *time = varying[VARIABLE_TIME];
+    float *I = varying[VARIABLE_I];
+    float *du = varying[VARIABLE_DU];
+    int i;
+
+    for (i = numRays; i > 0; i--) {
+        const CRay *cRay = *rays++;
+
+        *u++ = cRay->u;                        // The intersection u
+        *v++ = cRay->v;                        // The intersection v
+        *time++ = cRay->time;                  // The intersection time
+        *du++ = cRay->da * cRay->t + cRay->db; // The ray differential
+        mulvf(I, cRay->dir, cRay->t);          // Compute the I vector
+        I += 3;
+    }
+
+    context.shade(this, numRays, 1, SHADING_2D, 0);
+}
+
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CSurface
+// Method				:	regionCoverage
+// Description			:	See object.h: classify every grid vertex's
+//							undisplaced camera-space point and geometric normal
+//							(one batched sample() call), then mark each quad
+// Return Value			:	-
+// Comments				:	Keeps every quad touching an accepted corner, so a
+//							seam overlaps by under a micropolygon rather than
+//							opening a gap (spec 021)
+void CSurface::regionCoverage(IRayContext *context, int udiv, int vdiv, const float *u, const float *v, unsigned char *coverage) {
+    if (region == NULL)
+        return;
+    const int nu = udiv + 1, nv = vdiv + 1, count = nu * nv;
+    std::vector<float> uu(u, u + count), vv(v, v + count), time(count, 0.0f), P(3 * count), Ng(3 * count), dPdu(3 * count),
+        dPdv(3 * count), dPdtime(3 * count), Pw(4 * count);
+    float *varying[VARIABLE_CONSTANTWIDTH + 1];
+    for (unsigned int k = 0; k <= VARIABLE_CONSTANTWIDTH; k++)
+        varying[k] = NULL;
+    varying[VARIABLE_U] = uu.data();
+    varying[VARIABLE_V] = vv.data();
+    varying[VARIABLE_TIME] = time.data();
+    varying[VARIABLE_P] = P.data();
+    varying[VARIABLE_NG] = Ng.data();
+    varying[VARIABLE_DPDU] = dPdu.data();
+    varying[VARIABLE_DPDV] = dPdv.data();
+    varying[VARIABLE_DPDTIME] = dPdtime.data();
+    varying[VARIABLE_PW] = Pw.data();
+    unsigned int up = PARAMETER_P | PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_NG | PARAMETER_BEGIN_SAMPLE;
+    sample(0, count, varying, NULL, up);
+
+    std::vector<unsigned char> accepted(count);
+    for (int k = 0; k < count; k++)
+        accepted[k] = (unsigned char)region->accepts(context, &P[3 * k], &Ng[3 * k]);
+    for (int j = 0; j < vdiv; j++)
+        for (int i = 0; i < udiv; i++) {
+            const int c = j * nu + i;
+            coverage[j * udiv + i] = (unsigned char)(accepted[c] | accepted[c + 1] | accepted[c + nu] | accepted[c + nu + 1]);
+        }
 }

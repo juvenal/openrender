@@ -102,7 +102,7 @@ static void blobbyTiffHandler(const char *, const char *, va_list) {
 // Comments				:	Deliberately not CTexture::lookupz(). That path
 //							reaches lookupPixel(), which dereferences
 //							context->thread to index the per-thread tile
-//							cache, and no CShadingContext exists at
+//							cache, and no shading thread exists at
 //							RiBlobby time: a null context there is a crash,
 //							not a degradation (research Decision 5).
 //

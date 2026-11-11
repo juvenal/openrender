@@ -55,7 +55,7 @@ class CFrameResource : public CRefCounter {
 // Class				:	CGeometryHost
 // Description			:	Implemented and registered by the renderer core.
 //							Geometry calls it instead of reaching into the
-//							renderer (no CRenderer / CRendererContext use).
+//							renderer core (it names no renderer type).
 // Comments				:	Every method may be called from any render thread.
 class CGeometryHost {
     public:
@@ -87,7 +87,7 @@ class CGeometryHost {
         virtual void expandDelayedObject(CDelayedObject *object) = 0;
         virtual void expandDelayedInstance(CDelayedInstance *instance) = 0;
 
-        // The named coordinate system's matrices, as CRenderer::findCoordinateSystem answers. FALSE if unknown.
+        // The named coordinate system's matrices, as the renderer's named-system lookup answers. FALSE if unknown.
         virtual int findCoordinateSystem(const char *name, const float *&from, const float *&to, ECoordinateSystem &system) = 0;
 };
 

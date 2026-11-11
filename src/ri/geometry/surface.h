@@ -92,12 +92,6 @@ class CTesselationPatch : public CObject {
         static void initTesselations(int geoCacheMemory, int numThreads);
         static void shutdownTesselations();
 
-        // Geometry's tessellation lock (spec 031): serializes the creation of the top-level tessellation of a surface
-        // (CSurface::intersect, CSurface::checkRayGuard) and the list of tessellation patches. Exported until the
-        // last caller outside surface.cpp is moved into it (Phase 6), then local to surface.cpp.
-        static void lockTessellation();
-        static void unlockTessellation();
-
     private:
         CPurgableTesselation *tesselate(IRayContext &context, char div, int estimateOnly);
         void splitToChildren(IRayContext &context);

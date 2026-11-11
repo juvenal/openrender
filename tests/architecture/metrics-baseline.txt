@@ -55,10 +55,16 @@
 # raytracer.cpp; the renderer core sets it for every render thread now): Hiders 558 -> 556 references and
 # 82 -> 81 members; with spec 038 merged, TOTAL 606 -> 604 and 90 -> 89 (the values of the merged tree, as archcheck reported).
 
-Geometry           48    15
-Hiders            556    81
+# Spec 031 (geometry, hider-agnostic, T086, 2026-11-10): Geometry reads the frame value (CGeometryFrame), the geometry host and
+# CDeclarations instead of CRenderer, so only blobbyRepeller.cpp's CRenderer::locateFile and CRenderer::texturePath remain: Geometry
+# 48 -> 2 references and 15 -> 2 members. The photon map file (hiders/photonMap.cpp) reads the camera matrices from FrameParams
+# instead of CRenderer::toWorld/fromWorld: Hiders 556 -> 552 references and 81 -> 79 members. TOTAL 604 -> 554 and 89 -> 81, as
+# archcheck reported on the finished tree.
+
+Geometry            2     2
+Hiders            552    79
 Infra               0     0
 SceneInterface      0     0
 Shading             0     0
 Texturing           0     0
-TOTAL             604    89
+TOTAL             554    81

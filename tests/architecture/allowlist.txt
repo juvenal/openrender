@@ -11,50 +11,11 @@
 # Seeded by specs/022-domain-dependency-guardrails/tools/assign_registry.py.
 
 # --- DB-004: Geometry depends on the renderer core and on Scene Interface (52) ---
-DB-004  include  src/ri/geometry/blobby.cpp  ->  src/ri/render/renderer.h
 DB-004  include  src/ri/geometry/blobbyRepeller.cpp  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/curves.cpp  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/delayed.cpp  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/dlobject.cpp  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/implicitSurface.cpp  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/object.cpp  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/object.h  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/objectMisc.h  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/patches.cpp  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/patchgrid.cpp  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/points.cpp  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/polygons.cpp  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/quadrics.cpp  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/subdivision.cpp  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/subdivisionCreator.cpp  ->  src/ri/render/renderer.h
-DB-004  include  src/ri/geometry/surface.cpp  ->  src/ri/render/renderer.h
 DB-004  link     src/ri/geometry/blobbyRepeller.cpp  ->  _ZN9CRenderer10locateFileEPcPKcP11TSearchpathi   # CRenderer::locateFile(char*, char const*, TSearchpath*, int)
 DB-004  link     src/ri/geometry/blobbyRepeller.cpp  ->  _ZN9CRenderer11texturePathE   # CRenderer::texturePath
 
 # --- DB-006: Geometry is coupled to Shading and to the hiders (30) ---
-DB-006  include  src/ri/geometry/bsplinePatchgrid.cpp  ->  src/ri/core/shading.h
-DB-006  include  src/ri/geometry/curves.cpp  ->  src/ri/hiders/reyes.h
-DB-006  include  src/ri/geometry/curves.h  ->  src/ri/core/shading.h
-DB-006  include  src/ri/geometry/dlobject.cpp  ->  src/ri/core/shading.h
-DB-006  include  src/ri/geometry/dlobject.cpp  ->  src/ri/hiders/reyes.h
-DB-006  include  src/ri/geometry/implicitSurface.cpp  ->  src/ri/core/shading.h
-DB-006  include  src/ri/geometry/implicitSurface.cpp  ->  src/ri/hiders/reyes.h
-DB-006  include  src/ri/geometry/object.cpp  ->  src/ri/core/shading.h
-DB-006  include  src/ri/geometry/patches.cpp  ->  src/ri/core/shading.h
-DB-006  include  src/ri/geometry/patches.cpp  ->  src/ri/hiders/reyes.h
-DB-006  include  src/ri/geometry/patchgrid.cpp  ->  src/ri/core/shading.h
-DB-006  include  src/ri/geometry/points.cpp  ->  src/ri/hiders/reyes.h
-DB-006  include  src/ri/geometry/points.h  ->  src/ri/core/shading.h
-DB-006  include  src/ri/geometry/polygons.cpp  ->  src/ri/core/shading.h
-DB-006  include  src/ri/geometry/polygons.cpp  ->  src/ri/hiders/reyes.h
-DB-006  include  src/ri/geometry/quadrics.cpp  ->  src/ri/core/shading.h
-DB-006  include  src/ri/geometry/quadrics.h  ->  src/ri/core/shader.h
-DB-006  include  src/ri/geometry/subdivision.cpp  ->  src/ri/core/shading.h
-DB-006  include  src/ri/geometry/subdivisionCreator.cpp  ->  src/ri/core/shading.h
-DB-006  include  src/ri/geometry/subdivisionCreator.cpp  ->  src/ri/hiders/reyes.h
-DB-006  include  src/ri/geometry/subdivisionLoop.cpp  ->  src/ri/hiders/reyes.h
-DB-006  include  src/ri/geometry/surface.cpp  ->  src/ri/core/shading.h
-DB-006  include  src/ri/geometry/surface.cpp  ->  src/ri/hiders/reyes.h
 
 # --- DB-010: The hiders' GI caches use Texturing (8) ---
 DB-010  include  src/ri/hiders/irradiance.cpp  ->  src/ri/texture/pointHierarchy.h
@@ -94,8 +55,6 @@ DB-011  link     src/ri/hiders/photon.cpp  ->  _ZN9CRenderer5worldE   # CRendere
 DB-011  link     src/ri/hiders/photon.cpp  ->  _ZN9CRenderer9allLightsE   # CRenderer::allLights
 DB-011  link     src/ri/hiders/photon.cpp  ->  _ZN9CRenderer9worldBmaxE   # CRenderer::worldBmax
 DB-011  link     src/ri/hiders/photon.cpp  ->  _ZN9CRenderer9worldBminE   # CRenderer::worldBmin
-DB-011  link     src/ri/hiders/photonMap.cpp  ->  _ZN9CRenderer7toWorldE   # CRenderer::toWorld
-DB-011  link     src/ri/hiders/photonMap.cpp  ->  _ZN9CRenderer9fromWorldE   # CRenderer::fromWorld
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer10numSamplesE   # CRenderer::numSamples
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer11bucketWidthE   # CRenderer::bucketWidth
 DB-011  link     src/ri/hiders/raytracer.cpp  ->  _ZN9CRenderer11depthFilterE   # CRenderer::depthFilter
@@ -233,83 +192,6 @@ DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer7clipMaxE   # CRend
 DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer7clipMinE   # CRenderer::clipMin
 
 # --- DB-017: Link-time *Dispatch / *DispatchStub substitution pairs (78) ---
-DB-017  link     src/ri/geometry/bsplinePatchgrid.cpp  ->  _ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph   # CSurface::regionCoverage(IRayContext*, int, int, float const*, float const*, unsigned char*)
-DB-017  link     src/ri/geometry/bsplinePatchgrid.cpp  ->  _ZN8CSurface4diceER6IDicer   # CSurface::dice(IDicer&)
-DB-017  link     src/ri/geometry/bsplinePatchgrid.cpp  ->  _ZN8CSurface5shadeER11IRayContextiPP4CRay   # CSurface::shade(IRayContext&, int, CRay**)
-DB-017  link     src/ri/geometry/bsplinePatchgrid.cpp  ->  _ZN8CSurface9intersectER11IRayContextP4CRay   # CSurface::intersect(IRayContext&, CRay*)
-DB-017  link     src/ri/geometry/bsplinePatchgrid.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
-DB-017  link     src/ri/geometry/bsplinePatchgrid.cpp  ->  _ZTV8CSurface   # vtable for CSurface
-DB-017  link     src/ri/geometry/csgCaps.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
-DB-017  link     src/ri/geometry/csgDefinition.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
-DB-017  link     src/ri/geometry/csgSolid.cpp  ->  _ZN9CCSGSolid4diceER6IDicer   # CCSGSolid::dice(IDicer&)
-DB-017  link     src/ri/geometry/csgSolid.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
-DB-017  link     src/ri/geometry/curves.cpp  ->  _ZN11CCubicCurve15splitToChildrenER6IDicer   # CCubicCurve::splitToChildren(IDicer&)
-DB-017  link     src/ri/geometry/curves.cpp  ->  _ZN12CLinearCurve15splitToChildrenER6IDicer   # CLinearCurve::splitToChildren(IDicer&)
-DB-017  link     src/ri/geometry/curves.cpp  ->  _ZN6CCurve4diceER6IDicer   # CCurve::dice(IDicer&)
-DB-017  link     src/ri/geometry/curves.cpp  ->  _ZN7CObject4diceER6IDicer   # CObject::dice(IDicer&)
-DB-017  link     src/ri/geometry/curves.cpp  ->  _ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph   # CSurface::regionCoverage(IRayContext*, int, int, float const*, float const*, unsigned char*)
-DB-017  link     src/ri/geometry/curves.cpp  ->  _ZN8CSurface5shadeER11IRayContextiPP4CRay   # CSurface::shade(IRayContext&, int, CRay**)
-DB-017  link     src/ri/geometry/curves.cpp  ->  _ZN8CSurface9intersectER11IRayContextP4CRay   # CSurface::intersect(IRayContext&, CRay*)
-DB-017  link     src/ri/geometry/curves.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
-DB-017  link     src/ri/geometry/curves.cpp  ->  _ZTV8CSurface   # vtable for CSurface
-DB-017  link     src/ri/geometry/delayed.cpp  ->  _ZN14CDelayedObject4diceER6IDicer   # CDelayedObject::dice(IDicer&)
-DB-017  link     src/ri/geometry/delayed.cpp  ->  _ZN14CDelayedObject9intersectER11IRayContextP4CRay   # CDelayedObject::intersect(IRayContext&, CRay*)
-DB-017  link     src/ri/geometry/delayed.cpp  ->  _ZN16CDelayedInstance4diceER6IDicer   # CDelayedInstance::dice(IDicer&)
-DB-017  link     src/ri/geometry/delayed.cpp  ->  _ZN16CDelayedInstance9intersectER11IRayContextP4CRay   # CDelayedInstance::intersect(IRayContext&, CRay*)
-DB-017  link     src/ri/geometry/dlobject.cpp  ->  _ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph   # CSurface::regionCoverage(IRayContext*, int, int, float const*, float const*, unsigned char*)
-DB-017  link     src/ri/geometry/dlobject.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
-DB-017  link     src/ri/geometry/dlobject.cpp  ->  _ZTV8CSurface   # vtable for CSurface
-DB-017  link     src/ri/geometry/implicitSurface.cpp  ->  _ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph   # CSurface::regionCoverage(IRayContext*, int, int, float const*, float const*, unsigned char*)
-DB-017  link     src/ri/geometry/implicitSurface.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
-DB-017  link     src/ri/geometry/implicitSurface.cpp  ->  _ZTV8CSurface   # vtable for CSurface
-DB-017  link     src/ri/geometry/object.cpp  ->  _ZN7CObject4diceER6IDicer   # CObject::dice(IDicer&)
-DB-017  link     src/ri/geometry/patches.cpp  ->  _ZN7CObject4diceER6IDicer   # CObject::dice(IDicer&)
-DB-017  link     src/ri/geometry/patches.cpp  ->  _ZN8CSurface13checkRayGuardEP4CRayR11IRayContext   # CSurface::checkRayGuard(CRay*, IRayContext&)
-DB-017  link     src/ri/geometry/patches.cpp  ->  _ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph   # CSurface::regionCoverage(IRayContext*, int, int, float const*, float const*, unsigned char*)
-DB-017  link     src/ri/geometry/patches.cpp  ->  _ZN8CSurface4diceER6IDicer   # CSurface::dice(IDicer&)
-DB-017  link     src/ri/geometry/patches.cpp  ->  _ZN8CSurface5shadeER11IRayContextiPP4CRay   # CSurface::shade(IRayContext&, int, CRay**)
-DB-017  link     src/ri/geometry/patches.cpp  ->  _ZN8CSurface9intersectER11IRayContextP4CRay   # CSurface::intersect(IRayContext&, CRay*)
-DB-017  link     src/ri/geometry/patches.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
-DB-017  link     src/ri/geometry/patches.cpp  ->  _ZTV8CSurface   # vtable for CSurface
-DB-017  link     src/ri/geometry/patchgrid.cpp  ->  _ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph   # CSurface::regionCoverage(IRayContext*, int, int, float const*, float const*, unsigned char*)
-DB-017  link     src/ri/geometry/patchgrid.cpp  ->  _ZN8CSurface4diceER6IDicer   # CSurface::dice(IDicer&)
-DB-017  link     src/ri/geometry/patchgrid.cpp  ->  _ZN8CSurface5shadeER11IRayContextiPP4CRay   # CSurface::shade(IRayContext&, int, CRay**)
-DB-017  link     src/ri/geometry/patchgrid.cpp  ->  _ZN8CSurface9intersectER11IRayContextP4CRay   # CSurface::intersect(IRayContext&, CRay*)
-DB-017  link     src/ri/geometry/patchgrid.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
-DB-017  link     src/ri/geometry/patchgrid.cpp  ->  _ZTV8CSurface   # vtable for CSurface
-DB-017  link     src/ri/geometry/points.cpp  ->  _ZN7CPoints4diceER6IDicer   # CPoints::dice(IDicer&)
-DB-017  link     src/ri/geometry/points.cpp  ->  _ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph   # CSurface::regionCoverage(IRayContext*, int, int, float const*, float const*, unsigned char*)
-DB-017  link     src/ri/geometry/points.cpp  ->  _ZN8CSurface5shadeER11IRayContextiPP4CRay   # CSurface::shade(IRayContext&, int, CRay**)
-DB-017  link     src/ri/geometry/points.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
-DB-017  link     src/ri/geometry/points.cpp  ->  _ZTV8CSurface   # vtable for CSurface
-DB-017  link     src/ri/geometry/polygons.cpp  ->  _ZN7CObject4diceER6IDicer   # CObject::dice(IDicer&)
-DB-017  link     src/ri/geometry/polygons.cpp  ->  _ZN8CSurface13checkRayGuardEP4CRayR11IRayContext   # CSurface::checkRayGuard(CRay*, IRayContext&)
-DB-017  link     src/ri/geometry/polygons.cpp  ->  _ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph   # CSurface::regionCoverage(IRayContext*, int, int, float const*, float const*, unsigned char*)
-DB-017  link     src/ri/geometry/polygons.cpp  ->  _ZN8CSurface4diceER6IDicer   # CSurface::dice(IDicer&)
-DB-017  link     src/ri/geometry/polygons.cpp  ->  _ZN8CSurface5shadeER11IRayContextiPP4CRay   # CSurface::shade(IRayContext&, int, CRay**)
-DB-017  link     src/ri/geometry/polygons.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
-DB-017  link     src/ri/geometry/polygons.cpp  ->  _ZTV8CSurface   # vtable for CSurface
-DB-017  link     src/ri/geometry/quadrics.cpp  ->  _ZN8CSurface13checkRayGuardEP4CRayR11IRayContext   # CSurface::checkRayGuard(CRay*, IRayContext&)
-DB-017  link     src/ri/geometry/quadrics.cpp  ->  _ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph   # CSurface::regionCoverage(IRayContext*, int, int, float const*, float const*, unsigned char*)
-DB-017  link     src/ri/geometry/quadrics.cpp  ->  _ZN8CSurface4diceER6IDicer   # CSurface::dice(IDicer&)
-DB-017  link     src/ri/geometry/quadrics.cpp  ->  _ZN8CSurface5shadeER11IRayContextiPP4CRay   # CSurface::shade(IRayContext&, int, CRay**)
-DB-017  link     src/ri/geometry/quadrics.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
-DB-017  link     src/ri/geometry/quadrics.cpp  ->  _ZTV8CSurface   # vtable for CSurface
-DB-017  link     src/ri/geometry/subdivision.cpp  ->  _ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph   # CSurface::regionCoverage(IRayContext*, int, int, float const*, float const*, unsigned char*)
-DB-017  link     src/ri/geometry/subdivision.cpp  ->  _ZN8CSurface4diceER6IDicer   # CSurface::dice(IDicer&)
-DB-017  link     src/ri/geometry/subdivision.cpp  ->  _ZN8CSurface5shadeER11IRayContextiPP4CRay   # CSurface::shade(IRayContext&, int, CRay**)
-DB-017  link     src/ri/geometry/subdivision.cpp  ->  _ZN8CSurface9intersectER11IRayContextP4CRay   # CSurface::intersect(IRayContext&, CRay*)
-DB-017  link     src/ri/geometry/subdivision.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
-DB-017  link     src/ri/geometry/subdivision.cpp  ->  _ZTV8CSurface   # vtable for CSurface
-DB-017  link     src/ri/geometry/subdivisionCreator.cpp  ->  _ZN7CObject4diceER6IDicer   # CObject::dice(IDicer&)
-DB-017  link     src/ri/geometry/subdivisionLoop.cpp  ->  _ZN7CObject4diceER6IDicer   # CObject::dice(IDicer&)
-DB-017  link     src/ri/hiders/photon.cpp  ->  _ZN8CSurface14regionCoverageEP11IRayContextiiPKfS3_Ph   # CSurface::regionCoverage(IRayContext*, int, int, float const*, float const*, unsigned char*)
-DB-017  link     src/ri/hiders/photon.cpp  ->  _ZN8CSurface4diceER6IDicer   # CSurface::dice(IDicer&)
-DB-017  link     src/ri/hiders/photon.cpp  ->  _ZN8CSurface5shadeER11IRayContextiPP4CRay   # CSurface::shade(IRayContext&, int, CRay**)
-DB-017  link     src/ri/hiders/photon.cpp  ->  _ZN8CSurface9intersectER11IRayContextP4CRay   # CSurface::intersect(IRayContext&, CRay*)
-DB-017  link     src/ri/hiders/photon.cpp  ->  _ZTI8CSurface   # typeinfo for CSurface
-DB-017  link     src/ri/hiders/photon.cpp  ->  _ZTV8CSurface   # vtable for CSurface
-DB-017  link     src/ri/hiders/trace.cpp  ->  _ZN7CObject7clusterER11IRayContext   # CObject::cluster(IRayContext&)
 
 # --- DB-025: Domains call into the data viewer (a consumer) (12) ---
 DB-025  include  src/ri/hiders/irradiance.cpp  ->  src/ri/dataviewer/debug.h

@@ -160,7 +160,7 @@ namespace openrender::motion {
     // The ray in object space at the ray's time, moved unchanged from objectMisc.h. With
     // xform->cameraMotion and a camera that rotates, the direction is rotated along the camera's arc;
     // otherwise both ends of the ray are transformed by the xform's two keys and interpolated. It
-    // composes only what CRendererContext::addObject synthesizes, so an object with its own transform
+    // composes only what the renderer core's addObject synthesizes, so an object with its own transform
     // motion (cameraMotion false) gets no camera rotation, as before (GitHub #106).
     inline void transformRay(float *oFrom, float *oDir, const CXform *xform, const CRay *ray) {
         if (xform->next != NULL) {

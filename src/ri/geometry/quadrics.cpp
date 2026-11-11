@@ -40,8 +40,6 @@
 #include "objectMisc.h"
 #include "patchUtils.h"
 #include "quadrics.h"
-#include "renderer.h"
-#include "shading.h"
 #include "common/stats.h"
 #include "surface.h"
 

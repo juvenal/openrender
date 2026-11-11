@@ -27,11 +27,12 @@
 
 namespace contract {
 
-    // attributes and a transform that translates by (0, 0, z)
+    // attributes and a transform that translates by (0, 0, z); `z` is also the depth of the camera-space vertex data below
     struct Placement {
         CAttributes *attributes;
         CXform *xform;
-        explicit Placement(float z) : attributes(new CAttributes()), xform(new CXform()) {
+        float z;
+        explicit Placement(float z) : attributes(new CAttributes()), xform(new CXform()), z(z) {
             xform->translate(0, 0, z);
             attributes->attach();
             xform->attach();
@@ -48,17 +49,18 @@ namespace contract {
         return new CPl(n, 1, p, data);
     }
 
-    inline CSurface *sphere(const Placement &pl) { return new CSphere(pl.attributes, pl.xform, NULL, 0, 1.0f, -1.0f, 1.0f, 6.2831853f); }
+    inline CSurface *sphere(const Placement &pl) { return new CSphere(pl.attributes, pl.xform, NULL, 0, 1.0f, -1.5707964f, 1.5707964f, 6.2831853f); }
 
+    // patch and points data are camera-space vertices, as RiPatch and RiPoints hand them over: at depth pl.z
     inline CSurface *bilinearPatch(const Placement &pl) {
-        float *v = new float[12]{-1, -1, 0, 1, -1, 0, -1, 1, 0, 1, 1, 0};
+        float *v = new float[12]{-1, -1, pl.z, 1, -1, pl.z, -1, 1, pl.z, 1, 1, pl.z};
         CPl *list = positionList(4, v);
         return new CBilinearPatch(pl.attributes, pl.xform, list->vertexData(), NULL, 0.0f, 0.0f, 1.0f, 1.0f, v);
     }
 
     // a bilinear-degree NURBS patch (order 2 x 2) whose (u,v) square carries one triangular trim loop
     inline CSurface *trimmedNurbsPatch(const Placement &pl) {
-        float *v = new float[12]{-1, -1, 0, 1, -1, 0, -1, 1, 0, 1, 1, 0};
+        float *v = new float[12]{-1, -1, pl.z, 1, -1, pl.z, -1, 1, pl.z, 1, 1, pl.z};
         CPl *list = positionList(4, v);
         static float knots[4] = {0, 0, 1, 1};
         CTrimTest *trim = new CTrimTest();
@@ -74,7 +76,7 @@ namespace contract {
         for (int i = 0; i < n; i++) {
             v[3 * i + 0] = -0.5f + (float)i / (float)n;
             v[3 * i + 1] = 0.0f;
-            v[3 * i + 2] = 0.0f;
+            v[3 * i + 2] = pl.z;
         }
         return new CPoints(pl.attributes, pl.xform, positionList(n, v), n);
     }

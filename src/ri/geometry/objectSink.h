@@ -5,7 +5,7 @@
  *
  * Description:
  *   Where CObject::instantiate() reports the objects it creates (spec 031, FR-028). Implemented by the Scene
- *   Interface's CRiInterface, so the renderer core, the preview and the RIB back-ends receive them as before.
+ *   Interface's RI context, so the renderer core, the preview and the RIB back-ends receive them as before.
  *   Header only; not installed.
  *
  * Authors:

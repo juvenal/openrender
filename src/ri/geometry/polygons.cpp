@@ -34,9 +34,6 @@
 #include "object.h"
 #include "patches.h"
 #include "polygons.h"
-#include "renderer.h"
-#include "reyes.h"
-#include "shading.h"
 #include "common/stats.h"
 #include "surface.h"
 

@@ -5,8 +5,8 @@
  *
  * Description:
  *   IDicer: what a surface's dice() and splitToChildren() need from the hider that dices (spec 031, FR-002).
- *   Geometry owns the interface and never implements it; the hiders that rasterize implement it (CReyes, and
- *   CStochastic and CZbuffer through it). Header only; not installed.
+ *   Geometry owns the interface and never implements it; the hiders that rasterize implement it (the Reyes
+ *   hider and its two rasterizers). Header only; not installed.
  *
  * Authors:
  *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>

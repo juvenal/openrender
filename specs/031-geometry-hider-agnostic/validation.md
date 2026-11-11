@@ -248,6 +248,67 @@ minor (five `static_assert(...major == 2)` only). **No approved test or harness 
 | Timing, information only (`031-p5-time`, `timing_sc010.sh build-base build 3`) | start vs final medians (s): `killeroo-reyes` 3.62/3.64, `csg-hero-displaced-raytrace` 9.93/9.91, `blobby-csg-difference-reyes` 3.85/3.95, `camera-dof-reyes` 4.35/4.42, `camera-dof-raytrace` 4.94/4.82; every difference within spread, 0 scenes slower beyond it (`build-logs/p5-timing.log`) |
 | CP-c | `ctest -L architecture` 29/29; `ALLOWED DB-004 x 19, DB-006 x 23, DB-010 x 8, DB-011 x 164, DB-017 x 77, DB-025 x 11` = **302** (the table's row); METRIC Geometry refs 21 -> **2** (distinct 7 -> 2: the two `blobbyRepeller.cpp` `CRenderer::` uses), Hiders 556/81 unchanged, TOTAL 577 -> 558 (distinct 84 -> 83); `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0` |
 
+### Phase 6, work so far (macOS; interim record at the stop for two approvals)
+
+T079 to T084, T086 and T086a are done. `photonMap.cpp` reads `openrender::frameParams().camera.toWorld/fromWorld` (`:102-103`, `:212`, `:217`). The `geometryDispatch.cpp` bodies moved verbatim (receivers only; `clipMin`, `maxGridSize`, `flags` read
+`dicer.frame()`) to `object.cpp` (`CObject::dice`, `cluster`), `csgSolid.cpp` (`CCSGSolid::dice`), `surface.cpp` (`checkRayGuard`, `intersect`, `dice`, `shade`, `regionCoverage`), `curves.cpp` (`CCurve::dice`, both `splitToChildren`), `points.cpp`
+(`CPoints::dice`) and `delayed.cpp` (the host helpers and the four delayed bodies); the tessellation lock pair left `surface.h` and is an anonymous-namespace pair in `surface.cpp` (`grep -rn lockTessellation src` outside `surface.cpp`: nothing).
+`surfaceCrossingDispatch.{h,cpp}` became `surfaceCrossings.{h,cpp}` (`git mv`); `geometryDispatch.cpp`, `rendererDeclarationsDispatch.cpp`, `geometryDispatchStub.cpp`, `rendererDeclarationsDispatchStub.cpp` and `surfaceCrossingDispatchStub.cpp`
+are deleted (`src/ri/vector/` holds `irradianceDispatchStub.cpp` only); `notifyGlobalVariable` and `findCoordinateSystem` moved into `rendererDeclarations.cpp`, which leaves `libRIBVector`; `src/ri/CMakeLists.txt` and its comment are updated.
+The include sweep removed 39 core/Shading/Reyes include lines from Geometry (all but `blobbyRepeller.cpp`'s `renderer.h`) and reworded the 24 comment-only names. Greps: `grep -rnE 'CReyes|CShadingContext|IShadingProducer|reyes\.h|shading\.h|shader\.h' src/ri/geometry`
+prints nothing; `CRenderer|CRendererContext|CRiInterface` appear only at `blobbyRepeller.cpp:138`. T086a: `-fsyntax-only` of `surface.cpp`, `surfaceCrossings.cpp`, `object.cpp`, `curves.cpp`, `points.cpp`, `delayed.cpp` (ribVector include flags) and
+`csgSolid.cpp` (renderer flags): 0 errors. `metrics-baseline.txt` set from the measured values (Geometry 2/2, Hiders 552/79, TOTAL 554/81, dated comment).
+
+Build (`031-p6-build`, `-k`): every target built and linked clean (0 first-party warnings) **except** `test_csg_count_crossings`, which includes the renamed `surfaceCrossingDispatch.h` (an approved test; see the PAUSE 6 report). After removing stale
+`geometryDispatch`/`*Stub` objects from `build/` (including a stale nested `build/tests/plugins/checks/install_layouts` tree that archcheck also scans and that the `plugin_abi` tests recreate), `ctest -L architecture` is 30/31 and archcheck reports
+`ALLOWED DB-004 x 3, DB-010 x 8, DB-011 x 162, DB-025 x 11` = **184**, `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0`. The one red test is `Geometry_RibVectorNoStubs`, for the irradiance symbols of §4 item 9 only
+(`nm -u` of `ribVector_obj` names `CShadingContext` only in `irradianceSampleAccept(float, float, CShadingContext*)` and `CIrradianceCache::sample(..., CShadingContext*)`).
+
+### Phase 6 checkpoint, first full run (macOS and Linux) and the two failing draft tests
+
+Approved edits applied: `test_count_crossings.cpp` (include rename) and the two-symbol irradiance exemption in `check_ribvector_no_stubs.cmake` (merge note: §4 item 10). `031-p6-build2` (macOS, `-j4`): exit 0, 0 first-party warnings, every target.
+
+| CP (macOS) | Result |
+|---|---|
+| CP-b suite (`031-p6-suite`) | 1102 of 1104 passed; the two failures are `Geometry_DiceThroughDicer` (SEGFAULT) and `Geometry_IntersectThroughRayContext` (7 assertions), see below; nothing else failed |
+| CP-d | 915 images, **0 differing, 0 missing**; `MaxBlockAvgDiff` listing equal to the baseline |
+| CP-r | `Motion_*` 10/10; replay recordings untouched |
+| CP-det | `^determinism$` 156/156 |
+| CP-m | 3 of 5: `Geometry_ObjectSink`, `Geometry_FrameDefault`, `Geometry_ExpansionThroughHost` pass; the two above fail |
+| other labels | `-R 'SceneInterface_|Preview_|Geometry_'` 19/21 (the same two), `-L preview` green, `-L plugin_abi` green, `-L state` 7/7, `-L shading_parity` 136/136, `Visual_photon-parity` green |
+| CP-c | `ctest -L architecture` **31/31** (including `Geometry_NoHiderShadingNames` and `Geometry_RibVectorNoStubs`); allowlist 184 (`DB-004 x 3, DB-010 x 8, DB-011 x 162, DB-025 x 11`) |
+
+| CP-Lb (Linux, GCC 13 `-Werror`, `-j2`) | Result |
+|---|---|
+| push / verify | 3752 files, 0 differences |
+| build (`031-l6-build`) | exit 0, 0 warnings |
+| `ctest -L architecture` | 31/31 after the stale `geometryDispatch`/`*Stub` objects were deleted from the remote build tree (archcheck scans every object in the tree; the first run reported them as `Hiders -> Geometry,Core` violations); archcheck report identical to macOS (184) |
+| `-L '^geometry_contract$'` | 3 of 5, the same two failures |
+| `Motion_*` / `-L shading_parity` / `-L state` / `-L plugin_abi` | 10/10, 136/136, 7/7, 71/71 |
+
+**The two failing tests are defects of the draft test code, not of the Phase 6 product code** (diagnosed with throwaway copies outside the tree, run through `cpujob`; the tree is unchanged). Causes, each a wrong assumption of the draft:
+1. `Geometry_DiceThroughDicer` segfault: the recording dicer's `drawObject` kept a raw pointer, but `CSurface::dice` detaches its patch after queueing it (a hider holds a reference to what it queues), so the next `dice` used a freed patch.
+2. The fixtures built patch, NURBS and point data at depth 0: those primitives take **camera-space** vertices (`RiPatch`/`RiPoints` hand them over transformed), so the object sat on the eye plane and dicing recursed to "too many eye splits"; the sphere's `vmin`/`vmax` were in radians within +-1 (a sphere's v range is +-pi/2, so the pole hit the intersection test expects was outside it).
+3. `Geometry_IntersectThroughRayContext`: the test ray had `flags = 0` (rejected by `checkRayGuard`); `I` is `dir * t`, not `dir`; a mesh and a tessellation patch hand intersection to their children (the hider's trace loop walks the hierarchy), so the test must too; the displacing double must sample the undisplaced surface in `displace()` as a hider with no shader would (the dicing double already does); and the tessellation tables the core initialises at every frame start (`CTesselationPatch::initTesselations`) must be initialised and shut down by the test.
+With those edits the three programs pass (throwaway builds): the diff is `tools/phase6-contract-test-fixes.diff` (3 files, +37/-15; new tests, so shown for approval; not applied).
+
+**PAUSE 6 approval (2026-11-10).** The maintainer approved the contract test fixes of `tools/phase6-contract-test-fixes.diff` exactly as written (`fixtures.h`, `test_dice_through_dicer.cpp`, `test_intersect_through_ray_context.cpp`); applied after this entry.
+
+### Phase 6 checkpoint, final run (after the approved contract test fixes; 2026-11-10)
+
+| CP (macOS) | Result |
+|---|---|
+| CP-a build (`031-p6b-build`, `-j4`) | exit 0, 0 first-party warnings |
+| CP-b suite | **1104/1104 passed** (the Phase 5 count plus the three newly enabled contract tests and the two checks) |
+| CP-d | 915 images, **0 differing, 0 missing**; `MaxBlockAvgDiff` listing equal to the baseline |
+| CP-r | `Motion_*` 10/10 |
+| CP-m | **5/5** (`Geometry_ObjectSink`, `FrameDefault`, `DiceThroughDicer`, `IntersectThroughRayContext`, `ExpansionThroughHost`) |
+| `-R 'SceneInterface_|Preview_|Geometry_'` | 21/21 |
+| CP-c | `ctest -L architecture` **31/31**; allowlist 184 (`DB-004 x 3, DB-010 x 8, DB-011 x 162, DB-025 x 11`), `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0` |
+| (earlier run, unchanged code) | CP-det 156/156, `-L preview`, `-L plugin_abi` 71/71, `-L state` 7/7, `-L shading_parity` 136/136, `Visual_photon-parity` 4/4 |
+
+Linux CP-Lb (`031-l7-*`, GCC 13 `-Werror`, `-j2`): push/verify 3753 files, 0 differences; build exit 0, 0 warnings; `ctest -L architecture` 31/31; `-L '^geometry_contract$'` **5/5**; `Motion_*` 10/10.
+
 ## §2 Red evidence
 
 ### Phase 2 (macOS; `build` configured with `-DOPENRENDER_031_RED_TESTS=ON`, then OFF again)
@@ -302,6 +363,20 @@ tests/geometry_contract/test_frame_default.cpp
 -        CRenderer::projection = f.projection;
 +        CRenderer::projection = (EProjectionType)f.projection;                                        (int to enum)
 ```
+
+### Phase 6 test gate (T078, run before any source edit; macOS)
+
+PAUSE 6a approved: the five tests enabled (`tests/geometry_contract/CMakeLists.txt`: the three vector-flavour programs out of the red block; `tests/architecture/CMakeLists.txt`: the two checks out of it), the residual list 9 -> 5 lines
+(`rendererStatics.cpp`'s cell now `Geometry (blobbyRepeller.cpp), Hiders (compositor.cpp, irradiance.cpp)`), the 118 allowlist lines deleted by key (DB-006 23, DB-004 16, DB-017 77, DB-011 2; 0 added), no test-side include addition
+(the probe `tools/include-fallout-phase6.txt` found none). After a reconfigure, the three contract programs **build** (against the stubs) and the run of the seven tests (`build-logs/p6-tg-run.log`) is **7 of 7 red, for the stated reasons**:
+
+| Test | Result |
+|---|---|
+| `Geometry_DiceThroughDicer`, `Geometry_IntersectThroughRayContext`, `Geometry_ExpansionThroughHost` | built and failed at run time on the stubs' `CODE_BUG`: `CSurface::dice() reached in a build with no rendering pipeline` (x4), `CPoints::dice()`, `CSurface::shade()`, `CDelayedObject::intersect()` (x2)/`dice()`, `CDelayedInstance::intersect()` (x2)/`dice()`; no link failure |
+| `Geometry_NoHiderShadingNames` | fails: 24 banned identifiers (comment-only; the list of `tools/include-fallout-phase6.txt`) |
+| `Geometry_RibVectorNoStubs` | fails: `ribVector_obj` compiles `geometryDispatchStub.cpp`, `rendererDeclarationsDispatchStub.cpp`, `surfaceCrossingDispatchStub.cpp`, and its `nm -u` names `CShadingContext`/`CReyes` symbols (including **`irradianceSampleAccept(float, float, CShadingContext*)`**, see §4 item 9) |
+| `SceneInterface_RibVectorResidual` | fails: 4 failures, `ribVector_obj` compiles `rendererDeclarations.cpp` and the three stubs, which the 5-line list does not name |
+| `Architecture_DomainBoundaries` | `RESULT FAIL violations=118 stale=0 badid=0 failing-cycles=4`: exactly the 118 deleted lines (39 include, 79 link = 77 DB-017 + 2 DB-011) |
 
 ## §3 Linux records
 
@@ -377,6 +452,19 @@ Phase 1 is complete; the maintainer commits it before Phase 2 starts.
 The maintainer approved, exactly as proposed: the test-edit list of T048 (a) including the finding that `tests/unit/geometry/test_degenerate_fix_offset.cpp:70` needs no edit; the `*s.ctx()` / `*ctx`
 dereference at call sites that now take a reference (no new `rc()` helper); the `CTesselationPatch::lockTessellation()`/`unlockTessellation()` pair on a static `std::mutex` in `surface.cpp` with
 `CRenderer::tesselateMutex` removed; `numThreadsAtBuild` set from `geometryFrame()`. The DB-017 names are confirmed from archcheck's STALE/VIOLATION pairs at T060; an approved-test diff that differs from the list stops the phase.
+
+8. **Cross-spec merge resolution, photonMap and `drawObject` (recorded at PAUSE 6a, 2026-11-10; the maintainer's decision, not acted on in this tree).**
+   Spec 032 deleted `src/ri/hiders/photonMap.cpp`: its code now lives in `src/ri/texture/photonStore.cpp` and the Core header `src/ri/render/photonMap.h`, which reads `CRenderer::toWorld`/`fromWorld` in Core.
+   032 also deletes the same two DB-011 `photonMap.cpp -> CRenderer::toWorld/fromWorld` allowlist lines, and edits the `rendererStatics.cpp` cell of `ribvector-core-residual.txt` and the Hiders and TOTAL rows of `metrics-baseline.txt`.
+   Whichever of 031 and 032 merges second keeps 032's version of photonMap, drops 031's `photonMap.cpp` edit (T079: the `frameParams().camera` reads) and its two DB-011 deletions, and re-measures the Hiders and TOTAL metric rows (and the
+   `rendererStatics.cpp` residual cell) on the merged tree. Spec 030 also makes `CHider::drawObject` virtual: after the merge `CReyes::drawObject` must still override both `CHider`'s and `IDicer`'s `drawObject`.
+
+9. **Plan defect found at the Phase 6 gate: `Geometry_RibVectorNoStubs` and T088's grep cannot reach zero while spec 032's `irradianceDispatchStub.cpp` stays.** The `nm -u` rule (approved at PAUSE 2a) lists every undefined symbol of every
+   `ribVector_obj` object naming `CShadingContext`/`CReyes`/`CHider`/`IShadingProducer`. Two such symbols belong to Hiders' `irradiance.cpp`, not to Geometry: `irradianceSampleAccept(float, float, CShadingContext*)` (called by `irradiance.cpp:388`,
+   defined by `vector/irradianceDispatchStub.cpp`, which the plan keeps for spec 032) and `CIrradianceCache::sample(..., CShadingContext*)`. They were in the starting list too (`tools/ribvector-undefined-base-macos.txt`). The Geometry half of the check
+   (no stub source, no Geometry symbol of those types) is satisfiable; the irradiance half is spec 032's. Proposal for PAUSE 6 (no edit made): either exempt exactly those two symbols in `check_ribvector_no_stubs.cmake` with a comment naming spec 032, or leave the check red until 032 merges.
+10. **Merge note, the irradiance exemption (maintainer-approved at PAUSE 6).** `tests/architecture/check_ribvector_no_stubs.cmake` exempts exactly two `nm -u` symbols, `22irradianceSampleAccept` and `16CIrradianceCache6sample`, because
+   `irradiance.cpp` (Hiders) and `vector/irradianceDispatchStub.cpp` are spec 032's. **The second of 031 and 032 to merge removes this exemption** (the first leaves it, since the stub still exists then).
 
 ## §5 Reference approvals
 

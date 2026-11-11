@@ -31,9 +31,8 @@
 #include "motion.h"
 #include "object.h"
 #include "patchUtils.h"
-#include "shading.h"
 #include "common/stats.h"
-#include "surfaceCrossingDispatch.h"
+#include "surfaceCrossings.h"
 
 // The inverse of the Bezier basis (float)
 static matrix invBezier = {0, 0, 0, 1.0f,

@@ -6,7 +6,7 @@
  * Description:
  *   IRayContext: what intersection, ray-hit shading, clustering, lazy child creation, the region and crossing
  *   hooks and the raytrace tessellation need from the render thread that calls them (spec 031, FR-003).
- *   Geometry owns the interface and never implements it; every hider implements it (CHider). Header only; not
+ *   Geometry owns the interface and never implements it; every hider implements it (their common base). Header only; not
  *   installed.
  *
  * Authors:

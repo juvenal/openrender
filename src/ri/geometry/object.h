@@ -37,7 +37,6 @@
 #include "common/global.h"
 #include "ray.h"
 #include "common/refCounter.h"
-#include "renderer.h"
 #include "common/rendererc.h"
 #include "xform.h"
 
@@ -46,7 +45,6 @@ const unsigned int GEOMETRY_FORCE_VERTEX = 2;  // Force varying variables to be 
 
 class CVariable;
 class CVolume;
-class CRendererContext;
 class CTesselationPatch;
 
 // Various object flags

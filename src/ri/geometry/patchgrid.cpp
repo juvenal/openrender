@@ -30,10 +30,8 @@
 #include "motion.h"
 #include "object.h"
 #include "patchgrid.h"
-#include "renderer.h"
-#include "shading.h"
 #include "common/stats.h"
-#include "surfaceCrossingDispatch.h"
+#include "surfaceCrossings.h"
 
 // Note:
 //	The patgrid is instantiated with a grid of (nu+2)*(nv+2) vertices which

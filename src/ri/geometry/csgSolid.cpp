@@ -173,9 +173,6 @@ void CCSGSolid::intersect(IRayContext &context, CRay *) {
     resolve(context);
 }
 
-// CCSGSolid::dice() lives in render/geometryDispatch.cpp with the other
-// CReyes-facing geometry entry points, so this unit names no hider type
-
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CCSGSolid
 // Method				:	instantiate
@@ -378,4 +375,16 @@ CCSGInstanceState *CCSGSolid::build(IRayContext &context) {
     }
     setChildren(chain);
     return s;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CCSGSolid
+// Method				:	dice
+// Description			:	Resolve the solid instance on first use, then dice
+//							its leaves like any object's children (spec 021)
+// Return Value			:	-
+// Comments				:
+void CCSGSolid::dice(IDicer &dicer) {
+    resolve(dicer.rayContext());
+    CObject::dice(dicer);
 }

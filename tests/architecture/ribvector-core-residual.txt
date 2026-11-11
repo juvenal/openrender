@@ -11,12 +11,8 @@
 # fails on it). Specs 029-031 delete lines as Geometry and Hiders stop needing them.
 #
 # file                                                   needed by
-src/ri/render/rendererDeclarations.cpp                   src/ri/geometry/blobby.cpp (CRenderer::retrieveVariable)
 src/ri/render/rendererFileSearch.cpp                     src/ri/geometry/blobbyRepeller.cpp (CRenderer::locateFile)
 src/ri/render/rendererNetwork.cpp                        src/ri/render/rendererFileSearch.cpp
 src/ri/render/rendererMutexes.cpp                        src/ri/render/rendererFileSearch.cpp
-src/ri/render/rendererStatics.cpp                        Geometry (object.cpp, blobbyRepeller.cpp), Hiders (compositor.cpp, irradiance.cpp, photonMap.cpp)
-src/ri/vector/geometryDispatchStub.cpp                   Geometry
+src/ri/render/rendererStatics.cpp                        Geometry (blobbyRepeller.cpp), Hiders (compositor.cpp, irradiance.cpp)
 src/ri/vector/irradianceDispatchStub.cpp                 Hiders (irradiance.cpp)
-src/ri/vector/rendererDeclarationsDispatchStub.cpp       src/ri/geometry/object.cpp (findCoordinateSystem)
-src/ri/vector/surfaceCrossingDispatchStub.cpp            Geometry

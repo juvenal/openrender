@@ -7,7 +7,7 @@
  *   Unit test (T015, spec 021) for CSurface::countCrossings(): the unsigned
  *   number of times a ray crosses the undisplaced surface, for every quadric
  *   (including partial sweeps and z-cuts), triangles, quads and bilinear
- *   patches; and for the free-form Newton core in surfaceCrossingDispatch.h,
+ *   patches; and for the free-form Newton core in surfaceCrossings.h,
  *   against analytic evaluation callbacks (an exact bicubic plane and an
  *   exact rational NURBS sphere) whose crossing parameters must converge to
  *   the analytic intersection within 1e-5 (FR-007a).
@@ -22,7 +22,7 @@
  */
 
 #include "csgTestUtils.h"
-#include "surfaceCrossingDispatch.h"
+#include "surfaceCrossings.h"
 
 using namespace csgtest;
 

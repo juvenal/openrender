@@ -29,8 +29,6 @@
 #include "common/memory.h"
 #include "motion.h"
 #include "points.h"
-#include "renderer.h"
-#include "reyes.h"
 #include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////
@@ -366,4 +364,136 @@ void CPoints::prep() {
     pl = NULL;
 
     osUnlock(base->mutex);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CPoints
+// Method				:	dice
+// Description			:	See object.h
+// Return Value			:	-
+// Comments				:
+void CPoints::dice(IDicer &dicer) {
+    if (pl != NULL)
+        prep();
+
+    if (numPoints < dicer.frame().maxGridSize) {
+        // We're small enough to render directly
+        dicer.drawPoints(this, numPoints);
+    }
+    else {
+
+        // We're too many, split us
+        memBegin(dicer.rayContext().scratch());
+
+        vector D;
+        int numFront, numBack;
+        int i, j;
+        const float **front, **back;
+        int *membership;
+        vector P0, P1, nP0, nP1;
+        int num0, num1, moved;
+        CPoints *child;
+
+        front = (const float **)ralloc(numPoints * sizeof(float *), dicer.rayContext().scratch());
+        back = (const float **)ralloc(numPoints * sizeof(float *), dicer.rayContext().scratch());
+        membership = (int *)ralloc(numPoints * sizeof(int), dicer.rayContext().scratch());
+
+        for (i = 0; i < numPoints; i++)
+            membership[i] = -1;
+
+        movvv(P0, points[0]);
+        movvv(P1, points[1]);
+
+        // An empty cluster is re-seeded from a keyed stream of (object, number of points, iteration)
+        for (j = 0; j < 10; j++) {
+            openrender::sampling::CKeyedStream reseed(openrender::sampling::detail::mix(0xC1A57E5ull, stableId, (uint64_t)numPoints, (uint64_t)j));
+
+            initv(nP0, 0);
+            initv(nP1, 0);
+            num0 = num1 = 0;
+
+            moved = FALSE;
+
+            for (i = 0; i < numPoints; i++) {
+                float d0, d1;
+
+                subvv(D, P0, points[i]);
+                d0 = dotvv(D, D);
+
+                subvv(D, P1, points[i]);
+                d1 = dotvv(D, D);
+
+                if (d0 < d1) {
+                    if (membership[i] != 0) {
+                        moved = TRUE;
+                        membership[i] = 0;
+                    }
+
+                    addvv(nP0, points[i]);
+                    num0++;
+                }
+                else {
+                    if (membership[i] != 1) {
+                        moved = TRUE;
+                        membership[i] = 1;
+                    }
+
+                    addvv(nP1, points[i]);
+                    num1++;
+                }
+            }
+
+            if (moved == FALSE)
+                break;
+
+            if (num0 > 0)
+                mulvf(P0, nP0, 1 / (float)num0);
+            else
+                movvv(P0, points[reseed.nextU32() % numPoints]);
+
+            if (num1 > 0)
+                mulvf(P1, nP1, 1 / (float)num1);
+            else
+                movvv(P1, points[reseed.nextU32() % numPoints]);
+        }
+
+        // Partition
+        numFront = numBack = 0;
+        for (i = 0; i < numPoints; i++) {
+            if (membership[i] == 0)
+                front[numFront++] = points[i];
+            else
+                back[numBack++] = points[i];
+        }
+
+        // Stupid way of partitionning
+        if ((numFront == 0) || (numBack == 0)) {
+            numFront = numBack = 0;
+            for (i = 0; i < numPoints; i++) {
+                if (i & 1)
+                    front[numFront++] = points[i];
+                else
+                    back[numBack++] = points[i];
+            }
+        }
+
+        // Create the children primitives
+
+        child = new CPoints(attributes, xform, base, numFront, front);
+        child->attach();
+
+        dicer.drawObject(child);
+
+        child->detach();
+
+        child = new CPoints(attributes, xform, base, numBack, back);
+
+        child->attach();
+
+        dicer.drawObject(child);
+
+        child->detach();
+
+        memEnd(dicer.rayContext().scratch());
+    }
 }
