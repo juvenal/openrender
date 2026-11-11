@@ -82,6 +82,18 @@ namespace openrender::shading {
     //   ("Breaking within 2.x"). The rules above apply as written from the release that closes the milestone.
     //
     // History
+    //   2.2.0  spec 032. Additions only (no member changed):
+    //          Added:    photonMapAccess.h: IPhotonEstimator (the hiders' 4-argument photon estimate, was
+    //                    CPhotonMap::lookup(C, P, N, n)), IPhotonStore (the photon hider's writes), CPhotonMapRefTarget
+    //                    (what a Graphics State map slot holds) and photonMapOf(), which replaces the Hiders' accessor of
+    //                    the same name.
+    //          Added:    irradianceSampler.h: IIrradianceSampler and IrradianceSample; CShadingContext::setIrradianceSampler(),
+    //                    setDefaultIrradianceSampler() (installed by the renderer core from RiBegin to RiEnd) and
+    //                    boundDraws(); irradianceCalls.h: libshader::irradianceLookup(), shared by the interpreter and the JIT.
+    //          Wording:  getCache() answers only irradiance caches; Shading converts its answer with irradianceStoreOf()
+    //                    (texture/irradianceStore.h). The member and its signature are unchanged. Core's CRenderer::getCache now
+    //                    checks the kind (dynamic_cast) and answers nullptr for a name registered as another 3D kind (#104);
+    //                    Shading treats nullptr as 'no cache' (libshader::irradianceLookup, step 0).
     //   2.1.0  spec 029. Breaking within 2.x (allowed before spec 055, see the rule above):
     //          Changed:  getPhotonMap() returns openrender::shading::IPhotonLookup * (was CPhotonMap *).
     //          Added:    IPhotonLookup (photonLookup.h), IIlluminationHook (illuminationHook.h).
@@ -108,7 +120,7 @@ namespace openrender::shading {
     //          Wording only, no version change (spec 038, made while 2.0.0 was current, before 2.1.0): getDSO also serves
     //          the .slo loader, which binds the DSO operands of a JIT-compiled module with it (the member, its signature
     //          and its result are unchanged).
-    inline constexpr InterfaceVersion kRendererServicesVersion{2, 1, 0};
+    inline constexpr InterfaceVersion kRendererServicesVersion{2, 2, 0};
 
     class ITracer; // tracer.h
 
