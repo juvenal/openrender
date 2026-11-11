@@ -33,7 +33,7 @@ class IDicer {
     public:
         virtual ~IDicer() = default;
 
-        virtual IRayContext &rayContext() = 0; // the dicing thread's context: scratch, varyings, CSG resolve, mesh create
+        virtual IRayContext &rayContext() = 0; // the dicing thread's context: scratch, varyings, lazy resolution and child creation
 
         virtual void drawObject(CObject *object) = 0; // queue an object (children, split pieces)
         virtual void drawGrid(CSurface *surface, int udiv, int vdiv, float umin, float umax, float vmin, float vmax,

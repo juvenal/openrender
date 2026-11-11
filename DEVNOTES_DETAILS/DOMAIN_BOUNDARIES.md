@@ -121,8 +121,8 @@ request. Run `ctest -L architecture` locally before review.
   domain owns).
 - **Tracking**: [#27](https://github.com/juvenal/openrender/issues/27)
 - **Evidence**:
-  - 19 files under `src/ri/geometry/` include `renderer.h`/`rendererContext.h` and use 24 distinct
-    renderer-core symbols (`grep` over `src/ri/geometry/*.{h,cpp}`, master `079feda`).
+  - 17 files under `src/ri/geometry/` include `renderer.h`/`rendererContext.h` and use 16 distinct
+    renderer-core symbols (`grep` over `src/ri/geometry/*.{h,cpp}` at `e83d005d`; spec 031 corrected the earlier 19 files and 24 symbols).
   - Frame and camera parameters (after spec 028; `invShutterTime` (24 uses), `relRotQ` (4),
     `toWorld` and `cameraHasRotation` are gone from this list):
     - `CRenderer::numThreads` (9), `maxGridSize` (9), `maxEyeSplits` (3), `flags` (3)
@@ -131,9 +131,9 @@ request. Run `ctest -L architecture` locally before review.
       `invFocaldistance`, `cocFactorPixels` (spec 031's)
   - Locks: `CRenderer::tesselateMutex` (5), `CRenderer::delayedMutex` (4).
   - Upward calls into the scene context, for lazy instancing and procedurals:
-    `CRenderer::context->processDelayedSolid` (2), `processDelayedObject`, `processDelayedInstance`.
-  - Services: `CRenderer::retrieveVariable` (5), `locateFile`, `texturePath`, `environmentLoad`,
-    `findCoordinateSystem`.
+    `CRenderer::context->processDelayedObject` and `processDelayedInstance` (1 each at `e83d005d`; there is no `processDelayedSolid`).
+  - Services: `CRenderer::retrieveVariable` (5), `locateFile`, `texturePath`,
+    `findCoordinateSystem` (`environmentLoad` is Texturing's, not a Geometry use).
   - Related: `src/ri/render/geometryDispatch.cpp` implements Geometry methods (`CObject::dice`,
     `CSurface::dice`, `CDelayedObject::intersect`, and others) from the renderer directory.
   - Scene Interface: Geometry's base-class contract
@@ -183,30 +183,18 @@ request. Run `ctest -L architecture` locally before review.
     and `render/rendererStatics.cpp` (the `CRenderer` statics Geometry's `object.cpp` and
     `blobbyRepeller.cpp` read; also Hiders' and the data viewer's, below). Spec 038 also took
     `render/rendererClipping.cpp` and `render/resource.cpp` out of `libRIBVector`.
-
-### DB-006 — Geometry is coupled to Shading and to the hiders
-
-- **Rules**: 2; the allowed-dependency table (Geometry may depend only on Graphics State and
-  Geometric Procedures; Shading may not depend on Geometry).
-- **Tracking**: remediation specs 026 ([#32](https://github.com/juvenal/openrender/issues/32)), 029 ([#35](https://github.com/juvenal/openrender/issues/35)), 031 ([#37](https://github.com/juvenal/openrender/issues/37))
-- **Evidence**:
-  - Geometry includes Shading headers 15 times (13 through the `src/ri/core/shading.h` forwarding
-    shim) and calls `CShadingContext::shade`, `saveState` and `restoreState`.
-  - Geometry includes `src/ri/hiders/reyes.h` from 9 files and calls `CReyes::drawObject` and
-    `CReyes::drawGrid` (`surface.cpp`).
-  - Shading included `object.h` (one file) until spec 029, closing a Geometry ↔ Shading cycle; it no longer does.
-- **Size**: 30 edges (23 include, 7 link) after spec 029 (31 before).
-- **History**: Spec 026, 2026-11-01: `execute.cpp` and `executeMisc.cpp` no longer include `surface.h` (the
-  executor's attribute reads go through `CShadingContext::objectAttributes()`); `shading.cpp -> object.h`
-  stays for spec 029. The `ShaderGlobals` contract exists (`shaderGlobals.h`); nothing fills it yet.
-- **History**: Spec 029, 2026-11-04: `shading.cpp` includes no Geometry header (`shading.cpp -> object.h` deleted: 31 → 30 edges) and the Geometry
-  directory is off `libshader_shading`'s include path. `shade()` takes a `ShaderGlobals` and an `IPointSource` that the hiders implement over
-  `CSurface` (`CSurfacePointSource`); `CShadingContext::shade(CSurface *, ...)`, the symbol Geometry's lines bind to, is an opaque forwarding
-  entry to the owning hider's `IShadingProducer`. Geometry's other lines are unchanged and it gained no include of a Shading or Hiders header;
-  its call sites reach the context through `CReyes::shadingContext()`.
-- **Direction**: an OSL-style `ShaderGlobals` filled by Geometry for Shading (026, 029);
-  Geometry's dice and intersect take Geometry-owned `IDicer`/`IRayContext` interfaces instead of
-  `CReyes*`/`CShadingContext*` (031).
+  - Spec 031, 2026-11-11: 52 allowlist lines to 3, all of them `blobbyRepeller.cpp`'s (its `renderer.h` include, `CRenderer::locateFile`
+    and `CRenderer::texturePath`, spec 038's residual). The frame limits and constants (`numThreads`, `maxGridSize`, `maxEyeSplits`,
+    `flags`, `raytracingFlags`, `projection`, the pixel and image-plane values, `clipMin`, `cocFactorPixels`, `invFocaldistance`) are a
+    Geometry-owned value, `CGeometryFrame` (`geometry/geometryFrame.h`), that the renderer core builds from its own statics and installs
+    once per frame after the hider contexts exist; the delayed-object and delayed-instance expansion and the coordinate-system lookup go
+    through `CGeometryHost` (`expandDelayedObject`, `expandDelayedInstance`, `findCoordinateSystem`, implemented by `CRendererContext`); the
+    variable lookup of `blobby.cpp` is `CDeclarations::find`; `instantiate()` reports through the Geometry-owned `IObjectSink` (header
+    `geometry/objectSink.h`, implemented by `CRiInterface`), so `riInterface.h` and `rendererContext.h` are no longer included; the
+    tessellation lock is Geometry's own (`surface.cpp`) and `CRenderer::tesselateMutex` is deleted; `render/geometryDispatch.cpp` is gone,
+    its bodies live in their classes' files, and no Geometry file includes `renderer.h`, `rendererContext.h`, `riInterface.h`, `shading.h`,
+    `shader.h` or `reyes.h` (`Geometry_NoHiderShadingNames`). The Geometry `CRenderer::` metric fell from 48 to 2 references and 15 to
+    2 members. The entry stays Open for those three lines.
 
 ### DB-007 — The shader backend is chosen by concrete type inside the renderer core
 
@@ -247,6 +235,11 @@ request. Run `ctest -L architecture` locally before review.
 - **History**: spec 028, 2026-10-29: the raytrace side moved onto `ICamera`, `FrameParams` and
   `motion.h` (Geometry's intersection-time motion no longer reads `CRenderer::invShutterTime`);
   Reyes's side is spec 031.
+- **History**: spec 031, 2026-11-11, camera-rotation half: Reyes and the stochastic rasterizer read the camera rotation, translation, flags and lens values
+  from `FrameParams` (`FrameParams::cocFactorScreen` and `cocFactorSamples` are copies of the core's values, removed by the lens phase) and rotate
+  through `motion::cameraRotationAt`, the one function the raytrace side uses; the inlined `slerpq` + `qtoR` pairs and their `identQ` constants
+  are gone from `reyes.cpp`, `stochastic.cpp` and `stochasticQuad.h` (`Motion_CameraSlerpEquivalence`, `Motion_Replay_*` and
+  `Motion_FrameParamsEqualCore` pass; no image changed). Reyes's depth-of-field model (the circle of confusion) is the lens half: the entry stays Open.
 
 ### DB-010 — The hiders' GI caches use Texturing
 
@@ -314,6 +307,11 @@ request. Run `ctest -L architecture` locally before review.
   compiles (`tests/architecture/ribvector-core-residual.txt`), needed by `hiders/compositor.cpp`,
   `hiders/irradiance.cpp` and `hiders/photonMap.cpp` as well as by Geometry (DB-004) and the data
   viewer (DB-024). It leaves the list when the hiders stop reading the statics (specs 029 to 031).
+- **History**: spec 031, 2026-11-11: 13 allowlist lines deleted, 164 to 151. `hiders/photonMap.cpp` reads the camera matrices from `FrameParams` (`CRenderer::toWorld`
+  and `fromWorld`: 2 lines); Reyes and the stochastic rasterizer read the aperture, lens, camera-rotation and camera-translation values from
+  `FrameParams` (`reyes.cpp -> CRenderer::aperture`, `cameraHasRotation`, `cocFactorSamples`, `cocFactorScreen`, `invFocaldistance`, `relRotQ`,
+  `relTrans`; `stochastic.cpp -> CRenderer::cameraHasRotation`, `cameraRotationOnly`, `relRotQ`, `relTrans`: 11 lines). The Hiders `CRenderer::` metric fell
+  from 556 to 499 references and 81 to 72 members (the Phase 6 photon-map change took 4 references and 2 members of it).
 
 ### DB-013 — No hider registry: `strcmp` chains in the renderer core
 
@@ -359,6 +357,13 @@ request. Run `ctest -L architecture` locally before review.
   `vector/*DispatchStub.cpp` entries of `tests/architecture/ribvector-core-residual.txt`
   (`SceneInterface_RibVectorResidual`), each with the Geometry or Hiders file that needs it
   (`geometry/object.cpp` for the declarations stub, `hiders/irradiance.cpp` for the irradiance stub).
+- **History**: spec 031, 2026-11-11: three of the four pairs are deleted. The Geometry bodies of `render/geometryDispatch.cpp` live in `object.cpp`, `csgSolid.cpp`,
+  `surface.cpp` (which now defines `CSurface`'s vtable and typeinfo), `curves.cpp`, `points.cpp` and `delayed.cpp`; `rendererDeclarationsDispatch.cpp` is
+  merged into `rendererDeclarations.cpp` (a Core file `libRIBVector` no longer compiles); `surfaceCrossingDispatch.{h,cpp}` is `surfaceCrossings.{h,cpp}`, compiled
+  for every consumer; `vector/geometryDispatchStub.cpp`, `vector/rendererDeclarationsDispatchStub.cpp` and `vector/surfaceCrossingDispatchStub.cpp` are gone.
+  All 77 DB-017 allowlist lines were deleted (52 of them re-keyed in place first, Phases 4 and 5, as the signatures moved to `IRayContext` and `IDicer`; none added).
+  The entry stays Open for the irradiance pair (`hiders/irradianceDispatch.cpp` / `vector/irradianceDispatchStub.cpp`), which is spec 032's and has no allowlist line;
+  `Geometry_RibVectorNoStubs` exempts that pair's two `nm -u` symbols until 032 lands.
 
 ### DB-018 — Message passing reads `CAttributes` directly
 
@@ -457,6 +462,8 @@ request. Run `ctest -L architecture` locally before review.
 - **Size**: 12 edges (4 include, 8 link).
 - **Direction**: the data viewer reads the GI and texture data through adapters it owns
   (spec 032's `CDataView` adapters), so the domains no longer know it exists.
+- **History**: spec 031, 2026-11-11: `geometry/surface.cpp -> dataviewer/debug.h` is deleted (12 to 11 edges): the include and the two dead `DEBUG_HITS` and
+  `DEBUG_TESSELATIONS` blocks that used `CDebugView` are removed. The entry stays Open for spec 032's 11 lines and is moved by whichever of 031 and 032 merges second.
 
 ## Resolved
 
@@ -907,3 +914,37 @@ request. Run `ctest -L architecture` locally before review.
   path holds no Scene Interface, renderer or shading-engine directory (`Compiler_IncludeBoundary`). No
   allowlist line was involved (0 before, 0 after). `ShadeopAbi_Jit_*`, `LibShader_GateHardening` and
   `LibShader_OpcodeCoverage` guard the DSO path.
+
+### DB-006 — Geometry is coupled to Shading and to the hiders
+
+- **Rules**: 2; the allowed-dependency table (Geometry may depend only on Graphics State and
+  Geometric Procedures; Shading may not depend on Geometry).
+- **Tracking**: remediation specs 026 ([#32](https://github.com/juvenal/openrender/issues/32)), 029 ([#35](https://github.com/juvenal/openrender/issues/35)), 031 ([#37](https://github.com/juvenal/openrender/issues/37))
+- **Evidence**:
+  - Geometry includes Shading headers 15 times (13 through the `src/ri/core/shading.h` forwarding
+    shim) and calls `CShadingContext::shade`, `saveState` and `restoreState`.
+  - Geometry includes `src/ri/hiders/reyes.h` from 9 files and calls `CReyes::drawObject` and
+    `CReyes::drawGrid` (`surface.cpp`).
+  - Shading included `object.h` (one file) until spec 029, closing a Geometry ↔ Shading cycle; it no longer does.
+- **Size**: 30 edges (23 include, 7 link) after spec 029 (31 before); 0 after spec 031.
+- **History**: Spec 026, 2026-11-01: `execute.cpp` and `executeMisc.cpp` no longer include `surface.h` (the
+  executor's attribute reads go through `CShadingContext::objectAttributes()`); `shading.cpp -> object.h`
+  stays for spec 029. The `ShaderGlobals` contract exists (`shaderGlobals.h`); nothing fills it yet.
+- **History**: Spec 029, 2026-11-04: `shading.cpp` includes no Geometry header (`shading.cpp -> object.h` deleted: 31 → 30 edges) and the Geometry
+  directory is off `libshader_shading`'s include path. `shade()` takes a `ShaderGlobals` and an `IPointSource` that the hiders implement over
+  `CSurface` (`CSurfacePointSource`); `CShadingContext::shade(CSurface *, ...)`, the symbol Geometry's lines bind to, is an opaque forwarding
+  entry to the owning hider's `IShadingProducer`. Geometry's other lines are unchanged and it gained no include of a Shading or Hiders header;
+  its call sites reach the context through `CReyes::shadingContext()`.
+- **Direction**: an OSL-style `ShaderGlobals` filled by Geometry for Shading (026, 029);
+  Geometry's dice and intersect take Geometry-owned `IDicer`/`IRayContext` interfaces instead of
+  `CReyes*`/`CShadingContext*` (031).
+- **History**: spec 031, 2026-11-11: `IRayContext` (`geometry/rayContext.h`) and `IDicer` (`geometry/dicer.h`), implemented by the hiders, replace the `CShadingContext *` and
+  `CReyes *` parameters of every Geometry virtual; the forwarding entries `CShadingContext::shade(CSurface *, ...)`, `displace`, `displaceEstimate`, `setProducer` and
+  `IShadingProducer` are retired (`kRendererServicesVersion` 2.2.0); `EShadingDim` is Infra (`common/shadingDim.h`).
+- **Resolved** by spec 031 (`specs/031-geometry-hider-agnostic/`), 2026-11-11:
+  - 23 include edges and 7 link edges to 0, with all 30 allowlist lines deleted and nothing added: Geometry includes no Shading or Reyes header
+    (`Geometry_NoHiderShadingNames` scans the directory, comments included) and `libRIBVector` compiles the real Geometry with no stub
+    (`Geometry_RibVectorNoStubs`; its `nm -u` check names no `CShadingContext`, `CReyes`, `CHider` or `IShadingProducer` symbol of Geometry's).
+  - The Geometry contract programs `Geometry_DiceThroughDicer`, `Geometry_IntersectThroughRayContext`, `Geometry_ExpansionThroughHost`, `Geometry_ObjectSink` and
+    `Geometry_FrameDefault` build and run with no hider and no Shading. No image changed on either platform (the manifests, the `MaxBlockAvgDiff` list and the
+    determinism sweep are equal to the baselines).

@@ -326,6 +326,46 @@ Source: `FrameParams` gained `cocFactorScreen`, `cocFactorSamples` (copied in `b
 | CP-c | `ctest -L architecture` 31/31; `ALLOWED DB-004 x 3, DB-010 x 8, DB-011 x 151, DB-025 x 11` = **173**; `RESULT PASS violations=0 stale=0` |
 | Metric | Hiders 552 -> **499** references (79 -> 72 members), TOTAL 554 -> **501** (81 -> 74); Geometry 2/2 unchanged; `metrics-baseline.txt` lowered with a dated comment |
 
+### Phase 8 interface-phase gate (T101-T109; 2026-11-11)
+
+One source edit in the phase, comment-only: `dicer.h:36` named "CSG resolve"; FR-019's grep (`grep -nE 'CSG|Region'` over the four interface headers) must print nothing, so it now reads "lazy resolution and child creation" (macOS rebuilt with it before the run; Linux built before the push of that comment and was rebuilt after the runs, below).
+
+| Check (tree `601df3f1` + the `dicer.h` comment) | macOS | Linux (GCC 13 `-Werror`, `-j2`) |
+|---|---|---|
+| CP-a build | exit 0, 0 first-party warnings | exit 0, 0 warnings (twice: before the runs, and after the `dicer.h` comment) |
+| CP-b suite, fresh stamp (`-LE determinism-sweep`) | **1104/1104** | 1104/1105: the one failure is `TextureTile_RenderByteIdentical` (GitHub #45, held until spec 042), the baseline's own |
+| CP-d | 915 images, **0 differing, 0 missing**; every `MaxBlockAvgDiff` equal to `baseline-diffs-macos.txt` | 915 images, **0 differing, 0 missing**; `MaxBlockAvgDiff` equal to `baseline-diffs-linux.txt` |
+| `^determinism$` | 156/156 | 156/156 |
+| determinism sweep (`-L '^determinism-sweep$' -j2`) | **419/419; 419 images, 0 differing, 0 missing** against `baseline-sweep-images-macos.sha256` | **419/419; 419 images, 0 differing, 0 missing** against `baseline-sweep-images-linux.sha256` |
+| `Motion_*` (`CameraSlerpEquivalence`, `Replay_*`, `FrameParamsEqualCore`) | 13/13; `git diff --stat e83d005d -- tests/unit/motion/replay` empty | 13/13 |
+| `^geometry_contract$` | 5/5 | 5/5 |
+| `-L architecture` | 31/31; 173 entries, `RESULT PASS` | 31/31 |
+| `-L preview` / `plugin_abi` / `state` / `texture_tile -j2` / `common` / `link` | 20/20, 71/71, 7/7, 15/15, 18/18, 4/4 | `plugin_abi` 71/71, `state` 7/7 (Phase 6 run; unchanged code since) |
+| `-L shading_parity` | 135/136 on the first run (see below), then 2/2 and 6/6 repeats | 136/136 (Phase 6 run) |
+
+**The one anomaly.** In the `-L shading_parity` run, `ShadingParity_JitPLEngaged_trace_samples_cone_slo` ended in a `Timeout` after 482 s (its `_rslo` sibling takes 22 s). It did not reproduce: the same test passed alone (22.1 s), passed in the 1104-test suite of this
+same tree and in the Phase 7 suite, and passed 6 times in a row with `--repeat until-fail:6` (21.9-23.2 s each; `build-logs/p8-parity-repeat.log`); Linux passed it. The machine was shared with other agents' jobs at that time. It is reported, not accommodated;
+a hang, if there is one, is intermittent and out of reach of this phase's evidence (P1 candidate if it recurs).
+
+Timing, `timing_sc010.sh build-base build 5` (`build-logs/p8-timing.log`; start vs final medians, s, spreads large because the machine was shared): `killeroo-reyes` 4.00/3.92, `csg-hero-displaced-raytrace` 11.19/10.60, `blobby-csg-difference-reyes` 4.33/4.15,
+`camera-dof-reyes` 4.97/4.78, `camera-dof-raytrace` 5.60/5.78; every difference within the spread, **0 scenes slower beyond it**.
+
+Greps and lists (T105): `grep -rnE 'CReyes|CShadingContext|IShadingProducer|reyes\.h|shading\.h|shader\.h' src/ri/geometry` prints nothing; `ls src/ri/vector/` is `irradianceDispatchStub.cpp`; the allowlist by id is `DB-004 x 3, DB-010 x 8, DB-011 x 151, DB-025 x 11` = 173;
+`git diff --stat e83d005d -- tests/unit/motion/replay` and the `tests/**/reference` files are empty (no reference or recording touched); **FR-007** `grep -rnE 'public +(IRayContext|IDicer|IObjectSink)' src/ri/geometry` prints nothing; **FR-019**
+`grep -nE 'CSG|Region' src/ri/geometry/{rayContext,dicer,objectSink,geometryFrame}.h` prints nothing, and `CRegionPredicate`, `regionCoverage` and `CCSGSolid`'s entry points (`intersect`, `dice`, `resolve`, `build`) keep their names.
+
+**FR-021 / US6 AS2 note (no member added).** `IRayContext` has exactly these members: `threadIndex()`, `scratch()`, `varyings()`, `shade()`, `displace()`, `saveShadingState()`, `restoreShadingState()` and the non-virtual `frame()`; `IDicer` has `rayContext()`, `drawObject`, `drawGrid`, `drawPoints`,
+`probe`, `inFrustum` and `frame()`. Spec 057's surface-sampling request can be added to `IRayContext` as one more pure virtual taking only Geometry-owned and Infra types (a request of points, normals and sample counts, answered by the hider) with no Hiders or Shading type in its
+signature; nothing is added now.
+
+T107: `tests/architecture/metrics-baseline.txt` holds Geometry 2/2, Hiders 499/72 and TOTAL 501/74 with dated reasons; `ctest -L architecture` is green against the unedited registry (173, `RESULT PASS`); `git diff --numstat e83d005d -- tests/architecture/allowlist.txt` is `0 171`: no line added, 171 deleted.
+The DB-017 re-keys of Phases 4 (32) and 5 (20), 52 lines in all, were deleted in Phase 6 together with the other 25 (77 in all), so against the base the allowlist shows deletions only.
+T106: the registry diff is `tools/phase8-registry.diff` (`git apply --check` clean; **not applied**; T109a applies it only on the maintainer's acceptance).
+
+**PAUSE 8 outcome (2026-11-11).** The maintainer accepted the Phase 8 gate and the T106 registry diff `tools/phase8-registry.diff`; T109a applies it next (the lens phase, Phase 9, starts only after the maintainer commits Phase 8).
+**T109a done (2026-11-11).** `tools/phase8-registry.diff` applied exactly to `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md` (+70/-29: DB-006 moved to Resolved with "spec 031" and 2026-11-11, the DB-004, DB-011, DB-017, DB-025 and DB-009 history entries; DB-004, DB-009, DB-017 and DB-025 stay Open) and staged. `ctest -L architecture` against the edited registry:
+**31/31**, archcheck `ALLOWED DB-004 x 3, DB-010 x 8, DB-011 x 151, DB-025 x 11` = 173, `RESULT PASS violations=0 stale=0 badid=0` (`build-logs/p8-arch-reg.log`).
+
 ## §2 Red evidence
 
 ### Phase 2 (macOS; `build` configured with `-DOPENRENDER_031_RED_TESTS=ON`, then OFF again)
@@ -506,6 +546,9 @@ dereference at call sites that now take a reference (no new `rc()` helper); the 
    (no stub source, no Geometry symbol of those types) is satisfiable; the irradiance half is spec 032's. Proposal for PAUSE 6 (no edit made): either exempt exactly those two symbols in `check_ribvector_no_stubs.cmake` with a comment naming spec 032, or leave the check red until 032 merges.
 10. **Merge note, the irradiance exemption (maintainer-approved at PAUSE 6).** `tests/architecture/check_ribvector_no_stubs.cmake` exempts exactly two `nm -u` symbols, `22irradianceSampleAccept` and `16CIrradianceCache6sample`, because
    `irradiance.cpp` (Hiders) and `vector/irradianceDispatchStub.cpp` are spec 032's. **The second of 031 and 032 to merge removes this exemption** (the first leaves it, since the stub still exists then).
+11. **Merge-overlap notes (maintainer, 2026-11-11).** (a) Spec 032 also steps `kRendererServicesVersion` from 2.1.0 to 2.2.0: whichever of 031 and 032 merges second steps it to 2.3.0 and puts its history entry after the first one's.
+    (b) Master moved: spec 056 merged as `11fa3424`. Master is **not** merged into 031 now; that happens at merge preparation (with the #153 note of item 7 and the photonMap/`drawObject` and irradiance-exemption notes of items 8 to 10).
+12. **Parity timeout acknowledged (2026-11-11).** The maintainer acknowledged the one-off `ShadingParity_JitPLEngaged_trace_samples_cone_slo` timeout of the Phase 8 run (it did not reproduce in 9 reruns); if it recurs it is reported as a P1 candidate.
 
 ## §5 Reference approvals
 
@@ -513,27 +556,26 @@ dereference at call sites that now take a reference (no new `rc()` helper); the 
 
 ## §6 FR/SC evidence table
 
-Seeded from "Traceability" in tasks.md (T004). Every requirement is `open` after Phase 1: Phase 1 proves none; SC-007's starting value is 344 allowlist entries (§0).
+Status after Phase 8 (the interface phase). `proven` rows are backed by the named test or grep on both platforms; the lens-phase rows (FR-022 to FR-027, FR-029 to FR-031, SC-009, SC-010 and the lens part of SC-001) wait for Phases 9 to 11.
 
-| Requirement | Tasks | Status |
+| Requirement | Evidence | Status |
 |---|---|---|
-| FR-001, SC-003, US2 AS1 | T028 (T078), T084, T091, T105 | open |
-| FR-002 | T037, T066, T067, T069 | open |
-| FR-003 | T050-T054 | open |
-| FR-004, FR-010 | T042, T043, T044, T080, T082 | open |
-| FR-005 | T036 | open |
-| FR-006 | T068, T070 | open |
-| FR-007 | T050, T066, T105 (grep) | open |
-| FR-008, FR-009, FR-011, SC-004, US3 | T029 (T078), T080-T083, T086, T086a, T088 | open |
-| FR-012, FR-013, FR-014, SC-002, SC-006, US4 | T093-T098 (T094) | open |
-| FR-015, FR-016, SC-005, US5 | T039, T043, T044, T055, T084, T086, T107 | open |
-| FR-017, US6 | T106, T107, T109a, T134 | open |
-| FR-018, FR-020, SC-011 | Standing rules; T141 only reports | open |
-| FR-019 | T105 (grep), T052 (generic names kept) | open |
-| FR-021, US6 AS2 | T105 (validation.md note); no member added | open |
-| FR-028 | T040 (T035) | open |
-| FR-022, FR-023, FR-024, FR-027, SC-009 | T110-T112, T116-T121 | open |
-| FR-025, FR-026, SC-010 | T123, T124, T130, T131 | open |
-| FR-029, FR-030, SC-001 (lens part) | T121, T122, T125-T127 | open |
-| FR-031 | T110(c), T119, T121 | open |
-| SC-001, SC-007, SC-008, US1 | CP-b/CP-d/CP-c at every phase, T101-T104, T109, T138, T139 | open |
+| FR-001, SC-003 | `Geometry_NoHiderShadingNames` (comments included); the 30 DB-006 lines deleted; `grep` of Phase 8 prints nothing; DB-006 registry diff prepared | proven |
+| FR-002 | `IDicer` (`dicer.h`), `CGeometryFrame`; `Geometry_DiceThroughDicer`, `Geometry_FrameDefault` | proven |
+| FR-003 | `IRayContext` (`rayContext.h`), the tessellation lock local to `surface.cpp`; `Geometry_IntersectThroughRayContext` | proven |
+| FR-004, FR-010 | `CGeometryHost::expandDelayedObject/Instance/findCoordinateSystem`; `Geometry_ExpansionThroughHost`; `rendererDeclarationsDispatch` pair deleted | proven |
+| FR-005 | `common/shadingDim.h` | proven |
+| FR-006 | forwarding entries and `IShadingProducer` retired; `kRendererServicesVersion` 2.2.0 | proven |
+| FR-007 | `grep 'public (IRayContext\|IDicer\|IObjectSink)' src/ri/geometry` prints nothing | proven |
+| FR-008, FR-009, FR-011, SC-004 | `geometryDispatch.cpp` and the three stubs deleted; `Geometry_RibVectorNoStubs` (with the approved irradiance exemption); `SceneInterface_RibVectorResidual`; residual list 9 to 5 | proven |
+| FR-012, FR-013, FR-014, SC-002, SC-006 | `Motion_*` 13/13 on both platforms, recordings untouched; 11 DB-011 lines deleted; no image changed | proven |
+| FR-015, FR-016, SC-005 | DB-004 52 to 3 (`blobbyRepeller.cpp`); Geometry metric 48 to 2 references, 15 to 2 members | proven |
+| FR-017 | allowlist lines of every resolved or reduced entry deleted; `Architecture_DomainBoundaries` passes; the registry edit is prepared and applies on acceptance (T109a) | prepared |
+| FR-018, FR-020, SC-011 | no task depends on the merge; no tolerance widened, no test disabled, no reference or recording re-recorded (`git diff` of `tests/**/reference` and `tests/unit/motion/replay` empty) | proven |
+| FR-019 | `grep` of the four interface headers prints nothing; `CRegionPredicate`, `regionCoverage` and `CCSGSolid`'s entry points keep their names | proven |
+| FR-021 | the FR-021 note above: no member added | proven |
+| FR-028 | `IObjectSink`; `Geometry_ObjectSink` | proven |
+| SC-001 (interface phases), SC-007, SC-008, US1 | CP-b/CP-d/CP-c at every phase and the Phase 8 runs above: both platforms, every manifest and the sweep byte-identical; allowlist 344 to 173 (deletions only) | proven |
+| FR-022 to FR-027, SC-009, SC-010 | Phases 9 to 11 | open (lens phase) |
+| FR-029 | this gate | proven once the maintainer accepts |
+| FR-030, FR-031, SC-001 (lens part) | Phases 9 to 11 | open (lens phase) |
