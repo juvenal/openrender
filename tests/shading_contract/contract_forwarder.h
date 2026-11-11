@@ -30,7 +30,7 @@
 
 static_assert(openrender::shading::kRendererServicesVersion.major == 2, "CContractForwarder is written against services version 2");
 
-class CContractForwarder final : public CRendererServices {
+class CContractForwarder : public CRendererServices {
     public:
         explicit CContractForwarder(CRendererServices *i) : inner(i) {}
 

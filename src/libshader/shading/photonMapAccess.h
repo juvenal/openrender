@@ -25,6 +25,7 @@
 
 #include <stdint.h>
 
+#include "common/sampling.h"
 #include "photonLookup.h"
 #include "stateHandles.h" // CMapRefTarget, MapRef (Shading -> Graphics State)
 
@@ -60,6 +61,12 @@ namespace openrender::shading {
         protected:
             CPhotonMapRefTarget() = default;
     };
+
+    // The key of a stored photon (spec 040's identity): the point that emitted it (the photon's identity in the frame's sequence: light,
+    // index, frame, seed) and the bounce at which it was stored. A pure function: no random value is drawn.
+    inline uint64_t photonKey(uint64_t pointKeyFull, uint32_t bounce) {
+        return openrender::sampling::detail::mix(0xF07011BEull, pointKeyFull, bounce);
+    }
 
     // The only conversion of a map handle: a map slot only ever holds a CPhotonMap, which derives from this class
     inline CPhotonMapRefTarget *photonMapOf(const MapRef &r) {

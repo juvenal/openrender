@@ -98,6 +98,10 @@ class CPhotonStore : public CMap<CPhoton>, public CFileResource {
         void bound(float *bmin, float *bmax) const;
         const char *typeName() const { return "Photon Map"; }
 
+        // The key of photon i (1 <= i <= numItems): who stored it (spec 040's identity, not kept in the file); 0 for a photon stored
+        // without one, one read from a file or the dummy photon of an empty map
+        uint64_t photonKey(int i) const { return keys[i]; }
+
 #ifdef PHOTON_LOOKUP_CACHE
         int probe(float *, const float *, const float *);
         void insert(const float *, const float *, const float *, float);
@@ -111,6 +115,16 @@ class CPhotonStore : public CMap<CPhoton>, public CFileResource {
         float maxPower; // The maximum photon power
         float searchRadius;
         TMutex mutex; // For synchronization during writing
+
+    protected:
+        // The keys follow the photons when balance() reorders them
+        void permuted(CPhoton *const *sorted, const CPhoton *oldItems, int count) override;
+
+    private:
+        void ensureKeys(); // Grow the keys to cover every item the map can hold
+
+        uint64_t *keys;   // Index-aligned with items (keys[0] unused)
+        int keysCapacity; // The number of entries of keys
 };
 
 #endif

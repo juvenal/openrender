@@ -164,45 +164,27 @@ add_custom_target(gi-split-capture-references-scratch
     VERBATIM)
 
 # ---------------------------------------------------------------------------------------------------------
-# The red-first tests of Phase 2 onwards (T-A2, T-C, T-D, T-E): defined here, behind the option, in a scratch tree
+# T-E GiKeys_Photons, GiKeys_IrradianceRecords, GiKeys_PhotonsThreads (enabled in Phase 7, T108a)
 # ---------------------------------------------------------------------------------------------------------
-# Each target below fails to build on the starting tree, for the reason stated beside it; the red evidence is the compile
-# output of that one target in a scratch tree (build-red032, task T035). The phase that makes a test buildable moves its
-# definition out of this block (T-A2, T-D and the cache half of T-C in Phase 4, done: T-A2 is above, T-C and T-D are defined in
-# tests/unit/texture_only/CMakeLists.txt by M6a; the photon half of T-C in Phase 5; T-E in Phase 7, T108a), so that the main
-# `build` never has a red target.
-if(OPENRENDER_032_RED_TESTS)
-    # T-E: GiKeys_Photons, GiKeys_IrradianceRecords, and the opt-in GiKeys_PhotonsThreads (label gi_split_threads)
-    #   red: ri/render/photonMap.h does not exist (Phase 5); then photonKey, CIrradianceRecord::key, irradianceCache.h (Phases 4, 7)
-    add_executable(test_gi_keys test_gi_keys.cpp)
-    target_compile_features(test_gi_keys PRIVATE cxx_std_20)
-    target_include_directories(test_gi_keys PRIVATE ${GI_SPLIT_INCLUDES} ${CMAKE_SOURCE_DIR}/tests)
-    target_link_libraries(test_gi_keys PRIVATE ribRender openrendercommon Threads::Threads)
-    foreach(_d keys-photons keys-records keys-photons-threads)
-        file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${_d})
-    endforeach()
-    add_test(NAME GiKeys_Photons COMMAND test_gi_keys photons ${CMAKE_CURRENT_BINARY_DIR}/keys-photons)
-    add_test(NAME GiKeys_IrradianceRecords COMMAND test_gi_keys records ${CMAKE_CURRENT_BINARY_DIR}/keys-records)
-    add_test(NAME GiKeys_PhotonsThreads COMMAND test_gi_keys photons-threads ${CMAKE_CURRENT_BINARY_DIR}/keys-photons-threads)
-    set_tests_properties(GiKeys_Photons GiKeys_IrradianceRecords PROPERTIES
-        TIMEOUT 300 LABELS "gi_split;regression" ENVIRONMENT "${GI_SPLIT_ENV}")
-    set_tests_properties(GiKeys_PhotonsThreads PROPERTIES
-        TIMEOUT 600 LABELS "gi_split_threads" ENVIRONMENT "${GI_SPLIT_ENV}")
+# The source takes exactly three arguments after the program name in every mode (its argc test), so the parent cases pass a placeholder
+# third one, as GiCache_KindMismatch does
+# GiKeys_PhotonsThreads is opt-in (label gi_split_threads, not in the everyday run)
+add_executable(test_gi_keys test_gi_keys.cpp)
+target_compile_features(test_gi_keys PRIVATE cxx_std_20)
+target_include_directories(test_gi_keys PRIVATE ${GI_SPLIT_INCLUDES} ${CMAKE_SOURCE_DIR}/tests)
+target_link_libraries(test_gi_keys PRIVATE ribRender libshader_shading openrendercommon Threads::Threads)
+foreach(_d keys-photons keys-records keys-photons-threads)
+    file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${_d})
+endforeach()
+add_test(NAME GiKeys_Photons COMMAND test_gi_keys photons ${CMAKE_CURRENT_BINARY_DIR}/keys-photons -)
+add_test(NAME GiKeys_IrradianceRecords COMMAND test_gi_keys records ${CMAKE_CURRENT_BINARY_DIR}/keys-records -)
+add_test(NAME GiKeys_PhotonsThreads COMMAND test_gi_keys photons-threads ${CMAKE_CURRENT_BINARY_DIR}/keys-photons-threads -)
+set_tests_properties(GiKeys_Photons GiKeys_IrradianceRecords PROPERTIES
+    TIMEOUT 300 LABELS "gi_split;regression" ENVIRONMENT "${GI_SPLIT_ENV}")
+set_tests_properties(GiKeys_PhotonsThreads PROPERTIES
+    TIMEOUT 600 LABELS "gi_split_threads" ENVIRONMENT "${GI_SPLIT_ENV}")
 
-    # T-C, the photon half (source in tests/unit/texture_only, label texture_only): compiled as an object only, on an include
-    # path that mirrors tests/unit/texture_only/CMakeLists.txt (src, src/ri/texture, the build directory, a staging directory
-    # holding ri_config.h and a copy of core/map.h; src/ri/core itself stays off the path, as that file's comment requires).
-    # The cache half and T-D are real targets there since M6a (Phase 4); M6b (Phase 5) takes this one over.
-    #   TextureOnly_GiStores           red: photonStore.h does not exist (Phase 5)
-    set(GI_SPLIT_STAGING ${CMAKE_CURRENT_BINARY_DIR}/texture_only_staging)
-    configure_file(${CMAKE_SOURCE_DIR}/src/ri/core/ri_config.h ${GI_SPLIT_STAGING}/ri_config.h COPYONLY)
-    configure_file(${CMAKE_SOURCE_DIR}/src/ri/core/map.h ${GI_SPLIT_STAGING}/map.h COPYONLY)
-    add_library(red_test_gi_stores OBJECT ${CMAKE_SOURCE_DIR}/tests/unit/texture_only/test_gi_stores.cpp)
-    target_compile_features(red_test_gi_stores PRIVATE cxx_std_20)
-    target_link_libraries(red_test_gi_stores PRIVATE openrender_common_flags)
-    target_include_directories(red_test_gi_stores PRIVATE
-        ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/ri/texture ${CMAKE_BINARY_DIR} ${GI_SPLIT_STAGING})
-    target_compile_definitions(red_test_gi_stores PRIVATE GI_STORES_PHOTONS)
-endif()
+# No red-first test is left: every one is defined above or in tests/unit/texture_only/CMakeLists.txt. The option stays so that a
+# scratch configure that still passes it does not warn.
 
 message(STATUS "  - spec 032 gi_split tests (GiFixture_ICache, GiFiles_Unchanged, GiRemote_Loopback*), platform ${GI_SPLIT_PLATFORM}")

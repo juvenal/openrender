@@ -60,7 +60,9 @@ No rendering path reads either key (FR-018).
 1. **Photons.** Run `photon-parity`'s photon pass in process and dump `{(photonKey(i), photon fields)}` of each map:
    `P`, `N`, `flags`, `C`, `theta`, `phi`, never the raw bytes, which include padding (OQ-8).
    - The set is identical at `-t:1` twice.
-   - At `-t:1` against `-t:4` it is identical in the opt-in `GiKeys_PhotonsThreads` only (OQ-3).
+   - At `-t:1` against `-t:4` it is identical in the opt-in `GiKeys_PhotonsThreads` only (OQ-3), **without `flags`**: `flags` is the
+     kd-tree's splitting axis that `balance()` assigns, a function of the order the photons were stored in, which differs between one
+     thread and four, so it is not part of a photon's identity (maintainer, 2026-11-11). The keys themselves are identical.
    - Keys are unique within a map.
    - The written `.pm` equals master's field by field (T-F).
 2. **Irradiance records.** Run `sphere-occlusion-reyes` with a written cache at `-t:1` twice. The `{(key, record)}`

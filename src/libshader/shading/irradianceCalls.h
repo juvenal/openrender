@@ -20,10 +20,20 @@
 #ifndef IRRADIANCECALLS_H
 #define IRRADIANCECALLS_H
 
+#include <stdint.h>
+
+#include "common/sampling.h"
+
 class CShadingContext;
 class CTexture3d;
 
 namespace libshader {
+
+    // The key of an irradiance record: a pure function of the sub-stream bound for the occlusion()/indirectdiffuse() call that made it
+    // (the shading point's key, the call site, the occurrence and the ray depth). No random value is drawn.
+    inline uint64_t irradianceRecordKey(const openrender::sampling::SubstreamKey &k) {
+        return openrender::sampling::detail::mix(0x1CAC4E5Aull, k.seedHash, k.indexBase);
+    }
 
     // Reads scratch.occlusionParams (pointbased, pointHierarchy, maxError, maxSolidAngle) of the shading state in progress.
     // Must be called after bindDraws() for the lane. `cache` is what getCache() answered: an irradiance cache, or nullptr

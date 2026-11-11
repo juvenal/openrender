@@ -564,6 +564,9 @@ class CShadingContext final {
             for (int k = 0; k < 4; k++)
                 r[k] = keyedNext();
         }
+        // The sub-stream bindDraws() bound for the call in progress (a copy of it is the key of what the call produces, spec 040)
+        const openrender::sampling::SubstreamKey &boundDraws() const { return drawCursor; }
+
         // Point `sample` of the pair `pair` of the sub-stream bindDraws() bound: the
         // hemisphere of the irradiance cache, drawn by sample index as trace() draws its
         // rays (spec 039, T076c).

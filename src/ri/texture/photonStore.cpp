@@ -61,6 +61,8 @@ const float sinphi[] = {0.000000f, 0.024541f, 0.049068f, 0.073565f, 0.098017f, 0
 // Comments				:
 CPhotonStore::CPhotonStore(const char *n, FILE *in, const float *curFromWorld, const float *curToWorld) : CMap<CPhoton>(), CFileResource(n) {
 
+    keys = NULL;
+    keysCapacity = 0;
 #ifdef PHOTON_LOOKUP_CACHE
     root = NULL;
     maxDepth = 1;
@@ -77,6 +79,7 @@ CPhotonStore::CPhotonStore(const char *n, FILE *in, const float *curFromWorld, c
         matrix fileFromWorld, fileToWorld;
 
         CMap<CPhoton>::read(in);
+        ensureKeys(); // no file carries a key: every photon read has key 0
 
         // Read the transformation matrices (portable I/O - Phase 2)
         if (!readFloat32Array(in, fileFromWorld, 16)) {
@@ -169,6 +172,8 @@ CPhotonStore::~CPhotonStore() {
 #endif
 
     osDeleteMutex(mutex);
+
+    delete[] keys;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -179,6 +184,10 @@ CPhotonStore::~CPhotonStore() {
 // Comments				:
 void CPhotonStore::reset() {
     CMap<CPhoton>::reset();
+
+    delete[] keys;
+    keys = NULL;
+    keysCapacity = 0;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -507,6 +516,8 @@ void CPhotonStore::balance() {
         vector I = {0, 0, 1};
         CPhoton *photon = CMap<CPhoton>::store(P, I);
         initv(photon->C, 0, 0, 0);
+        ensureKeys();
+        keys[numItems] = 0;
     }
 
     CMap<CPhoton>::balance();
@@ -519,9 +530,21 @@ void CPhotonStore::balance() {
 // Return Value			:
 // Comments				:
 void CPhotonStore::store(const float *P, const float *N, const float *I, const float *C) {
+    store(P, N, I, C, 0);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CPhotonStore
+// Method				:	store
+// Description			:	Store a photon with the key of the point that emitted it
+// Return Value			:
+// Comments				:	The key is kept in the side array, under the same lock as the photon
+void CPhotonStore::store(const float *P, const float *N, const float *I, const float *C, uint64_t key) {
 
     osLock(mutex);
     CPhoton *ton = CMap<CPhoton>::store(P, N);
+    ensureKeys();
+    keys[numItems] = key;
     dirToItem(ton->theta, ton->phi, I);
     movvv(ton->C, C);
     float dotCC = dotvv(C, C);
@@ -533,12 +556,38 @@ void CPhotonStore::store(const float *P, const float *N, const float *I, const f
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CPhotonStore
-// Method				:	store
-// Description			:	Store a photon with the key of the point that emitted it
+// Method				:	ensureKeys
+// Description			:	Grow the side array of keys to cover every item the map can hold
 // Return Value			:
-// Comments				:	The key is accepted and not kept yet
-void CPhotonStore::store(const float *P, const float *N, const float *I, const float *C, [[maybe_unused]] uint64_t key) {
-    store(P, N, I, C);
+// Comments				:	New entries are 0. The caller holds the lock when other threads may store
+void CPhotonStore::ensureKeys() {
+    if (keysCapacity >= maxItems + 1)
+        return;
+
+    uint64_t *newKeys = new uint64_t[maxItems + 1]();
+    for (int i = 0; i < keysCapacity; i++)
+        newKeys[i] = keys[i];
+    delete[] keys;
+    keys = newKeys;
+    keysCapacity = maxItems + 1;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CPhotonStore
+// Method				:	permuted
+// Description			:	balance() reordered the photons: reorder the keys the same way
+// Return Value			:
+// Comments				:
+void CPhotonStore::permuted(CPhoton *const *sorted, const CPhoton *oldItems, int count) {
+    ensureKeys();
+
+    uint64_t *newKeys = new uint64_t[count + 1]();
+    for (int i = 1; i <= count; i++)
+        newKeys[i] = keys[sorted[i] - oldItems];
+
+    delete[] keys;
+    keys = newKeys;
+    keysCapacity = count + 1;
 }
 
 ///////////////////////////////////////////////////////////////////////

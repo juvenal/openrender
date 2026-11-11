@@ -45,6 +45,10 @@ namespace libshader {
     } // namespace
 
     void irradianceLookup(CShadingContext &ctx, CTexture3d *cache, float *C, const float *P, const float *dPdu, const float *dPdv, const float *N) {
+        // The sub-stream of this call, copied before the lookup visits any record and before the sampler runs: the key of a record
+        // made here depends on neither the cache's occupancy nor on anything the sampler does to the context
+        const openrender::sampling::SubstreamKey boundCall = ctx.boundDraws();
+
         // A name registered as another kind of 3D file: getCache() answered nothing
         if (cache == nullptr) {
             noJoy(C);
@@ -106,6 +110,7 @@ namespace libshader {
                         record.gR[i] = sample.gR[i];
                     }
                     record.dP = sample.dP;
+                    record.key = irradianceRecordKey(boundCall);
 
                     store->insertRecord(record, maxError);
                 }

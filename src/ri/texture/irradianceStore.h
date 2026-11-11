@@ -29,6 +29,8 @@
 #ifndef IRRADIANCESTORE_H
 #define IRRADIANCESTORE_H
 
+#include <stdint.h>
+
 #include "common/algebra.h"
 #include "common/global.h"
 #include "texture3d.h"
@@ -54,6 +56,8 @@ class CIrradianceRecord {
         float gR[7 * 3]; // The rotational gradient
 
         float dP; // Mean radius
+
+        uint64_t key; // Spec 040's identity of the record (irradianceRecordKey), in memory and on the wire; not in cache files (0 when read from one)
 };
 
 // The next value of the caller's sample stream; called once per record that passes the front test

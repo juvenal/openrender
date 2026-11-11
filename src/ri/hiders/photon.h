@@ -65,7 +65,7 @@ class CPhotonHider : public CHider, public openrender::shading::IIlluminationHoo
         int numTracedPhotons;
 
     private:
-        void tracePhoton(float *, float *, float *, float);
+        void tracePhoton(float *, float *, float *, float, uint64_t pointKeyFull);
 
         float bias; // The initial intersection bias
 

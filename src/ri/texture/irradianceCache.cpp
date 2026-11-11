@@ -310,6 +310,7 @@ CIrradianceCache::CCacheNode *CIrradianceCache::readNode(FILE *in) {
         float32_p dP_f = 0;
         sampleReadSuccess = sampleReadSuccess && readFloat32(in, dP_f);
         cSample->dP = dP_f;
+        cSample->key = 0; // no file carries a key
 
         if (!sampleReadSuccess) {
             error(CODE_SYSTEM, "Failed to read irradiance cache sample data\n");

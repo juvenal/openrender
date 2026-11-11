@@ -61,6 +61,7 @@ class CIrradianceCache : public CIrradianceStore {
                 float gR[7 * 3]; // The rotational gradient
 
                 float dP;           // Mean radius
+                uint64_t key;       // The record's key (see CIrradianceRecord)
                 CCacheSample *next; // Next irradiance in the list
 
                 // The record this sample holds (a copy), and the other way. A sample is the record's fields in the same
@@ -76,6 +77,7 @@ class CIrradianceCache : public CIrradianceStore {
                         record.gR[i] = gR[i];
                     }
                     record.dP = dP;
+                    record.key = key;
                 }
                 void set(const CIrradianceRecord &record) {
                     movvv(P, record.P);
@@ -88,6 +90,7 @@ class CIrradianceCache : public CIrradianceStore {
                         gR[i] = record.gR[i];
                     }
                     dP = record.dP;
+                    key = record.key;
                 }
         };
 

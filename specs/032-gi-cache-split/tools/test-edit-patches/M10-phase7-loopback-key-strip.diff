@@ -1,0 +1,49 @@
+--- a/tests/gi_split/test_gi_remote_loopback.cpp
++++ b/tests/gi_split/test_gi_remote_loopback.cpp
+@@ -140,10 +140,15 @@
+ // Masks and parsers
+ // ---------------------------------------------------------------------------------------------------------
+ 
+-// The cache frame is: per non-empty node, `int n` then n raw CCacheSample; then `int 0`. Masks `next`.
++// The cache frame is: per non-empty node, `int n` then n raw CCacheSample; then `int 0`. Masks `next`. Since spec 032's Phase 7 a record
++// carries an 8-byte key after `dP` (offset 224, `next` at 232, 240 bytes): the key is stripped here, so that the frame is compared with
++// the recording taken before the key existed (232-byte records), and nothing else of it differs.
+ static bool maskCacheFrame(Bytes &frame, size_t &totalRecords) {
+     const size_t recordSize = sizeof(CIrradianceCache::CCacheSample);
+     const size_t nextOffset = offsetof(CIrradianceCache::CCacheSample, next);
++    const size_t keyOffset = 224, keySize = 8; // after dP (224 bytes of fields), before `next`
++    static_assert(sizeof(CIrradianceCache::CCacheSample) == 240 && offsetof(CIrradianceCache::CCacheSample, next) == 232, "a record is 224 bytes of fields, the 8-byte key, then `next`");
++    Bytes stripped;
+     size_t pos = 0;
+     totalRecords = 0;
+     for (;;) {
+@@ -152,6 +157,7 @@
+         }
+         int n;
+         memcpy(&n, &frame[pos], 4);
++        stripped.insert(stripped.end(), frame.begin() + (long)pos, frame.begin() + (long)pos + 4);
+         pos += 4;
+         if (n == 0) {
+             break;
+@@ -160,12 +166,19 @@
+             return false;
+         }
+         for (int i = 0; i < n; i++) {
+-            memset(&frame[pos + (size_t)i * recordSize + nextOffset], 0, sizeof(CIrradianceCache::CCacheSample *));
++            Bytes record(frame.begin() + (long)(pos + (size_t)i * recordSize), frame.begin() + (long)(pos + (size_t)(i + 1) * recordSize));
++            memset(&record[nextOffset], 0, sizeof(CIrradianceCache::CCacheSample *));
++            record.erase(record.begin() + (long)keyOffset, record.begin() + (long)(keyOffset + keySize));
++            stripped.insert(stripped.end(), record.begin(), record.end());
+         }
+         pos += (size_t)n * recordSize;
+         totalRecords += (size_t)n;
+     }
+-    return pos == frame.size();
++    if (pos != frame.size()) {
++        return false;
++    }
++    frame = stripped;
++    return true;
+ }
+ 
+ // The point-cloud setup buffer is 1024 bytes: the names, a NUL, then uninitialised bytes (masked).

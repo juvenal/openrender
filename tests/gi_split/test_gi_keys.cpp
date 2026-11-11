@@ -17,7 +17,9 @@
  * One in-process render per process (GitHub #2: a second RiBegin/RiEnd cycle corrupts the heap): the parent process runs
  * itself twice as a child (`photons-dump` / `records-dump`), each child renders once and writes a text dump, and the parent
  * compares the dumps. A photon is compared by P, N, flags, C, theta and phi, never by its raw bytes (they include padding:
- * OQ-8). A record is compared by every field.
+ * OQ-8); between two thread counts `flags` is left out (it is the kd-tree splitting axis balance() assigns, a function of the
+ * order the photons were stored in, which differs between one thread and four, and not part of a photon's identity). A record
+ * is compared by every field.
  *
  * Where the keys are read from:
  *   photons  the child keeps the map alive across the frame with attach() and reads CPhotonMap::photonKey(i) afterwards
@@ -278,6 +280,20 @@ static void checkUnique(const char *label, const std::vector<std::string> &lines
     EXPECT(keys.find(std::string(16, '0')) == keys.end(), "%s: an entry has the key 0 (no key was set)", label);
 }
 
+// The 8th field of a photon line (key, P x3, N x3, flags, ...) is the kd-tree's splitting axis: dropped when the thread counts differ
+static void dropFlags(std::vector<std::string> &lines) {
+    for (std::string &l : lines) {
+        std::istringstream in(l);
+        std::string field, out;
+        for (int i = 1; in >> field; i++) {
+            if (i != 8) {
+                out += (out.empty() ? "" : " ") + field;
+            }
+        }
+        l = out;
+    }
+}
+
 static int compare(const std::string &self, const char *dumpCase, int threadsA, int threadsB, const std::string &work) {
     const std::string a = work + "/keys-a.txt", b = work + "/keys-b.txt";
     remove(a.c_str());
@@ -290,6 +306,10 @@ static int compare(const std::string &self, const char *dumpCase, int threadsA, 
     EXPECT(readLines(a, la) && readLines(b, lb), "a dump is missing");
     checkUnique("run A", la);
     checkUnique("run B", lb);
+    if (threadsA != threadsB && std::string(dumpCase) == "photons-dump") {
+        dropFlags(la);
+        dropFlags(lb);
+    }
     EXPECT(la == lb, "the (key, entry) sets differ between -t:%d and -t:%d (%zu against %zu entries)", threadsA, threadsB, la.size(), lb.size());
     if (la == lb) {
         printf("the two sets are identical\n");
