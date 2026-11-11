@@ -330,3 +330,56 @@ from `attributes.h`; the flag write in `csgSolid.cpp` is gone (the clone and the
 - T121/T123 macOS: `056-p5b-docs` (`-R 'DocPaths|Doc'`) 1 / 1; `056-p5b-arch` (`-L architecture`) 29 / 29.
 - T123 Linux (`tools/sync_linux.sh`: 4009 files synced and verified; remote `cpujob` `-j2`, `056-p5-lx`, `056-p5-lx-arch`): doc tests 1 / 1, `-L architecture` 29 / 29.
 - Nothing built changed in Phase 5 (documents only), so no build and no full run were made; the Phase 4 results stand. `CLAUDE.md` is untouched.
+
+## 6. Phase 6: validation before merge (2026-11-10)
+
+Base: `git merge-base --is-ancestor 0e554fed HEAD` exits 0 (master is still `0e554fed` and the branch contains it), so no refresh is needed. HEAD `7780343a`, tree clean before the runs.
+T126 TEST-APPROVAL: no test edited, none added, no source edited in this phase. Logs: `build-logs/056-p6-*.log` (not tracked).
+
+### Runs (T127 to T131)
+
+| Run | Host | Command (through `cpujob`) | Result |
+|---|---|---|---|
+| Build | macOS | `056-p6-build` `cmake --build build --config Release -j4` | up to date, exit 0 |
+| Full | macOS | `056-p6-all` `ctest -LE determinism-sweep -j4` | **1302 / 1302**, 1301 passed + 1 skipped by design (`LibShader_Format_rslo_lower_minor`), 0 failed |
+| Architecture | macOS | `056-p6-arch` `-L architecture` | 29 / 29 |
+| Sweep | macOS | `056-p6-sweep` `-L '^determinism-sweep$' -j2` | **570 / 570** |
+| Sync, build | Linux | `tools/sync_linux.sh` (verified), `056-p6-lx-build` `-j2` (GCC 13, `-Werror`) | clean |
+| Full | Linux | `056-p6-lx-all` `-LE determinism-sweep -j2` | 1303 tests, **1 failed: the baseline `TextureTile_RenderByteIdentical` (#45)**, nothing else |
+| Architecture | Linux | `056-p6-lx-arch` `-j2` | 29 / 29 |
+| Sweep | Linux | `056-lx-sweep` `-L '^determinism-sweep$' -j2` | **570 / 570** (1365 s) |
+
+Compared with the Phase 0 baseline (macOS 1097 tests all green + 1 skipped; Linux 1098 with the same baseline failure): every pre-existing test passes as before, apart from the two CSG
+scenes (new approved references), `CSG_InteriorExteriorSelection` (retired) and the edited `State_Isolation` / `CSG_ProceduralOperand` (all pass; `CSG_*` 17 / 17, `State_Isolation` 1 / 1). The sweep is the Phase 0 419 plus 151.
+No threshold was widened and no test disabled.
+
+### Success criteria (T132)
+
+| SC | Measured value | Command / evidence |
+|---|---|---|
+| SC-001 | `VolumeProbe_*` 159 / 159 pass (reyes, zbuffer, raytrace; `.rslo` and `.slo`), each against a hand-computed value (`Cb*T + bg*d` families, slab, reflection, transmission, gather, shadow-light, environment, primitive hit mode); `Parity_volume-glass-sphere-*` 2 / 2; `VolumeDiffer_glass-sphere-*` 3 / 3 | `056-p6-all`; Linux `VolumeProbe_` 159 / 159 (`056-p6-lx-all`) |
+| SC-002 | The glass-sphere refraction with an interior fog differs from its no-fog twin (`VolumeDiffer_glass-sphere-{reyes,zbuffer,raytrace}` pass; on the starting tree they read "0 value(s) differ"); `Visual_volume-interior-fog-glass-sphere-*` 3 / 3 against the approved references. Red values on the starting tree: validation section 1 (86 red of 166, every probe at the unattenuated value) | `056-p6-all`; section 1 |
+| SC-003 | `VolumeProbe_exterior-fog-reflection_*` 12 / 12: the reflected miss returns `bg*d` (finite segment to the world-bound exit), not `0 0 0` (starting tree: `0 0 0` on every hider and backend) | `056-p6-all` |
+| SC-004 | Changed references: **only** `csg-sphere-sphere-difference-interior-raytrace.tif` and `-inside.tif` (rewritten scenes, approved image by image). Added: the three `volume-interior-fog-glass-sphere-{reyes,zbuffer,raytrace}.tif`, 7 `tests/shaders/references/*.rslo`, 14 lines in each of `reference/{macos,linux}/shaders.sha256`, the goldens under `tests/visual/golden/` (all approved). Every pre-existing test passes at its existing threshold; `Golden_atmosphere` 12 / 12 and the no-volume twins (`VolumeProbe_*-none` 72 / 72, `Golden_volume-none-*` 7 / 7) are byte-identical to the starting-tree captures; `ShaderCompilerImmutability` and `Shaders_BytesUnchanged` pass | `056-p6-all`; `git diff --name-status 0e554fed HEAD` |
+| SC-005 | Full run green on macOS (1302 / 1302) and on Linux apart from baseline #45; `-L architecture` 29 / 29 on both; allowlist: `git diff e83d005d -- tests/architecture/allowlist.txt` and `git diff 0e554fed -- ...` are both empty (0 lines); determinism: macOS sweep 570 / 570, Linux sweep 570 / 570 (including `DeterminismSweep_volume-csg-fragment-raytrace-slo`, the Linux-only starting-tree failure); `Determinism_volume-random-fog(+slo)` 2 / 2 | `056-p6-all`, `-arch`, `-sweep`, `056-p6-lx-*` |
+| SC-006 | `ShadingContract_MessageSide{Interp,Jit}` 2 / 2 and `VolumeProbe_incident-opposite_*` 12 / 12 on macOS and 2 / 2, 12 / 12 on Linux (Phase 4 red values: validation section 1, "incident() reads Interior"); `ShadingContract_Messages*` and `_MessageAccessors` pass unedited | `056-p6-all`, `056-p6-lx-all` |
+| SC-007 | `Golden_atmosphere-*` 12 / 12 on macOS and 12 / 12 on Linux; `VolumeProbe_atmosphere-fog-reflection_*` 2 / 2 (no atmosphere in the mirror); `Parity_atmosphere-*` 6 / 6 | `056-p6-all`, `056-p6-lx-all` |
+| SC-008 | The walk of T122 (section 5): every file and line `RISPEC_GAPS.md` cites holds what it says; `git grep -n -i 'never executed\|stored and never'` leaves only the two dated correction notes inside `RISPEC_GAPS.md` and an unrelated CSE sentence | section 5 |
+| SC-009 | `VolumeProbe_miss-clipping_*` 12 / 12 (far `Clipping` 1e30: `I` finite, value `0.0826 0.2479 0.7436`, the segment 7.0 to the camera-space world-bound exit); `ShadingContract_VolumeSegments{Interp,Jit}` 2 / 2 (no step for `visibility()` or float `trace()`) | `056-p6-all`; section 2 (T074) |
+
+Other items T132 lists:
+- **Allowlist before / after:** unchanged (0 diff lines against `e83d005d` and against `0e554fed`); `ctest -L architecture` 29 / 29 on both hosts.
+- **Flat-namespace imports:** unchanged: `Link_ShadingSelfContained`, `Link_NoWorkaroundText` and `Link_StaticConsumer` (the guards for gotcha 28 / spec 029) pass 3 / 3 on macOS (they fail on a new undefined reference); the spec adds no services member and no link edge (`ctest -L architecture`).
+- **Perf (T080 ratio):** `Visual_camera-dof-raytrace` 0.72 s (Phase 0 1.15 s, Phase 2 0.86 s), `Visual_sphere-trace-reyes` 0.10 s (0.16 s, 0.15 s): single runs under `-j4` load, no regression.
+- **Files changed vs master `0e554fed`:** 330 files (+13004 / -386): 15 under `src/` (`libshader/shading/{bundles.{h,cpp},executeMisc.cpp,giFunctions.h,rendererServices.h,shaderFunctions.h,shaderPl.{h,cpp},shading.{h,cpp},tracer.h}`,
+  `ri/geometry/csgSolid.cpp`, `ri/state/attributes.h`, and the two `shaders.sha256` fixtures); 7 new shaders in `shaders/`; 14 contract shaders and the `case_*` files in `tests/shading_contract/`; `tests/visual/` registrations, goldens and
+  `parity-thresholds.md`; 154 new scenes (`examples/rib/tests/volume-*`, `atmosphere-*`) and the two rewritten CSG scenes; the references listed under SC-004; `DEVNOTES.md`, `NEWS.md`, `ChangeLog.md`,
+  `DEVNOTES_DETAILS/RISPEC_GAPS.md`, two site pages; `specs/056-volume-shader-segments/`. `CLAUDE.md` is not among them.
+- **`CLAUDE.md`:** its clauses await the maintainer applying `specs/056-volume-shader-segments/claude-md-draft.md`.
+
+### T133
+
+The 18 binary candidate images (`tools/proposed/csg/*.{tif,png}`, `tools/proposed/glass/*.{tif,png}`) were removed with `git rm` after `cmp` showed the five applied references
+(`examples/rib/tests/references/csg-sphere-sphere-difference-interior-raytrace{,-inside}.tif`, `volume-interior-fog-glass-sphere-{reyes,zbuffer,raytrace}.tif`) byte-identical to their candidates. The text proposals and the `.diff` files are kept.
+Afterwards (maintainer-approved) the 7 `tools/proposed/references/*.rslo` and `tools/proposed/reference-root/macos/{oshader_help.txt,shaders.sha256}` were removed with `git rm` too, after `cmp`/`diff` showed each byte-identical
+to its applied copy (`tests/shaders/references/<name>.rslo`, `src/libshader/tests/reference/macos/{oshader_help.txt,shaders.sha256}`). Earlier sections that name those directories describe the state at the time.

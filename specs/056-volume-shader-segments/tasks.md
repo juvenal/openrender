@@ -273,22 +273,22 @@ The shipped `glass` shader is broken under the JIT on the starting tree (raytrac
 - [X] T121 Apply the approved edits (T112 immediately; T114, T116, T117 as answered). Check `PluginAbi_DocPaths` and any doc test: `~/.claude/bin/cpujob 056-p5-docs ctest --test-dir $WT/build -R 'DocPaths|Doc' --output-on-failure`.
 - [X] T122 [US9] SC-008 check: every file and line `RISPEC_GAPS.md` now cites holds what it says (a reviewer's walk, recorded with the line text); `git grep -n -i 'never executed\|stored and never' -- DEVNOTES.md DEVNOTES_DETAILS docs` finds no volume-shading claim left.
 - [X] T123 `~/.claude/bin/cpujob 056-p5-arch ctest --test-dir $WT/build -L architecture --output-on-failure`; Linux sync, `-L architecture` and the doc tests.
-- [ ] T124 Write `validation.md` §5 and `git add` the phase's files.
-- [ ] T125 **CHECKPOINT 5 (macOS and Linux)**: report. Stop.
+- [X] T124 Write `validation.md` §5 and `git add` the phase's files.
+- [X] T125 **CHECKPOINT 5 (macOS and Linux)**: report. Stop.
 
 ---
 
 ## Phase 6: Validation before merge (no code change; nothing here depends on the merge)
 
-- [ ] T126 **TEST-APPROVAL (Phase 6)**: none edited, none added. State this in the report.
-- [ ] T127 macOS full run: build, then `~/.claude/bin/cpujob 056-p6-all ctest --test-dir $WT/build -LE determinism-sweep -j4 --output-on-failure`. Compare with the Phase 0 baseline: every pre-existing test as before apart from the two CSG scenes (new, approved references), `CSG_InteriorExteriorSelection` (retired) and the edited `State_Isolation`/`CSG_ProceduralOperand`; every reference image except those two unchanged and no threshold widened (SC-004).
-- [ ] T128 macOS determinism sweep: `~/.claude/bin/cpujob 056-p6-sweep ctest --test-dir $WT/build -L '^determinism-sweep$' -j2 --output-on-failure` (the label is a regular expression; the sweep is now 419 plus T040's additions, about 10 to 12 minutes plus the new scenes). Long job: background, log redirected, wait for the completion notice.
-- [ ] T129 macOS architecture: `~/.claude/bin/cpujob 056-p6-arch ctest --test-dir $WT/build -L architecture --output-on-failure`; `git diff e83d005d -- tests/architecture/allowlist.txt` is empty (SC-005).
-- [ ] T130 Linux full run: sync, remote build `-j2` (GCC 13, `-Werror`), `ssh "${H}" "cd ${R} && ~/.claude/bin/cpujob 056-p6-lx-all ctest --test-dir build -LE determinism-sweep -j2 --output-on-failure"`, then `-L architecture`.
-- [ ] T131 Linux determinism sweep: `ssh "${H}" "cd ${R} && ~/.claude/bin/cpujob 056-lx-sweep ctest --test-dir build -L '^determinism-sweep\$' -j2 --output-on-failure"`.
-- [ ] T132 Success-criterion table in `validation.md` §6: SC-001 to SC-009 each with its measured value and the command that produced it; SC-002/SC-003 against the Phase 1 red values; SC-004 the changed references (only the two CSG scenes) and the additions (the three new glass-sphere references and the manifest lines, all approved); SC-005 the sweep result on both hosts; SC-006 the `MessageSide` and `incident-opposite` results; SC-007 the atmosphere goldens green on both hosts; SC-008 T122; SC-009 the miss scenes' finite `I`. Also: before/after allowlist (unchanged), flat-namespace imports unchanged, perf ratio of T080, the list of files changed. Note that the `CLAUDE.md` clauses await the maintainer applying `claude-md-draft.md`.
-- [ ] T133 Remove the binary candidate images from `specs/056-volume-shader-segments/tools/proposed/` once their references are applied (keep the text proposals), then `git add` every file of the feature (never commit); `git -C $WT status --short` shows nothing untracked or unstaged; `git grep -n 'Closes #' -- specs/056-volume-shader-segments` and a search for the hash of 056's own merge commit find none (the base `e83d005d` is allowed); report to the coordinator and stop.
-- [ ] T134 **CHECKPOINT 6 (final)**: report the full result on both hosts and stop.
+- [X] T126 **TEST-APPROVAL (Phase 6)**: none edited, none added. State this in the report.
+- [X] T127 macOS full run: build, then `~/.claude/bin/cpujob 056-p6-all ctest --test-dir $WT/build -LE determinism-sweep -j4 --output-on-failure`. Compare with the Phase 0 baseline: every pre-existing test as before apart from the two CSG scenes (new, approved references), `CSG_InteriorExteriorSelection` (retired) and the edited `State_Isolation`/`CSG_ProceduralOperand`; every reference image except those two unchanged and no threshold widened (SC-004).
+- [X] T128 macOS determinism sweep: `~/.claude/bin/cpujob 056-p6-sweep ctest --test-dir $WT/build -L '^determinism-sweep$' -j2 --output-on-failure` (the label is a regular expression; the sweep is now 419 plus T040's additions, about 10 to 12 minutes plus the new scenes). Long job: background, log redirected, wait for the completion notice.
+- [X] T129 macOS architecture: `~/.claude/bin/cpujob 056-p6-arch ctest --test-dir $WT/build -L architecture --output-on-failure`; `git diff e83d005d -- tests/architecture/allowlist.txt` is empty (SC-005).
+- [X] T130 Linux full run: sync, remote build `-j2` (GCC 13, `-Werror`), `ssh "${H}" "cd ${R} && ~/.claude/bin/cpujob 056-p6-lx-all ctest --test-dir build -LE determinism-sweep -j2 --output-on-failure"`, then `-L architecture`.
+- [X] T131 Linux determinism sweep: `ssh "${H}" "cd ${R} && ~/.claude/bin/cpujob 056-lx-sweep ctest --test-dir build -L '^determinism-sweep\$' -j2 --output-on-failure"`.
+- [X] T132 Success-criterion table in `validation.md` §6: SC-001 to SC-009 each with its measured value and the command that produced it; SC-002/SC-003 against the Phase 1 red values; SC-004 the changed references (only the two CSG scenes) and the additions (the three new glass-sphere references and the manifest lines, all approved); SC-005 the sweep result on both hosts; SC-006 the `MessageSide` and `incident-opposite` results; SC-007 the atmosphere goldens green on both hosts; SC-008 T122; SC-009 the miss scenes' finite `I`. Also: before/after allowlist (unchanged), flat-namespace imports unchanged, perf ratio of T080, the list of files changed. Note that the `CLAUDE.md` clauses await the maintainer applying `claude-md-draft.md`.
+- [X] T133 Remove the binary candidate images from `specs/056-volume-shader-segments/tools/proposed/` once their references are applied (keep the text proposals), then `git add` every file of the feature (never commit); `git -C $WT status --short` shows nothing untracked or unstaged; `git grep -n 'Closes #' -- specs/056-volume-shader-segments` and a search for the hash of 056's own merge commit find none (the base `e83d005d` is allowed); report to the coordinator and stop.
+- [X] T134 **CHECKPOINT 6 (final)**: report the full result on both hosts and stop.
 
 ---
 
