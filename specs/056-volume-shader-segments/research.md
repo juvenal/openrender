@@ -54,9 +54,9 @@ writes the results back into those entries, and continues with the existing logi
 the pre-volume opacity; the compositing uses the post-volume colour and opacity.**
 
 - `CTraceBundle`: as today, but compositing the attenuated values.
-- `CTransmissionBundle`: a hit that is opaque before the volume blocks the ray whatever the volume does, so the step runs only on the transparent hits, which saves work.
+- `CTransmissionBundle`: a hit that is opaque before the volume blocks the ray whatever the volume does. The step runs on every hit of the bundle (`CTransmissionBundle::postShade`, `bundles.cpp`) and the result of an opaque hit is discarded: the ray is not queued, so nothing reads it. The transmitted value is the same as if the step ran only on the transparent hits; the code does not take that saving (one bundle call, one step call), and a separate source task would be needed if it were wanted.
 - `CGatherBundle`: the step runs before the outputs are recorded, so `surface:Ci` and `surface:Oi` record the attenuated values. Every other output, the `ray:*` outputs (recorded in `postTraceAction`) and the tags are unchanged (FR-004).
-- Primitive hit modes: `shade()` returns early after writing `Ci`/`Oi` from the attributes (`shading.cpp:975-983`, `:1000-1012`), and the hider still calls `postShade` (`trace.cpp:214`), so those segments are attenuated with no change to `shade()` (FR-005).
+- Primitive hit modes: `shade()` returns early after writing `Ci`/`Oi` from the attributes (the secondary branch `shading.cpp:1177-1190`; the shadow branch `:1146-1160`), and the hider still calls `postShade` (`trace.cpp:214`), so those segments are attenuated (FR-005). The shadow branch wrote `Oi` only until Phase 7 (tasks.md T136, 2026-11-11), so a transmission step saw a `Ci` that was whatever the state's buffer held; it now writes `Ci` from `surfaceColor` too (no image changes: a shadow ray reads `Oi` only). The scene `volume-transmission-primitive-hitmode` covers it.
 
 **Rationale**: The bundles test opacity bit for bit (`(opacity[k].integer ^ one.integer)`, `bundles.cpp:65-67`). `fog`
 returns `mix(Oi, 1, d)`, which can land one ulp below 1.0 for an opaque hit and turn it into a spurious continuation

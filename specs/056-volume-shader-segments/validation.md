@@ -383,3 +383,61 @@ The 18 binary candidate images (`tools/proposed/csg/*.{tif,png}`, `tools/propose
 (`examples/rib/tests/references/csg-sphere-sphere-difference-interior-raytrace{,-inside}.tif`, `volume-interior-fog-glass-sphere-{reyes,zbuffer,raytrace}.tif`) byte-identical to their candidates. The text proposals and the `.diff` files are kept.
 Afterwards (maintainer-approved) the 7 `tools/proposed/references/*.rslo` and `tools/proposed/reference-root/macos/{oshader_help.txt,shaders.sha256}` were removed with `git rm` too, after `cmp`/`diff` showed each byte-identical
 to its applied copy (`tests/shaders/references/<name>.rslo`, `src/libshader/tests/reference/macos/{oshader_help.txt,shaders.sha256}`). Earlier sections that name those directories describe the state at the time.
+
+## 7. Phase 7: converge additions (2026-11-11)
+
+Base: HEAD `f75308a1`; master is still `0e554fed` (an ancestor). Rules followed: the `## Spec-kit agent rules` section of `CLAUDE.md` (worktree copy; unchanged).
+
+- T135 TEST-APPROVAL: the maintainer approved T136 to T138 as recommended on 2026-11-11 (relayed by the coordinator): T136 the source fix in `shade()`'s shadow-primitive branch and the new scene family
+  `volume-transmission-primitive-hitmode` with its `-none` twin; T137 the one-off `tools/compare_corpus.sh` (with one change: use the main checkout's existing master `orender` if its build is current; never reconfigure or build in the main
+  checkout; build a scratch tree only if it is not, disk checked first, and ask before deleting anything); T138 the document reconciliation. No approved test or reference is edited; the additions are the 12 new scenes and their
+  12 probes and 12 sweep entries.
+
+### T136: shadow hit in primitive hit mode (2026-11-11)
+
+- **The gap:** in `transmissionhitmode "primitive"` `shade()` returned from the shadow-primitive branch after writing `Oi` only, and `CTransmissionBundle::postShade` then handed `varying[VARIABLE_CI]` to the step: a `Ci` that was whatever the
+  state's buffer held, against contracts/segment-step.md section 3 and research R6 (the step sees the colour the hit produced). No test reached it (`volume-primitive-hitmode` uses `specularhitmode`; the contract tracer never calls `shade()`).
+- **New scenes:** a generated family `volume-transmission-primitive-hitmode` (`tools/families/transmissionprimitive.py`, registered in `tools/gen_scenes.py`) and its `-none` twin: the scene of `volume-transmission-interior` with the half-transparent wall
+  (opacity 0.5) carrying `Attribute "shade" "string transmissionhitmode" ["primitive"]`; 12 scenes (reyes, zbuffer, raytrace, `.rslo` and `.slo`, with and without `Interior`), 12 probes (pixel (4,4): `0.1839416` at tolerance 1e-4, the twin `0.5` at 1e-5,
+  the hand-computed `0.5 * exp(-(1000 - 0.01)/1000)`) and 12 `add_determinism_sweep` entries, all generated into `tests/visual/volume-probes.cmake` and `tests/visual/determinism-scenes.cmake`
+  (`python3 tools/gen_scenes.py` changes only those two files and the 12 new RIBs; `--check` after it is clean). The wall is not a shadow hit in shader mode, so GitHub #148's nesting is not reached.
+- **Red evidence (starting source, `056-p7-red`):** none, as the task expected: **24 / 24 passed before the source change**. `Oi` is the only input the volume (`fog`) reads for the transmitted fraction, so a garbage `Ci` cannot change the probe; the
+  observed value equals the hand-computed one on all six variants. The scenes pin FR-005 (the segment of a primitive-mode hit is attenuated) and stay green across the fix.
+- **Source (the maintainer's recommended (b), approved):** `shade()`'s shadow-primitive branch (`src/libshader/shading/shading.cpp`, about `:1144-1160`) now also writes `Ci` from `currentAttributes->surfaceColor`, as the secondary-ray primitive branch already did.
+  Nothing read that colour before for a shadow ray's opacity, so no image changes (the full run below and the corpus comparison under T137 are the evidence).
+- **Results:** `056-p7-build` clean; macOS `056-p7-new` 24 / 24; `056-p7-all` (`ctest -LE determinism-sweep -j4`) **1314 / 1314** (1313 passed, 1 skipped by design: `LibShader_Format_rslo_lower_minor`; 1302 + the 12 new probes);
+  `056-p7-arch` 29 / 29; `056-p7-sweep` (`-L '^determinism-sweep$' -j2`) **582 / 582** (570 + 12).
+  Linux (`tools/sync_linux.sh`, GCC 13 `-Werror`, remote `cpujob -j2`): build clean; new tests 24 / 24; full run 1315 tests, **1 failed: the baseline `TextureTile_RenderByteIdentical` (#45)**; `-L architecture` 29 / 29; sweep **582 / 582** (`056-p7-lx-sweep2`, 1359 s; the first run of it, `056-p7-lx-sweep`, was cut off after 60 tests when the remote `ctest` was interrupted, with no failure among them, and was run again in full).
+  (The first sync of this phase reported one checksum mismatch, `tasks.md`, because the file was edited between the manifest and the copy; no code file was affected, the remote build and every test ran on the synced sources, and the final sync below is clean.)
+- **Counts after T136:** `ctest -N` 1896 tests; `-L determinism-sweep` 582 (419 + 163); `-L volume` 196; `VolumeProbe_*` 171 (159 + 12). `claude-md-draft.md`'s figures were changed (sweep 570 to 582, the 419 + 151 to 419 + 163) and nothing else.
+
+### T137: byte identity against master, measured (2026-11-11)
+
+- **What:** `tools/compare_corpus.sh` (+ `tools/compare_corpus.py`; one-off, not a ctest test, no git, run through `cpujob` at two jobs): every RIB that a `Visual_*`, `Parity_*` or `Determinism*` test of this build registers (listed from `ctest --show-only=json-v1`)
+  and that binds no `Interior`/`Exterior` (the RIB and the archives it reads are scanned) is rendered at `-t:1` from a scratch directory with `VISUAL_ENV`'s variables, once with master `0e554fed`'s `orender` and once with this tree's; every output file is compared byte for byte.
+  The RIBs are this tree's for both (the new scenes do not exist on master), so a master render of a new shader's scene takes the new `.slo`/`.rslo` from this tree's shader directory (listed second in `SHADERS`).
+- **Master build:** the main checkout's build (`/Users/juvenal/Projects/Development/CLI/openrender/build`) is **not current** (built 2026-11-01; master has had the specs 029, 038 and #153 merges since: `libRIBRender` and `libshader_shading` date from 2026-11-01), so it was not used and nothing was built or configured in the main checkout.
+  A scratch tree was made instead: `git archive 0e554fed` extracted to `/Volumes/Projects/Development/CLI/openrender-scratch-056-master` (outside both the worktree and the main checkout; the same `vcpkg.json`, the shared vcpkg tree), configured and built through `cpujob` (`056-p7-master-cfg`, `-build`: the targets `orender`, the four display drivers and `openrender_shaders`), 28 GB free before and after. **It still exists: delete it only on the maintainer's word.**
+- **Selection:** 603 RIBs registered by those tests; 82 skipped because they bind `Interior`/`Exterior`; **521 compared** (318 that use the raytrace hider or a shader that calls `trace`/`transmission`/`shadow`/`gather`/`visibility`/`environment`/`occlusion`/`indirectdiffuse`/`photonmap`/`incident`/`opposite`, 203 others, all that were registered).
+  The whole list is `tools/corpus-selection.txt`; the verdict per scene is `tools/corpus-results.txt`.
+- **Verdict (`056-p7-corpus`):** **513 byte-identical** (every output file; 310 of tier 1, all 203 of tier 2) and **8 whose images are identical but one ancillary file differs**: `photon-parity{,-slo}`, `photon-solar0-alone{,-slo}`, `photon-solar0-after-distant{,-slo}` (the `.gpm` photon map) and `sphere-texture3d-bake3d-reyes{,-slo}`
+  (the `.ptc` point cloud). Those files are not reproducible on either tree: with `COMPARE_SELF=1` (each tree rendered twice) the same file differs between two runs of **master alone** and between two runs of **this branch alone**, in every one of the 8 scenes (`056-p7-selfcheck`); with the sweep's
+  `Option "sampling" "sampler" ["sobol"]` prepended (`056-p7-sobol`) the images are identical again and the same files still differ run to run. The photon scenes' own headers say they must be rendered at `-t:1` because of the CPhotonHider race (BUGS.md). So there is **no difference attributable to this spec**; no threshold was used.
+- **Positive control:** `volume-interior-fog-slab-raytrace` (binds `Interior`, so it must differ) differs between master and this tree: the comparison can see a difference.
+- **Smoke run:** a stride-70 run (`056-p7-smoke`, 8 scenes) came first to check the tool; all identical.
+
+### T138: documents reconciled with the code (documents only)
+
+`data-model.md` (the `CTransmissionBundle` row), `research.md` (R3, the `CTransmissionBundle` bullet) and T067 in `tasks.md` now say what `CTransmissionBundle::postShade` does: the step runs on **every** hit of the bundle and the result of an opaque hit is discarded
+(an opaque hit is not queued, so nothing reads it); the transmitted value is the same as if the step ran only on the transparent hits, and the code does not take that saving (a separate source task would be needed if it were wanted).
+`contracts/segment-step.md` section 4's `transmission()` row says nothing about which hits run the step, so it is unchanged. `research.md`'s primitive-hit-mode bullet also had stale line citations and said `shade()` needed no change; it now names the secondary branch (`shading.cpp:1177-1190`) and the
+shadow branch (`:1146-1160`) and records the Phase 7 fix. No test or source is touched by T138.
+
+### T139: CHECKPOINT 7 (macOS and Linux)
+
+- Phase 7 results: macOS full run 1314 / 1314 (1 skipped by design), architecture 29 / 29, sweep 582 / 582; Linux full run 1315 tests with only the baseline `TextureTile_RenderByteIdentical` (#45) failing, architecture 29 / 29, sweep 582 / 582.
+  The new tests are 12 `VolumeProbe_transmission-primitive-hitmode_*` and 12 `DeterminismSweep_volume-transmission-primitive-hitmode*` (24 / 24 on both hosts, green before and after the source change). No approved test or reference was edited, no threshold changed.
+- T137: 513 of 521 scenes byte-identical to master `0e554fed`; the other 8 differ only in a `.gpm`/`.ptc` file that also differs between two runs of master alone; no image differs.
+- Figures: `ctest -N` 1896; sweep 582; `-L volume` 196; `VolumeProbe_*` 171; `claude-md-draft.md` updated for the sweep count only. `CLAUDE.md` is untouched.
+- Changed in Phase 7: `src/libshader/shading/shading.cpp` (the shadow-primitive branch writes `Ci`), `tests/visual/{volume-probes,determinism-scenes}.cmake` (generated), the 12 new scenes, `tools/{gen_scenes.py,families/transmissionprimitive.py,compare_corpus.sh,compare_corpus.py,corpus-selection.txt,corpus-results.txt}`,
+  `data-model.md`, `research.md`, `tasks.md`, `claude-md-draft.md`, this file. `/Volumes/Projects/Development/CLI/openrender-scratch-056-master` (the master build) still exists; `build/corpus*` are under the gitignored `build/`.

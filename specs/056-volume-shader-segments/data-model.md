@@ -66,7 +66,7 @@ passes (`segEnd = C_INFINITY` means "the world-bound exit"). `I` is always finit
 | Bundle | `postTraceAction` | hits: `postShade(n, rays, varying)` | misses: `postShade(n, rays)` with `levelTraced` | misses with `!levelTraced` (refusal) |
 |---|---|---|---|---|
 | `CTraceBundle` | sets `levelTraced` | record each hit's own Oi → step on Ci/Oi → classify on the **recorded** Oi, composite with the attenuated values; a queued ray gets `segmentStart = ray->t` | step with 0/0 → depth 0: `dest += Ci'·m`; depth > 0: `color += (1 - opacity)·Ci'`, `dest += color·m` | today's path |
-| `CTransmissionBundle` | sets `levelTraced` | classify on own Oi; step only on the transparent hits; composite as today with the attenuated Oi; queued ray gets `segmentStart = ray->t` | step with 0/0 → depth 0: `dest += (1 - Oi')·m`; depth > 0: `opacity += (1 - opacity)·Oi'`, `dest += (1 - opacity)·m` | today's path |
+| `CTransmissionBundle` | sets `levelTraced` | classify on own Oi; the step runs on every hit (an opaque hit is not queued, so its result is discarded); composite as today with the attenuated Oi; queued ray gets `segmentStart = ray->t` | step with 0/0 → depth 0: `dest += (1 - Oi')·m`; depth > 0: `opacity += (1 - opacity)·Oi'`, `dest += (1 - opacity)·m` | today's path |
 | `CGatherBundle` | sets `levelTraced` before the non-shade outputs | step on Ci/Oi, then record the outputs (so `surface:Ci`/`surface:Oi` are attenuated; other outputs and tags unchanged) | step with 0/0, record only the outputs whose global entry is `VARIABLE_CI`/`VARIABLE_OI` (approved Q1, spec FR-007) | today's path (no-op) |
 
 ## Shading state (`CShadingState`, changed, `shading.h`)

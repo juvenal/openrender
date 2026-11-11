@@ -1143,13 +1143,19 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
             // Yes, are we supposed to shade the objects in the shadow ?
             if (g.hitMode == HitMode::Primitive) {
 
-                // No, just copy the color/opacity from the attributes field
+                // No, just copy the color/opacity from the attributes field. The colour is written too, as the secondary branch
+                // below does: nothing reads it for the opacity of a shadow ray, but the volume step the hider runs next
+                // (postShade) must see the colour the hit produced, not whatever the state's buffer held (spec 056, FR-005)
                 float *opacity = varying[VARIABLE_OI];
+                float *color = varying[VARIABLE_CI];
                 int i;
                 const float *so = currentAttributes->surfaceOpacity;
+                const float *sc = currentAttributes->surfaceColor;
 
-                for (i = numVertices; i > 0; i--, opacity += 3)
+                for (i = numVertices; i > 0; i--, opacity += 3, color += 3) {
                     movvv(opacity, so);
+                    movvv(color, sc);
+                }
 
                 // Nothing more to do here, just return
                 return;

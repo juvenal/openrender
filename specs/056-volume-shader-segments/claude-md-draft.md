@@ -57,9 +57,9 @@ services member, no `ITracer` change and no `kRendererServicesVersion` step. Not
   checks that glob every shipped shader: `tests/shaders/references/<name>.rslo` (`ShaderCompilerImmutability`) and the lines
   for its `.rslo` and `.slo` in `src/libshader/tests/reference/{macos,linux}/shaders.sha256` (`Shaders_BytesUnchanged`;
   captured on each platform with `check_shaders_bytes.cmake` and `-DRECAPTURE=ON`)."
-- Line 299 (the `determinism-sweep` ctest line): `419 scenes x 5 configurations` becomes `570 entries` (419 + 151 new volume
+- Line 299 (the `determinism-sweep` ctest line): `419 scenes x 5 configurations` becomes `582 entries` (419 + 163 new volume
   entries; the figure `ctest -N -L determinism-sweep` prints). The count of scenes times configurations in that comment is
-  not recomputed by this draft: if the maintainer keeps the "scenes x configurations" wording, 570 is the entry count the
+  not recomputed by this draft: if the maintainer keeps the "scenes x configurations" wording, 582 is the entry count the
   sentence should carry. (The rest of the line, `~10-12 min at -j2`, was measured on 419 entries and will be longer.)
 - Testing block: add one line `ctest --test-dir build -L volume                        # spec 056: volume shader segments (the VolumeProbe_ hand-computed pixel checks, VolumeDiffer_, Parity_volume-, Determinism_volume-)`.
 
@@ -83,7 +83,7 @@ services member, no `ITracer` change and no `kRendererServicesVersion` step. Not
   item 3). The CSG special case is retired (`selectVolumeShader`, `ATTRIBUTES_FLAGS_SOLID_FRAGMENT`, the arrival-side rule,
   `CSG_InteriorExteriorSelection`); the two interior CSG scenes were rewritten with a mirror and re-rendered. `Atmosphere`
   is unchanged. With no volume shader bound every image is byte-identical; no threshold changed; no services-version step.
-  137 shaders, 570 sweep entries. The glass-sphere scenes run `.rslo` only until GitHub #157 (the shipped `glass` shader's JIT
+  137 shaders, 582 sweep entries. The glass-sphere scenes run `.rslo` only until GitHub #157 (the shipped `glass` shader's JIT
   defect) is fixed (see spec 056).
 ```
 

@@ -18,9 +18,9 @@ ROOT = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
 sys.path.insert(0, os.path.join(HERE, "families"))
 
 import common  # noqa: E402
-import slab, reflection, transmission, shadow, gather, incident, randomfog, glasssphere, atmosphere, csgfragment  # noqa: E402
+import slab, reflection, transmission, transmissionprimitive, shadow, gather, incident, randomfog, glasssphere, atmosphere, csgfragment  # noqa: E402
 
-FAMILIES = [slab, reflection, transmission, shadow, gather, incident, randomfog, glasssphere, atmosphere, csgfragment]
+FAMILIES = [slab, reflection, transmission, transmissionprimitive, shadow, gather, incident, randomfog, glasssphere, atmosphere, csgfragment]
 
 
 def main():
