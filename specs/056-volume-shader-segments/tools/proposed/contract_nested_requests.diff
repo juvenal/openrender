@@ -1,0 +1,15 @@
+Proposed edit to an approved test (T016 case, T043 approved) -- NOT APPLIED, awaiting the maintainer's answer.
+
+The nested-trace case asserts `c.tracer.requests.size() >= 3`, assuming two outer bundles (one per side). The case binds the same
+cv_nested shader as Interior and Exterior, so (interiorShader == exteriorShader) sends every ray to ONE outer bundle, and the three points
+run the step once; the requests are the outer bundle plus the nested one: 2. The expectation was wrong; the step behaves as designed
+(data-model.md: one bundle when the two shaders are equal). The assertion that follows (every request one level down carries no volume)
+is unchanged and is the point of the case.
+
+--- a/tests/shading_contract/case_volume_segments.cpp
++++ b/tests/shading_contract/case_volume_segments.cpp
+@@ nested trace allowed
+-            // two outer requests (one per side) and the nested ones, which carry no volume and sit one level deeper
+-            CT_EXPECT(c.tracer.requests.size() >= 3);
++            // one outer request (both sides bind the same shader, so one bundle) and the nested one, which carries no volume and sits one level deeper
++            CT_EXPECT(c.tracer.requests.size() >= 2);

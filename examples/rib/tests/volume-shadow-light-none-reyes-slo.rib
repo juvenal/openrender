@@ -1,0 +1,38 @@
+##RenderMan RIB-Structure 1.0
+# Spec 056, family volume-shadow-light-none (the no-volume twin).
+# Camera space (orthographic, roll + translate camera). A matte receiver at z = 4 faces the camera (N = -z) and is
+# lit by volume_shadow_light, a light 1000 units behind each point along -z; its ray-traced shadow() ray runs toward
+# the light, i.e. along -z: dot(R, N) > 0, the EXTERIOR side. The light overwrites N with -N before it asks for the
+# shadow, so a step that read the light's N would pick the Interior shader instead; the snapshot of the surface's N
+# (research R7) picks the Exterior. Interior = fog distance 0.5 background (0.9, 0.1, 0.1), Exterior = fog distance 1000
+# background (0.1, 0.3, 0.9). Nothing occludes the ray: the segment ends at the light, 1000 less the trace bias 0.01 (pinned
+# below) long; the light's visibility is 1 - shadow = exp(-(1000 - 0.01)/1000) = 0.367883;
+# matte: Ci = Cb * visibility (Ka = 0, Kd = 1, N.L = 1).
+# Probe pixel (4,4), RGB: (0.8, 0.5, 0.2) (tolerance 1e-05).
+version 3.03
+Option "shaderformat" "default" ["slo"]
+Hider "reyes" "jitter" [0]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "volume-shadow-light-none-reyes-slo.tif" "file" "rgba"
+Format 8 8 1
+Projection "orthographic"
+Clipping 0.1 100
+Rotate 20 0 0 1
+Translate 0.3 -0.2 2
+WorldBegin
+  TransformBegin
+    # camera space: the inverse of the camera transform above
+    Translate -0.3 0.2 -2
+    Rotate -20 0 0 1
+    Attribute "visibility" "int specular" [1] "int transmission" [1]
+    Attribute "trace" "float bias" [0.01]
+    LightSource "volume_shadow_light" 1 "float intensity" [1] "float reach" [1000]
+    AttributeBegin
+      Color [0.8 0.5 0.2]
+      Surface "matte" "float Ka" [0] "float Kd" [1]
+      Polygon "P" [-3 -3 4 3 -3 4 3 3 4 -3 3 4] "N" [0 0 -1 0 0 -1 0 0 -1 0 0 -1]
+    AttributeEnd
+  TransformEnd
+WorldEnd

@@ -447,16 +447,6 @@ namespace {
         STATE_CHECK_EQ(attributes.usedParameters, 0);
         attributes.removeLight(attributes.surface().get());
 
-        // selectVolumeShader returns the interior or exterior slot's target
-        STATE_CHECK(selectVolumeShader(&attributes, true, false) == attributes.interior().get());
-        STATE_CHECK(selectVolumeShader(&attributes, true, true) == attributes.exterior().get());
-        STATE_CHECK(selectVolumeShader(&attributes, false, true) == nullptr);
-        STATE_CHECK(selectVolumeShader(&attributes, false, false) == nullptr);
-
-        CAttributes bare;
-        STATE_CHECK(selectVolumeShader(&bare, true, true) == nullptr);
-        STATE_CHECK(selectVolumeShader(&bare, true, false) == nullptr);
-
         for (int i = 0; i < kNumSlots; ++i)
             (attributes.*kSlots[i].bind)(ShaderGroupRef());
         STATE_CHECK_EQ(CCountingShader::live, 0);

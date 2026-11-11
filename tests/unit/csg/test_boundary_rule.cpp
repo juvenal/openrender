@@ -27,6 +27,7 @@
  *
  */
 
+#include "csgSolid.h"
 #include "csgTreeHelpers.h"
 
 using namespace csgtest;
@@ -299,6 +300,38 @@ TEST(tangency) {
     ASSERT(onSphere(di, 1, 0.5f, 0, 0, 0.5f, 0.5f, 0) == TRUE);
 }
 
+// Spec 056 (carried from the retired CSG_InteriorExteriorSelection): difference(A, B) resolved through RiSolidEnd; each resolved leaf is a clone of its
+// template and only the subtrahend's leaf has its inside flag toggled
+TEST(instance_leaves_are_clones_and_only_the_subtrahend_is_flipped) {
+    CCsgSession s;
+    CCSGSolid *solid = dynamic_cast<CCSGSolid *>(s.one([] {
+        RiSolidBegin(RI_DIFFERENCE);
+        RiSolidBegin(RI_PRIMITIVE);
+        RiSphere(1.0f, -1.0f, 1.0f, 360.0f, RI_NULL);
+        RiSolidEnd();
+        RiSolidBegin(RI_PRIMITIVE);
+        RiTranslate(0.8f, 0, 0);
+        RiSphere(1.0f, -1.0f, 1.0f, 360.0f, RI_NULL);
+        RiSolidEnd();
+        RiSolidEnd();
+    }));
+    ASSERT(solid != NULL);
+    solid->resolve(s.ctx());
+    const CCSGInstanceState *state = solid->instanceState();
+    ASSERT(state != NULL);
+    ASSERT(state->operands.size() == 2);
+    for (int op = 0; op < 2; op++) {
+        const CObject *templ = solid->definition->operandMembers[op][0];
+        ASSERT(state->operands[op]->members.size() == 1);
+        const CObject *leaf = state->operands[op]->members[0];
+        ASSERT(leaf != templ);
+        ASSERT(leaf->attributes != templ->attributes); // a clone
+        // Only the subtrahend's leaf is flipped
+        const unsigned int toggled = (leaf->attributes->flags ^ templ->attributes->flags) & ATTRIBUTES_FLAGS_INSIDE;
+        ASSERT(toggled == (op == 1 ? ATTRIBUTES_FLAGS_INSIDE : 0u));
+    }
+}
+
 int main() {
     RUN(union_intersection_difference);
     RUN(three_operand_difference);
@@ -312,5 +345,6 @@ int main() {
     RUN(sphere_cube_seam_location);
     RUN(hero_seam_location);
     RUN(tangency);
+    RUN(instance_leaves_are_clones_and_only_the_subtrahend_is_flipped);
     SUMMARY();
 }

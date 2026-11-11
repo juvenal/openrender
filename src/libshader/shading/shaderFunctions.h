@@ -1878,6 +1878,7 @@ DEFFUNC(TextureColorFull, "texture", "c=SFffffffff!", TEXTUREFFULLEXPR_PRE, TEXT
         mulvf(rays->dDdv, dDdv, (*dv) * twidth);                                                \
         movvv(rays->P, P);                                                                      \
         movvv(rays->N, N);                                                                      \
+        movvv(rays->sideN, N);                                                                  \
         mulvf(rays->dPdu, dPdu, (*du) * swidth);                                                \
         mulvf(rays->dPdv, dPdv, (*dv) * twidth);                                                \
         float largerConeAngle;                                                                  \
@@ -1966,6 +1967,8 @@ DEFSHORTFUNC(EnvironmentColor, "environment", "c=SFv!", ENVIRONMENTEXPR_PRE("ref
 #define SHADOWEXPR_PRE                                                                                    \
     ENVIRONMENTEXPR_PRE("shadow", "shadow");                                                              \
     const float *L = varying[VARIABLE_L];                                                                 \
+    /* The side normal of the shadow ray (spec 056, research R7): inside a light loop the snapshot taken before the lights ran */ \
+    const float *sideNp = currentShadingState->lightSideN != nullptr ? currentShadingState->lightSideN : varying[VARIABLE_N];     \
     if (traced) {                                                                                         \
         float *tmp = (float *)ralloc(currentShadingState->numVertices * sizeof(float) * 9, threadMemory); \
         dPdu = tmp + currentShadingState->numVertices * 3;                                                \
@@ -1984,6 +1987,7 @@ DEFSHORTFUNC(EnvironmentColor, "environment", "c=SFv!", ENVIRONMENTEXPR_PRE("ref
         movvv(rays->P, D);                                                                      \
         /* Ps need not lie on the shaded surface: no origin guard */                            \
         initv(rays->N, 0, 0, 0);                                                                \
+        movvv(rays->sideN, sideNp);                                                             \
         mulvf(rays->dPdu, dDdu, (*du) * swidth);                                                \
         mulvf(rays->dPdv, dDdv, (*dv) * twidth);                                                \
         subvv(rays->D, D, L);                                                                   \
@@ -2030,6 +2034,7 @@ DEFSHORTFUNC(EnvironmentColor, "environment", "c=SFv!", ENVIRONMENTEXPR_PRE("ref
     ++time;                    \
     DRAW_STEP                  \
     L += 3;                    \
+    sideNp += 3;               \
     if (traced) {              \
         dPdu += 3;             \
         dPdv += 3;             \

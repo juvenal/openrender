@@ -696,6 +696,8 @@ class CShaderVectorVariable : public CGatherVariable {
             }
         }
 
+        int globalEntry() const { return entry; }
+
         int entry; // Variable index
 };
 
@@ -714,6 +716,8 @@ class CShaderFloatVariable : public CGatherVariable {
                 dest[ray->index] = *src++;
             }
         }
+
+        int globalEntry() const { return entry; }
 
         int entry; // Variable index
 };
