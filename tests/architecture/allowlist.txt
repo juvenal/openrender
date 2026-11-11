@@ -105,17 +105,13 @@ DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer13sampleClipTopE   # 
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer13xSampleOffsetE   # CRenderer::xSampleOffset
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer13ySampleOffsetE   # CRenderer::ySampleOffset
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer14sampleClipLeftE   # CRenderer::sampleClipLeft
-DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer15cocFactorScreenE   # CRenderer::cocFactorScreen
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer15numExtraSamplesE   # CRenderer::numExtraSamples
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer15sampleClipRightE   # CRenderer::sampleClipRight
-DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer16cocFactorSamplesE   # CRenderer::cocFactorSamples
-DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer16invFocaldistanceE   # CRenderer::invFocaldistance
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer16numExtraChannelsE   # CRenderer::numExtraChannels
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer16opacityThresholdE   # CRenderer::opacityThreshold
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer16sampleClipBottomE   # CRenderer::sampleClipBottom
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer16xBucketsMinusOneE   # CRenderer::xBucketsMinusOne
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer16yBucketsMinusOneE   # CRenderer::yBucketsMinusOne
-DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer17cameraHasRotationE   # CRenderer::cameraHasRotation
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer20invBucketSampleWidthE   # CRenderer::invBucketSampleWidth
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer21invBucketSampleHeightE   # CRenderer::invBucketSampleHeight
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer22sendBucketDataChannelsEii   # CRenderer::sendBucketDataChannels(int, int)
@@ -123,13 +119,10 @@ DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer5flagsE   # CRenderer
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer6commitEiiiiPf   # CRenderer::commit(int, int, int, int, float*)
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer7clipMaxE   # CRenderer::clipMax
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer7clipMinE   # CRenderer::clipMin
-DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer7relRotQE   # CRenderer::relRotQ
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer7xPixelsE   # CRenderer::xPixels
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer7yPixelsE   # CRenderer::yPixels
-DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer8apertureE   # CRenderer::aperture
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer8contextsE   # CRenderer::contexts
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer8pixelTopE   # CRenderer::pixelTop
-DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer8relTransE   # CRenderer::relTrans
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer8xBucketsE   # CRenderer::xBuckets
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer8yBucketsE   # CRenderer::yBuckets
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer9dSampledxE   # CRenderer::dSampledx
@@ -156,19 +149,15 @@ DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer15numExtraSample
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer15pixelFilterModeE   # CRenderer::pixelFilterMode
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer16opacityThresholdE   # CRenderer::opacityThreshold
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer16pixelFilterWidthE   # CRenderer::pixelFilterWidth
-DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer17cameraHasRotationE   # CRenderer::cameraHasRotation
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer17pixelFilterHeightE   # CRenderer::pixelFilterHeight
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer17pixelFilterKernelE   # CRenderer::pixelFilterKernel
-DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer18cameraRotationOnlyE   # CRenderer::cameraRotationOnly
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer19nonCompChannelOrderE   # CRenderer::nonCompChannelOrder
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer20zvisibilityThresholdE   # CRenderer::zvisibilityThreshold
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer23numExtraNonCompChannelsE   # CRenderer::numExtraNonCompChannels
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer5flagsE   # CRenderer::flags
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer7clipMaxE   # CRenderer::clipMax
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer7clipMinE   # CRenderer::clipMin
-DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer7relRotQE   # CRenderer::relRotQ
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer8pixelTopE   # CRenderer::pixelTop
-DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer8relTransE   # CRenderer::relTrans
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer8xBucketsE   # CRenderer::xBuckets
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer8yBucketsE   # CRenderer::yBuckets
 DB-011  link     src/ri/hiders/stochastic.cpp  ->  _ZN9CRenderer9dSampledxE   # CRenderer::dSampledx

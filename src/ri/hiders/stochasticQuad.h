@@ -378,7 +378,7 @@ const float importance = grid->object->attributes->lodImportance;
 // the sample center is the pre-rotated one from rasterBegin; the interpolated
 // static depth is scaled to the sample's time by zScale
 #define checkPixel(__op)                                                                                  \
-    const int camRotFast = CRenderer::cameraRotationOnly;                                                 \
+    const int camRotFast = fp.camera.rotationOnly;                                                        \
     const float xcent = camRotFast ? pixel->xcentRot : pixel->xcent;                                      \
     const float ycent = camRotFast ? pixel->ycentRot : pixel->ycent;                                      \
     float aleft, atop, aright, abottom;                                                                   \
@@ -420,6 +420,11 @@ const float importance = grid->object->attributes->lodImportance;
 //   Here's the code that actually iterates over the quads and draws them
 //
 ///////////////////////////////////////////////////////////////////////////////////////////
+
+#ifdef STOCHASTIC_MOVING
+// The frame's camera motion, read once per grid (never per sample)
+[[maybe_unused]] const openrender::FrameParams &fp = openrender::frameParams();
+#endif
 
 #ifdef STOCHASTIC_XTREME
 
@@ -494,20 +499,17 @@ for (y = ymin; y <= ymax; y++) {
 #ifdef STOCHASTIC_MOVING
         matrix Mjt_pix = {};
         float tx_pix = 0.0f, ty_pix = 0.0f, tz_pix = 0.0f;
-        if (CRenderer::cameraHasRotation
+        if (fp.camera.hasRotation
 #ifndef STOCHASTIC_FOCAL_BLUR
             // The pure-rotation fast path tests static quads against the
             // pre-rotated sample from rasterBegin — no forward matrix needed
-            && !CRenderer::cameraRotationOnly
+            && !fp.camera.rotationOnly
 #endif
         ) {
-            static const quaternion identQ = {0.0f, 0.0f, 0.0f, 1.0f};
-            quaternion Rjt_pix;
-            slerpq(Rjt_pix, identQ, CRenderer::relRotQ, pixel->jt);
-            qtoR(Mjt_pix, Rjt_pix);
-            tx_pix = pixel->jt * CRenderer::relTrans[0];
-            ty_pix = pixel->jt * CRenderer::relTrans[1];
-            tz_pix = pixel->jt * CRenderer::relTrans[2];
+            openrender::motion::cameraRotationAt(Mjt_pix, fp.camera.relRotQ, pixel->jt);
+            tx_pix = pixel->jt * fp.camera.relTrans[0];
+            ty_pix = pixel->jt * fp.camera.relTrans[1];
+            tz_pix = pixel->jt * fp.camera.relTrans[2];
         }
 #endif
 
@@ -572,10 +574,10 @@ for (y = ymin; y <= ymax; y++) {
 #ifndef STOCHASTIC_FOCAL_BLUR
                 // Pure-rotation fast path: leave the quad at its static t=0
                 // position — checkPixel tests it against the pre-rotated sample
-                if (!CRenderer::cameraRotationOnly)
+                if (!fp.camera.rotationOnly)
 #endif
                 {
-                    if (CRenderer::cameraHasRotation) {
+                    if (fp.camera.hasRotation) {
                         // Camera rotation: LERP of raster-space positions traces a
                         // chord instead of the correct arc. Unproject each vertex to
                         // camera-space, apply slerp(I, relRotQ, jt) rotation (+ lerped
@@ -853,10 +855,10 @@ for (j = 0; j < vdiv; j++) {
 #ifndef STOCHASTIC_FOCAL_BLUR
                 // Pure-rotation fast path: leave the quad at its static t=0
                 // position — checkPixel tests it against the pre-rotated sample
-                if (!CRenderer::cameraRotationOnly)
+                if (!fp.camera.rotationOnly)
 #endif
                 {
-                    if (CRenderer::cameraHasRotation) {
+                    if (fp.camera.hasRotation) {
                         // Camera rotation: LERP of raster-space positions traces a
                         // chord instead of the correct arc. Unproject each vertex to
                         // camera-space, apply slerp(I, relRotQ, jt) rotation (+ lerped
@@ -865,14 +867,11 @@ for (j = 0; j < vdiv; j++) {
                         // Vertex layout: [rasterX, rasterY, camZ,  Ci(3), Oi(3), CoC]
                         //                    0         1      2   3..5  6..8    9
                         const float jt = pixel->jt;
-                        const float identQ[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-                        quaternion Rjt;
-                        slerpq(Rjt, identQ, CRenderer::relRotQ, jt);
                         matrix Mjt;
-                        qtoR(Mjt, Rjt);
-                        const float tx = jt * CRenderer::relTrans[0];
-                        const float ty = jt * CRenderer::relTrans[1];
-                        const float tz = jt * CRenderer::relTrans[2];
+                        openrender::motion::cameraRotationAt(Mjt, fp.camera.relRotQ, jt);
+                        const float tx = jt * fp.camera.relTrans[0];
+                        const float ty = jt * fp.camera.relTrans[1];
+                        const float tz = jt * fp.camera.relTrans[2];
 
                         if (!rasterCameraMotionTransform(v0movTmp + COMP_X, v0movTmp + COMP_Y, v0movTmp + COMP_Z, v0, Mjt, tx, ty, tz) ||
                             !rasterCameraMotionTransform(v1movTmp + COMP_X, v1movTmp + COMP_Y, v1movTmp + COMP_Z, v1, Mjt, tx, ty, tz) ||

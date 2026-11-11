@@ -60,11 +60,14 @@
 # 48 -> 2 references and 15 -> 2 members. The photon map file (hiders/photonMap.cpp) reads the camera matrices from FrameParams
 # instead of CRenderer::toWorld/fromWorld: Hiders 556 -> 552 references and 81 -> 79 members. TOTAL 604 -> 554 and 89 -> 81, as
 # archcheck reported on the finished tree.
+# Spec 031 (Phase 7, T098, 2026-11-11): Reyes and the stochastic rasterizer read the camera rotation, translation, flags and lens values from FrameParams
+# (frameParams(), once per function or grid, never per sample) instead of CRenderer::aperture, cameraHasRotation, cameraRotationOnly, relRotQ, relTrans,
+# invFocaldistance, cocFactorScreen and cocFactorSamples: Hiders 552 -> 499 references and 79 -> 72 members, TOTAL 554 -> 501 and 81 -> 74, as archcheck reported.
 
 Geometry            2     2
-Hiders            552    79
+Hiders            499    72
 Infra               0     0
 SceneInterface      0     0
 Shading             0     0
 Texturing           0     0
-TOTAL             554    81
+TOTAL             501    74

@@ -59,7 +59,7 @@ inline int rasterTimeStrata() {
 
 // Transform a t=0 raster-space vertex (sample coordinates) to its raster
 // position at shutter time jt under the relative camera motion (Mjt/t* from
-// slerp(identity, CRenderer::relRotQ, jt) and jt*CRenderer::relTrans).
+// slerp(identity, camera.relRotQ, jt) and jt*camera.relTrans, the frame's values).
 // Shared by bound computation (CReyes::insertGrid) and the stochastic
 // rasterizer (stochasticQuad.h). Returns FALSE when the transformed point
 // lands at/behind the eye plane, in which case the outputs are not written.

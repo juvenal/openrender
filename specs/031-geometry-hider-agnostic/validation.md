@@ -309,6 +309,23 @@ With those edits the three programs pass (throwaway builds): the diff is `tools/
 
 Linux CP-Lb (`031-l7-*`, GCC 13 `-Werror`, `-j2`): push/verify 3753 files, 0 differences; build exit 0, 0 warnings; `ctest -L architecture` 31/31; `-L '^geometry_contract$'` **5/5**; `Motion_*` 10/10.
 
+### Phase 7 checkpoint (macOS; Linux below once its lock frees)
+
+Source: `FrameParams` gained `cocFactorScreen`, `cocFactorSamples` (copied in `beginFrameParams`, 0 in the default value); `reyes.cpp` (constructor, `drawObject`, `copyPoints`, `insertGrid`) takes `const FrameParams &fp = frameParams()` once per function and reads
+`fp.aperture`, `fp.invFocaldistance`, `fp.cocFactorScreen`/`cocFactorSamples` (the `cocScreen` macro expanded in its own operand order) and `fp.camera.hasRotation/relRotQ/relTrans`; the four inlined `slerpq` + `qtoR` pairs of `reyes.cpp` and the ones of
+`stochastic.cpp` (`rasterBegin`) and `stochasticQuad.h` (per grid: `[[maybe_unused]] fp`, under `STOCHASTIC_MOVING`) are `openrender::motion::cameraRotationAt`; the `identQ` constants are gone; no translation expression and no `atTime*` form changed;
+`reyes.h`'s comment corrected. `rasterCameraMotionTransform` untouched.
+
+| CP (macOS) | Result |
+|---|---|
+| CP-a build (`031-p7-build`, `-j4`) | exit 0, first pass, 0 first-party warnings |
+| CP-b suite | **1104/1104 passed** |
+| CP-d | 915 images, **0 differing, 0 missing**; every `MaxBlockAvgDiff` equal to the baseline (the camera-motion scenes included) |
+| CP-r | `-R Motion_`: **13/13**, which includes `Motion_CameraSlerpEquivalence`, `Motion_Replay_*` (recordings not touched) and `Motion_FrameParamsEqualCore` with its two new checks |
+| CP-det | `^determinism$` 156/156 |
+| CP-c | `ctest -L architecture` 31/31; `ALLOWED DB-004 x 3, DB-010 x 8, DB-011 x 151, DB-025 x 11` = **173**; `RESULT PASS violations=0 stale=0` |
+| Metric | Hiders 552 -> **499** references (79 -> 72 members), TOTAL 554 -> **501** (81 -> 74); Geometry 2/2 unchanged; `metrics-baseline.txt` lowered with a dated comment |
+
 ## §2 Red evidence
 
 ### Phase 2 (macOS; `build` configured with `-DOPENRENDER_031_RED_TESTS=ON`, then OFF again)
@@ -378,6 +395,25 @@ PAUSE 6a approved: the five tests enabled (`tests/geometry_contract/CMakeLists.t
 | `SceneInterface_RibVectorResidual` | fails: 4 failures, `ribVector_obj` compiles `rendererDeclarations.cpp` and the three stubs, which the 5-line list does not name |
 | `Architecture_DomainBoundaries` | `RESULT FAIL violations=118 stale=0 badid=0 failing-cycles=4`: exactly the 118 deleted lines (39 include, 79 link = 77 DB-017 + 2 DB-011) |
 
+### Phase 7 pinned-test diff (T093, PAUSE 7b; prepared, **not applied**)
+
+`tests/unit/motion/test_frame_params_equal_core.cpp` gains two `bits(...)` checks after the `fstop` one (the file `specs/031-geometry-hider-agnostic/tools/phase7-frame-params-test.diff`, `git apply --check` clean):
+
+```
+         bits(c.name, "fstop", fp.fstop, CRenderer::fstop);
++        bits(c.name, "cocFactorScreen", fp.cocFactorScreen, CRenderer::cocFactorScreen);
++        bits(c.name, "cocFactorSamples", fp.cocFactorSamples, CRenderer::cocFactorSamples);
+```
+
+**PAUSE 7a/7b approval (2026-11-11).** The maintainer approved the pinned-test diff `tools/phase7-frame-params-test.diff` (the two `bits(...)` checks for `cocFactorScreen` and `cocFactorSamples`) and the phase plan: the 11 DB-011 lines, the metric lowering,
+the two `FrameParams` copy fields (default 0), the site list, and `motion::cameraRotationAt` in place of the inlined `slerpq` + `qtoR`. The diff is applied after this entry; byte-identity is the bar (no `Motion_Replay_*` re-recording, any difference reported).
+
+### Phase 7 test gate (T094; before any source edit)
+
+The pinned-test diff applied (2 lines); the 11 DB-011 lines deleted by key. `ctest -L architecture` on the unchanged Phase 6 build: `RESULT FAIL violations=11 stale=0` (`build-logs/p7-tg-arch.log`), exactly the 11 link lines:
+`reyes.cpp -> CRenderer::` `cocFactorScreen`, `cocFactorSamples`, `invFocaldistance`, `cameraHasRotation`, `relRotQ`, `aperture`, `relTrans`; `stochastic.cpp -> CRenderer::` `cameraHasRotation`, `cameraRotationOnly`, `relRotQ`, `relTrans`.
+`cmake --build --target test_frame_params_equal_core` fails to compile: `FrameParams` has no member `cocFactorScreen` (`build-logs/p7-tg-build.log`).
+
 ## §3 Linux records
 
 Host `juvenal@ubuntu-2404-desktop.v2-labs.io` (GCC 13, `-Werror`, 2 cores), tree `~/Projects/Development/CLI/openrender-031` (checked absent beforehand; `openrender`,
@@ -416,6 +452,11 @@ DB-017 x 77, DB-025 x 11` = 317; Geometry 21/7, Hiders 556/81, TOTAL 577/84; `RE
 After `git add`, `linux_sync.sh push` (3,755 files) and `verify` (**3755 files, 0 differences**); remote incremental build (`031-l5-build`, remote `cpujob`, `-j2`): exit 0, **0 warnings** under GCC 13 `-Werror`;
 `ctest -L architecture` **29/29**; `-L '^geometry_contract$'` **2/2**; `-R 'Motion_(Replay|CameraSlerpEquivalence)'` **10/10**; `-L shading_parity` **136/136**; archcheck report **identical to macOS**
 (`ALLOWED DB-004 x 19, DB-006 x 23, DB-010 x 8, DB-011 x 164, DB-017 x 77, DB-025 x 11` = 302, `RESULT PASS`). The full suite and CP-d on Linux are Phase 8's.
+
+### Phase 7 CP-Lb (Linux, 2026-11-11)
+
+`linux_sync.sh push` (3754 files) and `verify` (**3754 files, 0 differences**); remote incremental build (`031-l8-build`, remote `cpujob`, `-j2`): exit 0, **0 warnings** under GCC 13 `-Werror`; `ctest -L architecture` **31/31**;
+`-R Motion_` **13/13** (`Motion_CameraSlerpEquivalence`, `Motion_Replay_*` on its own `linux.txt` recording, `Motion_FrameParamsEqualCore`); `-L '^geometry_contract$'` **5/5**. The full suite and CP-d on Linux are Phase 8's.
 
 ### T020 / PAUSE 1 outcome (2026-11-09)
 

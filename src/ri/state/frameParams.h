@@ -56,6 +56,7 @@ namespace openrender {
             int projection; // an EProjectionType value (state/options.h)
             float imagePlane, invImagePlane, dxdPixel, dydPixel;
             float aperture, focaldistance, invFocaldistance, focallength, fstop;
+            float cocFactorScreen, cocFactorSamples; // copies of the core's values (renderer.cpp:455-456), removed by the lens phase
             FrameCameraMotion camera;
     };
 

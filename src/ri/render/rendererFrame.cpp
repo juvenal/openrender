@@ -52,6 +52,8 @@ void beginFrameParams(const openrender::sampling::CSamplingConfig &samplingConfi
     f.invFocaldistance = CRenderer::invFocaldistance;
     f.focallength = CRenderer::focallength;
     f.fstop = CRenderer::fstop;
+    f.cocFactorScreen = CRenderer::cocFactorScreen;
+    f.cocFactorSamples = CRenderer::cocFactorSamples;
 
     movmm(f.camera.fromWorld, CRenderer::fromWorld);
     movmm(f.camera.toWorld, CRenderer::toWorld);
