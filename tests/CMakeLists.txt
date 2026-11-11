@@ -119,9 +119,8 @@ add_subdirectory(architecture)
 # Spec 030 (hider and integrator registry), FR-017: the two NEW RIB-helper scripts (maintainer answer Q-C). The approved
 # tests/python/test_prman.py and tests/lua/test_prman.lua were never registered in CTest and stay out of scope. Each new
 # script is registered only when its interpreter is found; a host without one records a skip message at configure time
-# (Lua is 5.5 on macOS and 5.4 on Linux: the script uses plain Lua). They are red until Phase 7 (the helpers have no
-# Integrator method), so they are DISABLED while OPENRENDER_030_RED_TESTS is OFF; the Test gate of Phase 7 removes the
-# `if(NOT ...)` below.
+# (Lua is 5.5 on macOS and 5.4 on Linux: the script uses plain Lua). They were red until Phase 7 (the helpers had no
+# Integrator method); the Test gate of Phase 7 enabled them.
 find_program(OR030_PYTHON NAMES python3 python)
 find_program(OR030_LUA NAMES lua lua5.4 lua5.3 luajit)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/helpers_work/python ${CMAKE_CURRENT_BINARY_DIR}/helpers_work/lua)
@@ -143,9 +142,6 @@ if(OR030_LUA)
     list(APPEND OR030_HELPER_TESTS Helpers_PrmanIntegratorLua)
 else()
     message(STATUS "Helpers_PrmanIntegratorLua skipped: no lua interpreter found")
-endif()
-if(OR030_HELPER_TESTS AND NOT OPENRENDER_030_RED_TESTS)
-    set_tests_properties(${OR030_HELPER_TESTS} PROPERTIES DISABLED TRUE)
 endif()
 
 # Print test information

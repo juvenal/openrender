@@ -312,6 +312,11 @@ void CRibOut::RiHiderV(const char *type, int n, const char *tokens[], const void
     writePL(n, tokens, params);
 }
 
+void CRibOut::RiIntegratorV(const char *name, int n, const char *tokens[], const void *params[]) {
+    out("Integrator \"%s\" ", name);
+    writePL(n, tokens, params);
+}
+
 void CRibOut::RiColorSamples(int N, float *nRGB, float *RGBn) {
     int i;
 

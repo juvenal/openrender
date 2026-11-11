@@ -284,34 +284,35 @@ namespace {
         return to;
     }
 
-    void freeIntegratorParameters(COptions::CTypedParameter *parameters, int n) {
-        if (parameters == NULL)
-            return;
-
-        for (int i = 0; i < n; i++) {
-            if (parameters[i].name != NULL)
-                free(parameters[i].name);
-            if (parameters[i].data == NULL)
-                continue;
-
-            if (integratorFloatsPerItem(parameters[i].type) != 0) {
-                delete[] (float *)parameters[i].data;
-            }
-            else if (parameters[i].type == TYPE_INTEGER) {
-                delete[] (int *)parameters[i].data;
-            }
-            else if (parameters[i].type == TYPE_STRING) {
-                char **strings = (char **)parameters[i].data;
-                for (int j = 0; j < parameters[i].numItems; j++)
-                    if (strings[j] != NULL)
-                        free(strings[j]);
-                delete[] strings;
-            }
-        }
-        delete[] parameters;
-    }
-
 } // namespace
+
+// Releases a parameter list built by RiIntegratorV or copied by the COptions copy constructor.
+void COptions::freeIntegratorParameters(CTypedParameter *parameters, int n) {
+    if (parameters == NULL)
+        return;
+
+    for (int i = 0; i < n; i++) {
+        if (parameters[i].name != NULL)
+            free(parameters[i].name);
+        if (parameters[i].data == NULL)
+            continue;
+
+        if (integratorFloatsPerItem(parameters[i].type) != 0) {
+            delete[] (float *)parameters[i].data;
+        }
+        else if (parameters[i].type == TYPE_INTEGER) {
+            delete[] (int *)parameters[i].data;
+        }
+        else if (parameters[i].type == TYPE_STRING) {
+            char **strings = (char **)parameters[i].data;
+            for (int j = 0; j < parameters[i].numItems; j++)
+                if (strings[j] != NULL)
+                    free(strings[j]);
+            delete[] strings;
+        }
+    }
+    delete[] parameters;
+}
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	COptions

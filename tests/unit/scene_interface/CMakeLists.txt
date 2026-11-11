@@ -91,10 +91,8 @@ add_custom_target(si_capture_scene_interface
 add_dependencies(scene-interface-capture-baselines si_capture_scene_interface)
 
 # Spec 030 (hider and integrator registry), FR-019: parse -> RIB writer preserves the Integrator statement and its
-# parameters, and the preview back-end ignores it silently. Red until Phase 7: behind the red-first option.
-if(OPENRENDER_030_RED_TESTS)
-    si_executable(test_scene_interface_integrator_roundtrip test_integrator_roundtrip.cpp LIBS ribRender ribpreview)
-    add_test(NAME RibOut_IntegratorRoundTrip COMMAND test_scene_interface_integrator_roundtrip)
-    set_tests_properties(RibOut_IntegratorRoundTrip PROPERTIES TIMEOUT 120 LABELS "scene_interface" ENVIRONMENT "${SI_ENV}"
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-endif()
+# parameters, and the preview back-end ignores it silently. Enabled at the Test gate of Phase 7 (it was red).
+si_executable(test_scene_interface_integrator_roundtrip test_integrator_roundtrip.cpp LIBS ribRender ribpreview)
+add_test(NAME RibOut_IntegratorRoundTrip COMMAND test_scene_interface_integrator_roundtrip)
+set_tests_properties(RibOut_IntegratorRoundTrip PROPERTIES TIMEOUT 120 LABELS "scene_interface" ENVIRONMENT "${SI_ENV}"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})

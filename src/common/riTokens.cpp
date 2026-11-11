@@ -318,6 +318,10 @@ RtToken RI_SAMPLING = "sampling";
 RtToken RI_SAMPLER = "sampler";
 RtToken RI_SEED = "seed";
 
+// Integrator (spec 030)
+RtToken RI_INTEGRATOR = "integrator";
+RtToken RI_CLASSIC = "classic";
+
 // Irradiance options
 RtToken RI_HANDLE = "handle";
 RtToken RI_FILEMODE = "filemode";

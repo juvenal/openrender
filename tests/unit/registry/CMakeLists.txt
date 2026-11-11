@@ -69,12 +69,12 @@ reg_executable(test_registry_hider_table test_registry_hider_table.cpp)
 reg_test(Registry_HiderLookup test_registry_hider_table ARGS lookup)
 reg_test(Registry_HiderCollisions test_registry_hider_table ARGS collisions)
 
+# ---- Phase 7: the Integrator statement parses (it compiled before the statement existed and was red by assertion) -----------
+reg_executable(test_registry_identity test_registry_identity.cpp)
+reg_test(Registry_IntegratorImageIdentity test_registry_identity LABELS visual TIMEOUT 300)
+
 # ---- red until their phase ----------------------------------------------------------------------------------------------
 if(OPENRENDER_030_RED_TESTS)
-    # Phase 7: the Integrator statement parses (it compiles today; red by assertion).
-    reg_executable(test_registry_identity test_registry_identity.cpp)
-    reg_test(Registry_IntegratorImageIdentity test_registry_identity LABELS visual TIMEOUT 300)
-
     # Phase 8: a hider registered from this directory is selectable by name and alias.
     reg_executable(test_registry_hider_double test_registry_hider_double.cpp hider_double.cpp)
     reg_test(Registry_TestDoubleHider test_registry_hider_double)

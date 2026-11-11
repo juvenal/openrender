@@ -182,6 +182,9 @@ class COptions {
         };
         int numIntegratorParameters;
         CTypedParameter *integratorParameters; // new CTypedParameter[numIntegratorParameters], or NULL
+
+        // Releases a list of the shape above (the name, the data and the array itself); nullptr is allowed.
+        static void freeIntegratorParameters(CTypedParameter *parameters, int n);
         const char *defaultShaderFormat; // nullptr → hardcoded "slo" fallback
 
         // Opt-in disk cache for the runtime-synthesized (non-TIFF)
