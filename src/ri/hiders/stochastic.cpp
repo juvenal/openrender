@@ -70,7 +70,7 @@
 // Description			:	Ctor
 // Return Value			:	-
 // Comments				:
-CStochastic::CStochastic(int thread) : CReyes(thread), COcclusionCuller() {
+CStochastic::CStochastic(int thread, const CHiderPeers &peers) : CReyes(thread, peers), COcclusionCuller() {
     int i, j;
     float *cExtraSample;
     CPixel *cPixel;
@@ -1330,7 +1330,7 @@ namespace {
     };
 
     OrHiderInstance *reyesCreate(const OrHiderCreateInfo *info) {
-        return instanceOf(new CStochastic(info->thread));
+        return instanceOf(new CStochastic(info->thread, *frameOf(info->frame).peers));
     }
 
     void reyesDestroy(OrHiderInstance *instance) {

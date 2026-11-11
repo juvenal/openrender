@@ -112,16 +112,6 @@ CPhotonHider::~CPhotonHider() {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CPhotonHider
-// Method				:	preDisplaySetup
-// Description			:	allow the hider to affect display setup
-// Return Value			:	-
-// Comments				:
-void CPhotonHider::preDisplaySetup() {
-    CRenderer::hiderFlags |= HIDER_NODISPLAY | HIDER_ILLUMINATIONHOOK | HIDER_PHOTONMAP_OVERWRITE;
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CPhotonHider
 // Method				:	renderFrame
 // Description			:	Renders the frame
 // Return Value			:	-

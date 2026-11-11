@@ -130,7 +130,9 @@ set(ri_sources
 	render/remoteChannel.cpp
 	render/geometryDispatch.cpp
 	render/renderer.cpp
+	render/rendererTransport.cpp
 	render/rendererFrame.cpp
+	render/rendererTransport.cpp
 	render/rendererClipping.cpp
 	render/rendererContext.cpp
 	render/rendererDeclarations.cpp
@@ -420,6 +422,7 @@ list(REMOVE_ITEM ribVector_sources
     render/geometryDispatch.cpp
     render/renderer.cpp
     render/rendererFrame.cpp
+    render/rendererTransport.cpp
     render/rendererContext.cpp
     render/rendererDeclarationsDispatch.cpp
     render/displayHost.cpp

@@ -38,10 +38,8 @@
 // Comments				:
 class CZbuffer : public CReyes, public COcclusionCuller {
     public:
-        CZbuffer(int thread);
+        CZbuffer(int thread, const CHiderPeers &peers);
         ~CZbuffer();
-
-        static void preDisplaySetup();
 
         // The functions inherited from the CReyes
         void rasterBegin(int, int, int, int, int);

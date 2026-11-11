@@ -48,7 +48,7 @@
 // Description			:	Ctor
 // Return Value			:	-
 // Comments				:
-CZbuffer::CZbuffer(int thread) : CReyes(thread), COcclusionCuller() {
+CZbuffer::CZbuffer(int thread, const CHiderPeers &peers) : CReyes(thread, peers), COcclusionCuller() {
     int i;
 
     totalWidth = CRenderer::bucketWidth * CRenderer::pixelXsamples + 2 * CRenderer::xSampleOffset;
@@ -80,16 +80,6 @@ CZbuffer::CZbuffer(int thread) : CReyes(thread), COcclusionCuller() {
 CZbuffer::~CZbuffer() {
 
     // Framebuffer is allocated from the frame memory
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class                :   CZBuffer
-// Method               :   preDisplaySetup
-// Description          :   allow the hider to affect display setup
-// Return Value         :   -
-// Comments             :
-void CZbuffer::preDisplaySetup() {
-    CRenderer::hiderFlags |= HIDER_RGBAZ_ONLY;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -212,7 +202,7 @@ namespace {
     const OrCapability kZbufferProvides[] = {{OR_CAP_RASTERIZATION, OR_CAP_VERSION}, {OR_CAP_DISPLAY_OUTPUT, OR_CAP_VERSION}};
 
     OrHiderInstance *zbufferCreate(const OrHiderCreateInfo *info) {
-        return instanceOf(new CZbuffer(info->thread));
+        return instanceOf(new CZbuffer(info->thread, *frameOf(info->frame).peers));
     }
 
     void zbufferDestroy(OrHiderInstance *instance) {

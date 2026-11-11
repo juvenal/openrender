@@ -52,7 +52,6 @@
 #include "noise.h"
 #include "object.h"
 #include "patches.h"
-#include "photon.h"
 #include "photonMap.h"
 #include "pl.h"
 #include "points.h"
@@ -60,8 +59,8 @@
 #include "quadrics.h"
 #include "common/random.h"
 #include "common/sampling.h"
+#include "hiderRegistry.h"
 #include "ray.h"
-#include "raytracer.h"
 #include "rendererContext.h"
 #include "searchPathResolver.h"
 #include "ri.h"
@@ -75,13 +74,11 @@
 #include "shaderRefs.h"
 #include "stateConversions.h"
 #include "common/stats.h"
-#include "stochastic.h"
 #include "subdivisionCreator.h"
 #include "subdivisionLoop.h"
 #include "texmake.h"
 #include "texture.h"
 #include "xform.h"
-#include "zbuffer.h"
 
 // Defined in ri.cpp — true when orender was invoked with -d
 extern bool riAddFramebuffer();
@@ -1530,11 +1527,14 @@ void CRendererContext::RiHiderV(const char *type, int n, const char *tokens[], c
     if (options->hider != NULL)
         free(options->hider);
 
-    if (strcmp(type, RI_HIDDEN) == 0)
-        options->hider = strdup("reyes");
-    else if (strcmp(type, "stochastic") == 0) {
-        warning(CODE_BADTOKEN, "Deprecated Hider \"stochastic\"; use \"reyes\" instead\n");
-        options->hider = strdup("reyes");
+    // Resolved at statement time through the registry (spec 030): a registered name is stored as written, an alias is
+    // stored as its target's name, a deprecated alias reports its own warning (once per statement), and an unknown name is
+    // stored unchanged and diagnosed when the frame begins
+    const CHiderRegistry::SLookup found = hiderRegistry().find(type);
+    if (found.table != NULL) {
+        options->hider = strdup(found.table->name);
+        if (found.alias != NULL && found.alias->deprecationWarning != NULL)
+            warning(CODE_BADTOKEN, "%s\n", found.alias->deprecationWarning);
     }
     else
         options->hider = strdup(type);

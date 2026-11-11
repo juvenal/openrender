@@ -40,6 +40,7 @@
 #include "remoteChannel.h"
 #include "renderer.h"
 #include "rendererContext.h"
+#include "rendererTransport.h"
 #include "stateConversions.h"
 #include "common/stats.h"
 #include "displayHost.h"
@@ -198,7 +199,7 @@ void CRenderer::beginDisplays() {
     nonCompChannelOrder = NULL;
 
     // Initiate the displays
-    if (!(hiderFlags & HIDER_NODISPLAY))
+    if (frameTransport().traits.displayOutput)
         computeDisplayData();
     else {
         numSamples = 0;
@@ -624,7 +625,7 @@ void CRenderer::computeDisplayData() {
 
                 if (oChannel->variable != NULL) {
                     // variable is NULL only for RGBAZ channels
-                    if (hiderFlags & HIDER_RGBAZ_ONLY) {
+                    if (!frameTransport().traits.displayChannels) {
                         error(CODE_BADTOKEN, "Hider \"%s\" cannot handle display channels\n", hider);
                         dspError = TRUE;
                         break;
@@ -640,7 +641,7 @@ void CRenderer::computeDisplayData() {
             else {
                 // it's an old-style AOV
 
-                if (hiderFlags & HIDER_RGBAZ_ONLY) {
+                if (!frameTransport().traits.displayChannels) {
                     error(CODE_BADTOKEN, "Hider \"%s\" cannot handle arbitrary output variables\n", hider);
                     dspError = TRUE;
                     break;
@@ -767,7 +768,7 @@ void CRenderer::computeDisplayData() {
                     error(CODE_LIMIT, "Bucket width and height must be same for TSM: (%d,%d)\n", bucketWidth, bucketHeight);
                 }
                 else {
-                    if (strcmp(hider, "reyes") != 0) {
+                    if (!frameTransport().traits.deepShadowOutput) {
                         error(CODE_LIMIT, "Hider must be reyes (or hidden, or the deprecated stochastic alias) for TSM\n");
                     }
                     else {

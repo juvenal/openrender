@@ -29,6 +29,7 @@
 
 #include "common/global.h"
 #include "hider.h"
+#include "hiderPeers.h"
 #include "object.h"
 #include "rasterFlags.h"
 #include "renderer.h"
@@ -231,7 +232,7 @@ class CReyes : public CHider {
         };
 
     public:
-        CReyes(int thread);
+        CReyes(int thread, const CHiderPeers &peers);
         ~CReyes();
 
         // This function is called to to render
@@ -284,6 +285,7 @@ class CReyes : public CHider {
         void skip();   // Skip the current bucket
 
         CBucket ***buckets; // All buckets
+        const CHiderPeers *peers; // The frame's per-thread hiders (the sibling loop of insertObject); the frame transport slot owns them
         TMutex bucketMutex; // Controls the accesses to the buckets
 
         int bucketPixelLeft;   // Left of the current bucket in pixels

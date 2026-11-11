@@ -105,7 +105,7 @@ DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZN10CTexture3dC2EPKcPKfS3_S3
 DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZN10CTexture3dD2Ev   # CTexture3d::~CTexture3d()
 DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZTI10CTexture3d   # typeinfo for CTexture3d
 
-# --- DB-011: Hiders read renderer-core state (CRenderer) (164) ---
+# --- DB-011: Hiders read renderer-core state (CRenderer) (161) ---
 DB-011  include  src/ri/hiders/compositor.cpp  ->  src/ri/render/renderer.h
 DB-011  include  src/ri/hiders/irradiance.cpp  ->  src/ri/render/renderer.h
 DB-011  include  src/ri/hiders/irradianceDispatch.cpp  ->  src/ri/render/renderer.h
@@ -123,7 +123,6 @@ DB-011  link     src/ri/hiders/compositor.cpp  ->  _ZN9CRenderer23numExtraNonCom
 DB-011  link     src/ri/hiders/compositor.cpp  ->  _ZN9CRenderer7clipMaxE   # CRenderer::clipMax
 DB-011  link     src/ri/hiders/irradiance.cpp  ->  _ZN9CRenderer9worldBmaxE   # CRenderer::worldBmax
 DB-011  link     src/ri/hiders/irradiance.cpp  ->  _ZN9CRenderer9worldBminE   # CRenderer::worldBmin
-DB-011  link     src/ri/hiders/photon.cpp  ->  _ZN9CRenderer10hiderFlagsE   # CRenderer::hiderFlags
 DB-011  link     src/ri/hiders/photon.cpp  ->  _ZN9CRenderer11dispatchJobE   # CRenderer::dispatchJob
 DB-011  link     src/ri/hiders/photon.cpp  ->  _ZN9CRenderer11maxGridSizeE   # CRenderer::maxGridSize
 DB-011  link     src/ri/hiders/photon.cpp  ->  _ZN9CRenderer14numEmitPhotonsE   # CRenderer::numEmitPhotons
@@ -207,7 +206,6 @@ DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer7relRotQE   # CRender
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer7xPixelsE   # CRenderer::xPixels
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer7yPixelsE   # CRenderer::yPixels
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer8apertureE   # CRenderer::aperture
-DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer8contextsE   # CRenderer::contexts
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer8pixelTopE   # CRenderer::pixelTop
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer8relTransE   # CRenderer::relTrans
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer8xBucketsE   # CRenderer::xBuckets
@@ -259,7 +257,6 @@ DB-011  link     src/ri/hiders/trace.cpp  ->  _ZN9CRenderer11maxGridSizeE   # CR
 DB-011  link     src/ri/hiders/trace.cpp  ->  _ZN9CRenderer11maxRayDepthE   # CRenderer::maxRayDepth
 DB-011  link     src/ri/hiders/trace.cpp  ->  _ZN9CRenderer14hierarchyMutexE   # CRenderer::hierarchyMutex
 DB-011  link     src/ri/hiders/trace.cpp  ->  _ZN9CRenderer4rootE   # CRenderer::root
-DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer10hiderFlagsE   # CRenderer::hiderFlags
 DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer11bucketWidthE   # CRenderer::bucketWidth
 DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer12bucketHeightE   # CRenderer::bucketHeight
 DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer13pixelXsamplesE   # CRenderer::pixelXsamples

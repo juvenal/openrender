@@ -36,6 +36,7 @@
 #include "ri/parse/ri.h"
 #include "ri/render/renderer.h"
 #include "ri/render/rendererContext.h"
+#include "ri/render/rendererTransport.h"
 
 static int g_passed = 0;
 static int g_failed = 0;
@@ -202,8 +203,7 @@ static void setupState(CHookProbeContext *probe, bool allInactive) {
 // Runs the light once, hook on, with its locals allocated from a page that
 // holds the poison byte, and returns the hook calls
 static std::vector<SHookCall> runLight(CHookProbeContext *probe, CProgrammableShaderInstance *light, bool allInactive) {
-    const unsigned int savedFlags = CRenderer::hiderFlags;
-    CRenderer::hiderFlags |= HIDER_ILLUMINATIONHOOK;
+    const bool savedHook = setFrameIlluminationHookForTest(true);
 
     setupState(probe, allInactive);
     probe->calls.clear();
@@ -218,7 +218,7 @@ static std::vector<SHookCall> runLight(CHookProbeContext *probe, CProgrammableSh
     std::vector<SHookCall> calls = probe->calls;
 
     memoryTini(localMemory);
-    CRenderer::hiderFlags = savedFlags;
+    setFrameIlluminationHookForTest(savedHook);
     return calls;
 }
 

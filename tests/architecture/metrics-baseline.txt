@@ -56,9 +56,9 @@
 # 82 -> 81 members; with spec 038 merged, TOTAL 606 -> 604 and 90 -> 89 (the values of the merged tree, as archcheck reported).
 
 Geometry           48    15
-Hiders            556    81
+Hiders            553    79
 Infra               0     0
 SceneInterface      0     0
 Shading             0     0
 Texturing           0     0
-TOTAL             604    89
+TOTAL             601    87
