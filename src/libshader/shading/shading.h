@@ -326,8 +326,8 @@ enum ETraceRequestKind {
     TRACEREQUEST_TRANSMISSION,    // traceTransmission bundles: transmission() and ray-traced shadow()
     TRACEREQUEST_VISIBILITY,      // traceTransmission probes: visibility()
     TRACEREQUEST_GATHER,          // gatherSample bundles
-    TRACEREQUEST_OCCLUSION,       // CIrradianceCache::sample, occlusion()
-    TRACEREQUEST_INDIRECTDIFFUSE, // CIrradianceCache::sample, indirectdiffuse()
+    TRACEREQUEST_OCCLUSION,       // CIrradianceSampler::sample, occlusion()
+    TRACEREQUEST_INDIRECTDIFFUSE, // CIrradianceSampler::sample, indirectdiffuse()
 };
 struct CTraceRequestReport {
         int kind;          // ETraceRequestKind

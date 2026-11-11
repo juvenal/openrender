@@ -178,7 +178,7 @@ EDataFileType CDataDocument::open(const char *fileName) {
     // CRenderer::fromWorld/toWorld/fromWorld1/toWorld1/fromNDC/toNDC and worldBmin/worldBmax
     // are file-scope statics only ever initialized in beginFrame(), which this headless path
     // never reaches -- yet CPhotonMap's and CIrradianceCache's read constructors read them
-    // (photonMap.cpp:103-104, irradianceCache.cpp). Seed them to identity/+-infinity before
+    // (photonStore.cpp, irradianceCache.cpp). Seed them to identity/+-infinity before
     // constructing any reader, or a photon map/cache silently loads with a degenerate transform.
     identitym(CRenderer::fromWorld);
     identitym(CRenderer::toWorld);

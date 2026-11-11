@@ -10,8 +10,8 @@
 // segment tessellation an integration test would otherwise have to reverse-engineer.
 //
 // `radius` is a scalar, not a vector: CPrimitiveSink::disks()'s `dP` argument (src/ri/dataviewer/dataView.h)
-// is walked with a stride-1 `cdP++` at every real call site (pointCloud.cpp, brickmap.cpp,
-// irradiance.cpp) and in the deleted pre-016 pglDisks implementation alike -- one float per
+// is walked with a stride-1 `cdP++` at every real call site (pointCloudView.cpp, brickMapView.cpp,
+// irradianceCacheView.cpp) and in the deleted pre-016 pglDisks implementation alike -- one float per
 // disk, unlike P/N/C which are stride-3 float3 arrays.
 struct DiskPrimitive {
         float3 P;     // center
