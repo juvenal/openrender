@@ -93,7 +93,7 @@ class CPhotonStore : public CMap<CPhoton>, public CFileResource {
         void balance() override;
 
         void store(const float *, const float *, const float *, const float *);
-        void store(const float *, const float *, const float *, const float *, uint64_t key); // the key is not kept yet
+        void store(const float *, const float *, const float *, const float *, uint64_t key); // the key goes to the side array (read back with photonKey(i)); balance() permutes it with the photons
 
         void bound(float *bmin, float *bmax) const;
         const char *typeName() const { return "Photon Map"; }

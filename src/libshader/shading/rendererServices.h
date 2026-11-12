@@ -82,7 +82,9 @@ namespace openrender::shading {
     //   ("Breaking within 2.x"). The rules above apply as written from the release that closes the milestone.
     //
     // History
-    //   2.2.0  spec 032. Additions only (no member changed):
+    //   2.2.0  spec 032. Breaking within 2.x (allowed before spec 055, see the rule above); no member or signature changed:
+    //          Changed:  getCache() answers nullptr, where it answered the other object, for a name already registered as a
+    //                    point cloud or a brick map (see Wording below); a caller that relied on the old answer breaks.
     //          Added:    photonMapAccess.h: IPhotonEstimator (the hiders' 4-argument photon estimate, was
     //                    CPhotonMap::lookup(C, P, N, n)), IPhotonStore (the photon hider's writes), CPhotonMapRefTarget
     //                    (what a Graphics State map slot holds) and photonMapOf(), which replaces the Hiders' accessor of

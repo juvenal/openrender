@@ -70,7 +70,7 @@ Old: `` `CRendererServices` is version 2.1.0 (`kRendererServicesVersion`, `rende
 New: `` `CRendererServices` is version 2.2.0 (`kRendererServicesVersion`, `rendererServices.h`, with\n   `serviceTypes.h`, `tracer.h` and `shaderGlobals.h`; `getPhotonMap` returns `IPhotonLookup *`; `getCache` answers only irradiance caches\n   (Core's `getCache` answers `nullptr` for a name registered as another 3D kind, #104), and Shading converts the answer with `irradianceStoreOf()`; ``
 
 Old (the end of the paragraph that says when the version stepped): `` `kRendererServicesVersion` stayed 2.0.0 at spec 038 and is 2.1.0 since spec 029.``
-New: `` `kRendererServicesVersion` stayed 2.0.0 at spec 038, is 2.1.0 since spec 029 and 2.2.0 since spec 032 (additions only: `photonMapAccess.h`, `irradianceSampler.h`, `irradianceCalls.h`, `boundDraws()`).``
+New: `` `kRendererServicesVersion` stayed 2.0.0 at spec 038, is 2.1.0 since spec 029 and 2.2.0 since spec 032 (a MINOR step that is breaking within 2.x: `getCache` answers `nullptr` on a kind mismatch; otherwise additions: `photonMapAccess.h`, `irradianceSampler.h`, `irradianceCalls.h`, `boundDraws()`).``
 
 ### 6. New gotcha 37 (after 35 and 056's 36)
 

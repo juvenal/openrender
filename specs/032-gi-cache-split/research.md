@@ -168,7 +168,7 @@ rule written into `getCache`'s comment: getCache answers only irradiance caches.
 **Decision.**
 
 **Texturing: `src/ri/texture/photonStore.{h,cpp}`.**
-- `CPhoton` keeps its members and order: 44 bytes, `test_photon_solar0.cpp` untouched.
+- `CPhoton` keeps its members and order: 44 bytes, `test_photon_solar0.cpp` untouched but for its comment naming the header (approved at PAUSE 5a).
 - `CPhotonStore : public CMap<CPhoton>, public CFileResource` is today's `CPhotonMap` minus `CDataView`,
   `CMapRefTarget`, `IPhotonLookup` and every `CRenderer` read.
 - It keeps every storage member: `store`, `balance`, `reset`, `write`, both lookups, `probe`/`insert` (the lookup

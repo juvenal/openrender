@@ -232,7 +232,7 @@ The author of spec 040 merges per-thread records and photons in an order that do
   - the cache file bytes MUST equal master's;
   - the `.pm` file MUST equal master's in every defined field, compared field by field, skipping the bytes that are never assigned (`items[0]`, the `CPhoton` padding, an empty map's dummy direction).
 
-  `CPhoton` keeps its 44-byte layout, `CPhoton` keeps its 44-byte layout and `tests/visual/test_photon_solar0.cpp` is untouched. Only the irradiance record is sent with its key; wire compatibility is same-build only.
+  `CPhoton` keeps its 44-byte layout, `CPhoton` keeps its 44-byte layout and `tests/visual/test_photon_solar0.cpp` is untouched but for one comment line naming the header (approved at PAUSE 5a, 2026-11-10). Only the irradiance record is sent with its key; wire compatibility is same-build only.
 
 **Registry, allowlist, tests, documents**
 

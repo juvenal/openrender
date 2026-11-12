@@ -75,7 +75,7 @@ references live under `tests/gi_split/reference/` and `tests/preview/reference/`
 - Consumer: four viewer adapters and `dataLoad.cpp`.
 - Graphics State: a comment only.
 
-**Not edited**: `geometry/surface.cpp` (spec 031's, Q2 B); `test_photon_solar0.cpp`; the bodies of
+**Not edited**: `geometry/surface.cpp` (spec 031's, Q2 B); `test_photon_solar0.cpp` (but for one comment line, approved at PAUSE 5a: line 60 names `src/ri/render/photonMap.h`); the bodies of
 `CPointCloud::lookup`/`store` and of the point hierarchy's traversal (FR-030); `ptcapi.*`; the brick-map paging;
 `domain-rules.txt`; `domain-map.txt`; the constitution.
 
@@ -133,8 +133,8 @@ research R14). The added costs:
   `photon-map.md`, `texture3d-family.md`, `viewer-adapters.md`, `remote-channels.md`, `gi-keys.md`,
   `renderer-services-version.md`.
 - [x] No hider-specific special case: one sampler for every hider (Q1), installed by the `CHider` base.
-- [x] No plug-in interface (shadeop, procedural, display) changes. Shading's internal boundary steps to 2.2.0 (MINOR,
-  additions only, R12).
+- [x] No plug-in interface (shadeop, procedural, display) changes. Shading's internal boundary steps to 2.2.0 (MINOR, breaking within 2.x:
+  `getCache` answers `nullptr` on a kind mismatch; otherwise additions, R12).
 - [x] Registered violations are not extended; the reductions are listed in `contracts/allowlist-end-state.md`. One
   edge stays deliberately: Core `CPhotonMap` -> Consumer `CPhotonMapView`, allowed by `Core -> *`, needed by an
   existing test (OQ-2).
@@ -242,7 +242,7 @@ The design is in the contracts; research R1 to R15 hold the decisions and their 
   `insertReceived` in arrival order.
 - **Keys** (`contracts/gi-keys.md`). The record key comes from the bound sub-stream, the photon key from the point
   key and the bounce. `CMap::permuted` reorders the side array.
-- **Services** (`contracts/renderer-services-version.md`). 2.2.0, additions only. `getCache` keeps its type (OQ-1); Core's `getCache` `dynamic_cast`s the entry it finds and answers `nullptr` for a name registered as another 3D kind (analyze M3).
+- **Services** (`contracts/renderer-services-version.md`). 2.2.0, a MINOR step that is breaking within 2.x (the kind check; otherwise additions). `getCache` keeps its type (OQ-1); Core's `getCache` `dynamic_cast`s the entry it finds and answers `nullptr` for a name registered as another 3D kind (analyze M3).
 
 ## Phases and order of work
 

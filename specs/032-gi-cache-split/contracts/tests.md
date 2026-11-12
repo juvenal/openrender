@@ -18,7 +18,7 @@ Recordings are taken on the unmodified tree at `e83d005d` on macOS and on Linux.
 |---|---|
 | `test_dataview_chunking`, `test_data_world_init`, `test_data_pointcloud`, `test_data_keys`, `test_data_disk_expand`, `test_debugdump_roundtrip`, `test_wire_cli`, `test_preview_*`, `Preview_*` | the viewer's public surface (research R6's table) |
 | `photonmap_FrameCacheRelease`, `photonmap_TwoFrameSession`, `photonmap_ObjectDefinitionRelease` | #64 lifetime: `getPhotonMap` returns `CPhotonMap *`, one `refCount` |
-| `PhotonSolar0_*` (`test_photon_solar0.cpp`, not edited) | the 44-byte `CPhoton` and the `.pm` layout |
+| `PhotonSolar0_*` (`test_photon_solar0.cpp`, only its comment naming the header is edited, approved at PAUSE 5a) | the 44-byte `CPhoton` and the `.pm` layout |
 | `ShadingContract_CannedTrace{Interp,Jit}`, `ShadingContract_NoTracer` | the owner-less context's irradiance sampling (research R3) |
 | the spec 026 trace replay (`tests/shading_contract/replay/`) | every probe ray of `occlusion()`/`indirectdiffuse()`, recorded |
 | `test_irradiance_empty_string`, `test_texture_system_null_resolver`, `plugins/texture3d/test_channels` and the `plugin_abi` texture3d characterization | `getCache`, the point-cloud constructors, the channels |
@@ -71,8 +71,8 @@ On the base tree the cache can only be filled by a render: insertion there is pr
 | M7 (applied with T-E's enabling, Phase 7, T108a) | `tests/shading_contract/contract_forwarder.h:33` | `class CContractForwarder final : public CRendererServices {` becomes `class CContractForwarder : public CRendererServices {`. One word, so that T-E's services wrapper can derive from the shared forwarder and override `getCache()` only, instead of copying its 38 members (PAUSE 2a answer). **Approved by the maintainer after the Phase 2 report (2026-11-09)**; applied exactly as in `tools/test-edit-patches/M7-contract_forwarder.diff` |
 | M6 (applied as M6a in Phase 4 and M6b in Phase 5) | `tests/unit/texture_only/CMakeLists.txt` | Adds a second library on the same narrow include path: `irradianceCache.cpp`, `photonStore.cpp`, `texture3d.cpp`, `texture3dChannels.cpp`, plus a staging copy of `src/ri/core/map.h` beside `ri_config.h`. `src/ri/core` stays off the path, as the file's comment requires. Also the two executables T-C and T-D. The existing `TextureOnly_Standalone` target is untouched. M6a (Phase 4): `irradianceCache.cpp`, `texture3d.cpp`, `texture3dChannels.cpp`, the `map.h` staging copy and the T-C/T-D executables; M6b (Phase 5): `photonStore.cpp` |
 
-No other existing test changes. `test_photon_solar0.cpp`'s comment naming `src/ri/hiders/photonMap.h` becomes stale
-and stays (FR-019 forbids editing it). OQ-1 was answered "keep `CTexture3d *`", so no test double is edited.
+No other existing test changes. `test_photon_solar0.cpp`'s comment naming `src/ri/hiders/photonMap.h` became stale; the maintainer approved a one-line,
+comment-only edit at PAUSE 5a (2026-11-10), so it names `src/ri/render/photonMap.h` (no code line of that file changed). OQ-1 was answered "keep `CTexture3d *`", so no test double is edited.
 
 **Approval status (2026-11-07).** The maintainer approved T-A to T-G, F1 and M1 to M6 at plan level, with OQ-5 and
 OQ-8 as recommended: T-A has three masks, and every base recording is taken twice and must agree. Each test is still
