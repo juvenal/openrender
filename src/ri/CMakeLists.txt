@@ -69,6 +69,8 @@ set(ri_sources
 	texture/imageInputPng.cpp
 	texture/imageInputRgbe.cpp
 	texture/imageInputTiff.cpp
+	texture/irradianceCache.cpp
+	texture/photonStore.cpp
 	texture/textureSystem.cpp
 	hiders/compositor.cpp
 	hiders/hider.cpp
@@ -82,20 +84,22 @@ set(ri_sources
 	geometry/csgSolid.cpp
 	geometry/surfaceCrossingDispatch.cpp
 	geometry/geometryHost.cpp
+	dataviewer/brickMapView.cpp
 	dataviewer/dataLoad.cpp
 	dataviewer/dataView.cpp
 	dataviewer/debug.cpp
+	dataviewer/irradianceCacheView.cpp
+	dataviewer/photonMapView.cpp
+	dataviewer/pointCloudView.cpp
 	geometry/delayed.cpp
 	state/displayChannel.cpp
 	geometry/dlobject.cpp
 #	dso.cpp
 	parse/error.cpp
 	hcshader.cpp
-	hiders/irradiance.cpp
-	hiders/irradianceDispatch.cpp
+	hiders/irradianceSampler.cpp
 	hiders/occlusion.cpp
 	hiders/photon.cpp
-	hiders/photonMap.cpp
 	hiders/raytracer.cpp
 	hiders/reyes.cpp
 	hiders/sampler.cpp
@@ -324,12 +328,13 @@ endif()
 # straight into CRenderer::beginFrame()/render()/etc. and construct
 # CProgrammableShaderInstance/CShader/CDLObject/CImplicit/CPhotonMap/
 # CQuadLight/CSphereLight, so linking it in would silently reintroduce most
-# of what everything else in this list was excluded to avoid. The four real/stub pairs are
+# of what everything else in this list was excluded to avoid. The three real/stub pairs are
 # swapped rather than merely removed, since their methods are reached for real (or vtable-required) even
 # in a build with no rendering pipeline: render/geometryDispatch.cpp -> vector/geometryDispatchStub.cpp,
-# hiders/irradianceDispatch.cpp -> vector/irradianceDispatchStub.cpp,
 # render/rendererDeclarationsDispatch.cpp -> vector/rendererDeclarationsDispatchStub.cpp, and
-# geometry/surfaceCrossingDispatch.cpp -> vector/surfaceCrossingDispatchStub.cpp (below).
+# geometry/surfaceCrossingDispatch.cpp -> vector/surfaceCrossingDispatchStub.cpp (below). The irradiance
+# cache (texture/irradianceCache.cpp) is passive storage with no Shading dependency, so ribVector compiles it
+# as it is; only the sampler that fills one (hiders/irradianceSampler.cpp) is left out.
 #
 # The six entries below were confirmed excludable by a second `nm -u` sweep
 # after the above: init.cpp is a single function, CRendererContext::init(),
@@ -394,7 +399,7 @@ list(REMOVE_ITEM ribVector_sources
     hcshader.cpp
     hiders/hider.cpp
     hiders/shadingProducer.cpp
-    hiders/irradianceDispatch.cpp
+    hiders/irradianceSampler.cpp
     hiders/occlusion.cpp
     hiders/photon.cpp
     hiders/raytracer.cpp
@@ -426,7 +431,6 @@ list(REMOVE_ITEM ribVector_sources
 )
 list(APPEND ribVector_sources
     vector/geometryDispatchStub.cpp
-    vector/irradianceDispatchStub.cpp
     vector/rendererDeclarationsDispatchStub.cpp
     vector/surfaceCrossingDispatchStub.cpp
 )

@@ -266,6 +266,9 @@ class CMap {
                 finalitems[i] = ar1[i][0];
             }
 
+            // Tell a subclass how the items were permuted, while the old array is still there
+            permuted(ar1, items, numItems);
+
             delete[] ar1;
             delete[] items;
             maxItems = numItems;
@@ -276,6 +279,15 @@ class CMap {
         vector bmin, bmax;
 
     protected:
+        ///////////////////////////////////////////////////////////////////////
+        // Class				:	CMap
+        // Method				:	permuted
+        // Description			:	Called by balance() once the balanced order is known
+        // Return Value			:	-
+        // Comments				:	sorted[i] (i = 1..count) points into oldItems, the array being replaced. A subclass that holds
+        //							data index-aligned with the items reorders it here. Default: nothing
+        virtual void permuted(T *const * /*sorted*/, const T * /*oldItems*/, int /*count*/) {}
+
         class CLookup {
             public:
                 int maxFound;

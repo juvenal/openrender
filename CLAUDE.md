@@ -219,8 +219,8 @@ sites), `src/ri/shaderFunctions.h` (built-ins), `src/ri/zbufferQuad.h`.
 `CAttributes` and `COptions` hold other domains' objects only as opaque,
 reference-counted handles (`ShaderGroupRef`, `MapRef`, `src/ri/state/stateHandles.h`):
 `CShaderInstance` derives from `CShaderGroupRefTarget`, `CPhotonMap` from
-`CMapRefTarget`, and the owning domain turns a handle back into its own type with
-an inline accessor (`shaderInstanceOf`, `lightInstanceOf`, `photonMapOf`). The
+`CMapRefTarget` (through Shading's `CPhotonMapRefTarget`), and the owning domain turns a handle back into its own type with
+an inline accessor (`shaderInstanceOf`, `lightInstanceOf` and `photonMapOf`, all Shading's). The
 shader slots are private and written through `bind*()`; a `bxdf` slot, a
 Surface/Bxdf last-bound record (`governingMaterial()`) and a scoped pattern-node
 table (`patterns`) exist for later specs. See gotcha 24.
@@ -293,6 +293,16 @@ of the ray against that surface's `N` at the call (`CTraceLocation::sideN`; a li
 services member, no `ITracer` change and no `kRendererServicesVersion` step. Nothing about it is CSG-specific:
 `selectVolumeShader` and `ATTRIBUTES_FLAGS_SOLID_FRAGMENT` are gone. See gotcha 36.
 
+### GI stores (spec 032)
+The irradiance cache and the photon map are passive storage in Texturing: `CIrradianceCache` (`src/ri/texture/irradianceCache.{h,cpp}`,
+through `irradianceStore.h`) and `CPhotonStore` (`photonStore.{h,cpp}`) hold records, answer lookups, write and read their files, and
+name no shading context, hider, renderer or data viewer. Shading's `libshader::irradianceLookup` (`irradianceCalls.{h,cpp}`) does the
+lookup, the miss hand-off and the insert for the interpreter and the JIT; the sampler that computes a new sample is the Hiders'
+`CIrradianceSampler` (`hiders/irradianceSampler.cpp`), installed on every hider's context and as the process default through Shading's
+`IIrradianceSampler`. Hiders reach a photon map through Shading's `photonMapAccess.h`; Core's header-only `CPhotonMap`
+(`render/photonMap.h`) composes the store, the handle target and the data viewer's adapter (`dataviewer/photonMapView`). Every record
+and photon carries a key for spec 040. See gotcha 37.
+
 ### Coordinate / matrix conventions
 Column-major matrices, `element(row,col) = row + 4*col`. `from` = local→world,
 `to` = world→local = `from^-1`. The REYES vertex buffer stores **sample
@@ -310,6 +320,8 @@ ctest --test-dir build -L shading_parity                # JIT/interpreter parity
 ctest --test-dir build -L texture_tile -j2              # texture system: cache, resolver, concurrency, sample-stream cursor (opt-in disk-cache scripts included)
 ctest --test-dir build -L texture_only                  # Texturing-only program: links libRIBCommon alone and reproduces the starting tree's lookups
 ctest --test-dir build -L state                         # Graphics State: handles and counts, last-bound record, pattern table, channel registry, light order, vocabulary
+ctest --test-dir build -L gi_split                      # GI split (spec 032): loopback of the remote channels, the files, the keys, getCache's kind check
+ctest --test-dir build -L gi_split_threads              # opt-in: photon keys at -t:1 against -t:4 (the intermittent CPhotonHider crash, #164, can fail a child: re-run alone)
 ctest --test-dir build -L plugin_abi -j4                # plug-in ABIs (spec 037): headers, versions, display host and v1 adapter, shadeop module, procedures, install layouts, doc checks
 ctest --test-dir build -LE determinism-sweep -j4        # the everyday full run: everything except the opt-in determinism sweep
 ctest --test-dir build -L '^determinism$' -j2           # default determinism set (156): harness, tie and derivative tests, one demanding scene per family
@@ -634,8 +646,8 @@ not in the agent definitions.
    `CAttributes`/`COptions` store `ShaderGroupRef`/`MapRef` and resolve them
    only through the resolving domain's inline `static_cast` accessors
    (`shaderInstanceOf`, `lightInstanceOf` in `libshader/shading/shaderRefs.h`;
-   `photonMapOf` in `photonMap.h`). `src/ri/state` never includes `shader.h`,
-   `photonMap.h`, `dsply.h` or `blobbyField.h` (`ctest -L architecture` fails
+   `photonMapOf` in `libshader/shading/photonMapAccess.h`, which returns a `CPhotonMapRefTarget *`: Core's `CPhotonMap` derives from it). `src/ri/state` never includes `shader.h`,
+   `render/photonMap.h`, `dsply.h` or `blobbyField.h` (`ctest -L architecture` fails
    on it); its display-parameter and blobby-order values are
    `stateVocabulary.h`'s, kept equal to the plug-in ABI by
    `State_VocabularyConsistency`. The five slots are private: every bind goes
@@ -684,9 +696,11 @@ not in the agent definitions.
    `(1 - ns) * pow(N.H, 10/roughness)`, as it does in `phong()`. Before #111 the
    interpreter applied it inside the power, so a fractional value all but removed
    the highlight.
-   The only `CShadingContext` left in `src/ri/texture` is the 3D family
-   (`texture3d.h`, `pointHierarchy`, the `brickmap`/`pointCloud` assertion
-   overrides), for spec 032.
+   Nothing under `src/ri/texture` names the shading context, the renderer core or the data viewer since spec 032
+   (`CTexture3d` has `lookupPointBased` with a `CPointBasedLookup`, and the viewers are adapters the data viewer owns:
+   `pointCloudView`, `brickMapView`, `irradianceCacheView`, `photonMapView`). `CTexture3d`'s old six-argument
+   `lookup(..., CShadingContext *)` and `CPointHierarchy::Options` are gone: Shading hands the hierarchy the solid-angle limit
+   per lookup.
 
 26. **`FrameParams` is installed for exactly one frame, and every motion site
    keeps its own expression (spec 028).** The renderer core builds the
@@ -732,8 +746,9 @@ not in the agent definitions.
    second check.
 
 28. **Shading's boundary is one versioned interface; the tracer is the hider that owns the context (specs 026, 029).**
-   `CRendererServices` is version 2.1.0 (`kRendererServicesVersion`, `rendererServices.h`, with
-   `serviceTypes.h`, `tracer.h` and `shaderGlobals.h`; `getPhotonMap` returns `IPhotonLookup *`; the headers document
+   `CRendererServices` is version 2.2.0 (`kRendererServicesVersion`, `rendererServices.h`, with
+   `serviceTypes.h`, `tracer.h` and `shaderGlobals.h`; `getPhotonMap` returns `IPhotonLookup *`; `getCache` answers only irradiance caches
+   (Core's `getCache` answers `nullptr` for a name registered as another 3D kind, #104), and Shading converts the answer with `irradianceStoreOf()`; the headers document
    every member, so read them before writing an implementer or a double). The attribute, option and renderer-info
    builtins ask `getAttribute`, the message-passing builtins (`surface()` ... `lightsource()`) ask
    `getMessage` and every coordinate-system lookup asks `getMatrix`; the 26 option getters and the
@@ -763,7 +778,7 @@ not in the agent definitions.
    implementer `static_assert`s MAJOR 2.
    `getDSO` also serves the `.slo` loader since spec 038 (`sloLoader.cpp` binds the DSO operands of a JIT module
    with `libshader::lookupDSO`, on every load); that was a wording change of the member, so
-   `kRendererServicesVersion` stayed 2.0.0 at spec 038 and is 2.1.0 since spec 029.
+   `kRendererServicesVersion` stayed 2.0.0 at spec 038, is 2.1.0 since spec 029 and 2.2.0 since spec 032 (a MINOR step that is breaking within 2.x: `getCache` answers `nullptr` on a kind mismatch; otherwise additions: `photonMapAccess.h`, `irradianceSampler.h`, `irradianceCalls.h`, `boundDraws()`).
 29. **The active RI context is installed explicitly (spec 038).** `CRiInterface`'s constructor assigns nothing:
    not `renderMan`, not the diagnostic sink. `riInstallContext(ctx)` makes it the active one (and attaches the
    diagnostics), `riUninstallContext(ctx)` / the destructor of an installed context hands both back to the
@@ -852,6 +867,23 @@ not in the agent definitions.
    has no spawning surface and gets no volume step, inside a solid or not; the CSG arrival-side rule is gone. `incident()` and
    `opposite()` read the side the incoming ray comes from, once per call from vertex 0's `dot(I, N)` (`incidentParameter` and
    `oppositeParameter`, one edit for both backends); the accessor constants passed to them are never read.
+37. **The GI stores are passive; one Shading function does the cache step; the draw order is a rule (spec 032).**
+   `libshader::irradianceLookup` (`libshader/shading/irradianceCalls.cpp`) is the only place an `occlusion()`/`indirectdiffuse()`
+   cache lookup, miss and insert are decided, for the interpreter (`IDEXPR`) and the JIT (`jitOcclusionBatch`). Its order is the old one and
+   must stay: a point-based lookup draws nothing; otherwise `CIrradianceStore::lookupCached` calls its draw callback **once per record that
+   passes the front test** (zero-weight records included, in traversal order), then a miss runs the sampler on the same cursor; a name that
+   `getCache` answered `nullptr` for gives the "no joy" value and draws nothing. The cache and the photon store never include Shading,
+   Hiders, Core or the viewer (`GiSplit_Boundary`, `-L architecture`); a world bound or world matrices they need are passed to their
+   constructors. `CPhotonMap` is header-only in Core (`render/photonMap.h`): `libRIBVector` constructs it, and a `render/photonMap.cpp`
+   would grow the residual list, which may only shrink. Keys for spec 040 are in memory only: `CIrradianceRecord::key` (and so
+   `CCacheSample`, 240 bytes on the wire since Phase 7, the key at offset 224) is `irradianceRecordKey(boundDraws())` copied at the **top**
+   of `irradianceLookup`, and a photon's key (`CPhotonStore::photonKey(i)`, a side array that `CMap::permuted()` reorders when
+   `balance()` runs) is `photonKey(pointKey, bounce)`; no file carries a key and no rendering path reads one. A cache read from a file lists
+   each node's records in the reverse of the order they were written, so two reads of one file sum a lookup in another order; a photon store
+   that was filled and not read from a file has no lookup-cache root and must not be queried (GitHub #160); a client places records it
+   receives without the server's error multiplier (#161). `-t:4` photon passes order the kd-tree differently, so `flags` is not part of a
+   photon's identity (`GiKeys_PhotonsThreads`). `GiRemote_*`, `GiFiles_Unchanged`, `GiKeys_*`, `GiCache_KindMismatch` and
+   `TextureOnly_GiStores` guard it (`ctest -L gi_split`; `-L gi_split_threads` is opt-in).
 
 ## Active Technologies
 - C++20, CMake ≥3.19; `libtiff`/`libpng` (mandatory), OpenEXR (optional,
@@ -925,8 +957,22 @@ not in the agent definitions.
   surface through `shadeVolumeSegments()` and the `CSegmentBundle` base of the three Shading bundles; no interface change
   (056-volume-shader-segments)
 - Storage: N/A; memory only (056-volume-shader-segments)
+- C++20, CMake ≥3.19, `-Werror`; no new dependencies: the irradiance cache and the photon map are passive Texturing stores
+  (`CIrradianceCache`, `CPhotonStore`), Shading does the cache step (`libshader::irradianceLookup`, `IIrradianceSampler`,
+  `photonMapAccess.h`) with `kRendererServicesVersion` 2.2.0, the data viewer owns the adapters, and every record and photon carries
+  a key for spec 040 (032-gi-cache-split)
+- Storage: N/A; memory only; the `tests/gi_split/reference` recordings are files (032-gi-cache-split)
 
 ## Recent Changes
+- 032-gi-cache-split: the irradiance cache and the photon map are passive storage in Texturing and no longer know the shading context, the
+  hiders, the renderer core or the data viewer: `CIrradianceCache` (world bound injected), `CPhotonStore` (world matrices injected), the
+  viewers as adapters the data viewer owns, the remote channels reading them through public accessors (no `friend` left but `makeBrickMap`).
+  One Shading function, `libshader::irradianceLookup`, does the cache step for the interpreter and the JIT, the sampler stays in Hiders
+  behind `IIrradianceSampler`, hiders reach the photon map through `photonMapAccess.h`, and `CPhotonMap` is a header-only Core class;
+  `getCache` answers only irradiance caches; `kRendererServicesVersion` 2.2.0. Every record and photon carries a deterministic key
+  (in memory; the wire record is 240 bytes) for spec 040. DB-010 and DB-020 resolved, DB-011 164 -> 158, DB-025 12 -> 1, DB-017 loses its
+  irradiance pair; the allowlist 344 -> 319 entries, the Hiders `CRenderer::` metric 556 -> 549 references; no image, `.pm` or cache file
+  changed on either platform (see spec 032).
 - 056-volume-shader-segments: `Interior`/`Exterior` volume shaders take effect for every surface, not only CSG fragments: a ray
   spawned by `trace()`, `environment("raytrace")`, `gather()`, `transmission()` or a ray-traced `shadow()` is attenuated, once per
   segment (hit, transparent continuation or miss), by the spawning surface's shader of the side the ray leaves into (the sign of

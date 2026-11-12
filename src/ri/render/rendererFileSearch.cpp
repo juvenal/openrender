@@ -18,8 +18,8 @@
  *   than shedding dead weight.
  *
  *   Compiled identically for every consumer (ribRender and ribVector
- *   alike) -- there is no real/stub split here, unlike geometryDispatch.cpp
- *   or irradianceDispatch.cpp, because nothing in this code touches
+ *   alike) -- there is no real/stub split here, unlike geometryDispatch.cpp,
+ *   because nothing in this code touches
  *   CShadingContext/CReyes/LLVM to begin with.
  *
  * Authors:

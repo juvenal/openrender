@@ -5,11 +5,11 @@
  *
  * Description:
  *   IPhotonLookup: what Shading asks of a photon map (spec 029, contracts/photon-lookup.md). Owned by Shading;
- *   implemented by the photon map (CPhotonMap, Hiders), whose storage, file handling and balancing stay in
- *   Hiders until spec 032. Returned by CRendererServices::getPhotonMap().
+ *   implemented by the photon map (CPhotonMap, Core, render/photonMap.h), whose storage, file handling and balancing
+ *   are Texturing's (CPhotonStore, spec 032). Returned by CRendererServices::getPhotonMap().
  *
  *   Introduced in 2.1.0. Version: kRendererServicesVersion (rendererServices.h).
- *   Thread-safety: as CPhotonMap::lookup today (concurrent lookups on a balanced map).
+ *   Thread-safety: as CPhotonStore::lookup today (concurrent lookups on a balanced map).
  *   Re-enters Shading: never.
  *
  * Authors:
@@ -30,7 +30,7 @@ namespace openrender::shading {
             virtual ~IPhotonLookup() = default; // inline: the vtable and the typeinfo are weak, wherever they are used
 
             // The irradiance estimate at P from the maxFound nearest photons, written to C (3 floats); P in the
-            // map's space as the caller passes it. The body is CPhotonMap::lookup(float *, const float *, int).
+            // map's space as the caller passes it. The body is CPhotonStore::lookup(float *, const float *, int).
             virtual void lookup(float *C, const float *P, int maxFound) = 0;
     };
 

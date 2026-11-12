@@ -82,6 +82,20 @@ namespace openrender::shading {
     //   ("Breaking within 2.x"). The rules above apply as written from the release that closes the milestone.
     //
     // History
+    //   2.2.0  spec 032. Breaking within 2.x (allowed before spec 055, see the rule above); no member or signature changed:
+    //          Changed:  getCache() answers nullptr, where it answered the other object, for a name already registered as a
+    //                    point cloud or a brick map (see Wording below); a caller that relied on the old answer breaks.
+    //          Added:    photonMapAccess.h: IPhotonEstimator (the hiders' 4-argument photon estimate, was
+    //                    CPhotonMap::lookup(C, P, N, n)), IPhotonStore (the photon hider's writes), CPhotonMapRefTarget
+    //                    (what a Graphics State map slot holds) and photonMapOf(), which replaces the Hiders' accessor of
+    //                    the same name.
+    //          Added:    irradianceSampler.h: IIrradianceSampler and IrradianceSample; CShadingContext::setIrradianceSampler(),
+    //                    setDefaultIrradianceSampler() (installed by the renderer core from RiBegin to RiEnd) and
+    //                    boundDraws(); irradianceCalls.h: libshader::irradianceLookup(), shared by the interpreter and the JIT.
+    //          Wording:  getCache() answers only irradiance caches; Shading converts its answer with irradianceStoreOf()
+    //                    (texture/irradianceStore.h). The member and its signature are unchanged. Core's CRenderer::getCache now
+    //                    checks the kind (dynamic_cast) and answers nullptr for a name registered as another 3D kind (#104);
+    //                    Shading treats nullptr as 'no cache' (libshader::irradianceLookup, step 0).
     //   2.1.0  spec 029. Breaking within 2.x (allowed before spec 055, see the rule above):
     //          Changed:  getPhotonMap() returns openrender::shading::IPhotonLookup * (was CPhotonMap *).
     //          Added:    IPhotonLookup (photonLookup.h), IIlluminationHook (illuminationHook.h).
@@ -108,7 +122,7 @@ namespace openrender::shading {
     //          Wording only, no version change (spec 038, made while 2.0.0 was current, before 2.1.0): getDSO also serves
     //          the .slo loader, which binds the DSO operands of a JIT-compiled module with it (the member, its signature
     //          and its result are unchanged).
-    inline constexpr InterfaceVersion kRendererServicesVersion{2, 1, 0};
+    inline constexpr InterfaceVersion kRendererServicesVersion{2, 2, 0};
 
     class ITracer; // tracer.h
 
@@ -331,8 +345,10 @@ class CRendererServices {
         // Find or create the irradiance cache `handle`. `mode` is the file mode string of the cache
         // attribute ("r" read, "w" write, ...; nullptr is read as ""). `from` and `to` are the 16-float
         // column-major matrices of the cache's space. Output: a 3D-texture handle owned by the renderer and
-        // valid until the end of the frame's files, or nullptr when it cannot be opened. Locked and threaded
-        // as getPhotonMap.
+        // valid until the end of the frame's files, or nullptr when it cannot be opened or when `handle` is already
+        // registered as another kind of 3D file (a point cloud, a brick map). It answers only irradiance caches; Shading
+        // converts the answer with irradianceStoreOf() (irradianceStore.h) and a null answer is the "no joy" lookup
+        // (libshader::irradianceLookup). Locked and threaded as getPhotonMap.
         virtual CTexture3d *getCache(const char *handle, const char *mode, const float *from, const float *to) = 0;
         // Find or create the point cloud / brick map `name`; `write` non-zero opens it for writing with the
         // comma-separated `channels`; `from` and `to` as getCache; `hierarchy` builds the point hierarchy.

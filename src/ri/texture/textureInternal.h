@@ -4,7 +4,7 @@
  * File: textureInternal.h
  *
  * Description:
- *   Texturing-private (spec 027): the tile cache that texture.cpp used to keep in CRenderer statics,
+ *   Texturing-private (spec 027): the tile cache that texture.cpp used to keep in the renderer core's statics,
  *   the per-thread data of a lookup, and the loaders the texture system calls. Only src/ri/texture
  *   includes this header.
  *
@@ -51,7 +51,7 @@ class CTextureCache {
 
         int numThreads;
         CTextureBlock *usedBlocks;    // the list of blocks in the registry
-        TMutex mutex;                 // guards the registry during eviction (was CRenderer::textureMutex)
+        TMutex mutex;                 // guards the registry during eviction (was the renderer core's textureMutex)
         TexturePerthread *perthread;  // numThreads entries
 };
 

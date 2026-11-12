@@ -56,4 +56,35 @@ if(OPENRENDER_TEXTURE_ONLY_TESTS)
     set_tests_properties(TextureOnly_Standalone PROPERTIES
         TIMEOUT 60
         LABELS "texture_only;unit")
+
+    # Spec 032 (M6a, Phase 4; T-C and T-D, SC-006): the irradiance cache on the same narrow path. A second library, because
+    # these sources need core/map.h, which sits in src/ri/core (not on the path: it also holds the Shading shims shader.h and
+    # shading.h), so a staging copy of the one header goes beside ri_config.h.
+    configure_file(${CMAKE_SOURCE_DIR}/src/ri/core/map.h ${TEXTURE_ONLY_INCLUDE_DIR}/map.h COPYONLY)
+    add_library(texturing_only_gi_sources STATIC
+        ${CMAKE_SOURCE_DIR}/src/ri/texture/irradianceCache.cpp
+        ${CMAKE_SOURCE_DIR}/src/ri/texture/texture3d.cpp
+        ${CMAKE_SOURCE_DIR}/src/ri/texture/texture3dChannels.cpp
+        ${CMAKE_SOURCE_DIR}/src/ri/texture/photonStore.cpp
+    )
+    target_link_libraries(texturing_only_gi_sources PUBLIC openrender_common_flags openrendercommon)
+    target_compile_features(texturing_only_gi_sources PUBLIC cxx_std_20)
+    target_include_directories(texturing_only_gi_sources PUBLIC
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/src/ri/texture
+        ${CMAKE_BINARY_DIR}
+        ${TEXTURE_ONLY_INCLUDE_DIR}
+    )
+
+    add_executable(test_gi_stores test_gi_stores.cpp)
+    target_compile_definitions(test_gi_stores PRIVATE GI_STORES_CACHE GI_STORES_PHOTONS)
+    target_link_libraries(test_gi_stores PRIVATE texturing_only_gi_sources)
+    add_test(NAME TextureOnly_GiStores COMMAND test_gi_stores)
+
+    add_executable(test_irradiance_draw_order test_irradiance_draw_order.cpp)
+    target_link_libraries(test_irradiance_draw_order PRIVATE texturing_only_gi_sources)
+    add_test(NAME TextureOnly_IrradianceDrawOrder COMMAND test_irradiance_draw_order)
+    set_tests_properties(TextureOnly_GiStores TextureOnly_IrradianceDrawOrder PROPERTIES
+        TIMEOUT 60
+        LABELS "texture_only;unit")
 endif()

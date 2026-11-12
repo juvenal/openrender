@@ -1,14 +1,14 @@
 #include "dataLoad.h"
 
-#include "brickmap.h"
+#include "brickMapView.h"
 #include "common/algebra.h"
 #include "common/global.h"
 #include "debug.h"
 #include "common/fileResource.h"
-#include "irradiance.h"
+#include "irradianceCacheView.h"
 #include "common/memory.h"
 #include "photonMap.h"
-#include "pointCloud.h"
+#include "pointCloudView.h"
 #include "renderer.h"
 #include "riInterface.h"
 #include "riServices.h"
@@ -178,7 +178,7 @@ EDataFileType CDataDocument::open(const char *fileName) {
     // CRenderer::fromWorld/toWorld/fromWorld1/toWorld1/fromNDC/toNDC and worldBmin/worldBmax
     // are file-scope statics only ever initialized in beginFrame(), which this headless path
     // never reaches -- yet CPhotonMap's and CIrradianceCache's read constructors read them
-    // (photonMap.cpp:103-104, irradiance.cpp:101). Seed them to identity/+-infinity before
+    // (photonStore.cpp, irradianceCache.cpp). Seed them to identity/+-infinity before
     // constructing any reader, or a photon map/cache silently loads with a degenerate transform.
     identitym(CRenderer::fromWorld);
     identitym(CRenderer::toWorld);
@@ -202,18 +202,18 @@ EDataFileType CDataDocument::open(const char *fileName) {
         case DATA_IRRADIANCECACHE:
         case DATA_GATHERCACHE:
             // CIrradianceCache closes `in` itself once the read succeeds.
-            dataView = new CIrradianceCache(fileName, CACHE_READ | CACHE_RDONLY, in, from, to, NULL);
+            dataView = new CIrradianceCacheDocument(fileName, CACHE_READ | CACHE_RDONLY, in, from, to, NULL, CRenderer::worldBmin, CRenderer::worldBmax);
             break;
 
         case DATA_POINTCLOUD:
             // CPointCloud closes `in` itself on every path.
-            dataView = new CPointCloud(fileName, from, to, in);
+            dataView = new CPointCloudDocument(fileName, from, to, in);
             break;
 
         case DATA_BRICKMAP:
             // CBrickMap retains `in` for lazy on-demand brick reads; closes it in its own
             // destructor.
-            dataView = new CBrickMap(in, fileName, from, to);
+            dataView = new CBrickMapDocument(in, fileName, from, to);
             break;
 
         case DATA_DEBUGDUMP:

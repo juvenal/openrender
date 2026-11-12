@@ -1,0 +1,149 @@
+# Spec 032 GI test set (SC-003, CP-g): every test whose scene or shader exercises occlusion(), indirectdiffuse(),
+# photonmap(), bake3d(), texture3d(), globalmap/causticmap or Hider "photon", plus the gather() families SC-003 names
+# and the tests of the data viewer and the 3D-channel plug-in surface the split touches. One ctest name per line;
+# "#" starts a comment. Derived from `ctest -N -V` (the scene .rib files each test names and the .sl shaders those
+# scenes bind, comments stripped) on the unmodified tree at e83d005d, 2026-11-09; a scene-derived test is listed even
+# when only a probe shader inside it uses the call. This is a measurement file, not a test.
+# Pins a scene already carries (-t:1, numthreads 1) are in the scene or in the test command, not repeated here.
+# "sweep only" marks a test of the opt-in determinism sweep (label determinism-sweep), outside the everyday run.
+
+# Visual scenes of SC-003 (rslo and slo)
+VisualSetup_photon-parity-clean
+VisualSetup_photon-parity-slo-clean
+VisualSetup_photon-solar0-after-distant-clean
+VisualSetup_photon-solar0-after-distant-slo-clean
+VisualSetup_photon-solar0-alone-clean
+VisualSetup_photon-solar0-alone-slo-clean
+Visual_photon-parity
+Visual_photon-parity-slo
+Visual_photon-solar0-after-distant
+Visual_photon-solar0-after-distant-slo
+Visual_photon-solar0-alone
+Visual_photon-solar0-alone-slo
+Visual_sphere-gather-reyes
+Visual_sphere-gather-reyes-slo
+Visual_sphere-indirectdiffuse-reyes
+Visual_sphere-indirectdiffuse-reyes-slo
+Visual_sphere-occlusion-reyes
+Visual_sphere-occlusion-reyes-slo
+Visual_sphere-photonmap-reyes
+Visual_sphere-photonmap-reyes-slo
+Visual_sphere-ray-self-hit-raytrace
+Visual_sphere-ray-self-hit-reyes
+Visual_sphere-ray-self-hit-reyes-slo
+Visual_sphere-texture3d-bake3d-reyes
+Visual_sphere-texture3d-bake3d-reyes-slo
+Visual_subdiv-facevarying-seam-photon
+Visual_subdiv-hierarchical-override-photon
+Visual_subdiv-loop-photon
+Visual_subdiv-new-tags-photon
+
+# Photon hider and photon map
+NotRequired_motion-subdiv-translate-photon
+PhotonSolar0_rslo
+PhotonSolar0_slo
+ShadingContract_PhotonLookupInterp
+ShadingContract_PhotonLookupJit
+photonmap_FrameCacheRelease
+photonmap_ObjectDefinitionRelease
+photonmap_TwoFrameSession
+
+# Occlusion sampler and golden
+Convergence_occlusion-raytrace
+OcclusionGolden_sobol_cache
+OcclusionSampler_NetCount_pmj02_16_rslo
+OcclusionSampler_NetCount_pmj02_16_slo
+OcclusionSampler_NetCount_pmj02_4_rslo
+OcclusionSampler_NetCount_pmj02_4_slo
+OcclusionSampler_NetCount_pmj02_64_rslo
+OcclusionSampler_NetCount_pmj02_64_slo
+OcclusionSampler_NetCount_sobol_16_rslo
+OcclusionSampler_NetCount_sobol_16_slo
+OcclusionSampler_NetCount_sobol_4_rslo
+OcclusionSampler_NetCount_sobol_4_slo
+OcclusionSampler_NetCount_sobol_64_rslo
+OcclusionSampler_NetCount_sobol_64_slo
+
+# Sampling determinism and parity (probe shaders that call the GI built-ins)
+SamplingJitDeterminism_gather
+SamplingJitDeterminism_indirectdiffuse
+SamplingJitDeterminism_occlusion
+SamplingJitDeterminism_random_loop
+SamplingJitDeterminism_random_urandom
+SamplingJitDeterminism_random_vector
+SamplingJitDeterminism_trace_transmission
+SamplingJitDeterminism_visibility
+SamplingJitEngaged_gather
+SamplingJitEngaged_indirectdiffuse
+SamplingJitEngaged_occlusion
+SamplingJitEngaged_random_loop
+SamplingJitEngaged_random_urandom
+SamplingJitEngaged_random_vector
+SamplingJitEngaged_trace_transmission
+SamplingJitParity_gather
+SamplingJitParity_indirectdiffuse
+SamplingJitParity_occlusion
+SamplingJitParity_random_loop
+SamplingJitParity_random_urandom
+SamplingJitParity_random_vector
+SamplingJitParity_trace_transmission
+SamplingJitParity_visibility
+Sampling_ProbeIndependence
+Sampling_ThreadSweep_sphere-gather
+
+# Shading parity and contract (JIT parameter lists, trace replay, photon lookup, irradiance)
+ShadingContract_GatherRequestsInterp
+ShadingContract_GatherRequestsJit
+ShadingContract_TraceReplay_gather
+ShadingContract_TraceReplay_indirectdiffuse
+ShadingContract_TraceReplay_occlusion
+ShadingParity_IrradianceEmptyString
+ShadingParity_JitPLEngaged_occlusion_bias_rslo
+ShadingParity_JitPLEngaged_occlusion_bias_slo
+ShadingParity_JitPLEngaged_occlusion_envcolor_rslo
+ShadingParity_JitPLEngaged_occlusion_envcolor_slo
+ShadingParity_JitPLEngaged_occlusion_maxdist_rslo
+ShadingParity_JitPLEngaged_occlusion_maxdist_slo
+ShadingParity_JitPLEngaged_occlusion_maxerror_rslo
+ShadingParity_JitPLEngaged_occlusion_maxerror_slo
+ShadingParity_JitPLEngaged_occlusion_samplebase_rslo
+ShadingParity_JitPLEngaged_occlusion_samplebase_slo
+ShadingParity_JitPL_occlusion_base
+ShadingParity_JitPL_occlusion_bias
+ShadingParity_JitPL_occlusion_coordsystem
+ShadingParity_JitPL_occlusion_envcolor
+ShadingParity_JitPL_occlusion_handle
+ShadingParity_JitPL_occlusion_maxbrightness
+ShadingParity_JitPL_occlusion_maxdist
+ShadingParity_JitPL_occlusion_maxerror
+ShadingParity_JitPL_occlusion_samplebase
+
+# 3D channels (the plug-in ABI texture3d characterization)
+Texture3dChannels_FillAliased
+Texture3dChannels_NoSession
+Texture3dChannels_Session
+Texture3dChannels_Unknown
+
+# Data viewer (the six data tests; T-B is added at Phase 1)
+test_data_disk_expand
+test_data_keys
+test_data_pointcloud
+test_data_world_init
+test_dataview_chunking
+
+# Determinism sweep scenes (sweep only)
+# the two bake3d scenes and the gather scene; run at the sweep's pins
+DeterminismSweep_sphere-gather-reyes
+DeterminismSweep_sphere-gather-reyes-slo
+DeterminismSweep_sphere-texture3d-bake3d-reyes
+DeterminismSweep_sphere-texture3d-bake3d-reyes-slo
+
+# Other
+Perf_sphere-gather
+
+# Added by spec 032 (Phase 1)
+GiFixture_ICache
+GiRemote_LoopbackCache
+GiRemote_LoopbackPointCloud
+GiFiles_Unchanged
+Preview_DataSceneUnchanged

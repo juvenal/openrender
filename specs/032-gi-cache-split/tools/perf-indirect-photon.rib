@@ -1,0 +1,47 @@
+##RenderMan RIB-Structure 1.0
+# Spec 032 SC-007 scratch scene 2 (timing_sc007.sh): a photon pass writing a global map, then indirectdiffuse()
+# reading it. Frame 1 is the photon pass, pinned to one thread (the photon hider races: BUGS.md); frame 2 renders
+# the indirectdiffuse probe at the series' thread count (@THREADS@), its occluder shaded from the map. Not a suite
+# scene: the script scales emit, Format and ShadingRate in a scratch copy (SCALES).
+version 3.03
+FrameBegin 1
+  Hider "photon" "int emit" [20000]
+  Option "limits" "numthreads" [1]
+  Projection "perspective" "fov" 45
+  Format 160 120 1
+  Translate 0 -1 5
+  WorldBegin
+    Attribute "shade" "shaderformat" ["rslo"]
+    LightSource "pointlight" 1 "intensity" [4] "from" [0 2.2 0.5]
+    Attribute "photon" "string globalmap" ["perf-indirect.gpm"]
+    Color [0.8 0.8 0.8]
+    Surface "matte"
+    Polygon "P" [-3 0 -3  -3 0 3  3 0 3  3 0 -3]
+    TransformBegin
+      Translate 0 0.6 0.5
+      Sphere 0.6 -0.6 0.6 360
+    TransformEnd
+  WorldEnd
+FrameEnd
+
+FrameBegin 2
+  Hider "reyes"
+  Option "shaderformat" "default" ["rslo"]
+  Option "limits" "numthreads" [@THREADS@]
+  Display "perf-indirect-photon.tif" "file" "rgba"
+  Format 640 480 1
+  PixelSamples 1 1
+  ShadingRate 1
+  Projection "perspective" "fov" 45
+  Translate 0 -1 5
+  WorldBegin
+    Attribute "photon" "string globalmap" ["perf-indirect.gpm"]
+    Attribute "visibility" "diffuse" [1]
+    Surface "indirectdiffuse_probe"
+    Polygon "P" [-3 0 -3  -3 0 3  3 0 3  3 0 -3]
+    TransformBegin
+      Translate 0 0.6 0.5
+      Sphere 0.6 -0.6 0.6 360
+    TransformEnd
+  WorldEnd
+FrameEnd

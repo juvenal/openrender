@@ -37,7 +37,7 @@
 #include "common/diagnostics.h"
 #include "hcshader.h"
 #include "implicitSurface.h"
-#include "irradiance.h"
+#include "irradianceCache.h"
 #include "common/memory.h"
 #include "netFileMapping.h"
 #include "noise.h"
