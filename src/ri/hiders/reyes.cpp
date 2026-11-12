@@ -30,6 +30,7 @@
 #include "common/memory.h"
 #include "motion.h"
 #include "reyes.h"
+#include "reyesLensBounds.h"
 #include "state/frameParams.h"
 
 #include <algorithm>
@@ -626,39 +627,15 @@ void CReyes::drawObject(CObject *object) {
     ymin -= CRenderer::pixelTop;
     ymax -= CRenderer::pixelTop;
 
-    // Account for the depth of field
-    if (fp.aperture != 0) {
-        float coc1 = absf((1 / zmin) - fp.invFocaldistance) * fp.cocFactorScreen;
-        float coc2 = absf((1 / zmax) - fp.invFocaldistance) * fp.cocFactorScreen;
-        float mcoc;
-        if (coc2 > coc1) {
-            mcoc = coc2;
-        }
-        else {
-            mcoc = coc1;
-        }
-        xmin = xmin - mcoc;
-        xmax = xmax + mcoc;
-        ymin = ymin - mcoc;
-        ymax = ymax + mcoc;
-    }
-
-    // Convert to samples
-    xmin *= CRenderer::dSampledx;
-    ymin *= CRenderer::dSampledy;
-    xmax *= CRenderer::dSampledx;
-    ymax *= CRenderer::dSampledy;
-
-    if (xmax < xmin) {
-        const float t = xmax;
-        xmax = xmin;
-        xmin = t;
-    }
-
-    if (ymax < ymin) {
-        const float t = ymax;
-        ymax = ymin;
-        ymin = t;
+    // Convert to samples, widened by the depth of field (reyesLensBounds.h: the largest scatter of
+    // the lens over [zmin, zmax])
+    {
+        float sampleBound[4] = {xmin, xmax, ymin, ymax};
+        reyes_lens::expandBucketBounds(openrender::LensModel::fromFrame(fp), zmin, zmax, fp.dSampledx, fp.dSampledy, sampleBound);
+        xmin = sampleBound[0];
+        xmax = sampleBound[1];
+        ymin = sampleBound[2];
+        ymax = sampleBound[3];
     }
 
     // Trivial reject
@@ -1172,11 +1149,13 @@ void CReyes::copyPoints(int numVertices, float **varying, float *vertices, int s
         // Roll back to the beginning
         vertices -= numVertices * numVertexSamples;
 
-        // Compute the circle of confusion amount
+        // Compute the circle of confusion: the signed screen-space radius of the lens model, which only the
+        // scatter reads as it is; every bound takes its magnitude (reyesLensBounds.h)
+        const openrender::LensModel lens = openrender::LensModel::fromFrame(fp);
         for (i = numVertices; i > 0; i--, vertices += numVertexSamples) {
             const float z = vertices[COMP_Z];
 
-            vertices[9] = CSampler::circleOfConfusion(z, fp.invFocaldistance, fp.cocFactorSamples);
+            vertices[9] = lens.circleOfConfusion(z);
         }
     }
 }
@@ -1478,21 +1457,13 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
 
     if (fp.aperture != 0) {
         // Expand the bound by the maximum focal blur amount
-        const float coc1 = CSampler::circleOfConfusion(zmin, fp.invFocaldistance, fp.cocFactorSamples);
-        const float coc2 = CSampler::circleOfConfusion(zmax, fp.invFocaldistance, fp.cocFactorSamples);
-        float mcoc2;
-        if (coc2 > coc1) {
-            mcoc2 = coc2;
-        }
-        else {
-            mcoc2 = coc1;
-        }
-        const float mcoc = mcoc2;
+        const reyes_lens::SampleExpansion e =
+            reyes_lens::expansion(reyes_lens::maxAbsCoc(openrender::LensModel::fromFrame(fp), zmin, zmax), fp.dSampledx, fp.dSampledy);
 
-        xmin -= mcoc;
-        xmax += mcoc;
-        ymin -= mcoc;
-        ymax += mcoc;
+        xmin -= e.x;
+        xmax += e.x;
+        ymin -= e.y;
+        ymax += e.y;
     }
 
     // Trivial reject
@@ -1564,12 +1535,12 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
 
             // Expand the bound by the focal blur amount
             if (fp.aperture != 0) {
-                const float coc = vertices[9];
+                const reyes_lens::SampleExpansion e = reyes_lens::expansion(vertices[9], fp.dSampledx, fp.dSampledy);
 
-                xbound[0] -= coc;
-                xbound[1] += coc;
-                ybound[0] -= coc;
-                ybound[1] += coc;
+                xbound[0] -= e.x;
+                xbound[1] += e.x;
+                ybound[0] -= e.y;
+                ybound[1] += e.y;
             }
 
             bounds[0] = (int)floor(xbound[0]); // xmin
@@ -1659,7 +1630,7 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
             for (i = 0; i < udiv; i++, bounds += 4) {
                 float xbound[2];
                 float ybound[2];
-                float quadCoc = 0;                                                         // The focal blur expansion applied to this quad's bounds
+                reyes_lens::SampleExpansion quadCoc = {0, 0};                              // The focal blur expansion applied to this quad's bounds
                 const float *cVertex = vertices + (j * (udiv + 1) + i) * numVertexSamples; // The top left vertex
                 const float *P;
 
@@ -1743,38 +1714,26 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
                 }
 
                 if (fp.aperture != 0) {
-                    // Expand the bound by the maximum focal blur amount
-                    const float c1 = cVertex[9];
-                    const float c2 = cVertex[9 + numVertexSamples];
-                    const float c3 = cVertex[9 + numVertexSamples * (udiv + 1)];
-                    const float c4 = cVertex[9 + numVertexSamples * (udiv + 2)];
-                    float maxC1C2;
-                    if (c2 > c1) {
-                        maxC1C2 = c2;
-                    }
-                    else {
-                        maxC1C2 = c1;
-                    }
-                    float maxC1C2C3;
-                    if (c3 > maxC1C2) {
-                        maxC1C2C3 = c3;
-                    }
-                    else {
-                        maxC1C2C3 = maxC1C2;
-                    }
-                    float mcoc;
-                    if (c4 > maxC1C2C3) {
+                    // Expand the bound by the maximum focal blur amount: the largest magnitude of the four
+                    // corners' circles of confusion (the scatter alone reads them signed)
+                    const float c1 = absf(cVertex[9]);
+                    const float c2 = absf(cVertex[9 + numVertexSamples]);
+                    const float c3 = absf(cVertex[9 + numVertexSamples * (udiv + 1)]);
+                    const float c4 = absf(cVertex[9 + numVertexSamples * (udiv + 2)]);
+                    float mcoc = c1;
+                    if (c2 > mcoc)
+                        mcoc = c2;
+                    if (c3 > mcoc)
+                        mcoc = c3;
+                    if (c4 > mcoc)
                         mcoc = c4;
-                    }
-                    else {
-                        mcoc = maxC1C2C3;
-                    }
 
-                    xbound[0] -= mcoc;
-                    xbound[1] += mcoc;
-                    ybound[0] -= mcoc;
-                    ybound[1] += mcoc;
-                    quadCoc = mcoc;
+                    quadCoc = reyes_lens::expansion(mcoc, fp.dSampledx, fp.dSampledy);
+
+                    xbound[0] -= quadCoc.x;
+                    xbound[1] += quadCoc.x;
+                    ybound[0] -= quadCoc.y;
+                    ybound[1] += quadCoc.y;
                 }
 
                 // Expand per-quad bounds to cover the full arc for camera rotation.
@@ -1857,10 +1816,10 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
                         // +/- 2 samples of slack: the time jitter can spill a hair
                         // past the stratum edge, and the midpoint-sampled polyline
                         // slightly under-bounds the true arc
-                        qsb[0] = (int)floor(sxmin - quadCoc) - 2;
-                        qsb[1] = (int)floor(sxmax + quadCoc) + 2;
-                        qsb[2] = (int)floor(symin - quadCoc) - 2;
-                        qsb[3] = (int)floor(symax + quadCoc) + 2;
+                        qsb[0] = (int)floor(sxmin - quadCoc.x) - 2;
+                        qsb[1] = (int)floor(sxmax + quadCoc.x) + 2;
+                        qsb[2] = (int)floor(symin - quadCoc.y) - 2;
+                        qsb[3] = (int)floor(symax + quadCoc.y) + 2;
                     }
                 }
 
@@ -1889,12 +1848,9 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
         // sampled positions inside each stratum. The rasterizer checks these
         // before touching the grid's quads for a given sample.
         if (timePos != NULL) {
-            float gridCoc = 0;
-            if (fp.aperture != 0) {
-                const float coc1 = CSampler::circleOfConfusion(zmin, fp.invFocaldistance, fp.cocFactorSamples);
-                const float coc2 = CSampler::circleOfConfusion(zmax, fp.invFocaldistance, fp.cocFactorSamples);
-                gridCoc = (coc2 > coc1) ? coc2 : coc1;
-            }
+            reyes_lens::SampleExpansion gridCoc = {0, 0};
+            if (fp.aperture != 0)
+                gridCoc = reyes_lens::expansion(reyes_lens::maxAbsCoc(openrender::LensModel::fromFrame(fp), zmin, zmax), fp.dSampledx, fp.dSampledy);
 
             for (int k = 0; k < numStrata; k++) {
                 float sxmin = C_INFINITY, sxmax = -C_INFINITY;
@@ -1913,10 +1869,10 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
                         symax = tp[1];
                 }
 
-                grid->stratumBounds[k][0] = (int)floor(sxmin - gridCoc) - 2;
-                grid->stratumBounds[k][1] = (int)floor(sxmax + gridCoc) + 2;
-                grid->stratumBounds[k][2] = (int)floor(symin - gridCoc) - 2;
-                grid->stratumBounds[k][3] = (int)floor(symax + gridCoc) + 2;
+                grid->stratumBounds[k][0] = (int)floor(sxmin - gridCoc.x) - 2;
+                grid->stratumBounds[k][1] = (int)floor(sxmax + gridCoc.x) + 2;
+                grid->stratumBounds[k][2] = (int)floor(symin - gridCoc.y) - 2;
+                grid->stratumBounds[k][3] = (int)floor(symax + gridCoc.y) + 2;
             }
 
             delete[] timePos;

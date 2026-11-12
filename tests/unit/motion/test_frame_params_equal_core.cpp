@@ -111,8 +111,6 @@ namespace {
         bits(c.name, "invFocaldistance", fp.invFocaldistance, CRenderer::invFocaldistance);
         bits(c.name, "focallength", fp.focallength, CRenderer::focallength);
         bits(c.name, "fstop", fp.fstop, CRenderer::fstop);
-        bits(c.name, "cocFactorScreen", fp.cocFactorScreen, CRenderer::cocFactorScreen);
-        bits(c.name, "cocFactorSamples", fp.cocFactorSamples, CRenderer::cocFactorSamples);
 
         bits(c.name, "camera.fromWorld", fp.camera.fromWorld, CRenderer::fromWorld);
         bits(c.name, "camera.toWorld", fp.camera.toWorld, CRenderer::toWorld);

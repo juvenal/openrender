@@ -1,0 +1,67 @@
+diff --git a/tests/unit/camera/test_camera_lens_model.cpp b/tests/unit/camera/test_camera_lens_model.cpp
+index cbc77f1c..371dab40 100644
+--- a/tests/unit/camera/test_camera_lens_model.cpp
++++ b/tests/unit/camera/test_camera_lens_model.cpp
+@@ -8,8 +8,10 @@
+  *   program. The camera exposes the lens model spec 031 needs for the circle of confusion:
+  *   lensModel() returns the frame's projection, image plane, aperture radius, focal distance
+  *   and its reciprocal, focal length and f-stop; thinLens() is aperture != 0; and
+- *   cocFactorScreen() is, bit for bit, the expression of CRenderer::beginFrame
+- *   (renderer.cpp:447, 4eb683b) over those fields, and 0 for a pinhole.
++ *   circleOfConfusion(z) is the thin lens's signed screen-space circle of confusion,
++ *   imagePlane * aperture * (1/f - 1/z) (spec 031's lens phase, contracts/lens-model.md), and 0
++ *   for a pinhole. (Spec 031 replaced the Reyes-only cocFactorScreen() check, which pinned the
++ *   expression ip*A*f/(f+A) that the lens phase retires.)
+  *
+  *   Red on the starting tree by build failure: camera.h does not exist.
+  *
+@@ -22,6 +24,9 @@
+  *
+  */
+ 
++#include <algorithm>
++#include <cmath>
++
+ #include "camera.h"
+ #include "frame_test_utils.h"
+ 
+@@ -31,9 +36,24 @@ using openrender::LensModel;
+ 
+ namespace {
+ 
+-    // Verbatim copy of renderer.cpp:447 (4eb683b); the statics are the fields of fp
+-    float referenceCocFactorScreen(const FrameParams &fp) {
+-        return (float)(fp.imagePlane * fp.aperture * fp.focaldistance / (fp.focaldistance + fp.aperture));
++    // The thin lens, in double: imagePlane * aperture * (1/f - 1/z); the tolerance is 4 ulp relative or 1e-7 absolute
++    double referenceCircleOfConfusion(const FrameParams &fp, float z) {
++        return (double)fp.imagePlane * (double)fp.aperture * (1.0 / (double)fp.focaldistance - 1.0 / (double)z);
++    }
++
++    bool closeEnough(float got, double want) {
++        const double tol = std::max(4.0 * std::fabs(want) * 1.1920929e-7, 1e-7);
++        return std::fabs((double)got - want) <= tol;
++    }
++
++    void checkCircleOfConfusion(const FrameParams &fp, const LensModel &lm, bool thin) {
++        for (float k : {0.25f, 0.5f, 0.9f, 1.0f, 1.1f, 2.0f, 10.0f}) {
++            const float z = k * fp.focaldistance;
++            if (thin)
++                CHECK(closeEnough(lm.circleOfConfusion(z), referenceCircleOfConfusion(fp, z)));
++            else
++                CHECK(lm.circleOfConfusion(z) == 0.0f);
++        }
+     }
+ 
+     void check(const FrameParams &fp, bool thin) {
+@@ -47,10 +67,7 @@ namespace {
+         CHECK(frametest::sameBits(lm.focallength, fp.focallength));
+         CHECK(frametest::sameBits(lm.fstop, fp.fstop));
+         CHECK(lm.thinLens() == thin);
+-        if (thin)
+-            CHECK(frametest::sameBits(lm.cocFactorScreen(), referenceCocFactorScreen(fp)));
+-        else
+-            CHECK(lm.cocFactorScreen() == 0.0f);
++        checkCircleOfConfusion(fp, lm, thin);
+     }
+ 
+ } // namespace

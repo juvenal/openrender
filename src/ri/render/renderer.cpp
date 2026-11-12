@@ -446,15 +446,9 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     aperture = focallength / (2 * fstop);
     if ((aperture <= C_EPSILON) || (projection == OPTIONS_PROJECTION_ORTHOGRAPHIC)) {
         aperture = 0;
-        cocFactorScreen = 0;
-        cocFactorSamples = 0;
-        cocFactorPixels = 0;
         invFocaldistance = 0;
     }
     else {
-        cocFactorScreen = (float)(imagePlane * aperture * focaldistance / (focaldistance + aperture));
-        cocFactorSamples = cocFactorScreen * sqrtf(dPixeldx * dPixeldx * pixelXsamples * pixelXsamples + dPixeldy * dPixeldy * pixelYsamples * pixelYsamples);
-        cocFactorPixels = cocFactorScreen * sqrtf(dPixeldx * dPixeldx + dPixeldy * dPixeldy);
         invFocaldistance = 1 / focaldistance;
     }
 

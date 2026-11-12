@@ -1,9 +1,8 @@
 # Contract tests of spec 031 (geometry, hider-agnostic): `ctest --test-dir build -L geometry_contract`.
 #
-# Each program is its own executable (a case that cannot compile must not break an approved one) and is defined only
-# while OPENRENDER_031_RED_TESTS is ON: they are red on the starting tree (the interfaces they exercise do not exist),
-# and each joins the normal build in the phase that makes it green (the phase's test gate removes it from this block).
-# The option is removed with the last gated test (tasks T128).
+# Each program is its own executable (a case that cannot compile must not break an approved one). They were defined
+# only while the temporary option OPENRENDER_031_RED_TESTS was ON (red on the starting tree, each joining the normal
+# build in the phase that made it green); the option went with the lens phase (tasks T128) and all five are enabled.
 #
 #   Geometry_DiceThroughDicer, Geometry_IntersectThroughRayContext, Geometry_ExpansionThroughHost
 #       link libRIBVector and libRIBCommon only: a program with no hider and no Shading
@@ -40,4 +39,4 @@ contract_program(test_geometry_dice_through_dicer test_dice_through_dicer.cpp Ge
 contract_program(test_geometry_intersect_through_ray_context test_intersect_through_ray_context.cpp Geometry_IntersectThroughRayContext vector)
 contract_program(test_geometry_expansion_through_host test_expansion_through_host.cpp Geometry_ExpansionThroughHost vector)
 
-# Every test of this file is enabled: the OPENRENDER_031_RED_TESTS block is empty here (the option goes with tasks T128)
+# Every test of this file is enabled.

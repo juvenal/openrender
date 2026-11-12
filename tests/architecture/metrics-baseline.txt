@@ -63,11 +63,13 @@
 # Spec 031 (Phase 7, T098, 2026-11-11): Reyes and the stochastic rasterizer read the camera rotation, translation, flags and lens values from FrameParams
 # (frameParams(), once per function or grid, never per sample) instead of CRenderer::aperture, cameraHasRotation, cameraRotationOnly, relRotQ, relTrans,
 # invFocaldistance, cocFactorScreen and cocFactorSamples: Hiders 552 -> 499 references and 79 -> 72 members, TOTAL 554 -> 501 and 81 -> 74, as archcheck reported.
+# Spec 031 (Phase 9, lens phase, 2026-11-11): the Reyes depth-of-field bounds and the lens scatter read the lens model and FrameParams (dSampledx, dSampledy)
+# instead of CRenderer::dSampledx/y and the cocFactor statics: Hiders 499 -> 495 references (members unchanged at 72), TOTAL 501 -> 497 (74), as archcheck reported.
 
 Geometry            2     2
-Hiders            499    72
+Hiders            495    72
 Infra               0     0
 SceneInterface      0     0
 Shading             0     0
 Texturing           0     0
-TOTAL             501    74
+TOTAL             497    74

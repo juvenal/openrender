@@ -4,7 +4,7 @@
  * File: test_frame_default.cpp
  *
  * Description:
- *   Geometry_FrameDefault: with nothing installed geometryFrame() is all zero and raytraced() is false; an installed frame reads back bit for bit; the frame's camera2pixels equals renderer.h's; a frame built after a raytrace hider's constructors carries ATTRIBUTES_FLAGS_PRIMARY_VISIBLE (finding F1). Renderer build. This file names the lens fields cocFactorPixels and invFocaldistance, so tasks T115a edits it (diff first) when the lens phase replaces them by lens.
+ *   Geometry_FrameDefault: with nothing installed geometryFrame() is all zero and raytraced() is false; an installed frame reads back bit for bit; the frame's camera2pixels equals renderer.h's; a frame built after a raytrace hider's constructors carries ATTRIBUTES_FLAGS_PRIMARY_VISIBLE (finding F1). Renderer build. The frame's lens is the openrender::LensModel `lens` (the lens phase replaced the old cocFactorPixels and invFocaldistance fields; tasks T115a).
  *
  *   Written first for spec 031 (tests/geometry_contract/, label geometry_contract); red on the starting tree
  *   because the interface it exercises does not exist yet (contracts/tests.md). Built only while
@@ -42,8 +42,13 @@ namespace {
         f.pixelLeft = -3.5f;
         f.pixelTop = 2.25f;
         f.clipMin = 0.0125f;
-        f.cocFactorPixels = 0.37f; // replaced by `lens` in the lens phase (T115a edits these two lines)
-        f.invFocaldistance = 0.2f;
+        f.lens.projection = OPTIONS_PROJECTION_PERSPECTIVE;
+        f.lens.imagePlane = 1.3125f;
+        f.lens.aperture = 0.0125f;
+        f.lens.focaldistance = 5.0f;
+        f.lens.invFocaldistance = 0.2f;
+        f.lens.focallength = 0.05f;
+        f.lens.fstop = 2.0f;
         return f;
     }
 
@@ -65,7 +70,9 @@ namespace {
         CHECK(g.flags == f.flags && g.raytracingFlags == f.raytracingFlags && g.projection == f.projection);
         CHECK(sameBits(g.imagePlane, f.imagePlane) && sameBits(g.dPixeldx, f.dPixeldx) && sameBits(g.dPixeldy, f.dPixeldy));
         CHECK(sameBits(g.pixelLeft, f.pixelLeft) && sameBits(g.pixelTop, f.pixelTop) && sameBits(g.clipMin, f.clipMin));
-        CHECK(sameBits(g.cocFactorPixels, f.cocFactorPixels) && sameBits(g.invFocaldistance, f.invFocaldistance));
+        CHECK(g.lens.projection == f.lens.projection && sameBits(g.lens.imagePlane, f.lens.imagePlane) && sameBits(g.lens.aperture, f.lens.aperture));
+        CHECK(sameBits(g.lens.focaldistance, f.lens.focaldistance) && sameBits(g.lens.invFocaldistance, f.lens.invFocaldistance));
+        CHECK(sameBits(g.lens.focallength, f.lens.focallength) && sameBits(g.lens.fstop, f.lens.fstop));
 
         CAttributes *attributes = new CAttributes();
         attributes->flags |= ATTRIBUTES_FLAGS_PRIMARY_VISIBLE;

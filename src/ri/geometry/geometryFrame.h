@@ -25,6 +25,7 @@
 #ifndef GEOMETRYFRAME_H
 #define GEOMETRYFRAME_H
 
+#include "camera.h"  // openrender::LensModel (Graphics State)
 #include "common/algebra.h"
 #include "options.h" // OPTIONS_PROJECTION_*, OPTIONS_FLAGS_* (Graphics State)
 
@@ -38,7 +39,7 @@ struct CGeometryFrame {
         unsigned int raytracingFlags; // the attribute flags that make an object raytraced
         int projection;               // an EProjectionType value
         float imagePlane, dPixeldx, dPixeldy, pixelLeft, pixelTop, clipMin;
-        float cocFactorPixels, invFocaldistance; // until the lens phase, which replaces them by `openrender::LensModel lens`
+        openrender::LensModel lens; // the frame's lens: the circle of confusion the dicing heuristic reads
 };
 
 void installGeometryFrame(const CGeometryFrame *frame); // the renderer core; nullptr uninstalls

@@ -36,12 +36,6 @@
 #include "options.h"
 #include "shader.h" // spec 025: attributes.h and options.h no longer pull in Shading
 
-// Compute the circle of confusion as a function of the depth.
-// cocSamples(z) is now CSampler::circleOfConfusion() (sampler.h, S1) --
-// canonical formula shared across its reyes call sites.
-#define cocPixels(z) absf((1 / z) - CRenderer::invFocaldistance) * CRenderer::cocFactorPixels
-#define cocScreen(z) absf((1 / z) - CRenderer::invFocaldistance) * CRenderer::cocFactorScreen
-
 // The following bits can be used by the hiders
 const unsigned int HIDER_RGBAZ_ONLY = 1;           // The hider can only produce RGBAZ channels
 const unsigned int HIDER_BREAK = 2;                // The hider should stop rendering
@@ -420,9 +414,6 @@ class CRenderer {
         static float aperture;                                    // Aperture radius
         static float imagePlane;                                  // The z coordinate of the image plane
         static float invImagePlane;                               // The reciprocal of that
-        static float cocFactorPixels;                             // The circle of concusion factor for the pixels
-        static float cocFactorSamples;                            // The circle of concusion factor for the samples
-        static float cocFactorScreen;                             // The circle of concusion factor for the screen
         static float invFocaldistance;                            // 1 / focalDistance
         static float lengthA, lengthB;                            // The depth to length conversion
 

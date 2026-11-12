@@ -205,8 +205,10 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int /*nullBucket*/) {
             pixel->jy = sample.jitterY;
             pixel->jt = sample.timeStratum;
             pixel->jimp = sample.importance;
-            pixel->jdx = sample.lensU;
-            pixel->jdy = sample.lensV;
+            // The lens point scaled to sample units, so that v + jdx * c scatters a vertex by lens * dSampled * c,
+            // c the signed circle of confusion in screen units (reyesLensBounds.h expands the bounds by |c| * |dSampled|)
+            pixel->jdx = sample.lensU * fp.dSampledx;
+            pixel->jdy = sample.lensV * fp.dSampledy;
 
             // Center location of the sample
             pixel->xcent = (j + pixel->jx) + left;

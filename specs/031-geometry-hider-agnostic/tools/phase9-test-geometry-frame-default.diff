@@ -1,0 +1,31 @@
+diff --git a/tests/geometry_contract/test_frame_default.cpp b/tests/geometry_contract/test_frame_default.cpp
+index ed9af7c9..4f4695fe 100644
+--- a/tests/geometry_contract/test_frame_default.cpp
++++ b/tests/geometry_contract/test_frame_default.cpp
+@@ -42,8 +42,13 @@ namespace {
+         f.pixelLeft = -3.5f;
+         f.pixelTop = 2.25f;
+         f.clipMin = 0.0125f;
+-        f.cocFactorPixels = 0.37f; // replaced by `lens` in the lens phase (T115a edits these two lines)
+-        f.invFocaldistance = 0.2f;
++        f.lens.projection = OPTIONS_PROJECTION_PERSPECTIVE;
++        f.lens.imagePlane = 1.3125f;
++        f.lens.aperture = 0.0125f;
++        f.lens.focaldistance = 5.0f;
++        f.lens.invFocaldistance = 0.2f;
++        f.lens.focallength = 0.05f;
++        f.lens.fstop = 2.0f;
+         return f;
+     }
+ 
+@@ -65,7 +70,9 @@ namespace {
+         CHECK(g.flags == f.flags && g.raytracingFlags == f.raytracingFlags && g.projection == f.projection);
+         CHECK(sameBits(g.imagePlane, f.imagePlane) && sameBits(g.dPixeldx, f.dPixeldx) && sameBits(g.dPixeldy, f.dPixeldy));
+         CHECK(sameBits(g.pixelLeft, f.pixelLeft) && sameBits(g.pixelTop, f.pixelTop) && sameBits(g.clipMin, f.clipMin));
+-        CHECK(sameBits(g.cocFactorPixels, f.cocFactorPixels) && sameBits(g.invFocaldistance, f.invFocaldistance));
++        CHECK(g.lens.projection == f.lens.projection && sameBits(g.lens.imagePlane, f.lens.imagePlane) && sameBits(g.lens.aperture, f.lens.aperture));
++        CHECK(sameBits(g.lens.focaldistance, f.lens.focaldistance) && sameBits(g.lens.invFocaldistance, f.lens.invFocaldistance));
++        CHECK(sameBits(g.lens.focallength, f.lens.focallength) && sameBits(g.lens.fstop, f.lens.fstop));
+ 
+         CAttributes *attributes = new CAttributes();
+         attributes->flags |= ATTRIBUTES_FLAGS_PRIMARY_VISIBLE;

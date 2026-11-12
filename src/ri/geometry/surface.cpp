@@ -44,8 +44,9 @@
 // Return Value			:
 // Comments				:	(inline for speed, needed for CSurface::dice() )
 static inline float minCocPixels(const CGeometryFrame &frame, float z1, float z2) {
-    float coc1 = absf((1 / z1) - frame.invFocaldistance) * frame.cocFactorPixels;
-    float coc2 = absf((1 / z2) - frame.invFocaldistance) * frame.cocFactorPixels;
+    const float pixelSize = sqrtf(frame.dPixeldx * frame.dPixeldx + frame.dPixeldy * frame.dPixeldy);
+    const float coc1 = absf(frame.lens.circleOfConfusion(z1)) * pixelSize;
+    const float coc2 = absf(frame.lens.circleOfConfusion(z2)) * pixelSize;
     if (coc2 < coc1) {
         return coc2;
     }

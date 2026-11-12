@@ -46,14 +46,14 @@ void beginFrameParams(const openrender::sampling::CSamplingConfig &samplingConfi
     f.invImagePlane = CRenderer::invImagePlane;
     f.dxdPixel = CRenderer::dxdPixel;
     f.dydPixel = CRenderer::dydPixel;
+    f.dSampledx = CRenderer::dSampledx;
+    f.dSampledy = CRenderer::dSampledy;
 
     f.aperture = CRenderer::aperture;
     f.focaldistance = CRenderer::focaldistance;
     f.invFocaldistance = CRenderer::invFocaldistance;
     f.focallength = CRenderer::focallength;
     f.fstop = CRenderer::fstop;
-    f.cocFactorScreen = CRenderer::cocFactorScreen;
-    f.cocFactorSamples = CRenderer::cocFactorSamples;
 
     movmm(f.camera.fromWorld, CRenderer::fromWorld);
     movmm(f.camera.toWorld, CRenderer::toWorld);
@@ -86,8 +86,13 @@ void beginGeometryFrame() {
     g.pixelLeft = CRenderer::pixelLeft;
     g.pixelTop = CRenderer::pixelTop;
     g.clipMin = CRenderer::clipMin;
-    g.cocFactorPixels = CRenderer::cocFactorPixels;
-    g.invFocaldistance = CRenderer::invFocaldistance;
+    g.lens.projection = (int)CRenderer::projection;
+    g.lens.imagePlane = CRenderer::imagePlane;
+    g.lens.aperture = CRenderer::aperture;
+    g.lens.focaldistance = CRenderer::focaldistance;
+    g.lens.invFocaldistance = CRenderer::invFocaldistance;
+    g.lens.focallength = CRenderer::focallength;
+    g.lens.fstop = CRenderer::fstop;
 
     installGeometryFrame(&geometryFrameValue);
 }

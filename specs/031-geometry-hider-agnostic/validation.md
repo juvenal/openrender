@@ -454,6 +454,54 @@ The pinned-test diff applied (2 lines); the 11 DB-011 lines deleted by key. `cte
 `reyes.cpp -> CRenderer::` `cocFactorScreen`, `cocFactorSamples`, `invFocaldistance`, `cameraHasRotation`, `relRotQ`, `aperture`, `relTrans`; `stochastic.cpp -> CRenderer::` `cameraHasRotation`, `cameraRotationOnly`, `relRotQ`, `relTrans`.
 `cmake --build --target test_frame_params_equal_core` fails to compile: `FrameParams` has no member `cocFactorScreen` (`build-logs/p7-tg-build.log`).
 
+### Phase 9 test gate (T110 to T112, T116; lens phase)
+
+**PAUSE 9a approval (2026-11-11).** The maintainer approved, as recommended: the four pinned-test diffs (`tools/phase9-test-camera-lens-model.diff` T113, `phase9-test-camera-generate-ray-only.diff` T114, `phase9-test-frame-params-equal-core.diff` T115, `phase9-test-geometry-frame-default.diff` T115a); the new tests `Camera_LensCircleOfConfusion`, `Camera_LensRayMatchesCoC` and `Hiders_ReyesBucketBoundCoversCoC`; the `src/ri/hiders/reyesLensBounds.h` seam **on condition that it clamps `zMin <= 0` and the bound test has a case for the clamp** (done: `reyes_lens::kMinDepth = 1e-6f`, cases `zMin` in {0, -1, -100, 0.5 kMinDepth}); the boundary "only depth-of-field images may change". `DoF_BlurDiameter_*` is skipped.
+`tests/unit/camera/test_frame_default.cpp` (spec 028's `Frame_DefaultValue`) names neither `cocFactorScreen` nor `cocFactorSamples` (grep over `tests/` for `coc` finds only the files listed in the four diffs): no edit.
+
+Tests written (T111): `tests/unit/camera/test_camera_lens_coc.cpp`, `test_camera_lens_ray.cpp` (`add_camera_motion_test` without `ENABLED`: `EXCLUDE_FROM_ALL`, `DISABLED`), `tests/unit/raster/test_reyes_lens_bounds.cpp` (`Hiders_ReyesBucketBoundCoversCoC`, label `hiders;unit`, in the `OPENRENDER_031_RED_TESTS` block for the red evidence; to let `tests/unit/raster` see the option the `option()` line of `tests/CMakeLists.txt` was moved above `add_subdirectory(unit/raster)` for that step only and restored at T116, when the test left the red block).
+
+Red evidence (T112; `build` configured with `-DOPENRENDER_031_RED_TESTS=ON`, `build-logs/p9-red-*.log`):
+- `test_camera_lens_coc` and `test_camera_lens_ray` fail to compile: `no member named 'circleOfConfusion' in 'openrender::LensModel'`.
+- `test_reyes_lens_bounds` fails to compile: `'reyesLensBounds.h' file not found`.
+- By assertion, a scratch seam (`reyesLensBounds.h` expressing the starting tree's `reyes.cpp:631-632` bound, `|1/z - invF| * ip*A*f/(f+A)`, no clamp, in a scratch project outside the tree) built against the same test: `scratch_old_bound` FAILED with 2,220 failed checks, among them 2,200 bucket-bound coverage checks (the physical blur reaches past the `f/(f+A)`-scaled bound, worst on the wide aperture) and the clamp cases (the old expression is not finite or not as large at `zMin <= 0`) (`build-logs/p9-red-scratch-ctest.log`).
+- `ctest -L architecture` on the unchanged tree (before any source edit): 31/31 passed (`build-logs/p9-tg-arch.log`).
+
+T116 (diffs applied, lens tests enabled, `Hiders_ReyesBucketBoundCoversCoC` out of the red block; `build-logs/p9-tg-*.log`): `test_camera_lens_model` and `test_camera_generate_ray_only` fail to compile (`no member named 'circleOfConfusion'`), `test_camera_lens_coc` and `test_camera_lens_ray` likewise, `test_reyes_lens_bounds` (`'reyesLensBounds.h' file not found`) and `test_geometry_frame_default` (`no member named 'lens' in 'CGeometryFrame'`); `test_frame_params_equal_core` compiles (the removed checks only name fields that still exist until T120). `OPENRENDER_031_RED_TESTS` was configured back to OFF before the implementation build.
+
+### Phase 9 implementation record (T117 to T121; macOS; Linux in §3)
+
+Sites changed (T119 invariant: only the scatter reads `vertices[9]` signed). `[9` readers: `reyes.cpp` writer (copyPoints, `vertices[9] = lens.circleOfConfusion(z)`), reader in the per-vertex grid bound (`expansion(vertices[9], ...)`, magnitude), reader in the quad bound (`absf(cVertex[9 + ...])` x4, maximum of magnitudes); signed readers, the scatter only: `stochasticQuad.h:563-566` and `:844-847` (`v0d..v3d`, unchanged) and `stochasticPoint.h:319-320` (unchanged); `grep -n '\[9' src/ri/hiders/zbuffer*.h` finds none.
+Bounds: object bucket bound (`drawObject`) through `reyes_lens::expandBucketBounds`; grid bound, per-vertex bound, quad bound (`quadCoc` is now a per-axis `SampleExpansion`) and the grid-level per-time-stratum bound through `reyes_lens::expansion`/`maxAbsCoc`. `pixel->jdx/jdy` are `lens * dSampled` (`stochastic.cpp`).
+`FrameParams` gained `dSampledx`, `dSampledy` (copies of `CRenderer::dSampledx/y`, `rendererFrame.cpp`), so the new Reyes sites read the frame, not `CRenderer::` (read through the approved seam's arguments); this is an addition beyond the four approved edits (nothing compares it: `Motion_FrameParamsEqualCore` is unchanged).
+Removed: `LensModel::cocFactorScreen()`, `FrameParams::cocFactorScreen/cocFactorSamples`, `CGeometryFrame::cocFactorPixels/invFocaldistance` (now `openrender::LensModel lens`), `CSampler::circleOfConfusion`, the `cocPixels`/`cocScreen` macros, `CRenderer::cocFactorPixels/Samples/Screen` and their computation (`renderer.cpp:447` and the `invFocaldistance` statics stay). Added: `LensModel::circleOfConfusion` (inline), `LensModel::fromFrame`, `src/ri/hiders/reyesLensBounds.h`.
+
+| Check | macOS |
+|---|---|
+| CP-a build | exit 0, 0 compiler warnings (the 20 `ld` lines are the existing macOS 13.0/13.3 deployment-target and duplicate-library notes), `-Werror` (`build-logs/p9-build2.log`) |
+| lens and neighbour tests | `Camera_*` (8), `Frame_DefaultValue`, `Hiders_ReyesBucketBoundCoversCoC`, `Geometry_FrameDefault`, `Motion_*` (12): 30/30 first run |
+| CP-c `ctest -L architecture` | 31/31, `ALLOWED DB-004 x 3, DB-010 x 8, DB-011 x 151, DB-025 x 11` = 173, no line added, no stale line, `RESULT PASS`; METRIC Hiders 499 -> **495** refs (72 members), TOTAL 501 -> **497** (74), baseline file **not edited** (proposed below) |
+| FR-027 | `grep -nE 'CReyes|CHider|CRaytracer|CShadingContext' src/ri/state/camera.{h,cpp}` prints two existing header comments (`camera.h:20`, `camera.cpp:9`: "CFrameCamera reproduces CRaytracer::computeSamples ...", spec 028) and no code; `circleOfConfusion`, `fromFrame` and the lens sampling name no hider type |
+| CP-b suite, fresh stamp (`-LE determinism-sweep`) | 1107 tests, 1105 pass; the two failures are the expected `Visual_camera-dof-reyes` (247 blocks over threshold 20, worst 33.31) and `Convergence_dof-reyes` (the top-rung RMSE plateaus at 0.0297 against the old reference), both against the starting tree's references (not yet replaced; T124) |
+| CP-d | 915 images, **5 differing**, 0 missing: `tests/convergence/dof-reyes/convergence-out.tif`, `tests/visual/camera-dof-reyes/...`, `camera-motion-small-dof-reyes/camera-motion-small+dof-reyes.tif`, `parity-dof-motion/dof-motion-reyes.tif`, `parity-dof/dof-reyes.tif`: exactly research R11's Reyes images, **no raytrace image and no non-DoF image differs** (`build-logs/p9-manifest-diff.txt`); `MaxBlockAvgDiff` differs from `baseline-diffs-macos.txt` in four lines only: `Parity_dof` 40.45 -> 9.92, `Parity_dof-motion` 22.72 -> 2.41, `Visual_camera-dof-reyes` 14.89 -> 33.31, `Visual_camera-motion-small-dof-reyes` 16.48 -> 38.25 |
+| `^determinism$` and `Motion_Replay_*` | in the suite run: green; replay recordings untouched |
+| determinism sweep (`-L '^determinism-sweep$' -j2`) | **419/419**; 419 images, **5 differing** against `baseline-sweep-images-macos.sha256`: `top-camera-dof-reyes`, `camera-dof-reyes`, `camera-motion-small+dof-reyes`, `parity-dof-reyes`, `parity-dof-motion-reyes` (all Reyes DoF; `build-logs/p9-sweep-manifest-diff.txt`) |
+
+Proposed `metrics-baseline.txt` lowering (not applied, awaiting the maintainer): Hiders 499 -> 495 and TOTAL 501 -> 497 references (members unchanged at 72 and 74), "lens phase: the Reyes depth-of-field bounds read FrameParams (`dSampledx/y`) and the lens model; `cocFactor*` statics gone".
+
+### Phase 9 checkpoint after the reference replacement (T126, T128; macOS)
+
+`OPENRENDER_031_RED_TESTS` is removed (`tests/CMakeLists.txt` and the header comments of `tests/geometry_contract/CMakeLists.txt`; `grep -rn OPENRENDER_031_RED_TESTS CMake src tests --include=CMakeLists.txt --include=*.cmake` prints nothing; five test sources keep their old header sentence "OPENRENDER_031_RED_TESTS is ON until its phase enables it", comments only, untouched). The build tree's cached `OPENRENDER_031_RED_TESTS=OFF` entry is inert.
+
+| Check | macOS |
+|---|---|
+| CP-a build (`build-logs/p9-build3.log`) | exit 0, 0 compiler warnings |
+| CP-b suite, fresh stamp (`-LE determinism-sweep`, `build-logs/p9-suite2.log`) | **1107/1107** (one self-skip, `LibShader_Format_rslo_lower_minor`, as on the baseline); `-L visual` included: `Visual_camera-dof-reyes` and `Visual_camera-motion-small-dof-reyes` pass with `MaxBlockAvgDiff` 0.00 against their new references, `Parity_dof` 9.92 and `Parity_dof-motion` 2.41, `Convergence_dof-reyes` passes (it plateaued at 0.0297 against the old reference) |
+| CP-d manifest against `baseline-images-macos.sha256` | 915 images, **5 differing** (the five approved Reyes DoF images), 0 missing; `MaxBlockAvgDiff` differs from `baseline-diffs-macos.txt` in exactly four lines (`Parity_dof` 40.45 -> 9.92, `Parity_dof-motion` 22.72 -> 2.41, the two `Visual_*` 14.89 -> 0.00 and 16.48 -> 0.00) |
+| determinism sweep (`-L '^determinism-sweep$' -j2`), run on the same `orender`/library binaries (the only later changes: a test comment, CMake, references) | **419/419**; 5 differing against `baseline-sweep-images-macos.sha256`, the five Reyes DoF scenes (`top-camera-dof-reyes`, `camera-dof-reyes`, `camera-motion-small+dof-reyes`, `parity-dof-reyes`, `parity-dof-motion-reyes`) |
+| `^determinism$`, `Motion_*`, `^geometry_contract$` | in the suite run, green |
+| `-L architecture` | 31/31, 173 entries, `RESULT PASS`; metrics Hiders 495, TOTAL 497 equal the lowered baseline (no NOTE or WARNING for these rows) |
+
 ## §3 Linux records
 
 Host `juvenal@ubuntu-2404-desktop.v2-labs.io` (GCC 13, `-Werror`, 2 cores), tree `~/Projects/Development/CLI/openrender-031` (checked absent beforehand; `openrender`,
@@ -497,6 +545,22 @@ After `git add`, `linux_sync.sh push` (3,755 files) and `verify` (**3755 files, 
 
 `linux_sync.sh push` (3754 files) and `verify` (**3754 files, 0 differences**); remote incremental build (`031-l8-build`, remote `cpujob`, `-j2`): exit 0, **0 warnings** under GCC 13 `-Werror`; `ctest -L architecture` **31/31**;
 `-R Motion_` **13/13** (`Motion_CameraSlerpEquivalence`, `Motion_Replay_*` on its own `linux.txt` recording, `Motion_FrameParamsEqualCore`); `-L '^geometry_contract$'` **5/5**. The full suite and CP-d on Linux are Phase 8's.
+
+### Phase 9 CP-L (Linux, 2026-11-11; build and unit level; the visual and sweep checks wait for the approved references, T127)
+
+Pushed with `linux_sync.sh push` (3,763 files, `verify` 0 differences); configure and build (`-DCMAKE_BUILD_TYPE=Release`, `-j2`, GCC 13 `-Werror`) exit 0, 0 warnings; `Camera_|Frame_Default|Hiders_Reyes|Geometry_|Motion_` 30/30; `ctest -L architecture` green, METRIC Hiders 495, TOTAL 497, `RESULT PASS` (`build-logs/l9-*.log` on the host).
+
+### Phase 9 CP-Lfull (Linux, 2026-11-11; after the reference replacement; GCC 13 `-Werror`, `-j2`, remote `cpujob`)
+
+Pushed (`linux_sync.sh push`, 3,763 files, `verify` 0 differences); `build-logs/l9b-*.log` on the host.
+
+| Check | Linux |
+|---|---|
+| CP-a build | exit 0, 0 warnings |
+| CP-b suite (`-LE determinism-sweep`) | 1107/1108: the one failure is `TextureTile_RenderByteIdentical` (GitHub #45, held until spec 042), the baseline's own; `Visual_camera-dof-reyes` and `Visual_camera-motion-small-dof-reyes` pass the macOS-rendered references with `MaxBlockAvgDiff` 0.02 (threshold 20 and 90; the references are one set, no per-platform copies), `Parity_dof` 9.92, `Parity_dof-motion` 2.41, `Convergence_dof-reyes` passes |
+| CP-d manifest against `baseline-images-linux.sha256` | 915 images, **5 differing** (the same five Reyes DoF images), 0 missing; `MaxBlockAvgDiff` differs from `baseline-diffs-linux.txt` in the same four lines as on macOS (the two Parity values equal macOS's) |
+| `-L architecture`, `Motion_*`, `^geometry_contract$`, `^determinism$` | 31/31, 13/13, 5/5, 156/156 |
+| determinism sweep (`-j2`) | **419/419**; 419 images, **5 differing** against `baseline-sweep-images-linux.sha256`: `top-camera-dof-reyes`, `camera-dof-reyes`, `camera-motion-small+dof-reyes`, `parity-dof-reyes`, `parity-dof-motion-reyes` (R11's Reyes images; no raytrace and no non-DoF image) |
 
 ### T020 / PAUSE 1 outcome (2026-11-09)
 
@@ -552,11 +616,31 @@ dereference at call sites that now take a reference (no new `rc()` helper); the 
 
 ## §5 Reference approvals
 
-(Phase 9.)
+### Phase 9: the changed depth-of-field images (T122, T123; **no reference changed before PAUSE 9e**)
+
+Measured with `Option "sampling" "seed" [1]` copies of each scene (seed 1 against seed 0, same build) for the noise, and the new build against the starting tree's render at seed 0 for the change; `MaxBlockAvgDiff` over 8x8 blocks (scratch `031-p9-noise.sh`, `build-logs/p9-noise.log`):
+
+| Scene | noise before (seed 1 vs 0) | noise after | after vs before | Reyes vs raytrace before -> after |
+|---|---|---|---|---|
+| `camera-dof-reyes` (= `parity/dof-reyes`) | 11.00 | 11.55 | **33.39** | 40.45 -> **9.92** (raytrace noise 13.81) |
+| `camera-motion-small+dof-reyes` | 12.59 | 13.38 | **38.27** | 44.08 -> **11.06** (14.67) |
+| `parity/dof-motion-reyes` | 4.06 | 3.41 | **20.69** | 22.72 -> **2.41** (3.56) |
+| the raytrace twins (4) | 13.81, 14.67, 13.81, 3.56 | identical | **0.00** (byte-identical) | |
+
+The Reyes change is 3 to 5 times its own noise, and after the change Reyes agrees with the raytracer within the raytracer's own noise (US7 AS2): `Parity_dof` 40.45 -> 9.92, `Parity_dof-motion` 22.72 -> 2.41. `Convergence_dof-reyes` fails against the old reference (top-rung RMSE 0.0297 does not fall: the sampler converges to the new image).
+Implied blur, `DepthOfField 2 1 5` (aperture radius 0.25, focus 5, fov 45: image plane 2.414, 300 pixels per screen unit): radius in pixels `181.1 * (1/5 - 1/z)`: z = 3: -24.1 (near field, mirrored), 4: -9.1, 5: 0, 6: +6.0, 8: +13.6, 10: +18.1, infinity: +36.2; the old Reyes radius was `sqrt(2) f/(f + A) = 1.347` times that.
+#112 (`gh issue view 112`, read only): `coverage-alpha-sides2-tjunction-r0.5_reyes` is static and non-DoF, so the lens phase cannot touch it; its image has the baseline hash `65e786c887f3a541` in the suite manifest, and in 12 repeated runs of the `CoverageAnalytic_alpha` family at `-j4` on each of `build-base` and `build` (24 runs) every run gave that hash; the dropout did not reproduce, and nothing here claims a fix.
+**PAUSE 9e approval (2026-11-11).** The maintainer approved all five changed images (`visual/camera-dof-reyes`, `camera-motion-small+dof-reyes`, `parity/dof-reyes`, `parity/dof-motion-reyes`, `convergence/dof-reyes`) as recommended, the regeneration of `convergence/dof-reyes.tif` through the README's mechanism, the lowering of `metrics-baseline.txt` (Hiders 499 -> 495, TOTAL 501 -> 497, members unchanged), the comment-only fix of the stale `cocFactorPixels` mention in `tests/geometry_contract/test_frame_default.cpp`, and **keeping `FrameParams::dSampledx/dSampledy` as an approved addition** (copies of the core's `CRenderer::dSampledx/y`, `rendererFrame.cpp`; nothing compares them).
+
+### Phase 9 reference replacement (T125; 2026-11-11)
+
+Only the approved references changed; no threshold touched. Parity tests store no reference.
+- `examples/rib/tests/references/camera-dof-reyes.tif` and `camera-motion-small+dof-reyes.tif`: each replaced by the image the `Visual_*` test itself wrote in the CP-b run (`build/tests/visual/camera-dof-reyes/camera-dof-reyes.tif`, sha256 `05fb12b243f0...`, and `camera-motion-small-dof-reyes/camera-motion-small+dof-reyes.tif`, sha256 `915ab47f64d5...`, equal to the CP-d manifest entries; the test's own command: `test_visual_render <orender> <rib> <output_tif> <reference> <threshold>` in `build/tests/visual/<scene>`, with the `VISUAL_ENV` environment).
+- `tests/convergence/reference/dof-reyes.tif`: regenerated with the README command for that scene only (`test_convergence --make-reference --orender build/src/orender/orender --template tests/convergence/scenes/dof-reyes.rib.in --reference tests/convergence/reference/dof-reyes.tif --knob spp --ref-knob 256 --ref-renders 256 --scratch build/tests/convergence/dof-reyes-reference`, `SHADERS`, `ORENDERHOME`, `DISPLAYS`, `GEOMETRIES` set as the test sets them, through `cpujob`; mean of 256 renders at 256 spp, independent sampler, 57 s): `build-logs/p9-convref.log`.
 
 ## §6 FR/SC evidence table
 
-Status after Phase 8 (the interface phase). `proven` rows are backed by the named test or grep on both platforms; the lens-phase rows (FR-022 to FR-027, FR-029 to FR-031, SC-009, SC-010 and the lens part of SC-001) wait for Phases 9 to 11.
+Status after Phase 9 (the lens phase). `proven` rows are backed by the named test or grep on both platforms; Phase 9 closed the lens rows below, SC-009 and SC-010 wait for the maintainer's sign-off at PAUSE 9 and for Phases 10 and 11.
 
 | Requirement | Evidence | Status |
 |---|---|---|
@@ -576,6 +660,7 @@ Status after Phase 8 (the interface phase). `proven` rows are backed by the name
 | FR-021 | the FR-021 note above: no member added | proven |
 | FR-028 | `IObjectSink`; `Geometry_ObjectSink` | proven |
 | SC-001 (interface phases), SC-007, SC-008, US1 | CP-b/CP-d/CP-c at every phase and the Phase 8 runs above: both platforms, every manifest and the sweep byte-identical; allowlist 344 to 173 (deletions only) | proven |
-| FR-022 to FR-027, SC-009, SC-010 | Phases 9 to 11 | open (lens phase) |
+| FR-022 to FR-027 | one signed `LensModel::circleOfConfusion(z)` shared by Reyes (`vertices[9]`, the scatter, every bound) and Geometry's dicing; the raytracer's `generateRay` unchanged and pinned to it by `Camera_LensRayMatchesCoC`; `Camera_LensCircleOfConfusion`; the FR-027 grep (two existing header comments, no code); §1 Phase 9 | proven |
+| SC-009, SC-010 | blur diameter and Reyes-versus-raytrace agreement (§5: `Parity_dof` 40.45 -> 9.92, `Parity_dof-motion` 22.72 -> 2.41, within the raytracer's own noise); #112 observation (24 of 24 runs at the baseline hash); no changed reference without approval | measured; open for PAUSE 9 sign-off and Phases 10 and 11 |
 | FR-029 | this gate | proven once the maintainer accepts |
-| FR-030, FR-031, SC-001 (lens part) | Phases 9 to 11 | open (lens phase) |
+| FR-030, FR-031, SC-001 (lens part) | `Hiders_ReyesBucketBoundCoversCoC` (with the `zMin <= 0` clamp case); both platforms: manifests, sweeps and `MaxBlockAvgDiff` lists differ from the baselines in exactly the five approved Reyes depth-of-field images (§1 Phase 9, §3) | proven |

@@ -32,3 +32,14 @@ target_compile_features(test_raster_edge PRIVATE cxx_std_20)
 target_include_directories(test_raster_edge PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/ri/hiders)
 add_test(NAME Raster_QuadEdgeDegenerate COMMAND test_raster_edge)
 set_tests_properties(Raster_QuadEdgeDegenerate PROPERTIES TIMEOUT 60 LABELS "unit;determinism")
+
+# Hiders_ReyesBucketBoundCoversCoC (spec 031, lens phase, FR-031): the depth-of-field expansion of the bucket bound and of a
+# grid's bound (reyesLensBounds.h, the seam reyes.cpp and this test both call) covers every vertex scattered by the lens
+# points on the unit circle, for boxes on both sides of the focal plane, spanning it, reaching the eye plane (the clamp)
+# and reaching infinity. Renderer build (links ribRender like Raster_OcclusionCullerMaxDepth); state/camera.h is inline.
+add_executable(test_reyes_lens_bounds test_reyes_lens_bounds.cpp)
+target_compile_features(test_reyes_lens_bounds PRIVATE cxx_std_20)
+target_include_directories(test_reyes_lens_bounds PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/state)
+target_link_libraries(test_reyes_lens_bounds PRIVATE ribRender openrendercommon)
+add_test(NAME Hiders_ReyesBucketBoundCoversCoC COMMAND test_reyes_lens_bounds)
+set_tests_properties(Hiders_ReyesBucketBoundCoversCoC PROPERTIES TIMEOUT 60 LABELS "hiders;unit")
