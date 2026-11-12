@@ -1,0 +1,41 @@
+##RenderMan RIB-Structure 1.0
+# Spec 056, family volume-transmission-interior.
+# Camera space (orthographic, roll + translate camera). A receiver at z = 4 faces the camera (N = -z) and calls
+# transmission() toward P + (0, 0, 1000): the ray goes into the interior side (dot(+z, N) < 0), crosses a wall at
+# z = 5 with opacity 0.5 (transparent: it must NOT switch the shader, A5) and ends at its destination at
+# z = 1004, less the trace bias (0.01, pinned below): the ray's initial t is d - bias (executeMisc.cpp:779).
+# Reach and fog distance are 1000, so the sampled ray's jitter (a fraction of a pixel, from the ray differentials)
+# does not change the length measurably. With the over-form of fog the transmitted fraction is
+# (1 - 0.5) * T1 * T2 = 0.5 * exp(-(1000 - 0.01)/1000). Nothing lies beyond the destination (GitHub #153).
+# Probe pixel (4,4), RGB (grey): (0.183942, 0.183942, 0.183942) (tolerance 0.0001).
+version 3.03
+Hider "zbuffer" "jitter" [0]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "volume-transmission-interior-zbuffer.tif" "file" "rgba"
+Format 8 8 1
+Projection "orthographic"
+Clipping 0.1 100
+Rotate 20 0 0 1
+Translate 0.3 -0.2 2
+WorldBegin
+  TransformBegin
+    # camera space: the inverse of the camera transform above
+    Translate -0.3 0.2 -2
+    Rotate -20 0 0 1
+    Attribute "visibility" "int specular" [1] "int transmission" [1]
+    Attribute "trace" "float bias" [0.01]
+    AttributeBegin
+      Surface "volume_transmission_probe" "float dz" [1000]
+      Interior "fog" "float distance" [1000] "color background" [0.1 0.3 0.9]
+      Polygon "P" [-3 -3 4 3 -3 4 3 3 4 -3 3 4] "N" [0 0 -1 0 0 -1 0 0 -1 0 0 -1]
+    AttributeEnd
+    AttributeBegin
+      Color [1 1 1]
+      Opacity [0.5 0.5 0.5]
+      Surface "constant"
+      Polygon "P" [-4 -4 5 4 -4 5 4 4 5 -4 4 5] "N" [0 0 -1 0 0 -1 0 0 -1 0 0 -1]
+    AttributeEnd
+  TransformEnd
+WorldEnd

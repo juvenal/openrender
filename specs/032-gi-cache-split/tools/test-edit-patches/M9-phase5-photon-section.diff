@@ -1,0 +1,151 @@
+--- a/tests/unit/texture_only/test_gi_stores.cpp
++++ b/tests/unit/texture_only/test_gi_stores.cpp
+@@ -142,18 +142,69 @@
+ #endif
+ 
+ #ifdef GI_STORES_PHOTONS
++// One photon, as it is stored: every field the file carries (the class has padding, so it is compared field by field)
++struct StoredPhoton {
++        float P[3], N[3], C[3];
++        short flags;
++        unsigned char theta, phi;
++};
++
++static std::vector<StoredPhoton> storedPhotons(const CPhotonStore &store) {
++    std::vector<StoredPhoton> photons;
++    for (int i = 1; i <= store.numItems; i++) { // item 0 is never assigned
++        const CPhoton &p = store.items[i];
++        StoredPhoton s;
++        memcpy(s.P, p.P, sizeof(s.P));
++        memcpy(s.N, p.N, sizeof(s.N));
++        memcpy(s.C, p.C, sizeof(s.C));
++        s.flags = p.flags;
++        s.theta = p.theta;
++        s.phi = p.phi;
++        photons.push_back(s);
++    }
++    return photons;
++}
++
++static bool equalPhoton(const StoredPhoton &a, const StoredPhoton &b) {
++    return memcmp(a.P, b.P, sizeof(a.P)) == 0 && memcmp(a.N, b.N, sizeof(a.N)) == 0 && memcmp(a.C, b.C, sizeof(a.C)) == 0 && a.flags == b.flags && a.theta == b.theta && a.phi == b.phi;
++}
++
++// The estimates of a store that was read from a file, at fixed points (queries are made only on such stores: a lookup caches its
++// answer in the store's probe octree, which a store that was filled and not read from a file does not have)
++static std::vector<float> queryPhotons(CPhotonStore &store, const float queries[][3], int count, const float *toStore) {
++    std::vector<float> answers(3 * (size_t)count);
++    const float N[3] = {0, 1, 0};
++    for (int q = 0; q < count; q++) {
++        // the point in the store's own space, brought back through the matrix the reader applies
++        const float P[3] = {(queries[q][0] - toStore[0]) * 0.5f, (queries[q][1] - toStore[1]) * 0.5f, (queries[q][2] - toStore[2]) * 0.5f};
++        store.lookup(&answers[3 * (size_t)q], P, N, 8);
++    }
++    return answers;
++}
++
+ static int photonSection() {
+     printf("photon store\n");
+-    matrix from, to;
+-    identitym(from);
+-    identitym(to);
++    matrix identity;
++    identitym(identity);
++    // non-trivial world matrices, exactly representable: scale 2 and translate (1, 2, 4), and its inverse
++    matrix fromWorld, toWorld;
++    identitym(fromWorld);
++    identitym(toWorld);
++    fromWorld[0] = fromWorld[5] = fromWorld[10] = 2;
++    fromWorld[12] = 1;
++    fromWorld[13] = 2;
++    fromWorld[14] = 4;
++    toWorld[0] = toWorld[5] = toWorld[10] = 0.5f;
++    toWorld[12] = -0.5f;
++    toWorld[13] = -1;
++    toWorld[14] = -2;
+     const char *name = "gi_stores_scratch.pm";
+ 
+     const int count = 5 * 5 * 5;
+-    std::vector<float> before(3 * 7), after(3 * 7);
+-    const float queries[7][3] = {{1, 1, 1}, {0.2f, 0.2f, 0.2f}, {2.9f, 2.9f, 2.9f}, {2, 0.5f, 1.5f}, {0, 0, 0}, {1.5f, 1.5f, 1.5f}, {3.5f, 0.1f, 2.2f}};
++    std::vector<StoredPhoton> written;
++    float writtenMaxPower = 0;
+     {
+-        CPhotonStore store(name, NULL, from, to);
++        CPhotonStore store(name, NULL, fromWorld, toWorld);
+         for (int ix = 0; ix < 5; ix++) {
+             for (int iy = 0; iy < 5; iy++) {
+                 for (int iz = 0; iz < 5; iz++) {
+@@ -167,32 +218,50 @@
+         }
+         store.balance();
+         CHECK(store.numItems >= count);
+-        const float N[3] = {0, 1, 0};
+-        for (int q = 0; q < 7; q++) {
+-            store.lookup(&before[3 * (size_t)q], queries[q], N, 8);
+-        }
+-        float sum = 0;
+-        for (float v : before) {
+-            sum += v;
+-        }
+-        CHECK(sum > 0); // the comparison below would be vacuous
+         store.modifying = TRUE;
+-        store.write(from, to);
++        store.write(fromWorld, toWorld); // balances, writes the map, then the matrices and the square root of maxPower
++        written = storedPhotons(store);
++        writtenMaxPower = store.maxPower; // what write() put into the file
++        CHECK(writtenMaxPower > 0);
+     }
++    CHECK((int)written.size() >= count);
+ 
+-    {
+-        FILE *in = ropen(name, "rb", filePhotonMap, TRUE);
+-        CHECK(in != NULL);
+-        CPhotonStore store(name, in, from, to);
+-        fclose(in);
+-        const float N[3] = {0, 1, 0};
+-        for (int q = 0; q < 7; q++) {
+-            store.lookup(&after[3 * (size_t)q], queries[q], N, 8);
+-        }
+-    }
++    // two stores read from the file, with identity world matrices: the reader relates the file's world to them
++    FILE *inA = ropen(name, "rb", filePhotonMap, TRUE);
++    CHECK(inA != NULL);
++    CPhotonStore readA(name, inA, identity, identity);
++    fclose(inA);
++    FILE *inB = ropen(name, "rb", filePhotonMap, TRUE);
++    CHECK(inB != NULL);
++    CPhotonStore readB(name, inB, identity, identity);
++    fclose(inB);
+     remove(name);
+-    CHECK(memcmp(before.data(), after.data(), sizeof(float) * before.size()) == 0);
+-    printf("  the estimates after the reload equal the estimates before it\n");
++
++    // the stored photons, exactly: the count, and every field of every item from 1 on
++    CHECK(readA.numItems == (int)written.size());
++    const std::vector<StoredPhoton> readPhotons = storedPhotons(readA);
++    for (size_t i = 0; i < written.size(); i++) {
++        CHECK(equalPhoton(written[i], readPhotons[i]));
++    }
++    // the file's maxPower, and its matrices: against identity the reader's `to` is the file's fromWorld and `from` its toWorld
++    CHECK(readA.maxPower == writtenMaxPower);
++    for (int i = 0; i < 16; i++) {
++        CHECK(readA.to[i] == fromWorld[i]);
++        CHECK(readA.from[i] == toWorld[i]);
++    }
++
++    // the estimates, on stores that were read from the file: two readers of the same file answer alike, exactly
++    const float queries[7][3] = {{1, 1, 1}, {0.2f, 0.2f, 0.2f}, {2.9f, 2.9f, 2.9f}, {2, 0.5f, 1.5f}, {0, 0, 0}, {1.5f, 1.5f, 1.5f}, {3.5f, 0.1f, 2.2f}};
++    const float translation[3] = {fromWorld[12], fromWorld[13], fromWorld[14]};
++    const std::vector<float> answersA = queryPhotons(readA, queries, 7, translation);
++    const std::vector<float> answersB = queryPhotons(readB, queries, 7, translation);
++    float sum = 0;
++    for (float v : answersA) {
++        sum += v;
++    }
++    CHECK(sum > 0); // the comparison below would be vacuous
++    CHECK(memcmp(answersA.data(), answersB.data(), sizeof(float) * answersA.size()) == 0);
++    printf("  the %zu stored photons, maxPower and matrices after the reload equal those written, and two readers answer alike\n", written.size());
+     return 0;
+ }
+ #endif

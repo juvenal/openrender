@@ -1,0 +1,27 @@
+--- a/tests/unit/csg/test_procedural_operand.cpp
++++ b/tests/unit/csg/test_procedural_operand.cpp
+@@ -360,7 +360,7 @@
+     ASSERT(countOf<CDisk>(leaves) == 4);
+ }
+ 
+-TEST(expanded_objects_carry_the_fragment_flag_and_inside_parity) {
++TEST(expanded_objects_carry_the_inside_parity) {
+     CCsgSession s;
+     const std::string path = sphereArchive();
+     CCSGSolid *solid = solidFrom(s, [&] {
+@@ -379,7 +379,6 @@
+     ASSERT(state != NULL && fullyExpanded(state));
+     ASSERT(!state->operands[1]->members.empty());
+     for (const CObject *m : state->operands[1]->members) {
+-        ASSERT(m->attributes->flags & ATTRIBUTES_FLAGS_SOLID_FRAGMENT);
+         ASSERT((m->attributes->flags & ATTRIBUTES_FLAGS_INSIDE) != templateInside);
+     }
+ }
+@@ -393,6 +392,6 @@
+     RUN(a_solid_block_inside_an_expansion_is_swallowed_and_reported_once);
+     RUN(an_empty_expansion_is_an_empty_operand);
+     RUN(the_open_cylinder_archive_gets_implied_caps);
+-    RUN(expanded_objects_carry_the_fragment_flag_and_inside_parity);
++    RUN(expanded_objects_carry_the_inside_parity);
+     SUMMARY();
+ }

@@ -36,7 +36,6 @@
 
 // Forward
 
-class CBrickMapGeometry;
 
 // Some hard coded constants to make our life easier
 #define BRICK_SHIFT 3
@@ -203,19 +202,70 @@ class CBrickMap : public CTexture3d {
         }
 
         void lookup(float *data, const float *P, const float *N, float dP);
-        void lookup(float *, const float *, const float *, const float *, const float *, CShadingContext *) { assert(FALSE); }
+        void lookupPointBased(float *, const float *, const float *, const float *, const float *, const CPointBasedLookup &) { assert(FALSE); }
         void store(const float *data, const float *P, const float *N, float dP);
 
         void finalize();
         void compact(const char *, float);
 
-        void draw();
+        // The extent and the name of the structure (the data viewer's adapter, CBrickMapView, reports them)
         void bound(float *bmin, float *bmax);
-        int keyDown(int key);
         const char *typeName() const { return "Brick Map"; }
-        int currentChannel() const { return drawChannel; }
-        int detailLevel() const { return detail; }
-        int drawMode() const { return drawType; } // 0 = boxes, 1 = discs, 2 = points
+
+        // Read access for the data viewer: the depth and the side of the cube, and a walk over the voxels of one level.
+        int maxLevel() const { return maxDepth; }
+        float sideLength() const { return side; }
+
+        ///////////////////////////////////////////////////////////////////////
+        // Class				:	CBrickMap
+        // Method				:	visitVoxels
+        // Description			:	Visit every voxel of every brick present at `level`
+        // Return Value			:	-
+        // Comments				:	The order is the old draw's (bricks xe, ye, ze; voxels zi, yi, xi), and the bricks are
+        //							loaded on demand through findBrick(x, y, z, level, FALSE, NULL), reference counters
+        //							included. visit(center, voxelSize, data, N, weight): `data` is the voxel's data block
+        //							(dataSize floats), `N` its normal, `weight` its weight (the visitor skips an empty voxel).
+        template <class F>
+        void visitVoxels(int level, F &&visit) {
+            const float invBrickSize = 1.0f / (float)BRICK_SIZE;
+            const int nb = 1 << level;
+
+            // For each brick at this level
+            for (int xe = 0; xe < nb; xe++)
+                for (int ye = 0; ye < nb; ye++)
+                    for (int ze = 0; ze < nb; ze++) {
+                        float sz = side / (float)nb;
+                        int x = xe, y = ye, z = ze;
+                        CBrick *bk = findBrick(x, y, z, level, false, NULL);
+
+                        if (bk == NULL)
+                            continue;
+
+                        CVoxel *vx = bk->voxels;
+
+                        float *DD = (float *)((char *)vx + sizeof(CVoxel));
+
+                        // For each voxel
+                        for (int zi = 0; zi < BRICK_SIZE; zi++)
+                            for (int yi = 0; yi < BRICK_SIZE; yi++)
+                                for (int xi = 0; xi < BRICK_SIZE; xi++) {
+                                    vector cent;
+
+                                    initv(cent, x * sz + xi * sz * invBrickSize, y * sz + yi * sz * invBrickSize, z * sz + zi * sz * invBrickSize);
+
+                                    // Save values before we update
+                                    float *data = DD;
+                                    float wt = vx->weight;
+                                    float *norm = vx->N;
+
+                                    // Update for the next voxel, in case the visitor skips this one
+                                    vx = (CVoxel *)((char *)vx + sizeof(float) * dataSize + sizeof(CVoxel));
+                                    DD = (float *)((char *)DD + sizeof(float) * dataSize + sizeof(CVoxel));
+
+                                    visit((const float *)cent, sz, (const float *)data, (const float *)norm, wt);
+                                }
+                    }
+        }
 
         // Some global static functions for the renderer interface
         static void initBrickMap(int maxMemory = 10000000);
@@ -245,13 +295,8 @@ class CBrickMap : public CTexture3d {
         static int referenceNumber;  // The last access number
         static int currentMemory;    // The amount of used memory
         static int maxMemory;        // The maximum amount of memory to allocate
-        static int detail;           // The brickmap detail level for visualization
-        static int drawType;         // Which type to draw
-        static int drawChannel;      // Which channel to draw;
 
         static void brickQuickSort(CBrickNode **nodes, int start, int end);
-
-        friend class CBrickMapGeometry;
 };
 
 void makeBrickMap(int n, const char **src, const char *dest, const CTextureFileResolver *searchPath, int numTokens, const char **tokens, const void **params);

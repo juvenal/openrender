@@ -42,7 +42,7 @@
 #include <unistd.h>
 
 #include "ri.h"
-#include "ri/hiders/photonMap.h"
+#include "ri/render/photonMap.h"
 #include "ri/render/renderer.h"
 
 ///////////////////////////////////////////////////////////////////////

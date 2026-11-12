@@ -229,6 +229,16 @@ add_test(NAME Compiler_IncludeBoundary
         -DCOMPILER_BINARY_DIR=${CMAKE_BINARY_DIR}/src/libshader/compiler
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_compiler_include_boundary.cmake)
 
+# Spec 032 (GI cache split), T-G: the text-level boundary of the split. It runs the sub-checks listed in the cache variable
+# GI032_BOUNDARY_CHECKS (tests/gi_split/CMakeLists.txt, default empty), which each phase extends in its test gate, so it is
+# green at every checkpoint.
+add_test(NAME GiSplit_Boundary
+    COMMAND ${CMAKE_COMMAND} ${OR038_COMMON}
+        "-DINCLUDE_DIRS=$<TARGET_PROPERTY:ribRender_obj,INCLUDE_DIRECTORIES>"
+        "-DCHECKS=${GI032_BOUNDARY_CHECKS}"
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_gi_split_boundary.cmake)
+set_tests_properties(GiSplit_Boundary PROPERTIES TIMEOUT 120 LABELS "architecture")
+
 # Green since Phase 2 / 3 / 4 / 5 (spec 038): permanent architecture checks
 foreach(_t SceneInterface_RibOutNoCore SceneInterface_NoCoreInclude SceneInterface_HooksAndRecords SceneInterface_ActiveContextAssignments SceneInterface_RibVectorResidual Compiler_IncludeBoundary)
     set_tests_properties(${_t} PROPERTIES TIMEOUT 60 LABELS "architecture")

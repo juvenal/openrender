@@ -36,7 +36,9 @@
 #include "ray.h"
 #include "shading.h"
 
-class CPhotonMap; // photonMap.h
+namespace openrender::shading {
+    class CPhotonMapRefTarget; // photonMapAccess.h
+}
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CPhotonHider
@@ -62,7 +64,7 @@ class CPhotonHider : public CHider, public openrender::shading::IIlluminationHoo
         int numTracedPhotons;
 
     private:
-        void tracePhoton(float *, float *, float *, float);
+        void tracePhoton(float *, float *, float *, float, uint64_t pointKeyFull);
 
         float bias; // The initial intersection bias
 
@@ -73,7 +75,7 @@ class CPhotonHider : public CHider, public openrender::shading::IIlluminationHoo
         float worldRadius;  // The radius of the world
         vector worldCenter; // The center of the world
 
-        CArray<CPhotonMap *> balanceList; // The list of photon maps that need re-balancing
+        CArray<openrender::shading::CPhotonMapRefTarget *> balanceList; // The list of photon maps that need re-balancing
 
         CSurface *phony; // Phony object we used on the light sources
 };

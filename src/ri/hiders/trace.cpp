@@ -236,7 +236,7 @@ void CHider::traceGroups(CRayBundle *bundle) {
                 CRay *cRay = *rays++;
 
                 cRay->tmin = cRay->t + C_EPSILON;
-                cRay->t = C_INFINITY;
+                cRay->t = bundle->continuationLimit(cRay);
                 traceRay(context, cRay);
             }
 

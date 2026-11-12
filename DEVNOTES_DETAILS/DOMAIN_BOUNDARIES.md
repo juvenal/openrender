@@ -257,42 +257,18 @@ request. Run `ctest -L architecture` locally before review.
   `motion.h` (Geometry's intersection-time motion no longer reads `CRenderer::invShutterTime`);
   Reyes's side is spec 031.
 
-### DB-010 — The hiders' GI caches use Texturing
-
-- **Rules**: the allowed-dependency table (Hiders may not depend on Texturing).
-- **Tracking**: remediation spec 032 ([#38](https://github.com/juvenal/openrender/issues/38)); spec 027 ([#33](https://github.com/juvenal/openrender/issues/33)) removed the rest
-- **Evidence**: the hiders' GI caches use Texturing: `irradiance.cpp`, `irradiance.h` and
-  `irradianceDispatch.cpp` include `texture.h`, `texture3d.h` and `pointHierarchy.h`, and
-  `irradiance.cpp` constructs and destroys `CTexture3d` (its constructor, destructor and type
-  information).
-- **Size**: 8 edges (5 include, 3 link).
-- **Direction**: GI-cache storage moves to Texturing with sampling left in Hiders (032).
-- **History**: spec 027 (2026-10-28), 35 → 8 edges: 25 allowlist lines deleted (Texturing's reads
-  of the renderer core, Graphics State and Shading: the texture state, the file search, the option
-  block and the shading-context reads moved into the texture system, the file resolver and
-  `TextureOpt`) and 2 re-tagged to DB-021. Texturing now includes nothing from another domain
-  except `texture3d.cpp`'s `renderer.h` and `displayChannel.h`.
-- **Texture system notes** (spec 027, not registry entries):
-  - The core passes `&CRenderer::shaderMutex` as the texture system's `loadMutex`. It is a plain,
-    non-recursive mutex, so no code that holds it may call `CTextureSystem::handle()`; the services
-    getters that hold it (`getCache`, `getTexture3d`, `getPhotonMap`) never reach a texture handle,
-    and a new caller that does is a self-deadlock. A debug build asserts a re-entry of `handle()`.
-  - A consumer of the texture system outside a renderer must initialize libRIBCommon's arena
-    (`globalArena.init()`; `RiBegin` does it in a renderer): synthesizing an unbaked source decodes
-    into it.
-
 ### DB-011 — Hiders read renderer-core state (`CRenderer`)
 
 - **Rules**: the renderer-core rule (no domain may depend on the renderer core).
 - **Tracking**: remediation specs 028 ([#34](https://github.com/juvenal/openrender/issues/34)), 029 ([#35](https://github.com/juvenal/openrender/issues/35)), 030 ([#36](https://github.com/juvenal/openrender/issues/36))
 - **Evidence**:
-  - 19 files under `src/ri/hiders/` make 553 `CRenderer::` references (the archcheck metric,
+  - Files under `src/ri/hiders/` make 546 `CRenderer::` references (the archcheck metric,
     `metrics-baseline.txt`; a raw grep counts 573): frame and
     sampling parameters (`clipMax`, `bucketWidth`, `pixelXsamples`, `xSampleOffset`, …),
     `flags`, `hiderFlags`, `raytracingFlags`.
-  - 9 files include `src/ri/render/renderer.h`.
-- **Size**: 161 edges per platform and 161 DB-011 lines after spec 030 (9 include, 152 link); 164 after spec 029 (9 include, 155
-  link). After spec 028 it was 166 edges (9 include, 157 link) and 168 lines, because the thread-local
+  - 7 files include `src/ri/render/renderer.h` (9 before spec 032).
+- **Size**: 155 edges per platform and 155 DB-011 lines after specs 030 and 032 (7 include, 148 link); 158 after spec 032 alone
+  (7 include, 151 link) and 161 after spec 030 alone (9 include, 152 link); 164 after spec 029 (9 include, 155 link). After spec 028 it was 166 edges (9 include, 157 link) and 168 lines, because the thread-local
   `CRenderer::activeContext`, referenced through Clang's TLS wrapper (`_ZTW…`) on macOS and directly
   by GCC on Linux, had its 2 edges listed once per platform; before spec 028, 173 edges (9 include,
   164 link) and 175 lines. The previous header and Size text said
@@ -319,7 +295,8 @@ request. Run `ctest -L architecture` locally before review.
   CRenderer::contexts` (the sibling loop reads the frame's `CHiderPeers`): 164 DB-011 lines (164 before), 161 edges per platform.
   The Hiders `CRenderer::` metric fell from 556 to 553 references and 81 to 79 members (`metrics-baseline.txt`). `CRenderer::contexts`
   and `hiderFlags` themselves stay (`HIDER_BREAK` and `HIDER_DONE`; Geometry and the data viewer read them). `reyes.cpp`'s
-  `CRenderer::numThreads` line stays (spec 031).
+  `CRenderer::numThreads` line stays (spec 031). Merged with spec 032 (158 lines on master): the two specs deleted different lines, so the merged
+  allowlist keeps both sets of deletions, 155 lines, and the Hiders metric is 546 references and 76 members (TOTAL 594 and 84), as archcheck reported.
 - **History**: spec 029, 2026-11-04: the hiders no longer write `CRenderer::activeContext` (`reyes.cpp`, `raytracer.cpp`; the renderer core sets it in
   `rendererDispatchThread` for every hider). 4 allowlist lines were deleted (the `_ZTW…` wrapper pair on macOS, the plain symbol pair on
   Linux): 164 DB-011 lines (168 before), 164 edges per platform (166 before). The Hiders `CRenderer::` metric fell from 558 to 556 references
@@ -330,17 +307,24 @@ request. Run `ctest -L architecture` locally before review.
   compiles (`tests/architecture/ribvector-core-residual.txt`), needed by `hiders/compositor.cpp`,
   `hiders/irradiance.cpp` and `hiders/photonMap.cpp` as well as by Geometry (DB-004) and the data
   viewer (DB-024). It leaves the list when the hiders stop reading the statics (specs 029 to 031).
+  Since spec 032 it is needed by `hiders/compositor.cpp`, `dataviewer/dataLoad.cpp` and the inline Core `render/photonMap.h`
+  (the residual-list cell).
+- **History**: spec 032 (2026-11-10): the world bound and the world matrices are injected into the stores (`CIrradianceCache` takes
+  `worldBmin`/`worldBmax`, `CPhotonStore` takes the creator's `fromWorld`/`toWorld`) instead of read from `CRenderer`, and
+  `irradianceDispatch.cpp`, which included `renderer.h`, became the sampler without that include. 6 allowlist lines deleted:
+  `irradiance.cpp -> renderer.h`, `irradianceDispatch.cpp -> renderer.h`, `irradiance.cpp -> CRenderer::worldBmax` and `::worldBmin`,
+  `photonMap.cpp -> CRenderer::toWorld` and `::fromWorld`. 164 -> 158 lines. The Hiders `CRenderer::` metric fell from 556 to 549
+  references and 81 to 78 members (TOTAL 604 -> 597 and 89 -> 86).
 
 ### DB-017 — Link-time `*Dispatch` / `*DispatchStub` substitution pairs
 
 - **Rules**: 2 and 3 (dependencies go through interfaces, not through which file the linker
   receives).
 - **Tracking**: remediation spec 031 ([#37](https://github.com/juvenal/openrender/issues/37))
-- **Evidence**: four pairs, swapped by `src/ri/CMakeLists.txt` (`ribVector_sources`, lines 374-418)
+- **Evidence**: three pairs (the irradiance pair is gone, spec 032), swapped by `src/ri/CMakeLists.txt` (`ribVector_sources`, lines 374-418)
   depending on the library being built: `render/geometryDispatch.cpp` / `vector/geometryDispatchStub.cpp`,
   `render/rendererDeclarationsDispatch.cpp` / `vector/rendererDeclarationsDispatchStub.cpp`,
-  `geometry/surfaceCrossingDispatch.cpp` / `vector/surfaceCrossingDispatchStub.cpp` (spec 021),
-  `hiders/irradianceDispatch.cpp` / `vector/irradianceDispatchStub.cpp`. Geometry methods
+  `geometry/surfaceCrossingDispatch.cpp` / `vector/surfaceCrossingDispatchStub.cpp` (spec 021). Geometry methods
   (`CSurface::dice`, `CSurface::shade`, `CSurface::regionCoverage`, `CObject::dice`, the
   `CSurface` vtable and typeinfo) are defined in the renderer-core file. The `rendererDeclarations`
   pair now carries `CRenderer::findCoordinateSystem` and `CRenderer::notifyGlobalVariable` (spec 038
@@ -357,6 +341,10 @@ request. Run `ctest -L architecture` locally before review.
   `vector/*DispatchStub.cpp` entries of `tests/architecture/ribvector-core-residual.txt`
   (`SceneInterface_RibVectorResidual`), each with the Geometry or Hiders file that needs it
   (`geometry/object.cpp` for the declarations stub, `hiders/irradiance.cpp` for the irradiance stub).
+- **History**: spec 032 (2026-11-10): the irradiance pair is deleted. `hiders/irradianceDispatch.cpp` became `hiders/irradianceSampler.cpp`,
+  which `ribVector` leaves out and needs no stand-in for (the cache is passive storage), and `vector/irradianceDispatchStub.cpp` is
+  deleted and its row left `ribvector-core-residual.txt`. The pair had no allowlist line, so the count stays 78. The spec 038 History line
+  naming `hiders/irradiance.cpp` for the stub is superseded.
 
 ### DB-018 — Message passing reads `CAttributes` directly
 
@@ -378,22 +366,6 @@ request. Run `ctest -L architecture` locally before review.
   situation table as corrected to the code (`classifyShading()`, `specs/029-hider-shading-separation/contracts/point-source-and-globals.md`) and `shade()` reads them);
   the JIT's message-passing entry points through the services (spec 033); `getmessage`/`setmessage`
   across shader-group layers (spec 034).
-
-### DB-020 — Cross-domain `friend` declarations
-
-- **Rules**: 3 (no back doors into another domain's internals).
-- **Tracking**: remediation specs 030 ([#36](https://github.com/juvenal/openrender/issues/36)), 032 ([#38](https://github.com/juvenal/openrender/issues/38))
-- **Evidence**:
-  - `CShadingContext` no longer befriends `CPhotonHider`, `CSphereLight` and `CQuadLight` (spec 029, 2026-11-04; they
-    were at `shading.h:1175,1177,1178` at the base commit); its only friend is Shading's own
-    `CProgrammableShaderInstance`.
-  - `CIrradianceCache` befriends `CRemoteICacheChannel` (`irradiance.h:137`); `CTexture3d` and
-    `CPointCloud` befriend `CRemotePtCloudChannel` (`texture3d.h:100`, `pointCloud.h:149`).
-  - `CBrickMap` befriends `CBrickMapGeometry` (`brickmap.h:254`), a class forward-declared at
-    `brickmap.h:39` and defined nowhere.
-- **Size**: not a dependency edge; tracked by review.
-- **Direction**: narrow public accessors or interfaces, removed with the spec that touches each
-  class; delete the dangling friend.
 
 ### DB-023 — Domains are not build targets
 
@@ -424,16 +396,17 @@ request. Run `ctest -L architecture` locally before review.
   - `libribpreview` includes 15 Geometry headers, 4 Graphics State headers (`pl.h`, `attributes.h`,
     `options.h`, `xform.h`) and 5 Scene Interface headers (`riHooks.h`, `rib.h` twice, `ri.h`,
     `riInterface.h`); the earlier text said 3 and 4. It includes no renderer-core header;
-  - `src/ri/dataviewer/dataLoad.cpp` reaches into Hiders (2) and Texturing (2) and includes 2 Scene
-    Interface headers (`riInterface.h`, `riServices.h`), and `renderer.h` for the `CRenderer::fromWorld`
-    seeding (DB-025).
+  - `src/ri/dataviewer/dataLoad.cpp` includes 2 Scene Interface headers (`riInterface.h`, `riServices.h`),
+    `renderer.h` for the `CRenderer::fromWorld` seeding and the Core `photonMap.h`; since spec 032 it reaches
+    nothing in Hiders, and the viewer's adapters (`pointCloudView`, `brickMapView`, `irradianceCacheView`,
+    `photonMapView`) reach Texturing (4).
 - **Size**: 37 consumer-reach edges from the tools (39 listed with the two `ri.h` edges); reported,
   never failing, no allowlist lines.
 - **Direction**: tools use public APIs: a shader-metadata API from Shading (033), one display ABI
   definition (037). Spec 038 did not add `RiMake*` for precomputation (the earlier Direction): it cut
   `precomp` off the hider class and the renderer core by moving the constants into `rasterFlags.h`.
-  Remaining: `sloinfo` and `oshader` (specs 033 and 043), the data viewer's Hiders and Texturing reach
-  (spec 032), and the preview's Geometry and Graphics State includes.
+  Remaining: `sloinfo` and `oshader` (specs 033 and 043), and the preview's Geometry and Graphics State includes
+  (the data viewer's Hiders reach was removed by spec 032).
 - **History**: spec 037 (2026-10-31) did the "one display ABI definition" item: `dsply.h` is the single
   definition of the display interface, and the version 1 types survive only in the renderer core's
   private `displayV1Abi.h`, which the version 1 adapter alone includes.
@@ -442,6 +415,11 @@ request. Run `ctest -L architecture` locally before review.
     `CRiStandardSession`) and the data viewer holds a `CRiStandardSession`, so neither calls
     `CRenderer::initDeclarations()`/`shutdownDeclarations()` and the preview includes neither `renderer.h`,
     `rendererContext.h` nor `riDiagnostics.h`. The data viewer still includes `renderer.h` (DB-025).
+  - Spec 032 (2026-11-10): the data viewer's Hiders reach is gone. It owns the adapters through which it draws the 3D family, the
+    irradiance cache and the photon map (they used to derive from `CDataView`), so the viewer depends on Texturing and not
+    the other way round. `archcheck` (`CONSUMER` lines of `src/ri/dataviewer`, base against Checkpoint 5): `dataLoad.cpp`
+    reached Hiders (`irradiance.h`, `photonMap.h`) and Texturing (`brickmap.h`, `pointCloud.h`) and now reaches only Scene
+    Interface (2); the Texturing reach sits in the adapters. The total stays 71 and never fails the check.
 
 ### DB-025 — Domains call into the data viewer (a consumer)
 
@@ -452,7 +430,11 @@ request. Run `ctest -L architecture` locally before review.
   `src/ri/dataviewer/dataView.h`/`debug.h` and call `CDataView::drawPoints`, `drawDisks` and
   `drawTriangles`; Geometry's `surface.cpp` includes `debug.h`. Found by the check; not one of
   the audit's V1–V21.
-- **Size**: 12 edges (4 include, 8 link).
+- **Size**: 1 edge (include): `surface.cpp -> debug.h`. 12 edges (4 include, 8 link) before spec 032.
+- **History**: spec 032 (2026-11-10), 12 -> 1: 11 allowlist lines deleted. Texturing's `pointCloud`, `brickmap` and `texture3d` and the
+  irradiance cache lost their `CDataView` base, `draw` and `keyDown` (nine lines, Phase 3); the photon map's `dataView.h` include
+  and `CDataView::drawPoints` link (two lines, Phase 5). The viewer owns the adapters
+  (`src/ri/dataviewer/{pointCloudView,brickMapView,irradianceCacheView,photonMapView}`). Only Geometry's `surface.cpp` remains (spec 031).
 - **Direction**: the data viewer reads the GI and texture data through adapters it owns
   (spec 032's `CDataView` adapters), so the domains no longer know it exists.
 
@@ -905,6 +887,59 @@ request. Run `ctest -L architecture` locally before review.
   path holds no Scene Interface, renderer or shading-engine directory (`Compiler_IncludeBoundary`). No
   allowlist line was involved (0 before, 0 after). `ShadeopAbi_Jit_*`, `LibShader_GateHardening` and
   `LibShader_OpcodeCoverage` guard the DSO path.
+
+### DB-010 — The hiders' GI caches use Texturing
+
+- **Rules**: the allowed-dependency table (Hiders may not depend on Texturing).
+- **Tracking**: remediation spec 032 ([#38](https://github.com/juvenal/openrender/issues/38)); spec 027 ([#33](https://github.com/juvenal/openrender/issues/33)) removed the rest
+- **Evidence**: the hiders' GI caches use Texturing: `irradiance.cpp`, `irradiance.h` and
+  `irradianceDispatch.cpp` include `texture.h`, `texture3d.h` and `pointHierarchy.h`, and
+  `irradiance.cpp` constructs and destroys `CTexture3d` (its constructor, destructor and type
+  information).
+- **Size**: 0 edges (spec 032; 8 edges, 5 include and 3 link, before).
+- **Direction**: GI-cache storage moves to Texturing with sampling left in Hiders (032).
+- **History**: spec 027 (2026-10-28), 35 → 8 edges: 25 allowlist lines deleted (Texturing's reads
+  of the renderer core, Graphics State and Shading: the texture state, the file search, the option
+  block and the shading-context reads moved into the texture system, the file resolver and
+  `TextureOpt`) and 2 re-tagged to DB-021. (That entry said Texturing still included
+  `texture3d.cpp`'s `renderer.h` and `displayChannel.h`: spec 037 removed both on 2026-10-31, DB-021, and
+  the Texturing `CRenderer::` metric row is 0 / 0.)
+- **History**: spec 032 (2026-11-10), 8 -> 0 edges: the 8 allowlist lines and the section header were deleted, nothing added.
+- **Resolved** by spec 032 (`specs/032-gi-cache-split/`), 2026-11-10: the irradiance cache is passive storage in Texturing
+  (`src/ri/texture/irradianceCache.{h,cpp}`, `irradianceStore.h`) and the sampler stays in Hiders
+  (`src/ri/hiders/irradianceSampler.cpp`), reached through Shading's `libshader::irradianceLookup` and
+  `IIrradianceSampler`. No Hiders file includes a Texturing header or links a Texturing symbol
+  (`GiSplit_Boundary`: `hiders-no-texture`).
+- **Texture system notes** (spec 027, not registry entries):
+  - The core passes `&CRenderer::shaderMutex` as the texture system's `loadMutex`. It is a plain,
+    non-recursive mutex, so no code that holds it may call `CTextureSystem::handle()`; the services
+    getters that hold it (`getCache`, `getTexture3d`, `getPhotonMap`) never reach a texture handle,
+    and a new caller that does is a self-deadlock. A debug build asserts a re-entry of `handle()`.
+  - A consumer of the texture system outside a renderer must initialize libRIBCommon's arena
+    (`globalArena.init()`; `RiBegin` does it in a renderer): synthesizing an unbaked source decodes
+    into it.
+
+### DB-020 — Cross-domain `friend` declarations
+
+- **Rules**: 3 (no back doors into another domain's internals).
+- **Tracking**: remediation spec 032 ([#38](https://github.com/juvenal/openrender/issues/38)); spec 030 ([#36](https://github.com/juvenal/openrender/issues/36)) has no friend left to remove, because spec 029 removed the light friends
+- **Evidence**:
+  - `CShadingContext` no longer befriends `CPhotonHider`, `CSphereLight` and `CQuadLight` (spec 029, 2026-11-04; they
+    were at `shading.h:1175,1177,1178` at the base commit); its only friend is Shading's own
+    `CProgrammableShaderInstance`.
+  - `CIrradianceCache` befriended `CRemoteICacheChannel` (`irradiance.h:137`); `CTexture3d` and
+    `CPointCloud` befriended `CRemotePtCloudChannel` (`texture3d.h:100`, `pointCloud.h:149`).
+  - `CBrickMap` befriended `CBrickMapGeometry` (`brickmap.h:254`), a class forward-declared at
+    `brickmap.h:39` and defined nowhere.
+  - At the end of spec 032 the only `friend` under `src/ri/texture` and `src/ri/hiders` is
+    `friend void makeBrickMap(...)` in `pointCloud.h`, a free function of Texturing itself (not a
+    cross-domain declaration).
+- **Size**: not a dependency edge; tracked by review.
+- **Direction**: narrow public accessors or interfaces, removed with the spec that touches each
+  class; delete the dangling friend.
+- **Resolved** by spec 032 (`specs/032-gi-cache-split/`), 2026-11-10: the three remote-channel friends and both
+  `CBrickMapGeometry` lines are gone; the channels and the data viewer read the stores through public
+  accessors and adapters. `GiSplit_Boundary` (`friends-texture`, `friends-hiders`) guards it.
 
 ### DB-013 — No hider registry: `strcmp` chains in the renderer core
 

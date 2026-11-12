@@ -4,7 +4,7 @@
 
 #include "common/algebra.h"
 #include "ri/dataviewer/dataLoad.h"
-#include "ri/hiders/photonMap.h"
+#include "ri/render/photonMap.h"
 #include "ri/render/renderer.h"
 
 static int g_pass = 0, g_fail = 0;

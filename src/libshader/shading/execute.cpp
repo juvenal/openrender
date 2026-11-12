@@ -35,6 +35,7 @@
 #include "common/diagnostics.h"
 #include "dsoHandle.h"
 #include "include/logging.hpp"
+#include "irradianceCalls.h"
 #include "common/memory.h"
 #include "noise.h"
 #include "ri_config.h"

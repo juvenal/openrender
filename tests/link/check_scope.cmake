@@ -2,7 +2,8 @@
 #
 # The scope of Shading and the hiders, one sub-check per phase, each enabled in the phase that makes it true:
 #   S1a  no #include of a src/ri/hiders header under src/libshader, and src/ri/hiders is not on the shading library's include path
-#   S1b  no include of photonMap.h or irradiance.h under src/libshader, and bundles.h only as the Shading-local
+#   S1b  no include of photonMap.h (Core's since spec 032) or irradianceCache.h (the concrete cache; irradiance.h before spec 032)
+#        under src/libshader, and bundles.h only as the Shading-local
 #        src/libshader/shading/bundles.h (src/ri/hiders/bundles.h absent)
 #   S1c  CShadingContext's class body in shading.h (from `class CShadingContext` to its closing `};`; CRayBundle's virtuals
 #        are its protocol and stay) has no `virtual` and no `friend` other than CProgrammableShaderInstance; the class is
@@ -203,7 +204,7 @@ foreach(_c IN LISTS CHECKS)
             _includes_of("${_f}" _incs)
             foreach(_i IN LISTS _incs)
                 string(REGEX REPLACE "^.*/" "" _b "${_i}")
-                if(_b STREQUAL "photonMap.h" OR _b STREQUAL "irradiance.h")
+                if(_b STREQUAL "photonMap.h" OR _b STREQUAL "irradianceCache.h")
                     file(RELATIVE_PATH _rel "${SOURCE_DIR}" "${_f}")
                     _fail(S1b "${_rel} includes ${_i}")
                 endif()

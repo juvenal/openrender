@@ -1,9 +1,11 @@
 # CLAUDE.md draft for spec 030 (T139; NOT applied; FR-034)
 
-Eight hunks, in file order. Old text is quoted exactly; "replace" means the old text becomes the new text, "insert" means the new text
-is added at the stated place. Nothing else in `CLAUDE.md` changes. Numbering note: master's `CLAUDE.md` (spec 056, merged as
-`11fa3424`) already carries gotcha 36; the new gotcha is therefore numbered **37**, so the merge adds no renumbering (this branch's
-`CLAUDE.md` has no 36 until master is merged; the maintainer may prefer to renumber at merge preparation).
+Eight hunks, in file order. Old text is quoted exactly (line breaks included, as in master's file); "replace" means the old text becomes
+the new text, "insert" means the new text is added at the stated place. Nothing else in `CLAUDE.md` changes. Numbering note: this draft was
+re-checked at merge preparation against master `8f45d919` (specs 056 and 032 merged): master's `CLAUDE.md` carries gotcha 36 (spec 056)
+and gotcha 37 (spec 032, "The GI stores are passive ..."), so this spec's gotcha is numbered **38**. Every "Old" text below was
+verified verbatim against that file (spec 032 edited gotchas 24, 25 and 28 and the Graphics State paragraph; none of the eight hunks
+touches those). If another spec merges first, renumber at staging time.
 
 ## 1. Architecture / Hider system (replace the last two lines of the section)
 
@@ -22,10 +24,11 @@ kind (`OrHiderTable`, `hiderAbi.h`, version 2.0.0, internal until spec 051): its
 dispatcher that drives it and `create`/`destroy`. `renderer.cpp:beginFrame()` resolves the `Hider` name, builds one hider per thread
 through the table and never names a concrete hider (`Registry_CoreNamesNoHider`). Adding a hider = a class inheriting `CHider` plus a
 table defined in the hider's own source file and its getter added to `registerBuiltinHiders()` (`builtinHiders.cpp`); a hider outside
-the core registers itself with `OR_REGISTER_HIDER(getter)` (`hiderAbi.hpp`) and the core is not edited at all.
+the core registers itself with `OR_REGISTER_HIDER(getter)` (`hiderAbi.hpp`) and the core is not edited at all. Every hider derives from
+`CHider`, whose constructor installs the Hiders' `IIrradianceSampler` on the context it owns (spec 032), so a table's `create` inherits it.
 ```
 
-## 2. Architecture (insert a new section after "Scene Interface services and the active context (spec 038)")
+## 2. Architecture (insert a new section after "GI stores (spec 032)", before "Coordinate / matrix conventions")
 
 ```
 ### Hider and integrator registries, the Transport domain (spec 030)
@@ -40,7 +43,7 @@ unchanged) and the integrators a program registers with `OR_REGISTER_INTEGRATOR`
 `COptions` (`integrator`, `integratorHandle`, `integratorParameters`); the name is resolved at frame begin, like the hider's. The
 renderer core keeps the frame's choice in one slot, `frameTransport()` (`render/rendererTransport.{h,cpp}`: the resolved hider and
 integrator, the integrator instance and the hider's traits), written only by `CRenderer` before the render threads start and after
-they are joined. See gotcha 37.
+they are joined. See gotcha 38.
 ```
 
 ## 3. Testing (insert one line after the `-L link` line)
@@ -59,14 +62,26 @@ superseding spec 013's resolution), `030-hider-and-integrator-registry` (hider a
 
 ## 5. Known gotchas: gotcha 35, first sentence (replace)
 
-Old: ```CRenderer::contexts` is a `CHider **` that kept its name, because `reyes.cpp`'s DB-011 line is keyed on the symbol; reach the context with `contexts[i]->shadingContext()`.``
-
-New: ```CRenderer::contexts` is a `CHider **` that kept its name (spec 030 deleted `reyes.cpp`'s DB-011 line, so no allowlist key depends on it now; `reyes.cpp` reaches its peers through the frame's `CHiderPeers`); reach the context with `contexts[i]->shadingContext()`.``
-
-## 6. Known gotchas: a new gotcha 37 (insert after gotcha 35, or after 36 once master is merged)
+Old (three lines in master's file, starting at the end of the gotcha's first line):
 
 ```
-37. **Hiders and integrators are registered tables; the core reads declared capabilities, never a name (spec 030).** The four built-in
+`CRenderer::contexts`
+   is a `CHider **` that kept its name, because `reyes.cpp`'s DB-011 line is keyed on the symbol; reach the context
+   with `contexts[i]->shadingContext()`.
+```
+
+New:
+
+```
+`CRenderer::contexts`
+   is a `CHider **` that kept its name (spec 030 deleted `reyes.cpp`'s DB-011 line, so no allowlist key depends on it now; `reyes.cpp`
+   reaches its peers through the frame's `CHiderPeers`); reach the context with `contexts[i]->shadingContext()`.
+```
+
+## 6. Known gotchas: a new gotcha 38 (insert after gotcha 37, the last gotcha, before "## Active Technologies")
+
+```
+38. **Hiders and integrators are registered tables; the core reads declared capabilities, never a name (spec 030).** The four built-in
    hiders are reached by the *call graph* (`beginRenderer()` -> `hiderRegistry()` -> `registerBuiltinHiders()` -> each hider's getter),
    not by a static registrar, so a plain static link finds them with no `-u` anchor (`Link_StaticConsumerRegistries`); only a hider or
    integrator outside the core uses `OR_REGISTER_HIDER`/`OR_REGISTER_INTEGRATOR`, whose pending list is defined once, out of line,
@@ -88,10 +103,12 @@ New: ```CRenderer::contexts` is a `CHider **` that kept its name (spec 030 delet
    (`"int maxdepth" [5]`): the RIB rule `integratorParameterCheck()` (not `parameterListCheck()`) converts integers and rewrites a
    declaration to the count of values it was given, and a parameter the integrator does not define is an *error* at frame begin
    (`orender` exits -1). A named `spherelight`/`quadlight` with no compiled shader on the path now reports `Failed to find shader`:
-   the C++ substitutes (`hcshader`) are gone.
+   the C++ substitutes (`hcshader`) are gone. The irradiance sampler is installed by the `CHider` constructor (spec 032), not by a table: the
+   instance a table's `create` returns is a `CHider`-derived hider, so it gets the sampler for free (the process default covers only a
+   context with none installed).
 ```
 
-## 7. Active Technologies (insert after the spec 029 entry)
+## 7. Active Technologies (insert after the spec 032 entry, the last, before "## Recent Changes")
 
 ```
 - C++20 and C17 (the registration headers `hiderAbi.h`, `integratorAbi.h` and `capability.h` are strict C17), CMake ≥3.19,
@@ -106,7 +123,7 @@ New: ```CRenderer::contexts` is a `CHider **` that kept its name (spec 030 delet
 - 030-hider-and-integrator-registry: hiders are registered tables (`hiderRegistry()`, name, aliases, declared capabilities, dispatch,
   `create`/`destroy`) and the renderer core selects one per frame without naming a concrete hider (the two `strcmp` chains, the
   `dynamic_cast`, the TSM name test and the `hiderFlags` description bits are gone; three DB-011 allowlist lines and one DB-006
-  line deleted, 164 -> 161 and 30 -> 29); integrators are the new Transport domain (constitution 1.4.0, `src/ri/transport/`) with a
+  line deleted: DB-011 158 -> 155 on master as of spec 032, DB-006 30 -> 29); integrators are the new Transport domain (constitution 1.4.0, `src/ri/transport/`) with a
   registry, the capability vocabulary, a pair check, the built-in `classic` and an `Integrator` statement (RIB, `RiIntegrator`,
   `ribOut`, Python and Lua helpers; preview ignores it); an unsupported pair refuses the frame with one error, a parameter the
   integrator does not define is an error; the hard-coded `spherelight`/`quadlight` C++ lights (`hcshader`) are retired (a missing

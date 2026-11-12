@@ -28,11 +28,13 @@
 #include <math.h>
 #include <string.h>
 
+#include <vector>
+
 #include "common/containers.h"
 #include "common/global.h"
 
 #include "common/diagnostics.h"
-#include "irradiance.h"
+#include "irradianceCache.h"
 #include "pointCloud.h"
 #include "remoteChannel.h"
 #include "renderer.h"
@@ -170,7 +172,15 @@ int CRenderer::processChannelRequest(int, SOCKET s) {
             case CHANNELTYPE_ICACHE:
             {
                 // create an irradiancecache channel
-                CIrradianceCache *cache = (CIrradianceCache *)getCache(channelName, "w", CRenderer::fromWorld, CRenderer::toWorld);
+                CIrradianceCache *cache = static_cast<CIrradianceCache *>(getCache(channelName, "w", CRenderer::fromWorld, CRenderer::toWorld));
+                if (cache == NULL) {
+                    // getCache answers nothing for a name already registered as another kind of 3D file
+                    buffer[0].integer = -1;
+                    buffer[1].integer = NET_NACK;
+                    rcSend(s, buffer, 2 * sizeof(T32));
+                    error(CODE_BADTOKEN, "Remote channel \"%s\" is already registered as another kind of file than an irradiance cache\n", channelName);
+                    return FALSE;
+                }
                 rChannel = new CRemoteICacheChannel(cache);
                 rChannel->remoteId = remoteChannels->numItems;
                 buffer[0].integer = rChannel->remoteId;
@@ -512,43 +522,26 @@ CRemoteICacheChannel::CRemoteICacheChannel(CIrradianceCache *c) : CRemoteChannel
 // Return Value			:	success or failure
 // Comments				:
 int CRemoteICacheChannel::sendRemoteFrame(SOCKET s) {
-    CIrradianceCache::CCacheNode **stackBase;
-    CIrradianceCache::CCacheNode **stack;
-    CIrradianceCache::CCacheNode *cNode;
-    CIrradianceCache::CCacheSample *cSample;
-    int i, numSamples;
-
-    stackBase = (CIrradianceCache::CCacheNode **)
-        alloca(cache->maxDepth * sizeof(CIrradianceCache::CCacheNode *) * 8);
-
-    stack = stackBase;
-    *stack++ = cache->root;
-    while (stack > stackBase) {
-        cNode = *(--stack);
+    // The cache hands over its nodes in the order its tree is walked (the root first, a node's children pushed 0 to 7 and
+    // popped last in, first out): for each node that has records, their number and then each record as it lies in memory
+    cache->forEachNode([&](const CIrradianceCache::CCacheSample *head) {
+        const CIrradianceCache::CCacheSample *cSample;
+        int numSamples;
 
         // Send the values in this level (if any)
-        for (numSamples = 0, cSample = cNode->samples; cSample != NULL; cSample = cSample->next)
+        for (numSamples = 0, cSample = head; cSample != NULL; cSample = cSample->next)
             numSamples++;
 
         if (numSamples != 0) {
             rcSend(s, &numSamples, sizeof(int), FALSE);
 
-            for (cSample = cNode->samples; cSample != NULL; cSample = cSample->next) {
+            for (cSample = head; cSample != NULL; cSample = cSample->next) {
                 rcSend(s, cSample, sizeof(CIrradianceCache::CCacheSample), FALSE);
             }
         }
+    });
 
-        // Send the children
-        for (i = 0; i < 8; i++) {
-            CIrradianceCache::CCacheNode *tNode;
-
-            if ((tNode = cNode->children[i]) != NULL) {
-                *stack++ = tNode;
-            }
-        }
-    }
-
-    numSamples = 0;
+    const int numSamples = 0;
     rcSend(s, &numSamples, sizeof(int), FALSE);
 
     return TRUE;
@@ -561,68 +554,22 @@ int CRemoteICacheChannel::sendRemoteFrame(SOCKET s) {
 // Return Value			:	success or failure
 // Comments				:
 int CRemoteICacheChannel::recvRemoteFrame(SOCKET s) {
-    CIrradianceCache::CCacheNode *cNode;
-    CIrradianceCache::CCacheSample *cSample;
-    CIrradianceCache::CCacheSample *sampleMem;
-    int i, j, t, numSamples, depth;
-    float rMean, P[3];
+    int numSamples;
 
     rcRecv(s, &numSamples, sizeof(int), FALSE);
 
     while (numSamples > 0) {
-        sampleMem = (CIrradianceCache::CCacheSample *)
-                        cache->memory->alloc(numSamples * sizeof(CIrradianceCache::CCacheSample));
+        // The batch lands in a buffer; the cache copies each record into its own memory and places it
+        std::vector<CIrradianceCache::CCacheSample> batch((size_t)numSamples);
 
-        rcRecv(s, sampleMem, numSamples * sizeof(CIrradianceCache::CCacheSample), FALSE);
-        for (t = 0, cSample = sampleMem; t < numSamples; cSample++, t++) {
-            cSample->next = NULL;
+        rcRecv(s, batch.data(), numSamples * sizeof(CIrradianceCache::CCacheSample), FALSE);
+        for (int t = 0; t < numSamples; t++) {
+            batch[t].next = NULL;
         }
 
-        for (t = 0, cSample = sampleMem; t < numSamples; cSample++, t++) {
-            rMean = cSample->dP; // error adjustment!!
-            movvv(P, cSample->P);
-
-            cNode = cache->root;
-            depth = 0;
-            while (cNode->side > (2 * rMean)) {
-                depth++;
-
-                for (j = 0, i = 0; i < 3; i++) {
-                    if (P[i] > cNode->center[i]) {
-                        j |= 1 << i;
-                    }
-                }
-
-                if (cNode->children[j] == NULL) {
-                    CIrradianceCache::CCacheNode *nNode = (CIrradianceCache::CCacheNode *)
-                                                              cache->memory->alloc(sizeof(CIrradianceCache::CCacheNode));
-
-                    for (i = 0; i < 3; i++) {
-                        if (P[i] > cNode->center[i]) {
-                            nNode->center[i] = cNode->center[i] + cNode->side / (float)4;
-                        }
-                        else {
-                            nNode->center[i] = cNode->center[i] - cNode->side / (float)4;
-                        }
-                    }
-
-                    cNode->children[j] = nNode;
-                    nNode->side = cNode->side * 0.5f;
-                    nNode->samples = NULL;
-                    for (i = 0; i < 8; i++)
-                        nNode->children[i] = NULL;
-                }
-
-                cNode = cNode->children[j];
-            }
-
-            // GSHTODO filter thru samples and discard this one iff within eps of another
-
-            cSample->next = cNode->samples;
-            cNode->samples = cSample;
-            if (depth > cache->maxDepth) {
-                cache->maxDepth = depth;
-            }
+        // GSHTODO filter thru samples and discard this one iff within eps of another
+        for (int t = 0; t < numSamples; t++) {
+            cache->insertReceived(batch[t]);
         }
 
         rcRecv(s, &numSamples, sizeof(int), FALSE);
@@ -633,15 +580,21 @@ int CRemoteICacheChannel::recvRemoteFrame(SOCKET s) {
 
 // Help us set up the client cache (it's worldBound will be wrong)
 int CRemoteICacheChannel::sendSetupData(SOCKET s) {
-    rcSend(s, &cache->root->center, sizeof(vector), FALSE);
-    rcSend(s, &cache->root->side, sizeof(float), FALSE);
+    const float side = cache->rootSide();
+
+    rcSend(s, cache->rootCenter(), sizeof(vector), FALSE);
+    rcSend(s, &side, sizeof(float), FALSE);
 
     return TRUE;
 }
 
 int CRemoteICacheChannel::setup(SOCKET s) {
-    rcRecv(s, &cache->root->center, sizeof(vector), FALSE);
-    rcRecv(s, &cache->root->side, sizeof(float), FALSE);
+    vector center;
+    float side;
+
+    rcRecv(s, center, sizeof(vector), FALSE);
+    rcRecv(s, &side, sizeof(float), FALSE);
+    cache->setRoot(center, side);
 
     return TRUE;
 }
@@ -664,13 +617,14 @@ CRemotePtCloudChannel::CRemotePtCloudChannel(CPointCloud *c) : CRemoteChannel(c-
 int CRemotePtCloudChannel::sendRemoteFrame(SOCKET s) {
 
     // Send the number of items
-    rcSend(s, &cloud->numItems, sizeof(int), FALSE);
+    const int numPoints = cloud->getNumPoints();
+    rcSend(s, &numPoints, sizeof(int), FALSE);
 
     // Send the points
-    rcSend(s, cloud->items + 1, sizeof(CPointCloudPoint) * cloud->numItems, FALSE);
+    rcSend(s, cloud->points(), sizeof(CPointCloudPoint) * numPoints, FALSE);
 
     // Send the data
-    rcSend(s, cloud->data.array, sizeof(float) * cloud->dataSize * cloud->numItems, FALSE);
+    rcSend(s, cloud->pointData(), sizeof(float) * cloud->dataSize * numPoints, FALSE);
 
     return TRUE;
 }
@@ -721,12 +675,12 @@ int CRemotePtCloudChannel::sendSetupData(SOCKET s) {
     // encode the channel (tidy this up)
     channelDef[0] = '\0';
     int i = 0;
-    while (i < (cloud->channelCount - 1)) {
-        snprintf(ptr, sizeof(channelDef) - (size_t)(ptr - channelDef), "%s,", cloud->channels[i].name);
-        ptr += strlen(cloud->channels[i].name) + 1;
+    while (i < (cloud->numChannels() - 1)) {
+        snprintf(ptr, sizeof(channelDef) - (size_t)(ptr - channelDef), "%s,", cloud->channelName(i));
+        ptr += strlen(cloud->channelName(i)) + 1;
         i++;
     }
-    strcpy(ptr, cloud->channels[cloud->channelCount - 1].name);
+    strcpy(ptr, cloud->channelName(cloud->numChannels() - 1));
 
     rcSend(s, channelDef, 1024, FALSE);
 
@@ -746,12 +700,13 @@ int CRemotePtCloudChannel::setup(SOCKET s) {
     rcRecv(s, channelDef, 1024, FALSE);
     cloud->defineChannels(channelDef);
 
-    identitym(cloud->to);
-    identitym(cloud->from);
+    matrix identity;
+    identitym(identity);
+    cloud->setTransform(identity, identity);
 
     // set the scale to 1
 
-    cloud->dPscale = 1;
+    cloud->setDPScale(1);
 
     return TRUE;
 }

@@ -1,0 +1,1 @@
+# paths whose image differs between base runs 1 and 2 (T007); ignored by image_manifest.sh diff

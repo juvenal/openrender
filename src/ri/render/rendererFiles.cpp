@@ -30,7 +30,7 @@
 #include "brickmap.h"
 #include "common/diagnostics.h"
 #include "include/logging.hpp"
-#include "irradiance.h"
+#include "irradianceCache.h"
 #include "netFileMapping.h"
 #include "options.h"
 #include "photonMap.h"
@@ -245,7 +245,7 @@ CTexture3d *CRenderer::getCache(const char *name, const char *mode, const float 
 
                     // Create the cache
                     if (strcmp(type, fileIrradianceCache) == 0) {
-                        cache = new CIrradianceCache(name, flags, in, from, to, NULL);
+                        cache = new CIrradianceCache(name, flags, in, from, to, NULL, CRenderer::worldBmin, CRenderer::worldBmax);
                     }
                     else {
                         error(CODE_BUG, "Unable to recognize the file format of \"%s\"\n", name);
@@ -266,7 +266,7 @@ CTexture3d *CRenderer::getCache(const char *name, const char *mode, const float 
             }
 
             // go ahead and create the cache
-            cache = new CIrradianceCache(name, flags, NULL, from, to, CRenderer::toNDC);
+            cache = new CIrradianceCache(name, flags, NULL, from, to, CRenderer::toNDC, CRenderer::worldBmin, CRenderer::worldBmax);
         }
 
         // Create channels if possible
@@ -279,12 +279,9 @@ CTexture3d *CRenderer::getCache(const char *name, const char *mode, const float 
         frameFiles->insert(cache->name, cache);
     }
 
-    return (CTexture3d *)cache;
-}
-
-// The point hierarchy's solid-angle limit: the occlusion() "maxsolidangle" of the lookup in progress (spec 027)
-static float pointHierarchyMaxSolidAngle(const CShadingContext *context) {
-    return context->currentShadingState->scratch.occlusionParams.maxSolidAngle;
+    // Only an irradiance cache is an answer: a name already registered as a point cloud or a brick map (GitHub #104) answers
+    // nothing, and Shading converts what it gets back with irradianceStoreOf(), an unchecked cast, so the kind is checked here.
+    return dynamic_cast<CIrradianceStore *>(cache);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -331,9 +328,7 @@ CTexture3d *CRenderer::getTexture3d(const char *name, int write, const char *cha
                 // Try to open the file
                 if ((in = ropen(fileName, "rb", filePointCloud, TRUE)) != NULL) {
                     if (hierarchy == TRUE) {
-                        CPointHierarchy::Options options;
-                        options.maxSolidAngle = pointHierarchyMaxSolidAngle;
-                        texture3d = new CPointHierarchy(name, from, to, in, options);
+                        texture3d = new CPointHierarchy(name, from, to, in);
                     }
                     else {
                         texture3d = new CPointCloud(name, from, to, in);

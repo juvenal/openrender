@@ -33,6 +33,7 @@
 #include "common/containers.h"
 #include "common/global.h"
 #include "libshader/shading/illuminationHook.h"
+#include "libshader/shading/irradianceSampler.h"
 #include "libshader/shading/pointSource.h"
 #include "libshader/shading/rendererServices.h"
 #include "libshader/shading/shaderGlobals.h"
@@ -50,6 +51,7 @@ class CXform;
 class CShaderInstance;
 class CRay;
 class CGatherBundle;
+struct CSegmentSpawn; // bundles.h (spec 056)
 class CDrawOccurrences;
 class CGatherLookup;
 class CGatherRay;
@@ -218,7 +220,10 @@ class CShadingState {
         int *tags;                      // Exec stack counter
         int numRealVertices;            // Vertex count (internally used)
         int numActive, numPassive;      // The number of vertices that are active and passive respectively
-        CShaderInstance *postShader;    // Shader to be executed on the surface after the atmosphere
+        CShaderInstance *postShader;    // The volume shader of the segments this ray level's rays travel (copied by enterRayLevel); read by no shading code
+        int volumeSegment;              // TRUE while the state runs a segment step (shadeVolumeSegments): the three trace builtins attach no volume shader to rays built in it
+        const float *lightSideN;        // During iterateLights' light loop: a snapshot of the surface's N, one vector per vertex (lightSideNStore); null otherwise
+        float *lightSideNStore;         // The buffer lightSideN points into, allocated with the state like Ns (mgs * 9 floats)
 
         CShaderInstance *currentShaderInstance; // The current shader instance that's executing
         CShaderInstance *currentLightInstance = nullptr; // The current light instance that's executing (the last one that ran; none yet: lightsource() under the JIT outside any loop, spec 026 F3)
@@ -324,8 +329,8 @@ enum ETraceRequestKind {
     TRACEREQUEST_TRANSMISSION,    // traceTransmission bundles: transmission() and ray-traced shadow()
     TRACEREQUEST_VISIBILITY,      // traceTransmission probes: visibility()
     TRACEREQUEST_GATHER,          // gatherSample bundles
-    TRACEREQUEST_OCCLUSION,       // CIrradianceCache::sample, occlusion()
-    TRACEREQUEST_INDIRECTDIFFUSE, // CIrradianceCache::sample, indirectdiffuse()
+    TRACEREQUEST_OCCLUSION,       // CIrradianceSampler::sample, occlusion()
+    TRACEREQUEST_INDIRECTDIFFUSE, // CIrradianceSampler::sample, indirectdiffuse()
 };
 struct CTraceRequestReport {
         int kind;          // ETraceRequestKind
@@ -348,13 +353,19 @@ class CRayBundle {
         const char *label;           // The label of these rays
         int last;                    // The last transparent ray
         int depth;                   // The transparency depth of the bundle
-        CShaderInstance *postShader; // The shader to execute after the raytrace
+        CShaderInstance *postShader = nullptr; // The volume shader of the segments these rays travel (spec 056); null: none
 
         virtual ~CRayBundle() = default;
         virtual int postTraceAction() = 0;                  // The function to be called after the rays are traced
         virtual void postShade(int, CRay **, float **) = 0; // The function that's called with the shade results
         virtual void postShade(int, CRay **) = 0;           // The function that's called with the rays that don't intersect anything
         virtual void post() = 0;                            // The function that's called after each pass
+
+        // The distance a ray that survived a pass (the bundle kept it in rays[]) is continued to: the hider sets the
+        // continued ray's t to this, with tmin just past the hit. The default is no limit; a bundle whose rays have an
+        // end point of their own (a transmission ray ends at its light or maxdist) answers with it, so the continued
+        // ray cannot find occluders beyond it (GitHub #153).
+        virtual float continuationLimit(const CRay *) const { return C_INFINITY; }
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -437,6 +448,13 @@ class CShadingContext final {
             currentShadingState->currentAttributes = attributes;
         }
         void fillPointKeys(const CSurface *, uint64_t stableId, EShadingDim, bool report = true); // Give the points about to be shaded their sample identities (spec 039)
+        // Volume shader segments (spec 056, research R2, contracts/segment-step.md): run `volume` once per ray segment on the
+        // spawning surface `spawn`. Ray i's segment starts at segStart[i] and ends at segEnd[i] along its direction; a segEnd of
+        // C_INFINITY means "the world bound's exit" (a ray that never enters the bound, an empty bound or no services gives a zero
+        // length segment, so I is always finite). The step derives P = from + end * dir and I = (end - start) * dir itself, runs in a
+        // 0-D state at the current ray depth with the spawning surface as the shaded object, and takes Ci and Oi (3 floats per
+        // point) in and out. Any n >= 0: the points are shaded in chunks of at most maxGridSize().
+        void shadeVolumeSegments(CShaderInstance *volume, const CSegmentSpawn &spawn, int n, CRay *const *rays, const float *segStart, const float *segEnd, float *Ci, float *Oi);
         // Execute a compiled shader (public for RSLShading::shade() in libshader)
         void execute(CProgrammableShaderInstance *, float **);
         inline void displace(CSurface *surface, int u, int v, EShadingDim dim, unsigned int up) { shade(surface, u, v, dim, up, TRUE); }
@@ -447,6 +465,15 @@ class CShadingContext final {
         void setTracer(openrender::shading::ITracer *tracer) { tracerObject = tracer; }
         // The owner's tracer, nullptr if none (the services' tracer() is the fallback of libshader::traceRay, not of this accessor)
         openrender::shading::ITracer *tracer() const { return tracerObject; }
+
+        // ---- The irradiance sampler (spec 032): how libshader::irradianceLookup computes a new sample on a cache miss. The hider
+        // that owns the context installs one (the cache itself is passive storage and samples nothing); the process-wide default
+        // is the fallback for a context with none.
+        void setIrradianceSampler(openrender::shading::IIrradianceSampler *sampler) { irradianceSamplerObject = sampler; }
+        openrender::shading::IIrradianceSampler *irradianceSampler() const { return irradianceSamplerObject; }
+        static void setDefaultIrradianceSampler(openrender::shading::IIrradianceSampler *sampler) { s_defaultIrradianceSampler = sampler; }
+        static openrender::shading::IIrradianceSampler *defaultIrradianceSampler() { return s_defaultIrradianceSampler; }
+        bool irradianceSamplerWarned = false; // libshader::irradianceLookup has reported that no sampler is installed
 
         // The ray level (FR-017): the one public way to go one ray level deeper, and the one place the depth rule is applied.
         struct CRayLevel { // what leaveRayLevel() restores
@@ -553,6 +580,9 @@ class CShadingContext final {
             for (int k = 0; k < 4; k++)
                 r[k] = keyedNext();
         }
+        // The sub-stream bindDraws() bound for the call in progress (a copy of it is the key of what the call produces, spec 040)
+        const openrender::sampling::SubstreamKey &boundDraws() const { return drawCursor; }
+
         // Point `sample` of the pair `pair` of the sub-stream bindDraws() bound: the
         // hemisphere of the irradiance cache, drawn by sample index as trace() draws its
         // rays (spec 039, T076c).
@@ -1101,6 +1131,7 @@ class CShadingContext final {
         TObjectHash *traceObjectHash; // An object hash array for raytraced objects
         openrender::shading::IIlluminationHook *illuminationHookObject = nullptr; // See setIlluminationHook()
         openrender::shading::ITracer *tracerObject = nullptr;                     // See setTracer()
+        openrender::shading::IIrradianceSampler *irradianceSamplerObject = nullptr; // See setIrradianceSampler()
         openrender::shading::IShadingProducer *producerObject = nullptr;          // See setProducer()
 
         // The following functions are used in the shaders
@@ -1123,6 +1154,7 @@ class CShadingContext final {
                 vector P, dPdu, dPdv; // The ray origin
                 vector D, dDdu, dDdv; // The direction (for reflection), the ray target (for transmission)
                 vector N;             // Surface normal reference to determine interior or exterior
+                vector sideN;         // The side normal (spec 056, research R7): the shaded surface's N at the call (a light's shadow(): the snapshot taken before the lights ran)
                 float time;           // Of the sample
                 float coneAngle;      // The angular spread
                 int numSamples;       // The number of samples to shoot from this location
@@ -1249,6 +1281,7 @@ class CShadingContext final {
 
         // Default renderer services injected by src/ri/ at startup via setDefaultServices()
         static CRendererServices *s_defaultServices;
+        static openrender::shading::IIrradianceSampler *s_defaultIrradianceSampler; // See setDefaultIrradianceSampler()
 };
 
 

@@ -40,7 +40,11 @@ set(_contract_shader_names
     cm_mm_msg_surface cm_mm_msg_displacement cm_mm_msg_atmosphere cm_mm_msg_incident cm_mm_msg_opposite
     cm_mm_real_msg_surface cm_mm_real_msg_displacement cm_mm_real_msg_atmosphere cm_mm_real_msg_incident cm_mm_real_msg_opposite cm_nullobject_msg
     cm_matrices cm_trace cm_transmission cm_visibility cm_gather cm_occlusion cm_indirect cm_env cm_shadow
-    sit_marker sit_mirror sit_transmit sit_displace sit_photon_light)
+    sit_marker sit_mirror sit_transmit sit_displace sit_photon_light
+    # spec 056: the volume segment step (contract-only shaders; they touch neither shader manifest)
+    cv_segment cv_segment_p cv_globals cv_nested cv_counter cv_overfog
+    cv_surface_trace cv_surface_transmission cv_surface_gather cv_surface_environment cv_surface_visibility
+    cv_surface_occlusion cv_surface_indirect cv_incident_probe)
 set(_shader_specs "")
 foreach(_b trace transmission visibility gather environment shadow occlusion indirectdiffuse)
     list(APPEND _shader_specs "replay_${_b}|${CMAKE_CURRENT_SOURCE_DIR}/replay/shaders/replay_${_b}.sl")
@@ -391,6 +395,10 @@ if(TARGET state_only_sources)
     or029_contract_program(test_shading_contract_hider_tracer RENDERED SOURCES hider_tracer_main.cpp case_hider_tracer.cpp)
     or029_contract_program(test_shading_contract_point_source SOURCES point_source_main.cpp case_point_source.cpp)
     or029_contract_program(test_shading_contract_producer_situations RENDERED SOURCES producer_situations_main.cpp case_producer_situations.cpp)
+    # Spec 056: the segment step (rendered: it needs a shaded object with Interior and Exterior bound) and the side-aware
+    # incident()/opposite() (standalone)
+    or029_contract_program(test_shading_contract_volume_segments RENDERED SOURCES volume_segments_main.cpp case_volume_segments.cpp)
+    or029_contract_program(test_shading_contract_message_side SOURCES message_side_main.cpp case_message_side.cpp)
 endif()
 
 # add_contract_test_029(<test name> <program> <case argument> [JIT] [TIMEOUT <s>]): one CTest entry for the program; DISABLED
@@ -427,3 +435,8 @@ add_contract_test_029(ShadingContract_RayLevel test_shading_contract_ray_level)
 add_contract_test_029(ShadingContract_ProducerSituations test_shading_contract_producer_situations TIMEOUT 600)
 add_contract_test_029(ShadingContract_PointSourceInterp test_shading_contract_point_source CASE Interp)
 add_contract_test_029(ShadingContract_PointSourceJit test_shading_contract_point_source JIT CASE Jit)
+# Spec 056: ENABLED from the start; their red evidence on the starting tree is a failing run, not a disabled entry
+add_contract_test_029(ShadingContract_VolumeSegmentsInterp test_shading_contract_volume_segments CASE Interp)
+add_contract_test_029(ShadingContract_VolumeSegmentsJit test_shading_contract_volume_segments JIT CASE Jit)
+add_contract_test_029(ShadingContract_MessageSideInterp test_shading_contract_message_side CASE Interp)
+add_contract_test_029(ShadingContract_MessageSideJit test_shading_contract_message_side JIT CASE Jit)

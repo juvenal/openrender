@@ -443,3 +443,72 @@ and of `test_registry_frame_abort.cpp`: `:11` `(CODE_BUG, "could not create ...`
 | SC-011 no merge dependency | met | the grep and its classification (T134) |
 
 Allowlist and metrics: 4 lines deleted (3 DB-011, 1 DB-006), 0 added, 344 -> 340 entries; `metrics-baseline.txt` Hiders 556/81 -> 553/79, TOTAL 604/89 -> 601/87. Suites: macOS 1123 run (the baseline 1097 plus the 26 new tests); Linux 1124 (one Linux-only test). New open item: GitHub #163. Pending: applying the `CLAUDE.md` and `DEVNOTES.md` drafts (T140), which the maintainer approved at PAUSE 10a (2026-11-12) to be done at merge preparation, where the gotcha number is settled against master (032 takes 37; expect 38 or later); the Linux final state (T131) is recorded above.
+
+## §6 Merge preparation: master `8f45d919` merged into 030 (2026-11-12)
+
+The branch (HEAD `c56f8171`) did not contain spec 056 (master `11fa3424`) or spec 032 (master `8f45d919`, on top of 056). The merge was made
+with `git merge --no-ff --no-commit master` in the worktree and is **uncommitted** (the maintainer commits it); the merged, uncommitted tree
+is what the runs below validated.
+
+### Conflicts and their resolutions
+
+| File | Why | Resolution |
+|---|---|---|
+| `.specify/feature.json` | each side names its own spec | 030's (`specs/030-hider-and-integrator-registry`) |
+| `src/ri/CMakeLists.txt` | `ri_source` list: 030 removed `hcshader.cpp` (and kept `hiders/irradiance.cpp`, `irradianceDispatch.cpp`); 032 replaced those two by `hiders/irradianceSampler.cpp`; and the ribVector comment naming the real/stub pairs | `hiders/irradianceSampler.cpp` only (no `hcshader.cpp`, no `irradiance*.cpp`); comment: 030's list of classes without `CQuadLight`/`CSphereLight` and 032's "three real/stub pairs" and its irradiance-cache paragraph. The ribVector `REMOVE_ITEM` list auto-merged (030's `builtinHiders.cpp` and `hiderRegistry.cpp`, 032's `irradianceSampler.cpp`) |
+| `src/ri/hiders/photon.cpp` | includes: 030 added `hiderAbi.hpp` and `hiderRegistry.h` and kept `photonMap.h`; 032 replaced `photonMap.h` by `photonMapAccess.h` | all three of 030's new includes plus `photonMapAccess.h` (no `photonMap.h`) |
+| `tests/architecture/allowlist.txt` | both sides deleted DB-011 lines and rewrote the two section headers; 032 also deleted DB-010 | master's file with exactly 030's four deletions applied by key (`surface.cpp -> CReyes::drawObject` of DB-006; `photon.cpp -> hiderFlags`, `zbuffer.cpp -> hiderFlags`, `reyes.cpp -> contexts` of DB-011), none added; headers DB-006 (29) and DB-011 (155). Entries: master 319, merged 315. Built from the files, not by choosing a side (`build-logs/030-merge/al-*.txt`) |
+| `tests/architecture/metrics-baseline.txt` | both lowered Hiders and TOTAL | the values archcheck reports on the merged build: Hiders 546 refs / 76 members, TOTAL 594 / 84 (arithmetic check: 556 - 3 - 7 = 546, 81 - 2 - 3 = 76, 604 - 10 = 594, 89 - 5 = 84), plus one comment paragraph per spec |
+| `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md` | both appended to the end of the file (032: DB-010 and DB-020 as Resolved; 030: DB-013 as Resolved) | all three kept, 032's first (merged first), then 030's; DB-011 Evidence (546 references, 7 files include `renderer.h`), Size (155 = 7 include + 148 link; 158 on master, 161 on the branch alone) and a merge note in the spec 030 History entry |
+| `NEWS.md` | both added the first "Unreleased" entry | both entries, 030's (2026-11-11) above 056's (2026-11-10) |
+
+Auto-merged without a conflict, checked by reading the master side: `src/libshader/shading/shading.h` (032's `IIrradianceSampler`,
+056's segment members; 030 changed a comment), `src/ri/hiders/photon.h` (032's `CPhotonMapRefTarget` and `pointKeyFull`),
+`src/ri/render/renderer.cpp`, `rendererContext.cpp`, `rendererStatics.cpp` (032 renamed an include `irradiance.h` ->
+`irradianceCache.h`), `tests/CMakeLists.txt`, `tests/architecture/CMakeLists.txt`.
+
+### Where 030's changes meet 032's (read, even where git merged cleanly)
+
+- **The irradiance sampler is installed by `CHider`'s constructor** (`hiders/hider.cpp`: `context.setIrradianceSampler(&irradianceSamplerInstance())`).
+  030's registry factories build `CReyes`/`CStochastic`/`CZbuffer`/`CRaytracer`/`CPhotonHider` through their tables' `create`, which run that
+  constructor, so every registry-built hider has the sampler on its context; the process default (`rendererShadingServices.cpp`,
+  `setDefaultIrradianceSampler`) is untouched by 030. The registry tests' double (`tests/unit/registry/hider_double.cpp`) derives from `CHider` and gets it too.
+- **`photonMapAccess.h` and `CPhotonMap`**: `photon.cpp` is the one file both specs edited (the include conflict above); 030's
+  `CPhotonHider` table and its `hiderFlags` removal sit beside 032's `CPhotonMapRefTarget`/`pointKeyFull` signature change and compile together.
+  the renderer core's `rendererServicesImpl.h` includes the Core `render/photonMap.h`, which 032 made header-only, and 030's
+  `rendererTransport.{h,cpp}` (`frameTransport()`) names no photon-map type.
+- **`hiderFlags`**: 032's allowlist line `photon.cpp -> CRenderer::hiderFlags` (kept on master) is one of the three that 030 deletes; the line is
+  gone from the merged allowlist and archcheck reports no stale line.
+- **ribVector**: `builtinHiders.cpp` and `hiderRegistry.cpp` (030) and `irradianceSampler.cpp` (032) are all out of the ribVector list, and
+  `vector/irradianceDispatchStub.cpp` stays deleted; `ribvector-core-residual.txt` is untouched by 030 and was edited only by 032.
+- **DB-017** (`*Dispatch` pairs): 032 deleted the irradiance pair (78 lines stay); 030 never touched it.
+- Nothing else of 030's (`transport/`, `integratorAbi`, `RiIntegrator`, `frameTransport()`) names a file 032 changed.
+
+### macOS runs on the merged, uncommitted tree (cpujob, `build/`, Release, the build exits 0)
+
+| Check | Result |
+|---|---|
+| Build | `cmake --build build --config Release -j4`: exit 0, 0 errors; no compiler warning (the 21 `warning:` lines of the log are `ld` notes: duplicate libraries and the Swift preview package's deployment-target and object-file notes; `-Werror` is on) |
+| Suite `-LE determinism-sweep -j4` | 1353 tests: all pass but the self-skip `LibShader_Format_rslo_lower_minor` and `Registry_IntegratorImageIdentity`, which failed on exactly its two photon rows (`none1 == none2`, `classic == none1`): the known #163. `ctest -L registry` alone, run afterwards: 17 of 17 pass |
+| Image CP-d against `baseline-images-macos.sha256` | manifest 915, fresh 1194, 2 differing, 0 missing, 279 not in manifest (the new 056 scenes). The two differing images are `csg-sphere-sphere-difference-interior-raytrace` and `...-raytrace-inside`: scenes spec 056 rewrote (RIB and reference both changed by 056), whose tests now report `MaxBlockAvgDiff` 0.00 (17.27 and 0.30 before). Every other manifest image and `MaxBlockAvgDiff` equals the starting tree's |
+| Determinism sweep `-L '^determinism-sweep$' -j2` | 582 of 582 pass; CP-d against `baseline-sweep-images-macos.sha256`: manifest 419, fresh 582, 2 differing (the same two CSG scenes), 0 missing, 163 not in the manifest (056's new entries) |
+| `-L architecture` | 34 of 34 pass; archcheck report: `ALLOWED DB-004 x 52 DB-006 x 29 DB-011 x 155 DB-017 x 78 DB-025 x 1`, `METRIC Hiders 546 (baseline 546) distinct 76 (76)`, `TOTAL 594 (594) distinct 84 (84)`, `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0` |
+| `-L registry` / `-L gi_split` / `-L link` | 17 of 17 / 9 of 9 / 5 of 5 pass |
+
+Note on archcheck: the first archcheck run, made straight after the build, reported 10 VIOLATIONs and 2 failing cycles, every one from the
+leftover objects of the deleted `hiders/irradiance.cpp`, `hiders/photonMap.cpp` and `hiders/irradianceDispatch.cpp` (the #162 class; those
+objects were still on disk and still are: nothing was deleted). It had read 910 objects against 934 and 219 sources against 215; the same
+command after the suite had built the remaining test targets reported PASS (above) and so did every `ctest -L architecture` run. I take the
+first report as an incomplete-build reading (archcheck's contract is a complete build) and the PASS as the figure; the figures match the
+arithmetic above exactly.
+
+### Linux runs on the merged tree: PENDING (host unreachable)
+
+`ubuntu-2404-desktop.v2-labs.io` answered "No route to host" on port 22 from 2026-11-12 13:07 on (probes every two minutes for about twenty
+minutes, then a poller); nothing of the merged tree was pushed or run on Linux, and `ssh` is the only test of reachability. The run is
+scripted and waits for the host: `build-logs/030-merge/linux-go.sh` (local; polls ssh every minute for up to six hours, then
+`linux_sync.sh push`, copies `run-m.sh` and starts it) and `build-logs/030-merge/run-m.sh` (remote, every job through the remote cpujob at
+`-j2`: build, suite `-LE determinism-sweep` with CP-d against the Linux baselines, `-L architecture` with the archcheck report, `-L registry`,
+`-L gi_split`, `-L link`, the determinism sweep with its CP-d; status in the remote `build-logs/lm.status`). When it has finished, `linux_sync.sh pull`
+and `verify`, apply the rule (known non-passes: the `rslo_lower_minor` self-skip, #45 `TextureTile_RenderByteIdentical`, #163 photon rows
+only; a `ShadingParity_JitPL*` timeout that recurs is a P1) and replace this paragraph with the figures.

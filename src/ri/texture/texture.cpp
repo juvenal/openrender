@@ -3070,7 +3070,7 @@ CEnvironment *textureLoadEnvironment(const char *name, const CTextureFileResolve
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CTextureCache
 // Method				:	CTextureCache
-// Description			:	Set the maximum texture memory and init the cache (was CRenderer::initTextures)
+// Description			:	Set the maximum texture memory and init the cache (was the renderer core's initTextures)
 // Return Value			:	-
 // Comments				:
 CTextureCache::CTextureCache(int threads, int maxMemory) {
@@ -3098,7 +3098,7 @@ CTextureCache::CTextureCache(int threads, int maxMemory) {
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CTextureCache
 // Method				:	~CTextureCache
-// Description			:	Free the counters (was CRenderer::shutdownTextures)
+// Description			:	Free the counters (was the renderer core's shutdownTextures)
 // Return Value			:	-
 // Comments				:	Every block was unregistered when its texture was deleted, which the
 //							texture system does first

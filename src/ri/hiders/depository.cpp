@@ -21,9 +21,10 @@
 //
 // This file implements the subsurface scattering bake (depository) system.
 // It is intentionally excluded from the main CMakeLists.txt build because the
-// feature is not yet complete. depository.h is still included by irradiance.h,
-// so this file and its header must NOT be deleted. When the SSS bake feature
-// is ready, re-add depository.cpp to src/ri/CMakeLists.txt.
+// feature is not yet complete. depository.h used to be included by the irradiance
+// cache's header; spec 032 removed that include, so nothing includes it now, and
+// the file and its header stay only until the SSS bake feature is finished or
+// retired. When the feature is ready, re-add depository.cpp to src/ri/CMakeLists.txt.
 
 ///////////////////////////////////////////////////////////////////////
 //

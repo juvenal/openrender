@@ -1,0 +1,1 @@
+# paths whose image differs between base sweep runs 1 and 2 (T024); ignored by image_manifest.sh diff

@@ -1,0 +1,1066 @@
+# spec 032 T-B Preview_DataSceneUnchanged: the data viewer's scene for the five document types, before and after each key
+[photonmap]
+ribdata_sniff 0
+-- initial
+  documentType=0 numChannels=0 currentChannel=-1 detailLevel=-1 drawMode=0
+  bounds min (-0x1.7fe8dep+1 -0x1.00341p+0 0x1.0009f4p+1) max (0x1.7ffb7p+1 0x1.fffcf4p+0 0x1p+3)
+  camera projection=0 fov=0x1.68p+5 near=0x1.6937cp-3 far=0x1.6d17aap+5 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=46273 hashVerts=5249ea7da9a6f773 hashCols=e8b61d6291c8f797
+  triangles count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  sourceDiskCount=0 decimatedCount=0
+-- key 'p' changed=0
+  documentType=0 numChannels=0 currentChannel=-1 detailLevel=-1 drawMode=0
+  bounds min (-0x1.7fe8dep+1 -0x1.00341p+0 0x1.0009f4p+1) max (0x1.7ffb7p+1 0x1.fffcf4p+0 0x1p+3)
+  camera projection=0 fov=0x1.68p+5 near=0x1.6937cp-3 far=0x1.6d17aap+5 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=46273 hashVerts=5249ea7da9a6f773 hashCols=e8b61d6291c8f797
+  triangles count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  sourceDiskCount=0 decimatedCount=0
+-- key 'd' changed=0
+  documentType=0 numChannels=0 currentChannel=-1 detailLevel=-1 drawMode=0
+  bounds min (-0x1.7fe8dep+1 -0x1.00341p+0 0x1.0009f4p+1) max (0x1.7ffb7p+1 0x1.fffcf4p+0 0x1p+3)
+  camera projection=0 fov=0x1.68p+5 near=0x1.6937cp-3 far=0x1.6d17aap+5 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=46273 hashVerts=5249ea7da9a6f773 hashCols=e8b61d6291c8f797
+  triangles count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  sourceDiskCount=0 decimatedCount=0
+-- key 'w' changed=0
+  documentType=0 numChannels=0 currentChannel=-1 detailLevel=-1 drawMode=0
+  bounds min (-0x1.7fe8dep+1 -0x1.00341p+0 0x1.0009f4p+1) max (0x1.7ffb7p+1 0x1.fffcf4p+0 0x1p+3)
+  camera projection=0 fov=0x1.68p+5 near=0x1.6937cp-3 far=0x1.6d17aap+5 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=46273 hashVerts=5249ea7da9a6f773 hashCols=e8b61d6291c8f797
+  triangles count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  sourceDiskCount=0 decimatedCount=0
+-- key 'q' changed=0
+  documentType=0 numChannels=0 currentChannel=-1 detailLevel=-1 drawMode=0
+  bounds min (-0x1.7fe8dep+1 -0x1.00341p+0 0x1.0009f4p+1) max (0x1.7ffb7p+1 0x1.fffcf4p+0 0x1p+3)
+  camera projection=0 fov=0x1.68p+5 near=0x1.6937cp-3 far=0x1.6d17aap+5 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=46273 hashVerts=5249ea7da9a6f773 hashCols=e8b61d6291c8f797
+  triangles count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  sourceDiskCount=0 decimatedCount=0
+CDataDocument type 2
+-- initial
+  typeName="Photon Map" numChannels=0 currentChannel=-1 detailLevel=-1 drawMode=0
+  bound min (-0x1.7fe8dep+1 -0x1.00341p+0 0x1.0009f4p+1) max (0x1.7ffb7p+1 0x1.fffcf4p+0 0x1p+3)
+  draw (chunkSize 384):
+    points n=384 hashP=0b26eb3b06b561d3 hashC=bee9ae1e794d16fb
+    points n=384 hashP=429ab55801ee0291 hashC=d38aef5eceefdbd3
+    points n=384 hashP=ae4e3372548db228 hashC=19dddd2fb37d7b03
+    points n=384 hashP=759a7419743bcad4 hashC=f214d72c34321e0b
+    points n=384 hashP=eb97839d3d3dfa8b hashC=6a1944dc9fa96d6e
+    points n=384 hashP=ca46de667d4e8e3c hashC=77bdab535a003ea3
+    points n=384 hashP=609b15cc81f9977e hashC=026feaab1bcd230b
+    points n=384 hashP=ed26e449c3d25f86 hashC=9fe167882d285fbe
+    points n=384 hashP=90a434d1727055f8 hashC=b2446fe1eba7f90b
+    points n=384 hashP=5bad51380364eaf5 hashC=072683b6488d68ab
+    points n=384 hashP=bf2847b5b61ab7e1 hashC=fb96bc05d8026323
+    points n=384 hashP=f7212a623187a23b hashC=96a88a4cf8f514cb
+    points n=384 hashP=3cf9b104af1ed609 hashC=7af508ced2980dc6
+    points n=384 hashP=69bb0d10fe061f60 hashC=ed4b2c91aa01292b
+    points n=384 hashP=f084bd1a29aace1d hashC=ef0ccd99186f3553
+    points n=384 hashP=9fafbc8f1d0e7aa0 hashC=c26e45145afbd84e
+    points n=384 hashP=306a036049cf33bf hashC=e4f816c94fa0e6b3
+    points n=384 hashP=6a0b28b1ccbf2b73 hashC=cc11ffe875f4e8be
+    points n=384 hashP=498afa80a78fc63f hashC=df6eb5cafe1d918b
+    points n=384 hashP=c5f78a62536ea97c hashC=946aaaf0c12a76ab
+    points n=384 hashP=8331a3c0e7050499 hashC=5ff9e7570f5113fb
+    points n=384 hashP=b31eae750dceb537 hashC=4b35e6431e97186e
+    points n=384 hashP=15ecd29ccae6d9d2 hashC=a3d6074bd210c13e
+    points n=384 hashP=7997b758e18189ef hashC=f70a1d299227c62b
+    points n=384 hashP=fc91970a6149a7a1 hashC=a97eb57f242078d3
+    points n=384 hashP=b367cee1f6325009 hashC=df93e72f63e4400b
+    points n=384 hashP=0269e056e7dd40db hashC=83ac0e2ac541b13e
+    points n=384 hashP=e9d0688ac985dfb9 hashC=4f9b0f15328e0783
+    points n=384 hashP=3169eb25d1fa02b2 hashC=de1408245308c766
+    points n=384 hashP=b809efe3ac48c47d hashC=bce1cae565be5496
+    points n=384 hashP=a400a81e43c47109 hashC=02aeec41c6801953
+    points n=384 hashP=0b1d283488c2e690 hashC=c3da00d33801ed26
+    points n=384 hashP=dcc354440022159a hashC=62edd6049b1e603e
+    points n=384 hashP=67b4a30edd79114c hashC=bc0600bb36bc4b5b
+    points n=384 hashP=dbf51811b06cd170 hashC=92857658da0d6e9e
+    points n=384 hashP=24dbcfc58cdc4cf0 hashC=3f0d5287ace27bb3
+    points n=384 hashP=a26702583490a774 hashC=87c4e1f8b5a71adb
+    points n=384 hashP=b5d69a9db29ae637 hashC=582df82e88fddbdb
+    points n=384 hashP=832c6186ef2e27bf hashC=505d2d5d34dbef9e
+    points n=384 hashP=97def35bd5956e8a hashC=2688eae910fd3426
+    points n=384 hashP=8e6182e62fdb566d hashC=d380ca96cc1818be
+    points n=384 hashP=7ceeee1e0e52cecb hashC=dbcd92c3f760280b
+    points n=384 hashP=e90b279e10a55090 hashC=126ab064eed10616
+    points n=384 hashP=53218491abe1e7c3 hashC=5b8efd656aafb5ee
+    points n=384 hashP=42eb84e6de9b345d hashC=fc3095effe7fbe6e
+    points n=384 hashP=a4204e0e5ff75841 hashC=4c598746cf1bb933
+    points n=384 hashP=e060d2d48f61860b hashC=74d557df186b0536
+    points n=384 hashP=386d8774f7f322be hashC=8972f3bcaa348fb3
+    points n=384 hashP=bcc3b79e12663485 hashC=d0dd23fda751cbc6
+    points n=384 hashP=cb44972aaec29bbf hashC=048a51b03607faab
+    points n=384 hashP=2da188a1cf313e58 hashC=1119047cd1d2613b
+    points n=384 hashP=a603a16056f94868 hashC=ec3e8703b9d92afb
+    points n=384 hashP=4f134cf5be599a71 hashC=71bcb5d891bb872b
+    points n=384 hashP=5c5102279f0cce6f hashC=8c6189e444a27b53
+    points n=384 hashP=866bc405a566be6b hashC=9d41c01d139fd3be
+    points n=384 hashP=7766d99cc2533e87 hashC=dde1f3184273d9b3
+    points n=384 hashP=a03a930b3f46a40d hashC=b6293c00e16576db
+    points n=384 hashP=84b9136822be8768 hashC=f3b92e8527b2726b
+    points n=384 hashP=2671bad21337181e hashC=823fe53492f1fc0e
+    points n=384 hashP=84acaf72e8a3ed3f hashC=68239186b0e70466
+    points n=384 hashP=0bc6d49331547ede hashC=14d496989acde46e
+    points n=384 hashP=8d2069c0c493e29f hashC=a62b4697d33706b3
+    points n=384 hashP=f4607ea7c2ca8d8a hashC=5aaed6341fc8d866
+    points n=384 hashP=f189a8e2c91951d0 hashC=20b795ba3899936e
+    points n=384 hashP=1d9d2393f20aca5b hashC=5716473c6d435503
+    points n=384 hashP=34579c1870bd8b2b hashC=62bf70f12ee7972b
+    points n=384 hashP=0e443e7f444139a8 hashC=0324624b0ab01ce6
+    points n=384 hashP=13df616710214d0f hashC=c44a846637612d2b
+    points n=384 hashP=f09f3fdf9c21ce03 hashC=1a7c18bf1069a383
+    points n=384 hashP=64e87b5cc464da8a hashC=d7589f3a2a968a9e
+    points n=384 hashP=149e9cd81260b4a2 hashC=fda20b26c014d593
+    points n=384 hashP=0e7346e48ce78e50 hashC=550982043c090416
+    points n=384 hashP=c55ac73f0dba7f2a hashC=abeeb983ccc3bf16
+    points n=384 hashP=ec24e0f6b70fe449 hashC=9d0ce50ad1ccd9fb
+    points n=384 hashP=8ce96cacfcd879e4 hashC=92b323dfb7dafa16
+    points n=384 hashP=9c7346109bb83d26 hashC=7690af2ec53a8dee
+    points n=384 hashP=50711ce151b24e63 hashC=9e31835f6d402753
+    points n=384 hashP=90b9f91f51a7b3ef hashC=47ff065017f5ed0e
+    points n=384 hashP=0327ad1af9652d9e hashC=384328cb449c713e
+    points n=384 hashP=08557152bb0e8737 hashC=aa6aa65c261c2616
+    points n=384 hashP=b7580180dbb81196 hashC=9edde7c88bd01816
+    points n=384 hashP=a865e01221cca126 hashC=ebc6e00ea0c96196
+    points n=384 hashP=7b31f339d55c02b1 hashC=ea0c1f782d547a2b
+    points n=384 hashP=a089c89b4b445679 hashC=7a99d046aea6d233
+    points n=384 hashP=32dccc0a988a89c0 hashC=babcb95d8f66dbab
+    points n=384 hashP=f9fc7a3b3e76bf03 hashC=a874c1748ad9e11e
+    points n=384 hashP=125877bcbb8ee9e2 hashC=097d546c5ed4f7ab
+    points n=384 hashP=6815093e0f568b84 hashC=24d8aa015063d5db
+    points n=384 hashP=0f19a1d4d525949b hashC=f9732d3be19d7c96
+    points n=384 hashP=39737d3a5e68cab3 hashC=b05931519c51adcb
+    points n=384 hashP=a2f32680aa7fdb86 hashC=d3bb19a4d461b2ab
+    points n=384 hashP=635a9652c758498f hashC=10edb322cf10462b
+    points n=384 hashP=275de5400bfbfe98 hashC=40fb5916f39bb13b
+    points n=384 hashP=789f7aa962b27a83 hashC=cac78fb115ea2fab
+    points n=384 hashP=e80d45438ee5bff7 hashC=4e2a7bf916af0d1e
+    points n=384 hashP=6b37ce29fc43e054 hashC=58a6b9fb6af65e6e
+    points n=384 hashP=a6d7dc7747404723 hashC=74c9bcbd14e0de03
+    points n=384 hashP=4ff4d53186fd3cec hashC=0f88ddfea3ba836e
+    points n=384 hashP=2cea9f0f8452d38a hashC=faa55d5b5091b003
+    points n=384 hashP=20b5cc26bcc9db7a hashC=5f48b00004e344a6
+    points n=384 hashP=1948616070daf13c hashC=5527fea53109d7ce
+    points n=384 hashP=52c928eced91891c hashC=ae090bcc662c3f8b
+    points n=384 hashP=b085dfbbfb79d3cb hashC=4c59258f1f6d2b5b
+    points n=384 hashP=544e60383979950c hashC=f9237aababda9d6e
+    points n=384 hashP=36903466995eda8c hashC=454c91b29da37d63
+    points n=384 hashP=e2bec90de56581e1 hashC=18818aa9f239f3d3
+    points n=384 hashP=da9ff76d7ede7cbc hashC=152a468599c72b83
+    points n=384 hashP=9047f6ce297711f7 hashC=644de7b3dbb7c71e
+    points n=384 hashP=4bee2d7b28881c56 hashC=f5a312798a88434b
+    points n=384 hashP=692d4f9c73e4ef75 hashC=53bc76e665d7849e
+    points n=384 hashP=77c2e3ad36761ad8 hashC=6f8c34a9a1dc980e
+    points n=384 hashP=aa8578d6d569fe15 hashC=9444667226e3770b
+    points n=384 hashP=0f9b6cd26855f877 hashC=cafa8c80ca68af1e
+    points n=384 hashP=bbea4abd98001aa5 hashC=d7904aeb8fe119be
+    points n=384 hashP=5b572cc3fe5cc98b hashC=cef2583a907f65c6
+    points n=384 hashP=db8d604bf69ccee6 hashC=06c2e9679c6e8a2b
+    points n=384 hashP=97fec74bc41203cb hashC=d703e06bf3bb6253
+    points n=384 hashP=7dd5c2d6791b39ac hashC=9a676585f84d630b
+    points n=384 hashP=772a57c58f466f2b hashC=d372ad93621167ce
+    points n=384 hashP=fe74e525977f5e42 hashC=4a24ea90f25fe76e
+    points n=193 hashP=83fad6fe1a6395bb hashC=93b1e209e9628957
+-- key 'p' changed=0
+  typeName="Photon Map" numChannels=0 currentChannel=-1 detailLevel=-1 drawMode=0
+  bound min (-0x1.7fe8dep+1 -0x1.00341p+0 0x1.0009f4p+1) max (0x1.7ffb7p+1 0x1.fffcf4p+0 0x1p+3)
+  draw (chunkSize 384):
+    points n=384 hashP=0b26eb3b06b561d3 hashC=bee9ae1e794d16fb
+    points n=384 hashP=429ab55801ee0291 hashC=d38aef5eceefdbd3
+    points n=384 hashP=ae4e3372548db228 hashC=19dddd2fb37d7b03
+    points n=384 hashP=759a7419743bcad4 hashC=f214d72c34321e0b
+    points n=384 hashP=eb97839d3d3dfa8b hashC=6a1944dc9fa96d6e
+    points n=384 hashP=ca46de667d4e8e3c hashC=77bdab535a003ea3
+    points n=384 hashP=609b15cc81f9977e hashC=026feaab1bcd230b
+    points n=384 hashP=ed26e449c3d25f86 hashC=9fe167882d285fbe
+    points n=384 hashP=90a434d1727055f8 hashC=b2446fe1eba7f90b
+    points n=384 hashP=5bad51380364eaf5 hashC=072683b6488d68ab
+    points n=384 hashP=bf2847b5b61ab7e1 hashC=fb96bc05d8026323
+    points n=384 hashP=f7212a623187a23b hashC=96a88a4cf8f514cb
+    points n=384 hashP=3cf9b104af1ed609 hashC=7af508ced2980dc6
+    points n=384 hashP=69bb0d10fe061f60 hashC=ed4b2c91aa01292b
+    points n=384 hashP=f084bd1a29aace1d hashC=ef0ccd99186f3553
+    points n=384 hashP=9fafbc8f1d0e7aa0 hashC=c26e45145afbd84e
+    points n=384 hashP=306a036049cf33bf hashC=e4f816c94fa0e6b3
+    points n=384 hashP=6a0b28b1ccbf2b73 hashC=cc11ffe875f4e8be
+    points n=384 hashP=498afa80a78fc63f hashC=df6eb5cafe1d918b
+    points n=384 hashP=c5f78a62536ea97c hashC=946aaaf0c12a76ab
+    points n=384 hashP=8331a3c0e7050499 hashC=5ff9e7570f5113fb
+    points n=384 hashP=b31eae750dceb537 hashC=4b35e6431e97186e
+    points n=384 hashP=15ecd29ccae6d9d2 hashC=a3d6074bd210c13e
+    points n=384 hashP=7997b758e18189ef hashC=f70a1d299227c62b
+    points n=384 hashP=fc91970a6149a7a1 hashC=a97eb57f242078d3
+    points n=384 hashP=b367cee1f6325009 hashC=df93e72f63e4400b
+    points n=384 hashP=0269e056e7dd40db hashC=83ac0e2ac541b13e
+    points n=384 hashP=e9d0688ac985dfb9 hashC=4f9b0f15328e0783
+    points n=384 hashP=3169eb25d1fa02b2 hashC=de1408245308c766
+    points n=384 hashP=b809efe3ac48c47d hashC=bce1cae565be5496
+    points n=384 hashP=a400a81e43c47109 hashC=02aeec41c6801953
+    points n=384 hashP=0b1d283488c2e690 hashC=c3da00d33801ed26
+    points n=384 hashP=dcc354440022159a hashC=62edd6049b1e603e
+    points n=384 hashP=67b4a30edd79114c hashC=bc0600bb36bc4b5b
+    points n=384 hashP=dbf51811b06cd170 hashC=92857658da0d6e9e
+    points n=384 hashP=24dbcfc58cdc4cf0 hashC=3f0d5287ace27bb3
+    points n=384 hashP=a26702583490a774 hashC=87c4e1f8b5a71adb
+    points n=384 hashP=b5d69a9db29ae637 hashC=582df82e88fddbdb
+    points n=384 hashP=832c6186ef2e27bf hashC=505d2d5d34dbef9e
+    points n=384 hashP=97def35bd5956e8a hashC=2688eae910fd3426
+    points n=384 hashP=8e6182e62fdb566d hashC=d380ca96cc1818be
+    points n=384 hashP=7ceeee1e0e52cecb hashC=dbcd92c3f760280b
+    points n=384 hashP=e90b279e10a55090 hashC=126ab064eed10616
+    points n=384 hashP=53218491abe1e7c3 hashC=5b8efd656aafb5ee
+    points n=384 hashP=42eb84e6de9b345d hashC=fc3095effe7fbe6e
+    points n=384 hashP=a4204e0e5ff75841 hashC=4c598746cf1bb933
+    points n=384 hashP=e060d2d48f61860b hashC=74d557df186b0536
+    points n=384 hashP=386d8774f7f322be hashC=8972f3bcaa348fb3
+    points n=384 hashP=bcc3b79e12663485 hashC=d0dd23fda751cbc6
+    points n=384 hashP=cb44972aaec29bbf hashC=048a51b03607faab
+    points n=384 hashP=2da188a1cf313e58 hashC=1119047cd1d2613b
+    points n=384 hashP=a603a16056f94868 hashC=ec3e8703b9d92afb
+    points n=384 hashP=4f134cf5be599a71 hashC=71bcb5d891bb872b
+    points n=384 hashP=5c5102279f0cce6f hashC=8c6189e444a27b53
+    points n=384 hashP=866bc405a566be6b hashC=9d41c01d139fd3be
+    points n=384 hashP=7766d99cc2533e87 hashC=dde1f3184273d9b3
+    points n=384 hashP=a03a930b3f46a40d hashC=b6293c00e16576db
+    points n=384 hashP=84b9136822be8768 hashC=f3b92e8527b2726b
+    points n=384 hashP=2671bad21337181e hashC=823fe53492f1fc0e
+    points n=384 hashP=84acaf72e8a3ed3f hashC=68239186b0e70466
+    points n=384 hashP=0bc6d49331547ede hashC=14d496989acde46e
+    points n=384 hashP=8d2069c0c493e29f hashC=a62b4697d33706b3
+    points n=384 hashP=f4607ea7c2ca8d8a hashC=5aaed6341fc8d866
+    points n=384 hashP=f189a8e2c91951d0 hashC=20b795ba3899936e
+    points n=384 hashP=1d9d2393f20aca5b hashC=5716473c6d435503
+    points n=384 hashP=34579c1870bd8b2b hashC=62bf70f12ee7972b
+    points n=384 hashP=0e443e7f444139a8 hashC=0324624b0ab01ce6
+    points n=384 hashP=13df616710214d0f hashC=c44a846637612d2b
+    points n=384 hashP=f09f3fdf9c21ce03 hashC=1a7c18bf1069a383
+    points n=384 hashP=64e87b5cc464da8a hashC=d7589f3a2a968a9e
+    points n=384 hashP=149e9cd81260b4a2 hashC=fda20b26c014d593
+    points n=384 hashP=0e7346e48ce78e50 hashC=550982043c090416
+    points n=384 hashP=c55ac73f0dba7f2a hashC=abeeb983ccc3bf16
+    points n=384 hashP=ec24e0f6b70fe449 hashC=9d0ce50ad1ccd9fb
+    points n=384 hashP=8ce96cacfcd879e4 hashC=92b323dfb7dafa16
+    points n=384 hashP=9c7346109bb83d26 hashC=7690af2ec53a8dee
+    points n=384 hashP=50711ce151b24e63 hashC=9e31835f6d402753
+    points n=384 hashP=90b9f91f51a7b3ef hashC=47ff065017f5ed0e
+    points n=384 hashP=0327ad1af9652d9e hashC=384328cb449c713e
+    points n=384 hashP=08557152bb0e8737 hashC=aa6aa65c261c2616
+    points n=384 hashP=b7580180dbb81196 hashC=9edde7c88bd01816
+    points n=384 hashP=a865e01221cca126 hashC=ebc6e00ea0c96196
+    points n=384 hashP=7b31f339d55c02b1 hashC=ea0c1f782d547a2b
+    points n=384 hashP=a089c89b4b445679 hashC=7a99d046aea6d233
+    points n=384 hashP=32dccc0a988a89c0 hashC=babcb95d8f66dbab
+    points n=384 hashP=f9fc7a3b3e76bf03 hashC=a874c1748ad9e11e
+    points n=384 hashP=125877bcbb8ee9e2 hashC=097d546c5ed4f7ab
+    points n=384 hashP=6815093e0f568b84 hashC=24d8aa015063d5db
+    points n=384 hashP=0f19a1d4d525949b hashC=f9732d3be19d7c96
+    points n=384 hashP=39737d3a5e68cab3 hashC=b05931519c51adcb
+    points n=384 hashP=a2f32680aa7fdb86 hashC=d3bb19a4d461b2ab
+    points n=384 hashP=635a9652c758498f hashC=10edb322cf10462b
+    points n=384 hashP=275de5400bfbfe98 hashC=40fb5916f39bb13b
+    points n=384 hashP=789f7aa962b27a83 hashC=cac78fb115ea2fab
+    points n=384 hashP=e80d45438ee5bff7 hashC=4e2a7bf916af0d1e
+    points n=384 hashP=6b37ce29fc43e054 hashC=58a6b9fb6af65e6e
+    points n=384 hashP=a6d7dc7747404723 hashC=74c9bcbd14e0de03
+    points n=384 hashP=4ff4d53186fd3cec hashC=0f88ddfea3ba836e
+    points n=384 hashP=2cea9f0f8452d38a hashC=faa55d5b5091b003
+    points n=384 hashP=20b5cc26bcc9db7a hashC=5f48b00004e344a6
+    points n=384 hashP=1948616070daf13c hashC=5527fea53109d7ce
+    points n=384 hashP=52c928eced91891c hashC=ae090bcc662c3f8b
+    points n=384 hashP=b085dfbbfb79d3cb hashC=4c59258f1f6d2b5b
+    points n=384 hashP=544e60383979950c hashC=f9237aababda9d6e
+    points n=384 hashP=36903466995eda8c hashC=454c91b29da37d63
+    points n=384 hashP=e2bec90de56581e1 hashC=18818aa9f239f3d3
+    points n=384 hashP=da9ff76d7ede7cbc hashC=152a468599c72b83
+    points n=384 hashP=9047f6ce297711f7 hashC=644de7b3dbb7c71e
+    points n=384 hashP=4bee2d7b28881c56 hashC=f5a312798a88434b
+    points n=384 hashP=692d4f9c73e4ef75 hashC=53bc76e665d7849e
+    points n=384 hashP=77c2e3ad36761ad8 hashC=6f8c34a9a1dc980e
+    points n=384 hashP=aa8578d6d569fe15 hashC=9444667226e3770b
+    points n=384 hashP=0f9b6cd26855f877 hashC=cafa8c80ca68af1e
+    points n=384 hashP=bbea4abd98001aa5 hashC=d7904aeb8fe119be
+    points n=384 hashP=5b572cc3fe5cc98b hashC=cef2583a907f65c6
+    points n=384 hashP=db8d604bf69ccee6 hashC=06c2e9679c6e8a2b
+    points n=384 hashP=97fec74bc41203cb hashC=d703e06bf3bb6253
+    points n=384 hashP=7dd5c2d6791b39ac hashC=9a676585f84d630b
+    points n=384 hashP=772a57c58f466f2b hashC=d372ad93621167ce
+    points n=384 hashP=fe74e525977f5e42 hashC=4a24ea90f25fe76e
+    points n=193 hashP=83fad6fe1a6395bb hashC=93b1e209e9628957
+-- key 'd' changed=0
+  typeName="Photon Map" numChannels=0 currentChannel=-1 detailLevel=-1 drawMode=0
+  bound min (-0x1.7fe8dep+1 -0x1.00341p+0 0x1.0009f4p+1) max (0x1.7ffb7p+1 0x1.fffcf4p+0 0x1p+3)
+  draw (chunkSize 384):
+    points n=384 hashP=0b26eb3b06b561d3 hashC=bee9ae1e794d16fb
+    points n=384 hashP=429ab55801ee0291 hashC=d38aef5eceefdbd3
+    points n=384 hashP=ae4e3372548db228 hashC=19dddd2fb37d7b03
+    points n=384 hashP=759a7419743bcad4 hashC=f214d72c34321e0b
+    points n=384 hashP=eb97839d3d3dfa8b hashC=6a1944dc9fa96d6e
+    points n=384 hashP=ca46de667d4e8e3c hashC=77bdab535a003ea3
+    points n=384 hashP=609b15cc81f9977e hashC=026feaab1bcd230b
+    points n=384 hashP=ed26e449c3d25f86 hashC=9fe167882d285fbe
+    points n=384 hashP=90a434d1727055f8 hashC=b2446fe1eba7f90b
+    points n=384 hashP=5bad51380364eaf5 hashC=072683b6488d68ab
+    points n=384 hashP=bf2847b5b61ab7e1 hashC=fb96bc05d8026323
+    points n=384 hashP=f7212a623187a23b hashC=96a88a4cf8f514cb
+    points n=384 hashP=3cf9b104af1ed609 hashC=7af508ced2980dc6
+    points n=384 hashP=69bb0d10fe061f60 hashC=ed4b2c91aa01292b
+    points n=384 hashP=f084bd1a29aace1d hashC=ef0ccd99186f3553
+    points n=384 hashP=9fafbc8f1d0e7aa0 hashC=c26e45145afbd84e
+    points n=384 hashP=306a036049cf33bf hashC=e4f816c94fa0e6b3
+    points n=384 hashP=6a0b28b1ccbf2b73 hashC=cc11ffe875f4e8be
+    points n=384 hashP=498afa80a78fc63f hashC=df6eb5cafe1d918b
+    points n=384 hashP=c5f78a62536ea97c hashC=946aaaf0c12a76ab
+    points n=384 hashP=8331a3c0e7050499 hashC=5ff9e7570f5113fb
+    points n=384 hashP=b31eae750dceb537 hashC=4b35e6431e97186e
+    points n=384 hashP=15ecd29ccae6d9d2 hashC=a3d6074bd210c13e
+    points n=384 hashP=7997b758e18189ef hashC=f70a1d299227c62b
+    points n=384 hashP=fc91970a6149a7a1 hashC=a97eb57f242078d3
+    points n=384 hashP=b367cee1f6325009 hashC=df93e72f63e4400b
+    points n=384 hashP=0269e056e7dd40db hashC=83ac0e2ac541b13e
+    points n=384 hashP=e9d0688ac985dfb9 hashC=4f9b0f15328e0783
+    points n=384 hashP=3169eb25d1fa02b2 hashC=de1408245308c766
+    points n=384 hashP=b809efe3ac48c47d hashC=bce1cae565be5496
+    points n=384 hashP=a400a81e43c47109 hashC=02aeec41c6801953
+    points n=384 hashP=0b1d283488c2e690 hashC=c3da00d33801ed26
+    points n=384 hashP=dcc354440022159a hashC=62edd6049b1e603e
+    points n=384 hashP=67b4a30edd79114c hashC=bc0600bb36bc4b5b
+    points n=384 hashP=dbf51811b06cd170 hashC=92857658da0d6e9e
+    points n=384 hashP=24dbcfc58cdc4cf0 hashC=3f0d5287ace27bb3
+    points n=384 hashP=a26702583490a774 hashC=87c4e1f8b5a71adb
+    points n=384 hashP=b5d69a9db29ae637 hashC=582df82e88fddbdb
+    points n=384 hashP=832c6186ef2e27bf hashC=505d2d5d34dbef9e
+    points n=384 hashP=97def35bd5956e8a hashC=2688eae910fd3426
+    points n=384 hashP=8e6182e62fdb566d hashC=d380ca96cc1818be
+    points n=384 hashP=7ceeee1e0e52cecb hashC=dbcd92c3f760280b
+    points n=384 hashP=e90b279e10a55090 hashC=126ab064eed10616
+    points n=384 hashP=53218491abe1e7c3 hashC=5b8efd656aafb5ee
+    points n=384 hashP=42eb84e6de9b345d hashC=fc3095effe7fbe6e
+    points n=384 hashP=a4204e0e5ff75841 hashC=4c598746cf1bb933
+    points n=384 hashP=e060d2d48f61860b hashC=74d557df186b0536
+    points n=384 hashP=386d8774f7f322be hashC=8972f3bcaa348fb3
+    points n=384 hashP=bcc3b79e12663485 hashC=d0dd23fda751cbc6
+    points n=384 hashP=cb44972aaec29bbf hashC=048a51b03607faab
+    points n=384 hashP=2da188a1cf313e58 hashC=1119047cd1d2613b
+    points n=384 hashP=a603a16056f94868 hashC=ec3e8703b9d92afb
+    points n=384 hashP=4f134cf5be599a71 hashC=71bcb5d891bb872b
+    points n=384 hashP=5c5102279f0cce6f hashC=8c6189e444a27b53
+    points n=384 hashP=866bc405a566be6b hashC=9d41c01d139fd3be
+    points n=384 hashP=7766d99cc2533e87 hashC=dde1f3184273d9b3
+    points n=384 hashP=a03a930b3f46a40d hashC=b6293c00e16576db
+    points n=384 hashP=84b9136822be8768 hashC=f3b92e8527b2726b
+    points n=384 hashP=2671bad21337181e hashC=823fe53492f1fc0e
+    points n=384 hashP=84acaf72e8a3ed3f hashC=68239186b0e70466
+    points n=384 hashP=0bc6d49331547ede hashC=14d496989acde46e
+    points n=384 hashP=8d2069c0c493e29f hashC=a62b4697d33706b3
+    points n=384 hashP=f4607ea7c2ca8d8a hashC=5aaed6341fc8d866
+    points n=384 hashP=f189a8e2c91951d0 hashC=20b795ba3899936e
+    points n=384 hashP=1d9d2393f20aca5b hashC=5716473c6d435503
+    points n=384 hashP=34579c1870bd8b2b hashC=62bf70f12ee7972b
+    points n=384 hashP=0e443e7f444139a8 hashC=0324624b0ab01ce6
+    points n=384 hashP=13df616710214d0f hashC=c44a846637612d2b
+    points n=384 hashP=f09f3fdf9c21ce03 hashC=1a7c18bf1069a383
+    points n=384 hashP=64e87b5cc464da8a hashC=d7589f3a2a968a9e
+    points n=384 hashP=149e9cd81260b4a2 hashC=fda20b26c014d593
+    points n=384 hashP=0e7346e48ce78e50 hashC=550982043c090416
+    points n=384 hashP=c55ac73f0dba7f2a hashC=abeeb983ccc3bf16
+    points n=384 hashP=ec24e0f6b70fe449 hashC=9d0ce50ad1ccd9fb
+    points n=384 hashP=8ce96cacfcd879e4 hashC=92b323dfb7dafa16
+    points n=384 hashP=9c7346109bb83d26 hashC=7690af2ec53a8dee
+    points n=384 hashP=50711ce151b24e63 hashC=9e31835f6d402753
+    points n=384 hashP=90b9f91f51a7b3ef hashC=47ff065017f5ed0e
+    points n=384 hashP=0327ad1af9652d9e hashC=384328cb449c713e
+    points n=384 hashP=08557152bb0e8737 hashC=aa6aa65c261c2616
+    points n=384 hashP=b7580180dbb81196 hashC=9edde7c88bd01816
+    points n=384 hashP=a865e01221cca126 hashC=ebc6e00ea0c96196
+    points n=384 hashP=7b31f339d55c02b1 hashC=ea0c1f782d547a2b
+    points n=384 hashP=a089c89b4b445679 hashC=7a99d046aea6d233
+    points n=384 hashP=32dccc0a988a89c0 hashC=babcb95d8f66dbab
+    points n=384 hashP=f9fc7a3b3e76bf03 hashC=a874c1748ad9e11e
+    points n=384 hashP=125877bcbb8ee9e2 hashC=097d546c5ed4f7ab
+    points n=384 hashP=6815093e0f568b84 hashC=24d8aa015063d5db
+    points n=384 hashP=0f19a1d4d525949b hashC=f9732d3be19d7c96
+    points n=384 hashP=39737d3a5e68cab3 hashC=b05931519c51adcb
+    points n=384 hashP=a2f32680aa7fdb86 hashC=d3bb19a4d461b2ab
+    points n=384 hashP=635a9652c758498f hashC=10edb322cf10462b
+    points n=384 hashP=275de5400bfbfe98 hashC=40fb5916f39bb13b
+    points n=384 hashP=789f7aa962b27a83 hashC=cac78fb115ea2fab
+    points n=384 hashP=e80d45438ee5bff7 hashC=4e2a7bf916af0d1e
+    points n=384 hashP=6b37ce29fc43e054 hashC=58a6b9fb6af65e6e
+    points n=384 hashP=a6d7dc7747404723 hashC=74c9bcbd14e0de03
+    points n=384 hashP=4ff4d53186fd3cec hashC=0f88ddfea3ba836e
+    points n=384 hashP=2cea9f0f8452d38a hashC=faa55d5b5091b003
+    points n=384 hashP=20b5cc26bcc9db7a hashC=5f48b00004e344a6
+    points n=384 hashP=1948616070daf13c hashC=5527fea53109d7ce
+    points n=384 hashP=52c928eced91891c hashC=ae090bcc662c3f8b
+    points n=384 hashP=b085dfbbfb79d3cb hashC=4c59258f1f6d2b5b
+    points n=384 hashP=544e60383979950c hashC=f9237aababda9d6e
+    points n=384 hashP=36903466995eda8c hashC=454c91b29da37d63
+    points n=384 hashP=e2bec90de56581e1 hashC=18818aa9f239f3d3
+    points n=384 hashP=da9ff76d7ede7cbc hashC=152a468599c72b83
+    points n=384 hashP=9047f6ce297711f7 hashC=644de7b3dbb7c71e
+    points n=384 hashP=4bee2d7b28881c56 hashC=f5a312798a88434b
+    points n=384 hashP=692d4f9c73e4ef75 hashC=53bc76e665d7849e
+    points n=384 hashP=77c2e3ad36761ad8 hashC=6f8c34a9a1dc980e
+    points n=384 hashP=aa8578d6d569fe15 hashC=9444667226e3770b
+    points n=384 hashP=0f9b6cd26855f877 hashC=cafa8c80ca68af1e
+    points n=384 hashP=bbea4abd98001aa5 hashC=d7904aeb8fe119be
+    points n=384 hashP=5b572cc3fe5cc98b hashC=cef2583a907f65c6
+    points n=384 hashP=db8d604bf69ccee6 hashC=06c2e9679c6e8a2b
+    points n=384 hashP=97fec74bc41203cb hashC=d703e06bf3bb6253
+    points n=384 hashP=7dd5c2d6791b39ac hashC=9a676585f84d630b
+    points n=384 hashP=772a57c58f466f2b hashC=d372ad93621167ce
+    points n=384 hashP=fe74e525977f5e42 hashC=4a24ea90f25fe76e
+    points n=193 hashP=83fad6fe1a6395bb hashC=93b1e209e9628957
+-- key 'w' changed=0
+  typeName="Photon Map" numChannels=0 currentChannel=-1 detailLevel=-1 drawMode=0
+  bound min (-0x1.7fe8dep+1 -0x1.00341p+0 0x1.0009f4p+1) max (0x1.7ffb7p+1 0x1.fffcf4p+0 0x1p+3)
+  draw (chunkSize 384):
+    points n=384 hashP=0b26eb3b06b561d3 hashC=bee9ae1e794d16fb
+    points n=384 hashP=429ab55801ee0291 hashC=d38aef5eceefdbd3
+    points n=384 hashP=ae4e3372548db228 hashC=19dddd2fb37d7b03
+    points n=384 hashP=759a7419743bcad4 hashC=f214d72c34321e0b
+    points n=384 hashP=eb97839d3d3dfa8b hashC=6a1944dc9fa96d6e
+    points n=384 hashP=ca46de667d4e8e3c hashC=77bdab535a003ea3
+    points n=384 hashP=609b15cc81f9977e hashC=026feaab1bcd230b
+    points n=384 hashP=ed26e449c3d25f86 hashC=9fe167882d285fbe
+    points n=384 hashP=90a434d1727055f8 hashC=b2446fe1eba7f90b
+    points n=384 hashP=5bad51380364eaf5 hashC=072683b6488d68ab
+    points n=384 hashP=bf2847b5b61ab7e1 hashC=fb96bc05d8026323
+    points n=384 hashP=f7212a623187a23b hashC=96a88a4cf8f514cb
+    points n=384 hashP=3cf9b104af1ed609 hashC=7af508ced2980dc6
+    points n=384 hashP=69bb0d10fe061f60 hashC=ed4b2c91aa01292b
+    points n=384 hashP=f084bd1a29aace1d hashC=ef0ccd99186f3553
+    points n=384 hashP=9fafbc8f1d0e7aa0 hashC=c26e45145afbd84e
+    points n=384 hashP=306a036049cf33bf hashC=e4f816c94fa0e6b3
+    points n=384 hashP=6a0b28b1ccbf2b73 hashC=cc11ffe875f4e8be
+    points n=384 hashP=498afa80a78fc63f hashC=df6eb5cafe1d918b
+    points n=384 hashP=c5f78a62536ea97c hashC=946aaaf0c12a76ab
+    points n=384 hashP=8331a3c0e7050499 hashC=5ff9e7570f5113fb
+    points n=384 hashP=b31eae750dceb537 hashC=4b35e6431e97186e
+    points n=384 hashP=15ecd29ccae6d9d2 hashC=a3d6074bd210c13e
+    points n=384 hashP=7997b758e18189ef hashC=f70a1d299227c62b
+    points n=384 hashP=fc91970a6149a7a1 hashC=a97eb57f242078d3
+    points n=384 hashP=b367cee1f6325009 hashC=df93e72f63e4400b
+    points n=384 hashP=0269e056e7dd40db hashC=83ac0e2ac541b13e
+    points n=384 hashP=e9d0688ac985dfb9 hashC=4f9b0f15328e0783
+    points n=384 hashP=3169eb25d1fa02b2 hashC=de1408245308c766
+    points n=384 hashP=b809efe3ac48c47d hashC=bce1cae565be5496
+    points n=384 hashP=a400a81e43c47109 hashC=02aeec41c6801953
+    points n=384 hashP=0b1d283488c2e690 hashC=c3da00d33801ed26
+    points n=384 hashP=dcc354440022159a hashC=62edd6049b1e603e
+    points n=384 hashP=67b4a30edd79114c hashC=bc0600bb36bc4b5b
+    points n=384 hashP=dbf51811b06cd170 hashC=92857658da0d6e9e
+    points n=384 hashP=24dbcfc58cdc4cf0 hashC=3f0d5287ace27bb3
+    points n=384 hashP=a26702583490a774 hashC=87c4e1f8b5a71adb
+    points n=384 hashP=b5d69a9db29ae637 hashC=582df82e88fddbdb
+    points n=384 hashP=832c6186ef2e27bf hashC=505d2d5d34dbef9e
+    points n=384 hashP=97def35bd5956e8a hashC=2688eae910fd3426
+    points n=384 hashP=8e6182e62fdb566d hashC=d380ca96cc1818be
+    points n=384 hashP=7ceeee1e0e52cecb hashC=dbcd92c3f760280b
+    points n=384 hashP=e90b279e10a55090 hashC=126ab064eed10616
+    points n=384 hashP=53218491abe1e7c3 hashC=5b8efd656aafb5ee
+    points n=384 hashP=42eb84e6de9b345d hashC=fc3095effe7fbe6e
+    points n=384 hashP=a4204e0e5ff75841 hashC=4c598746cf1bb933
+    points n=384 hashP=e060d2d48f61860b hashC=74d557df186b0536
+    points n=384 hashP=386d8774f7f322be hashC=8972f3bcaa348fb3
+    points n=384 hashP=bcc3b79e12663485 hashC=d0dd23fda751cbc6
+    points n=384 hashP=cb44972aaec29bbf hashC=048a51b03607faab
+    points n=384 hashP=2da188a1cf313e58 hashC=1119047cd1d2613b
+    points n=384 hashP=a603a16056f94868 hashC=ec3e8703b9d92afb
+    points n=384 hashP=4f134cf5be599a71 hashC=71bcb5d891bb872b
+    points n=384 hashP=5c5102279f0cce6f hashC=8c6189e444a27b53
+    points n=384 hashP=866bc405a566be6b hashC=9d41c01d139fd3be
+    points n=384 hashP=7766d99cc2533e87 hashC=dde1f3184273d9b3
+    points n=384 hashP=a03a930b3f46a40d hashC=b6293c00e16576db
+    points n=384 hashP=84b9136822be8768 hashC=f3b92e8527b2726b
+    points n=384 hashP=2671bad21337181e hashC=823fe53492f1fc0e
+    points n=384 hashP=84acaf72e8a3ed3f hashC=68239186b0e70466
+    points n=384 hashP=0bc6d49331547ede hashC=14d496989acde46e
+    points n=384 hashP=8d2069c0c493e29f hashC=a62b4697d33706b3
+    points n=384 hashP=f4607ea7c2ca8d8a hashC=5aaed6341fc8d866
+    points n=384 hashP=f189a8e2c91951d0 hashC=20b795ba3899936e
+    points n=384 hashP=1d9d2393f20aca5b hashC=5716473c6d435503
+    points n=384 hashP=34579c1870bd8b2b hashC=62bf70f12ee7972b
+    points n=384 hashP=0e443e7f444139a8 hashC=0324624b0ab01ce6
+    points n=384 hashP=13df616710214d0f hashC=c44a846637612d2b
+    points n=384 hashP=f09f3fdf9c21ce03 hashC=1a7c18bf1069a383
+    points n=384 hashP=64e87b5cc464da8a hashC=d7589f3a2a968a9e
+    points n=384 hashP=149e9cd81260b4a2 hashC=fda20b26c014d593
+    points n=384 hashP=0e7346e48ce78e50 hashC=550982043c090416
+    points n=384 hashP=c55ac73f0dba7f2a hashC=abeeb983ccc3bf16
+    points n=384 hashP=ec24e0f6b70fe449 hashC=9d0ce50ad1ccd9fb
+    points n=384 hashP=8ce96cacfcd879e4 hashC=92b323dfb7dafa16
+    points n=384 hashP=9c7346109bb83d26 hashC=7690af2ec53a8dee
+    points n=384 hashP=50711ce151b24e63 hashC=9e31835f6d402753
+    points n=384 hashP=90b9f91f51a7b3ef hashC=47ff065017f5ed0e
+    points n=384 hashP=0327ad1af9652d9e hashC=384328cb449c713e
+    points n=384 hashP=08557152bb0e8737 hashC=aa6aa65c261c2616
+    points n=384 hashP=b7580180dbb81196 hashC=9edde7c88bd01816
+    points n=384 hashP=a865e01221cca126 hashC=ebc6e00ea0c96196
+    points n=384 hashP=7b31f339d55c02b1 hashC=ea0c1f782d547a2b
+    points n=384 hashP=a089c89b4b445679 hashC=7a99d046aea6d233
+    points n=384 hashP=32dccc0a988a89c0 hashC=babcb95d8f66dbab
+    points n=384 hashP=f9fc7a3b3e76bf03 hashC=a874c1748ad9e11e
+    points n=384 hashP=125877bcbb8ee9e2 hashC=097d546c5ed4f7ab
+    points n=384 hashP=6815093e0f568b84 hashC=24d8aa015063d5db
+    points n=384 hashP=0f19a1d4d525949b hashC=f9732d3be19d7c96
+    points n=384 hashP=39737d3a5e68cab3 hashC=b05931519c51adcb
+    points n=384 hashP=a2f32680aa7fdb86 hashC=d3bb19a4d461b2ab
+    points n=384 hashP=635a9652c758498f hashC=10edb322cf10462b
+    points n=384 hashP=275de5400bfbfe98 hashC=40fb5916f39bb13b
+    points n=384 hashP=789f7aa962b27a83 hashC=cac78fb115ea2fab
+    points n=384 hashP=e80d45438ee5bff7 hashC=4e2a7bf916af0d1e
+    points n=384 hashP=6b37ce29fc43e054 hashC=58a6b9fb6af65e6e
+    points n=384 hashP=a6d7dc7747404723 hashC=74c9bcbd14e0de03
+    points n=384 hashP=4ff4d53186fd3cec hashC=0f88ddfea3ba836e
+    points n=384 hashP=2cea9f0f8452d38a hashC=faa55d5b5091b003
+    points n=384 hashP=20b5cc26bcc9db7a hashC=5f48b00004e344a6
+    points n=384 hashP=1948616070daf13c hashC=5527fea53109d7ce
+    points n=384 hashP=52c928eced91891c hashC=ae090bcc662c3f8b
+    points n=384 hashP=b085dfbbfb79d3cb hashC=4c59258f1f6d2b5b
+    points n=384 hashP=544e60383979950c hashC=f9237aababda9d6e
+    points n=384 hashP=36903466995eda8c hashC=454c91b29da37d63
+    points n=384 hashP=e2bec90de56581e1 hashC=18818aa9f239f3d3
+    points n=384 hashP=da9ff76d7ede7cbc hashC=152a468599c72b83
+    points n=384 hashP=9047f6ce297711f7 hashC=644de7b3dbb7c71e
+    points n=384 hashP=4bee2d7b28881c56 hashC=f5a312798a88434b
+    points n=384 hashP=692d4f9c73e4ef75 hashC=53bc76e665d7849e
+    points n=384 hashP=77c2e3ad36761ad8 hashC=6f8c34a9a1dc980e
+    points n=384 hashP=aa8578d6d569fe15 hashC=9444667226e3770b
+    points n=384 hashP=0f9b6cd26855f877 hashC=cafa8c80ca68af1e
+    points n=384 hashP=bbea4abd98001aa5 hashC=d7904aeb8fe119be
+    points n=384 hashP=5b572cc3fe5cc98b hashC=cef2583a907f65c6
+    points n=384 hashP=db8d604bf69ccee6 hashC=06c2e9679c6e8a2b
+    points n=384 hashP=97fec74bc41203cb hashC=d703e06bf3bb6253
+    points n=384 hashP=7dd5c2d6791b39ac hashC=9a676585f84d630b
+    points n=384 hashP=772a57c58f466f2b hashC=d372ad93621167ce
+    points n=384 hashP=fe74e525977f5e42 hashC=4a24ea90f25fe76e
+    points n=193 hashP=83fad6fe1a6395bb hashC=93b1e209e9628957
+-- key 'q' changed=0
+  typeName="Photon Map" numChannels=0 currentChannel=-1 detailLevel=-1 drawMode=0
+  bound min (-0x1.7fe8dep+1 -0x1.00341p+0 0x1.0009f4p+1) max (0x1.7ffb7p+1 0x1.fffcf4p+0 0x1p+3)
+  draw (chunkSize 384):
+    points n=384 hashP=0b26eb3b06b561d3 hashC=bee9ae1e794d16fb
+    points n=384 hashP=429ab55801ee0291 hashC=d38aef5eceefdbd3
+    points n=384 hashP=ae4e3372548db228 hashC=19dddd2fb37d7b03
+    points n=384 hashP=759a7419743bcad4 hashC=f214d72c34321e0b
+    points n=384 hashP=eb97839d3d3dfa8b hashC=6a1944dc9fa96d6e
+    points n=384 hashP=ca46de667d4e8e3c hashC=77bdab535a003ea3
+    points n=384 hashP=609b15cc81f9977e hashC=026feaab1bcd230b
+    points n=384 hashP=ed26e449c3d25f86 hashC=9fe167882d285fbe
+    points n=384 hashP=90a434d1727055f8 hashC=b2446fe1eba7f90b
+    points n=384 hashP=5bad51380364eaf5 hashC=072683b6488d68ab
+    points n=384 hashP=bf2847b5b61ab7e1 hashC=fb96bc05d8026323
+    points n=384 hashP=f7212a623187a23b hashC=96a88a4cf8f514cb
+    points n=384 hashP=3cf9b104af1ed609 hashC=7af508ced2980dc6
+    points n=384 hashP=69bb0d10fe061f60 hashC=ed4b2c91aa01292b
+    points n=384 hashP=f084bd1a29aace1d hashC=ef0ccd99186f3553
+    points n=384 hashP=9fafbc8f1d0e7aa0 hashC=c26e45145afbd84e
+    points n=384 hashP=306a036049cf33bf hashC=e4f816c94fa0e6b3
+    points n=384 hashP=6a0b28b1ccbf2b73 hashC=cc11ffe875f4e8be
+    points n=384 hashP=498afa80a78fc63f hashC=df6eb5cafe1d918b
+    points n=384 hashP=c5f78a62536ea97c hashC=946aaaf0c12a76ab
+    points n=384 hashP=8331a3c0e7050499 hashC=5ff9e7570f5113fb
+    points n=384 hashP=b31eae750dceb537 hashC=4b35e6431e97186e
+    points n=384 hashP=15ecd29ccae6d9d2 hashC=a3d6074bd210c13e
+    points n=384 hashP=7997b758e18189ef hashC=f70a1d299227c62b
+    points n=384 hashP=fc91970a6149a7a1 hashC=a97eb57f242078d3
+    points n=384 hashP=b367cee1f6325009 hashC=df93e72f63e4400b
+    points n=384 hashP=0269e056e7dd40db hashC=83ac0e2ac541b13e
+    points n=384 hashP=e9d0688ac985dfb9 hashC=4f9b0f15328e0783
+    points n=384 hashP=3169eb25d1fa02b2 hashC=de1408245308c766
+    points n=384 hashP=b809efe3ac48c47d hashC=bce1cae565be5496
+    points n=384 hashP=a400a81e43c47109 hashC=02aeec41c6801953
+    points n=384 hashP=0b1d283488c2e690 hashC=c3da00d33801ed26
+    points n=384 hashP=dcc354440022159a hashC=62edd6049b1e603e
+    points n=384 hashP=67b4a30edd79114c hashC=bc0600bb36bc4b5b
+    points n=384 hashP=dbf51811b06cd170 hashC=92857658da0d6e9e
+    points n=384 hashP=24dbcfc58cdc4cf0 hashC=3f0d5287ace27bb3
+    points n=384 hashP=a26702583490a774 hashC=87c4e1f8b5a71adb
+    points n=384 hashP=b5d69a9db29ae637 hashC=582df82e88fddbdb
+    points n=384 hashP=832c6186ef2e27bf hashC=505d2d5d34dbef9e
+    points n=384 hashP=97def35bd5956e8a hashC=2688eae910fd3426
+    points n=384 hashP=8e6182e62fdb566d hashC=d380ca96cc1818be
+    points n=384 hashP=7ceeee1e0e52cecb hashC=dbcd92c3f760280b
+    points n=384 hashP=e90b279e10a55090 hashC=126ab064eed10616
+    points n=384 hashP=53218491abe1e7c3 hashC=5b8efd656aafb5ee
+    points n=384 hashP=42eb84e6de9b345d hashC=fc3095effe7fbe6e
+    points n=384 hashP=a4204e0e5ff75841 hashC=4c598746cf1bb933
+    points n=384 hashP=e060d2d48f61860b hashC=74d557df186b0536
+    points n=384 hashP=386d8774f7f322be hashC=8972f3bcaa348fb3
+    points n=384 hashP=bcc3b79e12663485 hashC=d0dd23fda751cbc6
+    points n=384 hashP=cb44972aaec29bbf hashC=048a51b03607faab
+    points n=384 hashP=2da188a1cf313e58 hashC=1119047cd1d2613b
+    points n=384 hashP=a603a16056f94868 hashC=ec3e8703b9d92afb
+    points n=384 hashP=4f134cf5be599a71 hashC=71bcb5d891bb872b
+    points n=384 hashP=5c5102279f0cce6f hashC=8c6189e444a27b53
+    points n=384 hashP=866bc405a566be6b hashC=9d41c01d139fd3be
+    points n=384 hashP=7766d99cc2533e87 hashC=dde1f3184273d9b3
+    points n=384 hashP=a03a930b3f46a40d hashC=b6293c00e16576db
+    points n=384 hashP=84b9136822be8768 hashC=f3b92e8527b2726b
+    points n=384 hashP=2671bad21337181e hashC=823fe53492f1fc0e
+    points n=384 hashP=84acaf72e8a3ed3f hashC=68239186b0e70466
+    points n=384 hashP=0bc6d49331547ede hashC=14d496989acde46e
+    points n=384 hashP=8d2069c0c493e29f hashC=a62b4697d33706b3
+    points n=384 hashP=f4607ea7c2ca8d8a hashC=5aaed6341fc8d866
+    points n=384 hashP=f189a8e2c91951d0 hashC=20b795ba3899936e
+    points n=384 hashP=1d9d2393f20aca5b hashC=5716473c6d435503
+    points n=384 hashP=34579c1870bd8b2b hashC=62bf70f12ee7972b
+    points n=384 hashP=0e443e7f444139a8 hashC=0324624b0ab01ce6
+    points n=384 hashP=13df616710214d0f hashC=c44a846637612d2b
+    points n=384 hashP=f09f3fdf9c21ce03 hashC=1a7c18bf1069a383
+    points n=384 hashP=64e87b5cc464da8a hashC=d7589f3a2a968a9e
+    points n=384 hashP=149e9cd81260b4a2 hashC=fda20b26c014d593
+    points n=384 hashP=0e7346e48ce78e50 hashC=550982043c090416
+    points n=384 hashP=c55ac73f0dba7f2a hashC=abeeb983ccc3bf16
+    points n=384 hashP=ec24e0f6b70fe449 hashC=9d0ce50ad1ccd9fb
+    points n=384 hashP=8ce96cacfcd879e4 hashC=92b323dfb7dafa16
+    points n=384 hashP=9c7346109bb83d26 hashC=7690af2ec53a8dee
+    points n=384 hashP=50711ce151b24e63 hashC=9e31835f6d402753
+    points n=384 hashP=90b9f91f51a7b3ef hashC=47ff065017f5ed0e
+    points n=384 hashP=0327ad1af9652d9e hashC=384328cb449c713e
+    points n=384 hashP=08557152bb0e8737 hashC=aa6aa65c261c2616
+    points n=384 hashP=b7580180dbb81196 hashC=9edde7c88bd01816
+    points n=384 hashP=a865e01221cca126 hashC=ebc6e00ea0c96196
+    points n=384 hashP=7b31f339d55c02b1 hashC=ea0c1f782d547a2b
+    points n=384 hashP=a089c89b4b445679 hashC=7a99d046aea6d233
+    points n=384 hashP=32dccc0a988a89c0 hashC=babcb95d8f66dbab
+    points n=384 hashP=f9fc7a3b3e76bf03 hashC=a874c1748ad9e11e
+    points n=384 hashP=125877bcbb8ee9e2 hashC=097d546c5ed4f7ab
+    points n=384 hashP=6815093e0f568b84 hashC=24d8aa015063d5db
+    points n=384 hashP=0f19a1d4d525949b hashC=f9732d3be19d7c96
+    points n=384 hashP=39737d3a5e68cab3 hashC=b05931519c51adcb
+    points n=384 hashP=a2f32680aa7fdb86 hashC=d3bb19a4d461b2ab
+    points n=384 hashP=635a9652c758498f hashC=10edb322cf10462b
+    points n=384 hashP=275de5400bfbfe98 hashC=40fb5916f39bb13b
+    points n=384 hashP=789f7aa962b27a83 hashC=cac78fb115ea2fab
+    points n=384 hashP=e80d45438ee5bff7 hashC=4e2a7bf916af0d1e
+    points n=384 hashP=6b37ce29fc43e054 hashC=58a6b9fb6af65e6e
+    points n=384 hashP=a6d7dc7747404723 hashC=74c9bcbd14e0de03
+    points n=384 hashP=4ff4d53186fd3cec hashC=0f88ddfea3ba836e
+    points n=384 hashP=2cea9f0f8452d38a hashC=faa55d5b5091b003
+    points n=384 hashP=20b5cc26bcc9db7a hashC=5f48b00004e344a6
+    points n=384 hashP=1948616070daf13c hashC=5527fea53109d7ce
+    points n=384 hashP=52c928eced91891c hashC=ae090bcc662c3f8b
+    points n=384 hashP=b085dfbbfb79d3cb hashC=4c59258f1f6d2b5b
+    points n=384 hashP=544e60383979950c hashC=f9237aababda9d6e
+    points n=384 hashP=36903466995eda8c hashC=454c91b29da37d63
+    points n=384 hashP=e2bec90de56581e1 hashC=18818aa9f239f3d3
+    points n=384 hashP=da9ff76d7ede7cbc hashC=152a468599c72b83
+    points n=384 hashP=9047f6ce297711f7 hashC=644de7b3dbb7c71e
+    points n=384 hashP=4bee2d7b28881c56 hashC=f5a312798a88434b
+    points n=384 hashP=692d4f9c73e4ef75 hashC=53bc76e665d7849e
+    points n=384 hashP=77c2e3ad36761ad8 hashC=6f8c34a9a1dc980e
+    points n=384 hashP=aa8578d6d569fe15 hashC=9444667226e3770b
+    points n=384 hashP=0f9b6cd26855f877 hashC=cafa8c80ca68af1e
+    points n=384 hashP=bbea4abd98001aa5 hashC=d7904aeb8fe119be
+    points n=384 hashP=5b572cc3fe5cc98b hashC=cef2583a907f65c6
+    points n=384 hashP=db8d604bf69ccee6 hashC=06c2e9679c6e8a2b
+    points n=384 hashP=97fec74bc41203cb hashC=d703e06bf3bb6253
+    points n=384 hashP=7dd5c2d6791b39ac hashC=9a676585f84d630b
+    points n=384 hashP=772a57c58f466f2b hashC=d372ad93621167ce
+    points n=384 hashP=fe74e525977f5e42 hashC=4a24ea90f25fe76e
+    points n=193 hashP=83fad6fe1a6395bb hashC=93b1e209e9628957
+[irradiancecache]
+ribdata_sniff 1
+-- initial
+  documentType=1 numChannels=3 currentChannel=-1 detailLevel=-1 drawMode=0
+  channel 0 "irradiance"
+  channel 1 "occlusion"
+  channel 2 "environmentdir"
+  bounds min (-0x1.00015p+0 -0x1.8cce0ap+0 -0x1.c0012cp+0) max (0x1.0ccd62p+1 0x1.8cce0ap+0 0x1.599ae8p+0)
+  camera projection=0 fov=0x1.68p+5 near=0x1.af0818p-4 far=0x1.f4317ap+4 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  triangles count=5580 hashVerts=23aa06d3b9aeb61d hashCols=f2e9daee71d0fa6b
+  sourceDiskCount=93 decimatedCount=0
+-- key 'd' changed=1
+  documentType=1 numChannels=3 currentChannel=-1 detailLevel=-1 drawMode=0
+  channel 0 "irradiance"
+  channel 1 "occlusion"
+  channel 2 "environmentdir"
+  bounds min (-0x1.00015p+0 -0x1.8cce0ap+0 -0x1.c0012cp+0) max (0x1.0ccd62p+1 0x1.8cce0ap+0 0x1.599ae8p+0)
+  camera projection=0 fov=0x1.68p+5 near=0x1.af0818p-4 far=0x1.f4317ap+4 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  triangles count=5580 hashVerts=23aa06d3b9aeb61d hashCols=f2e9daee71d0fa6b
+  sourceDiskCount=93 decimatedCount=0
+-- key 'p' changed=1
+  documentType=1 numChannels=3 currentChannel=-1 detailLevel=-1 drawMode=0
+  channel 0 "irradiance"
+  channel 1 "occlusion"
+  channel 2 "environmentdir"
+  bounds min (-0x1.00015p+0 -0x1.8cce0ap+0 -0x1.c0012cp+0) max (0x1.0ccd62p+1 0x1.8cce0ap+0 0x1.599ae8p+0)
+  camera projection=0 fov=0x1.68p+5 near=0x1.af0818p-4 far=0x1.f4317ap+4 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=93 hashVerts=c8ad2093b9eaae2d hashCols=0279cf888cced954
+  triangles count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  sourceDiskCount=0 decimatedCount=0
+-- key 'd' changed=1
+  documentType=1 numChannels=3 currentChannel=-1 detailLevel=-1 drawMode=0
+  channel 0 "irradiance"
+  channel 1 "occlusion"
+  channel 2 "environmentdir"
+  bounds min (-0x1.00015p+0 -0x1.8cce0ap+0 -0x1.c0012cp+0) max (0x1.0ccd62p+1 0x1.8cce0ap+0 0x1.599ae8p+0)
+  camera projection=0 fov=0x1.68p+5 near=0x1.af0818p-4 far=0x1.f4317ap+4 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  triangles count=5580 hashVerts=23aa06d3b9aeb61d hashCols=f2e9daee71d0fa6b
+  sourceDiskCount=93 decimatedCount=0
+CDataDocument type 3
+-- initial
+  typeName="Irradiance Cache" numChannels=3 currentChannel=-1 detailLevel=-1 drawMode=0
+  channel 0 "irradiance"
+  channel 1 "occlusion"
+  channel 2 "environmentdir"
+  bound min (-0x1.00015p+0 -0x1.8cce0ap+0 -0x1.c0012cp+0) max (0x1.0ccd62p+1 0x1.8cce0ap+0 0x1.599ae8p+0)
+  draw (chunkSize 384):
+    disks n=93 hashP=c8ad2093b9eaae2d hashdP=b189597565fdb21f hashN=30d1d40e3dd9378a hashC=0279cf888cced954
+-- key 'd' changed=1
+  typeName="Irradiance Cache" numChannels=3 currentChannel=-1 detailLevel=-1 drawMode=0
+  channel 0 "irradiance"
+  channel 1 "occlusion"
+  channel 2 "environmentdir"
+  bound min (-0x1.00015p+0 -0x1.8cce0ap+0 -0x1.c0012cp+0) max (0x1.0ccd62p+1 0x1.8cce0ap+0 0x1.599ae8p+0)
+  draw (chunkSize 384):
+    disks n=93 hashP=c8ad2093b9eaae2d hashdP=b189597565fdb21f hashN=30d1d40e3dd9378a hashC=0279cf888cced954
+-- key 'p' changed=1
+  typeName="Irradiance Cache" numChannels=3 currentChannel=-1 detailLevel=-1 drawMode=0
+  channel 0 "irradiance"
+  channel 1 "occlusion"
+  channel 2 "environmentdir"
+  bound min (-0x1.00015p+0 -0x1.8cce0ap+0 -0x1.c0012cp+0) max (0x1.0ccd62p+1 0x1.8cce0ap+0 0x1.599ae8p+0)
+  draw (chunkSize 384):
+    points n=93 hashP=c8ad2093b9eaae2d hashC=0279cf888cced954
+-- key 'd' changed=1
+  typeName="Irradiance Cache" numChannels=3 currentChannel=-1 detailLevel=-1 drawMode=0
+  channel 0 "irradiance"
+  channel 1 "occlusion"
+  channel 2 "environmentdir"
+  bound min (-0x1.00015p+0 -0x1.8cce0ap+0 -0x1.c0012cp+0) max (0x1.0ccd62p+1 0x1.8cce0ap+0 0x1.599ae8p+0)
+  draw (chunkSize 384):
+    disks n=93 hashP=c8ad2093b9eaae2d hashdP=b189597565fdb21f hashN=30d1d40e3dd9378a hashC=0279cf888cced954
+[pointcloud]
+ribdata_sniff 3
+-- initial
+  documentType=3 numChannels=2 currentChannel=0 detailLevel=-1 drawMode=1
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bounds min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x0p+0 0x0p+0)
+  camera projection=0 fov=0x1.68p+5 near=0x1.18f69ap-3 far=0x1.2dc054p+5 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  triangles count=480 hashVerts=b368949190e543eb hashCols=f2827e7b55270483
+  sourceDiskCount=8 decimatedCount=0
+-- key 'p' changed=1
+  documentType=3 numChannels=2 currentChannel=0 detailLevel=-1 drawMode=0
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bounds min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x0p+0 0x0p+0)
+  camera projection=0 fov=0x1.68p+5 near=0x1.18f69ap-3 far=0x1.2dc054p+5 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=8 hashVerts=e174d5b7fa64436a hashCols=5b7677ffd1964f43
+  triangles count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  sourceDiskCount=0 decimatedCount=0
+-- key 'd' changed=1
+  documentType=3 numChannels=2 currentChannel=0 detailLevel=-1 drawMode=1
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bounds min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x0p+0 0x0p+0)
+  camera projection=0 fov=0x1.68p+5 near=0x1.18f69ap-3 far=0x1.2dc054p+5 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  triangles count=480 hashVerts=b368949190e543eb hashCols=f2827e7b55270483
+  sourceDiskCount=8 decimatedCount=0
+-- key 'w' changed=1
+  documentType=3 numChannels=2 currentChannel=1 detailLevel=-1 drawMode=1
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bounds min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x0p+0 0x0p+0)
+  camera projection=0 fov=0x1.68p+5 near=0x1.18f69ap-3 far=0x1.2dc054p+5 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  triangles count=480 hashVerts=b368949190e543eb hashCols=80de46b07ff38183
+  sourceDiskCount=8 decimatedCount=0
+-- key 'q' changed=1
+  documentType=3 numChannels=2 currentChannel=0 detailLevel=-1 drawMode=1
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bounds min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x0p+0 0x0p+0)
+  camera projection=0 fov=0x1.68p+5 near=0x1.18f69ap-3 far=0x1.2dc054p+5 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  triangles count=480 hashVerts=b368949190e543eb hashCols=f2827e7b55270483
+  sourceDiskCount=8 decimatedCount=0
+CDataDocument type 5
+-- initial
+  typeName="Point Cloud" numChannels=2 currentChannel=0 detailLevel=-1 drawMode=1
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bound min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x0p+0 0x0p+0)
+  draw (chunkSize 384):
+    disks n=8 hashP=e174d5b7fa64436a hashdP=d4f675df7fb1d5d3 hashN=5e0e1ee21a38e443 hashC=5b7677ffd1964f43
+-- key 'p' changed=1
+  typeName="Point Cloud" numChannels=2 currentChannel=0 detailLevel=-1 drawMode=0
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bound min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x0p+0 0x0p+0)
+  draw (chunkSize 384):
+    points n=8 hashP=e174d5b7fa64436a hashC=5b7677ffd1964f43
+-- key 'd' changed=1
+  typeName="Point Cloud" numChannels=2 currentChannel=0 detailLevel=-1 drawMode=1
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bound min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x0p+0 0x0p+0)
+  draw (chunkSize 384):
+    disks n=8 hashP=e174d5b7fa64436a hashdP=d4f675df7fb1d5d3 hashN=5e0e1ee21a38e443 hashC=5b7677ffd1964f43
+-- key 'w' changed=1
+  typeName="Point Cloud" numChannels=2 currentChannel=1 detailLevel=-1 drawMode=1
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bound min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x0p+0 0x0p+0)
+  draw (chunkSize 384):
+    disks n=8 hashP=e174d5b7fa64436a hashdP=d4f675df7fb1d5d3 hashN=5e0e1ee21a38e443 hashC=de688bcf19f4ac03
+-- key 'q' changed=1
+  typeName="Point Cloud" numChannels=2 currentChannel=0 detailLevel=-1 drawMode=1
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bound min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x0p+0 0x0p+0)
+  draw (chunkSize 384):
+    disks n=8 hashP=e174d5b7fa64436a hashdP=d4f675df7fb1d5d3 hashN=5e0e1ee21a38e443 hashC=5b7677ffd1964f43
+[brickmap]
+ribdata_sniff 4
+-- initial
+  documentType=4 numChannels=2 currentChannel=0 detailLevel=2 drawMode=0
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bounds min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  camera projection=0 fov=0x1.68p+5 near=0x1.e6a484p-3 far=0x1.d015ap+5 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  triangles count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  sourceDiskCount=0 decimatedCount=0
+-- key 'm' changed=1
+  documentType=4 numChannels=2 currentChannel=0 detailLevel=3 drawMode=0
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bounds min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  camera projection=0 fov=0x1.68p+5 near=0x1.e6a484p-3 far=0x1.d015ap+5 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  triangles count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  sourceDiskCount=0 decimatedCount=0
+-- key 'l' changed=1
+  documentType=4 numChannels=2 currentChannel=0 detailLevel=2 drawMode=0
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bounds min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  camera projection=0 fov=0x1.68p+5 near=0x1.e6a484p-3 far=0x1.d015ap+5 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  triangles count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  sourceDiskCount=0 decimatedCount=0
+-- key 'b' changed=1
+  documentType=4 numChannels=2 currentChannel=0 detailLevel=2 drawMode=0
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bounds min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  camera projection=0 fov=0x1.68p+5 near=0x1.e6a484p-3 far=0x1.d015ap+5 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  triangles count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  sourceDiskCount=0 decimatedCount=0
+-- key 'd' changed=1
+  documentType=4 numChannels=2 currentChannel=0 detailLevel=2 drawMode=1
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bounds min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  camera projection=0 fov=0x1.68p+5 near=0x1.e6a484p-3 far=0x1.d015ap+5 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  triangles count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  sourceDiskCount=0 decimatedCount=0
+-- key 'p' changed=1
+  documentType=4 numChannels=2 currentChannel=0 detailLevel=2 drawMode=2
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bounds min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  camera projection=0 fov=0x1.68p+5 near=0x1.e6a484p-3 far=0x1.d015ap+5 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  triangles count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  sourceDiskCount=0 decimatedCount=0
+-- key 'w' changed=1
+  documentType=4 numChannels=2 currentChannel=1 detailLevel=2 drawMode=2
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bounds min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  camera projection=0 fov=0x1.68p+5 near=0x1.e6a484p-3 far=0x1.d015ap+5 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  triangles count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  sourceDiskCount=0 decimatedCount=0
+-- key 'q' changed=1
+  documentType=4 numChannels=2 currentChannel=0 detailLevel=2 drawMode=2
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bounds min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  camera projection=0 fov=0x1.68p+5 near=0x1.e6a484p-3 far=0x1.d015ap+5 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  triangles count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  sourceDiskCount=0 decimatedCount=0
+-- key 'm' changed=1
+  documentType=4 numChannels=2 currentChannel=0 detailLevel=3 drawMode=2
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bounds min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  camera projection=0 fov=0x1.68p+5 near=0x1.e6a484p-3 far=0x1.d015ap+5 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  triangles count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  sourceDiskCount=0 decimatedCount=0
+-- key 'm' changed=1
+  documentType=4 numChannels=2 currentChannel=0 detailLevel=4 drawMode=2
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bounds min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  camera projection=0 fov=0x1.68p+5 near=0x1.e6a484p-3 far=0x1.d015ap+5 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  triangles count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  sourceDiskCount=0 decimatedCount=0
+-- key 'l' changed=1
+  documentType=4 numChannels=2 currentChannel=0 detailLevel=3 drawMode=2
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bounds min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  camera projection=0 fov=0x1.68p+5 near=0x1.e6a484p-3 far=0x1.d015ap+5 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  triangles count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  sourceDiskCount=0 decimatedCount=0
+-- key 'l' changed=1
+  documentType=4 numChannels=2 currentChannel=0 detailLevel=2 drawMode=2
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bounds min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  camera projection=0 fov=0x1.68p+5 near=0x1.e6a484p-3 far=0x1.d015ap+5 aspect=0x1p+0
+  lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  points count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  triangles count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
+  sourceDiskCount=0 decimatedCount=0
+CDataDocument type 6
+-- initial
+  typeName="Brick Map" numChannels=2 currentChannel=0 detailLevel=2 drawMode=2
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bound min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  draw (chunkSize 384):
+-- key 'm' changed=1
+  typeName="Brick Map" numChannels=2 currentChannel=0 detailLevel=3 drawMode=2
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bound min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  draw (chunkSize 384):
+-- key 'l' changed=1
+  typeName="Brick Map" numChannels=2 currentChannel=0 detailLevel=2 drawMode=2
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bound min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  draw (chunkSize 384):
+-- key 'b' changed=1
+  typeName="Brick Map" numChannels=2 currentChannel=0 detailLevel=2 drawMode=0
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bound min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  draw (chunkSize 384):
+-- key 'd' changed=1
+  typeName="Brick Map" numChannels=2 currentChannel=0 detailLevel=2 drawMode=1
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bound min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  draw (chunkSize 384):
+-- key 'p' changed=1
+  typeName="Brick Map" numChannels=2 currentChannel=0 detailLevel=2 drawMode=2
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bound min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  draw (chunkSize 384):
+-- key 'w' changed=1
+  typeName="Brick Map" numChannels=2 currentChannel=1 detailLevel=2 drawMode=2
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bound min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  draw (chunkSize 384):
+-- key 'q' changed=1
+  typeName="Brick Map" numChannels=2 currentChannel=0 detailLevel=2 drawMode=2
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bound min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  draw (chunkSize 384):
+-- key 'm' changed=1
+  typeName="Brick Map" numChannels=2 currentChannel=0 detailLevel=3 drawMode=2
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bound min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  draw (chunkSize 384):
+-- key 'm' changed=1
+  typeName="Brick Map" numChannels=2 currentChannel=0 detailLevel=4 drawMode=2
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bound min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  draw (chunkSize 384):
+-- key 'l' changed=1
+  typeName="Brick Map" numChannels=2 currentChannel=0 detailLevel=3 drawMode=2
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bound min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  draw (chunkSize 384):
+-- key 'l' changed=1
+  typeName="Brick Map" numChannels=2 currentChannel=0 detailLevel=2 drawMode=2
+  channel 0 "_radiosity"
+  channel 1 "_extra"
+  bound min (0x0p+0 0x0p+0 0x0p+0) max (0x1.cp+2 0x1.cp+2 0x1.cp+2)
+  draw (chunkSize 384):
+[debugdump]
+ribdata_sniff 5
+-- initial
+  documentType=5 numChannels=0 currentChannel=-1 detailLevel=-1 drawMode=0
+  bounds min (0x1p+0 0x0p+0 0x0p+0) max (0x1.2p+3 0x0p+0 0x0p+0)
+  camera projection=0 fov=0x1.68p+5 near=0x1.4119d4p-3 far=0x1.4d6e18p+5 aspect=0x1p+0
+  lines count=2 hashVerts=e8a485d25eb6cde3 hashCols=9bde7891f8a39eb3
+  points count=1 hashVerts=90edbe49ea99939a hashCols=00795e4059f91f4a
+  triangles count=9 hashVerts=291883515b0e6bd3 hashCols=2646589e0b56c60a
+  sourceDiskCount=0 decimatedCount=0
+-- key 'p' changed=0
+  documentType=5 numChannels=0 currentChannel=-1 detailLevel=-1 drawMode=0
+  bounds min (0x1p+0 0x0p+0 0x0p+0) max (0x1.2p+3 0x0p+0 0x0p+0)
+  camera projection=0 fov=0x1.68p+5 near=0x1.4119d4p-3 far=0x1.4d6e18p+5 aspect=0x1p+0
+  lines count=2 hashVerts=e8a485d25eb6cde3 hashCols=9bde7891f8a39eb3
+  points count=1 hashVerts=90edbe49ea99939a hashCols=00795e4059f91f4a
+  triangles count=9 hashVerts=291883515b0e6bd3 hashCols=2646589e0b56c60a
+  sourceDiskCount=0 decimatedCount=0
+CDataDocument type 7
+-- initial
+  typeName="Debug Dump" numChannels=0 currentChannel=-1 detailLevel=-1 drawMode=0
+  bound min (0x1p+0 0x0p+0 0x0p+0) max (0x1.2p+3 0x0p+0 0x0p+0)
+  draw (chunkSize 384):
+    points n=1 hashP=90edbe49ea99939a hashC=00795e4059f91f4a
+    lines n=2 hashP=e8a485d25eb6cde3 hashC=9bde7891f8a39eb3
+    triangles n=3 hashP=81d339d64eb84853 hashC=914809d5adc9089a
+    triangles n=6 hashP=95e155d17354f283 hashC=7aeb8dba5dac6713
+-- key 'p' changed=0
+  typeName="Debug Dump" numChannels=0 currentChannel=-1 detailLevel=-1 drawMode=0
+  bound min (0x1p+0 0x0p+0 0x0p+0) max (0x1.2p+3 0x0p+0 0x0p+0)
+  draw (chunkSize 384):
+    points n=1 hashP=90edbe49ea99939a hashC=00795e4059f91f4a
+    lines n=2 hashP=e8a485d25eb6cde3 hashC=9bde7891f8a39eb3
+    triangles n=3 hashP=81d339d64eb84853 hashC=914809d5adc9089a
+    triangles n=6 hashP=95e155d17354f283 hashC=7aeb8dba5dac6713

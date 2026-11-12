@@ -79,6 +79,7 @@ add_subdirectory(framebuffer)
 add_subdirectory(imager)
 add_subdirectory(preview)
 add_subdirectory(visual)
+add_subdirectory(gi_split)              # spec 032: the GI cache split's characterizations and, behind an option, its red-first tests
 add_subdirectory(shaders)
 add_subdirectory(shading_parity)
 add_subdirectory(unit/csg)
