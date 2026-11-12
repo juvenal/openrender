@@ -35,7 +35,9 @@ const SFrameTransport &frameTransport();          // read-only; a default value 
 // Core-only (called by CRenderer):
 void beginFrameTransport(const COptions *o);      // resolve, check, create + configure, traits
 void setFramePeers(CHider **contexts, int numThreads);   // stores the peer group in the slot (before the construction loop)
-void prepareFrameTransport();                     // prepare (the peers were stored by setFramePeers)
+void prepareFrameTransport();                     // prepare (the peers were stored by setFramePeers); non-OK: error, abortFrameTransport()
+void abortFrameTransport();                       // a frame that fails after its displays began (create NULL, prepare non-OK): aborted, traits and peers cleared,
+                                                  // the integrator instance destroyed WITHOUT finish (also called by prepareFrameTransport on a prepare failure)
 void finishFrameTransport();                      // finish + destroy (start of endFrame)
 void endFrameTransport();                         // clear (end of endFrame, after endDisplays)
 ```
@@ -66,7 +68,8 @@ if (!refused):
     if (!aborted) prepareFrameTransport()       prepare; non-OK -> error, aborted
     if (aborted): destroy the hiders created so far at once, delete[] contexts, contexts = NULL,
                   traits cleared, integrator destroyed without finish, hiderFlags |= HIDER_BREAK
-                  (everything created for the frame is destroyed: hiders and integrator instance; a configure failure,
+                  (abortFrameTransport() does the slot's part: aborted, traits and peers cleared, integrator destroyed without finish;
+                   (everything created for the frame is destroyed: hiders and integrator instance; a configure failure,
                    detected earlier, destroyed the instance it had created and refused the frame)
 else:
     contexts stays NULL
