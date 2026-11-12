@@ -7,8 +7,8 @@
  *   Geometry_IntersectThroughRayContext: a program that links only libRIBVector and libRIBCommon intersects a sphere, a polygon mesh (lazy materialize) and a displaced quadric (tessellation through displace) through a recording IRayContext; shade delivers the hits into the double's varyings.
  *
  *   Written first for spec 031 (tests/geometry_contract/, label geometry_contract); red on the starting tree
- *   because the interface it exercises does not exist yet (contracts/tests.md). Built only while
- *   OPENRENDER_031_RED_TESTS is ON until its phase enables it.
+ *   because the interface it exercises does not exist yet (contracts/tests.md). It was built only while the
+ *   temporary option OPENRENDER_031_RED_TESTS was ON, until its phase enabled it; the option is gone and the test is always built.
  *
  * Copyright (c) 2026, Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
  *

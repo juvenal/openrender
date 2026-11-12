@@ -7,8 +7,8 @@
  *   Geometry_FrameDefault: with nothing installed geometryFrame() is all zero and raytraced() is false; an installed frame reads back bit for bit; the frame's camera2pixels equals renderer.h's; a frame built after a raytrace hider's constructors carries ATTRIBUTES_FLAGS_PRIMARY_VISIBLE (finding F1). Renderer build. The frame's lens is the openrender::LensModel `lens` (the lens phase replaced the old cocFactorPixels and invFocaldistance fields; tasks T115a).
  *
  *   Written first for spec 031 (tests/geometry_contract/, label geometry_contract); red on the starting tree
- *   because the interface it exercises does not exist yet (contracts/tests.md). Built only while
- *   OPENRENDER_031_RED_TESTS is ON until its phase enables it.
+ *   because the interface it exercises does not exist yet (contracts/tests.md). It was built only while the
+ *   temporary option OPENRENDER_031_RED_TESTS was ON, until its phase enabled it; the option is gone and the test is always built.
  *
  * Copyright (c) 2026, Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
  *

@@ -366,6 +366,13 @@ T106: the registry diff is `tools/phase8-registry.diff` (`git apply --check` cle
 **T109a done (2026-11-11).** `tools/phase8-registry.diff` applied exactly to `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md` (+70/-29: DB-006 moved to Resolved with "spec 031" and 2026-11-11, the DB-004, DB-011, DB-017, DB-025 and DB-009 history entries; DB-004, DB-009, DB-017 and DB-025 stay Open) and staged. `ctest -L architecture` against the edited registry:
 **31/31**, archcheck `ALLOWED DB-004 x 3, DB-010 x 8, DB-011 x 151, DB-025 x 11` = 173, `RESULT PASS violations=0 stale=0 badid=0` (`build-logs/p8-arch-reg.log`).
 
+### Phase 10 lens investigation (T130 to T132; 2026-11-11; no `src/` change)
+
+`lens-investigation.md` holds the measurements, the cause and the proposed changes (P1 to P5); scripts and raw outputs are in `tools/lens-investigation/`. Headlines: the default pixel filter is Catmull-Rom width 2 (`options.cpp:285-287`) and a Gaussian of the same width cuts the raytracer's noise by 31 percent and Reyes's by 19 percent at 3x3 samples (tracked scenes, 800x600) and removes the raytracer's non-monotone noise against the sample count; a defocused tight specular highlight is a real, physically correct source of isolated bright samples in the raytracer (not in the matte tracked scenes); no film-lens correlation in the camera slots (|r| < 0.013) and the stratified slots already give 22 to 26 percent over independent sampling. Nothing is changed.
+**PAUSE 10 outcome (2026-11-12).** The maintainer approved the report as recommended: no proposal is implemented, **T133 is not applicable** (the decision is to keep the code, the scenes, the filter default and the references as they are), and the finding is filed as GitHub #166 (default Catmull-Rom filter and depth-of-field noise; P1, P2 and P5 as future options), cited in `lens-investigation.md`. `tools/phase10-test-comments.diff` was applied to all five test headers (the four named plus `test_frame_default.cpp`; comment only): the build is exit 0, `^geometry_contract$` 5/5, and `ctest -L architecture` 31/31, 173 entries, `RESULT PASS`, metrics 495/497 (`build-logs/p10-arch2.log`).
+`ctest -L architecture`: 31/31, `RESULT PASS`, 173 entries, metrics 495/497 (`build-logs/p10-arch.log`); no source, test or reference changed in the phase.
+The comment-only rewording of the stale "OPENRENDER_031_RED_TESTS is ON until its phase enables it" sentence in five `tests/geometry_contract/` test headers is prepared as `tools/phase10-test-comments.diff` (`git apply --check` clean, **not applied**; the maintainer named four files, `test_frame_default.cpp` carries the same sentence and is the fifth).
+
 ## §2 Red evidence
 
 ### Phase 2 (macOS; `build` configured with `-DOPENRENDER_031_RED_TESTS=ON`, then OFF again)
