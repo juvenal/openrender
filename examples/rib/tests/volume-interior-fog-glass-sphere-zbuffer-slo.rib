@@ -1,0 +1,35 @@
+##RenderMan RIB-Structure 1.0
+# Spec 056, family volume-interior-fog-glass-sphere.
+# A non-CSG glass sphere (radius 1.5) in front of a lit backdrop, 8-bit output. With Interior fog (distance 0.8,
+# background red) the refracted view through the sphere shifts toward red with the path length; the chord varies
+# across a pixel, so there is no closed form. Checked by VolumeDiffer_glass-sphere-<hider> (the image differs from
+# its twin), by Parity_volume-glass-sphere-* (cross-hider and cross-backend agreement) and, after Phase 2, by a
+# reference image approved by the maintainer.
+# UNREGISTERED until GitHub #157 (the shipped glass shader is broken under the JIT: it disagrees with its .rslo and is
+# not deterministic across thread counts): no parity, sweep or visual test uses this scene; the #157 fix re-adds them.
+version 3.03
+Option "shaderformat" "default" ["slo"]
+Hider "zbuffer" "jitter" [0]
+PixelSamples 2 2
+PixelFilter "box" 1 1
+Display "volume-interior-fog-glass-sphere-zbuffer-slo.tif" "file" "rgba"
+Format 96 96 1
+Projection "perspective"
+Clipping 0.1 100
+WorldBegin
+  LightSource "ambientlight" 1 "float intensity" [0.3]
+  LightSource "distantlight" 2 "float intensity" [0.9] "point from" [5 5 -5] "point to" [0 0 0]
+  Attribute "visibility" "int specular" [1] "int transmission" [1]
+  AttributeBegin
+    Color [0.8 0.8 0.9]
+    Surface "matte"
+    Polygon "P" [-6 -6 9  6 -6 9  6 6 9  -6 6 9] "N" [0 0 -1 0 0 -1 0 0 -1 0 0 -1]
+  AttributeEnd
+  AttributeBegin
+    Color [1 1 1]
+    Surface "glass"
+    Interior "fog" "float distance" [0.8] "color background" [0.9 0.1 0.1]
+    Translate 0 0 5
+    Sphere 1.5 -1.5 1.5 360
+  AttributeEnd
+WorldEnd

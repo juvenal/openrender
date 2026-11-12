@@ -103,10 +103,14 @@ disposable, gitignored deploy tree only refreshed by `cmake --install`
 inside it.
 
 **Where the compiled shaders actually live:** `${CMAKE_BINARY_DIR}/shaders/` —
-130 `.rslo` (+ 130 `.slo` when the JIT is on), produced by `shaders/CMakeLists.txt`
+137 `.rslo` (+ 137 `.slo` when the JIT is on), produced by `shaders/CMakeLists.txt`
 as a **build** step. The tracked `shaders/` tree holds only `.sl` sources and
 `includes/`; compiled objects never land next to them. `cmake --install` copies
 the build-tree objects into the deploy tree — it no longer compiles anything.
+A new `.sl` under `shaders/` also needs a reference for each of the two characterization
+checks that glob every shipped shader: `tests/shaders/references/<name>.rslo` (`ShaderCompilerImmutability`) and the lines
+for its `.rslo` and `.slo` in `src/libshader/tests/reference/{macos,linux}/shaders.sha256` (`Shaders_BytesUnchanged`;
+captured on each platform with `check_shaders_bytes.cmake` and `-DRECAPTURE=ON`).
 
 So `cmake --build && ctest -L visual` works from a clean clone, with no install
 step and no dependency on the gitignored `openrender/` deploy tree. Verified by
@@ -276,6 +280,19 @@ that a program without a renderer gets from `CRiStandardSession`. The `if` evalu
 itself as `"preview"`). `libRIBVector` compiles only the Core files in
 `tests/architecture/ribvector-core-residual.txt`, a list that only shrinks. See gotchas 29 to 33.
 
+### Volume shader segments (spec 056)
+
+`Interior` and `Exterior` volume shaders run for every surface, once per ray segment, for the rays a surface shader
+spawns with `trace()` (and `environment("raytrace")`), `gather()`, `transmission()` and ray-traced `shadow()`. The step
+belongs to Shading (`libshader/shading`): `CSegmentRay` and `CSegmentBundle` (`bundles.{h,cpp}`) are the base of the trace,
+transmission and gather bundles, which call `attenuateHits()`/`attenuateMisses()` from their `postShade()`, and
+`CShadingContext::shadeVolumeSegments()` (`shading.cpp`) runs the shader in a state of its own (`volumeSegment`) over the
+segments. The volume is chosen by the spawning surface (the shaded object of the state that runs the builtin) and the side
+of the ray against that surface's `N` at the call (`CTraceLocation::sideN`; a light's `shadow()` reads the snapshot
+`lightSideN` taken before the lights run). `Atmosphere` is a different thing and unchanged: camera rays, never matte. No
+services member, no `ITracer` change and no `kRendererServicesVersion` step. Nothing about it is CSG-specific:
+`selectVolumeShader` and `ATTRIBUTES_FLAGS_SOLID_FRAGMENT` are gone. See gotcha 36.
+
 ### Coordinate / matrix conventions
 Column-major matrices, `element(row,col) = row + 4*col`. `from` = local→world,
 `to` = world→local = `from^-1`. The REYES vertex buffer stores **sample
@@ -296,7 +313,8 @@ ctest --test-dir build -L state                         # Graphics State: handle
 ctest --test-dir build -L plugin_abi -j4                # plug-in ABIs (spec 037): headers, versions, display host and v1 adapter, shadeop module, procedures, install layouts, doc checks
 ctest --test-dir build -LE determinism-sweep -j4        # the everyday full run: everything except the opt-in determinism sweep
 ctest --test-dir build -L '^determinism$' -j2           # default determinism set (156): harness, tie and derivative tests, one demanding scene per family
-ctest --test-dir build -L '^determinism-sweep$' -j2     # opt-in full sweep (419 scenes x 5 configurations, ~10-12 min at -j2): before each merge, and for the Linux validation
+ctest --test-dir build -L '^determinism-sweep$' -j2     # opt-in full sweep (582 entries, ~10-12 min at -j2): before each merge, and for the Linux validation
+ctest --test-dir build -L volume                        # spec 056: volume shader segments (the VolumeProbe_ hand-computed pixel checks, VolumeDiffer_, Parity_volume-, Determinism_volume-)
 ctest --test-dir build -L link                          # spec 029: libshader_shading self-contained, the static consumer, no workaround text
 ctest --test-dir build -L '^link-package$'              # opt-in (configure with -DOPENRENDER_LINK_PACKAGE_TEST=ON): an installed openRender package consumed statically (scratch configure, builds a second tree)
 ```
@@ -812,6 +830,28 @@ not in the agent definitions.
    the hider's. The core's dispatcher sets `CRenderer::activeContext` for every render thread. The shaded object is
    three fields of the state set together with `setShadedObject()` (opaque surface, `ObjectHandle`, attributes);
    Shading includes no Geometry or Hiders header.
+36. **The side of a volume is `dot(dir, N)` of the global `N` at the call; the step is a 0-D state of its own (spec 056).**
+   A ray built by `trace()`, `environment("raytrace")`, `gather()`, `transmission()` or a ray-traced `shadow()` reads the
+   spawning surface's `Exterior` shader when `dot(dir, N) > 0` and its `Interior` shader otherwise (a tie is `Interior`), with the
+   same rule for all of them (`CTraceLocation::sideN`; the gather split is in `gatherSample`). Because it is the *global* `N`,
+   a shader that rewrites `N` before tracing, for instance `N = faceforward(N, I)`, flips the side; this was accepted and is
+   documented, not a bug. A light that writes its own normal into `N` (an area light does) would break a light's `shadow()`,
+   which is why `iterateLights` snapshots `N` into `lightSideN` first. `shadeVolumeSegments()` runs the shader in a state
+   taken from the free list, with `shadingDim` 0-D, `volumeSegment` set, the spawning surface as the shaded object and every
+   global zero except `P` (the segment's end point), `I` (the segment's vector, never normalised, always finite), `Ci`, `Oi` and
+   `time`; it changes colour and opacity only (a hit's position, normal, identity, tags and the non-colour gather outputs are
+   never touched), and a `gather()` miss stays a miss (only `surface:Ci`/`surface:Oi` record the step). Rays traced from
+   inside the step carry no volume (`volumeSegment`). A miss with no finite `maxdist`, destination or segment limit ends where
+   the ray leaves the frame's world bound, which is in camera space; `trace()` still ignores `maxdist` (GitHub #98). Its points
+   carry their rays' sample keys (`pointKeysFromRays`), so the step draws from its own sub-streams and is identical at any
+   thread count. A ray the tracer refuses at the maximum depth runs no step, and the bundles detect it with `levelTraced`
+   (FALSE at submission, TRUE once `postTraceAction()` ran) rather than by counting rays. `visibility()` and the float-valued
+   `trace()` are probes and run no step. The state's own `CShadingState::postShader` is written by `enterRayLevel()` and read
+   by nothing; the bundle's `postShader` is the one that counts. With no `Interior`/`Exterior` bound every bundle skips the
+   step and `traceTransmission` keeps its one bundle, so every image is byte-identical to the tree before the spec. A camera ray
+   has no spawning surface and gets no volume step, inside a solid or not; the CSG arrival-side rule is gone. `incident()` and
+   `opposite()` read the side the incoming ray comes from, once per call from vertex 0's `dot(I, N)` (`incidentParameter` and
+   `oppositeParameter`, one edit for both backends); the accessor constants passed to them are never read.
 
 ## Active Technologies
 - C++20, CMake ≥3.19; `libtiff`/`libpng` (mandatory), OpenEXR (optional,
@@ -881,8 +921,22 @@ not in the agent definitions.
   photon pass through `IIlluminationHook`; `shade()` consumes `ShaderGlobals` and an `IPointSource`;
   `libshader_shading` is self-contained (029-hider-shading-separation)
 - Storage: N/A; memory only (029-hider-shading-separation)
+- C++20, CMake ≥3.19, `-Werror`; no new dependencies: `Interior`/`Exterior` volume shaders run per ray segment for every
+  surface through `shadeVolumeSegments()` and the `CSegmentBundle` base of the three Shading bundles; no interface change
+  (056-volume-shader-segments)
+- Storage: N/A; memory only (056-volume-shader-segments)
 
 ## Recent Changes
+- 056-volume-shader-segments: `Interior`/`Exterior` volume shaders take effect for every surface, not only CSG fragments: a ray
+  spawned by `trace()`, `environment("raytrace")`, `gather()`, `transmission()` or a ray-traced `shadow()` is attenuated, once per
+  segment (hit, transparent continuation or miss), by the spawning surface's shader of the side the ray leaves into (the sign of
+  `dot(dir, N)`), on all three camera hiders and under the interpreter and the JIT (`shadeVolumeSegments()`, `CSegmentBundle`,
+  `CTraceLocation::sideN`, `lightSideN`). `incident()`/`opposite()` read the side the incoming ray comes from (GitHub #120
+  item 3). The CSG special case is retired (`selectVolumeShader`, `ATTRIBUTES_FLAGS_SOLID_FRAGMENT`, the arrival-side rule,
+  `CSG_InteriorExteriorSelection`); the two interior CSG scenes were rewritten with a mirror and re-rendered. `Atmosphere`
+  is unchanged. With no volume shader bound every image is byte-identical; no threshold changed; no services-version step.
+  137 shaders, 582 sweep entries. The glass-sphere scenes run `.rslo` only until GitHub #157 (the shipped `glass` shader's JIT
+  defect) is fixed (see spec 056).
 - 029-hider-shading-separation: the hiders own their shading context instead of deriving from it (`CHider`); the
   context is `final` and has no virtuals and no foreign friends; the hiders trace for the context they own
   (`CHiderTracer` and `frameTracer` gone); the bundles moved into Shading and the photon map is reached through

@@ -1,0 +1,35 @@
+##RenderMan RIB-Structure 1.0
+# GitHub #153: the transmission ray of transmission_destination_probe passes a
+# 0.5-opaque sheet and must not see the opaque wall beyond its end point
+# (maxdist 3 (the target is at x=8)). Expected centre pixel: 0.5 (the sheet's transmission).
+version 3.03
+Hider "raytrace" "jitter" [0]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "transmission-dest-beyond-maxdist-raytrace.tif" "file" "rgba"
+Projection "perspective" "fov" 45
+Format 32 32 1
+Clipping 0.1 100
+Translate 0 0 6
+WorldBegin
+  # The probe surface: a small facing patch around the origin. P is its
+  # camera-space position; the transmission ray runs along +x from there.
+  AttributeBegin
+    Surface "transmission_destination_probe" "tx" [8] "dz" [-0.5] "maxd" [3]
+    Polygon "P" [-0.2 -0.2 0  0.2 -0.2 0  0.2 0.2 0  -0.2 0.2 0]
+  AttributeEnd
+  # Semi-transparent sheet on the ray's path
+  AttributeBegin
+    Attribute "visibility" "integer transmission" [1]
+    Opacity 0.5 0.5 0.5
+    Surface "matte"
+    Polygon "P" [1 -3 -2  1 -3 2  1 3 2  1 3 -2]
+  AttributeEnd
+  # Opaque wall beyond the ray's end point
+  AttributeBegin
+    Attribute "visibility" "integer transmission" [1]
+    Surface "matte"
+    Polygon "P" [5 -3 -4  5 -3 4  5 3 4  5 3 -4]
+  AttributeEnd
+WorldEnd

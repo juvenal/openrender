@@ -1,0 +1,36 @@
+##RenderMan RIB-Structure 1.0
+# Spec 056 (volume shader segments), family volume-interior-fog-slab.
+# Camera space: an orthographic camera looks along +z (the camera transform is a roll and a translation, not the
+# identity). A front polygon at z = 4 faces the camera (N = -z) and traces straight through itself
+# (volume_through_probe) to a constant-colour back polygon at z = 6.5, so every segment is 2.5 long.
+# Probe pixel (4,4), RGB:
+#   Interior fog distance 4 background (0.1, 0.3, 0.9): Cb*T + bg*d, T = exp(-2.5/4) -> (0.474683, 0.407052, 0.525317)
+version 3.03
+Hider "zbuffer" "jitter" [0]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "volume-interior-fog-slab-zbuffer.tif" "file" "rgba"
+Format 8 8 1
+Projection "orthographic"
+Clipping 0.1 100
+Rotate 20 0 0 1
+Translate 0.3 -0.2 2
+WorldBegin
+  TransformBegin
+    # camera space: the inverse of the camera transform above
+    Translate -0.3 0.2 -2
+    Rotate -20 0 0 1
+    Attribute "visibility" "int specular" [1] "int transmission" [1]
+    AttributeBegin
+      Surface "volume_through_probe"
+      Interior "fog" "float distance" [4] "color background" [0.1 0.3 0.9]
+      Polygon "P" [-3 -3 4 3 -3 4 3 3 4 -3 3 4] "N" [0 0 -1 0 0 -1 0 0 -1 0 0 -1]
+    AttributeEnd
+    AttributeBegin
+      Color [0.8 0.5 0.2]
+      Surface "constant"
+      Polygon "P" [-4 -4 6.5 4 -4 6.5 4 4 6.5 -4 4 6.5] "N" [0 0 1 0 0 1 0 0 1 0 0 1]
+    AttributeEnd
+  TransformEnd
+WorldEnd

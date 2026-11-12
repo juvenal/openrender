@@ -644,3 +644,32 @@ Out of this spec's scope and left to the coordinator's GitHub items: `map.h`'s `
 
 **(d) approved and applied (maintainer, 2026-11-11).** `tools/test-edit-patches/L1-link-check-scope-s1b.diff` applied exactly as shown to `tests/link/check_scope.cmake` (`git apply --check` passed first): S1b now names `irradianceCache.h` (the concrete cache) in place of the removed `irradiance.h`, and its comment says `photonMap.h` is Core's since this spec.
 Result (`032-p9b-link`, through `cpujob`): `ctest -L link` **4 of 4** (`Link_ShadingSelfContained`, `Link_NoWorkaroundText`, `ShadingScope_Greps` with the changed S1b, `Link_StaticConsumer`); `ctest -L architecture` **30 of 30**. The repo-wide result for Phase 9 is unchanged.
+
+## §8 Master merge preparation (master 11fa3424, spec 056, 2026-11-11)
+
+`git merge --no-ff --no-commit master` in this worktree; nothing committed. The draft message is in the worktree's `MERGE_MSG` (no trailers).
+
+**Conflicts.** One: `.specify/feature.json` (HEAD `specs/032-gi-cache-split`, master `specs/056-volume-shader-segments`). Resolved to 032's own value and staged. Nothing else conflicted; `tests/architecture/allowlist.txt`, `metrics-baseline.txt` and `ribvector-core-residual.txt` are untouched by master.
+
+**Where 056 meets 032 (merged cleanly, read by hand).** Only four files changed on both sides:
+- `src/libshader/shading/giFunctions.h`: 056 added `movvv(rays->sideN, N)` to the gather ray macro; 032 changed two other lines (`assert(cache == NULL || ...)`, `libshader::irradianceLookup(...)`). No overlap.
+- `src/libshader/shading/rendererServices.h`: 056 corrected one comment (`worldBmin` is camera space, no version step); 032's 2.2.0 entry stands, 032 merges before 031, so it stays 2.2.0.
+- `src/libshader/shading/shading.h` / `shading.cpp`: 056 added `volumeSegment`, `lightSideN`, `lightSideNStore`, `CRayBundle::continuationLimit()`, `shadeVolumeSegments()` and `CTraceLocation::sideN`; 032 added the `boundDraws()`/irradiance-sampler members and the `irradianceLookup` call in the JIT `occlusion`/`indirectdiffuse` path (shading.cpp:3714). Different members and functions.
+- Not overlapping files, but adjacent in behaviour: `bundles.{h,cpp}` (`CSegmentBundle` and the trace/transmission/gather bundles), `executeMisc.cpp`, `hiders/trace.cpp` (one line: `cRay->t = bundle->continuationLimit(cRay)`). 032's irradiance sampler and the photon hider send single rays through `libshader::traceRay` (probes, no bundle), so they run no volume step; with no `Interior`/`Exterior` bound nothing changes anyway. Photon emission never calls `shade()`.
+
+**macOS** (through cpujob, `-j4`; sweep `-j2`):
+- Build (`032-p10-build`): exit 0, `-Werror`.
+- Everyday suite `-LE determinism-sweep`: **1326 of 1327 passed, 100 percent of those run; 1 skipped** (`LibShader_Format_rslo_lower_minor`, "the supported .rslo minor is 0": the same skip as in `base-LastTest-macos.log`).
+- Image manifest against `baseline-images-macos.sha256` (915 images): 0 missing, **2 changed**: `csg-sphere-sphere-difference-interior-raytrace` and `...-inside`, which spec 056 rewrote and re-rendered on purpose (their block-diff against the reference moved 17.27 -> 0.00 and 0.30 -> 0.00). 232 new entries: 056's volume scenes and tests, and 032's own `gi_split`/`keys` outputs recorded after the baseline. Block-diff table: 389 common rows, only those two changed.
+- Architecture (`032-p10-arch`): `ctest -L architecture` **30 of 30**, `ctest -L link` **4 of 4**; `archcheck`: no STALE, no VIOLATION, `METRIC Hiders refs 549 (baseline 549) distinct 78 (baseline 78)`, `TOTAL 597 / 86` (baseline 597 / 86). The allowlist and metrics baseline survived the merge unchanged; no reconciliation needed. `libshader_shading` imports: empty, identical to after-phase 8 (`tools/libshader-imports-after-merge-macos.txt`).
+- Determinism sweep `-L '^determinism-sweep$' -j2`: **582 of 582 passed**. Manifest against `baseline-sweep-images-macos.sha256` (419 entries): 0 missing, **2 changed** (the same two CSG interior scenes), 163 new (056's sweep entries, 582 - 419).
+- No #163 photon-row flake, no #164 `GiKeys_PhotonsThreads` failure in this run.
+
+**Linux (Ubuntu 24.04, GCC 13 `-Werror`, `~/Projects/Development/CLI/openrender-032`, remote cpujob `-j2`, 2026-11-12).** The host was unreachable on 2026-11-11 (no route; ICMP ping does not work through the WARP route, ssh does) and reachable the next day. `linux_sync.sh push` sent 4086 files (it removed `tests/unit/csg/test_interior_exterior_selection.cpp`, which 056 deleted), `verify` 4086 files, 0 differences; `pull` 23 files, 0 differences. Script `build-logs/032-run-p10-linux.sh`.
+- Build (`032-l-p10-build`, ten `GI032_BOUNDARY_CHECKS`): exit 0, `-Werror`.
+- Everyday suite `-LE determinism-sweep`: **1328 tests, 1326 passed, 1 skipped** (`LibShader_Format_rslo_lower_minor`, as on macOS), **1 failed: `TextureTile_RenderByteIdentical`, the known Linux baseline failure #45**. Nothing else red; no #163 photon row failed. `GiKeys_PhotonsThreads` passed in the suite and in its re-run.
+- Image manifest against `baseline-images-linux.sha256` (915): 0 missing, **2 changed**, the same two CSG interior scenes spec 056 rewrote (block-diff 17.27 -> 0.33 and 0.30 -> 0.12, both far inside their thresholds); 234 new entries (056's scenes and tests, 032's own outputs). Block-diff table: 389 common rows, only those two changed.
+- Architecture: `ctest -L architecture` **30 of 30**; `archcheck` no STALE, no VIOLATION; Hiders 549 / 78, Texturing 0 / 0, TOTAL 597 / 86, all equal to the baseline. `ctest -L link` **4 of 4**. `libshader_shading` imports (`nm -D --undefined-only`, 461 lines): identical to after Phase 8 (`tools/libshader-imports-after-merge-linux.txt`).
+- Determinism sweep `-L '^determinism-sweep$' -j2`: **582 of 582 passed**; manifest against the 419-entry baseline: 0 missing, 2 changed (the same two CSG scenes), 163 new (056's sweep entries).
+
+**Result for the merged tree:** macOS and Linux both green apart from the known #45 on Linux; the allowlist and metrics baseline survived the merge unchanged.

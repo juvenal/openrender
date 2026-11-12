@@ -220,6 +220,8 @@ class CGatherVariable {
     public:
         virtual ~CGatherVariable() {}
         virtual void record(float *, int, CGatherRay **, float **varying) = 0;
+        // The global variable (VARIABLE_*) this output reads from the shaded hit, or -1 (spec 056: the gather miss step records only Ci and Oi)
+        virtual int globalEntry() const { return -1; }
 
         CGatherVariable *next; // The next item in the linked list
         int shade;             // TRUE if this variable requires shading

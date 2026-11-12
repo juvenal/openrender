@@ -16,7 +16,7 @@ The list below is that vocabulary, with an honest status against each entry.
 
 ## Advanced capabilities
 
-**7 of 11 implemented, 2 partial, 2 absent.**
+**8 of 11 implemented, 1 partial, 2 absent.**
 
 | Capability | Status | Notes |
 |---|---|---|
@@ -27,7 +27,7 @@ The list below is that vocabulary, with an honest status against each entry.
 | Special Camera Projections | **No** | `Projection` accepts `"perspective"` and `"orthographic"` only. Anything else is an error. |
 | Displacements | **Yes** | `Displacement` with displacement bounds; on by default for the ray-tracer too. |
 | Spectral Colors | **No** | `ColorSamples` is accepted and stored but nothing reads it — colour is three components throughout. A scene using it renders as though it had not. |
-| Volume Shading | **Partial** | `Atmosphere` works. `Interior` and `Exterior` are parsed and stored but never executed. |
+| Volume Shading | **Yes** | `Atmosphere` modifies camera rays. `Interior` and `Exterior` attenuate the rays a surface shader spawns with `trace()`, `gather()`, `transmission()` and ray-traced `shadow()`, once per ray segment, with the shader of the side of the spawning surface the ray leaves into. See [Solid CSG Operations](../../manual/reference/solid-csg-operations/#interior--exterior-shading). |
 | Ray Tracing | **Yes** | Full ray-trace hider plus the RSL `trace`, `gather` and `occlusion` families. See [Raytracing in SL](../../manual/reference/raytracing-in-sl/). |
 | Global Illumination | **Yes** | Photon mapping, point-based occlusion and colour bleeding, irradiance caching. See [Global Illumination](../../manual/reference/global-illumination/). |
 | Area Light Sources | **Partial** | `AreaLightSource` is accepted and can be switched with `Illuminate`, but the geometry in the block is not bound to the light: it behaves as an ordinary light source. |

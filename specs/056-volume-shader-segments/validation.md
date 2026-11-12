@@ -1,0 +1,443 @@
+# Validation record: Volume Shader Segments (spec 056)
+
+Appended by every checkpoint (tasks.md, Conventions: "Records"). Commands go through `~/.claude/bin/cpujob <label> <command>`.
+`$WT` is `/Volumes/Projects/Development/CLI/openrender-worktrees/056-volume-shader-segments`.
+
+## 0. Phase 0: setup and baselines (2026-11-09)
+
+### Rules followed
+
+- Project rules: the `## Spec-kit agent rules` section of `CLAUDE.md`. The worktree copy and the main-checkout copy are
+  identical (`diff` empty); the worktree copy was followed. No uncommitted change to `CLAUDE.md` in either.
+- The optional `before_tasks`/`after_tasks`/`before_implement`/`after_implement` commit hooks were declined: nothing is committed.
+- `git merge-base --is-ancestor e83d005d HEAD` exits 0; `git log -1 --format=%s` is "docs: add spec 056 tasks and analyze-stage fixes".
+
+### Pre-flight (T001)
+
+| Item | Value |
+|---|---|
+| `df -h /Volumes/Projects` at the start | 6.3 GiB free (the tasks.md advice of 6 GiB was met by 0.3 GiB; the coordinator's floor for this run was 2 GiB) |
+| `df -h /Volumes/Projects` after configuring and building | 4.8 GiB free (three other specs were building in parallel) |
+| Linux host `ubuntu-2404-desktop.v2-labs.io` (172.16.32.138) | **unreachable** from this machine for the whole run: `ssh: connect to host ... port 22: Network is unreachable`, with and without the sandbox |
+
+### Configure and build (T002, T003)
+
+- `~/.claude/bin/cpujob 056-p0-cfg cmake -B $WT/build -S $WT` (JIT on, LLVM through the shared vcpkg tree): configured, "shaders: 130 .sl -> .rslo + .slo".
+- `~/.claude/bin/cpujob 056-p0-build cmake --build $WT/build --config Release -j4`: built, no error (log `$WT/build/p0-build.log`).
+
+### Baselines on the starting tree, macOS (T004, T005, T009)
+
+| Item | Value |
+|---|---|
+| `ctest -L architecture` (`056-p0-arch`) | 29 / 29 passed |
+| `ctest -LE determinism-sweep -j4` (`056-p0-all`) | **1097 tests, 100 % passed**, 1 skipped (`LibShader_Format_rslo_lower_minor`, skipped by design) |
+| `ctest -N` | 1516 tests in total (1097 + 419 sweep) |
+| `ctest -N -L determinism-sweep` | 419 entries |
+| `ls build/shaders/*.rslo \| wc -l` / `*.slo` | 130 / 130 |
+| `src/libshader/tests/reference/macos/shaders.sha256` / `linux/shaders.sha256` | 262 lines each (130 `.rslo`, 130 `.slo`, 2 probes) |
+| Failing or flaky tests | none seen in this run |
+| Tests that name the CSG interior scenes and the retired symbols (T009) | `Visual_csg-sphere-sphere-difference-interior-raytrace` (#293), `...-inside` (#294), `DeterminismSweep_csg-sphere-sphere-difference-interior-raytrace` and `...-inside` (#775, #774), `CSG_ProceduralOperand` (#1171), `CSG_InteriorExteriorSelection` (#1172), `State_Isolation` (#1277); `git grep` in `tests`: `tests/visual/CMakeLists.txt:2342-2357` (the two `add_visual_test`, comment block `:2334-2353`) and `tests/visual/determinism-scenes.cmake:197-198`. Nothing beyond the expected set. |
+
+### Linux baseline (T007, T008)
+
+The host was down for the first part of the run (not the network), then came back. `openrender-056` did not exist; it was created
+by `git archive HEAD` (the committed starting tree: no Phase 1 file, checked: `tests/visual/volume-scenes.cmake` absent), so the
+baseline is of the starting tree. `ubuntu-2404-desktop` (Ubuntu 24.04, gcc 13.3.0, Release, `-Werror`, `-DINSTALL_SELFCONTAINED=OFF`),
+remote `cpujob` at `-j2`, remote disk 9.2 GiB free before and 9.1 GiB after the build.
+
+| Item | Value |
+|---|---|
+| `ctest -L architecture` (`056-p0-lx-arch`) | 29 / 29 passed |
+| `ctest -LE determinism-sweep -j2` (`056-p0-lx-test`) | 1098 tests (one Linux-only test more than macOS), 1 failed, 1 skipped (`LibShader_Format_rslo_lower_minor`) |
+| The failure | `TextureTile_RenderByteIdentical` (texture-png-reyes, texture-exr-reyes/raytrace, texture-rgbe-reyes differ from the macOS-made references at byte 5): a macOS-made reference compared on Linux, pre-existing on the starting tree and unrelated to 056 (it looks like the per-platform reference issue the maintainer's notes hold as #45; not confirmed here) |
+
+## 1. Phase 1: tests first (in progress, stopped at T043 TEST-APPROVAL)
+
+Phase 0 had not been run when Phase 1 was started (no build tree, no `validation.md`); it was run first as a prerequisite and
+its checkpoint folded into this one.
+
+### What exists (T012 to T042), macOS, nothing under `src/` changed
+
+| Material | Files |
+|---|---|
+| Contract shaders (tests/shading_contract/shaders, contract-only, neither manifest) | 14: `cv_segment`, `cv_segment_p`, `cv_globals`, `cv_nested`, `cv_counter`, `cv_overfog`, `cv_surface_{trace,transmission,gather,environment,visibility,occlusion,indirect}`, `cv_incident_probe` |
+| Contract cases | `case_volume_segments.cpp` (+ `volume_segments_main.cpp`), `case_message_side.cpp` (+ `message_side_main.cpp`), `cases_056.h`; registered in `tests/shading_contract/CMakeLists.txt` (`ShadingContract_VolumeSegments{Interp,Jit}`, `ShadingContract_MessageSide{Interp,Jit}`, enabled) |
+| `shaders/` sources | 7: `volume_through_probe`, `volume_reflect_probe`, `volume_transmission_probe`, `volume_gather_probe`, `volume_shadow_light`, `incident_opposite_probe`, `volume_random_fog` |
+| Scenes (`examples/rib/tests`) | 154, generated by `tools/gen_scenes.py` (family modules in `tools/families/`) |
+| Registrations | `tests/visual/volume-scenes.cmake` (new), `tests/visual/volume-probes.cmake` (generated), one `include()` line in `tests/visual/CMakeLists.txt`, 154 sweep entries appended to `tests/visual/determinism-scenes.cmake`, `tests/visual/parity-thresholds.md` ("Spec 056") |
+| Tools | `tools/gen_scenes.py`, `tools/capture_goldens.{sh,py}`, `tools/sync_linux.sh` |
+
+Counts after the Phase 1 build: `ctest -N` 1866 tests (1516 + 350), `-L determinism-sweep` 573 entries (419 + 154; 570 after the glass correction below), 137 shaders in
+`build/shaders` (130 + 7, both formats), `-L volume` 181 tests, none `DISABLED`.
+
+### Preliminary red evidence on the starting tree (a look before approval, not the recorded T050)
+
+`ctest -R 'VolumeProbe|VolumeDiffer|ShadingContract_(VolumeSegments|MessageSide)'`: 166 tests, 86 red, 80 green by design.
+
+- Every red `VolumeProbe_*` reads the **unattenuated** value, the same value its `-none` twin passes with
+  (slab `0.8 0.5 0.2`; reflection hit `0.2 0.6 0.4` and miss `0 0 0` on every hider and both backends; primitive-hit-mode,
+  environment, gather the same hit value; transmission `0.5`; shadow-light `0.8 0.5 0.2` (the light unshadowed);
+  incident-opposite outside pixel `(0.2 0.9 0)` instead of `(0.9 0.2 0)`: `incident()` reads Interior).
+- 72 `-none` twin probes are green (no failure among them).
+- `VolumeDiffer_glass-sphere-{reyes,zbuffer,raytrace}` and `VolumeProbe_random-fog-runs`: "0 value(s) differ" (identical to the twin).
+- `ShadingContract_VolumeSegments{Interp,Jit}`: 108 passed, 68 failed per backend, each failure "got (0.25 0.5 0.75)
+  wanted <the segment vector or position>" (the canned colour comes back: no step), or the same for the composite and
+  nested cases; the "no step" checks (probes, occlusion, indirectdiffuse, a side with no shader, a refused bundle) pass today.
+- `ShadingContract_MessageSide{Interp,Jit}`: 48 passed, 18 failed: the two rows with `I.N < 0` (`incident()` reads Interior today).
+- `VolumeProbe_csg-fragment_*`: red, with a hider difference on the **starting tree**: the camera pixel on the left solid
+  reads the exterior fog on reyes and zbuffer (`0.1736 0.4472 0.7528`) and the interior fog on raytrace (`0.8998 0.1002 0.1001`)
+  (the arrival-side rule picks the shader per hider). Pre-existing; retired by Phase 3.
+
+### Other results on the Phase 1 tree (macOS)
+
+- `ctest -L architecture` (`056-p1-arch`): 29 / 29 passed; `tests/architecture/allowlist.txt` unchanged; `git diff HEAD -- src` is empty.
+- `ShaderCompilerImmutability` and `Shaders_BytesUnchanged` are red, **pending T044**, not defects: the 7 new `.sl` sources have no
+  `tests/shaders/references/<name>.rslo` ("MISS [no reference]") and the 14 new `.rslo`/`.slo` have no line in
+  `reference/macos/shaders.sha256`. The proposal is in `tools/proposed/` (7 `.rslo` identical to the test's scratch compile; the
+  regenerated `reference-root/macos/shaders.sha256` differs from the real one by 14 added lines and no removed line;
+  `oshader_help.txt` identical). Nothing under `src/libshader/tests/reference` or `tests/shaders/references` was touched.
+
+### Findings while writing the scenes (inside the spec)
+
+- A transmission or shadow ray's segment is `d - bias` long (`executeMisc.cpp:779`, default bias 0.01), and its
+  direction and origin are jittered by the ray differentials (`sampleRay`, default `sampleBase` 1). Both are folded into the
+  scenes: the transmission and shadow scenes use a reach and a fog distance of 1000 (the jitter changes the length by less than
+  1e-7 relative) and pin `Attribute "trace" "float bias" [0.01]`; the expected value uses `reach - bias`.
+- `solar()` sets `L` to the axis times the squared diagonal of the world bound, so a directional light cannot give a known
+  shadow length; `volume_shadow_light` uses `illuminate(Ps - (0, 0, reach))` (`L = (0, 0, reach)`).
+- `test_pixel_probe` and `test_render_compare` read 32-bit float TIFFs only: the 8-bit glass sphere (parity and, after Phase 2,
+  reference subject) has a float pair `volume-interior-fog-glass-sphere-float-{,none-}<hider>` for `VolumeDiffer_*`.
+- `Cs` and `Os` are not valid in a volume shader (compile error), so `cv_globals` checks `E`, `time`, `N`, `Ng`, `u`, `v`, `s`, `t`.
+
+### Recorded after the maintainer approved T043 (macOS)
+
+- T044: the 7 `.rslo` copied to `tests/shaders/references/`; `src/libshader/tests/reference/macos/shaders.sha256` regenerated with
+  `-DMODE=capture -DRECAPTURE=ON` (`056-p1-refs-capture`): `git diff --numstat` 14 added, 0 removed; `oshader_help.txt`
+  `git diff --exit-code` clean. `ShaderCompilerImmutability` and `Shaders_BytesUnchanged` pass. `git diff HEAD -- src ':!src/libshader/tests/reference'` empty.
+- T045/T046: 19 goldens captured on the unchanged starting tree (`056-p1-golden`), three byte-identical renders each, into
+  `tests/visual/golden/`. SHA-256: slab-none x 6 (all variants) `f56f2d7a...958b7`; random-fog-none `12100d88...15154`;
+  atmosphere-depthcue reyes/zbuffer (rslo and slo) `237a1777...e89b`, raytrace (both) `132caf59...71874`;
+  atmosphere-fog reyes/zbuffer rslo `9233255b...6b17`, slo `892afc61...dcd94`, raytrace rslo `f05059f1...c8dc`, slo `b09ae3b0...73`
+  (full values in `build/p1-golden.log`). Note: on the starting tree `fog` differs between `.rslo` and `.slo` at the bit level, and raytrace
+  differs from reyes/zbuffer (reyes and zbuffer agree): the goldens are per variant.
+- T049: `ctest -R Golden_` 20/20 passed (19 new + 1 existing).
+- T050/T053: `ctest -LE determinism-sweep -j4` (`056-p1-all`): 1293 tests, **87 failed, all in the red table's set**, apart from one
+  unexpected (below). Red: `ShadingContract_{VolumeSegments,MessageSide}{Interp,Jit}` (4), `VolumeDiffer_glass-sphere-*` (3),
+  `VolumeProbe_random-fog-runs`, and `VolumeProbe_*` (csg-fragment 12, environment-raytrace 12, exterior-fog-reflection 12, gather 6,
+  incident-opposite 6 (the outside pixel only), interior-fog-slab 6, miss-clipping 6, primitive-hitmode 6, shadow-light 6,
+  transmission-interior 6), each with the observed unattenuated value of the preliminary table above.
+  `DeterminismSweep_(volume|atmosphere)` (`056-p1-sweepnew`): 151 / 154 pass; Determinism_volume-random-fog(+slo) pass.
+- T054 (macOS): `ctest -L architecture` 29/29, allowlist unchanged.
+
+**Unexpected reds on the starting tree (a pre-existing defect, not a Phase 1 test error):** the shipped `glass` shader under the
+JIT. `Parity_volume-glass-sphere-jit` (raytrace `.slo` against `.rslo`: 16 blocks over threshold 20, worst 170.33) and
+`DeterminismSweep_volume-interior-fog-glass-sphere-{reyes,zbuffer,raytrace}-slo` (about 1000 values differ between -t:1, -t:2, -t:4)
+fail with no volume step present. No scene in the repository used `glass` before this spec. The `.rslo` glass pairs and sweeps pass.
+Reported, not fixed and not widened.
+
+### Linux, Phase 1 tree (T047 to T054)
+
+Synced with `tools/sync_linux.sh` (3948 files, `sha256sum -c` clean) after `git add`; built at `-j2` with GCC 13 `-Werror` (no error).
+
+- T047/T048: 19 Linux goldens captured on the starting tree plus the Phase 1 tests (three byte-identical renders each) into
+  `tests/visual/golden/linux/`, copied back and checked with `shasum -a 256` on both sides; provenance in
+  `tests/visual/golden/linux/volume-atmosphere.provenance.txt` (SHA-256 of every file). The slab and random-fog twin goldens are
+  byte-identical to macOS's; the fog and depthcue reyes/zbuffer/raytrace goldens differ from macOS's by floating point.
+- T052: `check_shaders_bytes.cmake -DMODE=capture-differences -DRECAPTURE=ON` on Linux: `reference/linux/shaders.sha256` gains 14 lines,
+  0 removed; `oshader_help.txt` unchanged (no Linux override exists or is needed). `ShaderCompilerImmutability`, `Shaders_BytesUnchanged` and
+  all 20 `Golden_` tests pass on Linux (22 / 22).
+- T051/T053: `ctest -LE determinism-sweep -j2`: 1294 tests, 88 failed: exactly the macOS red set (87, same observed unattenuated
+  values for all 79 red `VolumeProbe_*`, compared programmatically) plus the baseline's `TextureTile_RenderByteIdentical`.
+  `DeterminismSweep_(volume|atmosphere)`: 150 / 154 pass; the 4 failures are the three glass `-slo` sweeps (as on macOS) and
+  `DeterminismSweep_volume-csg-fragment-raytrace-slo`, a Linux-only starting-tree failure: the old arrival-side rule picks the
+  interior shader in one configuration and the exterior shader in another for the camera pixel (-t:1 against default / -P:2,
+  66 values). Phase 3 retires that rule.
+- T054: `ctest -L architecture` 29 / 29 on Linux; allowlist unchanged.
+
+### Unexpected reds of the starting tree, summary (all pre-existing, reported, nothing widened or disabled)
+
+1. Shipped `glass` under the JIT: `Parity_volume-glass-sphere-jit` and the three glass `-slo` determinism sweeps (both platforms).
+2. `DeterminismSweep_volume-csg-fragment-raytrace-slo` (Linux only), the arrival-side CSG rule.
+3. Cross-hider disagreement of the arrival-side rule on the CSG camera pixel (macOS and Linux).
+
+### Phase 1 closed: CHECKPOINT 1 reached (macOS and Linux)
+
+Pending only the maintainer's commit; Phase 2 not started.
+
+T021 and T044 to T056; the Linux tasks T007, T008, T047, T048, T051, T052 and the Linux halves of T053 and T054 cannot run while
+`ubuntu-2404-desktop.v2-labs.io` is unreachable.
+
+## 1a. Phase 1 correction: glass-sphere `.slo` unregistered (GitHub #157), 2026-11-09
+
+Decision (maintainer, via the coordinator): the shipped `glass` shader's JIT defect is filed as #157 (P1, Bug Tracker); 056 runs the
+glass-sphere scenes as `.rslo` only until it is fixed.
+
+- Unregistered: `Parity_volume-glass-sphere-jit` (its row is gone from `parity-thresholds.md`) and
+  `DeterminismSweep_volume-interior-fog-glass-sphere-{reyes,zbuffer,raytrace}-slo` (the generator skips them in the marked block of
+  `determinism-scenes.cmake`: 151 entries instead of 154, sweep 419 + 151 = 570). The three `-slo` glass RIBs are kept, each with a
+  header note, as the #157 repro; the #157 fix re-adds the tests.
+- Recorded in `tasks.md` (correction section, T024, T038, T082), `spec.md` (FR-019), `plan.md`. No `Visual_..._glass-sphere-*-slo` test or
+  reference will be added in a later phase. No task depends on #157's fix.
+- `tasks.md` globs now match the registered names: `VolumeProbe_*-none_*`, `VolumeProbe_incident-opposite_*`; the others
+  (`VolumeProbe_atmosphere-fog-reflection_*`, `_miss-clipping_*`, `_csg-fragment_*`) already matched.
+
+## 2. Phase 2: the segment step
+
+Source changed (all in `src/libshader/shading/`): `bundles.{h,cpp}` (`CSegmentSpawn`, `CSegmentRay`, `CSegmentBundle`; the three bundles rebased, with
+`attenuateHits`/`attenuateMisses`, hit classification on the hit's own opacity, miss compositing, `levelTraced`), `shading.{h,cpp}`
+(`CShadingState::{volumeSegment,lightSideN,lightSideNStore}`, `CTraceLocation::sideN`, `CRayBundle::postShader = nullptr`, `shadeVolumeSegments()`,
+`iterateLights` snapshot, `gatherSample` volume choice and segment fields, the JIT location fills), `executeMisc.cpp` (`traceReflection`
+gating and `begin()`, `traceTransmission` with the interior/exterior split), `giFunctions.h`/`shaderFunctions.h` (the `sideN` fills),
+`shaderPl.{h,cpp}` (`globalEntry()`), and two comment-only edits (`rendererServices.h` world bound, `tracer.h` "Re-enters Shading").
+`shade()`'s overwrite and tail are untouched (Phase 3 deletes them). `git diff HEAD --stat -- tests/architecture` is empty.
+
+- **Deviation (T062 skipped):** the separate build and run of the shared types alone, which the tasks make the first safety net, was not made; the step and
+  the entry points were written together, and the full run (T073, below) is the byte-identity evidence instead.
+- **A defect found and fixed on the way:** the first build crashed `VolumeDiffer_glass-sphere-raytrace` (SIGSEGV): `lightSideNStore` was
+  allocated for `mgs` vertices but a raytrace shading state has up to `3 * mgs` (the derivative-offset tail, like `Ns`, `mgs * 9` floats). Fixed.
+- **T072 (macOS, `-R 'ShadingContract_VolumeSegments|VolumeProbe|VolumeDiffer|Determinism_volume'`, 166 tests):** every `VolumeProbe` of slab,
+  exterior-reflection, miss-clipping, primitive-hitmode, transmission, shadow-light, environment, gather, random-fog-runs, and `VolumeDiffer_*`,
+  `Determinism_volume-random-fog(+slo)` pass at the approved tolerances on reyes, zbuffer and raytrace, `.rslo` and `.slo`: the hand-computed
+  values (including the over-form compositing, the transparent wall of the transmission scene, the light that rewrites `N` and the camera-space
+  miss) match. Still red, as the table says: `VolumeProbe_csg-fragment_*` (12, Phase 3) and `VolumeProbe_incident-opposite_*` (6, Phase 4).
+  The hit-distance and atmosphere-reflection values that were provisional: no change (the atmosphere goldens and the reflection probe still pass).
+- **ShadingContract_VolumeSegments{Interp,Jit}: 176 passed, 1 failed** each: `c.tracer.requests.size() >= 3` in the nested-trace case. The
+  assertion is wrong (one outer bundle, not two, when both sides bind the same shader); the step is right. The proposed one-line change to the
+  approved test is `tools/proposed/contract_nested_requests.diff`, **not applied, awaiting the maintainer**. Until then these two tests stay red.
+- **T074 (camera-space verdict): "camera space".** `VolumeProbe_miss-clipping_*` (far clipping 1e30) read the camera-space prediction
+  (segment 7.0, value `0.0826 0.2479 0.7436`) on all six variants; the world-space reading of the same bound would give 10.134 (a difference of 0.099 in the
+  blue channel). T075: the comment at `rendererServices.h:312` now says camera space (comment only; `kRendererServicesVersion` stays 2.1.0).
+  T076: the `traceBundle` paragraph of `tracer.h` notes that `postShade` may run the volume shader.
+- **T073 (byte identity, `ctest -LE determinism-sweep -j4`, `056-p2-all`):** 1292 tests, 22 failed, all in the Phase 3/4 and pending rows:
+  `csg-fragment` 12, `incident-opposite` 6, `ShadingContract_MessageSide{Interp,Jit}` 2, `ShadingContract_VolumeSegments{Interp,Jit}` 2.
+  Every pre-existing test passes with its existing reference and threshold (all `Golden_*`, `Visual_*`, `Parity_*`, `ShadingContract_RayLevel`,
+  `_Messages*`, `_MessageAccessors`). `DeterminismSweep_(volume|atmosphere)` (`056-p2-sweepnew`, -j2): 151 / 151 pass.
+- **T077:** only `bundles.h` was clang-format clean before; it is formatted (one line). The other edited files were not clean and are not reformatted.
+- **T078:** `ctest -L architecture` 29 / 29, allowlist unchanged (taken before the one-line `bundles.h` format).
+- **T080 (perf, no budget):** `Visual_sphere-trace-reyes` 0.16 s (Phase 0) vs 0.15 s, `Visual_camera-dof-raytrace` 1.15 s vs 0.86 s (single runs under load): no regression.
+- **T079 (Linux, GCC 13 `-Werror`, `-j2`):** build clean; `ctest -L architecture` 29 / 29; `ctest -LE determinism-sweep -j2`: 1293 tests, 23 failed =
+  the macOS 22 plus the baseline `TextureTile_RenderByteIdentical`.
+- **T081:** the three candidate images (and their no-Interior twins, rslo, 8-bit, rendered by `tools/render_scenes.py` through cpujob) are in
+  `specs/056-volume-shader-segments/tools/proposed/glass/` (`.tif` and an enlarged `.png` of each). With the fog the sphere is red, with
+  a highlight; the twins are the grey glass sphere. Reyes, zbuffer and raytrace agree to the eye. **T082 is a PAUSE: nothing is copied to
+  `examples/rib/tests/references/` and no `Visual_volume-interior-fog-glass-sphere-*` test is registered until the maintainer approves each image.**
+
+### Maintainer answers at the T082 PAUSE (applied)
+
+- The three glass-sphere references (reyes, zbuffer, raytrace; `.rslo`, 8-bit) were approved as rendered and copied to
+  `examples/rib/tests/references/volume-interior-fog-glass-sphere-{reyes,zbuffer,raytrace}.tif`. **They show speckles on the sphere's rim**:
+  that is the shipped `glass` shader's own deterministic behaviour at the silhouette and is present in the no-Interior twins too, not an artefact of the
+  volume step. `Visual_volume-interior-fog-glass-sphere-{reyes,zbuffer,raytrace}` are registered (default threshold 20, `volume-scenes.cmake`), `.rslo`
+  only: there is no `-slo` test or reference until GitHub #157 is fixed.
+- The contract edit was approved and applied exactly as `tools/proposed/contract_nested_requests.diff`: `c.tracer.requests.size() >= 3` became `>= 2`
+  in the nested-trace case of `case_volume_segments.cpp` (the diff file is kept as the record). `ShadingContract_VolumeSegments{Interp,Jit}` are now green.
+
+### Checkpoint 2 re-run after the approvals (T083, T084)
+
+- macOS (`056-p2b-build`, `056-p2b-arch`, `056-p2b-all`): the tree rebuilt; `ctest -L architecture` **29 / 29** (re-run after the `bundles.h` clang-format and the
+  edits above); `ctest -LE determinism-sweep -j4`: 1295 tests, **20 failed, exactly the remaining Phase 3 and 4 rows**: `VolumeProbe_csg-fragment_*` 12
+  (Phase 3), `VolumeProbe_incident-opposite_*` 6 and `ShadingContract_MessageSide{Interp,Jit}` 2 (Phase 4). `ShadingContract_VolumeSegments{Interp,Jit}` pass;
+  `Visual_volume-interior-fog-glass-sphere-{reyes,zbuffer,raytrace}` pass against the approved references; every pre-existing test passes unchanged.
+- Linux (remote `cpujob` `-j2`, GCC 13 `-Werror`, `openrender-056`): build clean; `ctest -L architecture` 29 / 29; full run 1296 tests, 21 failed = the same 20
+  plus the baseline `TextureTile_RenderByteIdentical`; the three `Visual_..._glass-sphere-*` tests pass on Linux against the same (macOS-rendered) references.
+- Expected red at the end of Phase 2: only the Phase 3 and Phase 4 rows. No threshold was widened, no approved test or reference changed other than the
+  one approved line and the new references above.
+
+## 3. Phase 3: CSG becomes the general case (in progress, stopped at the T090 to T093 PAUSEs)
+
+Started after the merge of master (0e554fed, the #153 fix) was committed as 5e1889e6 and validated (macOS: 1303 tests, 20 failures = the Phase 3/4 rows,
+all 8 `TransmissionDestination_*` pass, sweep 570/570, architecture 29/29; Linux: same plus the baseline `TextureTile`, sweep 569/570 with the known
+Linux-only `DeterminismSweep_volume-csg-fragment-raytrace-slo`).
+
+- T085 TEST-APPROVAL: nothing approved is edited yet. T086 to T089 wrote proposals only, in `tools/proposed/`:
+  `csg-sphere-sphere-difference-interior-raytrace{,-inside}.rib` (matte replaced by a mirror, header comments rewritten, names and test IDs kept),
+  `visual-csg-comments.diff` (the comment blocks of `tests/visual/CMakeLists.txt`), `state_isolation.diff` (the `selectVolumeShader` checks, `:450-458`),
+  `procedural_operand.diff` (the flag assertion at `:382` and the rename to `expanded_objects_carry_the_inside_parity`),
+  `retire_interior_exterior_selection.diff` (the CMake line; `git rm` of the test file) and `carry_clone_and_flip.diff` (the new case
+  `instance_leaves_are_clones_and_only_the_subtrahend_is_flipped` in `test_boundary_rule.cpp`, verbatim apart from the flag and `selectVolumeShader` lines).
+  No candidate image is rendered yet (it would show the old arrival-side fog under the new rule): T100 does that after T094.
+
+### Approvals applied and the code change (T090 to T099), 2026-11-09
+
+The maintainer approved T090 to T093 as proposed. Applied: the two CSG scenes (matte to mirror, headers rewritten) and the comment blocks of `tests/visual/CMakeLists.txt`;
+`CSG_InteriorExteriorSelection` retired (`git rm`, CMake line) with its last case carried into `test_boundary_rule.cpp` (the hunk is that case and an `#include "csgSolid.h"` only);
+`State_Isolation` and `CSG_ProceduralOperand` edited as in their diffs. Source (T094, T095): `shade()` no longer assigns `postShader` from `selectVolumeShader` or runs
+an interior/exterior shader (`shading.cpp`); `selectVolumeShader` and `ATTRIBUTES_FLAGS_SOLID_FRAGMENT` (with its stale "spec 013" comment, bit 26 now unused) are deleted
+from `attributes.h`; the flag write in `csgSolid.cpp` is gone (the clone and the operand flip stay). `git grep 'SOLID_FRAGMENT\|selectVolumeShader' -- src tests` finds nothing.
+`CShadingState::postShader`, its `enterRayLevel` copy and `imager.cpp` stay.
+
+- T099 (`056-p3-csg`, macOS): 46 tests, 2 failed, as expected: `Visual_csg-sphere-sphere-difference-interior-raytrace` and `-inside` against their old references (the arrival-side fog is gone
+  and the scenes now trace). `VolumeProbe_csg-fragment_*` (12), `CSG_*` (including the carried case), `State_Isolation` and both `DeterminismSweep_csg-sphere-sphere-difference-interior-*` pass.
+- Side result: with the arrival rule gone, the pre-existing cross-hider disagreement of the CSG camera pixel disappears (the probe passes on all hiders and both backends).
+- T100 candidates (rendered after T094/T098 by `056-p3-render`): `tools/proposed/csg/csg-sphere-sphere-difference-interior-raytrace{,-inside}.{tif,png}` beside the old references (`*-OLD.png`).
+  Outside: the mirrored sphere is tinted by the Exterior fog (blue) on the reflected rays, the boundary carries no fog of its own, the notch is visible at the left edge. Inside:
+  the camera is inside the material, the reflections are tinted by the Interior fog (red), no fog painted over the walls. **Not copied to `examples/rib/tests/references/`: T100 is a PAUSE (image by image).**
+
+### T100 to T104: the references, the full runs, CHECKPOINT 3
+
+- T100: the maintainer approved both candidate images as rendered (outside and inside; the inside image's inner disc is visibly grainy, which is the scene's own
+  deterministic sampling noise) with the condition that the Linux `Visual_` test passes against the new macOS references at the default threshold. They were copied over
+  `examples/rib/tests/references/csg-sphere-sphere-difference-interior-raytrace.tif` and `-inside.tif`; no threshold changed.
+- Condition met: on Linux (`056-p3b-lx-vis`) both `Visual_csg-sphere-sphere-difference-interior-raytrace` and `-inside` pass at the default threshold.
+- T101 (macOS): `ctest -L architecture` 29 / 29 (`056-p3-arch`); `ctest -LE determinism-sweep -j4` (`056-p3-all`): 1302 tests, **8 failed = exactly the Phase 4 rows**
+  (`VolumeProbe_incident-opposite_*` 6, `ShadingContract_MessageSide{Interp,Jit}` 2); both CSG Visual tests and every `VolumeProbe_csg-fragment_*` pass;
+  `ctest -L '^determinism-sweep$' -j2` (`056-p3-sweep`): 570 / 570.
+- T102 (Linux, GCC 13 `-Werror`, `-j2`): build clean, architecture 29 / 29, full run 1303 tests, 9 failed = the 8 Phase 4 rows plus the baseline `TextureTile_RenderByteIdentical`;
+  sweep 570 / 570 (`DeterminismSweep_volume-csg-fragment-raytrace-slo`, the Linux-only starting-tree failure, now passes: the arrival-side rule it exposed is gone).
+- Expected red at the end of Phase 3: only the Phase 4 rows. `git diff HEAD -- tests/architecture/allowlist.txt` is empty; DB-004/DB-017 lines keyed on `csgSolid.cpp` are untouched (the deleted line named no foreign symbol).
+
+
+## 4. Phase 4: `incident()` and `opposite()` read the right side (US7, FR-013, FR-022), 2026-11-10
+
+- T105 TEST-APPROVAL: no approved test edited, none added. `ShadingContract_Messages{Interp,Jit}` and `ShadingContract_MessageAccessors` pass unedited (the harness' `I = N = (0,0,1)` gives `x > 0`, so `incident()` still reads Interior and `opposite()` Exterior).
+- T106: one edit, `src/libshader/shading/shading.cpp`: a file-local `rayArrivesFromExterior(const CShadingState *)` (`numVertices > 0` and `dot(I, N)` of vertex 0 `< 0`; a null state or no vertex is false), read by `incidentParameter` (Exterior when true, else Interior) and `oppositeParameter` (the swap). `wantVariable` stays false; the interpreter macros and `jitIncidentParameter`/`jitOppositeParameter` both call these two members, so one edit serves both backends. No services member, no `kRendererServicesVersion` step, accessor constants untouched. The `surfaceParameter` comment block was reworded.
+  (tasks.md cites `shading.cpp:1747-1753` and `:3795-3812`; the members are now at about `:1900` and `:3963`.)
+- T107 (`056-p4-msg`, macOS): 21 / 21 pass: `ShadingContract_MessageSide{Interp,Jit}`, all 12 `VolumeProbe_incident-opposite_*`, `ShadingContract_Messages{Interp,Jit}`, `ShadingContract_MessageAccessors`, `DeterminismSweep_sphere-shader-parameter-reyes(-slo)`.
+- T108 macOS: build clean (`056-p4-build`, only the usual `ld` duplicate-library notes); `ctest -LE determinism-sweep -j4` (`056-p4-all`): **1302 / 1302 pass**, one skipped (`LibShader_Format_rslo_lower_minor`, as before); `ctest -L architecture` (`056-p4-arch`): 29 / 29. The determinism sweep was not re-run (the change reaches only `incident()`/`opposite()`; the one sweep scene using them, `sphere-shader-parameter-*`, is in the run above).
+- T108 Linux (the host was unreachable when the macOS half was reported, back after a reboot; GCC 13 `-Werror`, remote `cpujob` `-j2`): `tools/sync_linux.sh` synced and verified 4006 files; build (`056-p4-lx-build`) clean; T107 set (`056-p4-lx-msg`) 21 / 21 pass;
+  `ctest -LE determinism-sweep -j2` (`056-p4-lx-all`): 1303 tests, **1 failed = the baseline `TextureTile_RenderByteIdentical` (#45)**, nothing else; `ctest -L architecture` (`056-p4-lx-arch`): 29 / 29.
+- Expected red at the end of Phase 4: none on macOS; on Linux only the baseline `TextureTile_RenderByteIdentical`.
+
+
+## 5. Phase 5: documents, 2026-11-10
+
+- T111 TEST-APPROVAL: no test edited, none added.
+- T112 (applied): `DEVNOTES_DETAILS/RISPEC_GAPS.md`: the Volume Shading entry is `[x]`, the "parsed, stored ... never executed" claim and the stale citation (`shading.cpp:1049`)
+  are gone, the rule is written down (spawning surface, side by the sign of `dot(dir, N)`, segments, hits and misses, `Atmosphere` camera-only, the accepted `N`-rewrite consequence,
+  `incident()`/`opposite()`), the header count is "8 of 11 implemented, 1 partial, 2 absent", and the footer records the entry's verification date (2026-11-10). The Area Light entry is untouched.
+- T113, T115, T117 (proposals only, nothing applied): `tools/proposed/devnotes-row.md` (the `DEVNOTES.md:17` row, a spec 056 status row, the `NEWS.md` entry, the `ChangeLog.md` lines) and
+  `tools/proposed/site-solid-csg.md` (the rewrite of `solid-csg-operations.md:221-256`, the `renderman-rispec.md:30` row and its count line 19). T114 and T116 are the PAUSEs.
+- T118: `git grep -n 'selectVolumeShader\|SOLID_FRAGMENT\|csgSolid.cpp:273' -- . ':!specs'` finds nothing; the `csgSolid.cpp` lines of `tests/architecture/allowlist.txt` (DB-004 `:16`, DB-017 `:284-285`) and
+  `DOMAIN_BOUNDARIES.md` do not cite them, so no registry entry moves.
+- T119: `quickstart.md`: one name reconciled (`-E 'Parity_|golden'` became `-E 'Parity_|Golden_'`: the registered tests are `Golden_*`); every other command, test name and scene family was checked against `ctest -N`.
+- T120: `claude-md-draft.md` (architecture subsection, gotcha 36, the shader count 130 -> 137, the sweep 419 -> 570, a `-L volume` line, Active Technologies, Recent Changes). `CLAUDE.md` is not edited;
+  gotchas 12 and 13 contain no statement the spec made false.
+- T121 (what is applied so far, T112 only): `056-p5-docs` `-R 'DocPaths|Doc'`: 1 / 1 (`PluginAbi_DocPaths`); `056-p5-arch` `ctest -L architecture`: 29 / 29.
+- T122 (SC-008 walk of `RISPEC_GAPS.md`, each line opened, macOS tree): `rendererContext.cpp:2372` `void CRendererContext::RiInteriorV(...)` (body: `attributes->bindInterior(...)`), `:2385` `RiExteriorV` (`bindExterior`);
+  `executeMisc.cpp:942` `int isExterior = (dotvv(dir, rays->sideN) > 0) || (interiorShader == exteriorShader);`, `:773` the same for `rdir` (transmission);
+  `shading.cpp:4599` `rays[numExtRays++] = raysBase;` (the gather split on `dotvv(raysBase->dir, normalN) > 0`, `:4598`), `:4615`/`:4622` `lastGather->begin(..., attachVolume ? shaderInstanceOf(cAttributes->interior()/exterior()) : nullptr)`;
+  `bundles.cpp:59` `void CSegmentBundle::attenuateHits(`, `:82` `attenuateMisses(`; `shading.cpp:654` `void CShadingContext::shadeVolumeSegments(`; `:1598`-`:1602` `if (atmosphere != NULL) {` ... `atmosphere->execute(...)` under `g.pathDepth == 0`;
+  `:1907` `int CShadingContext::incidentParameter(`. Every one holds what the entry says. `git grep -n -i 'never executed\|stored and never\|doubly false' -- DEVNOTES.md DEVNOTES_DETAILS docs` still finds:
+  `DEVNOTES.md:17` and `docs/site/content/references/renderman-rispec.md:30` (both waiting on the T114 / T116 answers), the two dated correction notes inside `RISPEC_GAPS.md` itself (they quote the old claim on purpose), and an unrelated CSE sentence in `OSHADER_UPDATES.md`.
+- T123: macOS architecture 29 / 29 done. The Linux sync and the Linux `-L architecture` and doc-test run are **pending**: the documents still change after the PAUSE answers, and nothing built changed in this phase, so they are run once after those edits.
+
+### T114, T116 and T121 to T123: the approved edits and the final runs
+
+- T114 (approved, applied as written in `tools/proposed/devnotes-row.md`): the `DEVNOTES.md:17` row, a spec 056 status row after the spec 029 row, one `NEWS.md` entry at the top of "Unreleased", and the `ChangeLog.md` lines (Added, Changed x2, Removed, Docs).
+- T116 (approved A, B and C, applied as written in `tools/proposed/site-solid-csg.md`): A the rewrite of the "Interior / Exterior shading" section of `docs/site/content/manual/reference/solid-csg-operations.md`;
+  B the Volume Shading row of `docs/site/content/references/renderman-rispec.md` (now **Yes**); C its count line (8 of 11 implemented, 1 partial, 2 absent).
+- T122 re-check after the edits: `git grep -n -i 'never executed\|stored and never\|never run\|doubly false' -- DEVNOTES.md DEVNOTES_DETAILS docs` finds only the two dated correction notes inside `RISPEC_GAPS.md` (they quote the old claim on purpose) and the unrelated CSE sentence in `OSHADER_UPDATES.md`.
+- T121/T123 macOS: `056-p5b-docs` (`-R 'DocPaths|Doc'`) 1 / 1; `056-p5b-arch` (`-L architecture`) 29 / 29.
+- T123 Linux (`tools/sync_linux.sh`: 4009 files synced and verified; remote `cpujob` `-j2`, `056-p5-lx`, `056-p5-lx-arch`): doc tests 1 / 1, `-L architecture` 29 / 29.
+- Nothing built changed in Phase 5 (documents only), so no build and no full run were made; the Phase 4 results stand. `CLAUDE.md` is untouched.
+
+## 6. Phase 6: validation before merge (2026-11-10)
+
+Base: `git merge-base --is-ancestor 0e554fed HEAD` exits 0 (master is still `0e554fed` and the branch contains it), so no refresh is needed. HEAD `7780343a`, tree clean before the runs.
+T126 TEST-APPROVAL: no test edited, none added, no source edited in this phase. Logs: `build-logs/056-p6-*.log` (not tracked).
+
+### Runs (T127 to T131)
+
+| Run | Host | Command (through `cpujob`) | Result |
+|---|---|---|---|
+| Build | macOS | `056-p6-build` `cmake --build build --config Release -j4` | up to date, exit 0 |
+| Full | macOS | `056-p6-all` `ctest -LE determinism-sweep -j4` | **1302 / 1302**, 1301 passed + 1 skipped by design (`LibShader_Format_rslo_lower_minor`), 0 failed |
+| Architecture | macOS | `056-p6-arch` `-L architecture` | 29 / 29 |
+| Sweep | macOS | `056-p6-sweep` `-L '^determinism-sweep$' -j2` | **570 / 570** |
+| Sync, build | Linux | `tools/sync_linux.sh` (verified), `056-p6-lx-build` `-j2` (GCC 13, `-Werror`) | clean |
+| Full | Linux | `056-p6-lx-all` `-LE determinism-sweep -j2` | 1303 tests, **1 failed: the baseline `TextureTile_RenderByteIdentical` (#45)**, nothing else |
+| Architecture | Linux | `056-p6-lx-arch` `-j2` | 29 / 29 |
+| Sweep | Linux | `056-lx-sweep` `-L '^determinism-sweep$' -j2` | **570 / 570** (1365 s) |
+
+Compared with the Phase 0 baseline (macOS 1097 tests all green + 1 skipped; Linux 1098 with the same baseline failure): every pre-existing test passes as before, apart from the two CSG
+scenes (new approved references), `CSG_InteriorExteriorSelection` (retired) and the edited `State_Isolation` / `CSG_ProceduralOperand` (all pass; `CSG_*` 17 / 17, `State_Isolation` 1 / 1). The sweep is the Phase 0 419 plus 151.
+No threshold was widened and no test disabled.
+
+### Success criteria (T132)
+
+| SC | Measured value | Command / evidence |
+|---|---|---|
+| SC-001 | `VolumeProbe_*` 159 / 159 pass (reyes, zbuffer, raytrace; `.rslo` and `.slo`), each against a hand-computed value (`Cb*T + bg*d` families, slab, reflection, transmission, gather, shadow-light, environment, primitive hit mode); `Parity_volume-glass-sphere-*` 2 / 2; `VolumeDiffer_glass-sphere-*` 3 / 3 | `056-p6-all`; Linux `VolumeProbe_` 159 / 159 (`056-p6-lx-all`) |
+| SC-002 | The glass-sphere refraction with an interior fog differs from its no-fog twin (`VolumeDiffer_glass-sphere-{reyes,zbuffer,raytrace}` pass; on the starting tree they read "0 value(s) differ"); `Visual_volume-interior-fog-glass-sphere-*` 3 / 3 against the approved references. Red values on the starting tree: validation section 1 (86 red of 166, every probe at the unattenuated value) | `056-p6-all`; section 1 |
+| SC-003 | `VolumeProbe_exterior-fog-reflection_*` 12 / 12: the reflected miss returns `bg*d` (finite segment to the world-bound exit), not `0 0 0` (starting tree: `0 0 0` on every hider and backend) | `056-p6-all` |
+| SC-004 | Changed references: **only** `csg-sphere-sphere-difference-interior-raytrace.tif` and `-inside.tif` (rewritten scenes, approved image by image). Added: the three `volume-interior-fog-glass-sphere-{reyes,zbuffer,raytrace}.tif`, 7 `tests/shaders/references/*.rslo`, 14 lines in each of `reference/{macos,linux}/shaders.sha256`, the goldens under `tests/visual/golden/` (all approved). Every pre-existing test passes at its existing threshold; `Golden_atmosphere` 12 / 12 and the no-volume twins (`VolumeProbe_*-none` 72 / 72, `Golden_volume-none-*` 7 / 7) are byte-identical to the starting-tree captures; `ShaderCompilerImmutability` and `Shaders_BytesUnchanged` pass | `056-p6-all`; `git diff --name-status 0e554fed HEAD` |
+| SC-005 | Full run green on macOS (1302 / 1302) and on Linux apart from baseline #45; `-L architecture` 29 / 29 on both; allowlist: `git diff e83d005d -- tests/architecture/allowlist.txt` and `git diff 0e554fed -- ...` are both empty (0 lines); determinism: macOS sweep 570 / 570, Linux sweep 570 / 570 (including `DeterminismSweep_volume-csg-fragment-raytrace-slo`, the Linux-only starting-tree failure); `Determinism_volume-random-fog(+slo)` 2 / 2 | `056-p6-all`, `-arch`, `-sweep`, `056-p6-lx-*` |
+| SC-006 | `ShadingContract_MessageSide{Interp,Jit}` 2 / 2 and `VolumeProbe_incident-opposite_*` 12 / 12 on macOS and 2 / 2, 12 / 12 on Linux (Phase 4 red values: validation section 1, "incident() reads Interior"); `ShadingContract_Messages*` and `_MessageAccessors` pass unedited | `056-p6-all`, `056-p6-lx-all` |
+| SC-007 | `Golden_atmosphere-*` 12 / 12 on macOS and 12 / 12 on Linux; `VolumeProbe_atmosphere-fog-reflection_*` 2 / 2 (no atmosphere in the mirror); `Parity_atmosphere-*` 6 / 6 | `056-p6-all`, `056-p6-lx-all` |
+| SC-008 | The walk of T122 (section 5): every file and line `RISPEC_GAPS.md` cites holds what it says; `git grep -n -i 'never executed\|stored and never'` leaves only the two dated correction notes inside `RISPEC_GAPS.md` and an unrelated CSE sentence | section 5 |
+| SC-009 | `VolumeProbe_miss-clipping_*` 12 / 12 (far `Clipping` 1e30: `I` finite, value `0.0826 0.2479 0.7436`, the segment 7.0 to the camera-space world-bound exit); `ShadingContract_VolumeSegments{Interp,Jit}` 2 / 2 (no step for `visibility()` or float `trace()`) | `056-p6-all`; section 2 (T074) |
+
+Other items T132 lists:
+- **Allowlist before / after:** unchanged (0 diff lines against `e83d005d` and against `0e554fed`); `ctest -L architecture` 29 / 29 on both hosts.
+- **Flat-namespace imports:** unchanged: `Link_ShadingSelfContained`, `Link_NoWorkaroundText` and `Link_StaticConsumer` (the guards for gotcha 28 / spec 029) pass 3 / 3 on macOS (they fail on a new undefined reference); the spec adds no services member and no link edge (`ctest -L architecture`).
+- **Perf (T080 ratio):** `Visual_camera-dof-raytrace` 0.72 s (Phase 0 1.15 s, Phase 2 0.86 s), `Visual_sphere-trace-reyes` 0.10 s (0.16 s, 0.15 s): single runs under `-j4` load, no regression.
+- **Files changed vs master `0e554fed`:** 330 files (+13004 / -386): 15 under `src/` (`libshader/shading/{bundles.{h,cpp},executeMisc.cpp,giFunctions.h,rendererServices.h,shaderFunctions.h,shaderPl.{h,cpp},shading.{h,cpp},tracer.h}`,
+  `ri/geometry/csgSolid.cpp`, `ri/state/attributes.h`, and the two `shaders.sha256` fixtures); 7 new shaders in `shaders/`; 14 contract shaders and the `case_*` files in `tests/shading_contract/`; `tests/visual/` registrations, goldens and
+  `parity-thresholds.md`; 154 new scenes (`examples/rib/tests/volume-*`, `atmosphere-*`) and the two rewritten CSG scenes; the references listed under SC-004; `DEVNOTES.md`, `NEWS.md`, `ChangeLog.md`,
+  `DEVNOTES_DETAILS/RISPEC_GAPS.md`, two site pages; `specs/056-volume-shader-segments/`. `CLAUDE.md` is not among them.
+- **`CLAUDE.md`:** its clauses await the maintainer applying `specs/056-volume-shader-segments/claude-md-draft.md`.
+
+### T133
+
+The 18 binary candidate images (`tools/proposed/csg/*.{tif,png}`, `tools/proposed/glass/*.{tif,png}`) were removed with `git rm` after `cmp` showed the five applied references
+(`examples/rib/tests/references/csg-sphere-sphere-difference-interior-raytrace{,-inside}.tif`, `volume-interior-fog-glass-sphere-{reyes,zbuffer,raytrace}.tif`) byte-identical to their candidates. The text proposals and the `.diff` files are kept.
+Afterwards (maintainer-approved) the 7 `tools/proposed/references/*.rslo` and `tools/proposed/reference-root/macos/{oshader_help.txt,shaders.sha256}` were removed with `git rm` too, after `cmp`/`diff` showed each byte-identical
+to its applied copy (`tests/shaders/references/<name>.rslo`, `src/libshader/tests/reference/macos/{oshader_help.txt,shaders.sha256}`). Earlier sections that name those directories describe the state at the time.
+
+## 7. Phase 7: converge additions (2026-11-11)
+
+Base: HEAD `f75308a1`; master is still `0e554fed` (an ancestor). Rules followed: the `## Spec-kit agent rules` section of `CLAUDE.md` (worktree copy; unchanged).
+
+- T135 TEST-APPROVAL: the maintainer approved T136 to T138 as recommended on 2026-11-11 (relayed by the coordinator): T136 the source fix in `shade()`'s shadow-primitive branch and the new scene family
+  `volume-transmission-primitive-hitmode` with its `-none` twin; T137 the one-off `tools/compare_corpus.sh` (with one change: use the main checkout's existing master `orender` if its build is current; never reconfigure or build in the main
+  checkout; build a scratch tree only if it is not, disk checked first, and ask before deleting anything); T138 the document reconciliation. No approved test or reference is edited; the additions are the 12 new scenes and their
+  12 probes and 12 sweep entries.
+
+### T136: shadow hit in primitive hit mode (2026-11-11)
+
+- **The gap:** in `transmissionhitmode "primitive"` `shade()` returned from the shadow-primitive branch after writing `Oi` only, and `CTransmissionBundle::postShade` then handed `varying[VARIABLE_CI]` to the step: a `Ci` that was whatever the
+  state's buffer held, against contracts/segment-step.md section 3 and research R6 (the step sees the colour the hit produced). No test reached it (`volume-primitive-hitmode` uses `specularhitmode`; the contract tracer never calls `shade()`).
+- **New scenes:** a generated family `volume-transmission-primitive-hitmode` (`tools/families/transmissionprimitive.py`, registered in `tools/gen_scenes.py`) and its `-none` twin: the scene of `volume-transmission-interior` with the half-transparent wall
+  (opacity 0.5) carrying `Attribute "shade" "string transmissionhitmode" ["primitive"]`; 12 scenes (reyes, zbuffer, raytrace, `.rslo` and `.slo`, with and without `Interior`), 12 probes (pixel (4,4): `0.1839416` at tolerance 1e-4, the twin `0.5` at 1e-5,
+  the hand-computed `0.5 * exp(-(1000 - 0.01)/1000)`) and 12 `add_determinism_sweep` entries, all generated into `tests/visual/volume-probes.cmake` and `tests/visual/determinism-scenes.cmake`
+  (`python3 tools/gen_scenes.py` changes only those two files and the 12 new RIBs; `--check` after it is clean). The wall is not a shadow hit in shader mode, so GitHub #148's nesting is not reached.
+- **Red evidence (starting source, `056-p7-red`):** none, as the task expected: **24 / 24 passed before the source change**. `Oi` is the only input the volume (`fog`) reads for the transmitted fraction, so a garbage `Ci` cannot change the probe; the
+  observed value equals the hand-computed one on all six variants. The scenes pin FR-005 (the segment of a primitive-mode hit is attenuated) and stay green across the fix.
+- **Source (the maintainer's recommended (b), approved):** `shade()`'s shadow-primitive branch (`src/libshader/shading/shading.cpp`, about `:1144-1160`) now also writes `Ci` from `currentAttributes->surfaceColor`, as the secondary-ray primitive branch already did.
+  Nothing read that colour before for a shadow ray's opacity, so no image changes (the full run below and the corpus comparison under T137 are the evidence).
+- **Results:** `056-p7-build` clean; macOS `056-p7-new` 24 / 24; `056-p7-all` (`ctest -LE determinism-sweep -j4`) **1314 / 1314** (1313 passed, 1 skipped by design: `LibShader_Format_rslo_lower_minor`; 1302 + the 12 new probes);
+  `056-p7-arch` 29 / 29; `056-p7-sweep` (`-L '^determinism-sweep$' -j2`) **582 / 582** (570 + 12).
+  Linux (`tools/sync_linux.sh`, GCC 13 `-Werror`, remote `cpujob -j2`): build clean; new tests 24 / 24; full run 1315 tests, **1 failed: the baseline `TextureTile_RenderByteIdentical` (#45)**; `-L architecture` 29 / 29; sweep **582 / 582** (`056-p7-lx-sweep2`, 1359 s; the first run of it, `056-p7-lx-sweep`, was cut off after 60 tests when the remote `ctest` was interrupted, with no failure among them, and was run again in full).
+  (The first sync of this phase reported one checksum mismatch, `tasks.md`, because the file was edited between the manifest and the copy; no code file was affected, the remote build and every test ran on the synced sources, and the final sync below is clean.)
+- **Counts after T136:** `ctest -N` 1896 tests; `-L determinism-sweep` 582 (419 + 163); `-L volume` 196; `VolumeProbe_*` 171 (159 + 12). `claude-md-draft.md`'s figures were changed (sweep 570 to 582, the 419 + 151 to 419 + 163) and nothing else.
+
+### T137: byte identity against master, measured (2026-11-11)
+
+- **What:** `tools/compare_corpus.sh` (+ `tools/compare_corpus.py`; one-off, not a ctest test, no git, run through `cpujob` at two jobs): every RIB that a `Visual_*`, `Parity_*` or `Determinism*` test of this build registers (listed from `ctest --show-only=json-v1`)
+  and that binds no `Interior`/`Exterior` (the RIB and the archives it reads are scanned) is rendered at `-t:1` from a scratch directory with `VISUAL_ENV`'s variables, once with master `0e554fed`'s `orender` and once with this tree's; every output file is compared byte for byte.
+  The RIBs are this tree's for both (the new scenes do not exist on master), so a master render of a new shader's scene takes the new `.slo`/`.rslo` from this tree's shader directory (listed second in `SHADERS`).
+- **Master build:** the main checkout's build (`/Users/juvenal/Projects/Development/CLI/openrender/build`) is **not current** (built 2026-11-01; master has had the specs 029, 038 and #153 merges since: `libRIBRender` and `libshader_shading` date from 2026-11-01), so it was not used and nothing was built or configured in the main checkout.
+  A scratch tree was made instead: `git archive 0e554fed` extracted to `/Volumes/Projects/Development/CLI/openrender-scratch-056-master` (outside both the worktree and the main checkout; the same `vcpkg.json`, the shared vcpkg tree), configured and built through `cpujob` (`056-p7-master-cfg`, `-build`: the targets `orender`, the four display drivers and `openrender_shaders`), 28 GB free before and after. **It still exists: delete it only on the maintainer's word.**
+- **Selection:** 603 RIBs registered by those tests; 82 skipped because they bind `Interior`/`Exterior`; **521 compared** (318 that use the raytrace hider or a shader that calls `trace`/`transmission`/`shadow`/`gather`/`visibility`/`environment`/`occlusion`/`indirectdiffuse`/`photonmap`/`incident`/`opposite`, 203 others, all that were registered).
+  The whole list is `tools/corpus-selection.txt`; the verdict per scene is `tools/corpus-results.txt`.
+- **Verdict (`056-p7-corpus`):** **513 byte-identical** (every output file; 310 of tier 1, all 203 of tier 2) and **8 whose images are identical but one ancillary file differs**: `photon-parity{,-slo}`, `photon-solar0-alone{,-slo}`, `photon-solar0-after-distant{,-slo}` (the `.gpm` photon map) and `sphere-texture3d-bake3d-reyes{,-slo}`
+  (the `.ptc` point cloud). Those files are not reproducible on either tree: with `COMPARE_SELF=1` (each tree rendered twice) the same file differs between two runs of **master alone** and between two runs of **this branch alone**, in every one of the 8 scenes (`056-p7-selfcheck`); with the sweep's
+  `Option "sampling" "sampler" ["sobol"]` prepended (`056-p7-sobol`) the images are identical again and the same files still differ run to run. The photon scenes' own headers say they must be rendered at `-t:1` because of the CPhotonHider race (BUGS.md). So there is **no difference attributable to this spec**; no threshold was used.
+- **Positive control:** `volume-interior-fog-slab-raytrace` (binds `Interior`, so it must differ) differs between master and this tree: the comparison can see a difference.
+- **Smoke run:** a stride-70 run (`056-p7-smoke`, 8 scenes) came first to check the tool; all identical.
+
+### T138: documents reconciled with the code (documents only)
+
+`data-model.md` (the `CTransmissionBundle` row), `research.md` (R3, the `CTransmissionBundle` bullet) and T067 in `tasks.md` now say what `CTransmissionBundle::postShade` does: the step runs on **every** hit of the bundle and the result of an opaque hit is discarded
+(an opaque hit is not queued, so nothing reads it); the transmitted value is the same as if the step ran only on the transparent hits, and the code does not take that saving (a separate source task would be needed if it were wanted).
+`contracts/segment-step.md` section 4's `transmission()` row says nothing about which hits run the step, so it is unchanged. `research.md`'s primitive-hit-mode bullet also had stale line citations and said `shade()` needed no change; it now names the secondary branch (`shading.cpp:1177-1190`) and the
+shadow branch (`:1146-1160`) and records the Phase 7 fix. No test or source is touched by T138.
+
+### T139: CHECKPOINT 7 (macOS and Linux)
+
+- Phase 7 results: macOS full run 1314 / 1314 (1 skipped by design), architecture 29 / 29, sweep 582 / 582; Linux full run 1315 tests with only the baseline `TextureTile_RenderByteIdentical` (#45) failing, architecture 29 / 29, sweep 582 / 582.
+  The new tests are 12 `VolumeProbe_transmission-primitive-hitmode_*` and 12 `DeterminismSweep_volume-transmission-primitive-hitmode*` (24 / 24 on both hosts, green before and after the source change). No approved test or reference was edited, no threshold changed.
+- T137: 513 of 521 scenes byte-identical to master `0e554fed`; the other 8 differ only in a `.gpm`/`.ptc` file that also differs between two runs of master alone; no image differs.
+- Figures: `ctest -N` 1896; sweep 582; `-L volume` 196; `VolumeProbe_*` 171; `claude-md-draft.md` updated for the sweep count only. `CLAUDE.md` is untouched.
+- Changed in Phase 7: `src/libshader/shading/shading.cpp` (the shadow-primitive branch writes `Ci`), `tests/visual/{volume-probes,determinism-scenes}.cmake` (generated), the 12 new scenes, `tools/{gen_scenes.py,families/transmissionprimitive.py,compare_corpus.sh,compare_corpus.py,corpus-selection.txt,corpus-results.txt}`,
+  `data-model.md`, `research.md`, `tasks.md`, `claude-md-draft.md`, this file. `/Volumes/Projects/Development/CLI/openrender-scratch-056-master` (the master build) still exists; `build/corpus*` are under the gitignored `build/`.

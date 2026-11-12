@@ -1,0 +1,33 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+# Companion to csg-sphere-sphere-difference-interior-raytrace.rib (T036, SC-004), rewritten by spec 056 (FR-011, FR-012).
+# The camera sits at the world origin, inside the outer sphere (radius 1) and outside the subtracted bite sphere (center (0,0,-0.9), radius
+# 0.6): inside the solid's own material. A camera ray gets no volume step (it has no spawning surface), so the walls the camera sees carry no fog;
+# the mirror surface traces a reflection from every camera hit, and because the camera is inside, the reflected rays leave into the INTERIOR
+# side, so the Interior fog (red) tints the reflections throughout. Names and test IDs are unchanged from spec 021; matte (which traced nothing)
+# is replaced by a mirror.
+Hider "raytrace"
+Display "csg-sphere-sphere-difference-interior-raytrace-inside.tif" "file" "rgba"
+Format 200 200 1
+Projection "perspective" "fov" 90
+Clipping 0.01 1000
+WorldBegin
+    LightSource "ambientlight" 1 "intensity" [0.3]
+    LightSource "distantlight" 2 "intensity" [0.9] "from" [5 5 -5] "to" [0 0 0]
+    Color [0.75 0.75 0.8]
+    Attribute "visibility" "int specular" [1]
+    Surface "mirror" "float Ka" [0.3] "float Kr" [0.8]
+    Interior "fog" "distance" 4 "background" [0.9 0.1 0.1]
+    Exterior "fog" "distance" 4 "background" [0.1 0.1 0.9]
+    SolidBegin "difference"
+        SolidBegin "primitive"
+            Sphere 1 -1 1 360
+        SolidEnd
+        SolidBegin "primitive"
+            TransformBegin
+                Translate 0 0 -0.9
+                Sphere 0.6 -0.6 0.6 360
+            TransformEnd
+        SolidEnd
+    SolidEnd
+WorldEnd
