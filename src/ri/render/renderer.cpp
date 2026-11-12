@@ -59,6 +59,7 @@
 #include "rendererFrame.h"
 #include "rendererProcedures.h"
 #include "rendererTransport.h"
+#include "transport/integratorRegistry.h"
 #include "ri.h"
 #include "ri_config.h"
 #include "rib.h"
@@ -94,9 +95,10 @@ void CRenderer::beginRenderer(CRendererContext *c, const char *ribFile, const ch
     // Save the context
     context = c;
 
-    // Build the hider registry now (spec 030): its registration reports, if any, are raised once per process, at the
-    // first RiBegin, through the sink installed by then
+    // Build the hider and integrator registries now (spec 030): their registration reports, if any, are raised once per
+    // process, at the first RiBegin, through the sink installed by then
     (void)hiderRegistry().size();
+    (void)integratorRegistry().size();
 
     // Reset the stats
     stats.reset();
@@ -786,12 +788,13 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     textureSystem = createTextureSystem(textureSettings);
     assert(textureSystem != NULL);
 
-    // Resolve the frame's hider through the registry (spec 030): an unknown name is reported here and the frame goes on
-    // with the reyes hider. What the hider provides becomes the frame's traits, which the display set-up below reads.
+    // Resolve the frame's hider and integrator through the registries (spec 030): an unknown name is reported here and the
+    // frame goes on with the reyes hider or the classic integrator; a pair that does not fit refuses the frame. What the hider
+    // provides becomes the frame's traits, which the display set-up below reads.
     beginFrameTransport(o);
 
-    // Allow the hider to control display setup
-    if (frameTransport().hider->preDisplaySetup != NULL)
+    // Allow the hider to control display setup (a refused frame builds nothing, so the hider is not asked)
+    if (!frameTransport().refused && frameTransport().hider->preDisplaySetup != NULL)
         frameTransport().hider->preDisplaySetup();
 
     // Set up displays
@@ -806,30 +809,55 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     // State's slot, and the frame's camera (spec 028). Before the contexts exist: no thread reads yet.
     beginFrameParams(samplingConfig);
 
-    // Start the contexts: one hider per render thread, built by the resolved hider's table
+    // Start the contexts: one hider per render thread, built by the resolved hider's table. A refused frame (an unsupported
+    // hider and integrator pair, an integrator that could not be configured) builds none: contexts stays NULL, no render
+    // thread runs and every reader of contexts is null-safe (research R8).
     numActiveThreads = numThreads;
-    contexts = new CHider *[numThreads];
-    for (i = 0; i < numThreads; i++)
-        contexts[i] = NULL;
+    contexts = NULL;
+    if (!frameTransport().refused) {
+        contexts = new CHider *[numThreads];
+        for (i = 0; i < numThreads; i++)
+            contexts[i] = NULL;
 
-    // The peer group lives in the frame's transport slot, set before the first hider is built: a constructor may read it and
-    // the reyes hiders keep a pointer to it until endFrame()
-    setFramePeers(contexts, numThreads);
+        // The peer group lives in the frame's transport slot, set before the first hider is built: a constructor may read it
+        // and the reyes hiders keep a pointer to it until endFrame()
+        setFramePeers(contexts, numThreads);
 
-    const OrHiderTable *hiderTable = frameTransport().hider;
-    dispatchJob = hiderTable->dispatch == OR_HIDER_DISPATCH_BUCKETS ? dispatchReyes : dispatchPhoton;
+        const OrHiderTable *hiderTable = frameTransport().hider;
+        dispatchJob = hiderTable->dispatch == OR_HIDER_DISPATCH_BUCKETS ? dispatchReyes : dispatchPhoton;
 
-    // The world attributes are acquired only by a hider that asks for them (the photon hider), once per thread, as before
-    SHiderFrame hiderFrame = {&frameTransport().peers, &frameCamera(), acquireWorldAttributes, context};
+        // The world attributes are acquired only by a hider that asks for them (the photon hider), once per thread, as before
+        SHiderFrame hiderFrame = {&frameTransport().peers, &frameCamera(), acquireWorldAttributes, context};
 
-    for (i = 0; i < numThreads; i++) {
-        OrHiderCreateInfo info = {sizeof(OrHiderCreateInfo), i, numThreads, reinterpret_cast<const OrHiderFrame *>(&hiderFrame)};
+        for (i = 0; i < numThreads; i++) {
+            OrHiderCreateInfo info = {sizeof(OrHiderCreateInfo), i, numThreads, reinterpret_cast<const OrHiderFrame *>(&hiderFrame)};
 
-        contexts[i] = hiderOf(hiderTable->create(&info));
-        assert(contexts[i] != NULL); // the abort branch of a NULL create is Phase 9's (T120)
+            contexts[i] = hiderOf(hiderTable->create(&info));
+            if (contexts[i] == NULL) {
+                // A hider that could not be built aborts the frame (it is not a refusal: the displays have started)
+                error(CODE_BUG, "Hider \"%s\" could not create its thread %d context\n", hiderTable->name, i);
+                abortFrameTransport();
+                break;
+            }
 
-        contexts[i]->shadingContext().setSamplingConfig(samplingConfig);
-        contexts[i]->shadingContext().updateState();
+            contexts[i]->shadingContext().setSamplingConfig(samplingConfig);
+            contexts[i]->shadingContext().updateState();
+        }
+
+        // The integrator hears that the frame is built: after the per-thread hiders exist, before any render thread
+        if (!frameTransport().aborted)
+            prepareFrameTransport();
+
+        if (frameTransport().aborted) {
+            // Everything created for the frame goes at once: the hiders built so far (through the table's destroy), the
+            // array and, in abortFrameTransport, the integrator instance (without finish)
+            for (i = 0; i < numThreads; i++)
+                if (contexts[i] != NULL)
+                    hiderTable->destroy(instanceOf(contexts[i]));
+            delete[] contexts;
+            contexts = NULL;
+            hiderFlags |= HIDER_BREAK;
+        }
     }
 }
 
@@ -842,14 +870,19 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
 void CRenderer::endFrame() {
     int i;
 
+    // The integrator hears that the frame is over, before the hiders go (finish only for a frame whose prepare returned OK)
+    finishFrameTransport();
+
     // Delete the contexts, each through the table of the hider that built it, in thread order (for the photon hider the
-    // destructor still writes its maps at this point)
-    for (i = 0; i < numThreads; i++) {
-        if (contexts[i] != NULL)
-            frameTransport().hider->destroy(instanceOf(contexts[i]));
+    // destructor still writes its maps at this point). A refused or aborted frame has none.
+    if (contexts != NULL) {
+        for (i = 0; i < numThreads; i++) {
+            if (contexts[i] != NULL)
+                frameTransport().hider->destroy(instanceOf(contexts[i]));
+        }
+        delete[] contexts;
+        contexts = NULL;
     }
-    delete[] contexts;
-    contexts = NULL;
 
     // No context is left to read the frame parameters (specs 026, 028)
     endFrameParams();
@@ -1053,6 +1086,10 @@ static TFunPrefix rendererDispatchThread(void *w) {
 // Return Value			:	-
 // Comments				:
 void CRenderer::renderFrame() {
+
+    // A refused or aborted frame renders nothing: it has no hiders to hand the hierarchy to or to run
+    if (frameTransport().refused || frameTransport().aborted)
+        return;
 
     // Make sure we have a bounding hierarchy
     movvv(root->bmin, worldBmin);

@@ -5,7 +5,7 @@
  *
  * Description:
  *   The renderer core's per-frame transport slot (spec 030, contracts/frame-transport.md). The core resolves the frame's
- *   hider (and, from Phase 9, its integrator) through the registries in beginFrame(), keeps the result here, and everything
+ *   hider and its integrator through the registries in beginFrame(), keeps the result here, and everything
  *   that used to read a hider's name or the hiderFlags description bits reads a declared capability trait instead.
  *
  *   The slot is written only by the core, before any render thread exists (beginFrameTransport, setFramePeers) and after the
@@ -42,12 +42,12 @@ struct SHiderTraits {
 struct SFrameTransport {
         const OrHiderTable *named = nullptr;                // the registration of CRenderer::hider as written; nullptr if unknown
         const OrHiderTable *hider = nullptr;                // resolved: named, or the reyes fallback
-        const OrIntegratorTable *integratorNamed = nullptr; // (Phase 9)
-        const OrIntegratorTable *integrator = nullptr;      // (Phase 9)
-        OrIntegratorInstance *integratorInstance = nullptr; // (Phase 9)
-        bool prepared = false;                              // prepare returned OK: finish is due (Phase 9)
-        bool refused = false;                               // detected before the displays: nothing built, no output file (Phase 9)
-        bool aborted = false;                               // detected after the displays: no render thread runs (Phase 8 T120, Phase 9)
+        const OrIntegratorTable *integratorNamed = nullptr; // the registration of the integrator name as written; nullptr if unknown
+        const OrIntegratorTable *integrator = nullptr;      // resolved: named, or classic
+        OrIntegratorInstance *integratorInstance = nullptr; // created and configured before the displays; destroyed by finishFrameTransport or abortFrameTransport
+        bool prepared = false;                              // prepare returned OK: finish is due
+        bool refused = false;                               // detected before the displays (an unsupported pair, a configure that failed): nothing built, no output file
+        bool aborted = false;                               // detected after the displays (create returned NULL, prepare failed): no render thread runs
         SHiderTraits traits;                                // all false on a refused frame
         CHiderPeers peers;                                  // { contexts, numThreads }: owned by the slot, never a local; valid until endFrameTransport()
 };
@@ -56,10 +56,11 @@ struct SFrameTransport {
 const SFrameTransport &frameTransport();
 
 // Core-only (called by CRenderer).
-void beginFrameTransport(const COptions *o);           // resolve the hider; unknown name: error, the reyes fallback; traits
+void beginFrameTransport(const COptions *o);           // resolve the hider and the integrator (unknown: error, fallback), check the pair, create and configure; traits
 void setFramePeers(CHider **contexts, int numThreads); // stores the peer group in the slot, before the construction loop
-void prepareFrameTransport();                          // (Phase 9)
-void finishFrameTransport();                           // (Phase 9) start of endFrame
+void prepareFrameTransport();                          // the integrator's prepare (the peers were stored by setFramePeers); a failure aborts the frame
+void abortFrameTransport();                            // a frame that fails after its displays began: aborted, traits cleared, the integrator destroyed without finish
+void finishFrameTransport();                           // the integrator's finish (when prepare returned OK) and destroy; start of endFrame
 void endFrameTransport();                              // clears the slot, end of endFrame, after endDisplays
 
 // Test-only: sets the slot's illuminationHook trait outside a frame and returns the previous value, so a test that drives

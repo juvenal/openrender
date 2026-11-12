@@ -77,19 +77,16 @@ reg_test(Registry_IntegratorImageIdentity test_registry_identity LABELS visual T
 reg_executable(test_registry_hider_double test_registry_hider_double.cpp hider_double.cpp)
 reg_test(Registry_TestDoubleHider test_registry_hider_double)
 
-# ---- red until their phase ----------------------------------------------------------------------------------------------
-if(OPENRENDER_030_RED_TESTS)
-    # Phase 9: pairs, refusals, the integrator statements and the abort paths (the test-double integrator ABI).
-    reg_executable(test_registry_pairs test_registry_pairs.cpp integrator_doubles.cpp)
-    foreach(_hider reyes zbuffer raytrace photon)
-        reg_test(Registry_PairRefusal_${_hider} test_registry_pairs ARGS refusal ${_hider} TIMEOUT 300)
-    endforeach()
-    reg_test(Registry_ClassicPairs test_registry_pairs ARGS classic_pairs TIMEOUT 300)
+# ---- Phase 9: pairs, refusals, the integrator statements and the abort paths (the test-double integrator ABI) ----------------
+reg_executable(test_registry_pairs test_registry_pairs.cpp integrator_doubles.cpp)
+foreach(_hider reyes zbuffer raytrace photon)
+    reg_test(Registry_PairRefusal_${_hider} test_registry_pairs ARGS refusal ${_hider} TIMEOUT 300)
+endforeach()
+reg_test(Registry_ClassicPairs test_registry_pairs ARGS classic_pairs TIMEOUT 300)
 
-    reg_executable(test_registry_integrator_statements test_registry_integrator_statements.cpp integrator_doubles.cpp)
-    reg_test(Registry_UnknownIntegratorFallback test_registry_integrator_statements ARGS unknown_fallback)
-    reg_test(Registry_IntegratorParameters test_registry_integrator_statements ARGS parameters)
+reg_executable(test_registry_integrator_statements test_registry_integrator_statements.cpp integrator_doubles.cpp)
+reg_test(Registry_UnknownIntegratorFallback test_registry_integrator_statements ARGS unknown_fallback)
+reg_test(Registry_IntegratorParameters test_registry_integrator_statements ARGS parameters)
 
-    reg_executable(test_registry_frame_abort test_registry_frame_abort.cpp hider_double.cpp integrator_doubles.cpp)
-    reg_test(Registry_FrameAbort test_registry_frame_abort)
-endif()
+reg_executable(test_registry_frame_abort test_registry_frame_abort.cpp hider_double.cpp integrator_doubles.cpp)
+reg_test(Registry_FrameAbort test_registry_frame_abort)

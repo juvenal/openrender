@@ -94,7 +94,7 @@ namespace {
 
         const std::string who = "Hider \"" + hider + "\" cannot run integrator \"";
 
-        // Frame 1: one CODE_LIMIT error naming hider, integrator and the missing capability.
+        // Frame 1: one RIE_LIMIT error naming hider, integrator and the missing capability.
         const std::string text1 = who + integratorDoubleName(DOUBLE_NEEDS_MISSING) + "\"";
         REG_CHECK_MSG(s.frames.count(text1.c_str()) == 1, "got:\n%s", s.frames.text().c_str());
         REG_CHECK(s.frames.count("missing \"test-unprovided\"") == 1);
@@ -109,8 +109,8 @@ namespace {
         else
             REG_CHECK_MSG(s.frames.count("missing \"rasterization\" 2.0.0") == 1, "got:\n%s", s.frames.text().c_str());
 
-        // Both refusals are CODE_LIMIT errors and the only errors of the session; "the frame is not rendered".
-        REG_CHECK_MSG(errorsWithCode(s.frames, CODE_LIMIT) == 2, "got:\n%s", s.frames.text().c_str());
+        // Both refusals are RIE_LIMIT errors and the only errors of the session; "the frame is not rendered".
+        REG_CHECK_MSG(errorsWithCode(s.frames, RIE_LIMIT) == 2, "got:\n%s", s.frames.text().c_str());
         REG_CHECK_MSG(s.frames.errors() == 2, "got:\n%s", s.frames.text().c_str());
         REG_CHECK(s.frames.count("the frame is not rendered") == 2);
         REG_CHECK_MSG(s.lastError != RIE_NOERROR, "orender exits -1 after a refusal");
