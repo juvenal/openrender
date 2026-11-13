@@ -1,0 +1,47 @@
+##RenderMan RIB-Structure 1.0
+# Spec 056, family volume-environment-raytrace.
+# Camera space: an orthographic camera looks along +z (roll and translation camera transform, not the identity).
+# A mirror polygon at z = 4 (N = -z) is traced from with a fixed tilted shading normal (volume_reflect_probe,
+# tiltx 0.5), so a camera ray along +z goes to R = (0.8660, 0, -0.5000), leaving into the exterior side (R.N > 0).
+# A target polygon at z = 3 spans x in [1.2, 8] (outside the view); a frame polygon at z = 0.5 sets the
+# world bound's near face. Pixel (5,4) at x = 0.375: reflected x = 2.107, hits the target after 2.0000.
+# Pixel (0,4) at x = -0.875: reflected x = 0.857 < 1.2, misses the target and leaves the world bound through its
+# near face z = 0.5 after 7.0000 in CAMERA space (bound read as camera space); read as WORLD-space numbers
+# the same ray would leave after 10.1343 (the probe of tasks T074/T075 tells which is true).
+# Expected, RGB (tolerance 0.0001 for fog, 1e-05 for a pass-through colour):
+#   hit pixel (5,4): (0.160653, 0.481959, 0.596735)
+#   miss pixel (0,4): (0.082623, 0.247868, 0.743603)
+version 3.03
+Hider "raytrace" "jitter" [0]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "volume-environment-raytrace-raytrace.tif" "file" "rgba"
+Format 8 8 1
+Projection "orthographic"
+Clipping 0.1 100
+Rotate 20 0 0 1
+Translate 0.3 -0.2 2
+WorldBegin
+  TransformBegin
+    # camera space: the inverse of the camera transform above
+    Translate -0.3 0.2 -2
+    Rotate -20 0 0 1
+    Attribute "visibility" "int specular" [1] "int transmission" [1]
+    AttributeBegin
+      Surface "volume_reflect_probe" "float tiltx" [0.5] "string via" ["environment"]
+      Exterior "fog" "float distance" [4] "color background" [0.1 0.3 0.9]
+      Interior "fog" "float distance" [0.5] "color background" [0.9 0.1 0.1]
+      Polygon "P" [-2 -2 4 2 -2 4 2 2 4 -2 2 4] "N" [0 0 -1 0 0 -1 0 0 -1 0 0 -1]
+    AttributeEnd
+    AttributeBegin
+      Color [0.2 0.6 0.4]
+      Surface "constant"
+      Polygon "P" [1.2 -2 3 8 -2 3 8 2 3 1.2 2 3] "N" [0 0 -1 0 0 -1 0 0 -1 0 0 -1]
+    AttributeEnd
+    AttributeBegin
+      Surface "constant"
+      Polygon "P" [7 -1 0.5 8 -1 0.5 8 1 0.5 7 1 0.5] "N" [0 0 -1 0 0 -1 0 0 -1 0 0 -1]
+    AttributeEnd
+  TransformEnd
+WorldEnd

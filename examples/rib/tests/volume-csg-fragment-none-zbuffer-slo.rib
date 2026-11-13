@@ -1,0 +1,75 @@
+##RenderMan RIB-Structure 1.0
+# Spec 056, family volume-csg-fragment-none (the no-volume twin) (FR-011, FR-014).
+# Camera space (orthographic, roll + translate camera). Two CSG difference solids (a box minus a small box),
+# each with Interior fog (distance 0.5, background red) and Exterior fog (distance 4, background (0.1, 0.3, 0.9)).
+# Left solid (x in [-1.4, -0.3]), constant surface: pixel (0,4) is a CAMERA ray on a CSG fragment. A camera ray has
+# no spawning surface, so no volume step runs: the colour is the surface's, (0.3, 0.7, 0.5). (The arrival-side rule of the
+# starting tree fogs it, so this pixel is red before Phase 3.)
+# Right solid (x in [0.3, 1.4]), volume_reflect_probe: pixel (7,4) at x = 0.875 reflects to x = 2.607 and hits the
+# polygon at z = 3 (x >= 1.7) after 2.0000: the exterior fog applies to that segment, like any surface:
+#   (0.160653, 0.481959, 0.596735) (tolerance 0.0001).
+version 3.03
+Option "shaderformat" "default" ["slo"]
+Hider "zbuffer" "jitter" [0]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "volume-csg-fragment-none-zbuffer-slo.tif" "file" "rgba"
+Format 8 8 1
+Projection "orthographic"
+Clipping 0.1 100
+Rotate 20 0 0 1
+Translate 0.3 -0.2 2
+WorldBegin
+  TransformBegin
+    # camera space: the inverse of the camera transform above
+    Translate -0.3 0.2 -2
+    Rotate -20 0 0 1
+    Attribute "visibility" "int specular" [1] "int transmission" [1]
+    AttributeBegin
+      Color [0.3 0.7 0.5]
+      Surface "constant"
+      SolidBegin "difference"
+        SolidBegin "primitive"
+          TransformBegin
+            Translate -0.85 0 5
+            Scale 1.1 3 2
+            PointsPolygons [4 4 4 4 4 4] [0 3 2 1  4 5 6 7  0 1 5 4  2 3 7 6  1 2 6 5  0 4 7 3] "P" [-0.5 -0.5 -0.5  0.5 -0.5 -0.5  0.5 0.5 -0.5  -0.5 0.5 -0.5  -0.5 -0.5 0.5  0.5 -0.5 0.5  0.5 0.5 0.5  -0.5 0.5 0.5]
+          TransformEnd
+        SolidEnd
+        SolidBegin "primitive"
+          TransformBegin
+            Translate -0.55 0 4
+            Scale 0.25 0.5 1
+            PointsPolygons [4 4 4 4 4 4] [0 3 2 1  4 5 6 7  0 1 5 4  2 3 7 6  1 2 6 5  0 4 7 3] "P" [-0.5 -0.5 -0.5  0.5 -0.5 -0.5  0.5 0.5 -0.5  -0.5 0.5 -0.5  -0.5 -0.5 0.5  0.5 -0.5 0.5  0.5 0.5 0.5  -0.5 0.5 0.5]
+          TransformEnd
+        SolidEnd
+      SolidEnd
+    AttributeEnd
+    AttributeBegin
+      Color [0.8 0.5 0.2]
+      Surface "volume_reflect_probe" "float tiltx" [0.5]
+      SolidBegin "difference"
+        SolidBegin "primitive"
+          TransformBegin
+            Translate 0.85 0 5
+            Scale 1.1 3 2
+            PointsPolygons [4 4 4 4 4 4] [0 3 2 1  4 5 6 7  0 1 5 4  2 3 7 6  1 2 6 5  0 4 7 3] "P" [-0.5 -0.5 -0.5  0.5 -0.5 -0.5  0.5 0.5 -0.5  -0.5 0.5 -0.5  -0.5 -0.5 0.5  0.5 -0.5 0.5  0.5 0.5 0.5  -0.5 0.5 0.5]
+          TransformEnd
+        SolidEnd
+        SolidBegin "primitive"
+          TransformBegin
+            Translate 0.55 0 4
+            Scale 0.25 0.5 1
+            PointsPolygons [4 4 4 4 4 4] [0 3 2 1  4 5 6 7  0 1 5 4  2 3 7 6  1 2 6 5  0 4 7 3] "P" [-0.5 -0.5 -0.5  0.5 -0.5 -0.5  0.5 0.5 -0.5  -0.5 0.5 -0.5  -0.5 -0.5 0.5  0.5 -0.5 0.5  0.5 0.5 0.5  -0.5 0.5 0.5]
+          TransformEnd
+        SolidEnd
+      SolidEnd
+    AttributeEnd
+    AttributeBegin
+      Color [0.2 0.6 0.4]
+      Surface "constant"
+      Polygon "P" [1.7 -2 3 8 -2 3 8 2 3 1.7 2 3] "N" [0 0 -1 0 0 -1 0 0 -1 0 0 -1]
+    AttributeEnd
+  TransformEnd
+WorldEnd

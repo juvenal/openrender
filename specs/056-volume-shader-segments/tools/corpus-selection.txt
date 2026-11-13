@@ -1,0 +1,608 @@
+registered RIBs: 603; skipped (bind Interior/Exterior): 82; compared: 521 (tier 1: 318, tier 2: 203)
+
+# skipped (bind Interior/Exterior)
+examples/rib/tests/csg-sphere-sphere-difference-interior-raytrace-inside.rib
+examples/rib/tests/csg-sphere-sphere-difference-interior-raytrace.rib
+examples/rib/tests/sphere-shader-parameter-reyes-slo.rib
+examples/rib/tests/sphere-shader-parameter-reyes.rib
+examples/rib/tests/sphere-volume-ci-default-reyes-rslo.rib
+examples/rib/tests/sphere-volume-ci-default-reyes-slo.rib
+examples/rib/tests/sphere-volume-oi-default-reyes-rslo.rib
+examples/rib/tests/sphere-volume-oi-default-reyes-slo.rib
+examples/rib/tests/volume-csg-fragment-raytrace-slo.rib
+examples/rib/tests/volume-csg-fragment-raytrace.rib
+examples/rib/tests/volume-csg-fragment-reyes-slo.rib
+examples/rib/tests/volume-csg-fragment-reyes.rib
+examples/rib/tests/volume-csg-fragment-zbuffer-slo.rib
+examples/rib/tests/volume-csg-fragment-zbuffer.rib
+examples/rib/tests/volume-environment-raytrace-raytrace-slo.rib
+examples/rib/tests/volume-environment-raytrace-raytrace.rib
+examples/rib/tests/volume-environment-raytrace-reyes-slo.rib
+examples/rib/tests/volume-environment-raytrace-reyes.rib
+examples/rib/tests/volume-environment-raytrace-zbuffer-slo.rib
+examples/rib/tests/volume-environment-raytrace-zbuffer.rib
+examples/rib/tests/volume-exterior-fog-reflection-raytrace-slo.rib
+examples/rib/tests/volume-exterior-fog-reflection-raytrace.rib
+examples/rib/tests/volume-exterior-fog-reflection-reyes-slo.rib
+examples/rib/tests/volume-exterior-fog-reflection-reyes.rib
+examples/rib/tests/volume-exterior-fog-reflection-zbuffer-slo.rib
+examples/rib/tests/volume-exterior-fog-reflection-zbuffer.rib
+examples/rib/tests/volume-gather-raytrace-slo.rib
+examples/rib/tests/volume-gather-raytrace.rib
+examples/rib/tests/volume-gather-reyes-slo.rib
+examples/rib/tests/volume-gather-reyes.rib
+examples/rib/tests/volume-gather-zbuffer-slo.rib
+examples/rib/tests/volume-gather-zbuffer.rib
+examples/rib/tests/volume-incident-opposite-raytrace-slo.rib
+examples/rib/tests/volume-incident-opposite-raytrace.rib
+examples/rib/tests/volume-incident-opposite-reyes-slo.rib
+examples/rib/tests/volume-incident-opposite-reyes.rib
+examples/rib/tests/volume-incident-opposite-zbuffer-slo.rib
+examples/rib/tests/volume-incident-opposite-zbuffer.rib
+examples/rib/tests/volume-interior-fog-glass-sphere-float-raytrace.rib
+examples/rib/tests/volume-interior-fog-glass-sphere-float-reyes.rib
+examples/rib/tests/volume-interior-fog-glass-sphere-float-zbuffer.rib
+examples/rib/tests/volume-interior-fog-glass-sphere-raytrace.rib
+examples/rib/tests/volume-interior-fog-glass-sphere-reyes.rib
+examples/rib/tests/volume-interior-fog-glass-sphere-zbuffer.rib
+examples/rib/tests/volume-interior-fog-slab-raytrace-slo.rib
+examples/rib/tests/volume-interior-fog-slab-raytrace.rib
+examples/rib/tests/volume-interior-fog-slab-reyes-slo.rib
+examples/rib/tests/volume-interior-fog-slab-reyes.rib
+examples/rib/tests/volume-interior-fog-slab-zbuffer-slo.rib
+examples/rib/tests/volume-interior-fog-slab-zbuffer.rib
+examples/rib/tests/volume-miss-clipping-raytrace-slo.rib
+examples/rib/tests/volume-miss-clipping-raytrace.rib
+examples/rib/tests/volume-miss-clipping-reyes-slo.rib
+examples/rib/tests/volume-miss-clipping-reyes.rib
+examples/rib/tests/volume-miss-clipping-zbuffer-slo.rib
+examples/rib/tests/volume-miss-clipping-zbuffer.rib
+examples/rib/tests/volume-primitive-hitmode-raytrace-slo.rib
+examples/rib/tests/volume-primitive-hitmode-raytrace.rib
+examples/rib/tests/volume-primitive-hitmode-reyes-slo.rib
+examples/rib/tests/volume-primitive-hitmode-reyes.rib
+examples/rib/tests/volume-primitive-hitmode-zbuffer-slo.rib
+examples/rib/tests/volume-primitive-hitmode-zbuffer.rib
+examples/rib/tests/volume-random-fog-raytrace-slo.rib
+examples/rib/tests/volume-random-fog-raytrace.rib
+examples/rib/tests/volume-shadow-light-raytrace-slo.rib
+examples/rib/tests/volume-shadow-light-raytrace.rib
+examples/rib/tests/volume-shadow-light-reyes-slo.rib
+examples/rib/tests/volume-shadow-light-reyes.rib
+examples/rib/tests/volume-shadow-light-zbuffer-slo.rib
+examples/rib/tests/volume-shadow-light-zbuffer.rib
+examples/rib/tests/volume-transmission-interior-raytrace-slo.rib
+examples/rib/tests/volume-transmission-interior-raytrace.rib
+examples/rib/tests/volume-transmission-interior-reyes-slo.rib
+examples/rib/tests/volume-transmission-interior-reyes.rib
+examples/rib/tests/volume-transmission-interior-zbuffer-slo.rib
+examples/rib/tests/volume-transmission-interior-zbuffer.rib
+examples/rib/tests/volume-transmission-primitive-hitmode-raytrace-slo.rib
+examples/rib/tests/volume-transmission-primitive-hitmode-raytrace.rib
+examples/rib/tests/volume-transmission-primitive-hitmode-reyes-slo.rib
+examples/rib/tests/volume-transmission-primitive-hitmode-reyes.rib
+examples/rib/tests/volume-transmission-primitive-hitmode-zbuffer-slo.rib
+examples/rib/tests/volume-transmission-primitive-hitmode-zbuffer.rib
+
+# compared
+tier1 examples/rib/camera-dof-raytrace.rib
+tier1 examples/rib/motion-1-raytrace.rib
+tier1 examples/rib/motion-2-raytrace.rib
+tier1 examples/rib/motion-3-raytrace.rib
+tier1 examples/rib/quadlight.rib
+tier1 examples/rib/spherelight.rib
+tier1 examples/rib/tests/atmosphere-depthcue-8bit-raytrace-slo.rib
+tier1 examples/rib/tests/atmosphere-depthcue-8bit-raytrace.rib
+tier1 examples/rib/tests/atmosphere-depthcue-raytrace-slo.rib
+tier1 examples/rib/tests/atmosphere-depthcue-raytrace.rib
+tier1 examples/rib/tests/atmosphere-fog-8bit-raytrace-slo.rib
+tier1 examples/rib/tests/atmosphere-fog-8bit-raytrace.rib
+tier1 examples/rib/tests/atmosphere-fog-raytrace-slo.rib
+tier1 examples/rib/tests/atmosphere-fog-raytrace.rib
+tier1 examples/rib/tests/atmosphere-fog-reflection-raytrace-slo.rib
+tier1 examples/rib/tests/atmosphere-fog-reflection-raytrace.rib
+tier1 examples/rib/tests/blobby-blend-far-raytrace.rib
+tier1 examples/rib/tests/blobby-blend-influencing-raytrace.rib
+tier1 examples/rib/tests/blobby-blend-merged-raytrace.rib
+tier1 examples/rib/tests/blobby-carved-colour-raytrace.rib
+tier1 examples/rib/tests/blobby-coloured-octahedron-apart-raytrace.rib
+tier1 examples/rib/tests/blobby-coloured-octahedron-raytrace.rib
+tier1 examples/rib/tests/blobby-csg-difference-raytrace.rib
+tier1 examples/rib/tests/blobby-dent-raytrace.rib
+tier1 examples/rib/tests/blobby-hand-maxed-raytrace.rib
+tier1 examples/rib/tests/blobby-hand-selective-raytrace.rib
+tier1 examples/rib/tests/blobby-hand-summed-raytrace.rib
+tier1 examples/rib/tests/blobby-max-union-raytrace.rib
+tier1 examples/rib/tests/blobby-mixed-fields-raytrace.rib
+tier1 examples/rib/tests/blobby-motion-grow-raytrace.rib
+tier1 examples/rib/tests/blobby-motion-still-raytrace.rib
+tier1 examples/rib/tests/blobby-motion-translate-raytrace.rib
+tier1 examples/rib/tests/blobby-object-instance-raytrace.rib
+tier1 examples/rib/tests/blobby-offscreen-raytrace.rib
+tier1 examples/rib/tests/blobby-repeller-heights-raytrace.rib
+tier1 examples/rib/tests/blobby-repeller-shaping-raytrace.rib
+tier1 examples/rib/tests/blobby-solid-texture-bent-raytrace.rib
+tier1 examples/rib/tests/blobby-solid-texture-straight-raytrace.rib
+tier1 examples/rib/tests/blobby-spiral-raytrace.rib
+tier1 examples/rib/tests/blobby-tolerance-default-raytrace.rib
+tier1 examples/rib/tests/blobby-tolerance-inherited-raytrace.rib
+tier1 examples/rib/tests/blobby-tolerance-tight-raytrace.rib
+tier1 examples/rib/tests/blobby-tube-raytrace.rib
+tier1 examples/rib/tests/bunny-raytrace.rib
+tier1 examples/rib/tests/camera-dof-raytrace.rib
+tier1 examples/rib/tests/camera-motion-small+dof-raytrace.rib
+tier1 examples/rib/tests/camera-motion-small-raytrace.rib
+tier1 examples/rib/tests/coverage-alpha-sides1-raytrace.rib
+tier1 examples/rib/tests/coverage-alpha-sides2-raytrace.rib
+tier1 examples/rib/tests/csg-coincident-difference-expected-raytrace.rib
+tier1 examples/rib/tests/csg-coincident-difference-raytrace.rib
+tier1 examples/rib/tests/csg-coincident-union-expected-raytrace.rib
+tier1 examples/rib/tests/csg-coincident-union-raytrace.rib
+tier1 examples/rib/tests/csg-hero-displaced-raytrace.rib
+tier1 examples/rib/tests/csg-hero-displaced-reyes.rib
+tier1 examples/rib/tests/csg-hero-instanced-outside-world-reyes.rib
+tier1 examples/rib/tests/csg-hero-partial-stats-reyes.rib
+tier1 examples/rib/tests/csg-hero-plain-sphere-raytrace.rib
+tier1 examples/rib/tests/csg-hero-raytrace-1600.rib
+tier1 examples/rib/tests/csg-hero-raytrace-800.rib
+tier1 examples/rib/tests/csg-hero-reyes-1600.rib
+tier1 examples/rib/tests/csg-hero-reyes-800.rib
+tier1 examples/rib/tests/csg-hero-single-operand-stats-800-reyes.rib
+tier1 examples/rib/tests/csg-hero-stats-1600-reyes.rib
+tier1 examples/rib/tests/csg-hero-stats-800-reyes.rib
+tier1 examples/rib/tests/csg-hero-translucent-raytrace.rib
+tier1 examples/rib/tests/csg-hero-translucent-reyes.rib
+tier1 examples/rib/tests/csg-hero-two-shaders-raytrace.rib
+tier1 examples/rib/tests/csg-hero-two-shaders-reyes.rib
+tier1 examples/rib/tests/csg-hero-zbuffer-1600.rib
+tier1 examples/rib/tests/csg-hero-zbuffer-800.rib
+tier1 examples/rib/tests/csg-nested-tree-4-level-raytrace.rib
+tier1 examples/rib/tests/csg-nurbs-rational-sphere-alone-raytrace.rib
+tier1 examples/rib/tests/csg-nurbs-rational-sphere-union-raytrace.rib
+tier1 examples/rib/tests/csg-nurbs-sheet-expected-raytrace.rib
+tier1 examples/rib/tests/csg-nurbs-sheet-instanced-raytrace.rib
+tier1 examples/rib/tests/csg-nurbs-sphere-union-raytrace.rib
+tier1 examples/rib/tests/csg-object-instance-reuse-raytrace.rib
+tier1 examples/rib/tests/csg-offscreen-stats-raytrace.rib
+tier1 examples/rib/tests/csg-offscreen-stats-reyes.rib
+tier1 examples/rib/tests/csg-open-quadric-caps-raytrace.rib
+tier1 examples/rib/tests/csg-polymesh-box-difference-raytrace.rib
+tier1 examples/rib/tests/csg-polymesh-open-raytrace.rib
+tier1 examples/rib/tests/csg-procedural-open-cylinder-inline-raytrace.rib
+tier1 examples/rib/tests/csg-procedural-open-cylinder-raytrace.rib
+tier1 examples/rib/tests/csg-procedural-operand-inline-raytrace.rib
+tier1 examples/rib/tests/csg-procedural-operand-raytrace.rib
+tier1 examples/rib/tests/csg-secondary-rays-raytrace.rib
+tier1 examples/rib/tests/csg-secondary-rays-reyes.rib
+tier1 examples/rib/tests/csg-sphere-cube-difference-raytrace-1600.rib
+tier1 examples/rib/tests/csg-sphere-cube-difference-raytrace-800.rib
+tier1 examples/rib/tests/csg-sphere-cube-difference-raytrace.rib
+tier1 examples/rib/tests/csg-sphere-cube-intersection-raytrace.rib
+tier1 examples/rib/tests/csg-sphere-cube-union-raytrace.rib
+tier1 examples/rib/tests/csg-sphere-sphere-loose-tolerance-raytrace.rib
+tier1 examples/rib/tests/csg-sphere-sphere-tight-tolerance-raytrace.rib
+tier1 examples/rib/tests/csg-subdivision-sphere-alone-raytrace.rib
+tier1 examples/rib/tests/csg-subdivision-sphere-union-raytrace.rib
+tier1 examples/rib/tests/csg-tiny-solid-stats-reyes.rib
+tier1 examples/rib/tests/csg-tolerance-inert-raytrace.rib
+tier1 examples/rib/tests/cubes-raytrace.rib
+tier1 examples/rib/tests/depth-analytic-mid-raytrace.rib
+tier1 examples/rib/tests/depth-analytic-mid-sides1-raytrace.rib
+tier1 examples/rib/tests/depth-analytic-min-raytrace.rib
+tier1 examples/rib/tests/killeroo-raytrace.rib
+tier1 examples/rib/tests/motion-1-raytrace.rib
+tier1 examples/rib/tests/motion-2-raytrace.rib
+tier1 examples/rib/tests/motion-3-raytrace.rib
+tier1 examples/rib/tests/nupatch-vase-trimmed-hole-raytrace.rib
+tier1 examples/rib/tests/parity/aov-raytrace.rib
+tier1 examples/rib/tests/parity/depthdefault-raytrace.rib
+tier1 examples/rib/tests/parity/depthfilter-avg-raytrace.rib
+tier1 examples/rib/tests/parity/depthfilter-max-raytrace.rib
+tier1 examples/rib/tests/parity/depthfilter-mid-raytrace.rib
+tier1 examples/rib/tests/parity/depthfilter-min-raytrace.rib
+tier1 examples/rib/tests/parity/displacement-raytrace.rib
+tier1 examples/rib/tests/parity/dof-motion-raytrace.rib
+tier1 examples/rib/tests/parity/dof-raytrace.rib
+tier1 examples/rib/tests/parity/env-raytrace.rib
+tier1 examples/rib/tests/parity/env-reyes.rib
+tier1 examples/rib/tests/parity/flatshade-raytrace.rib
+tier1 examples/rib/tests/parity/matte-raytrace.rib
+tier1 examples/rib/tests/parity/motion-patches-deform-raytrace.rib
+tier1 examples/rib/tests/parity/motion-patches-translate-raytrace.rib
+tier1 examples/rib/tests/parity/motion-polygons-deform-raytrace.rib
+tier1 examples/rib/tests/parity/motion-polygons-translate-raytrace.rib
+tier1 examples/rib/tests/parity/motion-quadrics-deform-raytrace.rib
+tier1 examples/rib/tests/parity/motion-quadrics-translate-raytrace.rib
+tier1 examples/rib/tests/parity/motion-subdiv-rotate-raytrace.rib
+tier1 examples/rib/tests/parity/motion-subdiv-translate-raytrace.rib
+tier1 examples/rib/tests/parity/shadow-raytrace.rib
+tier1 examples/rib/tests/parity/shadow-reyes.rib
+tier1 examples/rib/tests/parity/subdiv-hierarchical-override-raytrace.rib
+tier1 examples/rib/tests/parity/texture-exr-raytrace.rib
+tier1 examples/rib/tests/parity/texture-png-raytrace.rib
+tier1 examples/rib/tests/parity/texture-rgbe-raytrace.rib
+tier1 examples/rib/tests/parity/transparency-matte-aov-raytrace.rib
+tier1 examples/rib/tests/parity/transparency-raytrace.rib
+tier1 examples/rib/tests/parity/unbaked-exr-raytrace.rib
+tier1 examples/rib/tests/parity/unbaked-nonpot-raytrace.rib
+tier1 examples/rib/tests/parity/unbaked-png-raytrace.rib
+tier1 examples/rib/tests/parity/unbaked-rgbe-raytrace.rib
+tier1 examples/rib/tests/photon-parity-slo.rib
+tier1 examples/rib/tests/photon-parity.rib
+tier1 examples/rib/tests/photon-solar0-after-distant-slo.rib
+tier1 examples/rib/tests/photon-solar0-after-distant.rib
+tier1 examples/rib/tests/photon-solar0-alone-slo.rib
+tier1 examples/rib/tests/photon-solar0-alone.rib
+tier1 examples/rib/tests/quadlight-slo.rib
+tier1 examples/rib/tests/sampling-camera-jitter1-raytrace-independent.rib
+tier1 examples/rib/tests/sampling-camera-jitter1-raytrace-sobol.rib
+tier1 examples/rib/tests/solar0-slo.rib
+tier1 examples/rib/tests/solar0.rib
+tier1 examples/rib/tests/sphere-clearlighting-reyes-slo.rib
+tier1 examples/rib/tests/sphere-clearlighting-reyes.rib
+tier1 examples/rib/tests/sphere-comp-reyes-slo.rib
+tier1 examples/rib/tests/sphere-comp-reyes.rib
+tier1 examples/rib/tests/sphere-concat-reyes-slo.rib
+tier1 examples/rib/tests/sphere-concat-reyes.rib
+tier1 examples/rib/tests/sphere-degrees-round-reyes-slo.rib
+tier1 examples/rib/tests/sphere-degrees-round-reyes.rib
+tier1 examples/rib/tests/sphere-deriv-reyes-slo.rib
+tier1 examples/rib/tests/sphere-deriv-reyes.rib
+tier1 examples/rib/tests/sphere-determinant-distance-reyes-slo.rib
+tier1 examples/rib/tests/sphere-determinant-distance-reyes.rib
+tier1 examples/rib/tests/sphere-format-reyes-slo.rib
+tier1 examples/rib/tests/sphere-format-reyes.rib
+tier1 examples/rib/tests/sphere-gather-reyes-slo.rib
+tier1 examples/rib/tests/sphere-gather-reyes.rib
+tier1 examples/rib/tests/sphere-indirectdiffuse-reyes-slo.rib
+tier1 examples/rib/tests/sphere-indirectdiffuse-reyes.rib
+tier1 examples/rib/tests/sphere-match-reyes-slo.rib
+tier1 examples/rib/tests/sphere-match-reyes.rib
+tier1 examples/rib/tests/sphere-matrixbuilder-reyes-slo.rib
+tier1 examples/rib/tests/sphere-matrixbuilder-reyes.rib
+tier1 examples/rib/tests/sphere-min-reyes-slo.rib
+tier1 examples/rib/tests/sphere-min-reyes.rib
+tier1 examples/rib/tests/sphere-occlusion-reyes-slo.rib
+tier1 examples/rib/tests/sphere-occlusion-reyes.rib
+tier1 examples/rib/tests/sphere-phong-specularbrdf-reyes-slo.rib
+tier1 examples/rib/tests/sphere-phong-specularbrdf-reyes.rib
+tier1 examples/rib/tests/sphere-photonmap-reyes-slo.rib
+tier1 examples/rib/tests/sphere-photonmap-reyes.rib
+tier1 examples/rib/tests/sphere-pnoise-reyes-slo.rib
+tier1 examples/rib/tests/sphere-pnoise-reyes.rib
+tier1 examples/rib/tests/sphere-ptlined-reyes-slo.rib
+tier1 examples/rib/tests/sphere-ptlined-reyes.rib
+tier1 examples/rib/tests/sphere-ray-self-hit-raytrace.rib
+tier1 examples/rib/tests/sphere-ray-self-hit-reyes-slo.rib
+tier1 examples/rib/tests/sphere-ray-self-hit-reyes.rib
+tier1 examples/rib/tests/sphere-raydepth-reyes-slo.rib
+tier1 examples/rib/tests/sphere-raydepth-reyes.rib
+tier1 examples/rib/tests/sphere-rayinfo-reyes-slo.rib
+tier1 examples/rib/tests/sphere-rayinfo-reyes.rib
+tier1 examples/rib/tests/sphere-raylabel-reyes-slo.rib
+tier1 examples/rib/tests/sphere-raylabel-reyes.rib
+tier1 examples/rib/tests/sphere-refract-reyes-slo.rib
+tier1 examples/rib/tests/sphere-refract-reyes.rib
+tier1 examples/rib/tests/sphere-scene-state-reyes-slo.rib
+tier1 examples/rib/tests/sphere-scene-state-reyes.rib
+tier1 examples/rib/tests/sphere-setcomp-reyes-slo.rib
+tier1 examples/rib/tests/sphere-setcomp-reyes.rib
+tier1 examples/rib/tests/sphere-shadername-reyes-slo.rib
+tier1 examples/rib/tests/sphere-shadername-reyes.rib
+tier1 examples/rib/tests/sphere-step-reyes-slo.rib
+tier1 examples/rib/tests/sphere-step-reyes.rib
+tier1 examples/rib/tests/sphere-texture3d-bake3d-reyes-slo.rib
+tier1 examples/rib/tests/sphere-texture3d-bake3d-reyes.rib
+tier1 examples/rib/tests/sphere-textureinfo-reyes-slo.rib
+tier1 examples/rib/tests/sphere-textureinfo-reyes.rib
+tier1 examples/rib/tests/sphere-trace-reyes-slo.rib
+tier1 examples/rib/tests/sphere-trace-reyes.rib
+tier1 examples/rib/tests/sphere-transmission-reyes-slo.rib
+tier1 examples/rib/tests/sphere-transmission-reyes.rib
+tier1 examples/rib/tests/sphere-visibility-reyes-slo.rib
+tier1 examples/rib/tests/sphere-visibility-reyes.rib
+tier1 examples/rib/tests/spherelight-slo.rib
+tier1 examples/rib/tests/spotlight-raytrace.rib
+tier1 examples/rib/tests/subdiv-crease-convergence-control-raytrace.rib
+tier1 examples/rib/tests/subdiv-crease-convergence-raytrace.rib
+tier1 examples/rib/tests/subdiv-crease-deep-single-raytrace.rib
+tier1 examples/rib/tests/subdiv-crease-shallow-convergence-raytrace.rib
+tier1 examples/rib/tests/subdiv-facevarying-seam-photon.rib
+tier1 examples/rib/tests/subdiv-facevarying-seam-raytrace.rib
+tier1 examples/rib/tests/subdiv-hierarchical-override-invalid-raytrace.rib
+tier1 examples/rib/tests/subdiv-hierarchical-override-photon.rib
+tier1 examples/rib/tests/subdiv-hierarchical-override-raytrace.rib
+tier1 examples/rib/tests/subdiv-hierarchical-tag-override-precedence-raytrace.rib
+tier1 examples/rib/tests/subdiv-loop-mixed-invalid-raytrace.rib
+tier1 examples/rib/tests/subdiv-loop-photon.rib
+tier1 examples/rib/tests/subdiv-loop-raytrace.rib
+tier1 examples/rib/tests/subdiv-new-tags-badvalue-raytrace.rib
+tier1 examples/rib/tests/subdiv-new-tags-photon.rib
+tier1 examples/rib/tests/subdiv-new-tags-raytrace.rib
+tier1 examples/rib/tests/subdiv-new-tags-with-hole-raytrace.rib
+tier1 examples/rib/tests/subdiv-tag-creasemethod-raytrace.rib
+tier1 examples/rib/tests/subdiv-tag-facevaryinginterpolateboundary-raytrace.rib
+tier1 examples/rib/tests/subdiv-tag-facevaryingpropagatecorners-raytrace.rib
+tier1 examples/rib/tests/teapot-blue_marble-raytrace-slo.rib
+tier1 examples/rib/tests/teapot-blue_marble-raytrace.rib
+tier1 examples/rib/tests/teapot-brushedmetal-raytrace-slo.rib
+tier1 examples/rib/tests/teapot-brushedmetal-raytrace.rib
+tier1 examples/rib/tests/teapot-full-metal-raytrace.rib
+tier1 examples/rib/tests/teapot-matte-raytrace.rib
+tier1 examples/rib/tests/teapot-motion-raytrace.rib
+tier1 examples/rib/tests/teapot-somewood-raytrace-slo.rib
+tier1 examples/rib/tests/teapot-somewood-raytrace.rib
+tier1 examples/rib/tests/teapot-wood-raytrace-slo.rib
+tier1 examples/rib/tests/teapot-wood-raytrace.rib
+tier1 examples/rib/tests/torus-partial-raytrace.rib
+tier1 examples/rib/tests/torus-raytrace.rib
+tier1 examples/rib/tests/volume-csg-fragment-none-raytrace-slo.rib
+tier1 examples/rib/tests/volume-csg-fragment-none-raytrace.rib
+tier1 examples/rib/tests/volume-csg-fragment-none-reyes-slo.rib
+tier1 examples/rib/tests/volume-csg-fragment-none-reyes.rib
+tier1 examples/rib/tests/volume-csg-fragment-none-zbuffer-slo.rib
+tier1 examples/rib/tests/volume-csg-fragment-none-zbuffer.rib
+tier1 examples/rib/tests/volume-environment-raytrace-none-raytrace-slo.rib
+tier1 examples/rib/tests/volume-environment-raytrace-none-raytrace.rib
+tier1 examples/rib/tests/volume-environment-raytrace-none-reyes-slo.rib
+tier1 examples/rib/tests/volume-environment-raytrace-none-reyes.rib
+tier1 examples/rib/tests/volume-environment-raytrace-none-zbuffer-slo.rib
+tier1 examples/rib/tests/volume-environment-raytrace-none-zbuffer.rib
+tier1 examples/rib/tests/volume-exterior-fog-reflection-none-raytrace-slo.rib
+tier1 examples/rib/tests/volume-exterior-fog-reflection-none-raytrace.rib
+tier1 examples/rib/tests/volume-exterior-fog-reflection-none-reyes-slo.rib
+tier1 examples/rib/tests/volume-exterior-fog-reflection-none-reyes.rib
+tier1 examples/rib/tests/volume-exterior-fog-reflection-none-zbuffer-slo.rib
+tier1 examples/rib/tests/volume-exterior-fog-reflection-none-zbuffer.rib
+tier1 examples/rib/tests/volume-gather-none-raytrace-slo.rib
+tier1 examples/rib/tests/volume-gather-none-raytrace.rib
+tier1 examples/rib/tests/volume-gather-none-reyes-slo.rib
+tier1 examples/rib/tests/volume-gather-none-reyes.rib
+tier1 examples/rib/tests/volume-gather-none-zbuffer-slo.rib
+tier1 examples/rib/tests/volume-gather-none-zbuffer.rib
+tier1 examples/rib/tests/volume-interior-fog-glass-sphere-float-none-raytrace.rib
+tier1 examples/rib/tests/volume-interior-fog-glass-sphere-float-none-reyes.rib
+tier1 examples/rib/tests/volume-interior-fog-glass-sphere-float-none-zbuffer.rib
+tier1 examples/rib/tests/volume-interior-fog-glass-sphere-none-raytrace.rib
+tier1 examples/rib/tests/volume-interior-fog-glass-sphere-none-reyes.rib
+tier1 examples/rib/tests/volume-interior-fog-glass-sphere-none-zbuffer.rib
+tier1 examples/rib/tests/volume-interior-fog-slab-none-raytrace-slo.rib
+tier1 examples/rib/tests/volume-interior-fog-slab-none-raytrace.rib
+tier1 examples/rib/tests/volume-interior-fog-slab-none-reyes-slo.rib
+tier1 examples/rib/tests/volume-interior-fog-slab-none-reyes.rib
+tier1 examples/rib/tests/volume-interior-fog-slab-none-zbuffer-slo.rib
+tier1 examples/rib/tests/volume-interior-fog-slab-none-zbuffer.rib
+tier1 examples/rib/tests/volume-miss-clipping-none-raytrace-slo.rib
+tier1 examples/rib/tests/volume-miss-clipping-none-raytrace.rib
+tier1 examples/rib/tests/volume-miss-clipping-none-reyes-slo.rib
+tier1 examples/rib/tests/volume-miss-clipping-none-reyes.rib
+tier1 examples/rib/tests/volume-miss-clipping-none-zbuffer-slo.rib
+tier1 examples/rib/tests/volume-miss-clipping-none-zbuffer.rib
+tier1 examples/rib/tests/volume-primitive-hitmode-none-raytrace-slo.rib
+tier1 examples/rib/tests/volume-primitive-hitmode-none-raytrace.rib
+tier1 examples/rib/tests/volume-primitive-hitmode-none-reyes-slo.rib
+tier1 examples/rib/tests/volume-primitive-hitmode-none-reyes.rib
+tier1 examples/rib/tests/volume-primitive-hitmode-none-zbuffer-slo.rib
+tier1 examples/rib/tests/volume-primitive-hitmode-none-zbuffer.rib
+tier1 examples/rib/tests/volume-random-fog-none-raytrace.rib
+tier1 examples/rib/tests/volume-shadow-light-none-raytrace-slo.rib
+tier1 examples/rib/tests/volume-shadow-light-none-raytrace.rib
+tier1 examples/rib/tests/volume-shadow-light-none-reyes-slo.rib
+tier1 examples/rib/tests/volume-shadow-light-none-reyes.rib
+tier1 examples/rib/tests/volume-shadow-light-none-zbuffer-slo.rib
+tier1 examples/rib/tests/volume-shadow-light-none-zbuffer.rib
+tier1 examples/rib/tests/volume-transmission-interior-none-raytrace-slo.rib
+tier1 examples/rib/tests/volume-transmission-interior-none-raytrace.rib
+tier1 examples/rib/tests/volume-transmission-interior-none-reyes-slo.rib
+tier1 examples/rib/tests/volume-transmission-interior-none-reyes.rib
+tier1 examples/rib/tests/volume-transmission-interior-none-zbuffer-slo.rib
+tier1 examples/rib/tests/volume-transmission-interior-none-zbuffer.rib
+tier1 examples/rib/tests/volume-transmission-primitive-hitmode-none-raytrace-slo.rib
+tier1 examples/rib/tests/volume-transmission-primitive-hitmode-none-raytrace.rib
+tier1 examples/rib/tests/volume-transmission-primitive-hitmode-none-reyes-slo.rib
+tier1 examples/rib/tests/volume-transmission-primitive-hitmode-none-reyes.rib
+tier1 examples/rib/tests/volume-transmission-primitive-hitmode-none-zbuffer-slo.rib
+tier1 examples/rib/tests/volume-transmission-primitive-hitmode-none-zbuffer.rib
+tier2 examples/rib/camera-dof-reyes.rib
+tier2 examples/rib/camera-dof.rib
+tier2 examples/rib/motion-1-reyes.rib
+tier2 examples/rib/motion-2-reyes.rib
+tier2 examples/rib/motion-3-reyes.rib
+tier2 examples/rib/spotlight.rib
+tier2 examples/rib/tests/atmosphere-depthcue-8bit-reyes.rib
+tier2 examples/rib/tests/atmosphere-depthcue-8bit-zbuffer.rib
+tier2 examples/rib/tests/atmosphere-depthcue-reyes-slo.rib
+tier2 examples/rib/tests/atmosphere-depthcue-reyes.rib
+tier2 examples/rib/tests/atmosphere-depthcue-zbuffer-slo.rib
+tier2 examples/rib/tests/atmosphere-depthcue-zbuffer.rib
+tier2 examples/rib/tests/atmosphere-fog-8bit-reyes.rib
+tier2 examples/rib/tests/atmosphere-fog-8bit-zbuffer.rib
+tier2 examples/rib/tests/atmosphere-fog-reyes-slo.rib
+tier2 examples/rib/tests/atmosphere-fog-reyes.rib
+tier2 examples/rib/tests/atmosphere-fog-zbuffer-slo.rib
+tier2 examples/rib/tests/atmosphere-fog-zbuffer.rib
+tier2 examples/rib/tests/blobby-blend-far-reyes.rib
+tier2 examples/rib/tests/blobby-blend-far-zbuffer.rib
+tier2 examples/rib/tests/blobby-blend-influencing-reyes.rib
+tier2 examples/rib/tests/blobby-blend-influencing-zbuffer.rib
+tier2 examples/rib/tests/blobby-blend-merged-reyes.rib
+tier2 examples/rib/tests/blobby-blend-merged-zbuffer.rib
+tier2 examples/rib/tests/blobby-carved-colour-reyes.rib
+tier2 examples/rib/tests/blobby-carved-colour-zbuffer.rib
+tier2 examples/rib/tests/blobby-coloured-octahedron-apart-reyes.rib
+tier2 examples/rib/tests/blobby-coloured-octahedron-apart-zbuffer.rib
+tier2 examples/rib/tests/blobby-coloured-octahedron-reyes.rib
+tier2 examples/rib/tests/blobby-coloured-octahedron-zbuffer.rib
+tier2 examples/rib/tests/blobby-csg-difference-reyes.rib
+tier2 examples/rib/tests/blobby-csg-difference-zbuffer.rib
+tier2 examples/rib/tests/blobby-dent-reyes.rib
+tier2 examples/rib/tests/blobby-dent-zbuffer.rib
+tier2 examples/rib/tests/blobby-hand-maxed-reyes.rib
+tier2 examples/rib/tests/blobby-hand-maxed-zbuffer.rib
+tier2 examples/rib/tests/blobby-hand-selective-reyes.rib
+tier2 examples/rib/tests/blobby-hand-selective-zbuffer.rib
+tier2 examples/rib/tests/blobby-hand-summed-reyes.rib
+tier2 examples/rib/tests/blobby-hand-summed-zbuffer.rib
+tier2 examples/rib/tests/blobby-max-union-reyes.rib
+tier2 examples/rib/tests/blobby-max-union-zbuffer.rib
+tier2 examples/rib/tests/blobby-mixed-fields-reyes.rib
+tier2 examples/rib/tests/blobby-mixed-fields-zbuffer.rib
+tier2 examples/rib/tests/blobby-motion-grow-reyes.rib
+tier2 examples/rib/tests/blobby-motion-grow-zbuffer.rib
+tier2 examples/rib/tests/blobby-motion-still-reyes.rib
+tier2 examples/rib/tests/blobby-motion-still-zbuffer.rib
+tier2 examples/rib/tests/blobby-motion-translate-reyes.rib
+tier2 examples/rib/tests/blobby-motion-translate-zbuffer.rib
+tier2 examples/rib/tests/blobby-object-instance-reyes.rib
+tier2 examples/rib/tests/blobby-object-instance-zbuffer.rib
+tier2 examples/rib/tests/blobby-offscreen-reyes.rib
+tier2 examples/rib/tests/blobby-offscreen-zbuffer.rib
+tier2 examples/rib/tests/blobby-parse-smoke.rib
+tier2 examples/rib/tests/blobby-repeller-heights-reyes.rib
+tier2 examples/rib/tests/blobby-repeller-heights-zbuffer.rib
+tier2 examples/rib/tests/blobby-repeller-shaping-reyes.rib
+tier2 examples/rib/tests/blobby-repeller-shaping-zbuffer.rib
+tier2 examples/rib/tests/blobby-roundtrip-reyes.rib
+tier2 examples/rib/tests/blobby-solid-texture-bent-reyes.rib
+tier2 examples/rib/tests/blobby-solid-texture-bent-zbuffer.rib
+tier2 examples/rib/tests/blobby-solid-texture-straight-reyes.rib
+tier2 examples/rib/tests/blobby-solid-texture-straight-zbuffer.rib
+tier2 examples/rib/tests/blobby-spiral-reyes.rib
+tier2 examples/rib/tests/blobby-spiral-zbuffer.rib
+tier2 examples/rib/tests/blobby-tolerance-default-reyes.rib
+tier2 examples/rib/tests/blobby-tolerance-default-zbuffer.rib
+tier2 examples/rib/tests/blobby-tolerance-inherited-reyes.rib
+tier2 examples/rib/tests/blobby-tolerance-inherited-zbuffer.rib
+tier2 examples/rib/tests/blobby-tolerance-tight-reyes.rib
+tier2 examples/rib/tests/blobby-tolerance-tight-zbuffer.rib
+tier2 examples/rib/tests/blobby-tube-reyes.rib
+tier2 examples/rib/tests/blobby-tube-zbuffer.rib
+tier2 examples/rib/tests/bunny-reyes.rib
+tier2 examples/rib/tests/camera-dof-reyes.rib
+tier2 examples/rib/tests/camera-motion-huge-reyes.rib
+tier2 examples/rib/tests/camera-motion-small+dof-reyes.rib
+tier2 examples/rib/tests/camera-motion-small-reyes.rib
+tier2 examples/rib/tests/color-determinism-opaque-reyes.rib
+tier2 examples/rib/tests/color-determinism-transparent-reyes.rib
+tier2 examples/rib/tests/coverage-alpha-sides1-reyes.rib
+tier2 examples/rib/tests/coverage-alpha-sides2-reyes.rib
+tier2 examples/rib/tests/coverage-alpha-sides2-tjunction-r0.25-reyes.rib
+tier2 examples/rib/tests/coverage-alpha-sides2-tjunction-r0.5-reyes.rib
+tier2 examples/rib/tests/coverage-alpha-sides2-tjunction-r2-reyes.rib
+tier2 examples/rib/tests/coverage-alpha-sides2-tjunction-r4-reyes.rib
+tier2 examples/rib/tests/coverage-alpha-sides2-tjunction-reyes.rib
+tier2 examples/rib/tests/csg-coincident-difference-reyes.rib
+tier2 examples/rib/tests/csg-coincident-difference-zbuffer.rib
+tier2 examples/rib/tests/csg-coincident-union-reyes.rib
+tier2 examples/rib/tests/csg-coincident-union-zbuffer.rib
+tier2 examples/rib/tests/csg-nurbs-rational-sphere-union-reyes.rib
+tier2 examples/rib/tests/csg-open-quadric-caps-reyes.rib
+tier2 examples/rib/tests/csg-open-quadric-caps-zbuffer.rib
+tier2 examples/rib/tests/csg-polymesh-box-difference-reyes.rib
+tier2 examples/rib/tests/csg-sphere-cube-difference-reyes-1600.rib
+tier2 examples/rib/tests/csg-sphere-cube-difference-reyes-800.rib
+tier2 examples/rib/tests/csg-sphere-cube-difference-reyes.rib
+tier2 examples/rib/tests/csg-sphere-cube-difference-zbuffer-1600.rib
+tier2 examples/rib/tests/csg-sphere-cube-difference-zbuffer-800.rib
+tier2 examples/rib/tests/csg-sphere-cube-difference-zbuffer.rib
+tier2 examples/rib/tests/csg-sphere-cube-intersection-reyes.rib
+tier2 examples/rib/tests/csg-sphere-cube-intersection-zbuffer.rib
+tier2 examples/rib/tests/csg-sphere-cube-union-reyes.rib
+tier2 examples/rib/tests/csg-sphere-cube-union-zbuffer.rib
+tier2 examples/rib/tests/csg-subdivision-sphere-union-reyes.rib
+tier2 examples/rib/tests/cubes-reyes.rib
+tier2 examples/rib/tests/depth-analytic-mid-reyes.rib
+tier2 examples/rib/tests/depth-analytic-mid-sides1-reyes.rib
+tier2 examples/rib/tests/depth-analytic-min-reyes.rib
+tier2 examples/rib/tests/depth-analytic-min-tjunction-r0.5-zbuffer.rib
+tier2 examples/rib/tests/depth-analytic-min-tjunction-r2-zbuffer.rib
+tier2 examples/rib/tests/depthfilter-determinism-avg-reyes.rib
+tier2 examples/rib/tests/depthfilter-determinism-mid-reyes.rib
+tier2 examples/rib/tests/killeroo-reyes.rib
+tier2 examples/rib/tests/motion-1-reyes.rib
+tier2 examples/rib/tests/motion-2-reyes.rib
+tier2 examples/rib/tests/motion-3-reyes.rib
+tier2 examples/rib/tests/nupatch-vase-trimmed-hole.rib
+tier2 examples/rib/tests/nupatch-vase-trimmed-malformed-badweight.rib
+tier2 examples/rib/tests/nupatch-vase-trimmed-malformed-instanced.rib
+tier2 examples/rib/tests/nupatch-vase-trimmed-malformed-unclosed.rib
+tier2 examples/rib/tests/nupatch-vase-trimmed-multiloop.rib
+tier2 examples/rib/tests/nupatch-vase-trimmed-scoping.rib
+tier2 examples/rib/tests/nupatch-vase-trimmed-sense.rib
+tier2 examples/rib/tests/nupatch-vase-untrimmed.rib
+tier2 examples/rib/tests/parity/aov-reyes.rib
+tier2 examples/rib/tests/parity/depthdefault-reyes.rib
+tier2 examples/rib/tests/parity/depthfilter-avg-reyes.rib
+tier2 examples/rib/tests/parity/depthfilter-max-reyes.rib
+tier2 examples/rib/tests/parity/depthfilter-mid-reyes.rib
+tier2 examples/rib/tests/parity/depthfilter-min-reyes.rib
+tier2 examples/rib/tests/parity/displacement-reyes.rib
+tier2 examples/rib/tests/parity/dof-motion-reyes.rib
+tier2 examples/rib/tests/parity/dof-reyes.rib
+tier2 examples/rib/tests/parity/flatshade-reyes.rib
+tier2 examples/rib/tests/parity/matte-reyes.rib
+tier2 examples/rib/tests/parity/motion-patches-deform-reyes.rib
+tier2 examples/rib/tests/parity/motion-patches-translate-reyes.rib
+tier2 examples/rib/tests/parity/motion-polygons-deform-reyes.rib
+tier2 examples/rib/tests/parity/motion-polygons-translate-reyes.rib
+tier2 examples/rib/tests/parity/motion-quadrics-deform-reyes.rib
+tier2 examples/rib/tests/parity/motion-quadrics-translate-reyes.rib
+tier2 examples/rib/tests/parity/motion-subdiv-rotate-reyes.rib
+tier2 examples/rib/tests/parity/motion-subdiv-translate-reyes.rib
+tier2 examples/rib/tests/parity/subdiv-hierarchical-override-reyes.rib
+tier2 examples/rib/tests/parity/texture-exr-reyes.rib
+tier2 examples/rib/tests/parity/texture-png-reyes.rib
+tier2 examples/rib/tests/parity/texture-rgbe-reyes.rib
+tier2 examples/rib/tests/parity/transparency-matte-aov-reyes.rib
+tier2 examples/rib/tests/parity/transparency-reyes.rib
+tier2 examples/rib/tests/parity/unbaked-exr-reyes.rib
+tier2 examples/rib/tests/parity/unbaked-nonpot-reyes.rib
+tier2 examples/rib/tests/parity/unbaked-png-reyes.rib
+tier2 examples/rib/tests/parity/unbaked-rgbe-reyes.rib
+tier2 examples/rib/tests/sampling-camera-jitter1-reyes-independent.rib
+tier2 examples/rib/tests/sampling-camera-jitter1-reyes-sobol.rib
+tier2 examples/rib/tests/sampling-displace-sphere.rib
+tier2 examples/rib/tests/sampling-instance-after.rib
+tier2 examples/rib/tests/sampling-instance-alone.rib
+tier2 examples/rib/tests/sampling-instance-before.rib
+tier2 examples/rib/tests/sampling-option-default-rslo.rib
+tier2 examples/rib/tests/sampling-option-default-slo.rib
+tier2 examples/rib/tests/sampling-option-pmj02-rslo.rib
+tier2 examples/rib/tests/sampling-option-pmj02-slo.rib
+tier2 examples/rib/tests/sphere-arrayops-reyes-slo.rib
+tier2 examples/rib/tests/sphere-arrayops-reyes.rib
+tier2 examples/rib/tests/sphere-cfrom-reyes-slo.rib
+tier2 examples/rib/tests/sphere-cfrom-reyes.rib
+tier2 examples/rib/tests/sphere-comparisonlogic-reyes-slo.rib
+tier2 examples/rib/tests/sphere-comparisonlogic-reyes.rib
+tier2 examples/rib/tests/sphere-ctransform-reyes-slo.rib
+tier2 examples/rib/tests/sphere-ctransform-reyes.rib
+tier2 examples/rib/tests/sphere-matrixops-reyes-slo.rib
+tier2 examples/rib/tests/sphere-matrixops-reyes.rib
+tier2 examples/rib/tests/sphere-parity-ci-oi-reyes-slo.rib
+tier2 examples/rib/tests/sphere-parity-ci-oi-reyes.rib
+tier2 examples/rib/tests/sphere-random-reyes-slo.rib
+tier2 examples/rib/tests/sphere-random-reyes.rib
+tier2 examples/rib/tests/sphere-uniform-conditional-reyes-slo.rib
+tier2 examples/rib/tests/sphere-uniform-conditional-reyes.rib
+tier2 examples/rib/tests/sphere-usfroma-reyes-slo.rib
+tier2 examples/rib/tests/sphere-usfroma-reyes.rib
+tier2 examples/rib/tests/spotlight-reyes.rib
+tier2 examples/rib/tests/subdiv-facevarying-seam-reyes.rib
+tier2 examples/rib/tests/subdiv-loop-reyes.rib
+tier2 examples/rib/tests/teapot-blue_marble-reyes-slo.rib
+tier2 examples/rib/tests/teapot-blue_marble-reyes.rib
+tier2 examples/rib/tests/teapot-brushedmetal-reyes-slo.rib
+tier2 examples/rib/tests/teapot-brushedmetal-reyes.rib
+tier2 examples/rib/tests/teapot-full-metal-reyes.rib
+tier2 examples/rib/tests/teapot-matte-reyes.rib
+tier2 examples/rib/tests/teapot-motion-reyes.rib
+tier2 examples/rib/tests/teapot-somewood-aliasing.rib
+tier2 examples/rib/tests/teapot-somewood-reyes-slo.rib
+tier2 examples/rib/tests/teapot-somewood-reyes.rib
+tier2 examples/rib/tests/teapot-wood-reyes-slo.rib
+tier2 examples/rib/tests/teapot-wood-reyes.rib
+tier2 examples/rib/tests/ties-coincident-reyes.rib
+tier2 examples/rib/tests/ties-coincident-zbuffer.rib
+tier2 examples/rib/tests/torus-partial-reyes.rib
+tier2 examples/rib/tests/torus-reyes.rib

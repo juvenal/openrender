@@ -5,7 +5,7 @@
  * 024-shading-services-routing, T012; research R2;
  * contracts/illumination-hook.md).
  *
- * A hider that sets HIDER_ILLUMINATIONHOOK (the photon hider) wants each
+ * A hider that provides the illumination-hook capability (the photon hider) wants each
  * illuminate()/solar() construct handed to it through four virtual hooks on
  * CShadingContext. The interpreter always did that. The JIT did not: it never
  * consulted the flag, and for solar() with no arguments it emitted no begin
@@ -49,6 +49,7 @@
 #include "ri/parse/ri.h"
 #include "ri/render/renderer.h"
 #include "ri/render/rendererContext.h"
+#include "ri/render/rendererTransport.h"
 
 static int g_passed = 0;
 static int g_failed = 0;
@@ -214,11 +215,7 @@ static void setupState(CHookProbeContext *probe, bool allInactive) {
 
 // Executes the light once on a fresh state and returns what it left behind
 static SRunResult runLight(CHookProbeContext *probe, CProgrammableShaderInstance *light, bool hookOn, bool allInactive) {
-    const unsigned int savedFlags = CRenderer::hiderFlags;
-    if (hookOn)
-        CRenderer::hiderFlags |= HIDER_ILLUMINATIONHOOK;
-    else
-        CRenderer::hiderFlags &= ~HIDER_ILLUMINATIONHOOK;
+    const bool savedHook = setFrameIlluminationHookForTest(hookOn);
 
     setupState(probe, allInactive);
     probe->calls.clear();
@@ -238,7 +235,7 @@ static SRunResult runLight(CHookProbeContext *probe, CProgrammableShaderInstance
     r.numPassive = ss->numPassive;
 
     memoryTini(localMemory);
-    CRenderer::hiderFlags = savedFlags;
+    setFrameIlluminationHookForTest(savedHook);
     return r;
 }
 

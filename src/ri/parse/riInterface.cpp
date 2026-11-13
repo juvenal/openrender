@@ -168,6 +168,10 @@ void CRiInterface::RiDisplayChannelV(const char *, int, const char *[], const vo
 void CRiInterface::RiHiderV(const char *, int, const char *[], const void *[]) {
 }
 
+// The Integrator statement (spec 030): a back-end that does not render ignores it, with no diagnostic.
+void CRiInterface::RiIntegratorV(const char *, int, const char *[], const void *[]) {
+}
+
 void CRiInterface::RiColorSamples(int, float *, float *) {
 }
 

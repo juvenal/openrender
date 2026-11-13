@@ -54,22 +54,33 @@
 # Spec 029 (hider / shading separation): the hiders no longer write CRenderer::activeContext (reyes.cpp and
 # raytracer.cpp; the renderer core sets it for every render thread now): Hiders 558 -> 556 references and
 # 82 -> 81 members; with spec 038 merged, TOTAL 606 -> 604 and 90 -> 89 (the values of the merged tree, as archcheck reported).
+#
+# Spec 032 (GI cache split): the world bound and the world matrices are injected into the irradiance cache and the photon store
+# instead of being read from CRenderer, and the irradiance sampler no longer includes the renderer: Hiders 556 -> 549 references
+# and 81 -> 78 members (CRenderer::worldBmin/worldBmax of the cache, CRenderer::toWorld/fromWorld of the photon map, the rest of
+# the moved files), Texturing stays 0 / 0, TOTAL 604 -> 597 and 89 -> 86, as archcheck reported.
+#
+# Spec 030 (hider and integrator registry): the renderer core no longer names a hider (CRenderer::contexts is read through the
+# registry's frame peers, CRenderer::hiderFlags is gone): Hiders 556 -> 553 references and 81 -> 79 members, TOTAL 604 -> 601 and
+# 89 -> 87 on the branch alone. Merged with spec 032: Hiders and TOTAL are archcheck's figures for the merged tree.
 
 # Spec 031 (geometry, hider-agnostic, T086, 2026-11-10): Geometry reads the frame value (CGeometryFrame), the geometry host and
 # CDeclarations instead of CRenderer, so only blobbyRepeller.cpp's CRenderer::locateFile and CRenderer::texturePath remain: Geometry
-# 48 -> 2 references and 15 -> 2 members. The photon map file (hiders/photonMap.cpp) reads the camera matrices from FrameParams
-# instead of CRenderer::toWorld/fromWorld: Hiders 556 -> 552 references and 81 -> 79 members. TOTAL 604 -> 554 and 89 -> 81, as
-# archcheck reported on the finished tree.
+# 48 -> 2 references and 15 -> 2 members (on the branch alone; the photon map's CRenderer::toWorld/fromWorld reads that it also moved
+# to FrameParams went with spec 032's move of that file, so only spec 032's version counts here).
 # Spec 031 (Phase 7, T098, 2026-11-11): Reyes and the stochastic rasterizer read the camera rotation, translation, flags and lens values from FrameParams
 # (frameParams(), once per function or grid, never per sample) instead of CRenderer::aperture, cameraHasRotation, cameraRotationOnly, relRotQ, relTrans,
 # invFocaldistance, cocFactorScreen and cocFactorSamples: Hiders 552 -> 499 references and 79 -> 72 members, TOTAL 554 -> 501 and 81 -> 74, as archcheck reported.
 # Spec 031 (Phase 9, lens phase, 2026-11-11): the Reyes depth-of-field bounds and the lens scatter read the lens model and FrameParams (dSampledx, dSampledy)
 # instead of CRenderer::dSampledx/y and the cocFactor statics: Hiders 499 -> 495 references (members unchanged at 72), TOTAL 501 -> 497 (74), as archcheck reported.
 
+# Merged with specs 032, 030 and 056 (2026-11-12): Geometry stays 2 / 2; Hiders 489 references and 69 members and TOTAL 491 and 71 are archcheck's figures for the fully built merged tree (031's own reductions,
+# 495 and 72, and spec 030's and 032's, are all in it).
+
 Geometry            2     2
-Hiders            495    72
+Hiders            489    69
 Infra               0     0
 SceneInterface      0     0
 Shading             0     0
 Texturing           0     0
-TOTAL             497    74
+TOTAL             491    71

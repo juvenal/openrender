@@ -59,6 +59,3 @@ add_csg_unit_test(CSG_LazyResolution      test_lazy_resolution.cpp)
 
 # Procedural operands (spec 021, Phase 5: T062)
 add_csg_unit_test(CSG_ProceduralOperand   test_procedural_operand.cpp)
-
-# Interior/Exterior shader selection (spec 013; updated by spec 021 T044)
-add_csg_unit_test(CSG_InteriorExteriorSelection test_interior_exterior_selection.cpp)

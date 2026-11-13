@@ -387,3 +387,15 @@ Visual_torus-partial-raytrace	1.94
 Visual_torus-partial-reyes	1.16
 Visual_torus-raytrace	2.08
 Visual_torus-reyes	2.02
+# merge preparation (2026-11-12): tests new on master (specs 030, 032, 056), from the merged tree
+Parity_atmosphere-depthcue-jit	0.00
+Parity_atmosphere-depthcue-reyes	2.39
+Parity_atmosphere-depthcue-zbuffer	2.39
+Parity_atmosphere-fog-jit	0.00
+Parity_atmosphere-fog-reyes	0.98
+Parity_atmosphere-fog-zbuffer	0.98
+Parity_volume-glass-sphere-reyes	4.78
+Parity_volume-glass-sphere-zbuffer	4.78
+Visual_volume-interior-fog-glass-sphere-raytrace	0.00
+Visual_volume-interior-fog-glass-sphere-reyes	0.00
+Visual_volume-interior-fog-glass-sphere-zbuffer	0.00

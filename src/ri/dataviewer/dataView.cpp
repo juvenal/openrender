@@ -105,7 +105,7 @@ static void flushRun(int tag, int count, const float *P, const float *C) {
 //							buffers (chunkSize is a multiple of 1, 2, 3, and 6, so a record
 //							never needs to be split mid-flush), flushing on a tag change, a
 //							full buffer, or end of file — mirroring the tail-flush pattern in
-//							pointCloud.cpp/photonMap.cpp/brickmap.cpp.
+//							pointCloudView.cpp/photonMapView.cpp/brickMapView.cpp.
 void CDataView::drawFile(const char *fileName) {
     FILE *file = fopen(fileName, "rb");
     if (file == NULL)

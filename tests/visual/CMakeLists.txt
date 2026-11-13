@@ -2331,26 +2331,18 @@ add_visual_test(csg-object-instance-reuse-raytrace
     csg-object-instance-reuse-raytrace.tif
     csg-object-instance-reuse-raytrace.tif)
 
-# T036 (US3, SC-004): a "difference" solid (sphere minus sphere) with both
-# Interior and Exterior fog shaders assigned. A correctly-oriented CSG
-# difference has outward normals everywhere, so a camera in empty space
-# sees the Exterior shader almost exclusively (dot(I,N) < 0 at essentially
-# every front-facing hit) -- the Interior shader only turns up as
-# silhouette-edge tessellation noise from this vantage point. This scene
-# is viewed from an angle that also reveals the cut-away notch silhouette
-# (blue Exterior tint, cutaway visible as a crescent).
+# T036 (US3, SC-004), rewritten by spec 056 (FR-011, FR-012): a "difference" solid (sphere minus sphere) with both Interior and Exterior fog
+# shaders and a mirror surface. Interior and Exterior are the volumes of the surface a ray leaves, CSG or not, so the camera hits carry no fog
+# and the fog is on the reflected rays that leave a fragment, by the side they enter (the Exterior, blue, off the outside of the solid). The
+# scene is viewed from an angle that also reveals the cut-away notch. The reference is approved image by image (spec 056, T100).
 add_visual_test(csg-sphere-sphere-difference-interior-raytrace
     examples/rib/tests/csg-sphere-sphere-difference-interior-raytrace.rib
     csg-sphere-sphere-difference-interior-raytrace.tif
     csg-sphere-sphere-difference-interior-raytrace.tif)
 
-# T036 companion (US3, SC-004): same solid, but the camera sits inside the
-# solid's own material (world origin -- inside the outer sphere, radius 1,
-# and outside the subtracted bite sphere at distance 0.9 > its radius 0.6),
-# so nearly every primary ray hits a front-facing wall from inside the
-# solid and the Interior shader dominates (red tint throughout). Paired
-# with csg-sphere-sphere-difference-interior-raytrace, this demonstrates
-# the visibly distinct inside/outside appearance SC-004 requires.
+# T036 companion (US3, SC-004), rewritten by spec 056 (FR-011, FR-012): same solid with the camera inside the solid's own material (world
+# origin, inside the outer sphere and outside the bite sphere). The reflected rays leave into the interior side, so the Interior fog (red)
+# tints the reflections throughout, while the camera hits themselves carry none. Paired with the scene above it shows the two sides.
 add_visual_test(csg-sphere-sphere-difference-interior-raytrace-inside
     examples/rib/tests/csg-sphere-sphere-difference-interior-raytrace-inside.rib
     csg-sphere-sphere-difference-interior-raytrace-inside.tif
@@ -4384,6 +4376,9 @@ endforeach()
 # Every non-GI visual and parity scene under each orender configuration (FR-031).
 include(${CMAKE_CURRENT_SOURCE_DIR}/determinism-scenes.cmake)
 
+# --- Volume shader segments (spec 056): the scenes, probes, goldens, differ and parity tests, in a file of their own ---
+include(${CMAKE_CURRENT_SOURCE_DIR}/volume-scenes.cmake)
+
 # --- Equal-depth ties (spec 039, Phase 7, T084c) ---------------------------------------------
 # Two coincident opaque triangles of different colour: every sample of the overlap receives two
 # fragments at exactly the same depth. The hiders keep the fragment that arrives first
@@ -4695,5 +4690,74 @@ foreach(_entry IN LISTS _jitspec_controls)
         if(_format STREQUAL "slo" AND NOT OPENRENDER_HAVE_LLVM)
             set_tests_properties(${_engaged} PROPERTIES DISABLED TRUE)
         endif()
+    endforeach()
+endforeach()
+
+# --- GitHub #153: a continued transmission ray keeps its end point -----------
+# tests/visual/shaders/transmission_destination_probe.sl shoots one transmission ray
+# (the machinery behind shadow(), transmission() and a light's shadow rays) from the
+# probe patch toward a target, through a half-opaque sheet, with an opaque wall
+# placed beyond the ray's end point. The ray is continued after the transparent
+# hit; it must stay bounded by its original end point (the target, or "maxdist"),
+# so the wall is never seen and the centre pixel reads the sheet's 0.5. Cases:
+#   beyond-target:  the end is the target point;
+#   beyond-maxdist: the end is set by "maxdist", the target is farther still;
+#   past-end:       the sheet is hit so close to the end that the continuation
+#                   starts (hit + C_EPSILON) at or past it, so nothing may be traced;
+#   control:        the wall is behind the probe, off the ray: reads 0.5 with or
+#                   without the fix, which shows the others fail on the wall.
+# Exact read-back of the float output under the reyes and raytrace hiders.
+#
+# The probe is a test-only shader: it is compiled into the build tree (never into
+# shaders/, whose objects are installed as product shaders) and found through a
+# SHADERS path that lists its directory before the shipped one.
+set(TRANSMISSION_DEST_SHADER_DIR ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+file(MAKE_DIRECTORY ${TRANSMISSION_DEST_SHADER_DIR})
+set(_tdest_sl ${CMAKE_CURRENT_SOURCE_DIR}/shaders/transmission_destination_probe.sl)
+set(_tdest_outputs ${TRANSMISSION_DEST_SHADER_DIR}/transmission_destination_probe.rslo)
+add_custom_command(
+    OUTPUT ${TRANSMISSION_DEST_SHADER_DIR}/transmission_destination_probe.rslo
+    COMMAND ${CMAKE_COMMAND} -DOSHADER=$<TARGET_FILE:oshader> -DSRC=${_tdest_sl}
+            -DOUT=${TRANSMISSION_DEST_SHADER_DIR}/transmission_destination_probe.rslo
+            -DINCDIR=${CMAKE_SOURCE_DIR}/shaders/includes
+            -P ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+    DEPENDS ${_tdest_sl} oshader ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+    WORKING_DIRECTORY ${TRANSMISSION_DEST_SHADER_DIR}
+    COMMENT ""
+    VERBATIM)
+if(OPENRENDER_HAVE_LLVM)
+    add_custom_command(
+        OUTPUT ${TRANSMISSION_DEST_SHADER_DIR}/transmission_destination_probe.slo
+        COMMAND ${CMAKE_COMMAND} -DOSHADER=$<TARGET_FILE:oshader> -DSRC=${_tdest_sl}
+                -DOUT=${TRANSMISSION_DEST_SHADER_DIR}/transmission_destination_probe.slo
+                -DINCDIR=${CMAKE_SOURCE_DIR}/shaders/includes -DJIT=ON
+                -P ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+        DEPENDS ${_tdest_sl} oshader ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+        WORKING_DIRECTORY ${TRANSMISSION_DEST_SHADER_DIR}
+        COMMENT ""
+        VERBATIM)
+    list(APPEND _tdest_outputs ${TRANSMISSION_DEST_SHADER_DIR}/transmission_destination_probe.slo)
+endif()
+add_custom_target(transmission_destination_probe_shader ALL DEPENDS ${_tdest_outputs})
+add_dependencies(transmission_destination_probe_shader openrender_shaders)
+
+set(_tdest_env "${VISUAL_ENV}")
+list(TRANSFORM _tdest_env REPLACE "^SHADERS=(.*)$"
+     "SHADERS=${TRANSMISSION_DEST_SHADER_DIR}:\\1")
+foreach(_case control beyond-target beyond-maxdist past-end)
+    foreach(_hider reyes raytrace)
+        set(_name transmission-dest-${_case}-${_hider})
+        set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/${_name})
+        file(MAKE_DIRECTORY ${_scratch})
+        add_test(NAME TransmissionDestination_${_case}_${_hider}
+            COMMAND test_pixel_probe $<TARGET_FILE:orender>
+                ${CMAKE_SOURCE_DIR}/examples/rib/tests/${_name}.rib
+                ${_name}.tif 16 16 0.00001 0.5 0.5 0.5
+            WORKING_DIRECTORY ${_scratch})
+        set_tests_properties(TransmissionDestination_${_case}_${_hider} PROPERTIES
+            TIMEOUT     120
+            LABELS      "visual;regression"
+            ENVIRONMENT "${_tdest_env}"
+            DEPENDS     orender)
     endforeach()
 endforeach()

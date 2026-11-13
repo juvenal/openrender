@@ -396,6 +396,39 @@ Prepared for PAUSE 11a: `tools/phase11-docs.diff` (`git apply --check` clean; ei
 | timing, `timing_sc010.sh build-base build 5` (`build-logs/p11-timing.log`) | **0 scenes slower beyond the spread**; medians start/final (s): `killeroo-reyes`, `csg-hero-displaced-raytrace` and `blobby-csg-difference-reyes` within spread (blobby 4.30 vs 4.59), `camera-dof-reyes` 4.77 to 2.99 (-41 percent: the smaller physical blur bound; the script exits 3 only because the final median is under its 3 s guard), `camera-dof-raytrace` 5.41 to 5.40 (-9 percent of medians, within spread) | not run (macOS only) |
 | `linux_sync.sh pull` / `verify` | | pulled the 9 Linux-produced files, **0 differences**; `verify`: **3780 files, 0 differences** |
 
+### Merge preparation (2026-11-13): master `c2e3cce3` merged into 031, uncommitted
+
+Merged master **`c2e3cce3`** (specs 056 `11fa3424`, 032 `8f45d919`, the revamp-brief docs commit `ff65a7ad` and spec 030 `c2e3cce3`) with `git merge --no-ff --no-commit`; master has since moved by one docs-only commit, `c695f340` ("docs: refresh revamp brief for spec 030"), **not merged here** (the coordinator handles it: merge, then `PluginAbi_RegistryConsistency` and `-L architecture`). 17 files conflicted; the resolution of each is in the drafted `MERGE_MSG` (`git rev-parse --git-path MERGE_MSG`), with the stated rules: `photonStore.cpp` is spec 032's (031's `photonMap.cpp` edit and its two DB-011 lines dropped); the irradiance exemption of `check_ribvector_no_stubs.cmake` removed; one `CReyes::drawObject` declaration overrides both `CHider::drawObject` (030) and `IDicer::drawObject` (031); `kRendererServicesVersion` 2.3.0 with 031's entry above 032's 2.2.0; the allowlist and metrics never taken from one side.
+
+Resolved by hand besides the textual conflicts: `tests/unit/csg/test_boundary_rule.cpp` (spec 056's `solid->resolve(s.ctx())` is `resolve(*s.ctx())` against the reference interface); the hcshader names in `src/ri/CMakeLists.txt` comments (`Hcshader_NoReferences`).
+
+**Places where spec 030's or 032's code meets 031's interfaces** (git merged them cleanly or with the conflicts above; all build and pass):
+- `renderer.cpp:beginFrame()`: `beginFrameParams()` (line 804) runs before the hiders are created through the registry table (`hiderTable->create`, 829) and `beginGeometryFrame()` (859) after them, so `CGeometryFrame::raytracingFlags` still copies what the raytrace and photon hider constructors set; a refused frame (`abortFrameTransport()`) installs no geometry frame (the failure path calls `endFrameParams()` only).
+- `CRendererContext::addObject` submits through `contexts[0]->drawObject(...)` (030): `CReyes::drawObject` is the one override of both bases; `CRaytracer`/`CPhotonHider` keep `CHider`'s empty default, and `IDicer` is implemented by `CReyes` only.
+- `CReyes(int, const CHiderPeers &)` (030) with 031's `FrameParams` reads; `CStochastic` and `CZbuffer` pass the peers through; the lens scatter and bounds are unchanged by it.
+- `CHider`'s constructor installs spec 032's irradiance sampler and no longer a producer; `CHider` implements `IRayContext` for Geometry.
+- Spec 032's `CPhotonStore`/`photonStore.cpp` and `render/photonMap.h` read `CRenderer::toWorld/fromWorld` in Core (the residual list's `photonMap.h` cell); Geometry and the dicer see none of the GI code.
+- Spec 056's CSG tests call `resolve()` (fixed above) and `selectVolumeShader` is gone; Geometry's `csgSolid.cpp` merged cleanly with 031's `IRayContext` edits.
+
+Merged-tree validation (a **fresh build tree**, `build-merge`, so that archcheck reads no stale object, #162; Linux `build-merge` in `~/Projects/Development/CLI/openrender-031`):
+
+| Check | macOS | Linux (GCC 13 `-Werror`, remote cpujob `-j2`) |
+|---|---|---|
+| build, all targets | exit 0, no compiler warning | exit 0, 0 warnings |
+| everyday run `-LE determinism-sweep` | **1363/1363** | 1362/1364: `TextureTile_RenderByteIdentical` (#45) and the photon rows of `Registry_IntegratorImageIdentity` (#163, run-to-run photon map difference) |
+| `-L architecture` | **36/36**, `ALLOWED DB-004 x 3, DB-011 x 144` = 147, `RESULT PASS`; metrics Geometry 2/2, Hiders 489/69, TOTAL 491/71 equal the baseline file | 36/36 |
+| `-L registry`, `gi_split`, `link`, `geometry_contract`, `camera`, `Motion_`, `shading_parity` | 17/17, 9/9, 4/4, 5/5, 8/8, 13/13, 136/136 (no `ShadingParity_JitPL*` timeout) | 16/17 (the #163 test), 9/9, 5/5, 5/5, 8/8, 13/13, 136/136 |
+| `^determinism$` (`-j2`) | 158/158 | 158/158 |
+| determinism sweep (`-j2`) | **582/582** | **582/582** |
+| image manifest against the baselines | suite: 915 baseline images, **7 differing**, 0 missing, 279 new on master; sweep: 419 baseline images, 7 differing, 0 missing, 163 new | suite: 7 differing, 0 missing, 279 new; sweep: 7 differing, 0 missing, 163 new |
+| the 7 differing images | the five approved Reyes DoF renders (`camera-dof-reyes`, `camera-motion-small+dof-reyes`, `parity-dof-reyes`, `parity-dof-motion-reyes`, and `convergence/dof-reyes` or `top-camera-dof-reyes` in the sweep) and spec 056's two rewritten CSG interior scenes (`csg-sphere-sphere-difference-interior-raytrace` and `-inside`); no other existing image changed, so there is no stop-and-ask | the same seven |
+
+Re-baselined (new on master only; the existing images' baselines are unchanged and the seven approved changes stay recorded as differences): `tools/baseline-images-macos.sha256` +279, `tools/baseline-sweep-images-macos.sha256` +163, `tools/baseline-diffs-macos.txt` +11 lines, and the Linux counterparts from the Linux merged run. After the re-baseline the macOS manifest check is: 7 differing (the approved set), 0 missing, 0 not in the manifest.
+
+The allowlist against master: **315 to 147 entries, 168 deleted, none added** (DB-004 52 to 3, DB-006 29 to 0, DB-011 155 to 144, DB-017 78 to 0, DB-025 1 to 0; spec 032 had deleted DB-010's 8 and the DB-011 and DB-025 lines it owns, spec 030 its 4). Metrics Geometry 2/2, Hiders 489/69, TOTAL 491/71.
+Registry: DB-006, DB-009, DB-017 and DB-025 are now Resolved (DB-017 and DB-025 with spec 032: the last pair and the last line went at this merge); DB-004 (3 lines) and DB-011 (144) stay Open. This follows from the merged facts; it is a judgement call for the maintainer to confirm.
+The Linux run was split in two because one ssh session dropped ("Connection closed by remote host") after `shading_parity`; the host stayed reachable, and the determinism and sweep steps were re-run under `nohup` (`build-logs/lm-part2.out` on the host). Nothing else was repeated.
+
 ## §2 Red evidence
 
 ### Phase 2 (macOS; `build` configured with `-DOPENRENDER_031_RED_TESTS=ON`, then OFF again)
@@ -679,7 +712,7 @@ Final status (Phase 11, T140; 2026-11-12). Every requirement and success criteri
 | FR-003 | `IRayContext` (`rayContext.h`), the tessellation lock local to `surface.cpp`; `Geometry_IntersectThroughRayContext` | proven |
 | FR-004 | `CGeometryHost` expansion (`expandDelayedObject`/`Instance`); `Geometry_ExpansionThroughHost` | proven |
 | FR-005 | `common/shadingDim.h` (Infra) | proven |
-| FR-006 | the forwarding entries and `IShadingProducer` retired; `kRendererServicesVersion` stepped one MINOR (2.2.0 on this branch; **2.3.0 at merge**, after spec 032's 2.2.0) | proven (number renumbered at merge) |
+| FR-006 | the forwarding entries and `IShadingProducer` retired; `kRendererServicesVersion` stepped one MINOR: 2.2.0 on the branch, **2.3.0 on the merged tree** (after spec 032's 2.2.0; `rendererServices.h`, `contracts/shading-boundary.md`) | proven |
 | FR-007 | `grep -rnE 'public +(IRayContext\|IDicer\|IObjectSink)' src/ri/geometry` prints nothing; the interfaces are abstract and in the Geometry directory | proven |
 | FR-008 | the `geometryDispatch.cpp` bodies live in `src/ri/geometry`; the file and its stub are deleted | proven |
 | FR-009 | `surfaceCrossings.cpp` is one implementation compiled for both libraries; its dispatch pair is gone | proven |

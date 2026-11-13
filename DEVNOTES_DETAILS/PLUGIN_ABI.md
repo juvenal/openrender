@@ -207,6 +207,30 @@ and removes it at `RiEnd`.
 
 ---
 
+## Hider registration and integrators (spec 030): internal until spec 051
+
+Two more families are versioned like the plug-in families above but are **not loaded from disk yet and not installed**: a
+hider registers a table (`src/ri/hiders/hiderAbi.h`, hider registration **2.0.0**) and an integrator registers a table
+(`src/ri/transport/integratorAbi.h`, integrator **2.0.0**, which also versions the capability vocabulary of
+`src/ri/transport/capability.h`). Built-in tables and tables registered from a program (`OR_REGISTER_HIDER`,
+`OR_REGISTER_INTEGRATOR`) go through the same single check as a loaded module, the `checkPluginVersion` overload that takes the
+version from the table's header (`src/common/pluginAbi.h`): one MAJOR is supported, a newer MINOR registers with one warning, any
+other MAJOR is refused with one `CODE_VERSION` error, and a table smaller than the host's is refused too. Neither header is in
+`OPENRENDER_PUBLIC_HEADERS` and neither has a version symbol: dlopened hider and integrator modules arrive with spec 051, and the
+types a hider's runtime needs (`CHider`, `renderingLoop()`) stay internal C++ until then. Until spec 055 MAJOR stays 2 and 2.x is
+unstable: a breaking change steps MINOR and says so in the header's table. Their version histories, quoted from the headers:
+
+| Family | Version | Change |
+|---|---|---|
+| hider registration | none (1) | hiders were chosen by `strcmp` chains in the renderer core, unversioned |
+| hider registration | 2.0.0 | spec 030, starting version confirmed 2026-11-07: the table (name, aliases, provided capabilities, dispatch kind, optional `preDisplaySetup`, `create`/`destroy`) and the reserved pair field of an alias |
+| integrator | none (1) | no integrator existed, the `Surface` shader integrated itself |
+| integrator | 2.0.0 | spec 030, starting version confirmed 2026-11-07: the table (name, aliases, required and optional capabilities, `create`/`destroy`, `configure`/`prepare`/`finish`), the settings, host and frame structs, the capability vocabulary `rasterization`, `display-output`, `display-channels`, `deep-shadow-output` and `illumination-hook` at 1.0.0 and the reserved names; spec 042 is expected to append `render` and the host services as a MINOR step |
+
+`PluginAbi_DocPaths` covers the installed families only; it is unchanged and passes with this section.
+
+---
+
 ## Installing
 
 The public headers (`ri.h`, `ptcapi.h`, `rslo.h`, the four family headers, `orplugin.h`

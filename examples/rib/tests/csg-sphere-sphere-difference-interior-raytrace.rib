@@ -1,5 +1,10 @@
 ##RenderMan RIB-Structure 1.0
 version 3.03
+# Spec 056 (FR-011, FR-012): Interior and Exterior shaders are the volumes of the surface a ray LEAVES, on any surface, CSG or not. A camera ray
+# has no spawning surface, so the camera hits of this solid carry no fog; the fog appears on the secondary rays that leave a fragment: the mirror
+# surface below traces a reflection from every camera hit, and that segment is attenuated by the shader on the side the reflected ray enters (the
+# exterior side for a reflection off the outside of the solid, the interior side for a ray that goes into the cut-away). Names and test IDs are
+# unchanged from spec 021; the matte surface (which traced nothing, so it lost all its fog under the new rule) is replaced by a mirror.
 Hider "raytrace"
 Display "csg-sphere-sphere-difference-interior-raytrace.tif" "file" "rgba"
 Format 200 200 1
@@ -12,7 +17,8 @@ WorldBegin
     LightSource "ambientlight" 1 "intensity" [0.3]
     LightSource "distantlight" 2 "intensity" [0.9] "from" [5 5 -5] "to" [0 0 0]
     Color [0.75 0.75 0.8]
-    Surface "matte"
+    Attribute "visibility" "int specular" [1]
+    Surface "mirror" "float Ka" [0.3] "float Kr" [0.8]
     Interior "fog" "distance" 4 "background" [0.9 0.1 0.1]
     Exterior "fog" "distance" 4 "background" [0.1 0.1 0.9]
     SolidBegin "difference"

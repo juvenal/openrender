@@ -10,27 +10,15 @@
 #
 # Seeded by specs/022-domain-dependency-guardrails/tools/assign_registry.py.
 
-# --- DB-004: Geometry depends on the renderer core and on Scene Interface (52) ---
+# --- DB-004: Geometry depends on the renderer core and on Scene Interface (3) ---
 DB-004  include  src/ri/geometry/blobbyRepeller.cpp  ->  src/ri/render/renderer.h
 DB-004  link     src/ri/geometry/blobbyRepeller.cpp  ->  _ZN9CRenderer10locateFileEPcPKcP11TSearchpathi   # CRenderer::locateFile(char*, char const*, TSearchpath*, int)
 DB-004  link     src/ri/geometry/blobbyRepeller.cpp  ->  _ZN9CRenderer11texturePathE   # CRenderer::texturePath
 
-# --- DB-006: Geometry is coupled to Shading and to the hiders (30) ---
+# --- DB-006: Geometry is coupled to Shading and to the hiders (0) ---
 
-# --- DB-010: The hiders' GI caches use Texturing (8) ---
-DB-010  include  src/ri/hiders/irradiance.cpp  ->  src/ri/texture/pointHierarchy.h
-DB-010  include  src/ri/hiders/irradiance.cpp  ->  src/ri/texture/texture.h
-DB-010  include  src/ri/hiders/irradiance.h  ->  src/ri/texture/texture3d.h
-DB-010  include  src/ri/hiders/irradianceDispatch.cpp  ->  src/ri/texture/pointHierarchy.h
-DB-010  include  src/ri/hiders/irradianceDispatch.cpp  ->  src/ri/texture/texture.h
-DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZN10CTexture3dC2EPKcPKfS3_S3_iPNS_8CChannelE   # CTexture3d::CTexture3d(char const*, float const*, float const*, float const*, int, CTexture3d::CChannel*)
-DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZN10CTexture3dD2Ev   # CTexture3d::~CTexture3d()
-DB-010  link     src/ri/hiders/irradiance.cpp  ->  _ZTI10CTexture3d   # typeinfo for CTexture3d
-
-# --- DB-011: Hiders read renderer-core state (CRenderer) (164) ---
+# --- DB-011: Hiders read renderer-core state (CRenderer) (144) ---
 DB-011  include  src/ri/hiders/compositor.cpp  ->  src/ri/render/renderer.h
-DB-011  include  src/ri/hiders/irradiance.cpp  ->  src/ri/render/renderer.h
-DB-011  include  src/ri/hiders/irradianceDispatch.cpp  ->  src/ri/render/renderer.h
 DB-011  include  src/ri/hiders/occlusion.cpp  ->  src/ri/render/renderer.h
 DB-011  include  src/ri/hiders/photon.cpp  ->  src/ri/render/renderer.h
 DB-011  include  src/ri/hiders/pixelFilter.h  ->  src/ri/render/renderer.h
@@ -43,9 +31,6 @@ DB-011  link     src/ri/hiders/compositor.cpp  ->  _ZN9CRenderer19nonCompChannel
 DB-011  link     src/ri/hiders/compositor.cpp  ->  _ZN9CRenderer20numExtraCompChannelsE   # CRenderer::numExtraCompChannels
 DB-011  link     src/ri/hiders/compositor.cpp  ->  _ZN9CRenderer23numExtraNonCompChannelsE   # CRenderer::numExtraNonCompChannels
 DB-011  link     src/ri/hiders/compositor.cpp  ->  _ZN9CRenderer7clipMaxE   # CRenderer::clipMax
-DB-011  link     src/ri/hiders/irradiance.cpp  ->  _ZN9CRenderer9worldBmaxE   # CRenderer::worldBmax
-DB-011  link     src/ri/hiders/irradiance.cpp  ->  _ZN9CRenderer9worldBminE   # CRenderer::worldBmin
-DB-011  link     src/ri/hiders/photon.cpp  ->  _ZN9CRenderer10hiderFlagsE   # CRenderer::hiderFlags
 DB-011  link     src/ri/hiders/photon.cpp  ->  _ZN9CRenderer11dispatchJobE   # CRenderer::dispatchJob
 DB-011  link     src/ri/hiders/photon.cpp  ->  _ZN9CRenderer11maxGridSizeE   # CRenderer::maxGridSize
 DB-011  link     src/ri/hiders/photon.cpp  ->  _ZN9CRenderer14numEmitPhotonsE   # CRenderer::numEmitPhotons
@@ -121,7 +106,6 @@ DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer7clipMaxE   # CRender
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer7clipMinE   # CRenderer::clipMin
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer7xPixelsE   # CRenderer::xPixels
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer7yPixelsE   # CRenderer::yPixels
-DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer8contextsE   # CRenderer::contexts
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer8pixelTopE   # CRenderer::pixelTop
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer8xBucketsE   # CRenderer::xBuckets
 DB-011  link     src/ri/hiders/reyes.cpp  ->  _ZN9CRenderer8yBucketsE   # CRenderer::yBuckets
@@ -168,7 +152,6 @@ DB-011  link     src/ri/hiders/trace.cpp  ->  _ZN9CRenderer11maxGridSizeE   # CR
 DB-011  link     src/ri/hiders/trace.cpp  ->  _ZN9CRenderer11maxRayDepthE   # CRenderer::maxRayDepth
 DB-011  link     src/ri/hiders/trace.cpp  ->  _ZN9CRenderer14hierarchyMutexE   # CRenderer::hierarchyMutex
 DB-011  link     src/ri/hiders/trace.cpp  ->  _ZN9CRenderer4rootE   # CRenderer::root
-DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer10hiderFlagsE   # CRenderer::hiderFlags
 DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer11bucketWidthE   # CRenderer::bucketWidth
 DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer12bucketHeightE   # CRenderer::bucketHeight
 DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer13pixelXsamplesE   # CRenderer::pixelXsamples
@@ -180,17 +163,6 @@ DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer5flagsE   # CRender
 DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer7clipMaxE   # CRenderer::clipMax
 DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer7clipMinE   # CRenderer::clipMin
 
-# --- DB-017: Link-time *Dispatch / *DispatchStub substitution pairs (78) ---
+# --- DB-017: Link-time *Dispatch / *DispatchStub substitution pairs (0) ---
 
-# --- DB-025: Domains call into the data viewer (a consumer) (12) ---
-DB-025  include  src/ri/hiders/irradiance.cpp  ->  src/ri/dataviewer/debug.h
-DB-025  include  src/ri/hiders/photonMap.h  ->  src/ri/dataviewer/dataView.h
-DB-025  include  src/ri/texture/texture3d.h  ->  src/ri/dataviewer/dataView.h
-DB-025  link     src/ri/hiders/irradiance.cpp  ->  _ZN9CDataView10drawPointsEiPKfS1_   # CDataView::drawPoints(int, float const*, float const*)
-DB-025  link     src/ri/hiders/irradiance.cpp  ->  _ZN9CDataView9drawDisksEiPKfS1_S1_S1_   # CDataView::drawDisks(int, float const*, float const*, float const*, float const*)
-DB-025  link     src/ri/hiders/photonMap.cpp  ->  _ZN9CDataView10drawPointsEiPKfS1_   # CDataView::drawPoints(int, float const*, float const*)
-DB-025  link     src/ri/texture/brickmap.cpp  ->  _ZN9CDataView10drawPointsEiPKfS1_   # CDataView::drawPoints(int, float const*, float const*)
-DB-025  link     src/ri/texture/brickmap.cpp  ->  _ZN9CDataView13drawTrianglesEiPKfS1_   # CDataView::drawTriangles(int, float const*, float const*)
-DB-025  link     src/ri/texture/brickmap.cpp  ->  _ZN9CDataView9drawDisksEiPKfS1_S1_S1_   # CDataView::drawDisks(int, float const*, float const*, float const*, float const*)
-DB-025  link     src/ri/texture/pointCloud.cpp  ->  _ZN9CDataView10drawPointsEiPKfS1_   # CDataView::drawPoints(int, float const*, float const*)
-DB-025  link     src/ri/texture/pointCloud.cpp  ->  _ZN9CDataView9drawDisksEiPKfS1_S1_S1_   # CDataView::drawDisks(int, float const*, float const*, float const*, float const*)
+# --- DB-025: Domains call into the data viewer (a consumer) (0) ---

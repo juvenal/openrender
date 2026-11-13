@@ -149,7 +149,7 @@ CReyes::CBucket::~CBucket() {
 // Description			:	Ctor
 // Return Value			:	-
 // Comments				:
-CReyes::CReyes(int thread) : CHider(thread) {
+CReyes::CReyes(int thread, const CHiderPeers &peerGroup) : CHider(thread), peers(&peerGroup) {
     const openrender::FrameParams &fp = openrender::frameParams();
     int cx, cy;
 
@@ -1953,7 +1953,7 @@ void CReyes::insertObject(CRasterObject *object) {
 
     // Insert the the object into every thread
     for (i = 0; i < CRenderer::numThreads; i++) {
-        CReyes *hider = static_cast<CReyes *>(CRenderer::contexts[i]);
+        CReyes *hider = static_cast<CReyes *>(peers->members[i]);
         int bx = sx;
         int by = sy;
         int killObj = FALSE;

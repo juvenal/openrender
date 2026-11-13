@@ -47,6 +47,9 @@
 #include <string.h>
 #include <stdarg.h>
 
+#include <string>
+#include <vector>
+
 
 #ifdef HAVE_ZLIB
 #include <zlib.h>
@@ -358,6 +361,111 @@ static	int		parameterListCheck() {
 }
 
 ///////////////////////////////////////////////////////////////////////
+// Function				:	integratorParameterCheck
+// Description			:	Prepare the parameter list of an Integrator statement (spec 030)
+// Return Value			:	TRUE if the statement can go on
+// Comments				:	The statement hands the renderer tokens and values only, with no value count, yet an
+//							integrator's parameter has `numItems` items (contracts/ri-integrator.md). The parser knows
+//							how many values each parameter was given, so an inline declaration that declares a
+//							different count (a plain "string modes" given two strings) is rewritten here to carry
+//							the count it was given ("string[2] modes"); the writer and the renderer then agree with
+//							the parser. A pre-declared parameter cannot be rewritten: a count that differs from its
+//							declaration is an error and the statement is refused. Nothing else is checked here and no
+//							value is range-checked: the types are checked and an integer parameter is converted to ints
+//							in place, as parameterListCheck does for every other parameter list, and the renderer's
+//							RiIntegratorV validates the rest and normalises.
+static std::vector<std::string> integratorTokens;
+
+static int integratorParameterCheck() {
+	integratorTokens.clear();
+	integratorTokens.reserve(numParameters);
+
+	for (int i = 0; i < numParameters; i++) {
+		TParameter *par = parameters + i;
+		CVariable  *var = riRetrieveVariable(par->name);
+		CVariable   tmp;
+		bool        inlineDeclaration = false;
+
+		if (var == NULL) {
+			if (!parseVariable(&tmp, NULL, par->name))
+				continue;	// not declared at all: the renderer reports it
+			var = &tmp;
+			inlineDeclaration = true;
+		}
+
+		if (var->numFloats <= 0 || (par->numItems % var->numFloats) != 0) {
+			error(CODE_MISSINGDATA,"Invalid number of items for the parameter \"%s\" (expecting n*%d, found %d)\n",par->name,var->numFloats,par->numItems);
+			return FALSE;
+		}
+
+		// Type checking, and the integer conversion every parameter list gets (parameterListCheck does the same): the parser
+		// reads numbers as floats, the renderer and the writer expect an integer parameter as ints
+		if (var->type == TYPE_INTEGER) {
+			if (par->type == RT_FLOAT) {
+				T32 *dest = (T32 *) vals[i];
+
+				for (int j=par->numItems;j>0;j--,dest++) {
+					dest->integer	=	(int) dest->real;
+				}
+			} else {
+				error(CODE_RANGE,"Type mismatch for parameter \"%s\" (expecting integer, found string)\n",par->name);
+				return FALSE;
+			}
+		} else if (var->type == TYPE_STRING) {
+			if (par->type != RT_TEXT) {
+				error(CODE_RANGE,"Type mismatch for parameter \"%s\" (expecting string, found float)\n",par->name);
+				return FALSE;
+			}
+		} else {
+			if (par->type != RT_FLOAT) {
+				error(CODE_RANGE,"Type mismatch for parameter \"%s\" (expecting float, found string)\n",par->name);
+				return FALSE;
+			}
+		}
+
+		const int given = par->numItems / var->numFloats;
+		if (given == var->numItems)
+			continue;
+
+		if (!inlineDeclaration) {
+			error(CODE_RANGE,"Invalid number of items for the parameter \"%s\" (expecting %d, found %d)\n",par->name,var->numItems,given);
+			return FALSE;
+		}
+
+		// Rewrite the type word of the declaration ("[class] type[n] name"): the word whose part before '[' is a type
+		static const char *typeWords[] = {"float","integer","int","string","color","point","vector","normal","matrix","hpoint","quad","mpoint","double"};
+		std::string rewritten;
+		bool        done = false;
+		const char *c    = par->name;
+		while (*c != '\0') {
+			while (*c == ' ' || *c == '\t') c++;
+			const char *wordStart = c;
+			while (*c != '\0' && *c != ' ' && *c != '\t') c++;
+			std::string word(wordStart, c - wordStart);
+			if (word.empty()) break;
+
+			if (!done) {
+				const std::string base = word.substr(0, word.find('['));
+				for (const char *t : typeWords)
+					if (base == t) {
+						word = base + "[" + std::to_string(given) + "]";
+						done = true;
+						break;
+					}
+			}
+			if (!rewritten.empty()) rewritten += ' ';
+			rewritten += word;
+		}
+
+		if (done) {
+			integratorTokens.push_back(rewritten);
+			tokens[i] = (RtToken) integratorTokens.back().c_str();
+		}
+	}
+	return TRUE;
+}
+
+///////////////////////////////////////////////////////////////////////
 // Function				:	getBasisSteps
 // Description			:	Get the currently active bicubic-patch basis
 //							step sizes, for validating PatchMesh/Curves
@@ -559,6 +667,7 @@ static	RtErrorHandler	getErrorHandler(char *n) {
 %token	RIB_DISPLAY
 %token	RIB_DISPLAYCHANNEL
 %token	RIB_HIDER
+%token	RIB_INTEGRATOR
 %token	RIB_COLOR_SAMPLES
 %token	RIB_RELATIVE_DETAIL
 %token	RIB_OPTION
@@ -1061,6 +1170,15 @@ ribComm:		RIB_STRUCTURE_COMMENT
 				{
 					if (parameterListCheck()) {
 						RiHiderV($2,numParameters,tokens,vals);
+					}
+				}
+				|
+				RIB_INTEGRATOR
+				RIB_TEXT
+				ribPL
+				{
+					if (integratorParameterCheck()) {
+						RiIntegratorV($2,numParameters,tokens,vals);
 					}
 				}
 				|

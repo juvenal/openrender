@@ -5,7 +5,7 @@
 #         -P check_ribvector_no_stubs.cmake
 #
 # Fails when
-#   1. ribVector_obj compiles a vector/*Stub.cpp other than irradianceDispatchStub.cpp (spec 032's), or
+#   1. ribVector_obj compiles a vector/*Stub.cpp, or
 #   2. `nm -u` over the built objects names a CShadingContext, CReyes, CHider or IShadingProducer symbol. The mangled
 #      name is matched by its length-prefixed identifier (15CShadingContext, 6CReyes, 6CHider, 16IShadingProducer), which
 #      is exact: a longer name has another length. (c++filt is not used: execute_process truncates its large input.)
@@ -17,7 +17,7 @@ endif()
 
 set(_stubs "")
 foreach(_s IN LISTS SOURCES)
-    if(_s MATCHES "(^|/)vector/[A-Za-z0-9_]*Stub\\.cpp$" AND NOT _s MATCHES "(^|/)irradianceDispatchStub\\.cpp$")
+    if(_s MATCHES "(^|/)vector/[A-Za-z0-9_]*Stub\\.cpp$")
         list(APPEND _stubs "${_s}")
     endif()
 endforeach()
@@ -51,11 +51,7 @@ endif()
 string(REPLACE "\n" ";" _lines "${_undefined}")
 set(_hits 0)
 foreach(_l IN LISTS _lines)
-    # The two irradiance stub symbols are spec 032's (irradiance.cpp is Hiders, not Geometry; irradianceDispatchStub.cpp is
-    # the stub 032 deletes): 22irradianceSampleAccept and 16CIrradianceCache6sample are exempt until then. Whichever of 031 and
-    # 032 merges second removes this exemption.
-    if(_l MATCHES "(15CShadingContext|6CReyes|6CHider|16IShadingProducer)"
-       AND NOT _l MATCHES "(22irradianceSampleAccept|16CIrradianceCache6sample)")
+    if(_l MATCHES "(15CShadingContext|6CReyes|6CHider|16IShadingProducer)")
         string(STRIP "${_l}" _l)
         message(STATUS "VIOLATION undefined reference: ${_l}")
         math(EXPR _hits "${_hits} + 1")

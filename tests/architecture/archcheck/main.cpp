@@ -75,7 +75,7 @@ namespace {
                    "Data files (in --config):\n"
                    "  domain-map.txt        file/prefix -> class (SceneInterface, GraphicsState,\n"
                    "                        Geometry, Hiders, Shading, Texturing, ShaderDSO,\n"
-                   "                        Procedures, Display, Core, Infra, Consumer)\n"
+                   "                        Procedures, Display, Transport, Core, Infra, Consumer)\n"
                    "  domain-rules.txt      the constitution's allowed-dependency table\n"
                    "  allowlist.txt         known violating edges, one per line, each with an\n"
                    "                        Open registry id and an optional macos|linux tag\n"

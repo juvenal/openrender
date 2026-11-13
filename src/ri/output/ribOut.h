@@ -93,6 +93,7 @@ class CRibOut : public CRiInterface {
         virtual void RiDisplayChannelV(const char *channel, int n, const char *tokens[], const void *params[]) override;
 
         virtual void RiHiderV(const char *type, int n, const char *tokens[], const void *params[]) override;
+        virtual void RiIntegratorV(const char *name, int n, const char *tokens[], const void *params[]) override;
         virtual void RiColorSamples(int N, float *nRGB, float *RGBn) override;
         virtual void RiRelativeDetail(float relativedetail) override;
         virtual void RiOptionV(const char *name, int n, const char *tokens[], const void *params[]) override;

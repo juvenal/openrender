@@ -304,6 +304,23 @@ the depth tests' 500000 (a z-unit metric, not 0-255), and every test at the defa
 | `Parity_unbaked-png` | 20 | 3.81 |
 | `Parity_unbaked-rgbe` | 20 | 1.36 |
 
+## Spec 056 (volume shader segments)
+
+The pairs below are characterizations of the starting tree: all green before the volume step exists. Each uses the default
+threshold (20); none is a measurement-derived exception.
+
+| Test | Threshold | Scenes |
+|---|---|---|
+| `Parity_volume-glass-sphere-reyes` | 20 | raytrace against reyes, the 8-bit glass sphere with Interior fog |
+| `Parity_volume-glass-sphere-zbuffer` | 20 | raytrace against zbuffer |
+| `Parity_atmosphere-{fog,depthcue}-{reyes,zbuffer}` | 20 | the 8-bit atmosphere twins, raytrace against the other hider (US6 AS1) |
+| `Parity_atmosphere-{fog,depthcue}-jit` | 20 | the 8-bit atmosphere twins, raytrace `.slo` against `.rslo` |
+
+The float probe scenes (`VolumeProbe_*`) are not parity pairs: `test_hider_parity` reads 8-bit RGBA and single-channel
+float only (`test_hider_parity.cpp:96-100`). Their cross-hider and cross-backend agreement (FR-014) is that every variant
+reads the same hand-computed value from the same pixel, within 0.0001 where the value contains `exp()` and 0.00001 for a
+pass-through colour. The glass sphere has no `.slo` pair until GitHub #157 (the shipped `glass` shader is broken under the JIT). A red parity pair is reported; the threshold is never widened to answer it.
+
 ## Spec 031: the lens phase (2026-11-12)
 
 Reyes and the raytracer take one circle-of-confusion function (`LensModel::circleOfConfusion`), so the blur-size part of D9 closed. Re-measured at the Phase 9 tree

@@ -153,6 +153,14 @@ archcheck_add_fixture(not-built 0
 archcheck_add_fixture(tagged-untagged-dup 2
     "allowlist\\.txt:3: same edge listed tagged and untagged")
 
+# --- Spec 030 (hider and integrator registry): the Transport domain (FR-030, US6 AS1) -----------------------
+# Added after the Principle VIII amendment (constitution v1.4.0) and before the Transport class of archcheck: until
+# the class exists, archcheck exits 2 on the Transport rows of these fixtures' rule tables.
+archcheck_add_fixture(transport-allowed 0 "RESULT +PASS"
+    FAIL_REGEX "VIOLATION|CYCLE")
+archcheck_add_fixture(transport-cycle 1
+    "VIOLATION include src/transport/classic.cpp:1 -> src/hiders/hider.h +\\[Transport -> Hiders\\].*CYCLE +[A-Za-z >-]*(Hiders[A-Za-z >-]*Transport|Transport[A-Za-z >-]*Hiders)[^[]*\\[FAILING\\]")
+
 # --- User Story 3: renderer-core usage metric (spec 022 T046-T047) ----------
 archcheck_add_fixture(metric-increase 0
     "WARNING +metric Geometry refs 3 > baseline 2 \\(\\+1\\).*WARNING +metric Geometry distinct 2 > baseline 1 \\(\\+1\\).*RESULT +PASS")
@@ -221,13 +229,22 @@ add_test(NAME Compiler_IncludeBoundary
         -DCOMPILER_BINARY_DIR=${CMAKE_BINARY_DIR}/src/libshader/compiler
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_compiler_include_boundary.cmake)
 
+# Spec 032 (GI cache split), T-G: the text-level boundary of the split. It runs the sub-checks listed in the cache variable
+# GI032_BOUNDARY_CHECKS (tests/gi_split/CMakeLists.txt, default empty), which each phase extends in its test gate, so it is
+# green at every checkpoint.
+add_test(NAME GiSplit_Boundary
+    COMMAND ${CMAKE_COMMAND} ${OR038_COMMON}
+        "-DINCLUDE_DIRS=$<TARGET_PROPERTY:ribRender_obj,INCLUDE_DIRECTORIES>"
+        "-DCHECKS=${GI032_BOUNDARY_CHECKS}"
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_gi_split_boundary.cmake)
+set_tests_properties(GiSplit_Boundary PROPERTIES TIMEOUT 120 LABELS "architecture")
+
 # Green since Phase 2 / 3 / 4 / 5 (spec 038): permanent architecture checks
 foreach(_t SceneInterface_RibOutNoCore SceneInterface_NoCoreInclude SceneInterface_HooksAndRecords SceneInterface_ActiveContextAssignments SceneInterface_RibVectorResidual Compiler_IncludeBoundary)
     set_tests_properties(${_t} PROPERTIES TIMEOUT 60 LABELS "architecture")
 endforeach()
 
-# Spec 031 (geometry, hider-agnostic): Geometry names no hider or Shading type, and libRIBVector has no stub. Red on the starting tree
-# by the facts they check; enabled in Phase 6, which makes both green (the option that gated them goes at tasks T128).
+# Spec 031 (geometry, hider-agnostic): Geometry names no hider or Shading type, and libRIBVector has no stub.
 add_test(NAME Geometry_NoHiderShadingNames
     COMMAND ${CMAKE_COMMAND}
         -DGEOMETRY_DIR=${CMAKE_SOURCE_DIR}/src/ri/geometry
@@ -238,3 +255,24 @@ add_test(NAME Geometry_RibVectorNoStubs
         -DOBJECT_DIR=${CMAKE_BINARY_DIR}/src/ri/CMakeFiles/ribVector_obj.dir
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_ribvector_no_stubs.cmake)
 set_tests_properties(Geometry_NoHiderShadingNames Geometry_RibVectorNoStubs PROPERTIES TIMEOUT 120 LABELS "architecture")
+
+# --- Spec 030 (hider and integrator registry): two mechanical checks ----------------------------------------
+#
+# Each is a `cmake -P` script over the tracked sources. They are red on the starting tree by design (the references
+# and the strcmp chains exist), so they are registered DISABLED while OPENRENDER_030_RED_TESTS is OFF (the red-evidence
+# configure turns the option ON and runs them); the phase that turns one green enabled it: Phase 4 for
+# Hcshader_NoReferences, Phase 8 for Registry_CoreNamesNoHider.
+set(OR030_HCSHADER_EXEMPT_FILES
+    "tests/architecture/unit/test_archcheck_parsers.cpp|tests/visual/CMakeLists.txt|examples/rib/spherelight.rib|examples/rib/quadlight.rib|tests/architecture/check_hcshader_references.cmake|tests/unit/registry/test_hcshader_missing_shader.cpp")
+set(OR030_HCSHADER_REGISTRATION_FILES "tests/architecture/CMakeLists.txt|tests/unit/registry/CMakeLists.txt")
+
+add_test(NAME Hcshader_NoReferences
+    COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
+        "-DEXEMPT_FILES=${OR030_HCSHADER_EXEMPT_FILES}" "-DREGISTRATION_FILES=${OR030_HCSHADER_REGISTRATION_FILES}"
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_hcshader_references.cmake)
+set_tests_properties(Hcshader_NoReferences PROPERTIES TIMEOUT 120 LABELS "architecture")
+
+add_test(NAME Registry_CoreNamesNoHider
+    COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${CMAKE_SOURCE_DIR} -P ${CMAKE_CURRENT_SOURCE_DIR}/check_core_names_no_hider.cmake)
+set_tests_properties(Registry_CoreNamesNoHider PROPERTIES TIMEOUT 60 LABELS "architecture")
+

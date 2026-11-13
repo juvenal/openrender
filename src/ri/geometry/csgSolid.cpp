@@ -265,9 +265,8 @@ CCSGInstanceState *CCSGSolid::build(IRayContext &context) {
             if (host == NULL)
                 continue;
 
-            // 1-2. A flagged clone of the leaf's attributes, captured through the host
+            // 1-2. A clone of the leaf's attributes (it carries the operand flip), captured through the host
             CAttributes *clone = new CAttributes(templ->attributes);
-            clone->flags |= ATTRIBUTES_FLAGS_SOLID_FRAGMENT;
             if (definition->operandFlip(op))
                 clone->flags ^= ATTRIBUTES_FLAGS_INSIDE;
             clone->attach();

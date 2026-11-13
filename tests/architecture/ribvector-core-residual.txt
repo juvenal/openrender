@@ -14,5 +14,4 @@
 src/ri/render/rendererFileSearch.cpp                     src/ri/geometry/blobbyRepeller.cpp (CRenderer::locateFile)
 src/ri/render/rendererNetwork.cpp                        src/ri/render/rendererFileSearch.cpp
 src/ri/render/rendererMutexes.cpp                        src/ri/render/rendererFileSearch.cpp
-src/ri/render/rendererStatics.cpp                        Geometry (blobbyRepeller.cpp), Hiders (compositor.cpp, irradiance.cpp)
-src/ri/vector/irradianceDispatchStub.cpp                 Hiders (irradiance.cpp)
+src/ri/render/rendererStatics.cpp                        Geometry (blobbyRepeller.cpp), Hiders (compositor.cpp), src/ri/dataviewer/dataLoad.cpp (CRenderer::worldBmin/worldBmax), src/ri/render/photonMap.h (inline CRenderer::fromWorld/toWorld)

@@ -331,6 +331,10 @@ function Ri:Hider(type_str, parameterlist)
     self:_write("Hider", type_str, parameterlist)
 end
 
+function Ri:Integrator(name_str, parameterlist)
+    self:_write("Integrator", name_str, parameterlist)
+end
+
 function Ri:ColorSamples(nRGB, RGBn)
     self:_write("ColorSamples", nRGB, RGBn)
 end

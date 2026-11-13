@@ -62,19 +62,19 @@ class CPointCloud : public CTexture3d, public CMap<CPointCloudPoint> {
         // Store/Lookup interface
         void store(const float *, const float *, const float *, float);
         void lookup(float *, const float *, const float *, float);
-        void lookup(float *, const float *, const float *, const float *, const float *, CShadingContext *) { assert(FALSE); }
+        void lookupPointBased(float *, const float *, const float *, const float *, const float *, const CPointBasedLookup &) { assert(FALSE); }
 
-        // CDataView interface for drawing
-        void draw();
-        int keyDown(int);
+        // The extent and the name of the structure (the data viewer's adapter, CPointCloudView, reports them)
         void bound(float *bmin, float *bmax);
         const char *typeName() const { return "Point Cloud"; }
-        int currentChannel() const { return drawChannel; }
-        int drawMode() const { return drawDiscs; } // 0 = points, 1 = discs
 
         // ptcApi interface
-        int getNumPoints() { return numItems; }
+        int getNumPoints() const { return numItems; }
         void getPoint(int i, float *C, float *P, float *N, float *dP);
+
+        // Read access to the stored points and their data (the viewer and the remote channel read them)
+        const CPointCloudPoint *points() const { return items + 1; }
+        const float *pointData() const { return data.array; }
 
     private:
         ///////////////////////////////////////////////////////////////////////
@@ -141,12 +141,7 @@ class CPointCloud : public CTexture3d, public CMap<CPointCloudPoint> {
         TMutex mutex;       // To synchronize updates
         float maxdP;
 
-        static int drawDiscs;   // Which type to draw
-        static int drawChannel; // Which channel to draw
-
         friend void makeBrickMap(int n, const char **, const char *, const CTextureFileResolver *, int, const char **, const void **);
-
-        friend class CRemotePtCloudChannel;
 };
 
 #endif // POINTCLOUD_H

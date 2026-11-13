@@ -45,7 +45,7 @@ inline int textureLocate(const CTextureFileResolver *resolver, char *result, con
         return resolver->locate(result, name);
 
     // No search path: the name is used as given (a directory separator makes it a path; a bare name is
-    // relative to the working directory) when the file exists. This is what CRenderer::locateFile does
+    // relative to the working directory) when the file exists. This is what the renderer core's locateFile does
     // with an empty search path and an empty temporary directory, which is how
     // tests/preview/test_data_keys.cpp reaches makeBrickMap() (a bare name, NULL path).
     if (name != nullptr && name[0] != '\0' && osFileExists(name)) {

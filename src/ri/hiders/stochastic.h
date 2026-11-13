@@ -39,10 +39,8 @@
 // Comments				:
 class CStochastic : public CReyes, public COcclusionCuller {
     public:
-        CStochastic(int thread);
+        CStochastic(int thread, const CHiderPeers &peers);
         ~CStochastic();
-
-        static void preDisplaySetup() {}
 
         // The functions inherited from the CReyes
         void rasterBegin(int, int, int, int, int);

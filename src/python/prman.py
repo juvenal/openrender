@@ -279,6 +279,9 @@ class Ri:
     def Hider(self, type, parameterlist=None):
         self._write("Hider", type, parameterlist)
 
+    def Integrator(self, name, parameterlist=None):
+        self._write("Integrator", name, parameterlist)
+
     def ColorSamples(self, nRGB, RGBn):
         self._write("ColorSamples", nRGB, RGBn)
 

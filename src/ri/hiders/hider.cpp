@@ -16,6 +16,8 @@
  */
 #include "hider.h"
 
+#include "hiderIrradianceSampler.h"
+
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CHider
 // Method				:	CHider
@@ -24,6 +26,7 @@
 // Comments				:
 CHider::CHider(int thread) : context(thread) {
     context.setTracer(this);
+    context.setIrradianceSampler(&irradianceSamplerInstance());
 }
 
 ///////////////////////////////////////////////////////////////////////

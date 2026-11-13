@@ -23,6 +23,7 @@ set(shading_sources
     bundles.cpp
     execute.cpp
     executeMisc.cpp
+    irradianceCalls.cpp
     noise.cpp
     RSLShading.cpp
     rslBuiltins.cpp

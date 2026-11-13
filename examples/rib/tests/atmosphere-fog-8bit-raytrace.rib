@@ -1,0 +1,29 @@
+##RenderMan RIB-Structure 1.0
+# Spec 056 (US6), family fog: fog on camera rays only.
+# A constant-coloured sphere (radius 1.5) in front of a constant-coloured wall, a perspective camera, Atmosphere "fog" "float distance" [6] "color background" [0.7 0.8 1].
+# No RIB in the repository used Atmosphere before this one: it characterises the starting tree. The float scenes are
+# compared bit for bit with a golden image captured on the unchanged starting tree (test_golden_compare, per platform);
+# the 8-bit scenes are the cross-hider and cross-backend parity pairs of US6 AS1.
+version 3.03
+Hider "raytrace" "jitter" [0]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Display "atmosphere-fog-8bit-raytrace.tif" "file" "rgba"
+Format 64 64 1
+Projection "perspective"
+Clipping 0.1 100
+WorldBegin
+  Atmosphere "fog" "float distance" [6] "color background" [0.7 0.8 1]
+  Attribute "visibility" "int specular" [1] "int transmission" [1]
+  AttributeBegin
+    Color [0.8 0.5 0.2]
+    Surface "constant"
+    Polygon "P" [-12 -12 9  12 -12 9  12 12 9  -12 12 9] "N" [0 0 -1 0 0 -1 0 0 -1 0 0 -1]
+  AttributeEnd
+  AttributeBegin
+    Color [0.2 0.6 0.4]
+    Surface "constant"
+    Translate 0.4 0 5
+    Sphere 1.5 -1.5 1.5 360
+  AttributeEnd
+WorldEnd

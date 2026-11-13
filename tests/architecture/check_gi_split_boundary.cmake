@@ -1,0 +1,228 @@
+# GiSplit_Boundary (spec 032, T-G; SC-001, SC-008, FR-001, FR-013, FR-014): the text-level boundary of the GI cache split.
+#
+#   cmake -DSOURCE_DIR=<repo> -DBUILD_DIR=<build> -DMAP=<domain-map.txt> "-DINCLUDE_DIRS=<ribRender_obj's include dirs>"
+#         "-DCHECKS=<sub-check;sub-check...>" -P check_gi_split_boundary.cmake
+#
+# CHECKS is the cache variable GI032_BOUNDARY_CHECKS (tests/gi_split/CMakeLists.txt): the sub-checks the phases that are done
+# have enabled. Empty runs none and passes, so the test is green at every checkpoint; a phase adds its sub-checks in its test gate
+# (shown red) and they stay. Sub-checks (the phase that turns each on):
+#
+#   friends-texture               (3) no `friend` naming CRemote* or CBrickMapGeometry under src/ri/texture (`friend void makeBrickMap`
+#                                     stays: FR-013)
+#   texture-names-viewer          (3) none of CDataView, CRemote, dataView.h, debug.h, CBrickMapGeometry under src/ri/texture
+#   hiders-no-viewer-irradiance   (3) no dataView.h / debug.h / CDataView in src/ri/hiders/irradiance.*
+#   friends-hiders                (4) no such friend under src/ri/hiders
+#   texture-names-shading         (4) neither CShadingContext nor IPhotonLookup under src/ri/texture
+#   texture-names-core            (4) neither CRenderer nor CMapRefTarget under src/ri/texture. NOT comment-blind: Phase 4 rewords the
+#                                     six historical comments (textureSystem.h:10, textureResolver.h:48, texture.cpp:3073,3101,
+#                                     textureInternal.h:7,54) rather than blind the scan
+#   texture-includes              (4) every header a file under src/ri/texture includes classifies as Texturing or Infra (domain-map.txt)
+#   hiders-no-texture             (4) no header classified Texturing is included by any file under src/ri/hiders, no exception
+#   files-absent                  (4) irradianceDispatch.cpp, irradianceDispatchStub.cpp, radiance.cpp, radiance.h and harmonics.h do not
+#                                     exist under src/, and the token irradianceSampleAccept appears in no code under src/ (comments
+#                                     are stripped before this one match)
+#   hiders-no-viewer              (5) no dataView.h / debug.h / CDataView in any file of src/ri/hiders
+#
+# Every match is printed with its file and line, whether or not the sub-check is enabled, only for the enabled ones.
+# A -P script starts with the old policies; this one uses IN_LIST (CMP0057), which CMake 3.28 (the Linux baseline) reads as a plain
+# argument unless the policy is set. The project floor is 3.19.
+cmake_minimum_required(VERSION 3.19)
+include(${CMAKE_CURRENT_LIST_DIR}/domain_classify.cmake)
+or_check_begin()
+or_map_load("${MAP}" "${SOURCE_DIR}" "${BUILD_DIR}")
+
+set(_enabled ${CHECKS})
+set(_known friends-texture texture-names-viewer hiders-no-viewer-irradiance friends-hiders texture-names-shading
+    texture-names-core texture-includes hiders-no-texture files-absent hiders-no-viewer)
+foreach(_c IN LISTS _enabled)
+    if(NOT _c IN_LIST _known)
+        or_check_fail("unknown sub-check '${_c}' in CHECKS")
+    endif()
+endforeach()
+
+# gi_fail(<message>): a failure raised inside a function. or_check_fail() is a macro and counts in the scope it is expanded in, so a
+# call inside gi_scan() or gi_include_classes() would be lost when they return; the failures are kept in a global property and
+# counted at the top level before or_check_end().
+function(gi_fail msg)
+    message("FAIL: ${msg}")
+    set_property(GLOBAL APPEND PROPERTY GI_SPLIT_FAILURES "${msg}")
+endfunction()
+
+# the code files of a directory (recursive)
+function(gi_files dir out)
+    file(GLOB_RECURSE _f "${OR_SOURCE_DIR}/${dir}/*.h" "${OR_SOURCE_DIR}/${dir}/*.hpp" "${OR_SOURCE_DIR}/${dir}/*.cpp"
+         "${OR_SOURCE_DIR}/${dir}/*.c" "${OR_SOURCE_DIR}/${dir}/*.cc" "${OR_SOURCE_DIR}/${dir}/*.mm")
+    list(SORT _f)
+    set(${out} "${_f}" PARENT_SCOPE)
+endfunction()
+
+# gi_strip_comments(<text> <out>): removes // and /* */ comments (strings are not parsed; good enough for a token match)
+function(gi_strip_comments text out)
+    string(REGEX REPLACE "//[^\n]*" "" t "${text}")
+    set(result "")
+    while(TRUE)
+        string(FIND "${t}" "/*" a)
+        if(a LESS 0)
+            string(APPEND result "${t}")
+            break()
+        endif()
+        string(SUBSTRING "${t}" 0 ${a} head)
+        string(APPEND result "${head}")
+        math(EXPR from "${a} + 2")
+        string(SUBSTRING "${t}" ${from} -1 rest)
+        string(FIND "${rest}" "*/" b)
+        if(b LESS 0)
+            break()
+        endif()
+        math(EXPR from "${b} + 2")
+        string(SUBSTRING "${rest}" ${from} -1 t)
+    endwhile()
+    set(${out} "${result}" PARENT_SCOPE)
+endfunction()
+
+# gi_scan(<check> <regex> <blind 0|1> <files...>): prints and counts the lines matching <regex>; fails when any
+function(gi_scan check regex blind)
+    set(_n 0)
+    foreach(_f IN LISTS ARGN)
+        file(READ "${_f}" _c)
+        if(blind)
+            gi_strip_comments("${_c}" _c)
+        endif()
+        # keep the ;, [ and ] of C++ out of CMake's list handling
+        string(REPLACE ";" "@SEMI@" _c "${_c}")
+        string(REPLACE "[" "@LB@" _c "${_c}")
+        string(REPLACE "]" "@RB@" _c "${_c}")
+        string(REGEX MATCHALL "[^\n]*(${regex})[^\n]*" _hits "${_c}")
+        foreach(_h IN LISTS _hits)
+            string(REPLACE "@SEMI@" ";" _h "${_h}")
+            string(REPLACE "@LB@" "[" _h "${_h}")
+            string(REPLACE "@RB@" "]" _h "${_h}")
+            string(STRIP "${_h}" _h)
+            file(RELATIVE_PATH _rel "${OR_SOURCE_DIR}" "${_f}")
+            message("  ${check}: ${_rel}: ${_h}")
+            math(EXPR _n "${_n} + 1")
+        endforeach()
+    endforeach()
+    if(_n GREATER 0)
+        gi_fail("${check}: ${_n} match(es)")
+    else()
+        message("  ${check}: no match")
+    endif()
+endfunction()
+
+set(_friend_re "friend[ \t]+(class|struct)?[ \t]*(CRemote[A-Za-z0-9_]*|CBrickMapGeometry)")
+
+gi_files(src/ri/texture _texture)
+gi_files(src/ri/hiders _hiders)
+
+if("friends-texture" IN_LIST _enabled)
+    gi_scan(friends-texture "${_friend_re}" 0 ${_texture})
+endif()
+if("texture-names-viewer" IN_LIST _enabled)
+    gi_scan(texture-names-viewer "CDataView|CRemote|dataView\\.h|debug\\.h|CBrickMapGeometry" 0 ${_texture})
+endif()
+if("hiders-no-viewer-irradiance" IN_LIST _enabled)
+    set(_irr "")
+    foreach(_f IN LISTS _hiders)
+        get_filename_component(_n "${_f}" NAME)
+        if(_n MATCHES "^irradiance\\.")
+            list(APPEND _irr "${_f}")
+        endif()
+    endforeach()
+    gi_scan(hiders-no-viewer-irradiance "dataView\\.h|debug\\.h|CDataView" 0 ${_irr})
+endif()
+if("friends-hiders" IN_LIST _enabled)
+    gi_scan(friends-hiders "${_friend_re}" 0 ${_hiders})
+endif()
+if("texture-names-shading" IN_LIST _enabled)
+    gi_scan(texture-names-shading "CShadingContext|IPhotonLookup" 0 ${_texture})
+endif()
+if("texture-names-core" IN_LIST _enabled)
+    gi_scan(texture-names-core "CRenderer|CMapRefTarget" 0 ${_texture})
+endif()
+if("hiders-no-viewer" IN_LIST _enabled)
+    gi_scan(hiders-no-viewer "dataView\\.h|debug\\.h|CDataView" 0 ${_hiders})
+endif()
+
+# the include-classification sub-checks
+function(gi_include_classes check files allowed forbid_mode)
+    set(_n 0)
+    foreach(_f IN LISTS files)
+        or_map_path("${_f}" _from)
+        or_file_includes("${_f}" _names _quoted)
+        set(_i 0)
+        foreach(_name IN LISTS _names)
+            list(GET _quoted ${_i} _q)
+            math(EXPR _i "${_i} + 1")
+            or_resolve_include("${_f}" "${_name}" ${_q} "${INCLUDE_DIRS}" _abs)
+            if(_abs STREQUAL "")
+                continue()
+            endif()
+            or_map_path("${_abs}" _to)
+            if(_to STREQUAL "")
+                continue()
+            endif()
+            or_map_class("${_to}" _class)
+            if(forbid_mode STREQUAL "not-in")
+                if(NOT _class IN_LIST allowed)
+                    message("  ${check}: ${_from} includes ${_to} (${_class})")
+                    math(EXPR _n "${_n} + 1")
+                endif()
+            else()
+                if(_class IN_LIST allowed)
+                    message("  ${check}: ${_from} includes ${_to} (${_class})")
+                    math(EXPR _n "${_n} + 1")
+                endif()
+            endif()
+        endforeach()
+    endforeach()
+    if(_n GREATER 0)
+        gi_fail("${check}: ${_n} include(s)")
+    else()
+        message("  ${check}: no match")
+    endif()
+endfunction()
+
+if("texture-includes" IN_LIST _enabled)
+    gi_include_classes(texture-includes "${_texture}" "Texturing;Infra" not-in)
+endif()
+if("hiders-no-texture" IN_LIST _enabled)
+    gi_include_classes(hiders-no-texture "${_hiders}" "Texturing" in)
+endif()
+
+if("files-absent" IN_LIST _enabled)
+    file(GLOB_RECURSE _all_src "${OR_SOURCE_DIR}/src/*")
+    set(_n 0)
+    foreach(_f IN LISTS _all_src)
+        get_filename_component(_name "${_f}" NAME)
+        if(_name MATCHES "^(irradianceDispatch\\.cpp|irradianceDispatchStub\\.cpp|radiance\\.cpp|radiance\\.h|harmonics\\.h)$")
+            file(RELATIVE_PATH _rel "${OR_SOURCE_DIR}" "${_f}")
+            message("  files-absent: ${_rel} exists")
+            math(EXPR _n "${_n} + 1")
+        endif()
+    endforeach()
+    gi_files(src _src_code)
+    set(_tok_files "")
+    foreach(_f IN LISTS _src_code)
+        file(READ "${_f}" _c)
+        gi_strip_comments("${_c}" _c)
+        if(_c MATCHES "irradianceSampleAccept")
+            file(RELATIVE_PATH _rel "${OR_SOURCE_DIR}" "${_f}")
+            message("  files-absent: ${_rel} names irradianceSampleAccept in code")
+            math(EXPR _n "${_n} + 1")
+        endif()
+    endforeach()
+    if(_n GREATER 0)
+        or_check_fail("files-absent: ${_n} finding(s)")
+    else()
+        message("  files-absent: no match")
+    endif()
+endif()
+
+list(LENGTH _enabled _ne)
+message("${_ne} sub-check(s) enabled")
+get_property(_function_failures GLOBAL PROPERTY GI_SPLIT_FAILURES)
+foreach(_m IN LISTS _function_failures)
+    math(EXPR _or_check_failures "${_or_check_failures} + 1")
+endforeach()
+or_check_end(GiSplit_Boundary)

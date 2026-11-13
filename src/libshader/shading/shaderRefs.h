@@ -38,9 +38,8 @@ inline CShaderInstance *shaderInstanceOf(const ShaderGroupRef &ref) {
 }
 
 // The programmable instance an active-light entry holds.
-// DB-013: unchecked, as before spec 025. The built-in sphere and quad lights (hcshader.h) are not
-// programmable instances; the consumers read only CShaderInstance members, so the cast is never
-// followed through a CProgrammableShaderInstance-only member for them.
+// DB-013: unchecked, as before spec 025. CProgrammableShaderInstance is the only class derived from
+// CShaderInstance, so every entry of the active-light list is one and the cast is always valid.
 inline CProgrammableShaderInstance *lightInstanceOf(const CActiveLight &entry) {
     return static_cast<CProgrammableShaderInstance *>(shaderInstanceOf(entry.light));
 }

@@ -66,6 +66,7 @@
     mulvf(rays->dDdu, dTdu, *du);                         \
     mulvf(rays->dDdv, dTdv, *dv);                         \
     movvv(rays->N, N);                                    \
+    movvv(rays->sideN, N);                                \
     rays->coneAngle = scratch->traceParams.coneAngle;     \
     rays->numSamples = (int)scratch->traceParams.samples; \
     rays->bias = scratch->traceParams.bias;               \
@@ -211,7 +212,7 @@ DEFSHORTFUNC(TraceV, "trace", "c=pv!", TRACEEXPR_PRE, TRACEEXPR, TRACEEXPR_UPDAT
     dvVector(dPdv, op1);                                                                                                                      \
     const float *du = varying[VARIABLE_DU];                                                                                                   \
     const float *dv = varying[VARIABLE_DV];                                                                                                   \
-    assert(cache->dataSize == 7);                                                                                                             \
+    assert(cache == NULL || cache->dataSize == 7);                                                                                            \
                                                                                                                                               \
     scratch->occlusionParams.environment = lookup->environment;                                                                               \
     scratch->occlusionParams.pointHierarchy = lookup->pointHierarchy;                                                                         \
@@ -232,7 +233,7 @@ DEFSHORTFUNC(TraceV, "trace", "c=pv!", TRACEEXPR_PRE, TRACEEXPR, TRACEEXPR_UPDAT
     mulvf(dPdv, *dv);                                                                                  \
     scratch->traceParams.samples = *op3;                                                               \
     DRAW_BIND(*op3)                                                                                    \
-    cache->lookup(C, op1, dPdu, dPdv, op2, this);                                                      \
+    libshader::irradianceLookup(*this, cache, C, op1, dPdu, dPdv, op2);                                \
     texture3Dunpack(C, lookup->numChannels, channelValues, lookup->channelEntry, lookup->channelSize); \
     if (__occlusion)                                                                                   \
         *res = C[3];                                                                                   \

@@ -1,0 +1,44 @@
+##RenderMan RIB-Structure 1.0
+# Spec 056, family volume-incident-opposite.
+# Camera space (orthographic, roll + translate camera). incident_opposite_probe writes (incident(), opposite()) of
+# testVolParam into Ci. Interior = param_query_volume with testVolParam 0.2, Exterior = the same with 0.9.
+# Pixel (2,4): the left polygon faces the camera (N = -z), the ray arrives from the EXTERIOR side:
+#   incident() reads Exterior, opposite() reads Interior -> (0.9, 0.2, 0).
+# Pixel (5,4): the right polygon traces straight through itself to a probe at z = 6 with N = +z; the ray arrives
+# from the INTERIOR side: incident() reads Interior, opposite() Exterior -> (0.2, 0.9, 0).
+# On the starting tree incident() always reads Interior: pixel (2,4) is red, pixel (5,4) passes by coincidence.
+version 3.03
+Hider "reyes" "jitter" [0]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "volume-incident-opposite-reyes.tif" "file" "rgba"
+Format 8 8 1
+Projection "orthographic"
+Clipping 0.1 100
+Rotate 20 0 0 1
+Translate 0.3 -0.2 2
+WorldBegin
+  TransformBegin
+    # camera space: the inverse of the camera transform above
+    Translate -0.3 0.2 -2
+    Rotate -20 0 0 1
+    Attribute "visibility" "int specular" [1] "int transmission" [1]
+    AttributeBegin
+      Interior "param_query_volume" "float testVolParam" [0.2]
+      Exterior "param_query_volume" "float testVolParam" [0.9]
+      Surface "incident_opposite_probe"
+      Polygon "P" [-1 -1 4 0 -1 4 0 1 4 -1 1 4] "N" [0 0 -1 0 0 -1 0 0 -1 0 0 -1]
+    AttributeEnd
+    AttributeBegin
+      Surface "volume_through_probe"
+      Polygon "P" [0 -1 4 1 -1 4 1 1 4 0 1 4] "N" [0 0 -1 0 0 -1 0 0 -1 0 0 -1]
+    AttributeEnd
+    AttributeBegin
+      Interior "param_query_volume" "float testVolParam" [0.2]
+      Exterior "param_query_volume" "float testVolParam" [0.9]
+      Surface "incident_opposite_probe"
+      Polygon "P" [0 -1 6 1 -1 6 1 1 6 0 1 6] "N" [0 0 1 0 0 1 0 0 1 0 0 1]
+    AttributeEnd
+  TransformEnd
+WorldEnd

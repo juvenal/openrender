@@ -50,6 +50,9 @@ prefix  src/shadeop/                                 ShaderDSO
 # --- Hiders ------------------------------------------------------------------
 prefix  src/ri/hiders/                               Hiders
 
+# --- Transport (spec 030: integrators and the capability vocabulary) ---------
+prefix  src/ri/transport/                            Transport
+
 # --- Texturing ---------------------------------------------------------------
 prefix  src/ri/texture/                              Texturing
 
@@ -66,7 +69,6 @@ prefix  src/display/                                 Display
 # --- Core: the composition root ----------------------------------------------
 prefix  src/ri/render/                               Core
 prefix  src/ri/vector/                               Core
-prefix  src/ri/hcshader.                             Core
 
 # --- Consumers: executables, tools, bindings, preview, dataviewer ------------
 prefix  src/ri/dataviewer/                           Consumer

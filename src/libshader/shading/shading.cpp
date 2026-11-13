@@ -47,6 +47,7 @@
 #include "texture.h"
 #include "texture3d.h"
 #include "textureCalls.h"
+#include "irradianceCalls.h"
 #include "traceCalls.h"
 
 using namespace openrender::shading;
@@ -54,6 +55,7 @@ using namespace openrender::shading;
 // Default services pointer injected by src/ri/ at renderer startup.
 // nullptr until setDefaultServices() is called (standalone libshader mode).
 CRendererServices *CShadingContext::s_defaultServices = nullptr;
+openrender::shading::IIrradianceSampler *CShadingContext::s_defaultIrradianceSampler = nullptr;
 
 // George's extrapolated derivative extensions
 #define USE_EXTRAPOLATED_DERIV
@@ -602,6 +604,171 @@ void CShadingContext::leaveRayLevel(const CRayLevel &saved) {
     currentRayLabel = saved.savedLabel;
     currentShadingState = saved.savedState;
 }
+namespace {
+
+    void resetCallSiteOccurrences(CDrawOccurrences *occurrences); // after CDrawOccurrences, below
+
+    // The tag mixed into a volume step's batch key (Principle I: no magic number): "VSEG"
+    constexpr uint64_t kVolumeSegmentBatchTag = 0x56534547ull;
+
+    // The far exit of a ray from the world bound in double precision, clamped to >= s (research R5). A ray that never enters the
+    // bound, an empty bound, no bound at all or a non-finite result gives s: a zero-length segment, so I is always finite (FR-007).
+    double worldBoundExit(const float *bmin, const float *bmax, const float *from, const float *dir, double s) {
+        if (bmin == nullptr || bmax == nullptr)
+            return s;
+        double tNear = 0, tFar = 1e300;
+        for (int k = 0; k < 3; k++) {
+            if (bmin[k] > bmax[k])
+                return s;
+            const double o = from[k], d = dir[k];
+            if (d == 0) {
+                if (o < bmin[k] || o > bmax[k])
+                    return s;
+                continue;
+            }
+            double t0 = (bmin[k] - o) / d, t1 = (bmax[k] - o) / d;
+            if (t0 > t1) {
+                const double tmp = t0;
+                t0 = t1;
+                t1 = tmp;
+            }
+            if (t0 > tNear)
+                tNear = t0;
+            if (t1 < tFar)
+                tFar = t1;
+        }
+        if (!(tNear <= tFar) || !(tFar < 1e29))
+            return s;
+        return tFar < s ? s : tFar;
+    }
+
+} // namespace
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CShadingContext
+// Method				:	shadeVolumeSegments
+// Description			:	Run a volume shader once per ray segment (spec 056, research R2)
+// Return Value			:	-
+// Comments				:	The shader runs in a state of its own, so the hit's varyings (which the gather outputs read) are never
+//							touched. The ray depth and label are unchanged (FR-009: the shader runs at its segment's depth). Its
+//							globals are zero but P, I, Ci, Oi, time (E stays 0); the spawning surface is the shaded object.
+void CShadingContext::shadeVolumeSegments(CShaderInstance *volume, const CSegmentSpawn &spawn, int n, CRay *const *rays, const float *segStart, const float *segEnd, float *Ci, float *Oi) {
+    if (volume == nullptr || n <= 0 || currentShadingState == nullptr)
+        return;
+
+    CShadingState *const saved = currentShadingState;
+    CRendererServices *const svc = saved->services;
+    if (svc == nullptr)
+        return;
+
+    // A state of our own, from the free list as enterRayLevel() does
+    if (freeStates == NULL)
+        freeStates = newState();
+    if (freeStates == NULL)
+        return;
+    CShadingState *const ss = freeStates;
+    freeStates = ss->next;
+
+    // The guard rails: the step's rays carry no volume, a transmission() inside it is an ordinary secondary call (FR-009, research R2)
+    const int savedInShadow = inShadow;
+    const openrender::sampling::SubstreamKey savedCursor = drawCursor;
+    const uint32_t savedCursorDim = drawCursorDim;
+    inShadow = FALSE;
+    currentShadingState = ss;
+    ss->volumeSegment = TRUE;
+    ss->postShader = NULL;
+    setShadedObject(spawn.surface, spawn.object, spawn.attributes);
+
+    const float *const bmin = rendererWorldBmin();
+    const float *const bmax = rendererWorldBmax();
+    const int mgs = svc->maxGridSize();
+    const int numVaryings = ss->numVaryings;
+
+    for (int first = 0, chunkIndex = 0; first < n; first += mgs, chunkIndex++) {
+        const int m = (n - first) < mgs ? (n - first) : mgs;
+
+        ss->numVertices = ss->numRealVertices = m;
+        ss->numUvertices = ss->numVvertices = 0;
+        ss->shadingDim = SHADING_0D;
+        ss->numActive = m;
+        ss->numPassive = 0;
+        memset(ss->tags, 0, m * sizeof(int));
+        ss->lights = NULL;
+        ss->alights = NULL;
+        ss->currentLight = NULL;
+        ss->currentGather = NULL;
+        ss->freeLights = NULL;
+        ss->lightsExecuted = FALSE;
+        ss->ambientLightsExecuted = FALSE;
+        ss->lightCategory = 0;
+        ss->lightSideN = nullptr;
+        for (int a = 0; a < NUM_ACCESSORS; a++)
+            ss->locals[a] = NULL;
+
+        // Every global the services list is zero for the points (E is 0 already); then the ones a volume shader is promised
+        float **varying = ss->varying;
+        for (int j = 0; j < numVaryings; j++) {
+            const CVariable *var = svc->globalVariable(j);
+            if (var == NULL || var->container == CONTAINER_UNIFORM || var->container == CONTAINER_CONSTANT)
+                continue;
+            memset(varying[j], 0, (size_t)var->numFloats * m * (ss->isString[j] ? sizeof(char *) : sizeof(float)));
+        }
+        float *const P = varying[VARIABLE_P];
+        float *const I = varying[VARIABLE_I];
+        float *const time = varying[VARIABLE_TIME];
+        memcpy(varying[VARIABLE_CI], Ci + 3 * first, m * 3 * sizeof(float));
+        memcpy(varying[VARIABLE_OI], Oi + 3 * first, m * 3 * sizeof(float));
+        for (int i = 0; i < m; i++) {
+            const CRay *ray = rays[first + i];
+            const double s = segStart[first + i];
+            double e = segEnd[first + i];
+            if (e >= C_INFINITY)
+                e = worldBoundExit(bmin, bmax, ray->from, ray->dir, s);
+            if (e < s)
+                e = s;
+            for (int k = 0; k < 3; k++) {
+                P[3 * i + k] = (float)(ray->from[k] + e * ray->dir[k]);
+                I[3 * i + k] = (float)((e - s) * ray->dir[k]);
+            }
+            time[i] = ray->time;
+            ss->pointKeys[i] = ray->key;
+        }
+
+        // The points carry their rays' identities (spec 039), so the step is the same whichever thread runs it
+        ss->pointKeysFromRays = TRUE;
+        ss->batchKey = openrender::sampling::detail::mix(rays[first]->key.full, (uint64_t)currentRayDepth, kVolumeSegmentBatchTag, (uint64_t)chunkIndex);
+        resetCallSiteOccurrences(ss->callSiteOccurrence);
+        drawCursor = openrender::sampling::SubstreamKey{0, 0};
+        drawCursorDim = 0;
+
+        memBegin(shaderStateMemory);
+        memBegin(threadMemory);
+        ss->locals[ACCESSOR_POSTSHADER] = volume->prepare(shaderStateMemory, varying, m);
+        ss->currentShaderInstance = volume;
+        volume->execute(this, ss->locals[ACCESSOR_POSTSHADER]);
+        memEnd(threadMemory);
+        memEnd(shaderStateMemory);
+
+        ss->pointKeysFromRays = FALSE;
+        ss->currentShaderInstance = NULL;
+        memcpy(Ci + 3 * first, varying[VARIABLE_CI], m * 3 * sizeof(float));
+        memcpy(Oi + 3 * first, varying[VARIABLE_OI], m * 3 * sizeof(float));
+    }
+
+    // Back to the caller's state; the step's state goes back on the free list
+    for (int a = 0; a < NUM_ACCESSORS; a++)
+        ss->locals[a] = NULL;
+    ss->volumeSegment = FALSE;
+    ss->lights = NULL;
+    ss->freeLights = NULL;
+    currentShadingState = saved;
+    ss->next = freeStates;
+    freeStates = ss;
+    drawCursor = savedCursor;
+    drawCursorDim = savedCursorDim;
+    inShadow = savedInShadow;
+}
+
 const float *CShadingContext::rendererWorldBmin() const { return SVC ? SVC->worldBmin() : nullptr; }
 const float *CShadingContext::rendererWorldBmax() const { return SVC ? SVC->worldBmax() : nullptr; }
 float CShadingContext::rendererClipMin() const { return SVC ? SVC->clipMin() : 0.f; }
@@ -689,6 +856,13 @@ class CDrawOccurrences {
         // vectors moves only the inner vectors' handles, never their storage.
         std::vector<Site> sites;
 };
+
+namespace {
+    void resetCallSiteOccurrences(CDrawOccurrences *occurrences) {
+        if (occurrences != nullptr)
+            occurrences->reset();
+    }
+} // namespace
 
 static uint64_t shaderNameKey(const char *name) {
     uint64_t h = 0x5AD3Eull;
@@ -953,13 +1127,19 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
             // Yes, are we supposed to shade the objects in the shadow ?
             if (g.hitMode == HitMode::Primitive) {
 
-                // No, just copy the color/opacity from the attributes field
+                // No, just copy the color/opacity from the attributes field. The colour is written too, as the secondary branch
+                // below does: nothing reads it for the opacity of a shadow ray, but the volume step the hider runs next
+                // (postShade) must see the colour the hit produced, not whatever the state's buffer held (spec 056, FR-005)
                 float *opacity = varying[VARIABLE_OI];
+                float *color = varying[VARIABLE_CI];
                 int i;
                 const float *so = currentAttributes->surfaceOpacity;
+                const float *sc = currentAttributes->surfaceColor;
 
-                for (i = numVertices; i > 0; i--, opacity += 3)
+                for (i = numVertices; i > 0; i--, opacity += 3, color += 3) {
                     movvv(opacity, so);
+                    movvv(color, sc);
+                }
 
                 // Nothing more to do here, just return
                 return;
@@ -1363,24 +1543,6 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
     // Do we need to run the surface shader?
     if (displaceOnly == FALSE) {
 
-        // Interior/Exterior shader selection for this hit (spec
-        // 013-solid-csg-operations, FR-010/FR-011/FR-020). Classified once
-        // per shade() call from vertex 0's I/N: I points along the ray, so a
-        // hit on the true exterior surface has I opposing N (dot < 0), while
-        // a hit seen from inside a CSG cutaway has I aligned with the
-        // (still outward-facing) N (dot >= 0). This is exact except at
-        // silhouette micropolygons where I.N crosses zero within the same
-        // grid -- an accepted per-call approximation, negligible there.
-        // postShader is a persistent field on currentShadingState (the only
-        // other writer is traceEx(), for secondary-ray bundles), so it must
-        // be assigned unconditionally -- NULL included -- or a prior ray's
-        // interior/exterior shader could leak onto this hit.
-        {
-            const bool isSolidFragment = (currentAttributes->flags & ATTRIBUTES_FLAGS_SOLID_FRAGMENT) != 0;
-            const bool isExterior = dotvv(varying[VARIABLE_I], varying[VARIABLE_N]) < 0;
-            currentShadingState->postShader = shaderInstanceOf(selectVolumeShader(currentAttributes, isSolidFragment, isExterior));
-        }
-
         // Is there a surface shader ?
         if (surface != NULL) {
             numShaded += numVertices;
@@ -1429,12 +1591,6 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
             if (g.pathDepth == 0) {
                 atmosphere->execute(this, locals[ACCESSOR_ATMOSPHERE]);
             }
-        }
-
-        // Is there an interior/exterior shader waiting to be executed?
-        if (currentShadingState->postShader != NULL) {
-            locals[ACCESSOR_POSTSHADER] = currentShadingState->postShader->prepare(shaderStateMemory, varying, numVertices);
-            currentShadingState->postShader->execute(this, locals[ACCESSOR_POSTSHADER]);
         }
     }
 
@@ -1504,6 +1660,10 @@ CShadingState *CShadingContext::newState() {
         bytes += mgs * 3 * sizeof(int);
         newState->Ns = new float[mgs * 9];
         bytes += mgs * 9 * sizeof(float);
+        newState->lightSideNStore = new float[mgs * 9]; // numVertices can be 3 * mgs (the derivative-offset tail), like Ns
+        bytes += mgs * 9 * sizeof(float);
+        newState->lightSideN = nullptr;
+        newState->volumeSegment = FALSE;
         newState->alights = NULL;
         newState->freeLights = NULL;
         newState->postShader = NULL;
@@ -1593,6 +1753,7 @@ void CShadingContext::freeState(CShadingState *cState) {
     delete[] cState->tags;
     delete[] cState->lightingTags;
     delete[] cState->Ns;
+    delete[] cState->lightSideNStore;
     delete[] cState->pointKeys;
     delete cState->callSiteOccurrence;
     vertexMemory -= cState->allocatedBytes;
@@ -1712,7 +1873,7 @@ int CShadingContext::queryMessage(openrender::shading::MessageSource source, con
 // Method				:	surfaceParameter and its siblings
 // Description			:	The message-passing builtins of the object's bound shaders
 // Return Value			:	TRUE when the parameter was found
-// Comments				:	incident() reads the interior volume and opposite() the exterior one. surface(), displacement() and
+// Comments				:	incident() reads the volume the incoming ray is in and opposite() the other one (spec 056). surface(), displacement() and
 //							atmosphere() may return the producer's variable; incident() and opposite() skip mutable parameters.
 int CShadingContext::surfaceParameter(void *dest, const char *name, CVariable **var, int *globalIndex, openrender::shading::QueryType expected) {
     return queryMessage(openrender::shading::MessageSource::Surface, "surface", openrender::shading::ShaderHandle{}, true, dest, name, var, globalIndex, expected);
@@ -1726,12 +1887,23 @@ int CShadingContext::atmosphereParameter(void *dest, const char *name, CVariable
     return queryMessage(openrender::shading::MessageSource::Atmosphere, "atmosphere", openrender::shading::ShaderHandle{}, true, dest, name, var, globalIndex, expected);
 }
 
+// incident() and opposite() choose their source once per call from vertex 0 (spec 056, FR-013): x = dot(I, N) < 0 means the ray
+// arrives from the exterior side, so incident() reads the Exterior volume and opposite() the Interior one; otherwise (a tie included)
+// the swap. The same approximation shade() makes for the side of a hit; no state or no vertex answers not found, as before.
+static bool rayArrivesFromExterior(const CShadingState *ss) {
+    return ss != nullptr && ss->numVertices > 0 && dotvv(ss->varying[VARIABLE_I], ss->varying[VARIABLE_N]) < 0;
+}
+
 int CShadingContext::incidentParameter(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected) {
-    return queryMessage(openrender::shading::MessageSource::Interior, "incident", openrender::shading::ShaderHandle{}, false, dest, name, nullptr, nullptr, expected);
+    using openrender::shading::MessageSource;
+    const MessageSource source = rayArrivesFromExterior(currentShadingState) ? MessageSource::Exterior : MessageSource::Interior;
+    return queryMessage(source, "incident", openrender::shading::ShaderHandle{}, false, dest, name, nullptr, nullptr, expected);
 }
 
 int CShadingContext::oppositeParameter(void *dest, const char *name, CVariable **, int *, openrender::shading::QueryType expected) {
-    return queryMessage(openrender::shading::MessageSource::Exterior, "opposite", openrender::shading::ShaderHandle{}, false, dest, name, nullptr, nullptr, expected);
+    using openrender::shading::MessageSource;
+    const MessageSource source = rayArrivesFromExterior(currentShadingState) ? MessageSource::Interior : MessageSource::Exterior;
+    return queryMessage(source, "opposite", openrender::shading::ShaderHandle{}, false, dest, name, nullptr, nullptr, expected);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -1861,6 +2033,12 @@ void CShadingContext::iterateLights(const float *lP, const float *lN, const floa
         ss->lights = NULL;
 
         if (inShadow == FALSE) {
+            // The side normal of a shadow() called from a light (spec 056, research R7): a snapshot of the surface's N taken before
+            // any light runs, because a light may overwrite the global N (an area light writes its own normal into it)
+            if (ss->lightSideNStore != nullptr) {
+                memcpy(ss->lightSideNStore, varying[VARIABLE_N], numVertices * 3 * sizeof(float));
+                ss->lightSideN = ss->lightSideNStore;
+            }
             for (CActiveLight *cLight = currentAttributes->lightSources; cLight != NULL; cLight = cLight->next) {
                 CProgrammableShaderInstance *light = lightInstanceOf(*cLight);
 
@@ -1889,6 +2067,7 @@ void CShadingContext::iterateLights(const float *lP, const float *lN, const floa
                     memEnd(shaderStateMemory);
                 }
             }
+            ss->lightSideN = nullptr;
         }
         ss->currentShaderInstance = cInstance;
     }
@@ -3171,6 +3350,8 @@ void CShadingContext::jitEnvironment(float *dst, int sd, const char *name, bool 
             if (shadow) {
                 movvv(rays->P, d);
                 initv(rays->N, 0, 0, 0); // Ps need not lie on the shaded surface: no origin guard
+                // The side normal: the snapshot taken before the lights ran inside a light loop, else the surface's N (research R7)
+                movvv(rays->sideN, (currentShadingState->lightSideN != nullptr ? currentShadingState->lightSideN : varying[VARIABLE_N]) + v * 3);
                 mulvf(rays->dPdu, dDdu + v * 3, du[v] * swidth);
                 mulvf(rays->dPdv, dDdv + v * 3, dv[v] * twidth);
                 subvv(rays->D, d, L + v * 3);
@@ -3183,6 +3364,7 @@ void CShadingContext::jitEnvironment(float *dst, int sd, const char *name, bool 
                 mulvf(rays->dDdv, dDdv + v * 3, dv[v] * twidth);
                 movvv(rays->P, P + v * 3);
                 movvv(rays->N, N + v * 3);
+                movvv(rays->sideN, N + v * 3);
                 mulvf(rays->dPdu, dPdu + v * 3, du[v] * swidth);
                 mulvf(rays->dPdv, dPdv + v * 3, dv[v] * twidth);
             }
@@ -3339,6 +3521,7 @@ void CShadingContext::jitTraceBatch(float *dst, int sd, const float *P, int sP,
         mulvf(rays->dDdu, dTdu + i * 3, du[i]);
         mulvf(rays->dDdv, dTdv + i * 3, dv[i]);
         movvv(rays->N, JIT_IDX(Nrm, 3, i));
+        movvv(rays->sideN, JIT_IDX(Nrm, 3, i));
         rays->coneAngle = scratch->traceParams.coneAngle;
         rays->numSamples = (int)scratch->traceParams.samples;
         rays->bias = scratch->traceParams.bias;
@@ -3510,7 +3693,7 @@ void CShadingContext::jitOcclusionBatch(float *dst, int sd, const float *P, int 
         bindDraws(i, drawCounts, callSite, (uint32_t)scratch->traceParams.samples);
 
         float C[7];
-        cache->lookup(C, JIT_IDX(P, sP, i), PduScaled, PdvScaled, JIT_IDX(N, sN, i), this);
+        libshader::irradianceLookup(*this, cache, C, JIT_IDX(P, sP, i), PduScaled, PdvScaled, JIT_IDX(N, sN, i));
         for (int channel = 0; channel < lookup->numChannels; ++channel)
             channelValues[channel] = channelBase[channel] + (size_t)i * lookup->channelSize[channel];
         texture3Dunpack(C, lookup->numChannels, channelValues, lookup->channelEntry, lookup->channelSize);
@@ -4394,6 +4577,8 @@ bool CShadingContext::gatherSample(CGatherBundle *lastGather, int *tags, int &nu
             raysBase->index = i;
             raysBase->tmin = raysBase->bias;
             raysBase->t = raysBase->maxDist;
+            raysBase->segmentStart = 0;                // A gather ray's segment starts at its origin and misses end at maxdist (spec 056)
+            raysBase->segmentLimit = raysBase->maxDist;
             if (sampleMotion)
                 raysBase->time = (drawTime(sub, sample) + lastGather->remainingSamples - 1) * temp;
             else
@@ -4414,23 +4599,17 @@ bool CShadingContext::gatherSample(CGatherBundle *lastGather, int *tags, int &nu
 
     bool shouldJump = false;
     if ((numIntRays + numExtRays) > 0) {
+        // No volume shader for rays built inside a volume step (FR-009: they have no spawning surface)
+        const bool attachVolume = !currentShadingState->volumeSegment;
         if (numIntRays > 0) {
-            lastGather->numRays = numIntRays;
-            lastGather->rays = (CRay **)rays + numRealVertices - numIntRays;
-            lastGather->last = 0;
-            lastGather->depth = 0;
-            lastGather->postShader = shaderInstanceOf(cAttributes->interior());
+            lastGather->begin(numIntRays, (CRay **)rays + numRealVertices - numIntRays, attachVolume ? shaderInstanceOf(cAttributes->interior()) : nullptr);
             lastGather->numMisses = 0;
             libshader::traceBundle(*this, lastGather, libshader::TraceKind::Gather);
             numActive -= lastGather->numMisses;
             numPassive += lastGather->numMisses;
         }
         if (numExtRays > 0) {
-            lastGather->numRays = numExtRays;
-            lastGather->rays = (CRay **)rays;
-            lastGather->last = 0;
-            lastGather->depth = 0;
-            lastGather->postShader = shaderInstanceOf(cAttributes->exterior());
+            lastGather->begin(numExtRays, (CRay **)rays, attachVolume ? shaderInstanceOf(cAttributes->exterior()) : nullptr);
             lastGather->numMisses = 0;
             libshader::traceBundle(*this, lastGather, libshader::TraceKind::Gather);
             numActive -= lastGather->numMisses;
@@ -4500,7 +4679,7 @@ CGatherBundle *CShadingContext::gatherHeaderBegin(const CGatherLookup *lookup, c
     const int numVertices = currentShadingState->numVertices;
     CShadingScratch *scratch = &(currentShadingState->scratch);
 
-    CGatherBundle *lastGather = new CGatherBundle;
+    CGatherBundle *lastGather = new CGatherBundle(*this);
     lastGather->numOutputs = lookup->numOutputs;
     lastGather->numNonShadeOutputs = lookup->numNonShadeOutputs;
     lastGather->outputs = (float **)ralloc((lookup->numOutputs + lookup->numNonShadeOutputs) * sizeof(float *), threadMemory);

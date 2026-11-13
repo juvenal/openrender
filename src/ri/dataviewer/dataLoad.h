@@ -1,7 +1,8 @@
 #ifndef DATALOAD_H
 #define DATALOAD_H
 
-class CDataView;
+#include "dataView.h" // CDataView: complete for the callers that cast view() to a structure they built (it used to come in through texture3d.h)
+
 class CRiInterface;
 class CRiStandardSession;
 

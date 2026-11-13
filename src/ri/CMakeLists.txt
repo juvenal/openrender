@@ -10,7 +10,7 @@ function(openrender_reexport_common target)
     endif()
 endfunction()
 
-file(GLOB ri_headers *.h hiders/*.h render/*.h state/*.h parse/*.h geometry/*.h texture/*.h output/*.h core/*.h dataviewer/*.h)
+file(GLOB ri_headers *.h hiders/*.h render/*.h state/*.h parse/*.h geometry/*.h texture/*.h output/*.h core/*.h dataviewer/*.h transport/*.h)
 
 # for flex and bison files that depend on ri/ files
 include_directories(.)
@@ -69,9 +69,17 @@ set(ri_sources
 	texture/imageInputPng.cpp
 	texture/imageInputRgbe.cpp
 	texture/imageInputTiff.cpp
+	texture/irradianceCache.cpp
+	texture/photonStore.cpp
 	texture/textureSystem.cpp
 	hiders/compositor.cpp
+	transport/builtinIntegrators.cpp
+	transport/capabilityCheck.cpp
+	transport/classicIntegrator.cpp
+	transport/integratorRegistry.cpp
+	hiders/builtinHiders.cpp
 	hiders/hider.cpp
+	hiders/hiderRegistry.cpp
 	hiders/shadingProducer.cpp
 	geometry/curves.cpp
 	geometry/bsplinePatchgrid.cpp
@@ -83,20 +91,21 @@ set(ri_sources
 	geometry/surfaceCrossings.cpp
 	geometry/geometryHost.cpp
 	geometry/geometryFrame.cpp
+	dataviewer/brickMapView.cpp
 	dataviewer/dataLoad.cpp
 	dataviewer/dataView.cpp
 	dataviewer/debug.cpp
+	dataviewer/irradianceCacheView.cpp
+	dataviewer/photonMapView.cpp
+	dataviewer/pointCloudView.cpp
 	geometry/delayed.cpp
 	state/displayChannel.cpp
 	geometry/dlobject.cpp
 #	dso.cpp
 	parse/error.cpp
-	hcshader.cpp
-	hiders/irradiance.cpp
-	hiders/irradianceDispatch.cpp
+	hiders/irradianceSampler.cpp
 	hiders/occlusion.cpp
 	hiders/photon.cpp
-	hiders/photonMap.cpp
 	hiders/raytracer.cpp
 	hiders/reyes.cpp
 	hiders/sampler.cpp
@@ -125,7 +134,9 @@ set(ri_sources
 	geometry/quadrics.cpp
 	render/remoteChannel.cpp
 	render/renderer.cpp
+	render/rendererTransport.cpp
 	render/rendererFrame.cpp
+	render/rendererTransport.cpp
 	render/rendererClipping.cpp
 	render/rendererContext.cpp
 	render/rendererDeclarations.cpp
@@ -306,15 +317,15 @@ endif()
 #
 # Geometry has no stand-in here (spec 031): every Geometry file ribVector compiles is the real one, compiled
 # identically for both libraries, because Geometry names no hider and no Shading type (it reaches them through
-# IRayContext, IDicer, IObjectSink and CGeometryHost; Geometry_RibVectorNoStubs). The only stub left is
-# vector/irradianceDispatchStub.cpp, a Hiders file that spec 032 deletes.
+# IRayContext, IDicer, IObjectSink and CGeometryHost; Geometry_RibVectorNoStubs). There is no stub file at all since
+# spec 032 deleted vector/irradianceDispatchStub.cpp.
 #
 # The list is the same ri_sources list minus the files confirmed, via an `nm -u` sweep over ribRender_obj's built
 # object files (not by reading source), to still need the renderer pipeline: the Reyes/raytrace/photon/stochastic/
 # zbuffer/occlusion/irradiance/sampler/trace hiders, the CSG units (csgTree/csgDefinition/csgSolid/csgClassify/
 # csgCaps.cpp), dlobject.cpp and implicitSurface.cpp -- whole classes the preview path never constructs, not
 # stand-ins for something it does (CSG is structurally unsupported there: CRibGeometryContext has no
-# RiSolidBegin/RiSolidEnd override; the DSO and implicit-surface primitives need the shading engine), hcshader.cpp,
+# RiSolidBegin/RiSolidEnd override; the DSO and implicit-surface primitives need the shading engine),
 # imager.cpp, rendererShadingServices.cpp, and CRenderer's actual render
 # pipeline (renderer.cpp, confirmed dead code here by tracing
 # ribpreview_load()'s call graph: RiBeginBackEnd("preview") -> a
@@ -325,11 +336,10 @@ endif()
 # CPreviewContext, in libribpreview, instead) -- but its own compiled
 # method bodies (RiWorldBegin/RiWorldEnd/RiGeometryV/getShader/etc.) call
 # straight into CRenderer::beginFrame()/render()/etc. and construct
-# CProgrammableShaderInstance/CShader/CDLObject/CImplicit/CPhotonMap/
-# CQuadLight/CSphereLight, so linking it in would silently reintroduce most
-# of what everything else in this list was excluded to avoid. The one real/stub pair left is
-# hiders/irradianceDispatch.cpp -> vector/irradianceDispatchStub.cpp (spec 032's; the data viewer reads an
-# irradiance cache through it). render/rendererDeclarations.cpp is excluded too: since spec 031 it holds only
+# CProgrammableShaderInstance/CShader/CDLObject/CImplicit/CPhotonMap, so linking it in would silently reintroduce most
+# of what everything else in this list was excluded to avoid. The irradiance cache (texture/irradianceCache.cpp) is
+# passive storage with no Shading dependency, so ribVector compiles it as it is; only the sampler that fills one
+# (hiders/irradianceSampler.cpp) is left out. render/rendererDeclarations.cpp is excluded too: since spec 031 it holds only
 # CRenderer's declaration observer and coordinate-system lookup, which reach the shading contexts and the
 # renderer's named systems, and no Geometry file needs it.
 #
@@ -386,16 +396,21 @@ endif()
 # imageInput.cpp itself must stay linked into both.
 set(ribVector_sources ${ri_sources})
 list(REMOVE_ITEM ribVector_sources
+    transport/builtinIntegrators.cpp
+    transport/capabilityCheck.cpp
+    transport/classicIntegrator.cpp
+    transport/integratorRegistry.cpp
     geometry/csgCaps.cpp
     geometry/csgClassify.cpp
     geometry/csgDefinition.cpp
     geometry/csgSolid.cpp
     geometry/csgTree.cpp
     geometry/dlobject.cpp
-    hcshader.cpp
+    hiders/builtinHiders.cpp
     hiders/hider.cpp
+    hiders/hiderRegistry.cpp
     hiders/shadingProducer.cpp
-    hiders/irradianceDispatch.cpp
+    hiders/irradianceSampler.cpp
     hiders/occlusion.cpp
     hiders/photon.cpp
     hiders/raytracer.cpp
@@ -410,6 +425,7 @@ list(REMOVE_ITEM ribVector_sources
     render/remoteChannel.cpp
     render/renderer.cpp
     render/rendererFrame.cpp
+    render/rendererTransport.cpp
     render/rendererContext.cpp
     render/rendererDeclarations.cpp
     render/displayHost.cpp
@@ -422,10 +438,6 @@ list(REMOVE_ITEM ribVector_sources
     render/rendererClipping.cpp
     render/resource.cpp
 )
-list(APPEND ribVector_sources
-    vector/irradianceDispatchStub.cpp
-)
-
 add_library(ribVector_obj OBJECT ${ribVector_sources} ${ri_headers})
 set_target_properties(ribVector_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(ribVector_obj PRIVATE . ${CMAKE_CURRENT_BINARY_DIR}
@@ -502,7 +514,7 @@ install(TARGETS ribVector_static EXPORT openRenderStaticTargets
 # ribVector (built by excluding a handful of files from the full ri_sources
 # list), ribOut_sources is a small explicit whitelist -- deriving it by
 # exclusion would mean excluding nearly everything (all of geometry/,
-# texture/, hiders/, plus dlobject/hcshader/imager/implicitSurface/
+# texture/, hiders/, plus dlobject/imager/implicitSurface/
 # remoteChannel/state/*) to reach the same handful of files.
 #
 # ribOut needs the shared RIB-parsing grammar (parse/ri.cpp's RiBegin/RiEnd

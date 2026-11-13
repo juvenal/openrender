@@ -79,6 +79,7 @@ add_subdirectory(framebuffer)
 add_subdirectory(imager)
 add_subdirectory(preview)
 add_subdirectory(visual)
+add_subdirectory(gi_split)              # spec 032: the GI cache split's characterizations and, behind an option, its red-first tests
 add_subdirectory(shaders)
 add_subdirectory(shading_parity)
 add_subdirectory(unit/csg)
@@ -98,10 +99,17 @@ add_subdirectory(unit/state)
 add_subdirectory(unit/camera)
 add_subdirectory(unit/motion)
 add_subdirectory(unit/scene_interface)  # spec 038: services, active context, writer and `if` characterizations
+add_subdirectory(unit/registry)         # spec 030: hider and integrator registries (the characterization tests; the rest behind OPENRENDER_030_RED_TESTS)
 add_subdirectory(precomp)               # spec 038: the precomputation tool (Precomp_OutputUnchanged, Precomp_NoHiderCore)
 # Permanent: registers the opt-in Link_PackageStaticConsumer (label link-package). It builds and installs a second
 # copy of the tree, so it is not part of the everyday run; the final phase runs it with this option ON.
 option(OPENRENDER_LINK_PACKAGE_TEST "Register Link_PackageStaticConsumer: builds and installs a scratch tree, then builds a consumer through find_package(openRender COMPONENTS Static)" OFF)
+
+# Spec 030 (hider and integrator registry): the red-first convention. Each new compiled test lives in its own
+# executable inside `if(OPENRENDER_030_RED_TESTS)`, so one that cannot compile yet never breaks the build; the option is
+# ON only in the red-evidence configure of Phase 2 (and by hand). The Test gate of the phase that makes a test compile
+# moves its definition out of the block. Script tests are registered DISABLED while the option is OFF.
+option(OPENRENDER_030_RED_TESTS "Spec 030: configure the new registry tests that are red until their phase (build failures are their red evidence)" OFF)
 
 # After unit/state: shading_contract links its state_only_sources library
 add_subdirectory(shading_contract)
@@ -109,6 +117,34 @@ add_subdirectory(link)
 add_subdirectory(plugins)
 add_subdirectory(convergence)
 add_subdirectory(architecture)
+
+# Spec 030 (hider and integrator registry), FR-017: the two NEW RIB-helper scripts (maintainer answer Q-C). The approved
+# tests/python/test_prman.py and tests/lua/test_prman.lua were never registered in CTest and stay out of scope. Each new
+# script is registered only when its interpreter is found; a host without one records a skip message at configure time
+# (Lua is 5.5 on macOS and 5.4 on Linux: the script uses plain Lua). They were red until Phase 7 (the helpers had no
+# Integrator method); the Test gate of Phase 7 enabled them.
+find_program(OR030_PYTHON NAMES python3 python)
+find_program(OR030_LUA NAMES lua lua5.4 lua5.3 luajit)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/helpers_work/python ${CMAKE_CURRENT_BINARY_DIR}/helpers_work/lua)
+set(OR030_HELPER_TESTS "")
+if(OR030_PYTHON)
+    add_test(NAME Helpers_PrmanIntegratorPython COMMAND ${OR030_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/python/test_prman_integrator.py
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/helpers_work/python)
+    set_tests_properties(Helpers_PrmanIntegratorPython PROPERTIES TIMEOUT 60 LABELS "helpers"
+        ENVIRONMENT "PRMAN_PYTHON_DIR=${CMAKE_SOURCE_DIR}/src/python")
+    list(APPEND OR030_HELPER_TESTS Helpers_PrmanIntegratorPython)
+else()
+    message(STATUS "Helpers_PrmanIntegratorPython skipped: no python3 found")
+endif()
+if(OR030_LUA)
+    add_test(NAME Helpers_PrmanIntegratorLua COMMAND ${OR030_LUA} ${CMAKE_CURRENT_SOURCE_DIR}/lua/test_prman_integrator.lua
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/helpers_work/lua)
+    set_tests_properties(Helpers_PrmanIntegratorLua PROPERTIES TIMEOUT 60 LABELS "helpers"
+        ENVIRONMENT "PRMAN_LUA_DIR=${CMAKE_SOURCE_DIR}/src/lua")
+    list(APPEND OR030_HELPER_TESTS Helpers_PrmanIntegratorLua)
+else()
+    message(STATUS "Helpers_PrmanIntegratorLua skipped: no lua interpreter found")
+endif()
 
 # Print test information
 message(STATUS "Configured tests:")

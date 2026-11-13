@@ -18,12 +18,14 @@ What stays: `shade(const ShaderGlobals &, IPointSource &)`, `setShadedObject`, `
 `CSurfacePointSource` and `classifyShading()` keep their rules (spec 029's producer rules apply unchanged to
 `shadeSurface`). The `no shading producer is installed` warning disappears with the entry (no test matches it).
 
-## `kRendererServicesVersion` 2.1.0 -> 2.2.0
+## `kRendererServicesVersion` 2.1.0 -> 2.2.0 (renumbered 2.3.0 at the merge)
+
+> **Renumbered at merge preparation (2026-11-12).** Spec 032 merged first and stepped the version to 2.2.0, so spec 031's step is the next MINOR, **2.3.0**; the history entry below is in `rendererServices.h` as "2.3.0  spec 031", above spec 032's "2.2.0" entry, and its text is unchanged.
 
 History entry (`rendererServices.h`), one for the spec:
 
 ```text
-2.2.0 (spec 031): Removed the Geometry-facing CShadingContext::shade(CSurface *, ...), displace(),
+2.3.0 (spec 031; written as 2.2.0 before the renumbering): Removed the Geometry-facing CShadingContext::shade(CSurface *, ...), displace(),
        displaceEstimate(), setProducer() and IShadingProducer (shadingProducer.h): Geometry reaches the hider that
        owns the context through its own IRayContext/IDicer, and the hider shades through
        shade(ShaderGlobals, IPointSource). EShadingDim is defined in common/shadingDim.h (same name and values).

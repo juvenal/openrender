@@ -18,7 +18,7 @@ date in the footer, not carried forward.
 
 ## §1.1.2 Advanced Capabilities
 
-**7 of 11 implemented, 2 partial, 2 absent.**
+**8 of 11 implemented, 1 partial, 2 absent.**
 
 - [x] **Solid Modeling** — `RiSolidBegin`/`RiSolidEnd`
   (`rendererContext.cpp`). All three set operations plus `"primitive"`, over
@@ -81,16 +81,49 @@ date in the footer, not carried forward.
   throughout. The statement is accepted silently, so a scene using it renders
   as if it had not — worth a diagnostic it does not currently emit.
 
-- [~] **Volume Shading** — `RiAtmosphere` works: the shader is attached to
-  `CAttributes` and executed per shading point
-  (`libshader/shading/shading.cpp:1049`, skipped for non-camera rays).
-  `RiInterior` and `RiExterior` are **parsed, stored on `CAttributes`
-  (`rendererContext.cpp:2114`/`2131`), and never executed** — no site in the
-  shading pipeline references either. Implementing them needs ray-segment
-  integration between surface hits, which the ray-trace hider's span
-  machinery could now carry.
+- [x] **Volume Shading** — `RiAtmosphere`, `RiInterior` and `RiExterior` all
+  execute (spec 056, 2026-11-10; the earlier "parsed, stored and never
+  executed" claim for the last two is gone). `RiInteriorV`/`RiExteriorV`
+  (`rendererContext.cpp:2372`, `:2385`) bind the shader on `CAttributes`; the
+  rule, on every camera hider and under both the interpreter and the JIT:
+  - **Spawning surface.** A ray built by `trace()` (and
+    `environment("raytrace")`, the same entry point), `gather()`,
+    `transmission()` or a ray-traced `shadow()` is attenuated by the volume
+    shader of the surface whose shader is running the builtin, not of the
+    surface it hits. The side is the sign of the ray direction against that
+    surface's global `N` at the call: positive reads `Exterior`, anything else
+    (a tie included) `Interior` (`executeMisc.cpp:942` for `trace()`, `:773`
+    for `transmission()`, `shading.cpp:4599` splits a `gather()` bundle and
+    `:4615`/`:4622` attach the shader). A side with no shader attenuates
+    nothing. `visibility()`, the float-valued
+    `trace()` and rays a volume shader itself spawns get no volume step.
+  - **Segments, hits and misses.** The shader runs once per ray segment
+    (`CSegmentBundle::attenuateHits`/`attenuateMisses`, `bundles.cpp:59`,
+    `:82`, through `shadeVolumeSegments()`, `shading.cpp:654`), from the ray's
+    origin to its endpoint, for every surface (CSG fragments are no special
+    case) and whether the endpoint is a hit, a transparent hit that the ray
+    continues through, or a miss. A miss ends at `maxdist` for `gather()`
+    where finite, at the light or destination for `transmission()`/`shadow()`,
+    else where the ray leaves the frame's world bound. It sees `I` as the
+    unnormalised origin-to-endpoint vector, `P` as the endpoint, and `Ci` and
+    `Oi` as the hit's colour and opacity (zero for a miss), and changes colour
+    and opacity only; a `gather()` miss stays a miss and only the
+    `surface:Ci`/`surface:Oi` outputs record the step.
+  - **Atmosphere** is unchanged: camera rays only, never on a matte object
+    (`shading.cpp:1598`-`1603`). A camera ray has no spawning surface and
+    gets no volume step; a secondary ray gets no atmosphere.
+  - **Accepted consequence (Q3).** The side comes from the shader's *global*
+    `N` at the call, so a surface shader that rewrites `N` (for instance
+    `N = faceforward(N, I)`) before tracing changes which volume applies.
+  - `incident()`/`opposite()` follow the same side, chosen once per call from
+    vertex 0's `dot(I, N)` (`shading.cpp:1907`).
+  Not changed: `trace()` ignores `maxdist` (GitHub #98). RISpec §4.2.6 names
+  only rays spawned by `trace()`; `gather()`, `transmission()` and ray-traced
+  `shadow()` follow the same rule here, which is this renderer's reading.
   *(Corrected 2026-08-29: this was previously recorded as blocked on missing
-  CSG support. That was never the reason, and CSG now exists.)*
+  CSG support. That was never the reason. Corrected again 2026-11-10: the
+  entry was `[~]` with Interior/Exterior never executed; spec 056 implemented
+  them.)*
 
 - [x] **Ray Tracing** — `CRaytracer` hider plus the RSL `trace`, `gather`,
   `occlusion` and environment/shadow families. See the manual's *Raytracing
@@ -190,7 +223,8 @@ line that decides it, so the check is mechanical:
 - A `[~]` should say which half works. "Partial" without that is not a status.
 - A **rationale** is a claim too. "Unimplemented because X" is worth
   re-checking when X changes — the volume-shading entry blamed missing CSG,
-  which was never the reason and is now doubly false.
+  which was never the reason (and the entry is now implemented, spec 056).
 
 Last verified against the source: **2026-08-29** (branch
-`015-blobby-implicit-surfaces`).
+`015-blobby-implicit-surfaces`); the Volume Shading entry **2026-11-10**
+(branch `056-volume-shader-segments`).

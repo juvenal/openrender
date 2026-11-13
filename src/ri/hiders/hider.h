@@ -27,6 +27,8 @@
 
 static_assert(openrender::shading::kRendererServicesVersion.major == 2, "CHider is written against services version 2");
 
+class CObject;
+
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CHider
 // Description			:	The base of every hider. It owns the shading context of its render thread.
@@ -38,6 +40,10 @@ class CHider : public openrender::shading::ITracer, public IRayContext {
 
         // Render this thread's share of the frame (moved from CShadingContext)
         virtual void renderingLoop() = 0;
+
+        // Draw an object into this hider's frame. The default does nothing; the hiders that rasterize override it (spec 030: the
+        // core stops naming a concrete hider type to submit objects).
+        virtual void drawObject(CObject *) {}
 
         // Inline: no link symbol (Geometry calls it)
         CShadingContext &shadingContext() { return context; }

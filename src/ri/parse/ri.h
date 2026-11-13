@@ -437,6 +437,10 @@ RI_TEXTURECACHEENABLE,
 EXTERN(RtToken)
 RI_SAMPLING, RI_SAMPLER, RI_SEED;
 
+// Integrator (spec 030)
+EXTERN(RtToken)
+RI_INTEGRATOR, RI_CLASSIC;
+
 // Irradiance options
 EXTERN(RtToken)
 RI_HANDLE,
@@ -567,6 +571,8 @@ RiGaussianStepFilter(RtFloat t, RtFloat edge, RtFloat width),
 EXTERN(RtVoid)
 RiHider(RtToken type, ...),
     RiHiderV(RtToken type, RtInt n, RtToken tokens[], RtPointer params[]),
+    RiIntegrator(RtToken name, ...),
+    RiIntegratorV(RtToken name, RtInt n, RtToken tokens[], RtPointer params[]),
     RiColorSamples(RtInt N, RtFloat *nRGB, RtFloat *RGBn),
     RiRelativeDetail(RtFloat relativedetail),
     RiOption(const char *name, ...),

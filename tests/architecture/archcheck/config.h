@@ -49,11 +49,12 @@ namespace archcheck {
         ShaderDSO,
         Procedures,
         Display,
+        Transport,
         Core,
         Infra,
         Consumer,
     };
-    inline constexpr std::size_t kClassCount = 12;
+    inline constexpr std::size_t kClassCount = 13;
 
     std::optional<Class> classFromName(std::string_view name);
     std::string_view className(Class c);

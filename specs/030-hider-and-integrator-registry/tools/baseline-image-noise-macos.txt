@@ -1,0 +1,2 @@
+# Spec 030 macOS baseline noise list (T008): two suite runs of the starting tree (e83d005d) produced 915 images, 0 differing, 0 missing; every MaxBlockAvgDiff equal.
+# Empty on purpose.

@@ -1,0 +1,269 @@
+--- a/tests/CMakeLists.txt
++++ b/tests/CMakeLists.txt
+@@ -97,11 +97,18 @@
+ add_subdirectory(unit/camera)
+ add_subdirectory(unit/motion)
+ add_subdirectory(unit/scene_interface)  # spec 038: services, active context, writer and `if` characterizations
++add_subdirectory(unit/registry)         # spec 030: hider and integrator registries (the characterization tests; the rest behind OPENRENDER_030_RED_TESTS)
+ add_subdirectory(precomp)               # spec 038: the precomputation tool (Precomp_OutputUnchanged, Precomp_NoHiderCore)
+ # Permanent: registers the opt-in Link_PackageStaticConsumer (label link-package). It builds and installs a second
+ # copy of the tree, so it is not part of the everyday run; the final phase runs it with this option ON.
+ option(OPENRENDER_LINK_PACKAGE_TEST "Register Link_PackageStaticConsumer: builds and installs a scratch tree, then builds a consumer through find_package(openRender COMPONENTS Static)" OFF)
+ 
++# Spec 030 (hider and integrator registry): the red-first convention. Each new compiled test lives in its own
++# executable inside `if(OPENRENDER_030_RED_TESTS)`, so one that cannot compile yet never breaks the build; the option is
++# ON only in the red-evidence configure of Phase 2 (and by hand). The Test gate of the phase that makes a test compile
++# moves its definition out of the block. Script tests are registered DISABLED while the option is OFF.
++option(OPENRENDER_030_RED_TESTS "Spec 030: configure the new registry tests that are red until their phase (build failures are their red evidence)" OFF)
++
+ # After unit/state: shading_contract links its state_only_sources library
+ add_subdirectory(shading_contract)
+ add_subdirectory(link)
+@@ -109,6 +116,38 @@
+ add_subdirectory(convergence)
+ add_subdirectory(architecture)
+ 
++# Spec 030 (hider and integrator registry), FR-017: the two NEW RIB-helper scripts (maintainer answer Q-C). The approved
++# tests/python/test_prman.py and tests/lua/test_prman.lua were never registered in CTest and stay out of scope. Each new
++# script is registered only when its interpreter is found; a host without one records a skip message at configure time
++# (Lua is 5.5 on macOS and 5.4 on Linux: the script uses plain Lua). They are red until Phase 7 (the helpers have no
++# Integrator method), so they are DISABLED while OPENRENDER_030_RED_TESTS is OFF; the Test gate of Phase 7 removes the
++# `if(NOT ...)` below.
++find_program(OR030_PYTHON NAMES python3 python)
++find_program(OR030_LUA NAMES lua lua5.4 lua5.3 luajit)
++file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/helpers_work/python ${CMAKE_CURRENT_BINARY_DIR}/helpers_work/lua)
++set(OR030_HELPER_TESTS "")
++if(OR030_PYTHON)
++    add_test(NAME Helpers_PrmanIntegratorPython COMMAND ${OR030_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/python/test_prman_integrator.py
++        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/helpers_work/python)
++    set_tests_properties(Helpers_PrmanIntegratorPython PROPERTIES TIMEOUT 60 LABELS "helpers"
++        ENVIRONMENT "PRMAN_PYTHON_DIR=${CMAKE_SOURCE_DIR}/src/python")
++    list(APPEND OR030_HELPER_TESTS Helpers_PrmanIntegratorPython)
++else()
++    message(STATUS "Helpers_PrmanIntegratorPython skipped: no python3 found")
++endif()
++if(OR030_LUA)
++    add_test(NAME Helpers_PrmanIntegratorLua COMMAND ${OR030_LUA} ${CMAKE_CURRENT_SOURCE_DIR}/lua/test_prman_integrator.lua
++        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/helpers_work/lua)
++    set_tests_properties(Helpers_PrmanIntegratorLua PROPERTIES TIMEOUT 60 LABELS "helpers"
++        ENVIRONMENT "PRMAN_LUA_DIR=${CMAKE_SOURCE_DIR}/src/lua")
++    list(APPEND OR030_HELPER_TESTS Helpers_PrmanIntegratorLua)
++else()
++    message(STATUS "Helpers_PrmanIntegratorLua skipped: no lua interpreter found")
++endif()
++if(OR030_HELPER_TESTS AND NOT OPENRENDER_030_RED_TESTS)
++    set_tests_properties(${OR030_HELPER_TESTS} PROPERTIES DISABLED TRUE)
++endif()
++
+ # Print test information
+ message(STATUS "Configured tests:")
+ message(STATUS "  - test_64bit_portability")
+--- a/tests/unit/rib_parse/CMakeLists.txt
++++ b/tests/unit/rib_parse/CMakeLists.txt
+@@ -63,3 +63,17 @@
+ add_test(NAME RibOut_ShaderStatementOrder COMMAND test_ribout_shader_order)
+ set_tests_properties(RibOut_ShaderStatementOrder PROPERTIES TIMEOUT 60
+     LABELS "rib_parse;unit" ENVIRONMENT "${SAMPLING_OPTION_ENV}")
++
++# Spec 030 (hider and integrator registry), FR-017 / FR-018: the Integrator statement is parsed into the options block.
++# Red until Phase 7 (no Integrator statement, no options members): behind the red-first option.
++if(OPENRENDER_030_RED_TESTS)
++    add_executable(test_integrator_statement test_integrator_statement.cpp)
++    target_compile_features(test_integrator_statement PRIVATE cxx_std_20)
++    target_include_directories(test_integrator_statement PRIVATE ${SAMPLING_OPTION_INCLUDES})
++    target_link_libraries(test_integrator_statement PRIVATE ribRender openrendercommon)
++    file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/work/RibParse_IntegratorStatement)
++    add_test(NAME RibParse_IntegratorStatement COMMAND test_integrator_statement
++        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/work/RibParse_IntegratorStatement)
++    set_tests_properties(RibParse_IntegratorStatement PROPERTIES TIMEOUT 60
++        LABELS "rib_parse;unit" ENVIRONMENT "${SAMPLING_OPTION_ENV}")
++endif()
+--- a/tests/unit/scene_interface/CMakeLists.txt
++++ b/tests/unit/scene_interface/CMakeLists.txt
+@@ -89,3 +89,12 @@
+     COMMENT "Capturing the SceneInterface writer, if and declared-set references (an existing reference is never overwritten)"
+     VERBATIM)
+ add_dependencies(scene-interface-capture-baselines si_capture_scene_interface)
++
++# Spec 030 (hider and integrator registry), FR-019: parse -> RIB writer preserves the Integrator statement and its
++# parameters, and the preview back-end ignores it silently. Red until Phase 7: behind the red-first option.
++if(OPENRENDER_030_RED_TESTS)
++    si_executable(test_scene_interface_integrator_roundtrip test_integrator_roundtrip.cpp LIBS ribRender ribpreview)
++    add_test(NAME RibOut_IntegratorRoundTrip COMMAND test_scene_interface_integrator_roundtrip)
++    set_tests_properties(RibOut_IntegratorRoundTrip PROPERTIES TIMEOUT 120 LABELS "scene_interface" ENVIRONMENT "${SI_ENV}"
++        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
++endif()
+--- a/tests/link/CMakeLists.txt
++++ b/tests/link/CMakeLists.txt
+@@ -58,6 +58,28 @@
+ set_tests_properties(Link_StaticConsumer PROPERTIES TIMEOUT 300 LABELS "link"
+     ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>")
+ 
++# ---- Spec 030: Link_StaticConsumerRegistries (FR-006, SC-008, research R13) -------------------------------------
++# A sibling of the approved Link_StaticConsumer, which stays byte-for-byte as it is: the same plain static link, and the
++# registries must still list every built-in hider (raytrace reyes zbuffer photon, aliases hidden and stochastic) and the
++# integrator classic, and render one frame with each hider under Integrator "classic". Red until Phase 9 (no registries):
++# behind the red-first option.
++if(OPENRENDER_030_RED_TESTS)
++    add_executable(test_link_static_consumer_registries static_consumer_registries.cpp)
++    target_compile_features(test_link_static_consumer_registries PRIVATE cxx_std_20)
++    target_include_directories(test_link_static_consumer_registries PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/ri
++        ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/transport)
++    target_link_libraries(test_link_static_consumer_registries PRIVATE openrender_common_flags ribRender_static libshader_shading openrendercommon ${CMAKE_DL_LIBS})
++    add_dependencies(test_link_static_consumer_registries openrender_shaders)
++
++    file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cwd/Link_StaticConsumerRegistries)
++    add_test(NAME Link_StaticConsumerRegistries
++        COMMAND ${CMAKE_COMMAND} "-DEXE=$<TARGET_FILE:test_link_static_consumer_registries>" "-DFORMATS=${OR029_STATIC_CONSUMER_FORMATS}"
++                -P ${CMAKE_CURRENT_SOURCE_DIR}/run_static_consumer_registries.cmake
++        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cwd/Link_StaticConsumerRegistries)
++    set_tests_properties(Link_StaticConsumerRegistries PROPERTIES TIMEOUT 300 LABELS "link"
++        ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>")
++endif()
++
+ # ---- T-L4 ------------------------------------------------------------------------------------------------------
+ # Opt-in: configures, builds and installs a scratch copy of this tree (CMAKE_INSTALL_PREFIX=<scratch>, so GitHub #23 is
+ # not hit), then configures, builds and runs the consumer of package/ through find_package(openRender COMPONENTS Static).
+--- a/tests/architecture/CMakeLists.txt
++++ b/tests/architecture/CMakeLists.txt
+@@ -153,6 +153,14 @@
+ archcheck_add_fixture(tagged-untagged-dup 2
+     "allowlist\\.txt:3: same edge listed tagged and untagged")
+ 
++# --- Spec 030 (hider and integrator registry): the Transport domain (FR-030, US6 AS1) -----------------------
++# These two land at T041, after the Principle VIII amendment and the archcheck class (tasks.md Ordering gate); they are
++# part of this draft only so the maintainer sees them at T023.
++archcheck_add_fixture(transport-allowed 0 "RESULT +PASS"
++    FAIL_REGEX "VIOLATION|CYCLE")
++archcheck_add_fixture(transport-cycle 1
++    "VIOLATION include src/transport/classic.cpp:1 -> src/hiders/hider.h +\\[Transport -> Hiders\\].*CYCLE +[A-Za-z >-]*(Hiders[A-Za-z >-]*Transport|Transport[A-Za-z >-]*Hiders)[^[]*\\[FAILING\\]")
++
+ # --- User Story 3: renderer-core usage metric (spec 022 T046-T047) ----------
+ archcheck_add_fixture(metric-increase 0
+     "WARNING +metric Geometry refs 3 > baseline 2 \\(\\+1\\).*WARNING +metric Geometry distinct 2 > baseline 1 \\(\\+1\\).*RESULT +PASS")
+@@ -225,3 +233,27 @@
+ foreach(_t SceneInterface_RibOutNoCore SceneInterface_NoCoreInclude SceneInterface_HooksAndRecords SceneInterface_ActiveContextAssignments SceneInterface_RibVectorResidual Compiler_IncludeBoundary)
+     set_tests_properties(${_t} PROPERTIES TIMEOUT 60 LABELS "architecture")
+ endforeach()
++
++# --- Spec 030 (hider and integrator registry): two mechanical checks ----------------------------------------
++#
++# Each is a `cmake -P` script over the tracked sources. They are red on the starting tree by design (the references
++# and the strcmp chains exist), so they are registered DISABLED while OPENRENDER_030_RED_TESTS is OFF (the red-evidence
++# configure turns the option ON and runs them); the phase that turns one green removes the `if` below:
++# Phase 4 for Hcshader_NoReferences, Phase 8 for Registry_CoreNamesNoHider.
++set(OR030_HCSHADER_EXEMPT_FILES
++    "tests/architecture/unit/test_archcheck_parsers.cpp|tests/visual/CMakeLists.txt|examples/rib/spherelight.rib|examples/rib/quadlight.rib|tests/architecture/check_hcshader_references.cmake|tests/unit/registry/test_hcshader_missing_shader.cpp")
++set(OR030_HCSHADER_REGISTRATION_FILES "tests/architecture/CMakeLists.txt|tests/unit/registry/CMakeLists.txt")
++
++add_test(NAME Hcshader_NoReferences
++    COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
++        "-DEXEMPT_FILES=${OR030_HCSHADER_EXEMPT_FILES}" "-DREGISTRATION_FILES=${OR030_HCSHADER_REGISTRATION_FILES}"
++        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_hcshader_references.cmake)
++set_tests_properties(Hcshader_NoReferences PROPERTIES TIMEOUT 120 LABELS "architecture")
++
++add_test(NAME Registry_CoreNamesNoHider
++    COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${CMAKE_SOURCE_DIR} -P ${CMAKE_CURRENT_SOURCE_DIR}/check_core_names_no_hider.cmake)
++set_tests_properties(Registry_CoreNamesNoHider PROPERTIES TIMEOUT 60 LABELS "architecture")
++
++if(NOT OPENRENDER_030_RED_TESTS)
++    set_tests_properties(Hcshader_NoReferences Registry_CoreNamesNoHider PROPERTIES DISABLED TRUE)
++endif()
+--- /dev/null
++++ b/tests/unit/registry/CMakeLists.txt
+@@ -0,0 +1,95 @@
++# Spec 030 (hider and integrator registry): the registry tests. Label `registry` (ctest -L registry); the everyday run
++# also carries `unit`. Names as in plan.md "New tests".
++#
++#   Registry_HiderAliasDiagnostics, Registry_UnknownHiderFallback   characterization of today's Hider statement; ENABLED
++#                                                                   from Phase 2 (green on the starting tree, stay green)
++#   Registry_HiderLookup, Registry_HiderCollisions                  Phase 6 (hiderRegistry.h)
++#   Registry_IntegratorLookup, Registry_PairCheck                   Phase 5 (transport/ headers)
++#   Registry_TestDoubleHider                                        Phase 8 (the core selects by registry)
++#   Registry_PairRefusal_{reyes,zbuffer,raytrace,photon}, Registry_ClassicPairs,
++#   Registry_UnknownIntegratorFallback, Registry_IntegratorParameters, Registry_FrameAbort     Phase 9
++#   Registry_IntegratorImageIdentity (also `visual`)                Phase 7 (the Integrator statement parses)
++#   Hcshader_MissingShader                                          Phase 4 (the built-in lights deleted)
++#
++# Red-first convention (tasks.md "Standing rules"): every new compiled test but the characterization one lives in its OWN
++# executable inside `if(OPENRENDER_030_RED_TESTS)` (default OFF), so a test that cannot compile yet never breaks another or
++# the build. The Test gate of the phase that makes a test compile moves its definition out of the block.
++#
++# Every test runs in its own working directory (build/tests/unit/registry/work/<ctest name>): the scenes and images they
++# write never collide when ctest runs them in parallel. ORENDERHOME is the source root (no .orenderrc), SHADERS the build's
++# compiled shaders and DISPLAYS the file driver, as Link_StaticConsumer does.
++
++set(REG_INCLUDES
++    ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/ri ${CMAKE_SOURCE_DIR}/src/ri/parse
++    ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri/hiders
++    ${CMAKE_SOURCE_DIR}/src/ri/transport ${CMAKE_SOURCE_DIR}/src/ri/geometry ${CMAKE_SOURCE_DIR}/src/ri/texture
++    ${CMAKE_SOURCE_DIR}/src/ri/output ${CMAKE_SOURCE_DIR}/src/ri/core ${CMAKE_SOURCE_DIR}/src/ri/dataviewer
++    ${CMAKE_SOURCE_DIR}/src/libshader/shading ${CMAKE_CURRENT_SOURCE_DIR})
++set(REG_ENV "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>")
++
++# reg_executable(<target> <source>...)
++function(reg_executable target)
++    add_executable(${target} ${ARGN})
++    target_compile_features(${target} PRIVATE cxx_std_20)
++    target_include_directories(${target} PRIVATE ${REG_INCLUDES})
++    target_link_libraries(${target} PRIVATE ribRender libshader_shading openrendercommon)
++    add_dependencies(${target} openrender_shaders)
++endfunction()
++
++# reg_test(<ctest name> <executable> [TIMEOUT s] [LABELS l...] [ARGS a...])
++function(reg_test name exe)
++    cmake_parse_arguments(ARG "" "TIMEOUT" "LABELS;ARGS" ${ARGN})
++    if(NOT ARG_TIMEOUT)
++        set(ARG_TIMEOUT 120)
++    endif()
++    set(work ${CMAKE_CURRENT_BINARY_DIR}/work/${name})
++    file(MAKE_DIRECTORY ${work})
++    add_test(NAME ${name} COMMAND ${exe} ${ARG_ARGS} WORKING_DIRECTORY ${work})
++    set_tests_properties(${name} PROPERTIES TIMEOUT ${ARG_TIMEOUT} LABELS "registry;unit;${ARG_LABELS}" ENVIRONMENT "${REG_ENV}")
++endfunction()
++
++# ---- the characterization tests: green on the starting tree, enabled now ------------------------------------------------
++reg_executable(test_registry_hider_statements test_registry_hider_statements.cpp)
++reg_test(Registry_HiderAliasDiagnostics test_registry_hider_statements ARGS alias_diagnostics)
++reg_test(Registry_UnknownHiderFallback test_registry_hider_statements ARGS unknown_fallback)
++
++# ---- red until their phase ----------------------------------------------------------------------------------------------
++if(OPENRENDER_030_RED_TESTS)
++    # Phase 4: with the built-in lights deleted a light with no compiled shader is an ordinary missing shader. It compiles today
++    # (RI calls only) and is red by assertion: the C++ substitute still answers.
++    reg_executable(test_hcshader_missing_shader test_hcshader_missing_shader.cpp)
++    file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/empty_shader_dir)
++    reg_test(Hcshader_MissingShader test_hcshader_missing_shader ARGS ${CMAKE_CURRENT_BINARY_DIR}/empty_shader_dir)
++
++    # Phase 5: the integrator table, the pair check (no transport/ headers yet).
++    reg_executable(test_registry_integrator_table test_registry_integrator_table.cpp)
++    reg_test(Registry_IntegratorLookup test_registry_integrator_table ARGS lookup)
++    reg_test(Registry_PairCheck test_registry_integrator_table ARGS pair_check)
++
++    # Phase 6: the hider table (no hiderRegistry.h yet).
++    reg_executable(test_registry_hider_table test_registry_hider_table.cpp)
++    reg_test(Registry_HiderLookup test_registry_hider_table ARGS lookup)
++    reg_test(Registry_HiderCollisions test_registry_hider_table ARGS collisions)
++
++    # Phase 7: the Integrator statement parses (it compiles today; red by assertion).
++    reg_executable(test_registry_identity test_registry_identity.cpp)
++    reg_test(Registry_IntegratorImageIdentity test_registry_identity LABELS visual TIMEOUT 300)
++
++    # Phase 8: a hider registered from this directory is selectable by name and alias.
++    reg_executable(test_registry_hider_double test_registry_hider_double.cpp hider_double.cpp)
++    reg_test(Registry_TestDoubleHider test_registry_hider_double)
++
++    # Phase 9: pairs, refusals, the integrator statements and the abort paths (the test-double integrator ABI).
++    reg_executable(test_registry_pairs test_registry_pairs.cpp integrator_doubles.cpp)
++    foreach(_hider reyes zbuffer raytrace photon)
++        reg_test(Registry_PairRefusal_${_hider} test_registry_pairs ARGS refusal ${_hider} TIMEOUT 300)
++    endforeach()
++    reg_test(Registry_ClassicPairs test_registry_pairs ARGS classic_pairs TIMEOUT 300)
++
++    reg_executable(test_registry_integrator_statements test_registry_integrator_statements.cpp integrator_doubles.cpp)
++    reg_test(Registry_UnknownIntegratorFallback test_registry_integrator_statements ARGS unknown_fallback)
++    reg_test(Registry_IntegratorParameters test_registry_integrator_statements ARGS parameters)
++
++    reg_executable(test_registry_frame_abort test_registry_frame_abort.cpp hider_double.cpp integrator_doubles.cpp)
++    reg_test(Registry_FrameAbort test_registry_frame_abort)
++endif()

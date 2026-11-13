@@ -46,14 +46,12 @@
 #include "displayChannel.h"
 #include "dlobject.h"
 #include "common/diagnostics.h"
-#include "hcshader.h"
 #include "implicitSurface.h"
-#include "irradiance.h"
+#include "irradianceCache.h"
 #include "common/memory.h"
 #include "noise.h"
 #include "object.h"
 #include "patches.h"
-#include "photon.h"
 #include "photonMap.h"
 #include "pl.h"
 #include "points.h"
@@ -61,8 +59,8 @@
 #include "quadrics.h"
 #include "common/random.h"
 #include "common/sampling.h"
+#include "hiderRegistry.h"
 #include "ray.h"
-#include "raytracer.h"
 #include "rendererContext.h"
 #include "searchPathResolver.h"
 #include "ri.h"
@@ -76,13 +74,11 @@
 #include "shaderRefs.h"
 #include "stateConversions.h"
 #include "common/stats.h"
-#include "stochastic.h"
 #include "subdivisionCreator.h"
 #include "subdivisionLoop.h"
 #include "texmake.h"
 #include "texture.h"
 #include "xform.h"
-#include "zbuffer.h"
 
 // Defined in ri.cpp — true when orender was invoked with -d
 extern bool riAddFramebuffer();
@@ -339,24 +335,6 @@ CShaderInstance *CRendererContext::getShader(const char *name, int type, int np,
         arenaEnd(globalArena);
 
         cInstance = instance;
-    }
-
-    if (cInstance == NULL) {
-        // Look into the hardcoded shaders
-        if (strcmp(name, "spherelight") == 0) {
-            cInstance = new CSphereLight(currentAttributes, currentXform);
-            cInstance->instanceKey = takeInstanceKey();
-
-            // Add the new light into the active lights list for the frame
-            CRenderer::allLights->push(cInstance);
-        }
-        else if (strcmp(name, "quadlight") == 0) {
-            cInstance = new CQuadLight(currentAttributes, currentXform);
-            cInstance->instanceKey = takeInstanceKey();
-
-            // Add the new light into the active lights list for the frame
-            CRenderer::allLights->push(cInstance);
-        }
     }
 
     // If not found, error out
@@ -1590,11 +1568,14 @@ void CRendererContext::RiHiderV(const char *type, int n, const char *tokens[], c
     if (options->hider != NULL)
         free(options->hider);
 
-    if (strcmp(type, RI_HIDDEN) == 0)
-        options->hider = strdup("reyes");
-    else if (strcmp(type, "stochastic") == 0) {
-        warning(CODE_BADTOKEN, "Deprecated Hider \"stochastic\"; use \"reyes\" instead\n");
-        options->hider = strdup("reyes");
+    // Resolved at statement time through the registry (spec 030): a registered name is stored as written, an alias is
+    // stored as its target's name, a deprecated alias reports its own warning (once per statement), and an unknown name is
+    // stored unchanged and diagnosed when the frame begins
+    const CHiderRegistry::SLookup found = hiderRegistry().find(type);
+    if (found.table != NULL) {
+        options->hider = strdup(found.table->name);
+        if (found.alias != NULL && found.alias->deprecationWarning != NULL)
+            warning(CODE_BADTOKEN, "%s\n", found.alias->deprecationWarning);
     }
     else
         options->hider = strdup(type);
@@ -1602,6 +1583,110 @@ void CRendererContext::RiHiderV(const char *type, int n, const char *tokens[], c
     if (n > 0) {
         CRendererContext::RiOptionV(RI_HIDER, n, tokens, params);
     }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Method				:	RiIntegratorV
+// Description			:	The Integrator statement (spec 030, contracts/ri-integrator.md)
+// Comments				:	Stores the name and the parameter list; neither is validated against the registry here, the
+//							frame resolves the name like it resolves the hider's. The parameters are normalised once, at
+//							statement time, into the data shape COptions::CTypedParameter documents (the values arrive
+//							as the RI convention has them: an integer parameter as ints, converted by the RIB parser). The last statement wins: the name, the
+//							handle and the list are replaced together.
+void CRendererContext::RiIntegratorV(const char *name, int n, const char *tokens[], const void *params[]) {
+    if (name == NULL || name[0] == '\0') {
+        error(CODE_BADTOKEN, "Integrator name missing\n");
+        return;
+    }
+
+    COptions::CTypedParameter *list = n > 0 ? new COptions::CTypedParameter[n] : NULL;
+    int numList = 0;
+    char *handle = NULL;
+
+    for (int i = 0; i < n; i++) {
+        CVariable *cVar;
+        CVariable tVar;
+
+        cVar = CRenderer::retrieveVariable(tokens[i]);
+        if (cVar == NULL)
+            if (parseVariable(&tVar, NULL, tokens[i]) == TRUE)
+                cVar = &tVar;
+
+        if (cVar == NULL) {
+            error(CODE_BADTOKEN, "Integrator parameter \"%s\" not defined\n", tokens[i]);
+            continue;
+        }
+
+        // The reserved string parameter "handle" is stored apart and is not a parameter of the integrator.
+        if (strcmp(cVar->name, RI_HANDLE) == 0) {
+            if (cVar->type != TYPE_STRING) {
+                error(CODE_BADTOKEN, "Integrator parameter \"handle\" must be a string\n");
+            }
+            else {
+                if (handle != NULL)
+                    free(handle);
+                handle = strdup(((char **)params[i])[0]);
+            }
+            continue;
+        }
+
+        COptions::CTypedParameter &p = list[numList];
+        p.name = strdup(cVar->name);
+        p.type = cVar->type;
+        p.numItems = cVar->numItems;
+        p.data = NULL;
+
+        switch (cVar->type) {
+            case TYPE_FLOAT:
+                p.data = new float[cVar->numItems];
+                memcpy(p.data, params[i], cVar->numItems * sizeof(float));
+                break;
+            case TYPE_COLOR:
+            case TYPE_VECTOR:
+            case TYPE_NORMAL:
+            case TYPE_POINT:
+                p.data = new float[cVar->numItems * 3];
+                memcpy(p.data, params[i], cVar->numItems * sizeof(float) * 3);
+                break;
+            case TYPE_MATRIX:
+                p.data = new float[cVar->numItems * 16];
+                memcpy(p.data, params[i], cVar->numItems * sizeof(float) * 16);
+                break;
+            case TYPE_INTEGER:
+                p.data = new int[cVar->numItems];
+                memcpy(p.data, params[i], cVar->numItems * sizeof(int));
+                break;
+            case TYPE_STRING: {
+                char **dst = new char *[cVar->numItems];
+                const char **src = (const char **)params[i];
+                for (int k = 0; k < cVar->numItems; k++)
+                    dst[k] = strdup(src[k]);
+                p.data = dst;
+            } break;
+            default:
+                // TYPE_QUAD, TYPE_MPOINT and TYPE_DOUBLE: no integrator consumes them. Dropped, as Display drops them.
+                warning(CODE_BADTOKEN, "Integrator parameter \"%s\": type not supported by integrators, ignored\n", p.name);
+                free(p.name);
+                continue;
+        }
+        numList++;
+    }
+
+    COptions *options = getOptions(TRUE);
+
+    if (options->integrator != NULL)
+        free(options->integrator);
+    options->integrator = strdup(name);
+
+    if (options->integratorHandle != NULL)
+        free(options->integratorHandle);
+    options->integratorHandle = handle;
+
+    COptions::freeIntegratorParameters(options->integratorParameters, options->numIntegratorParameters);
+    options->integratorParameters = numList > 0 ? list : NULL;
+    options->numIntegratorParameters = numList;
+    if (numList == 0)
+        delete[] list;
 }
 
 void CRendererContext::RiColorSamples(int N, float *nRGB, float *RGBn) {

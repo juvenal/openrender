@@ -379,6 +379,9 @@ extern RtToken RI_TEXTURECACHEENABLE,
 // Sampling options (spec 039)
 extern RtToken RI_SAMPLING, RI_SAMPLER, RI_SEED;
 
+// Integrator (spec 030)
+extern RtToken RI_INTEGRATOR, RI_CLASSIC;
+
 // Irradiance options
 extern RtToken RI_HANDLE,
     RI_FILEMODE,

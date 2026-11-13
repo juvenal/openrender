@@ -1,0 +1,11 @@
+--- a/tests/unit/photon_map/test_photon_map_sessions.cpp
++++ b/tests/unit/photon_map/test_photon_map_sessions.cpp
+@@ -42,7 +42,7 @@
+ #include <unistd.h>
+ 
+ #include "ri.h"
+-#include "ri/hiders/photonMap.h"
++#include "ri/render/photonMap.h"
+ #include "ri/render/renderer.h"
+ 
+ ///////////////////////////////////////////////////////////////////////
