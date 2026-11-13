@@ -520,3 +520,11 @@ The host came back after the macOS runs; `linux_sync.sh push` sent 4230 files an
 **Re-runs of the crashed test:** `ctest -R '^Visual_sphere-texture3d-bake3d-reyes-slo$'` alone, five times through the remote cpujob (`build-logs/lm-rr1..5.log`): 5 of 5 passed (0.20 to 0.24 s). The crash did not reproduce, which is the #122 pattern (intermittent, in a full concurrent run, on Linux only; on the starting tree it hit `DeterminismSweep_sphere-texture3d-bake3d-reyes`, F2). I record it as GitHub #122 recurring, not as an effect of the merge: the scene does not use the registry (no `Integrator`, one `Hider`), and the macOS suite and both sweeps pass it. It was not in the coordinator's list of known non-passes, so it is reported. The only other Linux non-passes are the self-skip, #45 and the #163 photon rows. No `ShadingParity_JitPL*` timeout occurred, in the suite or the sweep.
 
 The Linux validation is complete: the merged tree matches the starting tree's Linux baselines but for the two CSG scenes spec 056 rewrote on purpose, the architecture figures equal macOS's, and the sweep is 582 of 582.
+
+### §6a Master `ff65a7ad` merged into 030 (2026-11-12, docs only)
+
+Master moved after the merge above by one commit, `ff65a7ad` ("docs: refresh revamp brief for specs 032 and 056"), which changes
+`docs/architecture/openrender-revamp.html` and the brief's row in `DEVNOTES.md` only. No build input changes, and the only test that reads
+`DEVNOTES.md` (`PluginAbi_RegistryConsistency`) checks the spec 037 row alone. The maintainer chose a short check instead of a full
+re-validation: the merge (no conflicts) followed by `PluginAbi_RegistryConsistency` (1/1) and `ctest -L architecture` (34/34) on macOS
+through cpujob (`build-logs/030-merge/docmerge-check.log`). The suite, sweep and Linux results of §6 stand for this tree.
