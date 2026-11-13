@@ -212,35 +212,6 @@ request. Run `ctest -L architecture` locally before review.
   RSL JIT, later OSL). Loading, caching and format selection move into Shading; the core passes
   only a preference.
 
-### DB-009 — Motion blur and depth of field are implemented more than once
-
-- **Rules**: 3 (an effect is implemented once, generically, for every hider).
-- **Tracking**: remediation spec 031 ([#37](https://github.com/juvenal/openrender/issues/37)); spec 028 ([#34](https://github.com/juvenal/openrender/issues/34)) did the raytrace side
-- **Evidence**:
-  - Depth of field has two models: Reyes's circle-of-confusion model (`CSampler::circleOfConfusion`,
-    `sampler.cpp:23`, 5 call sites in `reyes.cpp`: `:1165`, `:1469-1470`, `:1888-1889`; the aperture
-    tests are `reyes.cpp:172`, `:617`, `:1154`, `:1467`, `:1554`, `:1739`, `:1887`, and the aperture
-    jitter slots `jdx`, `jdy` are `stochastic.h:82`) and the camera layer's thin lens
-    (`CFrameCamera::generateRay`, `src/ri/state/camera.cpp:94`), which only the raytracer uses.
-  - Reyes keeps its own motion and camera-rotation code, with its own SLERP of the camera
-    rotation: `reyes.cpp:1427-1433`, `:1600-1604`, `:1637-1643`; `stochastic.cpp:166-169`, `:220`;
-    `stochasticQuad.h:511-520`, `:590`, `:873-884`. It reads `CRenderer::cameraHasRotation` and
-    `CRenderer::relRotQ` (DB-011), where the raytrace side reads `motion::cameraRotationAt` and
-    `transformRay` (`geometry/motion.h`), pinned equal to Reyes's SLERP by
-    `Motion_CameraSlerpEquivalence`.
-- **Size**: not a dependency edge; tracked by review.
-- **Direction**: one camera layer (`ICamera::generateRay`, `FrameParams`) and one Geometry-owned
-  motion evaluator used by dicing and intersection alike. Spec 028 moved the raytrace side; the
-  Reyes side is spec 031.
-- **History**: spec 028, 2026-10-29: the raytrace side moved onto `ICamera`, `FrameParams` and
-  `motion.h` (Geometry's intersection-time motion no longer reads `CRenderer::invShutterTime`);
-  Reyes's side is spec 031.
-- **History**: spec 031, 2026-11-11, camera-rotation half: Reyes and the stochastic rasterizer read the camera rotation, translation, flags and lens values
-  from `FrameParams` (`FrameParams::cocFactorScreen` and `cocFactorSamples` are copies of the core's values, removed by the lens phase) and rotate
-  through `motion::cameraRotationAt`, the one function the raytrace side uses; the inlined `slerpq` + `qtoR` pairs and their `identQ` constants
-  are gone from `reyes.cpp`, `stochastic.cpp` and `stochasticQuad.h` (`Motion_CameraSlerpEquivalence`, `Motion_Replay_*` and
-  `Motion_FrameParamsEqualCore` pass; no image changed). Reyes's depth-of-field model (the circle of confusion) is the lens half: the entry stays Open.
-
 ### DB-010 — The hiders' GI caches use Texturing
 
 - **Rules**: the allowed-dependency table (Hiders may not depend on Texturing).
@@ -312,6 +283,9 @@ request. Run `ctest -L architecture` locally before review.
   `FrameParams` (`reyes.cpp -> CRenderer::aperture`, `cameraHasRotation`, `cocFactorSamples`, `cocFactorScreen`, `invFocaldistance`, `relRotQ`,
   `relTrans`; `stochastic.cpp -> CRenderer::cameraHasRotation`, `cameraRotationOnly`, `relRotQ`, `relTrans`: 11 lines). The Hiders `CRenderer::` metric fell
   from 556 to 499 references and 81 to 72 members (the Phase 6 photon-map change took 4 references and 2 members of it).
+- **History**: spec 031, lens phase, 2026-11-12, no allowlist change (151 lines): the Reyes depth-of-field bounds and the lens scatter read the lens model and `FrameParams`
+  (`dSampledx`, `dSampledy`) instead of `CRenderer::dSampledx/y` and the `cocFactor*` statics (the statics are gone). The Hiders `CRenderer::` metric fell from 499 to 495 references
+  (72 members), TOTAL 501 to 497.
 
 ### DB-013 — No hider registry: `strcmp` chains in the renderer core
 
@@ -940,7 +914,7 @@ request. Run `ctest -L architecture` locally before review.
   `CReyes*`/`CShadingContext*` (031).
 - **History**: spec 031, 2026-11-11: `IRayContext` (`geometry/rayContext.h`) and `IDicer` (`geometry/dicer.h`), implemented by the hiders, replace the `CShadingContext *` and
   `CReyes *` parameters of every Geometry virtual; the forwarding entries `CShadingContext::shade(CSurface *, ...)`, `displace`, `displaceEstimate`, `setProducer` and
-  `IShadingProducer` are retired (`kRendererServicesVersion` 2.2.0); `EShadingDim` is Infra (`common/shadingDim.h`).
+  `IShadingProducer` are retired (`kRendererServicesVersion` steps one MINOR: 2.2.0 on spec 031's branch, renumbered at merge to follow spec 032's 2.2.0, so 2.3.0); `EShadingDim` is Infra (`common/shadingDim.h`).
 - **Resolved** by spec 031 (`specs/031-geometry-hider-agnostic/`), 2026-11-11:
   - 23 include edges and 7 link edges to 0, with all 30 allowlist lines deleted and nothing added: Geometry includes no Shading or Reyes header
     (`Geometry_NoHiderShadingNames` scans the directory, comments included) and `libRIBVector` compiles the real Geometry with no stub
@@ -948,3 +922,31 @@ request. Run `ctest -L architecture` locally before review.
   - The Geometry contract programs `Geometry_DiceThroughDicer`, `Geometry_IntersectThroughRayContext`, `Geometry_ExpansionThroughHost`, `Geometry_ObjectSink` and
     `Geometry_FrameDefault` build and run with no hider and no Shading. No image changed on either platform (the manifests, the `MaxBlockAvgDiff` list and the
     determinism sweep are equal to the baselines).
+
+### DB-009 — Motion blur and depth of field are implemented more than once
+
+- **Rules**: 3 (an effect is implemented once, generically, for every hider).
+- **Tracking**: remediation spec 031 ([#37](https://github.com/juvenal/openrender/issues/37)); spec 028 ([#34](https://github.com/juvenal/openrender/issues/34)) did the raytrace side
+- **Evidence** (before spec 031):
+  - Depth of field had two models: Reyes's circle-of-confusion model (`CSampler::circleOfConfusion`, five call sites in `reyes.cpp`, its factors in `CRenderer::cocFactor*`:
+    `sqrt(2) f/(f + A)` times the thin lens's radius, 1.35 times for `DepthOfField 2 1 5`, unsigned) and the camera layer's thin lens
+    (`CFrameCamera::generateRay`, `src/ri/state/camera.cpp`), which only the raytracer used.
+  - Reyes kept its own camera-rotation code, with its own SLERP of the camera rotation (`reyes.cpp`, `stochastic.cpp`, `stochasticQuad.h`), reading `CRenderer::cameraHasRotation` and
+    `CRenderer::relRotQ` (DB-011), where the raytrace side read `motion::cameraRotationAt` and `transformRay` (`geometry/motion.h`), pinned equal to Reyes's SLERP by
+    `Motion_CameraSlerpEquivalence`.
+- **Size**: not a dependency edge; tracked by review.
+- **Direction**: one camera layer (`ICamera::generateRay`, `FrameParams`), one Geometry-owned motion evaluator, one lens function.
+- **History**: spec 028, 2026-10-29: the raytrace side moved onto `ICamera`, `FrameParams` and `motion.h` (Geometry's intersection-time motion no longer reads
+  `CRenderer::invShutterTime`); Reyes's side was left for spec 031.
+- **History**: spec 031, 2026-11-11, camera-rotation half: Reyes and the stochastic rasterizer read the camera rotation, translation, flags and lens values from `FrameParams` and rotate
+  through `motion::cameraRotationAt`, the one function the raytrace side uses; the inlined `slerpq` + `qtoR` pairs and their `identQ` constants are gone from `reyes.cpp`,
+  `stochastic.cpp` and `stochasticQuad.h` (`Motion_CameraSlerpEquivalence`, `Motion_Replay_*` and `Motion_FrameParamsEqualCore` pass; no image changed).
+- **Resolved** by spec 031 (`specs/031-geometry-hider-agnostic/`), 2026-11-12, lens half:
+  - One lens: `LensModel::circleOfConfusion(z)` (`state/camera.h`), signed, `imagePlane * aperture * (1/f - 1/z)`, 0 for a pinhole and for orthographic (depth of field stays off there).
+    Reyes writes it into `vertices[9]` and scatters per axis by `lens * dSampled * c`; Geometry's dicing heuristic (`minCocPixels`) reads its magnitude; every Reyes bound takes the magnitude
+    (`reyesLensBounds.h`, `Hiders_ReyesBucketBoundCoversCoC`). The raytracer's `generateRay` is unchanged and pinned to the same function by `Camera_LensRayMatchesCoC`;
+    `Camera_LensCircleOfConfusion` checks the function against the thin-lens expression.
+  - `CSampler::circleOfConfusion`, `LensModel::cocFactorScreen`, `FrameParams::cocFactorScreen/cocFactorSamples`, `CGeometryFrame::cocFactorPixels` and the `CRenderer::cocFactor*` statics are gone.
+  - The only images that changed are the five Reyes depth-of-field renders (approved image by image); `Parity_dof` fell from 40.45 to 9.92 and `Parity_dof-motion` from 22.72 to 2.41, within the
+    raytracer's own noise. The screen-space scatter of Reyes and the lens rays of the raytracer remain two forms of one lens, not two models (`specs/031-geometry-hider-agnostic/lens-investigation.md`
+    for the remaining raytracer noise, GitHub #166).

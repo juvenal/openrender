@@ -6,6 +6,10 @@ P-Q12 frustum test in the core). **Requirements**: FR-001, FR-002, FR-003, FR-00
 `src/common/shadingDim.h`; edited `src/ri/hiders/hider.{h,cpp}`, `reyes.{h,cpp}`, `trace.cpp`,
 `shadingProducer.cpp`, every Geometry file that names `CShadingContext` or `CReyes` (R1).
 
+> **Plan changed in the lens phase (2026-11-12, maintainer-approved).** The frame struct below first carried `float cocFactorPixels, invFocaldistance`; the lens phase replaced
+> both by `openrender::LensModel lens` (`state/camera.h`), and `minCocPixels` reads `|lens.circleOfConfusion(z)|` times the pixel size, where `circleOfConfusion(z)` is the one signed
+> `imagePlane * aperture * (1/f - 1/z)` shared by Reyes and the raytracer (contracts/lens-model.md). `CRenderer::cocFactorPixels/Samples/Screen` and `FrameParams::cocFactorScreen/cocFactorSamples` no longer exist.
+
 ## `src/common/shadingDim.h` (Infra)
 
 ```cpp
@@ -23,6 +27,7 @@ typedef enum {
 ## `src/ri/geometry/geometryFrame.h`
 
 ```cpp
+#include "camera.h"             // openrender::LensModel (Graphics State)
 #include "common/algebra.h"
 #include "options.h"            // OPTIONS_PROJECTION_*, OPTIONS_FLAGS_* (Graphics State)
 
@@ -35,7 +40,7 @@ struct CGeometryFrame {
     unsigned int raytracingFlags; // the attribute flags that make an object raytraced
     int projection;               // an EProjectionType value
     float imagePlane, dPixeldx, dPixeldy, pixelLeft, pixelTop, clipMin;
-    float cocFactorPixels, invFocaldistance; // until the lens phase, which replaces them by `openrender::LensModel lens`
+    openrender::LensModel lens;   // the frame's lens (state/camera.h): the circle of confusion the dicing heuristic reads
 };
 
 void installGeometryFrame(const CGeometryFrame *frame); // the renderer core; nullptr uninstalls

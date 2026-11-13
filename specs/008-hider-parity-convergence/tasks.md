@@ -524,7 +524,7 @@ for all six scene pairs.
       across 3 repeated runs, well under the standalone "dof" scene's own residual (~45.94,
       threshold 60) — confirms the combined-scene divergence is dominated by DOF's own D9
       residual (screen-space scatter vs. true lens rays, a documented not-closable-by-refactor
-      residual), not this story's motion blur. Registered via `add_parity_test` at threshold 40
+      residual), not this story's motion blur. [Spec 031, 2026-11-12: the blur-size part of D9 was closed by one shared lens function; the measurements here are the starting tree's.] Registered via `add_parity_test` at threshold 40
       (~1.5x measured). `parity` label count updated 18 → 19 scene pairs.
 - [X] T061 [US6] Update `DEVNOTES.md:39` and `DEVNOTES_DETAILS/HIDER_PARITY.md`'s Motion Blur
       Implementation checkbox to remove the "incomplete/unverified" flag now that all covered
@@ -702,7 +702,7 @@ only once Stories 1 and 2 exist.*
       `parity-thresholds.md`'s "T084" section): `motion-quadrics-translate` and
       `motion-patches-translate` both closed substantially and stably under correlation
       (new `Parity_*-correlated` tests added, thresholds 6 and 8 respectively), while `dof`
-      (D9 structural residual) got worse and `motion-polygons-translate` was flat within
+      (D9 structural residual; narrowed by spec 031's shared lens, 2026-11-12) got worse and `motion-polygons-translate` was flat within
       noise — neither of those two got a correlated variant or threshold change.
 - [x] T085 [US9] Run `ctest --test-dir build -L parity --output-on-failure` (full parity suite)
       and confirm zero false failures against unmodified code with the tightened threshold

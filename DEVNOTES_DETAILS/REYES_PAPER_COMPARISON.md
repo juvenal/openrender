@@ -175,8 +175,8 @@ These are neutral implementation differences, not regressions.
 - **Silently unfiltered non-composited AOV channels.**
   `src/ri/stochastic.cpp:821-823` is an empty function body behind a
   `numExtraNonCompChannels > 0` guard — a real, currently-incomplete
-  pixel-filter gap, distinct from the intentionally-permanent D3/D4/D9
-  residuals documented in [HIDER_PARITY.md](HIDER_PARITY.md).
+  pixel-filter gap, distinct from the intentionally-permanent D3/D4
+  residual (D9 was narrowed by spec 031, which gave both hiders one lens) documented in [HIDER_PARITY.md](HIDER_PARITY.md).
 - **Depth-filter threading race (known, shipped anyway).** A multi-threaded
   race in `CStochastic::rasterEnd`'s avg/mid depth-filter bucket-boundary
   accumulation, found during spec 008 T041 verification and explicitly

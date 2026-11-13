@@ -373,6 +373,29 @@ T106: the registry diff is `tools/phase8-registry.diff` (`git apply --check` cle
 `ctest -L architecture`: 31/31, `RESULT PASS`, 173 entries, metrics 495/497 (`build-logs/p10-arch.log`); no source, test or reference changed in the phase.
 The comment-only rewording of the stale "OPENRENDER_031_RED_TESTS is ON until its phase enables it" sentence in five `tests/geometry_contract/` test headers is prepared as `tools/phase10-test-comments.diff` (`git apply --check` clean, **not applied**; the maintainer named four files, `test_frame_default.cpp` carries the same sentence and is the fifth).
 
+### Phase 11 documentation proposal (T134 to T136; 2026-11-12; nothing applied)
+
+Prepared for PAUSE 11a: `tools/phase11-docs.diff` (`git apply --check` clean; eight files: `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md` (DB-009 to Resolved, a DB-011 history entry for 499 to 495, and the `kRendererServicesVersion` sentence of DB-006 reworded so that it no longer fixes 031 at 2.2.0: it steps one MINOR at merge, 2.3.0 after spec 032's 2.2.0), `DEVNOTES.md` (the spec 031 status row and the two D9 sentences), `DEVNOTES_DETAILS/HIDER_PARITY.md`, `RISPEC_GAPS.md`, `REYES_PAPER_COMPARISON.md`, `specs/008-hider-parity-convergence/{spec,tasks}.md` (dated notes, history kept) and `tests/visual/parity-thresholds.md` (a dated section; no threshold changed)) and `claude-md-draft.md` (gotchas 13, 14, 17, 19, 26, 28 and 35 reworded, one new gotcha numbered "next free at merge preparation", Testing, Active Technologies and Recent Changes; `CLAUDE.md` is never edited by a task). The DB-004/011/017/025 and DB-006 entries were re-checked against the final allowlist (173) and metrics (495/497): only DB-011's history needed a new entry. `ctest -L architecture`: 31/31, `RESULT PASS` (`build-logs/p11-arch.log`).
+**PAUSE 11a outcome and T137 (2026-11-12).** The maintainer approved `tools/phase11-docs.diff` in full (including `tests/visual/parity-thresholds.md`, documentation only) and the content of `claude-md-draft.md`, which is **not applied on this branch**: it is applied at merge preparation with the gotcha number (next free; 030 takes 38) and every "Old" text re-checked against master. `phase11-docs.diff` is applied exactly (eight files, staged). `contracts/geometry-interfaces.md` is updated to the final design (the frame carries `openrender::LensModel lens`, no `cocFactorPixels`; a dated note that the plan changed in the lens phase).
+
+### Phase 11 final validation (T138, T139; 2026-11-12; the tree of commit `613d4a81` plus the approved documentation edits)
+
+| Check | macOS | Linux (GCC 13 `-Werror`, remote cpujob `-j2`, `build-logs/l11-*.log` on the host) |
+|---|---|---|
+| CP-a build | exit 0, no new compiler warnings | exit 0, 0 warnings |
+| everyday run `-LE determinism-sweep` (`-j4` macOS) | **1107/1107** (one self-skip: `LibShader_Format_rslo_lower_minor`) | 1107/1108: the one failure is `TextureTile_RenderByteIdentical` (GitHub #45, held until spec 042) |
+| manifest against the baseline | 915 images, **5 differing** (the five approved Reyes depth-of-field images), 0 missing | the same five, 915 images, 0 missing |
+| `MaxBlockAvgDiff` against `baseline-diffs-*.txt` | four lines differ: `Parity_dof` 40.45 to 9.92, `Parity_dof-motion` 22.72 to 2.41, the two `Visual_*` DoF tests 14.89 and 16.48 to 0.00 (0.02 on Linux) | the same four lines |
+| `^determinism$` (`-j2`) | 156/156 | 156/156 |
+| determinism sweep (`-j2`) | **419/419**; 419 images, **5 differing** against the sweep baseline: `top-camera-dof-reyes`, `camera-dof-reyes`, `camera-motion-small+dof-reyes`, `parity-dof-reyes`, `parity-dof-motion-reyes` | **419/419**; the same five |
+| `-L architecture` | 31/31, `RESULT PASS`, 173 entries (`DB-004 x 3, DB-010 x 8, DB-011 x 151, DB-025 x 11`), metrics Geometry 2/2, Hiders 495/72, TOTAL 497/74 equal to the baseline | 31/31 |
+| `-L preview`, `plugin_abi`, `state`, `texture_tile -j2`, `common`, `link` | 20/20, 71/71, 7/7, 15/15, 18/18, 4/4 | inside the everyday run above (every label but the sweep), all passing except #45 |
+| `-L shading_parity` | 136/136 (no `ShadingParity_JitPL*` timeout) | 136/136 |
+| `-L '^camera$'`, `-R 'Motion_'`, `^geometry_contract$` | 8/8, 13/13, 5/5 | 8/8, 13/13, 5/5 |
+| `Motion_Replay_*` | `git diff --stat e83d005d -- tests/unit/motion/replay` empty | recordings untouched |
+| timing, `timing_sc010.sh build-base build 5` (`build-logs/p11-timing.log`) | **0 scenes slower beyond the spread**; medians start/final (s): `killeroo-reyes`, `csg-hero-displaced-raytrace` and `blobby-csg-difference-reyes` within spread (blobby 4.30 vs 4.59), `camera-dof-reyes` 4.77 to 2.99 (-41 percent: the smaller physical blur bound; the script exits 3 only because the final median is under its 3 s guard), `camera-dof-raytrace` 5.41 to 5.40 (-9 percent of medians, within spread) | not run (macOS only) |
+| `linux_sync.sh pull` / `verify` | | pulled the 9 Linux-produced files, **0 differences**; `verify`: **3780 files, 0 differences** |
+
 ## §2 Red evidence
 
 ### Phase 2 (macOS; `build` configured with `-DOPENRENDER_031_RED_TESTS=ON`, then OFF again)
@@ -647,27 +670,71 @@ Only the approved references changed; no threshold touched. Parity tests store n
 
 ## §6 FR/SC evidence table
 
-Status after Phase 9 (the lens phase). `proven` rows are backed by the named test or grep on both platforms; Phase 9 closed the lens rows below, SC-009 and SC-010 wait for the maintainer's sign-off at PAUSE 9 and for Phases 10 and 11.
+Final status (Phase 11, T140; 2026-11-12). Every requirement and success criterion has its evidence and status; `proven` rows are backed by the named test or grep on macOS and on Linux (final runs in §1 "Phase 11 final validation" and §3). The only images that differ from the starting tree's baselines are the five approved Reyes depth-of-field renders (SC-001's lens part).
 
 | Requirement | Evidence | Status |
 |---|---|---|
-| FR-001, SC-003 | `Geometry_NoHiderShadingNames` (comments included); the 30 DB-006 lines deleted; `grep` of Phase 8 prints nothing; DB-006 registry diff prepared | proven |
-| FR-002 | `IDicer` (`dicer.h`), `CGeometryFrame`; `Geometry_DiceThroughDicer`, `Geometry_FrameDefault` | proven |
+| FR-001 | `Geometry_NoHiderShadingNames` (comments included) scans `src/ri/geometry`; the 30 DB-006 lines are deleted; the greps of Phase 8 and `grep -rnE 'CReyes\|CShadingContext\|IShadingProducer\|reyes\.h\|shading\.h\|shader\.h' src/ri/geometry` print nothing | proven |
+| FR-002 | `IDicer` (`dicer.h`), `CGeometryFrame` (`geometryFrame.h`); `Geometry_DiceThroughDicer`, `Geometry_FrameDefault` | proven |
 | FR-003 | `IRayContext` (`rayContext.h`), the tessellation lock local to `surface.cpp`; `Geometry_IntersectThroughRayContext` | proven |
-| FR-004, FR-010 | `CGeometryHost::expandDelayedObject/Instance/findCoordinateSystem`; `Geometry_ExpansionThroughHost`; `rendererDeclarationsDispatch` pair deleted | proven |
-| FR-005 | `common/shadingDim.h` | proven |
-| FR-006 | forwarding entries and `IShadingProducer` retired; `kRendererServicesVersion` 2.2.0 | proven |
-| FR-007 | `grep 'public (IRayContext\|IDicer\|IObjectSink)' src/ri/geometry` prints nothing | proven |
-| FR-008, FR-009, FR-011, SC-004 | `geometryDispatch.cpp` and the three stubs deleted; `Geometry_RibVectorNoStubs` (with the approved irradiance exemption); `SceneInterface_RibVectorResidual`; residual list 9 to 5 | proven |
-| FR-012, FR-013, FR-014, SC-002, SC-006 | `Motion_*` 13/13 on both platforms, recordings untouched; 11 DB-011 lines deleted; no image changed | proven |
-| FR-015, FR-016, SC-005 | DB-004 52 to 3 (`blobbyRepeller.cpp`); Geometry metric 48 to 2 references, 15 to 2 members | proven |
-| FR-017 | allowlist lines of every resolved or reduced entry deleted; `Architecture_DomainBoundaries` passes; the registry edit is prepared and applies on acceptance (T109a) | prepared |
-| FR-018, FR-020, SC-011 | no task depends on the merge; no tolerance widened, no test disabled, no reference or recording re-recorded (`git diff` of `tests/**/reference` and `tests/unit/motion/replay` empty) | proven |
-| FR-019 | `grep` of the four interface headers prints nothing; `CRegionPredicate`, `regionCoverage` and `CCSGSolid`'s entry points keep their names | proven |
-| FR-021 | the FR-021 note above: no member added | proven |
-| FR-028 | `IObjectSink`; `Geometry_ObjectSink` | proven |
-| SC-001 (interface phases), SC-007, SC-008, US1 | CP-b/CP-d/CP-c at every phase and the Phase 8 runs above: both platforms, every manifest and the sweep byte-identical; allowlist 344 to 173 (deletions only) | proven |
-| FR-022 to FR-027 | one signed `LensModel::circleOfConfusion(z)` shared by Reyes (`vertices[9]`, the scatter, every bound) and Geometry's dicing; the raytracer's `generateRay` unchanged and pinned to it by `Camera_LensRayMatchesCoC`; `Camera_LensCircleOfConfusion`; the FR-027 grep (two existing header comments, no code); §1 Phase 9 | proven |
-| SC-009, SC-010 | blur diameter and Reyes-versus-raytrace agreement (§5: `Parity_dof` 40.45 -> 9.92, `Parity_dof-motion` 22.72 -> 2.41, within the raytracer's own noise); #112 observation (24 of 24 runs at the baseline hash); no changed reference without approval | measured; open for PAUSE 9 sign-off and Phases 10 and 11 |
-| FR-029 | this gate | proven once the maintainer accepts |
-| FR-030, FR-031, SC-001 (lens part) | `Hiders_ReyesBucketBoundCoversCoC` (with the `zMin <= 0` clamp case); both platforms: manifests, sweeps and `MaxBlockAvgDiff` lists differ from the baselines in exactly the five approved Reyes depth-of-field images (§1 Phase 9, §3) | proven |
+| FR-004 | `CGeometryHost` expansion (`expandDelayedObject`/`Instance`); `Geometry_ExpansionThroughHost` | proven |
+| FR-005 | `common/shadingDim.h` (Infra) | proven |
+| FR-006 | the forwarding entries and `IShadingProducer` retired; `kRendererServicesVersion` stepped one MINOR (2.2.0 on this branch; **2.3.0 at merge**, after spec 032's 2.2.0) | proven (number renumbered at merge) |
+| FR-007 | `grep -rnE 'public +(IRayContext\|IDicer\|IObjectSink)' src/ri/geometry` prints nothing; the interfaces are abstract and in the Geometry directory | proven |
+| FR-008 | the `geometryDispatch.cpp` bodies live in `src/ri/geometry`; the file and its stub are deleted | proven |
+| FR-009 | `surfaceCrossings.cpp` is one implementation compiled for both libraries; its dispatch pair is gone | proven |
+| FR-010 | `rendererDeclarationsDispatch.cpp` and its stub deleted; `findCoordinateSystem` through `CGeometryHost` | proven |
+| FR-011 | `Geometry_RibVectorNoStubs` (with the approved two-symbol irradiance exemption of spec 032's stub), `SceneInterface_RibVectorResidual`; residual list 9 to 5 | proven |
+| FR-012 | Reyes and the stochastic rasterizer read `FrameParams` and rotate through `motion::cameraRotationAt`; `Motion_CameraSlerpEquivalence` | proven |
+| FR-013 | no `CRenderer::aperture/invFocaldistance/cocFactor*` read in Reyes (Phase 7, 11 DB-011 lines deleted; later the lens function) | proven |
+| FR-014 | `Motion_Replay_*` (12,943 calls) unchanged and green; `git diff --stat e83d005d -- tests/unit/motion/replay` empty | proven |
+| FR-015 | Geometry reads the frame, the host and `CDeclarations`; Geometry `CRenderer::` metric 48 to 2 references, 15 to 2 members | proven |
+| FR-016 | DB-004 is 3 lines, all `blobbyRepeller.cpp` (`locateFile`, `texturePath`, the `renderer.h` include) | proven |
+| FR-017 | allowlist lines of every resolved or reduced entry deleted (173 left); `Architecture_DomainBoundaries` passes; DB-006 and DB-009 Resolved with "spec 031" and the dates (T109a, T137) | proven |
+| FR-018 | no task depends on the merge; the merge-time items are listed in the Notes below | proven |
+| FR-019 | `grep -nE 'CSG\|Region'` over the four interface headers prints nothing; `CRegionPredicate`, `regionCoverage` and `CCSGSolid`'s entry points keep their names | proven |
+| FR-020 | no tolerance widened, no test disabled; the only references re-recorded are the three approved depth-of-field ones (T124, §5); `tests/**/reference` and the replay files untouched otherwise | proven |
+| FR-021 | the FR-021 note in §1 Phase 8: no member added for surface sampling | proven |
+| FR-022 | one signed `LensModel::circleOfConfusion(z)` (`state/camera.h`) used by Reyes (`vertices[9]`, the scatter, every bound) and Geometry's dicing; the raytracer's `generateRay` pinned to it by `Camera_LensRayMatchesCoC` | proven |
+| FR-023 | `Camera_LensCircleOfConfusion`: f-stops, focal lengths, focus and object distances and image planes swept, pinhole and orthographic 0 | proven |
+| FR-024 | `Camera_LensRayMatchesCoC`, `Parity_dof` 40.45 to 9.92 and `Parity_dof-motion` 22.72 to 2.41 (§5); orthographic depth of field stays off in both hiders | proven |
+| FR-025 | investigated and reported (`lens-investigation.md`: the default Catmull-Rom filter, specular highlights, sample count against blur area; no film-lens correlation); **no improvement made, by the maintainer's decision at PAUSE 10** (GitHub #166) | investigated; changes declined |
+| FR-026 | foreground over sharp background and defocused highlights checked in the scratch scenes (`lens-investigation.md` §5); Reyes's smooth defocus kept (Reyes noise unchanged by design, its blur radius now the physical one) | proven (as investigated) |
+| FR-027 | `circleOfConfusion`, `fromFrame` and the lens sampling name no hider type: the `grep` prints only two older header comments in `camera.h`/`camera.cpp` and no code | proven |
+| FR-028 | `IObjectSink` (`objectSink.h`); `Geometry_ObjectSink` | proven |
+| FR-029 | Phase 8 gate: both platforms byte-identical against their own baselines before any lens work; the lens phase then changed the five Reyes DoF images only | proven |
+| FR-030 | `^determinism$` 156/156 and the determinism sweep 419/419 on both platforms, `Motion_Replay_*` unmoved; the lens slot (`CSampler::cameraSample`) is untouched | proven |
+| FR-031 | `reyesLensBounds.h`; `Hiders_ReyesBucketBoundCoversCoC` (both sides of the focal plane, spanning it, the `zMin <= 0` clamp, infinity) | proven |
+| SC-001 | interface phases: every manifest, the `MaxBlockAvgDiff` lists and the sweep byte-identical on both platforms (Phase 8); lens phase: only the five approved Reyes DoF images differ (§1 Phase 9, final runs) | proven |
+| SC-002 | `Motion_Replay_*` and `Motion_CameraSlerpEquivalence` 13/13 on both platforms, recordings untouched | proven |
+| SC-003 | archcheck: zero Geometry to Hiders or Shading edges; DB-006 Resolved | proven |
+| SC-004 | `libRIBVector` builds with none of the three Geometry stubs; the 78 DB-017 lines deleted; residual list 9 to 5 | proven |
+| SC-005 | DB-004 52 to 3; Geometry `CRenderer::` metric 48 to 2 references (baseline lowered, with reasons) | proven |
+| SC-006 | the 11 DB-011 camera and lens lines deleted plus the two `photonMap.cpp` lines; Hiders `CRenderer::` metric 556 to 495 references | proven |
+| SC-007 | allowlist 344 to 173, deletions only (30 + 78 + 49 + 13 + 1 = 171) | proven |
+| SC-008 | `-L architecture` 31/31, `-L visual`, `-L shading_parity` 136/136, `-L state` 7/7, `-L plugin_abi` 71/71, `-L '^determinism$'` 156/156, the preview tests 20/20 and the sweep 419/419 on macOS; the Linux counterparts in §3 | proven |
+| SC-009 | `Camera_LensCircleOfConfusion` (perspective and orthographic, the stated ranges) and `Camera_LensRayMatchesCoC`; Reyes and the raytracer agree within the raytracer's noise (`Parity_dof` 9.92) | proven |
+| SC-010 | each changed reference approved image by image (T124); noise measured before and after by the visual-test noise method (§5); the #112 scene reported without claiming a fix | proven |
+| SC-011 | no clarification marker remains; no task depends on the merge of 030, 032, 056 or 031's own (merge-time items only in the Notes) | proven |
+
+### Open items (for the maintainer; none blocks the spec)
+1. GitHub #166: the default Catmull-Rom filter and depth-of-field noise (P1, P2 and P5 of `lens-investigation.md` as future options).
+2. GitHub #162: archcheck reads stale objects in a build tree (the Phase 4 and 6 deletions were asked for).
+3. Known non-passes: the self-skipping `LibShader_Format_rslo_lower_minor`; on Linux `TextureTile_RenderByteIdentical` (#45, held until spec 042); #163 (photon rows) did not appear in these runs.
+
+### DB table (registry, `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`)
+| Entry | Result |
+|---|---|
+| DB-006 | Resolved (spec 031, 2026-11-11): 30 lines deleted |
+| DB-009 | Resolved (spec 031, 2026-11-12): one rotation evaluator, one lens |
+| DB-004 | still Open: 52 to 3 lines (`blobbyRepeller.cpp`) |
+| DB-011 | still Open: 164 to 151 lines; Hiders `CRenderer::` metric 556 to 495 |
+| DB-017 | still Open: every allowlist line deleted (78 at the baseline); the irradiance pair (spec 032) keeps the entry open |
+| DB-025 | still Open: 12 to 11 lines |
+
+### Notes: what the maintainer does at merge
+- Merge master into 031 first (spec 056 `11fa3424`, spec 032, and 030 when it lands): re-baseline CP-d for the new master images (the seven `transmission-dest-*` and any later scene), and re-run both platforms.
+- Spec 032 merges before 031, so 031 is the second: **remove the two-symbol irradiance exemption** in `tests/architecture/check_ribvector_no_stubs.cmake`; keep 032's `photonMap` (drop 031's `photonMap.cpp` edit and its two DB-011 lines) and re-measure the Hiders and TOTAL metric rows and the `rendererStatics.cpp` residual cell on the merged tree; after spec 030 makes `CHider::drawObject` virtual, `CReyes::drawObject` must override both that and `IDicer`'s.
+- Step `kRendererServicesVersion` to the next MINOR after spec 032's 2.2.0 (2.3.0) with 031's history entry after 032's; the registry text of DB-006 says so.
+- Apply `claude-md-draft.md` to `CLAUDE.md` with the next free gotcha number (36 and 37 are taken, 030 takes 38) and re-check every "Old" text against master then.
+- Close the issues through `Closes #NN` lines in the merge commit (#37 and the others the maintainer lists).
