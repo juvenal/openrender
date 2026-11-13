@@ -223,9 +223,6 @@ int CRenderer::metaXBuckets, CRenderer::metaYBuckets;                    // init
 float CRenderer::aperture;                                               // initialized in beginFrame
 float CRenderer::imagePlane;                                             // initialized in beginFrame
 float CRenderer::invImagePlane;                                          // initialized in beginFrame
-float CRenderer::cocFactorPixels;                                        // initialized in beginFrame
-float CRenderer::cocFactorSamples;                                       // initialized in beginFrame
-float CRenderer::cocFactorScreen;                                        // initialized in beginFrame
 float CRenderer::invFocaldistance;                                       // initialized in beginFrame
 float CRenderer::lengthA, CRenderer::lengthB;                            // initialized in beginFrame
 

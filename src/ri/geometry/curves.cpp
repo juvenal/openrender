@@ -29,9 +29,6 @@
 #include "curves.h"
 #include "common/memory.h"
 #include "motion.h"
-#include "renderer.h"
-#include "rendererContext.h"
-#include "reyes.h"
 #include "common/stats.h"
 
 // The inverse of the Bezier basis
@@ -697,7 +694,7 @@ CCurveMesh::~CCurveMesh() {
 // Description			:	instantiate
 // Return Value			:	Clone the object
 // Comments				:	-
-void CCurveMesh::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
+void CCurveMesh::instantiate(CAttributes *a, CXform *x, IObjectSink *c) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform
@@ -714,10 +711,10 @@ void CCurveMesh::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
 // Description			:	Dice the primitive
 // Return Value			:	-
 // Comments				:
-void CCurveMesh::dice(CReyes *rasterizer) {
+void CCurveMesh::dice(IDicer &rasterizer) {
 
     if (children == NULL)
-        create(&rasterizer->shadingContext());
+        create(rasterizer.rayContext());
 
     CObject::dice(rasterizer);
 }
@@ -728,7 +725,7 @@ void CCurveMesh::dice(CReyes *rasterizer) {
 // Description			:	Dice the primitive
 // Return Value			:	-
 // Comments				:
-void CCurveMesh::create(CShadingContext *context) {
+void CCurveMesh::create(IRayContext &context) {
 
     osLock(mutex);
     if (children != NULL) {
@@ -742,12 +739,12 @@ void CCurveMesh::create(CShadingContext *context) {
     float *vertex;
     CObject *allChildren;
 
-    memBegin(context->threadMemory);
+    memBegin(context.scratch());
 
     // Extract the vertices
     vertex = NULL;
     pl->transform(xform);                                                     // Transform the core
-    pl->collect(vertexSize, vertex, CONTAINER_VERTEX, context->threadMemory); // Obtain the vertex data
+    pl->collect(vertexSize, vertex, CONTAINER_VERTEX, context.scratch()); // Obtain the vertex data
 
     // Multiply the curve width by the expansion in the coordinate system
     {
@@ -865,10 +862,174 @@ void CCurveMesh::create(CShadingContext *context) {
         }
     }
 
-    memEnd(context->threadMemory);
+    memEnd(context.scratch());
 
     // Set the child objects
-    setChildren(context, allChildren);
+    setChildren(allChildren);
 
     osUnlock(mutex);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CCubicCurve
+// Method				:	CCurve::dice
+// Description			:	Dice the curve group into smaller ones
+// Return Value			:	-
+// Comments				:
+void CCurve::dice(IDicer &dicer) {
+    // We can sample the object, so do so
+    float **varying = dicer.rayContext().varyings();
+    float *u = varying[VARIABLE_U];
+    float *v = varying[VARIABLE_V];
+    float *timev = varying[VARIABLE_TIME];
+
+    // Compute the curve bounding box
+    float *P = varying[VARIABLE_P];
+    vector bmin, bmax;
+    initv(bmin, C_INFINITY, C_INFINITY, C_INFINITY);
+    initv(bmax, -C_INFINITY, -C_INFINITY, -C_INFINITY);
+    int i;
+
+    // Take care of the motion first
+    if ((dicer.frame().flags & OPTIONS_FLAGS_MOTIONBLUR) && moving()) {
+
+        // Sample 6 points on the curve
+
+        // Top
+        *v++ = vmin;
+        *u++ = 0;
+        *v++ = vmin;
+        *u++ = 1;
+
+        // Middle
+        *v++ = (vmin + vmax) * 0.5f;
+        *u++ = 0;
+        *v++ = (vmin + vmax) * 0.5f;
+        *u++ = 1;
+
+        // Bottom
+        *v++ = vmax;
+        *u++ = 0;
+        *v++ = vmax;
+        *u++ = 1;
+
+        // Compute the sample positions and corresponding normal vectors
+        for (i = 0; i < 6; i++)
+            timev[i] = 1;
+
+        dicer.probe(this, 2, 3, SHADING_2D_GRID, PARAMETER_P | PARAMETER_END_SAMPLE);
+
+        for (i = 0; i < 6; i++)
+            addBox(bmin, bmax, P + i * 3);
+
+        // The u,v from the end sample will not have changed
+
+        u = varying[VARIABLE_U];
+        v = varying[VARIABLE_V];
+        timev = varying[VARIABLE_TIME];
+    }
+
+    // Sample 6 points on the curve
+
+    // Top
+    *v++ = vmin;
+    *u++ = 0;
+    *v++ = vmin;
+    *u++ = 1;
+
+    // Middle
+    *v++ = (vmin + vmax) * 0.5f;
+    *u++ = 0;
+    *v++ = (vmin + vmax) * 0.5f;
+    *u++ = 1;
+
+    // Bottom
+    *v++ = vmax;
+    *u++ = 0;
+    *v++ = vmax;
+    *u++ = 1;
+
+    // Time 0
+    for (i = 0; i < 6; i++)
+        timev[i] = 0;
+
+    // Sample the curves
+    dicer.probe(this, 2, 3, SHADING_2D_GRID, PARAMETER_P | PARAMETER_BEGIN_SAMPLE);
+
+    // Add start sample bounds
+    for (i = 0; i < 6; i++)
+        addBox(bmin, bmax, P + i * 3);
+
+    if (bmin[COMP_Z] < C_EPSILON) {
+        if (bmax[COMP_Z] < dicer.frame().clipMin) {
+            // The curve is behind the screen
+        }
+        else if (dicer.inFrustum(bmin, bmax) == FALSE) {
+            // The curve is out of the viewing frustrum
+        }
+        else {
+            // Split the curve into two pieces
+            splitToChildren(dicer);
+        }
+    }
+    else {
+
+        // Estimate the dicing amount
+        int udiv, vdiv;
+        estimateDicing(P, 1, 2, udiv, vdiv, attributes->shadingRate, attributes->flags & ATTRIBUTES_FLAGS_NONRASTERORIENT_DICE);
+
+        // Make sure we don't split along u
+        if (vdiv == 1) {
+            int maxUdiv = (dicer.frame().maxGridSize >> 1) - 1;
+            if (maxUdiv < udiv) {
+                udiv = maxUdiv;
+            }
+        }
+
+        // Can we render this sucker ?
+        if ((udiv + 1) * (vdiv + 1) > dicer.frame().maxGridSize) {
+            splitToChildren(dicer);
+        }
+        else {
+            dicer.drawGrid(this, udiv, vdiv, 0, 1, vmin, vmax, nullptr);
+        }
+    }
+}
+
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CCubicCurve
+// Method				:	splitToChildren
+// Description			:	Split the curve into two children
+// Return Value			:	-
+// Comments				:
+void CCubicCurve::splitToChildren(IDicer &dicer) {
+    const float vmid = (vmin + vmax) * 0.5f;
+
+    // Create the children
+    CCubicCurve *c0 = new CCubicCurve(attributes, xform, base, vmin, vmid, gvmin, gvmax);
+    CCubicCurve *c1 = new CCubicCurve(attributes, xform, base, vmid, vmax, gvmin, gvmax);
+
+    // Insert the children
+    dicer.drawObject(c0);
+    dicer.drawObject(c1);
+}
+
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CLinearCurve
+// Method				:	splitToChildren
+// Description			:	Split the curve into two children
+// Return Value			:	-
+// Comments				:
+void CLinearCurve::splitToChildren(IDicer &dicer) {
+    const float vmid = (vmin + vmax) * 0.5f;
+
+    // Create the children
+    CLinearCurve *c0 = new CLinearCurve(attributes, xform, base, vmin, vmid, gvmin, gvmax);
+    CLinearCurve *c1 = new CLinearCurve(attributes, xform, base, vmid, vmax, gvmin, gvmax);
+
+    // Insert the children
+    dicer.drawObject(c0);
+    dicer.drawObject(c1);
 }

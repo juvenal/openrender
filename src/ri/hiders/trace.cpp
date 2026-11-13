@@ -207,7 +207,7 @@ void CHider::traceGroups(CRayBundle *bundle) {
                             shadingGroups->object->stableId, (uint64_t)context.rayDepth(), (uint64_t)chunkIndex);
                         context.currentShadingState->pointKeysFromRays = TRUE;
 
-                        shadingGroups->object->shade(&context, numShading, shadingGroups->rays);
+                        shadingGroups->object->shade(*this, numShading, shadingGroups->rays);
 
                         context.currentShadingState->pointKeysFromRays = FALSE;
                         chunkIndex++;
@@ -335,7 +335,7 @@ void CHider::traceRay(CShadingContext &ctx, CRay *ray) {
 
         // If this is a real object, intersect it with the ray
         if ((object->flags & OBJECT_DUMMY) == 0) {
-            object->intersect(&context, ray);
+            object->intersect(*this, ray);
         }
 
         // Is the object hierarchy ready ?
@@ -347,7 +347,7 @@ void CHider::traceRay(CShadingContext &ctx, CRay *ray) {
             if ((object->flags & OBJECT_HIERARCHY_READY) == 0) {
 
                 // Do the clustering
-                object->cluster(&context);
+                object->cluster(*this);
 
                 // Mark the object as ready
                 object->flags |= OBJECT_HIERARCHY_READY;

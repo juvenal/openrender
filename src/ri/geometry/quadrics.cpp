@@ -40,9 +40,6 @@
 #include "objectMisc.h"
 #include "patchUtils.h"
 #include "quadrics.h"
-#include "renderer.h"
-#include "rendererContext.h"
-#include "shading.h"
 #include "common/stats.h"
 #include "surface.h"
 
@@ -96,14 +93,14 @@
 // Comments				:	The root loops run in object space: the point is
 //							taken on the camera-space ray, the normal moved to
 //							camera space the way an accepted hit's is (spec 021)
-static int regionKeepsHit(const CSurface *surface, CShadingContext *context, const CRay *rv, double t, const float *objectNormal) {
+static int regionKeepsHit(const CSurface *surface, IRayContext &context, const CRay *rv, double t, const float *objectNormal) {
     if (surface->region == NULL)
         return TRUE;
     vector P, N;
     for (int k = 0; k < 3; k++)
         P[k] = rv->from[k] + rv->dir[k] * (float)t;
     mulmn(N, surface->xform->to, objectNormal);
-    return surface->region->accepts(context, P, N);
+    return surface->region->accepts(&context, P, N);
 }
 
 //////////////////////////////////////////// S P H E R E ///////////////////////////////////////////////////////
@@ -186,7 +183,7 @@ CSphere::~CSphere() {
 // Description			:	Compute the intersection with a ray
 // Return Value			:	TRUE if intersects
 // Comments				:
-void CSphere::intersect(CShadingContext *context, CRay *rv) {
+void CSphere::intersect(IRayContext &context, CRay *rv) {
     unsigned int ns, i;
     double s[2];
     double r, umax, vmin, vmax;
@@ -525,7 +522,7 @@ void CSphere::interpolate(int numVertices, float **varying, float ***locals) con
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CSphere::instantiate(CAttributes *a, CXform *x, CRiInterface *cx) const {
+void CSphere::instantiate(CAttributes *a, CXform *x, IObjectSink *cx) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform
@@ -674,7 +671,7 @@ CDisk::~CDisk() {
 // Description			:	Compute the intersection with a ray
 // Return Value			:	TRUE if intersects
 // Comments				:
-void CDisk::intersect(CShadingContext *context, CRay *rv) {
+void CDisk::intersect(IRayContext &context, CRay *rv) {
     float t;
     double u;
     double x, y;
@@ -939,7 +936,7 @@ void CDisk::interpolate(int numVertices, float **varying, float ***locals) const
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CDisk::instantiate(CAttributes *a, CXform *x, CRiInterface *cx) const {
+void CDisk::instantiate(CAttributes *a, CXform *x, IObjectSink *cx) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform
@@ -1043,7 +1040,7 @@ CCone::~CCone() {
 // Description			:	Compute the intersection with a ray
 // Return Value			:	TRUE if intersects
 // Comments				:
-void CCone::intersect(CShadingContext *context, CRay *rv) {
+void CCone::intersect(IRayContext &context, CRay *rv) {
     float *from;
     float *dir;
     double s[2];
@@ -1369,7 +1366,7 @@ void CCone::interpolate(int numVertices, float **varying, float ***locals) const
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CCone::instantiate(CAttributes *a, CXform *x, CRiInterface *cx) const {
+void CCone::instantiate(CAttributes *a, CXform *x, IObjectSink *cx) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform
@@ -1491,7 +1488,7 @@ CParaboloid::~CParaboloid() {
 // Description			:	Compute the intersection with a ray
 // Return Value			:	TRUE if intersects
 // Comments				:
-void CParaboloid::intersect(CShadingContext *context, CRay *rv) {
+void CParaboloid::intersect(IRayContext &context, CRay *rv) {
     vector Nt;
 
     if (checkRayGuard(rv, context))
@@ -1826,7 +1823,7 @@ void CParaboloid::interpolate(int numVertices, float **varying, float ***locals)
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CParaboloid::instantiate(CAttributes *a, CXform *x, CRiInterface *cx) const {
+void CParaboloid::instantiate(CAttributes *a, CXform *x, IObjectSink *cx) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform
@@ -1947,7 +1944,7 @@ CCylinder::~CCylinder() {
 // Description			:	Compute the intersection with a ray
 // Return Value			:	TRUE if intersects
 // Comments				:
-void CCylinder::intersect(CShadingContext *context, CRay *rv) {
+void CCylinder::intersect(IRayContext &context, CRay *rv) {
     vector Nt;
 
     if (checkRayGuard(rv, context))
@@ -2276,7 +2273,7 @@ void CCylinder::interpolate(int numVertices, float **varying, float ***locals) c
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CCylinder::instantiate(CAttributes *a, CXform *x, CRiInterface *cx) const {
+void CCylinder::instantiate(CAttributes *a, CXform *x, IObjectSink *cx) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform
@@ -2394,7 +2391,7 @@ CHyperboloid::~CHyperboloid() {
 // Description			:	Compute the intersection with a ray
 // Return Value			:	TRUE if intersects
 // Comments				:
-void CHyperboloid::intersect(CShadingContext *context, CRay *rv) {
+void CHyperboloid::intersect(IRayContext &context, CRay *rv) {
 
     if (checkRayGuard(rv, context))
         return;
@@ -2818,7 +2815,7 @@ void CHyperboloid::interpolate(int numVertices, float **varying, float ***locals
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CHyperboloid::instantiate(CAttributes *a, CXform *x, CRiInterface *cx) const {
+void CHyperboloid::instantiate(CAttributes *a, CXform *x, IObjectSink *cx) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform
@@ -2949,7 +2946,7 @@ CToroid::~CToroid() {
 // Description			:	Compute the intersection with a ray
 // Return Value			:	TRUE if intersects
 // Comments				:
-void CToroid::intersect(CShadingContext *context, CRay *rv) {
+void CToroid::intersect(IRayContext &context, CRay *rv) {
 
     if (checkRayGuard(rv, context))
         return;
@@ -3297,7 +3294,7 @@ void CToroid::interpolate(int numVertices, float **varying, float ***locals) con
 // Description			:	See object.h
 // Return Value			:	-
 // Comments				:
-void CToroid::instantiate(CAttributes *a, CXform *x, CRiInterface *cx) const {
+void CToroid::instantiate(CAttributes *a, CXform *x, IObjectSink *cx) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform
@@ -3397,7 +3394,7 @@ static double quadricZ(const double *f, const double *d, double t, int k) {
 
 /////////////////////////////// Sphere
 
-int CSphere::countCrossings(CShadingContext *, const float *from, const float *dir) const {
+int CSphere::countCrossings(IRayContext *, const float *from, const float *dir) const {
     double f[3], d[3], t[2];
     quadricObjectRay(xform, from, dir, f, d);
     const int n = quadricRoots(d[0] * d[0] + d[1] * d[1] + d[2] * d[2], 2 * (d[0] * f[0] + d[1] * f[1] + d[2] * f[2]),
@@ -3433,7 +3430,7 @@ int CSphere::impliedSolidContains(const float *P) const {
 
 /////////////////////////////// Disk
 
-int CDisk::countCrossings(CShadingContext *, const float *from, const float *dir) const {
+int CDisk::countCrossings(IRayContext *, const float *from, const float *dir) const {
     double f[3], d[3];
     quadricObjectRay(xform, from, dir, f, d);
     if (d[2] == 0)
@@ -3449,7 +3446,7 @@ int CDisk::countCrossings(CShadingContext *, const float *from, const float *dir
 
 /////////////////////////////// Cone
 
-int CCone::countCrossings(CShadingContext *, const float *from, const float *dir) const {
+int CCone::countCrossings(IRayContext *, const float *from, const float *dir) const {
     double f[3], d[3], t[2];
     quadricObjectRay(xform, from, dir, f, d);
     const double h = height, rr = (double)r * r;
@@ -3498,7 +3495,7 @@ int CCone::impliedSolidContains(const float *P) const {
 
 /////////////////////////////// Paraboloid
 
-int CParaboloid::countCrossings(CShadingContext *, const float *from, const float *dir) const {
+int CParaboloid::countCrossings(IRayContext *, const float *from, const float *dir) const {
     double f[3], d[3], t[2];
     quadricObjectRay(xform, from, dir, f, d);
     const double k = (double)r * r / zmax;
@@ -3530,7 +3527,7 @@ int CParaboloid::impliedSolidContains(const float *P) const {
 
 /////////////////////////////// Cylinder
 
-int CCylinder::countCrossings(CShadingContext *, const float *from, const float *dir) const {
+int CCylinder::countCrossings(IRayContext *, const float *from, const float *dir) const {
     double f[3], d[3], t[2];
     quadricObjectRay(xform, from, dir, f, d);
     const double a = d[0] * d[0] + d[1] * d[1];
@@ -3574,7 +3571,7 @@ static double hyperboloidStart(const float *p1, const float *p2, double v) {
     return s;
 }
 
-int CHyperboloid::countCrossings(CShadingContext *, const float *from, const float *dir) const {
+int CHyperboloid::countCrossings(IRayContext *, const float *from, const float *dir) const {
     if (p1[2] == p2[2])
         return 0; // An annulus: no crossings counted for a flat ring (encloses nothing)
     double f[3], d[3], t[2];
@@ -3635,7 +3632,7 @@ static int torusInPhi(double rr, double z, double R, double vmin, double vmax) {
     return FALSE;
 }
 
-int CToroid::countCrossings(CShadingContext *, const float *from, const float *dir) const {
+int CToroid::countCrossings(IRayContext *, const float *from, const float *dir) const {
     double f[3], dd[3];
     quadricObjectRay(xform, from, dir, f, dd);
     const double len = sqrt(dd[0] * dd[0] + dd[1] * dd[1] + dd[2] * dd[2]);

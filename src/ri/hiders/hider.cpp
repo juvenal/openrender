@@ -27,7 +27,6 @@
 CHider::CHider(int thread) : context(thread) {
     context.setTracer(this);
     context.setIrradianceSampler(&irradianceSamplerInstance());
-    context.setProducer(this);
 }
 
 ///////////////////////////////////////////////////////////////////////

@@ -34,10 +34,6 @@
 #include "object.h"
 #include "patches.h"
 #include "polygons.h"
-#include "renderer.h"
-#include "rendererContext.h"
-#include "reyes.h"
-#include "shading.h"
 #include "common/stats.h"
 #include "surface.h"
 
@@ -137,7 +133,7 @@ CPolygonTriangle::~CPolygonTriangle() {
 //							CSG solid's boundary rule) keep this ray hit?
 // Return Value			:	TRUE when there is no region or it accepts the hit
 // Comments				:	Spec 021; vertices are already in camera space
-static int regionKeepsHit(const CSurface *surface, CShadingContext *context, const CRay *ray, float t, const float *edge1,
+static int regionKeepsHit(const CSurface *surface, IRayContext &context, const CRay *ray, float t, const float *edge1,
                           const float *edge2) {
     if (surface->region == NULL)
         return TRUE;
@@ -145,10 +141,10 @@ static int regionKeepsHit(const CSurface *surface, CShadingContext *context, con
     for (int k = 0; k < 3; k++)
         P[k] = ray->from[k] + ray->dir[k] * t;
     crossvv(N, edge1, edge2);
-    return surface->region->accepts(context, P, N);
+    return surface->region->accepts(&context, P, N);
 }
 
-static int regionKeepsBilinearHit(const CSurface *surface, CShadingContext *context, const CRay *ray, double t, double u,
+static int regionKeepsBilinearHit(const CSurface *surface, IRayContext &context, const CRay *ray, double t, double u,
                                   double v, const float *P00, const float *P10, const float *P01, const float *P11) {
     if (surface->region == NULL)
         return TRUE;
@@ -159,7 +155,7 @@ static int regionKeepsBilinearHit(const CSurface *surface, CShadingContext *cont
         dPdv[k] = (float)((P01[k] - P00[k]) * (1 - u) + (P11[k] - P10[k]) * u);
     }
     crossvv(N, dPdu, dPdv);
-    return surface->region->accepts(context, P, N);
+    return surface->region->accepts(&context, P, N);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -168,7 +164,7 @@ static int regionKeepsBilinearHit(const CSurface *surface, CShadingContext *cont
 // Description			:	Intersect the polygon with the ray
 // Return Value			:	-
 // Comments				:
-void CPolygonTriangle::intersect(CShadingContext *context, CRay *cRay) {
+void CPolygonTriangle::intersect(IRayContext &context, CRay *cRay) {
     if (checkRayGuard(cRay, context))
         return;
 
@@ -714,7 +710,7 @@ CPolygonQuad::~CPolygonQuad() {
 // Description			:	Intersect the quad with a ray
 // Return Value			:	-
 // Comments				:
-void CPolygonQuad::intersect(CShadingContext *context, CRay *cRay) {
+void CPolygonQuad::intersect(IRayContext &context, CRay *cRay) {
     if (checkRayGuard(cRay, context))
         return;
 
@@ -1296,7 +1292,7 @@ CPolygonMesh::~CPolygonMesh() {
 // Description			:	Intersect with a ray
 // Return Value			:	-
 // Comments				:
-void CPolygonMesh::intersect(CShadingContext *r, CRay *) {
+void CPolygonMesh::intersect(IRayContext &r, CRay *) {
 
     if (children == NULL)
         create(r);
@@ -1308,10 +1304,10 @@ void CPolygonMesh::intersect(CShadingContext *r, CRay *) {
 // Description			:	Split the mesh
 // Return Value			:	-
 // Comments				:
-void CPolygonMesh::dice(CReyes *r) {
+void CPolygonMesh::dice(IDicer &r) {
 
     if (children == NULL)
-        create(&r->shadingContext());
+        create(r.rayContext());
 
     CObject::dice(r);
 }
@@ -1322,7 +1318,7 @@ void CPolygonMesh::dice(CReyes *r) {
 // Description			:	Instanciate the mesh
 // Return Value			:	-
 // Comments				:
-void CPolygonMesh::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
+void CPolygonMesh::instantiate(CAttributes *a, CXform *x, IObjectSink *c) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform
@@ -1867,7 +1863,7 @@ inline void triangulatePolygon(int nloops, int *nverts, int *vindices, CMeshData
 // Description			:	Triangulate the mesh
 // Return Value			:	-
 // Comments				:
-void CPolygonMesh::create(CShadingContext *context) {
+void CPolygonMesh::create(IRayContext &context) {
     osLock(mutex);
     if (children != NULL) {
         osUnlock(mutex);
@@ -1947,9 +1943,9 @@ void CPolygonMesh::create(CShadingContext *context) {
     data.meshUniformNumber = 0;
     data.meshFacevaryingNumber = 0;
     data.mesh = this;
-    data.meshMemory = context->threadMemory;
+    data.meshMemory = context.scratch();
 
-    memBegin(context->threadMemory);
+    memBegin(context.scratch());
 
     // Triangulate the individual polygons
     for (cnholes = nholes, cvertices = vertices, cnvertices = nvertices, i = 0; i < npoly; i++) {
@@ -1964,10 +1960,10 @@ void CPolygonMesh::create(CShadingContext *context) {
         cnholes++;
     }
 
-    memEnd(context->threadMemory);
+    memEnd(context.scratch());
 
     // Set the children
-    setChildren(context, data.meshChildren);
+    setChildren(data.meshChildren);
 
     osUnlock(mutex);
 }
@@ -1979,12 +1975,12 @@ void CPolygonMesh::create(CShadingContext *context) {
 //							shutter open (spec 021; see object.h)
 // Return Value			:	-
 // Comments				:	Vertices are already in camera space
-int CPolygonTriangle::countCrossings(CShadingContext *, const float *from, const float *dir) const {
+int CPolygonTriangle::countCrossings(IRayContext *, const float *from, const float *dir) const {
     const float *vertices = mesh->pl->data0;
     return countTriangleCrossings(vertices + v0 * 3, vertices + v1 * 3, vertices + v2 * 3, from, dir);
 }
 
-int CPolygonQuad::countCrossings(CShadingContext *, const float *from, const float *dir) const {
+int CPolygonQuad::countCrossings(IRayContext *, const float *from, const float *dir) const {
     const float *vertices = mesh->pl->data0;
     return countBilinearCrossings(vertices + v0 * 3, vertices + v1 * 3, vertices + v2 * 3, vertices + v3 * 3, from, dir);
 }

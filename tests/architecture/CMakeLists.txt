@@ -244,6 +244,18 @@ foreach(_t SceneInterface_RibOutNoCore SceneInterface_NoCoreInclude SceneInterfa
     set_tests_properties(${_t} PROPERTIES TIMEOUT 60 LABELS "architecture")
 endforeach()
 
+# Spec 031 (geometry, hider-agnostic): Geometry names no hider or Shading type, and libRIBVector has no stub.
+add_test(NAME Geometry_NoHiderShadingNames
+    COMMAND ${CMAKE_COMMAND}
+        -DGEOMETRY_DIR=${CMAKE_SOURCE_DIR}/src/ri/geometry
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_geometry_no_names.cmake)
+add_test(NAME Geometry_RibVectorNoStubs
+    COMMAND ${CMAKE_COMMAND}
+        "-DSOURCES=$<TARGET_PROPERTY:ribVector_obj,SOURCES>"
+        -DOBJECT_DIR=${CMAKE_BINARY_DIR}/src/ri/CMakeFiles/ribVector_obj.dir
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_ribvector_no_stubs.cmake)
+set_tests_properties(Geometry_NoHiderShadingNames Geometry_RibVectorNoStubs PROPERTIES TIMEOUT 120 LABELS "architecture")
+
 # --- Spec 030 (hider and integrator registry): two mechanical checks ----------------------------------------
 #
 # Each is a `cmake -P` script over the tracked sources. They are red on the starting tree by design (the references

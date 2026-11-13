@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.19)
+project(slots CXX)
+add_executable(dump dump.cpp)
+target_compile_features(dump PRIVATE cxx_std_20)
+target_include_directories(dump PRIVATE /Volumes/Projects/Development/CLI/openrender-worktrees/031-geometry-hider-agnostic/src /Volumes/Projects/Development/CLI/openrender-worktrees/031-geometry-hider-agnostic/build)
+target_link_libraries(dump PRIVATE /Volumes/Projects/Development/CLI/openrender-worktrees/031-geometry-hider-agnostic/build/src/common/libRIBCommon.dylib)

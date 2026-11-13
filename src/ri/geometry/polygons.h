@@ -41,16 +41,16 @@ class CPolygonTriangle;
 // Comments				:
 class CPolygonMesh : public CObject {
     public:
-        void materialize(CShadingContext *context) { if (children == NULL) create(context); } // Idempotent (spec 021)
+        void materialize(IRayContext &context) { if (children == NULL) create(context); } // Idempotent (spec 021)
         CPolygonMesh(CAttributes *, CXform *, CPl *, int, int *, int *, int *);
         ~CPolygonMesh();
 
-        void intersect(CShadingContext *, CRay *);
-        void dice(CReyes *);
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
+        void intersect(IRayContext &, CRay *);
+        void dice(IDicer &);
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         // Raw vertex/topology data for non-shading consumers (e.g. orender-wire's
-        // wireframe extractor), which has no CShadingContext to dice() through.
+        // wireframe extractor), which has no dicer to dice() through.
         void wireData(const float *&positions, int &npoly, const int *&nholes, const int *&nvertices, const int *&vertices) const {
             positions = pl->data0;
             npoly = this->npoly;
@@ -60,7 +60,7 @@ class CPolygonMesh : public CObject {
         }
 
     private:
-        void create(CShadingContext *);
+        void create(IRayContext &);
 
         CPl *pl;
         int npoly, nloops, nverts;
@@ -85,9 +85,9 @@ class CPolygonTriangle : public CSurface {
         CPolygonTriangle(CAttributes *, CXform *, CPolygonMesh *, int v0, int v1, int v2, int fv0, int fv1, int fv2, int uniform);
         ~CPolygonTriangle();
 
-        void intersect(CShadingContext *, CRay *);
-        int countCrossings(CShadingContext *, const float *, const float *) const;
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
+        void intersect(IRayContext &, CRay *);
+        int countCrossings(IRayContext *, const float *, const float *) const;
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 
         int moving() const { return mesh->pl->data1 != NULL; }
         void sample(int, int, float **, float ***, unsigned int &) const;
@@ -108,9 +108,9 @@ class CPolygonQuad : public CSurface {
         CPolygonQuad(CAttributes *, CXform *, CPolygonMesh *, int v0, int v1, int v2, int v3, int fv0, int fv1, int fv2, int fv3, int uniform);
         ~CPolygonQuad();
 
-        void intersect(CShadingContext *, CRay *);
-        int countCrossings(CShadingContext *, const float *, const float *) const;
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
+        void intersect(IRayContext &, CRay *);
+        int countCrossings(IRayContext *, const float *, const float *) const;
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 
         int moving() const { return mesh->pl->data1 != NULL; }
         void sample(int, int, float **, float ***, unsigned int &) const;

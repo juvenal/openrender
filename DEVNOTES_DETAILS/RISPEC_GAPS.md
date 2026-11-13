@@ -57,9 +57,10 @@ date in the footer, not carried forward.
   hider limitation, not a capability gap. See [HIDER_PARITY.md](HIDER_PARITY.md).
 
 - [x] **Depth of Field** — `RiDepthOfField`, with concentric-disk lens
-  sampling shared by both camera hiders (spec 007). D9, the DOF *occlusion*
-  model, is a permanent documented residual between the hiders rather than an
-  open item — see [HIDER_PARITY.md](HIDER_PARITY.md).
+  sampling shared by both camera hiders (spec 007). Since spec 031 both hiders
+  also share one circle-of-confusion function (`LensModel::circleOfConfusion`),
+  so D9, the old DOF blur-size mismatch, is narrowed (`Parity_dof` 40.45 to 9.92)
+  and the remaining difference is the form of one lens, not an open item — see [HIDER_PARITY.md](HIDER_PARITY.md).
 
 - [ ] **Special Camera Projections** — `RiProjectionV`
   (`rendererContext.cpp:960`) accepts `"perspective"` and `"orthographic"`

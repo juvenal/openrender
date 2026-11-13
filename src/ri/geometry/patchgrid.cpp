@@ -30,10 +30,8 @@
 #include "motion.h"
 #include "object.h"
 #include "patchgrid.h"
-#include "renderer.h"
-#include "shading.h"
 #include "common/stats.h"
-#include "surfaceCrossingDispatch.h"
+#include "surfaceCrossings.h"
 
 // Note:
 //	The patgrid is instantiated with a grid of (nu+2)*(nv+2) vertices which
@@ -410,6 +408,6 @@ void CPatchGrid::interpolate(int numVertices, float **varying, float ***locals) 
 //							Newton core (spec 021; ribVector links a stub)
 // Return Value			:	-
 // Comments				:
-int CPatchGrid::countCrossings(CShadingContext *context, const float *from, const float *dir) const {
+int CPatchGrid::countCrossings(IRayContext *context, const float *from, const float *dir) const {
     return countFreeFormCrossings(context, this, from, dir);
 }

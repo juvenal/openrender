@@ -33,12 +33,8 @@
 #include "patches.h"
 #include "patchgrid.h"
 #include "pl.h"
-#include "renderer.h"
-#include "rendererContext.h"
-#include "reyes.h"
 #include "common/riVocabulary.h"
 #include "ri_config.h"
-#include "shading.h"
 #include "common/stats.h"
 #include "subdivision.h"
 #include "subdivisionCreator.h"
@@ -1850,7 +1846,7 @@ CSubdivMesh::~CSubdivMesh() {
 // Description			:	Intersect the thing
 // Return Value			:	-
 // Comments				:
-void CSubdivMesh::intersect(CShadingContext *rasterizer, CRay *) {
+void CSubdivMesh::intersect(IRayContext &rasterizer, CRay *) {
 
     if (children == NULL)
         create(rasterizer);
@@ -1862,10 +1858,10 @@ void CSubdivMesh::intersect(CShadingContext *rasterizer, CRay *) {
 // Description			:	Dice the primitive
 // Return Value			:	-
 // Comments				:
-void CSubdivMesh::dice(CReyes *rasterizer) {
+void CSubdivMesh::dice(IDicer &rasterizer) {
 
     if (children == NULL)
-        create(&rasterizer->shadingContext());
+        create(rasterizer.rayContext());
 
     CObject::dice(rasterizer);
 }
@@ -1876,7 +1872,7 @@ void CSubdivMesh::dice(CReyes *rasterizer) {
 // Description			:	Clone the primitive
 // Return Value			:	-
 // Comments				:
-void CSubdivMesh::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
+void CSubdivMesh::instantiate(CAttributes *a, CXform *x, IObjectSink *c) const {
     CXform *nx = new CXform(x);
 
     nx->concat(xform); // Concetenate the local xform
@@ -2243,17 +2239,17 @@ CObject *CSubdivMesh::buildSurfaces(CMemPage *&mem) {
 //							the result on this object via setChildren()
 // Return Value			:	-
 // Comments				:
-void CSubdivMesh::create(CShadingContext *context) {
+void CSubdivMesh::create(IRayContext &context) {
     osLock(mutex);
     if (children != NULL) {
         osUnlock(mutex);
         return;
     }
 
-    CObject *allChildren = buildSurfaces(context->threadMemory);
+    CObject *allChildren = buildSurfaces(context.scratch());
 
     // Set the children objects
-    setChildren(context, allChildren);
+    setChildren(allChildren);
 
     osUnlock(mutex);
 }

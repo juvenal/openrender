@@ -20,10 +20,6 @@
 
 #include "common/algebra.h" // absf()
 
-float CSampler::circleOfConfusion(float z, float invFocaldistance, float cocFactorSamples) {
-    return absf((1.0f / z) - invFocaldistance) * cocFactorSamples;
-}
-
 ///////////////////////////////////////////////////////////////////////
 // Spec 039, Phase 5 (R3.1): camera samples from the sampler's slots
 ///////////////////////////////////////////////////////////////////////

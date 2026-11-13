@@ -416,7 +416,7 @@ static float screenArea(CXform *x, const float *bmin, const float *bmax) {
 //							i.e. : Raytrace it or add it to the graphics state
 // Return Value			:
 // Comments				:
-void CRendererContext::processDelayedObject(CShadingContext *context, CDelayedObject *cDelayed, void (*subdivisionFunction)(void *, float), void *data, const float *bmin, const float *bmax) {
+void CRendererContext::processDelayedObject(CDelayedObject *cDelayed, void (*subdivisionFunction)(void *, float), void *data, const float *bmin, const float *bmax) {
 
     // Save the current graphics state
     CAttributes *savedAttributes = currentAttributes;
@@ -440,7 +440,7 @@ void CRendererContext::processDelayedObject(CShadingContext *context, CDelayedOb
     delayed = NULL;
 
     // Create the hierarchy
-    cDelayed->setChildren(context, cDelayed->children);
+    cDelayed->setChildren(cDelayed->children);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -450,7 +450,7 @@ void CRendererContext::processDelayedObject(CShadingContext *context, CDelayedOb
 //							i.e. : Raytrace it or add it to the graphics state
 // Return Value			:
 // Comments				:
-void CRendererContext::processDelayedInstance(CShadingContext *context, CDelayedInstance *cDelayed) {
+void CRendererContext::processDelayedInstance(CDelayedInstance *cDelayed) {
 
     // Set the delayed object
     delayed = cDelayed;
@@ -469,15 +469,56 @@ void CRendererContext::processDelayedInstance(CShadingContext *context, CDelayed
     delayed = NULL;
 
     // Create the hierarchy
-    cDelayed->setChildren(context, cDelayed->children);
+    cDelayed->setChildren(cDelayed->children);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CRendererContext
+// Method				:	expandDelayedObject
+// Description			:	CGeometryHost: expand a delayed object once (spec 031); the body Geometry's
+//							intersect() and dice() used to run themselves
+// Return Value			:
+// Comments				:	Callable from any render thread, only while object->processed is FALSE
+void CRendererContext::expandDelayedObject(CDelayedObject *object) {
+    osLock(CRenderer::delayedMutex);
+    if (object->processed == FALSE) {
+        processDelayedObject(object, object->subdivisionFunction, object->data, object->bmin, object->bmax);
+        object->processed = TRUE;
+    }
+    osUnlock(CRenderer::delayedMutex);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CRendererContext
+// Method				:	expandDelayedInstance
+// Description			:	CGeometryHost: expand a delayed instance once (spec 031)
+// Return Value			:
+// Comments				:	As expandDelayedObject()
+void CRendererContext::expandDelayedInstance(CDelayedInstance *instance) {
+    osLock(CRenderer::delayedMutex);
+    if (instance->processed == FALSE) {
+        processDelayedInstance(instance);
+        instance->processed = TRUE;
+    }
+    osUnlock(CRenderer::delayedMutex);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CRendererContext
+// Method				:	findCoordinateSystem
+// Description			:	CGeometryHost: the named coordinate system's matrices (spec 031)
+// Return Value			:	FALSE if the system is unknown
+// Comments				:	The static CRenderer::findCoordinateSystem stays: the core and the shading tests call it
+int CRendererContext::findCoordinateSystem(const char *name, const float *&from, const float *&to, ECoordinateSystem &system) {
+    return CRenderer::findCoordinateSystem(name, from, to, system);
 }
 
 // Collects the objects an instantiate() call creates (capture() below)
 class CCaptureHolder : public CObject {
     public:
         CCaptureHolder(CAttributes *a, CXform *x) : CObject(a, x) {}
-        void intersect(CShadingContext *, CRay *) {}
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const {}
+        void intersect(IRayContext &, CRay *) {}
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const {}
 };
 
 ///////////////////////////////////////////////////////////////////////

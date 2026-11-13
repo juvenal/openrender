@@ -46,11 +46,11 @@ class CBilinearPatch : public CSurface {
     public:
         CBilinearPatch(CAttributes *, CXform *, CVertexData *, CParameter *, float, float, float, float, float *);
         ~CBilinearPatch();
-        int countCrossings(CShadingContext *, const float *, const float *) const; // Spec 021
+        int countCrossings(IRayContext *, const float *, const float *) const; // Spec 021
 
         // CObject interface
-        void intersect(CShadingContext *, CRay *);
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
+        void intersect(IRayContext &, CRay *);
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 
         // CSurface interface
         int moving() const { return variables->moving; }
@@ -72,10 +72,10 @@ class CBicubicPatch : public CSurface {
     public:
         CBicubicPatch(CAttributes *, CXform *, CVertexData *, CParameter *, float, float, float, float, float *, const float *uBasis = NULL, const float *vBasis = NULL);
         ~CBicubicPatch();
-        int countCrossings(CShadingContext *, const float *, const float *) const; // Spec 021
+        int countCrossings(IRayContext *, const float *, const float *) const; // Spec 021
 
         // CObject interface
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 
         // CSurface interface
         int moving() const { return variables->moving; }
@@ -99,10 +99,10 @@ class CNURBSPatch : public CSurface {
     public:
         CNURBSPatch(CAttributes *, CXform *, CVertexData *, CParameter *, int, int, float *, float *, float *, CTrimTest * = NULL);
         ~CNURBSPatch();
-        int countCrossings(CShadingContext *, const float *, const float *) const; // Spec 021
+        int countCrossings(IRayContext *, const float *, const float *) const; // Spec 021
 
         // CObject interface
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 
         // CSurface interface
         int moving() const { return variables->moving; }
@@ -148,17 +148,17 @@ class CNURBSPatch : public CSurface {
 // Comments				:
 class CPatchMesh : public CObject {
     public:
-        void materialize(CShadingContext *context) { if (children == NULL) create(context); } // Idempotent (spec 021)
+        void materialize(IRayContext &context) { if (children == NULL) create(context); } // Idempotent (spec 021)
         CPatchMesh(CAttributes *, CXform *, CPl *, int, int, int, int, int);
         ~CPatchMesh();
 
         // CObject interface
-        void intersect(CShadingContext *, CRay *);
-        void dice(CReyes *rasterizer);
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
+        void intersect(IRayContext &, CRay *);
+        void dice(IDicer &rasterizer);
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         // Raw control-cage data for non-shading consumers (e.g. orender-wire's
-        // wireframe extractor), which has no CShadingContext to dice() through.
+        // wireframe extractor), which has no dicer to dice() through.
         void wireData(const float *&positions, int &nu, int &nv) const {
             positions = pl->data0;
             nu = uVertices;
@@ -166,7 +166,7 @@ class CPatchMesh : public CObject {
         }
 
     private:
-        void create(CShadingContext *context);
+        void create(IRayContext &context);
 
         CPl *pl;
         int degree;
@@ -226,7 +226,7 @@ bool trimClassifyPoint(const CTrimTest &test, float u, float v);
 // Comments				:
 class CNURBSPatchMesh : public CObject {
     public:
-        void materialize(CShadingContext *context) { if (children == NULL) create(context); } // Idempotent (spec 021)
+        void materialize(IRayContext &context) { if (children == NULL) create(context); } // Idempotent (spec 021)
         // The trailing CTrimTest*/eagerBuildTrim pair exists solely for
         // instantiate()'s use: it passes the template mesh's own already-
         // decided trimTest (attach()'d verbatim, even if NULL) with
@@ -238,12 +238,12 @@ class CNURBSPatchMesh : public CObject {
         ~CNURBSPatchMesh();
 
         // CObject interface
-        void intersect(CShadingContext *, CRay *);
-        void dice(CReyes *rasterizer);
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
+        void intersect(IRayContext &, CRay *);
+        void dice(IDicer &rasterizer);
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         // Raw control-cage data for non-shading consumers (e.g. orender-wire's
-        // wireframe extractor), which has no CShadingContext to dice() through.
+        // wireframe extractor), which has no dicer to dice() through.
         void wireData(const float *&positions, int &nu, int &nv) const {
             positions = pl->data0;
             nu = uVertices;
@@ -251,7 +251,7 @@ class CNURBSPatchMesh : public CObject {
         }
 
     private:
-        void create(CShadingContext *context);
+        void create(IRayContext &context);
 
         CPl *pl;
         int uVertices, vVertices, uOrder, vOrder;

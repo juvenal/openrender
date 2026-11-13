@@ -30,10 +30,13 @@
 #define GEOMETRYHOST_H
 
 #include "common/refCounter.h"
+#include "common/rendererc.h" // ECoordinateSystem
 
 class CObject;
 class CAttributes;
 class CXform;
+class CDelayedObject;
+class CDelayedInstance;
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CFrameResource
@@ -52,7 +55,7 @@ class CFrameResource : public CRefCounter {
 // Class				:	CGeometryHost
 // Description			:	Implemented and registered by the renderer core.
 //							Geometry calls it instead of reaching into the
-//							renderer (no CRenderer / CRendererContext use).
+//							renderer core (it names no renderer type).
 // Comments				:	Every method may be called from any render thread.
 class CGeometryHost {
     public:
@@ -75,6 +78,17 @@ class CGeometryHost {
         // over, before the scene hierarchy is freed; the host holds a
         // reference until then. Thread-safe.
         virtual void releaseAtFrameEnd(CFrameResource *resource) = 0;
+
+        // Expand a delayed object (RiProcedural) or a delayed instance (ObjectInstance) into its children, once
+        // (spec 031). Called from any render thread, dicing or tracing, only while object->processed is FALSE.
+        // Serialized by the host with capture() and expand() (one lock); the host tests processed again under
+        // the lock, expands, builds the hierarchy (setChildren) and sets processed = TRUE. A DynamicLoad
+        // generator's module stays held by the frame reference (spec 037).
+        virtual void expandDelayedObject(CDelayedObject *object) = 0;
+        virtual void expandDelayedInstance(CDelayedInstance *instance) = 0;
+
+        // The named coordinate system's matrices, as the renderer's named-system lookup answers. FALSE if unknown.
+        virtual int findCoordinateSystem(const char *name, const float *&from, const float *&to, ECoordinateSystem &system) = 0;
 };
 
 // Registration hook: the host installs itself (NULL uninstalls). Geometry

@@ -69,7 +69,7 @@ static int boxesOverlap(const float *amin, const float *amax, const float *bmin,
 }
 
 // Parity of the crossings of the ray from P along dir with the operand
-static int crossingParity(CShadingContext *ctx, const CCSGResolvedOperand &operand, const float *P, const float *dir) {
+static int crossingParity(IRayContext *ctx, const CCSGResolvedOperand &operand, const float *P, const float *dir) {
     int count = 0;
     operand.forEachSurface([&](const float *bmin, const float *bmax) { return rayMeetsBox(P, dir, bmin, bmax); },
                            [&](const CSurface *surface) { count += surface->countCrossings(ctx, P, dir); });
@@ -77,7 +77,7 @@ static int crossingParity(CShadingContext *ctx, const CCSGResolvedOperand &opera
 }
 
 // IN/OUT with the first vote cast along `first`
-static int classifyWith(CShadingContext *ctx, const CCSGResolvedOperand &operand, const float *P, const float *first) {
+static int classifyWith(IRayContext *ctx, const CCSGResolvedOperand &operand, const float *P, const float *first) {
     atomicIncrement(stats.numCsgClassifications);
 
     if (operand.kind == CSG_OPERAND_EMPTY || operand.kind == CSG_OPERAND_OPEN)
@@ -96,11 +96,11 @@ static int classifyWith(CShadingContext *ctx, const CCSGResolvedOperand &operand
     return crossingParity(ctx, operand, P, kRayDirections[2]) ? CSG_IN : CSG_OUT;
 }
 
-int classifyOperand(CShadingContext *ctx, const CCSGResolvedOperand &operand, const float *P) {
+int classifyOperand(IRayContext *ctx, const CCSGResolvedOperand &operand, const float *P) {
     return classifyWith(ctx, operand, P, kRayDirections[0]);
 }
 
-int classifyOperandAlong(CShadingContext *ctx, const CCSGResolvedOperand &operand, const float *P, const float *dir) {
+int classifyOperandAlong(IRayContext *ctx, const CCSGResolvedOperand &operand, const float *P, const float *dir) {
     return classifyWith(ctx, operand, P, dir);
 }
 
@@ -113,12 +113,12 @@ int classifyOperandAlong(CShadingContext *ctx, const CCSGResolvedOperand &operan
 CCSGEvaluator::CCSGEvaluator(const CCSGDefinition *definition, const std::vector<CCSGResolvedOperand *> &operands, float epsilon)
     : definition(definition), operands(operands), epsilon(epsilon) {}
 
-int CCSGEvaluator::classify(CShadingContext *ctx, int operand, const float *P) const {
+int CCSGEvaluator::classify(IRayContext *ctx, int operand, const float *P) const {
     return classifyOperand(ctx, *operands[operand], P);
 }
 
 // How many of the operand's surfaces the segment (a, b] crosses
-static int segmentCrossings(CShadingContext *ctx, const CCSGResolvedOperand &operand, const float *a, const float *b) {
+static int segmentCrossings(IRayContext *ctx, const CCSGResolvedOperand &operand, const float *a, const float *b) {
     const float dir[3] = {b[0] - a[0], b[1] - a[1], b[2] - a[2]};
     float lo[3], hi[3];
     for (int k = 0; k < 3; k++) {
@@ -152,7 +152,7 @@ static int segmentCrossings(CShadingContext *ctx, const CCSGResolvedOperand &ope
 //							coincident face); otherwise the rule compares the
 //							tree with the own operand forced IN and OUT.
 //							Ng's sign is irrelevant: it is only the axis.
-int CCSGEvaluator::accepts(CShadingContext *ctx, int operand, const float *P, const float *Ng, int ownChanges) const {
+int CCSGEvaluator::accepts(IRayContext *ctx, int operand, const float *P, const float *Ng, int ownChanges) const {
     float n[3] = {Ng[0], Ng[1], Ng[2]};
     const float len = sqrtf(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]);
     if (!(len > 0))
@@ -247,7 +247,7 @@ int CCSGEvaluator::accepts(CShadingContext *ctx, int operand, const float *P, co
 //							otherwise
 // Return Value			:	-
 // Comments				:	Conservative: MIXED is always a safe answer
-int CCSGEvaluator::classifyBound(CShadingContext *ctx, int operand, const float *bmin, const float *bmax) const {
+int CCSGEvaluator::classifyBound(IRayContext *ctx, int operand, const float *bmin, const float *bmax) const {
     float lo[3], hi[3];
     for (int k = 0; k < 3; k++) {
         lo[k] = bmin[k] - epsilon;
@@ -308,10 +308,10 @@ int CCSGEvaluator::classifyBound(CShadingContext *ctx, int operand, const float 
     return in != out ? REGION_ALL_IN : REGION_ALL_OUT;
 }
 
-int CCSGRegion::accepts(CShadingContext *ctx, const float *P, const float *Ng) const {
+int CCSGRegion::accepts(IRayContext *ctx, const float *P, const float *Ng) const {
     return evaluator->accepts(ctx, operand, P, Ng);
 }
 
-int CCSGRegion::classifyBound(CShadingContext *ctx, const float *bmin, const float *bmax) const {
+int CCSGRegion::classifyBound(IRayContext *ctx, const float *bmin, const float *bmax) const {
     return evaluator->classifyBound(ctx, operand, bmin, bmax);
 }

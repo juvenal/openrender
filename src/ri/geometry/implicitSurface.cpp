@@ -30,9 +30,6 @@
 #include "implicitSurface.h"
 #include "motion.h"
 #include "objectMisc.h"
-#include "renderer.h"
-#include "reyes.h"
-#include "shading.h"
 #include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////
@@ -85,7 +82,7 @@ CImplicit::~CImplicit() {
 // Description			:	Intersect the surface with the ray
 // Return Value			:	-
 // Comments				:
-void CImplicit::intersect(CShadingContext *, CRay *ray) {
+void CImplicit::intersect(IRayContext &, CRay *ray) {
     float tmin, tmax;
     vector lastP, P;
     float lastF, F;
@@ -191,7 +188,7 @@ void CImplicit::interpolate(int, float **, float ***) const {
 // Description			:	Dice the surface for scan-line rendering
 // Return Value			:	-
 // Comments				:
-void CImplicit::dice(CReyes *) {
+void CImplicit::dice(IDicer &) {
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -200,7 +197,7 @@ void CImplicit::dice(CReyes *) {
 // Description			:	Create a copy
 // Return Value			:	-
 // Comments				:
-void CImplicit::instantiate(CAttributes *, CXform *, CRiInterface *) const {
+void CImplicit::instantiate(CAttributes *, CXform *, IObjectSink *) const {
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -209,8 +206,8 @@ void CImplicit::instantiate(CAttributes *, CXform *, CRiInterface *) const {
 // Description			:	Shade the surface
 // Return Value			:	-
 // Comments				:
-void CImplicit::shade(CShadingContext *context, int numRays, CRay **rays) {
-    float **varying = context->currentShadingState->varying;
+void CImplicit::shade(IRayContext &context, int numRays, CRay **rays) {
+    float **varying = context.varyings();
     float *P = varying[VARIABLE_P];
     float *N = varying[VARIABLE_NG];
     float *I = varying[VARIABLE_I];
@@ -239,5 +236,5 @@ void CImplicit::shade(CShadingContext *context, int numRays, CRay **rays) {
         }
     }
 
-    context->shade(this, numRays, 1, SHADING_0D, 0);
+    context.shade(this, numRays, 1, SHADING_0D, 0);
 }

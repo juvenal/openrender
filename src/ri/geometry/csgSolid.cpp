@@ -27,7 +27,7 @@
 #include "common/diagnostics.h"
 #include "patches.h"
 #include "polygons.h"
-#include "riInterface.h"
+#include "objectSink.h"
 #include "common/stats.h"
 #include "subdivisionCreator.h"
 #include "subdivisionLoop.h"
@@ -90,7 +90,7 @@ static int supportedMember(const CObject *o) {
 }
 
 // Materialize o and everything below it, depth first; collect the leaf surfaces
-static void materializeSurfaces(CShadingContext *context, CObject *o, std::vector<CSurface *> &surfaces) {
+static void materializeSurfaces(IRayContext &context, CObject *o, std::vector<CSurface *> &surfaces) {
     o->materialize(context);
     if (o->children == NULL) {
         CSurface *s = dynamic_cast<CSurface *>(o);
@@ -169,12 +169,9 @@ CCSGSolid::~CCSGSolid() {
     definition->detach();
 }
 
-void CCSGSolid::intersect(CShadingContext *context, CRay *) {
+void CCSGSolid::intersect(IRayContext &context, CRay *) {
     resolve(context);
 }
-
-// CCSGSolid::dice() lives in render/geometryDispatch.cpp with the other
-// CReyes-facing geometry entry points, so this unit names no hider type
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CCSGSolid
@@ -183,7 +180,7 @@ void CCSGSolid::intersect(CShadingContext *context, CRay *) {
 //							composed transform (ObjectInstance)
 // Return Value			:	-
 // Comments				:
-void CCSGSolid::instantiate(CAttributes *a, CXform *x, CRiInterface *cx) const {
+void CCSGSolid::instantiate(CAttributes *a, CXform *x, IObjectSink *cx) const {
     CXform *nx = new CXform(x);
     nx->concat(xform);
     cx->addObject(new CCSGSolid(a != NULL ? a : attributes, nx, definition));
@@ -196,7 +193,7 @@ void CCSGSolid::instantiate(CAttributes *a, CXform *x, CRiInterface *cx) const {
 // Description			:	Build the instance state and children once
 // Return Value			:	-
 // Comments				:
-void CCSGSolid::resolve(CShadingContext *context) {
+void CCSGSolid::resolve(IRayContext &context) {
     if (state.load(std::memory_order_acquire) != NULL)
         return;
     std::lock_guard<std::mutex> lock(resolveMutex);
@@ -224,7 +221,7 @@ void CCSGSolid::resolve(CShadingContext *context) {
 // Return Value			:	The new state
 // Comments				:	Runs under resolveMutex. Never calls the renderer
 //							core: the host does (constitution Principle VIII).
-CCSGInstanceState *CCSGSolid::build(CShadingContext *context) {
+CCSGInstanceState *CCSGSolid::build(IRayContext &context) {
     CCSGInstanceState *s = new CCSGInstanceState();
     s->definition = definition;
     definition->attach();
@@ -375,6 +372,18 @@ CCSGInstanceState *CCSGSolid::build(CShadingContext *context) {
             append(cap.surface);
         }
     }
-    setChildren(context, chain);
+    setChildren(chain);
     return s;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CCSGSolid
+// Method				:	dice
+// Description			:	Resolve the solid instance on first use, then dice
+//							its leaves like any object's children (spec 021)
+// Return Value			:	-
+// Comments				:
+void CCSGSolid::dice(IDicer &dicer) {
+    resolve(dicer.rayContext());
+    CObject::dice(dicer);
 }

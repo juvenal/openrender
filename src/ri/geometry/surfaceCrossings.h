@@ -1,12 +1,13 @@
 /**
  * Project: openRender
  *
- * File: surfaceCrossingDispatch.h
+ * File: surfaceCrossings.h
  *
  * Description:
- *   Renderer-only crossing counts for free-form surfaces: a pure Newton
- *   core seeded from an immutable per-surface evaluation grid (spec 021).
- *   ribVector links vector/surfaceCrossingDispatchStub.cpp instead.
+ *   Crossing counts for free-form surfaces: a pure Newton core seeded from
+ *   an immutable per-surface evaluation grid (spec 021). Compiled for every
+ *   consumer, ribVector included (renamed from surfaceCrossingDispatch by
+ *   spec 031: nothing is substituted any more).
  *
  * Authors:
  *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
@@ -19,7 +20,7 @@
 
 ///////////////////////////////////////////////////////////////////////
 //
-//  File				:	surfaceCrossingDispatch.h
+//  File				:	surfaceCrossings.h
 //  Classes				:	CCrossingSurface, CCrossingSeedGrid
 //  Description			:	Ray crossings of free-form surfaces for CSG
 //							classification: a pure Newton core over a surface
@@ -27,13 +28,13 @@
 //							(spec 021, research.md Decision 3)
 //
 ////////////////////////////////////////////////////////////////////////
-#ifndef SURFACECROSSINGDISPATCH_H
-#define SURFACECROSSINGDISPATCH_H
+#ifndef SURFACECROSSINGS_H
+#define SURFACECROSSINGS_H
 
 #include <vector>
 
 class CSurface;
-class CShadingContext;
+class IRayContext;
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CCrossingSurface
@@ -76,6 +77,6 @@ int findSurfaceCrossings(const CCrossingSurface &surface, const CCrossingSeedGri
 
 // Renderer entry point used by the free-form CSurface::countCrossings()
 // overrides; the ribVector build links a stub that reports 0.
-int countFreeFormCrossings(CShadingContext *ctx, const CSurface *surface, const float *from, const float *dir);
+int countFreeFormCrossings(IRayContext *ctx, const CSurface *surface, const float *from, const float *dir);
 
-#endif // SURFACECROSSINGDISPATCH_H
+#endif // SURFACECROSSINGS_H

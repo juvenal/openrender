@@ -75,13 +75,13 @@ class CCSGSolid : public CObject {
         ~CCSGSolid();
 
         // CObject interface
-        void intersect(CShadingContext *, CRay *);
-        void dice(CReyes *);
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const;
+        void intersect(IRayContext &, CRay *);
+        void dice(IDicer &);
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
         // Build the per-instance state and the children, exactly once; the
         // first dice() or intersect() calls it. Later calls return at once.
-        void resolve(CShadingContext *context);
+        void resolve(IRayContext &context);
 
         // The resolved state, or NULL before the first resolve()
         const CCSGInstanceState *instanceState() const { return state.load(std::memory_order_acquire); }
@@ -89,7 +89,7 @@ class CCSGSolid : public CObject {
         CCSGDefinition *definition; // Shared, attached
 
     private:
-        CCSGInstanceState *build(CShadingContext *context);
+        CCSGInstanceState *build(IRayContext &context);
 
         std::atomic<CCSGInstanceState *> state; // Attached by the solid
         std::mutex resolveMutex;

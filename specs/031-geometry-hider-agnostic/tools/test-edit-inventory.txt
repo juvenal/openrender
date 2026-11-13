@@ -1,0 +1,335 @@
+# T014 test-edit inventory for spec 031, measured 2026-11-09 on the starting tree (HEAD 99d382fe, base e83d005d).
+# Method: a python walk over src/ and tests/ (src/ri/geometry and src/libshader excluded from the hit lists: Geometry's
+# own sources are the phases' subject, and Shading's CShadingContext uses are Shading-internal). Pattern per category
+# below; every hit is "file:line: text". Comment-only hits are kept so nobody has to re-grep.
+#
+# ===== A. Approved-test / harness edits (types and names only, from the T034/T048/T064/T077 TEST-APPROVAL lists) =====
+# Phase 3 (T034): instantiate(CAttributes *, CXform *, CRiInterface *) -> IObjectSink *
+#   tests/unit/csg/test_boundary_rule.cpp:56            tests/unit/csg/test_lazy_resolution.cpp:170
+#   tests/unit/csg/test_region_inheritance.cpp:32       tests/shading_contract/rendered_harness.h:45
+#   tests/shading_parity/test_ambient_accumulation.cpp:75   tests/shading_parity/texture_substitute_harness.h:63
+#   tests/shading_parity/test_false_if_constructs.cpp:82
+#   NON-test production subclasses (signature only): src/ri/hiders/photon.cpp:51-56 (CPhonySurface::instantiate),
+#   src/ri/render/rendererContext.cpp:498-502 (CCaptureHolder::instantiate; its intersect is Phase 4).
+#   Also a caller: src/preview/libribpreview/previewContext.cpp:139 (child->instantiate(..., this)), rendererContext.cpp:488,525.
+# Phase 4 (T048): CShadingContext * -> IRayContext & / nullable pointers; setChildren(NULL, x) -> setChildren(x)
+#   intersect overrides: tests/unit/csg/test_lazy_resolution.cpp:169, test_region_inheritance.cpp:31;
+#   rendererContext.cpp:501 (CCaptureHolder::intersect)
+#   region/crossing overrides: test_region_inheritance.cpp:37-38 (accepts, classifyBound), test_boundary_rule.cpp:44 (countCrossings)
+#   setChildren(NULL, x): test_region_inheritance.cpp:59,72,81,93,97 (callers in the core: renderer.cpp:1062, rendererContext.cpp:465,494)
+#   context helpers: tests/unit/csg/csgTestUtils.h:158,180,194,209; csgTreeHelpers.h:66,72,98 (the floor entry of the plan's list);
+#     test_count_crossings.cpp:29,35; test_classify_quadrics.cpp:28; test_parity_robustness.cpp:31,36,42; test_classify_determinism.cpp:32,40;
+#     test_multi_primitive_leaf.cpp (classifyOperand 31-41); test_procedural_operand.cpp; test_lazy_resolution.cpp:139,146,169;
+#     test_interior_exterior_selection.cpp; test_csg_stats.cpp:110 (classifyOperand); tests/unit/sampling/scene_probe.h:134; test_object_ids.cpp:237
+#   motion replay HARNESS (never the recordings): tests/unit/motion/replay_capture.h:166,184-185; motion_replay.cpp:67,503,524,580,691-702
+#   ev.accepts(NULL|ctx, ...) / ev.classifyBound(NULL, ...): csgTreeHelpers.h:94,101; test_boundary_rule.cpp:181,220,223,226,276
+# Phase 5 (T064): dice(CReyes *) / splitToChildren(CReyes *): NO test or harness overrides them (grep below finds only reyes.cpp:374,570 as callers,
+#   and comments in motion_replay.cpp:62,77); the forwarding entries shade(CSurface *, ...)/displace(...) are called by reyes.cpp only
+#   (789,869,906,935,967,1046,1060,1103,1114; F5), and the tests' ctx.shade(g, source) (case_point_source.cpp:145,180,199) is the
+#   ShaderGlobals overload, which does not change.
+# Phase 7/9 (T093, T113-T115a): tests/unit/motion/test_frame_params_equal_core.cpp:111 (+ 2 new bits() checks, T093 pause);
+#   tests/unit/camera/test_camera_lens_model.cpp:46,51,53 and test_camera_generate_ray_only.cpp:105 (lm.cocFactorScreen()) (T113/T114 pause);
+#   frame_test_utils.h:83, test_camera_analytic.cpp:104, test_camera_crop.cpp:46, test_camera_equivalence.cpp:164 set fp.invFocaldistance (FrameParams field, survives).
+#
+# ===== B. Re-confirmed: need NO edit (CShadingContext as a Shading type only) =====
+#   tests/unit/rib_parse/test_sampling_option_rsl.cpp:47, tests/shading_parity/test_context_no_services.cpp:104,
+#   test_derivative_inactive_grid_lanes.cpp:150,183,244, test_derivative_inactive_lanes.cpp:86,131,172:
+#   they take CRenderer::contexts[0]->shadingContext() or build a CShadingContext and call queryOption/setDefaultServices/Shading ops;
+#   no Geometry signature (intersect/dice/instantiate/shade(CSurface*)/setChildren/region hooks) is named in them. Also tests/shading_contract/
+#   case_standalone_context.cpp:44, case_type_mismatch_real.cpp:85,180, rendered_harness.h:90,124 (setupState/runSurface take CShadingContext * as Shading
+#   types; only rendered_harness.h:45 above is a Geometry signature), test_ambient_accumulation.cpp:155,237.
+#
+# ===== C. CObject / CSurface / CPatch / CRegionPredicate subclasses OUTSIDE src/ri/geometry (grep 'public (CObject|CSurface|CPatch|CRegionPredicate)') =====
+#   src/ri/hiders/photon.cpp:51 CPhonySurface : CSurface         (instantiate override at :56; no other changing virtual)
+#   src/ri/render/rendererContext.cpp:498 CCaptureHolder : CObject (instantiate :502, intersect :501)
+#   tests/shading_contract/rendered_harness.h:41, tests/shading_parity/test_ambient_accumulation.cpp:71, test_false_if_constructs.cpp:78,
+#   tests/shading_parity/texture_substitute_harness.h:59  (CSurface test doubles; instantiate override only)
+#   tests/unit/csg/test_boundary_rule.cpp:39 (region predicate double), test_lazy_resolution.cpp:162, test_region_inheritance.cpp:28,35
+#
+# ===== D. Raw hits (outside src/ri/geometry and src/libshader) =====
+
+## P3 instantiate(CRiInterface*)
+src/preview/libribpreview/previewContext.cpp:139: child->instantiate(di->attributes, di->xform, this);
+src/ri/hiders/photon.cpp:56: void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
+src/ri/render/rendererContext.cpp:488: cObject->instantiate(cAttributes, cDelayed->xform, this);
+src/ri/render/rendererContext.cpp:497: // Collects the objects an instantiate() call creates (capture() below)
+src/ri/render/rendererContext.cpp:502: void instantiate(CAttributes *, CXform *, CRiInterface *) const {}
+src/ri/render/rendererContext.cpp:525: object->instantiate(attributes, xform, this);
+tests/shading_contract/rendered_harness.h:40: // CSurface is abstract; instantiate() is never called here
+tests/shading_contract/rendered_harness.h:45: void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(false); }
+tests/shading_parity/test_ambient_accumulation.cpp:65: // (CObject::instantiate() is pure virtual and CSurface never overrides
+tests/shading_parity/test_ambient_accumulation.cpp:67: // src/ri/photon.cpp:49-55: instantiate() is never actually called in
+tests/shading_parity/test_ambient_accumulation.cpp:75: void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(false); }
+tests/shading_parity/test_false_if_constructs.cpp:77: // CSurface is abstract; instantiate() is never called here
+tests/shading_parity/test_false_if_constructs.cpp:82: void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(false); }
+tests/shading_parity/texture_substitute_harness.h:58: // CSurface is abstract; instantiate() is never called here
+tests/shading_parity/texture_substitute_harness.h:63: void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(false); }
+tests/unit/csg/test_boundary_rule.cpp:56: void instantiate(CAttributes *, CXform *, CRiInterface *) const override {}
+tests/unit/csg/test_lazy_resolution.cpp:170: void instantiate(CAttributes *, CXform *, CRiInterface *) const override {}
+tests/unit/csg/test_region_inheritance.cpp:32: void instantiate(CAttributes *, CXform *, CRiInterface *) const override {}
+
+## P4 CShadingContext* in test/helper
+src/ri/hcshader.cpp:77: void CSphereLight::illuminate(CShadingContext *context, float **) {
+src/ri/hcshader.cpp:309: void CSphereLight::execute(CShadingContext *, float **) {
+src/ri/hcshader.cpp:401: void CQuadLight::illuminate(CShadingContext *context, float **) {
+src/ri/hcshader.cpp:685: void CQuadLight::execute(CShadingContext *, float **) {
+src/ri/hcshader.h:44: void illuminate(CShadingContext *, float **);
+src/ri/hcshader.h:47: void execute(CShadingContext *, float **);
+src/ri/hcshader.h:73: void illuminate(CShadingContext *, float **);
+src/ri/hcshader.h:76: void execute(CShadingContext *, float **);
+src/ri/hiders/hider.h:43: CShadingContext &shadingContext() { return context; }
+src/ri/hiders/hider.h:44: const CShadingContext &shadingContext() const { return context; }
+src/ri/hiders/hider.h:48: void traceRay(CShadingContext &ctx, CRay *ray) override;
+src/ri/hiders/hider.h:49: void traceBundle(CShadingContext &ctx, CRayBundle *bundle) override;
+src/ri/hiders/hider.h:53: void shadeSurface(CShadingContext &ctx, CSurface *surface, int uVertices, int vVertices, EShadingDim dim, unsi
+src/ri/hiders/irradiance.cpp:309: void CIrradianceCache::lookup(float *C, const float *cP, const float *cdPdu, const float *cdPdv, const float *
+src/ri/hiders/irradiance.h:59: bool irradianceSampleAccept(float w, float smallSampleWeight, CShadingContext *context);
+src/ri/hiders/irradiance.h:111: void lookup(float *, const float *, const float *, const float *, const float *, CShadingContext *);
+src/ri/hiders/irradiance.h:123: void sample(float *, const float *, const float *, const float *, const float *, CShadingContext *);
+src/ri/hiders/irradianceDispatch.cpp:252: void CIrradianceCache::sample(float *C, const float *P, const float *dPdu, const float *dPdv, const float *N, 
+src/ri/hiders/irradianceDispatch.cpp:675: bool irradianceSampleAccept(float w, float smallSampleWeight, CShadingContext *context) {
+src/ri/hiders/shadingProducer.cpp:30: void CHider::shadeSurface(CShadingContext &ctx, CSurface *surface, int uVertices, int vVertices, EShadingDim d
+src/ri/hiders/trace.cpp:255: void CHider::traceBundle(CShadingContext &ctx, CRayBundle *bundle) {
+src/ri/hiders/trace.cpp:289: void CHider::traceRay(CShadingContext &ctx, CRay *ray) {
+src/ri/render/imager.cpp:35: CShadingContext *ctx,
+src/ri/render/imager.cpp:131: CShadingContext *ctx = CRenderer::activeContext;
+src/ri/render/renderer.h:379: static thread_local CShadingContext *activeContext; // Per-thread context for the calling render thread
+src/ri/render/rendererContext.cpp:441: void CRendererContext::processDelayedObject(CShadingContext *context, CDelayedObject *cDelayed, void (*subdivi
+src/ri/render/rendererContext.cpp:475: void CRendererContext::processDelayedInstance(CShadingContext *context, CDelayedInstance *cDelayed) {
+src/ri/render/rendererContext.cpp:501: void intersect(CShadingContext *, CRay *) {}
+src/ri/render/rendererContext.h:223: void processDelayedObject(CShadingContext *context, CDelayedObject *, void (*subdivisionFunction)(void *, floa
+src/ri/render/rendererContext.h:224: void processDelayedInstance(CShadingContext *context, CDelayedInstance *instance);
+src/ri/render/rendererFiles.cpp:286: static float pointHierarchyMaxSolidAngle(const CShadingContext *context) {
+src/ri/render/rendererStatics.cpp:108: thread_local CShadingContext *CRenderer::activeContext = nullptr;            // set by the core when a render 
+src/ri/texture/brickmap.h:206: void lookup(float *, const float *, const float *, const float *, const float *, CShadingContext *) { assert(F
+src/ri/texture/pointCloud.h:65: void lookup(float *, const float *, const float *, const float *, const float *, CShadingContext *) { assert(F
+src/ri/texture/pointHierarchy.cpp:473: void CPointHierarchy::lookup(float *Cl, const float *Pl, const float *, const float *, const float *Nl, CShadi
+src/ri/texture/pointHierarchy.h:58: float (*maxSolidAngle)(const CShadingContext *context);
+src/ri/texture/pointHierarchy.h:64: void lookup(float *, const float *, const float *, const float *, const float *, CShadingContext *);
+src/ri/texture/texture3d.h:67: virtual void lookup(float *, const float *, const float *, const float *, const float *, CShadingContext *) = 
+tests/shading_contract/case_canned_bundles.cpp:36: void traceBundle(CShadingContext &context, CRayBundle *bundle) override {
+tests/shading_contract/case_hider_tracer.cpp:82: CShadingContext &a = rt->shadingContext();
+tests/shading_contract/case_hider_tracer.cpp:83: CShadingContext &b = ph->shadingContext();
+tests/shading_contract/case_point_source.cpp:122: CShadingContext &ctx = *h.context;
+tests/shading_contract/case_ray_level.cpp:79: void traceRay(CShadingContext &, CRay *) override {}
+tests/shading_contract/case_ray_level.cpp:80: void traceBundle(CShadingContext &context, CRayBundle *bundle) override {
+tests/shading_contract/case_ray_level.cpp:104: CShadingContext &ctx = *h.context;
+tests/shading_contract/case_standalone_context.cpp:44: CShadingContext *context = new CShadingContext(0);
+tests/shading_contract/case_type_mismatch_real.cpp:85: void direct(CRenderedSession &s, CShadingContext *ctx) {
+tests/shading_contract/case_type_mismatch_real.cpp:180: void viaShader(CRenderedSession &s, CShadingContext *ctx, bool jit) {
+tests/shading_contract/recording_tracer.h:96: void traceRay(CShadingContext &context, CRay *ray) override {
+tests/shading_contract/recording_tracer.h:122: void traceBundle(CShadingContext &context, CRayBundle *bundle) override {
+tests/shading_contract/recording_tracer.h:151: void traceRay(CShadingContext &context, CRay *ray) override {
+tests/shading_contract/recording_tracer.h:168: void traceBundle(CShadingContext &context, CRayBundle *bundle) override {
+tests/shading_contract/rendered_harness.h:90: static void setupState(CShadingContext *ctx, int n, CSurface *obj) {
+tests/shading_contract/rendered_harness.h:124: static SHarnessResult runSurface(CShadingContext *ctx, CProgrammableShaderInstance *surface, int n, CSurface *
+tests/shading_parity/test_ambient_accumulation.cpp:155: CShadingContext *ctx = &CRenderer::contexts[0]->shadingContext();
+tests/shading_parity/test_ambient_accumulation.cpp:237: CShadingContext *ctx = &CRenderer::contexts[0]->shadingContext();
+tests/shading_parity/test_context_no_services.cpp:104: if (h.object == (const CSurface *)(const CShadingContext *)ctx)
+tests/shading_parity/test_derivative_inactive_grid_lanes.cpp:150: std::vector<float> run(CShadingContext *ctx, CShadingState *ss, Op op, const std::vector<int> &tags, int poiso
+tests/shading_parity/test_derivative_inactive_grid_lanes.cpp:183: void testOp(CShadingContext *ctx, CShadingState *ss, Op op) {
+tests/shading_parity/test_derivative_inactive_grid_lanes.cpp:244: CShadingContext *ctx = &CRenderer::contexts[0]->shadingContext();
+tests/shading_parity/test_derivative_inactive_lanes.cpp:86: std::vector<float> run(CShadingContext *ctx, CShadingState *ss, Op op, unsigned inactive, int poison) {
+tests/shading_parity/test_derivative_inactive_lanes.cpp:131: void testOp(CShadingContext *ctx, CShadingState *ss, Op op) {
+tests/shading_parity/test_derivative_inactive_lanes.cpp:172: CShadingContext *ctx = &CRenderer::contexts[0]->shadingContext();
+tests/unit/csg/csgTestUtils.h:158: CShadingContext *ctx() const { return CRenderer::contexts != NULL ? &CRenderer::contexts[0]->shadingContext() 
+tests/unit/csg/csgTestUtils.h:180: inline void collectSurfaces(CShadingContext *ctx, CObject *o, std::vector<CSurface *> &out) {
+tests/unit/csg/csgTestUtils.h:194: inline CCSGResolvedOperand *makeOperand(CShadingContext *ctx, const std::vector<CObject *> &members) {
+tests/unit/csg/csgTestUtils.h:209: inline CCSGResolvedOperand *makeOperandOneMember(CShadingContext *ctx, const std::vector<CObject *> &pieces) {
+tests/unit/csg/csgTreeHelpers.h:66: inline int inside(const CCSGDefinition *def, const std::vector<CCSGResolvedOperand *> &ops, CShadingContext *c
+tests/unit/csg/csgTreeHelpers.h:72: inline double volume(const CCSGDefinition *def, const std::vector<CCSGResolvedOperand *> &ops, CShadingContext
+tests/unit/csg/csgTreeHelpers.h:98: inline int onPlane(const CCSGEvaluator &ev, CShadingContext *ctx, int operand, float x, float y, float z, floa
+tests/unit/csg/test_boundary_rule.cpp:44: int countCrossings(CShadingContext *, const float *from, const float *dir) const override {
+tests/unit/csg/test_classify_determinism.cpp:32: static std::vector<int> classifyAll(CShadingContext *ctx, const CCSGResolvedOperand &op,
+tests/unit/csg/test_classify_determinism.cpp:40: static bool deterministic(CShadingContext *ctx, const CCSGResolvedOperand &op, const std::vector<std::vector<f
+tests/unit/csg/test_classify_quadrics.cpp:28: static int at(CShadingContext *ctx, CCSGResolvedOperand *op, float x, float y, float z) {
+tests/unit/csg/test_count_crossings.cpp:29: static int crossings(CObject *o, CShadingContext *ctx, float fx, float fy, float fz, float dx, float dy, float
+tests/unit/csg/test_count_crossings.cpp:35: static int meshCrossings(CObject *o, CShadingContext *ctx, float fx, float fy, float fz, float dx, float dy, f
+tests/unit/csg/test_lazy_resolution.cpp:169: void intersect(CShadingContext *, CRay *) override {}
+tests/unit/csg/test_parity_robustness.cpp:31: static int at(CShadingContext *ctx, CCSGResolvedOperand *op, float x, float y, float z) {
+tests/unit/csg/test_parity_robustness.cpp:36: static int along(CShadingContext *ctx, CCSGResolvedOperand *op, float x, float y, float z, float dx, float dy,
+tests/unit/csg/test_parity_robustness.cpp:42: static bool matchesBox(CShadingContext *ctx, CCSGResolvedOperand *op) {
+tests/unit/csg/test_region_inheritance.cpp:31: void intersect(CShadingContext *, CRay *) override {}
+tests/unit/csg/test_region_inheritance.cpp:37: int accepts(CShadingContext *, const float *, const float *) const override { return TRUE; }
+tests/unit/csg/test_region_inheritance.cpp:38: int classifyBound(CShadingContext *, const float *, const float *) const override { return REGION_ALL_IN; }
+tests/unit/motion/motion_replay.cpp:67: typedef void (CCurveMesh::*type)(CShadingContext *);
+tests/unit/motion/motion_replay.cpp:503: void traceFrom(CShadingContext *ctx, CObject *start, CRay *ray) {
+tests/unit/motion/motion_replay.cpp:580: void queryIntersections(CShadingContext *ctx, const SceneDef &sc, CObject *leaf, int leafIndex, std::vector<st
+tests/unit/motion/motion_replay.cpp:691: CShadingContext *ctx = session.ctx();
+tests/unit/motion/replay_capture.h:166: CShadingContext *ctx() const { return CRenderer::contexts != NULL ? &CRenderer::contexts[0]->shadingContext() 
+tests/unit/motion/replay_capture.h:184: inline void collectLeaves(CShadingContext *ctx, CObject *o, std::vector<CObject *> &out) {
+tests/unit/rib_parse/test_sampling_option_rsl.cpp:47: static CShadingContext *context() {
+tests/unit/sampling/scene_probe.h:134: CShadingContext *ctx() const { return CRenderer::contexts != nullptr ? &CRenderer::contexts[0]->shadingContext
+
+## P4 countCrossings/classifyOperand/materialize
+tests/unit/csg/csgTestUtils.h:178: // Depth-first: materialize the object, then each of its children, and
+tests/unit/csg/csgTestUtils.h:181: o->materialize(ctx);
+tests/unit/csg/csgTreeHelpers.h:68: return def->evaluate([&](int op) { return classifyOperand(ctx, *ops[op], P) == CSG_IN; });
+tests/unit/csg/test_boundary_rule.cpp:44: int countCrossings(CShadingContext *, const float *from, const float *dir) const override {
+tests/unit/csg/test_classify_determinism.cpp:36: out[i] = classifyOperand(ctx, op, pts[i].data());
+tests/unit/csg/test_classify_determinism.cpp:60: c[i] = classifyOperand(NULL, op, pts[i].data());
+tests/unit/csg/test_classify_quadrics.cpp:30: return classifyOperand(ctx, *op, P);
+tests/unit/csg/test_count_crossings.cpp:7: *   Unit test (T015, spec 021) for CSurface::countCrossings(): the unsigned
+tests/unit/csg/test_count_crossings.cpp:31: return static_cast<CSurface *>(o)->countCrossings(ctx, from, dir);
+tests/unit/csg/test_count_crossings.cpp:45: total += s->countCrossings(ctx, from, dir);
+tests/unit/csg/test_csg_stats.cpp:110: ASSERT(classifyOperand(NULL, *op, P) == CSG_IN);
+tests/unit/csg/test_multi_primitive_leaf.cpp:31: ASSERT(classifyOperand(s.ctx(), *op, a) == CSG_IN);
+tests/unit/csg/test_multi_primitive_leaf.cpp:32: ASSERT(classifyOperand(s.ctx(), *op, b) == CSG_IN);
+tests/unit/csg/test_multi_primitive_leaf.cpp:33: ASSERT(classifyOperand(s.ctx(), *op, between) == CSG_OUT);
+tests/unit/csg/test_multi_primitive_leaf.cpp:41: ASSERT(classifyOperand(s.ctx(), *ops[0], centre) == CSG_OUT);
+tests/unit/csg/test_parity_robustness.cpp:33: return classifyOperand(ctx, *op, P);
+tests/unit/csg/test_parity_robustness.cpp:46: if (classifyOperand(ctx, *op, p.data()) != expected)
+tests/unit/motion/motion_replay.cpp:24: *   CObject::intersect(), CObject::sample(), CObject::materialize()) and names no 028 type.
+tests/unit/motion/motion_replay.cpp:702: (mesh->*curveMeshCreate(CurveMeshCreateTag()))(ctx); // The mesh builds its curves lazily and has no materiali
+tests/unit/motion/replay_capture.h:26: *     set before RiWorldBegin. EVERY intersect(), sample() and materialize() call of a scene
+tests/unit/motion/replay_capture.h:34: *   CObject::intersect(), CObject::sample() and CObject::materialize(). It includes no
+tests/unit/motion/replay_capture.h:182: // Depth first: materialize the object, then each of its children, and collect every object
+tests/unit/motion/replay_capture.h:185: o->materialize(ctx);
+tests/unit/sampling/test_object_ids.cpp:237: parent->materialize(s.ctx()); // builds the children
+
+## P4 intersect(CShadingContext*,CRay*)
+src/procedures/proceduralModules.h:74: CDloModule(void *h, const std::string &key) : CProceduralModule(h, key), init(nullptr), intersect(nullptr), ti
+src/ri/hiders/trace.cpp:338: object->intersect(&context, ray);
+src/ri/render/rendererContext.cpp:501: void intersect(CShadingContext *, CRay *) {}
+src/ri/render/rendererDeclarationsDispatch.cpp:13: *     Unlike the geometry classes' intersect()/dice()/shade() (see
+src/ri/texture/brickmap.cpp:63: static inline float intersect(const float *P, float dP, float x, float y, float z, float d) {
+src/ri/texture/brickmap.cpp:414: const float cWeight = intersect(P, dP, cX, cY, cZ, dVoxel * 0.5f);                                            
+tests/unit/csg/test_lazy_resolution.cpp:10: *   classification -- and the first intersect() (or resolve()) builds the
+tests/unit/csg/test_lazy_resolution.cpp:139: solid->intersect(s.ctx(), &ray);
+tests/unit/csg/test_lazy_resolution.cpp:146: solid->intersect(s.ctx(), &ray);
+tests/unit/csg/test_lazy_resolution.cpp:169: void intersect(CShadingContext *, CRay *) override {}
+tests/unit/csg/test_region_inheritance.cpp:31: void intersect(CShadingContext *, CRay *) override {}
+tests/unit/motion/motion_replay.cpp:24: *   CObject::intersect(), CObject::sample(), CObject::materialize()) and names no 028 type.
+tests/unit/motion/motion_replay.cpp:524: o->intersect(ctx, ray);
+tests/unit/motion/motion_replay.cpp:600: // CTesselationPatch::intersect (1x1, 2x2 and 4x4 grids, subsampled and not, 8x8 and 16x16)
+tests/unit/motion/replay_capture.h:26: *     set before RiWorldBegin. EVERY intersect(), sample() and materialize() call of a scene
+tests/unit/motion/replay_capture.h:34: *   CObject::intersect(), CObject::sample() and CObject::materialize(). It includes no
+tests/unit/polynomial/test_polynomial.cpp:9: *   CToroid::intersect(), so every lost root is a torus pixel that never
+
+## P4 regionCoverage/accepts/classifyBound
+src/ri/hiders/reyes.cpp:1042: object->regionCoverage(&context, udiv, vdiv, varying[VARIABLE_U], varying[VARIABLE_V], grid->coverage);
+tests/unit/common/test_common_variables.cpp:74: // A 62-character name: the longest the lexer accepts (it asserts
+tests/unit/csg/csgTreeHelpers.h:91: // accepts() for a point on a sphere leaf, with the sphere's normal
+tests/unit/csg/csgTreeHelpers.h:94: return ev.accepts(NULL, operand, P, Ng);
+tests/unit/csg/csgTreeHelpers.h:97: // accepts() for a point on a planar leaf with normal (nx, ny, nz)
+tests/unit/csg/csgTreeHelpers.h:101: return ev.accepts(ctx, operand, P, Ng);
+tests/unit/csg/test_boundary_rule.cpp:14: *   classifyBound(), the exact seam location of the sphere-minus-cube and
+tests/unit/csg/test_boundary_rule.cpp:181: ASSERT(ev.accepts(NULL, 0, P, Ng) == FALSE);
+tests/unit/csg/test_boundary_rule.cpp:220: ASSERT(ev.classifyBound(NULL, 0, in0, in1) == REGION_ALL_OUT);
+tests/unit/csg/test_boundary_rule.cpp:223: ASSERT(ev.classifyBound(NULL, 0, out0, out1) == REGION_ALL_IN);
+tests/unit/csg/test_boundary_rule.cpp:226: ASSERT(ev.classifyBound(NULL, 0, mix0, mix1) == REGION_MIXED);
+tests/unit/csg/test_boundary_rule.cpp:276: ASSERT(ev.accepts(NULL, 1, P, Ng) == (side < 0 ? TRUE : FALSE)); // inside the sphere: the hole wall
+tests/unit/csg/test_implied_caps.cpp:85: static int accepts(const CSurface *q, const CCSGCap *cap, float x, float y, float z) {
+tests/unit/csg/test_implied_caps.cpp:106: ASSERT(accepts(q, top, 0.5f, 0, 1) == TRUE);
+tests/unit/csg/test_implied_caps.cpp:107: ASSERT(accepts(q, top, 1.5f, 0, 1) == FALSE);
+tests/unit/csg/test_implied_caps.cpp:108: ASSERT(accepts(q, bottom, 0, -0.9f, -1) == TRUE);
+tests/unit/csg/test_implied_caps.cpp:109: ASSERT(accepts(q, bottom, 0, -1.1f, -1) == FALSE);
+tests/unit/csg/test_implied_caps.cpp:120: ASSERT(accepts(q, top, 0.8f, 0, 0.5f) == TRUE);   // inside r = sqrt(0.75) = 0.866
+tests/unit/csg/test_implied_caps.cpp:121: ASSERT(accepts(q, top, 0.9f, 0, 0.5f) == FALSE);
+tests/unit/csg/test_implied_caps.cpp:131: ASSERT(accepts(q, top, 0, 0.5f, 1) == TRUE);   // the y >= 0 half
+tests/unit/csg/test_implied_caps.cpp:132: ASSERT(accepts(q, top, 0, -0.5f, 1) == FALSE);
+tests/unit/csg/test_implied_caps.cpp:140: positive += accepts(q, &c, 0.5f, 0, 0);
+tests/unit/csg/test_implied_caps.cpp:141: negative += accepts(q, &c, -0.5f, 0, 0);
+tests/unit/csg/test_implied_caps.cpp:142: ASSERT(accepts(q, &c, 1.5f, 0, 0) == FALSE);
+tests/unit/csg/test_implied_caps.cpp:143: ASSERT(accepts(q, &c, 0.5f, 0, 1.5f) == FALSE);
+tests/unit/csg/test_implied_caps.cpp:156: ASSERT(accepts(q, base, 0.5f, 0, 0) == TRUE);
+tests/unit/csg/test_implied_caps.cpp:157: ASSERT(accepts(q, base, 1.2f, 0, 0) == FALSE);
+tests/unit/csg/test_implied_caps.cpp:167: ASSERT(accepts(q, top, 0.9f, 0, 1) == TRUE);
+tests/unit/csg/test_implied_caps.cpp:168: ASSERT(accepts(q, top, 1.1f, 0, 1) == FALSE);
+tests/unit/csg/test_implied_caps.cpp:174: ASSERT(accepts(q, bottom, 0.4f, 0, 0.25f) == TRUE);  // r = sqrt(0.25) = 0.5 there
+tests/unit/csg/test_implied_caps.cpp:175: ASSERT(accepts(q, bottom, 0.6f, 0, 0.25f) == FALSE);
+tests/unit/csg/test_implied_caps.cpp:187: ASSERT(accepts(q, top, 0.9f, 0, 1) == TRUE);
+tests/unit/csg/test_implied_caps.cpp:188: ASSERT(accepts(q, top, 1.1f, 0, 1) == FALSE);
+tests/unit/csg/test_implied_caps.cpp:201: positive += accepts(q, &c, 1.1f, 0, 0.1f);
+tests/unit/csg/test_implied_caps.cpp:202: negative += accepts(q, &c, -1.1f, 0, 0.1f);
+tests/unit/csg/test_implied_caps.cpp:203: ASSERT(accepts(q, &c, 1.4f, 0, 0) == FALSE);   // outside the tube
+tests/unit/csg/test_implied_caps.cpp:204: ASSERT(accepts(q, &c, 0.5f, 0, 0) == FALSE);   // the hole
+tests/unit/csg/test_implied_caps.cpp:226: ASSERT(accepts(q, &cap, 0.5f * (a[0] + b[0]), 0, 0.5f * (a[1] + b[1])) == TRUE);
+tests/unit/csg/test_implied_caps.cpp:227: ASSERT(accepts(q, &cap, b[0] + 0.5f * (b[0] - a[0]), 0, b[1] + 0.5f * (b[1] - a[1])) == FALSE);
+tests/unit/csg/test_region_inheritance.cpp:37: int accepts(CShadingContext *, const float *, const float *) const override { return TRUE; }
+tests/unit/csg/test_region_inheritance.cpp:38: int classifyBound(CShadingContext *, const float *, const float *) const override { return REGION_ALL_IN; }
+
+## P4 setChildren(ctx,x)
+src/ri/render/renderer.cpp:1062: root->setChildren(&contexts[0]->shadingContext(), root->children);
+src/ri/render/rendererContext.cpp:465: cDelayed->setChildren(context, cDelayed->children);
+src/ri/render/rendererContext.cpp:494: cDelayed->setChildren(context, cDelayed->children);
+tests/unit/csg/test_region_inheritance.cpp:8: *   region hook's inheritance: CObject::setChildren() copies the parent's
+tests/unit/csg/test_region_inheritance.cpp:59: parent.setChildren(NULL, chain(3, kids));
+tests/unit/csg/test_region_inheritance.cpp:72: parent.setChildren(NULL, head);
+tests/unit/csg/test_region_inheritance.cpp:81: parent.setChildren(NULL, chain(3, kids));
+tests/unit/csg/test_region_inheritance.cpp:93: parent.setChildren(NULL, intermediate);
+tests/unit/csg/test_region_inheritance.cpp:97: intermediate->setChildren(NULL, chain(4, grandkids));
+
+## P4/5 shade/displace forwarding entries
+src/ri/hiders/hider.h:52: // source and the batch description and calls context.shade(ShaderGlobals, IPointSource) (shadingProducer.cpp)
+src/ri/hiders/reyes.cpp:789: context.displace(object, count, 1, SHADING_0D, (sample ? PARAMETER_END_SAMPLE : PARAMETER_BEGIN_SAMPLE) | PARA
+src/ri/hiders/reyes.cpp:869: context.displace(object, numPoints, 1, SHADING_0D, PARAMETER_BEGIN_SAMPLE | PARAMETER_P);
+src/ri/hiders/reyes.cpp:906: context.shade(object, numPoints, 1, SHADING_0D, PARAMETER_BEGIN_SAMPLE | PARAMETER_P);
+src/ri/hiders/reyes.cpp:935: context.displace(object, numPoints, 1, SHADING_0D, PARAMETER_END_SAMPLE | PARAMETER_P);
+src/ri/hiders/reyes.cpp:967: context.shade(object, numPoints, 1, SHADING_0D, PARAMETER_END_SAMPLE | PARAMETER_P);
+src/ri/hiders/reyes.cpp:1046: context.displace(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_BEGIN_SAMPLE | PARAMETER_P);
+src/ri/hiders/reyes.cpp:1060: context.shade(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_BEGIN_SAMPLE | PARAMETER_P);
+src/ri/hiders/reyes.cpp:1103: context.displace(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_END_SAMPLE | PARAMETER_P);
+src/ri/hiders/reyes.cpp:1114: context.shade(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_END_SAMPLE | PARAMETER_P);
+src/ri/hiders/shadingProducer.cpp:68: context.shade(g, source);
+tests/shading_contract/case_point_source.cpp:145: ctx.shade(g, source);
+tests/shading_contract/case_point_source.cpp:180: ctx.shade(g, source);
+tests/shading_contract/case_point_source.cpp:199: ctx.shade(g, source);
+
+## P5 dice/splitToChildren(CReyes*)
+src/ri/hiders/reyes.cpp:374: cObject->object->dice(this);
+src/ri/hiders/reyes.cpp:570: object->dice(this);
+src/ri/render/rendererDeclarationsDispatch.cpp:13: *     Unlike the geometry classes' intersect()/dice()/shade() (see
+tests/unit/motion/motion_replay.cpp:62: // CCurveMesh::create() is private and is reached in production only through CCurveMesh::dice(), which
+tests/unit/motion/motion_replay.cpp:77: // (production calls it from CPoints::dice(); the root's points array is NULL until then).
+
+## P7/9 cocFactor
+src/ri/hiders/reyes.cpp:1164: vertices[9] = CSampler::circleOfConfusion(z, CRenderer::invFocaldistance, CRenderer::cocFactorSamples);
+src/ri/hiders/reyes.cpp:1468: const float coc1 = CSampler::circleOfConfusion(zmin, CRenderer::invFocaldistance, CRenderer::cocFactorSamples)
+src/ri/hiders/reyes.cpp:1469: const float coc2 = CSampler::circleOfConfusion(zmax, CRenderer::invFocaldistance, CRenderer::cocFactorSamples)
+src/ri/hiders/reyes.cpp:1887: const float coc1 = CSampler::circleOfConfusion(zmin, CRenderer::invFocaldistance, CRenderer::cocFactorSamples)
+src/ri/hiders/reyes.cpp:1888: const float coc2 = CSampler::circleOfConfusion(zmax, CRenderer::invFocaldistance, CRenderer::cocFactorSamples)
+src/ri/hiders/sampler.cpp:23: float CSampler::circleOfConfusion(float z, float invFocaldistance, float cocFactorSamples) {
+src/ri/hiders/sampler.cpp:24: return absf((1.0f / z) - invFocaldistance) * cocFactorSamples;
+src/ri/hiders/sampler.h:95: static float circleOfConfusion(float z, float invFocaldistance, float cocFactorSamples);
+src/ri/render/renderer.cpp:449: cocFactorScreen = 0;
+src/ri/render/renderer.cpp:450: cocFactorSamples = 0;
+src/ri/render/renderer.cpp:451: cocFactorPixels = 0;
+src/ri/render/renderer.cpp:452: invFocaldistance = 0;
+src/ri/render/renderer.cpp:455: cocFactorScreen = (float)(imagePlane * aperture * focaldistance / (focaldistance + aperture));
+src/ri/render/renderer.cpp:456: cocFactorSamples = cocFactorScreen * sqrtf(dPixeldx * dPixeldx * pixelXsamples * pixelXsamples + dPixeldy * dP
+src/ri/render/renderer.cpp:457: cocFactorPixels = cocFactorScreen * sqrtf(dPixeldx * dPixeldx + dPixeldy * dPixeldy);
+src/ri/render/renderer.cpp:458: invFocaldistance = 1 / focaldistance;
+src/ri/render/renderer.h:42: #define cocPixels(z) absf((1 / z) - CRenderer::invFocaldistance) * CRenderer::cocFactorPixels
+src/ri/render/renderer.h:43: #define cocScreen(z) absf((1 / z) - CRenderer::invFocaldistance) * CRenderer::cocFactorScreen
+src/ri/render/renderer.h:424: static float cocFactorPixels;                             // The circle of concusion factor for the pixels
+src/ri/render/renderer.h:425: static float cocFactorSamples;                            // The circle of concusion factor for the samples
+src/ri/render/renderer.h:426: static float cocFactorScreen;                             // The circle of concusion factor for the screen
+src/ri/render/renderer.h:427: static float invFocaldistance;                            // 1 / focalDistance
+src/ri/render/rendererFrame.cpp:50: f.invFocaldistance = CRenderer::invFocaldistance;
+src/ri/render/rendererStatics.cpp:232: float CRenderer::cocFactorPixels;                                        // initialized in beginFrame
+src/ri/render/rendererStatics.cpp:233: float CRenderer::cocFactorSamples;                                       // initialized in beginFrame
+src/ri/render/rendererStatics.cpp:234: float CRenderer::cocFactorScreen;                                        // initialized in beginFrame
+src/ri/render/rendererStatics.cpp:235: float CRenderer::invFocaldistance;                                       // initialized in beginFrame
+src/ri/state/camera.cpp:35: float LensModel::cocFactorScreen() const {
+src/ri/state/camera.cpp:52: lm.invFocaldistance = 1.0f;
+src/ri/state/camera.cpp:74: invFocaldistance(fp.invFocaldistance), focallength(fp.focallength), fstop(fp.fstop) {}
+src/ri/state/camera.cpp:144: lm.invFocaldistance = invFocaldistance;
+src/ri/state/camera.h:62: float focaldistance, invFocaldistance;
+src/ri/state/camera.h:67: float cocFactorScreen() const;
+src/ri/state/camera.h:115: float aperture, focaldistance, invFocaldistance, focallength, fstop;
+src/ri/state/frameParams.h:58: float aperture, focaldistance, invFocaldistance, focallength, fstop;
+tests/unit/camera/frame_test_utils.h:83: fp.invFocaldistance = 0.0f;
+tests/unit/camera/test_camera_analytic.cpp:104: fp.invFocaldistance = 1.0f / 6.0f;
+tests/unit/camera/test_camera_crop.cpp:46: full.invFocaldistance = 0.2f;
+tests/unit/camera/test_camera_equivalence.cpp:164: fp.invFocaldistance = 1.0f / fp.focaldistance;
+tests/unit/camera/test_camera_generate_ray_only.cpp:105: CHECK(lm.cocFactorScreen() == 0.0f);
+tests/unit/camera/test_camera_lens_model.cpp:11: *   cocFactorScreen() is, bit for bit, the expression of CRenderer::beginFrame
+tests/unit/camera/test_camera_lens_model.cpp:46: CHECK(frametest::sameBits(lm.invFocaldistance, fp.invFocaldistance));
+tests/unit/camera/test_camera_lens_model.cpp:51: CHECK(frametest::sameBits(lm.cocFactorScreen(), referenceCocFactorScreen(fp)));
+tests/unit/camera/test_camera_lens_model.cpp:53: CHECK(lm.cocFactorScreen() == 0.0f);
+tests/unit/camera/test_camera_lens_model.cpp:68: fp.invFocaldistance = 1.0f / fp.focaldistance;
+tests/unit/camera/test_camera_lens_model.cpp:75: fp.invFocaldistance = 1.0f / 11.0f;
+tests/unit/motion/test_frame_params_equal_core.cpp:111: bits(c.name, "invFocaldistance", fp.invFocaldistance, CRenderer::invFocaldistance);
+
+# (src/ri/render/geometryDispatch.cpp and src/ri/vector/*Stub.cpp hits omitted: they are the Core/Stub sides the phases rewrite.)

@@ -33,10 +33,12 @@
 #include "compositor.h"
 #include "common/diagnostics.h"
 #include "common/memory.h"
+#include "motion.h"
 #include "pixelFilter.h"
 #include "rasterEdge.h"
 #include "common/random.h"
 #include "sampler.h"
+#include "state/frameParams.h"
 #include "stochastic.h"
 #include "hiderAbi.hpp"
 #include "hiderRegistry.h"
@@ -163,14 +165,14 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int /*nullBucket*/) {
     // Camera pure-rotation fast path: precompute the inverse rotation so each
     // sample can be rotated back to the t=0 camera frame once, letting the
     // rasterizer test moving quads against their static positions
+    const openrender::FrameParams &fp = openrender::frameParams();
     quaternion invRotQ = {0.0f, 0.0f, 0.0f, 1.0f};
-    if (CRenderer::cameraRotationOnly) {
-        invRotQ[0] = -CRenderer::relRotQ[0];
-        invRotQ[1] = -CRenderer::relRotQ[1];
-        invRotQ[2] = -CRenderer::relRotQ[2];
-        invRotQ[3] = CRenderer::relRotQ[3];
+    if (fp.camera.rotationOnly) {
+        invRotQ[0] = -fp.camera.relRotQ[0];
+        invRotQ[1] = -fp.camera.relRotQ[1];
+        invRotQ[2] = -fp.camera.relRotQ[2];
+        invRotQ[3] = fp.camera.relRotQ[3];
     }
-    static const quaternion identQ = {0.0f, 0.0f, 0.0f, 1.0f};
 
     // Every camera value comes from the sampler's camera slots (spec 039, R3.1),
     // indexed by the sample's absolute subpixel coordinates (`left`/`top` are already
@@ -205,23 +207,23 @@ void CStochastic::rasterBegin(int w, int h, int l, int t, int /*nullBucket*/) {
             pixel->jy = sample.jitterY;
             pixel->jt = sample.timeStratum;
             pixel->jimp = sample.importance;
-            pixel->jdx = sample.lensU;
-            pixel->jdy = sample.lensV;
+            // The lens point scaled to sample units, so that v + jdx * c scatters a vertex by lens * dSampled * c,
+            // c the signed circle of confusion in screen units (reyesLensBounds.h expands the bounds by |c| * |dSampled|)
+            pixel->jdx = sample.lensU * fp.dSampledx;
+            pixel->jdy = sample.lensV * fp.dSampledy;
 
             // Center location of the sample
             pixel->xcent = (j + pixel->jx) + left;
             pixel->ycent = (i + pixel->jy) + top;
 
-            if (CRenderer::cameraRotationOnly) {
+            if (fp.camera.rotationOnly) {
                 // Inverse-rotate the sample ray to the t=0 camera frame. A pure
                 // camera rotation maps image points independently of depth, so
                 // this one transform replaces the per-(sample x quad) forward
                 // vertex transforms in the rasterizer. zScale maps a t=0
                 // interpolated depth to the sample's own time.
-                quaternion Rjt;
-                slerpq(Rjt, identQ, invRotQ, pixel->jt);
                 matrix M;
-                qtoR(M, Rjt);
+                openrender::motion::cameraRotationAt(M, invRotQ, pixel->jt);
                 const float sx = pixel->xcent / CRenderer::dSampledx + CRenderer::pixelLeft;
                 const float sy = pixel->ycent / CRenderer::dSampledy + CRenderer::pixelTop;
                 const float d[3] = {sx * CRenderer::invImagePlane, sy * CRenderer::invImagePlane, 1.0f};

@@ -102,7 +102,7 @@ int main() {
     const LensModel lm = icam.lensModel();
     CHECK(lm.aperture == 0.0f);
     CHECK(!lm.thinLens());
-    CHECK(lm.cocFactorScreen() == 0.0f);
+    CHECK(lm.circleOfConfusion(2.0f) == 0.0f);
 
     // The reserved operations: NotSupported, outputs untouched
     alignas(16) unsigned char importance[256];

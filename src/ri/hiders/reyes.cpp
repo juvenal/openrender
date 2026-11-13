@@ -28,7 +28,10 @@
 
 #include "common/diagnostics.h"
 #include "common/memory.h"
+#include "motion.h"
 #include "reyes.h"
+#include "reyesLensBounds.h"
+#include "state/frameParams.h"
 
 #include <algorithm>
 #include <climits>
@@ -147,6 +150,7 @@ CReyes::CBucket::~CBucket() {
 // Return Value			:	-
 // Comments				:
 CReyes::CReyes(int thread, const CHiderPeers &peerGroup) : CHider(thread), peers(&peerGroup) {
+    const openrender::FrameParams &fp = openrender::frameParams();
     int cx, cy;
 
     // Allocate the buckets
@@ -169,7 +173,7 @@ CReyes::CReyes(int thread, const CHiderPeers &peerGroup) : CHider(thread), peers
     extraPrimitiveFlags = 0;
     if (CRenderer::numExtraSamples > 0)
         extraPrimitiveFlags |= RASTER_EXTRASAMPLES;
-    if (CRenderer::aperture != 0)
+    if (fp.aperture != 0)
         extraPrimitiveFlags |= RASTER_FOCALBLUR;
 
     // Init the stats
@@ -371,7 +375,7 @@ void CReyes::render() {
                                   tbucketTop,
                                   cObject->zmin)) {
 
-                        cObject->object->dice(this);
+                        cObject->object->dice(*this);
                         cObject->diced = TRUE;
                     }
                     else {
@@ -524,11 +528,22 @@ void CReyes::skip() {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CReyes
+// Method				:	inFrustum
+// Description			:	IDicer: is the camera-space box in the frustrum?
+// Return Value			:	TRUE if it may be visible
+// Comments				:	Out of line so the reference to CRenderer::inFrustrum stays in this file
+int CReyes::inFrustum(const float *bmin, const float *bmax) {
+    return CRenderer::inFrustrum(bmin, bmax);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CReyes
 // Method				:	drawObject
 // Description			:	Draw an object
 // Return Value			:	-
 // Comments				:	Thread safe
 void CReyes::drawObject(CObject *object) {
+    const openrender::FrameParams &fp = openrender::frameParams();
     float xmin, xmax, ymin, ymax;
     float x[4], y[4];
     int i;
@@ -564,10 +579,10 @@ void CReyes::drawObject(CObject *object) {
     // Compute the projected extend of the bound in the pixel space
     if (CRenderer::projection == OPTIONS_PROJECTION_PERSPECTIVE) {
         if (zmin < C_EPSILON) {                      // Spanning the eye plane ?
-            if (CRenderer::inFrustrum(bmin, bmax)) { // Are we in the frustrum ?
+            if (CReyes::inFrustum(bmin, bmax)) { // Are we in the frustrum ?
                                                      // If we can not make the perspective divide
                                                      // Go ahead and process the object now
-                object->dice(this);
+                object->dice(*this);
             }
 
             return;
@@ -612,39 +627,15 @@ void CReyes::drawObject(CObject *object) {
     ymin -= CRenderer::pixelTop;
     ymax -= CRenderer::pixelTop;
 
-    // Account for the depth of field
-    if (CRenderer::aperture != 0) {
-        float coc1 = cocScreen(zmin);
-        float coc2 = cocScreen(zmax);
-        float mcoc;
-        if (coc2 > coc1) {
-            mcoc = coc2;
-        }
-        else {
-            mcoc = coc1;
-        }
-        xmin = xmin - mcoc;
-        xmax = xmax + mcoc;
-        ymin = ymin - mcoc;
-        ymax = ymax + mcoc;
-    }
-
-    // Convert to samples
-    xmin *= CRenderer::dSampledx;
-    ymin *= CRenderer::dSampledy;
-    xmax *= CRenderer::dSampledx;
-    ymax *= CRenderer::dSampledy;
-
-    if (xmax < xmin) {
-        const float t = xmax;
-        xmax = xmin;
-        xmin = t;
-    }
-
-    if (ymax < ymin) {
-        const float t = ymax;
-        ymax = ymin;
-        ymin = t;
+    // Convert to samples, widened by the depth of field (reyesLensBounds.h: the largest scatter of
+    // the lens over [zmin, zmax])
+    {
+        float sampleBound[4] = {xmin, xmax, ymin, ymax};
+        reyes_lens::expandBucketBounds(openrender::LensModel::fromFrame(fp), zmin, zmax, fp.dSampledx, fp.dSampledy, sampleBound);
+        xmin = sampleBound[0];
+        xmax = sampleBound[1];
+        ymin = sampleBound[2];
+        ymax = sampleBound[3];
     }
 
     // Trivial reject
@@ -786,7 +777,7 @@ void CReyes::snapGrid(CRasterGrid *grid, int moving) {
                 time[t] = (float)sample;
             }
 
-            context.displace(object, count, 1, SHADING_0D, (sample ? PARAMETER_END_SAMPLE : PARAMETER_BEGIN_SAMPLE) | PARAMETER_P);
+            shadeSurface(object, count, 1, SHADING_0D, (sample ? PARAMETER_END_SAMPLE : PARAMETER_BEGIN_SAMPLE) | PARAMETER_P, TRUE);
             camera2samples(count, varying[VARIABLE_P]);
             memcpy(points + first * 3, varying[VARIABLE_P], count * 3 * sizeof(float));
         }
@@ -866,7 +857,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
             varying[VARIABLE_CONSTANTWIDTH][0] = -C_INFINITY;
 
             // Shade the points
-            context.displace(object, numPoints, 1, SHADING_0D, PARAMETER_BEGIN_SAMPLE | PARAMETER_P);
+            shadeSurface(object, numPoints, 1, SHADING_0D, PARAMETER_BEGIN_SAMPLE | PARAMETER_P, TRUE);
 
             // Figure out the size of the ribbon
             sizeArray = varying[VARIABLE_WIDTH];
@@ -903,7 +894,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
             numGridsShaded++;
 
             // Shade the points
-            context.shade(object, numPoints, 1, SHADING_0D, PARAMETER_BEGIN_SAMPLE | PARAMETER_P);
+            shadeSurface(object, numPoints, 1, SHADING_0D, PARAMETER_BEGIN_SAMPLE | PARAMETER_P, FALSE);
 
             // Copy the point samples
             copySamples(numPoints, varying, grid->vertices, 0);
@@ -932,7 +923,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
                 varying[VARIABLE_CONSTANTWIDTH][0] = -C_INFINITY;
 
                 // Shade the points
-                context.displace(object, numPoints, 1, SHADING_0D, PARAMETER_END_SAMPLE | PARAMETER_P);
+                shadeSurface(object, numPoints, 1, SHADING_0D, PARAMETER_END_SAMPLE | PARAMETER_P, TRUE);
 
                 // Figure out the size of the points
                 sizeArray = varying[VARIABLE_WIDTH];
@@ -964,7 +955,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
             }
             else {
                 // Shade the points
-                context.shade(object, numPoints, 1, SHADING_0D, PARAMETER_END_SAMPLE | PARAMETER_P);
+                shadeSurface(object, numPoints, 1, SHADING_0D, PARAMETER_END_SAMPLE | PARAMETER_P, FALSE);
 
                 // Copy the point samples
                 copySamples(numPoints, varying, grid->vertices, 1);
@@ -1039,11 +1030,11 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
             if (object->region != NULL && grid->coverage == NULL) {
                 grid->coverage = new unsigned char[udiv * vdiv];
                 memset(grid->coverage, 1, udiv * vdiv);
-                object->regionCoverage(&context, udiv, vdiv, varying[VARIABLE_U], varying[VARIABLE_V], grid->coverage);
+                object->regionCoverage(this, udiv, vdiv, varying[VARIABLE_U], varying[VARIABLE_V], grid->coverage);
             }
 
             // Displace the sucker
-            context.displace(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_BEGIN_SAMPLE | PARAMETER_P);
+            shadeSurface(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_BEGIN_SAMPLE | PARAMETER_P, TRUE);
 
             // Project the P into samples
             camera2samples(numVertices, varying[VARIABLE_P]);
@@ -1057,7 +1048,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
             numGridsShaded++;
 
             // Shade the sucker
-            context.shade(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_BEGIN_SAMPLE | PARAMETER_P);
+            shadeSurface(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_BEGIN_SAMPLE | PARAMETER_P, FALSE);
 
             // Project the P into samples
             camera2samples(numVertices, varying[VARIABLE_P]);
@@ -1100,7 +1091,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
 
             if (Ponly) {
                 // Shade the sucker
-                context.displace(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_END_SAMPLE | PARAMETER_P);
+                shadeSurface(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_END_SAMPLE | PARAMETER_P, TRUE);
 
                 // Project the P into samples
                 camera2samples(numVertices, varying[VARIABLE_P]);
@@ -1111,7 +1102,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
             }
             else {
                 // Shade the sucker
-                context.shade(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_END_SAMPLE | PARAMETER_P);
+                shadeSurface(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_END_SAMPLE | PARAMETER_P, FALSE);
 
                 // Project the P into samples
                 camera2samples(numVertices, varying[VARIABLE_P]);
@@ -1139,6 +1130,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
 // Return Value			:	-
 // Comments				:
 void CReyes::copyPoints(int numVertices, float **varying, float *vertices, int stage) {
+    const openrender::FrameParams &fp = openrender::frameParams();
     const float *P = varying[VARIABLE_P];
     const int disp = (CRenderer::numExtraSamples + 10) * stage;
     int i;
@@ -1150,18 +1142,20 @@ void CReyes::copyPoints(int numVertices, float **varying, float *vertices, int s
     }
 
     // If we have depth of field, compute that
-    if ((CRenderer::aperture != 0) && (stage == 0)) {
+    if ((fp.aperture != 0) && (stage == 0)) {
 
         assert(disp == 0);
 
         // Roll back to the beginning
         vertices -= numVertices * numVertexSamples;
 
-        // Compute the circle of confusion amount
+        // Compute the circle of confusion: the signed screen-space radius of the lens model, which only the
+        // scatter reads as it is; every bound takes its magnitude (reyesLensBounds.h)
+        const openrender::LensModel lens = openrender::LensModel::fromFrame(fp);
         for (i = numVertices; i > 0; i--, vertices += numVertexSamples) {
             const float z = vertices[COMP_Z];
 
-            vertices[9] = CSampler::circleOfConfusion(z, CRenderer::invFocaldistance, CRenderer::cocFactorSamples);
+            vertices[9] = lens.circleOfConfusion(z);
         }
     }
 }
@@ -1376,6 +1370,7 @@ void CReyes::deleteObject(CRasterObject *dObject) {
 // Return Value			:	-
 // Comments				:	Thread safe
 void CReyes::insertGrid(CRasterGrid *grid, int flags) {
+    const openrender::FrameParams &fp = openrender::frameParams();
     // Compute the grid bound and insert it
     int i;
     const float *cVertex;
@@ -1423,18 +1418,15 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
         // For camera rotation, the arc between t=0 and t=1 raster-space positions
         // can bulge outside the chord-based bounding box. Sample intermediate times
         // and expand the grid-level bounds to cover the full arc.
-        if (CRenderer::cameraHasRotation) {
+        if (fp.camera.hasRotation) {
             static const float kArcTimes[] = {0.25f, 0.5f, 0.75f};
-            const float identQ[4] = {0.0f, 0.0f, 0.0f, 1.0f};
             for (int ti = 0; ti < 3; ti++) {
                 const float jt = kArcTimes[ti];
-                quaternion Rjt;
-                slerpq(Rjt, identQ, CRenderer::relRotQ, jt);
                 matrix Mjt;
-                qtoR(Mjt, Rjt);
-                const float tx = jt * CRenderer::relTrans[0];
-                const float ty_t = jt * CRenderer::relTrans[1];
-                const float tz = jt * CRenderer::relTrans[2];
+                openrender::motion::cameraRotationAt(Mjt, fp.camera.relRotQ, jt);
+                const float tx = jt * fp.camera.relTrans[0];
+                const float ty_t = jt * fp.camera.relTrans[1];
+                const float tz = jt * fp.camera.relTrans[2];
                 for (cVertex = grid->vertices, i = grid->numVertices; i > 0; i--, cVertex += numVertexSamples) {
                     const float _z = cVertex[COMP_Z];
                     // vertex buffer is in sample space; un-project to screen then camera
@@ -1463,23 +1455,15 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
         }
     }
 
-    if (CRenderer::aperture != 0) {
+    if (fp.aperture != 0) {
         // Expand the bound by the maximum focal blur amount
-        const float coc1 = CSampler::circleOfConfusion(zmin, CRenderer::invFocaldistance, CRenderer::cocFactorSamples);
-        const float coc2 = CSampler::circleOfConfusion(zmax, CRenderer::invFocaldistance, CRenderer::cocFactorSamples);
-        float mcoc2;
-        if (coc2 > coc1) {
-            mcoc2 = coc2;
-        }
-        else {
-            mcoc2 = coc1;
-        }
-        const float mcoc = mcoc2;
+        const reyes_lens::SampleExpansion e =
+            reyes_lens::expansion(reyes_lens::maxAbsCoc(openrender::LensModel::fromFrame(fp), zmin, zmax), fp.dSampledx, fp.dSampledy);
 
-        xmin -= mcoc;
-        xmax += mcoc;
-        ymin -= mcoc;
-        ymax += mcoc;
+        xmin -= e.x;
+        xmax += e.x;
+        ymin -= e.y;
+        ymax += e.y;
     }
 
     // Trivial reject
@@ -1550,13 +1534,13 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
             }
 
             // Expand the bound by the focal blur amount
-            if (CRenderer::aperture != 0) {
-                const float coc = vertices[9];
+            if (fp.aperture != 0) {
+                const reyes_lens::SampleExpansion e = reyes_lens::expansion(vertices[9], fp.dSampledx, fp.dSampledy);
 
-                xbound[0] -= coc;
-                xbound[1] += coc;
-                ybound[0] -= coc;
-                ybound[1] += coc;
+                xbound[0] -= e.x;
+                xbound[1] += e.x;
+                ybound[0] -= e.y;
+                ybound[1] += e.y;
             }
 
             bounds[0] = (int)floor(xbound[0]); // xmin
@@ -1596,16 +1580,13 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
             for (int ti = 0; ti < numTimeSamples; ti++) {
                 const float jt = (float)ti / (float)(2 * numStrata);
 
-                if (CRenderer::cameraHasRotation && (ti > 0)) {
+                if (fp.camera.hasRotation && (ti > 0)) {
                     // Arc positions — the same transform the rasterizer applies
-                    static const quaternion identQ = {0.0f, 0.0f, 0.0f, 1.0f};
-                    quaternion Rjt;
-                    slerpq(Rjt, identQ, CRenderer::relRotQ, jt);
                     matrix Mjt;
-                    qtoR(Mjt, Rjt);
-                    const float tx = jt * CRenderer::relTrans[0];
-                    const float ty = jt * CRenderer::relTrans[1];
-                    const float tz = jt * CRenderer::relTrans[2];
+                    openrender::motion::cameraRotationAt(Mjt, fp.camera.relRotQ, jt);
+                    const float tx = jt * fp.camera.relTrans[0];
+                    const float ty = jt * fp.camera.relTrans[1];
+                    const float tz = jt * fp.camera.relTrans[2];
 
                     const float *cv = grid->vertices;
                     for (int v = grid->numVertices; v > 0; v--, cv += numVertexSamples, dst += 2) {
@@ -1633,17 +1614,14 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
         // Reusing the same 3 sample times as the grid-level arc loop (t=0.25,0.5,0.75).
         matrix arcMjt[3];
         float arcTx[3], arcTy[3], arcTz[3];
-        const bool doArcBounds = CRenderer::cameraHasRotation && (grid->flags & RASTER_MOVING);
+        const bool doArcBounds = fp.camera.hasRotation && (grid->flags & RASTER_MOVING);
         if (doArcBounds) {
             static const float kArcTimes[] = {0.25f, 0.5f, 0.75f};
-            static const quaternion identQ = {0.0f, 0.0f, 0.0f, 1.0f};
             for (int ti = 0; ti < 3; ti++) {
-                quaternion Rjt;
-                slerpq(Rjt, identQ, CRenderer::relRotQ, kArcTimes[ti]);
-                qtoR(arcMjt[ti], Rjt);
-                arcTx[ti] = kArcTimes[ti] * CRenderer::relTrans[0];
-                arcTy[ti] = kArcTimes[ti] * CRenderer::relTrans[1];
-                arcTz[ti] = kArcTimes[ti] * CRenderer::relTrans[2];
+                openrender::motion::cameraRotationAt(arcMjt[ti], fp.camera.relRotQ, kArcTimes[ti]);
+                arcTx[ti] = kArcTimes[ti] * fp.camera.relTrans[0];
+                arcTy[ti] = kArcTimes[ti] * fp.camera.relTrans[1];
+                arcTz[ti] = kArcTimes[ti] * fp.camera.relTrans[2];
             }
         }
 
@@ -1652,7 +1630,7 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
             for (i = 0; i < udiv; i++, bounds += 4) {
                 float xbound[2];
                 float ybound[2];
-                float quadCoc = 0;                                                         // The focal blur expansion applied to this quad's bounds
+                reyes_lens::SampleExpansion quadCoc = {0, 0};                              // The focal blur expansion applied to this quad's bounds
                 const float *cVertex = vertices + (j * (udiv + 1) + i) * numVertexSamples; // The top left vertex
                 const float *P;
 
@@ -1735,39 +1713,27 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
                         ybound[1] = P[COMP_Y];
                 }
 
-                if (CRenderer::aperture != 0) {
-                    // Expand the bound by the maximum focal blur amount
-                    const float c1 = cVertex[9];
-                    const float c2 = cVertex[9 + numVertexSamples];
-                    const float c3 = cVertex[9 + numVertexSamples * (udiv + 1)];
-                    const float c4 = cVertex[9 + numVertexSamples * (udiv + 2)];
-                    float maxC1C2;
-                    if (c2 > c1) {
-                        maxC1C2 = c2;
-                    }
-                    else {
-                        maxC1C2 = c1;
-                    }
-                    float maxC1C2C3;
-                    if (c3 > maxC1C2) {
-                        maxC1C2C3 = c3;
-                    }
-                    else {
-                        maxC1C2C3 = maxC1C2;
-                    }
-                    float mcoc;
-                    if (c4 > maxC1C2C3) {
+                if (fp.aperture != 0) {
+                    // Expand the bound by the maximum focal blur amount: the largest magnitude of the four
+                    // corners' circles of confusion (the scatter alone reads them signed)
+                    const float c1 = absf(cVertex[9]);
+                    const float c2 = absf(cVertex[9 + numVertexSamples]);
+                    const float c3 = absf(cVertex[9 + numVertexSamples * (udiv + 1)]);
+                    const float c4 = absf(cVertex[9 + numVertexSamples * (udiv + 2)]);
+                    float mcoc = c1;
+                    if (c2 > mcoc)
+                        mcoc = c2;
+                    if (c3 > mcoc)
+                        mcoc = c3;
+                    if (c4 > mcoc)
                         mcoc = c4;
-                    }
-                    else {
-                        mcoc = maxC1C2C3;
-                    }
 
-                    xbound[0] -= mcoc;
-                    xbound[1] += mcoc;
-                    ybound[0] -= mcoc;
-                    ybound[1] += mcoc;
-                    quadCoc = mcoc;
+                    quadCoc = reyes_lens::expansion(mcoc, fp.dSampledx, fp.dSampledy);
+
+                    xbound[0] -= quadCoc.x;
+                    xbound[1] += quadCoc.x;
+                    ybound[0] -= quadCoc.y;
+                    ybound[1] += quadCoc.y;
                 }
 
                 // Expand per-quad bounds to cover the full arc for camera rotation.
@@ -1850,10 +1816,10 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
                         // +/- 2 samples of slack: the time jitter can spill a hair
                         // past the stratum edge, and the midpoint-sampled polyline
                         // slightly under-bounds the true arc
-                        qsb[0] = (int)floor(sxmin - quadCoc) - 2;
-                        qsb[1] = (int)floor(sxmax + quadCoc) + 2;
-                        qsb[2] = (int)floor(symin - quadCoc) - 2;
-                        qsb[3] = (int)floor(symax + quadCoc) + 2;
+                        qsb[0] = (int)floor(sxmin - quadCoc.x) - 2;
+                        qsb[1] = (int)floor(sxmax + quadCoc.x) + 2;
+                        qsb[2] = (int)floor(symin - quadCoc.y) - 2;
+                        qsb[3] = (int)floor(symax + quadCoc.y) + 2;
                     }
                 }
 
@@ -1882,12 +1848,9 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
         // sampled positions inside each stratum. The rasterizer checks these
         // before touching the grid's quads for a given sample.
         if (timePos != NULL) {
-            float gridCoc = 0;
-            if (CRenderer::aperture != 0) {
-                const float coc1 = CSampler::circleOfConfusion(zmin, CRenderer::invFocaldistance, CRenderer::cocFactorSamples);
-                const float coc2 = CSampler::circleOfConfusion(zmax, CRenderer::invFocaldistance, CRenderer::cocFactorSamples);
-                gridCoc = (coc2 > coc1) ? coc2 : coc1;
-            }
+            reyes_lens::SampleExpansion gridCoc = {0, 0};
+            if (fp.aperture != 0)
+                gridCoc = reyes_lens::expansion(reyes_lens::maxAbsCoc(openrender::LensModel::fromFrame(fp), zmin, zmax), fp.dSampledx, fp.dSampledy);
 
             for (int k = 0; k < numStrata; k++) {
                 float sxmin = C_INFINITY, sxmax = -C_INFINITY;
@@ -1906,10 +1869,10 @@ void CReyes::insertGrid(CRasterGrid *grid, int flags) {
                         symax = tp[1];
                 }
 
-                grid->stratumBounds[k][0] = (int)floor(sxmin - gridCoc) - 2;
-                grid->stratumBounds[k][1] = (int)floor(sxmax + gridCoc) + 2;
-                grid->stratumBounds[k][2] = (int)floor(symin - gridCoc) - 2;
-                grid->stratumBounds[k][3] = (int)floor(symax + gridCoc) + 2;
+                grid->stratumBounds[k][0] = (int)floor(sxmin - gridCoc.x) - 2;
+                grid->stratumBounds[k][1] = (int)floor(sxmax + gridCoc.x) + 2;
+                grid->stratumBounds[k][2] = (int)floor(symin - gridCoc.y) - 2;
+                grid->stratumBounds[k][3] = (int)floor(symax + gridCoc.y) + 2;
             }
 
             delete[] timePos;

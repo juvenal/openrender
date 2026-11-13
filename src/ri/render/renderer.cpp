@@ -460,15 +460,9 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     aperture = focallength / (2 * fstop);
     if ((aperture <= C_EPSILON) || (projection == OPTIONS_PROJECTION_ORTHOGRAPHIC)) {
         aperture = 0;
-        cocFactorScreen = 0;
-        cocFactorSamples = 0;
-        cocFactorPixels = 0;
         invFocaldistance = 0;
     }
     else {
-        cocFactorScreen = (float)(imagePlane * aperture * focaldistance / (focaldistance + aperture));
-        cocFactorSamples = cocFactorScreen * sqrtf(dPixeldx * dPixeldx * pixelXsamples * pixelXsamples + dPixeldy * dPixeldy * pixelYsamples * pixelYsamples);
-        cocFactorPixels = cocFactorScreen * sqrtf(dPixeldx * dPixeldx + dPixeldy * dPixeldy);
         invFocaldistance = 1 / focaldistance;
     }
 
@@ -766,7 +760,7 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     shadeops->beginFrame(numThreads);
 
     // Initialize tesselations
-    CTesselationPatch::initTesselations(geoCacheSize);
+    CTesselationPatch::initTesselations(geoCacheSize, numThreads);
 
     // Initialize the brickmaps
     CBrickMap::initBrickMap(maxBrickSize);
@@ -859,6 +853,10 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
             hiderFlags |= HIDER_BREAK;
         }
     }
+
+    // The frame limits Geometry reads (spec 031). After the contexts exist: the raytrace and photon hiders OR
+    // ATTRIBUTES_FLAGS_PRIMARY_VISIBLE into raytracingFlags in their constructors, so the copy is final only here
+    beginGeometryFrame();
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -946,6 +944,9 @@ void CRenderer::endFrame() {
 
     // Cleanup the tesselations
     CTesselationPatch::shutdownTesselations();
+
+    // Nothing in Geometry reads the frame limits from here on (spec 031)
+    endGeometryFrame();
 
     // Release the world
     world->detach();
@@ -1094,7 +1095,7 @@ void CRenderer::renderFrame() {
     // Make sure we have a bounding hierarchy
     movvv(root->bmin, worldBmin);
     movvv(root->bmax, worldBmax);
-    root->setChildren(&contexts[0]->shadingContext(), root->children);
+    root->setChildren(root->children);
     numRenderedBuckets = 0;
 
     // Render the frame

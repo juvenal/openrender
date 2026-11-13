@@ -27,8 +27,6 @@
 #ifndef OBJECTMISC_H
 #define OBJECTMISC_H
 
-#include "renderer.h"
-
 ///////////////////////////////////////////////////////////////////////
 // Function				:	transform
 // Description			:	Transform bunch of points from one space to another

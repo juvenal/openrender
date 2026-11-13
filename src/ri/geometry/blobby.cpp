@@ -32,9 +32,9 @@
 #include "blobbyField.h"
 #include "blobbyPolygonize.h"
 #include "common/diagnostics.h"
+#include "declarations.h"
 #include "pl.h"
 #include "polygons.h"
-#include "renderer.h"
 #include "common/stats.h"
 #include "common/variable.h"
 #include "xform.h"
@@ -283,7 +283,7 @@ CObject *blobbyCreate(CAttributes *attributes, CXform *xform, const CBlobbyProgr
         for (int i = 0; i < numParameters; i++) {
             CVariable declared;
             const char *name = NULL;
-            CVariable *global = CRenderer::retrieveVariable(tokens[i]);
+            CVariable *global = CDeclarations::find(tokens[i]);
 
             if (global != NULL && global->type == TYPE_MPOINT)
                 name = global->name;
@@ -407,8 +407,8 @@ CObject *blobbyCreate(CAttributes *attributes, CXform *xform, const CBlobbyProgr
     memcpy(data0, extracted->P, sizeof(float) * numVertices * 3);
     memcpy(data0 + numVertices * 3, extracted->N, sizeof(float) * numVertices * 3);
 
-    CVariable *variableP = CRenderer::retrieveVariable("P");
-    CVariable *variableN = CRenderer::retrieveVariable("N");
+    CVariable *variableP = CDeclarations::find("P");
+    CVariable *variableN = CDeclarations::find("N");
 
     CPlParameter *plParameters = new CPlParameter[numOutParameters];
 

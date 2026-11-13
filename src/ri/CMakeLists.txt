@@ -88,8 +88,9 @@ set(ri_sources
 	geometry/csgClassify.cpp
 	geometry/csgDefinition.cpp
 	geometry/csgSolid.cpp
-	geometry/surfaceCrossingDispatch.cpp
+	geometry/surfaceCrossings.cpp
 	geometry/geometryHost.cpp
+	geometry/geometryFrame.cpp
 	dataviewer/brickMapView.cpp
 	dataviewer/dataLoad.cpp
 	dataviewer/dataView.cpp
@@ -132,7 +133,6 @@ set(ri_sources
 	texture/ptcapi.cpp
 	geometry/quadrics.cpp
 	render/remoteChannel.cpp
-	render/geometryDispatch.cpp
 	render/renderer.cpp
 	render/rendererTransport.cpp
 	render/rendererFrame.cpp
@@ -140,7 +140,6 @@ set(ri_sources
 	render/rendererClipping.cpp
 	render/rendererContext.cpp
 	render/rendererDeclarations.cpp
-	render/rendererDeclarationsDispatch.cpp
 	render/displayHost.cpp
 	render/displayV1Adapter.cpp
 	render/rendererDisplay.cpp
@@ -225,6 +224,9 @@ target_link_libraries(ribRender_obj PRIVATE openrendercommon ${openrendertiff_li
 # compiles texmake.cpp/imageInput.cpp too -- unlike TIFF/PNG/RGBE (already
 # zero-cost there), OpenEXR is a real, optional external dependency this
 # target should stay free of.
+# geometryFrame.cpp reports (debug builds) a read with no CGeometryFrame installed; only the renderer installs one,
+# so ribVector_obj, which never does, is compiled without the definition (spec 031).
+target_compile_definitions(ribRender_obj PRIVATE OPENRENDER_GEOMETRY_FRAME_REPORT)
 if(HAVE_OPENEXR)
     target_compile_definitions(ribRender_obj PRIVATE HAVE_OPENEXR)
     target_link_libraries(ribRender_obj PRIVATE ${OPENRENDER_OPENEXR_LIBS})
@@ -313,17 +315,18 @@ endif()
 # (SceneInterface_RibVectorResidual), each with the Geometry or Hiders file that needs it, and that list may
 # only shrink. The preview and the data viewer reach no Core file themselves (Preview_NoCoreReach).
 #
-# The list is the same ri_sources list minus every file confirmed, via an
-# `nm -u` sweep over ribRender_obj's built object files (not by reading
-# source -- see geometryDispatch.cpp's and rendererDeclarationsDispatch.cpp's
-# header comments for what that sweep found), to still reach
-# CShadingContext/CReyes after the real/stub extractions above: the Reyes/
-# raytrace/photon/stochastic/zbuffer/occlusion/irradiance/sampler/trace
-# hiders, CPatch/CTesselationPatch's own adaptive-tessellation machinery
-# (surface.cpp), the imager/DL-object/implicit-surface/hierarchical-cache-
-# shader features (dlobject.cpp, imager.cpp,
-# implicitSurface.cpp -- none of which orender-wire's preview path ever
-# constructs), rendererShadingServices.cpp, and CRenderer's actual render
+# Geometry has no stand-in here (spec 031): every Geometry file ribVector compiles is the real one, compiled
+# identically for both libraries, because Geometry names no hider and no Shading type (it reaches them through
+# IRayContext, IDicer, IObjectSink and CGeometryHost; Geometry_RibVectorNoStubs). There is no stub file at all since
+# spec 032 deleted vector/irradianceDispatchStub.cpp.
+#
+# The list is the same ri_sources list minus the files confirmed, via an `nm -u` sweep over ribRender_obj's built
+# object files (not by reading source), to still need the renderer pipeline: the Reyes/raytrace/photon/stochastic/
+# zbuffer/occlusion/irradiance/sampler/trace hiders, the CSG units (csgTree/csgDefinition/csgSolid/csgClassify/
+# csgCaps.cpp), dlobject.cpp and implicitSurface.cpp -- whole classes the preview path never constructs, not
+# stand-ins for something it does (CSG is structurally unsupported there: CRibGeometryContext has no
+# RiSolidBegin/RiSolidEnd override; the DSO and implicit-surface primitives need the shading engine),
+# imager.cpp, rendererShadingServices.cpp, and CRenderer's actual render
 # pipeline (renderer.cpp, confirmed dead code here by tracing
 # ribpreview_load()'s call graph: RiBeginBackEnd("preview") -> a
 # CRiStandardSession and RiInit(), which never touch CRenderer -- ribVector
@@ -333,17 +336,14 @@ endif()
 # CPreviewContext, in libribpreview, instead) -- but its own compiled
 # method bodies (RiWorldBegin/RiWorldEnd/RiGeometryV/getShader/etc.) call
 # straight into CRenderer::beginFrame()/render()/etc. and construct
-# CProgrammableShaderInstance/CShader/CDLObject/CImplicit/CPhotonMap, so
-# linking it in would silently reintroduce most
-# of what everything else in this list was excluded to avoid. The three real/stub pairs are
-# swapped rather than merely removed, since their methods are reached for real (or vtable-required) even
-# in a build with no rendering pipeline: render/geometryDispatch.cpp -> vector/geometryDispatchStub.cpp,
-# render/rendererDeclarationsDispatch.cpp -> vector/rendererDeclarationsDispatchStub.cpp, and
-# geometry/surfaceCrossingDispatch.cpp -> vector/surfaceCrossingDispatchStub.cpp (below). The irradiance
-# cache (texture/irradianceCache.cpp) is passive storage with no Shading dependency, so ribVector compiles it
-# as it is; only the sampler that fills one (hiders/irradianceSampler.cpp) is left out.
+# CProgrammableShaderInstance/CShader/CDLObject/CImplicit/CPhotonMap, so linking it in would silently reintroduce most
+# of what everything else in this list was excluded to avoid. The irradiance cache (texture/irradianceCache.cpp) is
+# passive storage with no Shading dependency, so ribVector compiles it as it is; only the sampler that fills one
+# (hiders/irradianceSampler.cpp) is left out. render/rendererDeclarations.cpp is excluded too: since spec 031 it holds only
+# CRenderer's declaration observer and coordinate-system lookup, which reach the shading contexts and the
+# renderer's named systems, and no Geometry file needs it.
 #
-# The six entries below were confirmed excludable by a second `nm -u` sweep
+# The entries below were confirmed excludable by a second `nm -u` sweep
 # after the above: init.cpp is a single function, CRendererContext::init(),
 # dead for the same reason rendererContext.cpp is. render/rendererFiles.cpp
 # (CRenderer::getShader/getPhotonMap/getCache, LLVM JIT shader loading) and
@@ -352,10 +352,9 @@ endif()
 # ribpreview_load() never calls. The CSG units (csgTree/csgDefinition/
 # csgSolid/csgClassify/csgCaps.cpp) are RIB `Solid` support:
 # CRibGeometryContext has no RiSolidBegin/RiSolidEnd override at all, so
-# CSG is structurally unsupported on the preview path, and
-# surfaceCrossingDispatch.cpp (free-form
-# crossing counts, only ever reached from CSG classification) is swapped for
-# vector/surfaceCrossingDispatchStub.cpp. parse/ifexpr_generated.cpp
+# CSG is structurally unsupported on the preview path; geometry/surfaceCrossings.cpp
+# (free-form crossing counts, reached from CSG classification) is compiled like any
+# other Geometry file. parse/ifexpr_generated.cpp
 # (the RIB `if()` conditional grammar) is compiled into ribVector as well: since spec 038
 # it defines riEvaluateCondition(), a Scene Interface function with no core dependency
 # (it used to define CRendererContext::ifParse() and dropped out with rendererContext.cpp).
@@ -424,12 +423,11 @@ list(REMOVE_ITEM ribVector_sources
     geometry/implicitSurface.cpp
     render/init.cpp
     render/remoteChannel.cpp
-    render/geometryDispatch.cpp
     render/renderer.cpp
     render/rendererFrame.cpp
     render/rendererTransport.cpp
     render/rendererContext.cpp
-    render/rendererDeclarationsDispatch.cpp
+    render/rendererDeclarations.cpp
     render/displayHost.cpp
     render/displayV1Adapter.cpp
     render/rendererDisplay.cpp
@@ -437,17 +435,9 @@ list(REMOVE_ITEM ribVector_sources
     render/rendererJobs.cpp
     render/rendererProcedures.cpp
     render/rendererShadingServices.cpp
-    geometry/surface.cpp
-    geometry/surfaceCrossingDispatch.cpp
     render/rendererClipping.cpp
     render/resource.cpp
 )
-list(APPEND ribVector_sources
-    vector/geometryDispatchStub.cpp
-    vector/rendererDeclarationsDispatchStub.cpp
-    vector/surfaceCrossingDispatchStub.cpp
-)
-
 add_library(ribVector_obj OBJECT ${ribVector_sources} ${ri_headers})
 set_target_properties(ribVector_obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(ribVector_obj PRIVATE . ${CMAKE_CURRENT_BINARY_DIR}

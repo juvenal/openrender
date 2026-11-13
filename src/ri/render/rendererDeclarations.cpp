@@ -31,6 +31,7 @@
 #include "declarations.h"
 #include "displayChannel.h"
 #include "common/diagnostics.h"
+#include "hider.h"
 #include "renderer.h"
 #include "rendererContext.h"
 #include "riServices.h"
@@ -256,4 +257,86 @@ void CRenderer::registerFrameTemporary(const char *name, int deleteFile) {
     }
 
     frameTemporaryFiles->push(tmp);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CRenderer
+// Method				:	notifyGlobalVariable
+// Description			:	A global variable was added to the declaration table
+// Return Value			:
+// Comments				:	Installed as the observer of CDeclarations (Graphics State), which numbers the
+//							variable; this keeps the part that reaches the shading engine
+void CRenderer::notifyGlobalVariable(CVariable *) {
+
+    // Flush the states for the shading contexts
+    if (contexts != NULL) {
+        int i;
+
+        for (i = 0; i < numThreads; i++) {
+            contexts[i]->shadingContext().updateState();
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CRendererContext
+// Method				:	findCoordinateSystem
+// Description			:	Find a coordinate system
+// Return Value			:	TRUE on success
+// Comments				:
+int CRenderer::findCoordinateSystem(const char *name, const float *&from, const float *&to, ECoordinateSystem &cSystem) {
+    CNamedCoordinateSystem *currentSystem;
+
+    assert(CRenderer::definedCoordinateSystems != NULL);
+
+    if (CRenderer::definedCoordinateSystems->find(name, currentSystem)) {
+        from = currentSystem->from;
+        to = currentSystem->to;
+        cSystem = currentSystem->systemType;
+
+        switch (cSystem) {
+            case COORDINATE_OBJECT:
+                break;
+            case COORDINATE_CAMERA:
+                from = identityMatrix;
+                to = identityMatrix;
+                break;
+            case COORDINATE_WORLD:
+                from = CRenderer::fromWorld;
+                to = CRenderer::toWorld;
+                break;
+            case COORDINATE_SHADER:
+            {
+                CXform *currentXform = context->getXform(FALSE);
+                from = currentXform->from;
+                to = currentXform->to;
+                break;
+            }
+            case COORDINATE_LIGHT:
+            case COORDINATE_NDC:
+            case COORDINATE_RASTER:
+            case COORDINATE_SCREEN:
+                break;
+            case COORDINATE_CURRENT:
+            {
+                CXform *currentXform = context->getXform(FALSE);
+                from = currentXform->from;
+                to = currentXform->to;
+                break;
+            }
+            case COLOR_RGB:
+            case COLOR_HSL:
+            case COLOR_HSV:
+            case COLOR_XYZ:
+            case COLOR_CIE:
+            case COLOR_YIQ:
+            case COLOR_XYY:
+            case COORDINATE_CUSTOM:
+                break;
+        }
+
+        return TRUE;
+    }
+
+    return FALSE;
 }

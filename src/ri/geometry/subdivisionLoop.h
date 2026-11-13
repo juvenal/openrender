@@ -51,24 +51,24 @@
 //							as CSubdivMesh itself never implements them either.
 class CLoopSubdivMesh : public CObject {
     public:
-        void materialize(CShadingContext *context) { if (children == NULL) create(context); } // Idempotent (spec 021)
+        void materialize(IRayContext &context) { if (children == NULL) create(context); } // Idempotent (spec 021)
         CLoopSubdivMesh(CAttributes *a, CXform *x, CPl *pl, int numFaces, int *numVerticesPerFace, int *vertexIndices);
         ~CLoopSubdivMesh();
 
-        void intersect(CShadingContext *, CRay *);
-        void dice(CReyes *rasterizer);
-        void instantiate(CAttributes *a, CXform *x, CRiInterface *c) const;
+        void intersect(IRayContext &, CRay *);
+        void dice(IDicer &rasterizer);
+        void instantiate(CAttributes *a, CXform *x, IObjectSink *c) const;
 
         int moving() const { return pl->data1 != NULL; }
 
         // Refines this mesh and wraps the result in a plain CPolygonMesh,
-        // without touching any CShadingContext -- for CSG leaf dispatch,
+        // without touching any ray context -- for CSG leaf dispatch,
         // which resolves entirely in the geometry domain, outside any
         // hider. Caller owns the returned object's lifecycle.
         CObject *buildPolygonMesh();
 
     private:
-        void create(CShadingContext *context);
+        void create(IRayContext &context);
 
         CPl *pl;
         int numFaces;

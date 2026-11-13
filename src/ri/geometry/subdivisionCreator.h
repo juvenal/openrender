@@ -39,18 +39,18 @@
 // Comments				:
 class CSubdivMesh : public CObject {
     public:
-        void materialize(CShadingContext *context) { if (children == NULL) create(context); } // Idempotent (spec 021)
+        void materialize(IRayContext &context) { if (children == NULL) create(context); } // Idempotent (spec 021)
         CSubdivMesh(CAttributes *a, CXform *x, CPl *c, int numFaces, int *numVerticesPerFace, int *vertexIndices, int ntags, const char **tags, int *nargs, int *intargs, float *floatargs, const CHierarchicalOverride *overrides = NULL);
         ~CSubdivMesh();
 
-        void intersect(CShadingContext *, CRay *);
-        void dice(CReyes *rasterizer);
-        void instantiate(CAttributes *a, CXform *x, CRiInterface *c) const;
+        void intersect(IRayContext &, CRay *);
+        void dice(IDicer &rasterizer);
+        void instantiate(CAttributes *a, CXform *x, IObjectSink *c) const;
 
         int moving() const { return pl->data1 != NULL; }
 
         // Raw vertex/topology data for non-shading consumers (e.g. orender-wire's
-        // wireframe extractor), which has no CShadingContext to dice() through.
+        // wireframe extractor), which has no dicer to dice() through.
         void wireData(const float *&positions, int &numFaces, const int *&numVerticesPerFace, const int *&vertexIndices) const {
             positions = pl->data0;
             numFaces = this->numFaces;
@@ -59,7 +59,7 @@ class CSubdivMesh : public CObject {
         }
 
     private:
-        void create(CShadingContext *context);
+        void create(IRayContext &context);
         CObject *buildSurfaces(CMemPage *&mem);
 
         CPl *pl;

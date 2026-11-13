@@ -82,6 +82,12 @@ namespace openrender::shading {
     //   ("Breaking within 2.x"). The rules above apply as written from the release that closes the milestone.
     //
     // History
+    //   2.3.0  spec 031. Breaking within 2.x (allowed before spec 055, see the rule above):
+    //          Removed:  CShadingContext's Geometry-facing entries shade(CSurface *, ...), displace(), displaceEstimate() and
+    //                    setProducer(), and IShadingProducer (shadingProducer.h, file deleted). Geometry reaches the hider that
+    //                    owns the context through its own interfaces (IRayContext, IDicer: the hider shades through
+    //                    shade(ShaderGlobals, IPointSource)).
+    //          Changed:  EShadingDim is defined in common/shadingDim.h (same name, values and order) and shading.h includes it.
     //   2.2.0  spec 032. Breaking within 2.x (allowed before spec 055, see the rule above); no member or signature changed:
     //          Changed:  getCache() answers nullptr, where it answered the other object, for a name already registered as a
     //                    point cloud or a brick map (see Wording below); a caller that relied on the old answer breaks.
@@ -122,7 +128,7 @@ namespace openrender::shading {
     //          Wording only, no version change (spec 038, made while 2.0.0 was current, before 2.1.0): getDSO also serves
     //          the .slo loader, which binds the DSO operands of a JIT-compiled module with it (the member, its signature
     //          and its result are unchanged).
-    inline constexpr InterfaceVersion kRendererServicesVersion{2, 2, 0};
+    inline constexpr InterfaceVersion kRendererServicesVersion{2, 3, 0};
 
     class ITracer; // tracer.h
 

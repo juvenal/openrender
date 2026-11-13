@@ -1,12 +1,13 @@
 /**
  * Project: openRender
  *
- * File: surfaceCrossingDispatch.cpp
+ * File: surfaceCrossings.cpp
  *
  * Description:
- *   Renderer-only crossing counts for free-form surfaces: a pure Newton
- *   core seeded from an immutable per-surface evaluation grid (spec 021).
- *   ribVector links vector/surfaceCrossingDispatchStub.cpp instead.
+ *   Crossing counts for free-form surfaces: a pure Newton core seeded from
+ *   an immutable per-surface evaluation grid (spec 021). Compiled for every
+ *   consumer, ribVector included (renamed from surfaceCrossingDispatch by
+ *   spec 031: nothing is substituted any more).
  *
  * Authors:
  *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
@@ -16,7 +17,7 @@
  * License: GNU Lesser General Public License (LGPL) 2.1
  *
  */
-#include "surfaceCrossingDispatch.h"
+#include "surfaceCrossings.h"
 
 #include <algorithm>
 #include <cmath>
@@ -425,7 +426,7 @@ static std::mutex crossingCacheMutex;
 //							first use)
 // Return Value			:	The unsigned number of crossings
 // Comments				:
-int countFreeFormCrossings(CShadingContext *, const CSurface *surface, const float *from, const float *dir) {
+int countFreeFormCrossings(IRayContext *, const CSurface *surface, const float *from, const float *dir) {
     CCrossingCache *cache = surface->crossingCache.load(std::memory_order_acquire);
     if (cache == NULL) {
         std::lock_guard<std::mutex> lock(crossingCacheMutex);

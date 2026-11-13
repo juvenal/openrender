@@ -44,14 +44,14 @@ class CDLObject : public CSurface {
         int honorsRegion() const { return FALSE; } // Bypasses the region hook (spec 021)
 
         // Object interface
-        void intersect(CShadingContext *, CRay *);
-        void dice(CReyes *);                                             // Split or render this object
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const; // Instanciate this object
+        void intersect(IRayContext &, CRay *);
+        void dice(IDicer &);                                            // Split or render this object
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const; // Instanciate this object
 
         // Surface interface
         void sample(int, int, float **, float ***, unsigned int &) const; // Sample the surface of the object
         void interpolate(int, float **, float ***) const;                 // Interpolate the variables
-        void shade(CShadingContext *, int, CRay **);                      // Shade the object
+        void shade(IRayContext &, int, CRay **);                          // Shade the object
 
     private:
         CDloModule *module; // The loaded module (attached); tini and the intersection come from it

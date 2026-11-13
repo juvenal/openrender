@@ -28,6 +28,7 @@
 #define REYES_H
 
 #include "common/global.h"
+#include "dicer.h"
 #include "hider.h"
 #include "hiderPeers.h"
 #include "object.h"
@@ -59,7 +60,7 @@ inline int rasterTimeStrata() {
 
 // Transform a t=0 raster-space vertex (sample coordinates) to its raster
 // position at shutter time jt under the relative camera motion (Mjt/t* from
-// slerp(identity, CRenderer::relRotQ, jt) and jt*CRenderer::relTrans).
+// slerp(identity, camera.relRotQ, jt) and jt*camera.relTrans, the frame's values).
 // Shared by bound computation (CReyes::insertGrid) and the stochastic
 // rasterizer (stochasticQuad.h). Returns FALSE when the transformed point
 // lands at/behind the eye plane, in which case the outputs are not written.
@@ -87,7 +88,7 @@ inline int rasterCameraMotionTransform(float *xOut, float *yOut, float *zOut, co
 // Description			:	This class is implementes a REYES like scan
 //							line renderer
 // Comments				:
-class CReyes : public CHider {
+class CReyes : public CHider, public IDicer {
     protected:
         ///////////////////////////////////////////////////////////////////////
         // Class				:	CRasterPatch
@@ -244,10 +245,13 @@ class CReyes : public CHider {
         virtual void rasterDrawPrimitives(CRasterGrid *) = 0;
         virtual void rasterEnd(float *, int) = 0;
 
-        // The following can be called from the "dice" function to insert an object into the scene
-        void drawObject(CObject *) override;                             // Draw an object
-        void drawGrid(CSurface *, int, int, float, float, float, float, const CGridSnap * = NULL); // Draw a grid
-        void drawPoints(CSurface *, int);                                // Draw points (RiPoints)
+        // IDicer (geometry/dicer.h, spec 031): what a surface's dice() asks of this hider, the way to insert an object into the scene
+        IRayContext &rayContext() override { return *this; }
+        void drawObject(CObject *) override;                                                       // Draw an object
+        void drawGrid(CSurface *, int, int, float, float, float, float, const CGridSnap *) override; // Draw a grid (the snap may be NULL)
+        void drawPoints(CSurface *, int) override;                                                 // Draw points (RiPoints)
+        void probe(CSurface *surface, int u, int v, EShadingDim dim, unsigned int up) override { shadeSurface(surface, u, v, dim, up, 3); }
+        int inFrustum(const float *bmin, const float *bmax) override; // Defined in reyes.cpp, where the DB-011 line for it is
 
         // Some stats
         int numGridsRendered;

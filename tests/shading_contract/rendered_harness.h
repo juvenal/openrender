@@ -42,7 +42,7 @@ class CRProbeSurface : public CSurface {
     public:
         CRProbeSurface(CAttributes *a, CXform *x) : CSurface(a, x) {}
         ~CRProbeSurface() {}
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(false); }
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(false); }
 };
 
 class CRenderedSession {

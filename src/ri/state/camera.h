@@ -38,6 +38,7 @@
 
 #include "common/algebra.h"
 #include "frameParams.h"
+#include "options.h"
 
 namespace openrender {
 
@@ -54,7 +55,7 @@ namespace openrender {
             float da, db;
     };
 
-    // The lens model, for spec 031's circle of confusion
+    // The lens model, for spec 031's circle of confusion: the one thin lens that Reyes and the raytracer share
     struct LensModel {
             int projection; // an EProjectionType value
             float imagePlane;
@@ -63,8 +64,21 @@ namespace openrender {
             float focallength, fstop;
 
             bool thinLens() const { return aperture != 0; }
-            // The circle-of-confusion factor in screen space (CRenderer::beginFrame's expression); 0 for a pinhole
-            float cocFactorScreen() const;
+
+            // The lens of a frame: a copy of the frame's fields
+            static LensModel fromFrame(const FrameParams &fp);
+
+            // The signed circle of confusion of a point at camera-space depth z, in screen units: where the
+            // pinhole sees a point at screen position s, the lens point l (on the unit disk) sees it at
+            // s + l * circleOfConfusion(z), with circleOfConfusion(z) = imagePlane * aperture * (1/f - 1/z):
+            // positive beyond the focal plane, negative in front of it, 0 at z = f. The raytracer's rays
+            // (CFrameCamera::generateRay) follow the same lens, and Camera_LensRayMatchesCoC pins the two to
+            // each other. 0 for a pinhole and for an orthographic projection, where depth of field is off.
+            float circleOfConfusion(float z) const {
+                if (aperture == 0 || projection != OPTIONS_PROJECTION_PERSPECTIVE)
+                    return 0;
+                return imagePlane * aperture * (invFocaldistance - 1 / z);
+            }
     };
 
     enum class CameraSupport { Supported,

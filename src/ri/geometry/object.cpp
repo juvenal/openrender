@@ -31,11 +31,10 @@
 #include "object.h"
 #include "common/random.h"
 #include "common/sampling.h"
-#include "renderer.h"
-#include "rendererContext.h"
+#include "geometryFrame.h"
+#include "geometryHost.h"
 #include "common/riVocabulary.h"
 #include "ri_config.h"
-#include "shading.h"
 #include "common/stats.h"
 #include "surface.h"
 
@@ -126,18 +125,13 @@ static float getDisp(const float *mat, float) {
 #undef urand
 }
 
-// CObject::cluster() lives in geometryDispatch.cpp (real body) /
-// geometryDispatchStub.cpp (ribVector stub) -- it draws from the shading
-// context (originally CShadingContext::urand()), which is not the
-// memory-pool-only dependency it first appears to be.
-
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CObject
 // Method				:	setChildren
 // Description			:	Set the children objects
 // Return Value			:
 // Comments				:
-void CObject::setChildren(CShadingContext *, CObject *allChildren, bool inheritId) {
+void CObject::setChildren(CObject *allChildren, bool inheritId) {
 
     // Give the children their identities: they inherit ours (pieces of a split),
     // or are numbered by their position in the chain
@@ -206,7 +200,8 @@ void CObject::makeBound(float *bmin, float *bmax) const {
         const float *from, *to;
         ECoordinateSystem sys;
 
-        if (CRenderer::findCoordinateSystem(attributes->maxDisplacementSpace, from, to, sys)) {
+        CGeometryHost *host = geometryHost();
+        if (host != NULL && host->findCoordinateSystem(attributes->maxDisplacementSpace, from, to, sys)) {
             maxDisp = attributes->maxDisplacement * getDisp(from, attributes->maxDisplacement);
         }
 
@@ -240,7 +235,7 @@ void CObject::estimateDicing(float *P, int udiv, int vdiv, int &nudiv, int &nvdi
     if (!nonrasterorient) {
 
         // Project to pixels
-        camera2pixels((udiv + 1) * (vdiv + 1), P);
+        camera2pixels(geometryFrame(), (udiv + 1) * (vdiv + 1), P);
 
         // U stats
         cP = P;
@@ -284,18 +279,19 @@ void CObject::estimateDicing(float *P, int udiv, int vdiv, int &nudiv, int &nvdi
     else { // non raster oriented
         vector tmp;
 
+        const CGeometryFrame &f = geometryFrame();
         float maxDim;
-        if (CRenderer::dPixeldy > CRenderer::dPixeldx) {
-            maxDim = CRenderer::dPixeldy;
+        if (f.dPixeldy > f.dPixeldx) {
+            maxDim = f.dPixeldy;
         }
         else {
-            maxDim = CRenderer::dPixeldx;
+            maxDim = f.dPixeldx;
         }
-        if (CRenderer::projection == OPTIONS_PROJECTION_PERSPECTIVE) {
+        if (f.projection == OPTIONS_PROJECTION_PERSPECTIVE) {
             for (j = 0; j < (vdiv + 1) * (udiv + 1); ++j) {
                 float x, y;
-                x = (CRenderer::imagePlane * P[j * 3 + COMP_X] / P[j * 3 + COMP_Z]);
-                y = (CRenderer::imagePlane * P[j * 3 + COMP_Y] / P[j * 3 + COMP_Z]);
+                x = (f.imagePlane * P[j * 3 + COMP_X] / P[j * 3 + COMP_Z]);
+                y = (f.imagePlane * P[j * 3 + COMP_Y] / P[j * 3 + COMP_Z]);
                 initv(tmp, x - P[j * 3 + COMP_X], y - P[j * 3 + COMP_Y], P[j * 3 + COMP_Z] - 1);
                 P[j * 3 + COMP_X] = x * maxDim;
                 P[j * 3 + COMP_Y] = y * maxDim;
@@ -304,8 +300,8 @@ void CObject::estimateDicing(float *P, int udiv, int vdiv, int &nudiv, int &nvdi
         }
         else {
             for (j = 0; j < (vdiv + 1) * (udiv + 1); ++j) {
-                P[j * 3 + COMP_X] = P[j * 3 + COMP_X] * CRenderer::dPixeldx;
-                P[j * 3 + COMP_Y] = P[j * 3 + COMP_Y] * CRenderer::dPixeldy;
+                P[j * 3 + COMP_X] = P[j * 3 + COMP_X] * f.dPixeldx;
+                P[j * 3 + COMP_Y] = P[j * 3 + COMP_Y] * f.dPixeldy;
                 P[j * 3 + COMP_Z] *= maxDim;
             }
         }
@@ -405,7 +401,7 @@ CDummyObject::~CDummyObject() {
 // Description			:	Intersect a ray
 // Return Value			:
 // Comments				:
-void CDummyObject::intersect(CShadingContext *, CRay *) {
+void CDummyObject::intersect(IRayContext &, CRay *) {
     // Should never reach this point
     // assert(FALSE);
 }
@@ -469,4 +465,173 @@ void CSurface::samplePoint(float u, float v, float *P, float *Ng) const {
     varying[VARIABLE_PW] = Pw;
     unsigned int up = PARAMETER_P | PARAMETER_DPDU | PARAMETER_DPDV | PARAMETER_NG | PARAMETER_BEGIN_SAMPLE;
     sample(0, 1, varying, NULL, up);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CObject
+// Method				:	dice
+// Description			:	Dice the children objects
+// Return Value			:	-
+// Comments				:
+void CObject::dice(IDicer &dicer) {
+    CObject *cObject, *nObject;
+    for (cObject = children; cObject != NULL; cObject = nObject) {
+        nObject = cObject->sibling;
+
+        cObject->attach();
+
+        dicer.drawObject(cObject);
+
+        cObject->detach();
+    }
+}
+
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CObject
+// Method				:	cluster
+// Description			:	Cluster the objects
+// Return Value			:
+// Comments				:	Its draws are a keyed stream of (object, iteration),
+//							so the clustering does not depend on the thread.
+void CObject::cluster(IRayContext &context) {
+    int numChildren;
+    CObject *cObject;
+
+    // Count the number of children
+    for (numChildren = 0, cObject = children; cObject != NULL; cObject = cObject->sibling, numChildren++)
+        ;
+
+    // If we have too few children, continue
+    if (numChildren <= 2)
+        return;
+
+    // These are the two children
+    CObject *front, *frontChildren;
+    CObject *back, *backChildren;
+
+    // Begin a memory page
+    memBegin(context.scratch());
+
+    // Cluster the midpoints of the objects
+    float *P = (float *)ralloc(numChildren * 3 * sizeof(float), context.scratch());
+    int *indices = (int *)ralloc(numChildren * sizeof(int), context.scratch());
+
+    // For 5 iterations
+    for (int iteration = 0; iteration < 15; iteration++) {
+
+        // The jitter of this iteration is a keyed stream of (object, iteration): the same
+        // clustering whichever thread builds the hierarchy (spec 039, research R3.10)
+        openrender::sampling::CKeyedStream jitter(openrender::sampling::detail::mix(0xC1A57E4ull, stableId, (uint64_t)iteration));
+
+        // Compute a slightly jittered center position for the object
+        for (numChildren = 0, cObject = children; cObject != NULL; cObject = cObject->sibling, numChildren++) {
+            const float jx = jitter.next1D(), jy = jitter.next1D(), jz = jitter.next1D();
+            initv(P + numChildren * 3, (cObject->bmax[0] - cObject->bmin[0]) * (jx * 0.2f + 0.4f) + cObject->bmin[0], (cObject->bmax[1] - cObject->bmin[1]) * (jy * 0.2f + 0.4f) + cObject->bmin[1], (cObject->bmax[2] - cObject->bmin[2]) * (jz * 0.2f + 0.4f) + cObject->bmin[2]);
+            indices[numChildren] = -1;
+        }
+
+        // The random cluster centers
+        vector P1, P2;
+        {
+            const float x1 = jitter.next1D(), y1 = jitter.next1D(), z1 = jitter.next1D();
+            const float x2 = jitter.next1D(), y2 = jitter.next1D(), z2 = jitter.next1D();
+            initv(P1, (bmax[0] - bmin[0]) * x1 + bmin[0], (bmax[1] - bmin[1]) * y1 + bmin[1], (bmax[2] - bmin[2]) * z1 + bmin[2]);
+            initv(P2, (bmax[0] - bmin[0]) * x2 + bmin[0], (bmax[1] - bmin[1]) * y2 + bmin[1], (bmax[2] - bmin[2]) * z2 + bmin[2]);
+        }
+
+        // The main clustering loop
+        int done;
+        for (done = FALSE; done == FALSE;) {
+            int i;
+            vector nP1, nP2;
+            int num1, num2;
+
+            done = TRUE;
+
+            initv(nP1, 0);
+            initv(nP2, 0);
+            num1 = 0;
+            num2 = 0;
+            for (i = 0; i < numChildren; i++) {
+                vector D1, D2;
+
+                subvv(D1, P + i * 3, P1);
+                subvv(D2, P + i * 3, P2);
+                if (dotvv(D1, D1) < dotvv(D2, D2)) {
+                    if (indices[i] != 0) {
+                        done = FALSE;
+                        indices[i] = 0;
+                    }
+
+                    addvv(nP1, P + i * 3);
+                    num1++;
+                }
+                else {
+                    if (indices[i] != 1) {
+                        done = FALSE;
+                        indices[i] = 1;
+                    }
+
+                    addvv(nP2, P + i * 3);
+                    num2++;
+                }
+            }
+
+            if ((num1 == 0) || (num2 == 0))
+                break;
+
+            mulvf(P1, nP1, 1 / (float)num1);
+            mulvf(P2, nP2, 1 / (float)num2);
+        }
+
+        if (done == TRUE)
+            break;
+    }
+
+    // Cluster the rest of the objects
+    front = new CDummyObject(attributes, xform);
+    back = new CDummyObject(attributes, xform);
+    front->stableId = openrender::sampling::detail::mix(stableId, 0);
+    back->stableId = openrender::sampling::detail::mix(stableId, 1);
+    initv(front->bmin, C_INFINITY);
+    initv(front->bmax, -C_INFINITY);
+    initv(back->bmin, C_INFINITY);
+    initv(back->bmax, -C_INFINITY);
+
+    frontChildren = NULL;
+    backChildren = NULL;
+
+    // Create the clusters
+    for (numChildren = 0, cObject = children; cObject != NULL; numChildren++) {
+        CObject *nObject = cObject->sibling;
+
+        if (indices[numChildren] == 0) {
+            cObject->sibling = frontChildren;
+            frontChildren = cObject;
+            addBox(front->bmin, front->bmax, cObject->bmin);
+            addBox(front->bmin, front->bmax, cObject->bmax);
+        }
+        else {
+            cObject->sibling = backChildren;
+            backChildren = cObject;
+            addBox(back->bmin, back->bmax, cObject->bmin);
+            addBox(back->bmin, back->bmax, cObject->bmax);
+        }
+
+        cObject = nObject;
+    }
+
+    memEnd(context.scratch());
+
+    // Recurse
+    front->children = frontChildren;
+    back->children = backChildren;
+
+    front->attach();
+    back->attach();
+
+    front->sibling = back;
+    back->sibling = NULL;
+    children = front;
 }

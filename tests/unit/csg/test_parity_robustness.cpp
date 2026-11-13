@@ -28,18 +28,18 @@ using namespace csgtest;
 
 static const float LO[3] = {-0.5f, -0.5f, -0.5f}, HI[3] = {0.5f, 0.5f, 0.5f};
 
-static int at(CShadingContext *ctx, CCSGResolvedOperand *op, float x, float y, float z) {
+static int at(IRayContext *ctx, CCSGResolvedOperand *op, float x, float y, float z) {
     const float P[3] = {x, y, z};
     return classifyOperand(ctx, *op, P);
 }
 
-static int along(CShadingContext *ctx, CCSGResolvedOperand *op, float x, float y, float z, float dx, float dy, float dz) {
+static int along(IRayContext *ctx, CCSGResolvedOperand *op, float x, float y, float z, float dx, float dy, float dz) {
     const float P[3] = {x, y, z}, D[3] = {dx, dy, dz};
     return classifyOperandAlong(ctx, *op, P, D);
 }
 
 // Every grid point classifies as the analytic box says
-static bool matchesBox(CShadingContext *ctx, CCSGResolvedOperand *op) {
+static bool matchesBox(IRayContext *ctx, CCSGResolvedOperand *op) {
     const float lo[3] = {-0.9f, -0.9f, -0.9f}, hi[3] = {0.9f, 0.9f, 0.9f};
     for (const std::vector<float> &p : gridPoints(lo, hi, 7)) {
         const int expected = insideBox(p.data(), LO, HI) ? CSG_IN : CSG_OUT;

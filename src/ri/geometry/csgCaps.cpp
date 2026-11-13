@@ -290,10 +290,10 @@ int capCrossSectionAccepts(const CSurface *quadric, const CCSGCap &cap, const fl
 // Return Value			:	-
 // Comments				:	A cap patch is never ALL_IN: the cross-section trims
 //							its rim
-int CCSGCapRegion::accepts(CShadingContext *ctx, const float *P, const float *Ng) const {
+int CCSGCapRegion::accepts(IRayContext *ctx, const float *P, const float *Ng) const {
     return capCrossSectionAccepts(quadric, cap, P) && evaluator->accepts(ctx, operand, P, Ng, TRUE);
 }
 
-int CCSGCapRegion::classifyBound(CShadingContext *ctx, const float *bmin, const float *bmax) const {
+int CCSGCapRegion::classifyBound(IRayContext *ctx, const float *bmin, const float *bmax) const {
     return evaluator->classifyBound(ctx, operand, bmin, bmax) == REGION_ALL_OUT ? REGION_ALL_OUT : REGION_MIXED;
 }

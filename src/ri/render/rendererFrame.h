@@ -37,4 +37,11 @@ void endFrameParams();
 // The camera of the current frame (valid between beginFrameParams and endFrameParams)
 const openrender::ICamera &frameCamera();
 
+// Copies the frame limits Geometry reads (spec 031) from the renderer core's statics and installs them. Called in
+// beginFrame() after the hiders' contexts exist: their constructors still add to CRenderer::raytracingFlags
+void beginGeometryFrame();
+
+// Uninstalls the geometry frame; the last thing endFrame() does about it
+void endGeometryFrame();
+
 #endif

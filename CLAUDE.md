@@ -185,8 +185,8 @@ alternative to `-I` but is no longer required as a workaround.
 
 ### Hider system
 `CHider` (`src/ri/hiders/hider.h`) is the base of every hider (spec 029). It owns its thread's
-`CShadingContext` (Shading, `final`, no virtuals), declares `renderingLoop()`, and is the context's tracer and
-shading producer. Implementations:
+`CShadingContext` (Shading, `final`, no virtuals), declares `renderingLoop()`, and is the context's tracer and,
+for Geometry, its ray-side context (`IRayContext`, spec 031; `CReyes` also implements the dicing interface `IDicer`). Implementations:
 - `CReyes` (bucket rasterizer) → `CStochastic` (motion blur, DOF) and `CZbuffer` (classic depth buffer)
 - `CRaytracer` — primary camera rays (no native motion blur support yet — open issue)
 - `CPhotonHider` — photon map pass
@@ -322,6 +322,9 @@ renderer core keeps the frame's choice in one slot, `frameTransport()` (`render/
 integrator, the integrator instance and the hider's traits), written only by `CRenderer` before the render threads start and after
 they are joined. See gotcha 38.
 
+### Geometry interfaces and the lens (spec 031)
+Geometry's dice and intersect take Geometry-owned interfaces that the hiders implement: `IDicer` (`geometry/dicer.h`: `drawObject`, `drawGrid`, `drawPoints`, `probe`, `inFrustum`, `rayContext()`) for dicing, `IRayContext` (`geometry/rayContext.h`: `threadIndex()`, the scratch arena, the varyings, `shade`/`displace`, `saveShadingState`/`restoreShadingState`) for intersection and tessellation, and `IObjectSink` (`geometry/objectSink.h`) for the objects `instantiate()` creates; a new Geometry file includes nothing from Hiders or Shading. The frame limits Geometry reads are a `CGeometryFrame` (`geometry/geometryFrame.h`: thread count, `maxGridSize`, `maxEyeSplits`, `flags`, `raytracingFlags`, projection, image plane, pixel size and origin, `clipMin`, and `lens`) that the core builds in `beginFrame()` **after the hiders' constructors have run** (its `raytracingFlags` copies a static those constructors set) and installs until `endFrame()`; with nothing installed it is all zero and `geometryFrame()` never returns null. See gotcha 39.
+
 ### Coordinate / matrix conventions
 Column-major matrices, `element(row,col) = row + 4*col`. `from` = local→world,
 `to` = world→local = `from^-1`. The REYES vertex buffer stores **sample
@@ -348,6 +351,9 @@ ctest --test-dir build -L '^determinism-sweep$' -j2     # opt-in full sweep (582
 ctest --test-dir build -L volume                        # spec 056: volume shader segments (the VolumeProbe_ hand-computed pixel checks, VolumeDiffer_, Parity_volume-, Determinism_volume-)
 ctest --test-dir build -L link                          # spec 029: libshader_shading self-contained, the static consumer, no workaround text
 ctest --test-dir build -L registry                      # spec 030: the hider and integrator registries (lookup, collisions, pair check and refusal, parameters, the frame abort paths, test-double hider)
+ctest --test-dir build -L geometry_contract             # spec 031: Geometry's five contract programs (a dicer, a ray context, a host and a sink double; no hider, no Shading)
+ctest --test-dir build -L camera                        # spec 028 and 031: the camera layer, the lens model, the signed circle of confusion, the lens ray
+ctest --test-dir build -L hiders                        # spec 031: Hiders_ReyesBucketBoundCoversCoC
 ctest --test-dir build -L '^link-package$'              # opt-in (configure with -DOPENRENDER_LINK_PACKAGE_TEST=ON): an installed openRender package consumed statically (scratch configure, builds a second tree)
 ```
 
@@ -562,7 +568,8 @@ not in the agent definitions.
    stage and `CTesselationPatch` all consult it; nothing is pre-baked at
    `RiSolidEnd`. The hook and the REYES coverage mask must keep **generic**
    names: `reyes.cpp` references them, and hiders may not name CSG types
-   (constitution Principle VIII).
+   (constitution Principle VIII). Geometry's interface headers (`rayContext.h`, `dicer.h`, `objectSink.h`, `geometryFrame.h`) mention neither CSG nor Region (FR-019, grep-checked): the hook's generic names stay where
+   `reyes.cpp` reads them, and `CRegionPredicate`, `regionCoverage` and `CCSGSolid`'s entry points keep their names.
 14. **CSG classification bypasses ray filters and is orientation-independent.**
    Point membership is crossing parity along fixed directions (with a
    fallback and a majority vote), counted by each surface's own
@@ -570,9 +577,8 @@ not in the agent definitions.
    `CCSGResolvedOperand::buildIndex()` builds a per-operand bound hierarchy:
    a linear scan over a mesh operand's thousands of surfaces made
    `blobby-csg-difference` REYES ~35x slower than master and timed out its
-   parity test. Free-form (NURBS/subdivision/bicubic) crossings live in the
-   renderer-only `geometry/surfaceCrossingDispatch.cpp`, with
-   `vector/surfaceCrossingDispatchStub.cpp` for ribVector.
+   parity test. Free-form (NURBS/subdivision/bicubic) crossings live in
+   `geometry/surfaceCrossings.cpp`, compiled into both `libRIBRender` and `libRIBVector`: the dispatch and stub pair is gone (spec 031).
 15. **Trims drop straddling patches; CSG must keep them.** The trim stage in
    `CPatch::dice` discards patches still straddling a trim at
    `maxEyeSplits`. The CSG region stage instead dices MIXED patches at a
@@ -588,16 +594,11 @@ not in the agent definitions.
    `quadStratumBounds` (the motion path culls by the latter alone).
 17. **Geometry never calls the renderer core: use `CGeometryHost`.**
    `instantiate()` hands its output to `addObject()`, which the renderer
-   core owns, so a solid captures its per-instance leaves and procedural
-   expansions through the Geometry-owned `CGeometryHost`
-   (`geometry/geometryHost.h`: `capture()`, `expand()`,
-   `releaseAtFrameEnd()`), implemented and registered by
-   `CRendererContext`. Never reach `CRenderer`/`CRendererContext` from
-   Geometry (Principle VIII; registered violations live in
-   `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`). The instance state holds a
-   reference to every captured object until `endFrameResources()` runs in
-   `CRenderer::endFrame()` before `root->destroy()`: REYES consumes objects
-   by refcount, while raytracing frees the hierarchy regardless of it.
+   core owns, so a solid captures its per-instance leaves and procedural expansions through the Geometry-owned `CGeometryHost` (`geometry/geometryHost.h`: `capture()`, `expand` for a delayed object or instance,
+   `findCoordinateSystem`, `releaseAtFrameEnd()`/`frameEnded()`), implemented and registered by `CRendererContext`, and reports the objects it creates to an `IObjectSink` (`geometry/objectSink.h`, which the core
+   implements). Never reach `CRenderer`/`CRendererContext` from Geometry (Principle VIII; the registered violations live in `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`, DB-004: three lines, all in
+   `blobbyRepeller.cpp`). The instance state holds a reference to every captured object until `endFrameResources()` runs in `CRenderer::endFrame()` before `root->destroy()`: REYES consumes objects by refcount,
+   while raytracing frees the hierarchy regardless of it.
 18. **Captured CSG leaves carry absolute transforms.** A leaf recorded inside
    a solid block holds the full current transform, so the definition
    rebases every leaf into the outer frame snapshotted at the outermost
@@ -605,11 +606,10 @@ not in the agent definitions.
    transform on top without rebasing would place it twice. `SolidBegin` does
    not scope the transform: use `TransformBegin`/`End` around a leaf's
    own offset.
-19. **Render-only `CSurface` overrides live in `render/geometryDispatch.cpp`.**
-   `surface.cpp` is not in the shared ribVector library, so overrides such
-   as `CSurface::regionCoverage` (and `CCSGSolid::dice`, which keeps the CSG
-   unit free of hider types) are defined in `render/geometryDispatch.cpp`,
-   with a `CODE_BUG` stub in `vector/geometryDispatchStub.cpp`.
+19. **Geometry is one library for the renderer and for `libRIBVector` (spec 031).** The Geometry bodies that used to live in `render/geometryDispatch.cpp` (`CSurface::regionCoverage`,
+   `CCSGSolid::dice`, the `CSurface`/`CObject` virtuals) are in `src/ri/geometry` and compiled by both libraries; `geometryDispatch.cpp` and its stub no longer exist, and neither does any other
+   `vector/*Stub.cpp` (spec 032 deleted the irradiance one). A Geometry file includes no Hiders or Shading header and names no `CReyes`/`CShadingContext`: `Geometry_NoHiderShadingNames` scans the directory,
+   comments included, and `Geometry_RibVectorNoStubs` checks `libRIBVector`'s undefined symbols (no exemption).
 20. **The RIB lexer must be reset with `riblex_destroy()`.** `parserCleanup()`
    (`parse/rib.y`, run by every `RiEnd`) used to set `yy_init = 1`, which
    flex 2.6 reads as "already initialized": the first RIB parse of any
@@ -733,7 +733,8 @@ not in the agent definitions.
    rays from `frameCamera()`, an `ICamera` (`CFrameCamera`,
    `state/camera.{h,cpp}`), never from `CRenderer::imagePlane`/`aperture`/...
    A field is a copy of the core static of the same meaning and is never
-   recomputed: the shutter scale is the stored `invShutterTime`, read through
+   recomputed (spec 031 added `dSampledx` and `dSampledy`, the samples per screen unit that
+   the lens scatter and its bounds use, and removed the `cocFactor*` copies: the lens values are the `aperture`, `focaldistance`, `invFocaldistance`, `focallength` and `fstop` fields, read through `openrender::LensModel::fromFrame`): the shutter scale is the stored `invShutterTime`, read through
    `motion::shutterRate()`/`toShutterRate()`. Geometry evaluates every
    intersection-time shutter lerp through the header-only
    `geometry/motion.h`, but **each site keeps its own precision and
@@ -749,8 +750,9 @@ not in the agent definitions.
    for a tolerance. The camera-motion synthesis for an object stays in the
    core, in `CRendererContext::addObject` (Reyes shares it, spec 031), and an
    object with its own transform motion still gets no camera motion blur
-   (GitHub #106, preserved with #107, #108 and #110). Reyes's own
-   camera-rotation SLERP and motion bounds are untouched (DB-009, spec 031).
+   (GitHub #106, preserved with #107, #108 and #110). Reyes rotates the camera through
+   `motion::cameraRotationAt` since spec 031 (the one function the raytrace side uses; `Motion_CameraSlerpEquivalence` pins it); Reyes's motion bounds are untouched, and DB-009 is Resolved.
+   Reyes and the stochastic rasterizer read the frame (`frameParams()`, once per function or grid, never per sample) instead of `CRenderer::aperture`, `cameraHasRotation`, `relRotQ`, `relTrans`, `dSampledx/y` and the lens statics.
 
 27. **Plug-in modules are `dlopen`ed images; test and write them accordingly (spec 037).**
    A loaded image runs its destructors at process exit, so a test that checks "unloaded after
@@ -766,7 +768,7 @@ not in the agent definitions.
    second check.
 
 28. **Shading's boundary is one versioned interface; the tracer is the hider that owns the context (specs 026, 029).**
-   `CRendererServices` is version 2.2.0 (`kRendererServicesVersion`, `rendererServices.h`, with
+   `CRendererServices` is version 2.3.0 (`kRendererServicesVersion`, `rendererServices.h`, with
    `serviceTypes.h`, `tracer.h` and `shaderGlobals.h`; `getPhotonMap` returns `IPhotonLookup *`; `getCache` answers only irradiance caches
    (Core's `getCache` answers `nullptr` for a name registered as another 3D kind, #104), and Shading converts the answer with `irradianceStoreOf()`; the headers document
    every member, so read them before writing an implementer or a double). The attribute, option and renderer-info
@@ -798,7 +800,8 @@ not in the agent definitions.
    implementer `static_assert`s MAJOR 2.
    `getDSO` also serves the `.slo` loader since spec 038 (`sloLoader.cpp` binds the DSO operands of a JIT module
    with `libshader::lookupDSO`, on every load); that was a wording change of the member, so
-   `kRendererServicesVersion` stayed 2.0.0 at spec 038, is 2.1.0 since spec 029 and 2.2.0 since spec 032 (a MINOR step that is breaking within 2.x: `getCache` answers `nullptr` on a kind mismatch; otherwise additions: `photonMapAccess.h`, `irradianceSampler.h`, `irradianceCalls.h`, `boundDraws()`).
+   `kRendererServicesVersion` stayed 2.0.0 at spec 038, is 2.1.0 since spec 029 and 2.2.0 since spec 032 (a MINOR step that is breaking within 2.x: `getCache` answers `nullptr` on a kind mismatch; otherwise additions: `photonMapAccess.h`, `irradianceSampler.h`, `irradianceCalls.h`, `boundDraws()`). It is 2.3.0 since spec 031 (a MINOR step that is breaking within 2.x: `CShadingContext`'s Geometry-facing
+   `shade(CSurface *, ...)`, `displace()`, `displaceEstimate()` and `setProducer()` and `IShadingProducer` are removed, and `EShadingDim` moved to `common/shadingDim.h`).
 29. **The active RI context is installed explicitly (spec 038).** `CRiInterface`'s constructor assigns nothing:
    not `renderMan`, not the diagnostic sink. `riInstallContext(ctx)` makes it the active one (and attaches the
    diagnostics), `riUninstallContext(ctx)` / the destructor of an installed context hands both back to the
@@ -849,11 +852,10 @@ not in the agent definitions.
 35. **Hiders own a shading context; several names are frozen by the allowlist (spec 029).** `CRenderer::contexts`
    is a `CHider **` that kept its name (spec 030 deleted `reyes.cpp`'s DB-011 line, so no allowlist key depends on it now; `reyes.cpp`
    reaches its peers through the frame's `CHiderPeers`); reach the context with `contexts[i]->shadingContext()`. The trace bodies are `CHider` members that stay in `trace.cpp` (its DB-011
-   and DB-017 lines are keyed on the file). Geometry keeps calling `CShadingContext::shade(CSurface *, ...)`,
-   `displace()` and `displaceEstimate()`: an opaque forwarding entry that calls the owning hider's
-   `IShadingProducer`, which builds the point source (`CSurfacePointSource`) and the `ShaderGlobals` batch and calls
-   `shade(const ShaderGlobals &, IPointSource &)`; spec 031 retires the forwarding entry. `shade()` branches on the
-   batch's ray type and hit mode only, which the producer takes from `classifyShading()`, corrected in spec 029 to
+   lines are keyed on the file). Geometry reaches shading and displacement through its own
+   `IRayContext` (`shade`, `displace`, shading-state save/restore) that `CHider` implements over the context it owns; the forwarding entries and `IShadingProducer` are gone since spec 031, and the hider (`shadingProducer.cpp`,
+   `shadeSurface()`) builds the point source (`CSurfacePointSource`) and the `ShaderGlobals` batch itself and calls `shade(const ShaderGlobals &, IPointSource &)`. `shade()` branches on the
+   batch's ray type and hit mode only, which the hider takes from `classifyShading()`, corrected in spec 029 to
    the code in three places: a shadow hit reads `transmissionhitmode` at every dimension; a ray hit traced from a
    REYES grid (any depth, any frame) is `Secondary`; and the `Photon` rule is narrowed to a 0-D batch at depth 0 not
    in a shadow. Photon emission itself never calls `shade()` (`photon.cpp` sets its 0-D state and runs the light with
@@ -928,7 +930,21 @@ not in the agent definitions.
    (`orender` exits -1). A named `spherelight`/`quadlight` with no compiled shader on the path now reports `Failed to find shader`:
    the C++ substitutes (`hcshader`) are gone. The irradiance sampler is installed by the `CHider` constructor (spec 032), not by a table: the
    instance a table's `create` returns is a `CHider`-derived hider, so it gets the sampler for free (the process default covers only a
-   context with none installed).
+   context with none installed). `CReyes::drawObject` is one declaration that overrides both `CHider::drawObject` (spec 030: the core submits objects through it) and `IDicer::drawObject` (spec 031: what Geometry's `dice()` calls); do not
+   declare a second one.
+39. **Geometry's interfaces, the frame value and the one lens (spec 031).** Geometry's dice and intersect take Geometry-owned interfaces that the hiders implement: `IDicer` (`geometry/dicer.h`:
+   `drawObject`, `drawGrid`, `drawPoints`, `probe`, `inFrustum`, `rayContext()`) for dicing, `IRayContext` (`geometry/rayContext.h`: `threadIndex()`, the scratch arena, the varyings,
+   `shade`/`displace`, `saveShadingState`/`restoreShadingState`) for intersection and tessellation, and `IObjectSink` (`geometry/objectSink.h`) for the objects `instantiate()` creates; a new Geometry file includes
+   nothing from Hiders or Shading. The frame limits Geometry reads are a `CGeometryFrame` (`geometry/geometryFrame.h`: thread count, `maxGridSize`, `maxEyeSplits`, `flags`, `raytracingFlags`, projection, image plane,
+   pixel size and origin, `clipMin`, and `lens`) that the core builds in `beginFrame()` **after the hiders' constructors have run** (its `raytracingFlags` copies a static those constructors set) and
+   installs until `endFrame()`; with nothing installed it is all zero and `geometryFrame()` never returns null. The tessellation lock is Geometry's (`surface.cpp`, translation-unit local); delayed objects and
+   instances expand once through `CGeometryHost`. **One lens:** `openrender::LensModel::circleOfConfusion(z)` (`state/camera.h`) is the signed screen-space circle of confusion
+   `imagePlane * aperture * (1/f - 1/z)` (0 for a pinhole and for orthographic, where depth of field is off: the core sets `aperture` to 0). Reyes writes it into `vertices[9]` and scatters a vertex per axis by
+   `lens * dSampled * c` (`pixel->jdx = lens * dSampledx`); **only the scatter reads `vertices[9]` signed, every bound, comparison and maximum takes its magnitude**, and the bounds come from
+   `hiders/reyesLensBounds.h` (`Hiders_ReyesBucketBoundCoversCoC`; a `zMin` at or behind the eye plane is clamped to `kMinDepth`). The raytracer's `CFrameCamera::generateRay` keeps its own expressions
+   and `Camera_LensRayMatchesCoC` pins them to the function. Geometry's dicing heuristic `minCocPixels` reads `|c|` times the pixel size. Before spec 031 Reyes blurred `sqrt(2) f/(f + A)` times the raytracer's radius
+   (1.35 times for `DepthOfField 2 1 5`); only the five Reyes depth-of-field images changed (`Parity_dof` 40.45 to 9.92). The raytracer's remaining depth-of-field noise is the default Catmull-Rom pixel filter's
+   (`specs/031-geometry-hider-agnostic/lens-investigation.md`, GitHub #166), not the lens sampler.
 
 ## Active Technologies
 - C++20, CMake ≥3.19; `libtiff`/`libpng` (mandatory), OpenEXR (optional,
@@ -1011,8 +1027,17 @@ not in the agent definitions.
   `-Werror`; no new dependencies: the hider and integrator registries over `common/kindRegistry.h`, the Transport domain
   (`src/ri/transport/`), the `Integrator` statement, the renderer core's `frameTransport()` slot (030-hider-and-integrator-registry)
 - Storage: N/A; memory only (030-hider-and-integrator-registry)
+- C++20, CMake ≥3.19, `-Werror`; no new dependencies: Geometry-owned `IDicer`, `IRayContext` and `IObjectSink`, a per-frame `CGeometryFrame`, Reyes on `FrameParams`, one
+  `LensModel::circleOfConfusion` (031-geometry-hider-agnostic)
+- Storage: N/A; memory only (031-geometry-hider-agnostic)
 
 ## Recent Changes
+- 031-geometry-hider-agnostic: Geometry names neither the hiders nor Shading: `IRayContext`, `IDicer` and `IObjectSink` (implemented by the hiders and the core) replace the `CReyes *`/`CShadingContext *`
+  parameters of every Geometry virtual, the forwarding entries of `CShadingContext` and `IShadingProducer` are retired, a per-frame `CGeometryFrame` replaces Geometry's `CRenderer::` reads, and `libRIBVector` compiles the real
+  Geometry (`geometryDispatch.cpp` and every `vector/*Stub.cpp` are gone). Reyes reads `FrameParams` and rotates the camera through `motion::cameraRotationAt` (DB-009's rotation half). One thin lens, `LensModel::circleOfConfusion`, serves
+  Reyes and the raytracer (the bounds in `reyesLensBounds.h`; orthographic depth of field stays off): the only images that changed are the five Reyes depth-of-field renders, approved one by one (`Parity_dof` 40.45 to 9.92).
+  DB-006, DB-009, DB-017 and DB-025 Resolved (the last two with spec 032); the allowlist 344 to 147 on the merged tree; metrics Geometry 48 to 2 references, Hiders and TOTAL as archcheck reports on the merged tree
+  (489 and 491); `kRendererServicesVersion` 2.3.0 (after spec 032's 2.2.0). No tolerance widened, no test disabled. The default Catmull-Rom pixel filter's effect on depth-of-field noise is filed as #166.
 - 030-hider-and-integrator-registry: hiders are registered tables (`hiderRegistry()`, name, aliases, declared capabilities, dispatch,
   `create`/`destroy`) and the renderer core selects one per frame without naming a concrete hider (the two `strcmp` chains, the
   `dynamic_cast`, the TSM name test and the `hiderFlags` description bits are gone; three DB-011 allowlist lines and one DB-006

@@ -36,8 +36,7 @@
 #include "common/os.h"
 #include "common/diagnostics.h"
 #include "polygons.h"
-#include "reyes.h"
-#include "riInterface.h"
+#include "objectSink.h"
 #include "common/stats.h"
 #include "subdivisionLoop.h"
 
@@ -336,7 +335,7 @@ CLoopSubdivMesh::~CLoopSubdivMesh() {
 // Description			:	Intersect a ray with the primitive
 // Return Value			:	-
 // Comments				:
-void CLoopSubdivMesh::intersect(CShadingContext *rasterizer, CRay *) {
+void CLoopSubdivMesh::intersect(IRayContext &rasterizer, CRay *) {
 
     if (children == NULL)
         create(rasterizer);
@@ -348,10 +347,10 @@ void CLoopSubdivMesh::intersect(CShadingContext *rasterizer, CRay *) {
 // Description			:	Dice the primitive
 // Return Value			:	-
 // Comments				:
-void CLoopSubdivMesh::dice(CReyes *rasterizer) {
+void CLoopSubdivMesh::dice(IDicer &rasterizer) {
 
     if (children == NULL)
-        create(&rasterizer->shadingContext());
+        create(rasterizer.rayContext());
 
     CObject::dice(rasterizer);
 }
@@ -362,7 +361,7 @@ void CLoopSubdivMesh::dice(CReyes *rasterizer) {
 // Description			:	Instantiate the primitive
 // Return Value			:	-
 // Comments				:
-void CLoopSubdivMesh::instantiate(CAttributes *a, CXform *x, CRiInterface *c) const {
+void CLoopSubdivMesh::instantiate(CAttributes *a, CXform *x, IObjectSink *c) const {
     CXform *nx = new CXform(x);
     nx->concat(xform);
 
@@ -472,7 +471,7 @@ CObject *CLoopSubdivMesh::buildPolygonMesh() {
 //							this object via setChildren()
 // Return Value			:	-
 // Comments				:
-void CLoopSubdivMesh::create(CShadingContext *context) {
+void CLoopSubdivMesh::create(IRayContext &) {
 
     osLock(mutex);
     if (children != NULL) {
@@ -480,7 +479,7 @@ void CLoopSubdivMesh::create(CShadingContext *context) {
         return;
     }
 
-    setChildren(context, buildPolygonMesh());
+    setChildren(buildPolygonMesh());
 
     osUnlock(mutex);
 }

@@ -320,3 +320,10 @@ The float probe scenes (`VolumeProbe_*`) are not parity pairs: `test_hider_parit
 float only (`test_hider_parity.cpp:96-100`). Their cross-hider and cross-backend agreement (FR-014) is that every variant
 reads the same hand-computed value from the same pixel, within 0.0001 where the value contains `exp()` and 0.00001 for a
 pass-through colour. The glass sphere has no `.slo` pair until GitHub #157 (the shipped `glass` shader is broken under the JIT). A red parity pair is reported; the threshold is never widened to answer it.
+
+## Spec 031: the lens phase (2026-11-12)
+
+Reyes and the raytracer take one circle-of-confusion function (`LensModel::circleOfConfusion`), so the blur-size part of D9 closed. Re-measured at the Phase 9 tree
+(`specs/031-geometry-hider-agnostic/validation.md` §1 and §5), macOS and Linux alike: `Parity_dof` **9.92** (was 40.45) and `Parity_dof-motion` **2.41** (was 22.72), the seed-to-seed
+noise of the raytracer twin being 13.81 and 3.56. **No threshold was changed**: `Parity_dof` stays 60 and `Parity_dof-motion` 35, and tightening them is the maintainer's separate decision.
+The D9 notes above describe the starting tree. The tests' own references (`Visual_camera-dof-reyes`, `Visual_camera-motion-small-dof-reyes`, `Convergence_dof-reyes`) were replaced by approved renders.

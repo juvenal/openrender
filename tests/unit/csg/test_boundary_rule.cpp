@@ -42,7 +42,7 @@ class CCountingSphere : public CSurface {
         CCountingSphere(float cx, float cy, float cz, float r)
             : CSurface(new CAttributes(), new CXform()), c{cx, cy, cz}, r(r), calls(0) {}
 
-        int countCrossings(CShadingContext *, const float *from, const float *dir) const override {
+        int countCrossings(IRayContext *, const float *from, const float *dir) const override {
             calls++;
             double oc[3] = {from[0] - c[0], from[1] - c[1], from[2] - c[2]};
             double a = dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2];
@@ -54,7 +54,7 @@ class CCountingSphere : public CSurface {
             double t0 = (-b - std::sqrt(disc)) / (2 * a), t1 = (-b + std::sqrt(disc)) / (2 * a);
             return (t0 > 0) + (t1 > 0);
         }
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const override {}
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const override {}
 
         float c[3], r;
         mutable int calls;
@@ -316,7 +316,7 @@ TEST(instance_leaves_are_clones_and_only_the_subtrahend_is_flipped) {
         RiSolidEnd();
     }));
     ASSERT(solid != NULL);
-    solid->resolve(s.ctx());
+    solid->resolve(*s.ctx());
     const CCSGInstanceState *state = solid->instanceState();
     ASSERT(state != NULL);
     ASSERT(state->operands.size() == 2);

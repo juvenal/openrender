@@ -30,9 +30,6 @@
 #include "common/diagnostics.h"
 #include "motion.h"
 #include "objectMisc.h"
-#include "renderer.h"
-#include "reyes.h"
-#include "shading.h"
 #include "common/stats.h"
 
 ///////////////////////////////////////////////////////////////////////
@@ -72,7 +69,7 @@ CDLObject::~CDLObject() {
 // Description			:	Intersect the surface with the ray
 // Return Value			:	-
 // Comments				:
-void CDLObject::intersect(CShadingContext *, CRay *ray) {
+void CDLObject::intersect(IRayContext &, CRay *ray) {
     vector oN;
     float t;
 
@@ -131,7 +128,7 @@ void CDLObject::interpolate(int, float **, float ***) const {
 // Description			:	Dice the surface for scan-line rendering
 // Return Value			:	-
 // Comments				:
-void CDLObject::dice(CReyes *) {
+void CDLObject::dice(IDicer &) {
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -140,7 +137,7 @@ void CDLObject::dice(CReyes *) {
 // Description			:	Create a copy
 // Return Value			:	-
 // Comments				:
-void CDLObject::instantiate(CAttributes *, CXform *, CRiInterface *) const {
+void CDLObject::instantiate(CAttributes *, CXform *, IObjectSink *) const {
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -149,8 +146,8 @@ void CDLObject::instantiate(CAttributes *, CXform *, CRiInterface *) const {
 // Description			:	Shade the surface
 // Return Value			:	-
 // Comments				:
-void CDLObject::shade(CShadingContext *context, int numRays, CRay **rays) {
-    float **varying = context->currentShadingState->varying;
+void CDLObject::shade(IRayContext &context, int numRays, CRay **rays) {
+    float **varying = context.varyings();
     float *P = varying[VARIABLE_P];
     float *N = varying[VARIABLE_NG];
     float *I = varying[VARIABLE_I];
@@ -170,5 +167,5 @@ void CDLObject::shade(CShadingContext *context, int numRays, CRay **rays) {
         I += 3;
     }
 
-    context->shade(this, numRays, 1, SHADING_2D, 0);
+    context.shade(this, numRays, 1, SHADING_2D, 0);
 }

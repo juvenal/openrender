@@ -40,11 +40,11 @@ const int CSG_IN = 1;
 // open operands are always OUT; a single quadric uses its implied closed
 // solid; anything else uses crossing parity along a fixed direction, with a
 // fallback direction and a majority of three near grazing or edge crossings.
-int classifyOperand(CShadingContext *ctx, const CCSGResolvedOperand &operand, const float *P);
+int classifyOperand(IRayContext *ctx, const CCSGResolvedOperand &operand, const float *P);
 
 // The same, along an explicit first ray direction (for tests that need to
 // force a grazing or edge crossing); the fallback directions still apply.
-int classifyOperandAlong(CShadingContext *ctx, const CCSGResolvedOperand &operand, const float *P, const float *dir);
+int classifyOperandAlong(IRayContext *ctx, const CCSGResolvedOperand &operand, const float *P, const float *dir);
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CCSGEvaluator
@@ -58,18 +58,18 @@ class CCSGEvaluator {
         CCSGEvaluator(const CCSGDefinition *definition, const std::vector<CCSGResolvedOperand *> &operands, float epsilon);
 
         // IN/OUT for operand at P
-        int classify(CShadingContext *ctx, int operand, const float *P) const;
+        int classify(IRayContext *ctx, int operand, const float *P) const;
 
         // TRUE if the point P (normal Ng) of a leaf of `operand` lies on the
         // composite boundary (the boundary rule, two-sided, with the lowest
         // operand index winning between coincident faces). ownChanges: P is
         // known to lie on the own operand's boundary (an implied cap), so its
         // crossing test is skipped
-        int accepts(CShadingContext *ctx, int operand, const float *P, const float *Ng, int ownChanges = FALSE) const;
+        int accepts(IRayContext *ctx, int operand, const float *P, const float *Ng, int ownChanges = FALSE) const;
 
         // REGION_ALL_IN / REGION_ALL_OUT / REGION_MIXED for a patch of a leaf
         // of `operand` inside [bmin, bmax]
-        int classifyBound(CShadingContext *ctx, int operand, const float *bmin, const float *bmax) const;
+        int classifyBound(IRayContext *ctx, int operand, const float *bmin, const float *bmax) const;
 
         const CCSGDefinition *definition;
         std::vector<CCSGResolvedOperand *> operands;
@@ -85,8 +85,8 @@ class CCSGRegion : public CRegionPredicate {
     public:
         CCSGRegion(const CCSGEvaluator *evaluator, int operand) : evaluator(evaluator), operand(operand) {}
 
-        int accepts(CShadingContext *ctx, const float *P, const float *Ng) const override;
-        int classifyBound(CShadingContext *ctx, const float *bmin, const float *bmax) const override;
+        int accepts(IRayContext *ctx, const float *P, const float *Ng) const override;
+        int classifyBound(IRayContext *ctx, const float *bmin, const float *bmax) const override;
 
         const CCSGEvaluator *evaluator;
         int operand;

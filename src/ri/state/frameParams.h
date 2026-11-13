@@ -55,6 +55,7 @@ namespace openrender {
             float shutterOpen, shutterClose, shutterTime, invShutterTime;
             int projection; // an EProjectionType value (state/options.h)
             float imagePlane, invImagePlane, dxdPixel, dydPixel;
+            float dSampledx, dSampledy; // samples per screen unit (dPixeldx * pixelXsamples, renderer.cpp:417-418): the scale of the lens scatter and its bounds
             float aperture, focaldistance, invFocaldistance, focallength, fstop;
             FrameCameraMotion camera;
     };

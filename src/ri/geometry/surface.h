@@ -42,16 +42,16 @@ class CPatch : public CObject {
         CPatch(CAttributes *a, CXform *x, CSurface *o, float umin, float umax, float vmin, float vmax, int depth, int minDepth);
         ~CPatch();
 
-        void intersect(CShadingContext *, CRay *) { assert(FALSE); }
-        void dice(CReyes *); // Split or render this object
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
+        void intersect(IRayContext &, CRay *) { assert(FALSE); }
+        void dice(IDicer &); // Split or render this object
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 
-        void buildLayout(CReyes *, int wrapU, int wrapV); // Decide every split up front (root patch only)
+        void buildLayout(IDicer &, int wrapU, int wrapV); // Decide every split up front (root patch only)
 
     private:
-        void splitToChildren(CReyes *, int);
-        int probe(CReyes *);                           // Probe the bound and divisions; FALSE if culled
-        void layoutNode(CReyes *, CPatchLayout *, int); // Decide this patch's layout node
+        void splitToChildren(IDicer &, int);
+        int probe(IDicer &);                           // Probe the bound and divisions; FALSE if culled
+        void layoutNode(IDicer &, CPatchLayout *, int); // Decide this patch's layout node
         void useLayout(CPatchLayout *, int);           // Take the decisions from a layout node
 
         CPatchLayout *layout;         // The surface's split layout, or NULL
@@ -83,20 +83,21 @@ class CTesselationPatch : public CObject {
         CTesselationPatch(CAttributes *a, CXform *x, CSurface *o, float umin, float umax, float vmin, float vmax, char depth, char minDepth, float r);
         ~CTesselationPatch();
 
-        void intersect(CShadingContext *, CRay *);
-        void dice(CReyes *) { assert(FALSE); }
-        void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
+        void intersect(IRayContext &, CRay *);
+        void dice(IDicer &) { assert(FALSE); }
+        void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 
-        void initTesselation(CShadingContext *context);
+        void initTesselation(IRayContext &context);
 
-        static void initTesselations(int geoCacheMemory);
+        static void initTesselations(int geoCacheMemory, int numThreads);
         static void shutdownTesselations();
 
     private:
-        CPurgableTesselation *tesselate(CShadingContext *context, char div, int estimateOnly);
-        void splitToChildren(CShadingContext *context);
-        void sampleTesselation(CShadingContext *context, int div, unsigned int sample, float *&P);
+        CPurgableTesselation *tesselate(IRayContext &context, char div, int estimateOnly);
+        void splitToChildren(IRayContext &context);
+        void sampleTesselation(IRayContext &context, int div, unsigned int sample, float *&P);
 
+        int numThreadsAtBuild;        // The thread count the per-thread arrays were built for (the frame may be gone by the destructor)
         char depth;                   // Depth of the patch
         char minDepth;                // The minimum depth of the patch
         CSurface *object;             // The object the surface belongs to
@@ -116,7 +117,7 @@ class CTesselationPatch : public CObject {
 
         // Helper static functions
 
-        static void purgeTesselations(CShadingContext *context, CTesselationPatch *entry, int level, int thread, int all);
+        static void purgeTesselations(IRayContext &context, CTesselationPatch *entry, int level, int thread, int all);
         static void tesselationQuickSort(CTesselationEntry **activeTesselations, int start, int end, int thread);
 };
 

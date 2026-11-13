@@ -87,12 +87,12 @@ class CSampler {
         static CSampleValue cameraSample(const openrender::sampling::CSamplingConfig &config, const openrender::sampling::CameraSeeds &seeds, int absSubX,
                                          int absSubY, bool wantLens);
 
-        // S1: canonical circle-of-confusion formula (reyes's cocSamples(z)
-        // macro, renderer.h:39), reyes's sole consumer -- raytrace's DOF model
-        // offsets the ray origin directly by CRenderer::aperture (a true lens
-        // ray, not a screen-space CoC scatter: D9, a documented non-closable
-        // residual), so it has no use for this formula.
-        static float circleOfConfusion(float z, float invFocaldistance, float cocFactorSamples);
+        // There is no circle-of-confusion function here any more (D9, resolved by spec 031's lens phase).
+        // The raytracer's defocus is the exact thin lens, radius imagePlane*aperture*|1/z - 1/f| in screen
+        // units; the old Reyes scatter used sqrt(2)*f/(f + aperture) times that (1.35x for
+        // `DepthOfField 2 1 5`), unsigned and isotropic in samples. Both now take the one signed function
+        // openrender::LensModel::circleOfConfusion(z) (state/camera.h), and Reyes scatters per axis by
+        // lens * dSampled * circleOfConfusion(z); the bounds come from reyesLensBounds.h.
 
 };
 

@@ -31,11 +31,16 @@ namespace openrender {
     // LensModel
     ///////////////////////////////////////////////////////////////////////
 
-    // CRenderer::beginFrame's expression (renderer.cpp, 4eb683b), 0 for a pinhole
-    float LensModel::cocFactorScreen() const {
-        if (aperture == 0)
-            return 0;
-        return (float)(imagePlane * aperture * focaldistance / (focaldistance + aperture));
+    LensModel LensModel::fromFrame(const FrameParams &fp) {
+        LensModel lm;
+        lm.projection = fp.projection;
+        lm.imagePlane = fp.imagePlane;
+        lm.aperture = fp.aperture;
+        lm.focaldistance = fp.focaldistance;
+        lm.invFocaldistance = fp.invFocaldistance;
+        lm.focallength = fp.focallength;
+        lm.fstop = fp.fstop;
+        return lm;
     }
 
     ///////////////////////////////////////////////////////////////////////

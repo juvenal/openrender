@@ -30,10 +30,13 @@
 #include <atomic>
 
 #include "attributes.h"
+#include "dicer.h"
+#include "geometryFrame.h"
+#include "objectSink.h"
+#include "rayContext.h"
 #include "common/global.h"
 #include "ray.h"
 #include "common/refCounter.h"
-#include "renderer.h"
 #include "common/rendererc.h"
 #include "xform.h"
 
@@ -41,11 +44,7 @@ const unsigned int GEOMETRY_FORCE_VARYING = 1; // Force vertex variables to be v
 const unsigned int GEOMETRY_FORCE_VERTEX = 2;  // Force varying variables to be vertex
 
 class CVariable;
-class CShadingContext;
-class CReyes;
 class CVolume;
-class CRendererContext;
-class CRiInterface;
 class CTesselationPatch;
 
 // Various object flags
@@ -78,11 +77,11 @@ class CRegionPredicate {
         // the rendered surface. Ng is that surface's undisplaced geometric
         // normal at P (camera space); only its direction matters, not its sign.
         // ctx may be NULL where the surface needs no shading context.
-        virtual int accepts(CShadingContext *ctx, const float *P, const float *Ng) const = 0;
+        virtual int accepts(IRayContext *ctx, const float *P, const float *Ng) const = 0;
 
         // REGION_ALL_IN / REGION_ALL_OUT / REGION_MIXED for a surface patch that
         // lies within the camera-space bound [bmin, bmax]
-        virtual int classifyBound(CShadingContext *ctx, const float *bmin, const float *bmax) const = 0;
+        virtual int classifyBound(IRayContext *ctx, const float *bmin, const float *bmax) const = 0;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -95,7 +94,7 @@ class CObject : public CRefCounter {
         virtual ~CObject();
 
         // Instance management
-        inline int raytraced() { return (attributes->flags & CRenderer::raytracingFlags); }
+        inline int raytraced() { return (attributes->flags & geometryFrameRaytracingFlags()); }
 
         ///////////////////////////////////////////////////////////////
         //
@@ -104,12 +103,12 @@ class CObject : public CRefCounter {
         // All objects must override the following functions
         //
         //
-        virtual void intersect(CShadingContext *, CRay *) = 0;
-        virtual void dice(CReyes *);
-        virtual void instantiate(CAttributes *, CXform *, CRiInterface *) const = 0;
+        virtual void intersect(IRayContext &, CRay *) = 0;
+        virtual void dice(IDicer &);
+        virtual void instantiate(CAttributes *, CXform *, IObjectSink *) const = 0;
 
         // Cluster the children
-        void cluster(CShadingContext *);
+        void cluster(IRayContext &);
 
         // Set the children objects. Children that have no identity yet get one
         // (spec 039, research R3.2): mix(this->stableId, k) for the k-th child of
@@ -117,11 +116,11 @@ class CObject : public CRefCounter {
         // leaves), or this object's own identity when the children are pieces
         // that dicing split it into (inheritId). Children that already have an
         // identity (top-level objects, under the root) keep it.
-        void setChildren(CShadingContext *, CObject *, bool inheritId = false);
+        void setChildren(CObject *, bool inheritId = false);
 
         // Create the children of an object that builds them lazily (meshes).
         // Idempotent. The default does nothing.
-        virtual void materialize(CShadingContext *) {}
+        virtual void materialize(IRayContext &) {}
 
         // FALSE if this object cannot take part in a region-restricted render:
         // its own rendering bypasses the region hook, or it encloses no volume.
@@ -131,7 +130,7 @@ class CObject : public CRefCounter {
         // present) from the region, given the grid's (udiv+1) x (vdiv+1)
         // parametric coordinates u, v. A quad is absent iff none of its four
         // corners is accepted. The default leaves the mask as it is.
-        virtual void regionCoverage(CShadingContext *, int /*udiv*/, int /*vdiv*/, const float * /*u*/, const float * /*v*/,
+        virtual void regionCoverage(IRayContext *, int /*udiv*/, int /*vdiv*/, const float * /*u*/, const float * /*v*/,
                                     unsigned char * /*coverage*/) {}
 
         void destroy(); // Delete the children/siblings
@@ -160,8 +159,8 @@ class CDummyObject : public CObject {
         CDummyObject(CAttributes *, CXform *);
         virtual ~CDummyObject();
 
-        virtual void intersect(CShadingContext *, CRay *);
-        virtual void instantiate(CAttributes *, CXform *, CRiInterface *) const { assert(FALSE); }
+        virtual void intersect(IRayContext &, CRay *);
+        virtual void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -185,14 +184,14 @@ class CSurface : public CObject {
         ~CSurface() { delete crossingCache.load(); }
 
         // CObject interface
-        virtual void intersect(CShadingContext *, CRay *); // Intersect a ray with the surface
-        virtual void dice(CReyes *);                       // Split or render this object
+        virtual void intersect(IRayContext &, CRay *); // Intersect a ray with the surface
+        virtual void dice(IDicer &);                       // Split or render this object
 
         // CSurface interface
         virtual int moving() const;                                               // TRUE if we're moving
         virtual void sample(int, int, float **, float ***, unsigned int &) const; // Sample the surface of the object
         virtual void interpolate(int, float **, float ***) const;                 // Interpolate the variables
-        virtual void shade(CShadingContext *, int, CRay **);                      // Shade the object
+        virtual void shade(IRayContext &, int, CRay **);                      // Shade the object
 
         virtual int getDicingStats(int /*depth*/, int &minDivU, int &minDivV) const {
             minDivU = minDivV = 1;
@@ -218,14 +217,14 @@ class CSurface : public CObject {
         // the undisplaced surface. A geometric query: ray-visibility flags,
         // LOD, backface culling and displacement are ignored. The default (a
         // surface type with no crossing query) reports 0.
-        virtual int countCrossings(CShadingContext * /*ctx*/, const float * /*from*/, const float * /*dir*/) const { return 0; }
+        virtual int countCrossings(IRayContext * /*ctx*/, const float * /*from*/, const float * /*dir*/) const { return 0; }
 
         // The undisplaced camera-space point P and geometric normal Ng at
         // (u, v), at shutter open, through this surface's own sample()
         void samplePoint(float u, float v, float *P, float *Ng) const;
 
         // Coverage from the undisplaced surface at the grid's u, v (CObject)
-        void regionCoverage(CShadingContext *context, int udiv, int vdiv, const float *u, const float *v, unsigned char *coverage);
+        void regionCoverage(IRayContext *context, int udiv, int vdiv, const float *u, const float *v, unsigned char *coverage);
 
         // TRUE for a surface that implies a closed solid on its own (a
         // quadric other than a disk): closed by itself, or closed by flat caps
@@ -252,7 +251,7 @@ class CSurface : public CObject {
         // was just lazily built (or already exists) to handle displacement and
         // ownership of further intersection has passed to it. Returns FALSE if
         // the caller should proceed with its own ray/primitive math.
-        bool checkRayGuard(CRay *rv, CShadingContext *context);
+        bool checkRayGuard(CRay *rv, IRayContext &context);
 };
 
 #endif

@@ -27,11 +27,8 @@
 // Description			:	Describe the batch and shade it
 // Return Value			:	-
 // Comments				:	The rules of contracts/point-source-and-globals.md, "The producer's rules"
-void CHider::shadeSurface(CShadingContext &ctx, CSurface *surface, int uVertices, int vVertices, EShadingDim dim, unsigned int usedParameters, int displaceOnly) {
+void CHider::shadeSurface(CSurface *surface, int uVertices, int vVertices, EShadingDim dim, unsigned int usedParameters, int displaceOnly) {
     using namespace openrender::shading;
-
-    assert(&ctx == &context);
-    (void)ctx;
 
     const CAttributes *attributes = surface->attributes;
     CSurfacePointSource source(surface, usedParameters);

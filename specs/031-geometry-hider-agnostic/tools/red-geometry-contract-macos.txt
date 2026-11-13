@@ -1,0 +1,21 @@
+# Phase 2 red evidence, macOS, OPENRENDER_031_RED_TESTS=ON (jobs 031-red-<target>), each target built alone, 2026-11-09
+
+== test_geometry_dice_through_dicer: build exit 2
+tests/geometry_contract/test_dice_through_dicer.cpp:22:10: fatal error: 'dicer.h' file not found
+1 error generated.
+
+== test_geometry_intersect_through_ray_context: build exit 2
+tests/geometry_contract/test_intersect_through_ray_context.cpp:26:10: fatal error: 'rayContext.h' file not found
+1 error generated.
+
+== test_geometry_expansion_through_host: build exit 2
+tests/geometry_contract/test_expansion_through_host.cpp:26:10: fatal error: 'dicer.h' file not found
+1 error generated.
+
+== test_geometry_object_sink: build exit 2
+tests/geometry_contract/test_object_sink.cpp:24:10: fatal error: 'objectSink.h' file not found
+1 error generated.
+
+== test_geometry_frame_default: build exit 2
+tests/geometry_contract/test_frame_default.cpp:21:10: fatal error: 'geometryFrame.h' file not found
+1 error generated.

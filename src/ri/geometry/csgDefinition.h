@@ -39,7 +39,6 @@
 
 class CObject;
 class CSurface;
-class CShadingContext;
 class CXform;
 
 // What an operand contributes, decided per instance after procedural
