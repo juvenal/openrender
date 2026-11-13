@@ -212,7 +212,7 @@ svg .pill-t { fill: var(--surface); font-family: var(--mono); font-size: 8px; fo
 .chart-key i { display: inline-block; width: 14px; height: 8px; margin-right: 6px; vertical-align: middle; }
 .meter { display: grid; gap: 8px; }
 .meter .m { height: 22px; display: flex; border: 1px solid var(--line); }
-.meter .m .gone { background: var(--good); width: 54.1%; }
+.meter .m .gone { background: var(--good); width: 78.6%; }
 .meter .m .left { background: var(--bad-soft); flex: 1; border-left: 2px solid var(--bad); }
 .meter .ml { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 0.74rem; color: var(--muted); gap: 12px; flex-wrap: wrap; }
 .done-list { display: grid; gap: 0; border-top: 1px solid var(--line); }
@@ -268,7 +268,7 @@ a { color: var(--accent); }
   <header class="hero">
     <div class="hero-grid">
       <div>
-        <div class="eyebrow">openRender · architecture brief · 12 November 2026</div>
+        <div class="eyebrow">openRender · architecture brief · 13 November 2026</div>
         <h1>One renderer, <em>ten clean domains</em>.</h1>
         <p class="lede">openRender is a RenderMan-compliant renderer with a twenty-year Pixie lineage. Its revamp splits a tightly knotted codebase into independent, swappable parts. The goal is a modern, physically based renderer that still renders every classic RenderMan scene the way it always has.</p>
       </div>
@@ -279,10 +279,10 @@ a { color: var(--accent); }
     </div>
 
     <div class="stats">
-      <div class="stat"><b>54%</b><span>of known boundary violations removed (686 → 315 forbidden dependency edges)</span></div>
+      <div class="stat"><b>79%</b><span>of known boundary violations removed (686 → 147 forbidden dependency edges)</span></div>
       <div class="stat"><b>12 → 0</b><span>symbols the shading library borrows from the core at load time; it now links on its own</span></div>
-      <div class="stat"><b>14 / 36</b><span>roadmap specs merged; the hider and integrator registry (030) is the latest</span></div>
-      <div class="stat"><b>0</b><span>images changed by the structural specs. Only three capability specs, 027, 039 and 056, changed images, all on purpose.</span></div>
+      <div class="stat"><b>15 / 36</b><span>roadmap specs merged; geometry's own interfaces and one shared lens (031) are the latest</span></div>
+      <div class="stat"><b>0</b><span>images changed by accident. Four specs changed images on purpose: 027, 039, 056, and 031's depth-of-field fix.</span></div>
     </div>
   </header>
 </div>
@@ -377,7 +377,7 @@ a { color: var(--accent); }
       <!-- NOW -->
       <article class="snap">
         <header>
-          <span class="when">Now · master, 12 November 2026</span>
+          <span class="when">Now · master, 13 November 2026</span>
           <h3>Hiders and shading apart, the core next</h3>
         </header>
         <div class="diagram">
@@ -393,9 +393,9 @@ a { color: var(--accent); }
             <path class="e-wire" d="M190,276 L190,390"/>
             <!-- remaining violations -->
             <path class="e-bad-thick" d="M240,176 C240,190 232,202 226,210" marker-end="url(#nb)"/>
-            <text class="t-tag fill-bad" x="246" y="197">155 lines</text>
+            <text class="t-tag fill-bad" x="246" y="197">144 lines</text>
             <path class="e-bad" d="M95,312 C100,292 130,282 150,276" marker-end="url(#nb)"/>
-            <path class="e-bad" d="M150,312 C150,250 205,215 214,176" marker-end="url(#nb)"/>
+            <path class="e-clean" d="M214,176 C205,215 150,250 150,310" marker-end="url(#nc)"/>
             <!-- clean interfaces -->
             <path class="e-clean" d="M330,176 C340,230 335,280 320,310" marker-end="url(#nc)"/>
             <path class="e-clean" d="M320,88 C300,68 170,66 132,104" marker-end="url(#nc)"/>
@@ -433,13 +433,13 @@ a { color: var(--accent); }
 
             <rect class="box" x="120" y="212" width="140" height="64" rx="4"/>
             <text class="t-title" x="132" y="232">Renderer core</text>
-            <text class="t-sub" x="132" y="249">594 references (was 813)</text>
-            <text class="t-sub" x="132" y="263">from Hiders and Geometry</text>
+            <text class="t-sub" x="132" y="249">491 references (was 813)</text>
+            <text class="t-sub" x="132" y="263">nearly all from Hiders</text>
 
             <rect class="box-warm" x="10" y="312" width="170" height="58" rx="3"/>
             <text class="t-title" x="20" y="332">Geometry</text>
-            <text class="t-sub" x="20" y="347">shared motion evaluator · 028</text>
-            <text class="t-sub" x="20" y="360">CSG via generic hooks · 021</text>
+            <text class="t-sub" x="20" y="347">own interfaces, one lens · 031</text>
+            <text class="t-sub" x="20" y="360">3 core lines left (DB-004)</text>
 
             <rect class="box-good" x="200" y="312" width="170" height="58" rx="3"/>
             <text class="t-title" x="210" y="332">Texturing</text>
@@ -452,7 +452,7 @@ a { color: var(--accent); }
           </svg>
         </div>
         <div class="caption">
-          <p>Half the boundary work is done. The parser, the graphics state, texturing, displays and plug-ins stand on their own, and shading is now a self-contained library that reaches the renderer only through one versioned interface. Spec 029 cut the knot between hiders and shading: each hider now owns a shading context instead of being one. Spec 032 made the GI caches passive storage in texturing, and spec 056 gave every surface working volume shaders. Spec 030 put hiders and integrators behind registries, so the core no longer names a hider. What remains is the direct reads of the renderer core from the hiders and geometry; spec 031 takes on geometry's next.</p>
+          <p>Most of the boundary work is done. The parser, the graphics state, texturing, displays and plug-ins stand on their own, and shading is now a self-contained library that reaches the renderer only through one versioned interface. Spec 029 cut the knot between hiders and shading: each hider now owns a shading context instead of being one. Spec 032 made the GI caches passive storage in texturing, and spec 056 gave every surface working volume shaders. Spec 030 put hiders and integrators behind registries, so the core no longer names a hider. Spec 031 gave geometry its own interfaces, which the hiders implement, and one lens model shared by Reyes and the raytracer; geometry has three core references left. What remains is mostly the hiders' direct reads of the renderer core.</p>
         </div>
       </article>
 
@@ -595,24 +595,24 @@ a { color: var(--accent); }
           <h3>References to the central renderer object, by domain</h3>
           <div class="chart-key"><span><i style="background:var(--muted);opacity:.35"></i>first audit (spec 022)</span><span><i style="background:var(--accent)"></i>master today</span><span><i style="background:var(--good)"></i>zero</span></div>
           <div class="bars">
-            <div class="bar-row"><span class="lbl">Hiders</span><div class="track"><span class="was" style="width:98%"></span><span class="is" style="width:91%"></span></div><span class="val">588 → 546</span></div>
+            <div class="bar-row"><span class="lbl">Hiders</span><div class="track"><span class="was" style="width:98%"></span><span class="is" style="width:81.5%"></span></div><span class="val">588 → 489</span></div>
             <div class="bar-row"><span class="lbl">Texturing</span><div class="track"><span class="was" style="width:17.3%"></span><span class="zero"></span></div><span class="val">104 → 0</span></div>
-            <div class="bar-row"><span class="lbl">Geometry</span><div class="track"><span class="was" style="width:12.7%"></span><span class="is" style="width:8%"></span></div><span class="val">76 → 48</span></div>
+            <div class="bar-row"><span class="lbl">Geometry</span><div class="track"><span class="was" style="width:12.7%"></span><span class="is" style="width:0.4%"></span></div><span class="val">76 → 2</span></div>
             <div class="bar-row"><span class="lbl">Scene</span><div class="track"><span class="was" style="width:3.2%"></span><span class="zero"></span></div><span class="val">19 → 0</span></div>
             <div class="bar-row"><span class="lbl">Shading</span><div class="track"><span class="was" style="width:2.7%"></span><span class="zero"></span></div><span class="val">16 → 0</span></div>
             <div class="bar-row"><span class="lbl">Infra</span><div class="track"><span class="was" style="width:1.7%"></span><span class="zero"></span></div><span class="val">10 → 0</span></div>
           </div>
           <div class="axis-row"><span></span><span class="ticks"><span>0</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span></span><span></span></div>
-          <p style="font-size:.9rem;color:var(--muted)">Four domains no longer reference the central object at all. The hiders account for nine in ten of the references left. Spec 030 retired the hider selection's share; 031 takes on geometry's.</p>
+          <p style="font-size:.9rem;color:var(--muted)">Four domains no longer reference the central object at all. Geometry is down to two. The hiders account for almost all of the references left, and they are the next target.</p>
         </div>
         <div class="chart meter">
           <h3>Known violations, as dependency edges</h3>
-          <div class="m" role="img" aria-label="371 of 686 edges retired"><span class="gone"></span><span class="left"></span></div>
-          <div class="ml"><span>371 retired</span><span>315 remain · 10 registry entries open, 16 resolved</span></div>
+          <div class="m" role="img" aria-label="539 of 686 edges retired"><span class="gone"></span><span class="left"></span></div>
+          <div class="ml"><span>539 retired</span><span>147 remain · 6 registry entries open, 20 resolved</span></div>
         </div>
       </div>
       <div style="min-width:0">
-        <h3 style="margin-bottom:14px">Fourteen specs merged</h3>
+        <h3 style="margin-bottom:14px">Fifteen specs merged</h3>
         <div class="done-list">
           <div><span class="n">022</span><span><b>Guardrails.</b> A build check enforces the domain rules and tracks every known exception.</span></div>
           <div><span class="n">023</span><span><b>Common floor.</b> Diagnostics, memory and vocabulary move into one shared base library.</span></div>
@@ -623,6 +623,7 @@ a { color: var(--accent); }
           <div><span class="n">028</span><span><b>Camera and motion.</b> One camera and one motion evaluator. 12,943 recorded calls prove nothing moved.</span></div>
           <div><span class="n">029</span><span><b>Hiders own shading.</b> A hider owns a shading context instead of being one, and the shading library links with no borrowed symbols.</span></div>
           <div><span class="n">030</span><span><b>Registries.</b> Hiders and integrators are registered tables; the core picks them by declared capability, never by name. Integrators get their own domain.</span></div>
+          <div><span class="n">031</span><span><b>Geometry interfaces.</b> Geometry names no hider or shading class, and Reyes and the raytracer share one lens model.</span></div>
           <div><span class="n">032</span><span><b>GI cache split.</b> The irradiance cache and photon map become passive texturing storage; every record carries a key for deterministic GI.</span></div>
           <div><span class="n">037</span><span><b>Plug-in versions.</b> Every plug-in family carries a semantic version that one routine checks.</span></div>
           <div><span class="n">038</span><span><b>Scene interface.</b> The RIB parser and writer build without the renderer core.</span></div>
@@ -658,7 +659,7 @@ a { color: var(--accent); }
       <div>
         <h3>Running beside the path</h3>
         <ul>
-          <li><b>031</b> geometry stops naming hiders; link-time substitution tricks deleted</li>
+          <li><b>031</b> geometry stops naming hiders; link-time substitution tricks deleted (merged)</li>
           <li><b>032 → 040 → 053</b> GI caches split out (merged), made deterministic, then extended to new materials</li>
           <li><b>034</b> shader networks: pattern nodes wired into materials</li>
           <li><b>043</b> shader compiler as a versioned library, needed before RSL 2.0</li>
@@ -685,7 +686,7 @@ a { color: var(--accent); }
       <h2>Gains, in terms a studio would notice</h2>
     </div>
     <div class="gains">
-      <div class="gain"><span class="k">Replaceable parts</span><h3>Swap a module without touching the rest</h3><p>Each domain sits behind an interface, so a hider, shading backend or integrator can be replaced alone. A build check guards the separation.</p><span class="ev">evidence: 342 forbidden edges already removed</span></div>
+      <div class="gain"><span class="k">Replaceable parts</span><h3>Swap a module without touching the rest</h3><p>Each domain sits behind an interface, so a hider, shading backend or integrator can be replaced alone. A build check guards the separation.</p><span class="ev">evidence: 539 forbidden edges already removed</span></div>
       <div class="gain"><span class="k">Physically based</span><h3>Modern light transport</h3><p>Direct lighting with real materials first, then a full path tracer. The same scene description drives both.</p><span class="ev">042 milestone · 050 path tracer</span></div>
       <div class="gain"><span class="k">Standards</span><h3>OSL next to RSL</h3><p>Industry-standard Open Shading Language shaders run as a peer backend. Existing RSL shaders and RIB files keep working.</p><span class="ev">049 · classic default kept identical</span></div>
       <div class="gain"><span class="k">Reproducibility</span><h3>Same input, same image</h3><p>Non-GI renders are already bit-identical at any thread or process count. Spec 040 extends this to the GI caches.</p><span class="ev">582 sweep entries across thread and process counts</span></div>
@@ -711,14 +712,14 @@ a { color: var(--accent); }
       <p class="prose">These risks come from the project's own records: the violation registry, the bug tracker, and lessons learned while delivering the specs so far.</p>
     </div>
     <div class="risks">
-      <div class="risk"><span class="sev high">High</span><div><h3>The hiders still lean on the core</h3><p>546 references and 155 allowlist lines remain. Another 78 lines are link-time substitution pairs that only fail at run time.</p></div><p class="mit"><b>Guard</b>Each violation is listed by name in the registry. The hider registry (030) retired the selection's share, and the geometry interfaces (031) come next. The build check alerts on any increase.</p></div>
-      <div class="risk"><span class="sev med">Medium</span><div><h3>A long, strictly ordered critical path</h3><p>Seven stops remain on the road to the path tracer, and each one depends on the stop before. A slip early on, especially in 033 or 057, pushes back everything after it.</p></div><p class="mit"><b>Guard</b>Two items in flight at once. The off-path specs (031, 034, 043, 048) fill idle capacity, and each spec is a mergeable slice that delivers value alone.</p></div>
+      <div class="risk"><span class="sev high">High</span><div><h3>The hiders still lean on the core</h3><p>489 references and 144 allowlist lines remain, all in the hiders. The link-time substitution pairs are gone.</p></div><p class="mit"><b>Guard</b>Each violation is listed by name in the registry. Specs 030 and 031 retired the hider selection, the geometry coupling and every link-time substitution pair. The build check alerts on any increase.</p></div>
+      <div class="risk"><span class="sev med">Medium</span><div><h3>A long, strictly ordered critical path</h3><p>Seven stops remain on the road to the path tracer, and each one depends on the stop before. A slip early on, especially in 033 or 057, pushes back everything after it.</p></div><p class="mit"><b>Guard</b>Two items in flight at once. The off-path specs (034, 043, 048) fill idle capacity, and each spec is a mergeable slice that delivers value alone.</p></div>
       <div class="risk"><span class="sev med">Medium</span><div><h3>Specs that pass alone can break together</h3><p>Specs 029 and 038 each passed on their own. Together, a static program lost its renderer, because 038 removed a reference that the link had reached it through by accident.</p></div><p class="mit"><b>Guard</b>Each spec is checked again on the merged tree, on both platforms, before it reaches master. That run caught this one, and the link tests now assert that a renderer registered.</p></div>
       <div class="risk"><span class="sev med">Medium</span><div><h3>Unexplained crashes in the GI code</h3><p>One texture3d/bake3d scene segfaults now and then on Linux under load, on master too (#122). The photon pass can also crash with more than one thread (#164). Neither cause is established yet.</p></div><p class="mit"><b>Guard</b>Filed at the top priority with backtraces and failure rates. The next step is a thread-sanitizer or symbolized run of the point-cloud and photon-map code.</p></div>
       <div class="risk"><span class="sev med">Medium</span><div><h3>Interpreter and JIT can disagree</h3><p>The same shader can still give different results in its two forms. One known case runs a guarded uniform assignment regardless of its condition (#8). Another affects light message passing (#115).</p></div><p class="mit"><b>Guard</b>Parity suites run every shader both ways. Native JIT lowering (055) waits until #8 is fixed.</p></div>
       <div class="risk"><span class="sev med">Medium</span><div><h3>Bit-exact output is fragile</h3><p>Regrouping one expression, or letting compilers fuse multiply-adds differently, changes the last bit of an image. A tidy refactor can look like a regression.</p></div><p class="mit"><b>Guard</b>Each call site keeps its exact arithmetic, and recorded replays catch any drift. A red replay means code moved; it is never a reason to widen a tolerance.</p></div>
       <div class="risk"><span class="sev med">Medium</span><div><h3>OSL brings heavy dependencies</h3><p>OpenImageIO 3, an LLVM 18 floor and CMake 3.23 come with it, and the legacy image codecs are removed. Building LLVM from source takes nearly two hours.</p></div><p class="mit"><b>Guard</b>OpenImageIO lands first as an optional backend (048). A hands-on spike precedes the OSL backend, and vcpkg caches the vendored toolchain.</p></div>
-      <div class="risk"><span class="sev low">Watch</span><div><h3>Some images will change on purpose</h3><p>A direct integrator cannot reproduce full global transport. Correct volume shading already changed two CSG interior scenes (056), re-rendered on purpose.</p></div><p class="mit"><b>Guard</b>Like is compared with like. Each intended change gets a documented re-render, and the classic default stays identical.</p></div>
+      <div class="risk"><span class="sev low">Watch</span><div><h3>Some images will change on purpose</h3><p>A direct integrator cannot reproduce full global transport. Correct volume shading already changed two CSG interior scenes (056), and the shared lens five Reyes depth-of-field images (031), all re-rendered on purpose.</p></div><p class="mit"><b>Guard</b>Like is compared with like. Each intended change gets a documented re-render, and the classic default stays identical.</p></div>
       <div class="risk"><span class="sev low">Watch</span><div><h3>The boundary check runs in CI only on release tags</h3><p>Between releases it relies on discipline: the check runs locally before every review.</p></div><p class="mit"><b>Guard</b>Every phase report includes a passing architecture run. Running it in CI on every push is a cheap step that remains open.</p></div>
     </div>
   </div>
@@ -727,8 +728,8 @@ a { color: var(--accent); }
 <footer>
   <div class="wrap">
     <div>
-      <p><b>Sources.</b> The constitution's domain rules (Principle VIII). The domain-boundary registry and its build check (allowlist and core-usage baseline at spec 022's merge compared with master <span class="mono">c2e3cce3</span>). The roadmap plan for specs 022–057. The render-architecture decision record (D1–D30). DEVNOTES. The "before" snapshot describes the tree before spec 021 began (early October 2026), which had no automated boundary check. Its first measurement, at spec 022, is used as the baseline.</p>
-      <p><b>Definitions.</b> A "violation" counts as one forbidden dependency edge (an include or a link-time symbol), so one design flaw can account for many edges. "Merged" means on master as of 12 November 2026.</p>
+      <p><b>Sources.</b> The constitution's domain rules (Principle VIII). The domain-boundary registry and its build check (allowlist and core-usage baseline at spec 022's merge compared with master <span class="mono">21730828</span>). The roadmap plan for specs 022–057. The render-architecture decision record (D1–D30). DEVNOTES. The "before" snapshot describes the tree before spec 021 began (early October 2026), which had no automated boundary check. Its first measurement, at spec 022, is used as the baseline.</p>
+      <p><b>Definitions.</b> A "violation" counts as one forbidden dependency edge (an include or a link-time symbol), so one design flaw can account for many edges. "Merged" means on master as of 13 November 2026.</p>
     </div>
   </div>
 </footer>
