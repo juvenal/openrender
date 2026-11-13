@@ -771,3 +771,15 @@ Final status (Phase 11, T140; 2026-11-12). Every requirement and success criteri
 - Step `kRendererServicesVersion` to the next MINOR after spec 032's 2.2.0 (2.3.0) with 031's history entry after 032's; the registry text of DB-006 says so.
 - Apply `claude-md-draft.md` to `CLAUDE.md` with the next free gotcha number (36 and 37 are taken, 030 takes 38) and re-check every "Old" text against master then.
 - Close the issues through `Closes #NN` lines in the merge commit (#37 and the others the maintainer lists).
+
+### Master `c695f340` merged into 031 (2026-11-13, docs only)
+
+After the merge of master `c2e3cce3` (committed as `f35cfc3f`), master moved by one docs-only commit, `c695f340` ("docs: refresh revamp
+brief for spec 030": `docs/architecture/openrender-revamp.html` and the brief's row in `DEVNOTES.md`). As the maintainer approved for spec
+030, it is merged without a full re-validation: no conflicts, then `PluginAbi_RegistryConsistency` (1/1) and `ctest -L architecture` (36/36)
+on macOS through cpujob in `build-merge` (`build-logs/m-docmerge-check.log`). The suite, sweep and Linux results of the `c2e3cce3` merge
+stand for this tree.
+
+Maintainer decisions on the merge (2026-11-13): DB-017 and DB-025 are Resolved (no allowlist line of either is left on the merged tree),
+and the four-line adaptation of spec 056's `test_boundary_rule.cpp` to 031's interfaces (`IRayContext *`, `IObjectSink *`,
+`resolve(*s.ctx())`; no assertion changed) is approved.
