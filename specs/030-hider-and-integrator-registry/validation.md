@@ -502,13 +502,21 @@ command after the suite had built the remaining test targets reported PASS (abov
 first report as an incomplete-build reading (archcheck's contract is a complete build) and the PASS as the figure; the figures match the
 arithmetic above exactly.
 
-### Linux runs on the merged tree: PENDING (host unreachable)
+### Linux runs on the merged tree (2026-11-12, Ubuntu 24.04, GCC 13 `-Werror`, remote cpujob `-j2`, tree `~/Projects/Development/CLI/openrender-030`)
 
-`ubuntu-2404-desktop.v2-labs.io` answered "No route to host" on port 22 from 2026-11-12 13:07 on (probes every two minutes for about twenty
-minutes, then a poller); nothing of the merged tree was pushed or run on Linux, and `ssh` is the only test of reachability. The run is
-scripted and waits for the host: `build-logs/030-merge/linux-go.sh` (local; polls ssh every minute for up to six hours, then
-`linux_sync.sh push`, copies `run-m.sh` and starts it) and `build-logs/030-merge/run-m.sh` (remote, every job through the remote cpujob at
-`-j2`: build, suite `-LE determinism-sweep` with CP-d against the Linux baselines, `-L architecture` with the archcheck report, `-L registry`,
-`-L gi_split`, `-L link`, the determinism sweep with its CP-d; status in the remote `build-logs/lm.status`). When it has finished, `linux_sync.sh pull`
-and `verify`, apply the rule (known non-passes: the `rslo_lower_minor` self-skip, #45 `TextureTile_RenderByteIdentical`, #163 photon rows
-only; a `ShadingParity_JitPL*` timeout that recurs is a P1) and replace this paragraph with the figures.
+The host came back after the macOS runs; `linux_sync.sh push` sent 4230 files and `verify` (before and after the run) reported "4230 files, 0 differences".
+`run-m.sh` ran every job; the logs are copied to `build-logs/030-merge/linux/`.
+
+| Check | Result |
+|---|---|
+| Build | exit 0 (`-Werror`) |
+| Suite `-LE determinism-sweep -j2` | 1354 tests, three non-passes: the self-skip `LibShader_Format_rslo_lower_minor`; `TextureTile_RenderByteIdentical` (the known #45); `Registry_IntegratorImageIdentity` on exactly its two photon rows (`none1 == none2`, `classic == none1`: the known #163). Plus one more, **not in the known set**: `Visual_sphere-texture3d-bake3d-reyes-slo`, `orender` died with a segmentation fault (`Segmentation fault (core dumped)`, exit 35584) after 1.70 s, in the full `-j2` run. This is the intermittent `CPointCloud::lookup` crash of the `bake3d` scenes on Linux already recorded as F2 above and filed as GitHub #122 (seen on the starting tree; spec 032 pins `perf-ptc` to one thread for it). See the re-runs below |
+| Image CP-d against `baseline-images-linux.sha256` | manifest 915, fresh 1194, 3 differing, 0 missing, 279 not in manifest. Differing: the two interior CSG scenes spec 056 rewrote on purpose (`MaxBlockAvgDiff` 17.27 -> 0.33 and 0.30 -> 0.12 against the Linux references) and `sphere-texture3d-bake3d-reyes-slo`, whose image is the crashed test's. Every other `MaxBlockAvgDiff` equals the baseline's |
+| `-L architecture` | 34 of 34; `ALLOWED DB-004 x 52 DB-006 x 29 DB-011 x 155 DB-017 x 78 DB-025 x 1`, `METRIC Hiders 546 (546) distinct 76 (76)`, `TOTAL 594 (594) distinct 84 (84)`, `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0` (the same figures as macOS) |
+| `-L registry` / `-L gi_split` / `-L link` | 16 of 17 (the photon rows of `Registry_IntegratorImageIdentity`, #163) / 9 of 9 / 5 of 5 |
+| Determinism sweep `-j2` | 582 of 582 pass; CP-d against `baseline-sweep-images-linux.sha256`: manifest 419, fresh 582, 1 noise-listed, 2 differing (the same two CSG scenes), 0 missing, 163 not in the manifest. `sphere-texture3d-bake3d-reyes` did not crash in the sweep |
+| `ShadingParity_JitPL*` | no timeout in this run |
+
+**Re-runs of the crashed test:** `ctest -R '^Visual_sphere-texture3d-bake3d-reyes-slo$'` alone, five times through the remote cpujob (`build-logs/lm-rr1..5.log`): 5 of 5 passed (0.20 to 0.24 s). The crash did not reproduce, which is the #122 pattern (intermittent, in a full concurrent run, on Linux only; on the starting tree it hit `DeterminismSweep_sphere-texture3d-bake3d-reyes`, F2). I record it as GitHub #122 recurring, not as an effect of the merge: the scene does not use the registry (no `Integrator`, one `Hider`), and the macOS suite and both sweeps pass it. It was not in the coordinator's list of known non-passes, so it is reported. The only other Linux non-passes are the self-skip, #45 and the #163 photon rows. No `ShadingParity_JitPL*` timeout occurred, in the suite or the sweep.
+
+The Linux validation is complete: the merged tree matches the starting tree's Linux baselines but for the two CSG scenes spec 056 rewrote on purpose, the architecture figures equal macOS's, and the sweep is 582 of 582.
