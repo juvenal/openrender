@@ -1,0 +1,2 @@
+# Spec 030 macOS sweep noise list (T010): two runs of ctest -L ^determinism-sweep$ -j2 on the starting tree (e83d005d), 419 of 419 passed each time, 419 images, 0 differing.
+# Empty on purpose.

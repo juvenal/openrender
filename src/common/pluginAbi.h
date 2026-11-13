@@ -12,6 +12,9 @@
  *   (interface, realpath(path)) for the process, so a module loaded again prints nothing and a
  *   rejection is never retried. Thread-safe. The cache survives the module's unload.
  *
+ *   The overload taking a declared version (spec 030) serves tables registered inside the process: it runs the
+ *   same verdict code with the caller's version instead of a resolved symbol.
+ *
  *   checkPluginTable applies the table size rule of data-model.md section 3.
  *
  *   Diagnostics use CODE_VERSION (common/diagnostics.h).
@@ -61,6 +64,12 @@ struct SPluginVersionVerdict {
 
 // The one routine (FR-004). `module` is an osLoadModule handle, `path` the file it came from.
 SPluginVersionVerdict checkPluginVersion(const SPluginFamily &family, void *module, const char *path);
+
+// The same check for a table that is registered inside the process (a built-in or a static registrar), where there is no
+// module and no version symbol: `declaredVersion` is the table header's abiVersion and `origin` names the registration for
+// the diagnostics and the cache key. Same verdict rules, same diagnostics, same cache (spec 030, research R10): this is
+// not a second check, it is the first one with the version supplied by the caller.
+SPluginVersionVerdict checkPluginVersion(const SPluginFamily &family, uint32_t declaredVersion, const char *origin);
 
 // The table size rule. Reads the 8-byte header at most before deciding and never reads past
 // header.structSize. "The required minimum is the declared MAJOR's .0 table; fields added in a later

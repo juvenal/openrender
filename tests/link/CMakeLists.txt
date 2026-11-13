@@ -58,6 +58,26 @@ add_test(NAME Link_StaticConsumer
 set_tests_properties(Link_StaticConsumer PROPERTIES TIMEOUT 300 LABELS "link"
     ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>")
 
+# ---- Spec 030: Link_StaticConsumerRegistries (FR-006, SC-008, research R13) -------------------------------------
+# A sibling of the approved Link_StaticConsumer, which stays byte-for-byte as it is: the same plain static link, and the
+# registries must still list every built-in hider (raytrace reyes zbuffer photon, aliases hidden and stochastic) and the
+# integrator classic, and render one frame with each hider under Integrator "classic". Enabled at the Test gate of Phase 9
+# (it was red: no registries).
+add_executable(test_link_static_consumer_registries static_consumer_registries.cpp)
+target_compile_features(test_link_static_consumer_registries PRIVATE cxx_std_20)
+target_include_directories(test_link_static_consumer_registries PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/ri
+    ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/transport)
+target_link_libraries(test_link_static_consumer_registries PRIVATE openrender_common_flags ribRender_static libshader_shading openrendercommon ${CMAKE_DL_LIBS})
+add_dependencies(test_link_static_consumer_registries openrender_shaders)
+
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cwd/Link_StaticConsumerRegistries)
+add_test(NAME Link_StaticConsumerRegistries
+    COMMAND ${CMAKE_COMMAND} "-DEXE=$<TARGET_FILE:test_link_static_consumer_registries>" "-DFORMATS=${OR029_STATIC_CONSUMER_FORMATS}"
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/run_static_consumer_registries.cmake
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cwd/Link_StaticConsumerRegistries)
+set_tests_properties(Link_StaticConsumerRegistries PROPERTIES TIMEOUT 300 LABELS "link"
+    ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>")
+
 # ---- T-L4 ------------------------------------------------------------------------------------------------------
 # Opt-in: configures, builds and installs a scratch copy of this tree (CMAKE_INSTALL_PREFIX=<scratch>, so GitHub #23 is
 # not hit), then configures, builds and runs the consumer of package/ through find_package(openRender COMPONENTS Static).

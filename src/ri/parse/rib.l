@@ -50,6 +50,7 @@ Quantize											return RIB_QUANTIZE;
 Display												return RIB_DISPLAY;
 DisplayChannel										return RIB_DISPLAYCHANNEL;
 Hider												return RIB_HIDER;
+Integrator											return RIB_INTEGRATOR;
 ColorSamples										return RIB_COLOR_SAMPLES;
 RelativeDetail										return RIB_RELATIVE_DETAIL;
 Option												return RIB_OPTION;

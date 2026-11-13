@@ -149,7 +149,6 @@ class CRaytracer : public CHider {
         CRaytracer(int thread, const openrender::ICamera &camera);
         virtual ~CRaytracer();
 
-        static void preDisplaySetup() {}
 
         // The main hider interface
         void renderingLoop() override;

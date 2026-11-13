@@ -42,14 +42,9 @@
 #define cocPixels(z) absf((1 / z) - CRenderer::invFocaldistance) * CRenderer::cocFactorPixels
 #define cocScreen(z) absf((1 / z) - CRenderer::invFocaldistance) * CRenderer::cocFactorScreen
 
-// The following bits can be used by the hiders
-const unsigned int HIDER_RGBAZ_ONLY = 1;           // The hider can only produce RGBAZ channels
+// The following bits can be used by the hiders (what a hider provides is declared in its registration table, spec 030)
 const unsigned int HIDER_BREAK = 2;                // The hider should stop rendering
-const unsigned int HIDER_NODISPLAY = 4;            // The hider is not actually generating display output
 const unsigned int HIDER_DONE = 8;                 // The image has been computed, so stop
-const unsigned int HIDER_ILLUMINATIONHOOK = 16;    // The hider requires the illumination hooks
-const unsigned int HIDER_PHOTONMAP_OVERWRITE = 32; // Overwrite the photon maps
-const unsigned int HIDER_GEOMETRYHOOK = 64;        // The hider requires the geometry hooks
 
 // The clipping codes used by the clipcode()
 const unsigned int CLIP_LEFT = 1;

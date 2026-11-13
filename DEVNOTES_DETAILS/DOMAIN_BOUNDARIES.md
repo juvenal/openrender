@@ -25,6 +25,10 @@ not yet comply.
 - **link edges**: an undefined symbol in a source file's object, attributed to the classes whose
   sources define it (`nm`).
 
+The classes are the ten domains of constitution v1.4.0 (Scene Interface, Graphics State, Geometry,
+Hiders, Shading, Texturing, Shader DSO Operands, Geometric Procedures, Display Outputs and, since spec 030,
+**Transport**, `src/ri/transport/`), plus Core (the renderer core), Infra and Consumer.
+
 An edge outside the constitution's allowed-dependency table fails the check unless the allowlist
 names it against an **Open** entry below. The allowlist only shrinks: an entry whose edge is gone
 fails as stale.
@@ -195,7 +199,7 @@ request. Run `ctest -L architecture` locally before review.
   - Geometry includes `src/ri/hiders/reyes.h` from 9 files and calls `CReyes::drawObject` and
     `CReyes::drawGrid` (`surface.cpp`).
   - Shading included `object.h` (one file) until spec 029, closing a Geometry ↔ Shading cycle; it no longer does.
-- **Size**: 30 edges (23 include, 7 link) after spec 029 (31 before).
+- **Size**: 29 edges (23 include, 6 link) after spec 030 (30 before, after spec 029; 31 before that).
 - **History**: Spec 026, 2026-11-01: `execute.cpp` and `executeMisc.cpp` no longer include `surface.h` (the
   executor's attribute reads go through `CShadingContext::objectAttributes()`); `shading.cpp -> object.h`
   stays for spec 029. The `ShaderGlobals` contract exists (`shaderGlobals.h`); nothing fills it yet.
@@ -204,6 +208,11 @@ request. Run `ctest -L architecture` locally before review.
   `CSurface` (`CSurfacePointSource`); `CShadingContext::shade(CSurface *, ...)`, the symbol Geometry's lines bind to, is an opaque forwarding
   entry to the owning hider's `IShadingProducer`. Geometry's other lines are unchanged and it gained no include of a Shading or Hiders header;
   its call sites reach the context through `CReyes::shadingContext()`.
+- **History**: Spec 030, 2026-11-11: `CHider` gained the virtual `drawObject(CObject *)` and `CReyes::drawObject` overrides it, so
+  `surface.cpp`'s call through a `CReyes *` no longer references the symbol `_ZN6CReyes10drawObjectEP7CObject`:
+  that one link line was deleted (30 to 29 edges; the include edges of `surface.cpp` to `reyes.h` remain). Spec 031
+  deletes the same line when it gives `CReyes` an `IDicer::drawObject` of the same signature: whichever merges second
+  drops the duplicate deletion and checks that `CReyes::drawObject` still overrides both bases.
 - **Direction**: an OSL-style `ShaderGlobals` filled by Geometry for Shading (026, 029);
   Geometry's dice and intersect take Geometry-owned `IDicer`/`IRayContext` interfaces instead of
   `CReyes*`/`CShadingContext*` (031).
@@ -253,13 +262,13 @@ request. Run `ctest -L architecture` locally before review.
 - **Rules**: the renderer-core rule (no domain may depend on the renderer core).
 - **Tracking**: remediation specs 028 ([#34](https://github.com/juvenal/openrender/issues/34)), 029 ([#35](https://github.com/juvenal/openrender/issues/35)), 030 ([#36](https://github.com/juvenal/openrender/issues/36))
 - **Evidence**:
-  - 19 files under `src/ri/hiders/` make 556 `CRenderer::` references (the archcheck metric,
+  - Files under `src/ri/hiders/` make 546 `CRenderer::` references (the archcheck metric,
     `metrics-baseline.txt`; a raw grep counts 573): frame and
     sampling parameters (`clipMax`, `bucketWidth`, `pixelXsamples`, `xSampleOffset`, …),
     `flags`, `hiderFlags`, `raytracingFlags`.
-  - 9 files include `src/ri/render/renderer.h`.
-- **Size**: 164 edges per platform and 164 DB-011 lines after spec 029 (9 include, 155 link). After
-  spec 028 it was 166 edges (9 include, 157 link) and 168 lines, because the thread-local
+  - 7 files include `src/ri/render/renderer.h` (9 before spec 032).
+- **Size**: 155 edges per platform and 155 DB-011 lines after specs 030 and 032 (7 include, 148 link); 158 after spec 032 alone
+  (7 include, 151 link) and 161 after spec 030 alone (9 include, 152 link); 164 after spec 029 (9 include, 155 link). After spec 028 it was 166 edges (9 include, 157 link) and 168 lines, because the thread-local
   `CRenderer::activeContext`, referenced through Clang's TLS wrapper (`_ZTW…`) on macOS and directly
   by GCC on Linux, had its 2 edges listed once per platform; before spec 028, 173 edges (9 include,
   164 link) and 175 lines. The previous header and Size text said
@@ -280,6 +289,14 @@ request. Run `ctest -L architecture` locally before review.
   CRenderer::frame` (the seed of the deleted `apertureGenerator`), and `raytracer.cpp` and
   `stochastic.cpp -> CRenderer::jitter`. The Hiders `CRenderer::` metric fell from 586 to 567
   references and 87 to 84 members.
+- **History**: spec 030, 2026-11-11: the renderer core selects the frame's hider through the registry and the hiders' description bits
+  became declared capabilities, so three allowlist lines were deleted by key: `photon.cpp -> CRenderer::hiderFlags`
+  (the deleted `preDisplaySetup`), `zbuffer.cpp -> CRenderer::hiderFlags` (the deleted `preDisplaySetup`) and `reyes.cpp ->
+  CRenderer::contexts` (the sibling loop reads the frame's `CHiderPeers`): 164 DB-011 lines (164 before), 161 edges per platform.
+  The Hiders `CRenderer::` metric fell from 556 to 553 references and 81 to 79 members (`metrics-baseline.txt`). `CRenderer::contexts`
+  and `hiderFlags` themselves stay (`HIDER_BREAK` and `HIDER_DONE`; Geometry and the data viewer read them). `reyes.cpp`'s
+  `CRenderer::numThreads` line stays (spec 031). Merged with spec 032 (158 lines on master): the two specs deleted different lines, so the merged
+  allowlist keeps both sets of deletions, 155 lines, and the Hiders metric is 546 references and 76 members (TOTAL 594 and 84), as archcheck reported.
 - **History**: spec 029, 2026-11-04: the hiders no longer write `CRenderer::activeContext` (`reyes.cpp`, `raytracer.cpp`; the renderer core sets it in
   `rendererDispatchThread` for every hider). 4 allowlist lines were deleted (the `_ZTW…` wrapper pair on macOS, the plain symbol pair on
   Linux): 164 DB-011 lines (168 before), 164 edges per platform (166 before). The Hiders `CRenderer::` metric fell from 558 to 556 references
@@ -298,24 +315,6 @@ request. Run `ctest -L architecture` locally before review.
   `irradiance.cpp -> renderer.h`, `irradianceDispatch.cpp -> renderer.h`, `irradiance.cpp -> CRenderer::worldBmax` and `::worldBmin`,
   `photonMap.cpp -> CRenderer::toWorld` and `::fromWorld`. 164 -> 158 lines. The Hiders `CRenderer::` metric fell from 556 to 549
   references and 81 to 78 members (TOTAL 604 -> 597 and 89 -> 86).
-
-### DB-013 — No hider registry: `strcmp` chains in the renderer core
-
-- **Rules**: 3; adding a hider must not require core edits.
-- **Tracking**: remediation spec 030 ([#36](https://github.com/juvenal/openrender/issues/36))
-- **Evidence**:
-  - Two `strcmp(hider, …)` chains in `src/ri/render/renderer.cpp:778-830`, plus the
-    `"stochastic"` alias in `rendererContext.cpp:1529`.
-  - The built-in `CSphereLight`/`CQuadLight` fallback (`src/ri/hcshader.{h,cpp}`, 776 lines) is
-    still compiled; they were friends of `CShadingContext` until spec 029 dropped the friendships.
-- **Size**: not a dependency edge; tracked by review.
-- **Direction**: a self-registering hider factory (name, aliases, capabilities); retire
-  `hcshader` now that the RSL `spherelight`/`quadlight` ship.
-- **History**: spec 025 (2026-10-27): an attribute block's active-light list holds non-owning
-  `CShaderGroupRefTarget *` entries. The unchecked cast of an entry to a
-  `CProgrammableShaderInstance *` (the built-in `CSphereLight`/`CQuadLight` are not programmable
-  instances; the consumers read only `CShaderInstance` members) now lives in `lightInstanceOf()`
-  (`src/libshader/shading/shaderRefs.h`), preserved as it was.
 
 ### DB-017 — Link-time `*Dispatch` / `*DispatchStub` substitution pairs
 
@@ -941,3 +940,45 @@ request. Run `ctest -L architecture` locally before review.
 - **Resolved** by spec 032 (`specs/032-gi-cache-split/`), 2026-11-10: the three remote-channel friends and both
   `CBrickMapGeometry` lines are gone; the channels and the data viewer read the stores through public
   accessors and adapters. `GiSplit_Boundary` (`friends-texture`, `friends-hiders`) guards it.
+
+### DB-013 — No hider registry: `strcmp` chains in the renderer core
+
+- **Rules**: 3; adding a hider must not require core edits.
+- **Tracking**: remediation spec 030 ([#36](https://github.com/juvenal/openrender/issues/36))
+- **Evidence** (at the base commit `e83d005d`, before spec 030):
+  - Two `strcmp(hider, …)` chains in `src/ri/render/renderer.cpp` (the display set-up at `:777-792` and the construction loop at
+    `:808-840`), the `"hidden"`/`"stochastic"` mapping in `rendererContext.cpp` (`RiHiderV`), the `dynamic_cast<CReyes *>` in
+    `render()`, the TSM name test (`strcmp(hider, "reyes")`) and the `hiderFlags` description bits read by `rendererDisplay.cpp` and
+    `rendererServicesImpl.h`.
+  - The built-in `CSphereLight`/`CQuadLight` fallback (`src/ri/hcshader.{h,cpp}`, 798 lines) was still compiled and answered
+    `LightSource "spherelight"`/`"quadlight"` from `getShader()` when no shader was found; they were friends of `CShadingContext`
+    until spec 029 dropped the friendships.
+- **Size**: not a dependency edge; tracked by review.
+- **Direction**: a self-registering hider factory (name, aliases, capabilities); retire `hcshader` now that the RSL
+  `spherelight`/`quadlight` ship (both done by spec 030).
+- **History**: spec 025 (2026-10-27): an attribute block's active-light list holds non-owning
+  `CShaderGroupRefTarget *` entries. The unchecked cast of an entry to a
+  `CProgrammableShaderInstance *` (the built-in `CSphereLight`/`CQuadLight` are not programmable
+  instances; the consumers read only `CShaderInstance` members) lived in `lightInstanceOf()`
+  (`src/libshader/shading/shaderRefs.h`), preserved as it was.
+- **Resolved** by spec 030 (`specs/030-hider-and-integrator-registry/`), 2026-11-11:
+  - The hiders and the integrators are registered through tables (`hiderAbi.h` and `integratorAbi.h`, both version 2.0.0,
+    internal until spec 051) in two registries (`hiderRegistry()`, `src/ri/hiders/`; `integratorRegistry()`, the new
+    Transport domain, `src/ri/transport/`, constitution 1.4.0) over the shared name and alias rules of `common/kindRegistry.h`.
+    Each built-in hider defines its table in its own source file and `builtinHiders.cpp` registers the four; a hider outside the
+    core registers with `OR_REGISTER_HIDER`. The built-ins are reached by the call graph, so a plain static link finds them.
+  - What a hider provides is declared (`rasterization`, `display-output`, `display-channels`, `deep-shadow-output`,
+    `illumination-hook`, the capability vocabulary of `transport/capability.h`) and the core reads it as traits of the frame's
+    transport slot (`frameTransport()`, `render/rendererTransport.{h,cpp}`). `renderer.cpp`, `rendererContext.cpp`,
+    `rendererStatics.cpp`, `rendererDisplay.cpp`, `rendererJobs.cpp` and `rendererServicesImpl.h` contain no concrete hider header,
+    class name or name comparison (`Registry_CoreNamesNoHider`); the five `HIDER_*` description bits are gone (`HIDER_BREAK` and
+    `HIDER_DONE` stay).
+  - `hcshader.{h,cpp}`, `CSphereLight`, `CQuadLight` and the `getShader()` fallback are deleted; a named `spherelight` or
+    `quadlight` with no compiled shader on the path now reports `Failed to find shader` like any other missing shader
+    (`Hcshader_MissingShader`, `Hcshader_NoReferences`). With the shipped shaders on the path no image changed. Spec 025's note on
+    `lightInstanceOf()` is closed: `CProgrammableShaderInstance` is the only class derived from `CShaderInstance`, so the cast is
+    always valid.
+  - The allowlist lost 3 DB-011 lines and 1 DB-006 line and gained none (see their histories). No image changed on either platform
+    (the macOS and Linux suites and both determinism sweeps match the starting tree's), and the integrator selection and the
+    refused frame it adds are recorded in `specs/030-hider-and-integrator-registry/`. `Registry_*`, `Hcshader_*`,
+    `Link_StaticConsumerRegistries` and `ArchFixture_transport_*` guard it.

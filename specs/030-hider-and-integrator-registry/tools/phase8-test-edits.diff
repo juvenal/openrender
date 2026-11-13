@@ -1,0 +1,166 @@
+# Phase 8, T109a (PAUSE 8a): the DRAFT of the four pinned-test edits (amendment F1, 2026-11-09) and of the test-only setter they use.
+# NOT applied. Part 1: the setter (src/ri/render/rendererTransport.{h,cpp}, Core). Part 2: the four tests: only the lines that switch
+# the illumination hook on and off and their save/restore, one added include each, and (a separate, labelled hunk of
+# test_illumination_hook.cpp) the header comment that names HIDER_ILLUMINATIONHOOK. Every assertion, scene, expected value and loop is
+# untouched. Alternative to the setter, if the maintainer prefers: none that keeps frameTransport() read-only without a test-visible
+# writer (a public mutable slot, or a frame begun by the test).
+#
+#### Part 1: the test-only setter
+--- a/src/ri/render/rendererTransport.h
++++ b/src/ri/render/rendererTransport.h
+@@ -62,4 +62,9 @@
+ void finishFrameTransport();                           // (Phase 9) start of endFrame
+ void endFrameTransport();                              // clears the slot, end of endFrame, after endDisplays
+ 
++// Test-only: sets the slot's illuminationHook trait outside a frame and returns the previous value, so a test that drives
++// the illumination hook with no renderer (the shading_parity probes) can switch it on and off and restore it. Writes the
++// slot only where no render thread exists. Not part of any installed header (this file is not in OPENRENDER_PUBLIC_HEADERS).
++bool setFrameIlluminationHookForTest(bool on);
++
+ #endif
+
+--- a/src/ri/render/rendererTransport.cpp
++++ b/src/ri/render/rendererTransport.cpp
+@@ -74,3 +74,9 @@
+ void endFrameTransport() {
+     slot = SFrameTransport();
+ }
++
++bool setFrameIlluminationHookForTest(bool on) {
++    const bool previous = slot.traits.illuminationHook;
++    slot.traits.illuminationHook = on;
++    return previous;
++}
+
+#### Part 2: the four tests
+--- a/tests/shading_parity/test_false_if_constructs.cpp
++++ b/tests/shading_parity/test_false_if_constructs.cpp
+@@ -37,6 +37,7 @@
+ #include "ri/parse/ri.h"
+ #include "ri/render/renderer.h"
+ #include "ri/render/rendererContext.h"
++#include "ri/render/rendererTransport.h"
+ #include "ri/state/attributes.h"
+ #include "ri/state/xform.h"
+ 
+@@ -124,8 +125,7 @@
+ // Runs the surface once, hook on, with its locals allocated from a page that
+ // holds the poison byte
+ static SRun runSurface(CRunProbeContext *probe, CProgrammableShaderInstance *surface, CSurface *object) {
+-    const unsigned int savedFlags = CRenderer::hiderFlags;
+-    CRenderer::hiderFlags |= HIDER_ILLUMINATIONHOOK;
++    const bool savedHook = setFrameIlluminationHookForTest(true);
+ 
+     setupState(probe, object);
+     probe->numBegins = probe->numEnds = 0;
+@@ -148,7 +148,7 @@
+     ss->freeLights = nullptr;
+ 
+     memoryTini(localMemory);
+-    CRenderer::hiderFlags = savedFlags;
++    setFrameIlluminationHookForTest(savedHook);
+     return run;
+ }
+ 
+
+--- a/tests/shading_parity/test_illumination_hook.cpp
++++ b/tests/shading_parity/test_illumination_hook.cpp
+@@ -5,7 +5,7 @@
+  * 024-shading-services-routing, T012; research R2;
+  * contracts/illumination-hook.md).
+  *
+- * A hider that sets HIDER_ILLUMINATIONHOOK (the photon hider) wants each
++ * A hider that provides the illumination-hook capability (the photon hider) wants each
+  * illuminate()/solar() construct handed to it through four virtual hooks on
+  * CShadingContext. The interpreter always did that. The JIT did not: it never
+  * consulted the flag, and for solar() with no arguments it emitted no begin
+@@ -49,6 +49,7 @@
+ #include "ri/parse/ri.h"
+ #include "ri/render/renderer.h"
+ #include "ri/render/rendererContext.h"
++#include "ri/render/rendererTransport.h"
+ 
+ static int g_passed = 0;
+ static int g_failed = 0;
+@@ -214,11 +215,7 @@
+ 
+ // Executes the light once on a fresh state and returns what it left behind
+ static SRunResult runLight(CHookProbeContext *probe, CProgrammableShaderInstance *light, bool hookOn, bool allInactive) {
+-    const unsigned int savedFlags = CRenderer::hiderFlags;
+-    if (hookOn)
+-        CRenderer::hiderFlags |= HIDER_ILLUMINATIONHOOK;
+-    else
+-        CRenderer::hiderFlags &= ~HIDER_ILLUMINATIONHOOK;
++    const bool savedHook = setFrameIlluminationHookForTest(hookOn);
+ 
+     setupState(probe, allInactive);
+     probe->calls.clear();
+@@ -238,7 +235,7 @@
+     r.numPassive = ss->numPassive;
+ 
+     memoryTini(localMemory);
+-    CRenderer::hiderFlags = savedFlags;
++    setFrameIlluminationHookForTest(savedHook);
+     return r;
+ }
+ 
+
+--- a/tests/shading_parity/test_illumination_hook_conditions.cpp
++++ b/tests/shading_parity/test_illumination_hook_conditions.cpp
+@@ -36,6 +36,7 @@
+ #include "ri/parse/ri.h"
+ #include "ri/render/renderer.h"
+ #include "ri/render/rendererContext.h"
++#include "ri/render/rendererTransport.h"
+ 
+ static int g_passed = 0;
+ static int g_failed = 0;
+@@ -202,8 +203,7 @@
+ // Runs the light once, hook on, with its locals allocated from a page that
+ // holds the poison byte, and returns the hook calls
+ static std::vector<SHookCall> runLight(CHookProbeContext *probe, CProgrammableShaderInstance *light, bool allInactive) {
+-    const unsigned int savedFlags = CRenderer::hiderFlags;
+-    CRenderer::hiderFlags |= HIDER_ILLUMINATIONHOOK;
++    const bool savedHook = setFrameIlluminationHookForTest(true);
+ 
+     setupState(probe, allInactive);
+     probe->calls.clear();
+@@ -218,7 +218,7 @@
+     std::vector<SHookCall> calls = probe->calls;
+ 
+     memoryTini(localMemory);
+-    CRenderer::hiderFlags = savedFlags;
++    setFrameIlluminationHookForTest(savedHook);
+     return calls;
+ }
+ 
+
+--- a/tests/shading_parity/test_illumination_hook_operands.cpp
++++ b/tests/shading_parity/test_illumination_hook_operands.cpp
+@@ -55,6 +55,7 @@
+ #include "ri/parse/ri.h"
+ #include "ri/render/renderer.h"
+ #include "ri/render/rendererContext.h"
++#include "ri/render/rendererTransport.h"
+ 
+ static int g_passed = 0;
+ static int g_failed = 0;
+@@ -221,8 +222,7 @@
+ // Runs the light once, hook on, with its locals allocated from a page that
+ // holds the poison byte, and returns the hook calls
+ static std::vector<SHookCall> runLight(CHookProbeContext *probe, CProgrammableShaderInstance *light, bool allInactive) {
+-    const unsigned int savedFlags = CRenderer::hiderFlags;
+-    CRenderer::hiderFlags |= HIDER_ILLUMINATIONHOOK;
++    const bool savedHook = setFrameIlluminationHookForTest(true);
+ 
+     setupState(probe, allInactive);
+     probe->calls.clear();
+@@ -237,7 +237,7 @@
+     std::vector<SHookCall> calls = probe->calls;
+ 
+     memoryTini(localMemory);
+-    CRenderer::hiderFlags = savedFlags;
++    setFrameIlluminationHookForTest(savedHook);
+     return calls;
+ }
+ 

@@ -191,8 +191,13 @@ shading producer. Implementations:
 - `CRaytracer` — primary camera rays (no native motion blur support yet — open issue)
 - `CPhotonHider` — photon map pass
 
-Hider selection is a `strcmp` chain in `renderer.cpp:beginFrame()` (~line 815).
-Adding a hider = new `#include` + `if/else if` branch + a class inheriting `CHider`.
+Hiders are chosen through a registry (spec 030): `hiderRegistry()` (`src/ri/hiders/hiderRegistry.{h,cpp}`) holds one table per hider
+kind (`OrHiderTable`, `hiderAbi.h`, version 2.0.0, internal until spec 051): its name and aliases, the capabilities it provides, the
+dispatcher that drives it and `create`/`destroy`. `renderer.cpp:beginFrame()` resolves the `Hider` name, builds one hider per thread
+through the table and never names a concrete hider (`Registry_CoreNamesNoHider`). Adding a hider = a class inheriting `CHider` plus a
+table defined in the hider's own source file and its getter added to `registerBuiltinHiders()` (`builtinHiders.cpp`); a hider outside
+the core registers itself with `OR_REGISTER_HIDER(getter)` (`hiderAbi.hpp`) and the core is not edited at all. Every hider derives from
+`CHider`, whose constructor installs the Hiders' `IIrradianceSampler` on the context it owns (spec 032), so a table's `create` inherits it.
 
 ### Shading pipeline
 ```
@@ -303,6 +308,20 @@ lookup, the miss hand-off and the insert for the interpreter and the JIT; the sa
 (`render/photonMap.h`) composes the store, the handle target and the data viewer's adapter (`dataviewer/photonMapView`). Every record
 and photon carries a key for spec 040. See gotcha 37.
 
+### Hider and integrator registries, the Transport domain (spec 030)
+There are ten domains since constitution 1.4.0: **Transport** (`src/ri/transport/`) holds the integrators (the transport strategies a
+frame is rendered with) and the capability vocabulary hiders and integrators negotiate with (`capability.h`: `rasterization`,
+`display-output`, `display-channels`, `deep-shadow-output`, `illumination-hook`, plus reserved names). It includes Infra only today;
+Hiders may include it (`hiderAbi.h` does) and Transport includes no Hiders, Scene Interface or Core file
+(`ArchFixture_transport_*`). `integratorRegistry()` holds the built-in `classic` (the default: it executes nothing, every image is
+unchanged) and the integrators a program registers with `OR_REGISTER_INTEGRATOR`; both registries share the name and alias rules of
+`common/kindRegistry.h` (exact, case-sensitive, a collision refuses the whole table). The Scene Interface carries an `Integrator
+"<name>" [parameters]` statement (`RiIntegrator`/`RiIntegratorV`, `rib.y`, `ribOut`; ignored silently by the preview) stored in
+`COptions` (`integrator`, `integratorHandle`, `integratorParameters`); the name is resolved at frame begin, like the hider's. The
+renderer core keeps the frame's choice in one slot, `frameTransport()` (`render/rendererTransport.{h,cpp}`: the resolved hider and
+integrator, the integrator instance and the hider's traits), written only by `CRenderer` before the render threads start and after
+they are joined. See gotcha 38.
+
 ### Coordinate / matrix conventions
 Column-major matrices, `element(row,col) = row + 4*col`. `from` = local→world,
 `to` = world→local = `from^-1`. The REYES vertex buffer stores **sample
@@ -328,6 +347,7 @@ ctest --test-dir build -L '^determinism$' -j2           # default determinism se
 ctest --test-dir build -L '^determinism-sweep$' -j2     # opt-in full sweep (582 entries, ~10-12 min at -j2): before each merge, and for the Linux validation
 ctest --test-dir build -L volume                        # spec 056: volume shader segments (the VolumeProbe_ hand-computed pixel checks, VolumeDiffer_, Parity_volume-, Determinism_volume-)
 ctest --test-dir build -L link                          # spec 029: libshader_shading self-contained, the static consumer, no workaround text
+ctest --test-dir build -L registry                      # spec 030: the hider and integrator registries (lookup, collisions, pair check and refusal, parameters, the frame abort paths, test-double hider)
 ctest --test-dir build -L '^link-package$'              # opt-in (configure with -DOPENRENDER_LINK_PACKAGE_TEST=ON): an installed openRender package consumed statically (scratch configure, builds a second tree)
 ```
 
@@ -358,7 +378,7 @@ feature branches: `001-hugo-docs-migration`, `002-wayland-display-driver`,
 `009-nurbs-trim-curves`, `010-full-subdivision-support`,
 `011-jit-opcode-parity` (LLVM JIT opcode-coverage parity sweep), ...,
 `021-deferred-csg-evaluation` (deferred, on-demand CSG evaluation,
-superseding spec 013's resolution).
+superseding spec 013's resolution), `030-hider-and-integrator-registry` (hider and integrator registries, the Transport domain).
 
 `DEVNOTES.md` is the living status/status-table doc — check it first for
 "what's done / in progress" and for planned future work. `DEVNOTES_DETAILS/*.md`
@@ -827,8 +847,8 @@ not in the agent definitions.
    `src/ri/hiders/rasterFlags.h` (no includes); `reyes.h` includes it, `precomp` includes only it
    (`Precomp_NoHiderCore`, `Precomp_OutputUnchanged`).
 35. **Hiders own a shading context; several names are frozen by the allowlist (spec 029).** `CRenderer::contexts`
-   is a `CHider **` that kept its name, because `reyes.cpp`'s DB-011 line is keyed on the symbol; reach the context
-   with `contexts[i]->shadingContext()`. The trace bodies are `CHider` members that stay in `trace.cpp` (its DB-011
+   is a `CHider **` that kept its name (spec 030 deleted `reyes.cpp`'s DB-011 line, so no allowlist key depends on it now; `reyes.cpp`
+   reaches its peers through the frame's `CHiderPeers`); reach the context with `contexts[i]->shadingContext()`. The trace bodies are `CHider` members that stay in `trace.cpp` (its DB-011
    and DB-017 lines are keyed on the file). Geometry keeps calling `CShadingContext::shade(CSurface *, ...)`,
    `displace()` and `displaceEstimate()`: an opaque forwarding entry that calls the owning hider's
    `IShadingProducer`, which builds the point source (`CSurfacePointSource`) and the `ShaderGlobals` batch and calls
@@ -884,6 +904,31 @@ not in the agent definitions.
    receives without the server's error multiplier (#161). `-t:4` photon passes order the kd-tree differently, so `flags` is not part of a
    photon's identity (`GiKeys_PhotonsThreads`). `GiRemote_*`, `GiFiles_Unchanged`, `GiKeys_*`, `GiCache_KindMismatch` and
    `TextureOnly_GiStores` guard it (`ctest -L gi_split`; `-L gi_split_threads` is opt-in).
+38. **Hiders and integrators are registered tables; the core reads declared capabilities, never a name (spec 030).** The four built-in
+   hiders are reached by the *call graph* (`beginRenderer()` -> `hiderRegistry()` -> `registerBuiltinHiders()` -> each hider's getter),
+   not by a static registrar, so a plain static link finds them with no `-u` anchor (`Link_StaticConsumerRegistries`); only a hider or
+   integrator outside the core uses `OR_REGISTER_HIDER`/`OR_REGISTER_INTEGRATOR`, whose pending list is defined once, out of line,
+   in the registry's `.cpp` (a header-reached static would give a shared-library consumer its own copy: gotcha 22). `RiHiderV`
+   resolves a hider name at statement time (an alias is stored as its target's name, a deprecated alias warns once per statement, an
+   unknown name is stored as written); `beginFrameTransport()` resolves again at frame begin. There are two hiders in the slot:
+   `named` (the registration of the name as written, `nullptr` if unknown) and `hider` (the resolved one, `reyes` for an unknown
+   name): the traits come from `hider`, except `deepShadowOutput`, which comes from `named`, so a TSM display with an unknown hider
+   name still fails (it asks for reyes, not for the fallback). The `hiderFlags` description bits are gone (`HIDER_BREAK` and
+   `HIDER_DONE` stay); `hasIlluminationHook()` reads `frameTransport().traits.illuminationHook`, a plain `bool`, and tests that need
+   the hook outside a frame use `setFrameIlluminationHookForTest()`. An (hider, integrator) pair whose requirements are not met
+   **refuses** the frame in `beginFrame()` before the displays start: one `CODE_LIMIT` error, no hider built (`contexts` stays
+   `NULL`), no output file, `renderFrame()` returns at once, and every reader of `contexts` is null-safe (`imager.cpp`,
+   `notifyGlobalVariable`, `addObject` through `traits.rasterization`); a failure after the displays began (a hider `create` that
+   returns `NULL`, an integrator `prepare` that fails) **aborts** instead (`abortFrameTransport()`: hiders destroyed, traits cleared,
+   the integrator destroyed without `finish`). `CReyes` keeps a pointer to the slot's `CHiderPeers` (its sibling loop), so the peers
+   live in the slot until `endFrameTransport()`, never in a local. A capability is met when the same name is provided at a version
+   `>=` the required one; absent optional capabilities never refuse a pair. Integrator parameters live in inline declarations
+   (`"int maxdepth" [5]`): the RIB rule `integratorParameterCheck()` (not `parameterListCheck()`) converts integers and rewrites a
+   declaration to the count of values it was given, and a parameter the integrator does not define is an *error* at frame begin
+   (`orender` exits -1). A named `spherelight`/`quadlight` with no compiled shader on the path now reports `Failed to find shader`:
+   the C++ substitutes (`hcshader`) are gone. The irradiance sampler is installed by the `CHider` constructor (spec 032), not by a table: the
+   instance a table's `create` returns is a `CHider`-derived hider, so it gets the sampler for free (the process default covers only a
+   context with none installed).
 
 ## Active Technologies
 - C++20, CMake ≥3.19; `libtiff`/`libpng` (mandatory), OpenEXR (optional,
@@ -962,8 +1007,21 @@ not in the agent definitions.
   `photonMapAccess.h`) with `kRendererServicesVersion` 2.2.0, the data viewer owns the adapters, and every record and photon carries
   a key for spec 040 (032-gi-cache-split)
 - Storage: N/A; memory only; the `tests/gi_split/reference` recordings are files (032-gi-cache-split)
+- C++20 and C17 (the registration headers `hiderAbi.h`, `integratorAbi.h` and `capability.h` are strict C17), CMake ≥3.19,
+  `-Werror`; no new dependencies: the hider and integrator registries over `common/kindRegistry.h`, the Transport domain
+  (`src/ri/transport/`), the `Integrator` statement, the renderer core's `frameTransport()` slot (030-hider-and-integrator-registry)
+- Storage: N/A; memory only (030-hider-and-integrator-registry)
 
 ## Recent Changes
+- 030-hider-and-integrator-registry: hiders are registered tables (`hiderRegistry()`, name, aliases, declared capabilities, dispatch,
+  `create`/`destroy`) and the renderer core selects one per frame without naming a concrete hider (the two `strcmp` chains, the
+  `dynamic_cast`, the TSM name test and the `hiderFlags` description bits are gone; three DB-011 allowlist lines and one DB-006
+  line deleted: DB-011 158 -> 155 on master as of spec 032, DB-006 30 -> 29); integrators are the new Transport domain (constitution 1.4.0, `src/ri/transport/`) with a
+  registry, the capability vocabulary, a pair check, the built-in `classic` and an `Integrator` statement (RIB, `RiIntegrator`,
+  `ribOut`, Python and Lua helpers; preview ignores it); an unsupported pair refuses the frame with one error, a parameter the
+  integrator does not define is an error; the hard-coded `spherelight`/`quadlight` C++ lights (`hcshader`) are retired (a missing
+  shader is now an ordinary `Failed to find shader`); `checkPluginVersion` gained an overload for in-process tables. DB-013 resolved.
+  No image changed on either platform; both determinism sweeps match the starting tree's (see spec 030).
 - 032-gi-cache-split: the irradiance cache and the photon map are passive storage in Texturing and no longer know the shading context, the
   hiders, the renderer core or the data viewer: `CIrradianceCache` (world bound injected), `CPhotonStore` (world matrices injected), the
   viewers as adapters the data viewer owns, the remote channels reading them through public accessors (no `friend` left but `makeBrickMap`).

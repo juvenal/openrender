@@ -1,0 +1,24 @@
+# Phase 9 (T123): a one-line fix of an approved test, DRAFT, NOT applied (maintainer approval pending; same class as F9).
+# test_registry_pairs.cpp:113 compares a session report's code with the EErrorCode CODE_LIMIT (value 9), but the session recorder
+# (regtest::sessionHandler) is an RI error handler and stores the RI code the core's error() maps CODE_LIMIT to, RIE_LIMIT (13)
+# (error.cpp), so the check can never hold for a session report: all four Registry_PairRefusal_<hider> tests fail on it and on
+# nothing else (every other check of the four passes, including the exact texts, the counts, the missing output files and the
+# lifecycle). The two comments that name the code follow it.
+--- a/tests/unit/registry/test_registry_pairs.cpp
++++ b/tests/unit/registry/test_registry_pairs.cpp
+@@ -95,5 +95,5 @@
+         const std::string who = "Hider \"" + hider + "\" cannot run integrator \"";
+ 
+-        // Frame 1: one CODE_LIMIT error naming hider, integrator and the missing capability.
++        // Frame 1: one RIE_LIMIT error naming hider, integrator and the missing capability.
+         const std::string text1 = who + integratorDoubleName(DOUBLE_NEEDS_MISSING) + "\"";
+         REG_CHECK_MSG(s.frames.count(text1.c_str()) == 1, "got:\n%s", s.frames.text().c_str());
+@@ -110,6 +110,6 @@
+             REG_CHECK_MSG(s.frames.count("missing \"rasterization\" 2.0.0") == 1, "got:\n%s", s.frames.text().c_str());
+ 
+-        // Both refusals are CODE_LIMIT errors and the only errors of the session; "the frame is not rendered".
+-        REG_CHECK_MSG(errorsWithCode(s.frames, CODE_LIMIT) == 2, "got:\n%s", s.frames.text().c_str());
++        // Both refusals are RIE_LIMIT errors and the only errors of the session; "the frame is not rendered".
++        REG_CHECK_MSG(errorsWithCode(s.frames, RIE_LIMIT) == 2, "got:\n%s", s.frames.text().c_str());
+         REG_CHECK_MSG(s.frames.errors() == 2, "got:\n%s", s.frames.text().c_str());
+         REG_CHECK(s.frames.count("the frame is not rendered") == 2);

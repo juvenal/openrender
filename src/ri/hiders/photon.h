@@ -49,7 +49,6 @@ class CPhotonHider : public CHider, public openrender::shading::IIlluminationHoo
         CPhotonHider(int thread, CAttributes *);
         virtual ~CPhotonHider();
 
-        static void preDisplaySetup();
 
         // The main hider interface
         void renderingLoop() override; // Right after world end to force rendering of the entire frame

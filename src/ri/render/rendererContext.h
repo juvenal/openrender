@@ -100,6 +100,7 @@ class CRendererContext : public CRiInterface, public CGeometryHost {
         void RiDisplayChannelV(const char *channel, int n, const char *tokens[], const void *params[]) override;
 
         void RiHiderV(const char *type, int n, const char *tokens[], const void *params[]) override;
+        void RiIntegratorV(const char *name, int n, const char *tokens[], const void *params[]) override;
         void RiColorSamples(int N, float *nRGB, float *RGBn) override;
         void RiRelativeDetail(float relativedetail) override;
         void RiOptionV(const char *name, int n, const char *tokens[], const void *params[]) override;

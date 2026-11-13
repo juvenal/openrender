@@ -1,0 +1,2 @@
+# Spec 030 Linux baseline noise list (T014): two suite runs of the starting tree (e83d005d, GCC 13.3, -j2) produced 915 images, 0 differing; every MaxBlockAvgDiff equal.
+# Empty on purpose.

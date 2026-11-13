@@ -124,6 +124,7 @@ class CRiInterface {
         virtual void RiDisplayChannelV(const char *channel, int n, const char *tokens[], const void *params[]);
 
         virtual void RiHiderV(const char *type, int n, const char *tokens[], const void *params[]);
+        virtual void RiIntegratorV(const char *name, int n, const char *tokens[], const void *params[]);
         virtual void RiColorSamples(int N, float *nRGB, float *RGBn);
         virtual void RiRelativeDetail(float relativedetail);
         virtual void RiOptionV(const char *name, int n, const char *tokens[], const void *params[]);

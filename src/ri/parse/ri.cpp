@@ -821,6 +821,24 @@ RiHiderV(RtToken type, RtInt n, RtToken tokens[], RtPointer params[]) {
 }
 
 EXTERN(RtVoid)
+RiIntegrator(RtToken name, ...) {
+    va_list args;
+
+    va_start(args, name);
+    getArgs(args);
+    RiIntegratorV(name, nTokens, tokens, values);
+    va_end(args);
+}
+
+EXTERN(RtVoid)
+RiIntegratorV(RtToken name, RtInt n, RtToken tokens[], RtPointer params[]) {
+    if (check("RiIntegrator", VALID_OPTION_BLOCKS))
+        return;
+
+    renderMan->RiIntegratorV(name, n, tokens, params);
+}
+
+EXTERN(RtVoid)
 RiColorSamples(RtInt N, RtFloat *nRGB, RtFloat *RGBn) {
     if (check("RiColorSamples", VALID_OPTION_BLOCKS))
         return;

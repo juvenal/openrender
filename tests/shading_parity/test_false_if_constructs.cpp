@@ -37,6 +37,7 @@
 #include "ri/parse/ri.h"
 #include "ri/render/renderer.h"
 #include "ri/render/rendererContext.h"
+#include "ri/render/rendererTransport.h"
 #include "ri/state/attributes.h"
 #include "ri/state/xform.h"
 
@@ -124,8 +125,7 @@ struct SRun {
 // Runs the surface once, hook on, with its locals allocated from a page that
 // holds the poison byte
 static SRun runSurface(CRunProbeContext *probe, CProgrammableShaderInstance *surface, CSurface *object) {
-    const unsigned int savedFlags = CRenderer::hiderFlags;
-    CRenderer::hiderFlags |= HIDER_ILLUMINATIONHOOK;
+    const bool savedHook = setFrameIlluminationHookForTest(true);
 
     setupState(probe, object);
     probe->numBegins = probe->numEnds = 0;
@@ -148,7 +148,7 @@ static SRun runSurface(CRunProbeContext *probe, CProgrammableShaderInstance *sur
     ss->freeLights = nullptr;
 
     memoryTini(localMemory);
-    CRenderer::hiderFlags = savedFlags;
+    setFrameIlluminationHookForTest(savedHook);
     return run;
 }
 

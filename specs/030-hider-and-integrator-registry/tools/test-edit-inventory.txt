@@ -1,0 +1,136 @@
+# Spec 030 T017/T018: test-edit and reference inventory (measured 2026-11-09 on the starting tree e83d005d; read-only greps)
+
+## (a) tests and clients that construct or name a concrete hider, hiderFlags, HIDER_* or preDisplaySetup
+
+Search: git grep -n -E '\bCReyes\b|\bCStochastic\b|\bCZbuffer\b|\bCRaytracer\b|\bCPhotonHider\b|hiderFlags|HIDER_|preDisplaySetup' -- tests src/python src/lua src/preview src/orender
+(excluding the two data files that name symbols as text: tests/architecture/allowlist.txt, tests/precomp/reference/stochasticPrimitives.raw.h)
+
+tests/shading_parity/test_false_if_constructs.cpp:127:    const unsigned int savedFlags = CRenderer::hiderFlags;
+tests/shading_parity/test_false_if_constructs.cpp:128:    CRenderer::hiderFlags |= HIDER_ILLUMINATIONHOOK;
+tests/shading_parity/test_false_if_constructs.cpp:151:    CRenderer::hiderFlags = savedFlags;
+tests/shading_parity/test_illumination_hook.cpp:8: * A hider that sets HIDER_ILLUMINATIONHOOK (the photon hider) wants each
+tests/shading_parity/test_illumination_hook.cpp:217:    const unsigned int savedFlags = CRenderer::hiderFlags;
+tests/shading_parity/test_illumination_hook.cpp:219:        CRenderer::hiderFlags |= HIDER_ILLUMINATIONHOOK;
+tests/shading_parity/test_illumination_hook.cpp:221:        CRenderer::hiderFlags &= ~HIDER_ILLUMINATIONHOOK;
+tests/shading_parity/test_illumination_hook.cpp:241:    CRenderer::hiderFlags = savedFlags;
+tests/shading_parity/test_illumination_hook_conditions.cpp:205:    const unsigned int savedFlags = CRenderer::hiderFlags;
+tests/shading_parity/test_illumination_hook_conditions.cpp:206:    CRenderer::hiderFlags |= HIDER_ILLUMINATIONHOOK;
+tests/shading_parity/test_illumination_hook_conditions.cpp:221:    CRenderer::hiderFlags = savedFlags;
+tests/shading_parity/test_illumination_hook_operands.cpp:224:    const unsigned int savedFlags = CRenderer::hiderFlags;
+tests/shading_parity/test_illumination_hook_operands.cpp:225:    CRenderer::hiderFlags |= HIDER_ILLUMINATIONHOOK;
+tests/shading_parity/test_illumination_hook_operands.cpp:240:    CRenderer::hiderFlags = savedFlags;
+tests/unit/blobby/test_surface_params.cpp:42: *   is abandoned (HIDER_BREAK) wherever the test runs. Moving the camera
+tests/visual/CMakeLists.txt:2033:# outcome (see HIDER_PARITY.md's "Crease Quality" subsection: not reproduced —
+tests/visual/CMakeLists.txt:2127:# its own (CPhotonHider::preDisplaySetup() sets HIDER_NODISPLAY --
+
+RESULT: the plan's claim (a) is FALSE for hiderFlags / HIDER_ILLUMINATIONHOOK. Four approved shading_parity tests set the
+constant through the core static:
+    tests/shading_parity/test_false_if_constructs.cpp:127-151
+    tests/shading_parity/test_illumination_hook.cpp:217-241
+    tests/shading_parity/test_illumination_hook_conditions.cpp:205-221
+    tests/shading_parity/test_illumination_hook_operands.cpp:224-240
+each as `CRenderer::hiderFlags |= HIDER_ILLUMINATIONHOOK` (saved and restored around the run). Spec 030 deletes the constant
+(T110, renderer.h :46-52) and moves the reader (rendererServicesImpl.h:61, hasIlluminationHook()) to
+frameTransport().traits.illuminationHook (contracts/frame-transport.md "The read sites"). No task in tasks.md names these
+tests, and tasks.md "Edits to existing tests: none" forbids touching them. As written, Phase 8 (T110) would not compile
+tests/shading_parity, or (if the constant stays) the hook would stop being switched on by these tests. Needs a maintainer decision
+before Phase 8 (reported at T019/T020, not worked around). No other test names a concrete hider; the remaining hits are comments
+(tests/unit/blobby/test_surface_params.cpp:42, tests/visual/CMakeLists.txt:2033, :2127) and data files (allowlist.txt DB-006/-011/-017
+lines; tests/precomp/reference/stochasticPrimitives.raw.h, a recorded generator output with 480 CStochastic:: matches, not edited).
+Nothing in src/python, src/lua, src/preview, src/orender matches.
+
+## (b) git grep -n -E 'hcshader|CSphereLight|CQuadLight' -- . ':!specs'  (file: count, outside src/ri/hcshader.*)
+
+.plans/analysis/rispec-3.2-gap-analysis.md:1
+CLAUDE.md:2
+DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md:5
+examples/rib/quadlight.rib:1
+examples/rib/spherelight.rib:1
+shaders/quadlight.sl:2
+shaders/spherelight.sl:2
+src/libshader/shading/shaderRefs.h:1
+src/libshader/shading/shading.h:1
+src/ri/CMakeLists.txt:5
+src/ri/hcshader.cpp:40
+src/ri/hcshader.h:11
+src/ri/render/renderer.cpp:1
+src/ri/render/rendererContext.cpp:3
+src/ri/render/rendererStatics.cpp:1
+tests/architecture/domain-map.txt:1
+tests/architecture/unit/test_archcheck_parsers.cpp:3
+tests/visual/CMakeLists.txt:1
+
+Lines outside hcshader.{h,cpp} (file:line):
+.plans/analysis/rispec-3.2-gap-analysis.md:42:| `RiAreaLightSource`/`RiAreaLightSourceV` | **Partial — hidden semantic gap** | `rendererContext.cpp:1938-1955` is structurally byte-for-byte identical to `RiLightSourceV` (same `getShader(SL_LIGHTSOURCE)` + `addLight()`) | No code associates subsequently-declared RIB geometry with the light's emission shape — the standard RISpec pattern (declare `AreaLightSource`, then emit geometry as its shape) silently degrades to a point light. Real stochastic area sampling exists, but only through a parallel, non-RISpec mechanism: hardcoded `CSphereLight`/`CQuadLight` C++ classes (`hcshader.h/.cpp`) reachable only via magic shader names `"spherelight"`/`"quadlight"` special-cased inside `getShader()` — radius/sample-count are hardcoded constructor args, not derived from RIB geometry. Any production RIB scene using the standard area-light idiom gets silently wrong (point-light) results. |
+CLAUDE.md:460:   while porting `spherelight`/`quadlight` off hardcoded C++ (`hcshader.cpp`)
+CLAUDE.md:465:   (as the old hardcoded `CQuadLight::illuminate()` did) does not carry
+DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md:325:  - The built-in `CSphereLight`/`CQuadLight` fallback (`src/ri/hcshader.{h,cpp}`, 776 lines) is
+DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md:329:  `hcshader` now that the RSL `spherelight`/`quadlight` ship.
+DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md:332:  `CProgrammableShaderInstance *` (the built-in `CSphereLight`/`CQuadLight` are not programmable
+DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md:389:  - `CShadingContext` no longer befriends `CPhotonHider`, `CSphereLight` and `CQuadLight` (spec 029, 2026-11-04; they
+DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md:805:    (`src/libshader/shading/shading.h`), and `CPhotonHider`, `CSphereLight` and `CQuadLight` were its
+examples/rib/quadlight.rib:5:# CQuadLight. Needs the raytrace hider: quadlight uses visibility() for
+examples/rib/spherelight.rib:5:# CSphereLight. Needs the raytrace hider: spherelight uses visibility()
+shaders/quadlight.sl:6: * RSL replacement for the previously hardcoded CQuadLight
+shaders/quadlight.sl:7: * (src/ri/hcshader.{h,cpp}). A four-cornered planar emitter with
+shaders/spherelight.sl:6: * RSL replacement for the previously hardcoded CSphereLight
+shaders/spherelight.sl:7: * (src/ri/hcshader.{h,cpp}). Approximates a spherical area emitter: for
+src/libshader/shading/shaderRefs.h:41:// DB-013: unchecked, as before spec 025. The built-in sphere and quad lights (hcshader.h) are not
+src/libshader/shading/shading.h:76:class CSphereLight;
+src/ri/CMakeLists.txt:93:	hcshader.cpp
+src/ri/CMakeLists.txt:313:# shader features (dlobject.cpp, hcshader.cpp, imager.cpp,
+src/ri/CMakeLists.txt:326:# CQuadLight/CSphereLight, so linking it in would silently reintroduce most
+src/ri/CMakeLists.txt:394:    hcshader.cpp
+src/ri/CMakeLists.txt:510:# texture/, hiders/, plus dlobject/hcshader/imager/implicitSurface/
+src/ri/render/renderer.cpp:38:#include "hcshader.h"
+src/ri/render/rendererContext.cpp:49:#include "hcshader.h"
+src/ri/render/rendererContext.cpp:347:            cInstance = new CSphereLight(currentAttributes, currentXform);
+src/ri/render/rendererContext.cpp:354:            cInstance = new CQuadLight(currentAttributes, currentXform);
+src/ri/render/rendererStatics.cpp:43:#include "hcshader.h"
+tests/architecture/domain-map.txt:69:prefix  src/ri/hcshader.                             Core
+tests/architecture/unit/test_archcheck_parsers.cpp:104:                          "prefix  src/ri/hcshader.                Core\n"
+tests/architecture/unit/test_archcheck_parsers.cpp:130:    // A prefix need not end at a directory boundary (src/ri/hcshader.*).
+tests/architecture/unit/test_archcheck_parsers.cpp:131:    ASSERT(r.value->classify("src/ri/hcshader.cpp") == Class::Core);
+tests/visual/CMakeLists.txt:995:# replacements for the old hardcoded CQuadLight/CSphereLight) use
+
+Compared with tasks.md G2: all listed places are found (shading.h:76, shaders/{spherelight,quadlight}.sl comments, examples/rib/{spherelight,quadlight}.rib
+comments, tests/visual/CMakeLists.txt:995, .plans/analysis/rispec-3.2-gap-analysis.md, CLAUDE.md gotchas 10 and 11, DOMAIN_BOUNDARIES.md). Also found, and
+not named by G2: src/libshader/shading/shaderRefs.h:41 (a comment, "built-in sphere and quad lights (hcshader.h)"); tasks.md Q-A says shaderRefs.h is
+edited, so this is covered); tests/architecture/domain-map.txt:69 (`prefix src/ri/hcshader. Core`, an FR-025 item); and
+tests/architecture/unit/test_archcheck_parsers.cpp:104, :130-131 (in-memory data that names hcshader; Q8 exempts it, not edited).
+src/ri/CMakeLists.txt:93 and :394 list hcshader.cpp (ribRender and libRIBVector lists); :313, :326, :510 are comments. renderer.cpp:38,
+rendererContext.cpp:49 and :347/:354, and rendererStatics.cpp:43 include or use it.
+
+## (c) tests/architecture expectations that depend on the class count
+
+- archcheck/config.h:56 `kClassCount = 12`, the `Class` enum above it, and archcheck/config.cpp:30 `kClassNames` (12 names, order = enum order): these are the
+  fixed-size data; adding `Transport` makes them 13 (T040 to T042).
+- archcheck/config.cpp: rule parsing (`rowLine`, `*` wildcards, cycle search), graph.cpp (HopMatrix, components, shortestPath) iterate `kClassCount`; no literal 12.
+- unit/test_archcheck_parsers.cpp:196, :227, :239: loops over `kClassCount` (round trip of every class name; wildcard `Core -> *`, `Consumer -> *`,
+  `* -> Infra`; same-class always allowed). They follow the constant; no literal 12 or 13 anywhere in the test (only `DB-12` as an id string at :319). Not edited (Q8).
+- A rule table does not need a row for every class (`parseRuleTable` only rejects duplicate rows, unknown classes, Infra->x, x->Core for non-Consumer, and cycles), so the 18
+  fixtures' own domain-rules.txt copies (v1.2.0, 12 classes, no `Transport` row) still parse after the change. `Core -> *`, `Consumer -> *` and `* -> Infra` expand over
+  kClassCount, so Transport gains them automatically in the fixtures too.
+- run_determinism.cmake compares two archcheck JSON reports with each other, never with a recorded file: no dependence.
+- The fixtures' pass regexes (tests/architecture/CMakeLists.txt, archcheck_add_fixture lines 114-164) match RESULT/violation text, not a class count (not edited).
+- Real data files that must grow by a row/line: domain-rules.txt (the `Transport` row and the Hiders row), domain-map.txt (prefix src/ri/transport/ Transport),
+  metrics-baseline.txt (a Transport entry if the report lists classes), and the constitution amendment (T037).
+
+## (d) ribvector-core-residual.txt rows that name a file this spec edits
+
+22-line file (9 data rows). Rows naming a file spec 030 edits:
+  src/ri/render/rendererStatics.cpp   Geometry (object.cpp, blobbyRepeller.cpp), Hiders (compositor.cpp, irradiance.cpp, photonMap.cpp)
+T110 edits rendererStatics.cpp (deletes the five concrete hider #includes and the hider statics; `contexts` keeps its definition per research R8). The row stays valid
+as long as ribVector still compiles the file and the same consumers need it; `ribvector-core-residual.txt` only shrinks, so T110 must not make the file stop being needed
+without deleting the row (SceneInterface_RibVectorResidual fails on a stale line). No row names rendererContext.cpp, renderer.cpp, rendererDisplay.cpp or any hiders/ file.
+
+## T018: Python and Lua helper test tool availability
+
+tests/python/test_prman.py and tests/lua/test_prman.lua are NOT registered in CTest anywhere (git grep test_prman: only plan.md/tasks.md/research.md in specs/).
+Both are pure text-generating helpers (src/python/prman.py, src/lua/prman.lua write RIB text through Begin/End; no renderer or compiled module needed). They are run from
+the repository root: the Python one does sys.path.append(os.getcwd()/src/python) then `import prman`; the Lua one does `require("prman")`, so it needs
+LUA_PATH='src/lua/?.lua;;' (or package.path set) because nothing sets it. Both write helloworld*.rib/test_pipe*.rib into the current directory and delete some of them; a
+CTest registration should run them in a scratch WORKING_DIRECTORY with the paths passed explicitly.
+macOS (this host): python3 = /opt/homebrew/bin/python3, Python 3.15.2; lua = /opt/homebrew/bin/lua, Lua 5.5.1 (PUC-Rio); no luajit, lua5.1, lua5.3 or lua5.4 binary names.
+Linux (ubuntu-2404-desktop): python3 = /usr/bin/python3, Python 3.12.3. At the 2026-11-09 measurement no Lua interpreter existed (lua, luajit, lua5.1, lua5.3, lua5.4 all absent); the maintainer has since installed one: lua = Lua 5.4.6 (Ubuntu 24.04 has no 5.5; macOS has 5.5.1). The new Lua helper test can run on both hosts and its code must work on Lua 5.4; keep the find_program guard.
+

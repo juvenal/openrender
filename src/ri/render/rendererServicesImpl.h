@@ -26,6 +26,7 @@
 #include "declarations.h"      // CDeclarations (Graphics State: the declared-variable table)
 #include "photonMap.h" // CPhotonMap
 #include "renderer.h"
+#include "rendererTransport.h"
 #include "texture.h"        // CTexture, CTextureInfoBase, CEnvironment
 #include "texture3d.h"      // CTexture3d
 #include "textureSystem.h"  // CTextureSystem, ETextureKind
@@ -58,7 +59,7 @@ class CRendererServicesImpl final : public CRendererServices {
         // Clipping / hider
         float clipMin() const override { return CRenderer::clipMin; }
         float clipMax() const override { return CRenderer::clipMax; }
-        bool hasIlluminationHook() const override { return (CRenderer::hiderFlags & HIDER_ILLUMINATIONHOOK) != 0; }
+        bool hasIlluminationHook() const override { return frameTransport().traits.illuminationHook; }
 
         // World bounds
         const float *worldBmin() const override { return CRenderer::worldBmin; }
