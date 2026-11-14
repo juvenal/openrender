@@ -20,7 +20,9 @@ Architecture_DomainBoundaries$
 # Homebrew LLVM bitcode does not match reference/macos/shaders.sha256.
 Shaders_BytesUnchanged$
 
-# Debug asserts (stats, memory, shader strings) that the GCC Debug binary does not hit.
+# Debug asserts (stats, memory, tessellation, shader strings) that the GCC Debug binary does not hit.
+# The displaced CSG hero passed one Apple Clang Debug run and aborted the next.
+Parity_csg-hero-displaced-raytrace-reyes$
 Parity_unbaked-exr$
 ShadingParity_AmbientAccumulation$
 ShadingParity_SloDefaultBuffer$

@@ -31,7 +31,7 @@ if [ "$(uname -s)" = Darwin ]; then
     if [ "${mode}" = release ]; then
         # rslo and slo of these probes are not bit-identical under Apple Clang.
         # The engaged controls still run: each parameter changes the picture.
-        names="${names}|ShadingParity_JitPL_envshadow_raytrace_bias$|ShadingParity_JitPL_envshadow_raytrace_maxdist$"
+        names="${names}|ShadingParity_JitPL_envshadow_raytrace_bias$|ShadingParity_JitPL_envshadow_raytrace_maxdist$|ShadingParity_JitPL_envshadow_raytrace_blur$"
     fi
     if [ "${mode}" = debug ]; then
         while IFS= read -r line || [ -n "${line}" ]; do
