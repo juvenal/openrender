@@ -1,0 +1,44 @@
+name: Backport
+
+on:
+  pull_request_target:
+    types: [closed, labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  backport:
+    name: backport
+    if: >-
+      github.event.pull_request.merged &&
+      (
+        contains(toJSON(github.event.pull_request.labels.*.name), '"backport"') ||
+        contains(toJSON(github.event.pull_request.labels.*.name), '"backport ')
+      )
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: master
+          token: ${{ secrets.BACKPORT_TOKEN || github.token }}
+      - name: Choose target branches
+        id: targets
+        env:
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+        run: python3 scripts/ci/backport_targets.py
+      - name: Backport to labeled release branches
+        if: steps.targets.outputs.mode == 'labels'
+        uses: korthout/backport-action@ad272ff24e4a8593bf18a951a154ae6af93b26b8 # v5.0.0
+        with:
+          github_token: ${{ secrets.BACKPORT_TOKEN || github.token }}
+          label_pattern: "^backport ([^ ]+)$"
+      - name: Backport to every active LTS line
+        if: steps.targets.outputs.mode == 'all'
+        uses: korthout/backport-action@ad272ff24e4a8593bf18a951a154ae6af93b26b8 # v5.0.0
+        with:
+          github_token: ${{ secrets.BACKPORT_TOKEN || github.token }}
+          target_branches: ${{ steps.targets.outputs.branches }}
+          label_pattern: "^$"

@@ -849,3 +849,10 @@ endif()
 # shaders rebuild), lets `ctest -L visual` work without installing first,
 # and keeps compiled objects out of the source tree. See shaders/
 # CMakeLists.txt, which also installs the resulting objects.
+
+# FHS packages (DEB/RPM). No-op when INSTALL_SELFCONTAINED is ON, which is the
+# default. Without this include, `cpack` has no CPackConfig.cmake. The
+# self-contained nightlies and LTS archives are packed from the install tree
+# by scripts/ci/package-tree.sh; this include is what release.yml's `cpack`
+# step needs for an FHS build.
+include(${CMAKE_CURRENT_SOURCE_DIR}/CMake/CPackConfig.cmake)
