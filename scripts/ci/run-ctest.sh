@@ -29,8 +29,9 @@ if [ "$(uname -s)" = Darwin ]; then
     # Homebrew LLVM on the runner emits different .slo bitcode.
     names="${names}|Shaders_BytesUnchanged$"
     if [ "${mode}" = release ]; then
-        # rslo and slo of this one probe are not bit-identical under Apple Clang.
-        names="${names}|ShadingParity_JitPL_envshadow_raytrace_bias$"
+        # rslo and slo of these probes are not bit-identical under Apple Clang.
+        # The engaged controls still run: each parameter changes the picture.
+        names="${names}|ShadingParity_JitPL_envshadow_raytrace_bias$|ShadingParity_JitPL_envshadow_raytrace_maxdist$"
     fi
     if [ "${mode}" = debug ]; then
         while IFS= read -r line || [ -n "${line}" ]; do
