@@ -45,12 +45,20 @@ name="openrender-${label}-${platform}-$(uname -m)"
 
 stage="$(mktemp -d)"
 trap 'rm -rf "${stage}"' EXIT
-cmake --install "${build}" --prefix "${stage}/opt/openrender"
+# The configured prefix is absolute (/opt/openrender in CI). DESTDIR stages
+# that tree without rewriting the baked OPENRENDER_HOMEDIR.
+DESTDIR="${stage}" cmake --install "${build}"
+orender_bin="$(find "${stage}" -type f -path '*/bin/orender' -print | head -n 1 || true)"
+if [ -z "${orender_bin}" ]; then
+    echo "package-tree.sh: install did not produce bin/orender under ${stage}" >&2
+    exit 1
+fi
+prefix="$(cd "$(dirname "${orender_bin}")/.." && pwd)"
 
-export LD_LIBRARY_PATH="${stage}/opt/openrender/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
-export DYLD_LIBRARY_PATH="${stage}/opt/openrender/lib${DYLD_LIBRARY_PATH:+:${DYLD_LIBRARY_PATH}}"
-"${stage}/opt/openrender/bin/orender" -h >/dev/null
-"${stage}/opt/openrender/bin/orender" -v >/dev/null
+export LD_LIBRARY_PATH="${prefix}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+export DYLD_LIBRARY_PATH="${prefix}/lib${DYLD_LIBRARY_PATH:+:${DYLD_LIBRARY_PATH}}"
+"${orender_bin}" -h >/dev/null
+"${orender_bin}" -v >/dev/null
 
 IFS='.' read -r major minor patch <<<"${version}"
 mkdir -p "${output}"

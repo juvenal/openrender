@@ -83,7 +83,7 @@ jobs:
     name: macos
     needs: gate
     if: needs.gate.outputs.proceed == 'true'
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 360
     steps:
       - name: Checkout

@@ -60,11 +60,17 @@ for candidate in "${candidates[@]}"; do
 done
 
 cores="$(nproc 2>/dev/null || sysctl -n hw.ncpu)"
+# Unix Makefiles, not Ninja. ShadingScope_Greps reads flags.make and
+# ShadingContract_StandaloneLinkLine reads link.txt; the Makefile generator
+# writes both, and those tests fail when the files are absent.
+# Prefix is /opt/openrender so a self-contained install (and the packages
+# made from it) has one absolute home. cmake --install --prefix cannot
+# relocate OPENRENDER_HOMEDIR: it is baked from CMAKE_INSTALL_PREFIX.
 args=(
     -S .
     -B build
-    -G Ninja
     -DCMAKE_BUILD_TYPE="${build_type}"
+    -DCMAKE_INSTALL_PREFIX=/opt/openrender
     -DCMAKE_C_COMPILER_LAUNCHER=ccache
     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
     -DINSTALL_SELFCONTAINED=ON

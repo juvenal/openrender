@@ -12,11 +12,11 @@ cut from a master commit. Nothing in these workflows pushes to `master`.
 | [`.github/workflows/backport.yml`](../.github/workflows/backport.yml) | A merged pull request with a backport label | Pull requests onto release branches. |
 | [`.github/workflows/lts-maintenance.yml`](../.github/workflows/lts-maintenance.yml) | Mondays 06:00 UTC, and manual | Nothing. It dispatches CI, or opens an issue when a line is past end of support. |
 
-The older [`.github/workflows/release.yml`](../.github/workflows/release.yml) still publishes a master-only version tag (self-contained and FHS tarballs, a universal macOS package, Debian and Fedora packages, the Homebrew formula). Its Intel job runs on `macos-15-intel`; GitHub no longer provides the `macos-13` runner that file used to request. A tag that is also contained in a `release/*` branch is left to `release-lts.yml`, so the two workflows do not both publish it.
+The older [`.github/workflows/release.yml`](../.github/workflows/release.yml) still publishes a master-only version tag (self-contained and FHS tarballs, a universal macOS package, Debian and Fedora packages, the Homebrew formula). Its Intel job runs on `macos-15-intel` and its Apple Silicon jobs on `macos-15`. GitHub no longer provides the `macos-13` runner, and `macos-14` cannot be started for this repository. A tag that is also contained in a `release/*` branch is left to `release-lts.yml`, so the two workflows do not both publish it.
 
 ## Pull request CI
 
-`CI` runs on `ubuntu-24.04` (GCC 13 and Clang, both linking the distro LLVM) and `macos-14` (Apple Clang, Homebrew LLVM for the JIT). Flex and Bison come from apt, or from Homebrew on macOS because the system Bison is too old. ccache is restored per OS, compiler, and build type.
+`CI` runs on `ubuntu-24.04` (GCC 13 and Clang, both linking the distro LLVM) and `macos-15` (Apple Clang, Homebrew LLVM for the JIT). `macos-14` is not a runner this repository can start. Flex and Bison come from apt, or from Homebrew on macOS because the system Bison is too old. ccache is restored per OS, compiler, and build type.
 
 | Check name | What it runs |
 | --- | --- |
@@ -42,7 +42,7 @@ Dated tags (`nightly-YYYYMMDD`, or `nightly-YYYYMMDD-<sha>` when that day's tag 
 Each nightly runs the full suite on Ubuntu (GCC) and macOS (Apple Clang), then packs the self-contained install tree with CPack:
 
 - Linux: `.tar.gz` and a `.deb` whose files live under `/opt/openrender`
-- macOS: `.tar.gz` for the arm64 runner (`macos-14`)
+- macOS: `.tar.gz` for the arm64 runner (`macos-15`)
 
 The packages are attached to the prerelease. No commit is pushed to `master`.
 
@@ -138,6 +138,19 @@ Also confirm:
 - Settings → General → Pull Requests → allow merge commits (the queue uses merge commits).
 - Settings → Actions → General → Workflow permissions: read and write is not required for CI (each workflow sets its own permissions). **Allow GitHub Actions to create and approve pull requests** must be on, or `cut-lts.yml` cannot open the record pull request and the backport action cannot open its pull requests.
 - The Actions policy for `pull_request_target` described above.
+
+## What the hosted runner does not match
+
+The everyday suite still runs on the GCC Release job, including every visual test. A few checks compare bytes with a file captured on the maintainer's machine, or misbehave only at `-O0`, and those names are excluded in `scripts/ci/run-ctest.sh`:
+
+- `TextureTile_RenderByteIdentical`. The runner's libtiff writes the IFD at a different offset (the files differ at byte 5). The visual suite's block average is the image check.
+- `Registry_IntegratorImageIdentity`. The camera hiders matched. Two one-thread photon maps from the same process did not.
+- On the Clang Release job only: `Motion_Replay_tessellation` (Clang contracts a multiply-add where the GCC replay does not) and `ShadingParity_JitPL_trace_samples_cone` (it timed out on the hosted runner).
+- On Debug jobs only: `Blobby_Tolerance` (timeout at `-O0`), `Geometry_DiceThroughDicer` and `Geometry_ExpansionThroughHost` (they crash at `-O0`), and `Link_ShadingSelfContained` (a Debug `libshader_shading` imports `std::string` symbols that the check also finds in `libRIBRender`).
+
+The configure uses Unix Makefiles. `ShadingScope_Greps` reads `flags.make` and `ShadingContract_StandaloneLinkLine` reads `link.txt`; a Ninja build does not leave those files where the tests look.
+
+Install and packaging use `DESTDIR`. `OPENRENDER_HOMEDIR` is the absolute `CMAKE_INSTALL_PREFIX` from configure time (`/opt/openrender` in these workflows), so `cmake --install --prefix` cannot move `.orenderrc`.
 
 ## What the LTS tests check
 

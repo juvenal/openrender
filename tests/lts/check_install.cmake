@@ -17,20 +17,37 @@ set(_headers
     rslo.h)
 
 find_program(_cmake NAMES cmake REQUIRED)
-set(_stage "$ENV{TMPDIR}")
-if(_stage STREQUAL "")
-    set(_stage "/tmp")
+set(_root "$ENV{TMPDIR}")
+if(_root STREQUAL "")
+    set(_root "/tmp")
 endif()
 string(TIMESTAMP _ts "%Y%m%d%H%M%S")
-set(_prefix "${_stage}/openrender-lts-install-${_ts}")
-file(MAKE_DIRECTORY "${_prefix}")
+set(_stage "${_root}/openrender-lts-install-${_ts}")
+file(MAKE_DIRECTORY "${_stage}")
 
+# DESTDIR, not --prefix. OPENRENDER_HOMEDIR is the absolute prefix baked at
+# configure time (self-contained builds use CMAKE_INSTALL_PREFIX), so an
+# install-time --prefix leaves .orenderrc on the real prefix and a hosted
+# runner cannot write there.
+set(ENV{DESTDIR} "${_stage}")
 execute_process(
-    COMMAND "${_cmake}" --install "${BUILD_DIR}" --prefix "${_prefix}"
+    COMMAND "${_cmake}" --install "${BUILD_DIR}"
     RESULT_VARIABLE _rc)
 if(NOT _rc EQUAL 0)
     message(FATAL_ERROR "Lts_InstallSmoke: cmake --install failed (${_rc})")
 endif()
+
+execute_process(
+    COMMAND find "${_stage}" -type f -path "*/bin/orender"
+    OUTPUT_VARIABLE _found
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    RESULT_VARIABLE _rc)
+if(NOT _rc EQUAL 0 OR _found STREQUAL "")
+    message(FATAL_ERROR "Lts_InstallSmoke: orender was not installed under ${_stage}")
+endif()
+string(REGEX MATCH "^[^\n]+" _bin "${_found}")
+get_filename_component(_bindir "${_bin}" DIRECTORY)
+get_filename_component(_prefix "${_bindir}" DIRECTORY)
 
 set(_inc "")
 if(EXISTS "${_prefix}/include/orplugin.h")
@@ -46,11 +63,6 @@ foreach(_h IN LISTS _headers)
         message(FATAL_ERROR "Lts_InstallSmoke: missing installed header ${_inc}/${_h}")
     endif()
 endforeach()
-
-set(_bin "${_prefix}/bin/orender")
-if(NOT EXISTS "${_bin}")
-    message(FATAL_ERROR "Lts_InstallSmoke: ${_bin} was not installed")
-endif()
 
 set(ENV{LD_LIBRARY_PATH} "${_prefix}/lib")
 set(ENV{DYLD_LIBRARY_PATH} "${_prefix}/lib")
@@ -76,4 +88,4 @@ if(NOT _rc EQUAL 0)
 endif()
 
 message(STATUS "Lts_InstallSmoke: ${_prefix}")
-file(REMOVE_RECURSE "${_prefix}")
+file(REMOVE_RECURSE "${_stage}")
