@@ -145,12 +145,15 @@ The everyday suite still runs on the GCC Release job, including every visual tes
 
 - `TextureTile_RenderByteIdentical`. The runner's libtiff writes the IFD at a different offset (the files differ at byte 5). The visual suite's block average is the image check.
 - `Registry_IntegratorImageIdentity`. The camera hiders matched. Two one-thread photon maps from the same process did not.
-- On the Clang Release job only: `Motion_Replay_tessellation` (Clang contracts a multiply-add where the GCC replay does not) and `ShadingParity_JitPL_trace_samples_cone` (it timed out on the hosted runner).
+- On the Clang Release job only: `Motion_Replay_tessellation` (Clang contracts a multiply-add where the GCC replay does not).
+- `ShadingParity_JitPL_trace_samples_cone` is part of that visual suite. Its 120-second property elapses while four tests share the runner (it passed in 85 seconds on the macOS runner and timed out at 120 on Ubuntu). The script skips it in the parallel pass, raises the generated timeout to 600 seconds, and runs it alone. The source `TIMEOUT` is unchanged.
 - On Debug jobs only: `Blobby_Tolerance` (timeout at `-O0`), `Geometry_DiceThroughDicer` and `Geometry_ExpansionThroughHost` (they crash at `-O0`), and `Link_ShadingSelfContained` (a Debug `libshader_shading` imports `std::string` symbols that the check also finds in `libRIBRender`).
+- On macOS Release: `Shaders_BytesUnchanged` (Homebrew LLVM writes different `.slo` bitcode than `reference/macos/shaders.sha256`) and `ShadingParity_JitPL_envshadow_raytrace_bias` (the `.rslo` and `.slo` renders are not bit-identical under Apple Clang). The GCC Release job runs both.
+- On macOS Debug, `scripts/ci/exclude-macos-debug.txt` lists the rest. Apple Clang at `-O0` prints different float text, moves display samples by one ulp, keeps `CRenderer` static references the architecture allowlist does not record, and hits debug asserts (`stats.cpp`, `memory.cpp`, shader string counts) that the GCC Debug binary does not. Linux GCC Debug still runs those tests.
 
 The configure uses Unix Makefiles. `ShadingScope_Greps` reads `flags.make` and `ShadingContract_StandaloneLinkLine` reads `link.txt`; a Ninja build does not leave those files where the tests look.
 
-Install and packaging use `DESTDIR`. `OPENRENDER_HOMEDIR` is the absolute `CMAKE_INSTALL_PREFIX` from configure time (`/opt/openrender` in these workflows), so `cmake --install --prefix` cannot move `.orenderrc`.
+Install and packaging use `DESTDIR`. `OPENRENDER_HOMEDIR` is the absolute `CMAKE_INSTALL_PREFIX` from configure time (`/opt/openrender` in these workflows), so `cmake --install --prefix` cannot move `.orenderrc`. The self-contained bundle step builds a destination that already includes `DESTDIR` and then calls `file(INSTALL)`, which prefixes `DESTDIR` again, so on macOS the Homebrew libraries landed outside `prefix/lib` and `orender -h` could not load `libtiff`. `scripts/ci/stage-install.sh` rewrites that one call in the generated `cmake_install.cmake` to `file(COPY)` before installing. The source `CMakeLists.txt` is left as it is.
 
 ## What the LTS tests check
 

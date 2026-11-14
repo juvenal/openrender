@@ -47,7 +47,8 @@ stage="$(mktemp -d)"
 trap 'rm -rf "${stage}"' EXIT
 # The configured prefix is absolute (/opt/openrender in CI). DESTDIR stages
 # that tree without rewriting the baked OPENRENDER_HOMEDIR.
-DESTDIR="${stage}" cmake --install "${build}"
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"${here}/stage-install.sh" "${build}" "${stage}"
 orender_bin="$(find "${stage}" -type f -path '*/bin/orender' -print | head -n 1 || true)"
 if [ -z "${orender_bin}" ]; then
     echo "package-tree.sh: install did not produce bin/orender under ${stage}" >&2

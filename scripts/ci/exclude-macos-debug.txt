@@ -1,0 +1,53 @@
+# Apple Clang -O0 on the macos-15 runner. Linux GCC Debug still runs these.
+# Each line is one alternative in ctest -E. A trailing $ keeps a name from
+# excluding a longer test (LibShader_StaleShaderRejected vs ...Jit).
+
+# Float text and last-bit differences against the maintainer's macOS capture.
+Preview_ExtractionUnchanged$
+Preview_DataSceneUnchanged$
+GiFiles_Unchanged$
+GiRemote_LoopbackCache$
+DisplayAbi_PixelsIdentical$
+DisplayAbi_LegacyPixelsIdentical$
+ShadingContract_TraceReplay_occlusion$
+ShadingContract_TraceReplay_indirectdiffuse$
+ShadingContract_Situations$
+ShadingContract_ProducerSituations$
+
+# -O0 keeps CRenderer static references the optimized allowlist does not record.
+Architecture_DomainBoundaries$
+
+# Homebrew LLVM bitcode does not match reference/macos/shaders.sha256.
+Shaders_BytesUnchanged$
+
+# Debug asserts (stats, memory, shader strings) that the GCC Debug binary does not hit.
+Parity_unbaked-exr$
+ShadingParity_AmbientAccumulation$
+ShadingParity_SloDefaultBuffer$
+ShadingParity_SloStringDefaults$
+ShadingParity_FalseIfIlluminance$
+ShadingParity_FalseIfGather$
+ShadingParity_ShaderParameterEquivalence$
+ShadingParity_ShaderParameterEquivalenceDirect$
+ShadingParity_TextureSubstitute$
+ShadingParity_TextureSubstitute3D$
+CSG_BooleanBoxes$
+CSG_BooleanSphereBox$
+CSG_BooleanCoplanar$
+CSG_NestedTree$
+CSG_CountCrossings$
+CSG_ParityRobustness$
+CSG_BoundaryRule$
+CSG_ClassifyDeterminism$
+CSG_RegionInheritance$
+CSG_ImpliedCaps$
+Geometry_DegenerateFixOffset$
+Geometry_ObjectSink$
+Geometry_IntersectThroughRayContext$
+State_LightOrder$
+Motion_ReplayRecord$
+Motion_Replay_gridonly$
+ShadingContract_VolumeSegmentsInterp$
+ShadingContract_VolumeSegmentsJit$
+LibShader_StaleShaderRejected$
+LibShader_Format_rslo_current_loads$

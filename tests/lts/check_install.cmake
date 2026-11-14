@@ -16,7 +16,6 @@ set(_headers
     ptcapi.h
     rslo.h)
 
-find_program(_cmake NAMES cmake REQUIRED)
 set(_root "$ENV{TMPDIR}")
 if(_root STREQUAL "")
     set(_root "/tmp")
@@ -28,10 +27,14 @@ file(MAKE_DIRECTORY "${_stage}")
 # DESTDIR, not --prefix. OPENRENDER_HOMEDIR is the absolute prefix baked at
 # configure time (self-contained builds use CMAKE_INSTALL_PREFIX), so an
 # install-time --prefix leaves .orenderrc on the real prefix and a hosted
-# runner cannot write there.
-set(ENV{DESTDIR} "${_stage}")
+# runner cannot write there. stage-install.sh also rewrites the generated
+# bundle copy so file(INSTALL) does not apply that DESTDIR a second time.
+if(NOT DEFINED STAGE_INSTALL OR NOT EXISTS "${STAGE_INSTALL}")
+    message(FATAL_ERROR "Lts_InstallSmoke: STAGE_INSTALL must point at scripts/ci/stage-install.sh")
+endif()
+find_program(_bash NAMES bash REQUIRED)
 execute_process(
-    COMMAND "${_cmake}" --install "${BUILD_DIR}"
+    COMMAND "${_bash}" "${STAGE_INSTALL}" "${BUILD_DIR}" "${_stage}"
     RESULT_VARIABLE _rc)
 if(NOT _rc EQUAL 0)
     message(FATAL_ERROR "Lts_InstallSmoke: cmake --install failed (${_rc})")

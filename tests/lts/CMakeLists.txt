@@ -42,6 +42,7 @@ add_test(NAME Lts_InstallSmoke
         -DBUILD_DIR=${CMAKE_BINARY_DIR}
         -DC_COMPILER=${CMAKE_C_COMPILER}
         -DSOURCE_FILE=${CMAKE_CURRENT_SOURCE_DIR}/lts_plugin_abi.c
+        -DSTAGE_INSTALL=${CMAKE_SOURCE_DIR}/scripts/ci/stage-install.sh
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_install.cmake)
 set_tests_properties(Lts_InstallSmoke PROPERTIES
     TIMEOUT 900
