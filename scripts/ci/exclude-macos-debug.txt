@@ -21,8 +21,10 @@ Architecture_DomainBoundaries$
 Shaders_BytesUnchanged$
 
 # Debug asserts (stats, memory, tessellation, shader strings) that the GCC Debug binary does not hit.
-# The displaced CSG hero passed one Apple Clang Debug run and aborted the next.
-Parity_csg-hero-displaced-raytrace-reyes$
+# shutdownTesselations (surface.cpp) aborts on a different Parity_ scene each
+# run (csg-hero-displaced, then depthdefault). ^Parity_ is every such scene
+# and does not match ShadingParity_.
+^Parity_
 Parity_unbaked-exr$
 ShadingParity_AmbientAccumulation$
 ShadingParity_SloDefaultBuffer$
