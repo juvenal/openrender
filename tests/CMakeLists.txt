@@ -117,6 +117,7 @@ add_subdirectory(link)
 add_subdirectory(plugins)
 add_subdirectory(convergence)
 add_subdirectory(architecture)
+add_subdirectory(lts) # LTS verification (ctest -L '^lts$'); see tests/lts/README.md and docs/RELEASING.md
 
 # Spec 030 (hider and integrator registry), FR-017: the two NEW RIB-helper scripts (maintainer answer Q-C). The approved
 # tests/python/test_prman.py and tests/lua/test_prman.lua were never registered in CTest and stay out of scope. Each new

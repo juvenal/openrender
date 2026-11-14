@@ -1,0 +1,173 @@
+name: LTS release
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+*"
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: gate
+    runs-on: ubuntu-24.04
+    outputs:
+      proceed: ${{ steps.check.outputs.proceed }}
+      version: ${{ steps.check.outputs.version }}
+      prerelease: ${{ steps.check.outputs.prerelease }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Accept tags that sit on a release branch
+        id: check
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git fetch origin '+refs/heads/release/*:refs/remotes/origin/release/*' || true
+          if ! git branch -r --contains HEAD | grep -E 'origin/release/'; then
+            echo "Tag ${TAG} is not contained in a release/* branch; the legacy master release workflow owns master-only tags."
+            echo "proceed=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+          if [[ ! "${TAG}" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)(.*)$ ]]; then
+            echo "Tag ${TAG} is not a version tag"
+            exit 1
+          fi
+          version="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
+          suffix="${BASH_REMATCH[4]}"
+          prerelease=false
+          if [ -n "${suffix}" ]; then
+            prerelease=true
+          fi
+          {
+            echo "proceed=true"
+            echo "version=${version}"
+            echo "prerelease=${prerelease}"
+          } >> "${GITHUB_OUTPUT}"
+
+  linux:
+    name: linux
+    needs: gate
+    if: needs.gate.outputs.proceed == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set the CMake project version from the tag
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+        run: sed -i.bak -E "s/VERSION [0-9]+\\.[0-9]+\\.[0-9]+/VERSION ${VERSION}/" CMakeLists.txt
+      - name: Build, test, and pack
+        uses: ./.github/actions/ci
+        with:
+          compiler: gcc
+          build-type: Release
+          ctest-mode: release
+          package: "true"
+          package-version: ${{ needs.gate.outputs.version }}
+          package-label: ${{ needs.gate.outputs.version }}
+          package-formats: tgz,deb
+      - name: Upload packages
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lts-linux
+          path: packages/*
+          if-no-files-found: error
+
+  macos:
+    name: macos
+    needs: gate
+    if: needs.gate.outputs.proceed == 'true'
+    runs-on: macos-14
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set the CMake project version from the tag
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+        run: sed -i.bak -E "s/VERSION [0-9]+\\.[0-9]+\\.[0-9]+/VERSION ${VERSION}/" CMakeLists.txt
+      - name: Build, test, and pack
+        uses: ./.github/actions/ci
+        with:
+          compiler: apple-clang
+          build-type: Release
+          ctest-mode: release
+          package: "true"
+          package-version: ${{ needs.gate.outputs.version }}
+          package-label: ${{ needs.gate.outputs.version }}
+          package-formats: tgz
+      - name: Upload packages
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lts-macos
+          path: packages/*
+          if-no-files-found: error
+
+  rpm:
+    name: rpm
+    needs: gate
+    if: needs.gate.outputs.proceed == 'true'
+    runs-on: ubuntu-24.04
+    container: fedora:42
+    timeout-minutes: 360
+    steps:
+      - name: Install git
+        run: dnf install -y git
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set the CMake project version from the tag
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+        run: sed -i.bak -E "s/VERSION [0-9]+\\.[0-9]+\\.[0-9]+/VERSION ${VERSION}/" CMakeLists.txt
+      - name: Build, run the LTS suite, and pack
+        uses: ./.github/actions/ci
+        with:
+          compiler: gcc
+          build-type: Release
+          ctest-mode: lts
+          package: "true"
+          package-version: ${{ needs.gate.outputs.version }}
+          package-label: ${{ needs.gate.outputs.version }}
+          package-formats: rpm
+      - name: Upload the RPM
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lts-rpm
+          path: packages/*
+          if-no-files-found: error
+
+  publish:
+    name: publish
+    needs: [gate, linux, macos, rpm]
+    if: needs.gate.outputs.proceed == 'true' && needs.linux.result == 'success' && needs.macos.result == 'success' && needs.rpm.result == 'success'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: lts-*
+          path: packages
+          merge-multiple: true
+      - name: Publish the release
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: openRender ${{ needs.gate.outputs.version }}
+          prerelease: ${{ needs.gate.outputs.prerelease == 'true' }}
+          make_latest: ${{ needs.gate.outputs.prerelease != 'true' }}
+          draft: false
+          files: packages/*
+          body: |
+            openRender ${{ needs.gate.outputs.version }} from an LTS `release/*` branch.
+
+            The Ubuntu and macOS jobs ran the full test suite, including the determinism sweep and the `lts` checks. The Fedora job packaged the RPM and ran the `lts` checks.
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

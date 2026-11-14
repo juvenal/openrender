@@ -1,0 +1,100 @@
+name: Configure, build, and test
+description: Install openRender dependencies, configure with CMake, build, run CTest, and optionally pack the install tree.
+
+inputs:
+  compiler:
+    description: gcc, clang, or apple-clang
+    required: true
+  build-type:
+    description: Release or Debug
+    required: true
+  ctest-mode:
+    description: release (full suite including the determinism sweep), debug, or lts
+    required: true
+  package:
+    description: Pack the install tree when true
+    required: false
+    default: "false"
+  package-label:
+    description: File-name label for the archives
+    required: false
+    default: ""
+  package-version:
+    description: Numeric X.Y.Z passed to CPack
+    required: false
+    default: "1.0.0"
+  package-formats:
+    description: Comma-separated list of tgz, deb, rpm
+    required: false
+    default: tgz
+  version-prerelease:
+    description: SemVer prerelease label exported to CMake
+    required: false
+    default: ""
+  version-metadata:
+    description: SemVer build metadata exported to CMake
+    required: false
+    default: ""
+  extra-cflags:
+    description: Extra C and C++ flags, for example -g
+    required: false
+    default: ""
+  require-abi-tools:
+    description: Install abi-dumper and fail the LTS dump test if it cannot run
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Install dependencies
+      shell: bash
+      env:
+        COMPILER: ${{ inputs.compiler }}
+        REQUIRE_ABI_TOOLS: ${{ inputs.require-abi-tools }}
+      run: bash scripts/ci/install-deps.sh
+
+    - name: Restore ccache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ runner.os }}-${{ inputs.compiler }}-${{ inputs.build-type }}-${{ github.sha }}
+        restore-keys: |
+          ccache-${{ runner.os }}-${{ inputs.compiler }}-${{ inputs.build-type }}-
+
+    - name: Configure and build
+      shell: bash
+      env:
+        COMPILER: ${{ inputs.compiler }}
+        BUILD_TYPE: ${{ inputs.build-type }}
+        EXTRA_CFLAGS: ${{ inputs.extra-cflags }}
+        OPENRENDER_VERSION_PRERELEASE: ${{ inputs.version-prerelease }}
+        OPENRENDER_VERSION_BUILD_METADATA: ${{ inputs.version-metadata }}
+      run: bash scripts/ci/configure-build.sh
+
+    - name: Test
+      shell: bash
+      env:
+        CTEST_MODE: ${{ inputs.ctest-mode }}
+        OR_LTS_REQUIRE_ABI_TOOLS: ${{ inputs.require-abi-tools == 'true' && '1' || '' }}
+      run: bash scripts/ci/run-ctest.sh "${CTEST_MODE}" build
+
+    - name: Package
+      if: inputs.package == 'true'
+      shell: bash
+      env:
+        PACKAGE_LABEL: ${{ inputs.package-label }}
+        PACKAGE_VERSION: ${{ inputs.package-version }}
+        PACKAGE_FORMATS: ${{ inputs.package-formats }}
+      run: |
+        set -euo pipefail
+        label="${PACKAGE_LABEL}"
+        if [ -z "${label}" ]; then
+          label="${PACKAGE_VERSION}"
+        fi
+        bash scripts/ci/package-tree.sh \
+          --build build \
+          --version "${PACKAGE_VERSION}" \
+          --label "${label}" \
+          --output "${GITHUB_WORKSPACE}/packages" \
+          --formats "${PACKAGE_FORMATS}"

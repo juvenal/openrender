@@ -1,0 +1,191 @@
+name: Nightly
+
+on:
+  schedule:
+    # 03:00 UTC. GitHub runs this from the default branch only.
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Build even when master has not moved since the last nightly
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: prepare
+    runs-on: ubuntu-24.04
+    outputs:
+      skip: ${{ steps.gate.outputs.skip }}
+      sha: ${{ steps.gate.outputs.sha }}
+      tag: ${{ steps.gate.outputs.tag }}
+      date: ${{ steps.gate.outputs.date }}
+      label: ${{ steps.gate.outputs.label }}
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: master
+          fetch-depth: 0
+          fetch-tags: true
+      - name: Skip when master has not moved
+        id: gate
+        env:
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.force == 'true' }}
+        run: |
+          set -euo pipefail
+          sha="$(git rev-parse HEAD)"
+          short="$(git rev-parse --short=12 HEAD)"
+          day="$(date -u +%Y%m%d)"
+          latest="$(git tag -l 'nightly-*' --sort=-v:refname | head -n 1 || true)"
+          skip=false
+          if [ "${FORCE}" != true ] && [ -n "${latest}" ]; then
+            previous="$(git rev-list -n 1 "${latest}")"
+            if [ "${previous}" = "${sha}" ]; then
+              echo "master ${sha} is already published as ${latest}"
+              skip=true
+            fi
+          fi
+          tag="nightly-${day}"
+          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            existing="$(git rev-list -n 1 "${tag}")"
+            if [ "${existing}" != "${sha}" ]; then
+              tag="nightly-${day}-${short}"
+            fi
+          fi
+          {
+            echo "skip=${skip}"
+            echo "sha=${sha}"
+            echo "tag=${tag}"
+            echo "date=${day}"
+            echo "label=1.0.0-nightly.${day}"
+          } >> "${GITHUB_OUTPUT}"
+
+  linux:
+    name: linux
+    needs: prepare
+    if: needs.prepare.outputs.skip != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+      - name: Build, test, and pack
+        uses: ./.github/actions/ci
+        with:
+          compiler: gcc
+          build-type: Release
+          ctest-mode: release
+          package: "true"
+          package-version: "1.0.0"
+          package-label: ${{ needs.prepare.outputs.label }}
+          package-formats: tgz,deb
+          version-prerelease: ${{ format('nightly.{0}', needs.prepare.outputs.date) }}
+          version-metadata: ${{ needs.prepare.outputs.sha }}
+      - name: Upload packages
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: nightly-linux
+          path: packages/*
+          if-no-files-found: error
+          retention-days: 14
+
+  macos:
+    name: macos
+    needs: prepare
+    if: needs.prepare.outputs.skip != 'true'
+    runs-on: macos-14
+    timeout-minutes: 360
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+      - name: Build, test, and pack
+        uses: ./.github/actions/ci
+        with:
+          compiler: apple-clang
+          build-type: Release
+          ctest-mode: release
+          package: "true"
+          package-version: "1.0.0"
+          package-label: ${{ needs.prepare.outputs.label }}
+          package-formats: tgz
+          version-prerelease: ${{ format('nightly.{0}', needs.prepare.outputs.date) }}
+          version-metadata: ${{ needs.prepare.outputs.sha }}
+      - name: Upload packages
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: nightly-macos
+          path: packages/*
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: publish
+    needs: [prepare, linux, macos]
+    if: needs.prepare.outputs.skip != 'true' && needs.linux.result == 'success' && needs.macos.result == 'success'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout the built commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+          fetch-tags: true
+      - name: Download packages
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: nightly-*
+          path: packages
+          merge-multiple: true
+      - name: Publish the prerelease
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          target_commitish: ${{ needs.prepare.outputs.sha }}
+          name: Nightly ${{ needs.prepare.outputs.date }}
+          prerelease: true
+          make_latest: false
+          draft: false
+          files: packages/*
+          body: |
+            Automated nightly build of master `${{ needs.prepare.outputs.sha }}`.
+
+            This is a prerelease, not an LTS line. Dated tags are immutable.
+            The fourteen newest `nightly-*` prereleases are kept; older ones are deleted by this workflow.
+            Nothing is pushed to master.
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Prune nightly prereleases older than the newest 14
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEEP_TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          set -euo pipefail
+          mapfile -t tags < <(gh release list --limit 200 --json tagName,publishedAt \
+            --jq '[.[] | select(.tagName | startswith("nightly-"))] | sort_by(.publishedAt) | reverse | .[].tagName')
+          count=0
+          for tag in "${tags[@]}"; do
+            count=$((count + 1))
+            if [ "${count}" -le 14 ]; then
+              continue
+            fi
+            if [ "${tag}" = "${KEEP_TAG}" ]; then
+              continue
+            fi
+            echo "deleting ${tag}"
+            gh release delete "${tag}" --yes --cleanup-tag
+          done
