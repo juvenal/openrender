@@ -289,7 +289,7 @@ The emitter draws of light `L` at shading point `i`, sample `k`:
 shader's own later draws would shift (FR-026). `lightShaderKey(L)` is the key `drawCounters` already builds,
 `mix(shaderNameKey(name), instanceKey)`, so two bound lights draw independently and the handle decides identity.
 
-**Spec 040.** 040's branch has no commits (at `278b0394`), so nothing collides today; 040 must not use `0xFF20`-`0xFF2F`.
+**Spec 040.** At the plan stage (2026-11-14) 040's branch held one design commit and no code collided; re-check at implementation start; 040 must not use `0xFF20`-`0xFF2F`.
 057 does **not** change the light enumeration: bound lights are pushed onto `CRenderer::allLights` by the same `getShader`
 call as classic ones, in RIB order, so the photon keys `cellKey(mix(0xF07011, i), ...)` (`photon.cpp:204`), which include the
 light index `i`, keep their values for every existing scene. A scene that adds an `AreaLightSource` shifts the index of the
@@ -374,5 +374,5 @@ against the same scene without the failed statement. Red on master (the surface 
   `jitIlluminanceBegin`, `callPhong` (6 callers, one function): the bound branch serves all of them.
 - No RIB under `examples/` or `tests/` calls `AreaLightSource` (spec, measured); `arealight` is in no visual test.
 - `RISPEC_GAPS.md:136` is the entry to move; it still cites `rendererContext.cpp:2045` (now `:2430`).
-- 040's worktree exists at `278b0394` with no commits; 033 is not read (coordinator rule).
+- 040's and 033's worktrees each held one design commit on 2026-11-14; 033 was not read (coordinator rule); re-check both at implementation start and at the 033 sync.
 - Linux is not needed at plan; the Linux validation (GCC 13 `-Werror`, the sweep at `-j2`) is a task of the last phase.

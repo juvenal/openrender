@@ -55,8 +55,12 @@ itself works: `transmission()` is shadowed by a flagged occluder and not by an u
 - **I Clean code**: one bound-light branch in `iterateLights`, and per-kind samplers behind one Geometry entry. No magic
   numbers: the call sites, `K` and the `fast` divisor are named constants.
 - **II C++20**: `std::call_once` and `std::vector`; nothing platform-specific.
-- **III TDD**: every test in contracts/tests.md is written and seen red before its change. The exceptions are the
-  agreement and thread-identity tests, which are verified instead by deliberately breaking the code.
+- **III TDD**: every test in contracts/tests.md is written, seen red, and **approved by the maintainer at its phase's
+  TEST-APPROVAL pause before the first implementation task**. The exceptions: (a) the acceptance tests that are green on
+  arrival because an earlier phase built the machinery (thread identity, self-exclusion, the soft-shadow probes, the
+  occluder flag), verified instead by deliberately breaking the code; (b) the soft-shadow image tests, the hider parity
+  tests and the old/new agreement test, whose threshold exists only after a noise measurement: they are registered at
+  their approval pauses (thresholds, reference images, agreement) and carry no red state.
 - **IV CLI**: the feature is driven by RIB through `orender`; errors go to stderr through the usual codes.
 - **V Dependencies**: none added.
 - **VI Platforms**: macOS and Linux; the Linux GCC 13 validation is in the last phase.
@@ -113,7 +117,7 @@ The tasks stage fixes the task lists. There is a pause at every phase boundary.
 | Phase | Content | Stories / FR | Visible change |
 |---|---|---|---|
 | 1 | Setup: the plan-stage build and probe (done); `LightKey_NoLeakAcrossFailedLight` red; the leak fix; full suite | FR-004, SC-010 | none: no tracked scene hits the leak (research R11) |
-| 2 | Binding: the attribute slot, the statements, the registry type, install and uninstall, recording in `addObject`. Binding tests red, then green | US1, FR-001-FR-005 | none |
+| 2 | Binding: the attribute slot, the statements, the registry type, install and uninstall, recording in `addObject`. Binding tests red, then green | US1, FR-001-FR-004 (FR-005 is checked in Phase 4 by `AreaLightBinding_Illuminate`) | none |
 | 3 | Geometry sampling for polygons, meshes and subdivision surfaces; the generic tessellated table; Geometry-only tests | US2, FR-006-FR-010, SC-003 | none |
 | 4 | Shading: `IAreaLightSampler`, `ITracer::occluded` (2.4.0), the exclusion gate, the bound-light branch of `iterateLights`. Irradiance probes (interpreter and JIT), constant-`Cl` probe, globals probe | US3, FR-011-FR-016, SC-002 (quad) | bound lights only |
 | 5 | Controls through the four attribute layers; read-back, the `ribOut` round trip, errors | US5, FR-018-FR-020 | bound lights only |
@@ -151,7 +155,7 @@ lands.
 ## Other specs
 
 - **040 (GI determinism)**:
-  - 040's branch has no commits yet.
+  - At the plan stage (2026-11-14) 040's branch held one design commit and no code; re-check at implementation start.
   - 057 reserves the call sites `0xFF20`-`0xFF2F` (research R7).
   - 057 does not change light enumeration. Bound lights are pushed onto `CRenderer::allLights` by the same `getShader`
     path, in RIB order. So the photon key `cellKey(mix(0xF07011, i), ...)` (`photon.cpp:204`), which includes the light
@@ -202,6 +206,13 @@ binding on the implementation:
   **2.4.0 on this branch now** (built against master's 2.3.0) and **renumbered to 2.5.0**, with its history entry moved
   after 033's 2.4.0, in the 033 sync (a conditional task block in tasks.md). Every "2.2.0" in spec, plan and contracts
   has been replaced accordingly.
+
+**Maintainer decisions on the tasks stage's additions (2026-11-14, tasks.md approved)**:
+
+- The JIT-off build tree (`build-nojit`) is in, as FR-028 requires.
+- No ThreadSanitizer tree, unless the Phase 6 `AreaLight_ThreadIdentity` test fails; then it is a conditional task behind its own pause (tasks.md `tsancond`).
+- Kept: the extra edge-case tests, the `ShadingContract_AreaLight{Interp,Jit}` contract-double test and the null-in-production `setEmitterRegistryObserver` hook. The possible photon observer hook stays behind its Phase 8 pause.
+- The Linux tree `~/Projects/Development/CLI/openrender-057` is confirmed.
 
 **Coordination with 033** (coordinator, after comparing both plans): 033 changes `lightInstanceOf()` to return
 `CShaderInstance *`, so the local in 057's `iterateLights` block is retyped at the sync. 033 rewrites `getShader` and the

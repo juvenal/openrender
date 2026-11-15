@@ -17,7 +17,7 @@ namespace openrender::shading {
         bool bound = false;          // the light was created by AreaLightSource
         int lightSamples = 0;        // light level (0: unset)
         AreaLightMode lightMode = AreaLightMode::Unset;
-        int sceneSamples = 16;       // Option level
+        int sceneSamples = 0;        // Option level; 0 = unset in the header, the hider always fills it from the registry
         AreaLightMode sceneMode = AreaLightMode::Full;
         double totalArea = 0;        // 0: no emitting geometry (the light contributes nothing, A7)
     };

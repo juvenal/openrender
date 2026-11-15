@@ -2,7 +2,7 @@
 
 **Feature Branch**: `057-area-light-geometry`
 **Created**: 2026-11-13
-**Status**: Draft
+**Status**: Plan approved 2026-11-14 and tasks approved 2026-11-14 (analyze fixes applied 2026-11-15); implementation not started
 **Input**: GitHub issue #152 (new capability, layer L5, "Spec 057: AreaLightSource binds its geometry as the emitter; area sampling and light-surface globals (RISpec §4.2.3)"); the maintainer's plan of 2026-11-05 (section "Spec 057 - area-light-geometry", placed before 041, parallel to 033 and 035); `DEVNOTES_DETAILS/RENDER_ARCHITECTURE_REFERENCES.md` §2.7, §4, §5.6, §6.2 and decision D10 (D1 and D28 as context). Base: `master` at `278b0394`, with specs 029 (hider/shading separation), 030 (hider and integrator registry, `hcshader` retired), 031 (geometry hider-agnostic), 039 (sampling foundation) and 056 (volume shader segments) merged.
 
 ## Clarifications
@@ -244,9 +244,9 @@ With no `AreaLightSource` in a scene, every image on every hider and both shader
 **Binding (Graphics State and the renderer core)**
 
 - **FR-001**: `AreaLightSource` MUST set a non-owning "current area light" on the graphics state's attribute block; `AreaLightSource "null"` and the end of the enclosing attribute block MUST clear it; `AttributeBegin` MUST inherit it and clones MUST copy it.
-- **FR-002**: Every primitive created while a current area light is set (top-level geometry, procedural and delayed expansions, instance leaves, CSG leaves) MUST be recorded once in a per-frame emitter registry of the renderer core, keyed by the light. Emitters stay ordinary, visible geometry.
+- **FR-002**: Every primitive created while a current area light is set (top-level geometry, procedural and delayed expansions, instance leaves, CSG leaves) MUST be recorded once in a per-frame emitter registry keyed by the light: the registry's type is Geometry's, and the renderer core creates, fills and releases it (research R2). Emitters stay ordinary, visible geometry.
 - **FR-003**: Geometry MUST see only the opaque handle on the attributes (no light, shader or core type), as it sees other handles (CLAUDE.md gotcha 24, constitution Principle VIII); no new allowlist line is added.
-- **FR-004**: The `pendingInstanceKey` carried by `extractLightHandle` MUST be cleared on every exit of `RiLightSourceV`/`RiAreaLightSourceV` that does not create an instance (the `"null"` name, a missing shader, a wrong-type shader). A scene's draws MUST NOT depend on such a statement's presence before another light. This spec owns the fix and its test (SC-010); spec 033 moves that code unchanged, so the fix lands here first on master (FR-032).
+- **FR-004**: The `pendingInstanceKey` carried by `extractLightHandle` MUST be cleared on every exit of `RiLightSourceV`/`RiAreaLightSourceV` that does not create an instance (the `"null"` name, a missing shader, a wrong-type shader). A scene's draws MUST NOT depend on such a statement's presence before another light. This spec owns the fix and its test (SC-010). The fix is in this branch from Phase 1; spec 033 keeps the two statements unchanged (coordinator, 2026-11-14), so the fix stays as written and is not re-applied by 033.
 - **FR-005**: `Illuminate` on the handle of a bound light MUST switch it as it switches a classic light.
 
 **Area sampling (Geometry)**
@@ -270,7 +270,7 @@ With no `AreaLightSource` in a scene, every image on every hider and both shader
 - **FR-016**: Occlusion of a sample MUST go through the ray tracer's visibility probe on every camera hider (reyes, zbuffer, raytrace), the probe semantics of `visibility()` (spec 056: probes run no volume step); if `ITracer` needs an any-hit query it is added and versioned like spec 026's interfaces, with `kRendererServicesVersion` stepped per CLAUDE.md gotcha 28.
 - **FR-017**: A sample's shadow ray MUST NOT be blocked by the emitters of the light it was drawn for. The exclusion is by the identity of the light's emitter set (the registry of FR-002), not by a ray bias, so it holds at grazing angles and on curved emitters. A bound light does not illuminate its own emitter primitives either: they are skipped as receivers of that light (they still receive classic lights and other bound lights). Other geometry is blocked as FR-023 says.
 - **FR-018**: `Option "arealight"` and `Attribute "arealight"` MUST exist, through all four attribute layers (token constants, RIB parsing, storage and query, pre-declaration), with `samples` (a positive integer) and `mode` (`full`, `fast`, `off`). `full` uses the sample count in force. `fast` uses fewer samples than `full` and still tests occlusion for every sample it takes (clarified 2026-11-13); the reduction rule (a fixed fraction of the count in force, never below one sample) is fixed at plan, documented, and measured for its noise. `off` gives no contribution from bound lights. The three levels are the scene (`Option`), the light (the `Attribute` in force at its `AreaLightSource` statement) and the receiving object (the `Attribute` in its own scope). Most specific wins, object over light over scene, for `samples` and for `mode` independently; `off` at any level turns the light off for that receiver, whatever the other levels say.
-- **FR-019**: The defaults MUST preserve the contract of FR-026: with no `Option`/`Attribute "arealight"` the sample count is chosen in the plan from a measurement against `quadlight`'s default (16 in `examples/rib/quadlight.rib`) and a documented noise target, `mode` is `full`.
+- **FR-019**: The defaults (deviation: plan D-7, confirmed by measurement at task T102) MUST preserve the contract of FR-026: with no `Option`/`Attribute "arealight"` the sample count is chosen in the plan from a measurement against `quadlight`'s default (16 in `examples/rib/quadlight.rib`) and a documented noise target, `mode` is `full`.
 - **FR-020**: An unknown token or value MUST report the renderer's usual attribute error (`CODE_BADTOKEN`, never `CODE_LOG`, which swallows warnings). The controls MUST read back through the attribute query and survive a RIB round trip through `ribOut`.
 
 **Deprecation and documents**
@@ -310,7 +310,7 @@ With no `AreaLightSource` in a scene, every image on every hider and both shader
 ### Key Entities
 
 - **Current area light**: a non-owning handle on the attribute block naming the light that geometry created now belongs to.
-- **Emitter registry**: a per-frame table in the renderer core mapping a light to the primitives it owns (instances and leaves included).
+- **Emitter registry**: a per-frame table, a Geometry type that the renderer core creates, fills and releases, mapping a light to the primitives it owns (instances and leaves included).
 - **Area sample**: `{P, N, dPdu, dPdv, u, v, s, t, pdfA}` on an emitter, drawn from two numbers.
 - **Light contribution**: one `(L, Cl)` per sample, weighted by the area estimator, consumed by `illuminance()` and the lighting builtins.
 - **Area-light controls**: `samples`, `mode` at scene (Option), light and object (Attribute) level.
@@ -341,7 +341,7 @@ With no `AreaLightSource` in a scene, every image on every hider and both shader
 - **A7**: A bound light with no sampleable emitter warns once and contributes nothing.
 - **A8**: An emitter's pose is taken at the shading sample's time (motion blur correct, no extra draw).
 - **A9**: Network rendering is not extended: the binding is skipped where `RiAreaLightSourceV` already returns early.
-- **A10**: The default sample count is fixed at plan from the measurement in FR-019, not here.
+- **A10**: The default sample count is fixed at plan from the measurement in FR-019, not here. *Deviation (plan D-7, approved 2026-11-14)*: the plan fixed 16 and the `fast` rule `max(1, ceil(n/4))` because the new estimator did not exist at plan time; the measurement is task T102 in Phase 6, behind a maintainer pause.
 - **A11**: Merge order is fixed by the coordinator: 033 merges first; 057 is built against master as it is and merges master in at once when 033 lands (FR-032).
 - **A12**: Points, curves and blobbies are out of scope (below); the quadric and patch increments are in scope in the stated priority order and the plan may cut P3 (patches and NURBS) if it does not fit (maintainer, 2026-11-13).
 
@@ -362,7 +362,7 @@ With no `AreaLightSource` in a scene, every image on every hider and both shader
 
 ## Overlaps and merge-order risks (checked 2026-11-13)
 
-- **Spec 033 (shading-system backends), a real merge-order risk.** 033 adds a `ShadingSystem` facade and moves shader loading into Shading. This spec edits `CRendererContext::getShader` / `RiAreaLightSourceV` / `RiLightSourceV` (the `pendingInstanceKey` fix and the binding) in `rendererContext.cpp`, and `CShadingContext::iterateLights` and the light's `illuminate` entry in Shading, the code 033 is about to move. Decision (coordinator, FR-032): 033 merges first; this spec is built against master as it is, touches loading and light-instance creation only as far as it must (the light-surface globals sit on the execution side), and merges master in as soon as 033 lands to adapt. 033 has no commits on its branch yet (at master, `278b0394`), so there is nothing to design against and nothing to avoid; this spec does not read or depend on it.
+- **Spec 033 (shading-system backends), a real merge-order risk.** (Written 2026-11-13; at 2026-11-14 033's branch held one design commit and 057 had still read none of it.) 033 adds a `ShadingSystem` facade and moves shader loading into Shading. This spec edits `CRendererContext::getShader` / `RiAreaLightSourceV` / `RiLightSourceV` (the `pendingInstanceKey` fix and the binding) in `rendererContext.cpp`, and `CShadingContext::iterateLights` and the light's `illuminate` entry in Shading, the code 033 is about to move. Decision (coordinator, FR-032): 033 merges first; this spec is built against master as it is, touches loading and light-instance creation only as far as it must (the light-surface globals sit on the execution side), and merges master in as soon as 033 lands to adapt. 033 has no commits on its branch yet (at master, `278b0394`), so there is nothing to design against and nothing to avoid; this spec does not read or depend on it.
 - **Spec 040 (GI determinism), a merge risk.** A new call-site constant for the emitter sub-stream (FR-008) lives with the others in `src/common/sampling.h` / the shading call-site table; 040 adds its own constants and keys photon and cache draws. Reserve a constant range and rebase on whichever merges first; 040 also edits `shading.cpp`-adjacent GI code but not `iterateLights`.
 - **Spec 048 (OIIO image I/O): no expected overlap** (texture and display I/O; this spec touches no image code).
 - **Spec 041 (light service), downstream.** Built to adopt: the sampler and the registry are the pieces 041 wraps as a non-delta kind; nothing of 041's interface is anticipated here beyond FR-010.

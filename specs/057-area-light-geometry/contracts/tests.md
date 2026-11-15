@@ -7,7 +7,7 @@ never widened afterwards. No existing reference or threshold changes.
 | Test | Label | Kind | Covers | Red before |
 |---|---|---|---|---|
 | `LightKey_NoLeakAcrossFailedLight` | `state` | render pair, byte compare: a `Surface` drawing `random()` after `LightSource "null"/"missing"/"matte" 7`, against the scene without that line | FR-004, SC-010, US1-4 | yes (the surface takes handle 7's key) |
-| `AreaLightBinding_Scope` | `state` | in-process RIB, registry query: quad + mesh in a scope; after `"null"`; after `AttributeEnd`; two lights; a nested `AttributeBegin` | FR-001, FR-002, SC-005, US1-1/2 | yes (no slot, no registry) |
+| `AreaLightBinding_Scope` | `state;arealight` | in-process RIB, registry query: quad + mesh in a scope; after `"null"`; after `AttributeEnd`; two lights; a nested `AttributeBegin`; a missing or wrong-type shader closes the scope (D-9) | FR-001, FR-002, SC-005, US1-1/2 | yes (no slot, no registry) |
 | `AreaLightBinding_ProceduralInstanceSolid` | `state` | in-process: a `DelayedReadArchive`, an `ObjectInstance` and a `SolidBegin` in the scope resolve to their leaves, each instance with its own transform | US1-3, R4 | yes |
 | `AreaLightBinding_Illuminate` | `arealight` | render pair: `Illuminate h 1` after the scope gives the bound-light image (a probe pixel lit by the emitter's area integral); `Illuminate h 0` gives the no-light image | FR-005, US1-5 | `h 1`: yes (the light runs as a classic light with the receiver's `P` today); `h 0`: no, a characterization guard |
 | `AreaSampling_Polygon`, `_Mesh`, `_Subdivision` | `geometry` | Geometry-only: area of known shapes, mean of 10^5 stratified draws = centroid, density integrates to 1, chi-square of face frequencies, zero-area face never chosen, draws bit-identical on 1 and 4 threads, subdivision area vs a fine reference tessellation | FR-006-FR-009, SC-003, US2 | yes (no API) |
@@ -38,6 +38,8 @@ Also run, unchanged: the full suite `-LE determinism-sweep -j4`, the default det
 | `AreaLightBinding_NoFrame` | `state;arealight` | `AreaLightSource` before `WorldBegin` warns once, binds nothing, no crash; `netNumServers > 0` declares nothing (A9) | 2 |
 | `AreaSampling_Reports` | `geometry;arealight` | unsupported kinds counted and reported once per light; an empty set warns once (A7); a CSG leaf warns once (D-4) | 3 |
 | `ShadingContract_AreaLight{Interp,Jit}` | `arealight;shading_parity` | the bound branch with a double sampler and tracer: globals seen, receiver untouched, exact `V/(n pdfA)`, receiver skip, 0-D, classic lights and `lightSideN` untouched, no sampler = classic | 4 |
+| `AreaLightProbe_Occluded{,-slo}` | `arealight` | a flagged occluder blocks one probe pixel completely (0) and an unflagged twin does not: `occluded()`, the exclusion gate and FR-023 exercised in Phase 4 | 4 |
+| `State_AreaLightVocabularyMirror` | `state;arealight` | `AreaLightMode` equals `EAreaLightMode` value for value | 4 |
 | `AreaLightProbe_Facing` | `arealight` | a back-facing receiver and a receiver behind the emitter contribute 0, never negative or non-finite | 4 |
 | `ShadingContract_AreaLightControls` | `arealight;shading_parity` | the precedence table, `off` wins, `fast` = `max(1, ceil(n/4))` | 5 |
 | `AreaLight_Controls_Parse`, `AreaLight_Controls_Render` | `arealight` | `AreaLight_Controls` of this table split in two | 5 |

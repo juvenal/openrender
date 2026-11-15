@@ -100,6 +100,12 @@ add_subdirectory(unit/camera)
 add_subdirectory(unit/motion)
 add_subdirectory(unit/scene_interface)  # spec 038: services, active context, writer and `if` characterizations
 add_subdirectory(unit/registry)         # spec 030: hider and integrator registries (the characterization tests; the rest behind OPENRENDER_030_RED_TESTS)
+# Spec 057 (area-light geometry): the same red-first convention. Each new compiled test lives in its own executable inside
+# `if(OPENRENDER_057_RED_TESTS)` in tests/arealight/CMakeLists.txt; the option is ON only in a phase's red-evidence
+# configure (and by hand), then back OFF. The task of the phase that creates the API moves the test out of the block.
+option(OPENRENDER_057_RED_TESTS "Spec 057: configure the new arealight tests that are red until their phase (build failures are their red evidence)" OFF)
+
+add_subdirectory(arealight)             # spec 057: area-light geometry (the instance-key leak test; the rest behind OPENRENDER_057_RED_TESTS)
 add_subdirectory(precomp)               # spec 038: the precomputation tool (Precomp_OutputUnchanged, Precomp_NoHiderCore)
 # Permanent: registers the opt-in Link_PackageStaticConsumer (label link-package). It builds and installs a second
 # copy of the tree, so it is not part of the everyday run; the final phase runs it with this option ON.
