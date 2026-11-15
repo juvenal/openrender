@@ -179,10 +179,12 @@ ssh "${H}" 'cd ~/oiio-048 && ~/.claude/bin/cpujob or048-m3a-build /usr/bin/time 
   cmake --install build > /dev/null && du -sh prefix prefix/lib && ls -la prefix/lib/*.so* | awk "{print \$5, \$9}"'
 ```
 
+**Pystring pin: OIIO 3.1.14.0's local pystring build uses the git branch `master` and verifies it against commit `381829c2c1696ffec9277b339952a9588e6e67cf`; upstream `master` has moved (`1922c8f2...`), so the first configure with `-DOpenImageIO_BUILD_MISSING_DEPS=all` stops with `pystring: Tag master resolved to commit ..., but expected ...`. Do not set `OpenImageIO_DEPENDENCY_BUILD_ALLOW_UNVERIFIED_TAGS=ON`: in `<build>/deps/pystring` run `git fetch --unshallow` and `git checkout -B master 381829c2c1696ffec9277b339952a9588e6e67cf`, then configure again (the verification still runs and passes). Found at M3a, 2026-11-15.**
+
 Records: configure output (which dependencies OIIO built itself), build wall time and peak RSS at `-j2`, prefix size,
 and the size of each shared library.
 
-M3b, at the implementation's Linux validation: in a per-spec tree on the host (`~/Projects/Development/CLI/openrender-048`,
+M3b, at the implementation's Linux validation (the prefix it consumes is the one M3a built, with the pystring pin above applied): in a per-spec tree on the host (`~/Projects/Development/CLI/openrender-048`,
 synced with `rsync -rlpc --files-from` over `git ls-files`), run:
 
 ```bash

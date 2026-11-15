@@ -125,7 +125,7 @@ Recorded with `tools/legacy_bake_baseline.sh build specs/048-oiio-image-io/tools
   `*_indexed.png`, `*_multipart.exr`, `*_unsupported_channels.exr`, in the `texture`, `shadow` and `envlatl` modes: the legacy
   otexmake refuses them without a non-zero exit status), and 4 self-checks: the four `medium_rgb.tif` entries equal the
   approved `references/*.tex` (**PASS x4**).
-- **Observation for filing, not fixed**: in `-envcube` mode the same six negative fixtures do produce an output file with exit
+- **Observation, filed as GitHub #174 (P1), not fixed**: the legacy `otexmake` exits 0 for undecodable sources and `-envcube` writes an input-independent cube file. Detail: in `-envcube` mode the same six negative fixtures do produce an output file with exit
   0, and all six outputs hash **identically** (`e9c78693...ef0294f5e2`). The file does not depend on the (undecodable) input, so
   it is a degenerate cube file the legacy writer emits when a face cannot be read. Pinned as it is; T093/T135 will keep it
   unchanged.
@@ -137,21 +137,53 @@ Recorded with `tools/legacy_bake_baseline.sh build specs/048-oiio-image-io/tools
   16-bit 2 channels, 8-bit and float with 5 or 6 channels, a 1-pixel axis, the spherical kind (no CLI path; C++ entry
   only), and a shadow source carrying real Pixar matrices.
 
-## 6. Linux (T010, T011, T013 to T015), state at the interim report, 2026-11-15 12:40
+## 6. Linux (T010, T011, T013 to T015), 2026-11-15
 
-- Tree `${R}` = `/home/juvenal/Projects/Development/CLI/openrender-048` created by `tools/sync_linux.sh`: 4339 files, verified
-  with `sha256sum -c`. OIIO 3.1.14.0 source (55 MB tarball) downloaded and unpacked in `~/oiio-048/src` (T013); remote disk
-  9.1 GiB free after it.
-- **M3a configure, first attempt, failed (not a resource problem)**: OIIO's own pin of its pystring dependency is the git
-  branch `master` plus an expected commit (`381829c2...`); upstream `master` has moved on (`1922c8f2...`), so OIIO's
-  tag-tamper check stopped the configure (`CMake Error ... dependency_utils.cmake:680`). Without disabling that check
-  (`OpenImageIO_DEPENDENCY_BUILD_ALLOW_UNVERIFIED_TAGS` stays OFF), the local clone `~/oiio-048/build/deps/pystring` was
-  unshallowed and its `master` set to the expected commit, so the verification still runs and passes. The option list of
-  quickstart M3a is otherwise unchanged. Worth knowing for M3b and the docs: building OIIO 3.1.14.0 from source with
-  `-DOpenImageIO_BUILD_MISSING_DEPS=all` on a fresh host fails this way today.
-- Queued on the Linux cpujob (it polls every 15 s with no queue, so a host running a chain of short jobs for another spec
-  can starve a waiter; 048's configure has waited since 11:53 behind 040's and 057's jobs): chain A
-  (`~/oiio-048/048-chainA.sh`: configure, build at `-j2`, `-L architecture`, `-LE determinism-sweep -j2`; logs
-  `${R}/build-logs/p1-{cfg,build,arch,all}.log`), chain B2 (`048-chainB2.sh`: M3a configure, build, install; `~/oiio-048/{cfg2.log,
-  build2.log,build-time2.txt,sizes2.txt,chainB.done}`), chain C (`048-chainC.sh`: waits for chain A, then the Linux legacy bake
-  baseline into `${R}/specs/048-oiio-image-io/tools/legacy-bake-baseline-linux.*`). None had produced a result yet.
+Host `ubuntu-2404-desktop` (GCC 13, system libs: OpenEXR 3.1.5, libtiff 4.5.1, libpng 1.6.43). Tree `${R}` =
+`/home/juvenal/Projects/Development/CLI/openrender-048`, created by `tools/sync_linux.sh` (4339 files, verified with
+`sha256sum -c`; re-synced at 4345 files after the tools and docs were added). The remote cpujob polls every 15 s with no
+queue, so other specs' chains delayed 048's jobs by up to about 2.5 hours; no 048 job was refused or timed out.
+
+- **T010** configure (`-DCMAKE_BUILD_TYPE=Release -DINSTALL_SELFCONTAINED=OFF`): exit 0. Build at `-j2`: exit 0.
+- **T011 architecture** `-L architecture`: **36/36 passed** (the same count as macOS).
+- **T011 full run** `-LE determinism-sweep -j2`: **1364 tests, 1362 passed, 2 failed, 1 skipped** (the skip is
+  `LibShader_Format_rslo_lower_minor`, by its own design, as on macOS). The two failures on the unmodified starting tree:
+  - `TextureTile_RenderByteIdentical`: `texture-png-reyes`, `texture-exr-reyes`, `texture-exr-raytrace`,
+    `texture-rgbe-reyes`, `env-reyes` and `env-raytrace` differ from the checked-in references (the references were captured on
+    macOS; byte 5 of the TIFF differs). `texture-png-raytrace` is byte-identical.
+  - `Registry_IntegratorImageIdentity`: `test_registry_identity.cpp:64` and `:65` (`photon: control: two renders with no
+    statement are identical`; `Integrator "classic" equals no statement`).
+  Both are baseline failures of the starting tree on this host; they are neither caused by nor touched by 048. Whether they
+  are the platform-reference problem of GitHub #45 (held until spec 042) or flaky is checked by two isolated reruns
+  (`build-logs/p1-rerun{1,2}.log`; see the end of this section).
+- **T013 to T015 (M3a)**: OIIO 3.1.14.0 source (55 MB tarball) unpacked in `~/oiio-048/src` (T013).
+  - **First configure failed, not for a resource reason**: OIIO's pin of its local pystring build is the branch `master` plus
+    the expected commit `381829c2c1696ffec9277b339952a9588e6e67cf`; upstream `master` moved (`1922c8f2...`), so OIIO's
+    tag-tamper check stopped the configure (`dependency_utils.cmake:680`). The check was **not** disabled
+    (`OpenImageIO_DEPENDENCY_BUILD_ALLOW_UNVERIFIED_TAGS` stays OFF): in `~/oiio-048/build/deps/pystring`,
+    `git fetch --unshallow` and `git checkout -B master 381829c2c1696ffec9277b339952a9588e6e67cf`, then the configure again.
+    This **pystring pin** is recorded in plan.md (P-Q12), quickstart M3a/M3b, and tasks T120 and T123 (Linux build docs).
+  - Second configure: exit 0. OIIO built itself (local builds under `build/deps`): libjpeg-turbo 3.1.2, pystring 1.1.4,
+    yaml-cpp 0.8.0, minizip-ng 4.0.10, **OpenColorIO 2.5.1**, robin-map 1.4.0, fmt 12.1.0, plus its internal PugiXML. It took
+    zlib, Imath 3.1.9, OpenEXR 3.1.5, libtiff 4.5.1, libpng 1.6.43 and expat from the system. All the locally built ones are
+    static archives (`build/deps/dist/lib`), folded into `libOpenImageIO.so`.
+  - **Build at `-j2` and install: exit 0, wall time 5:29.27, peak RSS 632,768 kB (618 MiB)**.
+  - Prefix `~/oiio-048/prefix`: **12 MB** on disk (ZFS-compressed; apparent size about 21 MB).
+    `libOpenImageIO.so.3.1.14` **20,072,784 bytes**, `libOpenImageIO_Util.so.3.1.14` **1,182,120 bytes**, RUNPATH
+    `$ORIGIN:$ORIGIN/lib:$ORIGIN/../lib`, the rest from system libraries (libpng16, libz, OpenEXR 3_1, libtiff 6, Imath, expat, webp, zstd, ...).
+    `~/oiio-048/build` 133 MB. Remote disk after: 7.6 GiB free.
+  - **T011 isolated reruns** (`build-logs/p1-rerun1.log`, `p1-rerun2.log`, remote cpujob): `TextureTile_RenderByteIdentical`
+    and `Registry_IntegratorImageIdentity` **failed both times** (0 of 2 passed in each run), so they are deterministic
+    failures of the starting tree on this host, not flakes.
+  - **Counts**: `ctest -N` 1946 tests (one more than macOS; 1364 outside the sweep), `-L determinism-sweep` 582,
+    `-L imageio` 0, 137 `.rslo` and 137 `.slo`.
+  - **Linux legacy bake baseline** (`tools/legacy_bake_baseline.sh`, the first attempt ran before the tools were synced and
+    exited 127): 102 hashes, 18 no-output negative cases, 4 self-checks PASS, 0 nondeterministic, in
+    `tools/legacy-bake-baseline-linux.{sha256,status,commands}` (staged). **Sorted by name, the Linux and macOS lists agree on **99 of 102 hashes**; the status files are identical. The three that differ are
+    all the non power of two source, `nonpot_rgb.png` in `texture`, `envlatl` and `envcube` modes (its `shadow` bake is equal):
+    macOS `4dd754ae...` / `bb8b4a6b...` / `eaeaade0...`, Linux `c221b557...` / `8edf2ed6...` / `8393d4d7...`. The cause was not
+    investigated (the likely one is the float/FMA contraction difference between Clang and GCC of gotcha 26 in the legacy resize path of a
+    non power of two source); either way **the legacy bake hashes are per platform**: T093 and T135 check each platform
+    against its own file (`legacy-bake-baseline.sha256` on macOS, `legacy-bake-baseline-linux.sha256` on Linux), and
+    `ImageIO_BakeParity`'s non power of two cases compare the OIIO bake with the legacy bake of the same platform only. Every power of
+    two source is identical across the platforms. GitHub #174 behaves the same on Linux (the six negative fixtures give the same input-independent `-envcube` hash).
