@@ -3,7 +3,7 @@
 Owner: Texturing. Consumer: Shading (`libshader::irradianceLookup`, the only caller) and the renderer core's remote channel
 (`render/remoteChannel.cpp`) and data viewer. Edges unchanged: Shading -> Texturing through this header (allowed); Texturing
 includes only Texturing and Infra (`common/sampling.h` for the hash `mix`). No services member changes, so
-`kRendererServicesVersion` does not step (FR-021).
+`kRendererServicesVersion` **steps** (FR-021, maintainer decision 2026-11-15): `rendererServices.h`'s 2.2.0 history names `irradianceCalls.h` and `IPhotonStore` as part of the versioned boundary. The rule: the next free MINOR on master at the time of the edit (probably 2.6.0), written as a literal with a history entry saying it is breaking within 2.x (tasks T039a, T062a, T079).
 
 ## Today (master `278b0394`)
 

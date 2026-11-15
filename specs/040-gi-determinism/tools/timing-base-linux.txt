@@ -1,0 +1,24 @@
+scaled perf-occlusion-cache       format x12, shadingrate x3
+scaled perf-indirect-photon       format x6, shadingrate x3, emit x10
+scaled perf-photon-pass           emit x75
+series 1 of 5 done
+series 2 of 5 done
+series 3 of 5 done
+series 4 of 5 done
+series 5 of 5 done
+
+scene                        tree     median      min      max   spread   runs
+perf-occlusion-cache         start      9.04     8.97     9.24     0.27   9.02, 8.97, 9.15, 9.04, 9.24
+perf-occlusion-cache         final      9.10     9.00     9.30     0.30   9.02, 9.17, 9.00, 9.30, 9.10
+perf-occlusion-cache         diff of medians +0.07 s (+0.7%), larger spread 0.30 s: within spread
+
+perf-indirect-photon         start     13.83    13.76    14.20     0.44   13.88, 13.83, 13.79, 14.20, 13.76
+perf-indirect-photon         final     13.84    13.78    14.08     0.30   13.84, 13.90, 13.78, 14.08, 13.83
+perf-indirect-photon         diff of medians +0.01 s (+0.1%), larger spread 0.44 s: within spread
+
+perf-photon-pass             start      7.99     7.86     8.21     0.35   7.99, 8.21, 7.97, 8.13, 7.86
+perf-photon-pass             final      7.94     7.84     8.23     0.39   8.23, 7.86, 8.21, 7.94, 7.84
+perf-photon-pass             diff of medians -0.05 s (-0.7%), larger spread 0.39 s: within spread
+
+scenes slower beyond the spread: 0
+scene medians under 3 s: 0

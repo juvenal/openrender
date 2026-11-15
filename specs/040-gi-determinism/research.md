@@ -223,7 +223,7 @@ dereferences `NULL` (#160). A lookup's result therefore depends on which nearby 
 
 - **A. Remove the memo** (recommended): `lookup` = kd-tree search, sum, normalisation; `searchRadius` local. Every photon-reading
   image changes once (estimates become exact per point instead of interpolated from memo entries); the cost is one kd-tree search per
-  lookup instead of an octree probe for most of them. #160 cannot be reached. To measure in the implementation: `perf-indirect-photon`
+  lookup instead of an octree probe for most of them. #160 cannot be reached. Until it is removed, the photon scenes' frame-2 images depend on lookup order (research of 2026-11-15, T014a measures it on frame-2-only copies at `-t:4`), so no image comparison of a photon scene across thread counts can pass before Phase 3. To measure in the implementation: `perf-indirect-photon`
   (one photon lookup per indirectdiffuse ray hit) and `sphere-photonmap-reyes`, before and after, interleaved.
 - **B. A deterministic memo**: the memo would need M2's whole apparatus (frozen part, batch scope, canonical commit) for a structure
   whose entries are cheap to recompute; not worth it.
@@ -299,7 +299,7 @@ is tightened and listed.
 
 - **033 (shading-system backends)**: `libshader/shading/shading.{h,cpp}` (040 adds the batch record list to `CShadingState` and
   resets it in `shade()`; it does not edit `jitOcclusionBatch`), `irradianceCalls.cpp` (040 rewrites the cache step's body),
-  `rendererServices.h` (040 changes no services member, so no `kRendererServicesVersion` step and no history entry from 040). Merge order
+  `rendererServices.h` (040 changes no `CRendererServices` member but steps `kRendererServicesVersion`, maintainer decision 2026-11-15: the history names `IPhotonStore` and `irradianceCalls.h` as part of the versioned boundary; the next free MINOR on master at the time of the edit, probably 2.6.0 after 033's 2.4.0 and 057's 2.5.0, with a history entry saying it is breaking within 2.x). Merge order
   matters only for textual conflicts in `shading.{h,cpp}` and `irradianceCalls.cpp`.
 - **057 (area-light geometry)**: changes how lights run and are enumerated; the photon identity includes the light index (`photon.cpp`
   `cellKey(mix(0xF07011, i), ...)`), so 057 can change which photons exist. 040's canonical order is by key, whatever the keys are; the

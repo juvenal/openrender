@@ -16,6 +16,10 @@ Modes
       One render with `Option "statistics" "endofframe" [3]` prepended; prints the GI and shading counters and the wall time.
 
 The environment of a render is the Visual_* tests' for that build tree (timing_sc007.sh's env_for()).
+
+Phase 0 addition (T014a): with M040_SEED=<dir> in the environment, every file of that directory is copied into each run's directory
+before the run (`fresh`) or into the one shared directory before the first run (`reuse`): a frame-2-only scene finds the
+photon map a full run left, unchanged. Without the variable nothing changes.
 """
 import collections
 import hashlib
@@ -100,6 +104,10 @@ def mode_repeat(b, rib, output, runs, dirmode, opts):
     for i in range(runs):
         wd = os.path.join(base, "run%02d" % i if dirmode == "fresh" else "shared")
         os.makedirs(wd, exist_ok=True)
+        seed = os.environ.get("M040_SEED")
+        if seed and (dirmode == "fresh" or i == 0):
+            for f in os.listdir(seed):
+                shutil.copy(os.path.join(seed, f), os.path.join(wd, f))
         r, _ = run(exe, rib, wd, b, opts)
         out = os.path.join(wd, output)
         if r.returncode != 0 or not os.path.exists(out):

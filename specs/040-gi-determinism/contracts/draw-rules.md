@@ -13,8 +13,7 @@ included, in traversal order), then a miss runs the sampler on the same cursor. 
 
 1. `irradianceLookup` copies the bound sub-stream key at its top (`boundCall`, as today for the record key).
 2. **Accept values are hashed, not drawn.** For each record that passes the front test, the store calls
-   `accept(acceptState, recordIdentity)`; Shading answers `u = toUnit(mix(0xACCE7EDull, boundCall.seedHash, boundCall.indexBase,
-   recordIdentity))`, a pure function in `[0, 1)` (`toUnit` keeps the top 24 bits, as the sampler's float conversion does).
+   `accept(acceptState, recordIdentity)`; Shading answers `u = giAcceptValue(boundCall.seedHash, boundCall.indexBase, recordIdentity)`, a pure function in `[0, 1)`. `giAcceptValue` is a small public Infra helper in the **new** header `src/common/giHash.h` (it wraps `sampling::detail::mix` and `toUnitFloat(uint32_t)`, which keeps the top 24 bits, as the sampler's float conversion does; it does not edit spec 039's approved `sampling.h`, and neither Shading nor Texturing names `sampling::detail`).
    `recordIdentity` is the record's key, or a hash of its `P` and `N` bit patterns when the key is 0 (records read from a file).
    The cursor is not touched.
 3. **The sampler draws by index from a copy of `boundCall`**: pair 0 sample `k` for the direction (or the in-cell offsets of grid

@@ -68,7 +68,7 @@ occlusion and indirectdiffuse scenes is noise.
 
 **Constraints**:
 - No allowlist line and no new cross-domain edge (FR-020).
-- No services member change, so no `kRendererServicesVersion` step (FR-021).
+- No `CRendererServices` member changes, but 040 **does step `kRendererServicesVersion`** (FR-021; maintainer decision 2026-11-15): `rendererServices.h`'s 2.2.0 history names `IPhotonStore` and `irradianceCalls.h` as part of the versioned boundary, and 040 removes four `IPhotonStore` members and changes `lookupCached`'s signature. Rule: the next free MINOR on master at the time of the edit (033 takes 2.4.0, 057 2.5.0, so probably 2.6.0), the literal number written at the edit, a history entry saying it is breaking within 2.x, re-checked at merge preparation.
 - No file format change (FR-022). The wire record keeps its size (FR-022, D4).
 - Thresholds are unchanged or tightened, and no test is disabled (FR-018).
 - No task depends on the merge (FR-024).
@@ -100,13 +100,13 @@ occlusion and indirectdiffuse scenes is noise.
   - **Renderer core**: `render/photonMap.h` (forwarders), `render/remoteChannel.cpp`.
   - Tests and documentation.
 - [x] **No new cross-domain dependency**: Shading → Texturing through `irradianceStore.h` exists; Hiders → Shading through
-  `photonMapAccess.h` exists; Texturing → Infra (`common/sampling.h`) is allowed. Texturing still includes no Shading, Hiders or Core
+  `photonMapAccess.h` exists; Texturing → Infra (`common/giHash.h`, a new header of this spec that wraps `sampling.h`'s hashing and leaves `sampling.h` unedited) is allowed. Texturing still includes no Shading, Hiders or Core
   header (`GiSplit_Boundary`); Hiders include no Texturing header.
 - [x] **Every altered interface is specified**: `CIrradianceStore` in contracts/irradiance-store.md, `IPhotonStore` and `CPhotonStore`
   in contracts/photon-store.md, the wire in contracts/files-and-wire.md.
 - [x] **No hider-specific special case**: batch scope is defined on a shading batch, whatever hider produced it. The photon claim is
-  in the store.
-- [x] **No plug-in interface changes** (shadeop, procedural, display): no SemVer step.
+  in the store. The batch is a Shading concept (the points one `shade()` call evaluates); a cross-hider difference in the cache comes from batch size (a REYES grid against a raytrace shading group), not from hider-specific code; the Phase 5 quality gate (T074) reports per hider and the gotcha 37 draft says so (M5).
+- [x] **No plug-in interface changes** (shadeop, procedural, display): no plug-in SemVer step. The services interface steps (Constraints).
 - [x] **Registered violations not extended**: no Open DB entry covers these files' edges (DB-010 and DB-020 were resolved by spec
   032). No allowlist line is added.
 
@@ -114,7 +114,7 @@ occlusion and indirectdiffuse scenes is noise.
 
 **Re-check after Phase 1 design: PASS.**
 - The contracts add no include.
-- `IrradianceAcceptFn` passes a `uint64_t` identity, so Texturing needs only Infra's `mix`.
+- `IrradianceAcceptFn` passes a `uint64_t` identity, so Texturing needs only Infra's `giRecordIdentity` (`common/giHash.h`).
 - The batch view is a plain Texturing struct that Shading fills.
 - The pending set and the commit live in Texturing.
 
@@ -157,6 +157,20 @@ The maintainer approved every decision above as recommended. tasks.md is written
 | D5 | If M2's overhead is too high, document the two-frame idiom and decide on a prepass after Phase 7's numbers. | A decision point at Phase 7's pause, not a task that decides it. The `RIB_GUIDE.md` task is conditional on that decision. |
 | D6 | The photon-pass failure under `-P:N` is filed as GitHub #170. Spec 040 does not fix it. | The photon sweep entries drop `-P:2` and cite #170 on the entry (Phase 1, contracts/determinism-harness.md). |
 | D7 | Tighten `GiKeys_PhotonsThreads` to compare `flags` (approved). | The exact diff is shown at Phase 2's test-approval pause before it is applied. |
+
+Approved with tasks.md (maintainer, 2026-11-14):
+
+1. **Staged image drift is accepted.** Named GI visual tests may stay over threshold from Phase 2 to Phase 6, each listed with its measured diff at every checkpoint, until the one re-render in Phase 7. No threshold moves.
+2. **Services version.** If tasks T039/T056 find that 040's changes count as a change of the versioned services interface, 040 takes the next free MINOR **after the versions already on master when 040 merges** (spec 033 takes 2.4.0 and spec 057 2.5.0, so no number is written now). The stop-and-report before any edit at T039/T056 stays.
+3. **Red tests toggle `OPENRENDER_040_RED_TESTS` in the main `build` tree**; no scratch tree (spec 032's `build-red032` is not used).
+4. **The 30-run long tests have their own ctest label**, `gi_determinism_long`, and are excluded from the everyday run the way the sweep is: the everyday expression is `ctest -LE 'determinism-sweep|gi_determinism_long'`. They run explicitly (`-L '^gi_determinism_long$'`) at the checkpoints that need them. `-L` is a regular expression, so the short set is selected with `-L '^gi_determinism$'`.
+
+Analyze findings fixed (maintainer, 2026-11-15):
+
+- **H1**: the photon scenes' sweep entries compare frame-2 images, which read the map through the `PHOTON_LOOKUP_CACHE` memo until Phase 3 removes it. They stay guarded until Phase 3; Phase 2 verifies the map with `GiDet_PhotonThreads`, `GiDet_PhotonRepeat*` and the `.gpm` byte comparison only. Phase 0 measures the frame-2 image at `-t:4` on the starting tree as evidence (T014a).
+- **H2**: 040 steps `kRendererServicesVersion` (Constraints above; T002a, T039a, T062a, T079).
+- **H3**: the Phase 7 re-render is recorded into `build-logs/` and copied into `examples/rib/tests/references/` only after a REFERENCE-APPROVAL pause (T094, T094a).
+- **M1** `GiDet_PhotonRoundTrip` (Phase 3); **M2** `common/giHash.h`; **M5** the batch is a Shading concept; **M6** `CLAUDE.md` and `DEVNOTES.md` are drafts the coordinator applies at merge preparation; **M7** the whole `determinism-scenes.cmake` unguarding schedule is approved at PAUSE 1a; **M9** `GiDet_RepeatedPoint_*`.
 
 Added by the maintainer with the approval: the `indirectdiffuse` counters of `perf-indirect-photon` reported samples but 0 rays
 (research R2). A Phase 0 task explains that before any `indirectdiffuse` count is relied on.
@@ -250,8 +264,7 @@ examples/rib/tests/sphere-{occlusion,indirectdiffuse,photonmap}-reyes{,-slo}.rib
 ## Overlap with concurrent work (recorded; the design is against master `278b0394` only)
 
 - **033 (shading system)**: textual collisions in `shading.{h,cpp}` (040 adds a member to `CShadingState` and does not edit
-  `jitOcclusionBatch`) and in `irradianceCalls.cpp` (040 rewrites the body of the cache step). No services-version collision, because
-  040 does not step it.
+  `jitOcclusionBatch`) and in `irradianceCalls.cpp` (040 rewrites the body of the cache step). The services version: 040 steps it (see Constraints); 033 and 057 take 2.4.0 and 2.5.0, so 040 takes the next free MINOR at the time of its edit and the coordinator re-checks the number at merge preparation.
 - **057 (area lights)**: changes the inputs of the photon key (how lights are enumerated and run). 040's order is by key, whatever the
   keys are. Whichever spec merges second re-runs the photon sweeps and re-renders the photon references it changes.
 - **048 (OIIO)**: test lists and documentation only.

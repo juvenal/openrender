@@ -1,0 +1,50 @@
+# T006/T018 ctest -L architecture on the Linux starting tree (build, master 278b0394, GCC 13): ctest summary (36 tests, 0 failed); allowlist.txt 168 lines.
+# The archcheck block (ALLOWED counts, METRIC lines) is in the remote file build-logs/040-l-arch-v.log of the spec 040 tree once the remote job (queued behind other specs) has run.
+ 1/36 Test   #35: Preview_NoCoreReach .......................   Passed    0.31 sec
+ 2/36 Test #1727: Precomp_NoHiderCore .......................   Passed    0.02 sec
+ 3/36 Test #1885: Architecture_Parsers ......................   Passed    0.00 sec
+ 4/36 Test #1886: Architecture_DomainBoundaries .............   Passed    1.47 sec
+ 5/36 Test #1887: Architecture_Determinism ..................   Passed    2.94 sec
+ 6/36 Test #1888: ArchFixture_clean .........................   Passed    0.23 sec
+ 7/36 Test #1889: ArchFixture_forbidden_include .............   Passed    0.23 sec
+ 8/36 Test #1890: ArchFixture_forbidden_link ................   Passed    0.23 sec
+ 9/36 Test #1891: ArchFixture_new_cycle .....................   Passed    0.22 sec
+10/36 Test #1892: ArchFixture_new_cycle_allowlisted .........   Passed    0.23 sec
+11/36 Test #1893: ArchFixture_unclassified ..................   Passed    0.01 sec
+12/36 Test #1894: ArchFixture_forwarding_shim ...............   Passed    0.23 sec
+13/36 Test #1895: ArchFixture_incomplete_build ..............   Passed    0.01 sec
+14/36 Test #1896: ArchFixture_stale_entry ...................   Passed    0.22 sec
+15/36 Test #1897: ArchFixture_stale_now_allowed .............   Passed    0.22 sec
+16/36 Test #1898: ArchFixture_unknown_id ....................   Passed    0.22 sec
+17/36 Test #1899: ArchFixture_resolved_id ...................   Passed    0.23 sec
+18/36 Test #1900: ArchFixture_other_platform_tag ............   Passed    0.22 sec
+19/36 Test #1901: ArchFixture_not_built .....................   Passed    0.23 sec
+20/36 Test #1902: ArchFixture_tagged_untagged_dup ...........   Passed    0.01 sec
+21/36 Test #1903: ArchFixture_transport_allowed .............   Passed    0.22 sec
+22/36 Test #1904: ArchFixture_transport_cycle ...............   Passed    0.23 sec
+23/36 Test #1905: ArchFixture_metric_increase ...............   Passed    0.23 sec
+24/36 Test #1906: ArchFixture_metric_decrease ...............   Passed    0.22 sec
+25/36 Test #1907: ArchFixture_conditional_include ...........   Passed    0.22 sec
+26/36 Test #1908: SceneInterface_RibOutNoCore ...............   Passed    0.02 sec
+27/36 Test #1909: SceneInterface_RibVectorResidual ..........   Passed    0.05 sec
+28/36 Test #1910: SceneInterface_NoCoreInclude ..............   Passed    0.13 sec
+29/36 Test #1911: SceneInterface_HooksAndRecords ............   Passed    0.19 sec
+30/36 Test #1912: SceneInterface_ActiveContextAssignments ...   Passed    1.30 sec
+31/36 Test #1913: Compiler_IncludeBoundary ..................   Passed    0.08 sec
+32/36 Test #1914: GiSplit_Boundary ..........................   Passed    4.63 sec
+33/36 Test #1915: Geometry_NoHiderShadingNames ..............   Passed    3.19 sec
+34/36 Test #1916: Geometry_RibVectorNoStubs .................   Passed    0.06 sec
+35/36 Test #1917: Hcshader_NoReferences .....................   Passed    2.63 sec
+36/36 Test #1918: Registry_CoreNamesNoHider .................   Passed    0.15 sec
+100% tests passed, 0 tests failed out of 36
+# archcheck block, Linux starting tree (ctest -V of Architecture_DomainBoundaries):
+archcheck: platform=linux objects=943 sources=214 edges=2507 (include=1685 link=822)
+ALLOWED   DB-004 x 3 DB-011 x 144
+METRIC    Geometry refs 2 (baseline 2)  distinct 2 (baseline 2)
+METRIC    Hiders refs 489 (baseline 489)  distinct 69 (baseline 69)
+METRIC    Infra refs 0 (baseline 0)  distinct 0 (baseline 0)
+METRIC    SceneInterface refs 0 (baseline 0)  distinct 0 (baseline 0)
+METRIC    Shading refs 0 (baseline 0)  distinct 0 (baseline 0)
+METRIC    Texturing refs 0 (baseline 0)  distinct 0 (baseline 0)
+METRIC    TOTAL refs 491 (baseline 491)  distinct 71 (baseline 71)
+RESULT    PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0

@@ -23,7 +23,7 @@ class IPhotonStore {
 };
 ```
 
-`resetPhotons`, `balancePhotons`, `isModifying` and `setModifying` leave the interface (their only callers are the lines
+`IPhotonStore` is named by `rendererServices.h`'s 2.2.0 history as part of the versioned boundary, so this change is a breaking MINOR step of `kRendererServicesVersion` (task T039a). `resetPhotons`, `balancePhotons`, `isModifying` and `setModifying` leave the interface (their only callers are the lines
 replaced). `photonKey()` is unchanged.
 
 ## `CPhotonStore` / `CMap`
@@ -49,4 +49,5 @@ The file layout does not change (contracts/files-and-wire.md).
 | a map is byte-identical across 30 separate processes at `-t:1`, and across `-t:1`, `-t:2`, `-t:4`, `-t:8` and the default | `GiDet_PhotonRepeat`, `GiDet_PhotonThreads` (opt-in label `gi_determinism_long` for the 30-run form), the sweep |
 | a lookup is a function of map and query (twice in a row, on two threads, in two orders) | `GiDet_PhotonLookupPure` |
 | a map filled in memory and never read can be queried (#160) | `GiDet_PhotonInMemoryLookup` |
+| an in-memory store's lookups equal the reloaded store's, bit for bit (SC-005) | `GiDet_PhotonRoundTrip` |
 | `Registry_IntegratorImageIdentity`'s photon rows (unchanged test) | run 30 times standalone per platform (validation) |

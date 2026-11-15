@@ -27,7 +27,8 @@ Expected: one md5 in each series, the same md5 in both, `failed runs: 0`. On the
 see research.md R1.
 
 ```bash
-ctest --test-dir build -L gi_determinism --output-on-failure           # via cpujob; the unit and byte-level tests
+ctest --test-dir build -L '^gi_determinism$' --output-on-failure         # via cpujob; the unit and byte-level tests
+ctest --test-dir build -L '^gi_determinism_long$' --output-on-failure   # via cpujob; the 30-run forms (excluded from the everyday run)
 ctest --test-dir build -R '^Registry_IntegratorImageIdentity$' --repeat until-fail:30   # via cpujob; 30 of 30
 ```
 
@@ -63,7 +64,7 @@ files of the starting tree load and answer.
 ```bash
 ~/.claude/bin/cpujob 040-sc007 specs/040-gi-determinism/tools/timing_sc007.sh build-base build 5
 ctest --test-dir build -L architecture                                  # via cpujob; no allowlist line added
-ctest --test-dir build -LE determinism-sweep -j4 --output-on-failure    # via cpujob; the everyday run
+ctest --test-dir build -LE 'determinism-sweep|gi_determinism_long' -j4 --output-on-failure    # via cpujob; the everyday run
 ```
 
 The timing script prints the medians and spreads; the plan-stage spread of the starting tree against itself is in research.md R7.

@@ -1,0 +1,6 @@
+# T013 record counts of the starting tree's irradiance cache (build-base, master 278b0394, linux), one render each at -t:1, unscaled.
+# Counted with icache_dump.py from the written .icache file, never from an indirectdiffuse counter (T011).
+== perf-occlusion-cache: render exit 0
+file /home/juvenal/Projects/Development/CLI/openrender-040/build-logs/040-records-scratch/perf-occlusion-cache/perf-occlusion.icache: 70840 bytes, maxDepth 8, 319 nodes, 242 records
+== perf-indirect-photon-cache: render exit 0
+file /home/juvenal/Projects/Development/CLI/openrender-040/build-logs/040-records-scratch/perf-indirect-photon-cache/perf-indirect.icache: 96 bytes, maxDepth 1, 1 nodes, 0 records
