@@ -1,7 +1,7 @@
 # Contract: the shader-metadata API and `sloinfo`
 
 Header: `src/libshader/include/openrender/ShaderMetadata.h` (internal C++; not installed; not in
-`OPENRENDER_PUBLIC_HEADERS`). Library: `libshader_metadata` (static, `src/libshader/metadata/`, Shading). Implements
+`OPENRENDER_PUBLIC_HEADERS`). Library: **`libRSLInfo`** (shared plus static; `src/libshader/metadata/` for the API and readers, `src/libshader/runtime/` for the inspection parser it contains; Shading). `libRSLInfo` is the maintainer's name (2026-11-14) for the planned `libshader_metadata` **and** for `libshader_runtime`, which it absorbs. Implements
 FR-016, FR-017, FR-018. Decision: research.md R15 (**approved, P-Q7**).
 
 ## API
@@ -52,18 +52,17 @@ namespace openrender::shading {
 }
 ```
 
-Readers: `rsloMetadataReader.cpp` wraps `rsloGet`/`rsloDelete` (`libshader_runtime`, unchanged: the `.rslo`/`.sdr`
+Readers: `rsloMetadataReader.cpp` wraps `rsloGet`/`rsloDelete` (the inspection parser, **in the same image** since Phase 8, unchanged: the `.rslo`/`.sdr`
 probing, the `[INFO] rslo: Falling back to .sdr shader` line on stdout); `sloMetadataReader.cpp` wraps
-`CLLVMJitEngine::extractMetadataFromFile` (`libshader_jitmeta`), compiled only with the JIT. In a JIT-less build a `slo`
+`CLLVMJitEngine::extractMetadataFromFile` (`libRSLJitMeta`, the internal static library that was `libshader_jitmeta`), compiled only with the JIT and **only into the shared `libRSLInfo`**. In a JIT-less build, and in the static archive `libRSLInfo_static` (the `.rslo` half only, no LLVM, the content of today's `libshader_runtime_static`), a `slo`
 request answers `Unsupported`.
 
-`libshader_metadata` links `libshader_runtime` and (JIT on) `libshader_jitmeta`, and is never linked into
-`libshader_shading` (since Phase 8 `libRSLRuntime`): the runtime parser and the loader's parser share the flex/bison prefix `rslo`.
+`libRSLInfo` links `openrendercommon` and (shared, JIT on) `libRSLJitMeta` PRIVATE, and is **never linked into a program that also links `libRSLRuntime`** (formerly `libshader_shading`): the inspection parser and the loader's parser share the flex/bison prefix `rslo` and define the same 37 globals. The guard `Link_InfoRuntimeNotCoLinked` enforces it.
 
 ## `sloinfo` after the change
 
 - includes `common/*` headers, `logging.hpp` and `libshader/include/openrender/ShaderMetadata.h` only;
-- links `libshader_metadata` (no `libshader_runtime` include path, no LLVM include path);
+- links `libRSLInfo` only (no `libshader_runtime`/`libshader_jitmeta` link, no LLVM include path; the executable no longer carries LLVM, the dylib does);
 - keeps its own argument handling (`--rslo`, `--slo`, `rsloinfo` by `argv[0]`), its format detection by magic, its
   search-path string (`.`, `OPENRENDERHOME/shaders`, `SHADERS`) and every message and exit code:
 
@@ -85,6 +84,9 @@ compile time.
 
 ## Library names (L-1)
 
-`libshader_runtime` is the inspection reader this contract wraps; it is **not** merged into `libRSLRuntime` and keeps its
-name, files and `rslo`/`rslo_static` aliases (plan.md "Library decision"). `libshader_metadata` links `libshader_runtime` and
-(JIT on) `libshader_jitmeta`, never `libRSLRuntime`.
+`libshader_runtime` (the `.rslo` inspection reader this contract wraps) is **renamed into `libRSLInfo`** together with the new
+metadata API; it is **not** merged into `libRSLRuntime` (plan.md "Library decision"). Old names kept for one release:
+targets `libshader_runtime`, `libshader_runtime_static`, `rslo`, `rslo_static` (ALIAS), exports `openRender::shader_runtime`,
+`shader_runtime_static` (aliases), files `libshader_runtime.{dylib,so,a}` (compat symlinks); `libshader_jitmeta` is an ALIAS of the
+internal `libRSLJitMeta`; `libshader_metadata` never existed outside this spec (no alias). `libRSLInfo` never links
+`libRSLRuntime`.

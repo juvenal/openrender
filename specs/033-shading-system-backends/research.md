@@ -117,10 +117,14 @@ is execution detail of RSL).
 
 ## R4. Execution dispatch (FR-010)
 
-**Decision**: `CShadingContext::execute(CProgrammableShaderInstance *, float **)` keeps its signature and becomes the
-dispatcher: it calls `instance->parent->backend->execute(*this, *instance, locals)`. The bytecode loop moves to a new
+**Decision**: `CShadingContext::execute` keeps its name and becomes the dispatcher, with the **neutral** signature
+`execute(CShaderInstance *, float **)` (today `CProgrammableShaderInstance *`): it calls
+`instance->shaderDescription()->backend->execute(*this, *instance, locals)`. Every existing caller passes a
+`CProgrammableShaderInstance *`, which converts implicitly, so every approved caller compiles unchanged (P-Q6), and a test
+or future backend's own instance class (the T028 third backend) reaches the dispatcher. The bytecode loop moves to a new
 public member `CShadingContext::interpret(CProgrammableShaderInstance *, float **)` (the body of today's `execute`
-without the `#ifdef OPENRENDER_HAVE_LLVM` block); the interpreter backend's `execute` calls it. The JIT block moves
+without the `#ifdef OPENRENDER_HAVE_LLVM` block); the interpreter backend's `execute` `static_cast`s the instance to
+`CProgrammableShaderInstance *` and calls it. The JIT block moves
 verbatim into `sloBackend.cpp` (`CSloBackend::execute`): set `currentShaderInstance`, build `stuff[]`, save
 `activeContext`, set it, call `jitEntry`, restore it, the light's ambient-`Cl` accumulation, and the
 "has no bytecode and no JIT entry" `CODE_SYSTEM` warning when `jitEntry` is null. `CProgrammableShaderInstance::execute`
@@ -137,7 +141,7 @@ a function pointer in the payload (rejected: not a backend interface).
 
 ## R5. The renderer-services step (FR-013, FR-015) **(maintainer, P-Q1)**
 
-**Decision proposed**: one MINOR step, `kRendererServicesVersion` 2.3.0 -> **2.4.0**, one history entry, every
+**Decision (approved P-Q1)**: one MINOR step, `kRendererServicesVersion` 2.3.0 -> **2.4.0**, one history entry, every
 addition with a default so the doubles compile unchanged:
 
 1. `MatrixRequest::phase` (`EMatrixPhase::Shade` default, `EMatrixPhase::Bind`): a bind-time request is answered with the
@@ -177,7 +181,7 @@ disagrees with the 2.3.0 `getMatrix` (`rendererShadingServices.cpp:91`) in four 
 `"shader"`, `"camera"`, `"world"`, NDC/raster/screen, the colour names and custom systems agree. (The instance's `xform`
 **is** `currentXform` at bind time: the instance is built with it and `init()` runs before anything changes it.)
 
-**Decision proposed**: one Shading resolver for both backends' bind time,
+**Decision (approved P-Q2)**: one Shading resolver for both backends' bind time,
 `libshader::bindCoordinateSystem(name, instance, from, to, kind)`, asks `getMatrix` with `phase = Bind` and the instance
 as `shader`; the implementer answers bind requests by `CRenderer::findCoordinateSystem` alone (today's answer, exactly).
 The interpreter's init reaches it through the `findCoordinateSystem` macro hook; the JIT's init through the resolver
@@ -328,15 +332,16 @@ backend. Result: **no approved test needs an edit** for the move. Comments in ap
 ShaderMetadata &out)` and the engine-free `ShaderMetadata` (format, type name, name, format version, language version,
 used-parameters mask when the format records it, JIT-entry presence for `.slo`, parameters: name, type, container/storage
 text, array size, output flag, default as typed values and as the stored text, space). Readers per format implement
-`IShaderMetadataReader` and live in a new static library **`libshader_metadata`** (`src/libshader/metadata/`, Shading):
-the `.rslo` reader wraps `libshader_runtime`'s `rsloGet`/`rsloDelete` (unchanged, its header is public), the `.slo`
-reader wraps `libshader_jitmeta`'s `extractMetadataFromFile`. `sloinfo` keeps its own format detection by magic,
+`IShaderMetadataReader` and live in the new library **`libRSLInfo`** (named by the maintainer 2026-11-14; `src/libshader/metadata/`, Shading), which
+also contains the inspection parser that was `libshader_runtime` (R18): the `.rslo` reader wraps `rsloGet`/`rsloDelete`
+(unchanged, its header is public), the `.slo` reader wraps `extractMetadataFromFile` (from the internal `libRSLJitMeta`,
+formerly `libshader_jitmeta`). `sloinfo` keeps its own format detection by magic,
 argument handling and printing, and includes only `ShaderMetadata.h` and common headers.
 
 **Rationale**: byte-identical output needs the inspection parser's data (`space`, `writable`, constant and vertex
 containers, `UDefaultVal`), which the loader's `CShader` does not keep; the runtime parser and the loader's parser share
 the flex/bison prefix `rslo` and must not meet in one image (`src/libshader/CMakeLists.txt` note), so the readers cannot
-be members of backends linked into `libshader_shading`. The `.rslo` search path (`.`, `OPENRENDERHOME/shaders`,
+be members of backends linked into `libshader_shading` (`libRSLRuntime`): the readers' library and the engine are never linked into one program. The `.rslo` search path (`.`, `OPENRENDERHOME/shaders`,
 `SHADERS`), the `.sdr` fallback and its `[INFO]` line stay as `rsloGet` does them. A JIT-less build registers no `.slo`
 reader and `sloinfo` keeps its present message.
 
@@ -380,10 +385,13 @@ these records.
 
 ---
 
-## R18. The shading library's name and the split from `libshader_runtime` (maintainer, 2026-11-14)
+## R18. The libraries' names: `libRSLRuntime` and `libRSLInfo` (maintainer, 2026-11-14)
 
-**Decision**: `libshader_shading` is renamed `libRSLRuntime`; `libshader_runtime` stays a separate library. Full record in
-plan.md "Library decision (L-1)"; the measurements:
+**Decision**: `libshader_shading` is renamed `libRSLRuntime` and does not absorb `libshader_runtime`; the inspection side
+(`libshader_runtime` with its static archive, the metadata API, the `.slo` probe) is **one library, `libRSLInfo`** (the
+maintainer's amendment: it replaces the planned `libshader_metadata`); `libshader_jitmeta` becomes the internal
+`libRSLJitMeta`; `libshader_compiler` is untouched (spec 043 -> `libRSLCompile`). Full record in plan.md "Library decision
+(L-1, L-2)"; the measurements:
 
 | Measurement (macOS `build`, 2026-11-14) | Result |
 |---|---|
@@ -391,14 +399,20 @@ plan.md "Library decision (L-1)"; the measurements:
 | `libshader_shading.1.0.0.dylib` | 43,116,104 bytes; 24,883 exported symbols; contains `rslo.y` (the loader), `sloLoader.cpp`, the JIT and LLVM |
 | global symbols defined in both | **37**, all of the flex/bison `rslo` prefix (`rsloparse`, `rslolex`, `rslotext`, `rslolval`, `rsloLineno`, `rsloerror`, `rslo_scan_*`, ...) |
 | defined only in `libshader_runtime` | `rsloGet`, `rsloDelete` and six unprefixed globals (`parameters`, `shaderType`, `currentParameter`, `currentDefaultItem`, `numArrayItemsRemaining`, `parsedShaderName`) |
-| `sloinfo` | 6.4 MB, links only `libshader_runtime`, `libRIBCommon`, the C++ runtime |
+| `sloinfo` | 6,441,784 bytes, links `libshader_runtime`, `libRIBCommon`, the C++ runtime, and statically `libshader_jitmeta` and LLVM |
 | consumers of `libshader_runtime` | `sloinfo` (and `rsloinfo`, a symlink); aliases `rslo`/`rslo_static` (`src/rslo/CMakeLists.txt`); exports `openRender::shader_runtime` and `shader_runtime_static` |
 | tests naming the target `libshader_shading` | about 45 `target_link_libraries` lines and `$<TARGET_FILE:>`/`$<TARGET_EXISTS:>` uses (alias-safe); **three pin the name in a way an alias does not cover**: `check_scope.cmake:86`, `check_link_line.cmake:56`, `install_consumer/CMakeLists.txt:16` (this one is covered by the exported alias) |
+| `libshader_jitmeta.a` | 22,672 bytes; LLVM `core bitreader support` come in at link: they are what makes `sloinfo` 6.4 MB |
+| what `libRSLInfo` contains | the 45-symbol parser (once, so no internal clash), the metadata API, and (shared only, JIT on) the `.slo` probe with LLVM: expected about the bytes `sloinfo` carries today, measured again at Phase 8 (T118) |
+| `libRSLInfo_static` | parser + `.rslo` half only, no LLVM: the content of `libshader_runtime_static.a` (37,344 bytes) |
 
-**Rationale**: see plan.md (symbol clash, the exported static archive the shared-only engine cannot offer, `sloinfo`'s
-start-up against a 43 MB engine). Compatibility follows the existing `libRIB*` precedent (`CMake/createCompatAlias.cmake`,
+**Rationale**: the engine cannot absorb the reader (the 37 clashing symbols; the shared-only engine cannot be a static
+export; 43 MB against `sloinfo`'s start-up); the reader, the metadata API and the `.slo` probe belong together (the `.rslo`
+reader wraps `rsloGet`, now in one image; `sloinfo` is the one consumer; the one clash is with the engine, so the two
+libraries must never be linked into one program: guard `Link_InfoRuntimeNotCoLinked`). Compatibility follows the existing `libRIB*` precedent (`CMake/createCompatAlias.cmake`,
 `src/ri/CMakeLists.txt`): an ALIAS target, an exported alias, a symlink for the dev-name file.
 
-**Alternatives**: merge after renaming the inspection parser's prefix (rejected: grounds above); rename `libshader_runtime`
-too (not asked; open question O-1); keep `libshader_shading` as the real target with `libRSLRuntime` an ALIAS (rejected: the
+**Alternatives**: merge the reader into the engine after renaming the inspection parser's prefix (rejected: grounds above);
+leave `libshader_runtime` unrenamed beside `libRSLRuntime` and keep a separate `libshader_metadata` (the tasks-stage
+default, rejected by the maintainer: a confusing pair, and a `libshader_*` name left); keep `libshader_shading` as the real target with `libRSLRuntime` an ALIAS (rejected: the
 maintainer asked that target and `OUTPUT_NAME` follow the new name).

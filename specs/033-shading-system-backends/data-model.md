@@ -114,7 +114,7 @@ takeInstanceKey()`; `registerLight(instance)` -> `CRenderer::allLights->push(ins
 | new `ShaderNameAnswer` | `EQueryStatus status = Unavailable; const char *name = nullptr;` |
 | `CRendererServices` | `virtual ShaderNameAnswer getShaderName(const ShaderNameRequest &) const { return {}; }` |
 
-### Shader metadata (`libshader/include/openrender/ShaderMetadata.h`, library `libshader_metadata`)
+### Shader metadata (`libshader/include/openrender/ShaderMetadata.h`, library `libRSLInfo`, which absorbs `libshader_runtime`)
 
 | Field | `.rslo` source | `.slo` source |
 |---|---|---|
@@ -138,8 +138,8 @@ CRenderer (core) ──owns──> ShadingSystem ──owns──> cache ──>
 CRendererContext ──implements──> IShaderBindHost, IShaderFileResolver (per request)
 CAttributes / COptions slots ──ShaderGroupRef──> CShaderInstance (one-layer group)
 CProgrammableShaderInstance ──parent──> CShader ; execute() -> CShadingContext::execute() -> backend->execute()
-(libshader_shading is renamed libRSLRuntime in Phase 8; libshader_runtime, the inspection reader, keeps its name)
-sloinfo ──> describeShaderFile() ──> IShaderMetadataReader {rslo: libshader_runtime, slo: libshader_jitmeta}
+(libshader_shading is renamed libRSLRuntime and libshader_runtime libRSLInfo in Phase 8; the two are never linked into one program)
+sloinfo ──> describeShaderFile() [libRSLInfo] ──> IShaderMetadataReader {rslo: the inspection parser in libRSLInfo, slo: libRSLJitMeta (shared only)}
 ```
 
 ## 3. Validation rules (from the requirements)

@@ -102,15 +102,23 @@ ratio tests pass with unchanged `MAX_RATIO`.
 R13 says. `DEVNOTES.md` status row and the #167 known limitation; `OSHADER_UPDATES.md` loader, format and `sloinfo`
 sections; `specs/033-shading-system-backends/claude-md-draft.md` for the maintainer. Nothing refers to the merge.
 
-## 10. The library rename (FR-031, SC-011; Phase 8)
+## 10. The library renames (FR-031, SC-011; Phase 8)
+
+`libshader_shading` -> `libRSLRuntime`; `libshader_runtime` + the metadata API + the `.slo` probe -> `libRSLInfo`;
+`libshader_jitmeta` -> the internal `libRSLJitMeta`; `libshader_compiler` is untouched (spec 043 -> `libRSLCompile`).
 
 ```bash
 ~/.claude/bin/cpujob 033-rename-build cmake --build build --config Release -j4
-ls build/src/libshader/shading | grep -i "RSLRuntime\|shader_shading"     # libRSLRuntime.dylib and the compat symlink libshader_shading.dylib
-~/.claude/bin/cpujob 033-rename-link ctest --test-dir build -L '^link$|^plugin_abi$|^shading_contract$' --output-on-failure
+ls build/src/libshader/shading build/src/libshader/metadata | grep -i "RSLRuntime\|RSLInfo\|shader_shading\|shader_runtime"
+   # libRSLRuntime.dylib + the symlink libshader_shading.dylib; libRSLInfo.dylib, libRSLInfo.a + the symlinks libshader_runtime.dylib/.a
+~/.claude/bin/cpujob 033-rename-link ctest --test-dir build -L '^link$|^plugin_abi$|^shading_contract$|^common$' --output-on-failure
 ~/.claude/bin/cpujob 033-pkg ctest --test-dir build -L '^link-package$' --output-on-failure   # configure with -DOPENRENDER_LINK_PACKAGE_TEST=ON
+otool -L build/src/sloinfo/sloinfo        # names libRSLInfo, not libRSLRuntime (Linux: ldd)
 ```
 
-Expected: both names resolve (target, `openRender::` export, file); `Link_*`, `PluginAbi_InstallLayouts` and the contract tests
-green; `ShadingScope_Greps` S1a/S1e fail on a planted include (the check cannot pass vacuously); the package consumer
-reaches `openRender::RSLRuntime` and `openRender::shader_shading`. `libshader_runtime` and `libshader_compiler` are unchanged.
+Expected: every old name resolves (targets `libshader_shading`, `libshader_runtime`, `libshader_runtime_static`, `rslo`,
+`rslo_static`; exports `openRender::shader_shading`, `shader_runtime`, `shader_runtime_static`; the compat files); `Link_*`,
+`PluginAbi_InstallLayouts` and the contract tests green; `ShadingScope_Greps` S1a/S1e fail on a planted include (the check
+cannot pass vacuously); `Link_InfoRuntimeNotCoLinked` green (and red on its mutation); the package consumer reaches
+`openRender::RSLRuntime` and `openRender::RSLInfo` and the old names; `sloinfo`'s start-up and size against Phase 1's within
+the FR-024 rule. `libshader_compiler` is unchanged.

@@ -14,7 +14,7 @@ The light-shader path lives in the shading engine library, which spec 033 rename
 **`libRSLRuntime`** (target `libRSLRuntime`, `openRender::RSLRuntime`, `libRSLRuntime.{dylib,so}`) in Phase 8; the old
 target (`libshader_shading`), exported (`openRender::shader_shading`) and file names resolve for one release. Every file
 cited below is in that library, and the loaders (`rslo.y`, `sloLoader.cpp`) are in it too. `libshader_runtime` (the
-`.rslo` inspection reader used by `sloinfo`) is a different, separate library and is not on the light path. Renderer
+`.rslo` inspection reader used by `sloinfo`, renamed **`libRSLInfo`** in Phase 8 together with the metadata API) is a different, separate library, never linked together with `libRSLRuntime`, and is not on the light path. Renderer
 services after 033: **2.4.0**; spec 057 takes 2.5.0 at its sync.
 
 ## The bind order (unchanged; 057 should rely on it)
@@ -89,7 +89,7 @@ stays in the core before the facade; the missing and wrong-type cases return fro
 
 | | Before | After |
 |---|---|---|
-| Entry | `op_lightsource_f` `rslOps.cpp:921-962`: the last light that ran (`currentShadingState->currentLightInstance`), its `getParameterShape()` (refuse above 64 bytes, one warning), then `getMessage{Light, objectHandle, shaderHandle(light), name, Float, scratch, wantVariable = false}`; returns `scratch[0]` | `op_lightsource_f` (same file, same signature): the same light handle and scratch; one request `getMessage{Light, ..., destBytes = 64}`; a `TypeMismatch` answer gives the same warning text and result 0; **no `getParameterShape()` call** (renderer services 2.4.0, pending P-Q1). Output byte-identical; #115 (last light that ran, floats only, the value returned) stays open |
+| Entry | `op_lightsource_f` `rslOps.cpp:921-962`: the last light that ran (`currentShadingState->currentLightInstance`), its `getParameterShape()` (refuse above 64 bytes, one warning), then `getMessage{Light, objectHandle, shaderHandle(light), name, Float, scratch, wantVariable = false}`; returns `scratch[0]` | `op_lightsource_f` (same file, same signature): the same light handle and scratch; one request `getMessage{Light, ..., destBytes = 64}`; a `TypeMismatch` answer gives the same warning text and result 0; **no `getParameterShape()` call** (renderer services 2.4.0, approved P-Q1). Output byte-identical; #115 (last light that ran, floats only, the value returned) stays open |
 | Interpreter (for comparison) | `CShadingContext::lightParameter` `shading.cpp:1916` (the iterated light, `wantVariable = true`) | unchanged |
 
 ### (6) The context save around a nested light's JIT call

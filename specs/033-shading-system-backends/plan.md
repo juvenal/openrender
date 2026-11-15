@@ -36,10 +36,10 @@ and the core asks it for a shader by name, type and the scene's two `shaderforma
 6. **JIT message passing through the services**: `op_lightsource_f` stops reading `getParameterShape()` and
    `shadername(type)` stops reading the attribute record; both backends' requests are recorded and compared (FR-013,
    FR-014). These and part 1 need **renderer services 2.4.0** (P-Q1).
-7. **A metadata API** (`ShaderMetadata.h`, library `libshader_metadata`) that `sloinfo` uses alone (FR-016 to FR-018).
-8. **The shading library is renamed `libRSLRuntime`** (maintainer, 2026-11-14; Phase 8): `libshader_shading` becomes
-   `libRSLRuntime` with the old target, export and file names kept for one release; the inspection reader
-   `libshader_runtime` is not merged into it ("Library decision").
+7. **A metadata API** (`ShaderMetadata.h`, in the new library **`libRSLInfo`**, which absorbs `libshader_runtime`) that `sloinfo` uses alone (FR-016 to FR-018).
+8. **Two libraries are named** (maintainer, 2026-11-14; Phase 8): `libshader_shading` becomes **`libRSLRuntime`** and the
+   inspection side (`libshader_runtime`, the metadata API, the `.slo` probe) becomes **`libRSLInfo`**; the old target,
+   export and file names are kept for one release; the two are never linked into one program ("Library decision").
 9. **Checks and records**: three name scans in the `architecture` label, a precedence characterisation and a bind-time
    characterisation recorded on the unchanged tree, DB-007 resolved, DB-018 and DB-024 rewritten (FR-003, FR-022,
    FR-026).
@@ -54,9 +54,10 @@ path is moved, not redesigned; its entry points before and after are recorded fo
 **Language/Version**: C++20 (`-Werror`), C17 for the plug-in headers (untouched); CMake >= 3.19.
 
 **Primary Dependencies**: none new. `libRIBCommon`, `libRIBShadeop`, `libRSLRuntime` (today's `libshader_shading`,
-renamed in Phase 8), `libshader_runtime` (kept: the `.rslo` inspection reader, its `rslo.h` is a public installed
-header), `libshader_jitmeta` (kept); LLVM only for the existing JIT. New internal static library `libshader_metadata`
-(P-Q7).
+renamed in Phase 8), `libRSLInfo` (shared plus static; today's `libshader_runtime`, the `.rslo` inspection reader whose
+`rslo.h` is a public installed header, plus the metadata API of P-Q7 and, JIT on, the `.slo` probe from today's
+`libshader_jitmeta`, which becomes the internal `libRSLJitMeta`); LLVM only for the existing JIT. `libshader_compiler`
+is the only `libshader_*` library left.
 
 **Storage**: N/A; memory only. New recorded files are test references (precedence, bind-time spaces, message requests,
 `sloinfo` outputs) and the Phase 1 manifests and timings under `tools/`.
@@ -77,16 +78,16 @@ platform at the end.
 
 | Domain | What changes |
 |---|---|
-| Shading | New: `shadingSystem.{h,cpp}`, `shaderBackend.h`, `shaderPayload.h`, `shaderGroup.{h,cpp}`, `rsloBackend.cpp`, `sloBackend.cpp`, `rsloInit.cpp` (moved from `src/ri/render/init.cpp`), `shaderBind.cpp` (`bindCoordinateSystem`); `src/libshader/include/openrender/ShaderMetadata.h`; `src/libshader/metadata/` (`libshader_metadata`: `shaderMetadata.cpp`, `rsloMetadataReader.cpp`, `sloMetadataReader.cpp`, `CMakeLists.txt`). Edited: `shader.{h,cpp}`, `execute.cpp` (`interpret`, JIT block out), `shading.{h,cpp}` (`execute` dispatcher, `interpret`, `shaderName`, run sites), `rslo.y` (`shaderCreate` builds the payload), `sloLoader.cpp`, `rslOps.{h,cpp}` (`op_lightsource_f`), `shaderRefs.h` (`lightInstanceOf`), `serviceTypes.h`, `rendererServices.h` (2.4.0), `CMakeLists.txt` |
+| Shading | New: `shadingSystem.{h,cpp}`, `shaderBackend.h`, `shaderPayload.h`, `shaderGroup.{h,cpp}`, `rsloBackend.cpp`, `sloBackend.cpp`, `rsloInit.cpp` (moved from `src/ri/render/init.cpp`), `shaderBind.cpp` (`bindCoordinateSystem`); `src/libshader/include/openrender/ShaderMetadata.h`; `src/libshader/metadata/` (`libRSLInfo`, shared and static: `shaderMetadata.cpp`, `rsloMetadataReader.cpp`, `sloMetadataReader.cpp`, `CMakeLists.txt`). Edited: `shader.{h,cpp}`, `execute.cpp` (`interpret`, JIT block out), `shading.{h,cpp}` (`execute` dispatcher, `interpret`, `shaderName`, run sites), `rslo.y` (`shaderCreate` builds the payload), `sloLoader.cpp`, `rslOps.{h,cpp}` (`op_lightsource_f`), `shaderRefs.h` (`lightInstanceOf`), `serviceTypes.h`, `rendererServices.h` (2.4.0), `CMakeLists.txt` |
 | Renderer core | `rendererContext.{h,cpp}` (`getShader`, `IShaderBindHost`, `init` removed), `rendererFiles.cpp` (`getShader` forwarders, no loader names), `renderer.h`, `rendererStatics.cpp` (`shadingSystem` replaces `globalFiles`), `imager.cpp` (group run), `rendererShadingServices.cpp` + `rendererServicesImpl.h` (2.4.0), `searchPathResolver.h` (`CShaderSearchPathResolver`), `rendererFileSearch.cpp` (comment), `src/ri/CMakeLists.txt`; deleted: `render/init.cpp` |
 | Consumers | `src/sloinfo/sloinfo.cpp`, `src/sloinfo/CMakeLists.txt` |
 | Tests | new `tests/shading_system/`, `tests/shaderformat/`, cases in `tests/shading_contract/`, `src/libshader/tests/`, three checks and fixtures in `tests/architecture/`; **no approved test edited for the move** (P-Q6); **two approved test files edited for the library rename, a third proposed, each only with the maintainer's approval** (Phase 8 TEST-APPROVAL below) |
 | Docs | `DEVNOTES.md`, `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`, `DEVNOTES_DETAILS/OSHADER_UPDATES.md`, `claude-md-draft.md` (spec dir); for the rename also `INSTALL.md`, `INSTALL_ARTIFACTS.md`, `NEWS.md`, the comment block of `CMake/openRenderConfig.cmake.in`; `DEVNOTES_DETAILS/BINDINGS_GUIDE.md` is re-grepped (it names no library today: nothing to change unless the grep finds one) |
-| Build and packaging (rename, Phase 8) | `src/libshader/shading/CMakeLists.txt` (target `libRSLRuntime`, `OUTPUT_NAME RSLRuntime`, `EXPORT_NAME RSLRuntime`, ALIAS `libshader_shading`), `src/ri/CMakeLists.txt` (the link line and the compat symlink list), `CMake/openRenderConfig.cmake.in` (exported alias `openRender::shader_shading`), `src/libshader/CMakeLists.txt` and `src/CMakeLists.txt` (comments) |
+| Build and packaging (rename, Phase 8) | `src/libshader/shading/CMakeLists.txt` (target `libRSLRuntime`, `OUTPUT_NAME RSLRuntime`, `EXPORT_NAME RSLRuntime`, ALIAS `libshader_shading`), `src/ri/CMakeLists.txt` (the link line and the compat symlink list), `CMake/openRenderConfig.cmake.in` (exported alias `openRender::shader_shading`), `src/libshader/CMakeLists.txt` and `src/CMakeLists.txt` (comments), `src/libshader/runtime/CMakeLists.txt` (the parser becomes an object library inside `libRSLInfo`), `src/libshader/metadata/CMakeLists.txt` (`libRSLInfo`, shared and static, with its aliases and compat symlinks), `src/rslo/CMakeLists.txt` (`rslo`/`rslo_static` re-pointed), `src/sloinfo/CMakeLists.txt` |
 
 **Not edited**: `libshader_compiler` and its name (spec 043 renames it `libRSLCompile`: out of scope here); every Graphics State, Texturing, Geometry, Hiders (photon emission included), Scene Interface, Display,
 Shader DSO and Procedures source; the JIT emitter and every `op_*` signature; the `.slo` and `.rslo` formats (A-9);
-`libshader_runtime` (the inspection reader keeps its name, files and `rslo`/`rslo_static` aliases); the installed headers (`OPENRENDER_PUBLIC_HEADERS`); `RSLShading.{h,cpp}` (it keeps calling
+`src/libshader/runtime/rslo.{y,l}` and `rslo.h` (the inspection parser's grammar and public header; only that directory's CMake changes); the installed headers (`OPENRENDER_PUBLIC_HEADERS`); `RSLShading.{h,cpp}` (it keeps calling
 `execute()`, A-6); the recorded replays and every image reference and manifest; `CLAUDE.md` (draft only);
 `RiLightSourceV`/`RiAreaLightSourceV`/`extractLightHandle`/`takeInstanceKey` bodies.
 
@@ -98,7 +99,7 @@ only).
 reference, manifest or replay changed; the allowlist gains no line; no task depends on the merge; `cpujob` for every job.
 
 **Scale/Scope**: about 12 new source files, 1 moved, 1 deleted, about 22 edited sources, 6 CMake files and the package
-config template; about 9 new tests, 3 new checks; 0 approved test files edited for the move, 2 (a third proposed) for the
+config template; about 11 new tests, 3 new checks and 1 guard; 0 approved test files edited for the move, 2 (a third proposed) for the
 library rename, each subject to approval.
 
 **Measurements at the plan stage** (2026-11-14, macOS; details and commands in [research.md](research.md) R0):
@@ -168,66 +169,92 @@ The maintainer approved every plan decision as recommended. The design below is 
 | P-Q4 | `shadername()` with no services answers `""` plus one warning. |
 | P-Q5 | A one-layer group **is** its layer's instance. |
 | P-Q6 | The names approved tests use are kept (Shading-internal loaders, `execute()` as dispatcher, `CRenderer::getShader` forwarders): **no approved test is edited for the move**. |
-| P-Q7 | `libshader_metadata` is a separate static library with one reader per format. |
+| P-Q7 | The metadata API is a separate library with one reader per format; **named `libRSLInfo` by the maintainer (2026-11-14) and absorbing `libshader_runtime`** (L-2). |
 | P-Q8 | The timing threshold of R12: median of 5 runs (first discarded); pass if after <= before + max(5%, 2 x the Phase 1 spread). |
 | P-Q9 | `lightInstanceOf()` returns `CShaderInstance *`. |
 | P-Q10 | The corrections of R0.2 and the coordinator's list are applied to spec.md (services 2.3.0 in FR-015 and A-7; DB-007's line numbers; `OPENRENDER_DEFAULT_FORMAT` is a `#define`; DB-018's remaining scope; FR-021's "core's baseline" defined as "no class row of `metrics-baseline.txt` rises"). Done at the tasks stage. |
 | L-1 | **Library names (maintainer, 2026-11-14)**: the shader load and runtime library is **libRSLRuntime**; decision and evidence in "Library decision" below. |
+| L-2 | **Inspection side (maintainer, 2026-11-14, replaces the tasks-stage default)**: named **libRSLInfo**; the planned `libshader_metadata` becomes it and `libshader_runtime` (with its static archive) is renamed into it; no library keeps a `libshader_*` name except the compiler (spec 043). |
 | C-1 | **Coordination with spec 057**: 033 merges first and takes services 2.4.0 (057: 2.5.0). 033 changes `lightInstanceOf()`'s return type and rewrites `getShader` and binding into `ShadingSystem::bind`, but leaves `RiLightSourceV`, `RiAreaLightSourceV`, `extractLightHandle`, `takeInstanceKey` and `pendingInstanceKey` exactly as they are (leak included; 057 fixes it). `contracts/light-shader-entry-points.md` stays current with the final design, library names included. |
 
-## Library decision (L-1)
+## Library decision (L-1, L-2)
 
-**Instruction** (maintainer): rename the shader loader and the shading engine to `libRSLRuntime`; if today's
-`libshader_runtime` and `libshader_shading` can become one library, they do; if not, `libRSLRuntime` is the shading engine
-plus loading and the plan states why the rest stays separate. The old target names stay as ALIAS targets for one release;
-the installed file names change; the export set provides the old names as aliases if it can.
+**Instruction** (maintainer): rename the shader loader and the shading engine to `libRSLRuntime`; if `libshader_runtime`
+and `libshader_shading` can become one library they do; otherwise state why the rest stays separate. **Amended
+2026-11-14**: the inspection side is named **`libRSLInfo`** in this spec (the planned `libshader_metadata` becomes it; today's
+`libshader_runtime`, with its static archive, goes into it if feasible); no library keeps a `libshader_*` name except the
+compiler; the old names stay as ALIAS targets, exported aliases and compat symlinks for one release.
 
-**Finding (measured 2026-11-14 on `build`, macOS)**: the premise needs one correction. `libshader_runtime` is **not** the
-loader. Both shader loaders are already in `libshader_shading`: `src/libshader/shading/rslo.{y,l}` (the `.rslo` loader that
-builds `CShader`) and `sloLoader.cpp` (the `.slo` loader). `libshader_runtime` (`src/libshader/runtime/`) is the
-**inspection** reader behind the public header `rslo.h`: `rsloGet`/`rsloDelete`, 45 exported symbols, a 72,456-byte
-dylib, used by `sloinfo` and (through the P-Q7 reader) by `libshader_metadata`. So `libRSLRuntime` is `libshader_shading`
-renamed: shading engine, both loaders, the JIT, the backends, `ShadingSystem` and the services boundary.
+**Finding (measured 2026-11-14 on `build`, macOS)**: `libshader_runtime` is **not** the loader. Both shader loaders are in
+`libshader_shading`: `src/libshader/shading/rslo.{y,l}` (the `.rslo` loader that builds `CShader`) and `sloLoader.cpp` (the
+`.slo` loader). `libshader_runtime` (`src/libshader/runtime/`) is the **inspection** reader behind the public header
+`rslo.h`: `rsloGet`/`rsloDelete`, 45 exported symbols, a 72,456-byte dylib (37,344-byte archive), used by `sloinfo`.
 
-**Can the two become one? Technically yes after a prefix rename; the decision is no**, on three measured grounds:
+**Decision 1: `libRSLRuntime` is `libshader_shading` renamed** (shading engine, both loaders, the JIT, the backends,
+`ShadingSystem`, the services boundary). It does **not** absorb the inspection reader. Evidence: (a) `nm -gU` of the two
+dylibs shows **37 global symbols defined in both**, the whole flex/bison `rslo` prefix set (`rsloparse`, `rslolex`,
+`rsloerror`, `rslotext`, `rslolval`, `rsloLineno`, `rslo_scan_*`, ...), so the two parsers cannot share an image, and both
+grammars hard-code the prefix in their actions; (b) the engine is **shared-only** (gotcha 22: it binds the shared
+`libRIBCommon`) and is 43,116,104 bytes (LLVM linked in), so `sloinfo` and every consumer of `rslo.h`/`shader_runtime_static`
+would load or lose the engine.
 
-1. **Symbol clash.** `nm -gU` of the two dylibs: **37 global symbols are defined in both**: the whole flex/bison `rslo`
-   prefix set (`rsloparse`, `rslolex`, `rsloerror`, `rslotext`, `rsloin`, `rslolval`, `rsloLineno`, `rslo_scan_*`, ...).
-   Both parsers also use the prefix in their actions (`rslotext`, `rslolval`, `rsloLineno`), so a unique prefix is a
-   source edit of the inspection grammar, not a CMake argument; and the inspection parser defines unprefixed globals
-   (`parameters`, `shaderType`, `currentParameter`, `parsedShaderName`, ...) that would enter the engine's symbol
-   space. This is the clash `src/libshader/CMakeLists.txt` records (and a third `rslo` parser lives in the compiler).
-2. **The static archive.** `libshader_runtime_static` is exported as `openRender::shader_runtime_static` in the Static
-   component (`openRenderStaticTargets`; `INSTALL_ARTIFACTS.md`, `openRenderConfig.cmake.in`). The engine is **shared-only**
-   (gotcha 22: it binds the shared `libRIBCommon`; `libshader_shading` has no static variant). A merged library could not
-   offer that archive, so the Static export would lose a target.
-3. **`sloinfo`'s link and start-up.** `sloinfo` (6.4 MB) loads the 72 KB `libshader_runtime`; `libshader_shading` is
-   **43 MB** (LLVM is linked into it). Merging would make every `sloinfo`/`rsloinfo` run, and the loading benchmark
-   FR-024 measures (it times `sloinfo` start-up), load the engine. P-Q7 (approved) already keeps the metadata readers out of the engine.
+**Decision 2: the inspection side is one library, `libRSLInfo`** (L-2), made of what exists plus what this spec adds:
+- the inspection parser objects (`src/libshader/runtime/rslo.{y,l}`, unchanged, same prefix; they define the `rslo*`
+  globals only **once** in this image, so there is no clash inside it: the clash is with the engine's parser, which stays in
+  `libRSLRuntime`);
+- the metadata API and its two readers (P-Q7): the `.rslo` reader wraps `rsloGet`, which now sits in the same image, so
+  the P-Q7 "separate library over `libshader_runtime`" collapses into one library;
+- the `.slo` probe (`llvmJitMetadata.cpp`, LLVM `core bitreader support`): today the static `libshader_jitmeta`, which
+  `sloinfo` links and `libshader_shading` embeds. **`libshader_jitmeta` is renamed**: it becomes the internal static library
+  `libRSLJitMeta` (not installed; `libshader_jitmeta` stays an ALIAS for one release), linked PRIVATE into both
+  `libRSLRuntime` (as today) and the **shared** `libRSLInfo`.
+Forms: **`libRSLInfo` shared** (parser + metadata API + `.slo` reader when the JIT is on) and **`libRSLInfo_static`**
+(parser + the `.rslo` half only, **no LLVM**: byte-for-byte the content of today's `libshader_runtime_static`, so the
+exported static archive and the Static component keep a self-contained archive; `describeShaderFile` on it answers
+`Unsupported` for `.slo`).
+Evidence it is feasible and neutral: `libshader_runtime_obj` is an OBJECT library already shared by the shared and static
+forms; the only in-tree consumers of `shader_runtime` are `sloinfo`/`rsloinfo` (`src/sloinfo/CMakeLists.txt:5`), the aliases
+`rslo`/`rslo_static` (`src/rslo/CMakeLists.txt`), the exports `openRender::shader_runtime`/`shader_runtime_static`, and the
+two test pins `tests/unit/common/CMakeLists.txt:24` and `install_consumer/CMakeLists.txt:16` (both resolve through an ALIAS
+and an exported alias); `sloinfo` is 6,441,784 bytes **because it already carries LLVM and `libshader_jitmeta`**, so moving
+that code from the executable into `libRSLInfo.dylib` moves the same bytes (start-up neutral; Phase 8 re-measures it with
+the R12 benchmark and `sloinfo`'s size, and the FR-024 rule applies). The 72 KB figure no longer describes the reader:
+`libRSLInfo` is a few MB, the cost an external consumer of `rslo.h` pays for the `.slo` reader; the static archive stays small.
 
-**Therefore**: `libRSLRuntime` = the renamed shading engine plus loading. `libshader_runtime` keeps its name, files,
-`rslo`/`rslo_static` aliases and `shader_runtime`/`shader_runtime_static` exports. The maintainer's alias list reduces
-to **one new ALIAS, `libshader_shading`**. One naming consequence is recorded for the maintainer (open question O-1 in
-tasks.md): "libshader_runtime" next to "libRSLRuntime" is confusing; a later rename of the inspection reader (for example
-`libRSLInspect`) is cheap and is not done here because the maintainer named only the loader and the engine.
+**Constraint (new, enforced)**: `libRSLInfo` and `libRSLRuntime` both define the `rslo*` globals, so **no program links
+both**. This is today's rule (`sloinfo` links the reader, `orender` the engine; `src/libshader/CMakeLists.txt` records it) made
+explicit: the metadata API and `sloinfo` never link `libRSLRuntime`; the engine never links `libRSLInfo`; test programs of
+the facade link `libRSLRuntime` only and `ShaderMetadata_Shipped` links `libRSLInfo` only. A new guard,
+`Link_InfoRuntimeNotCoLinked` (Phase 8), fails if any `link.txt` of the build names both (mutation-checked).
 
-**Naming scheme** (one, stated): CMake target `libRSLRuntime` (the `lib`-prefixed family of `libshader_compiler`, which
-spec 043 renames `libRSLCompile`), `OUTPUT_NAME RSLRuntime` (file `libRSLRuntime.1.dylib` / `libRSLRuntime.so.1`),
-`EXPORT_NAME RSLRuntime` (`openRender::RSLRuntime`), `SOVERSION 1` (unchanged). Old names for one release:
-- target `libshader_shading`: `add_library(libshader_shading ALIAS libRSLRuntime)` (ALIAS targets work in
-  `target_link_libraries`, `$<TARGET_FILE:>`, `$<TARGET_EXISTS:>` and `get_target_property`, so every approved test that
-  links or locates `libshader_shading` keeps working untouched; an ALIAS cannot be given properties or installed, which no
-  caller does: checked by grep);
-- export: `CMake/openRenderConfig.cmake.in` defines `openRender::shader_shading` after the targets file is included
-  (`add_library(openRender::shader_shading ALIAS openRender::RSLRuntime)`; aliasing a non-global imported target needs
-  CMake 3.18, the floor is 3.19, so it works; guarded by `if(NOT TARGET ...)`);
-- files: a compatibility symlink `libshader_shading.{dylib,so}` -> `libRSLRuntime.{dylib,so}` next to the real file, in the
-  build tree and installed, through the existing `CMake/createCompatAlias.cmake` mechanism that `libRIB*` uses
-  (`src/ri/CMakeLists.txt`), shared only (there is no static engine).
-Not provided: a binary built against `@rpath/libshader_shading.1.dylib` does not load (its install name changed); NEWS says so.
+**Library set after 033**
+
+| Library | Kind | Content | Old names kept for one release |
+|---|---|---|---|
+| `libRSLRuntime` | shared | shading engine, both loaders, JIT, backends, `ShadingSystem`, services boundary | target `libshader_shading` (ALIAS); export `openRender::shader_shading`; file `libshader_shading.{dylib,so}` (symlink) |
+| `libRSLInfo` | shared + static | `.rslo` inspection reader (`rslo.h`), metadata API, `.slo` probe (shared only) | targets `libshader_runtime`, `libshader_runtime_static`, `rslo`, `rslo_static` (ALIAS); exports `openRender::shader_runtime`, `shader_runtime_static`; files `libshader_runtime.{dylib,so,a}` (symlinks); `libshader_jitmeta` (ALIAS of the internal `libRSLJitMeta`); `libshader_metadata` never existed outside this spec: no alias |
+| `libRSLJitMeta` | static, internal | `llvmJitMetadata.cpp` | `libshader_jitmeta` |
+| `libshader_compiler` | shared + static | unchanged; **spec 043 renames it `libRSLCompile`** | n/a |
+
+**Naming scheme** (one, stated): `lib`-prefixed CMake target equal to the file stem (`libRSLRuntime`, `libRSLInfo`,
+`libRSLInfo_static`), `OUTPUT_NAME RSLRuntime`/`RSLInfo`, `EXPORT_NAME RSLRuntime`/`RSLInfo`/`RSLInfo_static`
+(`openRender::RSLRuntime`, `openRender::RSLInfo`, `openRender::RSLInfo_static`), `SOVERSION`: `libRSLRuntime` 1 (unchanged),
+`libRSLInfo` `${OPENRENDER_COMPAT_SOVERSION}` (as `libshader_runtime`). Old names, three forms each:
+- **targets**: `add_library(<old> ALIAS <new>)` (ALIAS targets work in `target_link_libraries`, `$<TARGET_FILE:>`,
+  `$<TARGET_EXISTS:>` and `get_target_property`, so every approved test that links or locates an old name keeps working
+  untouched; an ALIAS cannot be given properties or installed, which no caller does: checked by grep); `rslo`/`rslo_static`
+  are re-pointed at `libRSLInfo`/`libRSLInfo_static` directly, not as an alias of an alias;
+- **exports**: `CMake/openRenderConfig.cmake.in` defines `openRender::shader_shading`, `shader_runtime` (after the shared
+  targets file) and `shader_runtime_static` (after the static targets file) as ALIASes of the new imported targets
+  (non-global imported alias needs CMake 3.18; the floor is 3.19), each guarded by `if(NOT TARGET ...)`;
+- **files**: compat symlinks next to the real files, in the build tree and installed, through the existing
+  `CMake/createCompatAlias.cmake` mechanism of `libRIB*`. Because `add_custom_command(TARGET ... POST_BUILD)` must sit in
+  the directory that defines the target, each symlink rule is in its target's own CMake file
+  (`src/libshader/shading/`, `src/libshader/metadata/`), not in the `src/ri` loop. A binary linked against
+  `@rpath/libshader_shading.1.dylib` or `libshader_runtime.1.dylib` must be relinked (NEWS says so).
 
 **Out of scope**: `libshader_compiler` is not renamed; spec 043 renames it `libRSLCompile` when it makes the compiler a
-versioned library. `libshader_jitmeta`, `libshader_metadata` and `libshader_runtime` keep their names.
+versioned library.
 
 ## Decisions asked of the maintainer (all approved as recommended on 2026-11-14)
 
@@ -241,7 +268,7 @@ Each question had a recommended answer; the plan is written to it.
 | **P-Q4** | `shadername(type)` with **no** renderer services (test doubles only): today it reads the record anyway; after the reroute it answers `""` with one "renderer services do not provide shadername()" warning, like the other message builtins (US5 AS2). No approved test exercises it. | (a) Accept. (b) Keep a no-services fallback that reads the record (contradicts FR-013). | **(a)** |
 | **P-Q5** | What a one-layer group is (FR-011). `RiIlluminate` casts the light handle back, the services `static_cast` a `ShaderHandle`, `shaderInstanceOf()` casts the slot target: all rely on the slot pointing at the instance (R11). | (a) The group of one layer **is** its instance; spec 034 adds a group object behind `shaderInstanceOf`/`groupExecute`/`ShaderGroupBuilder`. (b) A `CShaderGroup` wrapper now. | **(a)** |
 | **P-Q6** | Approved tests (FR-025, for the move; the library rename's approvals are listed separately in TEST-APPROVAL). Tests call `parseShader`/`parseSloShader`, `new CProgrammableShaderInstance(...)`, `context->execute(instance, locals)`, `prog->parent->type/usedParameters/parameters` and `CRenderer::getShader(name, path, fmt)` (R14). | (a) Keep those names (Shading-internal, or a core forwarder that names no backend) so **no approved test is edited**; FR-025 is met as "compile and pass unchanged". (b) Rename and edit the tests. | **(a)** |
-| **P-Q7** | Where the metadata halves live (FR-016, FR-017). The inspection parser (`libshader_runtime`) and the loader's parser share the flex/bison prefix `rslo` and cannot share an image; byte-identical `sloinfo` output needs the inspection parser's data (R15). | (a) A separate static `libshader_metadata` with one reader per format (`.rslo` wraps `rsloGet`, `.slo` wraps `libshader_jitmeta`); not members of `IShaderBackend`. (b) `IShaderBackend::describe()` inside `libshader_shading`, with the `.rslo` half rewritten over the loader's parser. | **(a)** |
+| **P-Q7** | Where the metadata halves live (FR-016, FR-017). The inspection parser (`libshader_runtime`) and the loader's parser share the flex/bison prefix `rslo` and cannot share an image; byte-identical `sloinfo` output needs the inspection parser's data (R15). | (a) A separate library (`libRSLInfo`, L-2) with one reader per format (`.rslo` wraps `rsloGet`, `.slo` wraps `libshader_jitmeta`); not members of `IShaderBackend`. (b) `IShaderBackend::describe()` inside `libshader_shading`, with the `.rslo` half rewritten over the loader's parser. | **(a)** |
 | **P-Q8** | FR-024's threshold ("no measurable regression") and method (R12). | (a) Median of 5 runs (first discarded) of `benchmark_loading.sh` over all 137 x 2 shipped objects, and of an in-process load of the same set through the loader entry points (before) and `ShadingSystem` (after); pass if after <= before + max(5%, 2 x the Phase 1 run-to-run spread). (b) Another figure. | **(a)** |
 | **P-Q9** | `lightInstanceOf()` returns `CShaderInstance *` instead of an unchecked downcast to `CProgrammableShaderInstance *` (a test backend's light, or OSL's later, is not one). Changes the type of locals in `iterateLights` and the ambient loops, which spec 057 also touches. | (a) Change it (every member used is on the base). (b) Keep the downcast; forbid non-RSL lights until 049. | **(a)** |
 | **P-Q10** | Corrections to apply to spec.md at approval (R0.2): services version 2.3.0 (FR-015, A-7), the measured DB-007/DB-018/DB-024 evidence, FR-021's "core's baseline" read as "every class row at or below its baseline", `CRendererContext::getShader` ending at :350. | (a) Apply them to spec.md (Clarifications, plan session). (b) Leave spec.md as is; plan and research carry them. | **(a)** |
@@ -286,7 +313,7 @@ specs/033-shading-system-backends/
 │   ├── light-shader-entry-points.md    # FR-029, for spec 057
 │   └── checks-and-tests.md
 ├── checklists/requirements.md
-└── tasks.md                # /speckit-tasks (not created here)
+└── tasks.md                # /speckit-tasks
 ```
 
 ### Source code
@@ -327,12 +354,12 @@ in the first phase that adds a member (Phase 3), with the history entry complete
 |---|---|---|
 | **1. Baselines and characterisation** (no `src/` change) | Manifests of the visual suite and the sweep on macOS and Linux; the spec 026/028 replays green; `ShaderFormat_Precedence` recorded in `build` and `build-nojit`; `BindSpaces_Characterise`; `ShadingContract_MessageRequests`; `Sloinfo_Output137`; R12 timings. | Every record taken; Linux baseline recorded before Phase 3 |
 | **2. Red tests** (no `src/` change) | The new tests and the three checks of [checks-and-tests](contracts/checks-and-tests.md), the `"tst"` fixture backend, behind `OPENRENDER_033_RED_TESTS`; each shown red for the right reason. | Red list recorded |
-| **3. Bind-time init into Shading** (FR-009, #134) | `git mv init.cpp rsloInit.cpp`; JIT init path into Shading; `bindCoordinateSystem` + `MatrixRequest::phase` (2.4.0 starts); `lookupVariable`; the core calls one Shading entry for the init. | `BindSpaces_Characterise` identical; 0 `CRenderer::` in the Shading init; no `OPENRENDER_HAVE_LLVM` left from the init in the core |
+| **3. Bind-time init into Shading** (FR-009, #134) | `git mv init.cpp rsloInit.cpp`; JIT init path into Shading; `bindCoordinateSystem` + `MatrixRequest::phase` (2.4.0 starts); `lookupVariable`; the core calls one Shading entry for the init. | `BindSpaces_Characterise` identical; `ShadingSystem_BindUnknownSpace` green (P-Q2); 0 `CRenderer::` in the Shading init; no `OPENRENDER_HAVE_LLVM` left from the init in the core |
 | **4. Split and dispatch** (FR-007, FR-010, FR-002 part) | Payload types; loaders build payloads and set the backend; the two backend singletons (load, instantiate, initialise, execute); `execute()` dispatcher, `interpret()`, JIT block into `sloBackend.cpp`; `shaderDescription()`; `shader.h` without `llvmJit.h`; `analyse()` as a load helper; `lightInstanceOf` (P-Q9). | Contract and parity suites green; `-slo` scenes identical |
 | **5. The facade** (FR-001, FR-004 to FR-006, FR-008, SC-003, SC-004) | `ShadingSystem`, registry order, unavailable `slo`, cache + mutex, resolver, bind host; `CRendererContext::getShader` shrinks; `CRenderer::getShader` forwarders; `globalFiles` and the loader names leave the core. | `ShaderFormat_Precedence` identical in both trees; `ShadingSystem_*` green (third backend included); `Shading_CoreNoBackendNames` green |
 | **6. Groups** (FR-011, FR-012) | `ShaderGroupBuilder`; the core binds through it; `groupPrepare`/`groupExecute` at the `shade()`, volume-step and imager sites. | `ShadingSystem_GroupOneLayer` green |
-| **7. Message passing** (FR-013, FR-014) | `destBytes` and `getShaderName` (2.4.0 entry completed); `op_lightsource_f`; `shaderName(type)`; implementer. | `ShadingContract_MessageRequestsBoth` and `Shading_JitMessagesThroughServices` green; `ShadingContract_LightsourceOversizedJit` unchanged |
-| **8. Metadata API and the library rename** (FR-016 to FR-018, FR-031) | `ShaderMetadata.h`, `libshader_metadata`, the two readers; `sloinfo` through the API only. Then, after its own TEST-APPROVAL (the diffs of two or three approved files): `libshader_shading` -> `libRSLRuntime` (target, `OUTPUT_NAME`, `EXPORT_NAME`, ALIAS, exported alias, compat symlink), the three test edits, the install docs. | `SloinfoGoldenOutput`, `Sloinfo_Output137`, `ShaderMetadata_Shipped`, `Sloinfo_MetadataApiOnly` green; the rename: `ShadingSystem_*`, `Link_*`, `PluginAbi_InstallLayouts` green, S1a/S1e shown failing on a planted include, opt-in `-L '^link-package$'` green |
+| **7. Message passing** (FR-013, FR-014) | `destBytes` and `getShaderName` (2.4.0 entry completed); `op_lightsource_f`; `shaderName(type)`; implementer. | `ShadingContract_MessageRequestsBoth`, `ShadingContract_ShadernameNoServices` (P-Q4) and `Shading_JitMessagesThroughServices` green; `ShadingContract_LightsourceOversizedJit` unchanged |
+| **8. Metadata API, `libRSLInfo` and the library renames** (FR-016 to FR-018, FR-031) | `ShaderMetadata.h`; `libRSLInfo` (shared + static) from the inspection parser objects, the metadata readers and the `.slo` probe, `libshader_runtime`/`_static`, `rslo`/`rslo_static` kept as ALIAS targets, `libshader_jitmeta` an internal `libRSLJitMeta`; `sloinfo` through the API only. Then, after the opening TEST-APPROVAL (the diffs of two or three approved files): `libshader_shading` -> `libRSLRuntime` (target, `OUTPUT_NAME`, `EXPORT_NAME`, ALIAS, exported aliases, compat symlinks), the test edits, `Link_InfoRuntimeNotCoLinked`, the install docs. | `SloinfoGoldenOutput`, `Sloinfo_Output137`, `ShaderMetadata_Shipped`, `Sloinfo_MetadataApiOnly` green; the rename: `ShadingSystem_*`, `Link_*`, `PluginAbi_InstallLayouts` green, S1a/S1e shown failing on a planted include, opt-in `-L '^link-package$'` green |
 | **9. Close** (FR-020 to FR-022, FR-024, FR-027, FR-029) | Red-test option removed; registry (DB-007 Resolved with 033 and the date; DB-018, DB-024 rewritten); DEVNOTES (status, #167 known limitation); OSHADER_UPDATES; `claude-md-draft.md` (gotchas 3, 23, 25, 27, 28, 33, 35, "Shading pipeline", "Build"); the light contract checked against the final code; JIT-off build and its tests on macOS and Linux; Linux full run and sweep; macOS sweep; R12 timings; the opt-in `link-package` run on both platforms. The coordinator then runs `speckit-converge` (after the last phase, before merge preparation; no task here prepares the merge). | SC-001 to SC-011 |
 
 ## Files and interfaces 057 will meet
@@ -385,9 +412,13 @@ version (the second renumbers its entry), and possibly `shading.cpp` (040's GI b
 
 - **DEP-1**: FR-025 asks that tests depending on the moved code be "adapted to the new interface"; with P-Q6 (a) they
   compile and pass unchanged instead, because the names they use are kept.
-- **DEP-3**: the library rename (L-1) edits approved tests that pin a library name (TEST-APPROVAL); the plan's earlier
-  "0 approved test edited" holds for the move only.
 - **DEP-2**: the temporary CMake option `OPENRENDER_033_RED_TESTS` (Phase 2 to Phase 9), as spec 029's DEP-2.
+- **DEP-3**: the library renames (L-1, L-2) edit approved tests that pin a library name (TEST-APPROVAL); the plan's earlier
+  "0 approved test edited" holds for the move only.
+- **DEP-4**: `Link_InfoRuntimeNotCoLinked` (Phase 8) is not red-first: it guards link lines that exist only once `libRSLInfo` and
+  `libRSLRuntime` do, so it carries a mutation check instead. The three owners of the `rslo*` prefix are `libRSLRuntime`,
+  `libRSLInfo` and `libshader_compiler`; the guard also walks the built executables' `otool -L`/`NEEDED` closure so a
+  transitive co-link is caught.
 
 ## TEST-APPROVAL
 
@@ -400,12 +431,15 @@ Measured on this tree (2026-11-14); every other approved test links or locates t
 
 | File | Why it needs an edit | Proposed edit |
 |---|---|---|
-| `tests/link/check_scope.cmake:86` | It reads `CMakeFiles/libshader_shading.dir/flags.make` behind `if(EXISTS)`. After the rename the real target's directory is `libRSLRuntime.dir`, the file is missing, the include-dir list comes back empty and sub-checks S1a/S1e **pass without checking anything** (nothing turns red). | the path becomes `CMakeFiles/libRSLRuntime.dir/flags.make`; the `if(EXISTS)` guard becomes a `FATAL_ERROR` when the file is absent (so it can never pass vacuously); a planted-include run shows S1a and S1e failing |
+| `tests/link/check_scope.cmake:86` | It reads `CMakeFiles/libshader_shading.dir/flags.make` for the shading library's include path. S1a and S1e already **fail** when that file is absent ("cannot read the shading library's include path"), so a fresh tree goes red after the rename. The real hazard is a **stale** `build/src/libshader/shading/CMakeFiles/libshader_shading.dir/flags.make` left on disk in incremental trees (`build`, `build-nojit`, the Linux tree): the old file stays, the test stays green, and it checks the old include list, not `libRSLRuntime`'s. | the path points at `CMakeFiles/libRSLRuntime.dir/flags.make`; a `FATAL_ERROR` when `_include_dirs` is empty after reading it; no "missing file becomes fatal" edit (it already fails); a planted-include run shows S1a and S1e failing in every tree. T127 records the actual outcome per tree before the edit |
 | `tests/shading_contract/check_link_line.cmake:56` | `ITEMS "shader_shading" "RIBCommon"`: the link line of the standalone test names the real library file, now `RSLRuntime`; the check goes red. | `"shader_shading"` -> `"RSLRuntime"` |
-| `tests/plugins/checks/install_consumer/CMakeLists.txt:16` (proposed, optional) | Iterates `openRender::shader_shading shader_runtime ...`. It stays green **unedited** through the exported alias, which is the point: it proves the old export name works. To prove the new one, add `RSLRuntime` to the list. | add `RSLRuntime` to the foreach |
+| `tests/plugins/checks/install_consumer/CMakeLists.txt:16` (proposed, optional) | Iterates `openRender::shader_shading shader_runtime ...`. It stays green **unedited** through the exported aliases, which is the point: it proves the old export names work. To prove the new ones, add `RSLRuntime` and `RSLInfo` to the list. | add `RSLRuntime` and `RSLInfo` to the foreach |
 
-Checked and **not** edited: `tests/unit/common/CMakeLists.txt:24` (`$<TARGET_EXISTS:libshader_shading>` and
-`$<TARGET_FILE:...>` resolve through an ALIAS; verified at the Phase 8 test gate), `tests/unit/sampling`,
+The inspection side (`libshader_runtime` -> `libRSLInfo`, L-2) adds **no further approved-test edit**: its two pins resolve
+through the ALIAS and the exported alias.
+
+Checked and **not** edited: `tests/unit/common/CMakeLists.txt:24` (`$<TARGET_EXISTS:libshader_shading>`, `libshader_runtime`
+and `$<TARGET_FILE:...>` resolve through an ALIAS; verified at the Phase 8 test gate), `tests/unit/sampling`,
 `tests/link/CMakeLists.txt`, `tests/plugins/checks/CMakeLists.txt:158` (`$<TARGET_FILE:libshader_shading>`), every
 `target_link_libraries(... libshader_shading ...)`; comments in approved tests that say `libshader_shading` stay.
 

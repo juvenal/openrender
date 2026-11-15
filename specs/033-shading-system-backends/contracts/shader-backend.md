@@ -27,7 +27,7 @@ void unregisterShaderBackend(const char *key);                                  
 ```
 
 No member names OSL, a closure, an LLVM type or a bytecode type (FR-030). Metadata is not a member: readers live in
-`libshader_metadata` (contracts/shader-metadata.md, research.md R15).
+`libRSLInfo` (contracts/shader-metadata.md, research.md R15).
 
 ## The two built-ins
 
