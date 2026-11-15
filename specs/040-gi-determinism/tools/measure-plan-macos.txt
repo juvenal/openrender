@@ -1,0 +1,146 @@
+=== 1. #163 (identity photon frame, -t:1)
+scene specs/040-gi-determinism/tools/identity-photon.rib, 30 runs, dirmode reuse, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 39776f8cc89cafc297f7a27542d0f7c2: 2
+  md5 37cacea861810e29814126fa8a99fdac: 2
+  md5 54981b3f772464a5b4d048440b6447dc: 1
+  md5 ee6f7daeb2aebbfb373b606875e41552: 1
+  md5 469e611712878cac3bf6f25f1e367745: 1
+  md5 b00cb8e3b6dfb9bf7f18033814ee9974: 1
+  md5 121467aaf755785a061dd9a1aa89cafe: 1
+  md5 713537a3274013ab16a4794a6e2c235c: 1
+  md5 68d3cd6b4839f7774b162f0691517fbf: 1
+  md5 7eba741996e1a5dac7e0feb706c2e03d: 1
+  md5 bd630aa266722a310fd284e0fdec7d1c: 1
+  md5 004edd3946fa829e97414f67e0dd3155: 1
+  md5 0f27325198cea35e2a1f3487f7eaedf3: 1
+  md5 615d10afac848bf0a81c465a15f3f3de: 1
+  md5 bba170890dbeb573780f9e3b0fa628d7: 1
+  md5 4d3b4ac88f4639b8174567f965d1f6fc: 1
+  md5 43106e1b9532ae8a9da92f3e1edd195f: 1
+  md5 f9507bdbb72181a0b18e9d5aef4d8860: 1
+  md5 448d49c285c41e9261c694bc571f41c0: 1
+  md5 fe41086a0b62a83826dacbe19586e2f2: 1
+  md5 e1ea9fcde1ec52a5a4750c3ee94ce21d: 1
+  md5 5f02c2da3d11c087f9f4cf3bcbf22171: 1
+  md5 5a7155c46797f41c46a7ea9f948d2b0f: 1
+  md5 0a6c52615e3ba48cc3cb1f1d3d1b1048: 1
+  md5 50e7ee809f51a04801c3105ed79f1e64: 1
+  md5 79ec6a6798fe1034524a535d1543a25d: 1
+  md5 95057e67da5f92b2e4f83b2fd5319947: 1
+  md5 ec05b1852b491d486dfb4e2f27c5ac50: 1
+  photons per run (numItems): {440: 30}
+  byte comparison of 54981b3f and ee6f7dae (sizes 19602, 19602)
+  differing bytes by place: {'item0:C': 12, 'item0:N': 8, 'item0:flags': 2, 'item0:pad1': 2, 'item0:pad2': 2, 'item0:phi': 1, 'item0:theta': 1, 'item:pad2': 32, 'trailer:maxPower': 4}
+  items touched: 17 (item 0 among them: True)
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-8z56i9n3
+scene specs/040-gi-determinism/tools/identity-photon.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 7708e265b16cc94b765ea1ecf92799d5: 19
+  md5 54981b3f772464a5b4d048440b6447dc: 11
+  photons per run (numItems): {440: 30}
+  byte comparison of 54981b3f and 7708e265 (sizes 19602, 19602)
+  differing bytes by place: {'item0:C': 12, 'item0:N': 8, 'item0:flags': 2, 'item0:pad1': 2, 'item0:pad2': 2, 'item0:phi': 1, 'item0:theta': 1, 'item:pad2': 32}
+  items touched: 17 (item 0 among them: True)
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-sfnhw1up
+scene specs/040-gi-determinism/tools/identity-photon.rib, 30 runs, dirmode reuse, options (none), MallocPreScribble=1
+  failed runs: 0 []
+  md5 39776f8cc89cafc297f7a27542d0f7c2: 2
+  md5 37cacea861810e29814126fa8a99fdac: 2
+  md5 7708e265b16cc94b765ea1ecf92799d5: 1
+  md5 ee6f7daeb2aebbfb373b606875e41552: 1
+  md5 469e611712878cac3bf6f25f1e367745: 1
+  md5 b00cb8e3b6dfb9bf7f18033814ee9974: 1
+  md5 121467aaf755785a061dd9a1aa89cafe: 1
+  md5 713537a3274013ab16a4794a6e2c235c: 1
+  md5 68d3cd6b4839f7774b162f0691517fbf: 1
+  md5 7eba741996e1a5dac7e0feb706c2e03d: 1
+  md5 bd630aa266722a310fd284e0fdec7d1c: 1
+  md5 004edd3946fa829e97414f67e0dd3155: 1
+  md5 2de611e1a9bdbd792684650a74fb25ba: 1
+  md5 615d10afac848bf0a81c465a15f3f3de: 1
+  md5 d1b927e6842c963ea5d3bf442d60e7e7: 1
+  md5 7032d36ab2a0f58be40cfb5ecac7dfce: 1
+  md5 2f62242764f89c3f0acf5d835c6b6c0b: 1
+  md5 f9507bdbb72181a0b18e9d5aef4d8860: 1
+  md5 88061c5cd51b26119df908c984b4f6e6: 1
+  md5 fe41086a0b62a83826dacbe19586e2f2: 1
+  md5 898bbc1545743ab0a797188c33fae54f: 1
+  md5 5f02c2da3d11c087f9f4cf3bcbf22171: 1
+  md5 7623d7b281e70b8a96f61037bb38749f: 1
+  md5 0a6c52615e3ba48cc3cb1f1d3d1b1048: 1
+  md5 b13b0dd55da1d551636e28cd6abe2b7c: 1
+  md5 79ec6a6798fe1034524a535d1543a25d: 1
+  md5 9f70ac95e8736d2341c3e9d05130b699: 1
+  md5 ec05b1852b491d486dfb4e2f27c5ac50: 1
+  photons per run (numItems): {440: 30}
+  byte comparison of 7708e265 and ee6f7dae (sizes 19602, 19602)
+  differing bytes by place: {'trailer:maxPower': 4}
+  items touched: 0 (item 0 among them: False)
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-0wljtxcl
+scene specs/040-gi-determinism/tools/identity-photon.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=1
+  failed runs: 0 []
+  md5 54981b3f772464a5b4d048440b6447dc: 15
+  md5 7708e265b16cc94b765ea1ecf92799d5: 15
+  photons per run (numItems): {440: 30}
+  byte comparison of 54981b3f and 7708e265 (sizes 19602, 19602)
+  differing bytes by place: {'item0:C': 12, 'item0:N': 8, 'item0:flags': 2, 'item0:pad1': 2, 'item0:pad2': 2, 'item0:phi': 1, 'item0:theta': 1, 'item:pad2': 32}
+  items touched: 17 (item 0 among them: True)
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-alwl81ug
+=== 2. photon pass, 1 and 4 threads
+scene ../../../../../../tmp/m040-scenes-S8Ii/photon-pass-t1.rib, 10 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 12b38763b14fd4ff38062cb0143e1d85: 1
+  md5 6ec900e24f76cb9978823183b4d96e90: 1
+  md5 51ac2ad6395b13dfff913f9ba4614bef: 1
+  md5 e6ba46a8524ca2fdd123fcc602a1195c: 1
+  md5 196eb47d0a0ee36f11412bf6d629ed79: 1
+  md5 eb45735b4218235c0b5c05392aad42cf: 1
+  md5 55be5ef695335cb285f4d5fcb55d2125: 1
+  md5 d53e1bae0cb4e9851bf0c15666748be4: 1
+  md5 303669fe15967da77b773dc3b453b81f: 1
+  md5 cb01f94708d10c91c8245fb2524eb361: 1
+  photons per run (numItems): {46273: 10}
+  byte comparison of 12b38763 and 6ec900e2 (sizes 2036254, 2036254)
+  differing bytes by place: {'item0:C': 3, 'item0:N': 3, 'item0:P': 3, 'item0:pad1': 1, 'item0:pad2': 1, 'item:pad2': 4206}
+  items touched: 4207 (item 0 among them: True)
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-zrgmw589
+scene ../../../../../../tmp/m040-scenes-S8Ii/photon-pass-t4.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 9 [(6, -5), (12, -11), (13, -5), (16, -5), (18, -11), (20, -11), (22, -6), (23, -11), (28, -5)]
+  md5 23d8a5460db9a5e107a93ac949f3d19b: 1
+  md5 97e2fe5660b25cacaa678e266639e9c6: 1
+  md5 6807688c93ba30a0294d901f7b9882e1: 1
+  md5 e66870b27633a411194617664e6fb351: 1
+  md5 1b1b9b0001699f17f5ad445d31999ecd: 1
+  md5 6e017a9fe64503bae967c058b90fbda8: 1
+  md5 60771b5924e995480b2c02aa74cffd1e: 1
+  md5 ac50b1feff886525b6a5471e277a63b0: 1
+  md5 0cd48862f72bf9aa66dd308dc4f770d3: 1
+  md5 a85dfdffbf3e6dbaf240ac0f487af001: 1
+  md5 f09b5dd9108b8b4fb0c17132c8305683: 1
+  md5 48be66b0640518aa1e02ef97cf0578ce: 1
+  md5 aba16feccbd6b23ed300c221d02d407b: 1
+  md5 9119c1ab92c9138b3f20dfaa5f6567a4: 1
+  md5 fe5404dad9281b8e83cc6b8181e28f09: 1
+  md5 66000a593fe40519e04ba5f2863d52fe: 1
+  md5 f43e2303719343ef8d15b7c746c6fa3a: 1
+  md5 22be4fec8df0fec0828a31237eaa3335: 1
+  md5 534c03e2085ece4139955f4e044412bf: 1
+  md5 86c70aec485a4070b922082beb862d6e: 1
+  md5 73cf0a0662e585005a8210fe7c51939c: 1
+  photons per run (numItems): {46273: 21}
+  byte comparison of 23d8a546 and 97e2fe56 (sizes 2036254, 2036254)
+  differing bytes by place: {'item0:C': 9, 'item0:N': 11, 'item0:P': 11, 'item0:flags': 2, 'item0:pad1': 2, 'item0:pad2': 2, 'item0:phi': 1, 'item0:theta': 1, 'item:C': 290946, 'item:N': 7907, 'item:P': 213934, 'item:flags': 6604, 'item:pad2': 25793, 'item:phi': 24636, 'item:theta': 26344}
+  items touched: 37541 (item 0 among them: True)
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-j6ghx1gd
+=== 3. photon pass under -P:2
+scene ../../../../../../tmp/m040-scenes-S8Ii/photon-pass-nopin.rib, 3 runs, dirmode fresh, options -P:2, MallocPreScribble=unset
+  failed runs: 3 [(0, 255), (1, 255), (2, -11)]
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-c0s5plwx
+=== 4. GI counters, one thread
+scene occlusion-cache.rib, options (none): exit 0, 0.36 s
+scene occlusion-nocache.rib, options (none): exit 0, 0.10 s
+scene indirect-cache.rib, options (none): exit 0, 0.16 s
+(frame 2 alone, reading the map frame 1 of the previous run left in its own scratch: not available, so it runs the photon pass first)
+scene indirect-nocache.rib, options (none): exit 0, 0.16 s
+scenes: /tmp/m040-scenes-S8Ii
