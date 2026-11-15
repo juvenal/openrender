@@ -27,7 +27,8 @@ Layers (CLAUDE.md "Attributes system", applied to an option):
    `common/riVocabulary.h` and `common/riTokens.cpp` (gotcha 22; `Common_VocabularyConsistency`).
 2. Parse in `RiOptionV` (`rendererContext.cpp`, beside `RI_TEXTURECACHE`).
 3. Store in `COptions::imageBackend` (Graphics State vocabulary value).
-4. Pre-declare `"imageio" "backend"` as `uniform string` in `CRenderer::initDeclarations()`.
+4. Pre-declare `"imageio" "backend"` (and the per-call `"imageio"`) as `uniform string` in Graphics State's `CDeclarations`
+   (`src/ri/state/declarations.cpp`, beside `RI_TEXTURECACHEENABLE`, which ribVector compiles).
 
 ## RIB: per call
 

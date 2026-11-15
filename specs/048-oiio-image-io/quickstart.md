@@ -6,6 +6,7 @@ unless absolute.
 Rules for everything below:
 - Every build, test, vcpkg run or render goes through `~/.claude/bin/cpujob <label> …` at `-j4` at most (`-j2` on
   the Linux host), with vcpkg's own parallelism capped by `VCPKG_MAX_CONCURRENCY`.
+- Every `ctest` line below is shown bare for brevity; each runs as `~/.claude/bin/cpujob <label> ctest ...` (`-j4` at most, `-j2` for the sweep and on Linux).
 - Check `df -h /Volumes/Projects` first, and stop below 2 GB.
 - Section M commands M0, M1 and M3a are approved (see the conditions at the head of section M); M3b and M4 run at implementation.
 
@@ -32,8 +33,8 @@ OIIO-off tree may use the shared install tree like every other worktree.
 - **V1, default build byte-identity (US2, FR-014, SC-004).** Build `build/` (OIIO off).
   - `ctest --test-dir build -LE determinism-sweep -j4`: all pass, with no reference or threshold file in the diff
     (`git diff --stat -- tests/ src/libshader/tests/reference` shows only new files).
-  - `ctest --test-dir build -L imageio`: only `ImageIO_AbsentBuild` and `ImageIO_SelectWithoutOIIO` run, and both
-    pass.
+  - `ctest --test-dir build -L imageio`: only `ImageIO_AmendmentAgree`, `ImageIO_VcpkgManifest`, `ImageIO_CiHasNoOiio`, `ImageIO_AbsentBuild` and (from
+    Phase 5) `ImageIO_SelectWithoutOIIO` run, and all pass.
 - **V2, with and without OIIO byte-identity (US2-2).** Build both trees and render
   `examples/rib/camera-dof.rib` plus the image_input and texture_tile scenes from each. Compare every pair with
   `cmp`: identical. `otexmake` on `tests/unit/image_input/fixtures/medium_rgb.tif` in each of the four CLI modes
@@ -48,7 +49,9 @@ OIIO-off tree may use the shared install tree like every other worktree.
   every entry is confirmed, and the doc and data file agree.
 - **V6, selection (FR-013).** `ctest --test-dir build-oiio -R ImageIO_Selection`:
   - the Option is parsed, and an unknown value reports and leaves the backend unchanged;
-  - precedence is call, then Option, then default;
+  - precedence is call, then Option, then default, observed through **decoding** with fixtures that decode
+    differently on the two backends (the RLE `.hdr` of `D-RGBE-RLE`, the tRNS PNG of `D-PNG-TRNS`); the
+    OIIO-written `SOFTWARE` tag check belongs to `ImageIO_BakeParity` (V7), because the writer arrives in Phase 6;
   - `otexmake -imageio bogus` exits 2;
   - the disk-cache name gets `.oiio` only on the OIIO path.
 
@@ -57,14 +60,20 @@ OIIO-off tree may use the shared install tree like every other worktree.
   - every directory's tag set and samples are equal for plain, shadow, cubic, spherical (C++ entry) and cylinder,
     at 8-bit, 16-bit 1/2-channel and float;
   - a 16-bit RGB bake with `oiio` is written by the legacy writer, with the message;
-  - the renders with either texture pass at the scene's existing threshold, and identity is reported.
+  - an OIIO-baked file carries a `SOFTWARE` tag that begins `OpenImageIO` and the legacy one does not (the backend
+    probe `ImageIO_BakeParity` uses);
+  - the renders with either texture pass the visual metric at the default parity threshold 20 (approved
+    2026-11-14), and identity is reported.
 - **V8, display (US4, SC-003).** `ctest --test-dir build-oiio -R 'ImageIO_Display(Parity|Load|FormatErrors)'`:
   - 0 differing samples for TIFF 8/16/float, PNG 8/16, EXR half and RGBE `rgb`, each pair decoded by libtiff,
     libpng or OpenEXR in test code (the OIIO reader only for RGBE);
+  - the display parameters give equal decoded samples: `quantize` 8/16, `gamma`, TIFF `compression` lzw/zip/none and
+    EXR zip/piz, `NP`/`Nl` tags on TIFF, and `dither` with the same seed through the shared `file_base` code;
   - the module passes `checkPluginVersion`;
   - `Display "x.foo" "oiio"`, and `type "openexr"` without OpenEXR, fail and write nothing.
 - **V9, single copy (US5-1, FR-004, SC-005).**
-  `cmake --install build-oiio --prefix /tmp/or048-install && ctest --test-dir build-oiio -R ImageIO_SingleCopy`
+  `ctest --test-dir build-oiio -R ImageIO_SingleCopy` (its fixture step runs `cmake --install build-oiio --prefix
+  build-oiio/or048-install`, the same prefix `ImageIO_SingleCopy` reads and M4 measures)
   (install **without** `--strip`: a stripped install drops local symbols and the "exactly one definer" check would
   fail falsely).
   The test runs `nm -a` (all symbols, `CMAKE_NM`) on every Mach-O/ELF file under the prefix and checks:
@@ -190,9 +199,9 @@ Then repeat the OFF build (`build/`) with `-LE determinism-sweep -j2`. Record th
 After V9's install, on macOS and Linux:
 
 ```bash
-du -sh /tmp/or048-install
-ls -la /tmp/or048-install/lib/libRIBImageIO* /tmp/or048-install/lib/libRIBRender* \
-  /tmp/or048-install/*/displays/oiio.dsply
+du -sh build-oiio/or048-install
+ls -la build-oiio/or048-install/lib/libRIBImageIO* build-oiio/or048-install/lib/libRIBRender* \
+  build-oiio/or048-install/*/displays/oiio.dsply
 ```
 
 Compare with research R14's baseline. Expected: `libRIBRender`, `otexmake`, `orender` and the legacy drivers are

@@ -86,7 +86,9 @@ default changes. The work has six parts:
      developer may point `OpenImageIO_ROOT` at a prefix build of OIIO 3.1.14, which builds OCIO itself.
    - No CI job enables OIIO in this spec.
 
-**Tolerance (FR-021)**: none, anywhere. Every parity comparison is exact. The one float discrepancy found
+**Tolerance (FR-021)**: none, anywhere. Every parity comparison is exact, with one exception: the render-equivalence
+metric of US3-3 (`ImageIO_BakeRender`, the visual block-average metric at the default threshold 20, approved
+2026-11-14), which also reports exact identity and is backed by the exact tag-and-sample comparison of `ImageIO_BakeParity`. The one float discrepancy found
 ([research R5](research.md#r5-float-parity-and-the-tolerance-question)) is in OIIO's RGBE decode table: exponent
 bytes 40, 223 and 226 are one float ulp off the exact power of two (checked entry by entry against `ldexp`). It is a
 listed difference, pinned to its exact values by a test, not a tolerance. EXR half conversion is
@@ -132,7 +134,7 @@ this spec and is not measured as a gate.
   texture system.
 
 **Scale/Scope**: about 1.2k lines of new C++ (library about 600, adapter 150, sink and gate 150, driver 250), about
-40 small fixtures, 9 new test executables or scripts, one archcheck class, and documentation.
+40 small fixtures, 22 new CTest tests (about 17 test programs and scripts) and 2 archcheck fixtures, one archcheck class, and documentation.
 
 ## Constitution Check
 
@@ -212,8 +214,8 @@ src/ri/texture/
 ├── textureSystem.h                 # + CTextureSystemSettings::imageBackend
 └── texture.cpp                     # synthesized source + disk cache honour the backend
 src/display/oiio/                   # NEW: oiio.dsply (Display), links openrenderfilebase + openrenderimageio
-src/ri/state/{options.h,options.cpp,stateVocabulary.h}  # + COptions::imageBackend (State vocabulary)
-src/ri/render/{rendererContext.cpp,renderer.cpp,rendererDeclarations.cpp}  # Option parse, mapping, declarations
+src/ri/state/{options.h,options.cpp,stateVocabulary.h,declarations.cpp}  # + COptions::imageBackend (State vocabulary); declarations (compiled into ribVector)
+src/ri/render/{rendererContext.cpp,renderer.cpp}  # Option parse, mapping
 src/ri/parse/ri.h, src/common/riVocabulary.h, src/common/riTokens.cpp      # RI_IMAGEIO, RI_BACKEND (all three)
 src/otexmake/otexmake.cpp           # -imageio flag
 CMakeLists.txt                      # OPENRENDER_ENABLE_OIIO, vcpkg feature + install-dir guard, find + version check
@@ -228,27 +230,31 @@ tests/architecture/                 # domain-rules.txt, domain-map.txt, archchec
 directory, and additive edits elsewhere. The library is classified by location, as every class is (`domain-map.txt`
 research R4 of spec 022).
 
-## Phases (for the tasks stage)
+## Phases (as built into tasks.md)
 
-The tasks stage turns these into tasks. Each phase ends with `ctest -L architecture` and a pause for review.
+[tasks.md](tasks.md) turns these into tasks. Each phase ends with a CHECKPOINT (the maintainer commits) and, from
+Phase 2, `ctest -L architecture`.
 
-1. **Governance gate** (no code under `src/imageio/` yet): apply the amendment (constitution, Sync Impact Report,
+1. **Setup, baselines and the approved measurements**: pre-flight, M0 (private OIIO-off base tree), the OIIO-off
+   baseline build and tests on macOS and on the Linux host, M1 (vcpkg OIIO into the private tree), M3a (the Linux
+   prefix build), the shared-tree checksum guard. No source change.
+2. **Governance gate** (no code under `src/imageio/` yet): apply the amendment (constitution, Sync Impact Report,
    plan template, `domain-rules.txt`, `domain-map.txt`, archcheck `Class::ImageIO`, fixtures `imageio-allowed` and
    `imageio-reverse`, `DOMAIN_BOUNDARIES.md`). It must pass on the unchanged tree.
-2. **Build plumbing, OFF by default**: CMake option, find and version check, vcpkg feature and install-dir guard, the
-   empty library target, the "absent" tests (`ImageIO_AbsentBuild`, `ImageIO_SelectWithoutOIIO`). Byte-identity
-   check of the default build (quickstart V1).
-3. **Approved measurement M1** (vcpkg OIIO into the private tree), then the first OIIO-on configure in this
-   worktree.
+3. **Build plumbing, OFF by default**: CMake option, find and version check, vcpkg feature and install-dir guard, the
+   empty library target, the "absent" tests (`ImageIO_AbsentBuild`), then the first OIIO-on configure in this
+   worktree. Byte-identity check of the default build (quickstart V1).
 4. **Decode (US1)**: fixtures and generator, parity test (legacy-only first, then both), `orimageio::Reader`,
    `COiioImageInput`, `readMatrix`, the difference list and its tests.
-5. **Selection (US2, FR-013)**: tokens in all three lists, `COptions`, declarations, the core mapping, the `Make*`
-   parameter, `otexmake -imageio`, the disk-cache key.
-6. **Baking (US3)**: the sink split (byte-identity first), `TiledTiffWriter`, the gate table, the bake parity and
-   render-equivalence tests.
+5. **Selection (US2, FR-013)**: tokens in all three lists, `COptions`, declarations (`state/declarations.cpp`), the
+   core mapping, the `Make*` parameter, `otexmake -imageio`, the disk-cache key, `ImageIO_SelectWithoutOIIO`.
+6. **Baking (US3)**: the sink split (byte-identity first, pinned by recorded legacy hashes), `TiledTiffWriter`, the
+   gate table, the bake parity and render-equivalence tests.
 7. **Display (US4)**: `ScanlineWriter`, `oiio.dsply`, display parity, load and format-error tests.
-8. **Single copy and platforms (US5)**: `ImageIO_SingleCopy` over the install tree; Linux validation with M3; docs
-   (FR-022); measurements M2 and M4 recorded (SC-007, SC-008).
+8. **Single copy, Linux with OIIO, documentation (US5)**: `ImageIO_SingleCopy` over the install tree; Linux
+   validation with M3b; docs (FR-022); measurements M4 recorded (SC-007, SC-008).
+9. **Closing validation on both platforms**: the full suite, the determinism sweep and the architecture check on an
+   OIIO-on and an OIIO-off build of each platform; byte-identity against the Phase 1 baseline; the audit.
 
 ## Overlaps with concurrent specs (designed against master `278b0394` only)
 
@@ -257,7 +263,7 @@ The tasks stage turns these into tasks. Each phase ends with `ctest -L architect
 | `src/ri/CMakeLists.txt` (`ri_sources`, `ribRender_obj` definitions/links) | `texture/imageInputOiio.cpp`, `HAVE_OIIO` block | **040** (Texturing GI storage, shared source lists) | textual, line-range; the later merge reconciles |
 | `src/ri/texture/` (`texmake.cpp`, `texture.cpp`, `textureSystem.h`, `imageInput.*`) | adapter, sink, settings | **040** (photon and irradiance stores in the same directory) | possible in `texture.cpp`/`textureSystem.h` only if 040 touches the settings struct |
 | Root `CMakeLists.txt` option list, `vcpkg.json` | `OPENRENDER_ENABLE_OIIO`, feature `oiio` | **033** (its spec names `vcpkg.json` (048) and the root option list) | textual |
-| `riVocabulary.h`, `riTokens.cpp`, `ri.h`, `options.h/.cpp`, `rendererDeclarations.cpp`, `rendererContext.cpp` `RiOptionV` | `imageio`/`backend` tokens and option | **057** (`Option "arealight"`) | textual, adjacent lines |
+| `riVocabulary.h`, `riTokens.cpp`, `ri.h`, `options.h/.cpp`, `state/declarations.cpp`, `rendererContext.cpp` `RiOptionV` | `imageio`/`backend` tokens and option | **057** (`Option "arealight"`) | textual, adjacent lines |
 | `.specify/memory/constitution.md`, `tests/architecture/{domain-rules,domain-map}.txt`, archcheck class enum | amendment 1.5.0, class `ImageIO` | none of 033/040/057 amends the constitution (checked their spec and plan drafts on 2026-11-14) | none expected; a later amendment would collide on the version header |
 | `tests/architecture/allowlist.txt`, `metrics-baseline.txt` | none | **033** deletes allowlist lines, changes the metrics | none |
 | `CLAUDE.md`, `DEVNOTES.md`, `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md` | Recent Changes, a gotcha, Testing list, registry text | **033, 040, 057** | textual on every merge |
@@ -269,19 +275,19 @@ questions"; this table is the record of the answer and of what it changes.
 
 | Q | Decision | Consequence recorded |
 |---|---|---|
-| P-Q1 | New shared `libRIBImageIO` (`src/imageio/`, class `ImageIO`), shared only; `libRIBVector` does not link it | Phase 1 (governance) and Phase 2 (target) |
-| P-Q2 | Constitution 1.5.0 amendment text as drafted in `contracts/constitution-1.5.0-draft.md` | Phase 1 applies it, before any file exists under `src/imageio/` |
+| P-Q1 | New shared `libRIBImageIO` (`src/imageio/`, class `ImageIO`), shared only; `libRIBVector` does not link it | Phase 2 (the amendment, governance) and Phase 3 (the target) |
+| P-Q2 | Constitution 1.5.0 amendment text as drafted in `contracts/constitution-1.5.0-draft.md` | Phase 2 applies it, before any file exists under `src/imageio/` |
 | P-Q3 | Option (a): `full_x = 1`, `full_width = W - 1` (and the `y` form) so OIIO writes the full-size tags also when equal; `ImageIO_BakeParity` guards it against version skew | Phase 6 |
 | P-Q4 | Two bake exclusion rows: 16-bit with 3 or more channels, and 8-bit/float with 5 or more channels, stay on the legacy writer with a message; 16-bit 2-channel is written with `tiff:write_extrasamples` 0 | Phase 6 |
 | P-Q5 | The OIIO decode path refuses exactly what legacy refuses, with the same checks; the difference list holds only "legacy accepts, result differs" | Phase 4 |
-| P-Q6 | `Option "imageio" "backend" ["oiio"]` without OIIO: one error, the value stays `legacy`, the scene renders. An explicit per-call `"imageio" "oiio"` or `otexmake -imageio oiio` without OIIO fails and writes nothing | Phase 3, tested by `ImageIO_SelectWithoutOIIO` |
+| P-Q6 | `Option "imageio" "backend" ["oiio"]` without OIIO: one error, the value stays `legacy`, the scene renders. An explicit per-call `"imageio" "oiio"` or `otexmake -imageio oiio` without OIIO fails and writes nothing | Phase 5 (T074, T079), tested by `ImageIO_SelectWithoutOIIO` |
 | P-Q7 | `oiio` display driver: unknown or missing format is an error naming the file; nothing is written | Phase 7 |
 | P-Q8 | RGBE output rule: R,G,B from a 3- or 4-sample display (alpha dropped, documented); 1, 2 or 5 samples is an error | Phase 7 |
 | P-Q9 | The two legacy defects are filed as **GitHub #171** (RLE `.hdr` decode: `CRgbeImageInput` uses `RGBE_ReadPixels`, which cannot read RLE) and **GitHub #172** (the `rgbe` display driver passes `numSamples`-strided scanlines to `RGBE_WritePixels`, so `rgba` output is garbled). Spec 048 does not fix either | Cited by `D-RGBE-RLE`, the display contract's "Not covered" and `DEVNOTES_DETAILS/IMAGE_IO.md`; no task fixes them |
 | P-Q10 | The spec's edge case says "no colour conversion is ever applied" (OIIO may load a colour configuration to describe metadata); backed by `ImageIO_NoColourConversion` (decoded samples equal with `OCIO` unset and set to another config, for a cICP PNG on read and for every PNG the driver writes) | spec.md edited now; Phase 4 (read) and Phase 7 (write) |
-| P-Q11 | No CI job enables OIIO in 048 | Phase 2 asserts `release.yml` has no `OPENRENDER_ENABLE_OIIO` |
+| P-Q11 | No CI job enables OIIO in 048 | Phase 3 (T035) asserts `release.yml` has no `OPENRENDER_ENABLE_OIIO` and keeps at least one job without OIIO |
 | P-Q12 | Linux: a documented prefix build of OIIO 3.1.14 consumed with `-DOpenImageIO_ROOT=`; Ubuntu 24.04 builds without OIIO by default | Phase 8 docs; M3a/M3b |
-| P-Q13 | `OPENRENDER_ENABLE_OIIO` is OFF by default; ON without OIIO warns and builds the legacy tree | Phase 2 |
+| P-Q13 | `OPENRENDER_ENABLE_OIIO` is OFF by default; ON without OIIO warns and builds the legacy tree | Phase 3 (T040, T041) |
 | P-Q14 | Measurements M0, M1 and M3a approved, with the conditions below. M2 is analysis only; M4 runs at implementation | Phase 1 tasks of tasks.md, exactly as `quickstart.md` section M writes them |
 | P-Q15 | The per-call `"imageio"` parameter on `MakeTexture`, `MakeShadow`, `MakeLatLongEnvironment` and `MakeCubeFaceEnvironment` is documented | Phase 5 and Phase 8 docs |
 | P-Q16 | The three RGBE table entries (exponent bytes 40, 223, 226) are one pinned, tested listed difference (`D-RGBE-EXP`); no tolerance | Phase 4 |
@@ -294,6 +300,26 @@ questions"; this table is the record of the answer and of what it changes.
 - **M3a runs on the Linux host in `~/oiio-048`** through the remote `cpujob` at `-j2`. `ssh` works over WARP, `ping`
   does not. Never touch `openrender`, `cellar`, `shrimp`, `openrender-029` or `openrender-038` there.
 - **All macOS work goes through `~/.claude/bin/cpujob`**, `-j4` at most, never `-j8`, with `VCPKG_MAX_CONCURRENCY=4`.
+
+**Analyze findings fixed (2026-11-15)**: the maintainer approved fixing every finding of the analyze stage. What
+changed in the design documents:
+- **FR-021 and SC-008 (H3, option a)**: parity tests run in every build that has OIIO, on macOS (vendored) and on the
+  Linux validation host (prefix build); CI does not run them in 048 and no CI job is added (P-Q11 stands).
+- **Declarations (M3)**: the new option token and the per-call `"imageio"` are declared in Graphics State's
+  `src/ri/state/declarations.cpp` (beside `RI_TEXTURECACHEENABLE`, compiled into ribVector), not in
+  `render/rendererDeclarations.cpp`.
+- **Sink split (M2)**: the split of `texmake.cpp`'s `appendLayer` into `CBakeSink`/`CLegacyBakeSink` is an approved
+  legacy refactor, pinned by the sha256 of the legacy bake of every bake fixture recorded on the unmodified tree
+  (before T093), compared after T093 and again at the closing byte-identity task.
+- **Tolerance (M7)**: the one exception is the US3-3 render-equivalence metric (threshold 20, approved).
+- **FR-017, SC-002, US3-4 (M6)**: the unit of exclusion is the texture kind and the (bits, channels) combination.
+- **Phase numbers and test count (M1)**: the P-Q table and the phase sketch name tasks.md's phases; the scale is 22 new
+  CTest tests.
+- **Tasks (H1, H2, H4, H5, M4, M8, M9 and the lows)**: applied in tasks.md; see its "Analyze-stage answers".
+
+**Tasks approved (2026-11-14)**: the maintainer approved `tasks.md` (136 tasks, 9 phases; 138 after the analyze fixes of 2026-11-15), including the default parity
+threshold 20 for the new bake render scenes (`ImageIO_BakeRender`, T092). For T012 (M1) the agent asks the coordinator
+for the vcpkg slot when it reaches that task.
 
 ## Maintainer questions (answered above; text kept for the reasoning)
 

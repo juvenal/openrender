@@ -2,7 +2,7 @@
 
 **Feature Branch**: `048-oiio-image-io`
 **Created**: 2026-11-13
-**Status**: Draft
+**Status**: Approved (plan approved 2026-11-14, tasks approved 2026-11-14, analyze findings fixed 2026-11-15)
 **Input**: GitHub issue #87 (new capability, layer L7, "Spec 048: OIIO image I/O as an extra decode, display and texmake backend"); the maintainer's plan, row 048 and its decision table ("OIIO" row, D30's utility-library note); `DEVNOTES_DETAILS/RENDER_ARCHITECTURE_REFERENCES.md` D23, D24, D30 and §11.3. Builds on specs 018 (`CImageInput`), 019 (`CTileSource`), 020 (runtime tile paging), 027 (texture system, merged as `486decd2`) and 037 (display ABI 2.0.0, `CDisplayHost`). Blocks 049 (the OSL backend, where the legacy codecs are removed).
 
 ## Clarifications
@@ -17,6 +17,7 @@
 ### Session 2026-11-14 (plan approved)
 
 - Q4: Does "OpenColorIO must not be reached from any path" hold literally? -> A: No. OIIO's PNG reader (cICP) and PNG writer load a colour configuration to describe metadata. The edge case now says "no colour conversion is ever applied", backed by a test with the `OCIO` environment variable unset and set to another configuration (plan P-Q10).
+- Q5 (analyze, 2026-11-15): Where do the parity tests run? -> A: In every build that has OIIO, on macOS (vendored) and on the Linux validation host (prefix build); CI does not run them in 048, because no CI job enables OIIO (P-Q11 stands). FR-021 and SC-008 say so.
 - Constraint from the coordinator: the worktrees share one vcpkg install directory (`VCPKG_INSTALLED_DIR`). This spec MUST NOT install into or modify the shared one; where it needs OIIO through vcpkg it uses its own install directory for this worktree, and no vcpkg run happens before the maintainer approves it through the coordinator (FR-024).
 
 ## User Scenarios & Testing *(mandatory)*
@@ -70,7 +71,7 @@ A baker runs `otexmake` with OIIO writing selected. The baked texture, shadow ma
 1. **Given** a source image, **When** it is baked by the legacy writer and by the OIIO writer, **Then** every Pixar texture tag and the tile layout read back identical and the decoded samples are identical.
 2. **Given** a cubic, a spherical and a cylinder environment source, **When** each is baked through OIIO, **Then** the environment layout and its format string match the legacy bake.
 3. **Given** a scene using a texture baked through OIIO, **When** it renders, **Then** the image matches the same scene with the legacy-baked texture within the scene's existing threshold, unchanged.
-4. **Given** that OIIO cannot preserve a required tag or layout for some texture kind, **When** that kind is baked, **Then** the writer for that kind stays on the legacy path, the exclusion is documented with the reason, and no OIIO-written file of that kind is ever produced.
+4. **Given** that OIIO cannot preserve a required tag or layout for some texture kind and (bits, channels) combination, **When** that combination is baked, **Then** the writer for it stays on the legacy path, the exclusion is documented with the reason, and no OIIO-written file of that kind and combination is ever produced.
 
 ---
 
@@ -150,7 +151,7 @@ A maintainer builds on macOS (vcpkg-vendored), on Ubuntu 24.04 and in CI. OIIO 3
 
 - **FR-015**: `otexmake` MUST be able to bake through OIIO writing, for the texture, shadow-map and environment modes it supports today.
 - **FR-016**: An OIIO-written baked file MUST carry, with the same values as the legacy writer: the Pixar texture-format tag including openRender's custom strings for cubic, spherical and cylinder environments, the full image width and length tags, the wrap-mode tag, and for shadow maps the world-to-camera and world-to-screen matrices; and the same tile size, sample format and sample count. Writing through OIIO for a texture kind is allowed only if this holds for that kind (the gate from the issue).
-- **FR-017**: If OIIO cannot preserve a tag or layout of some texture kind, that kind MUST be baked by the legacy writer even when OIIO writing is selected, with a message saying so, and the limit MUST be documented. The spec's success then covers the kinds that pass.
+- **FR-017**: If OIIO cannot preserve a tag or layout of some texture kind and (bits, channels) combination, that combination MUST be baked by the legacy writer even when OIIO writing is selected, with a message saying so, and the limit MUST be documented. The spec's success then covers the kinds and combinations that pass.
 - **FR-018**: Baked files read by the texture system (`CTextureSystem` and the tile sources of specs 019, 020 and 027) MUST be read by the existing path; the runtime texture cache, its budgets and its load lock stay as they are. An OIIO-backed tile source is out of scope (see Assumptions).
 
 **Display**
@@ -160,10 +161,10 @@ A maintainer builds on macOS (vcpkg-vendored), on Ubuntu 24.04 and in CI. OIIO 3
 
 **Quality and documentation**
 
-- **FR-021**: Parity (FR-010, FR-016, FR-019) MUST be asserted with tests that run in the default suite on every supported platform, using fixtures small enough not to slow it; no parity test MAY be skipped or given a tolerance to pass. Where float output cannot be bit-identical, the difference MUST be explained and the tolerance decided at the planning stage with evidence, never widened to turn a test green.
-- **FR-022**: The user-facing documentation (the `otexmake` and display-driver manual pages, the site pages, `INSTALL.md` / `COMPILING.txt`, `DEVNOTES.md`, `DEVNOTES_DETAILS`, and the plug-in ABI document if the version-history table changes) MUST describe the OIIO path, its selection, its minimum version, its known differences and where it is installed.
+- **FR-021**: Parity (FR-010, FR-016, FR-019) MUST be asserted with tests that run in the default suite in every build that has OIIO, on macOS (vendored) and on the Linux validation host (prefix build); CI does not run them in this spec (no CI job enables OIIO, plan P-Q11), using fixtures small enough not to slow it; no parity test MAY be skipped or given a tolerance to pass. Where float output cannot be bit-identical, the difference MUST be explained and the tolerance decided at the planning stage with evidence, never widened to turn a test green.
+- **FR-022**: The user-facing documentation (the `otexmake` man page and the display-driver documentation, the site pages, `INSTALL.md` / `COMPILING.txt`, `DEVNOTES.md`, `DEVNOTES_DETAILS`, and the plug-in ABI document if the version-history table changes) MUST describe the OIIO path, its selection, its minimum version, its known differences and where it is installed.
 - **FR-023**: Input formats that only OIIO reads (for example JPEG, TGA, BMP, WebP) are out of scope: the OIIO decode and baking paths MUST accept only the formats the legacy decoders read (TIFF, PNG, RGBE, and OpenEXR where built) and MUST refuse any other with an error naming the file and the format.
-- **FR-024**: This spec MUST NOT install into or modify the shared `VCPKG_INSTALLED_DIR` used by the other worktrees. Where OIIO is needed through vcpkg, this worktree MUST use its own install directory, and no vcpkg run MAY happen without the maintainer's approval (asked through the coordinator). The effect of a changed `vcpkg.json` on the CI cache key (it could re-trigger the LLVM build) is measured at the plan stage.
+- **FR-024**: This spec MUST NOT install into or modify the shared `VCPKG_INSTALLED_DIR` used by the other worktrees. Where OIIO is needed through vcpkg, this worktree MUST use its own install directory, and no vcpkg run MAY happen without the maintainer's approval (asked through the coordinator). The effect of a changed `vcpkg.json` on the CI cache key (it could re-trigger the LLVM build) was analysed at the plan stage (research R11).
 - **FR-025**: No task MAY depend on this spec's merge: registry entries move to Resolved with the spec number and date; issue closing happens through the maintainer's merge commit.
 
 ### Key Entities
@@ -179,14 +180,14 @@ A maintainer builds on macOS (vcpkg-vendored), on Ubuntu 24.04 and in CI. OIIO 3
 
 ### Measurable Outcomes
 
-- **SC-001**: For every format fixture the legacy decoders accept (each precision they support), the OIIO decode path yields identical dimensions, channels, precision and samples: 0 differing samples, 100% of fixtures.
-- **SC-002**: For every texture kind that OIIO baking is enabled for, the baked file's Pixar tag set, tile layout and sample format are identical to the legacy bake: 0 differing tags; for each kind it is not enabled for, the exclusion and its reason are documented.
+- **SC-001**: For every format fixture the legacy decoders accept (each precision they support), the OIIO decode path yields identical dimensions, channels, precision and samples: 0 differing samples except the listed differences (SC-009), 100% of fixtures.
+- **SC-002**: For every texture kind and (bits, channels) combination that OIIO baking is enabled for, the baked file's Pixar tag set, tile layout and sample format are identical to the legacy bake: 0 differing tags; for each kind and combination it is not enabled for, the exclusion and its reason are documented.
 - **SC-003**: For TIFF, PNG, RGBE and (where built) OpenEXR output, a fixed scene written by the legacy driver and by the OIIO driver decodes to 0 differing samples.
 - **SC-004**: With no OIIO path selected, 100% of the existing tests pass against unchanged references and unchanged thresholds, and a render with OIIO present is byte-identical to a render without it.
 - **SC-005**: Exactly one shared library in the install tree contains OIIO symbols; no other binary, module or archive does.
 - **SC-006**: `ctest -L architecture` passes and `tests/architecture/allowlist.txt` is unchanged (0 lines added); the constitution, domain rules and `DOMAIN_BOUNDARIES.md` agree on the utility-library amendment.
 - **SC-007**: The added install size (the OIIO library and its dependencies, and the per-binary cost) is measured and recorded on macOS arm64 and Linux; the earlier measurement for comparison is about +8.3 MB per statically linking binary on macOS (`RENDER_ARCHITECTURE_REFERENCES.md` §11.3), which the single-library rule is meant to avoid.
-- **SC-008**: The build and test steps of the supported platforms (macOS vendored, Ubuntu 24.04, CI) succeed, with the first-build time and disk cost of adding OIIO recorded.
+- **SC-008**: The build and test steps of the supported platforms (macOS vendored, and Ubuntu 24.04 as the OIIO-off build and as the Linux validation host with a prefix-built OIIO) succeed; CI keeps only OIIO-off jobs (P-Q11), with the first-build time and disk cost of adding OIIO recorded.
 - **SC-009**: Every difference between the two decode paths is on the documented list, and each listed difference has a test.
 
 ## Assumptions

@@ -19,7 +19,8 @@ the tasks stage keeps unless review changes them.
   `"imageio"` when the call has none and the Option is `oiio`), then `legacy`.
 - Render-time decode of unbaked sources and the disk cache read `CTextureSystemSettings::imageBackend`. The core maps
   `COptions` to it in `CRenderer::beginFrame` (`renderer.cpp:775`), next to the disk-cache fields.
-- Graphics State never includes a Texturing header; the core does the mapping (a `switch`).
+- Graphics State never includes a Texturing header; the core does the mapping (a `switch`), with a `static_assert`
+  that `EImageIOBackend` and `EImageBackend` have the same enumerators and values, so one cannot drift from the other.
 - Unknown value: `error(CODE_BADTOKEN, …)`, and the previous value stays.
 - Value `oiio` in a build without `HAVE_OIIO`: for the Option, one error and the value stays `legacy`; for a
   per-call parameter or `otexmake`, the call fails with the error (P-Q6).

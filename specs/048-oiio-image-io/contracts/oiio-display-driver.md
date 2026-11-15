@@ -36,7 +36,12 @@ Both files of a pair are decoded by one fixed decoder that is neither writer: li
 code for TIFF, PNG and EXR. For RGBE the decoder is the OIIO `Reader`: the OIIO driver writes RLE, and the legacy
 decoder cannot read RLE (GitHub #171, P-Q9). Every sample is compared exactly, NaN by class. 0 differing samples.
 
+**Display parameters** (FR-019; same fixed decoders, exact comparison): `quantize` 8 and 16, `gamma`, TIFF `compression`
+`lzw`/`zip`(`deflate`)/`none`, EXR `compression` `zip`/`piz`, the `NP`/`Nl` Pixar matrices on TIFF (tags read back
+equal), and `dither` with the same seed through the shared `file_base` code. If `file_base`'s dither cannot be
+seeded, the seedless case is not tested, FR-019 is narrowed to say so, and the maintainer is told (T102).
+
 ## Not covered
 
-`framebuffer` (no format), deep or multi-part output, `dither` equality (random), and RGBE `rgba` output, which the
+`framebuffer` (no format), deep or multi-part output, `dither` equality without a fixed seed, `compression "jpeg"` (lossy), and RGBE `rgba` output, which the
 legacy `rgbe` driver garbles today (GitHub #172, P-Q9; noted in `DEVNOTES_DETAILS/IMAGE_IO.md`).

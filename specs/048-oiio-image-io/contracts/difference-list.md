@@ -21,6 +21,10 @@ implementation; an entry is removed only if its test shows no difference.
 | D-TIFF-INT16 | 4x4 1-channel signed 16-bit TIFF | raw bits as uint16 | refused (INT16) | as above |
 | D-TIFF-HALF | 4x4 1-channel 16-bit IEEE float TIFF | raw bits as uint16 | widened to float32 | OIIO values exact; legacy info `16/false` |
 
+`D-TIFF-SEPARATE`, `D-TIFF-INT16` and `D-TIFF-UINT32` are **legacy defects, not fixed here** (legacy reads plane 0 into an
+interleaved buffer, returns raw signed bits as unsigned, reads 32-bit unsigned bits as float). They are listed, pinned and
+left alone; the coordinator may file them as issues later (no issue number is cited until then).
+
 Refusal parity (not differences; asserted by `ImageIO_DecodeErrors`):
 - **Refused identically on both paths**: indexed, interlaced and sub-8-bit PNG; TIFF bits per sample not 8/16/32;
   tiled TIFF (legacy fails at read, OIIO at open; both name the file); multi-part EXR; EXR with unsupported
