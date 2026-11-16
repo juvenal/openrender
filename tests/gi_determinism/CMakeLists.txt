@@ -86,6 +86,14 @@ gi_det_executable_always(test_gi_photon_runs test_gi_photon_runs.cpp)
 
 add_test(NAME GiDet_PhotonFileBytes COMMAND test_gi_photon_store filebytes ${CMAKE_CURRENT_BINARY_DIR}/work/PhotonFileBytes)
 set_tests_properties(GiDet_PhotonFileBytes PROPERTIES TIMEOUT 120 LABELS "gi_determinism;photon" ENVIRONMENT "${GI_DET_SCRIBBLE_ENV}")
+foreach(_m lookup-pure:PhotonLookupPure inmemory-lookup:PhotonInMemoryLookup roundtrip:PhotonRoundTrip)
+    string(REPLACE ":" ";" _mt ${_m})
+    list(GET _mt 0 _mode)
+    list(GET _mt 1 _name)
+    add_test(NAME GiDet_${_name} COMMAND test_gi_photon_store ${_mode} ${CMAKE_CURRENT_BINARY_DIR}/work/${_name})
+    set_tests_properties(GiDet_${_name} PROPERTIES TIMEOUT 120 LABELS "gi_determinism;photon" ENVIRONMENT "${GI_DET_SCRIBBLE_ENV}")
+endforeach()
+
 add_test(NAME GiDet_PhotonClaim COMMAND test_gi_photon_claim claim ${CMAKE_CURRENT_BINARY_DIR}/work/PhotonClaim)
 set_tests_properties(GiDet_PhotonClaim PROPERTIES TIMEOUT 120 LABELS "gi_determinism;photon" ENVIRONMENT "${GI_DET_ENV}")
 
@@ -113,15 +121,6 @@ if(OPENRENDER_040_RED_TESTS)
             target_compile_definitions(${_target} PRIVATE GIDET_RECORD_HOOK_ADDPENDING)
         endif()
     endmacro()
-
-    # --- US1: the photon lookup tests (Phase 3 moves them out of this block; the executable is defined above) ---------
-    foreach(_m lookup-pure:PhotonLookupPure inmemory-lookup:PhotonInMemoryLookup roundtrip:PhotonRoundTrip)
-        string(REPLACE ":" ";" _mt ${_m})
-        list(GET _mt 0 _mode)
-        list(GET _mt 1 _name)
-        add_test(NAME GiDet_${_name} COMMAND test_gi_photon_store ${_mode} ${CMAKE_CURRENT_BINARY_DIR}/work/${_name})
-        set_tests_properties(GiDet_${_name} PROPERTIES TIMEOUT 120 LABELS "gi_determinism;photon" ENVIRONMENT "${GI_DET_SCRIBBLE_ENV}")
-    endforeach()
 
     # --- US2/US3: the irradiance store ------------------------------------------------------------
     gi_det_executable(test_gi_cache_store test_gi_cache_store.cpp)

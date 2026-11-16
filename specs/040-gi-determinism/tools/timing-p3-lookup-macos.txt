@@ -1,0 +1,15 @@
+scaled perf-photon-lookup         format x4
+series 1 of 5 done
+series 2 of 5 done
+series 3 of 5 done
+series 4 of 5 done
+series 5 of 5 done
+
+scene                        tree     median      min      max   spread   runs
+perf-photon-lookup           start      2.78     1.91     4.09     2.18   1.91, 2.78, 2.63, 4.09, 3.61
+perf-photon-lookup           final     22.78    20.67    24.65     3.98   20.67, 22.78, 21.94, 23.92, 24.65
+perf-photon-lookup           start  median 2.78 s: TOO SHORT (< 3 s): raise this scene's factor
+perf-photon-lookup           diff of medians +20.00 s (+718.7%), larger spread 3.98 s: BEYOND SPREAD (slower)
+
+scenes slower beyond the spread: 1
+scene medians under 3 s: 1

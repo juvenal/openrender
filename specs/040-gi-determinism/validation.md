@@ -253,6 +253,31 @@ DeterminismSweep_gi-* (34 entries, step 2 of T031 applied so that the options ex
 
 ## 3. Checkpoint records
 
+### Checkpoint 3 (Phase 3: the photon lookup, D2-A), 2026-11-16
+
+**Change** (`src/ri/texture/photonStore.{h,cpp}`): `PHOTON_LOOKUP_CACHE`, `probe()`, `insert()`, the memo octree, `root`, `maxDepth` and the member `searchRadius` are gone; both `lookup()` overloads are the kd-tree search, the sum and the normalisation, with `searchRadius` a local; nothing outside the store named a removed member (the data viewer, `CPhotonMap` and the tests were checked). One more change the round-trip test needed: **`maxPower` is the largest photon power itself**, kept as such at every `store()` (it was the squared power until `write()` took the square root in place, so a map's lookups before and after a write used different search radii: the in-memory and the reloaded map answered differently, SC-005). The file holds the same number as before (`GiFiles_Unchanged` and `TextureOnly_GiStores` still pass unchanged). `GiDet_PhotonLookupPure`, `_PhotonInMemoryLookup` (#160) and `_PhotonRoundTrip` left the red block; `determinism-scenes-phase3.patch` applied (the two `photon-parity` entries are unguarded).
+
+**#160 evidence.** `GiDet_PhotonInMemoryLookup`: SEGFAULT on the starting tree (`insert()` dereferenced the null root), passes now on both platforms; `GiDet_PhotonLookupPure` (lookups equal those of a fresh store, both overloads) and `GiDet_PhotonRoundTrip` pass on both platforms.
+
+**Photon-parity frame 2 (T014a on the finished tree, `photon-frame2-p3-<platform>.txt`).** `photon-parity` frame 2 alone: **1 md5 in 30 runs at -t:4 and 1 md5 at -t:1, and the same md5 in both** on macOS and on Linux (the starting tree: 29 distinct md5s at -t:4 on macOS, 30 on Linux). `subdiv-loop-photon`: unchanged, one md5 in each.
+
+**Sweep** (`DeterminismSweep_gi-(photon-parity|subdiv|motion-subdiv)`: float colour, alpha and depth bit-identical under `-t:1`, the default, `-t:2` and `-t:4`, every `.gpm` byte-identical): 7 of 7 pass on both platforms, the two `photon-parity` entries (frame-2 images included) among them.
+
+**Everyday suite.** macOS 1373 tests, 2 failures: `Visual_photon-parity` and `-slo` (expected drift, below). Linux 1374 tests, 3 failures: the same two and the known `TextureTile_RenderByteIdentical`. `ctest -L architecture` 36 of 36 on both; allowlist 168 lines.
+
+**Drift list (D2-A: every image that reads the photon map changes once; none is adjusted; each goes on the Phase 7 re-render list)** (`tools/drift-p3-macos.txt`, `tools/drift-p3-linux.txt`, MaxBlockAvgDiff against the starting tree's):
+
+| test | before (macOS / Linux) | after (both) | threshold | verdict |
+|---|---|---|---|---|
+| `Visual_photon-parity` | 0.00 / 0.92 | 7.06 | 6 | **over threshold** |
+| `Visual_photon-parity-slo` | 0.00 / 0.92 | 7.06 | 6 | **over threshold** |
+| `Visual_photon-solar0-alone` and `-slo` | 0.00 / 0.12 | 11.09 | 20 | changed, within |
+| `Visual_photon-solar0-after-distant` and `-slo` | 0.00 / 1.52 | 8.77 | 20 | changed, within |
+
+Every other GI visual test is unchanged (`sphere-photonmap-reyes` 5.97 included: its `.pm` does not exist). The 18-scene float manifest at `-t:1` (`tools/after-p3-gi-images-macos.sha256` against `baseline-gi-images-macos.sha256`): **2 of 18 images change**, `photon-parity` and `photon-parity-slo`.
+
+**Cost of D2-A (T052, §5).** `timing_sc007.sh build-base build 5`, interleaved series, macOS (`tools/timing-p3-macos.txt`): `perf-occlusion-cache` 5.09 / 5.03 s, `perf-indirect-photon` 5.87 / 5.79 s, `perf-photon-pass` 4.12 / 4.47 s: all within spread (and `perf-indirect-photon` does not read the photon map under the interpreter, GitHub #173, so it cannot show the cost). **On a render that does read it** (`tools/perf-photon-lookup.rib`: the photon pass, then a 2560 x 1920 raytrace with 2 x 2 samples and one `photonmap()` lookup per hit, 4 threads; `tools/timing-p3-lookup-macos.txt`): **2.78 s with the memo, 22.78 s without: +720 %, beyond the spread** (spread 2.2 and 4.0 s; at 640 x 480: 0.26 s against 1.52 s, +480 %). The memo made a lookup near a previous one nearly free; the pure kd-tree search does the full 24-photon search every time. This is the cost the maintainer asked to see; **it is reported, not optimised away** (R6 option C, precomputed irradiance at the photons, is the later spec; the raise of the factor to make the baseline pass the 3 s floor would only widen the ratio).
+
 ### Checkpoint 2 (Phase 2), 2026-11-16
 
 PAUSE 2a and 2b answered (maintainer): the D7 patch, the two photon references of each platform and the canonical order of 38 bytes (P, N, C, theta, phi; `flags` and the padding excluded; `data-model.md` and `tasks.md` corrected from "42"). The four references were copied into `tests/gi_split/reference/{macos,linux}/files.txt` and `tests/preview/reference/{macos,linux}/datascene.txt` (`rerendered-references.md`: approved). Re-run after the copy:
@@ -315,7 +340,7 @@ Linux (one chain through the remote cpujob at -j2, GCC 13 `-Werror`, JIT on; `ph
 
 ## 5. Timing (FR-023)
 
-Baseline: §0.5 (T010). Phase 3 and Phase 7 compare against it.
+Baseline: §0.5 (T010). Phase 3 (D2-A, the memo removed): see Checkpoint 3 above: the three standard scenes are within spread on both platforms; a render that reads the photon map through `photonmap()` costs +720 % on macOS (2.78 s to 22.78 s, `tools/perf-photon-lookup.rib`). Phase 7 compares against the baseline.
 
 ## 6. Issue evidence
 
