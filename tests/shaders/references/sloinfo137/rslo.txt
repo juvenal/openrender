@@ -1,0 +1,1557 @@
+### rslo ambientindirect
+exit 0
+stdout:
+light "ambientindirect"
+	"numSamples" "uniform float"
+		Default value: 16 
+	"intensity" "uniform float"
+		Default value: 0.2 
+stderr:
+### rslo ambientlight
+exit 0
+stdout:
+light "ambientlight"
+	"intensity" "uniform float"
+		Default value: 1 
+	"lightcolor" "uniform color"
+		Default value: [1 1 1] 
+stderr:
+### rslo ambientocclusion
+exit 0
+stdout:
+light "ambientocclusion"
+	"numSamples" "uniform float"
+		Default value: 16 
+stderr:
+### rslo arealight
+exit 0
+stdout:
+light "arealight"
+	"intensity" "uniform float"
+		Default value: 1 
+	"lightcolor" "uniform color"
+		Default value: [1 1 1] 
+stderr:
+### rslo array_ops_probe
+exit 0
+stdout:
+surface "array_ops_probe"
+stderr:
+### rslo background
+exit 0
+stdout:
+imager "background"
+	"bgcolor" "uniform color"
+		Default value: [1 1 1] 
+	"background" "uniform color"
+		Default value: [1 1 1] 
+stderr:
+### rslo basictrace
+exit 0
+stdout:
+surface "basictrace"
+stderr:
+### rslo blobbyref
+exit 0
+stdout:
+surface "blobbyref"
+	"Ka" "uniform float"
+		Default value: 0.35 
+	"Kd" "uniform float"
+		Default value: 0.75 
+	"frequency" "uniform float"
+		Default value: 1.4 
+	"lightband" "uniform color"
+		Default value: [0.93 0.86 0.55] 
+	"darkband" "uniform color"
+		Default value: [0.32 0.11 0.05] 
+	"Pref" "varying point"
+		Default value: [0 0 0] 
+stderr:
+### rslo blue_marble
+exit 0
+stdout:
+surface "blue_marble"
+	"Ks" "uniform float"
+		Default value: 0.4 
+	"Kd" "uniform float"
+		Default value: 0.6 
+	"Ka" "uniform float"
+		Default value: 0.1 
+	"roughness" "uniform float"
+		Default value: 0.1 
+	"txtscale" "uniform float"
+		Default value: 1 
+	"specularcolor" "uniform color"
+		Default value: [1 1 1] 
+stderr:
+### rslo brushedmetal
+exit 0
+stdout:
+surface "brushedmetal"
+	"Ka" "uniform float"
+		Default value: 0.2 
+	"Kd" "uniform float"
+		Default value: 0.4 
+	"Ks" "uniform float"
+		Default value: 0.6 
+	"xroughness" "uniform float"
+		Default value: 0.4 
+	"yroughness" "uniform float"
+		Default value: 0.4 
+stderr:
+### rslo bump_lowfreq
+exit 0
+stdout:
+displacement "bump_lowfreq"
+	"Km" "uniform float"
+		Default value: 1 
+stderr:
+### rslo cel
+exit 0
+stdout:
+surface "cel"
+	"Ka" "uniform float"
+		Default value: 1 
+	"Kd" "uniform float"
+		Default value: 1 
+	"Ks" "uniform float"
+		Default value: 0.5 
+	"roughness" "uniform float"
+		Default value: 0.25 
+	"outlinethickness" "uniform float"
+		Default value: 1 
+stderr:
+### rslo char_bake_area
+exit 0
+stdout:
+surface "char_bake_area"
+	"filename" "uniform string"
+		Default value: "" 
+stderr:
+### rslo char_indirectdiffuse_probe
+exit 0
+stdout:
+surface "char_indirectdiffuse_probe"
+	"envmap" "uniform string"
+		Default value: "" 
+	"samples" "uniform float"
+		Default value: 16 
+stderr:
+### rslo char_occlusion_probe
+exit 0
+stdout:
+surface "char_occlusion_probe"
+	"envmap" "uniform string"
+		Default value: "" 
+	"filename" "uniform string"
+		Default value: "" 
+	"pointbased" "uniform float"
+		Default value: 0 
+	"maxsolidangle" "uniform float"
+		Default value: 0.05 
+	"samples" "uniform float"
+		Default value: 16 
+stderr:
+### rslo checker
+exit 0
+stdout:
+surface "checker"
+	"Kd" "uniform float"
+		Default value: 0.5 
+	"Ka" "uniform float"
+		Default value: 0.1 
+	"frequency" "uniform float"
+		Default value: 10 
+	"blackcolor" "uniform color"
+		Default value: [0 0 0] 
+stderr:
+### rslo clouds
+exit 0
+stdout:
+surface "clouds"
+	"Kd" "uniform float"
+		Default value: 0.8 
+	"Ka" "uniform float"
+		Default value: 0.2 
+stderr:
+### rslo comp_probe
+exit 0
+stdout:
+surface "comp_probe"
+stderr:
+### rslo comparison_logic_probe
+exit 0
+stdout:
+surface "comparison_logic_probe"
+stderr:
+### rslo concat_probe
+exit 0
+stdout:
+surface "concat_probe"
+stderr:
+### rslo constant
+exit 0
+stdout:
+surface "constant"
+stderr:
+### rslo convergence_arealight
+exit 0
+stdout:
+light "convergence_arealight"
+	"from" "uniform point"
+		Default value: "shader" [0 0 0] 
+	"intensity" "uniform float"
+		Default value: 1 
+	"samples" "uniform float"
+		Default value: 16 
+	"samplecone" "uniform float"
+		Default value: 0.1 
+	"samplebase" "uniform float"
+		Default value: 1 
+stderr:
+### rslo convergence_glossy
+exit 0
+stdout:
+surface "convergence_glossy"
+	"samples" "uniform float"
+		Default value: 16 
+	"samplecone" "uniform float"
+		Default value: 0.35 
+stderr:
+### rslo debug_clearlighting_probe
+exit 0
+stdout:
+surface "debug_clearlighting_probe"
+stderr:
+### rslo defaultlight
+exit 0
+stdout:
+light "defaultlight"
+stderr:
+### rslo defaultsurface
+exit 0
+stdout:
+surface "defaultsurface"
+	"Kd" "uniform float"
+		Default value: 0.8 
+	"Ka" "uniform float"
+		Default value: 0.2 
+stderr:
+### rslo degrees_round_probe
+exit 0
+stdout:
+surface "degrees_round_probe"
+stderr:
+### rslo dented
+exit 0
+stdout:
+displacement "dented"
+	"Km" "uniform float"
+		Default value: 1 
+stderr:
+### rslo depthcue
+exit 0
+stdout:
+volume "depthcue"
+	"mindistance" "uniform float"
+		Default value: 0 
+	"maxdistance" "uniform float"
+		Default value: 1 
+	"background" "uniform color"
+		Default value: [0 0 0] 
+stderr:
+### rslo deriv_probe
+exit 0
+stdout:
+surface "deriv_probe"
+stderr:
+### rslo determinant_distance_probe
+exit 0
+stdout:
+surface "determinant_distance_probe"
+stderr:
+### rslo distantlight
+exit 0
+stdout:
+light "distantlight"
+	"intensity" "uniform float"
+		Default value: 1 
+	"lightcolor" "uniform color"
+		Default value: [1 1 1] 
+	"from" "uniform point"
+		Default value: "shader" [0 0 0] 
+	"to" "uniform point"
+		Default value: "shader" [0 0 1] 
+stderr:
+### rslo easysurface
+exit 0
+stdout:
+surface "easysurface"
+	"Kd" "uniform float"
+		Default value: 0.8 
+	"Ka" "uniform float"
+		Default value: 0.2 
+	"falloff" "uniform float"
+		Default value: 2 
+stderr:
+### rslo emboss
+exit 0
+stdout:
+displacement "emboss"
+	"texturename" "uniform string"
+		Default value: "" 
+	"dispspace" "uniform string"
+		Default value: "shader" 
+	"Km" "uniform float"
+		Default value: 1 
+	"truedisp" "uniform float"
+		Default value: 1 
+	"sstart" "uniform float"
+		Default value: 0 
+	"sscale" "uniform float"
+		Default value: 1 
+	"tstart" "uniform float"
+		Default value: 0 
+	"tscale" "uniform float"
+		Default value: 1 
+	"blur" "uniform float"
+		Default value: 0 
+stderr:
+### rslo empty_surface_probe
+exit 0
+stdout:
+surface "empty_surface_probe"
+stderr:
+### rslo eroded
+exit 0
+stdout:
+surface "eroded"
+	"Ks" "uniform float"
+		Default value: 0.4 
+	"Ka" "uniform float"
+		Default value: 0.1 
+	"Km" "uniform float"
+		Default value: 0.3 
+	"roughness" "uniform float"
+		Default value: 0.25 
+stderr:
+### rslo finite
+exit 0
+stdout:
+light "finite"
+	"intensity" "uniform float"
+		Default value: 1 
+	"lightcolor" "uniform color"
+		Default value: [1 1 1] 
+	"location" "uniform point"
+		Default value: "shader" [0 0 0] 
+stderr:
+### rslo fog
+exit 0
+stdout:
+volume "fog"
+	"distance" "uniform float"
+		Default value: 1 
+	"background" "uniform color"
+		Default value: [0 0 0] 
+stderr:
+### rslo format_probe
+exit 0
+stdout:
+surface "format_probe"
+stderr:
+### rslo gather_named_probe
+exit 0
+stdout:
+surface "gather_named_probe"
+stderr:
+### rslo glass
+exit 0
+stdout:
+surface "glass"
+	"eta" "uniform float"
+		Default value: 1.5 
+	"Ka" "uniform float"
+		Default value: 1 
+	"Kd" "uniform float"
+		Default value: 1 
+	"Ks" "uniform float"
+		Default value: 1 
+	"roughness" "uniform float"
+		Default value: 0.5 
+stderr:
+### rslo granite
+exit 0
+stdout:
+surface "granite"
+	"Kd" "uniform float"
+		Default value: 0.8 
+	"Ka" "uniform float"
+		Default value: 0.2 
+stderr:
+### rslo incident_opposite_probe
+exit 0
+stdout:
+surface "incident_opposite_probe"
+stderr:
+### rslo indirectdiffuse_probe
+exit 0
+stdout:
+surface "indirectdiffuse_probe"
+stderr:
+### rslo jit_nonspecular_light
+exit 0
+stdout:
+light "jit_nonspecular_light"
+	"intensity" "uniform float"
+		Default value: 1 
+	"from" "uniform point"
+		Default value: "shader" [0 0 0] 
+	"to" "uniform point"
+		Default value: "shader" [0 0 1] 
+	"nonspecular" "uniform float"
+		Default value: 1 
+	"__nonspecular" "output varying float"
+		Default value: 1 
+stderr:
+### rslo jit_nonspecular_uniform_light
+exit 0
+stdout:
+light "jit_nonspecular_uniform_light"
+	"intensity" "uniform float"
+		Default value: 1 
+	"from" "uniform point"
+		Default value: "shader" [0 0 0] 
+	"to" "uniform point"
+		Default value: "shader" [0 0 1] 
+	"__nonspecular" "output uniform float"
+		Default value: 1 
+stderr:
+### rslo jit_pl_envshadow_probe
+exit 0
+stdout:
+surface "jit_pl_envshadow_probe"
+	"envmap" "uniform string"
+		Default value: "env-source.tex" 
+	"shadowmap" "uniform string"
+		Default value: "shadow-source.tex" 
+	"blur" "uniform float"
+		Default value: 0 
+	"width" "uniform float"
+		Default value: 1 
+	"fill" "uniform float"
+		Default value: 0 
+	"samples" "uniform float"
+		Default value: 1 
+	"bias" "uniform float"
+		Default value: 0.01 
+	"samplecone" "uniform float"
+		Default value: 0 
+	"maxdist" "uniform float"
+		Default value: 1e+30 
+	"filter" "uniform string"
+		Default value: "box" 
+stderr:
+### rslo jit_pl_label_probe
+exit 0
+stdout:
+surface "jit_pl_label_probe"
+stderr:
+### rslo jit_pl_occlusion_probe
+exit 0
+stdout:
+surface "jit_pl_occlusion_probe"
+	"maxdist" "uniform float"
+		Default value: 1e+30 
+	"bias" "uniform float"
+		Default value: 0.01 
+	"samplebase" "uniform float"
+		Default value: 1 
+	"maxerror" "uniform float"
+		Default value: 0.6 
+	"coordsys" "uniform string"
+		Default value: "world" 
+	"envcolor" "uniform color"
+		Default value: [0 0 0] 
+	"maxbrightness" "uniform float"
+		Default value: 1 
+	"ohandle" "uniform string"
+		Default value: "pl55occlusion" 
+	"ihandle" "uniform string"
+		Default value: "pl55indirect" 
+stderr:
+### rslo jit_pl_texture_probe
+exit 0
+stdout:
+surface "jit_pl_texture_probe"
+	"map" "uniform string"
+		Default value: "texture-png-source.tex" 
+	"blur" "uniform float"
+		Default value: 0 
+	"width" "uniform float"
+		Default value: 1 
+	"swidth" "uniform float"
+		Default value: 1 
+	"twidth" "uniform float"
+		Default value: 1 
+	"fill" "uniform float"
+		Default value: 0 
+	"samples" "uniform float"
+		Default value: 1 
+	"filter" "uniform string"
+		Default value: "box" 
+stderr:
+### rslo jit_pl_trace_probe
+exit 0
+stdout:
+surface "jit_pl_trace_probe"
+	"samples" "uniform float"
+		Default value: 1 
+	"samplecone" "uniform float"
+		Default value: 0 
+	"bias" "uniform float"
+		Default value: 0.01 
+	"sampleBase" "uniform float"
+		Default value: 1 
+	"maxdist" "uniform float"
+		Default value: 1e+30 
+	"label" "uniform string"
+		Default value: "" 
+	"gmaxdist" "varying float"
+		Default value: 1e+30 
+	"gbias" "varying float"
+		Default value: 0.01 
+	"gsamplebase" "varying float"
+		Default value: 1 
+	"gdistribution" "varying string"
+		Default value: "cosine" 
+	"glabel" "varying string"
+		Default value: "gather" 
+stderr:
+### rslo jit_specular_probe
+exit 0
+stdout:
+surface "jit_specular_probe"
+	"roughness" "uniform float"
+		Default value: 0.1 
+	"roughnessvary" "uniform float"
+		Default value: 0 
+stderr:
+### rslo match_probe
+exit 0
+stdout:
+surface "match_probe"
+stderr:
+### rslo matrix_ops_probe
+exit 0
+stdout:
+surface "matrix_ops_probe"
+	"f00" "uniform float"
+		Default value: 1 
+	"f01" "uniform float"
+		Default value: 0 
+	"f02" "uniform float"
+		Default value: 0 
+	"f03" "uniform float"
+		Default value: 0 
+	"f10" "uniform float"
+		Default value: 0 
+	"f11" "uniform float"
+		Default value: 1 
+	"f12" "uniform float"
+		Default value: 0 
+	"f13" "uniform float"
+		Default value: 0 
+	"f20" "uniform float"
+		Default value: 0 
+	"f21" "uniform float"
+		Default value: 0 
+	"f22" "uniform float"
+		Default value: 1 
+	"f23" "uniform float"
+		Default value: 0 
+	"f30" "uniform float"
+		Default value: 0 
+	"f31" "uniform float"
+		Default value: 0 
+	"f32" "uniform float"
+		Default value: 0 
+	"f33" "uniform float"
+		Default value: 1 
+stderr:
+### rslo matrixbuilder_probe
+exit 0
+stdout:
+surface "matrixbuilder_probe"
+stderr:
+### rslo matte
+exit 0
+stdout:
+surface "matte"
+	"Ka" "uniform float"
+		Default value: 1 
+	"Kd" "uniform float"
+		Default value: 1 
+stderr:
+### rslo metal
+exit 0
+stdout:
+surface "metal"
+	"Ka" "uniform float"
+		Default value: 1 
+	"Ks" "uniform float"
+		Default value: 1 
+	"roughness" "uniform float"
+		Default value: 0.1 
+stderr:
+### rslo min_probe
+exit 0
+stdout:
+surface "min_probe"
+stderr:
+### rslo mirror
+exit 0
+stdout:
+surface "mirror"
+	"Ka" "uniform float"
+		Default value: 1 
+	"Ks" "uniform float"
+		Default value: 1 
+	"Kr" "uniform float"
+		Default value: 1 
+	"roughness" "uniform float"
+		Default value: 0.1 
+	"samples" "uniform float"
+		Default value: 1 
+	"blur" "uniform float"
+		Default value: 0 
+	"texname" "uniform string"
+		Default value: "raytrace" 
+stderr:
+### rslo mtorDirectionalLight
+exit 0
+stdout:
+light "mtorDirectionalLight"
+	"intensity" "uniform float"
+		Default value: 1 
+	"lightcolor" "uniform color"
+		Default value: [1 1 1] 
+	"direction" "uniform vector"
+		Default value: [0 0 1] 
+	"shadowname" "uniform string"
+		Default value: "" 
+	"shadowcolor" "uniform color"
+		Default value: [0 0 0] 
+	"decayRate" "uniform float"
+		Default value: 0 
+stderr:
+### rslo mtorLambert
+exit 0
+stdout:
+surface "mtorLambert"
+	"refractiveIndex" "uniform float"
+		Default value: 1 
+	"diffuseCoeff" "uniform float"
+		Default value: 1 
+	"ambientColor" "uniform color"
+		Default value: [0 0 0] 
+	"incandescence" "uniform color"
+		Default value: [0 0 0] 
+	"translucenceCoeff" "uniform float"
+		Default value: 0 
+	"glowIntensity" "uniform float"
+		Default value: 0 
+stderr:
+### rslo mtorPhong
+exit 0
+stdout:
+surface "mtorPhong"
+	"refractiveIndex" "uniform float"
+		Default value: 1 
+	"diffuseCoeff" "uniform float"
+		Default value: 1 
+	"ambientColor" "uniform color"
+		Default value: [0 0 0] 
+	"incandescence" "uniform color"
+		Default value: [0 0 0] 
+	"translucenceCoeff" "uniform float"
+		Default value: 0 
+	"glowIntensity" "uniform float"
+		Default value: 0 
+	"reflectivity" "uniform float"
+		Default value: 0.5 
+	"specularColor" "uniform color"
+		Default value: [1 1 1] 
+	"cosPower" "uniform float"
+		Default value: 10 
+stderr:
+### rslo normdir
+exit 0
+stdout:
+surface "normdir"
+stderr:
+### rslo null
+exit 0
+stdout:
+surface "null"
+stderr:
+### rslo occlusion_probe
+exit 0
+stdout:
+surface "occlusion_probe"
+stderr:
+### rslo paintedmatte
+exit 0
+stdout:
+surface "paintedmatte"
+	"Ka" "uniform float"
+		Default value: 1 
+	"Kd" "uniform float"
+		Default value: 1 
+	"texname" "uniform string"
+		Default value: "" 
+stderr:
+### rslo paintedplastic
+exit 0
+stdout:
+surface "paintedplastic"
+	"Ka" "uniform float"
+		Default value: 1 
+	"Kd" "uniform float"
+		Default value: 0.5 
+	"Ks" "uniform float"
+		Default value: 0.5 
+	"roughness" "uniform float"
+		Default value: 0.1 
+	"specularcolor" "uniform color"
+		Default value: [1 1 1] 
+	"texturename" "uniform string"
+		Default value: "" 
+stderr:
+### rslo param_query_displacement
+exit 0
+stdout:
+displacement "param_query_displacement"
+	"testDispParam" "uniform float"
+		Default value: 0.25 
+	"testDispVec" "uniform vector"
+		Default value: [0.1 0.2 0.3] 
+stderr:
+### rslo param_query_volume
+exit 0
+stdout:
+volume "param_query_volume"
+	"testVolParam" "uniform float"
+		Default value: 0.75 
+	"testVolVec" "uniform vector"
+		Default value: [0.4 0.5 0.6] 
+stderr:
+### rslo parity_never_ci_oi
+exit 0
+stdout:
+surface "parity_never_ci_oi"
+	"unused_param" "uniform float"
+		Default value: 1 
+stderr:
+### rslo phong_specularbrdf_probe
+exit 0
+stdout:
+surface "phong_specularbrdf_probe"
+stderr:
+### rslo photonmap_probe
+exit 0
+stdout:
+surface "photonmap_probe"
+stderr:
+### rslo photonparity_view
+exit 0
+stdout:
+surface "photonparity_view"
+	"mapname" "uniform string"
+		Default value: "" 
+	"gain" "uniform float"
+		Default value: 1 
+stderr:
+### rslo plastic
+exit 0
+stdout:
+surface "plastic"
+	"Ka" "uniform float"
+		Default value: 1 
+	"Kd" "uniform float"
+		Default value: 0.5 
+	"Ks" "uniform float"
+		Default value: 0.5 
+	"roughness" "uniform float"
+		Default value: 0.1 
+	"specularcolor" "uniform color"
+		Default value: [1 1 1] 
+stderr:
+### rslo pnoise_probe
+exit 0
+stdout:
+surface "pnoise_probe"
+stderr:
+### rslo pointlight
+exit 0
+stdout:
+light "pointlight"
+	"intensity" "uniform float"
+		Default value: 1 
+	"lightcolor" "uniform color"
+		Default value: [1 1 1] 
+	"from" "uniform point"
+		Default value: "shader" [0 0 0] 
+stderr:
+### rslo potwood
+exit 0
+stdout:
+surface "potwood"
+	"ringscale" "uniform float"
+		Default value: 10 
+	"lightwood" "uniform color"
+		Default value: [0.3 0.12 0.03] 
+	"darkwood" "uniform color"
+		Default value: [0.05 0.01 0.005] 
+	"Ka" "uniform float"
+		Default value: 0.2 
+	"Kd" "uniform float"
+		Default value: 0.4 
+	"Ks" "uniform float"
+		Default value: 0.6 
+	"roughness" "uniform float"
+		Default value: 0.1 
+stderr:
+### rslo ptlined_probe
+exit 0
+stdout:
+surface "ptlined_probe"
+stderr:
+### rslo quadlight
+exit 0
+stdout:
+light "quadlight"
+	"P0" "uniform point"
+		Default value: [0 0 0] 
+	"P1" "uniform point"
+		Default value: [0 0 0] 
+	"P2" "uniform point"
+		Default value: [0 0 0] 
+	"P3" "uniform point"
+		Default value: "shader" [1 1 0] 
+	"direction" "uniform vector"
+		Default value: [0 0 0] 
+	"useDirection" "uniform float"
+		Default value: 0 
+	"lightcolor" "uniform color"
+		Default value: [1 1 1] 
+	"intensity" "uniform float"
+		Default value: 1 
+	"numSamples" "uniform float"
+		Default value: 1 
+	"reverse" "uniform float"
+		Default value: 0 
+stderr:
+### rslo random_probe
+exit 0
+stdout:
+surface "random_probe"
+stderr:
+### rslo ray_self_hit_probe
+exit 0
+stdout:
+surface "ray_self_hit_probe"
+	"samples" "uniform float"
+		Default value: 16 
+stderr:
+### rslo rayarea
+exit 0
+stdout:
+light "rayarea"
+	"intensity" "uniform float"
+		Default value: 1 
+	"lightcolor" "uniform color"
+		Default value: [1 1 1] 
+stderr:
+### rslo raydepth_probe
+exit 0
+stdout:
+surface "raydepth_probe"
+stderr:
+### rslo raydistant
+exit 0
+stdout:
+light "raydistant"
+	"intensity" "uniform float"
+		Default value: 1 
+	"lightcolor" "uniform color"
+		Default value: [1 1 1] 
+	"from" "uniform point"
+		Default value: "shader" [0 0 0] 
+	"to" "uniform point"
+		Default value: "shader" [0 0 1] 
+stderr:
+### rslo rayinfo_probe
+exit 0
+stdout:
+surface "rayinfo_probe"
+stderr:
+### rslo raylabel_probe
+exit 0
+stdout:
+surface "raylabel_probe"
+stderr:
+### rslo raypoint
+exit 0
+stdout:
+light "raypoint"
+	"intensity" "uniform float"
+		Default value: 1 
+	"lightcolor" "uniform color"
+		Default value: [1 1 1] 
+	"blur" "uniform float"
+		Default value: 0 
+	"numSamples" "uniform float"
+		Default value: 1 
+	"from" "uniform point"
+		Default value: "shader" [0 0 0] 
+stderr:
+### rslo refract_probe
+exit 0
+stdout:
+surface "refract_probe"
+stderr:
+### rslo round
+exit 0
+stdout:
+displacement "round"
+	"radius" "uniform float"
+		Default value: 0.1 
+stderr:
+### rslo sampling_displace_probe
+exit 0
+stdout:
+displacement "sampling_displace_probe"
+stderr:
+### rslo sampling_independence_probe
+exit 0
+stdout:
+surface "sampling_independence_probe"
+	"n1" "uniform float"
+		Default value: 2 
+stderr:
+### rslo sampling_instance_light
+exit 0
+stdout:
+light "sampling_instance_light"
+	"id" "uniform float"
+		Default value: 1 
+stderr:
+### rslo sampling_instance_probe
+exit 0
+stdout:
+surface "sampling_instance_probe"
+stderr:
+### rslo sampling_jit_probe
+exit 0
+stdout:
+surface "sampling_jit_probe"
+	"channel" "uniform float"
+		Default value: 0 
+stderr:
+### rslo sampling_occlusion_probe
+exit 0
+stdout:
+surface "sampling_occlusion_probe"
+	"samples" "uniform float"
+		Default value: 16 
+stderr:
+### rslo sampling_option_probe
+exit 0
+stdout:
+surface "sampling_option_probe"
+stderr:
+### rslo sampling_position_probe
+exit 0
+stdout:
+surface "sampling_position_probe"
+stderr:
+### rslo sampling_random_probe
+exit 0
+stdout:
+surface "sampling_random_probe"
+stderr:
+### rslo scene_state_probe
+exit 0
+stdout:
+surface "scene_state_probe"
+stderr:
+### rslo screen
+exit 0
+stdout:
+surface "screen"
+	"Ks" "uniform float"
+		Default value: 0.5 
+	"Kd" "uniform float"
+		Default value: 0.5 
+	"Ka" "uniform float"
+		Default value: 0.1 
+	"roughness" "uniform float"
+		Default value: 0.1 
+	"density" "uniform float"
+		Default value: 0.25 
+	"frequency" "uniform float"
+		Default value: 20 
+	"specularcolor" "uniform color"
+		Default value: [1 1 1] 
+stderr:
+### rslo setcomp_probe
+exit 0
+stdout:
+surface "setcomp_probe"
+stderr:
+### rslo shader_parameter_probe
+exit 0
+stdout:
+surface "shader_parameter_probe"
+	"testParam" "uniform float"
+		Default value: 0.5 
+	"testVec" "uniform vector"
+		Default value: [0.6 0.7 0.8] 
+stderr:
+### rslo shadername_probe
+exit 0
+stdout:
+surface "shadername_probe"
+stderr:
+### rslo shadowarea
+exit 0
+stdout:
+light "shadowarea"
+	"intensity" "uniform float"
+		Default value: 1 
+	"lightcolor" "uniform color"
+		Default value: [1 1 1] 
+stderr:
+### rslo shadowdistant
+exit 0
+stdout:
+light "shadowdistant"
+	"intensity" "uniform float"
+		Default value: 1 
+	"lightcolor" "uniform color"
+		Default value: [1 1 1] 
+	"from" "uniform point"
+		Default value: "shader" [0 0 0] 
+	"to" "uniform point"
+		Default value: "shader" [0 0 1] 
+	"shadowname" "uniform string"
+		Default value: "" 
+stderr:
+### rslo shadowpoint
+exit 0
+stdout:
+light "shadowpoint"
+	"intensity" "uniform float"
+		Default value: 1 
+	"lightcolor" "uniform color"
+		Default value: [1 1 1] 
+	"shadowname_px" "uniform string"
+		Default value: "" 
+	"shadowname_nx" "uniform string"
+		Default value: "" 
+	"shadowname_py" "uniform string"
+		Default value: "" 
+	"shadowname_ny" "uniform string"
+		Default value: "" 
+	"shadowname_pz" "uniform string"
+		Default value: "" 
+	"shadowname_nz" "uniform string"
+		Default value: "" 
+	"from" "uniform point"
+		Default value: "shader" [0 0 0] 
+stderr:
+### rslo shadowspot
+exit 0
+stdout:
+light "shadowspot"
+	"intensity" "uniform float"
+		Default value: 1 
+	"lightcolor" "uniform color"
+		Default value: [1 1 1] 
+	"to" "uniform point"
+		Default value: "shader" [0 0 1] 
+	"from" "uniform point"
+		Default value: "shader" [0 0 0] 
+	"shadowname" "uniform string"
+		Default value: "" 
+	"coneangle" "uniform float"
+		Default value: 0 
+	"conedeltaangle" "uniform float"
+		Default value: 0 
+	"beamdistribution" "uniform float"
+		Default value: 2 
+stderr:
+### rslo shinymetal
+exit 0
+stdout:
+surface "shinymetal"
+	"Ka" "uniform float"
+		Default value: 1 
+	"Kd" "uniform float"
+		Default value: 0.1 
+	"Ks" "uniform float"
+		Default value: 1 
+	"roughness" "uniform float"
+		Default value: 0.2 
+	"Kr" "uniform float"
+		Default value: 0.8 
+	"blur" "uniform float"
+		Default value: 0 
+	"envname" "uniform string"
+		Default value: "" 
+	"envspace" "uniform string"
+		Default value: "world" 
+	"envrad" "uniform float"
+		Default value: 100 
+stderr:
+### rslo shinyplastic
+exit 0
+stdout:
+surface "shinyplastic"
+	"Ka" "uniform float"
+		Default value: 1 
+	"Kd" "uniform float"
+		Default value: 0.5 
+	"Ks" "uniform float"
+		Default value: 0.5 
+	"roughness" "uniform float"
+		Default value: 0.1 
+	"Kr" "uniform float"
+		Default value: 1 
+	"blur" "uniform float"
+		Default value: 0 
+	"ior" "uniform float"
+		Default value: 1.5 
+	"envname" "uniform string"
+		Default value: "" 
+	"envspace" "uniform string"
+		Default value: "world" 
+	"envrad" "uniform float"
+		Default value: 100 
+stderr:
+### rslo show_ctransform
+exit 0
+stdout:
+surface "show_ctransform"
+stderr:
+### rslo show_st
+exit 0
+stdout:
+surface "show_st"
+stderr:
+### rslo show_st_hsv
+exit 0
+stdout:
+surface "show_st_hsv"
+stderr:
+### rslo show_xyz
+exit 0
+stdout:
+surface "show_xyz"
+	"xmin" "uniform float"
+		Default value: 0 
+	"ymin" "uniform float"
+		Default value: 0 
+	"zmin" "uniform float"
+		Default value: 0 
+	"xmax" "uniform float"
+		Default value: 1 
+	"ymax" "uniform float"
+		Default value: 1 
+	"zmax" "uniform float"
+		Default value: 1 
+stderr:
+### rslo solar0_light
+exit 0
+stdout:
+light "solar0_light"
+	"intensity" "uniform float"
+		Default value: 1 
+	"lightcolor" "uniform color"
+		Default value: [1 1 1] 
+stderr:
+### rslo somewood
+exit 0
+stdout:
+surface "somewood"
+	"Ka" "uniform float"
+		Default value: 1 
+	"Kd" "uniform float"
+		Default value: 0.6 
+	"Ks" "uniform float"
+		Default value: 0.4 
+	"roughness" "uniform float"
+		Default value: 0.6 
+	"grain" "uniform float"
+		Default value: 12 
+	"swirl" "uniform float"
+		Default value: 0.1 
+	"swirlfreq" "uniform float"
+		Default value: 0.1 
+	"c0" "uniform point"
+		Default value: "shader" [0 0 0] 
+	"c1" "uniform point"
+		Default value: "shader" [0 0 1] 
+	"specularcolor" "uniform color"
+		Default value: [1 1 1] 
+	"darkcolor" "uniform color"
+		Default value: [0.67 0.49 0.27] 
+	"darkfactor" "uniform float"
+		Default value: 1 
+stderr:
+### rslo spherelight
+exit 0
+stdout:
+light "spherelight"
+	"from" "uniform point"
+		Default value: "shader" [0 0 0] 
+	"radius" "uniform float"
+		Default value: 0 
+	"lightcolor" "uniform color"
+		Default value: [1 1 1] 
+	"intensity" "uniform float"
+		Default value: 1 
+	"numSamples" "uniform float"
+		Default value: 1 
+stderr:
+### rslo spotlight
+exit 0
+stdout:
+light "spotlight"
+	"intensity" "uniform float"
+		Default value: 1 
+	"lightcolor" "uniform color"
+		Default value: [1 1 1] 
+	"from" "uniform point"
+		Default value: "shader" [0 0 0] 
+	"to" "uniform point"
+		Default value: "shader" [0 0 1] 
+	"coneangle" "uniform float"
+		Default value: 0 
+	"conedeltaangle" "uniform float"
+		Default value: 0 
+	"beamdistribution" "uniform float"
+		Default value: 2 
+stderr:
+### rslo step_probe
+exit 0
+stdout:
+surface "step_probe"
+stderr:
+### rslo supertexmap
+exit 0
+stdout:
+surface "supertexmap"
+	"Ka" "uniform float"
+		Default value: 1 
+	"Kd" "uniform float"
+		Default value: 0.5 
+	"Ks" "uniform float"
+		Default value: 0.5 
+	"roughness" "uniform float"
+		Default value: 0.1 
+	"specularcolor" "uniform color"
+		Default value: [1 1 1] 
+	"Csmapname" "uniform string"
+		Default value: "" 
+	"Csproj" "uniform string"
+		Default value: "st" 
+	"Csspace" "uniform string"
+		Default value: "shader" 
+	"Csmx" "uniform float[16]"
+		Default value: 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 
+	"Osmapname" "uniform string"
+		Default value: "" 
+	"Osproj" "uniform string"
+		Default value: "st" 
+	"Osspace" "uniform string"
+		Default value: "shader" 
+	"Osmx" "uniform float[16]"
+		Default value: 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 
+	"Ksmapname" "uniform string"
+		Default value: "" 
+	"Ksproj" "uniform string"
+		Default value: "st" 
+	"Ksspace" "uniform string"
+		Default value: "shader" 
+	"Ksmx" "uniform float[16]"
+		Default value: 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 
+	"dispmapname" "uniform string"
+		Default value: "" 
+	"dispproj" "uniform string"
+		Default value: "st" 
+	"dispspace" "uniform string"
+		Default value: "shader" 
+	"dispmx" "uniform float[16]"
+		Default value: 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 
+	"truedisp" "uniform float"
+		Default value: 1 
+stderr:
+### rslo texture3d_bake3d_probe
+exit 0
+stdout:
+surface "texture3d_bake3d_probe"
+stderr:
+### rslo textureinfo_probe
+exit 0
+stdout:
+surface "textureinfo_probe"
+stderr:
+### rslo trace_probe
+exit 0
+stdout:
+surface "trace_probe"
+stderr:
+### rslo transmission_probe
+exit 0
+stdout:
+surface "transmission_probe"
+stderr:
+### rslo uberlight
+exit 0
+stdout:
+light "uberlight"
+	"lighttype" "uniform string"
+		Default value: "spot" 
+	"intensity" "uniform float"
+		Default value: 1 
+	"lightcolor" "uniform color"
+		Default value: [1 1 1] 
+	"cuton" "uniform float"
+		Default value: 0.01 
+	"cutoff" "uniform float"
+		Default value: 1e+06 
+	"nearedge" "uniform float"
+		Default value: 0 
+	"faredge" "uniform float"
+		Default value: 0 
+	"falloff" "uniform float"
+		Default value: 0 
+	"falloffdist" "uniform float"
+		Default value: 1 
+	"maxintensity" "uniform float"
+		Default value: 1 
+	"parallelrays" "uniform float"
+		Default value: 0 
+	"shearx" "uniform float"
+		Default value: 0 
+	"sheary" "uniform float"
+		Default value: 0 
+	"width" "uniform float"
+		Default value: 1 
+	"height" "uniform float"
+		Default value: 1 
+	"wedge" "uniform float"
+		Default value: 0.1 
+	"hedge" "uniform float"
+		Default value: 0.1 
+	"roundness" "uniform float"
+		Default value: 1 
+	"beamdistribution" "uniform float"
+		Default value: 0 
+	"slidename" "uniform string"
+		Default value: "" 
+	"noiseamp" "uniform float"
+		Default value: 0 
+	"noisefreq" "uniform float"
+		Default value: 4 
+	"noiseoffset" "uniform vector"
+		Default value: [0 0 0] 
+	"shadowname" "uniform string"
+		Default value: "" 
+	"shadowblur" "uniform float"
+		Default value: 0 
+	"shadowsamples" "uniform float"
+		Default value: 1 
+	"shadowbias" "uniform float"
+		Default value: 0.01 
+	"shadowcolor" "uniform color"
+		Default value: [0 0 0] 
+	"blockercoords" "uniform string"
+		Default value: "" 
+	"blockerwidth" "uniform float"
+		Default value: 1 
+	"blockerheight" "uniform float"
+		Default value: 1 
+	"blockerwedge" "uniform float"
+		Default value: 0.1 
+	"blockerhedge" "uniform float"
+		Default value: 0.1 
+	"blockerround" "uniform float"
+		Default value: 1 
+	"nonspecular" "uniform float"
+		Default value: 0 
+	"__nonspecular" "output varying float"
+		Default value: 0 
+	"__nondiffuse" "output uniform float"
+		Default value: 0 
+	"__foglight" "output uniform float"
+		Default value: 1 
+stderr:
+### rslo uniform_in_conditional_probe
+exit 0
+stdout:
+surface "uniform_in_conditional_probe"
+stderr:
+### rslo usfroma_probe
+exit 0
+stdout:
+surface "usfroma_probe"
+stderr:
+### rslo uvgradient
+exit 0
+stdout:
+imager "uvgradient"
+	"xresolution" "uniform float"
+		Default value: 1 
+	"yresolution" "uniform float"
+		Default value: 1 
+stderr:
+### rslo visibility_probe
+exit 0
+stdout:
+surface "visibility_probe"
+stderr:
+### rslo volume_gather_probe
+exit 0
+stdout:
+surface "volume_gather_probe"
+	"tiltx" "uniform float"
+		Default value: 0.5 
+stderr:
+### rslo volume_random_fog
+exit 0
+stdout:
+volume "volume_random_fog"
+	"distance" "uniform float"
+		Default value: 1 
+	"background" "uniform color"
+		Default value: [0 0 0] 
+	"jitter" "uniform float"
+		Default value: 0.5 
+stderr:
+### rslo volume_reflect_probe
+exit 0
+stdout:
+surface "volume_reflect_probe"
+	"tiltx" "uniform float"
+		Default value: 0.5 
+	"via" "uniform string"
+		Default value: "trace" 
+stderr:
+### rslo volume_shadow_light
+exit 0
+stdout:
+light "volume_shadow_light"
+	"intensity" "uniform float"
+		Default value: 1 
+	"lightcolor" "uniform color"
+		Default value: [1 1 1] 
+	"reach" "uniform float"
+		Default value: 3 
+stderr:
+### rslo volume_through_probe
+exit 0
+stdout:
+surface "volume_through_probe"
+stderr:
+### rslo volume_transmission_probe
+exit 0
+stdout:
+surface "volume_transmission_probe"
+	"dz" "uniform float"
+		Default value: 3 
+stderr:
+### rslo windowhighlight
+exit 0
+stdout:
+surface "windowhighlight"
+	"center" "uniform point"
+		Default value: [0 0 0] 
+	"in" "uniform point"
+		Default value: "world" [0 0 1] 
+	"up" "uniform point"
+		Default value: "world" [0 1 0] 
+	"specularcolor" "uniform color"
+		Default value: [1 1 1] 
+	"Ka" "uniform float"
+		Default value: 0.3 
+	"Kd" "uniform float"
+		Default value: 0.5 
+	"xorder" "uniform float"
+		Default value: 2 
+	"yorder" "uniform float"
+		Default value: 3 
+	"panewidth" "uniform float"
+		Default value: 6 
+	"paneheight" "uniform float"
+		Default value: 6 
+	"framewidth" "uniform float"
+		Default value: 1 
+	"fuzz" "uniform float"
+		Default value: 0.2 
+stderr:
+### rslo windowlight
+exit 0
+stdout:
+light "windowlight"
+	"from" "uniform point"
+		Default value: [0 0 0] 
+	"to" "uniform point"
+		Default value: "world" [0 0 0] 
+	"center" "uniform point"
+		Default value: [0 0 0] 
+	"in" "uniform point"
+		Default value: "world" [0 0 1] 
+	"up" "uniform point"
+		Default value: "world" [0 1 0] 
+	"lightcolor" "uniform color"
+		Default value: [1 0.9 0.6] 
+	"darkcolor" "uniform color"
+		Default value: [0.05 0.2 0.1] 
+	"intensity" "uniform float"
+		Default value: 1 
+	"xorder" "uniform float"
+		Default value: 2 
+	"yorder" "uniform float"
+		Default value: 3 
+	"panewidth" "uniform float"
+		Default value: 6 
+	"paneheight" "uniform float"
+		Default value: 6 
+	"framewidth" "uniform float"
+		Default value: 1 
+	"fuzz" "uniform float"
+		Default value: 0.1 
+stderr:
+### rslo wood
+exit 0
+stdout:
+surface "wood"
+	"ringscale" "uniform float"
+		Default value: 10 
+	"lightwood" "uniform color"
+		Default value: [0.3 0.12 0.03] 
+	"darkwood" "uniform color"
+		Default value: [0.05 0.01 0.005] 
+	"Ka" "uniform float"
+		Default value: 0.2 
+	"Kd" "uniform float"
+		Default value: 0.4 
+	"Ks" "uniform float"
+		Default value: 0.6 
+	"roughness" "uniform float"
+		Default value: 0.1 
+stderr:

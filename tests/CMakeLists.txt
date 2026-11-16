@@ -113,6 +113,8 @@ option(OPENRENDER_030_RED_TESTS "Spec 030: configure the new registry tests that
 
 # After unit/state: shading_contract links its state_only_sources library
 add_subdirectory(shading_contract)
+add_subdirectory(shaderformat)          # spec 033: ShaderFormat_Precedence, the characterisation of the shader format precedence
+add_subdirectory(shading_system)        # spec 033: the shading system's tests (Phase 1: the loading benchmark program)
 add_subdirectory(link)
 add_subdirectory(plugins)
 add_subdirectory(convergence)

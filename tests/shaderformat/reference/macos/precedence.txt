@@ -1,0 +1,279 @@
+case attr=slo option=slo files=both
+  pixel(1,1) 0.000000 1.000000 0.000000 1.000000
+  exit 0
+case attr=slo option=slo files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case attr=slo option=slo files=slo
+  pixel(1,1) 0.000000 1.000000 0.000000 1.000000
+  exit 0
+case attr=slo option=slo files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stderr:
+    ./scene.rib (16): Failed to find shader "fmtp"
+case attr=slo option=rslo files=both
+  pixel(1,1) 0.000000 1.000000 0.000000 1.000000
+  exit 0
+case attr=slo option=rslo files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case attr=slo option=rslo files=slo
+  pixel(1,1) 0.000000 1.000000 0.000000 1.000000
+  exit 0
+case attr=slo option=rslo files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stderr:
+    ./scene.rib (16): Failed to find shader "fmtp"
+case attr=slo option=unset files=both
+  pixel(1,1) 0.000000 1.000000 0.000000 1.000000
+  exit 0
+case attr=slo option=unset files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case attr=slo option=unset files=slo
+  pixel(1,1) 0.000000 1.000000 0.000000 1.000000
+  exit 0
+case attr=slo option=unset files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stderr:
+    ./scene.rib (15): Failed to find shader "fmtp"
+case attr=rslo option=slo files=both
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case attr=rslo option=slo files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case attr=rslo option=slo files=slo
+  pixel(1,1) 0.000000 1.000000 0.000000 1.000000
+  exit 0
+case attr=rslo option=slo files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stderr:
+    ./scene.rib (16): Failed to find shader "fmtp"
+case attr=rslo option=rslo files=both
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case attr=rslo option=rslo files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case attr=rslo option=rslo files=slo
+  pixel(1,1) 0.000000 1.000000 0.000000 1.000000
+  exit 0
+case attr=rslo option=rslo files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stderr:
+    ./scene.rib (16): Failed to find shader "fmtp"
+case attr=rslo option=unset files=both
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case attr=rslo option=unset files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case attr=rslo option=unset files=slo
+  pixel(1,1) 0.000000 1.000000 0.000000 1.000000
+  exit 0
+case attr=rslo option=unset files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stderr:
+    ./scene.rib (15): Failed to find shader "fmtp"
+case attr=unset option=slo files=both
+  pixel(1,1) 0.000000 1.000000 0.000000 1.000000
+  exit 0
+case attr=unset option=slo files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case attr=unset option=slo files=slo
+  pixel(1,1) 0.000000 1.000000 0.000000 1.000000
+  exit 0
+case attr=unset option=slo files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stderr:
+    ./scene.rib (15): Failed to find shader "fmtp"
+case attr=unset option=rslo files=both
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case attr=unset option=rslo files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case attr=unset option=rslo files=slo
+  pixel(1,1) 0.000000 1.000000 0.000000 1.000000
+  exit 0
+case attr=unset option=rslo files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stderr:
+    ./scene.rib (15): Failed to find shader "fmtp"
+case attr=unset option=unset files=both
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case attr=unset option=unset files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case attr=unset option=unset files=slo
+  pixel(1,1) 0.000000 1.000000 0.000000 1.000000
+  exit 0
+case attr=unset option=unset files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stderr:
+    ./scene.rib (14): Failed to find shader "fmtp"
+case attr=invalid option=slo files=both
+  pixel(1,1) 0.000000 1.000000 0.000000 1.000000
+  exit 0
+  stdout:
+    ./scene.rib (15): Invalid shader format 'bogus'
+    must be 'slo' or 'rslo'. Using default 'slo'.
+case attr=invalid option=slo files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+  stdout:
+    ./scene.rib (15): Invalid shader format 'bogus'
+    must be 'slo' or 'rslo'. Using default 'slo'.
+case attr=invalid option=slo files=slo
+  pixel(1,1) 0.000000 1.000000 0.000000 1.000000
+  exit 0
+  stdout:
+    ./scene.rib (15): Invalid shader format 'bogus'
+    must be 'slo' or 'rslo'. Using default 'slo'.
+case attr=invalid option=slo files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stdout:
+    ./scene.rib (15): Invalid shader format 'bogus'
+    must be 'slo' or 'rslo'. Using default 'slo'.
+  stderr:
+    ./scene.rib (16): Failed to find shader "fmtp"
+case attr=invalid option=rslo files=both
+  pixel(1,1) 0.000000 1.000000 0.000000 1.000000
+  exit 0
+  stdout:
+    ./scene.rib (15): Invalid shader format 'bogus'
+    must be 'slo' or 'rslo'. Using default 'slo'.
+case attr=invalid option=rslo files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+  stdout:
+    ./scene.rib (15): Invalid shader format 'bogus'
+    must be 'slo' or 'rslo'. Using default 'slo'.
+case attr=invalid option=rslo files=slo
+  pixel(1,1) 0.000000 1.000000 0.000000 1.000000
+  exit 0
+  stdout:
+    ./scene.rib (15): Invalid shader format 'bogus'
+    must be 'slo' or 'rslo'. Using default 'slo'.
+case attr=invalid option=rslo files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stdout:
+    ./scene.rib (15): Invalid shader format 'bogus'
+    must be 'slo' or 'rslo'. Using default 'slo'.
+  stderr:
+    ./scene.rib (16): Failed to find shader "fmtp"
+case attr=invalid option=unset files=both
+  pixel(1,1) 0.000000 1.000000 0.000000 1.000000
+  exit 0
+  stdout:
+    ./scene.rib (14): Invalid shader format 'bogus'
+    must be 'slo' or 'rslo'. Using default 'slo'.
+case attr=invalid option=unset files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+  stdout:
+    ./scene.rib (14): Invalid shader format 'bogus'
+    must be 'slo' or 'rslo'. Using default 'slo'.
+case attr=invalid option=unset files=slo
+  pixel(1,1) 0.000000 1.000000 0.000000 1.000000
+  exit 0
+  stdout:
+    ./scene.rib (14): Invalid shader format 'bogus'
+    must be 'slo' or 'rslo'. Using default 'slo'.
+case attr=invalid option=unset files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stdout:
+    ./scene.rib (14): Invalid shader format 'bogus'
+    must be 'slo' or 'rslo'. Using default 'slo'.
+  stderr:
+    ./scene.rib (15): Failed to find shader "fmtp"
+case dotted name=fmtd.rslo attr=slo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case dotted name=fmtd.slo attr=slo
+  pixel(1,1) 1.000000 1.000000 1.000000 1.000000
+  exit 255
+  stdout:
+    ./scene.rib (17): Shader "fmtd.slo" has no bytecode and no JIT entry — skipping
+    ./scene.rib (17): Shader "fmtd.slo" has no bytecode and no JIT entry — skipping
+    ./scene.rib (17): Shader "fmtd.slo" has no bytecode and no JIT entry — skipping
+    ./scene.rib (17): Shader "fmtd.slo" has no bytecode and no JIT entry — skipping
+  stderr:
+    ./scene.rib (15): Cannot bind JIT shader "fmtd" (<work>/stage/dotted-slo-fmtd.slo/fmtd.slo): the .slo is stale or incompatible with this renderer and must be recompiled with `oshader --jit`. Symbols not found: [ _fmtd ]
+case dotted name=fmtd.rslo attr=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case dotted name=fmtd.slo attr=rslo
+  pixel(1,1) 1.000000 1.000000 1.000000 1.000000
+  exit 255
+  stdout:
+    ./scene.rib (15): Error in shader "<work>/stage/dotted-rslo-fmtd.slo/fmtd.slo" (0) ("syntax error") (v1.0.0, .rslo format 2.0.0)
+    ./scene.rib (17): Shader "fmtd.slo" has no bytecode and no JIT entry — skipping
+    ./scene.rib (17): Shader "fmtd.slo" has no bytecode and no JIT entry — skipping
+    ./scene.rib (17): Shader "fmtd.slo" has no bytecode and no JIT entry — skipping
+    ./scene.rib (17): Shader "fmtd.slo" has no bytecode and no JIT entry — skipping
+  stderr:
+    ./scene.rib (15): Cannot bind JIT shader "fmtd" (<work>/stage/dotted-rslo-fmtd.slo/fmtd.slo): the .slo is stale or incompatible with this renderer and must be recompiled with `oshader --jit`. Symbols not found: [ _fmtd ]
+case dotted name=fmtd.v2 (an .rslo file without extension) attr=slo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case dotted name=fmtd.v2 (an .rslo file without extension) attr=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case non-bitcode .slo with-rslo attr=slo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case non-bitcode .slo alone attr=slo
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stderr:
+    ./scene.rib (15): Failed to find shader "fmtp"
+case non-bitcode .slo with-rslo attr=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case non-bitcode .slo alone attr=rslo
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stderr:
+    ./scene.rib (15): Failed to find shader "fmtp"
+case missing DSO operand attr=slo
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stdout:
+    ./scene.rib (15): Error in shader "probe" ("Failed to locate DSO function probe_add (f=ff)") (v1.0.0, .slo format 2.1.0)
+    ./scene.rib (15): Error in shader "<work>/stage/dso/probe.rslo" (9) ("Failed to locate DSO function
+    ") (v1.0.0, .rslo format 2.0.0)
+  stderr:
+    ./scene.rib (15): Failed to find shader "probe"
+case missing DSO operand attr=rslo
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stdout:
+    ./scene.rib (15): Error in shader "<work>/stage/dso/probe.rslo" (9) ("Failed to locate DSO function
+    ") (v1.0.0, .rslo format 2.0.0)
+    ./scene.rib (15): Error in shader "probe" ("Failed to locate DSO function probe_add (f=ff)") (v1.0.0, .slo format 2.1.0)
+  stderr:
+    ./scene.rib (15): Failed to find shader "probe"
+case cache slo-then-rslo
+  pixel(0,1) 0.000000 1.000000 0.000000 1.000000
+  pixel(3,1) 0.000000 1.000000 0.000000 1.000000
+  exit 0
+case cache rslo-then-slo
+  pixel(0,1) 1.000000 0.000000 0.000000 1.000000
+  pixel(3,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
