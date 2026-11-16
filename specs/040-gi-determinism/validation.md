@@ -263,7 +263,7 @@ DeterminismSweep_gi-* (34 entries, step 2 of T031 applied so that the options ex
 
 **Sweep** (`DeterminismSweep_gi-(photon-parity|subdiv|motion-subdiv)`: float colour, alpha and depth bit-identical under `-t:1`, the default, `-t:2` and `-t:4`, every `.gpm` byte-identical): 7 of 7 pass on both platforms, the two `photon-parity` entries (frame-2 images included) among them.
 
-**Everyday suite.** macOS 1373 tests, 2 failures: `Visual_photon-parity` and `-slo` (expected drift, below). Linux 1374 tests, 3 failures: the same two and the known `TextureTile_RenderByteIdentical`. `ctest -L architecture` 36 of 36 on both; allowlist 168 lines.
+**Everyday suite.** macOS 1373 tests, 2 failures: `Visual_photon-parity` and `-slo` (expected drift, below; 7.06 against 6 stays on the Phase 7 re-render list: no threshold or reference moves now, maintainer 2026-11-16). Linux 1374 tests, 3 failures: the same two and the known `TextureTile_RenderByteIdentical`. `ctest -L architecture` 36 of 36 on both; allowlist 168 lines.
 
 **Drift list (D2-A: every image that reads the photon map changes once; none is adjusted; each goes on the Phase 7 re-render list)** (`tools/drift-p3-macos.txt`, `tools/drift-p3-linux.txt`, MaxBlockAvgDiff against the starting tree's):
 
@@ -276,7 +276,7 @@ DeterminismSweep_gi-* (34 entries, step 2 of T031 applied so that the options ex
 
 Every other GI visual test is unchanged (`sphere-photonmap-reyes` 5.97 included: its `.pm` does not exist). The 18-scene float manifest at `-t:1` (`tools/after-p3-gi-images-macos.sha256` against `baseline-gi-images-macos.sha256`): **2 of 18 images change**, `photon-parity` and `photon-parity-slo`.
 
-**Cost of D2-A (T052, §5).** `timing_sc007.sh build-base build 5`, interleaved series, macOS (`tools/timing-p3-macos.txt`): `perf-occlusion-cache` 5.09 / 5.03 s, `perf-indirect-photon` 5.87 / 5.79 s, `perf-photon-pass` 4.12 / 4.47 s: all within spread (and `perf-indirect-photon` does not read the photon map under the interpreter, GitHub #173, so it cannot show the cost). **On a render that does read it** (`tools/perf-photon-lookup.rib`: the photon pass, then a 2560 x 1920 raytrace with 2 x 2 samples and one `photonmap()` lookup per hit, 4 threads; `tools/timing-p3-lookup-macos.txt`): **2.78 s with the memo, 22.78 s without: +720 %, beyond the spread** (spread 2.2 and 4.0 s; at 640 x 480: 0.26 s against 1.52 s, +480 %). The memo made a lookup near a previous one nearly free; the pure kd-tree search does the full 24-photon search every time. This is the cost the maintainer asked to see; **it is reported, not optimised away** (R6 option C, precomputed irradiance at the photons, is the later spec; the raise of the factor to make the baseline pass the 3 s floor would only widen the ratio).
+**Cost of D2-A (T052, §5).** `timing_sc007.sh build-base build 5`, interleaved series, macOS (`tools/timing-p3-macos.txt`): `perf-occlusion-cache` 5.09 / 5.03 s, `perf-indirect-photon` 5.87 / 5.79 s, `perf-photon-pass` 4.12 / 4.47 s: all within spread (and `perf-indirect-photon` does not read the photon map under the interpreter, GitHub #173, so it cannot show the cost). **On a render that does read it** (`tools/perf-photon-lookup.rib`: the photon pass, then a 2560 x 1920 raytrace with 2 x 2 samples and one `photonmap()` lookup per hit, 4 threads; `tools/timing-p3-lookup-macos.txt`): **2.78 s with the memo, 22.78 s without: +720 %, beyond the spread** (spread 2.2 and 4.0 s; at 640 x 480: 0.26 s against 1.52 s, +480 %). The memo made a lookup near a previous one nearly free; the pure kd-tree search does the full 24-photon search every time. This is the cost the maintainer asked to see; **it is reported, not optimised away** (accepted by the maintainer, 2026-11-16; the follow-up is GitHub #178) (R6 option C, precomputed irradiance at the photons, is the later spec; the raise of the factor to make the baseline pass the 3 s floor would only widen the ratio).
 
 ### Checkpoint 2 (Phase 2), 2026-11-16
 
@@ -340,7 +340,7 @@ Linux (one chain through the remote cpujob at -j2, GCC 13 `-Werror`, JIT on; `ph
 
 ## 5. Timing (FR-023)
 
-Baseline: §0.5 (T010). Phase 3 (D2-A, the memo removed): see Checkpoint 3 above: the three standard scenes are within spread on both platforms; a render that reads the photon map through `photonmap()` costs +720 % on macOS (2.78 s to 22.78 s, `tools/perf-photon-lookup.rib`). Phase 7 compares against the baseline.
+Baseline: §0.5 (T010). Phase 3 (D2-A, the memo removed): see Checkpoint 3 above: the three standard scenes are within spread on both platforms; a render that reads the photon map through `photonmap()` costs +720 % on macOS (2.78 s to 22.78 s, `tools/perf-photon-lookup.rib`). Phase 7 compares against the baseline. The maintainer accepted D2-A's cost as measured (2026-11-16); the follow-up, option C (precomputed irradiance at the photons, R6), is GitHub #178 (P1 enhancement).
 
 ## 6. Issue evidence
 
