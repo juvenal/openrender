@@ -92,6 +92,7 @@ set(ri_sources
 	geometry/geometryHost.cpp
 	geometry/geometryFrame.cpp
 	geometry/emitterRegistry.cpp
+	geometry/areaSampling.cpp
 	dataviewer/brickMapView.cpp
 	dataviewer/dataLoad.cpp
 	dataviewer/dataView.cpp

@@ -46,6 +46,7 @@ class CSubdivision : public CSurface {
         int moving() const { return vertexData->moving; }
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
+        void collectEmitters(IRayContext &, CEmitterCollector &out) { collectTessellatedEmitter(out); } // Spec 057
 
         CVertexData *vertexData; // The variables
         CParameter *parameters;  // The parameters

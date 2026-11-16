@@ -82,6 +82,10 @@ class CBicubicPatch : public CSurface {
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
 
+        // Spec 057: a bicubic patch reports itself (the leaf a regular subdivision face becomes); the RiPatch and
+        // RiNuPatch containers (CPatchMesh) keep the default until the patch phase
+        void collectEmitters(IRayContext &, CEmitterCollector &out) { collectTessellatedEmitter(out); }
+
     private:
         void computeVertexData(float *, const float *, int, const float *, const float *);
 

@@ -30,15 +30,24 @@
 
 #include <memory>
 #include <mutex>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
+#include "areaSampling.h"
 #include "object.h"
 #include "rayContext.h"
 #include "stateHandles.h"
 #include "stateVocabulary.h"
 
-struct CAreaSample;
+///////////////////////////////////////////////////////////////////////
+// Class				:	CEmitterLeaf
+// Description			:	One sampleable leaf of a light: its surface, its area and its own table
+struct CEmitterLeaf {
+        CSurface *surface; // attached by the set until the frame ends
+        double area;
+        CAreaTable table;
+};
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CEmitterSet
@@ -47,20 +56,32 @@ struct CAreaSample;
 //						set is read-only except for its one-time resolution
 class CEmitterSet {
     public:
-        CEmitterSet(const CShaderGroupRefTarget *light, int lightSamples, EAreaLightMode lightMode)
-            : light_(light), lightSamples_(lightSamples), lightMode_(lightMode) {}
+        CEmitterSet(const CShaderGroupRefTarget *light, int lightSamples, EAreaLightMode lightMode, const char *name = nullptr)
+            : light_(light), lightSamples_(lightSamples), lightMode_(lightMode), name_(name != nullptr ? name : "") {}
+        ~CEmitterSet(); // lets go of the leaves
         CEmitterSet(const CEmitterSet &) = delete;
         CEmitterSet &operator=(const CEmitterSet &) = delete;
 
         const CShaderGroupRefTarget *light() const { return light_; }
         int lightSamples() const { return lightSamples_; }      // the light level controls in force at the statement
         EAreaLightMode lightMode() const { return lightMode_; } // (0 / Unset when the statement's block set none)
+        const char *name() const { return name_.c_str(); }      // the light shader's name, for the reports
         const std::vector<CObject *> &roots() const { return roots_; } // attached, in RIB order
 
-        // Declared for the sampling phase, not defined yet: resolve once (std::call_once) the roots into leaves and tables;
-        // draw a point uniformly by area.
+        // Resolve once (std::call_once, any thread): collectEmitters over the roots in RIB order, build the leaf cdf, report
+        // (once per light) the primitives with no sampler, the CSG leaves (D-4) and an empty set (A7). Everything below reads
+        // immutable tables afterwards.
         void resolve(IRayContext &context) const;
-        double totalArea() const;
+
+        // After resolve(): the total area of the emitters (camera space, shutter open), and the leaves in collection order
+        double totalArea() const { return totalArea_; }
+        int numLeaves() const { return static_cast<int>(leaves_.size()); }
+        const CSurface *leafSurface(int i) const { return leaves_[i].surface; }
+        double leafArea(int i) const { return leaves_[i].area; }
+
+        // A point uniformly by area over every leaf, a pure function of (u1, u2): u1 chooses the leaf in the cdf and is
+        // rescaled in double, then the leaf's table places the point. pdfA = 1 / totalArea(); an empty set (or one not yet
+        // resolved) gives pdfA = 0 and no leaf. Leaves and faces of zero area are never chosen.
         void sample(double u1, double u2, CAreaSample &out) const;
 
         // Counters filled by resolution and reported once per light
@@ -72,8 +93,12 @@ class CEmitterSet {
         const CShaderGroupRefTarget *light_;
         int lightSamples_;
         EAreaLightMode lightMode_;
+        std::string name_;
         std::vector<CObject *> roots_;
         mutable std::once_flag resolved_;
+        mutable std::vector<CEmitterLeaf> leaves_;
+        mutable std::vector<double> cdf_;
+        mutable double totalArea_ = 0.0;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -90,7 +115,7 @@ class CEmitterRegistry {
 
         // A bound light: its light level controls as in force at the AreaLightSource statement. Declaring a light twice
         // keeps the first declaration.
-        void declareLight(const CShaderGroupRefTarget *light, int samples, EAreaLightMode mode);
+        void declareLight(const CShaderGroupRefTarget *light, int samples, EAreaLightMode mode, const char *name = nullptr);
 
         // A world-block object created in a light's scope: root->attributes->areaLight names a declared light. The registry
         // attaches the root. An object whose light is not declared is ignored.

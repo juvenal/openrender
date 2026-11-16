@@ -241,3 +241,29 @@ void CDelayedInstance::dice(IDicer &r) {
     // Let the parent take care of the instance
     CObject::dice(r);
 }
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CDelayedObject
+// Method				:	collectEmitters
+// Description			:	Spec 057: expand the procedural through the host (the idempotent, serialized path a ray hit
+//							takes: processed is tested again under the host's lock), then report the children
+// Return Value			:	-
+// Comments				:
+void CDelayedObject::collectEmitters(IRayContext &context, CEmitterCollector &out) {
+    if (processed == FALSE)
+        expandThroughHost(this);
+    collectChildEmitters(context, out);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CDelayedInstance
+// Method				:	collectEmitters
+// Description			:	Spec 057: instantiate through the host, then report the children: every one was created with
+//							the instance's own transform and attributes
+// Return Value			:	-
+// Comments				:
+void CDelayedInstance::collectEmitters(IRayContext &context, CEmitterCollector &out) {
+    if (processed == FALSE)
+        expandThroughHost(this);
+    collectChildEmitters(context, out);
+}

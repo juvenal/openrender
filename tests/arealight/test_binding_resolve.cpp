@@ -19,17 +19,21 @@
  *     outside, before and after the scope: an archive, an instance and a solid: no root
  *   The roots' own attributes carry the light; the two instance roots lie 10 apart (each keeps its own transform).
  *
- *   Resolution half (written now, compiled only with -DAL_057_RESOLUTION_HALF, which T053 defines in Phase 3 when
- *   CEmitterSet::resolve exists): after resolve() the set holds the expanded leaves: two from the archive, one from each
- *   instance (two instances of one object give two leaves with different P after the transform) and, for the solid,
- *   its leaves (a CSG leaf is sampled whole, D-4). The draft below names the Phase 3 accessors it expects and is
- *   finalized at T053; until then it is not part of the approved test.
+ *   Resolution half (Phase 3, T053; compiled with -DAL_057_RESOLUTION_HALF, which tests/arealight/CMakeLists.txt defines
+ *   for this target): the same scene on the raytrace hider (its children stay attached for the whole frame, so resolving
+ *   after the render is safe), resolved by the frame-end observer with the hider's own ray context. After resolve() the
+ *   set holds the expanded leaves, each in the order of the roots: the archive's two quads (3 units apart), then one leaf
+ *   per instance, the instances 10 and 20 units from the first leaf (each with its own transform), then whatever the solid's
+ *   two sphere operands report: spheres have no sampler until the quadric phase, so the solid contributes two CSG leaves
+ *   (numCsgLeaves == 2) and two unsupported primitives for now, and the test asserts nothing more of its leaves.
+ *   resolve() is idempotent.
  *
  *   Red on the starting tree: does not compile (no emitter registry, no CAttributes::areaLight, no observer).
  *
  * License: GNU Lesser General Public License (LGPL) 2.1
  */
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -43,6 +47,10 @@
 #include "ri/state/attributes.h"
 
 #include "registry_probe.h"
+
+#ifdef AL_057_RESOLUTION_HALF
+#include "hider.h"
+#endif
 
 static int g_passed = 0;
 static int g_failed = 0;
@@ -58,6 +66,36 @@ static int g_failed = 0;
     } while (0)
 
 static void ignoreDiagnostics(RtInt, RtInt, const char *) {}
+
+#ifdef AL_057_RESOLUTION_HALF
+// What the frame-end observer reads after resolving the one light with the hider's own ray context
+struct Resolved {
+        bool done = false;
+        int numLeaves = 0, numCsgLeaves = 0, numUnsupported = 0, numRoots = 0;
+        std::vector<float> leafX; // the leaves' bound, centre x, in collection order
+        bool idempotent = false;
+};
+static Resolved g_resolved;
+
+static void observeAndResolve(const CEmitterRegistry &registry) {
+    alprobe::observe(registry);
+    const CEmitterSet *set = registry.lightAt(0);
+    if (set == nullptr || CRenderer::contexts == nullptr)
+        return;
+    IRayContext &context = *CRenderer::contexts[0];
+    set->resolve(context);
+    const int leaves = set->numLeaves(), csg = set->numCsgLeaves, unsupported = set->numUnsupported;
+    set->resolve(context); // idempotent: the same leaves and counters
+    g_resolved.idempotent = leaves == set->numLeaves() && csg == set->numCsgLeaves && unsupported == set->numUnsupported;
+    g_resolved.numLeaves = leaves;
+    g_resolved.numCsgLeaves = csg;
+    g_resolved.numUnsupported = unsupported;
+    g_resolved.numRoots = static_cast<int>(set->roots().size());
+    for (int i = 0; i < leaves; i++)
+        g_resolved.leafX.push_back(0.5f * (set->leafSurface(i)->bmin[0] + set->leafSurface(i)->bmax[0]));
+    g_resolved.done = true;
+}
+#endif
 
 // A DelayedReadArchive procedural of path, emitted as the RIB parser emits one
 static void delayedReadArchive(const std::string &path) {
@@ -104,10 +142,17 @@ int main(int argc, char **argv) {
     const std::string dir = argv[1];
     const std::string twoQuads = dir + "/leaf-two-quads.rib";
 
+#ifdef AL_057_RESOLUTION_HALF
+    setEmitterRegistryObserver(observeAndResolve);
+#else
     setEmitterRegistryObserver(alprobe::observe);
+#endif
 
     RiBegin(RI_NULL);
     RiErrorHandler(ignoreDiagnostics);
+#ifdef AL_057_RESOLUTION_HALF
+    RiHider("raytrace", RI_NULL);
+#endif
     int one = 1;
     RiOption(RI_LIMITS, RI_NUMTHREADS, &one, RI_NULL);
     RiFormat(8, 8, 1);
@@ -168,12 +213,21 @@ int main(int argc, char **argv) {
     }
 
 #ifdef AL_057_RESOLUTION_HALF
-    // Resolution half, draft for T053 (not part of the approved test until then). After CEmitterSet::resolve():
-    //   the set's leaf count is 2 (archive) + 1 + 1 (instances) + 2 (the solid's leaves, one csgLeaf() each) = 6;
-    //   the archive's two leaves lie 3 units apart; the two instance leaves lie 10 units apart (own transform);
-    //   resolve() is idempotent and numCsgLeaves == 2 warns once.
-    // It needs a CHider as the IRayContext (CRenderer::contexts[0]) while the frame's contexts still exist, so it
-    // runs inside a second observer installed in place of alprobe::observe.
+    CHECK(g_resolved.done, "the frame-end observer resolved the light");
+    CHECK(g_resolved.idempotent, "resolving again changes nothing");
+    CHECK(g_resolved.numRoots == 4, "four roots");
+    CHECK(g_resolved.numCsgLeaves == 2, "the two sphere operands of the union are CSG leaves");
+    CHECK(g_resolved.numUnsupported == 2, "spheres have no sampler until the quadric phase");
+    if (g_resolved.numLeaves >= 4) {
+        // the archive's two quads (a delayed expansion chains its objects newest first, so they come in either order, 3
+        // units apart), then one leaf per instance in RIB order: each instance keeps its own transform
+        const float lo = std::min(g_resolved.leafX[0], g_resolved.leafX[1]), hi = std::max(g_resolved.leafX[0], g_resolved.leafX[1]);
+        CHECK(std::fabs((hi - lo) - 3.0f) < 1e-3f, "the archive's two quads are 3 units apart");
+        CHECK(std::fabs((g_resolved.leafX[2] - lo) - 10.0f) < 1e-3f, "the first instance's leaf is 10 units from the archive's first quad");
+        CHECK(std::fabs((g_resolved.leafX[3] - lo) - 20.0f) < 1e-3f, "the second instance's leaf is 20 units from the archive's first quad");
+    }
+    else
+        CHECK(false, "at least four leaves: the archive's two quads and one per instance");
 #endif
 
     printf("%d passed, %d failed\n", g_passed, g_failed);

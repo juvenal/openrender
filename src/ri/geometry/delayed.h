@@ -43,6 +43,7 @@ class CDelayedObject : public CObject {
         void intersect(IRayContext &, CRay *);
         void dice(IDicer &);
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
+        void collectEmitters(IRayContext &, CEmitterCollector &); // Spec 057: expand through the host, then the children
 
         void (*subdivisionFunction)(void *, float);
         void (*freeFunction)(void *);
@@ -68,6 +69,7 @@ class CDelayedInstance : public CObject {
         void intersect(IRayContext &, CRay *);
         void dice(IDicer &);
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
+        void collectEmitters(IRayContext &, CEmitterCollector &); // Spec 057: instantiate through the host, then the children
 
         CObject *instance;
         int processed;

@@ -204,3 +204,101 @@ Linux (GCC 13 `-Werror`): build green. `ctest -L 'arealight|state|architecture' 
 including the five arealight tests. Full run `-LE determinism-sweep -j2` (`lx-p2-all.log`): 1369 selected, 1366 passed,
 1 skipped (`LibShader_Format_rslo_lower_minor`), **2 failed, the same two as the Linux baseline**:
 `TextureTile_RenderByteIdentical` (#45) and `Registry_IntegratorImageIdentity` (#163, spec 040). 701 s.
+
+## 9. Phase 3 (Geometry area sampling): tests written, red evidence (T041-T046)
+
+Five new files, all Geometry-only (primitives built directly, recorded as one light's roots, resolved and sampled through
+`CEmitterSet`): the shared checks `tests/arealight/area_sampling_checks.h` (bounds declared at its top, before any run) and the
+four tests `test_area_sampling_{polygon,mesh,subdiv,reports}.cpp` (ctest `AreaSampling_Polygon`, `_Mesh`, `_Subdivision`,
+`_Reports`, labels `arealight;geometry`), each in its own executable inside the `OPENRENDER_057_RED_TESTS` block.
+
+Pre-declared bounds: area of the exact samplers 1e-5 relative; centroid of 10^5 Sobol draws 1e-3 of the emitter's size;
+density 1e-6 relative; P(u,v) round trip 1e-5; chi-square at p = 0.001 by degrees of freedom (table in the header; 10^5 draws
+of a fixed-seed PCG32); subdivision area against an independent K = 64 tessellation 2%; drawn point on the limit surface
+1e-4 of the bound size.
+
+Red evidence (`cpujob 057-p3-red`: configure ON, one `cmake --build --target` per test, configure back OFF; logs
+`build/p3-red.log`, `build/p3-red-<target>.log`): all four targets fail to build, exit 2, first error
+`area_sampling_checks.h:41: 'areaSampling.h' file not found` (T048). Behind it the tests name `CAreaSample`,
+`CEmitterSet::{resolve, totalArea, sample, numLeaves, leafSurface, leafArea, numUnsupported, numCsgLeaves}` and the four-argument
+`CEmitterRegistry::declareLight(light, samples, mode, name)`. `ctest -N` with the option OFF is unchanged (1950).
+
+## 10. Phase 3 implementation (T048-T054) and the macOS runs
+
+Implemented: `areaSampling.{h,cpp}` (`CAreaSample`, `CAreaTable`, the exact triangle and planar-quad samplers, the `K = 8`
+tessellated table, `areaPickBin`); `CEmitterCollector` and `CObject::collectEmitters` (default: unsupported) with
+`collectChildEmitters` and `CSurface::collectTessellatedEmitter` in `object.{h,cpp}`; `CEmitterSet::{resolve, sample, totalArea,
+numLeaves, leafSurface, leafArea, name}` and the three reports in `emitterRegistry.{h,cpp}`; overrides on `CPolygonMesh`,
+`CPolygonTriangle`, `CPolygonQuad`, `CSubdivMesh`, `CLoopSubdivMesh`, `CSubdivision`, `CBicubicPatch`, `CPatchGrid`,
+`CDelayedObject`, `CDelayedInstance` and `CCSGSolid`; `declareLight` takes the shader name from `RiAreaLightSourceV`. The
+resolution half of `AreaLightBinding_ProceduralInstanceSolid` is enabled (raytrace hider, observer-driven resolution).
+
+- Which class each statement creates: `RiPolygon`, `RiGeneralPolygon`, `RiPointsPolygons` and `RiPointsGeneralPolygons` each create one
+  `CPolygonMesh` (`rendererContext.cpp`: `addObject(new CPolygonMesh(...))`). `create()` transforms the list to camera space in
+  place and triangulates: a single 4-vertex loop becomes one `CPolygonQuad`, anything else `CPolygonTriangle`s.
+- The lock: `collectEmitters` calls `materialize()` (`if (children == NULL) create()`), and `create()` takes the object's own
+  `mutex`, the lock `intersect` takes (meshes, `CSubdivMesh`, `CLoopSubdivMesh`); delayed objects and instances through the host.
+- Vector stub: none needed (`areaSampling.cpp` and `emitterRegistry.cpp` are Geometry, compiled into both libraries).
+- Build: green on macOS with `-Werror`. `ctest -L 'geometry|arealight|state|architecture'`: 58 tests, all pass except
+  `AreaSampling_Reports` (below). The race check `ctest -R 'AreaSampling_(Polygon|Mesh|Subdivision)' --repeat until-fail:20`:
+  60/60 passes (`p3-repeat.log`). Full run (`-LE determinism-sweep -j4`, `p3-all.log`): 1372 selected (1368 + the four AreaSampling
+  tests), 1371 passed, 1 failed: `AreaSampling_Reports`. Zero pre-existing test changed.
+- The resolution half needed two findings of its own, both mine to correct before approval: a delayed expansion chains its
+  objects newest first (so the archive's two quads come in either order), and a leaf's bound is read from its centre.
+
+**PAUSE (approved-test change): `AreaSampling_Reports` case A.** `blobbyCreate()` polygonizes the blobby into a `CPolygonMesh`
+at creation, so a blobby is an ordinary mesh emitter, not an unsupported kind: the light counts two unsupported primitives
+(points, curves), not three, and the total area is the quad plus the blobby's mesh. The approved test expects three and an area
+of 1. The proposed change (loose bounds fixed before any run: 0.5 to 1.1 times the unit sphere's 4 pi on top of the quad's 1)
+is in `tools/proposed/reports-blobby.diff`. Cases B (empty set) and C (CSG leaves) of the same test pass. Also proposed, as a
+non-asserting change: `tools/proposed/measurements-print.diff` prints the measured chi-square and the subdivision area bias,
+which the checkpoint reports against their bounds.
+
+## 11. Phase 3 after the approved test changes (macOS measurements, Linux)
+
+Applied with approval: `reports-blobby.diff` (blobbies emit through their polygonized mesh: `numUnsupported == 2`) and
+`measurements-print.diff` (non-asserting prints); the finalized resolution half of `AreaLightBinding_ProceduralInstanceSolid`.
+
+Measured (macOS, `ctest -R 'AreaSampling_|AreaLightBinding_Procedural' -V`, `build/p3-v.log`), against the pre-declared bounds:
+
+| Measurement | Value | Bound |
+|---|---|---|
+| `AreaSampling_Mesh`, four faces 100:9:2:1, chi-square, 3 dof | 7.613 | 16.266 (p = 0.001) |
+| `AreaSampling_Mesh`, zero-area face beside two faces, chi-square, 1 dof | 0.558 | 10.828 |
+| `AreaSampling_Subdivision`, Catmull-Clark cube: light area (K = 8 tables) | 7.240160 | |
+| same, independent K = 64 tessellation of the same limit patches | 7.260256 | |
+| same, area bias | -0.2768 % | 2.0 % |
+
+`AreaSampling_Polygon`, `_Mesh`, `_Subdivision` and the resolution half of `AreaLightBinding_ProceduralInstanceSolid` pass
+(areas to 1e-5, densities, centroids, round trips, 1 and 4 threads bit-identical).
+
+**PAUSE 2 (approved-test change): `AreaSampling_Reports` case A, area bounds.** With the approved diff the case still fails on
+its area bounds: the light's area is not inside `1 + [0.5, 1.1] * 4 pi`. My assumption that the blobby's polygonized
+surface is about a unit sphere was wrong (the ellipsoid field's isosurface is inside its unit radius, so the mesh is
+smaller). The bounds were a guess of mine and are not to be widened; the principled check is the blobby mesh's own area,
+summed independently from its raw triangles (as the Loop test does) with the same 1e-5 tolerance as every exact sampler:
+`tools/proposed/reports-blobby-reference.diff`. Cases B and C of the test pass.
+
+Linux (GCC 13 `-Werror`, `-j2`), before the three test edits above (the Linux tree holds the staged tests of the previous
+sync): build green with no warning in any new or edited file (`lx-build5.log`). `-L 'arealight|geometry|architecture'` (51
+tests): 50 pass, `AreaSampling_Reports` fails (pending). The five other arealight tests, the three AreaSampling tests and
+the resolution half pass. Full run `-LE determinism-sweep -j2` (`lx-p3-all.log`): 1373 selected (1369 + the four AreaSampling
+tests), 1370 passed, 1 skipped (`LibShader_Format_rslo_lower_minor`), 3 failed: `TextureTile_RenderByteIdentical` (#45),
+`Registry_IntegratorImageIdentity` (#163) and `AreaSampling_Reports` (pending). 733.7 s.
+
+## 12. Phase 3 final runs (T054, T055), after `reports-blobby-reference.diff`
+
+Applied with approval (the blobby mesh's area from its raw triangles, `blobbyMesh > 0`, total == 1 + `blobbyMesh` to 1e-5).
+
+macOS: build green; `AreaSampling_Reports` passes. `-L architecture` (`p3-arch.log`): 36/36, allowlist and
+`ribvector-core-residual.txt` unchanged. Full run `-LE determinism-sweep -j4` (`p3-all2.log`): 1372 selected, 1371 passed, 1 timed
+out: `ShadingParity_JitPL_trace_samples_cone` (120 s, under load); re-run alone through `cpujob` it passed in 50.5 s
+(`p3-rerun.log`, load average 12 against 150-377 earlier), as in Phase 1, so it is load and not a failure. Every AreaSampling
+test, `AreaLightBinding_ProceduralInstanceSolid` (registry and resolution halves) and `LightKey_NoLeakAcrossFailedLight` pass.
+The race check of §10 stands (60/60). The measurements of §11 stand. No pre-existing test failed: no image moved, no
+reference re-captured, no threshold touched.
+
+Linux (GCC 13 `-Werror`, `-j2`; `lx-build6.log`): build green, no warning. `-L 'arealight|geometry|architecture'` (51 tests,
+`lx-p3-groups2.log`): **51/51 passed**. Full run (`lx-p3-all2.log`): 1373 selected, 1370 passed, 1 skipped
+(`LibShader_Format_rslo_lower_minor`), **2 failed, the two known**: `TextureTile_RenderByteIdentical` (#45) and
+`Registry_IntegratorImageIdentity` (#163). 739.8 s.

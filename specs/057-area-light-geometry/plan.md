@@ -221,6 +221,13 @@ binding into `ShadingSystem::bind` but leaves `RiLightSourceV`, `RiAreaLightSour
 `addObject` changes. **Spec 048** also adds a new `Option` (token lists, `options.h/.cpp`, `rendererDeclarations.cpp`,
 `RiOptionV`): expect a textual collision in those files, resolved by keeping both additions.
 
+**Phase 4 default for the lifetime of sampled leaves and the timing of resolution** (maintainer, at the Phase 3 test
+approval, 2026-11-16): each leaf a set samples stays **attached until frame end** (the set attaches it in `addLeaf` and lets
+go with the registry, before `root->destroy()`, as the roots are held), and every bound light is **resolved once at frame
+start on the main thread, before any dicing**, so a mesh's pieces are collected before Reyes can consume them by reference
+count. Phase 4 confirms both with its tests (the three hiders, `-t:1` and `-t:4`) and may change the timing only through a
+recorded decision.
+
 ## Project Structure
 
 ### Documentation (this feature)

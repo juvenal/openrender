@@ -1,0 +1,47 @@
+--- a/tests/arealight/test_area_sampling_reports.cpp
++++ b/tests/arealight/test_area_sampling_reports.cpp
+@@ includes
+ #include "curves.h"
+ #include "points.h"
++#include "polygons.h"
+ #include "riServices.h"
+@@ before testUnsupportedKinds
++    // The area of a polygon mesh from its raw data (object space; a translation does not change areas), polygons fanned from
++    // their first vertex: the independent reference for a blobby's polygonized surface
++    double meshArea(const CPolygonMesh &mesh) {
++        const float *P;
++        int npoly;
++        const int *nholes, *nvertices, *vertices;
++        mesh.wireData(P, npoly, nholes, nvertices, vertices);
++        double area = 0.0;
++        for (int f = 0; f < npoly; f++) {
++            const int n = nvertices[f]; // one loop per polygon (nholes[f] == 1): a blobby's mesh has no holes
++            for (int k = 1; k + 1 < n; k++) {
++                const float *a = P + 3 * vertices[0], *b = P + 3 * vertices[k], *c = P + 3 * vertices[k + 1];
++                const double e1[3] = {b[0] - a[0], b[1] - a[1], b[2] - a[2]}, e2[3] = {c[0] - a[0], c[1] - a[1], c[2] - a[2]};
++                const double x = e1[1] * e2[2] - e1[2] * e2[1], y = e1[2] * e2[0] - e1[0] * e2[2], z = e1[0] * e2[1] - e1[1] * e2[0];
++                area += 0.5 * std::sqrt(x * x + y * y + z * z);
++            }
++            vertices += n;
++        }
++        return area;
++    }
++
+@@ testUnsupportedKinds
+         CObject *b = blobby(pl);
+         CHECK(b != nullptr);
++        double blobbyMesh = 0.0;
+         if (b != nullptr) {
++            const CPolygonMesh *bm = dynamic_cast<const CPolygonMesh *>(b);
++            CHECK(bm != nullptr); // blobbyCreate() wraps the polygonized surface in a CPolygonMesh
++            if (bm != nullptr)
++                blobbyMesh = meshArea(*bm);
+             rig.add(b);
+         }
+@@
+-        // the quad (1) and the unit-radius blobby's polygonized surface (about 4 pi = 12.57): loose bounds, fixed here
+-        const double blobbyArea = 4.0 * 3.14159265358979;
+-        CHECK(set.totalArea() > 1.0 + 0.5 * blobbyArea && set.totalArea() < 1.0 + 1.1 * blobbyArea);
++        // the quad (1) plus the blobby's own polygonized mesh, summed independently from its raw triangles
++        CHECK(blobbyMesh > 0.0);
++        CHECK(nearRel(set.totalArea(), 1.0 + blobbyMesh, kAreaRelTol));

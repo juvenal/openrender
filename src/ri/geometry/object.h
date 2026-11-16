@@ -88,6 +88,30 @@ class CRegionPredicate {
 // Class				:	CObject
 // Description			:	This class encapsulates a general object
 // Comments				:
+class CObject;
+class CSurface;
+class CAreaTable;
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CEmitterCollector
+// Description			:	What an area light's emitter set hands to CObject::collectEmitters (spec 057)
+// Comments				:	Implemented by the emitter set; objects only report to it
+class CEmitterCollector {
+    public:
+        virtual ~CEmitterCollector() {}
+
+        // A sampleable leaf: the surface the sampled points belong to (the collector keeps it alive until the frame
+        // ends), its own area table and the table's area
+        virtual void addLeaf(CSurface *surface, CAreaTable &&table, double area) = 0;
+
+        // An object with no sampler: counted, reported once per light, and left ordinary geometry
+        virtual void unsupported(const CObject *object) = 0;
+
+        // The next leaf comes from a solid (CSG): it is sampled whole, without its region (decision D-4); counted and
+        // reported once per light
+        virtual void csgLeaf() = 0;
+};
+
 class CObject : public CRefCounter {
     public:
         CObject(CAttributes *, CXform *);
@@ -121,6 +145,14 @@ class CObject : public CRefCounter {
         // Create the children of an object that builds them lazily (meshes).
         // Idempotent. The default does nothing.
         virtual void materialize(IRayContext &) {}
+
+        // Report the sampleable leaves of this object to an area light's emitter set (spec 057). The default reports the
+        // object as unsupported (points, curves, blobbies, implicit surfaces and DSO objects keep it). Objects that build
+        // their children lazily materialize or expand them first, through the same serialized paths a ray hit uses.
+        virtual void collectEmitters(IRayContext &context, CEmitterCollector &out);
+
+        // collectEmitters() of every child, in order: what a container reports
+        void collectChildEmitters(IRayContext &context, CEmitterCollector &out);
 
         // FALSE if this object cannot take part in a region-restricted render:
         // its own rendering bypasses the region hook, or it encloses no volume.
@@ -241,6 +273,10 @@ class CSurface : public CObject {
 
         // Built once by the free-form crossing query, then read-only
         mutable std::atomic<CCrossingCache *> crossingCache;
+
+        // Spec 057: report this surface as one sampleable leaf with the tessellated table of its own evaluation
+        // (kAreaTessellationK cells a side). What the free-form leaves (limit patches, bicubic patches) call.
+        void collectTessellatedEmitter(CEmitterCollector &out);
 
     protected:
         // Shared ray-rejection + displacement-tesselation guard used at the top

@@ -79,6 +79,9 @@ class CCSGSolid : public CObject {
         void dice(IDicer &);
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
+        // Spec 057 (D-4): resolve, then report each leaf; a CSG leaf is sampled whole, without its region, and reported once
+        void collectEmitters(IRayContext &, CEmitterCollector &);
+
         // Build the per-instance state and the children, exactly once; the
         // first dice() or intersect() calls it. Later calls return at once.
         void resolve(IRayContext &context);

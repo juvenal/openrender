@@ -34,6 +34,7 @@
 #include "object.h"
 #include "patches.h"
 #include "polygons.h"
+#include "areaSampling.h"
 #include "common/stats.h"
 #include "surface.h"
 
@@ -1296,6 +1297,45 @@ void CPolygonMesh::intersect(IRayContext &r, CRay *) {
 
     if (children == NULL)
         create(r);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CPolygonMesh
+// Method				:	collectEmitters
+// Description			:	Spec 057: create the triangles and quads as intersect() does (idempotent, under the mesh's
+//							own mutex), then let each report itself
+// Return Value			:	-
+// Comments				:
+void CPolygonMesh::collectEmitters(IRayContext &context, CEmitterCollector &out) {
+    materialize(context);
+    collectChildEmitters(context, out);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CPolygonTriangle
+// Method				:	collectEmitters
+// Description			:	Spec 057: the exact triangle sampler, from the mesh's camera-space vertices at shutter open
+// Return Value			:	-
+// Comments				:
+void CPolygonTriangle::collectEmitters(IRayContext &, CEmitterCollector &out) {
+    const float *P = mesh->pl->data0;
+    CAreaTable table = makeTriangleTable(P + 3 * v0, P + 3 * v1, P + 3 * v2);
+    const double area = table.area;
+    out.addLeaf(this, std::move(table), area);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CPolygonQuad
+// Method				:	collectEmitters
+// Description			:	Spec 057: the exact planar quad sampler (two triangles, inverse bilinear), or the tessellated
+//							table when the quad is not planar
+// Return Value			:	-
+// Comments				:
+void CPolygonQuad::collectEmitters(IRayContext &, CEmitterCollector &out) {
+    const float *P = mesh->pl->data0;
+    CAreaTable table = makeQuadTable(this, P + 3 * v0, P + 3 * v1, P + 3 * v2, P + 3 * v3);
+    const double area = table.area;
+    out.addLeaf(this, std::move(table), area);
 }
 
 ///////////////////////////////////////////////////////////////////////

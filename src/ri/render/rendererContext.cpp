@@ -2467,7 +2467,7 @@ void *CRendererContext::RiAreaLightSourceV(const char *name, int n, const char *
         CEmitterRegistry *emitters = frameEmitters();
         if (emitters != NULL) {
             attributes->areaLight = light;
-            emitters->declareLight(light, attributes->areaLightSamples, attributes->areaLightMode);
+            emitters->declareLight(light, attributes->areaLightSamples, attributes->areaLightMode, name);
         }
         else {
             // No frame (before WorldBegin): nothing to bind it to. The light is made and activated as LightSource does

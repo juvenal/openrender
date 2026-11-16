@@ -29,6 +29,7 @@
 #include "common/diagnostics.h"
 #include "common/memory.h"
 #include "object.h"
+#include "areaSampling.h"
 #include "common/random.h"
 #include "common/sampling.h"
 #include "geometryFrame.h"
@@ -76,6 +77,21 @@ CObject::~CObject() {
 
     attributes->detach();
     xform->detach();
+}
+
+void CObject::collectEmitters(IRayContext &, CEmitterCollector &out) {
+    out.unsupported(this);
+}
+
+void CSurface::collectTessellatedEmitter(CEmitterCollector &out) {
+    CAreaTable table = makeTessellatedTable(this);
+    const double area = table.area;
+    out.addLeaf(this, std::move(table), area);
+}
+
+void CObject::collectChildEmitters(IRayContext &context, CEmitterCollector &out) {
+    for (CObject *child = children; child != NULL; child = child->sibling)
+        child->collectEmitters(context, out);
 }
 
 // CObject::dice() lives in geometryDispatch.cpp (real body) /
