@@ -10,6 +10,9 @@
  *   GiKeys_IrradianceRecords  (label gi_split)           the (key, record) set of the irradiance cache is identical across two
  *                                                         -t:1 runs, and keys are unique (so the records two runs share have
  *                                                         equal keys: OQ-3)
+ *   GiKeys_IrradianceRecordsThreads (label gi_split)     spec 040 (T025, research.md R4: the batch-identity gate): the (key, record) multiset of the
+ *                                                         irradiance cache at -t:1 against -t:4, for the reyes, zbuffer and raytrace hiders,
+ *                                                         .rslo and .slo; duplicates must agree too, so the keys need not be unique here
  *   GiKeys_PhotonsThreads     (label gi_split_threads)   as GiKeys_Photons but -t:1 against -t:4: opt-in, not in the everyday
  *                                                         run (the intermittent CPhotonHider crash and the unguarded
  *                                                         `modifying` reset make it unfit for it: OQ-3)
@@ -214,13 +217,12 @@ class CRecordingServices final : public CContractForwarder {
         }
 };
 
-static int recordsDump(int threads, const std::string &out) {
+static int recordsDump(int threads, const std::string &out, const char *hider = "reyes", const char *format = "rslo") {
     RtInt numThreads = threads;
     RtInt one = 1;
     RtFloat maxError = 0.6f;
     const char *handle = "gi-keys-records.icache";
     const char *mode = "w";
-    const char *format = "rslo";
 
     RiBegin(RI_NULL);
     RiOption(RI_LIMITS, RI_NUMTHREADS, &numThreads, RI_NULL);
@@ -230,7 +232,7 @@ static int recordsDump(int threads, const std::string &out) {
     CRecordingServices recording(original);
     CShadingContext::setDefaultServices(&recording);
 
-    RiHider("reyes", RI_NULL);
+    RiHider(hider, RI_NULL);
     RiDisplay("gi-keys-records.tif", "file", RI_RGBA, RI_NULL);
     RiFormat(24, 18, 1);
     RiPixelSamples(1, 1);
@@ -294,7 +296,7 @@ static void dropFlags(std::vector<std::string> &lines) {
     }
 }
 
-static int compare(const std::string &self, const char *dumpCase, int threadsA, int threadsB, const std::string &work) {
+static int compare(const std::string &self, const char *dumpCase, int threadsA, int threadsB, const std::string &work, bool unique = true) {
     const std::string a = work + "/keys-a.txt", b = work + "/keys-b.txt";
     remove(a.c_str());
     remove(b.c_str());
@@ -304,8 +306,10 @@ static int compare(const std::string &self, const char *dumpCase, int threadsA, 
     }
     std::vector<std::string> la, lb;
     EXPECT(readLines(a, la) && readLines(b, lb), "a dump is missing");
-    checkUnique("run A", la);
-    checkUnique("run B", lb);
+    if (unique) {
+        checkUnique("run A", la);
+        checkUnique("run B", lb);
+    }
     if (threadsA != threadsB && std::string(dumpCase) == "photons-dump") {
         dropFlags(la);
         dropFlags(lb);
@@ -329,6 +333,16 @@ int main(int argc, char **argv) {
     if (which == "records-dump") {
         return recordsDump(atoi(argv[2]), argv[3]);
     }
+    // spec 040: records-dump-<hider>-<format> (the threads-gate children; the argument count stays three)
+    if (which.rfind("records-dump-", 0) == 0) {
+        const std::string rest = which.substr(13);
+        const size_t dash = rest.find('-');
+        if (dash == std::string::npos) {
+            return 2;
+        }
+        const std::string h = rest.substr(0, dash), f = rest.substr(dash + 1);
+        return recordsDump(atoi(argv[2]), argv[3], h.c_str(), f.c_str());
+    }
     std::string self = argv[0];
     char cwd[4096];
     if (!self.empty() && self[0] != '/' && getcwd(cwd, sizeof(cwd)) != NULL) {
@@ -346,6 +360,19 @@ int main(int argc, char **argv) {
     }
     if (which == "records") {
         return compare(self, "records-dump", 1, 1, argv[2]);
+    }
+    if (which == "records-threads") {
+        int rc = 0;
+        const char *hiders[3] = {"reyes", "zbuffer", "raytrace"};
+        const char *formats[2] = {"rslo", "slo"};
+        for (const char *h : hiders) {
+            for (const char *f : formats) {
+                const std::string dumpCase = std::string("records-dump-") + h + "-" + f;
+                printf("== %s, -t:1 against -t:4\n", dumpCase.c_str());
+                rc |= compare(self, dumpCase.c_str(), 1, 4, argv[2], false);
+            }
+        }
+        return rc;
     }
     fprintf(stderr, "unknown case %s\n", which.c_str());
     return 2;

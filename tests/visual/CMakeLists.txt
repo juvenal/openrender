@@ -1561,7 +1561,7 @@ foreach(_variant transparent opaque)
 endforeach()
 
 # --- Determinism sweep (spec 039, FR-030, FR-031) -------------------------------------------
-# add_determinism_sweep(<name> <rib> <outputs...> [CONFIGS <list>] [COPY <dir>...])
+# add_determinism_sweep(<name> <rib> <outputs...> [CONFIGS <list>] [COPY <dir>...] [FILES <file>...] [FLOAT] [DEPTH])
 #
 # Renders the scene once per orender configuration and requires every listed output to be
 # bit-identical across them. The scene is rendered with a sampler forced on (a prepended
@@ -1578,6 +1578,12 @@ endforeach()
 #   CONFIGS    a '|'-separated list overriding the default
 #   COPY       directories (relative to the source directory) copied to the scratch
 #              directory, for scenes that read relative archive paths
+#   FILES      (spec 040) files the scene writes, relative to the scratch directory (a photon map, an
+#              irradiance cache): `--files`, removed before each configuration and compared byte for
+#              byte across them
+#   FLOAT      (spec 040) `--float`: colour and alpha are written as float whatever the scene's Quantize
+#   DEPTH      (spec 040) `--depth <name>-z.tif`: a depth display is added after the scene's first Display
+#              line, and <name>-z.tif is compared with the outputs
 #
 # The tests are DeterminismSweep_<name>, labelled `determinism-sweep` (the default set also gets `determinism`)
 # (see determinism-scenes.cmake for the scenes and for what the label set is, per research M3).
@@ -1590,10 +1596,22 @@ set(DETERMINISM_DEFAULT_CONFIGS "-t:1||-t:2|-t:4|-P:2")
 # to the scenes of the default set. A full run without the sweep is `ctest -LE determinism-sweep`.
 set(DETERMINISM_SWEEP_LABELS "determinism-sweep")
 function(add_determinism_sweep NAME RIB)
-    cmake_parse_arguments(ARG "" "CONFIGS" "COPY" ${ARGN})
+    cmake_parse_arguments(ARG "FLOAT;DEPTH" "CONFIGS" "COPY;FILES" ${ARGN})
     set(_outputs ${ARG_UNPARSED_ARGUMENTS})
     if(NOT _outputs)
         message(FATAL_ERROR "add_determinism_sweep(${NAME}): no outputs listed")
+    endif()
+    set(_extra "")
+    if(ARG_FLOAT)
+        list(APPEND _extra --float)
+    endif()
+    if(ARG_DEPTH)
+        list(APPEND _outputs ${NAME}-z.tif)
+        list(APPEND _extra --depth ${NAME}-z.tif)
+    endif()
+    if(ARG_FILES)
+        list(JOIN ARG_FILES "," _files_arg)
+        list(APPEND _extra --files ${_files_arg})
     endif()
     list(JOIN _outputs "," _outputs_arg)
     if(ARG_CONFIGS)
@@ -1608,7 +1626,7 @@ function(add_determinism_sweep NAME RIB)
     endforeach()
     add_test(NAME DeterminismSweep_${NAME}
         COMMAND test_depth_determinism --configs "${_configs}" --outputs ${_outputs_arg}
-            --prepend "${DETERMINISM_SWEEP_LINE}"
+            --prepend "${DETERMINISM_SWEEP_LINE}" ${_extra}
             $<TARGET_FILE:orender> ${CMAKE_SOURCE_DIR}/${RIB}
         WORKING_DIRECTORY ${_scratch})
     set_tests_properties(DeterminismSweep_${NAME} PROPERTIES
@@ -4359,10 +4377,11 @@ set_tests_properties(Sampling_DisplaceThreadSweep Sampling_DisplaceRepeat PROPER
 # --- Determinism harness self-tests (spec 039, Phase 7, T079) ----------------------------------
 # test_depth_determinism's cross-configuration mode (--configs, --outputs, --prepend,
 # --keep-pins, --no-dither, --print-scene). Written before the flags exist; see
-# check_determinism_harness.sh for what each case checks.
+# check_determinism_harness.sh for what each case checks. Spec 040 adds FilesDiffer and FilesSame
+# (--files); --float and --depth are exercised by the GI sweep entries.
 set(_harness_dir ${CMAKE_BINARY_DIR}/tests/visual/determinism-harness)
 file(MAKE_DIRECTORY ${_harness_dir})
-foreach(_case identical detects render_failure multiple_outputs print_prepend print_keep_pins print_no_dither usage_unchanged)
+foreach(_case identical detects render_failure multiple_outputs print_prepend print_keep_pins print_no_dither usage_unchanged FilesDiffer FilesSame)
     add_test(NAME DeterminismHarness_${_case}
         COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/check_determinism_harness.sh
             $<TARGET_FILE:test_depth_determinism> $<TARGET_FILE:orender> ${CMAKE_SOURCE_DIR}/examples/rib/tests ${_case}

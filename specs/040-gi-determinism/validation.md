@@ -98,7 +98,7 @@ never reuses a record: 26372 is also the no-cache occlusion count). Consequences
 the JIT (`-slo`), alpha unchanged; the written cache of `perf-indirect-photon` (`maxerror 0.5`) holds **0 records** (a 96-byte file). The checked-in
 8-bit reference compares at 0.00, so it carries the same zero colour. How the `12` of `indirectdiffuse(P, Nf, 12)` fails to reach the sampler as
 `samples` was not found by reading (`IDEXPR` sets `scratch->traceParams.samples = *op3` exactly as occlusion's does, and occlusion's sampler call sees
-12); it is reported as a finding (F1), not fixed. **No later task relies on an `indirectdiffuse` count.** T024 `GiDet_IndirectRayCount` must count
+12); it is reported as a finding (F1 = GitHub #173), not fixed. **No later task relies on an `indirectdiffuse` count.** T024 `GiDet_IndirectRayCount` must count
 through the recording sampler double or through `Total Traced`, and its red reason is "0 rays traced" before it is "a jittered grid".
 
 **T012**: `tools/icache_dump.py` parses `.icache` files (header, `maxDepth`, nodes, 56-float records, `hasChild[8]`; Python standard library only). The fixture
@@ -189,12 +189,75 @@ and the default `maxerror` being 0. No fix landed on master; no baseline is unst
 |---|---|---|---|
 | 0, macOS | 36 passed; `RESULT PASS violations=0 stale=0 badid=0 failing-cycles=0 notbuilt=0` | 168 | `tools/archcheck-base-macos.txt`; ALLOWED DB-004 x 3, DB-011 x 144 |
 | 0, Linux | 36 passed (`archcheck-base-linux.txt`) | 168 | |
+| 1, macOS | 36 passed | 168 | no new edge (tests/ only) |
+| 1, Linux | 36 passed | 168 | |
 
 ## 2. Red evidence
 
-(Phase 1)
+### 2.0 Phase 1 as written before PAUSE 1a (nothing applied, nothing built red)
+
+New tests (all in `tests/gi_determinism/`, defined only with `-DOPENRENDER_040_RED_TESTS=ON`; targets `EXCLUDE_FROM_ALL`): the expected red reason of each, from its header comment.
+
+| test | source | expected red reason on the starting tree |
+|---|---|---|
+| GiDet_PhotonClaim | test_gi_photon_store.cpp (GIDET_CLAIM) | build failure: `CPhotonStore::storePhotonForFrame` |
+| GiDet_PhotonFileBytes | test_gi_photon_store.cpp | assertion (undefined padding bytes, item 0, two writes differ; run with MallocPreScribble / MALLOC_PERTURB_) |
+| GiDet_PhotonLookupPure | test_gi_photon_store.cpp | assertion (the memo, `searchRadius`) |
+| GiDet_PhotonInMemoryLookup | test_gi_photon_store.cpp | crash (`insert()` dereferences a null root, #160) |
+| GiDet_PhotonRoundTrip | test_gi_photon_store.cpp | crash (in-memory lookup) |
+| GiDet_PhotonRepeat, _PhotonRepeatReuse, _PhotonThreads (+ the 30-run `gi_determinism_long` forms) | test_gi_photon_runs.cpp | assertion (2 / 28 distinct maps; a crash of a child is a failure) |
+| GiDet_LookupPure, _CommitOrder, _CommitDedupe, _CacheRoundTrip, _AcceptPure, _BatchClamp | test_gi_cache_store.cpp | build failure: `addPending`, `commitPending`, `clampAgainstFixed`, the batch-view `lookupCached`, `irradianceRecordIdentity`, `irradianceAcceptValue`/`IrradianceAcceptState`, `irradianceBatch.h` |
+| GiDet_MissIndependence_{rslo,slo} | test_gi_miss.cpp | assertion (records differ with 0, 10, 1000 fixed records; the precondition, that the lookup visits every fixed record and accepts none, is checked in the child) |
+| GiDet_IndirectRayCount_rslo | test_gi_miss.cpp | assertion: 0 rays traced (GitHub #173) |
+| GiDet_IndirectRayCount_slo | test_gi_miss.cpp | **expected green on the starting tree**: the scene run through orender's statistics gives Total Traced 624 = 12 x 52 sampler calls under the JIT (the rslo run: 0 of 102). #173 is interpreter-only. The case checks the number of rays, not that each direction is keyed (the starting tree draws a jittered grid of 12): the keyedness of the directions is covered by `GiDet_MissIndependence` and the sweep, not here |
+| GiDet_RepeatedPoint_{rslo,slo} | test_gi_miss.cpp | assertion at -t:4 |
+| GiKeys_IrradianceRecordsThreads | gi_split patch | assertion at -t:4 (or equal if the premise of M2 already holds: reported either way) |
+| GiRemote_LoopbackCommit | gi_split patch | build failure: `addPending`, `commitPending` |
+| DeterminismHarness_FilesDiffer / _FilesSame | harness patch | exit 2 (the options are unknown) |
+| DeterminismSweep_gi-* (34 entries) | sweep patch | per entry in `tools/sweep-entries-red-table.txt` |
+
+**Names the tests propose for the code that does not exist yet** (the tests are the contract; PAUSE 1a approves them with the tests):
+`CPhotonStore::storePhotonForFrame(P, N, I, C, key) -> bool`; Texturing, `texture/irradianceStore.h`: `IrradianceAcceptFn = float (*)(const void *acceptState, uint64_t recordIdentity)`, `struct CIrradianceBatchView {const CIrradianceRecord *records; int count;}`, `uint64_t irradianceRecordIdentity(const CIrradianceRecord &)` (the key, or a hash of the bits of P and N when the key is 0), the new `lookupCached(C, P, N, maxError, accept, acceptState, batch, Pc, Nc)`, `addPending(record, maxError)`, `clampAgainstFixed(record) const`; `CIrradianceCache::commitPending()`, `forEachPending(F)`, `receivePending(const CCacheSample &, float maxError)`; Shading: `libshader::IrradianceAcceptState {SubstreamKey call}` and `libshader::irradianceAcceptValue(const void *, uint64_t)` in `irradianceCalls.h`, and the new header `libshader/shading/irradianceBatch.h` with `libshader::IrradianceBatchEntry {P[3], raw, radius}` and `float clampAgainstBatch(IrradianceBatchEntry *earlier, int count, const float *P, float raw, float radiusAgainstFixed)`. "The bytes" of a record for the dedupe order are the 56 floats in file order compared with `memcmp`.
+
+**Compile check before PAUSE 1a** (`-fsyntax-only` through cpujob, the project flags with `-Werror`, nothing built or run): against the starting tree's headers the new sources compile except for the missing members (`test_gi_photon_store.cpp` with `GIDET_CLAIM`: `storePhotonForFrame`; `test_gi_cache_store.cpp`: the missing header `irradianceBatch.h`); `test_gi_photon_runs.cpp` and `test_gi_miss.cpp` (starting-tree hook) compile clean, so they are red by assertion. Against scratch stub declarations of the new members (`build-logs/040-p1-stubs`, not in the tree) `test_gi_cache_store.cpp`, `test_gi_miss.cpp` with `GIDET_RECORD_HOOK_ADDPENDING`, and the patched `test_gi_remote_loopback.cpp` compile clean: no unrelated error is hiding behind a missing member. The patched `test_gi_keys.cpp` compiles clean against the starting tree.
+
+### 2.1 Red evidence (T033), macOS, starting tree `278b0394`, 2026-11-15
+
+`build` configured with `-DOPENRENDER_040_RED_TESTS=ON`; each red target built alone through cpujob; `ctest -R` through cpujob. Logs: `build-logs/040-red-*.log`, `040-p1-red.log`, `040-p1-sweep.log`.
+
+| test | result | the first line of its failure |
+|---|---|---|
+| DeterminismHarness_FilesDiffer / _FilesSame (before step 2 of T031) | red, exit 2 | `Unknown option --files` |
+| GiDet_PhotonClaim | build failure | `test_gi_photon_store.cpp:298: no member named 'storePhotonForFrame' in 'CPhotonStore'` |
+| GiDet_PhotonFileBytes | **green on the first run (finding)**, red after the test was strengthened (see below) | `FR-004: a byte of the first map is not defined: item 0 byte 0 is 0xa5` |
+| GiDet_PhotonLookupPure | **green on the first run (finding)**, red after the test was strengthened | `FR-005: lookups on one store differ from lookups on a fresh store each (overload (C, P, N, maxFound))` and the same for `(C, P, maxFound)` |
+| GiDet_PhotonInMemoryLookup | red, SEGFAULT | (the null root, #160) |
+| GiDet_PhotonRoundTrip | red, SEGFAULT | (the in-memory lookup) |
+| GiDet_PhotonRepeat | red | `SC-002: 2 distinct maps in 5 runs (one expected)` |
+| GiDet_PhotonRepeatReuse | red | `5 distinct maps in 5 runs` |
+| GiDet_PhotonThreads | red | `FR-001: 5 distinct maps across -t:1, -t:2, -t:4, -t:8 and the default` |
+| GiDet_LookupPure, _CommitOrder, _CommitDedupe, _CacheRoundTrip, _AcceptPure, _BatchClamp | build failure | `test_gi_cache_store.cpp:40: 'libshader/shading/irradianceBatch.h' file not found` (then the other missing members) |
+| GiDet_MissIndependence_rslo / _slo | red | `FR-011: the record the miss makes differs with 10 other records in the fixed part` (the precondition printed first: 10 and 1000 fixed records visited, none accepted) |
+| GiDet_IndirectRayCount_rslo | red | `Total Traced is 0, 12 x 102 expected (indirectdiffuse() traced no ray at all)` (#173) |
+| GiDet_IndirectRayCount_slo | **green, as expected** (the maintainer's note on #173) | 624 = 12 x 52 |
+| GiDet_RepeatedPoint_rslo / _slo | **green (finding)** | the recording cache saw 48 records at reyes and 7 at raytrace, **0 repeated keys**, none shared P and N: the scene does not reproduce a point shaded twice on the starting tree, so M9's case is a guard here, not a red test |
+| GiKeys_IrradianceRecordsThreads | **green (finding)** | the (key, record) multisets at -t:1 and -t:4 are identical for reyes, zbuffer and raytrace, `.rslo` and `.slo`: the premise of mechanism M2 (research.md R4) holds on the starting tree |
+| GiRemote_LoopbackCommit | build failure | `test_gi_remote_loopback.cpp:359: no member named 'addPending' in 'CIrradianceCache'` |
+
+Strengthened tests (two edits to my own Phase 1 sources, shown as `tools/test-edit-patches/pause1-photon-store-fixes.patch` for approval at PAUSE 1): the first run of `GiDet_PhotonFileBytes` was green because the heap pages were zero (the test's heap churn did not reach the arrays it checks), and the first run of `GiDet_PhotonLookupPure` was green because its queries were far apart and compared an order against the same store's memo. Now the executable replaces `operator new`/`new[]` with a 0xA5-filling version (so the bytes the store never assigns are not zero on any platform) and lookup-pure compares each answer with the answer of a fresh store, with neighbouring queries, for both lookup overloads, and requires that most queries found photons. Neither change reads a result before it is made; the original runs are recorded above.
+
+A defect of the Phase 1 patch as approved, and its fix (the diff is in `gi-remote-loopback-commit.patch` and `gi-split-cmake.patch`, regenerated against HEAD): the new `commit` case calls `addPending`, so compiling it into `test_gi_remote_loopback` (a target of `all`) broke the everyday build with the option OFF. The case is now compiled only with `GIDET_COMMIT_CASE`, into a second executable `test_gi_remote_commit` (EXCLUDE_FROM_ALL, in the red block) that carries `GiRemote_LoopbackCommit`; `test_gi_remote_loopback` is unchanged in behaviour and builds.
+
+DeterminismSweep_gi-* (34 entries, step 2 of T031 applied so that the options exist; `-j2`): **18 red, 16 green** (the fork's expectation was 20 and 14). Red: the photon entries `gi-subdiv-hierarchical-override-photon` (`.gpm` byte 42 differs), `gi-subdiv-loop-photon`, `gi-photon-parity` and `gi-photon-parity-slo` (maps and about 19300 image values each), and `gi-photon-then-indirect-reyes-slo` (cache bytes and image); the two `sphere-occlusion-reyes(-slo)` entries (**images** differ between thread counts: 8571 to 10974 values, the cache is off there); the cached `gi-occlusion-*` (6), `gi-indirectdiffuse-*-slo` (3) and `gi-cache-extend-*` (2) entries (the `.icache` bytes differ at `-P:2`; their images agree except `gi-cache-extend` at `-P:2`). Green where red was expected: `gi-motion-subdiv-translate-photon`, `gi-subdiv-facevarying-seam-photon`, `gi-subdiv-new-tags-photon` and `gi-photon-then-indirect-reyes` (the 2000-photon races happen with a probability below 1: these are flaky greens, not fixed ones), and the two `gi-sphere-occlusion-reyes(-slo)` went red where green was expected. The five photon entries that leave the guard in Phase 2 are the ones to watch: three of them can pass by luck on the starting tree.
+
 
 ## 3. Checkpoint records
+
+### Checkpoint 1 (Phase 1), 2026-11-15
+
+macOS, option OFF (`build` configured back, rebuilt): `ctest -N -R 'GiDet_|GiKeys_IrradianceRecordsThreads|GiRemote_LoopbackCommit|DeterminismSweep_gi-'` lists **0** tests (the red block defines none); everyday suite `-LE 'determinism-sweep|gi_determinism_long' -j4`: **1365 tests, 1364 passed, 1 failed**: `Registry_IntegratorImageIdentity` (#163, F3: it flaps; re-run alone with `--repeat until-pass:8` it passed on the first try; no threshold or test changed). The pass set is Phase 0's (1363 passed, 1 skipped) plus `DeterminismHarness_FilesDiffer` and `_FilesSame`. `ctest -L architecture`: 36 passed. Expected-image-drift list: empty (no source file changed).
+
+Linux (one chain through the remote cpujob at -j2, GCC 13 `-Werror`, JIT on; `phase1_linux_chain.sh`): the option-OFF build is clean; `DeterminismHarness_*` 10 of 10 pass (FilesDiffer, FilesSame included); `ctest -L architecture` 36 of 36; the option-OFF tree defines none of the red tests (`-N` lists 0). With the option ON, the red targets build or fail as on macOS: `test_gi_photon_store`, `test_gi_photon_runs`, `test_gi_miss`, `gi_quality` build; `test_gi_photon_claim` (`storePhotonForFrame`), `test_gi_cache_store` (`irradianceBatch.h`) and `test_gi_remote_commit` (`addPending`) fail with exactly those errors. The red tests on Linux: of 14, red = FileBytes, LookupPure, InMemoryLookup and RoundTrip (SegFault), Repeat, RepeatReuse, Threads, MissIndependence_{rslo,slo}, IndirectRayCount_rslo; green = GiKeys_IrradianceRecordsThreads, RepeatedPoint_{rslo,slo}, IndirectRayCount_slo (the same four findings as macOS). The 34 sweep entries: **21 red, 13 green** (`build-logs/040-l-p1-sweep.log`): the three photon entries that were flaky greens on macOS (`gi-motion-subdiv-translate-photon`, `gi-subdiv-facevarying-seam-photon`, `gi-subdiv-new-tags-photon`) and `gi-photon-then-indirect-reyes` are red on Linux, `gi-subdiv-loop-photon` is green there; the cached, occlusion-cache-off and indirectdiffuse-JIT entries are red as on macOS. The Linux timing and the Linux suite are not part of this checkpoint (T034 lists neither).
 
 ### Checkpoint 0 (Phase 0)
 
@@ -214,9 +277,11 @@ Baseline: §0.5 (T010). Phase 3 and Phase 7 compare against it.
 
 ## 7. Departures and findings
 
+**PAUSE 0 answered (maintainer, 2026-11-15):** F1 is #173. F2 narrows H1 (only the two `photon-parity` sweep entries stay guarded until Phase 3; the five subdiv/motion photon entries leave the guard in Phase 2 with the map-bytes checks). Phase 5 compares against 258 (macOS) / 242 (Linux). F3/F6 are the known #163 and Linux baseline failure. Services 2.6.0 at T039a.
+
 **Findings for the maintainer (nothing here was fixed or filed):**
 
-- **F1 (out of spec, to file; touches FR-012, T024, Phase 5):** `indirectdiffuse()` in the probe scenes traces no ray: `CIrradianceSampler::sample` runs once per shading point with `numSamples == 0`
+- **F1 = GitHub #173** (filed by the maintainer after PAUSE 0, P1; out of spec; touches FR-012, T024, T058, Phase 5): `indirectdiffuse()` in the probe scenes traces no ray: `CIrradianceSampler::sample` runs once per shading point with `numSamples == 0`
   (26372 and 575248 sampler calls, 0 rays, Total Traced 0 outside the photon pass), whatever `maxerror` is, on both platforms. The interpreter's `sphere-indirectdiffuse-reyes` image has 6504 NaN
   pixels per colour channel (`1 / numSamples`), the JIT's is all zero, the written cache has 0 records, and the visual test passes at 0.00 against a reference that carries the same black.
   Root cause not found (the samples argument is set the same way as occlusion's). Consequences: `GiDet_IndirectRayCount` cannot be red for "a jittered grid" first, it is red for "0 rays"; Phase 5's quality gate and
@@ -228,6 +293,8 @@ Baseline: §0.5 (T010). Phase 3 and Phase 7 compare against it.
 - **F6:** `TextureTile_RenderByteIdentical` fails on Linux in the starting tree (already so in spec 032's baseline).
 
 **Departures from tasks.md:**
+
+- Phase 1: `gi_recording.h` holds the recording cache (T024 says `gi_detkit.h`), so that `gi_detkit.h` names no renderer type; `GiDet_PhotonClaim` is its own executable (`test_gi_photon_claim`, the same source with `GIDET_CLAIM`) so that the other photon-store modes stay buildable and red by assertion; `raycount` counts through orender's statistics (`Total Traced` is the oracle: it is exact for occlusion), not through a recording sampler; `repeat` compares the committed set and the image within each hider across `-t:1`/`-t:4` (the two hiders do not shade the same points); `GIDET_RECORD_HOOK` (CMake cache variable, default `insertRecord`) selects `insertRecord` or `addPending` in the recording tests and is switched by the task that lands `addPending`; the harness patch also touches the approved `tests/visual/scene_copy.h` and `check_determinism_harness.sh`; one `-fsyntax-only` of the patched harness was run outside `cpujob` by the sub-agent that wrote it (a parse, no object, no test run).
 
 - T015 built three explicit targets (`orender file openrender_shaders`), not the default targets (the test executables are not needed to render); the ASan configure, build and runs went through `cpujob` and ran under the coordinator's scoping message (not a separate ask). `build-asan` (189 MB) is kept. No source file was edited.
 - T008: `image_manifest.sh` gained the modes `gi-render` and `gi-hash` (spec 032's modes are unchanged); the float line is put on the first line of the scratch copy as the harness does.

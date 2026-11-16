@@ -711,3 +711,95 @@ add_determinism_sweep(volume-csg-fragment-none-zbuffer-slo examples/rib/tests/vo
 add_determinism_sweep(volume-csg-fragment-none-raytrace examples/rib/tests/volume-csg-fragment-none-raytrace.rib volume-csg-fragment-none-raytrace.tif)
 add_determinism_sweep(volume-csg-fragment-none-raytrace-slo examples/rib/tests/volume-csg-fragment-none-raytrace-slo.rib volume-csg-fragment-none-raytrace-slo.tif)
 # END spec 056
+# BEGIN spec 040
+# --- Spec 040 (GI determinism): the 34 GI sweep entries (FR-016, SC-001). Every one is rendered float (FLOAT), with a depth
+# display added after the scene's first Display line (DEPTH: <name>-z.tif), and its map or cache file is compared byte for
+# byte across the configurations (FILES). The entries are defined only when -DOPENRENDER_040_RED_TESTS=ON until the phase that
+# makes each green moves it out of its guard (tasks.md T028; the schedule is determinism-scenes-phase{2,3,5,6,8}.patch):
+#   phase 2   the five subdiv-*-photon and motion-subdiv-translate-photon entries (their frame 2 reads no map: only the .gpm bytes)
+#   phase 3   the two photon-parity entries (their frame 2 reads the map through the lookup memo until Phase 3)
+#   phase 5   the cached and the other GI entries, without -P:2 until phase 6
+if(OPENRENDER_040_RED_TESTS) # leaves the guard in Phase 2 (T040)
+# no -P:2: the photon pass fails under network rendering (GitHub #170)
+add_determinism_sweep(gi-motion-subdiv-translate-photon examples/rib/tests/parity/motion-subdiv-translate-photon.rib motion-subdiv-translate-photon.tif
+    FILES motion-subdiv-translate-photon.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+# no -P:2: the photon pass fails under network rendering (GitHub #170)
+add_determinism_sweep(gi-subdiv-facevarying-seam-photon examples/rib/tests/subdiv-facevarying-seam-photon.rib subdiv-facevarying-seam-photon.tif
+    FILES subdiv-facevarying-seam-photon.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+# no -P:2: the photon pass fails under network rendering (GitHub #170)
+add_determinism_sweep(gi-subdiv-hierarchical-override-photon examples/rib/tests/subdiv-hierarchical-override-photon.rib subdiv-hierarchical-override-photon.tif
+    FILES subdiv-hierarchical-override-photon.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+# no -P:2: the photon pass fails under network rendering (GitHub #170)
+add_determinism_sweep(gi-subdiv-loop-photon examples/rib/tests/subdiv-loop-photon.rib subdiv-loop-photon.tif
+    FILES subdiv-loop-photon.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+# no -P:2: the photon pass fails under network rendering (GitHub #170)
+add_determinism_sweep(gi-subdiv-new-tags-photon examples/rib/tests/subdiv-new-tags-photon.rib subdiv-new-tags-photon.tif
+    FILES subdiv-new-tags-photon.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+endif()
+if(OPENRENDER_040_RED_TESTS) # leaves the guard in Phase 3 (T050)
+# no -P:2: the photon pass fails under network rendering (GitHub #170)
+add_determinism_sweep(gi-photon-parity examples/rib/tests/photon-parity.rib photon-parity.tif
+    FILES photon-parity.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+# no -P:2: the photon pass fails under network rendering (GitHub #170)
+add_determinism_sweep(gi-photon-parity-slo examples/rib/tests/photon-parity-slo.rib photon-parity-slo.tif
+    FILES photon-parity-slo.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+endif()
+if(OPENRENDER_040_RED_TESTS) # leaves the guard in Phase 5 (T073)
+add_determinism_sweep(gi-sphere-occlusion-reyes examples/rib/tests/sphere-occlusion-reyes.rib sphere-occlusion-reyes.tif
+    FLOAT DEPTH)
+add_determinism_sweep(gi-sphere-occlusion-reyes-slo examples/rib/tests/sphere-occlusion-reyes-slo.rib sphere-occlusion-reyes-slo.tif
+    FLOAT DEPTH)
+add_determinism_sweep(gi-sphere-indirectdiffuse-reyes examples/rib/tests/sphere-indirectdiffuse-reyes.rib sphere-indirectdiffuse-reyes.tif
+    FLOAT DEPTH)
+add_determinism_sweep(gi-sphere-indirectdiffuse-reyes-slo examples/rib/tests/sphere-indirectdiffuse-reyes-slo.rib sphere-indirectdiffuse-reyes-slo.tif
+    FLOAT DEPTH)
+add_determinism_sweep(gi-sphere-photonmap-reyes examples/rib/tests/sphere-photonmap-reyes.rib sphere-photonmap-reyes.tif
+    FLOAT DEPTH)
+add_determinism_sweep(gi-sphere-photonmap-reyes-slo examples/rib/tests/sphere-photonmap-reyes-slo.rib sphere-photonmap-reyes-slo.tif
+    FLOAT DEPTH)
+add_determinism_sweep(gi-sphere-ray-self-hit-reyes examples/rib/tests/sphere-ray-self-hit-reyes.rib sphere-ray-self-hit-reyes.tif
+    FLOAT DEPTH)
+add_determinism_sweep(gi-sphere-ray-self-hit-reyes-slo examples/rib/tests/sphere-ray-self-hit-reyes-slo.rib sphere-ray-self-hit-reyes-slo.tif
+    FLOAT DEPTH)
+add_determinism_sweep(gi-sphere-ray-self-hit-raytrace examples/rib/tests/sphere-ray-self-hit-raytrace.rib sphere-ray-self-hit-raytrace.tif
+    FLOAT DEPTH)
+add_determinism_sweep(gi-sampling-probe-independence-mid examples/rib/tests/sampling-probe-independence-mid.rib sampling-probe-independence-mid.tif
+    FLOAT DEPTH)
+add_determinism_sweep(gi-sampling-probe-independence-min examples/rib/tests/sampling-probe-independence-min.rib sampling-probe-independence-min.tif
+    FLOAT DEPTH)
+add_determinism_sweep(gi-occlusion-reyes tests/gi_determinism/scenes/gi-occlusion-reyes.rib gi-occlusion-reyes.tif
+    FILES gi-occlusion-reyes.icache FLOAT DEPTH)
+add_determinism_sweep(gi-occlusion-reyes-slo tests/gi_determinism/scenes/gi-occlusion-reyes-slo.rib gi-occlusion-reyes-slo.tif
+    FILES gi-occlusion-reyes-slo.icache FLOAT DEPTH)
+add_determinism_sweep(gi-occlusion-zbuffer tests/gi_determinism/scenes/gi-occlusion-zbuffer.rib gi-occlusion-zbuffer.tif
+    FILES gi-occlusion-zbuffer.icache FLOAT DEPTH)
+add_determinism_sweep(gi-occlusion-zbuffer-slo tests/gi_determinism/scenes/gi-occlusion-zbuffer-slo.rib gi-occlusion-zbuffer-slo.tif
+    FILES gi-occlusion-zbuffer-slo.icache FLOAT DEPTH)
+add_determinism_sweep(gi-occlusion-raytrace tests/gi_determinism/scenes/gi-occlusion-raytrace.rib gi-occlusion-raytrace.tif
+    FILES gi-occlusion-raytrace.icache FLOAT DEPTH)
+add_determinism_sweep(gi-occlusion-raytrace-slo tests/gi_determinism/scenes/gi-occlusion-raytrace-slo.rib gi-occlusion-raytrace-slo.tif
+    FILES gi-occlusion-raytrace-slo.icache FLOAT DEPTH)
+add_determinism_sweep(gi-indirectdiffuse-reyes tests/gi_determinism/scenes/gi-indirectdiffuse-reyes.rib gi-indirectdiffuse-reyes.tif
+    FILES gi-indirectdiffuse-reyes.icache FLOAT DEPTH)
+add_determinism_sweep(gi-indirectdiffuse-reyes-slo tests/gi_determinism/scenes/gi-indirectdiffuse-reyes-slo.rib gi-indirectdiffuse-reyes-slo.tif
+    FILES gi-indirectdiffuse-reyes-slo.icache FLOAT DEPTH)
+add_determinism_sweep(gi-indirectdiffuse-zbuffer tests/gi_determinism/scenes/gi-indirectdiffuse-zbuffer.rib gi-indirectdiffuse-zbuffer.tif
+    FILES gi-indirectdiffuse-zbuffer.icache FLOAT DEPTH)
+add_determinism_sweep(gi-indirectdiffuse-zbuffer-slo tests/gi_determinism/scenes/gi-indirectdiffuse-zbuffer-slo.rib gi-indirectdiffuse-zbuffer-slo.tif
+    FILES gi-indirectdiffuse-zbuffer-slo.icache FLOAT DEPTH)
+add_determinism_sweep(gi-indirectdiffuse-raytrace tests/gi_determinism/scenes/gi-indirectdiffuse-raytrace.rib gi-indirectdiffuse-raytrace.tif
+    FILES gi-indirectdiffuse-raytrace.icache FLOAT DEPTH)
+add_determinism_sweep(gi-indirectdiffuse-raytrace-slo tests/gi_determinism/scenes/gi-indirectdiffuse-raytrace-slo.rib gi-indirectdiffuse-raytrace-slo.tif
+    FILES gi-indirectdiffuse-raytrace-slo.icache FLOAT DEPTH)
+add_determinism_sweep(gi-cache-extend-reyes tests/gi_determinism/scenes/gi-cache-extend-reyes.rib gi-cache-extend-reyes.tif
+    FILES gi-cache-extend-reyes.icache FLOAT DEPTH)
+add_determinism_sweep(gi-cache-extend-reyes-slo tests/gi_determinism/scenes/gi-cache-extend-reyes-slo.rib gi-cache-extend-reyes-slo.tif
+    FILES gi-cache-extend-reyes-slo.icache FLOAT DEPTH)
+# no -P:2: its photon frame cannot run under network rendering (GitHub #170)
+add_determinism_sweep(gi-photon-then-indirect-reyes tests/gi_determinism/scenes/gi-photon-then-indirect-reyes.rib gi-photon-then-indirect-reyes.tif
+    FILES gi-photon-then-indirect.gpm gi-photon-then-indirect.icache FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+# no -P:2: its photon frame cannot run under network rendering (GitHub #170)
+add_determinism_sweep(gi-photon-then-indirect-reyes-slo tests/gi_determinism/scenes/gi-photon-then-indirect-reyes-slo.rib gi-photon-then-indirect-reyes-slo.tif
+    FILES gi-photon-then-indirect.gpm gi-photon-then-indirect.icache FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+endif()
+# END spec 040

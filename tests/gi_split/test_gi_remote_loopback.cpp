@@ -27,6 +27,14 @@
  * Usage:
  *   test_gi_remote_loopback cache      <F1 cache file> <work dir> (--record <file> | <reference>)
  *   test_gi_remote_loopback pointcloud -               <work dir> (--record <file> | <reference>)
+ *
+ * Spec 040 (T025, FR-015, GitHub #161), additive: the case `commit` (GiRemote_LoopbackCommit), which has no reference file:
+ *   test_gi_remote_loopback commit <F1 cache file> <work dir> -
+ * A sender cache that read fixture F1's file and holds a pending set (addPending, records with different maxError) sends it over the loopback;
+ * a receiver that read a copy of the same file receives it and commits. A third cache, in one process, adds the same set directly and commits.
+ * The receiver's written file must equal the one-process cache's, byte for byte: each received record is placed with its own K (the
+ * sender's maxError rides in the 8-byte link slot of the wire record, decision D4), not with the receiver's default (#161). The starting tree
+ * has none of addPending, commitPending and receivePending, so the case is red by a build failure naming them.
  */
 
 #include "gi_testkit.h"
@@ -305,6 +313,75 @@ static bool runCache(const std::string &fixture, gitest::Sections &out) {
     return g_fail == 0;
 }
 
+// Spec 040 (FR-015): the pending set of a sender, received and committed, equals the same set added and committed in one process.
+// Compiled only with GIDET_COMMIT_CASE (the executable test_gi_remote_commit of the red block): the starting tree has no addPending.
+#ifdef GIDET_COMMIT_CASE
+static bool copyFile(const std::string &from, const std::string &to) {
+    Bytes b;
+    return gitest::readFile(from, b) && gitest::writeFile(to, b);
+}
+
+static bool runCommit(const std::string &fixture) {
+    matrix from, to;
+    identitym(from);
+    identitym(to);
+    EXPECT(copyFile(fixture, "gi-commit-recv.icache") && copyFile(fixture, "gi-commit-ref.icache"), "the fixture could not be copied");
+
+    CIrradianceCache *sender = new CIrradianceCache(fixture.c_str(), CACHE_READ | CACHE_SAMPLE, NULL, from, to, NULL, CRenderer::worldBmin, CRenderer::worldBmax);
+    CIrradianceCache *receiver = new CIrradianceCache("gi-commit-recv.icache", CACHE_READ | CACHE_WRITE | CACHE_SAMPLE, NULL, from, to, NULL, CRenderer::worldBmin, CRenderer::worldBmax);
+    CIrradianceCache *reference = new CIrradianceCache("gi-commit-ref.icache", CACHE_READ | CACHE_WRITE | CACHE_SAMPLE, NULL, from, to, NULL, CRenderer::worldBmin, CRenderer::worldBmax);
+
+    // 60 pending records inside the root of the fixture, the radii 0.05 to 0.5 and two error multipliers (0.6 and 0.3)
+    const float *c = sender->rootCenter();
+    const float side = sender->rootSide();
+    unsigned long long state = 424242;
+    auto next = [&]() {
+        state = state * 6364136223846793005ull + 1442695040888963407ull;
+        return (float)((state >> 40) & 0xFFFFFF) / 16777216.0f;
+    };
+    for (int i = 0; i < 60; i++) {
+        CIrradianceRecord r;
+        memset(&r, 0, sizeof(r));
+        for (int k = 0; k < 3; k++) {
+            r.P[k] = c[k] + (next() - 0.5f) * 0.8f * side;
+        }
+        r.N[0] = 0;
+        r.N[1] = 0;
+        r.N[2] = 1;
+        r.irradiance[0] = next();
+        r.irradiance[1] = next();
+        r.irradiance[2] = next();
+        r.coverage = next();
+        r.envdir[2] = 1;
+        r.dP = 0.05f + 0.45f * next();
+        r.key = 7000 + (unsigned long long)i;
+        const float maxError = (i % 2 == 0) ? 0.6f : 0.3f;
+        sender->addPending(r, maxError);
+        reference->addPending(r, maxError);
+    }
+
+    CRemoteICacheChannel sendChannel(sender);
+    CRemoteICacheChannel recvChannel(receiver);
+    int ok = 0;
+    Bytes setup = captureSend([&](SOCKET s) { return sendChannel.sendSetupData(s); }, ok);
+    EXPECT(ok == TRUE, "sendSetupData");
+    EXPECT(replayInto(setup, [&](SOCKET s) { return recvChannel.setup(s); }) == TRUE, "setup");
+    Bytes frame = captureSend([&](SOCKET s) { return sendChannel.sendRemoteFrame(s); }, ok);
+    EXPECT(ok == TRUE, "sendRemoteFrame");
+    EXPECT(replayInto(frame, [&](SOCKET s) { return recvChannel.recvRemoteFrame(s); }) == TRUE, "recvRemoteFrame");
+
+    delete receiver; // commits, then writes gi-commit-recv.icache
+    delete reference;
+    delete sender;
+    Bytes got, want;
+    EXPECT(gitest::readFile("gi-commit-recv.icache", got) && gitest::readFile("gi-commit-ref.icache", want), "a file is missing");
+    printf("commit: the received-and-committed file is %zu bytes, the one-process file %zu bytes\n", got.size(), want.size());
+    EXPECT(got == want, "FR-015 / #161: the received set commits differently from the one-process commit: %s", gitest::describeFirstDifference(got, want).c_str());
+    return g_fail == 0;
+}
+
+#endif // GIDET_COMMIT_CASE
+
 static bool runPointCloud(gitest::Sections &out) {
     matrix from, to;
     identitym(from);
@@ -379,7 +456,7 @@ int main(int argc, char **argv) {
     }
     const std::string which = argv[1], fixture = argv[2], work = argv[3];
     const bool record = std::string(argv[4]) == "--record";
-    if ((record && argc != 6) || (!record && argc != 5) || (which != "cache" && which != "pointcloud")) {
+    if ((record && argc != 6) || (!record && argc != 5) || (which != "cache" && which != "pointcloud" && which != "commit")) {
         fprintf(stderr, "usage: %s (cache <F1 cache> | pointcloud -) <work dir> (--record <file> | <reference>)\n", argv[0]);
         return 2;
     }
@@ -404,7 +481,7 @@ int main(int argc, char **argv) {
     setTexture3dChannelSource(&channels);
 
     std::string fixturePath = fixture;
-    if (which == "cache" && !fixturePath.empty() && fixturePath[0] != '/') {
+    if ((which == "cache" || which == "commit") && !fixturePath.empty() && fixturePath[0] != '/') {
         char cwd[4096];
         if (getcwd(cwd, sizeof(cwd)) != NULL) {
             fixturePath = std::string(cwd) + "/" + fixturePath;
@@ -428,6 +505,18 @@ int main(int argc, char **argv) {
         fprintf(stderr, "cannot enter %s\n", work.c_str());
         return 2;
     }
+
+#ifdef GIDET_COMMIT_CASE
+    if (which == "commit") {
+        const bool committed = runCommit(fixturePath);
+        setTexture3dChannelSource(nullptr);
+        delete sink;
+        if (committed) {
+            printf("GiRemote_LoopbackCommit: the received set commits as the one-process set does\n");
+        }
+        return committed ? 0 : 1;
+    }
+#endif
 
     gitest::Sections now;
     const bool ran = which == "cache" ? runCache(fixturePath, now) : runPointCloud(now);
