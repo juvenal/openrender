@@ -245,4 +245,21 @@ class CProgrammableShaderInstance : public CShaderInstance {
         int setParameter(const char *, const void *);
 };
 
+
+namespace libshader {
+
+    // The bind-time init of a shader instance's parameter defaults (spec 033, #134), run by the renderer core inside
+    // arenaBegin/arenaEnd(globalArena) right after the instance is created, categories computed and light registered.
+    // Picks the interpreter's body (rsloInit.cpp) or the JIT's (sloInit.cpp, a shader with no bytecode and an init entry) by
+    // the test the core's init() used: a shader loaded by parseSloShader has codeArea == nullptr.
+    void initialiseInstance(CProgrammableShaderInstance &instance);
+
+    // The two bodies
+    void initialiseRsloInstance(CProgrammableShaderInstance &instance);
+#ifdef OPENRENDER_HAVE_LLVM
+    void initialiseSloInstance(CProgrammableShaderInstance &instance);
+#endif
+
+} // namespace libshader
+
 #endif

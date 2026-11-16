@@ -136,9 +136,37 @@ registrations T001 announced: `tests/CMakeLists.txt` (+2 lines), `tests/shaders/
 
 CP-v does not apply before Phase 3. The macOS CP-b run was 194 s for the contract set and 3.5 minutes for the suite; logs `build-logs/033-p2-*.log`, `033-l2-*.log`.
 
+### Phase 3 (T056 to T059; the bind-time init moved into Shading, services 2.4.0 begun)
+
+| Check | macOS | Linux (GCC 13, `-Werror`) |
+|---|---|---|
+| CP-a build | `build` and `build-nojit`: `rc=0`, no warning from the changed files | `rc=0` |
+| T056 characterisations | `BindSpaces_Characterise` **identical** to the Phase 1 record (both backends, bit for bit); `ShaderFormat_Precedence` identical in `build` and `build-nojit`; `ShadingContract_MessageRequests` and `Sloinfo_Output137` identical; `ShadingSystem_BindUnknownSpace` green on both backends | in the suite below, identical |
+| CP-b suite | **1368/1368** (1367 + `ShadingSystem_BindUnknownSpace`), 349 s; 15 new tests still "Not Run (Disabled)" | **1369 tests, 1367 passed**: the baseline's two failures only (#45, #163) |
+| CP-d images | 0 differing, 0 missing; `MaxBlockAvgDiff` rows identical (empty diff) | 0 differing, 0 missing; rows identical |
+| CP-c architecture | 36/36; `archcheck` PASS, `ALLOWED DB-004 x 3 DB-011 x 144`, `CONSUMER` 71, `METRIC` TOTAL 491/71, **Shading 0/0**; allowlist diff empty | 36/36; the same figures |
+| CP-m contract tests | 241/241 | 241/241 |
+| CP-v | no `static_assert` line differs in `rendererServicesImpl.h`, the contract doubles or `recording_services.h` since `278b0394`; `kRendererServicesVersion` reads `{2, 4, 0}` | same tree |
+| SC-007 (T057) | `c++ <libshader_shading flags> -E -P` over `rsloInit.cpp`: `CRenderer::` **0**, `CRendererContext` 0; `sloInit.cpp`: 0 and 0 (`bindCoordinateSystem` 20 times in `rsloInit.cpp`: the 19 macro sites and the definition of the macro) | |
+
+The 20 references of the starting tree (19 `CRenderer::findCoordinateSystem` and 1 `CRenderer::retrieveVariable`, `init.cpp`) are now 0 in the core and in Shading: the init asks the services.
+Replays, baselines, the allowlist and `src/` outside the files of the approved list are unchanged.
+
 ## 2. Red evidence
 
 Phase 1 has none (the characterisations pass on the starting tree by construction).
+
+### Phase 3, T048: the link-red step (the proof that #134's references were hidden in the core)
+
+`init.cpp` was moved with `git mv` to `src/libshader/shading/rsloInit.cpp` and added to `shading_sources` unchanged, with the renderer's header directories temporarily added to the library's include path (the library does not see them, so without that it would not even compile: also a proof; the temporary line was removed again). `libshader_shading` then **fails to link**
+(`build-logs/033-p3-red-link.log`):
+
+```text
+Undefined symbols for architecture arm64:
+  "CRenderer::retrieveVariable(char const*)", referenced from: CRendererContext::init(CProgrammableShaderInstance*) in rsloInit.cpp.o
+  "CRenderer::findCoordinateSystem(char const*, float const*&, float const*&, ECoordinateSystem&)", referenced from: CRendererContext::init(...) in rsloInit.cpp.o (19 times)
+ld: symbol(s) not found for architecture arm64
+```
 
 ### Phase 2 (T042 to T044): the option ON, each new target built on its own through `cpujob`, then the option OFF again
 

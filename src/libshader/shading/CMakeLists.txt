@@ -28,8 +28,10 @@ set(shading_sources
     RSLShading.cpp
     rslBuiltins.cpp
     rslOps.cpp
+    rsloInit.cpp
     serviceLookup.cpp
     shader.cpp
+    shaderBind.cpp
     shaderParameters.cpp
     shaderPl.cpp
     shading.cpp
@@ -44,7 +46,7 @@ bison_file(rslo.y rslo_generated.cpp rslo)
 list(APPEND shading_sources rslo_generated.cpp)
 
 if(OPENRENDER_HAVE_LLVM)
-    list(APPEND shading_sources llvmJit.cpp)
+    list(APPEND shading_sources llvmJit.cpp sloInit.cpp)
     llvm_map_components_to_libnames(SHADING_LLVM_LIBS
         core orcjit native bitreader support
     )

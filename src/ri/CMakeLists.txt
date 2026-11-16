@@ -115,7 +115,6 @@ set(ri_sources
 #	ifexpr.cpp
 	render/imager.cpp
 	geometry/implicitSurface.cpp
-	render/init.cpp
 	hiders/linsys.cpp
 	geometry/object.cpp
 	state/options.cpp
@@ -344,8 +343,7 @@ endif()
 # renderer's named systems, and no Geometry file needs it.
 #
 # The entries below were confirmed excludable by a second `nm -u` sweep
-# after the above: init.cpp is a single function, CRendererContext::init(),
-# dead for the same reason rendererContext.cpp is. render/rendererFiles.cpp
+# after the above: render/rendererFiles.cpp
 # (CRenderer::getShader/getPhotonMap/getCache, LLVM JIT shader loading) and
 # render/rendererDisplay.cpp (CRenderer::dispatch() -> CImagerExecutor) are
 # both full-pipeline-only, reached only from beginFrame()/render(), which
@@ -421,7 +419,6 @@ list(REMOVE_ITEM ribVector_sources
     hiders/zbuffer.cpp
     render/imager.cpp
     geometry/implicitSurface.cpp
-    render/init.cpp
     render/remoteChannel.cpp
     render/renderer.cpp
     render/rendererFrame.cpp

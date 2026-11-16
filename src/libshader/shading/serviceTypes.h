@@ -141,12 +141,19 @@ namespace openrender::shading {
     // getMatrix(): every coordinate-system lookup
     ///////////////////////////////////////////////////////////////////////
 
+    // Where a getMatrix() request comes from (services 2.4.0). Shade: a shader running for a batch of points (the answer
+    // Shading substitutes the executing object, shader and light into). Bind: a shader's bind-time init resolving the named space
+    // of a parameter default (GitHub #134); the implementer answers it with its raw named-system lookup and Shading takes it as is.
+    enum class EMatrixPhase : uint8_t { Shade, Bind };
+
     struct MatrixRequest {
             const char *name;    // a system or colour-space name, including "object", "shader", "light", "current", "camera", "world"
             ObjectHandle object; // for "object"
             ShaderHandle shader; // the executing instance, for "shader"
             ShaderHandle light;  // the executing light, for "light"
             float time;          // normalised shutter time; Shading passes 0 (no call site carries one) and the renderer ignores it
+            // Trailing and default-initialised (2.4.0), so every positional initialiser keeps its meaning
+            EMatrixPhase phase = EMatrixPhase::Shade;
     };
 
     struct MatrixAnswer {

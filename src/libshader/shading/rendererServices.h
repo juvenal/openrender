@@ -82,6 +82,20 @@ namespace openrender::shading {
     //   ("Breaking within 2.x"). The rules above apply as written from the release that closes the milestone.
     //
     // History
+    //   2.4.0  spec 033. Additive within 2.x:
+    //          Added:    MatrixRequest::phase (EMatrixPhase::Shade, the default, or Bind). A Bind request comes from a shader's
+    //                    bind-time init (parameter defaults in a named space, GitHub #134); the renderer answers it with its
+    //                    raw named-system lookup (the current transform for "shader" and "current"; the stored matrices for
+    //                    "object", "light", NDC, raster, screen, the colour names and custom systems; NotFound otherwise).
+    //          Added:    MessageRequest::destBytes (0, the default, means unbounded: the behaviour before 2.4.0). When non-zero
+    //                    and the stored value needs more bytes (floats, or char * slots for a string), the answer is
+    //                    TypeMismatch and nothing is written, for every source including Light.
+    //          Added:    getShaderName(ShaderNameRequest) -> ShaderNameAnswer: the name of the shader bound to the object for a
+    //                    source, or of a light handle; shadername(type) asks it. Default body: Unavailable.
+    //          Changed:  CShadingContext::execute() takes CShaderInstance * and dispatches to the instance's backend
+    //                    (IShaderBackend, shaderBackend.h); CShadingContext::interpret() runs the .rslo bytecode.
+    //          Added:    ShadingSystem, IShaderBackend, IShaderFileResolver, IShaderBindHost, ShaderGroupBuilder (internal;
+    //                    the renderer core is their only user outside Shading).
     //   2.3.0  spec 031. Breaking within 2.x (allowed before spec 055, see the rule above):
     //          Removed:  CShadingContext's Geometry-facing entries shade(CSurface *, ...), displace(), displaceEstimate() and
     //                    setProducer(), and IShadingProducer (shadingProducer.h, file deleted). Geometry reaches the hider that
@@ -128,7 +142,7 @@ namespace openrender::shading {
     //          Wording only, no version change (spec 038, made while 2.0.0 was current, before 2.1.0): getDSO also serves
     //          the .slo loader, which binds the DSO operands of a JIT-compiled module with it (the member, its signature
     //          and its result are unchanged).
-    inline constexpr InterfaceVersion kRendererServicesVersion{2, 3, 0};
+    inline constexpr InterfaceVersion kRendererServicesVersion{2, 4, 0};
 
     class ITracer; // tracer.h
 

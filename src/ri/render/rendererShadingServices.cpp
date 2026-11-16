@@ -100,6 +100,17 @@ openrender::shading::MatrixAnswer CRendererServicesImpl::getMatrix(const openren
         return answer;
     }
 
+    // A bind-time request (a shader's init resolving the named space of a parameter default, GitHub #134): the raw lookup, exactly
+    // what the init used before it moved into Shading. Nothing is substituted: the object, light and camera systems keep the
+    // matrices the lookup stored, and "shader" and "current" are the current transform at bind time.
+    if (request.phase == EMatrixPhase::Bind) {
+        answer.status = EQueryStatus::Found;
+        answer.kind = kind;
+        answer.from = from;
+        answer.to = to;
+        return answer;
+    }
+
     switch (kind) {
         case COORDINATE_OBJECT:
             if (!request.object) {

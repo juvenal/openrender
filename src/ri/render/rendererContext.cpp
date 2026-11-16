@@ -331,7 +331,7 @@ CShaderInstance *CRendererContext::getShader(const char *name, int type, int np,
 
         // Execute the init code of the shader
         arenaBegin(globalArena);
-        init(instance);
+        libshader::initialiseInstance(*instance);
         arenaEnd(globalArena);
 
         cInstance = instance;

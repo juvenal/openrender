@@ -25,7 +25,7 @@ target_link_libraries(bench_shader_load PRIVATE openrender_common_flags ribRende
 #   ShadingSystem_BindOrder          the bind order              Phase 4
 #   ShadingSystem_GroupOneLayer      US4                         Phase 6
 #   ShadingSystem_NoJitFallback      JIT-less trees only         Phase 5
-#   ShadingSystem_BindUnknownSpace   P-Q2                        Phase 3
+#   ShadingSystem_BindUnknownSpace   P-Q2                        Phase 3: ENABLED (moved out of this block)
 #   ShaderMetadata_Shipped           US6                         Phase 8
 # ---------------------------------------------------------------------------------------------------------------------------------
 set(SHADING_SYSTEM_INCLUDES
@@ -61,30 +61,6 @@ if(OPENRENDER_033_RED_TESTS AND TARGET state_only_sources)
         add_system_test_exe(test_shading_system_bind_order test_bind_order.cpp)
         add_system_test_exe(test_shading_system_group_one_layer test_group_one_layer.cpp)
 
-        # the shader of ShadingSystem_BindUnknownSpace, compiled as a build step in both formats
-        set(_nosuch ${CMAKE_CURRENT_SOURCE_DIR}/shaders/cm_nosuch.sl)
-        file(MAKE_DIRECTORY ${SHADING_SYSTEM_SHADER_DIR})
-        set(_nosuch_outputs "")
-        foreach(_fmt rslo slo)
-            set(_jit_arg "")
-            if(_fmt STREQUAL "slo")
-                set(_jit_arg -DJIT=ON)
-            endif()
-            add_custom_command(
-                OUTPUT ${SHADING_SYSTEM_SHADER_DIR}/cm_nosuch.${_fmt}
-                COMMAND ${CMAKE_COMMAND} -DOSHADER=$<TARGET_FILE:oshader> -DSRC=${_nosuch}
-                        -DOUT=${SHADING_SYSTEM_SHADER_DIR}/cm_nosuch.${_fmt} -DINCDIR=${CMAKE_SOURCE_DIR}/shaders/includes ${_jit_arg}
-                        -P ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
-                DEPENDS ${_nosuch} oshader ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
-                WORKING_DIRECTORY ${SHADING_SYSTEM_SHADER_DIR}
-                COMMENT ""
-                VERBATIM)
-            list(APPEND _nosuch_outputs ${SHADING_SYSTEM_SHADER_DIR}/cm_nosuch.${_fmt})
-        endforeach()
-        add_custom_target(shading_system_nosuch_shaders DEPENDS ${_nosuch_outputs})
-        add_system_test_exe(test_shading_system_bind_unknown_space test_bind_unknown_space.cpp)
-        add_dependencies(test_shading_system_bind_unknown_space shading_system_nosuch_shaders)
-
         # libRSLInfo only: never libshader_shading / libRSLRuntime (the two share the flex/bison globals)
         add_executable(test_shading_system_metadata_shipped test_metadata_shipped.cpp)
         target_compile_features(test_shading_system_metadata_shipped PRIVATE cxx_std_20)
@@ -102,14 +78,50 @@ if(OPENRENDER_HAVE_LLVM)
     or033_red_test(ShadingSystem_Cache COMMAND $<TARGET_FILE:test_shading_system_cache> LABELS "shading_system" ENVIRONMENT ${SHADING_SYSTEM_ENV})
     or033_red_test(ShadingSystem_BindOrder COMMAND $<TARGET_FILE:test_shading_system_bind_order> LABELS "shading_system" ENVIRONMENT ${SHADING_SYSTEM_ENV})
     or033_red_test(ShadingSystem_GroupOneLayer COMMAND $<TARGET_FILE:test_shading_system_group_one_layer> LABELS "shading_system" ENVIRONMENT ${SHADING_SYSTEM_ENV})
-    or033_red_test(ShadingSystem_BindUnknownSpace LABELS "shading_system" TIMEOUT 300
-        COMMAND ${CMAKE_COMMAND} -DEXE=$<TARGET_FILE:test_shading_system_bind_unknown_space> -DMODES=rslo,slo
-                -P ${CMAKE_SOURCE_DIR}/tests/shading_contract/check_all_modes.cmake
-        ENVIRONMENT "SHADING_CONTRACT_SHADERS=${SHADING_SYSTEM_SHADER_DIR}")
     or033_red_test(ShaderMetadata_Shipped
         COMMAND $<TARGET_FILE:test_shading_system_metadata_shipped> ${CMAKE_BINARY_DIR}/shaders ${CMAKE_SOURCE_DIR}/tests/shaders/references/sloinfo137 rslo,slo
         LABELS "libshader;shading_system")
 else()
     or033_red_test(ShadingSystem_NoJitFallback COMMAND $<TARGET_FILE:test_shading_system_nojit_fallback> LABELS "shading_system"
         ENVIRONMENT "SHADING_SYSTEM_FIXTURES=${CMAKE_BINARY_DIR}/tests/shaderformat/fixtures" "SHADING_CONTRACT_SHADERS=${CMAKE_BINARY_DIR}/tests/shading_contract/shaders")
+endif()
+
+# ---------------------------------------------------------------------------------------------------------------------------------
+# Enabled in Phase 3 (the Test gate): ShadingSystem_BindUnknownSpace (P-Q2). Red by build failure until libshader::initialiseInstance()
+# and EMatrixPhase existed; now an ordinary test, one process per backend (the .slo run only with the JIT).
+# ---------------------------------------------------------------------------------------------------------------------------------
+if(TARGET state_only_sources AND OPENRENDER_HAVE_LLVM)
+    # the shader of ShadingSystem_BindUnknownSpace, compiled as a build step in both formats
+    set(_nosuch ${CMAKE_CURRENT_SOURCE_DIR}/shaders/cm_nosuch.sl)
+    file(MAKE_DIRECTORY ${SHADING_SYSTEM_SHADER_DIR})
+    set(_nosuch_outputs "")
+    foreach(_fmt rslo slo)
+        set(_jit_arg "")
+        if(_fmt STREQUAL "slo")
+            set(_jit_arg -DJIT=ON)
+        endif()
+        add_custom_command(
+            OUTPUT ${SHADING_SYSTEM_SHADER_DIR}/cm_nosuch.${_fmt}
+            COMMAND ${CMAKE_COMMAND} -DOSHADER=$<TARGET_FILE:oshader> -DSRC=${_nosuch}
+                    -DOUT=${SHADING_SYSTEM_SHADER_DIR}/cm_nosuch.${_fmt} -DINCDIR=${CMAKE_SOURCE_DIR}/shaders/includes ${_jit_arg}
+                    -P ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+            DEPENDS ${_nosuch} oshader ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+            WORKING_DIRECTORY ${SHADING_SYSTEM_SHADER_DIR}
+            COMMENT ""
+            VERBATIM)
+        list(APPEND _nosuch_outputs ${SHADING_SYSTEM_SHADER_DIR}/cm_nosuch.${_fmt})
+    endforeach()
+    add_custom_target(shading_system_nosuch_shaders DEPENDS ${_nosuch_outputs})
+    add_executable(test_shading_system_bind_unknown_space test_bind_unknown_space.cpp)
+    target_compile_features(test_shading_system_bind_unknown_space PRIVATE cxx_std_20)
+    target_compile_definitions(test_shading_system_bind_unknown_space PRIVATE ${SHADING_SYSTEM_DEFS})
+    target_include_directories(test_shading_system_bind_unknown_space PRIVATE ${SHADING_SYSTEM_INCLUDES})
+    target_link_libraries(test_shading_system_bind_unknown_space PRIVATE openrender_common_flags libshader_shading openrendercommon state_only_sources)
+    add_dependencies(test_shading_system_bind_unknown_space shading_contract_replay_shaders)
+    add_dependencies(test_shading_system_bind_unknown_space shading_system_nosuch_shaders)
+    add_test(NAME ShadingSystem_BindUnknownSpace
+        COMMAND ${CMAKE_COMMAND} -DEXE=$<TARGET_FILE:test_shading_system_bind_unknown_space> -DMODES=rslo,slo
+                -P ${CMAKE_SOURCE_DIR}/tests/shading_contract/check_all_modes.cmake)
+    set_tests_properties(ShadingSystem_BindUnknownSpace PROPERTIES TIMEOUT 300 LABELS "shading_system"
+        ENVIRONMENT "SHADING_CONTRACT_SHADERS=${SHADING_SYSTEM_SHADER_DIR}")
 endif()
