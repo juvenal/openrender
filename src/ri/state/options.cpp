@@ -358,6 +358,8 @@ COptions::COptions() {
     textureCacheEnabled = false;
     textureCacheDirectory = nullptr;
     blobbyOpcodeOrder = static_cast<int>(EBlobbyOrder::RiSpec);
+    areaLightSamples = 16;
+    areaLightMode = EAreaLightMode::Full;
 
     // Unified search paths across all platforms. Environment expansion is handled
     // by optionsGetSearchPath using %RIBS%, %SHADERS%, %TEXTURES%, %DISPLAYS%, etc.

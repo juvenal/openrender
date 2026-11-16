@@ -298,6 +298,9 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     // Make a local copy of the options
     copyOptions(o);
 
+    // The emitter registry of the frame's area lights: before any world-block statement runs (spec 057)
+    beginEmitterFrame(o);
+
     // Capture active imager shader for this frame
     imagerShader = shaderInstanceOf(o->imager);
     if (imagerShader)
@@ -868,6 +871,9 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
 void CRenderer::endFrame() {
     int i;
 
+    // The test observer reads the emitter registry while the registry and its roots still exist (spec 057)
+    notifyEmitterObserver();
+
     // The integrator hears that the frame is over, before the hiders go (finish only for a frame whose prepare returned OK)
     finishFrameTransport();
 
@@ -892,6 +898,9 @@ void CRenderer::endFrame() {
     // before the hierarchy below deletes its own
     if (context != NULL)
         context->endFrameResources();
+
+    // The emitter registry's references to the roots go before the hierarchy does (spec 057, gotcha 17)
+    endEmitterFrame();
 
     // Delete the root object and it's children
     root->destroy();

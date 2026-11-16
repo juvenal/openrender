@@ -78,10 +78,17 @@ class CEmitterRegistry {
         void declareLight(const CShaderGroupRefTarget *light, int samples, EAreaLightMode mode);
         void record(CObject *root);                              // root->attributes->areaLight names a declared light
         const CEmitterSet *find(const CShaderGroupRefTarget *light) const; // nullptr: not a bound light
+        const CEmitterSet *lightAt(int index) const;             // statement order; nullptr out of range (added at the Phase 2 TEST-APPROVAL)
         int numLights() const;                                   // declared bound lights this frame
         int sceneSamples() const;
         EAreaLightMode sceneMode() const;
 };
+
+// The read side of a set (added at the Phase 2 TEST-APPROVAL; the tests read the registry through them)
+//   const CShaderGroupRefTarget *CEmitterSet::light() const;       // identity
+//   int CEmitterSet::lightSamples() const;                          // light level samples, 0 = not set
+//   EAreaLightMode CEmitterSet::lightMode() const;                  // light level mode, Unset = not set
+//   const std::vector<CObject *> &CEmitterSet::roots() const;       // attached, RIB order
 
 void installEmitterRegistry(const CEmitterRegistry *registry);  // the core; nullptr uninstalls
 const CEmitterRegistry &emitterRegistry();                       // never null: installed or empty default
@@ -95,6 +102,16 @@ const CEmitterRegistry &emitterRegistry();                       // never null: 
 - `frameEmitters()` is the core's accessor for the registry it created this frame (`rendererFrame.cpp`).
 
 ## Tests (contracts/tests.md)
+
+**The frame-end observer** (T031). `using EmitterRegistryObserver = void (*)(const CEmitterRegistry &);`,
+`void setEmitterRegistryObserver(EmitterRegistryObserver);` and `EmitterRegistryObserver emitterRegistryObserver();` in
+`emitterRegistry.h`. Null in production. The renderer core calls it once, at the very start of `CRenderer::endFrame()`
+(before the hiders are destroyed and while the registry and its roots still exist), with the frame's registry; it is the only
+way an in-process test reads the per-frame registry (`tests/arealight/registry_probe.h`). The precedent is
+`CShadingContext::traceRequestObserver` (spec 026). `endFrame()` then releases the registry (detaching every root) before
+`root->destroy()`. In the core (`rendererFrame.{h,cpp}`): `beginEmitterFrame(const COptions *)` (called by `beginFrame()` right
+after the options are copied, so before any world-block statement), `notifyEmitterObserver()`, `endEmitterFrame()` and
+`frameEmitters()` (nullptr outside a frame).
 
 `AreaLightBinding_Scope` (US1 scenarios 1, 2; SC-005), `AreaLightBinding_ProceduralInstanceSolid` (US1-3),
 `AreaLightBinding_Illuminate` (US1-5, FR-005; `h 1` red, `h 0` a characterization guard), `LightKey_NoLeakAcrossFailedLight` (US1-4, SC-010).

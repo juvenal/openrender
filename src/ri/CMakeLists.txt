@@ -91,6 +91,7 @@ set(ri_sources
 	geometry/surfaceCrossings.cpp
 	geometry/geometryHost.cpp
 	geometry/geometryFrame.cpp
+	geometry/emitterRegistry.cpp
 	dataviewer/brickMapView.cpp
 	dataviewer/dataLoad.cpp
 	dataviewer/dataView.cpp

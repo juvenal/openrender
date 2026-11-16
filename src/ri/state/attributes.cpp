@@ -114,6 +114,10 @@ CAttributes::CAttributes() {
 
     lightSources = NULL;
 
+    areaLight = nullptr;
+    areaLightSamples = 0;
+    areaLightMode = EAreaLightMode::Unset;
+
     shadingRate = 1.0f;
     motionFactor = 0.0f;
 
@@ -467,6 +471,11 @@ void CAttributes::restore(const CAttributes *other, int shading, int geometrymod
 
         // Copy the light sources, in order
         lightSources = copyLightList(other->lightSources);
+
+        // The area-light binding goes with the light list (spec 057)
+        areaLight = other->areaLight;
+        areaLightSamples = other->areaLightSamples;
+        areaLightMode = other->areaLightMode;
 
         checkParameters();
 

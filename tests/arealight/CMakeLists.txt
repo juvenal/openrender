@@ -149,7 +149,24 @@ al_render_pair_test(LightKey_NoLeakAcrossFailedLight PAIRS ${_leak_pairs} EXPECT
 
 # ---- the red-first block (tests whose API does not exist yet; each in its own executable) ---------------------------------
 if(OPENRENDER_057_RED_TESTS)
+    # (empty: the Phase 2 tests are green and live below; the tests of the next phase are added here while they are red)
 endif()
+
+# ---- Phase 2: binding and the emitter registry (US1; FR-001 to FR-005), moved out of the red block by T029 and T036 --------
+# AreaLightBinding_Scope: the slot and the registry across scopes, "null", nesting, two lights, D-9 (a failed statement closes the scope)
+al_executable(test_arealight_binding_scope test_binding_scope.cpp)
+al_test(AreaLightBinding_Scope test_arealight_binding_scope LABELS state)
+# AreaLightBinding_ProceduralInstanceSolid: a DelayedReadArchive, an ObjectInstance and a solid each add one root.
+# Registry half now; the resolution half (-DAL_057_RESOLUTION_HALF) is enabled by T053 in Phase 3.
+al_executable(test_arealight_binding_resolve test_binding_resolve.cpp)
+al_test(AreaLightBinding_ProceduralInstanceSolid test_arealight_binding_resolve LABELS state
+    ARGS ${CMAKE_CURRENT_SOURCE_DIR}/scenes/archives)
+# AreaLightBinding_NoFrame: AreaLightSource before WorldBegin warns once and binds nothing; no declaration with servers (A9)
+al_executable(test_arealight_binding_noframe test_binding_noframe.cpp)
+al_test(AreaLightBinding_NoFrame test_arealight_binding_noframe LABELS state)
+# AreaLight_SamplingSites: the renderer-side call-site constants are distinct and above the compiler's ordinals (FR-008)
+al_executable(test_arealight_sampling_sites test_area_light_sites.cpp)
+al_test(AreaLight_SamplingSites test_arealight_sampling_sites LABELS common)
 
 # ---- the test-local shaders ------------------------------------------------------------------------------------------------
 get_property(_al_shader_outputs GLOBAL PROPERTY AL_SHADER_OUTPUTS)

@@ -62,6 +62,8 @@
 #include "hiderRegistry.h"
 #include "ray.h"
 #include "rendererContext.h"
+#include "emitterRegistry.h"
+#include "rendererFrame.h"
 #include "searchPathResolver.h"
 #include "ri.h"
 #include "riCondition.h"
@@ -702,6 +704,14 @@ void CRendererContext::addObject(CObject *o) {
 
     // Are we in the world block ?
     if (CRenderer::world != NULL) {
+
+        // An object created in an area light's scope is a root of that light's emitters (spec 057, FR-002): RIB order, and
+        // only here: the contents of object definitions, solids and delayed expansions reach the set through their root
+        if (o->attributes->areaLight != nullptr) {
+            CEmitterRegistry *emitters = frameEmitters();
+            if (emitters != NULL)
+                emitters->record(o);
+        }
 
         // Apply camera motion blur to static objects when the camera is moving.
         // We clone o->xform so the shared currentXform->next stays NULL and
@@ -2448,7 +2458,22 @@ void *CRendererContext::RiAreaLightSourceV(const char *name, int n, const char *
     cShader = getShader(name, SL_LIGHTSOURCE, n, tokens, params);
 
     if (cShader != NULL) {
+        // Active in its own block, as a light source is (FR-005: a bound light is in lightSources like any other)
         attributes->addLight(cShader);
+
+        // The geometry created from here on in this block belongs to the light (FR-001). Identity only: the light
+        // enters as its Graphics State base, converted once here
+        const CShaderGroupRefTarget *light = cShader;
+        CEmitterRegistry *emitters = frameEmitters();
+        if (emitters != NULL) {
+            attributes->areaLight = light;
+            emitters->declareLight(light, attributes->areaLightSamples, attributes->areaLightMode);
+        }
+        else {
+            // No frame (before WorldBegin): nothing to bind it to. The light is made and activated as LightSource does
+            attributes->areaLight = nullptr;
+            warning(CODE_BADTOKEN, "AreaLightSource outside the world block: the light is not bound\n");
+        }
 
         return cShader;
     }
@@ -2456,6 +2481,9 @@ void *CRendererContext::RiAreaLightSourceV(const char *name, int n, const char *
     // The statement failed ("null", a missing shader, a wrong-type shader): the handle it carried must not
     // become the key of the next shader instance. Not takeInstanceKey(): that would advance shaderOrdinal.
     pendingInstanceKey = 0;
+
+    // A failed statement closes the scope as "null" does (FR-001, D-9): the geometry after it is ordinary
+    attributes->areaLight = nullptr;
     return NULL;
 }
 

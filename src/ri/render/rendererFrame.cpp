@@ -20,6 +20,7 @@
 #include "rendererFrame.h"
 
 #include "frameParams.h"
+#include "emitterRegistry.h"
 #include "geometryFrame.h"
 #include "renderer.h"
 
@@ -28,6 +29,7 @@ namespace {
     openrender::FrameParams frameValue;               // the installed value
     openrender::CFrameCamera *frameCameraObject = NULL; // the frame's camera
     CGeometryFrame geometryFrameValue = CGeometryFrame(); // the installed geometry frame (spec 031)
+    CEmitterRegistry *emitterRegistryValue = NULL;        // the frame's emitter registry (spec 057)
 
 } // namespace
 
@@ -111,4 +113,26 @@ void endFrameParams() {
 const openrender::ICamera &frameCamera() {
     assert(frameCameraObject != NULL);
     return *frameCameraObject;
+}
+
+void beginEmitterFrame(const COptions *options) {
+    delete emitterRegistryValue; // a frame that never ended (an aborted one) leaves nothing behind
+    emitterRegistryValue = new CEmitterRegistry(options->areaLightSamples, options->areaLightMode);
+    installEmitterRegistry(emitterRegistryValue);
+}
+
+void notifyEmitterObserver() {
+    EmitterRegistryObserver observer = emitterRegistryObserver();
+    if (observer != NULL && emitterRegistryValue != NULL)
+        observer(*emitterRegistryValue);
+}
+
+void endEmitterFrame() {
+    installEmitterRegistry(NULL);
+    delete emitterRegistryValue; // detaches every recorded root
+    emitterRegistryValue = NULL;
+}
+
+CEmitterRegistry *frameEmitters() {
+    return emitterRegistryValue;
 }

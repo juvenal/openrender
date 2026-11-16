@@ -44,4 +44,16 @@ void beginGeometryFrame();
 // Uninstalls the geometry frame; the last thing endFrame() does about it
 void endGeometryFrame();
 
+// The frame's emitter registry (spec 057). beginFrame() creates it from the options' scene-level area-light controls before any
+// world-block statement and installs it; endFrame() calls the test observer (null in production) first, then releases it,
+// detaching every root it recorded, before the hierarchy is destroyed.
+class COptions;
+class CEmitterRegistry;
+void beginEmitterFrame(const COptions *options);
+void notifyEmitterObserver();
+void endEmitterFrame();
+
+// The registry the core fills during the world block: nullptr outside a frame (an AreaLightSource before WorldBegin binds nothing)
+CEmitterRegistry *frameEmitters();
+
 #endif

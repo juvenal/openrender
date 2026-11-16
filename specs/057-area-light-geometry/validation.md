@@ -128,3 +128,79 @@ the baseline's figures are otherwise unchanged (137 shaders, 582 sweep entries, 
 Linux `-L architecture` (`lx-arch2.log`): 36/36. Linux `-LE determinism-sweep -j2` (`lx-all2.log`): 1365 selected (1364 plus
 the new test), 1362 passed, 1 skipped, **2 failed, the same two as the Linux baseline** (#45 and #163). No other
 difference from the baseline; no reference or threshold changed.
+
+## 6. Phase 2 (binding and the emitter registry): tests written, red evidence (T020-T024)
+
+Four tests, each in its own executable inside `if(OPENRENDER_057_RED_TESTS)` in `tests/arealight/CMakeLists.txt`:
+`AreaLightBinding_Scope`, `AreaLightBinding_ProceduralInstanceSolid` (registry half; the resolution half is a compiled-out
+draft behind `AL_057_RESOLUTION_HALF` until T053), `AreaLightBinding_NoFrame` and `AreaLight_SamplingSites`. A shared header,
+`tests/arealight/registry_probe.h`, reads the registry through the frame-end observer.
+
+Red evidence (`cpujob 057-p2-red`: configure with `-DOPENRENDER_057_RED_TESTS=ON`, then `cmake --build build --target <t>
+-j4` for each of the four, then `cpujob 057-p2-redoff` back to OFF; no second build tree; logs `build/p2-red.log`,
+`build/p2-red-<target>.log`). All four targets fail to build (exit 2):
+
+| Target | First compile error |
+|---|---|
+| `test_arealight_binding_scope` | `registry_probe.h:27: 'ri/geometry/emitterRegistry.h' file not found` (the registry header, T030) |
+| `test_arealight_binding_resolve` | the same |
+| `test_arealight_binding_noframe` | the same |
+| `test_arealight_sampling_sites` | `no member named 'kAreaLightSampleSite' / 'kAreaLightShadowSite' / 'kAreaLightPhotonSite' in namespace 'openrender::sampling'` (T029) |
+
+Behind that header the three binding tests also name symbols that do not exist yet: `setEmitterRegistryObserver`,
+`CEmitterRegistry::{numLights,lightAt,sceneSamples,sceneMode}`, `CEmitterSet::{light,lightSamples,lightMode,roots}`,
+`CAttributes::areaLight`, `EAreaLightMode`.
+
+Scene sanity on the starting tree (no registry involved; the same statement sequences as RIB, one `cpujob` each): the
+no-frame sequence renders with exit 0, the resolution scene (archive, instances, union solid) renders with exit 0 and no
+warning, the scope scene exits 255 only for its two failed light statements (missing and wrong-type shader), as in Phase 1.
+The built `ctest -N` count with the option OFF is 1946, unchanged from Phase 1.
+
+## 7. Phase 2 implementation (T026-T035) and the first runs (T036-T038), macOS
+
+Implemented: `EAreaLightMode` (`stateVocabulary.h`); `CAttributes::{areaLight, areaLightSamples, areaLightMode}` (set in the
+constructor, copied by the copy constructor's member copy, and restored with the light list by `restore(shading)`);
+`COptions::{areaLightSamples = 16, areaLightMode = Full}`; the three `kAreaLight*Site` constants and the site list in
+`sampling.h`; `src/ri/geometry/emitterRegistry.{h,cpp}` (`CEmitterRegistry`, `CEmitterSet`, install/`emitterRegistry()`, the
+observer); `beginEmitterFrame`/`notifyEmitterObserver`/`endEmitterFrame`/`frameEmitters` in `rendererFrame.{h,cpp}`, called
+from `CRenderer::beginFrame()` (after `copyOptions`), the top of `endFrame()` (observer) and just before `root->destroy()`
+(release); `RiAreaLightSourceV` (declare and bind; failed statement clears the slot; no frame warns once and binds nothing);
+the `record()` call in the world-block branch of `addObject`.
+
+- vector stub: not needed. `emitterRegistry.cpp` is compiled into both `ribRender_obj` and `ribVector_obj` (it is Geometry,
+  and uses only `CObject::attach/detach` and `CAttributes`, which both compile); nothing was added to
+  `ribvector-core-residual.txt` or the allowlist.
+- `ctest -L architecture`: 36/36 after one fix (my first comment in `emitterRegistry.h` named `CShadingContext`, which
+  `Geometry_NoHiderShadingNames` bans under `src/ri/geometry`; reworded).
+- T037 (FR-029): `tests/unit/common/owned-symbols.txt`, `variable_golden.txt` and `Common_StateOwnership` untouched and green
+  (the only libRIBCommon addition is three `constexpr` constants). No change needed.
+- Full run (`-LE determinism-sweep -j4`, `p2-all.log`): 1368 selected (1364 + 4 new), 1365 passed, 3 "Not Run" (the three
+  binding tests, see below), 0 failed, 206.8 s. No pre-existing test moved, so no image moved (FR-026).
+- Render time (T038, `-t:1`): `examples/rib/quadlight.rib` 0.54 s user (3 runs: 0.55, 0.54, 0.53); `camera-dof.rib` 0.04 s user
+  (it is a near-empty scene). There is no baseline binary to time (the Phase 1 build was overwritten), so the comparison is the
+  ctest durations of the same scenes, Phase 1 against Phase 2: `Visual_quadlight` 0.48 -> 0.43 s, `-slo` 0.53 -> 0.44 s,
+  `Visual_camera-dof-reyes` 1.67 -> 1.35 s, `-raytrace` 1.03 -> 0.63 s. No slowdown (the host was lighter in the second run).
+
+**PAUSE (approved-test edit), resolved.** The three binding tests did not build against the real header: `registry_probe.h`'s
+`identityOf(void *)` could not bind `RtLightHandle`, which is `const void *` in `ri.h` (the red evidence, a missing-header
+failure, hid it). The maintainer approved the one-line fix (`tools/proposed/registry_probe-identityOf.diff`, applied; it
+changes no assertion). The ResourceRestore choice (the three area-light fields restored in the `shading` subset with the light
+list) and the render-time proxy for T038 (no baseline binary; Phase 6 measures the real cost) were approved too.
+
+Linux (GCC 13 `-Werror`, `-j2 -k`, `lx-build3.log`): every production file, including `emitterRegistry.cpp`, `rendererFrame.cpp`,
+`rendererContext.cpp` and the state files, compiled with no warning or error. The only errors are the same three test
+compile errors (`RtLightHandle` is `const void *`), so the Linux binding-test run waits for the PAUSE above.
+
+## 8. Phase 2 final runs (T036, T038, T039), after the approved test fix
+
+macOS: `cpujob 057-p2-build4 cmake --build build --config Release -j4` green. `ctest -L arealight` (`p2-arealight.log`):
+5/5 passed: `LightKey_NoLeakAcrossFailedLight`, `AreaLightBinding_Scope` (43 checks), `AreaLightBinding_ProceduralInstanceSolid`
+(14), `AreaLightBinding_NoFrame` (14), `AreaLight_SamplingSites` (16). `-L architecture` (`p2-arch2.log`): 36/36,
+allowlist and `ribvector-core-residual.txt` unchanged. Full run `-LE determinism-sweep -j4` (`p2-all2.log`): **1368 of 1368
+passed**, 249.75 s, no timeout, no failure; the baseline's 1363 plus the 5 new tests (LightKey was already counted at
+Phase 1: baseline 1363 + LightKey + 4 = 1368). Zero image moved, zero reference re-captured, no threshold touched.
+
+Linux (GCC 13 `-Werror`): build green. `ctest -L 'arealight|state|architecture' -j2` (`lx-p2-groups.log`): 48/48 passed,
+including the five arealight tests. Full run `-LE determinism-sweep -j2` (`lx-p2-all.log`): 1369 selected, 1366 passed,
+1 skipped (`LibShader_Format_rslo_lower_minor`), **2 failed, the same two as the Linux baseline**:
+`TextureTile_RenderByteIdentical` (#45) and `Registry_IntegratorImageIdentity` (#163, spec 040). 701 s.

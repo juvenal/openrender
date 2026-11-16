@@ -32,6 +32,7 @@
 #include "common/global.h"     // The global header file
 #include "patternTable.h"       // Scoped pattern-node table
 #include "stateHandles.h"       // Opaque shader and map handles
+#include "stateVocabulary.h"    // EAreaLightMode
 #include "userAttributes.h"    // Attribute dictionary stuff
 #include "xform.h"             // Transformations
 
@@ -173,6 +174,13 @@ class CAttributes : public CRefCounter {
         char *maxDisplacementSpace; // The current space in which the maximum displacement is given
 
         CActiveLight *lightSources; // The list of active light sources
+
+        // Area-light binding (spec 057, FR-001): the light whose geometry the objects created now are. Identity only,
+        // never dereferenced here (the renderer core's allLights owns the light); nullptr outside an area-light scope.
+        // Copied with the block, so AttributeBegin inherits it and AttributeEnd restores the enclosing block's.
+        const CShaderGroupRefTarget *areaLight;
+        int areaLightSamples;          // Attribute "arealight" "int samples": object level count, 0 = not set
+        EAreaLightMode areaLightMode;  // Attribute "arealight" "string mode": object level mode, Unset = not set
 
         float shadingRate;  // Shading rate for this primitive
         float motionFactor; // Amount to increase shading rate when motion blurring

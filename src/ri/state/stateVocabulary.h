@@ -4,9 +4,9 @@
  * File: stateVocabulary.h
  *
  * Description:
- *   Graphics State's own vocabulary for two values it stores but does not
+ *   Graphics State's own vocabulary for values it stores but does not
  *   define (spec 025, FR-008 and FR-009): the type of a display parameter and
- *   the blobby opcode order.
+ *   the blobby opcode order; and, since spec 057, the area-light mode.
  *
  *   The display plug-in ABI (dsply.h) and the blobby header (blobbyField.h)
  *   stay unchanged and keep their C enums. These scoped enums carry the same
@@ -25,6 +25,8 @@
 #ifndef STATEVOCABULARY_H
 #define STATEVOCABULARY_H
 
+#include <cstdint>
+
 // Must equal OR_DISPLAY_PARAM_FLOAT ... OR_DISPLAY_PARAM_INTEGER of dsply.h.
 enum class EDisplayParameterType : int {
     Float = 0,
@@ -38,6 +40,16 @@ enum class EDisplayParameterType : int {
 enum class EBlobbyOrder : int {
     RiSpec = 0,
     AppNote = 1
+};
+
+// The area-light mode of the "arealight" attribute and option (spec 057, FR-018). Unset means "no value at this level"
+// (the next level decides); Off at any level wins. Must equal the mirror in libshader/shading/areaLightSampler.h
+// (EAreaLightMode there, added with the sampler interface); State_AreaLightVocabularyMirror compares the two value for value.
+enum class EAreaLightMode : uint8_t {
+    Unset,
+    Full,
+    Fast,
+    Off
 };
 
 #endif

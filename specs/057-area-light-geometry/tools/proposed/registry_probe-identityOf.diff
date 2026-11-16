@@ -1,0 +1,12 @@
+--- a/tests/arealight/registry_probe.h
++++ b/tests/arealight/registry_probe.h
+@@
+-// The identity a statement's returned handle names: the shader instance, seen as its Graphics State base
+-inline const CShaderGroupRefTarget *identityOf(void *handle) {
+-    return handle == nullptr ? nullptr : static_cast<const CShaderGroupRefTarget *>(static_cast<CShaderInstance *>(handle));
+-}
++// The identity a statement's returned handle names: the shader instance, seen as its Graphics State base.
++// (RtLightHandle is `const void *` in ri.h; the approved helper took `void *`, which cannot bind to it.)
++inline const CShaderGroupRefTarget *identityOf(const void *handle) {
++    return handle == nullptr ? nullptr : static_cast<const CShaderGroupRefTarget *>(static_cast<const CShaderInstance *>(handle));
++}

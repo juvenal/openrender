@@ -610,6 +610,22 @@ namespace openrender::sampling {
         return d;
     }
 
+    // ---- Renderer-side call sites ---------------------------------------------------------------------
+    //
+    // A shader's stochastic calls are numbered 0, 1, 2 ... by the compiler (CCallSitePass); the code that draws on a
+    // shader's behalf, inside the renderer, takes a call site of its own above 0xFF00 so its sub-stream never collides
+    // with a shader's. Every renderer-side site, so the next one is taken from a list and not guessed:
+    //
+    //   0xFF11  kPhotonEmitSite    where a photon leaves its light         (photon.cpp, file-local constant)
+    //   0xFF12  kPhotonTraceSite   a photon's bounces                       (photon.cpp, file-local constant)
+    //   0xFF20  kAreaLightSampleSite   the emitter point of an area-light sample          (spec 057)
+    //   0xFF21  kAreaLightShadowSite   the shadow ray keys of an area-light sample        (spec 057)
+    //   0xFF22  kAreaLightPhotonSite   the emission points of a bound light in the photon pass (spec 057)
+    //   0xFF23-0xFF2F  reserved for spec 057. Spec 040 must not use 0xFF20-0xFF2F.
+    inline constexpr uint16_t kAreaLightSampleSite = 0xFF20;
+    inline constexpr uint16_t kAreaLightShadowSite = 0xFF21;
+    inline constexpr uint16_t kAreaLightPhotonSite = 0xFF22;
+
 } // namespace openrender::sampling
 
 #endif
