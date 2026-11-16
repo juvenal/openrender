@@ -71,6 +71,36 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tools/gi_quality.cpp)
 endif()
 
 # ---------------------------------------------------------------------------------------------------------
+# Phase 2 (spec 040): the photon map's tests, defined unconditionally (the targets are part of `all`)
+# ---------------------------------------------------------------------------------------------------------
+macro(gi_det_executable_always _target _source)
+    add_executable(${_target} ${_source})
+    target_compile_features(${_target} PRIVATE cxx_std_20)
+    target_include_directories(${_target} PRIVATE ${GI_DET_INCLUDES})
+    target_link_libraries(${_target} PRIVATE ribRender libshader_shading openrendercommon Threads::Threads)
+endmacro()
+gi_det_executable_always(test_gi_photon_store test_gi_photon_store.cpp)
+gi_det_executable_always(test_gi_photon_claim test_gi_photon_store.cpp)
+target_compile_definitions(test_gi_photon_claim PRIVATE GIDET_CLAIM)
+gi_det_executable_always(test_gi_photon_runs test_gi_photon_runs.cpp)
+
+add_test(NAME GiDet_PhotonFileBytes COMMAND test_gi_photon_store filebytes ${CMAKE_CURRENT_BINARY_DIR}/work/PhotonFileBytes)
+set_tests_properties(GiDet_PhotonFileBytes PROPERTIES TIMEOUT 120 LABELS "gi_determinism;photon" ENVIRONMENT "${GI_DET_SCRIBBLE_ENV}")
+add_test(NAME GiDet_PhotonClaim COMMAND test_gi_photon_claim claim ${CMAKE_CURRENT_BINARY_DIR}/work/PhotonClaim)
+set_tests_properties(GiDet_PhotonClaim PROPERTIES TIMEOUT 120 LABELS "gi_determinism;photon" ENVIRONMENT "${GI_DET_ENV}")
+
+macro(gi_det_photon_runs _name _timeout _label)
+    add_test(NAME GiDet_${_name} COMMAND test_gi_photon_runs ${ARGN} $<TARGET_FILE:orender> ${GI_DET_TOOLS} ${CMAKE_CURRENT_BINARY_DIR}/work/${_name})
+    set_tests_properties(GiDet_${_name} PROPERTIES TIMEOUT ${_timeout} LABELS "${_label};photon" ENVIRONMENT "${GI_DET_ENV}" DEPENDS orender)
+endmacro()
+gi_det_photon_runs(PhotonRepeat 300 gi_determinism repeat fresh 5)
+gi_det_photon_runs(PhotonRepeatReuse 300 gi_determinism repeat reuse 5)
+gi_det_photon_runs(PhotonThreads 300 gi_determinism threads)
+gi_det_photon_runs(PhotonRepeat30 900 gi_determinism_long repeat fresh 30)
+gi_det_photon_runs(PhotonRepeatReuse30 900 gi_determinism_long repeat reuse 30)
+gi_det_photon_runs(PhotonThreads4x30 900 gi_determinism_long threads4 30)
+
+# ---------------------------------------------------------------------------------------------------------
 # The red block: spec 040's red-first tests. Each test below leaves this block (it is then defined unconditionally) in the phase that makes it green.
 # ---------------------------------------------------------------------------------------------------------
 if(OPENRENDER_040_RED_TESTS)
@@ -84,32 +114,14 @@ if(OPENRENDER_040_RED_TESTS)
         endif()
     endmacro()
 
-    # --- US1: the photon store and the photon runs ---------------------------------------------------
-    gi_det_executable(test_gi_photon_store test_gi_photon_store.cpp)
-    gi_det_executable(test_gi_photon_claim test_gi_photon_store.cpp)
-    target_compile_definitions(test_gi_photon_claim PRIVATE GIDET_CLAIM)
-    gi_det_executable(test_gi_photon_runs test_gi_photon_runs.cpp)
-
-    foreach(_m filebytes:PhotonFileBytes lookup-pure:PhotonLookupPure inmemory-lookup:PhotonInMemoryLookup roundtrip:PhotonRoundTrip)
+    # --- US1: the photon lookup tests (Phase 3 moves them out of this block; the executable is defined above) ---------
+    foreach(_m lookup-pure:PhotonLookupPure inmemory-lookup:PhotonInMemoryLookup roundtrip:PhotonRoundTrip)
         string(REPLACE ":" ";" _mt ${_m})
         list(GET _mt 0 _mode)
         list(GET _mt 1 _name)
         add_test(NAME GiDet_${_name} COMMAND test_gi_photon_store ${_mode} ${CMAKE_CURRENT_BINARY_DIR}/work/${_name})
         set_tests_properties(GiDet_${_name} PROPERTIES TIMEOUT 120 LABELS "gi_determinism;photon" ENVIRONMENT "${GI_DET_SCRIBBLE_ENV}")
     endforeach()
-    add_test(NAME GiDet_PhotonClaim COMMAND test_gi_photon_claim claim ${CMAKE_CURRENT_BINARY_DIR}/work/PhotonClaim)
-    set_tests_properties(GiDet_PhotonClaim PROPERTIES TIMEOUT 120 LABELS "gi_determinism;photon" ENVIRONMENT "${GI_DET_ENV}")
-
-    macro(gi_det_photon_runs _name _timeout _label)
-        add_test(NAME GiDet_${_name} COMMAND test_gi_photon_runs ${ARGN} $<TARGET_FILE:orender> ${GI_DET_TOOLS} ${CMAKE_CURRENT_BINARY_DIR}/work/${_name})
-        set_tests_properties(GiDet_${_name} PROPERTIES TIMEOUT ${_timeout} LABELS "${_label};photon" ENVIRONMENT "${GI_DET_ENV}" DEPENDS orender)
-    endmacro()
-    gi_det_photon_runs(PhotonRepeat 300 gi_determinism repeat fresh 5)
-    gi_det_photon_runs(PhotonRepeatReuse 300 gi_determinism repeat reuse 5)
-    gi_det_photon_runs(PhotonThreads 300 gi_determinism threads)
-    gi_det_photon_runs(PhotonRepeat30 900 gi_determinism_long repeat fresh 30)
-    gi_det_photon_runs(PhotonRepeatReuse30 900 gi_determinism_long repeat reuse 30)
-    gi_det_photon_runs(PhotonThreads4x30 900 gi_determinism_long threads4 30)
 
     # --- US2/US3: the irradiance store ------------------------------------------------------------
     gi_det_executable(test_gi_cache_store test_gi_cache_store.cpp)

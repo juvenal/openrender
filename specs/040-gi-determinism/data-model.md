@@ -24,7 +24,7 @@ the scene, the options and the seed alone. Field names are the code's where the 
 ### Canonical photon order (FR-002)
 
 Before `balance()`, items `1..numItems` are sorted by the total order
-`(key, then the 42 defined bytes of P, N, C, theta, phi compared as unsigned bytes)`; the keys are permuted with them.
+`(key, then the 38 bytes of P, N, C, theta, phi compared as unsigned bytes)` (`flags`, which `balance()` assigns, and the padding are not part of a photon's identity; maintainer, 2026-11-16); the keys are permuted with them.
 Two photons equal under this order are byte-identical, so their relative order cannot change a byte of the map. `balance()`
 then runs on that order; its median partition, the tie between equal coordinates and every `flags` value are functions of the
 photon set alone.

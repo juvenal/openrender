@@ -49,11 +49,7 @@ class CPhotonMap : public CPhotonStore, public openrender::shading::CPhotonMapRe
         // IPhotonLookup, IPhotonEstimator and IPhotonStore: forwards to the store
         void lookup(float *C, const float *P, int maxFound) override { CPhotonStore::lookup(C, P, maxFound); }
         void estimate(float *C, const float *P, const float *N, int maxFound) override { CPhotonStore::lookup(C, P, N, maxFound); }
-        void storePhoton(const float *P, const float *N, const float *I, const float *C, uint64_t key) override { CPhotonStore::store(P, N, I, C, key); }
-        void resetPhotons() override { CPhotonStore::reset(); }
-        void balancePhotons() override { CPhotonStore::balance(); }
-        int isModifying() const override { return modifying; }
-        void setModifying(int m) override { modifying = m; }
+        bool storePhotonForFrame(const float *P, const float *N, const float *I, const float *C, uint64_t key) override { return CPhotonStore::storePhotonForFrame(P, N, I, C, key); }
         void writePhotons(const CXform *world) override { write(world); }
 
         // The matrices written are the world's, or the renderer's when there is none (the data viewer's tests write(NULL))

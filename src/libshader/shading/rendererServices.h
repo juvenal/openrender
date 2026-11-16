@@ -82,6 +82,14 @@ namespace openrender::shading {
     //   ("Breaking within 2.x"). The rules above apply as written from the release that closes the milestone.
     //
     // History
+    //   2.6.0  spec 040. Breaking within 2.x (allowed before spec 055, see the rule above); no CRendererServices member changed:
+    //          Removed:  IPhotonStore::resetPhotons(), balancePhotons(), isModifying(), setModifying() and storePhoton()
+    //                    (photonMapAccess.h): the photon hider's unguarded test-then-reset of a photon map raced (GitHub #164).
+    //          Added:    IPhotonStore::storePhotonForFrame(): under the store's lock the first call of a frame resets the map,
+    //                    marks it as being written and returns true (for that call only); every call stores.
+    //          Wording:  writePhotons() sorts the photons into the canonical order (key, then bytes), balances and writes a file
+    //                    in which every byte is defined. Phase 3 and later phases of spec 040 add to this entry (the photon lookup
+    //                    is a pure function of the map; the irradiance store's lookup, commit and wire).
     //   2.3.0  spec 031. Breaking within 2.x (allowed before spec 055, see the rule above):
     //          Removed:  CShadingContext's Geometry-facing entries shade(CSurface *, ...), displace(), displaceEstimate() and
     //                    setProducer(), and IShadingProducer (shadingProducer.h, file deleted). Geometry reaches the hider that
@@ -128,7 +136,7 @@ namespace openrender::shading {
     //          Wording only, no version change (spec 038, made while 2.0.0 was current, before 2.1.0): getDSO also serves
     //          the .slo loader, which binds the DSO operands of a JIT-compiled module with it (the member, its signature
     //          and its result are unchanged).
-    inline constexpr InterfaceVersion kRendererServicesVersion{2, 3, 0};
+    inline constexpr InterfaceVersion kRendererServicesVersion{2, 6, 0};
 
     class ITracer; // tracer.h
 

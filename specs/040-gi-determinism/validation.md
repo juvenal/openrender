@@ -253,6 +253,52 @@ DeterminismSweep_gi-* (34 entries, step 2 of T031 applied so that the options ex
 
 ## 3. Checkpoint records
 
+### Checkpoint 2 (Phase 2), 2026-11-16
+
+PAUSE 2a and 2b answered (maintainer): the D7 patch, the two photon references of each platform and the canonical order of 38 bytes (P, N, C, theta, phi; `flags` and the padding excluded; `data-model.md` and `tasks.md` corrected from "42"). The four references were copied into `tests/gi_split/reference/{macos,linux}/files.txt` and `tests/preview/reference/{macos,linux}/datascene.txt` (`rerendered-references.md`: approved). Re-run after the copy:
+- macOS: `GiFiles_Unchanged` and `Preview_DataSceneUnchanged` pass (3 of 3 with their fixture); the everyday suite **1370 of 1370 pass** (1 skipped as in Phase 0; `Registry_IntegratorImageIdentity` passed); `ctest -L architecture` 36 of 36, the allowlist unchanged at 168 lines, no include edge added (`photonMapAccess.h` is still Shading's; Hiders include no Texturing header).
+- Linux: the two references pass; the everyday suite 1371 tests, **1 failure: `TextureTile_RenderByteIdentical`**, the known Linux failure that was red in the starting tree and in spec 032's baseline; `ctest -L architecture` 36 of 36.
+
+**Issue evidence (§6).**
+
+| issue | test(s) | macOS | Linux |
+|---|---|---|---|
+| #165 `CMap::reset()` `delete` for `new[]` | `GiDet_PhotonClaim` (8 threads, one claim, `numItems` exact), the 30-run forms; the ASan double-free frame `map.h:156` of T015 | pass | pass |
+| #164 the photon pass crashes with several threads | the 16 crash series (8 scenes, default threads and `-t:4`, 30 runs: `photon-crash-p2-<platform>.txt`), `GiDet_PhotonThreads4x30` | 0 crashes in 480 runs | 0 crashes in 480 runs |
+| #163 the photon map differs from run to run | `GiDet_PhotonRepeat(Reuse)`, `GiDet_PhotonThreads`, the 30-run forms, the 16 series (one md5 each), `GiKeys_PhotonsThreads` with `flags`, `Registry_IntegratorImageIdentity` 30 of 30 | pass | pass |
+| #160 a map filled in memory cannot be queried | `GiDet_PhotonInMemoryLookup`, `_PhotonRoundTrip` | Phase 3 (red until the memo is removed) | Phase 3 |
+| #161 | `GiRemote_LoopbackCommit` | Phase 5 | Phase 5 |
+
+The photon-map account is in "Phase 2 results" below. The Phase 2 files are staged by `git add src/ri/core/map.h src/ri/texture/photonStore.h src/ri/texture/photonStore.cpp src/libshader/shading/photonMapAccess.h src/libshader/shading/rendererServices.h src/ri/render/photonMap.h src/ri/hiders/photon.cpp tests/gi_determinism tests/gi_split tests/preview tests/visual specs/040-gi-determinism`. No `Closes` line is written.
+
+### Phase 2 results (T037 to T047), 2026-11-16, before PAUSE 2b
+
+Source changes (staged): `src/ri/core/map.h` (`delete[]` in `reset()`, #165; `new T[n]()` in `read()`, both growth paths of `store()` and `balance()`'s `finalitems`); `src/ri/texture/photonStore.{h,cpp}` (`storePhotonForFrame()` with the test, the reset, the mark and the store in one critical section; `reset()` zeroes `maxPower`; `balance()` sorts the photons and their keys into the canonical order (key, then the 38 bytes of P, N, C, theta, phi: the plan's "42" counted `flags`, which balance() assigns and which is not part of a photon's identity) before the kd-tree balance and stores the empty map's dummy with `theta = phi = 0`; `write()` rebuilds every item in a zeroed buffer and copies it back); `src/libshader/shading/photonMapAccess.h` (`IPhotonStore` is `storePhotonForFrame` and `writePhotons`: `resetPhotons`, `balancePhotons`, `isModifying`, `setModifying` and also `storePhoton`, whose only caller was replaced, are gone); `src/ri/render/photonMap.h`; `src/ri/hiders/photon.cpp` (the global and the caustic map: `if (map->storePhotonForFrame(...)) balanceList.push(map);`); `src/libshader/shading/rendererServices.h` (`kRendererServicesVersion` **2.6.0**, the history entry above 2.3.0; 2.4.0 and 2.5.0 are 033's and 057's, to be re-read at merge preparation; no `CRendererServices` member changed). Tests: the D7 patch applied to `tests/gi_split/test_gi_keys.cpp`; the Phase 2 tests of `tests/gi_determinism` are defined unconditionally (`GiDet_PhotonClaim`, `_PhotonFileBytes`, `_PhotonRepeat`, `_PhotonRepeatReuse`, `_PhotonThreads` and the three `gi_determinism_long` forms), `GiDet_PhotonLookupPure`, `_PhotonInMemoryLookup` and `_PhotonRoundTrip` stay in the red block; `determinism-scenes-phase2.patch` applied (the five subdiv and motion photon entries left the guard).
+
+| item | macOS | Linux (GCC 13, `-Werror`) |
+|---|---|---|
+| build | clean | clean |
+| `GiDet_PhotonClaim`, `_PhotonFileBytes`, `_PhotonRepeat`, `_PhotonRepeatReuse`, `_PhotonThreads`, `GiKeys_Photons`, `GiKeys_PhotonsThreads` (now comparing `flags`; 953 photons identical at -t:1 and -t:4) | 7 of 7 pass | 7 of 7 pass |
+| the 30-run forms (`gi_determinism_long`): 30 fresh, 30 reuse, 30 at -t:4 | each one md5, 0 failed | the same |
+| `Registry_IntegratorImageIdentity --repeat until-fail:30` | 30 of 30 pass (the starting tree passed about 1 in 6) | 30 of 30 pass |
+| the 16 crash series of T014 (8 scenes x default threads and -t:4, 30 runs, `photon-crash-p2-<platform>.txt`) | **0 crashes, 1 distinct map in every series**, numItems as on the starting tree (46273 / 8459 / 22408 / 22317) | **0 crashes, 1 distinct map in every series** |
+| `DeterminismSweep_gi-(subdiv|motion-subdiv)` (the five entries that left the guard) | 5 of 5 pass | 5 of 5 pass |
+| everyday suite | 1370 tests: **2 failures, both references that change on purpose** (below); everything else passes (1 skipped) | the GI set: the same two |
+| `ctest -L architecture` | 36 of 36; allowlist 168 lines | 36 of 36 |
+| GI test set (95 tests): visual tests | none exceeds its threshold: no image drift in this phase | same |
+
+The photon maps themselves, old against new (`tools/gpm_multiset_check.py`; the starting tree's `-t:1` map of `photon-parity` against the new tree's): numItems 46273 and the trailer (bound, matrices, `maxPower`) identical, the multiset of the defined fields (P, N, C, theta, phi) of the 46273 photons **identical**, 33798 photons at another index and 6647 with another `flags` value at the same index (the canonical order and the kd-tree built on it), item 0 and every padding byte zero; `subdiv-loop-photon` (176 photons) is byte-for-byte the same order.
+
+**#163, #164, #165.** #163: 30 fresh runs of `identity-photon.rib` give one file, 30 reuse runs give the same file, and the 16 series above give one map each (the starting tree: 2 and 28 distinct maps in the 30-run forms, every completed map different in the crash series). #164: 0 crashes in 16 series of 30 at both thread settings on both platforms (the starting tree: 1 to 11 of 30 crashed in every series); the account of T015 (an unguarded check-then-act at `photon.cpp:633-638` that reset one map from several threads: a double free of `items` and an overflow of the `keys` array after `reset()` zeroed `maxItems`) is what `storePhotonForFrame()` removes: the test, the reset and the first store are one critical section, so one thread resets and no store runs between. #165: `CMap::reset()` frees with `delete[]`; the ASan "double-free map.h:156" frame of T015 is gone with the unguarded resets, and `GiDet_PhotonClaim` (8 threads storing into one store, one claim, `numItems` exact) plus the 30-run forms are the tests that would catch it again. No `Closes` line.
+
+**References that change on purpose (REFERENCE-APPROVAL, PAUSE 2b)** (recorded into `build-logs/` with the tests' own `--record` through `gi-split-capture-references-scratch`, twice per platform with identical results; nothing copied into `tests/`; proposals in `tools/proposed-p2-*`):
+1. `tests/gi_split/reference/{macos,linux}/files.txt` (`GiFiles_Unchanged`): 12 changed lines per platform, all of them the six `field <name> sha256` lines of `[photon-parity.gpm]` (P, N, flags, C, theta, phi: hashes of the whole column in item order); the header, `numItems`, `maxItems`, the first eight item lines (the root of the balanced tree: the same photons in the same places) and the `[gi-files.icache]` SHA-256 are unchanged (`tools/proposed-p2-files-<platform>.diff`, `tools/files_multiset_check.py`; the check on the full maps is the paragraph above).
+2. **Not in the task text:** `tests/preview/reference/{macos,linux}/datascene.txt` (`Preview_DataSceneUnchanged`, the data viewer's scene) also changes: 585 of 1067 lines per platform, every one a photon-map point-hash line (`points count=46273 hashVerts hashCols` five times, and the per-tile `points n=.. hashP hashC` lines): hashes of the same points in the new item order. Nothing else in the file changes (counts, bounds, cache lines). The test fails on this tree until the reference is re-recorded. The loopback references (`loopback-cache.bin`, `loopback-pointcloud.bin`) re-record byte-identical, as the plan expects.
+
+### Phase 2 before PAUSE 2a (T035, T036), 2026-11-16
+
+T035: master is still `278b0394` (`git log 278b0394..master` empty); #160, #161, #163, #164 and #165 are open with no new comment; `kRendererServicesVersion` is `{2, 3, 0}` on master and in the 033, 048 and 057 worktrees (none has edited it): 2.6.0 stays the free number, to be re-read at T039a. T036: `tools/test-edit-patches/gi-keys-photons-threads-flags.patch` (D7: `dropFlags()` and its two calls removed, the header paragraph reworded; the label `gi_split_threads` stays). The removed `IPhotonStore` members (`resetPhotons`, `balancePhotons`, `isModifying`, `setModifying`) are named only by `src/libshader/shading/photonMapAccess.h`, `src/ri/render/photonMap.h` and `src/ri/hiders/photon.cpp`: no test or other file names them. `CPhotonStore::modifying` (a public data member) stays: `TextureOnly_GiStores`, `GiFiles_Unchanged`'s writer and the Phase 1 tests set it before `write()`.
+
 ### Checkpoint 1 (Phase 1), 2026-11-15
 
 macOS, option OFF (`build` configured back, rebuilt): `ctest -N -R 'GiDet_|GiKeys_IrradianceRecordsThreads|GiRemote_LoopbackCommit|DeterminismSweep_gi-'` lists **0** tests (the red block defines none); everyday suite `-LE 'determinism-sweep|gi_determinism_long' -j4`: **1365 tests, 1364 passed, 1 failed**: `Registry_IntegratorImageIdentity` (#163, F3: it flaps; re-run alone with `--repeat until-pass:8` it passed on the first try; no threshold or test changed). The pass set is Phase 0's (1363 passed, 1 skipped) plus `DeterminismHarness_FilesDiffer` and `_FilesSame`. `ctest -L architecture`: 36 passed. Expected-image-drift list: empty (no source file changed).

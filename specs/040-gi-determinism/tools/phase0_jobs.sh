@@ -23,7 +23,8 @@ L="$W/build-logs"
 mkdir -p "$L"
 cd "$W" || exit 9
 step="${1:-}"
-BASE="$W/build-base"
+BASE="$W/${TREE:-build-base}"   # TREE=build and TAG=p2 re-run a step on the finished tree (Phase 2 onward)
+TAG="${TAG:-base}"
 case "$step" in
 images|images2)
     out="$L/gi-base-images"; [ "$step" = images2 ] && out="$L/gi-base-images2"
@@ -75,8 +76,8 @@ records)
     cat "$OUT"
     ;;
 crash)
-    OUT="$T/photon-crash-base-$P.txt"
-    { echo "# T014 starting tree (build-base, master 278b0394, $P): 30 separate processes per series, a fresh directory per run (dirmode fresh),"
+    OUT="$T/photon-crash-$TAG-$P.txt"
+    { echo "# T014 tree $TREE:-build-base ($TAG, $P): 30 separate processes per series, a fresh directory per run (dirmode fresh),"
       echo "# the .gpm the scene writes compared by md5. 'failed runs' lists (run, exit code); a negative code is the signal number."
       echo "# default = no -t option (the scene's own numthreads / the machine default); -t:4 = four threads."; } > "$OUT"
     for scene in photon-parity photon-parity-slo photon-solar0-alone photon-solar0-alone-slo photon-solar0-after-distant photon-solar0-after-distant-slo photon-solar0-before-distant photon-solar0-before-distant-slo; do
@@ -90,7 +91,7 @@ crash)
     echo done >> "$OUT"
     ;;
 frame2)
-    OUT="$T/photon-frame2-base-$P.txt"; S="$L/040-frame2-scratch"; rm -rf "$S"; mkdir -p "$S"
+    OUT="$T/photon-frame2-$TAG-$P.txt"; S="$L/040-frame2-scratch"; rm -rf "$S"; mkdir -p "$S"
     { echo "# T014a frame-2 images on the starting tree (build-base, master 278b0394, $P): frame 1 removed, Quantize \"rgba\" 0 0 0 0 prepended (float image),"
       echo "# the map = the one a single -t:1 run of the full scene wrote and left in place, copied unchanged for every run (M040_SEED),"
       echo "# 30 runs at -t:4 and 30 at -t:1, separate processes, dirmode reuse (one directory, the map and the previous image in place)."; } > "$OUT"
