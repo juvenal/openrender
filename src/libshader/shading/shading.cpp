@@ -40,6 +40,7 @@
 #include "common/random.h"
 #include "ri_config.h"
 #include "shaderPl.h"
+#include "shaderPayload.h"
 #include "shaderRefs.h"
 #include "shading.h"
 #include "specularTerm.h"
@@ -2040,7 +2041,7 @@ void CShadingContext::iterateLights(const float *lP, const float *lN, const floa
                 ss->lightSideN = ss->lightSideNStore;
             }
             for (CActiveLight *cLight = currentAttributes->lightSources; cLight != NULL; cLight = cLight->next) {
-                CProgrammableShaderInstance *light = lightInstanceOf(*cLight);
+                CShaderInstance *light = lightInstanceOf(*cLight);
 
                 int validLight = (saveCat == 0);
                 if (!validLight) {
@@ -2104,7 +2105,7 @@ void CShadingContext::callAmbient(float *result) {
         }
         if (!inShadow) {
             for (CActiveLight *cLight = attr->lightSources; cLight; cLight = cLight->next) {
-                CProgrammableShaderInstance *light = lightInstanceOf(*cLight);
+                CShaderInstance *light = lightInstanceOf(*cLight);
                 if (!(light->flags & SHADERFLAGS_NONAMBIENT)) {
                     memBegin(shaderStateMemory);
                     ss->currentLightInstance = light;
@@ -2331,7 +2332,7 @@ void CShadingContext::prepareAmbient() {
         if (!inShadow) {
             CShaderInstance *cInst = ss->currentShaderInstance;
             for (CActiveLight *cLight = attr->lightSources; cLight; cLight = cLight->next) {
-                CProgrammableShaderInstance *light = lightInstanceOf(*cLight);
+                CShaderInstance *light = lightInstanceOf(*cLight);
                 if (!(light->flags & SHADERFLAGS_NONAMBIENT)) {
                     memBegin(shaderStateMemory);
                     ss->currentLightInstance = light;
@@ -2505,7 +2506,7 @@ void CShadingContext::jitIlluminateEnd(int *tags, int n, int *numActive, int *nu
     // saveLighting: save (L, Cl) into a new/recycled CShadedLight entry
     if (*numActive != 0) {
         CShadedLight *cLight = nullptr;
-        const int numGlobals = cInst ? cInst->parent->numGlobals : 0;
+        const int numGlobals = cInst ? rslPayloadOf(*cInst->parent)->numGlobals : 0;
 
         if (ss->freeLights) {
             cLight = ss->freeLights;
@@ -2656,7 +2657,7 @@ void CShadingContext::jitSolarEnd(int *tags, int n, int *numActive, int *numPass
 
     if (*numActive != 0) {
         CShadedLight *cLight = nullptr;
-        const int numGlobals = cInst ? cInst->parent->numGlobals : 0;
+        const int numGlobals = cInst ? rslPayloadOf(*cInst->parent)->numGlobals : 0;
 
         if (ss->freeLights) {
             cLight = ss->freeLights;

@@ -27,6 +27,8 @@
 #ifdef OPENRENDER_HAVE_LLVM
 #include "config.h"
 #include "libshader/shading/llvmJit.h"
+#include "shaderBackend.h"
+#include "shaderPayload.h"
 #include "libshader/shading/sloMetadata.h"
 #include "rslo_code.h" // SL_VARYING_OPERAND
 #include "shader.h"    // CShader, SL_SURFACE, SL_LIGHTSOURCE, …
@@ -167,19 +169,24 @@ CShader *parseSloShader(const char *shaderName, const char *sloPath) {
     CShader *sh = new CShader(shaderName);
     sh->type = sloShaderType(info.typeName);
 
+    // What only the JIT understands, and the frame layout it shares with the interpreter (spec 033)
+    CSloPayload *payload = new CSloPayload;
+    sh->payload = payload;
+    sh->backend = &sloBackend();
+
     int numParams = (int)info.params.size();
     int numVars = (int)info.vars.size();
     int numTotal = numParams + numVars;
 
     // --- varyingSizes[] covers ALL slots (params [0..numParams-1] then vars).
     // Mirrors rslo.y: -(numItems*numComp*sizeof(float)) for uniform, positive for varying.
-    sh->numVariables = numTotal;
+    payload->numVariables = numTotal;
     if (numTotal > 0) {
-        sh->varyingSizes = (int *)malloc(numTotal * sizeof(int));
+        payload->varyingSizes = (int *)malloc(numTotal * sizeof(int));
         int idx = 0;
         auto fillSize = [&](const SLOParamInfo &p) {
             int sz = p.arraySize * sloFloatCount(p.typeName) * (int)sloElemByteSize(p.typeName);
-            sh->varyingSizes[idx++] = (p.storage == "uniform") ? -sz : sz;
+            payload->varyingSizes[idx++] = (p.storage == "uniform") ? -sz : sz;
         };
         for (const auto &p : info.params)
             fillSize(p);
@@ -267,29 +274,25 @@ CShader *parseSloShader(const char *shaderName, const char *sloPath) {
         paramHead = v;
     }
     sh->parameters = paramHead;
-    sh->numGlobals = 0;
+    payload->numGlobals = 0;
 
     // Interpreter fields null — JIT is the only execution path for .slo-based shaders
     // (codeArea == nullptr is what marks one). The default strings live in sh->strings,
     // as in rslo.y: ~CShader frees each string and, through `memory`, the array.
-    sh->memory = nullptr;
-    sh->codeArea = nullptr;
-    sh->constantEntries = nullptr;
-    sh->strings = nullptr;
-    sh->numStrings = (int)defaultStrings.size();
-    if (sh->numStrings > 0) {
-        sh->memory = (char *)allocate_untyped(sh->numStrings * sizeof(char *));
-        sh->strings = (char **)sh->memory;
-        for (int j = 0; j < sh->numStrings; j++)
-            sh->strings[j] = defaultStrings[j];
+    payload->memory = nullptr;
+    payload->strings = nullptr;
+    payload->numStrings = (int)defaultStrings.size();
+    if (payload->numStrings > 0) {
+        payload->memory = (char *)allocate_untyped(payload->numStrings * sizeof(char *));
+        payload->strings = (char **)payload->memory;
+        for (int j = 0; j < payload->numStrings; j++)
+            payload->strings[j] = defaultStrings[j];
     }
-    sh->codeEntryPoint = 0;
-    sh->initEntryPoint = 0;
     sh->usedParameters = info.usedParameters;
     sh->flags = 0;
     sh->data = nullptr;
 
-    sh->analyse(); // populates flags / CLightShaderData for light shaders
+    sh->analyse(payload->numGlobals); // populates flags / CLightShaderData for light shaders
 
     // Eagerly compile the JIT so that jitInitEntry is available when init() is
     // called at shader-bind time (before the first prepare() is ever called).
@@ -299,14 +302,14 @@ CShader *parseSloShader(const char *shaderName, const char *sloPath) {
         const char *base = sep ? sep + 1 : filename;
         const char *ext = strrchr(base, '.');
         std::string logicalName = ext ? std::string(base, ext) : std::string(base);
-        sh->jitEntry = CLLVMJitEngine::getInstance().compileShader(sloPath, logicalName);
-        sh->jitInitEntry = CLLVMJitEngine::getInstance().lookupInitEntry(logicalName);
+        payload->jitEntry = CLLVMJitEngine::getInstance().compileShader(sloPath, logicalName);
+        payload->jitInitEntry = CLLVMJitEngine::getInstance().lookupInitEntry(logicalName);
 
         // The DSO operands the module calls (spec 038), bound on every load: the operands belong to this
         // renderer session, while the compiled module outlives it. A module without a DSO call binds nothing.
         // A missing operand refuses the .slo, so getShader() falls back to the .rslo, where the interpreter
         // reports the same missing operand (decision Q2).
-        if (sh->jitEntry != nullptr) {
+        if (payload->jitEntry != nullptr) {
             std::string failedName, failedPrototype;
             const int failed = CLLVMJitEngine::getInstance().bindShadeops(
                 logicalName,

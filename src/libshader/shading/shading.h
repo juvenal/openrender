@@ -442,8 +442,11 @@ class CShadingContext final {
         // 0-D state at the current ray depth with the spawning surface as the shaded object, and takes Ci and Oi (3 floats per
         // point) in and out. Any n >= 0: the points are shaded in chunks of at most maxGridSize().
         void shadeVolumeSegments(CShaderInstance *volume, const CSegmentSpawn &spawn, int n, CRay *const *rays, const float *segStart, const float *segEnd, float *Ci, float *Oi);
-        // Execute a compiled shader (public for RSLShading::shade() in libshader)
-        void execute(CProgrammableShaderInstance *, float **);
+        // Execute a shader instance (public for RSLShading::shade() in libshader): the dispatcher. The instance's description names the
+        // backend that runs it (shaderBackend.h); every caller passes the instance it has, an RSL instance converting implicitly.
+        void execute(CShaderInstance *, float **);
+        // The interpreter's loop: runs the bytecode of an .rslo instance (the interpreter backend's execute). No JIT code lives here.
+        void interpret(CProgrammableShaderInstance *, float **);
 
         // ---- Tracing (spec 029): the context traces nothing itself. The hider that owns it is its tracer (an ITracer, tracer.h) and
         // installs itself here; the trace calls of the shading builtins reach it through libshader::traceRay/traceBundle.

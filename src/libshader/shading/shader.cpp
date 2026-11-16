@@ -36,6 +36,8 @@
 #include "common/memory.h"
 #include "serviceLookup.h"
 #include "shader.h"
+#include "shaderBackend.h"
+#include "shaderPayload.h"
 #include "shading.h"
 #include "common/stats.h"
 
@@ -49,18 +51,12 @@ CShader::CShader(const char *name) : CFileResource(name) {
     atomicIncrement(stats.numShaders);
 
     name = NULL;
-    memory = NULL;
-    codeArea = NULL;
-    constantEntries = NULL;
-    varyingSizes = NULL;
-    strings = NULL;
     parameters = NULL;
+    usedParameters = 0;
     flags = 0;
     data = NULL;
-#ifdef OPENRENDER_HAVE_LLVM
-    jitEntry = nullptr;
-    jitInitEntry = nullptr;
-#endif
+    backend = nullptr;
+    payload = nullptr;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -70,7 +66,6 @@ CShader::CShader(const char *name) : CFileResource(name) {
 // Return Value			:	-
 // Comments				:
 CShader::~CShader() {
-    int i;
     CVariable *cParameter;
 
     atomicDecrement(stats.numShaders);
@@ -92,18 +87,12 @@ CShader::~CShader() {
         delete cParameter;
     }
 
-    // Delete the strings allocated for this shader
-    for (i = 0; i < numStrings; i++) {
-        free(strings[i]);
-    }
-
     // Delete additional data
     if (data != NULL)
         delete data;
 
-    // Ditch the memory baby
-    if (memory != NULL)
-        free_untyped(memory);
+    // Ditch the payload: the backend's own tables, and for an RSL shader the strings and the memory they live in
+    delete payload;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -112,7 +101,7 @@ CShader::~CShader() {
 // Description			:	work out if there are special parameters
 // Return Value			:	-
 // Comments				:
-void CShader::analyse() {
+void CShader::analyse(int numGlobals) {
     CVariable *cVariable;
     int varIndex = numGlobals - 1;
 
@@ -242,13 +231,6 @@ CProgrammableShaderInstance::CProgrammableShaderInstance(CShader *p, CAttributes
     parent = p;
     flags = parent->flags;
     data = parent->data;
-#ifdef OPENRENDER_HAVE_LLVM
-    // Inherit pre-compiled JIT entry points from the parent CShader.
-    // These are set eagerly in parseSloShader so that jitInitEntry is
-    // available when init() is called (before the first prepare()).
-    jitEntry = parent->jitEntry;
-    jitInitEntry = parent->jitInitEntry;
-#endif
 
     // Clone the parent's parameter list
     // BEWARE that this reverses the order (which matters when counting the globalIndex)
@@ -651,8 +633,9 @@ float **CProgrammableShaderInstance::prepare(CMemPage *&namedMemory, float **var
     int i;
 
     // Get const pointers for fast access
-    const int numVariables = parent->numVariables;
-    const int *varyingSizes = parent->varyingSizes;
+    const CRslPayload *frame = rslPayloadOf(*parent);
+    const int numVariables = frame->numVariables;
+    const int *varyingSizes = frame->varyingSizes;
 
     // Compute the total memory we will need for the shader parameters
     for (totalVaryingSize = 0, i = 0; i < numVariables; i++) {
@@ -750,8 +733,8 @@ float **CProgrammableShaderInstance::prepare(CMemPage *&namedMemory, float **var
         }
     }
 
-    // jitInitEntry is called once at shader-bind time from CRendererContext::init()
-    // in init.cpp, where context->getXform() correctly reflects the shader's
+    // jitInitEntry is called once at shader-bind time by the JIT backend's init (sloInit.cpp),
+    // where context->getXform() correctly reflects the shader's
     // bind-time transform (e.g. light position in "shader" space).  The results
     // are written directly into each parameter's defaultValue and copied into
     // locals by the loop above, so nothing extra is needed here.

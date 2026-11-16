@@ -44,6 +44,7 @@
 #include "dsoHandle.h" // CDSO
 #include "rslo_code.h"
 #include "shader.h"
+#include "shaderPayload.h"
 #include "shading.h"
 #include "specularTerm.h"
 
@@ -95,14 +96,15 @@ static void initDraw(CProgrammableShaderInstance *instance, uint32_t drawNumber,
 // Comments				:	Run by libshader::initialiseInstance() inside arenaBegin/arenaEnd(globalArena)
 void libshader::initialiseRsloInstance(CProgrammableShaderInstance &instance) {
     CProgrammableShaderInstance *currentShaderInstance = &instance;
+    CRsloPayload *payload = rsloPayloadOf(*instance.parent); // The interpreter's bytecode and frame layout
     uint32_t initDrawCounter = 0; // The number of random() draws this init run has made
     // At this point, the shader sends us the arrays for parameters/constants/variables/uniforms for the shader
 
 #define scripterror(mes)                                    \
     {                                                       \
         error(CODE_SCRIPT, "\"%s\", (nullified)\n", mes);   \
-        currentShaderInstance->parent->codeEntryPoint = -1; \
-        currentShaderInstance->parent->initEntryPoint = -1; \
+        payload->codeEntryPoint = -1;                       \
+        payload->initEntryPoint = -1;                       \
         goto execEnd;                                       \
     }
 //	Allocate temporary memory for the string and save it
@@ -163,7 +165,7 @@ void libshader::initialiseRsloInstance(CProgrammableShaderInstance &instance) {
 //	Control transfer
 #define jmp(n)                              \
     {                                       \
-        code = currentShader->codeArea + n; \
+        code = payload->codeArea + n;       \
         goto execStart;                     \
     }
 
@@ -201,16 +203,16 @@ void libshader::initialiseRsloInstance(CProgrammableShaderInstance &instance) {
     int i;
     CVariable *cParameter;
 
-    code = currentShader->codeArea + currentShader->initEntryPoint;
+    code = payload->codeArea + payload->initEntryPoint;
 
     numVertices = 1;
     tagStart = &tmpTags;
     tmpTags = 0;
 
     // Setup local variables
-    stuff[SL_VARYING_OPERAND] = (void **)ralloc(currentShader->numVariables * sizeof(void *), threadMemory); // Shader varying variables
-    for (i = 0; i < currentShader->numVariables; i++) {                                                      // Allocate memory for every varying variable
-        int size = currentShader->varyingSizes[i];
+    stuff[SL_VARYING_OPERAND] = (void **)ralloc(payload->numVariables * sizeof(void *), threadMemory); // Shader varying variables
+    for (i = 0; i < payload->numVariables; i++) {                                                      // Allocate memory for every varying variable
+        int size = payload->varyingSizes[i];
 
         if (size != 0) {
             if (size < 0)
@@ -238,7 +240,7 @@ void libshader::initialiseRsloInstance(CProgrammableShaderInstance &instance) {
     currentLight = NULL;
 
     // Set the access arrays
-    stuff[SL_IMMEDIATE_OPERAND] = currentShader->constantEntries; // Immediate operands
+    stuff[SL_IMMEDIATE_OPERAND] = payload->constantEntries; // Immediate operands
     stuff[SL_GLOBAL_OPERAND] = (void **)varying;                  // Varying globals
 
     numActive = numVertices;

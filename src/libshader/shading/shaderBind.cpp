@@ -25,6 +25,7 @@
 #include "serviceLookup.h"
 #include "serviceTypes.h"
 #include "shader.h"
+#include "shaderBackend.h"
 #include "shading.h" // CShadingContext::defaultServices(), shaderHandle()
 
 namespace libshader {
@@ -61,15 +62,7 @@ namespace libshader {
     }
 
     void initialiseInstance(CProgrammableShaderInstance &instance) {
-#ifdef OPENRENDER_HAVE_LLVM
-        // A shader loaded by parseSloShader carries no bytecode: its init, if it has one, is the JIT's
-        if (instance.parent->codeArea == nullptr) {
-            if (instance.jitInitEntry != nullptr)
-                initialiseSloInstance(instance);
-            return;
-        }
-#endif
-        initialiseRsloInstance(instance);
+        instance.parent->backend->initialise(instance);
     }
 
 } // namespace libshader

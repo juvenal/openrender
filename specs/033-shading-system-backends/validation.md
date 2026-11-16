@@ -152,6 +152,24 @@ CP-v does not apply before Phase 3. The macOS CP-b run was 194 s for the contrac
 The 20 references of the starting tree (19 `CRenderer::findCoordinateSystem` and 1 `CRenderer::retrieveVariable`, `init.cpp`) are now 0 in the core and in Shading: the init asks the services.
 Replays, baselines, the allowlist and `src/` outside the files of the approved list are unchanged.
 
+### Phase 4 (T075 to T077; the split, the backends and the dispatch)
+
+| Check | macOS | Linux (GCC 13, `-Werror`) |
+|---|---|---|
+| CP-a build | `build` and `build-nojit`: `rc=0`; **every approved test compiled unchanged** (the full build builds them all); `git diff --stat HEAD -- tests` **empty** | `rc=0` |
+| Characterisations | `BindSpaces_Characterise`, `ShaderFormat_Precedence` (also in `build-nojit`), `MessageRequests`, `Sloinfo_Output137`, `ShadingSystem_BindUnknownSpace` identical / green | in the suite, identical |
+| CP-b suite | **1367 of 1368 passed** on the first run; the one failure is `GiKeys_PhotonsThreads` (see below: an intermittent of the starting tree), which passes when re-run alone (2 of 3 re-runs) | 1369 tests, 1367 passed: the baseline's two failures (#45, #163) |
+| CP-d images | 0 differing, 0 missing (the `-slo` and `-rslo` pairs included); `MaxBlockAvgDiff` rows identical (empty diff) | 0 differing, 0 missing; rows identical |
+| CP-c architecture | 36/36; `archcheck` PASS, `CONSUMER` 71, TOTAL 491/71, Shading 0/0; allowlist diff empty | 36/36; same |
+| CP-m contract tests | 241/241 (the spec 026 trace replay, the spec 028 motion replay, `shading_parity` included) | 241/241 |
+| CP-v | no `static_assert` line of the implementers differs since `278b0394`; version `{2, 4, 0}` | same tree |
+| `Visual_*-slo` timing ratio tests | all pass, `MAX_RATIO` unchanged | all pass |
+
+**Intermittent `GiKeys_PhotonsThreads` (finding F-6).** The test (label `gi_split_threads`, `test_gi_keys photons-dump 1` then `photons-dump 4`) failed once in the macOS suite with `FAIL: a child render failed` after 0.04 s. Re-run alone: pass, pass, fail. A loop of 60 runs on macOS (this tree): 2 failures. The **same loop of 100 on Linux, run on the Phase 3 binaries (before any Phase 4 change)**: 3 failures with the same message. It is therefore an intermittent of the starting tree's four-thread photon dump, not a result of the split. It passed in all four baseline runs (two per platform) by luck of the odds (about 3% a run). It belongs with the known photon race (#163's family). For filing; nothing was changed for it.
+
+**The split.** `CShader` keeps `name`, `type`, `parameters`, `usedParameters`, `flags`, `data` and gains `backend` and an owned `payload`; the tables, the strings, the frame layout and the JIT entries moved into `CRsloPayload` / `CSloPayload` (`shaderPayload.h`); `shader.h` no longer includes `llvmJit.h`.
+**The dispatch invariant**, checked by grep of every assignment in `src/`: `jitEntry` and `jitInitEntry` are assigned only in `sloLoader.cpp` (`parseSloShader`); nothing else writes them, so a non-null `jitEntry` is exactly "loaded by `parseSloShader` and compiled", and a `CSloPayload` with a null `jitEntry` is "loaded by `parseSloShader`, JIT compile failed", which the JIT backend answers with the unchanged `CODE_SYSTEM` "has no bytecode and no JIT entry" warning.
+
 ## 2. Red evidence
 
 Phase 1 has none (the characterisations pass on the starting tree by construction).
