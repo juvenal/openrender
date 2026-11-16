@@ -111,6 +111,42 @@ option(OPENRENDER_LINK_PACKAGE_TEST "Register Link_PackageStaticConsumer: builds
 # moves its definition out of the block. Script tests are registered DISABLED while the option is OFF.
 option(OPENRENDER_030_RED_TESTS "Spec 030: configure the new registry tests that are red until their phase (build failures are their red evidence)" OFF)
 
+# Spec 033 (shading system backends), temporary (DEP-2): the red-first convention of spec 030's block above. Each new compiled
+# test lives in its own executable inside `if(OPENRENDER_033_RED_TESTS)`, so one that cannot compile yet never breaks the
+# build; the option is ON only in the red-evidence configure of Phase 2 (and by hand). The Test gate of the phase that makes a
+# test compile moves its definition out of the block. The tests are registered DISABLED while the option is OFF (or33_red_test
+# below), so "Not Run" is what the everyday run shows. Removed in Phase 9.
+option(OPENRENDER_033_RED_TESTS "Spec 033, temporary: build the new tests that do not compile or pass yet; ON only for red evidence; removed in Phase 9" OFF)
+
+# or033_red_test(<name> COMMAND <command...> [LABELS <labels>] [TIMEOUT <seconds>] [ENVIRONMENT <VAR=value>...] [WILL_FAIL]
+#                [WORKING_DIRECTORY <dir>])
+#   With the option ON a normal test; with it OFF a DISABLED placeholder with the same name and labels (the command may name a
+#   target that does not exist then, so it is never used).
+function(or033_red_test NAME)
+    cmake_parse_arguments(A "WILL_FAIL" "LABELS;TIMEOUT;WORKING_DIRECTORY" "COMMAND;ENVIRONMENT" ${ARGN})
+    if(NOT A_TIMEOUT)
+        set(A_TIMEOUT 120)
+    endif()
+    if(OPENRENDER_033_RED_TESTS)
+        if(A_WORKING_DIRECTORY)
+            file(MAKE_DIRECTORY ${A_WORKING_DIRECTORY})
+            add_test(NAME ${NAME} COMMAND ${A_COMMAND} WORKING_DIRECTORY ${A_WORKING_DIRECTORY})
+        else()
+            add_test(NAME ${NAME} COMMAND ${A_COMMAND})
+        endif()
+        set_tests_properties(${NAME} PROPERTIES TIMEOUT ${A_TIMEOUT} LABELS "${A_LABELS}")
+        if(A_ENVIRONMENT)
+            set_tests_properties(${NAME} PROPERTIES ENVIRONMENT "${A_ENVIRONMENT}")
+        endif()
+        if(A_WILL_FAIL)
+            set_tests_properties(${NAME} PROPERTIES WILL_FAIL TRUE)
+        endif()
+    else()
+        add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} -E true)
+        set_tests_properties(${NAME} PROPERTIES DISABLED TRUE LABELS "${A_LABELS}")
+    endif()
+endfunction()
+
 # After unit/state: shading_contract links its state_only_sources library
 add_subdirectory(shading_contract)
 add_subdirectory(shaderformat)          # spec 033: ShaderFormat_Precedence, the characterisation of the shader format precedence

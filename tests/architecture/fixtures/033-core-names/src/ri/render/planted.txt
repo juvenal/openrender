@@ -1,0 +1,2 @@
+// spec 033 fixture (Shading_CoreNoBackendNames mutant check): one planted backend name
+CShader *planted = parseShader("x", "y");

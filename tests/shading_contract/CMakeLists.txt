@@ -510,3 +510,40 @@ if(OPENRENDER_SHADING_CONTRACT_TESTS AND OPENRENDER_HAVE_LLVM)
     add_recorded_test(ShadingContract_MessageRequests test_shading_contract_message_requests message_requests.txt
                       rslo:matrices,rslo:attributes,rslo:messages,slo:matrices,slo:attributes,slo:messages)
 endif()
+
+# ---------------------------------------------------------------------------
+# Spec 033, Phase 2: the two new contract tests, red first (DEP-2), each in its own executable inside the option's block, registered
+# by or033_red_test (DISABLED while OPENRENDER_033_RED_TESTS is OFF). The phase that makes one compile moves its definition out.
+#
+#   ShadingContract_MessageRequestsBoth      fails to build until the services 2.4.0 members exist (Phase 3: MatrixRequest::phase;
+#                                            Phase 7: MessageRequest::destBytes, getShaderName)
+#   ShadingContract_ShadernameNoServices     red by assertion (today shadername(type) reads the record directly)
+# ---------------------------------------------------------------------------
+if(OPENRENDER_033_RED_TESTS AND OPENRENDER_SHADING_CONTRACT_TESTS AND OPENRENDER_HAVE_LLVM)
+    add_executable(test_shading_contract_message_requests_both message_requests_both_main.cpp case_message_requests_both.cpp)
+    target_compile_features(test_shading_contract_message_requests_both PRIVATE cxx_std_20)
+    target_compile_definitions(test_shading_contract_message_requests_both PRIVATE ${SHADING_CONTRACT_PROGRAM_DEFS})
+    target_include_directories(test_shading_contract_message_requests_both PRIVATE ${SHADING_CONTRACT_INCLUDES})
+    target_link_libraries(test_shading_contract_message_requests_both PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+    add_dependencies(test_shading_contract_message_requests_both shading_contract_replay_shaders shading_contract_033_shaders)
+
+    add_executable(test_shading_contract_shadername_no_services shadername_no_services_main.cpp case_shadername_no_services.cpp)
+    target_compile_features(test_shading_contract_shadername_no_services PRIVATE cxx_std_20)
+    target_compile_definitions(test_shading_contract_shadername_no_services PRIVATE ${SHADING_CONTRACT_PROGRAM_DEFS})
+    target_include_directories(test_shading_contract_shadername_no_services PRIVATE ${SHADING_CONTRACT_INCLUDES} ${CMAKE_SOURCE_DIR}/src/display)
+    target_link_libraries(test_shading_contract_shadername_no_services PRIVATE openrender_common_flags libshader_shading openrendercommon state_only_sources)
+    add_dependencies(test_shading_contract_shadername_no_services shading_contract_replay_shaders shading_contract_033_shaders)
+endif()
+if(OPENRENDER_SHADING_CONTRACT_TESTS AND OPENRENDER_HAVE_LLVM)
+    or033_red_test(ShadingContract_MessageRequestsBoth LABELS "shading_contract" TIMEOUT 300
+        COMMAND ${CMAKE_COMMAND} -DEXE=$<TARGET_FILE:test_shading_contract_message_requests_both>
+                -DMODES=rslo:matrices,rslo:attributes,rslo:messages,slo:matrices,slo:attributes,slo:messages
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/check_all_modes.cmake
+        ENVIRONMENT ${SHADING_CONTRACT_ENV} "SHADING_CONTRACT_REFERENCE=${CMAKE_CURRENT_SOURCE_DIR}/reference"
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cwd/ShadingContract_MessageRequestsBoth)
+    or033_red_test(ShadingContract_ShadernameNoServices LABELS "shading_contract" TIMEOUT 300
+        COMMAND ${CMAKE_COMMAND} -DEXE=$<TARGET_FILE:test_shading_contract_shadername_no_services> -DMODES=Interp,Jit
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/check_all_modes.cmake
+        ENVIRONMENT ${SHADING_CONTRACT_ENV}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cwd/ShadingContract_ShadernameNoServices)
+endif()

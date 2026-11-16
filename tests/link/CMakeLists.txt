@@ -102,3 +102,23 @@ if(OPENRENDER_LINK_PACKAGE_TEST)
             -P ${CMAKE_CURRENT_SOURCE_DIR}/run_package_test.cmake)
     set_tests_properties(Link_PackageStaticConsumer PROPERTIES TIMEOUT 7200 LABELS "link-package")
 endif()
+
+# --- Spec 033 (Phase 2; DEP-2): Link_RenameAliases, red first, DISABLED while OPENRENDER_033_RED_TESTS is OFF ---------------------
+# Phase 8 (part A) creates libRSLInfo (and its archive), Phase 8 (part B) renames libshader_shading to libRSLRuntime and keeps the old
+# names as aliases and compatibility symlinks; the phase that does the last of it enables this test.
+# An absent target is passed as an empty value (a generator expression naming it would stop the configure): the script then fails
+# with "no such target", which is this test's red reason until the renames exist.
+foreach(_pair "RUNTIME|libRSLRuntime" "RUNTIME_ALIAS|libshader_shading" "INFO|libRSLInfo" "INFO_ALIAS|libshader_runtime"
+        "INFO_STATIC|libRSLInfo_static" "INFO_STATIC_ALIAS|libshader_runtime_static" "RSLO_ALIAS|rslo" "RSLO_STATIC_ALIAS|rslo_static"
+        "COMPILER|libshader_compiler")
+    string(REPLACE "|" ";" _parts "${_pair}")
+    list(GET _parts 0 _var)
+    list(GET _parts 1 _target)
+    if(TARGET ${_target})
+        list(APPEND _033_rename_args "-D${_var}=$<TARGET_FILE:${_target}>")
+    else()
+        list(APPEND _033_rename_args "-D${_var}=")
+    endif()
+endforeach()
+or033_red_test(Link_RenameAliases LABELS "link" TIMEOUT 60
+    COMMAND ${CMAKE_COMMAND} ${_033_rename_args} -P ${CMAKE_CURRENT_SOURCE_DIR}/check_rename_aliases.cmake)

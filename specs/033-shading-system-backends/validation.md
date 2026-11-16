@@ -123,13 +123,55 @@ Phase 1: the baselines are the checkpoint (nothing in `src/` changed). `git diff
 registrations T001 announced: `tests/CMakeLists.txt` (+2 lines), `tests/shaders/CMakeLists.txt` (+27), `tests/shading_contract/CMakeLists.txt` (+69).
 `ctest -L architecture` on the tree with the new tests: macOS 36/36 passed (`033-p1-arch2.log`), Linux 36/36 passed. The allowlist and `metrics-baseline.txt` are untouched.
 
+### Phase 2 (T045; the option `OPENRENDER_033_RED_TESTS` OFF)
+
+| Check | macOS | Linux (GCC 13, `-Werror`) |
+|---|---|---|
+| CP-a build | `rc=0` | `rc=0` |
+| CP-b suite (`-LE determinism-sweep`) | **1367 tests, 100% passed** (1363 + the four Phase 1 characterisations); the 16 new tests show "Not Run (Disabled)" | **1368 tests, 1366 passed**: the baseline's two failures only (`TextureTile_RenderByteIdentical` #45, `Registry_IntegratorImageIdentity` #163); 701 s |
+| CP-d images | 0 differing, 0 missing (64 fresh images of the new characterisations, information only); `MaxBlockAvgDiff` rows identical to `baseline-diffs-macos.txt` (empty diff) | 0 differing, 0 missing; `baseline-diffs-linux.txt` rows identical |
+| CP-c `ctest -L architecture` | 36/36; `archcheck`: `RESULT PASS violations=0 stale=0 badid=0`, `ALLOWED DB-004 x 3 DB-011 x 144`, `CONSUMER` 71, `METRIC` TOTAL 491/71 and Shading 0/0 (unchanged); `git diff --stat -- tests/architecture/allowlist.txt` empty | 36/36; the same `archcheck` figures |
+| CP-m contract tests (`^shading_contract$|^shading_parity$|^libshader$|^shaderformat$|^shading_system$`) | 240/240 | 240/240 |
+| replays and baselines | `git diff --stat HEAD -- tests/shading_contract/replay tests/unit/motion/replay specs/033-shading-system-backends/tools/baseline*` empty; `git diff HEAD -- src` empty | same tree |
+
+CP-v does not apply before Phase 3. The macOS CP-b run was 194 s for the contract set and 3.5 minutes for the suite; logs `build-logs/033-p2-*.log`, `033-l2-*.log`.
+
 ## 2. Red evidence
 
-None in Phase 1 (the characterisations pass on the starting tree by construction).
+Phase 1 has none (the characterisations pass on the starting tree by construction).
+
+### Phase 2 (T042 to T044): the option ON, each new target built on its own through `cpujob`, then the option OFF again
+
+Every failure is the stated reason; the same on macOS (clang, `build`, JIT on) and Linux (GCC 13); the JIT-less case on macOS `build-nojit`.
+The logs are `build-logs/033-p2-red-*.log` (macOS), `033-p2-red2-*`, `033-p2-red-nojit.log`, `033-l2-red-*.log` (Linux).
+
+| Test | Result | Reason (first lines of the failure) |
+|---|---|---|
+| `ShadingSystem_ThirdBackend` | build failure | `test_backend.h:21: fatal error: 'libshader/shading/shaderBackend.h' file not found` |
+| `ShadingSystem_Precedence` | build failure | `test_support.h:29: fatal error: 'libshader/shading/shaderBackend.h' file not found` |
+| `ShadingSystem_Cache` | build failure | the same header |
+| `ShadingSystem_BindOrder` | build failure | `test_bind_order.cpp:17: fatal error: 'libshader/shading/shaderGroup.h' file not found` |
+| `ShadingSystem_GroupOneLayer` | build failure | `test_group_one_layer.cpp:14: fatal error: 'libshader/shading/shaderGroup.h' file not found` |
+| `ShadingSystem_NoJitFallback` (`build-nojit`) | build failure | `test_support.h:29: fatal error: 'libshader/shading/shaderBackend.h' file not found` |
+| `ShadingSystem_BindUnknownSpace` | build failure | `error: no member named 'phase' in 'openrender::shading::MatrixRequest'`; `use of undeclared identifier 'EMatrixPhase'`; `use of undeclared identifier 'libshader'` (`libshader::initialiseInstance`) (GCC: `has no member named 'phase'`, `'EMatrixPhase' has not been declared`, `'libshader' has not been declared`) |
+| `ShaderMetadata_Shipped` | build failure | `fatal error: 'libshader/include/openrender/ShaderMetadata.h' file not found` |
+| `ShadingContract_MessageRequestsBoth` | build failure (the other of the two reds the task allows: it compiles against no stub on the starting tree) | `no type named 'ShaderNameAnswer'`, `no type named 'ShaderNameRequest'`, `no member named 'phase' in 'MatrixRequest'`, `no member named 'EMatrixPhase'`, `no member named 'destBytes' in 'MessageRequest'`, `no member named 'getShaderName' in 'CRendererServices'` |
+| `ShadingContract_ShadernameNoServices` | **assertion** (it builds): the actual output on the starting tree, both backends (`Interp`, `Jit`): `Results: 13 passed, 5 failed`; `Ci.y` is 1 where the test expects 0 (`shadername("surface")` returned the real name `cm_producer_surface` read from the bound record, four points) and the warning count is 0 where it expects 1 (`sink.countText("renderer services do not provide shadername()") == 1`: no warning is given today) | |
+| `Shading_CoreNoBackendNames` | red, **35** `VIOLATION` lines | exactly `tools/scan-base.txt`: `init.cpp` 19 + 2 (`OPENRENDER_HAVE_LLVM`), `rendererFiles.cpp` 6 + 2, `rendererContext.cpp` 2, `rendererContext.h` 1, `rendererFileSearch.cpp` 2, `src/ri/CMakeLists.txt` 1 |
+| `Shading_JitMessagesThroughServices` | red, **14** lines | `rslOps.cpp:924 getParameter`, `:938 getParameterShape`, and 12 `currentAttributes` lines at `shading.cpp:2909` to `2932` (the `shaderName` bodies) |
+| `Sloinfo_MetadataApiOnly` | red, **14** lines | 11 parser names (`CLLVMJitEngine`, `TRSLObjectShader`, `rsloGet`, `rsloDelete`, `SLOShaderInfo`) and the 3 includes (`rslo.h`, `libshader/shading/llvmJit.h`, `libshader/shading/sloMetadata.h`) |
+| `Link_RenameAliases` | red | `Link_RenameAliases: no such target (the renames are not done): RUNTIME;RUNTIME_ALIAS;INFO;INFO_ALIAS;...` (an absent target is passed as an empty value: a generator expression naming it would stop the configure) |
+| the three fixture runs (`..._Fixture`, registered `WILL_FAIL`) | the scan fails as it must (the mutant check): `VIOLATION src/ri/render/planted.txt:2: parseShader`, `VIOLATION src/libshader/shading/rslOps.cpp:2: getParameterShape`, `VIOLATION src/sloinfo/sloinfo.cpp:3: #include "libshader/runtime/rslo.h"` | |
+
+Linux counts of the scans: 35 + 14 + 14 = 63 `VIOLATION` lines, the same as macOS. `ShadingContract_ShadernameNoServices` builds under GCC 13 `-Werror`.
+
+**Syntax check against stubs.** Because a test that cannot compile now is only ever shown failing at its first missing header, the test code behind that first error was also compiled, with `-fsyntax-only`, the project's `-Wall -Wextra -Wpedantic -Werror` flags and a stub copy of the
+headers (the contracts' API written out in a scratch directory outside the tree: `ShadingSystem`, `IShaderBackend`, `IShaderFileResolver`, `IShaderBindHost`, `ShaderGroupBuilder`, `groupPrepare`/`groupExecute`, `CShaderPayload`, `CShader::backend`/`payload`, `CShaderInstance::shaderDescription()`,
+`EMatrixPhase`, `MatrixRequest::phase`, `MessageRequest::destBytes`, `ShaderNameRequest`/`Answer`, `getShaderName`, `libshader::initialiseInstance`, `ShaderMetadata.h`). All 12 files pass (`build-logs/033-p2-syntax.log`). It proves the tests are well formed against the contracts, not that the later implementation spells the API the same way: a difference is a TEST-APPROVAL item for that phase.
 
 ## 3. Linux records
 
-See section 0.3 and 0.4. Every push was verified: after the final push "4376 files, 0 differences"; after the pulls "8 files, 0 differences". The remote tree has no `.git`.
+See section 0.3 and 0.4, and the Phase 2 table in section 1. Every push was verified: after the Phase 2 push "4406 files, 0 differences"; after the Phase 1 pulls "8 files, 0 differences". The remote tree has no `.git`.
 `linux_sync.sh` is `specs/033-shading-system-backends/tools/linux_sync.sh` (copied from 031's; the remote root is hard-coded to `Projects/Development/CLI/openrender-033`; it
 refuses `openrender`, `cellar`, `shrimp`, `openrender-029`, `-030`, `-038`, a malformed `openrender-` and every other root: tested by passing each name, all exit 2; and it aborts, listing
 them, when an untracked non-ignored file exists: tested with a temporary file). One addition to 031's script: `pull` also fetches the Linux-recorded references under
@@ -137,19 +179,19 @@ them, when an untracked non-ignored file exists: tested with a temporary file). 
 
 ## 4. Findings for filing and departures from the plan
 
-**For filing (out of this spec's mandate, nothing was fixed):**
+**Filed by the maintainer after Phase 1 (out of this spec's mandate, nothing was fixed; F-1 is #175, F-2 is #176, F-4 is #177):**
 
-- **F-1**: the `.rslo` loader (`parseShader`, `rslo.y`) and `sloinfo --rslo` reject a **matrix parameter default written in a named space**: `oshader` emits
+- **F-1 (GitHub #175)**: the `.rslo` loader (`parseShader`, `rslo.y`) and `sloinfo --rslo` reject a **matrix parameter default written in a named space**: `oshader` emits
   `uniform matrix m = "current" [ 1 0 0 0 ... ]` and the parser stops with `syntax error` (the shader is then not loaded: `Error in shader ... (5) ("syntax error")`).
   Point, vector and normal defaults in a named space parse. Reproduce: `surface s(matrix m = matrix "current" (1,0,0,0, 0,1,0,0, 0,0,1,0, 4,5,6,1)) { Ci = 0; }`.
   `BindSpaces_Characterise` therefore leaves matrix defaults out; the plan's "a custom system, e.g. `point p = point "current" (1,2,3)`" is covered for point, vector and normal.
-- **F-2**: an intermittent crash (SIGBUS, about 5% of runs on macOS) when the `matrices`, `attributes` and `messages` families of the spec 026 rendered harness
+- **F-2 (GitHub #176)**: an intermittent crash (SIGBUS, about 5% of runs on macOS) when the `matrices`, `attributes` and `messages` families of the spec 026 rendered harness
   (`CRenderedSession`, `CContractForwarder`, producers bound to the object's attributes) run **in one RiBegin session**; it occurred at the unknown-coordinate-system row, after
   the attribute rows, and (before a sink was installed) while printing the warning. The existing `RealAnswers*` cases run each family in a process of its own and do not
   show it (0 of 120 runs). `ShadingContract_MessageRequests` therefore runs each family in its own process (600 process runs, 0 failures; Linux 0 of 100). The cause was
   not found (no debugger); it looks like the heap-corruption family of the known flaky `ShadingParity_AmbientAccumulation`, so it is a candidate for the same issue.
 - **F-3**: starting-tree Linux failures that Phase 1 recorded as the baseline's own: `TextureTile_RenderByteIdentical` (#45) and the photon rows of `Registry_IntegratorImageIdentity` (#163).
-- **F-4**: `Shaders_BytesUnchanged` fails in a JIT-less tree (`build-nojit`): the `oshader_help.txt` reference expects the `--jit` line, which a JIT-less `oshader` does not print. It is
+- **F-4 (GitHub #177)**: `Shaders_BytesUnchanged` fails in a JIT-less tree (`build-nojit`): the `oshader_help.txt` reference expects the `--jit` line, which a JIT-less `oshader` does not print. It is
   green with the JIT. A starting-tree property; the JIT-off baseline therefore has this one failure besides the intermittent `Registry_IntegratorImageIdentity`.
 - **F-5** (observation, no action needed): the invalid shader-format attribute value is turned into `"slo"` with a warning, so `Attribute "shade" "shaderformat" ["bogus"]` makes `slo` the
   preference, not the compile-time default. `ShaderFormat_Precedence` pins it.
@@ -163,6 +205,19 @@ them, when an untracked non-ignored file exists: tested with a temporary file). 
   (the first two included the loader's location notes; the third crashed, F-2) were replaced by re-recording before any approval: they were my own new, never-approved files.
 - The timing-script is a new script that follows 031's method, not an edit of its scene list.
 - `build-logs/` was created (gitignored) for the job logs.
+
+**Phase 2 departures (all in the maintainer-approved registrations, listed for the review of the written tests):**
+
+- The registration helper is `or033_red_test()` in `tests/CMakeLists.txt` next to the option: with the option ON a normal test; OFF a DISABLED placeholder of the same name, so the everyday run shows "Not Run (Disabled)" for 16 entries
+  (the 14 tests, counting `ShadingSystem_NoJitFallback` only in a JIT-less tree, and the three fixture runs of the scans).
+- `ShadingSystem_BindUnknownSpace` is one test that runs `rslo` and `slo` in two processes (`check_all_modes.cmake`); it uses only what exists after Phase 3 (`parseShader`/`parseSloShader` through the harness, `libshader::initialiseInstance()`, the
+  services double), not the Phase 4 facade, because Phase 3 enables it. It does not call `libshader::bindCoordinateSystem()` directly: the argument types of that function are not fixed by the contract; the request is observed through the services (`phase == Bind`, name `nosuch`).
+- `ShadingContract_MessageRequestsBoth` runs one backend per process and family (F-2), and "equal across backends" is checked against the OTHER backend's section of `tests/shading_contract/reference/message_requests.txt` (Phase 1 recorded the two sections identical); the shadername row is left out of that comparison and asserted through `getShaderName`.
+  Its body repeats `case_message_requests.cpp` with the output collected in a string, because that file is an approved characterisation and is not edited.
+- `ShadingSystem_Precedence` builds the attribute value `"bogus"` with `CAttributes::setShaderFormat`, as the core does (it becomes `"slo"`), so the table is the recorded one.
+- The scans take `-DSOURCE_DIR=<a tree holding src/...>` so the fixture runs scan `tests/architecture/fixtures/033-*` (the fixture files are `.txt`/`.cpp` fragments that no target compiles); `Sloinfo_MetadataApiOnly` also flags the include `"rslo.h"` (the inspection parser's header, reached through the include path), which is the third of the three `CONSUMER` edges.
+- `Link_RenameAliases` passes an absent target as an empty value instead of a generator expression, so the option ON can configure; the script then reports "no such target". Registered whether or not the option is ON, DISABLED when OFF.
+- The `ShadingSystem_*` tests other than `NoJitFallback` and the tests that need `.slo` are registered in trees with the JIT only; `NoJitFallback` in trees without it.
 
 ## 5. Final summary against SC-001 to SC-011
 
