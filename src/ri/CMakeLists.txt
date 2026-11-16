@@ -227,6 +227,11 @@ target_link_libraries(ribRender_obj PRIVATE openrendercommon ${openrendertiff_li
 # geometryFrame.cpp reports (debug builds) a read with no CGeometryFrame installed; only the renderer installs one,
 # so ribVector_obj, which never does, is compiled without the definition (spec 031).
 target_compile_definitions(ribRender_obj PRIVATE OPENRENDER_GEOMETRY_FRAME_REPORT)
+# spec 048: HAVE_OIIO is defined on ribRender_obj ONLY (the HAVE_OPENEXR pattern), never in config.h and never on
+# ribVector_obj, so libRIBVector stays OIIO-free.
+if(HAVE_OIIO)
+    target_compile_definitions(ribRender_obj PRIVATE HAVE_OIIO)
+endif()
 if(HAVE_OPENEXR)
     target_compile_definitions(ribRender_obj PRIVATE HAVE_OPENEXR)
     target_link_libraries(ribRender_obj PRIVATE ${OPENRENDER_OPENEXR_LIBS})
@@ -257,6 +262,10 @@ target_include_directories(ribRender PUBLIC
 )
 target_link_libraries(ribRender PRIVATE libshader_shading ${openrendertiff_libs} openrendercommon openrendershadeop)
 openrender_reexport_common(ribRender)
+if(HAVE_OIIO)
+    # the shared Image I/O utility library; OIIO itself is private to it
+    target_link_libraries(ribRender PRIVATE openrenderimageio)
+endif()
 if(HAVE_OPENEXR)
     target_link_libraries(ribRender PRIVATE ${OPENRENDER_OPENEXR_LIBS})
 endif()
@@ -285,6 +294,10 @@ set_target_properties(ribRender_static PROPERTIES OUTPUT_NAME RIBRender EXPORT_N
 # binds its infrastructure to libRIBCommon, so a static program that also
 # carried libRIBCommon.a would hold two copies of that state (spec 023, R1).
 target_link_libraries(ribRender_static INTERFACE libshader_shading ${openrendertiff_libs} openrendercommon openrendershadeop)
+if(HAVE_OIIO)
+    # the SHARED libRIBImageIO, never a static copy (gotcha 22): OIIO lives in exactly one image
+    target_link_libraries(ribRender_static INTERFACE openrenderimageio)
+endif()
 if(HAVE_OPENEXR)
     target_link_libraries(ribRender_static INTERFACE ${OPENRENDER_OPENEXR_LIBS})
 endif()

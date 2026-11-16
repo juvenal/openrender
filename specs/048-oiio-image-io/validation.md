@@ -252,3 +252,115 @@ Results (every job through cpujob; the 13 checks were green with no regex change
   `-L architecture` **39/39**, `-L imageio` **1/1**.
 - `git diff -- tests/architecture/allowlist.txt tests/architecture/metrics-baseline.txt`: empty.
 - Disk: not re-measured.
+
+Footer date (maintainer decision after CHECKPOINT 2, 2026-11-16): `**Last Amended**` changed from 2026-11-15 to **2026-11-16**, the
+application date, in `.specify/memory/constitution.md`; the Sync Impact Report carries no date. It rides with Phase 3's commit.
+`ImageIO_AmendmentAgree` re-run after the edit (see §10 for the result).
+
+## 10. Phase 3 tests first (T032 to T037), 2026-11-16
+
+`ImageIO_AmendmentAgree` re-run after the footer date change to 2026-11-16: **passed** (13 of 13).
+
+Files (all new, staged): `tests/unit/imageio/CMakeLists.txt` (+ `add_subdirectory(unit/imageio)` in `tests/CMakeLists.txt` after
+`unit/image_input`), `check_ci_no_oiio.cmake`, `check_vcpkg_manifest.cmake`, `check_absent_build.cmake`,
+`check_no_domain_include.cmake`. Labels `imageio;unit` on every test. `IMAGEIO_FIXTURES_DIR` is set (the directory is created in
+Phase 4). `HAVE_OIIO` is not defined yet (T041), so the tree takes the "absent" branch.
+
+| Test | Registered | State now |
+|---|---|---|
+| `ImageIO_CiHasNoOiio` | always | green by design (no `OPENRENDER_ENABLE_OIIO`, no `openimageio` in `release.yml`; 1 `build-macos-x86_64` job) |
+| `ImageIO_VcpkgManifest` | always | **red for the right reason**: `FAIL: vcpkg.json has no features.oiio.dependencies (member 'features' not found)`; baseline and top-level checks `ok` |
+| `ImageIO_AbsentBuild` | without OIIO | green by design: 353 executables and libraries inspected with `nm -a`, no `libRIBImageIO*`, no `oiio.dsply`, no OpenImageIO symbol |
+| `ImageIO_NoDomainInclude` | with OIIO only | not registered in this tree (no OIIO tree exists before T047); first run in Phase 3's `build-oiio` |
+| `ImageIO_AmendmentAgree` (label `imageio` too) | always | green (Phase 2) |
+
+`ctest -L imageio` on `build/`: 4 tests, 3 passed, 1 failed (`ImageIO_VcpkgManifest`). Configure of `build/` for the new
+subdirectory: guard before and after **PASS** (the shared tree's `manifest-info.json` was rewritten by spec 040's configure, a
+permitted writer; `vcpkg/status` identical).
+
+Because `ImageIO_NoDomainInclude` and the failure paths of the other scripts cannot be seen in this tree, each script was run
+once through cpujob (`cmake -P`) against scratch inputs in `/tmp/or048-demo`:
+- `check_no_domain_include.cmake` on a good directory (3 files): rc 0; on a bad one (`orImageIO.h` including
+  `<OpenImageIO/imageio.h>`, `reader.cpp` including `texture/texture.h` and `ri/ri.h`): rc 1 with the three `FAIL` lines; on the
+  missing `src/imageio`: rc 1 (`src/imageio does not exist`), which is its red state until the Phase 3 library target exists.
+- `check_absent_build.cmake` on a tree holding a `libRIBImageIO.dylib`: rc 1 (`FAIL: found .../libRIBImageIO.dylib`).
+- `check_ci_no_oiio.cmake` on a workflow that passes `-DOPENRENDER_ENABLE_OIIO=ON`: rc 1 (`the workflow mentions
+  'openrender_enable_oiio'`).
+
+Stopped at T038 (TEST-APPROVAL (Phase 3)). No implementation (T039 onward) was started: `vcpkg.json`, the root
+`CMakeLists.txt` and `src/` are untouched.
+
+## 11. Phase 3 implementation (T039 to T048), 2026-11-16
+
+The four approved tests were not edited (one cosmetic polish of a `FAIL` message in `check_no_domain_include.cmake` was made
+before approval, shown in §10's demo).
+
+**T039 `vcpkg.json`** (manifest edit only; no vcpkg run for it): a `features.oiio` block after `dependencies`:
+`"oiio": { "description": "OpenImageIO 3 image backend (spec 048): pixel I/O only, no colour conversion", "dependencies":
+[ { "name": "openimageio", "default-features": false } ] }`. `dependencies` and `builtin-baseline` untouched.
+
+**T040 root `CMakeLists.txt`, before `project()`**: `option(OPENRENDER_ENABLE_OIIO ... OFF)`. The vcpkg install directory is
+recorded as "given" (`OPENRENDER_INSTALL_DIR_GIVEN`, from `DEFINED CACHE{VCPKG_INSTALLED_DIR}`) before the existing block copies
+the environment's value into the cache. With the option ON and a vcpkg toolchain (`CMAKE_TOOLCHAIN_FILE` ending in
+`scripts/buildsystems/vcpkg.cmake`, so it also holds on a reconfigure, when the existing `VCPKG_ROOT` block is skipped and the
+feature would otherwise silently vanish and vcpkg uninstall OIIO): `list(APPEND VCPKG_MANIFEST_FEATURES oiio)`; when no `-D` was
+given the directory is derived (`$ENV{VCPKG_INSTALLED_DIR}-oiio`, else `<source>/vcpkg_installed-oiio`, `FORCE`); then
+`message(FATAL_ERROR "OPENRENDER_ENABLE_OIIO=ON must not use the shared vcpkg install tree ...")` if the resolved directory
+equals the environment's or the manifest-relative default `<source>/vcpkg_installed` (both made absolute first).
+
+**T041 after `project()`**: `set(HAVE_OIIO OFF)`; with the option ON `find_package(OpenImageIO CONFIG QUIET)` version-less, then
+`OpenImageIO_VERSION VERSION_GREATER_EQUAL 3.0` by hand; the contract's three messages (status "Found ... enabled", warning
+"older than 3.0", warning "not found"); `OPENRENDER_CONFIG_HAVE_OIIO` and `openRender_HAVE_OIIO` in the package config.
+
+**T042 `src/imageio/`** (new): `CMakeLists.txt` (target `openrenderimageio`, `RIBImageIO`, shared only, OIIO PRIVATE,
+`openrendercommon` PUBLIC; macOS `-exported_symbols_list exports.txt` and `-dead_strip`; Linux hidden visibility and
+`--exclude-libs,ALL`; installed in the `openRenderTargets` export; the directory include property filtered down to `src/`),
+`orImageIO.h` (`ORIMAGEIO_API`, the three enums, `oiioVersion()`; no OIIO type, no include), `oiioInit.cpp` (`call_once`:
+`threads` 1, `exr_threads` 0, empty `plugin_searchpath`; `oiioVersion()` "3.1.14"), `exports.txt`. `src/CMakeLists.txt` adds
+the directory under `if(HAVE_OIIO)`. **T043**: `HAVE_OIIO` defined on `ribRender_obj` only; `ribRender` links
+`openrenderimageio` PRIVATE, `ribRender_static` INTERFACE (the shared one); `ribVector` untouched.
+
+**T044 guard against a throwaway look-alike** (`/tmp/or048-fake-shared`, `-DVCPKG_MANIFEST_INSTALL=OFF`, scratch build dirs
+`/tmp/or048-guard-{a,b,c}`, logs `/tmp/or048-guard-{a,b,c}.log`, all left in place; shared-tree guard before and after PASS):
+- (a) `-DOPENRENDER_ENABLE_OIIO=ON -DVCPKG_INSTALLED_DIR=/tmp/or048-fake-shared`, env the same: exit 1,
+  `CMake Error at CMakeLists.txt:123 (message): OPENRENDER_ENABLE_OIIO=ON must not use the shared vcpkg install tree`.
+- (b) option ON, no `-D`: exit 0, no FATAL text, cache `VCPKG_INSTALLED_DIR=/tmp/or048-fake-shared-oiio`. (It found Homebrew's
+  OpenImageIO 3.2.2.0, since the derived directory was empty and MANIFEST_INSTALL was off; the point of the run is the
+  directory.)
+- (c) option OFF: exit 0, cache `VCPKG_INSTALLED_DIR=/tmp/or048-fake-shared`, no FATAL text.
+
+**T045 the OFF tree**: reconfigure with the private base tree (guard before and after PASS): no `Building` line, no OIIO
+message, `HAVE_OIIO` OFF. Build exit 0. `ctest -L 'imageio|architecture'` **42/42**: `ImageIO_VcpkgManifest` now green,
+`ImageIO_AbsentBuild` and `ImageIO_CiHasNoOiio` green.
+
+**T046 first OIIO-on configure** (`-DOPENRENDER_ENABLE_OIIO=ON -DVCPKG_INSTALLED_DIR=~/.cache/vcpkg-installed/openrender-oiio`,
+one cpujob job `or048-p3-cfg-oiio`, `VCPKG_MAX_CONCURRENCY=4`, log `build-oiio-cfg.log`): exit 0; `The following packages are
+already installed:` and **no `Building` line**; `-- Found OpenImageIO 3.1.14.0 -- OIIO image backend enabled`; cache
+`OPENRENDER_ENABLE_OIIO=ON`, `VCPKG_INSTALLED_DIR=/Users/juvenal/.cache/vcpkg-installed/openrender-oiio`. Shared-tree guard before
+and after: **PASS, status and manifest-info.json identical** (the shared tree did not move at all during this configure).
+
+**T047 `build-oiio`**: build exit 0 (no compiler warning; the 24 `warning` lines are the pre-existing linker ones).
+`libRIBImageIO.1.0.0.dylib` 13,861,704 bytes (OIIO and OCIO static inside); `nm -gU` exports **exactly one symbol,
+`__ZN9orimageio11oiioVersionEv`**; it links `libRIBCommon` and system frameworks only.
+`ctest -L 'imageio|architecture'` on `build-oiio`: **42/42 passed**, including `ImageIO_NoDomainInclude`,
+`ImageIO_VcpkgManifest`, `ImageIO_CiHasNoOiio`, the architecture tests and both ImageIO fixtures
+(`tests/architecture/allowlist.txt` and `metrics-baseline.txt` unchanged).
+
+**T048 V1 byte identity (macOS)**: `ctest -LE determinism-sweep -j4` on `build/`: **1369 of 1369 passed** (T007's 1363 plus the
+three architecture tests of Phase 2 and the three imageio tests of Phase 3; the same single by-design skip
+`LibShader_Format_rslo_lower_minor`; no failure by name). `tools/capture_baseline.sh` on `build/` and on `build-oiio/`: both sha
+lists **identical to `baseline-048-start`** (the three renders and the four `otexmake` outputs), self-checks 4/4 PASS.
+`git diff --cached --stat -- tests src/libshader/tests/reference`: only new files and the one-line `tests/CMakeLists.txt`
+registration.
+
+**T048 Linux (OIIO off, GCC 13, `-Werror`)**: `tools/sync_linux.sh` (4378 files, verified); a full `cmake --build build -j2` (new
+targets, as learned in Phase 2): exit 0; `ctest -L 'imageio|architecture'`: **42/42 passed** (`ImageIO_CiHasNoOiio`,
+`ImageIO_VcpkgManifest`, `ImageIO_AbsentBuild` 15.63 s, `ImageIO_AmendmentAgree`, the architecture tests and fixtures);
+`ctest -LE determinism-sweep -j2`: **1370 tests, 1368 passed, 2 failed, 1 skipped**, the two failures being exactly the known
+starting-tree ones, by name: `TextureTile_RenderByteIdentical` (GitHub #45) and `Registry_IntegratorImageIdentity`
+(GitHub #163); the skip is the by-design `LibShader_Format_rslo_lower_minor`. No new failure (Phase 1's 1364 plus the six
+Phase 2 and 3 tests). Remote queue wait about 1 hour behind other specs' jobs. (Before the Linux chain a stale
+`build-logs/p3-all.log` of this spec's own tree on the host was removed so the completion marker could not be a leftover.)
+
+**Not done in Phase 3, by design**: Linux with OIIO (M3b, T120), the single-copy test, and every use of the library by Texturing
+or Display (Phases 4 to 7). No allowlist or metrics-baseline line was added.

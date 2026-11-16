@@ -60,6 +60,8 @@ if(@OPENRENDER_CONFIG_HAVE_OPENEXR@)
     find_package(Imath CONFIG QUIET)
     find_package(OpenEXR CONFIG QUIET)
 endif()
+# libRIBImageIO (spec 048) links OpenImageIO privately: a consumer needs no find_dependency for it.
+set(openRender_HAVE_OIIO @OPENRENDER_CONFIG_HAVE_OIIO@)
 
 set(_openRender_static_missing "")
 foreach(_dep IN LISTS _openRender_static_dep_targets)

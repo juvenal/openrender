@@ -46,6 +46,14 @@ endif()
 # so flipping VCPKG_ROOT on/off for an existing build directory silently
 # keeps linking whichever backend it started with. `rm -rf build` and
 # reconfigure when switching.
+# spec 048: whether the vcpkg install directory was chosen explicitly (-DVCPKG_INSTALLED_DIR=..., or kept by an
+# earlier configure of this build directory). It has to be read before the block below copies the environment's
+# value into the cache, which is the shared tree.
+set(OPENRENDER_INSTALL_DIR_GIVEN FALSE)
+if(DEFINED CACHE{VCPKG_INSTALLED_DIR})
+    set(OPENRENDER_INSTALL_DIR_GIVEN TRUE)
+endif()
+
 if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     if(APPLE)
         set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
@@ -75,6 +83,52 @@ if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
             "platform (only macOS is vendored so far) -- ignoring it, falling back to "
             "system find_package().")
     endif()
+endif()
+
+# ########## OpenImageIO image backend (optional, spec 048) -- the option and, in vcpkg mode, its install tree
+#
+# OFF by default (P-Q13): nothing below changes a default build. ON asks for OpenImageIO >= 3.0 (checked after
+# project(), next to the OpenEXR block); when it is not found the configure warns and builds the legacy tree.
+#
+# In vcpkg mode the OIIO packages come from the manifest feature `oiio` (vcpkg.json). vcpkg's manifest mode makes
+# the install tree match the manifest exactly, so an OIIO-on and an OIIO-off configure must never share one tree:
+# each flip would uninstall the other's packages, and with the shared tree (~/.cache/vcpkg-installed/openrender)
+# it would write this branch's manifest into the tree every other worktree uses. The OIIO-on configure therefore
+# derives its own directory ("<shared>-oiio", or vcpkg_installed-oiio next to this file) unless
+# -DVCPKG_INSTALLED_DIR names one, and it refuses the shared tree and the manifest-relative default outright.
+option(OPENRENDER_ENABLE_OIIO "Build the optional OpenImageIO >= 3.0 image backend (spec 048)" OFF)
+if(OPENRENDER_ENABLE_OIIO AND CMAKE_TOOLCHAIN_FILE MATCHES "scripts/buildsystems/vcpkg\\.cmake$")
+    list(APPEND VCPKG_MANIFEST_FEATURES oiio)
+    if(NOT OPENRENDER_INSTALL_DIR_GIVEN)
+        if(DEFINED ENV{VCPKG_INSTALLED_DIR})
+            set(VCPKG_INSTALLED_DIR "$ENV{VCPKG_INSTALLED_DIR}-oiio" CACHE STRING "Vcpkg installed tree" FORCE)
+        else()
+            set(VCPKG_INSTALLED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed-oiio"
+                CACHE STRING "Vcpkg installed tree" FORCE)
+        endif()
+    endif()
+    get_filename_component(_or_oiio_dir "${VCPKG_INSTALLED_DIR}" ABSOLUTE)
+    get_filename_component(_or_default_dir "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed" ABSOLUTE)
+    set(_or_oiio_shared FALSE)
+    if(_or_oiio_dir STREQUAL _or_default_dir)
+        set(_or_oiio_shared TRUE)
+    endif()
+    if(DEFINED ENV{VCPKG_INSTALLED_DIR} AND NOT "$ENV{VCPKG_INSTALLED_DIR}" STREQUAL "")
+        get_filename_component(_or_env_dir "$ENV{VCPKG_INSTALLED_DIR}" ABSOLUTE)
+        if(_or_oiio_dir STREQUAL _or_env_dir)
+            set(_or_oiio_shared TRUE)
+        endif()
+    endif()
+    if(_or_oiio_shared)
+        message(FATAL_ERROR "OPENRENDER_ENABLE_OIIO=ON must not use the shared vcpkg install tree "
+            "(${_or_oiio_dir}): manifest mode would uninstall packages the OIIO-off builds need, and write this "
+            "branch's manifest into a tree other worktrees use. Leave -DVCPKG_INSTALLED_DIR unset (the OIIO-on "
+            "configure derives \"<shared>-oiio\") or give it a directory of its own.")
+    endif()
+    unset(_or_oiio_dir)
+    unset(_or_default_dir)
+    unset(_or_env_dir)
+    unset(_or_oiio_shared)
 endif()
 
 # 3.19 is what the LLVM JIT path targets, and what a future OpenShadingLanguage
@@ -427,6 +481,24 @@ else()
     message(WARNING "Found OpenEXR ${OpenEXR_VERSION} but it exports no recognised target -- EXR driver disabled")
 endif()
 
+# ########## OpenImageIO (optional, spec 048)
+#
+# find_package is version-less on purpose: OpenImageIO's version file is SameMajorVersion, so a requested version
+# is an exact major match (the LLVM trap, gotcha 4a), and 3.2.x would be rejected by "3.0". The floor is compared
+# by hand. A configure with the option ON that finds nothing usable warns and builds the legacy tree (US5-4).
+set(HAVE_OIIO OFF)
+if(OPENRENDER_ENABLE_OIIO)
+    find_package(OpenImageIO CONFIG QUIET)
+    if(OpenImageIO_FOUND AND OpenImageIO_VERSION VERSION_GREATER_EQUAL 3.0)
+        set(HAVE_OIIO ON)
+        message(STATUS "Found OpenImageIO ${OpenImageIO_VERSION} -- OIIO image backend enabled")
+    elseif(OpenImageIO_FOUND)
+        message(WARNING "OpenImageIO ${OpenImageIO_VERSION} is older than 3.0 -- building without the OIIO backend")
+    else()
+        message(WARNING "OpenImageIO not found -- building without the OIIO backend (set OpenImageIO_ROOT)")
+    endif()
+endif()
+
 # ###########################################################################
 # ########## LLVM (optional — required only for JIT shader compilation)
 # ###########################################################################
@@ -663,6 +735,11 @@ set(OPENRENDER_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/openRender")
 set(OPENRENDER_CONFIG_STATIC_DEP_TARGETS ${openrendertiff_libs})
 if(UNIX)
     list(APPEND OPENRENDER_CONFIG_STATIC_DEP_TARGETS Threads::Threads)
+endif()
+if(HAVE_OIIO)
+    set(OPENRENDER_CONFIG_HAVE_OIIO TRUE)
+else()
+    set(OPENRENDER_CONFIG_HAVE_OIIO FALSE)
 endif()
 if(HAVE_OPENEXR)
     set(OPENRENDER_CONFIG_HAVE_OPENEXR TRUE)

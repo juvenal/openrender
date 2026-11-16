@@ -15,5 +15,16 @@
         "default-targets"
       ]
     }
-  ]
+  ],
+  "features": {
+    "oiio": {
+      "description": "OpenImageIO 3 image backend (spec 048): pixel I/O only, no colour conversion",
+      "dependencies": [
+        {
+          "name": "openimageio",
+          "default-features": false
+        }
+      ]
+    }
+  }
 }
