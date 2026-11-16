@@ -161,6 +161,22 @@ archcheck_add_fixture(transport-allowed 0 "RESULT +PASS"
 archcheck_add_fixture(transport-cycle 1
     "VIOLATION include src/transport/classic.cpp:1 -> src/hiders/hider.h +\\[Transport -> Hiders\\].*CYCLE +[A-Za-z >-]*(Hiders[A-Za-z >-]*Transport|Transport[A-Za-z >-]*Hiders)[^[]*\\[FAILING\\]")
 
+# --- Spec 048 (OIIO image I/O): the Image I/O utility library (FR-006, FR-007, US5 AS2) ------------------------
+# Added before any file exists under src/imageio/ (constitution v1.5.0). Until archcheck has the class ImageIO it exits
+# 2 on the ImageIO rows of these fixtures' rule tables.
+archcheck_add_fixture(imageio-allowed 0 "RESULT +PASS"
+    FAIL_REGEX "VIOLATION|CYCLE")
+archcheck_add_fixture(imageio-reverse 1
+    "VIOLATION include src/imageio/reader\\.cpp:1 -> src/texture/tile\\.h +\\[ImageIO -> Texturing\\]")
+
+# The places that carry the amendment (constitution, plan template, rule table, domain map, DEVNOTES, archcheck's
+# class list) must agree. A cmake script: no git.
+add_test(NAME ImageIO_AmendmentAgree
+    COMMAND ${CMAKE_COMMAND} -DROOT=${CMAKE_SOURCE_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_imageio_amendment.cmake)
+set_tests_properties(ImageIO_AmendmentAgree PROPERTIES
+    TIMEOUT 60 LABELS "architecture;imageio")
+
 # --- User Story 3: renderer-core usage metric (spec 022 T046-T047) ----------
 archcheck_add_fixture(metric-increase 0
     "WARNING +metric Geometry refs 3 > baseline 2 \\(\\+1\\).*WARNING +metric Geometry distinct 2 > baseline 1 \\(\\+1\\).*RESULT +PASS")

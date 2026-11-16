@@ -27,6 +27,12 @@
 
 Samples: for every directory, every in-image sample decoded with libtiff (`TIFFReadTile`, padding excluded) is equal.
 
+Platform rule (maintainer decision 2026-11-15): the legacy bake of a non power of two source is not byte-identical between
+macOS and Linux (3 of the 102 Phase 1 hashes: `nonpot_rgb.png` in `texture`, `envlatl` and `envcube` modes). Every
+comparison therefore runs on one platform: `ImageIO_BakeParity` compares an OIIO bake only with the legacy bake of the
+same platform, and the pinned legacy hashes (`legacy-bake-macos.sha256`, `legacy-bake-linux.sha256`, from the Phase 1
+files `tools/legacy-bake-baseline{,-linux}.sha256`) are checked per platform, each against its own file.
+
 ## Exclusions (FR-017)
 
 One rule, applied to every kind: OIIO writes a (bits, channels) combination only where its `PHOTOMETRIC` and

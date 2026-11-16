@@ -56,6 +56,9 @@ prefix  src/ri/transport/                            Transport
 # --- Texturing ---------------------------------------------------------------
 prefix  src/ri/texture/                              Texturing
 
+# --- Image I/O utility library (spec 048: the OpenImageIO wrapper) -----------
+prefix  src/imageio/                                 ImageIO
+
 # --- Shading (compiler, runtime, shading, include; rslo grammars) ------------
 prefix  src/libshader/                               Shading
 # Test code under src/ (FR-004 analyses non-test code only): tests may

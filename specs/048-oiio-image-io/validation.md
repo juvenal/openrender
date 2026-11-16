@@ -187,3 +187,68 @@ queue, so other specs' chains delayed 048's jobs by up to about 2.5 hours; no 04
     against its own file (`legacy-bake-baseline.sha256` on macOS, `legacy-bake-baseline-linux.sha256` on Linux), and
     `ImageIO_BakeParity`'s non power of two cases compare the OIIO bake with the legacy bake of the same platform only. Every power of
     two source is identical across the platforms. GitHub #174 behaves the same on Linux (the six negative fixtures give the same input-independent `-envcube` hash).
+
+## 7. Decisions recorded after CHECKPOINT 1 (2026-11-15)
+
+- Phase 1 committed by the maintainer as a5e3ab70. Per-platform legacy-bake baselines approved: T093, T135, the T088 non power
+  of two comparison and `contracts/bake-writer.md` (platform rule) were edited to say so.
+- The two Linux starting-tree failures are known: `TextureTile_RenderByteIdentical` is GitHub #45, and
+  `Registry_IntegratorImageIdentity` (photon rows) is GitHub #163. Later Linux runs treat them as known by name.
+- Machine rule: no helper forks or subagents for renders, builds, compiles or test runs; every CPU job through cpujob; at most
+  one background job of this agent at a time; a test that times out under load is re-run alone through cpujob before it is
+  called a failure, and no timeout is changed.
+
+## 8. Phase 2 tests first (T018 to T022), 2026-11-15
+
+- Fixtures `tests/architecture/fixtures/imageio-allowed/` (Texturing and Display include `imageio/orImageIO.h`; ImageIO
+  includes Infra `common/types.h`; expected exit 0, `RESULT +PASS`, no `VIOLATION|CYCLE`) and `imageio-reverse/` (ImageIO's
+  `reader.cpp` includes `texture/tile.h`; expected exit 1 and `VIOLATION include src/imageio/reader.cpp:1 -> src/texture/tile.h
+  +[ImageIO -> Texturing]`). Each has its own `domain-rules.txt` (the rows of `contracts/constitution-1.5.0-draft.md` §3),
+  `domain-map.txt` with `prefix src/imageio/ ImageIO`, `allowlist.txt`, `metrics-baseline.txt` and `REGISTRY.md`.
+- `tests/architecture/CMakeLists.txt`: both fixtures registered with `archcheck_add_fixture` after the Transport block,
+  with a comment that archcheck exits 2 until the class exists; `ImageIO_AmendmentAgree` (labels `architecture;imageio`)
+  registered in the same edit.
+- `tests/architecture/check_imageio_amendment.cmake`: 13 checks, no git (constitution footer and Sync Impact Report say 1.5.0,
+  the "Utility libraries" paragraph, the "Image I/O" row; `domain-rules.txt` header and the three rows; `domain-map.txt`
+  prefix; `DOMAIN_BOUNDARIES.md` v1.5.0 and ImageIO; the plan template names utility libraries; archcheck's class list names
+  `ImageIO`). A first version used a macro and failed on regex backslashes (CMP0219) instead of on the missing text; it was
+  rewritten as a function before the red run below was taken.
+- Configure of `build/` (vcpkg mode, private base tree, `VCPKG_INSTALLED_DIR` overridden): guard before and after
+  **PASS, shared tree untouched**; build of `archcheck` and the two fixture objects: exit 0.
+- Red run (`ctest -R 'imageio_(allowed|reverse)|ImageIO_AmendmentAgree'`, every job through cpujob): **3 of 3 fail, each for the
+  right reason**:
+  - `ArchFixture_imageio_allowed`: `archcheck: .../imageio-allowed/domain-map.txt:5: unknown class 'ImageIO'`, exit 2, expected 0.
+  - `ArchFixture_imageio_reverse`: `.../imageio-reverse/domain-map.txt:5: unknown class 'ImageIO'`, exit 2, expected 1.
+  - `ImageIO_AmendmentAgree`: all 13 checks print `FAIL` (the text, rows, prefix and class do not exist), then
+    `13 place(s) do not carry the 1.5.0 amendment`.
+- Stopped at T023 (TEST-APPROVAL). Nothing of T024 to T029 is applied: the constitution, the plan template, `domain-rules.txt`,
+  `domain-map.txt`, archcheck's class list and `DOMAIN_BOUNDARIES.md` are untouched.
+
+## 9. Phase 2 implementation (T024 to T029), 2026-11-16
+
+The three approved tests were not edited. The amendment was applied as `contracts/constitution-1.5.0-draft.md` drafts it:
+- `.specify/memory/constitution.md`: the 1.5.0 Sync Impact Report, the "Utility libraries" paragraph and one-row table after
+  the Transport paragraph, rule 2 ("...the table above and the utility-library table...") and rule 7 ("...the tables above do
+  not allow"), footer `**Version**: 1.5.0 | **Ratified**: 2025-12-07 | **Last Amended**: 2026-11-15`. **The date is
+  2026-11-15 as the coordinator instructed; the draft says `<date applied>` and the amendment was applied on 2026-11-16, so
+  the maintainer may prefer 2026-11-16: one-line change in the footer.** The templates `spec`, `tasks`, `checklist` and
+  `agent-file` contain no Principle VIII or domain text (grep finds none): "reviewed, no change needed" confirmed.
+- `.specify/templates/plan-template.md`: the two Principle VIII checkbox edits.
+- `tests/architecture/domain-rules.txt` (header and source comment v1.5.0; rows `Texturing -> ImageIO`, `Display -> ImageIO`,
+  `ImageIO ->`; no other row changed), `domain-map.txt` (`prefix src/imageio/ ImageIO` under its own comment).
+- archcheck: `Class::ImageIO` after `Transport` and before `Core`, `kClassCount` 13 -> 14, `"ImageIO"` in `kClassNames`, the
+  `isLayered` comment, the help text. `test_archcheck_parsers.cpp` untouched. The three edited C++ files were clang-format clean
+  before and are after.
+- `DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`: the class sentence (v1.5.0, ImageIO), the `domain-rules.txt` bullet, the DB-023
+  evidence line. No registry entry added or resolved.
+
+Results (every job through cpujob; the 13 checks were green with no regex change):
+- macOS: build of `archcheck` and `test_archcheck_parsers` exit 0; `-L architecture` **39/39 passed** (36 + the two fixtures +
+  `ImageIO_AmendmentAgree`; `ArchFixture_imageio_allowed` exit 0 `RESULT +PASS`, `ArchFixture_imageio_reverse` exit 1 with the
+  `[ImageIO -> Texturing]` violation, `Architecture_DomainBoundaries` and `_Determinism` pass); `-L imageio` **1/1**
+  (`ImageIO_AmendmentAgree`: 13 of 13 `ok`).
+- Linux (GCC 13): a first run built only named targets and failed with `No rule to make target 'archfixture_imageio_allowed'`
+  (the new targets need the regenerate that a full `cmake --build` does); the rerun with `cmake --build build -j2` exit 0,
+  `-L architecture` **39/39**, `-L imageio` **1/1**.
+- `git diff -- tests/architecture/allowlist.txt tests/architecture/metrics-baseline.txt`: empty.
+- Disk: not re-measured.

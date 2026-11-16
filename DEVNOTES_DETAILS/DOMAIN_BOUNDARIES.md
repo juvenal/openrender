@@ -25,9 +25,10 @@ not yet comply.
 - **link edges**: an undefined symbol in a source file's object, attributed to the classes whose
   sources define it (`nm`).
 
-The classes are the ten domains of constitution v1.4.0 (Scene Interface, Graphics State, Geometry,
+The classes are the ten domains of constitution v1.5.0 (Scene Interface, Graphics State, Geometry,
 Hiders, Shading, Texturing, Shader DSO Operands, Geometric Procedures, Display Outputs and, since spec 030,
-**Transport**, `src/ri/transport/`), plus Core (the renderer core), Infra and Consumer.
+**Transport**, `src/ri/transport/`), the utility library **ImageIO** (`src/imageio/`, spec 048: OpenImageIO, used by
+Texturing and Display Outputs only, depending on Infra only), plus Core (the renderer core), Infra and Consumer.
 
 An edge outside the constitution's allowed-dependency table fails the check unless the allowlist
 names it against an **Open** entry below. The allowlist only shrinks: an entry whose edge is gone
@@ -84,7 +85,7 @@ the target stopped compiling first, CMake leaves them behind).
 
 - `domain-map.txt`: path prefix or exact file → class. Classification is by location; file rules
   exist only for forwarding shims, plug-in ABI headers and generated sources.
-- `domain-rules.txt`: the constitution's allowed-dependency table. Change only by amendment.
+- `domain-rules.txt`: the constitution's allowed-dependency and utility-library tables. Change only by amendment.
 - `allowlist.txt`: one line per known violating edge, with its registry ID and an optional
   `macos`/`linux` tag for edges the two toolchains spell differently.
 - `metrics-baseline.txt`: renderer-core usage per class.
@@ -316,6 +317,7 @@ request. Run `ctest -L architecture` locally before review.
   - `libshader_shading`'s include path lists `src/ri/{core,parse,state,texture}` and `src/ri` itself (measured at the end of spec 029,
     2026-11-04; the Geometry directory was the last cross-domain one to leave it), so a Geometry
     or Hiders header cannot be included by Shading at compile time. Other domains' include paths are unchanged.
+  - `libRIBImageIO` is the first utility library built as its own target (spec 048).
 - **Size**: not a dependency edge; tracked by review and by the architecture check.
 - **Direction**: per-domain include visibility first, then per-domain OBJECT targets as each layer
   lands.
