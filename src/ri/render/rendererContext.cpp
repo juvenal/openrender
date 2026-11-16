@@ -2424,6 +2424,9 @@ void *CRendererContext::RiLightSourceV(const char *name, int n, const char *toke
         return cShader;
     }
 
+    // The statement failed ("null", a missing shader, a wrong-type shader): the handle it carried must not
+    // become the key of the next shader instance. Not takeInstanceKey(): that would advance shaderOrdinal.
+    pendingInstanceKey = 0;
     return NULL;
 }
 
@@ -2450,6 +2453,9 @@ void *CRendererContext::RiAreaLightSourceV(const char *name, int n, const char *
         return cShader;
     }
 
+    // The statement failed ("null", a missing shader, a wrong-type shader): the handle it carried must not
+    // become the key of the next shader instance. Not takeInstanceKey(): that would advance shaderOrdinal.
+    pendingInstanceKey = 0;
     return NULL;
 }
 

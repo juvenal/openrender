@@ -74,10 +74,12 @@ function(al_shader name)
     set_property(GLOBAL APPEND PROPERTY AL_SHADER_OUTPUTS ${outs})
 endfunction()
 
-# al_render_pair_test(<ctest name> PAIRS <sceneA|sceneB>... [EXPECT_EQUAL|EXPECT_DIFFERENT] [LABELS l...] [THREADS n]
+# al_render_pair_test(<ctest name> PAIRS <sceneA|sceneB[|ALLOW_ERROR_EXIT]>... [EXPECT_EQUAL|EXPECT_DIFFERENT] [LABELS l...] [THREADS n]
 #                     [HIDER h] [SHADERFORMAT f] [TIMEOUT s])
 # Scenes are paths relative to this directory. Drives render_pair.cmake: every pair is rendered with orender and compared
 # byte for byte; EXPECT_EQUAL (default) passes when every pair is identical, EXPECT_DIFFERENT when every pair differs.
+# A pair ending in |ALLOW_ERROR_EXIT accepts orender's exit 255 (a scene that reports an error by design) when the image
+# was still written; nothing else about the comparison changes.
 function(al_render_pair_test name)
     cmake_parse_arguments(ARG "EXPECT_EQUAL;EXPECT_DIFFERENT" "THREADS;HIDER;SHADERFORMAT;TIMEOUT" "PAIRS;LABELS" ${ARGN})
     if(NOT ARG_TIMEOUT)
@@ -94,7 +96,13 @@ function(al_render_pair_test name)
         string(REPLACE "|" ";" ab "${p}")
         list(GET ab 0 a)
         list(GET ab 1 b)
-        list(APPEND pairs "${CMAKE_CURRENT_SOURCE_DIR}/${a}|${CMAKE_CURRENT_SOURCE_DIR}/${b}")
+        set(opt "")
+        list(LENGTH ab ablen)
+        if(ablen GREATER 2)
+            list(GET ab 2 opt)
+            set(opt "|${opt}")
+        endif()
+        list(APPEND pairs "${CMAKE_CURRENT_SOURCE_DIR}/${a}|${CMAKE_CURRENT_SOURCE_DIR}/${b}${opt}")
     endforeach()
     string(REPLACE ";" "," pairs "${pairs}")
     set(work ${CMAKE_CURRENT_BINARY_DIR}/work/${name})
@@ -124,11 +132,17 @@ al_shader(al_random_surface)
 # have taken without that statement. Seven checks in one entry: the control rendered twice (the scene is deterministic,
 # so a red result is a key and not noise) and each of the six variants (LightSource / AreaLightSource with "null", a
 # missing shader and a wrong-type shader, handle 7) against the control. One pass condition for all: byte-identical.
+# The missing and wrong-type variants report an error by design, so orender exits 255 on them after writing the image:
+# their pairs carry ALLOW_ERROR_EXIT (the "null" variants exit 0 and do not).
 set(_leak_dir scenes/leak)
 set(_leak_pairs "${_leak_dir}/leak-control.rib|${_leak_dir}/leak-control.rib")
 foreach(_kind null missing wrongtype)
+    set(_leak_opt "")
+    if(NOT _kind STREQUAL "null")
+        set(_leak_opt "|ALLOW_ERROR_EXIT")
+    endif()
     foreach(_stmt light arealight)
-        list(APPEND _leak_pairs "${_leak_dir}/leak-control.rib|${_leak_dir}/leak-${_kind}-${_stmt}.rib")
+        list(APPEND _leak_pairs "${_leak_dir}/leak-control.rib|${_leak_dir}/leak-${_kind}-${_stmt}.rib${_leak_opt}")
     endforeach()
 endforeach()
 al_render_pair_test(LightKey_NoLeakAcrossFailedLight PAIRS ${_leak_pairs} EXPECT_EQUAL LABELS "state")

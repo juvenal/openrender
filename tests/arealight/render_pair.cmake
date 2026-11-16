@@ -9,6 +9,10 @@
 # the first image is moved aside before the second render), then compared with `cmake -E compare_files`.
 #   EXPECT=EQUAL      passes when every pair is byte-identical
 #   EXPECT=DIFFERENT  passes when every pair differs
+# A pair may carry a third field, "<sceneA>|<sceneB>|ALLOW_ERROR_EXIT": a scene that reports an error by design (a light
+# shader that is missing or of the wrong type) makes orender exit 255 although it still writes its image. For such a pair
+# exit 255 is accepted, and only when the image was written; any other exit code, or no image, still fails. The byte
+# comparison and the pass condition are the same for every pair.
 # Every pair is rendered and reported before the verdict, so one failing run shows all of them. THREADS defaults to 1
 # (-t:1). HIDER and SHADERFORMAT, when given, are applied to a copy of each scene, never to the tracked scene: the
 # scene's Hider name is replaced, and Option "shaderformat" "default" is added after the version line. The environment
@@ -26,8 +30,8 @@ if(NOT DEFINED THREADS)
     set(THREADS 1)
 endif()
 
-# render_one(<scene> <tag> <out_var>): renders the scene, moves the image to <scene stem>.<tag>.tif, returns its path
-function(render_one scene tag out_var)
+# render_one(<scene> <tag> <allow_error_exit> <out_var>): renders the scene, moves the image to <scene stem>.<tag>.tif, returns its path
+function(render_one scene tag allow_error_exit out_var)
     get_filename_component(_stem "${scene}" NAME_WE)
     set(_src "${scene}")
     if(DEFINED HIDER OR DEFINED SHADERFORMAT)
@@ -45,6 +49,9 @@ function(render_one scene tag out_var)
     file(REMOVE "${_stem}.tif")
     execute_process(COMMAND "${ORENDER}" -t:${THREADS} "${_src}"
         RESULT_VARIABLE _rc OUTPUT_VARIABLE _out ERROR_VARIABLE _err)
+    if(allow_error_exit AND _rc EQUAL 255)
+        set(_rc 0)
+    endif()
     if(NOT _rc EQUAL 0)
         message(FATAL_ERROR "orender failed (${_rc}) on ${scene}\n${_out}${_err}")
     endif()
@@ -62,9 +69,19 @@ foreach(_pair IN LISTS _pair_list)
     string(REPLACE "|" ";" _p "${_pair}")
     list(GET _p 0 _a)
     list(GET _p 1 _b)
+    set(_allow FALSE)
+    list(LENGTH _p _plen)
+    if(_plen GREATER 2)
+        list(GET _p 2 _opt)
+        if(_opt STREQUAL "ALLOW_ERROR_EXIT")
+            set(_allow TRUE)
+        else()
+            message(FATAL_ERROR "render_pair.cmake: unknown pair option '${_opt}'")
+        endif()
+    endif()
     math(EXPR _npairs "${_npairs} + 1")
-    render_one("${_a}" "a${_npairs}" _imga)
-    render_one("${_b}" "b${_npairs}" _imgb)
+    render_one("${_a}" "a${_npairs}" ${_allow} _imga)
+    render_one("${_b}" "b${_npairs}" ${_allow} _imgb)
     execute_process(COMMAND ${CMAKE_COMMAND} -E compare_files "${_imga}" "${_imgb}" RESULT_VARIABLE _same)
     get_filename_component(_na "${_a}" NAME)
     get_filename_component(_nb "${_b}" NAME)
