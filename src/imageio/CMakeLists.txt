@@ -15,6 +15,7 @@ add_library(openrenderimageio SHARED
     oiioInit.cpp
     reader.cpp
     tiledTiffWriter.cpp
+    scanlineWriter.cpp
     orImageIO.h
 )
 target_compile_features(openrenderimageio PRIVATE cxx_std_20)

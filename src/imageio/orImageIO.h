@@ -23,8 +23,9 @@ namespace orimageio {
     // The file formats the library reads and writes through OIIO.
     enum class Format { Tiff, Png, Rgbe, OpenExr };
 
-    // The sample type of a buffer handed to or taken from the library. Half is a storage type for writing only.
-    enum class SampleType { UInt8, UInt16, Half, Float };
+    // The sample type of a buffer handed to or taken from the library. Half is a storage type for writing only; UInt32 is written only
+    // (a TIFF display with a quantize maximum above 65535).
+    enum class SampleType { UInt8, UInt16, Half, Float, UInt32 };
 
     // How a source stores its samples (what the file says, before any conversion).
     enum class StoredKind { UInt, Int, Float };
@@ -109,6 +110,44 @@ namespace orimageio {
 
             // Finishes the file. True when every write succeeded; otherwise false, with the partial file removed.
             // Idempotent.
+            bool close();
+
+        private:
+            struct Impl;
+            Impl *impl;
+    };
+
+    // The file a display driver writes, one scanline at a time. The pixels a driver delivers are those of the legacy display drivers (the
+    // quantized samples, or floats); only the storage is OpenImageIO's. TIFF: UInt8, UInt16, UInt32 or Float; PNG: UInt8 or UInt16; OpenEXR:
+    // Half (the rows are delivered as Float and stored as half); RGBE: Float with exactly 3 channels.
+    struct ScanlineDesc {
+            Format format = Format::Tiff;
+            int width = 0, height = 0;
+            int channels = 0;
+            SampleType type = SampleType::UInt8;       // the stored sample type
+            const char *compression = nullptr;        // TIFF "lzw" "jpeg" "zip" "deflate" "none"; EXR "RLE" "ZIPS" "ZIP" "PIZ" "PXR24"; null: the format's default
+            const char *software = nullptr;           // the Software attribute, when given
+            const float *worldToScreen = nullptr;     // TIFF: PIXAR_MATRIX_WORLDTOSCREEN (16 floats), when given
+            const float *worldToCamera = nullptr;     // TIFF: PIXAR_MATRIX_WORLDTOCAMERA (16 floats), when given
+    };
+
+    // Writer of one file of a display: open, the rows in increasing order, close. A failure is reported through error() naming the file and
+    // OIIO's message, nothing throws out of the library, and close() then returns false and removes the file.
+    class ORIMAGEIO_API ScanlineWriter {
+        public:
+            explicit ScanlineWriter(const char *path);
+            ~ScanlineWriter();
+            ScanlineWriter(const ScanlineWriter &) = delete;
+            ScanlineWriter &operator=(const ScanlineWriter &) = delete;
+
+            // False when the file cannot be created or the description cannot be written (the reason is reported).
+            bool open(const ScanlineDesc &desc);
+
+            // Writes row y (rows come in increasing order). `pixels` holds width * channels samples of the stored type, except that Half is
+            // delivered as Float. False on failure.
+            bool writeScanline(int y, const void *pixels);
+
+            // Finishes the file: true when every write succeeded, otherwise false with the partial file removed. Idempotent.
             bool close();
 
         private:

@@ -56,6 +56,7 @@ listed is a failure. The entries are predictions from the OIIO 3.1.14 source, co
 | D-TIFF-UINT32 | `tiff_uint32_4x4.tif` | 32 bits per sample read as float bits | refused: no `CImageInfo` tier | legacy defect, not fixed here |
 | D-TIFF-INT16 | `tiff_int16_4x4.tif` | the raw signed bits delivered as uint16 | refused | legacy defect, not fixed here |
 | D-TIFF-HALF | `tiff_half_4x4.tif` | the raw half bits delivered as uint16 | widened to float32 | |
+| D-PNG-WRITE16 | (display) a 16-bit PNG written by the `file` and `oiio` display drivers | the legacy `file` driver hands libpng host-order samples without `png_set_swap`: every 16-bit sample is stored byte-swapped on a little-endian host | the `oiio` driver stores them correctly (big-endian) | legacy defect, GitHub #181 (P1), not fixed here (FR-020); `ImageIO_DisplayParity` and `ImageIO_NoColourConversionWrite` decode the legacy file with its bytes swapped back, legacy side only |
 
 ## Two OpenImageIO behaviours the reader neutralises (not differences)
 
@@ -125,3 +126,39 @@ that was always there (moved, not changed: `ImageInput_TiffBakeByteIdentical` an
   legacy bake; and the 28 allowed ones: written by OIIO), `ImageIO_BakeRender` (legacy-baked against OIIO-baked texture renders, one
   scene per kind, byte-identical at threshold 20). The legacy bake hashes are per platform (`legacy-bake-macos.sha256`,
   `legacy-bake-linux.sha256`), each checked against its own file.
+
+## The `oiio` display driver (FR-008, FR-019, FR-020, Phase 7)
+
+`oiio.dsply` (`src/display/oiio/oiio.cpp`) is one display module, display interface 2.0.0, that writes TIFF, PNG, OpenEXR (where OpenEXR is built) and
+RGBE through `libRIBImageIO` (`orimageio::ScanlineWriter`, `src/imageio/scanlineWriter.cpp`), so through OpenImageIO. It is built only with
+`OPENRENDER_ENABLE_OIIO` and installed beside the legacy drivers; `Display "name" "oiio" "rgba"` selects it. It is built on `openrenderfilebase`
+(`CFileOutputBase`), the scanline pipeline of the legacy `file`, `openexr` and `rgbe` drivers, so **quantize, dither and gamma are the legacy code**
+and the samples it writes are theirs; only the storage is OpenImageIO's. The legacy drivers are not changed (FR-020). It includes `dsply.h`,
+`file/file_base.h`, `orImageIO.h` and `common/diagnostics.h` only (`ImageIO_DisplayLoadIncludes`), reaches OpenImageIO only through the library, and
+`start`, `data` and `finish` catch everything and answer `OR_STATUS_ERROR` after `error()`.
+
+- **The format** (P-Q7): the display line's own `"string type"` (`tiff`/`tif`, `png`, `openexr`/`exr`, `rgbe`/`hdr`/`pic`), else the extension of the
+  last path component (`.tif .tiff .png .exr .hdr .pic`), else the error
+  `oiio display: cannot tell the format of "<name>"; give a known extension or "string type"` and nothing is written. The renderer always adds a
+  `"type"` parameter equal to the display type, so an `oiio` display always sees `type = "oiio"`; a `"type"` whose value is `oiio` is not a format and is
+  ignored. An unknown own `"string type"` is the same error. OpenEXR in a build without it is an error naming the format.
+- **Sample types**: TIFF 8, 16 or 32 bits unsigned from `quantize` (the legacy driver's rule), float when there is no quantize; PNG 8 bits, or 16 when the
+  quantize maximum exceeds 255; OpenEXR half; RGBE float. **RGBE** (P-Q8) needs 3 or 4 samples: R, G, B are written and alpha is dropped; 1, 2 or 5
+  samples are an error. The OIIO RGBE writer writes RLE, which the legacy RGBE decoder cannot read (GitHub #171).
+- **Parameters honoured** (FR-019): `quantize`, `dither` (a hash of the pixel and channel, spec 039, so it needs no seed and the two drivers agree
+  exactly), `gamma` (the base class; it changes no sample), TIFF `compression` `lzw`/`jpeg`/`zip`/`deflate`/`none`, EXR `compression`
+  `RLE`/`ZIPS`/`ZIP`/`PIZ`/`PXR24` (upper case, as the legacy driver reads them), the TIFF `NP`/`Nl` matrices as the Pixar `worldtoscreen` and
+  `worldtocamera` tags, and `Software`.
+- **Where it differs from the legacy drivers on purpose**: a 4-sample TIFF is written with associated alpha, as the legacy driver declares it (PNG alpha
+  is always straight, so the writer sets `oiio:UnassociatedAlpha` there and no value is converted); OIIO chooses the TIFF predictor itself (horizontal
+  for 8 and 16 bits, floating point for float, none for 32-bit unsigned: the encoding changes, no sample does); no PNG `gAMA` chunk is written (OIIO's
+  PNG writer takes its gamma from a colour space the driver does not set; the gamma case compares samples only); a PNG with a quantize maximum above
+  65535 is refused, where the legacy `file` driver silently writes a TIFF under the `.png` name.
+- **A legacy defect the parity tests step around** (`D-PNG-WRITE16`, GitHub #181): the legacy `file` driver writes 16-bit PNG samples byte-swapped on a
+  little-endian host (it never calls `png_set_swap`), so its 16-bit PNG decodes to wrong values in every PNG reader. The `oiio` driver writes them
+  correctly; the parity tests decode the legacy file with its bytes swapped back (legacy side only). Not fixed in spec 048 (FR-020).
+- **Not covered**: `framebuffer` (no format), deep and multi-part output, `compression "jpeg"` (lossy), EXR chromaticities, RGBE `rgba` output of the
+  legacy `rgbe` driver (it garbles it, GitHub #172), PNG `gAMA`.
+- **Tests**: `ImageIO_DisplayParity` (the synthetic rows through `CDisplayHost`, including exact half ties, denormals, 65504, 65520, overflow, NaN, and
+  the rendered 16x16 scene with two displays), `ImageIO_DisplayLoad` and `ImageIO_DisplayLoadIncludes`, `ImageIO_DisplayFormatErrors`,
+  `ImageIO_NoColourConversionWrite` (OCIO unset and set to a different configuration).

@@ -233,6 +233,29 @@ static void checkTiffHalf() {
 }
 
 // ---- the data file ----------------------------------------------------------------------------------------------
+// D-PNG-WRITE16 is a difference of the DISPLAY drivers (the legacy `file` driver writes 16-bit PNG samples byte-swapped, GitHub #181), not of the decoders:
+// it has no fixture here. Its behaviour is pinned by ImageIO_DisplayParity and ImageIO_NoColourConversionWrite; this check only requires the entry to say
+// so (the issue and the two tests), so the list cannot lose the record.
+static void checkPngWrite16(const std::string &dataFile) {
+    FILE *f = fopen(dataFile.c_str(), "r");
+    EXPECT(f != nullptr, "cannot open %s", dataFile.c_str());
+    if (f == nullptr)
+        return;
+    char line[4096];
+    bool found = false;
+    while (fgets(line, sizeof(line), f)) {
+        std::string s = line;
+        if (s.compare(0, 14, "D-PNG-WRITE16 ") == 0) {
+            found = true;
+            EXPECT(s.find("#181") != std::string::npos, "D-PNG-WRITE16 does not cite GitHub #181");
+            EXPECT(s.find("ImageIO_DisplayParity") != std::string::npos, "D-PNG-WRITE16 does not name ImageIO_DisplayParity");
+            EXPECT(s.find("ImageIO_NoColourConversionWrite") != std::string::npos, "D-PNG-WRITE16 does not name ImageIO_NoColourConversionWrite");
+        }
+    }
+    fclose(f);
+    EXPECT(found, "D-PNG-WRITE16 is not in %s", dataFile.c_str());
+}
+
 static std::set<std::string> idsInDataFile(const std::string &path) {
     std::set<std::string> ids;
     FILE *f = fopen(path.c_str(), "r");
@@ -260,6 +283,7 @@ int main(int argc, char **argv) {
         {"D-TIFF-UINT32", checkTiffUint32}, {"D-TIFF-INT16", checkTiffInt16},     {"D-TIFF-HALF", checkTiffHalf},
     };
     std::string data = argc > 1 ? argv[1] : "tests/unit/imageio/differences.txt";
+    checks["D-PNG-WRITE16"] = [data] { checkPngWrite16(data); };
     std::set<std::string> ids = idsInDataFile(data);
     for (const std::string &id : ids)
         EXPECT(checks.count(id) != 0, "%s is in differences.txt but has no check", id.c_str());

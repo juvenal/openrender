@@ -31,6 +31,7 @@ namespace orimageio {
             case SampleType::Half:
                 return 2;
             case SampleType::Float:
+            case SampleType::UInt32:
                 return 4;
             }
             return 0;
@@ -42,6 +43,8 @@ namespace orimageio {
                 return OIIO::TypeUInt8;
             case SampleType::UInt16:
                 return OIIO::TypeUInt16;
+            case SampleType::UInt32:
+                return OIIO::TypeUInt32;
             case SampleType::Half:
                 return OIIO::TypeHalf;
             case SampleType::Float:

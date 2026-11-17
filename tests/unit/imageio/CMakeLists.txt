@@ -176,6 +176,79 @@ if(HAVE_OIIO)
             ${CMAKE_SOURCE_DIR}/tests/unit/image_input/fixtures/large_rgb8.png)
     set_tests_properties(ImageIO_Selection PROPERTIES TIMEOUT 120 LABELS "imageio;unit"
         ENVIRONMENT "${IMAGEIO_RENDER_ENV}" DEPENDS "orender;otexmake")
+
+    # --- Phase 7: the oiio display driver (US4). The modules are named by environment variables. ---
+    set(IMAGEIO_OIIO_DSPLY $<TARGET_FILE:oiio>)
+    set(IMAGEIO_DISPLAY_MODULES "FILE_DSPLY=$<TARGET_FILE:file>" "RGBE_DSPLY=$<TARGET_FILE:rgbe>" "OIIO_DSPLY=${IMAGEIO_OIIO_DSPLY}")
+    if(HAVE_OPENEXR)
+        list(APPEND IMAGEIO_DISPLAY_MODULES "OPENEXR_DSPLY=$<TARGET_FILE:openexr>")
+    endif()
+    # orender finds the drivers through DISPLAYS: the legacy ones and the oiio directory (ImageIO_DisplayParity renders with both)
+    set(IMAGEIO_DISPLAY_RENDER_ENV
+        "SHADERS=${CMAKE_BINARY_DIR}/shaders"
+        "ORENDERHOME=${CMAKE_BINARY_DIR}/tests/visual/_home"
+        "DISPLAYS=${IMAGEIO_DISPLAY_PATH}:$<TARGET_FILE_DIR:oiio>"
+        ${IMAGEIO_DISPLAY_MODULES})
+
+    find_package(Threads REQUIRED)
+    function(imageio_display_program target source)
+        add_executable(${target} ${source})
+        target_compile_features(${target} PRIVATE cxx_std_20)
+        target_include_directories(${target} PRIVATE ${IMAGEIO_SELECT_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}
+            ${CMAKE_SOURCE_DIR}/src/display ${CMAKE_SOURCE_DIR}/src/imageio ${CMAKE_SOURCE_DIR}/src/include ${CMAKE_BINARY_DIR})
+        # the decoders of the fixed readers: libtiff and libpng (and OpenEXR); the OIIO Reader only for RGBE
+        # the tests run the module: it is built with them
+        add_dependencies(${target} oiio file rgbe)
+        target_link_libraries(${target} PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon openrenderimageio
+            Threads::Threads ${openrendertiff_libs})
+        if(HAVE_OPENEXR)
+            target_compile_definitions(${target} PRIVATE HAVE_OPENEXR)
+            target_link_libraries(${target} PRIVATE ${OPENRENDER_OPENEXR_LIBS})
+        endif()
+    endfunction()
+
+    # T103: SC-003 and FR-019. The synthetic cases through CDisplayHost, then one rendered scene with two displays.
+    imageio_display_program(test_display_parity test_display_parity.cpp)
+    set(IMAGEIO_PARITY_OPENEXR "")
+    if(HAVE_OPENEXR)
+        set(IMAGEIO_PARITY_OPENEXR -DHAVE_OPENEXR=1)
+    endif()
+    add_test(NAME ImageIO_DisplayParity
+        COMMAND ${CMAKE_COMMAND}
+            -DPARITY=$<TARGET_FILE:test_display_parity>
+            -DORENDER=$<TARGET_FILE:orender>
+            -DSCENE=${CMAKE_CURRENT_SOURCE_DIR}/display-parity.rib.in
+            -DWORK=${CMAKE_CURRENT_BINARY_DIR}/display_parity
+            ${IMAGEIO_PARITY_OPENEXR}
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/run_display_parity.cmake)
+    set_tests_properties(ImageIO_DisplayParity PROPERTIES TIMEOUT 300 LABELS "imageio;unit" ENVIRONMENT "${IMAGEIO_DISPLAY_RENDER_ENV}")
+
+    # T104: the module loads through CDisplayHost at display ABI 2.0.0 and keeps its include boundary
+    imageio_display_program(test_display_load test_display_load.cpp)
+    add_test(NAME ImageIO_DisplayLoad COMMAND test_display_load)
+    set_tests_properties(ImageIO_DisplayLoad PROPERTIES TIMEOUT 120 LABELS "imageio;unit" ENVIRONMENT "${IMAGEIO_DISPLAY_MODULES}")
+    add_test(NAME ImageIO_DisplayLoadIncludes
+        COMMAND ${CMAKE_COMMAND} -DSOURCE=${CMAKE_SOURCE_DIR}/src/display/oiio/oiio.cpp -P ${CMAKE_CURRENT_SOURCE_DIR}/check_display_includes.cmake)
+    set_tests_properties(ImageIO_DisplayLoadIncludes PROPERTIES TIMEOUT 30 LABELS "imageio;unit")
+
+    # T105: the format of the file, and what the driver refuses. The no-OpenEXR case is registered only in a build without OpenEXR.
+    imageio_display_program(test_display_format_errors test_display_format_errors.cpp)
+    add_test(NAME ImageIO_DisplayFormatErrors COMMAND test_display_format_errors)
+    set_tests_properties(ImageIO_DisplayFormatErrors PROPERTIES TIMEOUT 120 LABELS "imageio;unit" ENVIRONMENT "${IMAGEIO_DISPLAY_MODULES}")
+    if(NOT HAVE_OPENEXR)
+        add_test(NAME ImageIO_DisplayFormatErrorsNoExr COMMAND test_display_format_errors noexr)
+        set_tests_properties(ImageIO_DisplayFormatErrorsNoExr PROPERTIES TIMEOUT 120 LABELS "imageio;unit" ENVIRONMENT "${IMAGEIO_DISPLAY_MODULES}")
+    endif()
+
+    # T106: P-Q10 on write. The T059 wrapper, unchanged: the program prints "<case> legacy=<digest> oiio=<digest>" per case.
+    imageio_display_program(test_no_colour_conversion_write test_no_colour_conversion_write.cpp)
+    add_test(NAME ImageIO_NoColourConversionWrite
+        COMMAND ${CMAKE_COMMAND}
+            -DPROGRAM=$<TARGET_FILE:test_no_colour_conversion_write>
+            -DOTHER_OCIO=${IMAGEIO_FIXTURES_DIR}/colour/other.ocio
+            "-DFIXTURES=png8;png8a;png16;png16a"
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/run_two_ocio_envs.cmake)
+    set_tests_properties(ImageIO_NoColourConversionWrite PROPERTIES TIMEOUT 120 LABELS "imageio;unit" ENVIRONMENT "${IMAGEIO_DISPLAY_MODULES}")
 else()
     # FR-003: a build without OIIO carries no OIIO code and no OIIO driver.
     add_test(NAME ImageIO_AbsentBuild

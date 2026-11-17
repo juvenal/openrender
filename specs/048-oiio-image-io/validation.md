@@ -725,3 +725,67 @@ No threshold changed, no test disabled, no reference re-recorded. Scratch additi
 `~/oiio-048/048-chainJ.sh` and `build-logs/p6j-*.log` on the Linux host.
 
 CHECKPOINT 6 reached.
+
+## 19. Phase 7 tests first (T103 to T107), 2026-11-17
+
+Files (all staged): `tests/unit/imageio/display_harness.h` (the shared helpers: CDisplayHost runs, the fixed decoders libtiff, libpng, OpenEXR and the OIIO
+Reader for RGBE, the exact comparison), `test_display_parity.cpp` and `run_display_parity.cmake` and `display-parity.rib.in` (`ImageIO_DisplayParity`),
+`test_display_load.cpp` and `check_display_includes.cmake` (`ImageIO_DisplayLoad`, `ImageIO_DisplayLoadIncludes`), `test_display_format_errors.cpp`
+(`ImageIO_DisplayFormatErrors`; `ImageIO_DisplayFormatErrorsNoExr` is registered only where `HAVE_OPENEXR` is off), `test_no_colour_conversion_write.cpp`
+(`ImageIO_NoColourConversionWrite`, through the unchanged `run_two_ocio_envs.cmake`), and the registration in `tests/unit/imageio/CMakeLists.txt`.
+The module is named by environment variables as a plain path (`${CMAKE_BINARY_DIR}/src/display/oiio/oiio.dsply`): no generator expression names the
+not-yet-existing target, so the tree configures and builds (swap guard before every job; configure under the vcpkg guard, shared tree untouched).
+
+Red (build-oiio, the four new programs built, the compile clean): all five registered tests fail for the right reason, "module not found: $OIIO_DSPLY"
+(`ImageIO_DisplayLoadIncludes`: "src/display/oiio/oiio.cpp does not exist"; the render cases: "Failed to open out device oiio"). `ImageIO_DisplayParity`'s
+harness checks itself first: the legacy driver against itself, 27 cases (every case of the table with OpenEXR), decodes to identical samples, so a later
+difference is the oiio driver's. Not red, as required: `-L plugin_abi` 71 of 71 passed (the display host and v1 adapter tests included) and `-L architecture`
+39 of 39 passed on build-oiio.
+
+## 20. Phase 7 implementation, in progress (T109, T110), 2026-11-17 (paused for memory)
+
+Written and staged, not yet built successfully: `orimageio::ScanlineWriter` (`src/imageio/scanlineWriter.cpp`, `ScanlineDesc` in `orImageIO.h`; `SampleType` gains
+`UInt32` for the TIFF display with a quantize maximum above 65535, the legacy driver's 32-bit unsigned case), `src/display/oiio/oiio.cpp` and its `CMakeLists.txt`
+(`add_subdirectory(oiio)` under `HAVE_OIIO` in `src/display/CMakeLists.txt`). Approved test-side edits applied: `check_display_includes.cmake` allows `common/diagnostics.h`
+only; `ImageIO_DisplayParity` gains the case `tiff_uint32` (quantize 0..100000); the registration names the module `$<TARGET_FILE:oiio>` (with `add_dependencies` on the
+four test programs) instead of a plain path. Design notes: the TIFF display writes associated alpha for 4 samples (the legacy tag; PNG, which is straight alpha, sets
+`oiio:UnassociatedAlpha` so no value is converted); OIIO chooses the TIFF predictor itself (horizontal for 8 and 16 bit, floating point for float, none for 32-bit
+unsigned, which changes no sample); no PNG `gAMA` chunk is written (OIIO's PNG writer takes gamma from a colour space we do not set; the gamma case compares samples only).
+
+First build (job p7d, after a successful configure under the guard, shared tree untouched): the `oiio` target failed to compile `tiledTiffWriter.cpp` with
+`-Werror,-Wswitch` ("enumeration value 'UInt32' not handled"): the new `SampleType::UInt32` was missing from the two switches of the Phase 6 writer. Fixed in the
+source (two cases added) and staged; not yet rebuilt. Nothing else ran. Resume: rebuild `oiio` and the four test programs, run
+`ctest -R 'ImageIO_Display|ImageIO_NoColourConversionWrite'`, then T111 to T115.
+
+### 20a. First real run of the oiio display driver (T111), 2026-11-17
+
+macOS `build-oiio`: `oiio`, the four test programs build (the `UInt32` switch fix compiled); swap guard before every job (1.4 to 1.6 GB free).
+`ctest -R 'ImageIO_Display|ImageIO_NoColourConversionWrite'`: `ImageIO_DisplayLoad`, `ImageIO_DisplayLoadIncludes`, `ImageIO_DisplayFormatErrors` pass;
+`ImageIO_DisplayParity` and `ImageIO_NoColourConversionWrite` fail ONLY on 16-bit PNG. `-L plugin_abi` 71 of 71 and `-L architecture` 39 of 39 pass.
+`-L 'imageio|image_input'`: 24 of 26 (the same two). Every other parity case, 0 differing samples: TIFF 8, 16, float, 8 with dither, 32-bit unsigned, EXR half (ties,
+denormals, 65504, 65520, overflow, NaN), RGBE, the compressions, 8-bit PNG and the 16 rendered-scene pairs other than png16 (synthetic: 30 cases compared; rendered: tiff8, tiff16,
+tiff_float, tiff8_dither, png8, exr_half, rgbe_rgb all 0 differing).
+
+**Finding (the legacy `file` driver, 16-bit PNG): the legacy samples are byte-swapped.** `file_png.cpp` hands libpng a host-order `uint16_t` row and never calls
+`png_set_swap`, while PNG stores 16-bit samples big-endian, so on a little-endian host every 16-bit sample is written with its bytes swapped (the rendered scene: upper-left
+red 0.123456 x 65535 = 8090 = 0x1F9A is stored by the legacy driver as 0x9A1F = 39455; the oiio driver stores 8090). libpng and every PNG reader decode the legacy file as
+39455. The oiio driver is correct; the parity cases `png16`, `png16_dither`, `png16+gamma`, the rendered `png16` and `ImageIO_NoColourConversionWrite`'s `png16`/`png16a` fail because the
+legacy file is wrong. Nothing was edited, widened or disabled; this needs the maintainer's decision (see the Phase 7 report).
+Linux (T113): not run; spec 040's determinism sweep holds the Linux lock.
+
+### 20b. After the PNG-16 decision (GitHub #181, D-PNG-WRITE16), macOS, 2026-11-17
+
+The maintainer chose to keep the oiio driver correct and compare the legacy 16-bit PNG with its bytes swapped back (legacy side only): `decodePng(path, legacyByteSwapped)` in
+`display_harness.h`, used by `test_display_parity.cpp` and `test_no_colour_conversion_write.cpp`; `D-PNG-WRITE16` in `differences.txt` and `IMAGE_IO.md`, and `checkPngWrite16` in
+`test_decode_differences.cpp` (approved: the entry has no decoder fixture, the check requires it to cite #181 and name the two display tests). Design points accepted by the
+maintainer: TIFF associated alpha as the legacy driver; OIIO's own TIFF predictor choice; no PNG `gAMA`; a PNG with a quantize maximum above 65535 is refused.
+
+`build-oiio` (build exit 0, swap 1.4 to 1.6 GB free before each job): `-R 'ImageIO_Display|ImageIO_NoColourConversionWrite'` 5 of 5; `-L plugin_abi` 71 of 71; `-L architecture` 39 of 39;
+`-L 'imageio|image_input'` 26 of 26. Linux (T113): not run; held until the maintainer says spec 040's Linux chain has finished (`~/oiio-048/048-chainK.sh` is written on the host; the tree
+is synced, 4498 files verified).
+
+Linux OFF tree (`openrender-048`, sync of 4498 files verified; full `cmake --build build -j2` exit 0; the host's cpujob was free when it started): `legacy_bake_hashes --check legacy-bake-linux.sha256`:
+38 recorded, 0 differences; `ctest -L 'imageio|image_input|plugin_abi|architecture' -j2`: **121 of 121 passed** (100%). There is no OIIO build on Linux until Phase 8 (M3b), so the oiio driver tests are not
+registered there. No threshold changed, no test disabled, no reference re-recorded.
+
+CHECKPOINT 7 reached.
