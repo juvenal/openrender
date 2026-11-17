@@ -774,6 +774,19 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     textureSettings.resolver = textureResolver;
     textureSettings.diskCacheEnabled = o->textureCacheEnabled;
     textureSettings.diskCacheDirectory = o->textureCacheDirectory;
+    // Graphics State's backend value to Texturing's (spec 048); the two enums must never drift apart.
+    static_assert(static_cast<int>(EImageIOBackend::Legacy) == static_cast<int>(EImageBackend::Legacy) &&
+                      static_cast<int>(EImageIOBackend::OIIO) == static_cast<int>(EImageBackend::OIIO),
+                  "EImageIOBackend and EImageBackend must have the same enumerators and values");
+    switch (o->imageBackend) {
+    case EImageIOBackend::OIIO:
+        textureSettings.imageBackend = EImageBackend::OIIO;
+        break;
+    case EImageIOBackend::Legacy:
+    default:
+        textureSettings.imageBackend = EImageBackend::Legacy;
+        break;
+    }
     movmm(textureSettings.toWorld, toWorld);
     // The texture loads stay serialized with the other resource loads (getCache, getTexture3d, getPhotonMap hold
     // shaderMutex but never reach a texture handle): a plain, non-recursive mutex, so handle() must never be called

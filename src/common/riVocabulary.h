@@ -376,6 +376,9 @@ extern RtToken RI_ENDOFFRAME,
 extern RtToken RI_TEXTURECACHEENABLE,
     RI_TEXTURECACHEDIRECTORY;
 
+// Image I/O option (spec 048): Option "imageio" "backend"
+extern RtToken RI_IMAGEIO, RI_BACKEND;
+
 // Sampling options (spec 039)
 extern RtToken RI_SAMPLING, RI_SAMPLER, RI_SEED;
 

@@ -99,4 +99,12 @@ CImageInput *createImageInput(const char *filename);
 // nullptr, and reports why, in a translation unit built without HAVE_OIIO.
 CImageInput *createImageInput(const char *filename, EImageBackend backend);
 
+// TRUE if this build can decode and bake through the backend: Legacy always, OIIO only in a library built with
+// HAVE_OIIO. The one place a caller asks, so none of them needs the macro (libRIBVector never has it).
+bool imageBackendAvailable(EImageBackend backend);
+
+// The text every "OIIO asked for, not built in" report starts with (the Option, a per-call parameter, otexmake and
+// createImageInput all say the same thing).
+#define OR_OIIO_NOT_BUILT_TEXT "OpenImageIO support is not built into this binary"
+
 #endif

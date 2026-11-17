@@ -24,6 +24,7 @@
 //  Description			:	Texture making program
 //
 ////////////////////////////////////////////////////////////////////////
+#include "imageInput.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -60,15 +61,17 @@ const char *texture3dArgument = "-texture3d";
 const char *maxerrorArgument = "-maxerror";
 const char *radiusscaleArgument = "-radiusscale";
 const char *maxdepthArgument = "-maxdepth";
+const char *imageioArgument = "-imageio";
 
 void printUsage() {
-    printf("Usage: otexmake [-(shadow|envlatl|envcube)] [-resize <mode>] [-smode <mode>] [-tmode <mode>] [-filter <filter>] [-filterwidth <width>] [-filterheight <height>] [-sfilterwidth <width>] [-tfilterwidth <width>] <inputfile> <outputfile>\n");
+    printf("Usage: otexmake [-(shadow|envlatl|envcube)] [-imageio <legacy|oiio>] [-resize <mode>] [-smode <mode>] [-tmode <mode>] [-filter <filter>] [-filterwidth <width>] [-filterheight <height>] [-sfilterwidth <width>] [-tfilterwidth <width>] <inputfile> <outputfile>\n");
     printf("       otexmake -texture3d [-maxerror <number>] [-radiusscale <number>] [-maxdepth <number>] <inputfile> <outputfile>\n");
 }
 
 int main(int argc, char *argv[]) {
     // int tileSize = 32;  // TODO: see tileSizeArgument comment above
     const char *resizeMode = "up";
+    const char *imageIO = NULL; // -imageio: NULL = no parameter, the legacy decoders
     const char *smode = "periodic";
     const char *tmode = "periodic";
     float filterWidth = 3;
@@ -175,6 +178,19 @@ int main(int argc, char *argv[]) {
             i++;
             radiusScale = (float)atof(argv[i]);
         }
+        else if (strcmp(argv[i], imageioArgument) == 0) {
+            // -imageio legacy|oiio, passed to the Make* call as its "imageio" parameter (spec 048)
+            if (i + 1 >= argc || (strcmp(argv[i + 1], "legacy") != 0 && strcmp(argv[i + 1], "oiio") != 0)) {
+                if (i + 1 >= argc)
+                    printf("-imageio expects a value (\"legacy\" or \"oiio\")\n");
+                else
+                    printf("Unknown image backend \"%s\" (expected \"legacy\" or \"oiio\")\n", argv[i + 1]);
+                printUsage();
+                return 2;
+            }
+            i++;
+            imageIO = argv[i];
+        }
         else if (strcmp(argv[i], maxdepthArgument) == 0) {
             i++;
             maxDepth = (int)atoi(argv[i]);
@@ -190,6 +206,11 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    if (imageIO != NULL && strcmp(imageIO, "oiio") == 0 && !imageBackendAvailable(EImageBackend::OIIO)) {
+        printf(OR_OIIO_NOT_BUILT_TEXT "\n");
+        return 1;
+    }
+
     processed = FALSE;
 
     if (strcmp(textureMode, "texture") == 0) {
@@ -197,6 +218,10 @@ int main(int argc, char *argv[]) {
             RiBegin(RI_NULL);
             tokens[currentParameter] = "resize";
             vals[currentParameter++] = (RtPointer)&resizeMode;
+            if (imageIO != NULL) {
+                tokens[currentParameter] = "imageio";
+                vals[currentParameter++] = (RtPointer)&imageIO;
+            }
             RiMakeTextureV(files[0], files[1], smode, tmode, filter, filterWidth, filterHeight, currentParameter, tokens, vals);
             RiEnd();
 
@@ -208,6 +233,10 @@ int main(int argc, char *argv[]) {
             RiBegin(RI_NULL);
             tokens[currentParameter] = "resize";
             vals[currentParameter++] = (RtPointer)&resizeMode;
+            if (imageIO != NULL) {
+                tokens[currentParameter] = "imageio";
+                vals[currentParameter++] = (RtPointer)&imageIO;
+            }
             RiMakeShadowV(files[0], files[1], currentParameter, tokens, vals);
             RiEnd();
 
@@ -219,6 +248,10 @@ int main(int argc, char *argv[]) {
             RiBegin(RI_NULL);
             tokens[currentParameter] = "resize";
             vals[currentParameter++] = (RtPointer)&resizeMode;
+            if (imageIO != NULL) {
+                tokens[currentParameter] = "imageio";
+                vals[currentParameter++] = (RtPointer)&imageIO;
+            }
             RiMakeLatLongEnvironmentV(files[0], files[1], filter, filterWidth, filterHeight, currentParameter, tokens, vals);
             RiEnd();
 
@@ -230,6 +263,10 @@ int main(int argc, char *argv[]) {
             RiBegin(RI_NULL);
             tokens[currentParameter] = "resize";
             vals[currentParameter++] = &resizeMode;
+            if (imageIO != NULL) {
+                tokens[currentParameter] = "imageio";
+                vals[currentParameter++] = (RtPointer)&imageIO;
+            }
             RiMakeCubeFaceEnvironmentV(files[0], files[1], files[2], files[3], files[4], files[5], files[6], fov, filter, filterWidth, filterHeight, currentParameter, tokens, vals);
             RiEnd();
 

@@ -370,6 +370,45 @@ void appendTexture(TIFF *out, int &dstart, int width, int height, int numSamples
     }
 
 ///////////////////////////////////////////////////////////////////////
+// Function				:	selectImageBackend
+// Description			:	Reads the "imageio" parameter of a Make* call (spec 048): "legacy" or "oiio", given as
+//							"imageio" or as an inline declaration ("string imageio"). With none, the call decodes
+//							through the legacy decoders: the Option "imageio" "backend" reaches here as an "imageio"
+//							parameter the renderer core appended (rendererContext.cpp), because Texturing has no
+//							access to the options.
+// Return Value			:	FALSE, with the error reported, when the value is unknown, or "oiio" in a build without
+//							OpenImageIO: the call then fails and writes nothing
+// Comments				:
+static bool selectImageBackend(int numParams, const char **params, const void **vals, EImageBackend &backend) {
+    backend = EImageBackend::Legacy;
+
+    for (int p = 0; p < numParams; p++) {
+        const char *space = strrchr(params[p], ' ');
+        if (strcmp(space != NULL ? space + 1 : params[p], "imageio") != 0)
+            continue;
+
+        const char *value = *((const char **)vals[p]);
+        if (strcmp(value, "legacy") == 0) {
+            backend = EImageBackend::Legacy;
+        }
+        else if (strcmp(value, "oiio") == 0) {
+            if (!imageBackendAvailable(EImageBackend::OIIO)) {
+                error(CODE_BADTOKEN, OR_OIIO_NOT_BUILT_TEXT ": the \"imageio\" parameter asks for \"oiio\"\n");
+                return false;
+            }
+            backend = EImageBackend::OIIO;
+        }
+        else {
+            error(CODE_BADTOKEN, "Unknown image backend \"%s\" (expected \"legacy\" or \"oiio\")\n", value);
+            return false;
+        }
+        break;
+    }
+
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////
 // Function				:	makeTexture
 // Description			:	Create an image pyramid from input
 // Return Value			:
@@ -379,6 +418,10 @@ void makeTexture(const char *input, const char *output, const CTextureFileResolv
 
     getResizeMode(numParams, params, vals);
 
+    EImageBackend imageBackend;
+    if (!selectImageBackend(numParams, params, vals, imageBackend))
+        return;
+
     if (textureLocate(path, inputFileName, input) == FALSE) {
         error(CODE_NOFILE, "Failed to find \"%s\"\n", input);
     }
@@ -387,7 +430,7 @@ void makeTexture(const char *input, const char *output, const CTextureFileResolv
         TIFFSetErrorHandler(tiffErrorHandler);
         TIFFSetWarningHandler(tiffErrorHandler);
 
-        CImageInput *imageInput = createImageInput(inputFileName);
+        CImageInput *imageInput = createImageInput(inputFileName, imageBackend);
         if (imageInput == NULL) {
             error(CODE_NOFILE, "Unsupported or unrecognized source image format \"%s\"\n", inputFileName);
         }
@@ -447,6 +490,10 @@ void makeSideEnvironment(const char *input, const char *output, const CTextureFi
 
     getResizeMode(numParams, params, vals);
 
+    EImageBackend imageBackend;
+    if (!selectImageBackend(numParams, params, vals, imageBackend))
+        return;
+
     if (textureLocate(path, inputFileName, input) == FALSE) {
         error(CODE_NOFILE, "Failed to find \"%s\"\n", input);
     }
@@ -455,7 +502,7 @@ void makeSideEnvironment(const char *input, const char *output, const CTextureFi
         TIFFSetErrorHandler(tiffErrorHandler);
         TIFFSetWarningHandler(tiffErrorHandler);
 
-        CImageInput *imageInput = createImageInput(inputFileName);
+        CImageInput *imageInput = createImageInput(inputFileName, imageBackend);
         if (imageInput == NULL) {
             error(CODE_NOFILE, "Unsupported or unrecognized source image format \"%s\"\n", inputFileName);
         }
@@ -535,6 +582,10 @@ void makeCubicEnvironment(const char *px, const char *py, const char *pz, const 
 
     getResizeMode(numParams, params, vals);
 
+    EImageBackend imageBackend;
+    if (!selectImageBackend(numParams, params, vals, imageBackend))
+        return;
+
     names[0] = px;
     names[1] = nx;
     names[2] = py;
@@ -577,7 +628,7 @@ void makeCubicEnvironment(const char *px, const char *py, const char *pz, const 
                         break;
                     }
                     else {
-                        faceInput = createImageInput(inputFileName);
+                        faceInput = createImageInput(inputFileName, imageBackend);
                         if (faceInput == NULL)
                             break;
                         CImageInfo faceInfo;
@@ -625,6 +676,10 @@ void makeSphericalEnvironment(const char *input, const char *output, const CText
 
     getResizeMode(numParams, params, vals);
 
+    EImageBackend imageBackend;
+    if (!selectImageBackend(numParams, params, vals, imageBackend))
+        return;
+
     if (textureLocate(path, inputFileName, input) == FALSE) {
         error(CODE_NOFILE, "Failed to find \"%s\"\n", input);
     }
@@ -633,7 +688,7 @@ void makeSphericalEnvironment(const char *input, const char *output, const CText
         TIFFSetErrorHandler(tiffErrorHandler);
         TIFFSetWarningHandler(tiffErrorHandler);
 
-        CImageInput *imageInput = createImageInput(inputFileName);
+        CImageInput *imageInput = createImageInput(inputFileName, imageBackend);
 
         if (imageInput == NULL) {
             error(CODE_NOFILE, "Unsupported or unrecognized source image format \"%s\"\n", inputFileName);
@@ -693,6 +748,10 @@ void makeCylindericalEnvironment(const char *input, const char *output, const CT
 
     getResizeMode(numParams, params, vals);
 
+    EImageBackend imageBackend;
+    if (!selectImageBackend(numParams, params, vals, imageBackend))
+        return;
+
     if (textureLocate(path, inputFileName, input) == FALSE) {
         error(CODE_NOFILE, "Failed to find \"%s\"\n", input);
     }
@@ -701,7 +760,7 @@ void makeCylindericalEnvironment(const char *input, const char *output, const CT
         TIFFSetErrorHandler(tiffErrorHandler);
         TIFFSetWarningHandler(tiffErrorHandler);
 
-        CImageInput *imageInput = createImageInput(inputFileName);
+        CImageInput *imageInput = createImageInput(inputFileName, imageBackend);
 
         if (imageInput == NULL) {
             error(CODE_NOFILE, "Unsupported or unrecognized source image format \"%s\"\n", inputFileName);

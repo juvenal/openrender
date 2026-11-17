@@ -76,6 +76,11 @@ void CDeclarations::acquire() {
     //
     ////////////////////////////////////////////////////////////////////////////////////////////
     // Define the options
+    // Option "imageio" "backend" and the per-call "imageio" parameter of the Make* calls (spec 048). Declared first on
+    // purpose: the table lists the newest variable first (the declared-set characterization of spec 038 records that
+    // order), so these two come last and no recorded variable changes its position.
+    declare(RI_IMAGEIO, "string");
+    declare(RI_BACKEND, "string");
     declare(RI_ARCHIVE, "string");
     declare(RI_PROCEDURAL, "string");
     declare(RI_TEXTURE, "string");

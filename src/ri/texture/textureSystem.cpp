@@ -100,7 +100,7 @@ namespace {
                 if (family->find(name, tex) == FALSE) {
                     switch (kind) {
                         case ETextureKind::Texture:
-                            tex = textureLoadTexture(name, settings.resolver, &cache, settings.diskCacheEnabled, settings.diskCacheDirectory);
+                            tex = textureLoadTexture(name, settings.resolver, &cache, settings.diskCacheEnabled, settings.diskCacheDirectory, settings.imageBackend);
 
                             if (tex == NULL) {
                                 // Not found, substitude with a dummy one
@@ -130,7 +130,7 @@ namespace {
 
                             if (tex == NULL) {
                                 // else try as textures
-                                tex = textureLoadTexture(name, settings.resolver, &cache, settings.diskCacheEnabled, settings.diskCacheDirectory);
+                                tex = textureLoadTexture(name, settings.resolver, &cache, settings.diskCacheEnabled, settings.diskCacheDirectory, settings.imageBackend);
                             }
 
                             if (tex != NULL) {

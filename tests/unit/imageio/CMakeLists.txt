@@ -24,6 +24,33 @@ add_test(NAME ImageIO_VcpkgManifest
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_vcpkg_manifest.cmake)
 set_tests_properties(ImageIO_VcpkgManifest PROPERTIES TIMEOUT 30 LABELS "imageio;unit")
 
+# The environment orender needs, as the spec 019/020 tests set it (a hermetic .orenderrc home, the build's compiled shaders and the
+# display drivers). Used by the selection tests, which render and bake.
+set(IMAGEIO_DISPLAY_PATH "$<TARGET_FILE_DIR:file>:$<TARGET_FILE_DIR:rgbe>:$<TARGET_FILE_DIR:framebuffer>")
+if(HAVE_OPENEXR)
+    set(IMAGEIO_DISPLAY_PATH "${IMAGEIO_DISPLAY_PATH}:$<TARGET_FILE_DIR:openexr>")
+endif()
+set(IMAGEIO_RENDER_ENV
+    "SHADERS=${CMAKE_BINARY_DIR}/shaders"
+    "ORENDERHOME=${CMAKE_BINARY_DIR}/tests/visual/_home"
+    "DISPLAYS=${IMAGEIO_DISPLAY_PATH}"
+    "IMAGEIO_FIXTURES_DIR=${IMAGEIO_FIXTURES_DIR}")
+set(IMAGEIO_SELECT_INCLUDE_DIRS
+    ${CMAKE_SOURCE_DIR}/src/ri
+    ${CMAKE_SOURCE_DIR}/src/ri/state
+    ${CMAKE_SOURCE_DIR}/src/ri/parse
+    ${CMAKE_SOURCE_DIR}/src/ri/texture
+    ${CMAKE_SOURCE_DIR}/src/ri/core
+    ${CMAKE_SOURCE_DIR}/src)
+
+# Phase 5 (selection): a program that bakes through the RI calls and reads the result with libtiff.
+function(imageio_select_program target source)
+    add_executable(${target} ${source})
+    target_compile_features(${target} PRIVATE cxx_std_20)
+    target_include_directories(${target} PRIVATE ${IMAGEIO_SELECT_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(${target} PRIVATE ribRender openrendercommon TIFF::TIFF)
+endfunction()
+
 # --- build with OIIO ----------------------------------------------------------------------------------------------
 if(HAVE_OIIO)
     # US5: src/imageio/ includes only the standard library, its own published header, common/ and OIIO's headers.
@@ -103,6 +130,19 @@ if(HAVE_OIIO)
             -DDOC=${CMAKE_SOURCE_DIR}/DEVNOTES_DETAILS/IMAGE_IO.md
             -P ${CMAKE_CURRENT_SOURCE_DIR}/check_difference_list_doc.cmake)
     set_tests_properties(ImageIO_DifferenceListDoc PROPERTIES TIMEOUT 30 LABELS "imageio;unit")
+
+    # --- Phase 5: selection (US2). Nothing changes unless OIIO is asked for (FR-013, FR-014) ---
+    imageio_select_program(test_selection test_selection.cpp)
+    add_test(NAME ImageIO_Selection
+        COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/test_selection_cli.sh
+            $<TARGET_FILE:test_selection>
+            $<TARGET_FILE:otexmake>
+            $<TARGET_FILE:orender>
+            ${IMAGEIO_FIXTURES_DIR}
+            ${CMAKE_SOURCE_DIR}/tests/unit/texture_tile/cache-scene.rib.in
+            ${CMAKE_SOURCE_DIR}/tests/unit/image_input/fixtures/large_rgb8.png)
+    set_tests_properties(ImageIO_Selection PROPERTIES TIMEOUT 120 LABELS "imageio;unit"
+        ENVIRONMENT "${IMAGEIO_RENDER_ENV}" DEPENDS "orender;otexmake")
 else()
     # FR-003: a build without OIIO carries no OIIO code and no OIIO driver.
     add_test(NAME ImageIO_AbsentBuild
@@ -111,4 +151,15 @@ else()
             -DNM=${CMAKE_NM}
             -P ${CMAKE_CURRENT_SOURCE_DIR}/check_absent_build.cmake)
     set_tests_properties(ImageIO_AbsentBuild PROPERTIES TIMEOUT 600 LABELS "imageio;unit")
+
+    # FR-003, P-Q6: asking for the OIIO backend in a build without it degrades as documented.
+    imageio_select_program(test_select_without_oiio test_select_without_oiio.cpp)
+    add_test(NAME ImageIO_SelectWithoutOIIO
+        COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/test_select_without_oiio_cli.sh
+            $<TARGET_FILE:test_select_without_oiio>
+            $<TARGET_FILE:otexmake>
+            $<TARGET_FILE:orender>
+            ${IMAGEIO_FIXTURES_DIR})
+    set_tests_properties(ImageIO_SelectWithoutOIIO PROPERTIES TIMEOUT 120 LABELS "imageio;unit"
+        ENVIRONMENT "${IMAGEIO_RENDER_ENV}" DEPENDS "orender;otexmake")
 endif()

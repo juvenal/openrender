@@ -149,7 +149,23 @@ CImageInput *createImageInput(const char *filename, EImageBackend backend) {
 
     return NULL;
 #else
-    error(CODE_BADTOKEN, "OpenImageIO support not built into this binary: \"%s\"\n", filename);
+    error(CODE_BADTOKEN, OR_OIIO_NOT_BUILT_TEXT ": \"%s\"\n", filename);
     return NULL;
+#endif
+}
+
+///////////////////////////////////////////////////////////////////////
+// function				:	imageBackendAvailable
+// Description			:	Whether this build can use the backend
+// Return Value			:	TRUE for Legacy, and for OIIO only when built with HAVE_OIIO
+// Comments				:
+bool imageBackendAvailable(EImageBackend backend) {
+    if (backend == EImageBackend::Legacy)
+        return true;
+
+#ifdef HAVE_OIIO
+    return true;
+#else
+    return false;
 #endif
 }

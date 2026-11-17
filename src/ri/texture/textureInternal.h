@@ -27,6 +27,7 @@
 #define TEXTUREINTERNAL_H
 
 #include "common/memory.h"
+#include "imageInput.h"
 #include "common/os.h"
 
 class CTextureBlock; // defined in texture.cpp
@@ -57,7 +58,7 @@ class CTextureCache {
 
 // Loads a 2D texture from `name` (found through `resolver`), registering its blocks with `cache`.
 // Returns NULL when the file cannot be found or decoded; the caller substitutes and reports.
-CTexture *textureLoadTexture(const char *name, const CTextureFileResolver *resolver, CTextureCache *cache, bool diskCacheEnabled, const char *diskCacheDirectory);
+CTexture *textureLoadTexture(const char *name, const CTextureFileResolver *resolver, CTextureCache *cache, bool diskCacheEnabled, const char *diskCacheDirectory, EImageBackend imageBackend);
 
 // Loads an environment, shadow or deep shadow map. `toWorld` is the world transformation shadow maps need.
 CEnvironment *textureLoadEnvironment(const char *name, const CTextureFileResolver *resolver, CTextureCache *cache, const float *toWorld);

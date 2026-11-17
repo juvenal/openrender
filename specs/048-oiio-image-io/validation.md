@@ -506,3 +506,93 @@ file (OIIO) and leaves no partial image, the legacy `ImageInput_*` tests green a
 `imageInput.{h,cpp}` (the overload, the suffix table, `readMatrix`), `imageInputTiff.{h,cpp}` (`readMatrix`, `getHandle` removed) and `texmake.cpp`
 (`readMatrix` instead of the `dynamic_cast`). Texturing -> ImageIO is now a real include and link edge, allowed by constitution 1.5.0, and
 `ctest -L architecture` is green with no allowlist line added.
+
+## 15. Phase 5 tests first (T073 to T075), 2026-11-17
+
+New files in `tests/unit/imageio/` (staged), registered in its `CMakeLists.txt` (a shared `IMAGEIO_RENDER_ENV`, `imageio_select_program()`):
+`selection_harness.h` (RiOption/RiMakeTexture helpers, a capturing `RiErrorHandler`, libtiff `SAMPLESPERPIXEL`),
+`test_selection.cpp` + `test_selection_cli.sh` (**`ImageIO_Selection`**, ON tree), `test_select_without_oiio.cpp` +
+`test_select_without_oiio_cli.sh` (**`ImageIO_SelectWithoutOIIO`**, OFF tree only).
+
+What they pin, observed through decoding (the tRNS PNG bakes to 3 samples per pixel on the legacy path and 4 on OIIO's; the RLE RGBE file
+bakes to the bytes of the flat file only when OIIO decoded it):
+- `ImageIO_Selection`: `Option "imageio" "backend"` legacy/oiio; an unknown value reports `Unknown image backend "bogus" (expected "legacy" or
+  "oiio")` once and keeps the previous value (also as the first value); precedence over the five combinations (none, call alone, Option alone,
+  Option oiio + call legacy, Option legacy + call oiio); an unknown per-call value is reported and names the value; `otexmake -imageio bogus`
+  and `-imageio` with no value exit 2 (error and usage, no file); `-imageio legacy` equals the default bake byte for byte; `-imageio oiio` bakes
+  the tRNS PNG differently and the RLE file to the flat file's bytes; an RIB `Option "imageio" "backend" ["bogus"]` reports the error; the spec 020
+  disk-cache entry is `<hash>-<mtime>.tex` by default and `<hash>-<mtime>.oiio.tex` with the OIIO backend (the name format is chosen here).
+- `ImageIO_SelectWithoutOIIO`: `Option ... ["oiio"]` reports exactly one error (`OpenImageIO support is not built into this binary` and that the
+  value stays `legacy`) and the next bake is legacy; `MakeTexture ... "string imageio" ["oiio"]` fails with the error and writes no file;
+  `otexmake -imageio oiio` prints the message, exits 1, writes no file; a scene with the Option renders byte-identical to the same scene without it;
+  `Display "x" "oiio"` gets the existing `Failed to open out device "oiio"` error (observed on the starting tree before this spec: exit 255) and no file.
+
+Configure of `build-oiio` and `build` with the shared-tree guard before and after (PASS), both trees built (exit 0), red run:
+- `ImageIO_Selection` (ON tree): **fails for the right reason**: `option` 4 checks, `precedence` 6, `unknown_call` 1 (no `imageio` option, parameter or
+  flag exists), then the CLI half: `-imageio` is not a flag, the Option reports nothing, the OIIO cache name has no `.oiio`.
+- `ImageIO_SelectWithoutOIIO` (OFF tree): fails on the missing not-built errors and `-imageio`; the Display error, the no-file checks and the
+  image byte identity with and without the Option pass on the starting tree **by design** (characterization).
+- A few `otexmake` checks print `ok` on the starting tree for the wrong reason (`-imageio oiio` is read as an input name); the checks that carry the
+  requirement (exit status 2, the equalities of the bakes) are red.
+Scratch left in `/tmp`: `/tmp/or048-sel/` (a probe RIB and its output), `/tmp/or048-diag/`, `/tmp/or048-*.sh`, `/tmp/or048-demo/`; the tests'
+own `mktemp` directories are in the system temp. Disk: 5.3 GiB free.
+
+Stopped at T076 (TEST-APPROVAL (Phase 5)): no token, option, flag or parameter is implemented.
+
+## 16. Phase 5 implementation (T077 to T084), 2026-11-18
+
+State check after an interruption (an API outage stopped the session): nothing was running (`cpujob --status` free, no log still being written), the staged
+tree matched the work done, and no configure was in flight, so no step was repeated.
+
+**The four layers, as built** (all staged):
+1. Tokens `RI_IMAGEIO` (`"imageio"`) and `RI_BACKEND` (`"backend"`) in `src/ri/parse/ri.h`, `src/common/riVocabulary.h`, `src/common/riTokens.cpp`
+   (`Common_VocabularyConsistency` and `_VocabularyBothHeaders` green on all trees).
+2. `RiOptionV` (`rendererContext.cpp`), `Option "imageio" "backend"`: `"legacy"`, `"oiio"` (through `imageBackendAvailable(EImageBackend::OIIO)`, so the
+   Core carries no `HAVE_OIIO`); an unknown value reports `Unknown image backend "x" (expected "legacy" or "oiio")` and the previous value stays; `"oiio"`
+   without OpenImageIO reports `OpenImageIO support is not built into this binary; Option "imageio" "backend" stays "legacy"` and the value stays.
+3. `EImageIOBackend { Legacy, OIIO }` (`state/stateVocabulary.h`) and `COptions::imageBackend` (initialised and copied in `options.cpp`).
+4. `declare(RI_IMAGEIO, "string")` and `declare(RI_BACKEND, "string")` in `state/declarations.cpp`, placed first in the options block: the declared table lists the
+   newest variable first, so they are the last two entries and no recorded variable moves.
+
+**Selection**: `CTextureSystemSettings::imageBackend` (default Legacy); `CRenderer::beginFrame` maps the option with a `switch` and a `static_assert` that the two
+enums agree; `textureLoadTexture` and the spec 020 disk cache use it: the unbaked-source decode calls `createImageInput(path, backend)`, the cache entry is
+`<hash>-<mtime>.oiio.tex` for OIIO (legacy names unchanged) and its bake passes `"imageio" "oiio"`. The `Make*` calls: `texmake.cpp` reads the `"imageio"`
+parameter (as `imageio` or an inline declaration `string imageio`) in all five `make*` entries and passes it to `createImageInput`; an unknown value, or `"oiio"`
+in a build without OpenImageIO, fails the call and writes nothing. The Option reaches a call that names no backend: `CImageIOCallParameters` in `rendererContext.cpp`
+appends `"imageio" "oiio"` to the parameter list of the five `RiMake*V` statements when the Option is `oiio` (the call's own parameter wins). `otexmake -imageio
+legacy|oiio` (in `--help`): a missing or unknown value prints the error and the usage and exits 2; `oiio` without OpenImageIO prints
+`OpenImageIO support is not built into this binary` and exits 1. New in `imageInput.h`: `imageBackendAvailable(EImageBackend)` and `OR_OIIO_NOT_BUILT_TEXT` (one text for
+every "not built" report, including `createImageInput`'s).
+
+**Results** (every job through cpujob):
+- `build-oiio`: `ImageIO_Selection` **passed** (the C++ cases and the CLI checks, including the `.oiio.tex` cache name).
+- `build` (OFF): `ImageIO_SelectWithoutOIIO` **passed** (one error, legacy render byte-identical, `otexmake` exit 1, no file, `Display "oiio"` error).
+- `-L 'imageio|common|state|image_input|texture_tile|texture_only|plugin_abi|architecture'`: OFF **163 of 164 passed**, ON **169 of 170 passed**; the one failure on
+  both is the existing characterization `SceneInterface_Services` (below). Everything else is green with no reference or threshold touched, `Architecture_*`
+  included (`allowlist.txt` and `metrics-baseline.txt` unchanged).
+- Linux OFF (GCC 13, `-Werror`): `tools/sync_linux.sh` (4446 files), full build exit 0, `-L 'imageio|image_input|common|state|architecture' -j2`: **74 of 75 passed**
+  (`ImageIO_SelectWithoutOIIO`, `Common_VocabularyConsistency` and `_VocabularyBothHeaders` among them); the one failure is again `SceneInterface_Services`.
+
+**`SceneInterface_Services` (spec 038's declared-set characterization) fails by design of the plan**: it compares the declared table with
+`tests/unit/scene_interface/reference/declared_set.txt`, and the pre-declaration of the two tokens (the approved plan, T079) adds two variables. The reference is
+NOT edited. The exact new capture, written to a scratch directory by the repository's own capture program (`capture_scene_interface_declared_set /tmp/or048-si --capture`,
+never `--recapture`), differs from the reference by three lines:
+```
+2c2
+< variables 121
+---
+> variables 123
+123a124,125
+> v 121 backend type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+> v 122 imageio type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+```
+Scratch left in `/tmp`: `/tmp/or048-si/` (that capture), `/tmp/or048-sel/`, `/tmp/or048-diag/`, `/tmp/or048-demo/`, `/tmp/or048-*.sh`, `/tmp/or048-dummy` (an empty file my script created by
+mistake). Disk: 5.0 GiB free.
+
+### 16a. The declared-set reference, approved and applied (2026-11-18)
+
+The maintainer approved the three-line edit of `tests/unit/scene_interface/reference/declared_set.txt` exactly as captured (`variables 121` -> `variables
+123`, plus the `v 121 backend` and `v 122 imageio` lines). It was applied by copying the capture the repository's own capture program had written to the scratch
+directory (no `--recapture`); `git diff` of the file shows exactly those three changed lines. `SceneInterface_*` re-run: `build-oiio` **10/10**, `build` (OFF)
+**10/10**, Linux OFF **10/10** (`SceneInterface_Services` green on all three). With it, Phase 5's results are: every test of the wide run green on both macOS trees and
+on Linux. Scratch left in place: `/tmp/or048-si/`, `/tmp/or048-sel/`, `/tmp/or048-diag/`, `/tmp/or048-demo/`, `/tmp/or048-dummy`, `/tmp/or048-*.sh`.
