@@ -14,6 +14,7 @@ set_property(DIRECTORY PROPERTY INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/src")
 add_library(openrenderimageio SHARED
     oiioInit.cpp
     reader.cpp
+    tiledTiffWriter.cpp
     orImageIO.h
 )
 target_compile_features(openrenderimageio PRIVATE cxx_std_20)

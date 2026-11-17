@@ -50,7 +50,10 @@ check "the tRNS PNG bakes differently under oiio (4 samples per pixel against 3)
 "$OTEXMAKE" -imageio oiio "$RLE" "$WORK/rle-oiio.tex" > /dev/null 2>&1; rc=$?
 check "otexmake -imageio oiio decodes the RLE RGBE file" $rc
 "$OTEXMAKE" "$FLAT" "$WORK/flat-legacy.tex" > /dev/null 2>&1
-check "the RLE file under oiio bakes to the bytes of the flat file under legacy" $(cmp -s "$WORK/rle-oiio.tex" "$WORK/flat-legacy.tex" && echo 0 || echo 1)
+# the same directories, tags and samples (not the same bytes: the OIIO writer adds DATETIME and SOFTWARE)
+"$TEST" compare "$WORK/flat-legacy.tex" "$WORK/rle-oiio.tex" > "$WORK/rle-compare.log" 2>&1; rc=$?
+check "the RLE file under oiio bakes to the samples and tags of the flat file under legacy" $rc
+[ $rc -eq 0 ] || cat "$WORK/rle-compare.log"
 
 # ---- Option "imageio" in a RIB: an unknown value is reported by the scene interface ----
 cat > "$WORK/opt.rib" <<RIB

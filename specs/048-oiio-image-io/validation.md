@@ -596,3 +596,132 @@ The maintainer approved the three-line edit of `tests/unit/scene_interface/refer
 directory (no `--recapture`); `git diff` of the file shows exactly those three changed lines. `SceneInterface_*` re-run: `build-oiio` **10/10**, `build` (OFF)
 **10/10**, Linux OFF **10/10** (`SceneInterface_Services` green on all three). With it, Phase 5's results are: every test of the wide run green on both macOS trees and
 on Linux. Scratch left in place: `/tmp/or048-si/`, `/tmp/or048-sel/`, `/tmp/or048-diag/`, `/tmp/or048-demo/`, `/tmp/or048-dummy`, `/tmp/or048-*.sh`.
+
+## 17. Phase 6 tests first, and the legacy bake hashes (T087 to T093), 2026-11-18
+
+**Fixtures and tools (T087).** `tests/unit/imageio/tools/gen_bake_fixtures.cpp` (a second generator; libtiff only) wrote the 27 source TIFFs of
+`tests/unit/imageio/fixtures/bake/` (run once through cpujob, "27 files written"; sizes in bytes):
+  - `env_f32_3.tif` 12506 bytes
+  - `env_u16_1.tif` 2254 bytes
+  - `env_u16_3.tif` 6362 bytes
+  - `env_u8_3.tif` 3290 bytes
+  - `pot64_u8_3.tif` 12554 bytes
+  - `shd_f32_1.tif` 4454 bytes
+  - `shd_u16_1.tif` 2406 bytes
+  - `shd_u16_3.tif` 6514 bytes
+  - `shd_u8_1.tif` 1382 bytes
+  - `tex40_f32_1.tif` 4034 bytes
+  - `tex40_f32_2.tif` 7886 bytes
+  - `tex40_f32_3.tif` 11726 bytes
+  - `tex40_f32_4.tif` 15582 bytes
+  - `tex40_f32_5.tif` 19434 bytes
+  - `tex40_f32_6.tif` 23280 bytes
+  - `tex40_u16_1.tif` 2114 bytes
+  - `tex40_u16_2.tif` 4046 bytes
+  - `tex40_u16_3.tif` 5966 bytes
+  - `tex40_u16_4.tif` 7902 bytes
+  - `tex40_u8_1.tif` 1154 bytes
+  - `tex40_u8_2.tif` 2126 bytes
+  - `tex40_u8_3.tif` 3086 bytes
+  - `tex40_u8_4.tif` 4062 bytes
+  - `tex40_u8_5.tif` 5034 bytes
+  - `tex40_u8_6.tif` 6000 bytes
+  - `thin_16x1_f32_1.tif` 222 bytes
+  - `thin_1x16_u8_3.tif` 242 bytes
+
+`tests/unit/imageio/bake_cases.h` is the one table of the 38 bake cases (texture, shadow, cylinder, cubic and spherical, plus the four
+`med_*` cases of the spec 018 `medium_rgb.tif`), 10 of them in the exclusion class (16-bit with 3 or more channels; 8-bit and float with 5 or more),
+called through the same `RiMake*V` entries `otexmake` uses (the spherical environment, which has no RI binding, through `makeSphericalEnvironment`).
+`tools/legacy_bake_hashes.cpp` (`--record`/`--check`, its own SHA-256) is registered in the always-built part of `tests/unit/imageio/CMakeLists.txt`.
+
+**T093, the legacy bake hashes, recorded on the unmodified legacy writer (before any sink split, on the OIIO-off tree of each platform):**
+- macOS: `legacy_bake_hashes --record tests/unit/imageio/fixtures/bake/legacy-bake-macos.sha256` on `build/`: **38 hashes, 0 cases without output**; an
+  immediate `--check`: 38 recorded, **0 differences** (the bake is deterministic). The four `med_*` entries equal the Phase 1 baseline's four
+  `otexmake` outputs (texture 64ef8291..., shadow f2050615..., envlatl fb3c15b3..., envcube 022604ed...): the invocation matches the CLI's.
+- Linux (GCC 13): the same tool, 38 hashes, `--check` 0 differences, in `legacy-bake-linux.sha256` (copied back, staged). The four `med_*` hashes are the same as on macOS.
+- **The two files differ in 9 of 38 entries**, all sources that are resized or 16-bit/float multi-channel (`tex_f32_1` to `_6`, `tex_u16_2`, `_3`, `_4`): the legacy
+  bytes are per platform, as approved, so each platform checks against its own file. The power-of-two and 8-bit entries agree.
+- Both files are approved references from here on: never re-recorded to make a check pass.
+
+**Tests (T088 to T091).** `bake_compare.h` (libtiff comparison: Pixar strings, matrices, full size also when equal to the data size, the field of view, geometry, tiling,
+sample layout, LZW with no predictor, EXTRASAMPLES, other tags, directory count, every in-image sample of every tile), `test_bake_parity.cpp`
+(**`ImageIO_BakeParity`**: 28 allowed cases, each baked by the legacy writer and by OIIO; the legacy-against-legacy self-check first; the SOFTWARE probe),
+`test_bake_exclusions.cpp` (**`ImageIO_BakeExclusions`**: the 10 excluded cases fall back to the legacy writer byte for byte with the `CODE_INFO` message of
+`contracts/bake-writer.md` once and before any output file; the 28 allowed cases report no such message and are written by OIIO), and
+`scenes/bake-{plain,cylinder,cubic,shadow}.rib.in` with `test_bake_render.cmake` (**`ImageIO_BakeRender`**: otexmake bakes each source without and with
+`-imageio oiio`, the scene is rendered with each, compared with `test_visual_render` at the default parity threshold **20** (approved 2026-11-14; new scenes, so no
+threshold of their own) and byte identity is reported; it also requires an OpenImageIO SOFTWARE tag in the OIIO bake, so a fallback to the legacy writer cannot pass).
+Registered under the `HAVE_OIIO` branch; the tests read both files with libtiff only.
+
+**Red run (T091)** on `build-oiio` (configured with the shared-tree guard before and after: PASS; built): `ImageIO_BakeParity` fails with 28 checks, one per case:
+the OIIO bake carries no OpenImageIO SOFTWARE tag (OIIO decodes, the legacy writer still writes), while the self-check (6 directories) and every tag and sample
+comparison pass; `ImageIO_BakeExclusions` fails with 38 checks: the 10 missing gate messages and the 28 allowed cases not written by OIIO (the byte equality of the excluded
+cases already holds); `ImageIO_BakeRender` fails on the missing SOFTWARE tag of all four scenes (the renders themselves match byte for byte).
+
+Scratch left in `/tmp` (the tool's own `mkdtemp` directories, a few MB in all): /tmp/or048_bakehash_EHPjbc, /tmp/or048_bakehash_MemSJ6; and the earlier scratch of §15 and §16a. Disk: 4.3 GiB free.
+
+Stopped at T092 (TEST-APPROVAL (Phase 6)).
+
+## 18. Phase 6 implementation (T094 to T099), 2026-11-17 (paused before CHECKPOINT 6)
+
+**T094, the sink split** (`texmake.cpp`: `CBakeSink`, `CLegacyBakeSink`, the libtiff code moved, not changed). macOS `build/` (OIIO off):
+`legacy_bake_hashes --check` against `legacy-bake-macos.sha256`: 38 recorded, 0 differences, after the split and again after T096;
+`ImageInput_TiffBakeByteIdentical` and `-L 'image_input|texture_tile|texture_only|imageio|architecture'` green (30 tests). `build-oiio/`:
+the same hash check, 38 recorded, 0 differences (the OIIO build's legacy path is unchanged too). Linux: not yet run (`~/oiio-048/048-chainJ.sh`
+is written on the host and waits for a sync and a free slot).
+
+**T095/T096.** `orimageio::TiledTiffWriter` (`src/imageio/tiledTiffWriter.cpp`, `DirectoryDesc` in `orImageIO.h`; `exports.txt` needed no
+change), `COiioBakeSink`, `kOiioBakeExclusions`, `gateBakeBackend` in `texmake.cpp`. Two things the first red-to-green run found:
+(1) the gate's message went out as `CODE_LOG`, which `CRendererContext::RiError` sends to the log file only, never to the RI error handler;
+it is `info(CODE_SYSTEM, ...)` now; (2) OIIO's TIFF writer writes no `SOFTWARE` tag unless given one, and the approved tests require an
+OpenImageIO `SOFTWARE`, so the writer sets `Software` = `OpenImageIO <version>`.
+
+**T097 on `build-oiio`:** `ImageIO_BakeParity` (28 bakes compared, every tag and sample equal to legacy), `ImageIO_BakeExclusions` (10 excluded,
+28 allowed), `ImageIO_BakeRender` (byte-identical, four scenes), `ImageInput_*` all pass. No (precision, channels) combination other than the
+two table rows needed an exclusion, so T098 (PAUSE-GATE) is not triggered.
+
+**T099:** the bake section of `DEVNOTES_DETAILS/IMAGE_IO.md` is written.
+
+**A regression to decide: `ImageIO_Selection` (approved in Phase 5) fails on `build-oiio`.** It compares an OIIO-written bake of the RLE RGBE
+file byte for byte with the legacy bake of the flat file (`test_selection.cpp` lines 71, 78 and 91; `test_selection_cli.sh` line 53, "the RLE
+file under oiio bakes to the bytes of the flat file under legacy"). That held while the OIIO backend only decoded; now that it also writes,
+its file carries OIIO's `DATETIME`, `SOFTWARE` and a different layout, so the bytes differ although the pixels and tags agree (the same
+pixels are proven equal by `ImageIO_BakeParity`). The approved tests are not edited. Proposed edit for approval: compare the baked directories
+sample by sample with `bake_compare.h`'s libtiff comparison (the helper Phase 6 added) instead of `cmp`/`bytesOf`, keeping every other check.
+Everything else of the `imageio|image_input|texture_tile|texture_only|architecture` set passed on `build-oiio` (77 tests, 1 failure) and on `build`.
+
+Scratch left in place: `/tmp/or048-texmake-before.cpp`, `/tmp/or048-t096/`, `/tmp/or048-p6[a-g]-chain.sh`, `build/p6d-*.log`, `build/p6g-*.log`,
+`build-oiio/p6e-*.log`, `build-oiio/p6f-*.log`, `build-oiio/p6g-*.log`, plus the earlier scratch. Disk about 5.5 GB free at the last check.
+
+Paused at the coordinator's request (swap pressure) after the p6g chain; no job running. Open before CHECKPOINT 6: the `ImageIO_Selection` decision,
+the Linux OFF checks (sync, build `-j2`, hash check against `legacy-bake-linux.sha256`, `-L imageio|image_input|texture_tile|texture_only|architecture`),
+and the CHECKPOINT 6 report.
+
+### 18a. Approved edits applied, not yet built or run (jobs held for memory pressure)
+
+Approved by the maintainer through the coordinator: (1) `ImageIO_Selection` compares the OIIO bake of the RLE RGBE file with the legacy bake of
+the flat file directory by directory and sample by sample (`bakecmp::compare`, `bake_compare.h`) instead of byte for byte: `test_selection.cpp`
+gets a `sameBake()` helper used at the three former `bytesOf(...) == flatBytes` checks (prec-2, prec-3, prec-5; the three negative legacy checks
+keep their byte comparison) and a `compare <legacy.tex> <other.tex>` mode, and `test_selection_cli.sh` line 53 calls that mode (its description now
+reads "bakes to the samples and tags of the flat file under legacy"). (2) `makeCubicEnvironment` reports a face whose header cannot be opened once:
+the OpenImageIO pre-scan records it (`unreadableFace`) and the face loop stops there without opening it again. Both staged; to be built and run
+on `build-oiio` when jobs resume.
+
+### 18b. Phase 6 results after the approved edits (T094 to T099), 2026-11-17
+
+macOS `build-oiio/` (OIIO on; build exit 0; the vcpkg guard before and after: shared tree untouched):
+`ctest -L 'image_input|texture_tile|texture_only|imageio|architecture'`: **77 of 77 passed** (100%), including `ImageIO_Selection` (with the
+sample-by-sample comparison), `ImageIO_BakeParity`, `ImageIO_BakeExclusions`, `ImageIO_BakeRender`, `ImageInput_*` and the 39 architecture tests.
+`legacy_bake_hashes --check legacy-bake-macos.sha256`: 38 recorded, 0 differences.
+
+macOS `build/` (OIIO off): same label set, 100% passed (30 tests); `legacy_bake_hashes --check legacy-bake-macos.sha256`: 38 recorded, 0 differences.
+
+Linux OFF tree (`openrender-048`, sync of 4487 files verified; full `cmake --build build -j2` exit 0): `legacy_bake_hashes --check legacy-bake-linux.sha256`:
+38 recorded, **0 differences**; `ctest -L 'imageio|image_input|texture_tile|texture_only|architecture'`: 67 of 68 passed; the one failure is
+`TextureTile_RenderByteIdentical` (GitHub #45, the named Linux starting-tree failure: env-reyes and env-raytrace differ from the Mac-built references).
+No Linux run has an OIIO build until Phase 8 (M3b).
+
+No threshold changed, no test disabled, no reference re-recorded. Scratch additions: `/tmp/or048-p6h-chain.sh`, `build/p6h-*.log`, `build-oiio/p6h-*.log`,
+`~/oiio-048/048-chainJ.sh` and `build-logs/p6j-*.log` on the Linux host.
+
+CHECKPOINT 6 reached.

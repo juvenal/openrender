@@ -51,6 +51,15 @@ function(imageio_select_program target source)
     target_link_libraries(${target} PRIVATE ribRender openrendercommon TIFF::TIFF)
 endfunction()
 
+# Phase 6 tools (always built: T093 records the legacy bake hashes on the OIIO-off tree). Test-only, never installed.
+add_executable(gen_bake_fixtures tools/gen_bake_fixtures.cpp)
+target_compile_features(gen_bake_fixtures PRIVATE cxx_std_20)
+target_link_libraries(gen_bake_fixtures PRIVATE TIFF::TIFF)
+add_executable(legacy_bake_hashes tools/legacy_bake_hashes.cpp)
+target_compile_features(legacy_bake_hashes PRIVATE cxx_std_20)
+target_include_directories(legacy_bake_hashes PRIVATE ${IMAGEIO_SELECT_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(legacy_bake_hashes PRIVATE ribRender openrendercommon TIFF::TIFF)
+
 # --- build with OIIO ----------------------------------------------------------------------------------------------
 if(HAVE_OIIO)
     # US5: src/imageio/ includes only the standard library, its own published header, common/ and OIIO's headers.
@@ -122,6 +131,30 @@ if(HAVE_OIIO)
             "-DFIXTURES=${IMAGEIO_COLOUR_FIXTURES}"
             -P ${CMAKE_CURRENT_SOURCE_DIR}/run_two_ocio_envs.cmake)
     set_tests_properties(ImageIO_NoColourConversion PROPERTIES TIMEOUT 120 LABELS "imageio;unit")
+
+    # --- Phase 6: baking through OIIO (US3). The writers are compared by reading both files with libtiff ---
+    function(imageio_bake_program target source)
+        imageio_select_program(${target} ${source})
+    endfunction()
+    imageio_bake_program(test_bake_parity test_bake_parity.cpp)
+    add_test(NAME ImageIO_BakeParity COMMAND test_bake_parity)
+    set_tests_properties(ImageIO_BakeParity PROPERTIES TIMEOUT 120 LABELS "imageio;unit" ENVIRONMENT "${IMAGEIO_RENDER_ENV};IMAGE_INPUT_FIXTURES_DIR=${CMAKE_SOURCE_DIR}/tests/unit/image_input/fixtures")
+    imageio_bake_program(test_bake_exclusions test_bake_exclusions.cpp)
+    add_test(NAME ImageIO_BakeExclusions COMMAND test_bake_exclusions)
+    set_tests_properties(ImageIO_BakeExclusions PROPERTIES TIMEOUT 120 LABELS "imageio;unit" ENVIRONMENT "${IMAGEIO_RENDER_ENV};IMAGE_INPUT_FIXTURES_DIR=${CMAKE_SOURCE_DIR}/tests/unit/image_input/fixtures")
+    # US3-3: the scenes render alike with a legacy-baked and an OIIO-baked texture (visual metric, threshold 20)
+    add_test(NAME ImageIO_BakeRender
+        COMMAND ${CMAKE_COMMAND}
+            -DOTEXMAKE=$<TARGET_FILE:otexmake>
+            -DORENDER=$<TARGET_FILE:orender>
+            -DTEST_VISUAL_RENDER=$<TARGET_FILE:test_visual_render>
+            -DSCENES=${CMAKE_CURRENT_SOURCE_DIR}/scenes
+            -DBAKE=${IMAGEIO_FIXTURES_DIR}/bake
+            -DWORK=${CMAKE_CURRENT_BINARY_DIR}/bake-render
+            -DTHRESHOLD=20
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/test_bake_render.cmake)
+    set_tests_properties(ImageIO_BakeRender PROPERTIES TIMEOUT 300 LABELS "imageio;unit"
+        ENVIRONMENT "${IMAGEIO_RENDER_ENV}" DEPENDS "orender;otexmake;test_visual_render")
 
     # FR-012: the difference list's data file and its rendering in DEVNOTES_DETAILS/IMAGE_IO.md name the same ids.
     add_test(NAME ImageIO_DifferenceListDoc

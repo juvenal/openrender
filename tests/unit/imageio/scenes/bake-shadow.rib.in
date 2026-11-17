@@ -1,0 +1,20 @@
+##RenderMan RIB-Structure 1.0
+# ImageIO_BakeRender (spec 048, US3-3): a ground polygon lit by a shadow-mapped spotlight, with the shadow map legacy-baked and
+# OIIO-baked (@TEXTURE@). See bake-plain.rib.in.
+version 3.03
+Hider "reyes"
+Display "bake-shadow.tif" "file" "rgba"
+Format 64 64 1
+PixelSamples 2 2
+Projection "perspective" "fov" 35
+Translate 0 -0.05 3
+Rotate -30 1 0 0
+Rotate 20 0 1 0
+Scale 1 1 -1
+WorldBegin
+  LightSource "shadowspot" 1 "intensity" 120 "coneangle" 0.6 "from" [0 1.5 0.5] "to" [0 0 0] "shadowname" ["@TEXTURE@"]
+  Surface "matte"
+  Polygon "P" [-0.5 0 -0.5  -0.5 0 0.5  0.5 0 0.5  0.5 0 -0.5] "st" [0 0  0 1  1 1  1 0]
+  Translate 0 0.2 0
+  Sphere 0.2 -0.2 0.2 360
+WorldEnd

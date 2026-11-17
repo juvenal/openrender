@@ -76,6 +76,46 @@ namespace orimageio {
             Impl *impl;
     };
 
+    // One directory (one image of a pyramid, one cube face level) of a tiled TIFF that TiledTiffWriter writes. The
+    // writer states the facts of the baked-texture container (research R8): LZW without predictor, orientation
+    // top-left, resolution unit none with 1 and 1, tiles of tileSize, one unassociated alpha for a 2 or 4 channel
+    // 8-bit or float directory, and no extra-samples tag for a 16-bit one. The caller (Texturing) decides which
+    // (precision, channels) combinations it hands to the writer.
+    struct DirectoryDesc {
+            int width = 0, height = 0;   // the data size; the pixels are tightly packed, row-major, channels interleaved
+            int channels = 0;            // 1 to 4
+            SampleType type = SampleType::UInt8; // UInt8, UInt16 or Float
+            int tileSize = 0;            // tiles are tileSize x tileSize
+            int fullWidth = 0;           // the valid size (PIXAR_IMAGEFULLWIDTH/LENGTH); 0 writes none
+            int fullHeight = 0;
+            const char *textureFormat = nullptr; // PIXAR_TEXTUREFORMAT, when given
+            const char *wrapModes = nullptr;     // PIXAR_WRAPMODES, when given
+            const float *worldToCamera = nullptr; // PIXAR_MATRIX_WORLDTOCAMERA (16 floats), when given
+            const float *worldToScreen = nullptr; // PIXAR_MATRIX_WORLDTOSCREEN (16 floats), when given
+    };
+
+    // Writer of the baked-texture container: a TIFF of tiled directories. The first directory creates the file,
+    // each later one is appended as another directory (never an OIIO MIP level). A failed write is reported through
+    // error() naming the file and OIIO's message, and close() then returns false and removes the file.
+    class ORIMAGEIO_API TiledTiffWriter {
+        public:
+            explicit TiledTiffWriter(const char *path);
+            ~TiledTiffWriter();
+            TiledTiffWriter(const TiledTiffWriter &) = delete;
+            TiledTiffWriter &operator=(const TiledTiffWriter &) = delete;
+
+            // Writes one directory. False on failure (the writer is then failed: later calls return false).
+            bool appendDirectory(const DirectoryDesc &desc, const void *pixels);
+
+            // Finishes the file. True when every write succeeded; otherwise false, with the partial file removed.
+            // Idempotent.
+            bool close();
+
+        private:
+            struct Impl;
+            Impl *impl;
+    };
+
     // The OpenImageIO version this library was built against, e.g. "3.1.14". One-time OIIO setup is done lazily
     // inside every entry point of the library (std::call_once), this one included.
     ORIMAGEIO_API const char *oiioVersion();

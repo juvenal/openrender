@@ -4,12 +4,24 @@
 // is the call's parameter, then the Option, then "legacy". It is observed through DECODING (the OIIO writer arrives in
 // Phase 6): the 4x4 RGB PNG with a tRNS chunk bakes to 3 samples per pixel when the legacy decoder read it and to 4
 // when OIIO did (D-PNG-TRNS), and the RLE RGBE file only decodes on OIIO (D-RGBE-RLE), so its baked texture equals the
-// bake of the same pixels written flat only when OIIO decoded it.
+// bake of the same pixels written flat only when OIIO decoded it. The two bakes are compared directory by directory and
+// sample by sample (bake_compare.h), not byte for byte: now that OIIO also writes (Phase 6), its file differs from the
+// legacy one in DATETIME, SOFTWARE and layout though the tags and samples are the same.
 //
 // One RiBegin/RiEnd session per case; the case is the first argument: option, precedence, unknown_call.
+#include "bake_compare.h"
 #include "selection_harness.h"
 
 using namespace sel;
+
+// True when `other` (written by whichever backend) holds the same directories, tags and samples as the legacy bake `legacyPath`
+static bool sameBake(const std::string &legacyPath, const std::string &other, const char *name) {
+    if (!exists(other))
+        return false;
+    const int before = failures();
+    bakecmp::compare(legacyPath, other, name);
+    return failures() == before;
+}
 
 static const char *kUnknownText = "Unknown image backend \"bogus\" (expected \"legacy\" or \"oiio\")";
 
@@ -68,14 +80,14 @@ static void casePrecedence() {
     }
     // 2. the call alone: oiio
     CHECK(samplesPerPixel(bake(trns, "prec-2-trns.tex", "oiio")) == 4);
-    CHECK(bytesOf(bake(rle, "prec-2-rle.tex", "oiio")) == flatBytes);
+    CHECK(sameBake(flatTex, bake(rle, "prec-2-rle.tex", "oiio"), "prec-2-rle"));
     RiEnd();
 
     // 3. the Option alone: oiio
     RiBegin(RI_NULL);
     setBackend("oiio");
     CHECK(samplesPerPixel(bake(trns, "prec-3-trns.tex", nullptr)) == 4);
-    CHECK(bytesOf(bake(rle, "prec-3-rle.tex", nullptr)) == flatBytes);
+    CHECK(sameBake(flatTex, bake(rle, "prec-3-rle.tex", nullptr), "prec-3-rle"));
     // 4. the call wins over the Option: oiio Option, legacy call
     CHECK(samplesPerPixel(bake(trns, "prec-4-trns.tex", "legacy")) == 3);
     {
@@ -88,7 +100,7 @@ static void casePrecedence() {
     RiBegin(RI_NULL);
     setBackend("legacy");
     CHECK(samplesPerPixel(bake(trns, "prec-5-trns.tex", "oiio")) == 4);
-    CHECK(bytesOf(bake(rle, "prec-5-rle.tex", "oiio")) == flatBytes);
+    CHECK(sameBake(flatTex, bake(rle, "prec-5-rle.tex", "oiio"), "prec-5-rle"));
     RiEnd();
 }
 
@@ -103,8 +115,13 @@ static void caseUnknownCall() {
 }
 
 int main(int argc, char **argv) {
+    // compare <legacy.tex> <other.tex>: the same directories, tags and samples (used by test_selection_cli.sh)
+    if (argc == 4 && strcmp(argv[1], "compare") == 0) {
+        bakecmp::compare(argv[2], argv[3], "compare");
+        return finish("compare");
+    }
     if (argc != 2) {
-        fprintf(stderr, "usage: test_selection <option|precedence|unknown_call>\n");
+        fprintf(stderr, "usage: test_selection <option|precedence|unknown_call> | compare <legacy.tex> <other.tex>\n");
         return 2;
     }
     if (strcmp(argv[1], "option") == 0)

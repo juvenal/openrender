@@ -78,3 +78,50 @@ Decoding never converts a colour: no `ColorConfig` conversion call exists anywhe
 bytes (or half and float values) the file holds. OpenColorIO may still be loaded by OIIO itself, for metadata, for instance
 on a PNG with a `cICP` chunk. `ImageIO_NoColourConversion` decodes a `cICP` PNG, a PNG, a TIFF and an EXR with `OCIO`
 unset and with `OCIO` pointing at a different configuration, and requires identical samples, equal to the legacy decode.
+
+## Baking through OpenImageIO (FR-015 to FR-017, Phase 6)
+
+`Option "imageio" "backend" "oiio"` (or a per-call `"imageio" "oiio"`) also selects the **writer** of the five `make*` entry points
+(`makeTexture`, `makeSideEnvironment`, `makeCubicEnvironment`, `makeCylindericalEnvironment`, `makeSphericalEnvironment`), by the same
+precedence as the decoder. What is written is the pyramid our own code computes (`adjustSize`, `filterScaleImage`, `appendPyramid`);
+only the storage step differs. `texmake.cpp` hands each layer to a file-local `CBakeSink`: `CLegacyBakeSink` holds the libtiff code
+that was always there (moved, not changed: `ImageInput_TiffBakeByteIdentical` and `legacy_bake_hashes --check` pin it byte for byte),
+`COiioBakeSink` calls `orimageio::TiledTiffWriter` (`src/imageio/tiledTiffWriter.cpp`). Reading baked textures is unchanged.
+
+- **The per-directory tag rule.** The tags set before `appendLayer()` belong to that directory only and are then cleared, which is
+  libtiff's `TIFFWriteDirectory` behaviour. So `PIXAR_TEXTUREFORMAT` (and `PIXAR_WRAPMODES`, and the two shadow matrices) sit on
+  directory 0, and the full size sits on the first directory of each pyramid (the six cube faces each have one). The OIIO sink keeps
+  the same model: pending values, written with the next directory, then cleared. The first directory is opened with `Create`, each
+  later one with `AppendSubimage` (never a MIP level, so no `SUBFILETYPE`).
+- **The full-size rule.** OIIO's TIFF writer writes `PIXAR_IMAGEFULLWIDTH/LENGTH` as `full + offset`, and only when the display window
+  differs from the data window or has an offset. A bake carries them even when they equal the data size (they are the valid size), so
+  the writer states the window as `full_x = 1, full_width = F - 1` on x, and the same on y when the valid length is at least 2; a valid
+  length of 1 stays plain on y (a 1x1 image writes `full_x = 1, full_width = 0, full_height = 1`: written 1, 1). The parity test
+  compares these tags directory by directory, so a later OIIO that changed the rule fails loudly.
+- **What else the writer states.** LZW with `tiff:Predictor` 1, orientation top-left, resolution unit none with X and Y resolution 1,
+  tiles of the bake's tile size, unassociated alpha for a 2 or 4 channel 8-bit or float directory, no extra-samples tag for a 16-bit
+  one (`tiff:write_extrasamples` 0), and a `Software` tag (`OpenImageIO <version>`), because OIIO writes that tag only when given one.
+  `SOFTWARE` and `DATETIME` are the only tags an OIIO bake carries that the legacy one does not; no Pixar tag is ever extra.
+- **The exclusion table (FR-017).** OIIO derives `PHOTOMETRIC` and `EXTRASAMPLES` from the channel count; the legacy writer sets them
+  by its own rule, so OIIO writes a (precision, channels) combination only where the two agree. One rule, every kind, one table
+  (`kOiioBakeExclusions` in `texmake.cpp`, checked once per `make*` call before any output file exists):
+
+  | Precision | Channels | Writer | Why |
+  |---|---|---|---|
+  | 16-bit | 3 or more | legacy | OIIO writes `PHOTOMETRIC_RGB`; the texture reader reads that on a 16-bit texture as the half-range pixar encoding and scales it (GitHub #18) |
+  | 8-bit, float | 5 or more | legacy | OIIO writes `PHOTOMETRIC_RGB`; the legacy writer leaves it unset |
+  | 16-bit | 1 or 2 | OIIO | equal to legacy (`MINISBLACK`, no extra samples) |
+  | 8-bit, float | 1 to 4 | OIIO | equal to legacy |
+
+  An excluded bake goes to the legacy writer and reports once, as an information message (`CODE_SYSTEM` severity info: the RI error
+  handler never sees `CODE_LOG`): `"<output>: 16-bit <n>-channel textures are baked by the legacy writer (...)"` or
+  `"<output>: <n>-channel textures are baked by the legacy writer (...)"`. No OIIO-written file of an excluded kind is produced. A cube
+  environment chooses the writer once for its six faces: the faces' headers are read first, and any excluded face sends the whole
+  bake to the legacy writer.
+- **The disk cache of spec 020.** `Option "texturecache"` bakes through `makeTexture` with `"imageio" "oiio"` when the backend is
+  OIIO, so the cache entry is written by the OIIO writer (`<hash>-<mtime>.oiio.tex`) and by the legacy writer otherwise.
+- **Tests.** `ImageIO_BakeParity` (28 allowed cases: every tag of every directory and every in-image sample equal to the legacy bake of
+  the same platform), `ImageIO_BakeExclusions` (the 10 excluded cases: message once, before the output exists, output equal to the
+  legacy bake; and the 28 allowed ones: written by OIIO), `ImageIO_BakeRender` (legacy-baked against OIIO-baked texture renders, one
+  scene per kind, byte-identical at threshold 20). The legacy bake hashes are per platform (`legacy-bake-macos.sha256`,
+  `legacy-bake-linux.sha256`), each checked against its own file.
