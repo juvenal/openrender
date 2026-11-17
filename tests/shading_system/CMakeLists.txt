@@ -67,8 +67,8 @@ if(TARGET state_only_sources)
     endif()
 endif()
 
-# Still red (their phase has not come)
-if(OPENRENDER_033_RED_TESTS AND TARGET state_only_sources AND OPENRENDER_HAVE_LLVM)
+# Enabled in Phase 8 (the Test gate)
+if(OPENRENDER_HAVE_LLVM)
     # libRSLInfo only: never libshader_shading / libRSLRuntime (the two share the flex/bison globals)
     add_executable(test_shading_system_metadata_shipped test_metadata_shipped.cpp)
     target_compile_features(test_shading_system_metadata_shipped PRIVATE cxx_std_20)
@@ -91,8 +91,8 @@ if(OPENRENDER_HAVE_LLVM)
     add_test(NAME ShadingSystem_GroupOneLayer COMMAND $<TARGET_FILE:test_shading_system_group_one_layer>)
     set_tests_properties(ShadingSystem_BindOrder ShadingSystem_GroupOneLayer PROPERTIES
         TIMEOUT 120 LABELS "shading_system" ENVIRONMENT "${SHADING_SYSTEM_ENV}")
-    # Still red
-    or033_red_test(ShaderMetadata_Shipped
+    # Enabled in Phase 8
+    or033_test(ShaderMetadata_Shipped
         COMMAND $<TARGET_FILE:test_shading_system_metadata_shipped> ${CMAKE_BINARY_DIR}/shaders ${CMAKE_SOURCE_DIR}/tests/shaders/references/sloinfo137 rslo,slo
         LABELS "libshader;shading_system")
 else()

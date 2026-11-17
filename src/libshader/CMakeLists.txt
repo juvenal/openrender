@@ -8,11 +8,13 @@
 #   compiler/   — RSL→.rslo compiler  (CScriptContext, IR, passes, emitter)
 #                 Builds: libshader_compiler  (used by oshader tool)
 #
-#   runtime/    — .rslo inspection loader (rsloGet / rsloDelete)
-#                 Builds: libshader_runtime  (used by sloinfo tool)
+#   runtime/    — the .rslo inspection parser (rsloGet / rsloDelete), an object library
+#   metadata/   — the shader-metadata API and its readers; builds libRSLInfo (shared + static, used by the sloinfo tool), which
+#                 contains the parser of runtime/ (libshader_runtime was renamed libRSLInfo by spec 033; the old names resolve
+#                 for one release)
 #
 #   shading/    — RSL interpreter + built-ins (execute, shader, shading)
-#                 Builds: libshader            (used by renderer via ri/)
+#                 Builds: libRSLRuntime (formerly libshader_shading; used by the renderer via ri/)
 #
 # Public headers: include/openrender/RSLShading.h, RSLShadingState.h
 #
@@ -20,7 +22,8 @@
 #   All three rslo parsers currently use the same bison/flex prefix "rslo".
 #   Keeping them in separate libraries avoids linker conflicts.  The prefix
 #   would need to be made unique per-parser before they could be merged into
-#   a single shared library (Phase B work).
+#   a single shared library (Phase B work). libRSLInfo and libRSLRuntime are never linked into one program
+#   (Link_InfoRuntimeNotCoLinked).
 
 # No cmake_minimum_required() here on purpose: this file is only ever reached
 # through add_subdirectory(), and a subdirectory call would reset the policy
@@ -29,4 +32,5 @@
 add_subdirectory(compiler)
 add_subdirectory(runtime)
 add_subdirectory(shading)
+add_subdirectory(metadata)
 add_subdirectory(tests)

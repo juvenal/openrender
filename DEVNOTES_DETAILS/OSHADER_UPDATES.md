@@ -91,7 +91,7 @@ The new `supertexmap` surface shader (`supertexmap.sl`) provides a high-performa
 ## LLVM JIT Shading Engine
 
 `oshader` can now compile RSL shaders to LLVM bitcode (`.slo`) using the `--jit` flag.
-The JIT runtime in `libshader_shading` loads `.slo` files at render time and executes
+The JIT runtime in `libRSLRuntime` (formerly `libshader_shading`, renamed by spec 033) loads `.slo` files at render time and executes
 them natively via LLVM LLJIT, sharing the same `op_*`/`rsl_*` C-linkage runtime ABI used
 by the `.rslo` interpreter.
 
@@ -197,6 +197,11 @@ though the metadata probe itself never touched those symbols. Fix: `extractMetad
 into a new minimal static library `libshader_jitmeta` (LLVM `core`/`bitreader`/`support` only);
 `sloinfo` links `libshader_jitmeta` instead of `libshader_shading`. See
 [BUGS.md](BUGS.md) for the full crash writeup.
+
+*Since spec 033:* `libshader_shading` is `libRSLRuntime`; `libshader_jitmeta` is the internal static library `libRSLJitMeta`
+(the old name stays an `ALIAS` for one release); and `sloinfo` reads shaders through the metadata API only (`ShaderMetadata.h`),
+linking `libRSLInfo`, whose shared build holds the `.slo` probe (LLVM sits inside that library, not in `sloinfo`). `libRSLInfo` and
+`libRSLRuntime` are never linked into one program (`Link_InfoRuntimeNotCoLinked`): both define the flex/bison `rslo*` globals.
 
 ### Shader format selection
 

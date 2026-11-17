@@ -316,6 +316,9 @@ request. Run `ctest -L architecture` locally before review.
   - `libshader_shading`'s include path lists `src/ri/{core,parse,state,texture}` and `src/ri` itself (measured at the end of spec 029,
     2026-11-04; the Geometry directory was the last cross-domain one to leave it), so a Geometry
     or Hiders header cannot be included by Shading at compile time. Other domains' include paths are unchanged.
+    (Re-measured 2026-11-17 during spec 033, on `libRSLRuntime`, the renamed library: its compile line lists `src/ri/hiders` and
+    `src/ri/geometry` again, as the stale `libshader_shading` compile line of an earlier tree already did; `ShadingScope_Greps` S1a/S1e did not
+    notice because its include-list parse read nothing. See `specs/033-shading-system-backends/validation.md` section 4.)
 - **Size**: not a dependency edge; tracked by review and by the architecture check.
 - **Direction**: per-domain include visibility first, then per-domain OBJECT targets as each layer
   lands.

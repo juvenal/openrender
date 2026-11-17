@@ -40,7 +40,7 @@ DerivedData/
 xcuserdata/
 
 # Project test installs
-openrender/
+/openrender/
 
 # Hugo builds
 docs/site/public

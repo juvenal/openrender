@@ -221,9 +221,43 @@ What 2.4.0 now holds (the one history entry, written in Phase 3, already named e
 **One departure from the task text.** The JIT's `jitShaderNameS` looped over the batch's points and would have asked once per point (9 requests for 3 points); the interpreter evaluates it once (uniform). To make both backends ask the same (the test counts exactly three), `jitShaderNameS` asks again only when the type string differs from the previous point's. The result is the same string at every point; no other JIT change.
 Approved-test edit: `tests/shading_contract/contract_forwarder.h` forwards `getShaderName` to the inner services without recording it (so the Phase 1 record of `cm_shadername`, "no requests", still holds).
 
+### Phase 8 (T116 to T135; the metadata API, `libRSLInfo`, and the library renames)
+
+macOS (`build` and `build-nojit`; Linux is recorded in the table's right column when its run is done):
+
+| Check | macOS | Linux (GCC 13, `-Werror`) |
+|---|---|---|
+| CP-a build | `build` and `build-nojit` rc=0 | `rc=0` (the first attempt failed on `ShaderMetadata.h`, see F-9; the re-run is the record) |
+| Part A: `SloinfoGoldenOutput`, `Sloinfo_Output137` | green; `Sloinfo_Output137` identical to the Phase 1 record (137 shaders x 2 formats, byte for byte) | green (in the suite) |
+| Part A: `ShaderMetadata_Shipped`, `Sloinfo_MetadataApiOnly` (+ fixture) | green | green |
+| `sloinfo` links | `otool -L`: `libRSLInfo.1.dylib`, `libRIBCommon.1.dylib`, system libs; **not** `libRSLRuntime`; `sloinfo` is 34,648 bytes (was 6,441,784 with LLVM inside); `libRSLInfo.1.0.0.dylib` is 6,482,672 bytes | `ldd`: `libRSLInfo.so.1`, `libRIBCommon.so.1`; not `libRSLRuntime`; `sloinfo` 21,392 bytes |
+| `sloinfo` start-up (R12 measurement 1, 100 loads x 274 objects, 5 passes, first discarded) | median **136.243 s**, min 130.384, max 147.500, spread 17.117 (Phase 1: 131.731, spread 15.459): +3.4%, inside the pass rule (before + max(5%, 2 x spread) = 162.6 s) | |
+| in-process loads (R12 measurement 2) | `.rslo` median 8.663 ms (Phase 1: 9.480); `.slo` median 545.224 ms (Phase 1: 615.369) | |
+| CP-b suite (`-LE determinism-sweep`) | first run 1384 tests, 1382 passed (`ShadingScope_Greps`, `Link_RenameAliases` on stale files: section 4, F-7 and F-8); **after the F-7 to F-9 fixes: 1384 tests, 1383 passed in one run and the other, `ShadingParity_JitPL_trace_samples_cone`, hit its timeout under the host's load and passed alone (56.28 s), so 1384 of 1384** | 1385 tests, 1380 passed: the baseline's two (#45, #163), `ShadingScope_Greps` and `Link_RenameAliases` (section 4), and `Link_InfoRuntimeNotCoLinked` on its first run (CMake 3.28 needs policy CMP0057: fixed in the script; the test then passes alone on Linux) |
+| CP-d images | 0 differing, 0 missing (65 fresh images, information only); `MaxBlockAvgDiff` rows identical (empty diff) | 0 differing, 0 missing; rows identical |
+| CP-c architecture | 42/42; `archcheck` PASS, `ALLOWED DB-004 x 3 DB-011 x 144`, TOTAL 491/71, Shading 0/0; **`CONSUMER` 71 -> 69 (`sloinfo` 3 -> 1: only `ShaderMetadata.h`)**; `oshader`'s 3 edges are its own compiler's headers (`llvmEmitter.h`, `opcodes.h`, `rslo.h`): nothing of `oshader` is this spec's; allowlist and `domain-map.txt` diffs empty | 42/42; same figures (`CONSUMER` 69) |
+| CP-m contract tests | 249/249 | 249/249 |
+| CP-v | version `{2, 4, 0}`, no `static_assert` edited | same tree |
+| Part B: the files | `build/src/libshader/shading`: `libRSLRuntime.1.0.0.dylib`, `.1.dylib`, `.dylib`, and the symlink `libshader_shading.dylib -> libRSLRuntime.dylib`; `build/src/libshader/metadata`: `libRSLInfo.1.0.0.dylib`, `.1.dylib`, `.dylib`, `libRSLInfo.a`, and the symlinks `libshader_runtime.dylib`/`libshader_runtime.a`; `otool -L libRIBRender.dylib` names `libRSLRuntime.1.dylib` | `libRSLRuntime.so{,.1,.1.0.0}` and the link `libshader_shading.so`; `libRSLInfo.so{,.1,.1.0.0}`, `libRSLInfo.a` and the links `libshader_runtime.so`/`.a` |
+| `Link_InfoRuntimeNotCoLinked` | green; 356 link lines (the install-layout and package sub-builds are not read), the dependency closure of 340 images; **mutation checks fail as they must**: a scratch link line naming `RSLInfo` and `RSLRuntime`, and a scratch dependency list giving `sloinfo` a second owner | green (359 link lines, 343 images); both mutation checks fail as they must (`.so.1` names) |
+| `ShadingContract_StandaloneLinkLine`, `PluginAbi_InstallLayouts` (`install_consumer`, old and new export names), `Link_*`, `Common_StateOwnership` | green with the three approved edits | green (except the two in section 4) |
+
+**The interim state (T127, `build`).** With the CMake rename in and the three test files not yet edited: `ShadingContract_StandaloneLinkLine` red (`shader_shading` absent from the link line, as intended); `PluginAbi_InstallLayouts` green only through the exported alias; `ShadingScope_Greps` **green with the stale `libshader_shading.dir/flags.make` still on disk**, and in `build-nojit` the stale directory is likewise on disk (nothing deleted). See section 4 for what that test really checked.
+
+**The opt-in package test (T131), Linux only (the maintainer's rule: on the Linux host, at the default `CPUJOB_TIMEOUT`).** `-DOPENRENDER_LINK_PACKAGE_TEST=ON`, `ctest -L '^link-package$'` through the remote `cpujob`: `Link_PackageStaticConsumer` **passed in 569.96 s** (the scratch install and the consumer, both formats; no timeout), then the option was set OFF again. It consumes the installed package's Static component (`openRender::RIBRender_static`); it does not name `RSLRuntime`/`RSLInfo`, so the old and new export names are proven by `PluginAbi_InstallLayouts`'s `install_consumer` (green on both platforms, all of `RSLRuntime`, `RSLInfo`, `shader_shading`, `shader_runtime`). Left on the Linux host: `build/tests/link/package_work` (the scratch install and consumer tree); no `build-pkg` was created.
+
 ## 2. Red evidence
 
 Phase 1 has none (the characterisations pass on the starting tree by construction).
+
+### Phase 8, T116 and T122: the Test gates
+
+Part A (T116, before the source edits): `ShaderMetadata_Shipped` failed to build (`fatal error: 'libshader/include/openrender/ShaderMetadata.h' file not found`); `Sloinfo_MetadataApiOnly` reported 14 violations in `src/sloinfo` (`rslo.h`, `libshader/shading/llvmJit.h`, `libshader/shading/sloMetadata.h` and the names `rsloGet`, `rsloDelete`, `CLLVMJitEngine`, `SLOShaderInfo`, `TRSLObjectShader`, plus `CLLVMJitEngine` in `src/sloinfo/CMakeLists.txt`'s comment); its fixture run passes by `WILL_FAIL`.
+Part B (T122): `Link_RenameAliases` -- "no such target (the renames are not done): RUNTIME;RUNTIME_ALIAS;INFO;INFO_ALIAS;INFO_STATIC;INFO_STATIC_ALIAS;RSLO_ALIAS;RSLO_STATIC_ALIAS;COMPILER", from the script run with every target value empty (the state before the renames).
+
+### Phase 8, T114: the hazard the `check_scope.cmake` edit closes
+
+`ShadingScope_Greps` (S1a, S1e) reads the shading library's include list from `build/src/libshader/shading/CMakeFiles/libshader_shading.dir/flags.make`. After the rename the live target is `libRSLRuntime`, so that file is no longer rewritten. In a **fresh** tree it is absent, and S1a/S1e already fail ("cannot read the shading library's include path"). In an **incremental** tree (`build`, `build-nojit`, the Linux tree) the old `libshader_shading.dir/flags.make` stays on disk, so S1a/S1e stay green while they check the *old* include list and not `libRSLRuntime`'s. The proposed edit (`tools/rename-test-edits.patch`) points the path at `libRSLRuntime.dir/flags.make` and makes an empty include list `FATAL_ERROR`. T127 records the actual outcome per tree before the edit is applied; nothing is deleted (the stale directory is left, and asked about).
 
 ### Phase 6, T098: the Test gate
 
@@ -330,6 +364,33 @@ them, when an untracked non-ignored file exists: tested with a temporary file). 
 - The `ShadingSystem_*` tests other than `NoJitFallback` and the tests that need `.slo` are registered in trees with the JIT only; `NoJitFallback` in trees without it.
 
 **Departure, Phase 5: `libshader::initialiseInstance()` stays.** The approved list removed it, but the approved, committed test `ShadingSystem_BindUnknownSpace` (`test_bind_unknown_space.cpp:65`) calls it on a bare instance, and an approved test is not edited. It is the same one-line forward as before (`instance.parent->backend->initialise(instance)`), no longer called by the core; `ShadingSystem::bind()` calls the backend's `initialise()` directly. If the maintainer wants it gone, that test needs a one-line edit (to be shown as a diff first).
+
+**Phase 8 findings and departures (nothing below was fixed beyond the approved edits; the first two need the maintainer):**
+
+- **F-7 (`ShadingScope_Greps` S1a/S1e were vacuous): resolved, option A (maintainer-approved 2026-11-17).** `check_scope.cmake` read the shading library's include list with
+  `if(_t MATCHES "^-I(.*)$" OR _t MATCHES "^-isystem(.*)$")` and then `${CMAKE_MATCH_1}`: both operands of an `OR` are evaluated, the second fails and clears `CMAKE_MATCH_1`, so
+  `_include_dirs` stayed empty (CMake 4.4.5 on macOS; the Linux run read nothing either) and S1a ("`src/ri/hiders` is not on the include path") and S1e (the same for `src/ri/geometry`) passed on
+  any list. The approved `FATAL_ERROR` on an empty list turned that into red in every tree. The real list did contain `src/ri/hiders` and `src/ri/geometry` (a stale `libshader_shading.dir/flags.make`
+  from a 2026-11-14 tree listed them too, so it predates this spec; `DOMAIN_BOUNDARIES.md` carries the dated re-measure note). Fix: (1) the parse reads the directory in the branch that matched
+  (`if(-I) ... elseif(-isystem) ...`; the only edit to `check_scope.cmake` beyond `rename-test-edits.patch`); (2) `src/libshader/shading/CMakeLists.txt` drops exactly `src/ri/hiders` and
+  `src/ri/geometry` from its directory's include path, the way the compiler's CMake drops the renderer's (a per-directory property, no other target affected). The filtered build compiled
+  without a single change to a source file (the 28 shading objects rebuilt; macOS `build` and `build-nojit`). `libRSLRuntime`'s flags.make then lists none of the two; the script reads 17
+  include directories. **T128 mutation proof:** planting `#include "ri/hiders/hider.h"`, `#include "ri/geometry/surface.h"` and `#include "object.h"` into `src/libshader/shading/shaderGroup.cpp`
+  (restored byte for byte; the staged file is unchanged) makes `ShadingScope_Greps` fail with `FAIL S1a: ... includes ri/hiders/hider.h`, `FAIL S1e: ... includes ri/geometry/surface.h` and
+  `FAIL S1e: ... includes object.h`; S1b-S1d still pass. The stale `flags.make` directories were removed first (F-8), so the proof ran with the include list read from `libRSLRuntime.dir`.
+- **F-8 (stale old-name build outputs): removed (maintainer-approved 2026-11-17), exactly this list.** macOS `build` and `build-nojit`, `src/libshader/shading/`: `libshader_shading.1.0.0.dylib`, `libshader_shading.1.dylib`,
+  `libshader_jitmeta.a` (`build` only), `CMakeFiles/libshader_shading.dir`, `CMakeFiles/libshader_jitmeta.dir` (`build` only); `src/libshader/runtime/`: `libshader_runtime.1.0.0.dylib`, `libshader_runtime.1.dylib`,
+  `libshader_runtime.a`, `libshader_runtime.dylib`, `CMakeFiles/libshader_runtime.dir`, `libshader_runtime_obj.dir`, `libshader_runtime_static.dir`. Kept: the compat symlinks `libshader_shading.dylib -> libRSLRuntime.dylib`
+  (shading directory) and `libshader_runtime.dylib`/`.a` beside `libRSLInfo` (metadata directory). `Link_RenameAliases` is green in both trees afterwards. The Linux tree is done after spec 040's closing chain on the host: **pending** (the Linux column above is the run before the F-7 to F-9 fixes: `ShadingScope_Greps` and `Link_RenameAliases` red there for the reasons given; the re-run, the same removal list and the three affected tests follow).
+- **F-9 (`.gitignore` hid the new header): resolved (maintainer-approved).** Line 43 is now `/openrender/`; the ignored-file list of the worktree is unchanged, `git status` shows no new untracked file, the main checkout has no other
+  directory of that name outside `src/libshader/include/openrender/` (tracked), and `check-ignore` no longer matches the header (still tracked).
+- **My registration of `Link_RenameAliases` (Phase 2) could never see the targets.** It tested `if(TARGET libRSLRuntime)` at configure time, but `tests/` is configured before `src/`
+  (`CMakeLists.txt`), so every value was empty and the test could only ever report "no such target". It now passes `$<$<TARGET_EXISTS:t>:$<TARGET_FILE:t>>` (generate time). The script itself is unchanged.
+- **Departures from the task text:** `rslo.h` and `common/rendererc.h` spell the same variable-type and container enumerators in one global scope, so `rsloMetadataReader.cpp` renames them for the length
+  of the `rslo.h` include (`RSLO_TYPE_*`, `RSLO_CONTAINER_*`); the `.rslo` default for a missing string is "NULL" and a missing vector or matrix is zeros (what the listing printed); `sloinfo` keeps its own
+  format detection by magic and learns "no `.slo` reader" from `EMetadataStatus::Unsupported` instead of `#ifdef OPENRENDER_HAVE_LLVM`; `Link_InfoRuntimeNotCoLinked` skips the install-layout and package
+  sub-builds (copies, made and removed while other tests run) and sets policy CMP0057 (CMake 3.28 on Linux); the metadata, install and rename docs are edited as T132 lists, `DEVNOTES.md` rows are
+  history rows of earlier specs and are left as written, and `BINDINGS_GUIDE.md`, `src/python` and `src/lua` name no library (nothing to change).
 
 ## 5. Final summary against SC-001 to SC-011
 
