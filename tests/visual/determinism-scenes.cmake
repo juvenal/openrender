@@ -9,9 +9,9 @@
 # tree (SamplingJitDeterminism_* and Sampling_ThreadSweep_* cover those) and the scenes of
 # DeterminismHarness_* (the harness checks itself) are not part of it.
 #
-# GI scenes are not swept: the irradiance cache (occlusion(), indirectdiffuse()) and the photon
-# map are filled in the order the points happen to be shaded in. Spec 040 makes them
-# deterministic; until then they are not asked to be. They are listed below as comments.
+# GI scenes (the irradiance cache, the photon map) are swept since spec 040, which made them deterministic: their
+# entries are the `gi-*` ones at the end of this file (BEGIN spec 040), rendered float with a depth display, and their
+# map and cache files are compared byte for byte (the FILES, FLOAT and DEPTH keywords of add_determinism_sweep()).
 #
 # A scene that sets its own non-zero-dither Quantize would be listed for the Phase 9 run (T103)
 # only, because the dither is libc rand() until T095. None does today.
@@ -459,25 +459,9 @@ add_determinism_sweep(torus-reyes examples/rib/tests/torus-reyes.rib torus-reyes
 # depth, not its children's maximum), so the opacity cull dropped grids still visible in a
 # bucket's left filter margin, unless thread timing had drawn them first (DEVNOTES_DETAILS/BUGS.md).
 
-# --- GI scenes: not swept (spec 040) --------------------------------------------------------------
-#   examples/rib/tests/parity/motion-subdiv-translate-photon.rib  (Hider "photon", Attribute "photon")
-#   examples/rib/tests/photon-parity-slo.rib  (shader photonparity_view, Hider "photon", Attribute "photon")
-#   examples/rib/tests/photon-parity.rib  (shader photonparity_view, Hider "photon", Attribute "photon")
-#   examples/rib/tests/sampling-probe-independence-mid.rib  (shader sampling_jit_probe)
-#   examples/rib/tests/sampling-probe-independence-min.rib  (shader sampling_jit_probe)
-#   examples/rib/tests/sphere-indirectdiffuse-reyes-slo.rib  (shader indirectdiffuse_probe)
-#   examples/rib/tests/sphere-indirectdiffuse-reyes.rib  (shader indirectdiffuse_probe)
-#   examples/rib/tests/sphere-occlusion-reyes-slo.rib  (shader occlusion_probe)
-#   examples/rib/tests/sphere-occlusion-reyes.rib  (shader occlusion_probe)
-#   examples/rib/tests/sphere-photonmap-reyes-slo.rib  (shader photonmap_probe)
-#   examples/rib/tests/sphere-photonmap-reyes.rib  (shader photonmap_probe)
-#   examples/rib/tests/sphere-ray-self-hit-raytrace.rib  (shader ray_self_hit_probe)
-#   examples/rib/tests/sphere-ray-self-hit-reyes-slo.rib  (shader ray_self_hit_probe)
-#   examples/rib/tests/sphere-ray-self-hit-reyes.rib  (shader ray_self_hit_probe)
-#   examples/rib/tests/subdiv-facevarying-seam-photon.rib  (Hider "photon", Attribute "photon")
-#   examples/rib/tests/subdiv-hierarchical-override-photon.rib  (Hider "photon", Attribute "photon")
-#   examples/rib/tests/subdiv-loop-photon.rib  (Hider "photon", Attribute "photon")
-#   examples/rib/tests/subdiv-new-tags-photon.rib  (Hider "photon", Attribute "photon")
+# --- GI scenes (spec 040) ------------------------------------------------------------------------
+# The 18 scenes that were listed here as "not swept" are entries named gi-<scene> at the end of this file, with the 16 scenes
+# of tests/gi_determinism/scenes.
 
 # --- Scenes that cannot be swept as they are ---------------------------------------------------
 #   examples/rib/tests/csg-malformed-bogus-operation.rib  (expected to fail with a diagnostic, writes no image)

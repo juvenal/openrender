@@ -1031,3 +1031,10 @@ request. Run `ctest -L architecture` locally before review.
   `DEBUG_TESSELATIONS` blocks that used `CDebugView` are removed. The entry stays Open for spec 032's 11 lines and is moved by whichever of 031 and 032 merges second.
 - **Resolved** by specs 031 and 032 (031 merging second), 2026-11-12: no domain includes or calls the data viewer any more: spec 032 removed the 11 Texturing and Hiders lines, spec 031
   the last one (`geometry/surface.cpp -> dataviewer/debug.h`); the allowlist holds no DB-025 line.
+
+## Specs that moved no entry
+
+- **Spec 040 (GI determinism), 2026-11-17**: resolves no DB entry, adds no allowlist line (`git diff 278b0394 -- tests/architecture/allowlist.txt` adds
+  nothing) and no include or link edge. Texturing's stores (`irradianceCache`, `irradianceStore.h`, `photonStore`) still include only Texturing and Infra headers
+  (the new `common/giHash.h` is Infra); Shading reaches them through `irradianceStore.h`; the batch scope lives in Shading (`irradianceBatch.h`); the remote channel
+  stays in Core. Evidence: `GiSplit_Boundary`, `TextureOnly_GiStores` and `ctest -L architecture` (36 of 36 on macOS and on Linux).

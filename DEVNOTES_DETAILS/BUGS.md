@@ -48,6 +48,11 @@ This file tracks known defects and implementation gaps in openRender. Open items
       collapse only touches uniform-classified array-declaration prologue
       sites, not the varying-body per-vertex cost that actually dominates
       shading time. Still open; correctly implemented but unresolved.
+- [x] **FIXED by spec 040 (GitHub #164, 2026-11-17)**: intermittent SIGSEGV in `CPhotonHider` photon-map construction (a test-then-reset of the
+      map that two threads raced through; also a `delete` of a `new[]` array, #165, and a map that differed from run to run, #163). The test, the reset and
+      the first store are now one claim under the store's lock (`CPhotonStore::storePhotonForFrame`), the photons are sorted into a canonical order, and every
+      byte of a map file is defined. Tests: `GiDet_PhotonClaim`, `GiDet_PhotonRepeat*`, `GiDet_PhotonThreads*`, the photon sweep entries; 16 series of 30 fresh
+      runs (default thread count and `-t:4`) on macOS with no crash (`specs/040-gi-determinism/tools/photon-crash-after-macos.txt`). Original report:
 - [ ] Intermittent SIGSEGV in `CPhotonHider` photon-map construction,
       surfaced as a flaky `Visual_subdiv-loop-photon` ctest failure
       (`examples/rib/tests/subdiv-loop-photon.rib`, `ctest -L visual`).

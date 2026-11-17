@@ -1,0 +1,116 @@
+# T014 tree build:-build-base (after, linux): 30 separate processes per series, a fresh directory per run (dirmode fresh),
+# the .gpm the scene writes compared by md5. 'failed runs' lists (run, exit code); a negative code is the signal number.
+# default = no -t option (the scene's own numthreads / the machine default); -t:4 = four threads.
+=== photon-parity, threads default
+scene examples/rib/tests/photon-parity.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 abd14077d98953ee22cbd1baf6d65314: 30
+  photons per run (numItems): {46273: 30}
+  scratch: /tmp/m040-ii4pdt2k
+  (cpujob exit 0)
+=== photon-parity, threads -t:4
+scene examples/rib/tests/photon-parity.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 abd14077d98953ee22cbd1baf6d65314: 30
+  photons per run (numItems): {46273: 30}
+  scratch: /tmp/m040-v1c7ijlu
+  (cpujob exit 0)
+=== photon-parity-slo, threads default
+scene examples/rib/tests/photon-parity-slo.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 fc241b50324e7bc26fc487657eeed411: 30
+  photons per run (numItems): {46273: 30}
+  scratch: /tmp/m040-17l1xa3x
+  (cpujob exit 0)
+=== photon-parity-slo, threads -t:4
+scene examples/rib/tests/photon-parity-slo.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 fc241b50324e7bc26fc487657eeed411: 30
+  photons per run (numItems): {46273: 30}
+  scratch: /tmp/m040-oqctllhu
+  (cpujob exit 0)
+=== photon-solar0-alone, threads default
+scene examples/rib/tests/photon-solar0-alone.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 225962ac7114566c693dde59890bb59a: 30
+  photons per run (numItems): {8459: 30}
+  scratch: /tmp/m040-73im35pz
+  (cpujob exit 0)
+=== photon-solar0-alone, threads -t:4
+scene examples/rib/tests/photon-solar0-alone.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 225962ac7114566c693dde59890bb59a: 30
+  photons per run (numItems): {8459: 30}
+  scratch: /tmp/m040-oxyqu69k
+  (cpujob exit 0)
+=== photon-solar0-alone-slo, threads default
+scene examples/rib/tests/photon-solar0-alone-slo.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 225962ac7114566c693dde59890bb59a: 30
+  photons per run (numItems): {8459: 30}
+  scratch: /tmp/m040-46arf8j3
+  (cpujob exit 0)
+=== photon-solar0-alone-slo, threads -t:4
+scene examples/rib/tests/photon-solar0-alone-slo.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 225962ac7114566c693dde59890bb59a: 30
+  photons per run (numItems): {8459: 30}
+  scratch: /tmp/m040-6y444thi
+  (cpujob exit 0)
+=== photon-solar0-after-distant, threads default
+scene examples/rib/tests/photon-solar0-after-distant.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 17ed58ad372940ef6f5239c1208b9967: 30
+  photons per run (numItems): {22408: 30}
+  scratch: /tmp/m040-iq9qkgqf
+  (cpujob exit 0)
+=== photon-solar0-after-distant, threads -t:4
+scene examples/rib/tests/photon-solar0-after-distant.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 17ed58ad372940ef6f5239c1208b9967: 30
+  photons per run (numItems): {22408: 30}
+  scratch: /tmp/m040-364z2rn9
+  (cpujob exit 0)
+=== photon-solar0-after-distant-slo, threads default
+scene examples/rib/tests/photon-solar0-after-distant-slo.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 17ed58ad372940ef6f5239c1208b9967: 30
+  photons per run (numItems): {22408: 30}
+  scratch: /tmp/m040-mtwn1n7m
+  (cpujob exit 0)
+=== photon-solar0-after-distant-slo, threads -t:4
+scene examples/rib/tests/photon-solar0-after-distant-slo.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 17ed58ad372940ef6f5239c1208b9967: 30
+  photons per run (numItems): {22408: 30}
+  scratch: /tmp/m040-j2cd25z2
+  (cpujob exit 0)
+=== photon-solar0-before-distant, threads default
+scene examples/rib/tests/photon-solar0-before-distant.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 a23d04128fccd96c0b7dc0f90107cd67: 30
+  photons per run (numItems): {22317: 30}
+  scratch: /tmp/m040-9ka0xv3c
+  (cpujob exit 0)
+=== photon-solar0-before-distant, threads -t:4
+scene examples/rib/tests/photon-solar0-before-distant.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 a23d04128fccd96c0b7dc0f90107cd67: 30
+  photons per run (numItems): {22317: 30}
+  scratch: /tmp/m040-_ry74q2l
+  (cpujob exit 0)
+=== photon-solar0-before-distant-slo, threads default
+scene examples/rib/tests/photon-solar0-before-distant-slo.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 a23d04128fccd96c0b7dc0f90107cd67: 30
+  photons per run (numItems): {22317: 30}
+  scratch: /tmp/m040-1j0w5sc7
+  (cpujob exit 0)
+=== photon-solar0-before-distant-slo, threads -t:4
+scene examples/rib/tests/photon-solar0-before-distant-slo.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 a23d04128fccd96c0b7dc0f90107cd67: 30
+  photons per run (numItems): {22317: 30}
+  scratch: /tmp/m040-1026l4lo
+  (cpujob exit 0)
+done
