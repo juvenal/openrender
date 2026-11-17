@@ -188,9 +188,28 @@ Replays, baselines, the allowlist and `src/` outside the files of the approved l
 `CRenderer::shadingSystem` replaces `globalFiles` (used for shaders only); `CRenderer::getShader(name, path[, preferredType])` forwards to `ShadingSystem::find()`; `CRendererContext::getShader` keeps its signature, answers `"null"` before the facade (the leak-fix spec's ground), builds a `ShaderRequest` and calls `bind()`. `OPENRENDER_HAVE_LLVM` appears 0 times under `src/ri`. The cache is keyed by the description's own `name`, consulted before the format is resolved (#167), under its own `std::mutex`, never `shaderMutex`.
 `git diff 278b0394 -- src/ri/render/rendererContext.cpp`: three hunks (the include, `getShader`, the new `registerLight`); `RiLightSourceV`, `RiAreaLightSourceV`, `RiIlluminate`, `extractLightHandle`, `takeInstanceKey` and `pendingInstanceKey` untouched.
 
+### Phase 6 (T098 to T103; the group builder and the group run helpers)
+
+| Check | macOS | Linux (GCC 13, `-Werror`) |
+|---|---|---|
+| CP-a build | `rc=0` | `rc=0` |
+| `ShadingSystem_GroupOneLayer` | green (bit-identical `Ci`/`Oi` by group and by instance; `connect()` and a second `shader()` refused with `CODE_INCAPABLE`, nothing loaded or keyed; `end()` returns the instance with one reference) | green |
+| `ShadingSystem_BindOrder` | green after the wrong-type shader and the harness fix (below) | green |
+| CP-b suite (`-LE determinism-sweep`) | 1375 tests, 1374 passed; the one failure was `ShadingSystem_BindOrder` (then fixed: see below) | 1376 tests, 1373 passed: the baseline's two (#45, #163) and `ShadingSystem_BindOrder` (then fixed) |
+| CP-d images | 0 differing, 0 missing (64 fresh images, information only); `MaxBlockAvgDiff` rows identical (empty diff) | 0 differing, 0 missing; rows identical |
+| CP-c architecture | 38/38; `archcheck` PASS, `ALLOWED DB-004 x 3 DB-011 x 144`, `CONSUMER` 71, TOTAL 491/71, Shading 0/0; allowlist diff empty | 38/38; same |
+| CP-m contract tests | 246 tests, 245 passed (the same one failure) | same |
+| CP-v | `rendererServices.h` and `serviceTypes.h` unchanged; no `static_assert` edited | same tree |
+
+**`ShadingSystem_BindOrder` (an approved test, not edited beyond the maintainer's choice).** Its light block expects `load` first, but the wrong-type block of the same test had already loaded and cached `tstlight` (find or load, then the type check: the contract, and what `CRenderer::getShader` did before). The maintainer chose to give the wrong-type block its own light shader (`tstwrongtype`, a light requested as `SL_SURFACE`; the light block unchanged). That exposed a **latent use-after-free in the harness**: `CHarness` made its `CXform` with 0 references and "left it to process exit", but this test detaches its instances, so the surface block's `detach()` freed the transform and the light block's instance attached to freed memory (a Bus error once the heap layout changed). The maintainer's fix is in `tests/shading_contract/contract_harness.h`: the constructor takes one reference on its transform (`xform->attach()`, held to process exit like the rest). Only `tests/shading_contract` and `tests/shading_system` include the harness; `-L 'shading_contract|shading_system'` on macOS: 81 run, all passed (`BindOrder` included, 0.53 s).
+
 ## 2. Red evidence
 
 Phase 1 has none (the characterisations pass on the starting tree by construction).
+
+### Phase 6, T098: the Test gate
+
+`ShadingSystem_GroupOneLayer` and `ShadingSystem_BindOrder` (gated since Phase 5) moved out of the red block; before any source edit both failed to build: `fatal error: 'libshader/shading/shaderGroup.h' file not found`.
 
 ### Phase 5, T081: the Test gate (the tests enabled, before any implementation)
 

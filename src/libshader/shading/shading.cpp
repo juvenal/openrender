@@ -41,6 +41,7 @@
 #include "ri_config.h"
 #include "shaderPl.h"
 #include "shaderPayload.h"
+#include "shaderGroup.h"
 #include "shaderRefs.h"
 #include "shading.h"
 #include "specularTerm.h"
@@ -744,9 +745,9 @@ void CShadingContext::shadeVolumeSegments(CShaderInstance *volume, const CSegmen
 
         memBegin(shaderStateMemory);
         memBegin(threadMemory);
-        ss->locals[ACCESSOR_POSTSHADER] = volume->prepare(shaderStateMemory, varying, m);
+        ss->locals[ACCESSOR_POSTSHADER] = libshader::groupPrepare(volume, shaderStateMemory, varying, m);
         ss->currentShaderInstance = volume;
-        volume->execute(this, ss->locals[ACCESSOR_POSTSHADER]);
+        libshader::groupExecute(*this, volume, ss->locals[ACCESSOR_POSTSHADER]);
         memEnd(threadMemory);
         memEnd(shaderStateMemory);
 
@@ -1281,11 +1282,11 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
 
     // Allocate the caches for the shaders being executed
     if (surface != NULL)
-        locals[ACCESSOR_SURFACE] = surface->prepare(shaderStateMemory, varying, numVertices);
+        locals[ACCESSOR_SURFACE] = libshader::groupPrepare(surface, shaderStateMemory, varying, numVertices);
     if (displacement != NULL)
-        locals[ACCESSOR_DISPLACEMENT] = displacement->prepare(shaderStateMemory, varying, numVertices);
+        locals[ACCESSOR_DISPLACEMENT] = libshader::groupPrepare(displacement, shaderStateMemory, varying, numVertices);
     if (atmosphere != NULL)
-        locals[ACCESSOR_ATMOSPHERE] = atmosphere->prepare(shaderStateMemory, varying, numVertices);
+        locals[ACCESSOR_ATMOSPHERE] = libshader::groupPrepare(atmosphere, shaderStateMemory, varying, numVertices);
 
     if (displaceOnly == TRUE) {
         // Verify if we have to prepare other shaders, even though displacing
@@ -1299,9 +1300,9 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
             // displacement shader uses messsage passing, must prepare but not execute
             // the surface and atmosphere shaders
             if (currentAttributes->surface())
-                locals[ACCESSOR_SURFACE] = shaderInstanceOf(currentAttributes->surface())->prepare(shaderStateMemory, varying, numVertices);
+                locals[ACCESSOR_SURFACE] = libshader::groupPrepare(currentAttributes->surface().get(), shaderStateMemory, varying, numVertices);
             if (currentAttributes->atmosphere())
-                locals[ACCESSOR_ATMOSPHERE] = shaderInstanceOf(currentAttributes->atmosphere())->prepare(shaderStateMemory, varying, numVertices);
+                locals[ACCESSOR_ATMOSPHERE] = libshader::groupPrepare(currentAttributes->atmosphere().get(), shaderStateMemory, varying, numVertices);
         }
     }
 
@@ -1531,7 +1532,7 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
 
     // Run the displacement shader here
     if (displacement != NULL) {
-        displacement->execute(this, locals[ACCESSOR_DISPLACEMENT]);
+        libshader::groupExecute(*this, displacement, locals[ACCESSOR_DISPLACEMENT]);
 
         if (pointDisplacedObserver != nullptr) {
             const CPointDisplacedReport report{src.surface(), displaceOnly, currentShadingState->numRealVertices, varying[VARIABLE_U],
@@ -1547,7 +1548,7 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
         // Is there a surface shader ?
         if (surface != NULL) {
             numShaded += numVertices;
-            surface->execute(this, locals[ACCESSOR_SURFACE]);
+            libshader::groupExecute(*this, surface, locals[ACCESSOR_SURFACE]);
         }
         else {
             // No surface shader eh, make up a color
@@ -1590,7 +1591,7 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
 
             // Do not execute atmosphere for non-camera rays
             if (g.pathDepth == 0) {
-                atmosphere->execute(this, locals[ACCESSOR_ATMOSPHERE]);
+                libshader::groupExecute(*this, atmosphere, locals[ACCESSOR_ATMOSPHERE]);
             }
         }
     }

@@ -36,6 +36,7 @@ set(shading_sources
     shaderBind.cpp
     shaderParameters.cpp
     shaderPl.cpp
+    shaderGroup.cpp
     shading.cpp
     shadingSystem.cpp
     situation.cpp

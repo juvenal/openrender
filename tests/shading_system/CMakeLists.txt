@@ -59,6 +59,9 @@ if(TARGET state_only_sources)
         add_system_test_exe(test_shading_system_third_backend test_third_backend.cpp)
         add_system_test_exe(test_shading_system_precedence test_precedence.cpp)
         add_system_test_exe(test_shading_system_cache test_cache.cpp)
+        # Enabled in Phase 6 (the Test gate): the group builder tests
+        add_system_test_exe(test_shading_system_bind_order test_bind_order.cpp)
+        add_system_test_exe(test_shading_system_group_one_layer test_group_one_layer.cpp)
     else()
         add_system_test_exe(test_shading_system_nojit_fallback test_nojit_fallback.cpp)
     endif()
@@ -66,10 +69,6 @@ endif()
 
 # Still red (their phase has not come)
 if(OPENRENDER_033_RED_TESTS AND TARGET state_only_sources AND OPENRENDER_HAVE_LLVM)
-    # ShadingSystem_BindOrder binds through ShaderGroupBuilder (shaderGroup.h, Phase 6), so it joins the build with GroupOneLayer
-    add_system_test_exe(test_shading_system_bind_order test_bind_order.cpp)
-    add_system_test_exe(test_shading_system_group_one_layer test_group_one_layer.cpp)
-
     # libRSLInfo only: never libshader_shading / libRSLRuntime (the two share the flex/bison globals)
     add_executable(test_shading_system_metadata_shipped test_metadata_shipped.cpp)
     target_compile_features(test_shading_system_metadata_shipped PRIVATE cxx_std_20)
@@ -87,9 +86,12 @@ if(OPENRENDER_HAVE_LLVM)
         TIMEOUT 120 ENVIRONMENT "${SHADING_SYSTEM_ENV}")
     set_tests_properties(ShadingSystem_ThirdBackend ShadingSystem_Cache PROPERTIES LABELS "shading_system")
     set_tests_properties(ShadingSystem_Precedence PROPERTIES LABELS "shading_system;shaderformat")
-    # Still red (BindOrder needs the group builder of Phase 6)
-    or033_red_test(ShadingSystem_BindOrder COMMAND $<TARGET_FILE:test_shading_system_bind_order> LABELS "shading_system" ENVIRONMENT ${SHADING_SYSTEM_ENV})
-    or033_red_test(ShadingSystem_GroupOneLayer COMMAND $<TARGET_FILE:test_shading_system_group_one_layer> LABELS "shading_system" ENVIRONMENT ${SHADING_SYSTEM_ENV})
+    # Enabled in Phase 6
+    add_test(NAME ShadingSystem_BindOrder COMMAND $<TARGET_FILE:test_shading_system_bind_order>)
+    add_test(NAME ShadingSystem_GroupOneLayer COMMAND $<TARGET_FILE:test_shading_system_group_one_layer>)
+    set_tests_properties(ShadingSystem_BindOrder ShadingSystem_GroupOneLayer PROPERTIES
+        TIMEOUT 120 LABELS "shading_system" ENVIRONMENT "${SHADING_SYSTEM_ENV}")
+    # Still red
     or033_red_test(ShaderMetadata_Shipped
         COMMAND $<TARGET_FILE:test_shading_system_metadata_shipped> ${CMAKE_BINARY_DIR}/shaders ${CMAKE_SOURCE_DIR}/tests/shaders/references/sloinfo137 rslo,slo
         LABELS "libshader;shading_system")

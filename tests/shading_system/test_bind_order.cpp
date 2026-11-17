@@ -50,6 +50,7 @@ int main() {
         CMapResolver resolver;
         resolver.add("tstsurface", "tst", writeTstShader("tstsurface", "surface", 1, 0, 0));
         resolver.add("tstlight", "tst", writeTstShader("tstlight", "light", 1, 1, 1, "defaultcat"));
+        resolver.add("tstwrongtype", "tst", writeTstShader("tstwrongtype", "light", 1, 1, 1)); // a light, asked for as a surface
         CRecordingHost host;
         std::vector<std::string> &events = tstLog().events;
         host.events = &events;
@@ -63,9 +64,9 @@ int main() {
         }
         // the wrong type: the diagnostic, no instance, no key
         {
-            const ShaderRequest request{"tstlight", SL_SURFACE, "tst", nullptr, &resolver};
+            const ShaderRequest request{"tstwrongtype", SL_SURFACE, "tst", nullptr, &resolver};
             CT_EXPECT(system.bind(request, h.attributes, h.xform, host) == nullptr);
-            CT_EXPECT(sink.count(CODE_NOSHADER, DIAGNOSTIC_ERROR, "Shader \"tstlight\" is not of the expected type\n") == 1);
+            CT_EXPECT(sink.count(CODE_NOSHADER, DIAGNOSTIC_ERROR, "Shader \"tstwrongtype\" is not of the expected type\n") == 1);
             CT_EXPECT(host.keysTaken == 0 && tstLog().instantiates == 0 && tstLog().initialises == 0);
         }
 
