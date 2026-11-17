@@ -32,3 +32,19 @@ phases of spec 040: #160 is fixed by Phase 3 and the key sentences stay true.)
 > lookup draws and hashes nothing; a name that `getCache` answered `nullptr` for gives the "no joy" value and draws nothing. The batch
 > view of `lookupCached` is a Shading concept (the points one `shade()` call evaluates): a difference between hiders in what the cache
 > holds comes from the batch size they shade at, never from hider-specific code in the store. (Batch scope: T079; commit and wire: T089.)
+
+## New (Phase 5, appended to gotcha 37: the batch scope and the canonical commit)
+
+> **The cache is a fixed part, a batch and a commit (spec 040, M2).** During a frame the committed tree `F` is read-only and a lookup takes no lock:
+> `lookupCached` walks `F` in canonical order (the tree's traversal, each node's list in file order), then the **batch view**, the records the
+> earlier lookups of the same `shade()` call made (`CShadingState::irradianceBatch`, `irradianceBatch.h`, reset with the draw occurrences: a REYES or zbuffer
+> grid is one batch, a raytrace shading group is the rays of one bundle that hit one object, in ray order, chunked at `maxGridSize`). A miss with `CACHE_SAMPLE` makes
+> its record from the point's identity alone (key = `irradianceRecordKey(boundDraws())` copied at the top), calls `addPending(record, maxError)` with the **raw**
+> radius, and adds it to the batch with the radius clamped against `F` (`clampAgainstFixed`) and against the batch (`clampAgainstBatch`: `min(raw, min over F (dP + l),
+> min over earlier batch records (raw + l))`, each earlier one lowered by `raw_new + l`). Nothing else sees a record until the frame's `commitPending()`
+> (`CIrradianceCache`, single-threaded, run by the destructor before the write and lazily by `forEachNode`/`forEachRecord`): dedupe by a non-zero `key` (**key 0 is never
+> deduped: every key-0 record is kept**), sort by `(key, bytes, maxError)`, clamp every radius from raw or stored radii only (so the result does not depend on the order), place each
+> record by `dP / K` at the tail of its node (fixed records first), and **drop the key** (a committed record is what a file holds, so a cache read back answers
+> bit for bit as the one that wrote it). `readNode` appends, so a file's lists keep their order. Reyes and zbuffer make the same records for a scene;
+> the raytracer's differ only by its batch size (M5): the cache has no hider-specific code. `insertRecord` and `clamp()` are gone; `insertReceived` (a `-P:N`
+> client's placement) is unchanged until Phase 6.

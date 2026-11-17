@@ -92,6 +92,12 @@ namespace openrender::shading {
     //                    context's cursor: the store asks accept(acceptState, recordIdentity) once per record that passes the front
     //                    test, and Shading answers a hash of the call's sub-stream and the identity (giHash.h), in [0, 1). The
     //                    draw-order rule of gotcha 37 is replaced; the batch view is empty until Phase 5.
+    //          Changed:  CIrradianceStore (irradianceStore.h), Phase 5: insertRecord() is removed; clampAgainstFixed() and addPending()
+    //                    are added (a record joins a pending set and the tree only at the frame's commit, commitPending() on
+    //                    CIrradianceCache, so a lookup never sees a record of its own frame except through the batch view);
+    //                    libshader::irradianceLookup keeps the records its shading call made in CShadingState::irradianceBatch
+    //                    (irradianceBatch.h) and passes them as the CIrradianceBatchView, with radii clamped against the fixed
+    //                    part and each other.
     //          Wording:  writePhotons() sorts the photons into the canonical order (key, then bytes), balances and writes a file
     //                    in which every byte is defined. libshader::irradianceLookup draws nothing for the accept test, and the
     //                    sampler draws by index from a copy of the bound sub-stream (indirectdiffuse() with the cache off takes

@@ -16,7 +16,7 @@
  * vector from the record to the query lies in the record's tangent plane), records at z = +-0.9 fail it (the vector is nearly along the
  * normal), and the in-plane records at different distances and radii give weights from positive to negative (a record whose weight is not
  * positive is still asked about, it is only rejected). Half of the records carry a key and half are key 0, as the records of a file are.
- * The expected result is computed by the test from the records it reads back (forEachRecord: the cache's own order, after any clamp() of the
+ * The expected result is computed by the test from the records it reads back (forEachRecord: the cache's own order, after the commit's clamp of the
  * radii), with the formulas of lookupCached (Tabellion and Lamorlette weights with equal normals, so the directional error is zero):
  *
  *   D = P - record.P;  front test: (D.N)^2 / (D.D + C_EPSILON) > 0.1  ->  skipped, not asked
@@ -131,7 +131,7 @@ static int run(bool sampleFlag) {
     identitym(from);
     identitym(to);
     // The root is 0.1 wide, far narrower than twice the radius of any record (the tree descends only while the node is wider than
-    // twice the record's radius, which clamp() can lower but not below the 0.05 of this scene), so no record descends: the whole
+    // twice the record's radius, which the commit's clamp can lower but not below the 0.05 of this scene), so no record descends: the whole
     // cache is one node, which the lookup always visits, and the cache's traversal order is the order of that node's list.
     const float bmin[3] = {0, 0, 0}, bmax[3] = {0.1f, 0.1f, 0.1f};
     const float maxError = 0.4f; // K = 1
@@ -170,8 +170,9 @@ static int run(bool sampleFlag) {
         r.coverage = 0.5f + 0.05f * s.x;
         r.envdir[2] = 1;
         r.dP = s.dP;
-        cache.insertRecord(r, maxError);
+        cache.addPending(r, maxError);
     }
+    cache.commitPending(); // the records join the tree at the commit (spec 040)
 
     // the records as the cache holds them, in its own traversal order
     std::vector<CIrradianceRecord> records;

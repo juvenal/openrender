@@ -19,9 +19,6 @@
 
 option(OPENRENDER_040_RED_TESTS "Define the spec 040 red-first tests (default OFF: the targets are EXCLUDE_FROM_ALL and do not build before their phase)" OFF)
 
-# The form of the record hook the tests use: "insertRecord" on the starting tree, "addPending" once Phase 5 has replaced it (tests/gi_determinism/gi_recording.h)
-set(GIDET_RECORD_HOOK "insertRecord" CACHE STRING "The record hook of CIrradianceCache the recording tests override: insertRecord or addPending")
-set_property(CACHE GIDET_RECORD_HOOK PROPERTY STRINGS insertRecord addPending)
 
 if(APPLE)
     set(GI_DET_PLATFORM macos)
@@ -110,14 +107,22 @@ gi_det_photon_runs(PhotonRepeatReuse30 900 gi_determinism_long repeat reuse 30)
 gi_det_photon_runs(PhotonThreads4x30 900 gi_determinism_long threads4 30)
 
 # ---------------------------------------------------------------------------------------------------------
-# Phase 4 (spec 040): the accept rule and what a miss makes, defined unconditionally
+# Phase 4 and 5 (spec 040): the irradiance store and what a miss makes, defined unconditionally
 # ---------------------------------------------------------------------------------------------------------
-# test_gi_cache_store.cpp without GIDET_STORE_PHASE5 is the accept-pure mode alone (the red block builds the whole file with the macro)
-gi_det_executable_always(test_gi_accept test_gi_cache_store.cpp)
-add_test(NAME GiDet_AcceptPure COMMAND test_gi_accept accept-pure ${CMAKE_CURRENT_BINARY_DIR}/work/AcceptPure)
-set_tests_properties(GiDet_AcceptPure PROPERTIES TIMEOUT 300 LABELS "gi_determinism;irradiance" ENVIRONMENT "${GI_DET_ENV}")
+# Phase 5: the irradiance store's tests, all from test_gi_cache_store.cpp (GiDet_AcceptPure from Phase 4)
+gi_det_executable_always(test_gi_cache_store test_gi_cache_store.cpp)
+foreach(_m lookup-pure:LookupPure commit-order:CommitOrder commit-dedupe:CommitDedupe accept-pure:AcceptPure batch-clamp:BatchClamp)
+    string(REPLACE ":" ";" _mt ${_m})
+    list(GET _mt 0 _mode)
+    list(GET _mt 1 _name)
+    add_test(NAME GiDet_${_name} COMMAND test_gi_cache_store ${_mode} ${CMAKE_CURRENT_BINARY_DIR}/work/${_name})
+    set_tests_properties(GiDet_${_name} PROPERTIES TIMEOUT 300 LABELS "gi_determinism;irradiance" ENVIRONMENT "${GI_DET_ENV}")
+endforeach()
+# the round trip also loads the cache file the starting tree wrote (fixture F1 of spec 032)
+add_test(NAME GiDet_CacheRoundTrip COMMAND test_gi_cache_store roundtrip ${CMAKE_CURRENT_BINARY_DIR}/work/CacheRoundTrip ${CMAKE_BINARY_DIR}/tests/gi_split/fixture/icache-fixture.icache)
+set_tests_properties(GiDet_CacheRoundTrip PROPERTIES TIMEOUT 300 LABELS "gi_determinism;irradiance" ENVIRONMENT "${GI_DET_ENV}" FIXTURES_REQUIRED GiFixture_ICache)
 
-# test_gi_miss: MissIndependence and IndirectRayCount_slo are green from Phase 4; IndirectRayCount_rslo (GitHub #173) and RepeatedPoint stay in the red block (it needs the commit of Phase 5)
+# test_gi_miss: MissIndependence and IndirectRayCount_slo are green from Phase 4, RepeatedPoint from Phase 5; IndirectRayCount_rslo (GitHub #173) stays in the red block
 gi_det_executable_always(test_gi_miss test_gi_miss.cpp)
 foreach(_variant rslo slo)
     if(_variant STREQUAL "slo")
@@ -125,7 +130,7 @@ foreach(_variant rslo slo)
     else()
         set(_suffix "")
     endif()
-    foreach(_m miss:MissIndependence:miss-probe raycount:IndirectRayCount:raycount)
+    foreach(_m miss:MissIndependence:miss-probe raycount:IndirectRayCount:raycount repeat:RepeatedPoint:repeat-point)
         # IndirectRayCount_rslo is red until GitHub #173 (the interpreter hands the sampler a denormal `samples`) is fixed: it is in the red block below
         if(_m MATCHES "^raycount" AND _variant STREQUAL "rslo")
             continue()
@@ -148,34 +153,17 @@ if(OPENRENDER_040_RED_TESTS)
         target_compile_features(${_target} PRIVATE cxx_std_20)
         target_include_directories(${_target} PRIVATE ${GI_DET_INCLUDES})
         target_link_libraries(${_target} PRIVATE ribRender libshader_shading openrendercommon Threads::Threads)
-        if(GIDET_RECORD_HOOK STREQUAL "addPending")
-            target_compile_definitions(${_target} PRIVATE GIDET_RECORD_HOOK_ADDPENDING)
-        endif()
     endmacro()
 
-    # --- US2/US3: the irradiance store ------------------------------------------------------------
-    gi_det_executable(test_gi_cache_store test_gi_cache_store.cpp)
-    target_compile_definitions(test_gi_cache_store PRIVATE GIDET_STORE_PHASE5)
-    foreach(_m lookup-pure:LookupPure commit-order:CommitOrder commit-dedupe:CommitDedupe batch-clamp:BatchClamp)
-        string(REPLACE ":" ";" _mt ${_m})
-        list(GET _mt 0 _mode)
-        list(GET _mt 1 _name)
-        add_test(NAME GiDet_${_name} COMMAND test_gi_cache_store ${_mode} ${CMAKE_CURRENT_BINARY_DIR}/work/${_name})
-        set_tests_properties(GiDet_${_name} PROPERTIES TIMEOUT 300 LABELS "gi_determinism;irradiance" ENVIRONMENT "${GI_DET_ENV}")
-    endforeach()
-    # the round trip also loads the cache file the starting tree wrote (fixture F1 of spec 032)
-    add_test(NAME GiDet_CacheRoundTrip COMMAND test_gi_cache_store roundtrip ${CMAKE_CURRENT_BINARY_DIR}/work/CacheRoundTrip ${CMAKE_BINARY_DIR}/tests/gi_split/fixture/icache-fixture.icache)
-    set_tests_properties(GiDet_CacheRoundTrip PROPERTIES TIMEOUT 300 LABELS "gi_determinism;irradiance" ENVIRONMENT "${GI_DET_ENV}" FIXTURES_REQUIRED GiFixture_ICache)
-
-    # --- US2: what a miss makes, the part that needs the commit (the executable is built from Phase 4) ---------
+    # --- GitHub #173: the interpreter's indirectdiffuse() ---------------------------------------------------
     foreach(_variant rslo slo)
         if(_variant STREQUAL "slo")
             set(_suffix "-slo")
         else()
             set(_suffix "")
         endif()
-        foreach(_m repeat:RepeatedPoint:repeat-point raycount:IndirectRayCount:raycount)
-            if(_m MATCHES "^raycount" AND _variant STREQUAL "slo")
+        foreach(_m raycount:IndirectRayCount:raycount)
+            if(_variant STREQUAL "slo")
                 continue()
             endif()
             string(REPLACE ":" ";" _mt ${_m})
@@ -188,4 +176,4 @@ if(OPENRENDER_040_RED_TESTS)
     endforeach()
 endif()
 
-message(STATUS "  - spec 040 gi_determinism tests (red block ${OPENRENDER_040_RED_TESTS}), record hook ${GIDET_RECORD_HOOK}, platform ${GI_DET_PLATFORM}")
+message(STATUS "  - spec 040 gi_determinism tests (red block ${OPENRENDER_040_RED_TESTS}), platform ${GI_DET_PLATFORM}")

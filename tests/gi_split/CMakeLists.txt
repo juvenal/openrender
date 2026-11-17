@@ -184,15 +184,16 @@ set_tests_properties(GiKeys_Photons GiKeys_IrradianceRecords PROPERTIES
 set_tests_properties(GiKeys_PhotonsThreads PROPERTIES
     TIMEOUT 600 LABELS "gi_split_threads" ENVIRONMENT "${GI_SPLIT_ENV}")
 
-# Spec 040 (T025): two additive cases, red until Phase 2 and Phase 5 (defined only with -DOPENRENDER_040_RED_TESTS=ON; the option itself is in
-# tests/gi_determinism/CMakeLists.txt, and a -D on the command line is in the cache before this file runs)
-#   GiKeys_IrradianceRecordsThreads  the (key, record) multiset at -t:1 against -t:4, three hiders, .rslo and .slo (the batch-identity gate of research.md R4)
-#   GiRemote_LoopbackCommit          a pending set sent over the loopback commits as the one-process set does (FR-015, GitHub #161)
+# Spec 040 (T025): two additive cases. GiKeys_IrradianceRecordsThreads (the (key, record) multiset at -t:1 against -t:4, three hiders, .rslo and .slo:
+# the batch-identity gate of research.md R4) is green from Phase 5 and defined always; GiRemote_LoopbackCommit (a pending set sent over the loopback
+# commits as the one-process set does, FR-015, GitHub #161) stays red until Phase 6 (defined only with -DOPENRENDER_040_RED_TESTS=ON; the option itself
+# is in tests/gi_determinism/CMakeLists.txt, and a -D on the command line is in the cache before this file runs)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/keys-records-threads)
+add_test(NAME GiKeys_IrradianceRecordsThreads COMMAND test_gi_keys records-threads ${CMAKE_CURRENT_BINARY_DIR}/keys-records-threads -)
+set_tests_properties(GiKeys_IrradianceRecordsThreads PROPERTIES
+    TIMEOUT 900 LABELS "gi_split" ENVIRONMENT "${GI_SPLIT_ENV}")
 if(OPENRENDER_040_RED_TESTS)
-    file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/keys-records-threads ${CMAKE_CURRENT_BINARY_DIR}/loopback-commit)
-    add_test(NAME GiKeys_IrradianceRecordsThreads COMMAND test_gi_keys records-threads ${CMAKE_CURRENT_BINARY_DIR}/keys-records-threads -)
-    set_tests_properties(GiKeys_IrradianceRecordsThreads PROPERTIES
-        TIMEOUT 900 LABELS "gi_split" ENVIRONMENT "${GI_SPLIT_ENV}")
+    file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/loopback-commit)
     # the same source with GIDET_COMMIT_CASE, in its own executable so that test_gi_remote_loopback (in `all`) keeps building
     add_executable(test_gi_remote_commit EXCLUDE_FROM_ALL test_gi_remote_loopback.cpp)
     target_compile_features(test_gi_remote_commit PRIVATE cxx_std_20)

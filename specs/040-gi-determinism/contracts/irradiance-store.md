@@ -48,7 +48,7 @@ virtual bool samplesOnMiss() const = 0;
 
 `CIrradianceCache` (not the interface):
 
-- `void commitPending()`: the canonical end-of-frame commit (data-model.md §5). Idempotent; runs single-threaded. Called by the
+- `void commitPending()`: the canonical end-of-frame commit (data-model.md §5; equal keys commit once, but **key 0 is never a key**: every key-0 record is kept, as `insertRecord` kept them). Idempotent; runs single-threaded. Called by the
   destructor before the write, and by `forEachNode`/`forEachRecord` before they walk the tree. Never called while render threads
   run (the core destroys frame files and sends remote frames after the threads are joined).
 - `template <class F> void forEachPending(F &&visit) const`: the pending set in sorted order, for the remote channel's send.

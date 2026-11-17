@@ -89,9 +89,15 @@ class CIrradianceStore : public CTexture3d {
         // writes C[0..6] (the envdir in the world's frame) and returns true; a miss returns false and leaves C alone.
         virtual bool lookupCached(float *C, const float *P, const float *N, float maxError, IrradianceAcceptFn accept, const void *acceptState, const CIrradianceBatchView &batch, float *Pc, float *Nc) = 0;
 
-        // Add a record (the caller computed it), under the cache's lock: copy, clamp against its neighbours, place by
-        // dP / (0.4 / maxError)
-        virtual void insertRecord(const CIrradianceRecord &record, float maxError) = 0;
+        // The batch-clamped radius of a record about to join a caller's batch: min(raw dP, min over the fixed part F (dP + l)), l the distance
+        // between the points (C_EPSILON for coincident points). F is read-only during a frame, so no lock is taken. The caller (Shading) applies
+        // the records of its own batch to the result and to them (data-model.md section 4).
+        virtual float clampAgainstFixed(const CIrradianceRecord &record) const = 0;
+
+        // Add a record made this frame to the pending set: the record with its raw dP and the creating call's maxError (its K = 0.4 / maxError
+        // places the record). Under the cache's lock; it touches neither F nor anything a lookup reads, so a lookup never sees a pending record
+        // (spec 040). A cache opened CACHE_RDONLY ignores it.
+        virtual void addPending(const CIrradianceRecord &record, float maxError) = 0;
 
         // Does a miss ask for a new sample (CACHE_SAMPLE)?
         virtual bool samplesOnMiss() const = 0;

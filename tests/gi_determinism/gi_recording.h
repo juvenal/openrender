@@ -6,9 +6,8 @@
  * inside the frame, so the test installs a services wrapper over the renderer's own for the length of the render: its getCache() builds the
  * cache itself, as a CIrradianceCache subclass whose record hook copies every (key, record) before forwarding, and owns it.
  *
- * The record hook is virtual insertRecord() on the starting tree and addPending() after spec 040's Phase 5 (contracts/irradiance-store.md):
- * GIDET_RECORD_HOOK_ADDPENDING (set from the CMake cache variable GIDET_RECORD_HOOK) selects the second. The lookupCached() the helper
- * visitedByLookup() calls is the one with an accept function and a batch view (Phase 4), whichever hook is selected.
+ * The record hook is virtual addPending() (spec 040, Phase 5; it was insertRecord() on the starting tree, and a CMake variable selected the form
+ * while the phases were open). The lookupCached() the helper visitedByLookup() calls is the one with an accept function and a batch view.
  */
 
 #ifndef GI_RECORDING_H
@@ -59,17 +58,10 @@ namespace gidet {
         public:
             using CIrradianceCache::CIrradianceCache;
 
-#ifdef GIDET_RECORD_HOOK_ADDPENDING
             void addPending(const CIrradianceRecord &r, float maxError) override {
                 note(r);
                 CIrradianceCache::addPending(r, maxError);
             }
-#else
-            void insertRecord(const CIrradianceRecord &r, float maxError) override {
-                note(r);
-                CIrradianceCache::insertRecord(r, maxError);
-            }
-#endif
             std::vector<SeenRecord> seen() {
                 std::lock_guard<std::mutex> g(m);
                 return list;
@@ -129,15 +121,9 @@ namespace gidet {
                 r.envdir[2] = 1;
                 r.dP = 3.0f;
                 r.key = 0;
-#ifdef GIDET_RECORD_HOOK_ADDPENDING
                 cache.addPending(r, 0.6f);
-#else
-                cache.insertRecord(r, 0.6f);
-#endif
             }
-#ifdef GIDET_RECORD_HOOK_ADDPENDING
             cache.commitPending();
-#endif
         }
         Bytes b;
         return gitest::readFile(name, b) && b.size() > 40;

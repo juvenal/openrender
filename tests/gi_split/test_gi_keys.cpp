@@ -27,9 +27,9 @@
  *   photons  the child keeps the map alive across the frame with attach() and reads CPhotonMap::photonKey(i) afterwards
  *   records  the cache is created and freed by the renderer inside the frame, so the child installs a services wrapper
  *            (CRecordingServices, below, a CContractForwarder) over the renderer's own for the length of the frame. Its
- *            getCache() builds the cache itself, as a CIrradianceCache subclass whose insertRecord() copies every (key, record)
+ *            getCache() builds the cache itself, as a CIrradianceCache subclass whose addPending() copies every (key, record)
  *            before forwarding, and owns it; the renderer never sees it. This is the test's only seam: nothing in src/ is changed
- *            for it, but CIrradianceCache and insertRecord() must stay non-final (recorded in the plan and contracts/irradiance-cache.md).
+ *            for it, but CIrradianceCache and addPending() must stay non-final (recorded in the plan and contracts/irradiance-cache.md).
  *
  * Usage:
  *   test_gi_keys photons|records|photons-threads <work dir>        the parent (the test)
@@ -165,11 +165,11 @@ static int photonsDump(int threads, const std::string &out) {
 // ---------------------------------------------------------------------------------------------------------
 static std::vector<std::string> g_recordLines;
 
-// An irradiance cache that copies every record handed to insertRecord() with its key, then inserts it as usual
+// An irradiance cache that copies every record handed to addPending() with its key (the raw radius), then adds it as usual
 class CRecordingCache final : public CIrradianceCache {
     public:
         using CIrradianceCache::CIrradianceCache;
-        void insertRecord(const CIrradianceRecord &r, float maxError) override {
+        void addPending(const CIrradianceRecord &r, float maxError) override {
             std::ostringstream o;
             char key[24];
             snprintf(key, sizeof(key), "%016llx", (unsigned long long)r.key);
@@ -186,7 +186,7 @@ class CRecordingCache final : public CIrradianceCache {
                 std::lock_guard<std::mutex> g(linesMutex);
                 g_recordLines.push_back(o.str());
             }
-            CIrradianceCache::insertRecord(r, maxError);
+            CIrradianceCache::addPending(r, maxError);
         }
 
     private:

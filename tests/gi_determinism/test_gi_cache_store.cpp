@@ -21,16 +21,12 @@
  *                               records (raw + l)) and each earlier record becomes min(radius, raw_new + l) (data-model.md section 4); the
  *                               final radii do not depend on the order the records were added in
  *
- * The members these cases need do not exist on the starting tree: addPending(), commitPending(), clampAgainstFixed(), the lookupCached()
+ * The members these cases need did not exist on the starting tree: addPending(), commitPending(), clampAgainstFixed(), the lookupCached()
  * with an accept function and a batch view, irradianceRecordIdentity() (texture/irradianceStore.h, CIrradianceCache), and
  * libshader::irradianceAcceptValue()/IrradianceAcceptState (irradianceCalls.h) and libshader::clampAgainstBatch()/IrradianceBatchEntry
  * (the new irradianceBatch.h). Red reason of all six: a build failure naming the first of them.
  *
  * Usage: test_gi_cache_store <mode> <work dir> [<fixture cache of GiFixture_ICache>]
- *
- * GIDET_STORE_PHASE5 (set by the red block of CMakeLists.txt) selects the five modes that need the members spec 040's Phase 5 adds (addPending(), commitPending(),
- * clampAgainstFixed(), irradianceBatch.h). Without it the file is the executable of GiDet_AcceptPure alone, which Phase 4 turns green: the accept rule of
- * Phase 4 needs the accept function, the batch view and the identity, none of the commit machinery.
  */
 
 #include <algorithm>
@@ -41,9 +37,7 @@
 #include "common/algebra.h"
 #include "common/memory.h"
 #include "common/os.h"
-#ifdef GIDET_STORE_PHASE5
 #include "libshader/shading/irradianceBatch.h"
-#endif
 #include "libshader/shading/irradianceCalls.h"
 #include "ri/texture/irradianceCache.h"
 
@@ -67,13 +61,27 @@ static void unitVector(Lcg &g, float *v) {
     v[2] /= l;
 }
 
+// A unit vector within about 4 degrees of +z. The records' and the queries' normals are drawn from this cone: with normals uniform on the
+// sphere the directional error of a lookup (weightNormalDenominator, 10 degrees) is almost always over the limit, and a lookup hits about once in
+// a hundred, so the cases' "the case would prove little" preconditions (more than 20 hits of 150 or 200 lookups) could never hold, for any
+// implementation. Hit counts are about 140 of 200 with the cone; no threshold is changed.
+static void nearZ(Lcg &g, float *v) {
+    v[0] = g.range(-0.07f, 0.07f);
+    v[1] = g.range(-0.07f, 0.07f);
+    v[2] = 1;
+    const float l = sqrtf(v[0] * v[0] + v[1] * v[1] + 1);
+    v[0] /= l;
+    v[1] /= l;
+    v[2] /= l;
+}
+
 static CIrradianceRecord makeRecord(Lcg &g, uint64_t key) {
     CIrradianceRecord r;
     memset(&r, 0, sizeof(r));
     r.P[0] = g.range(0, 4);
     r.P[1] = g.range(0, 4);
     r.P[2] = g.range(0, 4);
-    unitVector(g, r.N);
+    nearZ(g, r.N);
     for (int i = 0; i < 3; i++) {
         r.irradiance[i] = g.range(0, 1);
     }
@@ -88,7 +96,6 @@ static CIrradianceRecord makeRecord(Lcg &g, uint64_t key) {
     return r;
 }
 
-#ifdef GIDET_STORE_PHASE5
 // The 56 floats of a record in file order (what a file stores; the key is not part of them)
 static void fileFloats(const CIrradianceRecord &r, float *f) {
     memcpy(f, r.P, 12);
@@ -152,7 +159,7 @@ static std::vector<Answer> lookups(CIrradianceCache &cache, int count, uint64_t 
     const CIrradianceBatchView noBatch{nullptr, 0};
     for (int i = 0; i < count; i++) {
         float P[3] = {g.range(0, 4), g.range(0, 4), g.range(0, 4)}, N[3];
-        unitVector(g, N);
+        nearZ(g, N);
         libshader::IrradianceAcceptState state;
         state.call.seedHash = 0x1234567ull + (uint64_t)i;
         state.call.indexBase = (uint32_t)i;
@@ -197,9 +204,7 @@ static bool writeFixedFile(const std::string &name, int count, uint64_t seed) {
     return gitest::readFile(name, b) && b.size() > 40;
 }
 
-#endif
 
-#ifdef GIDET_STORE_PHASE5
 // ---------------------------------------------------------------------------------------------------------
 // lookup-pure
 // ---------------------------------------------------------------------------------------------------------
@@ -425,7 +430,6 @@ static int modeRoundTrip(const std::string &fixture) {
     return g_fail == 0 ? 0 : 1;
 }
 
-#endif
 
 // ---------------------------------------------------------------------------------------------------------
 // accept-pure
@@ -481,7 +485,6 @@ static int modeAcceptPure() {
     return g_fail == 0 ? 0 : 1;
 }
 
-#ifdef GIDET_STORE_PHASE5
 // ---------------------------------------------------------------------------------------------------------
 // batch-clamp
 // ---------------------------------------------------------------------------------------------------------
@@ -579,7 +582,6 @@ static int modeBatchClamp() {
     return g_fail == 0 ? 0 : 1;
 }
 
-#endif
 
 int main(int argc, char **argv) {
     if (argc < 3) {
@@ -587,14 +589,11 @@ int main(int argc, char **argv) {
         return 2;
     }
     const std::string mode = argv[1];
-#ifdef GIDET_STORE_PHASE5
     const std::string fixture = argc > 3 ? absolute(argv[3]) : std::string();
-#endif
     if (chdir(argv[2]) != 0) {
         fprintf(stderr, "cannot enter %s\n", argv[2]);
         return 2;
     }
-#ifdef GIDET_STORE_PHASE5
     if (mode == "lookup-pure")
         return modeLookupPure();
     if (mode == "commit-order")
@@ -603,13 +602,10 @@ int main(int argc, char **argv) {
         return modeCommitDedupe();
     if (mode == "roundtrip")
         return modeRoundTrip(fixture);
-#endif
     if (mode == "accept-pure")
         return modeAcceptPure();
-#ifdef GIDET_STORE_PHASE5
     if (mode == "batch-clamp")
         return modeBatchClamp();
-#endif
     fprintf(stderr, "unknown mode %s\n", mode.c_str());
     return 2;
 }

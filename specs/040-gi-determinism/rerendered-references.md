@@ -13,7 +13,7 @@ Phase 4 rows (forced by D1-A and FR-011; the maintainer decided on 2026-11-17 th
 
 | reference | platform | phase | reason | old | new | measured difference |
 |---|---|---|---|---|---|---|
-| tests/gi_split/reference/{macos,linux}/files.txt line 26 (`GiFiles_Unchanged`, the cached occlusion `.icache`) | both | 7 | hashed accept values and indexed draws: other records | the starting tree's | pending | macOS: 52016 to 46888 bytes |
+| tests/gi_split/reference/{macos,linux}/files.txt lines 26-27 (`GiFiles_Unchanged`, the cached occlusion `.icache`) | both | 7 | hashed accept values, indexed draws, the batch scope and the canonical commit: other records (the record set changes, not only the radii) | the starting tree's | pending (macOS recorded twice into build-logs/040-files-macos-p5-{1,2}.txt, identical) | 52016 to 96528 bytes (46888 after Phase 4); 177 to 359 records |
 | tests/gi_split/reference (`GiRemote_LoopbackCache`) | both | 7 | the records sent differ | the starting tree's | pending | frame 22212 to 21752 bytes, recvfile 27980 to 27012 (macOS) |
 | tests/preview/reference/{macos,linux}/datascene.txt (`Preview_DataSceneUnchanged`) | both | 7 | the cache's records changed | the Phase 2 reference | pending | |
 | tests/visual/golden/occlusion-sobol_cache.tif (`OcclusionGolden_sobol_cache`, a spec 039 golden) | both | 7 | cached occlusion draws by index from the copy; the grid cell offsets come from pair 0 sample `k` | spec 039's | pending | 3315 of 9216 values differ |

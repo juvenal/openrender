@@ -7,7 +7,7 @@
  * writes them, reloads them and queries both, with equal results before and after the reload.
  *
  * Two sections, each compiled only when its macro is defined (the target defines the ones whose phase is done):
- *   GI_STORES_CACHE     CIrradianceCache (texture/irradianceCache.h): insertRecord() of a grid of records, lookupCached()
+ *   GI_STORES_CACHE     CIrradianceCache (texture/irradianceCache.h): addPending() and commitPending() of a grid of records, lookupCached()
  *                       at fixed points with a fixed draw, the file written by the destructor, read back by the constructor
  *   GI_STORES_PHOTONS   CPhotonStore (texture/photonStore.h): store() of a grid of photons, balance(), lookup() at fixed
  *                       points, write(), read back through the reading constructor
@@ -103,9 +103,10 @@ static int cacheSection() {
                 r.coverage = 1;
                 r.envdir[2] = 1;
                 r.dP = 1.0f;
-                cache.insertRecord(r, 0.6f);
+                cache.addPending(r, 0.6f);
             }
         }
+        cache.commitPending(); // the records join the tree at the commit (spec 040): a lookup reads only the committed part
         before = queryCache(cache, hitsBefore);
         recordsBefore = storedRecords(cache);
         printf("  %d of %zu lookups hit before the reload\n", hitsBefore, before.size());

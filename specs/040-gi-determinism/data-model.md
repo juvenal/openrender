@@ -90,7 +90,8 @@ Run once, single-threaded, before the cache is written, sent or destroyed (`comm
 write and by `forEachNode`/`forEachRecord`).
 
 1. **Dedupe** `Pend` by `key`; equal keys keep the smallest record under the byte order (a difference is a determinism defect and is
-   reported once in a debug build).
+   reported once in a debug build). **A record with key 0 is never merged by key** (maintainer, 2026-11-17): the records a file holds and
+   the ones a test adds carry no key, and every one is kept, as `insertRecord` kept them.
 2. **Sort** `Pend` by `(key, bytes)`.
 3. **Clamp, order-independently** (every value from the raw or stored radii, never from a value clamped in this step, so the
    result does not depend on the visiting order; `min` is exact in floating point):
@@ -101,6 +102,9 @@ write and by `forEachNode`/`forEachRecord`).
 4. **Place** each new record in sorted order by `dP_i / K_i` (the existing descent rule; `K_i` from its pending entry). Fixed records
    stay in their node.
 5. **List order** in every node: fixed records first, in file order, then new records in sorted order (appended at the tail).
+6. **Keys are dropped**: a committed record carries key 0, exactly what a file holds (a record read from a file has no key). The tree of a cache
+   that wrote and the tree of the same file read back are then the same records, so their lookups agree to the bit (SC-005, FR-014): a
+   lookup's accept value is a function of the record's identity, which is its key only while it is pending or in a batch.
 
 Tree shape (which nodes exist), every node's list and every radius are then functions of `F ∪ Pend` as sets.
 

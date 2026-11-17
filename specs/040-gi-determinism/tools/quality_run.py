@@ -6,7 +6,9 @@ W = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..
 Q = W + "/build-logs/040-quality"
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import measure_gi
-B = W + "/build-base"
+B = W + "/" + os.environ.get("QTREE", "build-base")      # QTREE=build QOUT=build-logs/040-quality-p5 measures the new tree (Phase 5)
+OUT = W + "/" + os.environ.get("QOUT", "build-logs/040-quality")
+os.makedirs(OUT, exist_ok=True)
 env = measure_gi.env_for(B)
 env["SHADERS"] = Q + "/shaders:" + B + "/shaders"
 exe = B + "/src/orender/orender"
@@ -26,7 +28,7 @@ def variant(text, kind):
         head += 'Option "sampling" "seed" [1]\n'
     return head + text
 def render(name, rib, kind):
-    wd = "%s/%s/%s" % (Q, name, kind)
+    wd = "%s/%s/%s" % (OUT, name, kind)
     os.makedirs(wd, exist_ok=True)
     for f in os.listdir(wd):
         os.remove(os.path.join(wd, f))
@@ -53,5 +55,5 @@ for name, rib in scenes:
         out.append("%s %s cached-vs-truth: %s" % (name, tif, gq(res["cached"] + "/" + tif, res["truth1"] + "/" + tif)))
         out.append("%s %s truth-vs-truth(same seed): %s" % (name, tif, gq(res["truth1"] + "/" + tif, res["truth2"] + "/" + tif)))
         out.append("%s %s truth-vs-truth(seed 1): %s" % (name, tif, gq(res["truth1"] + "/" + tif, res["truth3"] + "/" + tif)))
-open(Q + "/results.txt", "w").write("\n".join(out) + "\n")
+open(OUT + "/results.txt", "w").write("\n".join(out) + "\n")
 print("\n".join(out))

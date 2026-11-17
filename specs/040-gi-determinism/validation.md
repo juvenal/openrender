@@ -253,6 +253,36 @@ DeterminismSweep_gi-* (34 entries, step 2 of T031 applied so that the options ex
 
 ## 3. Checkpoint records
 
+### Checkpoint 5 (Phase 5: the cache's fixed part, batch scope and canonical commit, M2), macOS, 2026-11-17
+
+Build `cpujob 040-p5-build*` (exit 0, no first-party warning). Sources: `irradianceStore.h` (`clampAgainstFixed`, `addPending`; `insertRecord` removed), `irradianceCache.{h,cpp}` (`CPending`, `addPending`, `commitPending`, `forEachPending`, the kd-tree index of the fixed part, `readNode` appends, the commit drops the key), `libshader/shading/irradianceBatch.h` (new), `irradianceCalls.cpp`, `shading.{h,cpp}` (`CShadingState::irradianceBatch`, reset with the draw occurrences), `rendererServices.h` (history entry extended). The key-0 rule (maintainer): every key-0 pending record is kept (no dedupe); only a non-zero key merges.
+
+| test | result |
+|---|---|
+| `GiDet_CommitDedupe`, `_BatchClamp`, `_AcceptPure`, `_MissIndependence_*`, `_IndirectRayCount_slo`, `_RepeatedPoint_{rslo,slo}` | pass (after the key-0 correction too) |
+| `GiKeys_IrradianceRecords`, `GiKeys_IrradianceRecordsThreads` (the batch-identity gate: `-t:1` against `-t:4`, reyes, zbuffer, raytrace, `.rslo`/`.slo`: 37 records each, identical) | pass |
+| `TextureOnly_*`, `GiSplit_Boundary`, `GiRemote_LoopbackLookup` | pass |
+| cache sweep `^DeterminismSweep_gi-` (34 entries, `-j2`: float colour, alpha, depth and every `.icache` byte-identical at `-t:1`, default, `-t:2`, `-t:4`) | 34 of 34, before and after the key-0 correction |
+| `GiDet_LookupPure`, `_CommitOrder`, `_CacheRoundTrip` | **fail on the tests' own "more than 20 hits" preconditions, not on the code** (hit rate ~1 in 100 with normals uniform on the sphere; a simulation of the test's generator gives about 5 hits with no clamp at all). A scratch build of `test_gi_cache_store.cpp` with the proposed normals patch (`tools/test-edit-patches/phase5-store-test-normals.patch`, /tmp/p5b) passes all six modes, 100 `CommitOrder` permutations included. Held for the maintainer |
+| `-L architecture` | 36 of 36 |
+| `-L '^link$'`, `shading_contract` | 76 of 78: the two `ShadingContract_TraceReplay_*` (Phase 4's reference change, T093a) |
+| everyday suite (1385) | 13 failures: the ten of Phase 4 (`Preview_DataSceneUnchanged`, `Visual_sphere-occlusion-reyes(-slo)`, `Visual_photon-parity(-slo)`, `OcclusionGolden_sobol_cache`, `GiFiles_Unchanged`, `GiRemote_LoopbackCache`, the two replays) and the three above |
+
+**Drift (T076, `tools/drift-p5-macos.txt`, nothing adjusted):** the GI visual set fails the same tests as Phase 4; `Visual_sphere-occlusion-reyes(-slo)` 12.36 at the start, 38.78 after Phase 4, 30.72 now against 20; `Visual_photon-parity(-slo)` 7.06 against 6. All stay on the Phase 7 list.
+
+**Quality gate (T074, §4; `tools/quality-m2-macos.txt`):** the M2 cached image against the same 256-sample truths is no worse than the starting tree's in every scene with signal: `gi-occlusion-raytrace` 5.63 to 1.59, `gi-occlusion-reyes` 2.43 to 1.72, `gi-occlusion-zbuffer` 2.77 to 2.33, `gi-cache-extend-reyes` 0.76 to 0.24, `gi-photon-then-indirect-reyes-slo` 17.17 to 1.99; `sphere-occlusion-reyes(-slo)` (cache off by default) 31.08 to 33.87 inside its seed-1 truth noise 7.31. The indirectdiffuse rows carry no signal (#173); `gi-photon-then-indirect-reyes` (rslo) 0 to 17.84 is the #173 artifact (its truth became a real image).
+**Record counts** (`icache_dump.py`, one render at `-t:1`): `perf-occlusion-cache` 258 to 513; `perf-indirect-photon-cache` 0 to 0 (#173); the cached scenes, reyes and zbuffer identical for a scene (occlusion 120 to 145, cache-extend 117 to 147), raytrace 24 to 31 (its batch size, M5).
+
+**Final macOS re-run (after the normals patch and the key-0 correction; `build-logs/040-p5-chain3.log`):** everyday suite 1385 tests, 11 failures: the ten of Phase 4 and `ShadingParity_JitPL_trace_samples_cone`, a **timeout under load** (my suite ran at -j4 while spec 033's suite held the other jobs); re-run alone through cpujob it passes in 47.7 s (`040-p5-rerun-timeout`), no timeout changed. `-L architecture` 36 of 36, `-L '^link$'` pass. The three GiDet tests the normals patch fixes pass.
+
+**Linux CP-L (T078, `tools/phase5_linux_chain.sh`, GCC 13 -Werror, remote cpujob -j2, `build-logs/040-l-p5-*.log`):** build exit 0 (no warning-as-error). Unit set 24: only `GiFiles_Unchanged` and `GiRemote_LoopbackCache` fail (the Phase 4 reference changes). Cache sweep 34 of 34 pass. GI test set 86 of 96: the ten macOS failures. `-L architecture` 36 of 36. `link` + `shading_contract` 76 of 78 (the two replays). Suite 1386 tests, 11 failures: the ten and `TextureTile_RenderByteIdentical` (the known Linux failure). The `.icache` line of `files.txt` on Linux: size 52016 to 96528 (as on macOS: the same 359 records), SHA-256 `12c12859...` to `f22a92fe...`, the two recordings identical (`build-logs/040-files-linux-p5-{1,2}.txt`); it joins the Phase 7 list. **Linux quality gate: not run.** `quality_run.py` needs `gi_quality` and the test-local `_256` probe shaders built on the Linux host, and T029 produced the starting-tree numbers on macOS only (`quality-base-macos.txt`), so there is no Linux starting-tree figure to compare with; the macOS table stands. (The chain's quality step exited 1 on the missing `gi_quality`, nothing else.)
+
+**Cost so far (T077, §5, `tools/timing-p5-macos.txt`, `timing_sc007.sh build-base build 3`):** `perf-occlusion-cache` 4.64 to 4.18 s (-10 %), `perf-indirect-photon` 5.14 to 5.16 s (+0.4 %), `perf-photon-pass` 3.69 to 4.04 s (+9.5 %): all within spread. The formal measurement is Phase 7.
+
+### Phase 5 decision record (maintainer, 2026-11-17)
+
+**Key 0 and the commit's dedupe.** The commit merges pending records only by a non-zero `key` (equal keys keep the smallest under the byte order). A record with key 0 is never deduped: every one is kept, as `insertRecord` kept them. Recorded in data-model.md section 5 and contracts/irradiance-store.md. The pending radius is the raw one, the batch radius is Shading's and is never stored, and `insertReceived` is unchanged until Phase 6.
+
 ### Checkpoint 4 (Phase 4: the accept rule and the indexed sampler, D1-A), macOS, 2026-11-16
 
 Build `cpujob 040-p4-build` (exit 0, no first-party warning). Sources: `src/common/giHash.h` (new, Infra: `giMix`, `giAcceptValue`, `giRecordIdentity`), `irradianceStore.h` (`IrradianceAcceptFn`, `CIrradianceBatchView`, `irradianceRecordIdentity`, the final `lookupCached`), `irradianceCache.{h,cpp}` (a generic `consider` lambda over a cache sample and a batch record; the batch is walked after the fixed part, empty until Phase 5), `irradianceCalls.{h,cpp}` (`IrradianceAcceptState`, `irradianceAcceptValue`; `drawNextOf` removed; the cursor is not touched), `irradianceSampler.cpp` (draws by index from a copy of the bound sub-stream with `rayDraw2D`; cell `k = i * np + j`; both functions with the cache off take `samples` keyed directions). `rendererServices.h`: the 2.6.0 entry extended (no second step). Test edits: the three approved patches (PAUSE 4a).

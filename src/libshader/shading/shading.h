@@ -33,6 +33,7 @@
 #include "common/containers.h"
 #include "common/global.h"
 #include "libshader/shading/illuminationHook.h"
+#include "libshader/shading/irradianceBatch.h"
 #include "libshader/shading/irradianceSampler.h"
 #include "libshader/shading/pointSource.h"
 #include "libshader/shading/rendererServices.h"
@@ -246,6 +247,9 @@ class CShadingState {
         int pointKeysFromRays;                      // TRUE while pointKeys were set by the hider (ray hits), not by the cell rule
         CDrawOccurrences *callSiteOccurrence;       // Per-point call-site occurrence counters (allocated lazily by the runtime; null until a draw needs them)
         uint64_t currentShaderKey;                  // mix(shader name, instance ordinal) of the shader being executed
+
+        // ---> The records the GI lookups of the shading call in progress made (spec 040, the batch scope): reset with the draw occurrences
+        libshader::IrradianceBatch irradianceBatch;
 
         CShadingState *next; // The next in free state list
 };
