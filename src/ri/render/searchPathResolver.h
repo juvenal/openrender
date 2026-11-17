@@ -21,6 +21,7 @@
 #ifndef SEARCHPATHRESOLVER_H
 #define SEARCHPATHRESOLVER_H
 
+#include "libshader/shading/shaderBackend.h" // IShaderFileResolver
 #include "texture/textureResolver.h"
 
 struct TSearchpath;
@@ -30,6 +31,19 @@ class CSearchPathResolver : public CTextureFileResolver {
         explicit CSearchPathResolver(TSearchpath *searchPath) : path(searchPath) {}
 
         int locate(char *result, const char *name) const override;
+
+    private:
+        TSearchpath *path; // not owned; outlives the resolver
+};
+
+// The shading system's file resolver (spec 033): a shader's file of an extension along the current shader search path, with the
+// rules of CRenderer::locateFileEx (a name holding an extension is used as written). Built per request over
+// currentOptions->shaderPath; locate() is defined in rendererFiles.cpp.
+class CShaderSearchPathResolver : public openrender::shading::IShaderFileResolver {
+    public:
+        explicit CShaderSearchPathResolver(TSearchpath *searchPath) : path(searchPath) {}
+
+        int locate(char *result, const char *name, const char *extension) const override;
 
     private:
         TSearchpath *path; // not owned; outlives the resolver

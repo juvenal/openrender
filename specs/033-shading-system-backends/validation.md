@@ -165,14 +165,41 @@ Replays, baselines, the allowlist and `src/` outside the files of the approved l
 | CP-v | no `static_assert` line of the implementers differs since `278b0394`; version `{2, 4, 0}` | same tree |
 | `Visual_*-slo` timing ratio tests | all pass, `MAX_RATIO` unchanged | all pass |
 
-**Intermittent `GiKeys_PhotonsThreads` (finding F-6).** The test (label `gi_split_threads`, `test_gi_keys photons-dump 1` then `photons-dump 4`) failed once in the macOS suite with `FAIL: a child render failed` after 0.04 s. Re-run alone: pass, pass, fail. A loop of 60 runs on macOS (this tree): 2 failures. The **same loop of 100 on Linux, run on the Phase 3 binaries (before any Phase 4 change)**: 3 failures with the same message. It is therefore an intermittent of the starting tree's four-thread photon dump, not a result of the split. It passed in all four baseline runs (two per platform) by luck of the odds (about 3% a run). It belongs with the known photon race (#163's family). For filing; nothing was changed for it.
+**Intermittent `GiKeys_PhotonsThreads` (finding F-6, known: GitHub #164, the multithreaded photon crash, open on master and fixed on spec 040's branch; nothing to file; a red one is re-run alone once and treated as #164 until 040 merges).** The test (label `gi_split_threads`, `test_gi_keys photons-dump 1` then `photons-dump 4`) failed once in the macOS suite with `FAIL: a child render failed` after 0.04 s. Re-run alone: pass, pass, fail. A loop of 60 runs on macOS (this tree): 2 failures. The **same loop of 100 on Linux, run on the Phase 3 binaries (before any Phase 4 change)**: 3 failures with the same message. It is therefore an intermittent of the starting tree's four-thread photon dump, not a result of the split. It passed in all four baseline runs (two per platform) by luck of the odds (about 3% a run). It belongs with the known photon race (#163's family). For filing; nothing was changed for it.
 
 **The split.** `CShader` keeps `name`, `type`, `parameters`, `usedParameters`, `flags`, `data` and gains `backend` and an owned `payload`; the tables, the strings, the frame layout and the JIT entries moved into `CRsloPayload` / `CSloPayload` (`shaderPayload.h`); `shader.h` no longer includes `llvmJit.h`.
 **The dispatch invariant**, checked by grep of every assignment in `src/`: `jitEntry` and `jitInitEntry` are assigned only in `sloLoader.cpp` (`parseSloShader`); nothing else writes them, so a non-null `jitEntry` is exactly "loaded by `parseSloShader` and compiled", and a `CSloPayload` with a null `jitEntry` is "loaded by `parseSloShader`, JIT compile failed", which the JIT backend answers with the unchanged `CODE_SYSTEM` "has no bytecode and no JIT entry" warning.
 
+### Phase 5 (T090 to T095; the ShadingSystem facade, the cache, the format order, the core's resolver and bind host)
+
+| Check | macOS | Linux (GCC 13, `-Werror`) |
+|---|---|---|
+| CP-a build | `build` and `build-nojit`: `rc=0` | `rc=0` (4 minutes at `-j2`, no GCC-only error) |
+| The new tests | `ShadingSystem_ThirdBackend`, `_Precedence`, `_Cache`, `Shading_CoreNoBackendNames` and its fixture run green; `ShadingSystem_NoJitFallback` green in `build-nojit` | in the suite and the contract set, green |
+| Characterisations (T091) | `ShaderFormat_Precedence` identical in `build` and in `build-nojit` (each against its own reference); `ShadingContract_MessageRequests` and `BindSpaces_Characterise` identical | in the contract set |
+| CP-b suite (`-LE determinism-sweep`) | **1373 of 1373 passed** (1383 listed, the rest disabled or skipped) | 1374 tests, 1372 passed: the baseline's two failures only (`TextureTile_RenderByteIdentical` #45, `Registry_IntegratorImageIdentity` #163); 12 minutes |
+| CP-d images | 0 differing, 0 missing (64 fresh images of the characterisations, information only); `MaxBlockAvgDiff` rows identical to `baseline-diffs-macos.txt` (empty diff) | 0 differing, 0 missing; rows identical to `baseline-diffs-linux.txt` |
+| CP-c `ctest -L architecture` | 38/38; `archcheck`: `RESULT PASS violations=0 stale=0 badid=0`, `ALLOWED DB-004 x 3 DB-011 x 144`, `CONSUMER` 71, `METRIC` TOTAL 491/71 and Shading 0/0; `git diff --stat HEAD -- tests/architecture/allowlist.txt` empty | 38/38; the same `archcheck` figures |
+| CP-m contract tests | 244/244 | 244/244 |
+| CP-v | no `static_assert` line differs since `278b0394`; `rendererServices.h` and `serviceTypes.h` unchanged this phase; version `{2, 4, 0}` | same tree |
+| SC-002 (the scan) | `Shading_CoreNoBackendNames`: 0 violations (the starting tree: 35 lines) | same |
+| SC-003 (T092) | `git diff --stat HEAD -- src/display src/shadeop src/procedures src/common` empty; `src/ri` holds only the migration files; `tests/` holds only the two CMake gates. `test_shading_system_third_backend` links `libshader_shading`, `libRIBCommon` and the State-only static library (no `ribRender`), with `-Isrc -Isrc/libshader/shading -Isrc/ri/*` | |
+
+`CRenderer::shadingSystem` replaces `globalFiles` (used for shaders only); `CRenderer::getShader(name, path[, preferredType])` forwards to `ShadingSystem::find()`; `CRendererContext::getShader` keeps its signature, answers `"null"` before the facade (the leak-fix spec's ground), builds a `ShaderRequest` and calls `bind()`. `OPENRENDER_HAVE_LLVM` appears 0 times under `src/ri`. The cache is keyed by the description's own `name`, consulted before the format is resolved (#167), under its own `std::mutex`, never `shaderMutex`.
+`git diff 278b0394 -- src/ri/render/rendererContext.cpp`: three hunks (the include, `getShader`, the new `registerLight`); `RiLightSourceV`, `RiAreaLightSourceV`, `RiIlluminate`, `extractLightHandle`, `takeInstanceKey` and `pendingInstanceKey` untouched.
+
 ## 2. Red evidence
 
 Phase 1 has none (the characterisations pass on the starting tree by construction).
+
+### Phase 5, T081: the Test gate (the tests enabled, before any implementation)
+
+| Test | Red reason (recorded before the first source edit) |
+|---|---|
+| `ShadingSystem_ThirdBackend`, `_Precedence`, `_Cache` (`test_support.h`) | build failure: `fatal error: 'libshader/shading/shadingSystem.h' file not found` |
+| `ShadingSystem_BindOrder` | build failure on `shadingSystem.h`, then (the facade written) `'libshader/shading/shaderGroup.h' file not found`: it binds through `ShaderGroupBuilder`, which is Phase 6, so it stays in its red block with `ShadingSystem_GroupOneLayer` (a departure from the task list, which names it for Phase 5) |
+| `ShadingSystem_NoJitFallback` (`build-nojit`) | build failure on `shadingSystem.h` |
+| `Shading_CoreNoBackendNames` | 13 `VIOLATION` lines on the Phase 4 tree: `rendererFiles.cpp` 8, `rendererContext.cpp` 2, `rendererFileSearch.cpp` 2, `src/ri/CMakeLists.txt` 1 (the `init.cpp` lines of the 35 were already gone); `Shading_CoreNoBackendNames_Fixture` (the mutant) passes by `WILL_FAIL` |
 
 ### Phase 3, T048: the link-red step (the proof that #134's references were hidden in the core)
 
@@ -264,6 +291,8 @@ them, when an untracked non-ignored file exists: tested with a temporary file). 
 - The scans take `-DSOURCE_DIR=<a tree holding src/...>` so the fixture runs scan `tests/architecture/fixtures/033-*` (the fixture files are `.txt`/`.cpp` fragments that no target compiles); `Sloinfo_MetadataApiOnly` also flags the include `"rslo.h"` (the inspection parser's header, reached through the include path), which is the third of the three `CONSUMER` edges.
 - `Link_RenameAliases` passes an absent target as an empty value instead of a generator expression, so the option ON can configure; the script then reports "no such target". Registered whether or not the option is ON, DISABLED when OFF.
 - The `ShadingSystem_*` tests other than `NoJitFallback` and the tests that need `.slo` are registered in trees with the JIT only; `NoJitFallback` in trees without it.
+
+**Departure, Phase 5: `libshader::initialiseInstance()` stays.** The approved list removed it, but the approved, committed test `ShadingSystem_BindUnknownSpace` (`test_bind_unknown_space.cpp:65`) calls it on a bare instance, and an approved test is not edited. It is the same one-line forward as before (`instance.parent->backend->initialise(instance)`), no longer called by the core; `ShadingSystem::bind()` calls the backend's `initialise()` directly. If the maintainer wants it gone, that test needs a one-line edit (to be shown as a diff first).
 
 ## 5. Final summary against SC-001 to SC-011
 

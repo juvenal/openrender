@@ -43,8 +43,8 @@ set(SHADING_SYSTEM_ENV
     "SHADING_SYSTEM_FIXTURES=${CMAKE_BINARY_DIR}/tests/shaderformat/fixtures"
     "SHADING_CONTRACT_SHADERS=${CMAKE_BINARY_DIR}/tests/shading_contract/shaders")
 
-if(OPENRENDER_033_RED_TESTS AND TARGET state_only_sources)
-    # standalone executable: libshader_shading + libRIBCommon + the State-only library, no ribRender (SC-003)
+# standalone executable: libshader_shading + libRIBCommon + the State-only library, no ribRender (SC-003)
+if(TARGET state_only_sources)
     function(add_system_test_exe TARGET)
         add_executable(${TARGET} ${ARGN})
         target_compile_features(${TARGET} PRIVATE cxx_std_20)
@@ -54,36 +54,50 @@ if(OPENRENDER_033_RED_TESTS AND TARGET state_only_sources)
         add_dependencies(${TARGET} shading_contract_replay_shaders shaderformat_fixtures)
     endfunction()
 
+    # Enabled in Phase 5 (the Test gate): the facade tests
     if(OPENRENDER_HAVE_LLVM)
         add_system_test_exe(test_shading_system_third_backend test_third_backend.cpp)
         add_system_test_exe(test_shading_system_precedence test_precedence.cpp)
         add_system_test_exe(test_shading_system_cache test_cache.cpp)
-        add_system_test_exe(test_shading_system_bind_order test_bind_order.cpp)
-        add_system_test_exe(test_shading_system_group_one_layer test_group_one_layer.cpp)
-
-        # libRSLInfo only: never libshader_shading / libRSLRuntime (the two share the flex/bison globals)
-        add_executable(test_shading_system_metadata_shipped test_metadata_shipped.cpp)
-        target_compile_features(test_shading_system_metadata_shipped PRIVATE cxx_std_20)
-        target_include_directories(test_shading_system_metadata_shipped PRIVATE ${CMAKE_SOURCE_DIR}/src)
-        target_link_libraries(test_shading_system_metadata_shipped PRIVATE openrender_common_flags libRSLInfo)
-        add_dependencies(test_shading_system_metadata_shipped openrender_shaders)
     else()
         add_system_test_exe(test_shading_system_nojit_fallback test_nojit_fallback.cpp)
     endif()
 endif()
 
+# Still red (their phase has not come)
+if(OPENRENDER_033_RED_TESTS AND TARGET state_only_sources AND OPENRENDER_HAVE_LLVM)
+    # ShadingSystem_BindOrder binds through ShaderGroupBuilder (shaderGroup.h, Phase 6), so it joins the build with GroupOneLayer
+    add_system_test_exe(test_shading_system_bind_order test_bind_order.cpp)
+    add_system_test_exe(test_shading_system_group_one_layer test_group_one_layer.cpp)
+
+    # libRSLInfo only: never libshader_shading / libRSLRuntime (the two share the flex/bison globals)
+    add_executable(test_shading_system_metadata_shipped test_metadata_shipped.cpp)
+    target_compile_features(test_shading_system_metadata_shipped PRIVATE cxx_std_20)
+    target_include_directories(test_shading_system_metadata_shipped PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(test_shading_system_metadata_shipped PRIVATE openrender_common_flags libRSLInfo)
+    add_dependencies(test_shading_system_metadata_shipped openrender_shaders)
+endif()
+
 if(OPENRENDER_HAVE_LLVM)
-    or033_red_test(ShadingSystem_ThirdBackend COMMAND $<TARGET_FILE:test_shading_system_third_backend> LABELS "shading_system" ENVIRONMENT ${SHADING_SYSTEM_ENV})
-    or033_red_test(ShadingSystem_Precedence COMMAND $<TARGET_FILE:test_shading_system_precedence> LABELS "shading_system;shaderformat" ENVIRONMENT ${SHADING_SYSTEM_ENV})
-    or033_red_test(ShadingSystem_Cache COMMAND $<TARGET_FILE:test_shading_system_cache> LABELS "shading_system" ENVIRONMENT ${SHADING_SYSTEM_ENV})
+    # Enabled in Phase 5
+    add_test(NAME ShadingSystem_ThirdBackend COMMAND $<TARGET_FILE:test_shading_system_third_backend>)
+    add_test(NAME ShadingSystem_Precedence COMMAND $<TARGET_FILE:test_shading_system_precedence>)
+    add_test(NAME ShadingSystem_Cache COMMAND $<TARGET_FILE:test_shading_system_cache>)
+    set_tests_properties(ShadingSystem_ThirdBackend ShadingSystem_Precedence ShadingSystem_Cache PROPERTIES
+        TIMEOUT 120 ENVIRONMENT "${SHADING_SYSTEM_ENV}")
+    set_tests_properties(ShadingSystem_ThirdBackend ShadingSystem_Cache PROPERTIES LABELS "shading_system")
+    set_tests_properties(ShadingSystem_Precedence PROPERTIES LABELS "shading_system;shaderformat")
+    # Still red (BindOrder needs the group builder of Phase 6)
     or033_red_test(ShadingSystem_BindOrder COMMAND $<TARGET_FILE:test_shading_system_bind_order> LABELS "shading_system" ENVIRONMENT ${SHADING_SYSTEM_ENV})
     or033_red_test(ShadingSystem_GroupOneLayer COMMAND $<TARGET_FILE:test_shading_system_group_one_layer> LABELS "shading_system" ENVIRONMENT ${SHADING_SYSTEM_ENV})
     or033_red_test(ShaderMetadata_Shipped
         COMMAND $<TARGET_FILE:test_shading_system_metadata_shipped> ${CMAKE_BINARY_DIR}/shaders ${CMAKE_SOURCE_DIR}/tests/shaders/references/sloinfo137 rslo,slo
         LABELS "libshader;shading_system")
 else()
-    or033_red_test(ShadingSystem_NoJitFallback COMMAND $<TARGET_FILE:test_shading_system_nojit_fallback> LABELS "shading_system"
-        ENVIRONMENT "SHADING_SYSTEM_FIXTURES=${CMAKE_BINARY_DIR}/tests/shaderformat/fixtures" "SHADING_CONTRACT_SHADERS=${CMAKE_BINARY_DIR}/tests/shading_contract/shaders")
+    # Enabled in Phase 5 (JIT-less trees)
+    add_test(NAME ShadingSystem_NoJitFallback COMMAND $<TARGET_FILE:test_shading_system_nojit_fallback>)
+    set_tests_properties(ShadingSystem_NoJitFallback PROPERTIES TIMEOUT 120 LABELS "shading_system"
+        ENVIRONMENT "SHADING_SYSTEM_FIXTURES=${CMAKE_BINARY_DIR}/tests/shaderformat/fixtures;SHADING_CONTRACT_SHADERS=${CMAKE_BINARY_DIR}/tests/shading_contract/shaders")
 endif()
 
 # ---------------------------------------------------------------------------------------------------------------------------------

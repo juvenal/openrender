@@ -232,9 +232,9 @@ class CProgrammableShaderInstance : public CShaderInstance {
 
 namespace libshader {
 
-    // The bind-time init of a shader instance's parameter defaults (spec 033, #134), run by the renderer core inside
-    // arenaBegin/arenaEnd(globalArena) right after the instance is created, categories computed and light registered.
-    // Runs the init of the backend that loaded the shader (its description's backend).
+    // The bind-time init of a shader instance's parameter defaults (spec 033, #134). ShadingSystem::bind() runs the backend's init
+    // itself, inside arenaBegin/arenaEnd(globalArena); this is the same call, for a caller that holds a bare instance (the
+    // ShadingSystem_BindUnknownSpace test). Runs the init of the backend that loaded the shader (its description's backend).
     void initialiseInstance(CProgrammableShaderInstance &instance);
 
     // The interpreter's body (rsloInit.cpp); the JIT's is the .slo backend's (sloBackend.cpp)

@@ -24,6 +24,7 @@
 #ifndef SHADERBACKEND_H
 #define SHADERBACKEND_H
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -70,5 +71,39 @@ const IShaderBackend &rsloBackend();
 #ifdef OPENRENDER_HAVE_LLVM
 const IShaderBackend &sloBackend();
 #endif
+
+
+namespace openrender::shading {
+
+    inline constexpr int kAnyShaderType = -1; // no type check (the CRenderer::getShader forwarder)
+
+    // Shading owns it; the renderer core implements it over the current shader search path (one per request)
+    class IShaderFileResolver {
+        public:
+            virtual ~IShaderFileResolver() = default;
+            // Writes the path of `name` with `extension` into result (OS_MAX_PATH_LENGTH) and returns TRUE when found.
+            // Same rules as CRenderer::locateFileEx: a name holding an extension is used as written.
+            virtual int locate(char *result, const char *name, const char *extension) const = 0;
+    };
+
+    // What a binding asks of the shading system: the shader's name as the statement gave it, the type the statement expects, the two
+    // places a format preference can come from (the attribute and the option, either may be null) and where the files are
+    struct ShaderRequest {
+            const char *name;
+            int type; // SL_SURFACE ... SL_IMAGER, or kAnyShaderType
+            const char *attributeFormat;
+            const char *optionFormat;
+            const IShaderFileResolver *resolver;
+    };
+
+    // Shading owns it; CRendererContext implements it
+    class IShaderBindHost {
+        public:
+            virtual ~IShaderBindHost() = default;
+            virtual uint64_t takeInstanceKey() = 0;                 // called once per successful bind, after the type check
+            virtual void registerLight(CShaderInstance *light) = 0; // light shaders only, after createCategories()
+    };
+
+} // namespace openrender::shading
 
 #endif

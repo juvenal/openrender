@@ -335,7 +335,7 @@ endif()
 # CPreviewContext, in libribpreview, instead) -- but its own compiled
 # method bodies (RiWorldBegin/RiWorldEnd/RiGeometryV/getShader/etc.) call
 # straight into CRenderer::beginFrame()/render()/etc. and construct
-# CProgrammableShaderInstance/CShader/CDLObject/CImplicit/CPhotonMap, so linking it in would silently reintroduce most
+# shader instances/CDLObject/CImplicit/CPhotonMap, so linking it in would silently reintroduce most
 # of what everything else in this list was excluded to avoid. The irradiance cache (texture/irradianceCache.cpp) is
 # passive storage with no Shading dependency, so ribVector compiles it as it is; only the sampler that fills one
 # (hiders/irradianceSampler.cpp) is left out. render/rendererDeclarations.cpp is excluded too: since spec 031 it holds only

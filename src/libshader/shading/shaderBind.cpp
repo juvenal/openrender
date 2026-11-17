@@ -6,8 +6,8 @@
  * Description:
  *   What a shader instance needs at bind time from the renderer, asked through the services (spec 033, FR-009, GitHub #134):
  *   the named coordinate systems of its parameter defaults (bindCoordinateSystem), and the dispatch to the init of its format
- *   (initialiseInstance). The core no longer holds the init: it calls initialiseInstance() where it used to call its own
- *   CRendererContext::init().
+ *   (initialiseInstance). The core no longer holds the init; since Phase 5 the shading system's bind() runs the backend's init itself,
+ *   and initialiseInstance() stays as the one-line entry the approved ShadingSystem_BindUnknownSpace test calls.
  *
  * Authors:
  *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>

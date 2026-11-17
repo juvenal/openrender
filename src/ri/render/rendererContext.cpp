@@ -62,6 +62,7 @@
 #include "hiderRegistry.h"
 #include "ray.h"
 #include "rendererContext.h"
+#include "libshader/shading/shadingSystem.h"
 #include "searchPathResolver.h"
 #include "ri.h"
 #include "riCondition.h"
@@ -296,57 +297,32 @@ void CRendererContext::getBasisSteps(int &uStep, int &vStep) {
 // Return Value			:
 // Comments				:
 CShaderInstance *CRendererContext::getShader(const char *name, int type, int np, const char **params, const void **vals) {
-    CShaderInstance *cInstance = NULL;
-
     if (strcmp(name, "null") == 0)
         return NULL;
 
-    const char *preference = currentAttributes->shaderFormat
-                                 ? currentAttributes->shaderFormat
-                                 : (currentOptions->defaultShaderFormat ? currentOptions->defaultShaderFormat : OPENRENDER_DEFAULT_FORMAT);
-    CShader *cShader = CRenderer::getShader(name, currentOptions->shaderPath, preference);
-
-    if (cShader != NULL) {
-        CProgrammableShaderInstance *instance;
-
-        if (cShader->type != type) {
-            error(CODE_NOSHADER, "Shader \"%s\" is not of the expected type\n", name);
-            return NULL;
-        }
-
-        log_info("getShader: loading shader '{}', type '{}', in format '{}'", name, cShader->type, preference);
-
-        instance = new CProgrammableShaderInstance(cShader, currentAttributes, currentXform);
-        instance->instanceKey = takeInstanceKey();
-
-        if (type == SL_LIGHTSOURCE) {
-            // fill in lighting category
-            instance->createCategories();
-
-            // Add the new light into the active lights list for the frame
-            CRenderer::allLights->push(instance);
-        }
-
-        assert(instance != NULL);
-
-        // Execute the init code of the shader
-        arenaBegin(globalArena);
-        libshader::initialiseInstance(*instance);
-        arenaEnd(globalArena);
-
-        cInstance = instance;
-    }
-
-    // If not found, error out
-    if (cInstance == NULL) {
-        error(CODE_NOSHADER, "Failed to find shader \"%s\"\n", name);
-        return NULL;
-    }
+    // The shading system finds or loads the shader, type-checks it, makes the instance, takes its key, registers a light and runs
+    // the bind-time init (contracts/shading-system.md); this context is its host and the file resolver walks the shader path
+    const CShaderSearchPathResolver resolver(currentOptions->shaderPath);
+    const openrender::shading::ShaderRequest request{name, type, currentAttributes->shaderFormat, currentOptions->defaultShaderFormat, &resolver};
+    CShaderInstance *cInstance = CRenderer::shadingSystem->bind(request, currentAttributes, currentXform, *this);
+    if (cInstance == NULL)
+        return NULL; // not found, or of another type: the shading system gave the diagnostic
 
     // Set the shader parameters
     cInstance->setParameters(np, params, vals);
 
     return cInstance;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CRendererContext
+// Method				:	registerLight
+// Description			:	A bound light joins the frame's light list (the shading system's bind host)
+// Return Value			:	-
+// Comments				:	No extra reference
+void CRendererContext::registerLight(CShaderInstance *light) {
+    // Add the new light into the active lights list for the frame
+    CRenderer::allLights->push(light);
 }
 
 ///////////////////////////////////////////////////////////////////////

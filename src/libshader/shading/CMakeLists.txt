@@ -37,6 +37,7 @@ set(shading_sources
     shaderParameters.cpp
     shaderPl.cpp
     shading.cpp
+    shadingSystem.cpp
     situation.cpp
     sloBackend.cpp
     sloLoader.cpp

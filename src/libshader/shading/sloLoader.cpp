@@ -6,9 +6,9 @@
  * Description:
  *   parseSloShader(): the loader of a standalone .slo LLVM bitcode file, moved here verbatim from the
  *   renderer core (src/ri/render/rendererFiles.cpp) by spec 026 (Q5). It references no CRenderer
- *   member, so it belongs to Shading beside parseShader() (the .rslo loader, rslo.y); the core keeps
- *   choosing the backend (getShader(), DB-007 is unchanged). With the JIT off (OPENRENDER_HAVE_LLVM
- *   not defined) this file compiles to nothing.
+ *   member, so it belongs to Shading beside parseShader() (the .rslo loader, rslo.y); since spec 033 the
+ *   JIT backend (sloBackend.cpp) calls it and the shading system (shadingSystem.cpp) chooses the backend.
+ *   With the JIT off (OPENRENDER_HAVE_LLVM not defined) this file compiles to nothing.
  *
  *   Extracts named metadata (C3 format) to populate shader type, parameters, and varyingSizes without
  *   requiring a companion .rslo file. Returns nullptr if the .slo has no embedded openrender metadata
@@ -146,26 +146,15 @@ CShader *parseSloShader(const char *shaderName, const char *sloPath) {
     if (!CLLVMJitEngine::extractMetadataFromFile(sloPath, info) || !info.valid())
         return nullptr; // no embedded metadata → fall back to .rslo
 
-    // Construct with the logical shader name, matching parseShader()'s own
-    // `new CShader(shaderName)` (rslo.y) for the .rslo path -- NOT the full
-    // .slo file path. CFileResource::name backs CShader::getName(), which is
-    // the return value of RSL's shadername() builtin; it must be the
-    // logical name ("wood", not "/path/to/wood.slo"). It also backs
-    // getShader()'s post-load `globalFiles->insert(cShader->name, cShader)`
-    // cache key below, which must match getShader()'s own by-logical-name
-    // `globalFiles->find(name, file)` lookup for the cache to ever hit.
+    // Construct with the logical shader name, matching parseShader()'s own `new CShader(shaderName)` (rslo.y) for the .rslo path --
+    // NOT the full .slo file path. CFileResource::name backs CShader::getName(), which is the return value of RSL's shadername()
+    // builtin; it must be the logical name ("wood", not "/path/to/wood.slo"). It is also the key the shading system caches the
+    // description under (shadingSystem.cpp), which must match its by-logical-name lookup for the cache to ever hit.
     //
-    // GitHub issue #3 (spec 017-jit-builtin-function-coverage, US5): this
-    // used to construct `new CShader(sloPath)` instead, so shadername()'s
-    // no-arg overload returned the .slo file's full path under --jit
-    // (confirmed via jitShaderName -> shaderName() -> getName() ->
-    // parent->name) instead of the shader's logical name -- silently wrong,
-    // no error. Found only after fixing an unrelated masking bug (GitHub
-    // issue #8) in shadername_probe.sl's own test pattern; the probe's
-    // previous "pass" carried no information about this codepath at all.
-    // Nothing else in this function (or its caller) reads `sh->name`/
-    // `parent->name` expecting a path -- the JIT-compile call just below
-    // already takes `sloPath` as its own explicit argument.
+    // GitHub issue #3 (spec 017-jit-builtin-function-coverage, US5): this used to construct `new CShader(sloPath)` instead, so
+    // shadername()'s no-arg overload returned the .slo file's full path under --jit instead of the shader's logical name --
+    // silently wrong, no error. Nothing else in this function (or its caller) reads `sh->name` expecting a path -- the
+    // JIT-compile call just below already takes `sloPath` as its own explicit argument.
     CShader *sh = new CShader(shaderName);
     sh->type = sloShaderType(info.typeName);
 
@@ -276,9 +265,8 @@ CShader *parseSloShader(const char *shaderName, const char *sloPath) {
     sh->parameters = paramHead;
     payload->numGlobals = 0;
 
-    // Interpreter fields null — JIT is the only execution path for .slo-based shaders
-    // (codeArea == nullptr is what marks one). The default strings live in sh->strings,
-    // as in rslo.y: ~CShader frees each string and, through `memory`, the array.
+    // The JIT is the only execution path for .slo-based shaders (a CSloPayload has no bytecode). The default strings live in
+    // payload->strings, as in rslo.y: ~CRslPayload frees each string and, through `memory`, the array.
     payload->memory = nullptr;
     payload->strings = nullptr;
     payload->numStrings = (int)defaultStrings.size();
