@@ -1,0 +1,19 @@
+# The decode difference list of spec 048 (FR-012, SC-009; contracts/difference-list.md, data-model section 6).
+#
+# One entry per line, fields separated by " | ":
+#   id | fixture (under fixtures/) | legacy | oiio | check | issue
+# Under policy P-Q5 (the OIIO path refuses what legacy refuses) these are the only files legacy ACCEPTS whose result
+# differs between the two paths. ImageIO_DecodeDifferences runs one check per id; ImageIO_DifferenceListDoc requires
+# DEVNOTES_DETAILS/IMAGE_IO.md to name the same ids. A difference the parity test meets that is not here fails.
+#
+# Entries are predictions from the OpenImageIO 3.1.14 source (research R5 to R7), each confirmed or corrected by its
+# test; an entry is removed only if its test shows no difference. A legacy defect is listed, pinned and left alone.
+D-RGBE-EXP | differences/rgbe_exp3.hdr, differences/rgbe_exp256.hdr | exact ldexp values | exponent bytes 40, 223, 226 one float ulp lower (OIIO's literal table); every other exponent identical | OIIO's exact floats for the three exponent bytes; the other 253 bit-identical to legacy | -
+D-RGBE-RLE | differences/rle_16x4_rle.hdr, differences/rle_16x4_flat.hdr | flat: correct; RLE: RGBE_ReadPixels cannot read RLE (outcome recorded as observed) | both correct | OIIO's decode of the RLE file equals legacy's decode of the flat file bit for bit | GitHub #171 (legacy defect, not fixed here)
+D-PNG-TRNS | differences/trns_rgb8_4x4.png | accept: 3 channels | accept: 4 channels (tRNS expanded to alpha) | channel counts; RGB samples equal; alpha 0 where the pixel equals the colour key, else 255 | -
+D-TIFF-SEPARATE | differences/tiff_separate_rgb8_4x4.tif | accept: reads plane 0 into an interleaved buffer (wrong; outcome recorded as observed) | accept: interleaved correctly | OIIO equals the closed-form formula | legacy defect, not fixed here
+D-TIFF-PALETTE | differences/tiff_palette8_4x4.tif | accept: 1 channel, the raw indices | accept: 3 channels, the palette expanded | both outcomes exact (the colour map entries are multiples of 257) | -
+D-TIFF-MINISWHITE | differences/tiff_miniswhite8_4x4.tif | accept: the raw values | accept: inverted (255 - v), to be confirmed with oiio:RawColor=1 | exact values on each path | -
+D-TIFF-UINT32 | differences/tiff_uint32_4x4.tif | accept: 32 bits per sample read as float bits (info 32, float) | refuse: no CImageInfo tier for uint32 | legacy info; the OIIO error names the file and "uint32" | legacy defect, not fixed here
+D-TIFF-INT16 | differences/tiff_int16_4x4.tif | accept: the raw signed bits delivered as uint16 | refuse: INT16 | legacy info; the OIIO error names the file and "int16" | legacy defect, not fixed here
+D-TIFF-HALF | differences/tiff_half_4x4.tif | accept: the raw half bits delivered as uint16 (info 16, not float) | accept: widened to float32 (info 32, float) | OIIO values exact (half to float); legacy info 16/false | -

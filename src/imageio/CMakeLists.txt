@@ -8,17 +8,12 @@
 # src/CMakeLists.txt adds the Scene Interface, renderer, shading-engine and plug-in directories to every directory
 # below it. This library may see none of them: keep only src/ itself (for "common/..."), so a stray include of a
 # domain header would not even resolve. The property is per directory; no other target is affected.
-get_property(_imageio_dir_includes DIRECTORY PROPERTY INCLUDE_DIRECTORIES)
-set(_imageio_kept_includes "")
-foreach(_dir IN LISTS _imageio_dir_includes)
-    if(_dir STREQUAL "${CMAKE_SOURCE_DIR}/src")
-        list(APPEND _imageio_kept_includes "${_dir}")
-    endif()
-endforeach()
-set_property(DIRECTORY PROPERTY INCLUDE_DIRECTORIES "${_imageio_kept_includes}")
+# (src/CMakeLists.txt's own entry is src/ itself, but it is set, not filtered, so the rule is explicit.)
+set_property(DIRECTORY PROPERTY INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/src")
 
 add_library(openrenderimageio SHARED
     oiioInit.cpp
+    reader.cpp
     orImageIO.h
 )
 target_compile_features(openrenderimageio PRIVATE cxx_std_20)

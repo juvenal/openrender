@@ -475,7 +475,6 @@ void makeSideEnvironment(const char *input, const char *output, const CTextureFi
                 float filterWidth = fwidth;
                 float filterHeight = fheight;
                 matrix worldToCamera, worldToScreen;
-                float *tmp;
 
                 arenaBegin(globalArena);
 
@@ -484,23 +483,14 @@ void makeSideEnvironment(const char *input, const char *output, const CTextureFi
                 // source format, so a non-TIFF source always takes the same
                 // "tag missing" fallback (identity matrix + error) a TIFF source
                 // without these tags already took before this feature existed.
-                CTiffImageInput *tiffInput = dynamic_cast<CTiffImageInput *>(imageInput);
-                TIFF *inHandle = tiffInput ? tiffInput->getHandle() : NULL;
-
-                if (inHandle == NULL || TIFFGetField(inHandle, TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA, &tmp) == FALSE) {
+                if (!imageInput->readMatrix("worldtocamera", worldToCamera)) {
                     error(CODE_BUG, "Failed to read the world to camera matrix\n");
                     identitym(worldToCamera);
                 }
-                else {
-                    movmm(worldToCamera, tmp);
-                }
 
-                if (inHandle == NULL || TIFFGetField(inHandle, TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, &tmp) == FALSE) {
+                if (!imageInput->readMatrix("worldtoscreen", worldToScreen)) {
                     error(CODE_BUG, "Failed to read the world to screen matrix\n");
                     identitym(worldToScreen);
-                }
-                else {
-                    movmm(worldToScreen, tmp);
                 }
 
                 // Read the data

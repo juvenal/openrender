@@ -2,6 +2,7 @@
 # OpenColorIO code linked into it from static archives is never visible to, or reused by, another image of the process
 # (ImageIO_SingleCopy). Itanium-mangled names carry a leading underscore on Mach-O.
 __ZN9orimageio*
+__ZNK9orimageio*
 __ZTIN9orimageio*
 __ZTSN9orimageio*
 __ZTVN9orimageio*

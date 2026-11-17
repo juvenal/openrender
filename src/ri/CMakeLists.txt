@@ -231,6 +231,9 @@ target_compile_definitions(ribRender_obj PRIVATE OPENRENDER_GEOMETRY_FRAME_REPOR
 # ribVector_obj, so libRIBVector stays OIIO-free.
 if(HAVE_OIIO)
     target_compile_definitions(ribRender_obj PRIVATE HAVE_OIIO)
+    # the OIIO-backed CImageInput and the published header of libRIBImageIO (only ribRender_obj sees it)
+    target_sources(ribRender_obj PRIVATE texture/imageInputOiio.cpp texture/imageInputOiio.h)
+    target_include_directories(ribRender_obj PRIVATE ${CMAKE_SOURCE_DIR}/src/imageio)
 endif()
 if(HAVE_OPENEXR)
     target_compile_definitions(ribRender_obj PRIVATE HAVE_OPENEXR)

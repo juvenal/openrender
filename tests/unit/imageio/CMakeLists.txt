@@ -32,6 +32,77 @@ if(HAVE_OIIO)
             -DIMAGEIO_DIR=${CMAKE_SOURCE_DIR}/src/imageio
             -P ${CMAKE_CURRENT_SOURCE_DIR}/check_no_domain_include.cmake)
     set_tests_properties(ImageIO_NoDomainInclude PROPERTIES TIMEOUT 30 LABELS "imageio;unit")
+
+    # --- Phase 4: decode (US1) -----------------------------------------------------------------------------------
+    # The tests touch OpenImageIO only through the Texturing interface (createImageInput(path, backend)): they link
+    # ribRender and libRIBCommon, and have no OIIO include path or library.
+    set(IMAGEIO_INCLUDE_DIRS
+        ${CMAKE_SOURCE_DIR}/src/ri
+        ${CMAKE_SOURCE_DIR}/src/ri/state
+        ${CMAKE_SOURCE_DIR}/src/ri/parse
+        ${CMAKE_SOURCE_DIR}/src/ri/texture
+        ${CMAKE_SOURCE_DIR}/src/ri/core
+        ${CMAKE_SOURCE_DIR}/src)
+    set(IMAGEIO_TEST_ENV
+        "IMAGEIO_FIXTURES_DIR=${IMAGEIO_FIXTURES_DIR}"
+        "IMAGE_INPUT_FIXTURES_DIR=${CMAKE_SOURCE_DIR}/tests/unit/image_input/fixtures")
+
+    # The fixture generator (T051): a test-only tool, run by hand through cpujob; its output is checked in.
+    add_executable(gen_fixtures tools/gen_fixtures.cpp)
+    target_compile_features(gen_fixtures PRIVATE cxx_std_20)
+    target_link_libraries(gen_fixtures PRIVATE ${openrendertiff_libs})
+    if(HAVE_OPENEXR)
+        target_compile_definitions(gen_fixtures PRIVATE HAVE_OPENEXR)
+        target_link_libraries(gen_fixtures PRIVATE ${OPENRENDER_OPENEXR_LIBS})
+    endif()
+
+    function(imageio_decode_test target test source)
+        add_executable(${target} ${source})
+        target_compile_features(${target} PRIVATE cxx_std_20)
+        target_include_directories(${target} PRIVATE ${IMAGEIO_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
+        target_link_libraries(${target} PRIVATE ribRender openrendercommon)
+        if(HAVE_OPENEXR)
+            target_compile_definitions(${target} PRIVATE HAVE_OPENEXR)
+        endif()
+        add_test(NAME ${test} COMMAND ${target} ${ARGN})
+        set_tests_properties(${test} PROPERTIES TIMEOUT 60 LABELS "imageio;unit" ENVIRONMENT "${IMAGEIO_TEST_ENV}")
+    endfunction()
+
+    imageio_decode_test(test_decode_parity ImageIO_DecodeParity test_decode_parity.cpp)
+    imageio_decode_test(test_decode_errors ImageIO_DecodeErrors test_decode_errors.cpp)
+    imageio_decode_test(test_decode_differences ImageIO_DecodeDifferences test_decode_differences.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/differences.txt)
+    imageio_decode_test(test_decode_concurrent ImageIO_DecodeConcurrent test_decode_concurrent.cpp)
+
+    # P-Q10: no colour conversion on read. The program prints digests; the script runs it under two colour
+    # configurations (OCIO unset, and OCIO=fixtures/colour/other.ocio) and compares.
+    add_executable(test_no_colour_conversion_read test_no_colour_conversion_read.cpp)
+    target_compile_features(test_no_colour_conversion_read PRIVATE cxx_std_20)
+    target_include_directories(test_no_colour_conversion_read PRIVATE ${IMAGEIO_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_libraries(test_no_colour_conversion_read PRIVATE ribRender openrendercommon)
+    set(IMAGEIO_COLOUR_FIXTURES
+        ${IMAGEIO_FIXTURES_DIR}/colour/cicp_rgb8.png
+        ${CMAKE_SOURCE_DIR}/tests/unit/image_input/fixtures/large_rgb8.png
+        ${CMAKE_SOURCE_DIR}/tests/unit/image_input/fixtures/large_rgb.tif
+        ${IMAGEIO_FIXTURES_DIR}/parity/tiff_u16_3.tif)
+    if(HAVE_OPENEXR)
+        list(APPEND IMAGEIO_COLOUR_FIXTURES ${CMAKE_SOURCE_DIR}/tests/unit/image_input/fixtures/large_rgb.exr)
+    endif()
+    add_test(NAME ImageIO_NoColourConversion
+        COMMAND ${CMAKE_COMMAND}
+            -DPROGRAM=$<TARGET_FILE:test_no_colour_conversion_read>
+            -DOTHER_OCIO=${IMAGEIO_FIXTURES_DIR}/colour/other.ocio
+            "-DFIXTURES=${IMAGEIO_COLOUR_FIXTURES}"
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/run_two_ocio_envs.cmake)
+    set_tests_properties(ImageIO_NoColourConversion PROPERTIES TIMEOUT 120 LABELS "imageio;unit")
+
+    # FR-012: the difference list's data file and its rendering in DEVNOTES_DETAILS/IMAGE_IO.md name the same ids.
+    add_test(NAME ImageIO_DifferenceListDoc
+        COMMAND ${CMAKE_COMMAND}
+            -DDATA=${CMAKE_CURRENT_SOURCE_DIR}/differences.txt
+            -DDOC=${CMAKE_SOURCE_DIR}/DEVNOTES_DETAILS/IMAGE_IO.md
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/check_difference_list_doc.cmake)
+    set_tests_properties(ImageIO_DifferenceListDoc PROPERTIES TIMEOUT 30 LABELS "imageio;unit")
 else()
     # FR-003: a build without OIIO carries no OIIO code and no OIIO driver.
     add_test(NAME ImageIO_AbsentBuild

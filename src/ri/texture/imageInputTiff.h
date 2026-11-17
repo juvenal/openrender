@@ -42,14 +42,11 @@ class CTiffImageInput : public CImageInput {
         bool readImage(void *dest);
         void close();
 
-        // TIFF-specific escape hatch: some bake modes (shadow maps, via
-        // makeSideEnvironment in texmake.cpp) read Pixar-private TIFF tags
-        // (world-to-camera/world-to-screen matrices) that have no
-        // equivalent in any other source format. Exposed as a typed
-        // accessor (checked via dynamic_cast<CTiffImageInput*> at the call
-        // site) rather than added to the shared CImageInput interface,
-        // since no other format has anything analogous to offer.
-        TIFF *getHandle() const { return handle; }
+        // The Pixar-private TIFF tags of a shadow map: "worldtocamera" and "worldtoscreen". No other
+        // source format carries them, so only the TIFF input answers true (spec 048 moved the libtiff
+        // read here from makeSideEnvironment in texmake.cpp, which used to reach the handle through a
+        // dynamic_cast).
+        bool readMatrix(const char *name, float m[16]);
 
     private:
         TIFF *handle;
