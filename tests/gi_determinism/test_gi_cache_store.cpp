@@ -27,6 +27,10 @@
  * (the new irradianceBatch.h). Red reason of all six: a build failure naming the first of them.
  *
  * Usage: test_gi_cache_store <mode> <work dir> [<fixture cache of GiFixture_ICache>]
+ *
+ * GIDET_STORE_PHASE5 (set by the red block of CMakeLists.txt) selects the five modes that need the members spec 040's Phase 5 adds (addPending(), commitPending(),
+ * clampAgainstFixed(), irradianceBatch.h). Without it the file is the executable of GiDet_AcceptPure alone, which Phase 4 turns green: the accept rule of
+ * Phase 4 needs the accept function, the batch view and the identity, none of the commit machinery.
  */
 
 #include <algorithm>
@@ -37,7 +41,9 @@
 #include "common/algebra.h"
 #include "common/memory.h"
 #include "common/os.h"
+#ifdef GIDET_STORE_PHASE5
 #include "libshader/shading/irradianceBatch.h"
+#endif
 #include "libshader/shading/irradianceCalls.h"
 #include "ri/texture/irradianceCache.h"
 
@@ -82,6 +88,7 @@ static CIrradianceRecord makeRecord(Lcg &g, uint64_t key) {
     return r;
 }
 
+#ifdef GIDET_STORE_PHASE5
 // The 56 floats of a record in file order (what a file stores; the key is not part of them)
 static void fileFloats(const CIrradianceRecord &r, float *f) {
     memcpy(f, r.P, 12);
@@ -190,6 +197,9 @@ static bool writeFixedFile(const std::string &name, int count, uint64_t seed) {
     return gitest::readFile(name, b) && b.size() > 40;
 }
 
+#endif
+
+#ifdef GIDET_STORE_PHASE5
 // ---------------------------------------------------------------------------------------------------------
 // lookup-pure
 // ---------------------------------------------------------------------------------------------------------
@@ -415,6 +425,8 @@ static int modeRoundTrip(const std::string &fixture) {
     return g_fail == 0 ? 0 : 1;
 }
 
+#endif
+
 // ---------------------------------------------------------------------------------------------------------
 // accept-pure
 // ---------------------------------------------------------------------------------------------------------
@@ -469,6 +481,7 @@ static int modeAcceptPure() {
     return g_fail == 0 ? 0 : 1;
 }
 
+#ifdef GIDET_STORE_PHASE5
 // ---------------------------------------------------------------------------------------------------------
 // batch-clamp
 // ---------------------------------------------------------------------------------------------------------
@@ -566,17 +579,22 @@ static int modeBatchClamp() {
     return g_fail == 0 ? 0 : 1;
 }
 
+#endif
+
 int main(int argc, char **argv) {
     if (argc < 3) {
         fprintf(stderr, "usage: %s lookup-pure|commit-order|commit-dedupe|roundtrip|accept-pure|batch-clamp <work dir> [fixture cache]\n", argv[0]);
         return 2;
     }
     const std::string mode = argv[1];
+#ifdef GIDET_STORE_PHASE5
     const std::string fixture = argc > 3 ? absolute(argv[3]) : std::string();
+#endif
     if (chdir(argv[2]) != 0) {
         fprintf(stderr, "cannot enter %s\n", argv[2]);
         return 2;
     }
+#ifdef GIDET_STORE_PHASE5
     if (mode == "lookup-pure")
         return modeLookupPure();
     if (mode == "commit-order")
@@ -585,10 +603,13 @@ int main(int argc, char **argv) {
         return modeCommitDedupe();
     if (mode == "roundtrip")
         return modeRoundTrip(fixture);
+#endif
     if (mode == "accept-pure")
         return modeAcceptPure();
+#ifdef GIDET_STORE_PHASE5
     if (mode == "batch-clamp")
         return modeBatchClamp();
+#endif
     fprintf(stderr, "unknown mode %s\n", mode.c_str());
     return 2;
 }

@@ -122,7 +122,7 @@ class CIrradianceCache : public CIrradianceStore {
         void lookupPointBased(float *, const float *, const float *, const float *, const float *, const CPointBasedLookup &) { assert(FALSE); }
 
         // The CIrradianceStore interface
-        bool lookupCached(float *C, const float *P, const float *N, float maxError, IrradianceDrawFn draw, void *drawState, float *Pc, float *Nc);
+        bool lookupCached(float *C, const float *P, const float *N, float maxError, IrradianceAcceptFn accept, const void *acceptState, const CIrradianceBatchView &batch, float *Pc, float *Nc);
         void insertRecord(const CIrradianceRecord &record, float maxError);
         bool samplesOnMiss() const { return (flags & CACHE_SAMPLE) != 0; }
 

@@ -1,3 +1,14 @@
-Traceback (most recent call last):
-  File "<stdin>", line 74, in <module>
-FileNotFoundError: [Errno 2] No such file or directory: '/home/juvenal/Projects/Development/CLI/openrender-040/specs/040-gi-determinism/tools/perf-photon-lookup.rib'
+scaled perf-photon-lookup         format x3
+series 1 of 5 done
+series 2 of 5 done
+series 3 of 5 done
+series 4 of 5 done
+series 5 of 5 done
+
+scene                        tree     median      min      max   spread   runs
+perf-photon-lookup           start      3.24     3.13     4.78     1.65   4.78, 3.34, 3.22, 3.24, 3.13
+perf-photon-lookup           final     22.57    22.33    24.75     2.42   24.75, 22.45, 22.96, 22.57, 22.33
+perf-photon-lookup           diff of medians +19.33 s (+596.8%), larger spread 2.42 s: BEYOND SPREAD (slower)
+
+scenes slower beyond the spread: 1
+scene medians under 3 s: 0

@@ -26,12 +26,6 @@ namespace libshader {
 
     namespace {
 
-        // The draw callback of the store: the next value of the context's bound sample stream, once per record that
-        // passes the front test (where the cache decides whether to keep a sample)
-        float drawNextOf(void *state) {
-            return static_cast<CShadingContext *>(state)->drawNext();
-        }
-
         void noJoy(float *C) {
             C[0] = 0;
             C[1] = 0;
@@ -70,7 +64,11 @@ namespace libshader {
         const float maxError = scratch->occlusionParams.maxError;
         vector Pc, Nc;
 
-        if (!store->lookupCached(C, P, N, maxError, drawNextOf, &ctx, Pc, Nc)) {
+        // The accept decisions are hashed from the call's sub-stream and each record's identity: nothing is drawn, and what the lookup visited cannot
+        // shift what the sampler draws
+        const IrradianceAcceptState acceptState{boundCall};
+        const CIrradianceBatchView noBatch{nullptr, 0};
+        if (!store->lookupCached(C, P, N, maxError, irradianceAcceptValue, &acceptState, noBatch, Pc, Nc)) {
             // Are we sampling the cache ?
             openrender::shading::IIrradianceSampler *sampler = nullptr;
             if (store->samplesOnMiss()) {

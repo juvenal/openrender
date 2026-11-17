@@ -578,22 +578,4 @@ scene examples/rib/tests/photon-solar0-before-distant-slo.rib, 30 runs, dirmode 
   items touched: 17270 (item 0 among them: False)
   scratch: /tmp/m040-i3rnptz_
   (cpujob exit 0)
-
-# SUMMARY (30 runs each; -6 is SIGABRT; the default thread count is the host's 2 cores)
-# photon-parity, threads default                     crashed  3 {'-6': 3}      distinct maps 27 of 27  numItems {46273: 27}
-# photon-parity, threads -t:4                        crashed  0 {}             distinct maps 30 of 30  numItems {46273: 30}
-# photon-parity-slo, threads default                 crashed  0 {}             distinct maps 30 of 30  numItems {46273: 30}
-# photon-parity-slo, threads -t:4                    crashed  1 {'-6': 1}      distinct maps 29 of 29  numItems {46273: 29}
-# photon-solar0-alone, threads default               crashed  7 {'-6': 7}      distinct maps 23 of 23  numItems {8459: 23}
-# photon-solar0-alone, threads -t:4                  crashed  1 {'-6': 1}      distinct maps 29 of 29  numItems {8459: 29}
-# photon-solar0-alone-slo, threads default           crashed  4 {'-6': 4}      distinct maps 26 of 26  numItems {8459: 26}
-# photon-solar0-alone-slo, threads -t:4              crashed  0 {}             distinct maps 30 of 30  numItems {8459: 30}
-# photon-solar0-after-distant, threads default       crashed  9 {'-6': 9}      distinct maps 21 of 21  numItems {22408: 21}
-# photon-solar0-after-distant, threads -t:4          crashed  1 {'-6': 1}      distinct maps 29 of 29  numItems {22408: 29}
-# photon-solar0-after-distant-slo, threads default   crashed  7 {'-6': 7}      distinct maps 23 of 23  numItems {22408: 23}
-# photon-solar0-after-distant-slo, threads -t:4      crashed  0 {}             distinct maps 30 of 30  numItems {22408: 30}
-# photon-solar0-before-distant, threads default      crashed  4 {'-6': 4}      distinct maps 26 of 26  numItems {22317: 26}
-# photon-solar0-before-distant, threads -t:4         crashed  3 {'-6': 3}      distinct maps 27 of 27  numItems {22317: 27}
-# photon-solar0-before-distant-slo, threads default  crashed  3 {'-6': 3}      distinct maps 27 of 27  numItems {22317: 27}
-# photon-solar0-before-distant-slo, threads -t:4     crashed  4 {'-6': 4}      distinct maps 26 of 26  numItems {22317: 26}
 done

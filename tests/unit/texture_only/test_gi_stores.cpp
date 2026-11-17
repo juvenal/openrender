@@ -40,7 +40,7 @@
     } while (0)
 
 #ifdef GI_STORES_CACHE
-static float fixedDraw(void *) {
+static float fixedAccept(const void *, uint64_t) {
     return 0.5f;
 }
 
@@ -59,7 +59,8 @@ static std::vector<CacheAnswer> queryCache(CIrradianceStore &cache, int &hits) {
             const float N[3] = {0, 0, 1};
             CacheAnswer a;
             memset(&a, 0, sizeof(a));
-            a.hit = cache.lookupCached(a.C, P, N, 0.6f, fixedDraw, nullptr, a.Pc, a.Nc);
+            const CIrradianceBatchView noBatch{nullptr, 0};
+            a.hit = cache.lookupCached(a.C, P, N, 0.6f, fixedAccept, nullptr, noBatch, a.Pc, a.Nc);
             hits += a.hit ? 1 : 0;
             answers.push_back(a);
         }

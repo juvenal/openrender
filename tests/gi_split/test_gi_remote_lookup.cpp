@@ -59,12 +59,12 @@ static int g_fail = 0;
 // GiRemote_LoopbackLookup
 // ---------------------------------------------------------------------------------------------------------
 struct DrawCount {
-        int draws = 0;
+        mutable int draws = 0;
 };
 
-// the draw callback of IrradianceDrawFn: the next value of the caller's sample stream; a fixed value, counted
-static float countingDraw(void *state) {
-    static_cast<DrawCount *>(state)->draws++;
+// the accept function of IrradianceAcceptFn: a fixed value, counted (it was the draw callback before spec 040: the count is how many records the lookup asked about)
+static float countingDraw(const void *state, uint64_t) {
+    static_cast<const DrawCount *>(state)->draws++;
     return 0.5f;
 }
 
@@ -108,8 +108,9 @@ static int runLookup(const std::string &fixture) {
     for (const Position &p : positions) {
         float Cs[7] = {0}, Cr[7] = {0}, Pc[3], Nc[3];
         DrawCount ds, dr;
-        const bool hs = sender->lookupCached(Cs, p.P, p.N, maxError, countingDraw, &ds, Pc, Nc);
-        const bool hr = receiver->lookupCached(Cr, p.P, p.N, maxError, countingDraw, &dr, Pc, Nc);
+        const CIrradianceBatchView noBatch{nullptr, 0};
+        const bool hs = sender->lookupCached(Cs, p.P, p.N, maxError, countingDraw, &ds, noBatch, Pc, Nc);
+        const bool hr = receiver->lookupCached(Cr, p.P, p.N, maxError, countingDraw, &dr, noBatch, Pc, Nc);
         hitS += hs;
         hitR += hr;
         drawsS += ds.draws;

@@ -113,22 +113,4 @@ scene examples/rib/tests/photon-solar0-before-distant-slo.rib, 30 runs, dirmode 
   photons per run (numItems): {22317: 30}
   scratch: /tmp/m040-zlp4n6lm
   (cpujob exit 0)
-
-# SUMMARY (30 runs each, Phase 2 tree, Linux)
-# photon-parity, threads default                     crashed  0  distinct maps  1 of 30  numItems {46273: 30}
-# photon-parity, threads -t:4                        crashed  0  distinct maps  1 of 30  numItems {46273: 30}
-# photon-parity-slo, threads default                 crashed  0  distinct maps  1 of 30  numItems {46273: 30}
-# photon-parity-slo, threads -t:4                    crashed  0  distinct maps  1 of 30  numItems {46273: 30}
-# photon-solar0-alone, threads default               crashed  0  distinct maps  1 of 30  numItems {8459: 30}
-# photon-solar0-alone, threads -t:4                  crashed  0  distinct maps  1 of 30  numItems {8459: 30}
-# photon-solar0-alone-slo, threads default           crashed  0  distinct maps  1 of 30  numItems {8459: 30}
-# photon-solar0-alone-slo, threads -t:4              crashed  0  distinct maps  1 of 30  numItems {8459: 30}
-# photon-solar0-after-distant, threads default       crashed  0  distinct maps  1 of 30  numItems {22408: 30}
-# photon-solar0-after-distant, threads -t:4          crashed  0  distinct maps  1 of 30  numItems {22408: 30}
-# photon-solar0-after-distant-slo, threads default   crashed  0  distinct maps  1 of 30  numItems {22408: 30}
-# photon-solar0-after-distant-slo, threads -t:4      crashed  0  distinct maps  1 of 30  numItems {22408: 30}
-# photon-solar0-before-distant, threads default      crashed  0  distinct maps  1 of 30  numItems {22317: 30}
-# photon-solar0-before-distant, threads -t:4         crashed  0  distinct maps  1 of 30  numItems {22317: 30}
-# photon-solar0-before-distant-slo, threads default  crashed  0  distinct maps  1 of 30  numItems {22317: 30}
-# photon-solar0-before-distant-slo, threads -t:4     crashed  0  distinct maps  1 of 30  numItems {22317: 30}
 done

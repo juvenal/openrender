@@ -7,8 +7,8 @@
  * cache itself, as a CIrradianceCache subclass whose record hook copies every (key, record) before forwarding, and owns it.
  *
  * The record hook is virtual insertRecord() on the starting tree and addPending() after spec 040's Phase 5 (contracts/irradiance-store.md):
- * GIDET_RECORD_HOOK_ADDPENDING (set from the CMake cache variable GIDET_RECORD_HOOK) selects the second. The same macro selects the form of
- * lookupCached() the helper visitedByLookup() calls (a draw callback on the starting tree, an accept function and a batch view after Phase 4).
+ * GIDET_RECORD_HOOK_ADDPENDING (set from the CMake cache variable GIDET_RECORD_HOOK) selects the second. The lookupCached() the helper
+ * visitedByLookup() calls is the one with an accept function and a batch view (Phase 4), whichever hook is selected.
  */
 
 #ifndef GI_RECORDING_H
@@ -143,17 +143,13 @@ namespace gidet {
         return gitest::readFile(name, b) && b.size() > 40;
     }
 
-    // How many records a lookup at the origin of the probe surface (normal -z) visits (draws or accepts for), and whether it hit
+    // How many records a lookup at the origin of the probe surface (normal -z) visits (is asked an accept value for), and whether it hit
     namespace detail {
         struct Counter {
-                int n = 0;
+                mutable int n = 0;
         };
-        inline float countDraw(void *s) {
-            static_cast<Counter *>(s)->n++;
-            return 0.5f;
-        }
         inline float countAccept(const void *s, uint64_t) {
-            const_cast<Counter *>(static_cast<const Counter *>(s))->n++;
+            static_cast<const Counter *>(s)->n++;
             return 0.5f;
         }
     } // namespace detail
@@ -167,12 +163,8 @@ namespace gidet {
         const float P[3] = {0, 0, 0}, N[3] = {0, 0, -1};
         float C[7], Pc[3], Nc[3];
         detail::Counter counter;
-#ifdef GIDET_RECORD_HOOK_ADDPENDING
         const CIrradianceBatchView noBatch{nullptr, 0};
         hit = cache.lookupCached(C, P, N, 0.6f, detail::countAccept, &counter, noBatch, Pc, Nc);
-#else
-        hit = cache.lookupCached(C, P, N, 0.6f, detail::countDraw, &counter, Pc, Nc);
-#endif
         return counter.n;
     }
 

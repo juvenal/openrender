@@ -346,8 +346,9 @@ CIrradianceCache::CCacheNode *CIrradianceCache::readNode(FILE *in) {
 // Method				:	lookupCached
 // Description			:	Lookup da cache
 // Return Value			:	TRUE on a hit (C is written); FALSE on a miss (C is left alone)
-// Comments				:	Pc and Nc receive the query point and normal in the cache's space, which a miss hands to the sampler
-bool CIrradianceCache::lookupCached(float *C, const float *cP, const float *cN, float maxError, IrradianceDrawFn draw, void *drawState, float *Pc, float *Nc) {
+// Comments				:	Pc and Nc receive the query point and normal in the cache's space, which a miss hands to the sampler.
+//						The accept value of a record is accept(acceptState, identity), a function of the call and the record, never of the walk
+bool CIrradianceCache::lookupCached(float *C, const float *cP, const float *cN, float maxError, IrradianceAcceptFn accept, const void *acceptState, const CIrradianceBatchView &batch, float *Pc, float *Nc) {
     CCacheSample *cSample;
     CCacheNode *cNode;
     float totalWeight = 0;
@@ -380,6 +381,53 @@ bool CIrradianceCache::lookupCached(float *C, const float *cP, const float *cN, 
     // Note, we do not need to lock the data for reading
     // if word-writes are atomic
 
+    // One record's share of the blend: a cache sample or a record of the caller's batch (both have the fields of a CIrradianceRecord)
+    auto consider = [&](const auto &s) {
+        vector D;
+
+        // D = vector from sample to query point
+        subvv(D, P, s.P);
+
+        // Ignore sample in the front
+        float a = dotvv(D, s.N);
+        if ((a * a / (dotvv(D, D) + C_EPSILON)) > 0.1)
+            return;
+
+        // Positional error
+        float e1 = sqrtf(dotvv(D, D)) / s.dP;
+
+        // Directional error
+        float e2 = 1 - dotvv(N, s.N);
+        if (e2 < 0)
+            e2 = 0;
+        e2 = sqrtf(e2 * weightNormalDenominator);
+
+        // Compute the weight
+        float maxE1E2;
+        if (e2 > e1) {
+            maxE1E2 = e2;
+        }
+        else {
+            maxE1E2 = e1;
+        }
+        float w = 1 - K * maxE1E2;
+        if (w > accept(acceptState, openrender::sampling::giRecordIdentity(s.key, s.P, s.N)) * smallSampleWeight) {
+            vector ntmp;
+
+            crossvv(ntmp, s.N, N);
+
+            // Sum the sample
+            totalWeight += w;
+            coverage += w * (s.coverage + dotvv(s.gP + 0 * 3, D) + dotvv(s.gR + 0 * 3, ntmp));
+            irradiance[0] += w * (s.irradiance[0] + dotvv(s.gP + 1 * 3, D) + dotvv(s.gR + 1 * 3, ntmp));
+            irradiance[1] += w * (s.irradiance[1] + dotvv(s.gP + 2 * 3, D) + dotvv(s.gR + 2 * 3, ntmp));
+            irradiance[2] += w * (s.irradiance[2] + dotvv(s.gP + 3 * 3, D) + dotvv(s.gR + 3 * 3, ntmp));
+            envdir[0] += w * (s.envdir[0] + dotvv(s.gP + 4 * 3, D) + dotvv(s.gR + 4 * 3, ntmp));
+            envdir[1] += w * (s.envdir[1] + dotvv(s.gP + 5 * 3, D) + dotvv(s.gR + 5 * 3, ntmp));
+            envdir[2] += w * (s.envdir[2] + dotvv(s.gP + 6 * 3, D) + dotvv(s.gR + 6 * 3, ntmp));
+        }
+    };
+
     // Prepare for the non recursive tree traversal
     stack = stackBase;
     *stack++ = root;
@@ -388,49 +436,7 @@ bool CIrradianceCache::lookupCached(float *C, const float *cP, const float *cN, 
 
         // Sum the values in this level
         for (cSample = cNode->samples; cSample != NULL; cSample = cSample->next) {
-            vector D;
-
-            // D = vector from sample to query point
-            subvv(D, P, cSample->P);
-
-            // Ignore sample in the front
-            float a = dotvv(D, cSample->N);
-            if ((a * a / (dotvv(D, D) + C_EPSILON)) > 0.1)
-                continue;
-
-            // Positional error
-            float e1 = sqrtf(dotvv(D, D)) / cSample->dP;
-
-            // Directional error
-            float e2 = 1 - dotvv(N, cSample->N);
-            if (e2 < 0)
-                e2 = 0;
-            e2 = sqrtf(e2 * weightNormalDenominator);
-
-            // Compute the weight
-            float maxE1E2;
-            if (e2 > e1) {
-                maxE1E2 = e2;
-            }
-            else {
-                maxE1E2 = e1;
-            }
-            float w = 1 - K * maxE1E2;
-            if (w > draw(drawState) * smallSampleWeight) {
-                vector ntmp;
-
-                crossvv(ntmp, cSample->N, N);
-
-                // Sum the sample
-                totalWeight += w;
-                coverage += w * (cSample->coverage + dotvv(cSample->gP + 0 * 3, D) + dotvv(cSample->gR + 0 * 3, ntmp));
-                irradiance[0] += w * (cSample->irradiance[0] + dotvv(cSample->gP + 1 * 3, D) + dotvv(cSample->gR + 1 * 3, ntmp));
-                irradiance[1] += w * (cSample->irradiance[1] + dotvv(cSample->gP + 2 * 3, D) + dotvv(cSample->gR + 2 * 3, ntmp));
-                irradiance[2] += w * (cSample->irradiance[2] + dotvv(cSample->gP + 3 * 3, D) + dotvv(cSample->gR + 3 * 3, ntmp));
-                envdir[0] += w * (cSample->envdir[0] + dotvv(cSample->gP + 4 * 3, D) + dotvv(cSample->gR + 4 * 3, ntmp));
-                envdir[1] += w * (cSample->envdir[1] + dotvv(cSample->gP + 5 * 3, D) + dotvv(cSample->gR + 5 * 3, ntmp));
-                envdir[2] += w * (cSample->envdir[2] + dotvv(cSample->gP + 6 * 3, D) + dotvv(cSample->gR + 6 * 3, ntmp));
-            }
+            consider(*cSample);
         }
 
         // Check the children
@@ -450,6 +456,11 @@ bool CIrradianceCache::lookupCached(float *C, const float *cP, const float *cN, 
                 }
             }
         }
+    }
+
+    // The records of the caller's batch, after the fixed part
+    for (int b = 0; b < batch.count; b++) {
+        consider(batch.records[b]);
     }
 
     // Do we have anything ?

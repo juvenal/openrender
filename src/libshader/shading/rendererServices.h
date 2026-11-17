@@ -87,9 +87,16 @@ namespace openrender::shading {
     //                    (photonMapAccess.h): the photon hider's unguarded test-then-reset of a photon map raced (GitHub #164).
     //          Added:    IPhotonStore::storePhotonForFrame(): under the store's lock the first call of a frame resets the map,
     //                    marks it as being written and returns true (for that call only); every call stores.
+    //          Changed:  CIrradianceStore (irradianceStore.h): lookupCached() takes an IrradianceAcceptFn and its acceptState and a
+    //                    CIrradianceBatchView in place of IrradianceDrawFn and drawState. The accept test no longer draws from the
+    //                    context's cursor: the store asks accept(acceptState, recordIdentity) once per record that passes the front
+    //                    test, and Shading answers a hash of the call's sub-stream and the identity (giHash.h), in [0, 1). The
+    //                    draw-order rule of gotcha 37 is replaced; the batch view is empty until Phase 5.
     //          Wording:  writePhotons() sorts the photons into the canonical order (key, then bytes), balances and writes a file
-    //                    in which every byte is defined. Phase 3 and later phases of spec 040 add to this entry (the photon lookup
-    //                    is a pure function of the map; the irradiance store's lookup, commit and wire).
+    //                    in which every byte is defined. libshader::irradianceLookup draws nothing for the accept test, and the
+    //                    sampler draws by index from a copy of the bound sub-stream (indirectdiffuse() with the cache off takes
+    //                    `samples` keyed directions, as occlusion() does). Phase 5 and later phases of spec 040 add to this entry
+    //                    (the irradiance store's commit and wire).
     //   2.3.0  spec 031. Breaking within 2.x (allowed before spec 055, see the rule above):
     //          Removed:  CShadingContext's Geometry-facing entries shade(CSurface *, ...), displace(), displaceEstimate() and
     //                    setProducer(), and IShadingProducer (shadingProducer.h, file deleted). Geometry reaches the hider that

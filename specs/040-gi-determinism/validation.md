@@ -253,6 +253,40 @@ DeterminismSweep_gi-* (34 entries, step 2 of T031 applied so that the options ex
 
 ## 3. Checkpoint records
 
+### Checkpoint 4 (Phase 4: the accept rule and the indexed sampler, D1-A), macOS, 2026-11-16
+
+Build `cpujob 040-p4-build` (exit 0, no first-party warning). Sources: `src/common/giHash.h` (new, Infra: `giMix`, `giAcceptValue`, `giRecordIdentity`), `irradianceStore.h` (`IrradianceAcceptFn`, `CIrradianceBatchView`, `irradianceRecordIdentity`, the final `lookupCached`), `irradianceCache.{h,cpp}` (a generic `consider` lambda over a cache sample and a batch record; the batch is walked after the fixed part, empty until Phase 5), `irradianceCalls.{h,cpp}` (`IrradianceAcceptState`, `irradianceAcceptValue`; `drawNextOf` removed; the cursor is not touched), `irradianceSampler.cpp` (draws by index from a copy of the bound sub-stream with `rayDraw2D`; cell `k = i * np + j`; both functions with the cache off take `samples` keyed directions). `rendererServices.h`: the 2.6.0 entry extended (no second step). Test edits: the three approved patches (PAUSE 4a).
+
+| test | result |
+|---|---|
+| `GiDet_AcceptPure` | passes |
+| `GiDet_MissIndependence_{rslo,slo}` | pass |
+| `GiDet_IndirectRayCount_slo` | passes |
+| `GiDet_IndirectRayCount_rslo` | **fails, #173 not fixed** (below); in the red block from 2026-11-17 |
+| `TextureOnly_IrradianceDrawOrder` (rewritten), `TextureOnly_GiStores`, `GiRemote_LoopbackLookup`, `GiKeys_*`, `GiCache_KindMismatch` | pass |
+| `-L architecture` | 36 of 36, no allowlist line |
+| `-L '^link$'` and `shading_contract` | 76 of 78: the two replays below |
+| `-L sampling` | 115 of 116: `OcclusionGolden_sobol_cache` |
+| full suite (`-LE 'determinism-sweep\|gi_determinism_long'`, 1378) | 1367 pass; the 11 failures are the ones in the tables below |
+
+**#173 (GiDet_IndirectRayCount_rslo).** The rewrite does not make it green. Evidence (a temporary diagnostic in `sample()`, removed): under `.rslo` the sampler sees `maxError = 0.6`, `samples = 3.67e-40` (a denormal, the bits 0x00040000, not 12), so `nt = np = 0` and `numSamples = 0`: 102 sampler calls, 0 rays. Under `.slo` the same scene traces 648 = 12 x 54. So the interpreter hands the sampler a wrong `samples` (and the scene's cache is on, `maxError` 0.6, although Phase 0's counters step found the default 0 for other scenes), which is upstream of the sampler: `IDEXPR` reads `*op3` for the `samples` argument. Left alone, as decided.
+
+**Reference changes this phase forces (none edited, each needs REFERENCE-APPROVAL; none was foreseen in tasks.md):**
+
+| test | reference | what changed |
+|---|---|---|
+| `GiFiles_Unchanged` | `tests/gi_split/reference/macos/files.txt` line 26 (the cached occlusion `.icache`) | 52016 to 46888 bytes: other records |
+| `GiRemote_LoopbackCache` | its reference | the frame and recvfile sections differ (22212 to 21752, 27980 to 27012 bytes) |
+| `Preview_DataSceneUnchanged` | `tests/preview/reference/macos/datascene.txt` | the cache's records changed |
+| `OcclusionGolden_sobol_cache` | `tests/visual/golden/occlusion-sobol_cache.tif` (spec 039's golden, bit for bit) | 3315 of 9216 values differ |
+| `ShadingContract_TraceReplay_occlusion`, `_indirectdiffuse` | `tests/shading_contract/replay/macos.txt` | request 0 ray 0 `from` differs (the origin jitter now comes from pair 1 sample `k`) |
+
+**Decisions (maintainer, 2026-11-17).** (1) `GiDet_IndirectRayCount_rslo` moved into the red block (`IndirectRayCount_slo` stays unconditional); the #173 diagnosis above is a comment on #173, which is left alone, and there is no `Closes` line. (2) The six reference changes above are re-recorded in Phase 7 together with the images, each shown as a diff first (tasks.md T093a); none is edited before. (3) The Linux-only `Visual_sphere-texture3d-bake3d-reyes-slo` segfault (below) is an unexplained intermittent; it is filed only if it recurs.
+
+**Expected drift (T061; `tools/drift-p4-macos.txt`, MaxBlockAvgDiff against the starting tree's, nothing adjusted):** `Visual_sphere-occlusion-reyes` and `-slo` 12.36 to 38.78 against 20 (**over threshold**, the cached occlusion image); `Visual_photon-parity(-slo)` 7.06 against 6 (Phase 3's, unchanged); `Visual_photon-solar0-*` as Phase 3; the others unchanged. `Visual_sphere-indirectdiffuse-reyes(-slo)` stays 0.00: that scene reaches no sampler ray under the interpreter (#173). All go on the Phase 7 re-render list.
+
+**Linux CP-L (Phase 4, `tools/phase4_linux_chain.sh`, GCC 13, remote cpujob -j2; `build-logs/040-l-p4-*.log`).** Build exit 0. Unit set 17 tests: the same three failures as macOS (`GiFiles_Unchanged`, `GiRemote_LoopbackCache`, `GiDet_IndirectRayCount_rslo`), everything else passes (`GiDet_AcceptPure`, `MissIndependence_*`, `IndirectRayCount_slo`, `TextureOnly_*`, `GiKeys_*`). GI test set 85 of 95: the ten macOS failures, the same ones (`Preview_DataSceneUnchanged`, `Visual_sphere-occlusion-reyes(-slo)`, `Visual_photon-parity(-slo)`, `OcclusionGolden_sobol_cache`, `GiFiles_Unchanged`, `GiRemote_LoopbackCache`, the two `ShadingContract_TraceReplay_*`). `-L architecture` 36 of 36. `-L sampling` 115 of 116 (`OcclusionGolden_sobol_cache`); `link`/`shading_contract` 76 of 78 (the two replays). Full suite 1366 of 1379: the 11 macOS failures plus two Linux-only: `TextureTile_RenderByteIdentical` (the known Linux failure) and `Visual_sphere-texture3d-bake3d-reyes-slo`, which **segfaulted once** in the parallel run ("Segmentation fault (core dumped)", 3.16 s) and passed in 3 of 3 runs alone (`040-l-p4-bake`); the Phase 3 Linux suite did not show it. It does not touch the irradiance cache (a texture3d bake), so I treat it as an intermittent crash under load, not reproduced, and report it rather than explain it. The Linux references (`tests/**/reference/linux`, the linux golden and replay) change in the same places as macOS's and are likewise not edited.
+
 ### Checkpoint 3 (Phase 3: the photon lookup, D2-A), 2026-11-16
 
 **Change** (`src/ri/texture/photonStore.{h,cpp}`): `PHOTON_LOOKUP_CACHE`, `probe()`, `insert()`, the memo octree, `root`, `maxDepth` and the member `searchRadius` are gone; both `lookup()` overloads are the kd-tree search, the sum and the normalisation, with `searchRadius` a local; nothing outside the store named a removed member (the data viewer, `CPhotonMap` and the tests were checked). One more change the round-trip test needed: **`maxPower` is the largest photon power itself**, kept as such at every `store()` (it was the squared power until `write()` took the square root in place, so a map's lookups before and after a write used different search radii: the in-memory and the reloaded map answered differently, SC-005). The file holds the same number as before (`GiFiles_Unchanged` and `TextureOnly_GiStores` still pass unchanged). `GiDet_PhotonLookupPure`, `_PhotonInMemoryLookup` (#160) and `_PhotonRoundTrip` left the red block; `determinism-scenes-phase3.patch` applied (the two `photon-parity` entries are unguarded).
@@ -276,7 +310,7 @@ DeterminismSweep_gi-* (34 entries, step 2 of T031 applied so that the options ex
 
 Every other GI visual test is unchanged (`sphere-photonmap-reyes` 5.97 included: its `.pm` does not exist). The 18-scene float manifest at `-t:1` (`tools/after-p3-gi-images-macos.sha256` against `baseline-gi-images-macos.sha256`): **2 of 18 images change**, `photon-parity` and `photon-parity-slo`.
 
-**Cost of D2-A (T052, §5).** `timing_sc007.sh build-base build 5`, interleaved series, macOS (`tools/timing-p3-macos.txt`): `perf-occlusion-cache` 5.09 / 5.03 s, `perf-indirect-photon` 5.87 / 5.79 s, `perf-photon-pass` 4.12 / 4.47 s: all within spread (and `perf-indirect-photon` does not read the photon map under the interpreter, GitHub #173, so it cannot show the cost). **On a render that does read it** (`tools/perf-photon-lookup.rib`: the photon pass, then a 2560 x 1920 raytrace with 2 x 2 samples and one `photonmap()` lookup per hit, 4 threads; `tools/timing-p3-lookup-macos.txt`): **2.78 s with the memo, 22.78 s without: +720 %, beyond the spread** (spread 2.2 and 4.0 s; at 640 x 480: 0.26 s against 1.52 s, +480 %). The memo made a lookup near a previous one nearly free; the pure kd-tree search does the full 24-photon search every time. This is the cost the maintainer asked to see; **it is reported, not optimised away** (accepted by the maintainer, 2026-11-16; the follow-up is GitHub #178) (R6 option C, precomputed irradiance at the photons, is the later spec; the raise of the factor to make the baseline pass the 3 s floor would only widen the ratio).
+**Cost of D2-A (T052, §5).** `timing_sc007.sh build-base build 5`, interleaved series, macOS (`tools/timing-p3-macos.txt`): `perf-occlusion-cache` 5.09 / 5.03 s, `perf-indirect-photon` 5.87 / 5.79 s, `perf-photon-pass` 4.12 / 4.47 s: all within spread (and `perf-indirect-photon` does not read the photon map under the interpreter, GitHub #173, so it cannot show the cost). **On a render that does read it** (`tools/perf-photon-lookup.rib`: the photon pass, then a 2560 x 1920 raytrace with 2 x 2 samples and one `photonmap()` lookup per hit, 4 threads; `tools/timing-p3-lookup-macos.txt`): **2.78 s with the memo, 22.78 s without: +720 %, beyond the spread** (spread 2.2 and 4.0 s; at 640 x 480: 0.26 s against 1.52 s, +480 %). **Linux** (`tools/timing-p3-lookup-linux.txt`, the same scene at format x3, 5 interleaved series): **3.24 s with the memo, 22.57 s without: +597 %, beyond the spread** (spread 1.7 and 2.4 s; the baseline is over the 3 s floor there). The memo made a lookup near a previous one nearly free; the pure kd-tree search does the full 24-photon search every time. This is the cost the maintainer asked to see; **it is reported, not optimised away** (accepted by the maintainer, 2026-11-16; the follow-up is GitHub #178) (R6 option C, precomputed irradiance at the photons, is the later spec; the raise of the factor to make the baseline pass the 3 s floor would only widen the ratio).
 
 ### Checkpoint 2 (Phase 2), 2026-11-16
 
@@ -340,7 +374,7 @@ Linux (one chain through the remote cpujob at -j2, GCC 13 `-Werror`, JIT on; `ph
 
 ## 5. Timing (FR-023)
 
-Baseline: §0.5 (T010). Phase 3 (D2-A, the memo removed): see Checkpoint 3 above: the three standard scenes are within spread on both platforms; a render that reads the photon map through `photonmap()` costs +720 % on macOS (2.78 s to 22.78 s, `tools/perf-photon-lookup.rib`). Phase 7 compares against the baseline. The maintainer accepted D2-A's cost as measured (2026-11-16); the follow-up, option C (precomputed irradiance at the photons, R6), is GitHub #178 (P1 enhancement).
+Baseline: §0.5 (T010). Phase 3 (D2-A, the memo removed): see Checkpoint 3 above: the three standard scenes are within spread on both platforms; a render that reads the photon map through `photonmap()` costs +720 % on macOS (2.78 s to 22.78 s, `tools/perf-photon-lookup.rib`) and +597 % on Linux (3.24 s to 22.57 s). Phase 7 compares against the baseline. The maintainer accepted D2-A's cost as measured (2026-11-16); the follow-up, option C (precomputed irradiance at the photons, R6), is GitHub #178 (P1 enhancement).
 
 ## 6. Issue evidence
 
