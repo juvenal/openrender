@@ -1,17 +1,15 @@
 /**
  * tests/gi_split/test_gi_remote_lookup.cpp
  *
- * Spec 032, T-A2: two CTest names from one source, selected by the first argument. Red until the finished tree has the
- * interfaces they use (Phase 4: irradianceCache.h, lookupCached, insertReceived, the getCache kind check).
+ * Spec 032, T-A2: two CTest names from one source, selected by the first argument.
  *
- *   GiRemote_LoopbackLookup   (case `lookup`, FR-012, OQ-5)
- *       After the socketpair() loopback of the cache channel (the sender is fixture F1's cache, the receiver a fresh write
- *       cache whose root setup() overwrites), the receiver's lookupCached() is compared with the sender's at the sender's
- *       record positions, with a counting draw callback. The receiver places a record by its dP without the sender's
- *       K = 0.4 / maxError (remoteChannel.cpp:582 on the starting tree), so the two trees can differ. Any difference is
- *       REPORTED and not fixed (OQ-5), and so are the draw counts (the number of draws is the number of records the lookup
- *       visits and that pass the front test, which a different tree shape changes). The test fails only if the hit counts
- *       differ.
+ *   GiRemote_LoopbackLookup   (case `lookup`, FR-012, OQ-5; spec 040, Phase 6: FR-015, GitHub #161)
+ *       After the socketpair() loopback of the cache channel (the sender is fixture F1's cache with a pending set of 60 records,
+ *       the receiver a copy of the same file whose root setup() overwrites), the receiver commits what it received and its
+ *       lookupCached() is compared with a one-process cache's (a third copy of the file, the same pending set added directly and
+ *       committed) at the positions of every record, with a counting accept function. Each received record is placed with its own
+ *       K = 0.4 / maxError, so the two trees no longer differ (OQ-5 reported the difference; #161 is fixed): every lookup and the
+ *       number of records each visits are equal.
  *
  *   GiCache_KindMismatch      (case `kind`, analyze finding M3, D15, contracts/renderer-services-version.md)
  *       In one session a name registered as a point cloud and then asked of CRenderer::getCache answers nullptr (Core's kind
@@ -72,15 +70,52 @@ struct Position {
         float P[3], N[3];
 };
 
+static bool copyFile(const std::string &from, const std::string &to) {
+    Bytes b;
+    return gitest::readFile(from, b) && gitest::writeFile(to, b);
+}
+
+// 60 pending records inside the root of `a`, the radii 0.05 to 0.5 and two error multipliers (0.6 and 0.3), keys 7000 to 7059, added to `a` and to `b`
+static void addPendingSet(CIrradianceCache *a, CIrradianceCache *b) {
+    const float *c = a->rootCenter();
+    const float side = a->rootSide();
+    unsigned long long state = 424242;
+    auto next = [&]() {
+        state = state * 6364136223846793005ull + 1442695040888963407ull;
+        return (float)((state >> 40) & 0xFFFFFF) / 16777216.0f;
+    };
+    for (int i = 0; i < 60; i++) {
+        CIrradianceRecord r;
+        memset(&r, 0, sizeof(r));
+        for (int k = 0; k < 3; k++) {
+            r.P[k] = c[k] + (next() - 0.5f) * 0.8f * side;
+        }
+        r.N[2] = 1;
+        r.irradiance[0] = next();
+        r.irradiance[1] = next();
+        r.irradiance[2] = next();
+        r.coverage = next();
+        r.envdir[2] = 1;
+        r.dP = 0.05f + 0.45f * next();
+        r.key = 7000 + (unsigned long long)i;
+        const float maxError = (i % 2 == 0) ? 0.6f : 0.3f;
+        a->addPending(r, maxError);
+        b->addPending(r, maxError);
+    }
+}
+
 static int runLookup(const std::string &fixture) {
     matrix from, to;
     identitym(from);
     identitym(to);
-    // the world bounds the base constructor read from CRenderer; the sender is read from a file, the receiver is re-rooted by setup()
+    // the world bounds the base constructor read from CRenderer; the sender and the one-process cache read the file, the receiver reads a copy and is re-rooted by setup()
     const float bmin[3] = {-10, -10, -10}, bmax[3] = {10, 10, 10};
+    EXPECT(copyFile(fixture, "gi-lookup-recv.icache") && copyFile(fixture, "gi-lookup-ref.icache"), "the fixture could not be copied");
 
-    CIrradianceCache *sender = new CIrradianceCache(fixture.c_str(), CACHE_READ | CACHE_RDONLY, NULL, from, to, NULL, bmin, bmax);
-    CIrradianceCache *receiver = new CIrradianceCache("gi-lookup-recv.icache", CACHE_WRITE, NULL, from, to, NULL, bmin, bmax);
+    CIrradianceCache *sender = new CIrradianceCache(fixture.c_str(), CACHE_READ | CACHE_SAMPLE, NULL, from, to, NULL, bmin, bmax);
+    CIrradianceCache *receiver = new CIrradianceCache("gi-lookup-recv.icache", CACHE_READ | CACHE_SAMPLE, NULL, from, to, NULL, bmin, bmax);
+    CIrradianceCache *reference = new CIrradianceCache("gi-lookup-ref.icache", CACHE_READ | CACHE_SAMPLE, NULL, from, to, NULL, bmin, bmax);
+    addPendingSet(sender, reference);
     CRemoteICacheChannel sendChannel(sender);
     CRemoteICacheChannel recvChannel(receiver);
 
@@ -92,9 +127,13 @@ static int runLookup(const std::string &fixture) {
     EXPECT(ok == TRUE, "sendRemoteFrame");
     EXPECT(gitest::replayInto(frame, [&](int s) { return recvChannel.recvRemoteFrame(s); }) == TRUE, "recvRemoteFrame");
 
-    // the sender's record positions, in the cache's own traversal order
+    // what each cache holds is committed before it is asked
+    receiver->commitPending();
+    reference->commitPending();
+
+    // the positions of every record of the one-process cache (the file's and the pending set's), in its own traversal order
     std::vector<Position> positions;
-    sender->forEachRecord([&](const auto &r) {
+    reference->forEachRecord([&](const auto &r) {
         Position p;
         memcpy(p.P, r.P, sizeof(p.P));
         memcpy(p.N, r.N, sizeof(p.N));
@@ -109,7 +148,7 @@ static int runLookup(const std::string &fixture) {
         float Cs[7] = {0}, Cr[7] = {0}, Pc[3], Nc[3];
         DrawCount ds, dr;
         const CIrradianceBatchView noBatch{nullptr, 0};
-        const bool hs = sender->lookupCached(Cs, p.P, p.N, maxError, countingDraw, &ds, noBatch, Pc, Nc);
+        const bool hs = reference->lookupCached(Cs, p.P, p.N, maxError, countingDraw, &ds, noBatch, Pc, Nc);
         const bool hr = receiver->lookupCached(Cr, p.P, p.N, maxError, countingDraw, &dr, noBatch, Pc, Nc);
         hitS += hs;
         hitR += hr;
@@ -119,18 +158,17 @@ static int runLookup(const std::string &fixture) {
             differ++;
         }
     }
-    printf("lookup: %zu positions; hits sender %d receiver %d; draws sender %ld receiver %ld; %d position(s) differ\n", positions.size(),
+    printf("lookup: %zu positions; hits one-process %d receiver %d; records visited one-process %ld receiver %ld; %d position(s) differ\n", positions.size(),
            hitS, hitR, drawsS, drawsR, differ);
-    if (differ > 0) {
-        printf("lookup: REPORTED, not fixed (OQ-5): the receiver places a record by dP without the sender's 1/K, so the trees differ\n");
-    }
-    if (drawsS != drawsR) {
-        printf("lookup: REPORTED, not fixed (OQ-5): the draw counts differ (sender %ld, receiver %ld): the same difference seen through the callback\n", drawsS, drawsR);
-    }
-    EXPECT(hitS == hitR, "the hit counts differ: sender %d, receiver %d", hitS, hitR);
+    EXPECT(hitS == hitR, "the hit counts differ: one-process %d, receiver %d", hitS, hitR);
+    EXPECT(differ == 0, "FR-015 / #161: %d lookup(s) of the receiver differ from the one-process cache's", differ);
+    EXPECT(drawsS == drawsR, "the number of records visited differs: one-process %ld, receiver %ld", drawsS, drawsR);
 
     delete receiver;
+    delete reference;
     delete sender;
+    remove("gi-lookup-recv.icache");
+    remove("gi-lookup-ref.icache");
     return g_fail == 0 ? 0 : 1;
 }
 

@@ -48,3 +48,14 @@ phases of spec 040: #160 is fixed by Phase 3 and the key sentences stay true.)
 > bit for bit as the one that wrote it). `readNode` appends, so a file's lists keep their order. Reyes and zbuffer make the same records for a scene;
 > the raytracer's differ only by its batch size (M5): the cache has no hider-specific code. `insertRecord` and `clamp()` are gone; `insertReceived` (a `-P:N`
 > client's placement) is unchanged until Phase 6.
+
+## New (Phase 6, appended to gotcha 37: the `-P:N` wire)
+
+> **A `-P:N` server sends the records it made, never the file's (spec 040, D4).** `CRemoteICacheChannel::sendRemoteFrame` sends the cache's **pending set**
+> (`forEachPending`: deduplicated, sorted by `(key, bytes)`, the **raw** `dP`): one group of `int n` and `n` raw 240-byte `CCacheSample`, then `int 0`. The 8-byte `next` slot of a
+> record carries the maxError of the call that made it (a float, then four zero bytes), so no pointer value leaves the process; `recvRemoteFrame` hands each record to
+> `receivePending(record, maxError)` and the client commits the whole set once with `commitPending()`, each record placed with **its own** `K = 0.4 / maxError`
+> (GitHub #161: `insertReceived`, which placed by raw `dP` with no `K`, is gone). The client needs the same fixed part as its servers to write the whole cache: the
+> channel request's type word carries `CHANNELFLAG_READ` in its low byte when the server opened the cache from its file, and the client then creates its side with
+> `getCache(name, "rw")` and reads the file itself (a server finds a file by its own search path and otherwise downloads it from the client by name,
+> `NET_SEND_FILE`, so the client is the origin of every file a server reads). Not handled: a server with a local cache file the client does not have.

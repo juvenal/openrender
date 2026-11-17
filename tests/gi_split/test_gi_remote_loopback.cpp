@@ -9,14 +9,17 @@
  * socketpair, the bytes are captured at the other end (so the sent bytes can be compared), and replayed into a
  * second socketpair that the receiver reads.
  *
- *   cache       sender  : a CIrradianceCache read from fixture F1's file (CACHE_READ | CACHE_RDONLY)
+ *   cache       sender  : a CIrradianceCache read from fixture F1's file (CACHE_READ | CACHE_SAMPLE) holding a pending set of 60 records (addPending)
  *               receiver: a fresh CACHE_WRITE cache with a scratch name, whose root setup() overwrites
+ *               (spec 040, Phase 6: a server sends its pending set only, raw radii, and the receiver commits it; the sender was the whole
+ *               tree of a read-only cache before)
  *   pointcloud  sender  : a CPointCloud built with the public constructor and store()
  *               receiver: a fresh write-mode cloud with no channels, as the renderer's client creates it
  *
  * Checks (check mode compares with tests/gi_split/reference/<platform>/loopback-<case>.bin; record mode writes it):
  *   * the setup bytes and the frame bytes the sender wrote, with three masks:
- *       - the `next` pointer of each raw CCacheSample (a process address);
+ *       - (spec 040: no mask on the `next` slot of a raw CCacheSample any more. It holds the record's maxError as a float and four zero bytes, decision D4; the check is
+ *         that its last four bytes are zero, so that a process address can never leave the process)
  *       - the bytes of the 1024-byte point-cloud setup buffer after the first NUL (uninitialised stack);
  *       - the padding bytes after `flags` in each raw CPointCloudPoint (never assigned);
  *   * cache: the file the receiver writes when it is destroyed, byte for byte (it records the whole tree: node
@@ -33,8 +36,7 @@
  * A sender cache that read fixture F1's file and holds a pending set (addPending, records with different maxError) sends it over the loopback;
  * a receiver that read a copy of the same file receives it and commits. A third cache, in one process, adds the same set directly and commits.
  * The receiver's written file must equal the one-process cache's, byte for byte: each received record is placed with its own K (the
- * sender's maxError rides in the 8-byte link slot of the wire record, decision D4), not with the receiver's default (#161). The starting tree
- * has none of addPending, commitPending and receivePending, so the case is red by a build failure naming them.
+ * sender's maxError rides in the 8-byte link slot of the wire record, decision D4), not with the receiver's default (#161).
  */
 
 #include "gi_testkit.h"
@@ -148,7 +150,8 @@ class TestChannels : public CTexture3dChannelSource {
 // Masks and parsers
 // ---------------------------------------------------------------------------------------------------------
 
-// The cache frame is: per non-empty node, `int n` then n raw CCacheSample; then `int 0`. Masks `next`. Since spec 032's Phase 7 a record
+// The cache frame is: groups of `int n` then n raw CCacheSample; then `int 0` (spec 040: one group, the sender's pending set in sorted order, `dP` the raw radius).
+// The `next` slot holds the record's maxError (a float) and four zero bytes, and is compared as it is. Since spec 032's Phase 7 a record
 // carries an 8-byte key after `dP` (offset 224, `next` at 232, 240 bytes): the key is stripped here, so that the frame is compared with
 // the recording taken before the key existed (232-byte records), and nothing else of it differs.
 static bool maskCacheFrame(Bytes &frame, size_t &totalRecords) {
@@ -175,7 +178,11 @@ static bool maskCacheFrame(Bytes &frame, size_t &totalRecords) {
         }
         for (int i = 0; i < n; i++) {
             Bytes record(frame.begin() + (long)(pos + (size_t)i * recordSize), frame.begin() + (long)(pos + (size_t)(i + 1) * recordSize));
-            memset(&record[nextOffset], 0, sizeof(CIrradianceCache::CCacheSample *));
+            float maxError;
+            memcpy(&maxError, &record[nextOffset], sizeof(maxError));
+            if (!(maxError > 0) || memcmp(&record[nextOffset + 4], "\0\0\0\0", 4) != 0) {
+                return false; // the slot is a maxError and four zero bytes, never a pointer
+            }
             record.erase(record.begin() + (long)keyOffset, record.begin() + (long)(keyOffset + keySize));
             stripped.insert(stripped.end(), record.begin(), record.end());
         }
@@ -272,13 +279,48 @@ static bool countRecordsInFile(const Bytes &b, size_t &records, size_t &nodes) {
 // ---------------------------------------------------------------------------------------------------------
 // The two cases
 // ---------------------------------------------------------------------------------------------------------
+// 60 pending records inside the root of `a`, the radii 0.05 to 0.5 and two error multipliers (0.6 and 0.3), keys 7000 to 7059: added to `a` and, when
+// given, to `b` (the same set, the same order)
+static void addPendingSet(CIrradianceCache *a, CIrradianceCache *b) {
+    const float *c = a->rootCenter();
+    const float side = a->rootSide();
+    unsigned long long state = 424242;
+    auto next = [&]() {
+        state = state * 6364136223846793005ull + 1442695040888963407ull;
+        return (float)((state >> 40) & 0xFFFFFF) / 16777216.0f;
+    };
+    for (int i = 0; i < 60; i++) {
+        CIrradianceRecord r;
+        memset(&r, 0, sizeof(r));
+        for (int k = 0; k < 3; k++) {
+            r.P[k] = c[k] + (next() - 0.5f) * 0.8f * side;
+        }
+        r.N[0] = 0;
+        r.N[1] = 0;
+        r.N[2] = 1;
+        r.irradiance[0] = next();
+        r.irradiance[1] = next();
+        r.irradiance[2] = next();
+        r.coverage = next();
+        r.envdir[2] = 1;
+        r.dP = 0.05f + 0.45f * next();
+        r.key = 7000 + (unsigned long long)i;
+        const float maxError = (i % 2 == 0) ? 0.6f : 0.3f;
+        a->addPending(r, maxError);
+        if (b != NULL) {
+            b->addPending(r, maxError);
+        }
+    }
+}
+
 static bool runCache(const std::string &fixture, gitest::Sections &out) {
     matrix from, to;
     identitym(from);
     identitym(to);
 
-    // the sender reads fixture F1's file; the receiver is a fresh write cache that setup() re-roots
-    CIrradianceCache *sender = new CIrradianceCache(fixture.c_str(), CACHE_READ | CACHE_RDONLY, NULL, from, to, NULL, CRenderer::worldBmin, CRenderer::worldBmax);
+    // the sender reads fixture F1's file and holds a pending set; the receiver is a fresh write cache that setup() re-roots
+    CIrradianceCache *sender = new CIrradianceCache(fixture.c_str(), CACHE_READ | CACHE_SAMPLE, NULL, from, to, NULL, CRenderer::worldBmin, CRenderer::worldBmax);
+    addPendingSet(sender, NULL);
     CIrradianceCache *receiver = new CIrradianceCache("gi-loopback-cache-recv.icache", CACHE_WRITE, NULL, from, to, NULL, CRenderer::worldBmin, CRenderer::worldBmax);
     CRemoteICacheChannel sendChannel(sender);
     CRemoteICacheChannel recvChannel(receiver);
@@ -314,8 +356,6 @@ static bool runCache(const std::string &fixture, gitest::Sections &out) {
 }
 
 // Spec 040 (FR-015): the pending set of a sender, received and committed, equals the same set added and committed in one process.
-// Compiled only with GIDET_COMMIT_CASE (the executable test_gi_remote_commit of the red block): the starting tree has no addPending.
-#ifdef GIDET_COMMIT_CASE
 static bool copyFile(const std::string &from, const std::string &to) {
     Bytes b;
     return gitest::readFile(from, b) && gitest::writeFile(to, b);
@@ -331,34 +371,7 @@ static bool runCommit(const std::string &fixture) {
     CIrradianceCache *receiver = new CIrradianceCache("gi-commit-recv.icache", CACHE_READ | CACHE_WRITE | CACHE_SAMPLE, NULL, from, to, NULL, CRenderer::worldBmin, CRenderer::worldBmax);
     CIrradianceCache *reference = new CIrradianceCache("gi-commit-ref.icache", CACHE_READ | CACHE_WRITE | CACHE_SAMPLE, NULL, from, to, NULL, CRenderer::worldBmin, CRenderer::worldBmax);
 
-    // 60 pending records inside the root of the fixture, the radii 0.05 to 0.5 and two error multipliers (0.6 and 0.3)
-    const float *c = sender->rootCenter();
-    const float side = sender->rootSide();
-    unsigned long long state = 424242;
-    auto next = [&]() {
-        state = state * 6364136223846793005ull + 1442695040888963407ull;
-        return (float)((state >> 40) & 0xFFFFFF) / 16777216.0f;
-    };
-    for (int i = 0; i < 60; i++) {
-        CIrradianceRecord r;
-        memset(&r, 0, sizeof(r));
-        for (int k = 0; k < 3; k++) {
-            r.P[k] = c[k] + (next() - 0.5f) * 0.8f * side;
-        }
-        r.N[0] = 0;
-        r.N[1] = 0;
-        r.N[2] = 1;
-        r.irradiance[0] = next();
-        r.irradiance[1] = next();
-        r.irradiance[2] = next();
-        r.coverage = next();
-        r.envdir[2] = 1;
-        r.dP = 0.05f + 0.45f * next();
-        r.key = 7000 + (unsigned long long)i;
-        const float maxError = (i % 2 == 0) ? 0.6f : 0.3f;
-        sender->addPending(r, maxError);
-        reference->addPending(r, maxError);
-    }
+    addPendingSet(sender, reference);
 
     CRemoteICacheChannel sendChannel(sender);
     CRemoteICacheChannel recvChannel(receiver);
@@ -379,8 +392,6 @@ static bool runCommit(const std::string &fixture) {
     EXPECT(got == want, "FR-015 / #161: the received set commits differently from the one-process commit: %s", gitest::describeFirstDifference(got, want).c_str());
     return g_fail == 0;
 }
-
-#endif // GIDET_COMMIT_CASE
 
 static bool runPointCloud(gitest::Sections &out) {
     matrix from, to;
@@ -506,7 +517,6 @@ int main(int argc, char **argv) {
         return 2;
     }
 
-#ifdef GIDET_COMMIT_CASE
     if (which == "commit") {
         const bool committed = runCommit(fixturePath);
         setTexture3dChannelSource(nullptr);
@@ -516,7 +526,6 @@ int main(int argc, char **argv) {
         }
         return committed ? 0 : 1;
     }
-#endif
 
     gitest::Sections now;
     const bool ran = which == "cache" ? runCache(fixturePath, now) : runPointCloud(now);

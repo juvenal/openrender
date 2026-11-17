@@ -137,6 +137,13 @@ class CIrradianceCache : public CIrradianceStore {
         bool lookupCached(float *C, const float *P, const float *N, float maxError, IrradianceAcceptFn accept, const void *acceptState, const CIrradianceBatchView &batch, float *Pc, float *Nc);
         float clampAgainstFixed(const CIrradianceRecord &record) const;
         void addPending(const CIrradianceRecord &record, float maxError);
+
+        // A record a remote server made: it joins the pending set like a local one (its raw radius, the maxError of the call that made it), and the
+        // commit places it with its own K (spec 040, GitHub #161). `record.next` is not read.
+        void receivePending(const CCacheSample &record, float maxError);
+
+        // The flags the cache was opened with (CACHE_READ, CACHE_WRITE, ...)
+        unsigned int openFlags() const { return (unsigned int)flags; }
         bool samplesOnMiss() const { return (flags & CACHE_SAMPLE) != 0; }
 
         const char *typeName() const { return "Irradiance Cache"; }
@@ -206,8 +213,6 @@ class CIrradianceCache : public CIrradianceStore {
         }
         int treeDepth() const { return maxDepth; } // the depth of the deepest node (the member of that name is private)
 
-        // Place a record a remote server sent (a copy; placed by its own dP, with no clamp, no K and no lock)
-        void insertReceived(const CCacheSample &record);
 
     private:
         void writeNode(FILE *, CCacheNode *);

@@ -865,60 +865,14 @@ void CIrradianceCache::commitPending() {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CIrradianceCache
-// Method				:	insertReceived
-// Description			:	Place a record a remote server sent
+// Method				:	receivePending
+// Description			:	Add a record a remote server made to the pending set
 // Return Value			:	-
-// Comments				:	The record is copied into the cache's memory and placed by its own dP, with no clamp(), no
-//							K = 0.4 / maxError and no lock: what the remote channel has always done on receipt
-void CIrradianceCache::insertReceived(const CCacheSample &record) {
-    invalidateFixedIndex();
-    CCacheSample *cSample = (CCacheSample *)memory->alloc(sizeof(CCacheSample));
-    *cSample = record;
-    cSample->next = NULL;
-
-    const float rMean = cSample->dP; // error adjustment!!
-    vector P;
-    movvv(P, cSample->P);
-
-    CCacheNode *cNode = root;
-    int depth = 0;
-    while (cNode->side > (2 * rMean)) {
-        int i, j;
-        depth++;
-
-        for (j = 0, i = 0; i < 3; i++) {
-            if (P[i] > cNode->center[i]) {
-                j |= 1 << i;
-            }
-        }
-
-        if (cNode->children[j] == NULL) {
-            CCacheNode *nNode = (CCacheNode *)memory->alloc(sizeof(CCacheNode));
-
-            for (i = 0; i < 3; i++) {
-                if (P[i] > cNode->center[i]) {
-                    nNode->center[i] = cNode->center[i] + cNode->side / (float)4;
-                }
-                else {
-                    nNode->center[i] = cNode->center[i] - cNode->side / (float)4;
-                }
-            }
-
-            cNode->children[j] = nNode;
-            nNode->side = cNode->side * 0.5f;
-            nNode->samples = NULL;
-            for (i = 0; i < 8; i++)
-                nNode->children[i] = NULL;
-        }
-
-        cNode = cNode->children[j];
-    }
-
-    cSample->next = cNode->samples;
-    cNode->samples = cSample;
-    if (depth > maxDepth) {
-        maxDepth = depth;
-    }
+// Comments				:	The same as addPending(): the client commits the servers' records with its own fixed part and each record's own K
+void CIrradianceCache::receivePending(const CCacheSample &sample, float maxError) {
+    CIrradianceRecord record;
+    sample.get(record);
+    addPending(record, maxError);
 }
 
 ///////////////////////////////////////////////////////////////////////
