@@ -63,6 +63,7 @@ class CContractForwarder : public CRendererServices {
             matrixCalls.push_back({r.name, r.object.ptr, r.shader.ptr, r.light.ptr, r.time, a.status});
             return a;
         }
+        openrender::shading::ShaderNameAnswer getShaderName(const openrender::shading::ShaderNameRequest &r) const override { return inner->getShaderName(r); }
         openrender::shading::ITracer *tracer() override {
             ++tracerCalls;
             if (noTracer)

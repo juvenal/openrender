@@ -27,6 +27,7 @@
 #ifndef SERVICETYPES_H
 #define SERVICETYPES_H
 
+#include <cstddef>
 #include <cstdint>
 
 #include "common/global.h"
@@ -123,6 +124,11 @@ namespace openrender::shading {
             // parameter except an immutable parameter of a light (shader.cpp getParameter), and writes nothing
             // into `dest` for it; otherwise (or when false) `dest` receives the default value.
             bool wantVariable;
+            // The size of `dest` in bytes (services 2.4.0). 0, the default, means unbounded: today's behaviour, where the caller's
+            // expectation (`expected`) is what keeps a write inside `dest`. When non-zero and the stored value needs more bytes
+            // (floats, or char * slots for a string), the answer is TypeMismatch and nothing is written, for every source including
+            // Light. The JIT's lightsource() asks with its 64-byte scratch.
+            size_t destBytes = 0;
     };
 
     struct MessageAnswer {
@@ -135,6 +141,21 @@ namespace openrender::shading {
             // Meaningful only with a variable and for the Light source: the parameter's index in the light's
             // saved state; -1 otherwise.
             int globalIndex = -1;
+    };
+
+    ///////////////////////////////////////////////////////////////////////
+    // getShaderName(): shadername(type) (services 2.4.0)
+    ///////////////////////////////////////////////////////////////////////
+
+    struct ShaderNameRequest {
+            MessageSource source; // Surface, Displacement, Atmosphere, Interior, Exterior: the object's slot; Light: the light handle
+            ObjectHandle object;  // for the five object sources
+            ShaderHandle light;   // for Light
+    };
+
+    struct ShaderNameAnswer {
+            EQueryStatus status = EQueryStatus::Unavailable;
+            const char *name = nullptr; // set when Found; lives as long as the loaded shader (the session)
     };
 
     ///////////////////////////////////////////////////////////////////////

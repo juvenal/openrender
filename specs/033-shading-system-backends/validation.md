@@ -203,6 +203,24 @@ Replays, baselines, the allowlist and `src/` outside the files of the approved l
 
 **`ShadingSystem_BindOrder` (an approved test, not edited beyond the maintainer's choice).** Its light block expects `load` first, but the wrong-type block of the same test had already loaded and cached `tstlight` (find or load, then the type check: the contract, and what `CRenderer::getShader` did before). The maintainer chose to give the wrong-type block its own light shader (`tstwrongtype`, a light requested as `SL_SURFACE`; the light block unchanged). That exposed a **latent use-after-free in the harness**: `CHarness` made its `CXform` with 0 references and "left it to process exit", but this test detaches its instances, so the surface block's `detach()` freed the transform and the light block's instance attached to freed memory (a Bus error once the heap layout changed). The maintainer's fix is in `tests/shading_contract/contract_harness.h`: the constructor takes one reference on its transform (`xform->attach()`, held to process exit like the rest). Only `tests/shading_contract` and `tests/shading_system` include the harness; `-L 'shading_contract|shading_system'` on macOS: 81 run, all passed (`BindOrder` included, 0.53 s).
 
+### Phase 7 (T106 to T112; services 2.4.0 complete: `destBytes` and `getShaderName`)
+
+| Check | macOS | Linux (GCC 13, `-Werror`) |
+|---|---|---|
+| CP-a build | `rc=0` | `rc=0` |
+| The three tests | `ShadingContract_MessageRequestsBoth`, `ShadingContract_ShadernameNoServices`, `Shading_JitMessagesThroughServices` (and its fixture run) green; `ShadingContract_LightsourceOversizedJit` unchanged and green; `ShadingContract_MessageRequests` and `BindSpaces_Characterise` still match their Phase 1 records | green |
+| CP-b suite (`-LE determinism-sweep`) | **1379 of 1379 passed** | 1380 tests, 1378 passed: the baseline's two (#45, #163) |
+| CP-d images | 0 differing, 0 missing (65 fresh images, information only); `MaxBlockAvgDiff` rows identical (empty diff) | 0 differing, 0 missing; rows identical |
+| CP-c architecture | 40/40; `archcheck` PASS, `ALLOWED DB-004 x 3 DB-011 x 144`, `CONSUMER` 71, TOTAL 491/71, Shading 0/0; allowlist diff empty | 40/40; same |
+| CP-m contract tests | 248/248 | 248/248 |
+| CP-v | `kRendererServicesVersion{2, 4, 0}`; no `static_assert` line differs; the replays and baselines untouched | same tree |
+
+Red evidence (T106, recorded before the source edits): `ShadingContract_MessageRequestsBoth` failed to build (`no type named 'ShaderNameAnswer'`, `'ShaderNameRequest'`, `no member named 'destBytes' in MessageRequest`); `ShadingContract_ShadernameNoServices` ran and failed 5 assertions per backend (the real names came back, no warning: `sink.countText("renderer services do not provide shadername()") == 1`); `Shading_JitMessagesThroughServices` reported 14 violations (`rslOps.cpp:924 getParameter`, `:938 getParameterShape`, 12 `currentAttributes` lines in the `shaderName` bodies, `shading.cpp:2911-2934`).
+
+What 2.4.0 now holds (the one history entry, written in Phase 3, already named everything and is unchanged): `MatrixRequest::phase`, `MessageRequest::destBytes`, `ShaderNameRequest`/`ShaderNameAnswer` and `getShaderName` (default Unavailable), the `execute()`/`interpret()` change and the internal types. The renderer answers `destBytes` before writing (TypeMismatch when the stored value needs more bytes, any source) and `getShaderName` through the instance selection `getMessage` shares (`selectMessageInstance`). `op_lightsource_f` asks one `getMessage` with 64 bytes and warns once on TypeMismatch (the same text); `shaderName(type)` asks `getShaderName` and returns `""` with one "renderer services do not provide shadername()" warning when the services do not answer.
+**One departure from the task text.** The JIT's `jitShaderNameS` looped over the batch's points and would have asked once per point (9 requests for 3 points); the interpreter evaluates it once (uniform). To make both backends ask the same (the test counts exactly three), `jitShaderNameS` asks again only when the type string differs from the previous point's. The result is the same string at every point; no other JIT change.
+Approved-test edit: `tests/shading_contract/contract_forwarder.h` forwards `getShaderName` to the inner services without recording it (so the Phase 1 record of `cm_shadername`, "no requests", still holds).
+
 ## 2. Red evidence
 
 Phase 1 has none (the characterisations pass on the starting tree by construction).

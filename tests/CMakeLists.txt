@@ -122,6 +122,27 @@ option(OPENRENDER_033_RED_TESTS "Spec 033, temporary: build the new tests that d
 #                [WORKING_DIRECTORY <dir>])
 #   With the option ON a normal test; with it OFF a DISABLED placeholder with the same name and labels (the command may name a
 #   target that does not exist then, so it is never used).
+# An enabled spec 033 test (the Test gate of the phase that makes it green): the body of or033_red_test's enabled branch
+function(or033_test NAME)
+    cmake_parse_arguments(A "WILL_FAIL" "LABELS;TIMEOUT;WORKING_DIRECTORY" "COMMAND;ENVIRONMENT" ${ARGN})
+    if(NOT A_TIMEOUT)
+        set(A_TIMEOUT 120)
+    endif()
+    if(A_WORKING_DIRECTORY)
+        file(MAKE_DIRECTORY ${A_WORKING_DIRECTORY})
+        add_test(NAME ${NAME} COMMAND ${A_COMMAND} WORKING_DIRECTORY ${A_WORKING_DIRECTORY})
+    else()
+        add_test(NAME ${NAME} COMMAND ${A_COMMAND})
+    endif()
+    set_tests_properties(${NAME} PROPERTIES TIMEOUT ${A_TIMEOUT} LABELS "${A_LABELS}")
+    if(A_ENVIRONMENT)
+        set_tests_properties(${NAME} PROPERTIES ENVIRONMENT "${A_ENVIRONMENT}")
+    endif()
+    if(A_WILL_FAIL)
+        set_tests_properties(${NAME} PROPERTIES WILL_FAIL TRUE)
+    endif()
+endfunction()
+
 function(or033_red_test NAME)
     cmake_parse_arguments(A "WILL_FAIL" "LABELS;TIMEOUT;WORKING_DIRECTORY" "COMMAND;ENVIRONMENT" ${ARGN})
     if(NOT A_TIMEOUT)

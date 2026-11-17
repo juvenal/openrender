@@ -119,6 +119,9 @@ class CRendererServicesImpl final : public CRendererServices {
 
         // surface(), displacement(), atmosphere(), incident(), opposite() and lightsource() (spec 026): the bound instance's parameters
         openrender::shading::MessageAnswer getMessage(const openrender::shading::MessageRequest &request) const override;
+
+        // shadername(type) (services 2.4.0): the name of the instance getMessage would select
+        openrender::shading::ShaderNameAnswer getShaderName(const openrender::shading::ShaderNameRequest &request) const override;
 };
 
 #endif // RENDERER_SERVICES_IMPL_H

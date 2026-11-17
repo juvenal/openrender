@@ -226,6 +226,13 @@ class CRendererServices {
         // Re-enters Shading: it may call the bound instance's getParameter(), which reads only that instance.
         virtual openrender::shading::MessageAnswer getMessage(const openrender::shading::MessageRequest &) const { return {}; }
 
+        // shadername(type): the name of the shader bound for a source (services 2.4.0). Surface .. Exterior: the object's slot (a
+        // null object answers NotFound); Light: the light handle (a null handle answers NotFound). The string lives as long as the
+        // loaded shader (the session). The default body answers Unavailable: Shading then returns "" with one warning, "renderer
+        // services do not provide shadername()".
+        // Thread-safety: as getMessage. Re-enters Shading: never.
+        virtual openrender::shading::ShaderNameAnswer getShaderName(const openrender::shading::ShaderNameRequest &) const { return {}; }
+
         // Every coordinate-system lookup: the named spaces and the colour-space names.
         // Inputs: the name; the object handle (for "object"); the shader handle (the executing instance,
         //   for "shader"); the light handle (the executing light, for "light"); the time, which is 0 in

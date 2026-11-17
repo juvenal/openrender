@@ -2907,35 +2907,45 @@ const char *CShadingContext::shaderName() {
 // Return Value			:	-
 // Comments				:
 const char *CShadingContext::shaderName(const char *type) {
-    // No object (the imager): no shader of any type is bound (F2, FR-027)
-    if (currentShadingState->currentAttributes == NULL)
+    using namespace openrender::shading;
+
+    // The source a type names; any other type has no shader bound
+    MessageSource source;
+    ShaderHandle light;
+    if (strcmp(type, "surface") == 0)
+        source = MessageSource::Surface;
+    else if (strcmp(type, "displacement") == 0)
+        source = MessageSource::Displacement;
+    else if (strcmp(type, "atmosphere") == 0)
+        source = MessageSource::Atmosphere;
+    else if (strcmp(type, "interior") == 0)
+        source = MessageSource::Interior;
+    else if (strcmp(type, "exterior") == 0)
+        source = MessageSource::Exterior;
+    else if (strcmp(type, "lightsource") == 0) {
+        // The light being iterated; none outside a light loop
+        if (currentShadingState->currentLight == NULL)
+            return "";
+        source = MessageSource::Light;
+        light = shaderHandle(currentShadingState->currentLight->instance);
+    }
+    else
         return "";
 
-    const CAttributes *currentAttributes = currentShadingState->currentAttributes;
+    // Asked through the services (spec 033, FR-013). No object (the imager) or no shader in the slot: not found, "" (F2, FR-027).
+    // Services that do not answer (none installed, or a double without getShaderName): "" with one warning (P-Q4)
+    CRendererServices *svc = currentShadingState->services;
+    ShaderNameAnswer answer;
+    if (svc != nullptr)
+        answer = svc->getShaderName(ShaderNameRequest{source, objectHandle(), light});
 
-    if (strcmp(type, "surface") == 0) {
-        if (currentAttributes->surface())
-            return shaderInstanceOf(currentAttributes->surface())->getName();
-    }
-    else if (strcmp(type, "displacement") == 0) {
-        if (currentAttributes->displacement())
-            return shaderInstanceOf(currentAttributes->displacement())->getName();
-    }
-    else if (strcmp(type, "atmosphere") == 0) {
-        if (currentAttributes->atmosphere())
-            return shaderInstanceOf(currentAttributes->atmosphere())->getName();
-    }
-    else if (strcmp(type, "interior") == 0) {
-        if (currentAttributes->interior())
-            return shaderInstanceOf(currentAttributes->interior())->getName();
-    }
-    else if (strcmp(type, "exterior") == 0) {
-        if (currentAttributes->exterior())
-            return shaderInstanceOf(currentAttributes->exterior())->getName();
-    }
-    else if (strcmp(type, "lightsource") == 0) {
-        if (currentShadingState->currentLight != NULL)
-            return currentShadingState->currentLight->instance->getName();
+    if (answer.status == EQueryStatus::Found && answer.name != nullptr)
+        return answer.name;
+
+    if (answer.status == EQueryStatus::Unavailable) {
+        static std::atomic<bool> s_warnedUnavailable{false};
+        if (!s_warnedUnavailable.exchange(true))
+            warning(CODE_NOTSTARTED, "renderer services do not provide shadername(): shadername(\"%s\") returns \"\"\n", type);
     }
     return "";
 }
@@ -4320,12 +4330,19 @@ void CShadingContext::jitShaderNameS(char **dst, int sd, const char *const *type
                                      int n, const int *tags) {
     if (n <= 0)
         return;
+    // One request per call, as the interpreter's single uniform evaluation makes: the type is a uniform string, so the points of
+    // a batch share it, and a type that differs from the previous point's asks again (spec 033: both backends make the same requests)
+    const char *lastType = nullptr;
+    const char *lastName = "";
     for (int i = 0; i < n; ++i) {
         if (tags && tags[i])
             continue;
         const char *type_i = JIT_IDX(type, sType, i)[0];
-        const char *name = this->shaderName(type_i);
-        JIT_IDX(dst, sd, i)[0] = (char *)name;
+        if (lastType == nullptr || strcmp(type_i, lastType) != 0) {
+            lastName = this->shaderName(type_i);
+            lastType = type_i;
+        }
+        JIT_IDX(dst, sd, i)[0] = (char *)lastName;
     }
 }
 
