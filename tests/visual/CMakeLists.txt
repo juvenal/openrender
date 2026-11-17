@@ -661,11 +661,11 @@ add_visual_test(sphere-comp-reyes-slo
 # bit-exact match, not skipped), just not a visually discriminating one.
 add_visual_test(sphere-occlusion-reyes
     examples/rib/tests/sphere-occlusion-reyes.rib
-    sphere-occlusion-reyes.tif  sphere-occlusion-reyes.tif)
+    sphere-occlusion-reyes.tif  sphere-occlusion-reyes.tif  7)
 
 add_visual_test(sphere-occlusion-reyes-slo
     examples/rib/tests/sphere-occlusion-reyes-slo.rib
-    sphere-occlusion-reyes-slo.tif  sphere-occlusion-reyes.tif)
+    sphere-occlusion-reyes-slo.tif  sphere-occlusion-reyes.tif  7)
 
 # Ray-origin self-hits (fix/ray-origin-self-hit): a lone sphere's gather()
 # and occlusion() rays must all miss, a convex surface not seeing itself, so
@@ -687,11 +687,11 @@ add_visual_test(sphere-ray-self-hit-raytrace
 
 add_visual_test(sphere-indirectdiffuse-reyes
     examples/rib/tests/sphere-indirectdiffuse-reyes.rib
-    sphere-indirectdiffuse-reyes.tif  sphere-indirectdiffuse-reyes.tif)
+    sphere-indirectdiffuse-reyes.tif  sphere-indirectdiffuse-reyes.tif  1)
 
 add_visual_test(sphere-indirectdiffuse-reyes-slo
     examples/rib/tests/sphere-indirectdiffuse-reyes-slo.rib
-    sphere-indirectdiffuse-reyes-slo.tif  sphere-indirectdiffuse-reyes.tif)
+    sphere-indirectdiffuse-reyes-slo.tif  sphere-indirectdiffuse-reyes.tif  1)
 
 # --- User Story 5 (GitHub issue #3, spec 017-jit-builtin-function-coverage):
 # 18 previously-uninventoried builtin functions, found by actually running
@@ -864,11 +864,11 @@ add_visual_test(sphere-rayinfo-reyes-slo
 # computed" from "silently skipped" -- see shaders/photonmap_probe.sl.
 add_visual_test(sphere-photonmap-reyes
     examples/rib/tests/sphere-photonmap-reyes.rib
-    sphere-photonmap-reyes.tif  sphere-photonmap-reyes.tif)
+    sphere-photonmap-reyes.tif  sphere-photonmap-reyes.tif  12)
 
 add_visual_test(sphere-photonmap-reyes-slo
     examples/rib/tests/sphere-photonmap-reyes-slo.rib
-    sphere-photonmap-reyes-slo.tif  sphere-photonmap-reyes.tif)
+    sphere-photonmap-reyes-slo.tif  sphere-photonmap-reyes.tif  12)
 
 # --- User Story 4 (GitHub issue #3, spec 017-jit-builtin-function-
 # coverage): the 14 remaining pure math/string functions, no shipped
@@ -1039,7 +1039,7 @@ add_visual_test(spherelight-slo
 # -t:1 is 0.00, the Linux render differs from the macOS one by a constant
 # D = 2.91 (30/30 runs), so the threshold is max(1, ceil(2 * D)) = 6, while an
 # empty map misses the reference by 255.00. At the default thread count the
-# photon pass crashed 4/30 times (the CPhotonHider race, BUGS.md), hence -t:1.
+# photon pass crashed 4/30 times (the CPhotonHider race, BUGS.md), hence -t:1 until spec 040 fixed the race (no crash in 30 runs at the default thread count).
 # A photon map is only written when something is stored, so a stale one would
 # be read instead of the missing one: the setup tests delete it first.
 #
@@ -1049,12 +1049,12 @@ add_visual_test(spherelight-slo
 add_visual_test(photon-parity
     examples/rib/tests/photon-parity.rib
     photon-parity.tif  photon-parity.tif
-    6  "-t:1")
+    1)
 
 add_visual_test(photon-parity-slo
     examples/rib/tests/photon-parity-slo.rib
     photon-parity-slo.tif  photon-parity.tif
-    6  "-t:1")
+    1)
 
 add_visual_test(solar0
     examples/rib/tests/solar0.rib
@@ -1097,7 +1097,7 @@ foreach(_variant rslo slo)
     set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/photon-solar0-maps${_sfx})
     file(MAKE_DIRECTORY ${_scratch})
     add_test(NAME PhotonSolar0_${_variant}
-        COMMAND test_photon_solar0 $<TARGET_FILE:orender> "-t:1"
+        COMMAND test_photon_solar0 $<TARGET_FILE:orender> ""
             ${CMAKE_SOURCE_DIR}/examples/rib/tests/photon-solar0-alone${_sfx}.rib
             photon-solar0-alone${_sfx}.gpm
             ${CMAKE_SOURCE_DIR}/examples/rib/tests/photon-solar0-after-distant${_sfx}.rib
@@ -1129,10 +1129,15 @@ unset(_scratch)
 # 76-80), so any change of random stream needs new references, not a threshold.
 foreach(_scene alone alone-slo after-distant after-distant-slo)
     string(REPLACE "-slo" "" _ref ${_scene})
+    if(_scene MATCHES "after-distant")
+        set(_solar0_threshold 7) # the Linux image differs from the macOS one by 3.42
+    else()
+        set(_solar0_threshold 1)
+    endif()
     add_visual_test(photon-solar0-${_scene}
         examples/rib/tests/photon-solar0-${_scene}.rib
         photon-solar0-${_scene}.tif  photon-solar0-${_ref}.tif
-        ${VISUAL_THRESHOLD}  "-t:1")
+        ${_solar0_threshold})
     add_test(NAME VisualSetup_photon-solar0-${_scene}-clean
         COMMAND ${CMAKE_COMMAND} -E rm -f photon-solar0-${_scene}.gpm
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tests/visual/photon-solar0-${_scene})
@@ -2160,22 +2165,22 @@ add_visual_test(subdiv-loop-mixed-invalid-raytrace
 add_visual_test(subdiv-facevarying-seam-photon
     examples/rib/tests/subdiv-facevarying-seam-photon.rib
     subdiv-facevarying-seam-photon.tif
-    subdiv-facevarying-seam-raytrace.tif)
+    subdiv-facevarying-seam-raytrace.tif  4)
 
 add_visual_test(subdiv-new-tags-photon
     examples/rib/tests/subdiv-new-tags-photon.rib
     subdiv-new-tags-photon.tif
-    subdiv-new-tags-raytrace.tif)
+    subdiv-new-tags-raytrace.tif  4)
 
 add_visual_test(subdiv-hierarchical-override-photon
     examples/rib/tests/subdiv-hierarchical-override-photon.rib
     subdiv-hierarchical-override-photon.tif
-    subdiv-hierarchical-override-raytrace.tif)
+    subdiv-hierarchical-override-raytrace.tif  1)
 
 add_visual_test(subdiv-loop-photon
     examples/rib/tests/subdiv-loop-photon.rib
     subdiv-loop-photon.tif
-    subdiv-loop-raytrace.tif)
+    subdiv-loop-raytrace.tif  2)
 
 # --- Subdivision surfaces: authored-but-not-required scene (spec
 # 010-full-subdivision-support, Phase 9 Polish, T064/T069; six sibling

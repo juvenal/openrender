@@ -678,8 +678,8 @@ ribdata_sniff 1
   camera projection=0 fov=0x1.68p+5 near=0x1.af0818p-4 far=0x1.f4317ap+4 aspect=0x1p+0
   lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
   points count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
-  triangles count=5580 hashVerts=703ad9ccc878ff7d hashCols=a436ad85cffa6deb
-  sourceDiskCount=93 decimatedCount=0
+  triangles count=6180 hashVerts=faf0dc39cf528dd7 hashCols=a9523a7e9192b283
+  sourceDiskCount=103 decimatedCount=0
 -- key 'd' changed=1
   documentType=1 numChannels=3 currentChannel=-1 detailLevel=-1 drawMode=0
   channel 0 "irradiance"
@@ -689,8 +689,8 @@ ribdata_sniff 1
   camera projection=0 fov=0x1.68p+5 near=0x1.af0818p-4 far=0x1.f4317ap+4 aspect=0x1p+0
   lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
   points count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
-  triangles count=5580 hashVerts=703ad9ccc878ff7d hashCols=a436ad85cffa6deb
-  sourceDiskCount=93 decimatedCount=0
+  triangles count=6180 hashVerts=faf0dc39cf528dd7 hashCols=a9523a7e9192b283
+  sourceDiskCount=103 decimatedCount=0
 -- key 'p' changed=1
   documentType=1 numChannels=3 currentChannel=-1 detailLevel=-1 drawMode=0
   channel 0 "irradiance"
@@ -699,7 +699,7 @@ ribdata_sniff 1
   bounds min (-0x1.00015p+0 -0x1.8cce0ap+0 -0x1.c0012cp+0) max (0x1.0ccd62p+1 0x1.8cce0ap+0 0x1.599ae8p+0)
   camera projection=0 fov=0x1.68p+5 near=0x1.af0818p-4 far=0x1.f4317ap+4 aspect=0x1p+0
   lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
-  points count=93 hashVerts=0589e582785a8385 hashCols=3451806ef2ae5527
+  points count=103 hashVerts=bf7248159ccf571e hashCols=350c536d56136ab6
   triangles count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
   sourceDiskCount=0 decimatedCount=0
 -- key 'd' changed=1
@@ -711,8 +711,8 @@ ribdata_sniff 1
   camera projection=0 fov=0x1.68p+5 near=0x1.af0818p-4 far=0x1.f4317ap+4 aspect=0x1p+0
   lines count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
   points count=0 hashVerts=14650fb0739d0383 hashCols=14650fb0739d0383
-  triangles count=5580 hashVerts=703ad9ccc878ff7d hashCols=a436ad85cffa6deb
-  sourceDiskCount=93 decimatedCount=0
+  triangles count=6180 hashVerts=faf0dc39cf528dd7 hashCols=a9523a7e9192b283
+  sourceDiskCount=103 decimatedCount=0
 CDataDocument type 3
 -- initial
   typeName="Irradiance Cache" numChannels=3 currentChannel=-1 detailLevel=-1 drawMode=0
@@ -721,7 +721,7 @@ CDataDocument type 3
   channel 2 "environmentdir"
   bound min (-0x1.00015p+0 -0x1.8cce0ap+0 -0x1.c0012cp+0) max (0x1.0ccd62p+1 0x1.8cce0ap+0 0x1.599ae8p+0)
   draw (chunkSize 384):
-    disks n=93 hashP=0589e582785a8385 hashdP=51a3d2f3ea823125 hashN=130cc6d43e9c5d50 hashC=3451806ef2ae5527
+    disks n=103 hashP=bf7248159ccf571e hashdP=bd41dc14b0defc7e hashN=8a581986accfacb0 hashC=350c536d56136ab6
 -- key 'd' changed=1
   typeName="Irradiance Cache" numChannels=3 currentChannel=-1 detailLevel=-1 drawMode=0
   channel 0 "irradiance"
@@ -729,7 +729,7 @@ CDataDocument type 3
   channel 2 "environmentdir"
   bound min (-0x1.00015p+0 -0x1.8cce0ap+0 -0x1.c0012cp+0) max (0x1.0ccd62p+1 0x1.8cce0ap+0 0x1.599ae8p+0)
   draw (chunkSize 384):
-    disks n=93 hashP=0589e582785a8385 hashdP=51a3d2f3ea823125 hashN=130cc6d43e9c5d50 hashC=3451806ef2ae5527
+    disks n=103 hashP=bf7248159ccf571e hashdP=bd41dc14b0defc7e hashN=8a581986accfacb0 hashC=350c536d56136ab6
 -- key 'p' changed=1
   typeName="Irradiance Cache" numChannels=3 currentChannel=-1 detailLevel=-1 drawMode=0
   channel 0 "irradiance"
@@ -737,7 +737,7 @@ CDataDocument type 3
   channel 2 "environmentdir"
   bound min (-0x1.00015p+0 -0x1.8cce0ap+0 -0x1.c0012cp+0) max (0x1.0ccd62p+1 0x1.8cce0ap+0 0x1.599ae8p+0)
   draw (chunkSize 384):
-    points n=93 hashP=0589e582785a8385 hashC=3451806ef2ae5527
+    points n=103 hashP=bf7248159ccf571e hashC=350c536d56136ab6
 -- key 'd' changed=1
   typeName="Irradiance Cache" numChannels=3 currentChannel=-1 detailLevel=-1 drawMode=0
   channel 0 "irradiance"
@@ -745,7 +745,7 @@ CDataDocument type 3
   channel 2 "environmentdir"
   bound min (-0x1.00015p+0 -0x1.8cce0ap+0 -0x1.c0012cp+0) max (0x1.0ccd62p+1 0x1.8cce0ap+0 0x1.599ae8p+0)
   draw (chunkSize 384):
-    disks n=93 hashP=0589e582785a8385 hashdP=51a3d2f3ea823125 hashN=130cc6d43e9c5d50 hashC=3451806ef2ae5527
+    disks n=103 hashP=bf7248159ccf571e hashdP=bd41dc14b0defc7e hashN=8a581986accfacb0 hashC=350c536d56136ab6
 [pointcloud]
 ribdata_sniff 3
 -- initial

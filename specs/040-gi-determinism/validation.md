@@ -279,6 +279,20 @@ Build `cpujob 040-p5-build*` (exit 0, no first-party warning). Sources: `irradia
 
 **Cost so far (T077, §5, `tools/timing-p5-macos.txt`, `timing_sc007.sh build-base build 3`):** `perf-occlusion-cache` 4.64 to 4.18 s (-10 %), `perf-indirect-photon` 5.14 to 5.16 s (+0.4 %), `perf-photon-pass` 3.69 to 4.04 s (+9.5 %): all within spread. The formal measurement is Phase 7.
 
+### Checkpoint 7 (Phase 7: pins, references, thresholds, overhead), 2026-11-17
+
+Applied after the maintainer's approval (PAUSE 7a and 7b): `phase7-pins.patch`, `phase7-default-set.patch` (the default `determinism` set 160 to 164), `phase7-thresholds.patch`, and the references of `rerendered-references.md` on both platforms. `thread-pins.md` is complete (T090).
+
+| step | macOS | Linux (GCC 13 -Werror, -j2) |
+|---|---|---|
+| T091/T104: photon pins, 30 fresh runs x 16 series at the default thread count and `-t:4` | 0 crashes, one md5 per scene (`tools/photon-crash-after-macos.txt`) | not run in this phase (T104 is Phase 8) |
+| visual group at the new thresholds and references (`Visual_*` GI tests, `OcclusionGolden`, `Preview_DataSceneUnchanged`, `GiFiles_Unchanged`, `GiRemote_*`, both replays) | all pass | all pass |
+| GI test set (`gi-test-set.txt`, 95 tests) | all pass | n/a (covered by the suite) |
+| everyday suite (`-LE 'determinism-sweep|gi_determinism_long'`) | **1386 of 1386** (no failure, no known failure left) | 1386 of 1387: only `TextureTile_RenderByteIdentical`, the known Linux failure |
+| `-L architecture` | 36 of 36 | 36 of 36 |
+| the 34 GI sweep entries, three times (SC-001) | 3 of 3, 34 of 34 each | 3 of 3, 34 of 34 each |
+| default `determinism` set | 164 of 164 | 164 of 164 |
+
 ### Checkpoint 6 (Phase 6: the `-P:N` wire, #161), macOS, 2026-11-17
 
 Build exit 0. Sources: `remoteChannel.{h,cpp}` (the pending-only frame, `CHANNELFLAG_READ`), `irradianceCache.{h,cpp}` (`receivePending`, `openFlags`; `insertReceived` removed). Tests: the two approved patches (T080) and `determinism-scenes-phase6.patch` (T086).
@@ -428,9 +442,66 @@ Linux (one chain through the remote cpujob at -j2, GCC 13 `-Werror`, JIT on; `ph
 
 `tools/baseline-gi-images-macos.sha256` (18 float images, two identical runs). The sweep is not run in Phase 0.
 
+
+### T094: the one re-render (Phase 7), recorded first; nothing is copied into `examples/rib/tests/references/` or `tests/` before PAUSE 7b
+
+Rendered by the finished tree (`build`, macOS) at the **default thread count**, with the `numthreads 1` line removed in a scratch copy of the two occlusion scenes (`tools/phase7_render_refs.sh`: each scene twice into `build-logs/040-refs/<scene>.run{1,2}/`, every render its own cpujob). **Every one of the 8 images is byte-identical between its two runs**, and each `-slo` image is byte-identical to its `.rslo` image (`gi_quality` 0.0000). The Linux host rendered the same 8 scenes twice (`build-logs/040-refs-linux/`): stable too. Metric: the `MaxBlockAvgDiff` the visual test prints (`gi_quality`; it reproduces the drift list's figures).
+
+| test(s) | reference (`examples/rib/tests/references/`) | reason | old reference against the starting tree's image | **new image against the old reference** | Linux new image against the macOS one |
+|---|---|---|---|---|---|
+| `Visual_sphere-occlusion-reyes`, `-slo` | `sphere-occlusion-reyes.tif` | M2's record set and D1-A's draws (the cached occlusion image) | 12.36 | 30.72 (macOS and Linux) | 3.13 |
+| `Visual_photon-parity`, `-slo` | `photon-parity.tif` | D2-A (the photon lookup memo removed) and the canonical photon order | 0.00 macOS, 0.92 Linux | 7.06 | 0.03 |
+| `Visual_photon-solar0-alone`, `-slo` | `photon-solar0-alone.tif` | as above | 0.00 macOS, 0.12 Linux | 11.09 | 0.02 |
+| `Visual_photon-solar0-after-distant`, `-slo` | `photon-solar0-after-distant.tif` | as above | 0.00 macOS, 1.52 Linux | 8.77 | 3.42 |
+
+References whose images do not change (diff to the existing reference equal before and after the spec, so none is re-recorded): `sphere-photonmap-reyes` (5.97), `sphere-indirectdiffuse-reyes` (0.00: #173), `sphere-gather-reyes`, `sphere-ray-self-hit-*` (0.00), the four `subdiv-*-photon` (0.44 to 1.88 against their raytrace twins).
+
+Text and binary references (each recorded twice per platform into `build-logs/040-refs/` and `build-logs/040-refs-linux/`, identical): `tests/gi_split/reference/{macos,linux}/files.txt` (lines 26-27: 52016 to 96528 bytes), `loopback-cache.bin` (48828 to 33248 bytes), `tests/preview/reference/{macos,linux}/datascene.txt` (22 lines on macOS: the cache's triangle and disk counts, 5580 to 6180 and 93 to 103), `tests/shading_contract/replay/{macos,linux}.txt` (the origin of the rays of the occlusion and indirectdiffuse requests: 384 of 788 lines on macOS), and spec 039's `tests/visual/golden/occlusion-sobol_cache.tif` (macOS) and `golden/linux/occlusion-sobol_cache.tif` (Linux; per-platform bit-exact; macOS new against old 85.39 on 48 x 48).
+
 ## 5. Timing (FR-023)
 
 Baseline: §0.5 (T010). Phase 3 (D2-A, the memo removed): see Checkpoint 3 above: the three standard scenes are within spread on both platforms; a render that reads the photon map through `photonmap()` costs +720 % on macOS (2.78 s to 22.78 s, `tools/perf-photon-lookup.rib`) and +597 % on Linux (3.24 s to 22.57 s). Phase 7 compares against the baseline. The maintainer accepted D2-A's cost as measured (2026-11-16); the follow-up, option C (precomputed irradiance at the photons, R6), is GitHub #178 (P1 enhancement).
+
+
+### T097 on Linux (`tools/timing-after-linux.txt`, `tools/timing-twoframe-linux.txt`, GCC 13, the same scenes and scales, 4 threads, the photon pass at 1)
+
+| scene | starting tree | finished tree | difference | verdict |
+|---|---|---|---|---|
+| `perf-occlusion-cache` | 9.14 s, spread 1.70 | 8.03 s, 0.14 | -1.11 s (-12.1 %) | within spread |
+| `perf-indirect-photon` | 13.81 s, 0.21 | 13.90 s, 0.21 | +0.09 s (+0.7 %) | within spread |
+| `perf-photon-pass` | 7.81 s, 0.56 | 7.90 s, 1.22 | +0.09 s (+1.2 %) | within spread (macOS's +21 % is not reproduced on Linux) |
+| two-frame idiom (format x6; frame 1 alone 2.30 s to 2.03 s) | 4.72 s, 0.09 | 7.64 s, 0.09 | **+2.92 s (+61.9 %), beyond spread** | frame 2 about 2.4 s before, about 5.6 s now |
+
+**Maintainer decision (2026-11-17): the macOS `perf-photon-pass` +21 % (+0.71 s, beyond a spread of 0.45 s) is accepted and not optimised.** Likely cause: Phase 2's canonical sort of the photons in `balance()` (a `memcmp` over 38 bytes per comparison) plus the claim inside the store's lock.
+
+### Where the two-frame scene's frame 2 time goes (maintainer request, before PAUSE 7; temporary printed counters and timestamps in `CIrradianceCache` and `irradianceLookup`, removed again; `build-logs/040-p7-breakdown/`)
+
+The scene is `tools/perf-occlusion-twoframe.rib` at 3840 x 2880, ShadingRate 1/3, 4 threads (the numbers are thread-summed milliseconds, the counters are exact; the atomic counters distort the wall time, so each figure is from the run that carried only its own instruments: `run1.out`, `run3.out`):
+
+| | frame 1 (writes the cache) | frame 2 (reads it) |
+|---|---|---|
+| lookups (`irradianceLookup` calls) | 1,879,414 | 1,879,822 |
+| misses (sampler runs, records made) | 11,824 (11,206 committed) | 434 |
+| records examined per lookup (front test and weight) | 1.04 | **125** (235,391,318 in all, 217,921,802 accept calls) |
+| `lookupCached` | 81 ms | **5,418 ms** |
+| the sampler | 24 ms | 1 ms |
+| `clampAgainstFixed`, `addPending`, batch add | 0.2 + 1.8 + 0.8 ms | 1.7 ms, 0, 0 |
+| `commitPending` (dedupe + sort 1.0, clamp 3.8, place 1.0 ms for 11,206 records) | 7.3 ms | 0 |
+| file write / file read / fixed-index build | 21.5 ms / 0 / 0 | 0 / 15.0 ms / 1.7 ms |
+
+**Frame 2's time is the lookups over the fixed part, nothing else**: the commit, the file read and write, the index and the sampler together are under 70 ms of about 5.5 s. A lookup in frame 2 examines 125 records because the cache it reads is **8.4 times denser than the starting tree's**: the same scene at the same scale writes **11,206 records under M2 and 1,328 on the starting tree** (`icache_dump.py`: `build-logs/040-p7-breakdown/{run3,base}/perf-occlusion-two.icache`). That is M2's batch scope (research R2): a lookup sees the fixed part and its own `shade()` call's records only, so every one of the many small REYES grids of a fine shading rate makes its own records where the starting tree's sequential tree shared them across grids. Cost per examined record is unchanged (the front test, the weight and one accept hash; the accept call is part of the pinned contract: once per record that passes the front test). So frame 2 costs about 2 to 2.4 times frame 1 here because it examines about 8 times the records, and the starting tree's frame 1 paid its smaller share of the same work while it built its tree. Not fixed here (no optimisation): the places to look are coarsening the committed set (a cull of records inside another record's radius at commit), a coarser batch (larger grids or a raytrace chunk), and a cheaper reject before the accept hash; the maintainer decides fix-in-040 or file.
+
+### T097: the overhead of the finished tree (FR-023, SC-007), macOS
+
+`timing_sc007.sh build-base build 5` (`tools/timing-after-macos.txt`), interleaved series against the starting tree, 4 threads (the photon pass at 1), the three scaled scenes of T010 (photon pass emit x75): the spec sets no percentage, a difference beyond the spread goes to the maintainer.
+
+| scene | starting tree (median, spread) | finished tree | difference of medians | verdict |
+|---|---|---|---|---|
+| `perf-occlusion-cache` (cached occlusion, 7680 x 5760) | 3.78 s, 0.51 | 3.40 s, 0.32 | -0.38 s (-10.0 %) | within spread |
+| `perf-indirect-photon` | 4.43 s, 0.55 | 4.11 s, 0.75 | -0.32 s (-7.3 %) | within spread |
+| `perf-photon-pass` (one thread) | 3.36 s, 0.39 | 4.07 s, 0.45 | **+0.71 s (+21.0 %)** | **beyond the spread (slower)**: reported, not optimised away. Phase 2's canonical sort of the photons in `balance()` and the claim inside the store's lock are the cost of the photon pass; Phase 5's informal run (T077) showed +9.5 % within a spread of 0.48 s. The lookup's own cost (D2-A) is in section 5's Checkpoint 3 figures |
+
+**The two-frame idiom (D5's alternative)** (`tools/perf-occlusion-twoframe.rib`, frame 1 writes the cache `"w"`, frame 2 reads it `"r"`; `tools/timing-twoframe-macos.txt`, both scenes at format x6 because the x12 scene writes 177 MB images and the disk is tight; the medians are under the script's 3 s floor, the differences are against the stated spreads): frame 1 alone (`perf-occlusion-cache`) 0.87 s on the starting tree and 0.83 s on the finished one (within spread); the two-frame scene 1.79 s on the starting tree and **2.80 s on the finished one (+1.01 s, +56.6 %, beyond a spread of 0.25 s)**. Frame 2's cost is therefore about 0.92 s on the starting tree and about 1.97 s on the finished one: with a full fixed part M2's second frame costs about twice frame 1 here, where the starting tree's second frame cost about as much as its first. This is the number D5 asks for; I did not investigate it (the fixed part's lookups and the kd-tree index of `clampAgainstFixed` are the places to look).
 
 ## 6. Issue evidence
 

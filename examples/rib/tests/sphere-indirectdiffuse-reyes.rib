@@ -5,7 +5,7 @@
 version 3.03
 Hider "reyes"
 Option "shaderformat" "default" ["rslo"]
-Option "limits" "numthreads" [1]
+# (spec 040: no thread pin: the irradiance cache is filled in a canonical order, whatever the thread count)
 Display "sphere-indirectdiffuse-reyes.tif" "file" "rgba"
 Projection "perspective"
 Clipping 0.1 100
