@@ -27,7 +27,27 @@
 #include "sloLoader.h"
 
 #ifdef OR033_BENCH_USE_SHADING_SYSTEM
-#error "OR033_BENCH_USE_SHADING_SYSTEM: the ShadingSystem loader exists from Phase 4; this branch is written then"
+#include "libshader/shading/shadingSystem.h"
+
+namespace {
+    // A file resolver over one directory: <dir>/<name>.<extension>, when the file exists
+    class CDirResolver : public openrender::shading::IShaderFileResolver {
+        public:
+            explicit CDirResolver(std::string d) : dir(std::move(d)) {}
+            int locate(char *result, const char *name, const char *extension) const override {
+                const std::string path = dir + "/" + name + "." + extension;
+                if (FILE *f = fopen(path.c_str(), "rb")) {
+                    fclose(f);
+                    snprintf(result, OS_MAX_PATH_LENGTH, "%s", path.c_str());
+                    return TRUE;
+                }
+                return FALSE;
+            }
+
+        private:
+            std::string dir;
+    };
+} // namespace
 #endif
 
 CShader *parseShader(const char *name, const char *filename);
@@ -57,6 +77,29 @@ int main(int argc, char **argv) {
     using clock = std::chrono::steady_clock;
     int loaded = 0, failed = 0;
 
+#ifdef OR033_BENCH_USE_SHADING_SYSTEM
+    // The same objects through ShadingSystem::find(): a system per format (its cache is keyed by name, so one system would answer the
+    // second format from the first, GitHub #167), the preference naming the format; the loads are the same loader calls plus the facade
+    const CDirResolver resolver(dir);
+    // never deleted, like the loaded descriptions of the starting tree's loop: the loads are what is timed
+    auto *rsloSystem = new openrender::shading::ShadingSystem;
+    auto *sloSystem = new openrender::shading::ShadingSystem;
+    const auto t0 = clock::now();
+    for (const std::string &n : names) {
+        const openrender::shading::ShaderRequest request{n.c_str(), openrender::shading::kAnyShaderType, "rslo", nullptr, &resolver};
+        CShader *s = rsloSystem->find(request);
+        (s != nullptr ? loaded : failed)++;
+    }
+    const auto t1 = clock::now();
+#ifdef OPENRENDER_HAVE_LLVM
+    for (const std::string &n : names) {
+        const openrender::shading::ShaderRequest request{n.c_str(), openrender::shading::kAnyShaderType, "slo", nullptr, &resolver};
+        CShader *s = sloSystem->find(request);
+        (s != nullptr ? loaded : failed)++;
+    }
+#endif
+    const auto t2 = clock::now();
+#else
     const auto t0 = clock::now();
     for (const std::string &n : names) {
         CShader *s = parseShader(n.c_str(), (dir + "/" + n + ".rslo").c_str());
@@ -70,6 +113,7 @@ int main(int argc, char **argv) {
     }
 #endif
     const auto t2 = clock::now();
+#endif
     RiEnd();
 
     if (failed != 0) {
