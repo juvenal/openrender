@@ -1,0 +1,47 @@
+##RenderMan RIB-Structure 1.0
+# Spec 040 sweep scene (T026), not a visual test and without a reference image: a photon pass (1000 photons) writing gi-photon-then-indirect.gpm, then indirectdiffuse() reading it with the cache on, shader format slo.
+# The photon pass cannot run under -P (GitHub #170), so the sweep entry omits that configuration.
+# The determinism harness (tests/visual/test_depth_determinism.cpp, --float --depth --files) renders it under every thread and
+# process configuration and compares colour, alpha, depth and the cache or map files byte for byte. The sphere pair is
+# examples/rib/tests/sphere-occlusion-reyes.rib's (the occluder needs `Attribute "visibility" "diffuse" [1]`).
+version 3.03
+FrameBegin 1
+  Hider "photon" "int emit" [1000]
+  Projection "perspective" "fov" 45
+  Format 16 12 1
+  Translate 0 -1 5
+  WorldBegin
+    Attribute "shade" "shaderformat" ["slo"]
+    LightSource "pointlight" 1 "intensity" [4] "from" [0 2.2 0.5]
+    Attribute "photon" "string globalmap" ["gi-photon-then-indirect.gpm"]
+    Color [0.8 0.8 0.8]
+    Surface "matte"
+    Polygon "P" [-3 0 -3  -3 0 3  3 0 3  3 0 -3]
+    TransformBegin
+      Translate 0 0.6 0.5
+      Sphere 0.6 -0.6 0.6 360
+    TransformEnd
+  WorldEnd
+FrameEnd
+FrameBegin 2
+  Hider "reyes"
+  Option "shaderformat" "default" ["slo"]
+  Display "gi-photon-then-indirect-reyes-slo.tif" "file" "rgba"
+  Format 64 48 1
+  PixelSamples 1 1
+  Projection "perspective" "fov" 45
+  Translate 0 -1 5
+  WorldBegin
+    Attribute "photon" "string globalmap" ["gi-photon-then-indirect.gpm"]
+    Attribute "irradiance" "string handle" ["gi-photon-then-indirect.icache"]
+    Attribute "irradiance" "string filemode" ["w"]
+    Attribute "irradiance" "float maxerror" [0.6]
+    Attribute "visibility" "diffuse" [1]
+    Surface "indirectdiffuse_probe"
+    Polygon "P" [-3 0 -3  -3 0 3  3 0 3  3 0 -3]
+    TransformBegin
+      Translate 0 0.6 0.5
+      Sphere 0.6 -0.6 0.6 360
+    TransformEnd
+  WorldEnd
+FrameEnd

@@ -37,8 +37,6 @@
 #include "common/fileResource.h"
 #include "map.h"
 
-#define PHOTON_LOOKUP_CACHE
-
 ///////////////////////////////////////////////////////////////////////
 //
 //
@@ -63,22 +61,6 @@ class CPhoton : public CMapItem {
 // Comments				:
 class CPhotonStore : public CMap<CPhoton>, public CFileResource {
 
-#ifdef PHOTON_LOOKUP_CACHE
-        class CPhotonSample {
-            public:
-                vector C, P, N;
-                float dP;
-                CPhotonSample *next;
-        };
-
-        class CPhotonNode {
-            public:
-                vector center;
-                float side;
-                CPhotonSample *samples;
-                CPhotonNode *children[8];
-        };
-#endif
 
     public:
         // fromWorld/toWorld: the creator's current world matrices (a map read from a file is related to them)
@@ -93,6 +75,10 @@ class CPhotonStore : public CMap<CPhoton>, public CFileResource {
         void balance() override;
 
         void store(const float *, const float *, const float *, const float *);
+        // The photon hider's store (spec 040, FR-003): the first call of a frame resets the map, marks it as being written and returns true
+        // (for that call only: exactly one caller puts the map on its balance list); every call stores. One critical section
+        bool storePhotonForFrame(const float *P, const float *N, const float *I, const float *C, uint64_t key);
+
         void store(const float *, const float *, const float *, const float *, uint64_t key); // the key goes to the side array (read back with photonKey(i)); balance() permutes it with the photons
 
         void bound(float *bmin, float *bmax) const;
@@ -102,18 +88,10 @@ class CPhotonStore : public CMap<CPhoton>, public CFileResource {
         // without one, one read from a file or the dummy photon of an empty map
         uint64_t photonKey(int i) const { return keys[i]; }
 
-#ifdef PHOTON_LOOKUP_CACHE
-        int probe(float *, const float *, const float *);
-        void insert(const float *, const float *, const float *, float);
-
-        CPhotonNode *root;
-        int maxDepth; // The maximum depth of the hierarchy
-#endif
 
         int modifying;
         matrix from, to;
-        float maxPower; // The maximum photon power
-        float searchRadius;
+        float maxPower; // The largest photon power |C| (what the file holds)
         TMutex mutex; // For synchronization during writing
 
     protected:
@@ -122,6 +100,7 @@ class CPhotonStore : public CMap<CPhoton>, public CFileResource {
 
     private:
         void ensureKeys(); // Grow the keys to cover every item the map can hold
+        void storeLocked(const float *P, const float *N, const float *I, const float *C, uint64_t key); // store() with the lock held
 
         uint64_t *keys;   // Index-aligned with items (keys[0] unused)
         int keysCapacity; // The number of entries of keys

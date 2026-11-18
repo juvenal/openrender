@@ -1038,3 +1038,10 @@ request. Run `ctest -L architecture` locally before review.
   (`CShaderSearchPathResolver`, the bind host `CRendererContext::registerLight`/`takeInstanceKey`, `ShaderGroupBuilder`). `src/ri/render/init.cpp` is gone,
   `OPENRENDER_HAVE_LLVM` does not appear under `src/ri`, and `Shading_CoreNoBackendNames` (with its fixture run) scans `src/ri`, `src/display`, `src/shadeop`,
   `src/procedures` and `src/common` for the backend names. A third backend (`ShadingSystem_ThirdBackend`) registers with no edit to those domains.
+
+## Specs that moved no entry
+
+- **Spec 040 (GI determinism), 2026-11-17**: resolves no DB entry, adds no allowlist line (`git diff 278b0394 -- tests/architecture/allowlist.txt` adds
+  nothing) and no include or link edge. Texturing's stores (`irradianceCache`, `irradianceStore.h`, `photonStore`) still include only Texturing and Infra headers
+  (the new `common/giHash.h` is Infra); Shading reaches them through `irradianceStore.h`; the batch scope lives in Shading (`irradianceBatch.h`); the remote channel
+  stays in Core. Evidence: `GiSplit_Boundary`, `TextureOnly_GiStores` and `ctest -L architecture` (36 of 36 on macOS and on Linux).

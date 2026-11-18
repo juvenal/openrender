@@ -9,9 +9,9 @@
 # tree (SamplingJitDeterminism_* and Sampling_ThreadSweep_* cover those) and the scenes of
 # DeterminismHarness_* (the harness checks itself) are not part of it.
 #
-# GI scenes are not swept: the irradiance cache (occlusion(), indirectdiffuse()) and the photon
-# map are filled in the order the points happen to be shaded in. Spec 040 makes them
-# deterministic; until then they are not asked to be. They are listed below as comments.
+# GI scenes (the irradiance cache, the photon map) are swept since spec 040, which made them deterministic: their
+# entries are the `gi-*` ones at the end of this file (BEGIN spec 040), rendered float with a depth display, and their
+# map and cache files are compared byte for byte (the FILES, FLOAT and DEPTH keywords of add_determinism_sweep()).
 #
 # A scene that sets its own non-zero-dither Quantize would be listed for the Phase 9 run (T103)
 # only, because the dither is libc rand() until T095. None does today.
@@ -459,25 +459,9 @@ add_determinism_sweep(torus-reyes examples/rib/tests/torus-reyes.rib torus-reyes
 # depth, not its children's maximum), so the opacity cull dropped grids still visible in a
 # bucket's left filter margin, unless thread timing had drawn them first (DEVNOTES_DETAILS/BUGS.md).
 
-# --- GI scenes: not swept (spec 040) --------------------------------------------------------------
-#   examples/rib/tests/parity/motion-subdiv-translate-photon.rib  (Hider "photon", Attribute "photon")
-#   examples/rib/tests/photon-parity-slo.rib  (shader photonparity_view, Hider "photon", Attribute "photon")
-#   examples/rib/tests/photon-parity.rib  (shader photonparity_view, Hider "photon", Attribute "photon")
-#   examples/rib/tests/sampling-probe-independence-mid.rib  (shader sampling_jit_probe)
-#   examples/rib/tests/sampling-probe-independence-min.rib  (shader sampling_jit_probe)
-#   examples/rib/tests/sphere-indirectdiffuse-reyes-slo.rib  (shader indirectdiffuse_probe)
-#   examples/rib/tests/sphere-indirectdiffuse-reyes.rib  (shader indirectdiffuse_probe)
-#   examples/rib/tests/sphere-occlusion-reyes-slo.rib  (shader occlusion_probe)
-#   examples/rib/tests/sphere-occlusion-reyes.rib  (shader occlusion_probe)
-#   examples/rib/tests/sphere-photonmap-reyes-slo.rib  (shader photonmap_probe)
-#   examples/rib/tests/sphere-photonmap-reyes.rib  (shader photonmap_probe)
-#   examples/rib/tests/sphere-ray-self-hit-raytrace.rib  (shader ray_self_hit_probe)
-#   examples/rib/tests/sphere-ray-self-hit-reyes-slo.rib  (shader ray_self_hit_probe)
-#   examples/rib/tests/sphere-ray-self-hit-reyes.rib  (shader ray_self_hit_probe)
-#   examples/rib/tests/subdiv-facevarying-seam-photon.rib  (Hider "photon", Attribute "photon")
-#   examples/rib/tests/subdiv-hierarchical-override-photon.rib  (Hider "photon", Attribute "photon")
-#   examples/rib/tests/subdiv-loop-photon.rib  (Hider "photon", Attribute "photon")
-#   examples/rib/tests/subdiv-new-tags-photon.rib  (Hider "photon", Attribute "photon")
+# --- GI scenes (spec 040) ------------------------------------------------------------------------
+# The 18 scenes that were listed here as "not swept" are entries named gi-<scene> at the end of this file, with the 16 scenes
+# of tests/gi_determinism/scenes.
 
 # --- Scenes that cannot be swept as they are ---------------------------------------------------
 #   examples/rib/tests/csg-malformed-bogus-operation.rib  (expected to fail with a diagnostic, writes no image)
@@ -711,3 +695,97 @@ add_determinism_sweep(volume-csg-fragment-none-zbuffer-slo examples/rib/tests/vo
 add_determinism_sweep(volume-csg-fragment-none-raytrace examples/rib/tests/volume-csg-fragment-none-raytrace.rib volume-csg-fragment-none-raytrace.tif)
 add_determinism_sweep(volume-csg-fragment-none-raytrace-slo examples/rib/tests/volume-csg-fragment-none-raytrace-slo.rib volume-csg-fragment-none-raytrace-slo.tif)
 # END spec 056
+# BEGIN spec 040
+# --- Spec 040 (GI determinism): the GI sweep entries (FR-016, SC-001). Every one is rendered float (FLOAT), with a depth
+# display added after the scene's first Display line (DEPTH: <name>-z.tif), and its map or cache file is compared byte for
+# byte across the configurations (FILES). All of them are unconditional (spec 040 made the GI scenes deterministic).
+# no -P:2: the photon pass fails under network rendering (GitHub #170)
+add_determinism_sweep(gi-motion-subdiv-translate-photon examples/rib/tests/parity/motion-subdiv-translate-photon.rib motion-subdiv-translate-photon.tif
+    FILES motion-subdiv-translate-photon.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+# no -P:2: the photon pass fails under network rendering (GitHub #170)
+add_determinism_sweep(gi-subdiv-facevarying-seam-photon examples/rib/tests/subdiv-facevarying-seam-photon.rib subdiv-facevarying-seam-photon.tif
+    FILES subdiv-facevarying-seam-photon.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+# no -P:2: the photon pass fails under network rendering (GitHub #170)
+add_determinism_sweep(gi-subdiv-hierarchical-override-photon examples/rib/tests/subdiv-hierarchical-override-photon.rib subdiv-hierarchical-override-photon.tif
+    FILES subdiv-hierarchical-override-photon.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+# no -P:2: the photon pass fails under network rendering (GitHub #170)
+add_determinism_sweep(gi-subdiv-loop-photon examples/rib/tests/subdiv-loop-photon.rib subdiv-loop-photon.tif
+    FILES subdiv-loop-photon.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+# no -P:2: the photon pass fails under network rendering (GitHub #170)
+add_determinism_sweep(gi-subdiv-new-tags-photon examples/rib/tests/subdiv-new-tags-photon.rib subdiv-new-tags-photon.tif
+    FILES subdiv-new-tags-photon.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+# no -P:2: the photon pass fails under network rendering (GitHub #170)
+add_determinism_sweep(gi-photon-parity examples/rib/tests/photon-parity.rib photon-parity.tif
+    FILES photon-parity.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+# no -P:2: the photon pass fails under network rendering (GitHub #170)
+add_determinism_sweep(gi-photon-parity-slo examples/rib/tests/photon-parity-slo.rib photon-parity-slo.tif
+    FILES photon-parity-slo.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+add_determinism_sweep(gi-sphere-occlusion-reyes examples/rib/tests/sphere-occlusion-reyes.rib sphere-occlusion-reyes.tif
+    FLOAT DEPTH)
+add_determinism_sweep(gi-sphere-occlusion-reyes-slo examples/rib/tests/sphere-occlusion-reyes-slo.rib sphere-occlusion-reyes-slo.tif
+    FLOAT DEPTH)
+add_determinism_sweep(gi-sphere-indirectdiffuse-reyes examples/rib/tests/sphere-indirectdiffuse-reyes.rib sphere-indirectdiffuse-reyes.tif
+    FLOAT DEPTH)
+add_determinism_sweep(gi-sphere-indirectdiffuse-reyes-slo examples/rib/tests/sphere-indirectdiffuse-reyes-slo.rib sphere-indirectdiffuse-reyes-slo.tif
+    FLOAT DEPTH)
+add_determinism_sweep(gi-sphere-photonmap-reyes examples/rib/tests/sphere-photonmap-reyes.rib sphere-photonmap-reyes.tif
+    FLOAT DEPTH)
+add_determinism_sweep(gi-sphere-photonmap-reyes-slo examples/rib/tests/sphere-photonmap-reyes-slo.rib sphere-photonmap-reyes-slo.tif
+    FLOAT DEPTH)
+add_determinism_sweep(gi-sphere-ray-self-hit-reyes examples/rib/tests/sphere-ray-self-hit-reyes.rib sphere-ray-self-hit-reyes.tif
+    FLOAT DEPTH)
+add_determinism_sweep(gi-sphere-ray-self-hit-reyes-slo examples/rib/tests/sphere-ray-self-hit-reyes-slo.rib sphere-ray-self-hit-reyes-slo.tif
+    FLOAT DEPTH)
+add_determinism_sweep(gi-sphere-ray-self-hit-raytrace examples/rib/tests/sphere-ray-self-hit-raytrace.rib sphere-ray-self-hit-raytrace.tif
+    FLOAT DEPTH)
+add_determinism_sweep(gi-sampling-probe-independence-mid examples/rib/tests/sampling-probe-independence-mid.rib sampling-probe-independence-mid.tif
+    FLOAT DEPTH)
+add_determinism_sweep(gi-sampling-probe-independence-min examples/rib/tests/sampling-probe-independence-min.rib sampling-probe-independence-min.tif
+    FLOAT DEPTH)
+add_determinism_sweep(gi-occlusion-reyes tests/gi_determinism/scenes/gi-occlusion-reyes.rib gi-occlusion-reyes.tif
+    FILES gi-occlusion-reyes.icache FLOAT DEPTH)
+add_determinism_sweep(gi-occlusion-reyes-slo tests/gi_determinism/scenes/gi-occlusion-reyes-slo.rib gi-occlusion-reyes-slo.tif
+    FILES gi-occlusion-reyes-slo.icache FLOAT DEPTH)
+add_determinism_sweep(gi-occlusion-zbuffer tests/gi_determinism/scenes/gi-occlusion-zbuffer.rib gi-occlusion-zbuffer.tif
+    FILES gi-occlusion-zbuffer.icache FLOAT DEPTH)
+add_determinism_sweep(gi-occlusion-zbuffer-slo tests/gi_determinism/scenes/gi-occlusion-zbuffer-slo.rib gi-occlusion-zbuffer-slo.tif
+    FILES gi-occlusion-zbuffer-slo.icache FLOAT DEPTH)
+add_determinism_sweep(gi-occlusion-raytrace tests/gi_determinism/scenes/gi-occlusion-raytrace.rib gi-occlusion-raytrace.tif
+    FILES gi-occlusion-raytrace.icache FLOAT DEPTH)
+add_determinism_sweep(gi-occlusion-raytrace-slo tests/gi_determinism/scenes/gi-occlusion-raytrace-slo.rib gi-occlusion-raytrace-slo.tif
+    FILES gi-occlusion-raytrace-slo.icache FLOAT DEPTH)
+add_determinism_sweep(gi-indirectdiffuse-reyes tests/gi_determinism/scenes/gi-indirectdiffuse-reyes.rib gi-indirectdiffuse-reyes.tif
+    FILES gi-indirectdiffuse-reyes.icache FLOAT DEPTH)
+add_determinism_sweep(gi-indirectdiffuse-reyes-slo tests/gi_determinism/scenes/gi-indirectdiffuse-reyes-slo.rib gi-indirectdiffuse-reyes-slo.tif
+    FILES gi-indirectdiffuse-reyes-slo.icache FLOAT DEPTH)
+add_determinism_sweep(gi-indirectdiffuse-zbuffer tests/gi_determinism/scenes/gi-indirectdiffuse-zbuffer.rib gi-indirectdiffuse-zbuffer.tif
+    FILES gi-indirectdiffuse-zbuffer.icache FLOAT DEPTH)
+add_determinism_sweep(gi-indirectdiffuse-zbuffer-slo tests/gi_determinism/scenes/gi-indirectdiffuse-zbuffer-slo.rib gi-indirectdiffuse-zbuffer-slo.tif
+    FILES gi-indirectdiffuse-zbuffer-slo.icache FLOAT DEPTH)
+add_determinism_sweep(gi-indirectdiffuse-raytrace tests/gi_determinism/scenes/gi-indirectdiffuse-raytrace.rib gi-indirectdiffuse-raytrace.tif
+    FILES gi-indirectdiffuse-raytrace.icache FLOAT DEPTH)
+add_determinism_sweep(gi-indirectdiffuse-raytrace-slo tests/gi_determinism/scenes/gi-indirectdiffuse-raytrace-slo.rib gi-indirectdiffuse-raytrace-slo.tif
+    FILES gi-indirectdiffuse-raytrace-slo.icache FLOAT DEPTH)
+add_determinism_sweep(gi-cache-extend-reyes tests/gi_determinism/scenes/gi-cache-extend-reyes.rib gi-cache-extend-reyes.tif
+    FILES gi-cache-extend-reyes.icache FLOAT DEPTH)
+add_determinism_sweep(gi-cache-extend-reyes-slo tests/gi_determinism/scenes/gi-cache-extend-reyes-slo.rib gi-cache-extend-reyes-slo.tif
+    FILES gi-cache-extend-reyes-slo.icache FLOAT DEPTH)
+# no -P:2: its photon frame cannot run under network rendering (GitHub #170)
+add_determinism_sweep(gi-photon-then-indirect-reyes tests/gi_determinism/scenes/gi-photon-then-indirect-reyes.rib gi-photon-then-indirect-reyes.tif
+    FILES gi-photon-then-indirect.gpm gi-photon-then-indirect.icache FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+# no -P:2: its photon frame cannot run under network rendering (GitHub #170)
+add_determinism_sweep(gi-photon-then-indirect-reyes-slo tests/gi_determinism/scenes/gi-photon-then-indirect-reyes-slo.rib gi-photon-then-indirect-reyes-slo.tif
+    FILES gi-photon-then-indirect.gpm gi-photon-then-indirect.icache FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+# no -P:2: its photon frame cannot run under network rendering (GitHub #170)
+add_determinism_sweep(gi-photon-caustic tests/gi_determinism/scenes/gi-photon-caustic.rib gi-photon-caustic.tif
+    FILES gi-photon-caustic.gpm gi-photon-caustic-c.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+# no -P:2: its photon frame cannot run under network rendering (GitHub #170)
+add_determinism_sweep(gi-photon-caustic-slo tests/gi_determinism/scenes/gi-photon-caustic-slo.rib gi-photon-caustic-slo.tif
+    FILES gi-photon-caustic-slo.gpm gi-photon-caustic-slo-c.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+# The default `determinism` set gains one scene per GI family (spec 040, T092): a photon map (written and read in two frames), a cached occlusion scene, a cached
+# indirectdiffuse scene (the JIT one: the interpreter's indirectdiffuse() traces no ray, GitHub #173) and a two-frame cache that frame 2 extends (-P:2 included).
+# Each takes under 1 s in the sweep, so the set still runs in about 3 minutes at -j2.
+foreach(_scene gi-photon-parity gi-occlusion-reyes gi-indirectdiffuse-reyes-slo gi-cache-extend-reyes-slo)
+    set_property(TEST DeterminismSweep_${_scene} APPEND PROPERTY LABELS determinism)
+endforeach()
+# END spec 040

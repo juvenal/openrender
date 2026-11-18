@@ -26,6 +26,10 @@
 ////////////////////////////////////////////////////////////////////////
 #include <math.h>
 
+#include <algorithm>
+#include <numeric>
+#include <vector>
+
 #include "common/portable_io.h"
 #include "common/diagnostics.h"
 #include "common/memory.h"
@@ -63,10 +67,6 @@ CPhotonStore::CPhotonStore(const char *n, FILE *in, const float *curFromWorld, c
 
     keys = NULL;
     keysCapacity = 0;
-#ifdef PHOTON_LOOKUP_CACHE
-    root = NULL;
-    maxDepth = 1;
-#endif
     modifying = FALSE;
     maxPower = 0;
     osCreateMutex(mutex);
@@ -100,38 +100,9 @@ CPhotonStore::CPhotonStore(const char *n, FILE *in, const float *curFromWorld, c
 
         mulmm(to, fileFromWorld, curToWorld);
         mulmm(from, curFromWorld, fileToWorld);
-
-#ifdef PHOTON_LOOKUP_CACHE
-        // Initialize the lookup octree
-        root = new CPhotonNode;
-        addvv(root->center, bmin, bmax);
-        mulvf(root->center, 1 / (float)2);
-        float diff01 = bmax[0] - bmin[0];
-        float diff11 = bmax[1] - bmin[1];
-        float maxDiff01;
-        if (diff11 > diff01) {
-            maxDiff01 = diff11;
-        }
-        else {
-            maxDiff01 = diff01;
-        }
-        float diff21 = bmax[2] - bmin[2];
-        float rootSide;
-        if (diff21 > maxDiff01) {
-            rootSide = diff21;
-        }
-        else {
-            rootSide = maxDiff01;
-        }
-        root->side = rootSide;
-        root->samples = NULL;
-        for (int i = 0; i < 8; i++)
-            root->children[i] = NULL;
-#endif
     }
     else {
-
-        // Make sure we have a root
+        // Balance the (empty) map: an empty map gets its dummy photon
         balance();
     }
 }
@@ -143,33 +114,6 @@ CPhotonStore::CPhotonStore(const char *n, FILE *in, const float *curFromWorld, c
 // Return Value			:
 // Comments				:
 CPhotonStore::~CPhotonStore() {
-#ifdef PHOTON_LOOKUP_CACHE
-    if (root != NULL) {
-        CPhotonNode **stackBase = (CPhotonNode **)alloca(maxDepth * sizeof(CPhotonNode *) * 8);
-        CPhotonNode **stack;
-        CPhotonNode *cNode;
-        CPhotonSample *cSample;
-        int i;
-
-        stack = stackBase;
-        *stack++ = root;
-        while (stack > stackBase) {
-            cNode = *(--stack);
-
-            while ((cSample = cNode->samples) != NULL) {
-                cNode->samples = cSample->next;
-                delete cSample;
-            }
-
-            for (i = 0; i < 8; i++) {
-                if (cNode->children[i] != NULL)
-                    *stack++ = cNode->children[i];
-            }
-
-            delete cNode;
-        }
-    }
-#endif
 
     osDeleteMutex(mutex);
 
@@ -183,11 +127,15 @@ CPhotonStore::~CPhotonStore() {
 // Return Value			:
 // Comments				:
 void CPhotonStore::reset() {
-    CMap<CPhoton>::reset();
+    CMap<CPhoton>::reset(); // items, counts and the bound
 
     delete[] keys;
     keys = NULL;
     keysCapacity = 0;
+
+    // The power of a map read from a file is the square root of an earlier frame's: left in place it made the next pass's maxPower
+    // drift (research.md R1's second cause)
+    maxPower = 0;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -210,6 +158,22 @@ void CPhotonStore::write(const float *fromWorld, const float *toWorld) {
             // Balance the map
             balance();
 
+            // Every byte of the file is defined (FR-004): rebuild each item field by field in a zeroed buffer and copy it back, so the
+            // padding and item 0 are zero whatever the compiler's struct copies left in them
+            {
+                CPhoton *clean = new CPhoton[numItems + 1]();
+                for (int i = 1; i <= numItems; i++) {
+                    movvv(clean[i].P, items[i].P);
+                    movvv(clean[i].N, items[i].N);
+                    clean[i].flags = items[i].flags;
+                    movvv(clean[i].C, items[i].C);
+                    clean[i].theta = items[i].theta;
+                    clean[i].phi = items[i].phi;
+                }
+                memcpy((void *)items, (const void *)clean, sizeof(CPhoton) * (size_t)(numItems + 1));
+                delete[] clean;
+            }
+
             // Write the map
             CMap<CPhoton>::write(out);
 
@@ -225,7 +189,6 @@ void CPhotonStore::write(const float *fromWorld, const float *toWorld) {
                 return;
             }
 
-            maxPower = sqrtf(maxPower);
             if (!writeFloat32(out, static_cast<float32_p>(maxPower))) {
                 error(CODE_SYSTEM, "Failed to write photon map maxPower\n");
                 fclose(out);
@@ -243,151 +206,6 @@ void CPhotonStore::write(const float *fromWorld, const float *toWorld) {
     }
 }
 
-#ifdef PHOTON_LOOKUP_CACHE
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CPhotonStore
-// Method				:	lookup
-// Description			:	Locate the nearest maxFoundPhoton photons
-// Return Value			:
-// Comments				:
-int CPhotonStore::probe(float *C, const float *P, const float *N) {
-    CPhotonNode *cNode;
-    CPhotonNode **stackBase = (CPhotonNode **)alloca(maxDepth * sizeof(CPhotonNode *) * 8);
-    CPhotonNode **stack;
-    CPhotonSample *cSample;
-    float totalWeight = 0;
-    int i;
-
-    // Note: if word-stores are atomic, we don't need to lock when doing this
-
-    if (root == NULL)
-        return FALSE;
-
-    stack = stackBase;
-    *stack++ = root;
-    initv(C, 0, 0, 0);
-    while (stack > stackBase) {
-        cNode = *(--stack);
-
-        // Iterate over the samples
-        for (cSample = cNode->samples; cSample != NULL; cSample = cSample->next) {
-            vector D;
-            float d;
-
-            subvv(D, cSample->P, P);
-
-            d = dotvv(D, D);
-
-            if (d < (cSample->dP * cSample->dP)) {
-                d = sqrtf(d);
-                d += absf(dotvv(D, cSample->N)) * 16;
-
-                if (dotvv(cSample->N, N) < 0) {
-                    // if N=0, this should not operate anything out.  verify
-                    d = C_INFINITY;
-                }
-
-                if (d < cSample->dP) {
-                    float weight = 1 - d / cSample->dP;
-
-                    totalWeight += weight;
-                    C[0] += cSample->C[0] * weight;
-                    C[1] += cSample->C[1] * weight;
-                    C[2] += cSample->C[2] * weight;
-                }
-            }
-        }
-
-        // Check the children
-        for (i = 0; i < 8; i++) {
-            CPhotonNode *tNode = cNode->children[i];
-
-            if (tNode != NULL) {
-                const float tSide = tNode->side;
-
-                if (((tNode->center[0] + tSide) > P[0]) &&
-                    ((tNode->center[1] + tSide) > P[1]) &&
-                    ((tNode->center[2] + tSide) > P[2]) &&
-                    ((tNode->center[0] - tSide) < P[0]) &&
-                    ((tNode->center[1] - tSide) < P[1]) &&
-                    ((tNode->center[2] - tSide) < P[2])) {
-                    *stack++ = tNode;
-                }
-            }
-        }
-    }
-
-    if (totalWeight > 0) {
-        mulvf(C, 1 / totalWeight);
-        return TRUE;
-    }
-
-    return FALSE;
-}
-
-///////////////////////////////////////////////////////////////////////
-// Class				:	CPhotonStore
-// Method				:	insert
-// Description			:	Insert a sample
-// Return Value			:
-// Comments				:
-void CPhotonStore::insert(const float *C, const float *P, const float *N, float dP) {
-    CPhotonSample *cSample = new CPhotonSample;
-    CPhotonNode *cNode = root;
-    int depth = 0;
-    int i, j;
-
-    // lock the mutex so we're thread safe
-    osLock(mutex);
-
-    movvv(cSample->C, C);
-    movvv(cSample->P, P);
-    movvv(cSample->N, N);
-    cSample->dP = dP;
-
-    while (cNode->side > (2 * dP)) {
-        depth++;
-
-        for (j = 0, i = 0; i < 3; i++) {
-            if (P[i] > cNode->center[i]) {
-                j |= 1 << i;
-            }
-        }
-
-        if (cNode->children[j] == NULL) {
-            CPhotonNode *nNode = (CPhotonNode *)new CPhotonNode;
-
-            for (i = 0; i < 3; i++) {
-                if (P[i] > cNode->center[i]) {
-                    nNode->center[i] = cNode->center[i] + cNode->side / (float)4;
-                }
-                else {
-                    nNode->center[i] = cNode->center[i] - cNode->side / (float)4;
-                }
-            }
-
-            cNode->children[j] = nNode;
-            nNode->side = cNode->side / (float)2;
-            nNode->samples = NULL;
-            for (i = 0; i < 8; i++)
-                nNode->children[i] = NULL;
-        }
-
-        cNode = cNode->children[j];
-    }
-
-    cSample->next = cNode->samples;
-    cNode->samples = cSample;
-    if (depth > maxDepth) {
-        maxDepth = depth;
-    }
-
-    // unlock the mutex
-    osUnlock(mutex);
-}
-
-#endif
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CPhotonStore
@@ -402,7 +220,8 @@ void CPhotonStore::lookup(float *Cl, const float *Pl, const float *Nl, int maxFo
     float *distances = (float *)alloca((maxFound + 1) * sizeof(float));
     CLookup l;
 
-    searchRadius = (sqrtf(maxFound * maxPower / 0.05f) / (float)C_PI) * 0.5f;
+    // A local: a lookup writes no state another lookup reads (FR-005)
+    const float searchRadius = (sqrtf(maxFound * maxPower / 0.05f) / (float)C_PI) * 0.5f;
 
     // Lookup the photonmap at the location of the photon
     distances[0] = searchRadius * searchRadius;
@@ -414,38 +233,29 @@ void CPhotonStore::lookup(float *Cl, const float *Pl, const float *Nl, int maxFo
     l.indices = indices;
     l.distances = distances;
 
-#ifdef PHOTON_LOOKUP_CACHE
-    if (!probe(Cl, l.P, l.N)) {
-#endif
-        CMap<CPhoton>::lookupWithN(&l, 1);
+    CMap<CPhoton>::lookupWithN(&l, 1);
 
-        initv(Cl, 0);
+    initv(Cl, 0);
 
-        if ((numFound = l.numFound) < 2)
-            return;
+    if ((numFound = l.numFound) < 2)
+        return;
 
-        // Accumulate the irradiance
-        for (int i = 1; i <= numFound; i++) {
-            const CPhoton *p = indices[i];
-            vector I;
+    // Accumulate the irradiance
+    for (int i = 1; i <= numFound; i++) {
+        const CPhoton *p = indices[i];
+        vector I;
 
-            assert(distances[i] <= distances[0]);
+        assert(distances[i] <= distances[0]);
 
-            itemToDir(I, p->theta, p->phi);
+        itemToDir(I, p->theta, p->phi);
 
-            if (dotvv(I, l.N) < 0) {
-                addvv(Cl, p->C);
-            }
+        if (dotvv(I, l.N) < 0) {
+            addvv(Cl, p->C);
         }
-
-        // Normalize the result
-        mulvf(Cl, (float)(1.0 / (C_PI * distances[0])));
-
-#ifdef PHOTON_LOOKUP_CACHE
-        // Insert it into the probe
-        insert(Cl, l.P, l.N, sqrtf(distances[0]) * (float)0.2);
     }
-#endif
+
+    // Normalize the result
+    mulvf(Cl, (float)(1.0 / (C_PI * distances[0])));
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -461,7 +271,8 @@ void CPhotonStore::lookup(float *Cl, const float *Pl, int maxFound) {
     float *distances = (float *)alloca((maxFound + 1) * sizeof(float));
     CLookup l;
 
-    searchRadius = (sqrtf(maxFound * maxPower / 0.05f) / (float)C_PI) * 0.5f;
+    // A local: a lookup writes no state another lookup reads (FR-005)
+    const float searchRadius = (sqrtf(maxFound * maxPower / 0.05f) / (float)C_PI) * 0.5f;
 
     distances[0] = searchRadius * searchRadius;
 
@@ -473,34 +284,25 @@ void CPhotonStore::lookup(float *Cl, const float *Pl, int maxFound) {
     l.indices = indices;
     l.distances = distances;
 
-#ifdef PHOTON_LOOKUP_CACHE
-    if (!probe(Cl, l.P, l.N)) {
-#endif
-        CMap<CPhoton>::lookup(&l, 1);
+    CMap<CPhoton>::lookup(&l, 1);
 
-        initv(Cl, 0, 0, 0);
+    initv(Cl, 0, 0, 0);
 
-        if (l.numFound < 2)
-            return;
+    if (l.numFound < 2)
+        return;
 
-        numFound = l.numFound;
+    numFound = l.numFound;
 
-        for (int i = 1; i <= numFound; i++) {
-            const CPhoton *p = indices[i];
+    for (int i = 1; i <= numFound; i++) {
+        const CPhoton *p = indices[i];
 
-            assert(distances[i] <= distances[0]);
+        assert(distances[i] <= distances[0]);
 
-            addvv(Cl, p->C);
-        }
-
-        // Normalize the result
-        mulvf(Cl, (float)(1.0 / (C_PI * distances[0])));
-
-#ifdef PHOTON_LOOKUP_CACHE
-        // Insert it into the probe
-        insert(Cl, l.P, l.N, sqrtf(distances[0]) * (float)0.2);
+        addvv(Cl, p->C);
     }
-#endif
+
+    // Normalize the result
+    mulvf(Cl, (float)(1.0 / (C_PI * distances[0])));
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -516,8 +318,50 @@ void CPhotonStore::balance() {
         vector I = {0, 0, 1};
         CPhoton *photon = CMap<CPhoton>::store(P, I);
         initv(photon->C, 0, 0, 0);
+        photon->theta = 0;
+        photon->phi = 0;
         ensureKeys();
         keys[numItems] = 0;
+    }
+
+    // The canonical photon order (FR-002, data-model.md section 1): items 1..numItems and their keys sorted by (key, then the bytes of
+    // P, N, C, theta, phi as unsigned bytes: 38 bytes; `flags`, which balance() assigns, is not part of a photon's identity). Two photons
+    // that compare equal are byte-identical, so their relative order cannot change a byte of the map. balance() below then runs on this
+    // order: its median partition, the tie between equal coordinates and every `flags` value are functions of the photon set alone,
+    // whatever order the threads stored the photons in
+    ensureKeys();
+    if (numItems > 1) {
+        std::vector<int> order((size_t)numItems);
+        std::iota(order.begin(), order.end(), 1);
+        const CPhoton *base = items;
+        const uint64_t *k = keys;
+        std::sort(order.begin(), order.end(), [base, k](int a, int b) {
+            if (k[a] != k[b]) {
+                return k[a] < k[b];
+            }
+            const CPhoton &x = base[a], &y = base[b];
+            int c = memcmp(x.P, y.P, sizeof(x.P));
+            if (c == 0)
+                c = memcmp(x.N, y.N, sizeof(x.N));
+            if (c == 0)
+                c = memcmp(x.C, y.C, sizeof(x.C));
+            if (c == 0)
+                c = (int)x.theta - (int)y.theta;
+            if (c == 0)
+                c = (int)x.phi - (int)y.phi;
+            return c < 0;
+        });
+        CPhoton *sortedItems = new CPhoton[maxItems + 1]();
+        uint64_t *sortedKeys = new uint64_t[maxItems + 1]();
+        for (int i = 0; i < numItems; i++) {
+            sortedItems[i + 1] = items[order[(size_t)i]];
+            sortedKeys[i + 1] = keys[order[(size_t)i]];
+        }
+        delete[] items;
+        items = sortedItems;
+        delete[] keys;
+        keys = sortedKeys;
+        keysCapacity = maxItems + 1;
     }
 
     CMap<CPhoton>::balance();
@@ -540,18 +384,54 @@ void CPhotonStore::store(const float *P, const float *N, const float *I, const f
 // Return Value			:
 // Comments				:	The key is kept in the side array, under the same lock as the photon
 void CPhotonStore::store(const float *P, const float *N, const float *I, const float *C, uint64_t key) {
+    osLock(mutex);
+    storeLocked(P, N, I, C, key);
+    osUnlock(mutex);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CPhotonStore
+// Method				:	storePhotonForFrame
+// Description			:	Store a photon of the current photon frame; the first call of a frame resets the map
+// Return Value			:	TRUE for that first call only
+// Comments				:	The test, the reset, the mark and the store are one critical section: exactly one caller of a frame sees
+//							TRUE (it puts the map on its balance list) and no store can run between the claim and the reset (FR-003,
+//							GitHub #164). write() clears `modifying` again, so the next frame claims anew
+bool CPhotonStore::storePhotonForFrame(const float *P, const float *N, const float *I, const float *C, uint64_t key) {
+    bool claimed = false;
 
     osLock(mutex);
+    if (modifying != TRUE) {
+        reset();
+        modifying = TRUE;
+        claimed = true;
+    }
+    storeLocked(P, N, I, C, key);
+    osUnlock(mutex);
+
+    return claimed;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CPhotonStore
+// Method				:	storeLocked
+// Description			:	Store a photon; the caller holds the lock
+// Return Value			:
+// Comments				:
+void CPhotonStore::storeLocked(const float *P, const float *N, const float *I, const float *C, uint64_t key) {
     CPhoton *ton = CMap<CPhoton>::store(P, N);
     ensureKeys();
     keys[numItems] = key;
     dirToItem(ton->theta, ton->phi, I);
     movvv(ton->C, C);
     float dotCC = dotvv(C, C);
-    if (dotCC > maxPower) {
-        maxPower = dotCC;
+    // maxPower is the largest photon power itself (the file holds the same number): a lookup of an in-memory map and of the map
+    // reloaded from its file use the same search radius (FR-005, SC-005). It used to hold the squared power until write() took the
+    // square root in place
+    const float power = sqrtf(dotCC);
+    if (power > maxPower) {
+        maxPower = power;
     }
-    osUnlock(mutex);
 }
 
 ///////////////////////////////////////////////////////////////////////

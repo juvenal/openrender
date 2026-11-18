@@ -55,7 +55,7 @@ int CRenderer::requestRemoteChannel(CRemoteChannel *serverChannel) {
     // Note: we send a byte-order marker to ensure same-endianness
     buffer[0].integer = NET_CREATE_CHANNEL;
     buffer[1].integer = nameLength;
-    buffer[2].integer = (serverChannel->channelType << 8) | CHANNELTYPE_BOM;
+    buffer[2].integer = (serverChannel->channelType << 8) | CHANNELTYPE_BOM | (serverChannel->openFlags & 0xFF);
     rcSend(netClient, &buffer[0], 2 * sizeof(T32));
     rcSend(netClient, &buffer[2], 1 * sizeof(T32), FALSE);
     rcSend(netClient, serverChannel->name, nameLength, FALSE);
@@ -150,6 +150,7 @@ int CRenderer::processChannelRequest(int, SOCKET s) {
     }
 
     channelType &= ~CHANNELTYPE_BOM;
+    const int channelFlags = channelType & 0xFF; // ERemoteChannelFlags
     channelType = channelType >> 8;
 
     // Check if we've seen the channel before
@@ -171,8 +172,9 @@ int CRenderer::processChannelRequest(int, SOCKET s) {
                 break;
             case CHANNELTYPE_ICACHE:
             {
-                // create an irradiancecache channel
-                CIrradianceCache *cache = static_cast<CIrradianceCache *>(getCache(channelName, "w", CRenderer::fromWorld, CRenderer::toWorld));
+                // create an irradiancecache channel. A server that read the cache from its file asks the client to read it too ("rw"): the servers send only
+                // the records they made (spec 040), so the client must hold the same fixed part to write the whole cache
+                CIrradianceCache *cache = static_cast<CIrradianceCache *>(getCache(channelName, (channelFlags & CHANNELFLAG_READ) ? "rw" : "w", CRenderer::fromWorld, CRenderer::toWorld));
                 if (cache == NULL) {
                     // getCache answers nothing for a name already registered as another kind of 3D file
                     buffer[0].integer = -1;
@@ -513,6 +515,9 @@ int CRemoteTSMChannel::recvRemoteBucket(SOCKET s, int x, int y) {
 // Comments				:	The cache is opened elsewhere and closed elsewhere
 CRemoteICacheChannel::CRemoteICacheChannel(CIrradianceCache *c) : CRemoteChannel(c->name, REMOTECHANNEL_PERFRAME, CHANNELTYPE_ICACHE) {
     cache = c;
+    if (c->openFlags() & CACHE_READ) {
+        openFlags |= CHANNELFLAG_READ;
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -522,24 +527,23 @@ CRemoteICacheChannel::CRemoteICacheChannel(CIrradianceCache *c) : CRemoteChannel
 // Return Value			:	success or failure
 // Comments				:
 int CRemoteICacheChannel::sendRemoteFrame(SOCKET s) {
-    // The cache hands over its nodes in the order its tree is walked (the root first, a node's children pushed 0 to 7 and
-    // popped last in, first out): for each node that has records, their number and then each record as it lies in memory
-    cache->forEachNode([&](const CIrradianceCache::CCacheSample *head) {
-        const CIrradianceCache::CCacheSample *cSample;
-        int numSamples;
-
-        // Send the values in this level (if any)
-        for (numSamples = 0, cSample = head; cSample != NULL; cSample = cSample->next)
-            numSamples++;
-
-        if (numSamples != 0) {
-            rcSend(s, &numSamples, sizeof(int), FALSE);
-
-            for (cSample = head; cSample != NULL; cSample = cSample->next) {
-                rcSend(s, cSample, sizeof(CIrradianceCache::CCacheSample), FALSE);
-            }
-        }
+    // The records this cache made (its pending set, deduplicated, in the order the commit places them, with the raw radius): one group of `int n` and n raw
+    // CCacheSample, then the terminator. The `next` slot of a record carries the maxError of the call that made it (a float, then four zero bytes): its
+    // K = 0.4 / maxError places the record at the receiver (spec 040, decision D4; GitHub #161). The file's records are not sent: the receiver has them.
+    std::vector<CIrradianceCache::CCacheSample> out;
+    cache->forEachPending([&](const CIrradianceRecord &record, float maxError) {
+        CIrradianceCache::CCacheSample sample;
+        memset(&sample, 0, sizeof(sample));
+        sample.set(record);
+        memcpy(&sample.next, &maxError, sizeof(maxError));
+        out.push_back(sample);
     });
+
+    const int count = (int)out.size();
+    if (count > 0) {
+        rcSend(s, &count, sizeof(int), FALSE);
+        rcSend(s, out.data(), count * sizeof(CIrradianceCache::CCacheSample), FALSE);
+    }
 
     const int numSamples = 0;
     rcSend(s, &numSamples, sizeof(int), FALSE);
@@ -552,24 +556,21 @@ int CRemoteICacheChannel::sendRemoteFrame(SOCKET s) {
 // Method				:	recvRemoteBucket
 // Description			:	receive all the server's cache data
 // Return Value			:	success or failure
-// Comments				:
+// Comments				:	The records join the client's pending set, with the maxError of the call that made each; the client commits the whole set once
 int CRemoteICacheChannel::recvRemoteFrame(SOCKET s) {
     int numSamples;
 
     rcRecv(s, &numSamples, sizeof(int), FALSE);
 
     while (numSamples > 0) {
-        // The batch lands in a buffer; the cache copies each record into its own memory and places it
+        // The batch lands in a buffer; the cache copies each record into its pending set
         std::vector<CIrradianceCache::CCacheSample> batch((size_t)numSamples);
 
         rcRecv(s, batch.data(), numSamples * sizeof(CIrradianceCache::CCacheSample), FALSE);
         for (int t = 0; t < numSamples; t++) {
-            batch[t].next = NULL;
-        }
-
-        // GSHTODO filter thru samples and discard this one iff within eps of another
-        for (int t = 0; t < numSamples; t++) {
-            cache->insertReceived(batch[t]);
+            float maxError;
+            memcpy(&maxError, &batch[t].next, sizeof(maxError));
+            cache->receivePending(batch[t], maxError);
         }
 
         rcRecv(s, &numSamples, sizeof(int), FALSE);

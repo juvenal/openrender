@@ -1,0 +1,29 @@
+##RenderMan RIB-Structure 1.0
+# Spec 032 SC-007 scratch scene 1 (timing_sc007.sh): occlusion() through a written irradiance cache.
+# sphere-occlusion-reyes at 640 x 480, ShadingRate 1, the cache written to a file with maxerror > 0, so the
+# lookup path (CIrradianceCache::lookup, sample, insertion under the mutex) is the cost. Not a suite scene: the
+# script scales Format and ShadingRate in a scratch copy (SCALES) and puts the series' thread count in @THREADS@.
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["rslo"]
+Option "limits" "numthreads" [@THREADS@]
+Display "perf-occlusion-cache.tif" "file" "rgba"
+Format 640 480 1
+PixelSamples 1 1
+ShadingRate 1
+Projection "perspective"
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Attribute "irradiance" "string handle" ["perf-occlusion.icache"]
+  Attribute "irradiance" "string filemode" ["w"]
+  Attribute "irradiance" "float maxerror" [0.5]
+  Surface "occlusion_probe"
+  Sphere 1 -1 1 360
+  AttributeBegin
+    Attribute "visibility" "diffuse" [1]
+    Surface "matte"
+    Translate 1.2 0 -0.5
+    Sphere 0.9 -0.9 0.9 360
+  AttributeEnd
+WorldEnd

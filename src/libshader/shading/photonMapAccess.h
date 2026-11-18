@@ -42,17 +42,16 @@ namespace openrender::shading {
             virtual void estimate(float *C, const float *P, const float *N, int maxFound) = 0;
     };
 
-    // What the photon hider writes. Not thread-safe beyond what the photon map was: storePhoton() locks, the modifying
-    // flag is the same unguarded int as before.
+    // What the photon hider writes (spec 040). Store one photon of the current photon frame, under the store's lock: the first call of
+    // a frame resets the map (items, keys, bound, maxPower), marks it as being written, then stores, and returns true for that first
+    // call only, so exactly one caller puts the map on its balance list. writePhotons() is single-threaded: canonical sort, balance,
+    // defined bytes, write. (resetPhotons, balancePhotons, isModifying, setModifying and storePhoton are gone: the unguarded
+    // test-then-reset they served raced, GitHub #164.)
     class IPhotonStore {
         public:
             virtual ~IPhotonStore() = default;
 
-            virtual void storePhoton(const float *P, const float *N, const float *I, const float *C, uint64_t key) = 0;
-            virtual void resetPhotons() = 0;
-            virtual void balancePhotons() = 0;
-            virtual int isModifying() const = 0;
-            virtual void setModifying(int modifying) = 0;
+            virtual bool storePhotonForFrame(const float *P, const float *N, const float *I, const float *C, uint64_t key) = 0;
             virtual void writePhotons(const CXform *world) = 0; // world's from/to are the matrices written
     };
 

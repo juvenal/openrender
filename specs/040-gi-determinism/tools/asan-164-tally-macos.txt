@@ -1,0 +1,11 @@
+# T015 AddressSanitizer on #164 (build-asan: RelWithDebInfo, JIT off, -fsanitize=address; photon-parity.rib at -t:4, a fresh directory per run, halt on the first report)
+# First series (stop at the first report): run 0 of 1 reported, heap-buffer-overflow (asan-164-report-macos.txt).
+# Second series (ASAN_ALL=1: 30 runs, every report kept): 13 of 30 runs reported (the other 17 completed; ASan slows nothing here: ~0.2 s a run).
+#   7 x heap-buffer-overflow, WRITE of size 8, CPhotonStore::store() photonStore.cpp:547 (keys[numItems] = key), into the 8-byte array that
+#        CPhotonStore::ensureKeys() photonStore.cpp:567 allocated for maxItems + 1 == 1 entries: maxItems was 0 although numItems was 1
+#   6 x double-free, CMap<CPhoton>::reset() map.h:156 (`delete items`), called from CPhotonStore::reset() photonStore.cpp:186 from
+#        CPhotonHider::tracePhoton() photon.cpp:638 (resetPhotons()) on two threads; the first free by another thread at the same line;
+#        the block was allocated by CMap::balance() map.h:264 in the CPhotonStore constructor (the empty map created before the pass)
+# Both reports come from one cause: photon.cpp:633-638 tests globalMap->isModifying() and then calls setModifying(TRUE) + resetPhotons()
+# without a lock (the comment above it says so), so several threads reset the same map; one reset frees `items`/`keys` and zeroes
+# numItems/maxItems under the others (R5's cause, confirmed; the overflow in the side key array is the spec 032 `keys` addition).

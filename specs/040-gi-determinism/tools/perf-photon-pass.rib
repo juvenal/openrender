@@ -1,0 +1,28 @@
+##RenderMan RIB-Structure 1.0
+# Spec 040 FR-023 scratch scene 3 (timing_sc007.sh): a photon pass alone, writing a global map. Frame 1 of
+# examples/rib/tests/photon-parity.rib (three lights: point, spot, distant; a floor, a wall, a sphere). The thread count is
+# @THREADS@; on the starting tree the photon pass can crash with more than one thread (GitHub #164), so the baseline series
+# run it with SCENE_THREADS="perf-photon-pass=1". Not a suite scene: the script scales emit in a scratch copy (SCALES).
+version 3.03
+FrameBegin 1
+  Hider "photon" "int emit" [20000]
+  Option "limits" "numthreads" [@THREADS@]
+  Projection "perspective" "fov" 45
+  Format 160 120 1
+  Translate 0 -1 5
+  WorldBegin
+    Attribute "shade" "shaderformat" ["rslo"]
+    LightSource "pointlight" 1 "intensity" [4] "from" [0 2.2 0.5]
+    LightSource "spotlight" 2 "intensity" [10] "from" [-2 3 -1] "to" [0 0 0.5] "coneangle" [0.5]
+    LightSource "distantlight" 3 "intensity" [0.6] "from" [2 4 -2] "to" [0 0 0]
+    Attribute "photon" "string globalmap" ["perf-photon-pass.gpm"]
+    Color [0.8 0.8 0.8]
+    Surface "matte"
+    Polygon "P" [-3 0 -3  -3 0 3  3 0 3  3 0 -3]
+    Polygon "P" [-3 0 3  -3 3 3  3 3 3  3 0 3]
+    TransformBegin
+      Translate 0 0.6 0.5
+      Sphere 0.6 -0.6 0.6 360
+    TransformEnd
+  WorldEnd
+FrameEnd

@@ -81,7 +81,8 @@ raster inner loop.
 **Resolved by spec 039 (2026-10):** the per-thread jitter streams are gone; every camera and
 shading draw is keyed by the sample's identity, so non-GI renders are bit-identical at any thread
 or process count (the determinism sweep, `ctest -L '^determinism-sweep$'`). The irradiance cache
-and the photon map still fill in shading order until spec 040. The original measurement:
+and the photon map were made deterministic by spec 040 (2026-11) and are swept too (the `gi-*`
+entries). The original measurement:
 
 The stochastic hider is **not run-to-run deterministic**: bucket→thread
 assignment shifts the per-thread jitter streams, so extreme-blur speckle is a

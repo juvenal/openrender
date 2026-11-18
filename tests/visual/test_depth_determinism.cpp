@@ -32,7 +32,7 @@
  *
  *   test_depth_determinism --configs "<opts>|<opts>|..." --outputs <a.tif>[,<b.tif>...]
  *       [--prepend "<RIB line>"] [--config-prepends "<RIB line>|<RIB line>|..."]
- *       [--no-dither] [--keep-pins] <orender> <rib>
+ *       [--no-dither] [--keep-pins] [--float] [--depth <name.tif>] [--files <a.gpm>[,<b.icache>...]] <orender> <rib>
  *   test_depth_determinism --print-scene [--prepend ...] [--no-dither] [--keep-pins] <orender> <rib>
  *
  *   --configs      orender options per configuration, separated by '|'. An empty entry is the
@@ -49,6 +49,17 @@
  *   --no-dither    puts `Quantize "rgba" 255 0 255 0` after the --prepend line (a scene's own
  *                  later Quantize still wins).
  *   --print-scene  prints the scene that would be rendered and exits 0 without rendering.
+ *
+ * Spec 040 (GI scenes; contracts/determinism-harness.md): three additive options.
+ *   --files        files the scene writes (a photon map, an irradiance cache), given as paths relative to the working
+ *                  directory. Every one is removed before each configuration, so no configuration reads a map or a cache an
+ *                  earlier one wrote, and after each configuration it is read and compared byte for byte with the first
+ *                  configuration's: a size difference or the first differing offset is reported (exit 1), a missing file
+ *                  is a failure (exit 2).
+ *   --float        puts `Quantize "rgba" 0 0 0 0` after the --prepend line, so an 8-bit scene writes float colour and
+ *                  alpha (a scene's own later Quantize still wins).
+ *   --depth <name.tif>  adds `Display "+<name.tif>" "file" "z"` after the scene's first Display line; the caller also lists
+ *                  <name.tif> in --outputs. A scene with no Display statement fails (exit 2).
  *
  * Exit codes: 0 every output identical, 1 a difference (at most 5 differing pixels are
  * listed per output), 2 a render, decode or usage failure.
@@ -150,6 +161,7 @@ namespace {
             std::vector<std::string> configs;
             std::vector<std::string> outputs;
             std::vector<std::string> configPrepends;
+            std::vector<std::string> files; // --files: compared byte for byte, removed between configurations
             SceneEdit edit;
             bool printScene = false;
             std::string orender;
@@ -171,6 +183,33 @@ namespace {
     }
 
     std::string configLabel(const std::string &config) { return config.empty() ? "(default)" : config; }
+
+    // The whole file as bytes; false if it cannot be opened.
+    bool readFileBytes(const std::string &path, std::vector<char> &bytes) {
+        std::ifstream in(path, std::ios::binary);
+        if (!in)
+            return false;
+        bytes.assign(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+        return true;
+    }
+
+    // Compares a --files file with the first configuration's copy. Returns true if equal; otherwise reports the size
+    // difference, or the first differing offset, on stderr.
+    bool compareFileBytes(const std::vector<char> &a, const std::vector<char> &b, const std::string &name, const std::string &aLabel, const std::string &bLabel) {
+        if (a.size() != b.size()) {
+            fprintf(stderr, "  FAIL %s: %zu byte(s) in configuration %s, %zu in configuration %s\n", name.c_str(), a.size(), aLabel.c_str(),
+                    b.size(), bLabel.c_str());
+            return false;
+        }
+        for (size_t i = 0; i < a.size(); i++) {
+            if (a[i] != b[i]) {
+                fprintf(stderr, "  FAIL %s: first differing byte at offset %zu (0x%02x in configuration %s, 0x%02x in configuration %s)\n", name.c_str(), i,
+                        (unsigned)(unsigned char)a[i], aLabel.c_str(), (unsigned)(unsigned char)b[i], bLabel.c_str());
+                return false;
+            }
+        }
+        return true;
+    }
 
     // One sample (or one byte, for a depth that is not a whole number of bytes) as text.
     std::string unitText(const RawTiff &img, const uint8_t *p) {
@@ -272,7 +311,8 @@ namespace {
                 }
                 return argv[++i];
             };
-            if (arg == "--configs" || arg == "--outputs" || arg == "--prepend" || arg == "--config-prepends") {
+            if (arg == "--configs" || arg == "--outputs" || arg == "--prepend" || arg == "--config-prepends" || arg == "--files" ||
+                arg == "--depth") {
                 const char *v = value(arg.c_str());
                 if (!v)
                     return kExitFailure;
@@ -282,6 +322,10 @@ namespace {
                     o.outputs = splitOn(v, ',');
                 else if (arg == "--config-prepends")
                     o.configPrepends = splitOn(v, '|');
+                else if (arg == "--files")
+                    o.files = splitOn(v, ',');
+                else if (arg == "--depth")
+                    o.edit.depthName = v;
                 else {
                     o.edit.prepend = v;
                     o.edit.havePrepend = true;
@@ -292,6 +336,9 @@ namespace {
             }
             else if (arg == "--keep-pins") {
                 o.edit.keepPins = true;
+            }
+            else if (arg == "--float") {
+                o.edit.floatOutput = true;
             }
             else if (arg == "--print-scene") {
                 o.printScene = true;
@@ -307,7 +354,8 @@ namespace {
         if (positional.size() != 2) {
             fprintf(stderr,
                     "Usage: %s --configs \"<opts>|<opts>...\" --outputs <a.tif>[,<b.tif>...] [--prepend \"<RIB line>\"]\n"
-                    "          [--config-prepends \"<RIB line>|...\"] [--no-dither] [--keep-pins] <orender> <rib>\n"
+                    "          [--config-prepends \"<RIB line>|...\"] [--no-dither] [--keep-pins] [--float] [--depth <name.tif>]\n"
+                    "          [--files <a.gpm>[,<b.icache>...]] <orender> <rib>\n"
                     "       %s --print-scene [--prepend ...] [--no-dither] [--keep-pins] <orender> <rib>\n",
                     argv[0], argv[0]);
             return kExitFailure;
@@ -341,7 +389,14 @@ namespace {
             ribToRender = copyPath;
         }
 
+        for (const std::string &f : o.files) {
+            if (f.empty()) {
+                fprintf(stderr, "  --files has an empty name\n");
+                return kExitFailure;
+            }
+        }
         std::vector<RawTiff> reference;
+        std::vector<std::vector<char>> referenceFiles;
         std::vector<int> budget(o.outputs.size(), kMaxPixelsPerOutput);
         bool different = false;
         for (size_t c = 0; c < o.configs.size(); c++) {
@@ -365,6 +420,8 @@ namespace {
 
             for (const std::string &output : o.outputs)
                 remove(output.c_str());
+            for (const std::string &file : o.files)
+                remove(file.c_str());
             const int rc = system(command.c_str());
             if (rc != 0) {
                 fprintf(stderr, "  orender failed with exit code %d for configuration %s\n", rc,
@@ -383,9 +440,21 @@ namespace {
                 if (!readRawTiff(o.outputs[k].c_str(), images[k]))
                     return kExitFailure;
             }
+            std::vector<std::vector<char>> fileBytes(o.files.size());
+            for (size_t k = 0; k < o.files.size(); k++) {
+                if (!readFileBytes(o.files[k], fileBytes[k])) {
+                    fprintf(stderr, "  File not found: %s (configuration %s)\n", o.files[k].c_str(), configLabel(o.configs[c]).c_str());
+                    return kExitFailure;
+                }
+            }
             if (c == 0) {
                 reference = std::move(images);
+                referenceFiles = std::move(fileBytes);
                 continue;
+            }
+            for (size_t k = 0; k < o.files.size(); k++) {
+                if (!compareFileBytes(fileBytes[k], referenceFiles[k], o.files[k], configLabel(o.configs[c]), configLabel(o.configs[0])))
+                    different = true;
             }
             for (size_t k = 0; k < o.outputs.size(); k++) {
                 const long n = compareRaw(images[k], reference[k], o.outputs[k], configLabel(o.configs[c]),
@@ -413,7 +482,9 @@ namespace {
             printf("  %s: %ux%u, %u channel(s), %u-bit, bit-identical across %zu configuration(s)\n",
                    o.outputs[k].c_str(), r.width, r.height, r.spp, r.bitsPerSample, o.configs.size());
         }
-        printf("  PASS: %zu output(s), %zu configuration(s)\n", o.outputs.size(), o.configs.size());
+        for (size_t k = 0; k < o.files.size(); k++)
+            printf("  %s: %zu byte(s), byte-identical across %zu configuration(s)\n", o.files[k].c_str(), referenceFiles[k].size(), o.configs.size());
+        printf("  PASS: %zu output(s), %zu file(s), %zu configuration(s)\n", o.outputs.size(), o.files.size(), o.configs.size());
         for (size_t c = 0; c < o.configPrepends.size(); c++)
             remove(("determinism-" + std::to_string(c + 1) + "-" + sceneBaseName(o.rib)).c_str());
         if (!copyPath.empty())
