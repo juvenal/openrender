@@ -72,13 +72,14 @@ listed is a failure. The entries are predictions from the OIIO 3.1.14 source, co
 | D-RGBE-EXP | `rgbe_exp3.hdr`, `rgbe_exp256.hdr` | exact `ldexp` values | exponent bytes 40, 223 and 226 one float ulp lower (OIIO's decimal literal table); the other 253 identical | far outside any texture's range (about 1e-29, 1e26, 1e27) |
 | D-RGBE-RLE | `rle_16x4_rle.hdr`, `rle_16x4_flat.hdr` | cannot read an RLE file (`RGBE_ReadPixels` reads flat pixels) | decodes it correctly | legacy defect, GitHub #171, not fixed here |
 | D-PNG-TRNS | `trns_rgb8_4x4.png` | 3 channels | 4 channels (tRNS becomes alpha) | alpha 0 where the pixel equals the colour key, else 255 |
-| D-TIFF-SEPARATE | `tiff_separate_rgb8_4x4.tif` | reads plane 0 into an interleaved buffer | interleaved correctly | legacy defect, not fixed here |
+| D-TIFF-SEPARATE | `tiff_separate_rgb8_4x4.tif` | reads plane 0 into an interleaved buffer | interleaved correctly | legacy defect, GitHub #183 (P1), not fixed here |
 | D-TIFF-PALETTE | `tiff_palette8_4x4.tif` | 1 channel, the raw indices | 3 channels, the palette expanded | |
 | D-TIFF-MINISWHITE | `tiff_miniswhite8_4x4.tif` | the raw values | inverted | to be confirmed with `oiio:RawColor=1` |
-| D-TIFF-UINT32 | `tiff_uint32_4x4.tif` | 32 bits per sample read as float bits | refused: no `CImageInfo` tier | legacy defect, not fixed here |
-| D-TIFF-INT16 | `tiff_int16_4x4.tif` | the raw signed bits delivered as uint16 | refused | legacy defect, not fixed here |
+| D-TIFF-UINT32 | `tiff_uint32_4x4.tif` | 32 bits per sample read as float bits | refused: no `CImageInfo` tier | legacy defect, GitHub #184 (P1), not fixed here |
+| D-TIFF-INT16 | `tiff_int16_4x4.tif` | the raw signed bits delivered as uint16 | refused | legacy defect, GitHub #184 (P1), not fixed here |
 | D-TIFF-HALF | `tiff_half_4x4.tif` | the raw half bits delivered as uint16 | widened to float32 | |
 | D-PNG-WRITE16 | (display) a 16-bit PNG written by the `file` and `oiio` display drivers | the legacy `file` driver hands libpng host-order samples without `png_set_swap`: every 16-bit sample is stored byte-swapped on a little-endian host | the `oiio` driver stores them correctly (big-endian) | legacy defect, GitHub #181 (P1), not fixed here (FR-020); `ImageIO_DisplayParity` and `ImageIO_NoColourConversionWrite` decode the legacy file with its bytes swapped back, legacy side only |
+| D-PNG-5CH | (display) a PNG display of 5 samples, or with a quantize maximum above 65535 | the legacy `file` driver cannot write the PNG and silently falls through to its TIFF writer: a TIFF file under the `.png` name | the `oiio` driver refuses, naming the file, and writes nothing | legacy defect, GitHub #185 (P1), not fixed here; `ImageIO_DisplayFormatErrors` pins the refusal |
 
 ## Two OpenImageIO behaviours the reader neutralises (not differences)
 
@@ -175,7 +176,15 @@ and the samples it writes are theirs; only the storage is OpenImageIO's. The leg
   is always straight, so the writer sets `oiio:UnassociatedAlpha` there and no value is converted); OIIO chooses the TIFF predictor itself (horizontal
   for 8 and 16 bits, floating point for float, none for 32-bit unsigned: the encoding changes, no sample does); no PNG `gAMA` chunk is written (OIIO's
   PNG writer takes its gamma from a colour space the driver does not set; the gamma case compares samples only); a PNG with a quantize maximum above
-  65535 is refused, where the legacy `file` driver silently writes a TIFF under the `.png` name.
+  65535 (or a PNG display of 5 samples) is refused, where the legacy `file` driver silently writes a TIFF under the `.png` name (GitHub #185, `D-PNG-5CH`).
+- **Depth (`"z"`), RISpec 3.2.** RiQuantize: "If type is "z", then depth quantization is set", with parameters of their own and not done by default; "Depth values
+  bypass all the above steps except for the imager and quantization", so exposure (gain and gamma) never applies to depth. The renderer already applies exposure to
+  the colour samples only and hands a `"z"` display the depth quantizer as its `quantize` and `dither`; `CFileOutputBase` now applies them (it used to skip them
+  for a depth display, which made the legacy `file` TIFF and PNG ignore `Quantize "z"` while the legacy `openexr` driver applied it). Scenes with the default depth
+  quantizer are unchanged. Known and not changed: a combined colour and depth display (`rgbaz`) is quantized with the colour quantizer for every sample (GitHub #186);
+  quantization truncates where RISpec says round, for colour and depth (#187); `CDisplayChannel::quantizer` is never initialized (#188); exposure is applied to the
+  alpha sample (#189).
+- **Compression names.** The `oiio` TIFF `compression` names match case-insensitively (`lzw`, `jpeg`/`jpg`, `deflate`/`zip`, `none`), while the legacy driver matches only `LZW`/`lzw`, `JPEG`/`jpeg`/`jpg`, `Deflate`/`deflate`/`zip` and `none`: `"ZIP"` or `"NONE"` falls back to LZW in the legacy driver and is honoured by `oiio`. The samples are identical; only the encoding differs.
 - **A legacy defect the parity tests step around** (`D-PNG-WRITE16`, GitHub #181): the legacy `file` driver writes 16-bit PNG samples byte-swapped on a
   little-endian host (it never calls `png_set_swap`), so its 16-bit PNG decodes to wrong values in every PNG reader. The `oiio` driver writes them
   correctly; the parity tests decode the legacy file with its bytes swapped back (legacy side only). Not fixed in spec 048 (FR-020).

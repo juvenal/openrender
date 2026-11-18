@@ -47,6 +47,22 @@ namespace {
         {"tiff8_rgb", "tiff", "tif", "file", "FILE_DSPLY", 3, "rgb", Q(k8), "", "", false},
         {"tiff16", "tiff", "tif", "file", "FILE_DSPLY", 4, "rgba", Q(k16), "", "", false},
         {"tiff_uint32", "tiff", "tif", "file", "FILE_DSPLY", 4, "rgba", Q(k32), "", "", false}, // a quantize maximum above 65535: the legacy TIFF driver writes 32-bit unsigned
+        // T139: displays of 1, 2 and 5 samples (the base case table holds only 3 and 4)
+        {"tiff_float_1_z", "tiff", "tif", "file", "FILE_DSPLY", 1, "z", Q(kF), "", "", true},
+        {"tiff_float_1_a", "tiff", "tif", "file", "FILE_DSPLY", 1, "a", Q(kF), "", "", true},
+        {"tiff8_2", "tiff", "tif", "file", "FILE_DSPLY", 2, "ra", Q(k8), "", "", false},
+        {"tiff8_5", "tiff", "tif", "file", "FILE_DSPLY", 5, "custom", Q(k8), "", "", false},
+        {"tiff_float_5", "tiff", "tif", "file", "FILE_DSPLY", 5, "custom", Q(kF), "", "", true},
+        {"png8_1", "png", "png", "file", "FILE_DSPLY", 1, "a", Q(k8), "", "", false},
+        {"png8_2", "png", "png", "file", "FILE_DSPLY", 2, "ra", Q(k8), "", "", false},
+        {"png16_1", "png", "png", "file", "FILE_DSPLY", 1, "a", Q(k16), "", "", false},
+        {"png16_2", "png", "png", "file", "FILE_DSPLY", 2, "ra", Q(k16), "", "", false},
+        {"exr_half_1", "exr", "exr", "openexr", "OPENEXR_DSPLY", 1, "a", Q(kF), "", "", true},
+        {"exr_half_5", "exr", "exr", "openexr", "OPENEXR_DSPLY", 5, "custom", Q(kF), "", "", true},
+        // T140: a "z" display that carries a quantize parameter (TIFF and PNG skip it in both drivers; the legacy openexr driver applies it)
+        {"tiff_z_quantize8", "tiff", "tif", "file", "FILE_DSPLY", 1, "z", Q(k8), "", "", true},
+        {"png_z_quantize8", "png", "png", "file", "FILE_DSPLY", 1, "z", Q(k8), "", "", true},
+        {"exr_z_quantize8", "exr", "exr", "openexr", "OPENEXR_DSPLY", 1, "z", Q(k8), "", "", true},
         {"tiff_float", "tiff", "tif", "file", "FILE_DSPLY", 4, "rgba", Q(kF), "", "", true},
         {"png8", "png", "png", "file", "FILE_DSPLY", 4, "rgba", Q(k8), "", "", false},
         {"png8_rgb", "png", "png", "file", "FILE_DSPLY", 3, "rgb", Q(k8), "", "", false},

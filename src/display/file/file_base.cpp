@@ -28,19 +28,23 @@ CFileOutputBase::CFileOutputBase(const OrDisplayInfo *info, int pixSz, bool isDe
       gamma(1.0f), qamp(0.0f),
       qzero(0.0f), qone(0.0f), qmin(0.0f), qmax(0.0f) {
 
-    if (!isDepth) {
-        const float *tmp;
-        if ((tmp = (const float *)orDisplayFindParameter(info, "quantize", OR_DISPLAY_PARAM_FLOAT, 4))) {
-            qzero = tmp[0];
-            qone = tmp[1];
-            qmin = tmp[2];
-            qmax = tmp[3];
-        }
-        if ((tmp = (const float *)orDisplayFindParameter(info, "dither", OR_DISPLAY_PARAM_FLOAT, 1)))
-            qamp = tmp[0];
-        if ((tmp = (const float *)orDisplayFindParameter(info, "gamma", OR_DISPLAY_PARAM_FLOAT, 1)))
-            gamma = tmp[0]; // stored for PNG gAMA metadata; not used for color transform
+    // RISpec 3.2, RiQuantize: "Set the quantization parameters for colors or depth. If type is "rgba", then color and opacity quantization are set. If
+    // type is "z", then depth quantization is set." The depth quantizer has parameters of its own (one, min, max, dither amplitude; none by default), so a
+    // "z" display is quantized and dithered by them like any other: the display host already hands a "z" display the depth quantizer as its "quantize"
+    // and "dither" parameters, and the driver applies what it is given (it is not told "this is depth" and does not skip them).
+    // Exposure is different: "Depth values bypass all the above steps except for the imager and quantization", and the renderer applies gain and gamma to
+    // the colour samples only (CRenderer::dispatch), so a depth display's "gamma" parameter is not a colour transform and is not kept for PNG gAMA.
+    const float *tmp;
+    if ((tmp = (const float *)orDisplayFindParameter(info, "quantize", OR_DISPLAY_PARAM_FLOAT, 4))) {
+        qzero = tmp[0];
+        qone = tmp[1];
+        qmin = tmp[2];
+        qmax = tmp[3];
     }
+    if ((tmp = (const float *)orDisplayFindParameter(info, "dither", OR_DISPLAY_PARAM_FLOAT, 1)))
+        qamp = tmp[0];
+    if (!isDepth && (tmp = (const float *)orDisplayFindParameter(info, "gamma", OR_DISPLAY_PARAM_FLOAT, 1)))
+        gamma = tmp[0]; // stored for PNG gAMA metadata; not used for color transform
 
     scanlines = new uint8_t *[height];
     scanlineUsage = new int[height];

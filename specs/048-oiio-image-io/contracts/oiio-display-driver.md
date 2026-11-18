@@ -23,6 +23,7 @@ into `OPENRENDER_DISPLAYSDIR` beside the legacy drivers.
 | OpenEXR | `type "openexr"`, `.exr` | HALF | `compression` RLE/ZIPS/ZIP/PIZ/PXR24 -> `rle`/`zips`/`zip`/`piz`/`pxr24`, `Software`; channel names R,G,B,A,Z by position |
 | RGBE | `type "rgbe"`, `.hdr`, `.pic` | FLOAT -> RGBE (RLE, by OIIO) | R,G,B from a 3- or 4-sample display (alpha dropped, documented); 1, 2 or 5 samples -> error (P-Q8) |
 
+- **Depth (`"z"`).** A `"z"` display is quantized and dithered by the depth quantizer the host passes as its `quantize` and `dither` parameters (RISpec 3.2 RiQuantize: none by default), exactly as a colour display is by the colour quantizer; `gamma` never applies to depth (the renderer applies exposure to the colour samples only, and a depth PNG carries no `gAMA`). This is the shared `file_base`'s behaviour (the legacy `file` TIFF and PNG drivers changed with it, see FR-020). Known, not changed here: a combined colour and depth display uses the colour quantizer for every sample (GitHub #186); the quantizer truncates where RISpec says round (#187); `CDisplayChannel::quantizer` is never initialized (#188); exposure is applied to alpha (#189).
 - An unknown or missing format is `error(CODE_BADTOKEN, "oiio display: cannot tell the format of \"%s\"; give a
   known extension or \"string type\"")` and `OR_STATUS_ERROR`. Nothing is written (P-Q7).
 - OpenEXR is built only where `HAVE_OPENEXR`, so the format set equals the legacy drivers' set.
@@ -35,6 +36,8 @@ half, RGBE `rgb`), the scene is rendered once with the legacy driver (`file`/`op
 Both files of a pair are decoded by one fixed decoder that is neither writer: libtiff, libpng or OpenEXR in test
 code for TIFF, PNG and EXR. For RGBE the decoder is the OIIO `Reader`: the OIIO driver writes RLE, and the legacy
 decoder cannot read RLE (GitHub #171, P-Q9). Every sample is compared exactly, NaN by class. 0 differing samples.
+
+**Depth (RISpec 3.2).** `tiff_z_quantize8`, `png_z_quantize8` and `exr_z_quantize8`: a 1-sample `"z"` display with `Quantize "z" 255 0 255 0` decodes to the same samples from the legacy driver and from `oiio`.
 
 **Display parameters** (FR-019; same fixed decoders, exact comparison): `quantize` 8 and 16, `gamma`, TIFF `compression`
 `lzw`/`zip`(`deflate`)/`none`, EXR `compression` `zip`/`piz`, the `NP`/`Nl` Pixar matrices on TIFF (tags read back

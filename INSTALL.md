@@ -86,7 +86,7 @@ OpenImageIO 3.0 (3.1.14 was validated). Continuous integration, the FHS build an
 - **macOS, vcpkg** (`VCPKG_ROOT` set): the `oiio` manifest feature builds OpenImageIO into its **own install directory**, `<VCPKG_INSTALLED_DIR>-oiio`
   (or `vcpkg_installed-oiio` next to the source tree), never into the shared tree the OIIO-off builds use, because manifest mode would uninstall the
   packages those builds need. The configure refuses the shared tree. The closure is large (OpenColorIO 2.3, OpenEXR, Imath, ...): budget for it.
-- **macOS, Homebrew** (no `VCPKG_ROOT`): `brew install openimageio` (3.2.x as of this writing; a large closure) and configure with the option.
+- **macOS, Homebrew** (no `VCPKG_ROOT`): `brew install openimageio` (3.2.x as of this writing; a large closure) and configure with the option. **Untested:** spec 048 never configured or built this mode (it validated vcpkg static OpenImageIO on macOS and a shared prefix build on Linux), so treat it as unverified.
 - **Linux**: Ubuntu 24.04's OpenImageIO is 2.4.17, below the minimum. Build OpenImageIO 3.1.14 into a prefix and point the configure at it:
   `cmake -S <oiio-src> -B <oiio-build> -DCMAKE_INSTALL_PREFIX=$HOME/oiio-prefix -DOpenImageIO_BUILD_MISSING_DEPS=all`, then build and install it, and configure
   openRender with `-DOPENRENDER_ENABLE_OIIO=ON -DOpenImageIO_ROOT=$HOME/oiio-prefix` (needs OpenColorIO 2.3, which `BUILD_MISSING_DEPS=all` builds). **pystring

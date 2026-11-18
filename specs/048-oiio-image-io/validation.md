@@ -907,3 +907,50 @@ Chains: macOS `/tmp/or048-p9a-chain.sh` (logs `build/p9a-*.log`), Linux `~/oiio-
 Known issues cited (filed, not fixed in 048): #171, #172, #174, #181. The `or048-install` DESTDIR double-prefixed copy of the bundled OIIO libraries (the install's bundling rule applies DESTDIR twice) is a comment on GitHub #23.
 
 T136 and T137 done; everything written is staged. CHECKPOINT 9 reached. The coordinator runs `speckit-converge` next.
+
+## 23. Phase 10: convergence (T139 to T149), 2026-11-18
+
+Default `CPUJOB_TIMEOUT` (2700 s) for every job; swap checked before each Mac job; one Linux chain at a time, one watcher each (macOS chain `/tmp/or048-p10a-chain.sh`, logs `build/p10a-*.log`; Linux `~/oiio-048/048-chainQ.sh` and `048-chainR.sh`, logs `build-logs/p10l-*.log`, `p10r-*.log`).
+
+### T139 display cases (approved) and T140 depth decision (RISpec 3.2)
+Added to `ImageIO_DisplayParity`: TIFF float 1 sample in modes `z` and `a`, TIFF 8-bit 2 and 5 samples, TIFF float 5, PNG 8 and 16-bit 1 and 2 samples, EXR half 1 and 5, and the three `"z"` quantize cases (`tiff_z_quantize8`,
+`png_z_quantize8`, `exr_z_quantize8`); `pngFiveSamples` in `ImageIO_DisplayFormatErrors`; `D-PNG-5CH` (GitHub #185: the legacy `file` driver writes a TIFF under the `.png` name when its PNG writer cannot take the display,
+5 samples or a quantize maximum above 65535; `oiio` refuses, naming the file, and writes nothing); the #183 (`D-TIFF-SEPARATE`) and #184 (`D-TIFF-UINT32`, `D-TIFF-INT16`) citations.
+
+Measured before any fix (scratch program `/tmp/or048-p10/measure.cpp`): a 1-sample `"z"` display with `Quantize "z" 255 0 255 0` differed in 254 of 256 samples between the legacy `openexr` driver (applies the quantizer: 255) and `oiio` (skipped it:
+1); the 1, 2 and 5 sample TIFF, PNG 8-bit and EXR cases and the TIFF and PNG `"z"` cases matched. Maintainer decision (RISpec 3.2.1, RiQuantize: "If type is "z", then depth quantization is set", with its own parameters and none by default;
+"Depth values bypass all the above steps except for the imager and quantization"; the renderer applies exposure to the colour samples only): `CFileOutputBase` reads `quantize` and `dither` for every display and keeps `isDepth` only for `gamma`
+(one function, `src/display/file/file_base.cpp`); FR-019/FR-020, the contract and `IMAGE_IO.md` amended (FR-020's one stated exception). Not changed, cited: combined colour and depth displays use one quantizer (#186), quantization truncates where RISpec says
+round (#187), `CDisplayChannel::quantizer` is never initialized (#188), exposure is applied to alpha (#189).
+
+### T141 results after the fix (the tree rebuilt, every verification re-run)
+- macOS (swap 1.2 to 1.6 GB free): OIIO off `-LE determinism-sweep` **1370 of 1370**; OIIO on 1386 tests, **1385 passed and one timeout** (`ShadingParity_JitPL_trace_samples_cone`, under load while other specs ran: the chain took 474 s against 304 s in Phase 9),
+  **re-run alone: passed** (52.6 s); the sweep **582 of 582**; `-L architecture` **39 of 39** on both trees; every `ImageIO_Display*`, `ImageIO_NoColourConversionWrite`, `ImageIO_DecodeDifferences` and `ImageIO_DifferenceListDoc` test passes, `exr_z_quantize8` red to green;
+  `plugin_abi` inside the full runs. The render and `otexmake` oracle on both trees is **identical to the starting tree**, the legacy bake hashes **38 of 38**, the re-run of `legacy_bake_baseline.sh` equals the Phase 1 list: **no image or reference moved**
+  (every in-tree `"z"` display uses the default zero depth quantizer). `git diff -- tests/architecture/allowlist.txt metrics-baseline.txt`: empty. The shared vcpkg tree untouched (guard).
+- Linux: OIIO off 1371 tests, the same two starting-tree failures by name (#45 `TextureTile_RenderByteIdentical`, #163 `Registry_IntegratorImageIdentity`) and nothing else; OIIO on 1387 tests, the same two; the sweep **582 of 582** (the #122 crash did not recur);
+  `-L architecture` 39 of 39 on both; the baselines equal Phase 9's (off equals on); the legacy bake hashes 38 of 38 on both trees and the re-run of `legacy_bake_baseline.sh` equals the Linux Phase 1 list.
+
+### T142: the two configure-only scratch runs (shared tree untouched; guard before and after: PASS both times)
+Scratch trees `/tmp/or048-cfg-notfound` and `/tmp/or048-cfg-older` (28 MB each), configured with the vcpkg root and install directory unset (nothing of any vcpkg tree can be touched; dependencies from Homebrew), `-DOPENRENDER_ENABLE_OIIO=ON`:
+- (a) `-DCMAKE_DISABLE_FIND_PACKAGE_OpenImageIO=ON`: exit 0, "CMake Warning: OpenImageIO not found -- building without the OIIO backend (set OpenImageIO_ROOT)".
+- (b) `-DOpenImageIO_ROOT=/tmp/or048-fake-oiio` (a fake `OpenImageIOConfig.cmake` reporting 2.4.17): exit 0, "CMake Warning: OpenImageIO 2.4.17 is older than 3.0 -- building without the OIIO backend".
+- In both, `ctest -N -L imageio` lists `ImageIO_CiHasNoOiio`, `ImageIO_VcpkgManifest`, `ImageIO_AmendmentAgree`, `ImageIO_AbsentBuild` and `ImageIO_SelectWithoutOIIO` (5 tests) and no OIIO test: `HAVE_OIIO` is OFF.
+
+### T143: the opt-in static package test with OIIO on (Linux, `build-oiio` reconfigured with `-DOPENRENDER_LINK_PACKAGE_TEST=ON`)
+`Link_PackageStaticConsumer` passed (564 s). **Finding:** the runner configures its scratch tree with only `CMAKE_BUILD_TYPE` and `CMAKE_INSTALL_PREFIX`, so the scratch tree is an OIIO-OFF tree (no `libRIBImageIO` in
+`package_work/prefix`) and the pass proves nothing about OIIO. The runner needs to forward the OIIO option and to assert that the installed package carries `libRIBImageIO`, that the consumer needs it and that the consumer defines no OpenImageIO symbol; the diff is
+`/tmp/or048-p10/T143-run_package_test.diff` and `T143-link-CMakeLists.diff` (not applied: an approved test of spec 029, diff-first).
+
+### T144: the FHS layout with OIIO on (Linux scratch tree `build-oiio-fhs`, `-DINSTALL_SELFCONTAINED=OFF -DOPENRENDER_ENABLE_OIIO=ON`; 192 MB; DESTDIR install into `build-oiio-fhs/or048-install`)
+- Build exit 0; `ImageIO_SingleCopy` (and its install fixture) passed: "shared OpenImageIO (not bundled)": no project file defines OIIO, `libRIBImageIO` references 16 symbols, `oiio.dsply`, `libRIBRender.a` and `libRIBRender.so` reference only `orimageio::` symbols.
+- `oiio.dsply` sits in `usr/local/lib/openRender/displays` next to `file.dsply`, `rgbe.dsply`, `openexr.dsply`, `framebuffer.dsply`. `readelf -d`: `oiio.dsply` NEEDED `libRIBImageIO.so.1` and `libRIBCommon.so.1`, with no RUNPATH, exactly as `file.dsply` needs `libRIBCommon.so.1`
+  with none: both resolve through the library search path (`ldd` without it: "not found" for both; with `LD_LIBRARY_PATH=<install lib>`: both resolve into the install tree).
+- One `orender` render with the installed binary, `DISPLAYS=<install>/lib/openRender/displays`, `Display "x.tif" "oiio" "rgb"`: exit 0, a 32x32 LZW TIFF. No defect found; nothing to fix in `src/imageio/CMakeLists.txt` or `src/display/oiio/CMakeLists.txt`.
+- The macOS FHS check was not run (the task allowed Linux only for the host; macOS `build-oiio-fhs` would need a second full build with the private vcpkg directory): open for the coordinator.
+
+### T145 to T147 documents
+`INSTALL_ARTIFACTS.md` (`libRIBImageIO`, `oiio.dsply`, only in an OIIO build, no static archive), `DEVNOTES.md` (the spec 048 row after Phase 9 and 10), `INSTALL.md`, `COMPILING.txt` and `docs/site/content/development/building.md` (Homebrew mode untested),
+`DEVNOTES_DETAILS/IMAGE_IO.md` (TIFF compression names case-insensitive in `oiio`, depth, the #183 to #189 citations).
+
+CHECKPOINT 10: the T143 runner finding awaits the maintainer's diff approval; everything else of Phase 10 is done and staged.

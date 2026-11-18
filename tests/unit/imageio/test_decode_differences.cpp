@@ -256,6 +256,27 @@ static void checkPngWrite16(const std::string &dataFile) {
     EXPECT(found, "D-PNG-WRITE16 is not in %s", dataFile.c_str());
 }
 
+// D-PNG-5CH is a difference of the DISPLAY drivers as well (the legacy `file` driver writes a TIFF under the .png name when its PNG writer cannot take the
+// display, GitHub #185): no decoder fixture; ImageIO_DisplayFormatErrors pins the oiio refusal. This check requires the entry to name the issue and the test.
+static void checkPng5ch(const std::string &dataFile) {
+    FILE *f = fopen(dataFile.c_str(), "r");
+    EXPECT(f != nullptr, "cannot open %s", dataFile.c_str());
+    if (f == nullptr)
+        return;
+    char line[4096];
+    bool found = false;
+    while (fgets(line, sizeof(line), f)) {
+        std::string s = line;
+        if (s.compare(0, 11, "D-PNG-5CH |") == 0) {
+            found = true;
+            EXPECT(s.find("#185") != std::string::npos, "D-PNG-5CH does not cite GitHub #185");
+            EXPECT(s.find("ImageIO_DisplayFormatErrors") != std::string::npos, "D-PNG-5CH does not name ImageIO_DisplayFormatErrors");
+        }
+    }
+    fclose(f);
+    EXPECT(found, "D-PNG-5CH is not in %s", dataFile.c_str());
+}
+
 static std::set<std::string> idsInDataFile(const std::string &path) {
     std::set<std::string> ids;
     FILE *f = fopen(path.c_str(), "r");
@@ -284,6 +305,7 @@ int main(int argc, char **argv) {
     };
     std::string data = argc > 1 ? argv[1] : "tests/unit/imageio/differences.txt";
     checks["D-PNG-WRITE16"] = [data] { checkPngWrite16(data); };
+    checks["D-PNG-5CH"] = [data] { checkPng5ch(data); };
     std::set<std::string> ids = idsInDataFile(data);
     for (const std::string &id : ids)
         EXPECT(checks.count(id) != 0, "%s is in differences.txt but has no check", id.c_str());

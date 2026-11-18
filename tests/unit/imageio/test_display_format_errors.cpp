@@ -150,6 +150,22 @@ namespace {
         }
     }
 
+    // a PNG display of 5 samples: the legacy file driver cannot write it as PNG and falls through to its TIFF writer (a TIFF file under the .png name);
+    // the oiio driver refuses it, names the file in the message and writes nothing
+    void pngFiveSamples(const std::string &dir) {
+        Run r = oiioRun(dir + "/five.png", 5, "custom");
+        sink().messages.clear();
+        bool started = true;
+        try {
+            started = runDisplay(r, quantizedSource(16, 16, 5));
+        } catch (...) {
+            DFAIL("PNG with 5 samples: an exception crossed the display interface");
+        }
+        DCHECK(!started);
+        DCHECK(!exists(r.out));
+        DCHECK(sink().has(r.out)); // the message names the file
+    }
+
     // hostile starts: each returns false, nothing escapes. A negative height makes the base class's allocation throw; a missing directory makes
     // the writer fail to create the file.
     void noExceptions(const std::string &dir) {
@@ -217,6 +233,7 @@ int main(int argc, char **argv) {
         usual(dir);
         unknown(dir);
         rgbeSamples(dir);
+        pngFiveSamples(dir);
         noExceptions(dir);
     }
     if (failures() != 0) {
