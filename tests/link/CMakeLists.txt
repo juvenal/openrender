@@ -93,12 +93,24 @@ if(OPENRENDER_LINK_PACKAGE_TEST)
     else()
         set(_package_jobs 2)
     endif()
+    # spec 048 (FR-004): in an OIIO-on tree the scratch tree is an OIIO-on tree too, and the runner checks the OIIO edge
+    set(_package_oiio_args "")
+    if(HAVE_OIIO)
+        set(_oiio_extra "-DOPENRENDER_ENABLE_OIIO=ON")
+        if(OpenImageIO_ROOT)
+            list(APPEND _oiio_extra "-DOpenImageIO_ROOT=${OpenImageIO_ROOT}")
+        endif()
+        # a ;-list does not survive add_test and -D unescaped: the runner receives the arguments joined with "|"
+        list(JOIN _oiio_extra "|" _oiio_extra_joined)
+        set(_package_oiio_args "-DCONFIGURE_EXTRA_ARGS=${_oiio_extra_joined}" "-DEXPECT_OIIO=ON")
+    endif()
     add_test(NAME Link_PackageStaticConsumer
         COMMAND ${CMAKE_COMMAND}
             "-DSOURCE_DIR=${CMAKE_SOURCE_DIR}" "-DBUILD_DIR=${CMAKE_BINARY_DIR}" "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/package_work"
             "-DCONSUMER_DIR=${CMAKE_CURRENT_SOURCE_DIR}/package" "-DJOBS=${_package_jobs}"
             "-DFORMATS=${OR029_STATIC_CONSUMER_FORMATS}" "-DGENERATOR=${CMAKE_GENERATOR}" "-DBUILD_TYPE=${CMAKE_BUILD_TYPE}"
             "-DPREFIX_DIR=${OR029_PACKAGE_PREFIX}" "-DREMOVE_PACKAGE_BLOCK=${OR029_PACKAGE_REMOVE_BLOCK}"
+            ${_package_oiio_args}
             -P ${CMAKE_CURRENT_SOURCE_DIR}/run_package_test.cmake)
     set_tests_properties(Link_PackageStaticConsumer PROPERTIES TIMEOUT 7200 LABELS "link-package")
 endif()

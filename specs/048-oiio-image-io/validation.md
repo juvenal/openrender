@@ -954,3 +954,17 @@ Scratch trees `/tmp/or048-cfg-notfound` and `/tmp/or048-cfg-older` (28 MB each),
 `DEVNOTES_DETAILS/IMAGE_IO.md` (TIFF compression names case-insensitive in `oiio`, depth, the #183 to #189 citations).
 
 CHECKPOINT 10: the T143 runner finding awaits the maintainer's diff approval; everything else of Phase 10 is done and staged.
+
+### 23a. T143 follow-up (maintainer-approved runner edit), Linux, 2026-11-18
+
+Applied: `tests/link/run_package_test.cmake` (`CONFIGURE_EXTRA_ARGS` forwarded to the scratch configure, and under `EXPECT_OIIO` three assertions: the installed package carries `libRIBImageIO`, the consumer needs it, the consumer defines no OpenImageIO symbol)
+and the `tests/link/CMakeLists.txt` registration (set only when `HAVE_OIIO`). One deviation from the approved diff, from verifying the list escaping: a `;`-list does not survive `add_test` and `-D` unescaped, so the registration joins the extra arguments with `|`
+and the runner converts them back (`string(REPLACE "|" ";" ...)`); a `cmake -P` check showed the two arguments split correctly, and the run below shows the scratch tree really was configured with OIIO on. Diff against the approved text:
+`/tmp/or048-p10/applied/*.diff`.
+
+Run (`048-chainS.sh`: reconfigure `build-oiio` with `-DOPENRENDER_LINK_PACKAGE_TEST=ON`, then `ctest -L '^link-package$'`, default timeout; the host was free): **`Link_PackageStaticConsumer` passed** (176 s; the scratch tree reused the earlier one, reconfigured with OIIO on):
+"run_package_test: the consumer needs libRIBImageIO and carries no OpenImageIO code". Evidence: the installed package (`package_work/prefix/lib`) holds `libRIBImageIO.so`, `.so.1`, `.so.1.0.0`; the consumer's `readelf -d` lists `libRIBImageIO.so.1` and `libRIBCommon.so.1` as NEEDED
+(its RUNPATH is the installed prefix); `nm -a consumer` shows 0 defined OpenImageIO symbols. So `openRender::RIBRender_static` reaches the shared `libRIBImageIO` from an installed package and the consumer carries no OIIO code: no defect in `src/ri/CMakeLists.txt`
+or `CMake/openRenderConfig.cmake.in`. (The jobs of this run ran at the default timeout.)
+
+The macOS FHS check of T144 is skipped (maintainer decision): the Linux FHS check passed and the install rules are shared between the platforms.
