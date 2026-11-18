@@ -70,7 +70,8 @@ inline uint64_t irradianceRecordIdentity(const CIrradianceRecord &r) { return op
 // on the records the lookup visited before.
 using IrradianceAcceptFn = float (*)(const void *acceptState, uint64_t recordIdentity);
 
-// The records of the caller's batch (the points one shade() call evaluates), seen by a lookup after the fixed part. Empty until spec 040's Phase 5.
+// The records of the caller's batch (the points one shade() call evaluates) that were made before this query, seen by a lookup after the fixed part (spec 040:
+// libshader::irradianceLookup fills it from CShadingState::irradianceBatch; dP holds the batch-clamped radius).
 struct CIrradianceBatchView {
         const CIrradianceRecord *records;
         int count;

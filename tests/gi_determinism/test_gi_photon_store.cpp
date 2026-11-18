@@ -11,6 +11,8 @@
  *   inmemory-lookup  GiDet_PhotonInMemoryLookup a map filled in memory and never read from a file can be queried (US3 scenario 3, GitHub #160)
  *   roundtrip        GiDet_PhotonRoundTrip     the lookups of an in-memory store equal, bit for bit, those of the same store written and
  *                                              reloaded (SC-005's photon half)
+ *   one-photon       GiDet_PhotonOnePhoton     a map with one photon (spec.md Edge Cases): the frame's claim is made once, every byte of the written file
+ *                                              is defined, two writes are byte-identical and the reloaded map answers like the in-memory one
  *   claim            GiDet_PhotonClaim         (a second executable, compiled with GIDET_CLAIM) 8 threads store into one CPhotonStore through
  *                                              storePhotonForFrame(): exactly one call returns true, numItems equals the number of stores
  *                                              (FR-003, data-model.md section 9)
@@ -354,6 +356,67 @@ static int modeRoundTrip(const std::string &work) {
     return g_fail == 0 ? 0 : 1;
 }
 
+// One photon: the smallest map that is not empty (spec.md Edge Cases). The claim returns true once, the written file has every byte defined, two
+// writes of the fill (with heap garbage in between) are byte-identical, and the reloaded map answers every query like the in-memory one.
+static int modeOnePhoton(const std::string &work) {
+    matrix fromWorld, toWorld;
+    makeIdentity(fromWorld);
+    makeIdentity(toWorld);
+    const std::vector<Ph> one = photonSet(1, 11);
+    const std::string name = work + "/gidet-one.gpm";
+
+    // the photon's own position, a point a hundredth away, one inside the box and one far outside it
+    std::vector<Query> q(4);
+    for (int k = 0; k < 3; k++) {
+        q[0].P[k] = one[0].P[k];
+        q[1].P[k] = one[0].P[k] + 0.01f;
+        q[2].P[k] = 2.0f;
+        q[3].P[k] = 100.0f;
+    }
+
+    Bytes bytes[2];
+    std::vector<float> inMemory[2];
+    for (int pass = 0; pass < 2; pass++) {
+        poisonHeap();
+        remove(name.c_str());
+        {
+            CPhotonStore store(name.c_str(), NULL, fromWorld, toWorld);
+            const Ph &p = one[0];
+            EXPECT(store.storePhotonForFrame(p.P, p.N, p.I, p.C, p.key), "FR-003: the one store of the frame did not claim it");
+            EXPECT(store.numItems == 1, "FR-003: numItems is %d after one store", store.numItems);
+            store.balance();
+            inMemory[pass] = answers(store, q, false);
+            balanceAndWrite(store, fromWorld, toWorld);
+        }
+        EXPECT(gitest::readFile(name, bytes[pass]), "the one-photon map was not written");
+    }
+    if (g_fail != 0) {
+        return 1;
+    }
+
+    Gpm g;
+    EXPECT(parseGpm(bytes[0], g), "the one-photon map does not parse");
+    if (g_fail != 0) {
+        return 1;
+    }
+    printf("one-photon: %d items, %zu bytes; estimates at the photon %g %g %g\n", g.numItems, bytes[0].size(), inMemory[0][0], inMemory[0][1], inMemory[0][2]);
+    EXPECT(g.numItems >= 1, "the written map holds %d photons for 1 stored", g.numItems);
+    std::string why;
+    EXPECT(gpmPaddingZero(bytes[0], g, why), "FR-004: a byte of the one-photon map is not defined: %s", why.c_str());
+    EXPECT(bytes[0] == bytes[1], "FR-004: two writes of one photon differ: %s", gitest::describeFirstDifference(bytes[0], bytes[1]).c_str());
+    EXPECT(sameBits(inMemory[0], inMemory[1]), "FR-005: two in-memory one-photon maps answer differently");
+    for (float v : inMemory[0]) {
+        EXPECT(std::isfinite(v), "a one-photon lookup answered a non-finite value");
+    }
+
+    std::unique_ptr<CPhotonStore> loaded;
+    EXPECT(loadMap(name, loaded), "the one-photon map was not read");
+    if (loaded) {
+        EXPECT(sameBits(inMemory[0], answers(*loaded, q, false)), "SC-005: the reloaded one-photon map answers differently from the in-memory one");
+    }
+    return g_fail == 0 ? 0 : 1;
+}
+
 #ifdef GIDET_CLAIM
 static int modeClaim(const std::string &work) {
     (void)work;
@@ -389,7 +452,7 @@ static int modeClaim(const std::string &work) {
 
 int main(int argc, char **argv) {
     if (argc != 3) {
-        fprintf(stderr, "usage: %s filebytes|lookup-pure|inmemory-lookup|roundtrip|claim <work dir>\n", argv[0]);
+        fprintf(stderr, "usage: %s filebytes|lookup-pure|inmemory-lookup|roundtrip|one-photon|claim <work dir>\n", argv[0]);
         return 2;
     }
     const std::string mode = argv[1];
@@ -406,6 +469,8 @@ int main(int argc, char **argv) {
         return modeInMemoryLookup(work);
     if (mode == "roundtrip")
         return modeRoundTrip(work);
+    if (mode == "one-photon")
+        return modeOnePhoton(work);
 #ifdef GIDET_CLAIM
     if (mode == "claim")
         return modeClaim(work);

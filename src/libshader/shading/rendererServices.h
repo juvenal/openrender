@@ -88,21 +88,21 @@ namespace openrender::shading {
     //          Added:    IPhotonStore::storePhotonForFrame(): under the store's lock the first call of a frame resets the map,
     //                    marks it as being written and returns true (for that call only); every call stores.
     //          Changed:  CIrradianceStore (irradianceStore.h): lookupCached() takes an IrradianceAcceptFn and its acceptState and a
-    //                    CIrradianceBatchView in place of IrradianceDrawFn and drawState. The accept test no longer draws from the
+    //                    CIrradianceBatchView in place of IrradianceDrawFn and drawState. The accept test does not draw from the
     //                    context's cursor: the store asks accept(acceptState, recordIdentity) once per record that passes the front
     //                    test, and Shading answers a hash of the call's sub-stream and the identity (giHash.h), in [0, 1). The
-    //                    draw-order rule of gotcha 37 is replaced; the batch view is empty until Phase 5.
-    //          Changed:  CIrradianceStore (irradianceStore.h), Phase 5: insertRecord() is removed; clampAgainstFixed() and addPending()
-    //                    are added (a record joins a pending set and the tree only at the frame's commit, commitPending() on
-    //                    CIrradianceCache, so a lookup never sees a record of its own frame except through the batch view);
-    //                    libshader::irradianceLookup keeps the records its shading call made in CShadingState::irradianceBatch
-    //                    (irradianceBatch.h) and passes them as the CIrradianceBatchView, with radii clamped against the fixed
-    //                    part and each other.
+    //                    draw-order rule of gotcha 37 is replaced. The batch view carries the records the earlier lookups of the same
+    //                    shading call made.
+    //          Changed:  CIrradianceStore: insertRecord() is removed; clampAgainstFixed() and addPending() are added (a record joins a
+    //                    pending set and the tree only at the frame's commit, commitPending() on CIrradianceCache, so a lookup
+    //                    never sees a record of its own frame except through the batch view); libshader::irradianceLookup keeps the
+    //                    records its shading call made in CShadingState::irradianceBatch (irradianceBatch.h) and passes them as
+    //                    the CIrradianceBatchView, with radii clamped against the fixed part and each other.
     //          Wording:  writePhotons() sorts the photons into the canonical order (key, then bytes), balances and writes a file
     //                    in which every byte is defined. libshader::irradianceLookup draws nothing for the accept test, and the
     //                    sampler draws by index from a copy of the bound sub-stream (indirectdiffuse() with the cache off takes
-    //                    `samples` keyed directions, as occlusion() does). Phase 5 and later phases of spec 040 add to this entry
-    //                    (the irradiance store's commit and wire).
+    //                    `samples` keyed directions, as occlusion() does). The -P:N wire (receivePending(), the pending-only frame,
+    //                    CHANNELFLAG_READ) is CIrradianceCache's and remoteChannel.cpp's, not a CRendererServices member.
     //   2.3.0  spec 031. Breaking within 2.x (allowed before spec 055, see the rule above):
     //          Removed:  CShadingContext's Geometry-facing entries shade(CSurface *, ...), displace(), displaceEstimate() and
     //                    setProducer(), and IShadingProducer (shadingProducer.h, file deleted). Geometry reaches the hider that

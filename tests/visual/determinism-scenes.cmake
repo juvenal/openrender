@@ -696,13 +696,9 @@ add_determinism_sweep(volume-csg-fragment-none-raytrace examples/rib/tests/volum
 add_determinism_sweep(volume-csg-fragment-none-raytrace-slo examples/rib/tests/volume-csg-fragment-none-raytrace-slo.rib volume-csg-fragment-none-raytrace-slo.tif)
 # END spec 056
 # BEGIN spec 040
-# --- Spec 040 (GI determinism): the 34 GI sweep entries (FR-016, SC-001). Every one is rendered float (FLOAT), with a depth
+# --- Spec 040 (GI determinism): the GI sweep entries (FR-016, SC-001). Every one is rendered float (FLOAT), with a depth
 # display added after the scene's first Display line (DEPTH: <name>-z.tif), and its map or cache file is compared byte for
-# byte across the configurations (FILES). The entries are defined only when -DOPENRENDER_040_RED_TESTS=ON until the phase that
-# makes each green moves it out of its guard (tasks.md T028; the schedule is determinism-scenes-phase{2,3,5,6,8}.patch):
-#   phase 2   the five subdiv-*-photon and motion-subdiv-translate-photon entries (their frame 2 reads no map: only the .gpm bytes)
-#   phase 3   the two photon-parity entries (their frame 2 reads the map through the lookup memo until Phase 3)
-#   phase 5   the cached and the other GI entries, without -P:2 until phase 6
+# byte across the configurations (FILES). All of them are unconditional (spec 040 made the GI scenes deterministic).
 # no -P:2: the photon pass fails under network rendering (GitHub #170)
 add_determinism_sweep(gi-motion-subdiv-translate-photon examples/rib/tests/parity/motion-subdiv-translate-photon.rib motion-subdiv-translate-photon.tif
     FILES motion-subdiv-translate-photon.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
@@ -780,6 +776,12 @@ add_determinism_sweep(gi-photon-then-indirect-reyes tests/gi_determinism/scenes/
 # no -P:2: its photon frame cannot run under network rendering (GitHub #170)
 add_determinism_sweep(gi-photon-then-indirect-reyes-slo tests/gi_determinism/scenes/gi-photon-then-indirect-reyes-slo.rib gi-photon-then-indirect-reyes-slo.tif
     FILES gi-photon-then-indirect.gpm gi-photon-then-indirect.icache FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+# no -P:2: its photon frame cannot run under network rendering (GitHub #170)
+add_determinism_sweep(gi-photon-caustic tests/gi_determinism/scenes/gi-photon-caustic.rib gi-photon-caustic.tif
+    FILES gi-photon-caustic.gpm gi-photon-caustic-c.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+# no -P:2: its photon frame cannot run under network rendering (GitHub #170)
+add_determinism_sweep(gi-photon-caustic-slo tests/gi_determinism/scenes/gi-photon-caustic-slo.rib gi-photon-caustic-slo.tif
+    FILES gi-photon-caustic-slo.gpm gi-photon-caustic-slo-c.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
 # The default `determinism` set gains one scene per GI family (spec 040, T092): a photon map (written and read in two frames), a cached occlusion scene, a cached
 # indirectdiffuse scene (the JIT one: the interpreter's indirectdiffuse() traces no ray, GitHub #173) and a two-frame cache that frame 2 extends (-P:2 included).
 # Each takes under 1 s in the sweep, so the set still runs in about 3 minutes at -j2.

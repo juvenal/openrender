@@ -1,5 +1,7 @@
 # CLAUDE.md draft for spec 040 (gotcha 37)
 
+> **Everything above `# FINAL TEXT` is superseded history (the Phase 4, 5 and 6 intermediate drafts): apply only `# FINAL TEXT`.**
+
 `CLAUDE.md` is not edited by the implementation; the maintainer applies this at the merge. Phase 4 drafts the draw-order paragraph; the
 batch-scope paragraph follows in T079 and the commit and wire paragraph in T089.
 

@@ -5,7 +5,7 @@
 # everyday run the way the sweep is: ctest -LE 'determinism-sweep|gi_determinism_long'). -L is a regular expression: use -L '^gi_determinism$' and
 # -L '^gi_determinism_long$'.
 #
-#   test_gi_photon_store   GiDet_PhotonFileBytes, _PhotonLookupPure, _PhotonInMemoryLookup, _PhotonRoundTrip   (the photon store alone)
+#   test_gi_photon_store   GiDet_PhotonFileBytes, _PhotonLookupPure, _PhotonInMemoryLookup, _PhotonRoundTrip, _PhotonOnePhoton   (the photon store alone)
 #   test_gi_photon_claim   GiDet_PhotonClaim                      (the same source, compiled with GIDET_CLAIM: storePhotonForFrame does not exist yet)
 #   test_gi_photon_runs    GiDet_PhotonRepeat, _PhotonRepeatReuse, _PhotonThreads, and the 30-run forms _PhotonRepeat30, _PhotonRepeatReuse30,
 #                          _PhotonThreads4x30                     (separate orender processes, the .gpm compared byte for byte)
@@ -51,7 +51,7 @@ set(GI_DET_SCENES ${CMAKE_CURRENT_SOURCE_DIR}/scenes)
 
 # One scratch directory per test: each test runs in its own, so a parallel run never shares a file
 set(GI_DET_TEST_NAMES
-    PhotonClaim PhotonFileBytes PhotonLookupPure PhotonInMemoryLookup PhotonRoundTrip
+    PhotonClaim PhotonFileBytes PhotonLookupPure PhotonInMemoryLookup PhotonRoundTrip PhotonOnePhoton CacheThreadExtremes
     PhotonRepeat PhotonRepeatReuse PhotonThreads PhotonRepeat30 PhotonRepeatReuse30 PhotonThreads4x30
     LookupPure CommitOrder CommitDedupe CacheRoundTrip AcceptPure BatchClamp
     MissIndependence_rslo MissIndependence_slo IndirectRayCount_rslo IndirectRayCount_slo RepeatedPoint_rslo RepeatedPoint_slo)
@@ -84,13 +84,24 @@ gi_det_executable_always(test_gi_photon_runs test_gi_photon_runs.cpp)
 
 add_test(NAME GiDet_PhotonFileBytes COMMAND test_gi_photon_store filebytes ${CMAKE_CURRENT_BINARY_DIR}/work/PhotonFileBytes)
 set_tests_properties(GiDet_PhotonFileBytes PROPERTIES TIMEOUT 120 LABELS "gi_determinism;photon" ENVIRONMENT "${GI_DET_SCRIBBLE_ENV}")
-foreach(_m lookup-pure:PhotonLookupPure inmemory-lookup:PhotonInMemoryLookup roundtrip:PhotonRoundTrip)
+foreach(_m lookup-pure:PhotonLookupPure inmemory-lookup:PhotonInMemoryLookup roundtrip:PhotonRoundTrip one-photon:PhotonOnePhoton)
     string(REPLACE ":" ";" _mt ${_m})
     list(GET _mt 0 _mode)
     list(GET _mt 1 _name)
     add_test(NAME GiDet_${_name} COMMAND test_gi_photon_store ${_mode} ${CMAKE_CURRENT_BINARY_DIR}/work/${_name})
     set_tests_properties(GiDet_${_name} PROPERTIES TIMEOUT 120 LABELS "gi_determinism;photon" ENVIRONMENT "${GI_DET_SCRIBBLE_ENV}")
 endforeach()
+
+# One bucket, more threads than buckets (spec.md Edge Cases, T116): a cached occlusion scene on a 16 x 16 image (one bucket) rendered at -t:1, at the default
+# thread count, at -t:2 and at -t:16 (15 threads get no work); colour, alpha, depth and the cache file are compared byte for byte, the way the sweep does.
+# The thread count of a `-P:N` server cannot be set from the client (orender turns -t off for a network render and a server renders with one thread), so
+# "servers with different thread counts" is not a configuration: validation.md section 7.
+add_test(NAME GiDet_CacheThreadExtremes
+    COMMAND test_depth_determinism --configs "-t:1||-t:2|-t:16" --outputs gi-cache-thread-extremes.tif,gi-cache-thread-extremes-z.tif
+        --prepend "Option \"sampling\" \"sampler\" [\"sobol\"]" --float --depth gi-cache-thread-extremes-z.tif --files gi-cache-thread-extremes.icache
+        $<TARGET_FILE:orender> ${GI_DET_SCENES}/gi-cache-thread-extremes.rib
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/work/CacheThreadExtremes)
+set_tests_properties(GiDet_CacheThreadExtremes PROPERTIES TIMEOUT 600 LABELS "gi_determinism;irradiance" ENVIRONMENT "${GI_DET_ENV}" DEPENDS orender)
 
 add_test(NAME GiDet_PhotonClaim COMMAND test_gi_photon_claim claim ${CMAKE_CURRENT_BINARY_DIR}/work/PhotonClaim)
 set_tests_properties(GiDet_PhotonClaim PROPERTIES TIMEOUT 120 LABELS "gi_determinism;photon" ENVIRONMENT "${GI_DET_ENV}")
