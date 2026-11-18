@@ -320,8 +320,9 @@ name no shading context, hider, renderer or data viewer. Shading's `libshader::i
 lookup, the miss hand-off and the insert for the interpreter and the JIT; the sampler that computes a new sample is the Hiders'
 `CIrradianceSampler` (`hiders/irradianceSampler.cpp`), installed on every hider's context and as the process default through Shading's
 `IIrradianceSampler`. Hiders reach a photon map through Shading's `photonMapAccess.h`; Core's header-only `CPhotonMap`
-(`render/photonMap.h`) composes the store, the handle target and the data viewer's adapter (`dataviewer/photonMapView`). Every record
-and photon carries a key for spec 040. See gotcha 37.
+(`render/photonMap.h`) composes the store, the handle target and the data viewer's adapter (`dataviewer/photonMapView`). Since spec 040
+the cache is a read-only fixed part, a Shading batch scope and a canonical end-of-frame commit, a lookup of the photon map is a pure function, and
+both stores are byte-identical across runs, thread counts and `-P:N` (`common/giHash.h` supplies the hashes). See gotcha 37.
 
 ### Hider and integrator registries, the Transport domain (spec 030)
 There are ten domains since constitution 1.4.0: **Transport** (`src/ri/transport/`) holds the integrators (the transport strategies a
@@ -358,11 +359,13 @@ ctest --test-dir build -L texture_tile -j2              # texture system: cache,
 ctest --test-dir build -L texture_only                  # Texturing-only program: links libRIBCommon alone and reproduces the starting tree's lookups
 ctest --test-dir build -L state                         # Graphics State: handles and counts, last-bound record, pattern table, channel registry, light order, vocabulary
 ctest --test-dir build -L gi_split                      # GI split (spec 032): loopback of the remote channels, the files, the keys, getCache's kind check
-ctest --test-dir build -L gi_split_threads              # opt-in: photon keys at -t:1 against -t:4 (the intermittent CPhotonHider crash, #164, can fail a child: re-run alone)
+ctest --test-dir build -L gi_split_threads              # opt-in: photon keys at -t:1 against -t:4
+ctest --test-dir build -L '^gi_determinism$' -j4         # spec 040: the photon store, the cache store, the accept rule, a miss's record, the batch clamp, the files (22 tests)
+ctest --test-dir build -L '^gi_determinism_long$' -j2    # opt-in: the 30-run photon forms (3 tests)
 ctest --test-dir build -L plugin_abi -j4                # plug-in ABIs (spec 037): headers, versions, display host and v1 adapter, shadeop module, procedures, install layouts, doc checks
-ctest --test-dir build -LE determinism-sweep -j4        # the everyday full run: everything except the opt-in determinism sweep
-ctest --test-dir build -L '^determinism$' -j2           # default determinism set (156): harness, tie and derivative tests, one demanding scene per family
-ctest --test-dir build -L '^determinism-sweep$' -j2     # opt-in full sweep (582 entries, ~10-12 min at -j2): before each merge, and for the Linux validation
+ctest --test-dir build -LE 'determinism-sweep|gi_determinism_long' -j4   # the everyday full run: everything except the opt-in determinism sweep and the 30-run forms
+ctest --test-dir build -L '^determinism$' -j2           # default determinism set (164): harness, tie and derivative tests, one demanding scene per family
+ctest --test-dir build -L '^determinism-sweep$' -j2     # opt-in full sweep (618 entries, ~10-12 min at -j2): before each merge, and for the Linux validation
 ctest --test-dir build -L volume                        # spec 056: volume shader segments (the VolumeProbe_ hand-computed pixel checks, VolumeDiffer_, Parity_volume-, Determinism_volume-)
 ctest --test-dir build -L link                          # spec 029: libRSLRuntime self-contained, the static consumer, no workaround text; `Link_RenameAliases`, `Link_InfoRuntimeNotCoLinked` (spec 033)
 ctest --test-dir build -L registry                      # spec 030: the hider and integrator registries (lookup, collisions, pair check and refusal, parameters, the frame abort paths, test-double hider)
@@ -794,7 +797,7 @@ not in the agent definitions.
    second check.
 
 28. **Shading's boundary is one versioned interface; the tracer is the hider that owns the context (specs 026, 029).**
-   `CRendererServices` is version 2.4.0 (`kRendererServicesVersion`, `rendererServices.h`, with
+   `CRendererServices` is version 2.5.0 (`kRendererServicesVersion`, `rendererServices.h`, with
    `serviceTypes.h`, `tracer.h` and `shaderGlobals.h`; `getPhotonMap` returns `IPhotonLookup *`; `getCache` answers only irradiance caches
    (Core's `getCache` answers `nullptr` for a name registered as another 3D kind, #104), and Shading converts the answer with `irradianceStoreOf()`; the headers document
    every member, so read them before writing an implementer or a double). The attribute, option and renderer-info
@@ -833,7 +836,10 @@ not in the agent definitions.
    additive with defaults: `MatrixRequest::phase` (`EMatrixPhase::Bind` for a shader's bind-time init), `MessageRequest::destBytes`
    (non-zero: the renderer answers `TypeMismatch` before writing when the stored value needs more bytes, any source; the JIT's
    `lightsource()` asks with 64), `getShaderName` (`shadername(type)` asks it; no services or an `Unavailable` answer: `""` plus one
-   warning). No double or implementer changes to compile. Spec 057 takes 2.5.0.)
+   warning). No double or implementer changes to compile.) It is 2.5.0 since spec 040 (a MINOR step that is breaking within 2.x: `IPhotonStore`'s
+   `resetPhotons`, `balancePhotons`, `isModifying`, `setModifying` and `storePhoton` are replaced by `storePhotonForFrame` and `writePhotons`;
+   `CIrradianceStore::lookupCached` takes an accept function and a batch view in place of a draw callback, `insertRecord` is replaced by
+   `addPending` and `clampAgainstFixed`). Spec 057 takes 2.6.0.
 29. **The active RI context is installed explicitly (spec 038).** `CRiInterface`'s constructor assigns nothing:
    not `renderMan`, not the diagnostic sink. `riInstallContext(ctx)` makes it the active one (and attaches the
    diagnostics), `riUninstallContext(ctx)` / the destructor of an installed context hands both back to the
@@ -923,23 +929,38 @@ not in the agent definitions.
    has no spawning surface and gets no volume step, inside a solid or not; the CSG arrival-side rule is gone. `incident()` and
    `opposite()` read the side the incoming ray comes from, once per call from vertex 0's `dot(I, N)` (`incidentParameter` and
    `oppositeParameter`, one edit for both backends); the accessor constants passed to them are never read.
-37. **The GI stores are passive; one Shading function does the cache step; the draw order is a rule (spec 032).**
-   `libshader::irradianceLookup` (`libshader/shading/irradianceCalls.cpp`) is the only place an `occlusion()`/`indirectdiffuse()`
-   cache lookup, miss and insert are decided, for the interpreter (`IDEXPR`) and the JIT (`jitOcclusionBatch`). Its order is the old one and
-   must stay: a point-based lookup draws nothing; otherwise `CIrradianceStore::lookupCached` calls its draw callback **once per record that
-   passes the front test** (zero-weight records included, in traversal order), then a miss runs the sampler on the same cursor; a name that
-   `getCache` answered `nullptr` for gives the "no joy" value and draws nothing. The cache and the photon store never include Shading,
-   Hiders, Core or the viewer (`GiSplit_Boundary`, `-L architecture`); a world bound or world matrices they need are passed to their
-   constructors. `CPhotonMap` is header-only in Core (`render/photonMap.h`): `libRIBVector` constructs it, and a `render/photonMap.cpp`
-   would grow the residual list, which may only shrink. Keys for spec 040 are in memory only: `CIrradianceRecord::key` (and so
-   `CCacheSample`, 240 bytes on the wire since Phase 7, the key at offset 224) is `irradianceRecordKey(boundDraws())` copied at the **top**
-   of `irradianceLookup`, and a photon's key (`CPhotonStore::photonKey(i)`, a side array that `CMap::permuted()` reorders when
-   `balance()` runs) is `photonKey(pointKey, bounce)`; no file carries a key and no rendering path reads one. A cache read from a file lists
-   each node's records in the reverse of the order they were written, so two reads of one file sum a lookup in another order; a photon store
-   that was filled and not read from a file has no lookup-cache root and must not be queried (GitHub #160); a client places records it
-   receives without the server's error multiplier (#161). `-t:4` photon passes order the kd-tree differently, so `flags` is not part of a
-   photon's identity (`GiKeys_PhotonsThreads`). `GiRemote_*`, `GiFiles_Unchanged`, `GiKeys_*`, `GiCache_KindMismatch` and
-   `TextureOnly_GiStores` guard it (`ctest -L gi_split`; `-L gi_split_threads` is opt-in).
+37. **The GI stores are passive; one Shading function does the cache step; accept values are hashed, the cache is a fixed part, a batch and a commit (specs 032, 040).**
+   `libshader::irradianceLookup` (`libshader/shading/irradianceCalls.cpp`) is the only place an `occlusion()`/`indirectdiffuse()` cache lookup, miss and insert are decided,
+   for the interpreter (`IDEXPR`) and the JIT (`jitOcclusionBatch`). It copies the bound sub-stream (`boundCall`) at its top. `CIrradianceStore::lookupCached(C, P, N, maxError,
+   accept, acceptState, batch, Pc, Nc)` calls `accept(acceptState, recordIdentity)` **once per record that passes the front test** (zero-weight records included) and Shading
+   answers `giAcceptValue(boundCall.seedHash, boundCall.indexBase, identity)` (`common/giHash.h`), a pure function in `[0, 1)`: a record's accept decision depends on the call and the
+   record alone, never on the traversal order or on the other records, and **the cursor is not touched** (the old "the draw order is a rule" sentence is gone). The identity is the
+   record's key, or a hash of the bit patterns of `P` and `N` for a key-0 record (`irradianceRecordIdentity`). A miss runs the sampler, which draws **by index from a copy of the
+   bound sub-stream** (`rayDraw2D(copy, pair, k)`): with the cache off both `occlusion()` and `indirectdiffuse()` take `samples` keyed directions, with the cache on the `nt x np`
+   grid stays (the gradients need it) and cell `k = i * np + j` takes its offsets from pair 0 sample `k`, its origin jitter from pair 1 sample `k`. A point-based lookup draws
+   and hashes nothing; a name `getCache` answered `nullptr` for gives the "no joy" value. **During a frame the committed tree `F` is read-only and a lookup takes no lock**:
+   `lookupCached` walks `F`, then the **batch view** (`CShadingState::irradianceBatch`, `irradianceBatch.h`: the records the earlier lookups of the same `shade()` call made, with
+   radii clamped against `F` and each other; a REYES or zbuffer grid is one batch, a raytrace shading group is the rays of one bundle that hit one object, in ray order, chunked
+   at `maxGridSize`). A miss with `CACHE_SAMPLE` makes its record from the point's identity alone (key = `irradianceRecordKey(boundDraws())`, copied at the top), calls
+   `addPending(record, maxError)` (the raw radius) and adds it to the batch. Nothing else sees a record until `commitPending()` (`CIrradianceCache`, single-threaded, run by the
+   destructor before the write and lazily by `forEachNode`/`forEachRecord`): dedupe by a non-zero key (**key 0 is never deduped**), sort by `(key, bytes, maxError)`, clamp every radius
+   from raw or stored radii only, place by `dP / K` at the tail of the node (after the fixed records), and **drop the key** (a committed record is what a file holds, so a cache
+   read back answers bit for bit as the one that wrote it). `readNode` appends, so a file keeps its order. The cache has no hider-specific code: reyes and zbuffer make the same
+   records, the raytracer's differ only by its batch size (M5). A `-P:N` server sends **the records it made, never the file's**: one group of raw 240-byte `CCacheSample`
+   (`forEachPending`, raw `dP`, the `next` slot carrying the call's maxError and four zero bytes), the client calls `receivePending` and commits once with each record's own
+   `K` (GitHub #161: `insertReceived` is gone); the channel request's type word carries `CHANNELFLAG_READ` when the server read the file, so the client reads it too (a server
+   finds a file by its own search path and otherwise downloads it from the client, so the client is the origin of every file; not handled: a server-local cache file the client
+   lacks). The photon store: the test, reset and first store of a frame are one claim under its lock (`storePhotonForFrame`, GitHub #164; `CMap::reset()` uses `delete[]`, #165),
+   `balance()` sorts the photons into the canonical order (key, then 38 bytes of `P`, `N`, `C`, `theta`, `phi`; `flags` and the padding are not part of it), every byte of a
+   `.gpm` is defined (#163), and a lookup is a pure function of the map and the query (the `PHOTON_LOOKUP_CACHE` memo is gone, which is also #160; the cost is GitHub #178's
+   follow-up). `maxPower` is the largest `|C|`, in memory and in the file. The cache and the photon store never include Shading, Hiders, Core or the viewer (`GiSplit_Boundary`,
+   `-L architecture`); a world bound or world matrices they need are passed to their constructors. `CPhotonMap` is header-only in Core (`render/photonMap.h`): `libRIBVector`
+   constructs it, and a `render/photonMap.cpp` would grow the residual list, which may only shrink. Keys are in memory only (the wire record carries one, no file does):
+   `CIrradianceRecord::key` (`CCacheSample` is 240 bytes on the wire, the key at offset 224) and a photon's key (`CPhotonStore::photonKey(i)`, a side array that `CMap::permuted()`
+   reorders when `balance()` runs). `GiRemote_*`, `GiFiles_Unchanged`, `GiKeys_*`, `GiCache_KindMismatch`, `GiDet_*` and `TextureOnly_GiStores` guard it (`ctest -L gi_split`,
+   `-L '^gi_determinism$'`; `-L gi_split_threads` and `-L '^gi_determinism_long$'` are opt-in). Under the interpreter `indirectdiffuse()` traces no ray (GitHub #173: the sampler
+   receives a denormal `samples`); the `.slo` shaders do. Cost: a cache reused at a fine shading rate costs about twice as much per later frame (the cache is 8 times as dense:
+   GitHub #179). Untouched: #158 (`jitOcclusionBatch`), #159, #166, #122.
 38. **Hiders and integrators are registered tables; the core reads declared capabilities, never a name (spec 030).** The four built-in
    hiders are reached by the *call graph* (`beginRenderer()` -> `hiderRegistry()` -> `registerBuiltinHiders()` -> each hider's getter),
    not by a static registrar, so a plain static link finds them with no `-u` anchor (`Link_StaticConsumerRegistries`); only a hider or
@@ -1089,8 +1110,19 @@ not in the agent definitions.
 - C++20, CMake ≥3.19, `-Werror`; no new dependencies: `ShadingSystem`, `IShaderBackend` and `ShaderGroupBuilder` in `libshader/shading`, services 2.4.0, the metadata
   API in `libRSLInfo` (033-shading-system-backends)
 - Storage: N/A; memory only (033-shading-system-backends)
+- C++20, CMake ≥3.19, `-Werror`; no new dependencies: the photon store and the irradiance cache are deterministic (a claim under the store's lock, a canonical photon order, no lookup memo; a
+  read-only fixed part, a Shading batch scope, a canonical commit, a pending-only `-P:N` wire), the accept value is a hash (`common/giHash.h`) and the sampler draws by index from a copy of the
+  bound sub-stream; `kRendererServicesVersion` 2.5.0 (040-gi-determinism)
+- Storage: N/A; memory only; the `tests/gi_split/reference` and `tests/gi_determinism` recordings are files (040-gi-determinism)
 
 ## Recent Changes
+- 040-gi-determinism: the photon map and the irradiance cache are deterministic: the same files and images across runs, at any thread count and under `-P:N`. Photon store: the claim and reset inside the
+  store's lock (the intermittent `CPhotonHider` crash, #164), `delete[]` for `new[]` (#165), a canonical photon order and every byte of a `.gpm` defined (#163), no lookup memo (#160; the cost is #178's
+  follow-up). Irradiance cache: the accept value is a hash of the call and the record, the sampler draws by index (`indirectdiffuse()` with the cache off now takes `samples` keyed directions), the cache
+  is a read-only fixed part plus a Shading batch scope plus a canonical commit, and a `-P:N` server sends only the records it made, committed with each record's own K (#161). The thread pins of the GI
+  scenes are removed, 36 GI sweep entries join the determinism sweep, the GI references were re-rendered once (the four images, the cache files, the loopback, the data scene, the trace replays, spec 039's
+  occlusion golden). `kRendererServicesVersion` 2.5.0. Under the interpreter `indirectdiffuse()` traces no ray (#173); the M2 cache is 8 times as dense, so a cache reused at a fine shading rate costs
+  about 2x per later frame (#179). No threshold widened; thresholds only lowered (see spec 040).
 - 033-shading-system-backends: shader loading, caching and format precedence moved out of the renderer core into Shading behind `ShadingSystem` and `IShaderBackend`
   (`rslo` and `slo` backends; `CShader` is a backend-neutral description with an owned payload); the bind-time init moved into Shading (`getMatrix` phase Bind, #134); every binding is a group of one
   layer (`ShaderGroupBuilder`); `kRendererServicesVersion` 2.4.0 (`destBytes`, `getShaderName`: `op_lightsource_f` and `shadername(type)` reach the renderer only through the services); the shader-metadata

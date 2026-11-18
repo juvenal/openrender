@@ -740,6 +740,7 @@ void CShadingContext::shadeVolumeSegments(CShaderInstance *volume, const CSegmen
         ss->pointKeysFromRays = TRUE;
         ss->batchKey = openrender::sampling::detail::mix(rays[first]->key.full, (uint64_t)currentRayDepth, kVolumeSegmentBatchTag, (uint64_t)chunkIndex);
         resetCallSiteOccurrences(ss->callSiteOccurrence);
+        ss->irradianceBatch.reset();
         drawCursor = openrender::sampling::SubstreamKey{0, 0};
         drawCursorDim = 0;
 
@@ -978,6 +979,7 @@ void CShadingContext::keyedRandom(int vertex, uint32_t *counts, unsigned callSit
 void CShadingContext::resetDrawOccurrences() {
     if (currentShadingState->callSiteOccurrence != nullptr)
         currentShadingState->callSiteOccurrence->reset();
+    currentShadingState->irradianceBatch.reset(); // a new batch (spec 040)
     drawCursor = openrender::sampling::SubstreamKey{0, 0};
     drawCursorDim = 0;
 }
@@ -1018,6 +1020,7 @@ void CShadingContext::fillPointKeys(const CSurface *surface, uint64_t stableId, 
     const int numReal = state->numRealVertices;
     if (state->callSiteOccurrence != nullptr)
         state->callSiteOccurrence->reset(); // a new shading invocation: every call site starts at occurrence 0
+    state->irradianceBatch.reset();         // and the irradiance batch (spec 040) is empty
     drawCursor = openrender::sampling::SubstreamKey{0, 0}; // a lookup that nobody bound draws from a fixed sub-stream
     drawCursorDim = 0;
     const float *u = state->varying[VARIABLE_U];

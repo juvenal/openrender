@@ -1,0 +1,145 @@
+diff --git a/tests/gi_determinism/test_gi_photon_store.cpp b/tests/gi_determinism/test_gi_photon_store.cpp
+index a7c8af84..12e9e40c 100644
+--- a/tests/gi_determinism/test_gi_photon_store.cpp
++++ b/tests/gi_determinism/test_gi_photon_store.cpp
+@@ -24,6 +24,7 @@
+ #include <atomic>
+ #include <cmath>
+ #include <memory>
++#include <new>
+ #include <thread>
+ 
+ #include "common/memory.h"
+@@ -34,6 +35,34 @@
+ 
+ using namespace gidet;
+ 
++// Every allocation of this process starts as 0xA5 (new and new[]; delete frees). The photon store allocates its arrays with new[] and, on the
++// starting tree, does not initialise the bytes it never assigns (the padding of an item, item 0): this makes them non-zero whatever the
++// platform's malloc does with fresh pages (Phase 1 saw the file-bytes case green without it). A value-initialised array (new T[n]()) is
++// unaffected, which is what FR-004 asks for.
++void *operator new(std::size_t n) {
++    void *p = malloc(n != 0 ? n : 1);
++    if (p == nullptr) {
++        throw std::bad_alloc();
++    }
++    memset(p, 0xA5, n);
++    return p;
++}
++void *operator new[](std::size_t n) {
++    return operator new(n);
++}
++void operator delete(void *p) noexcept {
++    free(p);
++}
++void operator delete[](void *p) noexcept {
++    free(p);
++}
++void operator delete(void *p, std::size_t) noexcept {
++    free(p);
++}
++void operator delete[](void *p, std::size_t) noexcept {
++    free(p);
++}
++
+ static void makeIdentity(matrix m) {
+     identitym(m);
+ }
+@@ -158,22 +187,38 @@ struct Query {
+ };
+ 
+ static std::vector<Query> querySet() {
++    // 40 base points, each with two neighbours a few thousandths away: a memo of earlier answers (probe()/insert()) serves a neighbour from the
++    // base point's cached sample, so the answer then depends on which of them was asked first
+     Lcg g(99);
+-    std::vector<Query> q(120);
+-    for (Query &x : q) {
+-        x.P[0] = g.range(0, 4);
+-        x.P[1] = g.range(0, 4);
+-        x.P[2] = g.range(0, 4);
++    std::vector<Query> q;
++    for (int i = 0; i < 40; i++) {
++        Query b;
++        b.P[0] = g.range(0, 4);
++        b.P[1] = g.range(0, 4);
++        b.P[2] = g.range(0, 4);
++        q.push_back(b);
++        for (int k = 1; k <= 2; k++) {
++            Query n = b;
++            n.P[0] += 0.003f * (float)k;
++            n.P[1] += 0.002f * (float)k;
++            q.push_back(n);
++        }
+     }
+     return q;
+ }
+ 
+-static std::vector<float> answers(CPhotonStore &store, const std::vector<Query> &q, bool reverse) {
++// `withN` selects the overload: lookup(C, P, N, maxFound) (the hiders') or lookup(C, P, maxFound) (Shading's photonmap())
++static std::vector<float> answers(CPhotonStore &store, const std::vector<Query> &q, bool reverse, bool withN = true) {
+     std::vector<float> out(3 * q.size());
+     const float N[3] = {0, 1, 0};
+     for (size_t k = 0; k < q.size(); k++) {
+         const size_t i = reverse ? q.size() - 1 - k : k;
+-        store.lookup(&out[3 * i], q[i].P, N, 24);
++        if (withN) {
++            store.lookup(&out[3 * i], q[i].P, N, 24);
++        }
++        else {
++            store.lookup(&out[3 * i], q[i].P, 24);
++        }
+     }
+     return out;
+ }
+@@ -195,6 +240,22 @@ static bool loadMap(const std::string &name, std::unique_ptr<CPhotonStore> &stor
+     return true;
+ }
+ 
++// The answer of a store that has answered nothing before, one fresh store per query: what a lookup is when it is a function of the map and
++// the query alone
++static std::vector<float> freshAnswers(const std::string &name, const std::vector<Query> &q, bool withN) {
++    std::vector<float> out(3 * q.size());
++    for (size_t i = 0; i < q.size(); i++) {
++        std::unique_ptr<CPhotonStore> s;
++        if (!loadMap(name, s)) {
++            return std::vector<float>();
++        }
++        std::vector<Query> one(1, q[i]);
++        const std::vector<float> a = answers(*s, one, false, withN);
++        memcpy(&out[3 * i], a.data(), 3 * sizeof(float));
++    }
++    return out;
++}
++
+ static int modeLookupPure(const std::string &work) {
+     const std::vector<Ph> set = photonSet(1500, 7);
+     const std::string name = work + "/gidet-lookup.gpm";
+@@ -208,12 +269,28 @@ static int modeLookupPure(const std::string &work) {
+     const std::vector<Query> q = querySet();
+ 
+     const std::vector<float> first = answers(*store, q, false);
++    size_t nonzero = 0;
++    for (size_t i = 0; i + 2 < first.size(); i += 3) {
++        nonzero += (first[i] != 0 || first[i + 1] != 0 || first[i + 2] != 0) ? 1 : 0;
++    }
++    printf("lookup-pure: %zu of %zu queries answered a non-zero estimate\n", nonzero, q.size());
++    EXPECT(nonzero * 2 > q.size(), "only %zu of %zu lookups found photons: the case would prove little", nonzero, q.size());
+     const std::vector<float> second = answers(*store, q, false);
+     EXPECT(sameBits(first, second), "FR-005: the same lookups twice in a row differ (the memo)");
+ 
+     const std::vector<float> reversed = answers(*store, q, true);
+     EXPECT(sameBits(first, reversed), "FR-005: the lookups in the opposite order differ (the memo, searchRadius)");
+ 
++    // each lookup against a store that answered nothing before: the memo must not change an answer, in either overload
++    for (int overload = 0; overload < 2; overload++) {
++        const bool withN = overload == 0;
++        const std::vector<float> fresh = freshAnswers(name, q, withN);
++        std::unique_ptr<CPhotonStore> one;
++        EXPECT(loadMap(name, one), "the map was not read");
++        const std::vector<float> forward = answers(*one, q, false, withN);
++        EXPECT(sameBits(fresh, forward), "FR-005: lookups on one store differ from lookups on a fresh store each (overload %s)", withN ? "(C, P, N, maxFound)" : "(C, P, maxFound)");
++    }
++
+     // a second, never-queried store of the same file answers like the first one did the first time
+     std::unique_ptr<CPhotonStore> fresh;
+     EXPECT(loadMap(name, fresh), "the map was not read a second time");

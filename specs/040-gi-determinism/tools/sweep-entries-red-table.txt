@@ -1,0 +1,43 @@
+# T028: the 34 GI sweep entries (tests/visual determinism-scenes.cmake, determinism-scenes-phase1.patch) and what each is expected to do on the STARTING tree
+# when -DOPENRENDER_040_RED_TESTS=ON. "red" = a configuration differs (a map or cache byte, or an image) or the render crashes; "green" = expected to pass.
+# These are expectations from the Phase 0 measurements and from rendering each new scene once at -t:1 (build-logs/040-p1-scenes); T033 measures them and
+# a result that differs from this table is a finding, not an adjustment. Leaves the guard at: P2 = Phase 2, P3 = Phase 3, P5 = Phase 5.
+#
+# entry                                   guard  expected  why
+gi-motion-subdiv-translate-photon         P2     red       .gpm bytes differ between runs and thread counts (#163: every completed map differs, T014) and the photon pass crashes under threads (#164); frame 2 reads no map, so its image would agree
+gi-subdiv-facevarying-seam-photon         P2     red       same (.gpm bytes, #163/#164); image does not read the map (T014a control)
+gi-subdiv-hierarchical-override-photon    P2     red       same
+gi-subdiv-loop-photon                     P2     red       same
+gi-subdiv-new-tags-photon                 P2     red       same
+gi-photon-parity                          P3     red       .gpm bytes (#163/#164) and the frame-2 image reads the map through the PHOTON_LOOKUP_CACHE memo: 29 distinct md5s in 30 runs at -t:4 with the map fixed (T014a)
+gi-photon-parity-slo                      P3     red       same (the -slo variant pins the three Frame 1 lights to the JIT)
+gi-sphere-occlusion-reyes                 P5     green?    no `irradiance` attribute: the cache is off (default maxerror 0) and occlusion() draws keyed directions since spec 039 T076c; confirm at T033
+gi-sphere-occlusion-reyes-slo             P5     green?    same on the JIT
+gi-sphere-indirectdiffuse-reyes           P5     green?    cache off; indirectdiffuse() traces no ray (GitHub #173): the image is the same NaN/zero everywhere, so it agrees trivially; meaningful only once #173 is fixed
+gi-sphere-indirectdiffuse-reyes-slo       P5     green?    same (all-zero colour on the JIT)
+gi-sphere-photonmap-reyes                 P5     green     queries a nonexistent .pm: no GI state at all
+gi-sphere-photonmap-reyes-slo             P5     green     same
+gi-sphere-ray-self-hit-reyes              P5     green?    ray-origin probe, no cache, no map
+gi-sphere-ray-self-hit-reyes-slo          P5     green?    same
+gi-sphere-ray-self-hit-raytrace           P5     green?    same
+gi-sampling-probe-independence-mid        P5     green?    spec 039's sobol probe, no GI state (its own sampler line overrides the sweep's)
+gi-sampling-probe-independence-min        P5     green?    same
+gi-occlusion-reyes                        P5     red       cached occlusion(): the records and their order follow the order the points were shaded in; the .icache bytes and the image differ with the thread count (research R1/R4)
+gi-occlusion-reyes-slo                    P5     red       same on the JIT
+gi-occlusion-zbuffer                      P5     red       same, zbuffer hider
+gi-occlusion-zbuffer-slo                  P5     red       same
+gi-occlusion-raytrace                     P5     red       same, raytrace hider (24 records: the image is smaller but the cache order still follows the shading order)
+gi-occlusion-raytrace-slo                 P5     red       same
+gi-indirectdiffuse-reyes                  P5     green?    interpreter: indirectdiffuse() traces no ray (GitHub #173), the written .icache is the empty 96-byte file and the image is NaN: identical in every configuration; meaningful only once #173 is fixed
+gi-indirectdiffuse-reyes-slo              P5     red       JIT: the cache gets 123 records (the JIT path does sample): order-dependent like occlusion
+gi-indirectdiffuse-zbuffer                P5     green?    as gi-indirectdiffuse-reyes (empty cache, #173)
+gi-indirectdiffuse-zbuffer-slo            P5     red       as gi-indirectdiffuse-reyes-slo
+gi-indirectdiffuse-raytrace               P5     green?    as gi-indirectdiffuse-reyes (empty cache, #173)
+gi-indirectdiffuse-raytrace-slo           P5     red       JIT: 26 records, order-dependent
+gi-cache-extend-reyes                     P5     red       frame 1's cache (117 records) is order-dependent and frame 2 reads and extends it
+gi-cache-extend-reyes-slo                 P5     red       same
+gi-photon-then-indirect-reyes             P5     red       the photon pass writes a different .gpm every run (#163/#164); its indirectdiffuse() cache is empty on the interpreter (#173); no -P:2 (GitHub #170)
+gi-photon-then-indirect-reyes-slo         P5     red       as above, and the JIT cache holds 102 records (order-dependent)
+#
+# 34 entries: 7 photon (P2 x5, P3 x2), 27 others (P5): 11 no-cache probe scenes of examples/rib/tests, 14 cached sweep scenes, 2 gi-photon-then-indirect.
+# Expected red 20 (7 photon, 6 cached occlusion, 3 indirectdiffuse-slo, 2 cache-extend, 2 photon-then-indirect), expected green 14 (11 no-cache probe scenes, of which only the two photonmap entries are certain, and the 3 interpreter indirectdiffuse entries whose cache is empty because of #173).

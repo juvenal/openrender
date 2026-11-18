@@ -1,0 +1,51 @@
+--- tests/visual/determinism-scenes.cmake
++++ tests/visual/determinism-scenes.cmake
+@@ -763,33 +763,33 @@
+ add_determinism_sweep(gi-sampling-probe-independence-min examples/rib/tests/sampling-probe-independence-min.rib sampling-probe-independence-min.tif
+     FLOAT DEPTH)
+ add_determinism_sweep(gi-occlusion-reyes tests/gi_determinism/scenes/gi-occlusion-reyes.rib gi-occlusion-reyes.tif
+-    FILES gi-occlusion-reyes.icache FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
++    FILES gi-occlusion-reyes.icache FLOAT DEPTH)
+ add_determinism_sweep(gi-occlusion-reyes-slo tests/gi_determinism/scenes/gi-occlusion-reyes-slo.rib gi-occlusion-reyes-slo.tif
+-    FILES gi-occlusion-reyes-slo.icache FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
++    FILES gi-occlusion-reyes-slo.icache FLOAT DEPTH)
+ add_determinism_sweep(gi-occlusion-zbuffer tests/gi_determinism/scenes/gi-occlusion-zbuffer.rib gi-occlusion-zbuffer.tif
+-    FILES gi-occlusion-zbuffer.icache FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+-add_determinism_sweep(gi-occlusion-zbuffer-slo tests/gi_determinism/scenes/gi-occlusion-zbuffer-slo.rib gi-occlusion-zbuffer-slo.tif
+-    FILES gi-occlusion-zbuffer-slo.icache FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
++    FILES gi-occlusion-zbuffer.icache FLOAT DEPTH)
++add_determinism_sweep(gi-occlusion-zbuffer-slo tests/gi_determinism/scenes/gi-occlusion-zbuffer-slo.rib gi-occlusion-zbuffer-slo.tif
++    FILES gi-occlusion-zbuffer-slo.icache FLOAT DEPTH)
+ add_determinism_sweep(gi-occlusion-raytrace tests/gi_determinism/scenes/gi-occlusion-raytrace.rib gi-occlusion-raytrace.tif
+-    FILES gi-occlusion-raytrace.icache FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
++    FILES gi-occlusion-raytrace.icache FLOAT DEPTH)
+ add_determinism_sweep(gi-occlusion-raytrace-slo tests/gi_determinism/scenes/gi-occlusion-raytrace-slo.rib gi-occlusion-raytrace-slo.tif
+-    FILES gi-occlusion-raytrace-slo.icache FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
++    FILES gi-occlusion-raytrace-slo.icache FLOAT DEPTH)
+ add_determinism_sweep(gi-indirectdiffuse-reyes tests/gi_determinism/scenes/gi-indirectdiffuse-reyes.rib gi-indirectdiffuse-reyes.tif
+-    FILES gi-indirectdiffuse-reyes.icache FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
++    FILES gi-indirectdiffuse-reyes.icache FLOAT DEPTH)
+ add_determinism_sweep(gi-indirectdiffuse-reyes-slo tests/gi_determinism/scenes/gi-indirectdiffuse-reyes-slo.rib gi-indirectdiffuse-reyes-slo.tif
+-    FILES gi-indirectdiffuse-reyes-slo.icache FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
++    FILES gi-indirectdiffuse-reyes-slo.icache FLOAT DEPTH)
+ add_determinism_sweep(gi-indirectdiffuse-zbuffer tests/gi_determinism/scenes/gi-indirectdiffuse-zbuffer.rib gi-indirectdiffuse-zbuffer.tif
+-    FILES gi-indirectdiffuse-zbuffer.icache FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
++    FILES gi-indirectdiffuse-zbuffer.icache FLOAT DEPTH)
+ add_determinism_sweep(gi-indirectdiffuse-zbuffer-slo tests/gi_determinism/scenes/gi-indirectdiffuse-zbuffer-slo.rib gi-indirectdiffuse-zbuffer-slo.tif
+-    FILES gi-indirectdiffuse-zbuffer-slo.icache FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
++    FILES gi-indirectdiffuse-zbuffer-slo.icache FLOAT DEPTH)
+ add_determinism_sweep(gi-indirectdiffuse-raytrace tests/gi_determinism/scenes/gi-indirectdiffuse-raytrace.rib gi-indirectdiffuse-raytrace.tif
+-    FILES gi-indirectdiffuse-raytrace.icache FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
++    FILES gi-indirectdiffuse-raytrace.icache FLOAT DEPTH)
+ add_determinism_sweep(gi-indirectdiffuse-raytrace-slo tests/gi_determinism/scenes/gi-indirectdiffuse-raytrace-slo.rib gi-indirectdiffuse-raytrace-slo.tif
+-    FILES gi-indirectdiffuse-raytrace-slo.icache FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
++    FILES gi-indirectdiffuse-raytrace-slo.icache FLOAT DEPTH)
+ add_determinism_sweep(gi-cache-extend-reyes tests/gi_determinism/scenes/gi-cache-extend-reyes.rib gi-cache-extend-reyes.tif
+-    FILES gi-cache-extend-reyes.icache FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
++    FILES gi-cache-extend-reyes.icache FLOAT DEPTH)
+ add_determinism_sweep(gi-cache-extend-reyes-slo tests/gi_determinism/scenes/gi-cache-extend-reyes-slo.rib gi-cache-extend-reyes-slo.tif
+-    FILES gi-cache-extend-reyes-slo.icache FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
++    FILES gi-cache-extend-reyes-slo.icache FLOAT DEPTH)
+ # no -P:2: its photon frame cannot run under network rendering (GitHub #170)
+ add_determinism_sweep(gi-photon-then-indirect-reyes tests/gi_determinism/scenes/gi-photon-then-indirect-reyes.rib gi-photon-then-indirect-reyes.tif
+     FILES gi-photon-then-indirect.gpm gi-photon-then-indirect.icache FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")

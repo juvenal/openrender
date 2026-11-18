@@ -1,0 +1,26 @@
+# T014a frame-2 images on the starting tree (build-base, master 278b0394, macos): frame 1 removed, Quantize "rgba" 0 0 0 0 prepended (float image),
+# the map = the one a single -t:1 run of the full scene wrote and left in place, copied unchanged for every run (M040_SEED),
+# 30 runs at -t:4 and 30 at -t:1, separate processes, dirmode reuse (one directory, the map and the previous image in place).
+== photon-parity: seed render exit 0; map md5 4eb0542571ac7b2111fabd4da787b3a8
+--- photon-parity frame 2 only, -t:4
+scene build-logs/040-frame2-scratch/photon-parity-frame2.rib, 30 runs, dirmode reuse, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 b15d4cd3fc475a9f1eefb64d1e1a5e0d: 30
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-y3pv2ucz
+--- photon-parity frame 2 only, -t:1
+scene build-logs/040-frame2-scratch/photon-parity-frame2.rib, 30 runs, dirmode reuse, options -t:1, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 b15d4cd3fc475a9f1eefb64d1e1a5e0d: 30
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-7s5ayu2w
+== subdiv-loop-photon: seed render exit 0; map md5 9aeb61a41b75ca6f5e8ecee3dbb98aca
+--- subdiv-loop-photon frame 2 only, -t:4
+scene build-logs/040-frame2-scratch/subdiv-loop-photon-frame2.rib, 30 runs, dirmode reuse, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 8d2512b7365dc39ff493e8d7b321ff05: 30
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-8s7h8qsv
+--- subdiv-loop-photon frame 2 only, -t:1
+scene build-logs/040-frame2-scratch/subdiv-loop-photon-frame2.rib, 30 runs, dirmode reuse, options -t:1, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 8d2512b7365dc39ff493e8d7b321ff05: 30
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-lxwkunah
+done

@@ -1,0 +1,21 @@
+# Phase 3 (T051): Linux, MaxBlockAvgDiff before (tools/baseline-gi-diffs-linux.txt) and after the photon lookup memo is removed
+# test, before, after, threshold, verdict
+Visual_photon-parity                              0.92    7.06    6.0  over threshold
+Visual_photon-parity-slo                          0.92    7.06    6.0  over threshold
+Visual_photon-solar0-after-distant                1.52    8.77   20.0  changed
+Visual_photon-solar0-after-distant-slo            1.52    8.77   20.0  changed
+Visual_photon-solar0-alone                        0.12   11.09   20.0  changed
+Visual_photon-solar0-alone-slo                    0.12   11.09   20.0  changed
+Visual_sphere-indirectdiffuse-reyes               0.00    0.00   20.0  same
+Visual_sphere-indirectdiffuse-reyes-slo           0.00    0.00   20.0  same
+Visual_sphere-occlusion-reyes                    12.36   12.36   20.0  same
+Visual_sphere-occlusion-reyes-slo                12.36   12.36   20.0  same
+Visual_sphere-photonmap-reyes                     5.97    5.97   20.0  same
+Visual_sphere-photonmap-reyes-slo                 5.97    5.97   20.0  same
+Visual_sphere-ray-self-hit-raytrace               0.00    0.00    0.0  same
+Visual_sphere-ray-self-hit-reyes                  0.00    0.00    0.0  same
+Visual_sphere-ray-self-hit-reyes-slo              0.00    0.00    0.0  same
+Visual_subdiv-facevarying-seam-photon             1.59    1.59   20.0  same
+Visual_subdiv-hierarchical-override-photon        0.44    0.44   20.0  same
+Visual_subdiv-loop-photon                         0.97    0.97   20.0  same
+Visual_subdiv-new-tags-photon                     1.88    1.88   20.0  same

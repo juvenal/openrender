@@ -1,0 +1,17 @@
+--- tests/visual/determinism-scenes.cmake
++++ tests/visual/determinism-scenes.cmake
+@@ -734,14 +734,12 @@
+ # no -P:2: the photon pass fails under network rendering (GitHub #170)
+ add_determinism_sweep(gi-subdiv-new-tags-photon examples/rib/tests/subdiv-new-tags-photon.rib subdiv-new-tags-photon.tif
+     FILES subdiv-new-tags-photon.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+-if(OPENRENDER_040_RED_TESTS) # leaves the guard in Phase 3 (T050)
+ # no -P:2: the photon pass fails under network rendering (GitHub #170)
+ add_determinism_sweep(gi-photon-parity examples/rib/tests/photon-parity.rib photon-parity.tif
+     FILES photon-parity.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+ # no -P:2: the photon pass fails under network rendering (GitHub #170)
+ add_determinism_sweep(gi-photon-parity-slo examples/rib/tests/photon-parity-slo.rib photon-parity-slo.tif
+     FILES photon-parity-slo.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+-endif()
+ if(OPENRENDER_040_RED_TESTS) # leaves the guard in Phase 5 (T073)
+ add_determinism_sweep(gi-sphere-occlusion-reyes examples/rib/tests/sphere-occlusion-reyes.rib sphere-occlusion-reyes.tif
+     FLOAT DEPTH)

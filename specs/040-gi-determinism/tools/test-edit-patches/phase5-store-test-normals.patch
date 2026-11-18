@@ -1,0 +1,41 @@
+--- a/tests/gi_determinism/test_gi_cache_store.cpp
++++ b/tests/gi_determinism/test_gi_cache_store.cpp
+@@ -56,6 +56,20 @@
+         v[2] = g.range(-1, 1);
+         l = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+     } while (l < 0.2f || l > 1);
++    v[0] /= l;
++    v[1] /= l;
++    v[2] /= l;
++}
++
++// A unit vector within about 4 degrees of +z. The records' and the queries' normals are drawn from this cone: with normals uniform on the
++// sphere the directional error of a lookup (weightNormalDenominator, 10 degrees) is almost always over the limit, and a lookup hits about once in
++// a hundred, so the cases' "the case would prove little" preconditions (more than 20 hits of 150 or 200 lookups) could never hold, for any
++// implementation. Hit counts are about 140 of 200 with the cone; no threshold is changed.
++static void nearZ(Lcg &g, float *v) {
++    v[0] = g.range(-0.07f, 0.07f);
++    v[1] = g.range(-0.07f, 0.07f);
++    v[2] = 1;
++    const float l = sqrtf(v[0] * v[0] + v[1] * v[1] + 1);
+     v[0] /= l;
+     v[1] /= l;
+     v[2] /= l;
+@@ -67,7 +81,7 @@
+     r.P[0] = g.range(0, 4);
+     r.P[1] = g.range(0, 4);
+     r.P[2] = g.range(0, 4);
+-    unitVector(g, r.N);
++    nearZ(g, r.N);
+     for (int i = 0; i < 3; i++) {
+         r.irradiance[i] = g.range(0, 1);
+     }
+@@ -145,7 +159,7 @@
+     const CIrradianceBatchView noBatch{nullptr, 0};
+     for (int i = 0; i < count; i++) {
+         float P[3] = {g.range(0, 4), g.range(0, 4), g.range(0, 4)}, N[3];
+-        unitVector(g, N);
++        nearZ(g, N);
+         libshader::IrradianceAcceptState state;
+         state.call.seedHash = 0x1234567ull + (uint64_t)i;
+         state.call.indexBase = (uint32_t)i;

@@ -32,6 +32,7 @@
 #include <stdint.h>
 
 #include "common/algebra.h"
+#include "common/giHash.h"
 #include "common/global.h"
 #include "texture3d.h"
 
@@ -60,8 +61,21 @@ class CIrradianceRecord {
         uint64_t key; // Spec 040's identity of the record (irradianceRecordKey), in memory and on the wire; not in cache files (0 when read from one)
 };
 
-// The next value of the caller's sample stream; called once per record that passes the front test
-using IrradianceDrawFn = float (*)(void *drawState);
+// The identity of a record for the accept rule (spec 040, data-model.md section 3): its key when it has one, else a hash of the bit
+// patterns of its P and N (a record read from a cache file carries no key)
+inline uint64_t irradianceRecordIdentity(const CIrradianceRecord &r) { return openrender::sampling::giRecordIdentity(r.key, r.P, r.N); }
+
+// The accept value of one record for the call in progress, in [0, 1): a pure function of the call (acceptState) and the record's identity.
+// Called once per record that passes the front test, at the weighted-discard test. Not a draw: it consumes no stream and does not depend
+// on the records the lookup visited before.
+using IrradianceAcceptFn = float (*)(const void *acceptState, uint64_t recordIdentity);
+
+// The records of the caller's batch (the points one shade() call evaluates) that were made before this query, seen by a lookup after the fixed part (spec 040:
+// libshader::irradianceLookup fills it from CShadingState::irradianceBatch; dP holds the batch-clamped radius).
+struct CIrradianceBatchView {
+        const CIrradianceRecord *records;
+        int count;
+};
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CIrradianceStore
@@ -71,14 +85,20 @@ class CIrradianceStore : public CTexture3d {
     public:
         using CTexture3d::CTexture3d;
 
-        // Walk the records near P. Writes Pc/Nc (the query point and normal in cache space). Calls draw(drawState) once for
-        // every record that passes the front test, at the point of the weighted-discard test, in traversal order. A hit
+        // Walk the records near P: the cache's, then the batch's. Writes Pc/Nc (the query point and normal in cache space). Calls
+        // accept(acceptState, identity) once for every record that passes the front test, at the point of the weighted-discard test. A hit
         // writes C[0..6] (the envdir in the world's frame) and returns true; a miss returns false and leaves C alone.
-        virtual bool lookupCached(float *C, const float *P, const float *N, float maxError, IrradianceDrawFn draw, void *drawState, float *Pc, float *Nc) = 0;
+        virtual bool lookupCached(float *C, const float *P, const float *N, float maxError, IrradianceAcceptFn accept, const void *acceptState, const CIrradianceBatchView &batch, float *Pc, float *Nc) = 0;
 
-        // Add a record (the caller computed it), under the cache's lock: copy, clamp against its neighbours, place by
-        // dP / (0.4 / maxError)
-        virtual void insertRecord(const CIrradianceRecord &record, float maxError) = 0;
+        // The batch-clamped radius of a record about to join a caller's batch: min(raw dP, min over the fixed part F (dP + l)), l the distance
+        // between the points (C_EPSILON for coincident points). F is read-only during a frame, so no lock is taken. The caller (Shading) applies
+        // the records of its own batch to the result and to them (data-model.md section 4).
+        virtual float clampAgainstFixed(const CIrradianceRecord &record) const = 0;
+
+        // Add a record made this frame to the pending set: the record with its raw dP and the creating call's maxError (its K = 0.4 / maxError
+        // places the record). Under the cache's lock; it touches neither F nor anything a lookup reads, so a lookup never sees a pending record
+        // (spec 040). A cache opened CACHE_RDONLY ignores it.
+        virtual void addPending(const CIrradianceRecord &record, float maxError) = 0;
 
         // Does a miss ask for a new sample (CACHE_SAMPLE)?
         virtual bool samplesOnMiss() const = 0;

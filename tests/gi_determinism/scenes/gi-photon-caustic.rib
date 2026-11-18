@@ -1,0 +1,57 @@
+##RenderMan RIB-Structure 1.0
+# Spec 040 sweep scene (T115), not a visual test and without a reference image: a photon pass with a global map and a caustic map (3000 photons),
+# then a raytrace render of the caustic map, shader format rslo.
+# A chrome sphere (Attribute "photon" "shadingmodel") sends photons to the matte floor and wall, so photon.cpp's caustic branch runs and a
+# photon that follows a specular bounce is stored in both maps. The floor and the wall are two Attribute "photon" blocks that name the same
+# two maps (two blocks, one map of each name).
+# The photon pass cannot run under -P (GitHub #170), so the sweep entry omits that configuration.
+# The determinism harness (tests/visual/test_depth_determinism.cpp, --float --depth --files) renders it under every thread configuration and
+# compares colour, alpha, depth and both map files byte for byte.
+version 3.03
+FrameBegin 1
+  Hider "photon" "int emit" [3000]
+  Projection "perspective" "fov" 45
+  Format 16 12 1
+  Translate 0 -1 5
+  WorldBegin
+    Attribute "shade" "shaderformat" ["rslo"]
+    LightSource "pointlight" 1 "intensity" [4] "from" [0 2.2 0.5]
+    AttributeBegin
+      Attribute "photon" "string globalmap" ["gi-photon-caustic.gpm"] "string causticmap" ["gi-photon-caustic-c.gpm"]
+      Color [0.8 0.8 0.8]
+      Surface "matte"
+      Polygon "P" [-3 0 -3  -3 0 3  3 0 3  3 0 -3]
+    AttributeEnd
+    AttributeBegin
+      Attribute "photon" "string globalmap" ["gi-photon-caustic.gpm"] "string causticmap" ["gi-photon-caustic-c.gpm"]
+      Color [0.8 0.8 0.8]
+      Surface "matte"
+      Polygon "P" [-3 0 3  -3 3 3  3 3 3  3 0 3]
+    AttributeEnd
+    AttributeBegin
+      Attribute "photon" "string shadingmodel" ["chrome"]
+      Color [0.9 0.9 0.9]
+      Surface "matte"
+      Translate 0 0.6 0.5
+      Sphere 0.6 -0.6 0.6 360
+    AttributeEnd
+  WorldEnd
+FrameEnd
+FrameBegin 2
+  Hider "raytrace"
+  PixelSamples 1 1
+  Display "gi-photon-caustic.tif" "file" "rgba"
+  Projection "perspective" "fov" 45
+  Format 64 48 1
+  Translate 0 -1 5
+  WorldBegin
+    Attribute "shade" "shaderformat" ["rslo"]
+    Surface "photonparity_view" "string mapname" ["gi-photon-caustic-c.gpm"] "float gain" [1]
+    Polygon "P" [-3 0 -3  -3 0 3  3 0 3  3 0 -3]
+    Polygon "P" [-3 0 3  -3 3 3  3 3 3  3 0 3]
+    TransformBegin
+      Translate 0 0.6 0.5
+      Sphere 0.6 -0.6 0.6 360
+    TransformEnd
+  WorldEnd
+FrameEnd

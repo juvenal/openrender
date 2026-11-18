@@ -19,6 +19,11 @@
 #   print_no_dither   --no-dither puts Quantize "rgba" 255 0 255 0 in the copy, after the
 #                     --prepend line
 #   usage_unchanged   the original usage (driver orender rib tif runs) still works
+#   FilesDiffer       (spec 040) --files: a stand-in for orender (a script that writes determinism-harness-files.bin from its
+#                     first argument and then runs the real orender) gives the two configurations "-t:1" and "-t:2" different
+#                     bytes in the file: exit 1, and the report names the file and the first differing offset
+#   FilesSame         (spec 040) the same stand-in with the configurations "-t:1" and "-t:1": identical bytes, exit 0, and the
+#                     report names the file as byte-identical
 driver=$1; orender=$2; scenes=$3; which=$4
 sobol='Option "sampling" "sampler" ["sobol"]'
 fail() { echo "FAIL: $*" >&2; exit 1; }
@@ -71,6 +76,24 @@ print_no_dither)
 usage_unchanged)
     "$driver" "$orender" "$scenes/color-determinism-opaque-reyes.rib" color-determinism-opaque.tif 2
     expect_rc $? 0 "the original usage"
+    ;;
+FilesDiffer|FilesSame)
+    stub="$PWD/determinism-harness-orender.sh"
+    printf '#!/bin/bash\nprintf "%%s" "$1" > determinism-harness-files.bin\nexec "%s" "$@"\n' "$orender" > "$stub"
+    chmod +x "$stub"
+    if [ "$which" = FilesDiffer ]; then configs="-t:1|-t:2"; else configs="-t:1|-t:1"; fi
+    out=$("$driver" --configs "$configs" --outputs sphere-random-reyes.tif --files determinism-harness-files.bin --prepend "$sobol" --no-dither "$stub" "$scenes/sphere-random-reyes.rib" 2>&1)
+    rc=$?
+    echo "$out"
+    rm -f "$stub" determinism-harness-files.bin
+    if [ "$which" = FilesDiffer ]; then
+        expect_rc $rc 1 "two configurations with different file bytes"
+        echo "$out" | grep -q 'determinism-harness-files.bin' || fail "the differing file is not named"
+        echo "$out" | grep -q 'first differing byte at offset' || fail "the first differing offset is not reported"
+    else
+        expect_rc $rc 0 "two configurations with identical file bytes"
+        echo "$out" | grep -q 'determinism-harness-files.bin.*byte-identical' || fail "the file is not reported as byte-identical"
+    fi
     ;;
 *)
     fail "unknown case $which"

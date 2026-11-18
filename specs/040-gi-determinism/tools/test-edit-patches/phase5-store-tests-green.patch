@@ -1,0 +1,222 @@
+--- a/tests/gi_determinism/test_gi_cache_store.cpp
++++ b/tests/gi_determinism/test_gi_cache_store.cpp
+@@ -21,16 +21,12 @@
+  *                               records (raw + l)) and each earlier record becomes min(radius, raw_new + l) (data-model.md section 4); the
+  *                               final radii do not depend on the order the records were added in
+  *
+- * The members these cases need do not exist on the starting tree: addPending(), commitPending(), clampAgainstFixed(), the lookupCached()
++ * The members these cases need did not exist on the starting tree: addPending(), commitPending(), clampAgainstFixed(), the lookupCached()
+  * with an accept function and a batch view, irradianceRecordIdentity() (texture/irradianceStore.h, CIrradianceCache), and
+  * libshader::irradianceAcceptValue()/IrradianceAcceptState (irradianceCalls.h) and libshader::clampAgainstBatch()/IrradianceBatchEntry
+  * (the new irradianceBatch.h). Red reason of all six: a build failure naming the first of them.
+  *
+  * Usage: test_gi_cache_store <mode> <work dir> [<fixture cache of GiFixture_ICache>]
+- *
+- * GIDET_STORE_PHASE5 (set by the red block of CMakeLists.txt) selects the five modes that need the members spec 040's Phase 5 adds (addPending(), commitPending(),
+- * clampAgainstFixed(), irradianceBatch.h). Without it the file is the executable of GiDet_AcceptPure alone, which Phase 4 turns green: the accept rule of
+- * Phase 4 needs the accept function, the batch view and the identity, none of the commit machinery.
+  */
+ 
+ #include <algorithm>
+@@ -41,9 +37,7 @@
+ #include "common/algebra.h"
+ #include "common/memory.h"
+ #include "common/os.h"
+-#ifdef GIDET_STORE_PHASE5
+ #include "libshader/shading/irradianceBatch.h"
+-#endif
+ #include "libshader/shading/irradianceCalls.h"
+ #include "ri/texture/irradianceCache.h"
+ 
+@@ -88,7 +82,6 @@
+     return r;
+ }
+ 
+-#ifdef GIDET_STORE_PHASE5
+ // The 56 floats of a record in file order (what a file stores; the key is not part of them)
+ static void fileFloats(const CIrradianceRecord &r, float *f) {
+     memcpy(f, r.P, 12);
+@@ -197,9 +190,7 @@
+     return gitest::readFile(name, b) && b.size() > 40;
+ }
+ 
+-#endif
+ 
+-#ifdef GIDET_STORE_PHASE5
+ // ---------------------------------------------------------------------------------------------------------
+ // lookup-pure
+ // ---------------------------------------------------------------------------------------------------------
+@@ -425,7 +416,6 @@
+     return g_fail == 0 ? 0 : 1;
+ }
+ 
+-#endif
+ 
+ // ---------------------------------------------------------------------------------------------------------
+ // accept-pure
+@@ -481,7 +471,6 @@
+     return g_fail == 0 ? 0 : 1;
+ }
+ 
+-#ifdef GIDET_STORE_PHASE5
+ // ---------------------------------------------------------------------------------------------------------
+ // batch-clamp
+ // ---------------------------------------------------------------------------------------------------------
+@@ -579,7 +568,6 @@
+     return g_fail == 0 ? 0 : 1;
+ }
+ 
+-#endif
+ 
+ int main(int argc, char **argv) {
+     if (argc < 3) {
+@@ -587,14 +575,11 @@
+         return 2;
+     }
+     const std::string mode = argv[1];
+-#ifdef GIDET_STORE_PHASE5
+     const std::string fixture = argc > 3 ? absolute(argv[3]) : std::string();
+-#endif
+     if (chdir(argv[2]) != 0) {
+         fprintf(stderr, "cannot enter %s\n", argv[2]);
+         return 2;
+     }
+-#ifdef GIDET_STORE_PHASE5
+     if (mode == "lookup-pure")
+         return modeLookupPure();
+     if (mode == "commit-order")
+@@ -603,13 +588,10 @@
+         return modeCommitDedupe();
+     if (mode == "roundtrip")
+         return modeRoundTrip(fixture);
+-#endif
+     if (mode == "accept-pure")
+         return modeAcceptPure();
+-#ifdef GIDET_STORE_PHASE5
+     if (mode == "batch-clamp")
+         return modeBatchClamp();
+-#endif
+     fprintf(stderr, "unknown mode %s\n", mode.c_str());
+     return 2;
+ }
+--- a/tests/gi_determinism/CMakeLists.txt
++++ b/tests/gi_determinism/CMakeLists.txt
+@@ -19,9 +19,6 @@
+ 
+ option(OPENRENDER_040_RED_TESTS "Define the spec 040 red-first tests (default OFF: the targets are EXCLUDE_FROM_ALL and do not build before their phase)" OFF)
+ 
+-# The form of the record hook the tests use: "insertRecord" on the starting tree, "addPending" once Phase 5 has replaced it (tests/gi_determinism/gi_recording.h)
+-set(GIDET_RECORD_HOOK "insertRecord" CACHE STRING "The record hook of CIrradianceCache the recording tests override: insertRecord or addPending")
+-set_property(CACHE GIDET_RECORD_HOOK PROPERTY STRINGS insertRecord addPending)
+ 
+ if(APPLE)
+     set(GI_DET_PLATFORM macos)
+@@ -110,14 +107,22 @@
+ gi_det_photon_runs(PhotonThreads4x30 900 gi_determinism_long threads4 30)
+ 
+ # ---------------------------------------------------------------------------------------------------------
+-# Phase 4 (spec 040): the accept rule and what a miss makes, defined unconditionally
++# Phase 4 and 5 (spec 040): the irradiance store and what a miss makes, defined unconditionally
+ # ---------------------------------------------------------------------------------------------------------
+-# test_gi_cache_store.cpp without GIDET_STORE_PHASE5 is the accept-pure mode alone (the red block builds the whole file with the macro)
+-gi_det_executable_always(test_gi_accept test_gi_cache_store.cpp)
+-add_test(NAME GiDet_AcceptPure COMMAND test_gi_accept accept-pure ${CMAKE_CURRENT_BINARY_DIR}/work/AcceptPure)
+-set_tests_properties(GiDet_AcceptPure PROPERTIES TIMEOUT 300 LABELS "gi_determinism;irradiance" ENVIRONMENT "${GI_DET_ENV}")
++# Phase 5: the irradiance store's tests, all from test_gi_cache_store.cpp (GiDet_AcceptPure from Phase 4)
++gi_det_executable_always(test_gi_cache_store test_gi_cache_store.cpp)
++foreach(_m lookup-pure:LookupPure commit-order:CommitOrder commit-dedupe:CommitDedupe accept-pure:AcceptPure batch-clamp:BatchClamp)
++    string(REPLACE ":" ";" _mt ${_m})
++    list(GET _mt 0 _mode)
++    list(GET _mt 1 _name)
++    add_test(NAME GiDet_${_name} COMMAND test_gi_cache_store ${_mode} ${CMAKE_CURRENT_BINARY_DIR}/work/${_name})
++    set_tests_properties(GiDet_${_name} PROPERTIES TIMEOUT 300 LABELS "gi_determinism;irradiance" ENVIRONMENT "${GI_DET_ENV}")
++endforeach()
++# the round trip also loads the cache file the starting tree wrote (fixture F1 of spec 032)
++add_test(NAME GiDet_CacheRoundTrip COMMAND test_gi_cache_store roundtrip ${CMAKE_CURRENT_BINARY_DIR}/work/CacheRoundTrip ${CMAKE_BINARY_DIR}/tests/gi_split/fixture/icache-fixture.icache)
++set_tests_properties(GiDet_CacheRoundTrip PROPERTIES TIMEOUT 300 LABELS "gi_determinism;irradiance" ENVIRONMENT "${GI_DET_ENV}" FIXTURES_REQUIRED GiFixture_ICache)
+ 
+-# test_gi_miss: MissIndependence and IndirectRayCount_slo are green from Phase 4; IndirectRayCount_rslo (GitHub #173) and RepeatedPoint stay in the red block (it needs the commit of Phase 5)
++# test_gi_miss: MissIndependence and IndirectRayCount_slo are green from Phase 4, RepeatedPoint from Phase 5; IndirectRayCount_rslo (GitHub #173) stays in the red block
+ gi_det_executable_always(test_gi_miss test_gi_miss.cpp)
+ foreach(_variant rslo slo)
+     if(_variant STREQUAL "slo")
+@@ -125,7 +130,7 @@
+     else()
+         set(_suffix "")
+     endif()
+-    foreach(_m miss:MissIndependence:miss-probe raycount:IndirectRayCount:raycount)
++    foreach(_m miss:MissIndependence:miss-probe raycount:IndirectRayCount:raycount repeat:RepeatedPoint:repeat-point)
+         # IndirectRayCount_rslo is red until GitHub #173 (the interpreter hands the sampler a denormal `samples`) is fixed: it is in the red block below
+         if(_m MATCHES "^raycount" AND _variant STREQUAL "rslo")
+             continue()
+@@ -148,34 +153,17 @@
+         target_compile_features(${_target} PRIVATE cxx_std_20)
+         target_include_directories(${_target} PRIVATE ${GI_DET_INCLUDES})
+         target_link_libraries(${_target} PRIVATE ribRender libshader_shading openrendercommon Threads::Threads)
+-        if(GIDET_RECORD_HOOK STREQUAL "addPending")
+-            target_compile_definitions(${_target} PRIVATE GIDET_RECORD_HOOK_ADDPENDING)
+-        endif()
+     endmacro()
+ 
+-    # --- US2/US3: the irradiance store ------------------------------------------------------------
+-    gi_det_executable(test_gi_cache_store test_gi_cache_store.cpp)
+-    target_compile_definitions(test_gi_cache_store PRIVATE GIDET_STORE_PHASE5)
+-    foreach(_m lookup-pure:LookupPure commit-order:CommitOrder commit-dedupe:CommitDedupe batch-clamp:BatchClamp)
+-        string(REPLACE ":" ";" _mt ${_m})
+-        list(GET _mt 0 _mode)
+-        list(GET _mt 1 _name)
+-        add_test(NAME GiDet_${_name} COMMAND test_gi_cache_store ${_mode} ${CMAKE_CURRENT_BINARY_DIR}/work/${_name})
+-        set_tests_properties(GiDet_${_name} PROPERTIES TIMEOUT 300 LABELS "gi_determinism;irradiance" ENVIRONMENT "${GI_DET_ENV}")
+-    endforeach()
+-    # the round trip also loads the cache file the starting tree wrote (fixture F1 of spec 032)
+-    add_test(NAME GiDet_CacheRoundTrip COMMAND test_gi_cache_store roundtrip ${CMAKE_CURRENT_BINARY_DIR}/work/CacheRoundTrip ${CMAKE_BINARY_DIR}/tests/gi_split/fixture/icache-fixture.icache)
+-    set_tests_properties(GiDet_CacheRoundTrip PROPERTIES TIMEOUT 300 LABELS "gi_determinism;irradiance" ENVIRONMENT "${GI_DET_ENV}" FIXTURES_REQUIRED GiFixture_ICache)
+-
+-    # --- US2: what a miss makes, the part that needs the commit (the executable is built from Phase 4) ---------
++    # --- GitHub #173: the interpreter's indirectdiffuse() ---------------------------------------------------
+     foreach(_variant rslo slo)
+         if(_variant STREQUAL "slo")
+             set(_suffix "-slo")
+         else()
+             set(_suffix "")
+         endif()
+-        foreach(_m repeat:RepeatedPoint:repeat-point raycount:IndirectRayCount:raycount)
+-            if(_m MATCHES "^raycount" AND _variant STREQUAL "slo")
++        foreach(_m raycount:IndirectRayCount:raycount)
++            if(_variant STREQUAL "slo")
+                 continue()
+             endif()
+             string(REPLACE ":" ";" _mt ${_m})
+@@ -188,4 +176,4 @@
+     endforeach()
+ endif()
+ 
+-message(STATUS "  - spec 040 gi_determinism tests (red block ${OPENRENDER_040_RED_TESTS}), record hook ${GIDET_RECORD_HOOK}, platform ${GI_DET_PLATFORM}")
++message(STATUS "  - spec 040 gi_determinism tests (red block ${OPENRENDER_040_RED_TESTS}), platform ${GI_DET_PLATFORM}")
+--- a/tests/gi_split/CMakeLists.txt
++++ b/tests/gi_split/CMakeLists.txt
+@@ -184,15 +184,16 @@
+ set_tests_properties(GiKeys_PhotonsThreads PROPERTIES
+     TIMEOUT 600 LABELS "gi_split_threads" ENVIRONMENT "${GI_SPLIT_ENV}")
+ 
+-# Spec 040 (T025): two additive cases, red until Phase 2 and Phase 5 (defined only with -DOPENRENDER_040_RED_TESTS=ON; the option itself is in
+-# tests/gi_determinism/CMakeLists.txt, and a -D on the command line is in the cache before this file runs)
+-#   GiKeys_IrradianceRecordsThreads  the (key, record) multiset at -t:1 against -t:4, three hiders, .rslo and .slo (the batch-identity gate of research.md R4)
+-#   GiRemote_LoopbackCommit          a pending set sent over the loopback commits as the one-process set does (FR-015, GitHub #161)
++# Spec 040 (T025): two additive cases. GiKeys_IrradianceRecordsThreads (the (key, record) multiset at -t:1 against -t:4, three hiders, .rslo and .slo:
++# the batch-identity gate of research.md R4) is green from Phase 5 and defined always; GiRemote_LoopbackCommit (a pending set sent over the loopback
++# commits as the one-process set does, FR-015, GitHub #161) stays red until Phase 6 (defined only with -DOPENRENDER_040_RED_TESTS=ON; the option itself
++# is in tests/gi_determinism/CMakeLists.txt, and a -D on the command line is in the cache before this file runs)
++file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/keys-records-threads)
++add_test(NAME GiKeys_IrradianceRecordsThreads COMMAND test_gi_keys records-threads ${CMAKE_CURRENT_BINARY_DIR}/keys-records-threads -)
++set_tests_properties(GiKeys_IrradianceRecordsThreads PROPERTIES
++    TIMEOUT 900 LABELS "gi_split" ENVIRONMENT "${GI_SPLIT_ENV}")
+ if(OPENRENDER_040_RED_TESTS)
+-    file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/keys-records-threads ${CMAKE_CURRENT_BINARY_DIR}/loopback-commit)
+-    add_test(NAME GiKeys_IrradianceRecordsThreads COMMAND test_gi_keys records-threads ${CMAKE_CURRENT_BINARY_DIR}/keys-records-threads -)
+-    set_tests_properties(GiKeys_IrradianceRecordsThreads PROPERTIES
+-        TIMEOUT 900 LABELS "gi_split" ENVIRONMENT "${GI_SPLIT_ENV}")
++    file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/loopback-commit)
+     # the same source with GIDET_COMMIT_CASE, in its own executable so that test_gi_remote_loopback (in `all`) keeps building
+     add_executable(test_gi_remote_commit EXCLUDE_FROM_ALL test_gi_remote_loopback.cpp)
+     target_compile_features(test_gi_remote_commit PRIVATE cxx_std_20)

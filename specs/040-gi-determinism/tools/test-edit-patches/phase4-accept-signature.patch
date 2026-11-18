@@ -1,0 +1,99 @@
+--- a/tests/unit/texture_only/test_gi_stores.cpp
++++ b/tests/unit/texture_only/test_gi_stores.cpp
+@@ -40,7 +40,7 @@
+     } while (0)
+ 
+ #ifdef GI_STORES_CACHE
+-static float fixedDraw(void *) {
++static float fixedAccept(const void *, uint64_t) {
+     return 0.5f;
+ }
+ 
+@@ -59,7 +59,8 @@
+             const float N[3] = {0, 0, 1};
+             CacheAnswer a;
+             memset(&a, 0, sizeof(a));
+-            a.hit = cache.lookupCached(a.C, P, N, 0.6f, fixedDraw, nullptr, a.Pc, a.Nc);
++            const CIrradianceBatchView noBatch{nullptr, 0};
++            a.hit = cache.lookupCached(a.C, P, N, 0.6f, fixedAccept, nullptr, noBatch, a.Pc, a.Nc);
+             hits += a.hit ? 1 : 0;
+             answers.push_back(a);
+         }
+--- a/tests/gi_split/test_gi_remote_lookup.cpp
++++ b/tests/gi_split/test_gi_remote_lookup.cpp
+@@ -59,12 +59,12 @@
+ // GiRemote_LoopbackLookup
+ // ---------------------------------------------------------------------------------------------------------
+ struct DrawCount {
+-        int draws = 0;
++        mutable int draws = 0;
+ };
+ 
+-// the draw callback of IrradianceDrawFn: the next value of the caller's sample stream; a fixed value, counted
+-static float countingDraw(void *state) {
+-    static_cast<DrawCount *>(state)->draws++;
++// the accept function of IrradianceAcceptFn: a fixed value, counted (it was the draw callback before spec 040: the count is how many records the lookup asked about)
++static float countingDraw(const void *state, uint64_t) {
++    static_cast<const DrawCount *>(state)->draws++;
+     return 0.5f;
+ }
+ 
+@@ -108,8 +108,9 @@
+     for (const Position &p : positions) {
+         float Cs[7] = {0}, Cr[7] = {0}, Pc[3], Nc[3];
+         DrawCount ds, dr;
+-        const bool hs = sender->lookupCached(Cs, p.P, p.N, maxError, countingDraw, &ds, Pc, Nc);
+-        const bool hr = receiver->lookupCached(Cr, p.P, p.N, maxError, countingDraw, &dr, Pc, Nc);
++        const CIrradianceBatchView noBatch{nullptr, 0};
++        const bool hs = sender->lookupCached(Cs, p.P, p.N, maxError, countingDraw, &ds, noBatch, Pc, Nc);
++        const bool hr = receiver->lookupCached(Cr, p.P, p.N, maxError, countingDraw, &dr, noBatch, Pc, Nc);
+         hitS += hs;
+         hitR += hr;
+         drawsS += ds.draws;
+--- a/tests/gi_determinism/gi_recording.h
++++ b/tests/gi_determinism/gi_recording.h
+@@ -7,8 +7,8 @@
+  * cache itself, as a CIrradianceCache subclass whose record hook copies every (key, record) before forwarding, and owns it.
+  *
+  * The record hook is virtual insertRecord() on the starting tree and addPending() after spec 040's Phase 5 (contracts/irradiance-store.md):
+- * GIDET_RECORD_HOOK_ADDPENDING (set from the CMake cache variable GIDET_RECORD_HOOK) selects the second. The same macro selects the form of
+- * lookupCached() the helper visitedByLookup() calls (a draw callback on the starting tree, an accept function and a batch view after Phase 4).
++ * GIDET_RECORD_HOOK_ADDPENDING (set from the CMake cache variable GIDET_RECORD_HOOK) selects the second. The lookupCached() the helper
++ * visitedByLookup() calls is the one with an accept function and a batch view (Phase 4), whichever hook is selected.
+  */
+ 
+ #ifndef GI_RECORDING_H
+@@ -143,17 +143,13 @@
+         return gitest::readFile(name, b) && b.size() > 40;
+     }
+ 
+-    // How many records a lookup at the origin of the probe surface (normal -z) visits (draws or accepts for), and whether it hit
++    // How many records a lookup at the origin of the probe surface (normal -z) visits (is asked an accept value for), and whether it hit
+     namespace detail {
+         struct Counter {
+-                int n = 0;
++                mutable int n = 0;
+         };
+-        inline float countDraw(void *s) {
+-            static_cast<Counter *>(s)->n++;
+-            return 0.5f;
+-        }
+         inline float countAccept(const void *s, uint64_t) {
+-            const_cast<Counter *>(static_cast<const Counter *>(s))->n++;
++            static_cast<const Counter *>(s)->n++;
+             return 0.5f;
+         }
+     } // namespace detail
+@@ -167,12 +163,8 @@
+         const float P[3] = {0, 0, 0}, N[3] = {0, 0, -1};
+         float C[7], Pc[3], Nc[3];
+         detail::Counter counter;
+-#ifdef GIDET_RECORD_HOOK_ADDPENDING
+         const CIrradianceBatchView noBatch{nullptr, 0};
+         hit = cache.lookupCached(C, P, N, 0.6f, detail::countAccept, &counter, noBatch, Pc, Nc);
+-#else
+-        hit = cache.lookupCached(C, P, N, 0.6f, detail::countDraw, &counter, Pc, Nc);
+-#endif
+         return counter.n;
+     }
+ 

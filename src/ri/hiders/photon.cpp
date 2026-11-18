@@ -630,28 +630,18 @@ processBounce:;
 
                 // Save the photon
                 if ((globalMap = openrender::shading::photonMapOf(attributes->globalMap)) != NULL) {
-                    if (globalMap->isModifying() == FALSE) {
-                        // Note: this isn't strictly thread safe, more than one
-                        // thread may end up with the map in the balance list
-                        // but the write() will take care of it
-                        globalMap->setModifying(TRUE);
-                        globalMap->resetPhotons();
+                    // One critical section in the store: the first photon of the frame resets the map and the one thread that stored it
+                    // puts the map on its balance list
+                    if (globalMap->storePhotonForFrame(Pl, Nl, ray.dir, Cl, openrender::shading::photonKey(pointKeyFull, (uint32_t)(numDiffuseBounces + numSpecularBounces)))) {
                         balanceList.push(globalMap);
                     }
-
-                    globalMap->storePhoton(Pl, Nl, ray.dir, Cl, openrender::shading::photonKey(pointKeyFull, (uint32_t)(numDiffuseBounces + numSpecularBounces)));
                 }
 
                 if ((causticMap = openrender::shading::photonMapOf(attributes->causticMap)) != NULL) {
                     if (lastBounceSpecular) {
-                        if (causticMap->isModifying() == FALSE) {
-                            // Note: this isn't strictly thread safe, see above
-                            causticMap->setModifying(TRUE);
-                            causticMap->resetPhotons();
+                        if (causticMap->storePhotonForFrame(Pl, Nl, ray.dir, Cl, openrender::shading::photonKey(pointKeyFull, (uint32_t)(numDiffuseBounces + numSpecularBounces)))) {
                             balanceList.push(causticMap);
                         }
-
-                        causticMap->storePhoton(Pl, Nl, ray.dir, Cl, openrender::shading::photonKey(pointKeyFull, (uint32_t)(numDiffuseBounces + numSpecularBounces)));
 
                         return;
                     }

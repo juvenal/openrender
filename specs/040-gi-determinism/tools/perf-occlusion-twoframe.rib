@@ -1,0 +1,53 @@
+##RenderMan RIB-Structure 1.0
+# Spec 040 T097 (L4): the two-frame idiom's cost, a two-frame copy of perf-occlusion-cache.rib (same Format, ShadingRate and thread placeholder; timing_sc007.sh
+# scales both the same way). Frame 1 writes the cache with "filemode" ["w"]; frame 2 reads it ("r": CACHE_READ | CACHE_SAMPLE) and renders, so every batch of frame 2 starts
+# from a full fixed part. The time of this scene less the time of perf-occlusion-cache (frame 1 alone) is frame 2's cost; D5's alternative (documenting the idiom
+# instead of a deterministic prepass) needs both numbers.
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["rslo"]
+Option "limits" "numthreads" [@THREADS@]
+FrameBegin 1
+  Display "perf-occlusion-twoframe-1.tif" "file" "rgba"
+  Format 640 480 1
+  PixelSamples 1 1
+  ShadingRate 1
+  Projection "perspective"
+  Clipping 0.1 100
+  Translate 0 0 5
+  WorldBegin
+    Attribute "irradiance" "string handle" ["perf-occlusion-two.icache"]
+    Attribute "irradiance" "string filemode" ["w"]
+    Attribute "irradiance" "float maxerror" [0.5]
+    Surface "occlusion_probe"
+    Sphere 1 -1 1 360
+    AttributeBegin
+      Attribute "visibility" "diffuse" [1]
+      Surface "matte"
+      Translate 1.2 0 -0.5
+      Sphere 0.9 -0.9 0.9 360
+    AttributeEnd
+  WorldEnd
+FrameEnd
+FrameBegin 2
+  Display "perf-occlusion-twoframe-2.tif" "file" "rgba"
+  Format 640 480 1
+  PixelSamples 1 1
+  ShadingRate 1
+  Projection "perspective"
+  Clipping 0.1 100
+  Translate 0 0 5
+  WorldBegin
+    Attribute "irradiance" "string handle" ["perf-occlusion-two.icache"]
+    Attribute "irradiance" "string filemode" ["r"]
+    Attribute "irradiance" "float maxerror" [0.5]
+    Surface "occlusion_probe"
+    Sphere 1 -1 1 360
+    AttributeBegin
+      Attribute "visibility" "diffuse" [1]
+      Surface "matte"
+      Translate 1.2 0 -0.5
+      Sphere 0.9 -0.9 0.9 360
+    AttributeEnd
+  WorldEnd
+FrameEnd

@@ -1,0 +1,29 @@
+# T074 (Phase 5): image quality of the cached GI scenes on the new tree (build, M2: fixed part + batch scope + canonical commit), macOS, -t:1, against the SAME uncached 256-sample truths as T029
+# (tools/quality_run.py with QTREE=build QOUT=build-logs/040-quality-p5; results in build-logs/040-quality-p5/results.txt). metric = max 8x8 block-average |diff| (0..255), rmse as in quality-base-macos.txt.
+# columns: scene / image, starting tree metric, rmse, M2 metric, rmse, NaN pixels (cached, truth) of the M2 run.
+# Result: every occlusion row with signal is no worse than the starting tree's (gi-occlusion-raytrace 5.63 -> 1.59, reyes 2.43 -> 1.72, zbuffer 2.77 -> 2.33; gi-cache-extend 0.76 -> 0.24);
+# sphere-occlusion-reyes(-slo) (cache off by default: a 12-sample render against the truth) 31.08 -> 33.87, inside the seed-1 truth noise of that scene (7.31).
+# The indirectdiffuse rows carry no signal (GitHub #173 under .rslo: the cached image is NaN/black; .slo: black on both sides) and neither does gi-photon-then-indirect-reyes (rslo): its
+# truth is now a real image (indirectdiffuse with the cache off draws `samples` keyed directions, FR-012) while its cached image is still the #173 black one, hence 0 -> 17.84; the -slo row 17.17 -> 1.99.
+gi-cache-extend-reyes                            0.7646   0.9511     0.2370   0.8558   nan 0,0
+gi-cache-extend-reyes ri                              -        -     0.6577   1.3599   nan 0,0
+gi-cache-extend-reyes-slo                        0.7646   0.9511     0.2370   0.8558   nan 0,0
+gi-cache-extend-reyes-slo ri                          -        -     0.6577   1.3599   nan 0,0
+gi-indirectdiffuse-raytrace                      0.0000   0.0000     0.0000   0.0000   nan 321,0
+gi-indirectdiffuse-raytrace-slo                  0.0000   0.0000     0.0000   0.0000   nan 0,0
+gi-indirectdiffuse-reyes                         0.0000   0.0000     0.0000   0.0000   nan 315,0
+gi-indirectdiffuse-reyes-slo                     0.0000   0.0000     0.0000   0.0000   nan 0,0
+gi-indirectdiffuse-zbuffer                       0.0000   0.0000     0.0000   0.0000   nan 312,0
+gi-indirectdiffuse-zbuffer-slo                   0.0000   0.0000     0.0000   0.0000   nan 0,0
+gi-occlusion-raytrace                            5.6255   3.4583     1.5871   2.5340   nan 0,0
+gi-occlusion-raytrace-slo                        5.6255   3.4583     1.5871   2.5340   nan 0,0
+gi-occlusion-reyes                               2.4271   1.1919     1.7157   1.1133   nan 0,0
+gi-occlusion-reyes-slo                           2.4271   1.1919     1.7157   1.1133   nan 0,0
+gi-occlusion-zbuffer                             2.7653   1.6178     2.3286   1.4214   nan 0,0
+gi-occlusion-zbuffer-slo                         2.7653   1.6178     2.3286   1.4214   nan 0,0
+gi-photon-then-indirect-reyes                    0.0000   0.0000    17.8411   7.6657   nan 3717,0
+gi-photon-then-indirect-reyes-slo               17.1708   5.9543     1.9894   4.6720   nan 0,0
+sphere-indirectdiffuse-reyes                     0.0000   0.0000     0.0000   0.0000   nan 19512,19512
+sphere-indirectdiffuse-reyes-slo                 0.0000   0.0000     0.0000   0.0000   nan 0,19512
+sphere-occlusion-reyes                          31.0774   1.3023    33.8728   1.2474   nan 0,0
+sphere-occlusion-reyes-slo                      31.0774   1.3023    33.8728   1.2474   nan 0,0

@@ -1,0 +1,13 @@
+--- a/tests/visual/determinism-scenes.cmake
++++ b/tests/visual/determinism-scenes.cmake
+@@ -796,4 +796,10 @@
+ # no -P:2: its photon frame cannot run under network rendering (GitHub #170)
+ add_determinism_sweep(gi-photon-then-indirect-reyes-slo tests/gi_determinism/scenes/gi-photon-then-indirect-reyes-slo.rib gi-photon-then-indirect-reyes-slo.tif
+     FILES gi-photon-then-indirect.gpm gi-photon-then-indirect.icache FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
++# The default `determinism` set gains one scene per GI family (spec 040, T092): a photon map (written and read in two frames), a cached occlusion scene, a cached
++# indirectdiffuse scene (the JIT one: the interpreter's indirectdiffuse() traces no ray, GitHub #173) and a two-frame cache that frame 2 extends (-P:2 included).
++# Each takes under 1 s in the sweep, so the set still runs in about 3 minutes at -j2.
++foreach(_scene gi-photon-parity gi-occlusion-reyes gi-indirectdiffuse-reyes-slo gi-cache-extend-reyes-slo)
++    set_property(TEST DeterminismSweep_${_scene} APPEND PROPERTY LABELS determinism)
++endforeach()
+ # END spec 040

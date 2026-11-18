@@ -1,0 +1,2 @@
+# T008 run-to-run noise of the 18 GI scenes' float images, build-base, -t:1, Linux (GCC 13).
+# Two complete runs gave byte-identical files for all 18 scenes: no scene has noise at -t:1. Manifest: baseline-gi-images-linux.sha256.

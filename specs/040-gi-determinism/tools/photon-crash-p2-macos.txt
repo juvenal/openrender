@@ -1,0 +1,134 @@
+# T014 tree build:-build-base (p2, macos): 30 separate processes per series, a fresh directory per run (dirmode fresh),
+# the .gpm the scene writes compared by md5. 'failed runs' lists (run, exit code); a negative code is the signal number.
+# default = no -t option (the scene's own numthreads / the machine default); -t:4 = four threads.
+=== photon-parity, threads default
+scene examples/rib/tests/photon-parity.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 4eb0542571ac7b2111fabd4da787b3a8: 30
+  photons per run (numItems): {46273: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-pv2m8a6q
+  (cpujob exit 0)
+=== photon-parity, threads -t:4
+scene examples/rib/tests/photon-parity.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 4eb0542571ac7b2111fabd4da787b3a8: 30
+  photons per run (numItems): {46273: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-39hzz4y8
+  (cpujob exit 0)
+=== photon-parity-slo, threads default
+scene examples/rib/tests/photon-parity-slo.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 b30aa4dc8906b9cf4d9071f393eecc5a: 30
+  photons per run (numItems): {46273: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-lpha19sz
+  (cpujob exit 0)
+=== photon-parity-slo, threads -t:4
+scene examples/rib/tests/photon-parity-slo.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 b30aa4dc8906b9cf4d9071f393eecc5a: 30
+  photons per run (numItems): {46273: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-qgqyvyu8
+  (cpujob exit 0)
+=== photon-solar0-alone, threads default
+scene examples/rib/tests/photon-solar0-alone.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 6d67a40ddb71ef47d8397c75a0efb4cd: 30
+  photons per run (numItems): {8459: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-3r7kk9gd
+  (cpujob exit 0)
+=== photon-solar0-alone, threads -t:4
+scene examples/rib/tests/photon-solar0-alone.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 6d67a40ddb71ef47d8397c75a0efb4cd: 30
+  photons per run (numItems): {8459: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-jrun6e7z
+  (cpujob exit 0)
+=== photon-solar0-alone-slo, threads default
+scene examples/rib/tests/photon-solar0-alone-slo.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 6d67a40ddb71ef47d8397c75a0efb4cd: 30
+  photons per run (numItems): {8459: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-uas66a6a
+  (cpujob exit 0)
+=== photon-solar0-alone-slo, threads -t:4
+scene examples/rib/tests/photon-solar0-alone-slo.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 6d67a40ddb71ef47d8397c75a0efb4cd: 30
+  photons per run (numItems): {8459: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-0dwu8l4k
+  (cpujob exit 0)
+=== photon-solar0-after-distant, threads default
+scene examples/rib/tests/photon-solar0-after-distant.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 945e49e678cca1be583814f335c563e2: 30
+  photons per run (numItems): {22408: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-a2hwc96h
+  (cpujob exit 0)
+=== photon-solar0-after-distant, threads -t:4
+scene examples/rib/tests/photon-solar0-after-distant.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 945e49e678cca1be583814f335c563e2: 30
+  photons per run (numItems): {22408: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-3hm0jcix
+  (cpujob exit 0)
+=== photon-solar0-after-distant-slo, threads default
+scene examples/rib/tests/photon-solar0-after-distant-slo.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 945e49e678cca1be583814f335c563e2: 30
+  photons per run (numItems): {22408: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-su9gslxo
+  (cpujob exit 0)
+=== photon-solar0-after-distant-slo, threads -t:4
+scene examples/rib/tests/photon-solar0-after-distant-slo.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 945e49e678cca1be583814f335c563e2: 30
+  photons per run (numItems): {22408: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-cr_3noot
+  (cpujob exit 0)
+=== photon-solar0-before-distant, threads default
+scene examples/rib/tests/photon-solar0-before-distant.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 bb4d40b46e16441c1a0a152afec65609: 30
+  photons per run (numItems): {22317: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-a99uf79o
+  (cpujob exit 0)
+=== photon-solar0-before-distant, threads -t:4
+scene examples/rib/tests/photon-solar0-before-distant.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 bb4d40b46e16441c1a0a152afec65609: 30
+  photons per run (numItems): {22317: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-2dyov67y
+  (cpujob exit 0)
+=== photon-solar0-before-distant-slo, threads default
+scene examples/rib/tests/photon-solar0-before-distant-slo.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 bb4d40b46e16441c1a0a152afec65609: 30
+  photons per run (numItems): {22317: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-7__alzql
+  (cpujob exit 0)
+=== photon-solar0-before-distant-slo, threads -t:4
+scene examples/rib/tests/photon-solar0-before-distant-slo.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 bb4d40b46e16441c1a0a152afec65609: 30
+  photons per run (numItems): {22317: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-15n1_22a
+  (cpujob exit 0)
+
+# SUMMARY (30 runs each, Phase 2 tree)
+# photon-parity, threads default                     crashed  0 {}             distinct maps  1 of 30  numItems {46273: 30}
+# photon-parity, threads -t:4                        crashed  0 {}             distinct maps  1 of 30  numItems {46273: 30}
+# photon-parity-slo, threads default                 crashed  0 {}             distinct maps  1 of 30  numItems {46273: 30}
+# photon-parity-slo, threads -t:4                    crashed  0 {}             distinct maps  1 of 30  numItems {46273: 30}
+# photon-solar0-alone, threads default               crashed  0 {}             distinct maps  1 of 30  numItems {8459: 30}
+# photon-solar0-alone, threads -t:4                  crashed  0 {}             distinct maps  1 of 30  numItems {8459: 30}
+# photon-solar0-alone-slo, threads default           crashed  0 {}             distinct maps  1 of 30  numItems {8459: 30}
+# photon-solar0-alone-slo, threads -t:4              crashed  0 {}             distinct maps  1 of 30  numItems {8459: 30}
+# photon-solar0-after-distant, threads default       crashed  0 {}             distinct maps  1 of 30  numItems {22408: 30}
+# photon-solar0-after-distant, threads -t:4          crashed  0 {}             distinct maps  1 of 30  numItems {22408: 30}
+# photon-solar0-after-distant-slo, threads default   crashed  0 {}             distinct maps  1 of 30  numItems {22408: 30}
+# photon-solar0-after-distant-slo, threads -t:4      crashed  0 {}             distinct maps  1 of 30  numItems {22408: 30}
+# photon-solar0-before-distant, threads default      crashed  0 {}             distinct maps  1 of 30  numItems {22317: 30}
+# photon-solar0-before-distant, threads -t:4         crashed  0 {}             distinct maps  1 of 30  numItems {22317: 30}
+# photon-solar0-before-distant-slo, threads default  crashed  0 {}             distinct maps  1 of 30  numItems {22317: 30}
+# photon-solar0-before-distant-slo, threads -t:4     crashed  0 {}             distinct maps  1 of 30  numItems {22317: 30}
+done
