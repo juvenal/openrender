@@ -1,0 +1,193 @@
+case attr=slo option=slo files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+  stdout:
+    ./scene.rib (14): Shader "defaultsurface": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+    ./scene.rib (14): Shader "defaultlight": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+    ./scene.rib (16): Shader "fmtp": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+case attr=slo option=slo files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stdout:
+    ./scene.rib (14): Shader "defaultsurface": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+    ./scene.rib (14): Shader "defaultlight": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+    ./scene.rib (16): Shader "fmtp": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+  stderr:
+    ./scene.rib (16): Failed to find shader "fmtp"
+case attr=slo option=rslo files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+  stdout:
+    ./scene.rib (16): Shader "fmtp": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+case attr=slo option=rslo files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stdout:
+    ./scene.rib (16): Shader "fmtp": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+  stderr:
+    ./scene.rib (16): Failed to find shader "fmtp"
+case attr=slo option=unset files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+  stdout:
+    ./scene.rib (15): Shader "fmtp": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+case attr=slo option=unset files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stdout:
+    ./scene.rib (15): Shader "fmtp": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+  stderr:
+    ./scene.rib (15): Failed to find shader "fmtp"
+case attr=rslo option=slo files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+  stdout:
+    ./scene.rib (14): Shader "defaultsurface": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+    ./scene.rib (14): Shader "defaultlight": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+case attr=rslo option=slo files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stdout:
+    ./scene.rib (14): Shader "defaultsurface": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+    ./scene.rib (14): Shader "defaultlight": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+  stderr:
+    ./scene.rib (16): Failed to find shader "fmtp"
+case attr=rslo option=rslo files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case attr=rslo option=rslo files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stderr:
+    ./scene.rib (16): Failed to find shader "fmtp"
+case attr=rslo option=unset files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case attr=rslo option=unset files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stderr:
+    ./scene.rib (15): Failed to find shader "fmtp"
+case attr=unset option=slo files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+  stdout:
+    ./scene.rib (14): Shader "defaultsurface": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+    ./scene.rib (14): Shader "defaultlight": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+    ./scene.rib (15): Shader "fmtp": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+case attr=unset option=slo files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stdout:
+    ./scene.rib (14): Shader "defaultsurface": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+    ./scene.rib (14): Shader "defaultlight": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+    ./scene.rib (15): Shader "fmtp": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+  stderr:
+    ./scene.rib (15): Failed to find shader "fmtp"
+case attr=unset option=rslo files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case attr=unset option=rslo files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stderr:
+    ./scene.rib (15): Failed to find shader "fmtp"
+case attr=unset option=unset files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+case attr=unset option=unset files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stderr:
+    ./scene.rib (14): Failed to find shader "fmtp"
+case attr=invalid option=slo files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+  stdout:
+    ./scene.rib (14): Shader "defaultsurface": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+    ./scene.rib (14): Shader "defaultlight": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+    ./scene.rib (15): Invalid shader format 'bogus'
+    must be 'slo' or 'rslo'. Using default 'slo'.
+    ./scene.rib (16): Shader "fmtp": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+case attr=invalid option=slo files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stdout:
+    ./scene.rib (14): Shader "defaultsurface": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+    ./scene.rib (14): Shader "defaultlight": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+    ./scene.rib (15): Invalid shader format 'bogus'
+    must be 'slo' or 'rslo'. Using default 'slo'.
+    ./scene.rib (16): Shader "fmtp": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+  stderr:
+    ./scene.rib (16): Failed to find shader "fmtp"
+case attr=invalid option=rslo files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+  stdout:
+    ./scene.rib (15): Invalid shader format 'bogus'
+    must be 'slo' or 'rslo'. Using default 'slo'.
+    ./scene.rib (16): Shader "fmtp": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+case attr=invalid option=rslo files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stdout:
+    ./scene.rib (15): Invalid shader format 'bogus'
+    must be 'slo' or 'rslo'. Using default 'slo'.
+    ./scene.rib (16): Shader "fmtp": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+  stderr:
+    ./scene.rib (16): Failed to find shader "fmtp"
+case attr=invalid option=unset files=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+  stdout:
+    ./scene.rib (14): Invalid shader format 'bogus'
+    must be 'slo' or 'rslo'. Using default 'slo'.
+    ./scene.rib (15): Shader "fmtp": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+case attr=invalid option=unset files=none
+  pixel(1,1) 0.982368 0.982368 0.982368 1.000000
+  exit 255
+  stdout:
+    ./scene.rib (14): Invalid shader format 'bogus'
+    must be 'slo' or 'rslo'. Using default 'slo'.
+    ./scene.rib (15): Shader "fmtp": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+  stderr:
+    ./scene.rib (15): Failed to find shader "fmtp"
+case dotted name=fmtd.v2 (an .rslo file without extension) attr=slo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0
+  stdout:
+    ./scene.rib (15): Shader "fmtd.v2": shaderformat "slo" requested, but this build has no LLVM JIT support
+    using the .rslo interpreter instead
+case dotted name=fmtd.v2 (an .rslo file without extension) attr=rslo
+  pixel(1,1) 1.000000 0.000000 0.000000 1.000000
+  exit 0

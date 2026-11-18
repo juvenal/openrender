@@ -37,11 +37,10 @@ inline CShaderInstance *shaderInstanceOf(const ShaderGroupRef &ref) {
     return shaderInstanceOf(ref.get());
 }
 
-// The programmable instance an active-light entry holds.
-// DB-013: unchecked, as before spec 025. CProgrammableShaderInstance is the only class derived from
-// CShaderInstance, so every entry of the active-light list is one and the cast is always valid.
-inline CProgrammableShaderInstance *lightInstanceOf(const CActiveLight &entry) {
-    return static_cast<CProgrammableShaderInstance *>(shaderInstanceOf(entry.light));
+// The shader instance an active-light entry holds (spec 033, P-Q9: no downcast). Every member the callers use, the categories, the
+// flags, prepare(), illuminate() and requiredParameters(), is on the base, whichever backend made the light.
+inline CShaderInstance *lightInstanceOf(const CActiveLight &entry) {
+    return shaderInstanceOf(entry.light);
 }
 
 #endif

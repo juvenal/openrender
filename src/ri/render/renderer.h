@@ -94,6 +94,7 @@ class CRay;
 class CTextureSystem;
 namespace openrender::shading {
     class ITracer;
+    class ShadingSystem;
 }
 class CSearchPathResolver;
 class CTextureInfoBase;
@@ -139,7 +140,7 @@ class CRenderer {
         static CRendererContext *context;                                 // The renderer context (RenderMan Interface)
         static CArray<CShaderInstance *> *allLights;                      // An array of all allocated lights
         static CTrie<CNamedCoordinateSystem *> *definedCoordinateSystems; // This holds the named coordinate systems defined for this context
-        static CTrie<CFileResource *> *globalFiles;                       // Files that have been loaded (they stick around for the entire rendering)
+        static openrender::shading::ShadingSystem *shadingSystem;         // The loaded shaders and how a name becomes one (they stick around for the entire rendering)
         static CTrie<CGlobalIdentifier *> *globalIdHash;                  // This holds global string to id mappings (light categories for example)
         static CTrie<CNetFileMapping *> *netFileMappings;                 // This holds name->name mappings of files
         static int numKnownGlobalIds;                                     // The current free global ID

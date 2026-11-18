@@ -1,10 +1,13 @@
 /**
  * Project: openRender
  *
- * File: init.cpp
+ * File: rsloInit.cpp
  *
  * Description:
- *   This file implements the functionality for init.
+ *   The interpreter backend's bind-time init (spec 033): moved from src/ri/render/init.cpp, where it was
+ *   CRendererContext::init(). Only its hooks changed: a named coordinate system is asked of the services
+ *   (libshader::bindCoordinateSystem, getMatrix with phase == Bind), a global parameter's variable through
+ *   libshader::lookupVariable, and the scratch memory is globalArena.
  *
  * Authors:
  *   Okan Arikan <okan@cs.utexas.edu>
@@ -19,7 +22,7 @@
 
 ///////////////////////////////////////////////////////////////////////
 //
-//  File				:	init.cpp
+//  File				:	rsloInit.cpp
 //  Classes				:	-
 //  Description			:	This file implements the shading language interpreter that runs the init code
 //
@@ -36,12 +39,12 @@
 #include "noise.h"
 #include "common/random.h"
 #include "common/sampling.h"
-#include "renderer.h"
-#include "rendererContext.h"
 #include "ri_config.h"
+#include "serviceLookup.h"
 #include "dsoHandle.h" // CDSO
 #include "rslo_code.h"
 #include "shader.h"
+#include "shaderPayload.h"
 #include "shading.h"
 #include "specularTerm.h"
 
@@ -62,11 +65,12 @@
 #define emission(a, b) scripterror("Invalid environment function call during init\n")
 #define debugFunction(a)
 #define illuminateBegin(a, b, c, d, e, f)
-#define findCoordinateSystem CRenderer::findCoordinateSystem
+// The named coordinate systems of the parameter defaults: the services answer, as a bind-time request (GitHub #134)
+#define findCoordinateSystem(name, from, to, kind) libshader::bindCoordinateSystem((name), currentShaderInstance, (from), (to), (kind))
 // The shared opcode/builtin bodies included below allocate from threadMemory,
 // a CShadingContext member when they run while shading. Shader init code runs
 // outside any shading context, so here they allocate from the process-wide
-// scratch arena instead (spec 023: globalArena, formerly CRenderer::globalMemory).
+// scratch arena instead (spec 023: globalArena, formerly the renderer core's global memory).
 #define threadMemory globalArena.top
 
 // random()/urandom() in init code (spec 039, research R3.10): no shading context and
@@ -86,28 +90,21 @@ static void initDraw(CProgrammableShaderInstance *instance, uint32_t drawNumber,
     ((void)(__vertex), (void)(__counts), initDraw(currentShaderInstance, initDrawCounter++, (__callSite), (__res), (__n)))
 
 ///////////////////////////////////////////////////////////////////////
-// Function				:	sfInit
-// Description			:	Execute the current shader's init code
+// Function				:	initialiseRsloInstance
+// Description			:	Execute the current shader's init code (the interpreter's)
 // Return Value			:	-
-// Comments				:
-#ifdef OPENRENDER_HAVE_LLVM
-// The JIT init section's resolver for named spaces (GitHub #123): the same lookup
-// the interpreter's pfrom/vfrom opcodes make below.
-static bool initCoordinateResolver(const char *name, const float *&from, const float *&to) {
-    ECoordinateSystem cSystem;
-    return CRenderer::findCoordinateSystem(name, from, to, cSystem) != FALSE;
-}
-#endif
-
-void CRendererContext::init(CProgrammableShaderInstance *currentShaderInstance) {
+// Comments				:	Run by libshader::initialiseInstance() inside arenaBegin/arenaEnd(globalArena)
+void libshader::initialiseRsloInstance(CProgrammableShaderInstance &instance) {
+    CProgrammableShaderInstance *currentShaderInstance = &instance;
+    CRsloPayload *payload = rsloPayloadOf(*instance.parent); // The interpreter's bytecode and frame layout
     uint32_t initDrawCounter = 0; // The number of random() draws this init run has made
     // At this point, the shader sends us the arrays for parameters/constants/variables/uniforms for the shader
 
 #define scripterror(mes)                                    \
     {                                                       \
         error(CODE_SCRIPT, "\"%s\", (nullified)\n", mes);   \
-        currentShaderInstance->parent->codeEntryPoint = -1; \
-        currentShaderInstance->parent->initEntryPoint = -1; \
+        payload->codeEntryPoint = -1;                       \
+        payload->initEntryPoint = -1;                       \
         goto execEnd;                                       \
     }
 //	Allocate temporary memory for the string and save it
@@ -168,7 +165,7 @@ void CRendererContext::init(CProgrammableShaderInstance *currentShaderInstance) 
 //	Control transfer
 #define jmp(n)                              \
     {                                       \
-        code = currentShader->codeArea + n; \
+        code = payload->codeArea + n;       \
         goto execStart;                     \
     }
 
@@ -206,61 +203,16 @@ void CRendererContext::init(CProgrammableShaderInstance *currentShaderInstance) 
     int i;
     CVariable *cParameter;
 
-#ifdef OPENRENDER_HAVE_LLVM
-    // .slo-only (JIT) shaders have no interpreter bytecode.
-    // Run the JIT init section here, at shader-bind time, so that op_pfrom("shader",...)
-    // uses context->getXform() which correctly reflects the shader's bind-time transform.
-    if (currentShader->codeArea == nullptr) {
-        if (currentShaderInstance->jitInitEntry != nullptr) {
-            const int nVars = currentShader->numVariables;
-            // locals: param slots point at persistent defaultValue storage so the
-            // init results (e.g. transformed light position) persist across frames.
-            // Temporary slots get transient scratch buffers (3 floats each, uniform).
-            void **jitLocals = (void **)alloca(nVars * sizeof(void *));
-            float *scratch = (float *)alloca(nVars * 3 * sizeof(float));
-            memset(scratch, 0, nVars * 3 * sizeof(float));
-            for (int vi = 0; vi < nVars; vi++)
-                jitLocals[vi] = scratch + vi * 3;
-            for (CVariable *v = currentShaderInstance->parameters; v; v = v->next)
-                if (v->entry < nVars && v->defaultValue != nullptr)
-                    jitLocals[v->entry] = v->defaultValue;
-
-            void **stuffInit[3];
-            stuffInit[SL_IMMEDIATE_OPERAND] = currentShader->constantEntries;
-            stuffInit[SL_GLOBAL_OPERAND] = nullptr; // init section never uses globals
-            stuffInit[SL_VARYING_OPERAND] = jitLocals;
-
-            int initTag = 0;
-            // Supply the shader-space xform so op_pfrom("shader",...) in the init
-            // section can convert space-qualified parameter defaults correctly.
-            // activeContext() is null at bind time; jitSetInitXform provides the fallback.
-            // Every other named space (GitHub #123) resolves through the lookup the
-            // interpreter's init section uses (findCoordinateSystem is
-            // CRenderer::findCoordinateSystem in this file).
-            extern void jitSetInitXform(const float *, const float *);
-            extern void jitSetInitCoordinateResolver(bool (*)(const char *, const float *&, const float *&));
-            if (currentShaderInstance->xform) {
-                jitSetInitXform(currentShaderInstance->xform->from,
-                                currentShaderInstance->xform->to);
-            }
-            jitSetInitCoordinateResolver(initCoordinateResolver);
-            currentShaderInstance->jitInitEntry(1, (void ***)stuffInit, &initTag);
-            jitSetInitCoordinateResolver(nullptr);
-            jitSetInitXform(nullptr, nullptr);
-        }
-        return;
-    }
-#endif
-    code = currentShader->codeArea + currentShader->initEntryPoint;
+    code = payload->codeArea + payload->initEntryPoint;
 
     numVertices = 1;
     tagStart = &tmpTags;
     tmpTags = 0;
 
     // Setup local variables
-    stuff[SL_VARYING_OPERAND] = (void **)ralloc(currentShader->numVariables * sizeof(void *), threadMemory); // Shader varying variables
-    for (i = 0; i < currentShader->numVariables; i++) {                                                      // Allocate memory for every varying variable
-        int size = currentShader->varyingSizes[i];
+    stuff[SL_VARYING_OPERAND] = (void **)ralloc(payload->numVariables * sizeof(void *), threadMemory); // Shader varying variables
+    for (i = 0; i < payload->numVariables; i++) {                                                      // Allocate memory for every varying variable
+        int size = payload->varyingSizes[i];
 
         if (size != 0) {
             if (size < 0)
@@ -277,7 +229,7 @@ void CRendererContext::init(CProgrammableShaderInstance *currentShaderInstance) 
 
         // Relink the entry point to the global, we already verified the match
         if (cParameter->storage == STORAGE_GLOBAL) {
-            CVariable *cVar = CRenderer::retrieveVariable(cParameter->name);
+            CVariable *cVar = libshader::lookupVariable(cParameter->name);
             cParameter->entry = cVar->entry;
         }
     }
@@ -288,7 +240,7 @@ void CRendererContext::init(CProgrammableShaderInstance *currentShaderInstance) 
     currentLight = NULL;
 
     // Set the access arrays
-    stuff[SL_IMMEDIATE_OPERAND] = currentShader->constantEntries; // Immediate operands
+    stuff[SL_IMMEDIATE_OPERAND] = payload->constantEntries; // Immediate operands
     stuff[SL_GLOBAL_OPERAND] = (void **)varying;                  // Varying globals
 
     numActive = numVertices;

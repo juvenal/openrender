@@ -66,9 +66,8 @@ phases of spec 040: #160 is fixed by Phase 3 and the key sentences stay true.)
 
 # FINAL TEXT (T100, Phase 8): the edits to apply to `CLAUDE.md` at merge preparation
 
-Checked against the worktree's `CLAUDE.md` (master snapshot of 2026-11-12 plus 031/032): every "Old" text below is present verbatim. The merge-time rule: the literal
-`kRendererServicesVersion` is re-checked against master then (specs 033 and 057 hold 2.4.0 and 2.5.0; this spec's entry is 2.6.0 and is renumbered to the next free MINOR if
-either has not merged). `CLAUDE.md` itself is not edited by the implementation (M6).
+Re-checked after merging master (spec 033 merged first, merge 90a78314) against the worktree's `CLAUDE.md`, which is now master's: every "Old" text below is present in it (Edits 2, 5 and 6 were corrected for 033's changes; line wrapping aside). The merge-time rule: the literal
+`kRendererServicesVersion` is re-checked against master then (spec 033 is on master at 2.4.0; this spec's entry is 2.5.0, and spec 057, which takes the next number, becomes 2.6.0 if it merges after this spec). `CLAUDE.md` itself is not edited by the implementation (M6).
 
 ## Edit 1: gotcha 37 (replaces the whole gotcha, from "37. **The GI stores are passive" to "`-L gi_split_threads` is opt-in).")
 
@@ -107,11 +106,13 @@ New text:
 >    receives a denormal `samples`); the `.slo` shaders do. Cost: a cache reused at a fine shading rate costs about twice as much per later frame (the cache is 8 times as dense:
 >    GitHub #179). Untouched: #158 (`jitOcclusionBatch`), #159, #166, #122.
 
-## Edit 2: gotcha 28's version sentence
+## Edit 2: gotcha 28's version sentences (two places; 033 changed this gotcha)
 
-Old (the end of the sentence that starts "`getDSO` also serves the `.slo` loader"): "... It is 2.3.0 since spec 031 (a MINOR step that is breaking within 2.x: ... and `EShadingDim` moved to `common/shadingDim.h`)."
+Old (a), the first sentence of gotcha 28: "`CRendererServices` is version 2.4.0 (`kRendererServicesVersion`, `rendererServices.h`, with" . New: "... is version 2.5.0 (...".
 
-New: the same, followed by: " It is 2.6.0 since spec 040 (a MINOR step that is breaking within 2.x: `IPhotonStore`'s `resetPhotons`, `balancePhotons`, `isModifying`, `setModifying` and `storePhoton` are replaced by `storePhotonForFrame` and `writePhotons`; `CIrradianceStore::lookupCached` takes an accept function and a batch view in place of a draw callback, `insertRecord` is replaced by `addPending` and `clampAgainstFixed`)."
+Old (b), the end of the sentence that starts "`getDSO` also serves the `.slo` loader" (master's text, 033's addition included): "... and 2.4.0 since spec 033 (a MINOR step, additive with defaults: `MatrixRequest::phase` (...), `MessageRequest::destBytes` (...), `getShaderName` (...). No double or implementer changes to compile. Spec 057 takes 2.5.0.)"
+
+New: the same, with "Spec 057 takes 2.5.0." deleted and, after the closing parenthesis, this appended: " It is 2.5.0 since spec 040 (a MINOR step that is breaking within 2.x: `IPhotonStore`'s `resetPhotons`, `balancePhotons`, `isModifying`, `setModifying` and `storePhoton` are replaced by `storePhotonForFrame` and `writePhotons`; `CIrradianceStore::lookupCached` takes an accept function and a batch view in place of a draw callback, `insertRecord` is replaced by `addPending` and `clampAgainstFixed`). Spec 057 takes 2.6.0."
 
 ## Edit 3: the "GI stores (spec 032)" architecture paragraph
 
@@ -123,29 +124,29 @@ New (replace the last sentence): "Since spec 040 the cache is a read-only fixed 
 
 Add after the `gi_split_threads` line:
 ```
-ctest --test-dir build -L '^gi_determinism$' -j4         # spec 040: the photon store, the cache store, the accept rule, a miss's record, the batch clamp, the files (20 tests)
+ctest --test-dir build -L '^gi_determinism$' -j4         # spec 040: the photon store, the cache store, the accept rule, a miss's record, the batch clamp, the files (22 tests)
 ctest --test-dir build -L '^gi_determinism_long$' -j2    # opt-in: the 30-run photon forms (3 tests)
 ```
 Replace the everyday line: `ctest --test-dir build -LE 'determinism-sweep|gi_determinism_long' -j4   # the everyday full run: everything except the opt-in determinism sweep and the 30-run forms`.
-Replace the sweep lines' counts: "default determinism set (156)" becomes "(164)", and "opt-in full sweep (582 entries" becomes "(616 entries".
+Replace the sweep lines' counts: "default determinism set (156)" becomes "(164)", and "opt-in full sweep (582 entries" becomes "(618 entries" (the 36 `gi-*` entries added to the 582; verify with `ctest -N -L determinism-sweep` after the merge).
 
-## Edit 5: the Active Technologies bullet (after the 031 bullets)
+## Edit 5: the Active Technologies bullet (after the 033 bullets, the last ones before `## Recent Changes`: master's list now ends with 031's two bullets and then 033's two)
 
 ```
 - C++20, CMake ≥3.19, `-Werror`; no new dependencies: the photon store and the irradiance cache are deterministic (a claim under the store's lock, a canonical photon order, no lookup memo; a
   read-only fixed part, a Shading batch scope, a canonical commit, a pending-only `-P:N` wire), the accept value is a hash (`common/giHash.h`) and the sampler draws by index from a copy of the
-  bound sub-stream; `kRendererServicesVersion` 2.6.0 (040-gi-determinism)
+  bound sub-stream; `kRendererServicesVersion` 2.5.0 (040-gi-determinism)
 - Storage: N/A; memory only; the `tests/gi_split/reference` and `tests/gi_determinism` recordings are files (040-gi-determinism)
 ```
 
-## Edit 6: Recent Changes (above 056's entry; the list is newest first)
+## Edit 6: Recent Changes (at the top of the list, above 033's entry, which is now the first one; the list is newest first)
 
 ```
 - 040-gi-determinism: the photon map and the irradiance cache are deterministic: the same files and images across runs, at any thread count and under `-P:N`. Photon store: the claim and reset inside the
   store's lock (the intermittent `CPhotonHider` crash, #164), `delete[]` for `new[]` (#165), a canonical photon order and every byte of a `.gpm` defined (#163), no lookup memo (#160; the cost is #178's
   follow-up). Irradiance cache: the accept value is a hash of the call and the record, the sampler draws by index (`indirectdiffuse()` with the cache off now takes `samples` keyed directions), the cache
   is a read-only fixed part plus a Shading batch scope plus a canonical commit, and a `-P:N` server sends only the records it made, committed with each record's own K (#161). The thread pins of the GI
-  scenes are removed, 34 GI sweep entries join the determinism sweep, the GI references were re-rendered once (the four images, the cache files, the loopback, the data scene, the trace replays, spec 039's
-  occlusion golden). `kRendererServicesVersion` 2.6.0. Under the interpreter `indirectdiffuse()` traces no ray (#173); the M2 cache is 8 times as dense, so a cache reused at a fine shading rate costs
+  scenes are removed, 36 GI sweep entries join the determinism sweep, the GI references were re-rendered once (the four images, the cache files, the loopback, the data scene, the trace replays, spec 039's
+  occlusion golden). `kRendererServicesVersion` 2.5.0. Under the interpreter `indirectdiffuse()` traces no ray (#173); the M2 cache is 8 times as dense, so a cache reused at a fine shading rate costs
   about 2x per later frame (#179). No threshold widened; thresholds only lowered (see spec 040).
 ```

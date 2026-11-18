@@ -1,0 +1,1 @@
+# Sweep images whose bytes differ between two runs of the starting tree's determinism sweep on Linux (spec 033 T023). One path per line.

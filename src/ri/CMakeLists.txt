@@ -115,7 +115,6 @@ set(ri_sources
 #	ifexpr.cpp
 	render/imager.cpp
 	geometry/implicitSurface.cpp
-	render/init.cpp
 	hiders/linsys.cpp
 	geometry/object.cpp
 	state/options.cpp
@@ -234,8 +233,8 @@ endif()
 
 # Shared library — external deps (TIFF, PNG, z) are PRIVATE (implementation detail
 # of libri; not part of its public API, so not propagated to linking executables).
-# Phase C: ri links against libshader_shading (shading engine in its own library).
-# LLVM is NOT added explicitly here; it propagates from libshader_shading PUBLIC link deps.
+# Phase C: ri links against libRSLRuntime (formerly libshader_shading; the shading engine in its own library).
+# LLVM is NOT added explicitly here; it propagates from libRSLRuntime PUBLIC link deps.
 add_library(ribRender SHARED $<TARGET_OBJECTS:ribRender_obj> $<TARGET_OBJECTS:openrenderprocedures_obj>)
 set_target_properties(ribRender PROPERTIES OUTPUT_NAME RIBRender EXPORT_NAME RIBRender)
 # Propagate include paths to consumers: ri headers (options.h, shader.h forwarding, etc.)
@@ -255,7 +254,7 @@ target_include_directories(ribRender PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../display>
 )
-target_link_libraries(ribRender PRIVATE libshader_shading ${openrendertiff_libs} openrendercommon openrendershadeop)
+target_link_libraries(ribRender PRIVATE libRSLRuntime ${openrendertiff_libs} openrendercommon openrendershadeop)
 openrender_reexport_common(ribRender)
 if(HAVE_OPENEXR)
     target_link_libraries(ribRender PRIVATE ${OPENRENDER_OPENEXR_LIBS})
@@ -281,10 +280,10 @@ endif()
 # Static library — same object files, library consumers inherit the link requirements
 add_library(ribRender_static STATIC $<TARGET_OBJECTS:ribRender_obj> $<TARGET_OBJECTS:openrenderprocedures_obj>)
 set_target_properties(ribRender_static PROPERTIES OUTPUT_NAME RIBRender EXPORT_NAME RIBRender_static)
-# The SHARED common library, not the archive: libshader_shading (shared-only)
+# The SHARED common library, not the archive: libRSLRuntime (shared-only)
 # binds its infrastructure to libRIBCommon, so a static program that also
 # carried libRIBCommon.a would hold two copies of that state (spec 023, R1).
-target_link_libraries(ribRender_static INTERFACE libshader_shading ${openrendertiff_libs} openrendercommon openrendershadeop)
+target_link_libraries(ribRender_static INTERFACE libRSLRuntime ${openrendertiff_libs} openrendercommon openrendershadeop)
 if(HAVE_OPENEXR)
     target_link_libraries(ribRender_static INTERFACE ${OPENRENDER_OPENEXR_LIBS})
 endif()
@@ -336,7 +335,7 @@ endif()
 # CPreviewContext, in libribpreview, instead) -- but its own compiled
 # method bodies (RiWorldBegin/RiWorldEnd/RiGeometryV/getShader/etc.) call
 # straight into CRenderer::beginFrame()/render()/etc. and construct
-# CProgrammableShaderInstance/CShader/CDLObject/CImplicit/CPhotonMap, so linking it in would silently reintroduce most
+# shader instances/CDLObject/CImplicit/CPhotonMap, so linking it in would silently reintroduce most
 # of what everything else in this list was excluded to avoid. The irradiance cache (texture/irradianceCache.cpp) is
 # passive storage with no Shading dependency, so ribVector compiles it as it is; only the sampler that fills one
 # (hiders/irradianceSampler.cpp) is left out. render/rendererDeclarations.cpp is excluded too: since spec 031 it holds only
@@ -344,8 +343,7 @@ endif()
 # renderer's named systems, and no Geometry file needs it.
 #
 # The entries below were confirmed excludable by a second `nm -u` sweep
-# after the above: init.cpp is a single function, CRendererContext::init(),
-# dead for the same reason rendererContext.cpp is. render/rendererFiles.cpp
+# after the above: render/rendererFiles.cpp
 # (CRenderer::getShader/getPhotonMap/getCache, LLVM JIT shader loading) and
 # render/rendererDisplay.cpp (CRenderer::dispatch() -> CImagerExecutor) are
 # both full-pipeline-only, reached only from beginFrame()/render(), which
@@ -421,7 +419,6 @@ list(REMOVE_ITEM ribVector_sources
     hiders/zbuffer.cpp
     render/imager.cpp
     geometry/implicitSurface.cpp
-    render/init.cpp
     render/remoteChannel.cpp
     render/renderer.cpp
     render/rendererFrame.cpp
@@ -444,7 +441,7 @@ target_include_directories(ribVector_obj PRIVATE . ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading)
 target_link_libraries(ribVector_obj PRIVATE openrendercommon ${openrendertiff_libs})
 
-# Deliberately no libshader_shading, no LLVM: that is the entire point of this
+# Deliberately no libRSLRuntime, no LLVM: that is the entire point of this
 # target existing separately from ribRender.
 add_library(ribVector SHARED $<TARGET_OBJECTS:ribVector_obj>)
 set_target_properties(ribVector PROPERTIES OUTPUT_NAME RIBVector EXPORT_NAME RIBVector)
@@ -570,7 +567,7 @@ target_include_directories(ribOut_obj PRIVATE . ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../libshader/shading)
 target_link_libraries(ribOut_obj PRIVATE openrendercommon ${openrendertiff_libs})
 
-# Deliberately no libshader_shading, no LLVM, no geometry/texture/hiders: same
+# Deliberately no libRSLRuntime, no LLVM, no geometry/texture/hiders: same
 # rationale as ribVector.
 add_library(ribOut SHARED $<TARGET_OBJECTS:ribOut_obj>)
 set_target_properties(ribOut PROPERTIES OUTPUT_NAME RIBOut EXPORT_NAME RIBOut)

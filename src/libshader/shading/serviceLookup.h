@@ -27,9 +27,11 @@
 #ifndef SERVICELOOKUP_H
 #define SERVICELOOKUP_H
 
+#include "common/rendererc.h"      // ECoordinateSystem
 #include "common/riVocabulary.h" // RtFilterFunc, RtStepFilterFunc
 
 class CDSO;
+class CShaderInstance;
 class CVariable;
 
 namespace libshader {
@@ -48,6 +50,14 @@ namespace libshader {
 
     // The declared variable, or nullptr
     CVariable *lookupVariable(const char *name);
+
+    // A coordinate system named by a parameter default, at bind time (renderer services 2.4.0, GitHub #134): asks the services'
+    // getMatrix() with phase == Bind and `instance` as the shader. Found: `from`/`to` and `kind` as the renderer answered (its raw
+    // named-system lookup: nothing is substituted) and TRUE. Not found: the identity, `kind` COORDINATE_CUSTOM, no warning, FALSE
+    // (both backends; the interpreter's answer was undefined before, P-Q2). No services (or a service that answers Unavailable): the
+    // identity and one CODE_NOTSTARTED warning "renderer services do not provide coordinate systems". Used by the interpreter's init
+    // (rsloInit.cpp) and the JIT's (sloInit.cpp).
+    int bindCoordinateSystem(const char *name, const CShaderInstance *instance, const float *&from, const float *&to, ECoordinateSystem &kind);
 
     // Parses a "__category" string (names separated by commas, tabs or spaces) into the
     // IDs of its categories: appends each non-zero ID from lookupGlobalID() to `out`,

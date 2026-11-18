@@ -112,8 +112,34 @@ option(OPENRENDER_LINK_PACKAGE_TEST "Register Link_PackageStaticConsumer: builds
 # moves its definition out of the block. Script tests are registered DISABLED while the option is OFF.
 option(OPENRENDER_030_RED_TESTS "Spec 030: configure the new registry tests that are red until their phase (build failures are their red evidence)" OFF)
 
+# Spec 033 (shading system backends): the tests were written red first (DEP-2) behind a temporary option, removed in Phase 9. Every one is
+# registered unconditionally now, through or033_test() below.
+# A spec 033 test: a normal test with the given command, labels, timeout (default 120 s), environment and working directory.
+#   or033_test(<name> COMMAND <command...> [LABELS <labels>] [TIMEOUT <seconds>] [ENVIRONMENT <VAR=value>...] [WILL_FAIL] [WORKING_DIRECTORY <dir>])
+function(or033_test NAME)
+    cmake_parse_arguments(A "WILL_FAIL" "LABELS;TIMEOUT;WORKING_DIRECTORY" "COMMAND;ENVIRONMENT" ${ARGN})
+    if(NOT A_TIMEOUT)
+        set(A_TIMEOUT 120)
+    endif()
+    if(A_WORKING_DIRECTORY)
+        file(MAKE_DIRECTORY ${A_WORKING_DIRECTORY})
+        add_test(NAME ${NAME} COMMAND ${A_COMMAND} WORKING_DIRECTORY ${A_WORKING_DIRECTORY})
+    else()
+        add_test(NAME ${NAME} COMMAND ${A_COMMAND})
+    endif()
+    set_tests_properties(${NAME} PROPERTIES TIMEOUT ${A_TIMEOUT} LABELS "${A_LABELS}")
+    if(A_ENVIRONMENT)
+        set_tests_properties(${NAME} PROPERTIES ENVIRONMENT "${A_ENVIRONMENT}")
+    endif()
+    if(A_WILL_FAIL)
+        set_tests_properties(${NAME} PROPERTIES WILL_FAIL TRUE)
+    endif()
+endfunction()
+
 # After unit/state: shading_contract links its state_only_sources library
 add_subdirectory(shading_contract)
+add_subdirectory(shaderformat)          # spec 033: ShaderFormat_Precedence, the characterisation of the shader format precedence
+add_subdirectory(shading_system)        # spec 033: the shading system's tests (Phase 1: the loading benchmark program)
 add_subdirectory(link)
 add_subdirectory(plugins)
 add_subdirectory(convergence)

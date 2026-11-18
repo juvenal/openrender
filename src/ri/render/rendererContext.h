@@ -32,6 +32,7 @@
 #include "common/algebra.h"
 #include "common/global.h"
 #include "geometryHost.h"
+#include "libshader/shading/shaderBackend.h" // IShaderBindHost
 #include "object.h"
 #include "options.h"
 #include "common/rendererc.h" // Renderer constants
@@ -54,7 +55,7 @@ class CSGTreeNode;
 // Class				:	CRendererContext
 // Description			:	Holds the global rendering context
 // Comments				:
-class CRendererContext : public CRiInterface, public CGeometryHost {
+class CRendererContext : public CRiInterface, public CGeometryHost, public openrender::shading::IShaderBindHost {
     public:
         CRendererContext(const char *ribName = NULL, const char *netString = NULL);
         ~CRendererContext();
@@ -114,7 +115,8 @@ class CRendererContext : public CRiInterface, public CGeometryHost {
         void RiOpacity(float *Cs) override;
         void RiTextureCoordinates(float s1, float t1, float s2, float t2, float s3, float t3, float s4, float t4) override;
 
-        uint64_t takeInstanceKey(); // The identity the next shader instance takes (spec 039)
+        uint64_t takeInstanceKey() override; // The identity the next shader instance takes (spec 039); the shading system's bind host (spec 033)
+        void registerLight(CShaderInstance *light) override; // IShaderBindHost: a bound light joins the frame's light list
         void *RiLightSourceV(const char *name, int n, const char *tokens[], const void *params[]) override;
         void *RiAreaLightSourceV(const char *name, int n, const char *tokens[], const void *params[]) override;
 
@@ -274,7 +276,6 @@ class CRendererContext : public CRiInterface, public CGeometryHost {
         uint32_t shaderOrdinal;  // The next shader instance ordinal of this frame (or world block), in creation order (spec 039)
         uint64_t pendingInstanceKey; // The handle key of the light being created, or 0 (spec 039)
 
-        void init(CProgrammableShaderInstance *); // Execute the init code of a shader
         int addMotion(float *parameters, int parameterSize, const char *name, float *&p0, float *&p1);
 };
 

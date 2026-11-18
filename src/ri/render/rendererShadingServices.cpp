@@ -100,6 +100,17 @@ openrender::shading::MatrixAnswer CRendererServicesImpl::getMatrix(const openren
         return answer;
     }
 
+    // A bind-time request (a shader's init resolving the named space of a parameter default, GitHub #134): the raw lookup, exactly
+    // what the init used before it moved into Shading. Nothing is substituted: the object, light and camera systems keep the
+    // matrices the lookup stored, and "shader" and "current" are the current transform at bind time.
+    if (request.phase == EMatrixPhase::Bind) {
+        answer.status = EQueryStatus::Found;
+        answer.kind = kind;
+        answer.from = from;
+        answer.to = to;
+        return answer;
+    }
+
     switch (kind) {
         case COORDINATE_OBJECT:
             if (!request.object) {
@@ -382,30 +393,20 @@ void CRendererServicesImpl::getAttribute(const openrender::shading::AttributeReq
         answer.status = EQueryStatus::TypeMismatch;
 }
 
-///////////////////////////////////////////////////////////////////////
-// getMessage(): surface(), displacement(), atmosphere(), incident(), opposite(), lightsource() (spec 026, FR-006)
-//
-// The instance is the one bound to the object's attributes (or the light handle for the Light source); the answer
-// is its getParameter(), called as Shading called it. For the five object sources the stored shape of the
-// parameter is looked up first, without writing, so that a value that cannot be copied safely into a destination of
-// the expected type (FR-026) is answered TypeMismatch before anything is written into request.dest. The Light source
-// is exempt (B4): lightsource() keeps each backend's own output.
-///////////////////////////////////////////////////////////////////////
-openrender::shading::MessageAnswer CRendererServicesImpl::getMessage(const openrender::shading::MessageRequest &request) const {
+// The instance a message source selects: the one bound to the object's attributes, or the light handle (getMessage and getShaderName)
+static CShaderInstance *selectMessageInstance(openrender::shading::MessageSource source, const openrender::shading::ObjectHandle &object,
+                                              const openrender::shading::ShaderHandle &light) {
     using namespace openrender::shading;
-    MessageAnswer answer;
-    answer.status = EQueryStatus::NotFound;
-
     CShaderInstance *instance = nullptr;
-    if (request.source == MessageSource::Light) {
-        instance = const_cast<CShaderInstance *>(static_cast<const CShaderInstance *>(request.light.ptr));
+    if (source == MessageSource::Light) {
+        instance = const_cast<CShaderInstance *>(static_cast<const CShaderInstance *>(light.ptr));
     }
     else {
         // No object (the imager): nothing to read (FR-027)
-        if (!request.object)
-            return answer;
-        const CAttributes *currentAttributes = static_cast<const CObject *>(request.object.ptr)->attributes;
-        switch (request.source) {
+        if (!object)
+            return nullptr;
+        const CAttributes *currentAttributes = static_cast<const CObject *>(object.ptr)->attributes;
+        switch (source) {
             case MessageSource::Surface:
                 if (currentAttributes->surface())
                     instance = shaderInstanceOf(currentAttributes->surface());
@@ -430,8 +431,39 @@ openrender::shading::MessageAnswer CRendererServicesImpl::getMessage(const openr
                 break;
         }
     }
+    return instance;
+}
+
+///////////////////////////////////////////////////////////////////////
+// getMessage(): surface(), displacement(), atmosphere(), incident(), opposite(), lightsource() (spec 026, FR-006)
+//
+// The instance is the one bound to the object's attributes (or the light handle for the Light source); the answer
+// is its getParameter(), called as Shading called it. For the five object sources the stored shape of the
+// parameter is looked up first, without writing, so that a value that cannot be copied safely into a destination of
+// the expected type (FR-026) is answered TypeMismatch before anything is written into request.dest. The Light source
+// is exempt (B4): lightsource() keeps each backend's own output.
+///////////////////////////////////////////////////////////////////////
+openrender::shading::MessageAnswer CRendererServicesImpl::getMessage(const openrender::shading::MessageRequest &request) const {
+    using namespace openrender::shading;
+    MessageAnswer answer;
+    answer.status = EQueryStatus::NotFound;
+
+    CShaderInstance *instance = selectMessageInstance(request.source, request.object, request.light);
     if (instance == nullptr)
         return answer;
+
+    // A destination that is too small for the stored value (services 2.4.0), for every source: refused before anything is written
+    if (request.destBytes != 0) {
+        EVariableType type = TYPE_FLOAT;
+        int numFloats = 0;
+        if (instance->getParameterShape(request.name, type, numFloats)) {
+            const size_t bytes = (type == TYPE_STRING) ? (size_t)numFloats * sizeof(char *) : (size_t)numFloats * sizeof(float);
+            if (bytes > request.destBytes) {
+                answer.status = EQueryStatus::TypeMismatch;
+                return answer;
+            }
+        }
+    }
 
     if (request.source != MessageSource::Light) {
         EVariableType type = TYPE_FLOAT;
@@ -469,5 +501,25 @@ openrender::shading::MessageAnswer CRendererServicesImpl::getMessage(const openr
         answer.variable = variable;
         answer.globalIndex = request.wantVariable ? globalIndex : -1;
     }
+    return answer;
+}
+
+///////////////////////////////////////////////////////////////////////
+// getShaderName(): shadername(type) (spec 033, FR-013, services 2.4.0)
+//
+// The instance is the one getMessage selects for the source; the answer is its name. A null object or a null light handle, and a
+// slot with no shader bound, answer NotFound (Shading then returns "").
+///////////////////////////////////////////////////////////////////////
+openrender::shading::ShaderNameAnswer CRendererServicesImpl::getShaderName(const openrender::shading::ShaderNameRequest &request) const {
+    using namespace openrender::shading;
+    ShaderNameAnswer answer;
+    answer.status = EQueryStatus::NotFound;
+
+    CShaderInstance *instance = selectMessageInstance(request.source, request.object, request.light);
+    if (instance == nullptr)
+        return answer;
+
+    answer.status = EQueryStatus::Found;
+    answer.name = instance->getName();
     return answer;
 }
