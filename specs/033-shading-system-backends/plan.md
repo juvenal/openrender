@@ -382,6 +382,14 @@ to touch (from spec 033's "Concurrent work" section; 057's branch was not read):
 | `src/libshader/shading/serviceTypes.h`, `rendererServices.h`, `src/ri/render/rendererShadingServices.cpp`, `rendererServicesImpl.h` | services 2.4.0 (P-Q1) | the existing members' behaviour for 2.3.0 requests |
 | `src/ri/render/rendererFiles.cpp`, `renderer.h`, `rendererStatics.cpp` | `CRenderer::getShader` becomes a forwarder; `globalFiles` -> `shadingSystem` | `allLights` |
 | `src/ri/hiders/photon.cpp` | nothing | photon emission over `CRenderer::allLights` |
+| `src/libshader/shading/shadingSystem.{h,cpp}`, `shaderBackend.{h,cpp}`, `shaderPayload.h`, `rsloBackend.cpp` (new) | the facade (cache, format order, bind order), the backend interface and registry, the payload classes, the `.rslo` backend | — |
+| `src/libshader/shading/shaderGroup.{h,cpp}` (new) | `ShaderGroupBuilder`, `groupPrepare`/`groupExecute` (one layer: the instance's `prepare()`/`execute()`); `shading.cpp` surface, displacement, atmosphere and volume-step runs and `src/ri/render/imager.cpp` call them | light execution (`iterateLights`, the ambient loops, photon emission) keeps calling the instance |
+| `src/ri/render/searchPathResolver.h` | `CShaderSearchPathResolver` | `CSearchPathResolver` |
+| `src/libshader/shading/shaderBind.cpp`, `rsloInit.cpp`, `sloBackend.cpp` | the bind-time init: `bindCoordinateSystem()` asks `getMatrix{phase = Bind}`; `initialiseInstance()` stays as the one-line forward | — |
+| `src/libshader/metadata/` (new), `src/libshader/runtime/`, `src/sloinfo/` | `libRSLInfo` (the metadata API and the `.rslo` inspection parser), `sloinfo` through `ShaderMetadata.h` | — |
+| `src/libshader/shading/CMakeLists.txt`, `src/ri/CMakeLists.txt`, `CMake/openRenderConfig.cmake.in` | the target is `libRSLRuntime` (old names: ALIAS, compatibility symlink, exported alias); the include path drops `src/ri/hiders` and `src/ri/geometry` | — |
+
+*(Brought up to date at the end of spec 033, 2026-11-17: the rows above are the final files.)*
 
 New interfaces 057 adapts to: `ShadingSystem::bind()` (the bind order), `IShaderBindHost::registerLight()`,
 `IShaderBackend::initialise()`/`execute()`, `lightInstanceOf() -> CShaderInstance *`, `libshader::bindCoordinateSystem()`

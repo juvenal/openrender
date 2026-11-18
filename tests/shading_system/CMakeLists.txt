@@ -1,6 +1,6 @@
 # Spec 033: the shading system's tests (tests/shading_system). Phase 1 holds only the loading benchmark program of
-# research R12: it is not a ctest test, tools/timing_loading.sh runs it through cpujob. The red-first tests of Phase 2
-# are registered here behind OPENRENDER_033_RED_TESTS.
+# research R12: it is not a ctest test, tools/timing_loading.sh runs it through cpujob. The tests of Phase 2 were
+# written red first and are registered here unconditionally.
 
 add_executable(bench_shader_load bench_load.cpp)
 target_compile_features(bench_shader_load PRIVATE cxx_std_20)
@@ -13,11 +13,11 @@ target_include_directories(bench_shader_load PRIVATE
 target_link_libraries(bench_shader_load PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
 
 # ---------------------------------------------------------------------------------------------------------------------------------
-# Phase 2 (spec 033): the new tests, red first (DEP-2). Each is its own executable inside the option's block; the tests are
-# registered by or033_red_test (tests/CMakeLists.txt), DISABLED while OPENRENDER_033_RED_TESTS is OFF. Every one is red for the
+# Phase 2 (spec 033): the new tests, written red first (DEP-2); each is its own executable and each is registered unconditionally now.
+# History: every one was red for the
 # reason in tasks.md T026: shadingSystem.h, shaderBackend.h, shaderGroup.h, shaderPayload.h and ShaderMetadata.h do not exist, or
 # EMatrixPhase, MatrixRequest::phase and libshader::initialiseInstance() do not exist (a build failure naming the missing piece).
-# The phase that makes a test compile moves its definition out of the block (the Test gate).
+# The phase that made a test compile moved its definition out of the red block (the Test gate).
 #
 #   ShadingSystem_ThirdBackend       SC-003                      Phase 4 (JIT trees)
 #   ShadingSystem_Precedence         the format precedence       Phase 4

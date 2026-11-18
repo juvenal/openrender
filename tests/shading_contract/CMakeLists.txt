@@ -512,8 +512,8 @@ if(OPENRENDER_SHADING_CONTRACT_TESTS AND OPENRENDER_HAVE_LLVM)
 endif()
 
 # ---------------------------------------------------------------------------
-# Spec 033, Phase 2: the two new contract tests, red first (DEP-2), each in its own executable inside the option's block, registered
-# by or033_red_test (DISABLED while OPENRENDER_033_RED_TESTS is OFF). The phase that makes one compile moves its definition out.
+# Spec 033, Phase 2: the two new contract tests, written red first (DEP-2), each in its own executable; both are registered
+# unconditionally now (or033_test).
 #
 #   ShadingContract_MessageRequestsBoth      (enabled in Phase 7) fails to build until the services 2.4.0 members exist (Phase 3: MatrixRequest::phase;
 #                                            Phase 7: MessageRequest::destBytes, getShaderName)

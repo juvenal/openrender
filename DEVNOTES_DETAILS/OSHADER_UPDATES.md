@@ -100,9 +100,10 @@ by the `.rslo` interpreter.
 | Directory | Contents |
 |-----------|----------|
 | `compiler/` | Shader compiler (moved from `src/oshader/`) |
-| `runtime/` | `.rslo` interpreter runtime (moved from `src/rslo/`) |
-| `shading/` | JIT-callable `op_*` / `rsl_*` ops, builtins, coordinate transforms |
-| `include/openrender/` | Public API stubs: `RSLShading.h`, `RSLShadingState.h` |
+| `runtime/` | the `.rslo` inspection parser (`rsloGet`/`rsloDelete`, moved from `src/rslo/`), an object library inside `libRSLInfo`; **not** the loader |
+| `metadata/` | the shader-metadata API (`ShaderMetadata.h`) and its readers; builds `libRSLInfo` (formerly `libshader_runtime`, spec 033) |
+| `shading/` | the shading engine and both shader loaders (`parseShader`, `parseSloShader`), JIT-callable `op_*` / `rsl_*` ops, builtins, coordinate transforms, `ShadingSystem` (spec 033); builds `libRSLRuntime` (formerly `libshader_shading`) |
+| `include/openrender/` | API headers: `RSLShading.h`, `RSLShadingState.h`, and the internal `ShaderMetadata.h` (not installed) |
 
 ### Compiler output: `oshader --jit`
 
@@ -111,8 +112,8 @@ Produces a `.slo` file alongside the `.sl` source. The file is LLVM bitcode (mag
 bitmask (bit-encoded list of RSL global variables the shader reads), and parameter default
 values for each declared parameter.
 
-The runtime reads the metadata at load time (`parseSloShader()`) and populates the
-`CShader` struct in the same way the `.rslo` parser does. JIT entry points:
+The runtime reads the metadata at load time (`parseSloShader()`, called by the JIT backend, `sloBackend.cpp`) and populates the
+`CShader` description in the same way the `.rslo` parser does (`CShader` is backend-neutral since spec 033; the JIT entries live in its `CSloPayload`). JIT entry points:
 - `initFn(int n, void*** stuff, int* tags)` — runs parameter defaults at shader-bind time
 - `codeFn(int n, void*** stuff, int* tags)` — runs per-shading-context at render time
 
@@ -152,7 +153,7 @@ non-illuminated vertices received garbage `L` (uninitialized `savedState[0]`) an
 **jitSetInitXform** (`src/libshader/shading/rslOps.cpp`, `src/ri/init.cpp`): At
 shader-bind time `libshader::activeContext()` is null (no render thread is active yet).
 A `thread_local` pair of matrix pointers (`s_jit_init_from`, `s_jit_init_to`) is populated
-by `CRendererContext::init()` before calling `jitInitEntry`, allowing `op_pfrom("shader")`
+by the shader's bind-time init (`rsloInit.cpp`/`sloBackend.cpp`, moved into Shading by spec 033; it was `CRendererContext::init()`) before calling `jitInitEntry`, allowing `op_pfrom("shader")`
 to resolve the shader→world matrix for space-qualified parameter defaults (e.g.,
 `point "shader" (0,0,1)` in `somewood.sl`). Cleared to null after `jitInitEntry` returns.
 
@@ -177,9 +178,13 @@ described file already does it.
 ### sloinfo
 
 `sloinfo` (`src/sloinfo/sloinfo.cpp`) is a unified shader inspector that auto-detects file
-format from the first two bytes:
-- `0x42 0x43` (LLVM bitcode magic) → parse `.slo` embedded metadata
-- anything else → delegate to the `.rslo` interpreter parser
+format from the first bytes:
+- `0x42 0x43` (LLVM bitcode magic) → the `.slo` reader of the shader-metadata API
+- anything else → the `.rslo` reader of the same API
+
+Since spec 033 `sloinfo` reads shaders through `describeShaderFile()` (`ShaderMetadata.h`) only and links `libRSLInfo`, whose shared
+build holds both readers (the `.rslo` inspection parser and the bitcode metadata probe); `libRSLInfo_static` is the `.rslo` half only
+(a `.slo` request answers `Unsupported`, as in a JIT-less build). `sloinfo` itself carries no LLVM.
 
 Reports shader name, type, parameters (name, type, storage class, default value).
 `rsloinfo` is a compatibility symlink to `sloinfo` for the `.rslo`-only inspector workflow.
@@ -205,18 +210,22 @@ linking `libRSLInfo`, whose shared build holds the `.slo` probe (LLVM sits insid
 
 ### Shader format selection
 
-Three-tier priority chain (highest first):
+Three-tier priority chain (highest first), evaluated in `ShadingSystem::resolvePreference()` (`libshader/shading/shadingSystem.cpp`, spec 033):
 
 | RIB / mechanism | Syntax | Scope |
 |-----------------|--------|-------|
 | Per-primitive attribute | `Attribute "shade" "shaderformat" ["slo"]` | One primitive block |
 | Global scene option | `Option "shaderformat" "default" ["slo"]` | Entire RIB scene |
-| Compile-time / env default | `OPENRENDER_DEFAULT_FORMAT=slo` (env var or CMake cache) | Renderer startup |
+| Compile-time default | `#define OPENRENDER_DEFAULT_FORMAT "rslo"` in `config-cmake.h.in:37` (a literal, not an environment variable or a CMake cache entry) | Renderer startup |
 
 `Attribute "shade" "shaderformat"` sets the format for the current attribute block only.
 `Option "shaderformat" "default"` sets the scene-wide default before `WorldBegin`; it is
 overridden by any `Attribute` within the scene. `OPENRENDER_DEFAULT_FORMAT` acts as the
-fallback when neither is specified.
+fallback when neither is specified. The preferred format is tried first, then the other registered formats by priority; a format
+this build cannot offer (a `slo` preference in a JIT-less build) warns once and the next format loads the shader. **Known limitation
+([#167](https://github.com/juvenal/openrender/issues/167)):** the loaded-shader cache is keyed by name and consulted before the
+preference, so the first format loaded for a name serves every later request for it, whatever the preference says then
+(`ShaderFormat_Precedence` pins it).
 
 ### Structured logging environment variables
 

@@ -8,6 +8,8 @@ record was written against master `278b0394` only; nothing from spec 057's branc
 new files are under `src/libshader/shading/` unless a path says otherwise). Line numbers after the change are not
 given: they move during implementation.
 
+**Final check (T142, 2026-11-17).** Every "After" cell was checked against the final code: the functions and files named exist (`ShadingSystem::bind/find`, `CShaderSearchPathResolver`, `IShaderBindHost::registerLight`/`takeInstanceKey`, `rsloInit.cpp`, `CSloBackend::initialise/execute` in `sloBackend.cpp`, `bindCoordinateSystem` in `shaderBind.cpp`, `lightInstanceOf() -> CShaderInstance *`, `op_lightsource_f` with `destBytes = 64`); `git diff 278b0394 -- src/ri/render/rendererContext.cpp` has two hunks only (the includes, and `getShader` with the new `registerLight`), so `RiLightSourceV`, `RiAreaLightSourceV`, `RiIlluminate`, `extractLightHandle`, `takeInstanceKey` and `pendingInstanceKey` are unchanged and the leak is moved, not fixed.
+
 ## Library names (maintainer, 2026-11-14)
 
 The light-shader path lives in the shading engine library, which spec 033 renames from `libshader_shading` to

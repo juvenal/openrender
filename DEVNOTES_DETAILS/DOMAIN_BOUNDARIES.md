@@ -200,23 +200,6 @@ request. Run `ctest -L architecture` locally before review.
     `shader.h` or `reyes.h` (`Geometry_NoHiderShadingNames`). The Geometry `CRenderer::` metric fell from 48 to 2 references and 15 to
     2 members. The entry stays Open for those three lines.
 
-### DB-007 — The shader backend is chosen by concrete type inside the renderer core
-
-- **Rules**: 3 (backend-neutral interfaces between domains); Shading owns shader loading.
-- **Tracking**: remediation spec 033 ([#39](https://github.com/juvenal/openrender/issues/39))
-- **Evidence**:
-  - `parseShader`/`parseSloShader` and the `shaderformat` precedence live in
-    `src/ri/render/rendererFiles.cpp:48,130,693-716`.
-  - `CShader` carries both the bytecode and `jitEntry`
-    (`src/libshader/shading/shader.h:157,223`); the runtime picks the backend by
-    `jitEntry != nullptr`.
-- **Size**: not a dependency edge (the renderer core may depend on Shading), so there are no
-  allowlist lines; tracked by review.
-- **Direction**: a `ShadingSystem` facade with `IShaderBackend` implementations (RSL interpreter,
-  RSL JIT, later OSL). Loading, caching and format selection move into Shading; the core passes
-  only a preference.
-
-
 ### DB-011 — Hiders read renderer-core state (`CRenderer`)
 
 - **Rules**: the renderer-core rule (no domain may depend on the renderer core).
@@ -288,22 +271,22 @@ request. Run `ctest -L architecture` locally before review.
 
 - **Rules**: 3 (Shading reaches other domains' data through services).
 - **Tracking**: remediation specs 026 ([#32](https://github.com/juvenal/openrender/issues/32)), 033 ([#39](https://github.com/juvenal/openrender/issues/39)), 034 ([#40](https://github.com/juvenal/openrender/issues/40))
-- **Evidence**: spec 026 (2026-11-01): the eight builtins `attribute()`, `option()`, `rendererinfo()`,
+- **Evidence** (measured at the end of spec 033, 2026-11-17): the eight builtins `attribute()`, `option()`, `rendererinfo()`,
   `surface()`, `displacement()`, `atmosphere()`, `incident()` and `opposite()` ask the services
-  (`getAttribute`/`getMessage`) in both backends, and none reads
-  `currentShadingState->currentObject->attributes`; the reads that remain in `shading.cpp` are the
-  object's own, listed in spec 026's research R5.
-  - Still open: the JIT's message-passing entry points (`op_*_param`, `op_lightsource_f`, spec 033);
-    `shadername(type)`, a direct read null-guarded since spec 026; group-layer messages and
-    `setmessage` (spec 034); the `lightsource()` divergence between the interpreter and the JIT
-    ([#115](https://github.com/juvenal/openrender/issues/115)); and the unknown destination size of a
-    float-class query ([#121](https://github.com/juvenal/openrender/issues/121)).
-- **Size**: not a dependency edge (Shading may depend on Graphics State); tracked by review.
+  (`getAttribute`/`getMessage`) in both backends since spec 026; the JIT's eight `op_*_param` entry points already reached them then
+  (`CShadingContext::jit*Parameter` -> `queryMessage`). Spec 033 (services 2.4.0) moved the last two direct reads: `op_lightsource_f` asks one
+  `getMessage` with a 64-byte `destBytes` (the oversize refusal is the renderer's answer, `TypeMismatch`, no `getParameterShape()` in `rslOps.cpp`),
+  and `shadername(type)` asks `getShaderName` (no `currentAttributes` in `CShadingContext::shaderName`); `Shading_JitMessagesThroughServices`
+  scans both and `ShadingContract_MessageRequestsBoth` pins that the two backends make the same requests. The reads that remain in
+  `shading.cpp` are the object's own, listed in spec 026's research R5.
+  - Still open: group-layer messages and `setmessage` (spec 034); the `lightsource()` divergence between the interpreter and the JIT
+    ([#115](https://github.com/juvenal/openrender/issues/115)); and the unknown destination size of a float-class query for the interpreter
+    ([#121](https://github.com/juvenal/openrender/issues/121); the JIT's size is now declared through `destBytes`).
+- **Size**: not a dependency edge (Shading may depend on Graphics State); tracked by review and by `Shading_JitMessagesThroughServices`.
 - **Direction**: the ray type and hit mode in `ShaderGlobals` (spec 026 defined the contract and the
   situation table; spec 029 filled it, [#35](https://github.com/juvenal/openrender/issues/35): the hiders' producer sets `rayType`, `hitMode` and `transport` per batch from the
   situation table as corrected to the code (`classifyShading()`, `specs/029-hider-shading-separation/contracts/point-source-and-globals.md`) and `shade()` reads them);
-  the JIT's message-passing entry points through the services (spec 033); `getmessage`/`setmessage`
-  across shader-group layers (spec 034).
+  `getmessage`/`setmessage` across shader-group layers (spec 034).
 
 ### DB-023 — Domains are not build targets
 
@@ -316,9 +299,10 @@ request. Run `ctest -L architecture` locally before review.
   - `libshader_shading`'s include path lists `src/ri/{core,parse,state,texture}` and `src/ri` itself (measured at the end of spec 029,
     2026-11-04; the Geometry directory was the last cross-domain one to leave it), so a Geometry
     or Hiders header cannot be included by Shading at compile time. Other domains' include paths are unchanged.
-    (Re-measured 2026-11-17 during spec 033, on `libRSLRuntime`, the renamed library: its compile line lists `src/ri/hiders` and
-    `src/ri/geometry` again, as the stale `libshader_shading` compile line of an earlier tree already did; `ShadingScope_Greps` S1a/S1e did not
-    notice because its include-list parse read nothing. See `specs/033-shading-system-backends/validation.md` section 4.)
+    (Re-measured 2026-11-17 during spec 033, on `libRSLRuntime`, the renamed library: its compile line listed `src/ri/hiders` and
+    `src/ri/geometry` again, as the compile line of a tree built before the spec already did; `ShadingScope_Greps` S1a/S1e did not
+    notice because its include-list parse read nothing. Spec 033 fixed the parse and filters those two directories out of the shading
+    directory's include path (`src/libshader/shading/CMakeLists.txt`); see `specs/033-shading-system-backends/validation.md` section 4, F-7.)
 - **Size**: not a dependency edge; tracked by review and by the architecture check.
 - **Direction**: per-domain include visibility first, then per-domain OBJECT targets as each layer
   lands.
@@ -331,7 +315,9 @@ request. Run `ctest -L architecture` locally before review.
 - **Evidence** (the check's `CONSUMER` section; spec 038 re-measured it on 2026-11-04: 71 edges, 32
   from `src/libshader/tests/*` and 39 from the tools; the registry's earlier 36 counted the tool edges
   without the two `ri.h` edges of `orender.cpp` and `otexmake.cpp`, which makes 37 now):
-  - `sloinfo.cpp` and `oshader.cpp` include Shading internals (3 each);
+  - `sloinfo.cpp` included Shading internals (3 edges); since spec 033 it includes only `libshader/include/openrender/ShaderMetadata.h` (1 edge:
+    the metadata API of `libRSLInfo`), and `Sloinfo_MetadataApiOnly` scans it. `oshader.cpp` includes 3 headers of its **own compiler**
+    (`llvmEmitter.h`, `opcodes.h`, `rslo.h` in `src/libshader/compiler/`): nothing of `oshader` is spec 033's; spec 043 owns the compiler library;
   - `precomp.cpp` includes one Hiders header, `rasterFlags.h` (the `RASTER_*` constants, no other
     content; it used to include `reyes.h` and the renderer core's `renderer.h`);
   - `libribpreview` includes 15 Geometry headers, 4 Graphics State headers (`pl.h`, `attributes.h`,
@@ -341,8 +327,8 @@ request. Run `ctest -L architecture` locally before review.
     `renderer.h` for the `CRenderer::fromWorld` seeding and the Core `photonMap.h`; since spec 032 it reaches
     nothing in Hiders, and the viewer's adapters (`pointCloudView`, `brickMapView`, `irradianceCacheView`,
     `photonMapView`) reach Texturing (4).
-- **Size**: 37 consumer-reach edges from the tools (39 listed with the two `ri.h` edges); reported,
-  never failing, no allowlist lines.
+- **Size**: 37 consumer-reach edges from the tools before spec 033 (39 listed with the two `ri.h` edges); 35 (37) after it, 69 `CONSUMER` edges in all
+  (71 before; `sloinfo` 3 to 1); open: the preview (`libribpreview`) and the data viewer; reported, never failing, no allowlist lines.
 - **Direction**: tools use public APIs: a shader-metadata API from Shading (033), one display ABI
   definition (037). Spec 038 did not add `RiMake*` for precomputation (the earlier Direction): it cut
   `precomp` off the hider class and the renderer core by moving the constants into `rasterFlags.h`.
@@ -1034,3 +1020,21 @@ request. Run `ctest -L architecture` locally before review.
   `DEBUG_TESSELATIONS` blocks that used `CDebugView` are removed. The entry stays Open for spec 032's 11 lines and is moved by whichever of 031 and 032 merges second.
 - **Resolved** by specs 031 and 032 (031 merging second), 2026-11-12: no domain includes or calls the data viewer any more: spec 032 removed the 11 Texturing and Hiders lines, spec 031
   the last one (`geometry/surface.cpp -> dataviewer/debug.h`); the allowlist holds no DB-025 line.
+
+### DB-007 — The shader backend is chosen by concrete type inside the renderer core
+
+- **Rules**: 3 (backend-neutral interfaces between domains); Shading owns shader loading.
+- **Tracking**: remediation spec 033 ([#39](https://github.com/juvenal/openrender/issues/39))
+- **Evidence** (the starting tree, research R0.2): `parseShader`/`parseSloShader` and the `shaderformat` precedence lived in
+  `src/ri/render/rendererFiles.cpp` (a bare `parseShader` declaration at `:50`, the `sloLoader.h` include at `:52`, `CRenderer::getShader` at `:372-439` with two
+  `OPENRENDER_HAVE_LLVM` branches), the core's `CRendererContext::getShader` built a `CProgrammableShaderInstance` and called the interpreter's init
+  (`src/ri/render/init.cpp`), and `CShader` carried both the bytecode and `jitEntry`: the runtime picked the backend by `jitEntry != nullptr`.
+- **Size**: not a dependency edge (the renderer core may depend on Shading), so there were no allowlist lines; tracked by review.
+- **Direction**: a `ShadingSystem` facade with `IShaderBackend` implementations (RSL interpreter, RSL JIT, later OSL). Loading, caching and format selection move
+  into Shading; the core passes only a preference.
+- **Resolved** by spec 033 (`specs/033-shading-system-backends/`), 2026-11-17: `ShadingSystem` (`libshader/shading/shadingSystem.{h,cpp}`) owns the cache (keyed by the
+  description's own name, GitHub #167 recorded as a known limitation), the format precedence and the whole bind; the backends are `rsloBackend()` and `sloBackend()`
+  behind `IShaderBackend` (`shaderBackend.h`), `CShader` is a backend-neutral description with an owned payload, and the core is a `ShadingSystem` client
+  (`CShaderSearchPathResolver`, the bind host `CRendererContext::registerLight`/`takeInstanceKey`, `ShaderGroupBuilder`). `src/ri/render/init.cpp` is gone,
+  `OPENRENDER_HAVE_LLVM` does not appear under `src/ri`, and `Shading_CoreNoBackendNames` (with its fixture run) scans `src/ri`, `src/display`, `src/shadeop`,
+  `src/procedures` and `src/common` for the backend names. A third backend (`ShadingSystem_ThirdBackend`) registers with no edit to those domains.

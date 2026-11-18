@@ -221,6 +221,26 @@ What 2.4.0 now holds (the one history entry, written in Phase 3, already named e
 **One departure from the task text.** The JIT's `jitShaderNameS` looped over the batch's points and would have asked once per point (9 requests for 3 points); the interpreter evaluates it once (uniform). To make both backends ask the same (the test counts exactly three), `jitShaderNameS` asks again only when the type string differs from the previous point's. The result is the same string at every point; no other JIT change.
 Approved-test edit: `tests/shading_contract/contract_forwarder.h` forwards `getShaderName` to the inner services without recording it (so the Phase 1 record of `cm_shadername`, "no requests", still holds).
 
+### Phase 9 (T138 to T153; the closing validation; the option `OPENRENDER_033_RED_TESTS` is gone)
+
+`grep -rn OPENRENDER_033_RED_TESTS` outside `specs/` prints nothing; `or033_red_test()` and the option are deleted from `tests/CMakeLists.txt` (the unconditional `or033_test()` helper stays), and none of the spec's tests is `DISABLED`.
+
+| Check | macOS (`build`, `build-nojit`) | Linux (GCC 13, `-Werror`, `-j2`) |
+|---|---|---|
+| CP-a build | `build` and `build-nojit` rc=0 | rc=0 (the stale old-name outputs removed first: below) |
+| CP-b suite (`-LE determinism-sweep`) | 1384 tests, 1383 passed; the one failure, `ShadingContract_MessageRequests`, is a Bus error in the `rslo:messages` process (finding F-2, #176, the known intermittent) and passes alone (0.38 s) | 1385 tests, 1383 passed: the baseline's two (`TextureTile_RenderByteIdentical` #45, `Registry_IntegratorImageIdentity` #163) only; `ShadingScope_Greps`, `Link_RenameAliases` and `Link_InfoRuntimeNotCoLinked` pass |
+| JIT-off (T144, T149) | `build-nojit`: 1072 tests, 1071 passed; the failure is `Shaders_BytesUnchanged` (F-4, #177); no test that passed on the JIT-off baseline fails; `ShadingSystem_NoJitFallback`, `ShaderFormat_Precedence` (its JIT-less record), `Sloinfo_Output137` and `Sloinfo_MetadataApiOnly` pass | `build-nojit` (`-DOPENRENDER_ENABLE_JIT=OFF`): 1073 tests, 1070 passed; the three failures are #45, #163 and F-4; the tree was deleted afterwards |
+| CP-d images | 0 differing, 0 missing (65 fresh images, information only); `MaxBlockAvgDiff` rows identical | 0 differing, 0 missing; rows identical |
+| CP-c architecture | 42/42; `archcheck` PASS, `ALLOWED DB-004 x 3 DB-011 x 144`, `CONSUMER` 69 (71 at the start), TOTAL 491/71, Geometry 2/2, Hiders 489/69, Shading, Infra, Texturing and Scene Interface 0/0, every row at its baseline; the allowlist, `metrics-baseline.txt` and `domain-map.txt` differ from `278b0394` in no line | 42/42; same figures |
+| CP-m contract tests | 249/249 | 249/249 |
+| CP-v | version `{2, 4, 0}`, no `static_assert` edited | same tree |
+| `link` and `plugin_abi` labels | in the suite | 78/78 |
+| Determinism sweep (T145, T150) | 582/582 passed, **0 differing, 0 missing** against `baseline-sweep-images-macos.sha256`; `^determinism$` 158/158 | 581/582 and **1 differing**: `DeterminismSweep_sphere-texture3d-bake3d-reyes-slo` segfaulted (finding F-10 below: the starting tree does the same); the other 581 images are identical |
+| Opt-in package test (T147, T148 on the Linux host only) | not run on macOS (the maintainer's rule) | `Link_PackageStaticConsumer` passed in 82.30 s at the default `CPUJOB_TIMEOUT`; the option OFF again |
+| Replays and baselines | `git diff --stat 278b0394 -- tests/shading_contract/replay tests/unit/motion/replay` empty | same tree |
+
+**Stale old-name outputs on the Linux tree (approved list, Linux names), removed before the Linux build:** `build/src/libshader/shading/`: `libshader_shading.so.1.0.0`, `libshader_shading.so.1`, `libshader_jitmeta.a`, `CMakeFiles/libshader_shading.dir`, `CMakeFiles/libshader_jitmeta.dir`; `build/src/libshader/runtime/`: `libshader_runtime.so.1.0.0`, `libshader_runtime.so.1`, `libshader_runtime.so`, `libshader_runtime.a`, `CMakeFiles/libshader_runtime.dir`, `libshader_runtime_obj.dir`, `libshader_runtime_static.dir` (12 entries, `build-logs/033-final-removed-linux.txt` on the host). The compat symlinks `libshader_shading.so` and `libshader_runtime.so`/`.a` next to the new libraries were kept. Also deleted on the host (approved): `build-nojit` (the plan's own second tree).
+
 ### Phase 8 (T116 to T135; the metadata API, `libRSLInfo`, and the library renames)
 
 macOS (`build` and `build-nojit`; Linux is recorded in the table's right column when its run is done):
@@ -381,7 +401,7 @@ them, when an untracked non-ignored file exists: tested with a temporary file). 
 - **F-8 (stale old-name build outputs): removed (maintainer-approved 2026-11-17), exactly this list.** macOS `build` and `build-nojit`, `src/libshader/shading/`: `libshader_shading.1.0.0.dylib`, `libshader_shading.1.dylib`,
   `libshader_jitmeta.a` (`build` only), `CMakeFiles/libshader_shading.dir`, `CMakeFiles/libshader_jitmeta.dir` (`build` only); `src/libshader/runtime/`: `libshader_runtime.1.0.0.dylib`, `libshader_runtime.1.dylib`,
   `libshader_runtime.a`, `libshader_runtime.dylib`, `CMakeFiles/libshader_runtime.dir`, `libshader_runtime_obj.dir`, `libshader_runtime_static.dir`. Kept: the compat symlinks `libshader_shading.dylib -> libRSLRuntime.dylib`
-  (shading directory) and `libshader_runtime.dylib`/`.a` beside `libRSLInfo` (metadata directory). `Link_RenameAliases` is green in both trees afterwards. The Linux tree is done after spec 040's closing chain on the host: **pending** (the Linux column above is the run before the F-7 to F-9 fixes: `ShadingScope_Greps` and `Link_RenameAliases` red there for the reasons given; the re-run, the same removal list and the three affected tests follow).
+  (shading directory) and `libshader_runtime.dylib`/`.a` beside `libRSLInfo` (metadata directory). `Link_RenameAliases` is green in both trees afterwards. The Linux tree was done in Phase 9 (the same list with Linux names; see the Phase 9 record): `ShadingScope_Greps`, `Link_RenameAliases` and `Link_InfoRuntimeNotCoLinked` pass there, as do the `link` and `plugin_abi` labels (78/78).
 - **F-9 (`.gitignore` hid the new header): resolved (maintainer-approved).** Line 43 is now `/openrender/`; the ignored-file list of the worktree is unchanged, `git status` shows no new untracked file, the main checkout has no other
   directory of that name outside `src/libshader/include/openrender/` (tracked), and `check-ignore` no longer matches the header (still tracked).
 - **My registration of `Link_RenameAliases` (Phase 2) could never see the targets.** It tested `if(TARGET libRSLRuntime)` at configure time, but `tests/` is configured before `src/`
@@ -392,6 +412,39 @@ them, when an untracked non-ignored file exists: tested with a temporary file). 
   sub-builds (copies, made and removed while other tests run) and sets policy CMP0057 (CMake 3.28 on Linux); the metadata, install and rename docs are edited as T132 lists, `DEVNOTES.md` rows are
   history rows of earlier specs and are left as written, and `BINDINGS_GUIDE.md`, `src/python` and `src/lua` name no library (nothing to change).
 
+**Departures and the closed question (T152):** DEP-1 (the approved tests compile unchanged instead of being adapted, P-Q6), DEP-2 (the temporary option `OPENRENDER_033_RED_TESTS`, removed in Phase 9), DEP-3 (the library renames edit
+three approved tests, with approval, `tools/rename-test-edits.patch`, plus the maintainer's later parse fix of `check_scope.cmake`, F-7), DEP-4 (`Link_InfoRuntimeNotCoLinked` is a guard with mutation runs, not red first). Further approved
+test edits: `contract_harness.h` (one reference on the harness' transform, found through `ShadingSystem_BindOrder`) and `contract_forwarder.h` (forwarding `getShaderName`), and the wrong-type shader name in `test_bind_order.cpp`.
+**O-1 is closed:** the inspection side is named `libRSLInfo` (it absorbs `libshader_runtime`; there is no `libshader_metadata`).
+
+**Phase 9 findings and hand-offs:**
+
+- **F-10 (new, out of this spec's mandate, not fixed; to be filed by the maintainer): an intermittent segfault of `orender` in `DeterminismSweep_sphere-texture3d-bake3d-reyes-slo` on Linux, present on the starting tree.**
+  In the Linux sweep this test failed once (`Segmentation fault (core dumped)`, `orender failed with exit code 35584`, configuration `-t:2`), and its image differed. Alone through the remote `cpujob`
+  it passed 5 of 5; under `ctest --repeat until-fail:60` it passed 5 times and then segfaulted (configuration `(default)`). **The same repeat on the starting tree** (`278b0394` extracted to a scratch
+  directory on the host, built there) passed 28 times and then segfaulted the same way, so it is not caused by this spec. On macOS the same test passed 60 of 60 and the macOS sweep is 582/582. The scene is
+  a multi-threaded `texture3d` bake (`bake3d`, reyes, `.slo`); it looks like the heap-corruption family of F-2 (#176) and #164. No debugger was used, so the cause is not known.
+- **#167 stays a known limitation** (recorded in `DEVNOTES.md` and `OSHADER_UPDATES.md`; pinned by `ShaderFormat_Precedence`).
+- **Hand-offs.** The maintainer applies `claude-md-draft.md` to `CLAUDE.md` (never edited by a task). The merge message carries `Closes #39` and `Closes #134` and **not** #115, #121, #157, #158 to #161, #164 to #166.
+  The coordinator runs `speckit-converge` after this phase and before merge preparation; no task here prepares the merge or depends on it. The R12 timings (T146) wait for the maintainer's word that the machine is quiet.
+
 ## 5. Final summary against SC-001 to SC-011
 
-Phase 9.
+Evidence is in sections 1 to 4 and the Phase records; the commands of T151 and their results are listed after the table. "Open" means a figure waits for the maintainer.
+
+| SC | Evidence | Result |
+|---|---|---|
+| SC-001 | Visual suite and sweep byte-identical to the baselines, `.rslo` and `.slo`: macOS sweep 582/582, 0 differing, 0 missing; macOS suite CP-d 0 differing; Linux CP-d 0 differing and the sweep 581/582 identical with one segfault that the starting tree shows too (F-10); the spec 026 and 028 replays unchanged (`git diff --stat 278b0394` empty); the pass/fail sets equal the baselines' (macOS: all pass but the F-2 flake that passes alone; Linux: #45, #163 only; JIT-off: F-4 only) | met, with F-10 (pre-existing) on Linux |
+| SC-002 | `Shading_CoreNoBackendNames` 0 violations over `src/ri`, `src/display`, `src/shadeop`, `src/procedures`, `src/common`, its fixture run (a planted name) fails as intended; `grep -rnow OPENRENDER_HAVE_LLVM src/ri` prints nothing | met |
+| SC-003 | `ShadingSystem_ThirdBackend` (a test-only backend registered, found, loaded, cached, bound, initialised, run): its link line has `libshader_shading`/`libRIBCommon`/the State-only library and no `ribRender`; no file outside Shading and the test edited for it (Phase 5, T092) | met |
+| SC-004 | `ShaderFormat_Precedence` identical in `build` and `build-nojit` (each against its own record) and on Linux; `ShadingSystem_Precedence` gives the result from the three inputs with no renderer; `ShadingSystem_NoJitFallback` (JIT-less warning and result) | met |
+| SC-005 | `ShadingContract_MessageRequestsBoth`: the same requests under both backends (the tuples equal; `getShaderName` three requests; `destBytes` 64 for the JIT and 0 for the interpreter, #115 unchanged); `Shading_JitMessagesThroughServices` 0 direct reads (+ fixture run) | met |
+| SC-006 | `sloinfo.cpp` includes `ShaderMetadata.h` and common headers only; `Sloinfo_MetadataApiOnly` (+ fixture); `Sloinfo_Output137` byte-identical to the Phase 1 record, `SloinfoGoldenOutput` unchanged | met |
+| SC-007 | `src/ri/render/init.cpp` gone; `grep -rn "CRenderer::findCoordinateSystem\|CRenderer::retrieveVariable" src/libshader` prints nothing (the 19 sites are 0); `BindSpaces_Characterise` identical, `ShadingSystem_BindUnknownSpace` green | met |
+| SC-008 | `ctest -L architecture` 42/42 on both platforms; `git diff 278b0394 --stat` of `allowlist.txt`, `metrics-baseline.txt`, `domain-map.txt` empty; DB-007 Resolved (spec 033, 2026-11-17), DB-018 and DB-024 rewritten with the measured state; `CONSUMER` 71 -> 69, TOTAL 491/71 unchanged (never raised) | met |
+| SC-009 | No `MAX_RATIO` or threshold edited (`git diff 278b0394 -- tests/visual/CMakeLists.txt` empty); the loading benchmark and the `.slo`/`.rslo` ratio tests pass in the suite; Phase 8's `sloinfo` measurement is inside the rule (+3.4%). **The R12 timings of the finished tree (T146) are open: they run only when the maintainer says the machine is quiet.** | open (T146) |
+| SC-010 | `contracts/light-shader-entry-points.md` names six entry points with their final equivalents (checked against the code, T142); the light-shader scenes (`-slo` and `-rslo`, area lights included) byte-identical in CP-d on both platforms; `git diff 278b0394 -- src/ri/render/rendererContext.cpp` has two hunks (the includes; `getShader` and `registerLight`) | met |
+| SC-011 | `libRSLRuntime` and `libRSLInfo` built and installed under their names; `Link_RenameAliases` passes (macOS, JIT-off, Linux); `Link_InfoRuntimeNotCoLinked` passes with its mutation runs failing; `PluginAbi_InstallLayouts` (`install_consumer`, old and new export names) green; `Link_PackageStaticConsumer` passed on Linux; `ShadingScope_Greps` S1a/S1e read the renamed target's include path and fail on a planted include (F-7) | met |
+
+**T151 commands and results.** `grep -rnow OPENRENDER_HAVE_LLVM src/ri` -> nothing; `ls src/ri/render/init.cpp` -> no such file; `git diff --stat 278b0394 -- src/ri/state src/ri/texture src/ri/geometry src/ri/hiders src/ri/parse src/ri/output src/ri/dataviewer src/display src/shadeop src/procedures src/common src/libshader/compiler src/libshader/runtime/rslo.y src/libshader/runtime/rslo.l src/libshader/runtime/rslo.h src/libshader/shading/RSLShading.cpp CLAUDE.md tests/shading_contract/replay tests/unit/motion/replay tests/architecture/allowlist.txt tests/architecture/metrics-baseline.txt tests/architecture/domain-map.txt` -> empty; `git diff --name-only 278b0394 -- src/ri` -> only the twelve files of the migration (`CMakeLists.txt`, `render/{imager,init (moved),renderer.h,rendererContext.{cpp,h},rendererFileSearch,rendererFiles,rendererServicesImpl.h,rendererShadingServices,rendererStatics}.cpp`, `render/searchPathResolver.h`); `git diff --name-status 278b0394 -- tests`: 54 added files and ten modified: `tests/CMakeLists.txt`, `tests/architecture/CMakeLists.txt`, `tests/link/CMakeLists.txt`, `tests/shaders/CMakeLists.txt`, `tests/shading_contract/CMakeLists.txt` (registration only), the three approved rename edits (`check_scope.cmake`, `check_link_line.cmake`, `install_consumer/CMakeLists.txt`) and the two approved harness edits (`contract_harness.h`: one reference on the transform; `contract_forwarder.h`: forwarding `getShaderName`); no threshold, tolerance or reference changed; the allowlist is unchanged.
+
