@@ -7,8 +7,8 @@
  *   CRenderer::normalizeFileName()/locateFile() -- pure filesystem/network
  *   path resolution, with no shading-engine or Reyes-hider dependency of
  *   their own. Split out of render/rendererFiles.cpp (whose OTHER methods
- *   -- getShader/getPhotonMap/getCache/getTexture3d, needing LLVM's
- *   CLLVMJitEngine and constructing CProgrammableShaderInstance/CShader --
+ *   -- getShader/getPhotonMap/getCache/getTexture3d, needing the shading
+ *   system's shader backends and the shader types --
  *   are full-pipeline-only and stay excluded from ribVector) because
  *   locateFile() itself is genuinely needed broadly: blobbyRepeller.cpp,
  *   texmake.cpp, texture.cpp, brickmap.cpp all call it directly, and the

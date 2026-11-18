@@ -1,0 +1,1 @@
+// spec 033 fixture: a clean file

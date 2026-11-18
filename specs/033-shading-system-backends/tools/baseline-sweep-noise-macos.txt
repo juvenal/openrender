@@ -1,0 +1,1 @@
+# Sweep images whose bytes differ between two runs of the starting tree's determinism sweep on macOS (spec 033 T011). One path per line.

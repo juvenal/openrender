@@ -1,0 +1,257 @@
+# T006: test-edit inventory, measured with grep over tests/ and src/ on the starting tree (master 278b0394 + the spec 033 documents).
+# Per identifier: the files under tests/ that name it (with the number of lines), then the files under src/ OUTSIDE src/libshader and src/ri.
+# '-w' (whole identifier) for names, '-F' (fixed string) for expressions and library names.
+
+## parseShader
+tests/: 3 file(s), 9 line(s)
+  tests/shading_system/bench_load.cpp (3)
+  tests/shading_contract/case_standalone_context.cpp (2)
+  tests/shading_contract/contract_harness.h (4)
+src/ outside libshader and ri: 1 file(s)
+  src/sloinfo/CMakeLists.txt (1)
+
+## parseSloShader
+tests/: 4 file(s), 7 line(s)
+  tests/shading_system/bench_load.cpp (2)
+  tests/shading_contract/case_standalone_context.cpp (1)
+  tests/shading_contract/contract_harness.h (2)
+  tests/shading_parity/test_slo_default_buffer.cpp (2)
+src/ outside libshader and ri: 0 file(s)
+
+## CProgrammableShaderInstance
+tests/: 45 file(s), 142 line(s)
+  tests/imager/test_imager_options.cpp (1)
+  tests/link/check_scope.cmake (2)
+  tests/shading_contract/case_standalone_context.cpp (1)
+  tests/shading_contract/case_real_answers.cpp (12)
+  tests/shading_contract/case_no_services.cpp (4)
+  tests/shading_contract/case_lightsource_no_loop.cpp (1)
+  tests/shading_contract/case_matrices.cpp (1)
+  tests/shading_contract/case_hider_tracer.cpp (1)
+  tests/shading_contract/case_null_object_messages.cpp (1)
+  tests/shading_contract/case_lightsource_oversized.cpp (2)
+  tests/shading_contract/case_volume_segments.cpp (21)
+  tests/shading_contract/case_trace_requests.cpp (3)
+  tests/shading_contract/contract_harness.h (4)
+  tests/shading_contract/case_gather_requests.cpp (1)
+  tests/shading_contract/case_type_mismatch_message.cpp (1)
+  tests/shading_contract/case_type_mismatch_real.cpp (1)
+  tests/shading_contract/case_type_mismatch_real_message.cpp (6)
+  tests/shading_contract/case_message_requests.cpp (11)
+  tests/shading_contract/case_type_mismatch_attribute.cpp (1)
+  tests/shading_contract/case_canned_bundles.cpp (2)
+  tests/shading_contract/case_photon_lookup.cpp (2)
+  tests/shading_contract/case_canned_trace.cpp (4)
+  tests/shading_contract/case_link.cpp (1)
+  tests/shading_contract/case_messages.cpp (1)
+  tests/shading_contract/rendered_harness.h (3)
+  tests/shading_contract/case_lightsource_no_loop_real.cpp (2)
+  tests/shading_contract/case_no_tracer.cpp (1)
+  tests/shading_contract/case_message_side.cpp (2)
+  tests/shading_contract/case_bind_spaces.cpp (3)
+  tests/shading_contract/case_null_object.cpp (1)
+  tests/shading_contract/case_illumination_hook_interface.cpp (2)
+  tests/shading_contract/case_point_source.cpp (1)
+  tests/shading_contract/case_attributes.cpp (1)
+  tests/shading_parity/test_illumination_hook_operands.cpp (5)
+  tests/shading_parity/test_used_parameters_oracle.cpp (2)
+  tests/shading_parity/test_illumination_hook_conditions.cpp (5)
+  tests/shading_parity/texture_substitute_harness.h (3)
+  tests/shading_parity/test_ol_wiring.cpp (2)
+  tests/shading_parity/test_slo_default_buffer.cpp (2)
+  tests/shading_parity/test_ambient_accumulation.cpp (4)
+  tests/shading_parity/test_illumination_hook.cpp (5)
+  tests/shading_parity/CMakeLists.txt (1)
+  tests/shading_parity/test_texture_substitute_3d.cpp (3)
+  tests/shading_parity/test_false_if_constructs.cpp (6)
+  tests/shading_parity/test_texture_substitute.cpp (3)
+src/ outside libshader and ri: 0 file(s)
+
+## jitEntry
+tests/: 0 file(s), 0 line(s)
+src/ outside libshader and ri: 0 file(s)
+
+## jitInitEntry
+tests/: 0 file(s), 0 line(s)
+src/ outside libshader and ri: 0 file(s)
+
+## codeArea
+tests/: 0 file(s), 0 line(s)
+src/ outside libshader and ri: 0 file(s)
+
+## constantEntries
+tests/: 0 file(s), 0 line(s)
+src/ outside libshader and ri: 0 file(s)
+
+## codeEntryPoint
+tests/: 0 file(s), 0 line(s)
+src/ outside libshader and ri: 0 file(s)
+
+## initEntryPoint
+tests/: 0 file(s), 0 line(s)
+src/ outside libshader and ri: 0 file(s)
+
+## lightInstanceOf
+tests/: 0 file(s), 0 line(s)
+src/ outside libshader and ri: 0 file(s)
+
+## CRenderer::getShader
+tests/: 3 file(s), 4 line(s)
+  tests/shading_contract/rendered_harness.h (1)
+  tests/shading_parity/test_shader_parameter_equivalence.cpp (1)
+  tests/shading_parity/shader_parameter_fixtures.h (2)
+src/ outside libshader and ri: 0 file(s)
+
+## context->execute(
+tests/: 5 file(s), 5 line(s)
+  tests/shading_contract/case_standalone_context.cpp (1)
+  tests/shading_contract/contract_harness.h (1)
+  tests/shading_contract/case_photon_lookup.cpp (1)
+  tests/shading_contract/case_message_side.cpp (1)
+  tests/shading_contract/case_illumination_hook_interface.cpp (1)
+src/ outside libshader and ri: 0 file(s)
+
+## ->execute(
+tests/: 8 file(s), 8 line(s)
+  tests/shading_contract/case_standalone_context.cpp (1)
+  tests/shading_contract/case_volume_segments.cpp (1)
+  tests/shading_contract/contract_harness.h (1)
+  tests/shading_contract/case_photon_lookup.cpp (1)
+  tests/shading_contract/rendered_harness.h (1)
+  tests/shading_contract/case_message_side.cpp (1)
+  tests/shading_contract/case_illumination_hook_interface.cpp (1)
+  tests/shading_parity/texture_substitute_harness.h (1)
+src/ outside libshader and ri: 0 file(s)
+
+## parent->type
+tests/: 1 file(s), 1 line(s)
+  tests/imager/test_imager_options.cpp (1)
+src/ outside libshader and ri: 0 file(s)
+
+## parent->usedParameters
+tests/: 2 file(s), 4 line(s)
+  tests/shading_parity/test_used_parameters_oracle.cpp (2)
+  tests/shading_parity/test_ol_wiring.cpp (2)
+src/ outside libshader and ri: 0 file(s)
+
+## parent->parameters
+tests/: 1 file(s), 1 line(s)
+  tests/shading_parity/test_slo_default_buffer.cpp (1)
+src/ outside libshader and ri: 0 file(s)
+
+## #include "shader.h"
+tests/: 2 file(s), 2 line(s)
+  tests/shading_system/bench_load.cpp (1)
+  tests/unit/state/CMakeLists.txt (1)
+src/ outside libshader and ri: 0 file(s)
+
+## libshader_shading
+tests/: 26 file(s), 89 line(s)
+  tests/shading_system/CMakeLists.txt (1)
+  tests/unit/rib_parse/CMakeLists.txt (1)
+  tests/unit/sampling/CMakeLists.txt (2)
+  tests/unit/state/CMakeLists.txt (1)
+  tests/unit/common/shading_infra_binding.cmake (5)
+  tests/unit/common/test_common_crosslib.cpp (7)
+  tests/unit/common/shading-infra-symbols.txt (2)
+  tests/unit/common/CMakeLists.txt (6)
+  tests/unit/registry/CMakeLists.txt (1)
+  tests/plugins/procedures/CMakeLists.txt (3)
+  tests/plugins/checks/CMakeLists.txt (1)
+  tests/plugins/display/CMakeLists.txt (3)
+  tests/plugins/texture3d/CMakeLists.txt (1)
+  tests/imager/CMakeLists.txt (3)
+  tests/gi_split/CMakeLists.txt (1)
+  tests/link/static_consumer.cpp (2)
+  tests/link/check_scope.cmake (1)
+  tests/link/static_consumer_registries.cpp (1)
+  tests/link/check_shading_self_contained.cmake (5)
+  tests/link/check_no_workaround_text.cmake (1)
+  tests/link/CMakeLists.txt (4)
+  tests/shading_contract/case_standalone_context.cpp (1)
+  tests/shading_contract/contract_harness.h (2)
+  tests/shading_contract/case_link.cpp (2)
+  tests/shading_contract/CMakeLists.txt (10)
+  tests/shading_parity/CMakeLists.txt (22)
+src/ outside libshader and ri: 6 file(s)
+  src/sloinfo/CMakeLists.txt (1)
+  src/shadeop/CMakeLists.txt (2)
+  src/common/CMakeLists.txt (1)
+  src/preview/orender-wire-linux/CMakeLists.txt (1)
+  src/preview/orender-wire-macos/CMakeLists.txt (1)
+  src/CMakeLists.txt (1)
+
+## shader_shading
+tests/: 28 file(s), 91 line(s)
+  tests/shading_system/CMakeLists.txt (1)
+  tests/unit/rib_parse/CMakeLists.txt (1)
+  tests/unit/sampling/CMakeLists.txt (2)
+  tests/unit/state/CMakeLists.txt (1)
+  tests/unit/common/shading_infra_binding.cmake (5)
+  tests/unit/common/test_common_crosslib.cpp (7)
+  tests/unit/common/shading-infra-symbols.txt (2)
+  tests/unit/common/CMakeLists.txt (6)
+  tests/unit/registry/CMakeLists.txt (1)
+  tests/plugins/procedures/CMakeLists.txt (3)
+  tests/plugins/checks/CMakeLists.txt (1)
+  tests/plugins/checks/install_consumer/CMakeLists.txt (1)
+  tests/plugins/display/CMakeLists.txt (3)
+  tests/plugins/texture3d/CMakeLists.txt (1)
+  tests/imager/CMakeLists.txt (3)
+  tests/gi_split/CMakeLists.txt (1)
+  tests/link/static_consumer.cpp (2)
+  tests/link/check_scope.cmake (1)
+  tests/link/static_consumer_registries.cpp (1)
+  tests/link/check_shading_self_contained.cmake (5)
+  tests/link/check_no_workaround_text.cmake (1)
+  tests/link/CMakeLists.txt (4)
+  tests/shading_contract/case_standalone_context.cpp (1)
+  tests/shading_contract/contract_harness.h (2)
+  tests/shading_contract/case_link.cpp (2)
+  tests/shading_contract/CMakeLists.txt (10)
+  tests/shading_contract/check_link_line.cmake (1)
+  tests/shading_parity/CMakeLists.txt (22)
+src/ outside libshader and ri: 6 file(s)
+  src/sloinfo/CMakeLists.txt (1)
+  src/shadeop/CMakeLists.txt (2)
+  src/common/CMakeLists.txt (1)
+  src/preview/orender-wire-linux/CMakeLists.txt (1)
+  src/preview/orender-wire-macos/CMakeLists.txt (1)
+  src/CMakeLists.txt (1)
+
+## libshader_runtime
+tests/: 1 file(s), 1 line(s)
+  tests/unit/common/CMakeLists.txt (1)
+src/ outside libshader and ri: 3 file(s)
+  src/sloinfo/sloinfo.cpp (2)
+  src/sloinfo/CMakeLists.txt (2)
+  src/rslo/CMakeLists.txt (3)
+
+## shader_runtime
+tests/: 2 file(s), 2 line(s)
+  tests/unit/common/CMakeLists.txt (1)
+  tests/plugins/checks/install_consumer/CMakeLists.txt (1)
+src/ outside libshader and ri: 3 file(s)
+  src/sloinfo/sloinfo.cpp (2)
+  src/sloinfo/CMakeLists.txt (2)
+  src/rslo/CMakeLists.txt (3)
+
+## rslo_static
+tests/: 0 file(s), 0 line(s)
+src/ outside libshader and ri: 1 file(s)
+  src/rslo/CMakeLists.txt (1)
+
+## libshader_jitmeta
+tests/: 0 file(s), 0 line(s)
+src/ outside libshader and ri: 1 file(s)
+  src/sloinfo/CMakeLists.txt (2)
+
+## libshader_runtime_static
+tests/: 0 file(s), 0 line(s)
+src/ outside libshader and ri: 1 file(s)
+  src/rslo/CMakeLists.txt (2)
+
+## CMakeFiles/libshader_shading.dir
+tests/: 1 file(s), 1 line(s)
+  tests/link/check_scope.cmake (1)
+src/ outside libshader and ri: 0 file(s)
