@@ -867,3 +867,43 @@ decision; no Phase 6 to 8 Linux job came near 2700 s. It was removed from J, K a
 T126 (applying the approved `claude-md-draft.md` to `CLAUDE.md`, `NEWS.md`, `ChangeLog.md`): left to the coordinator. T127 done. CHECKPOINT 8 reached.
 
 Linux `du -sh build-oiio/or048-install` = 68M (`or048-install/usr` 58M; the rest is the DESTDIR double-prefixed copy of the bundled OIIO noted above); macOS 114M.
+
+## 22. Phase 9: closing validation on both platforms, 2026-11-18 (T129 to T138)
+
+Default `CPUJOB_TIMEOUT` (2700 s) for every job of this phase; swap checked before each Mac job (677 to 683 MB free); one Linux chain, one watcher; the vcpkg guard around every Mac build: shared tree untouched, both times.
+Chains: macOS `/tmp/or048-p9a-chain.sh` (logs `build/p9a-*.log`), Linux `~/oiio-048/048-chainP.sh` (logs `build-logs/p9l-*.log`).
+
+| Check | macOS (arm64, vcpkg static OIIO 3.1.14) | Linux (Ubuntu 24.04, GCC 13 `-Werror`, shared OIIO 3.1.14 prefix) |
+|---|---|---|
+| T129/T133 OIIO off, `-LE determinism-sweep` | **1370 of 1370 passed** (215.5 s) | 1371 tests: 1369 passed, **2 failed, 1 skipped**: `TextureTile_RenderByteIdentical` (#45) and `Registry_IntegratorImageIdentity` (#163), the T011 starting-tree failures by name; the skip is `LibShader_Format_rslo_lower_minor` |
+| T130/T134 OIIO on, `-LE determinism-sweep` | **1386 of 1386 passed** (304.4 s); every `imageio` test passes | 1387 tests: **the same two failures** (#45, #163) and nothing else (713.8 s) |
+| T131/T134 determinism sweep (OIIO-on tree) | **582 of 582** (652.9 s) | 581 of 582: `DeterminismSweep_sphere-texture3d-bake3d-reyes` segfaulted once at the default thread count (GitHub #182, the intermittent Linux texture3d `bake3d` crash filed 2026-11-17 and reproduced on master `278b0394`, a texture3d bake without OIIO code); re-run alone: **passed** (0.93 s) |
+| T132 `-L architecture` | **39 of 39** on `build/` and on `build-oiio/`; `git diff -- tests/architecture/allowlist.txt` and `metrics-baseline.txt` empty (since master `278b0394`) | **39 of 39** on both builds |
+| T135 byte identity | the oracle (`camera-dof.tif`, `rgbe-display.hdr`, `concurrency-scene.tif` and the four `otexmake` outputs) captured on `build/` and on `build-oiio/`: `baseline.sha256` **identical to `baseline-048-start`** on both; self-checks pass; `legacy_bake_hashes --check legacy-bake-macos.sha256`: **38 recorded, 0 differences** on both trees; `legacy_bake_baseline.sh` re-run equals `tools/legacy-bake-baseline.sha256` | `baseline-048-off` equals `baseline-048-on` (no Linux starting-tree capture exists; the Linux oracle compares the two builds); `legacy_bake_hashes --check legacy-bake-linux.sha256`: **38 recorded, 0 differences** on both trees; `legacy_bake_baseline.sh` re-run equals `tools/legacy-bake-baseline-linux.sha256` |
+
+### T136 audit (against master `278b0394`)
+- Files deleted or renamed: none. `tests/architecture/allowlist.txt` and `metrics-baseline.txt`: unchanged.
+- Existing files under `tests/` and `src/libshader/tests/reference` that differ from master (all approved in their phases, none a reference-value or threshold change except the one approved reference): `tests/CMakeLists.txt`,
+  `tests/architecture/{CMakeLists.txt, archcheck/config.{cpp,h}, archcheck/main.cpp, domain-map.txt, domain-rules.txt, check_gi_split_boundary.cmake}` (the constitution 1.5.0 class ImageIO, Phase 2/3/4) and
+  `tests/unit/scene_interface/reference/declared_set.txt` (the `imageio` and `backend` declarations, approved). No tolerance widened, no test disabled.
+- `#include` of an OpenImageIO or OpenColorIO header outside `src/imageio/`: none. The literal `grep -rln 'OpenImageIO' src` also lists `rendererContext.cpp`, `imageInput.h`, `imageInputOiio.{h,cpp}`, `texmake.cpp` and
+  `display/oiio/oiio.cpp`: the word appears only in comments and in the user-visible messages ("OpenImageIO support is not built into this binary", the bake exclusion messages); the real rule is enforced by `ImageIO_NoDomainInclude` and `ImageIO_SingleCopy`.
+- `git grep 'public CTileSource' -- src`: the same classes as on master (no new tile source: FR-018). No task, document or test names a merge commit or a `Closes #NN` line.
+
+### Success criteria (SC-001 to SC-009)
+
+| SC | Proof | Result |
+|---|---|---|
+| SC-001 decode parity | `ImageIO_DecodeParity`, `_DecodeErrors`, `_DecodeConcurrent` (OIIO-on tree) | 0 differing samples except the listed differences; passes on macOS and Linux |
+| SC-002 bake tags and layout | `ImageIO_BakeParity` (28 bakes: every tag of every directory and every sample), `ImageIO_BakeExclusions` (10 excluded, each with its message, 28 allowed), `ImageIO_BakeRender` | pass on macOS (OIIO-on); the exclusions and their reasons are documented (`IMAGE_IO.md`, `man/otexmake.1`, site pages) |
+| SC-003 display parity | `ImageIO_DisplayParity` (30 synthetic cases and 8 rendered pairs), `ImageIO_DisplayFormatErrors`, `ImageIO_DisplayLoad`, `ImageIO_NoColourConversionWrite` | 0 differing samples per pair (16-bit PNG compared against the legacy file with its bytes swapped back: legacy defect #181, `D-PNG-WRITE16`); pass on macOS and Linux |
+| SC-004 legacy path unchanged | T129/T133, T135 | the full suites above with unchanged references and thresholds; renders and `otexmake` outputs byte-identical to the starting tree (macOS) and OFF equal to ON (Linux); the legacy bake hashes 38 of 38 unchanged on both platforms |
+| SC-005 one copy | `ImageIO_SingleCopy` (unstripped DESTDIR install) | pass on macOS (static: one definer, `libRIBImageIO`) and Linux (shared: only OIIO's own libraries define, `libRIBImageIO` references) |
+| SC-006 architecture | `-L architecture` 39 of 39 on every tree; allowlist unchanged | pass; the constitution 1.5.0, `domain-rules.txt`, `domain-map.txt` and `DOMAIN_BOUNDARIES.md` agree (Phase 2) |
+| SC-007 install size | M4 (§21b, §21d) | macOS: `libRIBImageIO` 13.16 MB, `oiio.dsply` 0.04 MB, install 114 MB; Linux: `libRIBImageIO` 60,896 B plus the bundled OIIO 20.07 MB + 1.18 MB, install 68 MB; no OIIO code in any other file |
+| SC-008 build/test steps and costs | the runs above; M0, M1, M3a | macOS first OIIO build (M1): 219.05 s wall, 485 MiB peak, 25 packages (14 restored, 11 built: OpenColorIO 2.5.2 about 1 min, OpenImageIO 3.1.14 1.9 min), private install tree 219 MB, binary cache +13 MB; M0 base tree 176 MB; Linux OIIO prefix (M3a): 5:29.27 wall at `-j2`, 618 MiB peak, prefix 12 MB; Linux `build-oiio` 261 MB; CI keeps OIIO-off jobs only (P-Q11) |
+| SC-009 differences listed and tested | `ImageIO_DecodeDifferences`, `ImageIO_DifferenceListDoc` | every difference is listed (`D-*`, 10 entries including `D-PNG-WRITE16`) with its own check; both pass |
+
+Known issues cited (filed, not fixed in 048): #171, #172, #174, #181. The `or048-install` DESTDIR double-prefixed copy of the bundled OIIO libraries (the install's bundling rule applies DESTDIR twice) is a comment on GitHub #23.
+
+T136 and T137 done; everything written is staged. CHECKPOINT 9 reached. The coordinator runs `speckit-converge` next.

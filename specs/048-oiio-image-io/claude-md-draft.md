@@ -70,7 +70,7 @@ and, below the list, one sentence: `-L imageio` registers different tests with O
   driver writes TIFF, PNG, OpenEXR and RGBE with the legacy drivers' samples (display interface unchanged at 2.0.0); exactly one image of the install tree carries OIIO
   (`ImageIO_SingleCopy`); no colour conversion on read or write. The decode difference list (`D-*`, `IMAGE_IO.md`) is tested; with OIIO off no image, file or hash changed on either
   platform. vcpkg gets an `oiio` feature in its own install directory. Filed, not fixed: #171, #172, #174, #181 (legacy RGBE cannot read RLE; the RGBE `rgba` output is garbled;
-  otexmake exits 0 for undecodable sources; the legacy `file` driver writes 16-bit PNG byte-swapped). (Phase 9) closing figures: <fill>.
+  otexmake exits 0 for undecodable sources; the legacy `file` driver writes 16-bit PNG byte-swapped). Closing validation (2026-11-18): macOS OIIO off 1370 of 1370 and OIIO on 1386 of 1386 (`-LE determinism-sweep`), the 582-entry determinism sweep 582 of 582, `-L architecture` 39 of 39 on both builds, allowlist and metrics baseline unchanged, the byte-identity oracle (three renders and four `otexmake` outputs) identical to the starting tree on both builds, the legacy bake hashes 38 of 38 unchanged; Linux (Ubuntu 24.04, GCC 13 `-Werror`, shared OpenImageIO 3.1.14) the same failing set as the starting tree by name (#45 `TextureTile_RenderByteIdentical`, #163 `Registry_IntegratorImageIdentity`) and nothing else, `-L architecture` 39 of 39, the sweep 581 of 582 with one intermittent texture3d `bake3d` crash (#182, reproduced on master `278b0394`) that passed alone.
 ```
 
 ## 2. NEWS.md (new first line under "## Unreleased")
