@@ -12,6 +12,18 @@ target_include_directories(bench_shader_load PRIVATE
     ${CMAKE_BINARY_DIR})
 target_link_libraries(bench_shader_load PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
 
+# The same program through ShadingSystem::find() (Phase 9, tools/timing_loading.sh's second in-process figure)
+add_executable(bench_shader_load_system bench_load.cpp)
+target_compile_features(bench_shader_load_system PRIVATE cxx_std_20)
+target_compile_definitions(bench_shader_load_system PRIVATE OR033_BENCH_USE_SHADING_SYSTEM)
+target_include_directories(bench_shader_load_system PRIVATE
+    ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/ri/parse ${CMAKE_SOURCE_DIR}/src/libshader/shading
+    ${CMAKE_SOURCE_DIR}/src/ri/state ${CMAKE_SOURCE_DIR}/src/ri/render ${CMAKE_SOURCE_DIR}/src/ri
+    ${CMAKE_SOURCE_DIR}/src/ri/geometry ${CMAKE_SOURCE_DIR}/src/ri/hiders ${CMAKE_SOURCE_DIR}/src/ri/texture
+    ${CMAKE_SOURCE_DIR}/src/ri/core ${CMAKE_SOURCE_DIR}/src/ri/output ${CMAKE_SOURCE_DIR}/src/ri/dataviewer
+    ${CMAKE_BINARY_DIR})
+target_link_libraries(bench_shader_load_system PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Phase 2 (spec 033): the new tests, written red first (DEP-2); each is its own executable and each is registered unconditionally now.
 # History: every one was red for the

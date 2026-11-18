@@ -241,6 +241,41 @@ Approved-test edit: `tests/shading_contract/contract_forwarder.h` forwards `getS
 
 **Stale old-name outputs on the Linux tree (approved list, Linux names), removed before the Linux build:** `build/src/libshader/shading/`: `libshader_shading.so.1.0.0`, `libshader_shading.so.1`, `libshader_jitmeta.a`, `CMakeFiles/libshader_shading.dir`, `CMakeFiles/libshader_jitmeta.dir`; `build/src/libshader/runtime/`: `libshader_runtime.so.1.0.0`, `libshader_runtime.so.1`, `libshader_runtime.so`, `libshader_runtime.a`, `CMakeFiles/libshader_runtime.dir`, `libshader_runtime_obj.dir`, `libshader_runtime_static.dir` (12 entries, `build-logs/033-final-removed-linux.txt` on the host). The compat symlinks `libshader_shading.so` and `libshader_runtime.so`/`.a` next to the new libraries were kept. Also deleted on the host (approved): `build-nojit` (the plan's own second tree).
 
+### Phase 9, T146: the R12 timings of the finished tree (macOS, `build`)
+
+`tools/timing_final.sh` (new) interleaves three figures in every series, as 031's timing method does: (1) `sloinfo`, 100 loads of every shipped object (274); (2) the in-process program through the loader entry points (`bench_shader_load`, as in the
+Phase 1 record); (3) the same program through `ShadingSystem::find()` (`bench_shader_load_system`, `OR033_BENCH_USE_SHADING_SYSTEM`; one `ShadingSystem` per format, because the cache is keyed by name: #167). Five series, the first discarded; the rule per figure:
+after <= before + max(5% of before, 2 x the Phase 1 spread). The branch of `bench_load.cpp` that the file said would be written in Phase 9 is written, and `tests/shading_system/CMakeLists.txt` builds the second program. The machine was **not quiet**: the maintainer's
+hold on the other specs was in force, but the 1-minute load average stayed between 3.7 and 9.9 for the 20 minutes of waiting (desktop processes, not jobs) and was 3.66 to 5.90 during the run, so it was run anyway.
+
+| Figure | Phase 1 (median, spread) | Finished tree (median of series 2-5, spread) | Limit | Result |
+|---|---|---|---|---|
+| `sloinfo`, 100 loads x 274 objects (s) | 131.731 (15.459) | 131.763 (7.953) | 162.649 | PASS (+0.0%) |
+| in-process `.slo`, loader entry points (ms) | 615.369 (31.936) | 665.069 (22.068) | 679.241 | PASS (+8.1%) |
+| in-process `.rslo`, ShadingSystem::find (ms) | 9.480 (0.511) | 9.781 (2.667) | 10.502 | PASS (+3.2%) |
+| in-process `.slo`, ShadingSystem::find (ms) | 615.369 (31.936) | 545.551 (68.396) | 679.241 | PASS (-11.3%) |
+| in-process `.rslo`, loader entry points (ms) | 9.480 (0.511) | **29.617** (4.828) | 10.502 | **FAIL (+212.4%)** as measured |
+
+Load average (1 min) at each series, `[before, after sloinfo, after in-process]`: 3.66/4.63/4.58; 4.58/5.90/5.90; 5.90/4.43/4.43; 4.43/5.36/5.36; 5.36/5.32/5.13. The raw series are in `build-logs/033-final-timing.log`.
+
+**The failing figure is a cold-start artifact of the interleaved order, not of the code.** In every series the loader-entry-point program is the first process after a two-minute `sloinfo` pass, and its libraries are paged back in from a swap of 8 GB; the `ShadingSystem` program
+runs right after it and is warm (9.7 ms). Nothing was widened and no rule changed.
+
+**Run 2, the Phase 1 protocol (back to back, first run discarded), which the maintainer decided holds the guard (2026-11-18), because it is how the baseline was recorded.** `/tmp/033-scratch/diag-order.sh`, log `build-logs/033-final-timing-diag.log`: each in-process program six times in a row (the first run discarded), three rounds
+(loader entry points, `ShadingSystem`, loader entry points again), load average (1 min) 4.73, 4.91 and 4.92; the `sloinfo` pass is the same run as above (it is one process per load, so it has no cold first run: 131.763 s).
+
+| Figure | Phase 1 (median) | Median of runs 2-6 | Limit | Result |
+|---|---|---|---|---|
+| `sloinfo`, 100 loads x 274 (s) | 131.731 | 131.763 | 162.649 | PASS |
+| in-process `.rslo`, loader entry points (ms) | 9.480 | 8.382 (round A), 8.535 (round C) | 10.502 | PASS |
+| in-process `.slo`, loader entry points (ms) | 615.369 | 554.3 (A), 563.1 (C) | 679.241 | PASS |
+| in-process `.rslo`, ShadingSystem::find (ms) | 9.480 | 9.941 (B; runs 9.81 to 10.03) | 10.502 | PASS (+4.9%) |
+| in-process `.slo`, ShadingSystem::find (ms) | 615.369 | 543.9 (B) | 679.241 | PASS (-11.6%) |
+
+The first run of each loader-entry-point round was 31.5 ms (cold, after the `sloinfo` pass) and then 8.27 to 8.81 ms. Warm, the `.rslo` load through the facade is about 1.5 ms (18%) slower than through the entry points and inside the rule against the Phase 1 record (9.941 ms against a limit of
+10.502 ms). **SC-009 is met under the Phase 1 protocol;** run 1's single failed figure is the interleaved order's cold-start effect, recorded here and not hidden. The visual suite's `.slo`/`.rslo` ratio tests pass in the suite runs of section 1 with unchanged thresholds
+(`git diff 278b0394 -- tests/visual/CMakeLists.txt` is empty).
+
 ### Phase 8 (T116 to T135; the metadata API, `libRSLInfo`, and the library renames)
 
 macOS (`build` and `build-nojit`; Linux is recorded in the table's right column when its run is done):
@@ -419,14 +454,14 @@ test edits: `contract_harness.h` (one reference on the harness' transform, found
 
 **Phase 9 findings and hand-offs:**
 
-- **F-10 (new, out of this spec's mandate, not fixed; to be filed by the maintainer): an intermittent segfault of `orender` in `DeterminismSweep_sphere-texture3d-bake3d-reyes-slo` on Linux, present on the starting tree.**
+- **F-10 (new, out of this spec's mandate, not fixed; already tracked as GitHub #122; the evidence below is a comment on it; a duplicate, #182, was closed): an intermittent segfault of `orender` in `DeterminismSweep_sphere-texture3d-bake3d-reyes-slo` on Linux, present on the starting tree.**
   In the Linux sweep this test failed once (`Segmentation fault (core dumped)`, `orender failed with exit code 35584`, configuration `-t:2`), and its image differed. Alone through the remote `cpujob`
   it passed 5 of 5; under `ctest --repeat until-fail:60` it passed 5 times and then segfaulted (configuration `(default)`). **The same repeat on the starting tree** (`278b0394` extracted to a scratch
   directory on the host, built there) passed 28 times and then segfaulted the same way, so it is not caused by this spec. On macOS the same test passed 60 of 60 and the macOS sweep is 582/582. The scene is
   a multi-threaded `texture3d` bake (`bake3d`, reyes, `.slo`); it looks like the heap-corruption family of F-2 (#176) and #164. No debugger was used, so the cause is not known.
 - **#167 stays a known limitation** (recorded in `DEVNOTES.md` and `OSHADER_UPDATES.md`; pinned by `ShaderFormat_Precedence`).
 - **Hand-offs.** The maintainer applies `claude-md-draft.md` to `CLAUDE.md` (never edited by a task). The merge message carries `Closes #39` and `Closes #134` and **not** #115, #121, #157, #158 to #161, #164 to #166.
-  The coordinator runs `speckit-converge` after this phase and before merge preparation; no task here prepares the merge or depends on it. The R12 timings (T146) wait for the maintainer's word that the machine is quiet.
+  The coordinator runs `speckit-converge` after this phase and before merge preparation; no task here prepares the merge or depends on it. The R12 timings (T146) were run on the maintainer's word; the Phase 1 protocol holds the guard (all five figures pass) and the interleaved run's cold-start figure is recorded beside it (section 1).
 
 ## 5. Final summary against SC-001 to SC-011
 
@@ -442,7 +477,7 @@ Evidence is in sections 1 to 4 and the Phase records; the commands of T151 and t
 | SC-006 | `sloinfo.cpp` includes `ShaderMetadata.h` and common headers only; `Sloinfo_MetadataApiOnly` (+ fixture); `Sloinfo_Output137` byte-identical to the Phase 1 record, `SloinfoGoldenOutput` unchanged | met |
 | SC-007 | `src/ri/render/init.cpp` gone; `grep -rn "CRenderer::findCoordinateSystem\|CRenderer::retrieveVariable" src/libshader` prints nothing (the 19 sites are 0); `BindSpaces_Characterise` identical, `ShadingSystem_BindUnknownSpace` green | met |
 | SC-008 | `ctest -L architecture` 42/42 on both platforms; `git diff 278b0394 --stat` of `allowlist.txt`, `metrics-baseline.txt`, `domain-map.txt` empty; DB-007 Resolved (spec 033, 2026-11-17), DB-018 and DB-024 rewritten with the measured state; `CONSUMER` 71 -> 69, TOTAL 491/71 unchanged (never raised) | met |
-| SC-009 | No `MAX_RATIO` or threshold edited (`git diff 278b0394 -- tests/visual/CMakeLists.txt` empty); the loading benchmark and the `.slo`/`.rslo` ratio tests pass in the suite; Phase 8's `sloinfo` measurement is inside the rule (+3.4%). **The R12 timings of the finished tree (T146) are open: they run only when the maintainer says the machine is quiet.** | open (T146) |
+| SC-009 | No `MAX_RATIO` or threshold edited (`git diff 278b0394 -- tests/visual/CMakeLists.txt` empty); the loading benchmark and the `.slo`/`.rslo` ratio tests pass in the suite; Phase 8's `sloinfo` measurement is inside the rule (+3.4%). The R12 timings of the finished tree (T146, section 1, "Phase 9, T146"), under the Phase 1 protocol (back to back, first run discarded; the maintainer's decision, as the baseline was recorded): all five figures pass (`sloinfo` +0.0%; `.rslo` through the entry points 8.38 ms; `.slo` 554 ms; `.rslo` through the facade 9.941 ms against the limit 10.502; `.slo` through the facade 543.9 ms); the interleaved run's one failure (+212%) is the order's cold-start effect, recorded beside it; nothing widened | met |
 | SC-010 | `contracts/light-shader-entry-points.md` names six entry points with their final equivalents (checked against the code, T142); the light-shader scenes (`-slo` and `-rslo`, area lights included) byte-identical in CP-d on both platforms; `git diff 278b0394 -- src/ri/render/rendererContext.cpp` has two hunks (the includes; `getShader` and `registerLight`) | met |
 | SC-011 | `libRSLRuntime` and `libRSLInfo` built and installed under their names; `Link_RenameAliases` passes (macOS, JIT-off, Linux); `Link_InfoRuntimeNotCoLinked` passes with its mutation runs failing; `PluginAbi_InstallLayouts` (`install_consumer`, old and new export names) green; `Link_PackageStaticConsumer` passed on Linux; `ShadingScope_Greps` S1a/S1e read the renamed target's include path and fail on a planted include (F-7) | met |
 
