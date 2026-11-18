@@ -2,8 +2,30 @@
 
 The optional OpenImageIO (OIIO) backend of openRender's image input and output. It is off by default
 (`OPENRENDER_ENABLE_OIIO`, constitution 1.5.0's Image I/O utility library, `libRIBImageIO`), and nothing changes
-unless it is asked for. This guide grows by phase: this version covers decoding; baking and the display driver are added
-by their phases.
+unless it is asked for. Three paths use it, each chosen by a visible setting, never by an environment variable:
+
+| Path | Selected by | Where it is described |
+|---|---|---|
+| Decoding a source image (unbaked texture sources, the spec 020 disk-cache bake, every `Make*` input) | `Option "imageio" "backend" ["oiio"]`, or the per-call parameter below | The decode path |
+| Baking a texture (`MakeTexture`, `MakeShadow`, `MakeLatLongEnvironment`, `MakeCubeFaceEnvironment`, `otexmake`) | the same selection | Baking through OpenImageIO |
+| Writing the image a render produces | `Display "name" "oiio" "rgba"` | The `oiio` display driver |
+
+**Selection spellings.** `Option "imageio" "backend" ["legacy"]` (the default) or `["oiio"]` is render-global; the call's own
+`"string imageio" ["oiio"]` parameter on the four `Make*` calls (`MakeTexture`, `MakeShadow`, `MakeLatLongEnvironment`,
+`MakeCubeFaceEnvironment`) wins over the Option; `otexmake -imageio legacy|oiio` passes the same parameter. Precedence: the call, then the Option,
+then `legacy`. An unknown value reports `Unknown image backend "<name>" (expected "legacy" or "oiio")` and the previous value stays; `oiio` in a
+build without OIIO reports `OpenImageIO support is not built into this binary` and the call writes nothing. Reading a baked texture is never
+affected (FR-018).
+
+**Build and install.** `-DOPENRENDER_ENABLE_OIIO=ON` needs OpenImageIO 3.0 or newer (the configure checks the version by hand, never with
+`find_package(OpenImageIO <N>)`, which is an exact match). It builds `libRIBImageIO` (a shared library, the only image of the install tree that
+carries OIIO: `ImageIO_SingleCopy` checks it) and `oiio.dsply`, installed beside the legacy drivers (`<prefix>/displays/` in the self-contained
+layout). The vcpkg `oiio` feature installs into its own directory (`<shared>-oiio`, or `vcpkg_installed-oiio`), never into the shared vcpkg tree.
+`libRIBImageIO` exports only `orimageio::`; its interface (`src/imageio/orImageIO.h`) is internal until spec 049.
+
+**No colour conversion.** The library never converts a colour, on read or on write: no `ColorConfig` conversion call exists in it, and the samples
+are the values the file holds or the display produced. OpenColorIO may be loaded by OIIO itself for metadata; `ImageIO_NoColourConversion` and
+`ImageIO_NoColourConversionWrite` run with `OCIO` unset and set to a different configuration and require identical samples.
 
 ## The decode path
 
@@ -162,3 +184,4 @@ and the samples it writes are theirs; only the storage is OpenImageIO's. The leg
 - **Tests**: `ImageIO_DisplayParity` (the synthetic rows through `CDisplayHost`, including exact half ties, denormals, 65504, 65520, overflow, NaN, and
   the rendered 16x16 scene with two displays), `ImageIO_DisplayLoad` and `ImageIO_DisplayLoadIncludes`, `ImageIO_DisplayFormatErrors`,
   `ImageIO_NoColourConversionWrite` (OCIO unset and set to a different configuration).
+

@@ -789,3 +789,81 @@ Linux OFF tree (`openrender-048`, sync of 4498 files verified; full `cmake --bui
 registered there. No threshold changed, no test disabled, no reference re-recorded.
 
 CHECKPOINT 7 reached.
+
+## 21. Phase 8 tests first (T116), 2026-11-17
+
+`ImageIO_SingleCopy` (`tests/unit/imageio/check_single_copy.cmake`) and its fixture test `ImageIO_SingleCopyInstall` (`cmake --install <build> --prefix <build>/or048-install`, no `--strip`), registered in the
+`HAVE_OIIO` branch of `tests/unit/imageio/CMakeLists.txt` (`FIXTURES_SETUP or048_install` / `FIXTURES_REQUIRED`). Not built or run yet: T117 is a TEST-APPROVAL pause.
+
+**Calibration finding (read-only `nm` on the build tree, no job):** a mangled OIIO symbol does not contain the string "OpenImageIO_v3" (it is `N11OpenImageIO4v3_1...`: the namespace `OpenImageIO` plus the inline
+namespace `v3_1`), so a check written with that literal would match nothing and pass vacuously. The test recognises OIIO by `OpenImageIO` (and OCIO by `OpenColorIO` for the export check). On `build-oiio`
+(static vcpkg OIIO): `libRIBImageIO` defines 6431 `OpenImageIO` symbols (local, which is why the install must be unstripped), references none, and exports no OIIO/OCIO symbol (`nm -gU`: every export is `orimageio`);
+`oiio.dsply` and `libRIBRender` define and reference none and reference `orimageio::` symbols (5 and 10); `orender`, `otexmake` and `file.dsply` have none.
+
+### 21a. T118: `ImageIO_SingleCopy` on macOS (vcpkg static OIIO), 2026-11-17
+
+First run: `ImageIO_SingleCopyInstall` failed, `ImageIO_SingleCopy` Not Run: `cmake --install --prefix` ignores the prefix for `.orenderrc` in the self-contained layout (`OPENRENDER_HOMEDIR` is absolute,
+GitHub #23): "file INSTALL cannot copy ... to /usr/local/.orenderrc: Permission denied" (nothing was written; /usr/local was not changed). The fixture now installs with `DESTDIR=<build>/or048-install cmake --install <build>`
+(`/usr/local` untouched: 0 files newer than a marker after the run, checked with `find`); the tree lands under `or048-install/usr/local/`. The quickstart's `--prefix` wording is therefore replaced by DESTDIR (diff of
+`tests/unit/imageio/CMakeLists.txt`: `/tmp/or048-imageio-cmake-before-p8.txt`). Result: **both tests pass** (install 6.05 s, check 1.56 s): one definer, `libRIBImageIO` (static OIIO inside, local symbols), no OIIO symbol
+exported, `oiio.dsply` and `libRIBRender` reference `orimageio::` only. No library fix was needed, so T119 is not triggered.
+
+### 21b. M4 install size, macOS (T121; `du -sh build-oiio/or048-install` = 114M, unstripped)
+
+| File | Installed | R14 baseline |
+|---|---|---|
+| `libRIBImageIO.1.0.0.dylib` | 13.16 MB | (new) |
+| `oiio.dsply` | 0.04 MB | (new) |
+| `libRIBRender.1.0.0.dylib` | 9.41 MB | 9.28 MB |
+| `libRIBVector.1.0.0.dylib` | 4.05 MB | 4.13 MB |
+| `libRIBCommon.1.0.0.dylib` | 0.14 MB | 0.15 MB |
+| `file.dsply` | 1.40 MB | 1.46 MB |
+| `openexr.dsply` | 2.65 MB | 2.77 MB |
+| `rgbe.dsply` | 0.03 MB | 0.04 MB |
+| `otexmake` / `orender` | 0.05 / 0.04 MB | 0.05 / 0.04 MB |
+
+The OIIO cost sits in `libRIBImageIO` (13.2 MB) and the 0.04 MB driver. `libRIBRender` is +0.13 MB over the R14 baseline: the OIIO decode adapter (`imageInputOiio`), the bake sink and the selection code are compiled
+into it (they carry no OIIO code: `ImageIO_SingleCopy`); the OIIO-off tree's `libRIBRender` is 9.46 MB today, so the ON tree is no larger (the R14 baseline predates other specs). The legacy drivers and tools are unchanged
+within linker noise (R14 was measured on another tree).
+
+### 21c. Documentation (T122 to T124) and the CLAUDE.md draft (T125), staged
+
+`DEVNOTES_DETAILS/IMAGE_IO.md` (final overview: selection spellings, minimum 3.0, the per-call parameter, install, no colour conversion), `man/otexmake.1` (`-imageio`, the exclusions), the site pages
+(`docs/site/content/manual/reference/display-drivers.md`, `options.md`, `installing-and-running.md`, `development/building.md`), `DEVNOTES_DETAILS/DISPLAY_PLUGIN_GUIDE.md`, `RIB_GUIDE.md`, `INSTALL.md`, `COMPILING.txt`
+(with the pystring pin), `DEVNOTES.md` (status row). `PLUGIN_ABI.md` checked: the display ABI is unchanged, no edit. The T125 draft is `specs/048-oiio-image-io/claude-md-draft.md`; `CLAUDE.md`, `NEWS.md` and `ChangeLog.md` are
+not edited. T126 is left to the coordinator. Pre-edit copies of the edited docs: `/tmp/or048-docs-before/`.
+
+Linux T120/T121: queued (the host's cpujob was busy with spec 033's determinism sweep); `~/oiio-048/048-chainL.sh` (configure `build-oiio` against `~/oiio-048/prefix`, full build `-j2`, `ctest -L 'imageio|image_input|plugin_abi|architecture'`, sizes)
+starts when the host is free. Disk estimate on the host before configuring: the Linux OFF `build/` is 237 MB, the macOS `build-oiio` 707 MB; I expect the Linux `build-oiio` plus its `or048-install` at about 0.3 to 0.5 GB of the 5.9 GB free
+(no new OIIO build: the 12 MB prefix of M3a exists), below the 1 GB line.
+
+### 21d. Linux with OIIO (T120/T121, M3b) and the Phase 8 fixes, 2026-11-17/18
+
+First Linux OIIO-on run (`openrender-048`, `build-oiio` against the M3a prefix `~/oiio-048/prefix`, OpenImageIO 3.1.14 shared, GCC 13 `-Werror`): the build stopped on a test-harness error (OpenEXR 3.1: `display_harness.h` needs
+`ImfCompression.h` and `ImfHeader.h`; fixed). Second run: 137 tests, 134 passed, 3 failed, all test-script or install-semantics issues, none a driver difference:
+- `ImageIO_DifferenceListDoc`: `IN_LIST` needs policy CMP0057 and a `-P` script has no minimum version; `cmake_minimum_required(VERSION 3.19)` added (approved).
+- `ImageIO_DisplayParity`'s 8 rendered cases: under the old CMP0053 rules `"@QUANTIZE@"` was evaluated as the script's variable of that name, so the RIB placeholders were never replaced and no display ran; the same `cmake_minimum_required(VERSION 3.19)`
+  in `run_display_parity.cmake` (approved). The synthetic cases had passed (30 compared).
+- `ImageIO_SingleCopy` with shared OIIO: the self-contained install bundles `libOpenImageIO.so.3.1.14` and `libOpenImageIO_Util.so.3.1.14` into the prefix, which the approved wording ("no project file defines one") counted as a second copy, and
+  `libRIBImageIO` holds 7 local inline OIIO symbols. Refined (approved, diff `/tmp/or048-proposed-linux-fixes/check_single_copy.diff`): with a bundled `libOpenImageIO*` the only definers allowed are OIIO's own libraries, `libRIBImageIO`
+  must reference OIIO and define no global OpenImageIO symbol (lower-case nm types, the local inline copies, are fine), and nothing else defines or references one; without a bundled library the static rule applies when `libRIBImageIO` carries OIIO
+  (no undefined references) and the shared rule when it references it; static mode is unchanged.
+
+Final Linux run at the default timeout (a script syntax error of mine had stopped the run after the configure; the script was rewritten and checked with `bash -n`): **137 of 137 passed** (`-L 'imageio|image_input|plugin_abi|architecture' -j2`, 86.5 s),
+including `ImageIO_SingleCopy` with shared OIIO and `ImageIO_SingleCopyInstall`. `build-oiio` is 261 MB; `libRIBImageIO.so.1.0.0` is 60896 bytes.
+
+Linux install sizes (T121; DESTDIR install, unstripped; `or048-install/usr/local`): `libRIBImageIO.so.1.0.0` 60,896 B, `oiio.dsply` 27,840 B, `libRIBRender.so.1.0.0` 8,400,792 B, `libRIBRender.a` 11,162,308 B, `libRIBVector.so.1.0.0` 3,458,128 B,
+`libRIBOut.so.1.0.0` 480,952 B, `libRIBCommon.so.1.0.0` 194,376 B, `file.dsply` 32,768 B, `openexr.dsply` 28,424 B, `rgbe.dsply` 26,920 B, `otexmake` 17,744 B, `orender` 35,544 B, and the bundled shared OIIO
+`libOpenImageIO.so.3.1.14` 20,072,784 B and `libOpenImageIO_Util.so.3.1.14` 1,182,120 B (the OIIO cost on Linux sits in the bundled OIIO libraries, which the shared build copies into a self-contained install; `libRIBImageIO` itself is 60 KB).
+The legacy drivers and tools carry no OIIO code. (An observation on the existing bundling rule under DESTDIR: it also copies the two OIIO libraries to `or048-install/home/juvenal/.../or048-install/usr/local/lib`, a DESTDIR double-prefix; a normal install
+is unaffected; not changed here.)
+
+macOS re-run after the approved script edits (`ctest -R 'ImageIO_SingleCopy|ImageIO_DifferenceListDoc|ImageIO_Display'`, swap 785 MB free before): 7 of 7 passed; `/usr/local` untouched (0 files newer than a marker).
+
+**Jobs that ran with `CPUJOB_TIMEOUT=7200`** (maintainer's rule: the default 2700 s is never raised): every Linux chain script of this spec from `048-chainA.sh` through `048-chainL.sh` exported it (A, B, B2, E, F, G, H, I, J, K and the Phase 8
+run of L up to the first two runs): the M3a OIIO prefix build, the Phase 1 baselines and the Phase 2 to 7 and first Phase 8 Linux OFF/ON builds and test runs. It was copied from the first Linux template (written for the first full Linux builds), never a recorded
+decision; no Phase 6 to 8 Linux job came near 2700 s. It was removed from J, K and L before the final run, which ran at the default. No macOS job set it.
+
+T126 (applying the approved `claude-md-draft.md` to `CLAUDE.md`, `NEWS.md`, `ChangeLog.md`): left to the coordinator. T127 done. CHECKPOINT 8 reached.
+
+Linux `du -sh build-oiio/or048-install` = 68M (`or048-install/usr` 58M; the rest is the DESTDIR double-prefixed copy of the bundled OIIO noted above); macOS 114M.

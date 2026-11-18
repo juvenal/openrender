@@ -19,7 +19,9 @@
 
 #ifdef HAVE_OPENEXR
 #include <ImfChannelList.h>
+#include <ImfCompression.h>
 #include <ImfFrameBuffer.h>
+#include <ImfHeader.h>
 #include <ImfInputFile.h>
 #endif
 

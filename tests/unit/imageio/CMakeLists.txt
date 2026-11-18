@@ -249,6 +249,22 @@ if(HAVE_OIIO)
             "-DFIXTURES=png8;png8a;png16;png16a"
             -P ${CMAKE_CURRENT_SOURCE_DIR}/run_two_ocio_envs.cmake)
     set_tests_properties(ImageIO_NoColourConversionWrite PROPERTIES TIMEOUT 120 LABELS "imageio;unit" ENVIRONMENT "${IMAGEIO_DISPLAY_MODULES}")
+
+    # --- Phase 8: one copy of OIIO (US5, FR-004, SC-005, V9). The fixture installs the tree UNSTRIPPED (a stripped install drops the local symbols the
+    # check reads) into ${CMAKE_BINARY_DIR}/or048-install, the same prefix M4 measures; ImageIO_SingleCopy then reads every binary under it.
+    # `cmake --install --prefix` cannot be used: in the self-contained layout OPENRENDER_HOMEDIR is absolute (GitHub #23), so `.orenderrc` would go to
+    # /usr/local. DESTDIR is honoured by every install rule (the install(CODE) rules read $ENV{DESTDIR}), so the tree lands under
+    # or048-install/<CMAKE_INSTALL_PREFIX>/ and nothing is written outside the build tree. ---
+    add_test(NAME ImageIO_SingleCopyInstall
+        COMMAND ${CMAKE_COMMAND} -E env DESTDIR=${CMAKE_BINARY_DIR}/or048-install ${CMAKE_COMMAND} --install ${CMAKE_BINARY_DIR})
+    set_tests_properties(ImageIO_SingleCopyInstall PROPERTIES TIMEOUT 600 LABELS "imageio;unit" FIXTURES_SETUP or048_install)
+    add_test(NAME ImageIO_SingleCopy
+        COMMAND ${CMAKE_COMMAND}
+            -DPREFIX=${CMAKE_BINARY_DIR}/or048-install
+            -DNM=${CMAKE_NM}
+            -DSYSTEM=${CMAKE_SYSTEM_NAME}
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/check_single_copy.cmake)
+    set_tests_properties(ImageIO_SingleCopy PROPERTIES TIMEOUT 600 LABELS "imageio;unit" FIXTURES_REQUIRED or048_install)
 else()
     # FR-003: a build without OIIO carries no OIIO code and no OIIO driver.
     add_test(NAME ImageIO_AbsentBuild

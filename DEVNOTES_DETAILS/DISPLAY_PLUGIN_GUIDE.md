@@ -290,6 +290,14 @@ found.
 
 ---
 
+### The `oiio` driver (spec 048)
+
+`src/display/oiio/` builds `oiio.dsply` only with `OPENRENDER_ENABLE_OIIO`. It is a `CFileOutputBase` driver like the others (quantize, dither and gamma
+are the same code) whose storage is `libRIBImageIO`'s `orimageio::ScanlineWriter`, so it writes TIFF, PNG, OpenEXR (where built) and RGBE and carries no
+OpenImageIO code of its own. The format is the display line's `"string type"`, else the file name's extension (`.tif .tiff .png .exr .hdr .pic`), else an error;
+the type the renderer passes ("oiio") is not a format. RGBE needs 3 or 4 samples. Details, the parameters it honours and the one legacy defect its tests
+step around (`D-PNG-WRITE16`, GitHub #181) are in [IMAGE_IO.md](IMAGE_IO.md). The display interface is unchanged (2.0.0).
+
 ## Framebuffer plugins
 
 The framebuffer plugin (`src/display/framebuffer/`) follows the same `dsply.h` interface

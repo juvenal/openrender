@@ -2,6 +2,8 @@
 # DEVNOTES_DETAILS/IMAGE_IO.md are the same set. A cmake -P script, no git.
 #
 #   cmake -DDATA=<differences.txt> -DDOC=<IMAGE_IO.md> -P check_difference_list_doc.cmake
+# (policy CMP0057, IN_LIST, needs a minimum version: a -P script has none)
+cmake_minimum_required(VERSION 3.19)
 foreach(var DATA DOC)
     if(NOT ${var})
         message(FATAL_ERROR "ImageIO_DifferenceListDoc: pass -D${var}=...")

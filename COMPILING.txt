@@ -8,6 +8,11 @@
 	- openEXR:    Available from http://www.openexr.org This is only required if you want to compile the OpenEXR output driver.
 
 
+	- OpenImageIO (optional, 3.0 or newer): only if you configure with -DOPENRENDER_ENABLE_OIIO=ON (CMake builds), which adds the OpenImageIO
+	  image backend and the "oiio" display driver. See INSTALL.md, "Optional: OpenImageIO", for the vcpkg feature (its own install directory), Homebrew
+	  and the Linux prefix build (OpenImageIO 3.1.14 with -DOpenImageIO_BUILD_MISSING_DEPS=all, the pystring pin, -DOpenImageIO_ROOT=).
+
+
 	Compiling openRender is a two step process:
 	1. Compilation
 	2. Creating a binary distribution

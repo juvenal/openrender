@@ -6,6 +6,8 @@
 #
 # For each render case the scene is rendered ONCE with two displays: `file` (or `openexr`, `rgbe`) and `oiio`. Both files are decoded by the fixed
 # decoder of the format (libtiff, libpng, OpenEXR in test code; the OIIO Reader for RGBE) and every sample must be equal.
+# (policy CMP0053: with the old rules "@QUANTIZE@" is evaluated as the variable of that name, so the template is not replaced; a -P script has no minimum version)
+cmake_minimum_required(VERSION 3.19)
 foreach(var PARITY ORENDER SCENE WORK)
     if(NOT ${var})
         message(FATAL_ERROR "ImageIO_DisplayParity: pass -D${var}=...")

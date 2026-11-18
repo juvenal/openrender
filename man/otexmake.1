@@ -110,6 +110,18 @@ Resize mode may be one of:
 .TP
 .RE
 .TP
+.B \-imageio <legacy|oiio>
+Choose the image library that reads the input images and writes the prepared texture.
+.B legacy
+(the default) is the built-in codecs.
+.B oiio
+uses OpenImageIO and exists only in a build configured with OPENRENDER_ENABLE_OIIO; without it the option prints
+"OpenImageIO support is not built into this binary" and no file is written. A missing or unknown value prints the usage and exits with status 2.
+With
+.B oiio
+the prepared texture has the same tags and samples as the legacy one. Two kinds are still written by the legacy writer, with a message: 16-bit textures
+of 3 or more channels (OpenImageIO would write a photometric interpretation the texture reader scales, GitHub #18) and 8-bit or float textures of 5 or more channels.
+.TP
 .B \-fov <FOV>
 Set the field of view.
 .TP
