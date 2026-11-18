@@ -44,7 +44,9 @@ set(_contract_shader_names
     # spec 056: the volume segment step (contract-only shaders; they touch neither shader manifest)
     cv_segment cv_segment_p cv_globals cv_nested cv_counter cv_overfog
     cv_surface_trace cv_surface_transmission cv_surface_gather cv_surface_environment cv_surface_visibility
-    cv_surface_occlusion cv_surface_indirect cv_incident_probe)
+    cv_surface_occlusion cv_surface_indirect cv_incident_probe
+    # spec 057: the bound-light branch of iterateLights (contract-only shaders; they touch neither shader manifest)
+    ca_light_const ca_light_cat ca_light_nondiffuse ca_light_writen ca_light_encode ca_surface_sum ca_surface_sum_cat ca_surface_diffuse)
 set(_shader_specs "")
 foreach(_b trace transmission visibility gather environment shadow occlusion indirectdiffuse)
     list(APPEND _shader_specs "replay_${_b}|${CMAKE_CURRENT_SOURCE_DIR}/replay/shaders/replay_${_b}.sl")
@@ -399,6 +401,8 @@ if(TARGET state_only_sources)
     # incident()/opposite() (standalone)
     or029_contract_program(test_shading_contract_volume_segments RENDERED SOURCES volume_segments_main.cpp case_volume_segments.cpp)
     or029_contract_program(test_shading_contract_message_side SOURCES message_side_main.cpp case_message_side.cpp)
+    # Spec 057: the bound-light branch of iterateLights with a double sampler and tracer (moved out of the red block by T074)
+    or029_contract_program(test_shading_contract_area_light RENDERED SOURCES area_light_main.cpp case_area_light.cpp)
 endif()
 
 # add_contract_test_029(<test name> <program> <case argument> [JIT] [TIMEOUT <s>]): one CTest entry for the program; DISABLED
@@ -440,3 +444,11 @@ add_contract_test_029(ShadingContract_VolumeSegmentsInterp test_shading_contract
 add_contract_test_029(ShadingContract_VolumeSegmentsJit test_shading_contract_volume_segments JIT CASE Jit)
 add_contract_test_029(ShadingContract_MessageSideInterp test_shading_contract_message_side CASE Interp)
 add_contract_test_029(ShadingContract_MessageSideJit test_shading_contract_message_side JIT CASE Jit)
+# Spec 057 (moved out of the red block by T074)
+add_contract_test_029(ShadingContract_AreaLightInterp test_shading_contract_area_light CASE Interp)
+add_contract_test_029(ShadingContract_AreaLightJit test_shading_contract_area_light JIT CASE Jit)
+foreach(_t ShadingContract_AreaLightInterp ShadingContract_AreaLightJit)
+    if(TEST ${_t})
+        set_tests_properties(${_t} PROPERTIES LABELS "shading_contract;arealight;shading_parity")
+    endif()
+endforeach()

@@ -1,0 +1,25 @@
+--- a/src/libshader/shading/rendererServices.h	2026-11-13 07:37:50
++++ b/src/libshader/shading/rendererServices.h	2026-11-16 17:42:34
+@@ -82,6 +82,13 @@
+     //   ("Breaking within 2.x"). The rules above apply as written from the release that closes the milestone.
+     //
+     // History
++    //   2.4.0  spec 057 (written on its branch as 2.4.0; renumbered 2.5.0 when spec 033's own 2.4.0 entry lands first).
++    //          Non-breaking for implementers and doubles:
++    //          Added:    ITracer::occluded(context, ray, excludeLight) (tracer.h), with a default body (traceRay, then
++    //                    ray->object != nullptr), so a tracer or double that does not override it keeps compiling.
++    //          Added:    areaLightSampler.h: AreaLightMode, AreaLightInfo and IAreaLightSampler, installed on a context with
++    //                    CShadingContext::setAreaLightSampler() by the hider that owns it. A context with no sampler runs every
++    //                    light as a classic light, so a double and the imager's context are unchanged.
+     //   2.3.0  spec 031. Breaking within 2.x (allowed before spec 055, see the rule above):
+     //          Removed:  CShadingContext's Geometry-facing entries shade(CSurface *, ...), displace(), displaceEstimate() and
+     //                    setProducer(), and IShadingProducer (shadingProducer.h, file deleted). Geometry reaches the hider that
+@@ -128,7 +135,7 @@
+     //          Wording only, no version change (spec 038, made while 2.0.0 was current, before 2.1.0): getDSO also serves
+     //          the .slo loader, which binds the DSO operands of a JIT-compiled module with it (the member, its signature
+     //          and its result are unchanged).
+-    inline constexpr InterfaceVersion kRendererServicesVersion{2, 3, 0};
++    inline constexpr InterfaceVersion kRendererServicesVersion{2, 4, 0};
+ 
+     class ITracer; // tracer.h
+ 

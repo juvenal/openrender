@@ -27,6 +27,7 @@
 CHider::CHider(int thread) : context(thread) {
     context.setTracer(this);
     context.setIrradianceSampler(&irradianceSamplerInstance());
+    context.setAreaLightSampler(this); // a light with no emitter set (a classic light) is answered "not bound": no change for it (spec 057)
 }
 
 ///////////////////////////////////////////////////////////////////////

@@ -1,0 +1,13 @@
+--- a/specs/057-area-light-geometry/tools/gen_scenes.py
++++ b/specs/057-area-light-geometry/tools/gen_scenes.py
+@@ -95,6 +95,10 @@
+ 
+ 
+ def add_scene(name, hider, slo, comment, lines):
++    if slo:
++        # GitHub #126: a .slo surface whose only lighting call is illuminance(P) gathers no light. The light is the .slo under test, so
++        # the receiver is pinned to .rslo (the #123 harness does the same)
++        lines = [x for l in lines for x in (['    Attribute "shade" "shaderformat" ["rslo"]', l] if l == '    Surface "al_surface_lightsum"' else [l])]
+     files[os.path.join(OUT_RIB, name + ".rib")] = "\n".join(header(name, hider, slo, comment) + lines) + "\n"
+ 
+ 

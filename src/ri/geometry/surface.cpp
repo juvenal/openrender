@@ -930,6 +930,10 @@ void CTesselationPatch::intersect(IRayContext &context, CRay *cRay) {
     if (!(cRay->flags & attributes->flags))
         return;
 
+    // see CSurface::checkRayGuard: the emitter of the light being probed does not block it (spec 057)
+    if (attributes->areaLight != nullptr && attributes->areaLight == context.excludedEmitter())
+        return;
+
     if (attributes->flags & ATTRIBUTES_FLAGS_LOD) {
         const float importance = attributes->lodImportance;
         if (importance >= 0) {
@@ -2415,6 +2419,11 @@ bool CSurface::checkRayGuard(CRay *rv, IRayContext &context) {
     if (!(rv->flags & attributes->flags))
         return TRUE;
 
+    // An area light's own emitter never blocks its probe (spec 057, FR-017): the identity is on the attributes of every primitive
+    // created in the light's scope, so this holds at any angle, with no bias
+    if (attributes->areaLight != nullptr && attributes->areaLight == context.excludedEmitter())
+        return TRUE;
+
     if (attributes->flags & ATTRIBUTES_FLAGS_LOD) {
         const float importance = attributes->lodImportance;
         if (importance >= 0) {
@@ -2458,6 +2467,10 @@ bool CSurface::checkRayGuard(CRay *rv, IRayContext &context) {
 void CSurface::intersect(IRayContext &context, CRay *cRay) {
 
     if (!(cRay->flags & attributes->flags))
+        return;
+
+    // see checkRayGuard: the emitter of the light being probed does not block it (spec 057)
+    if (attributes->areaLight != nullptr && attributes->areaLight == context.excludedEmitter())
         return;
 
     if (attributes->flags & ATTRIBUTES_FLAGS_LOD) {

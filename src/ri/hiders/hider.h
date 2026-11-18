@@ -33,7 +33,7 @@ class CObject;
 // Class				:	CHider
 // Description			:	The base of every hider. It owns the shading context of its render thread.
 // Comments				:	One hider per render thread, created and destroyed by the renderer core with its context.
-class CHider : public openrender::shading::ITracer, public IRayContext {
+class CHider : public openrender::shading::ITracer, public openrender::shading::IAreaLightSampler, public IRayContext {
     public:
         explicit CHider(int thread); // constructs the context and installs itself as its tracer
         virtual ~CHider(); // the context is destroyed after the derived hider's destructor body
@@ -63,6 +63,16 @@ class CHider : public openrender::shading::ITracer, public IRayContext {
         // are in trace.cpp; every caller goes through this signature, there is no one-argument traceRay().
         void traceRay(CShadingContext &ctx, CRay *ray) override;
         void traceBundle(CShadingContext &ctx, CRayBundle *bundle) override;
+
+        // Spec 057, services 2.4.0: one occlusion probe that ignores the primitives of `excludeLight`'s own scope (IRayContext's
+        // emitterExclusion is set for the length of the trace); no shading, no volume step. The one code path of all three camera hiders.
+        bool occluded(CShadingContext &ctx, CRay *ray, const CShaderGroupRefTarget *excludeLight) override;
+
+        // IAreaLightSampler (libshader/shading/areaLightSampler.h): the bound area lights of the frame and points on their emitters
+        // (areaLights.cpp). Installed on every context by the renderer core when the frame has a bound light.
+        openrender::shading::AreaLightInfo areaLight(CShadingContext &ctx, const CShaderGroupRefTarget *light) override;
+        void sampleEmitters(CShadingContext &ctx, const CShaderGroupRefTarget *light, int m, const float *u1, const float *u2, const float *time, float **out,
+                            float *pdfA) override;
 
     protected:
         // Shade (displaceOnly FALSE), displace (TRUE) or probe (3) the points written into the context's varyings: builds the point

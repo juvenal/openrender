@@ -32,6 +32,7 @@
 #include <typeinfo>
 #include <vector>
 
+#include "areaLightControls.h"
 #include "bundles.h"
 #include "common/diagnostics.h"
 #include "include/logging.hpp"
@@ -49,6 +50,7 @@
 #include "textureCalls.h"
 #include "irradianceCalls.h"
 #include "traceCalls.h"
+#include "ray.h"
 
 using namespace openrender::shading;
 
@@ -2060,17 +2062,156 @@ void CShadingContext::iterateLights(const float *lP, const float *lN, const floa
                 }
 
                 if (validLight && (light->flags & SHADERFLAGS_NONAMBIENT)) {
-                    memBegin(shaderStateMemory);
-                    ss->currentLightInstance = light;
-                    ss->locals[ACCESSOR_LIGHTSOURCE] = light->prepare(shaderStateMemory, varying, numVertices);
-                    light->illuminate(this, ss->locals[ACCESSOR_LIGHTSOURCE]);
-                    memEnd(shaderStateMemory);
+                    // A light created by AreaLightSource runs once per sample on points of its emitters (spec 057); a context with
+                    // no sampler (no bound light in the frame, the imager's, a double) runs every light as below
+                    openrender::shading::AreaLightInfo areaInfo;
+                    if (areaLightSamplerObject != nullptr)
+                        areaInfo = areaLightSamplerObject->areaLight(*this, light);
+
+                    if (areaInfo.bound) {
+                        iterateBoundAreaLight(light, areaInfo, numVertices, varying);
+                    }
+                    else {
+                        memBegin(shaderStateMemory);
+                        ss->currentLightInstance = light;
+                        ss->locals[ACCESSOR_LIGHTSOURCE] = light->prepare(shaderStateMemory, varying, numVertices);
+                        light->illuminate(this, ss->locals[ACCESSOR_LIGHTSOURCE]);
+                        memEnd(shaderStateMemory);
+                    }
                 }
             }
             ss->lightSideN = nullptr;
         }
         ss->currentShaderInstance = cInstance;
     }
+}
+
+///////////////////////////////////////////////////////////////////////
+// CShadingContext::iterateBoundAreaLight (spec 057, contracts/shading-light-surface.md)
+// The bound-light branch of iterateLights: the light shader runs n times, each time 0-D over points drawn on the light's emitters,
+// with the nine light-surface globals (P, N, Ng, dPdu, dPdv, u, v, s, t) taken from those points and every other global (the
+// receiver's Ps, time, I, E, ...) the receiver's; the entries it pushes are then scaled by exactly V / (n pdfA), V being the binary
+// visibility of the emitter point from the receiver. The renderer adds nothing else: no emitter cosine, no 1 / r^2 (Decision A).
+// The receiver's own P, N and varyings are never written: the swap is of the varying table, which both the interpreter and the JIT read.
+///////////////////////////////////////////////////////////////////////
+
+void CShadingContext::iterateBoundAreaLight(CProgrammableShaderInstance *light, const openrender::shading::AreaLightInfo &info, int numVertices, float **varying) {
+    using namespace openrender::sampling;
+    CShadingState *ss = currentShadingState;
+    const CAttributes *receiver = ss->currentAttributes;
+
+    // The receiver is the light's own emitter: it receives nothing from it (FR-011, FR-017)
+    if (receiver->areaLight == light)
+        return;
+
+    // The controls of the three levels (FR-018): skip when the light is off, has no emitting geometry or no sample count
+    const openrender::shading::AreaLightControls controls = openrender::shading::resolveAreaLightControls(
+        receiver->areaLightSamples, static_cast<openrender::shading::AreaLightMode>(static_cast<uint8_t>(receiver->areaLightMode)), info);
+    if (controls.mode == openrender::shading::AreaLightMode::Off || !(info.totalArea > 0.0) || controls.samples <= 0)
+        return;
+    const int n = controls.samples;
+    const int numReal = ss->numRealVertices;
+
+    const uint64_t shaderKey = openrender::sampling::detail::mix(shaderNameKey(light->getName()), light->instanceKey);
+    const uint32_t lightKey32 = static_cast<uint32_t>(shaderKey ^ (shaderKey >> 32));
+
+    memBegin(shaderStateMemory);
+    // One buffer per light-surface global, one entry per vertex (the nine that are replaced), and the draws and densities
+    float *lightBuffer[VARIABLE_CONSTANTWIDTH + 1] = {nullptr};
+    const unsigned int replaced[] = {VARIABLE_P, VARIABLE_N, VARIABLE_NG, VARIABLE_DPDU, VARIABLE_DPDV, VARIABLE_U, VARIABLE_V, VARIABLE_S, VARIABLE_T};
+    for (unsigned int var : replaced) {
+        const bool isVector = (var == VARIABLE_P || var == VARIABLE_N || var == VARIABLE_NG || var == VARIABLE_DPDU || var == VARIABLE_DPDV);
+        lightBuffer[var] = (float *)ralloc(sizeof(float) * (isVector ? 3 : 1) * numVertices, shaderStateMemory);
+    }
+    float *u1 = (float *)ralloc(sizeof(float) * numVertices, shaderStateMemory);
+    float *u2 = (float *)ralloc(sizeof(float) * numVertices, shaderStateMemory);
+    float *pdfA = (float *)ralloc(sizeof(float) * numVertices, shaderStateMemory);
+    float *visible = (float *)ralloc(sizeof(float) * numVertices, shaderStateMemory);
+
+    // The composite table: the receiver's globals with the nine replaced, built once and swapped in around each run
+    float **composite = (float **)ralloc(sizeof(float *) * ss->numVaryings, shaderStateMemory);
+    memcpy(composite, varying, sizeof(float *) * ss->numVaryings);
+    for (unsigned int var : replaced)
+        composite[var] = lightBuffer[var];
+
+    float **const savedVarying = ss->varying;
+    const EShadingDim savedDim = ss->shadingDim;
+    const float *Ps = varying[VARIABLE_PS];
+    const float *time = varying[VARIABLE_TIME];
+    const float bias = receiver->bias;
+
+    for (int k = 0; k < n; k++) {
+        // The draws: a pure function of (point, light, sample), never a counter consumed per call (a rerun of the lights at the same point
+        // sees the same emitter points). A derivative-offset tail vertex carries its real vertex's key, hence its point
+        for (int i = 0; i < numVertices; i++) {
+            const SubstreamKey sub = substream(ss->pointKeys[i], shaderKey, kAreaLightSampleSite, 0, static_cast<uint16_t>(currentRayDepth), static_cast<uint32_t>(n));
+            const Sample2D d = get2D(sampling.backend, sub, 0, static_cast<uint32_t>(k));
+            u1[i] = d.u;
+            u2[i] = d.v;
+        }
+        areaLightSamplerObject->sampleEmitters(*this, light, numVertices, u1, u2, time, lightBuffer, pdfA);
+
+        // Run the light shader 0-D over the sampled points; the receiver's table and dimension come back at once
+        CShadedLight *head = ss->lights;
+        memBegin(shaderStateMemory);
+        ss->varying = composite;
+        ss->shadingDim = SHADING_0D;
+        ss->currentLightInstance = light;
+        ss->locals[ACCESSOR_LIGHTSOURCE] = light->prepare(shaderStateMemory, composite, numVertices);
+        light->illuminate(this, ss->locals[ACCESSOR_LIGHTSOURCE]);
+        ss->varying = savedVarying;
+        ss->shadingDim = savedDim;
+        memEnd(shaderStateMemory);
+
+        // Weight what the light pushed by V / (n pdfA): V is one probe from the receiver to the emitter point per real vertex, asked
+        // for the entry only if it matters (an active vertex, a point, a non-zero Cl); a vertex with no point (pdfA == 0) gets Cl = 0
+        for (CShadedLight *e = ss->lights; e != head && e != nullptr; e = e->next) {
+            float *Cl = e->savedState[1];
+            for (int i = 0; i < numVertices; i++)
+                visible[i] = -1.0f; // not asked yet
+            for (int i = 0; i < numVertices; i++) {
+                float *c = Cl + 3 * i;
+                const int real = i < numReal ? i : (i - numReal) / 2; // a tail vertex takes its real vertex's probe and density
+                if (!(pdfA[real] > 0.0f)) {
+                    c[0] = c[1] = c[2] = 0.0f;
+                    continue;
+                }
+                if (e->lightTags[i] != 0 || (c[0] == 0.0f && c[1] == 0.0f && c[2] == 0.0f))
+                    continue;
+                if (visible[real] < 0.0f) {
+                    // The shadow ray: from the receiver's point to the emitter's, transmission visibility, keyed by (point, light, sample)
+                    CRay ray;
+                    for (int c3 = 0; c3 < 3; c3++) {
+                        ray.from[c3] = Ps[3 * real + c3];
+                        ray.dir[c3] = lightBuffer[VARIABLE_P][3 * real + c3] - Ps[3 * real + c3];
+                    }
+                    const float dist = lengthv(ray.dir);
+                    if (dist > bias && dist > C_EPSILON) {
+                        mulvf(ray.dir, 1.0f / dist);
+                        ray.time = time[real];
+                        ray.flags = ATTRIBUTES_FLAGS_TRANSMISSION_VISIBLE;
+                        ray.t = dist - bias;
+                        ray.tmin = bias;
+                        ray.da = ray.db = 0;
+                        ray.depth = static_cast<uint16_t>(currentRayDepth + 1);
+                        ray.key = childKey(ss->pointKeys[real], ray.depth, kAreaLightShadowSite, lightKey32, static_cast<uint32_t>(k));
+                        ray.cameraImportance = false;
+                        ray.object = nullptr;
+                        ray.child = nullptr;
+                        const bool blocked = libshader::occluded(*this, &ray, light);
+                        visible[real] = blocked ? 0.0f : 1.0f;
+                    }
+                    else
+                        visible[real] = 1.0f; // the points touch: nothing between them
+                }
+                const float scale = visible[real] / (static_cast<float>(n) * pdfA[real]);
+                c[0] *= scale;
+                c[1] *= scale;
+                c[2] *= scale;
+            }
+        }
+    }
+    memEnd(shaderStateMemory);
 }
 
 ///////////////////////////////////////////////////////////////////////

@@ -34,6 +34,7 @@
 #include "common/global.h"
 #include "libshader/shading/illuminationHook.h"
 #include "libshader/shading/irradianceSampler.h"
+#include "libshader/shading/areaLightSampler.h"
 #include "libshader/shading/pointSource.h"
 #include "libshader/shading/rendererServices.h"
 #include "libshader/shading/shaderGlobals.h"
@@ -454,6 +455,11 @@ class CShadingContext final {
         // ---- The irradiance sampler (spec 032): how libshader::irradianceLookup computes a new sample on a cache miss. The hider
         // that owns the context installs one (the cache itself is passive storage and samples nothing); the process-wide default
         // is the fallback for a context with none.
+        // The area-light sampler of the hider that owns this context (spec 057, services 2.4.0), installed only when the frame has
+        // a bound light; nullptr (the default, and the imager's and every double's context) runs every light as a classic light.
+        void setAreaLightSampler(openrender::shading::IAreaLightSampler *sampler) { areaLightSamplerObject = sampler; }
+        openrender::shading::IAreaLightSampler *areaLightSampler() const { return areaLightSamplerObject; }
+
         void setIrradianceSampler(openrender::shading::IIrradianceSampler *sampler) { irradianceSamplerObject = sampler; }
         openrender::shading::IIrradianceSampler *irradianceSampler() const { return irradianceSamplerObject; }
         static void setDefaultIrradianceSampler(openrender::shading::IIrradianceSampler *sampler) { s_defaultIrradianceSampler = sampler; }
@@ -1116,6 +1122,11 @@ class CShadingContext final {
         TObjectHash *traceObjectHash; // An object hash array for raytraced objects
         openrender::shading::IIlluminationHook *illuminationHookObject = nullptr; // See setIlluminationHook()
         openrender::shading::ITracer *tracerObject = nullptr;                     // See setTracer()
+        openrender::shading::IAreaLightSampler *areaLightSamplerObject = nullptr;  // See setAreaLightSampler()
+
+        // Spec 057: run one bound area light for the points of the shading call in progress: n samples, each a 0-D run of the light
+        // shader over the sampled emitter points, weighted by V / (n pdfA). iterateLights' bound branch (shading.cpp).
+        void iterateBoundAreaLight(CProgrammableShaderInstance *light, const openrender::shading::AreaLightInfo &info, int numVertices, float **varying);
         openrender::shading::IIrradianceSampler *irradianceSamplerObject = nullptr; // See setIrradianceSampler()
 
         // The following functions are used in the shaders

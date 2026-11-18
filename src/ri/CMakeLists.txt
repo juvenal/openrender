@@ -81,6 +81,7 @@ set(ri_sources
 	hiders/hider.cpp
 	hiders/hiderRegistry.cpp
 	hiders/shadingProducer.cpp
+	hiders/areaLights.cpp
 	geometry/curves.cpp
 	geometry/bsplinePatchgrid.cpp
 	geometry/csgTree.cpp
@@ -412,6 +413,7 @@ list(REMOVE_ITEM ribVector_sources
     hiders/hider.cpp
     hiders/hiderRegistry.cpp
     hiders/shadingProducer.cpp
+    hiders/areaLights.cpp
     hiders/irradianceSampler.cpp
     hiders/occlusion.cpp
     hiders/photon.cpp

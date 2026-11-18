@@ -277,6 +277,21 @@ class CTraceObject {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CHider
+// Method				:	occluded
+// Description			:	One occlusion probe (ITracer::occluded, spec 057): traceRay() with an area light's own scope excluded
+// Return Value			:	TRUE if something blocks the probe
+// Comments				:	Same inputs as traceRay (from, dir, t, tmin, flags, time, key, depth)
+bool CHider::occluded(CShadingContext &ctx, CRay *ray, const CShaderGroupRefTarget *excludeLight) {
+    // The primitives created in the excluded light's scope are skipped by Geometry's ray gates for the length of this trace (spec 057,
+    // FR-017); nothing is shaded and no volume step runs (a probe). The answer is the hit test, never ray->t against infinity (#169)
+    emitterExclusion = excludeLight;
+    traceRay(ctx, ray);
+    emitterExclusion = nullptr;
+    return ray->object != nullptr;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CHider
 // Method				:	traceRay
 // Description			:	Trace a single ray (ITracer; the former CShadingContext::trace(CRay *))
 // Return Value			:	-

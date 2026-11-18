@@ -302,3 +302,95 @@ Linux (GCC 13 `-Werror`, `-j2`; `lx-build6.log`): build green, no warning. `-L '
 `lx-p3-groups2.log`): **51/51 passed**. Full run (`lx-p3-all2.log`): 1373 selected, 1370 passed, 1 skipped
 (`LibShader_Format_rslo_lower_minor`), **2 failed, the two known**: `TextureTile_RenderByteIdentical` (#45) and
 `Registry_IntegratorImageIdentity` (#163). 739.8 s.
+
+## 13. Phase 4, T066: the interface proposal (no source edited yet)
+
+Written under `specs/057-area-light-geometry/tools/proposed/` and applied by nothing until the maintainer approves:
+
+- `areaLightSampler.h`: the new Shading header (`AreaLightMode`, `AreaLightInfo`, `IAreaLightSampler::{areaLight, sampleEmitters}`),
+  exactly as contracts/shading-light-surface.md, plus the buffer layout of `sampleEmitters`' `out` stated in the comment.
+- `tracer.h.diff`: `ITracer::occluded(context, ray, excludeLight)`. One deviation from the contract text: the default body is
+  declared in `tracer.h` and **defined in `traceCalls.cpp`**, not inline, because `tracer.h` only forward-declares `CRay` (the
+  default needs `ray->object`); `CShaderGroupRefTarget` is forward-declared there too.
+- `rendererServices.h.diff`: `{2, 3, 0}` -> `{2, 4, 0}` and the `2.4.0 (spec 057)` history entry (renumbered 2.5.0 in the 033 sync).
+- `shading.h.diff`: `CShadingContext::setAreaLightSampler()`/`areaLightSampler()` and the member (T070), shown with the rest of the
+  interface because it is public API of the context.
+
+## 14. Phase 4 tests written (T057-T064) and their red evidence
+
+The four interface proposals of §13 were approved (maintainer, 2026-11-16; T066 done): `areaLightSampler.h`, `ITracer::occluded`
+declared in `tracer.h` with its default DEFINED OUT OF LINE in `traceCalls.cpp`, services `2.4.0` with the non-breaking history
+entry, and `CShadingContext::setAreaLightSampler()`. `contracts/shading-light-surface.md` is updated for the out-of-line
+default and the shading.h addition. Nothing of the interface is applied to `src/` yet (T067 onward, after the TEST-APPROVAL).
+
+Written: `tests/arealight/test_vocabulary_mirror.cpp` (`State_AreaLightVocabularyMirror`); nine test-local shaders
+(`al_light_{constant,p,n,uv,st,facing}`, `al_surface_{matte,matte_n,lightsum,check}`, built into
+`build/tests/arealight/shaders`, none added to `shaders/`); `tools/probe_expected.py` (self-tested: the on-axis disk
+`pi a^2 / (h^2 + a^2)` and the contour form against the quadrature); `tools/gen_scenes.py` (29 scenes
+`examples/rib/tests/arealight-{probe,illuminate}-*.rib` and `tests/visual/arealight-probes.cmake`);
+`tests/visual/arealight-scenes.cmake` (one `include()` line in `tests/visual/CMakeLists.txt`);
+`tests/shading_contract/{cases_057.h, area_light_main.cpp, case_area_light.cpp}` and eight `ca_*` contract shaders, registered
+as `ShadingContract_AreaLight{Interp,Jit}` in the red block (`OPENRENDER_057_RED_TESTS`).
+
+**Deviation from tasks.md, to confirm at the approval:** T060/T061 want the sample-count sweep (n = 4, 16, 64, 256) in Phase 4,
+but the scene-level count can be set only through `Option "arealight" "int samples"`, whose token is Phase 5 (T084). Phase 4
+therefore probes the default n = 16 on all three hiders and both formats (tolerance `4 sigma_1 / sqrt(16)` from
+`probe_expected.py`), and the error-versus-n measurement moves to Phase 5 (`AreaLight_Controls_Render`).
+
+Red evidence (`cpujob 057-p4-red`; `build/p4-probes.log`, `p4-red-*.log`), the starting tree, option OFF for the scenes, ON for
+the two compile-red targets:
+- The two compile-red tests fail to build: `test_arealight_vocabulary_mirror` and `test_shading_contract_area_light` both stop at
+  `'libshader/shading/areaLightSampler.h' file not found` (T067); behind it the contract case names `IAreaLightSampler`,
+  `AreaLightInfo`, `AreaLightMode`, `ITracer::occluded`, `CShadingContext::setAreaLightSampler`.
+- 58 scene probes plus the pair registered; **43 fail** and 15 pass on the starting tree. Observed against expected
+  (rslo; `.slo` reads 0 for most, the JIT classic path lights nothing):
+
+| Probe | Observed (starting tree) | Expected |
+|---|---|---|
+| `QuadIrradiance` raytrace/reyes/zbuffer, pixels (3,3) (1,2) (6,5) | 0.000000 | 1.178695, 0.879696, 1.782002 (tol 0.0916, 0.0818, 0.3180) |
+| `ConstantCl` raytrace, the same pixels | 0.000000 | 20.767423, 18.657321, 24.432108 (tol 4.47, 4.28, 4.59) |
+| `Globals-p` channel 0 / 1,2 at (0,0) | -0.874975 / 0.874975, 4.0 (the receiver's P) | 12 / 8, 8 |
+| `Globals-n` | (0.5, 0.5, 1.0) (the receiver's N) | (0, 2, 2) |
+| `Globals-uv` channels 0,1 | 0.9375, 0.0625 (the receiver's u, v) | 2, 2 |
+| `Globals-st` channels 0,1 | 0.9375, 0.0625 | 3.6, 0.4 |
+| `Globals-check` green (|N - N0|) | 3.0 (the shipped arealight writes the receiver's N) | 0 |
+| `Occluded-unflagged` | 0.000000 | the three quad values |
+| `AreaLightBinding_Illuminate_On` (3,3) | 0.000000 | 1.178695 |
+
+- Pass on the starting tree, as designed (acceptance tests and a guard, their failure-capability shown by deliberate breakage
+  later): `Occluded-flagged` (reads 0 everywhere: also 0 on the starting tree), `Facing-receiver`, `Facing-emitter`, the blue
+  channel of `Globals-uv` and `Globals-st`, and `AreaLightBinding_Illuminate` (`Illuminate 1 0` byte-identical to the scene with no
+  `AreaLightSource`: the characterization guard).
+
+## 15. Phase 4 implementation (T067-T077), macOS
+
+Source: `IAreaLightSampler` (`libshader/shading/areaLightSampler.h`), `ITracer::occluded` (default out of line in `traceCalls.cpp`, tests `ray->object != nullptr`, never `ray->t` against infinity: GitHub #169) and the free function `libshader::occluded` (accepted wrapper), `kRendererServicesVersion` 2.4.0, the exclusion gate (`IRayContext::excludedEmitter()` and three gates in `surface.cpp`), `areaLightControls.h`, the iterateLights bound branch (`CShadingContext::iterateBoundAreaLight`, `shading.cpp`), `CHider::areaLight`/`sampleEmitters` (`hiders/areaLights.cpp`) and `CHider::occluded` (`trace.cpp`). The sampler is installed by the `CHider` constructor for every hider (one install point; a light the registry does not know answers "not bound"). Every bound light is resolved once, on the main thread, at the start of `CRenderer::renderFrame()` through `contexts[0]`, before any thread dices or traces.
+
+Approved test changes applied after the first T075 run: `contract-L-sign.diff` (the saved L is `P(emitter) - Ps`: ENDILLUMINATE negates it), `probes-slo-receiver-rslo.diff` (gen_scenes.py: the four `-slo` Globals scenes pin the receiver to `.rslo`) and the Jit contract case loads `ca_surface_sum` and `ca_surface_sum_cat` as `.rslo` (`loadReceiver()`: `RiAttribute "shade" "shaderformat"`; the session's `RiOption` is out of scope in the world block).
+
+**#126 pins (remove when GitHub #126 is fixed).** A `.slo` surface whose only lighting call is `illuminance(P)` gathers no light. Pinned to `.rslo`: the receiver of `AreaLightProbe_Globals-{p,n,uv,st}-raytrace-slo` (generator `add_scene`, `Attribute "shade" "shaderformat" ["rslo"]` before `Surface "al_surface_lightsum"`) and the two receivers of `ShadingContract_AreaLightJit` (`loadReceiver()` in `case_area_light.cpp`). The light under test stays `.slo` in all of them; with the pin the `.slo` light through the bound branch reads 12.000 / 7.995 / 8.002 (want 12, 8, 8). A three-argument `illuminance(P, N, PI)` receiver still reads 0 under the JIT.
+
+Results: `ShadingContract_AreaLight{Interp,Jit}` pass; 58 of 58 `AreaLightProbe_`/`AreaLightBinding_Illuminate` tests pass on `.rslo` and `.slo` (values in the test log, e.g. quad irradiance raytrace x3y3 1.1754 for 1.1787, ConstantCl 20.857 for 20.767, Globals p 12.000, 7.995, 8.002, n 0, 2, 2, uv 1.987, 2.000, st 3.604, 0.397); `ctest -L architecture` 36 of 36; `-LE determinism-sweep` 1432 of 1433 (`Registry_IntegratorImageIdentity`, #163, passed 5 of 5 alone); `-L '^determinism$'` 158 of 158; zero existing image moved. `AreaLight_ThreadsIdentical` (approved, added) passes 3 of 3.
+
+Thread check (T076): the 8 x 8 quad probe is one bucket, so a shared draw sequence cannot show there: with the draw replaced by one shared sequence the images at `-t:1` and `-t:4` stayed byte-identical. On 128 x 128 (64 buckets) the same breakage differs (40c565c2d33d3e8a against babae21d6b7c0691) and the correct code is identical (822522797a959446); `AreaLight_ThreadsIdentical` is that check. Reyes and zbuffer images of the quad probe are byte-identical to each other.
+
+Classic-scene cost of installing the sampler unconditionally (10 classic lights, 12 spheres, 1280 x 960, `-t:1`, 5 alternating runs each way, one binary toggled by a temporary env switch, since reverted): installed median 5.591 s (spread 0.255), skipped 5.556 s (spread 0.113): 0.6 %, inside the spread.
+
+Deliberate breakage (a temporary env-selected mutation each, probes rerun, files restored, `git diff` empty afterwards):
+
+| Mutation | Probes that went red |
+|---|---|
+| no transmission flag on the shadow probe | the six `Occluded-flagged` probes (`.rslo`, `.slo`) |
+| emitter P leaked into the receiver | the two `Globals-check` probes |
+| emitter N flipped | `Facing-emitter` (both formats), `Illuminate_On` and 40 more |
+| stray blue term | `uv` c2, `st` c2 (both formats), with the `p` and `n` channel probes |
+| `Illuminate` on/off inverted | `AreaLightBinding_Illuminate`, `Illuminate_On` |
+| saved L reversed | `Illuminate_On` and 30 more; `Facing-receiver` stays green |
+| light tags cleared | nothing |
+| `Illuminate 1 0` made a no-op | nothing |
+
+Limits: `Facing-receiver` is not reachable by a Phase 4 mutation (its zero comes from the receiver-side hemisphere test of the engine); the `Illuminate` off guard is a characterization of existing behaviour that only the inversion reaches (the light is already out of the list after its `AttributeEnd`).
+
+An intermittent texture3d bake crash on Linux, if met, is GitHub #122.
+
+Linux (Ubuntu 24.04, GCC 13 `-Werror`, one remote cpujob chain at `-j2`, tree synced by `tools/sync_linux.sh`, 4454 files, `sha256sum -c` clean): the build has no error; `ctest -L 'arealight|shading_parity|architecture' -j2` passes 243 of 243 (66 of them area-light tests), 147.5 s. The `.slo` Globals and Jit contract tests run with the #126 pins.

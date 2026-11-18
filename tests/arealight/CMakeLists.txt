@@ -83,7 +83,7 @@ endfunction()
 # A pair ending in |ALLOW_ERROR_EXIT accepts orender's exit 255 (a scene that reports an error by design) when the image
 # was still written; nothing else about the comparison changes.
 function(al_render_pair_test name)
-    cmake_parse_arguments(ARG "EXPECT_EQUAL;EXPECT_DIFFERENT" "THREADS;HIDER;SHADERFORMAT;TIMEOUT" "PAIRS;LABELS" ${ARGN})
+    cmake_parse_arguments(ARG "EXPECT_EQUAL;EXPECT_DIFFERENT" "THREADS;THREADS_B;HIDER;SHADERFORMAT;TIMEOUT" "PAIRS;LABELS" ${ARGN})
     if(NOT ARG_TIMEOUT)
         set(ARG_TIMEOUT 300)
     endif()
@@ -113,6 +113,9 @@ function(al_render_pair_test name)
     if(ARG_THREADS)
         list(APPEND args -DTHREADS=${ARG_THREADS})
     endif()
+    if(ARG_THREADS_B)
+        list(APPEND args -DTHREADS_B=${ARG_THREADS_B})
+    endif()
     if(ARG_HIDER)
         list(APPEND args -DHIDER=${ARG_HIDER})
     endif()
@@ -129,6 +132,11 @@ endfunction()
 
 # ---- Phase 1: the instance-key leak (FR-004, SC-010; contracts/tests.md LightKey_NoLeakAcrossFailedLight) ---------------
 al_shader(al_random_surface)
+# Phase 4: the probe lights and receivers (tests/arealight/shaders; none is added to shaders/, FR-021)
+foreach(_al_name al_light_constant al_light_p al_light_n al_light_uv al_light_st al_light_facing
+        al_surface_matte al_surface_matte_n al_surface_lightsum al_surface_check)
+    al_shader(${_al_name})
+endforeach()
 
 # LightKey_NoLeakAcrossFailedLight: a Surface that draws random() after a failed light statement takes the key it would
 # have taken without that statement. Seven checks in one entry: the control rendered twice (the scene is deterministic,
@@ -149,10 +157,16 @@ foreach(_kind null missing wrongtype)
 endforeach()
 al_render_pair_test(LightKey_NoLeakAcrossFailedLight PAIRS ${_leak_pairs} EXPECT_EQUAL LABELS "state")
 
-# ---- the red-first block (tests whose API does not exist yet; each in its own executable) ---------------------------------
-if(OPENRENDER_057_RED_TESTS)
-    # (empty: the Phase 2 and 3 tests are green and live below; the tests of the next phase are added here while they are red)
-endif()
+# ---- Phase 4: FR-014, the keyed draws make an image independent of the thread count (needs more than one bucket: 128 x 128 at the
+# default 16 x 16 bucket size; the 8 x 8 probe scenes are one bucket and cannot see a shared draw sequence) -----------------
+al_render_pair_test(AreaLight_ThreadsIdentical PAIRS scenes/threads/arealight-threads-quad-raytrace.rib|scenes/threads/arealight-threads-quad-raytrace.rib
+    THREADS 1 THREADS_B 4 EXPECT_EQUAL LABELS "arealight;shading_parity")
+
+# ---- Phase 4: Shading, the light-surface globals and the area estimator, moved out of the red block by T074 -------------------
+# State_AreaLightVocabularyMirror: AreaLightMode (Shading) equals EAreaLightMode (Graphics State) value for value
+al_executable(test_arealight_vocabulary_mirror test_vocabulary_mirror.cpp)
+al_test(State_AreaLightVocabularyMirror test_arealight_vocabulary_mirror LABELS state)
+# (the contract program ShadingContract_AreaLight{Interp,Jit} is registered by tests/shading_contract/CMakeLists.txt)
 
 
 # ---- Phase 2: binding and the emitter registry (US1; FR-001 to FR-005), moved out of the red block by T029 and T036 --------

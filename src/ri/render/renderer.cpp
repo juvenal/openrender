@@ -51,6 +51,7 @@
 #include "ray.h"
 #include "remoteChannel.h"
 #include "proceduralModules.h"
+#include "emitterRegistry.h"
 #include "hider.h"
 #include "hiderAbi.hpp"
 #include "hiderRegistry.h"
@@ -1100,6 +1101,15 @@ void CRenderer::renderFrame() {
     // A refused or aborted frame renders nothing: it has no hiders to hand the hierarchy to or to run
     if (frameTransport().refused || frameTransport().aborted)
         return;
+
+    // Resolve every bound area light once, here on the main thread, before any thread dices or traces (spec 057, plan.md): the
+    // sampled leaves stay attached until the frame ends, so no render thread builds a set or creates an object mid-render
+    if (CEmitterRegistry *emitters = frameEmitters()) {
+        if (contexts != NULL && contexts[0] != NULL) {
+            for (int light = 0; light < emitters->numLights(); light++)
+                emitters->lightAt(light)->resolve(*contexts[0]);
+        }
+    }
 
     // Make sure we have a bounding hierarchy
     movvv(root->bmin, worldBmin);

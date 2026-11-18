@@ -37,7 +37,8 @@ namespace openrender::shading {
 }
 ```
 
-`CShadingContext::setAreaLightSampler(IAreaLightSampler *)` is called by `CHider` at the start of its rendering loop,
+`CShadingContext::setAreaLightSampler(IAreaLightSampler *)` (with `areaLightSampler()` and a private pointer member beside
+`setTracer()`'s, in `shading.h`; approved with the interface, services 2.4.0) is called by `CHider` at the start of its rendering loop,
 **only when the frame has a bound light** (`emitterRegistry().numLights() > 0`; the registry is complete by then, the
 world block being over); otherwise the pointer stays null and `iterateLights` pays one null test per light, so classic-only
 frames keep their cost (the performance goal of plan.md).
@@ -57,10 +58,11 @@ a scratch varying array with no shader locals bound (the ray-hit evaluation of `
 // identity of an area light whose scope's primitives must not block (nullptr: none). Out: true if ray->object != nullptr
 // after the trace. Never tests ray->t against infinity (the `visibility()` defect, GitHub #169, research R1).
 // Default: traceRay(context, ray) and the test, ignoring excludeLight. CHider overrides it to apply the exclusion.
-virtual bool occluded(CShadingContext &context, CRay *ray, const CShaderGroupRefTarget *excludeLight) {
-    traceRay(context, ray);
-    return ray->object != nullptr;
-}
+// Declared in tracer.h; the default body is DEFINED OUT OF LINE in traceCalls.cpp, because tracer.h only forward-declares CRay
+// (the body needs ray->object) and CShaderGroupRefTarget (Graphics State, forward-declared too).
+virtual bool occluded(CShadingContext &context, CRay *ray, const CShaderGroupRefTarget *excludeLight);
+// traceCalls.cpp:  bool ITracer::occluded(CShadingContext &context, CRay *ray, const CShaderGroupRefTarget *) {
+//                      traceRay(context, ray); return ray->object != nullptr; }
 ```
 
 `CHider::occluded` sets `emitterExclusion = excludeLight`, calls `traceRay`, resets it to `nullptr`. No volume step
