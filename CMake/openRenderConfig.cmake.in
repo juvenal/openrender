@@ -8,8 +8,11 @@
 #     openRender::RIBRender       full renderer (RenderMan Interface)
 #     openRender::RIBVector       geometry-only RI extraction, no shading/LLVM
 #     openRender::RIBOut          RIB text output
-#     openRender::shader_shading  shading engine
-#     openRender::shader_runtime  .rslo/.slo loader
+#     openRender::RSLRuntime      shading engine and shader loaders (formerly shader_shading,
+#                                 kept as an alias for one release)
+#     openRender::RSLInfo         shader metadata and the .rslo inspection reader, rslo.h
+#                                 (formerly shader_runtime, kept as an alias for one release);
+#                                 never linked into a program together with RSLRuntime
 #     openRender::shader_compiler RSL compiler
 #     openRender::RIBShadeop      shader DSO operands (spec 037): scanning, the
 #                                 version check, the declaration parser and the
@@ -23,11 +26,12 @@
 #   Static  (available when its external dependencies are found: TIFF, PNG,
 #            Threads@OPENRENDER_CONFIG_OPENEXR_NOTE@)
 #     openRender::RIBRender_static, RIBVector_static, RIBOut_static,
-#     shader_runtime_static, shader_compiler_static, RIBShadeop_static, and
+#     RSLInfo_static (formerly shader_runtime_static, kept as an alias),
+#     shader_compiler_static, RIBShadeop_static, and
 #     openRender::RIBCommon_static (the common archive the fully static
 #     archives depend on; linked automatically, exactly once).
 #     RIBRender_static links the SHARED openRender::RIBCommon instead, because
-#     the shared-only libshader_shading binds its infrastructure there; a
+#     the shared-only libRSLRuntime binds its infrastructure there; a
 #     second, static copy in the program would split that state in two.
 #
 # The shared libraries are self-contained: they need nothing from this
@@ -45,6 +49,14 @@ set_and_check(openRender_INCLUDE_DIR "@PACKAGE_OPENRENDER_INCLUDE_INSTALL_DIR@")
 
 include("${CMAKE_CURRENT_LIST_DIR}/openRenderTargets.cmake")
 set(openRender_Shared_FOUND TRUE)
+
+# The names of the libraries before spec 033 renamed them, kept for one release (an alias of an imported target needs CMake 3.18)
+if(NOT TARGET openRender::shader_shading AND TARGET openRender::RSLRuntime)
+    add_library(openRender::shader_shading ALIAS openRender::RSLRuntime)
+endif()
+if(NOT TARGET openRender::shader_runtime AND TARGET openRender::RSLInfo)
+    add_library(openRender::shader_runtime ALIAS openRender::RSLInfo)
+endif()
 
 # ---- Static component ------------------------------------------------------
 # Plain find_package(... QUIET), not find_dependency(): a missing static-only
@@ -77,6 +89,10 @@ if(_openRender_static_missing)
 else()
     include("${CMAKE_CURRENT_LIST_DIR}/openRenderStaticTargets.cmake")
     set(openRender_Static_FOUND TRUE)
+    # The old name of RSLInfo_static, kept for one release (it exists only with the Static component)
+    if(NOT TARGET openRender::shader_runtime_static AND TARGET openRender::RSLInfo_static)
+        add_library(openRender::shader_runtime_static ALIAS openRender::RSLInfo_static)
+    endif()
 endif()
 unset(_openRender_static_missing)
 unset(_openRender_static_dep_targets)

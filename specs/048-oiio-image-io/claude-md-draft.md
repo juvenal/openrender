@@ -8,7 +8,7 @@ closing validation. Line anchors refer to the current files.
 
 ### 1a. Header paragraph, "Key CMake options" (the sentence listing `USE_FLEX_BISON`, ...)
 
-Add `OPENRENDER_ENABLE_OIIO` (OpenImageIO image backend and the `oiio` display driver, default OFF, needs OpenImageIO 3.0 or newer) to the list.
+Add `OPENRENDER_ENABLE_OIIO` (OpenImageIO image backend and the `oiio` display driver, default OFF, needs OpenImageIO 3.0 or newer) to the list, after the `OPENRENDER_LLVM_MIN_VERSION` entry (master's current sentence still ends `OPENRENDER_TSAN ..., OR037_RECAPTURE (test baselines).`).
 
 ### 1b. New section after "Plug-in ABIs (spec 037)" (architecture)
 
@@ -21,10 +21,10 @@ shared only, and is the one image of the install tree that carries OpenImageIO (
 hidden visibility and `--exclude-libs` on Linux), and its header `orImageIO.h` names no OIIO type. `Option "imageio" "backend" ["legacy"|"oiio"]` and the per-call
 `"string imageio"` parameter of the four `Make*` calls select the backend (the call wins over the Option, then `legacy`); `otexmake -imageio`; `Display ... "oiio"`
 is the driver. The legacy path is the default and is unchanged: with OIIO off every image, file and hash is identical (the per-platform legacy bake hashes,
-`tests/unit/imageio/fixtures/bake/legacy-bake-{macos,linux}.sha256`). See `DEVNOTES_DETAILS/IMAGE_IO.md` and gotcha 40.
+`tests/unit/imageio/fixtures/bake/legacy-bake-{macos,linux}.sha256`). See `DEVNOTES_DETAILS/IMAGE_IO.md` and gotcha 45.
 ```
 
-### 1c. Testing list: add after the `registry` line
+### 1c. Testing list: add after the `shaderformat` line (spec 033's, the last before the opt-in `link-package` line on master)
 
 ```
 ctest --test-dir build-oiio -L imageio                  # spec 048 (OIIO-on tree): decode parity and differences, selection, bake parity and exclusions, display parity, single copy
@@ -33,10 +33,10 @@ ctest --test-dir build-oiio -L imageio                  # spec 048 (OIIO-on tree
 and, below the list, one sentence: `-L imageio` registers different tests with OIIO off (`ImageIO_AbsentBuild`, `ImageIO_SelectWithoutOIIO`, `ImageIO_CiHasNoOiio`,
 `ImageIO_VcpkgManifest`) and on (the rest); the OIIO-on tree is a separate build directory (`build-oiio`) with its own vcpkg install directory.
 
-### 1d. New numbered gotcha (after 39)
+### 1d. New numbered gotcha (after 44, master's last: spec 033 added 40 to 44)
 
 ```
-40. **A utility library has its own rule, and the OIIO tree has its own vcpkg install directory (spec 048).** `libRIBImageIO` (class ImageIO, constitution 1.5.0)
+45. **A utility library has its own rule, and the OIIO tree has its own vcpkg install directory (spec 048).** `libRIBImageIO` (class ImageIO, constitution 1.5.0)
    may include only the standard library, `common/`, its own header and OpenImageIO's headers (`ImageIO_NoDomainInclude`, archcheck), and the only edges into it are
    Texturing's and Display Outputs'; a renderer-core or Scene Interface include in `src/imageio/` is a failing test. Never match an OIIO symbol by "OpenImageIO_v3":
    a mangled name is `N11OpenImageIO4v3_1...` (`ImageIO_SingleCopy` matches `OpenImageIO`), and read an UNSTRIPPED install (`DESTDIR=...`, because
@@ -48,11 +48,15 @@ and, below the list, one sentence: `-L imageio` registers different tests with O
    with a `CODE_SYSTEM` info message, because `RiError` never forwards `CODE_LOG` to the handler); an OIIO bake carries a `SOFTWARE` tag that begins
    `OpenImageIO` and a legacy one does not (the probe the tests use). OIIO stores a 4-sample TIFF's alpha as the display driver declares it (associated) and PNG
    alpha as straight; the legacy `file` driver writes 16-bit PNG byte-swapped (GitHub #181), so the parity tests decode the legacy side with its bytes swapped back
-   (`D-PNG-WRITE16`). A truncated TIFF reads as success from OIIO unless `has_error()` is checked (`Reader::read` does), and OIIO names its 32-bit integer types
+   (`D-PNG-WRITE16`); the legacy `file` driver also writes a TIFF under the `.png` name when its PNG writer cannot take the display, 5 samples or a quantize maximum above 65535
+   (GitHub #185, `D-PNG-5CH`), where `oiio` refuses. A `"z"` display is quantized and dithered by the depth quantizer like any other (RISpec 3.2 RiQuantize): `CFileOutputBase` always reads
+   `quantize` and `dither` and keeps `isDepth` only for `gamma` (the one change of the legacy drivers in spec 048, FR-020's stated exception; scenes with the default zero depth quantizer
+   are unchanged); not changed: combined colour and depth displays use one quantizer (#186), quantization truncates where RISpec says round (#187), `CDisplayChannel::quantizer`
+   is never initialized (#188), exposure is applied to alpha (#189). A truncated TIFF reads as success from OIIO unless `has_error()` is checked (`Reader::read` does), and OIIO names its 32-bit integer types
    `uint`/`int`.
 ```
 
-### 1e. "Active Technologies" list: add
+### 1e. "Active Technologies" list: append after master's last entry (040-gi-determinism)
 
 ```
 - C++20, CMake ≥3.19, `-Werror`; optional OpenImageIO ≥ 3.0 (`OPENRENDER_ENABLE_OIIO`, off by default): the Image I/O utility library `libRIBImageIO`
@@ -61,7 +65,7 @@ and, below the list, one sentence: `-L imageio` registers different tests with O
 - Storage: N/A; the legacy bake hashes and the `tests/unit/imageio/fixtures` references are recorded files (048-oiio-image-io)
 ```
 
-### 1f. "Recent Changes": new first entry
+### 1f. "Recent Changes": new first entry (above 040-gi-determinism's: merge order 033, 040, 048)
 
 ```
 - 048-oiio-image-io: an optional OpenImageIO backend for image input and output (`OPENRENDER_ENABLE_OIIO`, off by default; constitution 1.5.0 adds the Image I/O
@@ -69,8 +73,8 @@ and, below the list, one sentence: `-L imageio` registers different tests with O
   bake textures (tags and samples equal to the legacy bake, except 16-bit 3+ channel and 5+ channel textures, which the legacy writer keeps with a message); the `oiio` display
   driver writes TIFF, PNG, OpenEXR and RGBE with the legacy drivers' samples (display interface unchanged at 2.0.0); exactly one image of the install tree carries OIIO
   (`ImageIO_SingleCopy`); no colour conversion on read or write. The decode difference list (`D-*`, `IMAGE_IO.md`) is tested; with OIIO off no image, file or hash changed on either
-  platform. vcpkg gets an `oiio` feature in its own install directory. Filed, not fixed: #171, #172, #174, #181 (legacy RGBE cannot read RLE; the RGBE `rgba` output is garbled;
-  otexmake exits 0 for undecodable sources; the legacy `file` driver writes 16-bit PNG byte-swapped). Closing validation (2026-11-18): macOS OIIO off 1370 of 1370 and OIIO on 1386 of 1386 (`-LE determinism-sweep`), the 582-entry determinism sweep 582 of 582, `-L architecture` 39 of 39 on both builds, allowlist and metrics baseline unchanged, the byte-identity oracle (three renders and four `otexmake` outputs) identical to the starting tree on both builds, the legacy bake hashes 38 of 38 unchanged; Linux (Ubuntu 24.04, GCC 13 `-Werror`, shared OpenImageIO 3.1.14) the same failing set as the starting tree by name (#45 `TextureTile_RenderByteIdentical`, #163 `Registry_IntegratorImageIdentity`) and nothing else, `-L architecture` 39 of 39, the sweep 581 of 582 with one intermittent texture3d `bake3d` crash (#122) that passed alone.
+  platform. vcpkg gets an `oiio` feature in its own install directory. One change of a legacy driver (FR-020's stated exception): a `"z"` display is quantized and dithered by the depth quantizer, per RISpec 3.2 (the shared `file_base`). Filed, not fixed: #171, #172, #174, #181, #183 to #189 (legacy RGBE cannot read RLE; the RGBE `rgba` output is garbled;
+  otexmake exits 0 for undecodable sources; the legacy `file` driver writes 16-bit PNG byte-swapped; three legacy TIFF decode defects; the PNG-to-TIFF fallback; combined colour and depth quantizer; truncation versus rounding; an uninitialized channel quantizer; exposure on alpha). Closing validation of the merged tree (specs 033 and 040 merged into the branch, 2026-11-18): macOS OIIO off 1416 and OIIO on 1432 tests (master's everyday command `-LE 'determinism-sweep|gi_determinism_long'`), the 618-entry determinism sweep 618 of 618 on both builds, `-L architecture` 45 of 45 on both builds (allowlist and metrics baseline unchanged against master), `ImageIO_SingleCopy` passing (31 binaries, one copy of OpenImageIO), the byte-identity oracle (three renders and four `otexmake` outputs) identical to the starting tree on both builds, the legacy bake hashes 38 of 38 unchanged; Linux (Ubuntu 24.04, GCC 13 `-Werror`, shared OpenImageIO 3.1.14) OIIO off 1417 and OIIO on 1433 tests with the starting tree's failing set (#45 `TextureTile_RenderByteIdentical`; #163 `Registry_IntegratorImageIdentity` did not recur), the sweep 618 of 618 off and 617 of 618 on (the intermittent texture3d `bake3d` crash, #122, passed alone five times), the legacy bake hashes 38 of 38. The macOS `ShadingContract_RealAnswersInterp_Messages` and `ShadingContract_MessageRequests` tests crash intermittently (a `strcmp` on a dangling string in `CShadingContext::interpret`; spec 048 changes nothing under `src/libshader` or `tests/shading_contract`), see `validation.md` section 24.
 ```
 
 ## 2. NEWS.md (new first line under "## Unreleased")

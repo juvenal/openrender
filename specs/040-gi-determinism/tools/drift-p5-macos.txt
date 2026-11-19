@@ -1,0 +1,22 @@
+# Phase 5 (T076): MaxBlockAvgDiff of the GI visual tests after the batch scope and the canonical commit, macOS. columns: test, starting tree, after Phase 4, after Phase 5, threshold, verdict (nothing adjusted)
+Visual_photon-parity                                 0.00    7.06    7.06    6.0  over threshold
+Visual_photon-parity-slo                             0.00    7.06    7.06    6.0  over threshold
+Visual_photon-solar0-after-distant                   0.00    8.77    8.77   20.0  changed
+Visual_photon-solar0-after-distant-slo               0.00    8.77    8.77   20.0  changed
+Visual_photon-solar0-alone                           0.00   11.09   11.09   20.0  changed
+Visual_photon-solar0-alone-slo                       0.00   11.09   11.09   20.0  changed
+Visual_sphere-gather-reyes                          -1.00    3.94    3.94   20.0  same
+Visual_sphere-gather-reyes-slo                      -1.00    3.94    3.94   20.0  same
+Visual_sphere-indirectdiffuse-reyes                  0.00    0.00    0.00   20.0  same
+Visual_sphere-indirectdiffuse-reyes-slo              0.00    0.00    0.00   20.0  same
+Visual_sphere-occlusion-reyes                       12.36   38.78   30.72   20.0  over threshold
+Visual_sphere-occlusion-reyes-slo                   12.36   38.78   30.72   20.0  over threshold
+Visual_sphere-photonmap-reyes                        5.97    5.97    5.97   20.0  same
+Visual_sphere-photonmap-reyes-slo                    5.97    5.97    5.97   20.0  same
+Visual_sphere-ray-self-hit-raytrace                  0.00    0.00    0.00    0.0  same
+Visual_sphere-ray-self-hit-reyes                     0.00    0.00    0.00    0.0  same
+Visual_sphere-ray-self-hit-reyes-slo                 0.00    0.00    0.00    0.0  same
+Visual_subdiv-facevarying-seam-photon                1.59    1.59    1.59   20.0  same
+Visual_subdiv-hierarchical-override-photon           0.44    0.44    0.44   20.0  same
+Visual_subdiv-loop-photon                            0.97    0.97    0.97   20.0  same
+Visual_subdiv-new-tags-photon                        1.88    1.88    1.88   20.0  same

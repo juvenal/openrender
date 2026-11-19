@@ -82,6 +82,41 @@ namespace openrender::shading {
     //   ("Breaking within 2.x"). The rules above apply as written from the release that closes the milestone.
     //
     // History
+    //   2.5.0  spec 040. Breaking within 2.x (allowed before spec 055, see the rule above); no CRendererServices member changed:
+    //          Removed:  IPhotonStore::resetPhotons(), balancePhotons(), isModifying(), setModifying() and storePhoton()
+    //                    (photonMapAccess.h): the photon hider's unguarded test-then-reset of a photon map raced (GitHub #164).
+    //          Added:    IPhotonStore::storePhotonForFrame(): under the store's lock the first call of a frame resets the map,
+    //                    marks it as being written and returns true (for that call only); every call stores.
+    //          Changed:  CIrradianceStore (irradianceStore.h): lookupCached() takes an IrradianceAcceptFn and its acceptState and a
+    //                    CIrradianceBatchView in place of IrradianceDrawFn and drawState. The accept test does not draw from the
+    //                    context's cursor: the store asks accept(acceptState, recordIdentity) once per record that passes the front
+    //                    test, and Shading answers a hash of the call's sub-stream and the identity (giHash.h), in [0, 1). The
+    //                    draw-order rule of gotcha 37 is replaced. The batch view carries the records the earlier lookups of the same
+    //                    shading call made.
+    //          Changed:  CIrradianceStore: insertRecord() is removed; clampAgainstFixed() and addPending() are added (a record joins a
+    //                    pending set and the tree only at the frame's commit, commitPending() on CIrradianceCache, so a lookup
+    //                    never sees a record of its own frame except through the batch view); libshader::irradianceLookup keeps the
+    //                    records its shading call made in CShadingState::irradianceBatch (irradianceBatch.h) and passes them as
+    //                    the CIrradianceBatchView, with radii clamped against the fixed part and each other.
+    //          Wording:  writePhotons() sorts the photons into the canonical order (key, then bytes), balances and writes a file
+    //                    in which every byte is defined. libshader::irradianceLookup draws nothing for the accept test, and the
+    //                    sampler draws by index from a copy of the bound sub-stream (indirectdiffuse() with the cache off takes
+    //                    `samples` keyed directions, as occlusion() does). The -P:N wire (receivePending(), the pending-only frame,
+    //                    CHANNELFLAG_READ) is CIrradianceCache's and remoteChannel.cpp's, not a CRendererServices member.
+    //   2.4.0  spec 033. Additive within 2.x:
+    //          Added:    MatrixRequest::phase (EMatrixPhase::Shade, the default, or Bind). A Bind request comes from a shader's
+    //                    bind-time init (parameter defaults in a named space, GitHub #134); the renderer answers it with its
+    //                    raw named-system lookup (the current transform for "shader" and "current"; the stored matrices for
+    //                    "object", "light", NDC, raster, screen, the colour names and custom systems; NotFound otherwise).
+    //          Added:    MessageRequest::destBytes (0, the default, means unbounded: the behaviour before 2.4.0). When non-zero
+    //                    and the stored value needs more bytes (floats, or char * slots for a string), the answer is
+    //                    TypeMismatch and nothing is written, for every source including Light.
+    //          Added:    getShaderName(ShaderNameRequest) -> ShaderNameAnswer: the name of the shader bound to the object for a
+    //                    source, or of a light handle; shadername(type) asks it. Default body: Unavailable.
+    //          Changed:  CShadingContext::execute() takes CShaderInstance * and dispatches to the instance's backend
+    //                    (IShaderBackend, shaderBackend.h); CShadingContext::interpret() runs the .rslo bytecode.
+    //          Added:    ShadingSystem, IShaderBackend, IShaderFileResolver, IShaderBindHost, ShaderGroupBuilder (internal;
+    //                    the renderer core is their only user outside Shading).
     //   2.3.0  spec 031. Breaking within 2.x (allowed before spec 055, see the rule above):
     //          Removed:  CShadingContext's Geometry-facing entries shade(CSurface *, ...), displace(), displaceEstimate() and
     //                    setProducer(), and IShadingProducer (shadingProducer.h, file deleted). Geometry reaches the hider that
@@ -128,7 +163,7 @@ namespace openrender::shading {
     //          Wording only, no version change (spec 038, made while 2.0.0 was current, before 2.1.0): getDSO also serves
     //          the .slo loader, which binds the DSO operands of a JIT-compiled module with it (the member, its signature
     //          and its result are unchanged).
-    inline constexpr InterfaceVersion kRendererServicesVersion{2, 3, 0};
+    inline constexpr InterfaceVersion kRendererServicesVersion{2, 5, 0};
 
     class ITracer; // tracer.h
 
@@ -211,6 +246,13 @@ class CRendererServices {
         // Thread-safety: as getAttribute.
         // Re-enters Shading: it may call the bound instance's getParameter(), which reads only that instance.
         virtual openrender::shading::MessageAnswer getMessage(const openrender::shading::MessageRequest &) const { return {}; }
+
+        // shadername(type): the name of the shader bound for a source (services 2.4.0). Surface .. Exterior: the object's slot (a
+        // null object answers NotFound); Light: the light handle (a null handle answers NotFound). The string lives as long as the
+        // loaded shader (the session). The default body answers Unavailable: Shading then returns "" with one warning, "renderer
+        // services do not provide shadername()".
+        // Thread-safety: as getMessage. Re-enters Shading: never.
+        virtual openrender::shading::ShaderNameAnswer getShaderName(const openrender::shading::ShaderNameRequest &) const { return {}; }
 
         // Every coordinate-system lookup: the named spaces and the colour-space names.
         // Inputs: the name; the object handle (for "object"); the shader handle (the executing instance,

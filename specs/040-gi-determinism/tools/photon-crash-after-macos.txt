@@ -1,0 +1,116 @@
+# T014 tree build:-build-base (after, macos): 30 separate processes per series, a fresh directory per run (dirmode fresh),
+# the .gpm the scene writes compared by md5. 'failed runs' lists (run, exit code); a negative code is the signal number.
+# default = no -t option (the scene's own numthreads / the machine default); -t:4 = four threads.
+=== photon-parity, threads default
+scene examples/rib/tests/photon-parity.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 4eb0542571ac7b2111fabd4da787b3a8: 30
+  photons per run (numItems): {46273: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-j19hrvl2
+  (cpujob exit 0)
+=== photon-parity, threads -t:4
+scene examples/rib/tests/photon-parity.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 4eb0542571ac7b2111fabd4da787b3a8: 30
+  photons per run (numItems): {46273: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-oqgjbz4y
+  (cpujob exit 0)
+=== photon-parity-slo, threads default
+scene examples/rib/tests/photon-parity-slo.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 b30aa4dc8906b9cf4d9071f393eecc5a: 30
+  photons per run (numItems): {46273: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-p469oxom
+  (cpujob exit 0)
+=== photon-parity-slo, threads -t:4
+scene examples/rib/tests/photon-parity-slo.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 b30aa4dc8906b9cf4d9071f393eecc5a: 30
+  photons per run (numItems): {46273: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-5wxpnjmw
+  (cpujob exit 0)
+=== photon-solar0-alone, threads default
+scene examples/rib/tests/photon-solar0-alone.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 6d67a40ddb71ef47d8397c75a0efb4cd: 30
+  photons per run (numItems): {8459: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-2ft2zmgm
+  (cpujob exit 0)
+=== photon-solar0-alone, threads -t:4
+scene examples/rib/tests/photon-solar0-alone.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 6d67a40ddb71ef47d8397c75a0efb4cd: 30
+  photons per run (numItems): {8459: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-_htxrgcw
+  (cpujob exit 0)
+=== photon-solar0-alone-slo, threads default
+scene examples/rib/tests/photon-solar0-alone-slo.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 6d67a40ddb71ef47d8397c75a0efb4cd: 30
+  photons per run (numItems): {8459: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-k8cve60p
+  (cpujob exit 0)
+=== photon-solar0-alone-slo, threads -t:4
+scene examples/rib/tests/photon-solar0-alone-slo.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 6d67a40ddb71ef47d8397c75a0efb4cd: 30
+  photons per run (numItems): {8459: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-mq16m7tc
+  (cpujob exit 0)
+=== photon-solar0-after-distant, threads default
+scene examples/rib/tests/photon-solar0-after-distant.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 945e49e678cca1be583814f335c563e2: 30
+  photons per run (numItems): {22408: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-igqvgjun
+  (cpujob exit 0)
+=== photon-solar0-after-distant, threads -t:4
+scene examples/rib/tests/photon-solar0-after-distant.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 945e49e678cca1be583814f335c563e2: 30
+  photons per run (numItems): {22408: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-qe54_1it
+  (cpujob exit 0)
+=== photon-solar0-after-distant-slo, threads default
+scene examples/rib/tests/photon-solar0-after-distant-slo.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 945e49e678cca1be583814f335c563e2: 30
+  photons per run (numItems): {22408: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-b3eef0vd
+  (cpujob exit 0)
+=== photon-solar0-after-distant-slo, threads -t:4
+scene examples/rib/tests/photon-solar0-after-distant-slo.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 945e49e678cca1be583814f335c563e2: 30
+  photons per run (numItems): {22408: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-8d588cnx
+  (cpujob exit 0)
+=== photon-solar0-before-distant, threads default
+scene examples/rib/tests/photon-solar0-before-distant.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 bb4d40b46e16441c1a0a152afec65609: 30
+  photons per run (numItems): {22317: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-8d4cl024
+  (cpujob exit 0)
+=== photon-solar0-before-distant, threads -t:4
+scene examples/rib/tests/photon-solar0-before-distant.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 bb4d40b46e16441c1a0a152afec65609: 30
+  photons per run (numItems): {22317: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-u5ey_cpd
+  (cpujob exit 0)
+=== photon-solar0-before-distant-slo, threads default
+scene examples/rib/tests/photon-solar0-before-distant-slo.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 0 []
+  md5 bb4d40b46e16441c1a0a152afec65609: 30
+  photons per run (numItems): {22317: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-bwi0sd7c
+  (cpujob exit 0)
+=== photon-solar0-before-distant-slo, threads -t:4
+scene examples/rib/tests/photon-solar0-before-distant-slo.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 bb4d40b46e16441c1a0a152afec65609: 30
+  photons per run (numItems): {22317: 30}
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-6c6_gz9i
+  (cpujob exit 0)
+done

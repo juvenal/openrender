@@ -39,7 +39,8 @@ endif()
 add_subdirectory(precomp)
 add_subdirectory(libshader)  # RSL shader library (compiler + runtime + shading engine)
 add_subdirectory(ri)
-# Phase C: libshader_shading is a real target; ribRender links against it.
+# Phase C: libRSLRuntime (formerly libshader_shading, renamed by spec 033; libshader_runtime is now libRSLInfo) is a real target;
+# ribRender links against it.
 # These aliases let existing consumers link 'libshader' without knowing about ribRender.
 add_library(libshader        ALIAS ribRender)
 add_library(libshader_static ALIAS ribRender_static)

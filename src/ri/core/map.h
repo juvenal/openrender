@@ -120,7 +120,7 @@ class CMap {
             }
             if (fread(&maxItems, sizeof(int), 1, in) != 1) { /* read error */
             }
-            items = new T[maxItems + 1];
+            items = new T[maxItems + 1](); // value-initialised: every byte not read from the file is zero (spec 040, FR-004)
             if (fread(items, sizeof(T), numItems + 1, in) != (size_t)(numItems + 1)) { /* read error */
             }
             if (fread(bmin, sizeof(float), 3, in) != 3) { /* read error */
@@ -153,7 +153,7 @@ class CMap {
         // Comments				:
         void reset() {
             if (items != NULL)
-                delete items;
+                delete[] items; // allocated with new[]: `delete` was undefined behaviour (GitHub #165)
 
             numItems = 0;
             maxItems = 0;
@@ -184,7 +184,7 @@ class CMap {
 
                 maxItems += stepSize;
                 stepSize *= 2;
-                newitems = new T[maxItems + 1];
+                newitems = new T[maxItems + 1](); // value-initialised: padding and item 0 are zero (spec 040, FR-004)
                 if (numItems > 0) {
                     memcpy(newitems, items, (numItems + 1) * sizeof(T));
                     delete[] items;
@@ -222,7 +222,7 @@ class CMap {
 
                 maxItems += stepSize;
                 stepSize *= 2;
-                newitems = new T[maxItems + 1];
+                newitems = new T[maxItems + 1](); // value-initialised: padding and item 0 are zero (spec 040, FR-004)
                 if (numItems > 0) {
                     memcpy(newitems, items, (numItems + 1) * sizeof(T));
                     delete[] items;
@@ -261,7 +261,7 @@ class CMap {
 
             delete[] ar2;
 
-            finalitems = new T[numItems + 1];
+            finalitems = new T[numItems + 1](); // value-initialised: item 0 and the padding are zero (spec 040, FR-004)
             for (i = 1; i <= numItems; i++) {
                 finalitems[i] = ar1[i][0];
             }

@@ -27,6 +27,7 @@
 #include "hider.h"
 #include "renderer.h"
 #include "common/rendererc.h"
+#include "libshader/shading/shaderGroup.h"
 #include "shader.h"
 #include "shading.h"
 
@@ -88,8 +89,8 @@ static void executeChunk(CShaderInstance &shader,
 
     ctx->currentShadingState = state;
 
-    memBegin(ctx->threadMemory) float **locals = shader.prepare(ctx->threadMemory, state->varying, chunkLen);
-    shader.execute(ctx, locals);
+    memBegin(ctx->threadMemory) float **locals = libshader::groupPrepare(&shader, ctx->threadMemory, state->varying, chunkLen);
+    libshader::groupExecute(*ctx, &shader, locals);
     memEnd(ctx->threadMemory)
 
         // Write results back; fold Oi to scalar alpha via channel average

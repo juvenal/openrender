@@ -1,0 +1,99 @@
+--- a/examples/rib/tests/sphere-occlusion-reyes.rib
++++ b/examples/rib/tests/sphere-occlusion-reyes.rib
+@@ -1,8 +1,7 @@
+ ##RenderMan RIB-Structure 1.0
+ # GitHub issue #3 (spec 017, US1) regression: occlusion() silently no-ops
+-# under the JIT. numthreads 1 required: occlusion() is a raytraced,
+-# RNG-adjacent lookup (12-sample hemisphere AO), same thread-scheduling-
+-# sensitivity confirmed for random() during issue #1's fix.
++# under the JIT. (It needed numthreads 1 until spec 040: the irradiance cache
++# used to fill in shading order; it is now filled in a canonical order.)
+ #
+ # A lone convex sphere has exactly zero ambient occlusion everywhere (no
+ # other geometry to block any hemisphere sample) -- a degenerate,
+@@ -19,7 +18,7 @@
+ version 3.03
+ Hider "reyes"
+ Option "shaderformat" "default" ["rslo"]
+-Option "limits" "numthreads" [1]
++# (spec 040: no thread pin: the irradiance cache is filled in a canonical order, whatever the thread count)
+ Display "sphere-occlusion-reyes.tif" "file" "rgba"
+ Projection "perspective"
+ Clipping 0.1 100
+--- a/examples/rib/tests/sphere-occlusion-reyes-slo.rib
++++ b/examples/rib/tests/sphere-occlusion-reyes-slo.rib
+@@ -3,7 +3,7 @@
+ # Attribute "visibility" "diffuse" [1] are required.
+ version 3.03
+ Hider "reyes"
+-Option "limits" "numthreads" [1]
++# (spec 040: no thread pin: the irradiance cache is filled in a canonical order, whatever the thread count)
+ Display "sphere-occlusion-reyes-slo.tif" "file" "rgba"
+ Projection "perspective"
+ Clipping 0.1 100
+--- a/examples/rib/tests/sphere-indirectdiffuse-reyes.rib
++++ b/examples/rib/tests/sphere-indirectdiffuse-reyes.rib
+@@ -5,7 +5,7 @@
+ version 3.03
+ Hider "reyes"
+ Option "shaderformat" "default" ["rslo"]
+-Option "limits" "numthreads" [1]
++# (spec 040: no thread pin: the irradiance cache is filled in a canonical order, whatever the thread count)
+ Display "sphere-indirectdiffuse-reyes.tif" "file" "rgba"
+ Projection "perspective"
+ Clipping 0.1 100
+--- a/examples/rib/tests/sphere-indirectdiffuse-reyes-slo.rib
++++ b/examples/rib/tests/sphere-indirectdiffuse-reyes-slo.rib
+@@ -4,7 +4,7 @@
+ # required.
+ version 3.03
+ Hider "reyes"
+-Option "limits" "numthreads" [1]
++# (spec 040: no thread pin: the irradiance cache is filled in a canonical order, whatever the thread count)
+ Display "sphere-indirectdiffuse-reyes-slo.tif" "file" "rgba"
+ Projection "perspective"
+ Clipping 0.1 100
+--- a/tests/visual/CMakeLists.txt
++++ b/tests/visual/CMakeLists.txt
+@@ -1039,7 +1039,7 @@
+ # -t:1 is 0.00, the Linux render differs from the macOS one by a constant
+ # D = 2.91 (30/30 runs), so the threshold is max(1, ceil(2 * D)) = 6, while an
+ # empty map misses the reference by 255.00. At the default thread count the
+-# photon pass crashed 4/30 times (the CPhotonHider race, BUGS.md), hence -t:1.
++# photon pass crashed 4/30 times (the CPhotonHider race, BUGS.md), hence -t:1 until spec 040 fixed the race (no crash in 30 runs at the default thread count).
+ # A photon map is only written when something is stored, so a stale one would
+ # be read instead of the missing one: the setup tests delete it first.
+ #
+@@ -1049,12 +1049,12 @@
+ add_visual_test(photon-parity
+     examples/rib/tests/photon-parity.rib
+     photon-parity.tif  photon-parity.tif
+-    6  "-t:1")
++    6)
+ 
+ add_visual_test(photon-parity-slo
+     examples/rib/tests/photon-parity-slo.rib
+     photon-parity-slo.tif  photon-parity.tif
+-    6  "-t:1")
++    6)
+ 
+ add_visual_test(solar0
+     examples/rib/tests/solar0.rib
+@@ -1097,7 +1097,7 @@
+     set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/photon-solar0-maps${_sfx})
+     file(MAKE_DIRECTORY ${_scratch})
+     add_test(NAME PhotonSolar0_${_variant}
+-        COMMAND test_photon_solar0 $<TARGET_FILE:orender> "-t:1"
++        COMMAND test_photon_solar0 $<TARGET_FILE:orender> ""
+             ${CMAKE_SOURCE_DIR}/examples/rib/tests/photon-solar0-alone${_sfx}.rib
+             photon-solar0-alone${_sfx}.gpm
+             ${CMAKE_SOURCE_DIR}/examples/rib/tests/photon-solar0-after-distant${_sfx}.rib
+@@ -1132,7 +1132,7 @@
+     add_visual_test(photon-solar0-${_scene}
+         examples/rib/tests/photon-solar0-${_scene}.rib
+         photon-solar0-${_scene}.tif  photon-solar0-${_ref}.tif
+-        ${VISUAL_THRESHOLD}  "-t:1")
++        ${VISUAL_THRESHOLD})
+     add_test(NAME VisualSetup_photon-solar0-${_scene}-clean
+         COMMAND ${CMAKE_COMMAND} -E rm -f photon-solar0-${_scene}.gpm
+         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tests/visual/photon-solar0-${_scene})

@@ -67,12 +67,11 @@ pattern.
 **Deterministic output.** Because every value is keyed by the sample's identity, a render is
 bit-identical whatever the thread count (`-t:n`), the process count (`-P:n`), the bucket order,
 and, for a multi-frame RIB, whether the frame is rendered alone (`-f n`) or after the others. The
-8-bit display dither is a hash of pixel and channel, so it is deterministic too. Two exceptions:
-the irradiance cache (`occlusion()`/`indirectdiffuse()` with `maxerror` > 0) and the photon map
-are still filled in shading order, so global-illumination renders can vary with the thread count
-(spec 040 makes them deterministic); and a uniform `random()` value (one per shader invocation)
-under the raytrace hider is keyed by the shading batch, which depends on the bucket, so it may
-change when the bucket size changes.
+8-bit display dither is a hash of pixel and channel, so it is deterministic too. This includes
+global illumination (spec 040): the irradiance cache and the photon map, and the cache and map files
+they write, are the same at any thread count and run to run. One exception: a uniform `random()`
+value (one per shader invocation) under the raytrace hider is keyed by the shading batch, which
+depends on the bucket, so it may change when the bucket size changes.
 
 An unknown sampler name is reported as an error (`Unknown sampler "<name>" (valid: sobol, pmj02,
 independent); keeping the current sampler`) and otherwise ignored: the sampler stays whatever it

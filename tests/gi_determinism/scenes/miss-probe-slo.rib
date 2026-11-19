@@ -1,0 +1,20 @@
+##RenderMan RIB-Structure 1.0
+# Spec 040 GiDet_MissIndependence (tests/gi_determinism/test_gi_miss.cpp, mode miss): a tiny quad in the plane z = 0 facing the camera, shaded
+# by occlusion_probe through the irradiance cache gidet-miss-fixed.icache, which the test writes and reads (mode "r": the fixed part). Every
+# shading point misses, so the sampler runs and its record is what the test compares. Not a visual test: no reference image.
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["slo"]
+Display "miss-probe.tif" "file" "rgba"
+Format 4 4 1
+PixelSamples 1 1
+ShadingRate 1
+Projection "perspective" "fov" 20
+Translate 0 0 5
+WorldBegin
+  Attribute "irradiance" "string handle" ["gidet-miss-fixed.icache"]
+  Attribute "irradiance" "string filemode" ["r"]
+  Attribute "irradiance" "float maxerror" [0.6]
+  Surface "occlusion_probe"
+  Polygon "P" [-0.3 -0.3 0  0.3 -0.3 0  0.3 0.3 0  -0.3 0.3 0]
+WorldEnd

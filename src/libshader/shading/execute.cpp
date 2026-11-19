@@ -41,6 +41,8 @@
 #include "ri_config.h"
 #include "rslo_code.h"
 #include "shader.h"
+#include "shaderBackend.h"
+#include "shaderPayload.h"
 #include "shaderRefs.h"
 #include "shaderPl.h"
 #include "shading.h"
@@ -56,7 +58,7 @@ void debugFunction(float *);
 #define saveLighting(__L)                                                                                                                                         \
     if (numActive != 0) {                                                                                                                                         \
         CShadedLight *cLight = NULL;                                                                                                                              \
-        const int numGlobals = cInstance->parent->numGlobals;                                                                                                     \
+        const int numGlobals = rslPayloadOf(*cInstance->parent)->numGlobals;                                                                                               \
         if (*freeLights != NULL) {                                                                                                                                \
             cLight = *freeLights;                                                                                                                                 \
             *freeLights = (*freeLights)->next;                                                                                                                    \
@@ -171,18 +173,29 @@ void debugFunction(float *);
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CShadingContext
 // Method				:	execute
-// Description			:	Execute a shader
+// Description			:	Execute a shader instance: the dispatcher (spec 033, FR-010)
 // Return Value			:	-
-// Comments				:
-void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **locals) {
+// Comments				:	The instance's description names the backend that runs it: the interpreter's interpret() below, the JIT's
+//							entry (sloBackend.cpp), or a backend a test registered. Every caller passes the instance it has.
+void CShadingContext::execute(CShaderInstance *cInstance, float **locals) {
+    cInstance->shaderDescription()->backend->execute(*this, *cInstance, locals);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CShadingContext
+// Method				:	interpret
+// Description			:	Run the bytecode of a shader instance (the interpreter's execute)
+// Return Value			:	-
+// Comments				:	Called by the interpreter backend; no JIT code lives here
+void CShadingContext::interpret(CProgrammableShaderInstance *cInstance, float **locals) {
     // At this point, the shader sends us the arrays for parameters/constants/variables/uniforms for the shader
 
 #define scripterror(mes)                                                                         \
     {                                                                                            \
         rendererSetOffendingObject(objectHandle());                                              \
         error(CODE_SCRIPT, "\"%s\", in shader \"%s\" (nullified)\n", mes, cInstance->getName()); \
-        cInstance->parent->codeEntryPoint = -1;                                                  \
-        cInstance->parent->initEntryPoint = -1;                                                  \
+        rsloPayloadOf(*cInstance->parent)->codeEntryPoint = -1;                                  \
+        rsloPayloadOf(*cInstance->parent)->initEntryPoint = -1;                                  \
         goto execEnd;                                                                            \
     }
 //	Allocate temporary memory for the string and save it
@@ -351,7 +364,7 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
 //	Control transfer
 #define jmp(n)                              \
     {                                       \
-        code = currentShader->codeArea + n; \
+        code = payload->codeArea + n;       \
         goto execStart;                     \
     }
 
@@ -409,7 +422,7 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
         if (inShadow == FALSE) {                                                                                                 \
                                                                                                                                  \
             for (CActiveLight *cLight = currentAttributes->lightSources; cLight != NULL; cLight = cLight->next) {                \
-                CProgrammableShaderInstance *light = lightInstanceOf(*cLight);                                                              \
+                CShaderInstance *light = lightInstanceOf(*cLight);                                                                             \
                 if (!(light->flags & SHADERFLAGS_NONAMBIENT)) {                                                                  \
                     memBegin(shaderStateMemory);                                                                                 \
                     currentShadingState->currentLightInstance = light;                                                           \
@@ -468,18 +481,12 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
 
     // This is the current shader we're executing
     CShader *currentShader = cInstance->parent;
+    CRsloPayload *payload = rsloPayloadOf(*currentShader);
 
     assert((currentShadingState->numActive + currentShadingState->numPassive) == currentShadingState->numVertices);
 
     currentShadingState->currentShaderInstance = cInstance;
-    // For .slo-only shaders codeArea is nullptr; compute `code` safely for the JIT path.
-#ifdef OPENRENDER_HAVE_LLVM
-    const TCode *code = currentShader->codeArea
-                            ? currentShader->codeArea + currentShader->codeEntryPoint
-                            : nullptr;
-#else
-    const TCode *code = currentShader->codeArea + currentShader->codeEntryPoint;
-#endif
+    const TCode *code = payload->codeArea + payload->codeEntryPoint;
     int *tagStart = currentShadingState->tags;
 
     // Save this stuff for fast access
@@ -492,49 +499,9 @@ void CShadingContext::execute(CProgrammableShaderInstance *cInstance, float **lo
 
     // Set the access arrays
     void **stuff[3];
-    stuff[SL_IMMEDIATE_OPERAND] = currentShader->constantEntries; // Immediate operands
-    stuff[SL_GLOBAL_OPERAND] = (void **)varying;                  // Global variables
-    stuff[SL_VARYING_OPERAND] = (void **)locals;                  // Local variables
-
-#ifdef OPENRENDER_HAVE_LLVM
-    // JIT dispatch: if a compiled entry point exists for this shader, call it
-    // instead of the interpreter and return immediately.
-    if (cInstance->jitEntry != nullptr) {
-        log_debug("[JIT-PROBE] execute: shader={} jitEntry={}", cInstance->getName(), (void *)cInstance->jitEntry);
-        // Save outer context: a surface shader's JIT may nest into a light shader's
-        // JIT via callDiffuse/callAmbient → light->illuminate() → execute().
-        // Without save/restore the outer context is cleared on return, breaking
-        // all subsequent op_* calls in the outer JIT function.
-        CShadingContext *savedCtx = libshader::activeContext();
-        libshader::setActiveContext(this);
-        cInstance->jitEntry(numVertices, stuff, tagStart);
-        libshader::setActiveContext(savedCtx);
-        if (currentShader->type == SL_SURFACE) {
-            const float *CI = varying[VARIABLE_CI];
-            log_debug("[JIT-DBG] post-JIT CI[0]=[{:.3f},{:.3f},{:.3f}]", CI[0], CI[1], CI[2]);
-        }
-        // Mirror interpreter execEnd: accumulate ambient Cl for lightsource shaders.
-        if (currentShader->type == SL_LIGHTSOURCE &&
-            !(currentShader->usedParameters & PARAMETER_NONAMBIENT) &&
-            *alights != nullptr) {
-            const float *Cl = varying[VARIABLE_CL];
-            float *Clsave = (*alights)->savedState[1];
-            int *tags = tagStart;
-            for (int i = numVertices; i > 0; --i, Cl += 3, Clsave += 3, ++tags) {
-                if (*tags == 0)
-                    addvv(Clsave, Cl);
-            }
-        }
-        return;
-    }
-
-    // .slo-only shader: codeArea is null and JIT entry is also null (JIT failed).
-    if (code == nullptr) {
-        warning(CODE_SYSTEM, "Shader \"%s\" has no bytecode and no JIT entry — skipping",
-                currentShader->name);
-        return;
-    }
-#endif
+    stuff[SL_IMMEDIATE_OPERAND] = payload->constantEntries; // Immediate operands
+    stuff[SL_GLOBAL_OPERAND] = (void **)varying;            // Global variables
+    stuff[SL_VARYING_OPERAND] = (void **)locals;            // Local variables
 
     int numActive = currentShadingState->numActive;
     int numPassive = currentShadingState->numPassive;

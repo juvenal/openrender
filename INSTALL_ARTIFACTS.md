@@ -36,8 +36,8 @@ All shared libraries carry `VERSION` and `SOVERSION` metadata (e.g. `libRIBRende
 | `libRIBVector.dylib` | Geometry-only RI extraction (no shading/LLVM), used by `orender-wire` | `/usr/local/lib/libRIBVector.dylib` |
 | `libRIBOut.dylib` | RIB text output (`CRibOut`) — re-serializes Ri calls as RIB | `/usr/local/lib/libRIBOut.dylib` |
 | `libshader_compiler.dylib` | RSL shader compiler library | `/usr/local/lib/libshader_compiler.dylib` |
-| `libshader_runtime.dylib` | `.rslo`/`.slo` shader runtime loader | `/usr/local/lib/libshader_runtime.dylib` |
-| `libshader_shading.dylib` | Shading engine (JIT-callable `op_*`/`rsl_*` ops + builtins) | `/usr/local/lib/libshader_shading.dylib` |
+| `libRSLInfo.dylib` | Shader metadata API and `.rslo` inspection reader (`sloinfo`); `libshader_runtime.dylib` is a compatibility symlink for one release | `/usr/local/lib/libRSLInfo.dylib` |
+| `libRSLRuntime.dylib` | Shading engine and shader loaders (JIT-callable `op_*`/`rsl_*` ops + builtins); `libshader_shading.dylib` is a compatibility symlink for one release | `/usr/local/lib/libRSLRuntime.dylib` |
 | `libRIBShadeop.dylib` | Shader DSO operands (spec 037): module scanning, the version check, the declaration parser and the per-thread state of shadeop modules; the renderer, the shading engine and the shader compiler link it | `/usr/local/lib/libRIBShadeop.dylib` |
 | `libRIBCommon.dylib` | Infrastructure every other library uses: diagnostics, the scratch arena, statistics, RI tokens, `CVariable`, math and sampling | `/usr/local/lib/libRIBCommon.dylib` |
 | `libRIBImageIO.dylib` | Image I/O utility library (spec 048): the only image of the install that carries OpenImageIO; installed only in a build configured with `OPENRENDER_ENABLE_OIIO=ON`; shared only (there is no `libRIBImageIO` static archive); only `orimageio::` symbols are exported | `/usr/local/lib/libRIBImageIO.dylib` |
@@ -88,7 +88,7 @@ Built from the same OBJECT library as the shared variants (one compilation pass,
 
 Shared internal code (diagnostics, the arena, statistics, RI tokens, `CVariable`, `os`, `algebra`, `rslConstants`, `sobolTables`, `colorSpace`, sampling) lives **only** in `libRIBCommon`. Every other archive depends on it rather than embedding its own copy, so a program linking several of them gets exactly one copy and never sees duplicate symbols. External dependencies: libtiff/libpng/zlib, OpenEXR when enabled, pthreads/dl, and, for `libRIBRender.a`, the shared `libshader_shading` **and the shared `libRIBCommon`**. `libshader_shading` is shared-only and binds its infrastructure to the shared `libRIBCommon`, so a static renderer program links that shared library rather than `libRIBCommon.a`; a second, static copy would split the diagnostic sink, arena and token table in two. The other archives use `libRIBCommon.a`. Use the CMake package (below) rather than writing the link line by hand.
 
-**`libRIBRender.a` links plainly.** `libshader_shading` is self-contained (spec 029): it imports no symbol of the renderer or the hiders, links with undefined symbols as an error, and depends only on `libRIBCommon`, `libRIBShadeop` and LLVM. A static program therefore needs no `-force_load`, `--whole-archive` or `--export-dynamic`, and the CMake package adds none (the target does carry one INTERFACE `-u ribrender_context_anchor` linker option, which keeps the render back-end's registrar in the archive without pulling the whole archive; before spec 029 the library imported 4 symbols from `libRIBRender`, GitHub #24, and the package forced the whole archive to satisfy them). Link `openRender::RIBRender_static` through `find_package(openRender COMPONENTS Static)`; the static component's own dependencies (libtiff and its codecs, OpenEXR) must be findable by the consumer, which on a vcpkg install means configuring the consumer with the same toolchain (GitHub #141).
+**`libRIBRender.a` links plainly.** `libRSLRuntime` (formerly `libshader_shading`) is self-contained (spec 029): it imports no symbol of the renderer or the hiders, links with undefined symbols as an error, and depends only on `libRIBCommon`, `libRIBShadeop` and LLVM. A static program therefore needs no `-force_load`, `--whole-archive` or `--export-dynamic`, and the CMake package adds none (the target does carry one INTERFACE `-u ribrender_context_anchor` linker option, which keeps the render back-end's registrar in the archive without pulling the whole archive; before spec 029 the library imported 4 symbols from `libRIBRender`, GitHub #24, and the package forced the whole archive to satisfy them). Link `openRender::RIBRender_static` through `find_package(openRender COMPONENTS Static)`; the static component's own dependencies (libtiff and its codecs, OpenEXR) must be findable by the consumer, which on a vcpkg install means configuring the consumer with the same toolchain (GitHub #141).
 
 | Library | Description | Location |
 |---------|-------------|----------|
@@ -96,7 +96,7 @@ Shared internal code (diagnostics, the arena, statistics, RI tokens, `CVariable`
 | `libRIBVector.a` | Geometry-only RI extraction static archive | `/usr/local/lib/libRIBVector.a` |
 | `libRIBOut.a` | RIB text output static archive | `/usr/local/lib/libRIBOut.a` |
 | `libshader_compiler.a` | Shader compiler static archive | `/usr/local/lib/libshader_compiler.a` |
-| `libshader_runtime.a` | Shader runtime static archive | `/usr/local/lib/libshader_runtime.a` |
+| `libRSLInfo.a` | Shader metadata and `.rslo` inspection static archive (no `.slo` reader); `libshader_runtime.a` is a compatibility symlink for one release | `/usr/local/lib/libRSLInfo.a` |
 | `libRIBShadeop.a` | Shader DSO operands static archive (only for fully static programs; `libRIBRender.a` uses the shared `libRIBShadeop`) | `/usr/local/lib/libRIBShadeop.a` |
 | `libRIBCommon.a` | Infrastructure the archives above depend on (linked once; `libRIBRender.a` uses the shared `libRIBCommon` instead) | `/usr/local/lib/libRIBCommon.a` |
 
@@ -114,8 +114,8 @@ target_link_libraries(app PRIVATE openRender::RIBRender_static)  # pulls the sha
 
 | Component | Targets | Needs at `find_package()` time |
 |-----------|---------|--------------------------------|
-| `Shared` (always) | `openRender::RIBRender`, `RIBVector`, `RIBOut`, `shader_shading`, `shader_runtime`, `shader_compiler`, `RIBShadeop`, `RIBCommon` | nothing; the shared libraries are self-contained |
-| `Static` (optional) | `openRender::RIBRender_static`, `RIBVector_static`, `RIBOut_static`, `shader_runtime_static`, `shader_compiler_static`, `RIBShadeop_static`, `RIBCommon_static` | TIFF, PNG, Threads (+ OpenEXR/Imath when built with OpenEXR), and the shared targets: `RIBRender_static` links `shader_shading` and the shared `RIBCommon` |
+| `Shared` (always) | `openRender::RIBRender`, `RIBVector`, `RIBOut`, `RSLRuntime`, `RSLInfo`, `shader_compiler`, `RIBShadeop`, `RIBCommon` (the old names `shader_shading` and `shader_runtime` are kept as aliases for one release) | nothing; the shared libraries are self-contained |
+| `Static` (optional) | `openRender::RIBRender_static`, `RIBVector_static`, `RIBOut_static`, `RSLInfo_static` (`shader_runtime_static` is kept as an alias for one release), `shader_compiler_static`, `RIBShadeop_static`, `RIBCommon_static` | TIFF, PNG, Threads (+ OpenEXR/Imath when built with OpenEXR), and the shared targets: `RIBRender_static` links `RSLRuntime` and the shared `RIBCommon` |
 
 If the static component's dependencies aren't found, plain `find_package(openRender)` still succeeds with only the shared targets. `COMPONENTS Static` as a requirement fails and names the missing dependency. Point CMake at the install with `-DCMAKE_PREFIX_PATH=<prefix>`.
 
@@ -168,7 +168,7 @@ The installed set is exactly `OPENRENDER_PUBLIC_HEADERS` (`CMake/openRenderPubli
 - `orplugin.hpp` - C++20 convenience over `orplugin.h` (`orplugin::makeTable`); optional, a plug-in can use `orplugin.h` alone
 - `ptcapi.h` - Point cloud API
 - `ri.h` - RenderMan Interface main header
-- `rslo.h` - `.rslo`/`.slo` shader loader API (`libshader_runtime`)
+- `rslo.h` - the `.rslo` inspection API (`libRSLInfo`)
 - `shadeop.h` - Shader DSO operand interface
 
 Headers are included by file name alone (`#include "dsply.h"`). The CMake package (`find_package(openRender)`) puts the layout's include directory on every `openRender::` target and sets `openRender_INCLUDE_DIR`, so a consumer needs no extra flag. `examples/display/simpledisplay.c` is a display driver that builds against this directory alone.

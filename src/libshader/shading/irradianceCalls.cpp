@@ -19,18 +19,13 @@
 #include "common/algebra.h"
 #include "common/diagnostics.h"
 #include "irradianceSampler.h"
+#include "irradianceBatch.h"
 #include "ri/texture/irradianceStore.h"
 #include "shading.h"
 
 namespace libshader {
 
     namespace {
-
-        // The draw callback of the store: the next value of the context's bound sample stream, once per record that
-        // passes the front test (where the cache decides whether to keep a sample)
-        float drawNextOf(void *state) {
-            return static_cast<CShadingContext *>(state)->drawNext();
-        }
 
         void noJoy(float *C) {
             C[0] = 0;
@@ -70,7 +65,12 @@ namespace libshader {
         const float maxError = scratch->occlusionParams.maxError;
         vector Pc, Nc;
 
-        if (!store->lookupCached(C, P, N, maxError, drawNextOf, &ctx, Pc, Nc)) {
+        // The accept decisions are hashed from the call's sub-stream and each record's identity: nothing is drawn, and what the lookup visited cannot
+        // shift what the sampler draws
+        const IrradianceAcceptState acceptState{boundCall};
+        // The fixed part of the cache, then the records the earlier lookups of this batch made (their radii clamped as a batch): spec 040, M2
+        const CIrradianceBatchView batchView = ctx.currentShadingState->irradianceBatch.view(store);
+        if (!store->lookupCached(C, P, N, maxError, irradianceAcceptValue, &acceptState, batchView, Pc, Nc)) {
             // Are we sampling the cache ?
             openrender::shading::IIrradianceSampler *sampler = nullptr;
             if (store->samplesOnMiss()) {
@@ -112,7 +112,10 @@ namespace libshader {
                     record.dP = sample.dP;
                     record.key = irradianceRecordKey(boundCall);
 
-                    store->insertRecord(record, maxError);
+                    // The pending set gets the record with its raw radius; the batch gets it with the radius clamped against the fixed part and the
+                    // earlier records of the batch (the lookups of this batch see it, nothing else does until the frame's commit)
+                    store->addPending(record, maxError);
+                    ctx.currentShadingState->irradianceBatch.add(store, record, store->clampAgainstFixed(record));
                 }
 
                 mulmv(C + 4, store->cacheFrom(), C + 4); // envdir is stored in the target coordinate system

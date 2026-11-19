@@ -48,6 +48,7 @@ class CHarness {
             context->updateState();
             attributes = new CAttributes();
             xform = new CXform();
+            xform->attach(); // held to process exit, like the rest: an instance that detaches cannot free the harness' transform
         }
 
         // The instances, attributes and transform are reference counted and left to process exit, like the

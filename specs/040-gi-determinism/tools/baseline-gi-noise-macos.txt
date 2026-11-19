@@ -1,0 +1,3 @@
+# T008 run-to-run noise of the 18 GI scenes' float images, build-base, -t:1, macOS.
+# Two complete runs (040-gi-images, 040-gi-images2) gave byte-identical files for all 18 scenes (SHA-256 manifests equal):
+# no scene has run-to-run noise at -t:1 on the starting tree. The manifest is baseline-gi-images-macos.sha256.

@@ -27,6 +27,7 @@
 #ifndef SERVICETYPES_H
 #define SERVICETYPES_H
 
+#include <cstddef>
 #include <cstdint>
 
 #include "common/global.h"
@@ -123,6 +124,11 @@ namespace openrender::shading {
             // parameter except an immutable parameter of a light (shader.cpp getParameter), and writes nothing
             // into `dest` for it; otherwise (or when false) `dest` receives the default value.
             bool wantVariable;
+            // The size of `dest` in bytes (services 2.4.0). 0, the default, means unbounded: today's behaviour, where the caller's
+            // expectation (`expected`) is what keeps a write inside `dest`. When non-zero and the stored value needs more bytes
+            // (floats, or char * slots for a string), the answer is TypeMismatch and nothing is written, for every source including
+            // Light. The JIT's lightsource() asks with its 64-byte scratch.
+            size_t destBytes = 0;
     };
 
     struct MessageAnswer {
@@ -138,8 +144,28 @@ namespace openrender::shading {
     };
 
     ///////////////////////////////////////////////////////////////////////
+    // getShaderName(): shadername(type) (services 2.4.0)
+    ///////////////////////////////////////////////////////////////////////
+
+    struct ShaderNameRequest {
+            MessageSource source; // Surface, Displacement, Atmosphere, Interior, Exterior: the object's slot; Light: the light handle
+            ObjectHandle object;  // for the five object sources
+            ShaderHandle light;   // for Light
+    };
+
+    struct ShaderNameAnswer {
+            EQueryStatus status = EQueryStatus::Unavailable;
+            const char *name = nullptr; // set when Found; lives as long as the loaded shader (the session)
+    };
+
+    ///////////////////////////////////////////////////////////////////////
     // getMatrix(): every coordinate-system lookup
     ///////////////////////////////////////////////////////////////////////
+
+    // Where a getMatrix() request comes from (services 2.4.0). Shade: a shader running for a batch of points (the answer
+    // Shading substitutes the executing object, shader and light into). Bind: a shader's bind-time init resolving the named space
+    // of a parameter default (GitHub #134); the implementer answers it with its raw named-system lookup and Shading takes it as is.
+    enum class EMatrixPhase : uint8_t { Shade, Bind };
 
     struct MatrixRequest {
             const char *name;    // a system or colour-space name, including "object", "shader", "light", "current", "camera", "world"
@@ -147,6 +173,8 @@ namespace openrender::shading {
             ShaderHandle shader; // the executing instance, for "shader"
             ShaderHandle light;  // the executing light, for "light"
             float time;          // normalised shutter time; Shading passes 0 (no call site carries one) and the renderer ignores it
+            // Trailing and default-initialised (2.4.0), so every positional initialiser keeps its meaning
+            EMatrixPhase phase = EMatrixPhase::Shade;
     };
 
     struct MatrixAnswer {

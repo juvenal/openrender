@@ -1,8 +1,7 @@
 ##RenderMan RIB-Structure 1.0
 # GitHub issue #3 (spec 017, US1) regression: occlusion() silently no-ops
-# under the JIT. numthreads 1 required: occlusion() is a raytraced,
-# RNG-adjacent lookup (12-sample hemisphere AO), same thread-scheduling-
-# sensitivity confirmed for random() during issue #1's fix.
+# under the JIT. (It needed numthreads 1 until spec 040: the irradiance cache
+# used to fill in shading order; it is now filled in a canonical order.)
 #
 # A lone convex sphere has exactly zero ambient occlusion everywhere (no
 # other geometry to block any hemisphere sample) -- a degenerate,
@@ -19,7 +18,7 @@
 version 3.03
 Hider "reyes"
 Option "shaderformat" "default" ["rslo"]
-Option "limits" "numthreads" [1]
+# (spec 040: no thread pin: the irradiance cache is filled in a canonical order, whatever the thread count)
 Display "sphere-occlusion-reyes.tif" "file" "rgba"
 Projection "perspective"
 Clipping 0.1 100

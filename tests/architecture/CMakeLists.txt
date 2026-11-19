@@ -292,3 +292,26 @@ add_test(NAME Registry_CoreNamesNoHider
     COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${CMAKE_SOURCE_DIR} -P ${CMAKE_CURRENT_SOURCE_DIR}/check_core_names_no_hider.cmake)
 set_tests_properties(Registry_CoreNamesNoHider PROPERTIES TIMEOUT 60 LABELS "architecture")
 
+
+# --- Spec 033 (shading system backends): three mechanical checks and their mutant runs (DEP-2) ---------------------
+#
+# Each check is a `cmake -P` script over the tracked sources, printing "VIOLATION <file>:<line>: <identifier>" per hit. They were red on
+# the starting tree by design (scan-base.txt records the counts); the phase that turned one green enabled it: Phase 5 for Shading_CoreNoBackendNames (enabled), Phase 7 for
+# Shading_JitMessagesThroughServices (enabled), Phase 8 for Sloinfo_MetadataApiOnly (enabled). Each has a fixture run over a small tree with one planted
+# identifier (fixtures/033-*), registered WILL_FAIL: the check must fail on it (the mutant check of SC-002); the three fixture runs
+# were green from the start and were never in a red block of their own.
+# Enabled in Phase 5 (the Test gate)
+add_test(NAME Shading_CoreNoBackendNames
+    COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${CMAKE_SOURCE_DIR} -P ${CMAKE_CURRENT_SOURCE_DIR}/check_core_names_no_backend.cmake)
+add_test(NAME Shading_CoreNoBackendNames_Fixture
+    COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/033-core-names -P ${CMAKE_CURRENT_SOURCE_DIR}/check_core_names_no_backend.cmake)
+set_tests_properties(Shading_CoreNoBackendNames PROPERTIES TIMEOUT 300 LABELS "architecture")
+set_tests_properties(Shading_CoreNoBackendNames_Fixture PROPERTIES TIMEOUT 120 LABELS "architecture" WILL_FAIL TRUE)
+or033_test(Shading_JitMessagesThroughServices LABELS "architecture" TIMEOUT 120
+    COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${CMAKE_SOURCE_DIR} -P ${CMAKE_CURRENT_SOURCE_DIR}/check_jit_messages_through_services.cmake)
+or033_test(Sloinfo_MetadataApiOnly LABELS "architecture" TIMEOUT 120
+    COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${CMAKE_SOURCE_DIR} -P ${CMAKE_CURRENT_SOURCE_DIR}/check_sloinfo_api_only.cmake)
+or033_test(Shading_JitMessagesThroughServices_Fixture LABELS "architecture" TIMEOUT 120 WILL_FAIL
+    COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/033-jit-messages -P ${CMAKE_CURRENT_SOURCE_DIR}/check_jit_messages_through_services.cmake)
+or033_test(Sloinfo_MetadataApiOnly_Fixture LABELS "architecture" TIMEOUT 120 WILL_FAIL
+    COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/033-sloinfo -P ${CMAKE_CURRENT_SOURCE_DIR}/check_sloinfo_api_only.cmake)

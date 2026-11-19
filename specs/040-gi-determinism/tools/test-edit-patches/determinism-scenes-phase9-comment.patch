@@ -1,0 +1,18 @@
+--- tests/visual/determinism-scenes.cmake
++++ tests/visual/determinism-scenes.cmake
+@@ -696,13 +696,9 @@
+ add_determinism_sweep(volume-csg-fragment-none-raytrace-slo examples/rib/tests/volume-csg-fragment-none-raytrace-slo.rib volume-csg-fragment-none-raytrace-slo.tif)
+ # END spec 056
+ # BEGIN spec 040
+-# --- Spec 040 (GI determinism): the 34 GI sweep entries (FR-016, SC-001). Every one is rendered float (FLOAT), with a depth
++# --- Spec 040 (GI determinism): the GI sweep entries (FR-016, SC-001). Every one is rendered float (FLOAT), with a depth
+ # display added after the scene's first Display line (DEPTH: <name>-z.tif), and its map or cache file is compared byte for
+-# byte across the configurations (FILES). The entries are defined only when -DOPENRENDER_040_RED_TESTS=ON until the phase that
+-# makes each green moves it out of its guard (tasks.md T028; the schedule is determinism-scenes-phase{2,3,5,6,8}.patch):
+-#   phase 2   the five subdiv-*-photon and motion-subdiv-translate-photon entries (their frame 2 reads no map: only the .gpm bytes)
+-#   phase 3   the two photon-parity entries (their frame 2 reads the map through the lookup memo until Phase 3)
+-#   phase 5   the cached and the other GI entries, without -P:2 until phase 6
++# byte across the configurations (FILES). All of them are unconditional (spec 040 made the GI scenes deterministic).
+ # no -P:2: the photon pass fails under network rendering (GitHub #170)
+ add_determinism_sweep(gi-motion-subdiv-translate-photon examples/rib/tests/parity/motion-subdiv-translate-photon.rib motion-subdiv-translate-photon.tif
+     FILES motion-subdiv-translate-photon.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")

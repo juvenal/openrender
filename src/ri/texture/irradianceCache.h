@@ -28,6 +28,8 @@
 #ifndef IRRADIANCECACHE_H
 #define IRRADIANCECACHE_H
 
+#include <atomic>
+#include <memory>
 #include <vector>
 
 #include "common/algebra.h"
@@ -112,6 +114,16 @@ class CIrradianceCache : public CIrradianceStore {
                 float side;              // The side length of the node
         };
 
+        ///////////////////////////////////////////////////////////////////////
+        // Class				:	CPending
+        // Description			:	A record made this frame, not yet in the tree (spec 040)
+        // Comments				:	The record holds its raw radius; maxError is the creating call's, whose K = 0.4 / maxError places it
+        class CPending {
+            public:
+                CIrradianceRecord record;
+                float maxError;
+        };
+
     public:
         // worldBmin/worldBmax: the world's bound, from which a fresh cache sizes its root (the caller reads it from the renderer)
         CIrradianceCache(const char *name, unsigned int flags, FILE *in, const float *from, const float *to, const float *tondc, const float *worldBmin, const float *worldBmax);
@@ -122,13 +134,36 @@ class CIrradianceCache : public CIrradianceStore {
         void lookupPointBased(float *, const float *, const float *, const float *, const float *, const CPointBasedLookup &) { assert(FALSE); }
 
         // The CIrradianceStore interface
-        bool lookupCached(float *C, const float *P, const float *N, float maxError, IrradianceDrawFn draw, void *drawState, float *Pc, float *Nc);
-        void insertRecord(const CIrradianceRecord &record, float maxError);
+        bool lookupCached(float *C, const float *P, const float *N, float maxError, IrradianceAcceptFn accept, const void *acceptState, const CIrradianceBatchView &batch, float *Pc, float *Nc);
+        float clampAgainstFixed(const CIrradianceRecord &record) const;
+        void addPending(const CIrradianceRecord &record, float maxError);
+
+        // A record a remote server made: it joins the pending set like a local one (its raw radius, the maxError of the call that made it), and the
+        // commit places it with its own K (spec 040, GitHub #161). `record.next` is not read.
+        void receivePending(const CCacheSample &record, float maxError);
+
+        // The flags the cache was opened with (CACHE_READ, CACHE_WRITE, ...)
+        unsigned int openFlags() const { return (unsigned int)flags; }
         bool samplesOnMiss() const { return (flags & CACHE_SAMPLE) != 0; }
 
         const char *typeName() const { return "Irradiance Cache"; }
 
         void bound(float *bmin, float *bmax);
+
+        // The canonical end-of-frame commit (spec 040, data-model.md section 5): the pending set is deduplicated by key, sorted by (key, bytes), clamped
+        // against the fixed part and itself from the raw and stored radii only, and placed in the tree after the fixed records of each node. Idempotent.
+        // Single-threaded: never while render threads run. The destructor calls it before the file is written, and forEachNode()/forEachRecord() before
+        // they walk the tree.
+        void commitPending();
+
+        // The records pending now, in the order the commit would place them (deduplicated, sorted): visit(const CIrradianceRecord &record, float maxError),
+        // the record with its raw radius. For the remote channel's send.
+        template <class F>
+        void forEachPending(F &&visit) const {
+            for (const CPending &p : sortedPending()) {
+                visit(static_cast<const CIrradianceRecord &>(p.record), p.maxError);
+            }
+        }
 
         // The read interface of the data viewer and the remote channel
         ///////////////////////////////////////////////////////////////////////
@@ -139,6 +174,7 @@ class CIrradianceCache : public CIrradianceStore {
         //							node's list, which may be NULL.
         template <class F>
         void forEachNode(F &&visit) const {
+            const_cast<CIrradianceCache *>(this)->commitPending();
             std::vector<const CCacheNode *> stack;
             stack.push_back(root);
             while (!stack.empty()) {
@@ -177,14 +213,16 @@ class CIrradianceCache : public CIrradianceStore {
         }
         int treeDepth() const { return maxDepth; } // the depth of the deepest node (the member of that name is private)
 
-        // Place a record a remote server sent (a copy; placed by its own dP, with no clamp, no K and no lock)
-        void insertReceived(const CCacheSample &record);
 
     private:
         void writeNode(FILE *, CCacheNode *);
         CCacheNode *readNode(FILE *);
 
-        void clamp(CCacheSample *);
+        // The pending set as the commit takes it: deduplicated and sorted
+        std::vector<CPending> sortedPending() const;
+
+        void invalidateFixedIndex() { fixedIndexValid = false; }
+        void buildFixedIndex() const;
 
         CMemStack *memory;
 
@@ -193,6 +231,14 @@ class CIrradianceCache : public CIrradianceStore {
         int flags;
 
         TMutex mutex;
+
+        std::vector<CPending> pending; // Records made this frame, under the mutex; not read by a lookup
+
+        // A read-only spatial index of the fixed part F (the records in the tree), for clampAgainstFixed(). Built at construction and after a commit
+        // or a received record; thread-safe to read while the tree does not change.
+        class CPointIndex;
+        mutable std::shared_ptr<CPointIndex> fixedIndex;
+        mutable std::atomic<bool> fixedIndexValid;
 
         static CChannel cacheChannels[3];
 };

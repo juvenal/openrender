@@ -1,0 +1,139 @@
+--- a/tests/unit/texture_only/test_gi_stores.cpp
++++ b/tests/unit/texture_only/test_gi_stores.cpp
+@@ -7,7 +7,7 @@
+  * writes them, reloads them and queries both, with equal results before and after the reload.
+  *
+  * Two sections, each compiled only when its macro is defined (the target defines the ones whose phase is done):
+- *   GI_STORES_CACHE     CIrradianceCache (texture/irradianceCache.h): insertRecord() of a grid of records, lookupCached()
++ *   GI_STORES_CACHE     CIrradianceCache (texture/irradianceCache.h): addPending() and commitPending() of a grid of records, lookupCached()
+  *                       at fixed points with a fixed draw, the file written by the destructor, read back by the constructor
+  *   GI_STORES_PHOTONS   CPhotonStore (texture/photonStore.h): store() of a grid of photons, balance(), lookup() at fixed
+  *                       points, write(), read back through the reading constructor
+@@ -103,9 +103,10 @@
+                 r.coverage = 1;
+                 r.envdir[2] = 1;
+                 r.dP = 1.0f;
+-                cache.insertRecord(r, 0.6f);
++                cache.addPending(r, 0.6f);
+             }
+         }
++        cache.commitPending(); // the records join the tree at the commit (spec 040): a lookup reads only the committed part
+         before = queryCache(cache, hitsBefore);
+         recordsBefore = storedRecords(cache);
+         printf("  %d of %zu lookups hit before the reload\n", hitsBefore, before.size());
+--- a/tests/unit/texture_only/test_irradiance_draw_order.cpp
++++ b/tests/unit/texture_only/test_irradiance_draw_order.cpp
+@@ -16,7 +16,7 @@
+  * vector from the record to the query lies in the record's tangent plane), records at z = +-0.9 fail it (the vector is nearly along the
+  * normal), and the in-plane records at different distances and radii give weights from positive to negative (a record whose weight is not
+  * positive is still asked about, it is only rejected). Half of the records carry a key and half are key 0, as the records of a file are.
+- * The expected result is computed by the test from the records it reads back (forEachRecord: the cache's own order, after any clamp() of the
++ * The expected result is computed by the test from the records it reads back (forEachRecord: the cache's own order, after the commit's clamp of the
+  * radii), with the formulas of lookupCached (Tabellion and Lamorlette weights with equal normals, so the directional error is zero):
+  *
+  *   D = P - record.P;  front test: (D.N)^2 / (D.D + C_EPSILON) > 0.1  ->  skipped, not asked
+@@ -131,7 +131,7 @@
+     identitym(from);
+     identitym(to);
+     // The root is 0.1 wide, far narrower than twice the radius of any record (the tree descends only while the node is wider than
+-    // twice the record's radius, which clamp() can lower but not below the 0.05 of this scene), so no record descends: the whole
++    // twice the record's radius, which the commit's clamp can lower but not below the 0.05 of this scene), so no record descends: the whole
+     // cache is one node, which the lookup always visits, and the cache's traversal order is the order of that node's list.
+     const float bmin[3] = {0, 0, 0}, bmax[3] = {0.1f, 0.1f, 0.1f};
+     const float maxError = 0.4f; // K = 1
+@@ -170,8 +170,9 @@
+         r.coverage = 0.5f + 0.05f * s.x;
+         r.envdir[2] = 1;
+         r.dP = s.dP;
+-        cache.insertRecord(r, maxError);
++        cache.addPending(r, maxError);
+     }
++    cache.commitPending(); // the records join the tree at the commit (spec 040)
+ 
+     // the records as the cache holds them, in its own traversal order
+     std::vector<CIrradianceRecord> records;
+--- a/tests/gi_split/test_gi_keys.cpp
++++ b/tests/gi_split/test_gi_keys.cpp
+@@ -27,9 +27,9 @@
+  *   photons  the child keeps the map alive across the frame with attach() and reads CPhotonMap::photonKey(i) afterwards
+  *   records  the cache is created and freed by the renderer inside the frame, so the child installs a services wrapper
+  *            (CRecordingServices, below, a CContractForwarder) over the renderer's own for the length of the frame. Its
+- *            getCache() builds the cache itself, as a CIrradianceCache subclass whose insertRecord() copies every (key, record)
++ *            getCache() builds the cache itself, as a CIrradianceCache subclass whose addPending() copies every (key, record)
+  *            before forwarding, and owns it; the renderer never sees it. This is the test's only seam: nothing in src/ is changed
+- *            for it, but CIrradianceCache and insertRecord() must stay non-final (recorded in the plan and contracts/irradiance-cache.md).
++ *            for it, but CIrradianceCache and addPending() must stay non-final (recorded in the plan and contracts/irradiance-cache.md).
+  *
+  * Usage:
+  *   test_gi_keys photons|records|photons-threads <work dir>        the parent (the test)
+@@ -165,11 +165,11 @@
+ // ---------------------------------------------------------------------------------------------------------
+ static std::vector<std::string> g_recordLines;
+ 
+-// An irradiance cache that copies every record handed to insertRecord() with its key, then inserts it as usual
++// An irradiance cache that copies every record handed to addPending() with its key (the raw radius), then adds it as usual
+ class CRecordingCache final : public CIrradianceCache {
+     public:
+         using CIrradianceCache::CIrradianceCache;
+-        void insertRecord(const CIrradianceRecord &r, float maxError) override {
++        void addPending(const CIrradianceRecord &r, float maxError) override {
+             std::ostringstream o;
+             char key[24];
+             snprintf(key, sizeof(key), "%016llx", (unsigned long long)r.key);
+@@ -186,7 +186,7 @@
+                 std::lock_guard<std::mutex> g(linesMutex);
+                 g_recordLines.push_back(o.str());
+             }
+-            CIrradianceCache::insertRecord(r, maxError);
++            CIrradianceCache::addPending(r, maxError);
+         }
+ 
+     private:
+--- a/tests/gi_determinism/gi_recording.h
++++ b/tests/gi_determinism/gi_recording.h
+@@ -6,9 +6,8 @@
+  * inside the frame, so the test installs a services wrapper over the renderer's own for the length of the render: its getCache() builds the
+  * cache itself, as a CIrradianceCache subclass whose record hook copies every (key, record) before forwarding, and owns it.
+  *
+- * The record hook is virtual insertRecord() on the starting tree and addPending() after spec 040's Phase 5 (contracts/irradiance-store.md):
+- * GIDET_RECORD_HOOK_ADDPENDING (set from the CMake cache variable GIDET_RECORD_HOOK) selects the second. The lookupCached() the helper
+- * visitedByLookup() calls is the one with an accept function and a batch view (Phase 4), whichever hook is selected.
++ * The record hook is virtual addPending() (spec 040, Phase 5; it was insertRecord() on the starting tree, and a CMake variable selected the form
++ * while the phases were open). The lookupCached() the helper visitedByLookup() calls is the one with an accept function and a batch view.
+  */
+ 
+ #ifndef GI_RECORDING_H
+@@ -59,17 +58,10 @@
+         public:
+             using CIrradianceCache::CIrradianceCache;
+ 
+-#ifdef GIDET_RECORD_HOOK_ADDPENDING
+             void addPending(const CIrradianceRecord &r, float maxError) override {
+                 note(r);
+                 CIrradianceCache::addPending(r, maxError);
+             }
+-#else
+-            void insertRecord(const CIrradianceRecord &r, float maxError) override {
+-                note(r);
+-                CIrradianceCache::insertRecord(r, maxError);
+-            }
+-#endif
+             std::vector<SeenRecord> seen() {
+                 std::lock_guard<std::mutex> g(m);
+                 return list;
+@@ -129,15 +121,9 @@
+                 r.envdir[2] = 1;
+                 r.dP = 3.0f;
+                 r.key = 0;
+-#ifdef GIDET_RECORD_HOOK_ADDPENDING
+                 cache.addPending(r, 0.6f);
+-#else
+-                cache.insertRecord(r, 0.6f);
+-#endif
+             }
+-#ifdef GIDET_RECORD_HOOK_ADDPENDING
+             cache.commitPending();
+-#endif
+         }
+         Bytes b;
+         return gitest::readFile(name, b) && b.size() > 40;

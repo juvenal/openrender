@@ -1,0 +1,198 @@
+### rslo:matrices
+# backend rslo, family matrices
+row cm_matrices which=0
+  getMatrix name=world object=obj shader=exec light=null time=0
+row cm_matrices which=1
+  getMatrix name=camera object=obj shader=exec light=null time=0
+row cm_matrices which=2
+  getMatrix name=current object=obj shader=exec light=null time=0
+row cm_matrices which=3
+  getMatrix name=cmuser object=obj shader=exec light=null time=0
+row cm_matrices which=4
+  getMatrix name=object object=obj shader=exec light=null time=0
+row cm_matrices which=5
+  getMatrix name=shader object=obj shader=exec light=null time=0
+row cm_matrices which=7
+  getMatrix name=NDC object=obj shader=exec light=null time=0
+row cm_matrices which=8
+  getMatrix name=rgb object=obj shader=exec light=null time=0
+  getMatrix name=hsv object=obj shader=exec light=null time=0
+row cm_matrices which=9
+  getMatrix name=world object=obj shader=exec light=null time=0
+  getMatrix name=cmuser object=obj shader=exec light=null time=0
+row cm_matrices which=10
+  getMatrix name=world object=obj shader=exec light=null time=0
+row cm_matrices which=11
+  getMatrix name=cmuser object=obj shader=exec light=null time=0
+  getMatrix name=world object=obj shader=exec light=null time=0
+row cm_matrices which=12
+  getMatrix name=world object=obj shader=exec light=null time=0
+row cm_matrices which=13
+  no requests
+row cm_matrices which=14
+  getMatrix name=world object=obj shader=exec light=null time=0
+  diagnostic (severity 1): Unknown coordinate system: cmunknown
+row cm_matrices which=15
+  getMatrix name=cmunknown object=obj shader=exec light=null time=0
+### rslo:attributes
+# backend rslo, family attributes
+row cm_attribute
+  getAttribute scope=Attribute object=obj name=ShadingRate expected=Float
+  getAttribute scope=Attribute object=obj name=cm:triple expected=Triple
+  getAttribute scope=Attribute object=obj name=cm:matrix expected=Matrix
+  getAttribute scope=Attribute object=obj name=identifier:name expected=String
+  getAttribute scope=Attribute object=obj name=cm:missing expected=Float
+  getAttribute scope=Attribute object=obj name=cm:short expected=Triple
+row cm_option
+  getAttribute scope=Option object=obj name=MaxRayDepth expected=Float
+  getAttribute scope=Option object=obj name=cm:triple expected=Triple
+  getAttribute scope=Option object=obj name=cm:matrix expected=Matrix
+  getAttribute scope=Option object=obj name=cm:string expected=String
+  getAttribute scope=Option object=obj name=cm:missing expected=Float
+  getAttribute scope=Option object=obj name=cm:short expected=Triple
+row cm_rendererinfo
+  getAttribute scope=RendererInfo object=obj name=cm:float expected=Float
+  getAttribute scope=RendererInfo object=obj name=cm:triple expected=Triple
+  getAttribute scope=RendererInfo object=obj name=cm:matrix expected=Matrix
+  getAttribute scope=RendererInfo object=obj name=renderer expected=String
+  getAttribute scope=RendererInfo object=obj name=cm:missing expected=Float
+  getAttribute scope=RendererInfo object=obj name=cm:short expected=Triple
+### rslo:messages
+# backend rslo, family messages
+row cm_surface
+  getMessage source=Surface object=obj light=null name=cmfloat expected=Float
+  getMessage source=Surface object=obj light=null name=cmvec expected=Triple
+  getMessage source=Surface object=obj light=null name=cmmatrix expected=Matrix
+  getMessage source=Surface object=obj light=null name=cmstring expected=String
+  getMessage source=Surface object=obj light=null name=cmmissing expected=Float
+row cm_displacement
+  getMessage source=Displacement object=obj light=null name=cmfloat expected=Float
+  getMessage source=Displacement object=obj light=null name=cmvec expected=Triple
+  getMessage source=Displacement object=obj light=null name=cmmatrix expected=Matrix
+  getMessage source=Displacement object=obj light=null name=cmstring expected=String
+  getMessage source=Displacement object=obj light=null name=cmmissing expected=Float
+row cm_atmosphere
+  getMessage source=Atmosphere object=obj light=null name=cmfloat expected=Float
+  getMessage source=Atmosphere object=obj light=null name=cmvec expected=Triple
+  getMessage source=Atmosphere object=obj light=null name=cmmatrix expected=Matrix
+  getMessage source=Atmosphere object=obj light=null name=cmstring expected=String
+  getMessage source=Atmosphere object=obj light=null name=cmmissing expected=Float
+row cm_incident
+  getMessage source=Interior object=obj light=null name=cmfloat expected=Float
+  getMessage source=Interior object=obj light=null name=cmvec expected=Triple
+  getMessage source=Interior object=obj light=null name=cmmatrix expected=Matrix
+  getMessage source=Interior object=obj light=null name=cmstring expected=String
+  getMessage source=Interior object=obj light=null name=cmmissing expected=Float
+row cm_opposite
+  getMessage source=Exterior object=obj light=null name=cmfloat expected=Float
+  getMessage source=Exterior object=obj light=null name=cmvec expected=Triple
+  getMessage source=Exterior object=obj light=null name=cmmatrix expected=Matrix
+  getMessage source=Exterior object=obj light=null name=cmstring expected=String
+  getMessage source=Exterior object=obj light=null name=cmmissing expected=Float
+row cm_lightsource (one light, illuminance loop)
+  getMatrix name=shader object=obj shader=light light=light time=0
+  getMessage source=Light object=obj light=light name=cmfloat expected=Float
+  getMessage source=Light object=obj light=light name=cmvec expected=Float
+  Ci(0) = 2.5 0.25 3  Oi(0) = 1 1 1
+row cm_shadername
+  no requests
+  Ci(0) = 1 1 1  Oi(0) = 1 0 0
+### slo:matrices
+# backend slo, family matrices
+row cm_matrices which=0
+  getMatrix name=world object=obj shader=exec light=null time=0
+row cm_matrices which=1
+  getMatrix name=camera object=obj shader=exec light=null time=0
+row cm_matrices which=2
+  getMatrix name=current object=obj shader=exec light=null time=0
+row cm_matrices which=3
+  getMatrix name=cmuser object=obj shader=exec light=null time=0
+row cm_matrices which=4
+  getMatrix name=object object=obj shader=exec light=null time=0
+row cm_matrices which=5
+  getMatrix name=shader object=obj shader=exec light=null time=0
+row cm_matrices which=7
+  getMatrix name=NDC object=obj shader=exec light=null time=0
+row cm_matrices which=8
+  getMatrix name=rgb object=obj shader=exec light=null time=0
+  getMatrix name=hsv object=obj shader=exec light=null time=0
+row cm_matrices which=9
+  getMatrix name=world object=obj shader=exec light=null time=0
+  getMatrix name=cmuser object=obj shader=exec light=null time=0
+row cm_matrices which=10
+  getMatrix name=world object=obj shader=exec light=null time=0
+row cm_matrices which=11
+  getMatrix name=cmuser object=obj shader=exec light=null time=0
+  getMatrix name=world object=obj shader=exec light=null time=0
+row cm_matrices which=12
+  getMatrix name=world object=obj shader=exec light=null time=0
+row cm_matrices which=13
+  no requests
+row cm_matrices which=14
+  getMatrix name=world object=obj shader=exec light=null time=0
+  diagnostic (severity 1): Unknown coordinate system: cmunknown
+row cm_matrices which=15
+  getMatrix name=cmunknown object=obj shader=exec light=null time=0
+### slo:attributes
+# backend slo, family attributes
+row cm_attribute
+  getAttribute scope=Attribute object=obj name=ShadingRate expected=Float
+  getAttribute scope=Attribute object=obj name=cm:triple expected=Triple
+  getAttribute scope=Attribute object=obj name=cm:matrix expected=Matrix
+  getAttribute scope=Attribute object=obj name=identifier:name expected=String
+  getAttribute scope=Attribute object=obj name=cm:missing expected=Float
+  getAttribute scope=Attribute object=obj name=cm:short expected=Triple
+row cm_option
+  getAttribute scope=Option object=obj name=MaxRayDepth expected=Float
+  getAttribute scope=Option object=obj name=cm:triple expected=Triple
+  getAttribute scope=Option object=obj name=cm:matrix expected=Matrix
+  getAttribute scope=Option object=obj name=cm:string expected=String
+  getAttribute scope=Option object=obj name=cm:missing expected=Float
+  getAttribute scope=Option object=obj name=cm:short expected=Triple
+row cm_rendererinfo
+  getAttribute scope=RendererInfo object=obj name=cm:float expected=Float
+  getAttribute scope=RendererInfo object=obj name=cm:triple expected=Triple
+  getAttribute scope=RendererInfo object=obj name=cm:matrix expected=Matrix
+  getAttribute scope=RendererInfo object=obj name=renderer expected=String
+  getAttribute scope=RendererInfo object=obj name=cm:missing expected=Float
+  getAttribute scope=RendererInfo object=obj name=cm:short expected=Triple
+### slo:messages
+# backend slo, family messages
+row cm_surface
+  getMessage source=Surface object=obj light=null name=cmfloat expected=Float
+  getMessage source=Surface object=obj light=null name=cmvec expected=Triple
+  getMessage source=Surface object=obj light=null name=cmmatrix expected=Matrix
+  getMessage source=Surface object=obj light=null name=cmstring expected=String
+  getMessage source=Surface object=obj light=null name=cmmissing expected=Float
+row cm_displacement
+  getMessage source=Displacement object=obj light=null name=cmfloat expected=Float
+  getMessage source=Displacement object=obj light=null name=cmvec expected=Triple
+  getMessage source=Displacement object=obj light=null name=cmmatrix expected=Matrix
+  getMessage source=Displacement object=obj light=null name=cmstring expected=String
+  getMessage source=Displacement object=obj light=null name=cmmissing expected=Float
+row cm_atmosphere
+  getMessage source=Atmosphere object=obj light=null name=cmfloat expected=Float
+  getMessage source=Atmosphere object=obj light=null name=cmvec expected=Triple
+  getMessage source=Atmosphere object=obj light=null name=cmmatrix expected=Matrix
+  getMessage source=Atmosphere object=obj light=null name=cmstring expected=String
+  getMessage source=Atmosphere object=obj light=null name=cmmissing expected=Float
+row cm_incident
+  getMessage source=Interior object=obj light=null name=cmfloat expected=Float
+  getMessage source=Interior object=obj light=null name=cmvec expected=Triple
+  getMessage source=Interior object=obj light=null name=cmmatrix expected=Matrix
+  getMessage source=Interior object=obj light=null name=cmstring expected=String
+  getMessage source=Interior object=obj light=null name=cmmissing expected=Float
+row cm_opposite
+  getMessage source=Exterior object=obj light=null name=cmfloat expected=Float
+  getMessage source=Exterior object=obj light=null name=cmvec expected=Triple
+  getMessage source=Exterior object=obj light=null name=cmmatrix expected=Matrix
+  getMessage source=Exterior object=obj light=null name=cmstring expected=String
+  getMessage source=Exterior object=obj light=null name=cmmissing expected=Float
+row cm_lightsource (one light, illuminance loop)
+  getMatrix name=shader object=obj shader=light light=light time=0
+  getMessage source=Light object=obj light=light name=cmfloat expected=Float
+  getMessage source=Light object=obj light=light name=cmvec expected=Float
+  Ci(0) = 2.5 0.25 3  Oi(0) = 1 1 1
+row cm_shadername
+  no requests
+  Ci(0) = 1 1 1  Oi(0) = 1 0 0

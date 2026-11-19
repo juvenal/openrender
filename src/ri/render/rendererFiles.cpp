@@ -46,10 +46,7 @@
 #include "texture.h"
 #include "texture3d.h"
 
-// This one is defined in rslo.y
-CShader *parseShader(const char *, const char *);
-
-#include "libshader/shading/sloLoader.h" // parseSloShader() (moved into Shading, spec 026)
+#include "libshader/shading/shadingSystem.h"
 
 
 ///////////////////////////////////////////////////////////////////////
@@ -60,8 +57,8 @@ CShader *parseShader(const char *, const char *);
 // Comments				:
 void CRenderer::initFiles() {
 
-    // The loaded shaders
-    globalFiles = new CTrie<CFileResource *>;
+    // The shading system: the cache of the loaded shaders (they stick around for the entire rendering) and how a name becomes a shader
+    shadingSystem = new openrender::shading::ShadingSystem;
 
     // Temporary files we store per frame
     frameTemporaryFiles = NULL;
@@ -104,9 +101,10 @@ void CRenderer::shutdownFiles() {
     delete shadeops;
     shadeops = NULL;
 
-    // Ditch the loaded files
-    assert(globalFiles != NULL);
-    globalFiles->destroy();
+    // Ditch the loaded shaders
+    assert(shadingSystem != NULL);
+    delete shadingSystem;
+    shadingSystem = NULL;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -369,73 +367,24 @@ CShader *CRenderer::getShader(const char *name, TSearchpath *path) {
     return getShader(name, path, OPENRENDER_DEFAULT_FORMAT); // Default preference
 }
 
+// Load a shader description, no instance: a forwarder to the shading system (no type check, the preference as the only input)
 CShader *CRenderer::getShader(const char *name, TSearchpath *path, const char *preferredType) {
-    CShader *cShader;
-    CFileResource *file;
-
     assert(name != NULL);
-    assert(globalFiles != NULL);
+    assert(shadingSystem != NULL);
 
-    // Check if we already loaded this shader before ...
-    cShader = NULL;
-    if (globalFiles->find(name, file)) {
-        cShader = (CShader *)file;
-    }
-    else {
-        char shaderLocation[OS_MAX_PATH_LENGTH];
+    const CShaderSearchPathResolver resolver(path);
+    const openrender::shading::ShaderRequest request{name, openrender::shading::kAnyShaderType, preferredType, nullptr, &resolver};
+    return shadingSystem->find(request);
+}
 
-        // Validate preference
-        const bool preferSlo = (preferredType != NULL && strcmp(preferredType, "slo") == 0);
-
-        if (preferSlo) {
-            // Try .slo first, fall back to .rslo
-#ifdef OPENRENDER_HAVE_LLVM
-            if (CRenderer::locateFileEx(shaderLocation, name, "slo", path) == TRUE) {
-                cShader = parseSloShader(name, shaderLocation);
-            }
-#else
-            // The scene asked for the JIT backend but this binary has none --
-            // LLVM was missing, or older than OPENRENDER_LLVM_MIN_VERSION, when
-            // it was configured. The .rslo fallback below still renders, so say
-            // so once rather than letting a build-configuration mismatch look
-            // like a normal render. Only the no-JIT-at-all case warns; a build
-            // *with* the JIT that simply has no .slo on disk falls back
-            // silently, which is a legitimate and intentional path.
-            warning(CODE_INCAPABLE,
-                    "Shader \"%s\": shaderformat \"slo\" requested, but this build has no "
-                    "LLVM JIT support; using the .rslo interpreter instead\n",
-                    name);
-#endif
-            if (cShader == NULL &&
-                CRenderer::locateFileEx(shaderLocation, name, "rslo", path) == TRUE) {
-                cShader = parseShader(name, shaderLocation);
-            }
-        }
-        else {
-            // Try .rslo first, fall back to .slo
-            if (CRenderer::locateFileEx(shaderLocation, name, "rslo", path) == TRUE) {
-                cShader = parseShader(name, shaderLocation);
-            }
-#ifdef OPENRENDER_HAVE_LLVM
-            if (cShader == NULL &&
-                CRenderer::locateFileEx(shaderLocation, name, "slo", path) == TRUE) {
-                cShader = parseSloShader(name, shaderLocation);
-            }
-#endif
-        }
-
-        if (cShader != NULL) {
-            log_debug("getShader: loaded shader '{}' from '{}'", name, shaderLocation);
-            // Cache under cShader->name (a stable, owned copy from CFileResource's
-            // ctor), not the caller's `name`: the RIB parser's per-statement memory
-            // arena is rewound (memRestore) before the next statement is lexed, so
-            // `name` can be silently overwritten once a later statement's tokens
-            // reuse the same address, aliasing the trie's cached key.
-            globalFiles->insert(cShader->name, cShader);
-        }
-    }
-
-    return cShader;
+///////////////////////////////////////////////////////////////////////
+// Class				:	CShaderSearchPathResolver
+// Method				:	locate
+// Description			:	Locate a shader file of an extension
+// Return Value			:	TRUE if found
+// Comments				:	The renderer's own rules: a name holding an extension is used as written
+int CShaderSearchPathResolver::locate(char *result, const char *name, const char *extension) const {
+    return CRenderer::locateFileEx(result, name, extension, path);
 }
 
 ///////////////////////////////////////////////////////////////////////
