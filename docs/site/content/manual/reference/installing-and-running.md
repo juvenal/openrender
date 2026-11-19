@@ -182,7 +182,7 @@ Your binary distribution should have the following structure:
 |   |   |   | `orender` | The RIB renderer. |
 |   |   |   | `oshader` | Shading language compiler |
 |   |   |   | `rsloinfo` | Get information about a compiled shader |
-|   |   |   | `otexmake` | Texture preparation tool. |
+|   |   |   | `otexmake` | Texture preparation tool (`-imageio legacy|oiio` chooses the image library, see Options). |
 |   |   |   | `orender-wire` | Interactive viewer for RIB scenes and precomputed data-structure files (photon maps, caches, point clouds, brick maps, debug-geometry dumps). |
 |   |   | `include/` |   | The header files |
 |   |   | `lib/` |   | The library files. |

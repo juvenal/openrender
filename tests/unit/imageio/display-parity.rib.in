@@ -1,0 +1,27 @@
+# ImageIO_DisplayParity (spec 048, T103): the 16x16 deterministic scene both display drivers write. No dither (the Quantize line of each case
+# says so), no jpeg compression, one constant-colour surface per region: four quadrants, one of them half transparent and one above 1 so the
+# float, half and RGBE outputs keep values the integer outputs clamp. One render feeds two displays (the legacy driver and oiio), so both get
+# identical tiles by construction.
+# The case supplies its Quantize statement and the two Display statements where the two placeholder lines below stand.
+Format 16 16 1
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Projection "orthographic"
+ScreenWindow -1 1 -1 1
+@QUANTIZE@
+@DISPLAYS@
+WorldBegin
+  Surface "constant"
+  # lower left: an ordinary colour
+  Color [0.25 0.5 0.75] Opacity [1 1 1]
+  Polygon "P" [-1 -1 1  0 -1 1  0 0 1  -1 0 1]
+  # lower right: half transparent
+  Color [1 0 0] Opacity [0.5 0.5 0.5]
+  Polygon "P" [0 -1 1  1 -1 1  1 0 1  0 0 1]
+  # upper left: a colour that needs more than 8 bits to tell from its neighbours
+  Color [0.123456 0.654321 0.5] Opacity [1 1 1]
+  Polygon "P" [-1 0 1  0 0 1  0 1 1  -1 1 1]
+  # upper right: above 1 (clamped by the integer outputs, kept by float, half and RGBE)
+  Color [2.5 0.001 100] Opacity [1 1 1]
+  Polygon "P" [0 0 1  1 0 1  1 1 1  0 1 1]
+WorldEnd

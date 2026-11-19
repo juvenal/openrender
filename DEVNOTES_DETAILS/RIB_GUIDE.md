@@ -80,3 +80,15 @@ Option "sampling" "int seed" [0]               # any integer, default 0
   speed-up here until #179 is resolved.
 - **Known gap:** under the interpreter (`.rslo`), `indirectdiffuse()` traces no ray (GitHub #173); the `.slo` shaders do.
 
+## Option "imageio" (spec 048)
+
+```
+Option "imageio" "string backend" [ "legacy" ]   # default
+Option "imageio" "string backend" [ "oiio" ]     # OpenImageIO, in a build with OPENRENDER_ENABLE_OIIO
+MakeTexture "in.png" "out.tex" "periodic" "periodic" "gaussian" 2 2 "string imageio" [ "oiio" ]
+Display "beauty.exr" "oiio" "rgba"
+```
+
+The Option selects the library that decodes sources and bakes textures from that point; the per-call `"imageio"` parameter (also on `MakeShadow`,
+`MakeLatLongEnvironment`, `MakeCubeFaceEnvironment`) wins over it; `Display ... "oiio"` is the display driver. An unknown value reports
+`Unknown image backend "<name>" (expected "legacy" or "oiio")` and keeps the previous one. See [IMAGE_IO.md](IMAGE_IO.md).

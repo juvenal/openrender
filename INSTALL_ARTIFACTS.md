@@ -40,6 +40,7 @@ All shared libraries carry `VERSION` and `SOVERSION` metadata (e.g. `libRIBRende
 | `libRSLRuntime.dylib` | Shading engine and shader loaders (JIT-callable `op_*`/`rsl_*` ops + builtins); `libshader_shading.dylib` is a compatibility symlink for one release | `/usr/local/lib/libRSLRuntime.dylib` |
 | `libRIBShadeop.dylib` | Shader DSO operands (spec 037): module scanning, the version check, the declaration parser and the per-thread state of shadeop modules; the renderer, the shading engine and the shader compiler link it | `/usr/local/lib/libRIBShadeop.dylib` |
 | `libRIBCommon.dylib` | Infrastructure every other library uses: diagnostics, the scratch arena, statistics, RI tokens, `CVariable`, math and sampling | `/usr/local/lib/libRIBCommon.dylib` |
+| `libRIBImageIO.dylib` | Image I/O utility library (spec 048): the only image of the install that carries OpenImageIO; installed only in a build configured with `OPENRENDER_ENABLE_OIIO=ON`; shared only (there is no `libRIBImageIO` static archive); only `orimageio::` symbols are exported | `/usr/local/lib/libRIBImageIO.dylib` |
 
 `libRIBShadeop` carries the same `VERSION`/`SOVERSION` metadata as the others (`libRIBShadeop.dylib → libRIBShadeop.1.dylib → libRIBShadeop.1.0.0.dylib`); `PluginAbi_ShadeopSoversion` checks that its SOVERSION equals `OPENRENDER_COMPAT_SOVERSION`.
 
@@ -75,6 +76,7 @@ general shared libraries.
 | `file.dsply` | File output driver (TIFF, PNG) | `/usr/local/displays/file.dsply` |
 | `rgbe.dsply` | RGBE (Radiance .pic) format driver | `/usr/local/displays/rgbe.dsply` |
 | `openexr.dsply` | OpenEXR display driver (optional) | `/usr/local/displays/openexr.dsply` |
+| `oiio.dsply` | OpenImageIO display driver (TIFF, PNG, OpenEXR, RGBE); installed only in a build configured with `OPENRENDER_ENABLE_OIIO=ON`; loads `libRIBImageIO` | `/usr/local/displays/oiio.dsply` |
 
 ---
 
@@ -249,6 +251,7 @@ Installed to: `${OPENRENDER_DOCDIR}` → `/usr/local/share/doc/`
 │   ├── libRIBOut.dylib      # shared (versioned: libRIBOut.1.dylib)
 │   ├── libRIBOut.a          # static
 │   ├── libRIBCommon.dylib   # shared infrastructure (versioned: libRIBCommon.1.dylib)
+│   ├── libRIBImageIO.dylib  # Image I/O utility library, only with OPENRENDER_ENABLE_OIIO=ON (versioned: libRIBImageIO.1.dylib); no static archive
 │   ├── libRIBShadeop.dylib  # shared shader DSO operands (versioned: libRIBShadeop.1.dylib)
 │   ├── libRIBShadeop.a      # static shader DSO operands
 │   ├── libRIBCommon.a       # static infrastructure (static archives depend on it)
@@ -271,7 +274,8 @@ Installed to: `${OPENRENDER_DOCDIR}` → `/usr/local/share/doc/`
 │   ├── framebuffer.dsply
 │   ├── file.dsply
 │   ├── rgbe.dsply
-│   └── openexr.dsply
+│   ├── openexr.dsply
+│   └── oiio.dsply       # only with OPENRENDER_ENABLE_OIIO=ON
 ├── shaders/             # Shader files (54 files)
 │   ├── *.sl
 │   └── *.rslo / *.slo

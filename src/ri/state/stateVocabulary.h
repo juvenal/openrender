@@ -40,4 +40,11 @@ enum class EBlobbyOrder : int {
     AppNote = 1
 };
 
+// Which implementation decodes and bakes images (spec 048). The core maps it to Texturing's EImageBackend with a switch
+// and a static_assert that the two have the same enumerators and values (renderer.cpp).
+enum class EImageIOBackend : int {
+    Legacy = 0,
+    OIIO = 1
+};
+
 #endif

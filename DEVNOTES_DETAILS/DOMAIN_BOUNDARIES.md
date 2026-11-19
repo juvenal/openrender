@@ -25,9 +25,10 @@ not yet comply.
 - **link edges**: an undefined symbol in a source file's object, attributed to the classes whose
   sources define it (`nm`).
 
-The classes are the ten domains of constitution v1.4.0 (Scene Interface, Graphics State, Geometry,
+The classes are the ten domains of constitution v1.5.0 (Scene Interface, Graphics State, Geometry,
 Hiders, Shading, Texturing, Shader DSO Operands, Geometric Procedures, Display Outputs and, since spec 030,
-**Transport**, `src/ri/transport/`), plus Core (the renderer core), Infra and Consumer.
+**Transport**, `src/ri/transport/`), the utility library **ImageIO** (`src/imageio/`, spec 048: OpenImageIO, used by
+Texturing and Display Outputs only, depending on Infra only), plus Core (the renderer core), Infra and Consumer.
 
 An edge outside the constitution's allowed-dependency table fails the check unless the allowlist
 names it against an **Open** entry below. The allowlist only shrinks: an entry whose edge is gone
@@ -84,7 +85,7 @@ the target stopped compiling first, CMake leaves them behind).
 
 - `domain-map.txt`: path prefix or exact file → class. Classification is by location; file rules
   exist only for forwarding shims, plug-in ABI headers and generated sources.
-- `domain-rules.txt`: the constitution's allowed-dependency table. Change only by amendment.
+- `domain-rules.txt`: the constitution's allowed-dependency and utility-library tables. Change only by amendment.
 - `allowlist.txt`: one line per known violating edge, with its registry ID and an optional
   `macos`/`linux` tag for edges the two toolchains spell differently.
 - `metrics-baseline.txt`: renderer-core usage per class.
@@ -303,6 +304,7 @@ request. Run `ctest -L architecture` locally before review.
     `src/ri/geometry` again, as the compile line of a tree built before the spec already did; `ShadingScope_Greps` S1a/S1e did not
     notice because its include-list parse read nothing. Spec 033 fixed the parse and filters those two directories out of the shading
     directory's include path (`src/libshader/shading/CMakeLists.txt`); see `specs/033-shading-system-backends/validation.md` section 4, F-7.)
+  - `libRIBImageIO` is the first utility library built as its own target (spec 048).
 - **Size**: not a dependency edge; tracked by review and by the architecture check.
 - **Direction**: per-domain include visibility first, then per-domain OBJECT targets as each layer
   lands.

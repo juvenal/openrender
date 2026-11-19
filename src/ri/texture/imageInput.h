@@ -38,6 +38,14 @@ struct CImageInfo {
 };
 
 ///////////////////////////////////////////////////////////////////////
+// Enum					:	EImageBackend
+// Description			:	Which implementation decodes a source image: the legacy
+//							libtiff/libpng/OpenEXR/RGBE decoders, or the optional
+//							OpenImageIO path (spec 048, HAVE_OIIO). Legacy is the default
+//							everywhere.
+enum class EImageBackend { Legacy, OIIO };
+
+///////////////////////////////////////////////////////////////////////
 // Class				:	CImageInput
 // Description			:	Format-agnostic whole-image decode interface.
 //							One-shot contract: open() once, readImage() at
@@ -69,6 +77,16 @@ class CImageInput {
         // multiple times; also called implicitly by the destructor if not
         // called explicitly.
         virtual void close() = 0;
+
+        // Reads a 4x4 float matrix stored with the source: "worldtocamera" or
+        // "worldtoscreen" (the Pixar TIFF tags of a shadow map). Valid after a
+        // successful open(). Returns false when the source has no such matrix, which
+        // is the default for every format that cannot carry one.
+        virtual bool readMatrix(const char *name, float m[16]) {
+            (void)name;
+            (void)m;
+            return false;
+        }
 };
 
 // Returns a new CImageInput instance appropriate for filename's extension
@@ -76,5 +94,17 @@ class CImageInput {
 // maps to a format this build does not support (e.g. ".exr" when
 // HAVE_OPENEXR is off). Ownership transfers to the caller.
 CImageInput *createImageInput(const char *filename);
+
+// As above for the named backend. Legacy is createImageInput(filename). OIIO returns
+// nullptr, and reports why, in a translation unit built without HAVE_OIIO.
+CImageInput *createImageInput(const char *filename, EImageBackend backend);
+
+// TRUE if this build can decode and bake through the backend: Legacy always, OIIO only in a library built with
+// HAVE_OIIO. The one place a caller asks, so none of them needs the macro (libRIBVector never has it).
+bool imageBackendAvailable(EImageBackend backend);
+
+// The text every "OIIO asked for, not built in" report starts with (the Option, a per-call parameter, otexmake and
+// createImageInput all say the same thing).
+#define OR_OIIO_NOT_BUILT_TEXT "OpenImageIO support is not built into this binary"
 
 #endif

@@ -33,6 +33,9 @@ add_subdirectory(common)
 add_subdirectory(procedures)  # dlo / implicit / DynamicLoad module loader (spec 037); objects go into ribRender
 add_subdirectory(shadeop)  # shadeop module + declaration parser: libRIBShadeop (spec 037)
 add_subdirectory(display)
+if(HAVE_OIIO)
+    add_subdirectory(imageio)  # libRIBImageIO, the Image I/O utility library (spec 048); built only with OpenImageIO
+endif()
 add_subdirectory(precomp)
 add_subdirectory(libshader)  # RSL shader library (compiler + runtime + shading engine)
 add_subdirectory(ri)

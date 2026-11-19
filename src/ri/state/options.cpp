@@ -357,6 +357,7 @@ COptions::COptions() {
     defaultShaderFormat = nullptr;
     textureCacheEnabled = false;
     textureCacheDirectory = nullptr;
+    imageBackend = EImageIOBackend::Legacy;
     blobbyOpcodeOrder = static_cast<int>(EBlobbyOrder::RiSpec);
 
     // Unified search paths across all platforms. Environment expansion is handled
@@ -546,6 +547,7 @@ COptions::COptions(const COptions *o) {
     filelog = (o->filelog != NULL ? strdup(o->filelog) : NULL);
     defaultShaderFormat = (o->defaultShaderFormat != nullptr ? strdup(o->defaultShaderFormat) : nullptr);
     textureCacheEnabled = o->textureCacheEnabled;
+    imageBackend = o->imageBackend;
     textureCacheDirectory = (o->textureCacheDirectory != nullptr ? strdup(o->textureCacheDirectory) : nullptr);
     blobbyOpcodeOrder = o->blobbyOpcodeOrder;
 }

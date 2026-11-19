@@ -689,8 +689,8 @@ static void buildSynthesizedPyramidTyped(const CImageInfo &info, void *decodedDa
 //							Not on the hot per-tile fetchTile() path -- this
 //							runs once per distinct unbaked source per
 //							render.
-static std::shared_ptr<CSynthesizedPyramid> buildSynthesizedPyramid(const char *filename) {
-    std::unique_ptr<CImageInput> input(createImageInput(filename));
+static std::shared_ptr<CSynthesizedPyramid> buildSynthesizedPyramid(const char *filename, EImageBackend backend) {
+    std::unique_ptr<CImageInput> input(createImageInput(filename, backend));
     if (input.get() == NULL) {
         return std::shared_ptr<CSynthesizedPyramid>();
     }
@@ -838,7 +838,7 @@ class CSynthesizedTileSource : public CTileSource {
 };
 
 CTileSource *createSynthesizedTileSource(const char *filename, int level) {
-    std::shared_ptr<CSynthesizedPyramid> pyramid = buildSynthesizedPyramid(filename);
+    std::shared_ptr<CSynthesizedPyramid> pyramid = buildSynthesizedPyramid(filename, EImageBackend::Legacy);
     if (!pyramid || (level < 0) || (level >= (int)pyramid->levels.size())) {
         return NULL;
     }
@@ -2791,7 +2791,7 @@ static std::string resolveDefaultTextureCacheDirectory() {
 //							ignoring failure -- an unwritable location
 //							degrades to in-memory-only per FR-007, detected
 //							later when the actual write attempt fails).
-static bool computeTextureCacheFilePath(const char *sourcePath, std::string &cachePath, const char *diskCacheDirectory) {
+static bool computeTextureCacheFilePath(const char *sourcePath, std::string &cachePath, const char *diskCacheDirectory, EImageBackend backend) {
     // realpath allocates the result: a fixed OS_MAX_PATH_LENGTH buffer is smaller than PATH_MAX, which
     // glibc's fortified realpath aborts on, and which a source resolving to 512+ characters overflows
     // everywhere (GitHub #46).
@@ -2815,7 +2815,12 @@ static bool computeTextureCacheFilePath(const char *sourcePath, std::string &cac
 
     const size_t hash = std::hash<std::string>{}(absolutePath);
     char filename[64];
-    snprintf(filename, sizeof(filename), "%zx-%lld.tex", hash, (long long)st.st_mtime);
+    // The entry of an OIIO-decoded source says so (spec 048, FR-014): two backends never share an entry, because
+    // they may decode a file differently (the difference list). Legacy names are unchanged.
+    if (backend == EImageBackend::OIIO)
+        snprintf(filename, sizeof(filename), "%zx-%lld.oiio.tex", hash, (long long)st.st_mtime);
+    else
+        snprintf(filename, sizeof(filename), "%zx-%lld.tex", hash, (long long)st.st_mtime);
 
     cachePath = directory + filename;
 
@@ -2847,11 +2852,20 @@ static bool computeTextureCacheFilePath(const char *sourcePath, std::string &cac
 //							-- the caller has already proceeded via the
 //							in-memory CSynthesizedTileSource path
 //							regardless.
-static void writeTextureCacheEntry(const char *sourcePath, const std::string &finalCachePath, const CTextureFileResolver *resolver) {
+static void writeTextureCacheEntry(const char *sourcePath, const std::string &finalCachePath, const CTextureFileResolver *resolver, EImageBackend backend) {
     char tempPath[OS_MAX_PATH_LENGTH];
     snprintf(tempPath, sizeof(tempPath), "%s.tmp%d", finalCachePath.c_str(), (int)getpid());
 
-    makeTexture(sourcePath, tempPath, resolver, RI_PERIODIC, RI_PERIODIC, RiCatmullRomFilter, 3.0f, 3.0f, 0, NULL, NULL);
+    // The entry is baked from the source the backend decodes: the OIIO backend passes "imageio" "oiio" to the bake.
+    const char *oiioValue = "oiio";
+    const char *oiioToken = "imageio";
+    if (backend == EImageBackend::OIIO) {
+        const void *value = &oiioValue;
+        makeTexture(sourcePath, tempPath, resolver, RI_PERIODIC, RI_PERIODIC, RiCatmullRomFilter, 3.0f, 3.0f, 1, &oiioToken, &value);
+    }
+    else {
+        makeTexture(sourcePath, tempPath, resolver, RI_PERIODIC, RI_PERIODIC, RiCatmullRomFilter, 3.0f, 3.0f, 0, NULL, NULL);
+    }
 
     if (osFileExists(tempPath)) {
         rename(tempPath, finalCachePath.c_str());
@@ -2863,7 +2877,7 @@ static void writeTextureCacheEntry(const char *sourcePath, const std::string &fi
 // Description			:	Load a texture from disk
 // Return Value			:	Pointer to the new texture
 // Comments				:
-CTexture *textureLoadTexture(const char *name, const CTextureFileResolver *resolver, CTextureCache *cache, bool diskCacheEnabled, const char *diskCacheDirectory) {
+CTexture *textureLoadTexture(const char *name, const CTextureFileResolver *resolver, CTextureCache *cache, bool diskCacheEnabled, const char *diskCacheDirectory, EImageBackend imageBackend) {
     char fn[OS_MAX_PATH_LENGTH];
 
     if (textureLocate(resolver, fn, name) == FALSE) {
@@ -2933,7 +2947,7 @@ CTexture *textureLoadTexture(const char *name, const CTextureFileResolver *resol
             // a cache hit reads back through the completely ordinary,
             // unmodified CTiffTileSource fast path above -- no new
             // read-side code at all.
-            haveCachePath = computeTextureCacheFilePath(fn, cachePath, diskCacheDirectory);
+            haveCachePath = computeTextureCacheFilePath(fn, cachePath, diskCacheDirectory, imageBackend);
             if (haveCachePath) {
                 // Unlike looksLikeTiff()'s use on the SOURCE file above
                 // (whose existence locateFile() already confirmed, making
@@ -2956,13 +2970,13 @@ CTexture *textureLoadTexture(const char *name, const CTextureFileResolver *resol
         if (cTexture == NULL) {
             // Cache disabled, cache miss, or no usable cache path --
             // decode+synthesize in memory (T009's original path).
-            std::shared_ptr<CSynthesizedPyramid> pyramid = buildSynthesizedPyramid(fn);
+            std::shared_ptr<CSynthesizedPyramid> pyramid = buildSynthesizedPyramid(fn, imageBackend);
             if (pyramid) {
                 if (diskCacheEnabled && haveCachePath) {
                     // Best-effort disk-cache write (T018) -- never fails
                     // or alters this render either way (FR-007); the
                     // in-memory path below proceeds regardless.
-                    writeTextureCacheEntry(fn, cachePath, resolver);
+                    writeTextureCacheEntry(fn, cachePath, resolver, imageBackend);
                 }
 
                 if (pyramid->bitsPerSample == 8) {

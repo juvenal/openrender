@@ -33,6 +33,11 @@ On Windows, the `fbw` driver uses the native GDI API to display the render.
 
 - **TIFF**: Outputs to standard TIFF files.
 - **OpenEXR**: Outputs to high-dynamic-range OpenEXR files.
+- **oiio** (only in a build configured with `OPENRENDER_ENABLE_OIIO`): writes TIFF, PNG, OpenEXR and RGBE through OpenImageIO with the same samples as the
+  drivers above, `Display "beauty.exr" "oiio" "rgba"`. The format is the file name's extension (`.tif .tiff .png .exr .hdr .pic`) or a
+  `"string type"` parameter (`"tiff"`, `"png"`, `"openexr"`, `"rgbe"`), which wins; any other name is an error and nothing is written. RGBE needs 3 or 4 samples
+  (alpha is dropped). `Quantize`, dither, `compression` and the TIFF matrices work as in the legacy drivers. Known legacy difference: the `file` driver writes
+  16-bit PNG samples byte-swapped (GitHub #181); the `oiio` driver writes them correctly.
 
 ## Troubleshooting Wayland
 

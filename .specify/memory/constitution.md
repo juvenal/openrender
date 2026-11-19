@@ -1,23 +1,21 @@
 <!--
 Sync Impact Report:
-Version change: 1.3.0 → 1.4.0 (MINOR: Principle VIII gains a tenth domain, Transport; no principle is
-  removed or redefined)
-Modified principles: VIII. Domain Separation and Modular Boundaries (domain table: new row
-  "Transport"; allowed-dependency table: new row "Transport" and the "Hiders" row gains Transport; a
-  sentence that Transport depends on no Hiders, Scene Interface or renderer-core file)
+Version change: 1.4.0 → 1.5.0 (MINOR: Principle VIII gains a "Utility libraries" paragraph and table; no domain,
+  principle or allowed-dependency row is removed or redefined)
+Modified principles: VIII. Domain Separation and Modular Boundaries (new "Utility libraries" paragraph and a one-row
+  table, Image I/O for Texturing and Display Outputs; rules 2 and 7 name the new table)
 Added sections: None
 Removed sections: None
 Templates requiring updates:
-  ✅ .specify/templates/plan-template.md - Principle VIII gate: Transport added to the list of domains
+  ✅ .specify/templates/plan-template.md - Principle VIII gate names utility libraries
   ✅ .specify/templates/spec-template.md - reviewed, no change needed
   ✅ .specify/templates/tasks-template.md - reviewed, no change needed
   ✅ .specify/templates/checklist-template.md - reviewed, no change needed
   ✅ .specify/templates/agent-file-template.md - reviewed, no change needed
-  ✅ tests/architecture/domain-rules.txt - header and Transport/Hiders rows brought to this version (spec 030, T039)
-Follow-up TODOs: None (spec 030, decision D30 part 1; D30 part 3, rule 4 for every plug-in type, is NOT
-  part of this amendment and lands with spec 051)
-Pending, intentionally not included: constitution-v1.1.1-draft.md (Principle VII PATCH) remains
-  unratified; if ratified later it lands on top of this version.
+  ✅ tests/architecture/domain-rules.txt - header at 1.5.0; ImageIO row; Texturing and Display rows gain ImageIO (spec 048)
+  ✅ tests/architecture/domain-map.txt - prefix src/imageio/ ImageIO (spec 048)
+Follow-up TODOs: None (spec 048, decision D30 part 4; D30 part 3 still lands with spec 051)
+Pending, intentionally not included: constitution-v1.1.1-draft.md (Principle VII PATCH) remains unratified.
 -->
 
 # openRender Constitution
@@ -94,13 +92,27 @@ their interfaces:
 Transport depends on no Hiders, Scene Interface or renderer-core file: Hiders depend on it (for the
 capability vocabulary they declare), so rule 2's acyclicity forbids the reverse edge.
 
+**Utility libraries.** A utility library is a shared library that owns no renderer concern of its own: it wraps
+one third-party capability behind a published interface and sits beside the infrastructure library
+(`libRIBCommon`), which every domain may use. A utility library MUST depend on no domain and on no renderer-core
+file, only on the infrastructure library and its own third-party dependencies. Only the domains listed for it MAY
+depend on it, and only through its published interface. The renderer core and the consumers (tools, bindings,
+tests) MAY use it, as they may use any domain. Its published headers MUST NOT name a type of the library it wraps.
+A third-party library wrapped this way MUST be linked into that utility library alone, and no other image of the
+project MAY carry its code. Using a utility library does not widen a domain's row in the table above: two domains
+that use the same utility library still may not depend on each other.
+
+| Utility library | Wraps | May be used by |
+|---|---|---|
+| Image I/O (`libRIBImageIO`, `src/imageio/`) | OpenImageIO: pixel input and output only, with no colour conversion | Texturing, Display Outputs |
+
 **Rules**
 
 1. **Explicit boundary interfaces.** Domains MUST interact only through a declared interface: an
    abstract class, a registration/factory hook, or a C-linkage ABI. Reaching into another domain's
    internals, sharing mutable globals across a boundary, and `friend` access across domains are
    prohibited.
-2. **Acyclic, declared dependencies.** Cross-domain dependencies MUST follow the table above, at
+2. **Acyclic, declared dependencies.** Cross-domain dependencies MUST follow the table above and the utility-library table, at
    the source, CMake-target and link level. A capability that must flow "upward" (e.g. shading asking
    for a ray to be traced) MUST be inverted through an interface owned by the lower domain and
    implemented by the higher one. It MUST NOT be done with unresolved symbols bound at load time.
@@ -131,7 +143,7 @@ capability vocabulary they declare), so rule 2's acyclicity forbids the reverse 
    or alters a cross-domain dependency MUST specify the interface change in its design artifacts
    before implementation begins.
 7. **Automated enforcement.** CI MUST run a check that fails on any dependency cycle and on any
-   cross-domain dependency the table above does not allow.
+   cross-domain dependency the tables above do not allow.
 8. **Existing violations.** Known violations MUST be recorded in the violation registry
    (`DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`), each linked to a tracking issue. A change MUST NOT
    extend an existing violation, and SHOULD reduce one when it touches the affected area. New
@@ -182,4 +194,4 @@ This constitution supersedes all other coding practices and guidelines. Amendmen
 
 All pull requests and code reviews MUST verify compliance with these principles. Complexity MUST be justified when it conflicts with simplicity principles. Use this constitution as the primary reference for all development decisions.
 
-**Version**: 1.4.0 | **Ratified**: 2025-12-07 | **Last Amended**: 2026-11-09
+**Version**: 1.5.0 | **Ratified**: 2025-12-07 | **Last Amended**: 2026-11-16

@@ -1,0 +1,5 @@
+# Fixture domain map.
+prefix  src/common/    Infra
+prefix  src/texture/   Texturing
+prefix  src/display/   Display
+prefix  src/imageio/   ImageIO

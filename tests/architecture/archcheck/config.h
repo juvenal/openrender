@@ -50,11 +50,12 @@ namespace archcheck {
         Procedures,
         Display,
         Transport,
+        ImageIO,
         Core,
         Infra,
         Consumer,
     };
-    inline constexpr std::size_t kClassCount = 13;
+    inline constexpr std::size_t kClassCount = 14;
 
     std::optional<Class> classFromName(std::string_view name);
     std::string_view className(Class c);

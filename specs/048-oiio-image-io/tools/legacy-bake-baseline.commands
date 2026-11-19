@@ -1,0 +1,7 @@
+texture : otexmake <input> <input>.texture.tex
+shadow  : otexmake -shadow <input> <input>.shadow.tex
+envlatl : otexmake -envlatl <input> <input>.envlatl.tex          (cylinder environment)
+envcube : otexmake -envcube <input> <input> <input> <input> <input> <input> <input>.envcube.tex   (cubic environment, the same file six times)
+
+Note (GitHub #174, P1, not fixed here): otexmake exits 0 for undecodable sources (the .status lines say NOOUTPUT with exit=0), and -envcube writes an
+input-independent degenerate cube file for them (all six negative fixtures hash e9c78693...ef0294f5e2). The baseline pins that behaviour as it is.

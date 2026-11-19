@@ -29,6 +29,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 
 ///////////////////////////////////////////////////////////////////////
 // function				:	tiffImageInputErrorHandler
@@ -153,4 +154,33 @@ void CTiffImageInput::close() {
         TIFFClose(handle);
         handle = NULL;
     }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CTiffImageInput
+// Method				:	readMatrix
+// Description			:	Read one of the Pixar-private shadow-map matrices
+// Return Value			:	TRUE if the file carries the tag
+// Comments				:	The libtiff read makeSideEnvironment (texmake.cpp) used to do through
+//							getHandle(), moved, not changed.
+bool CTiffImageInput::readMatrix(const char *name, float m[16]) {
+    float *tmp = NULL;
+
+    if (handle == NULL)
+        return false;
+
+    if (strcmp(name, "worldtocamera") == 0) {
+        if (TIFFGetField(handle, TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA, &tmp) == FALSE)
+            return false;
+    }
+    else if (strcmp(name, "worldtoscreen") == 0) {
+        if (TIFFGetField(handle, TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, &tmp) == FALSE)
+            return false;
+    }
+    else {
+        return false;
+    }
+
+    memcpy(m, tmp, 16 * sizeof(float));
+    return true;
 }

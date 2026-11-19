@@ -10,6 +10,7 @@
 #                     viewer helper on macOS/Linux, native GDI on Windows)
 #   openexr/      -- OpenEXR file-format display plugin
 #   rgbe/         -- Radiance RGBE file-format display plugin
+#   oiio/         -- OpenImageIO display plugin (TIFF, PNG, OpenEXR, RGBE through libRIBImageIO); only when HAVE_OIIO (spec 048)
 #
 # dsply.h (the public Display-driver ABI contract) lives directly in this
 # directory so third-party plugin authors can build against it standalone.
@@ -22,3 +23,6 @@ add_subdirectory(file)
 add_subdirectory(framebuffer)
 add_subdirectory(openexr)
 add_subdirectory(rgbe)
+if(HAVE_OIIO)
+    add_subdirectory(oiio)
+endif()

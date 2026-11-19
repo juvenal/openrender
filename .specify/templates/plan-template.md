@@ -45,8 +45,9 @@
 **Principle VIII — Domain Separation and Modular Boundaries** (every plan):
 
 - [ ] Domains touched are named (Scene Interface, Graphics State, Geometry, Hiders, Transport,
-      Shading, Texturing, Shader DSO Operands, Geometric Procedures, Display Outputs; or renderer core)
-- [ ] No new cross-domain dependency outside the constitution's allowed-dependency table, and no
+      Shading, Texturing, Shader DSO Operands, Geometric Procedures, Display Outputs; or renderer core; or a
+      utility library: Image I/O)
+- [ ] No new cross-domain dependency outside the constitution's allowed-dependency table or utility-library table, and no
       dependency on the renderer core from inside a domain
 - [ ] Every added or altered cross-domain dependency has its interface change specified in the
       design artifacts (contracts/ or data-model.md)

@@ -29,6 +29,9 @@
 #include "common/diagnostics.h"
 #include "imageInput.h"
 #include "imageInputTiff.h"
+#ifdef HAVE_OIIO
+#include "orImageIO.h"
+#endif
 #include "common/memory.h"
 #include "common/riVocabulary.h"
 #include "ri_config.h"
@@ -78,11 +81,12 @@ static void tiffErrorHandler(const char *, const char *fmt, va_list ap) {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Function				:	appendLayer
-// Description			:	Append a layer of image into an image file
+// Function				:	legacyAppendLayer
+// Description			:	Append a layer of image into an image file (the libtiff writer; CLegacyBakeSink::appendLayer
+//							calls it, spec 048)
 // Return Value			:	-
 // Comments				:
-static void appendLayer(TIFF *out, int, int numSamples, int bitsperpixel, int tileSize, int width, int height, void *data) {
+static void legacyAppendLayer(TIFF *out, int numSamples, int bitsperpixel, int tileSize, int width, int height, void *data) {
     int x, y;
     unsigned char *tileData;
     int pixelSize;
@@ -197,19 +201,208 @@ static void appendLayer(TIFF *out, int, int numSamples, int bitsperpixel, int ti
 }
 
 ///////////////////////////////////////////////////////////////////////
+// Class				:	CBakeSink
+// Description			:	Where the layers of a baked texture go (spec 048). The make* functions compute the pyramid
+//							(adjustSize, filterScaleImage, appendPyramid) and hand each layer to a sink: the legacy libtiff
+//							writer, or the OpenImageIO writer.
+// Comments				:	The tags set before appendLayer() apply to that directory only and are then cleared, which is
+//							libtiff's TIFFWriteDirectory behaviour that the legacy writer relies on (the texture format and
+//							the wrap modes on directory 0, the full size on the first directory of each pyramid).
+class CBakeSink {
+    public:
+        virtual ~CBakeSink() {}
+
+        virtual void setTextureFormat(const char *format) = 0;
+        virtual void setWrapModes(const char *modes) = 0;
+        virtual void setMatrices(const float *worldToCamera, const float *worldToScreen) = 0;
+        virtual void setFullSize(int width, int height) = 0;
+        virtual void appendLayer(int numSamples, int bitsperpixel, int tileSize, int width, int height, void *data) = 0;
+        virtual bool close() = 0;
+};
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CLegacyBakeSink
+// Description			:	The libtiff writer: the code appendLayer() and the make* functions always had, moved behind the sink
+// Comments				:	Pinned byte for byte by ImageInput_TiffBakeByteIdentical and by legacy_bake_hashes --check.
+class CLegacyBakeSink : public CBakeSink {
+    public:
+        explicit CLegacyBakeSink(TIFF *handle) : out(handle) {}
+        ~CLegacyBakeSink() { close(); }
+
+        void setTextureFormat(const char *format) { TIFFSetField(out, TIFFTAG_PIXAR_TEXTUREFORMAT, format); }
+        void setWrapModes(const char *modes) { TIFFSetField(out, TIFFTAG_PIXAR_WRAPMODES, modes); }
+        void setMatrices(const float *worldToCamera, const float *worldToScreen) {
+            TIFFSetField(out, TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA, worldToCamera);
+            TIFFSetField(out, TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, worldToScreen);
+        }
+        void setFullSize(int width, int height) {
+            TIFFSetField(out, TIFFTAG_PIXAR_IMAGEFULLWIDTH, width);
+            TIFFSetField(out, TIFFTAG_PIXAR_IMAGEFULLLENGTH, height);
+        }
+        void appendLayer(int numSamples, int bitsperpixel, int tileSize, int width, int height, void *data) { legacyAppendLayer(out, numSamples, bitsperpixel, tileSize, width, height, data); }
+        bool close() {
+            if (out != NULL) {
+                TIFFClose(out);
+                out = NULL;
+            }
+            return true;
+        }
+
+    private:
+        TIFF *out;
+};
+
+#ifdef HAVE_OIIO
+///////////////////////////////////////////////////////////////////////
+// Class				:	COiioBakeSink
+// Description			:	The OpenImageIO writer (spec 048): the same pyramid, stored by orimageio::TiledTiffWriter
+// Comments				:	Only (bits, channels) combinations that pass kOiioBakeExclusions get here. The tags set before
+//							appendLayer() belong to that directory only, as in the legacy sink.
+class COiioBakeSink : public CBakeSink {
+    public:
+        explicit COiioBakeSink(const char *path) : writer(path) {}
+
+        void setTextureFormat(const char *format) { textureFormat = format; hasTextureFormat = true; }
+        void setWrapModes(const char *modes) { wrapModes = modes; hasWrapModes = true; }
+        void setMatrices(const float *worldToCamera, const float *worldToScreen) {
+            memcpy(toCamera, worldToCamera, sizeof(toCamera));
+            memcpy(toScreen, worldToScreen, sizeof(toScreen));
+            hasMatrices = true;
+        }
+        void setFullSize(int width, int height) {
+            fullWidth = width;
+            fullHeight = height;
+        }
+        void appendLayer(int numSamples, int bitsperpixel, int tileSize, int width, int height, void *data) {
+            orimageio::DirectoryDesc d;
+
+            d.width = width;
+            d.height = height;
+            d.channels = numSamples;
+            d.type = (bitsperpixel == 8) ? orimageio::SampleType::UInt8 : (bitsperpixel == 16) ? orimageio::SampleType::UInt16 : orimageio::SampleType::Float;
+            d.tileSize = tileSize;
+            d.fullWidth = fullWidth;
+            d.fullHeight = fullHeight;
+            if (hasTextureFormat)
+                d.textureFormat = textureFormat.c_str();
+            if (hasWrapModes)
+                d.wrapModes = wrapModes.c_str();
+            if (hasMatrices) {
+                d.worldToCamera = toCamera;
+                d.worldToScreen = toScreen;
+            }
+
+            writer.appendDirectory(d, data); // a failure is reported by the writer and surfaces in close()
+
+            // the tags belong to the directory just written
+            hasTextureFormat = hasWrapModes = hasMatrices = false;
+            fullWidth = fullHeight = 0;
+        }
+        bool close() { return writer.close(); }
+
+    private:
+        orimageio::TiledTiffWriter writer;
+        std::string textureFormat, wrapModes;
+        float toCamera[16], toScreen[16];
+        bool hasTextureFormat = false, hasWrapModes = false, hasMatrices = false;
+        int fullWidth = 0, fullHeight = 0;
+};
+#endif
+
+///////////////////////////////////////////////////////////////////////
+// Struct				:	SOiioBakeExclusion
+// Description			:	A (precision, channels) combination OpenImageIO cannot write the way the texture reader
+//							expects (spec 048, data-model section 4)
+// Comments				:	OIIO writes PHOTOMETRIC_RGB from 3 channels and EXTRASAMPLES from the channel count; the
+//							legacy writer sets neither for a 16-bit directory (the reader scales a 16-bit RGB one, GitHub
+//							#18) and leaves PHOTOMETRIC unset from 5 channels. Such a bake keeps the legacy writer.
+struct SOiioBakeExclusion {
+        int bits;        // 16, or 0 for every other precision (8-bit and float)
+        int minChannels; // excluded from this channel count up
+        const char *message;
+};
+
+static const SOiioBakeExclusion kOiioBakeExclusions[] = {
+    {16, 3, "%s: 16-bit %d-channel textures are baked by the legacy writer (OpenImageIO writes PHOTOMETRIC_RGB, which the texture reader scales; GitHub #18)\n"},
+    {0, 5, "%s: %d-channel textures are baked by the legacy writer (OpenImageIO writes PHOTOMETRIC_RGB; legacy leaves it unset)\n"},
+};
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	oiioBakeExclusion
+// Description			:	The exclusion a (precision, channels) combination falls under
+// Return Value			:	The table row, or NULL when OpenImageIO writes it
+// Comments				:
+static const SOiioBakeExclusion *oiioBakeExclusion(int bitsperpixel, int numSamples) {
+    for (const SOiioBakeExclusion &e : kOiioBakeExclusions) {
+        const bool precisionMatches = (e.bits == 16) ? (bitsperpixel == 16) : (bitsperpixel != 16);
+
+        if (precisionMatches && numSamples >= e.minChannels)
+            return &e;
+    }
+
+    return NULL;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	gateBakeBackend
+// Description			:	Chooses the writer of a make* call: the selected backend, except for a combination in the
+//							exclusion table, which the legacy writer bakes (one message, before the output exists)
+// Return Value			:	The backend whose writer to use
+// Comments				:	Called once per make* call. CODE_SYSTEM, not CODE_LOG: the RI error handler never sees CODE_LOG
+//							(it goes to the log file only). A numSamples of 0 means "nothing to check" (a cubic bake with no face).
+static EImageBackend gateBakeBackend(EImageBackend backend, const char *output, int bitsperpixel, int numSamples) {
+    if (backend != EImageBackend::OIIO || numSamples == 0)
+        return backend;
+
+    const SOiioBakeExclusion *e = oiioBakeExclusion(bitsperpixel, numSamples);
+
+    if (e == NULL)
+        return backend;
+
+    info(CODE_SYSTEM, e->message, (output != NULL) ? output : "", numSamples);
+
+    return EImageBackend::Legacy;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Function				:	openBakeSink
+// Description			:	Opens the writer of a make* call's output
+// Return Value			:	The sink, or NULL when the output cannot be created
+// Comments				:	backend is the gated one (gateBakeBackend); the OpenImageIO writer creates the file with its
+//							first directory.
+static CBakeSink *openBakeSink(const char *output, EImageBackend backend) {
+    if (output == NULL)
+        return NULL;
+
+#ifdef HAVE_OIIO
+    if (backend == EImageBackend::OIIO)
+        return new COiioBakeSink(output);
+#else
+    (void)backend;
+#endif
+
+    TIFF *handle = TIFFOpen(output, "w");
+
+    if (handle == NULL)
+        return NULL;
+
+    return new CLegacyBakeSink(handle);
+}
+
+///////////////////////////////////////////////////////////////////////
 // Function				:	appendPyramid
 // Description			:	Append an image pyramid into an image file
 //							the reduction gives the amount of reduction in the image size at each step
 // Return Value			:
 // Comments				:
 template <class T>
-static void appendPyramid(TIFF *out, int &dstart, int numSamples, int bitsperpixel, int tileSize, int width, int height, T *data) {
+static void appendPyramid(CBakeSink &sink, int numSamples, int bitsperpixel, int tileSize, int width, int height, T *data) {
     T *currentLevel;
     int currentWidth, currentHeight, nextWidth, nextHeight;
     float *fnextLevel;
 
     // Append the base layer
-    appendLayer(out, dstart++, numSamples, bitsperpixel, tileSize, width, height, data);
+    sink.appendLayer(numSamples, bitsperpixel, tileSize, width, height, data);
 
     // Append the remaining layers
     currentWidth = width;
@@ -268,7 +461,7 @@ static void appendPyramid(TIFF *out, int &dstart, int numSamples, int bitsperpix
         currentWidth = nextWidth;
         currentHeight = nextHeight;
 
-        appendLayer(out, dstart++, numSamples, bitsperpixel, tileSize, currentWidth, currentHeight, currentLevel);
+        sink.appendLayer(numSamples, bitsperpixel, tileSize, currentWidth, currentHeight, currentLevel);
     }
 }
 
@@ -328,35 +521,32 @@ void *readLayer(TIFF *in, int *width, int *height, int *bitsperpixel, int *numSa
 // Description			:	Make and append a texture to the end of the TIFF file
 // Return Value			:
 // Comments				:	FIXME: filter only when adjusting size
-void appendTexture(TIFF *out, int &dstart, int width, int height, int numSamples, int bitspersample, RtFilterFunc filter, float filterWidth, float filterHeight, int tileSize, void *data, const char *smode, const char *tmode, const char *resizemode) {
+static void appendTexture(CBakeSink &sink, int width, int height, int numSamples, int bitspersample, RtFilterFunc filter, float filterWidth, float filterHeight, int tileSize, void *data, const char *smode, const char *tmode, const char *resizemode) {
     int validHeight, validWidth;
 
     if (bitspersample == 8) {
         adjustSize<unsigned char>((unsigned char **)&data, &width, &height, &validWidth, &validHeight, numSamples, bitspersample, filterWidth, filterHeight, filter, smode, tmode, resizemode);
 
         // write adjusted sizes
-        TIFFSetField(out, TIFFTAG_PIXAR_IMAGEFULLWIDTH, validWidth);
-        TIFFSetField(out, TIFFTAG_PIXAR_IMAGEFULLLENGTH, validHeight);
+        sink.setFullSize(validWidth, validHeight);
 
-        appendPyramid<unsigned char>(out, dstart, numSamples, bitspersample, tileSize, width, height, (unsigned char *)data);
+        appendPyramid<unsigned char>(sink, numSamples, bitspersample, tileSize, width, height, (unsigned char *)data);
     }
     else if (bitspersample == 16) {
         adjustSize<unsigned short>((unsigned short **)&data, &width, &height, &validWidth, &validHeight, numSamples, bitspersample, filterWidth, filterHeight, filter, smode, tmode, resizemode);
 
         // write adjusted sizes
-        TIFFSetField(out, TIFFTAG_PIXAR_IMAGEFULLWIDTH, validWidth);
-        TIFFSetField(out, TIFFTAG_PIXAR_IMAGEFULLLENGTH, validHeight);
+        sink.setFullSize(validWidth, validHeight);
 
-        appendPyramid<unsigned short>(out, dstart, numSamples, bitspersample, tileSize, width, height, (unsigned short *)data);
+        appendPyramid<unsigned short>(sink, numSamples, bitspersample, tileSize, width, height, (unsigned short *)data);
     }
     else if (bitspersample == 32) {
         adjustSize<float>((float **)&data, &width, &height, &validWidth, &validHeight, numSamples, bitspersample, filterWidth, filterHeight, filter, smode, tmode, resizemode);
 
         // write adjusted sizes
-        TIFFSetField(out, TIFFTAG_PIXAR_IMAGEFULLWIDTH, validWidth);
-        TIFFSetField(out, TIFFTAG_PIXAR_IMAGEFULLLENGTH, validHeight);
+        sink.setFullSize(validWidth, validHeight);
 
-        appendPyramid<float>(out, dstart, numSamples, bitspersample, tileSize, width, height, (float *)data);
+        appendPyramid<float>(sink, numSamples, bitspersample, tileSize, width, height, (float *)data);
     }
 }
 
@@ -370,6 +560,45 @@ void appendTexture(TIFF *out, int &dstart, int width, int height, int numSamples
     }
 
 ///////////////////////////////////////////////////////////////////////
+// Function				:	selectImageBackend
+// Description			:	Reads the "imageio" parameter of a Make* call (spec 048): "legacy" or "oiio", given as
+//							"imageio" or as an inline declaration ("string imageio"). With none, the call decodes
+//							through the legacy decoders: the Option "imageio" "backend" reaches here as an "imageio"
+//							parameter the renderer core appended (rendererContext.cpp), because Texturing has no
+//							access to the options.
+// Return Value			:	FALSE, with the error reported, when the value is unknown, or "oiio" in a build without
+//							OpenImageIO: the call then fails and writes nothing
+// Comments				:
+static bool selectImageBackend(int numParams, const char **params, const void **vals, EImageBackend &backend) {
+    backend = EImageBackend::Legacy;
+
+    for (int p = 0; p < numParams; p++) {
+        const char *space = strrchr(params[p], ' ');
+        if (strcmp(space != NULL ? space + 1 : params[p], "imageio") != 0)
+            continue;
+
+        const char *value = *((const char **)vals[p]);
+        if (strcmp(value, "legacy") == 0) {
+            backend = EImageBackend::Legacy;
+        }
+        else if (strcmp(value, "oiio") == 0) {
+            if (!imageBackendAvailable(EImageBackend::OIIO)) {
+                error(CODE_BADTOKEN, OR_OIIO_NOT_BUILT_TEXT ": the \"imageio\" parameter asks for \"oiio\"\n");
+                return false;
+            }
+            backend = EImageBackend::OIIO;
+        }
+        else {
+            error(CODE_BADTOKEN, "Unknown image backend \"%s\" (expected \"legacy\" or \"oiio\")\n", value);
+            return false;
+        }
+        break;
+    }
+
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////
 // Function				:	makeTexture
 // Description			:	Create an image pyramid from input
 // Return Value			:
@@ -379,6 +608,10 @@ void makeTexture(const char *input, const char *output, const CTextureFileResolv
 
     getResizeMode(numParams, params, vals);
 
+    EImageBackend imageBackend;
+    if (!selectImageBackend(numParams, params, vals, imageBackend))
+        return;
+
     if (textureLocate(path, inputFileName, input) == FALSE) {
         error(CODE_NOFILE, "Failed to find \"%s\"\n", input);
     }
@@ -387,7 +620,7 @@ void makeTexture(const char *input, const char *output, const CTextureFileResolv
         TIFFSetErrorHandler(tiffErrorHandler);
         TIFFSetWarningHandler(tiffErrorHandler);
 
-        CImageInput *imageInput = createImageInput(inputFileName);
+        CImageInput *imageInput = createImageInput(inputFileName, imageBackend);
         if (imageInput == NULL) {
             error(CODE_NOFILE, "Unsupported or unrecognized source image format \"%s\"\n", inputFileName);
         }
@@ -417,18 +650,17 @@ void makeTexture(const char *input, const char *output, const CTextureFileResolv
                 delete imageInput;
 
                 // Write the made texture
-                TIFF *outHandle = TIFFOpen(output, "w");
-                if (output != NULL) {
-                    int dstart = 0;
-
+                CBakeSink *sink = openBakeSink(output, gateBakeBackend(imageBackend, output, bitspersample, numSamples));
+                if (sink != NULL) {
                     snprintf(modes, sizeof(modes), "%s,%s", smode, tmode);
 
-                    TIFFSetField(outHandle, TIFFTAG_PIXAR_TEXTUREFORMAT, TIFF_TEXTURE);
-                    TIFFSetField(outHandle, TIFFTAG_PIXAR_WRAPMODES, modes);
+                    sink->setTextureFormat(TIFF_TEXTURE);
+                    sink->setWrapModes(modes);
 
-                    appendTexture(outHandle, dstart, width, height, numSamples, bitspersample, filter, filterWidth, filterHeight, tileSize, data, smode, tmode, resizeMode);
+                    appendTexture(*sink, width, height, numSamples, bitspersample, filter, filterWidth, filterHeight, tileSize, data, smode, tmode, resizeMode);
 
-                    TIFFClose(outHandle);
+                    sink->close();
+                    delete sink;
                 }
 
                 arenaEnd(globalArena);
@@ -447,6 +679,10 @@ void makeSideEnvironment(const char *input, const char *output, const CTextureFi
 
     getResizeMode(numParams, params, vals);
 
+    EImageBackend imageBackend;
+    if (!selectImageBackend(numParams, params, vals, imageBackend))
+        return;
+
     if (textureLocate(path, inputFileName, input) == FALSE) {
         error(CODE_NOFILE, "Failed to find \"%s\"\n", input);
     }
@@ -455,7 +691,7 @@ void makeSideEnvironment(const char *input, const char *output, const CTextureFi
         TIFFSetErrorHandler(tiffErrorHandler);
         TIFFSetWarningHandler(tiffErrorHandler);
 
-        CImageInput *imageInput = createImageInput(inputFileName);
+        CImageInput *imageInput = createImageInput(inputFileName, imageBackend);
         if (imageInput == NULL) {
             error(CODE_NOFILE, "Unsupported or unrecognized source image format \"%s\"\n", inputFileName);
         }
@@ -475,7 +711,6 @@ void makeSideEnvironment(const char *input, const char *output, const CTextureFi
                 float filterWidth = fwidth;
                 float filterHeight = fheight;
                 matrix worldToCamera, worldToScreen;
-                float *tmp;
 
                 arenaBegin(globalArena);
 
@@ -484,23 +719,14 @@ void makeSideEnvironment(const char *input, const char *output, const CTextureFi
                 // source format, so a non-TIFF source always takes the same
                 // "tag missing" fallback (identity matrix + error) a TIFF source
                 // without these tags already took before this feature existed.
-                CTiffImageInput *tiffInput = dynamic_cast<CTiffImageInput *>(imageInput);
-                TIFF *inHandle = tiffInput ? tiffInput->getHandle() : NULL;
-
-                if (inHandle == NULL || TIFFGetField(inHandle, TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA, &tmp) == FALSE) {
+                if (!imageInput->readMatrix("worldtocamera", worldToCamera)) {
                     error(CODE_BUG, "Failed to read the world to camera matrix\n");
                     identitym(worldToCamera);
                 }
-                else {
-                    movmm(worldToCamera, tmp);
-                }
 
-                if (inHandle == NULL || TIFFGetField(inHandle, TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, &tmp) == FALSE) {
+                if (!imageInput->readMatrix("worldtoscreen", worldToScreen)) {
                     error(CODE_BUG, "Failed to read the world to screen matrix\n");
                     identitym(worldToScreen);
-                }
-                else {
-                    movmm(worldToScreen, tmp);
                 }
 
                 // Read the data
@@ -511,18 +737,16 @@ void makeSideEnvironment(const char *input, const char *output, const CTextureFi
                 imageInput->close();
                 delete imageInput;
 
-                TIFF *outHandle = TIFFOpen(output, "w");
-                if (output != NULL) {
-                    int dstart = 0;
-
+                CBakeSink *sink = openBakeSink(output, gateBakeBackend(imageBackend, output, bitspersample, numSamples));
+                if (sink != NULL) {
                     // Write the texture data
-                    TIFFSetField(outHandle, TIFFTAG_PIXAR_TEXTUREFORMAT, TIFF_SHADOW);
-                    TIFFSetField(outHandle, TIFFTAG_PIXAR_MATRIX_WORLDTOCAMERA, worldToCamera);
-                    TIFFSetField(outHandle, TIFFTAG_PIXAR_MATRIX_WORLDTOSCREEN, worldToScreen);
+                    sink->setTextureFormat(TIFF_SHADOW);
+                    sink->setMatrices(worldToCamera, worldToScreen);
 
-                    appendTexture(outHandle, dstart, width, height, numSamples, bitspersample, filter, filterWidth, filterHeight, tileSize, data, smode, tmode, resizeMode);
+                    appendTexture(*sink, width, height, numSamples, bitspersample, filter, filterWidth, filterHeight, tileSize, data, smode, tmode, resizeMode);
 
-                    TIFFClose(outHandle);
+                    sink->close();
+                    delete sink;
                 }
                 else {
                     error(CODE_SYSTEM, "Failed to create \"%s\" for writing\n", output);
@@ -545,6 +769,10 @@ void makeCubicEnvironment(const char *px, const char *py, const char *pz, const 
 
     getResizeMode(numParams, params, vals);
 
+    EImageBackend imageBackend;
+    if (!selectImageBackend(numParams, params, vals, imageBackend))
+        return;
+
     names[0] = px;
     names[1] = nx;
     names[2] = py;
@@ -561,7 +789,38 @@ void makeCubicEnvironment(const char *px, const char *py, const char *pz, const 
         TIFFSetErrorHandler(tiffErrorHandler);
         TIFFSetWarningHandler(tiffErrorHandler);
 
-        TIFF *outHandle = TIFFOpen(output, "w");
+        // The writer is chosen once for the six faces: OpenImageIO unless a face is in the exclusion table. The faces'
+        // headers are read here only for that, and only when OpenImageIO is selected.
+        int gateBits = 0, gateSamples = 0;
+        int unreadableFace = -1; // a face whose header open failed here: already reported, the loop below stops at it
+        if (imageBackend == EImageBackend::OIIO) {
+            for (int i = 0; i < 6; i++) {
+                CImageInfo faceInfo;
+                CImageInput *faceInput;
+
+                if (textureLocate(path, inputFileName, names[i]) == FALSE)
+                    break;
+                faceInput = createImageInput(inputFileName, imageBackend);
+                if (faceInput == NULL)
+                    break;
+                bool opened = faceInput->open(inputFileName, faceInfo);
+                if (opened)
+                    faceInput->close();
+                delete faceInput;
+                if (!opened) {
+                    unreadableFace = i;
+                    break;
+                }
+                if (i == 0 || oiioBakeExclusion(faceInfo.bitsPerSample, faceInfo.numChannels) != NULL) {
+                    gateBits = faceInfo.bitsPerSample;
+                    gateSamples = faceInfo.numChannels;
+                    if (oiioBakeExclusion(gateBits, gateSamples) != NULL)
+                        break;
+                }
+            }
+        }
+
+        CBakeSink *sink = openBakeSink(output, gateBakeBackend(imageBackend, output, gateBits, gateSamples));
         if (output != NULL) {
             void *data;
             int numSamples;
@@ -572,22 +831,23 @@ void makeCubicEnvironment(const char *px, const char *py, const char *pz, const 
             float filterWidth = fwidth;
             float filterHeight = fheight;
 
-            if (outHandle != NULL) {
-                int dstart = 0;
-
-                TIFFSetField(outHandle, TIFFTAG_PIXAR_TEXTUREFORMAT, TIFF_CUBIC_ENVIRONMENT);
+            if (sink != NULL) {
+                sink->setTextureFormat(TIFF_CUBIC_ENVIRONMENT);
 
                 for (i = 0; i < 6; i++) {
                     int width, height;
                     CImageInput *faceInput;
 
                     // Open the file
-                    if (textureLocate(path, inputFileName, names[i]) == FALSE) {
+                    if (i == unreadableFace) {
+                        break; // its open failed above and was reported there
+                    }
+                    else if (textureLocate(path, inputFileName, names[i]) == FALSE) {
                         error(CODE_NOFILE, "Failed to find \"%s\"\n", names[i]);
                         break;
                     }
                     else {
-                        faceInput = createImageInput(inputFileName);
+                        faceInput = createImageInput(inputFileName, imageBackend);
                         if (faceInput == NULL)
                             break;
                         CImageInfo faceInfo;
@@ -610,13 +870,14 @@ void makeCubicEnvironment(const char *px, const char *py, const char *pz, const 
                         delete faceInput;
 
                         // Write the data
-                        appendTexture(outHandle, dstart, width, height, numSamples, bitspersample, filter, filterWidth, filterHeight, tileSize, data, smode, tmode, resizeMode);
+                        appendTexture(*sink, width, height, numSamples, bitspersample, filter, filterWidth, filterHeight, tileSize, data, smode, tmode, resizeMode);
 
                         arenaEnd(globalArena);
                     }
                 }
 
-                TIFFClose(outHandle);
+                sink->close();
+                delete sink;
             }
         }
         else {
@@ -635,6 +896,10 @@ void makeSphericalEnvironment(const char *input, const char *output, const CText
 
     getResizeMode(numParams, params, vals);
 
+    EImageBackend imageBackend;
+    if (!selectImageBackend(numParams, params, vals, imageBackend))
+        return;
+
     if (textureLocate(path, inputFileName, input) == FALSE) {
         error(CODE_NOFILE, "Failed to find \"%s\"\n", input);
     }
@@ -643,7 +908,7 @@ void makeSphericalEnvironment(const char *input, const char *output, const CText
         TIFFSetErrorHandler(tiffErrorHandler);
         TIFFSetWarningHandler(tiffErrorHandler);
 
-        CImageInput *imageInput = createImageInput(inputFileName);
+        CImageInput *imageInput = createImageInput(inputFileName, imageBackend);
 
         if (imageInput == NULL) {
             error(CODE_NOFILE, "Unsupported or unrecognized source image format \"%s\"\n", inputFileName);
@@ -673,18 +938,17 @@ void makeSphericalEnvironment(const char *input, const char *output, const CText
                 imageInput->close();
                 delete imageInput;
 
-                TIFF *outHandle = TIFFOpen(output, "w");
-                if (output != NULL) {
-                    int dstart = 0;
-
+                CBakeSink *sink = openBakeSink(output, gateBakeBackend(imageBackend, output, bitspersample, numSamples));
+                if (sink != NULL) {
                     snprintf(modes, sizeof(modes), "%s,%s", smode, tmode);
 
                     // Write out the data
-                    TIFFSetField(outHandle, TIFFTAG_PIXAR_TEXTUREFORMAT, TIFF_SPHERICAL_ENVIRONMENT);
-                    TIFFSetField(outHandle, TIFFTAG_PIXAR_WRAPMODES, modes);
+                    sink->setTextureFormat(TIFF_SPHERICAL_ENVIRONMENT);
+                    sink->setWrapModes(modes);
 
-                    appendTexture(outHandle, dstart, width, height, numSamples, bitspersample, filter, filterWidth, filterHeight, tileSize, data, smode, tmode, resizeMode);
-                    TIFFClose(outHandle);
+                    appendTexture(*sink, width, height, numSamples, bitspersample, filter, filterWidth, filterHeight, tileSize, data, smode, tmode, resizeMode);
+                    sink->close();
+                    delete sink;
                 }
 
                 arenaEnd(globalArena);
@@ -703,6 +967,10 @@ void makeCylindericalEnvironment(const char *input, const char *output, const CT
 
     getResizeMode(numParams, params, vals);
 
+    EImageBackend imageBackend;
+    if (!selectImageBackend(numParams, params, vals, imageBackend))
+        return;
+
     if (textureLocate(path, inputFileName, input) == FALSE) {
         error(CODE_NOFILE, "Failed to find \"%s\"\n", input);
     }
@@ -711,7 +979,7 @@ void makeCylindericalEnvironment(const char *input, const char *output, const CT
         TIFFSetErrorHandler(tiffErrorHandler);
         TIFFSetWarningHandler(tiffErrorHandler);
 
-        CImageInput *imageInput = createImageInput(inputFileName);
+        CImageInput *imageInput = createImageInput(inputFileName, imageBackend);
 
         if (imageInput == NULL) {
             error(CODE_NOFILE, "Unsupported or unrecognized source image format \"%s\"\n", inputFileName);
@@ -740,17 +1008,16 @@ void makeCylindericalEnvironment(const char *input, const char *output, const CT
             imageInput->close();
             delete imageInput;
 
-            TIFF *outHandle = TIFFOpen(output, "w");
-            if (output != NULL) {
-                int dstart = 0;
-
+            CBakeSink *sink = openBakeSink(output, gateBakeBackend(imageBackend, output, bitspersample, numSamples));
+            if (sink != NULL) {
                 snprintf(modes, sizeof(modes), "%s,%s", smode, tmode);
 
-                TIFFSetField(outHandle, TIFFTAG_PIXAR_TEXTUREFORMAT, TIFF_CYLINDER_ENVIRONMENT);
-                TIFFSetField(outHandle, TIFFTAG_PIXAR_WRAPMODES, modes);
+                sink->setTextureFormat(TIFF_CYLINDER_ENVIRONMENT);
+                sink->setWrapModes(modes);
 
-                appendTexture(outHandle, dstart, width, height, numSamples, bitspersample, filter, filterWidth, filterHeight, tileSize, data, smode, tmode, resizeMode);
-                TIFFClose(outHandle);
+                appendTexture(*sink, width, height, numSamples, bitspersample, filter, filterWidth, filterHeight, tileSize, data, smode, tmode, resizeMode);
+                sink->close();
+                delete sink;
             }
 
             arenaEnd(globalArena);

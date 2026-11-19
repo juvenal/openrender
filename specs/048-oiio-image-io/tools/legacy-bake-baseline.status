@@ -1,0 +1,124 @@
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_rgb.tif texture
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_rgb.tif shadow
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_rgb.tif envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_rgb.tif envcube
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/medium_rgb.tif texture
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/medium_rgb.tif shadow
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/medium_rgb.tif envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/medium_rgb.tif envcube
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_rgb.tif texture
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_rgb.tif shadow
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_rgb.tif envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_rgb.tif envcube
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_gray_alpha8.png texture
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_gray_alpha8.png shadow
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_gray_alpha8.png envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_gray_alpha8.png envcube
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_gray16.png texture
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_gray16.png shadow
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_gray16.png envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_gray16.png envcube
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_gray8.png texture
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_gray8.png shadow
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_gray8.png envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_gray8.png envcube
+NOOUTPUT exit=0/0 output=no/no tests/unit/image_input/fixtures/large_indexed.png texture
+NOOUTPUT exit=0/0 output=no/no tests/unit/image_input/fixtures/large_indexed.png shadow
+NOOUTPUT exit=0/0 output=no/no tests/unit/image_input/fixtures/large_indexed.png envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_indexed.png envcube
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_rgb8.png texture
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_rgb8.png shadow
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_rgb8.png envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_rgb8.png envcube
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_rgba8.png texture
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_rgba8.png shadow
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_rgba8.png envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_rgba8.png envcube
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_gray_alpha8.png texture
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_gray_alpha8.png shadow
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_gray_alpha8.png envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_gray_alpha8.png envcube
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_gray16.png texture
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_gray16.png shadow
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_gray16.png envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_gray16.png envcube
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_gray8.png texture
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_gray8.png shadow
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_gray8.png envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_gray8.png envcube
+NOOUTPUT exit=0/0 output=no/no tests/unit/image_input/fixtures/tiny_indexed.png texture
+NOOUTPUT exit=0/0 output=no/no tests/unit/image_input/fixtures/tiny_indexed.png shadow
+NOOUTPUT exit=0/0 output=no/no tests/unit/image_input/fixtures/tiny_indexed.png envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_indexed.png envcube
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_rgb8.png texture
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_rgb8.png shadow
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_rgb8.png envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_rgb8.png envcube
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_rgba8.png texture
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_rgba8.png shadow
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_rgba8.png envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_rgba8.png envcube
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_half.exr texture
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_half.exr shadow
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_half.exr envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_half.exr envcube
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_luminance.exr texture
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_luminance.exr shadow
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_luminance.exr envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_luminance.exr envcube
+NOOUTPUT exit=0/0 output=no/no tests/unit/image_input/fixtures/large_multipart.exr texture
+NOOUTPUT exit=0/0 output=no/no tests/unit/image_input/fixtures/large_multipart.exr shadow
+NOOUTPUT exit=0/0 output=no/no tests/unit/image_input/fixtures/large_multipart.exr envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_multipart.exr envcube
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_rgb.exr texture
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_rgb.exr shadow
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_rgb.exr envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_rgb.exr envcube
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_rgba.exr texture
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_rgba.exr shadow
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_rgba.exr envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_rgba.exr envcube
+NOOUTPUT exit=0/0 output=no/no tests/unit/image_input/fixtures/large_unsupported_channels.exr texture
+NOOUTPUT exit=0/0 output=no/no tests/unit/image_input/fixtures/large_unsupported_channels.exr shadow
+NOOUTPUT exit=0/0 output=no/no tests/unit/image_input/fixtures/large_unsupported_channels.exr envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large_unsupported_channels.exr envcube
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_half.exr texture
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_half.exr shadow
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_half.exr envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_half.exr envcube
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_luminance.exr texture
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_luminance.exr shadow
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_luminance.exr envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_luminance.exr envcube
+NOOUTPUT exit=0/0 output=no/no tests/unit/image_input/fixtures/tiny_multipart.exr texture
+NOOUTPUT exit=0/0 output=no/no tests/unit/image_input/fixtures/tiny_multipart.exr shadow
+NOOUTPUT exit=0/0 output=no/no tests/unit/image_input/fixtures/tiny_multipart.exr envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_multipart.exr envcube
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_rgb.exr texture
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_rgb.exr shadow
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_rgb.exr envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_rgb.exr envcube
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_rgba.exr texture
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_rgba.exr shadow
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_rgba.exr envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_rgba.exr envcube
+NOOUTPUT exit=0/0 output=no/no tests/unit/image_input/fixtures/tiny_unsupported_channels.exr texture
+NOOUTPUT exit=0/0 output=no/no tests/unit/image_input/fixtures/tiny_unsupported_channels.exr shadow
+NOOUTPUT exit=0/0 output=no/no tests/unit/image_input/fixtures/tiny_unsupported_channels.exr envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny_unsupported_channels.exr envcube
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large.hdr texture
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large.hdr shadow
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large.hdr envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/large.hdr envcube
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny.hdr texture
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny.hdr shadow
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny.hdr envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/image_input/fixtures/tiny.hdr envcube
+OK exit=0 output=yes deterministic=yes tests/unit/texture_tile/fixtures/nonpot_rgb.png texture
+OK exit=0 output=yes deterministic=yes tests/unit/texture_tile/fixtures/nonpot_rgb.png shadow
+OK exit=0 output=yes deterministic=yes tests/unit/texture_tile/fixtures/nonpot_rgb.png envlatl
+OK exit=0 output=yes deterministic=yes tests/unit/texture_tile/fixtures/nonpot_rgb.png envcube
+SELFCHECK PASS medium_rgb.tif texture == references/texture.tex
+SELFCHECK PASS medium_rgb.tif shadow == references/shadow.tex
+SELFCHECK PASS medium_rgb.tif envlatl == references/envlatl-cylindrical.tex
+SELFCHECK PASS medium_rgb.tif envcube == references/envcube-cubic.tex

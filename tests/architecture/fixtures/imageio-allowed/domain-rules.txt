@@ -1,0 +1,8 @@
+# Copy of the rows of tests/architecture/domain-rules.txt that matter here (constitution v1.5.0, spec 048: the Image I/O utility library).
+Core           -> *
+Consumer       -> *
+*              -> Infra
+GraphicsState  ->
+Texturing      -> ImageIO
+Display        -> ImageIO
+ImageIO        ->
