@@ -1007,6 +1007,21 @@ int COptions::find(const char *name, const char *category, EVariableType &type, 
         }
     }
 
+    // Option "arealight" (spec 057): the scene level. Only for the category itself, never for a nameless search: "mode" must keep
+    // answering the other categories' modes there
+    if ((category != NULL) && (strcmp(category, RI_AREALIGHT) == 0)) {
+        if (strcmp(name, RI_SAMPLES) == 0) {
+            type = TYPE_INTEGER;
+            value = &areaLightSamples;
+            return TRUE;
+        }
+        else if (strcmp(name, RI_MODE) == 0) {
+            type = TYPE_STRING;
+            value = areaLightModeName(areaLightMode);
+            return value != NULL;
+        }
+    }
+
     if ((category == NULL) || (strcmp(category, RI_SHUTTER) == 0)) {
         if (strcmp(name, RI_OFFSET) == 0) {
             type = TYPE_FLOAT;

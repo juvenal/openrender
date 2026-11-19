@@ -198,6 +198,26 @@ al_test(AreaSampling_Subdivision test_arealight_area_sampling_subdiv LABELS geom
 al_executable(test_arealight_area_sampling_reports test_area_sampling_reports.cpp)
 al_test(AreaSampling_Reports test_arealight_area_sampling_reports LABELS geometry)
 
+# ---- Phase 5: the controls, Option "arealight" and Attribute "arealight" (US5; FR-018 to FR-020, FR-027) --------------------------
+# ShadingContract_AreaLightControls: the precedence table of resolveAreaLightControls (a pure function: it compiles on the Phase 4 tree)
+al_executable(test_arealight_controls_resolve test_controls_resolve.cpp)
+al_test(ShadingContract_AreaLightControls test_arealight_controls_resolve LABELS shading_parity)
+# AreaLight_Controls_Render: the probes (tests/visual/arealight-probes.cmake, AreaLight_Controls_Render_*) and these byte-for-byte pairs:
+# the draws depend on the resolved count only, so a precedence scene and a fast scene equal their twin that sets the count directly
+foreach(_sfx "" "-slo")
+    set(_c ../../examples/rib/tests)
+    al_render_pair_test(AreaLight_Controls_Render_Pairs${_sfx}
+        PAIRS ${_c}/arealight-controls-precedence-object${_sfx}.rib|${_c}/arealight-controls-samples-64${_sfx}.rib
+              ${_c}/arealight-controls-precedence-light${_sfx}.rib|${_c}/arealight-controls-samples-64${_sfx}.rib
+              ${_c}/arealight-controls-fast-16${_sfx}.rib|${_c}/arealight-controls-samples-4${_sfx}.rib
+              ${_c}/arealight-controls-fast-object${_sfx}.rib|${_c}/arealight-controls-samples-4${_sfx}.rib
+        EXPECT_EQUAL LABELS "arealight")
+endforeach()
+
+# AreaLight_Controls_Parse: tokens, errors, read-back, the writer round trip (moved out of the red block by T087)
+al_executable(test_arealight_controls_parse test_controls_parse.cpp)
+al_test(AreaLight_Controls_Parse test_arealight_controls_parse LABELS state)
+
 # ---- the test-local shaders ------------------------------------------------------------------------------------------------
 get_property(_al_shader_outputs GLOBAL PROPERTY AL_SHADER_OUTPUTS)
 add_custom_target(arealight_shaders ALL DEPENDS ${_al_shader_outputs})

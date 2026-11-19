@@ -26,6 +26,7 @@
 #define STATEVOCABULARY_H
 
 #include <cstdint>
+#include <cstring>
 
 // Must equal OR_DISPLAY_PARAM_FLOAT ... OR_DISPLAY_PARAM_INTEGER of dsply.h.
 enum class EDisplayParameterType : int {
@@ -51,5 +52,31 @@ enum class EAreaLightMode : uint8_t {
     Fast,
     Off
 };
+
+// The RIB spelling of a mode: "full", "fast" or "off"; nullptr for Unset (nothing to read back)
+inline const char *areaLightModeName(EAreaLightMode mode) {
+    switch (mode) {
+        case EAreaLightMode::Full: return "full";
+        case EAreaLightMode::Fast: return "fast";
+        case EAreaLightMode::Off: return "off";
+        case EAreaLightMode::Unset: break;
+    }
+    return nullptr;
+}
+
+// A mode from its RIB spelling; false (and `mode` untouched) for any other string. Unset has no spelling: it is the absence of the statement
+inline bool areaLightModeFromName(const char *name, EAreaLightMode &mode) {
+    if (name == nullptr)
+        return false;
+    if (strcmp(name, "full") == 0)
+        mode = EAreaLightMode::Full;
+    else if (strcmp(name, "fast") == 0)
+        mode = EAreaLightMode::Fast;
+    else if (strcmp(name, "off") == 0)
+        mode = EAreaLightMode::Off;
+    else
+        return false;
+    return true;
+}
 
 #endif

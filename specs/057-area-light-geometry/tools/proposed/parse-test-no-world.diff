@@ -1,0 +1,18 @@
+--- a/tests/arealight/test_controls_parse.cpp
++++ b/tests/arealight/test_controls_parse.cpp
+@@ -296,14 +296,12 @@
+     const std::string declared = dir + "/declared.rib", inlined = dir + "/inline.rib", written = dir + "/written.rib", writtenInline = dir + "/written-inline.rib",
+                       lights = dir + "/lights.rib", writtenLights = dir + "/written-lights.rib", again = dir + "/again.rib";
+ 
+-    // no WorldEnd: the Attribute is read back inside the world block
++    // no world block: RiEnd in an open one crashes the renderer session (the Attribute is set in the graphics state outside it)
+     writeFile(declared,
+               "Option \"arealight\" \"samples\" [4] \"mode\" [\"fast\"]\n"
+-              "WorldBegin\n"
+               "Attribute \"arealight\" \"samples\" [64] \"mode\" [\"off\"]\n");
+     writeFile(inlined,
+               "Option \"arealight\" \"int samples\" [4] \"string mode\" [\"fast\"]\n"
+-              "WorldBegin\n"
+               "Attribute \"arealight\" \"int samples\" [64] \"string mode\" [\"off\"]\n");
+     writeFile(lights,
+               "WorldBegin\n"

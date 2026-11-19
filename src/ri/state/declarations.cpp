@@ -76,6 +76,10 @@ void CDeclarations::acquire() {
     //
     ////////////////////////////////////////////////////////////////////////////////////////////
     // Define the options
+    // Option and Attribute "arealight" (spec 057): "mode" is declared below (a string), "samples" here, first, so that every declared
+    // variable keeps its number in the table (the declared-set reference gains one line). One table serves the renderer
+    // (CRenderer::initDeclarations forwards here) and CRiStandardSession, so a writer session reads the bare spelling too
+    declare(RI_SAMPLES, "int");
     declare(RI_ARCHIVE, "string");
     declare(RI_PROCEDURAL, "string");
     declare(RI_TEXTURE, "string");

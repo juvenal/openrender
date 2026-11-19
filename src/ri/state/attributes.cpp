@@ -647,6 +647,21 @@ int CAttributes::find(const char *name, const char *category, EVariableType &typ
         }
     }
 
+    // Attribute "arealight" (spec 057): the object level. A control that was never set is not found (it inherits the next level);
+    // only for the category itself, never for a nameless search
+    if ((category != NULL) && (strcmp(category, RI_AREALIGHT) == 0)) {
+        if (strcmp(name, RI_SAMPLES) == 0 && areaLightSamples > 0) {
+            type = TYPE_INTEGER;
+            value = &areaLightSamples;
+            return TRUE;
+        }
+        else if (strcmp(name, RI_MODE) == 0 && areaLightMode != EAreaLightMode::Unset) {
+            type = TYPE_STRING;
+            value = areaLightModeName(areaLightMode);
+            return TRUE;
+        }
+    }
+
     if ((category == NULL) || (strcmp(category, RI_PHOTON) == 0)) {
         if (strcmp(name, RI_GLOBALMAP) == 0) {
             type = TYPE_STRING;

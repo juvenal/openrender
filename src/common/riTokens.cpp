@@ -318,6 +318,10 @@ RtToken RI_SAMPLING = "sampling";
 RtToken RI_SAMPLER = "sampler";
 RtToken RI_SEED = "seed";
 
+// Area lights (spec 057)
+RtToken RI_AREALIGHT = "arealight";
+RtToken RI_SAMPLES = "samples";
+
 // Integrator (spec 030)
 RtToken RI_INTEGRATOR = "integrator";
 RtToken RI_CLASSIC = "classic";

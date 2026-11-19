@@ -1,0 +1,12 @@
+--- a/tests/arealight/test_controls_parse.cpp
++++ b/tests/arealight/test_controls_parse.cpp
+@@ -307,7 +307,8 @@
+               "WorldBegin\n"
+               "AreaLightSource \"arealight\" 1 \"intensity\" [50]\n"
+               "Polygon \"P\" [0 0 5  1 0 5  1 1 5  0 1 5]\n"
+-              "AreaLightSource \"null\" 2\n");
++              "AreaLightSource \"null\" 2\n"
++              "WorldEnd\n"); // the writer session is closed by RiEnd, which is refused inside an open world block ("Bad scope")
+ 
+     Settings expected;
+     expected.optionSamples = 4;

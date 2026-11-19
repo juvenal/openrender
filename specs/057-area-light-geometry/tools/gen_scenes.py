@@ -94,6 +94,32 @@ def body(light, light_params, emitter, receiver_shader, wall=None, emitter_extra
     return b
 
 
+RECEIVER_LEFT = [[-1, -1, 4], [0, -1, 4], [0, 1, 4], [-1, 1, 4]]     # x < 0: pixels with a negative pixel-centre x
+RECEIVER_RIGHT = [[0, -1, 4], [1, -1, 4], [1, 1, 4], [0, 1, 4]]      # x > 0
+
+
+def body_controls(options, light_attrs, receivers):
+    """The controls scenes (Phase 5): the shipped arealight over the quad probe geometry. `options`: Option lines (before WorldBegin);
+    `light_attrs`: Attribute lines inside the light's scope, before its AreaLightSource; `receivers`: [(attribute lines, polygon)],
+    each its own al_surface_matte block."""
+    b = list(options)
+    b += ["WorldBegin", "  AttributeBegin"]
+    b += ["    " + a for a in light_attrs]
+    b.append('    AreaLightSource "arealight" 1 "float intensity" [%g]' % pe.INTENSITY)
+    b.append('    Surface "constant"')
+    b.append("    " + poly(EMITTER))
+    b.append("  AttributeEnd")
+    b.append("  Illuminate 1 1")
+    for (attrs, polygon) in receivers:
+        b.append("  AttributeBegin")
+        b += ["    " + a for a in attrs]
+        b.append('    Surface "al_surface_matte"')
+        b.append("    " + poly(polygon))
+        b.append("  AttributeEnd")
+    b.append("WorldEnd")
+    return b
+
+
 def add_scene(name, hider, slo, comment, lines):
     if slo:
         # GitHub #126: a .slo surface whose only lighting call is illuminance(P) gathers no light. The light is the .slo under test, so
@@ -221,6 +247,72 @@ def main():
                    "The estimator contributes 0, never a negative or non-finite value."],
                   body("arealight", '"float intensity" [%g]' % pe.INTENSITY, EMITTER_BACK, "al_surface_matte"))
         add_probe("AreaLightProbe_Facing-emitter-raytrace%s_x3y3" % sfx, "arealight-probe-facing-emitter-raytrace" + sfx, 3, 3, 1e-6, [0.0, 0.0, 0.0])
+
+        # ---- the controls (Phase 5; FR-018 to FR-020): Option / Attribute "arealight" ------------------------------------------
+        def quad_rows(n):
+            rows = []
+            for (i, j) in pe.PIXELS:
+                x, y = pe.pixel_center(i, j)
+                e, s1 = pe.pixel_value("arealight", pe.EMITTER, [x, y, pe.RECEIVER_Z], pe.RECEIVER_N, pe.INTENSITY)
+                rows.append((i, j, e, s1, pe.tolerance(s1, n)))
+            return rows
+
+        def rows_comment(rows, n):
+            return ["  pixel (%d, %d): expected %.9f, tolerance %.9f (4 sigma_1 / sqrt(%d), sigma_1 = %.9f)" % (i, j, e, tol, n, s1) for (i, j, e, s1, tol) in rows]
+
+        full = [([], RECEIVER)]
+        for tag, n, options in (("samples-4", 4, ['Option "arealight" "int samples" [4]']),
+                                ("samples-64", 64, ['Option "arealight" "int samples" [64]'])):
+            name = "arealight-controls-%s%s" % (tag, sfx)
+            rows = quad_rows(n)
+            add_scene(name, "raytrace", slo,
+                      ["AreaLight_Controls_Render (%s): the quad probe scene with %s. The expected value does not depend on n; the tolerance" % (tag, options[0]),
+                       "is 4 sigma_1 / sqrt(n), so the 64 sample image passes a tolerance 4 times tighter than the 4 sample one:"] + rows_comment(rows, n),
+                      body_controls(options, [], full))
+            for (i, j, e, s1, tol) in rows:
+                add_probe("AreaLight_Controls_Render_%s%s_x%dy%d" % (tag, sfx, i, j), name, i, j, tol, [e])
+        # mode off on one receiver of two: the left half (negative pixel-centre x) is dark, the right half reads its no-control value
+        rows = quad_rows(pe.SAMPLES)
+        name = "arealight-controls-off-receiver" + sfx
+        add_scene(name, "raytrace", slo,
+                  ["AreaLight_Controls_Render (off on one receiver): two receivers, the left one (x < 0) carries Attribute \"arealight\" \"string mode\" [\"off\"]:",
+                   "its pixels are dark; the right one (x > 0) reads its no-control value (the default n = 16):"] + rows_comment(rows, pe.SAMPLES),
+                  body_controls([], [], [(['Attribute "arealight" "string mode" ["off"]'], RECEIVER_LEFT), ([], RECEIVER_RIGHT)]))
+        for (i, j, e, s1, tol) in rows:
+            if pe.pixel_center(i, j)[0] < 0:
+                add_probe("AreaLight_Controls_Render_off-receiver-dark%s_x%dy%d" % (sfx, i, j), name, i, j, 1e-6, [0.0])
+            else:
+                add_probe("AreaLight_Controls_Render_off-receiver-lit%s_x%dy%d" % (sfx, i, j), name, i, j, tol, [e])
+        # off at the light level wins over a receiver that asks for full
+        name = "arealight-controls-light-off-wins" + sfx
+        add_scene(name, "raytrace", slo,
+                  ["AreaLight_Controls_Render (off at the light level wins): the light's scope has mode off, the receiver asks for mode full:",
+                   "off at any level turns the light off for that receiver: every pixel is dark."],
+                  body_controls([], ['Attribute "arealight" "string mode" ["off"]'], [(['Attribute "arealight" "string mode" ["full"]'], RECEIVER)]))
+        for (i, j) in pe.PIXELS:
+            add_probe("AreaLight_Controls_Render_light-off-wins%s_x%dy%d" % (sfx, i, j), name, i, j, 1e-6, [0.0])
+        # precedence and fast: scenes compared byte for byte with a twin (the draws depend on the resolved count only)
+        add_scene("arealight-controls-precedence-object" + sfx, "raytrace", slo,
+                  ["AreaLight_Controls_Render (object over light over scene): Option samples 4, the light's scope samples 8, the receiver samples 64:",
+                   "the image is byte-identical to arealight-controls-samples-64 (Option samples 64)."],
+                  body_controls(['Option "arealight" "int samples" [4]'], ['Attribute "arealight" "int samples" [8]'], [(['Attribute "arealight" "int samples" [64]'], RECEIVER)]))
+        add_scene("arealight-controls-precedence-light" + sfx, "raytrace", slo,
+                  ["AreaLight_Controls_Render (light over scene): Option samples 4, the light's scope samples 64, the receiver sets nothing:",
+                   "the image is byte-identical to arealight-controls-samples-64."],
+                  body_controls(['Option "arealight" "int samples" [4]'], ['Attribute "arealight" "int samples" [64]'], full))
+        rows = quad_rows(4)
+        name = "arealight-controls-fast-16" + sfx
+        add_scene(name, "raytrace", slo,
+                  ["AreaLight_Controls_Render (fast at n = 16): Option samples 16, mode fast: max(1, ceil(16 / 4)) = 4 samples, each with its occlusion ray.",
+                   "The expected value is the full-mode one; the noise is that of 4 samples (tolerance 4 sigma_1 / sqrt(4)); the image is byte-identical to"
+                   " arealight-controls-samples-4:"] + rows_comment(rows, 4),
+                  body_controls(['Option "arealight" "int samples" [16] "string mode" ["fast"]'], [], full))
+        for (i, j, e, s1, tol) in rows:
+            add_probe("AreaLight_Controls_Render_fast-16%s_x%dy%d" % (sfx, i, j), name, i, j, tol, [e])
+        add_scene("arealight-controls-fast-object" + sfx, "raytrace", slo,
+                  ["AreaLight_Controls_Render (mode at the object level, samples at the scene level): Option samples 16, the receiver mode fast:",
+                   "the two controls resolve independently; the image is byte-identical to arealight-controls-samples-4."],
+                  body_controls(['Option "arealight" "int samples" [16]'], [], [(['Attribute "arealight" "string mode" ["fast"]'], RECEIVER)]))
 
     # ---- AreaLightBinding_Illuminate (FR-005): h 1, h 0, and the scene without any AreaLightSource -------------------------
     e, s1 = pe.pixel_value("arealight", pe.EMITTER, [pe.pixel_center(3, 3)[0], pe.pixel_center(3, 3)[1], pe.RECEIVER_Z], pe.RECEIVER_N, pe.INTENSITY)

@@ -2216,6 +2216,39 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
             }
         }
     }
+    else if (strcmp(name, RI_AREALIGHT) == 0) {
+        // Option "arealight" (spec 057, FR-018 to FR-020): the scene level sample count and mode of the area lights. A value that is
+        // out of range is reported through CODE_RANGE, naming it, and the setting is left as it was; an unknown token is CODE_BADTOKEN.
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_SAMPLES) == 0) {
+                const int val = ((const int *)params[i])[0];
+                if (val >= 1)
+                    options->areaLightSamples = val;
+                else
+                    error(CODE_RANGE, "Option \"%s\" \"%s\" must be at least 1, not %d; keeping %d\n", name, tokens[i], val, options->areaLightSamples);
+            }
+            else if (strcmp(tokens[i], RI_MODE) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                EAreaLightMode mode;
+                if (areaLightModeFromName(val, mode))
+                    options->areaLightMode = mode;
+                else
+                    error(CODE_RANGE, "Option \"%s\" \"%s\": unknown mode \"%s\" (valid: full, fast, off); keeping \"%s\"\n", name, tokens[i], val,
+                          areaLightModeName(options->areaLightMode));
+            }
+            else {
+                // An inline declaration ("int samples") is stripped and the statement is read again; a token that is already
+                // bare is unknown here (reading it again would never end)
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE && strcmp(var.name, tokens[i]) != 0) {
+                    RiOption(name, var.name, params[i], RI_NULL);
+                }
+                else {
+                    error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+                }
+            }
+        }
+    }
     else {
         error(CODE_BADTOKEN, "Unknown option: \"%s\"\n", name);
     }
@@ -3798,6 +3831,37 @@ void CRendererContext::RiAttributeV(const char *name, int n, const char *tokens[
                 else {
                     CVariable var;
                     if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
+                        RiAttribute(name, var.name, params[i], RI_NULL);
+                    }
+                    else {
+                        error(CODE_BADTOKEN, "Unknown %s attribute: \"%s\"\n", name, tokens[i]);
+                    }
+                }
+            }
+        }
+        else if (strcmp(name, RI_AREALIGHT) == 0) {
+            // Attribute "arealight" (spec 057, FR-018 to FR-020): the object level count and mode, and (at an AreaLightSource) the
+            // light level. Same errors as the option: CODE_RANGE naming the value and the setting left alone, CODE_BADTOKEN for a token
+            for (i = 0; i < n; i++) {
+                if (strcmp(tokens[i], RI_SAMPLES) == 0) {
+                    const int val = ((const int *)params[i])[0];
+                    if (val >= 1)
+                        attributes->areaLightSamples = val;
+                    else
+                        error(CODE_RANGE, "Attribute \"%s\" \"%s\" must be at least 1, not %d; keeping the current setting\n", name, tokens[i], val);
+                }
+                else if (strcmp(tokens[i], RI_MODE) == 0) {
+                    const char *val = ((const char **)params[i])[0];
+                    EAreaLightMode mode;
+                    if (areaLightModeFromName(val, mode))
+                        attributes->areaLightMode = mode;
+                    else
+                        error(CODE_RANGE, "Attribute \"%s\" \"%s\": unknown mode \"%s\" (valid: full, fast, off); keeping the current setting\n", name, tokens[i], val);
+                }
+                else {
+                    // As in RiOptionV: strip an inline declaration and read again; a bare unknown token is an error
+                    CVariable var;
+                    if (parseVariable(&var, NULL, tokens[i]) == TRUE && strcmp(var.name, tokens[i]) != 0) {
                         RiAttribute(name, var.name, params[i], RI_NULL);
                     }
                     else {
