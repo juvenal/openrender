@@ -711,8 +711,8 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
     CShaderInstance *exteriorShader = attachVolume ? shaderInstanceOf(cAttr->exterior()) : nullptr;
 
     // Set the ray label we're tracing
-    if ((exteriorBundle.label = scratch->traceParams.label) == NULL)
-        exteriorBundle.label = rayLabelTransmission;
+    // A shader can in principle hand a NULL string as "label"; it means the empty label, as the default does.
+    exteriorBundle.label = scratch->traceParams.label != NULL ? scratch->traceParams.label : "";
     interiorBundle.label = exteriorBundle.label;
 
     // Allocate temp memory
@@ -884,14 +884,9 @@ void CShadingContext::traceReflection(int numRays, CTraceLocation *rays, int pro
     CShaderInstance *exteriorShader = attachVolume ? shaderInstanceOf(cAttr->exterior()) : nullptr;
 
     // Set the ray label
-    if (scratch->traceParams.label == NULL) {
-        exteriorBundle.label = rayLabelTransmission;
-        interiorBundle.label = rayLabelTransmission;
-    }
-    else {
-        exteriorBundle.label = scratch->traceParams.label;
-        interiorBundle.label = scratch->traceParams.label;
-    }
+    // A shader can in principle hand a NULL string as "label"; it means the empty label, as the default does.
+    exteriorBundle.label = scratch->traceParams.label != NULL ? scratch->traceParams.label : "";
+    interiorBundle.label = exteriorBundle.label;
 
     // Allocate temp memory
     cExteriorRay = exteriorRayBase = (CTraceRay *)ralloc(shootStep * sizeof(CTraceRay), threadMemory);

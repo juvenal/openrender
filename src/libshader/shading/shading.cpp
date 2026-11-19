@@ -64,8 +64,6 @@ openrender::shading::IIrradianceSampler *CShadingContext::s_defaultIrradianceSam
 
 // Predefined ray labels used during raytracing
 const char *rayLabelPrimary = "camera";
-const char *rayLabelTrace = "trace";
-const char *rayLabelTransmission = "transmission";
 const char *rayLabelGather = "gather";
 
 ///////////////////////////////////////////////////////////////////////
