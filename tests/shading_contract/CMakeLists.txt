@@ -36,7 +36,7 @@ set(_contract_shader_names
     cm_attribute cm_option cm_rendererinfo cm_surface cm_displacement cm_atmosphere cm_incident cm_opposite
     cm_lightsource cm_lightsource_noloop cm_producer_surface cm_producer_displacement cm_producer_volume cm_producer_light
     cm_mm_attribute cm_mm_option cm_mm_rendererinfo cm_mm_real cm_nullobject
-    cm_producer_light_big cm_lightsource_big
+    cm_producer_light_big cm_lightsource_big cm_str_far cm_producer_light_str cm_lightsource_str
     cm_mm_msg_surface cm_mm_msg_displacement cm_mm_msg_atmosphere cm_mm_msg_incident cm_mm_msg_opposite
     cm_mm_real_msg_surface cm_mm_real_msg_displacement cm_mm_real_msg_atmosphere cm_mm_real_msg_incident cm_mm_real_msg_opposite cm_nullobject_msg
     cm_matrices cm_trace cm_transmission cm_visibility cm_gather cm_occlusion cm_indirect cm_env cm_shadow
@@ -165,7 +165,7 @@ if(OPENRENDER_SHADING_CONTRACT_TESTS)
     add_dependencies(test_shading_contract_standalone shading_contract_replay_shaders)
 
     add_executable(test_shading_contract_rendered
-        rendered_main.cpp case_real_answers.cpp case_gather_requests.cpp case_canned_trace.cpp case_no_tracer.cpp case_double_globals.cpp case_null_object.cpp case_type_mismatch_real_message.cpp case_lightsource_no_loop_real.cpp case_null_object_messages.cpp case_lightsource_oversized.cpp)
+        rendered_main.cpp case_real_answers.cpp case_gather_requests.cpp case_canned_trace.cpp case_no_tracer.cpp case_double_globals.cpp case_null_object.cpp case_type_mismatch_real_message.cpp case_lightsource_no_loop_real.cpp case_null_object_messages.cpp case_lightsource_oversized.cpp case_string_message_far.cpp)
     target_compile_features(test_shading_contract_rendered PRIVATE cxx_std_20)
     target_compile_definitions(test_shading_contract_rendered PRIVATE ${SHADING_CONTRACT_PROGRAM_DEFS})
     target_include_directories(test_shading_contract_rendered PRIVATE ${SHADING_CONTRACT_INCLUDES})
@@ -274,6 +274,8 @@ add_contract_test(ShadingContract_MessagesJit test_shading_contract_standalone M
 add_contract_test(ShadingContract_NoServices_Message test_shading_contract_standalone NoServices_Message ENABLED)
 add_contract_test(ShadingContract_RealAnswersInterp_Messages test_shading_contract_rendered RealAnswersInterp_Messages ENABLED)
 add_contract_test(ShadingContract_RealAnswersJit_Messages test_shading_contract_rendered RealAnswersJit_Messages JIT ENABLED)
+# GitHub #176: a producer's string at an address with other high 32 bits reaches the caller whole (interpreter)
+add_contract_test(ShadingContract_StringMessageFarPointer test_shading_contract_rendered StringMessageFarInterp ENABLED)
 add_contract_test(ShadingContract_TypeMismatch_MessageInterp test_shading_contract_standalone TypeMismatch_MessageInterp ENABLED)
 add_contract_test(ShadingContract_TypeMismatch_MessageJit test_shading_contract_standalone TypeMismatch_MessageJit JIT ENABLED)
 add_contract_test(ShadingContract_LightsourceNoLoopInterp test_shading_contract_standalone LightsourceNoLoopInterp ENABLED)

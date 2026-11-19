@@ -59,9 +59,12 @@ int main(int argc, char **argv) {
     if (strcmp(which, "DoubleGlobalsMatchRenderer") == 0)
         return caseDoubleGlobalsMatchRenderer();
 
+    if (strcmp(which, "StringMessageFarInterp") == 0)
+        return caseStringMessageFar();
+
     fprintf(stderr,
             "usage: %s RealAnswers{Interp,Jit}_{Matrices,Attributes,Messages}|GatherRequests{Interp,Jit}|"
-            "CannedTrace{Interp,Jit}|NullObject_Attributes{Interp,Jit}|TypeMismatchReal_Message{Interp,Jit}|LightsourceNoLoopReal{Interp,Jit}|NullObject_Messages{Interp,Jit}|LightsourceOversizedJit|NoTracer|DoubleGlobalsMatchRenderer\n",
+            "CannedTrace{Interp,Jit}|NullObject_Attributes{Interp,Jit}|TypeMismatchReal_Message{Interp,Jit}|LightsourceNoLoopReal{Interp,Jit}|NullObject_Messages{Interp,Jit}|LightsourceOversizedJit|StringMessageFarInterp|NoTracer|DoubleGlobalsMatchRenderer\n",
             argv[0]);
     return 2;
 }
