@@ -268,7 +268,7 @@ a { color: var(--accent); }
   <header class="hero">
     <div class="hero-grid">
       <div>
-        <div class="eyebrow">openRender · architecture brief · 18 November 2026</div>
+        <div class="eyebrow">openRender · architecture brief · 19 November 2026</div>
         <h1>One renderer, <em>ten clean domains</em>.</h1>
         <p class="lede">openRender is a RenderMan-compliant renderer with a twenty-year Pixie lineage. Its revamp splits a tightly knotted codebase into independent, swappable parts. The goal is a modern, physically based renderer that still renders every classic RenderMan scene the way it always has.</p>
       </div>
@@ -281,7 +281,7 @@ a { color: var(--accent); }
     <div class="stats">
       <div class="stat"><b>79%</b><span>of known boundary violations removed (686 → 147 forbidden dependency edges)</span></div>
       <div class="stat"><b>12 → 0</b><span>symbols the shading library borrows from the core at load time; it now links on its own</span></div>
-      <div class="stat"><b>17 / 36</b><span>roadmap specs merged; deterministic global illumination (040) is the latest</span></div>
+      <div class="stat"><b>18 / 36</b><span>roadmap specs merged; the OpenImageIO image backend (048) is the latest</span></div>
       <div class="stat"><b>0</b><span>images changed by accident. Five specs changed images on purpose: 027, 039, 040, 056, and 031's depth-of-field fix.</span></div>
     </div>
   </header>
@@ -377,7 +377,7 @@ a { color: var(--accent); }
       <!-- NOW -->
       <article class="snap">
         <header>
-          <span class="when">Now · master, 18 November 2026</span>
+          <span class="when">Now · master, 19 November 2026</span>
           <h3>Hiders and shading apart, the core next</h3>
         </header>
         <div class="diagram">
@@ -453,7 +453,7 @@ a { color: var(--accent); }
           </svg>
         </div>
         <div class="caption">
-          <p>Most of the boundary work is done. The parser, the graphics state, texturing, displays and plug-ins stand on their own, and shading is now a self-contained library (<span class="mono">libRSLRuntime</span>) that reaches the renderer only through one versioned interface. Spec 029 cut the knot between hiders and shading: each hider now owns a shading context instead of being one. Spec 032 made the GI caches passive storage in texturing, and spec 056 gave every surface working volume shaders. Spec 030 put hiders and integrators behind registries, so the core no longer names a hider. Spec 031 gave geometry its own interfaces, which the hiders implement, and one lens model shared by Reyes and the raytracer; geometry has three core references left. Spec 033 moved shader loading, caching and the choice of format into shading, behind pluggable backends, so the core no longer names the interpreter or the JIT. Spec 040 made global illumination deterministic: the photon map and the irradiance cache come out the same at any thread or process count. What remains is mostly the hiders' direct reads of the renderer core.</p>
+          <p>Most of the boundary work is done. The parser, the graphics state, texturing, displays and plug-ins stand on their own, and shading is now a self-contained library (<span class="mono">libRSLRuntime</span>) that reaches the renderer only through one versioned interface. Spec 029 cut the knot between hiders and shading: each hider now owns a shading context instead of being one. Spec 032 made the GI caches passive storage in texturing, and spec 056 gave every surface working volume shaders. Spec 030 put hiders and integrators behind registries, so the core no longer names a hider. Spec 031 gave geometry its own interfaces, which the hiders implement, and one lens model shared by Reyes and the raytracer; geometry has three core references left. Spec 033 moved shader loading, caching and the choice of format into shading, behind pluggable backends, so the core no longer names the interpreter or the JIT. Spec 040 made global illumination deterministic: the photon map and the irradiance cache come out the same at any thread or process count. Spec 048 added OpenImageIO as an optional image backend in <span class="mono">libRIBImageIO</span>, the first utility library: only texturing and the displays may use it, and it is not an eleventh domain. What remains is mostly the hiders' direct reads of the renderer core.</p>
         </div>
       </article>
 
@@ -613,7 +613,7 @@ a { color: var(--accent); }
         </div>
       </div>
       <div style="min-width:0">
-        <h3 style="margin-bottom:14px">Seventeen specs merged</h3>
+        <h3 style="margin-bottom:14px">Eighteen specs merged</h3>
         <div class="done-list">
           <div><span class="n">022</span><span><b>Guardrails.</b> A build check enforces the domain rules and tracks every known exception.</span></div>
           <div><span class="n">023</span><span><b>Common floor.</b> Diagnostics, memory and vocabulary move into one shared base library.</span></div>
@@ -631,6 +631,7 @@ a { color: var(--accent); }
           <div><span class="n">038</span><span><b>Scene interface.</b> The RIB parser and writer build without the renderer core.</span></div>
           <div><span class="n">039</span><span><b>Sampling.</b> One counter-based sampler. Non-GI renders are bit-identical at any thread count.</span></div>
           <div><span class="n">040</span><span><b>Deterministic GI.</b> The photon map and the irradiance cache, and the files they write, are the same at any thread or process count.</span></div>
+          <div><span class="n">048</span><span><b>Image I/O.</b> An optional OpenImageIO backend decodes, bakes and displays images from the first utility library; the legacy paths stay byte-identical and selectable.</span></div>
           <div><span class="n">056</span><span><b>Volume shaders.</b> Interior and Exterior shaders act on every traced ray, for every surface, not only inside CSG.</span></div>
         </div>
       </div>
@@ -666,7 +667,7 @@ a { color: var(--accent); }
           <li><b>032 → 040 → 053</b> GI caches split out (merged), made deterministic (merged), then extended to new materials</li>
           <li><b>034</b> shader networks: pattern nodes wired into materials</li>
           <li><b>043</b> shader compiler as a versioned library, needed before RSL 2.0</li>
-          <li><b>048</b> OpenImageIO as an image backend, ahead of OSL</li>
+          <li><b>048</b> OpenImageIO as an image backend, ahead of OSL (merged)</li>
         </ul>
       </div>
       <div>
@@ -731,8 +732,8 @@ a { color: var(--accent); }
 <footer>
   <div class="wrap">
     <div>
-      <p><b>Sources.</b> The constitution's domain rules (Principle VIII). The domain-boundary registry and its build check (allowlist and core-usage baseline at spec 022's merge compared with master <span class="mono">d62c6478</span>). The roadmap plan for specs 022–057. The render-architecture decision record (D1–D30). DEVNOTES. The "before" snapshot describes the tree before spec 021 began (early October 2026), which had no automated boundary check. Its first measurement, at spec 022, is used as the baseline.</p>
-      <p><b>Definitions.</b> A "violation" counts as one forbidden dependency edge (an include or a link-time symbol), so one design flaw can account for many edges. "Merged" means on master as of 18 November 2026.</p>
+      <p><b>Sources.</b> The constitution's domain rules (Principle VIII). The domain-boundary registry and its build check (allowlist and core-usage baseline at spec 022's merge compared with master <span class="mono">cd70617e</span>). The roadmap plan for specs 022–057. The render-architecture decision record (D1–D30). DEVNOTES. The "before" snapshot describes the tree before spec 021 began (early October 2026), which had no automated boundary check. Its first measurement, at spec 022, is used as the baseline.</p>
+      <p><b>Definitions.</b> A "violation" counts as one forbidden dependency edge (an include or a link-time symbol), so one design flaw can account for many edges. "Merged" means on master as of 19 November 2026.</p>
     </div>
   </div>
 </footer>
