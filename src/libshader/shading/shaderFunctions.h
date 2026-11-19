@@ -1233,9 +1233,10 @@ DEFFUNC(SpecularBRDF, "specularbrdf", "c=vnvf", SPECULARBRDFEXPR_PRE, SPECULARBR
     *res = found;      \
     *op2 = *src;
 
+// A string is a char *, not a float: copying one float kept the destination's high 32 bits (GitHub #176)
 #define PARAMETEREXPRS \
     *res = found;      \
-    *op2 = *src;
+    *(const char **)op2 = *(const char *const *)src;
 
 #define PARAMETEREXPRV \
     *res = found;      \

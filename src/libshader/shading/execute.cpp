@@ -85,27 +85,28 @@ void debugFunction(float *);
             int globNum = 0;                                                                                                                                      \
             CVariable *cVariable;                                                                                                                                 \
             for (cVariable = cInstance->parameters; cVariable != NULL; cVariable = cVariable->next) {                                                             \
+                const size_t itemSize = (cVariable->type == TYPE_STRING) ? sizeof(char *) : sizeof(float); /* a string is a char *, not a float (GitHub #176) */  \
                 if (cVariable->storage == STORAGE_GLOBAL) {                                                                                                       \
                     /* globals come from the global varyings */                                                                                                   \
                     if ((cVariable->container == CONTAINER_UNIFORM) || (cVariable->container == CONTAINER_CONSTANT)) {                                            \
-                        cLight->savedState[2 + globNum] = (float *)ralloc(sizeof(float) * cVariable->numFloats, threadMemory);                                    \
-                        memcpy(cLight->savedState[2 + globNum], varying[cVariable->entry], sizeof(float) * cVariable->numFloats);                                 \
+                        cLight->savedState[2 + globNum] = (float *)ralloc(itemSize * cVariable->numFloats, threadMemory);                                    \
+                        memcpy(cLight->savedState[2 + globNum], varying[cVariable->entry], itemSize * cVariable->numFloats);                                 \
                     }                                                                                                                                             \
                     else {                                                                                                                                        \
-                        cLight->savedState[2 + globNum] = (float *)ralloc(sizeof(float) * cVariable->numFloats * numVertices, threadMemory);                      \
-                        memcpy(cLight->savedState[2 + globNum], varying[cVariable->entry], sizeof(float) * cVariable->numFloats * numVertices);                   \
+                        cLight->savedState[2 + globNum] = (float *)ralloc(itemSize * cVariable->numFloats * numVertices, threadMemory);                      \
+                        memcpy(cLight->savedState[2 + globNum], varying[cVariable->entry], itemSize * cVariable->numFloats * numVertices);                   \
                     }                                                                                                                                             \
                     globNum++;                                                                                                                                    \
                 }                                                                                                                                                 \
                 else if (cVariable->storage == STORAGE_MUTABLEPARAMETER) {                                                                                        \
                     /* mutable parameters come from the shader varyings */                                                                                        \
                     if ((cVariable->container == CONTAINER_UNIFORM) || (cVariable->container == CONTAINER_CONSTANT)) {                                            \
-                        cLight->savedState[2 + globNum] = (float *)ralloc(sizeof(float) * cVariable->numFloats, threadMemory);                                    \
-                        memcpy(cLight->savedState[2 + globNum], stuff[SL_VARYING_OPERAND][cVariable->entry], sizeof(float) * cVariable->numFloats);               \
+                        cLight->savedState[2 + globNum] = (float *)ralloc(itemSize * cVariable->numFloats, threadMemory);                                    \
+                        memcpy(cLight->savedState[2 + globNum], stuff[SL_VARYING_OPERAND][cVariable->entry], itemSize * cVariable->numFloats);               \
                     }                                                                                                                                             \
                     else {                                                                                                                                        \
-                        cLight->savedState[2 + globNum] = (float *)ralloc(sizeof(float) * cVariable->numFloats * numVertices, threadMemory);                      \
-                        memcpy(cLight->savedState[2 + globNum], stuff[SL_VARYING_OPERAND][cVariable->entry], sizeof(float) * cVariable->numFloats * numVertices); \
+                        cLight->savedState[2 + globNum] = (float *)ralloc(itemSize * cVariable->numFloats * numVertices, threadMemory);                      \
+                        memcpy(cLight->savedState[2 + globNum], stuff[SL_VARYING_OPERAND][cVariable->entry], itemSize * cVariable->numFloats * numVertices); \
                     }                                                                                                                                             \
                     globNum++;                                                                                                                                    \
                 }                                                                                                                                                 \

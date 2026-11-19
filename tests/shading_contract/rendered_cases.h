@@ -17,6 +17,7 @@ int caseTypeMismatchRealMessage(bool jit);         // case_type_mismatch_real_me
 int caseLightsourceNoLoopReal(bool jit);           // case_lightsource_no_loop_real.cpp      US3 AS6, FR-028, SC-014
 int caseLightsourceOversized(bool jit);            // case_lightsource_oversized.cpp         D10: op_lightsource_f must not overrun its scratch
 int caseNullObjectMessages(bool jit);              // case_null_object_messages.cpp          US3 AS5, FR-027, SC-014
+int caseStringMessageFar();                        // case_string_message_far.cpp           GitHub #176: a producer string at a far address arrives whole
 int caseDoubleGlobalsMatchRenderer();              // case_double_globals.cpp   R10
 
 #endif
