@@ -108,11 +108,15 @@ In openRender, `SolidBegin`/`SolidEnd` does not save or restore the graphics sta
 
 **Fix:** the body of every `SolidBegin "primitive"` block that changes the transform or an attribute is wrapped in `AttributeBegin`/`AttributeEnd`, so each leaf's transform and colour apply to that leaf only. (This is the same pattern openRender's own CSG test scenes use with `TransformBegin`; `AttributeBegin` is used here because the leaves also set `Color`.)
 
-### Known renderer issue: CSG solids under motion blur (05_mblur, 13)
+### Renderer bug, now corrected: CSG solids under motion blur (05_mblur, 13)
 
-Tracked as GitHub issue #193.
+GitHub issue #193.
 
-`05_csg_planetary_gear_chronometer_mblur.rib` and `13_grand_showcase_atelier_dof_mblur.rib` have every fix above, but they do not render correctly yet. openRender currently renders any CSG solid wrong when it has transform motion blur (`MotionBegin` around its transform with `Shutter 0 1`): the solid is drawn away from its place as a faint smear or disappears, and with the Reyes hiders some solids also fill the log with `Too many eye splits` warnings (71,558 for 05_mblur, all from its balance wheel). This happens even for a single `SolidBegin "primitive"` around one torus. The same solids render correctly without motion, as do primitives with motion outside a solid. The RIBs are kept as they are so that they render correctly once the renderer is fixed. In 05_mblur all three moving solids (the two gears and the balance wheel) are affected. In 13 the spinning CSG chronometer cube at the centre of the frame is affected, while the canopy, the monolith, the Blobby plume and the depth of field render correctly.
+`05_csg_planetary_gear_chronometer_mblur.rib` and `13_grand_showcase_atelier_dof_mblur.rib` had every fix above but still did not render correctly, because of a bug in openRender rather than in the RIBs. Any CSG solid with transform motion blur (`MotionBegin` around its transform with `Shutter 0 1`) was drawn away from its place as a faint smear or disappeared, and with the Reyes hiders some solids also filled the log with `Too many eye splits` warnings (71,558 for 05_mblur, all from its balance wheel). It happened even for a single `SolidBegin "primitive"` around one torus, while the same solids rendered correctly without motion, as did primitives with motion outside a solid. In 05_mblur all three moving solids (the two gears and the balance wheel) were affected; in 13, the spinning CSG chronometer cube at the centre of the frame.
+
+**Cause:** at `SolidBegin` openRender records the current transform and later moves every leaf of the solid back into that frame by applying its inverse. A transform under motion holds one matrix per motion key, but the inversion (`CXform::invert()`, `src/ri/state/xform.cpp`) inverted only the shutter-open key. At shutter close the outer transform was therefore applied twice instead of cancelled, so the leaves moved somewhere else during the exposure. The bound of the solid's operands had the same defect: `CXform::invTransformBound()` used the forward matrix for the shutter-close key.
+
+**Fix:** in the renderer, not in the RIBs: both functions now handle every motion key. The two scenes are unchanged and render as intended.
 
 ### Not changed: dark `metal` surfaces (05, 07, 11, 03's copper wing)
 

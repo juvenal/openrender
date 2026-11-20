@@ -57,5 +57,9 @@ add_csg_unit_test(CSG_ImpliedCaps         test_implied_caps.cpp)
 add_csg_unit_test(CSG_CapturePath         test_capture_path.cpp)
 add_csg_unit_test(CSG_LazyResolution      test_lazy_resolution.cpp)
 
+# A solid under transform motion (GitHub #193): CXform::invert and invTransformBound over
+# every motion key, and finalize()'s rebase
+add_csg_unit_test(CSG_XformMotion         test_xform_motion.cpp)
+
 # Procedural operands (spec 021, Phase 5: T062)
 add_csg_unit_test(CSG_ProceduralOperand   test_procedural_operand.cpp)
