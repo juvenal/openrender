@@ -313,6 +313,10 @@ RtToken RI_PROGRESS = "progress";
 RtToken RI_TEXTURECACHEENABLE = "enable";
 RtToken RI_TEXTURECACHEDIRECTORY = "directory";
 
+// Image I/O option (spec 048)
+RtToken RI_IMAGEIO = "imageio";
+RtToken RI_BACKEND = "backend";
+
 // Sampling options (spec 039)
 RtToken RI_SAMPLING = "sampling";
 RtToken RI_SAMPLER = "sampler";

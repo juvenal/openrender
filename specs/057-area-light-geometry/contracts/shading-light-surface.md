@@ -2,14 +2,14 @@
 
 **Requirements**: FR-011-FR-017, FR-023, FR-025, FR-028; SC-002, SC-004, SC-008; US3, US4, US8.
 **Domains**: Shading (owns the interfaces and the execution), Hiders (implement them), Geometry (gate, contracts/area-sampling.md).
-**Files**: new `src/libshader/shading/areaLightSampler.h`; `tracer.h` (`occluded`), `rendererServices.h` (version 2.4.0; 2.5.0 after the 033 sync, plan.md D-10),
+**Files**: new `src/libshader/shading/areaLightSampler.h`; `tracer.h` (`occluded`), `rendererServices.h` (version 2.6.0, renumbered from 2.4.0 at the 033/040 sync, plan.md D-10),
 `shading.{h,cpp}` (`iterateLights`, `setAreaLightSampler`), `src/ri/hiders/hider.{h,cpp}`, new `src/ri/hiders/areaLights.cpp`,
 `src/ri/hiders/trace.cpp` (`occluded`), `src/ri/hiders/photon.cpp`, `src/common/sampling.h` (call sites).
 
 ## `IAreaLightSampler` (Shading-owned, implemented by `CHider`)
 
 ```cpp
-// libshader/shading/areaLightSampler.h. Version: kRendererServicesVersion (2.4.0 on this branch; 2.5.0 after the 033 sync).
+// libshader/shading/areaLightSampler.h. Version: kRendererServicesVersion (2.6.0, written as 2.4.0 on this branch).
 namespace openrender::shading {
     enum class AreaLightMode : uint8_t { Unset, Full, Fast, Off };   // same values as the state vocabulary's
 
@@ -38,7 +38,7 @@ namespace openrender::shading {
 ```
 
 `CShadingContext::setAreaLightSampler(IAreaLightSampler *)` (with `areaLightSampler()` and a private pointer member beside
-`setTracer()`'s, in `shading.h`; approved with the interface, services 2.4.0) is called by `CHider` at the start of its rendering loop,
+`setTracer()`'s, in `shading.h`; approved with the interface, services 2.6.0) is called by `CHider` at the start of its rendering loop,
 **only when the frame has a bound light** (`emitterRegistry().numLights() > 0`; the registry is complete by then, the
 world block being over); otherwise the pointer stays null and `iterateLights` pays one null test per light, so classic-only
 frames keep their cost (the performance goal of plan.md).
@@ -49,7 +49,7 @@ light; the contract double implements both members so the bound path is testable
 `set->sample(u1, u2)` per point, then grouping the points by leaf and calling the leaf's `sample()` and `interpolate()` on
 a scratch varying array with no shader locals bound (the ray-hit evaluation of `CSurface::shade`, without shading).
 
-## `ITracer::occluded` (2.4.0)
+## `ITracer::occluded` (2.6.0)
 
 ```cpp
 // tracer.h, added to ITracer
@@ -127,5 +127,5 @@ emit exactly as before. The bound light's emitted power is scaled by `1/pdfA`. `
 
 ## Version history entry (`rendererServices.h`)
 
-`2.4.0 (spec 057)` (renumbered `2.5.0` at the 033 sync, after 033's `2.4.0` entry): `ITracer::occluded` (with a default) and `IAreaLightSampler`, installed on the context by the hider that
+`2.6.0 (spec 057)` (written as `2.4.0`, renumbered at the 033/040 sync, above 040's `2.5.0` and 033's `2.4.0` entries): `ITracer::occluded` (with a default) and `IAreaLightSampler`, installed on the context by the hider that
 owns it. Non-breaking for implementers and doubles.

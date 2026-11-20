@@ -114,7 +114,7 @@ namespace openrender::shading {
             // the segment's volume shader on `context` (spec 056), in a further state at the segment's depth.
             virtual void traceBundle(CShadingContext &context, CRayBundle *bundle) = 0;
 
-            // Trace one shadow probe and say whether something blocks it. Added in 2.4.0 (spec 057).
+            // Trace one shadow probe and say whether something blocks it. Added in 2.6.0 (spec 057).
             // In: the inputs of traceRay; the caller sets flags to ATTRIBUTES_FLAGS_TRANSMISSION_VISIBLE, t to the distance
             //   to the target minus the bias, and tmin to the bias. `excludeLight` is the identity (the shader instance, seen
             //   as its Graphics State base) of an area light whose scope's primitives must not block this probe; nullptr: none.

@@ -1,0 +1,16 @@
+##RenderMan RIB-Structure 1.0
+# ImageIO_BakeRender (spec 048, US3-3): a patch textured with a baked texture, once with the legacy-baked file and once with the
+# OIIO-baked file (@TEXTURE@ is substituted by test_bake_render.cmake). The two renders must match.
+version 3.03
+Hider "reyes"
+Display "bake-plain.tif" "file" "rgba"
+Format 64 64 1
+PixelSamples 2 2
+Projection "orthographic"
+ScreenWindow -1 1 -1 1
+Translate 0 0 4
+WorldBegin
+  LightSource "ambientlight" 1 "intensity" [1]
+  Surface "paintedplastic" "texturename" ["@TEXTURE@"]
+  Patch "bilinear" "P" [-0.9 -0.9 0  0.9 -0.9 0  -0.9 0.9 0  0.9 0.9 0] "st" [0 0  1 0  0 1  1 1]
+WorldEnd

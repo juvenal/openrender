@@ -36,7 +36,7 @@ set(_contract_shader_names
     cm_attribute cm_option cm_rendererinfo cm_surface cm_displacement cm_atmosphere cm_incident cm_opposite
     cm_lightsource cm_lightsource_noloop cm_producer_surface cm_producer_displacement cm_producer_volume cm_producer_light
     cm_mm_attribute cm_mm_option cm_mm_rendererinfo cm_mm_real cm_nullobject
-    cm_producer_light_big cm_lightsource_big
+    cm_producer_light_big cm_lightsource_big cm_str_far cm_producer_light_str cm_lightsource_str
     cm_mm_msg_surface cm_mm_msg_displacement cm_mm_msg_atmosphere cm_mm_msg_incident cm_mm_msg_opposite
     cm_mm_real_msg_surface cm_mm_real_msg_displacement cm_mm_real_msg_atmosphere cm_mm_real_msg_incident cm_mm_real_msg_opposite cm_nullobject_msg
     cm_matrices cm_trace cm_transmission cm_visibility cm_gather cm_occlusion cm_indirect cm_env cm_shadow
@@ -167,7 +167,7 @@ if(OPENRENDER_SHADING_CONTRACT_TESTS)
     add_dependencies(test_shading_contract_standalone shading_contract_replay_shaders)
 
     add_executable(test_shading_contract_rendered
-        rendered_main.cpp case_real_answers.cpp case_gather_requests.cpp case_canned_trace.cpp case_no_tracer.cpp case_double_globals.cpp case_null_object.cpp case_type_mismatch_real_message.cpp case_lightsource_no_loop_real.cpp case_null_object_messages.cpp case_lightsource_oversized.cpp)
+        rendered_main.cpp case_real_answers.cpp case_gather_requests.cpp case_canned_trace.cpp case_no_tracer.cpp case_double_globals.cpp case_null_object.cpp case_type_mismatch_real_message.cpp case_lightsource_no_loop_real.cpp case_null_object_messages.cpp case_lightsource_oversized.cpp case_string_message_far.cpp)
     target_compile_features(test_shading_contract_rendered PRIVATE cxx_std_20)
     target_compile_definitions(test_shading_contract_rendered PRIVATE ${SHADING_CONTRACT_PROGRAM_DEFS})
     target_include_directories(test_shading_contract_rendered PRIVATE ${SHADING_CONTRACT_INCLUDES})
@@ -276,6 +276,8 @@ add_contract_test(ShadingContract_MessagesJit test_shading_contract_standalone M
 add_contract_test(ShadingContract_NoServices_Message test_shading_contract_standalone NoServices_Message ENABLED)
 add_contract_test(ShadingContract_RealAnswersInterp_Messages test_shading_contract_rendered RealAnswersInterp_Messages ENABLED)
 add_contract_test(ShadingContract_RealAnswersJit_Messages test_shading_contract_rendered RealAnswersJit_Messages JIT ENABLED)
+# GitHub #176: a producer's string at an address with other high 32 bits reaches the caller whole (interpreter)
+add_contract_test(ShadingContract_StringMessageFarPointer test_shading_contract_rendered StringMessageFarInterp ENABLED)
 add_contract_test(ShadingContract_TypeMismatch_MessageInterp test_shading_contract_standalone TypeMismatch_MessageInterp ENABLED)
 add_contract_test(ShadingContract_TypeMismatch_MessageJit test_shading_contract_standalone TypeMismatch_MessageJit JIT ENABLED)
 add_contract_test(ShadingContract_LightsourceNoLoopInterp test_shading_contract_standalone LightsourceNoLoopInterp ENABLED)
@@ -452,3 +454,111 @@ foreach(_t ShadingContract_AreaLightInterp ShadingContract_AreaLightJit)
         set_tests_properties(${_t} PROPERTIES LABELS "shading_contract;arealight;shading_parity")
     endif()
 endforeach()
+
+# ---------------------------------------------------------------------------
+# Spec 033 (shading system backends), Phase 1: the characterisations recorded on the unchanged tree. Never edited and
+# never re-recorded (check_recorded.cmake writes a missing reference and refuses to replace an existing one).
+#
+#   BindSpaces_Characterise           a surface and a light whose parameter defaults are written in every coordinate
+#                                     system, bound by the real renderer under both backends, the floats bit for bit
+#                                     (reference/bind_spaces.txt)
+#   ShadingContract_MessageRequests   the requests of every message, attribute and coordinate-system builtin to the
+#                                     spec 026 forwarder, under both backends (reference/message_requests.txt)
+#
+# Both run in a tree with the JIT (the reference holds the .rslo and the .slo section); a platform whose output differs
+# keeps its own copy under reference/<platform>/.
+# ---------------------------------------------------------------------------
+if(OPENRENDER_SHADING_CONTRACT_TESTS AND OPENRENDER_HAVE_LLVM)
+    set(_033_shader_names cm_bind_surface cm_bind_light cm_shadername)
+    set(_033_shader_outputs "")
+    foreach(_n IN LISTS _033_shader_names)
+        set(_sl ${CMAKE_CURRENT_SOURCE_DIR}/shaders/${_n}.sl)
+        foreach(_fmt rslo slo)
+            set(_jit_arg "")
+            if(_fmt STREQUAL "slo")
+                set(_jit_arg -DJIT=ON)
+            endif()
+            add_custom_command(
+                OUTPUT ${SHADING_CONTRACT_SHADER_DIR}/${_n}.${_fmt}
+                COMMAND ${CMAKE_COMMAND} -DOSHADER=$<TARGET_FILE:oshader> -DSRC=${_sl}
+                        -DOUT=${SHADING_CONTRACT_SHADER_DIR}/${_n}.${_fmt}
+                        -DINCDIR=${CMAKE_SOURCE_DIR}/shaders/includes ${_jit_arg}
+                        -P ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+                DEPENDS ${_sl} oshader ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+                WORKING_DIRECTORY ${SHADING_CONTRACT_SHADER_DIR}
+                COMMENT ""
+                VERBATIM)
+            list(APPEND _033_shader_outputs ${SHADING_CONTRACT_SHADER_DIR}/${_n}.${_fmt})
+        endforeach()
+    endforeach()
+    add_custom_target(shading_contract_033_shaders DEPENDS ${_033_shader_outputs})
+
+    if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+        set(_033_platform macos)
+    else()
+        set(_033_platform linux)
+    endif()
+    foreach(_prog bind_spaces message_requests)
+        add_executable(test_shading_contract_${_prog} ${_prog}_main.cpp case_${_prog}.cpp)
+        target_compile_features(test_shading_contract_${_prog} PRIVATE cxx_std_20)
+        target_compile_definitions(test_shading_contract_${_prog} PRIVATE ${SHADING_CONTRACT_PROGRAM_DEFS})
+        target_include_directories(test_shading_contract_${_prog} PRIVATE ${SHADING_CONTRACT_INCLUDES})
+        target_link_libraries(test_shading_contract_${_prog} PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+        add_dependencies(test_shading_contract_${_prog} shading_contract_replay_shaders shading_contract_033_shaders)
+    endforeach()
+
+    function(add_recorded_test NAME PROGRAM REFERENCE MODES)
+        set(_cwd ${CMAKE_CURRENT_BINARY_DIR}/cwd/${NAME})
+        file(MAKE_DIRECTORY ${_cwd})
+        add_test(NAME ${NAME}
+                 COMMAND ${CMAKE_COMMAND} -DEXE=$<TARGET_FILE:${PROGRAM}> -DMODES=${MODES}
+                         -DREF=${CMAKE_CURRENT_SOURCE_DIR}/reference/${REFERENCE}
+                         -DREF_PLATFORM=${CMAKE_CURRENT_SOURCE_DIR}/reference/${_033_platform}/${REFERENCE}
+                         -DPATHS=${SHADING_CONTRACT_SHADER_DIR}
+                         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_recorded.cmake
+                 WORKING_DIRECTORY ${_cwd})
+        set_tests_properties(${NAME} PROPERTIES TIMEOUT 300 LABELS "shading_contract;regression"
+                             ENVIRONMENT "${SHADING_CONTRACT_ENV}")
+    endfunction()
+    add_recorded_test(BindSpaces_Characterise test_shading_contract_bind_spaces bind_spaces.txt rslo,slo)
+    add_recorded_test(ShadingContract_MessageRequests test_shading_contract_message_requests message_requests.txt
+                      rslo:matrices,rslo:attributes,rslo:messages,slo:matrices,slo:attributes,slo:messages)
+endif()
+
+# ---------------------------------------------------------------------------
+# Spec 033, Phase 2: the two new contract tests, written red first (DEP-2), each in its own executable; both are registered
+# unconditionally now (or033_test).
+#
+#   ShadingContract_MessageRequestsBoth      (enabled in Phase 7) fails to build until the services 2.4.0 members exist (Phase 3: MatrixRequest::phase;
+#                                            Phase 7: MessageRequest::destBytes, getShaderName)
+#   ShadingContract_ShadernameNoServices     red by assertion (today shadername(type) reads the record directly)
+# ---------------------------------------------------------------------------
+# Enabled in Phase 7 (the Test gate): the services 2.4.0 members exist
+if(OPENRENDER_SHADING_CONTRACT_TESTS AND OPENRENDER_HAVE_LLVM)
+    add_executable(test_shading_contract_message_requests_both message_requests_both_main.cpp case_message_requests_both.cpp)
+    target_compile_features(test_shading_contract_message_requests_both PRIVATE cxx_std_20)
+    target_compile_definitions(test_shading_contract_message_requests_both PRIVATE ${SHADING_CONTRACT_PROGRAM_DEFS})
+    target_include_directories(test_shading_contract_message_requests_both PRIVATE ${SHADING_CONTRACT_INCLUDES})
+    target_link_libraries(test_shading_contract_message_requests_both PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+    add_dependencies(test_shading_contract_message_requests_both shading_contract_replay_shaders shading_contract_033_shaders)
+
+    add_executable(test_shading_contract_shadername_no_services shadername_no_services_main.cpp case_shadername_no_services.cpp)
+    target_compile_features(test_shading_contract_shadername_no_services PRIVATE cxx_std_20)
+    target_compile_definitions(test_shading_contract_shadername_no_services PRIVATE ${SHADING_CONTRACT_PROGRAM_DEFS})
+    target_include_directories(test_shading_contract_shadername_no_services PRIVATE ${SHADING_CONTRACT_INCLUDES} ${CMAKE_SOURCE_DIR}/src/display)
+    target_link_libraries(test_shading_contract_shadername_no_services PRIVATE openrender_common_flags libshader_shading openrendercommon state_only_sources)
+    add_dependencies(test_shading_contract_shadername_no_services shading_contract_replay_shaders shading_contract_033_shaders)
+endif()
+if(OPENRENDER_SHADING_CONTRACT_TESTS AND OPENRENDER_HAVE_LLVM)
+    or033_test(ShadingContract_MessageRequestsBoth LABELS "shading_contract" TIMEOUT 300
+        COMMAND ${CMAKE_COMMAND} -DEXE=$<TARGET_FILE:test_shading_contract_message_requests_both>
+                -DMODES=rslo:matrices,rslo:attributes,rslo:messages,slo:matrices,slo:attributes,slo:messages
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/check_all_modes.cmake
+        ENVIRONMENT ${SHADING_CONTRACT_ENV} "SHADING_CONTRACT_REFERENCE=${CMAKE_CURRENT_SOURCE_DIR}/reference"
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cwd/ShadingContract_MessageRequestsBoth)
+    or033_test(ShadingContract_ShadernameNoServices LABELS "shading_contract" TIMEOUT 300
+        COMMAND ${CMAKE_COMMAND} -DEXE=$<TARGET_FILE:test_shading_contract_shadername_no_services> -DMODES=Interp,Jit
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/check_all_modes.cmake
+        ENVIRONMENT ${SHADING_CONTRACT_ENV}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cwd/ShadingContract_ShadernameNoServices)
+endif()

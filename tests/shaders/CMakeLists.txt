@@ -43,6 +43,33 @@ set_tests_properties(SloinfoGoldenOutput PROPERTIES
     DEPENDS  "sloinfo;oshader"
 )
 
+# Spec 033 (Phase 1): the output of sloinfo for the 137 shipped shaders in both formats, recorded on the unchanged tree.
+# The script writes a missing reference on its first run and never replaces an existing one.
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    set(_sloinfo137_platform macos)
+else()
+    set(_sloinfo137_platform linux)
+endif()
+if(OPENRENDER_HAVE_LLVM)
+    set(_sloinfo137_jit ON)
+else()
+    set(_sloinfo137_jit OFF)
+endif()
+add_test(NAME Sloinfo_Output137
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_sloinfo_output137.sh
+        $<TARGET_FILE:sloinfo>
+        ${CMAKE_BINARY_DIR}/shaders
+        ${CMAKE_CURRENT_SOURCE_DIR}/references/sloinfo137
+        ${_sloinfo137_platform}
+        ${_sloinfo137_jit}
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tests/shaders
+)
+set_tests_properties(Sloinfo_Output137 PROPERTIES
+    TIMEOUT  300
+    LABELS   "libshader;regression"
+    DEPENDS  "sloinfo"
+)
+
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/tests/shaders)
 
 message(STATUS "  - ShaderCompilerImmutability (compile all shaders, diff vs references)")

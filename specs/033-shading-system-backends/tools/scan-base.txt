@@ -1,0 +1,69 @@
+# scan-base.txt: the FR-003, SC-005 and SC-006 identifier scans of contracts/checks-and-tests.md on the starting tree (whole identifiers, code and comments, one line per occurrence).
+# Shading_CoreNoBackendNames: identifiers over src/ri, src/display, src/shadeop, src/procedures, src/common: 31 lines; OPENRENDER_HAVE_LLVM under src/ri: 4 lines; total 35 (expected 35: 31 + 4)
+src/ri/CMakeLists.txt:339: CProgrammableShaderInstance
+src/ri/render/init.cpp:76: CProgrammableShaderInstance
+src/ri/render/init.cpp:102: CProgrammableShaderInstance
+src/ri/render/init.cpp:109: codeEntryPoint
+src/ri/render/init.cpp:110: initEntryPoint
+src/ri/render/init.cpp:171: codeArea
+src/ri/render/init.cpp:213: codeArea
+src/ri/render/init.cpp:214: jitInitEntry
+src/ri/render/init.cpp:229: constantEntries
+src/ri/render/init.cpp:236: jitSetInitXform
+src/ri/render/init.cpp:240: jitSetInitXform
+src/ri/render/init.cpp:241: jitSetInitCoordinateResolver
+src/ri/render/init.cpp:243: jitSetInitXform
+src/ri/render/init.cpp:246: jitSetInitCoordinateResolver
+src/ri/render/init.cpp:247: jitInitEntry
+src/ri/render/init.cpp:248: jitSetInitCoordinateResolver
+src/ri/render/init.cpp:249: jitSetInitXform
+src/ri/render/init.cpp:254: codeArea
+src/ri/render/init.cpp:254: initEntryPoint
+src/ri/render/init.cpp:291: constantEntries
+src/ri/render/rendererContext.cpp:310: CProgrammableShaderInstance
+src/ri/render/rendererContext.cpp:319: CProgrammableShaderInstance
+src/ri/render/rendererContext.h:277: CProgrammableShaderInstance
+src/ri/render/rendererFileSearch.cpp:11: CLLVMJitEngine
+src/ri/render/rendererFileSearch.cpp:11: CProgrammableShaderInstance
+src/ri/render/rendererFiles.cpp:50: parseShader
+src/ri/render/rendererFiles.cpp:52: parseSloShader
+src/ri/render/rendererFiles.cpp:394: parseSloShader
+src/ri/render/rendererFiles.cpp:411: parseShader
+src/ri/render/rendererFiles.cpp:417: parseShader
+src/ri/render/rendererFiles.cpp:422: parseSloShader
+src/ri/render/init.cpp:93: OPENRENDER_HAVE_LLVM
+src/ri/render/init.cpp:209: OPENRENDER_HAVE_LLVM
+src/ri/render/rendererFiles.cpp:392: OPENRENDER_HAVE_LLVM
+src/ri/render/rendererFiles.cpp:419: OPENRENDER_HAVE_LLVM
+
+# Shading_JitMessagesThroughServices: rslOps.cpp and rslBuiltins.cpp (2 lines) and the CShadingContext::shaderName bodies of shading.cpp (12 lines)
+src/libshader/shading/rslOps.cpp:924: getParameter
+src/libshader/shading/rslOps.cpp:938: getParameterShape
+src/libshader/shading/shading.cpp:2909: currentAttributes
+src/libshader/shading/shading.cpp:2912: currentAttributes
+src/libshader/shading/shading.cpp:2915: currentAttributes
+src/libshader/shading/shading.cpp:2916: currentAttributes
+src/libshader/shading/shading.cpp:2919: currentAttributes
+src/libshader/shading/shading.cpp:2920: currentAttributes
+src/libshader/shading/shading.cpp:2923: currentAttributes
+src/libshader/shading/shading.cpp:2924: currentAttributes
+src/libshader/shading/shading.cpp:2927: currentAttributes
+src/libshader/shading/shading.cpp:2928: currentAttributes
+src/libshader/shading/shading.cpp:2931: currentAttributes
+src/libshader/shading/shading.cpp:2932: currentAttributes
+
+# Sloinfo_MetadataApiOnly: includes of libshader/ under src/sloinfo (2 lines) and the parser names (11 lines)
+src/sloinfo/sloinfo.cpp:38: #include "libshader/shading/llvmJit.h"     // CLLVMJitEngine::extractMetadataFromFile
+src/sloinfo/sloinfo.cpp:39: #include "libshader/shading/sloMetadata.h" // SLOShaderInfo
+src/sloinfo/CMakeLists.txt:12: CLLVMJitEngine
+src/sloinfo/sloinfo.cpp:35: TRSLObjectShader
+src/sloinfo/sloinfo.cpp:35: rsloGet
+src/sloinfo/sloinfo.cpp:35: rsloDelete
+src/sloinfo/sloinfo.cpp:38: CLLVMJitEngine
+src/sloinfo/sloinfo.cpp:39: SLOShaderInfo
+src/sloinfo/sloinfo.cpp:91: TRSLObjectShader
+src/sloinfo/sloinfo.cpp:91: rsloGet
+src/sloinfo/sloinfo.cpp:208: rsloDelete
+src/sloinfo/sloinfo.cpp:217: SLOShaderInfo
+src/sloinfo/sloinfo.cpp:218: CLLVMJitEngine
+src/sloinfo/sloinfo.cpp:35: #include "rslo.h"  (libshader/runtime/rslo.h, reached through the include path, not by a libshader/ prefix: the third of the three CONSUMER edges)

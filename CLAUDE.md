@@ -21,6 +21,8 @@ From-scratch configure/build steps live in `COMPILING.txt` / `INSTALL.md`.
 Key CMake options: `USE_FLEX_BISON`, `INSTALL_SELFCONTAINED`,
 `OPENRENDER_COMPAT_SOVERSION`, `OPENRENDER_PYTHONDIR`, `OPENRENDER_LUADIR`,
 `OPENRENDER_ENABLE_JIT` (default ON), `OPENRENDER_LLVM_MIN_VERSION` (default 15),
+`OPENRENDER_ENABLE_OIIO` (OpenImageIO image backend and the `oiio` display driver,
+default OFF, needs OpenImageIO 3.0 or newer),
 `OPENRENDER_TSAN` (ThreadSanitizer, off by default), `OR037_RECAPTURE` (test baselines).
 
 **flex and bison are mandatory.** No pre-generated parser sources are kept in
@@ -116,6 +118,14 @@ So `cmake --build && ctest -L visual` works from a clean clone, with no install
 step and no dependency on the gitignored `openrender/` deploy tree. Verified by
 renaming `openrender/` aside and running the suite: 191/191.
 
+**Library names (spec 033).** The shading engine library is `libRSLRuntime` (it was `libshader_shading`), the inspection library
+`libRSLInfo` (it was `libshader_runtime`; it also holds the shader-metadata API), `libshader_jitmeta` is the internal static
+`libRSLJitMeta`. The old names resolve for one release in three forms: CMake ALIAS targets (`libshader_shading`, `libshader_runtime`,
+`libshader_runtime_static`, `rslo`, `rslo_static`, `libshader_jitmeta`), exported aliases (`openRender::shader_shading`,
+`shader_runtime`, `shader_runtime_static`) and compatibility symlinks next to the new files; a binary linked against
+`libshader_shading.1.dylib`/`.so.1` or `libshader_runtime.1.dylib`/`.so.1` must be relinked. In an incremental tree the OLD real files
+and `CMakeFiles/libshader_*.dir` stay on disk after the rename: `Link_RenameAliases` fails on them until they are removed.
+
 **Dependency tracking is now real**, which retires the old staleness trap:
 editing a `.sl` recompiles it, editing any `.slh` recompiles the shaders, and
 **rebuilding `oshader` recompiles every shader**. A green `-slo` run after an
@@ -163,11 +173,15 @@ alternative to `-I` but is no longer required as a workaround.
 │   │                       plug-in version check (pluginAbi.{h,cpp})
 │   ├── ri/                 RenderMan interface implementation (the renderer core)
 │   ├── libshader/
-│   │   ├── compiler/        RSL compiler (formerly src/oshader) → libshader_compiler
-│   │   ├── runtime/         .rslo/.slo loader (formerly src/rslo) → libshader_runtime
-│   │   └── shading/         Shading execution engine (Phase C: physically moved from src/ri/); bundles.{h,cpp} (moved from src/ri/hiders/ by spec 029)
+│   │   ├── compiler/        RSL compiler (formerly src/oshader) → libshader_compiler (renamed libRSLCompile by spec 043)
+│   │   ├── runtime/         the .rslo INSPECTION parser (rsloGet/rsloDelete, rslo.h), an object library inside libRSLInfo; NOT the loader
+│   │   ├── metadata/        the shader-metadata API (include/openrender/ShaderMetadata.h, internal) and its readers → libRSLInfo (shared + static;
+│   │   │                    formerly libshader_runtime)
+│   │   ├── shading/         the shading engine AND both shader loaders (parseShader in rslo.y, parseSloShader), ShadingSystem (the facade, cache and format
+│   │   │                    precedence), IShaderBackend, the group builder, bundles.{h,cpp} → libRSLRuntime (formerly libshader_shading)
+│   │   └── include/         RSLShading.h, RSLShadingState.h (API headers) and the internal ShaderMetadata.h (not installed)
 │   ├── oshader/            RSL→.rslo/.slo compiler CLI (oshader, oshader --jit)
-│   ├── rslo/, rsloinfo/, sloinfo/   Shader runtime + inspection CLIs
+│   ├── rslo/, rsloinfo/, sloinfo/   Shader inspection CLIs (rslo/ holds only the ALIAS targets `rslo`/`rslo_static`; sloinfo reads shaders through ShaderMetadata.h only)
 │   ├── orender/            Main renderer executable
 │   ├── preview/             orender-wire scene wireframe viewer (libribpreview + macOS/Linux frontends)
 │   ├── display/            Display Outputs: dsply.h (display interface 2.0.0), file/framebuffer/openexr/rgbe drivers
@@ -203,12 +217,15 @@ the core registers itself with `OR_REGISTER_HIDER(getter)` (`hiderAbi.hpp`) and 
 ```
 .sl source → oshader (rslo.y grammar + IR passes: DCE, ConstFold, CSE, UniformLifting)
            → .rslo (interpreter bytecode)  or  .slo (LLVM JIT bitcode, via `oshader --jit`)
-           → CProgrammableShaderInstance (runtime, bound to CAttributes)
+           → ShadingSystem (find or load by name, per-format backend: IShaderBackend, one cache)
+           → a shader instance (CShaderInstance; CProgrammableShaderInstance is what the two built-in backends make), bound to CAttributes
+             through ShaderGroupBuilder (a group of one layer is its layer's instance)
            → per-point execution: varying[][] float buffers (interpreter)
              or native code via shared op_*/rsl_* C-linkage ABI (JIT)
 ```
-Shader format precedence: `Attribute "shade" "shaderformat"` (per-primitive)
-> `Option "shaderformat"` (scene-wide) > `OPENRENDER_DEFAULT_FORMAT` (compile-time).
+Shader format precedence, evaluated in `ShadingSystem::resolvePreference()`: `Attribute "shade" "shaderformat"` (per-primitive)
+> `Option "shaderformat"` (scene-wide) > `OPENRENDER_DEFAULT_FORMAT` (a `#define` in `config-cmake.h.in:37`, "rslo"; not an environment
+variable). The preferred format is tried first, then the others by priority; a format the build cannot offer warns once and the next loads.
 
 Key files: `src/ri/patches.cpp` (tessellation, computes `Ng`), `src/ri/patchUtils.h`
 (`normalFix()` — repairs degenerate `Ng`), `src/ri/shading.cpp` (3 `Ng→N` fallback
@@ -271,6 +288,16 @@ display 2.0.0 use `OR_*`/`Or*`. The public headers come from one list,
 `OPENRENDER_INCLUDE_INSTALL_DIR` (`<ORENDERHOME>/include` self-contained, `include/openRender` FHS);
 `file_base.h` is not installed. See `DEVNOTES_DETAILS/PLUGIN_ABI.md` and gotcha 27.
 
+### Image I/O utility library (spec 048)
+Constitution 1.5.0 adds the class **ImageIO** (`src/imageio/`, `libRIBImageIO`): the first *utility library*, a library that depends on Infra only and
+that exactly two domains may use, Texturing (the OIIO decode and bake, `imageInputOiio.*`, `texmake.cpp`'s `COiioBakeSink`) and Display Outputs (the `oiio`
+display driver, `src/display/oiio/`). It is built only with `-DOPENRENDER_ENABLE_OIIO=ON` (`HAVE_OIIO`, defined on `ribRender_obj` only, never in `config.h`), is
+shared only, and is the one image of the install tree that carries OpenImageIO (`ImageIO_SingleCopy`); only `orimageio::` leaves it (`exports.txt` on macOS,
+hidden visibility and `--exclude-libs` on Linux), and its header `orImageIO.h` names no OIIO type. `Option "imageio" "backend" ["legacy"|"oiio"]` and the per-call
+`"string imageio"` parameter of the four `Make*` calls select the backend (the call wins over the Option, then `legacy`); `otexmake -imageio`; `Display ... "oiio"`
+is the driver. The legacy path is the default and is unchanged: with OIIO off every image, file and hash is identical (the per-platform legacy bake hashes,
+`tests/unit/imageio/fixtures/bake/legacy-bake-{macos,linux}.sha256`). See `DEVNOTES_DETAILS/IMAGE_IO.md` and gotcha 45.
+
 ### Scene Interface services and the active context (spec 038)
 The Scene Interface (`src/ri/parse/`, `src/ri/output/`, the generated parsers) includes no renderer-core
 header and references no `CRenderer`/`CRendererContext` symbol (`SceneInterface_NoCoreInclude`, `_RibOutNoCore`).
@@ -305,8 +332,9 @@ name no shading context, hider, renderer or data viewer. Shading's `libshader::i
 lookup, the miss hand-off and the insert for the interpreter and the JIT; the sampler that computes a new sample is the Hiders'
 `CIrradianceSampler` (`hiders/irradianceSampler.cpp`), installed on every hider's context and as the process default through Shading's
 `IIrradianceSampler`. Hiders reach a photon map through Shading's `photonMapAccess.h`; Core's header-only `CPhotonMap`
-(`render/photonMap.h`) composes the store, the handle target and the data viewer's adapter (`dataviewer/photonMapView`). Every record
-and photon carries a key for spec 040. See gotcha 37.
+(`render/photonMap.h`) composes the store, the handle target and the data viewer's adapter (`dataviewer/photonMapView`). Since spec 040
+the cache is a read-only fixed part, a Shading batch scope and a canonical end-of-frame commit, a lookup of the photon map is a pure function, and
+both stores are byte-identical across runs, thread counts and `-P:N` (`common/giHash.h` supplies the hashes). See gotcha 37.
 
 ### Hider and integrator registries, the Transport domain (spec 030)
 There are ten domains since constitution 1.4.0: **Transport** (`src/ri/transport/`) holds the integrators (the transport strategies a
@@ -336,26 +364,33 @@ un-projecting uses `/ dSampledx`, not `* dxdPixel`.
 ```bash
 ctest --test-dir build -L visual --output-on-failure   # 87+ scene visual regression, 8x8 block-avg diff metric (thresholds 20-40/255)
 ctest --test-dir build -L visual -E slow                # skip slow tests (motion-3-reyes, ~3 min)
-ctest --test-dir build -L libshader                     # compiler unit tests
+ctest --test-dir build -L libshader                     # compiler unit tests, `ShaderMetadata_Shipped` (spec 033)
 ctest --test-dir build -L common                        # libRIBCommon: sink, arena, vocabulary, state ownership
 ctest --test-dir build -L shading_parity                # JIT/interpreter parity, renderer-services routing, the illumination hook
 ctest --test-dir build -L texture_tile -j2              # texture system: cache, resolver, concurrency, sample-stream cursor (opt-in disk-cache scripts included)
 ctest --test-dir build -L texture_only                  # Texturing-only program: links libRIBCommon alone and reproduces the starting tree's lookups
 ctest --test-dir build -L state                         # Graphics State: handles and counts, last-bound record, pattern table, channel registry, light order, vocabulary
 ctest --test-dir build -L gi_split                      # GI split (spec 032): loopback of the remote channels, the files, the keys, getCache's kind check
-ctest --test-dir build -L gi_split_threads              # opt-in: photon keys at -t:1 against -t:4 (the intermittent CPhotonHider crash, #164, can fail a child: re-run alone)
+ctest --test-dir build -L gi_split_threads              # opt-in: photon keys at -t:1 against -t:4
+ctest --test-dir build -L '^gi_determinism$' -j4         # spec 040: the photon store, the cache store, the accept rule, a miss's record, the batch clamp, the files (22 tests)
+ctest --test-dir build -L '^gi_determinism_long$' -j2    # opt-in: the 30-run photon forms (3 tests)
 ctest --test-dir build -L plugin_abi -j4                # plug-in ABIs (spec 037): headers, versions, display host and v1 adapter, shadeop module, procedures, install layouts, doc checks
-ctest --test-dir build -LE determinism-sweep -j4        # the everyday full run: everything except the opt-in determinism sweep
-ctest --test-dir build -L '^determinism$' -j2           # default determinism set (156): harness, tie and derivative tests, one demanding scene per family
-ctest --test-dir build -L '^determinism-sweep$' -j2     # opt-in full sweep (582 entries, ~10-12 min at -j2): before each merge, and for the Linux validation
+ctest --test-dir build -LE 'determinism-sweep|gi_determinism_long' -j4   # the everyday full run: everything except the opt-in determinism sweep and the 30-run forms
+ctest --test-dir build -L '^determinism$' -j2           # default determinism set (164): harness, tie and derivative tests, one demanding scene per family
+ctest --test-dir build -L '^determinism-sweep$' -j2     # opt-in full sweep (618 entries, ~10-12 min at -j2): before each merge, and for the Linux validation
 ctest --test-dir build -L volume                        # spec 056: volume shader segments (the VolumeProbe_ hand-computed pixel checks, VolumeDiffer_, Parity_volume-, Determinism_volume-)
-ctest --test-dir build -L link                          # spec 029: libshader_shading self-contained, the static consumer, no workaround text
+ctest --test-dir build -L link                          # spec 029: libRSLRuntime self-contained, the static consumer, no workaround text; `Link_RenameAliases`, `Link_InfoRuntimeNotCoLinked` (spec 033)
 ctest --test-dir build -L registry                      # spec 030: the hider and integrator registries (lookup, collisions, pair check and refusal, parameters, the frame abort paths, test-double hider)
 ctest --test-dir build -L geometry_contract             # spec 031: Geometry's five contract programs (a dicer, a ray context, a host and a sink double; no hider, no Shading)
 ctest --test-dir build -L camera                        # spec 028 and 031: the camera layer, the lens model, the signed circle of confusion, the lens ray
 ctest --test-dir build -L hiders                        # spec 031: Hiders_ReyesBucketBoundCoversCoC
+ctest --test-dir build -L shading_system                # spec 033: the ShadingSystem facade (precedence, cache, bind order, third backend, one-layer group, bind-time spaces, shipped metadata)
+ctest --test-dir build -L shaderformat                  # spec 033: the shader-format precedence characterisation (rslo and slo trees, JIT-less record)
+ctest --test-dir build-oiio -L imageio                  # spec 048 (OIIO-on tree): decode parity and differences, selection, bake parity and exclusions, display parity, single copy
 ctest --test-dir build -L '^link-package$'              # opt-in (configure with -DOPENRENDER_LINK_PACKAGE_TEST=ON): an installed openRender package consumed statically (scratch configure, builds a second tree)
 ```
+
+`-L imageio` registers different tests with OIIO off (`ImageIO_AbsentBuild`, `ImageIO_SelectWithoutOIIO`, `ImageIO_CiHasNoOiio`, `ImageIO_VcpkgManifest`) and on (the rest); the OIIO-on tree is a separate build directory (`build-oiio`) with its own vcpkg install directory.
 
 **`-L` is a regular expression.** `-L determinism` also selects every `determinism-sweep` test (the whole sweep); anchor it
 (`-L '^determinism$'`). The sweep tests carry no `visual` or `regression` label, so `-L visual` and `-L regression` skip them.
@@ -401,7 +436,9 @@ include or link edge outside Principle VIII's allowed-dependency table that
 `tests/architecture/allowlist.txt` doesn't name against an Open registry entry,
 and on stale allowlist lines. How to read it, classify a new file and retire a
 fixed violation: the "Architecture check" section of
-`DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`.
+`DEVNOTES_DETAILS/DOMAIN_BOUNDARIES.md`. The label also covers `Shading_CoreNoBackendNames`,
+`Shading_JitMessagesThroughServices` and `Sloinfo_MetadataApiOnly` (spec 033), each with a
+`_Fixture` run that must fail.
 
 ## Spec-kit agent rules
 
@@ -447,7 +484,7 @@ not in the agent definitions.
    `false`, so it silently vanishes instead of erroring. Guard with
    `dotvv(halfway,halfway) > 0` before normalizing.
 3. **macOS JIT symbol dead-stripping:** `op_*`/`rsl_*` functions in
-   `libshader_shading.a` are only called from JIT-generated code, so `ld`
+   `libRSLRuntime` are only called from JIT-generated code, so `ld`
    *could* dead-strip them (no static call graph reaches them) — but in
    practice every current `.slo` test resolves its symbols at JIT bind time
    via LLVM's `DynamicLibrarySearchGenerator::GetForCurrentProcess()` alone,
@@ -627,7 +664,7 @@ not in the agent definitions.
    plus a static archive. Every library and program in one process must bind
    them from the same shared copy: `ribRender_static` therefore links the
    shared `openrendercommon`, never `openrendercommon_static`, because
-   `libshader_shading` is shared-only and binds to the shared library; a
+   `libRSLRuntime` is shared-only and binds to the shared library; a
    second copy would hold a second arena and diagnostic sink
    (`Common_StateOwnership` checks for this). The RI libraries re-export
    `libRIBCommon` on macOS (`openrender_reexport_common()` in
@@ -661,7 +698,11 @@ not in the agent definitions.
    reached from the hook path may read it. `solar()` with no arguments is
    the label-only `solar` instruction and emits `op_solar0_begin`; the
    emitter fails on `illuminate`/`solar` operands it cannot resolve rather
-   than skipping them.
+   than skipping them. The bind-time init of a shader's parameter defaults (a
+   named-space default such as `point "shader" (1,2,3)`) is Shading's too
+   (`libshader::bindCoordinateSystem`, `rsloInit.cpp`/`sloBackend.cpp`) and asks
+   `getMatrix{..., phase = Bind}`; an unknown space is the identity with no
+   diagnostic (GitHub #134).
 24. **Graphics State holds handles, not other domains' objects (spec 025).**
    `CAttributes`/`COptions` store `ShaderGroupRef`/`MapRef` and resolve them
    only through the resolving domain's inline `static_cast` accessors
@@ -677,15 +718,17 @@ not in the agent definitions.
    are computed in Shading (`shaderParameters.cpp`) behind
    `shaderParameterHooks.h`, installed in `rendererShadingServicesInit()` and
    **never** from `rendererDeclarations.cpp` (ribVector compiles that file and
-   does not link libshader_shading); with no hook installed `usedParameters`
+   does not link libRSLRuntime); with no hook installed `usedParameters`
    is 0 and `findParameter` is `nullptr`, so a State-only test that binds
    doubles must run with no `RiBegin` session open. The AOV/channel registry
    is a Graphics State `CChannelRegistry`; Texturing reaches it through
    `CTexture3dChannelSource` (`texture3dChannels.*`, spec 037), and
    `CRenderer::retrieveDisplayChannel` no longer exists. `CAttributes`
    copies and `restore()` now keep the active lights in RIB order; they used
-   to reverse them on every push. The unchecked cast of a light entry to
-   `CProgrammableShaderInstance` (DB-013) lives in `lightInstanceOf()`.
+   to reverse them on every push. `lightInstanceOf()` returns the base
+   `CShaderInstance *` (no downcast: `createCategories`, the flags, `prepare()`,
+   `illuminate()` and `requiredParameters()` are on the base, whichever backend
+   made the light).
 
 25. **The texture system is per frame, and its load lock is the core's
    `shaderMutex` (spec 027).** `CRenderer::textureSystem` exists from
@@ -720,7 +763,8 @@ not in the agent definitions.
    (`CTexture3d` has `lookupPointBased` with a `CPointBasedLookup`, and the viewers are adapters the data viewer owns:
    `pointCloudView`, `brickMapView`, `irradianceCacheView`, `photonMapView`). `CTexture3d`'s old six-argument
    `lookup(..., CShadingContext *)` and `CPointHierarchy::Options` are gone: Shading hands the hierarchy the solid-angle limit
-   per lookup.
+   per lookup. `ShadingSystem`'s shader cache has its own `std::mutex` (held across find, load and insert, never across a
+   backend's `initialise()` or a services call); it is never `shaderMutex`, so the texture rule above does not constrain it.
 
 26. **`FrameParams` is installed for exactly one frame, and every motion site
    keeps its own expression (spec 028).** The renderer core builds the
@@ -768,7 +812,7 @@ not in the agent definitions.
    second check.
 
 28. **Shading's boundary is one versioned interface; the tracer is the hider that owns the context (specs 026, 029).**
-   `CRendererServices` is version 2.3.0 (`kRendererServicesVersion`, `rendererServices.h`, with
+   `CRendererServices` is version 2.5.0 (`kRendererServicesVersion`, `rendererServices.h`, with
    `serviceTypes.h`, `tracer.h` and `shaderGlobals.h`; `getPhotonMap` returns `IPhotonLookup *`; `getCache` answers only irradiance caches
    (Core's `getCache` answers `nullptr` for a name registered as another 3D kind, #104), and Shading converts the answer with `irradianceStoreOf()`; the headers document
    every member, so read them before writing an implementer or a double). The attribute, option and renderer-info
@@ -786,12 +830,14 @@ not in the agent definitions.
    services' `tracer()` only for a context with no owner (the contract doubles); the renderer's
    services answer `nullptr`. With neither, they warn once and treat the rays as misses. There is no
    per-frame slot and no adapter any more (spec 029). The depth rule lives in the context's
-   `enterRayLevel()`/`leaveRayLevel()`; the hider passes `CRenderer::maxRayDepth`. `libshader_shading`
+   `enterRayLevel()`/`leaveRayLevel()`; the hider passes `CRenderer::maxRayDepth`. `libRSLRuntime`
    is self-contained: it links with undefined symbols as an error (`--no-undefined` on Linux, ld64's
    default on macOS) and has no flat-namespace import, so there is no load stub and no `-force_load`
    in the package; a new undefined reference fails its link. `shade()` consumes `ShaderGlobals`, with
    its ray type and hit mode taken from the situation table `classifyShading()`, since spec 029
-   (gotcha 35). The `.slo` loader lives in Shading (`sloLoader.{h,cpp}`). A primitive hit mode
+   (gotcha 35). The `.slo` loader lives in Shading (`sloLoader.{h,cpp}`); the loaders are `IShaderBackend`s
+   (`rsloBackend.cpp`, `sloBackend.cpp`); `CShadingContext::execute(CShaderInstance *, float **)` dispatches to the
+   instance's backend and `interpret()` is the `.rslo` bytecode loop. A primitive hit mode
    returns from `shade()` before the point-key and displaced-point test observers fire, so a
    scene with only primitive hits reports nothing. A change to the interface steps
    `kRendererServicesVersion` and adds a history entry (MAJOR: breaking; MINOR: a non-breaking
@@ -801,7 +847,14 @@ not in the agent definitions.
    `getDSO` also serves the `.slo` loader since spec 038 (`sloLoader.cpp` binds the DSO operands of a JIT module
    with `libshader::lookupDSO`, on every load); that was a wording change of the member, so
    `kRendererServicesVersion` stayed 2.0.0 at spec 038, is 2.1.0 since spec 029 and 2.2.0 since spec 032 (a MINOR step that is breaking within 2.x: `getCache` answers `nullptr` on a kind mismatch; otherwise additions: `photonMapAccess.h`, `irradianceSampler.h`, `irradianceCalls.h`, `boundDraws()`). It is 2.3.0 since spec 031 (a MINOR step that is breaking within 2.x: `CShadingContext`'s Geometry-facing
-   `shade(CSurface *, ...)`, `displace()`, `displaceEstimate()` and `setProducer()` and `IShadingProducer` are removed, and `EShadingDim` moved to `common/shadingDim.h`).
+   `shade(CSurface *, ...)`, `displace()`, `displaceEstimate()` and `setProducer()` and `IShadingProducer` are removed, and `EShadingDim` moved to `common/shadingDim.h`), and 2.4.0 since spec 033 (a MINOR step,
+   additive with defaults: `MatrixRequest::phase` (`EMatrixPhase::Bind` for a shader's bind-time init), `MessageRequest::destBytes`
+   (non-zero: the renderer answers `TypeMismatch` before writing when the stored value needs more bytes, any source; the JIT's
+   `lightsource()` asks with 64), `getShaderName` (`shadername(type)` asks it; no services or an `Unavailable` answer: `""` plus one
+   warning). No double or implementer changes to compile.) It is 2.5.0 since spec 040 (a MINOR step that is breaking within 2.x: `IPhotonStore`'s
+   `resetPhotons`, `balancePhotons`, `isModifying`, `setModifying` and `storePhoton` are replaced by `storePhotonForFrame` and `writePhotons`;
+   `CIrradianceStore::lookupCached` takes an accept function and a batch view in place of a draw callback, `insertRecord` is replaced by
+   `addPending` and `clampAgainstFixed`). Spec 057 takes 2.6.0.
 29. **The active RI context is installed explicitly (spec 038).** `CRiInterface`'s constructor assigns nothing:
    not `renderMan`, not the diagnostic sink. `riInstallContext(ctx)` makes it the active one (and attaches the
    diagnostics), `riUninstallContext(ctx)` / the destructor of an installed context hands both back to the
@@ -843,8 +896,8 @@ not in the agent definitions.
    load (`CLLVMJitEngine::bindShadeops`, resolved with `getDSO`) because the operands belong to the renderer
    session while the compiled module outlives it. Only such a module records the `.slo` format 2.1.0
    (`SLO_FORMAT_MINOR`); every other module records `SLO_FORMAT_MINOR_BASE` (2.0.0), so shipped `.slo` keep
-   their bytes. A missing operand makes the loader warn and return `nullptr`, so `getShader()` falls back to the
-   `.rslo`. The interpreter's void-DSO row (`DSO_VOID`) steps its argument pointers as `char **`: they are
+   their bytes. A missing operand makes the loader warn and return `nullptr`, so `ShadingSystem` falls back to the
+   next format (the `.rslo`). The interpreter's void-DSO row (`DSO_VOID`) steps its argument pointers as `char **`: they are
    byte steps.
 34. **`precomp` and the hiders share `rasterFlags.h` (spec 038).** The `RASTER_*` constants live in
    `src/ri/hiders/rasterFlags.h` (no includes); `reyes.h` includes it, `precomp` includes only it
@@ -866,7 +919,9 @@ not in the agent definitions.
    The object hash stays the context's (`objectHash()`), and its empty-entry sentinel is the context's address, not
    the hider's. The core's dispatcher sets `CRenderer::activeContext` for every render thread. The shaded object is
    three fields of the state set together with `setShadedObject()` (opaque surface, `ObjectHandle`, attributes);
-   Shading includes no Geometry or Hiders header.
+   Shading includes no Geometry or Hiders header. `libRSLRuntime`'s include path no longer lists `src/ri/hiders` or
+   `src/ri/geometry` (`src/libshader/shading/CMakeLists.txt` filters them, like the compiler's CMake; `ShadingScope_Greps`
+   S1a/S1e check it). `CShadingContext` is `final`; the one `friend` is `CProgrammableShaderInstance`.
 36. **The side of a volume is `dot(dir, N)` of the global `N` at the call; the step is a 0-D state of its own (spec 056).**
    A ray built by `trace()`, `environment("raytrace")`, `gather()`, `transmission()` or a ray-traced `shadow()` reads the
    spawning surface's `Exterior` shader when `dot(dir, N) > 0` and its `Interior` shader otherwise (a tie is `Interior`), with the
@@ -889,23 +944,38 @@ not in the agent definitions.
    has no spawning surface and gets no volume step, inside a solid or not; the CSG arrival-side rule is gone. `incident()` and
    `opposite()` read the side the incoming ray comes from, once per call from vertex 0's `dot(I, N)` (`incidentParameter` and
    `oppositeParameter`, one edit for both backends); the accessor constants passed to them are never read.
-37. **The GI stores are passive; one Shading function does the cache step; the draw order is a rule (spec 032).**
-   `libshader::irradianceLookup` (`libshader/shading/irradianceCalls.cpp`) is the only place an `occlusion()`/`indirectdiffuse()`
-   cache lookup, miss and insert are decided, for the interpreter (`IDEXPR`) and the JIT (`jitOcclusionBatch`). Its order is the old one and
-   must stay: a point-based lookup draws nothing; otherwise `CIrradianceStore::lookupCached` calls its draw callback **once per record that
-   passes the front test** (zero-weight records included, in traversal order), then a miss runs the sampler on the same cursor; a name that
-   `getCache` answered `nullptr` for gives the "no joy" value and draws nothing. The cache and the photon store never include Shading,
-   Hiders, Core or the viewer (`GiSplit_Boundary`, `-L architecture`); a world bound or world matrices they need are passed to their
-   constructors. `CPhotonMap` is header-only in Core (`render/photonMap.h`): `libRIBVector` constructs it, and a `render/photonMap.cpp`
-   would grow the residual list, which may only shrink. Keys for spec 040 are in memory only: `CIrradianceRecord::key` (and so
-   `CCacheSample`, 240 bytes on the wire since Phase 7, the key at offset 224) is `irradianceRecordKey(boundDraws())` copied at the **top**
-   of `irradianceLookup`, and a photon's key (`CPhotonStore::photonKey(i)`, a side array that `CMap::permuted()` reorders when
-   `balance()` runs) is `photonKey(pointKey, bounce)`; no file carries a key and no rendering path reads one. A cache read from a file lists
-   each node's records in the reverse of the order they were written, so two reads of one file sum a lookup in another order; a photon store
-   that was filled and not read from a file has no lookup-cache root and must not be queried (GitHub #160); a client places records it
-   receives without the server's error multiplier (#161). `-t:4` photon passes order the kd-tree differently, so `flags` is not part of a
-   photon's identity (`GiKeys_PhotonsThreads`). `GiRemote_*`, `GiFiles_Unchanged`, `GiKeys_*`, `GiCache_KindMismatch` and
-   `TextureOnly_GiStores` guard it (`ctest -L gi_split`; `-L gi_split_threads` is opt-in).
+37. **The GI stores are passive; one Shading function does the cache step; accept values are hashed, the cache is a fixed part, a batch and a commit (specs 032, 040).**
+   `libshader::irradianceLookup` (`libshader/shading/irradianceCalls.cpp`) is the only place an `occlusion()`/`indirectdiffuse()` cache lookup, miss and insert are decided,
+   for the interpreter (`IDEXPR`) and the JIT (`jitOcclusionBatch`). It copies the bound sub-stream (`boundCall`) at its top. `CIrradianceStore::lookupCached(C, P, N, maxError,
+   accept, acceptState, batch, Pc, Nc)` calls `accept(acceptState, recordIdentity)` **once per record that passes the front test** (zero-weight records included) and Shading
+   answers `giAcceptValue(boundCall.seedHash, boundCall.indexBase, identity)` (`common/giHash.h`), a pure function in `[0, 1)`: a record's accept decision depends on the call and the
+   record alone, never on the traversal order or on the other records, and **the cursor is not touched** (the old "the draw order is a rule" sentence is gone). The identity is the
+   record's key, or a hash of the bit patterns of `P` and `N` for a key-0 record (`irradianceRecordIdentity`). A miss runs the sampler, which draws **by index from a copy of the
+   bound sub-stream** (`rayDraw2D(copy, pair, k)`): with the cache off both `occlusion()` and `indirectdiffuse()` take `samples` keyed directions, with the cache on the `nt x np`
+   grid stays (the gradients need it) and cell `k = i * np + j` takes its offsets from pair 0 sample `k`, its origin jitter from pair 1 sample `k`. A point-based lookup draws
+   and hashes nothing; a name `getCache` answered `nullptr` for gives the "no joy" value. **During a frame the committed tree `F` is read-only and a lookup takes no lock**:
+   `lookupCached` walks `F`, then the **batch view** (`CShadingState::irradianceBatch`, `irradianceBatch.h`: the records the earlier lookups of the same `shade()` call made, with
+   radii clamped against `F` and each other; a REYES or zbuffer grid is one batch, a raytrace shading group is the rays of one bundle that hit one object, in ray order, chunked
+   at `maxGridSize`). A miss with `CACHE_SAMPLE` makes its record from the point's identity alone (key = `irradianceRecordKey(boundDraws())`, copied at the top), calls
+   `addPending(record, maxError)` (the raw radius) and adds it to the batch. Nothing else sees a record until `commitPending()` (`CIrradianceCache`, single-threaded, run by the
+   destructor before the write and lazily by `forEachNode`/`forEachRecord`): dedupe by a non-zero key (**key 0 is never deduped**), sort by `(key, bytes, maxError)`, clamp every radius
+   from raw or stored radii only, place by `dP / K` at the tail of the node (after the fixed records), and **drop the key** (a committed record is what a file holds, so a cache
+   read back answers bit for bit as the one that wrote it). `readNode` appends, so a file keeps its order. The cache has no hider-specific code: reyes and zbuffer make the same
+   records, the raytracer's differ only by its batch size (M5). A `-P:N` server sends **the records it made, never the file's**: one group of raw 240-byte `CCacheSample`
+   (`forEachPending`, raw `dP`, the `next` slot carrying the call's maxError and four zero bytes), the client calls `receivePending` and commits once with each record's own
+   `K` (GitHub #161: `insertReceived` is gone); the channel request's type word carries `CHANNELFLAG_READ` when the server read the file, so the client reads it too (a server
+   finds a file by its own search path and otherwise downloads it from the client, so the client is the origin of every file; not handled: a server-local cache file the client
+   lacks). The photon store: the test, reset and first store of a frame are one claim under its lock (`storePhotonForFrame`, GitHub #164; `CMap::reset()` uses `delete[]`, #165),
+   `balance()` sorts the photons into the canonical order (key, then 38 bytes of `P`, `N`, `C`, `theta`, `phi`; `flags` and the padding are not part of it), every byte of a
+   `.gpm` is defined (#163), and a lookup is a pure function of the map and the query (the `PHOTON_LOOKUP_CACHE` memo is gone, which is also #160; the cost is GitHub #178's
+   follow-up). `maxPower` is the largest `|C|`, in memory and in the file. The cache and the photon store never include Shading, Hiders, Core or the viewer (`GiSplit_Boundary`,
+   `-L architecture`); a world bound or world matrices they need are passed to their constructors. `CPhotonMap` is header-only in Core (`render/photonMap.h`): `libRIBVector`
+   constructs it, and a `render/photonMap.cpp` would grow the residual list, which may only shrink. Keys are in memory only (the wire record carries one, no file does):
+   `CIrradianceRecord::key` (`CCacheSample` is 240 bytes on the wire, the key at offset 224) and a photon's key (`CPhotonStore::photonKey(i)`, a side array that `CMap::permuted()`
+   reorders when `balance()` runs). `GiRemote_*`, `GiFiles_Unchanged`, `GiKeys_*`, `GiCache_KindMismatch`, `GiDet_*` and `TextureOnly_GiStores` guard it (`ctest -L gi_split`,
+   `-L '^gi_determinism$'`; `-L gi_split_threads` and `-L '^gi_determinism_long$'` are opt-in). Under the interpreter `indirectdiffuse()` traces no ray (GitHub #173: the sampler
+   receives a denormal `samples`); the `.slo` shaders do. Cost: a cache reused at a fine shading rate costs about twice as much per later frame (the cache is 8 times as dense:
+   GitHub #179). Untouched: #158 (`jitOcclusionBatch`), #159, #166, #122.
 38. **Hiders and integrators are registered tables; the core reads declared capabilities, never a name (spec 030).** The four built-in
    hiders are reached by the *call graph* (`beginRenderer()` -> `hiderRegistry()` -> `registerBuiltinHiders()` -> each hider's getter),
    not by a static registrar, so a plain static link finds them with no `-u` anchor (`Link_StaticConsumerRegistries`); only a hider or
@@ -945,6 +1015,46 @@ not in the agent definitions.
    and `Camera_LensRayMatchesCoC` pins them to the function. Geometry's dicing heuristic `minCocPixels` reads `|c|` times the pixel size. Before spec 031 Reyes blurred `sqrt(2) f/(f + A)` times the raytracer's radius
    (1.35 times for `DepthOfField 2 1 5`); only the five Reyes depth-of-field images changed (`Parity_dof` 40.45 to 9.92). The raytracer's remaining depth-of-field noise is the default Catmull-Rom pixel filter's
    (`specs/031-geometry-hider-agnostic/lens-investigation.md`, GitHub #166), not the lens sampler.
+40. **`ShadingSystem` is the one place a shader name becomes a description, and its cache answers by name first (spec 033).** `CRenderer::shadingSystem` (created in `initFiles()`,
+   deleted in `shutdownFiles()`) owns a `CTrie` keyed by the **description's own name** (never the request's pointer: the RIB parser's arena is rewound per statement). `find()` looks
+   the name up *before* it resolves a format, so the first format loaded for a name serves every later request whatever the preference says then (GitHub #167, known limitation, pinned by
+   `ShaderFormat_Precedence`). `bind()` is the whole binding in one order: find or load, type check (`error(CODE_NOSHADER, ...)`, no key taken), instance, `takeInstanceKey()`, a light's
+   `createCategories()` then `registerLight()` (no extra reference), then the backend's `initialise()` inside `arenaBegin/arenaEnd(globalArena)`; the caller sets the RIB's parameters
+   afterwards. The `"null"` shader returns before the facade (`CRendererContext::getShader`). A backend registers itself with `registerShaderBackend()` (a third one needs no edit of `src/ri`,
+   `src/display`, `src/shadeop`, `src/procedures` or `src/common`: `Shading_CoreNoBackendNames`, `ShadingSystem_ThirdBackend`). `CShader` is a backend-neutral description (`name`, `type`,
+   `parameters`, `usedParameters`, `flags`, `data`, `backend`, an owned `payload`); `jitEntry`/`jitInitEntry` are written only in `sloLoader.cpp`.
+41. **A group of one layer is its layer's instance (spec 033, P-Q5).** Every binding goes through `ShaderGroupBuilder` (`begin`, `shader`, `connect`, `end`); `connect()` and a second layer are
+   refused (`CODE_INCAPABLE`, nothing loaded or keyed) until spec 034. `libshader::groupPrepare`/`groupExecute` forward to the instance's `prepare()`/`execute()` for `shade()`, the volume step
+   and the imager; light execution (`iterateLights`, the ambient loops, photon emission) still calls the instance's `prepare()`/`illuminate()`. `shaderInstanceOf()` and the handle slots are unchanged.
+42. **`libRSLInfo` and `libRSLRuntime` are never linked into one program (spec 033).** The inspection parser (`libRSLInfo`), the engine's loader parser (`libRSLRuntime`) and the compiler's
+   parser (`libshader_compiler`) share the flex/bison prefix `rslo` and define the same 37 globals; on ELF the first image loaded interposes the others', macOS two-level namespaces hide it.
+   `Link_InfoRuntimeNotCoLinked` reads every link line and the resolved dependency closure of every image and fails on two owners (the owner list is one variable; spec 043 renames the
+   compiler's to `libRSLCompile`). `rslo.h` and `common/rendererc.h` spell the same enumerators (`TYPE_*`, `CONTAINER_*`): `rsloMetadataReader.cpp` renames them around the `rslo.h` include.
+   `sloinfo` reads shaders through `ShaderMetadata.h` (`describeShaderFile()`; `Unsupported` for a `.slo` in a JIT-less build or in `libRSLInfo_static`).
+43. **A scope test that reads nothing passes (spec 033).** `ShadingScope_Greps` S1a/S1e read `libRSLRuntime.dir/flags.make`; an `if(a MATCHES x OR b MATCHES y)` evaluates both operands and the failed
+   one clears `CMAKE_MATCH_1`, so the old parse read an empty include list and S1a/S1e passed on any list (and `src/ri/hiders` and `src/ri/geometry` were on the path). The parse now reads the
+   matched branch and an empty list is `FATAL_ERROR`. Write such a check so that an unreadable input fails, and give it a mutation run. In an incremental tree a stale `flags.make` of a renamed
+   target keeps the old check green: remove it with the old library files after a rename.
+44. **`.gitignore` is anchored at the root: `/openrender/` (spec 033).** The unanchored `openrender/` also hid `src/libshader/include/openrender/ShaderMetadata.h` (untracked, so a sync
+   or a clean clone lacked it). The disposable deploy tree is only the repository-root `openrender/`.
+45. **A utility library has its own rule, and the OIIO tree has its own vcpkg install directory (spec 048).** `libRIBImageIO` (class ImageIO, constitution 1.5.0)
+   may include only the standard library, `common/`, its own header and OpenImageIO's headers (`ImageIO_NoDomainInclude`, archcheck), and the only edges into it are
+   Texturing's and Display Outputs'; a renderer-core or Scene Interface include in `src/imageio/` is a failing test. Never match an OIIO symbol by "OpenImageIO_v3":
+   a mangled name is `N11OpenImageIO4v3_1...` (`ImageIO_SingleCopy` matches `OpenImageIO`), and read an UNSTRIPPED install (`DESTDIR=...`, because
+   `cmake --install --prefix` ignores `OPENRENDER_HOMEDIR`, GitHub #23): a stripped one drops the local symbols that hold the statically linked OIIO.
+   `OPENRENDER_ENABLE_OIIO=ON` under vcpkg installs into `<VCPKG_INSTALLED_DIR>-oiio` (or `vcpkg_installed-oiio`) and the configure refuses the shared tree and
+   the manifest-relative default (manifest mode would uninstall what the OIIO-off builds need, and write this manifest into a tree other worktrees use): pass no
+   `VCPKG_INSTALLED_DIR` in the environment equal to the OIIO directory. The OIIO baked texture is written by OIIO only where its PHOTOMETRIC and EXTRASAMPLES
+   equal the legacy writer's (the exclusion table `kOiioBakeExclusions` in `texmake.cpp`: 16-bit with 3 or more channels, and 5 or more channels, stay legacy,
+   with a `CODE_SYSTEM` info message, because `RiError` never forwards `CODE_LOG` to the handler); an OIIO bake carries a `SOFTWARE` tag that begins
+   `OpenImageIO` and a legacy one does not (the probe the tests use). OIIO stores a 4-sample TIFF's alpha as the display driver declares it (associated) and PNG
+   alpha as straight; the legacy `file` driver writes 16-bit PNG byte-swapped (GitHub #181), so the parity tests decode the legacy side with its bytes swapped back
+   (`D-PNG-WRITE16`); the legacy `file` driver also writes a TIFF under the `.png` name when its PNG writer cannot take the display, 5 samples or a quantize maximum above 65535
+   (GitHub #185, `D-PNG-5CH`), where `oiio` refuses. A `"z"` display is quantized and dithered by the depth quantizer like any other (RISpec 3.2 RiQuantize): `CFileOutputBase` always reads
+   `quantize` and `dither` and keeps `isDepth` only for `gamma` (the one change of the legacy drivers in spec 048, FR-020's stated exception; scenes with the default zero depth quantizer
+   are unchanged); not changed: combined colour and depth displays use one quantizer (#186), quantization truncates where RISpec says round (#187), `CDisplayChannel::quantizer`
+   is never initialized (#188), exposure is applied to alpha (#189). A truncated TIFF reads as success from OIIO unless `has_error()` is checked (`Reader::read` does), and OIIO names its 32-bit integer types
+   `uint`/`int`.
 
 ## Active Technologies
 - C++20, CMake ≥3.19; `libtiff`/`libpng` (mandatory), OpenEXR (optional,
@@ -1030,8 +1140,38 @@ not in the agent definitions.
 - C++20, CMake ≥3.19, `-Werror`; no new dependencies: Geometry-owned `IDicer`, `IRayContext` and `IObjectSink`, a per-frame `CGeometryFrame`, Reyes on `FrameParams`, one
   `LensModel::circleOfConfusion` (031-geometry-hider-agnostic)
 - Storage: N/A; memory only (031-geometry-hider-agnostic)
+- C++20, CMake ≥3.19, `-Werror`; no new dependencies: `ShadingSystem`, `IShaderBackend` and `ShaderGroupBuilder` in `libshader/shading`, services 2.4.0, the metadata
+  API in `libRSLInfo` (033-shading-system-backends)
+- Storage: N/A; memory only (033-shading-system-backends)
+- C++20, CMake ≥3.19, `-Werror`; no new dependencies: the photon store and the irradiance cache are deterministic (a claim under the store's lock, a canonical photon order, no lookup memo; a
+  read-only fixed part, a Shading batch scope, a canonical commit, a pending-only `-P:N` wire), the accept value is a hash (`common/giHash.h`) and the sampler draws by index from a copy of the
+  bound sub-stream; `kRendererServicesVersion` 2.5.0 (040-gi-determinism)
+- Storage: N/A; memory only; the `tests/gi_split/reference` and `tests/gi_determinism` recordings are files (040-gi-determinism)
+- C++20, CMake ≥3.19, `-Werror`; optional OpenImageIO ≥ 3.0 (`OPENRENDER_ENABLE_OIIO`, off by default): the Image I/O utility library `libRIBImageIO`
+  (`orimageio::Reader`, `TiledTiffWriter`, `ScanlineWriter`), the `COiioImageInput` decode adapter, the `COiioBakeSink` bake writer and the `oiio` display driver
+  (048-oiio-image-io)
+- Storage: N/A; the legacy bake hashes and the `tests/unit/imageio/fixtures` references are recorded files (048-oiio-image-io)
 
 ## Recent Changes
+- 048-oiio-image-io: an optional OpenImageIO backend for image input and output (`OPENRENDER_ENABLE_OIIO`, off by default; constitution 1.5.0 adds the Image I/O
+  utility library `libRIBImageIO`). `Option "imageio" "backend"`, the per-call `"imageio"` parameter and `otexmake -imageio` select OpenImageIO to decode source images and to
+  bake textures (tags and samples equal to the legacy bake, except 16-bit 3+ channel and 5+ channel textures, which the legacy writer keeps with a message); the `oiio` display
+  driver writes TIFF, PNG, OpenEXR and RGBE with the legacy drivers' samples (display interface unchanged at 2.0.0); exactly one image of the install tree carries OIIO
+  (`ImageIO_SingleCopy`); no colour conversion on read or write. The decode difference list (`D-*`, `IMAGE_IO.md`) is tested; with OIIO off no image, file or hash changed on either
+  platform. vcpkg gets an `oiio` feature in its own install directory. One change of a legacy driver (FR-020's stated exception): a `"z"` display is quantized and dithered by the depth quantizer, per RISpec 3.2 (the shared `file_base`). Filed, not fixed: #171, #172, #174, #181, #183 to #189 (legacy RGBE cannot read RLE; the RGBE `rgba` output is garbled;
+  otexmake exits 0 for undecodable sources; the legacy `file` driver writes 16-bit PNG byte-swapped; three legacy TIFF decode defects; the PNG-to-TIFF fallback; combined colour and depth quantizer; truncation versus rounding; an uninitialized channel quantizer; exposure on alpha). Closing validation of the merged tree (specs 033 and 040 merged into the branch, 2026-11-18): macOS OIIO off 1416 and OIIO on 1432 tests (master's everyday command `-LE 'determinism-sweep|gi_determinism_long'`), the 618-entry determinism sweep 618 of 618 on both builds, `-L architecture` 45 of 45 on both builds (allowlist and metrics baseline unchanged against master), `ImageIO_SingleCopy` passing (31 binaries, one copy of OpenImageIO), the byte-identity oracle (three renders and four `otexmake` outputs) identical to the starting tree on both builds, the legacy bake hashes 38 of 38 unchanged; Linux (Ubuntu 24.04, GCC 13 `-Werror`, shared OpenImageIO 3.1.14) OIIO off 1417 and OIIO on 1433 tests with the starting tree's failing set (#45 `TextureTile_RenderByteIdentical`; #163 `Registry_IntegratorImageIdentity` did not recur), the sweep 618 of 618 off and 617 of 618 on (the intermittent texture3d `bake3d` crash, #122, passed alone five times), the legacy bake hashes 38 of 38. The macOS `ShadingContract_RealAnswersInterp_Messages` and `ShadingContract_MessageRequests` tests crash intermittently (a `strcmp` on a dangling string in `CShadingContext::interpret`; spec 048 changes nothing under `src/libshader` or `tests/shading_contract`), see `validation.md` section 24.
+- 040-gi-determinism: the photon map and the irradiance cache are deterministic: the same files and images across runs, at any thread count and under `-P:N`. Photon store: the claim and reset inside the
+  store's lock (the intermittent `CPhotonHider` crash, #164), `delete[]` for `new[]` (#165), a canonical photon order and every byte of a `.gpm` defined (#163), no lookup memo (#160; the cost is #178's
+  follow-up). Irradiance cache: the accept value is a hash of the call and the record, the sampler draws by index (`indirectdiffuse()` with the cache off now takes `samples` keyed directions), the cache
+  is a read-only fixed part plus a Shading batch scope plus a canonical commit, and a `-P:N` server sends only the records it made, committed with each record's own K (#161). The thread pins of the GI
+  scenes are removed, 36 GI sweep entries join the determinism sweep, the GI references were re-rendered once (the four images, the cache files, the loopback, the data scene, the trace replays, spec 039's
+  occlusion golden). `kRendererServicesVersion` 2.5.0. Under the interpreter `indirectdiffuse()` traces no ray (#173); the M2 cache is 8 times as dense, so a cache reused at a fine shading rate costs
+  about 2x per later frame (#179). No threshold widened; thresholds only lowered (see spec 040).
+- 033-shading-system-backends: shader loading, caching and format precedence moved out of the renderer core into Shading behind `ShadingSystem` and `IShaderBackend`
+  (`rslo` and `slo` backends; `CShader` is a backend-neutral description with an owned payload); the bind-time init moved into Shading (`getMatrix` phase Bind, #134); every binding is a group of one
+  layer (`ShaderGroupBuilder`); `kRendererServicesVersion` 2.4.0 (`destBytes`, `getShaderName`: `op_lightsource_f` and `shadername(type)` reach the renderer only through the services); the shader-metadata
+  API and `libRSLInfo` (`sloinfo` reads shaders through it only: `CONSUMER` 71 to 69); `libshader_shading` is `libRSLRuntime` and `libshader_runtime` is `libRSLInfo`, the old names resolving for one
+  release. DB-007 Resolved, DB-018 and DB-024 narrowed; no image, reference or threshold changed on either platform. #167 recorded as a known limitation.
 - 031-geometry-hider-agnostic: Geometry names neither the hiders nor Shading: `IRayContext`, `IDicer` and `IObjectSink` (implemented by the hiders and the core) replace the `CReyes *`/`CShadingContext *`
   parameters of every Geometry virtual, the forwarding entries of `CShadingContext` and `IShadingProducer` are retired, a per-frame `CGeometryFrame` replaces Geometry's `CRenderer::` reads, and `libRIBVector` compiles the real
   Geometry (`geometryDispatch.cpp` and every `vector/*Stub.cpp` are gone). Reyes reads `FrameParams` and rotates the camera through `motion::cameraRotationAt` (DB-009's rotation half). One thin lens, `LensModel::circleOfConfusion`, serves

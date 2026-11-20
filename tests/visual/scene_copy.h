@@ -11,6 +11,7 @@
 
 #include <cstdio>
 #include <fstream>
+#include <iterator>
 #include <sstream>
 #include <string>
 
@@ -20,13 +21,24 @@ struct SceneEdit {
         std::string prepend;   // first line(s) of the copy
         bool noDither = false; // puts `Quantize "rgba" 255 0 255 0` after the prepended line
         bool keepPins = false; // keep the lines that mention `numthreads`
+        bool floatOutput = false; // puts `Quantize "rgba" 0 0 0 0` after the prepended line (spec 040): colour and alpha are written as float
+        std::string depthName;    // a name: adds `Display "+<name>" "file" "z"` after the scene's first Display line (spec 040)
 
         // A scene is only copied when something is added to it.
-        bool needsCopy() const { return havePrepend || noDither; }
+        bool needsCopy() const { return havePrepend || noDither || floatOutput || !depthName.empty(); }
 };
 
-// The scene as it is rendered: the prepended line first, then the Quantize line, then the
-// original without its thread pins, so a pinned scene really runs multithreaded. A line that
+// Is this line a `Display` statement (not a comment, not `DisplayChannel`)?
+static inline bool isDisplayLine(const std::string &line) {
+    const size_t at = line.find_first_not_of(" \t");
+    return at != std::string::npos && line.compare(at, 7, "Display") == 0 && line.size() > at + 7 &&
+           (line[at + 7] == ' ' || line[at + 7] == '\t');
+}
+
+// The scene as it is rendered: the prepended line first, then the Quantize lines (--no-dither's, then --float's, so
+// that a --float scene writes float whatever the other flag says; a scene's own later Quantize still wins), then the
+// original without its thread pins, so a pinned scene really runs multithreaded, with the depth display
+// added after the first Display line when --depth is given. A line that
 // mentions `numthreads` is dropped whole, comments included. Without a prepended line or
 // --no-dither the original is returned as it is.
 static inline bool prepareSceneText(const std::string &rib, const SceneEdit &edit, std::string &scene) {
@@ -45,11 +57,22 @@ static inline bool prepareSceneText(const std::string &rib, const SceneEdit &edi
         out << edit.prepend << "\n";
     if (edit.noDither)
         out << "Quantize \"rgba\" 255 0 255 0\n";
+    if (edit.floatOutput)
+        out << "Quantize \"rgba\" 0 0 0 0\n";
+    bool depthAdded = edit.depthName.empty();
     std::string line;
     while (std::getline(in, line)) {
         if (!edit.keepPins && line.find("numthreads") != std::string::npos)
             continue;
         out << line << "\n";
+        if (!depthAdded && isDisplayLine(line)) {
+            out << "Display \"+" << edit.depthName << "\" \"file\" \"z\"\n";
+            depthAdded = true;
+        }
+    }
+    if (!depthAdded) {
+        fprintf(stderr, "  --depth: %s has no Display statement\n", rib.c_str());
+        return false;
     }
     scene = out.str();
     return true;

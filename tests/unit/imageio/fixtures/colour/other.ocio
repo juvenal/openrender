@@ -1,0 +1,32 @@
+ocio_profile_version: 2
+name: openRender-048-other
+description: A tiny configuration that differs from the built-in one (spec 048 colour test).
+environment: {}
+search_path: ""
+strictparsing: true
+luma: [0.2126, 0.7152, 0.0722]
+roles:
+  default: other-raw
+  scene_linear: other-linear
+  reference: other-raw
+displays:
+  Other:
+    - !<View> {name: Raw, colorspace: other-raw}
+active_displays: [Other]
+active_views: [Raw]
+colorspaces:
+  - !<ColorSpace>
+    name: other-raw
+    family: raw
+    equalitygroup: ""
+    bitdepth: 32f
+    isdata: true
+    allocation: uniform
+  - !<ColorSpace>
+    name: other-linear
+    family: scene
+    equalitygroup: ""
+    bitdepth: 32f
+    isdata: false
+    allocation: uniform
+    to_scene_reference: !<MatrixTransform> {matrix: [0.5, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 1]}

@@ -1,0 +1,55 @@
+# T014a frame-2 images on the starting tree (build-base, master 278b0394, linux): frame 1 removed, Quantize "rgba" 0 0 0 0 prepended (float image),
+# the map = the one a single -t:1 run of the full scene wrote and left in place, copied unchanged for every run (M040_SEED),
+# 30 runs at -t:4 and 30 at -t:1, separate processes, dirmode reuse (one directory, the map and the previous image in place).
+== photon-parity: seed render exit 0; map md5 9a6958e0becacbd48e7c8ebed6fee375
+--- photon-parity frame 2 only, -t:4
+scene build-logs/040-frame2-scratch/photon-parity-frame2.rib, 30 runs, dirmode reuse, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 f779d4f47413d5aa01a4f38e59fc92f8: 1
+  md5 d2b069557568bf5af24b0bde5c97e696: 1
+  md5 36865a55c18a23920509a0c227764b3a: 1
+  md5 453b22c5e2e59fdc1e764424b93b36c8: 1
+  md5 7286667f2e425cc3862b41d44ec9e305: 1
+  md5 5f6f894a67d0913befa355cec3c31c6f: 1
+  md5 c0671ab2b7255e96328fbbba9ae318a3: 1
+  md5 b53388e4508bc5869ad228c530acb90b: 1
+  md5 94d82441b6390f31339a81619fa15dbf: 1
+  md5 8765123824b88b1ce264eaf823ab9d74: 1
+  md5 df9c9ccd703ba19a11f9545f0f0c52d7: 1
+  md5 2def12278f4a66b8a4b1ecb2c4481535: 1
+  md5 6738f57aaaa3d8b258e37e16b9b6f769: 1
+  md5 a98a029368a1e5583baea1fe92396691: 1
+  md5 2dd7d70cdee618513626ce72e2952234: 1
+  md5 299d343b87e087b5d1615105c0026d94: 1
+  md5 35a3108b7a0cd325224e2e331561ecd4: 1
+  md5 4b3442875c514ba7f156c28635586c5d: 1
+  md5 330a169d51b6e3bdc11e0d43729ca9d1: 1
+  md5 e9a4a4edc633220c00127f14b34d6c0c: 1
+  md5 084df0a8dfa80fe3b367c4e69fde064d: 1
+  md5 9bff84afb49e61b3552b2436ab0022f3: 1
+  md5 07590b7f1bd005a2ebbc2c5c593e3936: 1
+  md5 2dc64a9a3e47b9a708aaa31f60937a62: 1
+  md5 2c09fc0ab6d3b0884b54fc616363bf89: 1
+  md5 5bae6d4f50e5666257b6f47018cfd3d5: 1
+  md5 85d8455252552e7c300030f6fbf6e334: 1
+  md5 74822afbbd963eca0f50cf51e2dbbb90: 1
+  md5 987ed68d87727142669a1e55407a0325: 1
+  md5 c291c15526912638fe9b8e651006be92: 1
+  scratch: /tmp/m040-cm2pgj9e
+--- photon-parity frame 2 only, -t:1
+scene build-logs/040-frame2-scratch/photon-parity-frame2.rib, 30 runs, dirmode reuse, options -t:1, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 41bc7049df09890208d8846eada613e5: 30
+  scratch: /tmp/m040-5udldfwt
+== subdiv-loop-photon: seed render exit 0; map md5 4a8a48341ee2a35d2142034ac8317af2
+--- subdiv-loop-photon frame 2 only, -t:4
+scene build-logs/040-frame2-scratch/subdiv-loop-photon-frame2.rib, 30 runs, dirmode reuse, options -t:4, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 72308448e6b57117f9d3daed6c965d36: 30
+  scratch: /tmp/m040-fsiwm7xy
+--- subdiv-loop-photon frame 2 only, -t:1
+scene build-logs/040-frame2-scratch/subdiv-loop-photon-frame2.rib, 30 runs, dirmode reuse, options -t:1, MallocPreScribble=unset
+  failed runs: 0 []
+  md5 72308448e6b57117f9d3daed6c965d36: 30
+  scratch: /tmp/m040-yvreadcj
+done

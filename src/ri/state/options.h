@@ -197,6 +197,10 @@ class COptions {
         bool textureCacheEnabled;
         const char *textureCacheDirectory;
 
+        // Image I/O backend (spec 048): `Option "imageio" "backend"`. Legacy unless OIIO is asked for, and
+        // it stays Legacy in a build without OIIO.
+        EImageIOBackend imageBackend;
+
         // Which primary source's assignment of blobby opcodes 4 and 5 is in
         // force (spec 015, FR-013). Scene-wide, resolved once per primitive
         // at construction rather than branched per evaluation point.

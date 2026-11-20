@@ -77,6 +77,25 @@ Optional, each enabling a component:
 - **GTK 4** (4.10+) and **libadwaita** (1.4+): the `orender-wire` previewer on
   Linux. macOS uses Metal/AppKit and needs neither.
 
+## Optional: OpenImageIO (`OPENRENDER_ENABLE_OIIO`)
+
+Off by default; nothing about a default build changes. With `-DOPENRENDER_ENABLE_OIIO=ON` the build adds `libRIBImageIO` (the only image that carries
+OpenImageIO), the `oiio` display driver and the `Option "imageio"` / `-imageio oiio` selection (see `DEVNOTES_DETAILS/IMAGE_IO.md`). The minimum is
+OpenImageIO 3.0 (3.1.14 was validated). Continuous integration, the FHS build and the release builds do not bundle OpenImageIO in this release.
+
+- **macOS, vcpkg** (`VCPKG_ROOT` set): the `oiio` manifest feature builds OpenImageIO into its **own install directory**, `<VCPKG_INSTALLED_DIR>-oiio`
+  (or `vcpkg_installed-oiio` next to the source tree), never into the shared tree the OIIO-off builds use, because manifest mode would uninstall the
+  packages those builds need. The configure refuses the shared tree. The closure is large (OpenColorIO 2.3, OpenEXR, Imath, ...): budget for it.
+- **macOS, Homebrew** (no `VCPKG_ROOT`): `brew install openimageio` (3.2.x as of this writing; a large closure) and configure with the option. **Untested:** spec 048 never configured or built this mode (it validated vcpkg static OpenImageIO on macOS and a shared prefix build on Linux), so treat it as unverified.
+- **Linux**: Ubuntu 24.04's OpenImageIO is 2.4.17, below the minimum. Build OpenImageIO 3.1.14 into a prefix and point the configure at it:
+  `cmake -S <oiio-src> -B <oiio-build> -DCMAKE_INSTALL_PREFIX=$HOME/oiio-prefix -DOpenImageIO_BUILD_MISSING_DEPS=all`, then build and install it, and configure
+  openRender with `-DOPENRENDER_ENABLE_OIIO=ON -DOpenImageIO_ROOT=$HOME/oiio-prefix` (needs OpenColorIO 2.3, which `BUILD_MISSING_DEPS=all` builds). **pystring
+  pin:** OIIO 3.1.14.0 pins pystring to the branch `master` plus commit `381829c2c1696ffec9277b339952a9588e6e67cf`, and upstream `master` has moved, so the
+  first configure stops at the tag check (`pystring: Tag master resolved to commit ..., but expected ...`). Do not set
+  `OpenImageIO_DEPENDENCY_BUILD_ALLOW_UNVERIFIED_TAGS=ON`: in `<oiio-build>/deps/pystring` run `git fetch --unshallow` and
+  `git checkout -B master 381829c2c1696ffec9277b339952a9588e6e67cf`, then configure again (the verification still runs and passes). The runtime finds the
+  prefix through the build and install RPATH.
+
 ## Building
 
 ### Unix / Linux / macOS
@@ -167,6 +186,7 @@ Optional, each enabling a component:
 | `OPENRENDER_COMPAT_SOVERSION` | SOVERSION for libri/librslo shared libraries | Major version |
 | `OPENRENDER_PYTHONDIR` | Install destination for `prman.py` | `python/` (self-contained) or `share/openRender/python/` (FHS) |
 | `OPENRENDER_LUADIR` | Install destination for `prman.lua` | `lua/` (self-contained) or `share/openRender/lua/` (FHS) |
+| `OPENRENDER_ENABLE_OIIO` | Build the optional OpenImageIO image backend and the `oiio` display driver (needs OpenImageIO 3.0 or newer) | OFF |
 
 Example:
 
@@ -178,6 +198,6 @@ cmake .. -DCMAKE_BUILD_TYPE=Release -DINSTALL_SELFCONTAINED=OFF
 
 With `INSTALL_SELFCONTAINED=ON` (default), documentation, shaders, and other data are installed under `CMAKE_INSTALL_PREFIX/share/doc`, `CMAKE_INSTALL_PREFIX/.../shaders`, etc. Executables go to `bin/`, libraries to `lib/`, and headers to `include/`.
 
-The libraries are `libRIBRender`, `libRIBVector` and `libRIBOut` (the RenderMan Interface), the three `libshader_*` libraries, and `libRIBCommon`, the shared infrastructure library every other one depends on. Each is installed shared and, except `libshader_shading`, static. The CMake package's optional `Static` component still needs the shared targets: the static renderer links the shared `libshader_shading` and `libRIBCommon`.
+The libraries are `libRIBRender`, `libRIBVector` and `libRIBOut` (the RenderMan Interface), `libRSLRuntime` (the shading engine and the shader loaders), `libRSLInfo` (shader metadata and the `.rslo` inspection reader) and `libshader_compiler` (the only `libshader_*` left), and `libRIBCommon`, the shared infrastructure library every other one depends on. Each is installed shared and, except `libRSLRuntime`, static. The CMake package's optional `Static` component still needs the shared targets: the static renderer links the shared `libRSLRuntime` and `libRIBCommon`. The old names `libshader_shading` and `libshader_runtime` resolve for one release (compatibility links, CMake `ALIAS` targets and exported aliases); a binary linked against `libshader_shading.1.dylib`/`.so.1` or `libshader_runtime.1.dylib`/`.so.1` must be relinked.
 
 See [INSTALL_ARTIFACTS.md](INSTALL_ARTIFACTS.md) for a detailed list of installed files.

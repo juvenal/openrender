@@ -29,6 +29,7 @@
 #include <math.h>
 #include <stdarg.h>
 #include <string.h>
+#include <vector>
 
 #include "include/logging.hpp"
 
@@ -64,6 +65,9 @@
 #include "rendererContext.h"
 #include "emitterRegistry.h"
 #include "rendererFrame.h"
+#include "imageInput.h"
+#include "libshader/shading/shaderGroup.h"
+#include "libshader/shading/shadingSystem.h"
 #include "searchPathResolver.h"
 #include "ri.h"
 #include "riCondition.h"
@@ -298,57 +302,29 @@ void CRendererContext::getBasisSteps(int &uStep, int &vStep) {
 // Return Value			:
 // Comments				:
 CShaderInstance *CRendererContext::getShader(const char *name, int type, int np, const char **params, const void **vals) {
-    CShaderInstance *cInstance = NULL;
-
     if (strcmp(name, "null") == 0)
         return NULL;
 
-    const char *preference = currentAttributes->shaderFormat
-                                 ? currentAttributes->shaderFormat
-                                 : (currentOptions->defaultShaderFormat ? currentOptions->defaultShaderFormat : OPENRENDER_DEFAULT_FORMAT);
-    CShader *cShader = CRenderer::getShader(name, currentOptions->shaderPath, preference);
+    // Every binding is a group of one layer (spec 033, contracts/shader-group.md): the builder has the shading system find or load
+    // the shader, type-check it, make the instance, take its key, register a light and run the bind-time init, then sets the RIB's
+    // parameters; this context is the bind host and the file resolver walks the shader path. The group is its layer's instance
+    const CShaderSearchPathResolver resolver(currentOptions->shaderPath);
+    const openrender::shading::ShaderRequest request{name, type, currentAttributes->shaderFormat, currentOptions->defaultShaderFormat, &resolver};
+    openrender::shading::ShaderGroupBuilder group(*CRenderer::shadingSystem);
+    group.begin();
+    group.shader(request, currentAttributes, currentXform, *this, np, params, vals);
+    return group.end(); // NULL when the shader was not found or is of another type: the shading system gave the diagnostic
+}
 
-    if (cShader != NULL) {
-        CProgrammableShaderInstance *instance;
-
-        if (cShader->type != type) {
-            error(CODE_NOSHADER, "Shader \"%s\" is not of the expected type\n", name);
-            return NULL;
-        }
-
-        log_info("getShader: loading shader '{}', type '{}', in format '{}'", name, cShader->type, preference);
-
-        instance = new CProgrammableShaderInstance(cShader, currentAttributes, currentXform);
-        instance->instanceKey = takeInstanceKey();
-
-        if (type == SL_LIGHTSOURCE) {
-            // fill in lighting category
-            instance->createCategories();
-
-            // Add the new light into the active lights list for the frame
-            CRenderer::allLights->push(instance);
-        }
-
-        assert(instance != NULL);
-
-        // Execute the init code of the shader
-        arenaBegin(globalArena);
-        init(instance);
-        arenaEnd(globalArena);
-
-        cInstance = instance;
-    }
-
-    // If not found, error out
-    if (cInstance == NULL) {
-        error(CODE_NOSHADER, "Failed to find shader \"%s\"\n", name);
-        return NULL;
-    }
-
-    // Set the shader parameters
-    cInstance->setParameters(np, params, vals);
-
-    return cInstance;
+///////////////////////////////////////////////////////////////////////
+// Class				:	CRendererContext
+// Method				:	registerLight
+// Description			:	A bound light joins the frame's light list (the shading system's bind host)
+// Return Value			:	-
+// Comments				:	No extra reference
+void CRendererContext::registerLight(CShaderInstance *light) {
+    // Add the new light into the active lights list for the frame
+    CRenderer::allLights->push(light);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -2180,6 +2156,32 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
                 if (options->textureCacheDirectory != nullptr)
                     free((void *)options->textureCacheDirectory);
                 options->textureCacheDirectory = (val[0] != '\0') ? strdup(val) : nullptr;
+            }
+            else {
+                error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+            }
+        }
+    }
+    else if (strcmp(name, RI_IMAGEIO) == 0) {
+        // Option "imageio" "backend" (spec 048, contracts/selection.md): which implementation decodes the sources the
+        // renderer reads (the unbaked-texture fallback and its disk cache) and, when a Make* call names no backend of
+        // its own, the sources it bakes. Legacy is the default. An unknown value is reported and the previous value
+        // stays; "oiio" in a build without OpenImageIO is reported and the value stays "legacy" (P-Q6).
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_BACKEND) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                if (strcmp(val, "legacy") == 0) {
+                    options->imageBackend = EImageIOBackend::Legacy;
+                }
+                else if (strcmp(val, "oiio") == 0) {
+                    if (imageBackendAvailable(EImageBackend::OIIO))
+                        options->imageBackend = EImageIOBackend::OIIO;
+                    else
+                        error(CODE_BADTOKEN, OR_OIIO_NOT_BUILT_TEXT "; Option \"imageio\" \"backend\" stays \"legacy\"\n");
+                }
+                else {
+                    error(CODE_BADTOKEN, "Unknown image backend \"%s\" (expected \"legacy\" or \"oiio\")\n", val);
+                }
             }
             else {
                 error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
@@ -6333,6 +6335,51 @@ void CRendererContext::RiMotionEnd(void) {
     keyTimes = NULL;
 }
 
+///////////////////////////////////////////////////////////////////////
+// Class				:	CImageIOCallParameters
+// Description			:	The parameter list of a Make* call with the Option's image backend applied (spec 048,
+//							data-model section 1): a call that names no "imageio" of its own takes
+//							`Option "imageio" "backend"`, which only matters when that is "oiio", so then the list
+//							gets "imageio" "oiio" appended. A call's own parameter always wins and a legacy Option
+//							changes nothing: the list is passed on unchanged.
+// Comments				:
+class CImageIOCallParameters {
+    public:
+        CImageIOCallParameters(const COptions *options, int n, const char *tokens[], const void *params[]) : count(n), tokenList(tokens), valueList(params) {
+            if (options->imageBackend != EImageIOBackend::OIIO)
+                return;
+
+            for (int i = 0; i < n; i++)
+                if (namesImageIO(tokens[i]))
+                    return;
+
+            for (int i = 0; i < n; i++) {
+                ownedTokens.push_back(tokens[i]);
+                ownedValues.push_back(params[i]);
+            }
+            ownedTokens.push_back(RI_IMAGEIO);
+            ownedValues.push_back(&oiioValue);
+            count = n + 1;
+            tokenList = ownedTokens.data();
+            valueList = ownedValues.data();
+        }
+
+        int count;
+        const char **tokenList;
+        const void **valueList;
+
+    private:
+        // "imageio", or an inline declaration of it ("string imageio")
+        static bool namesImageIO(const char *token) {
+            const char *name = strrchr(token, ' ');
+            return strcmp(name != NULL ? name + 1 : token, "imageio") == 0;
+        }
+
+        std::vector<const char *> ownedTokens;
+        std::vector<const void *> ownedValues;
+        const char *oiioValue = "oiio";
+};
+
 void CRendererContext::RiMakeTextureV(const char *pic, const char *tex, const char *swrap, const char *twrap, float (*filterfunc)(float, float, float, float), float swidth, float twidth, int n, const char *tokens[], const void *params[]) {
     COptions *options;
 
@@ -6341,7 +6388,8 @@ void CRendererContext::RiMakeTextureV(const char *pic, const char *tex, const ch
 
     options = getOptions(FALSE);
     CSearchPathResolver resolver(options->texturePath);
-    makeTexture(pic, tex, &resolver, swrap, twrap, filterfunc, swidth, twidth, n, tokens, params);
+    CImageIOCallParameters call(options, n, tokens, params);
+    makeTexture(pic, tex, &resolver, swrap, twrap, filterfunc, swidth, twidth, call.count, call.tokenList, call.valueList);
 }
 
 void CRendererContext::RiMakeBumpV(const char *pic, const char *tex, const char *swrap, const char *twrap, float (*filterfunc)(float, float, float, float), float swidth, float twidth, int n, const char *tokens[], const void *params[]) {
@@ -6352,7 +6400,8 @@ void CRendererContext::RiMakeBumpV(const char *pic, const char *tex, const char 
 
     options = getOptions(FALSE);
     CSearchPathResolver resolver(options->texturePath);
-    makeTexture(pic, tex, &resolver, swrap, twrap, filterfunc, swidth, twidth, n, tokens, params);
+    CImageIOCallParameters call(options, n, tokens, params);
+    makeTexture(pic, tex, &resolver, swrap, twrap, filterfunc, swidth, twidth, call.count, call.tokenList, call.valueList);
 }
 
 void CRendererContext::RiMakeLatLongEnvironmentV(const char *pic, const char *tex, float (*filterfunc)(float, float, float, float), float swidth, float twidth, int n, const char *tokens[], const void *params[]) {
@@ -6363,7 +6412,8 @@ void CRendererContext::RiMakeLatLongEnvironmentV(const char *pic, const char *te
 
     options = getOptions(FALSE);
     CSearchPathResolver resolver(options->texturePath);
-    makeCylindericalEnvironment(pic, tex, &resolver, RI_PERIODIC, RI_CLAMP, filterfunc, swidth, twidth, n, tokens, params);
+    CImageIOCallParameters call(options, n, tokens, params);
+    makeCylindericalEnvironment(pic, tex, &resolver, RI_PERIODIC, RI_CLAMP, filterfunc, swidth, twidth, call.count, call.tokenList, call.valueList);
 }
 
 void CRendererContext::RiMakeCubeFaceEnvironmentV(const char *px, const char *nx, const char *py, const char *ny, const char *pz, const char *nz, const char *tex, float /*fov*/, float (*filterfunc)(float, float, float, float), float swidth, float twidth, int n, const char *tokens[], const void *params[]) {
@@ -6375,7 +6425,8 @@ void CRendererContext::RiMakeCubeFaceEnvironmentV(const char *px, const char *nx
 
     options = getOptions(FALSE);
     CSearchPathResolver resolver(options->texturePath);
-    makeCubicEnvironment(px, py, pz, nx, ny, nz, tex, RI_CLAMP, RI_CLAMP, &resolver, filterfunc, swidth, twidth, n, tokens, params, FALSE);
+    CImageIOCallParameters call(options, n, tokens, params);
+    makeCubicEnvironment(px, py, pz, nx, ny, nz, tex, RI_CLAMP, RI_CLAMP, &resolver, filterfunc, swidth, twidth, call.count, call.tokenList, call.valueList, FALSE);
 }
 
 void CRendererContext::RiMakeShadowV(const char *pic, const char *tex, int n, const char *tokens[], const void *params[]) {
@@ -6386,7 +6437,8 @@ void CRendererContext::RiMakeShadowV(const char *pic, const char *tex, int n, co
 
     options = getOptions(FALSE);
     CSearchPathResolver resolver(options->texturePath);
-    makeSideEnvironment(pic, tex, &resolver, RI_CLAMP, RI_CLAMP, RiBoxFilter, 1, 1, n, tokens, params, TRUE);
+    CImageIOCallParameters call(options, n, tokens, params);
+    makeSideEnvironment(pic, tex, &resolver, RI_CLAMP, RI_CLAMP, RiBoxFilter, 1, 1, call.count, call.tokenList, call.valueList, TRUE);
 }
 
 void CRendererContext::RiMakeBrickMapV(int nb, const char **src, const char *dest, int n, const char *tokens[], const void *params[]) {

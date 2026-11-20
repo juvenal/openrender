@@ -1,0 +1,16 @@
+shaders 137, formats rslo,slo, objects 274, series 5
+sloinfo pass 1 of 5: 129.379 s
+sloinfo pass 2 of 5: 138.363 s
+sloinfo pass 3 of 5: 139.884 s
+sloinfo pass 4 of 5: 124.426 s
+sloinfo pass 5 of 5: 125.098 s
+
+sloinfo, 100 loads x all objects (s) median   131.731  min   124.426  max   139.884  spread   15.459   runs 129.379, 138.363, 139.884, 124.426, 125.098 (first discarded)
+in-process run 1 of 5: objects 274, rslo 39.155 ms, slo 825.964 ms
+in-process run 2 of 5: objects 274, rslo 9.819 ms, slo 629.989 ms
+in-process run 3 of 5: objects 274, rslo 9.509 ms, slo 632.000 ms
+in-process run 4 of 5: objects 274, rslo 9.308 ms, slo 600.064 ms
+in-process run 5 of 5: objects 274, rslo 9.451 ms, slo 600.749 ms
+
+in-process .rslo loads (ms)        median     9.480  min     9.308  max     9.819  spread    0.511   runs 39.155, 9.819, 9.509, 9.308, 9.451 (first discarded)
+in-process .slo loads (ms)         median   615.369  min   600.064  max   632.000  spread   31.936   runs 825.964, 629.989, 632.000, 600.064, 600.749 (first discarded)

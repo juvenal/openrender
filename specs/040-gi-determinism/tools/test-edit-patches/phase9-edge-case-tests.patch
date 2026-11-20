@@ -1,0 +1,295 @@
+--- tests/gi_determinism/test_gi_photon_store.cpp
++++ tests/gi_determinism/test_gi_photon_store.cpp
+@@ -11,6 +11,8 @@
+  *   inmemory-lookup  GiDet_PhotonInMemoryLookup a map filled in memory and never read from a file can be queried (US3 scenario 3, GitHub #160)
+  *   roundtrip        GiDet_PhotonRoundTrip     the lookups of an in-memory store equal, bit for bit, those of the same store written and
+  *                                              reloaded (SC-005's photon half)
++ *   one-photon       GiDet_PhotonOnePhoton     a map with one photon (spec.md Edge Cases): the frame's claim is made once, every byte of the written file
++ *                                              is defined, two writes are byte-identical and the reloaded map answers like the in-memory one
+  *   claim            GiDet_PhotonClaim         (a second executable, compiled with GIDET_CLAIM) 8 threads store into one CPhotonStore through
+  *                                              storePhotonForFrame(): exactly one call returns true, numItems equals the number of stores
+  *                                              (FR-003, data-model.md section 9)
+@@ -353,7 +355,68 @@
+     }
+     return g_fail == 0 ? 0 : 1;
+ }
++
++// One photon: the smallest map that is not empty (spec.md Edge Cases). The claim returns true once, the written file has every byte defined, two
++// writes of the fill (with heap garbage in between) are byte-identical, and the reloaded map answers every query like the in-memory one.
++static int modeOnePhoton(const std::string &work) {
++    matrix fromWorld, toWorld;
++    makeIdentity(fromWorld);
++    makeIdentity(toWorld);
++    const std::vector<Ph> one = photonSet(1, 11);
++    const std::string name = work + "/gidet-one.gpm";
+ 
++    // the photon's own position, a point a hundredth away, one inside the box and one far outside it
++    std::vector<Query> q(4);
++    for (int k = 0; k < 3; k++) {
++        q[0].P[k] = one[0].P[k];
++        q[1].P[k] = one[0].P[k] + 0.01f;
++        q[2].P[k] = 2.0f;
++        q[3].P[k] = 100.0f;
++    }
++
++    Bytes bytes[2];
++    std::vector<float> inMemory[2];
++    for (int pass = 0; pass < 2; pass++) {
++        poisonHeap();
++        remove(name.c_str());
++        {
++            CPhotonStore store(name.c_str(), NULL, fromWorld, toWorld);
++            const Ph &p = one[0];
++            EXPECT(store.storePhotonForFrame(p.P, p.N, p.I, p.C, p.key), "FR-003: the one store of the frame did not claim it");
++            EXPECT(store.numItems == 1, "FR-003: numItems is %d after one store", store.numItems);
++            store.balance();
++            inMemory[pass] = answers(store, q, false);
++            balanceAndWrite(store, fromWorld, toWorld);
++        }
++        EXPECT(gitest::readFile(name, bytes[pass]), "the one-photon map was not written");
++    }
++    if (g_fail != 0) {
++        return 1;
++    }
++
++    Gpm g;
++    EXPECT(parseGpm(bytes[0], g), "the one-photon map does not parse");
++    if (g_fail != 0) {
++        return 1;
++    }
++    printf("one-photon: %d items, %zu bytes; estimates at the photon %g %g %g\n", g.numItems, bytes[0].size(), inMemory[0][0], inMemory[0][1], inMemory[0][2]);
++    EXPECT(g.numItems >= 1, "the written map holds %d photons for 1 stored", g.numItems);
++    std::string why;
++    EXPECT(gpmPaddingZero(bytes[0], g, why), "FR-004: a byte of the one-photon map is not defined: %s", why.c_str());
++    EXPECT(bytes[0] == bytes[1], "FR-004: two writes of one photon differ: %s", gitest::describeFirstDifference(bytes[0], bytes[1]).c_str());
++    EXPECT(sameBits(inMemory[0], inMemory[1]), "FR-005: two in-memory one-photon maps answer differently");
++    for (float v : inMemory[0]) {
++        EXPECT(std::isfinite(v), "a one-photon lookup answered a non-finite value");
++    }
++
++    std::unique_ptr<CPhotonStore> loaded;
++    EXPECT(loadMap(name, loaded), "the one-photon map was not read");
++    if (loaded) {
++        EXPECT(sameBits(inMemory[0], answers(*loaded, q, false)), "SC-005: the reloaded one-photon map answers differently from the in-memory one");
++    }
++    return g_fail == 0 ? 0 : 1;
++}
++
+ #ifdef GIDET_CLAIM
+ static int modeClaim(const std::string &work) {
+     (void)work;
+@@ -389,7 +452,7 @@
+ 
+ int main(int argc, char **argv) {
+     if (argc != 3) {
+-        fprintf(stderr, "usage: %s filebytes|lookup-pure|inmemory-lookup|roundtrip|claim <work dir>\n", argv[0]);
++        fprintf(stderr, "usage: %s filebytes|lookup-pure|inmemory-lookup|roundtrip|one-photon|claim <work dir>\n", argv[0]);
+         return 2;
+     }
+     const std::string mode = argv[1];
+@@ -406,6 +469,8 @@
+         return modeInMemoryLookup(work);
+     if (mode == "roundtrip")
+         return modeRoundTrip(work);
++    if (mode == "one-photon")
++        return modeOnePhoton(work);
+ #ifdef GIDET_CLAIM
+     if (mode == "claim")
+         return modeClaim(work);
+--- tests/gi_determinism/CMakeLists.txt
++++ tests/gi_determinism/CMakeLists.txt
+@@ -5,7 +5,7 @@
+ # everyday run the way the sweep is: ctest -LE 'determinism-sweep|gi_determinism_long'). -L is a regular expression: use -L '^gi_determinism$' and
+ # -L '^gi_determinism_long$'.
+ #
+-#   test_gi_photon_store   GiDet_PhotonFileBytes, _PhotonLookupPure, _PhotonInMemoryLookup, _PhotonRoundTrip   (the photon store alone)
++#   test_gi_photon_store   GiDet_PhotonFileBytes, _PhotonLookupPure, _PhotonInMemoryLookup, _PhotonRoundTrip, _PhotonOnePhoton   (the photon store alone)
+ #   test_gi_photon_claim   GiDet_PhotonClaim                      (the same source, compiled with GIDET_CLAIM: storePhotonForFrame does not exist yet)
+ #   test_gi_photon_runs    GiDet_PhotonRepeat, _PhotonRepeatReuse, _PhotonThreads, and the 30-run forms _PhotonRepeat30, _PhotonRepeatReuse30,
+ #                          _PhotonThreads4x30                     (separate orender processes, the .gpm compared byte for byte)
+@@ -51,7 +51,7 @@
+ 
+ # One scratch directory per test: each test runs in its own, so a parallel run never shares a file
+ set(GI_DET_TEST_NAMES
+-    PhotonClaim PhotonFileBytes PhotonLookupPure PhotonInMemoryLookup PhotonRoundTrip
++    PhotonClaim PhotonFileBytes PhotonLookupPure PhotonInMemoryLookup PhotonRoundTrip PhotonOnePhoton CacheThreadExtremes
+     PhotonRepeat PhotonRepeatReuse PhotonThreads PhotonRepeat30 PhotonRepeatReuse30 PhotonThreads4x30
+     LookupPure CommitOrder CommitDedupe CacheRoundTrip AcceptPure BatchClamp
+     MissIndependence_rslo MissIndependence_slo IndirectRayCount_rslo IndirectRayCount_slo RepeatedPoint_rslo RepeatedPoint_slo)
+@@ -84,7 +84,7 @@
+ 
+ add_test(NAME GiDet_PhotonFileBytes COMMAND test_gi_photon_store filebytes ${CMAKE_CURRENT_BINARY_DIR}/work/PhotonFileBytes)
+ set_tests_properties(GiDet_PhotonFileBytes PROPERTIES TIMEOUT 120 LABELS "gi_determinism;photon" ENVIRONMENT "${GI_DET_SCRIBBLE_ENV}")
+-foreach(_m lookup-pure:PhotonLookupPure inmemory-lookup:PhotonInMemoryLookup roundtrip:PhotonRoundTrip)
++foreach(_m lookup-pure:PhotonLookupPure inmemory-lookup:PhotonInMemoryLookup roundtrip:PhotonRoundTrip one-photon:PhotonOnePhoton)
+     string(REPLACE ":" ";" _mt ${_m})
+     list(GET _mt 0 _mode)
+     list(GET _mt 1 _name)
+@@ -92,6 +92,17 @@
+     set_tests_properties(GiDet_${_name} PROPERTIES TIMEOUT 120 LABELS "gi_determinism;photon" ENVIRONMENT "${GI_DET_SCRIBBLE_ENV}")
+ endforeach()
+ 
++# One bucket, more threads than buckets (spec.md Edge Cases, T116): a cached occlusion scene on a 16 x 16 image (one bucket) rendered at -t:1, at the default
++# thread count, at -t:2 and at -t:16 (15 threads get no work); colour, alpha, depth and the cache file are compared byte for byte, the way the sweep does.
++# The thread count of a `-P:N` server cannot be set from the client (orender turns -t off for a network render and a server renders with one thread), so
++# "servers with different thread counts" is not a configuration: validation.md section 7.
++add_test(NAME GiDet_CacheThreadExtremes
++    COMMAND test_depth_determinism --configs "-t:1||-t:2|-t:16" --outputs gi-cache-thread-extremes.tif,gi-cache-thread-extremes-z.tif
++        --prepend "Option \"sampling\" \"sampler\" [\"sobol\"]" --float --depth gi-cache-thread-extremes-z.tif --files gi-cache-thread-extremes.icache
++        $<TARGET_FILE:orender> ${GI_DET_SCENES}/gi-cache-thread-extremes.rib
++    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/work/CacheThreadExtremes)
++set_tests_properties(GiDet_CacheThreadExtremes PROPERTIES TIMEOUT 600 LABELS "gi_determinism;irradiance" ENVIRONMENT "${GI_DET_ENV}" DEPENDS orender)
++
+ add_test(NAME GiDet_PhotonClaim COMMAND test_gi_photon_claim claim ${CMAKE_CURRENT_BINARY_DIR}/work/PhotonClaim)
+ set_tests_properties(GiDet_PhotonClaim PROPERTIES TIMEOUT 120 LABELS "gi_determinism;photon" ENVIRONMENT "${GI_DET_ENV}")
+ 
+--- /dev/null
++++ tests/gi_determinism/scenes/gi-cache-thread-extremes.rib
+@@ -0,0 +1,27 @@
++##RenderMan RIB-Structure 1.0
++# Spec 040 scene of GiDet_CacheThreadExtremes (T116), not a visual test and without a reference image: occlusion() through a written irradiance
++# cache on a 16 x 16 image, which is one bucket (the default bucket size is 16 x 16). Rendered at -t:1, at the default thread count, at -t:2 and
++# at -t:16: with one bucket and 16 threads, 15 threads get no work. Colour, alpha, depth and the cache file must be byte-identical.
++# The sphere pair is examples/rib/tests/sphere-occlusion-reyes.rib's (the occluder needs `Attribute "visibility" "diffuse" [1]`).
++version 3.03
++Hider "reyes"
++Option "shaderformat" "default" ["rslo"]
++Display "gi-cache-thread-extremes.tif" "file" "rgba"
++Format 16 16 1
++PixelSamples 1 1
++Projection "perspective" "fov" 40
++Clipping 0.1 100
++Translate 0 0 5
++WorldBegin
++  Attribute "irradiance" "string handle" ["gi-cache-thread-extremes.icache"]
++  Attribute "irradiance" "string filemode" ["w"]
++  Attribute "irradiance" "float maxerror" [0.6]
++  Surface "occlusion_probe"
++  Sphere 1 -1 1 360
++  AttributeBegin
++    Attribute "visibility" "diffuse" [1]
++    Surface "matte"
++    Translate 1.2 0 -0.5
++    Sphere 0.9 -0.9 0.9 360
++  AttributeEnd
++WorldEnd
+--- /dev/null
++++ tests/gi_determinism/scenes/gi-photon-caustic.rib
+@@ -0,0 +1,57 @@
++##RenderMan RIB-Structure 1.0
++# Spec 040 sweep scene (T115), not a visual test and without a reference image: a photon pass with a global map and a caustic map (3000 photons),
++# then a raytrace render of the caustic map, shader format rslo.
++# A chrome sphere (Attribute "photon" "shadingmodel") sends photons to the matte floor and wall, so photon.cpp's caustic branch runs and a
++# photon that follows a specular bounce is stored in both maps. The floor and the wall are two Attribute "photon" blocks that name the same
++# two maps (two blocks, one map of each name).
++# The photon pass cannot run under -P (GitHub #170), so the sweep entry omits that configuration.
++# The determinism harness (tests/visual/test_depth_determinism.cpp, --float --depth --files) renders it under every thread configuration and
++# compares colour, alpha, depth and both map files byte for byte.
++version 3.03
++FrameBegin 1
++  Hider "photon" "int emit" [3000]
++  Projection "perspective" "fov" 45
++  Format 16 12 1
++  Translate 0 -1 5
++  WorldBegin
++    Attribute "shade" "shaderformat" ["rslo"]
++    LightSource "pointlight" 1 "intensity" [4] "from" [0 2.2 0.5]
++    AttributeBegin
++      Attribute "photon" "string globalmap" ["gi-photon-caustic.gpm"] "string causticmap" ["gi-photon-caustic-c.gpm"]
++      Color [0.8 0.8 0.8]
++      Surface "matte"
++      Polygon "P" [-3 0 -3  -3 0 3  3 0 3  3 0 -3]
++    AttributeEnd
++    AttributeBegin
++      Attribute "photon" "string globalmap" ["gi-photon-caustic.gpm"] "string causticmap" ["gi-photon-caustic-c.gpm"]
++      Color [0.8 0.8 0.8]
++      Surface "matte"
++      Polygon "P" [-3 0 3  -3 3 3  3 3 3  3 0 3]
++    AttributeEnd
++    AttributeBegin
++      Attribute "photon" "string shadingmodel" ["chrome"]
++      Color [0.9 0.9 0.9]
++      Surface "matte"
++      Translate 0 0.6 0.5
++      Sphere 0.6 -0.6 0.6 360
++    AttributeEnd
++  WorldEnd
++FrameEnd
++FrameBegin 2
++  Hider "raytrace"
++  PixelSamples 1 1
++  Display "gi-photon-caustic.tif" "file" "rgba"
++  Projection "perspective" "fov" 45
++  Format 64 48 1
++  Translate 0 -1 5
++  WorldBegin
++    Attribute "shade" "shaderformat" ["rslo"]
++    Surface "photonparity_view" "string mapname" ["gi-photon-caustic-c.gpm"] "float gain" [1]
++    Polygon "P" [-3 0 -3  -3 0 3  3 0 3  3 0 -3]
++    Polygon "P" [-3 0 3  -3 3 3  3 3 3  3 0 3]
++    TransformBegin
++      Translate 0 0.6 0.5
++      Sphere 0.6 -0.6 0.6 360
++    TransformEnd
++  WorldEnd
++FrameEnd
+--- /dev/null
++++ tests/gi_determinism/scenes/gi-photon-caustic-slo.rib
+@@ -0,0 +1,57 @@
++##RenderMan RIB-Structure 1.0
++# Spec 040 sweep scene (T115), not a visual test and without a reference image: a photon pass with a global map and a caustic map (3000 photons),
++# then a raytrace render of the caustic map, shader format slo.
++# A chrome sphere (Attribute "photon" "shadingmodel") sends photons to the matte floor and wall, so photon.cpp's caustic branch runs and a
++# photon that follows a specular bounce is stored in both maps. The floor and the wall are two Attribute "photon" blocks that name the same
++# two maps (two blocks, one map of each name).
++# The photon pass cannot run under -P (GitHub #170), so the sweep entry omits that configuration.
++# The determinism harness (tests/visual/test_depth_determinism.cpp, --float --depth --files) renders it under every thread configuration and
++# compares colour, alpha, depth and both map files byte for byte.
++version 3.03
++FrameBegin 1
++  Hider "photon" "int emit" [3000]
++  Projection "perspective" "fov" 45
++  Format 16 12 1
++  Translate 0 -1 5
++  WorldBegin
++    Attribute "shade" "shaderformat" ["slo"]
++    LightSource "pointlight" 1 "intensity" [4] "from" [0 2.2 0.5]
++    AttributeBegin
++      Attribute "photon" "string globalmap" ["gi-photon-caustic-slo.gpm"] "string causticmap" ["gi-photon-caustic-slo-c.gpm"]
++      Color [0.8 0.8 0.8]
++      Surface "matte"
++      Polygon "P" [-3 0 -3  -3 0 3  3 0 3  3 0 -3]
++    AttributeEnd
++    AttributeBegin
++      Attribute "photon" "string globalmap" ["gi-photon-caustic-slo.gpm"] "string causticmap" ["gi-photon-caustic-slo-c.gpm"]
++      Color [0.8 0.8 0.8]
++      Surface "matte"
++      Polygon "P" [-3 0 3  -3 3 3  3 3 3  3 0 3]
++    AttributeEnd
++    AttributeBegin
++      Attribute "photon" "string shadingmodel" ["chrome"]
++      Color [0.9 0.9 0.9]
++      Surface "matte"
++      Translate 0 0.6 0.5
++      Sphere 0.6 -0.6 0.6 360
++    AttributeEnd
++  WorldEnd
++FrameEnd
++FrameBegin 2
++  Hider "raytrace"
++  PixelSamples 1 1
++  Display "gi-photon-caustic-slo.tif" "file" "rgba"
++  Projection "perspective" "fov" 45
++  Format 64 48 1
++  Translate 0 -1 5
++  WorldBegin
++    Attribute "shade" "shaderformat" ["slo"]
++    Surface "photonparity_view" "string mapname" ["gi-photon-caustic-slo-c.gpm"] "float gain" [1]
++    Polygon "P" [-3 0 -3  -3 0 3  3 0 3  3 0 -3]
++    Polygon "P" [-3 0 3  -3 3 3  3 3 3  3 0 3]
++    TransformBegin
++      Translate 0 0.6 0.5
++      Sphere 0.6 -0.6 0.6 360
++    TransformEnd
++  WorldEnd
++FrameEnd

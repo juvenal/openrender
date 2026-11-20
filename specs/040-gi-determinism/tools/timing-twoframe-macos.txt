@@ -1,0 +1,23 @@
+scaled perf-occlusion-cache       format x6, shadingrate x3
+scaled perf-occlusion-twoframe    format x6, shadingrate x3
+series 1 of 5 done
+series 2 of 5 done
+series 3 of 5 done
+series 4 of 5 done
+series 5 of 5 done
+
+scene                        tree     median      min      max   spread   runs
+perf-occlusion-cache         start      0.87     0.85     0.92     0.07   0.85, 0.87, 0.87, 0.88, 0.92
+perf-occlusion-cache         final      0.83     0.81     0.87     0.06   0.83, 0.81, 0.83, 0.82, 0.87
+perf-occlusion-cache         start  median 0.87 s: TOO SHORT (< 3 s): raise this scene's factor
+perf-occlusion-cache         final  median 0.83 s: TOO SHORT (< 3 s): raise this scene's factor
+perf-occlusion-cache         diff of medians -0.05 s (-5.3%), larger spread 0.07 s: within spread
+
+perf-occlusion-twoframe      start      1.79     1.70     1.88     0.18   1.70, 1.79, 1.75, 1.88, 1.84
+perf-occlusion-twoframe      final      2.80     2.75     3.00     0.25   2.82, 2.75, 2.78, 2.80, 3.00
+perf-occlusion-twoframe      start  median 1.79 s: TOO SHORT (< 3 s): raise this scene's factor
+perf-occlusion-twoframe      final  median 2.80 s: TOO SHORT (< 3 s): raise this scene's factor
+perf-occlusion-twoframe      diff of medians +1.01 s (+56.6%), larger spread 0.25 s: BEYOND SPREAD (slower)
+
+scenes slower beyond the spread: 1
+scene medians under 3 s: 4

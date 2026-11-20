@@ -1,0 +1,520 @@
+# T014 starting tree (build-base, master 278b0394, macos): 30 separate processes per series, a fresh directory per run (dirmode fresh),
+# the .gpm the scene writes compared by md5. 'failed runs' lists (run, exit code); a negative code is the signal number.
+# default = no -t option (the scene's own numthreads / the machine default); -t:4 = four threads.
+=== photon-parity, threads default
+scene examples/rib/tests/photon-parity.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 1 [(13, -11)]
+  md5 a4decfc6cfdccb83044729eb55b466af: 1
+  md5 af960db658530d6207e8b37244c25fa7: 1
+  md5 08e5f02ad564764bc9492cde694effcd: 1
+  md5 c7706f5e891a203a6219836373d5e2ab: 1
+  md5 fb16083a8d2f98093b2d3213a09a93e4: 1
+  md5 a276636029eb37b8c67d647df4cd893a: 1
+  md5 1d93a522128f3923750175c0415e8040: 1
+  md5 a5815090fd09dd39185cca12558d5d5e: 1
+  md5 da5cdcc36a132250c1a28411b4dc5626: 1
+  md5 b34db41f52c4fb1197647efff1787831: 1
+  md5 049faffb2d2521fa4e61f097b9319852: 1
+  md5 8772acfd23d341cbab7dc61262e82f51: 1
+  md5 e6eee32f8bfafdb44450b209b45b57d5: 1
+  md5 4a79d05bc8999a5ca458d5ba2c1eecaa: 1
+  md5 3b3f4c458b0cd2533ea4889172a18bca: 1
+  md5 8414f86b6ac33bb37186a989e8f592f8: 1
+  md5 05c11697ffa086531419e9cb1aa4c19c: 1
+  md5 d87e8c7ffeb16e92bb9e84a678173ff3: 1
+  md5 ef0d5cb5b72f184d81fdec19d91806ae: 1
+  md5 5bab746a75743d0e1572c595a7287ac8: 1
+  md5 366c3dc0de7b9eb2941850cabf3860ed: 1
+  md5 e59c62bb9b928809cd59d35619ae0ef4: 1
+  md5 6d0c1d49d9695e16c1e9b667ed9996fe: 1
+  md5 fcdfe9b29412f0d68b26619e45af5353: 1
+  md5 2402ccf2b5bc3f246c53145c522054d9: 1
+  md5 fafbcb588567b2ed588a7fd8baf2bd87: 1
+  md5 70eebfde8ad4b7a6fe7c6365220c15c5: 1
+  md5 e18aae13fc202251bb32c1aa4e0fb245: 1
+  md5 185127030fd82b4ab0b2415c856da66f: 1
+  photons per run (numItems): {46273: 29}
+  byte comparison of a4decfc6 and af960db6 (sizes 2036254, 2036254)
+  differing bytes by place: {'item0:C': 6, 'item0:N': 6, 'item0:P': 8, 'item0:flags': 2, 'item0:pad1': 2, 'item0:pad2': 2, 'item0:phi': 1, 'item0:theta': 1, 'item:C': 297294, 'item:N': 8483, 'item:P': 217330, 'item:flags': 7102, 'item:pad2': 8412, 'item:phi': 25956, 'item:theta': 27327}
+  items touched: 35624 (item 0 among them: True)
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-h585g9dp
+  (cpujob exit 0)
+=== photon-parity, threads -t:4
+scene examples/rib/tests/photon-parity.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 11 [(0, -11), (4, -11), (7, -11), (8, -11), (13, -11), (15, -11), (20, -11), (24, -6), (25, -6), (27, -11), (29, -6)]
+  md5 c1d70e4ada062cd07539d0bceeab83e2: 1
+  md5 6d610eb8b954277e3d22793f68bb9815: 1
+  md5 69c6527103229638bcb814c3b2d9cc39: 1
+  md5 06f89b15a42e7f2208157bde526cf35f: 1
+  md5 c69c6e7e234e07c141af6e76ebd3a090: 1
+  md5 548258ef92ac29611b0c3adff6dbeb08: 1
+  md5 cd2bebcee3df92fcb97df59964883435: 1
+  md5 4e6bed2389dfc4499d4a9af4149d14cc: 1
+  md5 8dda5052082c4f073c346f4320d76c2c: 1
+  md5 97e75b45e2011b3dd972b23f3225d867: 1
+  md5 0c43191f543c0d9aaebf6e64522c939e: 1
+  md5 8338a2b5ebd34da1827434f7bf2e1766: 1
+  md5 82b4e840718366bf7541a42970880e40: 1
+  md5 aa13c5afcb6b7e91f3f620ed9025b14f: 1
+  md5 f1f141c217880fd4d1b89be333e9d29a: 1
+  md5 62b1b6ce2cadc169092d8f56c5930ec5: 1
+  md5 a69208e0d01ee9995593a8276da403e8: 1
+  md5 6b0b18d62210c630965369478a7c3299: 1
+  md5 d6d6ecfb75218ee3cde33bee397a05ef: 1
+  photons per run (numItems): {46273: 19}
+  byte comparison of c1d70e4a and 6d610eb8 (sizes 2036254, 2036254)
+  differing bytes by place: {'item0:C': 6, 'item0:N': 5, 'item0:P': 6, 'item0:flags': 2, 'item0:pad1': 1, 'item0:pad2': 2, 'item0:phi': 1, 'item0:theta': 1, 'item:C': 294240, 'item:N': 7108, 'item:P': 216538, 'item:flags': 6880, 'item:pad2': 8172, 'item:phi': 25101, 'item:theta': 26849}
+  items touched: 35790 (item 0 among them: True)
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-oqyqtkys
+  (cpujob exit 0)
+=== photon-parity-slo, threads default
+scene examples/rib/tests/photon-parity-slo.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 3 [(3, -11), (10, -11), (27, -11)]
+  md5 134dce20c65054dee620d629fc91c478: 1
+  md5 4274d149d927e3d3029136c81149c0a0: 1
+  md5 f39fe7712b1eeb388a36ff2741808527: 1
+  md5 cf4ca090ac6195b19af468827f5503ab: 1
+  md5 7cf74a169c3e5b43afa9e150d4001c7a: 1
+  md5 6765a4eb9002b4f4ce0f97f1ae42af36: 1
+  md5 cdb85350b2b1adce7ebabec241972261: 1
+  md5 223e073678847c2003ed032377ebed9d: 1
+  md5 5a0d105f4db1604f7b4d90dfe14463a8: 1
+  md5 4a44e56d8c44748d670a72a9ea57242b: 1
+  md5 46386c77d17ea474209be12a915176db: 1
+  md5 940658a7aae280eb1f95496e88b13776: 1
+  md5 2be57a21e740be85983a43bb18aa935a: 1
+  md5 ed9e7414c6028be4089e1e5b8ac1eb2a: 1
+  md5 df1114c0c1b458574e1d8fa6212f1ef2: 1
+  md5 5cf4f7371cec5f4a9add33a741699885: 1
+  md5 c0db160ca1a8c7bec56fac60fc3fa9cb: 1
+  md5 033910c9ce39646c25636ccf06179e64: 1
+  md5 15164048f988716a8f8db0e78f69c2ea: 1
+  md5 31e955fa48317e50ad461ee6abb3efc4: 1
+  md5 8a75061f5c4621b796cc51d411da08d4: 1
+  md5 a2c5f0287146520c3663e181eeed1a22: 1
+  md5 19288082552910adf6a5093a548c6863: 1
+  md5 46c8179f5c2c835a3736ff34ce7bb1d3: 1
+  md5 2d3f521825d10b1d2e3d7ebeba496017: 1
+  md5 490e68f74f19a30feb6632e9ae56ac04: 1
+  md5 d5ef2e2ea709cce7fbaadcf08cf50c3a: 1
+  photons per run (numItems): {46273: 27}
+  byte comparison of 134dce20 and 4274d149 (sizes 2036254, 2036254)
+  differing bytes by place: {'item0:C': 9, 'item0:N': 11, 'item0:P': 12, 'item0:flags': 2, 'item0:pad1': 2, 'item0:pad2': 2, 'item0:phi': 1, 'item0:theta': 1, 'item:C': 294009, 'item:N': 7799, 'item:P': 213982, 'item:flags': 6624, 'item:pad2': 17366, 'item:phi': 24707, 'item:theta': 27043}
+  items touched: 36572 (item 0 among them: True)
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-w5rohq51
+  (cpujob exit 0)
+=== photon-parity-slo, threads -t:4
+scene examples/rib/tests/photon-parity-slo.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 7 [(4, -6), (10, -11), (11, -11), (17, -11), (22, -11), (24, -11), (29, -6)]
+  md5 0a13381b92a11ea0636e41243e3d3207: 1
+  md5 747796d5795b9baf8fa7d6bb266c6edf: 1
+  md5 9f99ec7e090affa3e18776a15dc9fe14: 1
+  md5 0087e906121aa9f6a6fb3afca04bff79: 1
+  md5 c8df2b49a2d678041b49faa6a25f855e: 1
+  md5 d9196a7c67f61867595a5c4693b3a5b2: 1
+  md5 ffdbf0db0b58967c1222c1090ceb4c90: 1
+  md5 50c6cec9d9627d0cc3641a5a2b633649: 1
+  md5 3ffd71c07e2760e03ef2731a9af96450: 1
+  md5 a270a11e100465664701575b66380ae4: 1
+  md5 72635a836a6686908f47a547dd8fa333: 1
+  md5 0a51c50d9de91c266966fa7731fe4687: 1
+  md5 683fb6ca79379576addd5b17ab72b274: 1
+  md5 ba5a8c80b3facbe8bba84ed3f87165a6: 1
+  md5 f8f16276d33c138c6a494158398e4fb0: 1
+  md5 c144a2444ee3491ffbb1003a1677c17a: 1
+  md5 e562173bf00eb395b392aff15a797c82: 1
+  md5 df7d02ad2423cfeafd09a15c4f223189: 1
+  md5 63519888d051c4c4f2d7ca34120a122e: 1
+  md5 410ec5f8931ef0ae64dd63575e2ae878: 1
+  md5 056c9d6f67874a3e198023e8a1b0215d: 1
+  md5 e6f8bef48f775145377af0a4cd86e7f2: 1
+  md5 918edeec08ed514894e4316313ad9566: 1
+  photons per run (numItems): {46273: 23}
+  byte comparison of 0a13381b and 747796d5 (sizes 2036254, 2036254)
+  differing bytes by place: {'item0:C': 6, 'item0:N': 6, 'item0:P': 9, 'item0:pad1': 2, 'item0:pad2': 1, 'item0:phi': 1, 'item0:theta': 1, 'item:C': 293556, 'item:N': 5414, 'item:P': 212909, 'item:flags': 6550, 'item:pad1': 1114, 'item:pad2': 16482, 'item:phi': 24942, 'item:theta': 26633}
+  items touched: 37114 (item 0 among them: True)
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-z5axyf5t
+  (cpujob exit 0)
+=== photon-solar0-alone, threads default
+scene examples/rib/tests/photon-solar0-alone.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 10 [(4, -11), (5, -11), (6, -11), (8, -11), (9, -11), (16, -5), (20, -5), (22, -11), (25, -11), (29, -11)]
+  md5 94b8f5892635e65c82b927d3c56247c8: 1
+  md5 1aafb6cf3b7032db1f36dfb44c13a1d2: 1
+  md5 27488a8872855fa0eaa0cd8d70a59559: 1
+  md5 d158b06881701eacaf0b68a5ed3683e3: 1
+  md5 3155cb6e353bca2fa174e91915a88d82: 1
+  md5 cd5b400b712549c1c3191e414f0eb3af: 1
+  md5 c57cc0ec82b33f5f8cc297b564a44035: 1
+  md5 8fd25eb5e623a3009252f998d9efe473: 1
+  md5 7e6eab334cb659af833efd05b2268378: 1
+  md5 7b770366122cbdf3890279fb9e757aa2: 1
+  md5 6b502b1c285bf801f7e8158eecb7ffcc: 1
+  md5 1eb579f444e615331e8085fa3344e6b4: 1
+  md5 1591232e9de63a973c5ee799c0112dca: 1
+  md5 7c8bb8d1e36007056aaf41f5ba5fd34b: 1
+  md5 a45e58d7dfd2f5a0936f1d562b4ac035: 1
+  md5 bd85f7c556abe58589acc8d4409971d9: 1
+  md5 68ffbcc266bcd99628e1336471cbb7e7: 1
+  md5 c2697456876ecb983749f3415b447cc3: 1
+  md5 dc806a80d79746458a127150d1a01b5c: 1
+  md5 1793e80f9ab4bd5486ded89bae2292de: 1
+  photons per run (numItems): {8459: 20}
+  byte comparison of 94b8f589 and 1aafb6cf (sizes 372438, 372438)
+  differing bytes by place: {'item0:C': 6, 'item0:N': 6, 'item0:P': 6, 'item0:flags': 2, 'item0:pad1': 2, 'item0:pad2': 2, 'item0:phi': 1, 'item0:theta': 1, 'item:C': 2094, 'item:N': 9495, 'item:P': 38959, 'item:flags': 994, 'item:pad2': 1224, 'item:phi': 6016, 'item:theta': 6014}
+  items touched: 6304 (item 0 among them: True)
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-qa07kch4
+  (cpujob exit 0)
+=== photon-solar0-alone, threads -t:4
+scene examples/rib/tests/photon-solar0-alone.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 9 [(2, -11), (5, -5), (6, -11), (10, -11), (14, -5), (20, -11), (21, -11), (24, -11), (26, -11)]
+  md5 468f8f7f13a6a076ea2d6c75a8d832ad: 1
+  md5 beae389fa2c870bf1d8ffac3cb908815: 1
+  md5 9e48f7e439d671451c1adfe2e1cd8d39: 1
+  md5 e7082447dacba9f59544cfedf73ea4dd: 1
+  md5 4c31c43e739d67b1de723a7f8c59eef8: 1
+  md5 292a3ff485f16912c140839773af0503: 1
+  md5 c51de43bd2e2f0d2a5d31c309aaecc4f: 1
+  md5 5ba011c7715b89c4ea63e6207a6a7bf2: 1
+  md5 52ca150de1d59fdecdd2a24502314f03: 1
+  md5 1927dee1ad44f06155012207f987877e: 1
+  md5 0998897efd2d3b32d435f4a05d7d18db: 1
+  md5 a1f15ba237bcac4bea49d73248ed2945: 1
+  md5 af223c7a6187ed8e0ded197c30efa4e7: 1
+  md5 695af657e0e97569a6db14c5cce53e66: 1
+  md5 012cdd4862c3c6144aa7f87432672699: 1
+  md5 0228f3f3290152b4f8303cdfe62c893c: 1
+  md5 2b7fe4f64a2824738f2bec5e822b4fa8: 1
+  md5 e5c3afa14346826742a843b94eeca68b: 1
+  md5 c32a358fefacaf99a1b5237af94eb446: 1
+  md5 8421e002ff91c9f4c666e4dd09214455: 1
+  md5 b59405481902ccabfc518a4a7feb82f6: 1
+  photons per run (numItems): {8459: 21}
+  byte comparison of 468f8f7f and beae389f (sizes 372438, 372438)
+  differing bytes by place: {'item:C': 1800, 'item:N': 8972, 'item:P': 37323, 'item:flags': 1100, 'item:phi': 5772, 'item:theta': 5781}
+  items touched: 5862 (item 0 among them: False)
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-ugaismgb
+  (cpujob exit 0)
+=== photon-solar0-alone-slo, threads default
+scene examples/rib/tests/photon-solar0-alone-slo.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 9 [(1, -11), (11, -11), (16, -11), (17, -5), (19, -11), (20, -11), (25, -11), (26, -11), (27, -11)]
+  md5 d98afffc9cbf82b858fd3765ef9e4b0f: 1
+  md5 25a17eeb50157c6cff064b7cd2910e4f: 1
+  md5 9cb0769d56b81c44311c0ccb651d524b: 1
+  md5 03bac00a92acbe1c767ae73e8d4e47b4: 1
+  md5 b06c99aa7b048b3f629072089b60ddd8: 1
+  md5 d6271111b9f62acf91fd7f04d3cb039f: 1
+  md5 6ebc6fed8e2746b891af20a94ad39a4a: 1
+  md5 7ca81d9555bf34a43288f8dbe131b21c: 1
+  md5 798184db96f86397d23bdc03d4a1b1dd: 1
+  md5 b4afa59714d75e8befd2320beef621af: 1
+  md5 23d821a9a674bd96410c3a0fed7f5f70: 1
+  md5 d099e3e6d1571319b65339d1d270d156: 1
+  md5 73492a5c679389d423ac4db64957ec19: 1
+  md5 4c279ef4a67fb55241de4fef43b1432f: 1
+  md5 771454c05004111d7f674b625afc0788: 1
+  md5 ffdd6f40a2f6ef146e8624b588ea10fe: 1
+  md5 e3fceafea66165702c5d18264e07ee78: 1
+  md5 fd75d318fcd763ab0cc575259d239c72: 1
+  md5 e034f9182d7fb88e8554c2e614fadb6d: 1
+  md5 211f30167abe2c08f318e534bd932925: 1
+  md5 311232b8acdd7b9aa45f5125dca72b00: 1
+  photons per run (numItems): {8459: 21}
+  byte comparison of d98afffc and 25a17eeb (sizes 372438, 372438)
+  differing bytes by place: {'item0:P': 4, 'item0:pad2': 2, 'item0:theta': 1, 'item:C': 1938, 'item:N': 9078, 'item:P': 37791, 'item:flags': 984, 'item:pad2': 8, 'item:phi': 5873, 'item:theta': 5853}
+  items touched: 5947 (item 0 among them: True)
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-lcudzl7c
+  (cpujob exit 0)
+=== photon-solar0-alone-slo, threads -t:4
+scene examples/rib/tests/photon-solar0-alone-slo.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 11 [(4, -11), (6, -6), (12, -11), (13, -11), (14, -11), (17, -11), (18, -11), (20, -11), (22, -6), (27, -11), (28, -11)]
+  md5 543684d16a73a72ca688398a31015533: 1
+  md5 bada49ffd855c93ca2e0e56962e402a6: 1
+  md5 069af3f086691bfc62e1c3bbb4f0a039: 1
+  md5 cd02d152513b30ad9bd96e2d9a86e7a8: 1
+  md5 d731045505afc4a4b181c3f96976d146: 1
+  md5 9d453ecdc5d216286ade8f45c1ba4bca: 1
+  md5 4888e0c9487915e0d697c8e76c7644a5: 1
+  md5 b5c95a356732ab5b87a412e9e9726953: 1
+  md5 601a6c7055e4f08b0102af80652e0552: 1
+  md5 26e3b52be358741d71be7b80de078048: 1
+  md5 83f80f50962ede091d829d5606dec43b: 1
+  md5 940c578b49c1cbba59849e17b6ab3636: 1
+  md5 e6b7e857788c0bf203e26909c01ff561: 1
+  md5 a9351c48d48c3e41bd4d76a672cfac56: 1
+  md5 ee39d8d302630849ffdb2f72e3a8d5e2: 1
+  md5 7e1f7be0f134ec715d5387a176c7827d: 1
+  md5 7af75281a055763795e0885bdec5603b: 1
+  md5 7069c550cb15f8a6a15a2e2fdb18ca8a: 1
+  md5 7813f031d235bddc3c8caa4d521d2469: 1
+  photons per run (numItems): {8458: 1, 8459: 18}
+  byte comparison of 543684d1 and bada49ff (sizes 372438, 372438)
+  differing bytes by place: {'item:C': 1962, 'item:N': 8880, 'item:P': 37441, 'item:flags': 924, 'item:pad1': 132, 'item:phi': 5821, 'item:theta': 5823}
+  items touched: 5928 (item 0 among them: False)
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-6hgfz1qz
+  (cpujob exit 0)
+=== photon-solar0-after-distant, threads default
+scene examples/rib/tests/photon-solar0-after-distant.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 10 [(1, -11), (7, -11), (9, -11), (13, -11), (15, -5), (20, -11), (22, -11), (25, -6), (26, -11), (28, -5)]
+  md5 12461d2e2f1f2e7f3758db31ce751f79: 1
+  md5 465e727ae910b28eb8a6948145e1a165: 1
+  md5 0a4e7cb3698f010478cbab8f3eb3e8f4: 1
+  md5 4f45e81c02cb20b82f71803e87539084: 1
+  md5 b48c6100323c3e55e05c929cc004cc1e: 1
+  md5 45edd6f3b90c034c37b1ddb200740f42: 1
+  md5 30fca86cdff41278d50bc802764ada26: 1
+  md5 586b1f81254003ffe2fc76921504f784: 1
+  md5 e90fca8516febe87fc2c946e1714865e: 1
+  md5 0cd198872027ee20d4b4d64c48b3aa57: 1
+  md5 e40ea355efa8fb87c7dec7d0d1dde0e7: 1
+  md5 0949dd9e3e7aaa661207cb436791e42e: 1
+  md5 f026ae8a3f609b62923831423b967c4f: 1
+  md5 e8088cfae2bdba9e7ed67e7c8d243b4f: 1
+  md5 e5677c0daa458f6ee69ace0d038f2001: 1
+  md5 476f54f58c460d1c2896cc3a1bd85e14: 1
+  md5 7129ead8a7fbc66b0e407818dc808616: 1
+  md5 9a4e42d5fea76162cd8914e712204c77: 1
+  md5 20691a8c401865a9aea201cdb7f107a7: 1
+  md5 a86b4db4c11be63e0b620c29fe4a9a58: 1
+  photons per run (numItems): {22408: 20}
+  byte comparison of 12461d2e and 465e727a (sizes 986194, 986194)
+  differing bytes by place: {'item0:P': 4, 'item0:pad2': 2, 'item0:theta': 1, 'item:C': 66290, 'item:N': 18412, 'item:P': 107962, 'item:flags': 3021, 'item:pad2': 9, 'item:phi': 11747, 'item:theta': 11740}
+  items touched: 17284 (item 0 among them: True)
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-9t6ta27m
+  (cpujob exit 0)
+=== photon-solar0-after-distant, threads -t:4
+scene examples/rib/tests/photon-solar0-after-distant.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 11 [(0, -11), (2, -11), (5, -11), (6, -11), (7, -5), (13, -11), (15, -11), (18, -6), (25, -11), (27, -11), (28, -11)]
+  md5 e0a30859be915a48e1227b247f5ee4e8: 1
+  md5 c002de6558f608ddb1dbd899a8d25d1a: 1
+  md5 d1bc187c33d61fbfc7bd28a2bca66fbf: 1
+  md5 2a62de7088486e7da354c1f522f82af6: 1
+  md5 1f2abbf3821337858f14597be717e3b8: 1
+  md5 1175cd131eb168942b3c0fdd1cc944f5: 1
+  md5 f8bb283cc6a16c6c8763276d9023ed58: 1
+  md5 2a9eb91675e2eff864c93c3291bc9f58: 1
+  md5 94eba2412e0cde0b1430d0bcb830ca5c: 1
+  md5 55bd3decadd824737fdae5524e1e3ce4: 1
+  md5 993a7bc78e3c8b6ae052d4275837b643: 1
+  md5 83dbb5181d662c05ca02cefc47ac6d6b: 1
+  md5 db017fe8718aab8680ca1e03136f2c31: 1
+  md5 8ee6b2d7b99f84cf15247d57d4a34d67: 1
+  md5 66483c614288cbd0b9f2bc639ba4d32c: 1
+  md5 9c1e285de6238f9a4955ed7ecc0dc9ff: 1
+  md5 eef6a05144908651b8569d563e175ad5: 1
+  md5 1e5f60f4809c5bcc423fe0a1b1cae396: 1
+  md5 2de876b62fe5f8027de4c656d561fa41: 1
+  photons per run (numItems): {22408: 19}
+  byte comparison of e0a30859 and c002de65 (sizes 986194, 986194)
+  differing bytes by place: {'item0:C': 4, 'item0:N': 3, 'item0:P': 4, 'item0:flags': 2, 'item0:pad1': 2, 'item0:pad2': 1, 'item0:phi': 1, 'item0:theta': 1, 'item:C': 68324, 'item:N': 17326, 'item:P': 110004, 'item:flags': 3330, 'item:pad2': 10830, 'item:phi': 11961, 'item:theta': 11958}
+  items touched: 18665 (item 0 among them: True)
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-aa5jc5li
+  (cpujob exit 0)
+=== photon-solar0-after-distant-slo, threads default
+scene examples/rib/tests/photon-solar0-after-distant-slo.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 5 [(0, -11), (15, -11), (19, -11), (22, -11), (29, -11)]
+  md5 efa222e003e87118ae7c2eaa843f284a: 1
+  md5 e5483163be6b41620d65ac12a2948c51: 1
+  md5 bd7f8e7d29fae3c76e6e3d6ac60d2219: 1
+  md5 54bc656c722ced3390b5f16c804ebb66: 1
+  md5 6876c100de5505f3f2660ba699e3ee7c: 1
+  md5 9f3bcc5b8b44707cce3e57809e8d8188: 1
+  md5 2077d7cb650b14a1cb32fb7f76ffa188: 1
+  md5 ffa76a5edeabdb2b7599e92193ce274b: 1
+  md5 3bf521cbeec746fe125918c7ab5ba802: 1
+  md5 0c1d6b632797dc11452c1cd8d77d384b: 1
+  md5 90159222627ed29698bb94a6e11361e8: 1
+  md5 02451e572d93763c5d98b4d41f19e926: 1
+  md5 c9caf05f34caf7222f17bd1bd6807534: 1
+  md5 c031c0c928be2d8e201135d36df490cd: 1
+  md5 54b0301a0ac45bf0248f249620057fbc: 1
+  md5 369a89bc0a36ff5e8ce7faf8cfb49eb2: 1
+  md5 a8a14722e4939913b6eb5197516fab43: 1
+  md5 f846b27fa7ff8c748517d8c45cf8454e: 1
+  md5 bb4755b28f19669406ae1a0ac5f359e5: 1
+  md5 0804730c09f0994b2dc372befdfbb793: 1
+  md5 aae562233e406359883319e1a8092589: 1
+  md5 afa50c1811a751e09a6b089f1c5f0064: 1
+  md5 73d81473c50085c21f4b0e8028994cdf: 1
+  md5 6d04757c8a362514b56fc4b34a57df29: 1
+  md5 f2b92489b1a763caa2745679ac9152b4: 1
+  photons per run (numItems): {22408: 25}
+  byte comparison of efa222e0 and e5483163 (sizes 986194, 986194)
+  differing bytes by place: {'item0:P': 2, 'item0:pad2': 1, 'item:C': 69262, 'item:N': 17437, 'item:P': 111407, 'item:flags': 3299, 'item:pad2': 3, 'item:phi': 12129, 'item:theta': 12130}
+  items touched: 17732 (item 0 among them: True)
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-q38dq_jz
+  (cpujob exit 0)
+=== photon-solar0-after-distant-slo, threads -t:4
+scene examples/rib/tests/photon-solar0-after-distant-slo.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 11 [(2, -11), (6, -11), (7, -11), (10, -11), (11, -11), (12, -11), (17, -11), (20, -11), (21, -6), (26, -11), (29, -11)]
+  md5 753084bbc1fc7f20af3f303f53f45dd9: 1
+  md5 5dad498ba00509aeee52143354c43a37: 1
+  md5 8b35c2bb60de93ed907f2ddc92c12513: 1
+  md5 ad1b6e2806a21cbe403fa4338aab7551: 1
+  md5 d634b9a69ec00b103adbb5d4ad863e24: 1
+  md5 d2ed9b5cc462f9fe6f8034625cce5100: 1
+  md5 96f386571707e931f7586d4f9f8808f9: 1
+  md5 f18f942f1abbb1912248219a05cdc2f4: 1
+  md5 658ed78574350b80849dd8c719b0e344: 1
+  md5 4e8095f42b83361f6d8dba1de1dc5d5e: 1
+  md5 2583fbf3e9f322b58d9d0765daa012fb: 1
+  md5 7878cea7c61cb0cc92a39acbb2b4ef22: 1
+  md5 7399a1b820bc4d4d6cca3c3a9e5aa54a: 1
+  md5 7d9f402e9e37eb8b10a0a67495ed41e8: 1
+  md5 eb2b5aec95365fbe55469612862d8f6e: 1
+  md5 af9f7f63f75f9de7ccacaee7c9fdd25c: 1
+  md5 2abcb6629ef218f35b744fbee75353f6: 1
+  md5 1e2644c972d9562d95023c6212d2767f: 1
+  md5 5c7f8dc5bbe770841abd0d18145b573f: 1
+  photons per run (numItems): {22408: 19}
+  byte comparison of 753084bb and 5dad498b (sizes 986194, 986194)
+  differing bytes by place: {'item0:C': 6, 'item0:N': 5, 'item0:P': 6, 'item0:flags': 2, 'item0:pad1': 1, 'item0:pad2': 2, 'item0:phi': 1, 'item0:theta': 1, 'item:C': 68584, 'item:N': 19170, 'item:P': 112019, 'item:flags': 3446, 'item:pad1': 464, 'item:pad2': 10784, 'item:phi': 12057, 'item:theta': 12055}
+  items touched: 18799 (item 0 among them: True)
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-zxa31fqv
+  (cpujob exit 0)
+=== photon-solar0-before-distant, threads default
+scene examples/rib/tests/photon-solar0-before-distant.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 8 [(0, -11), (1, -11), (5, -5), (11, -11), (12, -11), (13, -5), (14, -11), (28, -5)]
+  md5 bfda1adb69f0608505ca8283f06cf4ab: 1
+  md5 a1a70805e610e8dd0075044832d18f50: 1
+  md5 64f0d4eef4993644c264736d1ae21ffb: 1
+  md5 6237e20b401ef0fef2e7d2c608ef93f1: 1
+  md5 aed12c4aebbaf5b44801badc3c8d01c7: 1
+  md5 a2989a23d12aefd7c78ec5c6a7de3d2d: 1
+  md5 9b527c6ba6e16a9f6dbc29cc7f9655dd: 1
+  md5 2d0db37cee518e59a1f5eb71e5c7d376: 1
+  md5 0caacfff95602d36ee8db3b42bbf967c: 1
+  md5 4c96a618752f02ba8e96cfd24a42d6e8: 1
+  md5 5cd3a522dd129d909081b2b7ae606c83: 1
+  md5 e61843ade9aa69e8267309325fc700c7: 1
+  md5 b0727dff684c5e729924a248e6912c59: 1
+  md5 8d8c628fbc117e796f369eaefcaac4b0: 1
+  md5 9bbca9c193b9255d8cba6e59c2a02316: 1
+  md5 da77d0b7b4e08c5e69c6aee4b426f499: 1
+  md5 88465114287e05c3248a22a7f9104fe7: 1
+  md5 0cf38210233baa3cb28735ff436717c8: 1
+  md5 ff1e92ad16b0aa6e99360e312f83745b: 1
+  md5 fe61a63c77fd6afba1c454e25ba68ff7: 1
+  md5 5e51eec3ff2ea923704e5eebdcb1cc6f: 1
+  md5 6e09b5c066a629d5588206f9666770d5: 1
+  photons per run (numItems): {22317: 22}
+  byte comparison of bfda1adb and a1a70805 (sizes 982190, 982190)
+  differing bytes by place: {'item0:P': 2, 'item0:pad2': 1, 'item:C': 63212, 'item:N': 15074, 'item:P': 103453, 'item:flags': 3037, 'item:pad2': 2, 'item:phi': 11228, 'item:theta': 11197}
+  items touched: 16550 (item 0 among them: True)
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-xo_rv5w8
+  (cpujob exit 0)
+=== photon-solar0-before-distant, threads -t:4
+scene examples/rib/tests/photon-solar0-before-distant.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 7 [(0, -5), (6, -11), (8, -11), (12, -11), (24, -11), (26, -11), (29, -5)]
+  md5 99cb460051ad6af4ba24a998b00be16d: 1
+  md5 e0868842a7f62e7c204dae6e9d4c3f7c: 1
+  md5 29c7c385f97c34c810fa6fc50c05d5f3: 1
+  md5 0655c99ba9bae14ef1416454cfe78c2b: 1
+  md5 a173075c14ed109aa174e5a354cb2552: 1
+  md5 bb23a96f4f4674f072ac8765d5abc1fb: 1
+  md5 022fa0c401cbb6f5934b2e01e37ca44f: 1
+  md5 9498aa08c6c2f9c92e485cd2f323b985: 1
+  md5 552e9b9886abcf0cf51dc572805339ac: 1
+  md5 9fe752c13d3ba370be2f5565b2b483d7: 1
+  md5 ae3df2e941ea014423c79c63c1fda1d1: 1
+  md5 09a4756f108c678f42f40d554c797c0f: 1
+  md5 870f5021d2c8beefea6aa7bcdb9a388f: 1
+  md5 310640f32e4cf54dee533a98ec9b8554: 1
+  md5 90f2e3decf935c4343fcabd9ed4a9ac9: 1
+  md5 5277de793bbcda997a6cde85f81b2a42: 1
+  md5 6ef21232feea3f9dfc2f03150b85a301: 1
+  md5 583f500b6f3af6bb08922435f8969a47: 1
+  md5 71d0da34d3efb820bf5338f89cb8fc5a: 1
+  md5 badb3ca6138dedf9a046ce363d6a5b83: 1
+  md5 fc47f12991e99fe4bc0bb4287718aa91: 1
+  md5 bc39fd77ed3ee0a638af4640b0dae774: 1
+  md5 86b6b04b0df82569d3410a54e3356439: 1
+  photons per run (numItems): {22317: 23}
+  byte comparison of 99cb4600 and e0868842 (sizes 982190, 982190)
+  differing bytes by place: {'item0:C': 6, 'item0:N': 6, 'item0:P': 6, 'item0:flags': 2, 'item0:pad1': 2, 'item0:pad2': 2, 'item0:phi': 1, 'item0:theta': 1, 'item:C': 66133, 'item:N': 16002, 'item:P': 107147, 'item:flags': 3209, 'item:pad2': 11279, 'item:phi': 11617, 'item:theta': 11602}
+  items touched: 18294 (item 0 among them: True)
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-2lta72p_
+  (cpujob exit 0)
+=== photon-solar0-before-distant-slo, threads default
+scene examples/rib/tests/photon-solar0-before-distant-slo.rib, 30 runs, dirmode fresh, options (none), MallocPreScribble=unset
+  failed runs: 8 [(0, -11), (1, -11), (4, -11), (15, -11), (18, -11), (19, -11), (20, -6), (27, -11)]
+  md5 2be1b0b75f45ec5d6e37283b35d50f31: 1
+  md5 026d3c5decdb77276fbbda6eac3946d9: 1
+  md5 02b141ca77d69ca5c6e4f86c7b8b2d3e: 1
+  md5 21552c747a2fa7860e3064e867adef01: 1
+  md5 0e4df87f5ad461c021dd33b72bf492a4: 1
+  md5 a5c364a8eff4567f03a044dc653c6169: 1
+  md5 63e64fa0d17be15dafa3907e76339f38: 1
+  md5 b7d4ca2d51ab3202f06ff19841285316: 1
+  md5 c3712f794d9cdb88882c60b669f89fd1: 1
+  md5 012959a2731bfb4b72eb88e9ef6e6810: 1
+  md5 fb7971b532ed79e9c433d8c5a0b4fc9d: 1
+  md5 cf5d571f8a9726b80b9be070b3875dc3: 1
+  md5 c61079af6efa5ea67ccb95ca7d67a2fe: 1
+  md5 14530ddac3fd566cf1e36a1493f9c1ec: 1
+  md5 fb52f5dd4bd13252a8233d6f9b5154f1: 1
+  md5 43fbdf2a75b51bdbefbf73c480b74fb1: 1
+  md5 35238857d421b4638b89e6449cbcc1bd: 1
+  md5 9146b5647402d1af6a26e5d86611301b: 1
+  md5 8cdcf1dfd33196e5e6bc169a1d37ecc7: 1
+  md5 7142362099423117e37438791dfe14cf: 1
+  md5 f5e4fd2f13e627dd004e46b2e250b0e7: 1
+  md5 12a7778f298069af4a4f423c8fb0c3bf: 1
+  photons per run (numItems): {22317: 22}
+  byte comparison of 2be1b0b7 and 026d3c5d (sizes 982190, 982190)
+  differing bytes by place: {'item0:C': 4, 'item0:N': 7, 'item0:P': 10, 'item0:pad1': 2, 'item0:pad2': 2, 'item0:phi': 1, 'item0:theta': 1, 'item:C': 63360, 'item:N': 15288, 'item:P': 102592, 'item:flags': 2990, 'item:pad2': 5149, 'item:phi': 11167, 'item:theta': 11138}
+  items touched: 17046 (item 0 among them: True)
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-tjd2w6cr
+  (cpujob exit 0)
+=== photon-solar0-before-distant-slo, threads -t:4
+scene examples/rib/tests/photon-solar0-before-distant-slo.rib, 30 runs, dirmode fresh, options -t:4, MallocPreScribble=unset
+  failed runs: 5 [(2, -11), (4, -11), (6, -6), (8, -11), (26, -11)]
+  md5 f158e3bcee7dac8177a8be16ae35c169: 1
+  md5 048080895d3d1e8eb433567beebc9860: 1
+  md5 3eafeae6ee62c546bf6e9a57afbcf173: 1
+  md5 6c404657e914b259e299199298f38071: 1
+  md5 3696b6002edc3f672772215be4004d65: 1
+  md5 28324d9f3ed67713a73100af27566ef6: 1
+  md5 76f523cfee709beb17c3884e0c6445d5: 1
+  md5 40db12bc39cf0fad73ef1bd56fb044b5: 1
+  md5 3f783ed0a20f950b0276b15c49132c7c: 1
+  md5 0d8778477863f008d3701557fa3789d7: 1
+  md5 b970394f08f8416deab179a0aafc85e9: 1
+  md5 4d2b48b6cf3c7f5f07e1c5ed0f773ee0: 1
+  md5 8f769cdd76b1bf3bbe6f67b483aab669: 1
+  md5 3db15bc8960b2eecc24c8354ff672a2a: 1
+  md5 fe87c60f8b634da0aa584f222010dff4: 1
+  md5 34f03d5db056db82d96adf79155dadf7: 1
+  md5 4ac1f6a6f1c0624a7c1e2700f3f9424a: 1
+  md5 a5ac88e1e66f0092bcf95e5c4acfe85d: 1
+  md5 44d95e8915eddf797736bae886127a49: 1
+  md5 3544f731cb19f4c873a988ffff6e2c40: 1
+  md5 35b5a939a19c9d94a1201ede2eeaf673: 1
+  md5 563468249c12054abfc5f678dddaa3f0: 1
+  md5 aa62863382ad669433cb33059a08e908: 1
+  md5 25edd2b572a02913f86e345bd622f017: 1
+  md5 c083f8ecc6c6f8f650b97ef36fc13d8b: 1
+  photons per run (numItems): {22317: 25}
+  byte comparison of f158e3bc and 04808089 (sizes 982190, 982190)
+  differing bytes by place: {'item0:N': 6, 'item0:P': 9, 'item0:pad1': 2, 'item:C': 64410, 'item:N': 15570, 'item:P': 106669, 'item:flags': 3147, 'item:pad1': 452, 'item:pad2': 10085, 'item:phi': 11422, 'item:theta': 11395}
+  items touched: 18329 (item 0 among them: True)
+  scratch: /var/folders/t0/7nsk6w417yzc_mmmvk8ql4_00000gn/T/m040-7vui6e5l
+  (cpujob exit 0)
+
+# SUMMARY (30 runs each; signals: -11 SIGSEGV, -6 SIGABRT, -5 SIGTRAP; 'distinct maps' = distinct md5 among the runs that completed)
+# photon-parity, threads default                     crashed  1 {'-11': 1}                 distinct maps 29 of 29  numItems {46273: 29}
+# photon-parity, threads -t:4                        crashed 11 {'-11': 8, '-6': 3}        distinct maps 19 of 19  numItems {46273: 19}
+# photon-parity-slo, threads default                 crashed  3 {'-11': 3}                 distinct maps 27 of 27  numItems {46273: 27}
+# photon-parity-slo, threads -t:4                    crashed  7 {'-6': 2, '-11': 5}        distinct maps 23 of 23  numItems {46273: 23}
+# photon-solar0-alone, threads default               crashed 10 {'-11': 8, '-5': 2}        distinct maps 20 of 20  numItems {8459: 20}
+# photon-solar0-alone, threads -t:4                  crashed  9 {'-11': 7, '-5': 2}        distinct maps 21 of 21  numItems {8459: 21}
+# photon-solar0-alone-slo, threads default           crashed  9 {'-11': 8, '-5': 1}        distinct maps 21 of 21  numItems {8459: 21}
+# photon-solar0-alone-slo, threads -t:4              crashed 11 {'-11': 9, '-6': 2}        distinct maps 19 of 19  numItems {8458: 1, 8459: 18}
+# photon-solar0-after-distant, threads default       crashed 10 {'-11': 7, '-5': 2, '-6': 1} distinct maps 20 of 20  numItems {22408: 20}
+# photon-solar0-after-distant, threads -t:4          crashed 11 {'-11': 9, '-5': 1, '-6': 1} distinct maps 19 of 19  numItems {22408: 19}
+# photon-solar0-after-distant-slo, threads default   crashed  5 {'-11': 5}                 distinct maps 25 of 25  numItems {22408: 25}
+# photon-solar0-after-distant-slo, threads -t:4      crashed 11 {'-11': 10, '-6': 1}       distinct maps 19 of 19  numItems {22408: 19}
+# photon-solar0-before-distant, threads default      crashed  8 {'-11': 5, '-5': 3}        distinct maps 22 of 22  numItems {22317: 22}
+# photon-solar0-before-distant, threads -t:4         crashed  7 {'-5': 2, '-11': 5}        distinct maps 23 of 23  numItems {22317: 23}
+# photon-solar0-before-distant-slo, threads default  crashed  8 {'-11': 7, '-6': 1}        distinct maps 22 of 22  numItems {22317: 22}
+# photon-solar0-before-distant-slo, threads -t:4     crashed  5 {'-11': 4, '-6': 1}        distinct maps 25 of 25  numItems {22317: 25}
+done

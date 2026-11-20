@@ -1,0 +1,74 @@
+=================================================================
+==5046==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x602000006038 at pc 0x00010570fc58 bp 0x00016c5fa290 sp 0x00016c5fa288
+WRITE of size 8 at 0x602000006038 thread T1
+    #0 0x00010570fc54 in CPhotonStore::store(float const*, float const*, float const*, float const*, unsigned long long) photonStore.cpp:547
+    #1 0x00010578adb4 in CPhotonHider::tracePhoton(float*, float*, float*, float, unsigned long long) photon.cpp:642
+    #2 0x00010578ce54 in CPhotonHider::illuminateEnd() photon.cpp:558
+    #3 0x00010465f210 in CShadingContext::execute(CProgrammableShaderInstance*, float**) shaderOpcodes.h:354
+    #4 0x000105787c20 in CPhotonHider::renderingLoop() photon.cpp:213
+    #5 0x0001060520c4 in rendererDispatchThread(void*) renderer.cpp:1078
+    #6 0x000106a69e64 in asan_thread_start(void*)+0x4c (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x3de64)
+    #7 0x0001862bdcfc in _pthread_start+0x84 (libsystem_pthread.dylib:arm64e+0x6cfc)
+    #8 0x0001862b8ce8 in thread_start+0x4 (libsystem_pthread.dylib:arm64e+0x1ce8)
+
+0x602000006038 is located 0 bytes after 8-byte region [0x602000006030,0x602000006038)
+allocated by thread T1 here:
+    #0 0x000106a7c268 in _Znam+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x50268)
+    #1 0x00010570f61c in CPhotonStore::ensureKeys() photonStore.cpp:567
+    #2 0x00010570f61c in CPhotonStore::store(float const*, float const*, float const*, float const*, unsigned long long) photonStore.cpp:546
+    #3 0x00010578adb4 in CPhotonHider::tracePhoton(float*, float*, float*, float, unsigned long long) photon.cpp:642
+    #4 0x00010578ce54 in CPhotonHider::illuminateEnd() photon.cpp:558
+    #5 0x00010465f210 in CShadingContext::execute(CProgrammableShaderInstance*, float**) shaderOpcodes.h:354
+    #6 0x000105787c20 in CPhotonHider::renderingLoop() photon.cpp:213
+    #7 0x0001060520c4 in rendererDispatchThread(void*) renderer.cpp:1078
+    #8 0x000106a69e64 in asan_thread_start(void*)+0x4c (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x3de64)
+    #9 0x0001862bdcfc in _pthread_start+0x84 (libsystem_pthread.dylib:arm64e+0x6cfc)
+    #10 0x0001862b8ce8 in thread_start+0x4 (libsystem_pthread.dylib:arm64e+0x1ce8)
+
+Thread T1 created by T0 here:
+    #0 0x000106a6526c in pthread_create+0x60 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x3926c)
+    #1 0x0001040923f4 in osCreateThread(void* (*)(void*), void*) os.cpp:394
+    #2 0x000106051c84 in CRenderer::renderFrame() renderer.cpp:1139
+    #3 0x0001060668e0 in CRendererContext::RiWorldEnd() rendererContext.cpp:1065
+    #4 0x0001060d9b70 in RiWorldEnd ri.cpp:579
+    #5 0x0001061ee43c in ribparse() rib.y:992
+    #6 0x00010620393c in ribParse(char const*, void (*)(char const*, ...)) rib.y:3242
+    #7 0x0001060a3734 in CRendererContext::RiReadArchiveV(char const*, void (*)(char const*, ...), int, char const**, void const**) rendererContext.cpp
+    #8 0x0001060f281c in RiReadArchiveV ri.cpp:2302
+    #9 0x0001060f281c in RiReadArchive ri.cpp:2292
+    #10 0x00010400ca10 in main orender.cpp:909
+    #11 0x000185ee7e7c in start+0x1a1c (dyld:arm64e+0x31e7c)
+
+SUMMARY: AddressSanitizer: heap-buffer-overflow photonStore.cpp:547 in CPhotonStore::store(float const*, float const*, float const*, float const*, unsigned long long)
+Shadow bytes around the buggy address:
+  0x602000005d80: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x602000005e00: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x602000005e80: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x602000005f00: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x602000005f80: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+=>0x602000006000: fa fa 00 00 fa fa 00[fa]fa fa fa fa fa fa fa fa
+  0x602000006080: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x602000006100: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x602000006180: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x602000006200: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x602000006280: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==5046==ABORTING

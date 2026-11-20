@@ -1,0 +1,38 @@
+# Spec 040 (T007): the GI tests every checkpoint runs. One ctest -R regular expression per line ('#' starts a comment). Run as
+#   ctest --test-dir build -R "$(grep -v '^#' specs/040-gi-determinism/tools/gi-test-set.txt | paste -sd'|' -)"   (through cpujob)
+# plus the labels -L 'gi_split|gi_split_threads' (GiFixture_*, GiFiles_*, GiRemote_*, GiCache_*, GiKeys_*) and -L '^gi_determinism$' once
+# those exist. Each pattern was checked with `ctest --test-dir build -N -R <pattern>` on the starting tree: all 25 match, 95 tests in all
+# (ctest -N counts a test's fixture-setup tests, e.g. VisualSetup_*-clean, with it, so a count can exceed the names a pattern spells).
+# The spec 040 additions (the gi_determinism label, the GI sweep entries) are added by the phase that defines them.
+# spec 032 split tests
+^Gi(Fixture|Files|Remote|Cache|Keys)_
+^TextureOnly_GiStores$
+^TextureOnly_IrradianceDrawOrder$
+# visual and parity scenes that render a GI shader or a photon map
+^Visual_sphere-occlusion-reyes(-slo)?$
+^Visual_sphere-indirectdiffuse-reyes(-slo)?$
+^Visual_sphere-photonmap-reyes(-slo)?$
+^Visual_sphere-ray-self-hit-
+^Visual_sphere-gather-reyes(-slo)?$
+^Visual_photon-parity(-slo)?$
+^Visual_photon-solar0-
+^PhotonSolar0_
+^Visual_subdiv-.*-photon$
+^NotRequired_motion-subdiv-translate-photon$
+^Registry_IntegratorImageIdentity$
+^Registry_PairRefusal_photon$
+# tests/unit/photon_map
+^photonmap_
+# spec 039's sampling tests that touch occlusion() and indirectdiffuse()
+^Sampling_ProbeIndependence$
+^SamplingJit(Parity|Determinism|Engaged)_(occlusion|indirectdiffuse|gather)$
+^OcclusionSampler_
+^OcclusionGolden_
+^Convergence_occlusion-raytrace$
+# shading parity and contract tests that call occlusion(), indirectdiffuse() or photonmap()
+^ShadingParity_IrradianceEmptyString$
+^ShadingParity_JitPL(Engaged)?_occlusion_
+^ShadingContract_TraceReplay_(occlusion|indirectdiffuse)$
+^ShadingContract_PhotonLookup(Interp|Jit)$
+# the data-scene previews that read a photon map or a cache
+^Preview_DataSceneUnchanged$

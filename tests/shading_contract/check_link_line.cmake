@@ -53,7 +53,7 @@ if(_bad)
 endif()
 
 # And the pieces it must have
-foreach(_must IN ITEMS "shader_shading" "RIBCommon")
+foreach(_must IN ITEMS "RSLRuntime" "RIBCommon")
     string(FIND "${_line}" "${_must}" _at)
     if(_at EQUAL -1)
         message(FATAL_ERROR "StandaloneLinkLine: the link command of ${TARGET} does not name ${_must}")

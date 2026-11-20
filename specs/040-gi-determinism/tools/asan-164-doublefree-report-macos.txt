@@ -1,0 +1,77 @@
+=================================================================
+==28158==ERROR: AddressSanitizer: attempting double-free on 0x608000001a20 in thread T2:
+    #0 0x00010749c558 in _ZdlPv+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x50558)
+    #1 0x000106129e28 in CMap<CPhoton>::reset() map.h:156
+    #2 0x000106129e28 in CPhotonStore::reset() photonStore.cpp:186
+    #3 0x0001061ab35c in CPhotonHider::tracePhoton(float*, float*, float*, float, unsigned long long) photon.cpp:638
+    #4 0x0001061ace54 in CPhotonHider::illuminateEnd() photon.cpp:558
+    #5 0x00010507f210 in CShadingContext::execute(CProgrammableShaderInstance*, float**) shaderOpcodes.h:354
+    #6 0x0001061a7c20 in CPhotonHider::renderingLoop() photon.cpp:213
+    #7 0x000106a720c4 in rendererDispatchThread(void*) renderer.cpp:1078
+    #8 0x000107489e64 in asan_thread_start(void*)+0x4c (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x3de64)
+    #9 0x0001862bdcfc in _pthread_start+0x84 (libsystem_pthread.dylib:arm64e+0x6cfc)
+    #10 0x0001862b8ce8 in thread_start+0x4 (libsystem_pthread.dylib:arm64e+0x1ce8)
+
+0x608000001a20 is located 0 bytes inside of 88-byte region [0x608000001a20,0x608000001a78)
+freed by thread T1 here:
+    #0 0x00010749c558 in _ZdlPv+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x50558)
+    #1 0x000106129e28 in CMap<CPhoton>::reset() map.h:156
+    #2 0x000106129e28 in CPhotonStore::reset() photonStore.cpp:186
+    #3 0x0001061ab35c in CPhotonHider::tracePhoton(float*, float*, float*, float, unsigned long long) photon.cpp:638
+    #4 0x0001061ace54 in CPhotonHider::illuminateEnd() photon.cpp:558
+    #5 0x00010507f210 in CShadingContext::execute(CProgrammableShaderInstance*, float**) shaderOpcodes.h:354
+    #6 0x0001061a7c20 in CPhotonHider::renderingLoop() photon.cpp:213
+    #7 0x000106a720c4 in rendererDispatchThread(void*) renderer.cpp:1078
+    #8 0x000107489e64 in asan_thread_start(void*)+0x4c (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x3de64)
+    #9 0x0001862bdcfc in _pthread_start+0x84 (libsystem_pthread.dylib:arm64e+0x6cfc)
+    #10 0x0001862b8ce8 in thread_start+0x4 (libsystem_pthread.dylib:arm64e+0x1ce8)
+
+previously allocated by thread T0 here:
+    #0 0x00010749c268 in _Znam+0x74 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x50268)
+    #1 0x00010612f1a0 in CMap<CPhoton>::balance() map.h:264
+    #2 0x00010612df98 in CPhotonStore::balance() photonStore.cpp:523
+    #3 0x000106128f10 in CPhotonStore::CPhotonStore(char const*, __sFILE*, float const*, float const*) photonStore.cpp:135
+    #4 0x000106ae8a20 in CPhotonMap::CPhotonMap(char const*, __sFILE*) photonMap.h:45
+    #5 0x000106ae8a20 in CPhotonMap::CPhotonMap(char const*, __sFILE*) photonMap.h:45
+    #6 0x000106ae8a20 in CRenderer::getPhotonMap(char const*) rendererFiles.cpp:170
+    #7 0x000106a70f5c in CRenderer::render(CObject*) renderer.cpp:1028
+    #8 0x000106a81bd4 in CRendererContext::addObject(CObject*) rendererContext.cpp:786
+    #9 0x000106aa8be8 in CRendererContext::RiPolygonV(int, int, char const**, void const**) rendererContext.cpp:4073
+    #10 0x000106c0f624 in ribparse() rib.y:1816
+    #11 0x000106c2393c in ribParse(char const*, void (*)(char const*, ...)) rib.y:3242
+    #12 0x000106ac3734 in CRendererContext::RiReadArchiveV(char const*, void (*)(char const*, ...), int, char const**, void const**) rendererContext.cpp
+    #13 0x000106b1281c in RiReadArchiveV ri.cpp:2302
+    #14 0x000106b1281c in RiReadArchive ri.cpp:2292
+    #15 0x0001048f0a10 in main orender.cpp:909
+    #16 0x000185ee7e7c in start+0x1a1c (dyld:arm64e+0x31e7c)
+
+Thread T2 created by T0 here:
+    #0 0x00010748526c in pthread_create+0x60 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x3926c)
+    #1 0x0001049763f4 in osCreateThread(void* (*)(void*), void*) os.cpp:394
+    #2 0x000106a71c84 in CRenderer::renderFrame() renderer.cpp:1139
+    #3 0x000106a868e0 in CRendererContext::RiWorldEnd() rendererContext.cpp:1065
+    #4 0x000106af9b70 in RiWorldEnd ri.cpp:579
+    #5 0x000106c0e43c in ribparse() rib.y:992
+    #6 0x000106c2393c in ribParse(char const*, void (*)(char const*, ...)) rib.y:3242
+    #7 0x000106ac3734 in CRendererContext::RiReadArchiveV(char const*, void (*)(char const*, ...), int, char const**, void const**) rendererContext.cpp
+    #8 0x000106b1281c in RiReadArchiveV ri.cpp:2302
+    #9 0x000106b1281c in RiReadArchive ri.cpp:2292
+    #10 0x0001048f0a10 in main orender.cpp:909
+    #11 0x000185ee7e7c in start+0x1a1c (dyld:arm64e+0x31e7c)
+
+Thread T1 created by T0 here:
+    #0 0x00010748526c in pthread_create+0x60 (libclang_rt.asan_osx_dynamic.dylib:arm64e+0x3926c)
+    #1 0x0001049763f4 in osCreateThread(void* (*)(void*), void*) os.cpp:394
+    #2 0x000106a71c84 in CRenderer::renderFrame() renderer.cpp:1139
+    #3 0x000106a868e0 in CRendererContext::RiWorldEnd() rendererContext.cpp:1065
+    #4 0x000106af9b70 in RiWorldEnd ri.cpp:579
+    #5 0x000106c0e43c in ribparse() rib.y:992
+    #6 0x000106c2393c in ribParse(char const*, void (*)(char const*, ...)) rib.y:3242
+    #7 0x000106ac3734 in CRendererContext::RiReadArchiveV(char const*, void (*)(char const*, ...), int, char const**, void const**) rendererContext.cpp
+    #8 0x000106b1281c in RiReadArchiveV ri.cpp:2302
+    #9 0x000106b1281c in RiReadArchive ri.cpp:2292
+    #10 0x0001048f0a10 in main orender.cpp:909
+    #11 0x000185ee7e7c in start+0x1a1c (dyld:arm64e+0x31e7c)
+
+SUMMARY: AddressSanitizer: double-free map.h:156 in CMap<CPhoton>::reset()
+==28158==ABORTING

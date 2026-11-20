@@ -1,0 +1,24 @@
+##RenderMan RIB-Structure 1.0
+# Spec 040 GiDet_IndirectRayCount (test_gi_miss.cpp, mode raycount): indirectdiffuse() with the cache off (no irradiance attribute: the default
+# maxerror is 0) on a sphere with an occluder, the scene of sphere-indirectdiffuse-reyes.rib at 32 x 24. The test counts the rays traced:
+# indirectdiffuse_probe asks for 12 samples, so Total Traced must be 12 x the number of sampler calls (GitHub #173: it is 0 on the starting tree).
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["slo"]
+Display "raycount.tif" "file" "rgba"
+Format 32 24 1
+PixelSamples 1 1
+Projection "perspective"
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Surface "indirectdiffuse_probe"
+  Sphere 1 -1 1 360
+  AttributeBegin
+    Attribute "visibility" "diffuse" [1]
+    Color [0.9 0.2 0.2]
+    Surface "matte"
+    Translate 1.2 0 -0.5
+    Sphere 0.9 -0.9 0.9 360
+  AttributeEnd
+WorldEnd

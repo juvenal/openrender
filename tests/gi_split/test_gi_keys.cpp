@@ -10,6 +10,9 @@
  *   GiKeys_IrradianceRecords  (label gi_split)           the (key, record) set of the irradiance cache is identical across two
  *                                                         -t:1 runs, and keys are unique (so the records two runs share have
  *                                                         equal keys: OQ-3)
+ *   GiKeys_IrradianceRecordsThreads (label gi_split)     spec 040 (T025, research.md R4: the batch-identity gate): the (key, record) multiset of the
+ *                                                         irradiance cache at -t:1 against -t:4, for the reyes, zbuffer and raytrace hiders,
+ *                                                         .rslo and .slo; duplicates must agree too, so the keys need not be unique here
  *   GiKeys_PhotonsThreads     (label gi_split_threads)   as GiKeys_Photons but -t:1 against -t:4: opt-in, not in the everyday
  *                                                         run (the intermittent CPhotonHider crash and the unguarded
  *                                                         `modifying` reset make it unfit for it: OQ-3)
@@ -17,17 +20,16 @@
  * One in-process render per process (GitHub #2: a second RiBegin/RiEnd cycle corrupts the heap): the parent process runs
  * itself twice as a child (`photons-dump` / `records-dump`), each child renders once and writes a text dump, and the parent
  * compares the dumps. A photon is compared by P, N, flags, C, theta and phi, never by its raw bytes (they include padding:
- * OQ-8); between two thread counts `flags` is left out (it is the kd-tree splitting axis balance() assigns, a function of the
- * order the photons were stored in, which differs between one thread and four, and not part of a photon's identity). A record
- * is compared by every field.
+ * OQ-8). Since spec 040 (D7) `flags` is compared between thread counts as well: balance() runs on the canonical photon order, so the
+ * kd-tree's splitting axis of every photon is a function of the photon set alone. A record is compared by every field.
  *
  * Where the keys are read from:
  *   photons  the child keeps the map alive across the frame with attach() and reads CPhotonMap::photonKey(i) afterwards
  *   records  the cache is created and freed by the renderer inside the frame, so the child installs a services wrapper
  *            (CRecordingServices, below, a CContractForwarder) over the renderer's own for the length of the frame. Its
- *            getCache() builds the cache itself, as a CIrradianceCache subclass whose insertRecord() copies every (key, record)
+ *            getCache() builds the cache itself, as a CIrradianceCache subclass whose addPending() copies every (key, record)
  *            before forwarding, and owns it; the renderer never sees it. This is the test's only seam: nothing in src/ is changed
- *            for it, but CIrradianceCache and insertRecord() must stay non-final (recorded in the plan and contracts/irradiance-cache.md).
+ *            for it, but CIrradianceCache and addPending() must stay non-final (recorded in the plan and contracts/irradiance-cache.md).
  *
  * Usage:
  *   test_gi_keys photons|records|photons-threads <work dir>        the parent (the test)
@@ -163,11 +165,11 @@ static int photonsDump(int threads, const std::string &out) {
 // ---------------------------------------------------------------------------------------------------------
 static std::vector<std::string> g_recordLines;
 
-// An irradiance cache that copies every record handed to insertRecord() with its key, then inserts it as usual
+// An irradiance cache that copies every record handed to addPending() with its key (the raw radius), then adds it as usual
 class CRecordingCache final : public CIrradianceCache {
     public:
         using CIrradianceCache::CIrradianceCache;
-        void insertRecord(const CIrradianceRecord &r, float maxError) override {
+        void addPending(const CIrradianceRecord &r, float maxError) override {
             std::ostringstream o;
             char key[24];
             snprintf(key, sizeof(key), "%016llx", (unsigned long long)r.key);
@@ -184,7 +186,7 @@ class CRecordingCache final : public CIrradianceCache {
                 std::lock_guard<std::mutex> g(linesMutex);
                 g_recordLines.push_back(o.str());
             }
-            CIrradianceCache::insertRecord(r, maxError);
+            CIrradianceCache::addPending(r, maxError);
         }
 
     private:
@@ -214,13 +216,12 @@ class CRecordingServices final : public CContractForwarder {
         }
 };
 
-static int recordsDump(int threads, const std::string &out) {
+static int recordsDump(int threads, const std::string &out, const char *hider = "reyes", const char *format = "rslo") {
     RtInt numThreads = threads;
     RtInt one = 1;
     RtFloat maxError = 0.6f;
     const char *handle = "gi-keys-records.icache";
     const char *mode = "w";
-    const char *format = "rslo";
 
     RiBegin(RI_NULL);
     RiOption(RI_LIMITS, RI_NUMTHREADS, &numThreads, RI_NULL);
@@ -230,7 +231,7 @@ static int recordsDump(int threads, const std::string &out) {
     CRecordingServices recording(original);
     CShadingContext::setDefaultServices(&recording);
 
-    RiHider("reyes", RI_NULL);
+    RiHider(hider, RI_NULL);
     RiDisplay("gi-keys-records.tif", "file", RI_RGBA, RI_NULL);
     RiFormat(24, 18, 1);
     RiPixelSamples(1, 1);
@@ -280,21 +281,7 @@ static void checkUnique(const char *label, const std::vector<std::string> &lines
     EXPECT(keys.find(std::string(16, '0')) == keys.end(), "%s: an entry has the key 0 (no key was set)", label);
 }
 
-// The 8th field of a photon line (key, P x3, N x3, flags, ...) is the kd-tree's splitting axis: dropped when the thread counts differ
-static void dropFlags(std::vector<std::string> &lines) {
-    for (std::string &l : lines) {
-        std::istringstream in(l);
-        std::string field, out;
-        for (int i = 1; in >> field; i++) {
-            if (i != 8) {
-                out += (out.empty() ? "" : " ") + field;
-            }
-        }
-        l = out;
-    }
-}
-
-static int compare(const std::string &self, const char *dumpCase, int threadsA, int threadsB, const std::string &work) {
+static int compare(const std::string &self, const char *dumpCase, int threadsA, int threadsB, const std::string &work, bool unique = true) {
     const std::string a = work + "/keys-a.txt", b = work + "/keys-b.txt";
     remove(a.c_str());
     remove(b.c_str());
@@ -304,11 +291,9 @@ static int compare(const std::string &self, const char *dumpCase, int threadsA, 
     }
     std::vector<std::string> la, lb;
     EXPECT(readLines(a, la) && readLines(b, lb), "a dump is missing");
-    checkUnique("run A", la);
-    checkUnique("run B", lb);
-    if (threadsA != threadsB && std::string(dumpCase) == "photons-dump") {
-        dropFlags(la);
-        dropFlags(lb);
+    if (unique) {
+        checkUnique("run A", la);
+        checkUnique("run B", lb);
     }
     EXPECT(la == lb, "the (key, entry) sets differ between -t:%d and -t:%d (%zu against %zu entries)", threadsA, threadsB, la.size(), lb.size());
     if (la == lb) {
@@ -329,6 +314,16 @@ int main(int argc, char **argv) {
     if (which == "records-dump") {
         return recordsDump(atoi(argv[2]), argv[3]);
     }
+    // spec 040: records-dump-<hider>-<format> (the threads-gate children; the argument count stays three)
+    if (which.rfind("records-dump-", 0) == 0) {
+        const std::string rest = which.substr(13);
+        const size_t dash = rest.find('-');
+        if (dash == std::string::npos) {
+            return 2;
+        }
+        const std::string h = rest.substr(0, dash), f = rest.substr(dash + 1);
+        return recordsDump(atoi(argv[2]), argv[3], h.c_str(), f.c_str());
+    }
     std::string self = argv[0];
     char cwd[4096];
     if (!self.empty() && self[0] != '/' && getcwd(cwd, sizeof(cwd)) != NULL) {
@@ -346,6 +341,19 @@ int main(int argc, char **argv) {
     }
     if (which == "records") {
         return compare(self, "records-dump", 1, 1, argv[2]);
+    }
+    if (which == "records-threads") {
+        int rc = 0;
+        const char *hiders[3] = {"reyes", "zbuffer", "raytrace"};
+        const char *formats[2] = {"rslo", "slo"};
+        for (const char *h : hiders) {
+            for (const char *f : formats) {
+                const std::string dumpCase = std::string("records-dump-") + h + "-" + f;
+                printf("== %s, -t:1 against -t:4\n", dumpCase.c_str());
+                rc |= compare(self, dumpCase.c_str(), 1, 4, argv[2], false);
+            }
+        }
+        return rc;
     }
     fprintf(stderr, "unknown case %s\n", which.c_str());
     return 2;

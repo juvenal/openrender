@@ -112,5 +112,5 @@ scales its saved `Cl` (`savedState[1]`) by `V_i / (n * pdfA_i)` (research R5, R6
 
 ## 8. Interface version
 
-`kRendererServicesVersion` 2.3.0 (master, spec 031) -> **2.4.0** on this branch (MINOR; renumbered to 2.5.0 at the 033 sync, because 033 steps master to 2.4.0 first; decision D-10) (MINOR: `ITracer::occluded` with a default, the new `IAreaLightSampler`
+`kRendererServicesVersion` 2.3.0 (master, spec 031) -> **2.6.0** (MINOR; written as 2.4.0 on this branch and renumbered at the sync, because 033 (2.4.0) and 040 (2.5.0) stepped master first; decision D-10) (MINOR: `ITracer::occluded` with a default, the new `IAreaLightSampler`
 installed on the context). History entry in `rendererServices.h`. Every implementer's `static_assert` on MAJOR 2 holds.

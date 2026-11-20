@@ -1,0 +1,1 @@
+# Images whose bytes differ between two runs of the starting tree's suite (spec 033 T009); CP-d ignores them. One path per line.

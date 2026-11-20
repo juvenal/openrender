@@ -110,7 +110,7 @@ namespace libshader {
 
 } // namespace libshader
 
-// ITracer::occluded, the default body (spec 057, services 2.4.0): one probe through the tracer's own traceRay(), then the
+// ITracer::occluded, the default body (spec 057, services 2.6.0): one probe through the tracer's own traceRay(), then the
 // hit test. It tests ray->object and never ray->t against infinity: a clipped ray leaves t finite (GitHub #169). A tracer that
 // owns the scene (CHider) overrides this to apply the exclusion of an area light's own scope; a double may keep it.
 bool openrender::shading::ITracer::occluded(CShadingContext &context, CRay *ray, const CShaderGroupRefTarget *) {

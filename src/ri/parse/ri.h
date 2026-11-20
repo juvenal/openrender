@@ -433,6 +433,11 @@ EXTERN(RtToken)
 RI_TEXTURECACHEENABLE,
     RI_TEXTURECACHEDIRECTORY;
 
+// Image I/O option (spec 048): Option "imageio" "backend"
+EXTERN(RtToken)
+RI_IMAGEIO,
+    RI_BACKEND;
+
 // Sampling options (spec 039)
 EXTERN(RtToken)
 RI_SAMPLING, RI_SAMPLER, RI_SEED;

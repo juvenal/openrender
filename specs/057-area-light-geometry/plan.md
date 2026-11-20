@@ -78,7 +78,7 @@ itself works: `transmission()` is shadowed by a flagged occluder and not by an u
 - [x] No dependency outside the allowed table, and no domain depends on the core. The registry is a Geometry type that the
       core fills; Shading asks the hider through a Shading-owned interface.
 - [x] Interface changes are specified in contracts/area-sampling.md, contracts/shading-light-surface.md
-      (`kRendererServicesVersion` 2.4.0, decision D-10) and contracts/binding-and-registry.md.
+      (`kRendererServicesVersion` 2.6.0, decision D-10) and contracts/binding-and-registry.md.
 - [x] No hider-specific special case. Occlusion and sampling are `CHider` members shared by every camera hider, and the
       light run is 0-D on every hider.
 - [x] No plug-in ABI changes: display, shadeop, dlo and implicit are untouched.
@@ -119,7 +119,7 @@ The tasks stage fixes the task lists. There is a pause at every phase boundary.
 | 1 | Setup: the plan-stage build and probe (done); `LightKey_NoLeakAcrossFailedLight` red; the leak fix; full suite | FR-004, SC-010 | none: no tracked scene hits the leak (research R11) |
 | 2 | Binding: the attribute slot, the statements, the registry type, install and uninstall, recording in `addObject`. Binding tests red, then green | US1, FR-001-FR-004 (FR-005 is checked in Phase 4 by `AreaLightBinding_Illuminate`) | none |
 | 3 | Geometry sampling for polygons, meshes and subdivision surfaces; the generic tessellated table; Geometry-only tests | US2, FR-006-FR-010, SC-003 | none |
-| 4 | Shading: `IAreaLightSampler`, `ITracer::occluded` (2.4.0), the exclusion gate, the bound-light branch of `iterateLights`. Irradiance probes (interpreter and JIT), constant-`Cl` probe, globals probe | US3, FR-011-FR-016, SC-002 (quad) | bound lights only |
+| 4 | Shading: `IAreaLightSampler`, `ITracer::occluded` (2.6.0), the exclusion gate, the bound-light branch of `iterateLights`. Irradiance probes (interpreter and JIT), constant-`Cl` probe, globals probe | US3, FR-011-FR-016, SC-002 (quad) | bound lights only |
 | 5 | Controls through the four attribute layers; read-back, the `ribOut` round trip, errors | US5, FR-018-FR-020 | bound lights only |
 | 6 | Soft shadows on reyes, zbuffer and raytrace (quad, mesh and subdivision emitters); self-exclusion; thread identity; noise measurement; default count confirmed; parity thresholds fixed | US4, FR-017, FR-023, FR-031, SC-001, SC-004 | new scenes only |
 | 7 | Quadrics (analytic and tessellated); disk irradiance probe | US6, SC-002 (disk) | new scenes only |
@@ -147,7 +147,7 @@ lands.
 | `src/libshader/shading/shading.cpp`: `CShadingContext::iterateLights` | The bound-light branch inside the `lightSources` loop: query, receiver skip, controls, per-sample swap, run, weighting, occlusion | Re-applied as one block inside whatever function then iterates the active lights and calls a light's `prepare()`/`illuminate()`. It needs only the current state's `varying` table and `shadingDim`, `pointKeys`, the `lights` list, the light's identity and shader key, and the context's `IAreaLightSampler`/`ITracer`. **033 changes `lightInstanceOf()` to return `CShaderInstance *`: retype the local that holds the light in the bound block at the sync** |
 | `shading.h`: `CShadingContext` | `setAreaLightSampler()` and a pointer member (beside `setTracer()`); the hider installs it at the start of its rendering loop when the frame has a bound light | Re-applied wherever 033 lets the hider install its interfaces on the context it owns |
 | `shader.cpp`: `CProgrammableShaderInstance::prepare`/`illuminate` (the light's illuminate entry) | **Not edited**: 057 only calls them, with the composite table | If 033 replaces the entry with a facade call, the composite table is passed the same way: the swap is of `currentShadingState->varying`, which both backends read |
-| `tracer.h`, `rendererServices.h` | `ITracer::occluded`; `kRendererServicesVersion` 2.3.0 -> 2.4.0 | 033 steps master to 2.4.0 first: at the sync 057 renumbers to 2.5.0 and moves its history line after 033's (D-10) |
+| `tracer.h`, `rendererServices.h` | `ITracer::occluded`; `kRendererServicesVersion` 2.3.0 -> 2.6.0 | 033 (2.4.0) and 040 (2.5.0) step master first: at the sync 057 renumbered to 2.6.0 and moved its history line above theirs (D-10) |
 | New `areaLightSampler.h` | Shading-owned interface | If 033 groups Shading's boundary interfaces under the facade, this interface moves with `ITracer` |
 | `src/ri/hiders/hider.{h,cpp}` | `CHider` implements `IAreaLightSampler` and overrides `occluded` | Re-applied on the class that owns the context after 033 |
 | `src/ri/hiders/photon.cpp`: light loop | The bound-light branch before `prepare()`/`illuminate()`; varying `from`/`N` stepping in `illuminateBegin` | Re-applied in place if 033 routes the light run through the facade |
@@ -179,7 +179,7 @@ lands.
 | D-7 | Defaults: `samples` 16, `mode full`, and `fast` = `max(1, ceil(n/4))` | Other counts after measurement | **As stated**, with a stated deviation: FR-018/FR-019 ask for the count and the `fast` rule to be measured at plan, but the new estimator does not exist yet, so the plan fixes the rule and Phase 6 measures it (penumbra noise, light stream alone varied). The plan-time numbers (research R10) are the old form's total run-to-run noise, not area-light noise |
 | D-8 | Derivatives in a bound light: the light runs as a 0-D batch, so `Du`/`Dv` of the light-surface globals are 0 on every hider | Keep the receiver's dimension. Grid neighbours are then unrelated samples, giving hider-dependent garbage | **0-D** |
 | D-9 | Whether a failed `AreaLightSource` (missing or wrong-type shader) also closes the scope | Keep the previous light's scope open | **Close it**, as `"null"` does; the error is already reported |
-| D-10 | Interface version: a non-breaking MINOR step (`occluded` has a default) | - | **2.4.0** on this branch (master is 2.3.0 since spec 031), renumbered to **2.5.0** at the 033 sync (033 merges first and steps master to 2.4.0) |
+| D-10 | Interface version: a non-breaking MINOR step (`occluded` has a default) | - | **2.6.0** (written as 2.4.0 on this branch while master was 2.3.0 since spec 031; renumbered at the sync after 033 (2.4.0) and 040 (2.5.0) stepped master first) |
 
 ## Decisions approved (2026-11-14)
 
@@ -202,9 +202,9 @@ binding on the implementation:
 - **D-8**: `Du`/`Dv` of the light-surface globals are **0** in a bound light (the run is 0-D).
 - **D-9**: a failed `AreaLightSource` (missing or wrong-type shader) **closes the scope** as `"null"` does.
 - **D-10 (corrected by the coordinator)**: master's `kRendererServicesVersion` is already **2.3.0** (spec 031). Spec 033
-  merges first and steps it to 2.4.0. 057's step for `ITracer::occluded` is the next MINOR after 033's: it is written as
-  **2.4.0 on this branch now** (built against master's 2.3.0) and **renumbered to 2.5.0**, with its history entry moved
-  after 033's 2.4.0, in the 033 sync (a conditional task block in tasks.md). Every "2.2.0" in spec, plan and contracts
+  merges first and steps it to 2.4.0, then 040 to 2.5.0. 057's step for `ITracer::occluded` is the next MINOR after theirs: it was
+  written as 2.4.0 on this branch (built against master's 2.3.0) and is **2.6.0** since the sync, with its history entry above
+  040's 2.5.0 and 033's 2.4.0 (the conditional task block in tasks.md). Every "2.2.0" in spec, plan and contracts
   has been replaced accordingly.
 
 **Maintainer decisions on the tasks stage's additions (2026-11-14, tasks.md approved)**:
@@ -270,7 +270,7 @@ src/ri/render/rendererShadingServices.cpp # arealight:samples/mode queries
 src/libshader/shading/areaLightSampler.h  # NEW: IAreaLightSampler
 src/libshader/shading/areaLightControls.h # NEW: pure resolveAreaLightControls (precedence, fast), shared by iterateLights and its unit test
 src/libshader/shading/tracer.h            # occluded()
-src/libshader/shading/rendererServices.h  # 2.4.0 (2.5.0 after the 033 sync)
+src/libshader/shading/rendererServices.h  # 2.6.0 (written as 2.4.0; renumbered at the 033/040 sync)
 src/libshader/shading/shading.{h,cpp}     # iterateLights bound branch, setAreaLightSampler
 src/ri/hiders/hider.{h,cpp}, trace.cpp    # CHider implements the sampler, occluded
 src/ri/hiders/areaLights.cpp              # NEW: CHider::areaLight/sampleEmitters

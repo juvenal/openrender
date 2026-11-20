@@ -249,7 +249,7 @@ restoring them (the clobbering FR-011 forbids, and a copy per sample); accumulat
 ## R6. Occlusion of a sample, and self-exclusion by identity
 
 **Decision.** `ITracer` gains `occluded(CShadingContext &, CRay *ray, const CShaderGroupRefTarget *excludeLight)` (kRendererServicesVersion
-2.3.0 -> **2.4.0**, a MINOR addition; 2.5.0 after the 033 sync, D-10): trace `ray` (flags `ATTRIBUTES_FLAGS_TRANSMISSION_VISIBLE`, `from` = the receiver
+2.3.0 -> **2.6.0** (written as 2.4.0), a MINOR addition; renumbered at the 033 and 040 sync, D-10): trace `ray` (flags `ATTRIBUTES_FLAGS_TRANSMISSION_VISIBLE`, `from` = the receiver
 point, `dir` = unit vector to the emitter point, `tmin` = the receiver's trace bias, `t = dist - bias`, key
 `childKey(pointKey, depth + 1, kAreaLightShadowSite, lightKey32, k)`, `lightKey32` the light's shader key
 `mix(shaderNameKey(name), instanceKey)` folded to 32 bits (`uint32_t(key ^ (key >> 32))`), the same identity the emitter

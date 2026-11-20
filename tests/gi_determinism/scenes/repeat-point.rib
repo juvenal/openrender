@@ -1,0 +1,31 @@
+##RenderMan RIB-Structure 1.0
+# Spec 040 GiDet_RepeatedPoint (test_gi_miss.cpp, mode repeat): a small displaced sphere shaded by occlusion() through a cache written to a
+# file, where a point is shaded more than once (the displacement estimate and the lazily shaded grid). @HIDER@ is replaced by the test
+# (reyes or raytrace). Float output so that the image is compared bit for bit. Not a visual test: no reference image.
+version 3.03
+Hider "@HIDER@"
+Option "shaderformat" "default" ["rslo"]
+Quantize "rgba" 0 0 0 0
+Display "repeat.tif" "file" "rgba"
+Format 24 18 1
+PixelSamples 1 1
+Projection "perspective"
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Attribute "irradiance" "string handle" ["gidet-repeat.icache"]
+  Attribute "irradiance" "string filemode" ["w"]
+  Attribute "irradiance" "float maxerror" [0.6]
+  Surface "occlusion_probe"
+  AttributeBegin
+    Displacement "bump_lowfreq" "float Km" [0.05]
+    Attribute "displacementbound" "float sphere" [0.05] "string coordinatesystem" ["object"]
+    Sphere 1 -1 1 360
+  AttributeEnd
+  AttributeBegin
+    Attribute "visibility" "diffuse" [1]
+    Surface "matte"
+    Translate 1.2 0 -0.5
+    Sphere 0.9 -0.9 0.9 360
+  AttributeEnd
+WorldEnd

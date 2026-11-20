@@ -93,12 +93,50 @@ if(OPENRENDER_LINK_PACKAGE_TEST)
     else()
         set(_package_jobs 2)
     endif()
+    # spec 048 (FR-004): in an OIIO-on tree the scratch tree is an OIIO-on tree too, and the runner checks the OIIO edge
+    set(_package_oiio_args "")
+    if(HAVE_OIIO)
+        set(_oiio_extra "-DOPENRENDER_ENABLE_OIIO=ON")
+        if(OpenImageIO_ROOT)
+            list(APPEND _oiio_extra "-DOpenImageIO_ROOT=${OpenImageIO_ROOT}")
+        endif()
+        # a ;-list does not survive add_test and -D unescaped: the runner receives the arguments joined with "|"
+        list(JOIN _oiio_extra "|" _oiio_extra_joined)
+        set(_package_oiio_args "-DCONFIGURE_EXTRA_ARGS=${_oiio_extra_joined}" "-DEXPECT_OIIO=ON")
+    endif()
     add_test(NAME Link_PackageStaticConsumer
         COMMAND ${CMAKE_COMMAND}
             "-DSOURCE_DIR=${CMAKE_SOURCE_DIR}" "-DBUILD_DIR=${CMAKE_BINARY_DIR}" "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/package_work"
             "-DCONSUMER_DIR=${CMAKE_CURRENT_SOURCE_DIR}/package" "-DJOBS=${_package_jobs}"
             "-DFORMATS=${OR029_STATIC_CONSUMER_FORMATS}" "-DGENERATOR=${CMAKE_GENERATOR}" "-DBUILD_TYPE=${CMAKE_BUILD_TYPE}"
             "-DPREFIX_DIR=${OR029_PACKAGE_PREFIX}" "-DREMOVE_PACKAGE_BLOCK=${OR029_PACKAGE_REMOVE_BLOCK}"
+            ${_package_oiio_args}
             -P ${CMAKE_CURRENT_SOURCE_DIR}/run_package_test.cmake)
     set_tests_properties(Link_PackageStaticConsumer PROPERTIES TIMEOUT 7200 LABELS "link-package")
 endif()
+
+# --- Spec 033 (Phase 2; DEP-2): Link_RenameAliases, red first; enabled in Phase 8 (the Test gate of part B) --------------------------
+# Phase 8 (part A) creates libRSLInfo (and its archive), Phase 8 (part B) renames libshader_shading to libRSLRuntime and keeps the old
+# names as aliases and compatibility symlinks; the phase that does the last of it enables this test.
+# An absent target is passed as an empty value: the script then fails with "no such target", which was this test's red reason until
+# the renames existed.
+foreach(_pair "RUNTIME|libRSLRuntime" "RUNTIME_ALIAS|libshader_shading" "INFO|libRSLInfo" "INFO_ALIAS|libshader_runtime"
+        "INFO_STATIC|libRSLInfo_static" "INFO_STATIC_ALIAS|libshader_runtime_static" "RSLO_ALIAS|rslo" "RSLO_STATIC_ALIAS|rslo_static"
+        "COMPILER|libshader_compiler")
+    string(REPLACE "|" ";" _parts "${_pair}")
+    list(GET _parts 0 _var)
+    list(GET _parts 1 _target)
+    # tests/ is configured before src/, so a TARGET test here cannot see the libraries: the generator expression is evaluated at
+    # generate time, and a target that does not exist is passed as an empty value (the script then reports "no such target")
+    list(APPEND _033_rename_args "-D${_var}=$<$<TARGET_EXISTS:${_target}>:$<TARGET_FILE:${_target}>>")
+endforeach()
+or033_test(Link_RenameAliases LABELS "link" TIMEOUT 60
+    COMMAND ${CMAKE_COMMAND} ${_033_rename_args} -P ${CMAKE_CURRENT_SOURCE_DIR}/check_rename_aliases.cmake)
+
+# --- Spec 033 (Phase 8, DEP-4): Link_InfoRuntimeNotCoLinked -----------------------------------------------------------------------
+# No link line and no resolved dependency closure holds two owners of the flex/bison "rslo*" globals (libRSLRuntime, libRSLInfo,
+# libshader_compiler): on ELF the first image loaded interposes the others' parser. Not red first: it is a guard that passes on a
+# finished tree and is proved by mutation checks (a scratch link line and a scratch dependency list that each name a second owner).
+add_test(NAME Link_InfoRuntimeNotCoLinked
+    COMMAND ${CMAKE_COMMAND} "-DBUILD_DIR=${CMAKE_BINARY_DIR}" -P ${CMAKE_CURRENT_SOURCE_DIR}/check_info_runtime_not_colinked.cmake)
+set_tests_properties(Link_InfoRuntimeNotCoLinked PROPERTIES TIMEOUT 300 LABELS "link")

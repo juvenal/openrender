@@ -35,9 +35,6 @@
 #include "common/fileResource.h"
 #include "common/refCounter.h"
 #include "stateHandles.h" // CShaderGroupRefTarget: the base of CShaderInstance (Shading -> Graphics State)
-#ifdef OPENRENDER_HAVE_LLVM
-#include "llvmJit.h"
-#endif
 #include "common/rendererc.h"
 #include "common/riVocabulary.h"
 #include "ri_config.h"
@@ -51,6 +48,8 @@ class CMemPage;
 class CShadingContext;
 class CAttributes;
 class CDSO;
+class IShaderBackend;
+class CShaderPayload;
 
 // Meanings of the accessor field of TArgument
 const unsigned int SL_IMMEDIATE_OPERAND = 0; // Constants
@@ -121,8 +120,11 @@ class CLightShaderData : public CShaderData {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CShader
-// Description			:	This class encapsulates a shader
-// Comments				:
+// Description			:	The backend-neutral description of a loaded shader (spec 033, FR-007)
+// Comments				:	What a shader of any format has: its name (CFileResource), type, parameters, used parameters, flags and
+//							light data. The backend that loaded it and the payload only that backend understands (the bytecode, the
+//							constant tables, the strings and the frame layout, or the JIT entry points: shaderPayload.h) are the two
+//							last members; the payload is owned and deleted with the description.
 class CShader : public CFileResource {
     public:
         CShader(const char *);
@@ -132,34 +134,17 @@ class CShader : public CFileResource {
 
         CVariable *parameters; // List of parameters
 
-        void *memory;    // The memory base allocated for this shader
-        TCode *codeArea; // The code array
-
-        void **constantEntries; // The constant entries
-
-        int *varyingSizes; // The size of a variable (if negative, it is uniform)
-
-        char **strings; // Strings used by the shader
-
-        int numGlobals;   // Number of global parameters
-        int numStrings;   // Number of strings
-        int numVariables; // Number of variables
-
-        int codeEntryPoint; // Index into code array where the actual code starts
-        int initEntryPoint; // Index into code array where the init code starts
-
         int usedParameters;
 
         unsigned int flags; // shadows of parent data (to support hcShaders)
         CShaderData *data;  // Additional data (owned by CShader)
 
-#ifdef OPENRENDER_HAVE_LLVM
-        TShaderJitEntry jitEntry;     // JIT-compiled main entry (set at load time for .slo)
-        TShaderJitEntry jitInitEntry; // JIT-compiled init entry (nullptr if no #!Init)
-#endif
+        const IShaderBackend *backend; // The backend that loaded this shader, and runs its instances
+        CShaderPayload *payload;       // What only that backend understands (owned)
 
-        friend CShader *parseShader(const char *, const char *);
-        void analyse();
+        // Work out the light flags and the CLightShaderData indices from the parameters. A load-time helper of the RSL loaders: numGlobals
+        // is the frame layout's count of global parameters (CRslPayload::numGlobals)
+        void analyse(int numGlobals);
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -188,6 +173,8 @@ class CShaderInstance : public CShaderGroupRefTarget {
         virtual unsigned int requiredParameters() = 0;
         virtual const char *getName() = 0;
         virtual float **prepare(CMemPage *&, float **, int) = 0;
+        // The description this instance was made from: the dispatcher's way to the backend that runs it
+        virtual const CShader *shaderDescription() const = 0;
 
         void createCategories();
 
@@ -234,15 +221,25 @@ class CProgrammableShaderInstance : public CShaderInstance {
         unsigned int requiredParameters();
         const char *getName();
         float **prepare(CMemPage *&, float **, int);
+        const CShader *shaderDescription() const { return parent; }
 
         CAllocatedString *strings; // The strings we allocated for parameters
         CShader *parent;           // The parent shader
-#ifdef OPENRENDER_HAVE_LLVM
-        TShaderJitEntry jitEntry;     // JIT-compiled main entry (nullptr until first prepare)
-        TShaderJitEntry jitInitEntry; // JIT-compiled init entry (nullptr if no init section)
-#endif
     private:
         int setParameter(const char *, const void *);
 };
+
+
+namespace libshader {
+
+    // The bind-time init of a shader instance's parameter defaults (spec 033, #134). ShadingSystem::bind() runs the backend's init
+    // itself, inside arenaBegin/arenaEnd(globalArena); this is the same call, for a caller that holds a bare instance (the
+    // ShadingSystem_BindUnknownSpace test). Runs the init of the backend that loaded the shader (its description's backend).
+    void initialiseInstance(CProgrammableShaderInstance &instance);
+
+    // The interpreter's body (rsloInit.cpp); the JIT's is the .slo backend's (sloBackend.cpp)
+    void initialiseRsloInstance(CProgrammableShaderInstance &instance);
+
+} // namespace libshader
 
 #endif

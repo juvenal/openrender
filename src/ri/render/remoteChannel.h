@@ -50,13 +50,20 @@ typedef enum {
     CHANNELTYPE_BOM = 0x55000000 // byte-order marker
 } ERemoteChannelType;
 
+// The low byte of the type word of a channel request (the type is in the bits above, the byte-order marker at the top): what the client does with its side
+// of the channel. CHANNELFLAG_READ: the server opened its irradiance cache from the file, so the client opens its own from the same name too, and so holds the
+// same fixed part (spec 040: the server sends only the records it made, never the file's)
+typedef enum {
+    CHANNELFLAG_READ = 1
+} ERemoteChannelFlags;
+
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CRemoteChannel
 // Description			:	base class for remote channels
 // Comments				:
 class CRemoteChannel {
     public:
-        CRemoteChannel(const char *n, int f, int d) : name(strdup(n)), flags(f), channelType(d), remoteId(-1) {}
+        CRemoteChannel(const char *n, int f, int d) : name(strdup(n)), flags(f), channelType(d), remoteId(-1), openFlags(0) {}
         virtual ~CRemoteChannel() { free(name); };
 
         virtual int sendSetupData(SOCKET /*s*/) { return TRUE; }
@@ -71,6 +78,7 @@ class CRemoteChannel {
         int flags;       // when should we be run?
         int channelType; // identify the derived type
         int remoteId;    // the Id of the channel on the client
+        int openFlags;   // ERemoteChannelFlags: sent to the client with the request that creates the channel
 };
 
 ///////////////////////////////////////////////////////////////////////

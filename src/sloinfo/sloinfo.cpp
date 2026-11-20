@@ -11,7 +11,7 @@
  *     sloinfo <file>       — auto-detects format from file magic / extension
  *     rsloinfo <file>      — forces .rslo mode (argv[0] detection)
  *     sloinfo --rslo <file> — explicit .rslo mode
- *     sloinfo --slo  <file> — explicit .slo mode (requires OPENRENDER_HAVE_LLVM)
+ *     sloinfo --slo  <file> — explicit .slo mode (needs a libRSLInfo built with LLVM)
  *
  * Authors:
  *   Okan Arikan <okan@cs.utexas.edu>
@@ -32,12 +32,9 @@
 #include "common/global.h"
 #include "common/os.h"
 #include "logging.hpp"
-#include "rslo.h" // libshader_runtime: TRSLObjectShader, rsloGet, rsloDelete
+#include "libshader/include/openrender/ShaderMetadata.h" // the shader-metadata API (libRSLInfo)
 
-#ifdef OPENRENDER_HAVE_LLVM
-#include "libshader/shading/llvmJit.h"     // CLLVMJitEngine::extractMetadataFromFile
-#include "libshader/shading/sloMetadata.h" // SLOShaderInfo
-#endif
+using namespace openrender::shading;
 
 // -------------------------------------------------------------------------
 // LLVM bitcode magic detection.
@@ -67,7 +64,7 @@ static bool isLLVMBitcode(const char *filename) {
 }
 
 // -------------------------------------------------------------------------
-// Display .rslo metadata using the existing libshader_runtime reader.
+// Display .rslo metadata, read through the metadata API.
 // -------------------------------------------------------------------------
 static int displayRslo(const char *arg) {
     char tmp[1024];
@@ -88,134 +85,83 @@ static int displayRslo(const char *arg) {
     }
     osFixSlashes(tmp);
 
-    TRSLObjectShader *cShader = rsloGet(arg, tmp);
-    if (!cShader) {
+    const ShaderMetadata m = describeShaderFile(arg, "rslo", tmp);
+    if (m.status != EMetadataStatus::Found) {
         fprintf(stderr, "Failed to find shader \"%s\"\n", arg);
         return 1;
     }
 
-    switch (cShader->type) {
-        case SHADER_SURFACE:
-            fprintf(stdout, "surface ");
-            break;
-        case SHADER_DISPLACEMENT:
-            fprintf(stdout, "displacement ");
-            break;
-        case SHADER_VOLUME:
-            fprintf(stdout, "volume ");
-            break;
-        case SHADER_LIGHT:
-            fprintf(stdout, "light ");
-            break;
-        case SHADER_IMAGER:
-            fprintf(stdout, "imager ");
-            break;
-    }
-    fprintf(stdout, "\"%s\"\n", cShader->name);
+    // The shader's type, then its name
+    if (!m.typeName.empty())
+        fprintf(stdout, "%s ", m.typeName.c_str());
+    fprintf(stdout, "\"%s\"\n", m.name.c_str());
 
-    for (TRSLObjectParameter *p = cShader->parameters; p; p = p->next) {
-        fprintf(stdout, "\t\"%s\" ", p->name);
+    for (const ShaderParameterMetadata &p : m.parameters) {
+        fprintf(stdout, "\t\"%s\" ", p.name.c_str());
 
-        if (p->writable)
+        if (p.output)
             fprintf(stdout, "\"output ");
         else
             fprintf(stdout, "\"");
 
-        switch (p->container) {
-            case CONTAINER_CONSTANT:
-                fprintf(stdout, "constant ");
-                break;
-            case CONTAINER_UNIFORM:
-                fprintf(stdout, "uniform ");
-                break;
-            case CONTAINER_VARYING:
-                fprintf(stdout, "varying ");
-                break;
-            case CONTAINER_VERTEX:
-                fprintf(stdout, "vertex ");
-                break;
-        }
+        fprintf(stdout, "%s ", p.storage.c_str());
+        fprintf(stdout, "%s", p.typeName.c_str());
 
-        switch (p->type) {
-            case TYPE_FLOAT:
-                fprintf(stdout, "float");
-                break;
-            case TYPE_VECTOR:
-                fprintf(stdout, "vector");
-                break;
-            case TYPE_NORMAL:
-                fprintf(stdout, "normal");
-                break;
-            case TYPE_POINT:
-                fprintf(stdout, "point");
-                break;
-            case TYPE_COLOR:
-                fprintf(stdout, "color");
-                break;
-            case TYPE_MATRIX:
-                fprintf(stdout, "matrix");
-                break;
-            case TYPE_STRING:
-                fprintf(stdout, "string");
-                break;
-        }
-
-        if (p->numItems > 1)
-            fprintf(stdout, "[%d]", p->numItems);
+        if (p.arraySize > 1)
+            fprintf(stdout, "[%d]", p.arraySize);
         fprintf(stdout, "\"\n");
 
         fprintf(stdout, "\t\tDefault value: ");
-        UDefaultVal *cur = &p->defaultValue;
-        if (p->numItems > 1)
-            cur = cur->array;
-
-        for (int i = 0; i < p->numItems; i++, cur++) {
-            switch (p->type) {
+        size_t floatAt = 0, stringAt = 0;
+        for (int i = 0; i < p.arraySize; i++) {
+            switch (p.type) {
                 case TYPE_FLOAT:
-                    fprintf(stdout, "%g ", cur->scalar);
+                    fprintf(stdout, "%g ", p.defaultFloats[floatAt++]);
                     break;
                 case TYPE_VECTOR:
                 case TYPE_NORMAL:
                 case TYPE_POINT:
                 case TYPE_COLOR:
-                    if (p->space)
-                        fprintf(stdout, "\"%s\" ", p->space);
-                    if (cur->vector)
-                        fprintf(stdout, "[%g %g %g] ",
-                                cur->vector[0], cur->vector[1], cur->vector[2]);
-                    else
-                        fprintf(stdout, "[0 0 0] ");
+                    if (!p.space.empty())
+                        fprintf(stdout, "\"%s\" ", p.space.c_str());
+                    fprintf(stdout, "[%g %g %g] ", p.defaultFloats[floatAt], p.defaultFloats[floatAt + 1], p.defaultFloats[floatAt + 2]);
+                    floatAt += 3;
                     break;
                 case TYPE_MATRIX:
-                    if (cur->matrix) {
-                        fprintf(stdout, "[");
-                        for (int k = 0; k < 16; k++)
-                            fprintf(stdout, "%g%s", cur->matrix[k], k < 15 ? " " : "");
-                        fprintf(stdout, "] ");
-                    }
-                    else {
-                        fprintf(stdout, "[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0] ");
-                    }
+                    fprintf(stdout, "[");
+                    for (int k = 0; k < 16; k++)
+                        fprintf(stdout, "%g%s", p.defaultFloats[floatAt + k], k < 15 ? " " : "");
+                    fprintf(stdout, "] ");
+                    floatAt += 16;
                     break;
                 case TYPE_STRING:
-                    fprintf(stdout, "\"%s\" ", cur->string ? cur->string : "NULL");
+                    fprintf(stdout, "\"%s\" ", p.defaultStrings[stringAt++].c_str());
+                    break;
+                default: // the other variable types are not shader parameters
                     break;
             }
         }
         fprintf(stdout, "\n");
     }
 
-    rsloDelete(cShader);
     return 0;
 }
 
 // -------------------------------------------------------------------------
-// Display .slo metadata using the LLVM named metadata reader.
+// Display .slo metadata, read through the metadata API.
 // -------------------------------------------------------------------------
-#ifdef OPENRENDER_HAVE_LLVM
 static int displaySlo(const char *filename) {
-    SLOShaderInfo info;
-    if (!CLLVMJitEngine::extractMetadataFromFile(filename, info)) {
+    const ShaderMetadata m = describeShaderFile(filename, "slo", nullptr);
+
+    if (m.status == EMetadataStatus::Unsupported) {
+        // The library has no .slo reader: a build without LLVM
+        fprintf(stderr,
+                "sloinfo: '%s' appears to be LLVM bitcode, but this build was compiled\n"
+                "without LLVM support.  Rebuild with OPENRENDER_HAVE_LLVM to inspect .slo files.\n",
+                filename);
+        return 1;
+    }
+    if (m.status != EMetadataStatus::Found) {
         fprintf(stderr,
                 "sloinfo: '%s' is LLVM bitcode but contains no openrender metadata.\n"
                 "  (The file may be a pre-Phase-C4 .slo without embedded metadata.)\n",
@@ -223,32 +169,30 @@ static int displaySlo(const char *filename) {
         return 1;
     }
 
-    if (!info.hasJitEntry) {
+    if (!m.hasJitEntry) {
         fprintf(stderr,
                 "sloinfo: warning: '%s' has openrender metadata but no matching "
                 "JIT entry function \"%s\" — not a valid JIT-callable shader.\n",
-                filename, info.name.c_str());
+                filename, m.name.c_str());
     }
 
-    fprintf(stdout, "%s \"%s\"%s\n", info.typeName.c_str(), info.name.c_str(),
-            info.hasJitEntry ? " (JIT version)" : "");
+    fprintf(stdout, "%s \"%s\"%s\n", m.typeName.c_str(), m.name.c_str(), m.hasJitEntry ? " (JIT version)" : "");
 
-    for (const SLOParamInfo &p : info.params) {
+    for (const ShaderParameterMetadata &p : m.parameters) {
         fprintf(stdout, "\t\"%s\" \"", p.name.c_str());
-        if (p.writable)
+        if (p.output)
             fprintf(stdout, "output ");
         fprintf(stdout, "%s ", p.storage.c_str());
         fprintf(stdout, "%s", p.typeName.c_str());
         if (p.arraySize > 1)
             fprintf(stdout, "[%d]", p.arraySize);
         fprintf(stdout, "\"\n");
-        if (!p.defaultStr.empty())
-            fprintf(stdout, "\t\tDefault value: %s\n", p.defaultStr.c_str());
+        if (!p.defaultText.empty())
+            fprintf(stdout, "\t\tDefault value: %s\n", p.defaultText.c_str());
     }
 
     return 0;
 }
-#endif // OPENRENDER_HAVE_LLVM
 
 // =========================================================================
 // main
@@ -290,13 +234,5 @@ int main(int argc, char *argv[]) {
         return displayRslo(fileArg);
     }
 
-#ifdef OPENRENDER_HAVE_LLVM
     return displaySlo(fileArg);
-#else
-    fprintf(stderr,
-            "sloinfo: '%s' appears to be LLVM bitcode, but this build was compiled\n"
-            "without LLVM support.  Rebuild with OPENRENDER_HAVE_LLVM to inspect .slo files.\n",
-            fileArg);
-    return 1;
-#endif
 }

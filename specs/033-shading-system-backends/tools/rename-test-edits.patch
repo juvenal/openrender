@@ -1,0 +1,46 @@
+--- a/tests/link/check_scope.cmake
++++ b/tests/link/check_scope.cmake
+@@ -82,8 +82,8 @@
+     set(${OUTVAR} "${_r}" PARENT_SCOPE)
+ endfunction()
+ 
+-# The -I directories of the shading library's compile line (flags.make of its target)
+-set(_flags "${BUILD_DIR}/src/libshader/shading/CMakeFiles/libshader_shading.dir/flags.make")
++# The -I directories of the shading library's compile line (flags.make of its target, libRSLRuntime since spec 033)
++set(_flags "${BUILD_DIR}/src/libshader/shading/CMakeFiles/libRSLRuntime.dir/flags.make")
+ set(_include_dirs "")
+ if(EXISTS "${_flags}")
+     file(STRINGS "${_flags}" _inc REGEX "^CXX_INCLUDES")
+@@ -97,6 +97,10 @@
+         endif()
+     endforeach()
+ endif()
++# An empty list would make the include checks below pass vacuously (a stale or renamed flags.make, an unreadable line)
++if(NOT _include_dirs)
++    message(FATAL_ERROR "ShadingScope_Greps: no include directories read from ${_flags}")
++endif()
+ 
+ set(_failed "")
+ function(_fail ID TEXT)
+--- a/tests/shading_contract/check_link_line.cmake
++++ b/tests/shading_contract/check_link_line.cmake
+@@ -53,7 +53,7 @@
+ endif()
+ 
+ # And the pieces it must have
+-foreach(_must IN ITEMS "shader_shading" "RIBCommon")
++foreach(_must IN ITEMS "RSLRuntime" "RIBCommon")
+     string(FIND "${_line}" "${_must}" _at)
+     if(_at EQUAL -1)
+         message(FATAL_ERROR "StandaloneLinkLine: the link command of ${TARGET} does not name ${_must}")
+--- a/tests/plugins/checks/install_consumer/CMakeLists.txt
++++ b/tests/plugins/checks/install_consumer/CMakeLists.txt
+@@ -13,7 +13,7 @@
+ if(NOT _variable STREQUAL _expected)
+     message(FATAL_ERROR "openRender_INCLUDE_DIR is ${_variable}, the layout installs the headers in ${_expected}")
+ endif()
+-foreach(_target RIBRender RIBVector RIBOut shader_shading shader_runtime shader_compiler RIBShadeop RIBCommon)
++foreach(_target RIBRender RIBVector RIBOut RSLRuntime RSLInfo shader_shading shader_runtime shader_compiler RIBShadeop RIBCommon)
+     get_target_property(_dirs openRender::${_target} INTERFACE_INCLUDE_DIRECTORIES)
+     set(_resolved "")
+     foreach(_dir IN LISTS _dirs)

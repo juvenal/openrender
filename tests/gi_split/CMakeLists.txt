@@ -184,6 +184,18 @@ set_tests_properties(GiKeys_Photons GiKeys_IrradianceRecords PROPERTIES
 set_tests_properties(GiKeys_PhotonsThreads PROPERTIES
     TIMEOUT 600 LABELS "gi_split_threads" ENVIRONMENT "${GI_SPLIT_ENV}")
 
+# Spec 040 (T025): two additive cases, both green and defined always: GiKeys_IrradianceRecordsThreads (the (key, record) multiset at -t:1 against -t:4, three
+# hiders, .rslo and .slo: the batch-identity gate of research.md R4, Phase 5) and GiRemote_LoopbackCommit (a pending set sent over the loopback commits as the
+# one-process set does, FR-015, GitHub #161, Phase 6: the same executable as GiRemote_LoopbackCache, mode `commit`)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/keys-records-threads ${CMAKE_CURRENT_BINARY_DIR}/loopback-commit)
+add_test(NAME GiKeys_IrradianceRecordsThreads COMMAND test_gi_keys records-threads ${CMAKE_CURRENT_BINARY_DIR}/keys-records-threads -)
+set_tests_properties(GiKeys_IrradianceRecordsThreads PROPERTIES
+    TIMEOUT 900 LABELS "gi_split" ENVIRONMENT "${GI_SPLIT_ENV}")
+add_test(NAME GiRemote_LoopbackCommit
+    COMMAND test_gi_remote_loopback commit ${GI_SPLIT_F1_CACHE} ${CMAKE_CURRENT_BINARY_DIR}/loopback-commit -)
+set_tests_properties(GiRemote_LoopbackCommit PROPERTIES
+    TIMEOUT 60 LABELS "gi_split;regression" ENVIRONMENT "${GI_SPLIT_ENV}" FIXTURES_REQUIRED GiFixture_ICache)
+
 # No red-first test is left: every one is defined above or in tests/unit/texture_only/CMakeLists.txt. The option stays so that a
 # scratch configure that still passes it does not warn.
 

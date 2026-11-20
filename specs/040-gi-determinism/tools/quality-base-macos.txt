@@ -1,0 +1,49 @@
+# T029: starting-tree image quality of the cached GI scenes against an uncached high-sample ground truth (build-base, master 278b0394, macOS, -t:1).
+# Tool: tests/gi_determinism/tools/gi_quality.cpp. metric = max over 8x8 blocks and R,G,B of the block-average |difference| in 0..255 units (test_visual_render's
+# MaxBlockAvgDiff computed from the float images, clamped to [0,1], NaN as 0); rmse = root mean square over every pixel and all 4 channels, same units.
+# Checks of the tool (cpujob 040-gi-quality-check): an image against itself gives 0.0000 / 0.0000; a copy with one 8x8 block raised by 16/255 in R,G,B gives
+# 16.0000 / 0.2000 (expected 16.0000 / 0.2000); a missing file exits 2.
+# Ground truth = the same scene, same hider, `"float maxerror" [0]` (cache off), the probe shader replaced by a test-local copy with samples 256
+# (tests/gi_determinism/shaders/{occlusion,indirectdiffuse}_probe_256.sl), always the interpreter (.rslo) format. Rendered by tools/quality_run.py (4 renders per scene:
+# the cached image, truth, truth again, truth with `Option "sampling" "seed" [1]`).
+# Truth noise: "same seed" = two truth renders against each other (0 means the keyed sampler is deterministic at -t:1); "seed 1" = truth against truth with another seed,
+# i.e. the statistical error of a 256-sample truth, which is the floor of what the gate can resolve.
+#
+# KNOWN DEFECT, GitHub #173: on the starting tree indirectdiffuse() traces no ray in these probe scenes (numSamples == 0): the interpreter image is NaN in the lit pixels
+# (counted in the nan columns, treated as 0) and the JIT image is 0, so every indirectdiffuse row below is NOT a measurement of cache quality (cached and truth are the
+# same black image; the gi-photon-then-indirect rows too). Only the occlusion rows carry signal.
+# sphere-occlusion-reyes(-slo) set no maxerror: their cache is off (default maxerror 0), so their "cached" image is a 12-sample uncached render: its row is the noise of
+# 12 samples against 256, not a cache error. sphere-ray-self-hit-* use trace(), not the irradiance cache: not part of this gate.
+# The gi-* scenes are tests/gi_determinism/scenes/gi-*.rib as they stood when this was run (maxerror 0.6, 64x48 pixels); gi-photon-then-indirect-reyes-slo differs
+# from its truth by 17.17 although both are black from indirectdiffuse(): the -slo photon frame lights the plane differently (not investigated; indirectdiffuse
+# carries no signal there).
+#
+# scene / image                                          cached-vs-truth        truth same seed       truth seed 1          NaN (cached, truth)
+#                                                        metric   rmse          metric   rmse         metric   rmse
+gi-cache-extend-reyes                                  0.7646   0.9511     0.0000   0.0000     5.6772   9.6157   0,0
+gi-cache-extend-reyes ri.tif                           0.8133   1.0707     0.0000   0.0000     4.0892  10.2432   0,0
+gi-cache-extend-reyes-slo                              0.7646   0.9511     0.0000   0.0000     5.6772   9.6157   0,0
+gi-cache-extend-reyes-slo ri.tif                       0.8133   1.0707     0.0000   0.0000     4.0892  10.2432   0,0
+gi-indirectdiffuse-raytrace                            0.0000   0.0000     0.0000   0.0000     0.0000   7.9688   321,321
+gi-indirectdiffuse-raytrace-slo                        0.0000   0.0000     0.0000   0.0000     0.0000   7.9688   0,321
+gi-indirectdiffuse-reyes                               0.0000   0.0000     0.0000   0.0000     0.0000   7.6295   315,315
+gi-indirectdiffuse-reyes-slo                           0.0000   0.0000     0.0000   0.0000     0.0000   7.6295   0,315
+gi-indirectdiffuse-zbuffer                             0.0000   0.0000     0.0000   0.0000     0.0000   0.0000   312,312
+gi-indirectdiffuse-zbuffer-slo                         0.0000   0.0000     0.0000   0.0000     0.0000   0.0000   0,312
+gi-occlusion-raytrace                                  5.6255   3.4583     0.0000   0.0000     3.9432   9.5356   0,0
+gi-occlusion-raytrace-slo                              5.6255   3.4583     0.0000   0.0000     3.9432   9.5356   0,0
+gi-occlusion-reyes                                     2.4271   1.1919     0.0000   0.0000     2.5141   9.0336   0,0
+gi-occlusion-reyes-slo                                 2.4271   1.1919     0.0000   0.0000     2.5141   9.0336   0,0
+gi-occlusion-zbuffer                                   2.7653   1.6178     0.0000   0.0000     0.0356   0.3141   0,0
+gi-occlusion-zbuffer-slo                               2.7653   1.6178     0.0000   0.0000     0.0356   0.3141   0,0
+gi-photon-then-indirect-reyes                          0.0000   0.0000     0.0000   0.0000     0.0000  11.2695   3717,3717
+gi-photon-then-indirect-reyes-slo                     17.1708   5.9543     0.0000   0.0000     0.0000  11.2695   0,3717
+sphere-indirectdiffuse-reyes                           0.0000   0.0000     0.0000   0.0000     0.0000   0.6579   19512,19512
+sphere-indirectdiffuse-reyes-slo                       0.0000   0.0000     0.0000   0.0000     0.0000   0.6579   0,19512
+sphere-occlusion-reyes                                31.0774   1.3023     0.0000   0.0000     7.3073   0.8149   0,0
+sphere-occlusion-reyes-slo                            31.0774   1.3023     0.0000   0.0000     7.3073   0.8149   0,0
+#
+# Reading the occlusion rows (the ones with signal): the cached images are within 0.76 to 5.63 of the 256-sample truth (gi-occlusion-raytrace the largest, 5.63;
+# gi-occlusion-reyes 2.43, zbuffer 2.77), against a truth noise of 2.5 (reyes), 0.04 (zbuffer) and 3.9 (raytrace) between two seeds. Phase 5's gate compares the new tree's
+# cached image with the same truth and requires its metric not to exceed the starting tree's here by more than the seed-1 noise of that scene.
+# gi-cache-extend-*: two frames; `ri.tif` is the image of the scene's other Display (the default name of a frame without its own Display; not investigated which frame).

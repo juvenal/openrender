@@ -41,7 +41,7 @@ namespace libshader {
     // bundle->postShade(numRays, rays), the path taken past the maximum ray depth.
     void traceBundle(CShadingContext &context, CRayBundle *bundle, TraceKind kind);
 
-    // One occlusion probe (spec 057, services 2.4.0): the context's tracer's occluded(), with the identity of the area light whose scope
+    // One occlusion probe (spec 057, services 2.6.0): the context's tracer's occluded(), with the identity of the area light whose scope
     // must not block it. With no tracer: one warning (as a visibility probe's), then false (nothing blocks).
     bool occluded(CShadingContext &context, CRay *ray, const CShaderGroupRefTarget *excludeLight);
 

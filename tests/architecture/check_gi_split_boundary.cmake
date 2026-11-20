@@ -16,7 +16,8 @@
 #   texture-names-core            (4) neither CRenderer nor CMapRefTarget under src/ri/texture. NOT comment-blind: Phase 4 rewords the
 #                                     six historical comments (textureSystem.h:10, textureResolver.h:48, texture.cpp:3073,3101,
 #                                     textureInternal.h:7,54) rather than blind the scan
-#   texture-includes              (4) every header a file under src/ri/texture includes classifies as Texturing or Infra (domain-map.txt)
+#   texture-includes              (4) every header a file under src/ri/texture includes classifies as Texturing or Infra (domain-map.txt) or, since
+#                                     spec 048 (constitution 1.5.0, the Image I/O utility library), ImageIO
 #   hiders-no-texture             (4) no header classified Texturing is included by any file under src/ri/hiders, no exception
 #   files-absent                  (4) irradianceDispatch.cpp, irradianceDispatchStub.cpp, radiance.cpp, radiance.h and harmonics.h do not
 #                                     exist under src/, and the token irradianceSampleAccept appears in no code under src/ (comments
@@ -184,7 +185,7 @@ function(gi_include_classes check files allowed forbid_mode)
 endfunction()
 
 if("texture-includes" IN_LIST _enabled)
-    gi_include_classes(texture-includes "${_texture}" "Texturing;Infra" not-in)
+    gi_include_classes(texture-includes "${_texture}" "Texturing;Infra;ImageIO" not-in)
 endif()
 if("hiders-no-texture" IN_LIST _enabled)
     gi_include_classes(hiders-no-texture "${_hiders}" "Texturing" in)

@@ -1,0 +1,27 @@
+##RenderMan RIB-Structure 1.0
+# Spec 040 sweep scene (T026), not a visual test and without a reference image: indirectdiffuse() through a written irradiance cache, hider reyes, shader format rslo.
+# The determinism harness (tests/visual/test_depth_determinism.cpp, --float --depth --files) renders it under every thread and
+# process configuration and compares colour, alpha, depth and the cache or map files byte for byte. The sphere pair is
+# examples/rib/tests/sphere-occlusion-reyes.rib's (the occluder needs `Attribute "visibility" "diffuse" [1]`).
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["rslo"]
+Display "gi-indirectdiffuse-reyes.tif" "file" "rgba"
+Format 64 48 1
+PixelSamples 1 1
+Projection "perspective"
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  Attribute "irradiance" "string handle" ["gi-indirectdiffuse-reyes.icache"]
+  Attribute "irradiance" "string filemode" ["w"]
+  Attribute "irradiance" "float maxerror" [0.6]
+  Surface "indirectdiffuse_probe"
+  Sphere 1 -1 1 360
+  AttributeBegin
+    Attribute "visibility" "diffuse" [1]
+    Surface "matte"
+    Translate 1.2 0 -0.5
+    Sphere 0.9 -0.9 0.9 360
+  AttributeEnd
+WorldEnd

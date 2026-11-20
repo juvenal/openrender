@@ -1,0 +1,93 @@
+=== 1. GI counters, one thread
+scene occlusion-cache.rib, options -x 3: exit 0, 0.22 s
+  Total Traced: 17664
+  Indirect Diffuse: 0
+  Occlusion: 17664
+  Photons: 0
+  Avg. Sampling: 90.16 (points)
+  Avg. Shading: 19.43 (points)
+  Num Samples: 0 (indirectdiffuse), 1472 (occlusion)
+  Num Rays: 0 (indirectdiffuse), 17664 (occlusion)
+  Photonmap Lookups: 0
+scene occlusion-nocache.rib, options -x 3: exit 0, 0.11 s
+  Total Traced: 316464
+  Indirect Diffuse: 0
+  Occlusion: 316464
+  Photons: 0
+  Avg. Sampling: 90.16 (points)
+  Avg. Shading: 19.43 (points)
+  Num Samples: 0 (indirectdiffuse), 26372 (occlusion)
+  Num Rays: 0 (indirectdiffuse), 316464 (occlusion)
+  Photonmap Lookups: 0
+scene indirect-cache.rib, options -x 3: exit 0, 0.17 s
+  Total Traced: 24490
+  Indirect Diffuse: 0
+  Occlusion: 0
+  Photons: 24490
+  Num Samples: 0 (indirectdiffuse), 0 (occlusion)
+  Num Rays: 0 (indirectdiffuse), 0 (occlusion)
+  Photonmap Lookups: 0
+  Total Traced: 24490
+  Indirect Diffuse: 0
+  Occlusion: 0
+  Photons: 24490
+  Avg. Sampling: 99.86 (points)
+  Avg. Shading: 29.18 (points)
+  Num Samples: 575248 (indirectdiffuse), 0 (occlusion)
+  Num Rays: 0 (indirectdiffuse), 0 (occlusion)
+  Photonmap Lookups: 0
+scene indirect-nocache.rib, options -x 3: exit 0, 0.17 s
+  Total Traced: 24490
+  Indirect Diffuse: 0
+  Occlusion: 0
+  Photons: 24490
+  Num Samples: 0 (indirectdiffuse), 0 (occlusion)
+  Num Rays: 0 (indirectdiffuse), 0 (occlusion)
+  Photonmap Lookups: 0
+  Total Traced: 24490
+  Indirect Diffuse: 0
+  Occlusion: 0
+  Photons: 24490
+  Avg. Sampling: 99.86 (points)
+  Avg. Shading: 29.18 (points)
+  Num Samples: 575248 (indirectdiffuse), 0 (occlusion)
+  Num Rays: 0 (indirectdiffuse), 0 (occlusion)
+  Photonmap Lookups: 0
+=== 2. photon pass under -P:2 (output)
+/tmp/m040-scenes2-80cM/photon-pass-nopin.rib (20): Failed to download file perf-photon-pass.gpm
+/tmp/m040-scenes2-80cM/photon-pass-nopin.rib (20): Failed to download file perf-photon-pass.gpm
+/tmp/m040-scenes2-80cM/photon-pass-nopin.rib (26): Invalid net command
+/tmp/m040-scenes2-80cM/photon-pass-nopin.rib (26): Connection broken
+/tmp/m040-scenes2-80cM/photon-pass-nopin.rib (26): Connection broken
+/tmp/m040-scenes2-80cM/photon-pass-nopin.rib (26): Invalid net command
+exit 255
+total 3984
+-rw-r--r--@ 1 juvenal  wheel  2036254 Nov 14 01:33 perf-photon-pass.gpm
+=== 3. timing, starting tree against itself
+scaled perf-occlusion-cache       format x12, shadingrate x3
+scaled perf-indirect-photon       format x6, shadingrate x3, emit x10
+scaled perf-photon-pass           emit x50
+series 1 of 5 done
+series 2 of 5 done
+series 3 of 5 done
+series 4 of 5 done
+series 5 of 5 done
+
+scene                        tree     median      min      max   spread   runs
+perf-occlusion-cache         start      3.40     3.31     3.42     0.11   3.42, 3.38, 3.40, 3.31, 3.41
+perf-occlusion-cache         final      3.39     3.33     3.49     0.17   3.43, 3.49, 3.33, 3.38, 3.39
+perf-occlusion-cache         diff of medians -0.02 s (-0.6%), larger spread 0.17 s: within spread
+
+perf-indirect-photon         start      4.00     3.97     4.16     0.19   3.99, 3.97, 4.16, 4.00, 4.05
+perf-indirect-photon         final      3.91     3.90     4.25     0.36   4.25, 3.96, 3.91, 3.90, 3.90
+perf-indirect-photon         diff of medians -0.09 s (-2.1%), larger spread 0.36 s: within spread
+
+perf-photon-pass             start      2.21     2.15     2.64     0.49   2.64, 2.15, 2.15, 2.51, 2.21
+perf-photon-pass             final      2.24     2.05     2.42     0.37   2.42, 2.18, 2.24, 2.25, 2.05
+perf-photon-pass             start  median 2.21 s: TOO SHORT (< 3 s): raise this scene's factor
+perf-photon-pass             final  median 2.24 s: TOO SHORT (< 3 s): raise this scene's factor
+perf-photon-pass             diff of medians +0.03 s (+1.4%), larger spread 0.49 s: within spread
+
+scenes slower beyond the spread: 0
+scene medians under 3 s: 2
+scenes: /tmp/m040-scenes2-80cM

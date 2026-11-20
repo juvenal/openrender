@@ -1,0 +1,18 @@
+--- tests/visual/determinism-scenes.cmake
++++ tests/visual/determinism-scenes.cmake
+@@ -719,7 +719,6 @@
+ #   phase 2   the five subdiv-*-photon and motion-subdiv-translate-photon entries (their frame 2 reads no map: only the .gpm bytes)
+ #   phase 3   the two photon-parity entries (their frame 2 reads the map through the lookup memo until Phase 3)
+ #   phase 5   the cached and the other GI entries, without -P:2 until phase 6
+-if(OPENRENDER_040_RED_TESTS) # leaves the guard in Phase 2 (T040)
+ # no -P:2: the photon pass fails under network rendering (GitHub #170)
+ add_determinism_sweep(gi-motion-subdiv-translate-photon examples/rib/tests/parity/motion-subdiv-translate-photon.rib motion-subdiv-translate-photon.tif
+     FILES motion-subdiv-translate-photon.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+@@ -735,7 +734,6 @@
+ # no -P:2: the photon pass fails under network rendering (GitHub #170)
+ add_determinism_sweep(gi-subdiv-new-tags-photon examples/rib/tests/subdiv-new-tags-photon.rib subdiv-new-tags-photon.tif
+     FILES subdiv-new-tags-photon.gpm FLOAT DEPTH CONFIGS "-t:1||-t:2|-t:4")
+-endif()
+ if(OPENRENDER_040_RED_TESTS) # leaves the guard in Phase 3 (T050)
+ # no -P:2: the photon pass fails under network rendering (GitHub #170)
+ add_determinism_sweep(gi-photon-parity examples/rib/tests/photon-parity.rib photon-parity.tif

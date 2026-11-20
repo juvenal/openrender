@@ -33,6 +33,7 @@
 #include "common/containers.h"
 #include "common/global.h"
 #include "libshader/shading/illuminationHook.h"
+#include "libshader/shading/irradianceBatch.h"
 #include "libshader/shading/irradianceSampler.h"
 #include "libshader/shading/areaLightSampler.h"
 #include "libshader/shading/pointSource.h"
@@ -248,6 +249,9 @@ class CShadingState {
         CDrawOccurrences *callSiteOccurrence;       // Per-point call-site occurrence counters (allocated lazily by the runtime; null until a draw needs them)
         uint64_t currentShaderKey;                  // mix(shader name, instance ordinal) of the shader being executed
 
+        // ---> The records the GI lookups of the shading call in progress made (spec 040, the batch scope): reset with the draw occurrences
+        libshader::IrradianceBatch irradianceBatch;
+
         CShadingState *next; // The next in free state list
 };
 
@@ -443,8 +447,11 @@ class CShadingContext final {
         // 0-D state at the current ray depth with the spawning surface as the shaded object, and takes Ci and Oi (3 floats per
         // point) in and out. Any n >= 0: the points are shaded in chunks of at most maxGridSize().
         void shadeVolumeSegments(CShaderInstance *volume, const CSegmentSpawn &spawn, int n, CRay *const *rays, const float *segStart, const float *segEnd, float *Ci, float *Oi);
-        // Execute a compiled shader (public for RSLShading::shade() in libshader)
-        void execute(CProgrammableShaderInstance *, float **);
+        // Execute a shader instance (public for RSLShading::shade() in libshader): the dispatcher. The instance's description names the
+        // backend that runs it (shaderBackend.h); every caller passes the instance it has, an RSL instance converting implicitly.
+        void execute(CShaderInstance *, float **);
+        // The interpreter's loop: runs the bytecode of an .rslo instance (the interpreter backend's execute). No JIT code lives here.
+        void interpret(CProgrammableShaderInstance *, float **);
 
         // ---- Tracing (spec 029): the context traces nothing itself. The hider that owns it is its tracer (an ITracer, tracer.h) and
         // installs itself here; the trace calls of the shading builtins reach it through libshader::traceRay/traceBundle.
@@ -455,7 +462,7 @@ class CShadingContext final {
         // ---- The irradiance sampler (spec 032): how libshader::irradianceLookup computes a new sample on a cache miss. The hider
         // that owns the context installs one (the cache itself is passive storage and samples nothing); the process-wide default
         // is the fallback for a context with none.
-        // The area-light sampler of the hider that owns this context (spec 057, services 2.4.0), installed only when the frame has
+        // The area-light sampler of the hider that owns this context (spec 057, services 2.6.0), installed only when the frame has
         // a bound light; nullptr (the default, and the imager's and every double's context) runs every light as a classic light.
         void setAreaLightSampler(openrender::shading::IAreaLightSampler *sampler) { areaLightSamplerObject = sampler; }
         openrender::shading::IAreaLightSampler *areaLightSampler() const { return areaLightSamplerObject; }
@@ -1126,7 +1133,7 @@ class CShadingContext final {
 
         // Spec 057: run one bound area light for the points of the shading call in progress: n samples, each a 0-D run of the light
         // shader over the sampled emitter points, weighted by V / (n pdfA). iterateLights' bound branch (shading.cpp).
-        void iterateBoundAreaLight(CProgrammableShaderInstance *light, const openrender::shading::AreaLightInfo &info, int numVertices, float **varying);
+        void iterateBoundAreaLight(CShaderInstance *light, const openrender::shading::AreaLightInfo &info, int numVertices, float **varying);
         openrender::shading::IIrradianceSampler *irradianceSamplerObject = nullptr; // See setIrradianceSampler()
 
         // The following functions are used in the shaders

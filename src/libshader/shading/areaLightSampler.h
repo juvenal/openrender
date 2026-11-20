@@ -4,7 +4,7 @@
  * File: areaLightSampler.h
  *
  * Description:
- *   Spec 057 (area-light geometry), services 2.4.0. How Shading asks the hider that owns its context for a point on a bound
+ *   Spec 057 (area-light geometry), services 2.6.0. How Shading asks the hider that owns its context for a point on a bound
  *   area light's emitters, and for what the light's controls are. Shading owns the interface; CHider implements it and installs
  *   it on its context (CShadingContext::setAreaLightSampler) at the start of its rendering loop, only when the frame has a
  *   bound light. A context with no sampler runs every light as a classic light.

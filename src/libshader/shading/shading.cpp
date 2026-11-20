@@ -41,6 +41,8 @@
 #include "common/random.h"
 #include "ri_config.h"
 #include "shaderPl.h"
+#include "shaderPayload.h"
+#include "shaderGroup.h"
 #include "shaderRefs.h"
 #include "shading.h"
 #include "specularTerm.h"
@@ -740,14 +742,15 @@ void CShadingContext::shadeVolumeSegments(CShaderInstance *volume, const CSegmen
         ss->pointKeysFromRays = TRUE;
         ss->batchKey = openrender::sampling::detail::mix(rays[first]->key.full, (uint64_t)currentRayDepth, kVolumeSegmentBatchTag, (uint64_t)chunkIndex);
         resetCallSiteOccurrences(ss->callSiteOccurrence);
+        ss->irradianceBatch.reset();
         drawCursor = openrender::sampling::SubstreamKey{0, 0};
         drawCursorDim = 0;
 
         memBegin(shaderStateMemory);
         memBegin(threadMemory);
-        ss->locals[ACCESSOR_POSTSHADER] = volume->prepare(shaderStateMemory, varying, m);
+        ss->locals[ACCESSOR_POSTSHADER] = libshader::groupPrepare(volume, shaderStateMemory, varying, m);
         ss->currentShaderInstance = volume;
-        volume->execute(this, ss->locals[ACCESSOR_POSTSHADER]);
+        libshader::groupExecute(*this, volume, ss->locals[ACCESSOR_POSTSHADER]);
         memEnd(threadMemory);
         memEnd(shaderStateMemory);
 
@@ -978,6 +981,7 @@ void CShadingContext::keyedRandom(int vertex, uint32_t *counts, unsigned callSit
 void CShadingContext::resetDrawOccurrences() {
     if (currentShadingState->callSiteOccurrence != nullptr)
         currentShadingState->callSiteOccurrence->reset();
+    currentShadingState->irradianceBatch.reset(); // a new batch (spec 040)
     drawCursor = openrender::sampling::SubstreamKey{0, 0};
     drawCursorDim = 0;
 }
@@ -1018,6 +1022,7 @@ void CShadingContext::fillPointKeys(const CSurface *surface, uint64_t stableId, 
     const int numReal = state->numRealVertices;
     if (state->callSiteOccurrence != nullptr)
         state->callSiteOccurrence->reset(); // a new shading invocation: every call site starts at occurrence 0
+    state->irradianceBatch.reset();         // and the irradiance batch (spec 040) is empty
     drawCursor = openrender::sampling::SubstreamKey{0, 0}; // a lookup that nobody bound draws from a fixed sub-stream
     drawCursorDim = 0;
     const float *u = state->varying[VARIABLE_U];
@@ -1282,11 +1287,11 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
 
     // Allocate the caches for the shaders being executed
     if (surface != NULL)
-        locals[ACCESSOR_SURFACE] = surface->prepare(shaderStateMemory, varying, numVertices);
+        locals[ACCESSOR_SURFACE] = libshader::groupPrepare(surface, shaderStateMemory, varying, numVertices);
     if (displacement != NULL)
-        locals[ACCESSOR_DISPLACEMENT] = displacement->prepare(shaderStateMemory, varying, numVertices);
+        locals[ACCESSOR_DISPLACEMENT] = libshader::groupPrepare(displacement, shaderStateMemory, varying, numVertices);
     if (atmosphere != NULL)
-        locals[ACCESSOR_ATMOSPHERE] = atmosphere->prepare(shaderStateMemory, varying, numVertices);
+        locals[ACCESSOR_ATMOSPHERE] = libshader::groupPrepare(atmosphere, shaderStateMemory, varying, numVertices);
 
     if (displaceOnly == TRUE) {
         // Verify if we have to prepare other shaders, even though displacing
@@ -1300,9 +1305,9 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
             // displacement shader uses messsage passing, must prepare but not execute
             // the surface and atmosphere shaders
             if (currentAttributes->surface())
-                locals[ACCESSOR_SURFACE] = shaderInstanceOf(currentAttributes->surface())->prepare(shaderStateMemory, varying, numVertices);
+                locals[ACCESSOR_SURFACE] = libshader::groupPrepare(currentAttributes->surface().get(), shaderStateMemory, varying, numVertices);
             if (currentAttributes->atmosphere())
-                locals[ACCESSOR_ATMOSPHERE] = shaderInstanceOf(currentAttributes->atmosphere())->prepare(shaderStateMemory, varying, numVertices);
+                locals[ACCESSOR_ATMOSPHERE] = libshader::groupPrepare(currentAttributes->atmosphere().get(), shaderStateMemory, varying, numVertices);
         }
     }
 
@@ -1532,7 +1537,7 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
 
     // Run the displacement shader here
     if (displacement != NULL) {
-        displacement->execute(this, locals[ACCESSOR_DISPLACEMENT]);
+        libshader::groupExecute(*this, displacement, locals[ACCESSOR_DISPLACEMENT]);
 
         if (pointDisplacedObserver != nullptr) {
             const CPointDisplacedReport report{src.surface(), displaceOnly, currentShadingState->numRealVertices, varying[VARIABLE_U],
@@ -1548,7 +1553,7 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
         // Is there a surface shader ?
         if (surface != NULL) {
             numShaded += numVertices;
-            surface->execute(this, locals[ACCESSOR_SURFACE]);
+            libshader::groupExecute(*this, surface, locals[ACCESSOR_SURFACE]);
         }
         else {
             // No surface shader eh, make up a color
@@ -1591,7 +1596,7 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
 
             // Do not execute atmosphere for non-camera rays
             if (g.pathDepth == 0) {
-                atmosphere->execute(this, locals[ACCESSOR_ATMOSPHERE]);
+                libshader::groupExecute(*this, atmosphere, locals[ACCESSOR_ATMOSPHERE]);
             }
         }
     }
@@ -2042,7 +2047,7 @@ void CShadingContext::iterateLights(const float *lP, const float *lN, const floa
                 ss->lightSideN = ss->lightSideNStore;
             }
             for (CActiveLight *cLight = currentAttributes->lightSources; cLight != NULL; cLight = cLight->next) {
-                CProgrammableShaderInstance *light = lightInstanceOf(*cLight);
+                CShaderInstance *light = lightInstanceOf(*cLight);
 
                 int validLight = (saveCat == 0);
                 if (!validLight) {
@@ -2095,7 +2100,7 @@ void CShadingContext::iterateLights(const float *lP, const float *lN, const floa
 // The receiver's own P, N and varyings are never written: the swap is of the varying table, which both the interpreter and the JIT read.
 ///////////////////////////////////////////////////////////////////////
 
-void CShadingContext::iterateBoundAreaLight(CProgrammableShaderInstance *light, const openrender::shading::AreaLightInfo &info, int numVertices, float **varying) {
+void CShadingContext::iterateBoundAreaLight(CShaderInstance *light, const openrender::shading::AreaLightInfo &info, int numVertices, float **varying) {
     using namespace openrender::sampling;
     CShadingState *ss = currentShadingState;
     const CAttributes *receiver = ss->currentAttributes;
@@ -2245,7 +2250,7 @@ void CShadingContext::callAmbient(float *result) {
         }
         if (!inShadow) {
             for (CActiveLight *cLight = attr->lightSources; cLight; cLight = cLight->next) {
-                CProgrammableShaderInstance *light = lightInstanceOf(*cLight);
+                CShaderInstance *light = lightInstanceOf(*cLight);
                 if (!(light->flags & SHADERFLAGS_NONAMBIENT)) {
                     memBegin(shaderStateMemory);
                     ss->currentLightInstance = light;
@@ -2472,7 +2477,7 @@ void CShadingContext::prepareAmbient() {
         if (!inShadow) {
             CShaderInstance *cInst = ss->currentShaderInstance;
             for (CActiveLight *cLight = attr->lightSources; cLight; cLight = cLight->next) {
-                CProgrammableShaderInstance *light = lightInstanceOf(*cLight);
+                CShaderInstance *light = lightInstanceOf(*cLight);
                 if (!(light->flags & SHADERFLAGS_NONAMBIENT)) {
                     memBegin(shaderStateMemory);
                     ss->currentLightInstance = light;
@@ -2646,7 +2651,7 @@ void CShadingContext::jitIlluminateEnd(int *tags, int n, int *numActive, int *nu
     // saveLighting: save (L, Cl) into a new/recycled CShadedLight entry
     if (*numActive != 0) {
         CShadedLight *cLight = nullptr;
-        const int numGlobals = cInst ? cInst->parent->numGlobals : 0;
+        const int numGlobals = cInst ? rslPayloadOf(*cInst->parent)->numGlobals : 0;
 
         if (ss->freeLights) {
             cLight = ss->freeLights;
@@ -2797,7 +2802,7 @@ void CShadingContext::jitSolarEnd(int *tags, int n, int *numActive, int *numPass
 
     if (*numActive != 0) {
         CShadedLight *cLight = nullptr;
-        const int numGlobals = cInst ? cInst->parent->numGlobals : 0;
+        const int numGlobals = cInst ? rslPayloadOf(*cInst->parent)->numGlobals : 0;
 
         if (ss->freeLights) {
             cLight = ss->freeLights;
@@ -3046,35 +3051,45 @@ const char *CShadingContext::shaderName() {
 // Return Value			:	-
 // Comments				:
 const char *CShadingContext::shaderName(const char *type) {
-    // No object (the imager): no shader of any type is bound (F2, FR-027)
-    if (currentShadingState->currentAttributes == NULL)
+    using namespace openrender::shading;
+
+    // The source a type names; any other type has no shader bound
+    MessageSource source;
+    ShaderHandle light;
+    if (strcmp(type, "surface") == 0)
+        source = MessageSource::Surface;
+    else if (strcmp(type, "displacement") == 0)
+        source = MessageSource::Displacement;
+    else if (strcmp(type, "atmosphere") == 0)
+        source = MessageSource::Atmosphere;
+    else if (strcmp(type, "interior") == 0)
+        source = MessageSource::Interior;
+    else if (strcmp(type, "exterior") == 0)
+        source = MessageSource::Exterior;
+    else if (strcmp(type, "lightsource") == 0) {
+        // The light being iterated; none outside a light loop
+        if (currentShadingState->currentLight == NULL)
+            return "";
+        source = MessageSource::Light;
+        light = shaderHandle(currentShadingState->currentLight->instance);
+    }
+    else
         return "";
 
-    const CAttributes *currentAttributes = currentShadingState->currentAttributes;
+    // Asked through the services (spec 033, FR-013). No object (the imager) or no shader in the slot: not found, "" (F2, FR-027).
+    // Services that do not answer (none installed, or a double without getShaderName): "" with one warning (P-Q4)
+    CRendererServices *svc = currentShadingState->services;
+    ShaderNameAnswer answer;
+    if (svc != nullptr)
+        answer = svc->getShaderName(ShaderNameRequest{source, objectHandle(), light});
 
-    if (strcmp(type, "surface") == 0) {
-        if (currentAttributes->surface())
-            return shaderInstanceOf(currentAttributes->surface())->getName();
-    }
-    else if (strcmp(type, "displacement") == 0) {
-        if (currentAttributes->displacement())
-            return shaderInstanceOf(currentAttributes->displacement())->getName();
-    }
-    else if (strcmp(type, "atmosphere") == 0) {
-        if (currentAttributes->atmosphere())
-            return shaderInstanceOf(currentAttributes->atmosphere())->getName();
-    }
-    else if (strcmp(type, "interior") == 0) {
-        if (currentAttributes->interior())
-            return shaderInstanceOf(currentAttributes->interior())->getName();
-    }
-    else if (strcmp(type, "exterior") == 0) {
-        if (currentAttributes->exterior())
-            return shaderInstanceOf(currentAttributes->exterior())->getName();
-    }
-    else if (strcmp(type, "lightsource") == 0) {
-        if (currentShadingState->currentLight != NULL)
-            return currentShadingState->currentLight->instance->getName();
+    if (answer.status == EQueryStatus::Found && answer.name != nullptr)
+        return answer.name;
+
+    if (answer.status == EQueryStatus::Unavailable) {
+        static std::atomic<bool> s_warnedUnavailable{false};
+        if (!s_warnedUnavailable.exchange(true))
+            warning(CODE_NOTSTARTED, "renderer services do not provide shadername(): shadername(\"%s\") returns \"\"\n", type);
     }
     return "";
 }
@@ -4459,12 +4474,19 @@ void CShadingContext::jitShaderNameS(char **dst, int sd, const char *const *type
                                      int n, const int *tags) {
     if (n <= 0)
         return;
+    // One request per call, as the interpreter's single uniform evaluation makes: the type is a uniform string, so the points of
+    // a batch share it, and a type that differs from the previous point's asks again (spec 033: both backends make the same requests)
+    const char *lastType = nullptr;
+    const char *lastName = "";
     for (int i = 0; i < n; ++i) {
         if (tags && tags[i])
             continue;
         const char *type_i = JIT_IDX(type, sType, i)[0];
-        const char *name = this->shaderName(type_i);
-        JIT_IDX(dst, sd, i)[0] = (char *)name;
+        if (lastType == nullptr || strcmp(type_i, lastType) != 0) {
+            lastName = this->shaderName(type_i);
+            lastType = type_i;
+        }
+        JIT_IDX(dst, sd, i)[0] = (char *)lastName;
     }
 }
 

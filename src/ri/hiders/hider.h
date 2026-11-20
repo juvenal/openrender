@@ -64,7 +64,7 @@ class CHider : public openrender::shading::ITracer, public openrender::shading::
         void traceRay(CShadingContext &ctx, CRay *ray) override;
         void traceBundle(CShadingContext &ctx, CRayBundle *bundle) override;
 
-        // Spec 057, services 2.4.0: one occlusion probe that ignores the primitives of `excludeLight`'s own scope (IRayContext's
+        // Spec 057, services 2.6.0: one occlusion probe that ignores the primitives of `excludeLight`'s own scope (IRayContext's
         // emitterExclusion is set for the length of the trace); no shading, no volume step. The one code path of all three camera hiders.
         bool occluded(CShadingContext &ctx, CRay *ray, const CShaderGroupRefTarget *excludeLight) override;
 

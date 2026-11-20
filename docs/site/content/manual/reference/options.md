@@ -67,12 +67,11 @@ pattern.
 **Deterministic output.** Because every value is keyed by the sample's identity, a render is
 bit-identical whatever the thread count (`-t:n`), the process count (`-P:n`), the bucket order,
 and, for a multi-frame RIB, whether the frame is rendered alone (`-f n`) or after the others. The
-8-bit display dither is a hash of pixel and channel, so it is deterministic too. Two exceptions:
-the irradiance cache (`occlusion()`/`indirectdiffuse()` with `maxerror` > 0) and the photon map
-are still filled in shading order, so global-illumination renders can vary with the thread count
-(spec 040 makes them deterministic); and a uniform `random()` value (one per shader invocation)
-under the raytrace hider is keyed by the shading batch, which depends on the bucket, so it may
-change when the bucket size changes.
+8-bit display dither is a hash of pixel and channel, so it is deterministic too. This includes
+global illumination (spec 040): the irradiance cache and the photon map, and the cache and map files
+they write, are the same at any thread count and run to run. One exception: a uniform `random()`
+value (one per shader invocation) under the raytrace hider is keyed by the shading batch, which
+depends on the bucket, so it may change when the bucket size changes.
 
 An unknown sampler name is reported as an error (`Unknown sampler "<name>" (valid: sobol, pmj02,
 independent); keeping the current sampler`) and otherwise ignored: the sampler stays whatever it
@@ -80,3 +79,21 @@ was before, the one an earlier `Option "sampling"` set or else the default. It i
 default, so `"pmj02"` followed by an unknown name still renders with `pmj02`. Shaders can read
 both values with `option("sampling:sampler", s)` and `option("sampling:seed", n)`.
 
+## Image I/O options
+
+```
+Option "imageio" "string backend" [ "legacy" ]   # default
+Option "imageio" "string backend" [ "oiio" ]
+```
+
+In a build configured with `OPENRENDER_ENABLE_OIIO`, `"oiio"` makes the renderer decode source images and bake textures through OpenImageIO from that point; baked
+textures are read as before. The call's own parameter wins over the Option, on `MakeTexture`, `MakeShadow`, `MakeLatLongEnvironment` and `MakeCubeFaceEnvironment`:
+
+```
+MakeTexture "in.png" "out.tex" "periodic" "periodic" "gaussian" 2 2 "string imageio" [ "oiio" ]
+```
+
+An unknown value is reported (`Unknown image backend ... expected "legacy" or "oiio"`) and the previous value stays; `"oiio"` in a build without OpenImageIO
+is reported and the call writes nothing. The baked texture has the same tags and samples either way, except that 16-bit textures of 3 or more channels and
+8-bit or float textures of 5 or more channels are still written by the built-in writer, with a message. The command-line tool takes the same choice:
+`otexmake -imageio oiio in.png out.tex`. Display output through OpenImageIO is a display driver, not an option: `Display "x.tif" "oiio" "rgba"`.

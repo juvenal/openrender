@@ -59,6 +59,8 @@ typedef enum {
 #include "common/containers.h"
 #include "common/memory.h" // globalArena
 #include "shader.h"
+#include "shaderBackend.h"
+#include "shaderPayload.h"
 #include "common/diagnostics.h"
 #include "dsoHandle.h"
 #include "serviceLookup.h"
@@ -2322,20 +2324,26 @@ CShader	*shaderCreate(const char *shaderName) {
 
 	cShader								=	new CShader(shaderName);
 
-	cShader->memory						=	currentData.memory;
+	// What only the interpreter understands: the bytecode, the constant tables and the frame layout (spec 033)
+	CRsloPayload	*payload			=	new CRsloPayload;
 
-	cShader->codeArea					=	currentData.code;
+	payload->memory						=	currentData.memory;
 
-	cShader->constantEntries			=	currentData.constantEntries;
-	cShader->varyingSizes				=	currentData.varyingSizes;
+	payload->codeArea					=	currentData.code;
 
-	cShader->strings					=	currentData.strings;
+	payload->constantEntries			=	currentData.constantEntries;
+	payload->varyingSizes				=	currentData.varyingSizes;
 
-	cShader->numStrings					=	currentData.numStrings;
-	cShader->numVariables				=	currentData.numVariables;
+	payload->strings					=	currentData.strings;
 
-	cShader->codeEntryPoint				=	currentData.codeEntryPoint;
-	cShader->initEntryPoint				=	currentData.initEntryPoint;
+	payload->numStrings					=	currentData.numStrings;
+	payload->numVariables				=	currentData.numVariables;
+
+	payload->codeEntryPoint				=	currentData.codeEntryPoint;
+	payload->initEntryPoint				=	currentData.initEntryPoint;
+
+	cShader->payload					=	payload;
+	cShader->backend					=	&rsloBackend();
 
 	cShader->usedParameters				=	currentData.usedParameters;
 
@@ -2363,10 +2371,10 @@ CShader	*shaderCreate(const char *shaderName) {
 			delete cVar;
 		}
 
-		cShader->numGlobals	=	numGlobals;
+		payload->numGlobals	=	numGlobals;
 	}
 
-	cShader->analyse();
+	cShader->analyse(payload->numGlobals);
 
 
 	currentData.memory					=	NULL;

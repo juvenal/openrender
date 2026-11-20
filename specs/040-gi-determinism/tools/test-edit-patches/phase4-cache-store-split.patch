@@ -1,0 +1,168 @@
+--- a/tests/gi_determinism/test_gi_cache_store.cpp
++++ b/tests/gi_determinism/test_gi_cache_store.cpp
+@@ -27,6 +27,10 @@
+  * (the new irradianceBatch.h). Red reason of all six: a build failure naming the first of them.
+  *
+  * Usage: test_gi_cache_store <mode> <work dir> [<fixture cache of GiFixture_ICache>]
++ *
++ * GIDET_STORE_PHASE5 (set by the red block of CMakeLists.txt) selects the five modes that need the members spec 040's Phase 5 adds (addPending(), commitPending(),
++ * clampAgainstFixed(), irradianceBatch.h). Without it the file is the executable of GiDet_AcceptPure alone, which Phase 4 turns green: the accept rule of
++ * Phase 4 needs the accept function, the batch view and the identity, none of the commit machinery.
+  */
+ 
+ #include <algorithm>
+@@ -37,7 +41,9 @@
+ #include "common/algebra.h"
+ #include "common/memory.h"
+ #include "common/os.h"
++#ifdef GIDET_STORE_PHASE5
+ #include "libshader/shading/irradianceBatch.h"
++#endif
+ #include "libshader/shading/irradianceCalls.h"
+ #include "ri/texture/irradianceCache.h"
+ 
+@@ -82,6 +88,7 @@
+     return r;
+ }
+ 
++#ifdef GIDET_STORE_PHASE5
+ // The 56 floats of a record in file order (what a file stores; the key is not part of them)
+ static void fileFloats(const CIrradianceRecord &r, float *f) {
+     memcpy(f, r.P, 12);
+@@ -190,6 +197,9 @@
+     return gitest::readFile(name, b) && b.size() > 40;
+ }
+ 
++#endif
++
++#ifdef GIDET_STORE_PHASE5
+ // ---------------------------------------------------------------------------------------------------------
+ // lookup-pure
+ // ---------------------------------------------------------------------------------------------------------
+@@ -415,6 +425,8 @@
+     return g_fail == 0 ? 0 : 1;
+ }
+ 
++#endif
++
+ // ---------------------------------------------------------------------------------------------------------
+ // accept-pure
+ // ---------------------------------------------------------------------------------------------------------
+@@ -469,6 +481,7 @@
+     return g_fail == 0 ? 0 : 1;
+ }
+ 
++#ifdef GIDET_STORE_PHASE5
+ // ---------------------------------------------------------------------------------------------------------
+ // batch-clamp
+ // ---------------------------------------------------------------------------------------------------------
+@@ -566,17 +579,22 @@
+     return g_fail == 0 ? 0 : 1;
+ }
+ 
++#endif
++
+ int main(int argc, char **argv) {
+     if (argc < 3) {
+         fprintf(stderr, "usage: %s lookup-pure|commit-order|commit-dedupe|roundtrip|accept-pure|batch-clamp <work dir> [fixture cache]\n", argv[0]);
+         return 2;
+     }
+     const std::string mode = argv[1];
++#ifdef GIDET_STORE_PHASE5
+     const std::string fixture = argc > 3 ? absolute(argv[3]) : std::string();
++#endif
+     if (chdir(argv[2]) != 0) {
+         fprintf(stderr, "cannot enter %s\n", argv[2]);
+         return 2;
+     }
++#ifdef GIDET_STORE_PHASE5
+     if (mode == "lookup-pure")
+         return modeLookupPure();
+     if (mode == "commit-order")
+@@ -585,10 +603,13 @@
+         return modeCommitDedupe();
+     if (mode == "roundtrip")
+         return modeRoundTrip(fixture);
++#endif
+     if (mode == "accept-pure")
+         return modeAcceptPure();
++#ifdef GIDET_STORE_PHASE5
+     if (mode == "batch-clamp")
+         return modeBatchClamp();
++#endif
+     fprintf(stderr, "unknown mode %s\n", mode.c_str());
+     return 2;
+ }
+--- a/tests/gi_determinism/CMakeLists.txt
++++ b/tests/gi_determinism/CMakeLists.txt
+@@ -9,7 +9,8 @@
+ #   test_gi_photon_claim   GiDet_PhotonClaim                      (the same source, compiled with GIDET_CLAIM: storePhotonForFrame does not exist yet)
+ #   test_gi_photon_runs    GiDet_PhotonRepeat, _PhotonRepeatReuse, _PhotonThreads, and the 30-run forms _PhotonRepeat30, _PhotonRepeatReuse30,
+ #                          _PhotonThreads4x30                     (separate orender processes, the .gpm compared byte for byte)
+-#   test_gi_cache_store    GiDet_LookupPure, _CommitOrder, _CommitDedupe, _CacheRoundTrip, _AcceptPure, _BatchClamp   (the irradiance store alone)
++#   test_gi_cache_store    GiDet_LookupPure, _CommitOrder, _CommitDedupe, _CacheRoundTrip, _BatchClamp   (the irradiance store alone; red block, GIDET_STORE_PHASE5)
++#   test_gi_accept         GiDet_AcceptPure   (the same source without the macro: the accept rule alone, Phase 4)
+ #   test_gi_miss           GiDet_MissIndependence_{rslo,slo}, _IndirectRayCount_{rslo,slo}, _RepeatedPoint_{rslo,slo}  (what a miss makes)
+ #   gi_quality             the image-quality tool of research.md R4 (a normal target: it does not depend on the code under test)
+ #
+@@ -109,6 +110,32 @@
+ gi_det_photon_runs(PhotonThreads4x30 900 gi_determinism_long threads4 30)
+ 
+ # ---------------------------------------------------------------------------------------------------------
++# Phase 4 (spec 040): the accept rule and what a miss makes, defined unconditionally
++# ---------------------------------------------------------------------------------------------------------
++# test_gi_cache_store.cpp without GIDET_STORE_PHASE5 is the accept-pure mode alone (the red block builds the whole file with the macro)
++gi_det_executable_always(test_gi_accept test_gi_cache_store.cpp)
++add_test(NAME GiDet_AcceptPure COMMAND test_gi_accept accept-pure ${CMAKE_CURRENT_BINARY_DIR}/work/AcceptPure)
++set_tests_properties(GiDet_AcceptPure PROPERTIES TIMEOUT 300 LABELS "gi_determinism;irradiance" ENVIRONMENT "${GI_DET_ENV}")
++
++# test_gi_miss: MissIndependence and IndirectRayCount are green from Phase 4; RepeatedPoint stays in the red block (it needs the commit of Phase 5)
++gi_det_executable_always(test_gi_miss test_gi_miss.cpp)
++foreach(_variant rslo slo)
++    if(_variant STREQUAL "slo")
++        set(_suffix "-slo")
++    else()
++        set(_suffix "")
++    endif()
++    foreach(_m miss:MissIndependence:miss-probe raycount:IndirectRayCount:raycount)
++        string(REPLACE ":" ";" _mt ${_m})
++        list(GET _mt 0 _mode)
++        list(GET _mt 1 _name)
++        list(GET _mt 2 _scene)
++        add_test(NAME GiDet_${_name}_${_variant} COMMAND test_gi_miss ${_mode} ${GI_DET_SCENES}/${_scene}${_suffix}.rib $<TARGET_FILE:orender> ${CMAKE_CURRENT_BINARY_DIR}/work/${_name}_${_variant})
++        set_tests_properties(GiDet_${_name}_${_variant} PROPERTIES TIMEOUT 300 LABELS "gi_determinism;irradiance" ENVIRONMENT "${GI_DET_ENV}" DEPENDS orender)
++    endforeach()
++endforeach()
++
++# ---------------------------------------------------------------------------------------------------------
+ # The red block: spec 040's red-first tests. Each test below leaves this block (it is then defined unconditionally) in the phase that makes it green.
+ # ---------------------------------------------------------------------------------------------------------
+ if(OPENRENDER_040_RED_TESTS)
+@@ -124,7 +151,8 @@
+ 
+     # --- US2/US3: the irradiance store ------------------------------------------------------------
+     gi_det_executable(test_gi_cache_store test_gi_cache_store.cpp)
+-    foreach(_m lookup-pure:LookupPure commit-order:CommitOrder commit-dedupe:CommitDedupe accept-pure:AcceptPure batch-clamp:BatchClamp)
++    target_compile_definitions(test_gi_cache_store PRIVATE GIDET_STORE_PHASE5)
++    foreach(_m lookup-pure:LookupPure commit-order:CommitOrder commit-dedupe:CommitDedupe batch-clamp:BatchClamp)
+         string(REPLACE ":" ";" _mt ${_m})
+         list(GET _mt 0 _mode)
+         list(GET _mt 1 _name)
+@@ -135,15 +163,14 @@
+     add_test(NAME GiDet_CacheRoundTrip COMMAND test_gi_cache_store roundtrip ${CMAKE_CURRENT_BINARY_DIR}/work/CacheRoundTrip ${CMAKE_BINARY_DIR}/tests/gi_split/fixture/icache-fixture.icache)
+     set_tests_properties(GiDet_CacheRoundTrip PROPERTIES TIMEOUT 300 LABELS "gi_determinism;irradiance" ENVIRONMENT "${GI_DET_ENV}" FIXTURES_REQUIRED GiFixture_ICache)
+ 
+-    # --- US4/US2: what a miss makes ----------------------------------------------------------------
+-    gi_det_executable(test_gi_miss test_gi_miss.cpp)
++    # --- US2: what a miss makes, the part that needs the commit (the executable is built from Phase 4) ---------
+     foreach(_variant rslo slo)
+         if(_variant STREQUAL "slo")
+             set(_suffix "-slo")
+         else()
+             set(_suffix "")
+         endif()
+-        foreach(_m miss:MissIndependence:miss-probe raycount:IndirectRayCount:raycount repeat:RepeatedPoint:repeat-point)
++        foreach(_m repeat:RepeatedPoint:repeat-point)
+             string(REPLACE ":" ";" _mt ${_m})
+             list(GET _mt 0 _mode)
+             list(GET _mt 1 _name)

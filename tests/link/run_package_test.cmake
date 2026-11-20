@@ -18,7 +18,13 @@
 # run then SUCCEEDS (exit 0) only if every format FAILS (link error or launch abort), which is what shows the consumer of the
 # shipped package passes only because of the block. The registered test never sets it.
 #
-#   -DSOURCE_DIR -DBUILD_DIR -DWORK_DIR -DCONSUMER_DIR -DJOBS -DFORMATS [-DGENERATOR -DBUILD_TYPE -DPREFIX_DIR -DREMOVE_PACKAGE_BLOCK]
+# Spec 048 (FR-004): with -DEXPECT_OIIO=ON the scratch tree is configured with CONFIGURE_EXTRA_ARGS (joined with "|", e.g.
+# -DOPENRENDER_ENABLE_OIIO=ON|-DOpenImageIO_ROOT=<prefix>), and after the consumer is built the runner checks that the installed package
+# carries libRIBImageIO, that the consumer needs it (readelf -d / otool -L) and that the consumer itself defines no OpenImageIO symbol
+# (nm -a): OIIO stays in the one shared library, reached from the static archive through the package.
+#
+#   -DSOURCE_DIR -DBUILD_DIR -DWORK_DIR -DCONSUMER_DIR -DJOBS -DFORMATS [-DGENERATOR -DBUILD_TYPE -DPREFIX_DIR -DREMOVE_PACKAGE_BLOCK
+#    -DCONFIGURE_EXTRA_ARGS -DEXPECT_OIIO]
 
 foreach(_v SOURCE_DIR BUILD_DIR WORK_DIR CONSUMER_DIR JOBS FORMATS)
     if(NOT DEFINED ${_v})
@@ -44,6 +50,9 @@ function(_must LABEL)
     endif()
 endfunction()
 
+# the registration passes CONFIGURE_EXTRA_ARGS joined with "|" (a ;-list does not survive add_test and -D unescaped)
+string(REPLACE "|" ";" CONFIGURE_EXTRA_ARGS "${CONFIGURE_EXTRA_ARGS}")
+
 # ---- 1. the install ---------------------------------------------------------------------------------------------
 file(MAKE_DIRECTORY "${WORK_DIR}")
 if(PREFIX_DIR)
@@ -56,7 +65,7 @@ else()
         set(_gen -G "${GENERATOR}")
     endif()
     _must(configure "${CMAKE_COMMAND}" ${_gen} -S "${SOURCE_DIR}" -B "${WORK_DIR}/tree" -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
-          "-DCMAKE_INSTALL_PREFIX=${_prefix}")
+          "-DCMAKE_INSTALL_PREFIX=${_prefix}" ${CONFIGURE_EXTRA_ARGS})
     _must(build "${CMAKE_COMMAND}" --build "${WORK_DIR}/tree" --config ${BUILD_TYPE} -j${JOBS})
     _must(install "${CMAKE_COMMAND}" --install "${WORK_DIR}/tree" --config ${BUILD_TYPE})
 endif()
@@ -104,6 +113,37 @@ if(_RC EQUAL 0)
     if(_RC EQUAL 0)
         set(_built TRUE)
     endif()
+endif()
+
+# ---- 3b. spec 048: OIIO reached through the package, held in the one shared library -----------------------------------
+if(EXPECT_OIIO AND _built)
+    set(_exe "${_cbuild}/consumer")
+    if(NOT EXISTS "${_exe}" AND EXISTS "${_cbuild}/${BUILD_TYPE}/consumer")
+        set(_exe "${_cbuild}/${BUILD_TYPE}/consumer")
+    endif()
+    file(GLOB_RECURSE _imageio_lib "${_prefix}/lib/libRIBImageIO*")
+    if(NOT _imageio_lib)
+        message(FATAL_ERROR "Link_PackageStaticConsumer: the installed package carries no libRIBImageIO (an OIIO-on tree)")
+    endif()
+    if(APPLE OR CMAKE_HOST_APPLE)
+        find_program(_deps_tool otool)
+        set(_deps_args -L)
+    else()
+        find_program(_deps_tool readelf)
+        set(_deps_args -d)
+    endif()
+    execute_process(COMMAND ${_deps_tool} ${_deps_args} "${_exe}" OUTPUT_VARIABLE _deps)
+    if(NOT _deps MATCHES "libRIBImageIO")
+        message(FATAL_ERROR "Link_PackageStaticConsumer: the consumer does not need libRIBImageIO:\n${_deps}")
+    endif()
+    find_program(_nm_tool nm)
+    execute_process(COMMAND ${_nm_tool} -a "${_exe}" OUTPUT_VARIABLE _nm)
+    string(REGEX MATCHALL "(^|\n)[0-9a-fA-F]+ [^\n]*OpenImageIO" _defined "${_nm}")
+    list(LENGTH _defined _n_defined)
+    if(_n_defined GREATER 0)
+        message(FATAL_ERROR "Link_PackageStaticConsumer: the consumer defines ${_n_defined} OpenImageIO symbols (a second copy of OIIO)")
+    endif()
+    message(STATUS "run_package_test: the consumer needs libRIBImageIO and carries no OpenImageIO code")
 endif()
 
 set(_failed_formats 0)

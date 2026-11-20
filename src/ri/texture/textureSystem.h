@@ -35,6 +35,7 @@
 #include "common/os.h"           // TMutex, osLock/osUnlock
 #include "common/riVocabulary.h" // RtFilterFunc
 #include "common/sampling.h"     // Backend, SubstreamKey, get1D
+#include "imageInput.h"          // EImageBackend
 
 class CTextureFileResolver;
 
@@ -94,6 +95,7 @@ struct CTextureSystemSettings {
         const CTextureFileResolver *resolver; // not owned, outlives the system
         bool diskCacheEnabled;
         const char *diskCacheDirectory;       // copied; nullptr = the resolved default
+        EImageBackend imageBackend;           // decodes unbaked sources and the disk-cache bake (spec 048); Legacy = 0 when zero-initialised
         matrix toWorld;                       // copied; for shadow and deep-shadow maps
         TMutex *loadMutex;                    // not owned; nullptr = the system's own
 };

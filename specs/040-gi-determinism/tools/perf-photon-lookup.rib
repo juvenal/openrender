@@ -1,0 +1,49 @@
+##RenderMan RIB-Structure 1.0
+# Spec 040 FR-023 / T052 scratch scene (timing_sc007.sh SCENES=perf-photon-lookup): the cost of removing the photon lookup memo (decision D2-A).
+# The photon pass of examples/rib/tests/photon-parity.rib in frame 1 (pinned to one thread: the starting tree's photon pass can crash with
+# more, GitHub #164), then a raytrace of the map it wrote with photonparity_view, one photonmap() lookup per hit, at 640 x 480 with
+# 2 x 2 pixel samples, at @THREADS@ threads. perf-indirect-photon.rib does not measure this: its indirectdiffuse() traces no ray under the
+# interpreter (GitHub #173), so it never reads the map. Not a suite scene.
+version 3.03
+FrameBegin 1
+  Hider "photon" "int emit" [20000]
+  Option "limits" "numthreads" [1]
+  Projection "perspective" "fov" 45
+  Format 160 120 1
+  Translate 0 -1 5
+  WorldBegin
+    Attribute "shade" "shaderformat" ["rslo"]
+    LightSource "pointlight" 1 "intensity" [4] "from" [0 2.2 0.5]
+    LightSource "spotlight" 2 "intensity" [10] "from" [-2 3 -1] "to" [0 0 0.5] "coneangle" [0.5]
+    LightSource "distantlight" 3 "intensity" [0.6] "from" [2 4 -2] "to" [0 0 0]
+    Attribute "photon" "string globalmap" ["perf-photon-lookup.gpm"]
+    Color [0.8 0.8 0.8]
+    Surface "matte"
+    Polygon "P" [-3 0 -3  -3 0 3  3 0 3  3 0 -3]
+    Polygon "P" [-3 0 3  -3 3 3  3 3 3  3 0 3]
+    TransformBegin
+      Translate 0 0.6 0.5
+      Sphere 0.6 -0.6 0.6 360
+    TransformEnd
+  WorldEnd
+FrameEnd
+
+FrameBegin 2
+  Hider "raytrace"
+  Option "limits" "numthreads" [@THREADS@]
+  PixelSamples 2 2
+  Display "perf-photon-lookup.tif" "file" "rgba"
+  Projection "perspective" "fov" 45
+  Format 640 480 1
+  Translate 0 -1 5
+  WorldBegin
+    Attribute "shade" "shaderformat" ["rslo"]
+    Surface "photonparity_view" "string mapname" ["perf-photon-lookup.gpm"] "float gain" [1]
+    Polygon "P" [-3 0 -3  -3 0 3  3 0 3  3 0 -3]
+    Polygon "P" [-3 0 3  -3 3 3  3 3 3  3 0 3]
+    TransformBegin
+      Translate 0 0.6 0.5
+      Sphere 0.6 -0.6 0.6 360
+    TransformEnd
+  WorldEnd
+FrameEnd
