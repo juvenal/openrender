@@ -18,6 +18,8 @@ Attribute "arealight" "int samples" [64]   "string mode" ["fast"]
 - **Levels** (FR-018): the scene (`Option`), the light (the `Attribute "arealight"` in force at its `AreaLightSource`
   statement) and the receiving object (the `Attribute "arealight"` in force when the object was created). Most specific wins,
   object over light over scene, for `samples` and `mode` separately; `off` at any level turns the light off for that receiver.
+- **Noise and the default**: at the default 16 samples the soft-shadow noise is about 1.2 to 2 times the old `quadlight` form's lit-floor noise (measured,
+  research.md R8; the scenes differ); a user who needs less raises `samples` (the cost is linear: 32 samples is close to the old form's noise, 64 is below it).
 - **`fast`**: `max(1, ceil(samples / 4))` samples, each with its occlusion ray (clarified 2026-11-13).
 - **Errors** (FR-020): an unknown token: `CODE_BADTOKEN` "Unknown arealight attribute: ..." (option: "Unknown arealight
   option: ..."); `samples < 1` or an unknown `mode` string: `CODE_RANGE` naming the value; the setting is left unchanged.

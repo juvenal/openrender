@@ -1,7 +1,7 @@
 # Spec 057 (tasks.md T009): render pairs of scenes and compare their images byte for byte (cmake -P script).
 #
 #   cmake -DORENDER=<orender> -DPAIRS="<sceneA>|<sceneB>,<sceneA2>|<sceneB2>" -DEXPECT=EQUAL|DIFFERENT
-#         [-DTHREADS=<n>] [-DTHREADS_B=<n>] [-DHIDER=<name>] [-DSHADERFORMAT=<rslo|slo>] [-DIMGDIFF=<imgdiff.py>] [-DPYTHON=<python3>]
+#         [-DTHREADS=<n>] [-DTHREADS_B=<n>] [-DSUPPORT_FILES="<a>;<b>"] [-DHIDER=<name>] [-DSHADERFORMAT=<rslo|slo>] [-DIMGDIFF=<imgdiff.py>] [-DPYTHON=<python3>]
 #         -P render_pair.cmake
 #
 # Every scene is a RIB whose Display writes "<scene file name without .rib>.tif" into the working directory (the
@@ -13,6 +13,8 @@
 # shader that is missing or of the wrong type) makes orender exit 255 although it still writes its image. For such a pair
 # exit 255 is accepted, and only when the image was written; any other exit code, or no image, still fails. The byte
 # comparison and the pass condition are the same for every pair.
+# SUPPORT_FILES (a list) are copied into the working directory first: a scene that reads an archive by a bare name finds it there (the
+# default archive search path starts with ".").
 # Every pair is rendered and reported before the verdict, so one failing run shows all of them. THREADS defaults to 1
 # (-t:1); THREADS_B, when given, is the thread count of the second scene of every pair (a scene rendered at -t:1 and -t:4). HIDER and SHADERFORMAT, when given, are applied to a copy of each scene, never to the tracked scene: the
 # scene's Hider name is replaced, and Option "shaderformat" "default" is added after the version line. The environment
@@ -61,6 +63,10 @@ function(render_one scene tag allow_error_exit threads out_var)
     file(RENAME "${_stem}.tif" "${_stem}.${tag}.tif")
     set(${out_var} "${CMAKE_CURRENT_BINARY_DIR}/${_stem}.${tag}.tif" PARENT_SCOPE)
 endfunction()
+
+foreach(_support IN LISTS SUPPORT_FILES)
+    file(COPY "${_support}" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+endforeach()
 
 set(_failed 0)
 set(_npairs 0)

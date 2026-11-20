@@ -39,3 +39,31 @@ add_test(NAME AreaLightBinding_Illuminate
         -P ${CMAKE_SOURCE_DIR}/tests/arealight/render_pair.cmake
     WORKING_DIRECTORY ${_arealight_dir})
 set_tests_properties(AreaLightBinding_Illuminate PROPERTIES TIMEOUT 120 LABELS "arealight;state" ENVIRONMENT "${_arealight_env}" DEPENDS orender)
+
+# ---- Phase 6 image tests (spec 057, thresholds in tests/visual/parity-thresholds.md "Spec 057") ------------------------------------------
+# The soft-shadow scenes rendered to 8-bit RGBA (arealight-softimage-*): FR-031, the three camera hiders only: raytrace against reyes and
+# against zbuffer for every emitter kind (photon and show are never parity subjects). Threshold 4 (measured worst 1.31, a missing shadow reads about 84).
+foreach(_kind quad mesh subdiv)
+    foreach(_hider reyes zbuffer)
+        add_parity_test(arealight-${_kind}-${_hider}
+            examples/rib/tests/arealight-softimage-${_kind}-raytrace.rib arealight-softimage-${_kind}-raytrace.tif
+            examples/rib/tests/arealight-softimage-${_kind}-${_hider}.rib arealight-softimage-${_kind}-${_hider}.tif 4 "${_arealight_env}")
+        set_tests_properties(Parity_arealight-${_kind}-${_hider} PROPERTIES LABELS "visual;parity;arealight")
+    endforeach()
+endforeach()
+# Visual references (T104, approved after inspection): each scene against its own render on the approved tree, threshold 2 (measured 0 on the same
+# platform; the measured Linux difference is reported at CHECKPOINT 6).
+foreach(_kind quad mesh subdiv)
+    foreach(_hider reyes zbuffer raytrace)
+        add_visual_test(arealight-softshadow-${_kind}-${_hider}
+            examples/rib/tests/arealight-softimage-${_kind}-${_hider}.rib arealight-softimage-${_kind}-${_hider}.tif
+            arealight-softimage-${_kind}-${_hider}.tif 2)
+        # the scenes use the test-local shaders (al_surface_matte): the arealight environment puts them on the shader path
+        set_tests_properties(Visual_arealight-softshadow-${_kind}-${_hider} PROPERTIES LABELS "visual;regression;arealight" ENVIRONMENT "${_arealight_env}")
+    endforeach()
+    # the JIT twin: the .slo light against the same reference as the raytrace render (add_visual_test disables an -slo scene without LLVM)
+    add_visual_test(arealight-softshadow-${_kind}-raytrace-slo
+        examples/rib/tests/arealight-softimage-${_kind}-raytrace-slo.rib arealight-softimage-${_kind}-raytrace-slo.tif
+        arealight-softimage-${_kind}-raytrace.tif 2)
+    set_tests_properties(Visual_arealight-softshadow-${_kind}-raytrace-slo PROPERTIES LABELS "visual;regression;arealight" ENVIRONMENT "${_arealight_env}")
+endforeach()

@@ -83,7 +83,7 @@ endfunction()
 # A pair ending in |ALLOW_ERROR_EXIT accepts orender's exit 255 (a scene that reports an error by design) when the image
 # was still written; nothing else about the comparison changes.
 function(al_render_pair_test name)
-    cmake_parse_arguments(ARG "EXPECT_EQUAL;EXPECT_DIFFERENT" "THREADS;THREADS_B;HIDER;SHADERFORMAT;TIMEOUT" "PAIRS;LABELS" ${ARGN})
+    cmake_parse_arguments(ARG "EXPECT_EQUAL;EXPECT_DIFFERENT" "THREADS;THREADS_B;SUPPORT_FILES;HIDER;SHADERFORMAT;TIMEOUT" "PAIRS;LABELS" ${ARGN})
     if(NOT ARG_TIMEOUT)
         set(ARG_TIMEOUT 300)
     endif()
@@ -115,6 +115,10 @@ function(al_render_pair_test name)
     endif()
     if(ARG_THREADS_B)
         list(APPEND args -DTHREADS_B=${ARG_THREADS_B})
+    endif()
+    if(ARG_SUPPORT_FILES)
+        string(REPLACE ";" "\\;" _support "${ARG_SUPPORT_FILES}")
+        list(APPEND args "-DSUPPORT_FILES=${_support}")
     endif()
     if(ARG_HIDER)
         list(APPEND args -DHIDER=${ARG_HIDER})
@@ -217,6 +221,31 @@ endforeach()
 # AreaLight_Controls_Parse: tokens, errors, read-back, the writer round trip (moved out of the red block by T087)
 al_executable(test_arealight_controls_parse test_controls_parse.cpp)
 al_test(AreaLight_Controls_Parse test_arealight_controls_parse LABELS state)
+
+# ---- Phase 6: soft shadows, self-exclusion, determinism (US4; FR-017, FR-018, FR-023 to FR-025) --------------------------------------
+# The probes (AreaLightProbe_SoftShadow_*, AreaLight_SelfExclusion_*, AreaLight_Orientation_*, AreaLight_EmptySet_*) are generated into
+# tests/visual/arealight-probes.cmake. The byte-for-byte tests:
+set(_c ../../examples/rib/tests)
+# AreaLight_ThreadIdentity: an image does not depend on the thread count (256 x 256 is 256 buckets): -t:1 against -t:4 on every hider
+set(_ti_pairs "")
+foreach(_kind quad mesh subdiv)
+    foreach(_h reyes zbuffer raytrace)
+        list(APPEND _ti_pairs ${_c}/arealight-softshadow-${_kind}-${_h}.rib|${_c}/arealight-softshadow-${_kind}-${_h}.rib)
+    endforeach()
+endforeach()
+al_render_pair_test(AreaLight_ThreadIdentity PAIRS ${_ti_pairs} THREADS 1 THREADS_B 4 EXPECT_EQUAL LABELS "arealight;determinism" TIMEOUT 900)
+# ... and two renders at -t:4 are identical (no race in the resolution or the draws)
+al_render_pair_test(AreaLight_ThreadIdentity_Repeat PAIRS ${_ti_pairs} THREADS 4 EXPECT_EQUAL LABELS "arealight;determinism" TIMEOUT 900)
+# AreaLight_ThreadIdentity_Delayed (research R4, the early-expansion risk): the emitter is a Procedural "DelayedReadArchive" of an archive that
+# binds a Surface drawing random(); -t:1 against -t:4 on every hider, byte-identical
+set(_dl_dir ${CMAKE_CURRENT_SOURCE_DIR}/scenes/delayed)
+al_render_pair_test(AreaLight_ThreadIdentity_Delayed
+    PAIRS scenes/delayed/arealight-threadid-delayed-reyes.rib|scenes/delayed/arealight-threadid-delayed-reyes.rib
+          scenes/delayed/arealight-threadid-delayed-zbuffer.rib|scenes/delayed/arealight-threadid-delayed-zbuffer.rib
+          scenes/delayed/arealight-threadid-delayed-raytrace.rib|scenes/delayed/arealight-threadid-delayed-raytrace.rib
+    THREADS 1 THREADS_B 4 SUPPORT_FILES ${_dl_dir}/arealight-delayed-emitter.rib EXPECT_EQUAL LABELS "arealight;determinism" TIMEOUT 900)
+# AreaLight_OccluderFlag (FR-023): AreaLight_OccluderFlag_{unflagged,optout}_{penumbra,umbra} (generated probes): an unflagged occluder and
+# the transmission 0 opt-out leave the floor at the unoccluded closed form; the flagged one shades it (AreaLightProbe_SoftShadow_*, umbra)
 
 # ---- the test-local shaders ------------------------------------------------------------------------------------------------
 get_property(_al_shader_outputs GLOBAL PROPERTY AL_SHADER_OUTPUTS)

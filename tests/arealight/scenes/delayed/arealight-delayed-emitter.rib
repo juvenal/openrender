@@ -1,0 +1,5 @@
+##RenderMan RIB-Structure 1.0
+# Spec 057 (proposed): the archive of AreaLight_ThreadIdentity_Delayed. The soft emitter with a Surface that draws random() (research R4,
+# the early-expansion risk): read by Procedural "DelayedReadArchive" from arealight-threadid-delayed-*.rib.
+Surface "al_random_surface"
+Polygon "P" [3 -0.25 1.75  3 -0.25 2.25  3 0.25 2.25  3 0.25 1.75]

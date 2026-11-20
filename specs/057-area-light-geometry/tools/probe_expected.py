@@ -222,3 +222,103 @@ if __name__ == "__main__":
     for r in probe_table():
         print("%-10s %3d %3d %14.9f %14.9f %14.9f" % r)
     sys.exit(0)
+
+
+# ---- Phase 6: soft shadows (an occluder sphere between a bound emitter and the receiver) ---------------------------------------------
+class Sphere:
+    """The occluder: a sphere that blocks the segment from a receiver point to an emitter point (flagged transmission 1)."""
+
+    def __init__(self, c, r):
+        self.c, self.r = c, r
+
+    def blocks(self, a, b):
+        d = sub(b, a)
+        f = sub(a, self.c)
+        A = dot(d, d)
+        B = 2.0 * dot(f, d)
+        C = dot(f, f) - self.r * self.r
+        disc = B * B - 4.0 * A * C
+        if disc <= 0.0:
+            return False
+        s = math.sqrt(disc)
+        t0, t1 = (-B - s) / (2.0 * A), (-B + s) / (2.0 * A)
+        return t0 < 1.0 and t1 > 0.0          # the open segment (0, 1) meets the sphere
+
+
+def pixel_value_occluded(kind, quad, R, n_r, intensity, sphere, n=360):
+    """(E, sigma_1, visible fraction) at receiver point R: the closed form of pixel_value with the emitter points that the
+    sphere hides removed. A dense midpoint grid over the quad (the integrand is discontinuous at the shadow edge, so no Gauss rule)."""
+    s1 = s2 = vis = 0.0
+    total = n * n
+    for i in range(n):
+        u = (i + 0.5) / n
+        for j in range(n):
+            v = (j + 0.5) / n
+            x = quad.point(u, v)
+            if sphere.blocks(R, x):
+                continue
+            vis += 1.0
+            w = sub(x, R)
+            wh = unit(w)
+            f = intensity * weight(kind, quad, R, x) * max(0.0, dot(n_r, wh))
+            s1 += f
+            s2 += f * f
+    mean = s1 / total
+    var = max(0.0, s2 / total - mean * mean) * quad.area * quad.area
+    return mean * quad.area, math.sqrt(var), vis / total
+
+
+# The soft-shadow family (the emitter is smaller than the quad probe's so that the sphere throws a shadow with an umbra, a penumbra and
+# a fully lit area inside the window): a 0.5 x 0.5 quad in the plane x = 3 facing -x, centre (3, 0, 2); a sphere of radius 0.2 at
+# (0.75, 0, 3.5) between it and the receiver plane z = 4. The sphere projects onto the image at x in [0.55, 0.95], clear of the probed pixels,
+# which lie on the row y ~ 0 at x < 0: lit (x ~ -0.9), penumbra (x ~ -0.55) and umbra (x ~ -0.1).
+EMITTER_SOFT = Quad([3, -0.25, 1.75], [3, -0.25, 2.25], [3, 0.25, 2.25], [3, 0.25, 1.75])
+OCCLUDER = Sphere([0.75, 0.0, 3.5], 0.2)
+INTENSITY_SOFT = 40.0
+SOFT_SIZE = 256
+SOFT_SAMPLES = 64                                                       # Attribute "arealight" "int samples" [64]
+
+
+def soft_probe_pixels():
+    """Three probed pixels of the 256 x 256 images, on the row y ~ 0, left of the sphere's image: the lit area (visible fraction 1,
+    nearest the left edge), the penumbra (visible fraction nearest 0.5) and the umbra (visible fraction 0, nearest x = -0.1),
+    as (name, i, j, E, sigma_1, visible fraction)."""
+    j = SOFT_SIZE // 2 - 1
+    cands = []
+    for i in range(0, SOFT_SIZE // 2, 2):
+        x, y = pixel_center(i, j, SOFT_SIZE)
+        e, s1, fr = pixel_value_occluded("arealight", EMITTER_SOFT, [x, y, RECEIVER_Z], RECEIVER_N, INTENSITY_SOFT, OCCLUDER, n=40)
+        cands.append((i, x, fr))
+    lit = next(c for c in cands if c[2] >= 0.999)
+    pen = min(cands, key=lambda c: abs(c[2] - 0.5))
+    umb = min((c for c in cands if c[2] == 0.0), key=lambda c: abs(c[1] + 0.1))
+    rows = []
+    for name, c in (("lit", lit), ("penumbra", pen), ("umbra", umb)):
+        i = c[0]
+        x, y = pixel_center(i, j, SOFT_SIZE)
+        e, s1, fr = pixel_value_occluded("arealight", EMITTER_SOFT, [x, y, RECEIVER_Z], RECEIVER_N, INTENSITY_SOFT, OCCLUDER)
+        rows.append((name, i, j, e, s1, fr))
+    return rows
+
+
+def pixel_value_multi(kind, quads, R, n_r, intensity):
+    """(E, sigma_1) for one light whose scope holds several emitter quads (no occluder): the estimator picks a leaf with probability
+    proportional to its area and a point on it uniformly, so p_A = 1 / (total area) and  sigma_1^2 = A_tot * sum_q int f^2 dA - E^2."""
+    a_tot = sum(q.area for q in quads)
+    e = 0.0
+    i2 = 0.0
+    for q in quads:
+        def f(x, q=q):
+            w = sub(x, R)
+            wh = unit(w)
+            return intensity * weight(kind, q, R, x) * max(0.0, dot(n_r, wh))
+        a1, a2 = integrate(q, f)
+        e += a1
+        i2 += a2
+    return e, math.sqrt(max(0.0, a_tot * i2 - e * e))
+
+
+# AreaLight_SelfExclusion_stacked: two flagged emitter quads of ONE light, the larger in front of the soft emitter from the receiver's
+# side. Nothing else blocks: with the light's own scope excluded from its occlusion rays (FR-017) the receiver reads E_A + E_B; with
+# no exclusion, B hides the samples of A.
+EMITTER_FRONT = Quad([2.5, -0.5, 1.5], [2.5, -0.5, 3.0], [2.5, 0.5, 3.0], [2.5, 0.5, 1.5])

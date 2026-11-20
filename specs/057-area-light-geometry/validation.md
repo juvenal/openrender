@@ -440,3 +440,74 @@ Results after the merge (build clean on both platforms):
 State changes against checkpoint 5 (macOS): the everyday set went from 1467 of 1468 (one failure, `AreaLight_Controls_Parse`, since fixed by the approved diff) to 1521 of 1522 (the set holds 54 more tests than at checkpoint 5, from specs 033, 040 and 048); `AreaLight_Controls_Parse` passes; `Registry_IntegratorImageIdentity` (#163) no longer fails on Linux (fixed on master by 040); `Link_RenameAliases` is new and is the stale-output issue above. Against master: no area-light test fails; the only differences from a clean master tree are `Link_RenameAliases` (stale outputs of this tree) and the tests this spec adds.
 
 Linux solo re-run of `DeterminismSweep_sphere-texture3d-bake3d-reyes-slo` (one cpujob job, on the host): passed (0.81 s), so the sweep failure of the chain (617 of 618) was the intermittent GitHub #122 and did not recur. The stale old-name files above stay in place until the maintainer approves their deletion.
+
+After the master sync was committed (180b2d4f), the maintainer approved deleting the stale pre-033 old-name build outputs, exactly the listed set, in both build trees. Removed on macOS (build/src/libshader/): shading/libshader_shading.1.0.0.dylib, shading/libshader_jitmeta.a, runtime/libshader_runtime.1.0.0.dylib, runtime/libshader_runtime.a, the stale symlinks shading/libshader_shading.1.dylib, runtime/libshader_runtime.dylib and runtime/libshader_runtime.1.dylib, and the directories runtime/CMakeFiles/libshader_runtime.dir, libshader_runtime_obj.dir, libshader_runtime_static.dir and shading/CMakeFiles/libshader_jitmeta.dir, libshader_shading.dir. Removed on Linux, the same set with `.so` names: shading/libshader_shading.so.1.0.0, shading/libshader_jitmeta.a, runtime/libshader_runtime.so.1.0.0, runtime/libshader_runtime.a, the symlinks shading/libshader_shading.so.1, runtime/libshader_runtime.so and runtime/libshader_runtime.so.1, and the same five CMake directories. Kept: the compatibility symlinks libshader_shading.{dylib,so} -> libRSLRuntime and metadata/libshader_runtime.* -> libRSLInfo. `Link_RenameAliases` re-run alone: macOS passed (0.04 s); Linux: see the line below.
+Linux: `Link_RenameAliases` passed (0.01 s).
+
+## 18. Phase 6 tests and their evidence on the Phase 5 tree (T090-T096)
+
+Scenes by `gen_scenes.py` (examples/rib/tests/arealight-{softshadow,occflag,selfexclusion,orientation,emptyset}-*.rib), ground truth by `probe_expected.py` (`Sphere`, `pixel_value_occluded`: a 360 x 360 midpoint quadrature of the emitter that drops the points the sphere blocks, `soft_probe_pixels`). The soft-shadow emitter is 0.5 x 0.5 (the quad probe's 2 x 2 emitter is too large for a sphere to give an umbra, a penumbra and a lit area inside the window): plane x = 3 facing -x, centre (3, 0, 2), shipped `arealight` intensity 40, 64 samples at the light level; the occluder is a sphere of radius 0.2 at (0.75, 0, 3.5) flagged `transmission 1`; receiver `al_surface_matte` at z = 4; 256 x 256, box filter, `jitter 0`. The mesh emitter is a 2 x 2 polygon mesh of unequal faces (areas 0.04, 0.06, 0.06, 0.09), the subdivision emitter the same grid as a flat Catmull-Clark mesh with `interpolateboundary` (its limit surface is the same rectangle, so one ground truth serves all three). Probed pixels (row y ~ 0): lit (0, 127) E = 0.199264, penumbra (60, 127) E = 0.131860 (visible fraction 0.51), umbra (114, 127) E = 0.
+
+Evidence run (46 tests, macOS, all hiders): every test is GREEN on arrival except one of my own design (below): Phase 4 built the machinery. Observed against expected (got / want): lit pixel on all nine emitter and hider combinations 0.19925 to 0.19936 / 0.19926 (quad raytrace 0.199247, mesh raytrace 0.199274, subdivision raytrace 0.199129 and reyes 0.199358); penumbra quad reyes and zbuffer 0.128836, raytrace 0.133956, mesh reyes and zbuffer 0.132932, raytrace 0.142066, subdivision reyes and zbuffer 0.128863, raytrace 0.138003 / 0.131860 (tolerance 0.0649); umbra 0.000000 / 0 on all; `.rslo` and `.slo` raytrace read the same. `AreaLight_SelfExclusion_flagged-{raytrace,reyes,zbuffer}_lit`: 0.199247, 0.199267, 0.199267 / 0.199264. `AreaLight_Orientation_reversed_lit` 0 / 0 and `reversed-twice` 0.199247 / 0.199264. `AreaLight_EmptySet_dark` 0 / 0. `AreaLight_ThreadIdentity` (9 pairs, `-t:1` against `-t:4`) and `AreaLight_ThreadIdentity_Repeat` (`-t:4` twice): all pairs identical. `AreaLight_OccluderFlag_{unflagged,optout}_{penumbra,umbra}`: the floor reads the unoccluded closed form (umbra 0.331406 / 0.331361, penumbra 0.259286 / 0.259277).
+
+Test bug found in the evidence run (my design, before any approval): the first form of `AreaLight_OccluderFlag` compared the unflagged and opt-out renders byte for byte with a no-occluder render; they differ because the sphere itself is visible to the camera (x in [0.55, 0.95]), whatever its flag. Replaced by the floor probes above. The scenes `arealight-occflag-none.rib` and `arealight-occflag-flagged.rib` of the first form are no longer generated and were removed (generated, staged-only files of this spec).
+
+These are acceptance tests: their capability to fail is shown by the deliberate-breakage task (T099), not by a red run.
+
+## 19. Phase 6 implementation and measurement (T098, T099, T101), macOS
+
+T098, Reyes concurrency (research R4): the subdivision scene on reyes at `-t:4`, 20 renders: one hash (3cd35d9b0f43), exit 0 every time. The bound lights are resolved once on the main thread before any render thread starts, so `collectEmitters` never runs while Reyes dices. Procedural early expansion: proposed as `tools/proposed/delayed-test/` (not registered, awaiting approval): the scene with a `DelayedReadArchive` emitter whose archive binds `al_random_surface` is byte-identical at `-t:1` and `-t:4` on reyes, zbuffer and raytrace in a scratch trial, and its emitter lights the receiver (lit 0.199263 against 0.199264, umbra 0).
+
+T099, deliberate breakage (temporary env-selected mutations, then restored from the saved copies; `git diff --stat` of shading.cpp and surface.cpp against the staged version is empty and no `TEMP BREAK` or `OR057_` text is left in `src`):
+- A shared draw sequence in place of the keyed draw: `AreaLight_ThreadIdentity` FAILS (21.2 s), as it must.
+- `V` always 1 in the bound branch: 30 of 52 tests FAIL (every `AreaLightProbe_SoftShadow_*` penumbra and umbra probe, `.rslo` and `.slo`, and the six `AreaLightProbe_Occluded-flagged` probes).
+- The three exclusion gates in surface.cpp off: the three `AreaLight_SelfExclusion_flagged-*` tests still PASS (0.199247, 0.199267, 0.199267 against 0.199264). Reason: the shadow ray from the receiver to the sampled emitter point stops at `dist - bias`, so a flat emitter never meets itself; the gates matter when another leaf of the same light lies between the receiver and the sample. Proposal, not registered (tools/proposed/stacked-selfexclusion): two emitter quads of one light, both flagged `transmission 1`, the larger (x = 2.5) in front of the soft emitter; the lit pixel must read E_A + E_B = 1.686122 (tolerance 0.0839). Observed with the gates on: 1.680333 (raytrace), 1.686585 (reyes, zbuffer): green; with the gates off: 1.463147 (raytrace), 1.485073 (reyes, zbuffer): red. A flat emitter's own-surface case therefore stays an acceptance test of the other half of FR-017 (the receiver never sees its own light on the emitter, `mode off`).
+
+T101, noise (box filter, `jitter 0`, 256 x 256, `-t:2`, only the light's stream varied by giving the light handle 2 against 1, the visual suite's 8 x 8 block-average metric on 8-bit images; max over blocks / mean over blocks; the raw log is build/p6-noise.log):
+
+| n | quad reyes = zbuffer | quad raytrace | mesh reyes = zbuffer | mesh raytrace | subdiv reyes = zbuffer | subdiv raytrace |
+|---|---|---|---|---|---|---|
+| 4 | 5.88 / 0.343 | 5.98 / 0.361 | 6.83 / 0.487 | 7.02 / 0.505 | 6.09 / 0.408 | 8.08 / 0.440 |
+| 8 | 3.19 / 0.217 | 4.25 / 0.230 | 5.12 / 0.297 | 6.20 / 0.320 | 6.00 / 0.280 | 5.02 / 0.311 |
+| 16 | 1.97 / 0.125 | 2.12 / 0.138 | 3.30 / 0.182 | 2.95 / 0.198 | 2.08 / 0.164 | 2.88 / 0.188 |
+| 32 | 1.41 / 0.075 | 1.19 / 0.079 | 2.56 / 0.129 | 1.67 / 0.131 | 1.69 / 0.129 | 2.52 / 0.136 |
+| 64 | 0.97 / 0.047 | 0.80 / 0.050 | 0.92 / 0.078 | 0.92 / 0.089 | 1.19 / 0.091 | 1.11 / 0.094 |
+
+The old form (`examples/rib/quadlight.rib`, `numSamples 16`, raytrace, 320 x 240, the light handle 1 against 2): 1.67 / 0.077. Research R8's target (the new form's run-to-run penumbra noise at 16 samples no larger than the old form's lit-floor noise at 16) is NOT met by the plain numbers: the new form at 16 is 1.97 to 3.30 (mean 0.125 to 0.198) against 1.67 (mean 0.077); the scenes are not the same (a small bright emitter and a soft shadow against a large emitter and a lit floor), so the comparison is indicative. `fast` at n = 16 is the n = 4 row (5.88 to 8.08, mean 0.34 to 0.50): about three times the noise of `full` at 16. Reyes and zbuffer give identical numbers (they share the light's estimator and the same shadow rays).
+
+Decisions of 2026-11-20 (maintainer): the default stays 16 samples, `full`, `fast` = max(1, ceil(n/4)) (option (a) of T102): research R8's noise target is NOT met for the comparison of section 19 (the table, the old-form figure 1.67 / 0.077 and the note that the scenes differ are in research.md R8 and above); `AreaLight_SelfExclusion_stacked-{raytrace,reyes,zbuffer}_lit` is registered (the generator writes the scenes and probes; gates on green: 1.680333, 1.686585, 1.686585 against 1.686122; gates off red: 1.463147, 1.485073, 1.485073, see section 19); `AreaLight_ThreadIdentity_Delayed` is registered (the `SUPPORT_FILES` option of `render_pair.cmake` and scenes/delayed/: the archive emitter with a `random()` surface, `-t:1` against `-t:4` on every hider).
+
+## 20. Phase 6 image tests: thresholds (T103) and candidate references (T104), macOS and Linux
+
+Thresholds (approved by the maintainer): `Parity_arealight-{quad,mesh,subdiv}-{reyes,zbuffer}` 4 (measured raytrace against the hider 0.75, 1.09, 1.31; reyes against zbuffer 0.00); `Visual_arealight-softshadow-*` 2, conditional on the Linux measurement below. The registration diff (`tools/proposed/thresholds/arealight-scenes.cmake.diff`) stays unapplied until T104 is approved.
+
+Candidate references: the 12 `arealight-softimage-{quad,mesh,subdiv}-{reyes,zbuffer,raytrace,raytrace-slo}` renders on macOS (`build/p6scratch/cand/*.tif`) each beside its no-occluder twin (`build/p6scratch/cand/sbs/*.png`, twin on the left). Each shows the umbra and penumbra of the sphere and no self-shadow of the emitter. The same 12 rendered on Linux (Ubuntu 24.04, GCC 13, `-t:2`) and measured against the macOS candidate with the visual suite's metric (8 x 8 block-average maximum, 0 to 255):
+
+| candidate | macOS against Linux |
+|---|---|
+| quad reyes / zbuffer / raytrace / raytrace-slo | 0.047 / 0.047 / 0.016 / 0.016 |
+| mesh reyes / zbuffer / raytrace / raytrace-slo | 0.031 / 0.031 / 0.000 / 0.000 |
+| subdiv reyes / zbuffer / raytrace / raytrace-slo | 0.031 / 0.031 / 0.031 / 0.031 |
+
+The worst is 0.047, far under the threshold 2, so the visual threshold stands and one reference per scene serves both platforms. No existing reference was touched.
+
+Registered after the approval of the images (T103, T104): `Parity_arealight-{quad,mesh,subdiv}-{reyes,zbuffer}` (threshold 4) and `Visual_arealight-softshadow-{quad,mesh,subdiv}-{reyes,zbuffer,raytrace,raytrace-slo}` (threshold 2), with the 9 new reference TIFFs (`examples/rib/tests/references/arealight-softimage-{quad,mesh,subdiv}-{reyes,zbuffer,raytrace}.tif`; no existing reference touched). The tests use the test-local shaders, so they run with the arealight environment (`SHADERS` including `tests/arealight/shaders`): the first run failed at `Failed to find shader "al_surface_matte"` until that was added to the registration. All 18 pass on macOS.
+
+Network rendering: `-t:1`, `-t:4` and `-P:2` give byte-identical images for the soft quad on raytrace (545b3ed2d5), the soft subdivision on reyes (3cd35d9b0f) and the stacked self-exclusion scene on raytrace (dcb77b9996).
+
+## 21. Phase 6 full runs (T106), both platforms
+
+| Set | macOS | Linux (Ubuntu 24.04, GCC 13 `-Werror`, `-j2`) |
+|---|---|---|
+| build | clean | clean |
+| `-L arealight` (macOS) / `-L 'arealight\|architecture'` (Linux) | 175 of 175 | 220 of 220 |
+| `-L architecture` | 45 of 45 | (in the 220) |
+| `-L '^determinism$'` | 167 of 167 | 167 of 167 |
+| everyday `-LE 'determinism-sweep\|gi_determinism_long'` | 1591 of 1592, 1 skip (`LibShader_Format_rslo_lower_minor`) | 1592 of 1593, 1 skip, 1 failure `TextureTile_RenderByteIdentical` (#45, known) |
+| full determinism sweep (698 entries) | 618 of 698 in 9 min 17 s, then 80 of 80 after the fix = 698 of 698 | 618 of 698 in 23 min 06 s, then 80 of 80 after the fix = 698 of 698 |
+
+The 80 sweep failures of the first runs were all one cause: the 80 new `DeterminismSweep_arealight-*` entries use the test-local shaders (`al_surface_matte`, `al_light_*`) and the sweep's environment did not have `tests/arealight/shaders` on the shader path (`Failed to find shader "al_surface_matte"`, 0.04 s each). The fix (approved) is in the spec 057 block of `determinism-scenes.cmake`: those entries get the arealight environment; the helper and the 618 existing entries are unchanged. Re-run alone: macOS 80 of 80 (55.3 s), Linux 80 of 80.
+
+Linux visual and parity numbers (pass or fail against the macOS-captured references and the thresholds 2 and 4): all 18 pass on Linux: `Parity_arealight-{quad,mesh,subdiv}-{reyes,zbuffer}` (6 of 6) and `Visual_arealight-softshadow-{quad,mesh,subdiv}-{reyes,zbuffer,raytrace,raytrace-slo}` (12 of 12). The measured macOS-against-Linux difference of the 12 candidates (section 20) is at most 0.047.
+
+State changes against checkpoint 5 and master: none of the earlier tests changed state; the new Phase 6 tests (46 evidence tests + 3 stacked self-exclusion + 3 delayed + 18 image tests + 80 sweep entries) pass; the failing set on Linux is the starting tree's (#45); `TextureTile_RenderByteIdentical` and the intermittent #122 are the only known non-green tests and #122 did not recur in this run.

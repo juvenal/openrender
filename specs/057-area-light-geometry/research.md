@@ -314,6 +314,14 @@ lights after it, exactly as adding a `LightSource` does today.
   penumbra noise at 16 samples is no larger than the old form's lit-floor noise at 16", measured in the shadow phase with
   the convergence scenes' controls (box filter, `jitter 0`, only the light stream varied), not with `seed` (R10).
 
+**Measured in the shadow phase (T101, T102, approved 2026-11-20): the noise target is NOT met for this comparison, and the default stays 16, `full`.**
+Run-to-run noise (box filter, `jitter 0`, the light's stream varied by its handle, the visual suite's 8 x 8 block metric, max / mean over blocks): the
+new form at 16 samples measures 1.97 to 3.30 / 0.125 to 0.198 (quad, mesh, subdivision; reyes, zbuffer, raytrace), the old form (`examples/rib/quadlight.rib`,
+`numSamples 16`) 1.67 / 0.077: the new form is about 1.2 to 2 times the old form's maximum. The scenes differ (a small bright emitter with a soft shadow
+against a large emitter over a lit floor), so the comparison is indicative. Noise falls roughly as 1 / sqrt(n): at 32 samples the new form is at 1.19 to 2.56
+(mean 0.075 to 0.136), at 64 at 0.80 to 1.19. `fast` at n = 16 (4 samples) measures 5.88 to 8.08 (mean 0.34 to 0.50), about three times `full` at 16.
+Users who need the old form's noise raise `samples` (the cost is linear in the count); see the table in `validation.md` section 19.
+
 **Why `n/4` for fast.** It is the largest simple cut that keeps a 16-sample default at 4 samples (the smallest count whose
 noise the probe tests already measure) and never drops below one sample.
 
