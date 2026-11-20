@@ -1,0 +1,25 @@
+##RenderMan RIB-Structure 1.0
+version 3.03
+# GitHub #193: a solid whose transform is inside a MotionBegin block must render where the
+# same primitive renders without the solid. This scene: a torus inside SolidBegin "primitive", raytrace hider.
+# Compare against csg-motion-torus-nosolid-raytrace.rib.
+Hider "raytrace"
+Format 256 192 1.0
+PixelSamples 3 3
+Display "csg-motion-torus-solid-raytrace.tif" "file" "rgba"
+Shutter 0.0 1.0
+Projection "perspective" "fov" [36.0]
+Translate 0 0 5
+WorldBegin
+LightSource "pointlight" 1 "from" [3 4 -4] "intensity" [40]
+LightSource "ambientlight" 2 "intensity" [0.2]
+Surface "plastic"
+Rotate 60 1 0 0
+MotionBegin [0.0 1.0]
+Rotate -22 0 0 1
+Rotate 22 0 0 1
+MotionEnd
+SolidBegin "primitive"
+Torus 0.95 0.25 0 360 360
+SolidEnd
+WorldEnd

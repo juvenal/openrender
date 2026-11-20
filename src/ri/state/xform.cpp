@@ -232,6 +232,9 @@ void CXform::invert() {
     movmm(tmp, from);
     movmm(from, to);
     movmm(to, tmp);
+
+    if (next != NULL)
+        next->invert();
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -365,7 +368,7 @@ void CXform::invTransformBound(float *bmin, float *bmax) const {
     }
 
     if (next != NULL) {
-        from = next->from;
+        from = next->to;
 
         // Compute & transfer the corners to the dest space
         initv(vtmp, bmin[COMP_X], bmin[COMP_Y], bmin[COMP_Z]);
