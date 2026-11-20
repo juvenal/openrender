@@ -127,6 +127,21 @@ set_tests_properties(ShadingParity_UninitializedLocals PROPERTIES
     ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;ORENDER_BIN=$<TARGET_FILE:orender>;TEST_DISPLAYS_DIR=$<TARGET_FILE_DIR:file>"
 )
 
+# GitHub #192: a string parameter whose default is not a constant (concat, format, shadername) is computed
+# by the shader's init code at bind time. Renders one shader under .rslo and .slo; the JIT's context-bound
+# string ops used to do nothing at bind time, leaving the parameter NULL.
+if(OPENRENDER_HAVE_LLVM)
+    add_executable(test_shading_parity_nonconstant_string_defaults test_nonconstant_string_defaults.cpp)
+    target_link_libraries(test_shading_parity_nonconstant_string_defaults PRIVATE openrender_common_flags)
+    target_compile_features(test_shading_parity_nonconstant_string_defaults PRIVATE cxx_std_20)
+    add_test(NAME ShadingParity_NonConstantStringDefaults COMMAND test_shading_parity_nonconstant_string_defaults)
+    set_tests_properties(ShadingParity_NonConstantStringDefaults PROPERTIES
+        TIMEOUT 60
+        LABELS "shading_parity"
+        ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;ORENDER_BIN=$<TARGET_FILE:orender>;TEST_DISPLAYS_DIR=$<TARGET_FILE_DIR:file>"
+    )
+endif()
+
 # GitHub #123/#124: a point/vector written in a named space reaches the
 # current space the same way on both backends -- a light parameter default
 # (converted once at bind time, where the JIT has no shading context) and a

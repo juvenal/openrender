@@ -20,10 +20,10 @@
  * makes with the unassigned string as its label.
  *
  * Not covered, deliberately: a string PARAMETER with a non-constant default
- * (`string s = concat("a","b")`) reads NULL under .slo today because the
- * JIT does not run the default's init code. Defining unset string slots as ""
- * (the fix for #191) masks that as "", so do not read this test as a check
- * of that default; it is filed separately.
+ * (`string s = concat("a","b")`). The JIT does run the default's init code,
+ * but its string ops did nothing at bind time, and prepare() copied the
+ * parameter's NULL default over the "" this fix sets, so .slo printed (null),
+ * not "". ShadingParity_NonConstantStringDefaults checks it (GitHub #192).
  */
 
 #include <cstdio>

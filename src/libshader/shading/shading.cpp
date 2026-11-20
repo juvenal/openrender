@@ -42,6 +42,7 @@
 #include "shaderPl.h"
 #include "shaderPayload.h"
 #include "shaderGroup.h"
+#include "rslOps.h" // libshader::concatStrings/formatStrings
 #include "shaderRefs.h"
 #include "shading.h"
 #include "specularTerm.h"
@@ -4357,8 +4358,19 @@ void CShadingContext::jitShaderNameS(char **dst, int sd, const char *const *type
 // code, not a behavior "fix" -- the interpreter's own MAX_SCRIPT_STRING_
 // SIZE-sized buffer has the same unchecked-overflow risk for pathological
 // inputs, mirrored here defensively rather than left unguarded twice.
-void CShadingContext::jitConcat(char **dst, int sd, const char *const *const *operands,
-                                const int *strides, int numOperands, int n, const int *tags) {
+// Stores a copy of `str` in the thread's arena, as savestring() does (the `state` is the address of threadMemory)
+static const char *keepInThreadMemory(void *state, const char *str) {
+    CMemPage *&memory = *static_cast<CMemPage **>(state);
+    const int strLen = (int)strlen(str) + 1;
+    const int strSize = (strLen & ~3) + 4;
+    char *strmem = (char *)ralloc(strSize, memory);
+    strcpy(strmem, str);
+    return strmem;
+}
+
+void libshader::concatStrings(char **dst, int sd, const char *const *const *operands,
+                              const int *strides, int numOperands, int n, const int *tags,
+                              TKeepString keep, void *state) {
     if (n <= 0 || numOperands <= 0)
         return;
     char tmp[MAX_SCRIPT_STRING_SIZE];
@@ -4370,26 +4382,21 @@ void CShadingContext::jitConcat(char **dst, int sd, const char *const *const *op
             const char *s = JIT_IDX(operands[k], strides[k], i)[0];
             strncat(tmp, s, sizeof(tmp) - strlen(tmp) - 1);
         }
-        const int strLen = (int)strlen(tmp) + 1;
-        const int strSize = (strLen & ~3) + 4;
-        char *strmem = (char *)ralloc(strSize, threadMemory);
-        strcpy(strmem, tmp);
-        JIT_IDX(dst, sd, i)[0] = strmem;
+        JIT_IDX(dst, sd, i)[0] = (char *)keep(state, tmp);
     }
+}
+
+void CShadingContext::jitConcat(char **dst, int sd, const char *const *const *operands,
+                                const int *strides, int numOperands, int n, const int *tags) {
+    libshader::concatStrings(dst, sd, operands, strides, numOperands, n, tags, keepInThreadMemory, &threadMemory);
 }
 
 // format() -- byte-faithful transcription of PRINTEXPR (scriptFunctions.h,
 // shared with printf()'s own FORMATEXPR), persisted via ralloc/threadMemory
 // the same way jitConcat's result is (savestring's equivalent).
-void CShadingContext::jitFormat(char **dst, int sd, const char *const *fmt, int sf,
-                                void *const *operands, const int *strides, int numOperands,
-                                int n, const int *tags) {
-    // numOperands is unused here (unlike jitConcat): the format string's
-    // own %-specifier count determines how many operands are consumed,
-    // matching the interpreter's own unchecked PRINTEXPR behavior --
-    // kept in the signature for symmetry with op_format's dispatch-side
-    // array-sizing use.
-    (void)numOperands;
+void libshader::formatStrings(char **dst, int sd, const char *const *fmt, int sf,
+                              void *const *operands, const int *strides,
+                              int n, const int *tags, TKeepString keep, void *state) {
     if (n <= 0)
         return;
     for (int i = 0; i < n; ++i) {
@@ -4448,12 +4455,18 @@ void CShadingContext::jitFormat(char **dst, int sd, const char *const *fmt, int 
         }
         *tmp = '\0';
 
-        const int strLen = (int)strlen(output) + 1;
-        const int strSize = (strLen & ~3) + 4;
-        char *strmem = (char *)ralloc(strSize, threadMemory);
-        strcpy(strmem, output);
-        JIT_IDX(dst, sd, i)[0] = strmem;
+        JIT_IDX(dst, sd, i)[0] = (char *)keep(state, output);
     }
+}
+
+// The number of operands is unused: the format string's own %-specifier count determines how many operands are
+// consumed, matching the interpreter's own unchecked PRINTEXPR behavior -- kept in the signature for symmetry
+// with op_format's dispatch-side array-sizing use.
+void CShadingContext::jitFormat(char **dst, int sd, const char *const *fmt, int sf,
+                                void *const *operands, const int *strides, int numOperands,
+                                int n, const int *tags) {
+    (void)numOperands;
+    libshader::formatStrings(dst, sd, fmt, sf, operands, strides, n, tags, keepInThreadMemory, &threadMemory);
 }
 
 // printf() (GitHub #11) -- byte-faithful transcription of PRINTFEXPR
