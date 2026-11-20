@@ -1,0 +1,192 @@
+##RenderMan RIB-Structure 1.1
+##Scene: 02_nurbs_twisted_ribbon_lantern.rib
+##Features: Rational NuPatch Lantern Shells, Diagonal Slit TrimCurve Loops, Nested Island TrimLoop
+version 3.03
+
+Format 1024 768 1.0
+PixelSamples 4 4
+PixelFilter "gaussian" 2.0 2.0
+ShadingRate 1.0
+Display "02_nurbs_twisted_ribbon_lantern.tif" "file" "rgba"
+
+Projection "perspective" "fov" [40.0]
+Clipping 0.1 100.0
+
+Translate 0.0 -0.1 6.8
+Rotate -16.0 1 0 0
+
+WorldBegin
+
+    # Warm internal lantern light + cool rim lights
+    LightSource "ambientlight" 1 "intensity" [0.10] "lightcolor" [0.7 0.8 1.0]
+    LightSource "pointlight" 2 "from" [0.0 0.2 0.0] "intensity" [18.0] "lightcolor" [1.0 0.72 0.32]
+    LightSource "pointlight" 3 "from" [3.5 4.0 -3.0] "intensity" [20.0] "lightcolor" [0.85 0.92 1.0]
+    LightSource "pointlight" 4 "from" [-3.5 2.0 -2.5] "intensity" [12.0] "lightcolor" [0.55 0.7 1.0]
+
+    # Dark Reflective Floor
+    AttributeBegin
+        Color [0.22 0.24 0.28]
+        Surface "plastic" "Ka" [0.1] "Kd" [0.5] "Ks" [0.5] "roughness" [0.12]
+        Polygon "P" [-10.0 -2.0 -10.0  10.0 -2.0 -10.0  10.0 -2.0 10.0  -10.0 -2.0 10.0]
+    AttributeEnd
+
+    # Inner Glowing Filament Column
+    AttributeBegin
+        Translate 0.0 -1.3 0.0
+        Rotate -90 1 0 0
+        Color [1.0 0.85 0.45]
+        Surface "constant"
+        Cylinder 0.28 0.0 2.8 360.0
+        Sphere 0.35 -0.35 0.35 360.0
+    AttributeEnd
+
+    # =========================================================================
+    # Front Curved NURBS Lantern Shell with 3 Diagonal Slit Trim Cutouts
+    # and a Nested Floating Island Trim inside the middle slit
+    # =========================================================================
+    AttributeBegin
+        Attribute "identifier" "name" ["FrontLanternShell"]
+        Sides 2
+        Color [0.88 0.24 0.32]
+        Surface "plastic" "Ka" [0.15] "Kd" [0.65] "Ks" [0.85] "roughness" [0.05]
+
+        # 5 Loops:
+        # Loop 0: Outer boundary (CCW)
+        # Loop 1: Left diagonal window (CW hole)
+        # Loop 2: Center large window (CW hole)
+        # Loop 3: Nested island inside Center window (CCW solid island!)
+        # Loop 4: Right diagonal window (CW hole)
+        # Loop 0 is the outer boundary: keep what an odd number of loops enclose
+        Attribute "trimcurve" "sense" ["outside"]
+        TrimCurve
+            [1 1 1 1 1]
+            [2 2 2 2 2]
+            [
+                0 0 0.25 0.5 0.75 1 1
+                0 0 0.25 0.5 0.75 1 1
+                0 0 0.25 0.5 0.75 1 1
+                0 0 0.25 0.5 0.75 1 1
+                0 0 0.25 0.5 0.75 1 1
+            ]
+            [0 0 0 0 0]
+            [1 1 1 1 1]
+            [5 5 5 5 5]
+            # u coordinates
+            [
+                # Loop 0: Outer boundary (CCW)
+                0.03 0.97 0.97 0.03 0.03
+                # Loop 1: Left tilted slit (CW)
+                0.12 0.18 0.30 0.24 0.12
+                # Loop 2: Center diamond/octagon hole (CW)
+                0.36 0.36 0.64 0.64 0.36
+                # Loop 3: Inner nested solid island inside Loop 2 (CCW)
+                0.45 0.55 0.55 0.45 0.45
+                # Loop 4: Right tilted slit (CW)
+                0.70 0.76 0.88 0.82 0.70
+            ]
+            # v coordinates
+            [
+                # Loop 0
+                0.05 0.05 0.95 0.95 0.05
+                # Loop 1
+                0.18 0.82 0.82 0.18 0.18
+                # Loop 2
+                0.20 0.80 0.80 0.20 0.20
+                # Loop 3 (CCW island)
+                0.38 0.38 0.62 0.62 0.38
+                # Loop 4
+                0.18 0.82 0.82 0.18 0.18
+            ]
+            # w weights
+            [
+                1 1 1 1 1
+                1 1 1 1 1
+                1 1 1 1 1
+                1 1 1 1 1
+                1 1 1 1 1
+            ]
+
+        NuPatch
+            4 4 [0 0 0 0 1 1 1 1] 0.0 1.0
+            4 4 [0 0 0 0 1 1 1 1] 0.0 1.0
+            "Pw" [
+                -1.5 -1.6 -0.4 1.0   -0.7 -1.6 -1.8 1.3    0.7 -1.6 -1.8 1.3    1.5 -1.6 -0.4 1.0
+                -2.1 -0.5 -0.6 1.0   -1.0 -0.5 -2.5 1.5    1.0 -0.5 -2.5 1.5    2.1 -0.5 -0.6 1.0
+                -2.1  0.7 -0.6 1.0   -1.0  0.7 -2.5 1.5    1.0  0.7 -2.5 1.5    2.1  0.7 -0.6 1.0
+                -1.3  1.8 -0.3 1.0   -0.6  1.8 -1.6 1.3    0.6  1.8 -1.6 1.3    1.3  1.8 -0.3 1.0
+            ]
+    AttributeEnd
+
+    # =========================================================================
+    # Back / Outer Wrapping NURBS Shell (Rotated 180 deg, Gold Metallic)
+    # =========================================================================
+    AttributeBegin
+        Attribute "identifier" "name" ["BackLanternShell"]
+        Rotate 180 0 1 0
+        Scale 1.15 1.05 1.15
+        Sides 2
+        Color [0.95 0.76 0.28]
+        Surface "metal" "Ka" [0.2] "Ks" [0.9] "roughness" [0.12]
+
+        # Loop 0 is the outer boundary: keep what an odd number of loops enclose
+        Attribute "trimcurve" "sense" ["outside"]
+        TrimCurve
+            [1 1 1 1]
+            [2 4 4 4]
+            [
+                0 0 0.25 0.5 0.75 1 1
+                0 0 0 0 0.25 0.5 0.75 1 1 1 1
+                0 0 0 0 0.25 0.5 0.75 1 1 1 1
+                0 0 0 0 0.25 0.5 0.75 1 1 1 1
+            ]
+            [0 0 0 0]
+            [1 1 1 1]
+            [5 7 7 7]
+            [
+                0.04 0.96 0.96 0.04 0.04
+                0.25 0.14 0.14 0.25 0.36 0.36 0.25
+                0.50 0.38 0.38 0.50 0.62 0.62 0.50
+                0.75 0.64 0.64 0.75 0.86 0.86 0.75
+            ]
+            [
+                0.06 0.06 0.94 0.94 0.06
+                0.75 0.68 0.32 0.25 0.32 0.68 0.75
+                0.82 0.72 0.28 0.18 0.28 0.72 0.82
+                0.75 0.68 0.32 0.25 0.32 0.68 0.75
+            ]
+            [
+                1 1 1 1 1
+                1 1 1 1 1 1 1
+                1 1 1 1 1 1 1
+                1 1 1 1 1 1 1
+            ]
+
+        NuPatch
+            4 4 [0 0 0 0 1 1 1 1] 0.0 1.0
+            4 4 [0 0 0 0 1 1 1 1] 0.0 1.0
+            "Pw" [
+                -1.5 -1.6 -0.4 1.0   -0.7 -1.6 -1.8 1.3    0.7 -1.6 -1.8 1.3    1.5 -1.6 -0.4 1.0
+                -2.1 -0.5 -0.6 1.0   -1.0 -0.5 -2.5 1.5    1.0 -0.5 -2.5 1.5    2.1 -0.5 -0.6 1.0
+                -2.1  0.7 -0.6 1.0   -1.0  0.7 -2.5 1.5    1.0  0.7 -2.5 1.5    2.1  0.7 -0.6 1.0
+                -1.3  1.8 -0.3 1.0   -0.6  1.8 -1.6 1.3    0.6  1.8 -1.6 1.3    1.3  1.8 -0.3 1.0
+            ]
+    AttributeEnd
+
+    # Base and Crown Caps (Torus rings)
+    AttributeBegin
+        Translate 0.0 -1.65 0.0
+        Rotate 90 1 0 0
+        Color [0.3 0.32 0.36]
+        Surface "metal" "Ka" [0.2] "Ks" [0.8] "roughness" [0.15]
+        Torus 1.55 0.14 0.0 360.0 360.0
+    AttributeEnd
+
+    AttributeBegin
+        Translate 0.0 1.85 0.0
+        Rotate 90 1 0 0
+        Color [0.3 0.32 0.36]
+        Surface "metal" "Ka" [0.2] "Ks" [0.8] "roughness" [0.15]
+        Torus 1.35 0.12 0.0 360.0 360.0
+    AttributeEnd
+
+WorldEnd

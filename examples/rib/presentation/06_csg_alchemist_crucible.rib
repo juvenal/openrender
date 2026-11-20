@@ -1,0 +1,174 @@
+##RenderMan RIB-Structure 1.1
+##Scene: 06_csg_alchemist_crucible.rib
+##Features: Concentric CSG Spherical Shells with Sliced Viewing Windows & Nested Torus Rings
+version 3.03
+
+Format 1024 768 1.0
+PixelSamples 4 4
+PixelFilter "gaussian" 2.0 2.0
+ShadingRate 1.0
+Display "06_csg_alchemist_crucible.tif" "file" "rgba"
+
+Projection "perspective" "fov" [38.0]
+Clipping 0.1 100.0
+
+Translate 0.0 -0.1 6.6
+Rotate -20.0 1 0 0
+Rotate 25.0 0 1 0
+
+WorldBegin
+
+    LightSource "ambientlight" 1 "intensity" [0.12] "lightcolor" [0.8 0.85 1.0]
+    LightSource "pointlight" 2 "from" [3.5 5.5 -3.0] "intensity" [36.0] "lightcolor" [1.0 0.94 0.84]
+    LightSource "pointlight" 3 "from" [-4.0 3.0 -2.5] "intensity" [15.0] "lightcolor" [0.55 0.78 1.0]
+    LightSource "pointlight" 4 "from" [0.0 0.0 0.0] "intensity" [6.0] "lightcolor" [1.0 0.5 0.15]
+
+    # Floor
+    AttributeBegin
+        Color [0.74 0.72 0.68]
+        Surface "matte" "Kd" [0.85]
+        Polygon "P" [-14.0 -1.85 -14.0  14.0 -1.85 -14.0  14.0 -1.85 14.0  -14.0 -1.85 14.0]
+    AttributeEnd
+
+    # =========================================================================
+    # Outer Crucible Shell: Thick Spherical Shell (Outer R=1.75 minus Inner R=1.50)
+    # Carve out an Octant Viewing Wedge + Equatorial Slot using CSG Difference
+    # =========================================================================
+    AttributeBegin
+        Attribute "identifier" "name" ["CSGCrucibleOuterShell"]
+        Surface "plastic" "Ka" [0.15] "Kd" [0.68] "Ks" [0.85] "roughness" [0.06]
+
+        SolidBegin "difference"
+            # Hollow Spherical Shell = Sphere(1.75) - Sphere(1.48)
+            SolidBegin "difference"
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.18 0.42 0.68]
+                        Sphere 1.75 -1.75 1.75 360.0
+                    AttributeEnd
+                SolidEnd
+                SolidBegin "primitive"
+                    AttributeBegin
+                        # Inner wall gold lining
+                        Color [0.95 0.75 0.25]
+                        Sphere 1.48 -1.48 1.48 360.0
+                    AttributeEnd
+                SolidEnd
+            SolidEnd
+
+            # Cutout Volumes: Front-Top-Left Viewing Box + 2 Side Porthole Cylinders
+            SolidBegin "union"
+                # Viewing Wedge Box
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.92 0.35 0.22]
+                        PointsPolygons
+                            [4 4 4 4 4 4]
+                            [0 1 2 3  4 7 6 5  0 4 5 1  1 5 6 2  2 6 7 3  3 7 4 0]
+                            "P" [
+                                -2.0  0.0 -2.0    0.2  0.0 -2.0    0.2  2.0 -2.0   -2.0  2.0 -2.0
+                                -2.0  0.0  0.2    0.2  0.0  0.2    0.2  2.0  0.2   -2.0  2.0  0.2
+                            ]
+                    AttributeEnd
+                SolidEnd
+                # Right Porthole Cylinder
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.92 0.35 0.22]
+                        Rotate 90 0 1 0
+                        Cylinder 0.68 0.0 2.2 360.0
+                        Disk 2.2 0.68 360.0
+                        Disk 0.0 0.68 360.0
+                    AttributeEnd
+                SolidEnd
+                # Lower Front Porthole Cylinder
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.92 0.35 0.22]
+                        Translate 0.45 -0.65 0.0
+                        Cylinder 0.52 -2.2 0.0 360.0
+                        Disk 0.0 0.52 360.0
+                        Rotate 180 1 0 0
+                        Disk 2.2 0.52 360.0
+                    AttributeEnd
+                SolidEnd
+            SolidEnd
+        SolidEnd
+    AttributeEnd
+
+    # =========================================================================
+    # Middle Gyroscopic Ring Assembly (CSG Union of Crossed Tori minus Notches)
+    # =========================================================================
+    AttributeBegin
+        Attribute "identifier" "name" ["CSGGyroRings"]
+        Surface "metal" "Ka" [0.2] "Ks" [0.9] "roughness" [0.1]
+        Color [0.88 0.68 0.28]
+
+        SolidBegin "difference"
+            SolidBegin "union"
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Rotate 35 1 0 0
+                        Torus 1.08 0.14 0.0 360.0 360.0
+                    AttributeEnd
+                SolidEnd
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Rotate -55 0 1 0
+                        Torus 1.08 0.14 0.0 360.0 360.0
+                    AttributeEnd
+                SolidEnd
+            SolidEnd
+            # Carve four equatorial notches
+            SolidBegin "primitive"
+                AttributeBegin
+                    Color [0.95 0.3 0.3]
+                    Rotate 90 0 1 0
+                    Cylinder 0.28 -1.5 1.5 360.0
+                    Disk 1.5 0.28 360.0
+                    Rotate 180 1 0 0
+                    Disk 1.5 0.28 360.0
+                AttributeEnd
+            SolidEnd
+        SolidEnd
+    AttributeEnd
+
+    # =========================================================================
+    # Inner Philosopher's Stone Core (CSG Intersection of Octahedral Star & Sphere)
+    # =========================================================================
+    AttributeBegin
+        Attribute "identifier" "name" ["CSGCoreCrystal"]
+        Color [0.95 0.22 0.38]
+        Surface "plastic" "Ka" [0.35] "Kd" [0.55] "Ks" [0.95] "roughness" [0.03]
+
+        SolidBegin "difference"
+            SolidBegin "primitive"
+                Sphere 0.68 -0.68 0.68 360.0
+            SolidEnd
+            SolidBegin "union"
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [1.0 0.8 0.3]
+                        Translate 0.0 0.0 -0.55
+                        Sphere 0.42 -0.42 0.42 360.0
+                    AttributeEnd
+                SolidEnd
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [1.0 0.8 0.3]
+                        Translate -0.55 0.0 0.0
+                        Sphere 0.42 -0.42 0.42 360.0
+                    AttributeEnd
+                SolidEnd
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [1.0 0.8 0.3]
+                        Translate 0.0 0.55 0.0
+                        Sphere 0.42 -0.42 0.42 360.0
+                    AttributeEnd
+                SolidEnd
+            SolidEnd
+        SolidEnd
+    AttributeEnd
+
+WorldEnd

@@ -1,0 +1,163 @@
+##RenderMan RIB-Structure 1.1
+##Scene: 11_blobby_mercury_splash_crown_mblur.rib
+##Features: High-Velocity Liquid Metal Blobby Splash + Shutter [0 1] + MotionBegin/MotionEnd
+##          Both Deformation Motion Blur (expanding Blobby matrices) and Trajectory Blur
+version 3.03
+
+Format 1024 768 1.0
+PixelSamples 8 8
+PixelFilter "gaussian" 2.0 2.0
+ShadingRate 1.0
+Display "11_blobby_mercury_splash_crown_mblur.tif" "file" "rgba"
+
+Shutter 0.0 1.0
+Projection "perspective" "fov" [38.0]
+Clipping 0.1 100.0
+
+Translate 0.0 -0.2 7.2
+Rotate -28.0 1 0 0
+Rotate 20.0 0 1 0
+
+WorldBegin
+
+    LightSource "ambientlight" 1 "intensity" [0.16] "lightcolor" [0.82 0.88 1.0]
+    LightSource "pointlight" 2 "from" [4.0 6.5 -3.0] "intensity" [48.0] "lightcolor" [1.0 0.97 0.9]
+    LightSource "pointlight" 3 "from" [-4.5 4.0 -2.5] "intensity" [24.0] "lightcolor" [0.55 0.78 1.0]
+    LightSource "pointlight" 4 "from" [0.0 3.0 3.5] "intensity" [16.0] "lightcolor" [1.0 0.75 0.45]
+
+    # Static Basin Floor
+    AttributeBegin
+        Color [0.20 0.22 0.26]
+        Surface "plastic" "Ka" [0.1] "Kd" [0.5] "Ks" [0.6] "roughness" [0.1]
+        Polygon "P" [-15.0 -1.35 -15.0  15.0 -1.35 -15.0  15.0 -1.35 15.0  -15.0 -1.35 15.0]
+    AttributeEnd
+
+    # =========================================================================
+    # 1. Main Mercury Crown Basin (Static/Anchoring Base with Subtractive Crater)
+    # =========================================================================
+    AttributeBegin
+        Color [0.84 0.88 0.94]
+        Surface "metal" "Ka" [0.22] "Ks" [0.95] "roughness" [0.05]
+
+        Blobby 8
+            [
+                1001 0
+                1001 16
+                1001 32
+                1001 48
+                1001 64
+                1002 80
+                1002 103
+                1001 126
+                0 7  0 1 2 3 4 5 6
+                4 8 7
+            ]
+            [
+                2.35 0.0  0.0  0.0
+                0.0  0.55 0.0  0.0
+                0.0  0.0  2.35 0.0
+                0.0 -0.95 0.0  1.0
+
+                1.25 0.0  0.0  0.0
+                0.0  0.85 0.0  0.0
+                0.0  0.0  0.65 0.0
+                0.0 -0.35 1.45 1.0
+
+                1.25 0.0  0.0  0.0
+                0.0  0.85 0.0  0.0
+                0.0  0.0  0.65 0.0
+                0.0 -0.35 -1.45 1.0
+
+                0.65 0.0  0.0  0.0
+                0.0  0.85 0.0  0.0
+                0.0  0.0  1.25 0.0
+                1.45 -0.35 0.0 1.0
+
+                0.65 0.0  0.0  0.0
+                0.0  0.85 0.0  0.0
+                0.0  0.0  1.25 0.0
+               -1.45 -0.35 0.0 1.0
+
+                1.05 -0.35 -1.05   1.75 0.85 -1.65   0.38
+                1.0 0.0 0.0 0.0   0.0 1.0 0.0 0.0   0.0 0.0 1.0 0.0   0.0 0.0 0.0 1.0
+
+               -1.05 -0.35 -1.05  -1.75 0.85 -1.65   0.38
+                1.0 0.0 0.0 0.0   0.0 1.0 0.0 0.0   0.0 0.0 1.0 0.0   0.0 0.0 0.0 1.0
+
+                1.25 0.0  0.0  0.0
+                0.0  0.85 0.0  0.0
+                0.0  0.0  1.25 0.0
+                0.0 -0.15 0.0  1.0
+            ]
+            [""]
+    AttributeEnd
+
+    # =========================================================================
+    # 2. High-Velocity Ejected Blobby Droplets with Fast Upward/Outward Motion Blur!
+    # =========================================================================
+    # Central Worthington Jet Shooting Upward
+    AttributeBegin
+        MotionBegin [0.0 1.0]
+            Translate 0.0 0.65 0.0
+            Translate 0.0 1.38 0.0
+        MotionEnd
+        Color [0.88 0.92 0.98]
+        Surface "metal" "Ka" [0.22] "Ks" [0.95] "roughness" [0.04]
+
+        Blobby 2
+            [1001 0  1001 16  0 2 0 1]
+            [
+                0.58 0.0 0.0 0.0   0.0 0.85 0.0 0.0   0.0 0.0 0.58 0.0   0.0  0.0  0.0 1.0
+                0.42 0.0 0.0 0.0   0.0 0.55 0.0 0.0   0.0 0.0 0.42 0.0   0.0  0.72 0.0 1.0
+            ]
+            [""]
+    AttributeEnd
+
+    # Right Ejected Blobby Pair Streaking Outward
+    AttributeBegin
+        MotionBegin [0.0 1.0]
+            Translate 1.35 0.65 0.35
+            Translate 1.95 1.25 0.65
+        MotionEnd
+        Color [0.88 0.92 0.98]
+        Surface "metal" "Ka" [0.22] "Ks" [0.95] "roughness" [0.04]
+
+        Blobby 2
+            [1001 0  1001 16  0 2 0 1]
+            [
+                0.45 0.0 0.0 0.0   0.0 0.45 0.0 0.0   0.0 0.0 0.45 0.0   0.0  0.0  0.0 1.0
+                0.35 0.0 0.0 0.0   0.0 0.35 0.0 0.0   0.0 0.0 0.35 0.0   0.38 0.38 0.0 1.0
+            ]
+            [""]
+    AttributeEnd
+
+    # Left Ejected Blobby Pair Streaking Outward
+    AttributeBegin
+        MotionBegin [0.0 1.0]
+            Translate -1.35 0.55 0.25
+            Translate -1.98 1.18 0.55
+        MotionEnd
+        Color [0.88 0.92 0.98]
+        Surface "metal" "Ka" [0.22] "Ks" [0.95] "roughness" [0.04]
+
+        Blobby 2
+            [1001 0  1001 16  0 2 0 1]
+            [
+                0.45 0.0 0.0 0.0   0.0 0.45 0.0 0.0   0.0 0.0 0.45 0.0    0.0  0.0 0.0 1.0
+                0.35 0.0 0.0 0.0   0.0 0.35 0.0 0.0   0.0 0.0 0.35 0.0   -0.38 0.38 0.0 1.0
+            ]
+            [""]
+    AttributeEnd
+
+    # Golden Impact Sphere Rebounding High with Vertical Motion Blur
+    AttributeBegin
+        MotionBegin [0.0 1.0]
+            Translate 0.0 1.85 0.0
+            Translate 0.0 2.45 0.0
+        MotionEnd
+        Color [0.98 0.76 0.22]
+        Surface "metal" "Ka" [0.2] "Ks" [0.95] "roughness" [0.04]
+        Sphere 0.36 -0.36 0.36 360.0
+    AttributeEnd
+
+WorldEnd

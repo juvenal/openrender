@@ -1,0 +1,160 @@
+##RenderMan RIB-Structure 1.1
+##Scene: 04_csg_wiktor_cube_lens.rib
+##Features: Deep Nested CSG SolidBegin/SolidEnd ("difference", "intersection", "union", "primitive")
+##          Classic CSG Rounded-Cube + 3 Orthogonal Drilled Cylinders + Bi-Convex Spherical Lens
+version 3.03
+
+Format 1024 768 1.0
+PixelSamples 4 4
+PixelFilter "gaussian" 2.0 2.0
+ShadingRate 1.0
+Display "04_csg_wiktor_cube_lens.tif" "file" "rgba"
+
+Projection "perspective" "fov" [38.0]
+Clipping 0.1 100.0
+
+Translate 0.0 -0.2 6.8
+Rotate -22.0 1 0 0
+Rotate 32.0 0 1 0
+
+WorldBegin
+
+    LightSource "ambientlight" 1 "intensity" [0.14] "lightcolor" [0.85 0.9 1.0]
+    LightSource "pointlight" 2 "from" [4.0 6.0 -3.0] "intensity" [38.0] "lightcolor" [1.0 0.95 0.88]
+    LightSource "pointlight" 3 "from" [-4.5 3.0 -2.0] "intensity" [16.0] "lightcolor" [0.6 0.8 1.0]
+    LightSource "pointlight" 4 "from" [0.0 0.0 0.0] "intensity" [3.5] "lightcolor" [1.0 0.7 0.3]
+
+    # Studio Floor
+    AttributeBegin
+        Color [0.76 0.75 0.72]
+        Surface "matte" "Kd" [0.85]
+        Polygon "P" [-14.0 -1.55 -14.0  14.0 -1.55 -14.0  14.0 -1.55 14.0  -14.0 -1.55 14.0]
+    AttributeEnd
+
+    # =========================================================================
+    # Primary CSG Assembly: Classic Mechanical Hollowed Cube
+    # Outer = Difference(
+    #            Intersection(Box(1.5), Sphere(1.95)),
+    #            Union(CylinderX(0.88), CylinderY(0.88), CylinderZ(0.88), InnerSphere(1.25))
+    #         )
+    # =========================================================================
+    AttributeBegin
+        Attribute "identifier" "name" ["CSGWiktorCube"]
+        Surface "plastic" "Ka" [0.15] "Kd" [0.68] "Ks" [0.8] "roughness" [0.07]
+
+        SolidBegin "difference"
+
+            # 1. Base Positive Volume: Chamfered/Rounded Cube = Intersection(Cube, Sphere)
+            SolidBegin "intersection"
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.22 0.58 0.86]
+                        PointsPolygons
+                            [4 4 4 4 4 4]
+                            [
+                                0 1 2 3   4 7 6 5   0 4 5 1
+                                1 5 6 2   2 6 7 3   3 7 4 0
+                            ]
+                            "P" [
+                                -1.5 -1.5 -1.5    1.5 -1.5 -1.5    1.5  1.5 -1.5   -1.5  1.5 -1.5
+                                -1.5 -1.5  1.5    1.5 -1.5  1.5    1.5  1.5  1.5   -1.5  1.5  1.5
+                            ]
+                    AttributeEnd
+                SolidEnd
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.95 0.72 0.22]
+                        Sphere 1.98 -1.98 1.98 360.0
+                    AttributeEnd
+                SolidEnd
+            SolidEnd
+
+            # 2. Subtracted Volume: Union of 3 Orthogonal Cylinders + Central Hollowing Sphere
+            SolidBegin "union"
+                # Z-axis Bore Cylinder (with end disks to form closed solid)
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.9 0.28 0.32]
+                        Cylinder 0.88 -2.2 2.2 360.0
+                        Disk 2.2 0.88 360.0
+                        Rotate 180 1 0 0
+                        Disk 2.2 0.88 360.0
+                    AttributeEnd
+                SolidEnd
+
+                # X-axis Bore Cylinder
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.9 0.28 0.32]
+                        Rotate 90 0 1 0
+                        Cylinder 0.88 -2.2 2.2 360.0
+                        Disk 2.2 0.88 360.0
+                        Rotate 180 1 0 0
+                        Disk 2.2 0.88 360.0
+                    AttributeEnd
+                SolidEnd
+
+                # Y-axis Bore Cylinder
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.9 0.28 0.32]
+                        Rotate 90 1 0 0
+                        Cylinder 0.88 -2.2 2.2 360.0
+                        Disk 2.2 0.88 360.0
+                        Rotate 180 1 0 0
+                        Disk 2.2 0.88 360.0
+                    AttributeEnd
+                SolidEnd
+
+                # Central Chamber Hollowing Sphere
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.95 0.55 0.25]
+                        Sphere 1.32 -1.32 1.32 360.0
+                    AttributeEnd
+                SolidEnd
+            SolidEnd
+
+        SolidEnd
+    AttributeEnd
+
+    # =========================================================================
+    # Secondary CSG Solid (Suspended Inside the Cube):
+    # Bi-Convex Lens = Intersection of two offset Spheres minus a central ring groove
+    # =========================================================================
+    AttributeBegin
+        Attribute "identifier" "name" ["CSGInnerBiconvexLens"]
+        Rotate -25 0 1 0
+        Rotate 15 1 0 0
+        Color [0.25 0.92 0.68]
+        Surface "plastic" "Ka" [0.2] "Kd" [0.6] "Ks" [0.95] "roughness" [0.03]
+
+        SolidBegin "difference"
+            SolidBegin "intersection"
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Translate 0.0 0.0 -0.55
+                        Sphere 1.05 -1.05 1.05 360.0
+                    AttributeEnd
+                SolidEnd
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Translate 0.0 0.0 0.55
+                        Sphere 1.05 -1.05 1.05 360.0
+                    AttributeEnd
+                SolidEnd
+            SolidEnd
+            # Subtract a small axial pinhole cylinder
+            SolidBegin "primitive"
+                AttributeBegin
+                    Color [1.0 0.85 0.3]
+                    Cylinder 0.24 -1.0 1.0 360.0
+                    Disk 1.0 0.24 360.0
+                    Rotate 180 1 0 0
+                    Disk 1.0 0.24 360.0
+                AttributeEnd
+            SolidEnd
+        SolidEnd
+    AttributeEnd
+
+WorldEnd
