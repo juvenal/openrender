@@ -222,6 +222,7 @@ static	TRSLObjectFunction		functions[]	=	{
 		} TShaderData;
 
 		TShaderData						currentData;
+		std::vector<char>				currentStringSlots;		// Per variable: is it a string (becomes the payload's stringSlot)
 
 									///////////////////////////////////////////////////////////////////////
 									// Function				:	numComponents
@@ -300,6 +301,9 @@ static	TRSLObjectFunction		functions[]	=	{
 												cVariable->uniform		=	currentData.uniform;
 												cVariable->variable		=	NULL;
 												cVariable->index		=	currentData.currentVariable;
+
+												if ((int) currentStringSlots.size() <= currentData.currentVariable)	currentStringSlots.resize(currentData.currentVariable + 1, 0);
+												currentStringSlots[currentData.currentVariable]	=	(type == TYPE_STRING);
 
 												if (type == TYPE_STRING)
 													currentData.varyingSizes[currentData.currentVariable]	=	numItems*numComp*sizeof(char*);
@@ -2144,6 +2148,7 @@ CShader	*parseShader(const char *shaderName,const char *name) {
 	fseek(fin,0,SEEK_SET);
 	alloc();
 	currentData.passNumber				=	2;
+	currentStringSlots.clear();
 
 	// The second pass
 	arenaBegin(globalArena);
@@ -2338,6 +2343,8 @@ CShader	*shaderCreate(const char *shaderName) {
 
 	payload->numStrings					=	currentData.numStrings;
 	payload->numVariables				=	currentData.numVariables;
+	payload->stringSlot					=	std::move(currentStringSlots);
+	currentStringSlots.clear();
 
 	payload->codeEntryPoint				=	currentData.codeEntryPoint;
 	payload->initEntryPoint				=	currentData.initEntryPoint;

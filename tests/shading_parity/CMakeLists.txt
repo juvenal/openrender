@@ -112,6 +112,21 @@ set_tests_properties(ShadingParity_MatrixTransformJit PROPERTIES
     ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;ORENDER_BIN=$<TARGET_FILE:orender>;TEST_DISPLAYS_DIR=$<TARGET_FILE_DIR:file>"
 )
 
+# GitHub #191: a local (or parameter slot) the shader reads before it assigns
+# held arena garbage, because prepare() never cleared the block. Renders a real
+# fixture twice on one render thread, so the second shading reuses the arena the
+# first dirtied, on both backends; a float must read 0, a string "", and
+# `==`, printf("%s") and trace()'s "label" must not crash.
+add_executable(test_shading_parity_uninitialized_locals test_uninitialized_locals.cpp)
+target_link_libraries(test_shading_parity_uninitialized_locals PRIVATE openrender_common_flags)
+target_compile_features(test_shading_parity_uninitialized_locals PRIVATE cxx_std_20)
+add_test(NAME ShadingParity_UninitializedLocals COMMAND test_shading_parity_uninitialized_locals)
+set_tests_properties(ShadingParity_UninitializedLocals PROPERTIES
+    TIMEOUT 60
+    LABELS "shading_parity"
+    ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;ORENDER_BIN=$<TARGET_FILE:orender>;TEST_DISPLAYS_DIR=$<TARGET_FILE_DIR:file>"
+)
+
 # GitHub #123/#124: a point/vector written in a named space reaches the
 # current space the same way on both backends -- a light parameter default
 # (converted once at bind time, where the JIT has no shading context) and a
