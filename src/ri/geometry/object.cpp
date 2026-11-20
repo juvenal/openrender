@@ -83,8 +83,8 @@ void CObject::collectEmitters(IRayContext &, CEmitterCollector &out) {
     out.unsupported(this);
 }
 
-void CSurface::collectTessellatedEmitter(CEmitterCollector &out) {
-    CAreaTable table = makeTessellatedTable(this);
+void CSurface::collectTessellatedEmitter(CEmitterCollector &out, int cellsPerSide) {
+    CAreaTable table = cellsPerSide > 0 ? makeTessellatedTable(this, cellsPerSide) : makeTessellatedTable(this);
     const double area = table.area;
     out.addLeaf(this, std::move(table), area);
 }

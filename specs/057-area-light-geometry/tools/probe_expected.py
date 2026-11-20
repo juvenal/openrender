@@ -322,3 +322,138 @@ def pixel_value_multi(kind, quads, R, n_r, intensity):
 # side. Nothing else blocks: with the light's own scope excluded from its occlusion rays (FR-017) the receiver reads E_A + E_B; with
 # no exclusion, B hides the samples of A.
 EMITTER_FRONT = Quad([2.5, -0.5, 1.5], [2.5, -0.5, 3.0], [2.5, 0.5, 3.0], [2.5, 0.5, 1.5])
+
+
+# ---- Phase 7: quadric emitters (a disk and a sphere under the shipped arealight) --------------------------------------------------------
+class QuadricEmitter:
+    """A curved emitter parametrized over the unit square by an equal-area map, so a uniform (a, b) is a uniform-by-area point.
+    point(s, t) -> (P, unit outward/facing normal); the area element is `area` per unit of the map's own measure."""
+
+    def mean(self, f):
+        """(mean of f over the surface by area, mean of f^2): Gauss-Legendre over the map's two coordinates."""
+        raise NotImplementedError
+
+    def integrate(self, f):
+        m1, m2 = self.mean(f)
+        return m1 * self.area, m2 * self.area
+
+
+class DiskEmitter(QuadricEmitter):
+    """A flat disk of radius R at `centre`, facing `normal` (the +z of RiDisk before the transform); full turn."""
+
+    def __init__(self, centre, radius, normal=(0.0, 0.0, 1.0)):
+        self.c, self.R, self.normal = list(centre), radius, list(unit(list(normal)))
+        self.area = math.pi * radius * radius
+        e1 = unit(cross(self.normal, [1.0, 0.0, 0.0] if abs(self.normal[0]) < 0.9 else [0.0, 1.0, 0.0]))
+        self.e1, self.e2 = e1, cross(self.normal, e1)
+
+    def point(self, s, phi):
+        """s in [0, 1] the radius fraction, phi the angle: the point and its normal."""
+        r = self.R * s
+        return add(self.c, add(mul(self.e1, r * math.cos(phi)), mul(self.e2, r * math.sin(phi)))), self.normal
+
+    def mean(self, f):
+        xs, ws = _GL
+        nphi = 64
+        m1 = m2 = 0.0
+        for i in range(len(xs)):
+            s = 0.5 * (xs[i] + 1.0)
+            wi = 0.5 * ws[i] * 2.0 * s            # dA / A = 2 s ds dphi / (2 pi)
+            for k in range(nphi):
+                phi = 2.0 * math.pi * (k + 0.5) / nphi
+                p, n = self.point(s, phi)
+                val = f(p, n)
+                m1 += wi * val / nphi
+                m2 += wi * val * val / nphi
+        return m1, m2
+
+
+class SphereEmitter(QuadricEmitter):
+    """A full sphere of radius r at `centre`; the normal is outward."""
+
+    def __init__(self, centre, radius):
+        self.c, self.r = list(centre), radius
+        self.area = 4.0 * math.pi * radius * radius
+
+    def point(self, z, phi):
+        """z in [-1, 1] (Archimedes: uniform z is uniform area), phi the longitude."""
+        rho = math.sqrt(max(0.0, 1.0 - z * z))
+        n = [rho * math.cos(phi), rho * math.sin(phi), z]
+        return add(self.c, mul(n, self.r)), n
+
+    def mean(self, f):
+        xs, ws = _GL
+        nphi = 64
+        m1 = m2 = 0.0
+        for i in range(len(xs)):
+            z = xs[i]
+            wi = 0.5 * ws[i]
+            for k in range(nphi):
+                phi = 2.0 * math.pi * (k + 0.5) / nphi
+                p, n = self.point(z, phi)
+                val = f(p, n)
+                m1 += wi * val / nphi
+                m2 += wi * val * val / nphi
+        return m1, m2
+
+
+def pixel_value_emitter(emitter, R, n_r, intensity):
+    """(E, sigma_1) at receiver point R for the shipped arealight over a quadric emitter: f = I cos_e cos_r / r^2 on the points that face
+    R (the light's own illuminate(P, N, PI/2) test), zero elsewhere; sigma_1 is the standard deviation of A f(x) over a uniform draw."""
+    def f(p, n):
+        w = sub(p, R)
+        r2 = dot(w, w)
+        r = math.sqrt(r2)
+        cos_e = dot(n, mul(w, -1.0 / r))
+        if cos_e <= 0.0:
+            return 0.0
+        return intensity * cos_e * max(0.0, dot(n_r, mul(w, 1.0 / r))) / r2
+
+    m1, m2 = emitter.mean(f)
+    return m1 * emitter.area, emitter.area * math.sqrt(max(0.0, m2 - m1 * m1))
+
+
+def sphere_closed_form(centre, radius, R, n_r, intensity):
+    """E = I pi (r / d)^2 cos(theta_c): the projected solid angle of a sphere wholly above the receiver's horizon, theta_c the angle
+    between the receiver normal and the direction to the centre."""
+    w = sub(centre, R)
+    d = norm(w)
+    return intensity * math.pi * (radius / d) ** 2 * dot(n_r, mul(w, 1.0 / d))
+
+
+def disk_closed_form_on_axis(radius, d, intensity):
+    """E = I pi R^2 / (R^2 + d^2): a receiver on the axis of a disk, facing it, at distance d."""
+    return intensity * math.pi * radius * radius / (radius * radius + d * d)
+
+
+DISK = DiskEmitter([3.0, 0.0, 2.0], 1.2)             # Translate 3 0 2, Disk 0 1.2 360: in the plane z = 2, facing +z (toward the receiver z = 4)
+SPHERE = SphereEmitter([3.0, 0.0, 2.0], 0.8)         # Translate 3 0 2, Sphere 0.8 -0.8 0.8 360
+QUADRIC_INTENSITY = 10.0
+
+
+def quadric_self_test():
+    # the disk on its axis, quadrature against the closed form (receiver normal toward the disk: -z... the disk is below, so n_r = -z)
+    disk = DiskEmitter([0.0, 0.0, 2.0], 1.2)
+    for d in (1.0, 2.0, 3.5):
+        e, _ = pixel_value_emitter(disk, [0.0, 0.0, 2.0 + d], [0.0, 0.0, -1.0], 10.0)
+        assert abs(e - disk_closed_form_on_axis(1.2, d, 10.0)) < 2e-4 * e, ("disk on axis", d, e)
+    # the sphere at several receiver points and normals, quadrature against the closed form (sphere wholly above the horizon)
+    for R in ([0.0, 0.0, 4.0], [-0.125, 0.125, 4.0], [0.625, -0.25, 4.0], [1.0, 1.0, 4.0]):
+        e, _ = pixel_value_emitter(SPHERE, R, [0.0, 0.0, -1.0], 10.0)
+        c = sphere_closed_form(SPHERE.c, SPHERE.r, R, [0.0, 0.0, -1.0], 10.0)
+        assert abs(e - c) < 2e-3 * c, ("sphere", R, e, c)
+
+
+def quadric_samples(emitter, pixels, n_min=16, rel=0.2):
+    """The light's sample count n: the smallest power of two >= n_min with 4 sigma_1 / sqrt(n) <= rel * E at every probed pixel."""
+    n = n_min
+    while True:
+        ok = True
+        for (i, j) in pixels:
+            x, y = pixel_center(i, j)
+            e, s1 = pixel_value_emitter(emitter, [x, y, RECEIVER_Z], RECEIVER_N, QUADRIC_INTENSITY)
+            if tolerance(s1, n) > rel * e:
+                ok = False
+        if ok:
+            return n
+        n *= 2

@@ -161,7 +161,51 @@ void CAreaTable::finalize() {
     cdf.back() = 1.0;
 }
 
+namespace {
+
+    // The point of an analytic table: the surface's own (u, v) from the equal-area map, then P and Ng from the true surface there
+    bool drawQuadric(const CAreaTable &t, double u1, double u2, CAreaSample &out) {
+        double u = u2, v = u1;
+        switch (t.map) {
+            case EAreaMap::Sphere: {
+                // z = r sin(latitude) uniform is uniform by area (Archimedes); v is the latitude's place between vmin and vmax
+                const double s0 = std::sin(t.vRange[0]), s1 = std::sin(t.vRange[1]);
+                const double lat = std::asin(std::max(-1.0, std::min(1.0, s0 + u1 * (s1 - s0))));
+                v = (lat - t.vRange[0]) / (t.vRange[1] - t.vRange[0]);
+                break;
+            }
+            case EAreaMap::Disk:
+            case EAreaMap::Cone:
+                v = 1.0 - std::sqrt(u1); // the radius fraction 1 - v is sqrt of a uniform number: equal-area annuli
+                break;
+            default: // Cylinder: v is the height fraction, uniform
+                break;
+        }
+        out.u = static_cast<float>(u);
+        out.v = static_cast<float>(v);
+        float Ps[3], Ns[3];
+        double len = 0.0;
+        // a pole or the apex has no normal: step off it by 1e-4 of the range (a draw there has probability zero)
+        for (int attempt = 0; attempt < 2 && !(len > 0.0); attempt++) {
+            if (attempt == 1) {
+                out.u = static_cast<float>(u * (1.0 - 2e-4) + 1e-4);
+                out.v = static_cast<float>(v * (1.0 - 2e-4) + 1e-4);
+            }
+            t.surface->samplePoint(out.u, out.v, Ps, Ns);
+            len = std::sqrt((double)Ns[0] * Ns[0] + (double)Ns[1] * Ns[1] + (double)Ns[2] * Ns[2]);
+        }
+        for (int k = 0; k < 3; k++) {
+            out.P[k] = Ps[k];
+            out.Ng[k] = len > 0.0 ? static_cast<float>(Ns[k] / len) : 0.0f;
+        }
+        return true;
+    }
+
+} // namespace
+
 bool CAreaTable::draw(double u1, double u2, CAreaSample &out) const {
+    if (map >= EAreaMap::Sphere)
+        return area > 0.0 && surface != nullptr && drawQuadric(*this, u1, u2, out);
     if (!(area > 0.0) || cdf.empty())
         return false;
     double r1;
@@ -304,6 +348,16 @@ CAreaTable makeQuadTable(const CSurface *surface, const float *v0, const float *
         setFace(t.faces[1], B, C, D, false);
     }
     t.finalize();
+    return t;
+}
+
+CAreaTable makeQuadricTable(const CSurface *surface, EAreaMap kind, double area, double vmin, double vmax) {
+    CAreaTable t;
+    t.map = kind;
+    t.surface = surface;
+    t.area = area > 0.0 && std::isfinite(area) ? area : 0.0;
+    t.vRange[0] = vmin;
+    t.vRange[1] = vmax;
     return t;
 }
 

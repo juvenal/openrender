@@ -276,7 +276,7 @@ class CSurface : public CObject {
 
         // Spec 057: report this surface as one sampleable leaf with the tessellated table of its own evaluation
         // (kAreaTessellationK cells a side). What the free-form leaves (limit patches, bicubic patches) call.
-        void collectTessellatedEmitter(CEmitterCollector &out);
+        void collectTessellatedEmitter(CEmitterCollector &out, int cellsPerSide = 0); // 0: the default of areaSampling.h
 
     protected:
         // Shared ray-rejection + displacement-tesselation guard used at the top

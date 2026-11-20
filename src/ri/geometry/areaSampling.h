@@ -40,6 +40,12 @@
 // Cells per side of a tessellated table (subdivision limit patches, non-planar quads, the free-form patches)
 inline constexpr int kAreaTessellationK = 8;
 
+// Cells per side of the table of a quadric with no analytic sampler (paraboloid, hyperboloid, torus, and any quadric under a transform that
+// is not a rigid motion with a uniform scale). Measured on the torus (major radius 2, minor 0.5): the flat-triangle table loses 8.6 % of the
+// area at K = 8, 2.2 % at K = 16 and about 1.4 % at K = 20 (the loss goes as K^-2; the (2 pi / K)^2 / 24 per direction estimate of research R3
+// was too low for a doubly curved surface)
+inline constexpr int kQuadricTessellationK = 20;
+
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CAreaSample
 // Description			:	One draw: a point of a leaf and the density of drawing it
@@ -52,7 +58,9 @@ struct CAreaSample {
         float pdfA = 0;
 };
 
-enum class EAreaMap { Affine, PolygonTriangle, BilinearQuad };
+// Affine, PolygonTriangle and BilinearQuad draw from flat faces; Sphere, Disk, Cylinder and Cone are the analytic samplers of a quadric
+// (spec 057 phase 7): an equal-area map from the two numbers to the surface's own (u, v), and P and Ng evaluated on the true surface
+enum class EAreaMap { Affine, PolygonTriangle, BilinearQuad, Sphere, Disk, Cylinder, Cone };
 
 // One flat triangle of a table
 struct CAreaFace {
@@ -75,6 +83,7 @@ class CAreaTable {
         std::vector<CAreaFace> faces;
         std::vector<double> cdf; // cumulative face areas, normalized, cdf.back() == 1; empty when area == 0
         double area = 0;
+        double vRange[2] = {0, 0}; // Sphere: the latitude limits vmin, vmax (radians) the map inverts; no faces, no cdf for the analytic kinds
 
         // Sums the faces' areas and builds the cdf
         void finalize();
@@ -94,6 +103,11 @@ CAreaTable makeTriangleTable(const float *v0, const float *v1, const float *v2);
 // A polygon mesh quad (CPolygonQuad's parametrization: P = (v0 (1-u) + v1 u)(1-v) + (v2 (1-u) + v3 u) v), corners in camera space.
 // Planar and convex along a diagonal: the exact sampler. Otherwise the tessellated table of `surface`.
 CAreaTable makeQuadTable(const CSurface *surface, const float *v0, const float *v1, const float *v2, const float *v3);
+
+// The analytic table of a quadric (kind Sphere, Disk, Cylinder or Cone) of camera-space area `area` (zero or less: an empty table, never
+// chosen). A sphere's latitude limits are vmin and vmax; the other kinds ignore them. Valid only while the surface's area element is uniform
+// in the map, i.e. under a rigid motion with a uniform scale (the quadric checks that before it asks for this table).
+CAreaTable makeQuadricTable(const CSurface *surface, EAreaMap kind, double area, double vmin = 0.0, double vmax = 0.0);
 
 // The tessellated table of a surface over [0, 1]^2 at shutter open, K x K cells
 CAreaTable makeTessellatedTable(const CSurface *surface, int K = kAreaTessellationK);

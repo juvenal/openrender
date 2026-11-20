@@ -135,10 +135,10 @@ def add_probe(test, scene, x, y, tol, values, channels=None):
     probes.append((test, scene, x, y, tol, channels, values))
 
 
-def pixel_comment(rows):
+def pixel_comment(rows, n=16):
     out = []
     for (i, j, e, s1, tol) in rows:
-        out.append("  pixel (%d, %d): expected %.9f, tolerance %.9f (4 sigma_1 / sqrt(16), sigma_1 = %.9f)" % (i, j, e, tol, s1))
+        out.append("  pixel (%d, %d): expected %.9f, tolerance %.9f (4 sigma_1 / sqrt(%d), sigma_1 = %.9f)" % (i, j, e, tol, n, s1))
     return out
 
 
@@ -203,6 +203,7 @@ def body_soft(kind, occluder="flagged", light_attrs=(), emitter_attrs=(), receiv
 def main():
     check = "--check" in sys.argv
     pe.self_test()
+    pe.quadric_self_test()
     for slo in (False, True):
         sfx = "-slo" if slo else ""
         # ---- the quad probe: shipped arealight, closed-form irradiance, three hiders ---------------------------------
@@ -235,6 +236,40 @@ def main():
                   body("al_light_constant", '"float intensity" [%g]' % pe.INTENSITY, EMITTER, "al_surface_matte"))
         for (i, j, e, s1, tol) in rows:
             add_probe("AreaLightProbe_ConstantCl-raytrace%s_x%dy%d" % (sfx, i, j), name, i, j, tol, [e])
+        # ---- the quadric probes (Phase 7): a disk and a sphere under the shipped arealight (FR-009 P2, US6) -------------------
+        for (kind, em, stmt, text) in (
+                ("disk", pe.DISK, "Disk 0 1.2 360",
+                 "a disk (radius 1.2, centre (3, 0, 2), in the plane z = 2 facing +z toward the receiver)"),
+                ("sphere", pe.SPHERE, "Sphere 0.8 -0.8 0.8 360",
+                 "a sphere (radius 0.8, centre (3, 0, 2); the points facing away from a receiver point are cut by the light's own illuminate cone)")):
+            n_q = pe.quadric_samples(em, pe.PIXELS, rel=0.1)
+            rows = []
+            for (i, j) in pe.PIXELS:
+                x, y = pe.pixel_center(i, j)
+                e, s1 = pe.pixel_value_emitter(em, [x, y, pe.RECEIVER_Z], pe.RECEIVER_N, pe.QUADRIC_INTENSITY)
+                if kind == "sphere":
+                    c = pe.sphere_closed_form(em.c, em.r, [x, y, pe.RECEIVER_Z], pe.RECEIVER_N, pe.QUADRIC_INTENSITY)
+                    assert abs(e - c) < 2e-3 * c      # the closed form E = I pi (r / d)^2 cos(theta_c) and the quadrature agree
+                    e = c
+                rows.append((i, j, e, s1, pe.tolerance(s1, n_q)))
+            name = "arealight-probe-%s-raytrace%s" % (kind, sfx)
+            comment = ["AreaLightProbe_%sIrradiance: a Lambertian plane (al_surface_matte, z = 4) under %s" % (kind.capitalize(), text),
+                       "running the SHIPPED arealight shader (intensity 10) with %d samples (Attribute \"arealight\" \"int samples\"): the renderer adds" % n_q,
+                       "1/(n p_A) and the visibility only (Decision A), so the pixel is  I * integral cos_e cos_r / r^2 dA.",
+                       ("Closed form on the disk's axis: E = I pi R^2 / (R^2 + d^2); the probed pixels are off axis, so the expected values are the"
+                        if kind == "disk" else
+                        "Closed form: E = I pi (r / d)^2 cos(theta_c), theta_c the angle between the receiver normal and the direction to the centre (probe_expected.py).")]
+            if kind == "disk":
+                comment.append("polar quadrature of probe_expected.py (checked against the on-axis closed form by quadric_self_test()).")
+            comment.append("Expected (probe_expected.py), the same in .rslo and .slo:")
+            comment += pixel_comment(rows, n_q)
+            lines = ["WorldBegin", "  AttributeBegin", '    Attribute "arealight" "int samples" [%d]' % n_q,
+                     '    AreaLightSource "arealight" 1 "float intensity" [%g]' % pe.QUADRIC_INTENSITY,
+                     '    Surface "constant"', "    Translate 3 0 2", "    " + stmt, "  AttributeEnd", "  Illuminate 1 1",
+                     "  AttributeBegin", '    Surface "al_surface_matte"', "    " + poly(RECEIVER), "  AttributeEnd", "WorldEnd"]
+            add_scene(name, "raytrace", slo, comment, lines)
+            for (i, j, e, s1, tol) in rows:
+                add_probe("AreaLightProbe_%sIrradiance-raytrace%s_x%dy%d" % (kind.capitalize(), sfx, i, j), name, i, j, tol, [e])
         # ---- the globals probes: what the light shader sees of the sampled point (US3 scenarios 1 and 3) ---------------
         quad = pe.Quad(*EMITTER_HI)
         A = quad.area

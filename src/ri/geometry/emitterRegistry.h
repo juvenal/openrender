@@ -78,6 +78,7 @@ class CEmitterSet {
         int numLeaves() const { return static_cast<int>(leaves_.size()); }
         const CSurface *leafSurface(int i) const { return leaves_[i].surface; }
         double leafArea(int i) const { return leaves_[i].area; }
+        EAreaMap leafMap(int i) const { return leaves_[i].table.map; } // the kind of leaf i's table: an analytic quadric sampler or a flat-face one
 
         // A point uniformly by area over every leaf, a pure function of (u1, u2): u1 chooses the leaf in the cdf and is
         // rescaled in double, then the leaf's table places the point. pdfA = 1 / totalArea(); an empty set (or one not yet

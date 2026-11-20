@@ -247,6 +247,13 @@ al_render_pair_test(AreaLight_ThreadIdentity_Delayed
 # AreaLight_OccluderFlag (FR-023): AreaLight_OccluderFlag_{unflagged,optout}_{penumbra,umbra} (generated probes): an unflagged occluder and
 # the transmission 0 opt-out leave the floor at the unoccluded closed form; the flagged one shades it (AreaLightProbe_SoftShadow_*, umbra)
 
+# ---- Phase 7: quadric emitters (US6; FR-009 P2) -------------------------------------------------------------------------------
+# AreaSampling_Quadrics (the seven quadrics, partial sweeps, the empty sphere, transforms that keep or lose the analytic sampler; it was red-first
+# until the quadric samplers existed). The disk and sphere probes are generated (tests/visual/arealight-probes.cmake,
+# AreaLightProbe_{Disk,Sphere}Irradiance[-slo]_*).
+al_executable(test_arealight_area_sampling_quadrics test_area_sampling_quadrics.cpp)
+al_test(AreaSampling_Quadrics test_arealight_area_sampling_quadrics LABELS geometry)
+
 # ---- the test-local shaders ------------------------------------------------------------------------------------------------
 get_property(_al_shader_outputs GLOBAL PROPERTY AL_SHADER_OUTPUTS)
 add_custom_target(arealight_shaders ALL DEPENDS ${_al_shader_outputs})

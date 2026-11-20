@@ -217,7 +217,7 @@ int main(int argc, char **argv) {
     CHECK(g_resolved.idempotent, "resolving again changes nothing");
     CHECK(g_resolved.numRoots == 4, "four roots");
     CHECK(g_resolved.numCsgLeaves == 2, "the two sphere operands of the union are CSG leaves");
-    CHECK(g_resolved.numUnsupported == 2, "spheres have no sampler until the quadric phase");
+    CHECK(g_resolved.numUnsupported == 0, "the two spheres are quadric emitters now: nothing is left without a sampler");
     if (g_resolved.numLeaves >= 4) {
         // the archive's two quads (a delayed expansion chains its objects newest first, so they come in either order, 3
         // units apart), then one leaf per instance in RIB order: each instance keeps its own transform

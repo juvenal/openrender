@@ -35,6 +35,7 @@
 #include "common/os.h"
 #include "common/polynomial.h"
 #include "common/memory.h"
+#include "areaSampling.h"
 #include "object.h"
 #include "motion.h"
 #include "objectMisc.h"
@@ -3688,4 +3689,106 @@ int CToroid::impliedSolidContains(const float *P) const {
     const double sideP = ex * (qz - az) - ez * (qx - ax);
     const double sideM = ex * (mz - az) - ez * (mx - ax);
     return (sideP > 0) == (sideM > 0) && sideP != 0;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Spec 057 phase 7: quadric emitters
+//
+// A sphere, disk, cylinder and cone have an analytic sampler (areaSampling.h, EAreaMap::Sphere ... Cone): an equal-area map from two
+// numbers to the surface's own (u, v), the closed-form area and P and Ng evaluated on the true surface at that (u, v), so the drawn point is
+// exactly the point sample() computes. It holds while the surface's area element stays uniform in the map, which a rigid motion with a
+// uniform scale keeps (the area follows the scale squared). Under any other transform (a non-uniform scale or a skew; detected from the
+// columns of the camera-from-object matrix at shutter open) the quadric falls back to the tessellated table, as the paraboloid,
+// hyperboloid and torus always do (no closed-form area-uniform map): at kQuadricTessellationK cells per side.
+namespace {
+
+    // The factor by which the transform multiplies lengths if it is a rotation and translation with ONE scale; 0 for any other transform
+    double similarityScale(const CXform *x) {
+        const float *m = x->from;
+        double c[3][3];
+        double len[3];
+        for (int j = 0; j < 3; j++) {
+            for (int i = 0; i < 3; i++)
+                c[j][i] = m[i + 4 * j];
+            len[j] = std::sqrt(c[j][0] * c[j][0] + c[j][1] * c[j][1] + c[j][2] * c[j][2]);
+            if (!(len[j] > 0.0) || !std::isfinite(len[j]))
+                return 0.0;
+        }
+        const double tol = 1e-4;
+        const double mean = (len[0] + len[1] + len[2]) / 3.0;
+        for (int j = 0; j < 3; j++) {
+            if (std::fabs(len[j] - mean) > tol * mean)
+                return 0.0; // not uniform
+            const int k = (j + 1) % 3;
+            const double d = c[j][0] * c[k][0] + c[j][1] * c[k][1] + c[j][2] * c[k][2];
+            if (std::fabs(d) > tol * len[j] * len[k])
+                return 0.0; // skewed
+        }
+        if (std::fabs(m[3]) > tol || std::fabs(m[7]) > tol || std::fabs(m[11]) > tol || std::fabs(m[15] - 1.0f) > tol)
+            return 0.0; // projective
+        return mean;
+    }
+
+} // namespace
+
+void CSphere::collectEmitters(IRayContext &, CEmitterCollector &out) {
+    const double s = similarityScale(xform);
+    if (!(s > 0.0)) {
+        collectTessellatedEmitter(out, kQuadricTessellationK);
+        return;
+    }
+    // thetamax r^2 (sin vmax - sin vmin) = thetamax r (zmax - zmin): Archimedes
+    const double area = std::fabs((double)umax) * (double)r * (double)r * std::fabs(std::sin((double)vmax) - std::sin((double)vmin)) * s * s;
+    CAreaTable table = makeQuadricTable(this, EAreaMap::Sphere, area, vmin, vmax);
+    const double a = table.area;
+    out.addLeaf(this, std::move(table), a);
+}
+
+void CDisk::collectEmitters(IRayContext &, CEmitterCollector &out) {
+    const double s = similarityScale(xform);
+    if (!(s > 0.0)) {
+        collectTessellatedEmitter(out, kQuadricTessellationK);
+        return;
+    }
+    const double area = 0.5 * std::fabs((double)umax) * (double)r * (double)r * s * s;
+    CAreaTable table = makeQuadricTable(this, EAreaMap::Disk, area);
+    const double a = table.area;
+    out.addLeaf(this, std::move(table), a);
+}
+
+void CCylinder::collectEmitters(IRayContext &, CEmitterCollector &out) {
+    const double s = similarityScale(xform);
+    if (!(s > 0.0)) {
+        collectTessellatedEmitter(out, kQuadricTessellationK);
+        return;
+    }
+    const double area = std::fabs((double)umax) * std::fabs((double)r) * std::fabs((double)zmax - (double)zmin) * s * s;
+    CAreaTable table = makeQuadricTable(this, EAreaMap::Cylinder, area);
+    const double a = table.area;
+    out.addLeaf(this, std::move(table), a);
+}
+
+void CCone::collectEmitters(IRayContext &, CEmitterCollector &out) {
+    const double s = similarityScale(xform);
+    if (!(s > 0.0)) {
+        collectTessellatedEmitter(out, kQuadricTessellationK);
+        return;
+    }
+    // the lateral surface, a sector of the full cone's pi r l: thetamax / 2 r l, l the slant length
+    const double area = 0.5 * std::fabs((double)umax) * std::fabs((double)r) * std::sqrt((double)r * r + (double)height * height) * s * s;
+    CAreaTable table = makeQuadricTable(this, EAreaMap::Cone, area);
+    const double a = table.area;
+    out.addLeaf(this, std::move(table), a);
+}
+
+void CParaboloid::collectEmitters(IRayContext &, CEmitterCollector &out) {
+    collectTessellatedEmitter(out, kQuadricTessellationK);
+}
+
+void CHyperboloid::collectEmitters(IRayContext &, CEmitterCollector &out) {
+    collectTessellatedEmitter(out, kQuadricTessellationK);
+}
+
+void CToroid::collectEmitters(IRayContext &, CEmitterCollector &out) {
+    collectTessellatedEmitter(out, kQuadricTessellationK);
 }
