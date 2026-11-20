@@ -223,6 +223,10 @@ class CProgrammableShaderInstance : public CShaderInstance {
         float **prepare(CMemPage *&, float **, int);
         const CShader *shaderDescription() const { return parent; }
 
+        // A copy of `s` that lives as long as this instance (freed with `strings`). The bind-time init stores the strings it
+        // computes (concat, format, ...) in parameter defaults, which outlive the arena region bind() runs the init in (GitHub #192).
+        const char *persistString(const char *s);
+
         CAllocatedString *strings; // The strings we allocated for parameters
         CShader *parent;           // The parent shader
     private:

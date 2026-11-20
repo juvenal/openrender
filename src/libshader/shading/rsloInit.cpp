@@ -107,15 +107,9 @@ void libshader::initialiseRsloInstance(CProgrammableShaderInstance &instance) {
         payload->initEntryPoint = -1;                       \
         goto execEnd;                                       \
     }
-//	Allocate temporary memory for the string and save it
-#define savestring(r, n)                                      \
-    {                                                         \
-        int strLen = (int)strlen(n) + 1;                      \
-        int strSize = (strLen & ~3) + 4;                      \
-        char *strmem = (char *)ralloc(strSize, threadMemory); \
-        strcpy(strmem, n);                                    \
-        r = strmem;                                           \
-    }
+//	Keep a copy of the string for the life of the instance: the result lands in a parameter default, which outlives the
+//	arena region bind() runs this init in (GitHub #192)
+#define savestring(r, n) r = (char *)currentShaderInstance->persistString(n)
 
 //	Begin a conditional block execution
 #define beginConditional()                \

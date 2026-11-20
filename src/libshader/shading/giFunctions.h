@@ -515,8 +515,12 @@ DEFSHORTFUNC(RayInfo, "rayinfo", "f=s.", RAYINFOEXPR_PRE, RAYINFOEXPR, RAYINFOEX
 #define RAYLABELEXPR *res = currentRayLabel;
 
 #else
-#define RAYLABELEXPR_PRE
-#define RAYLABELEXPR
+// The init runs at bind time, with no ray: "" (GitHub #192), as the JIT's bind-time op does
+#define RAYLABELEXPR_PRE  \
+    const char **res;     \
+    operand(0, res, const char **);
+
+#define RAYLABELEXPR *res = "";
 #endif
 
 DEFSHORTFUNC(RayLabel, "raylabel", "s=", RAYLABELEXPR_PRE, RAYLABELEXPR, FUN1EXPR_UPDATE(1), NULL_EXPR, 0)

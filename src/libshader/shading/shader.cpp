@@ -290,6 +290,20 @@ CProgrammableShaderInstance::~CProgrammableShaderInstance() {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CProgrammableShaderInstance
+// Method				:	persistString
+// Description			:	Keep a copy of a string for the life of the instance
+// Return Value			:	The copy
+// Comments				:
+const char *CProgrammableShaderInstance::persistString(const char *s) {
+    CAllocatedString *nString = new CAllocatedString;
+    nString->string = strdup(s);
+    nString->next = strings;
+    strings = nString;
+    return nString->string;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CProgrammableShaderInstance
 // Method				:	setParameters
 // Description			:	Set the values of the parameters
 // Return Value			:	-
@@ -707,8 +721,10 @@ float **CProgrammableShaderInstance::prepare(CMemPage *&namedMemory, float **var
             if (cVariable->type == TYPE_STRING) {
                 if ((srcs = (const char **)cVariable->defaultValue) != NULL) {
                     int i;
-                    for (i = cVariable->numFloats; i > 0; i--)
-                        *dests++ = *srcs++;
+                    // A NULL entry is a default nothing computed (GitHub #192): keep the "" set above, never copy the NULL over it
+                    for (i = cVariable->numFloats; i > 0; i--, dests++, srcs++)
+                        if (*srcs != nullptr)
+                            *dests = *srcs;
                 }
             }
             else {
@@ -730,8 +746,9 @@ float **CProgrammableShaderInstance::prepare(CMemPage *&namedMemory, float **var
 
                     // FIXME: We may want to unroll these two loops
                     for (n = numVertices * 3; n > 0; n--) {
-                        for (i = 0; i < c; i++)
-                            *dests++ = srcs[i];
+                        for (i = 0; i < c; i++, dests++)
+                            if (srcs[i] != nullptr)
+                                *dests = srcs[i];
                     }
                 }
             }
