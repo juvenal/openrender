@@ -181,6 +181,12 @@ CShader *parseSloShader(const char *shaderName, const char *sloPath) {
             fillSize(p);
         for (const auto &v : info.vars)
             fillSize(v);
+
+        payload->stringSlot.assign(numTotal, 0);
+        for (int k = 0; k < numParams; ++k)
+            payload->stringSlot[k] = (info.params[k].typeName == "string");
+        for (int k = 0; k < numVars; ++k)
+            payload->stringSlot[numParams + k] = (info.vars[k].typeName == "string");
     }
 
     // --- parameters linked list: ONLY actual shader parameters (Ka, Kd, …), NOT locals.

@@ -648,6 +648,10 @@ float **CProgrammableShaderInstance::prepare(CMemPage *&namedMemory, float **var
     // Allocate memory for the temporary shader variables
     // Allocate some extra space for alignment
     data = (char *)ralloc(totalVaryingSize + numVariables * (sizeof(float *) + sizeof(float)), namedMemory);
+    // The arena is reused without being cleared: a local the shader reads before it assigns it
+    // would hold whatever an earlier shading pass left (GitHub #191). Zero the block, and give
+    // every unset string slot the empty string, which `==`, printf and the trace labels can read.
+    memset(data, 0, totalVaryingSize + numVariables * (sizeof(float *) + sizeof(float)));
     locals = (float **)data;
     data += numVariables * sizeof(float *);
 
@@ -662,6 +666,19 @@ float **CProgrammableShaderInstance::prepare(CMemPage *&namedMemory, float **var
             data += -varyingSizes[i];
         else
             data += varyingSizes[i] * numVertices * 3;
+    }
+
+    {
+        static const char *const emptyString = "";
+        const bool haveSlots = (int)frame->stringSlot.size() == numVariables;
+        for (i = 0; haveSlots && i < numVariables; i++) {
+            if (!frame->stringSlot[i])
+                continue;
+            const int bytes = (varyingSizes[i] < 0) ? -varyingSizes[i] : varyingSizes[i] * numVertices * 3;
+            const char **slot = (const char **)locals[i];
+            for (int n = bytes / (int)sizeof(char *); n > 0; n--)
+                *slot++ = emptyString;
+        }
     }
 
     // For each parameter, copy over the default value of the parameter
