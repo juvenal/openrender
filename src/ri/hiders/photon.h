@@ -78,6 +78,14 @@ class CPhotonHider : public CHider, public openrender::shading::IIlluminationHoo
         CArray<openrender::shading::CPhotonMapRefTarget *> balanceList; // The list of photon maps that need re-balancing
 
         CSurface *phony; // Phony object we used on the light sources
+
+        // A bound area light's chunk (spec 057, FR-013): for the length of that light's chunk of photons, the emitter points the hider drew
+        // (the light shader's own P and N globals, one point per photon) and the factor 1 / pdfA (the total area) the photons' power gets.
+        // illuminateBegin()/illuminateEnd() read them instead of the hook operands (which hold the first photon's value only, GitHub #68).
+        // Null and 1 for a classic light: its path is untouched
+        const float *boundP = nullptr;
+        const float *boundN = nullptr;
+        float boundScale = 1.0f;
 };
 
 #endif

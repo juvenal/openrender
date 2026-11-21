@@ -34,6 +34,7 @@
 #include "hiderAbi.hpp"
 #include "hiderRegistry.h"
 #include "photonMapAccess.h"
+#include "libshader/shading/areaLightControls.h"
 #include "common/random.h"
 #include "renderer.h"
 #include "ri_config.h"
@@ -147,6 +148,15 @@ void CPhotonHider::renderingLoop() {
                 int emit;
                 float *Clsave;
 
+                // A light created by AreaLightSource emits from points of its emitters (spec 057, FR-013); a classic light is as it always was
+                const openrender::shading::AreaLightInfo areaInfo = areaLight(context, cLight);
+                if (areaInfo.bound) {
+                    // off at the light or scene level, or no emitting geometry: the light emits nothing (as it contributes nothing to shading)
+                    const openrender::shading::AreaLightControls controls = openrender::shading::resolveAreaLightControls(0, openrender::shading::AreaLightMode::Unset, areaInfo);
+                    if (controls.mode == openrender::shading::AreaLightMode::Off || !(areaInfo.totalArea > 0.0))
+                        continue;
+                }
+
                 // Figure out how much we want to emit
                 emit = job.numPhotons;
 
@@ -206,11 +216,36 @@ void CPhotonHider::renderingLoop() {
                             context.currentShadingState->batchKey = openrender::sampling::detail::mix(0xBA7C4F0ull, (uint64_t)i, (uint64_t)firstOfChunk);
                         }
 
+                        // A bound light: one point of its emitters for every photon, drawn from the photon's own sub-stream, written into the light
+                        // shader's globals (P, N, Ng, dPdu, dPdv, u, v, s, t), where the shader reads them (spec 057)
+                        if (areaInfo.bound) {
+                            float **vary = context.currentShadingState->varying;
+                            float *u1 = (float *)ralloc(sizeof(float) * numVertices, context.threadMemory);
+                            float *u2 = (float *)ralloc(sizeof(float) * numVertices, context.threadMemory);
+                            float *shutter = (float *)ralloc(sizeof(float) * numVertices, context.threadMemory);
+                            float *pdfA = (float *)ralloc(sizeof(float) * numVertices, context.threadMemory);
+                            uint32_t *emitterCounts = context.drawCounters(openrender::sampling::kAreaLightPhotonSite);
+                            for (j = 0; j < numVertices; j++) {
+                                context.bindDraws(j, emitterCounts, openrender::sampling::kAreaLightPhotonSite, 2);
+                                u1[j] = context.drawNext();
+                                u2[j] = context.drawNext();
+                                shutter[j] = 0.0f; // shutter open: the photon's own time is drawn later, as for a classic light
+                            }
+                            sampleEmitters(context, cLight, numVertices, u1, u2, shutter, vary, pdfA);
+                            boundP = vary[VARIABLE_P];
+                            boundN = vary[VARIABLE_N];
+                            boundScale = (float)areaInfo.totalArea; // 1 / pdfA: the draws are uniform by area over the emitters
+                        }
+
                         // Prepare the lightsource parameters
                         context.currentShadingState->locals[ACCESSOR_LIGHTSOURCE] = cLight->prepare(context.threadMemory, context.currentShadingState->varying, numVertices);
 
                         // Execute the light source shader
                         cLight->illuminate(&context, context.currentShadingState->locals[ACCESSOR_LIGHTSOURCE]);
+
+                        boundP = nullptr;
+                        boundN = nullptr;
+                        boundScale = 1.0f;
 
                         // Restore the thread memory
                         memEnd(context.threadMemory);
@@ -393,7 +428,7 @@ void CPhotonHider::solarEnd() {
 
             mulvf(T, L, worldRadius);
             subvv(Ps, T);
-            mulvf(Cc, powerScale * photonPower);
+            mulvf(Cc, powerScale * photonPower * boundScale);
             context.bindDraws(numVertices - i, traceCounts, kPhotonTraceSite, 1);
             tracePhoton(Ps, L, Cc, wavelen, context.currentShadingState->pointKeys[numVertices - i].full);
         }
@@ -405,7 +440,7 @@ void CPhotonHider::solarEnd() {
 
             mulvf(T, L, worldRadius);
             subvv(Ps, T);
-            mulvf(Cl, powerScale * photonPower);
+            mulvf(Cl, powerScale * photonPower * boundScale);
             context.bindDraws(numVertices - i, traceCounts, kPhotonTraceSite, 1);
             tracePhoton(Ps, L, Cl, 0.5, context.currentShadingState->pointKeys[numVertices - i].full);
         }
@@ -448,7 +483,7 @@ void CPhotonHider::illuminateBegin(const float *P, const float *N, const float *
 
             // Compute the point being shaded
             normalizev(shaderL);
-            addvv(shaderPs, P, shaderL);
+            addvv(shaderPs, boundP != nullptr ? boundP + 3 * (totalVertices - numVertices) : P, shaderL);
         }
     }
     else {
@@ -476,12 +511,12 @@ void CPhotonHider::illuminateBegin(const float *P, const float *N, const float *
             {
                 context.bindDraws(totalVertices - numVertices, emitCounts, kPhotonEmitSite, 1);
                 const float u = context.drawNext(), v = context.drawNext();
-                sampleHemisphere(shaderL, N, theta[0], openrender::sampling::Sample2D{u, v});
+                sampleHemisphere(shaderL, boundN != nullptr ? boundN + 3 * (totalVertices - numVertices) : N, theta[0], openrender::sampling::Sample2D{u, v});
             }
 
             // Compute the point being shaded
             normalizev(shaderL);
-            addvv(shaderPs, P, shaderL);
+            addvv(shaderPs, boundP != nullptr ? boundP + 3 * (totalVertices - numVertices) : P, shaderL);
         }
     }
 }
@@ -544,7 +579,7 @@ void CPhotonHider::illuminateEnd() {
             mulvv(Cc, Cl, Ce);
 
             subvv(Ps, L);
-            mulvf(Cc, powerScale * photonPower);
+            mulvf(Cc, powerScale * photonPower * boundScale);
             context.bindDraws(numVertices - i, traceCounts, kPhotonTraceSite, 1);
             tracePhoton(Ps, L, Cc, wavelen, context.currentShadingState->pointKeys[numVertices - i].full);
         }
@@ -553,7 +588,7 @@ void CPhotonHider::illuminateEnd() {
         uint32_t *traceCounts = context.drawCounters(kPhotonTraceSite);
         for (i = numVertices; i > 0; i--, Ps += 3, L += 3, Cl += 3) {
             subvv(Ps, L);
-            mulvf(Cl, powerScale * photonPower);
+            mulvf(Cl, powerScale * photonPower * boundScale);
             context.bindDraws(numVertices - i, traceCounts, kPhotonTraceSite, 1);
             tracePhoton(Ps, L, Cl, 0.5, context.currentShadingState->pointKeys[numVertices - i].full);
         }

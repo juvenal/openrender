@@ -1,0 +1,26 @@
+##RenderMan RIB-Structure 1.0
+# Spec 057 (area-light geometry), AreaLight_PhotonSmoke: the CLASSIC half. One spotlight at (5, 4, 5) aimed up (cone 0.3 rad) at a patch
+# at y = 8 whose photon map is above.gpm. Nothing else emits. arealight-photon-bound.rib adds a bound area light BELOW the spotlight's
+# cone, so the two lights' photons never meet: above.gpm of the two scenes must be the same file.
+version 3.03
+FrameBegin 1
+  Option "limits" "numthreads" [1]
+  Hider "photon" "int emit" [2000]
+  Projection "perspective" "fov" 45
+  Format 32 24 1
+  WorldBegin
+    LightSource "spotlight" 1 "intensity" [4] "from" [5 4 5] "to" [5 8 5] "coneangle" [0.3] "conedeltaangle" [0.05]
+    AttributeBegin
+      Attribute "photon" "string globalmap" ["above.gpm"]
+      Attribute "trace" "int maxdiffusedepth" [0]
+      Surface "matte"
+      Polygon "P" [3 8 3  3 8 7  7 8 7  7 8 3]
+    AttributeEnd
+    AttributeBegin
+      Attribute "photon" "string globalmap" ["below.gpm"]
+      Attribute "trace" "int maxdiffusedepth" [0]
+      Surface "matte"
+      Polygon "P" [-3 0 -3  -3 0 7  7 0 7  7 0 -3]
+    AttributeEnd
+  WorldEnd
+FrameEnd

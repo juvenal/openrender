@@ -254,6 +254,16 @@ al_render_pair_test(AreaLight_ThreadIdentity_Delayed
 al_executable(test_arealight_area_sampling_quadrics test_area_sampling_quadrics.cpp)
 al_test(AreaSampling_Quadrics test_arealight_area_sampling_quadrics LABELS geometry)
 
+# ---- Phase 8: photon emission from a bound light (US8; FR-013) -----------------------------------------------------------------
+# AreaLight_PhotonSmoke: two orender processes (a classic spotlight alone, and the spotlight plus a bound quad light) and the photon maps they
+# write (.gpm, read with tests/gi_determinism/gi_detkit.h); it needs no new API, so it is registered at once and its red evidence is a failing run.
+add_executable(test_arealight_photon_smoke test_photon_smoke.cpp)
+target_compile_features(test_arealight_photon_smoke PRIVATE cxx_std_20)
+target_include_directories(test_arealight_photon_smoke PRIVATE ${CMAKE_SOURCE_DIR}/tests)
+al_test(AreaLight_PhotonSmoke test_arealight_photon_smoke LABELS "photon_map" TIMEOUT 300
+    ARGS $<TARGET_FILE:orender> ${CMAKE_CURRENT_SOURCE_DIR}/scenes/photon ${CMAKE_CURRENT_BINARY_DIR}/work/AreaLight_PhotonSmoke)
+set_property(TEST AreaLight_PhotonSmoke APPEND PROPERTY DEPENDS orender)
+
 # ---- the test-local shaders ------------------------------------------------------------------------------------------------
 get_property(_al_shader_outputs GLOBAL PROPERTY AL_SHADER_OUTPUTS)
 add_custom_target(arealight_shaders ALL DEPENDS ${_al_shader_outputs})
