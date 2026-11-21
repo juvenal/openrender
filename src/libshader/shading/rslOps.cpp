@@ -1503,6 +1503,17 @@ void op_mfromf16(float *dst, int sd, const float *const *e, const int *se, int n
         }
 }
 
+// A light shader's starting counts (GitHub #100): see rslOps.h.
+void op_entry_counts(int n, int *numActive, int *numPassive) {
+    *numActive = n;
+    *numPassive = 0;
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx && ctx->currentShadingState) {
+        *numActive = ctx->currentShadingState->numActive;
+        *numPassive = ctx->currentShadingState->numPassive;
+    }
+}
+
 // =========================================================================
 // for / while loop (JIT .slo path) — mirrors FOR3EXPR_PRE / FOREND3EXPR_PRE
 // =========================================================================
