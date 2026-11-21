@@ -1,0 +1,7 @@
+{
+  "policy": {
+    "support_years": 2,
+    "summary": "Each release/X.Y branch receives fixes until the UTC date two years after it was cut from master."
+  },
+  "lines": []
+}

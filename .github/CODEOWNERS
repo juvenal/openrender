@@ -1,0 +1,8 @@
+# Release engineering. Other paths stay unowned so a revamp on master is not
+# forced through this list. GitHub requests a review from the owner when a
+# pull request touches these files.
+/.github/ @juvenal
+/docs/RELEASING.md @juvenal
+/LTS.json @juvenal
+/tests/lts/ @juvenal
+/scripts/ci/ @juvenal

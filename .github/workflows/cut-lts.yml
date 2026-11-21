@@ -1,0 +1,39 @@
+name: Cut LTS
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: LTS line X.Y, for example 1.0
+        required: true
+        type: string
+      commit:
+        description: Master commit to branch from. Empty means the tip of master.
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: cut-lts-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  cut:
+    name: cut
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          ref: master
+      - name: Create release branch, tag, and record pull request
+        env:
+          VERSION: ${{ inputs.version }}
+          COMMIT: ${{ inputs.commit }}
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/ci/cut-lts.sh

@@ -9,7 +9,39 @@ permissions:
   contents: write
 
 jobs:
+  # A tag that is also on a release/* branch is an LTS tag. release-lts.yml
+  # publishes those. This workflow keeps publishing tags that are on master
+  # and not on a release line. A tag on neither fails.
+  lts-tag-gate:
+    name: lts-tag-gate
+    runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.check.outputs.proceed }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - name: Skip tags that belong to an LTS branch
+        id: check
+        run: |
+          set -euo pipefail
+          git fetch origin master
+          git fetch origin '+refs/heads/release/*:refs/remotes/origin/release/*' || true
+          if git branch -r --contains HEAD | grep -E 'origin/release/'; then
+            echo "Tag is contained in a release/* branch; release-lts.yml publishes it."
+            echo "proceed=false" >> "${GITHUB_OUTPUT}"
+          elif git branch -r --contains HEAD | grep -Eq '(^|[[:space:]])origin/master$'; then
+            echo "proceed=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "Tag commit is not on master or a release/* branch."
+            exit 1
+          fi
+
   create-release:
+    needs: lts-tag-gate
+    if: needs.lts-tag-gate.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.parse_tag.outputs.VERSION }}
@@ -17,7 +49,7 @@ jobs:
       metadata: ${{ steps.parse_tag.outputs.METADATA }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
 
@@ -53,9 +85,11 @@ jobs:
               fi
             fi
             
-            echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-            echo "PRERELEASE=$PRERELEASE" >> $GITHUB_OUTPUT
-            echo "METADATA=$METADATA" >> $GITHUB_OUTPUT
+            {
+              echo "VERSION=$VERSION"
+              echo "PRERELEASE=$PRERELEASE"
+              echo "METADATA=$METADATA"
+            } >> "$GITHUB_OUTPUT"
             echo "Parsed version: $VERSION, prerelease suffix: $PRERELEASE, metadata suffix: $METADATA"
           else
             echo "Error: Tag name '$TAG' does not match the expected pattern vX.Y.Z[prerelease+metadata]"
@@ -64,7 +98,7 @@ jobs:
 
       - name: Create Draft Release
         id: create_draft
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           draft: true
           prerelease: ${{ steps.parse_tag.outputs.PRERELEASE != '' }}
@@ -80,13 +114,13 @@ jobs:
 
   build-macos-x86_64:
     needs: create-release
-    runs-on: macos-13 # Intel runner
+    runs-on: macos-15-intel # Intel runner (macos-13 was removed)
     env:
       OPENRENDER_VERSION_PRERELEASE: ${{ needs.create-release.outputs.prerelease }}
       OPENRENDER_VERSION_BUILD_METADATA: ${{ needs.create-release.outputs.metadata }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Set up CMake Version in CMakeLists.txt
         run: |
@@ -123,7 +157,7 @@ jobs:
           echo "vcpkg_root=$RUNNER_TEMP/vcpkg" >> "$GITHUB_OUTPUT"
 
       - name: Cache vcpkg binary archives
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.cache/vcpkg/archives
           key: vcpkg-x64-osx-openrender-${{ hashFiles('vcpkg.json') }}
@@ -145,7 +179,7 @@ jobs:
             -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
             -DVCPKG_TARGET_TRIPLET=x64-osx-openrender \
             -DVCPKG_OVERLAY_TRIPLETS="${{ github.workspace }}/CMake/vcpkg-triplets"
-          cmake --build . -j$(sysctl -n hw.ncpu)
+          cmake --build . -j"$(sysctl -n hw.ncpu)"
           ctest
           DESTDIR=staging_dir cmake --install .
           tar -czf ../openrender-macos-selfcontained-x86_64-${{ needs.create-release.outputs.version }}.tar.gz -C staging_dir/opt/openrender .
@@ -167,12 +201,12 @@ jobs:
             -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3 \
             -DCMAKE_OSX_ARCHITECTURES=x86_64 \
             -DCMAKE_INSTALL_PREFIX=/usr/local
-          cmake --build . -j$(sysctl -n hw.ncpu)
+          cmake --build . -j"$(sysctl -n hw.ncpu)"
           DESTDIR=fhs_staging cmake --install .
           tar -czf ../openrender-macos-fhs-x86_64-${{ needs.create-release.outputs.version }}.tar.gz -C fhs_staging/usr/local .
 
       - name: Upload artifacts to Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           files: |
             openrender-macos-selfcontained-x86_64-${{ needs.create-release.outputs.version }}.tar.gz
@@ -181,20 +215,20 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload self-contained folder for universal merge
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: macos-sc-x86_64
           path: build-sc/staging_dir/opt/openrender/
 
   build-macos-arm64:
     needs: create-release
-    runs-on: macos-14 # Apple Silicon runner
+    runs-on: macos-15 # Apple Silicon runner (macos-14 is not offered)
     env:
       OPENRENDER_VERSION_PRERELEASE: ${{ needs.create-release.outputs.prerelease }}
       OPENRENDER_VERSION_BUILD_METADATA: ${{ needs.create-release.outputs.metadata }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Set up CMake Version in CMakeLists.txt
         run: |
@@ -222,7 +256,7 @@ jobs:
           echo "vcpkg_root=$RUNNER_TEMP/vcpkg" >> "$GITHUB_OUTPUT"
 
       - name: Cache vcpkg binary archives
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.cache/vcpkg/archives
           key: vcpkg-arm64-osx-openrender-${{ hashFiles('vcpkg.json') }}
@@ -244,7 +278,7 @@ jobs:
             -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
             -DVCPKG_TARGET_TRIPLET=arm64-osx-openrender \
             -DVCPKG_OVERLAY_TRIPLETS="${{ github.workspace }}/CMake/vcpkg-triplets"
-          cmake --build . -j$(sysctl -n hw.ncpu)
+          cmake --build . -j"$(sysctl -n hw.ncpu)"
           ctest
           DESTDIR=staging_dir cmake --install .
           tar -czf ../openrender-macos-selfcontained-arm64-${{ needs.create-release.outputs.version }}.tar.gz -C staging_dir/opt/openrender .
@@ -262,12 +296,12 @@ jobs:
             -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3 \
             -DCMAKE_OSX_ARCHITECTURES=arm64 \
             -DCMAKE_INSTALL_PREFIX=/opt/homebrew
-          cmake --build . -j$(sysctl -n hw.ncpu)
+          cmake --build . -j"$(sysctl -n hw.ncpu)"
           DESTDIR=fhs_staging cmake --install .
           tar -czf ../openrender-macos-fhs-arm64-${{ needs.create-release.outputs.version }}.tar.gz -C fhs_staging/opt/homebrew .
 
       - name: Upload artifacts to Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           files: |
             openrender-macos-selfcontained-arm64-${{ needs.create-release.outputs.version }}.tar.gz
@@ -276,23 +310,23 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload self-contained folder for universal merge
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: macos-sc-arm64
           path: build-sc/staging_dir/opt/openrender/
 
   package-macos-universal:
     needs: [create-release, build-macos-x86_64, build-macos-arm64]
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - name: Download x86_64 artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: macos-sc-x86_64
           path: x86_64
 
       - name: Download arm64 artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: macos-sc-arm64
           path: arm64
@@ -330,7 +364,7 @@ jobs:
           tar -czf openrender-macos-selfcontained-universal-${{ needs.create-release.outputs.version }}.tar.gz -C universal .
 
       - name: Upload universal artifacts to Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           files: |
             openrender-macos-selfcontained-universal-${{ needs.create-release.outputs.version }}.tar.gz
@@ -346,7 +380,7 @@ jobs:
       OPENRENDER_VERSION_BUILD_METADATA: ${{ needs.create-release.outputs.metadata }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Set up CMake Version in CMakeLists.txt
         run: |
@@ -366,7 +400,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DINSTALL_SELFCONTAINED=ON \
             -DCMAKE_INSTALL_PREFIX=/opt/openrender
-          cmake --build . -j$(nproc)
+          cmake --build . -j"$(nproc)"
           ctest
           DESTDIR=staging_dir cmake --install .
           tar -czf ../openrender-linux-selfcontained-x86_64-${{ needs.create-release.outputs.version }}.tar.gz -C staging_dir/opt/openrender .
@@ -378,12 +412,12 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DINSTALL_SELFCONTAINED=OFF \
             -DCMAKE_INSTALL_PREFIX=/home/linuxbrew/.linuxbrew
-          cmake --build . -j$(nproc)
+          cmake --build . -j"$(nproc)"
           DESTDIR=fhs_staging cmake --install .
           tar -czf ../openrender-linux-fhs-x86_64-${{ needs.create-release.outputs.version }}.tar.gz -C fhs_staging/home/linuxbrew/.linuxbrew .
 
       - name: Upload artifacts to Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           files: |
             openrender-linux-selfcontained-x86_64-${{ needs.create-release.outputs.version }}.tar.gz
@@ -399,7 +433,7 @@ jobs:
       OPENRENDER_VERSION_BUILD_METADATA: ${{ needs.create-release.outputs.metadata }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Set up CMake Version in CMakeLists.txt
         run: |
@@ -419,11 +453,11 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DINSTALL_SELFCONTAINED=OFF \
             -DCMAKE_INSTALL_PREFIX=/usr
-          cmake --build . -j$(nproc)
+          cmake --build . -j"$(nproc)"
           cpack -G DEB
 
       - name: Upload Debian Package to Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           files: build/openrender-*-x86_64-ubuntu.deb
         env:
@@ -439,7 +473,7 @@ jobs:
       OPENRENDER_VERSION_BUILD_METADATA: ${{ needs.create-release.outputs.metadata }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install dependencies via dnf
         run: |
@@ -456,11 +490,11 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DINSTALL_SELFCONTAINED=OFF \
             -DCMAKE_INSTALL_PREFIX=/usr
-          cmake --build . -j$(nproc)
+          cmake --build . -j"$(nproc)"
           cpack -G RPM
 
       - name: Upload RPM Package to Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           files: build/openrender-*-x86_64-fedora.rpm
         env:
@@ -471,7 +505,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Download compiled FHS tarballs
         run: |
@@ -488,10 +522,12 @@ jobs:
           SHA_MACOS_X86_64=$(shasum -a 256 openrender-macos-fhs-x86_64-*.tar.gz | awk '{print $1}')
           SHA_MACOS_ARM64=$(shasum -a 256 openrender-macos-fhs-arm64-*.tar.gz | awk '{print $1}')
           SHA_LINUX_X86_64=$(shasum -a 256 openrender-linux-fhs-x86_64-*.tar.gz | awk '{print $1}')
-          
-          echo "SHA_MACOS_X86_64=$SHA_MACOS_X86_64" >> $GITHUB_ENV
-          echo "SHA_MACOS_ARM64=$SHA_MACOS_ARM64" >> $GITHUB_ENV
-          echo "SHA_LINUX_X86_64=$SHA_LINUX_X86_64" >> $GITHUB_ENV
+
+          {
+            echo "SHA_MACOS_X86_64=$SHA_MACOS_X86_64"
+            echo "SHA_MACOS_ARM64=$SHA_MACOS_ARM64"
+            echo "SHA_LINUX_X86_64=$SHA_LINUX_X86_64"
+          } >> "$GITHUB_ENV"
 
       - name: Populate Homebrew Formula Template
         run: |
@@ -503,7 +539,7 @@ jobs:
               openrender.rb.template > openrender.rb
 
       - name: Upload Homebrew Formula to Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           files: openrender.rb
         env:

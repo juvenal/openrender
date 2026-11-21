@@ -1,0 +1,9 @@
+# Symbols an LTS line must keep exporting. One "library-substring symbol" pair per line.
+# The library substring is matched against the built shared-library path.
+# Names are the C linkage names; the checker also accepts the Mach-O "_" prefix.
+RIBRender RiBegin
+RIBRender RiEnd
+RIBRender RiWorldBegin
+RIBRender RiWorldEnd
+RIBCommon RGBE_ReadHeader
+RIBCommon RGBE_WriteHeader
