@@ -67,3 +67,25 @@ foreach(_kind quad mesh subdiv)
         arealight-softimage-${_kind}-raytrace.tif 2)
     set_tests_properties(Visual_arealight-softshadow-${_kind}-raytrace-slo PROPERTIES LABELS "visual;regression;arealight" ENVIRONMENT "${_arealight_env}")
 endforeach()
+
+# ---- Phase 9: the old and the new quad light (US9; FR-022; SC-006; tasks.md T123) ----------------------------------------------
+# AreaLight_QuadlightAgreement{,-slo}: examples/rib/quadlight.rib's geometry rendered with the shipped quadlight shader and with the quad as
+# geometry under AreaLightSource "arealight" (intensity / the quad's area, decision D-1), compared by the 8 x 8 block metric of
+# test_hider_parity. Threshold 8, fixed after the measurement of validation.md section 25 (run-to-run noise 2.1 to 3.7, old against new at
+# 16 samples 3.8 to 5.95 on macOS, a 10 % intensity error 16.7 to 22.4) and never widened.
+set(_ql_threshold 8)
+foreach(_fmt "" "-slo")
+    set(_ql_scratch ${_arealight_dir}/AreaLight_QuadlightAgreement${_fmt})
+    file(MAKE_DIRECTORY ${_ql_scratch})
+    add_test(NAME AreaLight_QuadlightAgreement${_fmt}
+        COMMAND test_hider_parity $<TARGET_FILE:orender>
+            ${_arealight_rib}/arealight-quadlight-agree-old-raytrace${_fmt}.rib arealight-quadlight-agree-old-raytrace${_fmt}.tif
+            ${_arealight_rib}/arealight-quadlight-agree-new-raytrace${_fmt}.rib arealight-quadlight-agree-new-raytrace${_fmt}.tif
+            ${_ql_threshold}
+        WORKING_DIRECTORY ${_ql_scratch})
+    set_tests_properties(AreaLight_QuadlightAgreement${_fmt} PROPERTIES TIMEOUT 360 LABELS "arealight;visual" ENVIRONMENT "${_arealight_env}" DEPENDS orender)
+    # an -slo scene without the JIT would silently run the interpreter, a guaranteed pass: disabled then
+    if("${_fmt}" STREQUAL "-slo" AND NOT OPENRENDER_HAVE_LLVM)
+        set_tests_properties(AreaLight_QuadlightAgreement${_fmt} PROPERTIES DISABLED TRUE)
+    endif()
+endforeach()

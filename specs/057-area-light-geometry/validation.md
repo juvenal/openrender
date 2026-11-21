@@ -562,3 +562,60 @@ The outlier analysis. With the first version of the smoke test's bound (`kDirErr
 Runs. Before the correction (macOS targeted `-L 'arealight|photon_map|shading_parity|architecture' -j4`: 369 of 370, the one failure the smoke test on that check; the everyday `-LE 'determinism-sweep|gi_determinism_long' -j4`: 1604 of 1606, 1 skip (`LibShader_Format_rslo_lower_minor`), the same one failure, 293 s, no timeout; the default determinism set `-L '^determinism$' -j2`: 167 of 167, 189 s; Linux `-L 'arealight|architecture' -j2`: 233 of 234, the same failure, build clean). After the correction: `AreaLight_PhotonSmoke` passes on macOS (0.98 s) and on Linux, the other tests of the sets being unchanged by a change of that one test file. The photon counts and origins: 1035 bound-light photons on the floor on both platforms (2000 emitted), origin mean (1.945, 1.984), spread (0.586, 0.585), the worst ratio over all 1035 photons against the corrected bound 0.604 (item 908) on macOS and Linux, identical; the outlier above is at 0.49. The classic half is unchanged: the spotlight's 2000 photons in each `above.gpm` trace back to (5, 4, 5) within the bound and the two files are byte-identical. The classic photon scenes of the suite are unchanged (the everyday run and the determinism set, which include them).
 
 State changes against checkpoint 7: new passing test `AreaLight_PhotonSmoke`; `photon.cpp`/`photon.h` changed; nothing else changed state; no threshold or bound of an existing test changed. Not yet run on Linux: the everyday run and the full sweep (the pre-merge list of section 23).
+
+## 25. Phase 9 tests and the agreement measurement (T122, T124; the agreement PAUSE)
+
+Scenes (T122, `tools/gen_scenes.py`, `quadlight_agreement_scene`): `examples/rib/tests/arealight-quadlight-agree-{old,new}-raytrace[-slo].rib`, 320 x 240, `examples/rib/quadlight.rib`'s camera, sphere and disk. OLD: the shipped `quadlight` (P0 (3,5,-2), P1 (5,5,-2), P2 (3,7,-2), P3 (5,7,-2), intensity 200, 16 samples). NEW: the same quad as geometry under `AreaLightSource "arealight"`, intensity 200 / 4 = 50, 16 samples. Neither form shadows (D-1: `quadlight`'s `visibility()` never occludes, GitHub #169; the sphere is not flagged, so the new form's shadow rays pass through it).
+
+Measurement (`build/p9scratch/measure.py`, `measure2.py`, logs `measure.log`, `measure2.log`; the 8 x 8 block metric of `test_hider_parity`, diff-only mode; `Option "sampling" "seed"` varied 0 to 3; macOS, one `cpujob` job each):
+
+| | rslo | slo |
+|---|---|---|
+| old form run-to-run (6 seed pairs, 16 samples) | 2.33 to 3.47 | identical |
+| new form run-to-run (6 seed pairs, 16 samples) | 2.11 to 3.69 | identical |
+| old against new, same seed (4) | 4.31 to 5.56 | identical |
+| old against new, the other 12 seed pairs | 3.78 to 5.95 | identical |
+| old 1024 samples against new 1024 samples (the systematic model difference) | 3.52 | identical |
+| old 16 against old 1024 / new 16 against new 1024 | 1.50 / 0.50 | identical |
+
+The systematic difference (3.52, little noise) is of the size of the run-to-run noise (2.1 to 3.7), not above it. Its cause is the model difference of `quadlight.sl` (the emitter cosine at the quad's centre) against the arealight (at each sample): a farther light shrinks it, same size quad, intensity scaled by the squared distance: x1 3.52, x2 0.88, x3 0.55. Sensitivity of the old-against-new metric at 16 samples (new intensity changed): x0.5 115.4, x0.8 39.3, x0.9 16.7, x1 4.45, x1.1 22.4, x1.25 46.0, x2 126.8.
+
+## 26. Phase 9: the agreement tests registered, the red evidence, Linux, and the deprecation notes (T123-T125)
+
+Registered (T123, approved at the agreement PAUSE: the shipped `quadlight.rib` geometry, threshold 8): `AreaLight_QuadlightAgreement` and `AreaLight_QuadlightAgreement-slo` (labels `arealight;visual`, `tests/visual/arealight-scenes.cmake`, `test_hider_parity` on the old and the new render, the `-slo` twin disabled without LLVM). Both pass on macOS and Linux at 4.45.
+
+Linux (Ubuntu 24.04, same four scenes, seed 0, 16 samples, as the tests run): old against new 4.45 (`.rslo`) and 4.45 (`.slo`), the same as macOS. Each Linux image against its macOS counterpart (the same metric): old 0.00, new 0.02 (`.rslo`), old 0.00, new 0.02 (`.slo`).
+
+Red evidence (a scratch copy of the new scene, not committed, `build/p9scratch/red/`; the registered test's command with threshold 8): the new form's intensity +10 % (55): 129 blocks over the threshold, worst 22.36, exit 1; -10 % (45): 111 blocks, worst 16.67, exit 1; the real scenes pass at 4.45.
+
+Deprecation notes (T125, not applied): `tools/proposed/quadlight.sl.diff` and `spherelight.sl.diff`, comment-only edits of the two header comments. Both replace the stale "the JIT renders it as checkerboard noise / fully black" paragraph (the `-slo` visual tests have passed against the `.rslo` references since spec 017) with the current state (`visibility()` does not occlude, GitHub #169) and a `DEPRECATED (spec 057)` note: `quadlight` names the arealight on a polygon quad with the intensity divided by the area and its centre-cosine model difference (about 4.5 of 255 on the block metric); `spherelight` names Decision B's difference (isotropic and no emitter cosine against a Lambertian geometric sphere). Byte neutrality, checked before asking (the two edited sources copied to `build/p9scratch/shaders/new`, compiled there with `oshader -o` and `oshader --jit -o`, `SHADERS_INCLUDE` as `CMake/CompileShader.cmake` sets it): on macOS `quadlight.rslo`, `quadlight.slo`, `spherelight.rslo` and `spherelight.slo` are byte-identical to `build/shaders/` (`cmp`; 3570, 7944, 2472 and 6400 bytes; the unedited sources also compile to the same bytes), and on Linux the same four are byte-identical to the Linux `build/shaders/`, whose hashes are the ones in `src/libshader/tests/reference/linux/shaders.sha256`.
+
+## 27. Phase 9: the deprecation notes applied, and the runs (T126, T127), both platforms
+
+T126: the two approved comment-only diffs applied to `shaders/quadlight.sl` and `shaders/spherelight.sl` (31 insertions, 9 deletions; the diff equals `tools/proposed/*.diff`). `ShaderCompilerImmutability` and `Shaders_BytesUnchanged` pass on macOS after the rebuild and on Linux (the Linux `shaders.sha256` holds); no reference was touched.
+
+T127 runs:
+
+| Set | macOS | Linux (GCC 13 `-Werror`, `-j2`) |
+|---|---|---|
+| build | clean | clean |
+| `-R 'Shaders_BytesUnchanged\|ShaderCompilerImmutability'` | 2 of 2 | 2 of 2 |
+| `-L 'arealight\|architecture'` | 236 of 236 | 236 of 236 |
+| everyday `-LE 'determinism-sweep\|gi_determinism_long' -j4` | 1608 of 1608, 1 skip (`LibShader_Format_rslo_lower_minor`) | not run (pre-merge list) |
+| `-L '^determinism$' -j2` | 167 of 167 | not run |
+
+The 2 new tests (`AreaLight_QuadlightAgreement{,-slo}`) are in the 236 on both platforms. No timeout, no failure; nothing re-run.
+
+## 28. D-3 (Phase 10): the maintainer's answer and the trim condition (T128)
+
+Answer: GO on Phase 10, narrow scope: tessellated tables at `kQuadricTessellationK` (20) cells per side; `CBilinearPatch` with the exact quad table when planar (the tessellated table otherwise); `CPatchMesh` and `CNURBSPatchMesh` through `materialize()` then their children (as `CPolygonMesh`); `CNURBSPatch` with a per-cell trim test. Recommendation and evidence given at the PAUSE: the infrastructure exists (`CBicubicPatch`, `CPatchGrid` and the subdivision limit patches already report through `collectTessellatedEmitter`; the mesh containers have an idempotent `materialize()`; `CNURBSPatch` has `hasTrim()` and `trimAccepts()`), the new code is reached only from bound-light roots (no existing image can change), and the earlier phases' issues were all inside the new code or in test derivations.
+
+The maintainer's condition: a draw that lands in a trimmed-away part of a straddling cell must NOT emit, the draws stay deterministic and thread-independent, and the Phase 10 tests check that no emitted point lies outside the trim (`trimAccepts` on every drawn point) alongside the pre-declared area bound.
+
+The design (decided here, built and tested in Phase 10; tasks.md T130 and T134 carry it):
+- A trimmed patch's table is built at resolution from `K x K = 400` cells of its true surface. Each cell gets an accepted fraction `f` from an 8 x 8 grid of probe points tested with `trimAccepts(u, v)`; the cell's face weight is its area times `f`, so `totalArea` and `pdfA = 1 / totalArea` are those of the trimmed surface (to the cell resolution, the pre-declared area bound of `AreaSampling_Patches`). A cell with `f` below 1/8 is dropped as wholly outside; a cell with `f` of 1 is inside. Each non-empty cell stores one accepted probe point as its anchor. (A cost: at most 64 trim tests per cell, 25,600 per patch per light, once per frame.)
+- A draw is a pure function of `(u1, u2)`: the cell is picked by weight (the cdf), `(u1, u2)` rescaled place a candidate in it as for any table. When the surface has a trim the candidate is **always** tested with `trimAccepts(u, v)`, including in cells classified inside (so a sliver the probes missed cannot emit either). A rejected candidate is replaced by the next of up to 64 candidates in the same cell, each a pure hash (splitmix64) of the bit patterns of `(u1, u2)` and the candidate number, so no stream is consumed and the result is the same on any thread and in any order. If all 64 are rejected (a probability of at most (7/8)^64, about 2e-4, in the worst kept cell) the cell's stored anchor is emitted, which is accepted by construction: a draw never emits outside the trim. Within a cell the accepted part is sampled uniformly (up to the hash), so the density over the accepted area is 1 / totalArea apart from the rejected-fallback share and the cell-resolution error of `f`, both inside the area bound.
+- An untrimmed patch never tests: `hasTrim()` is false, the table is the plain tessellated one.
+- A fully trimmed patch has `totalArea` 0 (no cell above the floor): an empty leaf, never chosen, reported once.
+
+CHECKPOINT 9 (T129): the agreement numbers (old against new 4.45 on macOS and Linux, `.rslo` and `.slo`; run-to-run noise 2.1 to 3.7; systematic model difference 3.52 at 1024 samples; threshold 8, never widened; a 10 % intensity error reads 16.7 to 22.4), the byte-neutrality result (the four compiled outputs of `quadlight` and `spherelight` identical before and after the comment-only notes on both platforms; `Shaders_BytesUnchanged` and `ShaderCompilerImmutability` green on both, no reference touched) and the D-3 answer (GO, narrow scope, with the trim condition of section 28). Phase 10 starts after the maintainer commits Phase 9.
