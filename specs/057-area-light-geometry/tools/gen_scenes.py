@@ -325,6 +325,22 @@ def main():
             add_scene(name, "raytrace", slo, comment, lines)
             for (i, j, e, s1, tol) in rows:
                 add_probe("AreaLightProbe_%sIrradiance-raytrace%s_x%dy%d" % (kind.capitalize(), sfx, i, j), name, i, j, tol, [e])
+        # ---- the patch probe (Phase 10): the quad probe's emitter as a bilinear patch (FR-009 P3, US7) -------------------------
+        rows = []
+        for (i, j) in pe.PIXELS:
+            x, y = pe.pixel_center(i, j)
+            e, s1 = pe.pixel_value("arealight", pe.EMITTER, [x, y, pe.RECEIVER_Z], pe.RECEIVER_N, pe.INTENSITY)
+            rows.append((i, j, e, s1, pe.tolerance(s1, pe.SAMPLES)))
+        e0, e1, e2, e3 = pe.EMITTER.vertices()          # the polygon ring p0 p1 p2 p3 (normal -x): a patch lists P00 P10 P01 P11 = p0 p1 p3 p2
+        patch_stmt = 'Patch "bilinear" "P" [%s]' % "  ".join("%g %g %g" % tuple(v) for v in (e0, e1, e3, e2))
+        name = "arealight-probe-patch-raytrace" + sfx
+        add_scene(name, "raytrace", slo,
+                  ["AreaLightProbe_PatchIrradiance: the quad probe (a Lambertian plane z = 4 under a 2 x 2 emitter in x = 3 facing -x, the shipped arealight,",
+                   "intensity 10, n = 16) with the emitter written as RiPatch \"bilinear\" instead of a polygon: P00 P10 P01 P11 = the polygon's p0 p1 p3 p2, so",
+                   "dPdu x dPdv is -x as the polygon's normal is. Planar, so the exact quad sampler; the closed form is the quad's. Expected (probe_expected.py):"] + pixel_comment(rows),
+                  body("arealight", '"float intensity" [%g]' % pe.INTENSITY, pe.EMITTER, "al_surface_matte", emitter_extra=patch_stmt))
+        for (i, j, e, s1, tol) in rows:
+            add_probe("AreaLightProbe_PatchIrradiance-raytrace%s_x%dy%d" % (sfx, i, j), name, i, j, tol, [e])
         # ---- the globals probes: what the light shader sees of the sampled point (US3 scenarios 1 and 3) ---------------
         quad = pe.Quad(*EMITTER_HI)
         A = quad.area

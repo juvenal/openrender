@@ -88,6 +88,7 @@ class CEmitterSet {
         // Counters filled by resolution and reported once per light
         mutable int numUnsupported = 0; // primitives of the scope with no sampler
         mutable int numCsgLeaves = 0;   // leaves of solids, sampled without their region (D-4)
+        mutable int numFullyTrimmed = 0; // trimmed surfaces with nothing accepted: they emit nothing (spec 057 phase 10)
 
     private:
         friend class CEmitterRegistry;

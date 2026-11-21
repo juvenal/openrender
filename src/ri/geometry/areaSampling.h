@@ -68,7 +68,18 @@ struct CAreaFace {
         float uv[3][2] = {{0}}; // the corners' parametric coordinates (Affine map)
         double area = 0;
         double normal[3] = {0, 0, 0}; // unit, oriented as dPdu x dPdv; zero for a face of no area
+        float anchor[2] = {0, 0};     // a TRIMMED surface's table: a (u, v) the surface's trim accepts, inside this face (the draw's last resort)
 };
+
+// A trimmed surface (CSurface::hasTrim(): a NURBS patch with trim loops) gets a trim-aware tessellated table (spec 057 phase 10, validation.md
+// section 28). Per face (a cell's triangle) the table probes the trim at an 8 x 8 lattice of the cell (the points (k + 0.5) / 8 of the cell,
+// the lattice's diagonal points belonging to both triangles) and weighs the face by its area times its accepted fraction f; a face with f below
+// 1/8 is dropped. A draw picks the face by weight and a point in it, and ALWAYS tests the point with the surface's own trimAccepts(u, v): a
+// rejected point is replaced by the next of at most kAreaTrimCandidates points of the same face, each a pure hash of the draw's two numbers and
+// the candidate's number (no stream, no state: the same on every thread); when every candidate is rejected the face's anchor is emitted.
+inline constexpr int kAreaTrimProbes = 8;      // probes per side of a cell
+inline constexpr int kAreaTrimCandidates = 64; // candidates per draw in one face
+inline constexpr double kAreaTrimFloor = 0.125; // a face with an accepted fraction below this is dropped
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CAreaTable
@@ -102,7 +113,7 @@ CAreaTable makeTriangleTable(const float *v0, const float *v1, const float *v2);
 
 // A polygon mesh quad (CPolygonQuad's parametrization: P = (v0 (1-u) + v1 u)(1-v) + (v2 (1-u) + v3 u) v), corners in camera space.
 // Planar and convex along a diagonal: the exact sampler. Otherwise the tessellated table of `surface`.
-CAreaTable makeQuadTable(const CSurface *surface, const float *v0, const float *v1, const float *v2, const float *v3);
+CAreaTable makeQuadTable(const CSurface *surface, const float *v0, const float *v1, const float *v2, const float *v3, int fallbackK = kAreaTessellationK);
 
 // The analytic table of a quadric (kind Sphere, Disk, Cylinder or Cone) of camera-space area `area` (zero or less: an empty table, never
 // chosen). A sphere's latitude limits are vmin and vmax; the other kinds ignore them. Valid only while the surface's area element is uniform

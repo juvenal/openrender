@@ -86,6 +86,10 @@ void CObject::collectEmitters(IRayContext &, CEmitterCollector &out) {
 void CSurface::collectTessellatedEmitter(CEmitterCollector &out, int cellsPerSide) {
     CAreaTable table = cellsPerSide > 0 ? makeTessellatedTable(this, cellsPerSide) : makeTessellatedTable(this);
     const double area = table.area;
+    if (hasTrim() && !(area > 0.0)) {
+        out.trimmedAway(this); // nothing of it is accepted: it emits nothing and is reported once per light
+        return;
+    }
     out.addLeaf(this, std::move(table), area);
 }
 

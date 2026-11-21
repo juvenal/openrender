@@ -57,6 +57,9 @@ class CBilinearPatch : public CSurface {
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
 
+        // Spec 057 phase 10: the exact quad sampler when the four corners are planar (and the patch claims no trim), else the tessellated table
+        void collectEmitters(IRayContext &, CEmitterCollector &out);
+
     private:
         CVertexData *variables;         // The variables for the patch
         CParameter *parameters;         // The parameters for the patch
@@ -82,8 +85,8 @@ class CBicubicPatch : public CSurface {
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
 
-        // Spec 057: a bicubic patch reports itself (the leaf a regular subdivision face becomes); the RiPatch and
-        // RiNuPatch containers (CPatchMesh) keep the default until the patch phase
+        // Spec 057: a bicubic patch reports itself (the leaf a regular subdivision face becomes, and a RiPatch bicubic mesh's patch:
+        // CPatchMesh reports its children), at the default K: one table per subdivision face is the cost that decides it
         void collectEmitters(IRayContext &, CEmitterCollector &out) { collectTessellatedEmitter(out); }
 
     private:
@@ -134,6 +137,9 @@ class CNURBSPatch : public CSurface {
         bool trimAccepts(float u, float v) const;
         bool hasTrim() const { return trimTest != NULL; }
 
+        // Spec 057 phase 10: the trim-aware tessellated table (areaSampling.h), K = kQuadricTessellationK
+        void collectEmitters(IRayContext &, CEmitterCollector &out);
+
     private:
         void precompBasisCoefficients(double *, unsigned int, unsigned int, unsigned int, const float *);
         void precomputeVertexData(double *, const double *, const double *, float *, int);
@@ -154,6 +160,11 @@ class CPatchMesh : public CObject {
     public:
         void materialize(IRayContext &context) { if (children == NULL) create(context); } // Idempotent (spec 021)
         CPatchMesh(CAttributes *, CXform *, CPl *, int, int, int, int, int);
+        // Spec 057 phase 10: create the patches as intersect() does (idempotent), then let each report itself
+        void collectEmitters(IRayContext &context, CEmitterCollector &out) {
+            materialize(context);
+            collectChildEmitters(context, out);
+        }
         ~CPatchMesh();
 
         // CObject interface
@@ -231,6 +242,11 @@ bool trimClassifyPoint(const CTrimTest &test, float u, float v);
 class CNURBSPatchMesh : public CObject {
     public:
         void materialize(IRayContext &context) { if (children == NULL) create(context); } // Idempotent (spec 021)
+        // Spec 057 phase 10: as CPatchMesh
+        void collectEmitters(IRayContext &context, CEmitterCollector &out) {
+            materialize(context);
+            collectChildEmitters(context, out);
+        }
         // The trailing CTrimTest*/eagerBuildTrim pair exists solely for
         // instantiate()'s use: it passes the template mesh's own already-
         // decided trimTest (attach()'d verbatim, even if NULL) with

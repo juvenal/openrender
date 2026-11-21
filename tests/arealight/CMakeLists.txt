@@ -264,6 +264,15 @@ al_test(AreaLight_PhotonSmoke test_arealight_photon_smoke LABELS "photon_map" TI
     ARGS $<TARGET_FILE:orender> ${CMAKE_CURRENT_SOURCE_DIR}/scenes/photon ${CMAKE_CURRENT_BINARY_DIR}/work/AreaLight_PhotonSmoke)
 set_property(TEST AreaLight_PhotonSmoke APPEND PROPERTY DEPENDS orender)
 
+# ---- Phase 10: patches, patch meshes and NURBS (US7; FR-009 P3), design in validation.md section 28 ---------------------------------
+# AreaSampling_Patches compiled on the Phase 9 tree and was red by a failing run; AreaSampling_PatchReports needed CEmitterSet::numFullyTrimmed and
+# was red-first (its red evidence was the compile failure): both are plain tests now. The bilinear-patch probes are generated
+# (tests/visual/arealight-probes.cmake, AreaLightProbe_PatchIrradiance[-slo]_*).
+al_executable(test_arealight_area_sampling_patches test_area_sampling_patches.cpp)
+al_test(AreaSampling_Patches test_arealight_area_sampling_patches LABELS geometry)
+al_executable(test_arealight_area_sampling_patch_reports test_area_sampling_patch_reports.cpp)
+al_test(AreaSampling_PatchReports test_arealight_area_sampling_patch_reports LABELS geometry)
+
 # ---- the test-local shaders ------------------------------------------------------------------------------------------------
 get_property(_al_shader_outputs GLOBAL PROPERTY AL_SHADER_OUTPUTS)
 add_custom_target(arealight_shaders ALL DEPENDS ${_al_shader_outputs})

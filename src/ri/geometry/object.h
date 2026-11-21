@@ -110,6 +110,10 @@ class CEmitterCollector {
         // The next leaf comes from a solid (CSG): it is sampled whole, without its region (decision D-4); counted and
         // reported once per light
         virtual void csgLeaf() = 0;
+
+        // A trimmed surface whose accepted part is nothing (every cell below the accepted-fraction floor, spec 057 phase 10): it emits
+        // nothing and adds no leaf; counted and reported once per light
+        virtual void trimmedAway(const CObject *object) = 0;
 };
 
 class CObject : public CRefCounter {

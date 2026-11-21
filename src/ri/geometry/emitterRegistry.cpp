@@ -78,6 +78,7 @@ namespace {
             }
             void unsupported(const CObject *) override { ++set.numUnsupported; }
             void csgLeaf() override { ++set.numCsgLeaves; }
+            void trimmedAway(const CObject *) override { ++set.numFullyTrimmed; }
 
             const CEmitterSet &set;
             std::vector<CEmitterLeaf> leaves;
@@ -117,6 +118,8 @@ void CEmitterSet::resolve(IRayContext &context) const {
             warning(CODE_BADTOKEN, "area light \"%s\": %d primitive(s) cannot emit (points, curves, blobbies, implicit surfaces and shader operands stay ordinary geometry)\n", name, numUnsupported);
         if (numCsgLeaves > 0)
             warning(CODE_BADTOKEN, "area light \"%s\": %d CSG leaf(ves) emit from the whole leaf, without their solid's region\n", name, numCsgLeaves);
+        if (numFullyTrimmed > 0)
+            warning(CODE_BADTOKEN, "area light \"%s\": %d trimmed surface(s) have nothing left after the trim and emit nothing\n", name, numFullyTrimmed);
         if (!(totalArea_ > 0.0))
             warning(CODE_BADTOKEN, "area light \"%s\" has no emitting geometry\n", name);
     });

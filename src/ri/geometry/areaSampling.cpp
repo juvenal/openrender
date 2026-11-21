@@ -17,6 +17,8 @@
 #include "areaSampling.h"
 
 #include <algorithm>
+#include <cstdint>
+#include <cstring>
 #include <cmath>
 
 namespace {
@@ -203,6 +205,24 @@ namespace {
 
 } // namespace
 
+namespace {
+
+    // splitmix64: the candidates of a trimmed face are pure functions of the draw's two numbers (no stream, no state)
+    inline uint64_t mix64(uint64_t z) {
+        z += 0x9e3779b97f4a7c15ULL;
+        z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
+        z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
+        return z ^ (z >> 31);
+    }
+    inline uint64_t bitsOf(double d) {
+        uint64_t b;
+        memcpy(&b, &d, sizeof(b));
+        return b;
+    }
+    inline double unitOf(uint64_t z) { return static_cast<double>(z >> 11) * (1.0 / 9007199254740992.0); }
+
+} // namespace
+
 bool CAreaTable::draw(double u1, double u2, CAreaSample &out) const {
     if (map >= EAreaMap::Sphere)
         return area > 0.0 && surface != nullptr && drawQuadric(*this, u1, u2, out);
@@ -211,9 +231,31 @@ bool CAreaTable::draw(double u1, double u2, CAreaSample &out) const {
     double r1;
     const CAreaFace &f = faces[areaPickBin(cdf, u1, r1)];
 
-    // a point in the triangle, uniform by area: (r1, u2) by the square-root mapping
-    const double r = std::sqrt(r1);
-    const double w0 = 1.0 - r, w1 = r * (1.0 - u2), w2 = r * u2;
+    // A trimmed surface: every candidate point of the face is tested with the surface's own trim; a rejected one is replaced by the next of
+    // kAreaTrimCandidates pure-hash candidates of the same face, and when all are rejected the face's anchor (accepted by its probes) is emitted
+    const bool trimmed = (map == EAreaMap::Affine && surface != nullptr && surface->hasTrim());
+    bool useAnchor = false;
+    double c1 = r1, c2 = u2;
+    if (trimmed) {
+        bool accepted = false;
+        const uint64_t seed = mix64(bitsOf(u1)) ^ mix64(bitsOf(u2) + 0x632be59bd9b4e019ULL);
+        for (int k = 0; k < kAreaTrimCandidates && !accepted; k++) {
+            if (k > 0) {
+                c1 = unitOf(mix64(seed + 2 * static_cast<uint64_t>(k)));
+                c2 = unitOf(mix64(seed + 2 * static_cast<uint64_t>(k) + 1));
+            }
+            const double cr = std::sqrt(c1);
+            const double cw0 = 1.0 - cr, cw1 = cr * (1.0 - c2), cw2 = cr * c2;
+            const float cu = static_cast<float>(cw0 * f.uv[0][0] + cw1 * f.uv[1][0] + cw2 * f.uv[2][0]);
+            const float cv = static_cast<float>(cw0 * f.uv[0][1] + cw1 * f.uv[1][1] + cw2 * f.uv[2][1]);
+            accepted = surface->trimAccepts(cu, cv);
+        }
+        useAnchor = !accepted;
+    }
+
+    // a point in the triangle, uniform by area: (c1, c2) by the square-root mapping
+    const double r = std::sqrt(c1);
+    const double w0 = 1.0 - r, w1 = r * (1.0 - c2), w2 = r * c2;
     double P[3];
     for (int k = 0; k < 3; k++)
         P[k] = w0 * f.P[0][k] + w1 * f.P[1][k] + w2 * f.P[2][k];
@@ -230,6 +272,10 @@ bool CAreaTable::draw(double u1, double u2, CAreaSample &out) const {
         default:
             u = w0 * f.uv[0][0] + w1 * f.uv[1][0] + w2 * f.uv[2][0];
             v = w0 * f.uv[0][1] + w1 * f.uv[1][1] + w2 * f.uv[2][1];
+            if (useAnchor) {
+                u = f.anchor[0];
+                v = f.anchor[1];
+            }
             break;
     }
     out.u = static_cast<float>(u);
@@ -266,7 +312,7 @@ CAreaTable makeTriangleTable(const float *v0, const float *v1, const float *v2) 
     return t;
 }
 
-CAreaTable makeQuadTable(const CSurface *surface, const float *v0, const float *v1, const float *v2, const float *v3) {
+CAreaTable makeQuadTable(const CSurface *surface, const float *v0, const float *v1, const float *v2, const float *v3, int fallbackK) {
     double A[3], B[3], D[3], C[3];
     toDouble(A, v0);
     toDouble(B, v1);
@@ -329,7 +375,7 @@ CAreaTable makeQuadTable(const CSurface *surface, const float *v0, const float *
             diagonal = 2;
     }
     if (diagonal == 0)
-        return makeTessellatedTable(surface); // not planar, or self-intersecting
+        return makeTessellatedTable(surface, fallbackK); // not planar, or self-intersecting
 
     for (int k = 0; k < 4; k++) {
         const double *p = k == 0 ? A : k == 1 ? B : k == 2 ? D : C;
@@ -365,6 +411,7 @@ CAreaTable makeTessellatedTable(const CSurface *surface, int K) {
     CAreaTable t;
     t.map = EAreaMap::Affine;
     t.surface = surface;
+    const bool trimmed = surface->hasTrim(); // see areaSampling.h: probes, accepted fractions and the draw's per-candidate test
     const int count = (K + 1) * (K + 1);
     std::vector<float> u(count), v(count), time(count, 0.0f), P(3 * count), du(3 * count), dv(3 * count), ng(3 * count), dt(3 * count), pw(4 * count);
     for (int j = 0; j <= K; j++)
@@ -411,6 +458,37 @@ CAreaTable makeTessellatedTable(const CSurface *surface, int K) {
                 b.uv[0][k] = uv00[k];
                 b.uv[1][k] = uv11[k];
                 b.uv[2][k] = uv01[k];
+            }
+            if (trimmed) {
+                // the probes of the cell: the lattice (m + 0.5) / 8 in the cell's local x and y; triangle a is local y <= x, triangle b is x <= y
+                int accepted[2] = {0, 0}, count[2] = {0, 0};
+                bool haveAnchor[2] = {false, false};
+                for (int n = 0; n < kAreaTrimProbes; n++)
+                    for (int m = 0; m < kAreaTrimProbes; m++) {
+                        const double x = (m + 0.5) / kAreaTrimProbes, y = (n + 0.5) / kAreaTrimProbes;
+                        const float pu = static_cast<float>((i + x) / K), pv = static_cast<float>((j + y) / K);
+                        const bool ok = surface->trimAccepts(pu, pv);
+                        for (int tri = 0; tri < 2; tri++) {
+                            const bool inTri = (tri == 0) ? (y <= x) : (x <= y);
+                            if (!inTri)
+                                continue;
+                            ++count[tri];
+                            if (ok) {
+                                ++accepted[tri];
+                                CAreaFace &face = tri == 0 ? a : b;
+                                if (!haveAnchor[tri]) {
+                                    haveAnchor[tri] = true;
+                                    face.anchor[0] = pu;
+                                    face.anchor[1] = pv;
+                                }
+                            }
+                        }
+                    }
+                for (int tri = 0; tri < 2; tri++) {
+                    CAreaFace &face = tri == 0 ? a : b;
+                    const double fraction = static_cast<double>(accepted[tri]) / count[tri];
+                    face.area = fraction < kAreaTrimFloor ? 0.0 : face.area * fraction;
+                }
             }
             t.faces.push_back(a);
             t.faces.push_back(b);

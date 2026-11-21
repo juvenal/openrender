@@ -35,6 +35,7 @@
 #include "common/memory.h"
 #include "motion.h"
 #include "patchUtils.h"
+#include "areaSampling.h"
 #include "patches.h"
 
 // The inverse of the Bezier basis (double — used for high-precision intermediate computations)
@@ -2252,4 +2253,39 @@ int CBilinearPatch::countCrossings(IRayContext *, const float *from, const float
     const int vertexSize = variables->vertexSize;
     const float *P00 = vertex;
     return countBilinearCrossings(P00, P00 + vertexSize, P00 + 2 * vertexSize, P00 + 3 * vertexSize, from, dir);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CBilinearPatch
+// Method				:	collectEmitters
+// Description			:	Spec 057 phase 10: a planar bilinear patch is its own quad, sampled exactly from its four corners at
+//							shutter open (P00, P10, P01, P11, the patch's own (u, v) corners); a warped one, or one that claims a trim,
+//							the tessellated table at kQuadricTessellationK
+// Return Value			:	-
+// Comments				:
+void CBilinearPatch::collectEmitters(IRayContext &, CEmitterCollector &out) {
+    if (hasTrim()) {
+        collectTessellatedEmitter(out, kQuadricTessellationK); // an exact table could not apply a trim
+        return;
+    }
+    float c[4][3], n[3];
+    samplePoint(0.0f, 0.0f, c[0], n);
+    samplePoint(1.0f, 0.0f, c[1], n);
+    samplePoint(0.0f, 1.0f, c[2], n);
+    samplePoint(1.0f, 1.0f, c[3], n);
+    CAreaTable table = makeQuadTable(this, c[0], c[1], c[2], c[3], kQuadricTessellationK);
+    const double area = table.area;
+    out.addLeaf(this, std::move(table), area);
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CNURBSPatch
+// Method				:	collectEmitters
+// Description			:	Spec 057 phase 10: the tessellated table at kQuadricTessellationK; a trimmed patch's table weighs each cell by its
+//							accepted fraction and its draws are tested against the trim (areaSampling.h), a fully trimmed one is
+//							reported and adds no leaf
+// Return Value			:	-
+// Comments				:
+void CNURBSPatch::collectEmitters(IRayContext &, CEmitterCollector &out) {
+    collectTessellatedEmitter(out, kQuadricTessellationK);
 }
