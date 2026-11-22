@@ -610,6 +610,7 @@ static bool emitFunction(const IRFunction &irFn,
                          const std::unordered_map<std::string, VarDesc> &varTbl,
                          const DsoSlots &dsoSlots,
                          bool inInit,
+                         bool lightEntry,
                          llvm::LLVMContext &ctx,
                          llvm::Module &mod) {
     // Insert at the END of the existing entry block (after slot loads).
@@ -719,8 +720,18 @@ static bool emitFunction(const IRFunction &irFn,
     // -----------------------------------------------------------------------
     auto *numActivePtr = B.CreateAlloca(i32Ty, nullptr, "numActive");
     auto *numPassivePtr = B.CreateAlloca(i32Ty, nullptr, "numPassive");
-    B.CreateStore(numVerts, numActivePtr);
-    B.CreateStore(B.getInt32(0), numPassivePtr);
+    if (lightEntry) {
+        // A light is run by iterateLights() under whatever tags its surface has, and starts from the counts that
+        // went with them (GitHub #100), as the interpreter does. Every other shader starts all-active, so its
+        // bytes are unchanged.
+        auto *entryTy = llvm::FunctionType::get(voidTy, {i32Ty, ptrTy, ptrTy}, false);
+        auto *entryFn = declareOp(mod, "op_entry_counts", entryTy);
+        B.CreateCall(entryFn, {numVerts, numActivePtr, numPassivePtr});
+    }
+    else {
+        B.CreateStore(numVerts, numActivePtr);
+        B.CreateStore(B.getInt32(0), numPassivePtr);
+    }
 
     // -----------------------------------------------------------------------
     // Helper: load a float* pointer from one of the stuff[] slot arrays.
@@ -3582,7 +3593,8 @@ bool emitLLVMBitcode(const IRModule &mod,
         llvm::Value *slot2 = B.CreateLoad(ptrTy, slot2_pp, "locals");
 
         // Continue appending to entry (after the slot loads).
-        return emitFunction(irFn, func, entry, numVerts, slot1, slot2, tags, varTbl, dsoSlots, inInit, ctx, *llvmMod);
+        return emitFunction(irFn, func, entry, numVerts, slot1, slot2, tags, varTbl, dsoSlots, inInit,
+                            !inInit && mod.shaderType == "light", ctx, *llvmMod);
     };
 
     // -----------------------------------------------------------------------

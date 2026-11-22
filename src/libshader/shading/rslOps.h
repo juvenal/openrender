@@ -177,6 +177,9 @@ void op_faceforward(float *dst, int sd, const float *n_in, int sn, const float *
  *   These implement IF2EXPR_PRE / ELSEIFEXPR_PRE / ENDIFEXPR_PRE exactly,
  *   but without the interpreter's numActive jmp() optimisation.
  * ----------------------------------------------------------------------- */
+/* op_entry_counts: a light shader's starting counts (GitHub #100): the shading state's, which iterateLights()
+ * publishes with the surface's tags; all-active when there is no context. */
+void op_entry_counts(int n, int *numActive, int *numPassive);
 void op_if_update(const float *cond, int scond, int *tags, int n, int *numActive, int *numPassive);
 void op_else_update(int *tags, int n, int *numActive, int *numPassive);
 void op_endif_update(int *tags, int n, int *numActive, int *numPassive);

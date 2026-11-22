@@ -142,6 +142,22 @@ if(OPENRENDER_HAVE_LLVM)
     )
 endif()
 
+# GitHub #100/#101: a light run under a surface whose diffuse()/specular()/phong() sits in a varying if is
+# entered with some points passive, and must start from that active count under both backends. Renders a
+# looping light under a half-active surface for every surface x light pair of .rslo and .slo; each render has
+# its own time limit, so a hang or a crash fails the case instead of ctest.
+if(OPENRENDER_HAVE_LLVM)
+    add_executable(test_shading_parity_light_partial_active test_light_partial_active.cpp)
+    target_link_libraries(test_shading_parity_light_partial_active PRIVATE openrender_common_flags)
+    target_compile_features(test_shading_parity_light_partial_active PRIVATE cxx_std_20)
+    add_test(NAME ShadingParity_LightPartialActive COMMAND test_shading_parity_light_partial_active)
+    set_tests_properties(ShadingParity_LightPartialActive PROPERTIES
+        TIMEOUT 240
+        LABELS "shading_parity"
+        ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;ORENDER_BIN=$<TARGET_FILE:orender>;TEST_DISPLAYS_DIR=$<TARGET_FILE_DIR:file>"
+    )
+endif()
+
 # GitHub #123/#124: a point/vector written in a named space reaches the
 # current space the same way on both backends -- a light parameter default
 # (converted once at bind time, where the JIT has no shading context) and a
