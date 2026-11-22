@@ -128,9 +128,9 @@ with its location.
 
 | # | Situation | Determined by (code) | Ray type | Hit mode read | Transport | Pass |
 |---|---|---|---|---|---|---|
-| 1 | REYES/zbuffer grid, camera | `reyes.cpp:1061, 1115` -> `shade(..., SHADING_2D_GRID, ...)` | `None` | `camerahitmode`, applied **after** the shaders: `"p"` overwrites `Oi` with the attribute opacity and keeps `Ci` (`shading.cpp:1374-1382`) | Radiance | Full |
-| 2 | REYES points/curves (0-D) | `reyes.cpp:907, 968` -> `SHADING_0D` | `None` | none (always `Shade`; `camerahitmode` ignored) | Radiance | Full |
-| 3 | Raytrace camera ray hit | `raytracer.cpp:652` `trace(&primaryBundle)` at depth 0 -> `CSurface::shade` (`geometryDispatch.cpp:405`, `SHADING_2D`) | `Camera` | `specularhitmode` (`shading.cpp:915`), **not** `camerahitmode` | Radiance | Full |
+| 1 | REYES/zbuffer grid, camera | `reyes.cpp:1061, 1115` -> `shade(..., SHADING_2D_GRID, ...)` | `None` | `camerahitmode`, applied **after** the shaders (they always run): `"p"` overwrites `Oi` with the attribute opacity and keeps `Ci` (`shading.cpp`, the camera-primitive overwrite; the same rule for rows 2 and 3 since #117) | Radiance | Full |
+| 2 | REYES points/curves (0-D) | `reyes.cpp:907, 968` -> `SHADING_0D` | `None` | `camerahitmode`, as row 1 (it was ignored before #117) | Radiance | Full |
+| 3 | Raytrace camera ray hit | `raytracer.cpp:652` `trace(&primaryBundle)` at depth 0 -> `CSurface::shade` (`geometryDispatch.cpp:405`, `SHADING_2D`) | `Camera` | `camerahitmode`, as row 1: the shaders run, `"p"` replaces `Oi` (before #117 it read `specularhitmode` and skipped the shaders) | Radiance | Full |
 | 4 | Secondary hit (`trace`, ray-traced `environment`, `gather`, reflection/refraction) | `traceEx` -> depth >= 1, `!inShadow`, `SHADING_2D` | `Secondary` | `specularhitmode` (`:915`); `diffusehitmode` is parsed but never read (`rendererContext.cpp:3701-3704`) | Radiance | Full |
 | 5 | Shaded shadow/transmission hit (`transmission()`, ray-traced `shadow`) | `traceTransmission` sets `inShadow` (`executeMisc.cpp:717`) -> `shade()` | `Shadow` | `transmissionhitmode` (`shading.cpp:889`): `"p"` copies the attribute opacity and returns; `"s"` runs the surface only (`:907`) | Radiance | Full |
 | 6 | Implicit-surface ray hit | `implicitSurface.cpp:258` -> `SHADING_0D` | `Camera` (depth 0) / `Secondary` / `Shadow` | none (0-D skips the specular test) | Radiance | Full |

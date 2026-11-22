@@ -4441,6 +4441,9 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/volume-scenes.cmake)
 # --- Area-light geometry (spec 057): the closed-form probes and AreaLightBinding_Illuminate, in a file of their own ---
 include(${CMAKE_CURRENT_SOURCE_DIR}/arealight-scenes.cmake)
 
+# --- camerahitmode on every camera hider and primitive kind (GitHub #117), in a file of its own ---
+include(${CMAKE_CURRENT_SOURCE_DIR}/camerahitmode-scenes.cmake)
+
 # --- Equal-depth ties (spec 039, Phase 7, T084c) ---------------------------------------------
 # Two coincident opaque triangles of different colour: every sample of the overlap receives two
 # fragments at exactly the same depth. The hiders keep the fragment that arrives first

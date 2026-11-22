@@ -1112,9 +1112,9 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
             branch = SHADEBRANCH_DISPLACE_ONLY;
         else if (g.rayType == RayType::Shadow)
             branch = (g.hitMode == HitMode::Primitive) ? SHADEBRANCH_SHADOW_PRIMITIVE : SHADEBRANCH_FULL;
-        else if (g.rayType == RayType::Camera || g.rayType == RayType::Secondary)
+        else if (g.rayType == RayType::Secondary)
             branch = (g.hitMode == HitMode::Primitive) ? SHADEBRANCH_SPECULAR_PRIMITIVE : SHADEBRANCH_FULL;
-        else if (g.rayType == RayType::None && dim == SHADING_2D_GRID && g.hitMode == HitMode::Primitive)
+        else if ((g.rayType == RayType::None || g.rayType == RayType::Camera) && g.hitMode == HitMode::Primitive)
             branch = SHADEBRANCH_CAMERA_PRIMITIVE;
         const CShadeBatchReport batch{src.surface(), &g, dim, displaceOnly, inShadow, currentRayDepth, rendererIlluminationHook() ? 1 : 0, branch};
         shadeBatchObserver(batch);
@@ -1162,8 +1162,9 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
         else {
             // check the hit mode
 
-            // If we're raytracing, are we supposed to shade hit rays?
-            if ((g.rayType == RayType::Camera || g.rayType == RayType::Secondary) && g.hitMode == HitMode::Primitive) {
+            // A secondary hit with specularhitmode "primitive" is not shaded. A camera hit always is: camerahitmode only
+            // replaces its opacity, after the shaders (below)
+            if (g.rayType == RayType::Secondary && g.hitMode == HitMode::Primitive) {
                 // No, just copy the color/opacity from the attributes field
                 float *opacity = varying[VARIABLE_OI];
                 float *color = varying[VARIABLE_CI];
@@ -1600,9 +1601,10 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
         }
     }
 
-    // Check if we should are a camera ray, and have primitive hit mode
-    if (g.rayType == RayType::None && g.hitMode == HitMode::Primitive) {
-        // Yes, force opacity 1
+    // A camera hit (a grid, points or a raytrace camera ray) with camerahitmode "primitive": the shaders ran, the opacity
+    // is the attribute's (PRMan)
+    if ((g.rayType == RayType::None || g.rayType == RayType::Camera) && g.hitMode == HitMode::Primitive) {
+        // Yes, take the attribute opacity
         float *opacity = varying[VARIABLE_OI];
         const float *so = currentAttributes->surfaceOpacity;
         int i;
