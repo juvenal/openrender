@@ -1922,8 +1922,6 @@ CObject *CSubdivMesh::buildSurfaces(CMemPage *&mem) {
     data.currentFlags = 0;
     data.parameterList = NULL;
 
-    data.mem = mem;
-
     data.vd = pl->vertexData();
     data.currentFlags = 0;
     data.currentAttributes = this->attributes;
@@ -1944,6 +1942,11 @@ CObject *CSubdivMesh::buildSurfaces(CMemPage *&mem) {
     pl->collect(data.varyingSize, data.varyingData, CONTAINER_VARYING, mem);
     data.facevaryingData = NULL;
     pl->collect(data.facevaryingSize, data.facevaryingData, CONTAINER_FACEVARYING, mem);
+
+    // The collects above advance mem; from here on every allocation goes through data.mem,
+    // so there is a single cursor into the scratch pages (a second one that fell behind
+    // would rewind pages that already hold the mesh).
+    data.mem = mem;
 
     faces = (CSFace **)ralloc(numFaces * sizeof(CSFace *), data.mem);
     vertices = (CSVertex **)ralloc(numVertices * sizeof(CSVertex *), data.mem);
@@ -2183,7 +2186,7 @@ CObject *CSubdivMesh::buildSurfaces(CMemPage *&mem) {
     // conclude the vertex has no seam -- silently skipping seam resolution
     // (and any hierarchical override on that face) for whichever face
     // happens to be processed first at that vertex.
-    int *skipFace = (int *)ralloc(sizeof(int) * numFaces, mem);
+    int *skipFace = (int *)ralloc(sizeof(int) * numFaces, data.mem);
 
     for (k = 0, i = 0; i < numFaces; i++) {
         skipFace[i] = FALSE;

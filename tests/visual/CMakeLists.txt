@@ -2145,6 +2145,28 @@ add_visual_test(subdiv-loop-mixed-invalid-raytrace
     subdiv-loop-mixed-invalid-raytrace.tif
     subdiv-loop-mixed-invalid-raytrace.tif)
 
+# GitHub #194: a SubdivisionMesh above ~2,000 faces spilled CSubdivMesh::buildSurfaces'
+# scratch memory past its first page and crashed (SIGSEGV). Each scene is a flat 50x50
+# catmull-clark grid (2,500 faces); a crash fails the test (test_visual_render reports
+# a non-zero orender exit) before any image comparison.
+add_visual_test(subdiv-large-mesh-reyes
+    examples/rib/tests/subdiv-large-mesh-reyes.rib
+    subdiv-large-mesh-reyes.tif
+    subdiv-large-mesh-reyes.tif)
+
+add_visual_test(subdiv-large-mesh-raytrace
+    examples/rib/tests/subdiv-large-mesh-raytrace.rib
+    subdiv-large-mesh-raytrace.tif
+    subdiv-large-mesh-raytrace.tif)
+
+# The mesh that exposed #194: two Rolling Teapot parts (3,486 and 1,800 faces, open
+# boundaries, mixed quads and triangles, facevarying st) that crashed buildSurfaces.
+# Model by Brice Laville, CC BY 4.0 (attribution in the scene's header).
+add_visual_test(subdiv-rolling-teapot-large
+    examples/rib/tests/subdiv-rolling-teapot-large.rib
+    subdiv-rolling-teapot-large.tif
+    subdiv-rolling-teapot-large.tif)
+
 # --- Subdivision surfaces: photon hider (spec 010-full-subdivision-support,
 # Phase 9 Polish, T065-T068, FR-014). CPhotonHider never produces an image on
 # its own (CPhotonHider::preDisplaySetup() sets HIDER_NODISPLAY --

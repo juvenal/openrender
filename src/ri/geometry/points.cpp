@@ -343,7 +343,9 @@ void CPoints::prep() {
     }
 
     base->vertex = new float[vertexSize * numPoints];
-    pl->collect(i, base->vertex, CONTAINER_VERTEX, NULL);
+    // base->vertex is already allocated, so collect() never touches the page
+    CMemPage *noPage = NULL;
+    pl->collect(i, base->vertex, CONTAINER_VERTEX, noPage);
     assert(i == vertexSize);
 
     assert(points == NULL);
