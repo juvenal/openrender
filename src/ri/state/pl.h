@@ -113,7 +113,7 @@ class CPl {
         CPlParameter *find(int, const float *&, const float *&);
 
         CVertexData *vertexData();
-        void collect(int &, float *&, EVariableClass, CMemPage *);
+        void collect(int &, float *&, EVariableClass, CMemPage *&);
 
         CParameter *uniform(int, CParameter *);
         CParameter *varying(int, int, int, int, CParameter *);

@@ -860,7 +860,7 @@ CPlParameter *CPl::find(int t, const float *&d0, const float *&d1) {
 // Description			:	Extract the vertex data
 // Return Value			:
 // Comments				:
-void CPl::collect(int &size, float *&data, EVariableClass container, CMemPage *page) {
+void CPl::collect(int &size, float *&data, EVariableClass container, CMemPage *&page) {
     int i, j, k;
     int vs = 0;
     int numItems = 0;
