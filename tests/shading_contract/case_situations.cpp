@@ -14,7 +14,7 @@
  *
  * It covers every (call site, hit mode) pair, the non-default hit modes included: T009 found no hit-mode
  * attribute in the visual suite, so each scene exists once with the default and once with the other value:
- *   row 1  camerahitmode            shader / primitive   (read after the shaders: the shader runs in both)
+ *   row 1  camerahitmode            shader / primitive   (read after the shaders: the shader runs in both; rows 2 and 3 too, #117)
  *   row 3  specularhitmode          shader / primitive   (a raytrace camera hit reads specularhitmode)
  *   row 4  specularhitmode          shader / primitive   (secondary hits)
  *   row 5  transmissionhitmode      primitive (default) / shader
@@ -29,11 +29,12 @@
  * Rows 6 and 7 (implicit-surface and DSO-object hits; row 6's present behaviour is an oddity, O5 #119,
  * and row 7 is kept classify-only as decided in B8, although the DLO vertex count was fixed by #129,
  * was #116) and rows 10 to 14 (no shade()) are asserted from classifyShading() alone (B8). The seven
- * oddities of research R13 that remain are asserted as oddities (documented, not fixed): 1 camerahitmode
- * applies after the shaders; 2 a raytrace camera hit reads specularhitmode, not camerahitmode; 3 an
+ * oddities of research R13 that remain are asserted as oddities (documented, not fixed): 3 an
  * implicit-surface hit is 0-D (no derivatives, no hit mode); 4 diffusehitmode is parsed and never read;
  * 5 the atmosphere runs only at depth 0 and never on a matte object; 6 a shaded transmission hit skips
- * the displacement shader; 7 camerahitmode is ignored for 0-D points and by the raytrace camera hit.
+ * the displacement shader. GitHub #117 fixed R13's oddities 1, 2 and 7: every camera hit (a REYES grid, 0-D points or a
+ * raytrace camera hit) reads camerahitmode, the shaders always run and "primitive" only replaces Oi with the attribute
+ * opacity; specularhitmode governs the secondary hits only.
  */
 #include <cstdio>
 #include <cstdlib>
@@ -214,11 +215,15 @@ namespace {
             c.hitMode = mode(s.cameraMode);
             return {1, c};
         }
-        if (s.rasterHider && r.dim == (int)SHADING_0D && r.rayDepth == 0)
-            return {2, c}; // camerahitmode ignored for 0-D points (oddity 7)
+        if (s.rasterHider && r.dim == (int)SHADING_0D && r.rayDepth == 0) {
+            c.hitMode = mode(s.cameraMode); // 0-D points read camerahitmode, as grids do (#117)
+            return {2, c};
+        }
         c.rayType = (r.rayDepth == 0) ? RayType::Camera : RayType::Secondary;
-        if (r.dim == (int)SHADING_2D)
-            c.hitMode = mode(s.specularMode); // specularhitmode, not camerahitmode (oddity 2)
+        if (r.rayDepth == 0)
+            c.hitMode = mode(s.cameraMode); // a camera hit reads camerahitmode at every dimension (#117)
+        else if (r.dim == (int)SHADING_2D)
+            c.hitMode = mode(s.specularMode); // a secondary hit reads specularhitmode
         return {r.rayDepth == 0 ? 3 : 4, c};
     }
 
@@ -283,10 +288,11 @@ namespace {
             s.transmissionHitMode = 'p';
             return s;
         };
-        // Row 6: an implicit-surface ray hit is 0-D: no hit mode (oddity 3); depth 0 -> Camera, deeper -> Secondary, in shadow -> Shadow
+        // Row 6: an implicit-surface ray hit is 0-D: a secondary hit has no hit mode (oddity 3); depth 0 -> Camera (camerahitmode,
+        // "primitive" in this situation: #117), deeper -> Secondary, in shadow -> Shadow
         {
             auto c0 = libshader::classifyShading(situation((int)SHADING_0D, 0, 0, 0, false, false));
-            CT_EXPECT(c0.rayType == RayType::Camera && c0.hitMode == HitMode::Shade);
+            CT_EXPECT(c0.rayType == RayType::Camera && c0.hitMode == HitMode::Primitive);
             auto c1 = libshader::classifyShading(situation((int)SHADING_0D, 0, 0, 1, false, false));
             CT_EXPECT(c1.rayType == RayType::Secondary && c1.hitMode == HitMode::Shade);
             // spec 029 (P-Q5): shade() tests transmissionhitmode in a shadow at every dimension, so a 0-D shadow hit
@@ -298,6 +304,13 @@ namespace {
         {
             auto c0 = libshader::classifyShading(situation((int)SHADING_2D, 0, 0, 0, false, false));
             CT_EXPECT(c0.rayType == RayType::Camera && c0.hitMode == HitMode::Primitive);
+            // #117: the camera hit reads camerahitmode, not specularhitmode
+            libshader::ShadingSituation camShader = situation((int)SHADING_2D, 0, 0, 0, false, false);
+            camShader.cameraHitMode = 's';
+            CT_EXPECT(libshader::classifyShading(camShader).hitMode == HitMode::Shade);
+            libshader::ShadingSituation specShader = situation((int)SHADING_2D, 0, 0, 1, false, false);
+            specShader.specularHitMode = 's';
+            CT_EXPECT(libshader::classifyShading(specShader).hitMode == HitMode::Shade); // a secondary hit reads specularhitmode
             auto c1 = libshader::classifyShading(situation((int)SHADING_2D, 0, 0, 2, false, false));
             CT_EXPECT(c1.rayType == RayType::Secondary && c1.hitMode == HitMode::Primitive);
             auto c2 = libshader::classifyShading(situation((int)SHADING_2D, 0, 1, 1, false, false));
@@ -327,12 +340,14 @@ int caseSituations(int argc, char **argv) {
     // ones: camerahitmode and specularhitmode "shader", transmissionhitmode "primitive".
     const SScene scenes[] = {
         {"sit_row1_camera_shaded", true, 's', 's', 'p', true, 0, true},
-        {"sit_row1_camera_primitive", true, 'p', 's', 'p', true, 0, true}, // the shader runs under "primitive" too (oddity 1)
-        {"sit_row2_points", true, 'p', 's', 'p', true, 0, true},           // camerahitmode ignored for 0-D points
+        {"sit_row1_camera_primitive", true, 'p', 's', 'p', true, 0, true}, // the shader runs under "primitive" too
+        {"sit_row2_points", true, 'p', 's', 'p', true, 0, true},           // 0-D points read camerahitmode: the shader runs, Oi is replaced
         {"sit_row3_raytrace_shaded", false, 's', 's', 'p', true, 0, false},
-        {"sit_row3_raytrace_primitive", false, 's', 'p', 'p', false, 0, false}, // a raytrace camera hit reads specularhitmode: no marker
+        {"sit_row3_raytrace_primitive", false, 's', 'p', 'p', true, 0, false}, // a raytrace camera hit reads camerahitmode ("shader" here): the shader runs
+        {"sit_row3_raytrace_camera_primitive", false, 'p', 's', 'p', true, 0, true}, // camerahitmode "primitive": the shader still runs (#117)
         {"sit_row4_secondary_shaded", false, 's', 's', 'p', true, 1, false},
-        {"sit_row4_secondary_primitive", false, 's', 'p', 'p', false, 1, false},
+        // the mirror is camera-visible, so its shader runs (camerahitmode "shader") and traces; the hit it finds is primitive
+        {"sit_row4_secondary_primitive", false, 's', 'p', 'p', true, 1, true, true},
         {"sit_row5_shadow_primitive", false, 's', 's', 'p', false, 1, false},
         {"sit_row5_shadow_shaded", false, 's', 's', 's', true, 1, false},
         {"sit_row8_displace", true, 's', 's', 'p', true, 0, true},

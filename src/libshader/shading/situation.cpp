@@ -7,13 +7,14 @@
  *   classifyShading(): the situation table of contracts/shader-globals.md as a pure function (spec 026).
  *   Each branch names the table row and the code location it reproduces at spec 026's starting tree.
  *   The seven oddities of research R13 that remain are encoded as the table has them. They are not fixed here:
- *     1  camerahitmode applies after the shaders to a REYES grid (shading.cpp, the "primitive" overwrite of Oi)
- *     2  a raytrace camera hit reads specularhitmode, not camerahitmode (shading.cpp:915)
+ *     1  (GitHub #117: not an oddity any more) camerahitmode applies after the shaders, to every camera hit: REYES grids,
+ *        0-D points and raytrace camera hits alike; "primitive" overwrites Oi with the attribute opacity
+ *     2  (fixed by #117) a raytrace camera hit now reads camerahitmode, not specularhitmode
  *     3  an implicit-surface ray hit is shaded as SHADING_0D: no derivatives, no hit mode (O5 #119)
  *     4  diffusehitmode is parsed and never read (rendererContext.cpp:3701-3704)
  *     5  the atmosphere runs only at depth 0 and never on a matte object (shading.cpp:1361, :933-936)
  *     6  a shaded transmission hit skips the displacement shader
- *     7  camerahitmode is ignored for 0-D points and by the raytrace camera hit
+ *     7  (fixed by #117) camerahitmode was ignored for 0-D points and by the raytrace camera hit
  *   (A DSO-object ray hit used to pass vVertices = -1; #129 fixed it, was #116, so it is no longer an oddity.)
  *
  * Authors:
@@ -78,28 +79,34 @@ namespace libshader {
             return c;
         }
 
-        // Row 1: a grid seen by the camera (reyes.cpp:1061, :1115). camerahitmode is applied after the shaders (oddity 1):
-        // "p" overwrites Oi with the attribute opacity and keeps Ci (shading.cpp:1374-1382).
+        // Row 1: a grid seen by the camera (reyes.cpp:1061, :1115). camerahitmode never skips the shaders (PRMan): "p"
+        // overwrites Oi with the attribute opacity after them and keeps Ci. Rows 2 and 3 follow the same rule (GitHub #117).
         if (s.dim == (int)SHADING_2D_GRID) {
             c.hitMode = modeOf(s.cameraHitMode);
             return c;
         }
 
-        // Row 2: REYES points and curves, SHADING_0D at depth 0 in a raster frame (reyes.cpp:907, :968): camerahitmode is
-        // ignored (oddity 7)
-        if (s.rasterHider && zeroD && s.rayDepth == 0)
+        // Row 2: REYES points and curves, SHADING_0D at depth 0 in a raster frame (reyes.cpp:907, :968): camerahitmode, as
+        // for a grid (GitHub #117)
+        if (s.rasterHider && zeroD && s.rayDepth == 0) {
+            c.hitMode = modeOf(s.cameraHitMode);
             return c;
+        }
 
         // A ray hit, 2-D or 0-D, at any depth and in any frame: rows 3, 4, 6 and 7 (and, with no hider at all, row 14: the
         // RSLShading::shade() facade, a bare execution, which has no ray and is told apart by its caller, not by this function).
-        //   row 3: a raytrace camera hit (raytracer.cpp:652, depth 0) reads specularhitmode (shading.cpp:915),
-        //          not camerahitmode (oddity 2)
+        //   row 3: a raytrace camera hit (raytracer.cpp:652, depth 0) reads camerahitmode (GitHub #117: it used to read
+        //          specularhitmode)
         //   row 4: a secondary hit (depth >= 1, not in shadow), also one traced from a REYES grid, reads specularhitmode;
         //          diffusehitmode is never read (oddity 4)
         //   row 6: an implicit-surface hit is SHADING_0D (implicitSurface.cpp:258): no hit mode (oddity 3)
         //   row 7: a DSO-object hit (dlobject.cpp:173) is classified as rows 3 to 5
         c.rayType = (s.rayDepth == 0) ? RayType::Camera : RayType::Secondary;
-        c.hitMode = zeroD ? HitMode::Shade : modeOf(s.specularHitMode);
+        // depth 0 is the camera's: camerahitmode at every dimension (GitHub #117). Deeper: specularhitmode, 2-D only (oddity 3)
+        if (s.rayDepth == 0)
+            c.hitMode = modeOf(s.cameraHitMode);
+        else
+            c.hitMode = zeroD ? HitMode::Shade : modeOf(s.specularHitMode);
         return c;
     }
 

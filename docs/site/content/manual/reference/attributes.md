@@ -120,10 +120,10 @@ Attribute "shade" "string specularhitmode" ["shader"]
 Control whether opacity and color for specular rays are determined by the surface shader (`"shader"`), or the `Opacity` atribute (`"primitive"`).
 
 ```
-Attribute "shade" "string camearhitmode" ["shader"]
+Attribute "shade" "string camerahitmode" ["shader"]
 ```
 
-If the camera hitmode is specified to be `"primitive"` then the `Opacity` attribute is used instead of the shader's calculated `Oi`. This allows you to force openRender to treat the object as opaque (and therefore cull objects behind it).
+If the camera hitmode is specified to be `"primitive"` then the `Opacity` attribute is used instead of the shader's calculated `Oi`. This allows you to force openRender to treat the object as opaque (and therefore cull objects behind it). The shader always runs for a camera-visible object; only its opacity is replaced. This holds for every camera hider (reyes, zbuffer and raytrace) and for points as well as surfaces.
 
 ## Trace attributes
 

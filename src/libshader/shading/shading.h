@@ -298,8 +298,8 @@ enum EShadeBranch {
     SHADEBRANCH_DISPLACE_ONLY,       // only the displacement shader runs
     SHADEBRANCH_DISPLACE_ESTIMATE,   // the bound or grid-size estimate: the geometry is only sampled
     SHADEBRANCH_SHADOW_PRIMITIVE,    // a shadow hit with transmissionhitmode "p": the attribute opacity is copied
-    SHADEBRANCH_SPECULAR_PRIMITIVE,  // a ray hit with specularhitmode "p": the attribute colour and opacity are copied
-    SHADEBRANCH_CAMERA_PRIMITIVE     // a grid with camerahitmode "p": the shaders run, then the opacity is overwritten
+    SHADEBRANCH_SPECULAR_PRIMITIVE,  // a secondary hit with specularhitmode "p": the attribute colour and opacity are copied
+    SHADEBRANCH_CAMERA_PRIMITIVE     // a camera hit with camerahitmode "p": the shaders run, then the opacity is overwritten
 };
 struct CShadeBatchReport {
         const CSurface *surface;                           // The source's surface (opaque)

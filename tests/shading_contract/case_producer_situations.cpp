@@ -209,16 +209,22 @@ namespace {
             w.branch = w.hitMode == HitMode::Primitive ? SHADEBRANCH_CAMERA_PRIMITIVE : SHADEBRANCH_FULL;
             return w;
         }
-        // row 2: a 0-D batch at depth 0 in a raster frame (camerahitmode is ignored for 0-D points: oddity 7)
+        // row 2: a 0-D batch at depth 0 in a raster frame (camerahitmode, as for a grid: #117)
         if (s.rasterHider && r.dim == (int)SHADING_0D && r.rayDepth == 0) {
             w.row = 2;
+            w.hitMode = mode(s.cameraMode);
+            w.branch = w.hitMode == HitMode::Primitive ? SHADEBRANCH_CAMERA_PRIMITIVE : SHADEBRANCH_FULL;
             return w;
         }
         // rows 3, 4, 6, 7: a ray hit, 2-D or 0-D, in any frame; depth 0 is the camera's, deeper is secondary
         w.row = (r.rayDepth == 0) ? 3 : 4;
         w.rayType = (r.rayDepth == 0) ? RayType::Camera : RayType::Secondary;
-        if (r.dim == (int)SHADING_2D) {
-            w.hitMode = mode(s.specularMode); // specularhitmode, not camerahitmode (oddity 2)
+        if (r.rayDepth == 0) {
+            w.hitMode = mode(s.cameraMode); // a camera hit reads camerahitmode at every dimension (#117)
+            w.branch = w.hitMode == HitMode::Primitive ? SHADEBRANCH_CAMERA_PRIMITIVE : SHADEBRANCH_FULL;
+        }
+        else if (r.dim == (int)SHADING_2D) {
+            w.hitMode = mode(s.specularMode); // a secondary hit reads specularhitmode
             w.branch = w.hitMode == HitMode::Primitive ? SHADEBRANCH_SPECULAR_PRIMITIVE : SHADEBRANCH_FULL;
         }
         return w;
@@ -264,11 +270,12 @@ int caseProducerSituations(int argc, char **argv) {
     const SScene scenes[] = {
         {"sit_row1_camera_shaded", true, 's', 's', 'p', {{RayType::None, HitMode::Shade, BatchShape::Grid}}},
         {"sit_row1_camera_primitive", true, 'p', 's', 'p', {{RayType::None, HitMode::Primitive, BatchShape::Grid}}},
-        {"sit_row2_points", true, 'p', 's', 'p', {{RayType::None, HitMode::Shade, BatchShape::PointSet}}},
+        {"sit_row2_points", true, 'p', 's', 'p', {{RayType::None, HitMode::Primitive, BatchShape::PointSet}}},
         {"sit_row3_raytrace_shaded", false, 's', 's', 'p', {{RayType::Camera, HitMode::Shade, BatchShape::Span}}},
-        {"sit_row3_raytrace_primitive", false, 's', 'p', 'p', {{RayType::Camera, HitMode::Primitive, BatchShape::Span}}},
+        {"sit_row3_raytrace_primitive", false, 's', 'p', 'p', {{RayType::Camera, HitMode::Shade, BatchShape::Span}}},
+        {"sit_row3_raytrace_camera_primitive", false, 'p', 's', 'p', {{RayType::Camera, HitMode::Primitive, BatchShape::Span}}},
         {"sit_row4_secondary_shaded", false, 's', 's', 'p', {{RayType::Secondary, HitMode::Shade, BatchShape::Span}}},
-        {"sit_row4_secondary_primitive", false, 's', 'p', 'p', {{RayType::Camera, HitMode::Primitive, BatchShape::Span}}}, // the mirror is primitive: it never traces
+        {"sit_row4_secondary_primitive", false, 's', 'p', 'p', {{RayType::Camera, HitMode::Shade, BatchShape::Span}, {RayType::Secondary, HitMode::Primitive, BatchShape::Span}}}, // the mirror is camera-visible: its shader runs and traces, the hit it finds is primitive
         {"sit_row5_shadow_primitive", false, 's', 's', 'p', {{RayType::Shadow, HitMode::Primitive, BatchShape::Span}}},
         {"sit_row5_shadow_shaded", false, 's', 's', 's', {{RayType::Shadow, HitMode::Shade, BatchShape::Span}}},
         {"sit_row8_displace", true, 's', 's', 'p', {{RayType::None, HitMode::Shade, BatchShape::Grid}}},
