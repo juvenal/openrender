@@ -1444,17 +1444,44 @@ static bool emitFunction(const IRFunction &irFn,
             //                  latch → begin|next → (body | exit)
             // ================================================================
             if (op == "illuminance") {
-                // Operands: [P, N, angle, bodyLabel, exitLabel]
-                // operand 3 = bodyLabel (the block we switch into, already handled
-                //             by the fact we switch insert point right here)
-                // operand 4 = exitLabel (the block that starts the endilluminance)
-                auto [P, sp] = getVar(ins, 0);
-                auto [N, sn] = getVar(ins, 1);
-                auto [ang, sa] = getVar(ins, 2);
-                // operand 3 = body label (unused: body starts right after branch)
+                // Operands, by the compiler's CIlluminationLoop::getCode:
+                //   illuminance(P)              [P, bodyLabel, exitLabel]                  (3)
+                //   illuminance(cat, P)         [P, bodyLabel, exitLabel, cat]             (4)
+                //   illuminance(P, N, angle)    [P, N, angle, bodyLabel, exitLabel]        (5)
+                //   illuminance(cat, P, N, a)   [P, N, angle, bodyLabel, exitLabel, cat]   (6)
+                // The operand count tells the forms apart. A form with no N and angle
+                // runs every light with no cone: N = (0,0,1) and angle = PI, as the
+                // interpreter's ILLUMINATION1EXPR_PRE does (GitHub #126). The category
+                // operand is not passed on in any form.
+                const bool shortForm = ins.operands.size() == 3 || ins.operands.size() == 4;
+                llvm::Value *P, *N, *ang;
+                int sp, sn, sa;
                 std::string exitLabel;
-                if (ins.operands.size() >= 5)
-                    exitLabel = ins.operands[4].token; // "#!LabelN"
+                if (shortForm) {
+                    std::tie(P, sp) = getVar(ins, 0);
+                    // Stack slots in the entry block: the instruction may sit inside a loop.
+                    llvm::IRBuilder<> eb(&func->getEntryBlock(), func->getEntryBlock().begin());
+                    auto *nSlot = eb.CreateAlloca(f32Ty, eb.getInt32(3), "illum_N");
+                    auto *aSlot = eb.CreateAlloca(f32Ty, nullptr, "illum_angle");
+                    B.CreateStore(llvm::ConstantFP::get(f32Ty, 0.0), nSlot);
+                    B.CreateStore(llvm::ConstantFP::get(f32Ty, 0.0), B.CreateConstGEP1_32(f32Ty, nSlot, 1));
+                    B.CreateStore(llvm::ConstantFP::get(f32Ty, 1.0), B.CreateConstGEP1_32(f32Ty, nSlot, 2));
+                    B.CreateStore(llvm::ConstantFP::get(f32Ty, 3.14159265358979323846), aSlot);
+                    N = nSlot;
+                    sn = 0;
+                    ang = aSlot;
+                    sa = 0;
+                    exitLabel = ins.operands[2].token; // "#!LabelN"
+                }
+                else {
+                    std::tie(P, sp) = getVar(ins, 0);
+                    std::tie(N, sn) = getVar(ins, 1);
+                    std::tie(ang, sa) = getVar(ins, 2);
+                    // operand 3 = body label (unused: body starts right after branch)
+                    // operand 4 = exitLabel (the block that starts the endilluminance)
+                    if (ins.operands.size() >= 5)
+                        exitLabel = ins.operands[4].token; // "#!LabelN"
+                }
 
                 // Function type: (ptr,i32, ptr,i32, ptr,i32, ptr, i32, ptr*, ptr*) → i32
                 auto *beginTy = llvm::FunctionType::get(i32Ty,

@@ -158,6 +158,21 @@ if(OPENRENDER_HAVE_LLVM)
     )
 endif()
 
+# GitHub #126: a .slo surface with the one-argument illuminance(P) gathers the lights like the .rslo one
+# (the JIT emitter skipped the loop body for a form with no N and angle operands). Surface x light over
+# .rslo and .slo, with the three-argument form as a control.
+if(OPENRENDER_HAVE_LLVM)
+    add_executable(test_shading_parity_illuminance_one_arg test_illuminance_one_arg.cpp)
+    target_link_libraries(test_shading_parity_illuminance_one_arg PRIVATE openrender_common_flags)
+    target_compile_features(test_shading_parity_illuminance_one_arg PRIVATE cxx_std_20)
+    add_test(NAME ShadingParity_IlluminanceOneArg COMMAND test_shading_parity_illuminance_one_arg)
+    set_tests_properties(ShadingParity_IlluminanceOneArg PROPERTIES
+        TIMEOUT 240
+        LABELS "shading_parity"
+        ENVIRONMENT "OSHADER_BIN=$<TARGET_FILE:oshader>;ORENDER_BIN=$<TARGET_FILE:orender>;TEST_DISPLAYS_DIR=$<TARGET_FILE_DIR:file>"
+    )
+endif()
+
 # GitHub #123/#124: a point/vector written in a named space reaches the
 # current space the same way on both backends -- a light parameter default
 # (converted once at bind time, where the JIT has no shading context) and a
