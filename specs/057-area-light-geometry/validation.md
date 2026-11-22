@@ -715,3 +715,24 @@ Counts from listings on the finished tree: `ctest -N -L arealight` 206 (200 at c
 Against the starting tree: no reference re-captured and none changed except the approved additive `tests/unit/scene_interface/reference/declared_set.txt` (`git diff 787e7955` lists no other modified reference, fixture, hash or replay file; the only added images are the new scenes' references); no threshold widened (the tolerances of the new probes are pre-declared and derived from their closed forms); no test disabled except `AreaLight_QuadlightAgreement-slo` in a JIT-less build, by design; no file deleted (`git diff 787e7955 --name-status` has no `D` line; the scratch directories under `build/` are kept). `kRendererServicesVersion` is 2.6.0. 295 files differ from 787e7955, all staged.
 
 Open items for the maintainer (none blocks the phase): GitHub #195 (the raytrace hider draws neither points nor curves; section 34) and the no-JIT `-Werror` break of `bench_load.cpp` (a comment on #16; section 36) are filed; GitHub #126 is untouched. Not run by design: `-L gi_determinism_long`, the OIIO-on tree. `CLAUDE.md`, `NEWS.md` and `ChangeLog.md` are not edited: the drafts are `claude-md-draft.md`, `tools/proposed/claude-md.diff` and `tools/proposed/news.md`.
+
+## 38. Re-validation after merging master 773651b6 (the maintainer's `git merge --no-ff --no-commit`, staged, not committed)
+
+Master brought six merges since 787e7955: the fixes for GitHub #154, #191, #192, #193 and #100 (a JIT light's active count) and the showcase RIB scene suite (4dc48b44). The merge had no conflict (`shading.cpp`, `shading.h` and `tests/visual/CMakeLists.txt` were touched by both sides).
+
+The #100 reading (no change made). `iterateLights` holds one `SPublishedCounts(ss, numActive, numPassive)` for the whole light loop: it publishes the receiver's active and passive counts and puts the state's own back when the scope ends. The bound-light branch (`iterateBoundAreaLight`, called inside that scope) neither reads nor writes `ss->numActive` or `ss->numPassive`, so each of its n runs of the light shader enters with the receiver's published counts: the interpreter copies them into locals at `execute()` and the JIT reads them through `op_entry_counts`; nothing a light run does writes them back (only the ambient macro, `rsl_illuminance_*` and the grid setup write `ss->numActive`). The counts agree with the composite varying table, which keeps the receiver's `numVertices` lanes and tags (`assert(numActive + numPassive == numVertices)` in `execute()` holds), and the 0-D `shadingDim` swap does not touch them. Coverage gap: `tests/shading_contract/case_area_light.cpp` has no case with passive points; the maintainer approved adding one in the converge stage (a receiver batch with some tag != 0 points under a bound light: passive lanes get no `Cl`, active lanes the expected value, `ss->numActive`/`numPassive` restored after `iterateLights`; with breakage evidence).
+
+Runs on the merged tree (every job through `cpujob`):
+
+| Set | macOS (Release, `-j4`; determinism and sweep `-j2`) | Linux (Ubuntu 24.04, GCC 13 `-Werror`, `-j2`; synced 5054 files verified) |
+|---|---|---|
+| build | clean (only the linker's "ignoring duplicate libraries" notices, which are not compiler warnings) | clean |
+| `-L 'arealight\|architecture\|shading_parity\|shading_contract\|shading_system'` | 474 of 474 | not run (`-L 'arealight\|architecture'`: 251 of 251) |
+| everyday `-LE 'determinism-sweep\|gi_determinism_long'` | 1629 of 1629, 1 skip (`LibShader_Format_rslo_lower_minor`), 315 s | 1630 total, 1629 passed, 1 failure: the starting tree's known `TextureTile_RenderByteIdentical` (GitHub #45) |
+| `Shaders_BytesUnchanged`, `ShaderCompilerImmutability` | pass (my two comment-only shader edits compile to master's bytes, against master's re-captured `shaders.sha256`) | pass (inside the everyday run) |
+| `-L '^determinism$'` | 167 of 167 | inside the everyday run |
+| `-L '^determinism-sweep$'` (698 entries) | 698 of 698, 672 s | 698 of 698, 1529 s |
+
+State changes against CHECKPOINT 11 (section 37): nothing of mine changed since it; the totals moved only because master's merges added tests (macOS everyday 1623 to 1629, Linux everyday 1618 to 1630; the sweep stays 698 and `-L arealight` 206, `-L '^determinism$'` 167 by `ctest -N`). The Linux failure set is the same one as at checkpoint 11 (only #45). No reference re-captured by this branch, no threshold widened, no test disabled, nothing deleted.
+
+State changes against master: none beyond the 057 branch's own diff; the three files both sides touched merged without conflict and the targeted sets, the everyday runs and both sweeps pass on the merged tree.

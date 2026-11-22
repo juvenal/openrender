@@ -1,0 +1,148 @@
+##RenderMan RIB-Structure 1.1
+##Scene: 10_blobby_lava_lamp_metaballs.rib
+##Features: Implicit Blobby Surface with 9 Ellipsoid Leaf Opcodes (1001),
+##          Additive Blending (0), Necking/Pinching Transitions, and "varying color Cs"
+version 3.03
+
+Format 1024 768 1.0
+PixelSamples 4 4
+PixelFilter "gaussian" 2.0 2.0
+ShadingRate 1.0
+Display "10_blobby_lava_lamp_metaballs.tif" "file" "rgba"
+
+Projection "perspective" "fov" [38.0]
+Clipping 0.1 100.0
+
+Translate 0.0 -0.1 7.0
+Rotate -14.0 1 0 0
+
+WorldBegin
+
+    LightSource "ambientlight" 1 "intensity" [0.14] "lightcolor" [0.8 0.82 1.0]
+    # Warm Lava Lamp Bottom Up-Light
+    LightSource "pointlight" 2 "from" [0.0 -1.9 -0.5] "intensity" [24.0] "lightcolor" [1.0 0.55 0.15]
+    # Key Light Top Right
+    LightSource "pointlight" 3 "from" [3.5 5.0 -3.5] "intensity" [34.0] "lightcolor" [1.0 0.94 0.85]
+    # Cool Cyan Rim Light Left
+    LightSource "pointlight" 4 "from" [-4.0 2.5 -2.0] "intensity" [18.0] "lightcolor" [0.4 0.78 1.0]
+
+    # Dark Studio Floor
+    AttributeBegin
+        Color [0.22 0.23 0.28]
+        Surface "plastic" "Ka" [0.1] "Kd" [0.5] "Ks" [0.45] "roughness" [0.14]
+        Polygon "P" [-14.0 -2.1 -14.0  14.0 -2.1 -14.0  14.0 -2.1 14.0  -14.0 -2.1 14.0]
+    AttributeEnd
+
+    # Metallic Lava Lamp Base & Cap Rings
+    AttributeBegin
+        Translate 0.0 -1.85 0.0
+        Rotate 90 1 0 0
+        Color [0.35 0.38 0.44]
+        Surface "metal" "Ka" [0.2] "Ks" [0.88] "roughness" [0.12]
+        Torus 1.55 0.22 0.0 360.0 360.0
+    AttributeEnd
+
+    AttributeBegin
+        Translate 0.0 2.25 0.0
+        Rotate 90 1 0 0
+        Color [0.35 0.38 0.44]
+        Surface "metal" "Ka" [0.2] "Ks" [0.88] "roughness" [0.12]
+        Torus 0.95 0.16 0.0 360.0 360.0
+    AttributeEnd
+
+    # =========================================================================
+    # Primary Showcase Primitive: 9-Leaf Implicit Blobby Lava Lamp Wax Plume
+    #   nleaf = 9
+    #   Opcodes:
+    #     9 Ellipsoids (1001 <offset>), at float offsets 0, 16, 32, 48, 64, 80, 96, 112, 128
+    #     1 Sum operation: 0 (add) 9 (count) 0 1 2 3 4 5 6 7 8 (indices of all 9 leaves)
+    # =========================================================================
+    AttributeBegin
+        Attribute "identifier" "name" ["BlobbyLavaWaxColumn"]
+        Surface "plastic" "Ka" [0.25] "Kd" [0.70] "Ks" [0.92] "roughness" [0.04] "specularcolor" [1.0 0.95 0.88]
+
+        Blobby 9
+            [
+                1001 0
+                1001 16
+                1001 32
+                1001 48
+                1001 64
+                1001 80
+                1001 96
+                1001 112
+                1001 128
+                # Add all 9 implicit field primitives together
+                0 9  0 1 2 3 4 5 6 7 8
+            ]
+            [
+                # Leaf 0 (offset 0): Wide Pool Base Ellipsoid at (0.0, -1.45, 0.0)
+                1.55 0.0  0.0  0.0
+                0.0  0.75 0.0  0.0
+                0.0  0.0  1.55 0.0
+                0.0 -1.45 0.0  1.0
+
+                # Leaf 1 (offset 16): Rising Necking Column at (-0.15, -0.65, 0.1)
+                0.95 0.0  0.0  0.0
+                0.0  1.15 0.0  0.0
+                0.0  0.0  0.95 0.0
+               -0.15 -0.65 0.10 1.0
+
+                # Leaf 2 (offset 32): Central Bulging Wax Belly at (-0.22, 0.25, 0.05)
+                1.18 0.0  0.0  0.0
+                0.0  1.18 0.0  0.0
+                0.0  0.0  1.18 0.0
+               -0.22  0.25 0.05 1.0
+
+                # Leaf 3 (offset 48): Pinching Upper Tendril at (0.12, 1.15, -0.10)
+                0.78 0.0  0.0  0.0
+                0.0  0.95 0.0  0.0
+                0.0  0.0  0.78 0.0
+                0.12  1.15 -0.10 1.0
+
+                # Leaf 4 (offset 64): Nearly Detached Crown Droplet at (0.28, 1.92, -0.12)
+                0.68 0.0  0.0  0.0
+                0.0  0.68 0.0  0.0
+                0.0  0.0  0.68 0.0
+                0.28  1.92 -0.12 1.0
+
+                # Leaf 5 (offset 80): Side Budding Lobe Right at (1.05, -0.15, -0.25)
+                0.85 0.0  0.0  0.0
+                0.0  0.85 0.0  0.0
+                0.0  0.0  0.85 0.0
+                1.05 -0.15 -0.25 1.0
+
+                # Leaf 6 (offset 96): Detached Floating Satellite Blob Right at (1.68, 0.85, -0.35)
+                0.62 0.0  0.0  0.0
+                0.0  0.68 0.0  0.0
+                0.0  0.0  0.62 0.0
+                1.68  0.85 -0.35 1.0
+
+                # Leaf 7 (offset 112): Detached Floating Satellite Blob Left at (-1.55, 0.95, 0.25)
+                0.72 0.0  0.0  0.0
+                0.0  0.72 0.0  0.0
+                0.0  0.0  0.72 0.0
+               -1.55  0.95  0.25 1.0
+
+                # Leaf 8 (offset 128): Small Descending Droplet Left at (-1.35, -0.45, -0.30)
+                0.55 0.0  0.0  0.0
+                0.0  0.65 0.0  0.0
+                0.0  0.0  0.55 0.0
+               -1.35 -0.45 -0.30 1.0
+            ]
+            [""]
+            # Per-leaf varying color Cs (9 RGB triples -> smooth thermal gradient!)
+            "varying color Cs" [
+                1.00 0.22 0.08
+                1.00 0.38 0.10
+                0.98 0.55 0.15
+                0.95 0.75 0.22
+                1.00 0.92 0.35
+                0.92 0.28 0.45
+                0.85 0.22 0.72
+                0.25 0.78 0.95
+                0.35 0.45 0.95
+            ]
+    AttributeEnd
+
+WorldEnd

@@ -290,6 +290,20 @@ CProgrammableShaderInstance::~CProgrammableShaderInstance() {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CProgrammableShaderInstance
+// Method				:	persistString
+// Description			:	Keep a copy of a string for the life of the instance
+// Return Value			:	The copy
+// Comments				:
+const char *CProgrammableShaderInstance::persistString(const char *s) {
+    CAllocatedString *nString = new CAllocatedString;
+    nString->string = strdup(s);
+    nString->next = strings;
+    strings = nString;
+    return nString->string;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CProgrammableShaderInstance
 // Method				:	setParameters
 // Description			:	Set the values of the parameters
 // Return Value			:	-
@@ -648,6 +662,10 @@ float **CProgrammableShaderInstance::prepare(CMemPage *&namedMemory, float **var
     // Allocate memory for the temporary shader variables
     // Allocate some extra space for alignment
     data = (char *)ralloc(totalVaryingSize + numVariables * (sizeof(float *) + sizeof(float)), namedMemory);
+    // The arena is reused without being cleared: a local the shader reads before it assigns it
+    // would hold whatever an earlier shading pass left (GitHub #191). Zero the block, and give
+    // every unset string slot the empty string, which `==`, printf and the trace labels can read.
+    memset(data, 0, totalVaryingSize + numVariables * (sizeof(float *) + sizeof(float)));
     locals = (float **)data;
     data += numVariables * sizeof(float *);
 
@@ -662,6 +680,19 @@ float **CProgrammableShaderInstance::prepare(CMemPage *&namedMemory, float **var
             data += -varyingSizes[i];
         else
             data += varyingSizes[i] * numVertices * 3;
+    }
+
+    {
+        static const char *const emptyString = "";
+        const bool haveSlots = (int)frame->stringSlot.size() == numVariables;
+        for (i = 0; haveSlots && i < numVariables; i++) {
+            if (!frame->stringSlot[i])
+                continue;
+            const int bytes = (varyingSizes[i] < 0) ? -varyingSizes[i] : varyingSizes[i] * numVertices * 3;
+            const char **slot = (const char **)locals[i];
+            for (int n = bytes / (int)sizeof(char *); n > 0; n--)
+                *slot++ = emptyString;
+        }
     }
 
     // For each parameter, copy over the default value of the parameter
@@ -690,8 +721,10 @@ float **CProgrammableShaderInstance::prepare(CMemPage *&namedMemory, float **var
             if (cVariable->type == TYPE_STRING) {
                 if ((srcs = (const char **)cVariable->defaultValue) != NULL) {
                     int i;
-                    for (i = cVariable->numFloats; i > 0; i--)
-                        *dests++ = *srcs++;
+                    // A NULL entry is a default nothing computed (GitHub #192): keep the "" set above, never copy the NULL over it
+                    for (i = cVariable->numFloats; i > 0; i--, dests++, srcs++)
+                        if (*srcs != nullptr)
+                            *dests = *srcs;
                 }
             }
             else {
@@ -713,8 +746,9 @@ float **CProgrammableShaderInstance::prepare(CMemPage *&namedMemory, float **var
 
                     // FIXME: We may want to unroll these two loops
                     for (n = numVertices * 3; n > 0; n--) {
-                        for (i = 0; i < c; i++)
-                            *dests++ = srcs[i];
+                        for (i = 0; i < c; i++, dests++)
+                            if (srcs[i] != nullptr)
+                                *dests = srcs[i];
                     }
                 }
             }

@@ -1,0 +1,136 @@
+##RenderMan RIB-Structure 1.1
+##Scene: 12_blobby_molecular_cluster.rib
+##Features: Implicit Blobby Organic Molecule using Ellipsoids (1001), Segment Bonds (1002),
+##          Max/Union (1) vs Sum/Blend (0) Field Operators, and Per-Atom "varying color Cs"
+version 3.03
+
+Format 1024 768 1.0
+PixelSamples 4 4
+PixelFilter "gaussian" 2.0 2.0
+ShadingRate 1.0
+Display "12_blobby_molecular_cluster.tif" "file" "rgba"
+
+Projection "perspective" "fov" [38.0]
+Clipping 0.1 100.0
+
+Translate 0.0 -0.1 7.2
+Rotate -18.0 1 0 0
+Rotate -22.0 0 1 0
+
+WorldBegin
+
+    LightSource "ambientlight" 1 "intensity" [0.15] "lightcolor" [0.85 0.9 1.0]
+    LightSource "pointlight" 2 "from" [4.0 6.0 -3.5] "intensity" [40.0] "lightcolor" [1.0 0.96 0.88]
+    LightSource "pointlight" 3 "from" [-4.5 3.5 -2.5] "intensity" [20.0] "lightcolor" [0.55 0.8 1.0]
+    LightSource "pointlight" 4 "from" [0.0 -1.5 -1.5] "intensity" [10.0] "lightcolor" [1.0 0.65 0.35]
+
+    # Laboratory Stage Floor
+    AttributeBegin
+        Color [0.76 0.78 0.82]
+        Surface "matte" "Kd" [0.85]
+        Polygon "P" [-15.0 -1.9 -15.0  15.0 -1.9 -15.0  15.0 -1.9 15.0  -15.0 -1.9 15.0]
+    AttributeEnd
+
+    # =========================================================================
+    # Primary Showcase: Tetrahedral Organic Molecule (Blobby with 5 Ellipsoids + 4 Segment Bonds)
+    #   Leaves 0..4: 5 Ellipsoid Atoms (1001) at offsets 0, 16, 32, 48, 64
+    #   Leaves 5..8: 4 Covalent Bond Segments (1002) at offsets 80, 103, 126, 149 (23 floats each)
+    # =========================================================================
+    AttributeBegin
+        Attribute "identifier" "name" ["BlobbyMolecularCluster"]
+        Surface "plastic" "Ka" [0.18] "Kd" [0.68] "Ks" [0.9] "roughness" [0.05]
+
+        Blobby 9
+            [
+                1001 0
+                1001 16
+                1001 32
+                1001 48
+                1001 64
+                1002 80
+                1002 103
+                1002 126
+                1002 149
+                # Blend all 9 primitives smoothly (opcode 0 = add)
+                0 9  0 1 2 3 4 5 6 7 8
+            ]
+            [
+                # Leaf 0 (offset 0): Central Carbon Atom at (0.0, 0.0, 0.0)
+                1.05 0.0  0.0  0.0
+                0.0  1.05 0.0  0.0
+                0.0  0.0  1.05 0.0
+                0.0  0.0  0.0  1.0
+
+                # Leaf 1 (offset 16): Top Nitrogen Atom at (0.0, 1.75, 0.0)
+                0.85 0.0  0.0  0.0
+                0.0  0.85 0.0  0.0
+                0.0  0.0  0.85 0.0
+                0.0  1.75 0.0  1.0
+
+                # Leaf 2 (offset 32): Front-Right Oxygen Atom at (1.55, -0.75, -0.85)
+                0.88 0.0  0.0  0.0
+                0.0  0.88 0.0  0.0
+                0.0  0.0  0.88 0.0
+                1.55 -0.75 -0.85 1.0
+
+                # Leaf 3 (offset 48): Front-Left Sulfur Atom at (-1.55, -0.75, -0.85)
+                0.92 0.0  0.0  0.0
+                0.0  0.92 0.0  0.0
+                0.0  0.0  0.92 0.0
+               -1.55 -0.75 -0.85 1.0
+
+                # Leaf 4 (offset 64): Back Hydrogen Atom at (0.0, -0.65, 1.65)
+                0.82 0.0  0.0  0.0
+                0.0  0.82 0.0  0.0
+                0.0  0.0  0.82 0.0
+                0.0 -0.65 1.65 1.0
+
+                # Leaf 5 (offset 80): Bond Segment 0->1 (23 floats)
+                0.0 0.0 0.0   0.0 1.75 0.0   0.38
+                1.0 0.0 0.0 0.0
+                0.0 1.0 0.0 0.0
+                0.0 0.0 1.0 0.0
+                0.0 0.0 0.0 1.0
+
+                # Leaf 6 (offset 103): Bond Segment 0->2 (23 floats)
+                0.0 0.0 0.0   1.55 -0.75 -0.85   0.38
+                1.0 0.0 0.0 0.0
+                0.0 1.0 0.0 0.0
+                0.0 0.0 1.0 0.0
+                0.0 0.0 0.0 1.0
+
+                # Leaf 7 (offset 126): Bond Segment 0->3 (23 floats)
+                0.0 0.0 0.0  -1.55 -0.75 -0.85   0.38
+                1.0 0.0 0.0 0.0
+                0.0 1.0 0.0 0.0
+                0.0 0.0 1.0 0.0
+                0.0 0.0 0.0 1.0
+
+                # Leaf 8 (offset 149): Bond Segment 0->4 (23 floats)
+                0.0 0.0 0.0   0.0 -0.65 1.65   0.38
+                1.0 0.0 0.0 0.0
+                0.0 1.0 0.0 0.0
+                0.0 0.0 1.0 0.0
+                0.0 0.0 0.0 1.0
+            ]
+            [""]
+            "varying color Cs" [
+                # Leaf 0: Charcoal-Teal Core
+                0.22 0.32 0.42
+                # Leaf 1: Royal Blue Nitrogen
+                0.18 0.52 0.96
+                # Leaf 2: Crimson Oxygen
+                0.95 0.22 0.25
+                # Leaf 3: Golden Sulfur
+                0.98 0.78 0.18
+                # Leaf 4: Mint Hydrogen
+                0.25 0.92 0.65
+                # Leaves 5..8: Silver-White Covalent Bridges
+                0.85 0.88 0.92
+                0.85 0.88 0.92
+                0.85 0.88 0.92
+                0.85 0.88 0.92
+            ]
+    AttributeEnd
+
+WorldEnd

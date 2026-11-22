@@ -85,8 +85,6 @@ class CAttributes;
 
 // Predefined ray labels used during raytracing
 extern const char *rayLabelPrimary;
-extern const char *rayLabelTrace;
-extern const char *rayLabelTransmission;
 extern const char *rayLabelGather;
 
 ///////////////////////////////////////////////////////////////////////

@@ -177,6 +177,9 @@ void op_faceforward(float *dst, int sd, const float *n_in, int sn, const float *
  *   These implement IF2EXPR_PRE / ELSEIFEXPR_PRE / ENDIFEXPR_PRE exactly,
  *   but without the interpreter's numActive jmp() optimisation.
  * ----------------------------------------------------------------------- */
+/* op_entry_counts: a light shader's starting counts (GitHub #100): the shading state's, which iterateLights()
+ * publishes with the surface's tags; all-active when there is no context. */
+void op_entry_counts(int n, int *numActive, int *numPassive);
 void op_if_update(const float *cond, int scond, int *tags, int n, int *numActive, int *numPassive);
 void op_else_update(int *tags, int n, int *numActive, int *numPassive);
 void op_endif_update(int *tags, int n, int *numActive, int *numPassive);
@@ -653,6 +656,27 @@ void jitSetInitXform(const float *fromMat, const float *toMat);
  * Returns false for an unknown name (the conversion is then the identity). */
 using TJitInitCoordinateResolver = bool (*)(const char *name, const float *&from, const float *&to);
 void jitSetInitCoordinateResolver(TJitInitCoordinateResolver resolver);
+
+/* The strings a bind-time init computes (GitHub #192): concat(), format() and shadername() have no shading
+ * context to allocate from or to ask, and the strings must outlive the arena region bind() runs the init in.
+ * The backend installs the shader's name and a function that stores a copy of a string for the life of the
+ * instance around jitInitEntry, and clears it with nullptr afterwards. */
+struct TJitInitBinding {
+        const char *shaderName;                                  // shadername()
+        const char *(*keepString)(void *state, const char *str); // a copy that lives as long as the instance
+        void *state;                                             // handed to keepString
+};
+void jitSetInitBinding(const TJitInitBinding *binding);
+
+namespace libshader {
+    // concat() and format() for every point of a batch, each result stored through `keep` (the context's arena while
+    // shading, the instance's own strings at bind time). The bodies of CShadingContext::jitConcat/jitFormat.
+    using TKeepString = const char *(*)(void *state, const char *str);
+    void concatStrings(char **dst, int sd, const char *const *const *operands, const int *strides, int numOperands, int n,
+                       const int *tags, TKeepString keep, void *state);
+    void formatStrings(char **dst, int sd, const char *const *fmt, int sf, void *const *operands, const int *strides, int n,
+                       const int *tags, TKeepString keep, void *state);
+} // namespace libshader
 
 #endif
 

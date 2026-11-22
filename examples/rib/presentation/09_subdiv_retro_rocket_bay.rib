@@ -1,0 +1,169 @@
+##RenderMan RIB-Structure 1.1
+##Scene: 09_subdiv_retro_rocket_bay.rib
+##Features: Hard-Surface Catmull-Clark SubdivisionMesh Spacecraft Fuselage & Swept Delta Wings
+##          Combining Smooth Aerodynamic Hulls with Sharp Creased Panel Seams & Nose Spike
+version 3.03
+
+Format 1024 768 1.0
+PixelSamples 4 4
+PixelFilter "gaussian" 2.0 2.0
+ShadingRate 1.0
+Display "09_subdiv_retro_rocket_bay.tif" "file" "rgba"
+
+Projection "perspective" "fov" [38.0]
+Clipping 0.1 100.0
+
+Translate 0.0 -0.1 7.2
+Rotate -18.0 1 0 0
+Rotate -28.0 0 1 0
+
+WorldBegin
+
+    LightSource "ambientlight" 1 "intensity" [0.14] "lightcolor" [0.8 0.85 1.0]
+    LightSource "pointlight" 2 "from" [4.5 6.5 -3.5] "intensity" [45.0] "lightcolor" [1.0 0.96 0.88]
+    LightSource "pointlight" 3 "from" [-4.5 3.0 -2.5] "intensity" [18.0] "lightcolor" [0.55 0.78 1.0]
+    # Thruster Exhaust Glow Light
+    LightSource "pointlight" 4 "from" [0.0 -1.85 0.0] "intensity" [12.0] "lightcolor" [1.0 0.55 0.15]
+
+    # Launchpad Deck
+    AttributeBegin
+        Color [0.32 0.34 0.38]
+        Surface "plastic" "Ka" [0.1] "Kd" [0.55] "Ks" [0.45] "roughness" [0.15]
+        Polygon "P" [-15.0 -2.1 -15.0  15.0 -2.1 -15.0  15.0 -2.1 15.0  -15.0 -2.1 15.0]
+    AttributeEnd
+
+    # =========================================================================
+    # 1. Retro Rocket Fuselage (4-Section Lofted Subdivision Cage: 16 Vertices)
+    #    - Ring 0..3: Exhaust Nozzle Rim (Sharp Crease = 6.0)
+    #    - Ring 4..7: Lower Engine Belly (Smooth bulge)
+    #    - Ring 8..11: Cockpit Collar Seam (Semi-Sharp Crease = 3.5)
+    #    - Ring 12..15: Nose Cone Apex (Sharp Corner = 5.0)
+    # =========================================================================
+    AttributeBegin
+        Attribute "identifier" "name" ["SubdivRocketFuselage"]
+        Color [0.92 0.94 0.96]
+        Surface "plastic" "Ka" [0.15] "Kd" [0.68] "Ks" [0.9] "roughness" [0.05]
+
+        SubdivisionMesh "catmull-clark"
+            [
+                4  4 4 4 4
+                4 4 4 4
+                4 4 4 4  4
+            ]
+            [
+                # Bottom exhaust base cap
+                0 3 2 1
+                # Lower engine bay (0..3 to 4..7)
+                0 1 5 4   1 2 6 5   2 3 7 6   3 0 4 7
+                # Mid fuselage (4..7 to 8..11)
+                4 5 9 8   5 6 10 9  6 7 11 10 7 4 8 11
+                # Nose cone (8..11 to 12..15)
+                8 9 13 12 9 10 14 13 10 11 15 14 11 8 12 15
+                # Nose tip cap
+                12 13 14 15
+            ]
+            ["interpolateboundary" "crease" "crease" "corner"]
+            [
+                0 0
+                5 1
+                5 1
+                4 1
+            ]
+            [
+                # Nozzle base sharp rim
+                0 1 2 3 0
+                # Cockpit collar panel seam
+                8 9 10 11 8
+                # Nose tip sharp corners
+                12 13 14 15
+            ]
+            [
+                6.0
+                3.5
+                5.0
+            ]
+            "P" [
+                # 0..3: Exhaust nozzle rim (y = -1.65)
+                -0.62 -1.65 -0.62    0.62 -1.65 -0.62    0.62 -1.65  0.62   -0.62 -1.65  0.62
+                # 4..7: Wide fuselage belly (y = -0.35)
+                -1.22 -0.35 -1.22    1.22 -0.35 -1.22    1.22 -0.35  1.22   -1.22 -0.35  1.22
+                # 8..11: Cockpit shoulder collar (y = 0.95)
+                -0.82  0.95 -0.82    0.82  0.95 -0.82    0.82  0.95  0.82   -0.82  0.95  0.82
+                # 12..15: Pointed nose cone tip (y = 2.35)
+                -0.12  2.35 -0.12    0.12  2.35 -0.12    0.12  2.35  0.12   -0.12  2.35  0.12
+            ]
+    AttributeEnd
+
+    # =========================================================================
+    # 2. Three Swept Crimson Landing Fins (SubdivisionMesh with Sharp Trailing Edges)
+    # =========================================================================
+    AttributeBegin
+        Attribute "identifier" "name" ["SubdivRocketFins"]
+        Color [0.88 0.18 0.22]
+        Surface "plastic" "Ka" [0.15] "Kd" [0.65] "Ks" [0.88] "roughness" [0.06]
+
+        # Fin 1 (+X)
+        AttributeBegin
+            SubdivisionMesh "catmull-clark"
+                [4 4 4 4 4 4]
+                [0 1 2 3  4 7 6 5  0 4 5 1  1 5 6 2  2 6 7 3  3 7 4 0]
+                ["interpolateboundary" "crease"]
+                [0 0  5 1]
+                [1 2 6 5 1]
+                [5.0]
+                "P" [
+                    0.75 -1.45 -0.22   2.25 -1.95 -0.06   2.25 -1.95  0.06   0.75 -1.45  0.22
+                    0.85  0.25 -0.18   1.65 -0.85 -0.05   1.65 -0.85  0.05   0.85  0.25  0.18
+                ]
+        AttributeEnd
+
+        # Fin 2 (Rotated 120 deg)
+        AttributeBegin
+            Rotate 120 0 1 0
+            SubdivisionMesh "catmull-clark"
+                [4 4 4 4 4 4]
+                [0 1 2 3  4 7 6 5  0 4 5 1  1 5 6 2  2 6 7 3  3 7 4 0]
+                ["interpolateboundary" "crease"]
+                [0 0  5 1]
+                [1 2 6 5 1]
+                [5.0]
+                "P" [
+                    0.75 -1.45 -0.22   2.25 -1.95 -0.06   2.25 -1.95  0.06   0.75 -1.45  0.22
+                    0.85  0.25 -0.18   1.65 -0.85 -0.05   1.65 -0.85  0.05   0.85  0.25  0.18
+                ]
+        AttributeEnd
+
+        # Fin 3 (Rotated 240 deg)
+        AttributeBegin
+            Rotate 240 0 1 0
+            SubdivisionMesh "catmull-clark"
+                [4 4 4 4 4 4]
+                [0 1 2 3  4 7 6 5  0 4 5 1  1 5 6 2  2 6 7 3  3 7 4 0]
+                ["interpolateboundary" "crease"]
+                [0 0  5 1]
+                [1 2 6 5 1]
+                [5.0]
+                "P" [
+                    0.75 -1.45 -0.22   2.25 -1.95 -0.06   2.25 -1.95  0.06   0.75 -1.45  0.22
+                    0.85  0.25 -0.18   1.65 -0.85 -0.05   1.65 -0.85  0.05   0.85  0.25  0.18
+                ]
+        AttributeEnd
+    AttributeEnd
+
+    # Cockpit Porthole Bezel & Glass
+    AttributeBegin
+        Translate 0.0 0.45 -0.92
+        Color [0.22 0.75 0.98]
+        Surface "plastic" "Ka" [0.3] "Kd" [0.5] "Ks" [0.95] "roughness" [0.02]
+        Sphere 0.36 -0.36 0.36 360.0
+    AttributeEnd
+
+    # Glowing Thruster Plume Core
+    AttributeBegin
+        Translate 0.0 -1.78 0.0
+        Color [1.0 0.72 0.22]
+        Surface "constant"
+        Sphere 0.42 -0.42 0.42 360.0
+    AttributeEnd
+
+WorldEnd

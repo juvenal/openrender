@@ -15,10 +15,10 @@ the same text). Every figure in it comes from a run or from the tree, not from m
 | `kRendererServicesVersion` | 2.6.0 | `rendererServices.h` |
 | the quad agreement | 4.45 on the 8 x 8 block metric, threshold 8 | `validation.md` sections 25 and 26 |
 
-The closing counts of the Phase 11 runs are in `validation.md` section 37: macOS everyday 1623 of 1623 (1 skip), architecture 45,
-plugin_abi 71, shading_parity 294, state 14, common 19, default determinism 167 and the full sweep 698 of 698; Linux everyday 1618 total
-with the one known failure `TextureTile_RenderByteIdentical` (#45), sweep 698 of 698, `-L 'arealight|architecture'` 251 of 251; the
-JIT-less configuration `-L arealight` 204 of 204 with the one `.slo` test disabled by design.
+The closing counts are in `validation.md` section 37 (checkpoint 11) and section 38 (after master's merge, 773651b6): macOS everyday 1629 of 1629
+(1 skip), architecture 45, plugin_abi 71, shading_parity 294, state 14, common 19, default determinism 167 and the full sweep 698 of 698;
+Linux everyday 1630 total with the one known failure `TextureTile_RenderByteIdentical` (#45), sweep 698 of 698, `-L 'arealight|architecture'`
+251 of 251; the JIT-less configuration `-L arealight` 204 of 204 with the one `.slo` test disabled by design (run before the merge).
 
 ## What it changes
 

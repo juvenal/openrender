@@ -52,6 +52,11 @@ namespace {
     // the thread that binds the shader
     thread_local const CShaderInstance *t_initInstance = nullptr;
 
+    // The bind-time store of the strings the init computes (GitHub #192): a copy that lives as long as the instance
+    const char *keepInstanceString(void *instance, const char *str) {
+        return static_cast<CProgrammableShaderInstance *>(instance)->persistString(str);
+    }
+
     // The JIT init section's resolver for named spaces (GitHub #123): the same lookup the interpreter's pfrom/vfrom
     // opcodes make in rsloInit.cpp
     bool initCoordinateResolver(const char *name, const float *&from, const float *&to) {
@@ -111,7 +116,11 @@ namespace {
                     }
                     t_initInstance = currentShaderInstance;
                     jitSetInitCoordinateResolver(initCoordinateResolver);
+                    // concat(), format() and shadername() have no shading context here (GitHub #192)
+                    const TJitInitBinding binding = {currentShaderInstance->getName(), keepInstanceString, currentShaderInstance};
+                    jitSetInitBinding(&binding);
                     payload->jitInitEntry(1, (void ***)stuffInit, &initTag);
+                    jitSetInitBinding(nullptr);
                     jitSetInitCoordinateResolver(nullptr);
                     jitSetInitXform(nullptr, nullptr);
                     t_initInstance = nullptr;

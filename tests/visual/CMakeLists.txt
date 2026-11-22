@@ -2404,6 +2404,19 @@ add_csg_metric_test(NAME procedural-missing-archive
     LOG_FAIL "RiProcedural cannot be declared inside a SolidBegin block"
     ALLOW_RENDER_ERROR)
 
+# GitHub #193: a solid under transform motion renders where the same primitive renders without
+# the solid (the shutter-close key of the rebase used to be applied a second time), and Reyes
+# raises no "Too many eye splits". Each hider's solid render is compared with its no-solid control.
+foreach(_hider reyes raytrace)
+    add_csg_metric_test(NAME Motion_torus_solid_${_hider}
+        RENDERS
+            examples/rib/tests/csg-motion-torus-solid-${_hider}.rib:csg-motion-torus-solid-${_hider}.tif
+            examples/rib/tests/csg-motion-torus-nosolid-${_hider}.rib:csg-motion-torus-nosolid-${_hider}.tif
+        METRIC
+            "--region-compare csg-motion-torus-solid-${_hider}.tif csg-motion-torus-nosolid-${_hider}.tif --include frame --threshold 2"
+        LOG_FAIL "Too many eye splits")
+endforeach()
+
 # --- Phase 3, User Story 1 (T034-T042): render-and-measure checks ----------
 # Arguments mirror specs/021-deferred-csg-evaluation/tools/baseline.py, which ran
 # them on master; baseline-timings.md records which legs were red there and

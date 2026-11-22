@@ -1542,10 +1542,13 @@ DEFFUNC(ShaderName, "shadername", "s=", SHADERNAMEEXPR_PRE, SHADERNAMEEXPR, FUN1
 
 #define SHADERNAMESEXPR *res = (char *)shaderName(*op);
 #else
+// The init runs at bind time, where no shader is bound to answer: "" (GitHub #192), as the JIT's bind-time op does
 #undef SHADERNAMESEXPR_PRE
 #undef SHADERNAMESEXPR
-#define SHADERNAMESEXPR_PRE
-#define SHADERNAMESEXPR
+#define SHADERNAMESEXPR_PRE   \
+    char **res;               \
+    operand(0, res, char **);
+#define SHADERNAMESEXPR *res = (char *)"";
 #endif
 
 DEFFUNC(ShaderNames, "shadername", "s=S", SHADERNAMESEXPR_PRE, SHADERNAMESEXPR, FUN2EXPR_UPDATE(1, 1), NULL_EXPR, 0)

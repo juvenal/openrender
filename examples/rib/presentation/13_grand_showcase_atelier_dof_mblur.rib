@@ -1,0 +1,267 @@
+##RenderMan RIB-Structure 1.1
+##Scene: 13_grand_showcase_atelier_dof_mblur.rib
+##Features: ALL-IN-ONE HERO SHOWCASE
+##          1. Trimmed Rational NuPatch Canopy (with multi-loop TrimCurve cutouts)
+##          2. Nested CSG Solid Assembly (SolidBegin "difference", "intersection", "union")
+##          3. Creased & Holed Catmull-Clark SubdivisionMesh Pedestal & Totem
+##          4. Implicit Blobby Metaball Floating Plume (1001 + 1002 + varying color Cs)
+##          5. Cinematic DepthOfField + Shutter / MotionBegin / MotionEnd
+version 3.03
+
+Format 1280 720 1.0
+PixelSamples 8 8
+PixelFilter "gaussian" 2.0 2.0
+ShadingRate 1.0
+Display "13_grand_showcase_atelier_dof_mblur.tif" "file" "rgba"
+
+# Enable both Motion Blur and Shallow Depth of Field
+Shutter 0.0 1.0
+Projection "perspective" "fov" [36.0]
+DepthOfField 2.2 0.90 7.6
+Clipping 0.1 100.0
+
+Translate 0.0 -0.3 7.6
+Rotate -18.0 1 0 0
+Rotate 14.0 0 1 0
+
+WorldBegin
+
+    LightSource "ambientlight" 1 "intensity" [0.14] "lightcolor" [0.82 0.88 1.0]
+    LightSource "pointlight" 2 "from" [4.5 7.0 -3.5] "intensity" [50.0] "lightcolor" [1.0 0.95 0.86]
+    LightSource "pointlight" 3 "from" [-5.0 3.5 -2.5] "intensity" [22.0] "lightcolor" [0.55 0.78 1.0]
+    LightSource "pointlight" 4 "from" [0.0 0.4 0.0] "intensity" [8.0] "lightcolor" [1.0 0.62 0.25]
+
+    # Atelier Stage Floor
+    AttributeBegin
+        Color [0.74 0.72 0.68]
+        Surface "matte" "Kd" [0.85]
+        Polygon "P" [-18.0 -1.85 -18.0  18.0 -1.85 -18.0  18.0 -1.85 18.0  -18.0 -1.85 18.0]
+    AttributeEnd
+
+    # =========================================================================
+    # 1. OVERHEAD ARCHING TRIMMED NURBS CANOPY (Rational NuPatch + 4 Trim Loops)
+    # =========================================================================
+    AttributeBegin
+        Attribute "identifier" "name" ["GrandAtelierNurbsCanopy"]
+        Translate 0.0 0.85 -0.4
+        Sides 2
+        Color [0.16 0.66 0.78]
+        Surface "plastic" "Ka" [0.15] "Kd" [0.65] "Ks" [0.85] "roughness" [0.06]
+
+        # Loop 0 is the outer boundary: keep what an odd number of loops enclose
+        Attribute "trimcurve" "sense" ["outside"]
+        TrimCurve
+            [1 1 1 1]
+            [2 4 4 4]
+            [
+                0 0 0.25 0.5 0.75 1 1
+                0 0 0 0 0.25 0.5 0.75 1 1 1 1
+                0 0 0 0 0.25 0.5 0.75 1 1 1 1
+                0 0 0 0 0.25 0.5 0.75 1 1 1 1
+            ]
+            [0 0 0 0]
+            [1 1 1 1]
+            [5 7 7 7]
+            [
+                0.03 0.97 0.97 0.03 0.03
+                0.50 0.34 0.34 0.50 0.66 0.66 0.50
+                0.22 0.12 0.12 0.22 0.32 0.32 0.22
+                0.78 0.68 0.68 0.78 0.88 0.88 0.78
+            ]
+            [
+                0.05 0.05 0.95 0.95 0.05
+                0.66 0.60 0.40 0.34 0.40 0.60 0.66
+                0.62 0.58 0.42 0.38 0.42 0.58 0.62
+                0.62 0.58 0.42 0.38 0.42 0.58 0.62
+            ]
+            [
+                1 1 1 1 1
+                1 1 1 1 1 1 1
+                1 1 1 1 1 1 1
+                1 1 1 1 1 1 1
+            ]
+
+        NuPatch
+            4 4 [0 0 0 0 1 1 1 1] 0.0 1.0
+            4 4 [0 0 0 0 1 1 1 1] 0.0 1.0
+            "Pw" [
+                -3.6  0.2 -2.2 1.0   -1.2  1.8 -2.4 1.3    1.2  1.8 -2.4 1.3    3.6  0.2 -2.2 1.0
+                -3.8  0.8 -0.7 1.2   -1.2  2.5 -0.8 1.8    1.2  2.5 -0.8 1.8    3.8  0.8 -0.7 1.2
+                -3.8  0.8  0.7 1.2   -1.2  2.5  0.8 1.8    1.2  2.5  0.8 1.8    3.8  0.8  0.7 1.2
+                -3.6  0.2  2.2 1.0   -1.2  1.8  2.4 1.3    1.2  1.8  2.4 1.3    3.6  0.2  2.2 1.0
+            ]
+    AttributeEnd
+
+    # =========================================================================
+    # 2. CENTER HERO: CSG CHRONOMETER CUBE (Spinning with Motion Blur at Focal Plane)
+    # =========================================================================
+    AttributeBegin
+        Attribute "identifier" "name" ["GrandAtelierCSGCube"]
+        Translate 0.0 -0.45 0.0
+        MotionBegin [0.0 0.5 1.0]
+            Rotate 18.0 0 1 0
+            Rotate 28.0 0 1 0
+            Rotate 38.0 0 1 0
+        MotionEnd
+        Scale 0.78 0.78 0.78
+        Surface "plastic" "Ka" [0.15] "Kd" [0.68] "Ks" [0.88] "roughness" [0.06]
+
+        SolidBegin "difference"
+            SolidBegin "intersection"
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.92 0.72 0.22]
+                        PointsPolygons [4 4 4 4 4 4]
+                            [0 1 2 3  4 7 6 5  0 4 5 1  1 5 6 2  2 6 7 3  3 7 4 0]
+                            "P" [
+                                -1.5 -1.5 -1.5   1.5 -1.5 -1.5   1.5  1.5 -1.5  -1.5  1.5 -1.5
+                                -1.5 -1.5  1.5   1.5 -1.5  1.5   1.5  1.5  1.5  -1.5  1.5  1.5
+                            ]
+                    AttributeEnd
+                SolidEnd
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.22 0.55 0.85]
+                        Sphere 1.98 -1.98 1.98 360.0
+                    AttributeEnd
+                SolidEnd
+            SolidEnd
+            SolidBegin "union"
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.9 0.28 0.32]
+                        Cylinder 0.88 -2.2 2.2 360.0
+                        Disk 2.2 0.88 360.0
+                        Rotate 180 1 0 0
+                        Disk 2.2 0.88 360.0
+                    AttributeEnd
+                SolidEnd
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.9 0.28 0.32]
+                        Rotate 90 0 1 0
+                        Cylinder 0.88 -2.2 2.2 360.0
+                        Disk 2.2 0.88 360.0
+                        Rotate 180 1 0 0
+                        Disk 2.2 0.88 360.0
+                    AttributeEnd
+                SolidEnd
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.9 0.28 0.32]
+                        Rotate 90 1 0 0
+                        Cylinder 0.88 -2.2 2.2 360.0
+                        Disk 2.2 0.88 360.0
+                        Rotate 180 1 0 0
+                        Disk 2.2 0.88 360.0
+                    AttributeEnd
+                SolidEnd
+            SolidEnd
+        SolidEnd
+    AttributeEnd
+
+    # =========================================================================
+    # 3. LEFT HERO: CREASED & HOLED CATMULL-CLARK SUBDIVISION MONOLITH
+    # =========================================================================
+    AttributeBegin
+        Attribute "identifier" "name" ["GrandAtelierSubdivTotem"]
+        Translate -2.25 -0.35 0.25
+        Rotate 22 0 1 0
+        Scale 0.82 0.82 0.82
+        Color [0.88 0.34 0.28]
+        Surface "plastic" "Ka" [0.15] "Kd" [0.68] "Ks" [0.85] "roughness" [0.06]
+
+        SubdivisionMesh "catmull-clark"
+            [4 4 4 4 4  4 4 4 4 4]
+            [
+                0 3 2 1
+                0 1 5 4   1 2 6 5   2 3 7 6   3 0 4 7
+                4 5 9 8   5 6 10 9  6 7 11 10 7 4 8 11
+                8 9 10 11
+            ]
+            ["interpolateboundary" "crease" "crease" "corner" "hole"]
+            [
+                0 0
+                5 1
+                5 1
+                4 1
+                1 0
+            ]
+            [
+                0 1 2 3 0
+                4 5 6 7 4
+                8 9 10 11
+                5
+            ]
+            [
+                5.0
+                3.5
+                4.5
+            ]
+            "P" [
+                -0.85 -1.70 -0.85    0.85 -1.70 -0.85    0.85 -1.70  0.85   -0.85 -1.70  0.85
+                -1.35  0.00 -1.35    1.35  0.00 -1.35    1.35  0.00  1.35   -1.35  0.00  1.35
+                -0.65  1.65 -0.65    0.65  1.65 -0.65    0.65  1.65  0.65   -0.65  1.65  0.65
+            ]
+    AttributeEnd
+
+    # =========================================================================
+    # 4. RIGHT HERO: IMPLICIT BLOBBY METABALL SCULPTURE (Ellipsoids + Segment + Cs)
+    # =========================================================================
+    AttributeBegin
+        Attribute "identifier" "name" ["GrandAtelierBlobby"]
+        Translate 2.25 -0.45 -0.15
+        Surface "plastic" "Ka" [0.22] "Kd" [0.68] "Ks" [0.92] "roughness" [0.04]
+
+        Blobby 5
+            [
+                1001 0
+                1001 16
+                1001 32
+                1001 48
+                1002 64
+                0 5  0 1 2 3 4
+            ]
+            [
+                1.15 0.0  0.0  0.0
+                0.0  0.65 0.0  0.0
+                0.0  0.0  1.15 0.0
+                0.0 -1.05 0.0  1.0
+
+                0.88 0.0  0.0  0.0
+                0.0  0.95 0.0  0.0
+                0.0  0.0  0.88 0.0
+                0.0 -0.15 0.0  1.0
+
+                0.72 0.0  0.0  0.0
+                0.0  0.72 0.0  0.0
+                0.0  0.0  0.72 0.0
+                0.15  0.85 0.0  1.0
+
+                0.55 0.0  0.0  0.0
+                0.0  0.55 0.0  0.0
+                0.0  0.0  0.55 0.0
+               -0.65  1.45 0.0  1.0
+
+                0.15 0.85 0.0  -0.65 1.45 0.0  0.28
+                1.0 0.0 0.0 0.0   0.0 1.0 0.0 0.0   0.0 0.0 1.0 0.0   0.0 0.0 0.0 1.0
+            ]
+            [""]
+            "varying color Cs" [
+                0.95 0.22 0.45
+                1.00 0.55 0.18
+                0.98 0.88 0.25
+                0.22 0.88 0.95
+                0.65 0.95 0.55
+            ]
+    AttributeEnd
+
+    # Foreground Out-of-Focus Bokeh Orb (Demonstrates Near DoF Circle of Confusion)
+    AttributeBegin
+        Translate -1.15 -0.95 3.1
+        Color [0.98 0.65 0.22]
+        Surface "plastic" "Ka" [0.25] "Kd" [0.55] "Ks" [0.95] "roughness" [0.02]
+        Sphere 0.34 -0.34 0.34 360.0
+    AttributeEnd
+
+WorldEnd

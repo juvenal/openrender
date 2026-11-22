@@ -43,6 +43,7 @@
 #include "shaderPl.h"
 #include "shaderPayload.h"
 #include "shaderGroup.h"
+#include "rslOps.h" // libshader::concatStrings/formatStrings
 #include "shaderRefs.h"
 #include "shading.h"
 #include "specularTerm.h"
@@ -66,8 +67,6 @@ openrender::shading::IIrradianceSampler *CShadingContext::s_defaultIrradianceSam
 
 // Predefined ray labels used during raytracing
 const char *rayLabelPrimary = "camera";
-const char *rayLabelTrace = "trace";
-const char *rayLabelTransmission = "transmission";
 const char *rayLabelGather = "gather";
 
 ///////////////////////////////////////////////////////////////////////
@@ -2006,6 +2005,45 @@ int CShadingContext::rendererInfo(void *dest, const char *name, CVariable **, in
 // invertCatMatch; see the contract's divergence table).
 ///////////////////////////////////////////////////////////////////////
 
+namespace {
+
+// The counts a light is entered with (GitHub #100). A light reads them from the shading state when it starts
+// (the interpreter at execute(), the JIT through op_entry_counts), so they are published for the run of the lights
+// and the state's own are put back afterwards: a count left behind would be read by the next light that runs
+// from a place that publishes nothing.
+struct SPublishedCounts {
+        CShadingState *ss;
+        int savedActive, savedPassive;
+        SPublishedCounts(CShadingState *state, int active, int passive) : ss(state), savedActive(state->numActive), savedPassive(state->numPassive) {
+            ss->numActive = active;
+            ss->numPassive = passive;
+        }
+        ~SPublishedCounts() {
+            ss->numActive = savedActive;
+            ss->numPassive = savedPassive;
+        }
+        SPublishedCounts(const SPublishedCounts &) = delete;
+        SPublishedCounts &operator=(const SPublishedCounts &) = delete;
+};
+
+// The counts of a batch whose tags are all there is to go by: a point is active exactly when its tag is 0 (the JIT
+// keeps its counters in a stack slot of its own and the helpers it calls are handed only the tags).
+void countsFromTags(const int *tags, int n, int &active, int &passive) {
+    active = 0;
+    for (int i = 0; i < n; ++i)
+        active += (tags[i] == 0);
+    passive = n - active;
+}
+
+// True when a jit*Begin/End hook branch is inside an if/else that left no point active (GitHub #71). A light's
+// entry count is the shading state's numActive for the whole run, so zero with a nonzero entry count means an
+// enclosing if/else drove it there; a light entered with nothing active is not skipped (see jitIlluminateBegin).
+inline bool hookSkippedByIf(const CShadingState *ss, int numActive) {
+    return numActive == 0 && ss->numActive != 0;
+}
+
+} // namespace
+
 void CShadingContext::iterateLights(const float *lP, const float *lN, const float *lT, int numVertices, int *tags, int &numActive, int &numPassive, int inShadow, float **varying, CShaderInstance *cInstance) {
     iterateLights(lP, lN, lT, numVertices, tags, numActive, numPassive, 0, inShadow, varying, cInstance);
 }
@@ -2027,8 +2065,7 @@ void CShadingContext::iterateLights(const float *lP, const float *lN, const floa
 
     if (!curLightingValid) {
         const CAttributes *currentAttributes = ss->currentAttributes;
-        ss->numActive = numActive;
-        ss->numPassive = numPassive;
+        const SPublishedCounts published(ss, numActive, numPassive);
         ss->lightsExecuted = TRUE;
         ss->costheta = lT;
         ss->lightCategory = saveCat;
@@ -2249,6 +2286,10 @@ void CShadingContext::callAmbient(float *result) {
             }
         }
         if (!inShadow) {
+            // The ambient lights run under this call's tags, like the others (GitHub #100)
+            int numActive, numPassive;
+            countsFromTags(tags, n, numActive, numPassive);
+            const SPublishedCounts published(ss, numActive, numPassive);
             for (CActiveLight *cLight = attr->lightSources; cLight; cLight = cLight->next) {
                 CShaderInstance *light = lightInstanceOf(*cLight);
                 if (!(light->flags & SHADERFLAGS_NONAMBIENT)) {
@@ -2287,8 +2328,10 @@ void CShadingContext::callDiffuse(float *result, const float *Nf) {
     float *costheta = (float *)ralloc(n * sizeof(float), threadMemory);
     for (int i = 0; i < n; ++i)
         costheta[i] = 0.0f;
+    int numActive, numPassive;
+    countsFromTags(tags, n, numActive, numPassive);
     iterateLights(varying[VARIABLE_P], Nf, costheta, n, const_cast<int *>(tags),
-                  ss->numActive, ss->numPassive, inShadow, varying, cInst);
+                  numActive, numPassive, inShadow, varying, cInst);
     log_debug("[JIT-DBG] callDiffuse: lights={} n={}", (void *)ss->lights, n);
 
     // Zero ALL vertices unconditionally (original behavior)
@@ -2340,8 +2383,10 @@ void CShadingContext::callSpecular(float *result, const float *Nf, int nfStep, c
     float *powers = (float *)ralloc(n * sizeof(float), threadMemory);
     for (int i = 0; i < n; ++i)
         costheta[i] = 0.0f;
+    int numActive, numPassive;
+    countsFromTags(tags, n, numActive, numPassive);
     iterateLights(varying[VARIABLE_P], Nf, costheta, n, const_cast<int *>(tags),
-                  ss->numActive, ss->numPassive, inShadow, varying, cInst);
+                  numActive, numPassive, inShadow, varying, cInst);
 
     for (int i = 0; i < n; ++i) {
         if (tags[i] == 0) {
@@ -2399,8 +2444,10 @@ void CShadingContext::callPhong(float *result, const float *Nf, const float *V, 
     float *costheta = (float *)ralloc(n * sizeof(float), threadMemory);
     for (int i = 0; i < n; ++i)
         costheta[i] = 0.0f;
+    int numActive, numPassive;
+    countsFromTags(tags, n, numActive, numPassive);
     iterateLights(varying[VARIABLE_P], Nf, costheta, n, const_cast<int *>(tags),
-                  ss->numActive, ss->numPassive, inShadow, varying, cInst);
+                  numActive, numPassive, inShadow, varying, cInst);
 
     float *refDir = (float *)ralloc(n * 3 * sizeof(float), threadMemory);
     for (int i = 0; i < n; ++i) {
@@ -2499,9 +2546,11 @@ void CShadingContext::prepareDiffuse() {
         ss->diffuseReady = TRUE;
         float *costheta = (float *)ralloc(ss->numVertices * sizeof(float), threadMemory);
         memset(costheta, 0, ss->numVertices * sizeof(float));
+        int numActive, numPassive;
+        countsFromTags(ss->tags, ss->numVertices, numActive, numPassive);
         iterateLights(ss->varying[VARIABLE_P], ss->varying[VARIABLE_N],
                       costheta, ss->numVertices, ss->tags,
-                      ss->numActive, ss->numPassive, inShadow,
+                      numActive, numPassive, inShadow,
                       ss->varying, ss->currentShaderInstance);
     }
 }
@@ -2512,8 +2561,10 @@ void CShadingContext::setupIlluminance(float *P, float *N, float angle, int numV
     const float cosAngle = cosf(angle);
     for (int i = 0; i < numVertices; ++i)
         costheta[i] = cosAngle;
+    int numActive, numPassive;
+    countsFromTags(tags, numVertices, numActive, numPassive);
     iterateLights(P, N, costheta, numVertices, tags,
-                  ss->numActive, ss->numPassive, inShadow,
+                  numActive, numPassive, inShadow,
                   ss->varying, ss->currentShaderInstance);
 }
 
@@ -2525,25 +2576,26 @@ void CShadingContext::setupIlluminance(float *P, float *N, float angle, int numV
 // With the illumination hook active the hider does all of it: only the hook is
 // called, and Ns, costheta, the tags, the counts and L are left alone.
 //
-// The hook branches of the six jit*Begin/End functions call the hider only
-// while the JIT's active count is nonzero (GitHub #71). The interpreter never
-// reaches a construct inside a block that an if/else left with no active
-// point, because it jumps over the block; the emitter branches over such a
-// block too, so this is a second line of defence for the same rule. It reads
-// the count, not the tags: a light entered with every point already passive,
-// outside any if, still calls the hook under the interpreter, whose hook path
-// makes no check of its own. That case matches only because the JIT starts its
-// count at numVertices, not at currentShadingState->numActive: a change to that
-// starting count must keep the hook called for such an entry (the "inactive"
-// rows of ShadingParity_IlluminationHook{,Operands}). The hook path changes no
-// tags or counts, so the begin and the end of one construct see the same count.
+// The hook branches of the six jit*Begin/End functions skip the hider only when
+// an enclosing if/else drove the JIT's active count to zero (GitHub #71): the
+// interpreter never reaches a construct inside a block that an if/else left with
+// no active point, because it jumps over the block; the emitter branches over
+// such a block too, so this is a second line of defence for the same rule. A
+// light entered with every point already passive, outside any if, still calls the
+// hook under the interpreter, whose hook path makes no check of its own: the "inactive"
+// rows of ShadingParity_IlluminationHook{,Operands}. Since the JIT starts a light
+// from the shading state's counts (GitHub #100, op_entry_counts) a zero count alone
+// no longer says which of the two happened, so hookSkippedByIf() compares it with
+// the count the light was entered with, which iterateLights() keeps in the shading
+// state for the whole run of the light. The hook path changes no tags or counts, so
+// the begin and the end of one construct see the same count.
 void CShadingContext::jitIlluminateBegin(const float *from, int sf, int *tags, int n, int *numActive, int *numPassive) {
     CShadingState *ss = currentShadingState;
     if (!ss)
         return;
 
     if (rendererIlluminationHook()) {
-        if (*numActive != 0)
+        if (!hookSkippedByIf(ss, *numActive))
             if (openrender::shading::IIlluminationHook *hook = illuminationHook())
                 hook->illuminateBegin(hookOperand(from, sf, tags, n), nullptr, nullptr);
         return;
@@ -2588,7 +2640,7 @@ void CShadingContext::jitIlluminate3Begin(
         return;
 
     if (rendererIlluminationHook()) {
-        if (*numActive != 0)
+        if (!hookSkippedByIf(ss, *numActive))
             if (openrender::shading::IIlluminationHook *hook = illuminationHook())
                 hook->illuminateBegin(hookOperand(from, sf, tags, n), hookOperand(axis, sa, tags, n), hookOperand(angle, st, tags, n));
         return;
@@ -2637,7 +2689,7 @@ void CShadingContext::jitIlluminateEnd(int *tags, int n, int *numActive, int *nu
         return;
 
     if (rendererIlluminationHook()) {
-        if (*numActive != 0)
+        if (!hookSkippedByIf(ss, *numActive))
             if (openrender::shading::IIlluminationHook *hook = illuminationHook())
                 hook->illuminateEnd();
         return;
@@ -2709,7 +2761,7 @@ void CShadingContext::jitSolarBegin(const float *Nf, int sf, const float *thetaf
         return;
 
     if (rendererIlluminationHook()) {
-        if (*numActive != 0)
+        if (!hookSkippedByIf(ss, *numActive))
             if (openrender::shading::IIlluminationHook *hook = illuminationHook())
                 hook->solarBegin(hookOperand(Nf, sf, tags, n), hookOperand(thetaf, st, tags, n));
         return;
@@ -2759,7 +2811,7 @@ void CShadingContext::jitSolar0Begin(int *tags, int n, int *numActive, int * /*n
         return;
 
     if (rendererIlluminationHook()) {
-        if (*numActive != 0)
+        if (!hookSkippedByIf(ss, *numActive))
             if (openrender::shading::IIlluminationHook *hook = illuminationHook())
                 hook->solarBegin(nullptr, nullptr);
         return;
@@ -2790,7 +2842,7 @@ void CShadingContext::jitSolarEnd(int *tags, int n, int *numActive, int *numPass
         return;
 
     if (rendererIlluminationHook()) {
-        if (*numActive != 0)
+        if (!hookSkippedByIf(ss, *numActive))
             if (openrender::shading::IIlluminationHook *hook = illuminationHook())
                 hook->solarEnd();
         return;
@@ -4500,8 +4552,19 @@ void CShadingContext::jitShaderNameS(char **dst, int sd, const char *const *type
 // code, not a behavior "fix" -- the interpreter's own MAX_SCRIPT_STRING_
 // SIZE-sized buffer has the same unchecked-overflow risk for pathological
 // inputs, mirrored here defensively rather than left unguarded twice.
-void CShadingContext::jitConcat(char **dst, int sd, const char *const *const *operands,
-                                const int *strides, int numOperands, int n, const int *tags) {
+// Stores a copy of `str` in the thread's arena, as savestring() does (the `state` is the address of threadMemory)
+static const char *keepInThreadMemory(void *state, const char *str) {
+    CMemPage *&memory = *static_cast<CMemPage **>(state);
+    const int strLen = (int)strlen(str) + 1;
+    const int strSize = (strLen & ~3) + 4;
+    char *strmem = (char *)ralloc(strSize, memory);
+    strcpy(strmem, str);
+    return strmem;
+}
+
+void libshader::concatStrings(char **dst, int sd, const char *const *const *operands,
+                              const int *strides, int numOperands, int n, const int *tags,
+                              TKeepString keep, void *state) {
     if (n <= 0 || numOperands <= 0)
         return;
     char tmp[MAX_SCRIPT_STRING_SIZE];
@@ -4513,26 +4576,21 @@ void CShadingContext::jitConcat(char **dst, int sd, const char *const *const *op
             const char *s = JIT_IDX(operands[k], strides[k], i)[0];
             strncat(tmp, s, sizeof(tmp) - strlen(tmp) - 1);
         }
-        const int strLen = (int)strlen(tmp) + 1;
-        const int strSize = (strLen & ~3) + 4;
-        char *strmem = (char *)ralloc(strSize, threadMemory);
-        strcpy(strmem, tmp);
-        JIT_IDX(dst, sd, i)[0] = strmem;
+        JIT_IDX(dst, sd, i)[0] = (char *)keep(state, tmp);
     }
+}
+
+void CShadingContext::jitConcat(char **dst, int sd, const char *const *const *operands,
+                                const int *strides, int numOperands, int n, const int *tags) {
+    libshader::concatStrings(dst, sd, operands, strides, numOperands, n, tags, keepInThreadMemory, &threadMemory);
 }
 
 // format() -- byte-faithful transcription of PRINTEXPR (scriptFunctions.h,
 // shared with printf()'s own FORMATEXPR), persisted via ralloc/threadMemory
 // the same way jitConcat's result is (savestring's equivalent).
-void CShadingContext::jitFormat(char **dst, int sd, const char *const *fmt, int sf,
-                                void *const *operands, const int *strides, int numOperands,
-                                int n, const int *tags) {
-    // numOperands is unused here (unlike jitConcat): the format string's
-    // own %-specifier count determines how many operands are consumed,
-    // matching the interpreter's own unchecked PRINTEXPR behavior --
-    // kept in the signature for symmetry with op_format's dispatch-side
-    // array-sizing use.
-    (void)numOperands;
+void libshader::formatStrings(char **dst, int sd, const char *const *fmt, int sf,
+                              void *const *operands, const int *strides,
+                              int n, const int *tags, TKeepString keep, void *state) {
     if (n <= 0)
         return;
     for (int i = 0; i < n; ++i) {
@@ -4591,12 +4649,18 @@ void CShadingContext::jitFormat(char **dst, int sd, const char *const *fmt, int 
         }
         *tmp = '\0';
 
-        const int strLen = (int)strlen(output) + 1;
-        const int strSize = (strLen & ~3) + 4;
-        char *strmem = (char *)ralloc(strSize, threadMemory);
-        strcpy(strmem, output);
-        JIT_IDX(dst, sd, i)[0] = strmem;
+        JIT_IDX(dst, sd, i)[0] = (char *)keep(state, output);
     }
+}
+
+// The number of operands is unused: the format string's own %-specifier count determines how many operands are
+// consumed, matching the interpreter's own unchecked PRINTEXPR behavior -- kept in the signature for symmetry
+// with op_format's dispatch-side array-sizing use.
+void CShadingContext::jitFormat(char **dst, int sd, const char *const *fmt, int sf,
+                                void *const *operands, const int *strides, int numOperands,
+                                int n, const int *tags) {
+    (void)numOperands;
+    libshader::formatStrings(dst, sd, fmt, sf, operands, strides, n, tags, keepInThreadMemory, &threadMemory);
 }
 
 // printf() (GitHub #11) -- byte-faithful transcription of PRINTFEXPR

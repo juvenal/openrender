@@ -1,0 +1,247 @@
+##RenderMan RIB-Structure 1.1
+##Scene: 04_csg_wiktor_cube_lens_dof.rib
+##Features: Array of 3 CSG Mechanical Cubes at Stepped Depths + Shallow DepthOfField
+version 3.03
+
+Format 1024 768 1.0
+PixelSamples 8 8
+PixelFilter "gaussian" 2.0 2.0
+ShadingRate 1.0
+Display "04_csg_wiktor_cube_lens_dof.tif" "file" "rgba"
+
+Projection "perspective" "fov" [35.0]
+# Focus sharply on the middle CSG cube (at camera Z = 6.6)
+DepthOfField 1.8 0.90 6.6
+Clipping 0.1 100.0
+
+Translate 0.0 -0.2 6.6
+Rotate -18.0 1 0 0
+
+WorldBegin
+
+    LightSource "ambientlight" 1 "intensity" [0.14] "lightcolor" [0.85 0.9 1.0]
+    LightSource "pointlight" 2 "from" [4.5 6.5 -3.5] "intensity" [42.0] "lightcolor" [1.0 0.95 0.88]
+    LightSource "pointlight" 3 "from" [-4.5 3.5 -2.5] "intensity" [18.0] "lightcolor" [0.6 0.8 1.0]
+
+    # Floor
+    AttributeBegin
+        Color [0.76 0.75 0.72]
+        Surface "matte" "Kd" [0.85]
+        Polygon "P" [-18.0 -1.35 -18.0  18.0 -1.35 -18.0  18.0 -1.35 18.0  -18.0 -1.35 18.0]
+    AttributeEnd
+
+    # =========================================================================
+    # 1. Foreground CSG Cube (Left, Near Camera -> Out-of-Focus Near Blur)
+    # =========================================================================
+    AttributeBegin
+        Translate -1.85 -0.15 2.4
+        Rotate 28 0 1 0
+        Scale 0.78 0.78 0.78
+        Surface "plastic" "Ka" [0.15] "Kd" [0.65] "Ks" [0.85] "roughness" [0.06]
+
+        SolidBegin "difference"
+            SolidBegin "intersection"
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.88 0.32 0.25]
+                        PointsPolygons [4 4 4 4 4 4]
+                            [0 1 2 3  4 7 6 5  0 4 5 1  1 5 6 2  2 6 7 3  3 7 4 0]
+                            "P" [
+                                -1.5 -1.5 -1.5   1.5 -1.5 -1.5   1.5  1.5 -1.5  -1.5  1.5 -1.5
+                                -1.5 -1.5  1.5   1.5 -1.5  1.5   1.5  1.5  1.5  -1.5  1.5  1.5
+                            ]
+                    AttributeEnd
+                SolidEnd
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.98 0.78 0.28]
+                        Sphere 1.98 -1.98 1.98 360.0
+                    AttributeEnd
+                SolidEnd
+            SolidEnd
+            SolidBegin "union"
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.25 0.75 0.88]
+                        Cylinder 0.88 -2.2 2.2 360.0
+                        Disk 2.2 0.88 360.0
+                        Rotate 180 1 0 0
+                        Disk 2.2 0.88 360.0
+                    AttributeEnd
+                SolidEnd
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.25 0.75 0.88]
+                        Rotate 90 0 1 0
+                        Cylinder 0.88 -2.2 2.2 360.0
+                        Disk 2.2 0.88 360.0
+                        Rotate 180 1 0 0
+                        Disk 2.2 0.88 360.0
+                    AttributeEnd
+                SolidEnd
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.25 0.75 0.88]
+                        Rotate 90 1 0 0
+                        Cylinder 0.88 -2.2 2.2 360.0
+                        Disk 2.2 0.88 360.0
+                        Rotate 180 1 0 0
+                        Disk 2.2 0.88 360.0
+                    AttributeEnd
+                SolidEnd
+            SolidEnd
+        SolidEnd
+    AttributeEnd
+
+    # =========================================================================
+    # 2. Hero Center CSG Cube + Lens (At Focal Plane Z=0 -> Tack Sharp)
+    # =========================================================================
+    AttributeBegin
+        Translate 0.0 0.0 0.0
+        Rotate 32 0 1 0
+        Scale 0.88 0.88 0.88
+        Surface "plastic" "Ka" [0.15] "Kd" [0.68] "Ks" [0.85] "roughness" [0.06]
+
+        SolidBegin "difference"
+            SolidBegin "intersection"
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.22 0.58 0.86]
+                        PointsPolygons [4 4 4 4 4 4]
+                            [0 1 2 3  4 7 6 5  0 4 5 1  1 5 6 2  2 6 7 3  3 7 4 0]
+                            "P" [
+                                -1.5 -1.5 -1.5   1.5 -1.5 -1.5   1.5  1.5 -1.5  -1.5  1.5 -1.5
+                                -1.5 -1.5  1.5   1.5 -1.5  1.5   1.5  1.5  1.5  -1.5  1.5  1.5
+                            ]
+                    AttributeEnd
+                SolidEnd
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.95 0.72 0.22]
+                        Sphere 1.98 -1.98 1.98 360.0
+                    AttributeEnd
+                SolidEnd
+            SolidEnd
+            SolidBegin "union"
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.9 0.28 0.32]
+                        Cylinder 0.88 -2.2 2.2 360.0
+                        Disk 2.2 0.88 360.0
+                        Rotate 180 1 0 0
+                        Disk 2.2 0.88 360.0
+                    AttributeEnd
+                SolidEnd
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.9 0.28 0.32]
+                        Rotate 90 0 1 0
+                        Cylinder 0.88 -2.2 2.2 360.0
+                        Disk 2.2 0.88 360.0
+                        Rotate 180 1 0 0
+                        Disk 2.2 0.88 360.0
+                    AttributeEnd
+                SolidEnd
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.9 0.28 0.32]
+                        Rotate 90 1 0 0
+                        Cylinder 0.88 -2.2 2.2 360.0
+                        Disk 2.2 0.88 360.0
+                        Rotate 180 1 0 0
+                        Disk 2.2 0.88 360.0
+                    AttributeEnd
+                SolidEnd
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.95 0.55 0.25]
+                        Sphere 1.32 -1.32 1.32 360.0
+                    AttributeEnd
+                SolidEnd
+            SolidEnd
+        SolidEnd
+
+        # Inner Bi-Convex Lens
+        AttributeBegin
+            Color [0.25 0.92 0.68]
+            SolidBegin "intersection"
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Translate 0.0 0.0 -0.55
+                        Sphere 1.02 -1.02 1.02 360.0
+                    AttributeEnd
+                SolidEnd
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Translate 0.0 0.0 0.55
+                        Sphere 1.02 -1.02 1.02 360.0
+                    AttributeEnd
+                SolidEnd
+            SolidEnd
+        AttributeEnd
+    AttributeEnd
+
+    # =========================================================================
+    # 3. Background CSG Cube (Right, Far Field -> Creamy Bokeh Blur)
+    # =========================================================================
+    AttributeBegin
+        Translate 2.2 0.15 -3.2
+        Rotate -24 0 1 0
+        Scale 0.95 0.95 0.95
+        Surface "plastic" "Ka" [0.15] "Kd" [0.65] "Ks" [0.9] "roughness" [0.05]
+
+        SolidBegin "difference"
+            SolidBegin "intersection"
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.28 0.78 0.45]
+                        PointsPolygons [4 4 4 4 4 4]
+                            [0 1 2 3  4 7 6 5  0 4 5 1  1 5 6 2  2 6 7 3  3 7 4 0]
+                            "P" [
+                                -1.5 -1.5 -1.5   1.5 -1.5 -1.5   1.5  1.5 -1.5  -1.5  1.5 -1.5
+                                -1.5 -1.5  1.5   1.5 -1.5  1.5   1.5  1.5  1.5  -1.5  1.5  1.5
+                            ]
+                    AttributeEnd
+                SolidEnd
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.95 0.82 0.25]
+                        Sphere 1.98 -1.98 1.98 360.0
+                    AttributeEnd
+                SolidEnd
+            SolidEnd
+            SolidBegin "union"
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.85 0.35 0.75]
+                        Cylinder 0.88 -2.2 2.2 360.0
+                        Disk 2.2 0.88 360.0
+                        Rotate 180 1 0 0
+                        Disk 2.2 0.88 360.0
+                    AttributeEnd
+                SolidEnd
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.85 0.35 0.75]
+                        Rotate 90 0 1 0
+                        Cylinder 0.88 -2.2 2.2 360.0
+                        Disk 2.2 0.88 360.0
+                        Rotate 180 1 0 0
+                        Disk 2.2 0.88 360.0
+                    AttributeEnd
+                SolidEnd
+                SolidBegin "primitive"
+                    AttributeBegin
+                        Color [0.85 0.35 0.75]
+                        Rotate 90 1 0 0
+                        Cylinder 0.88 -2.2 2.2 360.0
+                        Disk 2.2 0.88 360.0
+                        Rotate 180 1 0 0
+                        Disk 2.2 0.88 360.0
+                    AttributeEnd
+                SolidEnd
+            SolidEnd
+        SolidEnd
+    AttributeEnd
+
+WorldEnd

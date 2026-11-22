@@ -981,6 +981,20 @@ void jitSetInitCoordinateResolver(TJitInitCoordinateResolver resolver) {
     s_jit_init_resolver = resolver;
 }
 
+// GitHub #192: what the string ops need at bind time, where there is no shading context
+static thread_local const TJitInitBinding *s_jit_init_binding = nullptr;
+
+void jitSetInitBinding(const TJitInitBinding *binding) {
+    s_jit_init_binding = binding;
+}
+
+// A bind-time init answers a string op that has no meaning outside shading with "" in every point (GitHub #192)
+static void setInitString(char **dst, int sd, const char *value, int n, const int *tags) {
+    for (int i = 0; i < n; ++i)
+        if (!tags || !tags[i])
+            dst[sd * i] = (char *)value;
+}
+
 static bool getFromMatrix(const char *space, const float *&fromMat) {
     CShadingContext *ctx = libshader::activeContext();
     if (!ctx) {
@@ -1487,6 +1501,17 @@ void op_mfromf16(float *dst, int sd, const float *const *e, const int *se, int n
             for (int k = 0; k < 16; k++)
                 r[k] = IDX(e[k], se[k], i)[0];
         }
+}
+
+// A light shader's starting counts (GitHub #100): see rslOps.h.
+void op_entry_counts(int n, int *numActive, int *numPassive) {
+    *numActive = n;
+    *numPassive = 0;
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx && ctx->currentShadingState) {
+        *numActive = ctx->currentShadingState->numActive;
+        *numPassive = ctx->currentShadingState->numPassive;
+    }
 }
 
 // =========================================================================
@@ -2299,6 +2324,8 @@ void op_raylabel(char **dst, int sd, int n, const int *tags) {
     CShadingContext *ctx = libshader::activeContext();
     if (ctx)
         ctx->jitRayLabel(dst, sd, n, tags);
+    else if (s_jit_init_binding)
+        setInitString(dst, sd, "", n, tags);
 }
 
 void op_raydepth(float *dst, int sd, int n, const int *tags) {
@@ -2318,6 +2345,8 @@ void op_shadername(char **dst, int sd, int n, const int *tags) {
     CShadingContext *ctx = libshader::activeContext();
     if (ctx)
         ctx->jitShaderName(dst, sd, n, tags);
+    else if (s_jit_init_binding)
+        setInitString(dst, sd, s_jit_init_binding->shaderName, n, tags);
 }
 
 void op_shadername_s(char **dst, int sd, const char *const *type, int sType,
@@ -2325,6 +2354,8 @@ void op_shadername_s(char **dst, int sd, const char *const *type, int sType,
     CShadingContext *ctx = libshader::activeContext();
     if (ctx)
         ctx->jitShaderNameS(dst, sd, type, sType, n, tags);
+    else if (s_jit_init_binding)
+        setInitString(dst, sd, "", n, tags);
 }
 
 void op_concat(char **dst, int sd, const char *const *const *operands,
@@ -2332,6 +2363,9 @@ void op_concat(char **dst, int sd, const char *const *const *operands,
     CShadingContext *ctx = libshader::activeContext();
     if (ctx)
         ctx->jitConcat(dst, sd, operands, strides, numOperands, n, tags);
+    else if (s_jit_init_binding)
+        libshader::concatStrings(dst, sd, operands, strides, numOperands, n, tags, s_jit_init_binding->keepString,
+                                 s_jit_init_binding->state);
 }
 
 void op_format(char **dst, int sd, const char *const *fmt, int sf,
@@ -2340,6 +2374,9 @@ void op_format(char **dst, int sd, const char *const *fmt, int sf,
     CShadingContext *ctx = libshader::activeContext();
     if (ctx)
         ctx->jitFormat(dst, sd, fmt, sf, operands, strides, numOperands, n, tags);
+    else if (s_jit_init_binding)
+        libshader::formatStrings(dst, sd, fmt, sf, operands, strides, n, tags, s_jit_init_binding->keepString,
+                                 s_jit_init_binding->state);
 }
 
 void op_dso_call(void *slotEntry, int isVoid, int inInit, int argc, void **argv, const int *steps, int n, const int *tags) {

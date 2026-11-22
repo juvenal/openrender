@@ -1,0 +1,170 @@
+##RenderMan RIB-Structure 1.1
+##Scene: 07_subdiv_creased_totem.rib
+##Features: Catmull-Clark SubdivisionMesh with "crease" (semi-sharp & sharp edges),
+##          "corner" (sharp vertices), "hole" (face cutout), and "interpolateboundary"
+version 3.03
+
+Format 1024 768 1.0
+PixelSamples 4 4
+PixelFilter "gaussian" 2.0 2.0
+ShadingRate 1.0
+Display "07_subdiv_creased_totem.tif" "file" "rgba"
+
+Projection "perspective" "fov" [38.0]
+Clipping 0.1 100.0
+
+Translate 0.0 -0.3 7.2
+Rotate -18.0 1 0 0
+Rotate 24.0 0 1 0
+
+WorldBegin
+
+    LightSource "ambientlight" 1 "intensity" [0.14] "lightcolor" [0.85 0.9 1.0]
+    LightSource "pointlight" 2 "from" [4.0 6.0 -3.5] "intensity" [40.0] "lightcolor" [1.0 0.95 0.86]
+    LightSource "pointlight" 3 "from" [-4.5 3.0 -2.0] "intensity" [18.0] "lightcolor" [0.55 0.78 1.0]
+    LightSource "pointlight" 4 "from" [0.0 0.0 0.0] "intensity" [4.5] "lightcolor" [1.0 0.6 0.2]
+
+    # Gallery Floor
+    AttributeBegin
+        Color [0.76 0.74 0.70]
+        Surface "matte" "Kd" [0.85]
+        Polygon "P" [-15.0 -1.8 -15.0  15.0 -1.8 -15.0  15.0 -1.8 15.0  -15.0 -1.8 15.0]
+    AttributeEnd
+
+    # =========================================================================
+    # 1. Central Sculptural Totem (2-Tier Extruded Prism with Creases, Corners & Hole)
+    #    12 Vertices:
+    #      0..3: Base square (y = -1.7)
+    #      4..7: Waist flared square (y = 0.0)
+    #      8..11: Crown tapered square (y = 1.6)
+    #    10 Faces:
+    #      Face 0: Bottom cap (0 3 2 1)
+    #      Faces 1..4: Lower tier sides
+    #      Faces 5..8: Upper tier sides (Face 5 on front has a "hole" tag!)
+    #      Face 9: Top crown cap (8 9 10 11)
+    # =========================================================================
+    AttributeBegin
+        Attribute "identifier" "name" ["SubdivCreasedTotemCenter"]
+        Color [0.22 0.62 0.78]
+        Surface "plastic" "Ka" [0.15] "Kd" [0.68] "Ks" [0.85] "roughness" [0.06]
+
+        SubdivisionMesh "catmull-clark"
+            [4 4 4 4 4  4 4 4 4 4]
+            [
+                # Face 0: Bottom cap
+                0 3 2 1
+                # Faces 1..4: Lower tier walls
+                0 1 5 4   1 2 6 5   2 3 7 6   3 0 4 7
+                # Faces 5..8: Upper tier walls
+                4 5 9 8   5 6 10 9  6 7 11 10 7 4 8 11
+                # Face 9: Top cap
+                8 9 10 11
+            ]
+            # Tags:
+            # - interpolateboundary
+            # - 3 crease loops (base ring sharpness=5.0, waist ring sharpness=3.5, crown ring sharpness=6.0)
+            # - corner on crown vertices 8, 9, 10, 11 (sharpness=4.0)
+            # - hole on Face 5 (front upper window cutout)
+            ["interpolateboundary" "crease" "crease" "crease" "corner" "hole"]
+            [
+                0 0
+                5 1
+                5 1
+                5 1
+                4 1
+                1 0
+            ]
+            [
+                # Base ring crease (closed loop of 5 vertices)
+                0 1 2 3 0
+                # Waist ring crease
+                4 5 6 7 4
+                # Crown ring crease
+                8 9 10 11 8
+                # Crown sharp corners
+                8 9 10 11
+                # Hole face index (Face 5 = front upper wall)
+                5
+            ]
+            [
+                5.0
+                3.5
+                6.0
+                4.0
+            ]
+            "P" [
+                # 0..3: Base (y = -1.7)
+                -0.85 -1.70 -0.85    0.85 -1.70 -0.85    0.85 -1.70  0.85   -0.85 -1.70  0.85
+                # 4..7: Waist (y = 0.0, flared wider)
+                -1.35  0.00 -1.35    1.35  0.00 -1.35    1.35  0.00  1.35   -1.35  0.00  1.35
+                # 8..11: Crown (y = 1.65, tapered)
+                -0.65  1.65 -0.65    0.65  1.65 -0.65    0.65  1.65  0.65   -0.65  1.65  0.65
+            ]
+    AttributeEnd
+
+    # Glowing Pearl Floating Inside the Subdivision Totem's "hole" Face
+    AttributeBegin
+        Translate 0.0 0.65 0.0
+        Color [1.0 0.78 0.28]
+        Surface "plastic" "Ka" [0.45] "Kd" [0.55] "Ks" [0.95] "roughness" [0.03]
+        Sphere 0.42 -0.42 0.42 360.0
+    AttributeEnd
+
+    # =========================================================================
+    # 2. Left Companion Totem: Completely Smooth Catmull-Clark (No Creases)
+    #    Demonstrates the dramatic contrast against the creased totem!
+    # =========================================================================
+    AttributeBegin
+        Attribute "identifier" "name" ["SubdivSmoothTotemLeft"]
+        Translate -2.45 -0.2 0.3
+        Rotate 18 0 1 0
+        Scale 0.75 0.75 0.75
+        Color [0.92 0.38 0.28]
+        Surface "plastic" "Ka" [0.15] "Kd" [0.68] "Ks" [0.85] "roughness" [0.06]
+
+        SubdivisionMesh "catmull-clark"
+            [4 4 4 4 4  4 4 4 4 4]
+            [
+                0 3 2 1
+                0 1 5 4   1 2 6 5   2 3 7 6   3 0 4 7
+                4 5 9 8   5 6 10 9  6 7 11 10 7 4 8 11
+                8 9 10 11
+            ]
+            ["interpolateboundary"] [0 0] [] []
+            "P" [
+                -0.85 -1.70 -0.85    0.85 -1.70 -0.85    0.85 -1.70  0.85   -0.85 -1.70  0.85
+                -1.35  0.00 -1.35    1.35  0.00 -1.35    1.35  0.00  1.35   -1.35  0.00  1.35
+                -0.65  1.65 -0.65    0.65  1.65 -0.65    0.65  1.65  0.65   -0.65  1.65  0.65
+            ]
+    AttributeEnd
+
+    # =========================================================================
+    # 3. Right Companion Totem: Open-Boundary Subdivision Canopy ("interpolateboundary")
+    # =========================================================================
+    AttributeBegin
+        Attribute "identifier" "name" ["SubdivOpenCanopyRight"]
+        Translate 2.35 -0.1 0.2
+        Rotate -28 0 1 0
+        Sides 2
+        Color [0.88 0.72 0.22]
+        Surface "metal" "Ka" [0.2] "Ks" [0.9] "roughness" [0.1]
+
+        # Open 6-face twisted shell with sharp corners interpolated on boundary
+        SubdivisionMesh "catmull-clark"
+            [4 4 4 4 4 4]
+            [
+                0 1 5 4   1 2 6 5   2 3 7 6
+                4 5 9 8   5 6 10 9  6 7 11 10
+            ]
+            ["interpolateboundary" "crease"]
+            [0 0  4 1]
+            [4 5 6 7]
+            [4.5]
+            "P" [
+                -1.0 -1.3 -0.6   -0.3 -1.3 -1.0    0.4 -1.3 -0.9    1.0 -1.3 -0.3
+                -1.2  0.0  0.2   -0.4  0.2 -0.6    0.5  0.2 -0.5    1.2  0.0  0.3
+                -0.8  1.3 -0.4   -0.2  1.5 -0.9    0.3  1.5 -0.8    0.9  1.3 -0.2
+            ]
+    AttributeEnd
+
+WorldEnd

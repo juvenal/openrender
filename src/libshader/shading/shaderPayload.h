@@ -30,6 +30,8 @@
 
 #include <stdlib.h>
 
+#include <vector>
+
 #include "common/memory.h" // free_untyped
 #include "config.h"        // OPENRENDER_HAVE_LLVM
 #include "shader.h"        // CShader, TCode
@@ -64,6 +66,7 @@ class CRslPayload : public CShaderPayload {
         int numGlobals = 0;          // Number of global parameters
         int numStrings = 0;          // Number of strings
         int numVariables = 0;        // Number of variables
+        std::vector<char> stringSlot; // One entry per variable: non-zero when the variable is a string (prepare() points an unset one at "")
 };
 
 ///////////////////////////////////////////////////////////////////////
