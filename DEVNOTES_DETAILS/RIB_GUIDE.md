@@ -136,5 +136,9 @@ AttributeEnd
   meshes and NURBS patches with trims; the leaves of procedurals, delayed archives, instances and CSG solids (whole, without the
   solid's region). The others (points, curves, implicit surfaces, DSO objects) are reported once per light and stay ordinary geometry. Displacement is not applied to an emitter.
   A bound light with no emitting geometry contributes nothing (one warning).
+- **Motion.** An emitter inside `MotionBegin` is sampled at the shutter time of the point being shaded (assumption A8). The raytrace hider gives every
+  pixel sample its own time, so a moving emitter is blurred there; reyes and zbuffer shade a surface once per key pose of that surface (`reyes.cpp`:
+  time 0, and time 1 for a moving grid), so a static receiver sees a moving emitter at its shutter-open pose (GitHub #196; `AreaLight_EmitterMotion`,
+  `AreaLight_EmitterMotion_GridTime`).
 - **Photons.** `Hider "photon"` emits a bound light's photons from points of its emitters, along the emitter's normal side; the
   photon map is not a parity subject.

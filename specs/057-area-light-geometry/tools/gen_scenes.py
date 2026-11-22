@@ -255,6 +255,267 @@ def quadlight_agreement_scenes():
             files[os.path.join(OUT_RIB, name + ".rib")] = text
 
 
+# ---- Phase 12 (T164 to T168): the emitter seen by the camera and lit by other lights ----------------------------------------------
+# The emitter is a "vee": two tilted quads that face each other and the camera (A at x < 0, B at x > 0), both in ONE light's scope. A single flat
+# emitter cannot show the receiver skip (it lights nothing coplanar with itself, so it stays dark with or without the skip); two leaves at an angle
+# can: leaf A is lit by leaf B and the other way round unless the light skips its own emitters as receivers (FR-017).
+EV_TILT = math.radians(30.0)
+
+
+def tilted_quad(cx, toward, half_w=0.35, half_h=0.8, cz=3.0):
+    """A quad centred (cx, 0, cz) whose normal is (toward * sin 30, 0, -cos 30): it faces the camera (-z) and tilts toward +x (toward = +1) or -x.
+    Vertices ordered so that N = (p1 - p0) x (p2 - p0) is that normal (the order the other emitters use)."""
+    n = [toward * math.sin(EV_TILT), 0.0, -math.cos(EV_TILT)]
+    t = [0.0, 1.0, 0.0]
+    sv = pe.unit(pe.cross(t, n))
+    c = [cx, 0.0, cz]
+    pts = []
+    for (a, b) in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+        pts.append([c[k] + a * half_w * sv[k] + b * half_h * t[k] for k in range(3)])
+    return pts, n
+
+
+EV_A, EV_NA = tilted_quad(-0.5, +1)   # faces +x (toward B) and the camera
+EV_B, EV_NB = tilted_quad(+0.5, -1)   # faces -x (toward A) and the camera
+EV_COLOR = [0.25, 0.5, 0.75]
+EV_LIT_COLOR = [0.8, 0.4, 0.2]
+EV_PIXEL_A, EV_PIXEL_B = (1, 3), (6, 3)   # an 8 x 8 pixel on each leaf (pixel-centre x = -0.625 and 0.625, y = -0.125)
+
+
+def body_emitter_view(surface, color, variant, classic=False):
+    """The vee seen directly by the camera, its own Surface. `variant`: "lit" (both leaves in one light's scope, Illuminate 1 1), "off" (the same
+    with Attribute "arealight" "string mode" ["off"] on the scope) or "unbound" (the same quads, no AreaLightSource). `classic`: a distantlight
+    (handle 2) shining along +z on the camera side."""
+    b = ["WorldBegin"]
+    if classic:
+        b.append('  LightSource "distantlight" 2 "float intensity" [1] "point from" [0 0 0] "point to" [0 0 1]')
+    b.append("  AttributeBegin")
+    if variant == "off":
+        b.append('    Attribute "arealight" "string mode" ["off"]')
+    if variant != "unbound":
+        b.append('    AreaLightSource "arealight" 1 "float intensity" [%g]' % pe.INTENSITY)
+    b.append("    Color [%s]" % " ".join("%g" % c for c in color))
+    b.append('    Surface "%s"' % surface)
+    b.append("    " + poly(EV_A))
+    b.append("    " + poly(EV_B))
+    b.append("  AttributeEnd")
+    if variant != "unbound":
+        b.append("  Illuminate 1 1")
+    if classic:
+        b.append("  Illuminate 2 1")
+    b.append("WorldEnd")
+    return b
+
+
+def emitter_view_scenes():
+    for hider in HIDERS:
+        # T164: AreaLight_EmitterPixels (FR-024, FR-025): the emitters' own pixels are what their own Surface makes of them, with the light bound,
+        # with mode off and with the quads unbound. No other light: a lit surface (al_surface_matte) must stay black (neither leaf gets light from
+        # their own light), a constant one must read its colour.
+        for surface, want in (("constant", EV_COLOR), ("al_surface_matte", [0.0, 0.0, 0.0])):
+            tag = "constant" if surface == "constant" else "matte"
+            for variant in ("lit", "off", "unbound"):
+                name = "arealight-emitterpixels-%s-%s-%s" % (tag, variant, hider)
+                add_scene(name, hider, False,
+                          ["AreaLight_EmitterPixels (%s, %s, %s): two quads facing each other and the camera (a vee: leaf A at x < 0 tilted +30 degrees toward B, leaf B at" % (tag, variant, hider),
+                           "x > 0 tilted the other way, normals (+-0.5, 0, -0.866)), both in one scope, seen directly; their own Surface \"%s\", Color %s;" % (surface, EV_COLOR),
+                           "%s. No other light. FR-024, FR-025: the emitters' pixels are exactly what their Surface produces, so the three variants (lit, off, unbound)" % {"lit": "bound to the shipped arealight (Illuminate 1 1)", "off": "bound with Attribute \"arealight\" \"string mode\" [\"off\"]", "unbound": "with no AreaLightSource"}[variant],
+                           "of a surface are byte-identical images (AreaLight_EmitterPixels) and the probed pixels (%s on A, %s on B) read %s. Each leaf would light" % (EV_PIXEL_A, EV_PIXEL_B, want),
+                           "the other if the light did not skip its own emitters as receivers (FR-017): the matte pixels would not be 0."],
+                          body_emitter_view(surface, EV_COLOR, variant))
+            for (px, leaf) in ((EV_PIXEL_A, "A"), (EV_PIXEL_B, "B")):
+                add_probe("AreaLightProbe_EmitterPixels_%s-%s-%s_x%dy%d" % (tag, hider, leaf, px[0], px[1]), "arealight-emitterpixels-%s-lit-%s" % (tag, hider), px[0], px[1], 1e-6, want)
+        # T165: the emitter still receives a CLASSIC light (T092 (c), first half): the bound light's receiver skip is for its own light only
+        want = [c * math.cos(EV_TILT) for c in EV_LIT_COLOR]
+        for variant in ("lit", "unbound"):
+            name = "arealight-emitterclassic-%s-%s" % (variant, hider)
+            add_scene(name, hider, False,
+                      ["AreaLight_EmitterClassicLight (%s, %s): the vee of AreaLight_EmitterPixels (al_surface_matte, Color %s) %s and a distantlight" % (variant, hider, EV_LIT_COLOR, "bound to the shipped arealight" if variant == "lit" else "with no AreaLightSource"),
+                       "(handle 2, intensity 1, shining along +z) on the camera side. Each leaf receives the classic light: pixel = Cs * intensity * (Nf . L) = Cs * cos 30 deg",
+                       "= %s, and is not changed by being an emitter: the two variants are byte-identical images, and the probes pin the value." % want],
+                      body_emitter_view("al_surface_matte", EV_LIT_COLOR, variant, classic=True))
+        for (px, leaf) in ((EV_PIXEL_A, "A"), (EV_PIXEL_B, "B")):
+            add_probe("AreaLightProbe_EmitterClassicLight-%s-%s_x%dy%d" % (hider, leaf, px[0], px[1]), "arealight-emitterclassic-lit-%s" % hider, px[0], px[1], 1e-5, want)
+
+
+EV_SAMPLES = 64
+EV_PAIR_SIZE = 256   # the thread-identity scenes: 256 x 256 is 256 buckets
+
+
+def ev_pixel_point(quad_centre, normal, i, j, size):
+    """The point of a tilted quad's plane that the orthographic camera sees at pixel (i, j) of a size x size image."""
+    x, y = pe.pixel_center(i, j, size)
+    z = quad_centre[2] - (normal[0] * (x - quad_centre[0]) + normal[1] * (y - quad_centre[1])) / normal[2]
+    return [x, y, z]
+
+
+def body_two_bound(a_light_on=True):
+    """T166: the vee with TWO bound lights, one per leaf (light 1 on leaf A, light 2 on leaf B), both leaves under al_surface_matte (white), 64 samples.
+    A light is an attribute: it reaches the geometry that follows it, so leaf B (defined after `Illuminate 1`) receives light 1 and leaf A (defined
+    before light 2 exists) cannot receive light 2. `a_light_on` False: Illuminate 1 0 before leaf B (leaf B receives nothing)."""
+    b = ["WorldBegin"]
+    for idx, pts in ((1, EV_A), (2, EV_B)):
+        b += ["  AttributeBegin", '    Attribute "arealight" "int samples" [%d]' % EV_SAMPLES,
+              '    AreaLightSource "arealight" %d "float intensity" [%g]' % (idx, pe.INTENSITY),
+              '    Surface "al_surface_matte"', "    " + poly(pts), "  AttributeEnd"]
+        if idx == 1:
+            b.append("  Illuminate 1 %d" % (1 if a_light_on else 0))
+    b.append("WorldEnd")
+    return b
+
+
+def emitter_pair_scenes():
+    # T166: AreaLight_EmitterBoundLight (T092 (c), second half): the emitter of one bound light receives ANOTHER bound light (a light skips only its
+    # own emitters). A light is an attribute that reaches the geometry defined after it, so the vee is built in order: leaf A with light 1,
+    # `Illuminate 1`, leaf B with light 2. Leaf B receives light 1 and its own light 2 is skipped: its pixel is the closed form of leaf A's
+    # irradiance on it (probe_expected.py: the shipped arealight, quad A as the emitter, B's point and normal as the receiver). Leaf A receives
+    # nothing (only its own light, skipped): 0. With `Illuminate 1 0` leaf B receives nothing either.
+    qa = pe.Quad(*EV_A)
+    cb = [0.5, 0.0, 3.0]
+    rb = ev_pixel_point(cb, EV_NB, EV_PIXEL_B[0], EV_PIXEL_B[1], 8)
+    e_b, s_b = pe.pixel_value("arealight", qa, rb, EV_NB, pe.INTENSITY)
+    tol_b = max(pe.tolerance(s_b, EV_SAMPLES), 1e-6)
+    for hider in HIDERS:
+        name = "arealight-emitterbound-both-%s" % hider
+        add_scene(name, hider, False,
+                  ["AreaLight_EmitterBoundLight (both, %s): the vee of AreaLight_EmitterPixels with two bound lights, light 1 on leaf A, Illuminate 1 1, light 2 on leaf B," % hider,
+                   "both leaves under al_surface_matte, %d samples. Leaf B receives light 1 (its own light 2 is skipped): pixel %s on B reads %.9f (tolerance %.9f)," % (EV_SAMPLES, EV_PIXEL_B, e_b, tol_b),
+                   "the closed form of leaf A's irradiance (probe_expected.py). Leaf A receives only its own light, which it skips: pixel %s on A reads 0." % (EV_PIXEL_A,)],
+                  body_two_bound())
+        add_probe("AreaLightProbe_EmitterBoundLight_both-%s-B_x%dy%d" % (hider, EV_PIXEL_B[0], EV_PIXEL_B[1]), name, EV_PIXEL_B[0], EV_PIXEL_B[1], tol_b, [e_b])
+        add_probe("AreaLightProbe_EmitterBoundLight_both-%s-A_x%dy%d" % (hider, EV_PIXEL_A[0], EV_PIXEL_A[1]), name, EV_PIXEL_A[0], EV_PIXEL_A[1], 1e-6, [0.0])
+        name = "arealight-emitterbound-a-off-%s" % hider
+        add_scene(name, hider, False,
+                  ["AreaLight_EmitterBoundLight (a-off, %s): the same with Illuminate 1 0 (light 1 off): leaf B receives nothing (pixel %s reads 0), nor does leaf A." % (hider, EV_PIXEL_B)],
+                  body_two_bound(a_light_on=False))
+        add_probe("AreaLightProbe_EmitterBoundLight_a-off-%s-B_x%dy%d" % (hider, EV_PIXEL_B[0], EV_PIXEL_B[1]), name, EV_PIXEL_B[0], EV_PIXEL_B[1], 1e-6, [0.0])
+        add_probe("AreaLightProbe_EmitterBoundLight_a-off-%s-A_x%dy%d" % (hider, EV_PIXEL_A[0], EV_PIXEL_A[1]), name, EV_PIXEL_A[0], EV_PIXEL_A[1], 1e-6, [0.0])
+        # the thread-identity scene: the same vee at 256 x 256 (-t:1 against -t:4, byte-identical)
+        name = "arealight-emitterbound-threads-%s" % hider
+        add_scene(name, hider, False,
+                  ["AreaLight_EmitterBoundLight (threads, %s): the two-bound-light vee at 256 x 256 (256 buckets): -t:1 and -t:4 give the same image." % hider],
+                  body_two_bound(), size=EV_PAIR_SIZE)
+
+
+# ---- T167: a single curved leaf at grazing angles (bilinear saddle patch) --------------------------------------------------------------
+# The patch's three points p00, p10, p01 (RIB order p00 p10 p01 p11) lie on the plane x + z = 4.4, whose normal (-1, 0, -1) / sqrt(2) faces the receiver plane
+# z = 4; p11 is moved GRAZ_TWIST along that normal, so the surface is a twisted (saddle) bilinear patch, not planar: its folds hide part of it from the
+# receivers (probe: at the probed pixels all of the patch the receiver can reach by a straight line to a facing point is behind another part of the same
+# patch, so a flagged patch that blocked its own samples would read 0 there). The receivers (the plane z = 4, facing the camera) see it at 5 to 25 degrees
+# from its tangent plane.
+GRAZ_P00, GRAZ_P10, GRAZ_P01 = [3.4, -1.0, 1.0], [1.4, -1.0, 3.0], [3.4, 1.0, 1.0]
+GRAZ_TWIST = 1.0
+GRAZ_P11 = [1.4 - GRAZ_TWIST / math.sqrt(2.0), 1.0, 3.0 - GRAZ_TWIST / math.sqrt(2.0)]
+GRAZ_SAMPLES = 4096                      # the expected values are small (0.02): 4096 samples make the tolerance 4 sigma_1 / 64
+GRAZ_PIXELS = [(0, 0), (1, 1), (2, 3)]   # pixels whose facing patch points are all hidden by another part of the patch (measured in Python, 80 samples)
+
+
+def body_grazing(flagged):
+    b = ["WorldBegin", "  AttributeBegin", '    Attribute "arealight" "int samples" [%d]' % GRAZ_SAMPLES]
+    b.append('    AreaLightSource "arealight" 1 "float intensity" [%g]' % pe.INTENSITY)
+    if flagged:
+        b.append('    Attribute "visibility" "int transmission" [1]')
+    b.append('    Surface "constant"')
+    b.append('    Patch "bilinear" "P" [%s]' % "  ".join("%.9g %.9g %.9g" % tuple(v) for v in (GRAZ_P00, GRAZ_P10, GRAZ_P01, GRAZ_P11)))
+    b += ["  AttributeEnd", "  Illuminate 1 1", "  AttributeBegin", '    Surface "al_surface_matte"', "    " + poly(RECEIVER), "  AttributeEnd", "WorldEnd"]
+    return b
+
+
+def emitter_grazing_scenes():
+    em = pe.BilinearPatchEmitter(GRAZ_P00, GRAZ_P10, GRAZ_P01, GRAZ_P11)
+    rows = []
+    for (i, j) in GRAZ_PIXELS:
+        x, y = pe.pixel_center(i, j)
+        e, s1 = pe.pixel_value_emitter(em, [x, y, pe.RECEIVER_Z], pe.RECEIVER_N, pe.INTENSITY)
+        rows.append((i, j, e, s1, max(pe.tolerance(s1, GRAZ_SAMPLES), 1e-6)))
+    for hider in HIDERS:
+        for flagged in (True, False):
+            tag = "flagged" if flagged else "unflagged"
+            name = "arealight-emittergrazing-%s-%s" % (tag, hider)
+            add_scene(name, hider, False,
+                      ["AreaLight_EmitterGrazing (%s, %s): ONE curved leaf as the emitter: a twisted (saddle) bilinear patch, points %s %s %s %s" % (tag, hider, GRAZ_P00, GRAZ_P10, GRAZ_P01, [round(c, 6) for c in GRAZ_P11]),
+                       "(three of them on the plane x + z = 4.4, the fourth moved %g along its normal), seen by the receivers (al_surface_matte, z = 4) at 5 to 25 degrees from its tangent plane." % GRAZ_TWIST,
+                       "%s. The emitter set is excluded from its own light's shadow rays by identity (FR-017): the value is the closed form of the surface integral, folds or not" % ("The patch carries Attribute \"visibility\" \"int transmission\" [1] (flagged: it would block its own samples without the exclusion)" if flagged else "The patch is unflagged (it never blocks: the control that the closed form is right)"),
+                       "(probe_expected.py BilinearPatchEmitter, Gauss-Legendre, checked against the quad closed form for a flat patch), %d samples:" % GRAZ_SAMPLES]
+                      + ["  pixel (%d, %d): expected %.9f, tolerance %.9f (4 sigma_1 / sqrt(%d), sigma_1 = %.9f)" % (i, j, e, tol, GRAZ_SAMPLES, s1) for (i, j, e, s1, tol) in rows],
+                      body_grazing(flagged))
+            if hider == "raytrace":
+                # the value probes are the raytracer's: it shades at the pixel centre; Reyes shades micropolygon vertices, and at these small, steep
+                # values (0.02) that offset is 4 to 15 percent, a receiver-sampling effect that the flagged and unflagged scenes share exactly
+                for (i, j, e, s1, tol) in rows:
+                    add_probe("AreaLightProbe_EmitterGrazing_%s-%s_x%dy%d" % (tag, hider, i, j), name, i, j, tol, [e])
+
+
+# ---- T168: a moving emitter (assumption A8: the emitter's pose is taken at the shading sample's time) ----------------------------------
+MOT_DY = 2.0          # the emitter translates by (0, MOT_DY, 0) over the shutter: the quad at y in [-1, 1] at t = 0 and [1, 3] at t = 1
+MOT_PIXSAMPLES = 8    # 8 x 8 = 64 pixel samples, each with its own shutter time (the raytracer stratifies time over them)
+MOT_SAMPLES = 16      # the default light sample count
+MOT_NODES = 16
+
+
+def body_motion(moving):
+    b = ["Shutter 0 1", "WorldBegin", "  AttributeBegin", '    AreaLightSource "arealight" 1 "float intensity" [%g]' % pe.INTENSITY, '    Surface "constant"']
+    if moving:
+        b += ["    MotionBegin [0 1]", "      Translate 0 0 0", "      Translate 0 %g 0" % MOT_DY, "    MotionEnd"]
+    b += ["    " + poly(EMITTER), "  AttributeEnd", "  Illuminate 1 1", "  AttributeBegin", '    Surface "al_surface_matte"', "    " + poly(RECEIVER), "  AttributeEnd", "WorldEnd"]
+    return b
+
+
+def motion_scene_text(name, hider, comment, lines, size, pixsamples):
+    add_scene(name, hider, False, comment, lines, size=size)
+    path = os.path.join(OUT_RIB, name + ".rib")
+    files[path] = files[path].replace("PixelSamples 1 1", "PixelSamples %d %d" % (pixsamples, pixsamples), 1)
+
+
+def motion_expected(i, j):
+    """(E_avg, E_0, sigma_1 of one (time, point) draw): the time average of the closed form of the emitter's pose at t, over t in [0, 1]."""
+    x, y = pe.pixel_center(i, j)
+    xs, ws = pe._GL
+    # Gauss-Legendre nodes of the shared rule, reduced to MOT_NODES by using the 64-point rule as it is (it is exact for the smooth t-dependence)
+    e_avg = 0.0
+    m2 = 0.0
+    e0 = None
+    for xk, wk in zip(xs, ws):
+        t = 0.5 * (xk + 1.0)
+        w = 0.5 * wk
+        quad = pe.Quad(*[[v[0], v[1] + MOT_DY * t, v[2]] for v in EMITTER])
+        e_t, s_t = pe.pixel_value("arealight", quad, [x, y, pe.RECEIVER_Z], pe.RECEIVER_N, pe.INTENSITY)
+        e_avg += w * e_t
+        m2 += w * (s_t * s_t + e_t * e_t)
+    quad0 = pe.Quad(*EMITTER)
+    e0, _ = pe.pixel_value("arealight", quad0, [x, y, pe.RECEIVER_Z], pe.RECEIVER_N, pe.INTENSITY)
+    sigma = math.sqrt(max(0.0, m2 - e_avg * e_avg))
+    return e_avg, e0, sigma
+
+
+def emitter_motion_scenes():
+    n_draws = MOT_PIXSAMPLES * MOT_PIXSAMPLES * MOT_SAMPLES
+    cand = []
+    for i in range(8):
+        for j in range(8):
+            e_avg, e0, sg = motion_expected(i, j)
+            tol = pe.tolerance(sg, n_draws)
+            cand.append((abs(e_avg - e0) / tol, i, j, e_avg, e0, sg, tol))
+    cand.sort(reverse=True)
+    rows = cand[:3]
+    for hider in HIDERS:
+        for kind, moving in (("moving", True), ("static0", False)):
+            name = "arealight-emittermotion-%s-%s" % (kind, hider)
+            comment = ["AreaLight_EmitterMotion (%s, %s): the quad probe scene (the shipped arealight, intensity 10, 16 samples) under Shutter 0 1, %d x %d pixel samples; %s" % (
+                kind, hider, MOT_PIXSAMPLES, MOT_PIXSAMPLES, "the emitter translates by (0, %g, 0) over the shutter (MotionBegin [0 1] Translate 0 0 0, Translate 0 %g 0)." % (MOT_DY, MOT_DY) if moving else "the emitter is static at its t = 0 pose."),
+                       "A8: the emitter's pose is taken at the shading sample's time, so the raytrace pixel is the time average of the closed forms of the emitter's pose (below) and is NOT the t = 0 closed form:"]
+            if moving:
+                comment += ["  pixel (%d, %d): expected %.9f (the t = 0 pose alone: %.9f), tolerance %.9f (4 sigma / sqrt(%d draws), sigma = %.9f)" % (i, j, e_avg, e0, tol, n_draws, sg) for (r, i, j, e_avg, e0, sg, tol) in rows]
+            motion_scene_text(name, hider, comment, body_motion(moving), 8, MOT_PIXSAMPLES)
+        # the thread-identity scene: the moving emitter at 128 x 128 (16 buckets), 4 x 4 pixel samples
+        name = "arealight-emittermotion-threads-%s" % hider
+        motion_scene_text(name, hider, ["AreaLight_EmitterMotion (threads, %s): the moving emitter at 128 x 128 (16 buckets), 4 x 4 pixel samples: -t:1 and -t:4 give the same image." % hider],
+                          body_motion(True), 128, 4)
+    for (r, i, j, e_avg, e0, sg, tol) in rows:
+        assert r > 5.0, "pixel (%d, %d): the time average is too close to the t = 0 value" % (i, j)
+        add_probe("AreaLightProbe_EmitterMotion-raytrace_x%dy%d" % (i, j), "arealight-emittermotion-moving-raytrace", i, j, tol, [e_avg])
+
+
 def main():
     check = "--check" in sys.argv
     pe.self_test()
@@ -464,6 +725,16 @@ def main():
                       body_controls(options, [], full))
             for (i, j, e, s1, tol) in rows:
                 add_probe("AreaLight_Controls_Render_%s%s_x%dy%d" % (tag, sfx, i, j), name, i, j, tol, [e])
+        # the sample-count point n = 256 of SC-002 (T160): the quad probe with Option samples 256; with the 4, 16 (default) and 64 points above
+        # (arealight-controls-samples-{4,64}, arealight-probe-quad-*) the observed error is tabulated against n in validation.md
+        rows = quad_rows(256)
+        name = "arealight-probe-quad-n256-raytrace" + sfx
+        add_scene(name, "raytrace", slo,
+                  ["AreaLightProbe_QuadIrradiance_n256: the quad probe scene (the shipped arealight, intensity 10) with Option \"arealight\" \"int samples\" [256]. The",
+                   "expected value does not depend on n; the tolerance is 4 sigma_1 / sqrt(256) (probe_expected.py), a quarter of the n = 16 one:"] + rows_comment(rows, 256),
+                  body_controls(['Option "arealight" "int samples" [256]'], [], full))
+        for (i, j, e, s1, tol) in rows:
+            add_probe("AreaLightProbe_QuadIrradiance_n256-raytrace%s_x%dy%d" % (sfx, i, j), name, i, j, tol, [e])
         # mode off on one receiver of two: the left half (negative pixel-centre x) is dark, the right half reads its no-control value
         rows = quad_rows(pe.SAMPLES)
         name = "arealight-controls-off-receiver" + sfx
@@ -576,10 +847,17 @@ def main():
                   body_soft("quad", occluder=None, emitter_attrs=['Attribute "visibility" "int transmission" [1]'], emitter_stmt=stacked), size=pe.SOFT_SIZE)
         add_probe("AreaLight_SelfExclusion_stacked-%s_lit" % hider, name, row[1], row[2], tol_both, [e_both])
     # orientation (US4): ReverseOrientation flips the emitting side: the emitter faces away from the receiver and lights nothing; reversed twice it lights again
-    for tag, stmts, expect in (("reversed", ["ReverseOrientation"], 0.0), ("reversed-twice", ["ReverseOrientation", "ReverseOrientation"], e_lit[0])):
+    # Orientation "rh" (T161): derived by reading CRendererContext::RiOrientation (rendererContext.cpp): "lh"/"outside" clear ATTRIBUTES_FLAGS_INSIDE,
+    # "rh"/"inside" set it, and RiReverseOrientation toggles it; the attributes start with the flag clear (the default is "lh"). So "rh" before the
+    # emitter sets the same flag one ReverseOrientation does: areaLights.cpp negates the sampled Ng for it (and the polygon intersector flips the
+    # hit normal), the emitting side is the flipped one, and the receiver, which the quad faces in the unflipped case, is dark.
+    for tag, stmts, expect, note in (("reversed", ["ReverseOrientation"], 0.0, []), ("reversed-twice", ["ReverseOrientation", "ReverseOrientation"], e_lit[0], []),
+                                     ("rh", ['Orientation "rh"'], 0.0,
+                                      ['Derived by reading RiOrientation, not by trial: "rh" sets ATTRIBUTES_FLAGS_INSIDE (the default "lh" has it clear), the same flag one ReverseOrientation sets,',
+                                       'so the quad emits to the other side and the receiver, lit in the unflipped case, is dark: the value is 0, the same as arealight-orientation-reversed.'])):
         name = "arealight-orientation-%s" % tag
         add_scene(name, "raytrace", False,
-                  ["AreaLight_Orientation (%s): the soft quad emitter with %s before it: the emitting side follows the orientation; pixel (%d, %d) reads %.9f." % (tag, " ".join(stmts), soft_rows[0][1], soft_rows[0][2], expect)],
+                  ["AreaLight_Orientation (%s): the soft quad emitter with %s before it: the emitting side follows the orientation; pixel (%d, %d) reads %.9f." % (tag, " ".join(stmts), soft_rows[0][1], soft_rows[0][2], expect)] + note,
                   body_soft("quad", occluder=None, emitter_attrs=stmts), size=pe.SOFT_SIZE)
         add_probe("AreaLight_Orientation_%s_lit" % tag, name, soft_rows[0][1], soft_rows[0][2], 1e-6 if expect == 0.0 else max(pe.tolerance(e_lit[1], pe.SOFT_SAMPLES), 1e-6), [expect])
     # a bound light with no geometry (FR-016): renders black from that light, no crash
@@ -603,6 +881,10 @@ def main():
     # ---- the cmake file ------------------------------------------------------------------------------------------------------
     # ---- Phase 9: the old and the new quad light (US9; FR-022; SC-006) ----------------------------------------------------------------
     quadlight_agreement_scenes()
+    emitter_view_scenes()
+    emitter_pair_scenes()
+    emitter_grazing_scenes()
+    emitter_motion_scenes()
     cm = ["# Spec 057 (area-light geometry), generated by specs/057-area-light-geometry/tools/gen_scenes.py: do not edit.",
           "# add_arealight_probe(<ctest name> <scene> <x> <y> <tolerance> [--channels=i,j] <value>...): one pixel of a float scene",
           "# (tests/visual/arealight-scenes.cmake defines the macro). Expected values and tolerances: probe_expected.py."]

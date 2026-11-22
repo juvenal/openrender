@@ -138,4 +138,8 @@ their output is unchanged.
 - No displacement of emitters, no volume attenuation of the shadow probe.
 - Network rendering was not extended for bound lights: a few scenes rendered over `-P` match the local render byte for byte,
   but the cases were not enumerated.
+- A moving emitter (inside `MotionBegin`) is sampled at the shutter time of the point being shaded. The raytrace hider gives every pixel
+  sample its own time, so a moving emitter is blurred there. The reyes and zbuffer hiders shade a surface once per key pose of that
+  surface (shutter open, plus shutter close when the receiver itself moves), so a static receiver sees a moving emitter at its
+  shutter-open pose (GitHub #196).
 - Renders are identical at any thread count: every sample is drawn from a stream keyed by the point, the light and the sample.

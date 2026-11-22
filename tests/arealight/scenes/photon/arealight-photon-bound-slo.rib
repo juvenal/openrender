@@ -1,0 +1,36 @@
+##RenderMan RIB-Structure 1.0
+# Spec 057 (area-light geometry), AreaLight_PhotonSmoke-slo (the .slo twin of arealight-photon-bound.rib: the same scene with the shaders loaded as .slo, FR-013), AreaLight_PhotonSmoke: the BOUND half. arealight-photon-classic.rib plus a bound quad light (light 1,
+# after the spotlight, so the spotlight keeps its index and its photon keys): the shipped arealight on a quad in the plane y = 3,
+# x and z in [1, 3], facing down (-y). The light's own origin, (0, 3, 0), is in the quad's plane but 1.41 away from the quad: a photon
+# that starts at the light's origin (the classic hook) cannot be mistaken for one that starts on the quad. Its photons land on the
+# floor patch (below.gpm); none can reach the patch above.
+version 3.03
+FrameBegin 1
+  Option "shaderformat" "default" ["slo"]
+  Option "limits" "numthreads" [1]
+  Hider "photon" "int emit" [2000]
+  Projection "perspective" "fov" 45
+  Format 32 24 1
+  WorldBegin
+    LightSource "spotlight" 1 "intensity" [4] "from" [5 4 5] "to" [5 8 5] "coneangle" [0.3] "conedeltaangle" [0.05]
+    AttributeBegin
+      Translate 0 3 0
+      AreaLightSource "arealight" 2 "float intensity" [4]
+      Surface "constant"
+      Polygon "P" [1 0 1  3 0 1  3 0 3  1 0 3]
+    AttributeEnd
+    Illuminate 2 1
+    AttributeBegin
+      Attribute "photon" "string globalmap" ["above.gpm"]
+      Attribute "trace" "int maxdiffusedepth" [0]
+      Surface "matte"
+      Polygon "P" [3 8 3  3 8 7  7 8 7  7 8 3]
+    AttributeEnd
+    AttributeBegin
+      Attribute "photon" "string globalmap" ["below.gpm"]
+      Attribute "trace" "int maxdiffusedepth" [0]
+      Surface "matte"
+      Polygon "P" [-3 0 -3  -3 0 7  7 0 7  7 0 -3]
+    AttributeEnd
+  WorldEnd
+FrameEnd

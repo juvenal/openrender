@@ -2,11 +2,11 @@
 # the suite label each test names (state, geometry, shading_parity, visual, parity, determinism, common). Names as in
 # specs/057-area-light-geometry/contracts/tests.md.
 #
-# Red-first convention (tasks.md "Conventions"): a test that cannot compile yet lives in its OWN executable inside
-# `if(OPENRENDER_057_RED_TESTS)` (default OFF, tests/CMakeLists.txt), so it never breaks the build or another test; its
-# red evidence is the build failure of that one target. The task of the phase that creates the API moves the test's
-# definition out of the block. A test that compiles (a render pair, a script, a scene check) is registered at once and its
-# red evidence is a failing run.
+# Red-first convention (tasks.md "Conventions"), kept as spec 030's is: a test that cannot compile yet lives in its OWN executable
+# inside `if(OPENRENDER_057_RED_TESTS)` (default OFF, tests/CMakeLists.txt), so it never breaks the build or another test; its
+# red evidence is the build failure of that one target. The task of the phase that creates the API moves the test's definition
+# out of the block. A test that compiles (a render pair, a script, a scene check) is registered at once and its red evidence is
+# a failing run. No block uses the option now: every test below is registered unconditionally.
 #
 # Every test runs in its own working directory (build/tests/arealight/work/<ctest name>): the images and scenes they
 # write never collide when ctest runs them in parallel. ORENDERHOME is the source root (no .orenderrc), SHADERS the
@@ -263,6 +263,67 @@ target_include_directories(test_arealight_photon_smoke PRIVATE ${CMAKE_SOURCE_DI
 al_test(AreaLight_PhotonSmoke test_arealight_photon_smoke LABELS "photon_map" TIMEOUT 300
     ARGS $<TARGET_FILE:orender> ${CMAKE_CURRENT_SOURCE_DIR}/scenes/photon ${CMAKE_CURRENT_BINARY_DIR}/work/AreaLight_PhotonSmoke)
 set_property(TEST AreaLight_PhotonSmoke APPEND PROPERTY DEPENDS orender)
+# The .slo twin (tasks.md T159; FR-013: the illumination-hook path is honoured by the interpreter and by the JIT): the same program, the
+# same pre-declared bounds, on the scenes of the same names with `-slo` that load their shaders as .slo. Disabled without the JIT, where a .slo scene
+# would silently run the interpreter.
+al_test(AreaLight_PhotonSmoke-slo test_arealight_photon_smoke LABELS "photon_map" TIMEOUT 300
+    ARGS $<TARGET_FILE:orender> ${CMAKE_CURRENT_SOURCE_DIR}/scenes/photon ${CMAKE_CURRENT_BINARY_DIR}/work/AreaLight_PhotonSmoke-slo -slo)
+set_property(TEST AreaLight_PhotonSmoke-slo APPEND PROPERTY DEPENDS orender)
+if(NOT OPENRENDER_HAVE_LLVM)
+    set_tests_properties(AreaLight_PhotonSmoke-slo PROPERTIES DISABLED TRUE)
+endif()
+
+# ---- Phase 12: the emitter seen and lit (tasks.md T164, T165; FR-024, FR-025, T092 (c)) -------------------------------------------------
+# AreaLight_EmitterPixels: a camera-visible emitter's pixels are what its own Surface makes of them, with the light bound, with
+# `Attribute "arealight" "string mode" ["off"]` and with the same quad unbound (byte-identical images on the three hiders, constant and lit
+# surfaces; the generated probes AreaLightProbe_EmitterPixels_* pin the values). AreaLight_EmitterClassicLight: the emitter still receives a
+# classic light (bound against unbound, byte-identical; AreaLightProbe_EmitterClassicLight-* pin the value).
+set(_c ../../examples/rib/tests)
+set(_ep_pairs "")
+set(_ec_pairs "")
+foreach(_h reyes zbuffer raytrace)
+    foreach(_t constant matte)
+        list(APPEND _ep_pairs ${_c}/arealight-emitterpixels-${_t}-lit-${_h}.rib|${_c}/arealight-emitterpixels-${_t}-unbound-${_h}.rib
+                              ${_c}/arealight-emitterpixels-${_t}-off-${_h}.rib|${_c}/arealight-emitterpixels-${_t}-unbound-${_h}.rib)
+    endforeach()
+    list(APPEND _ec_pairs ${_c}/arealight-emitterclassic-lit-${_h}.rib|${_c}/arealight-emitterclassic-unbound-${_h}.rib)
+endforeach()
+al_render_pair_test(AreaLight_EmitterPixels PAIRS ${_ep_pairs} EXPECT_EQUAL LABELS "arealight")
+al_render_pair_test(AreaLight_EmitterClassicLight PAIRS ${_ec_pairs} EXPECT_EQUAL LABELS "arealight")
+
+# AreaLight_EmitterBoundLight (T092 (c), second half): the emitter of one bound light receives another bound light (the generated probes
+# AreaLightProbe_EmitterBoundLight_*: closed form of the other leaf's irradiance, light A off darkens leaf B only), and the image does not depend on the
+# thread count (-t:1 against -t:4 on the 256 x 256 scene, every hider).
+set(_eb_pairs "")
+foreach(_h reyes zbuffer raytrace)
+    list(APPEND _eb_pairs ${_c}/arealight-emitterbound-threads-${_h}.rib|${_c}/arealight-emitterbound-threads-${_h}.rib)
+endforeach()
+al_render_pair_test(AreaLight_EmitterBoundLight_ThreadIdentity PAIRS ${_eb_pairs} THREADS 1 THREADS_B 4 EXPECT_EQUAL LABELS "arealight;determinism" TIMEOUT 900)
+
+# AreaLight_EmitterGrazing (T092, the curved-emitter case): one twisted bilinear patch as the emitter, seen by receivers at grazing angles, its own
+# folds hiding part of it: the raytrace probes pin the closed form of the surface integral for the flagged (transmission 1) and the unflagged patch
+# (AreaLightProbe_EmitterGrazing_*), and the flagged image equals the unflagged one byte for byte on every hider (the identity exclusion, not a ray bias).
+set(_eg_pairs "")
+foreach(_h reyes zbuffer raytrace)
+    list(APPEND _eg_pairs ${_c}/arealight-emittergrazing-flagged-${_h}.rib|${_c}/arealight-emittergrazing-unflagged-${_h}.rib)
+endforeach()
+al_render_pair_test(AreaLight_EmitterGrazing PAIRS ${_eg_pairs} EXPECT_EQUAL LABELS "arealight")
+
+# AreaLight_EmitterMotion (T095, assumption A8): a MotionBegin translating emitter under Shutter 0 1. The raytrace probes pin the time average of the
+# closed forms of the emitter's pose (AreaLightProbe_EmitterMotion-raytrace_*: not the t = 0 pose's value), the raytrace image differs from the static
+# t = 0 image, and the image does not depend on the thread count (-t:1 against -t:4, 128 x 128, every hider). Reyes and zbuffer shade a static receiver's
+# grid once, at time 0 (the grid's shading time is a property of the receiver, not of the pixel sample), so on them the moving emitter acts at its t = 0 pose:
+# AreaLight_EmitterMotion_GridTime records that as the current behaviour (images equal the static t = 0 ones); GitHub #196, validation.md section 40.
+set(_emt_pairs "")
+foreach(_h reyes zbuffer raytrace)
+    list(APPEND _emt_pairs ${_c}/arealight-emittermotion-threads-${_h}.rib|${_c}/arealight-emittermotion-threads-${_h}.rib)
+endforeach()
+al_render_pair_test(AreaLight_EmitterMotion PAIRS ${_c}/arealight-emittermotion-moving-raytrace.rib|${_c}/arealight-emittermotion-static0-raytrace.rib EXPECT_DIFFERENT LABELS "arealight")
+al_render_pair_test(AreaLight_EmitterMotion_GridTime
+    PAIRS ${_c}/arealight-emittermotion-moving-reyes.rib|${_c}/arealight-emittermotion-static0-reyes.rib
+          ${_c}/arealight-emittermotion-moving-zbuffer.rib|${_c}/arealight-emittermotion-static0-zbuffer.rib
+    EXPECT_EQUAL LABELS "arealight")
+al_render_pair_test(AreaLight_EmitterMotion_ThreadIdentity PAIRS ${_emt_pairs} THREADS 1 THREADS_B 4 EXPECT_EQUAL LABELS "arealight;determinism" TIMEOUT 900)
 
 # ---- Phase 10: patches, patch meshes and NURBS (US7; FR-009 P3), design in validation.md section 28 ---------------------------------
 # AreaSampling_Patches compiled on the Phase 9 tree and was red by a failing run; AreaSampling_PatchReports needed CEmitterSet::numFullyTrimmed and

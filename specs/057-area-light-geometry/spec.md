@@ -2,7 +2,7 @@
 
 **Feature Branch**: `057-area-light-geometry`
 **Created**: 2026-11-13
-**Status**: Plan approved 2026-11-14 and tasks approved 2026-11-14 (analyze fixes applied 2026-11-15); implementation not started
+**Status**: Plan approved 2026-11-14 and tasks approved 2026-11-14 (analyze fixes applied 2026-11-15); implemented and validated on macOS and Linux (Phases 1 to 12: Phase 12, the convergence work, complete at CHECKPOINT 12), master merged (2e066b22); awaiting the merge
 **Input**: GitHub issue #152 (new capability, layer L5, "Spec 057: AreaLightSource binds its geometry as the emitter; area sampling and light-surface globals (RISpec §4.2.3)"); the maintainer's plan of 2026-11-05 (section "Spec 057 - area-light-geometry", placed before 041, parallel to 033 and 035); `DEVNOTES_DETAILS/RENDER_ARCHITECTURE_REFERENCES.md` §2.7, §4, §5.6, §6.2 and decision D10 (D1 and D28 as context). Base: `master` at `278b0394`, with specs 029 (hider/shading separation), 030 (hider and integrator registry, `hcshader` retired), 031 (geometry hider-agnostic), 039 (sampling foundation) and 056 (volume shader segments) merged.
 
 ## Clarifications

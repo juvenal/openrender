@@ -1,0 +1,238 @@
+diff --git a/tests/shading_contract/case_area_light.cpp b/tests/shading_contract/case_area_light.cpp
+index 8e946440..739ea3cf 100644
+--- a/tests/shading_contract/case_area_light.cpp
++++ b/tests/shading_contract/case_area_light.cpp
+@@ -21,10 +21,15 @@
+  *         bound light's entries as on a classic one;
+  *     (8) the draws are a pure function of (point, light, sample): the same keys give the same (u1, u2) in a second run,
+  *         other keys give others, and the sampler gets every real vertex at once;
+- *     (9) with no sampler installed every light runs as a classic light: one entry, Cl unscaled, the receiver's P.
++ *     (9) with no sampler installed every light runs as a classic light: one entry, Cl unscaled, the receiver's P;
++ *    (10) a batch with passive points (tags != 0; GitHub #100: iterateLights publishes the receiver's counts for the run of
++ *         the lights and puts the state's own back): the passive vertex gets no probe and keeps what a classic light leaves
++ *         there (not weighted), the active vertices get the value of (3), the state's numActive and numPassive read afterwards
++ *         what they read before, and a batch with every point passive pushes no entry (as a classic light), asks no probe
++ *         and returns.
+  *
+- *   Written against master's services 2.3.0 plus the 2.4.0 interface of this spec (areaLightSampler.h, ITracer::occluded):
+- *   red on the starting tree (does not compile). Spec 033's 2.4.0 request members change what a services double must
++ *   Written against master's services 2.3.0 plus this spec's interface (areaLightSampler.h, ITracer::occluded; services 2.6.0
++ *   with it): red on the starting tree (does not compile). Spec 033's 2.4.0 request members change what a services double must
+  *   answer; this double uses the real services of the session (s.original) and is adapted in the 033 sync if needed.
+  *
+  * License: GNU Lesser General Public License (LGPL) 2.1
+@@ -125,6 +130,7 @@ namespace {
+             const CShaderGroupRefTarget *expectedExclude = nullptr;
+             bool (*blocked)(int vertex, int sample) = nullptr;
+             int asked = 0, badFlags = 0, badExclude = 0, badTarget = 0;
++            int askedAt[kVertices] = {0, 0, 0}; // per receiver vertex (the probe's target says which)
+ 
+             void traceRay(CShadingContext &, CRay *ray) override { ray->object = nullptr; }
+             void traceBundle(CShadingContext &, CRayBundle *) override {}
+@@ -143,6 +149,8 @@ namespace {
+                 const int k = static_cast<int>(std::lround(target[1] - 20.0f));
+                 if (i < 0 || i >= kVertices || k < 0 || std::fabs(target[2] - 30.0f) > 1e-3f || std::fabs(target[0] - 10.0f - i) > 1e-3f)
+                     ++badTarget;
++                if (i >= 0 && i < kVertices)
++                    ++askedAt[i];
+                 return blocked != nullptr && blocked(i, k);
+             }
+     };
+@@ -158,11 +166,14 @@ namespace {
+             bool varyingsUnchanged = true;
+             bool lightSideNHolds = true;
+             EShadingDim dimBefore = SHADING_0D, dimAfter = SHADING_0D;
++            int numActiveBefore = 0, numPassiveBefore = 0, numActiveAfter = 0, numPassiveAfter = 0;
+     };
+ 
+     const int kSnapshot[] = {VARIABLE_P, VARIABLE_N, VARIABLE_NG, VARIABLE_DPDU, VARIABLE_DPDV, VARIABLE_U, VARIABLE_V, VARIABLE_S, VARIABLE_T, VARIABLE_PS};
+ 
+-    SRun runSurface(CRenderedSession &s, CRProbeContext *ctx, CProgrammableShaderInstance *surface, CAttributes *attributes, IAreaLightSampler *sampler, int keySeed = 0) {
++    // `tags` (default: every point active) makes the points with a non-zero entry passive, the counts set to match
++    SRun runSurface(CRenderedSession &s, CRProbeContext *ctx, CProgrammableShaderInstance *surface, CAttributes *attributes, IAreaLightSampler *sampler, int keySeed = 0,
++                    const int *tags = nullptr) {
+         CRProbeSurface *object = new CRProbeSurface(attributes, s.xform);
+         CRenderedSession::setupState(ctx, kVertices, object);
+         CShadingState *ss = ctx->currentShadingState;
+@@ -171,6 +182,14 @@ namespace {
+             for (int i = 0; i < kVertices; i++)
+                 ss->pointKeys[i] = openrender::sampling::cellKey(100 + i + keySeed, 0.5f, 0.25f, 0, 1, 0);
+         ss->currentShaderInstance = surface;
++        if (tags != nullptr) {
++            ss->numActive = 0;
++            for (int i = 0; i < kVertices; i++) {
++                ss->tags[i] = tags[i];
++                ss->numActive += (tags[i] == 0);
++            }
++            ss->numPassive = kVertices - ss->numActive;
++        }
+ 
+         std::vector<std::vector<float>> before;
+         for (int var : kSnapshot)
+@@ -179,11 +198,15 @@ namespace {
+ 
+         SRun r;
+         r.dimBefore = ss->shadingDim;
++        r.numActiveBefore = ss->numActive;
++        r.numPassiveBefore = ss->numPassive;
+         CMemPage *mem = nullptr;
+         memoryInit(mem);
+         float **locals = surface->prepare(mem, ss->varying, ss->numVertices);
+         ctx->execute(surface, locals);
+         r.dimAfter = ss->shadingDim;
++        r.numActiveAfter = ss->numActive;
++        r.numPassiveAfter = ss->numPassive;
+ 
+         for (int i = 0; i < kVertices; i++)
+             r.ci.insert(r.ci.end(), ss->varying[VARIABLE_CI] + 3 * i, ss->varying[VARIABLE_CI] + 3 * i + 3);
+@@ -208,6 +231,63 @@ namespace {
+         return r;
+     }
+ 
++    // Case (10): iterateLights called directly with the counts of `tags` (the receiver's, as its illuminance would publish them) while
++    // the state's own counts stay what setupState left (every point active), so a published count that is not put back shows
++    struct SDirectRun {
++            std::vector<std::vector<float>> entryCl; // per pushed entry, 3 floats per point
++            int numActiveBefore = 0, numPassiveBefore = 0, numActiveAfter = 0, numPassiveAfter = 0;
++            int calledActive = 0, calledPassive = 0; // the counts iterateLights was given, as it left them
++            bool varyingsUnchanged = true;
++    };
++    SDirectRun runDirect(CRenderedSession &s, CRProbeContext *ctx, CProgrammableShaderInstance *surface, CAttributes *attributes, IAreaLightSampler *sampler, const int *tags) {
++        CRProbeSurface *object = new CRProbeSurface(attributes, s.xform);
++        CRenderedSession::setupState(ctx, kVertices, object);
++        CShadingState *ss = ctx->currentShadingState;
++        ctx->setAreaLightSampler(sampler);
++        if (ss->pointKeys != nullptr)
++            for (int i = 0; i < kVertices; i++)
++                ss->pointKeys[i] = openrender::sampling::cellKey(100 + i, 0.5f, 0.25f, 0, 1, 0);
++        ss->currentShaderInstance = surface;
++        int numActive = 0;
++        for (int i = 0; i < kVertices; i++) {
++            ss->tags[i] = tags[i];
++            numActive += (tags[i] == 0);
++        }
++        int numPassive = kVertices - numActive;
++        float lP[3 * kVertices], lN[3 * kVertices], lT[kVertices];
++        for (int i = 0; i < kVertices; i++) {
++            memcpy(lP + 3 * i, ss->varying[VARIABLE_PS] + 3 * i, 3 * sizeof(float));
++            const float nn[3] = {0, 0, 1};
++            memcpy(lN + 3 * i, nn, sizeof(nn));
++            lT[i] = 0.0f;
++        }
++        std::vector<std::vector<float>> before;
++        for (int var : kSnapshot)
++            before.emplace_back(ss->varying[var], ss->varying[var] + 3 * kVertices);
++
++        SDirectRun r;
++        r.numActiveBefore = ss->numActive;
++        r.numPassiveBefore = ss->numPassive;
++        ctx->iterateLights(lP, lN, lT, kVertices, ss->tags, numActive, numPassive, FALSE, ss->varying, surface);
++        r.numActiveAfter = ss->numActive;
++        r.numPassiveAfter = ss->numPassive;
++        r.calledActive = numActive;
++        r.calledPassive = numPassive;
++        for (CShadedLight *l = ss->lights; l != nullptr; l = l->next)
++            r.entryCl.emplace_back(l->savedState[1], l->savedState[1] + 3 * kVertices);
++        size_t at = 0;
++        for (int var : kSnapshot) {
++            if (std::memcmp(before[at].data(), ss->varying[var], sizeof(float) * 3 * kVertices) != 0)
++                r.varyingsUnchanged = false;
++            ++at;
++        }
++        ss->lights = nullptr;
++        ss->freeLights = nullptr;
++        ss->currentShaderInstance = nullptr;
++        ctx->setAreaLightSampler(nullptr);
++        return r;
++    }
++
+     // A light instance with one float or one colour parameter
+     CProgrammableShaderInstance *loadLight(const char *name, float which) {
+         const char *tokens[] = {"float which"};
+@@ -509,6 +589,86 @@ int caseAreaLight(bool jit) {
+         }
+     }
+ 
++    // ---- (10) passive points: the receiver's counts are published for the run of the lights and put back (GitHub #100) ---------------
++    {
++        const int mixed[kVertices] = {0, 1, 0}; // the middle point is passive
++        const int none[kVertices] = {1, 1, 1};  // no point is active
++        for (int n : {1, 3}) {
++            CAttributes *attributes = new CAttributes();
++            attributes->addLight(constLight);
++            CAreaDouble sampler;
++            sampler.bound = identityOf(constLight);
++            sampler.info.bound = true;
++            sampler.info.sceneSamples = n;
++            sampler.info.sceneMode = AreaLightMode::Full;
++            sampler.info.totalArea = 4.0;
++            tracer.expectedExclude = identityOf(constLight);
++            tracer.blocked = never;
++            tracer.asked = tracer.badFlags = tracer.badExclude = tracer.badTarget = 0;
++            for (int &a : tracer.askedAt)
++                a = 0;
++            // what a classic light leaves at the passive vertex (its Cl is not written there, and not zero): the bound light must leave it so
++            CAttributes *classicAttributes = new CAttributes();
++            classicAttributes->addLight(constLight);
++            const SDirectRun classic = runDirect(s, ctx, sum, classicAttributes, nullptr, mixed);
++            CT_EXPECT(classic.entryCl.size() == 1);
++            const SDirectRun r = runDirect(s, ctx, sum, attributes, &sampler, mixed);
++            CT_EXPECT(sampler.sampleCalls == n);
++            CT_EXPECT(static_cast<int>(r.entryCl.size()) == n); // one entry per sample
++            for (const std::vector<float> &cl : r.entryCl) {
++                for (int c = 0; c < 3; c++) {
++                    CT_EXPECT(!classic.entryCl.empty() && cl[3 * 1 + c] == classic.entryCl[0][3 * 1 + c]); // (a) the passive vertex is left as a classic light leaves it: not scaled
++                    for (int i : {0, 2})
++                        CT_EXPECT_NEAR(cl[3 * i + c], (1.0f + c) / (n * kPdf[i])); // (b) the active vertices get the value of case (3)
++                }
++            }
++            CT_EXPECT(tracer.askedAt[1] == 0);             // (a) and no probe for it
++            CT_EXPECT(tracer.askedAt[0] == n && tracer.askedAt[2] == n);
++            CT_EXPECT(tracer.badFlags == 0 && tracer.badExclude == 0 && tracer.badTarget == 0);
++            CT_EXPECT(r.calledActive == 2 && r.calledPassive == 1);
++            CT_EXPECT(r.numActiveBefore == kVertices && r.numPassiveBefore == 0);
++            CT_EXPECT(r.numActiveAfter == r.numActiveBefore && r.numPassiveAfter == r.numPassiveBefore); // (c) the state's own counts are back
++            CT_EXPECT(r.varyingsUnchanged);
++
++            // the same batch through a surface's illuminance: the passive point's Ci stays what it was, the active ones get (b)
++            CAttributes *attributes2 = new CAttributes();
++            attributes2->addLight(constLight);
++            CAreaDouble sampler2;
++            sampler2.bound = sampler.bound;
++            sampler2.info = sampler.info;
++            const SRun viaSurface = runSurface(s, ctx, sum, attributes2, &sampler2, 0, mixed);
++            for (int c = 0; c < 3; c++) {
++                CT_EXPECT_NEAR(viaSurface.ci[3 * 0 + c], (1.0f + c) / kPdf[0]);
++                CT_EXPECT_NEAR(viaSurface.ci[3 * 2 + c], (1.0f + c) / kPdf[2]);
++                CT_EXPECT(viaSurface.ci[3 * 1 + c] == -1.0f); // the harness's initial Ci: the passive point is never executed
++            }
++            CT_EXPECT(viaSurface.numActiveAfter == viaSurface.numActiveBefore && viaSurface.numPassiveAfter == viaSurface.numPassiveBefore);
++        }
++        // (d) every point passive: no entry, no probe, and the call returns
++        {
++            CAttributes *attributes = new CAttributes();
++            attributes->addLight(constLight);
++            CAreaDouble sampler;
++            sampler.bound = identityOf(constLight);
++            sampler.info.bound = true;
++            sampler.info.sceneSamples = 3;
++            sampler.info.sceneMode = AreaLightMode::Full;
++            sampler.info.totalArea = 4.0;
++            tracer.expectedExclude = identityOf(constLight);
++            tracer.blocked = never;
++            CAttributes *classicAttributes = new CAttributes();
++            classicAttributes->addLight(constLight);
++            const SDirectRun classic = runDirect(s, ctx, sum, classicAttributes, nullptr, none);
++            CT_EXPECT(classic.entryCl.empty()); // a classic light with nothing active pushes no entry ...
++            tracer.asked = 0;
++            const SDirectRun r = runDirect(s, ctx, sum, attributes, &sampler, none);
++            CT_EXPECT(r.entryCl.empty());       // ... and neither does a bound one, whatever its sample count
++            CT_EXPECT(tracer.asked == 0);
++            CT_EXPECT(r.calledActive == 0 && r.calledPassive == kVertices);
++            CT_EXPECT(r.numActiveAfter == r.numActiveBefore && r.numPassiveAfter == r.numPassiveBefore);
++        }
++    }
++
+     ctx->setTracer(nullptr);
+     delete ctx;
+     return contract_test::finish();

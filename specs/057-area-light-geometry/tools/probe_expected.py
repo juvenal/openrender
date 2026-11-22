@@ -457,3 +457,42 @@ def quadric_samples(emitter, pixels, n_min=16, rel=0.2):
         if ok:
             return n
         n *= 2
+
+
+# ---- Phase 12 (T167): a bent bilinear patch as the emitter -------------------------------------------------------------------------
+
+class BilinearPatchEmitter(QuadricEmitter):
+    """A bilinear patch P(u, v) = (1-u)(1-v) p00 + u (1-v) p10 + (1-u) v p01 + u v p11 (the RIB order of `Patch "bilinear"`); the normal is
+    dP/du x dP/dv (the renderer's Ng), the area element |dP/du x dP/dv|. Not planar when the four points are not: a twisted (saddle) surface."""
+
+    def __init__(self, p00, p10, p01, p11):
+        self.p00, self.p10, self.p01, self.p11 = list(p00), list(p10), list(p01), list(p11)
+        xs, ws = _GL
+        self._nodes = [(0.5 * (x + 1.0), 0.5 * w) for x, w in zip(xs, ws)]
+        self.area = 0.0
+        for (u, wu) in self._nodes:
+            for (v, wv) in self._nodes:
+                self.area += wu * wv * norm(self._jac(u, v))
+
+    def point_only(self, u, v):
+        return add(add(mul(self.p00, (1 - u) * (1 - v)), mul(self.p10, u * (1 - v))), add(mul(self.p01, (1 - u) * v), mul(self.p11, u * v)))
+
+    def _jac(self, u, v):
+        du = add(mul(sub(self.p10, self.p00), (1 - v)), mul(sub(self.p11, self.p01), v))
+        dv = add(mul(sub(self.p01, self.p00), (1 - u)), mul(sub(self.p11, self.p10), u))
+        return cross(du, dv)
+
+    def point(self, u, v):
+        c = self._jac(u, v)
+        return self.point_only(u, v), unit(c)
+
+    def mean(self, f):
+        m1 = m2 = 0.0
+        for (u, wu) in self._nodes:
+            for (v, wv) in self._nodes:
+                p, n = self.point(u, v)
+                val = f(p, n)
+                w = wu * wv * norm(self._jac(u, v)) / self.area
+                m1 += w * val
+                m2 += w * val * val
+        return m1, m2

@@ -5,8 +5,8 @@
  ctest --test-dir build -LE 'determinism-sweep|gi_determinism_long' -j4   # the everyday full run: everything except the opt-in determinism sweep and the 30-run forms
 -ctest --test-dir build -L '^determinism$' -j2           # default determinism set (164): harness, tie and derivative tests, one demanding scene per family
 -ctest --test-dir build -L '^determinism-sweep$' -j2     # opt-in full sweep (618 entries, ~10-12 min at -j2): before each merge, and for the Linux validation
-+ctest --test-dir build -L '^determinism$' -j2           # default determinism set (167): harness, tie and derivative tests, one demanding scene per family
-+ctest --test-dir build -L '^determinism-sweep$' -j2     # opt-in full sweep (698 entries, ~10-12 min at -j2): before each merge, and for the Linux validation
++ctest --test-dir build -L '^determinism$' -j2           # default determinism set (169): harness, tie and derivative tests, one demanding scene per family
++ctest --test-dir build -L '^determinism-sweep$' -j2     # opt-in full sweep (761 entries, ~13 min on macOS and ~26 min on Linux at -j2): before each merge, and for the Linux validation
  ctest --test-dir build -L volume                        # spec 056: volume shader segments (the VolumeProbe_ hand-computed pixel checks, VolumeDiffer_, Parity_volume-, Determinism_volume-)
 +ctest --test-dir build -L arealight -j4              # spec 057: area-light geometry (AreaSampling_*, the closed-form AreaLightProbe_*, AreaLight_ThreadIdentity*, soft-shadow Parity_/Visual_ scenes, AreaLight_QuadlightAgreement{,-slo}, AreaLight_PhotonSmoke, AreaLight_DocPaths; 200 tests, 80 of the sweep's entries carry a Determinism name too)
  ctest --test-dir build -L link                          # spec 029: libRSLRuntime self-contained, the static consumer, no workaround text; `Link_RenameAliases`, `Link_InfoRuntimeNotCoLinked` (spec 033)
@@ -72,6 +72,7 @@
 +   The `al_surface_*` receivers of `tests/arealight/shaders` run as `.rslo` because a `.slo` surface that uses `illuminance(P)` alone gathers no light (GitHub #126).
 +   `quadlight.sl` and `spherelight.sl` are deprecated by their header comments (compiled bytes unchanged: `Shaders_BytesUnchanged`). Gotchas 10 and 11 are not
 +   needed for a bound light.
++   **Motion:** an emitter in `MotionBegin` is sampled at the shading point's shutter time: the raytrace hider gives every pixel sample its own time (blurred), reyes and zbuffer shade a static receiver's grid once at time 0 (`reyes.cpp`), so there the emitter acts at its shutter-open pose (GitHub #196; `AreaLight_EmitterMotion`, `_GridTime`).
 +
  ## Active Technologies
  - C++20, CMake ≥3.19; `libtiff`/`libpng` (mandatory), OpenEXR (optional,
@@ -91,6 +92,6 @@
 +  "arealight"` (`samples`, `mode`); only objects with `Attribute "visibility" "int transmission" [1]` shadow a bound light. `quadlight.sl` and `spherelight.sl` are deprecated by
 +  header comments (bytes unchanged); the old and the new quad form differ by 4.45 on the 8 x 8 block metric (threshold 8). A failed light statement no longer leaves its instance key
 +  pending (`LightKey_NoLeakAcrossFailedLight`). `kRendererServicesVersion` 2.6.0. With no `AreaLightSource` every image is byte-identical to the starting tree; no threshold was widened and
-+  no reference re-captured. The determinism sweep is 698 entries (80 new). Open and untouched: GitHub #126 (a JIT surface using `illuminance(P)` gathers no light). See `specs/057-area-light-geometry/`.
++  no reference re-captured. The determinism sweep is 761 entries (143 new). Open and untouched: GitHub #126 (a JIT surface using `illuminance(P)` gathers no light). See `specs/057-area-light-geometry/`.
  - 048-oiio-image-io: an optional OpenImageIO backend for image input and output (`OPENRENDER_ENABLE_OIIO`, off by default; constitution 1.5.0 adds the Image I/O
    utility library `libRIBImageIO`). `Option "imageio" "backend"`, the per-call `"imageio"` parameter and `otexmake -imageio` select OpenImageIO to decode source images and to

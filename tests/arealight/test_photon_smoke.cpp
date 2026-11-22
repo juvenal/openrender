@@ -38,6 +38,9 @@
  *     4 the bound light: below.gpm holds at least kMinBelow photons; every one arrived travelling down (dir.y < 0); every one traces back to
  *       a point on the quad (x and z in [1, 3] widened by the bound); the origins' spread and mean are those of a uniform quad
  *
+ *   The .slo twin (AreaLight_PhotonSmoke-slo, tasks.md T159; FR-013): the same program with a fourth argument, the scene suffix "-slo", on
+ *   arealight-photon-{classic,bound}-slo.rib, which are these scenes with Option "shaderformat" "default" ["slo"]; the bounds are the same.
+ *
  *   Red on the Phase 7 tree: the pass emits from the light's origin (0, 3, 0) (or not at all): check 4 fails (origins not on the quad).
  *
  * License: GNU Lesser General Public License (LGPL) 2.1
@@ -186,13 +189,14 @@ namespace {
 
 int main(int argc, char **argv) {
     if (argc < 4) {
-        std::fprintf(stderr, "Usage: %s <orender> <scenes dir> <work dir>\n", argv[0]);
+        std::fprintf(stderr, "Usage: %s <orender> <scenes dir> <work dir> [scene suffix, e.g. -slo]\n", argv[0]);
         return 2;
     }
     const std::string orender = argv[1], scenes = absolute(argv[2]), work = absolute(argv[3]);
+    const std::string suffix = argc > 4 ? argv[4] : ""; // "-slo": the scenes of the .slo twin (the same scenes with the shaders loaded as .slo)
     const std::string dirC = work + "/classic", dirB = work + "/bound";
-    const bool okC = render(orender, scenes + "/arealight-photon-classic.rib", dirC, "classic scene");
-    const bool okB = render(orender, scenes + "/arealight-photon-bound.rib", dirB, "bound scene");
+    const bool okC = render(orender, scenes + "/arealight-photon-classic" + suffix + ".rib", dirC, "classic scene");
+    const bool okB = render(orender, scenes + "/arealight-photon-bound" + suffix + ".rib", dirB, "bound scene");
     if (okC && okB) {
         std::vector<Photon> aboveC, aboveB, below;
         EXPECT(readPhotons(dirC + "/above.gpm", aboveC), "classic scene: above.gpm is missing or does not parse");
@@ -206,8 +210,8 @@ int main(int argc, char **argv) {
         checkBoundLight(below);
     }
     if (g_fail == 0)
-        std::printf("AreaLight_PhotonSmoke: OK\n");
+        std::printf("AreaLight_PhotonSmoke%s: OK\n", suffix.c_str());
     else
-        std::printf("AreaLight_PhotonSmoke: FAILED (%d)\n", g_fail);
+        std::printf("AreaLight_PhotonSmoke%s: FAILED (%d)\n", suffix.c_str(), g_fail);
     return g_fail == 0 ? 0 : 1;
 }
