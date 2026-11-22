@@ -58,10 +58,21 @@ namespace contract {
         return new CBilinearPatch(pl.attributes, pl.xform, list->vertexData(), NULL, 0.0f, 0.0f, 1.0f, 1.0f, v);
     }
 
+    // A NURBS control net is homogeneous, "Pw" (x y z w) per vertex, as RiNuPatch hands it over (correct4begin turns a plain "P" into "Pw" with
+    // w = 1 before the patch exists): CNURBSPatch::sample reads four components per control vertex whatever the list says
+    inline CPl *pwPositionList(float *v16) {
+        CPlParameter *p = new CPlParameter[1];
+        p[0].variable = CDeclarations::find("Pw");
+        p[0].numItems = 4;
+        p[0].index = 0;
+        p[0].container = CONTAINER_VERTEX;
+        return new CPl(4, 1, p, v16);
+    }
+
     // a bilinear-degree NURBS patch (order 2 x 2) whose (u,v) square carries one triangular trim loop
     inline CSurface *trimmedNurbsPatch(const Placement &pl) {
-        float *v = new float[12]{-1, -1, pl.z, 1, -1, pl.z, -1, 1, pl.z, 1, 1, pl.z};
-        CPl *list = positionList(4, v);
+        float *v = new float[16]{-1, -1, pl.z, 1, 1, -1, pl.z, 1, -1, 1, pl.z, 1, 1, 1, pl.z, 1};
+        CPl *list = pwPositionList(v);
         static float knots[4] = {0, 0, 1, 1};
         CTrimTest *trim = new CTrimTest();
         trim->numLoops = 1;

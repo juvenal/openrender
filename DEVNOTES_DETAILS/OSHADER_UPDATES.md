@@ -359,6 +359,28 @@ hider never sets. Changes:
 
 ---
 
+## Light shaders under a bound area light (spec 057)
+
+A light made by `AreaLightSource` (a *bound* light) runs once per sample, 0-D, over points on its emitters, under the interpreter and
+under the JIT (`CShadingContext::iterateBoundAreaLight`, `shading.cpp`). What a light shader sees:
+
+- **The light-surface globals** `P`, `N`, `Ng`, `dPdu`, `dPdv`, `u`, `v`, `s`, `t` (and `time`) are those of the sampled emitter point,
+  in camera space, with the emitter's own orientation and (if it has them) its `st`; `Ps`, `I`, `E` and the rest are the lit point's.
+  The lit surface's own `P`, `N` and varyings are not touched while a light runs: the swap is of the varying table the two backends
+  read. `Du()` and `Dv()` of these globals are 0 (decision D-8: there is no neighbour sample).
+- **What the renderer adds** is exactly `V / (n p_A)` on each pushed `Cl` (the binary visibility, the sample count, the density by
+  area). It adds no emitter cosine and no `1 / r^2`: the shipped `arealight.sl` computes `N . normalize(L) / (L . L)` inside
+  `illuminate(P, N, PI/2)` and is correct as it stands.
+- **No workaround is needed.** Gotcha 10 (`illuminate(P, axis, angle)` only works when `axis` is the global `N`) and gotcha 11 (the sign of
+  `L`) describe classic lights written by hand; for a bound light `N` is the emitter's normal and the shipped form is the right one.
+- **`quadlight.sl` and `spherelight.sl`** are classic lights (a hand-written sampling loop inside `illuminate(center, N, PI/2)` and
+  `illuminate(from)`); they are deprecated by header comments in favour of `AreaLightSource` plus geometry. Their compiled bytes are
+  unchanged (`Shaders_BytesUnchanged`, `ShaderCompilerImmutability`).
+- **Photon emission** runs the light shader once per photon with the same globals; the photon hider reads each photon's origin and
+  normal from them and ignores the hook operands (they hold the first photon's value only, GitHub #68).
+
+---
+
 ## Imager Shader Support
 
 Full implementation of `RiImager` per RI Spec 3.2. The imager executes per pixel tile in `CRenderer::dispatch()`, after exposure (gain/gamma) has been applied to Ci and Oi and before quantization — exactly matching the RenderMan spec pipeline (Render → Exposure → Imager → Quantize). No display driver or shader compiler changes were required for the core implementation.

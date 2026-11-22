@@ -325,6 +325,32 @@ def main():
             add_scene(name, "raytrace", slo, comment, lines)
             for (i, j, e, s1, tol) in rows:
                 add_probe("AreaLightProbe_%sIrradiance-raytrace%s_x%dy%d" % (kind.capitalize(), sfx, i, j), name, i, j, tol, [e])
+        # ---- the blobby probe (Phase 11): a blobby emits through the polygon mesh RiBlobby derives (the maintainer's correction of FR-009's out-of-scope list) --
+        # The surface of a unit ellipsoid blobby (opcode 1001) is at the field value 0.4 of f = (1 - r^2)^3 (BLOBBY_SURFACES.md: "The surface threshold is derived"):
+        # r = sqrt(1 - 0.4^(1/3)) = 0.5130241; a matrix scale of 1.5 makes it 0.7695362, measured on a silhouette render at 0.52 for scale 1 and 0.62 for 1.2
+        # (one pixel of 0.02). The expected values are the sphere's (a derived mesh is the sphere inscribed in facets: a deficit allowed for below).
+        r_blobby = math.sqrt(1.0 - 0.4 ** (1.0 / 3.0)) * 1.5
+        bl_em = pe.SphereEmitter([3.0, 0.0, 2.0], r_blobby)
+        n_b = pe.quadric_samples(bl_em, pe.PIXELS, rel=0.1)
+        rows = []
+        for (i, j) in pe.PIXELS:
+            x, y = pe.pixel_center(i, j)
+            e, s1 = pe.pixel_value_emitter(bl_em, [x, y, pe.RECEIVER_Z], pe.RECEIVER_N, pe.QUADRIC_INTENSITY)
+            c = pe.sphere_closed_form(bl_em.c, bl_em.r, [x, y, pe.RECEIVER_Z], pe.RECEIVER_N, pe.QUADRIC_INTENSITY)
+            assert abs(e - c) < 2e-3 * c
+            rows.append((i, j, c, s1, pe.tolerance(s1, n_b) + 0.03 * c))
+        name = "arealight-probe-blobby-raytrace" + sfx
+        comment = ["AreaLightProbe_BlobbyIrradiance: a blobby (one ellipsoid field, matrix scale 1.5: surface radius %.7f, centre (3, 0, 2)) as the emitter under the" % r_blobby,
+                   "shipped arealight (intensity 10), %d samples. RiBlobby derives a polygon mesh and hands it to addObject, so the blobby emits through that mesh." % n_b,
+                   "Expected: the closed form of a sphere of that radius, E = I pi (r / d)^2 cos(theta_c), the tolerance 4 sigma_1 / sqrt(n) plus 3 % of E for the",
+                   "facets of the derived mesh (pre-declared; a blobby that did not emit reads 0). Expected (probe_expected.py):"] + pixel_comment(rows, n_b)
+        lines = ["WorldBegin", "  AttributeBegin", '    Attribute "arealight" "int samples" [%d]' % n_b,
+                 '    AreaLightSource "arealight" 1 "float intensity" [%g]' % pe.QUADRIC_INTENSITY,
+                 '    Surface "constant"', "    Translate 3 0 2", '    Blobby 1 [1001 0] [1.5 0 0 0  0 1.5 0 0  0 0 1.5 0  0 0 0 1] [""]', "  AttributeEnd", "  Illuminate 1 1",
+                 "  AttributeBegin", '    Surface "al_surface_matte"', "    " + poly(RECEIVER), "  AttributeEnd", "WorldEnd"]
+        add_scene(name, "raytrace", slo, comment, lines)
+        for (i, j, e, s1, tol) in rows:
+            add_probe("AreaLightProbe_BlobbyIrradiance-raytrace%s_x%dy%d" % (sfx, i, j), name, i, j, tol, [e])
         # ---- the patch probe (Phase 10): the quad probe's emitter as a bilinear patch (FR-009 P3, US7) -------------------------
         rows = []
         for (i, j) in pe.PIXELS:

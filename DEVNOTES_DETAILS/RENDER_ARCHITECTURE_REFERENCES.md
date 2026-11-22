@@ -1070,3 +1070,5 @@ New-spec numbers (041–055) are provisional, confirmed at `specify`; the plan f
 | 053 bxdf-gi | D26, §6.4 |
 | 054 shading-rate-unification | §8.1–§8.3, D20 |
 | 055 native-jit-lowering | §10, D27 |
+| 056 volume-shader-segments | §2.7 |
+| 057 area-light-geometry | §2.7, §4 (D10), §5.6, §6.2, D1, D28 |

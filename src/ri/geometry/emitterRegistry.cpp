@@ -115,7 +115,7 @@ void CEmitterSet::resolve(IRayContext &context) const {
 
         const char *name = name_.empty() ? "(unnamed)" : name_.c_str();
         if (numUnsupported > 0)
-            warning(CODE_BADTOKEN, "area light \"%s\": %d primitive(s) cannot emit (points, curves, blobbies, implicit surfaces and shader operands stay ordinary geometry)\n", name, numUnsupported);
+            warning(CODE_BADTOKEN, "area light \"%s\": %d primitive(s) cannot emit (points, curves, implicit surfaces and shader operands stay ordinary geometry)\n", name, numUnsupported);
         if (numCsgLeaves > 0)
             warning(CODE_BADTOKEN, "area light \"%s\": %d CSG leaf(ves) emit from the whole leaf, without their solid's region\n", name, numCsgLeaves);
         if (numFullyTrimmed > 0)

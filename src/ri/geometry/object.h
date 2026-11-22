@@ -151,7 +151,7 @@ class CObject : public CRefCounter {
         virtual void materialize(IRayContext &) {}
 
         // Report the sampleable leaves of this object to an area light's emitter set (spec 057). The default reports the
-        // object as unsupported (points, curves, blobbies, implicit surfaces and DSO objects keep it). Objects that build
+        // object as unsupported (points, curves, implicit surfaces and DSO objects keep it; a blobby is a derived polygon mesh). Objects that build
         // their children lazily materialize or expand them first, through the same serialized paths a ray hit uses.
         virtual void collectEmitters(IRayContext &context, CEmitterCollector &out);
 

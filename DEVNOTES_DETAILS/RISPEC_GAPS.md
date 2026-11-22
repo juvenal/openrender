@@ -11,14 +11,14 @@ spec itself draws the line in two different places:
   capability claim; it is still a gap.
 
 `[x]` implemented, `[~]` partial (the entry says exactly what is and is not
-there), `[ ]` absent. Every status below was checked against the source at the
+there; none is partial among the eleven today), `[ ]` absent. Every status below was checked against the source at the
 date in the footer, not carried forward.
 
 ---
 
 ## §1.1.2 Advanced Capabilities
 
-**8 of 11 implemented, 1 partial, 2 absent.**
+**9 of 11 implemented, 0 partial, 2 absent.**
 
 - [x] **Solid Modeling** — `RiSolidBegin`/`RiSolidEnd`
   (`rendererContext.cpp`). All three set operations plus `"primitive"`, over
@@ -133,14 +133,40 @@ date in the footer, not carried forward.
   occlusion and colour bleeding, and irradiance caching. Accuracy of the
   irradiance cache is a known open issue (DEVNOTES *Open Issues*).
 
-- [~] **Area Light Sources** — `RiAreaLightSourceV`
-  (`rendererContext.cpp:2045`) is accepted and returns a light handle that
-  `RiIlluminate` can switch, but its body is otherwise identical to
-  `RiLightSourceV`: the shader is added to the attribute state and the
-  geometry emitted inside the block is **not** bound to the light. An area
-  light therefore behaves as an ordinary light source whose emitting geometry
-  is rendered as ordinary geometry. Nothing is dropped and nothing errors,
-  which is why this reads as working until the soft shadow does not appear.
+- [x] **Area Light Sources** — `AreaLightSource` binds the geometry created in
+  its attribute block to the light (spec 057). The light shader runs once per
+  sample, 0-D, on a point drawn uniformly by area over the light's emitters,
+  with the light-surface globals (`P`, `N`, `Ng`, `dPdu`, `dPdv`, `u`, `v`,
+  `s`, `t`) of that point and the lit point's `Ps`; the renderer weights what
+  it returns by exactly `V / (n p_A)` (`V` the binary occlusion probe, `n` the
+  sample count, `p_A` the density by area) and adds no emitter cosine or
+  distance falloff: the shader owns both. Reyes, zbuffer and raytrace hiders,
+  interpreter and JIT, bit-identical at any thread count. Emitters: polygons,
+  polygon meshes and subdivision surfaces; the seven quadrics (exact for the
+  sphere, disk, cylinder and cone under a rotation, translation and one
+  uniform scale, a 20 x 20 table otherwise); bilinear patches (exact when
+  planar), bicubic patches, patch meshes and NURBS patches (a trimmed patch's
+  cells are weighted by their accepted fraction and every drawn point is
+  tested with the surface's own trim: the area is approximate along a trim
+  edge); the leaves of procedurals, delayed archives, instances and CSG solids
+  (a CSG leaf emits whole, without its solid's region). A bound light emits
+  photons from points of its emitters. Controls: `Option`/`Attribute
+  "arealight"` `"int samples"` (default 16) and `"string mode"` (`full`,
+  `fast`, `off`). Only objects with `Attribute "visibility" "int
+  transmission" [1]` shadow a bound light. See `RIB_GUIDE.md`, the site manual
+  page "Area Lights" and `specs/057-area-light-geometry/`.
+  **Not built:** points, curves, implicit surfaces and shader operands as
+  emitters (each reports once per light and stays ordinary geometry; a
+  blobby emits as the polygon mesh `RiBlobby` derives from it); two-sided emission (the shipped `arealight` emits into the side of
+  `N` only); displacement of an emitter (it is sampled undisplaced); volume
+  attenuation of the shadow probe; extending network rendering (a few scenes
+  rendered over `-P:2` matched the local render byte for byte; the cases were
+  not enumerated). A block with no emitting geometry contributes nothing.
+  `quadlight.sl` and `spherelight.sl` are deprecated in favour of this.
+  *(Corrected 2026-11-21: this entry was `[~]`: the statement was accepted
+  and returned a handle, but the block's geometry was not bound to the light
+  and it behaved as an ordinary light; spec 057 implemented the binding. The
+  old source line citation is gone: the function is named, not numbered.)*
 
 ---
 
@@ -227,4 +253,5 @@ line that decides it, so the check is mechanical:
 
 Last verified against the source: **2026-08-29** (branch
 `015-blobby-implicit-surfaces`); the Volume Shading entry **2026-11-10**
-(branch `056-volume-shader-segments`).
+(branch `056-volume-shader-segments`); the Area Light Sources entry
+**2026-11-21** (branch `057-area-light-geometry`).

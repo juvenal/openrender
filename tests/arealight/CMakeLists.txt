@@ -273,6 +273,11 @@ al_test(AreaSampling_Patches test_arealight_area_sampling_patches LABELS geometr
 al_executable(test_arealight_area_sampling_patch_reports test_area_sampling_patch_reports.cpp)
 al_test(AreaSampling_PatchReports test_arealight_area_sampling_patch_reports LABELS geometry)
 
+# ---- Phase 11: the documents (US11; FR-033) -------------------------------------------------------------------------------------
+# AreaLight_DocPaths: a cmake -P script over the maintained pages (no git call, no build tree); red until the documents are edited (T139 to T143).
+add_test(NAME AreaLight_DocPaths COMMAND ${CMAKE_COMMAND} -DROOT=${CMAKE_SOURCE_DIR} -P ${CMAKE_CURRENT_SOURCE_DIR}/check_doc_paths.cmake)
+set_tests_properties(AreaLight_DocPaths PROPERTIES TIMEOUT 60 LABELS "arealight;docs")
+
 # ---- the test-local shaders ------------------------------------------------------------------------------------------------
 get_property(_al_shader_outputs GLOBAL PROPERTY AL_SHADER_OUTPUTS)
 add_custom_target(arealight_shaders ALL DEPENDS ${_al_shader_outputs})
