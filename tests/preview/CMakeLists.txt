@@ -85,6 +85,20 @@ set_tests_properties(Preview_ExtractionUnchanged PROPERTIES
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     ENVIRONMENT "${PREVIEW_EXTRACTION_ENV}")
 
+# Spec 057 (T175, FR-027): ribpreview_load accepts a scene with a bound area light (AreaLightSource, Illuminate) with nothing on stderr and extracts what
+# the same scene extracts without those two statements (two scenes of examples/rib/tests; the preview ignores both).
+add_executable(test_preview_arealight test_arealight_preview.cpp)
+target_include_directories(test_preview_arealight PRIVATE ${PREVIEW_TEST_INCLUDES})
+target_link_libraries(test_preview_arealight PRIVATE ${PREVIEW_TEST_LIBS})
+target_compile_features(test_preview_arealight PRIVATE cxx_std_20)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/arealight_work)
+add_test(NAME AreaLight_PreviewAccepts COMMAND test_preview_arealight ${CMAKE_CURRENT_BINARY_DIR}/arealight_work)
+set_tests_properties(AreaLight_PreviewAccepts PROPERTIES
+    TIMEOUT 60
+    LABELS "arealight;preview"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    ENVIRONMENT "${PREVIEW_EXTRACTION_ENV}")
+
 add_custom_target(si_capture_preview
     COMMAND ${CMAKE_COMMAND} -E env ${PREVIEW_EXTRACTION_ENV} $<TARGET_FILE:test_preview_extraction_unchanged> ${CMAKE_CURRENT_SOURCE_DIR}/reference ${OR038_CAPTURE_FLAG}
             ${OR038_RECAPTURE_FLAG}

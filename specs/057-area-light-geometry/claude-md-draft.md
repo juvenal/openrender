@@ -9,15 +9,16 @@ the same text). Every figure in it comes from a run or from the tree, not from m
 |---|---|---|
 | determinism sweep | 761 entries (618 plus the 143 of spec 057) | `ctest -N -L '^determinism-sweep$'` |
 | default determinism set | 169 | `ctest -N -L '^determinism$'` (167 plus the two `_ThreadIdentity` tests of Phase 12) |
-| `-L arealight` | 260 tests | `ctest -N -L arealight` (includes `AreaLight_DocPaths`) |
+| `-L arealight` | 261 tests | `ctest -N -L arealight` (includes `AreaLight_DocPaths`) |
 | `-L architecture` | 45 tests | `ctest -N -L architecture` |
 | compiled shaders | 137 `.rslo` and 137 `.slo`, unchanged | `ls build/shaders` |
 | `kRendererServicesVersion` | 2.6.0 | `rendererServices.h` |
 | the quad agreement | 4.45 on the 8 x 8 block metric, threshold 8 | `validation.md` sections 25 and 26 |
 
 The closing counts are in `validation.md` section 37 (checkpoint 11), section 38 (after master's merge) and the Phase 12 checkpoint (section 40):
-macOS everyday 1683 of 1683 (1 skip), architecture 45, `-L arealight` 260, default determinism 169, full sweep 760 of 761 (the one failure, a GI photon
-scene with no area light, passed alone 18 of 18); Linux everyday 1684 total with the one known failure `TextureTile_RenderByteIdentical` (#45), architecture 45,
+macOS everyday 1684 of 1684 (1 skip; 1683 at checkpoint 12, plus `AreaLight_PreviewAccepts` of Phase 13), architecture 45, `-L arealight` 261, default determinism 169, full sweep 760 of 761 (the one failure, `DeterminismSweep_gi-subdiv-hierarchical-override-photon`, a photon
+scene with no area light, is a single unexplained occurrence: it passed alone 18 of 18, and 1080 runs of the GI sweep entries on this tree and 1080 on master's
+build, at `-j2`, did not reproduce it; see `validation.md` section 41 and its addendum); Linux everyday 1685 total with the one known failure `TextureTile_RenderByteIdentical` (#45), architecture 45,
 sweep 761 of 761; the JIT-less configuration `-L arealight` 204 of 204 with the one `.slo` test disabled by design (run before Phase 12).
 
 ## What it changes
