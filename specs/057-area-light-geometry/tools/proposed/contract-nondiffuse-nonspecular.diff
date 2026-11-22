@@ -1,0 +1,109 @@
+diff --git a/tests/shading_contract/case_area_light.cpp b/tests/shading_contract/case_area_light.cpp
+index 739ea3cf..05078403 100644
+--- a/tests/shading_contract/case_area_light.cpp
++++ b/tests/shading_contract/case_area_light.cpp
+@@ -26,7 +26,12 @@
+  *         the lights and puts the state's own back): the passive vertex gets no probe and keeps what a classic light leaves
+  *         there (not weighted), the active vertices get the value of (3), the state's numActive and numPassive read afterwards
+  *         what they read before, and a batch with every point passive pushes no entry (as a classic light), asks no probe
+- *         and returns.
++ *         and returns;
++ *    (11) __nondiffuse and __nonspecular on a bound light act as on a classic light: a light at `from` (whose __nondiffuse or __nonspecular is an
++ *         output variable, read by the engine from the entry's saved state) gives the receiver's diffuse() and specular() the same result, bit for bit, as
++ *         the same light run as a classic one (the bound light's one sample has density 1 and the shader uses `from`, so the entries agree), in both formats;
++ *         and, for .rslo, 0 is the full result, 0.5 half of it, 1 none, for a varying and a uniform output variable (the scaling under the JIT is pending
++ *         an engine issue: see the comment at the case).
+  *
+  *   Written against master's services 2.3.0 plus this spec's interface (areaLightSampler.h, ITracer::occluded; services 2.6.0
+  *   with it): red on the starting tree (does not compile). Spec 033's 2.4.0 request members change what a services double must
+@@ -54,6 +59,7 @@ namespace {
+     // the density the double reports for vertex i (vertex 2 has no point in the "zero" scenarios: pdfA = 0)
+     constexpr float kPdf[kVertices] = {0.5f, 0.25f, 0.125f};
+     constexpr float kPdfWithZero[kVertices] = {0.5f, 0.25f, 0.0f};
++    constexpr float kPdfOne[kVertices] = {1.0f, 1.0f, 1.0f};
+ 
+     // The emitter point sample k of vertex i: every global has its own recognisable function of (i, k)
+     struct SPoint {
+@@ -295,6 +301,13 @@ namespace {
+         CShaderInstance *inst = CRenderer::context->getShader(name, SL_LIGHTSOURCE, 1, tokens, params);
+         return dynamic_cast<CProgrammableShaderInstance *>(inst);
+     }
++    // A light instance with one named float parameter, or none (token null)
++    CProgrammableShaderInstance *loadLightParam(const char *name, const char *token, float value) {
++        const char *tokens[] = {token};
++        const void *params[] = {&value};
++        CShaderInstance *inst = CRenderer::context->getShader(name, SL_LIGHTSOURCE, token != nullptr ? 1 : 0, tokens, params);
++        return dynamic_cast<CProgrammableShaderInstance *>(inst);
++    }
+     CProgrammableShaderInstance *loadConst(CRenderedSession &s, const char *name, float r, float g, float b) {
+         const float c[3] = {r, g, b};
+         const char *tokens[] = {"color c"};
+@@ -669,6 +682,68 @@ int caseAreaLight(bool jit) {
+         }
+     }
+ 
++    // ---- (11) __nondiffuse and __nonspecular on a bound light, against the same light run as a classic one -----------------------------
++    {
++        // The light sits at its `from` parameter and ignores the sampled point, so with one sample of density 1 the bound light's entry is the
++        // classic light's (the same Cl and L): what the receiver's diffuse() and specular() make of it is the classic result bit for bit.
++        // The receivers load in the run's format: #126 concerns a .slo surface whose only lighting call is illuminance(P), and these call diffuse() and specular().
++        // Under the JIT (.slo light) the output variables __nondiffuse and __nonspecular have no effect for an illuminate() light, a classic one as much as a bound
++        // one: jitIlluminateEnd saves Cl and -L and not the extras that diffuse() and specular() read. So the parity is asserted in both formats and the
++        // scaling (0 the full result, 0.5 half of it, 1 none) for .rslo only; the .slo scaling check is pending a JIT engine issue (number to be added here).
++        CProgrammableShaderInstance *diffuse = s.load("ca_surface_diffuse", SL_SURFACE);
++        CProgrammableShaderInstance *specular = s.load("ca_surface_specular", SL_SURFACE);
++        CT_EXPECT(diffuse != nullptr && specular != nullptr);
++        auto pairRun = [&](CProgrammableShaderInstance *light, CProgrammableShaderInstance *receiver, SRun &bound, SRun &classic) {
++            CAttributes *aC = new CAttributes();
++            aC->addLight(light);
++            classic = runSurface(s, ctx, receiver, aC, nullptr);
++            CAttributes *aB = new CAttributes();
++            aB->addLight(light);
++            CAreaDouble sampler;
++            sampler.bound = identityOf(light);
++            sampler.info.bound = true;
++            sampler.info.sceneSamples = 1;
++            sampler.info.sceneMode = AreaLightMode::Full;
++            sampler.info.totalArea = 4.0;
++            sampler.pdf = kPdfOne;
++            tracer.expectedExclude = identityOf(light);
++            tracer.blocked = never;
++            bound = runSurface(s, ctx, receiver, aB, &sampler);
++            CT_EXPECT(sampler.sampleCalls == 1);
++        };
++        auto bitEqual = [&](const SRun &a, const SRun &b) { return a.ci.size() == b.ci.size() && std::memcmp(a.ci.data(), b.ci.data(), sizeof(float) * a.ci.size()) == 0; };
++        if (diffuse != nullptr && specular != nullptr) {
++            // varying __nondiffuse and __nonspecular: 0 the full result, 0.5 half of it (exact), 1 none; each the classic light's, bit for bit
++            for (int kind = 0; kind < 2; kind++) {
++                const char *light = kind == 0 ? "ca_light_nondiffuse" : "ca_light_nonspecular";
++                const char *token = kind == 0 ? "float nondiffuse" : "float nonspecular";
++                CProgrammableShaderInstance *receiver = kind == 0 ? diffuse : specular;
++                std::vector<float> full;
++                for (float v : {0.0f, 0.5f, 1.0f}) {
++                    SRun b, c;
++                    pairRun(loadLightParam(light, token, v), receiver, b, c);
++                    CT_EXPECT(bitEqual(b, c));
++                    if (v == 0.0f)
++                        full = c.ci;
++                    for (size_t k = 0; k < c.ci.size() && !jit; k++) { // the scaling: .rslo only, see above
++                        if (v == 0.0f)
++                            CT_EXPECT(c.ci[k] > 0.0f); // there is a diffuse or a specular result to scale
++                        else
++                            CT_EXPECT(b.ci[k] == (1.0f - v) * full[k]); // exact for 0.5 and 1
++                    }
++                }
++            }
++            // a uniform __nondiffuse and __nonspecular (the light's step is 0), both 1: the same result as the classic light, and for .rslo the light is skipped
++            for (int kind = 0; kind < 2; kind++) {
++                SRun b, c;
++                pairRun(loadLightParam(kind == 0 ? "ca_light_nondiffuse_uniform" : "ca_light_nonspecular_uniform", nullptr, 0.0f), kind == 0 ? diffuse : specular, b, c);
++                CT_EXPECT(bitEqual(b, c));
++                for (size_t k = 0; k < c.ci.size() && !jit; k++) // skipped: .rslo only, see above
++                    CT_EXPECT(b.ci[k] == 0.0f && c.ci[k] == 0.0f);
++            }
++        }
++    }
++
+     ctx->setTracer(nullptr);
+     delete ctx;
+     return contract_test::finish();

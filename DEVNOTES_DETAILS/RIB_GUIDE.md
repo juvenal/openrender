@@ -92,3 +92,53 @@ Display "beauty.exr" "oiio" "rgba"
 The Option selects the library that decodes sources and bakes textures from that point; the per-call `"imageio"` parameter (also on `MakeShadow`,
 `MakeLatLongEnvironment`, `MakeCubeFaceEnvironment`) wins over it; `Display ... "oiio"` is the display driver. An unknown value reports
 `Unknown image backend "<name>" (expected "legacy" or "oiio")` and keeps the previous one. See [IMAGE_IO.md](IMAGE_IO.md).
+
+## AreaLightSource and bound area lights (spec 057)
+
+`AreaLightSource name handle ...` makes a light and **binds** every primitive created while it is current: the geometry in its
+attribute block is the emitter. User documentation: `docs/site/content/manual/reference/area-lights.md`.
+
+```rib
+AttributeBegin
+    Attribute "arealight" "int samples" [16]
+    AreaLightSource "arealight" 1 "float intensity" [50]
+    Surface "constant"
+    Polygon "P" [3 5 -2  5 5 -2  5 7 -2  3 7 -2]     # emits into the side of its normal
+AttributeEnd
+Illuminate 1 1                                       # the light list is an attribute: off after the block
+AttributeBegin
+    Attribute "visibility" "int transmission" [1]   # FR-023: only flagged objects cast area-light shadows
+    Surface "matte"
+    Sphere 1 -1 1 360
+AttributeEnd
+```
+
+- **Scope rules.** The current area light is a slot on the attributes (an opaque handle: Geometry never sees the light). `AttributeBegin`
+  inherits it, `AttributeEnd` clears it, `AreaLightSource "null"` clears it inside the block, and a light statement that fails
+  (a missing shader, a wrong-type shader) closes the scope and leaves no pending instance key. `Illuminate handle 0|1` switches it.
+- **Controls.** `Option "arealight" "int samples" [n] "string mode" ["full"|"fast"|"off"]` (the scene) and the same under
+  `Attribute "arealight"`: the attribute in force at the `AreaLightSource` statement is the light's, the one in force on the lit
+  object is the object's. Most specific first (object, light, scene), `samples` and `mode` separately; `off` at any level wins;
+  `fast` is `max(1, ceil(n / 4))`; the default is 16 and `full`. A bad token or value is `CODE_BADTOKEN`/`CODE_RANGE`, one
+  message, the setting unchanged. They round-trip through `ribOut`.
+- **The FR-023 rule.** An object occludes a bound area light's samples only with `Attribute "visibility" "int transmission" [1]`
+  (the flag `visibility()`, `transmission()` and ray-traced `shadow()` use everywhere); `transmission 0` is the opt-out. Nothing
+  else shadows, and no scene without area lights changes.
+- **Emitters stay geometry.** The camera sees an emitter and its pixels are its own `Surface`'s (FR-025); the renderer adds no
+  radiance. A bound light does not light its own emitter primitives, and its emitters never block its samples (exclusion by the
+  emitter set's identity, in the three intersection gates of `surface.cpp`, reached by the polygon, quadric, patch and subdivision
+  intersectors). A primitive of an unsupported kind inside the scope (points, curves, implicit surfaces, DSO objects) is not one of
+  the light's emitters and does not pass through those gates; the raytrace hider does not intersect points and curves (GitHub #195), so they cast no
+  shadow on any light's probe, area or classic, inside the scope or outside it (scratch renders, validation.md section 34), and
+  only implicit surfaces and DSO objects could be seen blocking their own light (not rendered). A blobby emits, through the
+  polygon mesh `RiBlobby` derives from it (`AreaLightProbe_BlobbyIrradiance_*`).
+- **Supported kinds.** Polygons, polygon meshes, subdivision surfaces and blobbies (a derived mesh); the seven quadrics; bilinear and bicubic patches, patch
+  meshes and NURBS patches with trims; the leaves of procedurals, delayed archives, instances and CSG solids (whole, without the
+  solid's region). The others (points, curves, implicit surfaces, DSO objects) are reported once per light and stay ordinary geometry. Displacement is not applied to an emitter.
+  A bound light with no emitting geometry contributes nothing (one warning).
+- **Motion.** An emitter inside `MotionBegin` is sampled at the shutter time of the point being shaded (assumption A8). The raytrace hider gives every
+  pixel sample its own time, so a moving emitter is blurred there; reyes and zbuffer shade a surface once per key pose of that surface (`reyes.cpp`:
+  time 0, and time 1 for a moving grid), so a static receiver sees a moving emitter at its shutter-open pose (GitHub #196; `AreaLight_EmitterMotion`,
+  `AreaLight_EmitterMotion_GridTime`).
+- **Photons.** `Hider "photon"` emits a bound light's photons from points of its emitters, along the emitter's normal side; the
+  photon map is not a parity subject.

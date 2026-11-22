@@ -82,6 +82,13 @@ namespace openrender::shading {
     //   ("Breaking within 2.x"). The rules above apply as written from the release that closes the milestone.
     //
     // History
+    //   2.6.0  spec 057 (written on its branch as 2.4.0; renumbered 2.6.0 when specs 033 (2.4.0) and 040 (2.5.0) land first).
+    //          Non-breaking for implementers and doubles:
+    //          Added:    ITracer::occluded(context, ray, excludeLight) (tracer.h), with a default body (traceRay, then
+    //                    ray->object != nullptr), so a tracer or double that does not override it keeps compiling.
+    //          Added:    areaLightSampler.h: AreaLightMode, AreaLightInfo and IAreaLightSampler, installed on a context with
+    //                    CShadingContext::setAreaLightSampler() by the hider that owns it. A context with no sampler runs every
+    //                    light as a classic light, so a double and the imager's context are unchanged.
     //   2.5.0  spec 040. Breaking within 2.x (allowed before spec 055, see the rule above); no CRendererServices member changed:
     //          Removed:  IPhotonStore::resetPhotons(), balancePhotons(), isModifying(), setModifying() and storePhoton()
     //                    (photonMapAccess.h): the photon hider's unguarded test-then-reset of a photon map raced (GitHub #164).
@@ -163,7 +170,7 @@ namespace openrender::shading {
     //          Wording only, no version change (spec 038, made while 2.0.0 was current, before 2.1.0): getDSO also serves
     //          the .slo loader, which binds the DSO operands of a JIT-compiled module with it (the member, its signature
     //          and its result are unchanged).
-    inline constexpr InterfaceVersion kRendererServicesVersion{2, 5, 0};
+    inline constexpr InterfaceVersion kRendererServicesVersion{2, 6, 0};
 
     class ITracer; // tracer.h
 

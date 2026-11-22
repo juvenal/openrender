@@ -63,6 +63,8 @@
 #include "hiderRegistry.h"
 #include "ray.h"
 #include "rendererContext.h"
+#include "emitterRegistry.h"
+#include "rendererFrame.h"
 #include "imageInput.h"
 #include "libshader/shading/shaderGroup.h"
 #include "libshader/shading/shadingSystem.h"
@@ -678,6 +680,14 @@ void CRendererContext::addObject(CObject *o) {
 
     // Are we in the world block ?
     if (CRenderer::world != NULL) {
+
+        // An object created in an area light's scope is a root of that light's emitters (spec 057, FR-002): RIB order, and
+        // only here: the contents of object definitions, solids and delayed expansions reach the set through their root
+        if (o->attributes->areaLight != nullptr) {
+            CEmitterRegistry *emitters = frameEmitters();
+            if (emitters != NULL)
+                emitters->record(o);
+        }
 
         // Apply camera motion blur to static objects when the camera is moving.
         // We clone o->xform so the shared currentXform->next stays NULL and
@@ -2208,6 +2218,39 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
             }
         }
     }
+    else if (strcmp(name, RI_AREALIGHT) == 0) {
+        // Option "arealight" (spec 057, FR-018 to FR-020): the scene level sample count and mode of the area lights. A value that is
+        // out of range is reported through CODE_RANGE, naming it, and the setting is left as it was; an unknown token is CODE_BADTOKEN.
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_SAMPLES) == 0) {
+                const int val = ((const int *)params[i])[0];
+                if (val >= 1)
+                    options->areaLightSamples = val;
+                else
+                    error(CODE_RANGE, "Option \"%s\" \"%s\" must be at least 1, not %d; keeping %d\n", name, tokens[i], val, options->areaLightSamples);
+            }
+            else if (strcmp(tokens[i], RI_MODE) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                EAreaLightMode mode;
+                if (areaLightModeFromName(val, mode))
+                    options->areaLightMode = mode;
+                else
+                    error(CODE_RANGE, "Option \"%s\" \"%s\": unknown mode \"%s\" (valid: full, fast, off); keeping \"%s\"\n", name, tokens[i], val,
+                          areaLightModeName(options->areaLightMode));
+            }
+            else {
+                // An inline declaration ("int samples") is stripped and the statement is read again; a token that is already
+                // bare is unknown here (reading it again would never end)
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE && strcmp(var.name, tokens[i]) != 0) {
+                    RiOption(name, var.name, params[i], RI_NULL);
+                }
+                else {
+                    error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+                }
+            }
+        }
+    }
     else {
         error(CODE_BADTOKEN, "Unknown option: \"%s\"\n", name);
     }
@@ -2426,6 +2469,9 @@ void *CRendererContext::RiLightSourceV(const char *name, int n, const char *toke
         return cShader;
     }
 
+    // The statement failed ("null", a missing shader, a wrong-type shader): the handle it carried must not
+    // become the key of the next shader instance. Not takeInstanceKey(): that would advance shaderOrdinal.
+    pendingInstanceKey = 0;
     return NULL;
 }
 
@@ -2447,11 +2493,32 @@ void *CRendererContext::RiAreaLightSourceV(const char *name, int n, const char *
     cShader = getShader(name, SL_LIGHTSOURCE, n, tokens, params);
 
     if (cShader != NULL) {
+        // Active in its own block, as a light source is (FR-005: a bound light is in lightSources like any other)
         attributes->addLight(cShader);
+
+        // The geometry created from here on in this block belongs to the light (FR-001). Identity only: the light
+        // enters as its Graphics State base, converted once here
+        const CShaderGroupRefTarget *light = cShader;
+        CEmitterRegistry *emitters = frameEmitters();
+        if (emitters != NULL) {
+            attributes->areaLight = light;
+            emitters->declareLight(light, attributes->areaLightSamples, attributes->areaLightMode, name);
+        }
+        else {
+            // No frame (before WorldBegin): nothing to bind it to. The light is made and activated as LightSource does
+            attributes->areaLight = nullptr;
+            warning(CODE_BADTOKEN, "AreaLightSource outside the world block: the light is not bound\n");
+        }
 
         return cShader;
     }
 
+    // The statement failed ("null", a missing shader, a wrong-type shader): the handle it carried must not
+    // become the key of the next shader instance. Not takeInstanceKey(): that would advance shaderOrdinal.
+    pendingInstanceKey = 0;
+
+    // A failed statement closes the scope as "null" does (FR-001, D-9): the geometry after it is ordinary
+    attributes->areaLight = nullptr;
     return NULL;
 }
 
@@ -3766,6 +3833,37 @@ void CRendererContext::RiAttributeV(const char *name, int n, const char *tokens[
                 else {
                     CVariable var;
                     if (parseVariable(&var, NULL, tokens[i]) == TRUE) {
+                        RiAttribute(name, var.name, params[i], RI_NULL);
+                    }
+                    else {
+                        error(CODE_BADTOKEN, "Unknown %s attribute: \"%s\"\n", name, tokens[i]);
+                    }
+                }
+            }
+        }
+        else if (strcmp(name, RI_AREALIGHT) == 0) {
+            // Attribute "arealight" (spec 057, FR-018 to FR-020): the object level count and mode, and (at an AreaLightSource) the
+            // light level. Same errors as the option: CODE_RANGE naming the value and the setting left alone, CODE_BADTOKEN for a token
+            for (i = 0; i < n; i++) {
+                if (strcmp(tokens[i], RI_SAMPLES) == 0) {
+                    const int val = ((const int *)params[i])[0];
+                    if (val >= 1)
+                        attributes->areaLightSamples = val;
+                    else
+                        error(CODE_RANGE, "Attribute \"%s\" \"%s\" must be at least 1, not %d; keeping the current setting\n", name, tokens[i], val);
+                }
+                else if (strcmp(tokens[i], RI_MODE) == 0) {
+                    const char *val = ((const char **)params[i])[0];
+                    EAreaLightMode mode;
+                    if (areaLightModeFromName(val, mode))
+                        attributes->areaLightMode = mode;
+                    else
+                        error(CODE_RANGE, "Attribute \"%s\" \"%s\": unknown mode \"%s\" (valid: full, fast, off); keeping the current setting\n", name, tokens[i], val);
+                }
+                else {
+                    // As in RiOptionV: strip an inline declaration and read again; a bare unknown token is an error
+                    CVariable var;
+                    if (parseVariable(&var, NULL, tokens[i]) == TRUE && strcmp(var.name, tokens[i]) != 0) {
                         RiAttribute(name, var.name, params[i], RI_NULL);
                     }
                     else {

@@ -59,6 +59,12 @@ class CLoopSubdivMesh : public CObject {
         void dice(IDicer &rasterizer);
         void instantiate(CAttributes *a, CXform *x, IObjectSink *c) const;
 
+        // Spec 057: build the refined triangle mesh as intersect() does, then let it report (exact triangles)
+        void collectEmitters(IRayContext &context, CEmitterCollector &out) {
+            materialize(context);
+            collectChildEmitters(context, out);
+        }
+
         int moving() const { return pl->data1 != NULL; }
 
         // Refines this mesh and wraps the result in a plain CPolygonMesh,

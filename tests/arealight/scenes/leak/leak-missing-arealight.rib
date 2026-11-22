@@ -1,0 +1,20 @@
+##RenderMan RIB-Structure 1.0
+# Spec 057, tests/arealight, LightKey_NoLeakAcrossFailedLight (FR-004, SC-010, research R11).
+# The control plus exactly one line: AreaLightSource with a light shader that does not exist, handle 7. The statement fails; the Surface after it must not take handle 7's key.
+# One quad fills the frame; the surface al_random_surface draws random() only, so each pixel's colour is a function
+# of the surface instance's own key and the sample key. Raytrace hider, one box-filtered sample per pixel, no jitter:
+# two renders agree byte for byte unless the surface took another instance key.
+version 3.03
+Hider "raytrace" "jitter" [0]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "leak-missing-arealight.tif" "file" "rgba"
+Format 4 4 1
+Projection "orthographic"
+Clipping 0.1 100
+WorldBegin
+  AreaLightSource "al_no_such_light" 7
+  Surface "al_random_surface"
+  Polygon "P" [-2 -2 1  2 -2 1  2 2 1  -2 2 1]
+WorldEnd

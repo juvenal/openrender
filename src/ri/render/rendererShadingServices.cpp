@@ -22,7 +22,9 @@
 #include <cstddef>
 #include <cstring>
 
+#include "emitterRegistry.h"
 #include "hiderIrradianceSampler.h"
+#include "rendererFrame.h"
 #include "rendererServicesImpl.h"
 #include "ri_config.h"
 #include "object.h"
@@ -191,6 +193,11 @@ namespace {
     const char *const attributesTraceMaxDiffuse = "trace:maxdiffusedepth";
     const char *const attributesTraceMaxSpecular = "trace:maxspeculardepth";
 
+    // Area lights (spec 057): attribute("arealight:samples" | "arealight:mode"), option(...) the same. An attribute that was never set is
+    // not found (it inherits the next level)
+    const char *const attributesAreaLightSamples = "arealight:samples";
+    const char *const attributesAreaLightMode = "arealight:mode";
+
     const char *const attributesUser = "user:";
 
     // Rendererinfo requests
@@ -221,6 +228,15 @@ namespace {
         a.type = TYPE_STRING;
         a.count = 1;
         a.data = slot;
+    }
+
+    // A mode name (a string constant of the state's vocabulary): the answer holds a pointer to it, as the sampler option's does
+    inline void setModeName(openrender::shading::AttributeValue &a, const char *name) {
+        memcpy(a.inlineValue, &name, sizeof(name));
+        a.status = openrender::shading::EQueryStatus::Found;
+        a.type = TYPE_STRING;
+        a.count = 1;
+        a.data = a.inlineValue;
     }
 
     // A user attribute or option: the variable's own storage
@@ -295,6 +311,14 @@ void CRendererServicesImpl::getAttribute(const openrender::shading::AttributeReq
             else if (strcmp(name, attributesTraceMaxSpecular) == 0) {
                 setFloats(answer, 1, (float)currentAttributes->maxSpecularDepth);
             }
+            else if (strcmp(name, attributesAreaLightSamples) == 0) {
+                if (currentAttributes->areaLightSamples > 0)
+                    setFloats(answer, 1, (float)currentAttributes->areaLightSamples);
+            }
+            else if (strcmp(name, attributesAreaLightMode) == 0) {
+                if (const char *mode = areaLightModeName(currentAttributes->areaLightMode))
+                    setModeName(answer, mode);
+            }
             // User attributes
             else if (strncmp(name, attributesUser, strlen(attributesUser)) == 0) {
                 CVariable *var;
@@ -368,6 +392,16 @@ void CRendererServicesImpl::getAttribute(const openrender::shading::AttributeReq
             }
             else if (strcmp(name, optionsSamplingSeed) == 0) {
                 setFloats(answer, 1, (float)(int)CRenderer::samplingSeed);
+            }
+            else if (strcmp(name, attributesAreaLightSamples) == 0) {
+                // the scene level of the frame in progress, from the emitter registry that reads the Option
+                if (const CEmitterRegistry *registry = frameEmitters())
+                    setFloats(answer, 1, (float)registry->sceneSamples());
+            }
+            else if (strcmp(name, attributesAreaLightMode) == 0) {
+                if (const CEmitterRegistry *registry = frameEmitters())
+                    if (const char *mode = areaLightModeName(registry->sceneMode()))
+                        setModeName(answer, mode);
             }
             else if (strncmp(name, attributesUser, strlen(attributesUser)) == 0) {
                 CVariable *var;

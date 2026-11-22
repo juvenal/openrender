@@ -1,0 +1,18 @@
+--- a/tests/arealight/test_area_sampling_reports.cpp
++++ b/tests/arealight/test_area_sampling_reports.cpp
+@@ header comment, case A
+- *     A  unsupported kinds: a light whose scope holds a point set, a curve mesh and a blobby (and one quad that does emit)
+- *        counts the three (numUnsupported == 3), the quad still emits (area 1), and ONE report names the light and says
+- *        the primitives "cannot emit"; resolving again reports nothing more (resolution runs once);
++ *     A  unsupported kinds: a light whose scope holds a point set and a curve mesh (and a quad and a blobby, which do emit:
++ *        blobbyCreate() polygonizes a blobby into a CPolygonMesh when it is created, so it is an ordinary mesh emitter)
++ *        counts the two (numUnsupported == 2), the quad and the blobby's mesh emit (area 1 plus roughly 4 pi), and ONE
++ *        report names the light and says the primitives "cannot emit"; resolving again reports nothing more (resolution
++ *        runs once);
+@@ testUnsupportedKinds
+-        CHECK(set.numUnsupported == 3);
+-        CHECK(nearRel(set.totalArea(), 1.0, kAreaRelTol)); // the quad still emits
++        CHECK(set.numUnsupported == 2); // points and curves; the blobby is a polygon mesh from the moment it is created
++        // the quad (1) and the unit-radius blobby's polygonized surface (about 4 pi = 12.57): loose bounds, fixed here
++        const double blobbyArea = 4.0 * 3.14159265358979;
++        CHECK(set.totalArea() > 1.0 + 0.5 * blobbyArea && set.totalArea() < 1.0 + 1.1 * blobbyArea);

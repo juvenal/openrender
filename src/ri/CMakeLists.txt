@@ -81,6 +81,7 @@ set(ri_sources
 	hiders/hider.cpp
 	hiders/hiderRegistry.cpp
 	hiders/shadingProducer.cpp
+	hiders/areaLights.cpp
 	geometry/curves.cpp
 	geometry/bsplinePatchgrid.cpp
 	geometry/csgTree.cpp
@@ -91,6 +92,8 @@ set(ri_sources
 	geometry/surfaceCrossings.cpp
 	geometry/geometryHost.cpp
 	geometry/geometryFrame.cpp
+	geometry/emitterRegistry.cpp
+	geometry/areaSampling.cpp
 	dataviewer/brickMapView.cpp
 	dataviewer/dataLoad.cpp
 	dataviewer/dataView.cpp
@@ -424,6 +427,7 @@ list(REMOVE_ITEM ribVector_sources
     hiders/hider.cpp
     hiders/hiderRegistry.cpp
     hiders/shadingProducer.cpp
+    hiders/areaLights.cpp
     hiders/irradianceSampler.cpp
     hiders/occlusion.cpp
     hiders/photon.cpp

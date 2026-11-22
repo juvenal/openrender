@@ -1,0 +1,4 @@
+##RenderMan RIB-Structure 1.0
+# Spec 057, tests/arealight: one unit quad at the origin of the archive's own space, facing -z (A4: it emits into the
+# side of its normal). Read by DelayedReadArchive / Procedural from AreaLightBinding_ProceduralInstanceSolid.
+Polygon "P" [0 0 5  1 0 5  1 1 5  0 1 5]

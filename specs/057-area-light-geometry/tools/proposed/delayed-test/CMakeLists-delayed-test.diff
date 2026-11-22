@@ -1,0 +1,37 @@
+--- a/tests/arealight/CMakeLists.txt
++++ b/tests/arealight/CMakeLists.txt
+@@ -83,7 +83,7 @@
+ # A pair ending in |ALLOW_ERROR_EXIT accepts orender's exit 255 (a scene that reports an error by design) when the image
+ # was still written; nothing else about the comparison changes.
+ function(al_render_pair_test name)
+-    cmake_parse_arguments(ARG "EXPECT_EQUAL;EXPECT_DIFFERENT" "THREADS;THREADS_B;HIDER;SHADERFORMAT;TIMEOUT" "PAIRS;LABELS" ${ARGN})
++    cmake_parse_arguments(ARG "EXPECT_EQUAL;EXPECT_DIFFERENT" "THREADS;THREADS_B;SUPPORT_FILES;HIDER;SHADERFORMAT;TIMEOUT" "PAIRS;LABELS" ${ARGN})
+     if(NOT ARG_TIMEOUT)
+         set(ARG_TIMEOUT 300)
+     endif()
+@@ -116,6 +116,10 @@
+     if(ARG_THREADS_B)
+         list(APPEND args -DTHREADS_B=${ARG_THREADS_B})
+     endif()
++    if(ARG_SUPPORT_FILES)
++        string(REPLACE ";" "\\;" _support "${ARG_SUPPORT_FILES}")
++        list(APPEND args "-DSUPPORT_FILES=${_support}")
++    endif()
+     if(ARG_HIDER)
+         list(APPEND args -DHIDER=${ARG_HIDER})
+     endif()
+@@ -232,6 +236,14 @@
+ al_render_pair_test(AreaLight_ThreadIdentity PAIRS ${_ti_pairs} THREADS 1 THREADS_B 4 EXPECT_EQUAL LABELS "arealight;determinism" TIMEOUT 900)
+ # ... and two renders at -t:4 are identical (no race in the resolution or the draws)
+ al_render_pair_test(AreaLight_ThreadIdentity_Repeat PAIRS ${_ti_pairs} THREADS 4 EXPECT_EQUAL LABELS "arealight;determinism" TIMEOUT 900)
++# AreaLight_ThreadIdentity_Delayed (research R4, the early-expansion risk): the emitter is a Procedural "DelayedReadArchive" of an archive that
++# binds a Surface drawing random(); -t:1 against -t:4 on every hider, byte-identical
++set(_dl_dir ${CMAKE_CURRENT_SOURCE_DIR}/scenes/delayed)
++al_render_pair_test(AreaLight_ThreadIdentity_Delayed
++    PAIRS scenes/delayed/arealight-threadid-delayed-reyes.rib|scenes/delayed/arealight-threadid-delayed-reyes.rib
++          scenes/delayed/arealight-threadid-delayed-zbuffer.rib|scenes/delayed/arealight-threadid-delayed-zbuffer.rib
++          scenes/delayed/arealight-threadid-delayed-raytrace.rib|scenes/delayed/arealight-threadid-delayed-raytrace.rib
++    THREADS 1 THREADS_B 4 SUPPORT_FILES ${_dl_dir}/arealight-delayed-emitter.rib EXPECT_EQUAL LABELS "arealight;determinism" TIMEOUT 900)
+ # AreaLight_OccluderFlag (FR-023): AreaLight_OccluderFlag_{unflagged,optout}_{penumbra,umbra} (generated probes): an unflagged occluder and
+ # the transmission 0 opt-out leave the floor at the unoccluded closed form; the flagged one shades it (AreaLightProbe_SoftShadow_*, umbra)
+ 

@@ -327,3 +327,16 @@ Reyes and the raytracer take one circle-of-confusion function (`LensModel::circl
 (`specs/031-geometry-hider-agnostic/validation.md` §1 and §5), macOS and Linux alike: `Parity_dof` **9.92** (was 40.45) and `Parity_dof-motion` **2.41** (was 22.72), the seed-to-seed
 noise of the raytracer twin being 13.81 and 3.56. **No threshold was changed**: `Parity_dof` stays 60 and `Parity_dof-motion` 35, and tightening them is the maintainer's separate decision.
 The D9 notes above describe the starting tree. The tests' own references (`Visual_camera-dof-reyes`, `Visual_camera-motion-small-dof-reyes`, `Convergence_dof-reyes`) were replaced by approved renders.
+
+## Spec 057 (area-light geometry; measured 2026-11-20, macOS)
+
+The soft-shadow scenes (a 0.5 x 0.5 emitter, a flagged sphere, a plane receiver, 256 x 256, 64 samples at the light level, box filter, `jitter 0`) rendered to 8-bit RGBA
+(`arealight-softimage-*`). Block metric: the 8x8 block-average maximum difference, 0 to 255. Run-to-run noise (the light's stream varied by its handle) at 64 samples is
+0.80 to 1.19 (n = 16: 1.97 to 3.30; see `specs/057-area-light-geometry/validation.md` section 19); a missing shadow (V always 1) changes the umbra by about 84.
+
+| Test | Threshold | Measured worst | Factor | Why |
+|---|---|---|---|---|
+| `Parity_arealight-{quad,mesh,subdiv}-{reyes,zbuffer}` (raytrace against the hider) | 4 | quad 0.75, mesh 1.09, subdivision 1.31 (reyes and zbuffer are identical: 0.00) | 3.1 over the worst | the raytracer's primary-ray position differs from the rasterizer's at the shadow edge; the same estimator and the same keyed draws on both |
+| `Visual_arealight-softshadow-{quad,mesh,subdiv}-{reyes,zbuffer,raytrace}` and the `-raytrace-slo` twins | 2 | 0.00 (a render against its own reference, same platform; `.rslo` against `.slo`: 0.00) | the platform difference of floating-point contraction is below one 8-bit level, so well under 2 | the render is deterministic (keyed draws), so the only expected difference is another platform's; the Linux number is reported at CHECKPOINT 6 |
+
+Neither threshold is the default 20: both are measurement-derived and 5 to 10 times tighter than it, so a missing or misplaced shadow fails them. No threshold is widened afterwards.

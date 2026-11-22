@@ -382,6 +382,9 @@ extern RtToken RI_IMAGEIO, RI_BACKEND;
 // Sampling options (spec 039)
 extern RtToken RI_SAMPLING, RI_SAMPLER, RI_SEED;
 
+// Area lights (spec 057): Option / Attribute "arealight" "samples" and "mode" (RI_MODE is shared)
+extern RtToken RI_AREALIGHT, RI_SAMPLES;
+
 // Integrator (spec 030)
 extern RtToken RI_INTEGRATOR, RI_CLASSIC;
 

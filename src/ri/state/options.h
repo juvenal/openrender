@@ -206,6 +206,11 @@ class COptions {
         // at construction rather than branched per evaluation point.
         int blobbyOpcodeOrder;
 
+        // Area lights (spec 057, FR-018, FR-019): the scene level sample count and mode of Option "arealight". Defaults 16 and
+        // Full; the token and its parsing are added with the controls. Read once per frame by the emitter registry.
+        int areaLightSamples;
+        EAreaLightMode areaLightMode;
+
         TSearchpath *archivePath;    // RIB search path
         TSearchpath *proceduralPath; // Procedural primitive search path
         TSearchpath *texturePath;    // Texture search path

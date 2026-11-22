@@ -48,6 +48,7 @@ class CPatchGrid : public CSurface {
         int moving() const { return variables->moving; }
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
+        void collectEmitters(IRayContext &, CEmitterCollector &out) { collectTessellatedEmitter(out); } // Spec 057: a subdivision transition grid
 
         CVertexData *variables; // The variables
         CParameter *parameters;

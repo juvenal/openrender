@@ -16,7 +16,7 @@ The list below is that vocabulary, with an honest status against each entry.
 
 ## Advanced capabilities
 
-**8 of 11 implemented, 1 partial, 2 absent.**
+**9 of 11 implemented, 0 partial, 2 absent.**
 
 | Capability | Status | Notes |
 |---|---|---|
@@ -30,7 +30,7 @@ The list below is that vocabulary, with an honest status against each entry.
 | Volume Shading | **Yes** | `Atmosphere` modifies camera rays. `Interior` and `Exterior` attenuate the rays a surface shader spawns with `trace()`, `gather()`, `transmission()` and ray-traced `shadow()`, once per ray segment, with the shader of the side of the spawning surface the ray leaves into. See [Solid CSG Operations](../../manual/reference/solid-csg-operations/#interior--exterior-shading). |
 | Ray Tracing | **Yes** | Full ray-trace hider plus the RSL `trace`, `gather` and `occlusion` families. See [Raytracing in SL](../../manual/reference/raytracing-in-sl/). |
 | Global Illumination | **Yes** | Photon mapping, point-based occlusion and colour bleeding, irradiance caching. See [Global Illumination](../../manual/reference/global-illumination/). |
-| Area Light Sources | **Partial** | `AreaLightSource` is accepted and can be switched with `Illuminate`, but the geometry in the block is not bound to the light: it behaves as an ordinary light source. |
+| Area Light Sources | **Yes** | `AreaLightSource` binds the geometry in its block as the emitter: the light shader runs once per sample on a point of that geometry and the samples are averaged, on every camera hider, with the interpreter and the JIT. Polygons, meshes, subdivision surfaces, the quadrics, patches and NURBS can emit. See [Area Lights](../../manual/reference/area-lights/). |
 
 Two of these are worth expanding on, because both are the kind of gap that
 looks like it works.
@@ -39,10 +39,11 @@ looks like it works.
 eight-sample spectral pipeline will render, and it will render in RGB. If you
 depend on spectral rendering, this is not the renderer for it yet.
 
-**Area lights.** `AreaLightSource` returns a handle, the light illuminates,
-and the geometry inside the block appears in the frame. What does not happen
-is the geometry becoming the emitter — so you get a point-like light and a
-visible object, not a soft shadow from an extended source.
+**Area lights.** `AreaLightSource` returns a handle, and the geometry inside its block becomes the emitter: the light is sampled
+over that geometry, so a quad or a sphere gives a soft shadow with an umbra and a penumbra. Only the kinds that can emit do (points,
+curves and implicit surfaces cannot; a blobby emits as its derived mesh), emission is one-sided, displacement is not applied to an emitter, and only objects
+flagged `Attribute "visibility" "int transmission" [1]` shadow the light. The `quadlight` and `spherelight` shaders are deprecated in
+favour of it. See [Area Lights](../../manual/reference/area-lights/).
 
 ## Geometric primitives
 

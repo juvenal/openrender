@@ -1,0 +1,28 @@
+--- a/shaders/spherelight.sl
++++ b/shaders/spherelight.sl
+@@ -11,10 +11,21 @@
+  * noise for soft-shadow quality, exactly as the original C++ shader's own
+  * sampling loop did.
+  *
+- * Render with the interpreter (.rslo), this engine's default -- the LLVM
+- * JIT path (--jit / "shaderformat" "slo") renders this light fully black.
+- * See CLAUDE.md's "Known gotchas" #12; this is an engine-level random()
+- * JIT defect, not something fixable from within this shader.
++ * Both the interpreter (.rslo, this engine's default) and the LLVM JIT
++ * (--jit / "shaderformat" "slo") render this light (the JIT's random() and
++ * visibility() were fixed by spec 017, GitHub #1 and #3). visibility() does
++ * not currently occlude (GitHub #169), so this light casts no shadows.
++ *
++ * DEPRECATED (spec 057): light a scene with a real sphere instead,
++ * Sphere under AreaLightSource "arealight". This shader stays for existing
++ * scenes and its output is unchanged. The two are different emitters, not
++ * one emitter sampled two ways: this shader radiates isotropically from
++ * the sphere's surface points with no emitter cosine, so a receiver sees
++ * 1 / r^2 from every point of the sphere, including the far side; a
++ * geometric sphere is a Lambertian emitter, whose points that face away
++ * from a receiver contribute nothing (arealight.sl: N.normalize(L) / L.L
++ * inside illuminate(P, N, PI/2)). Expect a different falloff, not just
++ * sampling noise.
+  */
+ 
+ light

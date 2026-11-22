@@ -1,0 +1,5 @@
+##RenderMan RIB-Structure 1.0
+# Spec 057, tests/arealight: two unit quads, 3 units apart. Read by DelayedReadArchive / Procedural from
+# AreaLightBinding_ProceduralInstanceSolid (the resolution half: one expanded leaf per quad).
+Polygon "P" [0 0 5  1 0 5  1 1 5  0 1 5]
+Polygon "P" [3 0 5  4 0 5  4 1 5  3 1 5]

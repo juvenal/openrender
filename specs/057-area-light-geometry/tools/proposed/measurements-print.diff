@@ -1,0 +1,13 @@
+--- a/tests/arealight/area_sampling_checks.h
++++ b/tests/arealight/area_sampling_checks.h
+@@ checkFaceFrequencies: after "const double critical = chiSquareCritical(cells - 1);"
+         const double critical = chiSquareCritical(cells - 1);
++        std::printf("  chi-square %.3f (%d dof, critical %.3f)\n", chi, cells - 1, critical); // measurement, never an assertion
+         CHECK(critical > 0.0);
+         CHECK(chi <= critical);
+--- a/tests/arealight/test_area_sampling_subdiv.cpp
++++ b/tests/arealight/test_area_sampling_subdiv.cpp
+@@ testCatmullClarkCube: before the area CHECK
+         CHECK(reference > 0.0);
++        std::printf("  cube: light area %.6f, K=64 reference %.6f, bias %.4f%% (bound %.1f%%)\n", set.totalArea(), reference, 100.0 * (set.totalArea() - reference) / reference, 100.0 * kSubdivisionAreaTol);
+         CHECK(std::fabs(set.totalArea() - reference) <= kSubdivisionAreaTol * reference);

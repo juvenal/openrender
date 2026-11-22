@@ -175,6 +175,22 @@ void CCSGSolid::intersect(IRayContext &context, CRay *) {
 
 ///////////////////////////////////////////////////////////////////////
 // Class				:	CCSGSolid
+// Method				:	collectEmitters
+// Description			:	Spec 057, decision D-4: an area light's emitters include the leaves of a solid, each sampled
+//							as the whole leaf surface, without its CSG region (the region test needs a ray context per
+//							point and would make the density unknown). The solid is resolved as a ray would resolve it
+// Return Value			:	-
+// Comments				:
+void CCSGSolid::collectEmitters(IRayContext &context, CEmitterCollector &out) {
+    resolve(context);
+    for (CObject *leaf = children; leaf != NULL; leaf = leaf->sibling) {
+        out.csgLeaf();
+        leaf->collectEmitters(context, out);
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CCSGSolid
 // Method				:	instantiate
 // Description			:	A new solid over the same definition, placed by the
 //							composed transform (ObjectInstance)

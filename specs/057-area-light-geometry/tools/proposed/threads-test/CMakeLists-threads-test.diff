@@ -1,0 +1,33 @@
+--- a/tests/arealight/CMakeLists.txt
++++ b/tests/arealight/CMakeLists.txt
+@@ -83,7 +83,7 @@
+ # A pair ending in |ALLOW_ERROR_EXIT accepts orender's exit 255 (a scene that reports an error by design) when the image
+ # was still written; nothing else about the comparison changes.
+ function(al_render_pair_test name)
+-    cmake_parse_arguments(ARG "EXPECT_EQUAL;EXPECT_DIFFERENT" "THREADS;HIDER;SHADERFORMAT;TIMEOUT" "PAIRS;LABELS" ${ARGN})
++    cmake_parse_arguments(ARG "EXPECT_EQUAL;EXPECT_DIFFERENT" "THREADS;THREADS_B;HIDER;SHADERFORMAT;TIMEOUT" "PAIRS;LABELS" ${ARGN})
+     if(NOT ARG_TIMEOUT)
+         set(ARG_TIMEOUT 300)
+     endif()
+@@ -113,6 +113,9 @@
+     if(ARG_THREADS)
+         list(APPEND args -DTHREADS=${ARG_THREADS})
+     endif()
++    if(ARG_THREADS_B)
++        list(APPEND args -DTHREADS_B=${ARG_THREADS_B})
++    endif()
+     if(ARG_HIDER)
+         list(APPEND args -DHIDER=${ARG_HIDER})
+     endif()
+@@ -153,6 +156,11 @@
+     endforeach()
+ endforeach()
+ al_render_pair_test(LightKey_NoLeakAcrossFailedLight PAIRS ${_leak_pairs} EXPECT_EQUAL LABELS "state")
++
++# ---- Phase 4: FR-014, the keyed draws make an image independent of the thread count (needs more than one bucket: 128 x 128 at the
++# default 16 x 16 bucket size; the 8 x 8 probe scenes are one bucket and cannot see a shared draw sequence) -----------------
++al_render_pair_test(AreaLight_ThreadsIdentical PAIRS scenes/threads/arealight-threads-quad-raytrace.rib|scenes/threads/arealight-threads-quad-raytrace.rib
++    THREADS 1 THREADS_B 4 EXPECT_EQUAL LABELS "arealight;shading_parity")
+ 
+ # ---- Phase 4: Shading, the light-surface globals and the area estimator, moved out of the red block by T074 -------------------
+ # State_AreaLightVocabularyMirror: AreaLightMode (Shading) equals EAreaLightMode (Graphics State) value for value

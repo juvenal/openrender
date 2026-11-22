@@ -528,6 +528,28 @@ void CRibOut::RiOptionV(const char *name, int n, const char *tokens[], const voi
             }
         }
     }
+    else if (strcmp(name, RI_AREALIGHT) == 0) {
+        // Option "arealight" (spec 057, FR-027): written bare, read back through the standard declarations ("samples" and "mode")
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_SAMPLES) == 0) {
+                const int *val = (const int *)params[i];
+                out("Option \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            }
+            else if (strcmp(tokens[i], RI_MODE) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                out("Option \"%s\" \"%s\" [\"%s\"]\n", name, tokens[i], val);
+            }
+            else {
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE && strcmp(var.name, tokens[i]) != 0) {
+                    RiOption(name, var.name, params[i], RI_NULL);
+                }
+                else {
+                    error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+                }
+            }
+        }
+    }
     else if (strcmp(name, RI_RIB) == 0) {
         for (i = 0; i < n; i++) {
             if (strcmp(tokens[i], RI_COMPRESSION) == 0) {
@@ -928,6 +950,28 @@ void CRibOut::RiAttributeV(const char *name, int n, const char *tokens[], const 
                 }
                 else {
                     error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+                }
+            }
+        }
+    }
+    else if (strcmp(name, RI_AREALIGHT) == 0) {
+        // Attribute "arealight" (spec 057, FR-027)
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_SAMPLES) == 0) {
+                const int *val = (const int *)params[i];
+                out("Attribute \"%s\" \"%s\" [%i]\n", name, tokens[i], val[0]);
+            }
+            else if (strcmp(tokens[i], RI_MODE) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                out("Attribute \"%s\" \"%s\" [\"%s\"]\n", name, tokens[i], val);
+            }
+            else {
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE && strcmp(var.name, tokens[i]) != 0) {
+                    RiAttribute(name, var.name, params[i], RI_NULL);
+                }
+                else {
+                    error(CODE_BADTOKEN, "Unknown %s attribute: \"%s\"\n", name, tokens[i]);
                 }
             }
         }

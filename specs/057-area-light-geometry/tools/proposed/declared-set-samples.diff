@@ -1,0 +1,17 @@
+--- a/tests/unit/scene_interface/reference/declared_set.txt
++++ b/tests/unit/scene_interface/reference/declared_set.txt
+@@ -1,5 +1,5 @@
+ # spec 038: the table CRenderer::initDeclarations() builds, captured from the unmodified tree
+-variables 121
++variables 122
+ v 0 Np type=3 container=0 storage=0 entry=- numFloats=3 numItems=1 marker=0x10000
+ v 1 constantwidth type=0 container=4 storage=1 entry=28 numFloats=1 numItems=1 marker=0x0
+ v 2 width type=0 container=2 storage=1 entry=27 numFloats=1 numItems=1 marker=0x0
+@@ -121,6 +121,7 @@
+ v 118 texture type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+ v 119 procedural type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+ v 120 archive type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
++v 121 samples type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+ globals 29
+ g 0 P entry=0
+ g 1 Ps entry=1

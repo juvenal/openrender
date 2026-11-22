@@ -76,6 +76,11 @@ void CDeclarations::acquire() {
     //
     ////////////////////////////////////////////////////////////////////////////////////////////
     // Define the options
+    // Option and Attribute "arealight" (spec 057): "mode" is declared below (a string), "samples" here, before spec 048's two (the
+    // very first declaration), so that every declared variable keeps its number in the table: the declared-set reference gains one
+    // line, the last. One table serves the renderer (CRenderer::initDeclarations forwards here) and CRiStandardSession, so a writer
+    // session reads the bare spelling too
+    declare(RI_SAMPLES, "int");
     // Option "imageio" "backend" and the per-call "imageio" parameter of the Make* calls (spec 048). Declared first on
     // purpose: the table lists the newest variable first (the declared-set characterization of spec 038 records that
     // order), so these two come last and no recorded variable changes its position.

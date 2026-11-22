@@ -359,6 +359,8 @@ COptions::COptions() {
     textureCacheDirectory = nullptr;
     imageBackend = EImageIOBackend::Legacy;
     blobbyOpcodeOrder = static_cast<int>(EBlobbyOrder::RiSpec);
+    areaLightSamples = 16;
+    areaLightMode = EAreaLightMode::Full;
 
     // Unified search paths across all platforms. Environment expansion is handled
     // by optionsGetSearchPath using %RIBS%, %SHADERS%, %TEXTURES%, %DISPLAYS%, etc.
@@ -1004,6 +1006,21 @@ int COptions::find(const char *name, const char *category, EVariableType &type, 
             value = NULL;
             intValue = (int)samplingSeed;
             return TRUE;
+        }
+    }
+
+    // Option "arealight" (spec 057): the scene level. Only for the category itself, never for a nameless search: "mode" must keep
+    // answering the other categories' modes there
+    if ((category != NULL) && (strcmp(category, RI_AREALIGHT) == 0)) {
+        if (strcmp(name, RI_SAMPLES) == 0) {
+            type = TYPE_INTEGER;
+            value = &areaLightSamples;
+            return TRUE;
+        }
+        else if (strcmp(name, RI_MODE) == 0) {
+            type = TYPE_STRING;
+            value = areaLightModeName(areaLightMode);
+            return value != NULL;
         }
     }
 

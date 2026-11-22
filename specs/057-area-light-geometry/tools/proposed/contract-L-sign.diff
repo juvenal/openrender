@@ -1,0 +1,11 @@
+--- a/tests/shading_contract/case_area_light.cpp
++++ b/tests/shading_contract/case_area_light.cpp
+@@ -354,7 +354,7 @@
+         for (int i = 0; i < kVertices; i++)
+             for (int k = 0; k < n; k++) {
+                 const SPoint p = pointOf(i, k);
+-                const float want[3] = {0.1f * (i + 1) - p.P[0], 0.2f * (i + 1) - p.P[1], 0.3f * (i + 1) - p.P[2]};
++                const float want[3] = {p.P[0] - 0.1f * (i + 1), p.P[1] - 0.2f * (i + 1), p.P[2] - 0.3f * (i + 1)}; // the saved L is the direction to the light, -(Ps - P) (ENDILLUMINATE)
+                 int found = 0;
+                 for (int e : mine)
+                     if (std::fabs(r.entryL[e][3 * i] - want[0]) < 1e-4f && std::fabs(r.entryL[e][3 * i + 1] - want[1]) < 1e-4f && std::fabs(r.entryL[e][3 * i + 2] - want[2]) < 1e-4f)

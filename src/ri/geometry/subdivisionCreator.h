@@ -47,6 +47,12 @@ class CSubdivMesh : public CObject {
         void dice(IDicer &rasterizer);
         void instantiate(CAttributes *a, CXform *x, IObjectSink *c) const;
 
+        // Spec 057: create the limit patches under the mesh's own mutex, exactly as intersect() does, then let each report
+        void collectEmitters(IRayContext &context, CEmitterCollector &out) {
+            materialize(context);
+            collectChildEmitters(context, out);
+        }
+
         int moving() const { return pl->data1 != NULL; }
 
         // Raw vertex/topology data for non-shading consumers (e.g. orender-wire's

@@ -48,6 +48,13 @@ class IRayContext {
         virtual void restoreShadingState(void *state) = 0; // the token saveShadingState() returned
 
         const CGeometryFrame &frame() const { return geometryFrame(); }
+
+        // The area light whose scope's primitives must not block the occlusion probe being traced (spec 057, FR-017): set by the hider
+        // for the length of one probe, nullptr otherwise. Geometry's ray gates skip every primitive created in that light's scope.
+        const CShaderGroupRefTarget *excludedEmitter() const { return emitterExclusion; }
+
+    protected:
+        const CShaderGroupRefTarget *emitterExclusion = nullptr;
 };
 
 #endif

@@ -1,5 +1,5 @@
 # spec 038: the table CRenderer::initDeclarations() builds, captured from the unmodified tree
-variables 123
+variables 124
 v 0 Np type=3 container=0 storage=0 entry=- numFloats=3 numItems=1 marker=0x10000
 v 1 constantwidth type=0 container=4 storage=1 entry=28 numFloats=1 numItems=1 marker=0x0
 v 2 width type=0 container=2 storage=1 entry=27 numFloats=1 numItems=1 marker=0x0
@@ -123,6 +123,7 @@ v 119 procedural type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 mar
 v 120 archive type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
 v 121 backend type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
 v 122 imageio type=9 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
+v 123 samples type=10 container=1 storage=0 entry=- numFloats=1 numItems=1 marker=0x0
 globals 29
 g 0 P entry=0
 g 1 Ps entry=1

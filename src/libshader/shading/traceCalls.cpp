@@ -92,6 +92,11 @@ namespace libshader {
             ray->object = nullptr;
     }
 
+    bool occluded(CShadingContext &context, CRay *ray, const CShaderGroupRefTarget *excludeLight) {
+        openrender::shading::ITracer *tracer = tracerOf(context, TraceKind::Visibility);
+        return tracer != nullptr ? tracer->occluded(context, ray, excludeLight) : false;
+    }
+
     void traceBundle(CShadingContext &context, CRayBundle *bundle, TraceKind kind) {
         if (CShadingContext::traceRequestObserver != nullptr)
             context.reportTraceRequest(requestKind(kind), bundle->label, bundle->depth, bundle->numRays, bundle->rays);
@@ -104,3 +109,11 @@ namespace libshader {
     }
 
 } // namespace libshader
+
+// ITracer::occluded, the default body (spec 057, services 2.6.0): one probe through the tracer's own traceRay(), then the
+// hit test. It tests ray->object and never ray->t against infinity: a clipped ray leaves t finite (GitHub #169). A tracer that
+// owns the scene (CHider) overrides this to apply the exclusion of an area light's own scope; a double may keep it.
+bool openrender::shading::ITracer::occluded(CShadingContext &context, CRay *ray, const CShaderGroupRefTarget *) {
+    traceRay(context, ray);
+    return ray->object != nullptr;
+}

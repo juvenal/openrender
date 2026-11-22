@@ -25,6 +25,7 @@
 #include "serviceTypes.h"
 
 class CShadingContext;
+class CShaderGroupRefTarget; // state/stateHandles.h (Graphics State): the identity of a light
 class CRay;       // src/ri/core/ray.h (Infrastructure)
 class CRayBundle; // shading.h
 
@@ -112,6 +113,17 @@ namespace openrender::shading {
             // state one ray level deeper, and a shader there may trace again. postShade() may also run
             // the segment's volume shader on `context` (spec 056), in a further state at the segment's depth.
             virtual void traceBundle(CShadingContext &context, CRayBundle *bundle) = 0;
+
+            // Trace one shadow probe and say whether something blocks it. Added in 2.6.0 (spec 057).
+            // In: the inputs of traceRay; the caller sets flags to ATTRIBUTES_FLAGS_TRANSMISSION_VISIBLE, t to the distance
+            //   to the target minus the bias, and tmin to the bias. `excludeLight` is the identity (the shader instance, seen
+            //   as its Graphics State base) of an area light whose scope's primitives must not block this probe; nullptr: none.
+            // Out: true when the probe hit something (ray->object != nullptr after the trace). The answer never tests ray->t
+            //   against infinity: a miss leaves t unchanged and a clipped one does not (GitHub #169, the visibility() defect).
+            // Default body (defined in traceCalls.cpp): traceRay(context, ray), then the test above, ignoring `excludeLight`. A
+            //   tracer that owns the scene (CHider) overrides it to apply the exclusion; a double may keep the default.
+            // No shading and no volume step (the semantics of spec 056's probes). Thread-safety and re-entry as traceRay.
+            virtual bool occluded(CShadingContext &context, CRay *ray, const CShaderGroupRefTarget *excludeLight);
     };
 
 } // namespace openrender::shading

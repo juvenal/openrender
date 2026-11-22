@@ -1,0 +1,30 @@
+--- a/shaders/quadlight.sl
++++ b/shaders/quadlight.sl
+@@ -36,11 +36,22 @@
+  * render testing: the negated form silently produced a fully black light
+  * (a negative Cl, clamped away) with no compile or runtime error either.
+  *
+- * Render with the interpreter (.rslo), this engine's default -- the LLVM
+- * JIT path (--jit / "shaderformat" "slo") renders this light as visible
+- * checkerboard noise instead of a clean soft shadow. See CLAUDE.md's
+- * "Known gotchas" #12; this is an engine-level random() JIT defect, not
+- * something fixable from within this shader.
++ * Both the interpreter (.rslo, this engine's default) and the LLVM JIT
++ * (--jit / "shaderformat" "slo") render this light (the JIT's random() and
++ * visibility() were fixed by spec 017, GitHub #1 and #3). visibility() does
++ * not currently occlude (GitHub #169), so this light casts no shadows.
++ *
++ * DEPRECATED (spec 057): light a scene with real geometry instead, a
++ * polygon quad under AreaLightSource "arealight" (the emitter is the
++ * geometry itself, sampled uniformly by area, and an occluder shadows it
++ * when it carries Attribute "visibility" "int transmission" 1). This
++ * shader stays for existing scenes and its output is unchanged. To match
++ * it, give the arealight the intensity divided by the quad's area (the
++ * shipped arealight adds no 1/area; the renderer weights each sample by
++ * area / n). The two differ slightly in model: this shader takes the
++ * emitter cosine at the quad's centre for every sample, the arealight at
++ * each sample's own point (examples/rib/tests/arealight-quadlight-agree-*:
++ * the 8 x 8 block metric between the two renders is about 4.5 of 255).
+  */
+ 
+ light

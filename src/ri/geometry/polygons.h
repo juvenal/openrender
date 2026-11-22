@@ -49,6 +49,9 @@ class CPolygonMesh : public CObject {
         void dice(IDicer &);
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
 
+        // Spec 057: the mesh's triangles and quads, created as a ray hit creates them, report themselves
+        void collectEmitters(IRayContext &, CEmitterCollector &);
+
         // Raw vertex/topology data for non-shading consumers (e.g. orender-wire's
         // wireframe extractor), which has no dicer to dice() through.
         void wireData(const float *&positions, int &npoly, const int *&nholes, const int *&nvertices, const int *&vertices) const {
@@ -88,6 +91,7 @@ class CPolygonTriangle : public CSurface {
         void intersect(IRayContext &, CRay *);
         int countCrossings(IRayContext *, const float *, const float *) const;
         void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
+        void collectEmitters(IRayContext &, CEmitterCollector &); // Spec 057: the exact triangle sampler
 
         int moving() const { return mesh->pl->data1 != NULL; }
         void sample(int, int, float **, float ***, unsigned int &) const;
@@ -111,6 +115,7 @@ class CPolygonQuad : public CSurface {
         void intersect(IRayContext &, CRay *);
         int countCrossings(IRayContext *, const float *, const float *) const;
         void instantiate(CAttributes *, CXform *, IObjectSink *) const { assert(FALSE); }
+        void collectEmitters(IRayContext &, CEmitterCollector &); // Spec 057: the exact quad sampler
 
         int moving() const { return mesh->pl->data1 != NULL; }
         void sample(int, int, float **, float ***, unsigned int &) const;

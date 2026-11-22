@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- (2026-11-21) `AreaLightSource` binds its block's geometry as the emitter: per-frame emitter registry (Geometry), area sampling for polygons, polygon meshes, subdivision surfaces, the quadrics, patches, patch meshes and NURBS with trims, a bound-light branch of `iterateLights` weighting each sample by `V / (n p_A)`, `Option`/`Attribute "arealight"`, `ITracer::occluded` and `IAreaLightSampler` (`kRendererServicesVersion` 2.6.0), photon emission from bound lights (spec 057).
 - (2026-11-18) Optional OpenImageIO image backend (`OPENRENDER_ENABLE_OIIO`, off by default): `libRIBImageIO`, `Option "imageio" "backend"`, the per-call `"imageio"` parameter, `otexmake -imageio`, and the `oiio` display driver (spec 048).
 - (2026-11-18) Constitution 1.5.0: utility libraries (the Image I/O library is the first).
 
@@ -40,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- (2026-11-21) `quadlight.sl` and `spherelight.sl` are deprecated in favour of `AreaLightSource` plus geometry (header comments only; compiled bytes unchanged). `AreaLightSource` with no geometry that can emit contributes nothing instead of acting as a point light.
 - (2026-11-10) `incident()` and `opposite()` read the volume shader on the side the incoming ray comes from (chosen once per call from vertex 0's `dot(I, N)`), in the interpreter and the JIT; they used to read `Interior` and `Exterior` unconditionally (spec 056, GitHub #120 item 3).
 - (2026-11-10) CSG solids no longer fog camera rays by the arrival-side rule: the `Interior`/`Exterior` shader of a fragment now attenuates the secondary rays that leave it, like any other surface; `csg-sphere-sphere-difference-interior-raytrace(-inside)` were rewritten with a mirror and re-rendered (spec 056).
 
@@ -76,6 +78,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- (2026-11-21) A light statement that failed (a missing shader, a wrong-type shader, `"null"`) left a pending instance key, so the random draws of the next light depended on whether the failed statement was present; every exit now clears it.
 - (2026-11-03) The interpreter's void shader DSO operands step varying arguments correctly: `DSOVOIDEXEC_PRE` held its argument pointers as `float **` while the steps are in bytes, so each pointer advanced four times too far per point (found by `ShadeopAbi_Jit_Void`, spec 038).
 
 - (2026-10-28) Fixed three JIT (`.slo`) defects found while giving `texture()`/`environment()`/`shadow()` interpreter parity: `shadow()` read its channel operand as the point; `textureinfo()` always produced a string result (the result-type letter was read from the wrong end of the prototype); and a shader parameter or local with the name of a built-in variable (for example `width`) was read as the built-in.

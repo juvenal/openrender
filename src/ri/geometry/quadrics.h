@@ -55,6 +55,7 @@ class CSphere : public CSurface {
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
+        void collectEmitters(IRayContext &, CEmitterCollector &); // Spec 057 phase 7: an area light's sampler for this quadric
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
             int depthValue = 3 - depth;
@@ -102,6 +103,7 @@ class CDisk : public CSurface {
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
+        void collectEmitters(IRayContext &, CEmitterCollector &); // Spec 057 phase 7: an area light's sampler for this quadric
 
         void wireData(float &r, float &z, float &umax) const {
             r = this->r;
@@ -138,6 +140,7 @@ class CCone : public CSurface {
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
+        void collectEmitters(IRayContext &, CEmitterCollector &); // Spec 057 phase 7: an area light's sampler for this quadric
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
             int depthValue2 = 3 - depth;
@@ -186,6 +189,7 @@ class CParaboloid : public CSurface {
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
+        void collectEmitters(IRayContext &, CEmitterCollector &); // Spec 057 phase 7: an area light's sampler for this quadric
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
             int depthValue = 3 - depth;
@@ -236,6 +240,7 @@ class CCylinder : public CSurface {
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
+        void collectEmitters(IRayContext &, CEmitterCollector &); // Spec 057 phase 7: an area light's sampler for this quadric
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
             int depthValue2 = 3 - depth;
@@ -284,6 +289,7 @@ class CHyperboloid : public CSurface {
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
+        void collectEmitters(IRayContext &, CEmitterCollector &); // Spec 057 phase 7: an area light's sampler for this quadric
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
             int depthValue = 3 - depth;
@@ -334,6 +340,7 @@ class CToroid : public CSurface {
         void sample(int, int, float **, float ***, unsigned int &) const;
         void interpolate(int, float **, float ***) const;
         void instantiate(CAttributes *, CXform *, IObjectSink *) const;
+        void collectEmitters(IRayContext &, CEmitterCollector &); // Spec 057 phase 7: an area light's sampler for this quadric
 
         int getDicingStats(int depth, int &minDivU, int &minDivV) const {
             int depthValue = 3 - depth;

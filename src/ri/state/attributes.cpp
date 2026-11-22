@@ -114,6 +114,10 @@ CAttributes::CAttributes() {
 
     lightSources = NULL;
 
+    areaLight = nullptr;
+    areaLightSamples = 0;
+    areaLightMode = EAreaLightMode::Unset;
+
     shadingRate = 1.0f;
     motionFactor = 0.0f;
 
@@ -468,6 +472,11 @@ void CAttributes::restore(const CAttributes *other, int shading, int geometrymod
         // Copy the light sources, in order
         lightSources = copyLightList(other->lightSources);
 
+        // The area-light binding goes with the light list (spec 057)
+        areaLight = other->areaLight;
+        areaLightSamples = other->areaLightSamples;
+        areaLightMode = other->areaLightMode;
+
         checkParameters();
 
         shadingRate = other->shadingRate;
@@ -634,6 +643,21 @@ int CAttributes::find(const char *name, const char *category, EVariableType &typ
         else if (strcmp(name, RI_MAXERROR) == 0) {
             type = TYPE_FLOAT;
             value = &irradianceMaxError;
+            return TRUE;
+        }
+    }
+
+    // Attribute "arealight" (spec 057): the object level. A control that was never set is not found (it inherits the next level);
+    // only for the category itself, never for a nameless search
+    if ((category != NULL) && (strcmp(category, RI_AREALIGHT) == 0)) {
+        if (strcmp(name, RI_SAMPLES) == 0 && areaLightSamples > 0) {
+            type = TYPE_INTEGER;
+            value = &areaLightSamples;
+            return TRUE;
+        }
+        else if (strcmp(name, RI_MODE) == 0 && areaLightMode != EAreaLightMode::Unset) {
+            type = TYPE_STRING;
+            value = areaLightModeName(areaLightMode);
             return TRUE;
         }
     }
