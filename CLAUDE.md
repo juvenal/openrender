@@ -1096,6 +1096,13 @@ not in the agent definitions.
    needed for a bound light.
    **Motion:** an emitter in `MotionBegin` is sampled at the shading point's shutter time: the raytrace hider gives every pixel sample its own time (blurred), reyes and zbuffer shade a static receiver's grid once at time 0 (`reyes.cpp`), so there the emitter acts at its shutter-open pose (GitHub #196; `AreaLight_EmitterMotion`, `_GridTime`).
 
+47. **`ShadingInterpolation "constant"` flattens a quad to its v0 corner (GitHub #204).** The call is the attribute flag `ATTRIBUTES_FLAGS_CONSTANT_SHADING` (scoped like any attribute;
+   an unknown type is a `CODE_RANGE` error), copied to the grid as `RASTER_CONSTANT_SHADING` (`rasterFlags.h`, above `RASTER_GLOBAL_MASK`, so it adds no dispatch case). Reyes and zbuffer then give every pixel of a
+   micropolygon the colour, opacity and extra samples (AOVs) of its v0 corner, grid vertex (i, j), the corner of quad (i, j) with the lowest u and v; the depth and the coverage keep the true u and v, and a moving quad keeps its
+   time interpolation. It is a runtime test, read once per grid with a plain load, in `stochasticQuad.h` (`flatUV()`) and `zbufferQuad.h`, so the generated `stochasticPrimitives.h` is unchanged; "smooth" (the default)
+   is bit for bit the old interpolation. Points have one colour already, and the raytrace hider does not flatten yet (spec 054 maps "constant" to the same corner once raytrace hits are shaded per cell).
+   `ShadingInterpolation_*` (`-L shading_interpolation`) pins it per rasterizer variant.
+
 ## Active Technologies
 - C++20, CMake ≥3.19; `libtiff`/`libpng` (mandatory), OpenEXR (optional,
   `HAVE_OPENEXR`-gated), in-tree RGBE codec — no new dependencies

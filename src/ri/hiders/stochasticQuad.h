@@ -45,6 +45,18 @@ if ((_flags & RASTER_SHADE_HIDDEN) &&
 #endif
 #endif
 
+// ShadingInterpolation "constant" (GitHub #204): every pixel of a quad takes the colour, opacity and extra
+// samples of the quad's v0 corner (grid vertex (i, j)). The grid's flags are read once here; the depth and the
+// coverage keep the true u and v. With "smooth" cu and cv are u and v, bit for bit.
+[[maybe_unused]] const bool constantShading = (grid->flags & RASTER_CONSTANT_SHADING) != 0;
+
+// The u and v the colour, opacity and extra samples are interpolated at
+#define flatUV()                                 \
+    const float cu = constantShading ? 0.0f : u; \
+    const float cv = constantShading ? 0.0f : v; \
+    (void)cu;                                    \
+    (void)cv;
+
 #ifdef STOCHASTIC_EXTRA_SAMPLES
 const int displacement = 10 + CRenderer::numExtraSamples;
 (void)displacement; // Suppress unused variable warning
@@ -89,8 +101,8 @@ const float importance = grid->object->attributes->lodImportance;
         float *dest;                                                                                                                                 \
                                                                                                                                                      \
         for (dest = nSample->extraSamples, currentSample = CRenderer::numExtraSamples; currentSample > 0; currentSample--, s0++, s1++, s2++, s3++) { \
-            *dest++ = ((s0[0] * (1 - jt) + s0[displacement] * jt) * (1 - u) + (s1[0] * (1 - jt) + s1[displacement] * jt) * u) * (1 - v) +            \
-                      ((s2[0] * (1 - jt) + s2[displacement] * jt) * (1 - u) + (s3[0] * (1 - jt) + s3[displacement] * jt) * u) * v;                   \
+            *dest++ = ((s0[0] * (1 - jt) + s0[displacement] * jt) * (1 - cu) + (s1[0] * (1 - jt) + s1[displacement] * jt) * cu) * (1 - cv) +         \
+                      ((s2[0] * (1 - jt) + s2[displacement] * jt) * (1 - cu) + (s3[0] * (1 - jt) + s3[displacement] * jt) * cu) * cv;                \
         }                                                                                                                                            \
     }
 
@@ -107,7 +119,7 @@ const float importance = grid->object->attributes->lodImportance;
         float *dest;                                                                                                         \
                                                                                                                              \
         for (dest = nSample->extraSamples, currentSample = CRenderer::numExtraSamples; currentSample > 0; currentSample--) { \
-            *dest++ = ((*s0++) * (1 - u) + (*s1++) * u) * (1 - v) + ((*s2++) * (1 - u) + (*s3++) * u) * v;                   \
+            *dest++ = ((*s0++) * (1 - cu) + (*s1++) * cu) * (1 - cv) + ((*s2++) * (1 - cu) + (*s3++) * cu) * cv;             \
         }                                                                                                                    \
     }
 
@@ -125,57 +137,57 @@ const float importance = grid->object->attributes->lodImportance;
 // M T
 #ifndef STOCHASTIC_MATTE
 
-#define colorOpacityUpdate()                                                                                                                                                                                                                                                       \
-    const float *v0c = v0 + 3;                                                                                                                                                                                                                                                     \
-    const float *v1c = v1 + 3;                                                                                                                                                                                                                                                     \
-    const float *v2c = v2 + 3;                                                                                                                                                                                                                                                     \
-    const float *v3c = v3 + 3;                                                                                                                                                                                                                                                     \
-    nSample->color[0] = ((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - u) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * u) * (1 - v) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - u) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * u) * v;   \
-    v0c++;                                                                                                                                                                                                                                                                         \
-    v1c++;                                                                                                                                                                                                                                                                         \
-    v2c++;                                                                                                                                                                                                                                                                         \
-    v3c++;                                                                                                                                                                                                                                                                         \
-    nSample->color[1] = ((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - u) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * u) * (1 - v) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - u) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * u) * v;   \
-    v0c++;                                                                                                                                                                                                                                                                         \
-    v1c++;                                                                                                                                                                                                                                                                         \
-    v2c++;                                                                                                                                                                                                                                                                         \
-    v3c++;                                                                                                                                                                                                                                                                         \
-    nSample->color[2] = ((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - u) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * u) * (1 - v) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - u) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * u) * v;   \
-    v0c++;                                                                                                                                                                                                                                                                         \
-    v1c++;                                                                                                                                                                                                                                                                         \
-    v2c++;                                                                                                                                                                                                                                                                         \
-    v3c++;                                                                                                                                                                                                                                                                         \
-    nSample->opacity[0] = ((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - u) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * u) * (1 - v) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - u) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * u) * v; \
-    v0c++;                                                                                                                                                                                                                                                                         \
-    v1c++;                                                                                                                                                                                                                                                                         \
-    v2c++;                                                                                                                                                                                                                                                                         \
-    v3c++;                                                                                                                                                                                                                                                                         \
-    nSample->opacity[1] = ((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - u) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * u) * (1 - v) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - u) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * u) * v; \
-    v0c++;                                                                                                                                                                                                                                                                         \
-    v1c++;                                                                                                                                                                                                                                                                         \
-    v2c++;                                                                                                                                                                                                                                                                         \
-    v3c++;                                                                                                                                                                                                                                                                         \
-    nSample->opacity[2] = ((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - u) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * u) * (1 - v) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - u) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * u) * v;
+#define colorOpacityUpdate()                                                                                                                                                                                                                                                             \
+    const float *v0c = v0 + 3;                                                                                                                                                                                                                                                           \
+    const float *v1c = v1 + 3;                                                                                                                                                                                                                                                           \
+    const float *v2c = v2 + 3;                                                                                                                                                                                                                                                           \
+    const float *v3c = v3 + 3;                                                                                                                                                                                                                                                           \
+    nSample->color[0] = ((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - cu) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * cu) * (1 - cv) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - cu) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * cu) * cv;   \
+    v0c++;                                                                                                                                                                                                                                                                               \
+    v1c++;                                                                                                                                                                                                                                                                               \
+    v2c++;                                                                                                                                                                                                                                                                               \
+    v3c++;                                                                                                                                                                                                                                                                               \
+    nSample->color[1] = ((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - cu) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * cu) * (1 - cv) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - cu) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * cu) * cv;   \
+    v0c++;                                                                                                                                                                                                                                                                               \
+    v1c++;                                                                                                                                                                                                                                                                               \
+    v2c++;                                                                                                                                                                                                                                                                               \
+    v3c++;                                                                                                                                                                                                                                                                               \
+    nSample->color[2] = ((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - cu) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * cu) * (1 - cv) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - cu) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * cu) * cv;   \
+    v0c++;                                                                                                                                                                                                                                                                               \
+    v1c++;                                                                                                                                                                                                                                                                               \
+    v2c++;                                                                                                                                                                                                                                                                               \
+    v3c++;                                                                                                                                                                                                                                                                               \
+    nSample->opacity[0] = ((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - cu) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * cu) * (1 - cv) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - cu) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * cu) * cv; \
+    v0c++;                                                                                                                                                                                                                                                                               \
+    v1c++;                                                                                                                                                                                                                                                                               \
+    v2c++;                                                                                                                                                                                                                                                                               \
+    v3c++;                                                                                                                                                                                                                                                                               \
+    nSample->opacity[1] = ((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - cu) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * cu) * (1 - cv) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - cu) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * cu) * cv; \
+    v0c++;                                                                                                                                                                                                                                                                               \
+    v1c++;                                                                                                                                                                                                                                                                               \
+    v2c++;                                                                                                                                                                                                                                                                               \
+    v3c++;                                                                                                                                                                                                                                                                               \
+    nSample->opacity[2] = ((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - cu) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * cu) * (1 - cv) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - cu) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * cu) * cv;
 
 #else
 
-#define colorOpacityUpdate()                                                                                                                                                                                                                                                          \
-    initv(nSample->color, 0);                                                                                                                                                                                                                                                         \
-    const float *v0c = v0 + 6;                                                                                                                                                                                                                                                        \
-    const float *v1c = v1 + 6;                                                                                                                                                                                                                                                        \
-    const float *v2c = v2 + 6;                                                                                                                                                                                                                                                        \
-    const float *v3c = v3 + 6;                                                                                                                                                                                                                                                        \
-    nSample->opacity[0] = -(((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - u) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * u) * (1 - v) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - u) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * u) * v); \
-    v0c++;                                                                                                                                                                                                                                                                            \
-    v1c++;                                                                                                                                                                                                                                                                            \
-    v2c++;                                                                                                                                                                                                                                                                            \
-    v3c++;                                                                                                                                                                                                                                                                            \
-    nSample->opacity[1] = -(((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - u) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * u) * (1 - v) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - u) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * u) * v); \
-    v0c++;                                                                                                                                                                                                                                                                            \
-    v1c++;                                                                                                                                                                                                                                                                            \
-    v2c++;                                                                                                                                                                                                                                                                            \
-    v3c++;                                                                                                                                                                                                                                                                            \
-    nSample->opacity[2] = -(((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - u) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * u) * (1 - v) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - u) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * u) * v); \
+#define colorOpacityUpdate()                                                                                                                                                                                                                                                                \
+    initv(nSample->color, 0);                                                                                                                                                                                                                                                               \
+    const float *v0c = v0 + 6;                                                                                                                                                                                                                                                              \
+    const float *v1c = v1 + 6;                                                                                                                                                                                                                                                              \
+    const float *v2c = v2 + 6;                                                                                                                                                                                                                                                              \
+    const float *v3c = v3 + 6;                                                                                                                                                                                                                                                              \
+    nSample->opacity[0] = -(((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - cu) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * cu) * (1 - cv) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - cu) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * cu) * cv); \
+    v0c++;                                                                                                                                                                                                                                                                                  \
+    v1c++;                                                                                                                                                                                                                                                                                  \
+    v2c++;                                                                                                                                                                                                                                                                                  \
+    v3c++;                                                                                                                                                                                                                                                                                  \
+    nSample->opacity[1] = -(((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - cu) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * cu) * (1 - cv) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - cu) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * cu) * cv); \
+    v0c++;                                                                                                                                                                                                                                                                                  \
+    v1c++;                                                                                                                                                                                                                                                                                  \
+    v2c++;                                                                                                                                                                                                                                                                                  \
+    v3c++;                                                                                                                                                                                                                                                                                  \
+    nSample->opacity[2] = -(((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - cu) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * cu) * (1 - cv) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - cu) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * cu) * cv); \
     movvv(pixel->first.opacity, nSample->opacity);
 
 #endif
@@ -186,6 +198,7 @@ const float importance = grid->object->attributes->lodImportance;
         (void)jt; /* Suppress unused variable warning */   \
         findSample(nSample, z);                            \
         nSample->z = z;                                    \
+        flatUV();                                          \
         colorOpacityUpdate();                              \
         drawExtraSamples();                                \
         updateTransparent(depthFilterIf, depthFilterElse); \
@@ -196,24 +209,24 @@ const float importance = grid->object->attributes->lodImportance;
 // M, nT
 #ifndef STOCHASTIC_MATTE
 
-#define colorOpacityUpdate()                                                                                                                                                                                                                                                     \
-    const float *v0c = v0 + 3;                                                                                                                                                                                                                                                   \
-    const float *v1c = v1 + 3;                                                                                                                                                                                                                                                   \
-    const float *v2c = v2 + 3;                                                                                                                                                                                                                                                   \
-    const float *v3c = v3 + 3;                                                                                                                                                                                                                                                   \
-    nSample->color[0] = ((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - u) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * u) * (1 - v) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - u) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * u) * v; \
-    v0c++;                                                                                                                                                                                                                                                                       \
-    v1c++;                                                                                                                                                                                                                                                                       \
-    v2c++;                                                                                                                                                                                                                                                                       \
-    v3c++;                                                                                                                                                                                                                                                                       \
-    nSample->color[1] = ((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - u) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * u) * (1 - v) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - u) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * u) * v; \
-    v0c++;                                                                                                                                                                                                                                                                       \
-    v1c++;                                                                                                                                                                                                                                                                       \
-    v2c++;                                                                                                                                                                                                                                                                       \
-    v3c++;                                                                                                                                                                                                                                                                       \
-    nSample->color[2] = ((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - u) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * u) * (1 - v) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - u) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * u) * v; \
-    nSample->opacity[0] = 1;                                                                                                                                                                                                                                                     \
-    nSample->opacity[1] = 1;                                                                                                                                                                                                                                                     \
+#define colorOpacityUpdate()                                                                                                                                                                                                                                                           \
+    const float *v0c = v0 + 3;                                                                                                                                                                                                                                                         \
+    const float *v1c = v1 + 3;                                                                                                                                                                                                                                                         \
+    const float *v2c = v2 + 3;                                                                                                                                                                                                                                                         \
+    const float *v3c = v3 + 3;                                                                                                                                                                                                                                                         \
+    nSample->color[0] = ((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - cu) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * cu) * (1 - cv) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - cu) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * cu) * cv; \
+    v0c++;                                                                                                                                                                                                                                                                             \
+    v1c++;                                                                                                                                                                                                                                                                             \
+    v2c++;                                                                                                                                                                                                                                                                             \
+    v3c++;                                                                                                                                                                                                                                                                             \
+    nSample->color[1] = ((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - cu) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * cu) * (1 - cv) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - cu) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * cu) * cv; \
+    v0c++;                                                                                                                                                                                                                                                                             \
+    v1c++;                                                                                                                                                                                                                                                                             \
+    v2c++;                                                                                                                                                                                                                                                                             \
+    v3c++;                                                                                                                                                                                                                                                                             \
+    nSample->color[2] = ((v0c[0] * (1 - jt) + v0c[displacement + 0] * jt) * (1 - cu) + (v1c[0] * (1 - jt) + v1c[displacement + 0] * jt) * cu) * (1 - cv) + ((v2c[0] * (1 - jt) + v2c[displacement + 0] * jt) * (1 - cu) + (v3c[0] * (1 - jt) + v3c[displacement + 0] * jt) * cu) * cv; \
+    nSample->opacity[0] = 1;                                                                                                                                                                                                                                                           \
+    nSample->opacity[1] = 1;                                                                                                                                                                                                                                                           \
     nSample->opacity[2] = 1;
 
 #else
@@ -232,6 +245,7 @@ const float importance = grid->object->attributes->lodImportance;
         updateOpaque();                                                                        \
         nSample = &pixel->last;                                                                \
         nSample->z = z;                                                                        \
+        flatUV();                                                                              \
         colorOpacityUpdate();                                                                  \
         drawExtraSamples();                                                                    \
         depthFilterIf();                                                                       \
@@ -250,29 +264,29 @@ const float importance = grid->object->attributes->lodImportance;
 // nM, T
 #ifndef STOCHASTIC_MATTE
 
-#define colorOpacityUpdate()                                                                               \
-    const float *v0c = v0 + 3;                                                                             \
-    const float *v1c = v1 + 3;                                                                             \
-    const float *v2c = v2 + 3;                                                                             \
-    const float *v3c = v3 + 3;                                                                             \
-    nSample->color[0] = (v0c[0] * (1 - u) + v1c[0] * u) * (1 - v) + (v2c[0] * (1 - u) + v3c[0] * u) * v;   \
-    nSample->color[1] = (v0c[1] * (1 - u) + v1c[1] * u) * (1 - v) + (v2c[1] * (1 - u) + v3c[1] * u) * v;   \
-    nSample->color[2] = (v0c[2] * (1 - u) + v1c[2] * u) * (1 - v) + (v2c[2] * (1 - u) + v3c[2] * u) * v;   \
-    nSample->opacity[0] = (v0c[3] * (1 - u) + v1c[3] * u) * (1 - v) + (v2c[3] * (1 - u) + v3c[3] * u) * v; \
-    nSample->opacity[1] = (v0c[4] * (1 - u) + v1c[4] * u) * (1 - v) + (v2c[4] * (1 - u) + v3c[4] * u) * v; \
-    nSample->opacity[2] = (v0c[5] * (1 - u) + v1c[5] * u) * (1 - v) + (v2c[5] * (1 - u) + v3c[5] * u) * v;
+#define colorOpacityUpdate()                                                                                     \
+    const float *v0c = v0 + 3;                                                                                   \
+    const float *v1c = v1 + 3;                                                                                   \
+    const float *v2c = v2 + 3;                                                                                   \
+    const float *v3c = v3 + 3;                                                                                   \
+    nSample->color[0] = (v0c[0] * (1 - cu) + v1c[0] * cu) * (1 - cv) + (v2c[0] * (1 - cu) + v3c[0] * cu) * cv;   \
+    nSample->color[1] = (v0c[1] * (1 - cu) + v1c[1] * cu) * (1 - cv) + (v2c[1] * (1 - cu) + v3c[1] * cu) * cv;   \
+    nSample->color[2] = (v0c[2] * (1 - cu) + v1c[2] * cu) * (1 - cv) + (v2c[2] * (1 - cu) + v3c[2] * cu) * cv;   \
+    nSample->opacity[0] = (v0c[3] * (1 - cu) + v1c[3] * cu) * (1 - cv) + (v2c[3] * (1 - cu) + v3c[3] * cu) * cv; \
+    nSample->opacity[1] = (v0c[4] * (1 - cu) + v1c[4] * cu) * (1 - cv) + (v2c[4] * (1 - cu) + v3c[4] * cu) * cv; \
+    nSample->opacity[2] = (v0c[5] * (1 - cu) + v1c[5] * cu) * (1 - cv) + (v2c[5] * (1 - cu) + v3c[5] * cu) * cv;
 
 #else
 
-#define colorOpacityUpdate()                                                                                  \
-    initv(nSample->color, 0);                                                                                 \
-    const float *v0c = v0 + 6;                                                                                \
-    const float *v1c = v1 + 6;                                                                                \
-    const float *v2c = v2 + 6;                                                                                \
-    const float *v3c = v3 + 6;                                                                                \
-    nSample->opacity[0] = -((v0c[0] * (1 - u) + v1c[0] * u) * (1 - v) + (v2c[0] * (1 - u) + v3c[0] * u) * v); \
-    nSample->opacity[1] = -((v0c[1] * (1 - u) + v1c[1] * u) * (1 - v) + (v2c[1] * (1 - u) + v3c[1] * u) * v); \
-    nSample->opacity[2] = -((v0c[2] * (1 - u) + v1c[2] * u) * (1 - v) + (v2c[2] * (1 - u) + v3c[2] * u) * v); \
+#define colorOpacityUpdate()                                                                                        \
+    initv(nSample->color, 0);                                                                                       \
+    const float *v0c = v0 + 6;                                                                                      \
+    const float *v1c = v1 + 6;                                                                                      \
+    const float *v2c = v2 + 6;                                                                                      \
+    const float *v3c = v3 + 6;                                                                                      \
+    nSample->opacity[0] = -((v0c[0] * (1 - cu) + v1c[0] * cu) * (1 - cv) + (v2c[0] * (1 - cu) + v3c[0] * cu) * cv); \
+    nSample->opacity[1] = -((v0c[1] * (1 - cu) + v1c[1] * cu) * (1 - cv) + (v2c[1] * (1 - cu) + v3c[1] * cu) * cv); \
+    nSample->opacity[2] = -((v0c[2] * (1 - cu) + v1c[2] * cu) * (1 - cv) + (v2c[2] * (1 - cu) + v3c[2] * cu) * cv); \
     movvv(pixel->first.opacity, nSample->opacity);
 
 #endif
@@ -281,6 +295,7 @@ const float importance = grid->object->attributes->lodImportance;
     if (z < pixel->z) {                                    \
         findSample(nSample, z);                            \
         nSample->z = z;                                    \
+        flatUV();                                          \
         colorOpacityUpdate();                              \
         drawExtraSamples();                                \
         updateTransparent(depthFilterIf, depthFilterElse); \
@@ -291,16 +306,16 @@ const float importance = grid->object->attributes->lodImportance;
 // nM, nT
 #ifndef STOCHASTIC_MATTE
 
-#define colorOpacityUpdate()                                                                             \
-    const float *v0c = v0 + 3;                                                                           \
-    const float *v1c = v1 + 3;                                                                           \
-    const float *v2c = v2 + 3;                                                                           \
-    const float *v3c = v3 + 3;                                                                           \
-    nSample->color[0] = (v0c[0] * (1 - u) + v1c[0] * u) * (1 - v) + (v2c[0] * (1 - u) + v3c[0] * u) * v; \
-    nSample->color[1] = (v0c[1] * (1 - u) + v1c[1] * u) * (1 - v) + (v2c[1] * (1 - u) + v3c[1] * u) * v; \
-    nSample->color[2] = (v0c[2] * (1 - u) + v1c[2] * u) * (1 - v) + (v2c[2] * (1 - u) + v3c[2] * u) * v; \
-    nSample->opacity[0] = 1;                                                                             \
-    nSample->opacity[1] = 1;                                                                             \
+#define colorOpacityUpdate()                                                                                   \
+    const float *v0c = v0 + 3;                                                                                 \
+    const float *v1c = v1 + 3;                                                                                 \
+    const float *v2c = v2 + 3;                                                                                 \
+    const float *v3c = v3 + 3;                                                                                 \
+    nSample->color[0] = (v0c[0] * (1 - cu) + v1c[0] * cu) * (1 - cv) + (v2c[0] * (1 - cu) + v3c[0] * cu) * cv; \
+    nSample->color[1] = (v0c[1] * (1 - cu) + v1c[1] * cu) * (1 - cv) + (v2c[1] * (1 - cu) + v3c[1] * cu) * cv; \
+    nSample->color[2] = (v0c[2] * (1 - cu) + v1c[2] * cu) * (1 - cv) + (v2c[2] * (1 - cu) + v3c[2] * cu) * cv; \
+    nSample->opacity[0] = 1;                                                                                   \
+    nSample->opacity[1] = 1;                                                                                   \
     nSample->opacity[2] = 1;
 
 #else
@@ -317,6 +332,7 @@ const float importance = grid->object->attributes->lodImportance;
         updateOpaque();                                                                        \
         nSample = &pixel->last;                                                                \
         nSample->z = z;                                                                        \
+        flatUV();                                                                              \
         colorOpacityUpdate();                                                                  \
         drawExtraSamples();                                                                    \
         depthFilterIf();                                                                       \
@@ -972,6 +988,7 @@ for (j = 0; j < vdiv; j++) {
 #undef drawExtraSamples
 #undef displacement
 #undef colorOpacityUpdate
+#undef flatUV
 #undef shouldDrawFront
 #undef shouldDrawBack
 #undef checkPixel

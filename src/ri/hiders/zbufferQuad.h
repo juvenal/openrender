@@ -27,6 +27,10 @@ const int udiv = grid->udiv;
 const int vdiv = grid->vdiv;
 const int flags = grid->flags;
 
+// ShadingInterpolation "constant" (GitHub #204): a pixel takes the colour of the quad's v0 corner (grid vertex
+// (i, j)); the depth keeps the true u and v. With "smooth" cu and cv are u and v, bit for bit.
+const bool constantShading = (flags & RASTER_CONSTANT_SHADING) != 0;
+
 // Squared sample-space distance threshold for a sub-pixel top edge.
 // Scales with PixelSamples so the "shorter than 1 pixel" test stays correct
 // regardless of the super-sampling rate.
@@ -101,9 +105,11 @@ for (j = 0; j < vdiv; j++) {
                 initv(sample, 0);                                                                                                             \
             }                                                                                                                                 \
             else {                                                                                                                            \
-                sample[1] = (v0[3] * (1 - u) + v1[3] * u) * (1 - v) + (v2[3] * (1 - u) + v3[3] * u) * v;                                      \
-                sample[2] = (v0[4] * (1 - u) + v1[4] * u) * (1 - v) + (v2[4] * (1 - u) + v3[4] * u) * v;                                      \
-                sample[3] = (v0[5] * (1 - u) + v1[5] * u) * (1 - v) + (v2[5] * (1 - u) + v3[5] * u) * v;                                      \
+                const float cu = constantShading ? 0.0f : u;                                                                                  \
+                const float cv = constantShading ? 0.0f : v;                                                                                  \
+                sample[1] = (v0[3] * (1 - cu) + v1[3] * cu) * (1 - cv) + (v2[3] * (1 - cu) + v3[3] * cu) * cv;                                \
+                sample[2] = (v0[4] * (1 - cu) + v1[4] * cu) * (1 - cv) + (v2[4] * (1 - cu) + v3[4] * cu) * cv;                                \
+                sample[3] = (v0[5] * (1 - cu) + v1[5] * cu) * (1 - cv) + (v2[5] * (1 - cu) + v3[5] * cu) * cv;                                \
             }                                                                                                                                 \
                                                                                                                                               \
             COcclusionNode *cNode = getNode(x, y);                                                                                            \

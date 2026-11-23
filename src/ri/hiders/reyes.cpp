@@ -1020,6 +1020,8 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
                 grid->flags |= RASTER_UNDERCULL | RASTER_SHADE_HIDDEN;
             if (attributes->flags & ATTRIBUTES_FLAGS_SHADE_BACKFACE)
                 grid->flags |= RASTER_UNDERCULL | RASTER_SHADE_BACKFACE;
+            if (attributes->flags & ATTRIBUTES_FLAGS_CONSTANT_SHADING)
+                grid->flags |= RASTER_CONSTANT_SHADING;
 
             // Do we have motion blur ?
             if ((CRenderer::flags & OPTIONS_FLAGS_SAMPLEMOTION) && (object->moving()))
