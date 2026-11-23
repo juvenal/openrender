@@ -82,6 +82,13 @@ namespace openrender::shading {
     //   ("Breaking within 2.x"). The rules above apply as written from the release that closes the milestone.
     //
     // History
+    //   2.6.1  GitHub #115. A bug fix only; no member, struct or enumerator changed:
+    //          Fixed:    getMessage's Light source (lightsource()) applies RISpec 3.2 section 15.8's same-type rule exactly (a float is
+    //                    1 float, a triple 3, a matrix 16, a string one char *) and answers TypeMismatch otherwise, like the other
+    //                    sources; it was exempt (B4). Both backends now ask with wantVariable = true and the call's own expected type
+    //                    for the iterated light; the JIT's lightsource() (op_lightsource_param) no longer asks with a 64-byte
+    //                    destBytes (only a .slo compiled before the fix still does, through op_lightsource_f). An implementer that
+    //                    did not refuse a Light parameter of another type must now do so.
     //   2.6.0  spec 057 (written on its branch as 2.4.0; renumbered 2.6.0 when specs 033 (2.4.0) and 040 (2.5.0) land first).
     //          Non-breaking for implementers and doubles:
     //          Added:    ITracer::occluded(context, ray, excludeLight) (tracer.h), with a default body (traceRay, then
@@ -170,7 +177,7 @@ namespace openrender::shading {
     //          Wording only, no version change (spec 038, made while 2.0.0 was current, before 2.1.0): getDSO also serves
     //          the .slo loader, which binds the DSO operands of a JIT-compiled module with it (the member, its signature
     //          and its result are unchanged).
-    inline constexpr InterfaceVersion kRendererServicesVersion{2, 6, 0};
+    inline constexpr InterfaceVersion kRendererServicesVersion{2, 6, 1};
 
     class ITracer; // tracer.h
 
@@ -231,12 +238,12 @@ class CRendererServices {
         //       - any other storage: the varying global buffer at `entry` of the current shading state;
         //       - the step between points is `numFloats`, or 0 when `container` is CONTAINER_UNIFORM or
         //         CONTAINER_CONSTANT (one value for every point).
-        //     The step and the uniform-destination rule below apply to the Light source as well (the
-        //     interpreter's lightsource() takes its source from the light's saved state instead, but uses the
-        //     same step and the same refusal).
+        //     The step and the uniform-destination rule below apply to the Light source as well (lightsource()
+        //     takes its source from the light's saved state instead, but uses the same step and the same
+        //     refusal).
         //     If the destination is uniform (the shader's own variable is uniform) and the variable is
         //     varying, Shading refuses the copy: the builtin returns 0 and the destination is left alone.
-        //     For the interpreter's lightsource() (source Light), `globalIndex` selects the value:
+        //     For lightsource() (source Light, either backend), `globalIndex` selects the value:
         //     Shading reads the iterated light's saved state at savedState[2 + globalIndex], the index
         //     counting the instance's variables the way the light-saving code counts them (instance
         //     parameters in reverse order); it is -1 otherwise and ignored for the other sources.
@@ -244,11 +251,11 @@ class CRendererServices {
         //   NotFound: no such source, shader or parameter (including a null object, FR-027). Nothing is
         //     written.
         //   TypeMismatch: decided BEFORE anything is written into `dest`, under the rules of getAttribute
-        //     (stored string against a non-string expectation, and so on). Never answered for the Light
-        //     source (B4): lightsource() keeps each backend's output.
-        // wantVariable is true for surface(), displacement(), atmosphere() and the interpreter's
-        //   lightsource(); false for incident(), opposite() and the JIT's lightsource(), which skip the
-        //   producer's mutable parameters and take defaults only.
+        //     (stored string against a non-string expectation, and so on). For the Light source the rule is RISpec 3.2
+        //     section 15.8's, exactly: the parameter must be of the destination's type, one float, three floats (color, point,
+        //     vector, normal), sixteen floats (matrix) or a string; an array or any other shape is refused (GitHub #115).
+        // wantVariable is true for surface(), displacement(), atmosphere() and lightsource(); false for incident()
+        //   and opposite(), which skip the producer's mutable parameters and take defaults only.
         // Not found, default body: Unavailable (Shading warns once per kind and returns 0).
         // Thread-safety: as getAttribute.
         // Re-enters Shading: it may call the bound instance's getParameter(), which reads only that instance.

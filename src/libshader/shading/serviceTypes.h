@@ -119,15 +119,14 @@ namespace openrender::shading {
             const char *name;    // the parameter name
             QueryType expected;
             void *dest;          // where a default value is written, in the parameter's own layout
-            // true where the caller reads the producer's current value (surface, displacement, atmosphere, the
-            // interpreter's lightsource). When true, the answer returns the producer's CVariable for every
-            // parameter except an immutable parameter of a light (shader.cpp getParameter), and writes nothing
+            // true where the caller reads the producer's current value (surface, displacement, atmosphere, lightsource). When true,
+            // the answer returns the producer's CVariable for every parameter except an immutable parameter of a light (shader.cpp getParameter), and writes nothing
             // into `dest` for it; otherwise (or when false) `dest` receives the default value.
             bool wantVariable;
             // The size of `dest` in bytes (services 2.4.0). 0, the default, means unbounded: today's behaviour, where the caller's
             // expectation (`expected`) is what keeps a write inside `dest`. When non-zero and the stored value needs more bytes
             // (floats, or char * slots for a string), the answer is TypeMismatch and nothing is written, for every source including
-            // Light. The JIT's lightsource() asks with its 64-byte scratch.
+            // Light. Only op_lightsource_f, which a .slo compiled before GitHub #115 still calls, asks with its 64-byte scratch.
             size_t destBytes = 0;
     };
 

@@ -1840,7 +1840,7 @@ void CShadingContext::restoreState(void *state) {
 int CShadingContext::queryMessage(openrender::shading::MessageSource source, const char *builtin, openrender::shading::ShaderHandle light, bool wantVariable, void *dest, const char *name, CVariable **var, int *globalIndex, openrender::shading::QueryType expected) {
     using namespace openrender::shading;
 
-    // Kinds: the five object sources in the enumeration's order, then lightsource() (no mismatch check)
+    // Kinds: the five object sources in the enumeration's order, then lightsource()
     static std::atomic<bool> s_warnedUnavailable[6] = {false, false, false, false, false, false};
     static std::atomic<bool> s_warnedMismatch[6] = {false, false, false, false, false, false};
     const int kind = (int)source;
@@ -1920,11 +1920,12 @@ int CShadingContext::oppositeParameter(void *dest, const char *name, CVariable *
 // Description			:	lightsource() inside an illuminance loop (interpreter): a parameter of the light being iterated
 // Return Value			:	TRUE when the parameter was found; FALSE with no light being iterated (F3, FR-028)
 // Comments				:	The source is Light and wantVariable is true: the caller reads the light's saved state through
-//							var and globalIndex. No TypeMismatch check for this source (B4): lightsource() keeps its output.
-int CShadingContext::lightParameter(void *dest, const char *name, CVariable **var, int *globalIndex) {
+//							var and globalIndex. `expected` is the type of the call's destination: a parameter of another type is
+//							refused (TypeMismatch, RISpec 3.2 section 15.8), like for the other sources (GitHub #115).
+int CShadingContext::lightParameter(void *dest, const char *name, CVariable **var, int *globalIndex, openrender::shading::QueryType expected) {
     if (currentShadingState->currentLight == NULL)
         return FALSE;
-    return queryMessage(openrender::shading::MessageSource::Light, "lightsource", shaderHandle(currentShadingState->currentLight->instance), true, dest, name, var, globalIndex, openrender::shading::QueryType::Float);
+    return queryMessage(openrender::shading::MessageSource::Light, "lightsource", shaderHandle(currentShadingState->currentLight->instance), true, dest, name, var, globalIndex, expected);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -4253,6 +4254,65 @@ void CShadingContext::jitRendererInfoParameter(float *dst, int sd, const char *c
     int globalIndex = -1;
     float found = (float)this->rendererInfo(dest, name[0], &cVar, &globalIndex, queryTypeOfResultKind(resultKind));
     jitParameterFinish(dst, sd, dest, sDest, n, tags, resultKind, found, cVar, 0);
+}
+
+// lightsource() (GitHub #115): a per-point transcription of LIGHTPARAMETEREXPR_PRE and PARAMETEREXPRF/V/S/M. The light is the one the
+// illuminance loop is on (currentLight; outside a loop there is none and nothing is read). The query goes into a scratch, so that
+// a parameter that is not found or is refused (another type, RISpec 3.2 section 15.8) leaves `dest` untouched, in every lane. A
+// mutable parameter is read from the light's saved state, with the interpreter's step (numFloats, 0 for a uniform or constant
+// parameter); a varying parameter into a uniform destination is refused. The result is the found flag of every active lane.
+void CShadingContext::jitLightsourceParameter(float *dst, int sd, const char *const *name,
+                                              void *dest, int sDest, int n, const int *tags, int resultKind) {
+    if (n <= 0)
+        return;
+    const bool isString = (resultKind < 0);
+    const int items = isString ? 1 : resultKind;
+    CShadedLight *light = currentShadingState->currentLight;
+
+    float scratch[16] = {0.0f}; // the largest value the services answer for a type the call accepts: 16 floats, or one char *
+    CVariable *cVar = nullptr;
+    int globalIndex = -1;
+    float found = 0.0f;
+    if (light != nullptr)
+        found = (float)lightParameter(scratch, name[0], &cVar, &globalIndex, queryTypeOfResultKind(resultKind));
+
+    const float *src = scratch;
+    int srcStep = 0;
+    if (found != 0.0f && cVar != nullptr) {
+        const float *saved = (globalIndex >= 0) ? light->savedState[2 + globalIndex] : nullptr;
+        if (saved == nullptr) {
+            found = 0.0f;
+        }
+        else if (cVar->container == CONTAINER_UNIFORM || cVar->container == CONTAINER_CONSTANT) {
+            src = saved;
+        }
+        else if (sDest == 0) {
+            // A varying parameter into a uniform destination: refused, as in LIGHTPARAMETEREXPR_PRE
+            found = 0.0f;
+        }
+        else {
+            src = saved;
+            srcStep = isString ? cVar->numFloats * (int)(sizeof(char *) / sizeof(float)) : cVar->numFloats;
+        }
+    }
+
+    for (int i = 0; i < n; ++i) {
+        if (tags && tags[i])
+            continue;
+        JIT_IDX(dst, sd, i)[0] = found;
+        if (found == 0.0f)
+            continue;
+        const float *srcIn = JIT_IDX(src, srcStep, i);
+        if (isString) {
+            char **destOut = (char **)JIT_IDX((float *)dest, sDest, i);
+            destOut[0] = (char *)((const char *const *)srcIn)[0];
+        }
+        else {
+            float *destOut = JIT_IDX((float *)dest, sDest, i);
+            for (int k = 0; k < items; ++k)
+                destOut[k] = srcIn[k];
+        }
+    }
 }
 
 // textureinfo() -- byte-faithful transcription of TEXTUREINFO_PRE/F/V/S/M

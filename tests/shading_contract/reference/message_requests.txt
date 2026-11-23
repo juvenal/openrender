@@ -92,7 +92,7 @@ row cm_opposite
 row cm_lightsource (one light, illuminance loop)
   getMatrix name=shader object=obj shader=light light=light time=0
   getMessage source=Light object=obj light=light name=cmfloat expected=Float
-  getMessage source=Light object=obj light=light name=cmvec expected=Float
+  getMessage source=Light object=obj light=light name=cmvec expected=Triple
   Ci(0) = 2.5 0.25 3  Oi(0) = 1 1 1
 row cm_shadername
   no requests
@@ -191,7 +191,7 @@ row cm_opposite
 row cm_lightsource (one light, illuminance loop)
   getMatrix name=shader object=obj shader=light light=light time=0
   getMessage source=Light object=obj light=light name=cmfloat expected=Float
-  getMessage source=Light object=obj light=light name=cmvec expected=Float
+  getMessage source=Light object=obj light=light name=cmvec expected=Triple
   Ci(0) = 2.5 0.25 3  Oi(0) = 1 1 1
 row cm_shadername
   no requests

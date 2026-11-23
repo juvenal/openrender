@@ -20,9 +20,8 @@
  *               the project name; the names the renderer lacks are not found, the destination untouched
  *   Messages    cm_surface/displacement/atmosphere/incident/opposite.sl read real producers bound to the
  *               object's attributes; the oracle is the producer's own getParameter(); and cm_lightsource.sl
- *               records the documented backend difference (Q2): the interpreter asks with the iterated
- *               light and wantVariable = true, every type; the JIT with the last light that ran, float
- *               only, wantVariable = false, the value written into `result`
+ *               checks that both backends ask the same way (GitHub #115): the iterated light, wantVariable = true,
+ *               every type, the result the found flag
  */
 #include "cases.h"
 
@@ -328,7 +327,7 @@ namespace {
                 }
             }
 
-            // ---- lightsource(): the documented backend difference (Q2, research R7) ------------------------
+            // ---- lightsource(): the same requests and results from both backends (GitHub #115) -------------
             {
                 printf("  cm_lightsource (%s)\n", jit ? "slo" : "rslo");
                 fwd.messageCalls.clear();
@@ -349,25 +348,14 @@ namespace {
                     }
                     CT_EXPECT(floatRequests >= 1);
                     CT_EXPECT(lightHandleSeen);
-                    if (!jit) {
-                        // The interpreter asks with the iterated light, wantVariable = true, every type
-                        CT_EXPECT(vectorRequests >= 1);
-                        for (const SMessageCall &c : fwd.messageCalls)
-                            CT_EXPECT(c.wantVariable);
-                        for (int i = 0; i < 3; i++) {
-                            CT_EXPECT_NEAR(r.ciAt(i, 0), 2.5f);
-                            CT_EXPECT_NEAR(r.ciAt(i, 1), 0.25f);
-                            CT_EXPECT_NEAR(r.ciAt(i, 2), 3.0f); // found flags: 1 + 2
-                        }
-                    }
-                    else {
-                        // The JIT asks with the last light that ran, wantVariable = false, float only; the value
-                        // is written into `result` where the interpreter returns the found flag
-                        for (const SMessageCall &c : fwd.messageCalls)
-                            if (c.name == "cmfloat")
-                                CT_EXPECT(!c.wantVariable);
-                        for (int i = 0; i < 3; i++)
-                            CT_EXPECT_NEAR(r.ciAt(i, 0), 2.5f);
+                    // Both backends ask with the iterated light, wantVariable = true, every type (GitHub #115)
+                    CT_EXPECT(vectorRequests >= 1);
+                    for (const SMessageCall &c : fwd.messageCalls)
+                        CT_EXPECT(c.wantVariable);
+                    for (int i = 0; i < 3; i++) {
+                        CT_EXPECT_NEAR(r.ciAt(i, 0), 2.5f);
+                        CT_EXPECT_NEAR(r.ciAt(i, 1), 0.25f);
+                        CT_EXPECT_NEAR(r.ciAt(i, 2), 3.0f); // found flags: 1 + 2
                     }
                 }
             }

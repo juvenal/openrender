@@ -219,7 +219,7 @@ class CShadingState {
 
         CShaderInstance *currentShaderInstance; // The current shader instance that's executing
         float **currentLocals = nullptr;        // Its locals while a .slo shader runs (the JIT's light ends save the output variables from them), else null
-        CShaderInstance *currentLightInstance = nullptr; // The current light instance that's executing (the last one that ran; none yet: lightsource() under the JIT outside any loop, spec 026 F3)
+        CShaderInstance *currentLightInstance = nullptr; // The current light instance that's executing (the last one that ran; none yet). lightsource() no longer reads it (GitHub #115) except op_lightsource_f, for a .slo compiled before
 
         float **locals[NUM_ACCESSORS]; // The local variables for each shader type
 
@@ -910,6 +910,12 @@ class CShadingContext final {
         void jitRendererInfoParameter(float *dst, int sd, const char *const *name,
                                       void *dest, int sDest, int n, const int *tags, int resultKind);
 
+        // lightsource() (GitHub #115): the interpreter's LIGHTPARAMETEREXPR_PRE per point. Reads the light the illuminance loop is on
+        // (currentLight; none: not found), a mutable parameter from that light's saved state, the same type rule as the interpreter
+        // (RISpec 3.2 section 15.8); not found or refused leaves `dest` untouched.
+        void jitLightsourceParameter(float *dst, int sd, const char *const *name,
+                                     void *dest, int sDest, int n, const int *tags, int resultKind);
+
         // textureinfo() (spec 017-jit-builtin-function-coverage, US5):
         // byte-faithful transcription of TEXTUREINFO_PRE/F/V/S/M
         // (shaderFunctions.h) -- name/query are dereferenced ONCE (both
@@ -1234,7 +1240,7 @@ class CShadingContext final {
         int queryServiceAttribute(openrender::shading::AttributeScope scope, void *dest, const char *name, openrender::shading::QueryType expected);
         int queryMessage(openrender::shading::MessageSource source, const char *builtin, openrender::shading::ShaderHandle light, bool wantVariable, void *dest, const char *name,
                          CVariable **var, int *globalIndex, openrender::shading::QueryType expected);
-        int lightParameter(void *dest, const char *name, CVariable **var, int *globalIndex); // lightsource() in an illuminance loop (interpreter)
+        int lightParameter(void *dest, const char *name, CVariable **var, int *globalIndex, openrender::shading::QueryType expected); // lightsource() in an illuminance loop
         const char *shaderName();
         const char *shaderName(const char *type);
 

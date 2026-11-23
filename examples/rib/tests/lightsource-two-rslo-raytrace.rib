@@ -1,0 +1,21 @@
+##RenderMan RIB-Structure 1.0
+# GitHub #115: lightsource() reads the light of the current illuminance iteration. Two distant lights with float k = 1 and k = 2; the
+# surface sums k over illuminance(P) with lightsource("k", kk). The centre pixel is 1 + 2 = 3 (the .slo read the last light that ran
+# for every iteration: 2 + 2 = 4).
+version 3.03
+Hider "raytrace" "jitter" [0]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Option "shaderformat" "default" ["rslo"]
+Quantize "rgba" 0 0 0 0
+Display "lightsource-two-rslo-raytrace.tif" "file" "rgba"
+Format 8 8 1
+Projection "perspective" "fov" 30
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  LightSource "lightsource_light" 1 "float k" [1]
+  LightSource "lightsource_light" 2 "float k" [2]
+  Surface "lightsource_surface"
+  Disk 0 1 360
+WorldEnd

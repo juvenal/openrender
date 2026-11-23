@@ -78,6 +78,15 @@ void CUniformLiftingPass::collectGatherOutputs(const IRFunction &fn,
             // but a lifted uniform. Without this a channel output initialized
             // from a constant was promoted to uniform, and the JIT then bound
             // it as a uniform value rather than as a channel (GitHub #55).
+            // lightsource() writes its destination (operands = [name, destination]) without that write being an IRInstr
+            // result, and the value is a light's output parameter, which may be varying: a destination initialized from a
+            // constant was promoted to uniform, and the parameter of a varying light output was then refused as a varying
+            // value into a uniform variable (GitHub #115).
+            if (instr.opcode == "lightsource") {
+                if (instr.operands.size() > 1)
+                    out.insert(instr.operands[1].token);
+                continue;
+            }
             size_t first;
             if (instr.opcode == "gatherHeader")
                 first = 6;

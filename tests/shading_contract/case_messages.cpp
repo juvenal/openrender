@@ -17,10 +17,9 @@
  *   - a name the double lacks is not found: the destination is untouched and the result is 0.
  *
  * lightsource() needs an illuminance loop, which needs the current object's light list, and the
- * standalone program has no object: its documented backend difference (the interpreter asks with the
- * iterated light and wantVariable = true, every type; the JIT with the last light that ran, float
- * only, wantVariable = false, the value written into `result`; Q2) is asserted in the rendered
- * program, ShadingContract_RealAnswers{Interp,Jit}_Messages.
+ * standalone program has no object: it is asserted in the rendered program,
+ * ShadingContract_RealAnswers{Interp,Jit}_Messages (both backends ask with the iterated light and
+ * wantVariable = true, every type: GitHub #115).
  */
 #include "cases.h"
 

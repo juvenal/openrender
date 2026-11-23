@@ -3091,7 +3091,7 @@ static bool emitFunction(const IRFunction &irFn,
                                   duPtr, dvPtr, numVerts, tags});
             }
 
-            // surface()/displacement()/atmosphere()/incident()/opposite()/
+            // surface()/displacement()/atmosphere()/incident()/opposite()/lightsource()/
             // attribute()/option()/rendererinfo() (spec 017-jit-builtin-
             // function-coverage, US5): named-parameter query against a bound
             // shader instance or scene-level table. All 4 result-type
@@ -3103,7 +3103,7 @@ static bool emitFunction(const IRFunction &irFn,
             // type; here via proto.back(), the dest-operand type -- the
             // return itself is always 'f', the found/not-found indicator).
             else if (op == "surface" || op == "displacement" || op == "atmosphere" ||
-                     op == "incident" || op == "opposite" ||
+                     op == "incident" || op == "opposite" || op == "lightsource" ||
                      op == "attribute" || op == "option" || op == "rendererinfo") {
                 if (ins.operands.size() < 2 || !dst)
                     continue;
@@ -3131,6 +3131,8 @@ static bool emitFunction(const IRFunction &irFn,
                     fnName = "op_atmosphere_param";
                 else if (op == "incident")
                     fnName = "op_incident_param";
+                else if (op == "lightsource")
+                    fnName = "op_lightsource_param"; // GitHub #115: the light of the illuminance iteration, every type
                 else if (op == "opposite")
                     fnName = "op_opposite_param";
                 else if (op == "attribute")
@@ -3271,31 +3273,6 @@ static bool emitFunction(const IRFunction &irFn,
                 auto *fn = declareOp(mod, "op_vfrom", ty);
                 auto [n, tg] = collapseArgs(dstStrideVal, {ss});
                 B.CreateCall(fn, {dst, dstStride, spacePtr, src, B.getInt32(ss), n, tg});
-            }
-
-            // ================================================================
-            // lightsource — query current light's attribute (inside illuminance)
-            // lightsource("f=SF") result attrName outParam
-            // ================================================================
-            else if (op == "lightsource") {
-                if (ins.operands.size() < 2 || !dst) { /* no-op */
-                }
-                else {
-                    const std::string &nameTok = ins.operands[0].token;
-                    std::string nameStr = nameTok;
-                    if (nameStr.size() >= 2 && nameStr.front() == '"')
-                        nameStr = nameStr.substr(1, nameStr.size() - 2);
-                    llvm::Value *namePtr = B.CreateGlobalString(nameStr, "lsattr");
-                    auto [out, so] = getVar(ins, 1);
-                    if (out) {
-                        // (result, sr, attrName, outParam, so, n, tags) → void
-                        auto *ty = llvm::FunctionType::get(voidTy,
-                                                           {ptrTy, i32Ty, ptrTy, ptrTy, i32Ty, i32Ty, ptrTy}, false);
-                        auto *fn = declareOp(mod, "op_lightsource_f", ty);
-                        B.CreateCall(fn, {dst, dstStride, namePtr,
-                                          out, B.getInt32(so), numVerts, tags});
-                    }
-                }
             }
 
             // rayinfo()/raylabel()/raydepth() (spec 017-jit-builtin-
