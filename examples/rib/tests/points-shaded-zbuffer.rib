@@ -1,0 +1,19 @@
+##RenderMan RIB-Structure 1.0
+# GitHub #198: an ordinary Points primitive under the zbuffer hider with no Clipping statement. The point rasterizer read
+# RASTER_UNSHADED from the global option flags, so with no Clipping it never shaded the point and drew it black.
+# Same scene as matte-points-zbuffer.rib without Matte: the point must be the shader colour (0.9 0.1 0.1).
+version 3.03
+Hider "zbuffer" "jitter" [0]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Option "shaderformat" "default" ["rslo"]
+Quantize "rgba" 0 0 0 0
+Display "points-shaded-zbuffer.tif" "file" "rgba"
+Format 8 8 1
+Projection "perspective" "fov" 30
+Translate 0 0 5
+WorldBegin
+  Surface "constant"
+  Color [0.9 0.1 0.1]
+  Points "P" [0 0 0] "constantwidth" [1.5]
+WorldEnd

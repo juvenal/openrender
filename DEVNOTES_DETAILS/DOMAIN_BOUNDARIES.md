@@ -211,7 +211,7 @@ request. Run `ctest -L architecture` locally before review.
     sampling parameters (`clipMax`, `bucketWidth`, `pixelXsamples`, `xSampleOffset`, …),
     `flags`, `hiderFlags`, `raytracingFlags`.
   - 7 files include `src/ri/render/renderer.h` (9 before spec 032).
-- **Size**: 144 edges per platform and 144 DB-011 lines after specs 030, 031 and 032 (7 include, 137 link); 155 after specs 030 and 032 (7 include, 148 link); 158 after spec 032 alone
+- **Size**: 143 edges per platform and 143 DB-011 lines after the fix for GitHub #198 (7 include, 136 link); 144 edges and 144 lines after specs 030, 031 and 032 (7 include, 137 link); 155 after specs 030 and 032 (7 include, 148 link); 158 after spec 032 alone
   (7 include, 151 link) and 161 after spec 030 alone (9 include, 152 link); 164 after spec 029 (9 include, 155 link). After spec 028 it was 166 edges (9 include, 157 link) and 168 lines, because the thread-local
   `CRenderer::activeContext`, referenced through Clang's TLS wrapper (`_ZTW…`) on macOS and directly
   by GCC on Linux, had its 2 edges listed once per platform; before spec 028, 173 edges (9 include,
@@ -221,6 +221,9 @@ request. Run `ctest -L architecture` locally before review.
   §3 and §7), the same as macOS.
 - **Direction**: inject immutable `FrameParams` and per-thread contexts; the mutable flags become
   capabilities on the injected interfaces. Each hider-side spec removes the statics it uses.
+- **History**: fix for GitHub #198, 2026-11-23: `zbuffer.cpp` no longer reads `CRenderer::flags` (the point rasterizer tested the grid's `RASTER_*`
+  bits against the option flags and now reads `grid->flags`, as the quad rasterizer does); 144 to 143 DB-011 lines. The deleted allowlist line:
+  `zbuffer.cpp -> _ZN9CRenderer5flagsE`.
 - **History**: spec 028, 2026-10-29: the raytracer takes its camera from `ICamera` and the
   per-frame `FrameParams` instead of the statics. 7 allowlist lines were deleted:
   `raytracer.cpp -> CRenderer::imagePlane`, `projection`, `focaldistance`, `invImagePlane`,
