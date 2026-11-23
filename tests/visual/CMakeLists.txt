@@ -70,6 +70,11 @@ add_executable(test_pixel_probe test_pixel_probe.cpp)
 target_link_libraries(test_pixel_probe PRIVATE TIFF::TIFF)
 target_compile_features(test_pixel_probe PRIVATE cxx_std_20)
 
+# ShadingInterpolation driver (GitHub #204): plateaus of "constant" and the ramp of "smooth".
+add_executable(test_shading_interpolation test_shading_interpolation.cpp)
+target_link_libraries(test_shading_interpolation PRIVATE TIFF::TIFF)
+target_compile_features(test_shading_interpolation PRIVATE cxx_std_20)
+
 # Two-render comparison driver (spec 039, Phase 5): bit-identical or different.
 add_executable(test_render_compare test_render_compare.cpp)
 target_link_libraries(test_render_compare PRIVATE TIFF::TIFF)
@@ -4830,3 +4835,46 @@ foreach(_case control beyond-target beyond-maxdist past-end)
             DEPENDS     orender)
     endforeach()
 endforeach()
+
+# --- GitHub #204: ShadingInterpolation "constant" ------------------------------------
+# RISpec 3.2 section 4.2.8: with "constant" every pixel of a micropolygon has the colour and
+# opacity of one value, with "smooth" they are interpolated. The value is the quad's v0 corner,
+# grid vertex (i, j), the corner with the lowest u and v, so a patch whose shaded value is v0 + (v1 - v0) s
+# shows plateaus of the micropolygon's width that hold the value at the plateau's low-s edge.
+# test_shading_interpolation reads one row back exactly (ShadingRate 16 dices a 64 pixel patch into
+# 4 pixel micropolygons). Default and "smooth" are a ramp; "constant" is scoped by AttributeBegin/End.
+set(_si_dir ${CMAKE_SOURCE_DIR}/examples/rib/tests)
+set(_si_cases
+    # name                    hider    channel v0  v1  segments
+    "constant-reyes           reyes    0 0 1 flat:0:64:4"
+    "constant-zbuffer         zbuffer  0 0 1 flat:0:64:4"
+    "smooth-reyes             reyes    0 0 1 ramp:0:64"
+    "smooth-zbuffer           zbuffer  0 0 1 ramp:0:64"
+    "scoped-reyes             reyes    0 0 1 flat:0:32:4 ramp:32:64"
+    "scoped-zbuffer           zbuffer  0 0 1 flat:0:32:4 ramp:32:64"
+    "opacity-reyes            reyes    0 0.2 1 flat:0:64:4"
+    "opacity-reyes-alpha      reyes    3 0.2 1 flat:0:64:4"
+    "aov-reyes                reyes    0 0 1 flat:0:64:4"
+    "motion-reyes             reyes    0 0 1 flat:0:64:4"
+    "motion-opacity-reyes     reyes    0 0.2 1 flat:0:64:4"
+    "motion-aov-reyes         reyes    0 0 1 flat:0:64:4"
+    "dof-reyes                reyes    0 0 1 flat:0:64:4")
+foreach(_case IN LISTS _si_cases)
+    separate_arguments(_args UNIX_COMMAND "${_case}")
+    list(POP_FRONT _args _name _hider _channel _v0 _v1)
+    # opacity-reyes-alpha shares its scene with opacity-reyes
+    string(REPLACE "-alpha" "" _scene ${_name})
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/shading-interpolation-${_name})
+    file(MAKE_DIRECTORY ${_scratch})
+    add_test(NAME ShadingInterpolation_${_name}
+        COMMAND test_shading_interpolation $<TARGET_FILE:orender>
+            ${_si_dir}/shading-interpolation-${_scene}.rib
+            shading-interpolation-${_scene}.tif 32 ${_channel} ${_v0} ${_v1} ${_args}
+        WORKING_DIRECTORY ${_scratch})
+    set_tests_properties(ShadingInterpolation_${_name} PROPERTIES
+        TIMEOUT     120
+        LABELS      "visual;regression;shading_interpolation"
+        ENVIRONMENT "${VISUAL_ENV}"
+        DEPENDS     orender)
+endforeach()
+unset(_si_cases)

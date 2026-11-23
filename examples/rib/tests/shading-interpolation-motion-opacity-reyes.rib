@@ -1,0 +1,30 @@
+##RenderMan RIB-Structure 1.0
+# GitHub #204: ShadingInterpolation. A transparent patch with transform motion (no screen movement) takes the moving transparent rasterizer. "constant" flattens opacity too: Os runs 0.2 to 1 across the patch, so red and alpha are Os.
+# Float output, one sample per pixel and a box filter, so test_shading_interpolation can read the
+# shaded values back exactly. The patch spans the image: 64 pixels wide, ShadingRate 16 dices it
+# into micropolygons 4 pixels wide.
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["rslo"]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "shading-interpolation-motion-opacity-reyes.tif" "file" "rgba"
+Projection "orthographic"
+ScreenWindow 0 1 0 1
+Format 64 64 1
+Clipping 0.1 100
+Shutter 0 1
+Translate 0 0 1
+WorldBegin
+  ShadingInterpolation "constant"
+  ShadingRate 16
+  Surface "constant"
+  MotionBegin [0 1]
+    Translate 0 0 0
+    Translate 0 0 0.25
+  MotionEnd
+  Patch "bilinear" "P" [0 0 0  1 0 0  0 1 0  1 1 0]
+        "varying color Cs" [1 1 1  1 1 1  1 1 1  1 1 1]
+        "varying color Os" [0.2 0.2 0.2  1 1 1  0.2 0.2 0.2  1 1 1]
+WorldEnd
