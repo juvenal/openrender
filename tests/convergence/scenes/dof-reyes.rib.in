@@ -15,6 +15,7 @@ Hider "reyes"
 PixelSamples @SPP@
 Projection "perspective" "fov" 45
 DepthOfField 2 1 5
+GeometricApproximation "focusfactor" 0.5
 Translate 0 0 5
 Rotate -110 1 0 0
 Rotate 70 0 0 1

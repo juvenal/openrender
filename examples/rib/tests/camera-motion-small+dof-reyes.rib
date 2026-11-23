@@ -5,6 +5,7 @@ Display "camera-motion-small+dof-reyes.tif" "file" "rgba"
 Projection "perspective" "fov" 45
 Format 800 600 1
 DepthOfField 2 1 5
+GeometricApproximation "focusfactor" 0.5
 Shutter 0 1
 
 MotionBegin [0 1]

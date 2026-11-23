@@ -385,6 +385,10 @@ RI_BIAS,
 EXTERN(RtToken)
 RI_MOTIONFACTOR;
 
+// Focusfactor attribute
+EXTERN(RtToken)
+RI_FOCUSFACTOR;
+
 // Cull attributes
 EXTERN(RtToken)
 RI_BACKFACING;

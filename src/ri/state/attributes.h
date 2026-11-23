@@ -184,6 +184,7 @@ class CAttributes : public CRefCounter {
         EAreaLightMode areaLightMode;  // Attribute "arealight" "string mode": object level mode, Unset = not set
 
         float shadingRate;  // Shading rate for this primitive
+        float focusFactor; // Shading rate relaxation per pixel of circle of confusion (0: none)
         float motionFactor; // Amount to increase shading rate when motion blurring
 
         char *name; // The name of the object if any

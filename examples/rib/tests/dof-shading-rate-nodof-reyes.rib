@@ -1,0 +1,18 @@
+##RenderMan RIB-Structure 1.0
+# GitHub #205: the shading rate under depth of field. Control without depth of field.
+# A 10 x 6 polygon facing the camera, ShadingRate 1, far from the focal plane (focal distance 2, polygon at 10):
+# test_dof_shading_rate counts the vertices the rasterizer shades, from the end-of-frame statistics.
+version 3.03
+Hider "reyes"
+Display "dof-shading-rate-nodof-reyes.tif" "file" "rgb"
+Format 200 150 1
+PixelSamples 1 1
+ShadingRate 1
+Projection "perspective" "fov" 45
+
+Translate 0 0 10
+WorldBegin
+
+  Polygon "P" [-5 -3 0  5 -3 0  5 3 0  -5 3 0]
+
+WorldEnd

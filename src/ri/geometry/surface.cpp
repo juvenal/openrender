@@ -434,18 +434,11 @@ int CPatch::probe(IDicer &dicer) {
             if (regionSeam && shadingRate > kRegionSeamShadingRate)
                 shadingRate = kRegionSeamShadingRate;
 
-            // Correct shading rate with dof factor
-            if (frame.flags & OPTIONS_FLAGS_FOCALBLUR) {
+            // Correct shading rate with focusfactor (opt-in)
+            if ((frame.flags & OPTIONS_FLAGS_FOCALBLUR) && attributes->focusFactor > 0) {
                 const float coc = minCocPixels(frame, bmin[COMP_Z], bmax[COMP_Z]);
-                float maxRate;
-                float cocRate = 0.5f * coc;
-                if (1 > cocRate) {
-                    maxRate = 1;
-                }
-                else {
-                    maxRate = cocRate;
-                }
-                shadingRate *= maxRate;
+                const float cocRate = attributes->focusFactor * coc;
+                shadingRate *= (cocRate > 1 ? cocRate : 1);
             }
 
             // Optionally correct shading rate with motionfactor

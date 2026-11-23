@@ -119,6 +119,7 @@ CAttributes::CAttributes() {
     areaLightMode = EAreaLightMode::Unset;
 
     shadingRate = 1.0f;
+    focusFactor = 0.0f;
     motionFactor = 0.0f;
 
     name = NULL;

@@ -333,6 +333,7 @@ extern RtToken RI_BIAS,
 
 // Motionfactor attribute
 extern RtToken RI_MOTIONFACTOR;
+extern RtToken RI_FOCUSFACTOR;
 
 // Cull attributes
 extern RtToken RI_BACKFACING;

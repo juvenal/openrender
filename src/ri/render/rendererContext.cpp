@@ -2735,6 +2735,9 @@ void CRendererContext::RiGeometricApproximation(const char *type, float value) {
     else if (strcmp(type, RI_FLATNESS) == 0) {
         warning(CODE_BADTOKEN, "Deprecated GeometricApproximation \"%s\" will be ignored\n", type);
     }
+    else if (strcmp(type, RI_FOCUSFACTOR) == 0) {
+        attributes->focusFactor = value;
+    }
     else if (strcmp(type, RI_MOTIONFACTOR) == 0) {
         attributes->motionFactor = value;
     }

@@ -7,6 +7,7 @@ Display "dof-motion-reyes.tif" "file" "rgba"
 Projection "perspective" "fov" 45
 Format 320 240 1
 DepthOfField 2 1 5
+GeometricApproximation "focusfactor" 0.5
 Translate 0 0 5
 
 WorldBegin
