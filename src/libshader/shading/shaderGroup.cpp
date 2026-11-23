@@ -42,6 +42,9 @@ namespace openrender::shading {
             return false; // the shading system gave the diagnostic
 
         layer->setParameters(np, tokens, values);
+        // bind() built a light's categories from the shader's default __category; the RIB's own __category is set only now (GitHub #199)
+        if (request.type == SL_LIGHTSOURCE)
+            layer->createCategories();
         instance = layer;
         return true;
     }

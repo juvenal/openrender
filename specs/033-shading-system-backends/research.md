@@ -244,7 +244,7 @@ exactly:
 4. `log_info("getShader: loading shader ...")` (moved verbatim);
 5. `instance = backend->instantiate(desc, attributes, xform)`;
 6. `instance->instanceKey = host.takeInstanceKey()`;
-7. light: `instance->createCategories()` (reads the **default** `__category`: parameters are set at step 10), then
+7. light: `instance->createCategories()` (reads the **default** `__category`: parameters are set at step 10, after which `ShaderGroupBuilder` calls it again: GitHub #199), then
    `host.registerLight(instance)`;
 8. `arenaBegin(globalArena)`; `backend->initialise(*instance)`; `arenaEnd(globalArena)`;
 9. return the instance to the group builder;

@@ -1023,7 +1023,7 @@ not in the agent definitions.
    the name up *before* it resolves a format, so the first format loaded for a name serves every later request whatever the preference says then (GitHub #167, known limitation, pinned by
    `ShaderFormat_Precedence`). `bind()` is the whole binding in one order: find or load, type check (`error(CODE_NOSHADER, ...)`, no key taken), instance, `takeInstanceKey()`, a light's
    `createCategories()` then `registerLight()` (no extra reference), then the backend's `initialise()` inside `arenaBegin/arenaEnd(globalArena)`; the caller sets the RIB's parameters
-   afterwards. The `"null"` shader returns before the facade (`CRendererContext::getShader`). A backend registers itself with `registerShaderBackend()` (a third one needs no edit of `src/ri`,
+   afterwards and, for a light, calls `createCategories()` again so the RIB's `__category` is the one `iterateLights` reads (GitHub #199; `createCategories()` frees the list it replaces). The `"null"` shader returns before the facade (`CRendererContext::getShader`). A backend registers itself with `registerShaderBackend()` (a third one needs no edit of `src/ri`,
    `src/display`, `src/shadeop`, `src/procedures` or `src/common`: `Shading_CoreNoBackendNames`, `ShadingSystem_ThirdBackend`). `CShader` is a backend-neutral description (`name`, `type`,
    `parameters`, `usedParameters`, `flags`, `data`, `backend`, an owned `payload`); `jitEntry`/`jitInitEntry` are written only in `sloLoader.cpp`.
 41. **A group of one layer is its layer's instance (spec 033, P-Q5).** Every binding goes through `ShaderGroupBuilder` (`begin`, `shader`, `connect`, `end`); `connect()` and a second layer are

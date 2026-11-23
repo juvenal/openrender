@@ -116,7 +116,8 @@ namespace openrender::shading {
         // 5. the key: only now, after a successful load and type check
         instance->instanceKey = host.takeInstanceKey();
 
-        // 6. a light: the categories (from the default __category: the RIB's parameters are not set yet), then the frame's light list
+        // 6. a light: the categories (from the default __category: the RIB's parameters are not set yet; ShaderGroupBuilder rebuilds them from the
+        //    RIB's __category after setParameters, GitHub #199), then the frame's light list
         if (desc->type == SL_LIGHTSOURCE) {
             instance->createCategories();
             host.registerLight(instance);
