@@ -43,3 +43,19 @@ target_include_directories(test_reyes_lens_bounds PRIVATE ${CMAKE_SOURCE_DIR}/sr
 target_link_libraries(test_reyes_lens_bounds PRIVATE ribRender openrendercommon)
 add_test(NAME Hiders_ReyesBucketBoundCoversCoC COMMAND test_reyes_lens_bounds)
 set_tests_properties(Hiders_ReyesBucketBoundCoversCoC PROPERTIES TIMEOUT 60 LABELS "hiders;unit")
+
+# Hiders_ReyesGridShadeRace (GitHub #127): ThreadSanitizer finds no data race on a REYES grid (its flags and vertex data)
+# when several threads draw a grid one of them is shading. Only in an OPENRENDER_TSAN tree: elsewhere the test would pass
+# without checking anything. Timing dependent (see the script): a pass is evidence, and it fails on the unfixed tree.
+if(OPENRENDER_TSAN)
+    add_test(NAME Hiders_ReyesGridShadeRace
+        COMMAND ${CMAKE_COMMAND}
+            -DORENDER=$<TARGET_FILE:orender>
+            -DDISPLAYDIR=$<TARGET_FILE_DIR:file>
+            -DSHADERDIR=${CMAKE_BINARY_DIR}/shaders
+            -DWORKDIR=${CMAKE_CURRENT_BINARY_DIR}/grid_race_work
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/check_reyes_grid_race.cmake)
+    set_tests_properties(Hiders_ReyesGridShadeRace PROPERTIES TIMEOUT 600
+        LABELS "hiders;tsan"
+        ENVIRONMENT "ORENDERHOME=${CMAKE_SOURCE_DIR}")
+endif()

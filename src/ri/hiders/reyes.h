@@ -27,6 +27,8 @@
 #ifndef REYES_H
 #define REYES_H
 
+#include <atomic>
+
 #include "common/global.h"
 #include "dicer.h"
 #include "hider.h"
@@ -131,7 +133,10 @@ class CReyes : public CHider, public IDicer {
                 float umin, umax, vmin, vmax;                 // The parametric range
                 int udiv, vdiv;                               // The number of division
                 int numVertices;                              // The number of vertices
-                int flags;                                    // The primitive flags
+                // The primitive flags. A grid is drawn by every bucket it overlaps, on different threads: the thread
+                // that shades it clears RASTER_UNSHADED with a release (shadeGrid) and the others read the flags
+                // unlocked, with an acquire, to pick their draw function, so they see the shaded vertex data (GitHub #127)
+                std::atomic<int> flags;
         };
 
         ///////////////////////////////////////////////////////////////////////

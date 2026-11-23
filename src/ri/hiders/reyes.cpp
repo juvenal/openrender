@@ -1117,7 +1117,9 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
     // If we've been shading, reset the flags and unlock the mutex
     if (Ponly == FALSE) {
         assert(grid->flags & RASTER_UNSHADED);
-        grid->flags &= ~(RASTER_UNSHADED | RASTER_SHADE_HIDDEN | RASTER_SHADE_BACKFACE | RASTER_UNDERCULL);
+        // Publish the shaded vertex data: a thread that reads the flags unlocked (rasterDrawPrimitives) and sees
+        // RASTER_UNSHADED cleared sees everything written above (GitHub #127)
+        grid->flags.fetch_and(~(RASTER_UNSHADED | RASTER_SHADE_HIDDEN | RASTER_SHADE_BACKFACE | RASTER_UNDERCULL), std::memory_order_release);
 
         osUnlock(grid->mutex);
     }
