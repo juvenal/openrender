@@ -71,6 +71,9 @@ target_link_libraries(test_pixel_probe PRIVATE TIFF::TIFF)
 target_compile_features(test_pixel_probe PRIVATE cxx_std_20)
 
 # ShadingInterpolation driver (GitHub #204): plateaus of "constant" and the ramp of "smooth".
+add_executable(test_dof_shading_rate test_dof_shading_rate.cpp)
+target_compile_features(test_dof_shading_rate PRIVATE cxx_std_20)
+
 add_executable(test_shading_interpolation test_shading_interpolation.cpp)
 target_link_libraries(test_shading_interpolation PRIVATE TIFF::TIFF)
 target_compile_features(test_shading_interpolation PRIVATE cxx_std_20)
@@ -4878,3 +4881,38 @@ foreach(_case IN LISTS _si_cases)
         DEPENDS     orender)
 endforeach()
 unset(_si_cases)
+
+# --- GitHub #205: the shading rate under depth of field -------------------------------
+# RISpec 3.2 section 4.2.7: a renderer shades at least at ShadingRate. Depth of field relaxes the
+# rate only where a scene asks for it with GeometricApproximation "focusfactor" (the rate is
+# multiplied by max(1, focusfactor * circle of confusion in pixels); 0, the default, is no relaxation).
+# test_dof_shading_rate counts the vertices the rasterizer shades (-t -x 3, one thread) over a 10 x 6
+# polygon far from the focal plane: without a focusfactor the count is the count of the same scene
+# without depth of field (26624), with 0.5 it is the count the rule gave before the attribute existed (198);
+# in the scoped scene the left half is in an AttributeBegin/End block with 0.5 (99) and the right half has none (13312).
+set(_dsr_cases
+    # name                scene                      vertices
+    "nodof-reyes          nodof-reyes                26624"
+    "default-reyes        default-reyes              26624"
+    "default-zbuffer      default-zbuffer            26624"
+    "focusfactor-reyes    focusfactor-reyes          198"
+    "focusfactor-zbuffer  focusfactor-zbuffer        198"
+    "scoped-reyes         scoped-reyes               13411")
+foreach(_case IN LISTS _dsr_cases)
+    separate_arguments(_args UNIX_COMMAND "${_case}")
+    list(GET _args 0 _name)
+    list(GET _args 1 _scene)
+    list(GET _args 2 _vertices)
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/dof-shading-rate-${_name})
+    file(MAKE_DIRECTORY ${_scratch})
+    add_test(NAME DofShadingRate_${_name}
+        COMMAND test_dof_shading_rate $<TARGET_FILE:orender>
+            ${CMAKE_SOURCE_DIR}/examples/rib/tests/dof-shading-rate-${_scene}.rib ${_vertices}
+        WORKING_DIRECTORY ${_scratch})
+    set_tests_properties(DofShadingRate_${_name} PROPERTIES
+        TIMEOUT     120
+        LABELS      "visual;regression;dof_shading_rate"
+        ENVIRONMENT "${VISUAL_ENV}"
+        DEPENDS     orender)
+endforeach()
+unset(_dsr_cases)

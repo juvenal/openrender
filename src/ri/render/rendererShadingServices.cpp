@@ -185,6 +185,7 @@ namespace {
     const char *const attributesSides = "Sides";
     const char *const attributesMatte = "matte";
     const char *const attributesMotionfactor = "GeometricApproximation:motionfactor";
+    const char *const attributesFocusfactor = "GeometricApproximation:focusfactor";
     const char *const attributesDisplacementBnd = "displacementbound:sphere";
     const char *const attributesDisplacementSys = "displacementbound:coordinatesystem";
     const char *const attributesName = "identifier:name";
@@ -291,6 +292,9 @@ void CRendererServicesImpl::getAttribute(const openrender::shading::AttributeReq
             }
             else if (strcmp(name, attributesMotionfactor) == 0) {
                 setFloats(answer, 1, (float)currentAttributes->motionFactor);
+            }
+            else if (strcmp(name, attributesFocusfactor) == 0) {
+                setFloats(answer, 1, (float)currentAttributes->focusFactor);
             }
             else if (strcmp(name, attributesDisplacementBnd) == 0) {
                 setFloats(answer, 1, (float)currentAttributes->maxDisplacement);

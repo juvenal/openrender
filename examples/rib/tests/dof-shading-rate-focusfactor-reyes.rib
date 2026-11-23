@@ -1,0 +1,18 @@
+##RenderMan RIB-Structure 1.0
+# GitHub #205: the shading rate under depth of field. focusfactor 0.5: the rate is multiplied by max(1, 0.5 * circle of confusion in pixels), as it was before the attribute.
+# A 10 x 6 polygon facing the camera, ShadingRate 1, far from the focal plane (focal distance 2, polygon at 10):
+# test_dof_shading_rate counts the vertices the rasterizer shades, from the end-of-frame statistics.
+version 3.03
+Hider "reyes"
+Display "dof-shading-rate-focusfactor-reyes.tif" "file" "rgb"
+Format 200 150 1
+PixelSamples 1 1
+ShadingRate 1
+Projection "perspective" "fov" 45
+DepthOfField 2 1 2
+Translate 0 0 10
+WorldBegin
+  GeometricApproximation "focusfactor" 0.5
+  Polygon "P" [-5 -3 0  5 -3 0  5 3 0  -5 3 0]
+
+WorldEnd

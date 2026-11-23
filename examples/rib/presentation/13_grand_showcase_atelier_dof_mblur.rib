@@ -18,6 +18,7 @@ Display "13_grand_showcase_atelier_dof_mblur.tif" "file" "rgba"
 Shutter 0.0 1.0
 Projection "perspective" "fov" [36.0]
 DepthOfField 2.2 0.90 7.6
+GeometricApproximation "focusfactor" 0.5
 Clipping 0.1 100.0
 
 Translate 0.0 -0.3 7.6
