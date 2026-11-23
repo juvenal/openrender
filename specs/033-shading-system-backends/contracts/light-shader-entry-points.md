@@ -32,7 +32,7 @@ and after 033:
 5. take the instance key (`takeInstanceKey()`: the pending light-handle key if set, else the ordinal; it then clears
    the pending key and increments `shaderOrdinal`);
 6. light only: `createCategories()`, which reads the **default** value of `__category` (the RIB parameters are not set
-   yet), then registration into the frame's light list `CRenderer::allLights` (no extra reference);
+   yet; `ShaderGroupBuilder::shader()` calls it again after `setParameters()`, so the RIB's `__category` wins, GitHub #199), then registration into the frame's light list `CRenderer::allLights` (no extra reference);
 7. the bind-time init, inside `arenaBegin(globalArena)` / `arenaEnd(globalArena)`;
 8. the RIB parameters are set (`setParameters`);
 9. back in `RiLightSourceV`/`RiAreaLightSourceV`: `attributes->addLight(instance)`; the instance is returned as the
@@ -62,7 +62,7 @@ stays in the core before the facade; the missing and wrong-type cases return fro
 
 | | Before | After |
 |---|---|---|
-| Categories | `instance->createCategories()` `rendererContext.cpp:324` -> `CShaderInstance::createCategories` `shader.cpp:208` (reads the default `__category`, IDs through `libshader::parseCategories`, `serviceLookup.cpp:82`) | `ShadingSystem::bind()` step 6 calls the same `CShaderInstance::createCategories()` (unchanged, `shader.cpp`) |
+| Categories | `instance->createCategories()` `rendererContext.cpp:324` -> `CShaderInstance::createCategories` `shader.cpp:208` (reads the default `__category`, IDs through `libshader::parseCategories`, `serviceLookup.cpp:82`) | `ShadingSystem::bind()` step 6 calls the same `CShaderInstance::createCategories()` (unchanged, `shader.cpp`; idempotent since #199: `ShaderGroupBuilder::shader()` calls it once more after `setParameters()`) |
 | Light list | `CRenderer::allLights->push(instance)` `rendererContext.cpp:327` | `ShadingSystem::bind()` calls `IShaderBindHost::registerLight(instance)`; `CRendererContext::registerLight()` (`rendererContext.cpp`) does `CRenderer::allLights->push(instance)` |
 | Readers of the light list | `photon.cpp:142-213` (photon emission runs every light from `CRenderer::allLights` with `prepare()` and `illuminate()`); `renderer.cpp:150` (release) | **unchanged** |
 
