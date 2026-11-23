@@ -826,9 +826,14 @@ not in the agent definitions.
    per-lane copy. The shaded object and the executing shaders reach an implementer only as opaque
    `ObjectHandle`/`ShaderHandle` made by `CShadingContext::objectHandle()`/`shaderHandle()`; a null
    object (the imager) answers not found and is never dereferenced. A stored value that cannot be
-   copied safely into the shader's destination (`TypeMismatch`) is refused: the destination is left
-   untouched and the builtin warns once; `lightsource()` is exempt, and its interpreter and JIT
-   outputs still differ (GitHub #115). The trace calls go through `ITracer` (`tracer.h`), answered by
+   copied into the shader's destination (`TypeMismatch`) is refused: the destination is left
+   untouched, the builtin returns 0 and warns once. The five object sources test whether the copy is safe;
+   `lightsource()` applies RISpec 3.2 section 15.8's rule exactly (the parameter has the destination's type:
+   one float, three floats, sixteen floats or a string) in both backends (GitHub #115). Both read the light the
+   illuminance loop is on (`currentLight`), take a mutable parameter from that light's saved state, return 1 or 0
+   per point, leave the destination unchanged on 0 and refuse a varying parameter into a uniform destination;
+   the JIT does it in `op_lightsource_param` (`jitLightsourceParameter`), and a `.slo` compiled before #115 still
+   calls `op_lightsource_f` (the last light that ran, float only) until it is recompiled. The trace calls go through `ITracer` (`tracer.h`), answered by
    the hider that owns the context: each `CHider` installs itself with `setTracer()`, and
    `libshader::traceRay`/`traceBundle` (`traceCalls.h`) ask the context's tracer first and the
    services' `tracer()` only for a context with no owner (the contract doubles); the renderer's
@@ -854,11 +859,11 @@ not in the agent definitions.
    `shade(CSurface *, ...)`, `displace()`, `displaceEstimate()` and `setProducer()` and `IShadingProducer` are removed, and `EShadingDim` moved to `common/shadingDim.h`), and 2.4.0 since spec 033 (a MINOR step,
    additive with defaults: `MatrixRequest::phase` (`EMatrixPhase::Bind` for a shader's bind-time init), `MessageRequest::destBytes`
    (non-zero: the renderer answers `TypeMismatch` before writing when the stored value needs more bytes, any source; the JIT's
-   `lightsource()` asks with 64), `getShaderName` (`shadername(type)` asks it; no services or an `Unavailable` answer: `""` plus one
+   `op_lightsource_f`, kept for a `.slo` compiled before #115, asks with 64), `getShaderName` (`shadername(type)` asks it; no services or an `Unavailable` answer: `""` plus one
    warning). No double or implementer changes to compile.) It is 2.5.0 since spec 040 (a MINOR step that is breaking within 2.x: `IPhotonStore`'s
    `resetPhotons`, `balancePhotons`, `isModifying`, `setModifying` and `storePhoton` are replaced by `storePhotonForFrame` and `writePhotons`;
    `CIrradianceStore::lookupCached` takes an accept function and a batch view in place of a draw callback, `insertRecord` is replaced by
-   `addPending` and `clampAgainstFixed`). It is 2.6.0 since spec 057 (a MINOR step, non-breaking for implementers and doubles: `ITracer::occluded(context, ray, excludeLight)` with a default body, and `areaLightSampler.h`: `AreaLightMode`, `AreaLightInfo`, `IAreaLightSampler`, installed on a context with `CShadingContext::setAreaLightSampler()`; a context with no sampler runs every light as a classic light).
+   `addPending` and `clampAgainstFixed`). It is 2.6.0 since spec 057 (a MINOR step, non-breaking for implementers and doubles: `ITracer::occluded(context, ray, excludeLight)` with a default body, and `areaLightSampler.h`: `AreaLightMode`, `AreaLightInfo`, `IAreaLightSampler`, installed on a context with `CShadingContext::setAreaLightSampler()`; a context with no sampler runs every light as a classic light). It is 2.6.1 since GitHub #115 (a PATCH step, no member changed: the Light source of `getMessage` applies RISpec's exact same-type rule and can answer `TypeMismatch`; both backends ask with `wantVariable` true and the call's expected type).
 29. **The active RI context is installed explicitly (spec 038).** `CRiInterface`'s constructor assigns nothing:
    not `renderMan`, not the diagnostic sink. `riInstallContext(ctx)` makes it the active one (and attaches the
    diagnostics), `riUninstallContext(ctx)` / the destructor of an installed context hands both back to the

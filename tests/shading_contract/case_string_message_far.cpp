@@ -11,8 +11,8 @@
  * lightsource() is covered too, in an illuminance loop over a light with an output string parameter: it reads the light's saved
  * state, which saveLighting (execute.cpp) used to fill with sizeof(float) per string, half a pointer. The test puts the far
  * pointer into the light instance's default, so the light's locals, its saved state and the caller's destination all carry it.
- * Only the interpreter is covered: the JIT's saved state holds L and Cl only (jitIlluminateEnd, shading.cpp) and its lightsource()
- * asks for floats alone.
+ * Only the interpreter is covered here (the JIT keeps a string output parameter in its saved state since GitHub #197 and reads it
+ * through op_lightsource_param since GitHub #115; ShadingContract_LightsourceRispecJit_Types reads a string parameter).
  */
 #include <cstdint>
 #include <cstring>

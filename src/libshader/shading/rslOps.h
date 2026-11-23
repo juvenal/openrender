@@ -199,7 +199,12 @@ void op_phong_batch(float *result, const float *Nf, const float *V, const float 
 /* -----------------------------------------------------------------------
  * Shader attribute query (used inside illuminance loops)
  * ----------------------------------------------------------------------- */
+/* Emitted before GitHub #115 (the last light that ran, float only); no longer emitted, kept for a .slo compiled before it. */
 void op_lightsource_f(float *result, int sr, const char *attrName, float *outParam, int so, int n, const int *tags);
+/* lightsource() (GitHub #115): the light of the current illuminance iteration, every type, result 1 or 0 per point. `resultKind`:
+ * 1=float, 3=vector, 16=matrix, -1=string. The signature of the op_*_param family below. */
+void op_lightsource_param(float *dst, int sd, const char *const *name,
+                          void *dest, int sDest, int n, const int *tags, int resultKind);
 
 /* -----------------------------------------------------------------------
  * for / while loop (JIT path) — mirrors FOR3EXPR_PRE / FOREND3EXPR_PRE

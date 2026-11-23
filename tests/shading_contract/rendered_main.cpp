@@ -32,7 +32,11 @@ int main(int argc, char **argv) {
         return caseLightsourceNoLoopReal(false);
     if (strcmp(which, "NullObject_MessagesInterp") == 0)
         return caseNullObjectMessages(false);
+    if (strncmp(which, "LightsourceRispecInterp_", 24) == 0)
+        return caseLightsourceRispec(false, which + 24);
 #ifdef SHADING_CONTRACT_HAVE_JIT
+    if (strncmp(which, "LightsourceRispecJit_", 21) == 0)
+        return caseLightsourceRispec(true, which + 21);
     if (strcmp(which, "RealAnswersJit_Matrices") == 0)
         return caseRealAnswers(true, "Matrices");
     if (strcmp(which, "RealAnswersJit_Attributes") == 0)
@@ -64,7 +68,7 @@ int main(int argc, char **argv) {
 
     fprintf(stderr,
             "usage: %s RealAnswers{Interp,Jit}_{Matrices,Attributes,Messages}|GatherRequests{Interp,Jit}|"
-            "CannedTrace{Interp,Jit}|NullObject_Attributes{Interp,Jit}|TypeMismatchReal_Message{Interp,Jit}|LightsourceNoLoopReal{Interp,Jit}|NullObject_Messages{Interp,Jit}|LightsourceOversizedJit|StringMessageFarInterp|NoTracer|DoubleGlobalsMatchRenderer\n",
+            "CannedTrace{Interp,Jit}|NullObject_Attributes{Interp,Jit}|TypeMismatchReal_Message{Interp,Jit}|LightsourceNoLoopReal{Interp,Jit}|NullObject_Messages{Interp,Jit}|LightsourceOversizedJit|LightsourceRispec{Interp,Jit}_{Types,MismatchFloat,MismatchVector,MismatchString,MismatchMatrix,Output}|StringMessageFarInterp|NoTracer|DoubleGlobalsMatchRenderer\n",
             argv[0]);
     return 2;
 }
