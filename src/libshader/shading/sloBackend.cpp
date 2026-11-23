@@ -162,7 +162,10 @@ namespace {
                     // all subsequent op_* calls in the outer JIT function.
                     CShadingContext *savedCtx = libshader::activeContext();
                     libshader::setActiveContext(&context);
+                    float **savedLocals = currentShadingState->currentLocals;
+                    currentShadingState->currentLocals = locals;
                     payload->jitEntry(numVertices, stuff, tagStart);
+                    currentShadingState->currentLocals = savedLocals;
                     libshader::setActiveContext(savedCtx);
                     if (currentShader->type == SL_SURFACE) {
                         const float *CI = varying[VARIABLE_CI];

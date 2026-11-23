@@ -1087,8 +1087,7 @@ not in the agent definitions.
    The photon hider (`photon.cpp`) draws one emitter point per photon through `CHider::sampleEmitters`, writes them into the light's globals, ignores the hook
    operands for a bound light (the hook hands only the first element, GitHub #68) and multiplies the power by the total area; a classic light keeps the hook path.
    The `al_surface_*` receivers of `tests/arealight/shaders` run as `.rslo` because a `.slo` surface that uses `illuminance(P)` alone gathers no light (GitHub #126).
-   A light's `__nondiffuse`/`__nonspecular` are honoured for a bound light exactly as for a classic one; under the JIT neither honours them for an
-   `illuminate()` light (`jitIlluminateEnd` saves only `Cl` and `-L`, GitHub #197), so contract case (11) asserts the scaling for `.rslo` only.
+   A light's `__nondiffuse`/`__nonspecular` are honoured for a bound light exactly as for a classic one. Under the JIT they are honoured as well (GitHub #197): the `.slo` loader marks a writable parameter as a mutable one, `jitIlluminateEnd` and `jitSolarEnd` save each such output variable into the light's `savedState[2 + i]` (read from the executing light's locals, `CShadingState::currentLocals`), and `callDiffuse` reads `__nondiffuse` as `callSpecular` reads `__nonspecular`; contract cases (11) and (11b, a solar light) assert the scaling in both formats.
    `quadlight.sl` and `spherelight.sl` are deprecated by their header comments (compiled bytes unchanged: `Shaders_BytesUnchanged`). Gotchas 10 and 11 are not
    needed for a bound light.
    **Motion:** an emitter in `MotionBegin` is sampled at the shading point's shutter time: the raytrace hider gives every pixel sample its own time (blurred), reyes and zbuffer shade a static receiver's grid once at time 0 (`reyes.cpp`), so there the emitter acts at its shutter-open pose (GitHub #196; `AreaLight_EmitterMotion`, `_GridTime`).

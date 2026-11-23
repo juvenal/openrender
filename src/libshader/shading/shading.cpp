@@ -2344,6 +2344,15 @@ void CShadingContext::callDiffuse(float *result, const float *Nf) {
         const int *ltags = light->lightTags;
         const float *L = light->savedState[0];
         const float *Cl = light->savedState[1];
+        // __nondiffuse scales the light by (1 - nd) per point, as DIFFUSEEXPR does (GitHub #197)
+        const float *nd = nullptr;
+        int ndStep = 0;
+        const CShaderInstance *inst = light->instance;
+        if (inst && (inst->flags & SHADERFLAGS_NONDIFFUSE)) {
+            const CLightShaderData *lightData = (const CLightShaderData *)inst->data;
+            nd = light->savedState[2 + lightData->nonDiffuseIndex];
+            ndStep = lightData->nonDiffuseStep;
+        }
         for (int i = 0; i < n; ++i) {
             if (tags[i] != 0)
                 continue;
@@ -2358,7 +2367,7 @@ void CShadingContext::callDiffuse(float *result, const float *Nf) {
             lx /= lm;
             ly /= lm;
             lz /= lm;
-            float coeff = Nf[3 * i] * lx + Nf[3 * i + 1] * ly + Nf[3 * i + 2] * lz;
+            float coeff = (1.0f - (nd ? nd[ndStep * i] : 0.0f)) * (Nf[3 * i] * lx + Nf[3 * i + 1] * ly + Nf[3 * i + 2] * lz);
             if (coeff > 0.0f) {
                 result[3 * i] += coeff * Cl[3 * i];
                 result[3 * i + 1] += coeff * Cl[3 * i + 1];
@@ -2680,6 +2689,25 @@ void CShadingContext::jitIlluminate3Begin(
     }
 }
 
+// Saves a light's output variables (the mutable parameters, such as __nondiffuse and __nonspecular) for the receivers' diffuse() and
+// specular() the way the interpreter's saveLighting does: one slot per mutable parameter, in the instance's parameter order, from the
+// executing .slo light's locals (GitHub #197). Called by jitIlluminateEnd and jitSolarEnd after the light's own slots are filled.
+static void jitSaveLightOutputs(CShadedLight *cLight, const CProgrammableShaderInstance *cInst, const CShadingState *ss, CMemPage *&memory) {
+    if (!cInst || !ss->currentLocals)
+        return;
+    int globNum = 0;
+    for (const CVariable *cVariable = cInst->parameters; cVariable != nullptr; cVariable = cVariable->next) {
+        if (cVariable->storage != STORAGE_MUTABLEPARAMETER)
+            continue;
+        const size_t itemSize = (cVariable->type == TYPE_STRING) ? sizeof(char *) : sizeof(float);
+        const bool uniform = (cVariable->container == CONTAINER_UNIFORM) || (cVariable->container == CONTAINER_CONSTANT);
+        const size_t bytes = itemSize * cVariable->numFloats * (uniform ? 1 : ss->numVertices);
+        cLight->savedState[2 + globNum] = (float *)ralloc((int)bytes, memory);
+        memcpy(cLight->savedState[2 + globNum], ss->currentLocals[cVariable->entry], bytes);
+        globNum++;
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
 // CShadingContext::jitIlluminateEnd
 // Mirrors ILLUMINATEEND_PRE for the JIT light-shader path.
@@ -2727,6 +2755,7 @@ void CShadingContext::jitIlluminateEnd(int *tags, int n, int *numActive, int *nu
         ss->lights = cLight;
         memcpy(cLight->lightTags, ss->tags, sizeof(int) * numVertices);
         memcpy(cLight->savedState[1], ss->varying[VARIABLE_CL], sizeof(float) * 3 * numVertices);
+        jitSaveLightOutputs(cLight, cInst, ss, threadMemory);
         // Copy -L into savedState[0] (mirrors interpreter: mulvf(Lsave, L, -1))
         const float *L = ss->varying[VARIABLE_L];
         float *Ls = cLight->savedState[0];
@@ -2878,6 +2907,7 @@ void CShadingContext::jitSolarEnd(int *tags, int n, int *numActive, int *numPass
         ss->lights = cLight;
         memcpy(cLight->lightTags, ss->tags, sizeof(int) * numVertices);
         memcpy(cLight->savedState[1], ss->varying[VARIABLE_CL], sizeof(float) * 3 * numVertices);
+        jitSaveLightOutputs(cLight, cInst, ss, threadMemory);
 
         // Save -normalize(L) into savedState[0] for active vertices (mirrors SOLAREND_PRE)
         const float *L = ss->varying[VARIABLE_L];

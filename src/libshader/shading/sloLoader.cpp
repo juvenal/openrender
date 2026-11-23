@@ -197,6 +197,7 @@ CShader *parseSloShader(const char *shaderName, const char *sloPath) {
     // char *[] for a string, float[] otherwise.
     CVariable *paramHead = nullptr;
     std::vector<char *> defaultStrings; // strdup'd string defaults, handed to sh->strings below
+    int numMutable = 0;
     for (int i = numParams - 1; i >= 0; --i) {
         const SLOParamInfo &p = info.params[i];
         int totalFloats = p.arraySize * sloFloatCount(p.typeName);
@@ -206,7 +207,11 @@ CShader *parseSloShader(const char *shaderName, const char *sloPath) {
         v->name[VARIABLE_NAME_LENGTH - 1] = '\0';
         v->type = sloVarType(p.typeName);
         v->container = (p.storage == "varying") ? CONTAINER_VARYING : CONTAINER_UNIFORM;
-        v->storage = STORAGE_PARAMETER;
+        // An output parameter is a mutable one, as rslo.y makes it: CShader::analyse finds a light's __nondiffuse and __nonspecular
+        // among them and the light's saved state holds them (GitHub #197)
+        v->storage = p.writable ? STORAGE_MUTABLEPARAMETER : STORAGE_PARAMETER;
+        if (p.writable)
+            numMutable++;
         v->numItems = p.arraySize;
         v->numFloats = totalFloats;
         v->entry = i; // slot i in varyingSizes[] and locals[]
@@ -269,7 +274,7 @@ CShader *parseSloShader(const char *shaderName, const char *sloPath) {
         paramHead = v;
     }
     sh->parameters = paramHead;
-    payload->numGlobals = 0;
+    payload->numGlobals = numMutable; // the count of the mutable parameters, as rslo.y counts them
 
     // The JIT is the only execution path for .slo-based shaders (a CSloPayload has no bytecode). The default strings live in
     // payload->strings, as in rslo.y: ~CRslPayload frees each string and, through `memory`, the array.
