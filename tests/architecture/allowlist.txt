@@ -17,7 +17,7 @@ DB-004  link     src/ri/geometry/blobbyRepeller.cpp  ->  _ZN9CRenderer11textureP
 
 # --- DB-006: Geometry is coupled to Shading and to the hiders (0) ---
 
-# --- DB-011: Hiders read renderer-core state (CRenderer) (144) ---
+# --- DB-011: Hiders read renderer-core state (CRenderer) (143) ---
 DB-011  include  src/ri/hiders/compositor.cpp  ->  src/ri/render/renderer.h
 DB-011  include  src/ri/hiders/occlusion.cpp  ->  src/ri/render/renderer.h
 DB-011  include  src/ri/hiders/photon.cpp  ->  src/ri/render/renderer.h
@@ -159,7 +159,6 @@ DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer13pixelYsamplesE   
 DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer13xSampleOffsetE   # CRenderer::xSampleOffset
 DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer13ySampleOffsetE   # CRenderer::ySampleOffset
 DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer17pixelFilterKernelE   # CRenderer::pixelFilterKernel
-DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer5flagsE   # CRenderer::flags
 DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer7clipMaxE   # CRenderer::clipMax
 DB-011  link     src/ri/hiders/zbuffer.cpp  ->  _ZN9CRenderer7clipMinE   # CRenderer::clipMin
 

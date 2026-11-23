@@ -48,9 +48,31 @@ endforeach()
 foreach(_hider reyes raytrace)
     add_camerahitmode_probe(shader disk ${_hider} 0.25)
 endforeach()
-# zbuffer is opaque-only (it ignores Oi), so "shader" has no probe there. Raytrace draws no Points (GitHub #195), and Points
-# under the zbuffer hider hang (filed separately), so points are probed under reyes only.
+# zbuffer is opaque-only (it ignores Oi), so "shader" has no probe there. Raytrace draws no Points (GitHub #195), so a points
+# primitive is probed under reyes and zbuffer only. The zbuffer one has a Clipping statement and hung before GitHub #198
+# (the point rasterizer tested the Clipping option bit as RASTER_UNSHADED), hence the short timeout.
 add_camerahitmode_probe(primitive points reyes 1)
+add_camerahitmode_probe(primitive points zbuffer 1)
+set_tests_properties(CameraHitMode_primitive_points_zbuffer PROPERTIES TIMEOUT 30)
 add_camerahitmode_probe(shader points reyes 0.25)
 # A camera hit reads camerahitmode, never specularhitmode: specular "primitive" with camera "shader" still runs the shader
 add_camerahitmode_probe(specprim-camshader disk raytrace 0.25)
+
+# GitHub #198: points under the zbuffer hider with no Clipping statement. The point rasterizer read RASTER_UNSHADED, RASTER_MATTE
+# and RASTER_SHADE_HIDDEN from CRenderer::flags instead of the grid's flags, so with no Clipping it never shaded a point
+# (a plain point came out black) and with a Clipping statement (option bit 3) it hung. The zbuffer hider is opaque-only: alpha 1.
+#   points-shaded-zbuffer: the shader's colour (0.9 0.1 0.1, 1)      matte-points-zbuffer: a matte point is black (0 0 0, 1)
+# The matte probe cannot fail on its own against the unfixed tree (no point was shaded there, so it was black anyway); it
+# pins the RASTER_MATTE test of the fixed tree, and fails when only that line is reverted.
+macro(add_zbuffer_points_probe NAME R G B A)
+    set(_mp_scratch ${CMAKE_BINARY_DIR}/tests/visual/${NAME})
+    file(MAKE_DIRECTORY ${_mp_scratch})
+    add_test(NAME ZbufferPoints_${NAME}
+        COMMAND test_pixel_probe $<TARGET_FILE:orender> ${CMAKE_SOURCE_DIR}/examples/rib/tests/${NAME}.rib
+                ${NAME}.tif 4 4 0.00001 ${R} ${G} ${B} ${A}
+        WORKING_DIRECTORY ${_mp_scratch})
+    set_tests_properties(ZbufferPoints_${NAME} PROPERTIES
+        TIMEOUT 30 LABELS "visual;regression" ENVIRONMENT "${VISUAL_ENV}" DEPENDS orender)
+endmacro()
+add_zbuffer_points_probe(points-shaded-zbuffer 0.9 0.1 0.1 1)
+add_zbuffer_points_probe(matte-points-zbuffer 0 0 0 1)

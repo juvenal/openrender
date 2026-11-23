@@ -1,0 +1,20 @@
+##RenderMan RIB-Structure 1.0
+# GitHub #198: a matte Points primitive under the zbuffer hider, with no Clipping statement. A matte point's colour is
+# zero (RASTER_MATTE, read from the grid's flags); its twin scene points-shaded-zbuffer.rib is the same point without Matte
+# and must be the shader's colour. The zbuffer hider is opaque-only, so a matte point has alpha 1 here (reyes gives 0).
+version 3.03
+Hider "zbuffer" "jitter" [0]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Option "shaderformat" "default" ["rslo"]
+Quantize "rgba" 0 0 0 0
+Display "matte-points-zbuffer.tif" "file" "rgba"
+Format 8 8 1
+Projection "perspective" "fov" 30
+Translate 0 0 5
+WorldBegin
+  Surface "constant"
+  Color [0.9 0.1 0.1]
+  Matte 1
+  Points "P" [0 0 0] "constantwidth" [1.5]
+WorldEnd

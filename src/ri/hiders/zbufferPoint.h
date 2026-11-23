@@ -20,6 +20,7 @@
 // This is the portion of Pixie that draws a point into the zbuffer
 
 int i;
+const int flags = grid->flags;
 const int *bounds = grid->bounds;
 const float *vertices = grid->vertices;
 const float *sizes = grid->sizes;
@@ -70,9 +71,9 @@ for (i = grid->numVertices; i > 0; i--, vertices += numVertexSamples, bounds += 
                 float *sample = &fb[y][x * SAMPLES_PER_PIXEL];
                 const float z = vertices[2];
 
-                if (z < sample[0] || (z == sample[0] && tieKeyLess(RASTER_TIE_KEY(vertices), loadTieKey(sample + 4))) || (CRenderer::flags & RASTER_SHADE_HIDDEN)) {
+                if (z < sample[0] || (z == sample[0] && tieKeyLess(RASTER_TIE_KEY(vertices), loadTieKey(sample + 4))) || (flags & RASTER_SHADE_HIDDEN)) {
                     if (z > CRenderer::clipMin) {
-                        if (CRenderer::flags & RASTER_UNSHADED) {
+                        if (flags & RASTER_UNSHADED) {
                             shadeGrid(grid, FALSE);
                             rasterDrawPrimitives(grid);
                             return;
@@ -80,7 +81,7 @@ for (i = grid->numVertices; i > 0; i--, vertices += numVertexSamples, bounds += 
 
                         sample[0] = z;
                         storeTieKey(sample + 4, RASTER_TIE_KEY(vertices));
-                        if (CRenderer::flags & RASTER_MATTE) {
+                        if (flags & RASTER_MATTE) {
                             initv(sample, 0);
                         }
                         else {
