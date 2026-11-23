@@ -218,6 +218,7 @@ class CShadingState {
         float *lightSideNStore;         // The buffer lightSideN points into, allocated with the state like Ns (mgs * 9 floats)
 
         CShaderInstance *currentShaderInstance; // The current shader instance that's executing
+        float **currentLocals = nullptr;        // Its locals while a .slo shader runs (the JIT's light ends save the output variables from them), else null
         CShaderInstance *currentLightInstance = nullptr; // The current light instance that's executing (the last one that ran; none yet: lightsource() under the JIT outside any loop, spec 026 F3)
 
         float **locals[NUM_ACCESSORS]; // The local variables for each shader type

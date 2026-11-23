@@ -46,7 +46,9 @@ set(_contract_shader_names
     cv_surface_trace cv_surface_transmission cv_surface_gather cv_surface_environment cv_surface_visibility
     cv_surface_occlusion cv_surface_indirect cv_incident_probe
     # spec 057: the bound-light branch of iterateLights (contract-only shaders; they touch neither shader manifest)
-    ca_light_const ca_light_cat ca_light_nondiffuse ca_light_writen ca_light_encode ca_surface_sum ca_surface_sum_cat ca_surface_diffuse ca_light_nonspecular ca_light_nondiffuse_uniform ca_light_nonspecular_uniform ca_surface_specular)
+    ca_light_const ca_light_cat ca_light_nondiffuse ca_light_writen ca_light_encode ca_surface_sum ca_surface_sum_cat ca_surface_diffuse ca_light_nonspecular ca_light_nondiffuse_uniform ca_light_nonspecular_uniform ca_surface_specular
+    # GitHub #197: solar() lights that set __nondiffuse and __nonspecular
+    ca_light_solar_nondiffuse ca_light_solar_nonspecular ca_light_nd_ns)
 set(_shader_specs "")
 foreach(_b trace transmission visibility gather environment shadow occlusion indirectdiffuse)
     list(APPEND _shader_specs "replay_${_b}|${CMAKE_CURRENT_SOURCE_DIR}/replay/shaders/replay_${_b}.sl")
