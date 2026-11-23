@@ -65,8 +65,6 @@ float rsl_rendererinfo_scalar(const char *name, float *out);
 float rsl_trace_scalar(const float *P, const float *R);
 
 // --- Lighting (Surface Shaders) ---
-void rsl_run_lights(const float *P, const float *N, const float *T, int numVertices, int *tags, int *numActive, int *numPassive, int inShadow, float **varying, void *cInstance);
-void rsl_run_category_lights(const float *P, const float *N, const float *T, const char *category, int numVertices, int *tags, int *numActive, int *numPassive, int inShadow, float **varying, void *cInstance);
 int rsl_illuminance_next(float **L_ptr, float **Cl_ptr, int numVertices, int *tags, int *numActive, int *numPassive);
 void rsl_illuminance_post(int numVertices, int *tags, int *numActive, int *numPassive);
 
@@ -82,7 +80,7 @@ void rsl_ambient_1v(float *result_1v, int vtx);
 void rsl_diffuse_1v(float *result_1v, const float *Nf_1v, int vtx);
 
 // JIT-callable illuminance helpers.
-// rsl_illuminance_setup replaces rsl_run_lights for JIT shaders: converts a scalar
+// rsl_illuminance_setup converts a scalar
 // half-angle to a per-vertex costheta array and runs all lights via the active context.
 // rsl_illuminance_next_jit / rsl_illuminance_post_jit are 4/2-arg wrappers that obtain
 // numActive and numPassive from the active shading context internally.

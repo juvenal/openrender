@@ -435,7 +435,7 @@ class CRendererServices {
         // The id of a global string (a light category name): get or create. The same name always gets the
         // same id for the whole render, and an unknown name is registered and gets the next free one.
         // Output: an id >= 1 (the real renderer starts at 1 and counts up). Shading uses the id as a light
-        // category, and negates it for an excluded category written "-name" (rsl_run_category_lights), so
+        // category, and negates it for an excluded category written "-name" (CATEGORYLIGHT_PRE, jitIlluminanceBegin), so
         // an id must be positive: a negated 0 is 0 and could not exclude. An id of 0 is never stored: when
         // a shader's category list is parsed, a 0 answer (an implementer's, or the no-services case) skips
         // the category (serviceLookup.cpp). Called while a shader's light categories are parsed and by illuminance()'s category

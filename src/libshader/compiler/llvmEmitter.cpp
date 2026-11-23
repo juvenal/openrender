@@ -1451,8 +1451,9 @@ static bool emitFunction(const IRFunction &irFn,
                 //   illuminance(cat, P, N, a)   [P, N, angle, bodyLabel, exitLabel, cat]   (6)
                 // The operand count tells the forms apart. A form with no N and angle
                 // runs every light with no cone: N = (0,0,1) and angle = PI, as the
-                // interpreter's ILLUMINATION1EXPR_PRE does (GitHub #126). The category
-                // operand is not passed on in any form.
+                // interpreter's ILLUMINATION1EXPR_PRE does (GitHub #126). The 4- and 6-operand
+                // forms carry the category string, which op_illuminance_begin_v3 takes (GitHub #200);
+                // the 3- and 5-operand forms keep op_illuminance_begin_v2, so their bytes do not move.
                 const bool shortForm = ins.operands.size() == 3 || ins.operands.size() == 4;
                 llvm::Value *P, *N, *ang;
                 int sp, sn, sa;
@@ -1482,13 +1483,31 @@ static bool emitFunction(const IRFunction &irFn,
                     if (ins.operands.size() >= 5)
                         exitLabel = ins.operands[4].token; // "#!LabelN"
                 }
+                // operands[3] (short form) or operands[5] (long form) is the category
+                const bool hasCategory = ins.operands.size() == 4 || ins.operands.size() == 6;
+                llvm::Value *categoryPtr = nullptr;
+                if (hasCategory) {
+                    categoryPtr = getVar(ins, shortForm ? 3 : 5).first;
+                    if (!categoryPtr) {
+                        fprintf(stderr,
+                                "llvmEmitter: in '%s', the category operand of 'illuminance' does not resolve ('%s')\n",
+                                std::string(func->getName()).c_str(),
+                                ins.operands[shortForm ? 3 : 5].token.c_str());
+                        return false;
+                    }
+                }
 
                 // Function type: (ptr,i32, ptr,i32, ptr,i32, ptr, i32, ptr*, ptr*) → i32
                 auto *beginTy = llvm::FunctionType::get(i32Ty,
                                                         {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty,
                                                          ptrTy, i32Ty, ptrTy, ptrTy, i32Ty},
                                                         false);
-                auto *beginFn = declareOp(mod, "op_illuminance_begin_v2", beginTy);
+                auto *beginTy3 = llvm::FunctionType::get(i32Ty,
+                                                         {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty,
+                                                          ptrTy, i32Ty, ptrTy, ptrTy, ptrTy, i32Ty},
+                                                         false);
+                auto *beginFn = hasCategory ? declareOp(mod, "op_illuminance_begin_v3", beginTy3)
+                                            : declareOp(mod, "op_illuminance_begin_v2", beginTy);
 
                 llvm::BasicBlock *bodyBB = nullptr;
                 llvm::BasicBlock *latchBB = nullptr;
@@ -1503,11 +1522,19 @@ static bool emitFunction(const IRFunction &irFn,
                 latchBB = llvm::BasicBlock::Create(ctx, "illum_latch", func);
                 exitBB = llvm::BasicBlock::Create(ctx, "illum_exit", func);
 
-                auto *has = B.CreateCall(beginFn,
-                                         {P, B.getInt32(sp),
-                                          N, B.getInt32(sn),
-                                          ang, B.getInt32(sa),
-                                          tags, numVerts, numActivePtr, numPassivePtr, callSiteArg(B, ins)});
+                llvm::Value *has;
+                if (hasCategory)
+                    has = B.CreateCall(beginFn,
+                                       {P, B.getInt32(sp),
+                                        N, B.getInt32(sn),
+                                        ang, B.getInt32(sa),
+                                        tags, numVerts, numActivePtr, numPassivePtr, categoryPtr, callSiteArg(B, ins)});
+                else
+                    has = B.CreateCall(beginFn,
+                                       {P, B.getInt32(sp),
+                                        N, B.getInt32(sn),
+                                        ang, B.getInt32(sa),
+                                        tags, numVerts, numActivePtr, numPassivePtr, callSiteArg(B, ins)});
                 auto *ok = B.CreateICmpNE(has, B.getInt32(0));
                 B.CreateCondBr(ok, bodyBB, exitBB);
 

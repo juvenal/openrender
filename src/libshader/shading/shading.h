@@ -754,7 +754,8 @@ class CShadingContext final {
         //   light's conditional and loads L/Cl.  Returns 1 if any light is active.
         //   P[sp*i], N[sn*i] (sp/sn = 0 for uniform, 3 for varying).
         //   angle[sa*i] in radians (sa = 0 for uniform, 1 for varying float).
-        int jitIlluminanceBegin(const float *P, int sp, const float *N, int sn, const float *angle, int sa, int *tags, int n, int *numActive, int *numPassive);
+        //   category: the illuminance() category string (null or "": every light; a leading '-' inverts), as CATEGORYLIGHT_PRE.
+        int jitIlluminanceBegin(const float *P, int sp, const float *N, int sn, const float *angle, int sa, int *tags, int n, int *numActive, int *numPassive, const char *const *category = nullptr);
         // jitIlluminanceNext: exit current light's cond, advance to next, enter it.
         //   Returns 1 if the next light exists and has active vertices, else 0.
         int jitIlluminanceNext(int *tags, int n, int *numActive, int *numPassive);

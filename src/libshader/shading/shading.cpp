@@ -2972,10 +2972,19 @@ static void exitLight(CShadedLight *cLight,
 // Runs all lights, enters the first active light's conditional.
 // Returns 1 if the body should execute, 0 if no lights to iterate.
 int CShadingContext::jitIlluminanceBegin(
-    const float *P, int sp, const float *N, int sn, const float *angle, int sa, int *tags, int n, int *numActive, int *numPassive) {
+    const float *P, int sp, const float *N, int sn, const float *angle, int sa, int *tags, int n, int *numActive, int *numPassive, const char *const *category) {
     CShadingState *ss = currentShadingState;
     if (!ss)
         return 0;
+
+    // The signed category id, built as CATEGORYLIGHT_PRE does (execute.cpp): a leading '-' inverts the match
+    int saveCat = 0;
+    if (category != nullptr && *category != nullptr && **category != '\0') {
+        if (**category == '-')
+            saveCat = -rendererGetGlobalID(*category + 1);
+        else
+            saveCat = rendererGetGlobalID(*category);
+    }
 
     // Build costheta[i] = cos(angle[i]).  angle may be uniform (sa=0) or varying (sa=1).
     float *costheta = (float *)ralloc(n * sizeof(float), threadMemory);
@@ -3003,7 +3012,7 @@ int CShadingContext::jitIlluminanceBegin(
         lN = bN;
     }
 
-    iterateLights(lP, lN, costheta, n, tags, *numActive, *numPassive,
+    iterateLights(lP, lN, costheta, n, tags, *numActive, *numPassive, saveCat,
                   inShadow, ss->varying, ss->currentShaderInstance);
 
     // Advance through lights until one has active vertices.
