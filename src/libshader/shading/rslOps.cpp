@@ -1578,6 +1578,14 @@ int op_illuminance_begin_v2(const float *P, int sp, const float *N, int sn, cons
                                     tags, n, numActive, numPassive);
 }
 
+int op_illuminance_begin_v3(const float *P, int sp, const float *N, int sn, const float *angle, int sa, int *tags, int n, int *numActive, int *numPassive, const char *const *category, uint32_t /*callSite*/) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx)
+        return 0;
+    return ctx->jitIlluminanceBegin(P, sp, N, sn, angle, sa,
+                                    tags, n, numActive, numPassive, category);
+}
+
 int op_illuminance_next(int *tags, int n, int *numActive, int *numPassive) {
     CShadingContext *ctx = libshader::activeContext();
     if (!ctx)

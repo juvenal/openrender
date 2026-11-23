@@ -378,37 +378,6 @@ int rsl_illuminance_next_batch(int numVertices, int *tags) {
 
 // --- Lighting Integration ---
 
-void rsl_run_lights(const float *P, const float *N, const float *T, int numVertices, int *tags, int *numActive, int *numPassive, int inShadow, float **varying, void *cInstance) {
-    (void)P;
-    (void)N;
-    (void)T;
-    (void)numVertices;
-    (void)tags;
-    (void)numActive;
-    (void)numPassive;
-    (void)inShadow;
-    (void)varying;
-    (void)cInstance;
-    if (libshader::activeContext()) {
-        libshader::activeContext()->iterateLights(P, N, T, numVertices, tags, *numActive, *numPassive, inShadow, varying, (CShaderInstance *)cInstance);
-    }
-}
-
-void rsl_run_category_lights(const float *P, const float *N, const float *T, const char *category, int numVertices, int *tags, int *numActive, int *numPassive, int inShadow, float **varying, void *cInstance) {
-    (void)category;
-    CShadingContext *ctx2 = libshader::activeContext();
-    if (ctx2) {
-        int runCat = 0;
-        if (category && category[0] != '\0') {
-            CRendererServices *svc = ctx2->getServices();
-            if (svc) {
-                runCat = (category[0] == '-') ? -svc->getGlobalID(category + 1) : svc->getGlobalID(category);
-            }
-        }
-        ctx2->iterateLights(P, N, T, numVertices, tags, *numActive, *numPassive, runCat, inShadow, varying, (CShaderInstance *)cInstance);
-    }
-}
-
 int rsl_illuminance_next(float **L_ptr, float **Cl_ptr, int numVertices, int *tags, int *numActive, int *numPassive) {
     CShadingContext *ctx = libshader::activeContext();
     if (!ctx)

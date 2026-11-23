@@ -1,0 +1,22 @@
+##RenderMan RIB-Structure 1.0
+# GitHub #200 (the .slo twin of the #199 scene): a light's "__category" set in the RIB. Three distant lights: red with RIB category "a", green with RIB
+# category "b", blue (a second shader) with the shader default "a". The surface sums Cl over illuminance("b", P):
+# the centre pixel is the sum of the colours of the lights the category selects.
+version 3.03
+Hider "raytrace" "jitter" [0]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Option "shaderformat" "default" ["slo"]
+Quantize "rgba" 0 0 0 0
+Display "lightcategory-b-slo-raytrace.tif" "file" "rgba"
+Format 8 8 1
+Projection "perspective" "fov" 30
+Clipping 0.1 100
+Translate 0 0 5
+WorldBegin
+  LightSource "lightcategory_light" 1 "color c" [1 0 0] "string __category" ["a"]
+  LightSource "lightcategory_light" 2 "color c" [0 1 0] "string __category" ["b"]
+  LightSource "lightcategory_light_a" 3
+  Surface "lightcategory_surface" "string cat" ["b"]
+  Disk 0 1 360
+WorldEnd

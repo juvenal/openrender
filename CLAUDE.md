@@ -601,6 +601,8 @@ not in the agent definitions.
    overload dispatches as the string-space overload), and **#11**
    (`printf()`, above). See `specs/017-jit-builtin-function-coverage/`
    for the full inventory and verification detail.
+   A `.slo` `illuminance()` honours its category argument (GitHub #200) through `op_illuminance_begin_v3`, emitted only for the 4- and 6-operand forms; a `.slo` compiled
+   before that from a category form still calls `_v2` and runs every light until it is recompiled. `rsl_run_lights` and `rsl_run_category_lights` are gone.
 13. **CSG is spatial trimming through a generic region hook (spec 021).**
    Every leaf of a solid's operand carries a `CRegionPredicate`
    (`CObject::region`, `object.h`), inherited by mesh children through
