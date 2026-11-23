@@ -542,17 +542,16 @@ not in the agent definitions.
 9. **Default RIB projection is ORTHOGRAPHIC** per RISpec when no
    `Projection` statement is given (not perspective) —
    `ribGeometryContext.h:151`.
-10. **`illuminate(P, axis, angle)`'s 3-argument hemisphere-cone test only
-   works when `axis` is the built-in global `N`.** Passing a locally
-   computed `normal` variable (e.g. one built from cross-product corner
-   math for a procedural, non-geometry-bound area light) compiles and
-   links fine but silently illuminates nothing — no compile or runtime
-   error, `Cl` is just never set for any point. Write the light's normal
-   into `N` itself before calling `illuminate()`, matching
-   `shaders/arealight.sl`/`shadowarea.sl`/`rayarea.sl`'s own pattern,
-   rather than keeping it in a separate local. Found and worked around
-   while porting `spherelight`/`quadlight` off hardcoded C++ (`hcshader.cpp`)
-   to real RSL (2026-09-19). Not needed for a light bound by `AreaLightSource`
+10. **`illuminate(P, axis, angle)`'s 3-argument cone test takes any axis, but the axis must point
+   from the light TOWARD the receivers.** (Corrected 2026-11-23: this gotcha used to say the axis had
+   to be the global `N`.) Measured on master with a light lighting a plane below it, under `.rslo` and
+   `.slo` alike: a uniform local `vector`, a varying local vector, a normal computed from corner cross
+   products, and that normal written into `N` first all light the plane identically; only the same axis
+   negated lights nothing (no compile or runtime error, `Cl` is never set), which is the cone test
+   working as specified. `shaders/spotlight.sl`, `shadowspot.sl` and `uberlight.sl` have always passed
+   a local axis. The 2026-09-19 port of `spherelight`/`quadlight` (writing the normal into `N`) almost
+   certainly hit a reversed cross product, not an `N` restriction: check the cross-product order (the
+   sign) of a computed axis before anything else. Not needed for a light bound by `AreaLightSource`
    (spec 057, gotcha 46): there `N` is the emitter's own normal.
 11. **`illuminate()`'s own `L` sign convention is `N.normalize(L)` for a
    Lambertian-emitting light surface, not `-N.normalize(L)`.** A
