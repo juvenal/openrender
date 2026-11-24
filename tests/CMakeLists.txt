@@ -81,6 +81,7 @@ add_subdirectory(preview)
 add_subdirectory(visual)
 add_subdirectory(gi_split)              # spec 032: the GI cache split's characterizations and, behind an option, its red-first tests
 add_subdirectory(gi_determinism)        # spec 040: GI determinism, its red-first tests (behind OPENRENDER_040_RED_TESTS) and the image-quality tool
+add_subdirectory(photon_refraction)       # GitHub #211: the photon hider's refraction obeys Snell's law and focuses a ball lens
 add_subdirectory(shaders)
 add_subdirectory(shading_parity)
 add_subdirectory(unit/csg)

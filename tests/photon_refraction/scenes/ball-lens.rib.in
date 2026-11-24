@@ -1,0 +1,28 @@
+##RenderMan RIB-Structure 1.0
+# GitHub #211: a point light on the axis, a refracting ball (radius @R@, centre z = @D@) and a matte receiver at the paraxial image plane z = @ZIMG@
+# (the identity camera, so camera space is world space). The photon pass writes the receiver's caustic map; tests/photon_refraction/test_photon_refraction.cpp
+# measures how much of it lies near the axis. The whole front of the ball is lit (the light is far, so the rays are nearly parallel).
+version 3.03
+FrameBegin 1
+  Hider "photon" "int emit" [@EMIT@] @HIDEREXTRA@
+  Projection "perspective" "fov" 45
+  Format 16 12 1
+  WorldBegin
+    LightSource "pointlight" 1 "intensity" [30] "from" [0 0 0]
+    AttributeBegin
+      @ORIENT@
+      @MODEL@
+      Attribute "trace" "int maxspeculardepth" [4]
+      Surface "matte"
+      Translate 0 0 @D@
+      Sphere @R@ -@R@ @R@ 360
+    AttributeEnd
+    AttributeBegin
+      Attribute "photon" "string causticmap" ["@MAP@"]
+      # no diffuse bounce at the receiver: its light would otherwise go back up through the refracting object and land again as caustic photons
+      Attribute "trace" "int maxdiffusedepth" [0]
+      Surface "matte"
+      Polygon "P" [-5 -5 @ZIMG@  5 -5 @ZIMG@  5 5 @ZIMG@  -5 5 @ZIMG@]
+    AttributeEnd
+  WorldEnd
+FrameEnd
