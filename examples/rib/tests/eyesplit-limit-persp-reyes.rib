@@ -1,0 +1,16 @@
+# GitHub #212: a primitive that genuinely runs out of eye splits (perspective, a polygon
+# through the eye, "limits" "eyesplits" 2) warns once for the primitive, not once per piece.
+FrameBegin 1
+  Format 160 120 1
+  Projection "perspective" "fov" 60
+  Option "limits" "eyesplits" [2]
+  Hider "reyes"
+  Display "eyesplit-limit-persp-reyes.tif" "file" "rgb"
+  Attribute "identifier" "name" ["plane"]
+  WorldBegin
+    LightSource "ambientlight" 1 "intensity" [1]
+    Surface "matte"
+    Rotate 30 1 0 0
+    Polygon "P" [-2 0 -5  2 0 -5  2 0 5  -2 0 5]
+  WorldEnd
+FrameEnd

@@ -1,0 +1,16 @@
+# GitHub #212: under an orthographic camera a polygon that crosses the eye plane (z = 0)
+# needs no perspective divide, so Reyes dices it instead of splitting it to the eye-split
+# limit. The render must print no "Too many eye splits".
+FrameBegin 1
+  Format 160 120 1
+  ScreenWindow -2 2 -1.5 1.5
+  Hider "reyes"
+  Display "eyesplit-ortho-plane-reyes.tif" "file" "rgb"
+  Attribute "identifier" "name" ["plane"]
+  WorldBegin
+    LightSource "ambientlight" 1 "intensity" [1]
+    Surface "matte"
+    Rotate 30 1 0 0
+    Polygon "P" [-2 0 -5  2 0 -5  2 0 5  -2 0 5]
+  WorldEnd
+FrameEnd

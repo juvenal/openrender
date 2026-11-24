@@ -1,0 +1,13 @@
+# GitHub #212: an unnamed sphere around an orthographic camera crosses the eye plane. Reyes
+# must print no "Too many eye splits" (it printed one per piece, naming the primitive "(null)").
+FrameBegin 1
+  Format 320 240 1
+  ScreenWindow -2 2 -1.5 1.5
+  Hider "reyes"
+  Display "eyesplit-ortho-sphere-reyes.tif" "file" "rgb"
+  WorldBegin
+    LightSource "ambientlight" 1 "intensity" [1]
+    Surface "matte"
+    Sphere 5 -5 5 360
+  WorldEnd
+FrameEnd
