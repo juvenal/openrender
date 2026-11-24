@@ -758,10 +758,10 @@ processBounce:;
                 normalizev(Nl, ray.N);
                 if (dotvv(ray.dir, Nl) > 0) {
                     mulvf(Nl, -1);
-                    eta = 1 / 1.5f;
+                    eta = 1.5f;
                 }
                 else {
-                    eta = 1.5f;
+                    eta = 1 / 1.5f;
                 }
 
                 assert(dotvv(ray.dir, Nl) < 0);
@@ -804,10 +804,10 @@ processBounce:;
                 normalizev(Nl, ray.N);
                 if (dotvv(ray.dir, Nl) > 0) {
                     mulvf(Nl, -1);
-                    eta = 1 / 1.3333333f;
+                    eta = 1.3333333f;
                 }
                 else {
-                    eta = 1.3333333f;
+                    eta = 1 / 1.3333333f;
                 }
 
                 assert(dotvv(ray.dir, Nl) < 0);
@@ -844,20 +844,20 @@ processBounce:;
                     return;
                 numSpecularBounces++;
 
-                // Calculate the effective ior
+                // Calculate the effective ior: wavelength 0 is the red end of spectrumSpline, so red sees iorrange[0] and blue iorrange[1]
                 float iorR = attributes->photonIor[0];
                 float iorB = attributes->photonIor[1];
 
-                float ior = (wavelength * iorR + (1.0f - wavelength) * iorB);
+                float ior = ((1.0f - wavelength) * iorR + wavelength * iorB);
 
                 // Sample the reflection direction
                 normalizev(Nl, ray.N);
                 if (dotvv(ray.dir, Nl) > 0) {
                     mulvf(Nl, -1);
-                    eta = 1 / ior;
+                    eta = ior;
                 }
                 else {
-                    eta = ior;
+                    eta = 1 / ior;
                 }
 
                 assert(dotvv(ray.dir, Nl) < 0);
