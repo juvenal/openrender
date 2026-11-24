@@ -216,7 +216,7 @@ class CCrossingCache {
 
 class CSurface : public CObject {
     public:
-        CSurface(CAttributes *a, CXform *x) : CObject(a, x), crossingCache(NULL) {}
+        CSurface(CAttributes *a, CXform *x) : CObject(a, x), crossingCache(NULL), eyeSplitWarned(false) {}
         ~CSurface() { delete crossingCache.load(); }
 
         // CObject interface
@@ -277,6 +277,9 @@ class CSurface : public CObject {
 
         // Built once by the free-form crossing query, then read-only
         mutable std::atomic<CCrossingCache *> crossingCache;
+
+        // Set by the first piece of this surface that runs out of eye splits, so CPatch::probe warns once per primitive
+        mutable std::atomic<bool> eyeSplitWarned;
 
         // Spec 057: report this surface as one sampleable leaf with the tessellated table of its own evaluation
         // (kAreaTessellationK cells a side). What the free-form leaves (limit patches, bicubic patches) call.

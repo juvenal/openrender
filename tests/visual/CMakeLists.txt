@@ -296,6 +296,7 @@ endmacro()
 #                                            right-hand render are RIB paths
 #       [COPY <dir>]...                      copied into the scratch directory
 #       [LABELS <labels>]                    default "csg;visual"
+#       [TEST_NAME <name>]                   the ctest name; default Csg_<NAME>
 #       [ALLOW_RENDER_ERROR])                a non-zero orender exit is accepted;
 #                                            only a crash fails
 #
@@ -303,13 +304,18 @@ endmacro()
 # are relative to the scratch directory, where the renders write.
 # ---------------------------------------------------------------------------
 function(add_csg_metric_test)
-    cmake_parse_arguments(PARSE_ARGV 0 _csg "ALLOW_RENDER_ERROR" "NAME"
+    cmake_parse_arguments(PARSE_ARGV 0 _csg "ALLOW_RENDER_ERROR" "NAME;TEST_NAME"
         "RENDERS;METRIC;LOG_PASS;LOG_FAIL;STATS;COPY;LABELS")
     if(NOT _csg_NAME OR NOT _csg_RENDERS)
         message(FATAL_ERROR "add_csg_metric_test: NAME and RENDERS are required")
     endif()
     if(NOT _csg_LABELS)
         set(_csg_LABELS "csg;visual")
+    endif()
+
+    # The ctest name is Csg_<NAME> unless TEST_NAME gives it
+    if(NOT _csg_TEST_NAME)
+        set(_csg_TEST_NAME Csg_${_csg_NAME})
     endif()
 
     set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/csg-${_csg_NAME})
@@ -331,7 +337,7 @@ function(add_csg_metric_test)
     set(_config_file ${_scratch}/csg_metric_config.cmake)
     file(WRITE ${_config_file} "${_config}")
 
-    add_test(NAME Csg_${_csg_NAME}
+    add_test(NAME ${_csg_TEST_NAME}
         COMMAND ${CMAKE_COMMAND}
             -DCONFIG=${_config_file}
             -DORENDER=$<TARGET_FILE:orender>
@@ -339,7 +345,7 @@ function(add_csg_metric_test)
             -P ${CMAKE_CURRENT_SOURCE_DIR}/csg_metric_test.cmake
         WORKING_DIRECTORY ${_scratch}
     )
-    set_tests_properties(Csg_${_csg_NAME} PROPERTIES
+    set_tests_properties(${_csg_TEST_NAME} PROPERTIES
         TIMEOUT        600
         LABELS         "${_csg_LABELS}"
         ENVIRONMENT    "${VISUAL_ENV}"
@@ -2446,6 +2452,23 @@ foreach(_hider reyes raytrace)
             "--region-compare csg-motion-torus-solid-${_hider}.tif csg-motion-torus-nosolid-${_hider}.tif --include frame --threshold 2"
         LOG_FAIL "Too many eye splits")
 endforeach()
+
+# GitHub #212: Reyes under an orthographic camera needs no perspective divide, so a primitive
+# crossing the eye plane is diced, not split to the eye-split limit (317,440 warnings for one
+# polygon). The third scene genuinely runs out of eye splits: one warning for the primitive.
+add_csg_metric_test(NAME EyeSplit_ortho_plane_reyes TEST_NAME EyeSplit_ortho_plane_reyes
+    RENDERS examples/rib/tests/eyesplit-ortho-plane-reyes.rib:eyesplit-ortho-plane-reyes.tif
+    LOG_FAIL "Too many eye splits"
+    LABELS "eye_splits;visual")
+add_csg_metric_test(NAME EyeSplit_ortho_sphere_reyes TEST_NAME EyeSplit_ortho_sphere_reyes
+    RENDERS examples/rib/tests/eyesplit-ortho-sphere-reyes.rib:eyesplit-ortho-sphere-reyes.tif
+    LOG_FAIL "Too many eye splits" "\\(null\\)"
+    LABELS "eye_splits;visual")
+add_csg_metric_test(NAME EyeSplit_limit_warns_once TEST_NAME EyeSplit_limit_warns_once
+    RENDERS examples/rib/tests/eyesplit-limit-persp-reyes.rib:eyesplit-limit-persp-reyes.tif
+    LOG_PASS "Too many eye splits for primitive \"plane\""
+    LOG_FAIL "Too many eye splits.*Too many eye splits"
+    LABELS "eye_splits;visual")
 
 # --- Phase 3, User Story 1 (T034-T042): render-and-measure checks ----------
 # Arguments mirror specs/021-deferred-csg-evaluation/tools/baseline.py, which ran

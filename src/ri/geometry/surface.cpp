@@ -422,8 +422,16 @@ int CPatch::probe(IDicer &dicer) {
         if (dicer.inFrustum(bmin, bmax) == FALSE)
             return FALSE;
 
+        // Only the perspective divide needs the piece in front of the eye plane. An orthographic
+        // projection has no divide, so a piece is diced wherever it lies; a piece wholly behind the
+        // near clipping plane is culled (RISpec 3.2 Clipping), and one straddling it is diced whole,
+        // the rasterizer rejecting the samples behind clipMin
+        const int needsDivide = (frame.projection == OPTIONS_PROJECTION_PERSPECTIVE);
+        if (!needsDivide && bmax[COMP_Z] < frame.clipMin)
+            return FALSE;
+
         // Can we make the perspective divide ?
-        if ((bmin[COMP_Z] > C_EPSILON) && (depth >= minDepth)) {
+        if ((!needsDivide || bmin[COMP_Z] > C_EPSILON) && (depth >= minDepth)) {
 
             // Figure out the subdivision we want to make
             float shadingRate = attributes->shadingRate;
@@ -469,7 +477,13 @@ int CPatch::probe(IDicer &dicer) {
 
             // Are we making too many splits ?
             if (depth >= frame.maxEyeSplits) {
-                warning(CODE_SYSTEM, "Too many eye splits for primitive \"%s\"\n", attributes->name);
+                // Once per primitive: every piece that reaches the limit used to print the line
+                if (!object->eyeSplitWarned.exchange(true)) {
+                    if (attributes->name != NULL)
+                        warning(CODE_SYSTEM, "Too many eye splits for primitive \"%s\"\n", attributes->name);
+                    else
+                        warning(CODE_SYSTEM, "Too many eye splits for an unnamed primitive\n");
+                }
                 return FALSE;
             }
 
