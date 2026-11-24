@@ -196,7 +196,7 @@ no surface instance and no Bxdf ─────────► today's no-shader
 
 | Field | Type | Notes |
 |---|---|---|
-| `lightingSuppressed` | `int` | set by `runSurfaceStep` around a gated execution only; read by the four funnels (R9) |
+| `lightingSuppressed` | `int` | set by `runSurfaceStep` around a gated execution only; read by the four funnels (R9; the ambient funnel is three sites calling one shared inline check) |
 
 ## Scene Interface
 

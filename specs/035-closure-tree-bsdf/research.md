@@ -203,21 +203,21 @@ One decision was **added**, with no conflict: Bxdf `color` parameters are conver
 
 ## R9. The lighting gate (FR-019)
 
-- **Decision**: a flag on the shading state, `CShadingState::lightingSuppressed`. `runSurfaceStep` sets it only around the execution of a closure-capable Surface under `closures`, and clears it afterwards. The flag is per state, so a `trace()` from that shader shades its hit in a new state, with the hit object's own mode. The flag is read at four funnels that both backends already share:
+- **Decision**: a flag on the shading state, `CShadingState::lightingSuppressed`. `runSurfaceStep` sets it only around the execution of a closure-capable Surface under `closures`, and clears it afterwards. The flag is per state, so a `trace()` from that shader shades its hit in a new state, with the hit object's own mode. The flag is read at four funnels that both backends already share (the second is three code sites that call one shared inline check, decided 2026-11-24 after Phase 0 found that the ambient lights run in three places, not one):
 
   | Funnel | Covers | Behaviour when suppressed |
   |---|---|---|
-  | `CShadingContext::iterateLights` (the `saveCat` overload, `shading.cpp:2053`; the other overload forwards to it) | `illuminance` (interpreter `runLights`/`runCategoryLights`, `execute.cpp:446-468`; JIT `jitIlluminanceBegin`, `:3006`; the #200 fix keeps this call), `diffuse`/`specular`/`phong` (`callDiffuse`/`callSpecular`/`callPhong`, `:2335-2451`), `lightsource()` inside a loop, and the bound area light (`iterateBoundAreaLight` is reached only from here, `:2116`) | returns before any state change: `lights`, `lightsExecuted` and the lighting cache stay as `shade()` reset them (`:1527-1536`), so no later batch can trust a "lit" state that never ran |
-  | `CShadingContext::prepareAmbient` (`:2508`; its light loop calls `iterateLights`, `:2553`) | `ambient()` | returns at once: `alights` stays empty, so `ambient()` gives 0 |
-  | `libshader::irradianceLookup` (`irradianceCalls.cpp:42`), plus the point-based branch of `IDEXPR` (`giFunctions.h:236`) and of `jitOcclusion`/`jitIndirectDiffuse` | `occlusion()`, `indirectdiffuse()`, interpreter and JIT, cache on and off | writes 0, traces nothing, inserts nothing, warns nothing |
-  | `CShadingContext::gatherHeaderBegin` (`:4907`, shared by `GATHERHEADEREXPR_PRE` and `jitGatherHeaderBegin`) | `gather()` | sets the bundle's sample count to 0, so the body and the `else` branch run zero times. This is exactly `gather(..., 0)` today, in both backends, by construction |
+  | `CShadingContext::iterateLights` (the `saveCat` overload, `shading.cpp:2054`; the other overload forwards to it) | `illuminance` (interpreter `runLights`/`runCategoryLights`, `execute.cpp:446-468`; JIT `jitIlluminanceBegin`, `:3006`; the #200 fix keeps this call), `diffuse`/`specular`/`phong` (`callDiffuse`/`callSpecular`/`callPhong`, `:2335-2451`), `lightsource()` inside a loop, and the bound area light (`iterateBoundAreaLight` is reached only from here, `:2116`) | returns before any state change: `lights`, `lightsExecuted` and the lighting cache stay as `shade()` reset them (`:1527-1536`), so no later batch can trust a "lit" state that never ran |
+  | the three ambient sites, one shared check: `CShadingContext::prepareAmbient` (`:2518`), `CShadingContext::callAmbient` (`:2268`) and the interpreter's ambient macro (`execute.cpp:406`); none goes through `iterateLights`, which runs only the `SHADERFLAGS_NONAMBIENT` lights | `ambient()` | each returns before its light loop: `alights` stays empty, so `ambient()` gives 0 |
+  | `libshader::irradianceLookup` (`irradianceCalls.cpp:42`; its point-based branch is `:56-62` of the same function, so one gate at its top covers `IDEXPR` (`giFunctions.h:236`) and `jitOcclusionBatch` (`jitOcclusion`/`jitIndirectDiffuse`)) | `occlusion()`, `indirectdiffuse()`, interpreter and JIT, cache on and off | writes 0, traces nothing, inserts nothing, warns nothing |
+  | `CShadingContext::gatherHeaderBegin` (`:5006`, shared by `GATHERHEADEREXPR_PRE` and `jitGatherHeaderBegin`) | `gather()` | sets the bundle's sample count to 0, so the body and the `else` branch run zero times. This is exactly `gather(..., 0)` today, in both backends, by construction |
 
   - **Not gated**, because FR-019 keeps them:
     - `trace()`, `transmission()`, `visibility()`, `environment()`, `texture()`, `shadow()` called from the surface;
     - the volume step, displacement and atmosphere.
   - The light shaders themselves never run, so their `illuminate`/`solar` and their `shadow()` calls never happen either.
 - **Rationale**:
-  - All light work converges on these funnels. I read every caller of `iterateLights` and `prepareAmbient` (`grep` over `src/libshader/shading/`).
+  - All light work converges on these funnels. I read every caller of `iterateLights` and every loop over `lightSources` (`grep` over `src/libshader/shading/`): `iterateLights` (`shading.cpp:2089`), and the three ambient loops (`prepareAmbient` `:2538`, `callAmbient` `:2296`, `execute.cpp:425`), which are why the ambient funnel is three sites with one check (Phase 0, `validation.md` findings A and B).
   - The #200 diff (`fix-200-slo-illuminance-category`) changes `jitIlluminanceBegin` to pass a category and still calls `iterateLights`.
   - #197 (`jitIlluminateEnd`) is inside a light shader, which never runs under the gate.
   - The design does not depend on the bug-fix session's code, only on the funnels.
@@ -475,7 +475,7 @@ One decision was **added**, with no conflict: Bxdf `color` parameters are conver
 
 ## R23. Master movement and the bug-fix baseline
 
-- **Finding** (as of 2026-11-23, master `4ee81900`; the worktree base is `b9dec4e5`):
+- **Finding** (as of 2026-11-23, master `e1737ae5`; the worktree base is `b9dec4e5`):
   - **Merged**: #199 (light categories rebuilt after the RIB parameters: `shader.cpp`, `shaderGroup.cpp`, files 035 does not edit); #200 (`.slo` `illuminance()` honours its category: `jitIlluminanceBegin` passes it and still calls `iterateLights`); #197 (a `.slo` light's `__nondiffuse`/`__nonspecular` are saved by `jitIlluminateEnd`/`jitSolarEnd`, inside a light shader, which never runs under the gate); #115 (`lightsource()` follows RISpec §15.8 in both backends through `op_lightsource_param`; `kRendererServicesVersion` **2.6.1**, a PATCH step); #204 (`ShadingInterpolation "constant"` in the reyes and zbuffer rasterizers: `reyes.cpp`, `stochasticQuad.h`, `zbufferQuad.h`, `rendererContext.cpp`, `attributes.h`; outside the lighting work, but it touches two files 035 edits, so expect neighbouring hunks, not an overlap).
   - **Still to land**: #113 (`phong()` reads only the first vertex's size), #203 (`jitParameterFinish`) and spec 054 (`shade()`'s sampling side).
 - **Decision**: 035 designs on the funnels (R9), not on the JIT wrappers, so none of those fixes changes the design.

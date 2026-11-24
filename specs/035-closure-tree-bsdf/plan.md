@@ -19,7 +19,7 @@ A shaded point can hand its integrator a **closure tree** instead of only a lit 
 - **`closuremode`** (D13): attribute over option over `color`. It chooses what a `Surface` binding hands back:
   - `color`: today's code, byte for byte;
   - `both`: colour plus trees;
-  - `closures`: trees, with the lighting gated off at four funnels the interpreter and the JIT already share.
+  - `closures`: trees, with the lighting gated off at four funnels the interpreter and the JIT already share (the ambient funnel is three sites that call one shared check: `prepareAmbient`, `callAmbient` and the interpreter's ambient macro).
 - **A `Bxdf` statement** (D5, D9): it binds one of four built-in C++ Bxdfs, behind a versioned C table and a Shading-owned registry.
 
 The trees leave the shading step through a Shading-owned consumer interface. In 035 only tests install a consumer; spec 042 installs it for real. Until then, three named interim rules, IR-017, IR-018 and IR-026, say what renders, and 042 replaces each one by name.
@@ -182,7 +182,7 @@ The coordinator asked for this list, to set the boundary with spec 054. Line num
 | File | Change | API |
 |---|---|---|
 | `shading.h` | `CShadingState::lightingSuppressed`; `CShadingContext::setClosureConsumer`/`closureConsumer`, static `setDefaultClosureConsumer`, `setClosureFrame`/`closureFrame`; private members | **internal API, additive** |
-| `shading.cpp` | (1) `shade()`: the inline fast test, plus one `planSurfaceStep` call inserted at `:1196` (after the shader selection `:1159-1194`, before the `usedParameters` line `:1198` and `groupPrepare` `:1290`); the surface block `:1553-1592` wrapped so that `runSurfaceStep` takes it under a non-`color` plan; one `deliverClosures` call before `memEnd(threadMemory)` `:1617`; (2) the gate at the top of `iterateLights` (`saveCat` overload, `:2053`); (3) the gate in `prepareAmbient` (`:2508`); (4) the gate in `gatherHeaderBegin` (`:4907`); (5) the point-based branch of `jitOcclusion`/`jitIndirectDiffuse` | none public |
+| `shading.cpp` | (1) `shade()`: the inline fast test, plus one `planSurfaceStep` call inserted at `:1196` (after the shader selection `:1159-1194`, before the `usedParameters` line `:1198` and `groupPrepare` `:1290`); the surface block `:1553-1592` wrapped so that `runSurfaceStep` takes it under a non-`color` plan; one `deliverClosures` call before `memEnd(threadMemory)` `:1617`; (2) the gate at the top of `iterateLights` (`saveCat` overload, `:2054`); (3) the one shared ambient check (an inline member reading `lightingSuppressed`) called at the three ambient sites: `prepareAmbient` (`:2518`), `callAmbient` (`:2268`) and, in `execute.cpp`, the `runAmbientLights()` macro (`:406`); (4) the gate in `gatherHeaderBegin` (`:5006`); (5) the point-based branch of `jitOcclusion`/`jitIndirectDiffuse` | none public |
 | `irradianceCalls.cpp` | the gate at the top of `libshader::irradianceLookup` | none |
 | `giFunctions.h` | the gate in `IDEXPR`'s point-based branch | none |
 | `shaderBackend.h` | `IShaderBackend::emitsClosures`, `executeClosures` (default bodies); header sentence | **internal seam, additive** |
@@ -194,7 +194,7 @@ The coordinator asked for this list, to set the boundary with spec 054. Line num
 | File | Change |
 |---|---|
 | `stateVocabulary.h` | `enum class EClosureMode` |
-| `attributes.h`, `attributes.cpp` | the `closureMode` field; constructor, copy (`:265`), `restore` (`:503`), `find` (`:721`); the comment of `bxdf()` (`:144`) |
+| `attributes.h`, `attributes.cpp` | the `closureMode` field; constructor, copy (`:266`), `restore` (`:504`), `find` (`:722`); the comment of `bxdf()` (`:145`) |
 | `options.h`, `options.cpp` | the `closureMode` field; constructor, copy, query |
 | `declarations.cpp` | `declare(RI_CLOSUREMODE, "string")` (`:189`) |
 
@@ -216,7 +216,7 @@ The coordinator asked for this list, to set the boundary with spec 054. Line num
 
 | File | Change |
 |---|---|
-| `rendererContext.h`, `rendererContext.cpp` | `RiBxdfV`; the `closuremode` token in `RiAttributeV`'s `RI_SHADE` block (`:3923`); a new `RI_SHADE` branch in `RiOptionV` (beside `:2106`); at `RiWorldBegin` (`:995`), the capture of the `defaultsurface` handle **only when `setDefaultSurface()` bound it** (A′, Q-R1), handed to a `CBxdfInstance` already in the bxdf slot (B2) **before** `setDefaultSurface()` is called (R1); the Bxdf colour parameters converted with `COptions::convertColor` (RISpec §4.1.3) |
+| `rendererContext.h`, `rendererContext.cpp` | `RiBxdfV`; the `closuremode` token in `RiAttributeV`'s `RI_SHADE` block (`:3940`); a new `RI_SHADE` branch in `RiOptionV` (beside `:2106`); at `RiWorldBegin` (`:995`), the capture of the `defaultsurface` handle **only when `setDefaultSurface()` bound it** (A′, Q-R1), handed to a `CBxdfInstance` already in the bxdf slot (B2) **before** `setDefaultSurface()` is called (R1); the Bxdf colour parameters converted with `COptions::convertColor` (RISpec §4.1.3) |
 | `renderer.cpp` | `ClosureFrame` created in `beginFrame()` **before** the hider-creation loop, and set on each context in that loop next to `setSamplingConfig` (`:854`); deleted in `endFrame()` and on the abort path |
 
 ### Bindings

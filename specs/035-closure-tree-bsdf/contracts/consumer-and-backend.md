@@ -88,4 +88,4 @@ The renderer core (`renderer.cpp`):
 
 ## CShadingState addition
 
-- `int lightingSuppressed;`: 0 by default. It is set and cleared only by `runSurfaceStep`, and read by the four funnels of closuremode.md.
+- `int lightingSuppressed;`: 0 by default. It is set and cleared only by `runSurfaceStep`, and read by the four funnels of closuremode.md (the ambient one is three sites that call one shared inline check).
