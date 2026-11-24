@@ -716,7 +716,7 @@ class CShadingContext final {
         void callAmbient(float *result);
         void callDiffuse(float *result, const float *Nf);
         void callSpecular(float *result, const float *Nf, int nfStep, const float *V, int vStep, const float *roughness, int roughnessStep);
-        void callPhong(float *result, const float *Nf, const float *V, float size);
+        void callPhong(float *result, const float *Nf, int nfStep, const float *V, int vStep, const float *size, int sizeStep);
 
         // ---> Converged light-iteration entry point (used by call* above and by the
         // interpreter's runLights/runCategoryLights macro wrappers in execute.cpp)

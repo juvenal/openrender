@@ -194,6 +194,9 @@ void op_diffuse_batch(float *result, int sr, const float *Nf, int sn, int n, con
 /* Calls ctx->callSpecular(result, Nf, V, roughness) — Phong specular highlight */
 /* roughness is always a scalar (uniform) — passed as float* and read as roughness[0] */
 void op_specular_batch(float *result, const float *Nf, int sn, const float *V, int sv, const float *roughness, int sr, int n, const int *tags);
+/* op_phong_batch_v2: the same with the operands' strides (GitHub #113), so a varying `size` is read per point.
+ * op_phong_batch is what a .slo compiled before #113 calls: Nf and V varying, `size` read at the first point. */
+void op_phong_batch_v2(float *result, const float *Nf, int sn, const float *V, int sv, const float *size, int ss, int n, const int *tags);
 void op_phong_batch(float *result, const float *Nf, const float *V, const float *size, int n, const int *tags);
 
 /* -----------------------------------------------------------------------

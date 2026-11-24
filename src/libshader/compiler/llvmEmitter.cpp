@@ -2281,20 +2281,17 @@ static bool emitFunction(const IRFunction &irFn,
                 B.CreateCall(fn, {dst, nf, B.getInt32(sn), v, B.getInt32(sv), r, B.getInt32(sr), numVerts, tags});
             }
             else if (op == "phong") {
-                // phong() (spec 017-jit-builtin-function-coverage, US5):
-                // same dispatch shape as specular immediately above --
-                // `size` is uniform-only, matching specular's own
-                // `roughness` argument precedent (see callPhong's comment
-                // in shading.cpp for the full rationale).
+                // op_phong_batch_v2(result, Nf, sn, V, sv, size, ss, n, tags):
+                // the strides let a varying size be read per point (GitHub #113)
                 auto [nf, sn] = getVar(ins, 0);
                 auto [v, sv] = getVar(ins, 1);
                 auto [size, ssize] = getVar(ins, 2);
                 if (!dst || !nf || !v || !size)
                     continue;
                 auto *ty = llvm::FunctionType::get(voidTy,
-                                                   {ptrTy, ptrTy, ptrTy, ptrTy, i32Ty, ptrTy}, false);
-                auto *fn = declareOp(mod, "op_phong_batch", ty);
-                B.CreateCall(fn, {dst, nf, v, size, numVerts, tags});
+                                                   {ptrTy, ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty, i32Ty, ptrTy}, false);
+                auto *fn = declareOp(mod, "op_phong_batch_v2", ty);
+                B.CreateCall(fn, {dst, nf, B.getInt32(sn), v, B.getInt32(sv), size, B.getInt32(ssize), numVerts, tags});
             }
 
             // ================================================================

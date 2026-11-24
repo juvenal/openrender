@@ -763,6 +763,9 @@ not in the agent definitions.
    `(1 - ns) * pow(N.H, 10/roughness)`, as it does in `phong()`. Before #111 the
    interpreter applied it inside the power, so a fractional value all but removed
    the highlight.
+   `phong()` shares its term the same way (GitHub #113): `libshader::phongReflect` and `phongAccumulate` in `specularTerm.h`, called by the interpreter's
+   `PHONGEXPR` and by `callPhong`, and the JIT's `op_phong_batch_v2` takes the operand strides, so a varying `size` is read per point. A `.slo` compiled before #113
+   still calls `op_phong_batch`, which reads `size[0]`, until it is recompiled.
    Nothing under `src/ri/texture` names the shading context, the renderer core or the data viewer since spec 032
    (`CTexture3d` has `lookupPointBased` with a `CPointBasedLookup`, and the viewers are adapters the data viewer owns:
    `pointCloudView`, `brickMapView`, `irradianceCacheView`, `photonMapView`). `CTexture3d`'s old six-argument

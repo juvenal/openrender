@@ -4793,6 +4793,101 @@ foreach(_entry IN LISTS _jitspec_controls)
     endforeach()
 endforeach()
 
+# --- phong() under the LLVM JIT (GitHub #113) ------------------------------------------------------
+# The JIT's op_phong_batch read the first point's size only; the interpreter reads it per point. Scenes
+# generated from examples/rib/tests/jit-phong-probe.rib.in, probe tests/visual/shaders/jit_phong_probe.sl
+# (Ci = phong() alone; a test-only shader, compiled into the build tree like the transmission probe
+# below, so no shipped-shader reference moves), one distantlight plus the case's extra light.
+#   ShadingParity_JitPhong_<case>: the case under .rslo and .slo, bit-identical.
+#   ShadingParity_JitPhongEngaged_<format>: base and varysize, same format, must differ (the varying
+#     size reaches the image).
+# <case>|<hider>|<probe parameters>|<extra light shader, or ->|<its parameters>
+set(_jitphong_dir ${CMAKE_BINARY_DIR}/tests/visual/jit-phong)
+file(MAKE_DIRECTORY ${_jitphong_dir})
+set(_jitphong_shader_dir ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+file(MAKE_DIRECTORY ${_jitphong_shader_dir})
+set(_jitphong_sl ${CMAKE_CURRENT_SOURCE_DIR}/shaders/jit_phong_probe.sl)
+set(_jitphong_outputs ${_jitphong_shader_dir}/jit_phong_probe.rslo)
+add_custom_command(
+    OUTPUT ${_jitphong_shader_dir}/jit_phong_probe.rslo
+    COMMAND ${CMAKE_COMMAND} -DOSHADER=$<TARGET_FILE:oshader> -DSRC=${_jitphong_sl}
+            -DOUT=${_jitphong_shader_dir}/jit_phong_probe.rslo
+            -DINCDIR=${CMAKE_SOURCE_DIR}/shaders/includes
+            -P ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+    DEPENDS ${_jitphong_sl} oshader ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+    WORKING_DIRECTORY ${_jitphong_shader_dir}
+    COMMENT ""
+    VERBATIM)
+if(OPENRENDER_HAVE_LLVM)
+    add_custom_command(
+        OUTPUT ${_jitphong_shader_dir}/jit_phong_probe.slo
+        COMMAND ${CMAKE_COMMAND} -DOSHADER=$<TARGET_FILE:oshader> -DSRC=${_jitphong_sl}
+                -DOUT=${_jitphong_shader_dir}/jit_phong_probe.slo
+                -DINCDIR=${CMAKE_SOURCE_DIR}/shaders/includes -DJIT=ON
+                -P ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+        DEPENDS ${_jitphong_sl} oshader ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+        WORKING_DIRECTORY ${_jitphong_shader_dir}
+        COMMENT ""
+        VERBATIM)
+    list(APPEND _jitphong_outputs ${_jitphong_shader_dir}/jit_phong_probe.slo)
+endif()
+add_custom_target(jit_phong_probe_shader ALL DEPENDS ${_jitphong_outputs})
+add_dependencies(jit_phong_probe_shader openrender_shaders)
+
+set(_jitphong_env "${VISUAL_ENV}")
+list(TRANSFORM _jitphong_env REPLACE "^SHADERS=(.*)$" "SHADERS=${_jitphong_shader_dir}:\\1")
+set(_jitphong_extra_from "\"from\" [-3 1 -2] \"to\" [0 0 0]")
+set(_jitphong_cases
+    "base|reyes||-|"
+    "varysize|reyes|\"sizevary\" [3]|-|"
+    "raytrace|raytrace|\"sizevary\" [3]|-|"
+    "ns_half|reyes|\"sizevary\" [3]|jit_nonspecular_light|\"intensity\" [1] ${_jitphong_extra_from} \"nonspecular\" [0.5]")
+foreach(_entry IN LISTS _jitphong_cases)
+    string(REPLACE "|" ";" _parts "${_entry}")
+    list(GET _parts 0 _case)
+    list(GET _parts 1 HIDER)
+    list(GET _parts 2 PARAMS)
+    list(GET _parts 3 _extra)
+    list(GET _parts 4 _extraParams)
+    set(PROJECTION "Projection \"perspective\"")
+    if(_extra STREQUAL "-")
+        set(LIGHTS "")
+    else()
+        set(LIGHTS "  LightSource \"${_extra}\" 2 ${_extraParams}")
+    endif()
+    foreach(FORMAT rslo slo)
+        set(OUTPUT jitphong-${_case}-${FORMAT}.tif)
+        configure_file(${CMAKE_SOURCE_DIR}/examples/rib/tests/jit-phong-probe.rib.in
+            ${_jitphong_dir}/jitphong-${_case}-${FORMAT}.rib @ONLY)
+    endforeach()
+
+    set(_parity ShadingParity_JitPhong_${_case})
+    add_test(NAME ${_parity}
+        COMMAND test_render_compare $<TARGET_FILE:orender> same
+            ${_jitphong_dir}/jitphong-${_case}-rslo.rib jitphong-${_case}-rslo.tif
+            ${_jitphong_dir}/jitphong-${_case}-slo.rib jitphong-${_case}-slo.tif
+        WORKING_DIRECTORY ${_jitphong_dir})
+    set_tests_properties(${_parity} PROPERTIES TIMEOUT 120 LABELS "shading_parity;visual;regression"
+        RESOURCE_LOCK jit_phong_scratch ENVIRONMENT "${_jitphong_env}" DEPENDS orender)
+    if(NOT OPENRENDER_HAVE_LLVM)
+        set_tests_properties(${_parity} PROPERTIES DISABLED TRUE)
+    endif()
+endforeach()
+
+foreach(_format rslo slo)
+    set(_engaged ShadingParity_JitPhongEngaged_${_format})
+    add_test(NAME ${_engaged}
+        COMMAND test_render_compare $<TARGET_FILE:orender> differ
+            ${_jitphong_dir}/jitphong-base-${_format}.rib jitphong-base-${_format}.tif
+            ${_jitphong_dir}/jitphong-varysize-${_format}.rib jitphong-varysize-${_format}.tif
+        WORKING_DIRECTORY ${_jitphong_dir})
+    set_tests_properties(${_engaged} PROPERTIES TIMEOUT 120 LABELS "shading_parity;visual;regression"
+        RESOURCE_LOCK jit_phong_scratch ENVIRONMENT "${_jitphong_env}" DEPENDS orender)
+    if(_format STREQUAL "slo" AND NOT OPENRENDER_HAVE_LLVM)
+        set_tests_properties(${_engaged} PROPERTIES DISABLED TRUE)
+    endif()
+endforeach()
+
 # --- GitHub #153: a continued transmission ray keeps its end point -----------
 # tests/visual/shaders/transmission_destination_probe.sl shoots one transmission ray
 # (the machinery behind shadow(), transmission() and a light's shadow rays) from the
