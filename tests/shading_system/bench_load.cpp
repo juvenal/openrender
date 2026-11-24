@@ -83,7 +83,9 @@ int main(int argc, char **argv) {
     const CDirResolver resolver(dir);
     // never deleted, like the loaded descriptions of the starting tree's loop: the loads are what is timed
     auto *rsloSystem = new openrender::shading::ShadingSystem;
+#ifdef OPENRENDER_HAVE_LLVM
     auto *sloSystem = new openrender::shading::ShadingSystem;
+#endif
     const auto t0 = clock::now();
     for (const std::string &n : names) {
         const openrender::shading::ShaderRequest request{n.c_str(), openrender::shading::kAnyShaderType, "rslo", nullptr, &resolver};
