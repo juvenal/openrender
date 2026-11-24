@@ -270,6 +270,7 @@ RtToken RI_IORRANGE = "iorrange";
 
 // Motionfactor attribute
 RtToken RI_MOTIONFACTOR = "motionfactor";
+RtToken RI_FOCUSFACTOR = "focusfactor";
 
 // Cull attributes
 // RtToken	RI_HIDDEN				=	"hidden";

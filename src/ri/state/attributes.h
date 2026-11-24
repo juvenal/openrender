@@ -57,6 +57,7 @@ const unsigned int ATTRIBUTES_FLAGS_SHADE_HIDDEN = 1 << 22;          // Shade ev
 const unsigned int ATTRIBUTES_FLAGS_SHADE_BACKFACE = 1 << 23;        // Shade even if backfacing
 const unsigned int ATTRIBUTES_FLAGS_DOUBLE_SIDED = 1 << 24;          // The surface is double sided
 const unsigned int ATTRIBUTES_FLAGS_SAMPLEMOTION = 1 << 25;          // Sample the time in tracing rays
+const unsigned int ATTRIBUTES_FLAGS_CONSTANT_SHADING = 1 << 26;      // ShadingInterpolation "constant": a micropolygon takes its v0 corner's shaded values
 
 // The minimum shading rate
 const float ATTRIBUTES_MIN_SHADINGRATE = C_EPSILON;
@@ -183,6 +184,7 @@ class CAttributes : public CRefCounter {
         EAreaLightMode areaLightMode;  // Attribute "arealight" "string mode": object level mode, Unset = not set
 
         float shadingRate;  // Shading rate for this primitive
+        float focusFactor; // Shading rate relaxation per pixel of circle of confusion (0: none)
         float motionFactor; // Amount to increase shading rate when motion blurring
 
         char *name; // The name of the object if any

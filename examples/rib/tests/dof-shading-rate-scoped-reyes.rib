@@ -1,0 +1,19 @@
+##RenderMan RIB-Structure 1.0
+# GitHub #205: focusfactor is an attribute: the left polygon is in a block that sets 0.5, the right one is not.
+# test_dof_shading_rate counts the vertices the rasterizer shades, from the end-of-frame statistics.
+version 3.03
+Hider "reyes"
+Display "dof-shading-rate-scoped-reyes.tif" "file" "rgb"
+Format 200 150 1
+PixelSamples 1 1
+ShadingRate 1
+Projection "perspective" "fov" 45
+DepthOfField 2 1 2
+Translate 0 0 10
+WorldBegin
+  AttributeBegin
+    GeometricApproximation "focusfactor" 0.5
+    Polygon "P" [-5 -3 0  0 -3 0  0 3 0  -5 3 0]
+  AttributeEnd
+  Polygon "P" [0 -3 0  5 -3 0  5 3 0  0 3 0]
+WorldEnd

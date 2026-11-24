@@ -1,0 +1,28 @@
+##RenderMan RIB-Structure 1.0
+# GitHub #204: ShadingInterpolation. A patch with transform motion (no screen movement: it moves along the view axis) takes the moving rasterizer.
+# Float output, one sample per pixel and a box filter, so test_shading_interpolation can read the
+# shaded values back exactly. The patch spans the image: 64 pixels wide, ShadingRate 16 dices it
+# into micropolygons 4 pixels wide.
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["rslo"]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "shading-interpolation-motion-reyes.tif" "file" "rgba"
+Projection "orthographic"
+ScreenWindow 0 1 0 1
+Format 64 64 1
+Clipping 0.1 100
+Shutter 0 1
+Translate 0 0 1
+WorldBegin
+  ShadingInterpolation "constant"
+  ShadingRate 16
+  Surface "show_st"
+  MotionBegin [0 1]
+    Translate 0 0 0
+    Translate 0 0 0.25
+  MotionEnd
+  Patch "bilinear" "P" [0 0 0  1 0 0  0 1 0  1 1 0]
+WorldEnd

@@ -86,7 +86,7 @@ diagnostics, as today.
 3. `log_info("getShader: loading shader '{}', type '{}', in format '{}'", name, desc->type, preference)`.
 4. `instance = desc->backend->instantiate(desc, attributes, xform)`.
 5. `instance->instanceKey = host.takeInstanceKey()`.
-6. `desc->type == SL_LIGHTSOURCE`: `instance->createCategories(); host.registerLight(instance);`
+6. `desc->type == SL_LIGHTSOURCE`: `instance->createCategories(); host.registerLight(instance);` (the categories of the default `__category`; `ShaderGroupBuilder::shader()` rebuilds them after `setParameters()`, GitHub #199)
 7. `arenaBegin(globalArena); desc->backend->initialise(*instance); arenaEnd(globalArena);`
 8. return `instance` (one reference).
 

@@ -542,17 +542,16 @@ not in the agent definitions.
 9. **Default RIB projection is ORTHOGRAPHIC** per RISpec when no
    `Projection` statement is given (not perspective) —
    `ribGeometryContext.h:151`.
-10. **`illuminate(P, axis, angle)`'s 3-argument hemisphere-cone test only
-   works when `axis` is the built-in global `N`.** Passing a locally
-   computed `normal` variable (e.g. one built from cross-product corner
-   math for a procedural, non-geometry-bound area light) compiles and
-   links fine but silently illuminates nothing — no compile or runtime
-   error, `Cl` is just never set for any point. Write the light's normal
-   into `N` itself before calling `illuminate()`, matching
-   `shaders/arealight.sl`/`shadowarea.sl`/`rayarea.sl`'s own pattern,
-   rather than keeping it in a separate local. Found and worked around
-   while porting `spherelight`/`quadlight` off hardcoded C++ (`hcshader.cpp`)
-   to real RSL (2026-09-19). Not needed for a light bound by `AreaLightSource`
+10. **`illuminate(P, axis, angle)`'s 3-argument cone test takes any axis, but the axis must point
+   from the light TOWARD the receivers.** (Corrected 2026-11-23: this gotcha used to say the axis had
+   to be the global `N`.) Measured on master with a light lighting a plane below it, under `.rslo` and
+   `.slo` alike: a uniform local `vector`, a varying local vector, a normal computed from corner cross
+   products, and that normal written into `N` first all light the plane identically; only the same axis
+   negated lights nothing (no compile or runtime error, `Cl` is never set), which is the cone test
+   working as specified. `shaders/spotlight.sl`, `shadowspot.sl` and `uberlight.sl` have always passed
+   a local axis. The 2026-09-19 port of `spherelight`/`quadlight` (writing the normal into `N`) almost
+   certainly hit a reversed cross product, not an `N` restriction: check the cross-product order (the
+   sign) of a computed axis before anything else. Not needed for a light bound by `AreaLightSource`
    (spec 057, gotcha 46): there `N` is the emitter's own normal.
 11. **`illuminate()`'s own `L` sign convention is `N.normalize(L)` for a
    Lambertian-emitting light surface, not `-N.normalize(L)`.** A
@@ -601,6 +600,8 @@ not in the agent definitions.
    overload dispatches as the string-space overload), and **#11**
    (`printf()`, above). See `specs/017-jit-builtin-function-coverage/`
    for the full inventory and verification detail.
+   A `.slo` `illuminance()` honours its category argument (GitHub #200) through `op_illuminance_begin_v3`, emitted only for the 4- and 6-operand forms; a `.slo` compiled
+   before that from a category form still calls `_v2` and runs every light until it is recompiled. `rsl_run_lights` and `rsl_run_category_lights` are gone.
 13. **CSG is spatial trimming through a generic region hook (spec 021).**
    Every leaf of a solid's operand carries a `CRegionPredicate`
    (`CObject::region`, `object.h`), inherited by mesh children through
@@ -825,9 +826,14 @@ not in the agent definitions.
    per-lane copy. The shaded object and the executing shaders reach an implementer only as opaque
    `ObjectHandle`/`ShaderHandle` made by `CShadingContext::objectHandle()`/`shaderHandle()`; a null
    object (the imager) answers not found and is never dereferenced. A stored value that cannot be
-   copied safely into the shader's destination (`TypeMismatch`) is refused: the destination is left
-   untouched and the builtin warns once; `lightsource()` is exempt, and its interpreter and JIT
-   outputs still differ (GitHub #115). The trace calls go through `ITracer` (`tracer.h`), answered by
+   copied into the shader's destination (`TypeMismatch`) is refused: the destination is left
+   untouched, the builtin returns 0 and warns once. The five object sources test whether the copy is safe;
+   `lightsource()` applies RISpec 3.2 section 15.8's rule exactly (the parameter has the destination's type:
+   one float, three floats, sixteen floats or a string) in both backends (GitHub #115). Both read the light the
+   illuminance loop is on (`currentLight`), take a mutable parameter from that light's saved state, return 1 or 0
+   per point, leave the destination unchanged on 0 and refuse a varying parameter into a uniform destination;
+   the JIT does it in `op_lightsource_param` (`jitLightsourceParameter`), and a `.slo` compiled before #115 still
+   calls `op_lightsource_f` (the last light that ran, float only) until it is recompiled. The trace calls go through `ITracer` (`tracer.h`), answered by
    the hider that owns the context: each `CHider` installs itself with `setTracer()`, and
    `libshader::traceRay`/`traceBundle` (`traceCalls.h`) ask the context's tracer first and the
    services' `tracer()` only for a context with no owner (the contract doubles); the renderer's
@@ -853,11 +859,11 @@ not in the agent definitions.
    `shade(CSurface *, ...)`, `displace()`, `displaceEstimate()` and `setProducer()` and `IShadingProducer` are removed, and `EShadingDim` moved to `common/shadingDim.h`), and 2.4.0 since spec 033 (a MINOR step,
    additive with defaults: `MatrixRequest::phase` (`EMatrixPhase::Bind` for a shader's bind-time init), `MessageRequest::destBytes`
    (non-zero: the renderer answers `TypeMismatch` before writing when the stored value needs more bytes, any source; the JIT's
-   `lightsource()` asks with 64), `getShaderName` (`shadername(type)` asks it; no services or an `Unavailable` answer: `""` plus one
+   `op_lightsource_f`, kept for a `.slo` compiled before #115, asks with 64), `getShaderName` (`shadername(type)` asks it; no services or an `Unavailable` answer: `""` plus one
    warning). No double or implementer changes to compile.) It is 2.5.0 since spec 040 (a MINOR step that is breaking within 2.x: `IPhotonStore`'s
    `resetPhotons`, `balancePhotons`, `isModifying`, `setModifying` and `storePhoton` are replaced by `storePhotonForFrame` and `writePhotons`;
    `CIrradianceStore::lookupCached` takes an accept function and a batch view in place of a draw callback, `insertRecord` is replaced by
-   `addPending` and `clampAgainstFixed`). It is 2.6.0 since spec 057 (a MINOR step, non-breaking for implementers and doubles: `ITracer::occluded(context, ray, excludeLight)` with a default body, and `areaLightSampler.h`: `AreaLightMode`, `AreaLightInfo`, `IAreaLightSampler`, installed on a context with `CShadingContext::setAreaLightSampler()`; a context with no sampler runs every light as a classic light).
+   `addPending` and `clampAgainstFixed`). It is 2.6.0 since spec 057 (a MINOR step, non-breaking for implementers and doubles: `ITracer::occluded(context, ray, excludeLight)` with a default body, and `areaLightSampler.h`: `AreaLightMode`, `AreaLightInfo`, `IAreaLightSampler`, installed on a context with `CShadingContext::setAreaLightSampler()`; a context with no sampler runs every light as a classic light). It is 2.6.1 since GitHub #115 (a PATCH step, no member changed: the Light source of `getMessage` applies RISpec's exact same-type rule and can answer `TypeMismatch`; both backends ask with `wantVariable` true and the call's expected type).
 29. **The active RI context is installed explicitly (spec 038).** `CRiInterface`'s constructor assigns nothing:
    not `renderMan`, not the diagnostic sink. `riInstallContext(ctx)` makes it the active one (and attaches the
    diagnostics), `riUninstallContext(ctx)` / the destructor of an installed context hands both back to the
@@ -1015,7 +1021,7 @@ not in the agent definitions.
    `imagePlane * aperture * (1/f - 1/z)` (0 for a pinhole and for orthographic, where depth of field is off: the core sets `aperture` to 0). Reyes writes it into `vertices[9]` and scatters a vertex per axis by
    `lens * dSampled * c` (`pixel->jdx = lens * dSampledx`); **only the scatter reads `vertices[9]` signed, every bound, comparison and maximum takes its magnitude**, and the bounds come from
    `hiders/reyesLensBounds.h` (`Hiders_ReyesBucketBoundCoversCoC`; a `zMin` at or behind the eye plane is clamped to `kMinDepth`). The raytracer's `CFrameCamera::generateRay` keeps its own expressions
-   and `Camera_LensRayMatchesCoC` pins them to the function. Geometry's dicing heuristic `minCocPixels` reads `|c|` times the pixel size. Before spec 031 Reyes blurred `sqrt(2) f/(f + A)` times the raytracer's radius
+   and `Camera_LensRayMatchesCoC` pins them to the function. Geometry's dicing heuristic `minCocPixels` reads `|c|` times the pixel size. It relaxes the shading rate only when a scene asks for it (GitHub #205): `GeometricApproximation "focusfactor" f` (an attribute like `motionfactor`: `CAttributes::focusFactor`, scoped by AttributeBegin/End, answered to shaders as `GeometricApproximation:focusfactor`) multiplies the rate by `max(1, f * minCocPixels)` in `CPatch::probe`, for reyes and zbuffer alike. The default 0 is no relaxation (RISpec 3.2 section 4.2.7: shade at least at ShadingRate), and 0.5 is the rule before #205. The five reyes depth-of-field test scenes (`camera-dof-reyes`, `camera-motion-small+dof-reyes`, `parity/dof-reyes`, `parity/dof-motion-reyes`, the convergence `dof-reyes.rib.in`) and the five `examples/rib/presentation/*dof*.rib` scenes set 0.5, which keeps their references and their speed (at the default `Visual_camera-dof-reyes` takes 171 s instead of 1 s and `Convergence_dof-reyes` fails); `DofShadingRate_*` (`-L dof_shading_rate`) pins the default and the scoping by the count of shaded vertices. Before spec 031 Reyes blurred `sqrt(2) f/(f + A)` times the raytracer's radius
    (1.35 times for `DepthOfField 2 1 5`); only the five Reyes depth-of-field images changed (`Parity_dof` 40.45 to 9.92). The raytracer's remaining depth-of-field noise is the default Catmull-Rom pixel filter's
    (`specs/031-geometry-hider-agnostic/lens-investigation.md`, GitHub #166), not the lens sampler.
 40. **`ShadingSystem` is the one place a shader name becomes a description, and its cache answers by name first (spec 033).** `CRenderer::shadingSystem` (created in `initFiles()`,
@@ -1023,7 +1029,7 @@ not in the agent definitions.
    the name up *before* it resolves a format, so the first format loaded for a name serves every later request whatever the preference says then (GitHub #167, known limitation, pinned by
    `ShaderFormat_Precedence`). `bind()` is the whole binding in one order: find or load, type check (`error(CODE_NOSHADER, ...)`, no key taken), instance, `takeInstanceKey()`, a light's
    `createCategories()` then `registerLight()` (no extra reference), then the backend's `initialise()` inside `arenaBegin/arenaEnd(globalArena)`; the caller sets the RIB's parameters
-   afterwards. The `"null"` shader returns before the facade (`CRendererContext::getShader`). A backend registers itself with `registerShaderBackend()` (a third one needs no edit of `src/ri`,
+   afterwards and, for a light, calls `createCategories()` again so the RIB's `__category` is the one `iterateLights` reads (GitHub #199; `createCategories()` frees the list it replaces). The `"null"` shader returns before the facade (`CRendererContext::getShader`). A backend registers itself with `registerShaderBackend()` (a third one needs no edit of `src/ri`,
    `src/display`, `src/shadeop`, `src/procedures` or `src/common`: `Shading_CoreNoBackendNames`, `ShadingSystem_ThirdBackend`). `CShader` is a backend-neutral description (`name`, `type`,
    `parameters`, `usedParameters`, `flags`, `data`, `backend`, an owned `payload`); `jitEntry`/`jitInitEntry` are written only in `sloLoader.cpp`.
 41. **A group of one layer is its layer's instance (spec 033, P-Q5).** Every binding goes through `ShaderGroupBuilder` (`begin`, `shader`, `connect`, `end`); `connect()` and a second layer are
@@ -1085,11 +1091,17 @@ not in the agent definitions.
    The photon hider (`photon.cpp`) draws one emitter point per photon through `CHider::sampleEmitters`, writes them into the light's globals, ignores the hook
    operands for a bound light (the hook hands only the first element, GitHub #68) and multiplies the power by the total area; a classic light keeps the hook path.
    The `al_surface_*` receivers of `tests/arealight/shaders` run as `.rslo` because a `.slo` surface that uses `illuminance(P)` alone gathers no light (GitHub #126).
-   A light's `__nondiffuse`/`__nonspecular` are honoured for a bound light exactly as for a classic one; under the JIT neither honours them for an
-   `illuminate()` light (`jitIlluminateEnd` saves only `Cl` and `-L`, GitHub #197), so contract case (11) asserts the scaling for `.rslo` only.
+   A light's `__nondiffuse`/`__nonspecular` are honoured for a bound light exactly as for a classic one. Under the JIT they are honoured as well (GitHub #197): the `.slo` loader marks a writable parameter as a mutable one, `jitIlluminateEnd` and `jitSolarEnd` save each such output variable into the light's `savedState[2 + i]` (read from the executing light's locals, `CShadingState::currentLocals`), and `callDiffuse` reads `__nondiffuse` as `callSpecular` reads `__nonspecular`; contract cases (11) and (11b, a solar light) assert the scaling in both formats.
    `quadlight.sl` and `spherelight.sl` are deprecated by their header comments (compiled bytes unchanged: `Shaders_BytesUnchanged`). Gotchas 10 and 11 are not
    needed for a bound light.
    **Motion:** an emitter in `MotionBegin` is sampled at the shading point's shutter time: the raytrace hider gives every pixel sample its own time (blurred), reyes and zbuffer shade a static receiver's grid once at time 0 (`reyes.cpp`), so there the emitter acts at its shutter-open pose (GitHub #196; `AreaLight_EmitterMotion`, `_GridTime`).
+
+47. **`ShadingInterpolation "constant"` flattens a quad to its v0 corner (GitHub #204).** The call is the attribute flag `ATTRIBUTES_FLAGS_CONSTANT_SHADING` (scoped like any attribute;
+   an unknown type is a `CODE_RANGE` error), copied to the grid as `RASTER_CONSTANT_SHADING` (`rasterFlags.h`, above `RASTER_GLOBAL_MASK`, so it adds no dispatch case). Reyes and zbuffer then give every pixel of a
+   micropolygon the colour, opacity and extra samples (AOVs) of its v0 corner, grid vertex (i, j), the corner of quad (i, j) with the lowest u and v; the depth and the coverage keep the true u and v, and a moving quad keeps its
+   time interpolation. It is a runtime test, read once per grid with a plain load, in `stochasticQuad.h` (`flatUV()`) and `zbufferQuad.h`, so the generated `stochasticPrimitives.h` is unchanged; "smooth" (the default)
+   is bit for bit the old interpolation. Points have one colour already, and the raytrace hider does not flatten yet (spec 054 maps "constant" to the same corner once raytrace hits are shaded per cell).
+   `ShadingInterpolation_*` (`-L shading_interpolation`) pins it per rasterizer variant.
 
 ## Active Technologies
 - C++20, CMake ≥3.19; `libtiff`/`libpng` (mandatory), OpenEXR (optional,

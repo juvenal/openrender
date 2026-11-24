@@ -218,7 +218,8 @@ class CShadingState {
         float *lightSideNStore;         // The buffer lightSideN points into, allocated with the state like Ns (mgs * 9 floats)
 
         CShaderInstance *currentShaderInstance; // The current shader instance that's executing
-        CShaderInstance *currentLightInstance = nullptr; // The current light instance that's executing (the last one that ran; none yet: lightsource() under the JIT outside any loop, spec 026 F3)
+        float **currentLocals = nullptr;        // Its locals while a .slo shader runs (the JIT's light ends save the output variables from them), else null
+        CShaderInstance *currentLightInstance = nullptr; // The current light instance that's executing (the last one that ran; none yet). lightsource() no longer reads it (GitHub #115) except op_lightsource_f, for a .slo compiled before
 
         float **locals[NUM_ACCESSORS]; // The local variables for each shader type
 
@@ -754,7 +755,8 @@ class CShadingContext final {
         //   light's conditional and loads L/Cl.  Returns 1 if any light is active.
         //   P[sp*i], N[sn*i] (sp/sn = 0 for uniform, 3 for varying).
         //   angle[sa*i] in radians (sa = 0 for uniform, 1 for varying float).
-        int jitIlluminanceBegin(const float *P, int sp, const float *N, int sn, const float *angle, int sa, int *tags, int n, int *numActive, int *numPassive);
+        //   category: the illuminance() category string (null or "": every light; a leading '-' inverts), as CATEGORYLIGHT_PRE.
+        int jitIlluminanceBegin(const float *P, int sp, const float *N, int sn, const float *angle, int sa, int *tags, int n, int *numActive, int *numPassive, const char *const *category = nullptr);
         // jitIlluminanceNext: exit current light's cond, advance to next, enter it.
         //   Returns 1 if the next light exists and has active vertices, else 0.
         int jitIlluminanceNext(int *tags, int n, int *numActive, int *numPassive);
@@ -907,6 +909,12 @@ class CShadingContext final {
                                 void *dest, int sDest, int n, const int *tags, int resultKind);
         void jitRendererInfoParameter(float *dst, int sd, const char *const *name,
                                       void *dest, int sDest, int n, const int *tags, int resultKind);
+
+        // lightsource() (GitHub #115): the interpreter's LIGHTPARAMETEREXPR_PRE per point. Reads the light the illuminance loop is on
+        // (currentLight; none: not found), a mutable parameter from that light's saved state, the same type rule as the interpreter
+        // (RISpec 3.2 section 15.8); not found or refused leaves `dest` untouched.
+        void jitLightsourceParameter(float *dst, int sd, const char *const *name,
+                                     void *dest, int sDest, int n, const int *tags, int resultKind);
 
         // textureinfo() (spec 017-jit-builtin-function-coverage, US5):
         // byte-faithful transcription of TEXTUREINFO_PRE/F/V/S/M
@@ -1232,7 +1240,7 @@ class CShadingContext final {
         int queryServiceAttribute(openrender::shading::AttributeScope scope, void *dest, const char *name, openrender::shading::QueryType expected);
         int queryMessage(openrender::shading::MessageSource source, const char *builtin, openrender::shading::ShaderHandle light, bool wantVariable, void *dest, const char *name,
                          CVariable **var, int *globalIndex, openrender::shading::QueryType expected);
-        int lightParameter(void *dest, const char *name, CVariable **var, int *globalIndex); // lightsource() in an illuminance loop (interpreter)
+        int lightParameter(void *dest, const char *name, CVariable **var, int *globalIndex, openrender::shading::QueryType expected); // lightsource() in an illuminance loop
         const char *shaderName();
         const char *shaderName(const char *type);
 

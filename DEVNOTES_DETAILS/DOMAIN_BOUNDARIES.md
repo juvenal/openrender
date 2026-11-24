@@ -279,12 +279,12 @@ request. Run `ctest -L architecture` locally before review.
   `surface()`, `displacement()`, `atmosphere()`, `incident()` and `opposite()` ask the services
   (`getAttribute`/`getMessage`) in both backends since spec 026; the JIT's eight `op_*_param` entry points already reached them then
   (`CShadingContext::jit*Parameter` -> `queryMessage`). Spec 033 (services 2.4.0) moved the last two direct reads: `op_lightsource_f` asks one
-  `getMessage` with a 64-byte `destBytes` (the oversize refusal is the renderer's answer, `TypeMismatch`, no `getParameterShape()` in `rslOps.cpp`),
-  and `shadername(type)` asks `getShaderName` (no `currentAttributes` in `CShadingContext::shaderName`); `Shading_JitMessagesThroughServices`
+  `getMessage` with a 64-byte `destBytes` (the oversize refusal is the renderer's answer, `TypeMismatch`, no `getParameterShape()` in `rslOps.cpp`;
+  since GitHub #115 the JIT's `lightsource()` is `op_lightsource_param` -> `jitLightsourceParameter` -> `queryMessage`, and `op_lightsource_f` remains
+  only for a `.slo` compiled before), and `shadername(type)` asks `getShaderName` (no `currentAttributes` in `CShadingContext::shaderName`); `Shading_JitMessagesThroughServices`
   scans both and `ShadingContract_MessageRequestsBoth` pins that the two backends make the same requests. The reads that remain in
   `shading.cpp` are the object's own, listed in spec 026's research R5.
-  - Still open: group-layer messages and `setmessage` (spec 034); the `lightsource()` divergence between the interpreter and the JIT
-    ([#115](https://github.com/juvenal/openrender/issues/115)); and the unknown destination size of a float-class query for the interpreter
+  - Still open: group-layer messages and `setmessage` (spec 034); and the unknown destination size of a float-class query for the interpreter
     ([#121](https://github.com/juvenal/openrender/issues/121); the JIT's size is now declared through `destBytes`).
 - **Size**: not a dependency edge (Shading may depend on Graphics State); tracked by review and by `Shading_JitMessagesThroughServices`.
 - **Direction**: the ray type and hit mode in `ShaderGlobals` (spec 026 defined the contract and the

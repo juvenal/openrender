@@ -1196,7 +1196,7 @@ DEFFUNC(SpecularBRDF, "specularbrdf", "c=vnvf", SPECULARBRDFEXPR_PRE, SPECULARBR
         }                                                                                            \
     }
 
-#define LIGHTPARAMETEREXPR_PRE                                                                       \
+#define LIGHTPARAMETEREXPR_PRE(expected)                                                             \
     float *res;                                                                                      \
     const char **op1;                                                                                \
     float *op2;                                                                                      \
@@ -1208,7 +1208,7 @@ DEFFUNC(SpecularBRDF, "specularbrdf", "c=vnvf", SPECULARBRDFEXPR_PRE, SPECULARBR
                                                                                                      \
     int globalIndex = -1;                                                                            \
     CVariable *cVar = NULL;                                                                          \
-    float found = (float)lightParameter(op2, *op1, &cVar, &globalIndex);                             \
+    float found = (float)lightParameter(op2, *op1, &cVar, &globalIndex, openrender::shading::QueryType::expected); \
     const float *src = op2;                                                                          \
     int srcStep = op2Step;                                                                           \
                                                                                                      \
@@ -1277,7 +1277,7 @@ DEFFUNC(SpecularBRDF, "specularbrdf", "c=vnvf", SPECULARBRDFEXPR_PRE, SPECULARBR
 #undef PARAMETEREXPRM
 #undef PARAMETEREXPR_UPDATE
 #define PARAMETEREXPR_PRE(a, e)
-#define LIGHTPARAMETEREXPR_PRE
+#define LIGHTPARAMETEREXPR_PRE(e)
 #define PARAMETEREXPRF
 #define PARAMETEREXPRS
 #define PARAMETEREXPRV
@@ -1308,10 +1308,10 @@ DEFFUNC(SurfaceM, "surface", "f=SM", PARAMETEREXPR_PRE(ACCESSOR_SURFACE, Matrix)
 DEFLINKFUNC(Lightsource2, "lightsource", "f=SC", PARAMETER_MESSAGEPASSING)
 DEFLINKFUNC(Lightsource3, "lightsource", "f=SN", PARAMETER_MESSAGEPASSING)
 DEFLINKFUNC(Lightsource4, "lightsource", "f=SP", PARAMETER_MESSAGEPASSING)
-DEFFUNC(LightsourceV, "lightsource", "f=SV", LIGHTPARAMETEREXPR_PRE, PARAMETEREXPRV, PARAMETEREXPR_UPDATE(1, 3), NULL_EXPR, PARAMETER_MESSAGEPASSING)
-DEFFUNC(Lightsource, "lightsource", "f=SF", LIGHTPARAMETEREXPR_PRE, PARAMETEREXPRF, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
-DEFFUNC(LightsourceS, "lightsource", "f=SS", LIGHTPARAMETEREXPR_PRE, PARAMETEREXPRS, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
-DEFFUNC(LightsourceM, "lightsource", "f=SM", LIGHTPARAMETEREXPR_PRE, PARAMETEREXPRM, PARAMETEREXPR_UPDATE(1, 16), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(LightsourceV, "lightsource", "f=SV", LIGHTPARAMETEREXPR_PRE(Triple), PARAMETEREXPRV, PARAMETEREXPR_UPDATE(1, 3), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(Lightsource, "lightsource", "f=SF", LIGHTPARAMETEREXPR_PRE(Float), PARAMETEREXPRF, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(LightsourceS, "lightsource", "f=SS", LIGHTPARAMETEREXPR_PRE(String), PARAMETEREXPRS, PARAMETEREXPR_UPDATE(1, 1), NULL_EXPR, PARAMETER_MESSAGEPASSING)
+DEFFUNC(LightsourceM, "lightsource", "f=SM", LIGHTPARAMETEREXPR_PRE(Matrix), PARAMETEREXPRM, PARAMETEREXPR_UPDATE(1, 16), NULL_EXPR, PARAMETER_MESSAGEPASSING)
 
 #define FUNCTION atmosphereParameter
 DEFLINKFUNC(Atmosphere2, "atmosphere", "f=SC", PARAMETER_MESSAGEPASSING)

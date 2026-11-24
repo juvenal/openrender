@@ -185,6 +185,7 @@ namespace {
     const char *const attributesSides = "Sides";
     const char *const attributesMatte = "matte";
     const char *const attributesMotionfactor = "GeometricApproximation:motionfactor";
+    const char *const attributesFocusfactor = "GeometricApproximation:focusfactor";
     const char *const attributesDisplacementBnd = "displacementbound:sphere";
     const char *const attributesDisplacementSys = "displacementbound:coordinatesystem";
     const char *const attributesName = "identifier:name";
@@ -291,6 +292,9 @@ void CRendererServicesImpl::getAttribute(const openrender::shading::AttributeReq
             }
             else if (strcmp(name, attributesMotionfactor) == 0) {
                 setFloats(answer, 1, (float)currentAttributes->motionFactor);
+            }
+            else if (strcmp(name, attributesFocusfactor) == 0) {
+                setFloats(answer, 1, (float)currentAttributes->focusFactor);
             }
             else if (strcmp(name, attributesDisplacementBnd) == 0) {
                 setFloats(answer, 1, (float)currentAttributes->maxDisplacement);
@@ -475,7 +479,7 @@ static CShaderInstance *selectMessageInstance(openrender::shading::MessageSource
 // is its getParameter(), called as Shading called it. For the five object sources the stored shape of the
 // parameter is looked up first, without writing, so that a value that cannot be copied safely into a destination of
 // the expected type (FR-026) is answered TypeMismatch before anything is written into request.dest. The Light source
-// is exempt (B4): lightsource() keeps each backend's own output.
+// applies RISpec 3.2 section 15.8's rule instead, exactly: the parameter must have the destination's type (GitHub #115).
 ///////////////////////////////////////////////////////////////////////
 openrender::shading::MessageAnswer CRendererServicesImpl::getMessage(const openrender::shading::MessageRequest &request) const {
     using namespace openrender::shading;
@@ -499,26 +503,48 @@ openrender::shading::MessageAnswer CRendererServicesImpl::getMessage(const openr
         }
     }
 
-    if (request.source != MessageSource::Light) {
+    {
         EVariableType type = TYPE_FLOAT;
         int numFloats = 0;
         if (instance->getParameterShape(request.name, type, numFloats)) {
             const bool storedIsString = (type == TYPE_STRING);
             bool unsafe;
-            switch (request.expected) {
-                case QueryType::String:
-                    unsafe = !storedIsString;
-                    break;
-                case QueryType::Triple:
-                    unsafe = storedIsString || numFloats > 3;
-                    break;
-                case QueryType::Matrix:
-                    unsafe = storedIsString || numFloats > 16;
-                    break;
-                case QueryType::Float:
-                default:
-                    unsafe = storedIsString;
-                    break;
+            if (request.source == MessageSource::Light) {
+                // lightsource(): RISpec 3.2 section 15.8, the parameter must be of the destination's type (GitHub #115). The
+                // count is exact: a color, point, vector or normal is 3 floats, a matrix 16, a float 1 (an array is none of them)
+                switch (request.expected) {
+                    case QueryType::String:
+                        unsafe = !storedIsString;
+                        break;
+                    case QueryType::Triple:
+                        unsafe = storedIsString || numFloats != 3;
+                        break;
+                    case QueryType::Matrix:
+                        unsafe = storedIsString || numFloats != 16;
+                        break;
+                    case QueryType::Float:
+                    default:
+                        unsafe = storedIsString || numFloats != 1;
+                        break;
+                }
+            }
+            else {
+                // The five object sources: a value that cannot be copied safely into a destination of the expected type
+                switch (request.expected) {
+                    case QueryType::String:
+                        unsafe = !storedIsString;
+                        break;
+                    case QueryType::Triple:
+                        unsafe = storedIsString || numFloats > 3;
+                        break;
+                    case QueryType::Matrix:
+                        unsafe = storedIsString || numFloats > 16;
+                        break;
+                    case QueryType::Float:
+                    default:
+                        unsafe = storedIsString;
+                        break;
+                }
             }
             if (unsafe) {
                 answer.status = EQueryStatus::TypeMismatch;

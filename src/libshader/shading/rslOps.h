@@ -199,7 +199,12 @@ void op_phong_batch(float *result, const float *Nf, const float *V, const float 
 /* -----------------------------------------------------------------------
  * Shader attribute query (used inside illuminance loops)
  * ----------------------------------------------------------------------- */
+/* Emitted before GitHub #115 (the last light that ran, float only); no longer emitted, kept for a .slo compiled before it. */
 void op_lightsource_f(float *result, int sr, const char *attrName, float *outParam, int so, int n, const int *tags);
+/* lightsource() (GitHub #115): the light of the current illuminance iteration, every type, result 1 or 0 per point. `resultKind`:
+ * 1=float, 3=vector, 16=matrix, -1=string. The signature of the op_*_param family below. */
+void op_lightsource_param(float *dst, int sd, const char *const *name,
+                          void *dest, int sDest, int n, const int *tags, int resultKind);
 
 /* -----------------------------------------------------------------------
  * for / while loop (JIT path) — mirrors FOR3EXPR_PRE / FOREND3EXPR_PRE
@@ -218,6 +223,10 @@ void op_for_break(const int *execCount, int *tags, int n, int *numActive, int *n
 /* op_illuminance_begin: run all lights for (P,N,angle), enter first light's
  * conditional (load L/Cl, apply lightTags).  Returns 1 if iterating, 0 if done. */
 int op_illuminance_begin_v2(const float *P, int sp, const float *N, int sn, const float *angle, int sa, int *tags, int n, int *numActive, int *numPassive, uint32_t callSite);
+/* op_illuminance_begin_v3: the same for illuminance(category, ...) (GitHub #200). `category` points at the
+ * category string ("" or null: every light; a leading '-' selects the lights that do not carry the name),
+ * as the interpreter's CATEGORYLIGHT_PRE reads it. Emitted for the 4- and 6-operand forms only. */
+int op_illuminance_begin_v3(const float *P, int sp, const float *N, int sn, const float *angle, int sa, int *tags, int n, int *numActive, int *numPassive, const char *const *category, uint32_t callSite);
 /* op_illuminance_next: exit current light, advance to next, enter it.
  * Returns 1 if more iterations needed, 0 if done. */
 int op_illuminance_next(int *tags, int n, int *numActive, int *numPassive);

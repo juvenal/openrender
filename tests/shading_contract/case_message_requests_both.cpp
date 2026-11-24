@@ -14,7 +14,8 @@
  *      the object's handle (cm_shadername.sl calls shadername() once with no argument, which reads the executing instance and asks
  *      nothing, and three times with a type) (P-Q4, spec 033's services 2.4.0);
  *   3. no Bind-phase getMatrix request is made while shading (EMatrixPhase::Bind is the bind-time init's);
- *   4. destBytes: op_lightsource_f (.slo) asks with 64, the interpreter's lightsource() with 0 (unbounded).
+ *   4. destBytes: neither backend's lightsource() sets one (0, unbounded); the same-type rule of the Light source replaces the JIT's
+ *      old 64-byte scratch (op_lightsource_f, kept for a .slo compiled before GitHub #115, is the only caller that still sets 64).
  *
  * The test's recording double derives from the spec 026 forwarder and overrides getShaderName and reads
  * MatrixRequest::phase and MessageRequest::destBytes, so it does not build before the services step to 2.4.0: that build failure
@@ -365,10 +366,10 @@ int caseMessageRequestsBoth(bool jit, const std::string &family) {
                 for (const auto &c : g_forwarder->shaderNameCalls)
                     CT_EXPECT(c.object != nullptr);
             }
-            // 4. destBytes of lightsource(): 64 from the JIT's op_lightsource_f, 0 from the interpreter's
+            // 4. destBytes of lightsource(): 0 from both backends (GitHub #115)
             CT_EXPECT(!g_forwarder->lightDestBytes.empty());
             for (size_t bytes : g_forwarder->lightDestBytes)
-                CT_EXPECT(bytes == (jit ? 64u : 0u));
+                CT_EXPECT(bytes == 0u);
         }
     }
     return (rc != 0 || contract_test::failed() > 0) ? 1 : 0;

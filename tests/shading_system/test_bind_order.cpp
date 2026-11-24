@@ -9,7 +9,7 @@
  *   wrong type         CODE_NOSHADER "Shader \"%s\" is not of the expected type\n", no instance, no key taken
  *   a surface          load, instantiate, takeInstanceKey, initialise, setParameters
  *   a light            load, instantiate, takeInstanceKey, createCategories (reads the DEFAULT __category: the RIB's parameters are
- *                      not set yet), registerLight, initialise, setParameters
+ *                      not set yet), registerLight, initialise, setParameters, then createCategories again (the RIB's __category, #199)
  *   initialise()       once per instance, inside arenaBegin/arenaEnd(globalArena)
  *
  * Red on the starting tree: shadingSystem.h, shaderGroup.h and shaderBackend.h do not exist (a build failure).
@@ -85,19 +85,19 @@ int main() {
                 instance->detach();
         }
 
-        // a light: categories from the default __category, then registration, then init, then the RIB's parameters
+        // a light: categories from the default __category, then registration, then init, then the RIB's parameters, then the categories again
         events.clear();
         {
             const ShaderRequest request{"tstlight", SL_LIGHTSOURCE, "tst", nullptr, &resolver};
             CShaderInstance *instance = bindThroughGroup(system, request, h, host, "othercat");
             CT_EXPECT(instance != nullptr);
-            CT_EXPECT(equal(events, {"load", "instantiate", "takeInstanceKey", "getParameter(__category)", "registerLight", "initialise", "setParameters"}));
+            CT_EXPECT(equal(events, {"load", "instantiate", "takeInstanceKey", "getParameter(__category)", "registerLight", "initialise", "setParameters", "getParameter(__category)"}));
             CT_EXPECT(host.lights.size() == 1 && host.lights[0] == instance);
             CT_EXPECT(instance != nullptr && instance->instanceKey == 2);
             if (instance != nullptr && instance->categories != nullptr) {
-                // the ID of "defaultcat", not of "othercat": the parameters were set after the categories were read
-                CT_EXPECT(instance->categories[0] == svc.getGlobalID("defaultcat"));
-                CT_EXPECT(instance->categories[0] != svc.getGlobalID("othercat"));
+                // the ID of "othercat", not of "defaultcat": the categories are rebuilt after the parameters are set (#199)
+                CT_EXPECT(instance->categories[0] == svc.getGlobalID("othercat"));
+                CT_EXPECT(instance->categories[0] != svc.getGlobalID("defaultcat"));
             }
             else {
                 CT_EXPECT(false); // a light with a __category has categories

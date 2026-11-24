@@ -6,8 +6,8 @@
  * lightsource() outside any illuminance/illuminate loop, against the real services: it answers not found and
  * does not crash. With a real light bound to the object's attributes (a light exists, but none is being
  * iterated) the interpreter still has no current light to ask for. The interpreter dereferences a null light
- * on master (a crash: that is the red evidence); the JIT already guards it. The documented backend
- * difference (Q2) is asserted: the interpreter leaves the destination untouched, the JIT writes 0.
+ * on master (a crash: that is the red evidence); the JIT guards it too. Both leave the destination untouched
+ * (RISpec 3.2 section 15.8; the JIT used to write 0 into it: GitHub #115).
  */
 #include "case_common.h"
 #include "rendered_cases.h"
@@ -34,9 +34,9 @@ int caseLightsourceNoLoopReal(bool jit) {
             const int n = 4;
             const SHarnessResult r = CRenderedSession::runSurface(ctx, shader, n, s.object);
             for (int i = 0; i < n; i++) {
-                CT_EXPECT_NEAR(r.ciAt(i, 1), 0.0f);               // not found
-                CT_EXPECT_NEAR(r.ciAt(i, 0), jit ? 0.0f : -1.0f); // Q2: the JIT writes its value, the interpreter nothing
-                CT_EXPECT_NEAR(r.oiAt(i, 0), 1.0f);               // the shader ran to its end
+                CT_EXPECT_NEAR(r.ciAt(i, 1), 0.0f);  // not found
+                CT_EXPECT_NEAR(r.ciAt(i, 0), -1.0f); // not found: the destination is unchanged (RISpec 3.2, GitHub #115)
+                CT_EXPECT_NEAR(r.oiAt(i, 0), 1.0f);  // the shader ran to its end
             }
         }
         delete ctx;

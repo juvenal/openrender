@@ -918,6 +918,7 @@ void op_pnoise_4d_v(float *dst, int sd, const float *P, int sP, const float *t, 
 // Shader attribute query
 // =========================================================================
 
+// No longer emitted (GitHub #115: op_lightsource_param). Kept as it was for a .slo compiled before that fix, which binds to this symbol.
 void op_lightsource_f(float *result, int sr, const char *attrName, float *outParam, int so, int n, const int *tags) {
     (void)n;
     (void)tags;
@@ -1578,6 +1579,14 @@ int op_illuminance_begin_v2(const float *P, int sp, const float *N, int sn, cons
                                     tags, n, numActive, numPassive);
 }
 
+int op_illuminance_begin_v3(const float *P, int sp, const float *N, int sn, const float *angle, int sa, int *tags, int n, int *numActive, int *numPassive, const char *const *category, uint32_t /*callSite*/) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (!ctx)
+        return 0;
+    return ctx->jitIlluminanceBegin(P, sp, N, sn, angle, sa,
+                                    tags, n, numActive, numPassive, category);
+}
+
 int op_illuminance_next(int *tags, int n, int *numActive, int *numPassive) {
     CShadingContext *ctx = libshader::activeContext();
     if (!ctx)
@@ -2233,6 +2242,13 @@ void op_bake3d(float *dst, int sd, const char *const *name, const char *const *c
     CShadingContext *ctx = libshader::activeContext();
     if (ctx)
         ctx->jitBake3d(dst, sd, name, channels, P, sP, N, sN, du, dv, n, tags);
+}
+
+void op_lightsource_param(float *dst, int sd, const char *const *name,
+                          void *dest, int sDest, int n, const int *tags, int resultKind) {
+    CShadingContext *ctx = libshader::activeContext();
+    if (ctx)
+        ctx->jitLightsourceParameter(dst, sd, name, dest, sDest, n, tags, resultKind);
 }
 
 void op_surface_param(float *dst, int sd, const char *const *name,

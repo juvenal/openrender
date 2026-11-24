@@ -198,6 +198,10 @@ void CShaderInstance::createCategories() {
     char *categoryString, *tmp;
     int numCategories;
 
+    // Rebuilt after the RIB's parameters are set (ShaderGroupBuilder::shader, GitHub #199): drop the list built from the default
+    delete[] categories;
+    categories = NULL;
+
     if (getParameter("__category", &categoryString, NULL, NULL) == TRUE) {
         tmp = categoryString = strdup(categoryString);
 

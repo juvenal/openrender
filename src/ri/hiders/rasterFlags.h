@@ -40,4 +40,8 @@ const unsigned int RASTER_GLOBAL_MASK = (1 << 10) - 1; // This mask is used to b
 const unsigned int RASTER_HIGHBITS_SHIFT = 10; // The shift needed to put bits in the higher fields
 const unsigned int RASTER_DEPTHFILT_MASK = 1;
 
+// A flag of the grid that is not part of the dispatch (RASTER_GLOBAL_MASK blocks it): the rasterizers read it
+// from grid->flags, once per grid (GitHub #204)
+const unsigned int RASTER_CONSTANT_SHADING = 1 << 14; // ShadingInterpolation "constant": a pixel takes the shaded values of its quad's v0 corner
+
 #endif

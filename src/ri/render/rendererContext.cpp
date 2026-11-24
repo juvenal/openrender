@@ -2607,8 +2607,22 @@ void CRendererContext::RiShadingRate(float size) {
     attributes->shadingRate = sqrtf(size);
 }
 
-void CRendererContext::RiShadingInterpolation(const char *) {
-    // Unimplemented: renderer always uses smooth shading interpolation.
+void CRendererContext::RiShadingInterpolation(const char *type) {
+    CAttributes *attributes;
+
+    if (CRenderer::netNumServers > 0)
+        return;
+
+    if (strcmp(type, RI_CONSTANT) == 0) {
+        attributes = getAttributes(TRUE);
+        attributes->flags |= ATTRIBUTES_FLAGS_CONSTANT_SHADING;
+    }
+    else if (strcmp(type, RI_SMOOTH) == 0) {
+        attributes = getAttributes(TRUE);
+        attributes->flags &= ~ATTRIBUTES_FLAGS_CONSTANT_SHADING;
+    }
+    else
+        error(CODE_RANGE, "Invalid shading interpolation: %s\n", type);
 }
 
 void CRendererContext::RiMatte(int onoff) {
@@ -2720,6 +2734,9 @@ void CRendererContext::RiGeometricApproximation(const char *type, float value) {
     }
     else if (strcmp(type, RI_FLATNESS) == 0) {
         warning(CODE_BADTOKEN, "Deprecated GeometricApproximation \"%s\" will be ignored\n", type);
+    }
+    else if (strcmp(type, RI_FOCUSFACTOR) == 0) {
+        attributes->focusFactor = value;
     }
     else if (strcmp(type, RI_MOTIONFACTOR) == 0) {
         attributes->motionFactor = value;

@@ -30,8 +30,8 @@
  *    (11) __nondiffuse and __nonspecular on a bound light act as on a classic light: a light at `from` (whose __nondiffuse or __nonspecular is an
  *         output variable, read by the engine from the entry's saved state) gives the receiver's diffuse() and specular() the same result, bit for bit, as
  *         the same light run as a classic one (the bound light's one sample has density 1 and the shader uses `from`, so the entries agree), in both formats;
- *         and, for .rslo, 0 is the full result, 0.5 half of it, 1 none, for a varying and a uniform output variable (the scaling under the JIT is pending
- *         an engine issue: see the comment at the case).
+ *         and, in both formats, 0 is the full result, 0.5 half of it, 1 none, for a varying and a uniform output variable. (11b) the same scaling for a
+ *         solar() light (GitHub #197).
  *
  *   Written against master's services 2.3.0 plus this spec's interface (areaLightSampler.h, ITracer::occluded; services 2.6.0
  *   with it): red on the starting tree (does not compile). Spec 033's 2.4.0 request members change what a services double must
@@ -687,9 +687,8 @@ int caseAreaLight(bool jit) {
         // The light sits at its `from` parameter and ignores the sampled point, so with one sample of density 1 the bound light's entry is the
         // classic light's (the same Cl and L): what the receiver's diffuse() and specular() make of it is the classic result bit for bit.
         // The receivers load in the run's format: #126 concerns a .slo surface whose only lighting call is illuminance(P), and these call diffuse() and specular().
-        // Under the JIT (.slo light) the output variables __nondiffuse and __nonspecular have no effect for an illuminate() light, a classic one as much as a bound
-        // one: jitIlluminateEnd saves Cl and -L and not the extras that diffuse() and specular() read. So the parity is asserted in both formats and the
-        // scaling (0 the full result, 0.5 half of it, 1 none) for .rslo only; the .slo scaling check is pending the JIT engine issue GitHub #197.
+        // The scaling (0 the full result, 0.5 half of it, 1 none) is asserted in both formats (GitHub #197: under the JIT the end of an illuminate() or solar()
+        // block saved neither output variable and diffuse() did not read __nondiffuse), with the parity of the bound light against the classic one.
         CProgrammableShaderInstance *diffuse = s.load("ca_surface_diffuse", SL_SURFACE);
         CProgrammableShaderInstance *specular = s.load("ca_surface_specular", SL_SURFACE);
         CT_EXPECT(diffuse != nullptr && specular != nullptr);
@@ -725,7 +724,7 @@ int caseAreaLight(bool jit) {
                     CT_EXPECT(bitEqual(b, c));
                     if (v == 0.0f)
                         full = c.ci;
-                    for (size_t k = 0; k < c.ci.size() && !jit; k++) { // the scaling: .rslo only, see above
+                    for (size_t k = 0; k < c.ci.size(); k++) { // the scaling
                         if (v == 0.0f)
                             CT_EXPECT(c.ci[k] > 0.0f); // there is a diffuse or a specular result to scale
                         else
@@ -733,13 +732,82 @@ int caseAreaLight(bool jit) {
                     }
                 }
             }
-            // a uniform __nondiffuse and __nonspecular (the light's step is 0), both 1: the same result as the classic light, and for .rslo the light is skipped
+            // a uniform __nondiffuse and __nonspecular (the light's step is 0), both 1: the same result as the classic light, and the light is skipped
             for (int kind = 0; kind < 2; kind++) {
                 SRun b, c;
                 pairRun(loadLightParam(kind == 0 ? "ca_light_nondiffuse_uniform" : "ca_light_nonspecular_uniform", nullptr, 0.0f), kind == 0 ? diffuse : specular, b, c);
                 CT_EXPECT(bitEqual(b, c));
-                for (size_t k = 0; k < c.ci.size() && !jit; k++) // skipped: .rslo only, see above
+                for (size_t k = 0; k < c.ci.size(); k++) // skipped
                     CT_EXPECT(b.ci[k] == 0.0f && c.ci[k] == 0.0f);
+            }
+        }
+    }
+
+    // ---- (11b) GitHub #197: a solar() light's __nondiffuse and __nonspecular, in the run's format (a classic light only) ------------------------------
+    {
+        CProgrammableShaderInstance *diffuse = s.load("ca_surface_diffuse", SL_SURFACE);
+        CProgrammableShaderInstance *specular = s.load("ca_surface_specular", SL_SURFACE);
+        CT_EXPECT(diffuse != nullptr && specular != nullptr);
+        // solar() puts the light at the world's radius along its axis: a bound that is not empty makes L finite (the session's is zero)
+        vector savedMin, savedMax;
+        movvv(savedMin, CRenderer::worldBmin);
+        movvv(savedMax, CRenderer::worldBmax);
+        initv(CRenderer::worldBmin, -1, -1, -1);
+        initv(CRenderer::worldBmax, 1, 1, 1);
+        if (diffuse != nullptr && specular != nullptr) {
+            for (int kind = 0; kind < 2; kind++) {
+                const char *light = kind == 0 ? "ca_light_solar_nondiffuse" : "ca_light_solar_nonspecular";
+                const char *token = kind == 0 ? "float nondiffuse" : "float nonspecular";
+                CProgrammableShaderInstance *receiver = kind == 0 ? diffuse : specular;
+                std::vector<float> full;
+                for (float v : {0.0f, 0.5f, 1.0f}) {
+                    CProgrammableShaderInstance *l = loadLightParam(light, token, v);
+                    CT_EXPECT(l != nullptr);
+                    if (l == nullptr)
+                        continue;
+                    CAttributes *a = new CAttributes();
+                    a->addLight(l);
+                    SRun r = runSurface(s, ctx, receiver, a, nullptr);
+                    if (v == 0.0f)
+                        full = r.ci;
+                    for (size_t k = 0; k < r.ci.size() && k < full.size(); k++) {
+                        if (v == 0.0f)
+                            CT_EXPECT(r.ci[k] > 0.0f);
+                        else
+                            CT_EXPECT(r.ci[k] == (1.0f - v) * full[k]);
+                    }
+                }
+            }
+        }
+        movvv(CRenderer::worldBmin, savedMin);
+        movvv(CRenderer::worldBmax, savedMax);
+    }
+
+    // ---- (11c) GitHub #197: both output variables on one light, set independently: each receiver reads its own slot ------------------------------------
+    {
+        CProgrammableShaderInstance *diffuse = s.load("ca_surface_diffuse", SL_SURFACE);
+        CProgrammableShaderInstance *specular = s.load("ca_surface_specular", SL_SURFACE);
+        CT_EXPECT(diffuse != nullptr && specular != nullptr);
+        auto lightWith = [&](float nd, float ns) {
+            const char *tokens[] = {"float nondiffuse", "float nonspecular"};
+            const void *params[] = {&nd, &ns};
+            return dynamic_cast<CProgrammableShaderInstance *>(CRenderer::context->getShader("ca_light_nd_ns", SL_LIGHTSOURCE, 2, tokens, params));
+        };
+        auto run = [&](CProgrammableShaderInstance *light, CProgrammableShaderInstance *receiver) {
+            CAttributes *a = new CAttributes();
+            a->addLight(light);
+            return runSurface(s, ctx, receiver, a, nullptr);
+        };
+        if (diffuse != nullptr && specular != nullptr) {
+            const SRun dFull = run(lightWith(0, 0), diffuse), sFull = run(lightWith(0, 0), specular);
+            const SRun dOnly = run(lightWith(0.5f, 1.0f), diffuse), sOnly = run(lightWith(1.0f, 0.5f), specular);
+            for (size_t k = 0; k < dFull.ci.size() && k < dOnly.ci.size(); k++) {
+                CT_EXPECT(dFull.ci[k] > 0.0f);
+                CT_EXPECT(dOnly.ci[k] == 0.5f * dFull.ci[k]); // diffuse(): __nondiffuse 0.5, whatever __nonspecular is
+            }
+            for (size_t k = 0; k < sFull.ci.size() && k < sOnly.ci.size(); k++) {
+                CT_EXPECT(sFull.ci[k] > 0.0f);
+                CT_EXPECT(sOnly.ci[k] == 0.5f * sFull.ci[k]); // specular(): __nonspecular 0.5, whatever __nondiffuse is
             }
         }
     }

@@ -74,6 +74,7 @@ if(TARGET state_only_sources)
         # Enabled in Phase 6 (the Test gate): the group builder tests
         add_system_test_exe(test_shading_system_bind_order test_bind_order.cpp)
         add_system_test_exe(test_shading_system_group_one_layer test_group_one_layer.cpp)
+        add_system_test_exe(test_shading_system_light_category test_light_category.cpp)
     else()
         add_system_test_exe(test_shading_system_nojit_fallback test_nojit_fallback.cpp)
     endif()
@@ -102,6 +103,10 @@ if(OPENRENDER_HAVE_LLVM)
     add_test(NAME ShadingSystem_BindOrder COMMAND $<TARGET_FILE:test_shading_system_bind_order>)
     add_test(NAME ShadingSystem_GroupOneLayer COMMAND $<TARGET_FILE:test_shading_system_group_one_layer>)
     set_tests_properties(ShadingSystem_BindOrder ShadingSystem_GroupOneLayer PROPERTIES
+        TIMEOUT 120 LABELS "shading_system" ENVIRONMENT "${SHADING_SYSTEM_ENV}")
+    # GitHub #199: a light's __category from the RIB
+    add_test(NAME ShadingSystem_LightCategoryFromRib COMMAND $<TARGET_FILE:test_shading_system_light_category>)
+    set_tests_properties(ShadingSystem_LightCategoryFromRib PROPERTIES
         TIMEOUT 120 LABELS "shading_system" ENVIRONMENT "${SHADING_SYSTEM_ENV}")
     # Enabled in Phase 8
     or033_test(ShaderMetadata_Shipped

@@ -37,6 +37,8 @@ set(_contract_shader_names
     cm_lightsource cm_lightsource_noloop cm_producer_surface cm_producer_displacement cm_producer_volume cm_producer_light
     cm_mm_attribute cm_mm_option cm_mm_rendererinfo cm_mm_real cm_nullobject
     cm_producer_light_big cm_lightsource_big cm_str_far cm_producer_light_str cm_lightsource_str
+    # GitHub #115: lightsource() against RISpec 3.2 15.8
+    cm_ls_light_a cm_ls_light_b cm_ls_light_out cm_ls_all cm_ls_mm_float cm_ls_mm_vector cm_ls_mm_string cm_ls_mm_matrix cm_ls_output
     cm_mm_msg_surface cm_mm_msg_displacement cm_mm_msg_atmosphere cm_mm_msg_incident cm_mm_msg_opposite
     cm_mm_real_msg_surface cm_mm_real_msg_displacement cm_mm_real_msg_atmosphere cm_mm_real_msg_incident cm_mm_real_msg_opposite cm_nullobject_msg
     cm_matrices cm_trace cm_transmission cm_visibility cm_gather cm_occlusion cm_indirect cm_env cm_shadow
@@ -46,7 +48,9 @@ set(_contract_shader_names
     cv_surface_trace cv_surface_transmission cv_surface_gather cv_surface_environment cv_surface_visibility
     cv_surface_occlusion cv_surface_indirect cv_incident_probe
     # spec 057: the bound-light branch of iterateLights (contract-only shaders; they touch neither shader manifest)
-    ca_light_const ca_light_cat ca_light_nondiffuse ca_light_writen ca_light_encode ca_surface_sum ca_surface_sum_cat ca_surface_diffuse ca_light_nonspecular ca_light_nondiffuse_uniform ca_light_nonspecular_uniform ca_surface_specular)
+    ca_light_const ca_light_cat ca_light_nondiffuse ca_light_writen ca_light_encode ca_surface_sum ca_surface_sum_cat ca_surface_diffuse ca_light_nonspecular ca_light_nondiffuse_uniform ca_light_nonspecular_uniform ca_surface_specular
+    # GitHub #197: solar() lights that set __nondiffuse and __nonspecular
+    ca_light_solar_nondiffuse ca_light_solar_nonspecular ca_light_nd_ns)
 set(_shader_specs "")
 foreach(_b trace transmission visibility gather environment shadow occlusion indirectdiffuse)
     list(APPEND _shader_specs "replay_${_b}|${CMAKE_CURRENT_SOURCE_DIR}/replay/shaders/replay_${_b}.sl")
@@ -167,7 +171,7 @@ if(OPENRENDER_SHADING_CONTRACT_TESTS)
     add_dependencies(test_shading_contract_standalone shading_contract_replay_shaders)
 
     add_executable(test_shading_contract_rendered
-        rendered_main.cpp case_real_answers.cpp case_gather_requests.cpp case_canned_trace.cpp case_no_tracer.cpp case_double_globals.cpp case_null_object.cpp case_type_mismatch_real_message.cpp case_lightsource_no_loop_real.cpp case_null_object_messages.cpp case_lightsource_oversized.cpp case_string_message_far.cpp)
+        rendered_main.cpp case_real_answers.cpp case_gather_requests.cpp case_canned_trace.cpp case_no_tracer.cpp case_double_globals.cpp case_null_object.cpp case_type_mismatch_real_message.cpp case_lightsource_no_loop_real.cpp case_null_object_messages.cpp case_lightsource_oversized.cpp case_lightsource_rispec.cpp case_string_message_far.cpp)
     target_compile_features(test_shading_contract_rendered PRIVATE cxx_std_20)
     target_compile_definitions(test_shading_contract_rendered PRIVATE ${SHADING_CONTRACT_PROGRAM_DEFS})
     target_include_directories(test_shading_contract_rendered PRIVATE ${SHADING_CONTRACT_INCLUDES})
@@ -289,6 +293,11 @@ add_contract_test(ShadingContract_LightsourceNoLoopRealJit test_shading_contract
 add_contract_test(ShadingContract_NullObject_MessagesInterp test_shading_contract_rendered NullObject_MessagesInterp ENABLED)
 add_contract_test(ShadingContract_NullObject_MessagesJit test_shading_contract_rendered NullObject_MessagesJit JIT ENABLED)
 add_contract_test(ShadingContract_LightsourceOversizedJit test_shading_contract_rendered LightsourceOversizedJit JIT ENABLED)
+# GitHub #115: lightsource() follows RISpec 3.2 15.8 in both backends
+foreach(_fam Types MismatchFloat MismatchVector MismatchString MismatchMatrix Output)
+    add_contract_test(ShadingContract_LightsourceRispecInterp_${_fam} test_shading_contract_rendered LightsourceRispecInterp_${_fam} ENABLED)
+    add_contract_test(ShadingContract_LightsourceRispecJit_${_fam} test_shading_contract_rendered LightsourceRispecJit_${_fam} JIT ENABLED)
+endforeach()
 
 # Phase 7 (the offending object): its own executable, no case argument
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cwd/ShadingContract_OffendingObject)
