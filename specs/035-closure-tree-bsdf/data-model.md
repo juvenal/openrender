@@ -75,6 +75,7 @@ Every entity below belongs to one domain, and the domain is named. Exact signatu
 
 - `distribution` points at a registry-interned string, `"ggx"` or `"beckmann"`.
 - A component's total size is `16 + block size`, rounded up to 16.
+- The blocks are the structs of `closureBuiltins.h` (`ClosureDiffuseBlock`, `ClosureOrenNayarBlock`, `ClosureMicrofacetBlock`, `ClosureReflectionBlock`, `ClosureRefractionBlock`, `ClosureUniformEdfBlock`): the one definition the registry, the BSDF components and the tests share.
 
 ### Closure registry entry (`closureRegistry.h`)
 
@@ -93,7 +94,9 @@ Every entity below belongs to one domain, and the domain is named. Exact signatu
 
 | Entity | Fields | Notes |
 |---|---|---|
-| `ClosureTreeBuilder` | the arena (`CMemPage *&`), the batch's byte budget, the bytes used, a reference to the frame's diagnostics | `component(id, weight, block)`, `mul(weight, child)`, `add(a, b)`, `setRoot(point, node)` |
+| `ClosureTreeBuilder` | the arena (`CMemPage *&`), the batch's byte budget, the bytes used, an overflow flag, the roots table, a pointer to the frame's `IClosureDiagnostics` (null allowed) | `component(id, weight, block, blockSize)`, `mul(weight, child)`, `add(a, b)`, `setRoot(point, node)` (after an overflow the next one stores an empty root), `root(point)`, `bytesUsed()`, `budget()` |
+| `ClosureDiagKind`, `IClosureDiagnostics`, `ClosureFrameDiagnostics` | the kinds `BadWeight`, `BudgetExceeded`, `UnknownClosure`, `BadBlockSize`, `BadRefractionIndex`, `PointOutOfRange`; a per-kind atomic count | one report per kind per frame; `CODE_LIMIT` for the budget, `CODE_RANGE` for a bad weight |
+| accumulated weight | a `Spectrum` | root 1; child = parent's accumulated weight times the parent's own weight, one multiplication per node; lobe weight = that times the component's `w` (closure-abi.md) |
 | `ClosureLobe` | `int32_t id; Spectrum weight; const void *params` | the flattened form (FR-003) |
 | `ClosureLobeList` | `ClosureLobe *lobes; int count; bool hasDelta` | in the arena |
 | accessors | `closureTreePresence(tree) → float`, `closureTreeEmission(tree) → Spectrum`, `closureTreeHoldout(tree) → float` | presence is the summed `transparent` weight as a scalar (its channel mean) (D16) |

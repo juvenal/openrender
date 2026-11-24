@@ -124,3 +124,78 @@ Corrections to plan.md's table: the `attributes.cpp` numbers (`:265`, `:503`, `:
 - `research.md` R9: `shading.cpp:2053`, `:2508`, `:4907` became `:2054`, `:2518`, `:5006`; R23: the stale master hash `4ee81900` became `e1737ae5`, the base 035 synced to. R23's merged list does not name #205; not added.
 - The ambient gate and the GI gate wording: see findings A and B above.
 - Not changed: `tasks.md` still says "master `4ee81900`" in its header, Conventions and T010 (history notes about the sync; read as current master), and the stale R9 numbers it quotes in T010 are quoted as stale.
+
+## Phase 1
+
+### Red evidence (T016 to T023)
+
+Tests written before any implementation (T016 to T022), then `~/.claude/bin/cpujob 035-p1-redcfg cmake -S $WT -B $WT/build -DOPENRENDER_035_RED_TESTS=ON` (rc 0) and one `035-p1-red cmake --build $WT/build --target <t> -j4` per target (swap free 1.08 GiB before each). Every target fails to compile, on the first missing piece (logs `build/p1-red-<target>.log`). Only the first missing header is reported per translation unit: further errors in a test (a typo of mine, a signature that differs from what the implementation will have) show only when the headers exist, so the green run of T030 is the first compile of the test bodies.
+
+| Ctest tests (label `closures` plus) | Target | First failure |
+|---|---|---|
+| `Spectrum_Basics` (`common`) | `test_spectrum` | `tests/unit/common/test_spectrum.cpp:13: 'common/spectrum.h' file not found` |
+| `Closure_Layout` | `test_closure_layout` | `layout_c17.c:8` and `test_layout.cpp:16: 'closureAbi.h' file not found` |
+| `Closure_Registry_{Builtins,Alias,Unknown,Refusals,Open,Race,NoLock}` | `test_closure_registry` | `test_registry.cpp:24: 'closureAbi.h' file not found` |
+| `Closure_Flatten_{Random,Nested,Collapse,Refusals}` | `test_closure_flatten` | `test_flatten.cpp:25: 'closureAbi.h' file not found` |
+| `Closure_Arena_{Release,Copy,Budget,Point}` | `test_closure_arena` | `test_arena.cpp:23: 'closureAbi.h' file not found` |
+| `Closure_Accessors` | `test_closure_accessors` | `test_accessors.cpp:13: 'closureAbi.h' file not found` |
+
+The tests live in `tests/closures/` (`CMakeLists.txt`, `test_support.h`, `test_layout.cpp`, `layout_c17.c`, `test_registry.cpp`, `test_flatten.cpp`, `test_arena.cpp`, `test_accessors.cpp`) and `tests/unit/common/test_spectrum.cpp`; `tests/CMakeLists.txt` gained the option and the `add_subdirectory(closures)` (the only edit of that file). All six executables are inside `if(OPENRENDER_035_RED_TESTS)`; nothing is registered with the option OFF (so no existing test changes). The build tree is left configured with the option ON until T029.
+
+### Approval (T024), 2026-11-24
+
+The maintainer approved the Phase 1 tests and the pinned API (recorded in tasks.md under T024 and in `contracts/closure-abi.md` / `data-model.md`), with two corrections that were applied before T030: (7) `closureRegistryLockCount()` is declared in the internal `closureRegistry.h`, not in `closureAbi.h`; (9) the built-in parameter blocks are defined once in the internal `closureBuiltins.h`, and the tests include it instead of mirroring the structs. The approved API, in one place: `openrender::Spectrum`; the accumulated-weight rule (root exactly 1; a child's is its parent's times the parent's own weight, one multiplication per node, root to leaf; a lobe's weight is that times the component's `w`); `ClosureTreeBuilder(CMemPage *&, int numRealVertices, IClosureDiagnostics *)` with a null hook allowed; `closureEvaluateGeneric(tree, visit)` as the Phase 1 walk (Phase 2 puts the BSDF query on top); `ClosureDiagKind` (`BadWeight`, `BudgetExceeded`, `UnknownClosure`, `BadBlockSize`, `BadRefractionIndex`, `PointOutOfRange`), `IClosureDiagnostics`, `ClosureFrameDiagnostics` (once per kind per frame; `CODE_LIMIT` for the budget, `CODE_RANGE` for a bad weight); after a budget overflow the next `setRoot` leaves its point empty.
+
+### Implementation (T025 to T029)
+
+New files: `src/common/spectrum.h`; `src/libshader/closures/{closureAbi.h, closureBuiltins.h, closureRegistry.{h,cpp}, closureTree.{h,cpp}}`. Edits of existing files: `src/libshader/shading/CMakeLists.txt` (the two closure sources listed explicitly, and `src/libshader/closures` and `src/include` on the library's private include path; the Hiders'/Geometry filter above it is untouched), `tests/CMakeLists.txt` (T016), `tests/closures/CMakeLists.txt` (the Phase 1 tests moved out of the red block). `src/libshader/closures/` includes nothing from `src/ri/` (`-L architecture` 45 of 45). The new files in `src` were clang-formatted (they are new, so there was no "clean before" state); the tests were not reformatted.
+
+Two things found by running the tests, both mine:
+1. `test_registry.cpp` did not compile: splitting the program into sections left `okParam` used in `sectionOpen` and defined in another section. One declaration was added to `sectionOpen` (no check changed). This is the first compile of the test bodies, as predicted in the red evidence.
+2. **A real race in the registry, found by `Closure_Registry_Race`** (it failed once in 8 runs, then passed alone 6 times): `published()` tested `current != nullptr`, which is true as soon as the first built-in is added during the first-use fill, so a second thread skipped the `call_once`, registered at once and took an id below 8 while the fill was still running. Fixed with a separate `ready` flag that is set only after the whole fill. After the fix `Closure_Registry_*` passed 300 repeats in a row (`ctest --repeat until-fail:300 -j4`).
+
+### Build and test (T030), macOS
+
+`035-p1-cfg` (red option back OFF), `035-p1-build*` rc 0 (incremental; the closure sources and the tests compile with `-Werror`, no warning). `-L 'closures|common'`: **36 of 37 pass**; the one failure is `Closure_Flatten_Random`, which is the **PAUSE below**. `-L 'link|shading_system|libshader|shading_parity|architecture'`: **462 of 462 pass** (121 s), so the library the sources joined still links self-contained (`Link_*`, `Link_InfoRuntimeNotCoLinked`, `ShadingScope_Greps`).
+
+**PAUSE: `Closure_Flatten_Random` population floors.** All 1000 per-tree equality checks pass (flatten, the generic walk and the independent reference agree bit for bit). Only two sanity floors fail: `totalLobes > 3000` and `nonEmpty > 900`, which I guessed before measuring; measured 1865 lobes and 895 non-empty trees (a one-off print, reverted). They guard against a degenerate generator and are not numerical tolerances, but changing them lowers an approved test's floor, so it is not done: the proposal and the alternative are in `specs/035-closure-tree-bsdf/tools/proposed/test_flatten_random_floors.md`. The test stays red until the maintainer decides.
+
+### Capability to fail (T031)
+
+Each scratch edit was reverted afterwards (`git diff --stat` empty) and the tree rebuilt:
+
+| # | Scratch edit | Result |
+|---|---|---|
+| 1 | `closureEvaluateGeneric`'s walk visits B before A | `Closure_Flatten_Nested` and `Closure_Flatten_Random` fail (rebuild + `ctest -R 'Closure_Flatten|Closure_Accessors'`: 2 of 5 fail; Nested is the clean evidence, Random is red for the floors as well); `Closure_Accessors` stays green (order-free) |
+| 2 | `OrClosureMul`'s members reordered (`closure` before `weight`) in `closureAbi.h` | `test_closure_layout` does not compile: `static assertion failed ... sizeof(OrClosureMul) == 24` and `offsetof(OrClosureMul, weight) == 4`, at `closureAbi.h:180-181` (and in the test's own assertions) |
+| 3 | the `emission` deprecation `call_once` removed | `Closure_Registry_Alias` fails: `sink.countContaining("emission") == 1: 3 != 1` |
+| 4 | the budget check dropped (`if (false && ...)`) | `Closure_Arena_Budget` fails on 20 checks (bytesUsed over the budget, no `CODE_LIMIT`, the bump pointer past the budget, the root not empty, ...) |
+
+### Linux (T032), GCC 13 `-Werror`
+
+`tools/sync_linux.sh` (5221 files verified), `035-p1-lx-cfg`, `035-p1-lx-build` and `035-p1-lx-build2` (after the clang-format and the race fix) rc 0, no warning or error. `-L 'closures|common' -j2`: 36 of 37 pass, the one failure being the same `Closure_Flatten_Random` floors; `Closure_Layout` passes on Linux (SC-010: the layout holds on both platforms). `-L 'link|architecture' -j2`: **52 of 52 pass**.
+
+### Architecture (T033)
+
+`035-p1-arch` on macOS: 45 of 45 pass; `allowlist.txt`, `ribvector-core-residual.txt` and `metrics-baseline.txt` byte-identical to the Phase 0 copies; no `reference` file changed (`git status --short tests src/libshader/tests`).
+
+### Swap
+
+The macOS jobs ran with the swap free at 1.0 to 1.3 GiB, but the figure was 996 MB before `035-p1-race2` and 1004 MB afterwards (under the 1 GiB rule by 2 percent); the rest of the phase's macOS jobs waited for it to recover.
+
+### Full run (macOS, after the formatting and the race fix)
+
+`035-p1-all ctest -LE 'determinism-sweep|gi_determinism_long' -j4`: ctest wall 343.6 s (02:14 to 02:21), **1763 tests, 1762 passed, 1 failed**: `Closure_Flatten_Random` (the PAUSE above). 1763 is the Phase 0 baseline's 1745 plus the 18 closure tests. Neither of the two envshadow tests (#225) failed in this run, and nothing else is red. The swap was 1.24 GiB free at the start.
+
+### Resolution of the `Closure_Flatten_Random` PAUSE (2026-11-24: the maintainer approved Option 2)
+
+The floors are unchanged (`totalLobes > 3000`, `nonEmpty > 900`); the generator is richer: depth 3 to 6 (was 2 to 6), below depth 0 a node is a leaf with probability 1/6, a multiply with 1/3 and an add with 1/2 (was 1/3 each), a zero component 10% (was 12%) and a zero multiply 6% (was 10%). The checks themselves (the bit-for-bit comparisons of the flatten, the generic walk and the reference) are unchanged and run over the new population.
+
+- macOS `-L 'closures|common'`: **37 of 37 pass**. `-L 'link|shading_system|libshader|shading_parity|architecture'`: **462 of 462 pass**; the three architecture files are byte-identical to the Phase 0 copies.
+- Linux `-L 'closures|common' -j2`: **37 of 37 pass**; `-L 'link|architecture' -j2`: **52 of 52 pass**; the build is clean.
+- **Mutation run (the floors still catch a degenerate generator)**, each reverted afterwards (`git diff --stat` empty): (1) the zero-component probability raised from 10% to 90%: `Closure_Flatten_Random` fails on both floors (`totalLobes > 3000`, `nonEmpty > 900`); (2) the tree depth set to 0 (single components): fails on both floors. The per-tree equality checks stayed green in both, as they should: only the population guards fail.
+- Swap: the two mutation jobs ran with 844 and 860 MB free, **under the 1 GiB rule** (my check printed the figure but did not gate on it); every later macOS job waited for at least 1.09 GiB. The Linux runs are not swap-bound.
+
+### Noted from the coordinator (master `71c5e440`, not in this branch yet)
+
+#113 is merged on master: JIT `phong()` now shares its per-point term with the interpreter (`libshader::phongReflect` and `phongAccumulate` in `specularTerm.h`), a new `op_phong_batch_v2(result, Nf, sn, V, sv, size, ss, n, tags)` (the old `op_phong_batch` stays as a wrapper), `CShadingContext::callPhong(result, Nf, nfStep, V, vStep, size, sizeStep)` and changed `PHONGEXPR` macros in `shaderFunctions.h`; no image changed. It arrives at the next sync. Phase 3's lighting gate reaches `phong()` through `iterateLights` only, so it is unaffected; when a later phase touches the lighting builtins it builds on the shared term and adds no separate JIT path. The re-read of the funnels (`callPhong`'s line number and signature) is part of the next sync's re-read.

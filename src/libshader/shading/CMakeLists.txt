@@ -61,6 +61,14 @@ set(shading_sources
     traceCalls.cpp
 )
 
+# Spec 035 (closure tree and BSDF): the closure ABI's implementation lives in ../closures and joins this library. Listed one by one
+# on purpose: a glob could pick up a later file silently.
+set(closure_sources
+    ../closures/closureRegistry.cpp
+    ../closures/closureTree.cpp
+)
+list(APPEND shading_sources ${closure_sources})
+
 flex_file(rslo.l lex.rslo.cpp rslo)
 bison_file(rslo.y rslo_generated.cpp rslo)
 list(APPEND shading_sources rslo_generated.cpp)
@@ -120,6 +128,8 @@ target_include_directories(libRSLRuntime PRIVATE
     ${CMAKE_SOURCE_DIR}/src/ri/core
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_SOURCE_DIR}/src/libshader/closures
+    ${CMAKE_SOURCE_DIR}/src/include
 )
 # Public headers: the RSLShading.h API consumed by ri/ and external callers.
 target_include_directories(libRSLRuntime PUBLIC

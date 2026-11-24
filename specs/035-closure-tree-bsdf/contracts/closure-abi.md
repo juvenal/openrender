@@ -2,7 +2,8 @@
 
 - **Headers**:
   - `src/libshader/closures/closureAbi.h`: strict C17 and C++20; it includes only `<stdint.h>`, `<stddef.h>` and `orplugin.h`;
-  - `closureTree.h`, `closureRegistry.h` and `bsdf.hpp`: the C++ views.
+  - `closureTree.h`, `closureRegistry.h` and `bsdf.hpp`: the C++ views;
+  - `closureBuiltins.h`: internal, C++ only. The fixed ids of the eight built-ins and their parameter blocks as structs (`ClosureDiffuseBlock`, `ClosureOrenNayarBlock`, `ClosureMicrofacetBlock`, `ClosureReflectionBlock`, `ClosureRefractionBlock`, `ClosureUniformEdfBlock`; `kClosureDiffuse` ... `kClosureUniformEdf`). The registry fills its entries from them, the BSDF components of Phase 2 read through them, and the tests include them: the layout is defined once (maintainer, 2026-11-24).
 - **Domain**: Shading, compiled into `libRSLRuntime`. **Not installed**: it is not in `OPENRENDER_PUBLIC_HEADERS`, and it stays internal until spec 051/052.
 - **Requirements**: FR-001 to FR-012; research R2 to R7 and R14.
 
@@ -76,13 +77,15 @@ typedef struct OrClosureEntry {
 The C++ side (`closureRegistry.h`, namespace `openrender::shading`):
 
 - `int registerClosure(const OrClosureEntry &)`:
-  - returns the new id;
-  - returns -1 with a diagnostic for a duplicate name, a BSDF entry without `ops`, or a param whose offset or size overruns the block.
+  - returns the new id; the registry keeps its own copy of the entry, its name and its parameters;
+  - returns -1 with a diagnostic naming the entry for a duplicate name (an alias counts), a BSDF entry without `ops`, a param whose offset or size overruns the block, a missing name, a `structSize` smaller than the entry's, a category out of range or a malformed block alignment. The built-ins' own first-use fill is the only registration exempt from "a BSDF needs ops": in Phase 1 their `ops` stay `nullptr`.
 - `const OrClosureEntry *findClosure(const char *name)`:
   - resolves the aliases. `emission` resolves to `uniform_edf`, with one deprecation message per process;
   - an unknown name returns `nullptr` with a diagnostic naming it.
 - `const OrClosureEntry *closureEntry(int32_t id)`.
 - `const char *internClosureString(const char *)`: interns a string parameter (the `microfacet` distribution).
+- `uint64_t closureRegistryLockCount()`: a **test hook**, declared in `closureRegistry.h` (internal), never in `closureAbi.h`: the times the registry took its registration lock. A lookup of a published entry takes none; `Closure_Registry_NoLock` reads it (maintainer, 2026-11-24).
+- The diagnostics go through `common/diagnostics.h`: the `emission` deprecation is one warning per process naming `uniform_edf`; an unknown name, a duplicate and each refusal are errors that name the closure.
 
 **Built-ins, with fixed ids and the blocks of data-model.md**:
 
@@ -103,7 +106,7 @@ The C++ side (`closureRegistry.h`, namespace `openrender::shading`):
 
 ## Building, flattening, lifetime
 
-`ClosureTreeBuilder` (`closureTree.h`), one per batch:
+`ClosureTreeBuilder` (`closureTree.h`), one per batch, `ClosureTreeBuilder(CMemPage *&arena, int numRealVertices, IClosureDiagnostics *diagnostics)` (a null hook is allowed: each kind is then reported once per process):
 
 - `const OrClosureNode *component(int32_t id, const float w[3], const void *block, size_t blockSize)`. It returns `nullptr`, which drops the node, when:
   - the id is unknown;
@@ -111,16 +114,19 @@ The C++ side (`closureRegistry.h`, namespace `openrender::shading`):
   - a channel of `w` is negative or non-finite (one diagnostic per frame);
   - the budget is exceeded (one `CODE_LIMIT` per frame; the point's root becomes empty).
 - `mul(const float w[3], const OrClosureNode *child)` and `add(a, b)`. A `nullptr` child collapses: `mul(w, nullptr)` is `nullptr`, and `add(a, nullptr)` is `a`.
-- `void setRoot(int point, const OrClosureNode *root)`, for `point` in `[0, numRealVertices)`.
+- `void setRoot(int point, const OrClosureNode *root)`, for `point` in `[0, numRealVertices)`; `const OrClosureNode *root(int point) const` reads it back (nullptr outside the range). A point outside the range is rejected with one `PointOutOfRange` report per frame. **After a budget overflow the next `setRoot` leaves its point empty** (stores `nullptr`) and clears the overflow: the tree that was being built when the budget ran out is the one that is dropped (maintainer, 2026-11-24). `bytesUsed()` and `budget()` expose the accounting.
 - **Memory**: everything comes from the batch's `threadMemory` page. A tree is valid until the `memEnd(threadMemory)` of the batch that built it. `closureTreeCopy(const OrClosureNode *, CMemPage *&)` deep-copies one. There is no per-node free.
-- **Budget**: `numRealVertices * kClosureTreeBytesPerPoint`, with the constant at 1024 bytes (Q12, approved).
+- **Budget**: `numRealVertices * kClosureTreeBytesPerPoint`, with the constant at 1024 bytes (Q12, approved). A component costs `16 + blockSize`, rounded up to 16, a multiply or an add 24, plus the padding that aligns a component to 16; the root table (8 bytes per point) is not counted.
+- **Diagnostics**: `enum class ClosureDiagKind { BadWeight, BudgetExceeded, UnknownClosure, BadBlockSize, BadRefractionIndex, PointOutOfRange }`. The builder reports through `IClosureDiagnostics::report(kind, code, message)`; `ClosureFrameDiagnostics(sink, context)` is the thread-safe wrapper the context gives every thread's builder of a frame, and it passes the **first** report of each kind to its sink (once per kind per frame). The codes: `BudgetExceeded` is `CODE_LIMIT`, `BadWeight`, `BadBlockSize`, `BadRefractionIndex` and `PointOutOfRange` are `CODE_RANGE`, `UnknownClosure` is `CODE_BADTOKEN`.
+
+**Accumulated weight** (the definition, maintainer 2026-11-24): the root's accumulated weight is exactly 1. A multiply passes `accumulated * weight` to its child, one float multiplication per node, root to leaf. A component's lobe weight is the accumulated weight it receives times its own `w`. An add passes the same accumulated weight to both children. Nothing else enters a lobe's weight, and the grouping is fixed, so two evaluations of one tree are comparable bit for bit.
 
 `ClosureLobeList closureFlatten(const OrClosureNode *tree, CMemPage *&arena)`:
 
-- walks depth first, A before B, with an accumulated weight;
-- drops a lobe whose accumulated weight is zero in every channel.
+- walks depth first, A before B, with the accumulated weight;
+- drops a lobe whose weight is zero in every channel (so a subtree under a zero multiply gives no lobe).
 
-`closureEvaluateGeneric(tree, query)` recurses over the same nodes in the same order and skips the same zero weights. For any tree of the first registry, its answer is **bit-identical** to the lobe-list path. SC-005's 1e-6 bound is kept for later non-additive closures.
+`closureEvaluateGeneric(tree, visit)` is a header template and **the generic walk of Phase 1**: it recurses over the same nodes in the same order, skips the same zero weights and calls `visit(int32_t id, const Spectrum &weight, const void *params)` once per lobe. Phase 2 adds the BSDF query on top of this walk. For any tree of the first registry its lobes are **bit-identical** to the lobe-list path's. SC-005's 1e-6 bound is kept for later non-additive closures.
 
 The accessors (FR-006) never require the consumer to walk the tree:
 

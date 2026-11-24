@@ -109,6 +109,11 @@ add_subdirectory(unit/registry)         # spec 030: hider and integrator registr
 option(OPENRENDER_057_RED_TESTS "Spec 057: configure arealight tests that are red until their phase (none is behind this option now)" OFF)
 
 add_subdirectory(arealight)             # spec 057: area-light geometry (every test registered; nothing is behind OPENRENDER_057_RED_TESTS now)
+# Spec 035 (closure tree and BSDF): the same red-first convention. A new compiled test that cannot compile yet lives in its own executable
+# inside `if(OPENRENDER_035_RED_TESTS)` in tests/closures/CMakeLists.txt; the option is ON only in a red-evidence configure (and by
+# hand), then back OFF.
+option(OPENRENDER_035_RED_TESTS "Spec 035: configure the closure tests that are red until their phase" OFF)
+add_subdirectory(closures)              # spec 035: closure tree, registry, BSDF table (label closures)
 add_subdirectory(precomp)               # spec 038: the precomputation tool (Precomp_OutputUnchanged, Precomp_NoHiderCore)
 # Permanent: registers the opt-in Link_PackageStaticConsumer (label link-package). It builds and installs a second
 # copy of the tree, so it is not part of the everyday run; the final phase runs it with this option ON.
