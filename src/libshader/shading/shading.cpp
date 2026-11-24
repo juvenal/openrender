@@ -2429,24 +2429,17 @@ void CShadingContext::callSpecular(float *result, const float *Nf, int nfStep, c
     }
 }
 
-// phong() (spec 017-jit-builtin-function-coverage, US5) -- follows
-// callSpecular's exact shape immediately above (light iteration via
-// iterateLights(), then walking ss->lights directly), byte-faithful
-// transcription of PHONGEXPR_PRE/PHONGEXPR/_UPDATE/_POST
-// (shaderFunctions.h). Two differences from callSpecular's math:
-// (a) the per-vertex reflection vector `refDir = 2*N*dot(N,V) - V` is
-// precomputed ONCE before the light loop (PHONGEXPR_PRE), not derived
-// per-light from a halfway vector; (b) a light shader flagged
-// SHADERFLAGS_NONSPECULAR contributes a `(1 - ns)` discount read from its
-// own savedState slot (PHONGEXPR_PRE's `ns`/`nsStep` -- exercised by
-// unusual light categories, not any of this feature's shipped/probe
-// lights, but transcribed rather than dropped since the data is directly
-// available on CShadedLight::instance).
-// `size` (RSL's phong() 3rd argument, "f" in the "c=nvf" prototype) is
-// treated as uniform-only -- a single scalar, not a per-vertex array --
-// matching specular()'s own already-shipped `roughness` argument
-// precedent exactly (same DEFLIGHTFUNC family, same argument position).
-void CShadingContext::callPhong(float *result, const float *Nf, const float *V, float size) {
+// phong() (spec 017-jit-builtin-function-coverage, US5; GitHub #113) -- follows
+// callSpecular's shape immediately above (light iteration via iterateLights(),
+// then walking ss->lights directly). The per-point terms are
+// libshader::phongReflect and phongAccumulate, the same functions the
+// interpreter's PHONGEXPR_PRE/PHONGEXPR call, so the two backends agree bit for
+// bit. The reflection vector is computed ONCE per point before the light loop
+// (PHONGEXPR_PRE); a light flagged SHADERFLAGS_NONSPECULAR scales its
+// contribution by `(1 - ns)`, read from its own savedState slot. The steps are
+// the operands' strides in floats (0 for a uniform operand), so a varying
+// `size` is read per point.
+void CShadingContext::callPhong(float *result, const float *Nf, int nfStep, const float *V, int vStep, const float *size, int sizeStep) {
     CShadingState *ss = currentShadingState;
     const int n = ss->numVertices;
     const int *tags = ss->tags;
@@ -2466,12 +2459,7 @@ void CShadingContext::callPhong(float *result, const float *Nf, const float *V, 
         result[3 * i] = result[3 * i + 1] = result[3 * i + 2] = 0.0f;
         if (tags[i] != 0)
             continue;
-        const float nx = Nf[3 * i], ny = Nf[3 * i + 1], nz = Nf[3 * i + 2];
-        const float vx = V[3 * i], vy = V[3 * i + 1], vz = V[3 * i + 2];
-        const float d2 = 2.0f * (nx * vx + ny * vy + nz * vz);
-        refDir[3 * i] = nx * d2 - vx;
-        refDir[3 * i + 1] = ny * d2 - vy;
-        refDir[3 * i + 2] = nz * d2 - vz;
+        libshader::phongReflect(refDir + 3 * i, Nf + nfStep * i, V + vStep * i);
     }
 
     for (CShadedLight *light = ss->lights; light; light = light->next) {
@@ -2491,22 +2479,8 @@ void CShadingContext::callPhong(float *result, const float *Nf, const float *V, 
                 continue;
             if (ltags != nullptr && ltags[i] != 0)
                 continue;
-            float lx = L[3 * i], ly = L[3 * i + 1], lz = L[3 * i + 2];
-            const float lm = sqrtf(lx * lx + ly * ly + lz * lz);
-            if (lm < 1e-8f)
-                continue;
-            lx /= lm;
-            ly /= lm;
-            lz /= lm;
-            const float dotProduct = refDir[3 * i] * lx + refDir[3 * i + 1] * ly + refDir[3 * i + 2] * lz;
-            const float clampedDot = (dotProduct > 0.0f) ? dotProduct : 0.0f;
-            const float ns_i = ns ? ns[nsStep * i] : 0.0f;
-            const float coeff = (1.0f - ns_i) * powf(clampedDot, size);
-            if (coeff > 0.0f) {
-                result[3 * i] += coeff * Cl[3 * i];
-                result[3 * i + 1] += coeff * Cl[3 * i + 1];
-                result[3 * i + 2] += coeff * Cl[3 * i + 2];
-            }
+            libshader::phongAccumulate(result + 3 * i, refDir + 3 * i, L + 3 * i, Cl + 3 * i,
+                                       ns ? ns[nsStep * i] : 0.0f, size[sizeStep * i]);
         }
     }
 }

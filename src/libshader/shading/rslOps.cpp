@@ -816,12 +816,22 @@ void op_specular_batch(float *result, const float *Nf, int sn, const float *V, i
         ctx->callSpecular(result, Nf, sn, V, sv, roughness, sr);
 }
 
-void op_phong_batch(float *result, const float *Nf, const float *V, const float *size, int n, const int *tags) {
+// sn, sv, ss: the operands' strides in floats (0 for a uniform operand), so a
+// varying size is read per point, as the interpreter does (GitHub #113).
+void op_phong_batch_v2(float *result, const float *Nf, int sn, const float *V, int sv, const float *size, int ss, int n, const int *tags) {
     (void)n;
     (void)tags;
     CShadingContext *ctx = libshader::activeContext();
     if (ctx)
-        ctx->callPhong(result, Nf, V, size ? size[0] : 10.0f);
+        ctx->callPhong(result, Nf, sn, V, sv, size, ss);
+}
+
+// What a .slo compiled before GitHub #113 calls: Nf and V varying, size read at
+// the first point only (a null size is 10). Kept so that such a .slo still
+// loads and runs until it is recompiled.
+void op_phong_batch(float *result, const float *Nf, const float *V, const float *size, int n, const int *tags) {
+    static const float kDefaultSize = 10.0f;
+    op_phong_batch_v2(result, Nf, 3, V, 3, size ? size : &kDefaultSize, 0, n, tags);
 }
 
 // =========================================================================

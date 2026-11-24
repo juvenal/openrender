@@ -4,11 +4,11 @@
  * File: specularTerm.h
  *
  * Description:
- *   The per-point term of the RSL specular() builtin, shared by the
- *   interpreter (SPECULAREXPR in shaderFunctions.h) and the LLVM JIT
- *   (CShadingContext::callSpecular in shading.cpp), so that the two backends
- *   compute it in the same precision, in the same order and with the same
- *   guards (GitHub #111).
+ *   The per-point terms of the RSL specular() and phong() builtins, shared by
+ *   the interpreter (SPECULAREXPR and PHONGEXPR in shaderFunctions.h) and the
+ *   LLVM JIT (CShadingContext::callSpecular and callPhong in shading.cpp), so
+ *   that the two backends compute them in the same precision, in the same
+ *   order and with the same guards (GitHub #111, #113).
  *
  * Authors:
  *   Juvenal A. Silva Jr. <juvenal.silva.jr@gmail.com>
@@ -58,6 +58,32 @@ namespace libshader {
                     R[COMP_B] += coefficient * Cl[COMP_B];
                 }
             }
+        }
+    }
+
+    // phong(): the reflection of V about N, R = 2 N (N.V) - V, computed once per point
+    // before the light loop.
+    inline void phongReflect(float *refDir, const float *N, const float *V) {
+        mulvf(refDir, N, 2 * dotvv(N, V));
+        subvv(refDir, V);
+    }
+
+    // Adds one light's phong contribution at one point to R.
+    //   refDir  phongReflect() of the point
+    //   L, Cl   the light's L and Cl at the point
+    //   ns      the light's __nonspecular at the point (0 for a light without one)
+    //   size    the point's exponent (varying: read per point by both backends)
+    // __nonspecular scales the highlight linearly, (1 - ns) * pow(R.L, size).
+    inline void phongAccumulate(float *R, const float *refDir, const float *L, const float *Cl, float ns, float size) {
+        vector Ltmp;
+        normalizev(Ltmp, L);
+        const float dotProduct = dotvv(refDir, Ltmp);
+        const float clampedDot = (0 > dotProduct) ? 0.0f : dotProduct;
+        const float coefficient = (1.0f - ns) * (float)pow(clampedDot, size);
+        if (coefficient > 0) {
+            R[COMP_R] += coefficient * Cl[COMP_R];
+            R[COMP_G] += coefficient * Cl[COMP_G];
+            R[COMP_B] += coefficient * Cl[COMP_B];
         }
     }
 
