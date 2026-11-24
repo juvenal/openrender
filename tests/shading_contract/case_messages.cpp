@@ -145,3 +145,39 @@ int caseMessages(bool jit) {
     installDiagnosticSink(previous);
     return contract_test::finish();
 }
+
+// GitHub #203: surface(), displacement(), atmosphere(), incident() and opposite() answered with a found value and no variable
+// (a backend or service that gives none), read into a varying destination. PARAMETEREXPR_PRE copies point 0's value (written by
+// the service) to every point; jitParameterFinish must do the same. The destinations start as -1, so a point that was not written
+// reads -1.
+int caseMessagesNoVariable(bool jit) {
+    CContractServices svc;
+    CRecordingSink sink;
+    CDiagnosticSink *previous = installDiagnosticSink(&sink);
+    {
+        CHarness h(svc, 4);
+        svc.setMessageFloats(MessageSource::Surface, nullptr, nullptr, "nvsurface", {1.5f});
+        svc.setMessageFloats(MessageSource::Displacement, nullptr, nullptr, "nvdisplacement", {2.5f});
+        svc.setMessageFloats(MessageSource::Atmosphere, nullptr, nullptr, "nvatmosphere", {3.5f});
+        svc.setMessageFloats(MessageSource::Interior, nullptr, nullptr, "nvincident", {4.5f});
+        svc.setMessageFloats(MessageSource::Exterior, nullptr, nullptr, "nvopposite", {5.5f});
+
+        printf("  cm_novar_varying (%s)\n", jit ? "slo" : "rslo");
+        CProgrammableShaderInstance *s = h.load("cm_novar_varying", jit);
+        CT_EXPECT(s != nullptr);
+        if (s != nullptr) {
+            const SHarnessResult r = h.runSurface(s);
+            CT_EXPECT(svc.messageCalls.size() == 5);
+            for (int i = 0; i < h.numPoints; i++) {
+                CT_EXPECT_NEAR(r.ciAt(i, 0), 1.5f);
+                CT_EXPECT_NEAR(r.ciAt(i, 1), 2.5f);
+                CT_EXPECT_NEAR(r.ciAt(i, 2), 3.5f);
+                CT_EXPECT_NEAR(r.oiAt(i, 0), 4.5f);
+                CT_EXPECT_NEAR(r.oiAt(i, 1), 5.5f);
+                CT_EXPECT_NEAR(r.oiAt(i, 2), 1 + 2 + 4 + 8 + 16);
+            }
+        }
+    }
+    installDiagnosticSink(previous);
+    return contract_test::finish();
+}

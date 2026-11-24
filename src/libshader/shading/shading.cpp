@@ -4063,24 +4063,19 @@ void CShadingContext::jitBake3d(float *dst, int sd, const char *const *name, con
 // consulted, matching the interpreter's own `*op1` dereference), then
 // jitParameterFinish broadcast-copies the resolved value per vertex.
 //
-// jitParameterFinish transcribes PARAMETEREXPR_PRE's cVar-redirect exactly:
-// if found and cVar is non-null, the source is either
+// jitParameterFinish transcribes PARAMETEREXPR_PRE exactly: as soon as the value is found, the source is point 0 of `dest` (the
+// accessor call wrote the resolved value there, once) and its step is 0, so that value reaches every active point of a varying
+// destination (GitHub #203). If, besides, cVar is non-null, the source is redirected to either
 // currentShadingState->locals[accessor][cVar->entry] (a STORAGE_PARAMETER/
 // STORAGE_MUTABLEPARAMETER -- a real declared shader parameter) or
 // varying[cVar->entry] (any other storage), with stride forced to 0 for a
 // CONTAINER_UNIFORM/CONTAINER_CONSTANT source (broadcast) or the whole
 // lookup nulled out if our own destination is uniform but the resolved
 // source is genuinely varying (PARAMETEREXPR_PRE's own varying-to-uniform
-// guard). If cVar is null (incident()/opposite() always pass NULL for
-// var/globalIndex -- "skip mutable parameters" -- or the parameter simply
-// wasn't found), the interpreter's own per-vertex loop degenerates to
-// `*op2 = *src` with src==op2 (a true self-copy) -- CShaderInstance::
-// getParameter's switch-statement branch already wrote any resolved
-// default value directly into `dest` as a side effect of the single
-// accessor call itself, so no further action is needed here either;
-// jitParameterFinish's src=dest/srcStep=sDest defaults reproduce this
-// exactly (self-copy, and only ever meaningfully once when the destination
-// is uniform, matching the natural RSL declaration for a query result).
+// guard). cVar is null for incident()/opposite() (they always pass NULL for
+// var/globalIndex -- "skip mutable parameters"), for attribute()/option()/
+// rendererinfo(), and for a backend or service that answers with a value and no
+// variable; not found leaves `dest` untouched (the self-copy default below).
 void CShadingContext::jitParameterFinish(float *dst, int sd, void *dest, int sDest, int n, const int *tags,
                                          int numFloatsPerItem, float found, CVariable *cVar, int accessor) {
     if (n <= 0)
@@ -4090,6 +4085,9 @@ void CShadingContext::jitParameterFinish(float *dst, int sd, void *dest, int sDe
     const float *srcF = (const float *)dest;
     const char *const *srcS = (const char *const *)dest;
     int srcStep = sDest;
+
+    if (found != 0.0f)
+        srcStep = 0;
 
     if (found != 0.0f && cVar != nullptr) {
         if (cVar->storage == STORAGE_PARAMETER || cVar->storage == STORAGE_MUTABLEPARAMETER) {
