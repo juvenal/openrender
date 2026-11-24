@@ -33,7 +33,7 @@ file(MAKE_DIRECTORY ${SHADING_CONTRACT_SHADER_DIR})
 set(_replay_shader_outputs "")
 # (source file, base name): the replay shaders live under replay/shaders, the contract-test shaders under shaders
 set(_contract_shader_names
-    cm_attribute cm_option cm_rendererinfo cm_surface cm_displacement cm_atmosphere cm_incident cm_opposite
+    cm_attribute cm_option cm_rendererinfo cm_surface cm_displacement cm_atmosphere cm_incident cm_opposite cm_novar_varying
     cm_lightsource cm_lightsource_noloop cm_producer_surface cm_producer_displacement cm_producer_volume cm_producer_light
     cm_mm_attribute cm_mm_option cm_mm_rendererinfo cm_mm_real cm_nullobject
     cm_producer_light_big cm_lightsource_big cm_str_far cm_producer_light_str cm_lightsource_str
@@ -277,6 +277,8 @@ set_tests_properties(ShadingContract_MessageAccessors PROPERTIES TIMEOUT 60 LABE
 # Phase 6 (getMessage)
 add_contract_test(ShadingContract_MessagesInterp test_shading_contract_standalone MessagesInterp ENABLED)
 add_contract_test(ShadingContract_MessagesJit test_shading_contract_standalone MessagesJit JIT ENABLED)
+add_contract_test(ShadingContract_MessagesNoVariableInterp test_shading_contract_standalone MessagesNoVariableInterp ENABLED)
+add_contract_test(ShadingContract_MessagesNoVariableJit test_shading_contract_standalone MessagesNoVariableJit JIT ENABLED)
 add_contract_test(ShadingContract_NoServices_Message test_shading_contract_standalone NoServices_Message ENABLED)
 add_contract_test(ShadingContract_RealAnswersInterp_Messages test_shading_contract_rendered RealAnswersInterp_Messages ENABLED)
 add_contract_test(ShadingContract_RealAnswersJit_Messages test_shading_contract_rendered RealAnswersJit_Messages JIT ENABLED)

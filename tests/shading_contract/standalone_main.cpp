@@ -20,6 +20,8 @@ int main(int argc, char **argv) {
         return caseAttributes(false);
     if (strcmp(which, "MessagesInterp") == 0)
         return caseMessages(false);
+    if (strcmp(which, "MessagesNoVariableInterp") == 0)
+        return caseMessagesNoVariable(false);
     if (strcmp(which, "MatricesInterp") == 0)
         return caseMatrices(false);
     if (strcmp(which, "TraceRequestsInterp") == 0)
@@ -35,6 +37,8 @@ int main(int argc, char **argv) {
         return caseAttributes(true);
     if (strcmp(which, "MessagesJit") == 0)
         return caseMessages(true);
+    if (strcmp(which, "MessagesNoVariableJit") == 0)
+        return caseMessagesNoVariable(true);
     if (strcmp(which, "MatricesJit") == 0)
         return caseMatrices(true);
     if (strcmp(which, "TraceRequestsJit") == 0)
@@ -59,7 +63,7 @@ int main(int argc, char **argv) {
 
     fprintf(stderr,
             "usage: %s StandaloneLink|AttributesInterp|MessagesInterp|MatricesInterp|TraceRequestsInterp|"
-            "AttributesJit|MessagesJit|MatricesJit|TraceRequestsJit|TypeMismatch_Attribute{Interp,Jit}|TypeMismatch_Message{Interp,Jit}|LightsourceNoLoop{Interp,Jit}|NoServices_Matrix|NoServices_Attribute|"
+            "AttributesJit|MessagesJit|MessagesNoVariable{Interp,Jit}|MatricesJit|TraceRequestsJit|TypeMismatch_Attribute{Interp,Jit}|TypeMismatch_Message{Interp,Jit}|LightsourceNoLoop{Interp,Jit}|NoServices_Matrix|NoServices_Attribute|"
             "NoServices_Message|NoServices_Tracer|ShaderGlobalsDouble\n",
             argv[0]);
     return 2;

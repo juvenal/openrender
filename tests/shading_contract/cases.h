@@ -10,6 +10,7 @@
 int caseStandaloneLink();                       // case_link.cpp                 US1 AS1, SC-001
 int caseAttributes(bool jit);                   // case_attributes.cpp           US3 AS1, FR-005, FR-007, SC-003
 int caseMessages(bool jit);                     // case_messages.cpp             US3 AS1, FR-006, FR-007, SC-003
+int caseMessagesNoVariable(bool jit);           // case_messages.cpp             GitHub #203: a found value with no variable fills every point
 int caseMatrices(bool jit);                     // case_matrices.cpp             US4 AS1-AS3, FR-008, FR-009, SC-004
 int caseTraceRequests(bool jit);                // case_trace_requests.cpp       US6 AS1, FR-010, FR-011
 int caseNoServicesMatrix();                     // case_no_services.cpp          US1 AS3, FR-012, FR-023(f)

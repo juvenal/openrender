@@ -4888,6 +4888,79 @@ foreach(_format rslo slo)
     endif()
 endforeach()
 
+# --- Message and query builtins into a varying destination under the LLVM JIT (GitHub #203) ------
+# incident(), opposite(), attribute() and option() answer a found value with no variable; the JIT filled only
+# point 0 of a varying destination, the interpreter every point. The probe tests/visual/shaders/jit_param_finish_probe.sl
+# (test-only, compiled into the build tree, so no shipped-shader reference moves) reads each into a varying
+# float that starts as 5 + 10 * s; scenes come from examples/rib/tests/jit-param-finish-probe.rib.in.
+#   JitParamFinish_<call>_<format>: the pixel (3, 3), a point other than point 0, holds the answer, exactly.
+#   ShadingParity_JitParamFinish_<call>: the .rslo and .slo renders are bit-identical.
+set(_jpf_dir ${CMAKE_BINARY_DIR}/tests/visual/jit-param-finish)
+file(MAKE_DIRECTORY ${_jpf_dir})
+set(_jpf_shader_dir ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+file(MAKE_DIRECTORY ${_jpf_shader_dir})
+set(_jpf_sl ${CMAKE_CURRENT_SOURCE_DIR}/shaders/jit_param_finish_probe.sl)
+set(_jpf_outputs ${_jpf_shader_dir}/jit_param_finish_probe.rslo)
+add_custom_command(
+    OUTPUT ${_jpf_shader_dir}/jit_param_finish_probe.rslo
+    COMMAND ${CMAKE_COMMAND} -DOSHADER=$<TARGET_FILE:oshader> -DSRC=${_jpf_sl}
+            -DOUT=${_jpf_shader_dir}/jit_param_finish_probe.rslo
+            -DINCDIR=${CMAKE_SOURCE_DIR}/shaders/includes
+            -P ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+    DEPENDS ${_jpf_sl} oshader ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+    WORKING_DIRECTORY ${_jpf_shader_dir}
+    COMMENT ""
+    VERBATIM)
+if(OPENRENDER_HAVE_LLVM)
+    add_custom_command(
+        OUTPUT ${_jpf_shader_dir}/jit_param_finish_probe.slo
+        COMMAND ${CMAKE_COMMAND} -DOSHADER=$<TARGET_FILE:oshader> -DSRC=${_jpf_sl}
+                -DOUT=${_jpf_shader_dir}/jit_param_finish_probe.slo
+                -DINCDIR=${CMAKE_SOURCE_DIR}/shaders/includes -DJIT=ON
+                -P ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+        DEPENDS ${_jpf_sl} oshader ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+        WORKING_DIRECTORY ${_jpf_shader_dir}
+        COMMENT ""
+        VERBATIM)
+    list(APPEND _jpf_outputs ${_jpf_shader_dir}/jit_param_finish_probe.slo)
+endif()
+add_custom_target(jit_param_finish_probe_shader ALL DEPENDS ${_jpf_outputs})
+add_dependencies(jit_param_finish_probe_shader openrender_shaders)
+
+set(_jpf_env "${VISUAL_ENV}")
+list(TRANSFORM _jpf_env REPLACE "^SHADERS=(.*)$" "SHADERS=${_jpf_shader_dir}:\\1")
+# <call>|<mode>|<answer>
+foreach(_entry "incident|0|0.9" "opposite|1|0.2" "attribute|2|1" "option|3|7")
+    string(REPLACE "|" ";" _parts "${_entry}")
+    list(GET _parts 0 _call)
+    list(GET _parts 1 MODE)
+    list(GET _parts 2 _want)
+    foreach(FORMAT rslo slo)
+        set(OUTPUT jpf-${_call}-${FORMAT}.tif)
+        configure_file(${CMAKE_SOURCE_DIR}/examples/rib/tests/jit-param-finish-probe.rib.in
+            ${_jpf_dir}/jpf-${_call}-${FORMAT}.rib @ONLY)
+        add_test(NAME JitParamFinish_${_call}_${FORMAT}
+            COMMAND test_pixel_probe $<TARGET_FILE:orender> ${_jpf_dir}/jpf-${_call}-${FORMAT}.rib
+                jpf-${_call}-${FORMAT}.tif 3 3 0.00001 --channels=0,1 ${_want} 1
+            WORKING_DIRECTORY ${_jpf_dir})
+        set_tests_properties(JitParamFinish_${_call}_${FORMAT} PROPERTIES TIMEOUT 120 LABELS "shading_parity;visual;regression"
+            RESOURCE_LOCK jit_param_finish_scratch ENVIRONMENT "${_jpf_env}" DEPENDS orender)
+        if(FORMAT STREQUAL "slo" AND NOT OPENRENDER_HAVE_LLVM)
+            set_tests_properties(JitParamFinish_${_call}_${FORMAT} PROPERTIES DISABLED TRUE)
+        endif()
+    endforeach()
+    add_test(NAME ShadingParity_JitParamFinish_${_call}
+        COMMAND test_render_compare $<TARGET_FILE:orender> same
+            ${_jpf_dir}/jpf-${_call}-rslo.rib jpf-${_call}-rslo.tif
+            ${_jpf_dir}/jpf-${_call}-slo.rib jpf-${_call}-slo.tif
+        WORKING_DIRECTORY ${_jpf_dir})
+    set_tests_properties(ShadingParity_JitParamFinish_${_call} PROPERTIES TIMEOUT 120 LABELS "shading_parity;visual;regression"
+        RESOURCE_LOCK jit_param_finish_scratch ENVIRONMENT "${_jpf_env}" DEPENDS orender)
+    if(NOT OPENRENDER_HAVE_LLVM)
+        set_tests_properties(ShadingParity_JitParamFinish_${_call} PROPERTIES DISABLED TRUE)
+    endif()
+endforeach()
+
 # --- GitHub #153: a continued transmission ray keeps its end point -----------
 # tests/visual/shaders/transmission_destination_probe.sl shoots one transmission ray
 # (the machinery behind shadow(), transmission() and a light's shadow rays) from the
