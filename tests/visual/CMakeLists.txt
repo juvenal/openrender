@@ -70,6 +70,11 @@ add_executable(test_pixel_probe test_pixel_probe.cpp)
 target_link_libraries(test_pixel_probe PRIVATE TIFF::TIFF)
 target_compile_features(test_pixel_probe PRIVATE cxx_std_20)
 
+# Surface orientation driver (GitHub #228): counts the opaque green, red and blue pixels of an orient_probe render.
+add_executable(test_orient_probe test_orient_probe.cpp)
+target_link_libraries(test_orient_probe PRIVATE TIFF::TIFF)
+target_compile_features(test_orient_probe PRIVATE cxx_std_20)
+
 # ShadingInterpolation driver (GitHub #204): plateaus of "constant" and the ramp of "smooth".
 add_executable(test_dof_shading_rate test_dof_shading_rate.cpp)
 target_compile_features(test_dof_shading_rate PRIVATE cxx_std_20)
@@ -5108,3 +5113,51 @@ foreach(_case IN LISTS _dsr_cases)
         DEPENDS     orender)
 endforeach()
 unset(_dsr_cases)
+
+# --- GitHub #228: the teapot's patches face outward -----------------------------------------------------
+# geometry/teapot.rib was wound inside out (its control points had y and z swapped, a mirror), so shaders that read
+# the sign of N or Ng (glass.sl, Sides 1, displacement along N) saw the inside; faceforward() shaders hid it.
+# tests/visual/shaders/orient_probe.sl (test-only, compiled into the build tree so no shipped-shader reference moves)
+# is green where Ng faces the camera and red where it faces away; test_orient_probe counts the fully opaque pixels.
+#   TeapotOrientation_<view>_<hider>: no opaque pixel is red or blue and at least 15000 are green (the teapot is
+#   about 30000 pixels, the control sphere about 4400), seen from the front and from below, under raytrace and reyes.
+set(_orient_dir ${CMAKE_BINARY_DIR}/tests/visual/teapot-orientation)
+file(MAKE_DIRECTORY ${_orient_dir})
+set(_orient_shader_dir ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+file(MAKE_DIRECTORY ${_orient_shader_dir})
+set(_orient_sl ${CMAKE_CURRENT_SOURCE_DIR}/shaders/orient_probe.sl)
+add_custom_command(
+    OUTPUT ${_orient_shader_dir}/orient_probe.rslo
+    COMMAND ${CMAKE_COMMAND} -DOSHADER=$<TARGET_FILE:oshader> -DSRC=${_orient_sl}
+            -DOUT=${_orient_shader_dir}/orient_probe.rslo
+            -DINCDIR=${CMAKE_SOURCE_DIR}/shaders/includes
+            -P ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+    DEPENDS ${_orient_sl} oshader ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+    WORKING_DIRECTORY ${_orient_shader_dir}
+    COMMENT ""
+    VERBATIM)
+add_custom_target(orient_probe_shader ALL DEPENDS ${_orient_shader_dir}/orient_probe.rslo)
+add_dependencies(orient_probe_shader openrender_shaders)
+
+set(_orient_env "${VISUAL_ENV}")
+list(TRANSFORM _orient_env REPLACE "^SHADERS=(.*)$" "SHADERS=${_orient_shader_dir}:\\1")
+# <view>|<tilt of the camera about x>. The front view stays at 10 degrees above the horizon: from higher up the camera sees
+# through the hairline seam between the lid and the rim into the open body (Newell's body has no inner wall), and those
+# interior faces are rightly red (37 pixels at 20 degrees, 229 at 30, 1723 at 60).
+foreach(_view "front|-10" "below|35")
+    string(REPLACE "|" ";" _parts "${_view}")
+    list(GET _parts 0 VIEW)
+    list(GET _parts 1 TILT)
+    foreach(HIDER reyes raytrace)
+        set(OUTPUT orient-${VIEW}-${HIDER}.tif)
+        configure_file(${CMAKE_SOURCE_DIR}/examples/rib/tests/teapot-orientation-probe.rib.in
+            ${_orient_dir}/orient-${VIEW}-${HIDER}.rib @ONLY)
+        add_test(NAME TeapotOrientation_${VIEW}_${HIDER}
+            COMMAND test_orient_probe $<TARGET_FILE:orender> ${_orient_dir}/orient-${VIEW}-${HIDER}.rib
+                orient-${VIEW}-${HIDER}.tif 15000
+            WORKING_DIRECTORY ${_orient_dir})
+        set_tests_properties(TeapotOrientation_${VIEW}_${HIDER} PROPERTIES TIMEOUT 120
+            LABELS "visual;regression;teapot_orientation"
+            RESOURCE_LOCK teapot_orientation_scratch ENVIRONMENT "${_orient_env}" DEPENDS orender)
+    endforeach()
+endforeach()
