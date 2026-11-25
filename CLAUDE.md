@@ -537,8 +537,8 @@ not in the agent definitions.
    interpolation (`slerpq()` in `common/mathSpec.h`), gated by
    `CRenderer::cameraHasRotation`.
 8. **ArcballCamera avoids quaternion decomposition** of the view matrix on
-   purpose — it fails for `det = -1` cameras (e.g. `teapot.rib`'s Y/Z-swap
-   transform). Uses direct 4×4 matrix composition instead.
+   purpose — it fails for `det = -1` cameras (e.g. `examples/rib/teapot.rib`'s Y/Z-swap
+   camera). Uses direct 4×4 matrix composition instead.
 9. **Default RIB projection is ORTHOGRAPHIC** per RISpec when no
    `Projection` statement is given (not perspective) —
    `ribGeometryContext.h:151`.
