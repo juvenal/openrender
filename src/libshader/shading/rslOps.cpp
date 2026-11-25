@@ -361,12 +361,14 @@ void op_exp(float *dst, int sd, const float *a, int sa, int n, const int *tags) 
             IDX(dst, sd, i)
             [0] = expf(IDX(a, sa, i)[0]);
 }
+// The interpreter's log(x) (scriptFunctions.h): an argument at or below C_EPSILON is clamped to it, so log(0) and the
+// log of a negative number are log(C_EPSILON), not 0 (GitHub #229).
 void op_log(float *dst, int sd, const float *a, int sa, int n, const int *tags) {
     for (int i = 0; i < n; i++)
         if (ACTIVE(tags, i)) {
             float v = IDX(a, sa, i)[0];
             IDX(dst, sd, i)
-            [0] = (v > 0.0f) ? logf(v) : 0.0f;
+            [0] = (float)log((v) > C_EPSILON ? (v) : C_EPSILON);
         }
 }
 void op_sin(float *dst, int sd, const float *a, int sa, int n, const int *tags) {
@@ -410,6 +412,13 @@ void op_atan2(float *dst, int sd, const float *a, int sa, const float *b, int sb
         if (ACTIVE(tags, i))
             IDX(dst, sd, i)
             [0] = atan2f(IDX(a, sa, i)[0], IDX(b, sb, i)[0]);
+}
+// log(x, base): the interpreter's LOG2EXP (scriptFunctions.h), unclamped, in double (GitHub #229).
+void op_log2(float *dst, int sd, const float *a, int sa, const float *b, int sb, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i))
+            IDX(dst, sd, i)
+            [0] = (float)(log((double)IDX(a, sa, i)[0]) / log((double)IDX(b, sb, i)[0]));
 }
 void op_pow(float *dst, int sd, const float *a, int sa, const float *b, int sb, int n, const int *tags) {
     for (int i = 0; i < n; i++)
@@ -2215,6 +2224,22 @@ void op_rotate(float *dst, int sd, const float *m, int sm, const float *angle, i
             rotatem(mtmp, ax[0], ax[1], ax[2], IDX(angle, sa, i)[0]);
             mulmm(result, IDX(m, sm, i), mtmp);
             movmm(IDX(dst, sd, i), result);
+        }
+}
+
+// The interpreter's ROTATEEXP (scriptFunctions.h): rotate Q about the axis through P1 and P2 (GitHub #229).
+void op_rotatep(float *dst, int sd, const float *q, int sq, const float *angle, int sa,
+                const float *p1, int s1, const float *p2, int s2, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i)) {
+            vector axis, rel, rotated;
+            matrix mtmp;
+            const float *a = IDX(p1, s1, i);
+            subvv(axis, IDX(p2, s2, i), a);
+            rotatem(mtmp, axis, IDX(angle, sa, i)[0]);
+            subvv(rel, IDX(q, sq, i), a);
+            mulmp(rotated, mtmp, rel);
+            addvv(IDX(dst, sd, i), rotated, a);
         }
 }
 
