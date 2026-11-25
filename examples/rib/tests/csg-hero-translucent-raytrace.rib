@@ -26,6 +26,7 @@ WorldBegin
             Sphere 1.50 -1.50 1.50 360
         SolidEnd
         SolidBegin "primitive"
+            Opacity [0.5 0.5 0.5]
             Cylinder 0.65 -2 2 360
         SolidEnd
     SolidEnd

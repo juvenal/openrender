@@ -18,6 +18,21 @@ set_tests_properties(State_LightOrder PROPERTIES
     ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}"
 )
 
+# GitHub #235: SolidBegin-End and ObjectBegin-End save and restore the attributes (RISpec 3.2 section 4).
+add_executable(test_state_solid_object_scope test_solid_object_scope.cpp)
+target_link_libraries(test_state_solid_object_scope PRIVATE openrender_common_flags ribRender libshader_shading openrendercommon)
+target_include_directories(test_state_solid_object_scope PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_BINARY_DIR}
+)
+target_compile_features(test_state_solid_object_scope PRIVATE cxx_std_20)
+add_test(NAME State_SolidObjectScope COMMAND test_state_solid_object_scope)
+set_tests_properties(State_SolidObjectScope PROPERTIES
+    TIMEOUT 60
+    LABELS "state"
+    ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR}"
+)
+
 # ---------------------------------------------------------------------------
 # State-only scaffolding (research R11; precedent tests/framebuffer/CMakeLists.txt).
 #
