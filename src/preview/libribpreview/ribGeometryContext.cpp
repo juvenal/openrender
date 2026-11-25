@@ -368,6 +368,11 @@ void CRibGeometryContext::RiWorldBegin() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 void *CRibGeometryContext::RiObjectBegin() {
+    // An object block saves and restores the attributes (RISpec 3.2 section 4)
+    attrStack_.push_back(currentAttributes_);
+    currentAttributes_ = new CAttributes(currentAttributes_);
+    currentAttributes_->attach();
+
     // Push xform to identity (objects defined in local space)
     xformStack_.push_back(currentXform_);
     currentXform_ = new CXform();
@@ -405,6 +410,12 @@ void CRibGeometryContext::RiObjectEnd() {
         currentXform_->detach();
         currentXform_ = xformStack_.back();
         xformStack_.pop_back();
+    }
+
+    if (!attrStack_.empty()) {
+        currentAttributes_->detach();
+        currentAttributes_ = attrStack_.back();
+        attrStack_.pop_back();
     }
 }
 
