@@ -898,6 +898,9 @@ static bool emitFunction(const IRFunction &irFn,
     // Ternary: (dst,sd, a,sa, b,sb, c,sc, n, tags)
     auto *ternOpTy = llvm::FunctionType::get(voidTy,
                                              {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty, i32Ty, ptrTy}, false);
+    // Quaternary: (dst,sd, a,sa, b,sb, c,sc, d,sd2, n, tags)
+    auto *quatOpTy = llvm::FunctionType::get(voidTy,
+                                             {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, i32Ty, i32Ty, ptrTy}, false);
     // op_if_update(cond,scond, tags, n, numActive*, numPassive*)
     auto *ifUpdTy = llvm::FunctionType::get(voidTy,
                                             {ptrTy, i32Ty, ptrTy, i32Ty, ptrTy, ptrTy}, false);
@@ -1722,6 +1725,20 @@ static bool emitFunction(const IRFunction &irFn,
                 emitBin(ins, "op_translate", dst, dstStride, dstStrideVal);
             else if (op == "scale")
                 emitBin(ins, "op_scale", dst, dstStride, dstStrideVal);
+            // rotate(m, angle, axis) and rotate(Q, angle, P1, P2) share the mnemonic: the operand count picks the
+            // overload (GitHub #229)
+            else if (op == "rotate" && ins.operands.size() == 4) {
+                auto [q, sq] = getVar(ins, 0);
+                auto [angle, sa] = getVar(ins, 1);
+                auto [p1, s1] = getVar(ins, 2);
+                auto [p2, s2] = getVar(ins, 3);
+                if (!dst || !q || !angle || !p1 || !p2)
+                    continue;
+                auto *fn = declareOp(mod, "op_rotatep", quatOpTy);
+                auto [n, tg] = collapseArgs(dstStrideVal, {sq, sa, s1, s2});
+                B.CreateCall(fn, {dst, dstStride, q, B.getInt32(sq), angle, B.getInt32(sa),
+                                  p1, B.getInt32(s1), p2, B.getInt32(s2), n, tg});
+            }
             else if (op == "rotate") {
                 auto [m, sm] = getVar(ins, 0);
                 auto [angle, sa] = getVar(ins, 1);
@@ -1773,8 +1790,13 @@ static bool emitFunction(const IRFunction &irFn,
                 emitUn(ins, "op_ceil", dst, dstStride, dstStrideVal);
             else if (op == "exp")
                 emitUn(ins, "op_exp", dst, dstStride, dstStrideVal);
-            else if (op == "log")
-                emitUn(ins, "op_log", dst, dstStride, dstStrideVal);
+            // log(x) and log(x, base) share the mnemonic: the operand count picks the overload (GitHub #229)
+            else if (op == "log") {
+                if (ins.operands.size() == 2)
+                    emitBin(ins, "op_log2", dst, dstStride, dstStrideVal);
+                else
+                    emitUn(ins, "op_log", dst, dstStride, dstStrideVal);
+            }
             else if (op == "sin")
                 emitUn(ins, "op_sin", dst, dstStride, dstStrideVal);
             else if (op == "cos")
@@ -1785,8 +1807,13 @@ static bool emitFunction(const IRFunction &irFn,
                 emitUn(ins, "op_asin", dst, dstStride, dstStrideVal);
             else if (op == "acos")
                 emitUn(ins, "op_acos", dst, dstStride, dstStrideVal);
-            else if (op == "atan")
-                emitUn(ins, "op_atan", dst, dstStride, dstStrideVal);
+            // atan(y) and atan(y, x) share the mnemonic: the operand count picks the overload (GitHub #229)
+            else if (op == "atan") {
+                if (ins.operands.size() == 2)
+                    emitBin(ins, "op_atan2", dst, dstStride, dstStrideVal);
+                else
+                    emitUn(ins, "op_atan", dst, dstStride, dstStrideVal);
+            }
             else if (op == "xcomp")
                 emitUn(ins, "op_xcomp", dst, dstStride, dstStrideVal);
             else if (op == "ycomp")
