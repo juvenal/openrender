@@ -894,8 +894,8 @@ add_visual_test(sphere-photonmap-reyes-slo
 # callers today.
 
 # degrees()/round() (T034/T044): same SIMPLEFUNCTION shape as
-# radians()/floor()/etc. round() truncates via (int)x, NOT real
-# rounding -- mirrored exactly, not "fixed" (FR-017).
+# radians()/floor()/etc. round() rounds to the nearest integer, halves
+# away from zero (GitHub #208); the reference holds those values.
 add_visual_test(sphere-degrees-round-reyes
     examples/rib/tests/sphere-degrees-round-reyes.rib
     sphere-degrees-round-reyes.tif  sphere-degrees-round-reyes.tif)
@@ -4484,6 +4484,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/camerahitmode-scenes.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/lightcategory-scenes.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/lightsource-scenes.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/msgout-scenes.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/round-scenes.cmake)
 
 # --- Equal-depth ties (spec 039, Phase 7, T084c) ---------------------------------------------
 # Two coincident opaque triangles of different colour: every sample of the overlap receives two
