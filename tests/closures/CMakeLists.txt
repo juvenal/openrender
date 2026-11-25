@@ -107,8 +107,47 @@ endforeach()
 cl_executable(test_closure_accessors test_accessors.cpp)
 cl_test(Closure_Accessors test_closure_accessors)
 
+# Phase 2 (US2): the BRDF math library, the five BSDF components and the tree-level BSDF table. Written red first (validation.md "Phase 2": each
+# executable failed to build on its first missing header, bsdf.hpp); T049 moved them out of the red block. The numerical tests (the chi-square and
+# furnace ones are long) get a long timeout.
+set(BSDF_TIMEOUT 900)
+
+cl_executable(test_bsdf_diffuse test_bsdf_diffuse.cpp)
+foreach(section Values Reciprocity Energy PdfNorm SamplePdf ChiSquare ReversePdf)
+    cl_test(Bsdf_diffuse_${section} test_bsdf_diffuse TIMEOUT ${BSDF_TIMEOUT} ARGS ${section})
+endforeach()
+
+cl_executable(test_bsdf_oren_nayar test_bsdf_oren_nayar.cpp)
+foreach(section Sigma0 Reciprocity Energy PdfNorm SamplePdf ChiSquare ReversePdf)
+    cl_test(Bsdf_oren_nayar_${section} test_bsdf_oren_nayar TIMEOUT ${BSDF_TIMEOUT} ARGS ${section})
+endforeach()
+
+cl_executable(test_bsdf_microfacet test_bsdf_microfacet.cpp)
+foreach(section Math Refusal Reciprocity Energy PdfNorm SamplePdf ChiSquare ReversePdf)
+    cl_test(Bsdf_microfacet_${section} test_bsdf_microfacet TIMEOUT ${BSDF_TIMEOUT} ARGS ${section})
+endforeach()
+cl_test(Bsdf_RoughnessFloor test_bsdf_microfacet TIMEOUT ${BSDF_TIMEOUT} ARGS RoughnessFloor)
+
+cl_executable(test_bsdf_delta test_bsdf_delta.cpp)
+cl_test(Bsdf_reflection_Values test_bsdf_delta TIMEOUT ${BSDF_TIMEOUT} ARGS Reflection)
+cl_test(Bsdf_refraction_Values test_bsdf_delta TIMEOUT ${BSDF_TIMEOUT} ARGS Refraction)
+cl_test(Bsdf_Delta_Pair test_bsdf_delta TIMEOUT ${BSDF_TIMEOUT} ARGS Pair)
+cl_test(Bsdf_Delta_Mixed test_bsdf_delta TIMEOUT ${BSDF_TIMEOUT} ARGS Mixed)
+
+cl_executable(test_bsdf_conventions test_bsdf_conventions.cpp)
+cl_test(Bsdf_Horizon_Grid test_bsdf_conventions TIMEOUT ${BSDF_TIMEOUT} ARGS HorizonGrid)
+cl_test(Bsdf_Horizon_Invalid test_bsdf_conventions TIMEOUT ${BSDF_TIMEOUT} ARGS HorizonInvalid)
+cl_test(Bsdf_NotScatterer test_bsdf_conventions TIMEOUT ${BSDF_TIMEOUT} ARGS NotScatterer)
+cl_test(Bsdf_ImportanceFactor test_bsdf_conventions TIMEOUT ${BSDF_TIMEOUT} ARGS ImportanceFactor)
+cl_test(Bsdf_Status_Table test_bsdf_conventions TIMEOUT ${BSDF_TIMEOUT} ARGS StatusTable)
+cl_test(Bsdf_Frame test_bsdf_conventions TIMEOUT ${BSDF_TIMEOUT} ARGS Frame)
+cl_test(Bsdf_Wrapper test_bsdf_conventions TIMEOUT ${BSDF_TIMEOUT} ARGS Wrapper)
+
+cl_executable(test_bsdf_determinism test_bsdf_determinism.cpp)
+cl_test(ClosureDet_BsdfRepeat test_bsdf_determinism TIMEOUT ${BSDF_TIMEOUT})
+
 # ---------------------------------------------------------------------------------------------------------------------------------
-# The red block: a test of a later phase whose API does not exist yet lives here, in its own executable. Empty after Phase 1.
+# The red block: a test of a later phase whose API does not exist yet lives here, in its own executable. Empty after Phase 2.
 # ---------------------------------------------------------------------------------------------------------------------------------
 if(OPENRENDER_035_RED_TESTS)
 endif()

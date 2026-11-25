@@ -28,6 +28,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "bsdfComponents.h"
 #include "closureBuiltins.h"
 #include "common/diagnostics.h"
 
@@ -167,7 +168,7 @@ namespace openrender::shading {
                 e.numParams = numParams;
                 e.blockSize = size;
                 e.blockAlign = align;
-                e.ops = nullptr; // Phase 2 fills the BSDF components' operations; the first-use fill is exempt from "a BSDF needs ops"
+                e.ops = bsdfComponentOps(expectedId); // the five BSDF closures' operations (bsdfComponents.cpp); nullptr for the signal and EDF closures
                 const int id = registerLocked(r, e, /*builtin*/ true);
                 if (id != expectedId)
                     error(CODE_BUG, "The built-in closure \"%s\" got id %d, expected %d", name, id, expectedId);

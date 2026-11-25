@@ -64,6 +64,9 @@ set(shading_sources
 # Spec 035 (closure tree and BSDF): the closure ABI's implementation lives in ../closures and joins this library. Listed one by one
 # on purpose: a glob could pick up a later file silently.
 set(closure_sources
+    ../closures/bsdf.cpp
+    ../closures/bsdfComponents.cpp
+    ../closures/bsdfMath.cpp
     ../closures/closureRegistry.cpp
     ../closures/closureTree.cpp
 )

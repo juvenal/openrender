@@ -199,3 +199,138 @@ The floors are unchanged (`totalLobes > 3000`, `nonEmpty > 900`); the generator 
 ### Noted from the coordinator (master `71c5e440`, not in this branch yet)
 
 #113 is merged on master: JIT `phong()` now shares its per-point term with the interpreter (`libshader::phongReflect` and `phongAccumulate` in `specularTerm.h`), a new `op_phong_batch_v2(result, Nf, sn, V, sv, size, ss, n, tags)` (the old `op_phong_batch` stays as a wrapper), `CShadingContext::callPhong(result, Nf, nfStep, V, vStep, size, sizeStep)` and changed `PHONGEXPR` macros in `shaderFunctions.h`; no image changed. It arrives at the next sync. Phase 3's lighting gate reaches `phong()` through `iterateLights` only, so it is unaffected; when a later phase touches the lighting builtins it builds on the shared term and adds no separate JIT path. The re-read of the funnels (`callPhong`'s line number and signature) is part of the next sync's re-read.
+
+## Phase 2
+
+### Swap gate (standing rule, coordinator 2026-11-24)
+
+`specs/035-closure-tree-bsdf/tools/swapgate.sh` BLOCKS until at least 1024 MB of swap is free (it prints the figure each time it waits) and exits 1 after `SWAPGATE_MAX_WAIT` seconds; `tools/gated.sh <label> <command...>` runs a job behind it (`exec cpujob`) and exits 75 without starting the job if the gate gave up. Tested once: with an impossible figure it waited, gave up and the chained command did not run (`gated.sh` exit 75, `SHOULD-NOT-RUN` not printed); with a satisfiable one it printed `go` and the job ran under cpujob. Every macOS job of Phase 2 goes through `gated.sh`.
+
+### Tests written first (T035 to T041) and their red evidence (T042)
+
+Files (all new, under `tests/closures/`): `bsdf_checks.h` (the shared estimators), `test_bsdf_diffuse.cpp`, `test_bsdf_oren_nayar.cpp`, `test_bsdf_microfacet.cpp`, `test_bsdf_delta.cpp`, `test_bsdf_conventions.cpp`, `test_bsdf_determinism.cpp`; `CMakeLists.txt` registers them inside the red block (one ctest test per section, label `closures`, timeout 900 s). Red evidence (`035-p2-redcfg` with the option ON, then `035-p2-red cmake --build $WT/build --target <t> -j4` for each, behind the swap gate): all six executables fail to build on the first missing header, `bsdf.hpp` (`bsdf_checks.h:37` and `test_bsdf_conventions.cpp:24`); `bsdfMath.h` follows it. Logs `build/p2-red-<target>.log`.
+
+| ctest tests | target |
+|---|---|
+| `Bsdf_diffuse_{Values,Reciprocity,Energy,PdfNorm,SamplePdf,ChiSquare,ReversePdf}` | `test_bsdf_diffuse` |
+| `Bsdf_oren_nayar_{Sigma0,Reciprocity,Energy,PdfNorm,SamplePdf,ChiSquare,ReversePdf}` | `test_bsdf_oren_nayar` |
+| `Bsdf_microfacet_{Math,Refusal,Reciprocity,Energy,PdfNorm,SamplePdf,ChiSquare,ReversePdf}`, `Bsdf_RoughnessFloor` | `test_bsdf_microfacet` |
+| `Bsdf_reflection_Values`, `Bsdf_refraction_Values`, `Bsdf_Delta_Pair`, `Bsdf_Delta_Mixed` | `test_bsdf_delta` |
+| `Bsdf_Horizon_Grid`, `Bsdf_Horizon_Invalid`, `Bsdf_NotScatterer`, `Bsdf_ImportanceFactor`, `Bsdf_Status_Table`, `Bsdf_Frame`, `Bsdf_Wrapper` | `test_bsdf_conventions` |
+| `ClosureDet_BsdfRepeat` | `test_bsdf_determinism` |
+
+### The tolerances (all in `bsdf_checks.h`; none is a free constant)
+
+- `floatTol(a, b) = 512 * FLT_EPSILON * (|a| + |b|) + 1e-7`: two evaluations of one quantity in a different operand order (reciprocity, the reverse density, sample against evaluate/pdf, the closed-form values). 512 epsilon is 6.1e-5 relative; the absolute 1e-7 is for a value that is exactly zero on one side.
+- `kRoundingFloor = 4 * FLT_EPSILON`, added to a `3 sigma` bound whose sigma can be near zero (a diffuse lobe's `f |cos| / pdf` is 1 for every sample).
+- Statistical: `3 * sigma`, sigma = sd / sqrt(N) from the estimator's own sample variance and count; two estimators compared with `3 * sqrt(sigma1^2 + sigma2^2)`. Sample counts: 100000 for the sampled estimators, 200000 for the uniform-sphere estimators, 20000 for the pointwise checks, 400000 for the chi-square.
+- Chi-square: a fixed 8 x 8 histogram (z uniform over [-1, 1], phi uniform: equal solid angle) against the density integrated per cell (a 48 x 48 midpoint rule per cell), one more cell for the failed/delta samples; cells with an expectation under 5 are left out; critical value of chi-square with (cells - 1) degrees of freedom at significance 0.001 by Wilson-Hilferty with z = 3.0902.
+- Energy: the sampled albedo (IMPORTANCE mode) is at most `1 + 3 sigma`; for a lossless lobe (`diffuse`) it is `1 +- 3 sigma` (the white furnace); and it agrees with the independent uniform-sphere integral of `f |cos|`. Density normalisation: `integral(pdf) + P(delta) + P(failed) = 1` within `3 sigma` (the integral uniformly over the sphere, the two probabilities from the sampled fractions).
+- Honest limit: the 3 sigma checks are statistical, so a test with many of them can fail by chance even when the code is right. The seeds are fixed (a keyed stream with test-local seeds), so a failure is reproducible; it will be reported with the observed value and sigma, and no bound will be widened.
+- `microfacet` at alpha 0.05 skips the uniform-sphere estimators and the chi-square (a uniform estimator's sample variance is unreliable for a lobe that narrow, and a 48 x 48 midpoint rule cannot integrate its density per cell); it keeps reciprocity, the sampled-albedo bound, sample consistency and the reverse density.
+
+### What the tests pin beyond the contract text (to confirm at TEST-APPROVAL)
+
+1. `bsdfMath.h` (namespace `openrender::shading::bsdf`): `kMicrofacetDeltaAlpha` (1e-4f), `ggxD(alpha, cosThetaM)`, `beckmannD(alpha, cosThetaM)`, `fresnelDielectric(cosThetaI, eta)` (eta = n_t / n_i for a positive cosine, a negative cosine is the ray inside, eta <= 0 gives 1, total internal reflection gives 1).
+2. `bsdf.hpp` (namespace `openrender::shading`): `Bsdf::prepare(tree, const OrShadingFrame &, CMemPage *&arena)` returning a `Bsdf` (default-constructed is invalid, `valid()`), `evaluate(q)`, `pdf(q)` returning `BsdfEvalResult { Spectrum f; float pdfForward, pdfReverse; uint32_t flags; OrStatus status; }`, `sample(q, u1, u2, uLobe)` returning `BsdfSampleResult` (the same plus `float wi[3]; float eta`).
+3. The component operations work in the lobe's local frame; a component is one-sided unless it transmits. `wo` below the lobe's horizon gives nothing for `diffuse`, `oren_nayar`, `reflection` and a reflection-only `microfacet`; a transmissive lobe (`refraction`, `microfacet` refract 1 or 2) serves `wo` on either side (a negative `wo.z` is the ray inside, the relative index is inverted), which the adjoint reciprocity needs.
+4. The radiance-mode factor is `(eta_wo / eta_wi)^2` with `eta_wo` the index of the medium `wo` is in (so 1/2.25 entering glass, 2.25 leaving it, the contract's 2.25 "glass to air"); importance mode is unscaled; reciprocity is the adjoint relation `f(wo, wi, m) == f(wi, wo, dual(m))`, plus plain symmetry for a reflection-only lobe.
+5. A delta sample from a component carries `pdfForward == pdfReverse == 1`; the table replaces them by the lobe-choice probability. `OrBsdfSample::eta` is the relative index of the sampled transmission (wi's medium over wo's), 0 or 1 for a reflection is not asserted.
+6. `refraction` is transmission only: past the critical angle its sample fails (`OR_BSDF_FAILED`); `reflection` with eta 0 has F = 1.
+7. The table: `requested` is a mask of the lobe-kind flags (a lobe is requested when the mask holds one of its REFLECTION/TRANSMISSION bits and one of its DIFFUSE/GLOSSY/SPECULAR bits); `requested == 0` requests nothing and answers zero. `HAS_DELTA` is reported when a REQUESTED delta lobe exists. A lobe's selection probability is `mean(weight) * albedo(wo)` renormalised over the requested lobes; the tests fix it only where the albedo is known exactly (`diffuse` 1, a mirror with eta 0 is 1).
+8. `prepare` refuses a hand-forged `microfacet` node with eta 0 and refract 1 or 2 with `OR_STATUS_BAD_ARGUMENT`; an allocator that returns null gives `OR_STATUS_OUT_OF_MEMORY`; the empty tree prepares and is a non-scatterer. `evaluate`, `pdf` and `sample` return `OR_STATUS_BAD_ARGUMENT` for a null pointer, a `structSize` below `sizeof(OrBsdfQuery)` or a NaN or infinite component of `wo` or `wi`, and `sample` also for a NaN or out-of-range `u1`, `u2`, `uLobe`; a larger `structSize` is accepted. A lobe whose own normal `N` is zero takes the shading frame's, and a non-unit `N` is normalised; `Ng` is read and changes no bit of the answer.
+9. A `microfacet` below `kMicrofacetDeltaAlpha` samples bit for bit like `reflection` (refract 0) or `refraction` (refract 1) of the same eta; alpha exactly 1e-4 is not below it.
+
+### Phase 2 status
+
+T035 to T042 are done and staged. **T043 (TEST-APPROVAL) is the stop**: the implementation (T044 to T049, with `bsdf-sources.md`, the `refract == 2` verification and the Beckmann decision) waits for the maintainer's approval of the tests, the tolerance formulas and the API list above.
+
+### Approval (T043), 2026-11-24
+
+The maintainer approved the tests, the tolerance formulas and the ten pinned behaviours. Conditions: (1) the seeds are fixed, so a 3 sigma check that fails fails every time: report the observed value and sigma and change neither the check, the tolerance nor the seed; (2) `refract == 2` is verified only against OSL headers already on this machine, by a targeted local search; (3) the Beckmann D cos fallback is approved and recorded in `bsdf-sources.md`; (4) rules as before.
+
+### Implementation (T044 to T049)
+
+New: `src/libshader/closures/{bsdfMath.h,bsdfMath.cpp,bsdfComponents.h,bsdfComponents.cpp,bsdf.hpp,bsdf.cpp}` and `specs/035-closure-tree-bsdf/bsdf-sources.md`. Edited: `closureRegistry.{h,cpp}` (the five BSDF built-ins take their `ops` from `bsdfComponentOps()`), `src/libshader/shading/CMakeLists.txt` (three sources listed), `tests/closures/CMakeLists.txt` (the Phase 2 tests out of the red block). Nothing outside `src/libshader/closures`, one CMake list and the tests is touched; `stateVocabulary.h` is not.
+
+- **T044** `bsdf-sources.md`: every function is written from the papers; nothing is adapted; no licence to check.
+- **T045** `refract == 2`: **unverified**. The targeted local search found no `OSL/` directory, no `stdosl.h` and no `oslclosure.h` under `/opt/homebrew/include`, `/usr/local/include` or the vcpkg include directory, no `osl` formula under `/opt/homebrew/opt` or `Cellar`, and `docs/references/` holds only the RISpec and NSI documents. Implemented as the contract writes it (0 reflection, 1 transmission, 2 both, the reflection chosen with a clamp of the Fresnel term); for spec 049 to compare.
+- **T046** the Beckmann fallback is taken (D cos sampling; GGX uses visible normals): approved, reported here.
+- Two defects of mine found on the first green build, both fixed: an unused function (`-Werror`, GCC) and, more important, the directions were used as given (float, not exactly unit): near the critical angle a 1e-7 length error is magnified in the Fresnel term of the two orders of a reciprocity pair (differences of 3e-4 to 3e-2), so `makeSpace` now normalises both directions in double.
+
+### First results (Linux, GCC 13 `-Werror`, `-j2`; the macOS side is in the next section)
+
+`-L closures`: **53 tests, 48 pass, 5 fail**: `Bsdf_microfacet_{Reciprocity,PdfNorm,Energy,SamplePdf,ChiSquare}`. Every other Phase 2 test passes: the six checks of `diffuse` and `oren_nayar`, `Sigma0` (bit for bit), `Values`, `Math`, `Refusal`, `RoughnessFloor`, `ReversePdf` of `microfacet` for the whole grid, `Bsdf_reflection_Values`, `Bsdf_refraction_Values`, `Bsdf_Delta_*`, `Bsdf_Horizon_*`, `Bsdf_NotScatterer`, `Bsdf_ImportanceFactor`, `Bsdf_Status_Table`, `Bsdf_Frame`, `Bsdf_Wrapper`, `ClosureDet_BsdfRepeat` (hash identical on 1 and 4 threads, 100 repetitions, and for a BSDF each thread prepared for itself).
+
+The five red tests are analysed line by line in `specs/035-closure-tree-bsdf/tools/proposed/phase2_test_defects.md`: no numerical check on a lobe the test can resolve fails. They are four defects of the approved tests (a non-vacuity guard that narrow or transmissive lobes cannot meet, a sample-count guard that a total-internal-reflection side cannot meet, an eta 1.0001 transmission lobe that is a spike the uniform-sphere estimators and the chi-square cannot see, and a chi-square whose failed-cell expectation is a quadrature error at a discontinuity). **PAUSE**: the proposals change approved tests, so nothing is changed; the five tests stay red until the maintainer decides. The seed rule is kept: no check, tolerance or seed was touched.
+
+### Capability to fail (T050), run on Linux (the edit, the sync, the build and the run; each reverted: `git diff --stat` empty)
+
+| # | Scratch edit | Result |
+|---|---|---|
+| 1 | `diffuse`'s `f` multiplied by `cos(theta_i)` | `Bsdf_diffuse_Values`, `_Reciprocity`, `_Energy` fail |
+| 2 | the `(eta_wo / eta_wi)^2` radiance factor dropped (the numerator is 1 in both modes) | `Bsdf_ImportanceFactor` and `Bsdf_microfacet_Reciprocity` fail |
+| 3 | the reverse density returns the forward density | `Bsdf_microfacet_ReversePdf` fails |
+| 4 | a delta lobe's `evaluate` gets a finite density (0.5) | `Bsdf_reflection_Values` and `Bsdf_refraction_Values` fail. **`Bsdf_Delta_Pair` and `Bsdf_Delta_Mixed` do not**: the table skips a delta lobe's density by construction (`l.delta` is checked before the lobe's `evaluate` result is used), so the table tests cannot see it; the component tests do. Not a weak estimator, a property of the layering; reported |
+| 5 | GGX `D` halved | `Bsdf_microfacet_Math`, `_PdfNorm`, `_Energy` and `_ChiSquare` fail |
+
+### Linux results (T051, and the Linux half of T049 and T052)
+
+GCC 13 `-Werror`, `-j2`, `tools/sync_linux.sh` (5237 files verified), full build rc 0 with no warning: `-L closures`: 53 tests in 18.7 s of ctest wall time, **48 pass, 5 fail** (the five `Bsdf_microfacet_*` of the PAUSE above); `-L 'link|common|architecture'`: **72 of 72 pass** (architecture 45 of 45). Per-test wall times on Linux (seconds): `Bsdf_microfacet_ChiSquare` 13.27, `_Energy` 6.64, `_PdfNorm` 5.20, `_SamplePdf` 1.83, `_Reciprocity` 0.58, `ClosureDet_BsdfRepeat` 0.47, `Bsdf_oren_nayar_ChiSquare` 0.39, `Bsdf_microfacet_ReversePdf` 0.36, every other under 0.2. The "long" tests are short: the tolerances are what cost, not time.
+
+### macOS: PENDING (blocked on the swap gate, not skipped)
+
+Free swap on this machine stayed between 700 and 960 MB for more than an hour (other sessions' jobs), under the 1 GiB gate, so `tools/gated.sh` correctly refused to start any macOS job: the first chain gave up at its 30 minute limit (`cfg rc=75`, the job not started, which is the behaviour tested), and a second chain (`SWAPGATE_MAX_WAIT=7200`: configure and build, `-L closures`, `-L 'link|common'`, `-L architecture`, each behind its own gate) was still waiting when this was written. Nothing of Phase 2 has run on macOS yet: the macOS build, the macOS test run and wall times, and the macOS `-L architecture` (T052) are pending. The build tree on macOS is still configured with the red option ON from T042 (T049 reconfigures it OFF).
+
+### Phase 2: D1 to D4 applied (2026-11-25), Linux result
+
+Approved by the maintainer (D1 and D4 as proposed, D2 narrowed, D3 option (a)); applied to `tests/closures/bsdf_checks.h` and `test_bsdf_microfacet.cpp` only
+(`git diff` of the two files is in the report). Linux (GCC 13 `-Werror`, `-j2`, own tree): `-L closures` 51 of 53 pass (21.7 s real); the red ones are
+`Bsdf_microfacet_SamplePdf` (D5, two alpha 0.05 rows with wo inside: 303 and 0 usable samples against the floor of 1000) and `Bsdf_microfacet_ChiSquare` (D6, five
+rows over the critical value that a 128-sub-cell rule brings under it for four of them); both in `tools/proposed/phase2_test_defects.md`, awaiting a decision.
+`-L 'link|common|architecture'` passes entirely (45 architecture tests, 7 link, 20 common). Reciprocity, Energy and PdfNorm are green (the sampled half of the
+reciprocity pairs is non-vacuous; the eta 1.0001 refract 1 and 2 rows run the sampled estimator only). Dropped failed cells of the chi-square are logged
+("failed cell dropped": for example ggx refract 1 alpha 0.9 wo.z +0.95, expected 216 < 4 x 1113).
+**Finding (D3, for the record):** Beckmann refract 2 eta 1.0001 has an unbounded sampled energy: the D cos fallback weight of a near-index-matched
+transmission is not bounded, so the `<= 1 + 3 sigma` bound is not meaningful there (hence option (a)); it is not a defect of the density, whose checks
+(reciprocity, sample consistency, reverse density) pass.
+**macOS: PENDING.** Not run: the tests change again after the D5/D6 decision, and one Mac chain after that is cheaper than two (swap, thermal); the Mac tree is
+still configured with `OPENRENDER_035_RED_TESTS=ON` and is switched OFF in that run.
+
+### Phase 2: D5 applied and D6 measured (2026-11-25)
+
+D5 applied as approved: `Bsdf_microfacet_SamplePdf` skips the refract 1, alpha 0.05, eta 1.5, wo.z -0.60 rows (both distributions), the reason stated in the
+test header. Linux `-L closures` -j2: 52 of 53, only `Bsdf_microfacet_ChiSquare` red (19.8 s). D6: the 0.0002 density deficit of the grazing GGX refract 1 rows is a
+quadrature artifact of the hard cutoff of the GGX density at z = -wo.z / eta (finite jump; the density and the sampler agree in every band, 8e6 samples,
+mean pdf ratio 1.000000, fine-grid integral 1.000000); the figures and the predicted-against-measured errors are in `tools/proposed/phase2_test_defects.md`.
+No code change. The chi-square test is unchanged and still red, awaiting the maintainer's choice of (b). macOS remains PENDING.
+
+### Phase 2: D6 resolved by (d) plus the pole cells (2026-11-25)
+
+`integrateCells()` replaces the plain 48 x 48 midpoint rule of the chi-square's cell integrals: the two cells that touch a pole are integrated uniformly in theta (a smooth lobe is a function
+of sqrt(1 -+ z) near a pole, O(h^1.5) in z) and a sub-cell holding a jump of the density is split at it; the jumps come from `microfacetEdges()`. Edges, derived and confirmed by a scan:
+GGX transmission ends at wi.z = -wo.z / eta_rel (m.z = 0; found at -0.08000 for wo.z +0.12 and at 0.90000 for wo.z -0.60, eta 1.5); Beckmann has none (D = 0 at the horizon); the critical
+cone is continuous; the reflection edge z = 0 is a cell boundary. Two rows were explained by the edge to the digit (errors at 48, 96, 192, 384 sub-cells: +0.004862, -0.001891, +0.001486,
+-0.000203 against +0.00486, -0.00189, +0.001484, -0.000202); three by the pole cell (-73 to -80 counts in the cap, h^1.5). Chi-square before -> after: ggx r1 a0.9 +0.12 32.3 -> 4.8; ggx r2 a0.3 +0.95
+108.6 -> 42.1; ggx r2 a0.9 +0.12 89.7 -> 30.3; beckmann r1 a0.3 +0.95 154.9 -> 10.0; beckmann r2 a0.3 +0.95 226.6 -> 36.0.
+**Known limitation of the chi-square quadrature:** Beckmann's D cos fallback density (no factor wo.m) has a hard support boundary on the curve wo.m = 0, not a ring (its lowest z is
+-wo.z / eta_rel - sqrt(1 - 1 / eta_rel^2) sqrt(1 - wo.z^2), -0.978831 for wo.z +0.5, eta 1.5: 0 below, 0.538 above at the extremum's azimuth). It is not split; the rows it touches pass.
+
+### Phase 2 results with D1 to D6 applied (2026-11-25)
+
+Linux (GCC 13 `-Werror`, `-j2`): `-L closures` 53 of 53 (13.9 s; ChiSquare 13.0 s, Energy 5.9 s, PdfNorm 3.5 s, SamplePdf 1.8 s, Reciprocity 0.8 s, ReversePdf 0.4 s); `-L 'link|common|architecture'` 72 of 72.
+macOS (arm64, red option OFF, `-j4`): build clean; `-L 'link|common'` 27 of 27; `-L architecture` 45 of 45; `-L closures` **52 of 53: `Bsdf_microfacet_ChiSquare` fails on one row**, beckmann refract 2 eta 1.5 alpha 0.3 wo.z +0.50: chi-square 55.0 over 24 cells (df 23), critical 49.8.
+The failure is a statistical tail event of a fixed seed, not a defect: the per-platform realisations differ (the same row reads 20.9 on Linux; all 68 rows differ between hosts, the densities and integrals are identical to 5 digits);
+the 48 sub-cell expectation is accurate (192 sub-cells: largest cell difference 0.15 sigma, chi-square 51.35, still above); the statistic is calibrated: Linux, 600 other seeds, mean 23.02 (df 23), sd 6.43 (6.78 expected), 0 above 49.8
+(0.6 expected); Mac, 61 other seeds, mean 22.31, 0 above 49.8, no cell with a systematic deviation (largest mean z x sqrt(K) -2.27 of 64). The Mac seed's tail is p ~ 5e-4; with 68 chi-square checks per platform at 0.001
+the chance that some row exceeds is about 6.6% per platform. No seed or threshold was changed. Decision for the maintainer in `tools/proposed/phase2_test_defects.md` (D7).
+
+### Phase 2: D7 resolved by (a), results on both hosts (2026-11-25)
+
+`Bsdf_microfacet_ChiSquare` tests each row at the per-row level that keeps the family-wise level at 0.001 over the rows the test runs: n counted at run time (68 here), Sidak 1 - (1 - 0.001)^(1/n) = 1.471e-05
+(z = 4.178; critical value for df 23: 63.2), printed in the log (`chi-square family: 68 rows, per-row level 1.471e-05`, and `critical ... at level ...` per row). A multiple-testing correction; no tolerance was widened for a defect.
+Calibration of the statistic on other seeds (D7 above): Linux 600 seeds, mean 23.02, sd 6.43 (6.78 expected), 0 above 49.8; macOS 61 seeds, mean 22.31, 0 above 49.8. The macOS row that failed
+(beckmann refract 2 eta 1.5 alpha 0.3 wo.z +0.50): 55.0 (51.35 with 192 sub-cell expectations) against 49.8 at 0.001; against 63.2 it passes. Only `bsdf_checks.h` (`Options::chiLevel`, `normalUpperPoint`,
+`chiSquareCritical(df, level)`, the log line) and `test_bsdf_microfacet.cpp` (the count and the level in `main`; the options moved into one lambda) changed; no seed, sample count or other check.
+Results with D1 to D7: Linux `-L closures` 53 of 53 (14.2 s; the other Linux labels were green at D6 and no source changed since); macOS (red option OFF, `-j4`): `-L closures` 53 of 53 (8.6 s, ChiSquare 8.5 s),
+`-L 'link|common'` 27 of 27, `-L architecture` 45 of 45. T049 and T052 ticked; T053 (the checkpoint) is left for the maintainer.
