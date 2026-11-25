@@ -1052,11 +1052,8 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
             // Shade the sucker
             shadeSurface(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_BEGIN_SAMPLE | PARAMETER_P, FALSE);
 
-            // Project the P into samples
-            camera2samples(numVertices, varying[VARIABLE_P]);
-            applySnaps(grid, varying[VARIABLE_P], 0);
-
-            // Save the vertex data
+            // Save the vertex data. An output variable named P is the shader's P (camera space): the vertices' own P is
+            // the P-only pass's, so nothing here projects it (GitHub #230)
             copySamples(numVertices, varying, grid->vertices, 0);
 
             // Check the transparency
@@ -1106,11 +1103,7 @@ void CReyes::shadeGrid(CRasterGrid *grid, int Ponly) {
                 // Shade the sucker
                 shadeSurface(object, udiv + 1, vdiv + 1, SHADING_2D_GRID, PARAMETER_END_SAMPLE | PARAMETER_P, FALSE);
 
-                // Project the P into samples
-                camera2samples(numVertices, varying[VARIABLE_P]);
-                applySnaps(grid, varying[VARIABLE_P], 1);
-
-                // Copy the vertex data
+                // Copy the vertex data (no projection: see the first stage)
                 copySamples(numVertices, varying, grid->vertices, 1);
             }
         }
