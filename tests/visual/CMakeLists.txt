@@ -5083,6 +5083,43 @@ foreach(_case IN LISTS _si_cases)
 endforeach()
 unset(_si_cases)
 
+# --- GitHub #230: an output variable named P is P in camera space for every primitive and hider ------------
+# Application Note 24: an output variable named after a global is that global as the surface shader sees it. Reyes wrote the
+# raster-space P for a quad grid (the extra samples were copied after the projection to sample space), camera space for a point
+# and for the raytrace hider. test_pixel_probe reads pixel (16, 16) of the float P image (a 64 x 64 image over a patch; the
+# sample may sit anywhere in the pixel, hence the tolerance). The raytrace, points and moving cases are controls or other
+# paths of the same copy.
+#   <name>             x      y      z   tolerance  (channels)
+set(_aovp_cases
+    "quad-reyes        0.2578 0.7422 1   0.01  0,1,2"
+    "quad-raytrace     0.2578 0.7422 1   0.01  0,1,2"
+    "points-reyes      0.25   0.75   1   0.001 0,1,2"
+    "moving-reyes      0.2578 0.7422 0   0.01  0,1"
+    "persp-reyes      -0.9688 0.9688 2   0.04  0,1,2"
+    "persp-raytrace   -0.9688 0.9688 2   0.04  0,1,2")
+foreach(_case IN LISTS _aovp_cases)
+    separate_arguments(_args UNIX_COMMAND "${_case}")
+    list(POP_FRONT _args _name _x _y _z _tol _chan)
+    if(_chan STREQUAL "0,1")
+        set(_vals ${_x} ${_y})
+    else()
+        set(_vals ${_x} ${_y} ${_z})
+    endif()
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/aov-p-space-${_name})
+    file(MAKE_DIRECTORY ${_scratch})
+    add_test(NAME AovPSpace_${_name}
+        COMMAND test_pixel_probe $<TARGET_FILE:orender>
+            ${CMAKE_SOURCE_DIR}/examples/rib/tests/aov-p-space-${_name}.rib
+            aov-p-space-${_name}.tif 16 16 ${_tol} --channels=${_chan} ${_vals}
+        WORKING_DIRECTORY ${_scratch})
+    set_tests_properties(AovPSpace_${_name} PROPERTIES
+        TIMEOUT     120
+        LABELS      "visual;regression;aov_p_space"
+        ENVIRONMENT "${VISUAL_ENV}"
+        DEPENDS     orender)
+endforeach()
+unset(_aovp_cases)
+
 # --- GitHub #205: the shading rate under depth of field -------------------------------
 # RISpec 3.2 section 4.2.7: a renderer shades at least at ShadingRate. Depth of field relaxes the
 # rate only where a scene asks for it with GeometricApproximation "focusfactor" (the rate is

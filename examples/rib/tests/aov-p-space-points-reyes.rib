@@ -1,0 +1,20 @@
+##RenderMan RIB-Structure 1.0
+# GitHub #230: an output variable named P is P as the surface shader sees it (camera space, the "current" space), for every
+# primitive and hider. A static point is the control: it has always written camera space.
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["rslo"]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "aov-p-space-points-reyes-rgba.tif" "file" "rgba"
+Display "+aov-p-space-points-reyes.tif" "file" "P"
+Projection "orthographic"
+ScreenWindow 0 1 0 1
+Format 64 64 1
+Clipping 0.1 100
+Translate 0 0 1
+WorldBegin
+  Surface "constant"
+  Points "P" [0.25 0.75 0  0.75 0.75 0] "constantwidth" [0.2]
+WorldEnd

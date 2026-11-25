@@ -1,0 +1,25 @@
+##RenderMan RIB-Structure 1.0
+# GitHub #230: an output variable named P is P as the surface shader sees it (camera space, the "current" space), for every
+# primitive and hider. A quad grid that moves in z only (both shaded samples), so P.x and P.y are the static ones.
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["rslo"]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "aov-p-space-moving-reyes-rgba.tif" "file" "rgba"
+Display "+aov-p-space-moving-reyes.tif" "file" "P"
+Projection "orthographic"
+ScreenWindow 0 1 0 1
+Shutter 0 1
+Format 64 64 1
+Clipping 0.1 100
+Translate 0 0 1
+WorldBegin
+  Surface "constant"
+  MotionBegin [0 1]
+    Translate 0 0 0
+    Translate 0 0 0.5
+  MotionEnd
+  Patch "bilinear" "P" [0 0 0  1 0 0  0 1 0  1 1 0]
+WorldEnd
