@@ -54,7 +54,7 @@ The GGX `alpha = roughness` holds for all four built-ins, `dielectric` included 
 | Q8 (FR-020) | A bad value keeps the previous value on both sides |
 | Q9 (FR-013), with Q-R4 | The handle is optional (the `LightSource` grammar rule). `RiBxdf` is refused inside an `ObjectBegin` block (RISpec §5.10). `Surface` and `Attribute` keep today's behaviour there; the coordinator files that older deviation as a separate issue, outside 035 |
 | Q10 (FR-019) | The gated `occlusion()`/`indirectdiffuse()` return 0, and `gather()` runs with 0 samples |
-| Q11 (SC-002) | One tree per real point, for every ray type |
+| Q11 (SC-002) | One tree per real point, for every ray type; the record carries the batch's ray type as the producer sets it (`Camera` for a raytrace primary hit, `None` for a rasterised grid: an interim rule) |
 | Q12 | 1024 bytes per point |
 | Q13 | `test_shader_parameter_bxdf_ignored.cpp` changes in its comment only |
 | Q14 | Interim-rule IDs are not put in the message text |

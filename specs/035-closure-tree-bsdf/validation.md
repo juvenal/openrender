@@ -334,3 +334,104 @@ Calibration of the statistic on other seeds (D7 above): Linux 600 seeds, mean 23
 `chiSquareCritical(df, level)`, the log line) and `test_bsdf_microfacet.cpp` (the count and the level in `main`; the options moved into one lambda) changed; no seed, sample count or other check.
 Results with D1 to D7: Linux `-L closures` 53 of 53 (14.2 s; the other Linux labels were green at D6 and no source changed since); macOS (red option OFF, `-j4`): `-L closures` 53 of 53 (8.6 s, ChiSquare 8.5 s),
 `-L 'link|common'` 27 of 27, `-L architecture` 45 of 45. T049 and T052 ticked; T053 (the checkpoint) is left for the maintainer.
+
+## Phase 3
+
+### The harness proof (T054, T055, R-5), 2026-11-25
+
+`Closure_Harness_InProcessRender` (label `closures`; `tests/closures/test_harness.cpp`, `cldbl_backend.{h,cpp}`, `shaders/cl_probe_surface.sl`) is green on Linux (0.03 s) and macOS (0.37 s) with no production code of the phase.
+Six `RiBegin`/`RiEnd` sessions in one process: three hiders (raytrace, zbuffer, reyes) x two formats (rslo, slo); each renders an 8 x 8 frame (`PixelSamples 1 1`, box filter, one thread, orthographic, a quad covering the frame, `Color` 0.25 0.5 0.75),
+binds the wrapper through `Surface`, and reads the pixels back through `RiCustomDisplay` (no file). Asserted: every pixel equals the object's `Cs` (1e-3), `finish` once, the wrapper ran the real backend of the format asked for and no other, and the point count.
+- **The point-count oracle (C2, SC-002)**: the wrapper's `execute` adds `currentShadingState->numRealVertices` of every call it receives (public, no production change). Measured, the same on both hosts and both formats: **raytrace 64 real points in 1 execute** (one primary ray per pixel; the derivative-helper vertices of the batch are not counted),
+  **zbuffer 100 real points in 4 executes**, **reyes 100 real points in 4 executes** (the 8 x 8 frame's grids). It is the oracle: exact for raytrace (asserted == 64), the count of the `color` render itself for the grid hiders (the mode tests compare `both` against it).
+- **How the wrapper finds the real instance**: its description holds the real description (loaded by `rsloBackend().load()` or `sloBackend().load()` from `<dir of the cldbl file>/<wrapped name>.<format>`; the cldbl file is one line, `<wrapped name> <rslo|slo>`); `instantiate()` makes the real instance with the real backend and wraps it in a `CShaderInstance` subclass
+  that forwards `illuminate`, `setParameters`, `getParameter(Shape)`, `requiredParameters` and `prepare`, and whose `execute` goes through `CShadingContext::execute(this, locals)`, which reaches the wrapper's backend, which calls the real backend's `execute(context, *wrapped, locals)`; the real instance's `instanceKey` is set from the wrapper's before it runs.
+  A format is chosen by the wrapper file (`cl_probe_rslo.cldbl`, `cl_probe_slo.cldbl`, written by CMake beside the compiled shaders), not by the precedence rule: `Option "shaderformat" "default"` is set to the same format and is irrelevant to a name no `.rslo`/`.slo` file has.
+- **Deviation from the task text, to confirm**: the counting shadeop operand of `cl_probe_surface.sl` (and its module) is not written; the task itself prefers the `numRealVertices` oracle and says the shadeop counter is not the oracle unless the harness shows it exact. `cl_probe_surface.sl` is `Ci = Cs * Os; Oi = Os`.
+- **`emitsClosures`**: not on the interface yet (T068); the wrapper will answer true for a `cldbl` instance of a capable kind (T069), and `executeClosures` calls the same delegated `execute`.
+- **The gate probe** `cl_gate_probe.sl` (T055; compiled to both formats on both hosts) has 17 `output varying float` results (`r_ambient`, `r_diffuse`, `r_specular`, `r_phong`, `r_illum`, `r_illumcat`, `r_lightsource`, `r_occlusion`, `r_indirect`, `r_gather`; the not-gated `r_trace`, `r_transmission`, `r_visibility`, `r_environment`, `r_shadow`, `r_texture`, `r_specbrdf`); `illuminance(P, Nf, PI/2)` forms only (GitHub #126). How the test reads the outputs
+  is decided with T059: the wrapper reads them from the real instance's locals after the delegated `execute` (test-side code, no production change).
+- `Option "shade" "shaderformat"` is **not** an option (the scene-wide format is `Option "shaderformat" "default"`; `Attribute "shade" "shaderformat"` is the attribute): the harness found it, `Option "shade"` arrives with T064.
+
+### Phase 3 tests and their red evidence (T057 to T060), 2026-11-25
+
+Written, in the red block (`OPENRENDER_035_RED_TESTS`, each its own executable), all label `closuremode` (plus `closures`; the vocabulary one `state;closuremode`):
+- `tests/unit/state/test_closuremode_vocabulary.cpp`: `State_ClosureModeVocabularyMirror`.
+- `tests/closures/test_mode_state.cpp`: `ClosureMode_Precedence`, `_BadValue`, `_Scope` (nested blocks, `TransformBegin`, `FrameBegin/End`, `SolidBegin`, `ObjectBegin`, and the object instance taking the mode current at `ObjectInstance`, by two renders), `_RibRoundTrip`.
+- `tests/closures/test_mode_step.cpp`: `ClosureMode_ColorIdentity_<hider>`, `ClosureMode_Both_<hider>` (rslo and slo), `ClosureMode_Closures_<hider>` (rslo and slo; with the cut-out opacity and `camerahitmode "primitive"`), `Closure_Interim_IR017_<hider>`, `Closure_Interim_IR018_<hider>`, `Closure_Interim_Precedence` (hiders raytrace, zbuffer, reyes). The task names the three-hider tests once (`ClosureMode_ColorIdentity`); there is one ctest per hider here. The IR-026 rows of the precedence are Phase 4's.
+- `tests/closures/test_mode_gate.cpp`: `ClosureMode_Gate_interp`, `_jit`. `tests/closures/test_mode_det.cpp`: `ClosureDet_ThreadIdentity_<hider>`, `ClosureDet_HiderParity` (also the batch-shape check: camera hits and secondary hits of one input give one tree). `tests/closures/test_mode_arealight.cpp`: `ClosureMode_AreaLight_interp`, `_jit`, `ClosureMode_Photon`.
+- `Closure_Network_Loopback_{color,both,closures}`: `test_depth_determinism --configs "||-P:2"` on a generated scene with shipped shaders (IR-017 in the two non-color modes).
+- Support: `mode_support.h` (the consumer double with FNV hashes of the flattened trees, the session driver with the image, the wrapper counters and outputs, the captured warnings), shaders `cl_count_light.sl`, `cl_cutout.sl`, `cl_lit.sl` and the wrapper files (`cl_wrapper()` in the CMake: `cl_cap`, `cl_capconst`, `cl_gate`, `cl_gatecap`, `cl_gatecapconst`, `cl_cutcap`, `cl_lit`, `cl_litcap`, `cl_countlight`, `cl_arealight`).
+  `cldbl_backend.h` now declares what the tests read (`resetOutputs`, `outputMean`, `lightRuns`, `lightPoints`, the kinds `diffuse` and `constdiffuse`); their bodies, `emitsClosures` and `executeClosures` are T069, after approval (a wrapper file may name a shipped shader, found on `SHADERS`).
+Red evidence (Linux `-j2` and macOS `-j4`, red option ON, one target at a time): `test_closuremode_vocabulary` fails on `libshader/closures/closureMode.h` (no such file); `test_mode_state`, `test_mode_step`, `test_mode_gate`, `test_mode_det` and `test_mode_arealight` fail on `closureConsumer.h` (the first include of `mode_support.h`; the `closureFrame.h`, `closureMode.h`, `setDefaultClosureConsumer`, `closureMode` members and the `closuremode` token follow it); `Closure_Network_Loopback_*` run red:
+`mode-color.rib (1): Parameter "closuremode" is not declared`, orender fails for the default configuration. `Closure_Harness_InProcessRender` stays green on both hosts. A syntax check of every test against stub headers of the missing APIs (scratch, removed) left only the missing-API errors (`setDefaultClosureConsumer`, `CAttributes::closureMode`, `COptions::closureMode`, `CShadingContext::closureFrame`).
+No production file of the phase has been edited.
+
+### Phase 3 implementation, first run (T062 to T074; 2026-11-25) and a pause for test changes
+
+Implemented (staged): the token `RI_CLOSUREMODE` in the three places; `EClosureMode` (+ `closureModeName`/`closureModeFromName`) in `stateVocabulary.h`; `CAttributes::closureMode` and `COptions::closureMode` (default `Unset`,
+copied by the memberwise copy, restored in `restore()`, answered by `find()` as the spelling, `"color"` when unset); `declare(RI_CLOSUREMODE, "string")` as the **very first declaration** (the table lists the newest first, so the declared-set reference
+gains one line and no recorded variable moves); `Attribute "shade"` and a new `Option "shade"` branch in `rendererContext.cpp` (CODE_RANGE naming the value and the three spellings, previous value kept, CODE_BADTOKEN for an unknown token,
+the inline-declaration retry); the ribOut cases (`Option "shade"`, `Attribute "shade" "closuremode"`: the declared-type fallback did not cover them, `Attribute "shade"` recursed on a bare token); `src/libshader/closures/{closureMode.h, closureFrame.{h,cpp},
+closureConsumer.h, closureInterim.{h,cpp}, closureStep.{h,cpp}}`; `IShaderBackend::emitsClosures/executeClosures` (defaults: false, nothing; the `rslo`, `slo` and `CTstBackend` backends untouched); `CShadingState::lightingSuppressed`, the context's consumer/frame API and
+`lightingGateClosed()`; the renderer core's `ClosureFrame` (made in `beginFrame()` before the hider loop, set on each context beside `setSamplingConfig`, deleted in `endFrame()`); the cldbl wrapper's `emitsClosures`/`executeClosures`, light counter and output oracle.
+`kRendererServicesVersion` unchanged (2.6.1). Phase 3 tests moved out of the red block.
+
+**`shade()` hunks** (`git diff -U0`, exactly): (1) the local `plan` declaration; (2) the inline fast test and the `planSurfaceStep` call before the `usedParameters` line; (3) the surface block (`runSurfaceStep` under `plan.buildTrees`, today's `groupExecute` otherwise);
+(4) one `deliverClosures` call before `memEnd(threadMemory)`. Elsewhere in the file: the include and the static default consumer, `newState()` (`lightingSuppressed = 0`), the gate in `iterateLights` (the `saveCat` overload), the shared check in `callAmbient` and `prepareAmbient`
+(`execute.cpp`: the `runAmbientLights()` macro), `gatherHeaderBegin`, and `gatherSample` (below); `irradianceLookup` top (irradianceCalls.cpp).
+
+**The wrapper reads the real instance's outputs (condition (b)).** Under `color`, the 17 outputs of `cl_gate_probe` as read through the cldbl wrapper (means over the real points; the same values under the interpreter and the JIT): r_ambient 1, r_diffuse 0.572863, r_specular 0.0388116,
+r_phong 0.0191686, r_illum 1, r_illumcat 1, r_lightsource 1, r_occlusion 0.978782, r_indirect 0.0155431, r_gather 4, r_trace 0.25, r_transmission 0, r_visibility 1, r_environment 0.25, r_shadow 0, r_texture 0.5, r_specbrdf 1: every gated output is non-zero under `color`, in both backends.
+Under `closures` the ten gated ones read 0 (r_gather 1 before the fix below, 0 after) and the not-gated ones equal color's.
+
+**Plan deviation, found by the gate test: `gather()` needs a fifth read of the flag.** `gather(..., 0)` still runs the body once (the loop control is `gatherEndAdvance`, after the first iteration), so setting the count to 0 in `gatherHeaderBegin` (the contract's funnel) left `r_gather` at 1 on both
+backends. The gate now also reads the flag at the top of `CShadingContext::gatherSample` (shared by both backends): every active point takes the miss path with no ray traced (the body for no point, the else for all). `gatherHeaderBegin` and `gatherSample` are the two halves of one funnel.
+
+**Test defects and the declared-set reference: proposals, nothing applied** (`tools/proposed/phase3_test_defects.md`). With the production code in place 16 of 33 `closuremode` tests failed; ten defects of the approved tests are listed there with a diff that, run in the Linux tree only, makes the 33 pass and
+`-L 'closuremode|closures|state|common|architecture|shading_parity|shading_contract|arealight|link'` 677 of 678 (the one failure is `SceneInterface_Services`, whose pinned `declared_set.txt` gains `variables 125` and one line, `v 124 closuremode ...`; declared set 124 -> 125 variables, 29 globals unchanged).
+
+### Phase 3 validation after the approvals (T075 to T080; 2026-11-25)
+
+Applied (approved): the declared-set reference (`variables 124 -> 125`, `v 124 closuremode`; declared set 124 -> 125 variables, 29 globals unchanged); the gather() second half in `contracts/closuremode.md` and plan Q10; test fixes T1, T2, T4, T6, T7, T9, T10; T5 as `ClosureMode_Scope_SolidObjectRISpec` (WILL_FAIL, GitHub #235);
+T8 with the comment citing GitHub #236. **Open: T3** (the ray type of a rasterised grid): the contract says `RayType::None` (`shaderGlobals.h`, "from the batch's ShaderGlobals"), so `ClosureMode_Both_zbuffer`, `ClosureMode_Both_reyes` and `ClosureDet_HiderParity` stay red on both hosts until the maintainer decides (proposal in `tools/proposed/phase3_test_defects.md`).
+
+**Results.** Linux (-j2): `-L 'closuremode|closures|state|common|architecture|shading_parity|shading_contract|arealight|link|scene_interface'` 679 of 682, the three T3 tests failing. macOS (-j4, behind the swap gate): the same labels, 679 of 682, the same three.
+Everyday set `-LE 'determinism-sweep|gi_determinism_long'`: **macOS 1833 tests, 3 failed (the T3 tests), 1 skipped** (`LibShader_Format_rslo_lower_minor`), no #225 intermittent this time; **Linux 1834 tests, 4 failed**: `TextureTile_RenderByteIdentical` (#45, the Phase 0 baseline) and the three T3 tests. Phase 0 baselines: macOS 1743 of 1745 (two #225 intermittents), Linux 1744 of 1746 (#45 and the #122 intermittent): the new tests are the only addition.
+`-L '^determinism$'`: **169 of 169 on macOS (148 s) and on Linux (405 s)**. `-L architecture`: 45 of 45 on both hosts; `tests/architecture/allowlist.txt`, `ribvector-core-residual.txt` and `metrics-baseline.txt` byte-identical to the Phase 0 copies (`cmp`).
+The only reference file changed is `declared_set.txt` (approved). `kRendererServicesVersion` 2.6.1.
+
+**Visible change: none without closuremode (FR-027, SC-001), macOS, `-t:1`, the Phase 0 oracle scenes re-rendered with the Phase 3 build:** `camera-dof.tif` `52beb3b9...405d`, `arealight-softshadow-quad-raytrace.tif` `545b3ed2...9b2b`, `arealight-softshadow-quad-raytrace-slo.tif` `ff8d98f2...757b`: all three **identical** to the Phase 0 hashes.
+The `ClosureMode_ColorIdentity_*` tests (the explicit `color` equals the no-mention image, three hiders) also pass; `Closure_Network_Loopback_{color,both,closures}` (`-P:2` against local, byte for byte) pass.
+
+**Warnings.** Linux: none in the Phase 3 build logs. macOS: 23 linker warnings, none from 035 (8 `ignoring duplicate libraries`, vcpkg LLVM; 15 `orender-wire-macos`: Swift package objects built for macOS 13.3, linked at 13.0).
+
+**T077 mutation evidence (macOS, scratch edits, each reverted by `git checkout` of the staged file; `libRSLRuntime` + the test executables rebuilt, then the named tests):**
+
+| Mutation | Result |
+|---|---|
+| (1) `~LightingGate()` does not clear the flag | `ClosureMode_Gate_interp`, `_jit` FAIL (`mixed.lightRuns > 0`: the color object shaded later is dark); `Closures_raytrace` passes |
+| (2) `iterateLights` gate removed | `ClosureMode_Closures_raytrace` FAIL (`closures.lightRuns == 0`, `r_illum == 0`), `Gate_interp`, `Gate_jit` FAIL |
+| (2b-1) `prepareAmbient` check removed (the JIT's `rsl_ambient_1v` path) | both Gate tests pass: an **unreachable site** (nothing emits or calls `rsl_ambient_1v`; see "Phase 3 follow-up" below), so no test can fail it |
+| (2b-2) `callAmbient` check removed | `Gate_jit` FAIL (`closed.outputMean == 0` for `r_ambient`); `Gate_interp` passes |
+| (2b-3) the interpreter's `runAmbientLights()` check removed | `Gate_interp` FAIL; `Gate_jit` passes |
+| (3a) `gatherSample` gate removed | `Gate_interp` and `Gate_jit` FAIL (`r_gather` 1) |
+| (3b) `gatherHeaderBegin` gate removed, `gatherSample` kept | both PASS: the header half is redundant given the sample half (kept as the contract's first half) |
+| (4) trees for the derivative-helper vertices | survived the first `ClosureMode_Both_raytrace` (its probe had no derivative, so no helper vertex existed); **with T11 applied it FAILS** on macOS and Linux (`dBoth.trees == dColor.realPoints`) |
+| (5) the object's `Os` written instead of the shader's `Oi` | `ClosureMode_Closures_raytrace` and `Closure_Interim_IR018_raytrace` FAIL (alpha 1 against 0.25) |
+
+Survivors, resolved in the follow-up below: (2b-1) is unreachable (documented); (4) is killed by T11.
+
+### Phase 3 follow-up (2026-11-25): T11 applied, and the prepareAmbient survivor
+
+**T11 applied (approved).** `tests/closures/shaders/cl_deriv.sl` (a probe that uses `area(P)`, so a raytrace batch has derivative-offset vertices), the wrapper `cl_dercap`, the wrapper counter `cldbl::counters().allVertices` and, in `sectionBoth` for the raytrace hider, the scene-has-helpers check (`allVertices > realPoints`),
+`dBoth.trees == dColor.realPoints` and `dBoth.image == dColor.image`. Unmutated production code: `ClosureMode_Both_raytrace` passes. **Mutation (4)** (builder and delivery over `numVertices`, the wrapper writing a tree per vertex): FAILS (`test_mode_step.cpp:91: check: dBoth.trees == dColor.realPoints`), on Linux and macOS (below).
+
+**Mutation (2b-1), `prepareAmbient()`, is an unreachable site.** `prepareAmbient()` is called by exactly one function, `rsl_ambient_1v` (`rslBuiltins.cpp:240`), a C wrapper that nothing calls: `llvmEmitter.cpp` has exactly one emission site for `ambient()`, `op == "ambient"` -> `declareOp(mod, "op_ambient_batch", ...)` (`:2252` to `:2257`), whatever the operand shape (the same batch call serves a uniform context and a varying one, the comment at `:2969` says the batch width is required);
+no source in the tree names `rsl_ambient_1v` or any `*_1v` entry outside `rslBuiltins.{h,cpp}`; none of the 22 shipped `.slo` that call `ambient()` references it (`grep -a rsl_ambient_1v` over `build/shaders/*.slo` and the test shaders: 0 files; `op_ambient_batch`: 22) and `cl_gate_probe.slo` calls `op_ambient_batch`; no test calls it. The gate check at that site stays (it keeps the three ambient sites identical, so a future caller cannot bypass the gate), but no compiled shader and no test can reach it: nothing to add a probe for.
+
+### Phase 3: T3 applied (interim rule) and `-L closuremode` green (2026-11-25)
+
+T3 is decided as an interim rule (option (a)); the source fix is spec 058 (GitHub #267). Applied: `ClosureMode_Both_{zbuffer,reyes}` expect `RayType::None` and `ClosureMode_Both_raytrace` expects `Camera`; `ClosureDet_HiderParity` the same for its front object (`None` for reyes, `Camera` for raytrace, `Secondary` for the occluder; the shape wording now says reyes gives grid + span, raytrace shades every hit as a span);
+Q11 reworded in `plan.md` and `spec.md`; the rule added to `contracts/consumer-and-backend.md` ("a camera hit is `Camera`, or `None` on a grid batch"), marked interim, with the statement that spec 058 makes `classifyShading()` report `Camera` for every camera-visible batch in every camera hider and that consumers must not build on the `None` case.
+`-L closuremode`: **Linux 34 of 34, macOS 34 of 34** (the swap gate passed; `ClosureMode_Scope_SolidObjectRISpec` is the WILL_FAIL test, counted as a pass while GitHub #235 stands). T075 ticked.

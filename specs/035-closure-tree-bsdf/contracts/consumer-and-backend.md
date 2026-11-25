@@ -35,6 +35,8 @@ namespace openrender::shading {
 - `static void setDefaultClosureConsumer(IClosureConsumer *)`: the process default, for tests. A test installs it before `RiBegin` and clears it after `RiEnd`.
 - Lookup order: the context's consumer, then the process default, then none. This is the `IIrradianceSampler` pattern (spec 032).
 
+**The ray type of a camera hit (interim rule).** `rayType` is the batch's, as the producer set it in `ShaderGlobals`: a camera hit is `Camera`, or `None` on a grid batch (reyes and zbuffer primaries are rasterised grids, which `classifyShading()` reports as `None`; only the raytrace hider's primary hits are `Camera`). **This is interim.** Spec 058 (GitHub #267) replaces it: `classifyShading()` will report `Camera` for every camera-visible batch in every camera hider. A consumer must not build on the `None` case: treat `Camera` and `None` together as "a camera hit" until then, and expect `None` to disappear. (`ClosureMode_Both_*` and `ClosureDet_HiderParity` pin the interim values; spec 058 changes them.)
+
 **Rules**:
 
 1. The interface names no hider, integrator, light or renderer-core type (FR-021). `ObjectHandle`, `SampleKey`, `RayType` and `BatchShape` are already Shading or Infra types (`serviceTypes.h`, `common/sampling.h`, `shaderGlobals.h`).

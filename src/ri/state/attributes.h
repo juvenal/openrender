@@ -32,7 +32,7 @@
 #include "common/global.h"     // The global header file
 #include "patternTable.h"       // Scoped pattern-node table
 #include "stateHandles.h"       // Opaque shader and map handles
-#include "stateVocabulary.h"    // EAreaLightMode
+#include "stateVocabulary.h"    // EAreaLightMode, EClosureMode
 #include "userAttributes.h"    // Attribute dictionary stuff
 #include "xform.h"             // Transformations
 
@@ -207,6 +207,10 @@ class CAttributes : public CRefCounter {
         EShadingModel shadingModel; // The surface shading model
 
         char *shaderFormat; // "slo" or "rslo" shader format preference
+
+        // Attribute "shade" "closuremode" (spec 035): the object level mode, Unset = not set (the scene mode, then color, decide). Copied with the
+        // block like shaderFormat, so AttributeBegin inherits it and AttributeEnd restores the enclosing one's.
+        EClosureMode closureMode;
 
         // Blobby implicit-surface fidelity (spec 015, FR-025). Negative
         // means "never set", in which case the cell size is derived from

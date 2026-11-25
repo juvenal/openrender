@@ -361,6 +361,7 @@ COptions::COptions() {
     blobbyOpcodeOrder = static_cast<int>(EBlobbyOrder::RiSpec);
     areaLightSamples = 16;
     areaLightMode = EAreaLightMode::Full;
+    closureMode = EClosureMode::Unset;
 
     // Unified search paths across all platforms. Environment expansion is handled
     // by optionsGetSearchPath using %RIBS%, %SHADERS%, %TEXTURES%, %DISPLAYS%, etc.
@@ -1021,6 +1022,16 @@ int COptions::find(const char *name, const char *category, EVariableType &type, 
             type = TYPE_STRING;
             value = areaLightModeName(areaLightMode);
             return value != NULL;
+        }
+    }
+
+    // Option "shade" "closuremode" (spec 035): only for the category itself; answers "color" when no statement set it
+    if ((category != NULL) && (strcmp(category, RI_SHADE) == 0)) {
+        if (strcmp(name, RI_CLOSUREMODE) == 0) {
+            type = TYPE_STRING;
+            const char *spelling = closureModeName(closureMode);
+            value = spelling != NULL ? spelling : "color";
+            return TRUE;
         }
     }
 

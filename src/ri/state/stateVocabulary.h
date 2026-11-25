@@ -53,6 +53,42 @@ enum class EAreaLightMode : uint8_t {
     Off
 };
 
+// The closure mode of the "closuremode" attribute and option (spec 035, FR-017). Unset means "no value at this level" (the next level
+// decides); the effective mode of an object is the attribute's, else the frame's scene mode, else Color. Must equal the mirror in
+// libshader/closures/closureMode.h (ClosureMode there); State_ClosureModeVocabularyMirror compares the two value for value.
+enum class EClosureMode : uint8_t {
+    Unset = 0,
+    Color = 1,
+    Both = 2,
+    Closures = 3
+};
+
+// The RIB spelling of a mode: "color", "both" or "closures"; nullptr for Unset (nothing to read back)
+inline const char *closureModeName(EClosureMode mode) {
+    switch (mode) {
+        case EClosureMode::Color: return "color";
+        case EClosureMode::Both: return "both";
+        case EClosureMode::Closures: return "closures";
+        case EClosureMode::Unset: break;
+    }
+    return nullptr;
+}
+
+// A mode from its RIB spelling; false (and `mode` untouched) for any other string. Unset has no spelling: it is the absence of the statement
+inline bool closureModeFromName(const char *name, EClosureMode &mode) {
+    if (name == nullptr)
+        return false;
+    if (strcmp(name, "color") == 0)
+        mode = EClosureMode::Color;
+    else if (strcmp(name, "both") == 0)
+        mode = EClosureMode::Both;
+    else if (strcmp(name, "closures") == 0)
+        mode = EClosureMode::Closures;
+    else
+        return false;
+    return true;
+}
+
 // The RIB spelling of a mode: "full", "fast" or "off"; nullptr for Unset (nothing to read back)
 inline const char *areaLightModeName(EAreaLightMode mode) {
     switch (mode) {

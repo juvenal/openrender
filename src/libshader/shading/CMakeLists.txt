@@ -67,7 +67,10 @@ set(closure_sources
     ../closures/bsdf.cpp
     ../closures/bsdfComponents.cpp
     ../closures/bsdfMath.cpp
+    ../closures/closureFrame.cpp
+    ../closures/closureInterim.cpp
     ../closures/closureRegistry.cpp
+    ../closures/closureStep.cpp
     ../closures/closureTree.cpp
 )
 list(APPEND shading_sources ${closure_sources})

@@ -211,6 +211,10 @@ class COptions {
         int areaLightSamples;
         EAreaLightMode areaLightMode;
 
+        // Option "shade" "closuremode" (spec 035): the scene mode, Unset = no statement (every object then renders as color unless its attribute says
+        // otherwise). Copied with the block by the memberwise copy, so FrameEnd restores it.
+        EClosureMode closureMode;
+
         TSearchpath *archivePath;    // RIB search path
         TSearchpath *proceduralPath; // Procedural primitive search path
         TSearchpath *texturePath;    // Texture search path

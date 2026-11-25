@@ -143,6 +143,7 @@ CAttributes::CAttributes() {
     shadingModel = SM_MATTE;
 
     shaderFormat = nullptr; // No per-object override; falls through to option/compile-time default
+    closureMode = EClosureMode::Unset;
     blobbyTolerance = -1;   // Unset: derive the cell size from the field extent (FR-025)
 
     globalMapName = NULL;
@@ -504,6 +505,7 @@ void CAttributes::restore(const CAttributes *other, int shading, int geometrymod
         if (shaderFormat != NULL)
             free(shaderFormat);
         shaderFormat = (other->shaderFormat != NULL ? strdup(other->shaderFormat) : nullptr);
+        closureMode = other->closureMode;
         blobbyTolerance = other->blobbyTolerance;
 
         // Copy the user attributes
@@ -720,6 +722,13 @@ int CAttributes::find(const char *name, const char *category, EVariableType &typ
         else if (strcmp(name, RI_SHADERFORMAT) == 0) {
             type = TYPE_STRING;
             value = (shaderFormat != NULL) ? shaderFormat : "slo";
+            return TRUE;
+        }
+        else if (strcmp(name, RI_CLOSUREMODE) == 0) {
+            // spec 035: attribute("shade:closuremode") answers the object level spelling, "color" when no statement set it
+            type = TYPE_STRING;
+            const char *spelling = closureModeName(closureMode);
+            value = spelling != NULL ? spelling : "color";
             return TRUE;
         }
     }

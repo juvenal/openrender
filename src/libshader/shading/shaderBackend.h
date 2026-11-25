@@ -8,7 +8,7 @@
  *   loads a shader file into a backend-neutral description (CShader) with a payload of its own, makes the instance, runs the
  *   instance's bind-time init and executes it for the context's current batch. The two built-ins are the interpreter's (key
  *   and extension "rslo", priority 0, rsloBackend.cpp) and the JIT's ("slo", priority 10, sloBackend.cpp). No member names a
- *   language, a closure, an LLVM type or a bytecode type: another format registers a backend and nothing else changes.
+ *   language, a closure component, an LLVM type or a bytecode type: another format registers a backend and nothing else changes.
  *
  *   Phase 4 of the spec adds this interface and the two built-ins; the facade that owns the cache, the format order and the
  *   binding (ShadingSystem) arrives in Phase 5, and reads the registry below.
@@ -35,6 +35,9 @@ class CShaderInstance;
 class CShadingContext;
 class CAttributes;
 class CXform;
+namespace openrender::shading {
+    class ClosureTreeBuilder; // closures/closureTree.h
+}
 
 class IShaderBackend {
     public:
@@ -49,6 +52,21 @@ class IShaderBackend {
         virtual void initialise(CShaderInstance &instance) const = 0;
         // Run the instance for the context's current batch (varying, tags, lights as today)
         virtual void execute(CShadingContext &context, CShaderInstance &instance, float **locals) const = 0;
+
+        // Spec 035 (contracts/consumer-and-backend.md). Can this instance emit a closure tree? The built-ins answer false: every shipped shader
+        // is closure-incapable until a backend that emits from its own shader exists (spec 036)
+        virtual bool emitsClosures(const CShaderInstance &instance) const {
+            (void)instance;
+            return false;
+        }
+        // Run the instance for the current batch and write one tree per real point into `builder`. With the lighting gate open, the instance's Ci
+        // and Oi must equal what execute() writes, byte for byte (that is what makes `both` equal `color`). The default does nothing.
+        virtual void executeClosures(CShadingContext &context, CShaderInstance &instance, float **locals, openrender::shading::ClosureTreeBuilder &builder) const {
+            (void)context;
+            (void)instance;
+            (void)locals;
+            (void)builder;
+        }
 };
 
 // The registry. A backend registers itself with its priority (the lower the earlier among the formats the preference does not

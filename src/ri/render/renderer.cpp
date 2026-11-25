@@ -53,6 +53,7 @@
 #include "proceduralModules.h"
 #include "emitterRegistry.h"
 #include "hider.h"
+#include "libshader/closures/closureFrame.h"
 #include "hiderAbi.hpp"
 #include "hiderRegistry.h"
 #include "renderer.h"
@@ -183,6 +184,9 @@ void CRenderer::endRenderer() {
     // Last: nothing above may look up a renderer service after this
     rendererShadingServicesShutdown();
 }
+
+// The frame's closure object (spec 035): made in beginFrame() before the hider-creation loop, deleted in endFrame()
+static openrender::shading::ClosureFrame *s_closureFrame = nullptr;
 
 ///////////////////////////////////////////////////////////////////////
 // Function				:	copyOptions
@@ -825,6 +829,12 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
     // thread runs and every reader of contexts is null-safe (research R8).
     numActiveThreads = numThreads;
     contexts = NULL;
+
+    // The frame's closure object (spec 035): the scene mode and the once-per-frame diagnostics. Made before the hider-creation loop, set on
+    // every context next to the sampling configuration, deleted in endFrame() on every path (a refused frame has no context to set it on).
+    delete s_closureFrame;
+    s_closureFrame = new openrender::shading::ClosureFrame(static_cast<openrender::shading::ClosureMode>(o->closureMode));
+
     if (!frameTransport().refused) {
         contexts = new CHider *[numThreads];
         for (i = 0; i < numThreads; i++)
@@ -852,6 +862,7 @@ void CRenderer::beginFrame(const COptions *o, CAttributes *a, CXform *x) {
             }
 
             contexts[i]->shadingContext().setSamplingConfig(samplingConfig);
+            contexts[i]->shadingContext().setClosureFrame(s_closureFrame);
             contexts[i]->shadingContext().updateState();
         }
 
@@ -1031,6 +1042,10 @@ void CRenderer::endFrame() {
     // Display the stats if applicable
     if (endofframe > 0)
         stats.printStats(endofframe);
+
+    // The frame's closure object goes with the contexts that read it (null-safe: it is made on every path of beginFrame())
+    delete s_closureFrame;
+    s_closureFrame = nullptr;
 
     // The frame's transport slot goes last: nothing reads it any more (spec 030)
     endFrameTransport();

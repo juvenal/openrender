@@ -2251,6 +2251,30 @@ void CRendererContext::RiOptionV(const char *name, int n, const char *tokens[], 
             }
         }
     }
+    else if (strcmp(name, RI_SHADE) == 0) {
+        // Option "shade" "closuremode" (spec 035, FR-017, FR-020): the scene mode. A value outside the three spellings is CODE_RANGE, naming
+        // it and the spellings, and the previous value is kept; an unknown token is CODE_BADTOKEN, as under Option "shaderformat".
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_CLOSUREMODE) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                EClosureMode mode;
+                if (closureModeFromName(val, mode))
+                    options->closureMode = mode;
+                else
+                    error(CODE_RANGE, "Unknown closuremode: \"%s\" (expected \"color\", \"both\" or \"closures\")\n", val);
+            }
+            else {
+                // An inline declaration ("string closuremode") is stripped and the statement is read again; a bare unknown token is an error
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE && strcmp(var.name, tokens[i]) != 0) {
+                    RiOption(name, var.name, params[i], RI_NULL);
+                }
+                else {
+                    error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+                }
+            }
+        }
+    }
     else {
         error(CODE_BADTOKEN, "Unknown option: \"%s\"\n", name);
     }
@@ -3955,6 +3979,15 @@ void CRendererContext::RiAttributeV(const char *name, int n, const char *tokens[
                 }
                 else if (strcmp(tokens[i], RI_SHADERFORMAT) == 0) {
                     attributes->shaderFormat = CAttributes::setShaderFormat(((const char **)params[i])[0]);
+                }
+                else if (strcmp(tokens[i], RI_CLOSUREMODE) == 0) {
+                    // spec 035: the object level mode; a bad value is CODE_RANGE and the previous value is kept (D-2: shaderformat is not changed)
+                    const char *val = ((const char **)params[i])[0];
+                    EClosureMode mode;
+                    if (closureModeFromName(val, mode))
+                        attributes->closureMode = mode;
+                    else
+                        error(CODE_RANGE, "Unknown closuremode: \"%s\" (expected \"color\", \"both\" or \"closures\")\n", val);
                 }
                 else {
                     CVariable var;
