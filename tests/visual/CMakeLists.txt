@@ -5056,6 +5056,8 @@ set(_si_cases
     "opacity-reyes            reyes    0 0.2 1 flat:0:64:4"
     "opacity-reyes-alpha      reyes    3 0.2 1 flat:0:64:4"
     "aov-reyes                reyes    0 0 1 flat:0:64:4"
+    "aov-smooth-reyes         reyes    0 0 1 ramp:0:64"
+    "aov-points-reyes         reyes    1 0.5 1 flat:12:21:9 flat:44:53:9"
     "motion-reyes             reyes    0 0 1 flat:0:64:4"
     "motion-opacity-reyes     reyes    0 0.2 1 flat:0:64:4"
     "motion-aov-reyes         reyes    0 0 1 flat:0:64:4"

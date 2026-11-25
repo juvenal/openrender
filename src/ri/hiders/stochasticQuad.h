@@ -115,7 +115,7 @@ const float importance = grid->object->attributes->lodImportance;
         const float *s0 = v0 + 10;                                                                                           \
         const float *s1 = v1 + 10;                                                                                           \
         const float *s2 = v2 + 10;                                                                                           \
-        const float *s3 = v2 + 10;                                                                                           \
+        const float *s3 = v3 + 10;                                                                                           \
         float *dest;                                                                                                         \
                                                                                                                              \
         for (dest = nSample->extraSamples, currentSample = CRenderer::numExtraSamples; currentSample > 0; currentSample--) { \
