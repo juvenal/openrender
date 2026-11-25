@@ -353,7 +353,7 @@ void op_round(float *dst, int sd, const float *a, int sa, int n, const int *tags
     for (int i = 0; i < n; i++)
         if (ACTIVE(tags, i))
             IDX(dst, sd, i)
-            [0] = (float)(int)IDX(a, sa, i)[0];
+            [0] = roundf(IDX(a, sa, i)[0]);
 }
 void op_exp(float *dst, int sd, const float *a, int sa, int n, const int *tags) {
     for (int i = 0; i < n; i++)
