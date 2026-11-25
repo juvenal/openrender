@@ -4478,6 +4478,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/camerahitmode-scenes.cmake)
 # --- A light's __category from the RIB (GitHub #199), in a file of its own ---
 include(${CMAKE_CURRENT_SOURCE_DIR}/lightcategory-scenes.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/lightsource-scenes.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/msgout-scenes.cmake)
 
 # --- Equal-depth ties (spec 039, Phase 7, T084c) ---------------------------------------------
 # Two coincident opaque triangles of different colour: every sample of the overlap receives two
