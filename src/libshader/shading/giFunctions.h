@@ -103,13 +103,14 @@
     }                                             \
     plEnd();
 
-// Just check whether there's smtg between the end points
+// Just check whether there's smtg between the end points: t is the fraction of the samples that reached the end point
+// (traceTransmission's probe, GitHub #169)
 #define VISIBILITYEXPR_POST                       \
     if (numRays > 0) {                            \
         rays -= numRays;                          \
         traceTransmission(numRays, rays, TRUE);   \
         for (int i = numRays; i > 0; i--, rays++) \
-            *rays->res = rays->t < C_INFINITY;    \
+            *rays->res = rays->t;                 \
         expandFloat(res);                         \
     }                                             \
     plEnd();

@@ -38,8 +38,9 @@
  *
  * Both the interpreter (.rslo, this engine's default) and the LLVM JIT
  * (--jit / "shaderformat" "slo") render this light (the JIT's random() and
- * visibility() were fixed by spec 017, GitHub #1 and #3). visibility() does
- * not currently occlude (GitHub #169), so this light casts no shadows.
+ * visibility() were fixed by spec 017, GitHub #1 and #3). visibility() occludes
+ * objects flagged Attribute "visibility" "int transmission" 1 (GitHub #169); an
+ * unflagged object casts no shadow.
  *
  * DEPRECATED (spec 057): light a scene with real geometry instead, a
  * polygon quad under AreaLightSource "arealight" (the emitter is the

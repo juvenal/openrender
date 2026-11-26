@@ -1213,15 +1213,13 @@ class CShadingContext final {
         // Shared body for jitVisibility/jitTransmission/jitTraceF/jitTraceC
         // (spec 017-jit-builtin-function-coverage, US1) -- see shading.cpp.
         // probeOnly controls the underlying traceTransmission/traceReflection call
-        // form (distance-only query vs. full shaded trace); wantBoolean is a
-        // SEPARATE axis for the float (sd==1) unpacking -- visibility()'s
-        // probeOnly=TRUE wants a 0/1 occlusion boolean (VISIBILITYEXPR_POST), but
-        // trace()'s float form ALSO uses probeOnly=TRUE yet wants the raw hit
-        // distance (TRACE2EXPR_POST) -- conflating the two silently zeroed every
-        // trace() float result (spec 017 T012 fix).
+        // form (distance-only query vs. full shaded trace). The float (sd==1) result
+        // is rays->t either way: the fraction of samples that reached the end point
+        // for visibility() (traceTransmission's probe, GitHub #169), the raw hit
+        // distance for trace()'s float form.
         void jitTraceBatch(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                            const float *du, const float *dv, const float *N, const float *time,
-                           int n, const int *tags, const TJitParamList &pl, int probeOnly, bool isReflection, bool wantBoolean, uint32_t callSite);
+                           int n, const int *tags, const TJitParamList &pl, int probeOnly, bool isReflection, uint32_t callSite);
 
         // The JIT form of plBegin()/plReady() (execute.cpp, GitHub #55). A JIT
         // call site passes its parameter list as arrays (TJitParamList) instead
