@@ -8,7 +8,7 @@
  *                            reach gives the same hash through a different ray type (the front object's batches are Camera for raytrace and
  *                            None for the grid hiders, the interim rule; the occluder's are Secondary) and, for reyes, a different batch
  *                            shape (a grid for the front object, a span for the occluder; raytrace shades every hit as a span): the same
- *                            input gives the same tree through a grid and a span batch (FR-022; ClosureDet_BatchShape)
+ *                            input gives the same tree through a grid and a span batch (FR-022; the grid-versus-span section of ClosureDet_HiderParity)
  *
  * Red on the starting tree: does not compile (closureConsumer.h, the closuremode token).
  */

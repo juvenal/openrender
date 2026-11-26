@@ -60,7 +60,7 @@ ctest --test-dir build -L bxdf                          # spec 035: Bxdf_Layout/
 ```
 
 and in the sweep line "opt-in full sweep (761 entries ..." becomes "(785 entries ...", with the 24 new entries named `DeterminismSweep_closures-*`.
-The counts are the lists of `ctest -N -L` on the macOS tree of the branch; the maintainer confirms them at merge.
+The counts are the lists of `ctest -N -L` on the macOS tree of the branch after the second sync (master 36988670; merge 012f97f6): 125, 59 and 37, the same as before the sync (master added no test with these labels); the maintainer confirms them at merge.
 
 ## 4. Active Technologies (one entry)
 
@@ -80,8 +80,9 @@ The counts are the lists of `ctest -N -L` on the macOS tree of the branch; the m
   `IClosureConsumer`, and `Bxdf "name" ["handle"]` with `diffuse`, `plastic`, `conductor` and `dielectric` (a registered table, typed parameters,
   `bxdfInstanceOf`, no instance key). Interim rules IR-017, IR-018 and IR-026 until specs 036, 041 and 042. Closure ABI 1.0.0 and Bxdf interface
   1.0.0; `kRendererServicesVersion` unchanged. With neither statement every image, file and hash is byte-identical to the starting tree; no threshold
-  widened and no reference re-captured. The determinism sweep is 785 entries (24 new: 4 scenes x 3 hiders x 2 formats). Found and filed on the way:
-  #235 (SolidBegin/ObjectBegin did not save attributes), #236 (`shadow("raytrace")` read uninitialised light state), #267, #269. See `specs/035-closure-tree-bsdf/`.
+  widened and no reference re-captured. The determinism sweep is 785 entries (24 new: 4 scenes x 3 hiders x 2 formats). Found on the way and
+  already on master: #235 (SolidBegin/ObjectBegin did not save attributes), #236 (`shadow("raytrace")` read uninitialised light state), #269
+  (ColorSamples read nRGB transposed); filed and open: #267 (the ray type of a camera hit). See `specs/035-closure-tree-bsdf/`.
 ```
 
 ## 6. Merge notes

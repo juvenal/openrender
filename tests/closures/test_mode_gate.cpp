@@ -48,13 +48,11 @@ namespace {
             // traces no ray, so it reads 0 under color as well and the zero proves nothing about the gate. The JIT run carries the evidence.
             CL_CHECK(closed.outputMean.at(name) == 0.0); // and 0 when the gate is closed
         }
-        // r_shadow is left out of the equality: shadow("raytrace", P) called from a surface reads the light state the lights leave behind (Ps, the
-        // direction of the last light), which a closed gate never sets, so it reads uninitialised memory (GitHub #236, as it does today for a
-        // surface that calls it before any light ran). It is only checked to stay a fraction.
-        const char *open[] = {"r_trace", "r_transmission", "r_visibility", "r_environment", "r_texture", "r_specbrdf"};
+        // r_shadow is in the equality since #236 (merged at the second sync): shadow("raytrace", P) called from a surface outside illuminance has no
+        // light direction and answers a defined 0 in both modes, so a closed gate no longer changes it.
+        const char *open[] = {"r_trace", "r_transmission", "r_visibility", "r_environment", "r_shadow", "r_texture", "r_specbrdf"};
         for (const char *name : open)
             CL_CHECK(closed.outputMean.at(name) == color.outputMean.at(name)); // not gated
-        CL_CHECK(closed.outputMean.at("r_shadow") >= 0.0 && closed.outputMean.at("r_shadow") <= 1.0);
         CL_CHECK(color.outputMean.at("r_trace") > 0.0);          // the traced ray hit the occluder: the not-gated builtin did work
         CL_CHECK(closed.lightRuns == 0 && color.lightRuns > 0);
 
