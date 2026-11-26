@@ -151,8 +151,18 @@ void CDLObject::shade(IRayContext &context, int numRays, CRay **rays) {
     float *P = varying[VARIABLE_P];
     float *N = varying[VARIABLE_NG];
     float *I = varying[VARIABLE_I];
+    float *u = varying[VARIABLE_U];
+    float *v = varying[VARIABLE_V];
+    float *time = varying[VARIABLE_TIME];
+    float *du = varying[VARIABLE_DU];
+    float *dv = varying[VARIABLE_DV];
+    float *dPdu = varying[VARIABLE_DPDU];
+    float *dPdv = varying[VARIABLE_DPDV];
     int i;
 
+    // The dlo interface returns only a distance and a normal, so a hit has no parametrisation: u, v and every derivative are
+    // defined as 0 (GitHub #234), never left to whatever the buffers held. The hit is shaded as a point set because the 2-D path
+    // divides by du and needs positions at offset parametric points.
     for (i = numRays; i > 0; i--) {
         const CRay *cRay = *rays++;
 
@@ -161,11 +171,20 @@ void CDLObject::shade(IRayContext &context, int numRays, CRay **rays) {
         P[2] = cRay->from[2] + cRay->dir[2] * cRay->t;
         movvv(N, cRay->N);
         subvv(I, P, cRay->from);
+        *u++ = 0;
+        *v++ = 0;
+        *time++ = cRay->time;
+        *du++ = 0;
+        *dv++ = 0;
+        initv(dPdu, 0, 0, 0);
+        initv(dPdv, 0, 0, 0);
 
         P += 3;
         N += 3;
         I += 3;
+        dPdu += 3;
+        dPdv += 3;
     }
 
-    context.shade(this, numRays, 1, SHADING_2D, 0);
+    context.shade(this, numRays, 1, SHADING_0D, 0);
 }

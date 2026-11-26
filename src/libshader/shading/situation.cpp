@@ -100,7 +100,8 @@ namespace libshader {
         //   row 4: a secondary hit (depth >= 1, not in shadow), also one traced from a REYES grid, reads specularhitmode;
         //          diffusehitmode is never read (oddity 4)
         //   row 6: an implicit-surface hit is SHADING_0D (implicitSurface.cpp:258): no hit mode (oddity 3)
-        //   row 7: a DSO-object hit (dlobject.cpp:173) is classified as rows 3 to 5
+        //   row 7: a DSO-object hit (dlobject.cpp) is SHADING_0D since #234 (its interface has no parametrisation, so its u, v and
+        //          derivatives are defined as 0): classified as row 6, specularhitmode does not apply to it
         c.rayType = (s.rayDepth == 0) ? RayType::Camera : RayType::Secondary;
         // depth 0 is the camera's: camerahitmode at every dimension (GitHub #117). Deeper: specularhitmode, 2-D only (oddity 3)
         if (s.rayDepth == 0)
