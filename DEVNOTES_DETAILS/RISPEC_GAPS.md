@@ -73,13 +73,18 @@ date in the footer, not carried forward.
   default for the ray-trace hider too, opt-out via
   `Attribute "trace" "int displacements" [0]`.
 
-- [ ] **Spectral Colors** — **parsed and discarded.** `RiColorSamples`
-  validates `N`, stores `nColorComps` and the two conversion matrices on
-  `COptions` (`rendererContext.cpp:1407`), and `CRenderer` copies
-  `nColorComps` at `beginFrame` (`renderer.cpp:401`). Nothing else in the
-  renderer or the shading engine reads it: color is three components
-  throughout. The statement is accepted silently, so a scene using it renders
-  as if it had not — worth a diagnostic it does not currently emit.
+- [ ] **Spectral Colors** — **converted to RGB on entry, not carried.**
+  `RiColorSamples` validates `N` and stores `nColorComps` and the two
+  conversion matrices on `COptions` (`rendererContext.cpp:1678`); `CRenderer`
+  copies them at `beginFrame` (`renderer.cpp:237`). Since GitHub #269 `nRGB`
+  (n by 3, RISpec 3.2) converts the n-sample `Color` and `Opacity`
+  (`COptions::convertColor`), and the RIB `Color`/`Opacity` statements and the
+  RIB writer carry n floats, n being the `ColorSamples` count of the frame
+  (tracked in `ri.cpp`, restored by `FrameEnd`). `RGBn` (3 by n) is stored and
+  still never read, `CRenderer::nColorComps/toRGB/fromRGB` are read by nothing,
+  and `Cs` and other colour primitive variables are still three floats
+  whatever n is: color is three components throughout the renderer, as the
+  spec allows an implementation without the capability to do.
 
 - [x] **Volume Shading** — `RiAtmosphere`, `RiInterior` and `RiExterior` all
   execute (spec 056, 2026-11-10; the earlier "parsed, stored and never

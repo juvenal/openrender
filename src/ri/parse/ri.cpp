@@ -107,6 +107,8 @@ static int frameBegin = 0;
 static int frameEnd = 0;
 static int frameStep = 0;
 static int ignoreFrame = FALSE;
+static int colorSamples = 3;      // The ColorSamples count of the frame being read: the floats of a Color or Opacity
+static int savedColorSamples = 3; // The count FrameBegin found, which FrameEnd restores
 static int currentBlock = 0;
 static int allowedCommands = RENDERMAN_ALL_BLOCKS;
 static int archiveNesting = 0;
@@ -348,6 +350,9 @@ RiBegin(RtToken name) {
         return;
     }
 
+    colorSamples = 3;
+    savedColorSamples = 3;
+
     // Set for the CRibOut branches below; used to bootstrap
     // globalArena/declarations around the .orenderrc ribParse()
     // call further down, since CRibOut never goes through beginRenderer().
@@ -504,6 +509,9 @@ RiEnd(void) {
 
     currentBlock = blocks.pop();
 
+    colorSamples = 3;
+    savedColorSamples = 3;
+
     // Ditch the statics
     RiTini();
 
@@ -516,6 +524,9 @@ EXTERN(RtVoid)
 RiFrameBegin(RtInt number) {
     if (check("RiFrameBegin", RENDERMAN_BLOCK | RENDERMAN_ARCHIVE_BLOCK))
         return;
+
+    // ColorSamples is an option: a frame restores it (frames do not nest)
+    savedColorSamples = colorSamples;
 
     if (frameRangeActive) {
         if ((number < frameBegin) || (number > frameEnd))
@@ -546,6 +557,8 @@ RiFrameEnd(void) {
     }
 
     renderMan->RiFrameEnd();
+
+    colorSamples = savedColorSamples;
 
     currentBlock = blocks.pop();
 
@@ -843,7 +856,16 @@ RiColorSamples(RtInt N, RtFloat *nRGB, RtFloat *RGBn) {
     if (check("RiColorSamples", VALID_OPTION_BLOCKS))
         return;
 
+    if (N >= 1)
+        colorSamples = N;
+
     renderMan->RiColorSamples(N, nRGB, RGBn);
+}
+
+// The ColorSamples count the RIB Color and Opacity statements take (rib.y), kept here and not read back from the
+// renderer's options: the Scene Interface knows no renderer core.
+int ribColorSamples() {
+    return colorSamples;
 }
 
 EXTERN(RtVoid)

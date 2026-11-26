@@ -627,7 +627,8 @@ COptions::~COptions() {
 // Method       : convertColor
 // Description  : Convert color to RGB space from whatever space entered
 // Return Value : -
-// Comments     :
+// Comments     : f holds nColorComps floats. toRGB is RISpec 3.2's nRGB, an n x 3 matrix that the colour is
+//                multiplied by as a row vector: c[i] = sum over j of f[j] * toRGB[j * 3 + i] (GitHub #269).
 void COptions::convertColor(vector &c, const float *f) const {
     int i, j;
     if (toRGB == NULL) {
@@ -639,7 +640,7 @@ void COptions::convertColor(vector &c, const float *f) const {
         for (i = 0; i < 3; i++) {
             c[i] = 0;
             for (j = 0; j < (int)nColorComps; j++)
-                c[i] += f[j] * toRGB[i * nColorComps + j];
+                c[i] += f[j] * toRGB[j * 3 + i];
         }
     }
 }
