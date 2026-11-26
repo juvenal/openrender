@@ -985,8 +985,9 @@ not in the agent definitions.
    constructs it, and a `render/photonMap.cpp` would grow the residual list, which may only shrink. Keys are in memory only (the wire record carries one, no file does):
    `CIrradianceRecord::key` (`CCacheSample` is 240 bytes on the wire, the key at offset 224) and a photon's key (`CPhotonStore::photonKey(i)`, a side array that `CMap::permuted()`
    reorders when `balance()` runs). `GiRemote_*`, `GiFiles_Unchanged`, `GiKeys_*`, `GiCache_KindMismatch`, `GiDet_*` and `TextureOnly_GiStores` guard it (`ctest -L gi_split`,
-   `-L '^gi_determinism$'`; `-L gi_split_threads` and `-L '^gi_determinism_long$'` are opt-in). Under the interpreter `indirectdiffuse()` traces no ray (GitHub #173: the sampler
-   receives a denormal `samples`); the `.slo` shaders do. Cost: a cache reused at a fine shading rate costs about twice as much per later frame (the cache is 8 times as dense:
+   `-L '^gi_determinism$'`; `-L gi_split_threads` and `-L '^gi_determinism_long$'` are opt-in). Under the interpreter `indirectdiffuse()` traced no ray until GitHub #173 was fixed by #268 (the
+   sampler received a denormal `samples`: the `.rslo` loader wrote a stochastic instruction's call-site operand over the first constants of a shader whose last
+   operand-taking instruction it was); both formats trace `samples` rays now (`GiDet_IndirectRayCount_{rslo,slo}`, `ShadingSystem_RsloCallSiteLast`). Cost: a cache reused at a fine shading rate costs about twice as much per later frame (the cache is 8 times as dense:
    GitHub #179). Untouched: #158 (`jitOcclusionBatch`), #159, #166, #122.
 38. **Hiders and integrators are registered tables; the core reads declared capabilities, never a name (spec 030).** The four built-in
    hiders are reached by the *call graph* (`beginRenderer()` -> `hiderRegistry()` -> `registerBuiltinHiders()` -> each hider's getter),

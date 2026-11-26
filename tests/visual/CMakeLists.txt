@@ -4486,6 +4486,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/lightsource-scenes.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/msgout-scenes.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/round-scenes.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/atan2-scenes.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/callsite-last-scenes.cmake)
 
 # --- Equal-depth ties (spec 039, Phase 7, T084c) ---------------------------------------------
 # Two coincident opaque triangles of different colour: every sample of the overlap receives two

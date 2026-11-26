@@ -204,6 +204,8 @@ static	TRSLObjectFunction		functions[]	=	{
 				unsigned int			usedParameters;			// Used parameters by this shader
 				TCode					*currentOpcodePlace;	// Points to the code that should holds the opcode
 				TArgument				*currentArgumentPlace;	// Points to the current argument that should hold the argument
+				int						hasPendingFloat;		// Pass 2: a one-float constant operand whose TArgument is not written yet (see takeCallSite)
+				int						pendingFloatConstant;	// Its index in the constant table
 
 				int						codeEntryPoint;			// Indices in the code array for corresponding entry points
 				int						initEntryPoint;
@@ -381,6 +383,30 @@ static	TRSLObjectFunction		functions[]	=	{
 									}
 
 									///////////////////////////////////////////////////////////////////////
+									// Function				:	flushPendingFloat
+									// Description			:	Write the TArgument of a deferred one-float constant operand
+									// Return Value			:	-
+									// Comments				:	A single float constant may turn out to be the call-site ordinal of a
+									//							stochastic instruction, which has no TArgument (pass 1 does not count it).
+									//							So pass 2 does not write that TArgument until the operand after it, or the
+									//							end of the statement, shows it is an ordinary one. The constant itself is
+									//							stored at once, so the constant table does not change.
+		static	void				flushPendingFloat() {
+										if (currentData.passNumber != 2 || !currentData.hasPendingFloat)	return;
+
+										assert(currentData.currentArgumentPlace < currentData.arguments + currentData.numArgument);
+
+										currentData.currentArgumentPlace->numItems		=	1;
+										currentData.currentArgumentPlace->bytesPerItem	=	sizeof(float);
+										currentData.currentArgumentPlace->index			=	(unsigned short) currentData.pendingFloatConstant;
+										currentData.currentArgumentPlace->accessor		=	SL_IMMEDIATE_OPERAND;
+										currentData.currentArgumentPlace->varyingStep	=	0;
+										currentData.currentArgumentPlace++;
+										currentData.currentArgument++;
+										currentData.hasPendingFloat						=	FALSE;
+									}
+
+									///////////////////////////////////////////////////////////////////////
 									// Function				:	addStringReference
 									// Description			:	Add a reference to a string
 									// Return Value			:	-
@@ -397,6 +423,8 @@ static	TRSLObjectFunction		functions[]	=	{
 											break;
 										case 2:
 											assert(currentData.currentConstant < 65535);
+											flushPendingFloat();
+											assert(currentData.currentArgumentPlace < currentData.arguments + currentData.numArgument);
 
 											char	**dest;
 
@@ -438,19 +466,28 @@ static	TRSLObjectFunction		functions[]	=	{
 												break;
 											case 2:
 												assert(currentData.currentConstant < 65536);
+												flushPendingFloat();
 
 												float	*dest;
 
-												currentData.currentArgumentPlace->numItems						=	numItems;
-												currentData.currentArgumentPlace->bytesPerItem					=	sizeof(float);
-												currentData.currentArgumentPlace->index							=	(unsigned short) currentData.currentConstant;
-												currentData.currentArgumentPlace->accessor						=	SL_IMMEDIATE_OPERAND;
-												currentData.currentArgumentPlace->varyingStep					=	0;
+												if (numItems == 1) {
+													// Might be a call-site ordinal: write its TArgument later (flushPendingFloat, takeCallSite)
+													currentData.hasPendingFloat			=	TRUE;
+													currentData.pendingFloatConstant	=	currentData.currentConstant;
+												} else {
+													assert(currentData.currentArgumentPlace < currentData.arguments + currentData.numArgument);
+
+													currentData.currentArgumentPlace->numItems						=	numItems;
+													currentData.currentArgumentPlace->bytesPerItem					=	sizeof(float);
+													currentData.currentArgumentPlace->index							=	(unsigned short) currentData.currentConstant;
+													currentData.currentArgumentPlace->accessor						=	SL_IMMEDIATE_OPERAND;
+													currentData.currentArgumentPlace->varyingStep					=	0;
+													currentData.currentArgumentPlace++;
+													currentData.currentArgument++;
+												}
 												currentData.constantEntries[currentData.currentConstant]		=	currentData.constants + currentData.currentConstantSize;
 												dest															=	(float *) currentData.constantEntries[currentData.currentConstant];
 												currentData.currentConstant++;
-												currentData.currentArgumentPlace++;
-												currentData.currentArgument++;
 												currentData.currentConstantSize	+=	numItems*sizeof(float);
 
 												for (i=0;i<numItems;i++) dest[i]	=	items[i];
@@ -475,6 +512,8 @@ static	TRSLObjectFunction		functions[]	=	{
 												currentData.numArgument	+=	1;
 												break;
 											case 2:
+												flushPendingFloat();
+												assert(currentData.currentArgumentPlace < currentData.arguments + currentData.numArgument);
 												currentData.currentArgument++;
 
 												// Search the variables
@@ -557,7 +596,10 @@ static	TRSLObjectFunction		functions[]	=	{
 											for (i=0;stochastic[i]!=NULL;i++)
 												if (strcmp(stochastic[i],currentData.currentOpcode) == 0)
 													break;
-											if (stochastic[i] == NULL)	return 0;
+											if (stochastic[i] == NULL) {
+												flushPendingFloat();
+												return 0;
+											}
 
 											switch(currentData.passNumber) {
 											case 1:
@@ -568,20 +610,18 @@ static	TRSLObjectFunction		functions[]	=	{
 												break;
 											case 2:
 												{
-													// The last argument is that float constant
-													TArgument	*last	=	currentData.currentArgumentPlace - 1;
-
-													if (currentData.currentArgument < 1 || last->accessor != SL_IMMEDIATE_OPERAND || last->bytesPerItem != sizeof(float)) {
+													// The call-site ordinal is the last operand, a float constant whose
+													// TArgument was never written (it has no slot: see flushPendingFloat)
+													if (!currentData.hasPendingFloat) {
 														rsloerror("Missing call-site operand");
 														return 0;
 													}
 
 													// The constant itself stays where pass 2 stored it, unreferenced
-													const float	*value	=	(const float *) currentData.constantEntries[last->index];
+													const float	*value	=	(const float *) currentData.constantEntries[currentData.pendingFloatConstant];
 													const unsigned short	ordinal	=	(unsigned short) *value;
 
-													currentData.currentArgumentPlace--;
-													currentData.currentArgument--;
+													currentData.hasPendingFloat	=	FALSE;
 													return ordinal;
 												}
 											default:
@@ -692,6 +732,8 @@ static	TRSLObjectFunction		functions[]	=	{
 												cLabel->index	=	(int) (currentData.currentOpcodePlace - currentData.code);
 
 												if (reference) {
+													flushPendingFloat();
+													assert(currentData.currentArgumentPlace < currentData.arguments + currentData.numArgument);
 													cLabel->next					=	currentData.labelReferences;
 													currentData.labelReferences		=	cLabel;
 													cLabel->argument				=	currentData.currentArgumentPlace++;
@@ -1167,7 +1209,8 @@ rsloStringArrayInitializerItems:
 				SCRL_TEXT_VALUE
 				{
 					if(currentData.numArrayItemsRemaining > 0){
-						if(currentData.currentArray){
+						// Pass 2 only: currentStringArray is set by the declaration then (it is the string array's own pointer, not currentArray's)
+						if(currentData.currentStringArray){
 							*currentData.currentStringArray++	=	currentData.strings[currentData.currentString++]	=	strdup($2);
 						}
 						currentData.numArrayItemsRemaining--;
@@ -1867,6 +1910,8 @@ rsloDSO:			SCRL_DSO
 					case 2:
 						// Set the opcode here
 						CDSO	*dso;
+
+						flushPendingFloat();
 
 						if ((dso = libshader::lookupDSO($2,$5)) != NULL) {
 							// Save the DSO opcode
