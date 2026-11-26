@@ -28,7 +28,7 @@
  *
  * Rows 6 and 7 (implicit-surface and DSO-object hits; row 6's present behaviour is an oddity, O5 #119,
  * and row 7 is kept classify-only as decided in B8, although the DLO vertex count was fixed by #129,
- * was #116) and rows 10 to 14 (no shade()) are asserted from classifyShading() alone (B8). The seven
+ * was #116; since #234 a DSO-object hit is shaded 0-D, so the 2-D inputs of row 7 below pin the classifier, not the dlo path) and rows 10 to 14 (no shade()) are asserted from classifyShading() alone (B8). The seven
  * oddities of research R13 that remain are asserted as oddities (documented, not fixed): 3 an
  * implicit-surface hit is 0-D (no derivatives, no hit mode); 4 diffusehitmode is parsed and never read;
  * 5 the atmosphere runs only at depth 0 and never on a matte object; 6 a shaded transmission hit skips
@@ -310,7 +310,7 @@ namespace {
             auto c2 = libshader::classifyShading(situation((int)SHADING_0D, 0, 1, 1, false, false));
             CT_EXPECT(c2.rayType == RayType::Shadow && c2.hitMode == HitMode::Primitive);
         }
-        // Row 7: a DSO-object ray hit classifies as rows 3 to 5 (its vertex count was fixed by #129, was #116)
+        // Row 7: the classifier's 2-D rows 3 to 5 (a DSO-object ray hit has been shaded 0-D since #234; its vertex count was fixed by #129, was #116)
         {
             auto c0 = libshader::classifyShading(situation((int)SHADING_2D, 0, 0, 0, false, false));
             CT_EXPECT(c0.rayType == RayType::Camera && c0.hitMode == HitMode::Primitive);
