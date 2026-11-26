@@ -67,6 +67,9 @@ set(closure_sources
     ../closures/bsdf.cpp
     ../closures/bsdfComponents.cpp
     ../closures/bsdfMath.cpp
+    ../closures/builtinBxdfs.cpp
+    ../closures/bxdfInstance.cpp
+    ../closures/bxdfRegistry.cpp
     ../closures/closureFrame.cpp
     ../closures/closureInterim.cpp
     ../closures/closureRegistry.cpp

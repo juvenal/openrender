@@ -486,6 +486,7 @@ class CShadingContext final {
         void setClosureConsumer(openrender::shading::IClosureConsumer *consumer) { closureConsumerObject = consumer; }
         openrender::shading::IClosureConsumer *closureConsumer() const { return closureConsumerObject != nullptr ? closureConsumerObject : s_defaultClosureConsumer; }
         static void setDefaultClosureConsumer(openrender::shading::IClosureConsumer *consumer) { s_defaultClosureConsumer = consumer; }
+        static openrender::shading::IClosureConsumer *defaultClosureConsumer() { return s_defaultClosureConsumer; } // what usedShaderParameters() reads (a Bxdf adds Cs and Os)
         void setClosureFrame(const openrender::shading::ClosureFrame *frame) { closureFrameObject = frame; }
         const openrender::shading::ClosureFrame *closureFrame() const { return closureFrameObject; }
         // The lighting gate (FR-019): true while the surface that is shading is a `closures` one. Read by the four funnels of closuremode.md

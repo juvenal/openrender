@@ -142,7 +142,7 @@ class CAttributes : public CRefCounter {
         const ShaderGroupRef &atmosphere() const { return atmosphereSlot; }
         const ShaderGroupRef &interior() const { return interiorSlot; }
         const ShaderGroupRef &exterior() const { return exteriorSlot; }
-        const ShaderGroupRef &bxdf() const { return bxdfSlot; } // Ignored by the shader-parameter answers until spec 035
+        const ShaderGroupRef &bxdf() const { return bxdfSlot; } // Holds a Bxdf instance (spec 035: read it with bxdfInstanceOf(), never shaderInstanceOf()); a foreign object is ignored by the answers
         void bindSurface(ShaderGroupRef shader); // Also sets the last-bound record to Surface, even when shader is empty
         void bindBxdf(ShaderGroupRef shader);    // Sets the last-bound record to Bxdf, even when shader is empty
         void bindDisplacement(ShaderGroupRef shader);

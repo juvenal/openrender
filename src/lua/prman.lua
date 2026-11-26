@@ -392,6 +392,16 @@ function Ri:Surface(name, parameterlist)
     self:_write("Surface", name, parameterlist)
 end
 
+-- Bxdf "name" "handle" <parameters>: the handle is left out when it is nil (spec 035). Written as two calls because a nil in the middle of
+-- _write's argument list would end it.
+function Ri:Bxdf(name_str, handle_str, parameterlist)
+    if handle_str ~= nil then
+        self:_write("Bxdf", name_str, handle_str, parameterlist)
+    else
+        self:_write("Bxdf", name_str, parameterlist)
+    end
+end
+
 function Ri:Atmosphere(name, parameterlist)
     self:_write("Atmosphere", name, parameterlist)
 end

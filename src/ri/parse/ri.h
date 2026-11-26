@@ -607,6 +607,8 @@ EXTERN(RtVoid)
 RiIlluminate(RtLightHandle light, RtBoolean onoff),
     RiSurface(const char *name, ...),
     RiSurfaceV(const char *name, RtInt n, RtToken tokens[], RtPointer params[]),
+    RiBxdf(RtToken name, RtToken handle, ...),
+    RiBxdfV(RtToken name, RtToken handle, RtInt n, RtToken tokens[], RtPointer params[]),
     RiAtmosphere(const char *name, ...),
     RiAtmosphereV(const char *name, RtInt n, RtToken tokens[], RtPointer params[]),
     RiInterior(const char *name, ...),

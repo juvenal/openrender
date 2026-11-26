@@ -210,6 +210,10 @@ void CRiInterface::RiIlluminate(const void *, int) {
 void CRiInterface::RiSurfaceV(const char *, int, const char *[], const void *[]) {
 }
 
+// The Bxdf statement (spec 035): a back-end that does not render ignores it, with no diagnostic.
+void CRiInterface::RiBxdfV(const char *, const char *, int, const char *[], const void *[]) {
+}
+
 void CRiInterface::RiAtmosphereV(const char *, int, const char *[], const void *[]) {
 }
 

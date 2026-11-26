@@ -141,6 +141,7 @@ class CRiInterface : public IObjectSink {
 
         virtual void RiIlluminate(const void *light, int onoff);
         virtual void RiSurfaceV(const char *name, int n, const char *tokens[], const void *params[]);
+        virtual void RiBxdfV(const char *name, const char *handle, int n, const char *tokens[], const void *params[]); // spec 035: ignored by default
         virtual void RiAtmosphereV(const char *name, int n, const char *tokens[], const void *params[]);
         virtual void RiInteriorV(const char *name, int n, const char *tokens[], const void *params[]);
         virtual void RiExteriorV(const char *name, int n, const char *tokens[], const void *params[]);

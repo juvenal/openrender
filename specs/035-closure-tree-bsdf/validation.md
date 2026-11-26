@@ -440,3 +440,76 @@ Q11 reworded in `plan.md` and `spec.md`; the rule added to `contracts/consumer-a
 
 `git merge --no-ff --no-commit master` (master `f03a4b71`, 27 commits ahead, #229, #230 and #235 among them): no conflict (auto-merged `shading.cpp`, `shading.h`, `rendererContext.cpp`, `tests/CMakeLists.txt`). Same merge: `ClosureMode_Scope_SolidObjectRISpec` loses `WILL_FAIL` (GitHub #235 made `SolidEnd` and `ObjectEnd` restore the attributes): the CMake line goes, its comment becomes one line, the file header and the section comment of
 `test_mode_state.cpp` keep only the RISpec rule; no assertion changed. Validation of the merged tree follows (filled in below).
+
+### Sync merge validation (merge commit 7caf0a68, master f03a4b71)
+
+Linux (own tree, `-j2`): build clean, 0 warnings; `-L 'closuremode|architecture'` **79 of 79** (`ClosureMode_Scope_SolidObjectRISpec` passes as a normal test); everyday set `-LE 'determinism-sweep|gi_determinism_long'` **2017 tests, 2 failed, 1 skipped**:
+`TextureTile_RenderByteIdentical` (#45, the baseline) and `photonmap_ObjectDefinitionRelease`.
+**Known failure that comes from master, not 035:** `photonmap_ObjectDefinitionRelease` (`tests/unit/photon_map`, from `777ff07b`/`c114e464`, the #64 photon-map release fix) fails 3 of 3 with `map freed at RiWorldEnd while an object definition's attributes still held it` (refCount 2). It passed in the last Linux everyday run before the merge. Cause (the coordinator's finding): master's #235 (`bf85686c`) makes `ObjectBegin`/`ObjectEnd` push and pop the attributes,
+which invalidates the test's premise that the object definition shares the world primitive's attributes. Sent to the bug-fix session and to the maintainer as a #235 follow-up. Not changed here.
+
+macOS (`-j4`, behind the swap gate): configure and build clean (22 linker warnings, the known `ignoring duplicate libraries` and `orender-wire-macos` ones); `-L 'closuremode|architecture'` **79 of 79** (`ClosureMode_Scope_SolidObjectRISpec` passes as a normal test); everyday set **2016 tests, 1 failed, 1 skipped**: the only failure is `photonmap_ObjectDefinitionRelease`, the same master failure as on Linux (it fails on both hosts);
+no #45 on the Mac (a Linux-only failure). Accepted failures: #45 (Linux only) and `photonmap_ObjectDefinitionRelease`. The merged tree is green; Phase 4 starts.
+
+## Phase 4: red evidence (T085)
+
+Tests written before any implementation (T081 to T084), then `035-p4-redcfg cmake -S . -B build -DOPENRENDER_035_RED_TESTS=ON` (rc 0) and one gated `cmake --build build --target <t> -j4` per target (`build/p4-red-<target>.log`). All six fail to compile, rc 2, on the first missing piece:
+- `test_bxdf_layout`: `'bxdfAbi.h' file not found` (`bxdf_layout_c17.c`).
+- `test_bxdf_registry`, `test_bxdf_tree`: `'bxdfAbi.h' file not found`.
+- `test_bxdf_statement`, `test_bxdf_shading`: `use of undeclared identifier 'RiBxdf'` and `'bxdfAbi.h' file not found`.
+- `test_shading_parity_shader_parameter_bxdf_governed`: `'libshader/closures/bxdfInstance.h' file not found`.
+Only the first missing header per translation unit is reported; the test bodies first compile when the headers exist. The build tree stays configured with the option ON until T096.
+
+Open points of the Phase 4 tests, answered by the coordinator before T086: (a) `N = (0, 0, -1)` is right (I points from the eye, `(0, 0, 1)` for the orthographic camera); (c) `RiSurface("null")` is the no-shader path and a Bxdf bound before `WorldBegin` reaches the world. (b), by reading the code only (no run): `cldbl_backend.cpp` copies the real description's type and delegates `load`, `instantiate`, `initialise` and `execute` without looking at the shader type, and a displacement runs through `groupExecute` to the instance's backend `execute()`, so the wrapper handles a displacement shader; `captureOutputs` sums every `STORAGE_MUTABLEPARAMETER`, `TYPE_FLOAT`, `CONTAINER_VARYING` parameter whose name starts with `r_`, which `output varying float r_msg` is, so the capture works for message passing. Nothing in Phase 3 ran the wrapper on a displacement, so this is read, not run. One requirement on T094, not a test change: in the displace-only pass `shade()` prepares `currentAttributes->surface()` (the slot) when the displacement uses message passing, but in the full pass the IR-026 substitute replaces `surface` before `groupPrepare`, so `surface("x", v)` must still resolve through the slot Surface (RISpec 3.2 section 15.8) while a Bxdf governs.
+
+## Phase 4: implementation (T087 to T094), written, not yet built
+
+Written after the maintainer approved T086; nothing is built or run yet (T096). New files in `src/libshader/closures/`: `bxdfAbi.h`, `bxdfRegistry.{h,cpp}`, `bxdfInstance.{h,cpp}`, `builtinBxdfs.cpp` (added to `libRSLRuntime`'s `closure_sources`). Edited: `ri.h`/`ri.cpp` (`RiBxdf`/`RiBxdfV`, `VALID_BXDF_BLOCKS` = `VALID_ATTRIBUTE_BLOCKS & ~RENDERMAN_OBJECT_BLOCK`; no token constant: the grammar needs none), `riInterface.{h,cpp}` (a `RiBxdfV` that ignores the statement), `rib.l`/`rib.y` (`Bxdf`, the two rules of contracts/bxdf.md), `ribOut.{h,cpp}`, `rendererContext.{h,cpp}`, `python/prman.py`, `lua/prman.lua`, and in Shading `closureStep.{h,cpp}`, `closureInterim.{h,cpp}`, `shading.{h,cpp}`, `shaderParameters.cpp`. `stateVocabulary.h` is not touched and no variable is declared.
+
+**The substitute assignment (T092).** `RiWorldBegin` (`rendererContext.cpp`): `worldDefaultSurface` is reset, then, only inside the `if (!currentAttributes->surface())` block that binds `defaultsurface`, set to `ShaderGroupRef::retain(cShader)`; the `CBxdfInstance` already in the current attributes' bxdf slot takes it (`earlier->substituteSurface = worldDefaultSurface`) BEFORE `attrs->setDefaultSurface(...)`, so `checkParameters()` stores the substitute's `usedParameters` (R1, B2). `RiBxdfV` sets `instance->substituteSurface = worldDefaultSurface` before `bindBxdf`, so a Bxdf bound with a pre-world Surface (no default bound) or before any `RiWorldBegin` has an empty substitute (the no-shader path), and never a user Surface. `RiBxdfV` never calls `takeInstanceKey()`.
+
+**`shade()` hunks (T094), `git diff -U0 src/libshader/shading/shading.cpp`:** (1) the inline fast test gains the third term `currentAttributes->governingMaterial() == EMaterialBinding::Bxdf` and the call is `planSurfaceStep(*this, *currentAttributes, surface, g, usedParameters)` (the surface is now passed by reference: the plan replaces it); (2) the surface block is `if (plan.buildTrees) { runSurfaceStep } else if (surface != NULL) { groupExecute } else { no-shader }`, an equivalent restructuring for the Phase 3 rows that lets the Bxdf-with-consumer row run with `surface == NULL`. Nothing else in `shade()` changes.
+
+**Message passing while a Bxdf governs (E12).** The message-passing builtins ask the services, which read `object->attributes->surface()` (the slot), not `shade()`'s local `surface`; the displace-only pass prepares `currentAttributes->surface()` too. Replacing the local variable with the substitute therefore leaves `surface("x", v)` reading the slot Surface, as RISpec 3.2 section 15.8 requires.
+
+**Two defects found in my new tests while reading the code (not run), to be shown with T095:** `Bxdf_ColorSamples` passes `nRGB` laid out 2 x 3; `RiColorSamples` stores it as the 3 x n matrix `convertColor` indexes (`toRGB[i * n + j]`), so the expected colour needs `nRGB = {1, 0.5, 0, 0.5, 0, 0}`; and `Bxdf_Parameters` expects a lobe of weight 0 after clamping `Ks` to 0, but `closureFlatten` drops zero-weight lobes, so the expected list there is empty (a visible clamp is `roughness` 2 to alpha 1).
+
+## Phase 4: build, tests and the two defects found (T096 to T100, macOS)
+
+**Build.** Red option OFF, gated full build (`035-p4-build`, `-j4`): the first run (403 s) stopped on one test-side error, `CL_SOURCE_DIR` undeclared in `test_bxdf_registry.cpp`, fixed in CMake (a compile definition, the test body unchanged; approved as plumbing); the second run (`-- -k`) finished rc 0 with 2 compiler warnings in the whole log, none in a Phase 4 file.
+
+**First label run** (`-L 'bxdf|closuremode|closures|shading_parity|state|common'`, 688 tests): 682 passed, 6 failed. Two were defects of mine in production code, found by the new tests and fixed:
+1. **A flipped zero is `-0`.** `Closure_Bxdf_Consumer_{raytrace,zbuffer,reyes}` and `Closure_Bxdf_ConsumerHiders`: the delivered tree's hash differed from the hand-built one although `N = (0, 0, 64)`, `I = (0, 0, 1)` (scratch print, reverted) gave the right `N = (0, 0, -1)`: `faceforward` of `(0, 0, 64)` computed `sign * scale * 0 = -0.0` for the two zero components, and the trees are hashed byte for byte. `runBxdfStep` adds `+ 0.0f` (so a flipped zero is `+0`), which makes equal normals equal bytes on every hider.
+2. **Message passing read the wrong locals.** `Closure_Bxdf_MessagePassing`: a displacement's `surface("x", v)` read 0.3794 (raytrace) and 0.46 (z-buffer, reyes) in the mean instead of 0.375, while the control with the Surface governing read exactly 0.375 (scratch run, reverted). The services copy a message from the locals prepared for ACCESSOR_SURFACE, and once IR-026 had replaced `surface` with the substitute those locals were the defaultsurface's, so the full pass read the wrong entries (the displace-only pass, which prepares the slot, read the right ones). Fix: `SurfaceStepPlan::messageSurface` is the slot Surface when a Bxdf governs and the stored `usedParameters` has `PARAMETER_MESSAGEPASSING`; `shade()` then prepares the slot Surface's locals in ACCESSOR_SURFACE (not run) and the substitute's own in `substituteLocals`, which is what the substitute executes with. The T094 requirement (E12) now holds in the full pass as well, in both formats and on the three hiders.
+
+After the two fixes: 686 of 688. The two remaining failures are defects of mine in the test bodies, not in the code; their fixes are proposed and not applied (they are test-body changes), and were verified by a scratch run of the five tests with the fixes in place (5 of 5 passed), then reverted:
+- `Closure_Bxdf_Consumer_zbuffer`: the z-buffer hider writes no opacity (`test_mode_step.cpp` skips it for the same reason), so the two alpha checks (`opacity 0.5`, primitive `Os 0.25`) are skipped for `zbuffer`.
+- `ShadingParity_ShaderParameterBxdfGoverned`: RiWorldBegin binds `defaultlight`, whose parameters belong to every answer from then on (the oracle of `shader_parameter_fixtures.h` counts it); the five expectations after `RiWorldBegin` add `lightBits`.
+
+**T097, everyday set** (`-LE 'determinism-sweep|gi_determinism_long'`): 2054 tests; failed `photonmap_ObjectDefinitionRelease` (the known master failure), and the two tests above until their fixes are approved; `LibShader_Format_rslo_lower_minor` skipped, as at Phase 0. `Shaders_BytesUnchanged` and `ShaderCompilerImmutability` pass; `git status` shows no reference, `shaders.sha256` or allowlist file touched. **Determinism set** (`-L '^determinism$' -j2`): 169 of 169.
+
+**T100, `-L architecture`:** 45 of 45; `ribvector-core-residual.txt` and the allowlist unchanged.
+
+**T098, capability to fail** (scratch edits, each reverted by restoring the three files from copies, then a full rebuild; `git diff` empty afterwards):
+
+| # | Scratch edit | Test that went red |
+|---|---|---|
+| 1 | `takeInstanceKey()` in `RiBxdfV` | `Bxdf_NoKey` |
+| 2 | the substitute is the user's Surface | `Closure_Interim_IR026_ByteIdentity_{raytrace,zbuffer,reyes}`, `Closure_Interim_IR026_PreWorld_{raytrace,zbuffer,reyes}` (6 of 6) |
+| 3 | `pendingInstanceKey` left set on an unknown name | `Bxdf_Refusals` |
+| 4 | `VALID_BXDF_BLOCKS = VALID_ATTRIBUTE_BLOCKS` (Bxdf accepted in an object block) | `Bxdf_ObjectBlock` |
+| 5 | GGX alpha squared | `Bxdf_Tree_plastic`, `_conductor`, `_dielectric` (3 of 5; diffuse and NoOsPremultiply use no GGX) |
+
+## Phase 4: Linux (T099) and checkpoint (T101)
+
+Ubuntu 24.04, GCC 13 with `-Werror`, own tree `openrender-035`, remote `cpujob` at `-j2`, after `sync_linux.sh` (5325 files verified). Configure with the red option OFF and build: rc 0, no warning-as-error. `-L 'bxdf|closuremode|closures|shading_parity|state|architecture'` (714 tests): 712 passed; the two failures are the two test-body defects above (`Closure_Bxdf_Consumer_zbuffer`, `ShadingParity_ShaderParameterBxdfGoverned`), the same two as on macOS. Everyday set: 2055 tests; failed `TextureTile_RenderByteIdentical` (#45, Linux only), `photonmap_ObjectDefinitionRelease` (master) and the same two; `LibShader_Format_rslo_lower_minor` skipped. Determinism set: 169 of 169.
+
+**Status at the checkpoint.** Phase 4 production code and tests are built and run on both hosts. Open, awaiting the maintainer: the two test-body fixes (diffs in the scratchpad: `fix/governed.diff`, `fix/shading.diff`), after which the two tests pass (scratch run: 5 of 5). Everything else is green except the known master failure and, on Linux, #45. Changes against plan.md and the contracts: (1) `planSurfaceStep` takes the attributes and a reference to the surface (the plan replaces it); (2) `SurfaceStepPlan::messageSurface` and `shade()`'s `substituteLocals` (message passing while a Bxdf governs, E12); (3) `CShadingContext::defaultClosureConsumer()` (a static getter, read by `usedShaderParameters`); (4) `+ 0.0f` on the normal handed to a Bxdf so a flipped zero is `+0`; (5) the `ColorSamples` test matrix reads the same in both layouts (#269).
+
+## Phase 4: final run after the two approved test-body fixes (T101)
+
+The maintainer approved both fixes (`Closure_Bxdf_Consumer_zbuffer` skips the alpha checks for the z-buffer hider, which writes no opacity; `ShadingParity_ShaderParameterBxdfGoverned` counts `defaultlight`'s bits after `RiWorldBegin`). Applied and staged; `test_bxdf_shading` and the governed parity target rebuilt (macOS gated full build rc 0; Linux incremental build rc 0 after `sync_linux.sh`, 5325 files verified).
+- macOS: `-L 'bxdf|closuremode|closures|shading_parity|state|common'` 688 of 688; `-L architecture` 45 of 45.
+- Linux (Ubuntu 24.04, GCC 13 `-Werror`, `-j2`): the same label run 688 of 688; `-L architecture` 45 of 45.
+- The everyday set (macOS 2054 tests, Linux 2055) was run before the two fixes with only the two test defects, `photonmap_ObjectDefinitionRelease` (master) and, on Linux, #45 failing; the two fixes touch only those two test files, so nothing else moved. Determinism set 169 of 169 on both hosts.
+T081 to T101 are ticked in `tasks.md`; the maintainer's commit is the step that follows and is not recorded here.

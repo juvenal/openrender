@@ -30,8 +30,11 @@
 class CShaderInstance;
 class CShadingContext;
 class CMemPage;
+class CAttributes;
 
 namespace openrender::shading {
+
+    class CBxdfInstance;
 
     struct SurfaceStepPlan {
             ClosureMode mode = ClosureMode::Color; // the mode the object runs in: Both or Closures when trees are built, else Color
@@ -40,16 +43,21 @@ namespace openrender::shading {
             bool deliver = false;                  // a consumer exists: the trees are handed over
             IClosureConsumer *consumer = nullptr;
             ClosureTreeBuilder *builder = nullptr; // made by runSurfaceStep on the batch's arena
+            const CBxdfInstance *bxdf = nullptr;   // a Bxdf governs and a consumer is installed: no shader runs, `build` makes the tree of every real point
+            CShaderInstance *messageSurface = nullptr; // a Bxdf governs and a displacement or atmosphere shader passes messages: the Surface of the slot, which
+                                                       // does not run but whose locals shade() prepares in ACCESSOR_SURFACE (RISpec 3.2 section 15.8)
     };
 
     // The geometry record a consumer's batch needs, ORed into usedParameters when trees are built (the interpolation then fills it)
     unsigned int closureBatchParameters();
 
     // `surface` may be null (no surface: today's path, whatever the mode). Warns through the interim rules; ORs closureBatchParameters()
-    // into `usedParameters` only when the plan builds trees.
-    SurfaceStepPlan planSurfaceStep(CShadingContext &context, ClosureMode attributeMode, CShaderInstance *surface, const ShaderGlobals &globals, unsigned int &usedParameters);
+    // into `usedParameters` only when the plan builds trees. When a Bxdf governs (Phase 4) the surface slot is not the one that runs: with no
+    // consumer `surface` is replaced by the Bxdf's substitute (IR-026: the defaultsurface, or null for the no-shader path); with a consumer it is
+    // set to null and the plan carries the Bxdf. The message-passing builtins still read the attributes' own Surface slot.
+    SurfaceStepPlan planSurfaceStep(CShadingContext &context, const CAttributes &attributes, CShaderInstance *&surface, const ShaderGlobals &globals, unsigned int &usedParameters);
 
-    // Runs the surface through executeClosures. Under `closures` the gate is closed around the call by a guard that opens it on every exit and
+    // Runs the surface through executeClosures; with plan.bxdf, runs no shader: Bxdf::build per real point, Ci = 0, Oi = Os. Under `closures` the gate is closed around the call by a guard that opens it on every exit and
     // Ci is then zeroed (Oi stays what the shader wrote). Makes plan.builder on `arena`.
     void runSurfaceStep(CShadingContext &context, SurfaceStepPlan &plan, CShaderInstance *surface, float **locals, CMemPage *&arena);
 

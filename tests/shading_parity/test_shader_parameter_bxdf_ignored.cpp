@@ -4,9 +4,10 @@
  * File: test_shader_parameter_bxdf_ignored.cpp
  *
  * Description:
- *   Spec 025 (graphics-state-handles), FR-005 / clarification 2026-10-26: the
- *   bxdf slot is ignored by the shader-parameter answers until spec 035.
- *   Binding a bxdf changes neither libshader::usedShaderParameters nor
+ *   Spec 025 (graphics-state-handles), FR-005 / clarification 2026-10-26: a
+ *   foreign object in the bxdf slot (anything that is not a Bxdf instance, spec
+ *   035's CBxdfInstance) is ignored by the shader-parameter answers.
+ *   Binding such an object changes neither libshader::usedShaderParameters nor
  *   libshader::findShaderParameter (nor the stored CAttributes::usedParameters
  *   and CAttributes::findParameter() that forward to them).
  *

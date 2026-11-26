@@ -1200,9 +1200,10 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
 
         // Spec 035, the closure surface step. The inline fast test: when neither the attribute nor the scene mode says anything the code below
         // runs as it always did, with no call; otherwise planSurfaceStep() decides the plan (and ORs the geometry a consumer needs into
-        // usedParameters, only when it builds trees).
-        if (currentAttributes->closureMode != EClosureMode::Unset || (closureFrameObject != nullptr && closureFrameObject->sceneMode() != openrender::shading::ClosureMode::Unset))
-            plan = openrender::shading::planSurfaceStep(*this, static_cast<openrender::shading::ClosureMode>(currentAttributes->closureMode), surface, g, usedParameters);
+        // usedParameters, only when it builds trees). A governing Bxdf is the third term: it replaces the surface that runs (IR-026) or runs none.
+        if (currentAttributes->closureMode != EClosureMode::Unset || (closureFrameObject != nullptr && closureFrameObject->sceneMode() != openrender::shading::ClosureMode::Unset) ||
+            currentAttributes->governingMaterial() == EMaterialBinding::Bxdf)
+            plan = openrender::shading::planSurfaceStep(*this, *currentAttributes, surface, g, usedParameters);
 
         // Prepare the used parameters by the shaders
         usedParameters |= currentAttributes->usedParameters | (currentShadingState->services ? currentShadingState->services->additionalParameters() : 0u);
@@ -1296,7 +1297,15 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
     memBegin(shaderStateMemory);
 
     // Allocate the caches for the shaders being executed
-    if (surface != NULL)
+    // Spec 035: while a Bxdf governs the surface that runs is the substitute, but displacement and atmosphere shaders that pass messages read
+    // the Surface of the slot (RISpec 3.2 section 15.8): its locals are prepared, not run, in ACCESSOR_SURFACE and the substitute gets its own
+    float **substituteLocals = NULL;
+    if (plan.messageSurface != NULL) {
+        if (surface != NULL)
+            substituteLocals = libshader::groupPrepare(surface, shaderStateMemory, varying, numVertices);
+        locals[ACCESSOR_SURFACE] = libshader::groupPrepare(plan.messageSurface, shaderStateMemory, varying, numVertices);
+    }
+    else if (surface != NULL)
         locals[ACCESSOR_SURFACE] = libshader::groupPrepare(surface, shaderStateMemory, varying, numVertices);
     if (displacement != NULL)
         locals[ACCESSOR_DISPLACEMENT] = libshader::groupPrepare(displacement, shaderStateMemory, varying, numVertices);
@@ -1561,12 +1570,15 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
     if (displaceOnly == FALSE) {
 
         // Is there a surface shader ?
-        if (surface != NULL) {
+        if (plan.buildTrees) {
+            // spec 035: both / closures, or a Bxdf with a consumer (no surface runs, `surface` is null)
+            if (surface != NULL)
+                numShaded += numVertices;
+            openrender::shading::runSurfaceStep(*this, plan, surface, locals[ACCESSOR_SURFACE], threadMemory);
+        }
+        else if (surface != NULL) {
             numShaded += numVertices;
-            if (plan.buildTrees)
-                openrender::shading::runSurfaceStep(*this, plan, surface, locals[ACCESSOR_SURFACE], threadMemory); // spec 035: both / closures
-            else
-                libshader::groupExecute(*this, surface, locals[ACCESSOR_SURFACE]);
+            libshader::groupExecute(*this, surface, plan.messageSurface != NULL ? substituteLocals : locals[ACCESSOR_SURFACE]);
         }
         else {
             // No surface shader eh, make up a color

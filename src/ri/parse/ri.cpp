@@ -88,6 +88,10 @@ const unsigned int VALID_OPTION_BLOCKS = RENDERMAN_BLOCK | RENDERMAN_FRAME_BLOCK
 
 // This is the blocks that attributes can be changed
 const unsigned int VALID_ATTRIBUTE_BLOCKS = RENDERMAN_BLOCK | RENDERMAN_FRAME_BLOCK | RENDERMAN_WORLD_BLOCK | RENDERMAN_ARCHIVE_BLOCK | RENDERMAN_ATTRIBUTE_BLOCK | RENDERMAN_XFORM_BLOCK | RENDERMAN_SOLID_PRIMITIVE_BLOCK | RENDERMAN_OBJECT_BLOCK | RENDERMAN_MOTION_BLOCK | RENDERMAN_RESOURCE_BLOCK;
+// Spec 035: the Bxdf statement is checked with its own mask, the attribute blocks without ObjectBegin (Q-R4): RISpec 3.2 section 5.10 allows no
+// shader or attribute assignment inside an object definition, so check() refuses it there as any out-of-block request. RiSurface and
+// RiAttribute keep VALID_ATTRIBUTE_BLOCKS (an older deviation, not 035's).
+const unsigned int VALID_BXDF_BLOCKS = VALID_ATTRIBUTE_BLOCKS & ~RENDERMAN_OBJECT_BLOCK;
 
 // This is the blocks that xforms can be changed
 const unsigned int VALID_XFORM_BLOCKS = RENDERMAN_BLOCK | RENDERMAN_FRAME_BLOCK | RENDERMAN_WORLD_BLOCK | RENDERMAN_ARCHIVE_BLOCK | RENDERMAN_ATTRIBUTE_BLOCK | RENDERMAN_XFORM_BLOCK | RENDERMAN_SOLID_PRIMITIVE_BLOCK | RENDERMAN_OBJECT_BLOCK | RENDERMAN_MOTION_BLOCK | RENDERMAN_RESOURCE_BLOCK;
@@ -1017,6 +1021,24 @@ RiSurfaceV(const char *name, RtInt n, RtToken tokens[], RtPointer params[]) {
         return;
 
     renderMan->RiSurfaceV(name, n, tokens, params);
+}
+
+EXTERN(RtVoid)
+RiBxdf(RtToken name, RtToken handle, ...) {
+    va_list args;
+
+    va_start(args, handle);
+    getArgs(args);
+    RiBxdfV(name, handle, nTokens, tokens, values);
+    va_end(args);
+}
+
+EXTERN(RtVoid)
+RiBxdfV(RtToken name, RtToken handle, RtInt n, RtToken tokens[], RtPointer params[]) {
+    if (check("RiBxdf", VALID_BXDF_BLOCKS))
+        return;
+
+    renderMan->RiBxdfV(name, handle, n, tokens, params);
 }
 
 EXTERN(RtVoid)

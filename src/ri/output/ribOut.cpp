@@ -671,6 +671,15 @@ void CRibOut::RiSurfaceV(const char *name, int n, const char *tokens[], const vo
     writePL(n, tokens, params);
 }
 
+// Spec 035: Bxdf "name" "handle" <pl>, the handle left out when there is none, at the call's position (a Surface/Bxdf order survives a round trip)
+void CRibOut::RiBxdfV(const char *name, const char *handle, int n, const char *tokens[], const void *params[]) {
+    if (handle != NULL)
+        out("Bxdf \"%s\" \"%s\" ", name, handle);
+    else
+        out("Bxdf \"%s\" ", name);
+    writePL(n, tokens, params);
+}
+
 void CRibOut::RiAtmosphereV(const char *name, int n, const char *tokens[], const void *params[]) {
     out("Atmosphere \"%s\" ", name);
     writePL(n, tokens, params);

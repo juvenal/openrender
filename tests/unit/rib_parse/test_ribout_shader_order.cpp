@@ -13,8 +13,10 @@
  *
  *   THIS IS A CHARACTERIZATION TEST. It is green on the starting tree and must
  *   stay green through every phase (clarification Q3 of 2026-10-25: a green
- *   first run is the expected result, not a broken test). No Bxdf round-trip
- *   is added: there is no Bxdf statement in spec 025 (FR-012).
+ *   first run is the expected result, not a broken test). Spec 035 adds the
+ *   Bxdf statement, so a fourth input carries real Bxdf statements, with and
+ *   without a handle, in both orders against Surface; the three first inputs
+ *   and every assertion on them are unchanged.
  *
  *   In process, modelled on test_sampling_option_roundtrip.cpp: each session
  *   resets the lexer (riblex_destroy(), CLAUDE.md gotcha 20).
@@ -78,9 +80,9 @@ static void parseIntoWriter(const std::string &rib, const std::string &out) {
 // The statements that matter, in order: the first word of each line, plus the shader name for the shader statements.
 static std::vector<std::string> statementsOf(const std::string &text) {
     static const std::set<std::string> kept = {"Surface", "Displacement", "Atmosphere", "Interior", "Exterior",
-                                               "LightSource", "Imager", "Color", "Opacity", "ShadingRate",
+                                               "LightSource", "Imager", "Bxdf", "Color", "Opacity", "ShadingRate",
                                                "Attribute", "AttributeBegin", "AttributeEnd", "WorldBegin", "WorldEnd"};
-    static const std::set<std::string> named = {"Surface", "Displacement", "Atmosphere", "Interior", "Exterior", "LightSource", "Imager"};
+    static const std::set<std::string> named = {"Surface", "Displacement", "Atmosphere", "Interior", "Exterior", "LightSource", "Imager", "Bxdf"};
 
     std::vector<std::string> statements;
     std::istringstream lines(text);
@@ -158,12 +160,28 @@ int main() {
         "Opacity [0.25 0.25 0.25]\n"
         "Atmosphere \"mist\"\n"
         "WorldEnd\n",
+        // order 4 (spec 035): Bxdf statements, with and without a handle, before and after Surface, inside an attribute block
+        "Imager \"background\"\n"
+        "WorldBegin\n"
+        "Color [1 0 0]\n"
+        "Surface \"matte\"\n"
+        "Bxdf \"plastic\" \"h1\" \"float Kd\" [0.25]\n"
+        "Opacity [0.5 0.5 0.5]\n"
+        "AttributeBegin\n"
+        "Bxdf \"diffuse\"\n"
+        "Surface \"plastic\"\n"
+        "ShadingRate 2\n"
+        "Bxdf \"conductor\" \"float Ks\" [0.5]\n"
+        "AttributeEnd\n"
+        "LightSource \"pointlight\" 1\n"
+        "WorldEnd\n",
     };
 
     // the three inputs really are different orders
     CHECK(statementsOf(inputs[0]) != statementsOf(inputs[1]));
     CHECK(statementsOf(inputs[1]) != statementsOf(inputs[2]));
     CHECK(statementsOf(inputs[0]) != statementsOf(inputs[2]));
+    CHECK(statementsOf(inputs[3]) != statementsOf(inputs[0]));
 
     int index = 0;
     for (const char *input : inputs) {
@@ -205,6 +223,6 @@ int main() {
         std::fprintf(stderr, "FAILED: %d check(s)\n", failures);
         return 1;
     }
-    std::printf("RibOut_ShaderStatementOrder: statement order preserved in 3 interleavings\n");
+    std::printf("RibOut_ShaderStatementOrder: statement order preserved in 4 interleavings\n");
     return 0;
 }

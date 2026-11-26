@@ -257,8 +257,95 @@ WorldEnd
         ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>" DEPENDS orender)
 endforeach()
 
+# ---- Phase 4 tests (T081 to T084): written red first (their red evidence is the build failure of each target, in validation.md "Phase 4");
+# T096 moved them out of the red block. Label `bxdf` on all of them.
+cl_shader(cl_random)       # three random() draws: a later shader's key is visible in the image (Bxdf_Refusals, Bxdf_NoKey)
+cl_shader(cl_msg_surface)  # a Surface with a message parameter, and the displacement that reads it (Closure_Bxdf_MessagePassing)
+cl_shader(cl_msg_disp)
+cl_wrapper(cl_msgd cl_msg_disp)
+
+# Bxdf_Layout: the table, parameter and point layouts, bxdfAbi.h as strict C17 (bxdf_layout_c17.c)
+cl_executable(test_bxdf_layout test_bxdf_layout.cpp bxdf_layout_c17.c)
+set_source_files_properties(bxdf_layout_c17.c PROPERTIES COMPILE_OPTIONS "-std=c17;-Wall;-Wextra;-Wpedantic;-Werror")
+cl_test(Bxdf_Layout test_bxdf_layout LABELS bxdf)
+
+# Bxdf_Registry_*: the four built-ins, the lookups, the registration rules, the header's history table
+cl_executable(test_bxdf_registry test_bxdf_registry.cpp)
+target_compile_definitions(test_bxdf_registry PRIVATE CL_SOURCE_DIR="${CMAKE_SOURCE_DIR}") # Header reads src/libshader/closures/bxdfAbi.h
+foreach(section Builtins Lookups Registration Header)
+    cl_test(Bxdf_Registry_${section} test_bxdf_registry LABELS bxdf ARGS ${section})
+endforeach()
+
+# Bxdf_Tree_*: the four built-in trees against the hand-built ones, and the no-Os-premultiply rule
+cl_executable(test_bxdf_tree test_bxdf_tree.cpp)
+foreach(section diffuse plastic conductor dielectric NoOsPremultiply)
+    cl_test(Bxdf_Tree_${section} test_bxdf_tree LABELS bxdf ARGS ${section})
+endforeach()
+
+# The statement tests (T083): the Bxdf statement as state, as RIB text and on a -P:N client
+cl_executable(test_bxdf_statement test_bxdf_statement.cpp cldbl_backend.cpp)
+foreach(section LastBound ColorSamples ObjectBlock Refusals Parameters NoKey Instancing RibRoundTrip Network)
+    cl_test(Bxdf_${section} test_bxdf_statement LABELS "bxdf;closuremode" ARGS ${section})
+endforeach()
+
+# The shading tests (T084): the interim rule IR-026, the byte identities, the consumer path, message passing
+cl_executable(test_bxdf_shading test_bxdf_shading.cpp cldbl_backend.cpp)
+foreach(hider raytrace zbuffer reyes)
+    cl_test(Closure_Interim_IR026_${hider} test_bxdf_shading LABELS "bxdf;closuremode" ARGS IR026_${hider})
+    cl_test(Closure_Interim_IR026_ByteIdentity_${hider} test_bxdf_shading LABELS "bxdf;closuremode" ARGS ByteIdentity_${hider})
+    cl_test(Closure_Interim_IR026_PreWorld_${hider} test_bxdf_shading LABELS "bxdf;closuremode" ARGS PreWorld_${hider})
+    cl_test(Closure_Bxdf_Consumer_${hider} test_bxdf_shading LABELS "bxdf;closuremode" ARGS Consumer_${hider})
+endforeach()
+cl_test(Closure_Interim_IR026_Precedence test_bxdf_shading LABELS "bxdf;closuremode" ARGS Precedence)
+cl_test(Closure_Bxdf_ConsumerHiders test_bxdf_shading LABELS "bxdf;closuremode" ARGS ConsumerHiders)
+cl_test(Closure_Bxdf_MessagePassing test_bxdf_shading LABELS "bxdf;closuremode" ARGS MessagePassing)
+
+# Bxdf_Bindings_{python,lua}: the RIB helpers write the statement (SC-008)
+find_program(OR035_PYTHON NAMES python3 python)
+find_program(OR035_LUA NAMES lua lua5.4 lua5.3 luajit)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/helpers_work/python ${CMAKE_CURRENT_BINARY_DIR}/helpers_work/lua)
+if(OR035_PYTHON)
+    add_test(NAME Bxdf_Bindings_python COMMAND ${OR035_PYTHON} ${CMAKE_SOURCE_DIR}/tests/python/test_prman_bxdf.py
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/helpers_work/python)
+    set_tests_properties(Bxdf_Bindings_python PROPERTIES TIMEOUT 60 LABELS "helpers;bxdf;closures"
+        ENVIRONMENT "PRMAN_PYTHON_DIR=${CMAKE_SOURCE_DIR}/src/python")
+else()
+    message(STATUS "Bxdf_Bindings_python skipped: no python3 found")
+endif()
+if(OR035_LUA)
+    add_test(NAME Bxdf_Bindings_lua COMMAND ${OR035_LUA} ${CMAKE_SOURCE_DIR}/tests/lua/test_prman_bxdf.lua
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/helpers_work/lua)
+    set_tests_properties(Bxdf_Bindings_lua PROPERTIES TIMEOUT 60 LABELS "helpers;bxdf;closures"
+        ENVIRONMENT "PRMAN_LUA_DIR=${CMAKE_SOURCE_DIR}/src/lua")
+else()
+    message(STATUS "Bxdf_Bindings_lua skipped: no lua interpreter found")
+endif()
+
+# Closure_Network_LoopbackBxdf (E6, R8): a Bxdf scene through the loopback of test_depth_determinism, local against -P:2, byte for byte. A
+# separate test, so the approved Phase 3 loopback is not edited. The scene uses a Bxdf and no consumer: the server prints one IR-026
+# diagnostic and renders the defaultsurface substitute.
+set(bxdf_scene ${CMAKE_CURRENT_BINARY_DIR}/scenes/bxdf-loopback.rib)
+file(WRITE ${bxdf_scene}
+"Display \"bxdf.tif\" \"file\" \"rgb\"
+Format 32 32 1
+PixelSamples 2 2
+Projection \"perspective\" \"fov\" 40
+Translate 0 0 5
+WorldBegin
+LightSource \"distantlight\" 1 \"intensity\" 1.2 \"from\" [0 0 0] \"to\" [0.3 -0.3 1]
+Bxdf \"plastic\"
+Sphere 1 -1 1 360
+WorldEnd
+")
+set(work ${CMAKE_CURRENT_BINARY_DIR}/work/Closure_Network_LoopbackBxdf)
+file(MAKE_DIRECTORY ${work})
+add_test(NAME Closure_Network_LoopbackBxdf
+    COMMAND test_depth_determinism --configs "||-P:2" --outputs bxdf.tif $<TARGET_FILE:orender> ${bxdf_scene}
+    WORKING_DIRECTORY ${work})
+set_tests_properties(Closure_Network_LoopbackBxdf PROPERTIES TIMEOUT 360 LABELS "closures;closuremode;bxdf"
+    ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>" DEPENDS orender)
 if(OPENRENDER_035_RED_TESTS)
-    # Phase 4 tests go here (the Bxdf table, registry, built-ins, RiBxdf)
+    # Phase 5 tests go here, if any are written red first
 endif()
 
 # The test-local shaders (Phase 3 onwards): one target the executables depend on. No shader before Phase 3, so no output yet.

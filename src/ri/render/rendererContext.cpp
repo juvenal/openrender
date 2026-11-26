@@ -63,6 +63,8 @@
 #include "hiderRegistry.h"
 #include "ray.h"
 #include "rendererContext.h"
+#include "libshader/closures/bxdfInstance.h"
+#include "libshader/closures/bxdfRegistry.h"
 #include "emitterRegistry.h"
 #include "rendererFrame.h"
 #include "imageInput.h"
@@ -993,10 +995,18 @@ void CRendererContext::RiWorldBegin(void) {
     CRenderer::defineCoordinateSystem(coordinateWorldSystem, currentXform->from, currentXform->to, COORDINATE_WORLD);
 
     // Auto-bind defaultsurface when no Surface statement was given (PRMan/BMRT compatible)
+    worldDefaultSurface.reset(); // spec 035 (A'): only a defaultsurface that setDefaultSurface() binds below is ever a Bxdf's substitute, never a user Surface
     if (!currentAttributes->surface()) {
         CShaderInstance *cShader = getShader(RI_DEFAULTSURFACE, SL_SURFACE, 0, NULL, NULL);
         if (cShader != NULL) {
             CAttributes *attrs = getAttributes(TRUE);
+            // Spec 035 (B2): a Bxdf bound before WorldBegin takes the defaultsurface now, BEFORE setDefaultSurface(): its checkParameters() stores
+            // usedParameters, usedShaderParameters() reads the substitute of a Bxdf-governed attributes object and shade() reads the stored value,
+            // so the substitute must already be set or the defaultsurface would render without the parameters it needs (R1).
+            worldDefaultSurface = ShaderGroupRef::retain(cShader);
+            if (openrender::shading::CBxdfInstance *earlier = openrender::shading::bxdfInstanceOf(attrs->bxdf()))
+                if (!earlier->substituteSurface)
+                    earlier->substituteSurface = worldDefaultSurface;
             attrs->setDefaultSurface(ShaderGroupRef::adopt(cShader));
         }
     }
@@ -2573,6 +2583,181 @@ void CRendererContext::RiSurfaceV(const char *name, int n, const char *tokens[],
     cShader = getShader(name, SL_SURFACE, n, tokens, params);
 
     attributes->bindSurface(ShaderGroupRef::adopt(cShader));
+}
+
+namespace {
+
+    // What a Bxdf table reports from `create` (it may refuse with its own message): the host prints it and remembers that it did
+    struct SBxdfCreateReport {
+            bool reported = false;
+    };
+    void bxdfCreateReport(void *context, int code, const char *message) {
+        static_cast<SBxdfCreateReport *>(context)->reported = true;
+        error((EErrorCode)code, "RiBxdf: %s", message);
+    }
+
+} // namespace
+
+///////////////////////////////////////////////////////////////////////
+// Class				:	CRendererContext
+// Method				:	RiBxdfV
+// Description			:	The Bxdf statement (spec 035, contracts/bxdf.md steps 1-7)
+// Return Value			:	-
+// Comments				:	A refusal changes nothing: the binding stays and no instance key is pending. A Bxdf takes no instance key and no shader
+//							ordinal, ever (FR-016): it draws nothing, so no later shader's stream may move because of it.
+void CRendererContext::RiBxdfV(const char *name, const char *handle, int n, const char *tokens[], const void *params[]) {
+    using namespace openrender::shading;
+
+    // 1. A -P:N client never shades: the servers parse the RIB (R12)
+    if (CRenderer::netNumServers > 0)
+        return;
+
+    if (name == NULL || name[0] == '\0') {
+        error(CODE_BADTOKEN, "RiBxdf: the Bxdf name is missing\n");
+        return;
+    }
+
+    // 2. The name
+    const SBxdfLookup found = findBxdf(name);
+    if (found.table == nullptr) {
+        switch (found.reason) {
+            case BxdfLookupReason::PrefixReserved:
+                error(CODE_BADTOKEN, "RiBxdf: Bxdf \"%s\": the prefixes \"sl:\" and \"osl:\" are reserved for RSL 2.0 / OSL Bxdfs (specs 036, 049); the statement is ignored\n", name);
+                break;
+            case BxdfLookupReason::VersionRefused:
+                error(CODE_BADTOKEN, "RiBxdf: Bxdf \"%s\" was refused when it was registered: its interface MAJOR version %u is not supported; the statement is ignored\n", name, found.major);
+                break;
+            default:
+                error(CODE_BADTOKEN, "RiBxdf: unknown Bxdf \"%s\"; the statement is ignored\n", name);
+                break;
+        }
+        return;
+    }
+    const OrBxdfTable *table = found.table;
+
+    // 3. The parameters: typed against the table, defaulted, range-handled
+    const int numParams = table->numParams;
+    std::vector<float> numbers((size_t)(numParams > 0 ? numParams : 1) * 3, 0.0f);
+    std::vector<const char *> strings((size_t)(numParams > 0 ? numParams : 1), "");
+    std::vector<const void *> values((size_t)(numParams > 0 ? numParams : 1), NULL);
+    for (int p = 0; p < numParams; p++) {
+        for (int k = 0; k < 3; k++)
+            numbers[(size_t)p * 3 + k] = table->params[p].defaultValue[k];
+        values[(size_t)p] = table->params[p].type == OR_BXDF_STRING ? (const void *)&strings[(size_t)p] : (const void *)&numbers[(size_t)p * 3];
+    }
+
+    COptions *options = getOptions(TRUE);
+    bool refused = false;
+    for (int i = 0; i < n; i++) {
+        CVariable *cVar = CRenderer::retrieveVariable(tokens[i]);
+        CVariable tVar;
+        if (cVar == NULL)
+            if (parseVariable(&tVar, NULL, tokens[i]) == TRUE)
+                cVar = &tVar;
+        if (cVar == NULL) {
+            error(CODE_BADTOKEN, "RiBxdf: parameter \"%s\" of Bxdf \"%s\" is not declared; the parameter is skipped\n", tokens[i], name);
+            continue;
+        }
+
+        int p = -1;
+        for (int k = 0; k < numParams; k++)
+            if (strcmp(table->params[k].name, cVar->name) == 0)
+                p = k;
+        if (p < 0) {
+            error(CODE_BADTOKEN, "RiBxdf: Bxdf \"%s\" has no parameter \"%s\"; the parameter is skipped\n", name, cVar->name);
+            continue;
+        }
+        const OrBxdfParam &param = table->params[p];
+
+        if (cVar->numItems != 1) {
+            error(CODE_BADTOKEN, "RiBxdf: parameter \"%s\" of Bxdf \"%s\" takes one value; the parameter is skipped\n", param.name, name);
+            continue;
+        }
+
+        float *dest = &numbers[(size_t)p * 3];
+        int channels = 1;
+        switch (param.type) {
+            case OR_BXDF_FLOAT:
+                if (cVar->type == TYPE_FLOAT)
+                    dest[0] = ((const float *)params[i])[0];
+                else if (cVar->type == TYPE_INTEGER)
+                    dest[0] = (float)((const int *)params[i])[0];
+                else {
+                    error(CODE_BADTOKEN, "RiBxdf: parameter \"%s\" of Bxdf \"%s\" is a float; the parameter is skipped\n", param.name, name);
+                    continue;
+                }
+                break;
+            case OR_BXDF_INT:
+                if (cVar->type == TYPE_INTEGER)
+                    dest[0] = (float)((const int *)params[i])[0];
+                else if (cVar->type == TYPE_FLOAT)
+                    dest[0] = (float)(int)((const float *)params[i])[0];
+                else {
+                    error(CODE_BADTOKEN, "RiBxdf: parameter \"%s\" of Bxdf \"%s\" is an integer; the parameter is skipped\n", param.name, name);
+                    continue;
+                }
+                break;
+            case OR_BXDF_COLOR:
+                if (cVar->type != TYPE_COLOR) {
+                    error(CODE_BADTOKEN, "RiBxdf: parameter \"%s\" of Bxdf \"%s\" is a color; the parameter is skipped\n", param.name, name);
+                    continue;
+                }
+                {
+                    vector converted; // from the current ColorSamples count, as RiColor's (RISpec 3.2 section 4.1.3)
+                    options->convertColor(converted, (const float *)params[i]);
+                    movvv(dest, converted);
+                }
+                channels = 3;
+                break;
+            case OR_BXDF_STRING:
+                if (cVar->type != TYPE_STRING) {
+                    error(CODE_BADTOKEN, "RiBxdf: parameter \"%s\" of Bxdf \"%s\" is a string; the parameter is skipped\n", param.name, name);
+                    continue;
+                }
+                strings[(size_t)p] = ((const char *const *)params[i])[0];
+                continue;
+        }
+
+        // The range: a value outside [min, max] (max < min: no upper bound) is clamped with a message naming the parameter, or refuses the statement
+        for (int k = 0; k < channels; k++) {
+            const float v = dest[k];
+            const bool low = !(v >= param.minValue);
+            const bool high = param.maxValue >= param.minValue && v > param.maxValue;
+            if (!low && !high)
+                continue;
+            if (param.onOutOfRange == OR_BXDF_REFUSE) {
+                error(CODE_RANGE, "RiBxdf: parameter \"%s\" of Bxdf \"%s\" is %g, outside its range; the statement is refused\n", param.name, name, v);
+                refused = true;
+            }
+            else {
+                warning(CODE_RANGE, "RiBxdf: parameter \"%s\" of Bxdf \"%s\" is %g, outside its range; it is clamped to %g\n", param.name, name, v, low ? param.minValue : param.maxValue);
+                dest[k] = low ? param.minValue : param.maxValue;
+            }
+            break; // one message per parameter
+        }
+    }
+    if (refused)
+        return;
+
+    // 4. The table's data (NULL refuses; the table may say why)
+    SBxdfCreateReport report;
+    OrBxdfDiagnostics diagnostics = {&report, bxdfCreateReport};
+    OrBxdfData *data = table->create(values.data(), &diagnostics);
+    if (data == NULL) {
+        if (!report.reported)
+            error(CODE_RANGE, "RiBxdf: Bxdf \"%s\" refused its parameters; the statement is refused\n", name);
+        return;
+    }
+
+    // 5. The instance, with the FR-026 substitute (A', RISpec 3.2 section 4.2.4): the defaultsurface RiWorldBegin bound, or empty (a pre-world
+    //    Surface was given, defaultsurface could not load, or no WorldBegin yet: RiWorldBegin hands it over lazily, B2). Never a user Surface.
+    CBxdfInstance *instance = new CBxdfInstance(table, data, handle);
+    instance->substituteSurface = worldDefaultSurface;
+
+    // 6. Bind: the last-bound record becomes Bxdf (D5)
+    getAttributes(TRUE)->bindBxdf(ShaderGroupRef::adopt(instance));
+
+    // 7. Never takeInstanceKey(): a Bxdf draws nothing, and no key or random stream of the scene changes (FR-016)
 }
 
 void CRendererContext::RiAtmosphereV(const char *name, int n, const char *tokens[], const void *params[]) {
