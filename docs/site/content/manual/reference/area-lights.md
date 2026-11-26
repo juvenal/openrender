@@ -130,7 +130,7 @@ their output is unchanged.
   twice: the deprecated `spherelight` radiates isotropically with no emitter cosine, so a receiver sees `1 / r^2` from every point of the sphere
   including the far side, and a geometric Lambertian sphere does not radiate from the points that face away. Expect a different
   falloff; there is no agreement claim.
-- `visibility()` does not currently occlude (GitHub #169), so neither old shader casts shadows. The area-light form does.
+- `visibility()` occludes only objects that carry `Attribute "visibility" "int transmission" [1]`, the rule `transmission()` uses, so the deprecated shaders shadow a flagged occluder and nothing else (before GitHub #169 they never shadowed).
 
 ## Limits
 

@@ -1113,7 +1113,7 @@ not in the agent definitions.
    renderer adds no emitter cosine and no `1/r^2`, the shader owns both** (`arealight.sl`: `N . normalize(L) / (L . L)` inside `illuminate(P, N, PI/2)`, so the
    light emits into the side of its normal only and its `intensity` is per unit area: divide by the area to match a light of a given area). `V` is
    `ITracer::occluded` (ray flags `ATTRIBUTES_FLAGS_TRANSMISSION_VISIBLE`): only objects with `Attribute "visibility" "int transmission" [1]` shadow a bound light
-   (FR-023; `visibility()` itself never occludes, GitHub #169), the light's own emitter set is excluded **by identity** (`IRayContext::excludedEmitter()`, the three
+   (FR-023; `visibility()` tests the same flag and has occluded flagged objects since GitHub #169, but a bound light does not use it: the shipped area-light form goes through `ITracer::occluded`), the light's own emitter set is excluded **by identity** (`IRayContext::excludedEmitter()`, the three
    gates in `surface.cpp`, reached by the polygon, quadric, patch and subdivision intersectors: an unsupported kind does not pass through them; the raytrace hider does not intersect points and curves at all (GitHub #195), so they cast no shadow on any light's probe, inside or outside the block, and only implicit surfaces and DSO objects could be seen blocking their own light: not rendered), and the emitters stay ordinary geometry (their
    pixels are their own `Surface`'s). The draws are keyed (`kAreaLightSampleSite` 0xFF20, `kAreaLightShadowSite` 0xFF21, `kAreaLightPhotonSite` 0xFF22; the range
    0xFF20-0xFF2F is reserved in `sampling.h`), so a render is identical at any thread count. The controls (`Option`/`Attribute "arealight"` `"int samples"` and

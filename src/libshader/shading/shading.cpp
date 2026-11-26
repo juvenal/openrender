@@ -3767,7 +3767,7 @@ void CShadingContext::jitEnvironment(float *dst, int sd, const char *name, bool 
 void CShadingContext::jitTraceBatch(float *dst, int sd, const float *P, int sP,
                                     const float *D, int sD, const float *du, const float *dv,
                                     const float *Nrm, const float *time, int n, const int *tags,
-                                    const TJitParamList &pl, int probeOnly, bool isReflection, bool wantBoolean, uint32_t callSite) {
+                                    const TJitParamList &pl, int probeOnly, bool isReflection, uint32_t callSite) {
     const int numRealVertices = currentShadingState->numRealVertices;
     if (numRealVertices <= 0)
         return;
@@ -3848,7 +3848,7 @@ void CShadingContext::jitTraceBatch(float *dst, int sd, const float *P, int sP,
             traceTransmission(numRays, rays, probeOnly);
         for (int i = 0; i < numRays; i++, rays++) {
             if (sd == 1)
-                *rays->res = wantBoolean ? (rays->t < C_INFINITY ? 1.0f : 0.0f) : rays->t;
+                *rays->res = rays->t; // visibility(): the fraction unoccluded (traceTransmission's probe); trace(): the hit distance
             else
                 movvv(rays->res, rays->C);
         }
@@ -3884,25 +3884,25 @@ void CShadingContext::jitTraceBatch(float *dst, int sd, const float *P, int sP,
 void CShadingContext::jitVisibility(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                                     const float *du, const float *dv, const float *Nrm, const float *time,
                                     int n, const int *tags, const TJitParamList &pl, uint32_t callSite) {
-    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, pl, /*probeOnly=*/TRUE, /*isReflection=*/false, /*wantBoolean=*/true, callSite);
+    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, pl, /*probeOnly=*/TRUE, /*isReflection=*/false, callSite);
 }
 
 void CShadingContext::jitTransmission(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                                       const float *du, const float *dv, const float *Nrm, const float *time,
                                       int n, const int *tags, const TJitParamList &pl, uint32_t callSite) {
-    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, pl, /*probeOnly=*/FALSE, /*isReflection=*/false, /*wantBoolean=*/false, callSite);
+    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, pl, /*probeOnly=*/FALSE, /*isReflection=*/false, callSite);
 }
 
 void CShadingContext::jitTraceF(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                                 const float *du, const float *dv, const float *Nrm, const float *time,
                                 int n, const int *tags, const TJitParamList &pl, uint32_t callSite) {
-    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, pl, /*probeOnly=*/TRUE, /*isReflection=*/true, /*wantBoolean=*/false, callSite);
+    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, pl, /*probeOnly=*/TRUE, /*isReflection=*/true, callSite);
 }
 
 void CShadingContext::jitTraceC(float *dst, int sd, const float *P, int sP, const float *D, int sD,
                                 const float *du, const float *dv, const float *Nrm, const float *time,
                                 int n, const int *tags, const TJitParamList &pl, uint32_t callSite) {
-    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, pl, /*probeOnly=*/FALSE, /*isReflection=*/true, /*wantBoolean=*/false, callSite);
+    jitTraceBatch(dst, sd, P, sP, D, sD, du, dv, Nrm, time, n, tags, pl, /*probeOnly=*/FALSE, /*isReflection=*/true, callSite);
 }
 
 // =========================================================================

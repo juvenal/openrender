@@ -811,9 +811,11 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
                 // Are we shooting this ray for real?
                 if (probeOnly) {
 
-                    // No, just query an intersection and record the distance
+                    // No, just query an intersection. rays->t becomes the fraction of the samples that reached their end point:
+                    // a hit sets cRay->object, and a miss leaves cRay->t finite too, so t says nothing about it (GitHub #169)
                     libshader::traceRay(*this, cRay, libshader::TraceKind::Visibility, exteriorBundle.label);
-                    rays->t += cRay->t * multiplier;
+                    if (cRay->object == nullptr)
+                        rays->t += multiplier;
                 }
                 else if (isExterior) {
                     *cExteriorRays++ = cRay;
