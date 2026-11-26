@@ -49,6 +49,7 @@ Detailed documentation about openRender's features:
 - [Raytracing in SL](reference/raytracing-in-sl/)
 - [Raytraced Shadows and Reflections](reference/raytraced-shadows-and-reflections/)
 - [Area Lights](reference/area-lights/)
+- [Closures, Bxdf and closuremode](reference/closures/)
 - [Hardcoded Shaders](reference/hardcoded-shaders/)
 - [Shader Library](reference/shader-library/)
 - [Version Management](reference/version-management/)

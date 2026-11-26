@@ -2,7 +2,7 @@
 
 **Feature Branch**: `035-closure-tree-bsdf`
 **Created**: 2026-11-23
-**Status**: Draft (clarify run 2026-11-23)
+**Status**: Plan and tasks approved; implementation through Phase 5 on the branch (clarify run 2026-11-23)
 **Input**: GitHub issue #41 ("Spec 035: backend-neutral closure tree and BSDF interface; closuremode attribute/option", new capability, label `spec`); the maintainer's plan, section "035 material-interface (closure model)" (`~/.claude/plans/there-is-an-issue-glowing-perlis.md`, layer L6a, on the critical path to the direct integrator); `DEVNOTES_DETAILS/RENDER_ARCHITECTURE_REFERENCES.md` §2 (materials and closures), §7.4, §9 and decisions D1, D5, D7 to D9, D13 to D19, D22, D28, D30; `DEVNOTES_DETAILS/PATH-TRACING_HIDER.md` (background only, see Discrepancies 3). Base: `master` at `b9dec4e5`, with specs 029, 030, 031, 032, 033, 037, 038, 039, 040, 048, 056 and 057 merged. Depends on spec 033 (#39, merged).
 
 ## Clarifications
@@ -35,7 +35,7 @@ Every decision was then reviewed against RISpec 3.2 (`plan.md`, "RISpec 3.2 conf
 | Q5 | IR-026 is reported once per frame per Bxdf name. `both` with a capable shader and no consumer is silent |
 | Q6 (FR-009) | Two versions: the closure ABI (the layout, the registry and the BSDF table) and the Bxdf table, both 1.0.0 |
 | Q7 (A4), with Q-R3 | The names are `diffuse`, `plastic`, `conductor` and `dielectric`, and the conductor is `microfacet` with `eta = 0` read as `F = 1`. Where a Bxdf models a RISpec standard shader (Table 4.8, Appendix A), it takes that shader's parameters, listed in the table below. Common rules: the base colour is the point's `Cs`; `Oi = Os`; `Cs` and `Os` are point inputs, like `N`; `Ka` is dropped (ambient has no closure lobe); the GGX `alpha = roughness`, not squared. `dielectric` has no RISpec counterpart and keeps its own parameters |
-| Q15 (SC-006) | SC-006 is amended to "24 sweep image entries plus 6 in-process checks" |
+| Q15 (SC-006) | SC-006 is amended to "24 sweep image entries plus five in-process checks; the grid-versus-span comparison (FR-022) is a section of `ClosureDet_HiderParity` (planned as six; decided at Checkpoint 5)" |
 
 The three Bxdfs that model a RISpec standard shader (Q-R3):
 
@@ -303,7 +303,7 @@ The reference guide, the RIB guide, DEVNOTES and a drafted CLAUDE.md addition de
 - **SC-005**: For 1000 random additive trees and the hand-built non-additive ones, the flattened evaluation equals the generic evaluator's to a relative error of 1e-6 (bit-identical where the sums are in the same order).
 - **SC-006** (amended at plan, Q15, 2026-11-23): Trees, evaluations and samples are bit-identical at 1 and 4 threads and across the three camera hiders for the same inputs. This is checked in two parts:
   - **24 new determinism-sweep image entries**: 4 scenes x 3 camera hiders x 2 shader formats.
-  - **6 in-process tree and BSDF checks**: `ClosureDet_ThreadIdentity_{reyes,zbuffer,raytrace}`, `ClosureDet_BatchShape`, `ClosureDet_HiderParity` and `ClosureDet_BsdfRepeat`.
+  - **five in-process checks; the grid-versus-span comparison (FR-022) is a section of `ClosureDet_HiderParity` (planned as six; decided at Checkpoint 5)**: `ClosureDet_ThreadIdentity_{reyes,zbuffer,raytrace}`, `ClosureDet_HiderParity` and `ClosureDet_BsdfRepeat`.
   - **What the sweep proves and does not** (accepted by the maintainer, 2026-11-23): the 24 sweep scenes use shipped shaders, which are never closure-capable (FR-017), so their `both` and `closures` images are `color` images (IR-017) and a `Bxdf` object renders its substitute surface (IR-026). The sweep therefore proves only the **interim behaviours**: thread, hider and shader-format identity of IR-017 and IR-026 (IR-018 needs a capable Surface under `closures` with no consumer, which no shipped shader is, so it is covered only by the in-process `Closure_Interim_IR018_*`). It cannot observe a tree, a consumer call or the lighting gate. Those are proved by the in-process checks above, the `ClosureMode_*` and `Closure_Interim_*` tests and the `cldbl` double.
   - The sweep runs `orender` images and cannot observe a tree, which is why the second part exists.
 - **SC-007**: A bound-area-light scene gives pixel-identical results in `color` and `both`. In a scene whose `closures` object is **isolated** (placed outside every camera, shadow, reflection and transmission ray that reaches a `color` object: a `closures` object still casts shadows and appears in reflections, Q11, R19), the `color` objects differ from the same scene without the `closures` object in 0 pixels. The test scene (`ClosureMode_AreaLight`, and the `closures-arealight` sweep scenes) is built to that isolation; without it "0 pixels" would fail by construction (plan.md R-9).

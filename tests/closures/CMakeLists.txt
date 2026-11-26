@@ -344,8 +344,13 @@ add_test(NAME Closure_Network_LoopbackBxdf
     WORKING_DIRECTORY ${work})
 set_tests_properties(Closure_Network_LoopbackBxdf PROPERTIES TIMEOUT 360 LABELS "closures;closuremode;bxdf"
     ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_SOURCE_DIR};DISPLAYS=$<TARGET_FILE_DIR:file>" DEPENDS orender)
+# Phase 5 (T102, T111): Closure_DocPaths. The versions the closure guide quotes equal the headers' macros, the RIB and bindings guides and the site page
+# name the statements, every repository path the guide names exists.
+add_test(NAME Closure_DocPaths COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${CMAKE_SOURCE_DIR} -P ${CMAKE_CURRENT_SOURCE_DIR}/check_doc_paths.cmake)
+set_tests_properties(Closure_DocPaths PROPERTIES TIMEOUT 60 LABELS "closures")
+
 if(OPENRENDER_035_RED_TESTS)
-    # Phase 5 tests go here, if any are written red first
+    # no test of a later phase is written red first
 endif()
 
 # The test-local shaders (Phase 3 onwards): one target the executables depend on. No shader before Phase 3, so no output yet.

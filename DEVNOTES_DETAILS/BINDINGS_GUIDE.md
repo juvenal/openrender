@@ -52,3 +52,14 @@ Regression tests validate:
 - Correct RIB syntax generation.
 - Pipe-based communication with the renderer.
 - Handling of complex nested blocks (e.g., Solid modeling, Motion blur).
+
+## The `Bxdf` helper (spec 035)
+
+Both bindings write the `Bxdf` statement exactly as `ribOut` and a hand-written RIB do (`Bxdf "name" "handle" <parameters>`, the handle left out
+when absent), so the order against `Surface` is the call order:
+
+- Python: `ri.Bxdf("plastic", None, {"float roughness": 0.2})` and `ri.Bxdf("diffuse", "h1")` (`def Bxdf(self, name, handle=None, parameterlist=None)`).
+- Lua: `ri:Bxdf("plastic", nil, { ["float roughness"] = 0.2 })` (`function Ri:Bxdf(name_str, handle_str, parameterlist)`); a table with more than
+  one key writes its keys in an unspecified order, so give a parameter list one key when the text must be exact.
+
+`Bxdf_Bindings_python` and `Bxdf_Bindings_lua` (label `bxdf`) check the text. The C API is `RiBxdf(name, handle, ...)` and `RiBxdfV`.
