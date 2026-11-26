@@ -11,10 +11,16 @@
  *   two-frame   One RiBegin/RiEnd session: frame 1 is a photon pass that
  *               stores photons and writes the map, frame 2 a raytrace frame
  *               that reads it back. Each frame loads its own map object.
- *   objectdef   An object definition made inside the world shares the
- *               attributes a world primitive gives the map to. The definition
- *               lives until RiEnd, so those attributes, and the map, must
- *               survive RiWorldEnd and be released at RiEnd.
+ *   objectdef   An object definition made inside the world while the map is
+ *               set outside it. ObjectBegin saves and restores the attributes
+ *               (RISpec 3.2 section 4, GitHub #235), so the definition holds a
+ *               copy with the map's name and no handle: the map belongs to the
+ *               world's attributes alone and is released at RiWorldEnd.
+ *   objectdef-holds
+ *               An object definition made after a primitive gave the world's
+ *               attributes the map: its copy holds the handle too, lives until
+ *               RiEnd, so the map must survive RiWorldEnd and be released at
+ *               RiEnd.
  *
  *   As in test_photon_map_frame_release.cpp, operator delete is replaced:
  *   for a watched map it records the reference count at free, poisons the
@@ -211,9 +217,11 @@ static void twoFrame(const std::string &dir) {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// An in-world object definition keeps the map's attributes until RiEnd
+// An in-world object definition made while the map is set outside it: the definition's attributes (ObjectBegin saves and restores
+// them, RISpec 3.2 section 4, GitHub #235) are a copy that holds the map's name and no handle, so the map belongs to the world's
+// attributes alone and is released at RiWorldEnd, once, with nothing left to write to it
 static void objectDefinition(const std::string &dir) {
-    printf("object definition in the world\n");
+    printf("object definition in the world, map set outside it\n");
     const std::string mapName = dir + "/objectdef.gpm";
     const char *map = mapName.c_str();
     RtInt numThreads = 1;
@@ -227,14 +235,47 @@ static void objectDefinition(const std::string &dir) {
     RiAttributeBegin();
     RiAttribute(RI_PHOTON, RI_GLOBALMAP, &map, RI_NULL);
     RiObjectBegin();
-    RiPolygon(4, RI_P, (RtPointer)floorQuad, RI_NULL); // the definition holds these attributes
+    RiPolygon(4, RI_P, (RtPointer)floorQuad, RI_NULL); // the definition's own attributes copy the map's name only
     RiObjectEnd();
-    RiPolygon(4, RI_P, (RtPointer)floorQuad, RI_NULL); // render() gives them the map
+    RiPolygon(4, RI_P, (RtPointer)floorQuad, RI_NULL); // render() gives the world's attributes the map
     watch("world", map);
     RiAttributeEnd();
     RiWorldEnd();
 
-    // The definition still holds the attributes, and so the map
+    // Nothing but the world's attributes held the map, and they are gone
+    checkReleased("after RiWorldEnd");
+    RiEnd();
+    resetWatch();
+    unlink(map);
+}
+
+///////////////////////////////////////////////////////////////////////
+// An in-world object definition made after a primitive gave the world's attributes the map: the definition's attributes are a copy
+// of those, handle included, so they hold the map. They live until RiEnd, and so does the map: it survives RiWorldEnd, where the
+// world's attributes let go, and is released once at RiEnd
+static void objectDefinitionHolds(const std::string &dir) {
+    printf("object definition made after the map was given to the world's attributes\n");
+    const std::string mapName = dir + "/objectdef-holds.gpm";
+    const char *map = mapName.c_str();
+    RtInt numThreads = 1;
+    RtInt emit = 100;
+
+    RiBegin(RI_NULL);
+    RiOption(RI_LIMITS, RI_NUMTHREADS, &numThreads, RI_NULL);
+    RiHider("photon", RI_EMIT, &emit, RI_NULL);
+    RiFormat(16, 16, 1);
+    RiWorldBegin();
+    RiAttributeBegin();
+    RiAttribute(RI_PHOTON, RI_GLOBALMAP, &map, RI_NULL);
+    RiPolygon(4, RI_P, (RtPointer)floorQuad, RI_NULL); // render() gives the world's attributes the map
+    watch("world", map);
+    RiObjectBegin(); // the definition's attributes copy them, the map handle with them
+    RiPolygon(4, RI_P, (RtPointer)floorQuad, RI_NULL);
+    RiObjectEnd();
+    RiAttributeEnd();
+    RiWorldEnd();
+
+    // The definition's attributes still hold the map
     if (deletes[0].load() != 0)
         fail("map freed at RiWorldEnd while an object definition's attributes still held it");
     else
@@ -248,7 +289,7 @@ static void objectDefinition(const std::string &dir) {
 
 int main(int argc, char **argv) {
     if (argc != 2) {
-        fprintf(stderr, "usage: %s two-frame|objectdef\n", argv[0]);
+        fprintf(stderr, "usage: %s two-frame|objectdef|objectdef-holds\n", argv[0]);
         return 2;
     }
     char tmpl[] = "/tmp/photon_map_sessions_XXXXXX";
@@ -258,6 +299,8 @@ int main(int argc, char **argv) {
         twoFrame(dir);
     else if (which == "objectdef")
         objectDefinition(dir);
+    else if (which == "objectdef-holds")
+        objectDefinitionHolds(dir);
     else {
         fprintf(stderr, "unknown scenario \"%s\"\n", which.c_str());
         return 2;

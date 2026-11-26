@@ -4483,9 +4483,11 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/camerahitmode-scenes.cmake)
 # --- A light's __category from the RIB (GitHub #199), in a file of its own ---
 include(${CMAKE_CURRENT_SOURCE_DIR}/lightcategory-scenes.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/lightsource-scenes.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/shadow-nolight-scenes.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/msgout-scenes.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/round-scenes.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/atan2-scenes.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/callsite-last-scenes.cmake)
 
 # --- Equal-depth ties (spec 039, Phase 7, T084c) ---------------------------------------------
 # Two coincident opaque triangles of different colour: every sample of the overlap receives two
@@ -4633,6 +4635,10 @@ endforeach()
 #   width, swidth, twidth on the eight-coordinate texture() (blue channel): its footprint is the eight
 #     given coordinates, no derivative scaling, so the channels listed for those cases exclude blue;
 #   bias outside shadow(): only the shadow channel is listed for the bias case;
+#   maxdist on shadow("raytrace"): the probe calls it from a surface outside illuminance, where there is no light direction to
+#     trace along, so the call answers 0 and builds no ray (GitHub #236); the blue channel cannot engage it. Only the rslo against
+#     slo parity of the case is kept here; the control that "maxdist" changes a traced shadow() is Shadow236_maxdist_* (a light that
+#     calls shadow() inside its illuminate block, shadow-nolight-scenes.cmake).
 #   maxdist on the reflection trace of environment("raytrace"): traceReflection never reads it, only
 #     the shadow channel is listed (as #55 does for trace());
 #   "samples" cannot be isolated from "blur" in a base-against-case control, so the samples cases
@@ -4666,7 +4672,7 @@ set(_jittex_cases
     "envshadow|raytrace_base|\"envmap\" [\"raytrace\"] \"shadowmap\" [\"raytrace\"]|-|raytrace_base"
     "envshadow|raytrace_samples_cone|\"envmap\" [\"raytrace\"] \"shadowmap\" [\"raytrace\"] \"samples\" [8] \"samplecone\" [0.3]|0,1,2|raytrace_base"
     "envshadow|raytrace_bias|\"envmap\" [\"raytrace\"] \"shadowmap\" [\"raytrace\"] \"bias\" [0.6]|0,1,2|raytrace_base"
-    "envshadow|raytrace_maxdist|\"envmap\" [\"raytrace\"] \"shadowmap\" [\"raytrace\"] \"maxdist\" [0.3]|2|raytrace_base"
+    "envshadow|raytrace_maxdist|\"envmap\" [\"raytrace\"] \"shadowmap\" [\"raytrace\"] \"maxdist\" [0.3]|-|raytrace_base"
     "envshadow|raytrace_blur|\"envmap\" [\"raytrace\"] \"shadowmap\" [\"raytrace\"] \"blur\" [0.3]|0,1,2|raytrace_base")
 foreach(_entry IN LISTS _jittex_cases)
     string(REPLACE "|" ";" _parts "${_entry}")

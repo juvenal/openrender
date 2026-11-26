@@ -985,8 +985,9 @@ not in the agent definitions.
    constructs it, and a `render/photonMap.cpp` would grow the residual list, which may only shrink. Keys are in memory only (the wire record carries one, no file does):
    `CIrradianceRecord::key` (`CCacheSample` is 240 bytes on the wire, the key at offset 224) and a photon's key (`CPhotonStore::photonKey(i)`, a side array that `CMap::permuted()`
    reorders when `balance()` runs). `GiRemote_*`, `GiFiles_Unchanged`, `GiKeys_*`, `GiCache_KindMismatch`, `GiDet_*` and `TextureOnly_GiStores` guard it (`ctest -L gi_split`,
-   `-L '^gi_determinism$'`; `-L gi_split_threads` and `-L '^gi_determinism_long$'` are opt-in). Under the interpreter `indirectdiffuse()` traces no ray (GitHub #173: the sampler
-   receives a denormal `samples`); the `.slo` shaders do. Cost: a cache reused at a fine shading rate costs about twice as much per later frame (the cache is 8 times as dense:
+   `-L '^gi_determinism$'`; `-L gi_split_threads` and `-L '^gi_determinism_long$'` are opt-in). Under the interpreter `indirectdiffuse()` traced no ray until GitHub #173 was fixed by #268 (the
+   sampler received a denormal `samples`: the `.rslo` loader wrote a stochastic instruction's call-site operand over the first constants of a shader whose last
+   operand-taking instruction it was); both formats trace `samples` rays now (`GiDet_IndirectRayCount_{rslo,slo}`, `ShadingSystem_RsloCallSiteLast`). Cost: a cache reused at a fine shading rate costs about twice as much per later frame (the cache is 8 times as dense:
    GitHub #179). Untouched: #158 (`jitOcclusionBatch`), #159, #166, #122.
 38. **Hiders and integrators are registered tables; the core reads declared capabilities, never a name (spec 030).** The four built-in
    hiders are reached by the *call graph* (`beginRenderer()` -> `hiderRegistry()` -> `registerBuiltinHiders()` -> each hider's getter),
@@ -1105,6 +1106,15 @@ not in the agent definitions.
    time interpolation. It is a runtime test, read once per grid with a plain load, in `stochasticQuad.h` (`flatUV()`) and `zbufferQuad.h`, so the generated `stochasticPrimitives.h` is unchanged; "smooth" (the default)
    is bit for bit the old interpolation. Points have one colour already, and the raytrace hider does not flatten yet (spec 054 maps "constant" to the same corner once raytrace hits are shaded per cell).
    `ShadingInterpolation_*` (`-L shading_interpolation`) pins it per rasterizer variant.
+
+48. **`L`, `Cl` and `Ol` are defined only inside illuminance or illuminate, and a traced `shadow()` needs a light (GitHub #236).** RISpec 3.2 tables 12.1 and 12.2 define `L` (and a surface's
+   `Cl`, `Ol`) only inside `illuminance` (surfaces) and `illuminate`/`solar` (lights). A traced `shadow("raytrace"|"shadow", P)` forms its ray from `Ps` and `L`, so it asks
+   `CShadingContext::shadowLightState()` first: true while the executing shader is a light (its `shaderDescription()->type`, not `lightSideN`, because the photon hider runs lights
+   outside `iterateLights`) or `currentLight` is set (a surface inside its loop); otherwise the call answers 0 (not shadowed), builds no ray, reads no `L` and warns once, in the
+   interpreter (`SHADOWEXPR_PRE`/`SHADOWEXPR`) and in `jitEnvironment`. Reads of the globals themselves outside their scope are defined too: `shade()` zeroes `L`, `Cl` and `Ol` of the
+   state before the shader runs, and `iterateLights`, `iterateBoundAreaLight` and both ambient loops zero `L` and `Cl` before each light runs (a light's `Cl` defaults to black). Not done: the
+   photon hider's own light runs (photon.cpp) are not cleared (their begin hooks write `L`), and oshader gives no diagnostic (the `loc_illum_*.slh` functions read `L` and `Cl` through `extern`
+   from inside illuminance, so a lexical check would flag them). `Shadow236_*` (`-L shadow236`) pins it.
 
 ## Active Technologies
 - C++20, CMake ≥3.19; `libtiff`/`libpng` (mandatory), OpenEXR (optional,

@@ -841,6 +841,10 @@ class CShadingContext final {
                         int n, const int *tags, const TJitParamList &pl, uint32_t callSite);
         void jitEnvironment(float *dst, int sd, const char *name, bool color, bool shadow, const float *D, int sD, int n, const int *tags,
                             const TJitParamList &pl, uint32_t callSite);
+        // A traced shadow() forms its ray from the light direction L, which exists only while a light runs or a surface is inside its
+        // illuminance loop (RISpec 3.2, tables 12.1 and 12.2; GitHub #236). True then; otherwise false, with one warning: the caller
+        // answers 0 (not shadowed), builds no ray and reads no L. Both backends ask it.
+        bool shadowLightState();
         void jitFindCoordinateSystem(const char *name, const float *&from, const float *&to, ECoordinateSystem &type);
 
         // visibility()/transmission()/trace() (spec 017-jit-builtin-function-coverage,

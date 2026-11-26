@@ -247,6 +247,8 @@ class CRibOut : public CRiInterface {
         int numLightSources;
         int numObjects;
         CRibAttributes *attributes;
+        int colorSamples = 3;      // The ColorSamples count: the floats of a Color or Opacity
+        int savedColorSamples = 3; // The count FrameBegin found, which FrameEnd restores
         char *scratch;
 
         ///////////////////////////////////////////////////////////////////////

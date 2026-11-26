@@ -723,10 +723,9 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
         cInteriorRays = interiorRaysBase = (CTransmissionRay **)ralloc(shootStep * sizeof(CTransmissionRay *), threadMemory);
     }
 
-    // We can not be in shadow at this stage
-    assert(inShadow == FALSE);
-
-    // We're in shadow
+    // We are in shadow while the rays are traced. A ray's hit can run a shader (transmissionhitmode "shader"), and that shader can call
+    // transmission() itself, so we may already be in shadow here: put the state back as it was, not as "outside"
+    const int savedInShadow = inShadow;
     inShadow = TRUE;
 
     // Are we sampling the motion in the reflections?
@@ -856,7 +855,7 @@ void CShadingContext::traceTransmission(int numRays, CTraceLocation *rays, int p
         libshader::traceBundle(*this, &interiorBundle, libshader::TraceKind::Transmission);
     }
 
-    inShadow = FALSE; // We're no longer in shadow
+    inShadow = savedInShadow; // We're no longer in this shadow
 }
 
 ///////////////////////////////////////////////////////////////////////

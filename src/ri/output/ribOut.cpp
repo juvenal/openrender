@@ -187,10 +187,12 @@ void CRibOut::RiDeclare(const char *name, const char *type) {
 }
 
 void CRibOut::RiFrameBegin(int number) {
+    savedColorSamples = colorSamples;
     out("FrameBegin %d\n", number);
 }
 
 void CRibOut::RiFrameEnd(void) {
+    colorSamples = savedColorSamples;
     out("FrameEnd\n");
 }
 
@@ -319,6 +321,9 @@ void CRibOut::RiIntegratorV(const char *name, int n, const char *tokens[], const
 
 void CRibOut::RiColorSamples(int N, float *nRGB, float *RGBn) {
     int i;
+
+    if (N >= 1)
+        colorSamples = N;
 
     out("ColorSamples [ ");
 
@@ -613,12 +618,19 @@ void CRibOut::RiAttributeEnd(void) {
     delete old;
 }
 
+// A Color or Opacity has as many floats as the ColorSamples count (3 by default)
 void CRibOut::RiColor(float *Cs) {
-    out("Color [%g %g %g]\n", Cs[0], Cs[1], Cs[2]);
+    out("Color [");
+    for (int i = 0; i < colorSamples; i++)
+        out(i == 0 ? "%g" : " %g", Cs[i]);
+    out("]\n");
 }
 
 void CRibOut::RiOpacity(float *Cs) {
-    out("Opacity [%g %g %g]\n", Cs[0], Cs[1], Cs[2]);
+    out("Opacity [");
+    for (int i = 0; i < colorSamples; i++)
+        out(i == 0 ? "%g" : " %g", Cs[i]);
+    out("]\n");
 }
 
 void CRibOut::RiTextureCoordinates(float s1, float t1, float s2, float t2, float s3, float t3, float s4, float t4) {

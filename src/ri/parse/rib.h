@@ -30,6 +30,9 @@
 void ribParse(const char *, void (*callback)(const char *, ...));
 void parserCleanup();
 
+// The ColorSamples count in force (3 by default): the number of floats a RIB Color or Opacity statement takes.
+int ribColorSamples();
+
 class CRiInterface;
 
 // Begin a session with the back-end registered under key (riHooks.h), without RiBegin's full start (no

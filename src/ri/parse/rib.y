@@ -1238,63 +1238,23 @@ ribComm:		RIB_STRUCTURE_COMMENT
 				}
 				|
 				RIB_COLOR
-				RIB_FLOAT
-				RIB_FLOAT
-				RIB_FLOAT
+				ribFloats
 				{
-					RtColor	color;
-
-					color[0]	=	$2;
-					color[1]	=	$3;
-					color[2]	=	$4;
-
-					RiColor(color);
+					if (floatArgs.numItems != ribColorSamples()) {
+						error(CODE_MISSINGDATA,"Color: expected %d components (the ColorSamples count), found %d\n",ribColorSamples(),floatArgs.numItems);
+					} else {
+						RiColor(getFloat(0));
+					}
 				}
 				|
 				RIB_OPACITY
-				RIB_FLOAT
-				RIB_FLOAT
-				RIB_FLOAT
+				ribFloats
 				{
-					RtColor	color;
-
-					color[0]	=	$2;
-					color[1]	=	$3;
-					color[2]	=	$4;
-
-					RiOpacity(color);
-				}
-				|
-				RIB_COLOR
-				RIB_ARRAY_BEGIN
-				RIB_FLOAT
-				RIB_FLOAT
-				RIB_FLOAT
-				RIB_ARRAY_END
-				{
-					RtColor	color;
-
-					color[0]	=	$3;
-					color[1]	=	$4;
-					color[2]	=	$5;
-
-					RiColor(color);
-				}
-				|
-				RIB_OPACITY
-				RIB_ARRAY_BEGIN
-				RIB_FLOAT
-				RIB_FLOAT
-				RIB_FLOAT
-				RIB_ARRAY_END
-				{
-					RtColor	color;
-
-					color[0]	=	$3;
-					color[1]	=	$4;
-					color[2]	=	$5;
-
-					RiOpacity(color);
+					if (floatArgs.numItems != ribColorSamples()) {
+						error(CODE_MISSINGDATA,"Opacity: expected %d components (the ColorSamples count), found %d\n",ribColorSamples(),floatArgs.numItems);
+					} else {
+						RiOpacity(getFloat(0));
+					}
 				}
 				|
 				RIB_TEXTURE_COORDINATES

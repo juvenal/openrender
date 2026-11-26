@@ -1954,10 +1954,12 @@ DEFSHORTFUNC(EnvironmentColor, "environment", "c=SFv!", ENVIRONMENTEXPR_PRE("ref
 
 #define SHADOWEXPR_PRE                                                                                    \
     ENVIRONMENTEXPR_PRE("shadow", "shadow");                                                              \
+    /* A traced shadow() with no light to trace toward answers 0 and reads no L (GitHub #236) */         \
+    const bool lightState = !traced || shadowLightState();                                                \
     const float *L = varying[VARIABLE_L];                                                                 \
     /* The side normal of the shadow ray (spec 056, research R7): inside a light loop the snapshot taken before the lights ran */ \
     const float *sideNp = currentShadingState->lightSideN != nullptr ? currentShadingState->lightSideN : varying[VARIABLE_N];     \
-    if (traced) {                                                                                         \
+    if (traced && lightState) {                                                                           \
         float *tmp = (float *)ralloc(currentShadingState->numVertices * sizeof(float) * 9, threadMemory); \
         dPdu = tmp + currentShadingState->numVertices * 3;                                                \
         dPdv = dPdu + currentShadingState->numVertices * 3;                                               \
@@ -1970,7 +1972,12 @@ DEFSHORTFUNC(EnvironmentColor, "environment", "c=SFv!", ENVIRONMENTEXPR_PRE("ref
 
 #define SHADOWEXPR(__float)                                                                     \
     plReady();                                                                                  \
-    if (traced) {                                                                               \
+    if (traced && !lightState) {                                                                \
+        res[0] = 0;                                                                             \
+        if (!(__float))                                                                         \
+            res[1] = res[2] = 0;                                                                \
+    }                                                                                           \
+    else if (traced) {                                                                          \
         rays->res = res;                                                                        \
         movvv(rays->P, D);                                                                      \
         /* Ps need not lie on the shaded surface: no origin guard */                            \
