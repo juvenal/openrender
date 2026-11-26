@@ -75,3 +75,15 @@ add_test(NAME RibParse_IntegratorStatement COMMAND test_integrator_statement
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/work/RibParse_IntegratorStatement)
 set_tests_properties(RibParse_IntegratorStatement PROPERTIES TIMEOUT 60
     LABELS "rib_parse;unit" ENVIRONMENT "${SAMPLING_OPTION_ENV}")
+
+# GitHub #269: RiColorSamples reads nRGB as n x 3 (RISpec 3.2); the RIB Color and Opacity statements and the RIB
+# writer take n floats, n being the ColorSamples count of the frame.
+add_executable(test_colorsamples test_colorsamples.cpp)
+target_compile_features(test_colorsamples PRIVATE cxx_std_20)
+target_include_directories(test_colorsamples PRIVATE ${SAMPLING_OPTION_INCLUDES})
+target_link_libraries(test_colorsamples PRIVATE ribRender openrendercommon)
+add_test(NAME ColorSamples_Convert COMMAND test_colorsamples convert)
+add_test(NAME ColorSamples_RibParse COMMAND test_colorsamples rib)
+add_test(NAME ColorSamples_RibOut COMMAND test_colorsamples ribout)
+set_tests_properties(ColorSamples_Convert ColorSamples_RibParse ColorSamples_RibOut PROPERTIES TIMEOUT 60
+    LABELS "rib_parse;unit;colorsamples" ENVIRONMENT "${SAMPLING_OPTION_ENV}")
