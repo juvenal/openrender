@@ -1107,6 +1107,15 @@ not in the agent definitions.
    is bit for bit the old interpolation. Points have one colour already, and the raytrace hider does not flatten yet (spec 054 maps "constant" to the same corner once raytrace hits are shaded per cell).
    `ShadingInterpolation_*` (`-L shading_interpolation`) pins it per rasterizer variant.
 
+48. **`L`, `Cl` and `Ol` are defined only inside illuminance or illuminate, and a traced `shadow()` needs a light (GitHub #236).** RISpec 3.2 tables 12.1 and 12.2 define `L` (and a surface's
+   `Cl`, `Ol`) only inside `illuminance` (surfaces) and `illuminate`/`solar` (lights). A traced `shadow("raytrace"|"shadow", P)` forms its ray from `Ps` and `L`, so it asks
+   `CShadingContext::shadowLightState()` first: true while the executing shader is a light (its `shaderDescription()->type`, not `lightSideN`, because the photon hider runs lights
+   outside `iterateLights`) or `currentLight` is set (a surface inside its loop); otherwise the call answers 0 (not shadowed), builds no ray, reads no `L` and warns once, in the
+   interpreter (`SHADOWEXPR_PRE`/`SHADOWEXPR`) and in `jitEnvironment`. Reads of the globals themselves outside their scope are defined too: `shade()` zeroes `L`, `Cl` and `Ol` of the
+   state before the shader runs, and `iterateLights`, `iterateBoundAreaLight` and both ambient loops zero `L` and `Cl` before each light runs (a light's `Cl` defaults to black). Not done: the
+   photon hider's own light runs (photon.cpp) are not cleared (their begin hooks write `L`), and oshader gives no diagnostic (the `loc_illum_*.slh` functions read `L` and `Cl` through `extern`
+   from inside illuminance, so a lexical check would flag them). `Shadow236_*` (`-L shadow236`) pins it.
+
 ## Active Technologies
 - C++20, CMake ≥3.19; `libtiff`/`libpng` (mandatory), OpenEXR (optional,
   `HAVE_OPENEXR`-gated), in-tree RGBE codec — no new dependencies
