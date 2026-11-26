@@ -1518,6 +1518,12 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
         complete(numVertices, varying, usedParameters, currentAttributes, svc);
     }
 
+    // L, Cl and Ol are defined only inside illuminance (RISpec 3.2, table 12.1): outside it they read as zero, not as what the last point's
+    // lights left in the buffers (GitHub #236). Illuminance writes them for every point it runs a light for.
+    memset(varying[VARIABLE_L], 0, sizeof(float) * 3 * numVertices);
+    memset(varying[VARIABLE_CL], 0, sizeof(float) * 3 * numVertices);
+    memset(varying[VARIABLE_OL], 0, sizeof(float) * 3 * numVertices);
+
     // Save the memory here
     memBegin(threadMemory);
 
@@ -2045,6 +2051,15 @@ inline bool hookSkippedByIf(const CShadingState *ss, int numActive) {
     return numActive == 0 && ss->numActive != 0;
 }
 
+// L and Cl of the shading state before a light runs (GitHub #236). A light's L is defined only inside illuminate/solar and its Cl
+// defaults to black (RISpec 3.2, section 12.2 and table 12.2), but the buffers hold whatever the last light or point left in them: a
+// light that reads L before its illuminate block (shadow("raytrace") does) or never sets Cl would see that. The light writes both
+// before anything of its own reads them, so a run that does is unchanged.
+inline void clearLightGlobals(float *const *varying, int numVertices) {
+    memset(varying[VARIABLE_L], 0, sizeof(float) * 3 * numVertices);
+    memset(varying[VARIABLE_CL], 0, sizeof(float) * 3 * numVertices);
+}
+
 } // namespace
 
 void CShadingContext::iterateLights(const float *lP, const float *lN, const float *lT, int numVertices, int *tags, int &numActive, int &numPassive, int inShadow, float **varying, CShaderInstance *cInstance) {
@@ -2117,6 +2132,7 @@ void CShadingContext::iterateLights(const float *lP, const float *lN, const floa
                         iterateBoundAreaLight(light, areaInfo, numVertices, varying);
                     }
                     else {
+                        clearLightGlobals(varying, numVertices);
                         memBegin(shaderStateMemory);
                         ss->currentLightInstance = light;
                         ss->locals[ACCESSOR_LIGHTSOURCE] = light->prepare(shaderStateMemory, varying, numVertices);
@@ -2198,6 +2214,7 @@ void CShadingContext::iterateBoundAreaLight(CShaderInstance *light, const openre
 
         // Run the light shader 0-D over the sampled points; the receiver's table and dimension come back at once
         CShadedLight *head = ss->lights;
+        clearLightGlobals(composite, numVertices); // the receiver's L and Cl: only the nine light-surface globals are replaced
         memBegin(shaderStateMemory);
         ss->varying = composite;
         ss->shadingDim = SHADING_0D;
@@ -2296,6 +2313,7 @@ void CShadingContext::callAmbient(float *result) {
             for (CActiveLight *cLight = attr->lightSources; cLight; cLight = cLight->next) {
                 CShaderInstance *light = lightInstanceOf(*cLight);
                 if (!(light->flags & SHADERFLAGS_NONAMBIENT)) {
+                    clearLightGlobals(varying, n);
                     memBegin(shaderStateMemory);
                     ss->currentLightInstance = light;
                     ss->locals[ACCESSOR_LIGHTSOURCE] = light->prepare(shaderStateMemory, varying, n);
@@ -2512,6 +2530,7 @@ void CShadingContext::prepareAmbient() {
             for (CActiveLight *cLight = attr->lightSources; cLight; cLight = cLight->next) {
                 CShaderInstance *light = lightInstanceOf(*cLight);
                 if (!(light->flags & SHADERFLAGS_NONAMBIENT)) {
+                    clearLightGlobals(ss->varying, ss->numVertices);
                     memBegin(shaderStateMemory);
                     ss->currentLightInstance = light;
                     ss->locals[ACCESSOR_LIGHTSOURCE] = light->prepare(shaderStateMemory, ss->varying, ss->numVertices);
@@ -3497,6 +3516,22 @@ void CShadingContext::jitTexture(float *dst, int sd, const char *name, bool colo
     }
 }
 
+bool CShadingContext::shadowLightState() {
+    const CShadingState *ss = currentShadingState;
+    if (ss != nullptr) {
+        if (ss->currentLight != nullptr)
+            return true; // inside a surface's illuminance loop: L is the loop's light
+        const CShaderInstance *running = ss->currentShaderInstance;
+        const CShader *description = running != nullptr ? running->shaderDescription() : nullptr;
+        if (description != nullptr && description->type == SL_LIGHTSOURCE)
+            return true; // inside a light: the photon hider runs lights outside iterateLights, so the shader's type is the test
+    }
+    static std::atomic<bool> s_warned{false};
+    if (!s_warned.exchange(true))
+        warning(CODE_BADTOKEN, "shadow(\"raytrace\") outside a light shader and outside illuminance has no light direction: it returns 0 (not shadowed)\n");
+    return false;
+}
+
 void CShadingContext::jitEnvironment(float *dst, int sd, const char *name, bool color, bool shadow, const float *D, int sD, int n, const int *tags,
                                      const TJitParamList &pl, uint32_t callSite) {
     if (!name)
@@ -3541,6 +3576,19 @@ void CShadingContext::jitEnvironment(float *dst, int sd, const char *name, bool 
     }
     else {
         memset(dDdu, 0, numVertices * 6 * sizeof(float));
+    }
+
+    // A traced shadow() with no light to trace toward answers 0 and builds no ray, reads no L (GitHub #236)
+    if (traced && shadow && !shadowLightState()) {
+        for (int v = 0; v < numRealVertices; ++v) {
+            if (tags && tags[v])
+                continue;
+            float *res = JIT_IDX(dst, sd, v);
+            res[0] = 0.0f;
+            if (color)
+                res[1] = res[2] = 0.0f;
+        }
+        return;
     }
 
     CTraceLocation *raysBase = nullptr;
