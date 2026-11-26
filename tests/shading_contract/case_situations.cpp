@@ -110,6 +110,7 @@ namespace {
             int minMarkerDepth;
             bool expectMarkerAtAll;                          // any marker line (row 1: the shader runs even under "primitive")
             bool deepMarkersAbsent = false;                  // no marker line at depth >= 1 (a REYES frame shades its camera-visible grids, so only the secondary hits are primitive)
+            bool deepAllInShadow = false;                    // every ray of the scene is a transmission ray: a report at ray depth >= 1 is a shadow hit (GitHub #268)
     };
 
     struct SReport {
@@ -259,6 +260,15 @@ namespace {
             CT_EXPECT(got.pass == want.cls.pass);
         }
 
+        // A shadow hit shaded by a shader that casts a transmission ray of its own (a nested traceTransmission) used to leave
+        // inShadow FALSE for the hits the outer call shaded after it: those reports said "not in shadow" at ray depth >= 1
+        if (s.deepAllInShadow) {
+            for (const SReport &r : out.reports) {
+                if (r.rayDepth >= 1)
+                    CT_EXPECT(r.inShadow != 0);
+            }
+        }
+
         // The branch shade() took
         if (s.deepMarkersAbsent)
             CT_EXPECT(out.markersDeep == 0);
@@ -349,7 +359,7 @@ int caseSituations(int argc, char **argv) {
         // the mirror is camera-visible, so its shader runs (camerahitmode "shader") and traces; the hit it finds is primitive
         {"sit_row4_secondary_primitive", false, 's', 'p', 'p', true, 1, true, true},
         {"sit_row5_shadow_primitive", false, 's', 's', 'p', false, 1, false},
-        {"sit_row5_shadow_shaded", false, 's', 's', 's', true, 1, false},
+        {"sit_row5_shadow_shaded", false, 's', 's', 's', true, 1, false, false, true}, // sit_transmit's rays hit itself: a nested transmission()
         {"sit_row8_displace", true, 's', 's', 'p', true, 0, true},
         // spec 029 (P-Q5): a REYES frame whose grid traces a reflection (a row 4 hit, not row 1), under each specularhitmode ...
         {"sit_row4_secondary_raster_shaded", true, 's', 's', 'p', true, 1, false},

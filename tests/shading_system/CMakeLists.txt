@@ -158,3 +158,41 @@ if(TARGET state_only_sources AND OPENRENDER_HAVE_LLVM)
     set_tests_properties(ShadingSystem_BindUnknownSpace PROPERTIES TIMEOUT 300 LABELS "shading_system"
         ENVIRONMENT "SHADING_CONTRACT_SHADERS=${SHADING_SYSTEM_SHADER_DIR}")
 endif()
+
+# ---------------------------------------------------------------------------------------------------------------------------------
+# ShadingSystem_RsloCallSiteLast (GitHub #268, #173): the .rslo loader must not write a stochastic instruction's call-site operand
+# past the end of the argument array (onto the first constants) when that instruction is the last one that takes operands.
+# Interpreter only, so no JIT is needed.
+# ---------------------------------------------------------------------------------------------------------------------------------
+if(TARGET state_only_sources)
+    file(MAKE_DIRECTORY ${SHADING_SYSTEM_SHADER_DIR})
+    set(_callsite_outputs "")
+    foreach(_sh ss_last_texture ss_last_random ss_last_gi ss_string_array)
+        add_custom_command(
+            OUTPUT ${SHADING_SYSTEM_SHADER_DIR}/${_sh}.rslo
+            COMMAND ${CMAKE_COMMAND} -DOSHADER=$<TARGET_FILE:oshader> -DSRC=${CMAKE_CURRENT_SOURCE_DIR}/shaders/${_sh}.sl
+                    -DOUT=${SHADING_SYSTEM_SHADER_DIR}/${_sh}.rslo -DINCDIR=${CMAKE_SOURCE_DIR}/shaders/includes
+                    -P ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/shaders/${_sh}.sl oshader ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+            WORKING_DIRECTORY ${SHADING_SYSTEM_SHADER_DIR}
+            COMMENT ""
+            VERBATIM)
+        list(APPEND _callsite_outputs ${SHADING_SYSTEM_SHADER_DIR}/${_sh}.rslo)
+    endforeach()
+    add_custom_target(shading_system_callsite_shaders DEPENDS ${_callsite_outputs})
+    add_system_test_exe(test_shading_system_rslo_callsite_last test_rslo_callsite_last.cpp)
+    add_dependencies(test_shading_system_rslo_callsite_last shading_system_callsite_shaders)
+    add_test(NAME ShadingSystem_RsloCallSiteLast COMMAND $<TARGET_FILE:test_shading_system_rslo_callsite_last>)
+    set_tests_properties(ShadingSystem_RsloCallSiteLast PROPERTIES TIMEOUT 120 LABELS "shading_system"
+        ENVIRONMENT "SHADING_CONTRACT_SHADERS=${SHADING_SYSTEM_SHADER_DIR};SHADING_SYSTEM_FIXTURES=${CMAKE_BINARY_DIR}/tests/shaderformat/fixtures")
+endif()
+
+# ShadingSystem_RsloStringArrayDefault (GitHub #268, the same loader): the initializer of a string array parameter must store its
+# strings whether or not a float array parameter came before it.
+if(TARGET state_only_sources)
+    add_system_test_exe(test_shading_system_rslo_string_array_default test_rslo_string_array_default.cpp)
+    add_dependencies(test_shading_system_rslo_string_array_default shading_system_callsite_shaders)
+    add_test(NAME ShadingSystem_RsloStringArrayDefault COMMAND $<TARGET_FILE:test_shading_system_rslo_string_array_default>)
+    set_tests_properties(ShadingSystem_RsloStringArrayDefault PROPERTIES TIMEOUT 120 LABELS "shading_system"
+        ENVIRONMENT "SHADING_CONTRACT_SHADERS=${SHADING_SYSTEM_SHADER_DIR};SHADING_SYSTEM_FIXTURES=${CMAKE_BINARY_DIR}/tests/shaderformat/fixtures")
+endif()
