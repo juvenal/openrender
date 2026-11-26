@@ -393,7 +393,7 @@ backends. The gate now also reads the flag at the top of `CShadingContext::gathe
 
 ### Phase 3 validation after the approvals (T075 to T080; 2026-11-25)
 
-Applied (approved): the declared-set reference (`variables 124 -> 125`, `v 124 closuremode`; declared set 124 -> 125 variables, 29 globals unchanged); the gather() second half in `contracts/closuremode.md` and plan Q10; test fixes T1, T2, T4, T6, T7, T9, T10; T5 as `ClosureMode_Scope_SolidObjectRISpec` (WILL_FAIL, GitHub #235);
+Applied (approved): the declared-set reference (`variables 124 -> 125`, `v 124 closuremode`; declared set 124 -> 125 variables, 29 globals unchanged); the gather() second half in `contracts/closuremode.md` and plan Q10; test fixes T1, T2, T4, T6, T7, T9, T10; T5 as `ClosureMode_Scope_SolidObjectRISpec` (WILL_FAIL while GitHub #235 stood; the mark is dropped, see "Sync merge with master" below);
 T8 with the comment citing GitHub #236. **Open: T3** (the ray type of a rasterised grid): the contract says `RayType::None` (`shaderGlobals.h`, "from the batch's ShaderGlobals"), so `ClosureMode_Both_zbuffer`, `ClosureMode_Both_reyes` and `ClosureDet_HiderParity` stay red on both hosts until the maintainer decides (proposal in `tools/proposed/phase3_test_defects.md`).
 
 **Results.** Linux (-j2): `-L 'closuremode|closures|state|common|architecture|shading_parity|shading_contract|arealight|link|scene_interface'` 679 of 682, the three T3 tests failing. macOS (-j4, behind the swap gate): the same labels, 679 of 682, the same three.
@@ -434,4 +434,9 @@ no source in the tree names `rsl_ambient_1v` or any `*_1v` entry outside `rslBui
 
 T3 is decided as an interim rule (option (a)); the source fix is spec 058 (GitHub #267). Applied: `ClosureMode_Both_{zbuffer,reyes}` expect `RayType::None` and `ClosureMode_Both_raytrace` expects `Camera`; `ClosureDet_HiderParity` the same for its front object (`None` for reyes, `Camera` for raytrace, `Secondary` for the occluder; the shape wording now says reyes gives grid + span, raytrace shades every hit as a span);
 Q11 reworded in `plan.md` and `spec.md`; the rule added to `contracts/consumer-and-backend.md` ("a camera hit is `Camera`, or `None` on a grid batch"), marked interim, with the statement that spec 058 makes `classifyShading()` report `Camera` for every camera-visible batch in every camera hider and that consumers must not build on the `None` case.
-`-L closuremode`: **Linux 34 of 34, macOS 34 of 34** (the swap gate passed; `ClosureMode_Scope_SolidObjectRISpec` is the WILL_FAIL test, counted as a pass while GitHub #235 stands). T075 ticked.
+`-L closuremode`: **Linux 34 of 34, macOS 34 of 34** (the swap gate passed; `ClosureMode_Scope_SolidObjectRISpec` was then the WILL_FAIL test, counted as a pass while GitHub #235 stood; the mark is dropped in the sync merge with master, see below). T075 ticked.
+
+## Sync merge with master (2026-11-26, before Phase 4)
+
+`git merge --no-ff --no-commit master` (master `f03a4b71`, 27 commits ahead, #229, #230 and #235 among them): no conflict (auto-merged `shading.cpp`, `shading.h`, `rendererContext.cpp`, `tests/CMakeLists.txt`). Same merge: `ClosureMode_Scope_SolidObjectRISpec` loses `WILL_FAIL` (GitHub #235 made `SolidEnd` and `ObjectEnd` restore the attributes): the CMake line goes, its comment becomes one line, the file header and the section comment of
+`test_mode_state.cpp` keep only the RISpec rule; no assertion changed. Validation of the merged tree follows (filled in below).

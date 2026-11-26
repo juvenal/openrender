@@ -2452,24 +2452,17 @@ void CShadingContext::callSpecular(float *result, const float *Nf, int nfStep, c
     }
 }
 
-// phong() (spec 017-jit-builtin-function-coverage, US5) -- follows
-// callSpecular's exact shape immediately above (light iteration via
-// iterateLights(), then walking ss->lights directly), byte-faithful
-// transcription of PHONGEXPR_PRE/PHONGEXPR/_UPDATE/_POST
-// (shaderFunctions.h). Two differences from callSpecular's math:
-// (a) the per-vertex reflection vector `refDir = 2*N*dot(N,V) - V` is
-// precomputed ONCE before the light loop (PHONGEXPR_PRE), not derived
-// per-light from a halfway vector; (b) a light shader flagged
-// SHADERFLAGS_NONSPECULAR contributes a `(1 - ns)` discount read from its
-// own savedState slot (PHONGEXPR_PRE's `ns`/`nsStep` -- exercised by
-// unusual light categories, not any of this feature's shipped/probe
-// lights, but transcribed rather than dropped since the data is directly
-// available on CShadedLight::instance).
-// `size` (RSL's phong() 3rd argument, "f" in the "c=nvf" prototype) is
-// treated as uniform-only -- a single scalar, not a per-vertex array --
-// matching specular()'s own already-shipped `roughness` argument
-// precedent exactly (same DEFLIGHTFUNC family, same argument position).
-void CShadingContext::callPhong(float *result, const float *Nf, const float *V, float size) {
+// phong() (spec 017-jit-builtin-function-coverage, US5; GitHub #113) -- follows
+// callSpecular's shape immediately above (light iteration via iterateLights(),
+// then walking ss->lights directly). The per-point terms are
+// libshader::phongReflect and phongAccumulate, the same functions the
+// interpreter's PHONGEXPR_PRE/PHONGEXPR call, so the two backends agree bit for
+// bit. The reflection vector is computed ONCE per point before the light loop
+// (PHONGEXPR_PRE); a light flagged SHADERFLAGS_NONSPECULAR scales its
+// contribution by `(1 - ns)`, read from its own savedState slot. The steps are
+// the operands' strides in floats (0 for a uniform operand), so a varying
+// `size` is read per point.
+void CShadingContext::callPhong(float *result, const float *Nf, int nfStep, const float *V, int vStep, const float *size, int sizeStep) {
     CShadingState *ss = currentShadingState;
     const int n = ss->numVertices;
     const int *tags = ss->tags;
@@ -2489,12 +2482,7 @@ void CShadingContext::callPhong(float *result, const float *Nf, const float *V, 
         result[3 * i] = result[3 * i + 1] = result[3 * i + 2] = 0.0f;
         if (tags[i] != 0)
             continue;
-        const float nx = Nf[3 * i], ny = Nf[3 * i + 1], nz = Nf[3 * i + 2];
-        const float vx = V[3 * i], vy = V[3 * i + 1], vz = V[3 * i + 2];
-        const float d2 = 2.0f * (nx * vx + ny * vy + nz * vz);
-        refDir[3 * i] = nx * d2 - vx;
-        refDir[3 * i + 1] = ny * d2 - vy;
-        refDir[3 * i + 2] = nz * d2 - vz;
+        libshader::phongReflect(refDir + 3 * i, Nf + nfStep * i, V + vStep * i);
     }
 
     for (CShadedLight *light = ss->lights; light; light = light->next) {
@@ -2514,22 +2502,8 @@ void CShadingContext::callPhong(float *result, const float *Nf, const float *V, 
                 continue;
             if (ltags != nullptr && ltags[i] != 0)
                 continue;
-            float lx = L[3 * i], ly = L[3 * i + 1], lz = L[3 * i + 2];
-            const float lm = sqrtf(lx * lx + ly * ly + lz * lz);
-            if (lm < 1e-8f)
-                continue;
-            lx /= lm;
-            ly /= lm;
-            lz /= lm;
-            const float dotProduct = refDir[3 * i] * lx + refDir[3 * i + 1] * ly + refDir[3 * i + 2] * lz;
-            const float clampedDot = (dotProduct > 0.0f) ? dotProduct : 0.0f;
-            const float ns_i = ns ? ns[nsStep * i] : 0.0f;
-            const float coeff = (1.0f - ns_i) * powf(clampedDot, size);
-            if (coeff > 0.0f) {
-                result[3 * i] += coeff * Cl[3 * i];
-                result[3 * i + 1] += coeff * Cl[3 * i + 1];
-                result[3 * i + 2] += coeff * Cl[3 * i + 2];
-            }
+            libshader::phongAccumulate(result + 3 * i, refDir + 3 * i, L + 3 * i, Cl + 3 * i,
+                                       ns ? ns[nsStep * i] : 0.0f, size[sizeStep * i]);
         }
     }
 }
@@ -4112,24 +4086,19 @@ void CShadingContext::jitBake3d(float *dst, int sd, const char *const *name, con
 // consulted, matching the interpreter's own `*op1` dereference), then
 // jitParameterFinish broadcast-copies the resolved value per vertex.
 //
-// jitParameterFinish transcribes PARAMETEREXPR_PRE's cVar-redirect exactly:
-// if found and cVar is non-null, the source is either
+// jitParameterFinish transcribes PARAMETEREXPR_PRE exactly: as soon as the value is found, the source is point 0 of `dest` (the
+// accessor call wrote the resolved value there, once) and its step is 0, so that value reaches every active point of a varying
+// destination (GitHub #203). If, besides, cVar is non-null, the source is redirected to either
 // currentShadingState->locals[accessor][cVar->entry] (a STORAGE_PARAMETER/
 // STORAGE_MUTABLEPARAMETER -- a real declared shader parameter) or
 // varying[cVar->entry] (any other storage), with stride forced to 0 for a
 // CONTAINER_UNIFORM/CONTAINER_CONSTANT source (broadcast) or the whole
 // lookup nulled out if our own destination is uniform but the resolved
 // source is genuinely varying (PARAMETEREXPR_PRE's own varying-to-uniform
-// guard). If cVar is null (incident()/opposite() always pass NULL for
-// var/globalIndex -- "skip mutable parameters" -- or the parameter simply
-// wasn't found), the interpreter's own per-vertex loop degenerates to
-// `*op2 = *src` with src==op2 (a true self-copy) -- CShaderInstance::
-// getParameter's switch-statement branch already wrote any resolved
-// default value directly into `dest` as a side effect of the single
-// accessor call itself, so no further action is needed here either;
-// jitParameterFinish's src=dest/srcStep=sDest defaults reproduce this
-// exactly (self-copy, and only ever meaningfully once when the destination
-// is uniform, matching the natural RSL declaration for a query result).
+// guard). cVar is null for incident()/opposite() (they always pass NULL for
+// var/globalIndex -- "skip mutable parameters"), for attribute()/option()/
+// rendererinfo(), and for a backend or service that answers with a value and no
+// variable; not found leaves `dest` untouched (the self-copy default below).
 void CShadingContext::jitParameterFinish(float *dst, int sd, void *dest, int sDest, int n, const int *tags,
                                          int numFloatsPerItem, float found, CVariable *cVar, int accessor) {
     if (n <= 0)
@@ -4139,6 +4108,9 @@ void CShadingContext::jitParameterFinish(float *dst, int sd, void *dest, int sDe
     const float *srcF = (const float *)dest;
     const char *const *srcS = (const char *const *)dest;
     int srcStep = sDest;
+
+    if (found != 0.0f)
+        srcStep = 0;
 
     if (found != 0.0f && cVar != nullptr) {
         if (cVar->storage == STORAGE_PARAMETER || cVar->storage == STORAGE_MUTABLEPARAMETER) {

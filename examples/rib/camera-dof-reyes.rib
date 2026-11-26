@@ -6,6 +6,7 @@ Projection "perspective" "fov" 45
 PixelSamples 3 3
 Format 400 300 1
 DepthOfField 2 1 5
+GeometricApproximation "focusfactor" 0.5
 
 Translate 0 0 5
 Rotate -110 1 0 0

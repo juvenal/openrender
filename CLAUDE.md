@@ -537,8 +537,8 @@ not in the agent definitions.
    interpolation (`slerpq()` in `common/mathSpec.h`), gated by
    `CRenderer::cameraHasRotation`.
 8. **ArcballCamera avoids quaternion decomposition** of the view matrix on
-   purpose — it fails for `det = -1` cameras (e.g. `teapot.rib`'s Y/Z-swap
-   transform). Uses direct 4×4 matrix composition instead.
+   purpose — it fails for `det = -1` cameras (e.g. `examples/rib/teapot.rib`'s Y/Z-swap
+   camera). Uses direct 4×4 matrix composition instead.
 9. **Default RIB projection is ORTHOGRAPHIC** per RISpec when no
    `Projection` statement is given (not perspective) —
    `ribGeometryContext.h:151`.
@@ -763,6 +763,9 @@ not in the agent definitions.
    `(1 - ns) * pow(N.H, 10/roughness)`, as it does in `phong()`. Before #111 the
    interpreter applied it inside the power, so a fractional value all but removed
    the highlight.
+   `phong()` shares its term the same way (GitHub #113): `libshader::phongReflect` and `phongAccumulate` in `specularTerm.h`, called by the interpreter's
+   `PHONGEXPR` and by `callPhong`, and the JIT's `op_phong_batch_v2` takes the operand strides, so a varying `size` is read per point. A `.slo` compiled before #113
+   still calls `op_phong_batch`, which reads `size[0]`, until it is recompiled.
    Nothing under `src/ri/texture` names the shading context, the renderer core or the data viewer since spec 032
    (`CTexture3d` has `lookupPointBased` with a `CPointBasedLookup`, and the viewers are adapters the data viewer owns:
    `pointCloudView`, `brickMapView`, `irradianceCacheView`, `photonMapView`). `CTexture3d`'s old six-argument

@@ -70,6 +70,11 @@ add_executable(test_pixel_probe test_pixel_probe.cpp)
 target_link_libraries(test_pixel_probe PRIVATE TIFF::TIFF)
 target_compile_features(test_pixel_probe PRIVATE cxx_std_20)
 
+# Surface orientation driver (GitHub #228): counts the opaque green, red and blue pixels of an orient_probe render.
+add_executable(test_orient_probe test_orient_probe.cpp)
+target_link_libraries(test_orient_probe PRIVATE TIFF::TIFF)
+target_compile_features(test_orient_probe PRIVATE cxx_std_20)
+
 # ShadingInterpolation driver (GitHub #204): plateaus of "constant" and the ramp of "smooth".
 add_executable(test_dof_shading_rate test_dof_shading_rate.cpp)
 target_compile_features(test_dof_shading_rate PRIVATE cxx_std_20)
@@ -296,6 +301,7 @@ endmacro()
 #                                            right-hand render are RIB paths
 #       [COPY <dir>]...                      copied into the scratch directory
 #       [LABELS <labels>]                    default "csg;visual"
+#       [TEST_NAME <name>]                   the ctest name; default Csg_<NAME>
 #       [ALLOW_RENDER_ERROR])                a non-zero orender exit is accepted;
 #                                            only a crash fails
 #
@@ -303,13 +309,18 @@ endmacro()
 # are relative to the scratch directory, where the renders write.
 # ---------------------------------------------------------------------------
 function(add_csg_metric_test)
-    cmake_parse_arguments(PARSE_ARGV 0 _csg "ALLOW_RENDER_ERROR" "NAME"
+    cmake_parse_arguments(PARSE_ARGV 0 _csg "ALLOW_RENDER_ERROR" "NAME;TEST_NAME"
         "RENDERS;METRIC;LOG_PASS;LOG_FAIL;STATS;COPY;LABELS")
     if(NOT _csg_NAME OR NOT _csg_RENDERS)
         message(FATAL_ERROR "add_csg_metric_test: NAME and RENDERS are required")
     endif()
     if(NOT _csg_LABELS)
         set(_csg_LABELS "csg;visual")
+    endif()
+
+    # The ctest name is Csg_<NAME> unless TEST_NAME gives it
+    if(NOT _csg_TEST_NAME)
+        set(_csg_TEST_NAME Csg_${_csg_NAME})
     endif()
 
     set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/csg-${_csg_NAME})
@@ -331,7 +342,7 @@ function(add_csg_metric_test)
     set(_config_file ${_scratch}/csg_metric_config.cmake)
     file(WRITE ${_config_file} "${_config}")
 
-    add_test(NAME Csg_${_csg_NAME}
+    add_test(NAME ${_csg_TEST_NAME}
         COMMAND ${CMAKE_COMMAND}
             -DCONFIG=${_config_file}
             -DORENDER=$<TARGET_FILE:orender>
@@ -339,7 +350,7 @@ function(add_csg_metric_test)
             -P ${CMAKE_CURRENT_SOURCE_DIR}/csg_metric_test.cmake
         WORKING_DIRECTORY ${_scratch}
     )
-    set_tests_properties(Csg_${_csg_NAME} PROPERTIES
+    set_tests_properties(${_csg_TEST_NAME} PROPERTIES
         TIMEOUT        600
         LABELS         "${_csg_LABELS}"
         ENVIRONMENT    "${VISUAL_ENV}"
@@ -883,8 +894,8 @@ add_visual_test(sphere-photonmap-reyes-slo
 # callers today.
 
 # degrees()/round() (T034/T044): same SIMPLEFUNCTION shape as
-# radians()/floor()/etc. round() truncates via (int)x, NOT real
-# rounding -- mirrored exactly, not "fixed" (FR-017).
+# radians()/floor()/etc. round() rounds to the nearest integer, halves
+# away from zero (GitHub #208); the reference holds those values.
 add_visual_test(sphere-degrees-round-reyes
     examples/rib/tests/sphere-degrees-round-reyes.rib
     sphere-degrees-round-reyes.tif  sphere-degrees-round-reyes.tif)
@@ -2446,6 +2457,23 @@ foreach(_hider reyes raytrace)
             "--region-compare csg-motion-torus-solid-${_hider}.tif csg-motion-torus-nosolid-${_hider}.tif --include frame --threshold 2"
         LOG_FAIL "Too many eye splits")
 endforeach()
+
+# GitHub #212: Reyes under an orthographic camera needs no perspective divide, so a primitive
+# crossing the eye plane is diced, not split to the eye-split limit (317,440 warnings for one
+# polygon). The third scene genuinely runs out of eye splits: one warning for the primitive.
+add_csg_metric_test(NAME EyeSplit_ortho_plane_reyes TEST_NAME EyeSplit_ortho_plane_reyes
+    RENDERS examples/rib/tests/eyesplit-ortho-plane-reyes.rib:eyesplit-ortho-plane-reyes.tif
+    LOG_FAIL "Too many eye splits"
+    LABELS "eye_splits;visual")
+add_csg_metric_test(NAME EyeSplit_ortho_sphere_reyes TEST_NAME EyeSplit_ortho_sphere_reyes
+    RENDERS examples/rib/tests/eyesplit-ortho-sphere-reyes.rib:eyesplit-ortho-sphere-reyes.tif
+    LOG_FAIL "Too many eye splits" "\\(null\\)"
+    LABELS "eye_splits;visual")
+add_csg_metric_test(NAME EyeSplit_limit_warns_once TEST_NAME EyeSplit_limit_warns_once
+    RENDERS examples/rib/tests/eyesplit-limit-persp-reyes.rib:eyesplit-limit-persp-reyes.tif
+    LOG_PASS "Too many eye splits for primitive \"plane\""
+    LOG_FAIL "Too many eye splits.*Too many eye splits"
+    LABELS "eye_splits;visual")
 
 # --- Phase 3, User Story 1 (T034-T042): render-and-measure checks ----------
 # Arguments mirror specs/021-deferred-csg-evaluation/tools/baseline.py, which ran
@@ -4455,6 +4483,9 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/camerahitmode-scenes.cmake)
 # --- A light's __category from the RIB (GitHub #199), in a file of its own ---
 include(${CMAKE_CURRENT_SOURCE_DIR}/lightcategory-scenes.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/lightsource-scenes.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/msgout-scenes.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/round-scenes.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/atan2-scenes.cmake)
 
 # --- Equal-depth ties (spec 039, Phase 7, T084c) ---------------------------------------------
 # Two coincident opaque triangles of different colour: every sample of the overlap receives two
@@ -4770,6 +4801,174 @@ foreach(_entry IN LISTS _jitspec_controls)
     endforeach()
 endforeach()
 
+# --- phong() under the LLVM JIT (GitHub #113) ------------------------------------------------------
+# The JIT's op_phong_batch read the first point's size only; the interpreter reads it per point. Scenes
+# generated from examples/rib/tests/jit-phong-probe.rib.in, probe tests/visual/shaders/jit_phong_probe.sl
+# (Ci = phong() alone; a test-only shader, compiled into the build tree like the transmission probe
+# below, so no shipped-shader reference moves), one distantlight plus the case's extra light.
+#   ShadingParity_JitPhong_<case>: the case under .rslo and .slo, bit-identical.
+#   ShadingParity_JitPhongEngaged_<format>: base and varysize, same format, must differ (the varying
+#     size reaches the image).
+# <case>|<hider>|<probe parameters>|<extra light shader, or ->|<its parameters>
+set(_jitphong_dir ${CMAKE_BINARY_DIR}/tests/visual/jit-phong)
+file(MAKE_DIRECTORY ${_jitphong_dir})
+set(_jitphong_shader_dir ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+file(MAKE_DIRECTORY ${_jitphong_shader_dir})
+set(_jitphong_sl ${CMAKE_CURRENT_SOURCE_DIR}/shaders/jit_phong_probe.sl)
+set(_jitphong_outputs ${_jitphong_shader_dir}/jit_phong_probe.rslo)
+add_custom_command(
+    OUTPUT ${_jitphong_shader_dir}/jit_phong_probe.rslo
+    COMMAND ${CMAKE_COMMAND} -DOSHADER=$<TARGET_FILE:oshader> -DSRC=${_jitphong_sl}
+            -DOUT=${_jitphong_shader_dir}/jit_phong_probe.rslo
+            -DINCDIR=${CMAKE_SOURCE_DIR}/shaders/includes
+            -P ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+    DEPENDS ${_jitphong_sl} oshader ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+    WORKING_DIRECTORY ${_jitphong_shader_dir}
+    COMMENT ""
+    VERBATIM)
+if(OPENRENDER_HAVE_LLVM)
+    add_custom_command(
+        OUTPUT ${_jitphong_shader_dir}/jit_phong_probe.slo
+        COMMAND ${CMAKE_COMMAND} -DOSHADER=$<TARGET_FILE:oshader> -DSRC=${_jitphong_sl}
+                -DOUT=${_jitphong_shader_dir}/jit_phong_probe.slo
+                -DINCDIR=${CMAKE_SOURCE_DIR}/shaders/includes -DJIT=ON
+                -P ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+        DEPENDS ${_jitphong_sl} oshader ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+        WORKING_DIRECTORY ${_jitphong_shader_dir}
+        COMMENT ""
+        VERBATIM)
+    list(APPEND _jitphong_outputs ${_jitphong_shader_dir}/jit_phong_probe.slo)
+endif()
+add_custom_target(jit_phong_probe_shader ALL DEPENDS ${_jitphong_outputs})
+add_dependencies(jit_phong_probe_shader openrender_shaders)
+
+set(_jitphong_env "${VISUAL_ENV}")
+list(TRANSFORM _jitphong_env REPLACE "^SHADERS=(.*)$" "SHADERS=${_jitphong_shader_dir}:\\1")
+set(_jitphong_extra_from "\"from\" [-3 1 -2] \"to\" [0 0 0]")
+set(_jitphong_cases
+    "base|reyes||-|"
+    "varysize|reyes|\"sizevary\" [3]|-|"
+    "raytrace|raytrace|\"sizevary\" [3]|-|"
+    "ns_half|reyes|\"sizevary\" [3]|jit_nonspecular_light|\"intensity\" [1] ${_jitphong_extra_from} \"nonspecular\" [0.5]")
+foreach(_entry IN LISTS _jitphong_cases)
+    string(REPLACE "|" ";" _parts "${_entry}")
+    list(GET _parts 0 _case)
+    list(GET _parts 1 HIDER)
+    list(GET _parts 2 PARAMS)
+    list(GET _parts 3 _extra)
+    list(GET _parts 4 _extraParams)
+    set(PROJECTION "Projection \"perspective\"")
+    if(_extra STREQUAL "-")
+        set(LIGHTS "")
+    else()
+        set(LIGHTS "  LightSource \"${_extra}\" 2 ${_extraParams}")
+    endif()
+    foreach(FORMAT rslo slo)
+        set(OUTPUT jitphong-${_case}-${FORMAT}.tif)
+        configure_file(${CMAKE_SOURCE_DIR}/examples/rib/tests/jit-phong-probe.rib.in
+            ${_jitphong_dir}/jitphong-${_case}-${FORMAT}.rib @ONLY)
+    endforeach()
+
+    set(_parity ShadingParity_JitPhong_${_case})
+    add_test(NAME ${_parity}
+        COMMAND test_render_compare $<TARGET_FILE:orender> same
+            ${_jitphong_dir}/jitphong-${_case}-rslo.rib jitphong-${_case}-rslo.tif
+            ${_jitphong_dir}/jitphong-${_case}-slo.rib jitphong-${_case}-slo.tif
+        WORKING_DIRECTORY ${_jitphong_dir})
+    set_tests_properties(${_parity} PROPERTIES TIMEOUT 120 LABELS "shading_parity;visual;regression"
+        RESOURCE_LOCK jit_phong_scratch ENVIRONMENT "${_jitphong_env}" DEPENDS orender)
+    if(NOT OPENRENDER_HAVE_LLVM)
+        set_tests_properties(${_parity} PROPERTIES DISABLED TRUE)
+    endif()
+endforeach()
+
+foreach(_format rslo slo)
+    set(_engaged ShadingParity_JitPhongEngaged_${_format})
+    add_test(NAME ${_engaged}
+        COMMAND test_render_compare $<TARGET_FILE:orender> differ
+            ${_jitphong_dir}/jitphong-base-${_format}.rib jitphong-base-${_format}.tif
+            ${_jitphong_dir}/jitphong-varysize-${_format}.rib jitphong-varysize-${_format}.tif
+        WORKING_DIRECTORY ${_jitphong_dir})
+    set_tests_properties(${_engaged} PROPERTIES TIMEOUT 120 LABELS "shading_parity;visual;regression"
+        RESOURCE_LOCK jit_phong_scratch ENVIRONMENT "${_jitphong_env}" DEPENDS orender)
+    if(_format STREQUAL "slo" AND NOT OPENRENDER_HAVE_LLVM)
+        set_tests_properties(${_engaged} PROPERTIES DISABLED TRUE)
+    endif()
+endforeach()
+
+# --- Message and query builtins into a varying destination under the LLVM JIT (GitHub #203) ------
+# incident(), opposite(), attribute() and option() answer a found value with no variable; the JIT filled only
+# point 0 of a varying destination, the interpreter every point. The probe tests/visual/shaders/jit_param_finish_probe.sl
+# (test-only, compiled into the build tree, so no shipped-shader reference moves) reads each into a varying
+# float that starts as 5 + 10 * s; scenes come from examples/rib/tests/jit-param-finish-probe.rib.in.
+#   JitParamFinish_<call>_<format>: the pixel (3, 3), a point other than point 0, holds the answer, exactly.
+#   ShadingParity_JitParamFinish_<call>: the .rslo and .slo renders are bit-identical.
+set(_jpf_dir ${CMAKE_BINARY_DIR}/tests/visual/jit-param-finish)
+file(MAKE_DIRECTORY ${_jpf_dir})
+set(_jpf_shader_dir ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+file(MAKE_DIRECTORY ${_jpf_shader_dir})
+set(_jpf_sl ${CMAKE_CURRENT_SOURCE_DIR}/shaders/jit_param_finish_probe.sl)
+set(_jpf_outputs ${_jpf_shader_dir}/jit_param_finish_probe.rslo)
+add_custom_command(
+    OUTPUT ${_jpf_shader_dir}/jit_param_finish_probe.rslo
+    COMMAND ${CMAKE_COMMAND} -DOSHADER=$<TARGET_FILE:oshader> -DSRC=${_jpf_sl}
+            -DOUT=${_jpf_shader_dir}/jit_param_finish_probe.rslo
+            -DINCDIR=${CMAKE_SOURCE_DIR}/shaders/includes
+            -P ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+    DEPENDS ${_jpf_sl} oshader ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+    WORKING_DIRECTORY ${_jpf_shader_dir}
+    COMMENT ""
+    VERBATIM)
+if(OPENRENDER_HAVE_LLVM)
+    add_custom_command(
+        OUTPUT ${_jpf_shader_dir}/jit_param_finish_probe.slo
+        COMMAND ${CMAKE_COMMAND} -DOSHADER=$<TARGET_FILE:oshader> -DSRC=${_jpf_sl}
+                -DOUT=${_jpf_shader_dir}/jit_param_finish_probe.slo
+                -DINCDIR=${CMAKE_SOURCE_DIR}/shaders/includes -DJIT=ON
+                -P ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+        DEPENDS ${_jpf_sl} oshader ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+        WORKING_DIRECTORY ${_jpf_shader_dir}
+        COMMENT ""
+        VERBATIM)
+    list(APPEND _jpf_outputs ${_jpf_shader_dir}/jit_param_finish_probe.slo)
+endif()
+add_custom_target(jit_param_finish_probe_shader ALL DEPENDS ${_jpf_outputs})
+add_dependencies(jit_param_finish_probe_shader openrender_shaders)
+
+set(_jpf_env "${VISUAL_ENV}")
+list(TRANSFORM _jpf_env REPLACE "^SHADERS=(.*)$" "SHADERS=${_jpf_shader_dir}:\\1")
+# <call>|<mode>|<answer>
+foreach(_entry "incident|0|0.9" "opposite|1|0.2" "attribute|2|1" "option|3|7")
+    string(REPLACE "|" ";" _parts "${_entry}")
+    list(GET _parts 0 _call)
+    list(GET _parts 1 MODE)
+    list(GET _parts 2 _want)
+    foreach(FORMAT rslo slo)
+        set(OUTPUT jpf-${_call}-${FORMAT}.tif)
+        configure_file(${CMAKE_SOURCE_DIR}/examples/rib/tests/jit-param-finish-probe.rib.in
+            ${_jpf_dir}/jpf-${_call}-${FORMAT}.rib @ONLY)
+        add_test(NAME JitParamFinish_${_call}_${FORMAT}
+            COMMAND test_pixel_probe $<TARGET_FILE:orender> ${_jpf_dir}/jpf-${_call}-${FORMAT}.rib
+                jpf-${_call}-${FORMAT}.tif 3 3 0.00001 --channels=0,1 ${_want} 1
+            WORKING_DIRECTORY ${_jpf_dir})
+        set_tests_properties(JitParamFinish_${_call}_${FORMAT} PROPERTIES TIMEOUT 120 LABELS "shading_parity;visual;regression"
+            RESOURCE_LOCK jit_param_finish_scratch ENVIRONMENT "${_jpf_env}" DEPENDS orender)
+        if(FORMAT STREQUAL "slo" AND NOT OPENRENDER_HAVE_LLVM)
+            set_tests_properties(JitParamFinish_${_call}_${FORMAT} PROPERTIES DISABLED TRUE)
+        endif()
+    endforeach()
+    add_test(NAME ShadingParity_JitParamFinish_${_call}
+        COMMAND test_render_compare $<TARGET_FILE:orender> same
+            ${_jpf_dir}/jpf-${_call}-rslo.rib jpf-${_call}-rslo.tif
+            ${_jpf_dir}/jpf-${_call}-slo.rib jpf-${_call}-slo.tif
+        WORKING_DIRECTORY ${_jpf_dir})
+    set_tests_properties(ShadingParity_JitParamFinish_${_call} PROPERTIES TIMEOUT 120 LABELS "shading_parity;visual;regression"
+        RESOURCE_LOCK jit_param_finish_scratch ENVIRONMENT "${_jpf_env}" DEPENDS orender)
+    if(NOT OPENRENDER_HAVE_LLVM)
+        set_tests_properties(ShadingParity_JitParamFinish_${_call} PROPERTIES DISABLED TRUE)
+    endif()
+endforeach()
+
 # --- GitHub #153: a continued transmission ray keeps its end point -----------
 # tests/visual/shaders/transmission_destination_probe.sl shoots one transmission ray
 # (the machinery behind shadow(), transmission() and a light's shadow rays) from the
@@ -4858,6 +5057,8 @@ set(_si_cases
     "opacity-reyes            reyes    0 0.2 1 flat:0:64:4"
     "opacity-reyes-alpha      reyes    3 0.2 1 flat:0:64:4"
     "aov-reyes                reyes    0 0 1 flat:0:64:4"
+    "aov-smooth-reyes         reyes    0 0 1 ramp:0:64"
+    "aov-points-reyes         reyes    1 0.5 1 flat:12:21:9 flat:44:53:9"
     "motion-reyes             reyes    0 0 1 flat:0:64:4"
     "motion-opacity-reyes     reyes    0 0.2 1 flat:0:64:4"
     "motion-aov-reyes         reyes    0 0 1 flat:0:64:4"
@@ -4881,6 +5082,43 @@ foreach(_case IN LISTS _si_cases)
         DEPENDS     orender)
 endforeach()
 unset(_si_cases)
+
+# --- GitHub #230: an output variable named P is P in camera space for every primitive and hider ------------
+# Application Note 24: an output variable named after a global is that global as the surface shader sees it. Reyes wrote the
+# raster-space P for a quad grid (the extra samples were copied after the projection to sample space), camera space for a point
+# and for the raytrace hider. test_pixel_probe reads pixel (16, 16) of the float P image (a 64 x 64 image over a patch; the
+# sample may sit anywhere in the pixel, hence the tolerance). The raytrace, points and moving cases are controls or other
+# paths of the same copy.
+#   <name>             x      y      z   tolerance  (channels)
+set(_aovp_cases
+    "quad-reyes        0.2578 0.7422 1   0.01  0,1,2"
+    "quad-raytrace     0.2578 0.7422 1   0.01  0,1,2"
+    "points-reyes      0.25   0.75   1   0.001 0,1,2"
+    "moving-reyes      0.2578 0.7422 0   0.01  0,1"
+    "persp-reyes      -0.9688 0.9688 2   0.04  0,1,2"
+    "persp-raytrace   -0.9688 0.9688 2   0.04  0,1,2")
+foreach(_case IN LISTS _aovp_cases)
+    separate_arguments(_args UNIX_COMMAND "${_case}")
+    list(POP_FRONT _args _name _x _y _z _tol _chan)
+    if(_chan STREQUAL "0,1")
+        set(_vals ${_x} ${_y})
+    else()
+        set(_vals ${_x} ${_y} ${_z})
+    endif()
+    set(_scratch ${CMAKE_BINARY_DIR}/tests/visual/aov-p-space-${_name})
+    file(MAKE_DIRECTORY ${_scratch})
+    add_test(NAME AovPSpace_${_name}
+        COMMAND test_pixel_probe $<TARGET_FILE:orender>
+            ${CMAKE_SOURCE_DIR}/examples/rib/tests/aov-p-space-${_name}.rib
+            aov-p-space-${_name}.tif 16 16 ${_tol} --channels=${_chan} ${_vals}
+        WORKING_DIRECTORY ${_scratch})
+    set_tests_properties(AovPSpace_${_name} PROPERTIES
+        TIMEOUT     120
+        LABELS      "visual;regression;aov_p_space"
+        ENVIRONMENT "${VISUAL_ENV}"
+        DEPENDS     orender)
+endforeach()
+unset(_aovp_cases)
 
 # --- GitHub #205: the shading rate under depth of field -------------------------------
 # RISpec 3.2 section 4.2.7: a renderer shades at least at ShadingRate. Depth of field relaxes the
@@ -4916,3 +5154,51 @@ foreach(_case IN LISTS _dsr_cases)
         DEPENDS     orender)
 endforeach()
 unset(_dsr_cases)
+
+# --- GitHub #228: the teapot's patches face outward -----------------------------------------------------
+# geometry/teapot.rib was wound inside out (its control points had y and z swapped, a mirror), so shaders that read
+# the sign of N or Ng (glass.sl, Sides 1, displacement along N) saw the inside; faceforward() shaders hid it.
+# tests/visual/shaders/orient_probe.sl (test-only, compiled into the build tree so no shipped-shader reference moves)
+# is green where Ng faces the camera and red where it faces away; test_orient_probe counts the fully opaque pixels.
+#   TeapotOrientation_<view>_<hider>: no opaque pixel is red or blue and at least 15000 are green (the teapot is
+#   about 30000 pixels, the control sphere about 4400), seen from the front and from below, under raytrace and reyes.
+set(_orient_dir ${CMAKE_BINARY_DIR}/tests/visual/teapot-orientation)
+file(MAKE_DIRECTORY ${_orient_dir})
+set(_orient_shader_dir ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+file(MAKE_DIRECTORY ${_orient_shader_dir})
+set(_orient_sl ${CMAKE_CURRENT_SOURCE_DIR}/shaders/orient_probe.sl)
+add_custom_command(
+    OUTPUT ${_orient_shader_dir}/orient_probe.rslo
+    COMMAND ${CMAKE_COMMAND} -DOSHADER=$<TARGET_FILE:oshader> -DSRC=${_orient_sl}
+            -DOUT=${_orient_shader_dir}/orient_probe.rslo
+            -DINCDIR=${CMAKE_SOURCE_DIR}/shaders/includes
+            -P ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+    DEPENDS ${_orient_sl} oshader ${CMAKE_SOURCE_DIR}/CMake/CompileShader.cmake
+    WORKING_DIRECTORY ${_orient_shader_dir}
+    COMMENT ""
+    VERBATIM)
+add_custom_target(orient_probe_shader ALL DEPENDS ${_orient_shader_dir}/orient_probe.rslo)
+add_dependencies(orient_probe_shader openrender_shaders)
+
+set(_orient_env "${VISUAL_ENV}")
+list(TRANSFORM _orient_env REPLACE "^SHADERS=(.*)$" "SHADERS=${_orient_shader_dir}:\\1")
+# <view>|<tilt of the camera about x>. The front view stays at 10 degrees above the horizon: from higher up the camera sees
+# through the hairline seam between the lid and the rim into the open body (Newell's body has no inner wall), and those
+# interior faces are rightly red (37 pixels at 20 degrees, 229 at 30, 1723 at 60).
+foreach(_view "front|-10" "below|35")
+    string(REPLACE "|" ";" _parts "${_view}")
+    list(GET _parts 0 VIEW)
+    list(GET _parts 1 TILT)
+    foreach(HIDER reyes raytrace)
+        set(OUTPUT orient-${VIEW}-${HIDER}.tif)
+        configure_file(${CMAKE_SOURCE_DIR}/examples/rib/tests/teapot-orientation-probe.rib.in
+            ${_orient_dir}/orient-${VIEW}-${HIDER}.rib @ONLY)
+        add_test(NAME TeapotOrientation_${VIEW}_${HIDER}
+            COMMAND test_orient_probe $<TARGET_FILE:orender> ${_orient_dir}/orient-${VIEW}-${HIDER}.rib
+                orient-${VIEW}-${HIDER}.tif 15000
+            WORKING_DIRECTORY ${_orient_dir})
+        set_tests_properties(TeapotOrientation_${VIEW}_${HIDER} PROPERTIES TIMEOUT 120
+            LABELS "visual;regression;teapot_orientation"
+            RESOURCE_LOCK teapot_orientation_scratch ENVIRONMENT "${_orient_env}" DEPENDS orender)
+    endforeach()
+endforeach()

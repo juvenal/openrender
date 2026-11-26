@@ -104,6 +104,7 @@ void op_tan(float *dst, int sd, const float *a, int sa, int n, const int *tags);
 void op_asin(float *dst, int sd, const float *a, int sa, int n, const int *tags);
 void op_acos(float *dst, int sd, const float *a, int sa, int n, const int *tags);
 void op_atan(float *dst, int sd, const float *a, int sa, int n, const int *tags);
+void op_log2(float *dst, int sd, const float *a, int sa, const float *b, int sb, int n, const int *tags);
 void op_atan2(float *dst, int sd, const float *a, int sa, const float *b, int sb, int n, const int *tags);
 void op_pow(float *dst, int sd, const float *a, int sa, const float *b, int sb, int n, const int *tags);
 void op_mod(float *dst, int sd, const float *a, int sa, const float *b, int sb, int n, const int *tags);
@@ -194,6 +195,9 @@ void op_diffuse_batch(float *result, int sr, const float *Nf, int sn, int n, con
 /* Calls ctx->callSpecular(result, Nf, V, roughness) — Phong specular highlight */
 /* roughness is always a scalar (uniform) — passed as float* and read as roughness[0] */
 void op_specular_batch(float *result, const float *Nf, int sn, const float *V, int sv, const float *roughness, int sr, int n, const int *tags);
+/* op_phong_batch_v2: the same with the operands' strides (GitHub #113), so a varying `size` is read per point.
+ * op_phong_batch is what a .slo compiled before #113 calls: Nf and V varying, `size` read at the first point. */
+void op_phong_batch_v2(float *result, const float *Nf, int sn, const float *V, int sv, const float *size, int ss, int n, const int *tags);
 void op_phong_batch(float *result, const float *Nf, const float *V, const float *size, int n, const int *tags);
 
 /* -----------------------------------------------------------------------
@@ -503,6 +507,9 @@ void op_scale(float *dst, int sd, const float *m, int sm, const float *p, int sp
               int n, const int *tags);
 void op_rotate(float *dst, int sd, const float *m, int sm, const float *angle, int sa,
                const float *axis, int sax, int n, const int *tags);
+// rotate(Q, angle, P1, P2): the point form, Rotatep "p=pfpp" -- Q about the axis through P1 and P2 (GitHub #229).
+void op_rotatep(float *dst, int sd, const float *q, int sq, const float *angle, int sa,
+                const float *p1, int s1, const float *p2, int s2, int n, const int *tags);
 
 // occlusion()/indirectdiffuse() (spec 017-jit-builtin-function-coverage,
 // US1): point-cloud/irradiance-cache lookup trampolines. _v3 (GitHub #55)

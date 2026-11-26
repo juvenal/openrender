@@ -202,11 +202,8 @@ cl_executable(test_mode_state test_mode_state.cpp cldbl_backend.cpp)
 foreach(section Precedence BadValue Scope RibRoundTrip)
     cl_test(ClosureMode_${section} test_mode_state LABELS closuremode ARGS ${section})
 endforeach()
-# RISpec 3.2 section 4: closuremode restored after SolidEnd and ObjectEnd. This tree's SolidEnd and ObjectEnd restore no attribute (GitHub #235), so
-# the test fails today: WILL_FAIL, on a name of its own so that the rest of ClosureMode_Scope stays a normal pass. It states the RISpec rule, not
-# the bug; remove WILL_FAIL when #235 is fixed.
+# RISpec 3.2 section 4: closuremode restored after SolidEnd and ObjectEnd (GitHub #235 made SolidEnd and ObjectEnd restore the attributes).
 cl_test(ClosureMode_Scope_SolidObjectRISpec test_mode_state LABELS closuremode ARGS SolidObject)
-set_tests_properties(ClosureMode_Scope_SolidObjectRISpec PROPERTIES WILL_FAIL TRUE)
 
 # the surface step: ColorIdentity, Both, Closures per hider, the interim rules
 cl_executable(test_mode_step test_mode_step.cpp cldbl_backend.cpp)

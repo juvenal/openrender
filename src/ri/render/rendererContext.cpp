@@ -6277,6 +6277,9 @@ void CRendererContext::RiSolidBegin(const char *type) {
     if (currentSolid != NULL)
         csgValidateNestedSolidBegin(currentSolid);
 
+    // A solid block saves and restores the attributes, as every begin-end pair does but the transform and motion pairs (RISpec 3.2 section 4)
+    attributeBegin();
+
     savedSolids->push(currentSolid);
     currentSolid = new CSGTreeNode(operation, currentSolid);
 
@@ -6321,6 +6324,9 @@ void CRendererContext::RiSolidEnd(void) {
         }
         freeCSGTree(closedNode);
     }
+
+    // After the solid is built from the block's own attributes
+    attributeEnd();
 }
 
 void *CRendererContext::RiObjectBegin(void) {
@@ -6328,6 +6334,9 @@ void *CRendererContext::RiObjectBegin(void) {
 
     if (CRenderer::netNumServers > 0)
         return NULL;
+
+    // An object block saves and restores the attributes (RISpec 3.2 section 4)
+    attributeBegin();
 
     // Reset the xform so that all the objects defined relative to the beginning of the block
     xformBegin();
@@ -6357,6 +6366,7 @@ void CRendererContext::RiObjectEnd(void) {
     allocatedInstances->push(instance);
     instance = instanceStack->pop();
     xformEnd();
+    attributeEnd();
 }
 
 void CRendererContext::RiObjectInstance(const void *handle) {

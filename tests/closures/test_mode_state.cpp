@@ -11,8 +11,7 @@
  *   Scope           ClosureMode_Scope: AttributeBegin/End, nested blocks, FrameBegin/End restoring the option (RISpec section 4),
  *                   TransformBegin (which does not save attributes), and an object instance taking the mode current at ObjectInstance, not
  *                   the definition's (Q-R2)
- *   SolidObject     ClosureMode_Scope_SolidObjectRISpec: closuremode restored after SolidEnd and ObjectEnd, as RISpec 3.2 section 4 says. WILL_FAIL
- *                   until GitHub #235 (this tree's SolidEnd and ObjectEnd restore no attribute) is fixed
+ *   SolidObject     ClosureMode_Scope_SolidObjectRISpec: closuremode restored after SolidEnd and ObjectEnd, as RISpec 3.2 section 4 says
  *   RibRoundTrip    ClosureMode_RibRoundTrip: parse, write with libRIBOut, parse again: both statements and their positions survive (SC-008)
  *
  * Red on the starting tree: does not compile (closureMode.h, closureFrame.h, EClosureMode, RI_CLOSUREMODE).
@@ -244,9 +243,7 @@ namespace {
 
     // ---- SolidObject -------------------------------------------------------------------------------------------------------
     // RISpec 3.2 section 4: every begin-end pair except Transform and Motion saves the attributes at its begin and restores them at its end, so
-    // closuremode set inside SolidBegin or ObjectBegin must be the enclosing value again after SolidEnd or ObjectEnd. This tree's SolidEnd and
-    // ObjectEnd restore no attribute at all (GitHub #235: the surface colour is not restored either), so this section FAILS today and is
-    // registered with WILL_FAIL (tests/closures/CMakeLists.txt) until #235 is fixed. It states the rule, not the bug.
+    // closuremode set inside SolidBegin or ObjectBegin must be the enclosing value again after SolidEnd or ObjectEnd.
     void sectionSolidObject() {
         RiBegin(RI_NULL);
         RiErrorHandler(capture);

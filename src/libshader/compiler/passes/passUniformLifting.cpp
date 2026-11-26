@@ -63,6 +63,17 @@ bool CUniformLiftingPass::isUniformSafeOpcode(const std::string &opcode) {
 // collectGatherOutputs
 // -------------------------------------------------------------------------
 
+namespace {
+bool isMessageBuiltin(const std::string &opcode) {
+    static const char *const names[] = {"surface",  "displacement", "atmosphere", "incident",    "opposite",
+                                        "attribute", "option",       "rendererinfo", "textureinfo", "lightsource"};
+    for (const char *n : names)
+        if (opcode == n)
+            return true;
+    return false;
+}
+} // namespace
+
 // static
 void CUniformLiftingPass::collectGatherOutputs(const IRFunction &fn,
                                                std::unordered_set<std::string> &out) {
@@ -78,13 +89,14 @@ void CUniformLiftingPass::collectGatherOutputs(const IRFunction &fn,
             // but a lifted uniform. Without this a channel output initialized
             // from a constant was promoted to uniform, and the JIT then bound
             // it as a uniform value rather than as a channel (GitHub #55).
-            // lightsource() writes its destination (operands = [name, destination]) without that write being an IRInstr
-            // result, and the value is a light's output parameter, which may be varying: a destination initialized from a
-            // constant was promoted to uniform, and the parameter of a varying light output was then refused as a varying
-            // value into a uniform variable (GitHub #115).
-            if (instr.opcode == "lightsource") {
+            // The message-passing builtins write their output operand, the last one ([name, dest] and textureinfo's
+            // [texture, data, dest]), as a call argument and not as an IRInstr result, and the value may be a varying
+            // output parameter of the other shader: a destination initialized from a constant was promoted to uniform,
+            // and the parameter was then refused as a varying value into a uniform variable (GitHub #115 for
+            // lightsource(), GitHub #209 for the others).
+            if (isMessageBuiltin(instr.opcode)) {
                 if (instr.operands.size() > 1)
-                    out.insert(instr.operands[1].token);
+                    out.insert(instr.operands.back().token);
                 continue;
             }
             size_t first;

@@ -1,0 +1,23 @@
+##RenderMan RIB-Structure 1.0
+# GitHub #210: a static micropolygon's extra output (an AOV, here the surface variable s) is interpolated
+# bilinearly between all four corners under the default "smooth" interpolation. The patch spans the image:
+# 64 pixels wide, ShadingRate 16 dices it into micropolygons 4 pixels wide. The test reads a row near the top
+# of its micropolygons, where the v3 corner weighs most (with v2 read in its place the row is plateaus).
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["rslo"]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "shading-interpolation-aov-smooth-reyes-rgba.tif" "file" "rgba"
+Display "+shading-interpolation-aov-smooth-reyes.tif" "file" "varying float s"
+Projection "orthographic"
+ScreenWindow 0 1 0 1
+Format 64 64 1
+Clipping 0.1 100
+Translate 0 0 1
+WorldBegin
+  ShadingRate 16
+  Surface "show_st"
+  Patch "bilinear" "P" [0 0 0  1 0 0  0 1 0  1 1 0]
+WorldEnd

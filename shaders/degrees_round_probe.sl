@@ -2,9 +2,9 @@
  * no-op'd under the LLVM JIT -- same kHandledOpcodes[] coverage-gate
  * failure mode as visibility()/occlusion() etc.
  *
- * round() in THIS interpreter is a truncating (int)x cast, not
- * round-half-away-from-zero -- mirrored exactly here (FR-017), not
- * "fixed": round(2.7) == 2, not 3.
+ * round() rounds to the nearest integer, halves away from zero, in both
+ * backends (GitHub #208): round(2.7) == 3 and round(-2.7) == -3. Before
+ * #208 it truncated toward zero and this probe pinned that.
  *
  * Writes the raw computed values directly into Ci rather than routing
  * them through an `if`-gated boolean flag: GitHub issue #8 (a separate,

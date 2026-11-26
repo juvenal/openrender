@@ -259,7 +259,7 @@ Declared set before 124 variables (29 globals), after 125 (29 globals).
 ## Decisions of 2026-11-25 and what was applied
 
 Approved and applied (worktree, staged): the declared-set reference (two lines); the gather() second half noted in `contracts/closuremode.md` and `plan.md` Q10; T1, T2, T4, T6, T7, T9, T10 as proposed;
-T5 as `ClosureMode_Scope_SolidObjectRISpec` (WILL_FAIL until GitHub #235; closuremode restored after `SolidEnd` and `ObjectEnd`, the RISpec 3.2 section 4 rule; `ClosureMode_Scope` itself keeps AttributeBegin, nested blocks, TransformBegin, FrameBegin/End and the object instance);
+T5 as `ClosureMode_Scope_SolidObjectRISpec` (WILL_FAIL until GitHub #235, dropped in the sync merge with master; closuremode restored after `SolidEnd` and `ObjectEnd`, the RISpec 3.2 section 4 rule; `ClosureMode_Scope` itself keeps AttributeBegin, nested blocks, TransformBegin, FrameBegin/End and the object instance);
 T8 with the comment citing GitHub #236 (`r_shadow` out of the equality, "stays a fraction" kept; `r_texture`, which the lit scene shows equal, joins the six not-gated equalities).
 
 ### T3 stays open: what the contract says about the ray type of a rasterised grid

@@ -1027,7 +1027,6 @@ DEFLIGHTFUNC(Specular, "specular", "c=nvf", SPECULAREXPR_PRE, SPECULAREXPR, SPEC
     float *refDirs = (float *)ralloc(3 * numVertices * sizeof(float), threadMemory); \
     const float *op1, *op2, *op3;                                                    \
     float *res;                                                                      \
-    vector Ltmp;                                                                     \
     operand(0, res, float *);                                                        \
     operand(1, op1, const float *);                                                  \
     operand(2, op2, const float *);                                                  \
@@ -1047,8 +1046,7 @@ DEFLIGHTFUNC(Specular, "specular", "c=nvf", SPECULAREXPR_PRE, SPECULAREXPR, SPEC
     for (int i = 0; i < numVertices; ++i) {                                          \
         if (*tags == 0) {                                                            \
             initv(R, 0, 0, 0);                                                       \
-            mulvf(refDir, N, 2 * dotvv(N, V));                                       \
-            subvv(refDir, V);                                                        \
+            libshader::phongReflect(refDir, N, V);                                   \
         }                                                                            \
         R += 3;                                                                      \
         N += 3;                                                                      \
@@ -1081,22 +1079,8 @@ DEFLIGHTFUNC(Specular, "specular", "c=nvf", SPECULAREXPR_PRE, SPECULAREXPR, SPEC
         refDir = refDirs;                                                            \
         tags = tagStart;
 
-#define PHONGEXPR                                                             \
-    normalizev(Ltmp, L);                                                      \
-    const float dotProduct = dotvv(refDir, Ltmp);                             \
-    float clampedDot;                                                         \
-    if (0 > dotProduct) {                                                     \
-        clampedDot = 0;                                                       \
-    }                                                                         \
-    else {                                                                    \
-        clampedDot = dotProduct;                                              \
-    }                                                                         \
-    const float coefficient = (1.0f - ns[0]) * (float)pow(clampedDot, *size); \
-    if (coefficient > 0) {                                                    \
-        R[COMP_R] += coefficient * Cl[COMP_R];                                \
-        R[COMP_G] += coefficient * Cl[COMP_G];                                \
-        R[COMP_B] += coefficient * Cl[COMP_B];                                \
-    }
+// The term itself is shared with the JIT's callPhong (specularTerm.h, GitHub #113).
+#define PHONGEXPR libshader::phongAccumulate(R, refDir, L, Cl, ns[0], *size);
 
 #define PHONGEXPR_UPDATE \
     R += 3;              \

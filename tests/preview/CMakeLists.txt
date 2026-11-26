@@ -163,3 +163,16 @@ set_tests_properties(Preview_DataSceneUnchanged PROPERTIES
     LABELS "preview;regression"
     FIXTURES_REQUIRED GiFixture_ICache
     ENVIRONMENT "SHADERS=${CMAKE_BINARY_DIR}/shaders;ORENDERHOME=${CMAKE_BINARY_DIR}/tests/visual/_home;DISPLAYS=${GI_PREVIEW_DISPLAY_PATH};GEOMETRIES=${CMAKE_SOURCE_DIR}/geometry;TEXTURES=${CMAKE_SOURCE_DIR}/examples/rib/tests")
+
+# GitHub #235: ObjectBegin-ObjectEnd saves and restores the attributes in the preview back-end as well (RISpec 3.2 section 4).
+add_executable(test_preview_object_scope test_object_scope_preview.cpp)
+target_include_directories(test_preview_object_scope PRIVATE ${PREVIEW_TEST_INCLUDES})
+target_link_libraries(test_preview_object_scope PRIVATE ${PREVIEW_TEST_LIBS})
+target_compile_features(test_preview_object_scope PRIVATE cxx_std_20)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/object_scope_work)
+add_test(NAME Preview_ObjectScope COMMAND test_preview_object_scope ${CMAKE_CURRENT_BINARY_DIR}/object_scope_work)
+set_tests_properties(Preview_ObjectScope PROPERTIES
+    TIMEOUT 60
+    LABELS "preview;state"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    ENVIRONMENT "${PREVIEW_EXTRACTION_ENV}")

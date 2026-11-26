@@ -1,0 +1,28 @@
+##RenderMan RIB-Structure 1.0
+# GitHub #211: one refracting polygon, and a matte receiver behind it. The identity camera, so camera space is world space.
+# @LIGHT_TO@ is the direction the photons travel (a distant light). @ORIENT@ is empty for a polygon whose normal points along +z (away from the light)
+# and ReverseOrientation for a normal that points back at the light. The sheet is the boundary of the refracting object, its normal pointing out of it.
+# @FACE@ holds the four corners of the refracting polygon (a flat sheet at z = 2 for an entry face, a face tilted about y for a prism's exit face).
+version 3.03
+FrameBegin 1
+  Hider "photon" "int emit" [@EMIT@] @HIDEREXTRA@
+  Projection "perspective" "fov" 45
+  Format 16 12 1
+  WorldBegin
+    LightSource "distantlight" 1 "from" [0 0 0] "to" [@LIGHT_TO@] "intensity" [1]
+    AttributeBegin
+      @ORIENT@
+      @MODEL@
+      Attribute "trace" "int maxspeculardepth" [4]
+      Surface "matte"
+      Polygon "P" [@FACE@]
+    AttributeEnd
+    AttributeBegin
+      Attribute "photon" "string causticmap" ["@MAP@"]
+      # no diffuse bounce at the receiver: its light would otherwise go back up through the refracting object and land again as caustic photons
+      Attribute "trace" "int maxdiffusedepth" [0]
+      Surface "matte"
+      Polygon "P" [-12 -12 9  12 -12 9  12 12 9  -12 12 9]
+    AttributeEnd
+  WorldEnd
+FrameEnd

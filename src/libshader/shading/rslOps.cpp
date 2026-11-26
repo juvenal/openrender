@@ -353,7 +353,7 @@ void op_round(float *dst, int sd, const float *a, int sa, int n, const int *tags
     for (int i = 0; i < n; i++)
         if (ACTIVE(tags, i))
             IDX(dst, sd, i)
-            [0] = (float)(int)IDX(a, sa, i)[0];
+            [0] = roundf(IDX(a, sa, i)[0]);
 }
 void op_exp(float *dst, int sd, const float *a, int sa, int n, const int *tags) {
     for (int i = 0; i < n; i++)
@@ -361,12 +361,14 @@ void op_exp(float *dst, int sd, const float *a, int sa, int n, const int *tags) 
             IDX(dst, sd, i)
             [0] = expf(IDX(a, sa, i)[0]);
 }
+// The interpreter's log(x) (scriptFunctions.h): an argument at or below C_EPSILON is clamped to it, so log(0) and the
+// log of a negative number are log(C_EPSILON), not 0 (GitHub #229).
 void op_log(float *dst, int sd, const float *a, int sa, int n, const int *tags) {
     for (int i = 0; i < n; i++)
         if (ACTIVE(tags, i)) {
             float v = IDX(a, sa, i)[0];
             IDX(dst, sd, i)
-            [0] = (v > 0.0f) ? logf(v) : 0.0f;
+            [0] = (float)log((v) > C_EPSILON ? (v) : C_EPSILON);
         }
 }
 void op_sin(float *dst, int sd, const float *a, int sa, int n, const int *tags) {
@@ -410,6 +412,13 @@ void op_atan2(float *dst, int sd, const float *a, int sa, const float *b, int sb
         if (ACTIVE(tags, i))
             IDX(dst, sd, i)
             [0] = atan2f(IDX(a, sa, i)[0], IDX(b, sb, i)[0]);
+}
+// log(x, base): the interpreter's LOG2EXP (scriptFunctions.h), unclamped, in double (GitHub #229).
+void op_log2(float *dst, int sd, const float *a, int sa, const float *b, int sb, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i))
+            IDX(dst, sd, i)
+            [0] = (float)(log((double)IDX(a, sa, i)[0]) / log((double)IDX(b, sb, i)[0]));
 }
 void op_pow(float *dst, int sd, const float *a, int sa, const float *b, int sb, int n, const int *tags) {
     for (int i = 0; i < n; i++)
@@ -816,12 +825,22 @@ void op_specular_batch(float *result, const float *Nf, int sn, const float *V, i
         ctx->callSpecular(result, Nf, sn, V, sv, roughness, sr);
 }
 
-void op_phong_batch(float *result, const float *Nf, const float *V, const float *size, int n, const int *tags) {
+// sn, sv, ss: the operands' strides in floats (0 for a uniform operand), so a
+// varying size is read per point, as the interpreter does (GitHub #113).
+void op_phong_batch_v2(float *result, const float *Nf, int sn, const float *V, int sv, const float *size, int ss, int n, const int *tags) {
     (void)n;
     (void)tags;
     CShadingContext *ctx = libshader::activeContext();
     if (ctx)
-        ctx->callPhong(result, Nf, V, size ? size[0] : 10.0f);
+        ctx->callPhong(result, Nf, sn, V, sv, size, ss);
+}
+
+// What a .slo compiled before GitHub #113 calls: Nf and V varying, size read at
+// the first point only (a null size is 10). Kept so that such a .slo still
+// loads and runs until it is recompiled.
+void op_phong_batch(float *result, const float *Nf, const float *V, const float *size, int n, const int *tags) {
+    static const float kDefaultSize = 10.0f;
+    op_phong_batch_v2(result, Nf, 3, V, 3, size ? size : &kDefaultSize, 0, n, tags);
 }
 
 // =========================================================================
@@ -2205,6 +2224,22 @@ void op_rotate(float *dst, int sd, const float *m, int sm, const float *angle, i
             rotatem(mtmp, ax[0], ax[1], ax[2], IDX(angle, sa, i)[0]);
             mulmm(result, IDX(m, sm, i), mtmp);
             movmm(IDX(dst, sd, i), result);
+        }
+}
+
+// The interpreter's ROTATEEXP (scriptFunctions.h): rotate Q about the axis through P1 and P2 (GitHub #229).
+void op_rotatep(float *dst, int sd, const float *q, int sq, const float *angle, int sa,
+                const float *p1, int s1, const float *p2, int s2, int n, const int *tags) {
+    for (int i = 0; i < n; i++)
+        if (ACTIVE(tags, i)) {
+            vector axis, rel, rotated;
+            matrix mtmp;
+            const float *a = IDX(p1, s1, i);
+            subvv(axis, IDX(p2, s2, i), a);
+            rotatem(mtmp, axis, IDX(angle, sa, i)[0]);
+            subvv(rel, IDX(q, sq, i), a);
+            mulmp(rotated, mtmp, rel);
+            addvv(IDX(dst, sd, i), rotated, a);
         }
 }
 

@@ -1,0 +1,20 @@
+##RenderMan RIB-Structure 1.0
+# A static point carries the extra output (an AOV, here P, in the space the points are given in) of its own vertex.
+# Two points on the image row 32: the channel P.y reads 0.5 over both discs (the discs are about 12 pixels wide, the test reads 9 of them).
+version 3.03
+Hider "reyes"
+Option "shaderformat" "default" ["rslo"]
+PixelSamples 1 1
+PixelFilter "box" 1 1
+Quantize "rgba" 0 0 0 0
+Display "shading-interpolation-aov-points-reyes-rgba.tif" "file" "rgba"
+Display "+shading-interpolation-aov-points-reyes.tif" "file" "P"
+Projection "orthographic"
+ScreenWindow 0 1 0 1
+Format 64 64 1
+Clipping 0.1 100
+Translate 0 0 1
+WorldBegin
+  Surface "constant"
+  Points "P" [0.25 0.5 0  0.75 0.5 0] "constantwidth" [0.2]
+WorldEnd
