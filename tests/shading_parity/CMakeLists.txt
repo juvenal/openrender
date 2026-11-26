@@ -582,6 +582,11 @@ add_shader_parameter_test(ShadingParity_ShaderParameterEquivalenceDirect
     test_shading_parity_shader_parameter_equivalence_direct test_shader_parameter_equivalence_direct.cpp ENABLED)
 add_shader_parameter_test(ShadingParity_ShaderParameterBxdfIgnored
     test_shading_parity_shader_parameter_bxdf_ignored test_shader_parameter_bxdf_ignored.cpp ENABLED)
+# Spec 035 (closure-tree-bsdf), Phase 4 (T084): with a Bxdf governing, the surface slot is replaced by the interim substitute. Red until T094
+# (bxdfInstance.h and RiBxdf did not exist); registered EXCLUDE_FROM_ALL + DISABLED as spec 025 did, enabled by T096.
+add_shader_parameter_test(ShadingParity_ShaderParameterBxdfGoverned
+    test_shading_parity_shader_parameter_bxdf_governed test_shader_parameter_bxdf_governed.cpp ENABLED)
+target_include_directories(test_shading_parity_shader_parameter_bxdf_governed PRIVATE ${CMAKE_SOURCE_DIR}/src/libshader/closures)
 
 # Spec 027 (T-J3, T032, FR-022): the same diagnostics check for texture(), environment() and shadow().
 # A NEW test beside ShadingParity_JitPLDiagnostics, which stays green and unchanged: the JIT drops these

@@ -420,7 +420,7 @@ void CShadingContext::interpret(CProgrammableShaderInstance *cInstance, float **
             }                                                                                                                    \
         }                                                                                                                        \
                                                                                                                                  \
-        if (inShadow == FALSE) {                                                                                                 \
+        if (inShadow == FALSE && !lightingGateClosed()) { /* spec 035: the shared ambient gate check */                          \
                                                                                                                                  \
             for (CActiveLight *cLight = currentAttributes->lightSources; cLight != NULL; cLight = cLight->next) {                \
                 CShaderInstance *light = lightInstanceOf(*cLight);                                                                             \

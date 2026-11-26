@@ -70,6 +70,10 @@ class CMovingVertex;
 class CTriangle;
 class CMovingTriangle;
 class CMemPage;
+namespace openrender::shading {
+    class IClosureConsumer; // closures/closureConsumer.h (spec 035)
+    class ClosureFrame;     // closures/closureFrame.h (spec 035)
+}
 class CActiveSample;
 class CPoints;
 class CPointCloud;
@@ -216,6 +220,10 @@ class CShadingState {
         int volumeSegment;              // TRUE while the state runs a segment step (shadeVolumeSegments): the three trace builtins attach no volume shader to rays built in it
         const float *lightSideN;        // During iterateLights' light loop: a snapshot of the surface's N, one vector per vertex (lightSideNStore); null otherwise
         float *lightSideNStore;         // The buffer lightSideN points into, allocated with the state like Ns (mgs * 9 floats)
+
+        // Spec 035 (the lighting gate, FR-019): non-zero while a `closures` surface runs through executeClosures. Set and cleared only by the
+        // surface step (closureStep.cpp, an RAII guard); read at the four funnels of closuremode.md through CShadingContext::lightingGateClosed()
+        int lightingSuppressed = 0;
 
         CShaderInstance *currentShaderInstance; // The current shader instance that's executing
         float **currentLocals = nullptr;        // Its locals while a .slo shader runs (the JIT's light ends save the output variables from them), else null
@@ -471,6 +479,19 @@ class CShadingContext final {
         static void setDefaultIrradianceSampler(openrender::shading::IIrradianceSampler *sampler) { s_defaultIrradianceSampler = sampler; }
         static openrender::shading::IIrradianceSampler *defaultIrradianceSampler() { return s_defaultIrradianceSampler; }
         bool irradianceSamplerWarned = false; // libshader::irradianceLookup has reported that no sampler is installed
+
+        // ---- The closure surface step (spec 035). The consumer the trees of a `both`/`closures` batch are handed to (spec 042's integrator
+        // installs one per frame, a test the process default; the lookup is the context's, then the default, then none) and the per-frame
+        // closure object the renderer core sets in beginFrame() (null for a context with none: scene mode Unset).
+        void setClosureConsumer(openrender::shading::IClosureConsumer *consumer) { closureConsumerObject = consumer; }
+        openrender::shading::IClosureConsumer *closureConsumer() const { return closureConsumerObject != nullptr ? closureConsumerObject : s_defaultClosureConsumer; }
+        static void setDefaultClosureConsumer(openrender::shading::IClosureConsumer *consumer) { s_defaultClosureConsumer = consumer; }
+        static openrender::shading::IClosureConsumer *defaultClosureConsumer() { return s_defaultClosureConsumer; } // what usedShaderParameters() reads (a Bxdf adds Cs and Os)
+        void setClosureFrame(const openrender::shading::ClosureFrame *frame) { closureFrameObject = frame; }
+        const openrender::shading::ClosureFrame *closureFrame() const { return closureFrameObject; }
+        // The lighting gate (FR-019): true while the surface that is shading is a `closures` one. Read by the four funnels of closuremode.md
+        // (iterateLights, the three ambient sites, irradianceLookup, gatherHeaderBegin) and by nothing else.
+        bool lightingGateClosed() const { return currentShadingState != nullptr && currentShadingState->lightingSuppressed != 0; }
 
         // The ray level (FR-017): the one public way to go one ray level deeper, and the one place the depth rule is applied.
         struct CRayLevel { // what leaveRayLevel() restores
@@ -1140,6 +1161,8 @@ class CShadingContext final {
         openrender::shading::IIlluminationHook *illuminationHookObject = nullptr; // See setIlluminationHook()
         openrender::shading::ITracer *tracerObject = nullptr;                     // See setTracer()
         openrender::shading::IAreaLightSampler *areaLightSamplerObject = nullptr;  // See setAreaLightSampler()
+        openrender::shading::IClosureConsumer *closureConsumerObject = nullptr;    // See setClosureConsumer()
+        const openrender::shading::ClosureFrame *closureFrameObject = nullptr;     // See setClosureFrame()
 
         // Spec 057: run one bound area light for the points of the shading call in progress: n samples, each a 0-D run of the light
         // shader over the sampled emitter points, weighted by V / (n pdfA). iterateLights' bound branch (shading.cpp).
@@ -1294,6 +1317,7 @@ class CShadingContext final {
         // Default renderer services injected by src/ri/ at startup via setDefaultServices()
         static CRendererServices *s_defaultServices;
         static openrender::shading::IIrradianceSampler *s_defaultIrradianceSampler; // See setDefaultIrradianceSampler()
+        static openrender::shading::IClosureConsumer *s_defaultClosureConsumer;     // See setDefaultClosureConsumer()
 };
 
 

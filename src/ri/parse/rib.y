@@ -668,6 +668,7 @@ static	RtErrorHandler	getErrorHandler(char *n) {
 %token	RIB_DISPLAYCHANNEL
 %token	RIB_HIDER
 %token	RIB_INTEGRATOR
+%token	RIB_BXDF
 %token	RIB_COLOR_SAMPLES
 %token	RIB_RELATIVE_DETAIL
 %token	RIB_OPTION
@@ -1402,6 +1403,22 @@ ribComm:		RIB_STRUCTURE_COMMENT
 				ribPL
 				{
 					RiSurfaceV($2,numParameters,tokens,vals);
+				}
+				|
+				RIB_BXDF
+				RIB_TEXT
+				RIB_TEXT
+				ribPL
+				{
+					// A second string is the handle, as for LightSource (contracts/bxdf.md)
+					RiBxdfV($2,$3,numParameters,tokens,vals);
+				}
+				|
+				RIB_BXDF
+				RIB_TEXT
+				ribPL
+				{
+					RiBxdfV($2,NULL,numParameters,tokens,vals);
 				}
 				|
 				RIB_ATMOSPHERE

@@ -142,3 +142,39 @@ AttributeEnd
   `AreaLight_EmitterMotion_GridTime`).
 - **Photons.** `Hider "photon"` emits a bound light's photons from points of its emitters, along the emitter's normal side; the
   photon map is not a parity subject.
+
+## `Bxdf` and `closuremode` (spec 035)
+
+```rib
+Option "shade" "string closuremode" [ "both" ]          # the scene's mode: color (the default), both or closures
+WorldBegin
+    AttributeBegin
+        Attribute "shade" "closuremode" [ "closures" ]   # the object's mode wins over the scene's
+        Bxdf "plastic" "float roughness" [ 0.2 ] "color specularcolor" [ 1 1 1 ]
+        Sphere 1 -1 1 360
+    AttributeEnd
+    Bxdf "dielectric" "glass1" "float ior" [ 1.5 ]       # an optional second string is the handle
+    Sphere 1 -1 1 360
+WorldEnd
+```
+
+- **`Bxdf "name" ["handle"] <parameter list>`** binds one of the built-in Bxdfs (`diffuse`, `plastic`, `conductor`, `dielectric`) in the
+  current attribute block. Of `Surface` and `Bxdf`, the one bound **last** governs the block; `AttributeEnd` brings back the enclosing
+  choice. The handle is optional. Without one, a first parameter whose value is a bare string must be written in brackets
+  (`"string x" ["y"]`), or the parser reads it as the handle (the `LightSource` rule). The statement draws nothing: it takes no instance key,
+  so no later shader's random stream changes.
+- **Not valid inside `ObjectBegin`/`ObjectEnd`** (RISpec 3.2 section 5.10: no shader assignment in an object definition): the statement is
+  refused as any out-of-block request, and `Surface` and `Attribute` there behave as before. An instance takes the binding current at
+  `ObjectInstance`.
+- **Names.** `sl:` and `osl:` are reserved for RSL 2.0 and OSL Bxdfs (specs 036, 049); an unknown name, a refused interface MAJOR and a
+  refusing parameter (a negative `plastic` `ior`, a `dielectric` `ior` of 0 or less) are errors that name the reason and leave the
+  binding unchanged. An unknown parameter (`Ka` is not a parameter) is skipped with an error; an out-of-range one is clamped with a
+  `CODE_RANGE` message. A `color` parameter follows `ColorSamples`.
+- **`Option`/`Attribute "shade" "string closuremode"`** takes `color` (today's behaviour), `both` or `closures`; a bad value is a
+  `CODE_RANGE` error and the previous value stays. The attribute wins over the option. A block, a `SolidBegin` and an `ObjectBegin` save and
+  restore it like any attribute.
+- **Interim behaviour** (until specs 036, 041 and 042). Shipped shaders are not closure capable, so under `both` or `closures` a surface
+  renders as `color`, with one warning per (shader, mode) per frame. A governing Bxdf with no consumer renders the default surface (the one
+  `WorldBegin` binds; the no-shader path when a `Surface` was given before `WorldBegin`), never a user `Surface`, with one warning per Bxdf
+  name per frame. See `CLOSURES.md`.
+- `ribOut` writes both statements at their positions; the Python and Lua helpers write `Bxdf` (see `BINDINGS_GUIDE.md`).

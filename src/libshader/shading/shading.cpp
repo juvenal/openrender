@@ -34,6 +34,8 @@
 
 #include "areaLightControls.h"
 #include "bundles.h"
+#include "closureFrame.h"
+#include "closureStep.h"
 #include "common/diagnostics.h"
 #include "include/logging.hpp"
 #include "common/memory.h"
@@ -61,6 +63,7 @@ using namespace openrender::shading;
 // nullptr until setDefaultServices() is called (standalone libshader mode).
 CRendererServices *CShadingContext::s_defaultServices = nullptr;
 openrender::shading::IIrradianceSampler *CShadingContext::s_defaultIrradianceSampler = nullptr;
+openrender::shading::IClosureConsumer *CShadingContext::s_defaultClosureConsumer = nullptr;
 
 // George's extrapolated derivative extensions
 #define USE_EXTRAPOLATED_DERIV
@@ -1088,6 +1091,7 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
     const CSurface *savedSurface;
     ObjectHandle savedObject;
     const CAttributes *savedAttributes;
+    openrender::shading::SurfaceStepPlan plan; // spec 035: the color path unless the attribute or the scene mode says otherwise
 
     assert(uVertices > 0);
     assert(vVertices > 0);
@@ -1194,6 +1198,13 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
             }
         }
 
+        // Spec 035, the closure surface step. The inline fast test: when neither the attribute nor the scene mode says anything the code below
+        // runs as it always did, with no call; otherwise planSurfaceStep() decides the plan (and ORs the geometry a consumer needs into
+        // usedParameters, only when it builds trees). A governing Bxdf is the third term: it replaces the surface that runs (IR-026) or runs none.
+        if (currentAttributes->closureMode != EClosureMode::Unset || (closureFrameObject != nullptr && closureFrameObject->sceneMode() != openrender::shading::ClosureMode::Unset) ||
+            currentAttributes->governingMaterial() == EMaterialBinding::Bxdf)
+            plan = openrender::shading::planSurfaceStep(*this, *currentAttributes, surface, g, usedParameters);
+
         // Prepare the used parameters by the shaders
         usedParameters |= currentAttributes->usedParameters | (currentShadingState->services ? currentShadingState->services->additionalParameters() : 0u);
 
@@ -1286,7 +1297,15 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
     memBegin(shaderStateMemory);
 
     // Allocate the caches for the shaders being executed
-    if (surface != NULL)
+    // Spec 035: while a Bxdf governs the surface that runs is the substitute, but displacement and atmosphere shaders that pass messages read
+    // the Surface of the slot (RISpec 3.2 section 15.8): its locals are prepared, not run, in ACCESSOR_SURFACE and the substitute gets its own
+    float **substituteLocals = NULL;
+    if (plan.messageSurface != NULL) {
+        if (surface != NULL)
+            substituteLocals = libshader::groupPrepare(surface, shaderStateMemory, varying, numVertices);
+        locals[ACCESSOR_SURFACE] = libshader::groupPrepare(plan.messageSurface, shaderStateMemory, varying, numVertices);
+    }
+    else if (surface != NULL)
         locals[ACCESSOR_SURFACE] = libshader::groupPrepare(surface, shaderStateMemory, varying, numVertices);
     if (displacement != NULL)
         locals[ACCESSOR_DISPLACEMENT] = libshader::groupPrepare(displacement, shaderStateMemory, varying, numVertices);
@@ -1557,9 +1576,15 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
     if (displaceOnly == FALSE) {
 
         // Is there a surface shader ?
-        if (surface != NULL) {
+        if (plan.buildTrees) {
+            // spec 035: both / closures, or a Bxdf with a consumer (no surface runs, `surface` is null)
+            if (surface != NULL)
+                numShaded += numVertices;
+            openrender::shading::runSurfaceStep(*this, plan, surface, locals[ACCESSOR_SURFACE], threadMemory);
+        }
+        else if (surface != NULL) {
             numShaded += numVertices;
-            libshader::groupExecute(*this, surface, locals[ACCESSOR_SURFACE]);
+            libshader::groupExecute(*this, surface, plan.messageSurface != NULL ? substituteLocals : locals[ACCESSOR_SURFACE]);
         }
         else {
             // No surface shader eh, make up a color
@@ -1618,6 +1643,10 @@ void CShadingContext::shade(const ShaderGlobals &g, IPointSource &src) {
         for (i = numVertices; i > 0; i--, opacity += 3)
             movvv(opacity, so);
     }
+
+    // Spec 035: hand the batch's closure trees to the consumer, before the batch's arena is released (a no-op without a plan that delivers)
+    if (plan.buildTrees)
+        openrender::shading::deliverClosures(*this, plan, g, threadMemory);
 
     // Restore the thread memory
     memEnd(threadMemory);
@@ -1687,6 +1716,7 @@ CShadingState *CShadingContext::newState() {
         newState->stats = &stats;
         newState->services = svc;
         newState->diffuseReady = FALSE;
+        newState->lightingSuppressed = 0;
         newState->pointKeys = new openrender::sampling::SampleKey[mgs * 3]();
         bytes += mgs * 3 * sizeof(openrender::sampling::SampleKey);
         newState->batchKey = 0;
@@ -2067,6 +2097,11 @@ void CShadingContext::iterateLights(const float *lP, const float *lN, const floa
 }
 
 void CShadingContext::iterateLights(const float *lP, const float *lN, const float *lT, int numVertices, int *tags, int &numActive, int &numPassive, int saveCat, int inShadow, float **varying, CShaderInstance *cInstance) {
+    // The lighting gate (spec 035, FR-019): a `closures` surface runs no light, classic or bound. Return before touching `lights`,
+    // `lightsExecuted` or the lighting cache.
+    if (lightingGateClosed())
+        return;
+
     CShadingState *ss = currentShadingState;
     int curLightingValid = ss->lightsExecuted;
     int runCat = abs(saveCat);
@@ -2305,7 +2340,7 @@ void CShadingContext::callAmbient(float *result) {
                 Cl[0] = Cl[1] = Cl[2] = 0.0f;
             }
         }
-        if (!inShadow) {
+        if (!inShadow && !lightingGateClosed()) { // spec 035: the shared ambient gate check
             // The ambient lights run under this call's tags, like the others (GitHub #100)
             int numActive, numPassive;
             countsFromTags(tags, n, numActive, numPassive);
@@ -2525,7 +2560,7 @@ void CShadingContext::prepareAmbient() {
                 Cl[0] = Cl[1] = Cl[2] = 0.0f;
             }
         }
-        if (!inShadow) {
+        if (!inShadow && !lightingGateClosed()) { // spec 035: the shared ambient gate check
             CShaderInstance *cInst = ss->currentShaderInstance;
             for (CActiveLight *cLight = attr->lightSources; cLight; cLight = cLight->next) {
                 CShaderInstance *light = lightInstanceOf(*cLight);
@@ -4888,6 +4923,22 @@ void CShadingContext::jitDebug(int n, const int *tags) {
 // wrappers share the exact same computation while each keeps its own control flow.
 bool CShadingContext::gatherSample(CGatherBundle *lastGather, int *tags, int &numActive, int &numPassive, const float *normalN, const float *time) {
     const int numRealVertices = currentShadingState->numRealVertices;
+
+    // The lighting gate (spec 035, FR-019), the other half of gatherHeaderBegin's: a sample count of 0 still runs the first iteration (the
+    // loop control is at the end of the body: gatherEndAdvance), so with the gate closed every active point takes the miss path with no
+    // ray traced: the body runs for no point and the else for all of them, which is gather() with every ray missed.
+    if (lightingGateClosed()) {
+        int numMisses = 0;
+        for (int i = 0; i < numRealVertices; ++i) {
+            if (tags[i] == 0)
+                ++numMisses;
+            ++tags[i];
+        }
+        numActive -= numMisses;
+        numPassive += numMisses;
+        lastGather->numMisses = numMisses;
+        return numActive == 0;
+    }
     CGatherRay *raysBase = lastGather->raysBase;
     CGatherRay **rays = (CGatherRay **)lastGather->raysStorage;
     const float temp = 1 / (float)(lastGather->numSamples);
@@ -5024,6 +5075,10 @@ bool CShadingContext::gatherEndAdvance(CGatherBundle *&lastGather, int *&tags, i
 // caller passes an already-bound CGatherLookup and fills the returned bundle's
 // outputs/nonShadeOutputs arrays (pre-allocated here) itself.
 CGatherBundle *CShadingContext::gatherHeaderBegin(const CGatherLookup *lookup, const float *P, float samplesCount, float *&dPduOut, float *&dPdvOut) {
+    // The lighting gate (spec 035, FR-019): the sample count becomes 0, so the body and the else run zero times, as gather(..., 0) does
+    if (lightingGateClosed())
+        samplesCount = 0;
+
     const int numVertices = currentShadingState->numVertices;
     CShadingScratch *scratch = &(currentShadingState->scratch);
 

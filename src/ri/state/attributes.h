@@ -32,7 +32,7 @@
 #include "common/global.h"     // The global header file
 #include "patternTable.h"       // Scoped pattern-node table
 #include "stateHandles.h"       // Opaque shader and map handles
-#include "stateVocabulary.h"    // EAreaLightMode
+#include "stateVocabulary.h"    // EAreaLightMode, EClosureMode
 #include "userAttributes.h"    // Attribute dictionary stuff
 #include "xform.h"             // Transformations
 
@@ -142,7 +142,7 @@ class CAttributes : public CRefCounter {
         const ShaderGroupRef &atmosphere() const { return atmosphereSlot; }
         const ShaderGroupRef &interior() const { return interiorSlot; }
         const ShaderGroupRef &exterior() const { return exteriorSlot; }
-        const ShaderGroupRef &bxdf() const { return bxdfSlot; } // Ignored by the shader-parameter answers until spec 035
+        const ShaderGroupRef &bxdf() const { return bxdfSlot; } // Holds a Bxdf instance (spec 035: read it with bxdfInstanceOf(), never shaderInstanceOf()); a foreign object is ignored by the answers
         void bindSurface(ShaderGroupRef shader); // Also sets the last-bound record to Surface, even when shader is empty
         void bindBxdf(ShaderGroupRef shader);    // Sets the last-bound record to Bxdf, even when shader is empty
         void bindDisplacement(ShaderGroupRef shader);
@@ -207,6 +207,10 @@ class CAttributes : public CRefCounter {
         EShadingModel shadingModel; // The surface shading model
 
         char *shaderFormat; // "slo" or "rslo" shader format preference
+
+        // Attribute "shade" "closuremode" (spec 035): the object level mode, Unset = not set (the scene mode, then color, decide). Copied with the
+        // block like shaderFormat, so AttributeBegin inherits it and AttributeEnd restores the enclosing one's.
+        EClosureMode closureMode;
 
         // Blobby implicit-surface fidelity (spec 015, FR-025). Negative
         // means "never set", in which case the cell size is derived from

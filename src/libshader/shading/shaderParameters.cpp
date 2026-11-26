@@ -21,20 +21,31 @@
 #include <string.h>
 
 #include "attributes.h"
+#include "libshader/closures/bxdfInstance.h"
+#include "libshader/closures/closureInterim.h"
 #include "common/rendererc.h"
 #include "common/variable.h"
 #include "shader.h"
 #include "shaderRefs.h"
+#include "shading.h"
 
 namespace libshader {
 
     unsigned int usedShaderParameters(const CAttributes &attributes) {
         unsigned int used = 0;
 
+        // Spec 035: when a Bxdf governs (the last-bound record says so and the slot holds a Bxdf instance), the surface slot is replaced by the
+        // Bxdf's substitute, interimSurfaceFor(): the captured defaultsurface, or no shader (PARAMETER_N below). A consumer installed under a
+        // Bxdf adds Cs and Os, which its trees need. A foreign object in the bxdf slot is not a Bxdf instance and changes nothing.
+        const openrender::shading::CBxdfInstance *bxdf = attributes.governingMaterial() == EMaterialBinding::Bxdf ? openrender::shading::bxdfInstanceOf(attributes.bxdf()) : nullptr;
+        CShaderInstance *surface = bxdf != nullptr ? openrender::shading::interimSurfaceFor(*bxdf) : shaderInstanceOf(attributes.surface());
+
         if (attributes.displacement())
             used |= shaderInstanceOf(attributes.displacement())->requiredParameters();
-        if (attributes.surface())
-            used |= shaderInstanceOf(attributes.surface())->requiredParameters();
+        if (surface != nullptr)
+            used |= surface->requiredParameters();
+        if (bxdf != nullptr && CShadingContext::defaultClosureConsumer() != nullptr)
+            used |= PARAMETER_CS | PARAMETER_OS;
         if (attributes.atmosphere())
             used |= shaderInstanceOf(attributes.atmosphere())->requiredParameters();
         if (attributes.interior())
@@ -42,15 +53,13 @@ namespace libshader {
         if (attributes.exterior())
             used |= shaderInstanceOf(attributes.exterior())->requiredParameters();
 
-        if (!attributes.surface())
+        if (surface == nullptr)
             used |= PARAMETER_N;
 
         for (const CActiveLight *cLight = attributes.lightSources; cLight != NULL; cLight = cLight->next) {
             used |= lightInstanceOf(*cLight)->requiredParameters();
         }
 
-        // The bxdf slot is not part of this answer (spec 025, FR-005): a bxdf is ignored here
-        // until spec 035 gives it a place in the shader-parameter model.
         return used;
     }
 

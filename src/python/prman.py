@@ -327,6 +327,10 @@ class Ri:
     def Surface(self, name, parameterlist=None):
         self._write("Surface", name, parameterlist)
 
+    def Bxdf(self, name, handle=None, parameterlist=None):
+        # Bxdf "name" "handle" <parameters>: the handle is left out when it is None (spec 035)
+        self._write("Bxdf", name, handle, parameterlist)
+
     def Atmosphere(self, name, parameterlist=None):
         self._write("Atmosphere", name, parameterlist)
 

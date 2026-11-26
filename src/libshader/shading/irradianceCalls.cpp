@@ -40,6 +40,15 @@ namespace libshader {
     } // namespace
 
     void irradianceLookup(CShadingContext &ctx, CTexture3d *cache, float *C, const float *P, const float *dPdu, const float *dPdv, const float *N) {
+        // The lighting gate (spec 035, FR-019): a `closures` surface reads 0 from occlusion() and indirectdiffuse(), whatever the backend and
+        // the cache: no ray, no cache read or insert, no warning. The draw binding that ran before this call is not gated: the sub-stream is
+        // bound and unused.
+        if (ctx.lightingGateClosed()) {
+            for (int i = 0; i < 7; i++)
+                C[i] = 0;
+            return;
+        }
+
         // The sub-stream of this call, copied before the lookup visits any record and before the sampler runs: the key of a record
         // made here depends on neither the cache's occupancy nor on anything the sampler does to the context
         const openrender::sampling::SubstreamKey boundCall = ctx.boundDraws();

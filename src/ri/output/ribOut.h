@@ -109,6 +109,7 @@ class CRibOut : public CRiInterface {
 
         virtual void RiIlluminate(const void *light, int onoff) override;
         virtual void RiSurfaceV(const char *name, int n, const char *tokens[], const void *params[]) override;
+        virtual void RiBxdfV(const char *name, const char *handle, int n, const char *tokens[], const void *params[]) override;
         virtual void RiAtmosphereV(const char *name, int n, const char *tokens[], const void *params[]) override;
         virtual void RiInteriorV(const char *name, int n, const char *tokens[], const void *params[]) override;
         virtual void RiExteriorV(const char *name, int n, const char *tokens[], const void *params[]) override;

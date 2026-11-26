@@ -76,6 +76,10 @@ void CDeclarations::acquire() {
     //
     ////////////////////////////////////////////////////////////////////////////////////////////
     // Define the options
+    // Option / Attribute "shade" "closuremode" (spec 035): the very first declaration of all, before even "samples", for the same reason the
+    // two below give: the table lists the newest variable first, so this one is the last, and no recorded variable changes its position (the
+    // declared-set reference gains one line, the last).
+    declare(RI_CLOSUREMODE, "string");
     // Option and Attribute "arealight" (spec 057): "mode" is declared below (a string), "samples" here, before spec 048's two (the
     // very first declaration), so that every declared variable keeps its number in the table: the declared-set reference gains one
     // line, the last. One table serves the renderer (CRenderer::initDeclarations forwards here) and CRiStandardSession, so a writer

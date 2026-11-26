@@ -1053,7 +1053,7 @@ New-spec numbers (041–055) are provisional, confirmed at `specify`; the plan f
 | 030 hider/integrator registry | §1, §5.1–§5.3, §9, D2, D4, D8, D21, D28, D30 |
 | 033 shading-system-backends | §5.4 (`IShadingService`), D25 |
 | 034 shader-networks | D9, §11.1 |
-| 035 material interface + closure model | §2, §9, D13–D19 |
+| 035 material interface + closure model | §2, §9, D13–D19. Built: the closure tree and registry (closure ABI 1.0.0), the BSDF table and shared math, `closuremode`, the `Bxdf` statement and four built-in Bxdfs (Bxdf interface 1.0.0), IR-017/018/026. Moved to 036 (closure-capable surfaces, the `sl:` Bxdfs), 041 (the consumer) and 042 (IR-017, IR-018 and IR-026 retire with the integrator selection); see `DEVNOTES_DETAILS/CLOSURES.md` |
 | 036 RSL 2.0 layer 5 (closures) | §2.3, §2.7, §2.9, §3.1–§3.2, D14–D16 |
 | 037 plugin-abi-semver | §9, D7, D22 |
 | 039 sampling-foundation | §2.6 (`Sample2D`), §4.3, §8.1 |

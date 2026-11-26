@@ -195,6 +195,7 @@ RtToken RI_STATISTICS = "statistics";
 RtToken RI_VISIBILITY = "visibility";
 RtToken RI_SHADE = "shade";
 RtToken RI_SHADERFORMAT = "shaderformat";
+RtToken RI_CLOSUREMODE = "closuremode"; // spec 035: Option / Attribute "shade" "closuremode"
 RtToken RI_BLOBBY = "blobby";
 RtToken RI_BLOBBYTOLERANCE = "tolerance";
 RtToken RI_BLOBBYOPCODEORDER = "opcodeorder";

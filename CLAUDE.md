@@ -350,6 +350,29 @@ renderer core keeps the frame's choice in one slot, `frameTransport()` (`render/
 integrator, the integrator instance and the hider's traits), written only by `CRenderer` before the render threads start and after
 they are joined. See gotcha 38.
 
+### Closure model, the BSDF table, closuremode and Bxdf (spec 035)
+A **closure tree** (`src/libshader/closures/`, closure ABI 1.0.0, `closureAbi.h`) is arena-allocated plain data laid out like OSL's
+(`OrClosureComponent` 16 bytes, `OrClosureMul` and `OrClosureAdd` 24; the block offset 16 is the compatibility figure): components with a
+three-channel weight and a parameter block, added and multiplied. The registry (`closureRegistry.h`) holds eight built-ins named as OSL names them
+(`diffuse`, `oren_nayar`, `microfacet`, `reflection`, `refraction`, `transparent`, `holdout`, `uniform_edf`); `ClosureTreeBuilder` makes nodes on the
+batch's arena and refuses a bad weight or block once per frame; `closureFlatten` and the accessors read a tree. Tree weights are **not**
+premultiplied by `Os`: the consumer applies `Oi = Os`. `OrBsdfTable` (`bsdf.hpp`, the math in `bsdfMath.cpp`/`bsdfComponents.cpp`, D19) evaluates,
+samples and gives the density of a flattened tree, stateless and bit-identical on any thread.
+
+`Option`/`Attribute "shade" "closuremode"` (`color` default, `both`, `closures`; the attribute wins) is a new token through the four layers.
+`CShadingContext::shade()` keeps its code with an inline fast test (no attribute or scene mode and no governing Bxdf), `planSurfaceStep()`, the
+surface block through `runSurfaceStep()` when the plan builds trees, and `deliverClosures()` before the batch's arena is released
+(`closureStep.{h,cpp}`); `ClosureFrame` (per frame, next to `setSamplingConfig`) holds the scene mode and the once-per-frame keys. `IClosureConsumer`
+gets the trees (valid only during `consume`; `closureTreeCopy()` keeps one), `IShaderBackend::emitsClosures`/`executeClosures` have default bodies
+(no shipped shader is capable, FR-017). Under `closures` the **lighting gate** (`CShadingState::lightingSuppressed`) is read at four funnels only:
+`iterateLights`, the three ambient sites through one check, `irradianceLookup`, and `gather()` (`gatherHeaderBegin` and `gatherSample`).
+
+`Bxdf "name" ["handle"] <pl>` binds a built-in Bxdf (`diffuse`, `plastic`, `conductor`, `dielectric`: Bxdf interface 1.0.0, `bxdfAbi.h`,
+`bxdfRegistry`, `builtinBxdfs.cpp`) in the attributes' bxdf slot (`CBxdfInstance`); the last-bound record says whether Surface or Bxdf governs.
+It is invalid inside `ObjectBegin` (`VALID_BXDF_BLOCKS`) and takes no instance key. Interim rules (`closureInterim.cpp`, each owned by the spec
+that replaces it, precedence IR-026, IR-017, IR-018): IR-017 a surface that cannot emit closures renders as colour; IR-018 `closures` with no
+consumer; IR-026 a governing Bxdf with no consumer renders the substitute surface. See `DEVNOTES_DETAILS/CLOSURES.md` and gotcha 49.
+
 ### Geometry interfaces and the lens (spec 031)
 Geometry's dice and intersect take Geometry-owned interfaces that the hiders implement: `IDicer` (`geometry/dicer.h`: `drawObject`, `drawGrid`, `drawPoints`, `probe`, `inFrustum`, `rayContext()`) for dicing, `IRayContext` (`geometry/rayContext.h`: `threadIndex()`, the scratch arena, the varyings, `shade`/`displace`, `saveShadingState`/`restoreShadingState`) for intersection and tessellation, and `IObjectSink` (`geometry/objectSink.h`) for the objects `instantiate()` creates; a new Geometry file includes nothing from Hiders or Shading. The frame limits Geometry reads are a `CGeometryFrame` (`geometry/geometryFrame.h`: thread count, `maxGridSize`, `maxEyeSplits`, `flags`, `raytracingFlags`, projection, image plane, pixel size and origin, `clipMin`, and `lens`) that the core builds in `beginFrame()` **after the hiders' constructors have run** (its `raytracingFlags` copies a static those constructors set) and installs until `endFrame()`; with nothing installed it is all zero and `geometryFrame()` never returns null. See gotcha 39.
 
@@ -377,9 +400,12 @@ ctest --test-dir build -L '^gi_determinism_long$' -j2    # opt-in: the 30-run ph
 ctest --test-dir build -L plugin_abi -j4                # plug-in ABIs (spec 037): headers, versions, display host and v1 adapter, shadeop module, procedures, install layouts, doc checks
 ctest --test-dir build -LE 'determinism-sweep|gi_determinism_long' -j4   # the everyday full run: everything except the opt-in determinism sweep and the 30-run forms
 ctest --test-dir build -L '^determinism$' -j2           # default determinism set (169): harness, tie and derivative tests, one demanding scene per family
-ctest --test-dir build -L '^determinism-sweep$' -j2     # opt-in full sweep (761 entries, ~13 min on macOS and ~26 min on Linux at -j2): before each merge, and for the Linux validation
+ctest --test-dir build -L '^determinism-sweep$' -j2     # opt-in full sweep (785 entries, ~13 min on macOS and ~26 min on Linux at -j2): before each merge, and for the Linux validation
 ctest --test-dir build -L volume                        # spec 056: volume shader segments (the VolumeProbe_ hand-computed pixel checks, VolumeDiffer_, Parity_volume-, Determinism_volume-)
 ctest --test-dir build -L arealight -j4              # spec 057: area-light geometry (AreaSampling_*, the closed-form AreaLightProbe_*, AreaLight_ThreadIdentity*, soft-shadow Parity_/Visual_ scenes, AreaLight_QuadlightAgreement{,-slo}, AreaLight_PhotonSmoke, AreaLight_DocPaths; 200 tests, 80 of the sweep's entries carry a Determinism name too)
+ctest --test-dir build -L closures                      # spec 035: the tree, the registry, the BSDF numerics, the modes, the Bxdf statement and Bxdfs, Closure_DocPaths (125 tests)
+ctest --test-dir build -L closuremode                   # spec 035: closuremode as a statement and as state, the plan and the interim rules, the lighting gate, the area-light and photon cases, ClosureDet_* (59 tests)
+ctest --test-dir build -L bxdf                          # spec 035: Bxdf_Layout/Registry/Tree_*, the statement tests, Closure_Interim_IR026_*, Closure_Bxdf_* (37 tests)
 ctest --test-dir build -L link                          # spec 029: libRSLRuntime self-contained, the static consumer, no workaround text; `Link_RenameAliases`, `Link_InfoRuntimeNotCoLinked` (spec 033)
 ctest --test-dir build -L registry                      # spec 030: the hider and integrator registries (lookup, collisions, pair check and refusal, parameters, the frame abort paths, test-double hider)
 ctest --test-dir build -L geometry_contract             # spec 031: Geometry's five contract programs (a dicer, a ray context, a host and a sink double; no hider, no Shading)
@@ -1116,6 +1142,21 @@ not in the agent definitions.
    photon hider's own light runs (photon.cpp) are not cleared (their begin hooks write `L`), and oshader gives no diagnostic (the `loc_illum_*.slh` functions read `L` and `Cl` through `extern`
    from inside illuminance, so a lexical check would flag them). `Shadow236_*` (`-L shadow236`) pins it.
 
+49. **The Bxdf slot holds a `CBxdfInstance`, never a shader; the Bxdf step is declarative; the substitute is the world's default surface (spec 035).**
+   Read the slot with `bxdfInstanceOf()` (`bxdfInstance.h`), a checked cast that answers `nullptr` for any other object (a State double, an RSL
+   instance an old test binds): never `shaderInstanceOf(attributes.bxdf())`, which is a `static_cast` and would turn the Bxdf into a shader.
+   `RiBxdfV` never calls `takeInstanceKey()` and a refused statement leaves `pendingInstanceKey` and the binding alone
+   (`Bxdf_NoKey`, `Bxdf_Refusals`). `RiWorldBegin` keeps `worldDefaultSurface` only when `setDefaultSurface()` bound the `defaultsurface`; a Bxdf
+   bound before `WorldBegin` takes it **before** `setDefaultSurface()` (its `checkParameters()` stores `usedParameters` from the substitute), and
+   a pre-world `Surface` means the no-shader substitute: never a user Surface (`Closure_Interim_IR026_*`). While a Bxdf governs, `shade()` runs
+   the substitute but the message-passing builtins read the **slot** Surface: `SurfaceStepPlan::messageSurface` makes `shade()` prepare the
+   slot Surface's locals in `ACCESSOR_SURFACE` (not run) and the substitute's in `substituteLocals` (`Closure_Bxdf_MessagePassing`). The normal
+   a Bxdf receives is `faceforward(normalize(N), I)` with `+ 0.0f` so a flipped zero is `+0` (trees are hashed byte for byte). `alpha =
+   roughness`, not squared, in all four built-ins; `plastic`'s `ior` 0 means no Fresnel term. Closure tree weights carry no `Os`; the
+   consumer applies it. `closuremode`'s ray type of a camera hit is interim (`Camera` on a raytrace primary, `None` on a grid batch) until
+   spec 058 (#267). A lookup that matches `"sl:"`/`"osl:"` is reserved, never unknown. The z-buffer hider writes no opacity, so a test that
+   reads alpha skips it.
+
 ## Active Technologies
 - C++20, CMake ≥3.19; `libtiff`/`libpng` (mandatory), OpenEXR (optional,
   `HAVE_OPENEXR`-gated), in-tree RGBE codec — no new dependencies
@@ -1217,7 +1258,21 @@ not in the agent definitions.
   the renderer scales by `V / (n p_A)`; `kRendererServicesVersion` 2.6.0 (`ITracer::occluded`, `IAreaLightSampler`) (057-area-light-geometry)
 - Storage: N/A; memory only; the probe and scene references are generated files (`specs/057-area-light-geometry/tools/gen_scenes.py`) (057-area-light-geometry)
 
+- C++20 and C17 (`closureAbi.h` and `bxdfAbi.h` are strict C17), CMake ≥3.19, `-Werror`; no new dependencies: the closure tree and registry, the BSDF table and its
+  math, `closuremode` (the plan, the step, the lighting gate, `IClosureConsumer`) and the `Bxdf` statement with four built-ins, all in `libshader/closures`
+  (`libRSLRuntime`); closure ABI 1.0.0, Bxdf interface 1.0.0 (035-closure-tree-bsdf)
+- Storage: N/A; memory only; the sweep scenes are generated files (`specs/035-closure-tree-bsdf/tools/gen_scenes.py`) (035-closure-tree-bsdf)
+
 ## Recent Changes
+- 035-closure-tree-bsdf: the closure model and `closuremode`, the `Bxdf` statement (issue #41): an OSL-layout closure tree with a registry of eight
+  built-ins, the BSDF table and its math (reciprocity and chi-square tested against the density, tolerances from the standard deviation, none widened),
+  `Option`/`Attribute "shade" "closuremode"` (`color`, `both`, `closures`) through the four layers with the surface step, the lighting gate and
+  `IClosureConsumer`, and `Bxdf "name" ["handle"]` with `diffuse`, `plastic`, `conductor` and `dielectric` (a registered table, typed parameters,
+  `bxdfInstanceOf`, no instance key). Interim rules IR-017, IR-018 and IR-026 until specs 036, 041 and 042. Closure ABI 1.0.0 and Bxdf interface
+  1.0.0; `kRendererServicesVersion` unchanged. With neither statement every image, file and hash is byte-identical to the starting tree; no threshold
+  widened and no reference re-captured. The determinism sweep is 785 entries (24 new: 4 scenes x 3 hiders x 2 formats). Found on the way and
+  already on master: #235 (SolidBegin/ObjectBegin did not save attributes), #236 (`shadow("raytrace")` read uninitialised light state), #269
+  (ColorSamples read nRGB transposed); filed and open: #267 (the ray type of a camera hit). See `specs/035-closure-tree-bsdf/`.
 - 057-area-light-geometry: `AreaLightSource` binds the geometry created in its attribute block as the light's emitter (issue #152): a per-frame emitter registry in Geometry, an
   identity-only slot on the attributes, area sampling per primitive kind (polygons, meshes, subdivision surfaces, blobbies through their derived mesh; the quadrics; bilinear and bicubic patches, patch meshes and NURBS
   with trims, every drawn point tested against the trim; photon emission from bound lights), and a bound-light branch of `iterateLights` that runs the light shader once per sample

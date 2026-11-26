@@ -555,6 +555,24 @@ void CRibOut::RiOptionV(const char *name, int n, const char *tokens[], const voi
             }
         }
     }
+    else if (strcmp(name, RI_SHADE) == 0) {
+        // Option "shade" "closuremode" (spec 035, SC-008): written bare, read back through the pre-declared "closuremode"
+        for (i = 0; i < n; i++) {
+            if (strcmp(tokens[i], RI_CLOSUREMODE) == 0) {
+                const char *val = ((const char **)params[i])[0];
+                out("Option \"%s\" \"%s\" [\"%s\"]\n", name, tokens[i], val);
+            }
+            else {
+                CVariable var;
+                if (parseVariable(&var, NULL, tokens[i]) == TRUE && strcmp(var.name, tokens[i]) != 0) {
+                    RiOption(name, var.name, params[i], RI_NULL);
+                }
+                else {
+                    error(CODE_BADTOKEN, "Unknown %s option: \"%s\"\n", name, tokens[i]);
+                }
+            }
+        }
+    }
     else if (strcmp(name, RI_RIB) == 0) {
         for (i = 0; i < n; i++) {
             if (strcmp(tokens[i], RI_COMPRESSION) == 0) {
@@ -662,6 +680,15 @@ void CRibOut::RiIlluminate(const void *light, int onoff) {
 
 void CRibOut::RiSurfaceV(const char *name, int n, const char *tokens[], const void *params[]) {
     out("Surface \"%s\" ", name);
+    writePL(n, tokens, params);
+}
+
+// Spec 035: Bxdf "name" "handle" <pl>, the handle left out when there is none, at the call's position (a Surface/Bxdf order survives a round trip)
+void CRibOut::RiBxdfV(const char *name, const char *handle, int n, const char *tokens[], const void *params[]) {
+    if (handle != NULL)
+        out("Bxdf \"%s\" \"%s\" ", name, handle);
+    else
+        out("Bxdf \"%s\" ", name);
     writePL(n, tokens, params);
 }
 
@@ -1038,6 +1065,10 @@ void CRibOut::RiAttributeV(const char *name, int n, const char *tokens[], const 
             else if (strcmp(tokens[i], RI_SPECULARHITMODE) == 0) {
                 const char *val = ((const char **)params[i])[0];
                 out("Attribute \"%s\" \"%s\" \"%s\"\n", name, tokens[i], val);
+            }
+            else if (strcmp(tokens[i], RI_CLOSUREMODE) == 0) {
+                const char *val = ((const char **)params[i])[0]; // spec 035, SC-008
+                out("Attribute \"%s\" \"%s\" [\"%s\"]\n", name, tokens[i], val);
             }
             else {
                 CVariable var;

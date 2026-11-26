@@ -122,6 +122,7 @@ class CRendererContext : public CRiInterface, public CGeometryHost, public openr
 
         void RiIlluminate(const void *light, int onoff) override;
         void RiSurfaceV(const char *name, int n, const char *tokens[], const void *params[]) override;
+        void RiBxdfV(const char *name, const char *handle, int n, const char *tokens[], const void *params[]) override; // spec 035
         void RiAtmosphereV(const char *name, int n, const char *tokens[], const void *params[]) override;
         void RiInteriorV(const char *name, int n, const char *tokens[], const void *params[]) override;
         void RiExteriorV(const char *name, int n, const char *tokens[], const void *params[]) override;
@@ -275,6 +276,7 @@ class CRendererContext : public CRiInterface, public CGeometryHost, public openr
         uint32_t idOrdinal;      // The next top-level object ordinal of this world block (stable ids, spec 039)
         uint32_t shaderOrdinal;  // The next shader instance ordinal of this frame (or world block), in creation order (spec 039)
         uint64_t pendingInstanceKey; // The handle key of the light being created, or 0 (spec 039)
+        ShaderGroupRef worldDefaultSurface; // The defaultsurface RiWorldBegin bound, or empty when it bound none (spec 035, A'): the substitute a Bxdf bound in the world takes
 
         int addMotion(float *parameters, int parameterSize, const char *name, float *&p0, float *&p1);
 };
