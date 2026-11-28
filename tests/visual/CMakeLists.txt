@@ -4490,6 +4490,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/atan2-scenes.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/callsite-last-scenes.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/dlo-uv-scenes.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/visibility-scenes.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/zerodir-scenes.cmake)
 
 # --- Equal-depth ties (spec 039, Phase 7, T084c) ---------------------------------------------
 # Two coincident opaque triangles of different colour: every sample of the overlap receives two

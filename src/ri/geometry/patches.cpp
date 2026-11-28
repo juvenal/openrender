@@ -30,6 +30,7 @@
 #include <vector>
 
 #include "common/polynomial.h"
+#include "bilinearPivot.h"
 #include "crossingMath.h"
 #include "common/diagnostics.h"
 #include "common/memory.h"
@@ -235,6 +236,7 @@ void CBilinearPatch::intersect(IRayContext &context, CRay *cRay) {
 
     const float *r = cRay->from;
     const float *q = cRay->dir;
+    const BilinearPivot pv = bilinearPivot(q);
     vector a, b, c, d;
 
     subvv(a, P11, P10);
@@ -244,14 +246,14 @@ void CBilinearPatch::intersect(IRayContext &context, CRay *cRay) {
     subvv(c, P01, P00);
     movvv(d, P00);
 
-    const double A1 = a[COMP_X] * q[COMP_Z] - a[COMP_Z] * q[COMP_X];
-    const double B1 = b[COMP_X] * q[COMP_Z] - b[COMP_Z] * q[COMP_X];
-    const double C1 = c[COMP_X] * q[COMP_Z] - c[COMP_Z] * q[COMP_X];
-    const double D1 = (d[COMP_X] - r[COMP_X]) * q[COMP_Z] - (d[COMP_Z] - r[COMP_Z]) * q[COMP_X];
-    const double A2 = a[COMP_Y] * q[COMP_Z] - a[COMP_Z] * q[COMP_Y];
-    const double B2 = b[COMP_Y] * q[COMP_Z] - b[COMP_Z] * q[COMP_Y];
-    const double C2 = c[COMP_Y] * q[COMP_Z] - c[COMP_Z] * q[COMP_Y];
-    const double D2 = (d[COMP_Y] - r[COMP_Y]) * q[COMP_Z] - (d[COMP_Z] - r[COMP_Z]) * q[COMP_Y];
+    const double A1 = a[pv.i] * q[pv.k] - a[pv.k] * q[pv.i];
+    const double B1 = b[pv.i] * q[pv.k] - b[pv.k] * q[pv.i];
+    const double C1 = c[pv.i] * q[pv.k] - c[pv.k] * q[pv.i];
+    const double D1 = (d[pv.i] - r[pv.i]) * q[pv.k] - (d[pv.k] - r[pv.k]) * q[pv.i];
+    const double A2 = a[pv.j] * q[pv.k] - a[pv.k] * q[pv.j];
+    const double B2 = b[pv.j] * q[pv.k] - b[pv.k] * q[pv.j];
+    const double C2 = c[pv.j] * q[pv.k] - c[pv.k] * q[pv.j];
+    const double D2 = (d[pv.j] - r[pv.j]) * q[pv.k] - (d[pv.k] - r[pv.k]) * q[pv.j];
 
 #define solve()                                                                                                       \
     if ((v > 0) && (v < 1)) {                                                                                         \
